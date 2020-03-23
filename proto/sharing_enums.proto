@@ -1,0 +1,249 @@
+syntax = "proto2";
+
+package location.nearby.proto.sharing;
+
+import "logs/proto/logs_annotations/logs_annotations.proto";
+
+option (logs_proto.file_not_used_for_logging_except_enums) = true;
+option java_api_version = 2;
+option java_package = "com.google.location.nearby.proto";
+option java_outer_classname = "SharingEnums";
+option objc_class_prefix = "GNSHP";
+
+/*
+We use event based logging (an event object can be constructed and logged
+immediately when they occur). To obtain session based information (e.g.
+durations, counting incoming introductions), we use flowId (sender/receiver) in
+NearbyClearcutLogger for all events (may exclude settings), and session_id for a
+pair of events (start and end of a session).
+ */
+enum EventType {
+  UNKNOWN_EVENT_TYPE = 0;
+
+  // When new users accept agreements (like grant permission to contacts for
+  // CONTACT_ONLY visibility) and are enrolled into Nearby Sharing. This event
+  // is used to count number of new users.
+  ACCEPT_AGREEMENTS = 1;
+
+  // User enables/disables nearby sharing from setting or tile service.
+  ENABLE_NEARBY_SHARING = 2;
+
+  // User sets visibility preference from setting.
+  SET_VISIBILITY = 3;
+
+  // Describe attachments immediately when Nearby Sharing is opened by another
+  // app which is used to generate/attach attachments to be shared with other
+  // devices.
+  DESCRIBE_ATTACHMENTS = 4;
+
+  // Start of a scanning phase at sender.
+  SCAN_FOR_SHARE_TARGETS_START = 5;
+
+  // End of the scanning phase at sender.
+  SCAN_FOR_SHARE_TARGETS_END = 6;
+
+  // Receiver advertises itself for presence (a pseudo session).
+  ADVERTISE_DEVICE_PRESENCE_START = 7;
+
+  // End of the advertising phase at receiver.
+  ADVERTISE_DEVICE_PRESENCE_END = 8;
+
+  // Sender sends a fast initialization to receiver.
+  SEND_FAST_INITIALIZATION = 9;
+
+  // Receiver receives the fast initialization.
+  RECEIVE_FAST_INITIALIZATION = 10;
+
+  // Sender discovers a share target.
+  DISCOVER_SHARE_TARGET = 11;
+
+  // Sender sends introduction (before attachments being sent).
+  SEND_INTRODUCTION = 12;
+
+  // Receiver receives introduction.
+  RECEIVE_INTRODUCTION = 13;
+
+  // Receiver responds to introduction (before attachments being sent).
+  // Actions: Accept, Reject, or (for some reason) Fail.
+  RESPOND_TO_INTRODUCTION = 14;
+
+  // Start of the sending attachments phase at sender.
+  SEND_ATTACHMENTS_START = 15;
+
+  // End of sending attachments phase at sender.
+  SEND_ATTACHMENTS_END = 16;
+
+  // Start of the receiving attachments phase at receiver.
+  RECEIVE_ATTACHMENTS_START = 17;
+
+  // End of receiving attachments phase at receiver.
+  RECEIVE_ATTACHMENTS_END = 18;
+
+  // Sender cancels sending attachments.
+  CANCEL_SENDING_ATTACHMENTS = 19;
+
+  // Receiver cancels receiving attachments.
+  CANCEL_RECEIVING_ATTACHMENTS = 20;
+
+  // Receiver opens received attachments.
+  OPEN_RECEIVED_ATTACHMENTS = 21;
+
+  // User opens the setup activity.
+  LAUNCH_SETUP_ACTIVITY = 22;
+
+  // User adds a contact.
+  ADD_CONTACT = 23;
+
+  // User removes a contact.
+  REMOVE_CONTACT = 24;
+
+  // Local devices all Fast Share server.
+  FAST_SHARE_SERVER_RESPONSE = 25;
+
+  // The start of a sending session.
+  SEND_START = 26;
+
+  // Receiver accepts a fast initialization.
+  ACCEPT_FAST_INITIALIZATION = 27;
+
+  // Set internet preference.
+  SET_INTERNET_PREFERENCE = 28;
+}
+
+// Status of nearby sharing.
+enum NearbySharingStatus {
+  UNKNOWN_NEARBY_SHARING_STATUS = 0;
+
+  ON = 1;
+  OFF = 2;
+}
+
+enum Visibility {
+  UNKNOWN_VISIBILITY = 0;
+
+  CONTACTS_ONLY = 1;
+  EVERYONE = 2;
+  SELECTED_CONTACTS_ONLY = 3;
+  HIDDEN = 4;
+}
+
+enum InternetPreference {
+  UNKNOWN_INTERNET_PREFERENCE = 0;
+
+  ONLINE = 1;
+  WIFI_ONLY = 2;
+  OFFLINE = 3;
+}
+
+// The status of sending and receiving attachments. Used by SEND_ATTACHMENTS.
+enum AttachmentTransmissionStatus {
+  UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS = 0;
+
+  COMPLETE_ATTACHMENT_TRANSMISSION_STATUS = 1;
+  CANCELED_ATTACHMENT_TRANSMISSION_STATUS = 2;
+  FAILED_ATTACHMENT_TRANSMISSION_STATUS = 3;
+}
+
+// The status of advertising and discovering sessions. Used by
+// SCAN_FOR_SHARE_TARGETS and ADVERTISE_DEVICE_PRESENCE.
+enum SessionStatus {
+  UNKNOWN_SESSION_STATUS = 0;
+
+  SUCCEEDED_SESSION_STATUS = 1;
+  FAILED_SESSION_STATUS = 2;
+}
+
+// User's response to introductions.
+enum ResponseToIntroduction {
+  UNKNOWN_RESPONSE_TO_INTRODUCTION = 0;
+
+  ACCEPT_INTRODUCTION = 1;
+  REJECT_INTRODUCTION = 2;
+  FAIL_INTRODUCTION = 3;
+}
+
+// TODO(fdi): may eventually include desktop, etc.
+// The type of a remote device.
+enum DeviceType {
+  UNKNOWN_DEVICE_TYPE = 0;
+
+  PHONE = 1;
+  TABLET = 2;
+  LAPTOP = 3;
+}
+
+// TODO(fdi): may eventually include windows, iOS, etc.
+// The OS type of a remote device.
+enum OSType {
+  UNKNOWN_OS_TYPE = 0;
+
+  ANDROID = 1;
+  CHROME_OS = 2;
+}
+
+// Relationship of remote device to sender device.
+enum DeviceRelationship {
+  UNKNOWN_DEVICE_RELATIONSHIP = 0;
+
+  // The remote device belongs to the same owner as sender device.
+  IS_SELF = 1;
+  // The remote device is a contact of sender.
+  IS_CONTACT = 2;
+  // The remote device is a stranger.
+  IS_STRANGER = 3;
+}
+
+// The device sources of the clearcut log.
+enum LogSource {
+  UNSPECIFIED_SOURCE = 0;
+
+  // Represents the devices in Nearby labs.
+  LAB_DEVICES = 1;
+  // Represents the devices tested by Nearby engs, in the long term can include
+  // any devices with newest feature flags.
+  INTERNAL_DEVICES = 2;
+  // Represents the devices testing our in-development features before they're
+  // released to the greater public.
+  BETA_TESTER_DEVICES = 3;
+  // Represents the OEM partners (like Samsung) that we're working with to
+  // verify functionality on their devices.
+  OEM_DEVICES = 4;
+}
+
+// The Fast Share server action name.
+enum ServerActionName {
+  UNKNOWN_SERVER_ACTION = 0;
+
+  UPLOAD_CERTIFICATES = 1;
+  DOWNLOAD_CERTIFICATES = 2;
+  CHECK_REACHABILITY = 3;
+  UPLOAD_CONTACTS = 4;
+  UPDATE_DEVICE_NAME = 5;
+}
+
+// The Fast Share server response state.
+enum ServerResponseState {
+  UNKNOWN_SERVER_RESPONSE_STATE = 0;
+
+  SERVER_RESPONSE_SUCCESS = 1;
+  SERVER_RESPONSE_UNKNOWN_FAILURE = 2;
+
+  // For StatusException.
+  SERVER_RESPONSE_STATUS_OTHER_FAILURE = 3;
+  SERVER_RESPONSE_STATUS_DEADLINE_EXCEEDED = 4;
+  SERVER_RESPONSE_STATUS_PERMISSION_DENIED = 5;
+  SERVER_RESPONSE_STATUS_UNAVAILABLE = 6;
+  SERVER_RESPONSE_STATUS_UNAUTHENTICATED = 7;
+
+  // For GoogleAuthException.
+  SERVER_RESPONSE_GOOGLE_AUTH_FAILURE = 8;
+}
+
+// The type of Nearby Sharing scanning.
+enum ScanType {
+  UNKNOWN_SCAN_TYPE = 0;
+
+  FOREGROUND_SCAN = 1;
+  FOREGROUND_RETRY_SCAN = 2;
+  DIRECT_SHARE_SCAN = 3;
+}

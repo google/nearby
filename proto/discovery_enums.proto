@@ -1,0 +1,471 @@
+syntax = "proto2";
+
+package location.nearby.proto;
+
+import "logs/proto/logs_annotations/logs_annotations.proto";
+
+option (logs_proto.file_not_used_for_logging_except_enums) = true;
+option java_api_version = 2;
+option java_package = "com.google.location.nearby.proto";
+option java_outer_classname = "DiscoveryEnums";
+
+// NEXT ID: 130
+enum DiscoveryEvent {
+  UNKNOWN_DISCOVERY_EVENT = 0;
+
+  // Discoverer created the beacon opt-in notification
+  BEACON_OPT_IN_NOTIFICATION_TRIGGERED = 1;
+  // User clicked on the beacon opt-in notification
+  BEACON_OPT_IN_NOTIFICATION_CLICKED = 2;
+
+  // Discoverer created an item notification.
+  NOTIFICATION_TRIGGERED = 3;
+  // Discoverer' notification timed out without user action.
+  NOTIFICATION_TIMED_OUT = 4;
+  // User clicked on the "Manage Settings" button in notification.
+  // Deprecated. "Manage Settings" button replaced with "mute" for individual
+  // items and not present for grouped notifications.
+  NOTIFICATION_MANAGE_SETTINGS_CLICKED = 5 [deprecated = true];
+  // Notification dismiss back off policy maxed out.
+  NOTIFICATION_DISMISS_BACKOFF_MAXED = 6;
+
+  // User clicked on group notification.
+  NOTIFICATION_GROUP_CLICKED = 7;
+  // User specifically dismissed group notification.
+  NOTIFICATION_GROUP_DISMISSED = 8;
+  // User clicked on a one item notification.
+  NOTIFICATION_ITEM_CLICKED = 9;
+  // User specifically dismissed a one item notification.
+  NOTIFICATION_ITEM_DISMISSED = 10;
+
+  // User clicked on a list item.
+  LIST_ITEM_CLICKED = 11;
+  // User disabled individual list items.
+  LIST_ITEMS_DISABLED = 12;
+  // User enabled individual list items.
+  LIST_ITEMS_ENABLED = 13;
+
+  // The list view was launched (from Notificaion, Google Settings, etc.)
+  LIST_VIEW_LAUNCHED = 14;
+  // User clicked the positive button in notification settings opt-in
+  // dialog in ListView.
+  // Deprecated. Removed in v8. Use NOTIFICATION_MASTER_SWITCH_ENABLED
+  LIST_VIEW_OPT_IN_DIALOG_POSITIVE = 15 [deprecated = true];
+  // User clicked the "got it" button to confirm turning off Nearby
+  // notification through master switch in education module.
+  LIST_VIEW_OPT_IN_DIALOG_NEGATIVE = 16;
+  // User clicked the refresh button in ListView
+  LIST_VIEW_REFRESHED = 17;
+  // User clicked the Help link in action bar menu.
+  LIST_VIEW_HELP_LINK_CLICKED = 18;
+
+  // The notification settings Activity was launched.
+  NOTIFICATION_SETTINGS_LAUNCHED = 19;
+  // User enabled notification(device or link) in settings page.
+  NOTIFICATION_SETTINGS_ENABLED = 20;
+  // User disabled notification(device or link) in settings page.
+  NOTIFICATION_SETTINGS_DISABLED = 21;
+
+  // App was installed after user being redirected to Play Store.
+  APP_INSTALLED = 22;
+
+  // User clicked the notification settings entry in list view.
+  LIST_VIEW_NOTIFICATION_SETTINGS_CLICKED = 23;
+
+  // The permission dialog for BT & Location was shown.
+  PERMISSION_DIALOG_TRIGGERED = 24;
+  // User clicked "yes" to enable BT & Location permission.
+  PERMISSION_DIALOG_POSITIVE = 25;
+  // User clicked "cancel" on permission dialog.
+  PERMISSION_DIALOG_NEGATIVE = 26;
+
+  // The user was redirected to play store.
+  REDIRECTED_TO_PLAYSTORE = 27;
+
+  // Data was cleared in debug mode.
+  // Deprecated. Removed in v11.
+  DATA_CLEARED = 28 [deprecated = true];
+
+  // Discoverer was launched by user clicking nearby in Google settings.
+  GOOGLE_SETTING_CLICKED = 29;
+
+  // The "network is disabled" message is shown
+  // Deprecated. Use NetworkState instead.
+  NETWORK_UNAVAILABLE = 30 [deprecated = true];
+
+  // The QuickSettings Nearby tile was added
+  TILE_ADDED = 31;
+  // The QuickSettings Nearby tile was removed
+  TILE_REMOVED = 32;
+  // The QuickSettings Nearby tile was clicked
+  TILE_CLICKED = 33;
+
+  // User disabled item from notification.
+  NOTIFICATION_DISABLED = 34;
+
+  // User leaves the list view.
+  LIST_VIEW_EXIT = 35;
+
+  // TODO(haoxiangl): distinguish whether it is launched from home screen or
+  // launched after Chrome Custom Tab is dismissed
+  // Discoverer was launched by user clicking home screen shortcut icon.
+  LIST_VIEW_LAUNCHED_FROM_HOME_SCREEN = 36;
+
+  // Discoverer was launched by user clicking group/opt-in notification.
+  LIST_VIEW_LAUNCHED_FROM_NOTIFICATION = 37;
+
+  // Discoverer was launched by user clicking QS tile
+  LIST_VIEW_LAUNCHED_FROM_QS_TILE = 38;
+
+  // The list view refresh was triggered automatically by empty list or
+  // device permission turned on.
+  LIST_VIEW_AUTO_REFRESHED = 39;
+
+  // When the home screen icon was successfully added.
+  HOME_SCREEN_ICON_ADDED = 40;
+
+  // When user choose to add the home screen icon in overflow menu.
+  HOME_SCREEN_ICON_OVERFLOW_ADDED = 41;
+
+  // When user choose to add the home screen icon in warm welcome flow.
+  HOME_SCREEN_ICON_WW_ACCEPTED = 42;
+
+  // When user choose not to add the home screen icon in warm welcome flow.
+  HOME_SCREEN_ICON_WW_REJECTED = 43;
+
+  // Beacon opt-in notification (education) was timed out.
+  BEACON_OPT_IN_NOTIFICATION_TIMED_OUT = 44;
+
+  // Beacon opt-in notification (education) was dismissed by user.
+  BEACON_OPT_IN_NOTIFICATION_DISMISSED = 45;
+
+  // User enabled all notifications using list view master switch.
+  NOTIFICATION_MASTER_SWITCH_ENABLED = 46;
+  // User disabled all notifications using list view master switch.
+  NOTIFICATION_MASTER_SWITCH_DISABLED = 47;
+
+  // A new ChromeCustomTab session is started
+  CHROME_CUSTOM_TAB_START = 48;
+  // A ChromeCustomTab session is finished
+  CHROME_CUSTOM_TAB_FINISH = 49;
+
+  // The user swiped away the "Pairing..." notification.
+  MAGIC_PAIR_PAIRING_NOTIFICATION_DISMISSED = 50;
+
+  // The user has started pairing with a device associated with a FastPair
+  // item. The user may have started pairing via Bluetooth Settings rather than
+  // via the notification. (We may not have even shown the notification, i.e.
+  // if it's not within the distance threshold.)
+  BLUETOOTH_BONDING = 57;
+
+  // An item was launched automatically (e.g. because it passed a very high
+  // relevance threshold), without the user clicking it.
+  ITEM_AUTO_LAUNCHED = 51;
+
+  // A Listview item is viewed by the users.
+  LIST_ITEM_VIEWED = 52;
+
+  // Web url was launched in a browser other than in Chrome Custom Tab.
+  WEB_URL_LAUNCHED_IN_BROWSER = 53;
+
+  // "Do not show again" was clicked in the notification
+  NOTIFICATION_DO_NOT_SHOW_AGAIN_CLICKED = 54;
+
+  // "Report" was clicked in the Chrome Custom Tab
+  CHROME_CUSTOM_TAB_REPORT_CLICKED = 55;
+
+  // The user clicked the notification displayed after pairing has finished.
+  MAGIC_PAIR_POST_COMPLETION_INTENT_LAUNCHED = 56;
+
+  // Abuse Report was submitted
+  REPORT_ABUSE_SUBMITTED = 58;
+
+  // "Report" was clicked in the Discovery Report Snackbar
+  SNACKBAR_REPORT_CLICKED = 59;
+
+  // Devices activity was launched by user clicking settings button.
+  DEVICES_LIST_VIEW_LAUNCHED_FROM_SETTINGS = 60;
+
+  // Devices activity was launched by user clicking a notification.
+  DEVICES_LIST_VIEW_LAUNCHED_FROM_NOTIFICATION = 61;
+
+  // User left the devices activity.
+  DEVICES_LIST_VIEW_EXIT = 62;
+
+  // A list item was viewed by the user in the devices activity.
+  DEVICES_LIST_ITEM_VIEWED = 63;
+
+  // A list item in the devices activity is clicked by the user.
+  DEVICES_LIST_ITEM_CLICKED = 64;
+
+  // User clicked the Help link in the action bar menu.
+  DEVICES_LIST_VIEW_ACTION_BAR_HELP_LINK_CLICKED = 66;
+
+  // User toggled the 'Notifications' item in the devices list view.
+  DEVICES_LIST_VIEW_NOTIFICATIONS_TOGGLED = 73;
+
+  // User clicked the help link in Fast Pair account settings.
+  FAST_PAIR_ACCOUNT_SETTINGS_ACTION_BAR_HELP_LINK_CLICKED = 74;
+
+  // User enables device notifications
+  DEVICE_NOTIFICATION_SETTINGS_ENABLED = 75;
+
+  // User disables device notifications
+  DEVICE_NOTIFICATION_SETTINGS_DISABLED = 76;
+
+  // User connected to a bluetooth device with a battery level and we showed a
+  // toast to let them know the current level.
+  BLUETOOTH_BATTERY_LEVEL_TOAST_SHOWN = 77;
+
+  // User connected to a Fast Pair 2 device and the connected/disconnected
+  // status was uploaded to Find My Accessories.
+  FIND_MY_ACCESSORY_UPLOADED = 78;
+
+  // User went to the Fast Pair account page.
+  FAST_PAIR_ACCOUNT_SETTINGS_LAUNCHED = 79;
+
+  // User switched the account being shown on the Fast Pair account page.
+  FAST_PAIR_ACCOUNT_SETTINGS_SWITCHED = 80;
+
+  // User disabled saving Fast Pair devices to their account.
+  FAST_PAIR_ACCOUNT_SETTINGS_SAVE_DISABLED = 81;
+
+  // User enabled saving Fast Pair devices to their account.
+  FAST_PAIR_ACCOUNT_SETTINGS_SAVE_ENABLED = 82;
+
+  // User clicked a device item on the account settings page.
+  FAST_PAIR_ACCOUNT_SETTINGS_DEVICE_ITEM_LAUNCHED = 83;
+
+  // User renamed a Fast Pair device from Fast Pair's device settings page.
+  FAST_PAIR_DEVICE_RENAMED = 84;
+
+  // User forgot a Fast Pair device from Fast Pair's device settings page.
+  FAST_PAIR_DEVICE_FORGOTTEN = 85;
+
+  // User clicked the Find My Device item from device settings.
+  FAST_PAIR_DEVICE_FIND_DEVICE_CLICKED = 86;
+
+  // User clicked the install companion app item from device settings.
+  FAST_PAIR_DEVICE_INSTALL_COMPANION_APP_CLICKED = 87;
+
+  // User clicked the open companion app item from device settings.
+  FAST_PAIR_DEVICE_OPEN_COMPANION_APP_CLICKED = 88;
+
+  // User clicked a slice item from the companion app on the device settings
+  // page.
+  FAST_PAIR_DEVICE_SLICE_ITEM_CLICKED = 89;
+
+  // User launched the find device activity for ringing their device.
+  FAST_PAIR_FIND_DEVICE_LAUNCHED = 90;
+
+  // User clicked the find device ring button.
+  FAST_PAIR_FIND_DEVICE_RING_CLICKED = 91;
+
+  // User clicked the find device mute button.
+  FAST_PAIR_FIND_DEVICE_MUTE_CLICKED = 92;
+
+  // User clicked the find device ring left button.
+  FAST_PAIR_FIND_DEVICE_RING_LEFT_CLICKED = 93;
+
+  // User clicked the find device ring right button.
+  FAST_PAIR_FIND_DEVICE_RING_RIGHT_CLICKED = 94;
+
+  // User clicked the find device mute left button.
+  FAST_PAIR_FIND_DEVICE_MUTE_LEFT_CLICKED = 95;
+
+  // User clicked the find device mute right button.
+  FAST_PAIR_FIND_DEVICE_MUTE_RIGHT_CLICKED = 96;
+
+  // User clicked the show device location history button.
+  FAST_PAIR_FIND_DEVICE_HISTORY_CLICKED = 97;
+
+  // User queried the connected device settings slices.
+  FAST_PAIR_CONNECTED_DEVICE_SLICE_QUERIED = 98;
+
+  // User requested to download the optional module.
+  FAST_PAIR_OPTIONAL_MODULE_REQUEST_SUCCEEDED = 99;
+
+  // User requested to download the optional module, but it failed.
+  FAST_PAIR_OPTIONAL_MODULE_REQUEST_FAILED = 100;
+
+  // User finished installing the optional module and it is enabled.
+  FAST_PAIR_OPTIONAL_MODULE_ENABLED = 101;
+
+  // Android first discovers a device broadcasting a Fast Pair advertisement
+  // containing a model id
+  FAST_PAIR_DEVICE_DETECTED_WITH_MODEL_ID = 102;
+
+  // Android first discovers a device broadcasting a Fast Pair advertisement
+  // containing a bloom filter
+  FAST_PAIR_DEVICE_DETECTED_WITH_BLOOM_FILTER = 103;
+
+  // Detected model id was found in the local Fast Pair device database.
+  FAST_PAIR_LOCAL_DB_CACHE_HIT = 104;
+
+  // Detected model id was not found in the local Fast Pair device database,
+  // and a request was sent to the GetObservedDevices for device info.
+  FAST_PAIR_DEVICE_INFO_SERVER_REQUEST_SENT = 105;
+
+  // Failed to receive a valid response from the Device info request.
+  FAST_PAIR_DEVICE_INFO_SERVER_ERROR_RESPONSE = 106;
+
+  // Received response for previous Fast Pair Device info request.
+  FAST_PAIR_DEVICE_INFO_SERVER_RESPONSE_RECEIVED = 107;
+
+  // User was shown notification for the first time using the internal Fast Pair
+  // scanning stack.
+  FAST_PAIR_NOTIFICATION_SHOWN = 108;
+
+  // User dismissed notification generated from the internal Fast Pair scan
+  // stack.
+  FAST_PAIR_NOTIFICATION_DISMISSED = 109;
+
+  // User triggered notification's "Do not show" action.
+  FAST_PAIR_NOTIFICATION_DO_NOT_SHOW_CLICKED = 110;
+
+  // Notification generated from the internal Fast Pair scan stack has
+  // timed-out.
+  FAST_PAIR_NOTIFICATION_TIMEOUT = 111;
+
+  // Internal Fast Pair scanner detected a device that has triggered an
+  // auto launch interaction type for the first time.
+  FAST_PAIR_AUTO_LAUNCH_TRIGGERED = 112;
+
+  // User tapped the pairing notification generated from the internal Fast Pair
+  // scan stack.
+  FAST_PAIR_NOTIFICATION_CLICKED = 113;
+
+  // User has seen a battery notification.
+  FAST_PAIR_BATTERY_NOTIFICATION_SHOWN = 114;
+
+  // User has dismissed the battery notification.
+  FAST_PAIR_BATTERY_NOTIFICATION_DISMISSED = 115;
+
+  // User has clicked the battery notification.
+  FAST_PAIR_BATTERY_NOTIFICATION_CLICKED = 116;
+
+  // A "smart" battery remaining number was displayed to the user.
+  FAST_PAIR_BATTERY_NOTIFICATION_DISPLAYED_SMART_BATTERY = 117;
+
+  // User has clicked the assistant settings slice.
+  FAST_PAIR_DEVICE_ASSISTANT_SETTINGS_CLICKED = 118;
+
+  // A post action notification of installing or launching companion apps was
+  // shown.
+  FAST_PAIR_POST_ACTION_NOTIFICATION_SHOWN = 119;
+
+  // A user clicked event of installing a companion app.
+  FAST_PAIR_POST_ACTION_INSTALL_COMPANION_APP = 120;
+
+  // A user clicked event of launching a companion app.
+  FAST_PAIR_POST_ACTION_LAUNCH_COMPANION_APP = 121;
+
+  // User has clicked the companion oobe slice from device settings.
+  FAST_PAIR_DEVICE_COMPANION_OOBE_CLICKED = 122;
+
+  // User has clicked the companion settings slice from device settings.
+  FAST_PAIR_DEVICE_COMPANION_SETTINGS_CLICKED = 123;
+
+  // User was shown notification for the first time secondary device available.
+  FAST_PAIR_SECONDARY_DEVICE_NOTIFICATION_SHOWN = 124;
+
+  // User dismissed notification for the secondary device available.
+  FAST_PAIR_SECONDARY_DEVICE_NOTIFICATION_DISMISSED = 125;
+
+  // User triggered notification's "Do not show again" action for the secondary
+  // device available.
+  FAST_PAIR_SECONDARY_DEVICE_NOTIFICATION_DO_NOT_SHOW_CLICKED = 126;
+
+  // The notification has timed-out for the secondary device available.
+  FAST_PAIR_SECONDARY_DEVICE_NOTIFICATION_TIMEOUT = 127;
+
+  // User tapped the pairing notification for the secondary device available.
+  FAST_PAIR_SECONDARY_DEVICE_NOTIFICATION_CLICKED = 128;
+
+  // A user dismissed event of launching a companion app.
+  FAST_PAIR_POST_ACTION_DISMISS_COMPANION_APP = 129;
+
+  // Deprecated.
+  reserved 65, 67 to 72;
+}
+
+// Deprecated: use NearbyType or different events for different types instead.
+enum DiscoveryType {
+  option deprecated = true;
+
+  UNKNOWN_TYPE = 0;
+  // The action is related to a device setup item. e.g. Chromecast
+  DEVICE = 1;
+  // The action is related to a beacon item. e.g. PWS or PBS.
+  BEACON = 2;
+  // The action is related to a popular here item. e.g. popular here url/apps.
+  POPULAR_HERE = 3;
+}
+
+enum ActionIntentType {
+  UNKNOWN_ACTION_INTENT_TYPE = 0;
+  // Open a web url directly.
+  INTENT_WEB_URL = 1;
+  // Launch an installed app.
+  INTENT_APP = 2;
+  // Open the fallback web url due to app not installed.
+  INTENT_FALLBACK_URL = 3;
+  // Redirect user to play store due to app not installed.
+  INTENT_PLAY_STORE = 4;
+}
+
+enum BlockType {
+  UNKNOWN_BLOCK_TYPE = 0;
+  // The item is enabled by user
+  ITEM_ENABLED = 1;
+  // The item is disabled by user
+  ITEM_DISABLED = 2;
+}
+
+enum SettingState {
+  UNKNOWN_STATE_TYPE = 0;
+  // The setting entry is not set. (before opt-in)
+  NOT_SET = 1;
+  // The setting is enabled by user
+  ENABLED = 2;
+  // The setting is disabled by user
+  DISABLED = 3;
+}
+
+enum TileState {
+  UNKNOWN_TILE_STATE_TYPE = 0;
+  // The quick settings tile is not available for this device
+  NOT_AVAILABLE = 1;
+  // The quick settings tile is enabled
+  TILE_ENABLED = 2;
+  // The quick settings tile is disabled
+  TILE_DISABLED = 3;
+}
+
+enum NetworkState {
+  UNKNOWN_NETWORK_STATE_TYPE = 0;
+  // Device has no network connection
+  DISCONNECTED = 1;
+  // Device is connected on Wifi
+  ON_WIFI = 2;
+  // Device is connected on cellular
+  ON_CELLULAR = 3;
+}
+
+enum EducationState {
+  UNKNOWN_EDUCATION_STATE = 0;
+  // User has finished the education workflow
+  EDUCATION_COMPLETE = 1;
+  // User has not finished the education workflow
+  EDUCATION_NOT_COMPLETE = 2;
+}
+
+// LINT.IfChange
+enum ScreenState {
+  UNKNOWN_SCREEN_STATE = 0;
+  // Device's screen is interactive
+  SCREEN_INTERACTIVE = 1;
+  // Device's screen is non-interactive
+  SCREEN_NOT_INTERACTIVE = 2;
+}
+// LINT.ThenChange(//depot/google3/location/nearby/discovery_signal_store/proto/discovery_signal_store.proto)

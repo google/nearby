@@ -1,0 +1,58 @@
+syntax = "proto2";
+
+package location.nearby.proto;
+
+import "logs/proto/logs_annotations/logs_annotations.proto";
+
+option (logs_proto.file_not_used_for_logging_except_enums) = true;
+option java_api_version = 2;
+option java_package = "com.google.location.nearby.proto";
+option java_outer_classname = "NearbyEventCodes";
+
+// Event codes for the NEARBY log source. See:
+// http://google3/wireless/android/play/playlog/proto/event_code_enums.proto
+message NearbyEvent {
+  enum EventCode {
+    UNKNOWN_EVENT_TYPE = 0;
+
+    // Codes for Magic Pair.
+    // Starting at 1000 to not conflict with other existing codes (e.g.
+    // DiscoveryEvent) that may be migrated to become official Event Codes.
+    MAGIC_PAIR_START = 1010;
+    WAIT_FOR_SCREEN_UNLOCK = 1020;
+    GATT_CONNECT = 1030;
+    BR_EDR_HANDOVER_WRITE_CONTROL_POINT_REQUEST = 1040;
+    BR_EDR_HANDOVER_READ_BLUETOOTH_MAC = 1050;
+    BR_EDR_HANDOVER_READ_TRANSPORT_BLOCK = 1060;
+    GET_PROFILES_VIA_SDP = 1070;
+    DISCOVER_DEVICE = 1080;
+    CANCEL_DISCOVERY = 1090;
+    REMOVE_BOND = 1100;
+    CANCEL_BOND = 1110;
+    CREATE_BOND = 1120;
+    CONNECT_PROFILE = 1130;
+    DISABLE_BLUETOOTH = 1140;
+    ENABLE_BLUETOOTH = 1150;
+    MAGIC_PAIR_END = 1160;
+    SECRET_HANDSHAKE = 1170;
+    WRITE_ACCOUNT_KEY = 1180;
+    WRITE_TO_FOOTPRINTS = 1190;
+    PASSKEY_EXCHANGE = 1200;
+    DEVICE_RECOGNIZED = 1210;
+    GET_LOCAL_PUBLIC_ADDRESS = 1220;
+    DIRECTLY_CONNECTED_TO_PROFILE = 1230;
+    DEVICE_ALIAS_CHANGED = 1240;
+    WRITE_DEVICE_NAME = 1250;
+    UPDATE_PROVIDER_NAME_START = 1260;
+    UPDATE_PROVIDER_NAME_END = 1270;
+    READ_FIRMWARE_VERSION = 1280;
+    RETROACTIVE_PAIR_START = 1290;
+    RETROACTIVE_PAIR_END = 1300;
+    SUBSEQUENT_PAIR_START = 1310;
+    SUBSEQUENT_PAIR_END = 1320;
+    BISTO_PAIR_START = 1330;
+    BISTO_PAIR_END = 1340;
+    REMOTE_PAIR_START = 1350;
+    REMOTE_PAIR_END = 1360;
+  }
+}

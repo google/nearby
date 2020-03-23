@@ -1,0 +1,66 @@
+syntax = "proto2";
+
+package location.nearby.proto;
+
+import "logs/proto/logs_annotations/logs_annotations.proto";
+
+option (logs_proto.file_not_used_for_logging_except_enums) = true;
+option java_api_version = 2;
+option java_package = "com.google.location.nearby.proto";
+option java_outer_classname = "MagicPairEnums";
+option objc_class_prefix = "GNCP";
+
+// Enums related to logged events. For event codes, see NearbyEventCodes.
+message MagicPairEvent {
+  // These numbers match BluetoothDevice on Android:
+  // http://cs/android/frameworks/base/core/java/android/bluetooth/BluetoothDevice.java?l=283&rcl=0d05da79fb6c0fb04f6ebd3cc16265c5ff9e6764
+  enum BondState {
+    UNKNOWN_BOND_STATE = 0;
+    NONE = 10;
+    BONDING = 11;
+    BONDED = 12;
+  }
+
+  // Generally applicable error codes.
+  enum ErrorCode {
+    UNKNOWN_ERROR_CODE = 0;
+
+    // Check the other fields for a more specific error code.
+    OTHER_ERROR = 1;
+
+    // The operation timed out.
+    TIMEOUT = 2;
+
+    // The thread was interrupted.
+    INTERRUPTED = 3;
+
+    // Some reflective call failed (should never happen).
+    REFLECTIVE_OPERATION_EXCEPTION = 4;
+
+    // A Future threw an exception (should never happen).
+    EXECUTION_EXCEPTION = 5;
+
+    // Parsing something (e.g. BR/EDR Handover data) failed.
+    PARSE_EXCEPTION = 6;
+  }
+
+  enum BrEdrHandoverErrorCode {
+    UNKNOWN_BR_EDR_HANDOVER_ERROR_CODE = 0;
+    CONTROL_POINT_RESULT_CODE_NOT_SUCCESS = 1;
+    BLUETOOTH_MAC_INVALID = 2;
+    TRANSPORT_BLOCK_INVALID = 3;
+  }
+
+  enum CreateBondErrorCode {
+    UNKNOWN_BOND_ERROR_CODE = 0;
+    BOND_BROKEN = 1;
+    POSSIBLE_MITM = 2;
+  }
+
+  enum ConnectErrorCode {
+    UNKNOWN_CONNECT_ERROR_CODE = 0;
+    UNSUPPORTED_PROFILE = 1;
+    GET_PROFILE_PROXY_FAILED = 2;
+    DISCONNECTED = 3;
+  }
+}

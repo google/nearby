@@ -1,0 +1,239 @@
+syntax = "proto2";
+
+package location.nearby.connections;
+
+option java_outer_classname = "OfflineWireFormatsProto";
+option java_package = "com.google.location.nearby.connections.proto";
+option objc_class_prefix = "GNCP";
+
+message OfflineFrame {
+  enum Version {
+    UNKNOWN_VERSION = 0;
+    V1 = 1;
+  }
+  optional Version version = 1;
+
+  // Right now there's only 1 version, but if there are more, exactly one of
+  // the following fields will be set.
+  optional V1Frame v1 = 2;
+}
+
+message V1Frame {
+  enum FrameType {
+    UNKNOWN_FRAME_TYPE = 0;
+    CONNECTION_REQUEST = 1;
+    CONNECTION_RESPONSE = 2;
+    PAYLOAD_TRANSFER = 3;
+    BANDWIDTH_UPGRADE_NEGOTIATION = 4;
+    KEEP_ALIVE = 5;
+    DISCONNECTION = 6;
+    PAIRED_KEY_ENCRYPTION = 7;
+  }
+  optional FrameType type = 1;
+
+  // Exactly one of the following fields will be set.
+  optional ConnectionRequestFrame connection_request = 2;
+  optional ConnectionResponseFrame connection_response = 3;
+  optional PayloadTransferFrame payload_transfer = 4;
+  optional BandwidthUpgradeNegotiationFrame bandwidth_upgrade_negotiation = 5;
+  optional KeepAliveFrame keep_alive = 6;
+  optional DisconnectionFrame disconnection = 7;
+  optional PairedKeyEncryptionFrame paired_key_encryption = 8;
+}
+
+message ConnectionRequestFrame {
+  // Should always match cs/symbol:location.nearby.proto.connections.Medium
+  enum Medium {
+    UNKNOWN_MEDIUM = 0;
+    MDNS = 1;
+    BLUETOOTH = 2;
+    WIFI_HOTSPOT = 3;
+    BLE = 4;
+    WIFI_LAN = 5;
+    WIFI_AWARE = 6;
+    NFC = 7;
+    WIFI_DIRECT = 8;
+    WEB_RTC = 9;
+  }
+
+  optional string endpoint_id = 1;
+  optional string endpoint_name = 2;
+  optional bytes handshake_data = 3;
+  // A random number generated for each outgoing connection that is presently
+  // used to act as a tiebreaker when 2 devices connect to each other
+  // simultaneously; this can also be used for other initialization-scoped
+  // things in the future.
+  optional int32 nonce = 4;
+  // The mediums this device supports upgrading to. This list should be filtered
+  // by both the strategy and this device's individual limitations.
+  repeated Medium mediums = 5;
+  optional bytes endpoint_info = 6;
+  optional MediumMetadata medium_metadata = 7;
+}
+
+message ConnectionResponseFrame {
+  // This doesn't need to send back endpoint_id and endpoint_name (like
+  // the ConnectionRequestFrame does) because those have already been
+  // transmitted out-of-band, at the time this endpoint was discovered.
+
+  // One of:
+  //
+  // - ConnectionsStatusCodes.STATUS_OK
+  // - ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED.
+  optional int32 status = 1;
+  optional bytes handshake_data = 2;
+}
+
+message PayloadTransferFrame {
+  enum PacketType {
+    UNKNOWN_PACKET_TYPE = 0;
+    DATA = 1;
+    CONTROL = 2;
+  }
+
+  message PayloadHeader {
+    enum PayloadType {
+      UNKNOWN_PAYLOAD_TYPE = 0;
+      BYTES = 1;
+      FILE = 2;
+      STREAM = 3;
+    }
+    optional int64 id = 1;
+    optional PayloadType type = 2;
+    optional int64 total_size = 3;
+  }
+
+  // Accompanies DATA packets.
+  message PayloadChunk {
+    enum Flags { LAST_CHUNK = 0x1; }
+    optional int32 flags = 1;
+    optional int64 offset = 2;
+    optional bytes body = 3;
+  }
+
+  // Accompanies CONTROL packets.
+  message ControlMessage {
+    enum EventType {
+      UNKNOWN_EVENT_TYPE = 0;
+      PAYLOAD_ERROR = 1;
+      PAYLOAD_CANCELED = 2;
+    }
+
+    optional EventType event = 1;
+    optional int64 offset = 2;
+  }
+
+  optional PacketType packet_type = 1;
+  optional PayloadHeader payload_header = 2;
+
+  // Exactly one of the following fields will be set, depending on the type.
+  optional PayloadChunk payload_chunk = 3;
+  optional ControlMessage control_message = 4;
+}
+
+message BandwidthUpgradeNegotiationFrame {
+  enum EventType {
+    UNKNOWN_EVENT_TYPE = 0;
+    UPGRADE_PATH_AVAILABLE = 1;
+    LAST_WRITE_TO_PRIOR_CHANNEL = 2;
+    SAFE_TO_CLOSE_PRIOR_CHANNEL = 3;
+    CLIENT_INTRODUCTION = 4;
+    UPGRADE_FAILURE = 5;
+  }
+
+  // Accompanies UPGRADE_PATH_AVAILABLE and UPGRADE_FAILURE events.
+  message UpgradePathInfo {
+    // Should always match cs/symbol:location.nearby.proto.connections.Medium
+    enum Medium {
+      UNKNOWN_MEDIUM = 0;
+      MDNS = 1;
+      BLUETOOTH = 2;
+      WIFI_HOTSPOT = 3;
+      BLE = 4;
+      WIFI_LAN = 5;
+      WIFI_AWARE = 6;
+      NFC = 7;
+      WIFI_DIRECT = 8;
+      WEB_RTC = 9;
+    }
+
+    // Accompanies Medium.WIFI_HOTSPOT.
+    message WifiHotspotCredentials {
+      optional string ssid = 1;
+      optional string password = 2;
+      optional int32 port = 3;
+      optional string gateway = 4 [default = "0.0.0.0"];
+    }
+
+    // Accompanies Medium.WIFI_LAN.
+    message WifiLanSocket {
+      optional bytes ip_address = 1;
+      optional int32 wifi_port = 2;
+    }
+
+    // Accompanies Medium.BLUETOOTH.
+    message BluetoothCredentials {
+      optional string service_name = 1;
+      optional string mac_address = 2;
+    }
+
+    // Accompanies Medium.WIFI_AWARE.
+    message WifiAwareCredentials {
+      optional string service_id = 1;
+      optional bytes service_info = 2;
+      optional string password = 3;
+    }
+
+    // Accompanies Medium.WIFI_DIRECT.
+    message WifiDirectCredentials {
+      optional string ssid = 1;
+      optional string password = 2;
+      optional int32 port = 3;
+      optional int32 frequency = 4;
+    }
+
+    optional Medium medium = 1;
+
+    // Exactly one of the following fields will be set.
+    optional WifiHotspotCredentials wifi_hotspot_credentials = 2;
+    optional WifiLanSocket wifi_lan_socket = 3;
+    optional BluetoothCredentials bluetooth_credentials = 4;
+    optional WifiAwareCredentials wifi_aware_credentials = 5;
+    optional WifiDirectCredentials wifi_direct_credentials = 6;
+  }
+
+  // Accompanies CLIENT_INTRODUCTION events.
+  message ClientIntroduction {
+    optional string endpoint_id = 1;
+  }
+
+  optional EventType event_type = 1;
+
+  // Exactly one of the following fields will be set.
+  optional UpgradePathInfo upgrade_path_info = 2;
+  optional ClientIntroduction client_introduction = 3;
+}
+
+message KeepAliveFrame {
+  // Empty on purpose.
+}
+
+// Informs the remote side to immediately severe the socket connection.
+// Used in bandwidth upgrades to get around a race condition, but may be used
+// in other situations to trigger a faster disconnection event than waiting for
+// socket closed on the remote side.
+message DisconnectionFrame {
+  // Empty on purpose.
+}
+
+// A paired key encryption packet sent between devices, contains signed data.
+message PairedKeyEncryptionFrame {
+  // The encrypted data (raw authentication token for the established
+  // connection) in byte array format.
+  optional bytes signed_data = 1;
+}
+
+message MediumMetadata {
+  // True if local device supports 5GHz.
+  optional bool supports_5_ghz = 1;
+}

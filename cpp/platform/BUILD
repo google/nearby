@@ -1,0 +1,144 @@
+cc_library(
+    name = "utils",
+    srcs = [
+        "base64_utils.cc",
+        "file_impl.cc",
+        "prng.cc",
+        "reliability_utils.cc",
+    ],
+    hdrs = [
+        "base64_utils.h",
+        "cancelable_alarm.cc",
+        "cancelable_alarm.h",
+        "file_impl.h",
+        "pipe.cc",
+        "pipe.h",
+        "prng.h",
+        "reliability_utils.h",
+        "synchronized.h",
+    ],
+    visibility = [
+        "//core:__subpackages__",
+        "//platform/impl:__subpackages__",
+        "//location/nearby/setup/core/internal:__subpackages__",
+    ],
+    deps = [
+        ":types",
+        "//platform/api",
+        "//platform/port:string",
+        "//strings",
+        "//absl/strings",
+        "//absl/time",
+    ],
+)
+
+cc_library(
+    name = "types",
+    srcs = [
+        "ptr.cc",
+    ],
+    hdrs = [
+        "byte_array.h",
+        "callable.h",
+        "cancelable.h",
+        "container_of.h",
+        "exception.cc",
+        "exception.h",
+        "ptr.h",
+        "runnable.h",
+    ],
+    visibility = [
+        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//core:__subpackages__",
+        "//platform:__subpackages__",
+        "//location/nearby/setup/core:__subpackages__",
+    ],
+    deps = [
+        ":logging",
+        "//platform/impl/default:lock",
+        "//platform/port:down_cast",
+        "//platform/port:string",
+    ],
+)
+
+cc_library(
+    name = "logging",
+    hdrs = [
+        "logging.h",
+    ],
+    visibility = [
+        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//core:__subpackages__",
+    ],
+    deps = [
+        "//absl/base",
+        "//absl/base:raw_logging_internal",
+    ],
+)
+
+cc_test(
+    name = "container_of_test",
+    srcs = ["container_of_test.cc"],
+    deps = [
+        ":types",
+        "//testing/base/public:gunit_main",
+    ],
+)
+
+cc_test(
+    name = "ptr_test",
+    srcs = ["ptr_test.cc"],
+    deps = [
+        ":types",
+        "//testing/base/public:gunit_main",
+    ],
+)
+
+cc_test(
+    name = "prng_test",
+    srcs = ["prng_test.cc"],
+    deps = [
+        ":utils",
+        "//testing/base/public:gunit_main",
+    ],
+)
+
+cc_test(
+    name = "file_test",
+    srcs = ["file_impl_test.cc"],
+    deps = [
+        ":utils",
+        "//file/util:temp_path",
+        "//testing/base/public:gunit_main",
+    ],
+)
+
+cc_test(
+    name = "pipe_test",
+    timeout = "short",
+    srcs = ["pipe_test.cc"],
+    deps = [
+        ":utils",
+        "//platform:types",
+        "//platform/impl/default:condition_variable",
+        "//platform/impl/default:lock",
+        "//platform/port:string",
+        "//testing/base/public:gunit_main",
+        "//absl/time",
+    ],
+)
+
+cc_test(
+    name = "byte_array_test",
+    timeout = "short",
+    srcs = ["byte_array_test.cc"],
+    deps = [
+        ":utils",
+        "//platform:types",
+        "//platform/impl/default:condition_variable",
+        "//platform/impl/default:lock",
+        "//platform/port:string",
+        "//testing/base/public:gunit_main",
+        "//absl/time",
+    ],
+)

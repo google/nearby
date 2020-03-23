@@ -1,0 +1,28 @@
+syntax = "proto2";
+
+package location.nearby.proto.setup;
+
+import "logs/proto/logs_annotations/logs_annotations.proto";
+
+option (logs_proto.file_not_used_for_logging_except_enums) = true;
+option java_api_version = 2;
+option java_package = "com.google.location.nearby.proto";
+option java_outer_classname = "SetupEnums";
+option objc_class_prefix = "GNSP";
+
+// The type of event being logged.
+// Lightweight START_* and STOP_* events track instances of potential crashes
+// that would result in a ClientSession not being logged.
+enum EventType {
+  UNKNOWN_EVENT_TYPE = 0;
+
+  // A completed ClientSession, logged after a client disconnects.
+  CLIENT_SESSION = 1;
+
+  // Corresponds to googleApiClient.connect() and the beginning of a
+  // ClientSession.
+  START_CLIENT_SESSION = 2;
+
+  // Corresponds to googleApiClient.disconnect() and the end of a ClientSession.
+  STOP_CLIENT_SESSION = 3;
+}
