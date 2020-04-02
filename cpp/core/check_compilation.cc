@@ -117,3 +117,8 @@ void check_compilation() {
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
+
+int main() {
+  location::nearby::connections::check_compilation();
+  return 0;
+}

@@ -1,21 +1,22 @@
 #include "platform/file_impl.h"
 
+#include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <memory>
 #include <ostream>
+#include <unistd.h>
 
-#include "file/util/temp_path.h"
 #include "gtest/gtest.h"
 
 namespace location {
 namespace nearby {
 
+
 class FileImplTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    temp_path_ = std::make_unique<TempPath>(TempPath::Local);
-    path_ = temp_path_->path() + "/file.txt";
+    path_ = std::tmpnam(nullptr);;
     std::ofstream output_file(path_);
     file_ = std::fstream(path_, std::fstream::in | std::fstream::out);
   }
@@ -43,7 +44,6 @@ class FileImplTest : public ::testing::Test {
 
   static const int64_t kMaxSize = 3;
 
-  std::unique_ptr<TempPath> temp_path_;
   std::string path_;
   std::fstream file_;
   size_t size_ = 0;

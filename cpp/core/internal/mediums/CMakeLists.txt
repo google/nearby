@@ -55,3 +55,8 @@ target_link_libraries(core_internal_mediums_test
     platform_impl_default
     platform_utils
 )
+
+add_test(
+  NAME core_internal_mediums_test
+  COMMAND core_internal_mediums_test
+)

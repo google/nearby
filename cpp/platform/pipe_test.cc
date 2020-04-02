@@ -11,7 +11,7 @@
 #include "platform/ptr.h"
 #include "platform/runnable.h"
 #include "gtest/gtest.h"
-#include "absl/time/time.h"
+#include "absl/time/clock.h"
 
 namespace location {
 namespace nearby {

@@ -1,5 +1,6 @@
 #include "core/internal/mediums/ble_packet.h"
 
+#include <cstring>
 #include <limits>
 
 #include "platform/logging.h"

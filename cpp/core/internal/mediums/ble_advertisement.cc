@@ -1,5 +1,7 @@
 #include "core/internal/mediums/ble_advertisement.h"
 
+#include <cstring>
+
 #include "platform/logging.h"
 
 namespace location {

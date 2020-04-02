@@ -38,6 +38,16 @@ const absl::Duration kAdvertisementMaxBackoffDuration =
     absl::Milliseconds(6000);  // 6 seconds
 const char kAdvertisementBytes[] = {0x0A, 0x0B, 0x0C};
 
+template<>
+const std::int64_t AdvertisementReadResult<
+    SamplePlatform>::kAdvertisementBaseBackoffDurationMillis =
+    absl::ToInt64Milliseconds(kAdvertisementBaseBackoffDuration);
+
+template<>
+const std::int64_t AdvertisementReadResult<
+    SamplePlatform>::kAdvertisementMaxBackoffDurationMillis =
+    absl::ToInt64Milliseconds(kAdvertisementMaxBackoffDuration);
+
 TEST(AdvertisementReadResultTest, AdvertisementExists) {
   AdvertisementReadResult<SamplePlatform> advertisement_read_result;
   advertisement_read_result.recordLastReadStatus(/* is_success= */ true);

@@ -12,11 +12,11 @@
 //   #endif
 
 #ifndef NEARBY_USE_STD_STRING
-#define NEARBY_USE_STD_STRING 0
+#define NEARBY_USE_STD_STRING 1
 #endif
 
 #ifndef NEARBY_USE_RTTI
-#define NEARBY_USE_RTTI 1
+#define NEARBY_USE_RTTI 0
 #endif
 
 #endif  // PLATFORM_PORT_CONFIG_H_

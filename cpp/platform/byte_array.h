@@ -43,15 +43,11 @@ class ByteArray {
 
   // Operator overloads when comparing ConstPtr<ByteArray>.
   bool operator==(const ByteArray& rhs) const {
-    return this->size() == rhs.size() &&
-           memcmp(this->getData(), rhs.getData(), this->size()) == 0;
+    return this->data_ == rhs.data_;
   }
   bool operator!=(const ByteArray& rhs) const { return !(*this == rhs); }
   bool operator<(const ByteArray& rhs) const {
-    if (this->size() != rhs.size()) {
-      return this->size() < rhs.size();
-    }
-    return memcmp(this->getData(), rhs.getData(), this->size()) < 0;
+    return this->data_ < rhs.data_;
   }
   // TODO(b/149869249) : rename according to go/c-style
   std::string asString() const { return data_; }

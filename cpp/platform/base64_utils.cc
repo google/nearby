@@ -1,6 +1,5 @@
 #include "platform/base64_utils.h"
 
-#include "strings/escaping.h"
 #include "absl/strings/escaping.h"
 
 namespace location {
@@ -10,8 +9,7 @@ std::string Base64Utils::encode(ConstPtr<ByteArray> bytes) {
   std::string base64_string;
 
   if (!bytes.isNull()) {
-    absl::WebSafeBase64Escape(std::string(bytes->getData(), bytes->size()),
-                              &base64_string);
+    absl::WebSafeBase64Escape(bytes->asString(), &base64_string);
   }
 
   return base64_string;
@@ -19,8 +17,7 @@ std::string Base64Utils::encode(ConstPtr<ByteArray> bytes) {
 
 std::string Base64Utils::encode(const ByteArray& bytes) {
   std::string base64_string;
-  absl::WebSafeBase64Escape(std::string(bytes.getData(), bytes.size()),
-                            &base64_string);
+  absl::WebSafeBase64Escape(bytes.asString(), &base64_string);
 
   return base64_string;
 }
@@ -39,7 +36,7 @@ Ptr<ByteArray> Base64Utils::decode(const std::string& base64_string) {
     return Ptr<ByteArray>();
   }
 
-  return MakePtr(new ByteArray(decoded_string.data(), decoded_string.size()));
+  return MakePtr(new ByteArray(decoded_string));
 }
 
 template<>
@@ -49,7 +46,11 @@ ByteArray Base64Utils::decode(const std::string& base64_string) {
     return ByteArray();
   }
 
-  return ByteArray(decoded_string.data(), decoded_string.size());
+  return ByteArray(decoded_string);
+}
+
+Ptr<ByteArray> Base64Utils::decode(const std::string& base64_string) {
+  return decode<Ptr<ByteArray>>(base64_string);
 }
 
 }  // namespace nearby

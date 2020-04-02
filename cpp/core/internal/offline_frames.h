@@ -13,7 +13,7 @@
 
 // Detects the right usage.
 #include "google/protobuf/message_lite.h"
-#define proto_ns google3_proto_compat
+#define proto_ns google::protobuf
 
 
 namespace location {

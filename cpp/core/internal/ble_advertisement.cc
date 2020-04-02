@@ -186,7 +186,7 @@ std::string BLEAdvertisement::hexBytesToColonDelimitedString(
     ConstPtr<ByteArray> hex_bytes) {
   // Convert the hex bytes to a string.
   std::string colon_delimited_string(absl::BytesToHexString(
-      std::string(hex_bytes->getData(), hex_bytes->size())));
+      hex_bytes->asString()));
   absl::AsciiStrToUpper(&colon_delimited_string);
 
   // Insert the colons.

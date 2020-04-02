@@ -59,6 +59,7 @@ target_link_libraries(platform_test
     absl::base
     absl::strings
     absl::time
+    gmock
     gtest
     gtest_main
     platform_api

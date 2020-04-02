@@ -16,13 +16,7 @@ class Base64Utils {
 
   template <typename T>
   static T decode(const std::string& base64_string);
-  template <>
-  Ptr<ByteArray> decode(const std::string& base64_string);
-  template <>
-  ByteArray decode(const std::string& base64_string);
-  static Ptr<ByteArray> decode(const std::string& base64_string) {
-    return decode<Ptr<ByteArray>>(base64_string);
-  }
+  static Ptr<ByteArray> decode(const std::string& base64_string);
 };
 
 }  // namespace nearby

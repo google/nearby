@@ -1,5 +1,7 @@
 #include "core/internal/mediums/ble_advertisement_header.h"
 
+#include <cstring>
+
 #include "platform/base64_utils.h"
 #include "platform/byte_array.h"
 #include "platform/logging.h"
