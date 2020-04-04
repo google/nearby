@@ -9,7 +9,7 @@ target_sources(core_internal
     loop_runner.cc
     loop_runner.h
     offline_frames.cc
-    offline_frames.h
+    wifi_lan_service_info.cc
   PUBLIC
     bandwidth_upgrade_handler.h
     bandwidth_upgrade_manager.h
@@ -28,6 +28,7 @@ target_sources(core_internal
     endpoint_manager.h
     internal_payload_factory.h
     medium_manager.h
+    offline_frames.h
     offline_service_controller.h
     p2p_cluster_pcp_handler.h
     p2p_point_to_point_pcp_handler.h
@@ -57,8 +58,11 @@ target_link_libraries(core_internal
 )
 
 add_executable(core_internal_test
+    base_endpoint_channel_test.cc
     bluetooth_device_name_test.cc
     ble_advertisement_test.cc
+    offline_frames_test.cc
+    wifi_lan_service_info_test.cc
 )
 
 add_test(
@@ -69,8 +73,10 @@ add_test(
 target_link_libraries(core_internal_test
   PUBLIC
     core_internal
+    gmock
     gtest
     gtest_main
+    platform_impl_default
     platform_impl_default_cond_var
     platform_impl_default_lock
     platform_port_string

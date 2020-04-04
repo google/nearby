@@ -2,12 +2,8 @@ add_library(platform_impl_default STATIC)
 
 target_sources(platform_impl_default
   PRIVATE
-    default_condition_variable.cc
-    default_lock.cc
     default_platform.cc
   PUBLIC
-    default_condition_variable.h
-    default_lock.h
     default_platform.h
 )
 
@@ -19,6 +15,8 @@ target_include_directories(platform_impl_default
 target_link_libraries(platform_impl_default
   PUBLIC
     platform_api
+    platform_impl_default_cond_var
+    platform_impl_default_lock
     platform_types
 )
 

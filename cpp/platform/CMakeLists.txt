@@ -23,9 +23,7 @@ target_link_libraries(platform_utils
     absl::strings
 )
 
-add_library(platform_types STATIC
-  ptr.cc
-)
+add_library(platform_types STATIC)
 
 target_sources(platform_types
   PUBLIC
@@ -48,6 +46,7 @@ target_link_libraries(platform_types
 add_executable(platform_test
   byte_array_test.cc
   container_of_test.cc
+  exception_test.cc
   file_impl_test.cc
   pipe_test.cc
   prng_test.cc
@@ -75,6 +74,7 @@ add_test(
 )
 
 add_subdirectory(api)
+add_subdirectory(api2)
 add_subdirectory(impl/sample)
 add_subdirectory(impl/default)
 add_subdirectory(port)

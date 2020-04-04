@@ -1,4 +1,7 @@
-add_library(platform_api STATIC
+add_library(platform_api2 STATIC)
+
+target_sources(platform_api2
+  PUBLIC
     atomic_boolean.h
     atomic_reference.h
     ble.h
@@ -13,8 +16,8 @@ add_library(platform_api STATIC
     input_file.h
     input_stream.h
     listenable_future.h
-    lock.h
     multi_thread_executor.h
+    mutex.h
     output_file.h
     output_stream.h
     scheduled_executor.h
@@ -27,10 +30,12 @@ add_library(platform_api STATIC
     thread_utils.h
     webrtc.h
     wifi.h
-    wifi_lan.h
 )
 
-target_link_libraries(platform_api
+target_link_libraries(platform_api2
   PUBLIC
+    absl::strings
+    absl::time
     platform_types
+    webrtc_api_libjingle_peerconnection_api
 )
