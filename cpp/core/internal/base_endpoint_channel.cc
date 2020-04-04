@@ -49,7 +49,7 @@ ExceptionOr<ConstPtr<ByteArray> > readExactly(Ptr<InputStream> reader,
     ScopedPtr<ConstPtr<ByteArray> > scoped_read_bytes(read_bytes.result());
 
     // In Java, EOFException is a sub-variant of IOException.
-    if (scoped_read_bytes->size() == 0) {
+    if (scoped_read_bytes.isNull() || scoped_read_bytes->size() == 0) {
       return ExceptionOr<ConstPtr<ByteArray> >(Exception::IO);
     }
 
@@ -81,6 +81,7 @@ Exception::Value writeInt(Ptr<OutputStream> writer, std::int32_t value) {
 
 }  // namespace
 
+// TODO(b/150763574): Move implementatiopn to header or .inc file.
 template <typename Platform>
 BaseEndpointChannel<Platform>::BaseEndpointChannel(const string& channel_name,
                                                    Ptr<InputStream> reader,

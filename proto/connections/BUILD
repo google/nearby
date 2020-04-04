@@ -1,4 +1,3 @@
-load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 load("//net/proto2/contrib/portable/cc:portable_proto_build_defs.bzl", "portable_proto_library")
 
 proto_library(
@@ -8,16 +7,6 @@ proto_library(
     ],
     cc_api_version = 2,
     visibility = ["//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__"],
-)
-
-cc_proto_library(
-    name = "offline_wire_formats_cc_proto",
-    visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//java/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/connection:__subpackages__",
-        "//javatests/com/google/android/gmscore/integ/modules/nearby/robolectric/connections/src/com/google/android/gms/nearby/connection:__subpackages__",
-    ],
-    deps = [":offline_wire_formats_proto"],
 )
 
 java_lite_proto_library(

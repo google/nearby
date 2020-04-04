@@ -290,9 +290,14 @@ TEST(BLEAdvertisementTest, DeserializationPassesWithLongLength) {
           endpoint_name, bluetooth_mac_address));
 
   // Add bytes to the end of the valid BLE advertisement.
+  auto new_array =
+      new ByteArray(BLEAdvertisement::kMinAdvertisementLength + 1000);
+  ASSERT_LE(scoped_ble_advertisement_bytes->size(), new_array->size());
+  memcpy(new_array->getData(),
+         scoped_ble_advertisement_bytes->getData(),
+         scoped_ble_advertisement_bytes->size());
   ScopedPtr<ConstPtr<ByteArray> > long_ble_advertisement_bytes(MakeConstPtr(
-      new ByteArray(scoped_ble_advertisement_bytes.get()->getData(),
-                    BLEAdvertisement::kMinAdvertisementLength + 1000)));
+      new_array));
 
   // Deserialize the long BLE advertisement.
   ScopedPtr<Ptr<BLEAdvertisement> > scoped_long_ble_advertisement(
@@ -327,9 +332,14 @@ TEST(BLEAdvertisementTest, DeserializationWorksWithLongEndpointName) {
                                  corrupt_ble_advertisement_bytes.size())));
   // Increase the size of the advertisement so that there's enough data for the
   // now-longer endpoint name.
+  auto new_array =
+      new ByteArray(BLEAdvertisement::kMinAdvertisementLength + 1000);
+  ASSERT_LE(scoped_ble_advertisement_bytes->size(), new_array->size());
+  memcpy(new_array->getData(),
+         scoped_ble_advertisement_bytes->getData(),
+         scoped_ble_advertisement_bytes->size());
   ScopedPtr<ConstPtr<ByteArray> > long_ble_advertisement_bytes(MakeConstPtr(
-      new ByteArray(scoped_corrupt_ble_advertisement_bytes.get()->getData(),
-                    BLEAdvertisement::kMinAdvertisementLength + 1000)));
+      new_array));
 
   // And deserialize the changed BLE Advertisement.
   ScopedPtr<Ptr<BLEAdvertisement> > scoped_ble_advertisement(

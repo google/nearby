@@ -8,7 +8,7 @@ cc_library(
         "loop_runner.cc",
         "loop_runner.h",
         "offline_frames.cc",
-        "offline_frames.h",
+        "wifi_lan_service_info.cc",
     ],
     hdrs = [
         "bandwidth_upgrade_handler.h",
@@ -40,6 +40,7 @@ cc_library(
         "internal_payload_factory.h",
         "medium_manager.cc",
         "medium_manager.h",
+        "offline_frames.h",
         "offline_service_controller.cc",
         "offline_service_controller.h",
         "p2p_cluster_pcp_handler.cc",
@@ -57,6 +58,7 @@ cc_library(
         "service_controller.h",
         "service_controller_router.cc",
         "service_controller_router.h",
+        "wifi_lan_service_info.h",
         "wifi_lan_upgrade_handler.cc",
         "wifi_lan_upgrade_handler.h",
     ],
@@ -81,6 +83,18 @@ cc_library(
 )
 
 cc_test(
+    name = "base_endpoint_channel_test",
+    srcs = ["base_endpoint_channel_test.cc"],
+    deps = [
+        ":internal",
+        "//platform:utils",
+        "//platform/impl/default",
+        "//proto:connections_enums_portable_proto",
+        "//testing/base/public:gunit_main",
+    ],
+)
+
+cc_test(
     name = "bluetooth_device_name_test",
     srcs = ["bluetooth_device_name_test.cc"],
     deps = [
@@ -97,6 +111,30 @@ cc_test(
     deps = [
         ":internal",
         "//platform/port:string",
+        "//testing/base/public:gunit_main",
+    ],
+)
+
+cc_test(
+    name = "wifi_lan_service_info_test",
+    srcs = ["wifi_lan_service_info_test.cc"],
+    deps = [
+        ":internal",
+        "//platform:utils",
+        "//platform/port:string",
+        "//testing/base/public:gunit_main",
+    ],
+)
+
+cc_test(
+    name = "offline_frames_test",
+    srcs = [
+        "offline_frames_test.cc",
+    ],
+    deps = [
+        ":internal",
+        "//proto/connections:offline_wire_formats_portable_proto",
+        "//platform:types",
         "//testing/base/public:gunit_main",
     ],
 )

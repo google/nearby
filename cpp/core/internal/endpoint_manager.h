@@ -2,6 +2,7 @@
 #define CORE_INTERNAL_ENDPOINT_MANAGER_H_
 
 #include <cstdint>
+#include <memory>
 
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel.h"
@@ -221,6 +222,7 @@ class EndpointManager {
   ScopedPtr<Ptr<typename Platform::MultiThreadExecutorType> >
       endpoint_readers_thread_pool_;
   ScopedPtr<Ptr<typename Platform::SingleThreadExecutorType> > serial_executor_;
+  std::shared_ptr<EndpointManager<Platform>> self_{this, [](void*){}};
 };
 
 }  // namespace connections

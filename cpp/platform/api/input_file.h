@@ -16,7 +16,7 @@ class InputFile {
   // The returned ConstPtr will be owned (and destroyed) by the caller.
   // When we have exhausted reading the file and no bytes remain, read will
   // always return an empty ConstPtr for which isNull() is true.
-  virtual ExceptionOr<ConstPtr<ByteArray> > read(
+  virtual ExceptionOr<ConstPtr<ByteArray>> read(
       std::int64_t size) = 0;  // throws Exception::IO when the file cannot be
                                // opened or read.
   virtual std::string getFilePath() const = 0;

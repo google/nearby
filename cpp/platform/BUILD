@@ -26,7 +26,6 @@ cc_library(
         ":types",
         "//platform/api",
         "//platform/port:string",
-        "//strings",
         "//absl/strings",
         "//absl/time",
     ],
@@ -34,15 +33,11 @@ cc_library(
 
 cc_library(
     name = "types",
-    srcs = [
-        "ptr.cc",
-    ],
     hdrs = [
         "byte_array.h",
         "callable.h",
         "cancelable.h",
         "container_of.h",
-        "exception.cc",
         "exception.h",
         "ptr.h",
         "runnable.h",
@@ -109,6 +104,15 @@ cc_test(
     deps = [
         ":utils",
         "//file/util:temp_path",
+        "//testing/base/public:gunit_main",
+    ],
+)
+
+cc_test(
+    name = "exception_test",
+    srcs = ["exception_test.cc"],
+    deps = [
+        ":types",
         "//testing/base/public:gunit_main",
     ],
 )

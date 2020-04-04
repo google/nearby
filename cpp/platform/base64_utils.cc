@@ -1,6 +1,5 @@
 #include "platform/base64_utils.h"
 
-#include "strings/escaping.h"
 #include "absl/strings/escaping.h"
 
 namespace location {
@@ -25,7 +24,7 @@ std::string Base64Utils::encode(const ByteArray& bytes) {
   return base64_string;
 }
 
-std::string Base64Utils::encode(const std::string& input) {
+std::string Base64Utils::encode(absl::string_view input) {
   std::string base64_string;
   absl::WebSafeBase64Escape(input, &base64_string);
 
@@ -33,7 +32,7 @@ std::string Base64Utils::encode(const std::string& input) {
 }
 
 template<>
-Ptr<ByteArray> Base64Utils::decode(const std::string& base64_string) {
+Ptr<ByteArray> Base64Utils::decode(absl::string_view base64_string) {
   std::string decoded_string;
   if (!absl::WebSafeBase64Unescape(base64_string, &decoded_string)) {
     return Ptr<ByteArray>();
@@ -43,7 +42,7 @@ Ptr<ByteArray> Base64Utils::decode(const std::string& base64_string) {
 }
 
 template<>
-ByteArray Base64Utils::decode(const std::string& base64_string) {
+ByteArray Base64Utils::decode(absl::string_view base64_string) {
   std::string decoded_string;
   if (!absl::WebSafeBase64Unescape(base64_string, &decoded_string)) {
     return ByteArray();

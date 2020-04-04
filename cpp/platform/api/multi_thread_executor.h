@@ -11,8 +11,8 @@ namespace nearby {
 //
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html#newFixedThreadPool-int-
 template <typename ConcreteSubmittableExecutor>
-class MultiThreadExecutor :
-    public SubmittableExecutor<ConcreteSubmittableExecutor> {
+class MultiThreadExecutor
+    : public SubmittableExecutor<ConcreteSubmittableExecutor> {
  public:
   ~MultiThreadExecutor() override {}
 };

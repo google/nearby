@@ -9,7 +9,7 @@ option java_api_version = 2;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "DiscoveryEnums";
 
-// NEXT ID: 130
+// NEXT ID: 132
 enum DiscoveryEvent {
   UNKNOWN_DISCOVERY_EVENT = 0;
 
@@ -299,7 +299,8 @@ enum DiscoveryEvent {
   // containing a bloom filter
   FAST_PAIR_DEVICE_DETECTED_WITH_BLOOM_FILTER = 103;
 
-  // Detected model id was found in the local Fast Pair device database.
+  // Detected model id was found in the local Fast Pair device database which is
+  // not populated by the offline service (130 is offline populated).
   FAST_PAIR_LOCAL_DB_CACHE_HIT = 104;
 
   // Detected model id was not found in the local Fast Pair device database,
@@ -335,7 +336,7 @@ enum DiscoveryEvent {
   // scan stack.
   FAST_PAIR_NOTIFICATION_CLICKED = 113;
 
-  // User has seen a battery notification.
+  // User has seen a battery notification (131 for low battery).
   FAST_PAIR_BATTERY_NOTIFICATION_SHOWN = 114;
 
   // User has dismissed the battery notification.
@@ -384,6 +385,13 @@ enum DiscoveryEvent {
 
   // A user dismissed event of launching a companion app.
   FAST_PAIR_POST_ACTION_DISMISS_COMPANION_APP = 129;
+
+  // Detected model id was found in the cache which is populated by the offline
+  // service (104 is the local db cache).
+  FAST_PAIR_OFFLINE_SERVICE_CACHE_HIT = 130;
+
+  // User has seen a low battery notification.
+  FAST_PAIR_LOW_BATTERY_NOTIFICATION_SHOWN = 131;
 
   // Deprecated.
   reserved 65, 67 to 72;

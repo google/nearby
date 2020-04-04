@@ -208,6 +208,8 @@ class P2PClusterPCPHandler : public BasePCPHandler<Platform> {
     Ptr<ClientProxy<Platform> > client_proxy_;
     const string service_id_;
     ScopedPtr<ConstPtr<ByteArray> > expected_service_id_hash_;
+    std::shared_ptr<FoundBluetoothAdvertisementProcessor> self_{this,
+                                                                [](void*) {}};
   };
 
   class FoundBleAdvertisementProcessor
@@ -281,6 +283,7 @@ class P2PClusterPCPHandler : public BasePCPHandler<Platform> {
     // Maps a BLEPeripheral to its corresponding BLEEndpointState.
     typedef std::map<string, BLEEndpointState> FoundBLEEndpointsMap;
     FoundBLEEndpointsMap found_ble_endpoints_;
+    std::shared_ptr<FoundBleAdvertisementProcessor> self_{this, [](void*) {}};
   };
 
   class BluetoothEndpoint
@@ -367,6 +370,7 @@ class P2PClusterPCPHandler : public BasePCPHandler<Platform> {
       Ptr<ClientProxy<Platform> > client_proxy, Ptr<BLEEndpoint> ble_endpoint);
 
   Ptr<MediumManager<Platform> > medium_manager_;
+  std::shared_ptr<P2PClusterPCPHandler> self_{this, [](void*) {}};
 };
 
 }  // namespace connections

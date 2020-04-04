@@ -106,8 +106,8 @@ enum EventType {
   // Receiver accepts a fast initialization.
   ACCEPT_FAST_INITIALIZATION = 27;
 
-  // Set internet preference.
-  SET_INTERNET_PREFERENCE = 28;
+  // Set data usage preference.
+  SET_DATA_USAGE = 28;
 }
 
 // Status of nearby sharing.
@@ -127,8 +127,8 @@ enum Visibility {
   HIDDEN = 4;
 }
 
-enum InternetPreference {
-  UNKNOWN_INTERNET_PREFERENCE = 0;
+enum DataUsage {
+  UNKNOWN_DATA_USAGE = 0;
 
   ONLINE = 1;
   WIFI_ONLY = 2;

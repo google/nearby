@@ -6,7 +6,6 @@
 #include "platform/callable.h"
 #include "platform/port/down_cast.h"
 #include "platform/ptr.h"
-#include "platform/runnable.h"
 
 namespace location {
 namespace nearby {
@@ -29,12 +28,9 @@ class SubmittableExecutor : public Executor {
   ~SubmittableExecutor() override {}
 
   template <typename T>
-  Ptr<Future<T> > submit(Ptr<Callable<T> > callable) {
+  Ptr<Future<T>> submit(Ptr<Callable<T>> callable) {
     return DOWN_CAST<ConcreteSubmittableExecutor*>(this)->submit(callable);
   }
-
-  // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html#execute-java.lang.Runnable-
-  virtual void execute(Ptr<Runnable> runnable) = 0;
 };
 
 }  // namespace nearby

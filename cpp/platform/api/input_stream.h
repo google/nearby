@@ -18,9 +18,9 @@ class InputStream {
   virtual ~InputStream() {}
 
   // The returned ConstPtr will be owned (and destroyed) by the caller.
-  virtual ExceptionOr<ConstPtr<ByteArray> > read() = 0;  // throws Exception::IO
+  virtual ExceptionOr<ConstPtr<ByteArray>> read() = 0;  // throws Exception::IO
   // The returned ConstPtr will be owned (and destroyed) by the caller.
-  virtual ExceptionOr<ConstPtr<ByteArray> > read(
+  virtual ExceptionOr<ConstPtr<ByteArray>> read(
       std::int64_t size) = 0;            // throws Exception::IO
   virtual Exception::Value close() = 0;  // throws Exception::IO
 };

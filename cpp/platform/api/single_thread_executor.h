@@ -11,8 +11,8 @@ namespace nearby {
 //
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html#newSingleThreadExecutor--
 template <typename ConcreteSubmittableExecutor>
-class SingleThreadExecutor :
-    public SubmittableExecutor<ConcreteSubmittableExecutor> {
+class SingleThreadExecutor
+    : public SubmittableExecutor<ConcreteSubmittableExecutor> {
  public:
   ~SingleThreadExecutor() override {}
 };

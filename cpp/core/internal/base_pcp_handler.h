@@ -496,6 +496,7 @@ class BasePCPHandler
   // This should have been a ScopedPtr, but we are making this a Ptr to manually
   // control the order of destruction.
   Ptr<EncryptionRunner<Platform> > encryption_runner_;
+  std::shared_ptr<BasePCPHandler> self_{this, [](void*){}};
 };
 
 }  // namespace connections

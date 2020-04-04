@@ -140,6 +140,7 @@ class ServiceControllerRouter {
   Ptr<ServiceController<Platform> > current_service_controller_;
   Ptr<Strategy> current_strategy_;
   ScopedPtr<Ptr<typename Platform::SingleThreadExecutorType> > serializer_;
+  std::shared_ptr<ServiceControllerRouter<Platform>> self_{this, [](void*){}};
 };
 
 }  // namespace connections

@@ -1,8 +1,6 @@
 cc_library(
     name = "default",
     srcs = [
-        "default_condition_variable.cc",
-        "default_lock.cc",
         "default_platform.cc",
     ],
     hdrs = [
@@ -15,6 +13,8 @@ cc_library(
         "//core:__subpackages__",
     ],
     deps = [
+        ":condition_variable",
+        ":lock",
         "//platform:types",
         "//platform/api",
     ],
@@ -38,7 +38,7 @@ cc_library(
         "//platform:__subpackages__",
     ],
     deps = [
-        ":default",
+        ":lock",
         "//platform:types",
         "//platform/api:condition_variable",
     ],

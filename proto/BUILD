@@ -13,12 +13,6 @@ proto_library(
     deps = ["//logs/proto/logs_annotations"],
 )
 
-cc_proto_library(
-    name = "bootstrap_enums_cc_proto",
-    compatible_with = ["//buildenv/target:appengine"],
-    deps = [":bootstrap_enums_proto"],
-)
-
 java_lite_proto_library(
     name = "bootstrap_enums_java_proto_lite",
     visibility = [
@@ -33,12 +27,6 @@ proto_library(
     cc_api_version = 2,
     compatible_with = ["//buildenv/target:appengine"],
     deps = ["//logs/proto/logs_annotations"],
-)
-
-cc_proto_library(
-    name = "discovery_enums_cc_proto",
-    compatible_with = ["//buildenv/target:appengine"],
-    deps = [":discovery_enums_proto"],
 )
 
 java_lite_proto_library(
@@ -60,12 +48,6 @@ proto_library(
     deps = [
         "//logs/proto/logs_annotations",
     ],
-)
-
-cc_proto_library(
-    name = "connections_enums_cc_proto",
-    compatible_with = ["//buildenv/target:appengine"],
-    deps = [":connections_enums_proto"],
 )
 
 java_lite_proto_library(
@@ -108,12 +90,6 @@ proto_library(
     ],
 )
 
-cc_proto_library(
-    name = "setup_enums_cc_proto",
-    compatible_with = ["//buildenv/target:appengine"],
-    deps = [":setup_enums_proto"],
-)
-
 java_lite_proto_library(
     name = "setup_enums_java_proto_lite",
     deps = [":setup_enums_proto"],
@@ -127,12 +103,6 @@ proto_library(
     deps = [
         "//logs/proto/logs_annotations",
     ],
-)
-
-cc_proto_library(
-    name = "nearby_client_enums_cc_proto",
-    compatible_with = ["//buildenv/target:appengine"],
-    deps = [":nearby_client_enums_proto"],
 )
 
 java_lite_proto_library(
@@ -181,12 +151,6 @@ proto_library(
     ],
 )
 
-cc_proto_library(
-    name = "sharing_enums_cc_proto",
-    compatible_with = ["//buildenv/target:appengine"],
-    deps = [":sharing_enums_proto"],
-)
-
 java_lite_proto_library(
     name = "sharing_enums_java_proto_lite",
     deps = [":sharing_enums_proto"],
@@ -200,12 +164,6 @@ proto_library(
     deps = [
         "//logs/proto/logs_annotations",
     ],
-)
-
-cc_proto_library(
-    name = "nearby_event_codes_cc_proto",
-    compatible_with = ["//buildenv/target:appengine"],
-    deps = [":nearby_event_codes_proto"],
 )
 
 java_lite_proto_library(

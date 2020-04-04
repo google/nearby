@@ -300,6 +300,7 @@ class BLEV2 {
   Ptr<AdvertisingInfo> advertising_info_;
   Ptr<GATTServerInfo> gatt_server_info_;
   Ptr<AcceptingConnectionsInfo> accepting_connections_info_;
+  std::shared_ptr<BLEV2> self_{this, [](void*){}};
 };
 
 }  // namespace mediums

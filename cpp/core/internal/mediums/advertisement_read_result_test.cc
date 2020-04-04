@@ -10,8 +10,6 @@ namespace nearby {
 namespace connections {
 namespace mediums {
 
-namespace {
-
 class SampleSystemClock : public SystemClock {
  public:
   SampleSystemClock() {}
@@ -30,13 +28,24 @@ class SamplePlatform {
   }
 };
 
-// We keep a copy of these constants because this is an old-school test (so we
-// can't delare it as a friend class of AdvertisementReadResult).
+constexpr char kAdvertisementBytes[] = {0x0A, 0x0B, 0x0C};
+
+// Default values may be too big and impractical to wait for in the test.
+// For the test platform, we redefine them to some reasonable values.
 const absl::Duration kAdvertisementBaseBackoffDuration =
     absl::Milliseconds(1000);  // 1 second
 const absl::Duration kAdvertisementMaxBackoffDuration =
     absl::Milliseconds(6000);  // 6 seconds
-const char kAdvertisementBytes[] = {0x0A, 0x0B, 0x0C};
+
+template <>
+const std::int64_t AdvertisementReadResult<
+    SamplePlatform>::kAdvertisementMaxBackoffDurationMillis =
+        ToInt64Milliseconds(kAdvertisementMaxBackoffDuration);
+template <>
+const std::int64_t
+    AdvertisementReadResult<
+        SamplePlatform>::kAdvertisementBaseBackoffDurationMillis =
+        ToInt64Milliseconds(kAdvertisementBaseBackoffDuration);
 
 TEST(AdvertisementReadResultTest, AdvertisementExists) {
   AdvertisementReadResult<SamplePlatform> advertisement_read_result;
@@ -141,7 +150,6 @@ TEST(AdvertisementReadResultTest, GetDurationSinceRead) {
   ASSERT_GE(advertisement_read_result.getDurationSinceReadMillis(), sleepTime);
 }
 
-}  // namespace
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby

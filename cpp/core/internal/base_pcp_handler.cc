@@ -701,7 +701,10 @@ BasePCPHandler<Platform>::~BasePCPHandler() {
 
   // Unregister ourselves from the IncomingOfflineFrameProcessors.
   endpoint_manager_->unregisterIncomingOfflineFrameProcessor(
-      V1Frame::CONNECTION_RESPONSE, MakePtr(this));
+      V1Frame::CONNECTION_RESPONSE,
+      std::static_pointer_cast<
+          typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>(
+          self_));
 
   encryption_runner_.destroy();
 
@@ -747,7 +750,7 @@ Status::Value BasePCPHandler<Platform>::startAdvertising(
   ScopedPtr<Ptr<Future<Status::Value>>> result(
       runOnPCPHandlerThread<Status::Value>(
           MakePtr(new base_pcp_handler::StartAdvertisingCallable<Platform>(
-              MakePtr(this), client_proxy, service_id, local_endpoint_name,
+              self_, client_proxy, service_id, local_endpoint_name,
               advertising_options, connection_lifecycle_listener))));
   return waitForResult("startAdvertising(" + local_endpoint_name + ")",
                        client_proxy->getClientId(), result.get());
@@ -759,7 +762,7 @@ void BasePCPHandler<Platform>::stopAdvertising(
   ScopedPtr<Ptr<CountDownLatch>> latch(Platform::createCountDownLatch(1));
   runOnPCPHandlerThread(
       MakePtr(new base_pcp_handler::StopAdvertisingRunnable<Platform>(
-          MakePtr(this), client_proxy, latch.get())));
+          self_, client_proxy, latch.get())));
   waitForLatch("stopAdvertising", latch.get());
 }
 
@@ -771,7 +774,7 @@ Status::Value BasePCPHandler<Platform>::startDiscovery(
   ScopedPtr<Ptr<Future<Status::Value>>> result(
       runOnPCPHandlerThread<Status::Value>(
           MakePtr(new base_pcp_handler::StartDiscoveryCallable<Platform>(
-              MakePtr(this), client_proxy, service_id, discovery_options,
+              self_, client_proxy, service_id, discovery_options,
               discovery_listener))));
   return waitForResult("startDiscovery(" + service_id + ")",
                        client_proxy->getClientId(), result.get());
@@ -783,7 +786,7 @@ void BasePCPHandler<Platform>::stopDiscovery(
   ScopedPtr<Ptr<CountDownLatch>> latch(Platform::createCountDownLatch(1));
   runOnPCPHandlerThread(
       MakePtr(new base_pcp_handler::StopDiscoveryRunnable<Platform>(
-          MakePtr(this), client_proxy, latch.get())));
+          self_, client_proxy, latch.get())));
   waitForLatch("stopDiscovery", latch.get());
 }
 
@@ -796,7 +799,7 @@ Status::Value BasePCPHandler<Platform>::requestConnection(
       Platform::template createSettableFuture<Status::Value>());
   runOnPCPHandlerThread(
       MakePtr(new base_pcp_handler::RequestConnectionRunnable<Platform>(
-          MakePtr(this), client_proxy, local_endpoint_name, endpoint_id,
+          self_, client_proxy, local_endpoint_name, endpoint_id,
           connection_lifecycle_listener, result.get())));
   return waitForResult("requestConnection(" + endpoint_id + ")",
                        client_proxy->getClientId(), result.get());
@@ -809,7 +812,7 @@ Status::Value BasePCPHandler<Platform>::acceptConnection(
   ScopedPtr<Ptr<Future<Status::Value>>> result(
       runOnPCPHandlerThread<Status::Value>(
           MakePtr(new base_pcp_handler::AcceptConnectionCallable<Platform>(
-              MakePtr(this), client_proxy, endpoint_id, payload_listener))));
+              self_, client_proxy, endpoint_id, payload_listener))));
   return waitForResult("acceptConnection(" + endpoint_id + ")",
                        client_proxy->getClientId(), result.get());
 }
@@ -820,7 +823,7 @@ Status::Value BasePCPHandler<Platform>::rejectConnection(
   ScopedPtr<Ptr<Future<Status::Value>>> result(
       runOnPCPHandlerThread<Status::Value>(
           MakePtr(new base_pcp_handler::RejectConnectionCallable<Platform>(
-              MakePtr(this), client_proxy, endpoint_id))));
+              self_, client_proxy, endpoint_id))));
   return waitForResult("rejectConnection(" + endpoint_id + ")",
                        client_proxy->getClientId(), result.get());
 }
@@ -845,8 +848,7 @@ void BasePCPHandler<Platform>::processEndpointDisconnection(
     Ptr<CountDownLatch> process_disconnection_barrier) {
   runOnPCPHandlerThread(MakePtr(
       new base_pcp_handler::ProcessEndpointDisconnectionRunnable<Platform>(
-          MakePtr(this), client_proxy, endpoint_id,
-          process_disconnection_barrier)));
+          self_, client_proxy, endpoint_id, process_disconnection_barrier)));
 }
 
 template <typename Platform>
@@ -856,7 +858,7 @@ void BasePCPHandler<Platform>::onEncryptionSuccessImpl(
     ConstPtr<ByteArray> raw_authentication_token) {
   runOnPCPHandlerThread(
       MakePtr(new base_pcp_handler::OnEncryptionSuccessRunnable<Platform>(
-          MakePtr(this), endpoint_id, ukey2_handshake, authentication_token,
+          self_, endpoint_id, ukey2_handshake, authentication_token,
           raw_authentication_token)));
 }
 
@@ -865,7 +867,7 @@ void BasePCPHandler<Platform>::onEncryptionFailureImpl(
     const string& endpoint_id, Ptr<EndpointChannel> channel) {
   runOnPCPHandlerThread(
       MakePtr(new base_pcp_handler::OnEncryptionFailureRunnable<Platform>(
-          MakePtr(this), endpoint_id, channel)));
+          self_, endpoint_id, channel)));
 }
 
 template <typename Platform>
@@ -1025,8 +1027,8 @@ void BasePCPHandler<Platform>::onConnectionResponse(
   ScopedPtr<Ptr<CountDownLatch>> latch(Platform::createCountDownLatch(1));
   runOnPCPHandlerThread(
       MakePtr(new base_pcp_handler::OnConnectionResponseRunnable<Platform>(
-          MakePtr(this), client_proxy, endpoint_id,
-          connection_response_offline_frame, latch.get())));
+          self_, client_proxy, endpoint_id, connection_response_offline_frame,
+          latch.get())));
   waitForLatch("onConnectionResponse()", latch.get());
 }
 
@@ -1154,8 +1156,8 @@ Exception::Value BasePCPHandler<Platform>::onIncomingConnection(
   // Next, we'll set up encryption.
   encryption_runner_->startServer(
       client_proxy, connection_request.endpoint_id(), endpoint_channel,
-      MakePtr(new typename BasePCPHandler<Platform>::ResultListenerFacade(
-          MakePtr(this))));
+      MakePtr(new
+              typename BasePCPHandler<Platform>::ResultListenerFacade(self_)));
   return Exception::NONE;
 }
 

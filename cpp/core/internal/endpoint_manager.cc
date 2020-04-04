@@ -497,7 +497,7 @@ void EndpointManager<Platform>::registerIncomingOfflineFrameProcessor(
         processor) {
   runOnEndpointManagerThread(MakePtr(
       new endpoint_manager::RegisterIncomingOfflineFrameProcessorRunnable<
-          Platform>(MakePtr(this), frame_type, processor)));
+          Platform>(self_, frame_type, processor)));
 }
 
 template <typename Platform>
@@ -507,7 +507,7 @@ void EndpointManager<Platform>::unregisterIncomingOfflineFrameProcessor(
         processor) {
   runOnEndpointManagerThread(MakePtr(
       new endpoint_manager::UnregisterIncomingOfflineFrameProcessorRunnable<
-          Platform>(MakePtr(this), frame_type, processor)));
+          Platform>(self_, frame_type, processor)));
 }
 
 template <typename Platform>
@@ -521,7 +521,7 @@ EndpointManager<Platform>::getOfflineFrameProcessor(
   ScopedPtr<ResultType> future_result(
       runOnEndpointManagerThread<PtrIncomingOfflineFrameProcessor>(MakePtr(
           new endpoint_manager::GetOfflineFrameProcessorCallable<Platform>(
-              MakePtr(this), frame_type))));
+              self_, frame_type))));
 
   return waitForResult("getOfflineFrameProcessor", future_result.get());
 }
@@ -536,7 +536,7 @@ void EndpointManager<Platform>::registerEndpoint(
   ScopedPtr<Ptr<CountDownLatch>> latch(Platform::createCountDownLatch(1));
   runOnEndpointManagerThread(
       MakePtr(new endpoint_manager::RegisterEndpointRunnable<Platform>(
-          MakePtr(this), client_proxy, endpoint_id, endpoint_name,
+          self_, client_proxy, endpoint_id, endpoint_name,
           authentication_token, raw_authentication_token, is_incoming,
           endpoint_channel, connection_lifecycle_listener, latch.get())));
   waitForLatch("registerEndpoint", latch.get());
@@ -548,7 +548,7 @@ void EndpointManager<Platform>::unregisterEndpoint(
   ScopedPtr<Ptr<CountDownLatch>> latch(Platform::createCountDownLatch(1));
   runOnEndpointManagerThread(
       MakePtr(new endpoint_manager::UnregisterEndpointRunnable<Platform>(
-          MakePtr(this), client_proxy, endpoint_id, latch.get())));
+          self_, client_proxy, endpoint_id, latch.get())));
   waitForLatch("unregisterEndpoint", latch.get());
 }
 
@@ -557,7 +557,7 @@ void EndpointManager<Platform>::discardEndpoint(
     Ptr<ClientProxy<Platform>> client_proxy, const string& endpoint_id) {
   runOnEndpointManagerThread(
       MakePtr(new endpoint_manager::DiscardEndpointRunnable<Platform>(
-          MakePtr(this), client_proxy, endpoint_id)));
+          self_, client_proxy, endpoint_id)));
 }
 
 template <typename Platform>
