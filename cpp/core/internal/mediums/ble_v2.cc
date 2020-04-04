@@ -405,7 +405,7 @@ bool BLEV2<Platform>::startScanning(
       fast_advertisement_service_uuid);
   // Avoid leaks.
   ScopedPtr<Ptr<ScanCallbackFacade>> scan_callback_facade(
-      new ScanCallbackFacade(MakePtr(this)));
+      new ScanCallbackFacade(self_));
   std::set<string> service_uuids;
   service_uuids.insert(kCopresenceServiceUuid);
   if (!ble_medium_->startScanning(service_uuids, power_mode,
@@ -427,7 +427,7 @@ void BLEV2<Platform>::onAdvertisementFoundImpl(
     ConstPtr<BLEAdvertisementData> advertisement_data) {
   offloadFromPlatformThread(
       MakePtr(new ble_v2::OnAdvertisementFoundRunnable<Platform>(
-          MakePtr(this), ble_peripheral, advertisement_data)));
+          self_, ble_peripheral, advertisement_data)));
 }
 
 // This method is synchronized because it affects class state, but is called
@@ -461,11 +461,6 @@ void BLEV2<Platform>::stopScanning() {
 // TODO(b/112199086) Change to RecurringCancelableAlarm
 template <typename Platform>
 Ptr<CancelableAlarm<Platform>> BLEV2<Platform>::createOnLostAlarm() {
-  // return MakePtr(new CancelableAlarm<Platform>(
-  //             "BluetoothLowEnergy.startScanning() onLost",
-  //             MakePtr(new
-  //             ble_v2::ProcessOnLostRunnable<Platform>(MakePtr(this))),
-  //             kOnLostTimeoutMillis, on_lost_executor_.get()));
   return Ptr<CancelableAlarm<Platform>>();
 }
 
@@ -606,7 +601,7 @@ bool BLEV2<Platform>::internalStartAdvertisementGattServer(
 
   ScopedPtr<Ptr<ServerGATTConnectionLifecycleCallbackFacade>>
       connection_lifecycle_callback(
-          new ServerGATTConnectionLifecycleCallbackFacade(MakePtr(this)));
+          new ServerGATTConnectionLifecycleCallbackFacade(self_));
   ScopedPtr<Ptr<GATTServer>> gatt_server(
       ble_medium_->startGATTServer(connection_lifecycle_callback.get()));
   if (gatt_server.isNull()) {
@@ -737,7 +732,7 @@ BLEV2<Platform>::internalReadFromAdvertisementGattServer(
 
   ScopedPtr<Ptr<ClientGATTConnectionLifecycleCallbackFacade>>
       connection_lifecycle_callback(
-          new ClientGATTConnectionLifecycleCallbackFacade(MakePtr(this)));
+          new ClientGATTConnectionLifecycleCallbackFacade(self_));
   ScopedPtr<Ptr<ClientGATTConnection>> gatt_connection(
       ble_medium_->connectToGATTServer(peripheral, kDefaultMtu,
                                        BLEMediumV2::PowerMode::HIGH,

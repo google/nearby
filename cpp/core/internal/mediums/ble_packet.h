@@ -41,6 +41,38 @@ class BLEPacket {
   ScopedPtr<ConstPtr<ByteArray> > data_;
 };
 
+// Represents the format of data sent over BLE sockets.
+//
+// [SERVICE_ID_HASH][DATA]
+//
+// See go/nearby-ble-design for more information.
+class BlePacket {
+ public:
+  static BlePacket FromBytes(const ByteArray& bytes);
+
+  static ByteArray ToBytes(const ByteArray& service_id_hash,
+                           const ByteArray& data);
+
+  static const uint32_t kServiceIdHashLength;
+
+  ~BlePacket();
+
+  ByteArray GetServiceIdHash() const;
+  ByteArray GetData() const;
+
+ private:
+  static size_t ComputeDataSize(const ByteArray& ble_packet_bytes);
+  static size_t ComputePacketLength(const ByteArray& data);
+
+  static const uint32_t kMinPacketLength;
+  static const uint32_t kMaxDataSize;
+
+  BlePacket(const ByteArray& service_id_hash, const ByteArray& data);
+
+  ByteArray service_id_hash_;
+  ByteArray data_;
+};
+
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby

@@ -4,13 +4,14 @@
 #include "platform/byte_array.h"
 #include "platform/port/string.h"
 #include "platform/ptr.h"
+#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
 
 class Base64Utils {
  public:
-  static std::string encode(const std::string& input);
+  static std::string encode(absl::string_view input);
   static std::string encode(const ByteArray& bytes);
   static std::string encode(ConstPtr<ByteArray> bytes);
 

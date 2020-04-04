@@ -497,7 +497,7 @@ void ServiceControllerRouter<Platform>::startAdvertising(
     ConstPtr<StartAdvertisingParams> start_advertising_params) {
   routeToServiceController(
       MakePtr(new service_controller_router::StartAdvertisingRunnable<Platform>(
-          MakePtr(this), client_proxy, start_advertising_params)));
+          self_, client_proxy, start_advertising_params)));
 }
 
 template <typename Platform>
@@ -506,7 +506,7 @@ void ServiceControllerRouter<Platform>::stopAdvertising(
     ConstPtr<StopAdvertisingParams> stop_advertising_params) {
   routeToServiceController(
       MakePtr(new service_controller_router::StopAdvertisingRunnable<Platform>(
-          MakePtr(this), client_proxy, stop_advertising_params)));
+          self_, client_proxy, stop_advertising_params)));
 }
 
 template <typename Platform>
@@ -515,7 +515,7 @@ void ServiceControllerRouter<Platform>::startDiscovery(
     ConstPtr<StartDiscoveryParams> start_discovery_params) {
   routeToServiceController(
       MakePtr(new service_controller_router::StartDiscoveryRunnable<Platform>(
-          MakePtr(this), client_proxy, start_discovery_params)));
+          self_, client_proxy, start_discovery_params)));
 }
 
 template <typename Platform>
@@ -524,7 +524,7 @@ void ServiceControllerRouter<Platform>::stopDiscovery(
     ConstPtr<StopDiscoveryParams> stop_discovery_params) {
   routeToServiceController(
       MakePtr(new service_controller_router::StopDiscoveryRunnable<Platform>(
-          MakePtr(this), client_proxy, stop_discovery_params)));
+          self_, client_proxy, stop_discovery_params)));
 }
 
 template <typename Platform>
@@ -533,7 +533,7 @@ void ServiceControllerRouter<Platform>::requestConnection(
     ConstPtr<RequestConnectionParams> request_connection_params) {
   routeToServiceController(MakePtr(
       new service_controller_router::SendConnectionRequestRunnable<Platform>(
-          MakePtr(this), client_proxy, request_connection_params)));
+          self_, client_proxy, request_connection_params)));
 }
 
 template <typename Platform>
@@ -542,7 +542,7 @@ void ServiceControllerRouter<Platform>::acceptConnection(
     ConstPtr<AcceptConnectionParams> accept_connection_params) {
   routeToServiceController(MakePtr(
       new service_controller_router::AcceptConnectionRequestRunnable<Platform>(
-          MakePtr(this), client_proxy, accept_connection_params)));
+          self_, client_proxy, accept_connection_params)));
 }
 
 template <typename Platform>
@@ -551,7 +551,7 @@ void ServiceControllerRouter<Platform>::rejectConnection(
     ConstPtr<RejectConnectionParams> reject_connection_params) {
   routeToServiceController(MakePtr(
       new service_controller_router::RejectConnectionRequestRunnable<Platform>(
-          MakePtr(this), client_proxy, reject_connection_params)));
+          self_, client_proxy, reject_connection_params)));
 }
 
 template <typename Platform>
@@ -561,7 +561,7 @@ void ServiceControllerRouter<Platform>::initiateBandwidthUpgrade(
         initiate_bandwidth_upgrade_params) {
   routeToServiceController(MakePtr(
       new service_controller_router::InitiateBandwidthUpgradeRunnable<Platform>(
-          MakePtr(this), client_proxy, initiate_bandwidth_upgrade_params)));
+          self_, client_proxy, initiate_bandwidth_upgrade_params)));
 }
 
 template <typename Platform>
@@ -570,7 +570,7 @@ void ServiceControllerRouter<Platform>::sendPayload(
     ConstPtr<SendPayloadParams> send_payload_params) {
   routeToServiceController(
       MakePtr(new service_controller_router::SendPayloadRunnable<Platform>(
-          MakePtr(this), client_proxy, send_payload_params)));
+          self_, client_proxy, send_payload_params)));
 }
 
 template <typename Platform>
@@ -579,7 +579,7 @@ void ServiceControllerRouter<Platform>::cancelPayload(
     ConstPtr<CancelPayloadParams> cancel_payload_params) {
   routeToServiceController(
       MakePtr(new service_controller_router::CancelPayloadRunnable<Platform>(
-          MakePtr(this), client_proxy, cancel_payload_params)));
+          self_, client_proxy, cancel_payload_params)));
 }
 
 template <typename Platform>
@@ -588,7 +588,7 @@ void ServiceControllerRouter<Platform>::disconnectFromEndpoint(
     ConstPtr<DisconnectFromEndpointParams> disconnect_from_endpoint_params) {
   routeToServiceController(MakePtr(
       new service_controller_router::DisconnectFromEndpointRunnable<Platform>(
-          MakePtr(this), client_proxy, disconnect_from_endpoint_params)));
+          self_, client_proxy, disconnect_from_endpoint_params)));
 }
 
 template <typename Platform>
@@ -597,7 +597,7 @@ void ServiceControllerRouter<Platform>::stopAllEndpoints(
     ConstPtr<StopAllEndpointsParams> stop_all_endpoint_params) {
   routeToServiceController(
       MakePtr(new service_controller_router::StopAllEndpointsRunnable<Platform>(
-          MakePtr(this), client_proxy, stop_all_endpoint_params)));
+          self_, client_proxy, stop_all_endpoint_params)));
 }
 
 template <typename Platform>
@@ -605,7 +605,7 @@ void ServiceControllerRouter<Platform>::clientDisconnecting(
     Ptr<ClientProxy<Platform>> client_proxy) {
   routeToServiceController(MakePtr(
       new service_controller_router::ClientDisconnectingRunnable<Platform>(
-          MakePtr(this), client_proxy)));
+          self_, client_proxy)));
 }
 
 template <typename Platform>

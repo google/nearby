@@ -58,7 +58,7 @@ class WifiMedium {
     // owned (and destroyed) by the recipient of the callback methods (i.e. the
     // creator of the concrete ScanResultCallback object).
     virtual void onScanResults(
-        const std::vector<ConstPtr<WifiScanResult> >& scan_results) = 0;
+        const std::vector<ConstPtr<WifiScanResult>>& scan_results) = 0;
   };
 
   // Does not take ownership of the passed-in scan_result_callback -- destroying
@@ -69,7 +69,8 @@ class WifiMedium {
   // WifiConnectionStatus::CONNECTED on success, or the appropriate failure code
   // otherwise.
   virtual WifiConnectionStatus::Value connectToNetwork(
-      const std::string& ssid, const std::string& password,
+      const std::string& ssid,
+      const std::string& password,
       WifiAuthType::Value auth_type) = 0;
 
   // Blocks until it's certain of there being a connection to the internet, or

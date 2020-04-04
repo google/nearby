@@ -22,15 +22,6 @@ TEST(PtrTest, RefCountedPtr_MultipleReferences) {
   SUCCEED();
 }
 
-TEST(PtrTest, RefCountedPtr_IsRefCounted_Works) {
-  Ptr<int> ref_counted = MakeRefCountedPtr(new int(1234));
-  Ptr<int> manually_counted = MakePtr(new int(1234));
-  ScopedPtr<Ptr<int> > scoped_manually_counted(manually_counted);
-
-  ASSERT_TRUE(ref_counted.isRefCounted());
-  ASSERT_FALSE(manually_counted.isRefCounted());
-}
-
 TEST(PtrTest, RefCountedPtr_MultipleReferencesWithScoped) {
   Ptr<int> ref_counted = MakeRefCountedPtr(new int(1234));
   ScopedPtr<Ptr<int> > scoped_ref_counted_1(ref_counted);
@@ -51,60 +42,6 @@ TEST(PtrTest, AssignmentOperator_RefCountedToRefCounted) {
   ASSERT_EQ(1234, *ref_counted_2);
 }
 
-TEST(PtrTest, AssignmentOperator_ManuallyCountedToManuallyCounted) {
-  Ptr<int> manually_counted_1 = MakePtr(new int(1234));
-  Ptr<int> manually_counted_2 = MakePtr(new int(5678));
-  // Avoid leaks.
-  ScopedPtr<Ptr<int> > scoped_manually_counted_1(manually_counted_1);
-  ScopedPtr<Ptr<int> > scoped_manually_counted_2(manually_counted_2);
-
-  manually_counted_2 = manually_counted_1;
-
-  ASSERT_EQ(1234, *manually_counted_1);
-  ASSERT_EQ(1234, *manually_counted_2);
-  ASSERT_EQ(1234, *scoped_manually_counted_1);
-  ASSERT_EQ(5678, *scoped_manually_counted_2);
-}
-
-TEST(PtrTest, AssignmentOperator_RefCountedToManuallyCounted) {
-  Ptr<int> ref_counted = MakeRefCountedPtr(new int(1234));
-  Ptr<int> manually_counted = MakePtr(new int(5678));
-  // Avoid leaks.
-  ScopedPtr<Ptr<int> > scoped_manually_counted(manually_counted);
-
-  manually_counted = ref_counted;
-
-  ASSERT_EQ(1234, *ref_counted);
-  ASSERT_EQ(1234, *manually_counted);
-  ASSERT_EQ(5678, *scoped_manually_counted);
-}
-
-TEST(PtrTest, AssignmentOperator_ManuallyCountedToRefCounted) {
-  Ptr<int> manually_counted = MakePtr(new int(1234));
-  Ptr<int> ref_counted = MakeRefCountedPtr(new int(5678));
-  // Avoid leaks.
-  ScopedPtr<Ptr<int> > scoped_manually_counted(manually_counted);
-
-  ref_counted = manually_counted;
-
-  ASSERT_EQ(1234, *ref_counted);
-  ASSERT_EQ(1234, *manually_counted);
-  ASSERT_EQ(1234, *scoped_manually_counted);
-}
-
-TEST(PtrTest, AssignmentOperator_SelfAssignment_ManuallyCounted) {
-  Ptr<int> manually_counted_1 = MakePtr(new int(1234));
-  Ptr<int> manually_counted_2(manually_counted_1);
-  // Avoid leaks.
-  ScopedPtr<Ptr<int> > scoped_manually_counted_1(manually_counted_1);
-
-  manually_counted_1 = manually_counted_2;
-
-  ASSERT_EQ(1234, *manually_counted_1);
-  ASSERT_EQ(1234, *manually_counted_2);
-  ASSERT_EQ(1234, *scoped_manually_counted_1);
-}
-
 TEST(PtrTest, AssignmentOperator_SelfAssignment_RefCounted) {
   Ptr<int> ref_counted_1 = MakeRefCountedPtr(new int(1234));
   Ptr<int> ref_counted_2(ref_counted_1);
@@ -113,19 +50,6 @@ TEST(PtrTest, AssignmentOperator_SelfAssignment_RefCounted) {
 
   ASSERT_EQ(1234, *ref_counted_1);
   ASSERT_EQ(1234, *ref_counted_2);
-}
-
-TEST(PtrTest, EqualityOperator_ManuallyCounted) {
-  Ptr<int> manually_counted_1 = MakePtr(new int(1234));
-  Ptr<int> manually_counted_2(manually_counted_1);
-  // Avoid leaks.
-  ScopedPtr<Ptr<int> > scoped_manually_counted_1(manually_counted_1);
-
-  ASSERT_TRUE(manually_counted_1 == manually_counted_2);
-
-  manually_counted_1 = manually_counted_2;
-
-  ASSERT_TRUE(manually_counted_1 == manually_counted_2);
 }
 
 TEST(PtrTest, EqualityOperator_RefCounted) {
@@ -137,16 +61,6 @@ TEST(PtrTest, EqualityOperator_RefCounted) {
   ref_counted_1 = ref_counted_2;
 
   ASSERT_TRUE(ref_counted_1 == ref_counted_2);
-}
-
-TEST(PtrTest, EqualityOperator_ManuallyAndRefCounted) {
-  int* raw = new int(1234);
-  Ptr<int> manually_counted = MakePtr(raw);
-  Ptr<int> ref_counted = MakeRefCountedPtr(raw);
-  // No need for a ScopedPtr for manually_counted here because we know that
-  // ref_counted will take care of deallocating 'raw'.
-
-  ASSERT_FALSE(manually_counted == ref_counted);
 }
 
 namespace {
@@ -171,17 +85,6 @@ class Derived : public Base {
 
 }  // namespace
 
-TEST(PtrTest, DerivedToBaseConversion_ManuallyCounted) {
-  Ptr<Derived> derived = MakePtr(new Derived(1234));
-  Ptr<Base> base = derived;
-  // Avoid leaks.
-  ScopedPtr<Ptr<Derived> > scoped_derived(derived);
-
-  ASSERT_EQ(1234, base->getInt());
-  ASSERT_EQ(1234, derived->getInt());
-  ASSERT_EQ(1234, scoped_derived->getInt());
-}
-
 TEST(PtrTest, DerivedToBaseConversion_RefCounted) {
   Ptr<Derived> derived = MakeRefCountedPtr(new Derived(1234));
   Ptr<Base> base = derived;
@@ -193,17 +96,18 @@ TEST(PtrTest, DerivedToBaseConversion_RefCounted) {
   ASSERT_EQ(1234, base->getInt());
 }
 
-TEST(PtrTest, ScopedPtr_Release_ManuallyCounted) {
-  Ptr<int> manually_counted_1 = MakePtr(new int(1234));
-  ScopedPtr<Ptr<int> > scoped_manually_counted_1(manually_counted_1);
+TEST(PtrTest, DistinctValuesAreNotEqual) {
+  Ptr<int> value1 = MakePtr(new int(5));
+  Ptr<int> value2 = MakePtr(new int(6));
 
-  Ptr<int> manually_counted_2 = scoped_manually_counted_1.release();
-  // Avoid leaks.
-  ScopedPtr<Ptr<int> > scoped_manually_counted_2(manually_counted_2);
+  ASSERT_NE(value1, value2);
+}
 
-  ASSERT_TRUE(scoped_manually_counted_1.isNull());
-  ASSERT_EQ(1234, *manually_counted_2);
-  ASSERT_EQ(1234, *scoped_manually_counted_2);
+TEST(PtrTest, SameValuesAreEqual) {
+  Ptr<int> value1 = MakePtr(new int(5));
+  Ptr<int> value2 = MakePtr(new int(5));
+
+  ASSERT_EQ(value1, value2);
 }
 
 TEST(PtrTest, ScopedPtr_Release_RefCounted) {
@@ -212,20 +116,20 @@ TEST(PtrTest, ScopedPtr_Release_RefCounted) {
 
   Ptr<int> ref_counted_2 = scoped_ref_counted_1.release();
 
-  ASSERT_TRUE(scoped_ref_counted_1.isNull());
+  ASSERT_EQ(*scoped_ref_counted_1, *ref_counted_2);
   ASSERT_EQ(1234, *ref_counted_2);
 }
 
-TEST(PtrTest, ConstifyPtr_ManuallyCounted) {
-  Ptr<int> manually_counted = MakePtr(new int(1234));
-  // Avoid leaks.
-  ScopedPtr<Ptr<int> > scoped_manually_counted(manually_counted);
+TEST(PtrTest, ScopedPtr_Release_RefCounted_Stay_Valid) {
+  Ptr<int> ref_counted_1 = MakeRefCountedPtr(new int(1234));
+  Ptr<int> ref_counted_2 = ref_counted_1;
+  ScopedPtr<Ptr<int> > scoped_ref_counted_1(ref_counted_1);
 
-  ConstPtr<int> const_manually_counted = ConstifyPtr(manually_counted);
+  Ptr<int> ref_counted_3 = scoped_ref_counted_1.release();
 
-  ASSERT_EQ(1234, *const_manually_counted);
-  ASSERT_EQ(1234, *manually_counted);
-  ASSERT_EQ(1234, *scoped_manually_counted);
+  ASSERT_EQ(*scoped_ref_counted_1, *ref_counted_3);
+  ASSERT_EQ(1234, *ref_counted_2);
+  ASSERT_EQ(1234, *ref_counted_3);
 }
 
 TEST(PtrTest, ConstifyPtr_RefCounted) {
@@ -238,19 +142,6 @@ TEST(PtrTest, ConstifyPtr_RefCounted) {
   // Additionally, make sure that const_ref_counted is valid even after
   // ref_counted has been destroyed.
   ASSERT_EQ(1234, *const_ref_counted);
-}
-
-TEST(PtrTest, DowncastPtr_ManuallyCounted) {
-  Ptr<Derived> derived = MakePtr(new Derived(1234));
-  Ptr<Base> base = derived;
-  // Avoid leaks.
-  ScopedPtr<Ptr<Derived> > scoped_derived(derived);
-
-  Ptr<Derived> derived_from_downcast = DowncastPtr<Derived>(base);
-
-  ASSERT_EQ(1234, base->getInt());
-  ASSERT_EQ(1234, derived->getInt());
-  ASSERT_EQ(1234, derived_from_downcast->getInt());
 }
 
 TEST(PtrTest, DowncastPtr_RefCounted) {

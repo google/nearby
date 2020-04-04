@@ -1,85 +1,71 @@
 #include "core/internal/offline_frames.h"
 
-#include "platform/port/down_cast.h"
+#include <memory>
+#include <utility>
+
+#include "platform/byte_array.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
+using ExceptionOrOfflineFrame = ExceptionOr<ConstPtr<OfflineFrame>>;
+
 namespace {
-
-template <typename T>
-T *downcastToRaw(Ptr<proto_ns::MessageLite> message) {
-  return DOWN_CAST<T *>(message.operator->());
-}
-
-// This method takes ownership of the passed-in 'message'.
-//
-// This can be implemented more efficiently by taking in a reference to an
-// OfflineFrame object created on the caller's stack, but we instead create it
-// on the heap and return a Ptr to it for the sake of consistency.
-ConstPtr<OfflineFrame> newOfflineFrame(V1Frame::FrameType frame_type,
-                                       Ptr<proto_ns::MessageLite> message) {
+std::unique_ptr<OfflineFrame> NewOfflineFrame(
+    V1Frame::FrameType frame_type,
+    std::unique_ptr<proto_ns::MessageLite> message) {
   V1Frame *v1_frame = new V1Frame();
   v1_frame->set_type(frame_type);
 
   switch (frame_type) {
     case V1Frame::CONNECTION_REQUEST:
       v1_frame->set_allocated_connection_request(
-          downcastToRaw<ConnectionRequestFrame>(message));
+          static_cast<ConnectionRequestFrame *>(message.release()));
       break;
     case V1Frame::CONNECTION_RESPONSE:
       v1_frame->set_allocated_connection_response(
-          downcastToRaw<ConnectionResponseFrame>(message));
+          static_cast<ConnectionResponseFrame *>(message.release()));
       break;
     case V1Frame::PAYLOAD_TRANSFER:
       v1_frame->set_allocated_payload_transfer(
-          downcastToRaw<PayloadTransferFrame>(message));
+          static_cast<PayloadTransferFrame *>(message.release()));
       break;
     case V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION:
       v1_frame->set_allocated_bandwidth_upgrade_negotiation(
-          downcastToRaw<BandwidthUpgradeNegotiationFrame>(message));
+          static_cast<BandwidthUpgradeNegotiationFrame *>(message.release()));
       break;
     case V1Frame::KEEP_ALIVE:
       v1_frame->set_allocated_keep_alive(
-          downcastToRaw<KeepAliveFrame>(message));
+          static_cast<KeepAliveFrame *>(message.release()));
       break;
     default:
       break;
   }
 
-  Ptr<OfflineFrame> offline_frame(new OfflineFrame());
+  auto offline_frame = std::make_unique<OfflineFrame>();
   offline_frame->set_version(OfflineFrame::V1);
   offline_frame->set_allocated_v1(v1_frame);
-  return ConstifyPtr(offline_frame);
+  return offline_frame;
 }
 
-// This method takes ownership of the passed-in 'offline_frame' and destroys it
-// before returning.
-ConstPtr<ByteArray> toBytes(ConstPtr<OfflineFrame> offline_frame) {
-  ScopedPtr<ConstPtr<OfflineFrame> > scoped_offline_frame(offline_frame);
-
-  size_t serialized_size = offline_frame->ByteSizeLong();
-  Ptr<ByteArray> bytes{new ByteArray{serialized_size}};
-
-  offline_frame->SerializeToArray(bytes->getData(), serialized_size);
-  return ConstifyPtr(bytes);
+ConstPtr<ByteArray> toBytes(std::unique_ptr<OfflineFrame> offline_frame) {
+  auto *bytes = new ByteArray{offline_frame->ByteSizeLong()};
+  offline_frame->SerializeToArray(bytes->getData(), bytes->size());
+  return MakeConstPtr(bytes);
 }
 
 }  // namespace
 
-ExceptionOr<ConstPtr<OfflineFrame> > OfflineFrames::fromBytes(
+ExceptionOrOfflineFrame OfflineFrames::fromBytes(
     ConstPtr<ByteArray> offline_frame_bytes) {
-  ScopedPtr<Ptr<OfflineFrame> > offline_frame(new OfflineFrame());
+  auto offline_frame = std::make_unique<OfflineFrame>();
 
-  if (!offline_frame->ParseFromArray(offline_frame_bytes->getData(),
-                                     offline_frame_bytes->size())) {
-    return ExceptionOr<ConstPtr<OfflineFrame> >(
-        Exception::INVALID_PROTOCOL_BUFFER);
+  if (!offline_frame->ParseFromString(offline_frame_bytes->asString())) {
+    return ExceptionOrOfflineFrame(Exception::INVALID_PROTOCOL_BUFFER);
   }
 
-  return ExceptionOr<ConstPtr<OfflineFrame> >(
-      ConstifyPtr(offline_frame.release()));
+  return ExceptionOrOfflineFrame(MakeConstPtr(offline_frame.release()));
 }
 
 V1Frame::FrameType OfflineFrames::getFrameType(
@@ -96,7 +82,7 @@ ConstPtr<ByteArray> OfflineFrames::forConnectionRequest(
     const std::string &endpoint_id, const std::string &endpoint_name,
     std::int32_t nonce,
     const std::vector<proto::connections::Medium> &mediums) {
-  Ptr<ConnectionRequestFrame> connection_request(new ConnectionRequestFrame());
+  auto connection_request = std::make_unique<ConnectionRequestFrame>();
   connection_request->set_endpoint_id(endpoint_id);
   connection_request->set_endpoint_name(endpoint_name);
   connection_request->set_nonce(nonce);
@@ -107,113 +93,113 @@ ConstPtr<ByteArray> OfflineFrames::forConnectionRequest(
     connection_request->add_mediums(mediumToConnectionRequestMedium(*it));
   }
 
-  return toBytes(
-      newOfflineFrame(V1Frame::CONNECTION_REQUEST, connection_request));
+  return toBytes(NewOfflineFrame(V1Frame::CONNECTION_REQUEST,
+                                 std::move(connection_request)));
 }
 
 ConstPtr<ByteArray> OfflineFrames::forConnectionResponse(std::int32_t status) {
-  Ptr<ConnectionResponseFrame> connection_response(
-      new ConnectionResponseFrame());
+  auto connection_response = std::make_unique<ConnectionResponseFrame>();
   connection_response->set_status(status);
 
-  return toBytes(
-      newOfflineFrame(V1Frame::CONNECTION_RESPONSE, connection_response));
+  return toBytes(NewOfflineFrame(V1Frame::CONNECTION_RESPONSE,
+                                 std::move(connection_response)));
 }
 
 ConstPtr<ByteArray> OfflineFrames::forDataPayloadTransferFrame(
     const PayloadTransferFrame::PayloadHeader &header,
     const PayloadTransferFrame::PayloadChunk &chunk) {
-  Ptr<PayloadTransferFrame> payload_transfer(new PayloadTransferFrame());
+  auto payload_transfer = std::make_unique<PayloadTransferFrame>();
   payload_transfer->set_packet_type(PayloadTransferFrame::DATA);
   *payload_transfer->mutable_payload_header() = header;
   *payload_transfer->mutable_payload_chunk() = chunk;
 
-  return toBytes(newOfflineFrame(V1Frame::PAYLOAD_TRANSFER, payload_transfer));
+  return toBytes(
+      NewOfflineFrame(V1Frame::PAYLOAD_TRANSFER, std::move(payload_transfer)));
 }
 
 ConstPtr<ByteArray> OfflineFrames::forControlPayloadTransferFrame(
     const PayloadTransferFrame::PayloadHeader &header,
     const PayloadTransferFrame::ControlMessage &control) {
-  Ptr<PayloadTransferFrame> payload_transfer(new PayloadTransferFrame());
+  auto payload_transfer = std::make_unique<PayloadTransferFrame>();
   payload_transfer->set_packet_type(PayloadTransferFrame::CONTROL);
   *payload_transfer->mutable_payload_header() = header;
   *payload_transfer->mutable_control_message() = control;
 
-  return toBytes(newOfflineFrame(V1Frame::PAYLOAD_TRANSFER, payload_transfer));
+  return toBytes(
+      NewOfflineFrame(V1Frame::PAYLOAD_TRANSFER, std::move(payload_transfer)));
 }
 
 ConstPtr<ByteArray> OfflineFrames::
     forWifiHotspotUpgradePathAvailableBandwidthUpgradeNegotiationEvent(
         const std::string &ssid, const std::string &password,
         std::int32_t port) {
-  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
-      *wifi_hotspot_credentials = new BandwidthUpgradeNegotiationFrame::
-          UpgradePathInfo::WifiHotspotCredentials();
+  auto *wifi_hotspot_credentials = new BandwidthUpgradeNegotiationFrame::
+      UpgradePathInfo::WifiHotspotCredentials();
   wifi_hotspot_credentials->set_ssid(ssid);
   wifi_hotspot_credentials->set_password(password);
   wifi_hotspot_credentials->set_port(port);
 
-  BandwidthUpgradeNegotiationFrame::UpgradePathInfo *upgrade_path_info =
+  auto *upgrade_path_info =
       new BandwidthUpgradeNegotiationFrame::UpgradePathInfo();
   upgrade_path_info->set_medium(
       BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WIFI_HOTSPOT);
   upgrade_path_info->set_allocated_wifi_hotspot_credentials(
       wifi_hotspot_credentials);
 
-  Ptr<BandwidthUpgradeNegotiationFrame> bandwidth_upgrade_negotiation(
-      new BandwidthUpgradeNegotiationFrame());
+  auto bandwidth_upgrade_negotiation =
+      std::make_unique<BandwidthUpgradeNegotiationFrame>();
   bandwidth_upgrade_negotiation->set_event_type(
       BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
   bandwidth_upgrade_negotiation->set_allocated_upgrade_path_info(
       upgrade_path_info);
 
-  return toBytes(newOfflineFrame(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION,
-                                 bandwidth_upgrade_negotiation));
+  return toBytes(NewOfflineFrame(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION,
+                                 std::move(bandwidth_upgrade_negotiation)));
 }
 
 ConstPtr<ByteArray>
 OfflineFrames::forLastWriteToPriorChannelBandwidthUpgradeNegotiationEvent() {
-  Ptr<BandwidthUpgradeNegotiationFrame> bandwidth_upgrade_negotiation(
-      new BandwidthUpgradeNegotiationFrame());
+  auto bandwidth_upgrade_negotiation =
+      std::make_unique<BandwidthUpgradeNegotiationFrame>();
   bandwidth_upgrade_negotiation->set_event_type(
       BandwidthUpgradeNegotiationFrame::LAST_WRITE_TO_PRIOR_CHANNEL);
 
-  return toBytes(newOfflineFrame(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION,
-                                 bandwidth_upgrade_negotiation));
+  return toBytes(NewOfflineFrame(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION,
+                                 std::move(bandwidth_upgrade_negotiation)));
 }
 
 ConstPtr<ByteArray>
 OfflineFrames::forSafeToClosePriorChannelBandwidthUpgradeNegotiationEvent() {
-  Ptr<BandwidthUpgradeNegotiationFrame> bandwidth_upgrade_negotiation(
-      new BandwidthUpgradeNegotiationFrame());
+  auto bandwidth_upgrade_negotiation =
+      std::make_unique<BandwidthUpgradeNegotiationFrame>();
   bandwidth_upgrade_negotiation->set_event_type(
       BandwidthUpgradeNegotiationFrame::SAFE_TO_CLOSE_PRIOR_CHANNEL);
 
-  return toBytes(newOfflineFrame(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION,
-                                 bandwidth_upgrade_negotiation));
+  return toBytes(NewOfflineFrame(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION,
+                                 std::move(bandwidth_upgrade_negotiation)));
 }
 
 ConstPtr<ByteArray>
 OfflineFrames::forClientIntroductionBandwidthUpgradeNegotiationEvent(
     const std::string &endpoint_id) {
-  BandwidthUpgradeNegotiationFrame::ClientIntroduction *client_introduction =
+  auto *client_introduction =
       new BandwidthUpgradeNegotiationFrame::ClientIntroduction();
   client_introduction->set_endpoint_id(endpoint_id);
 
-  Ptr<BandwidthUpgradeNegotiationFrame> bandwidth_upgrade_negotiation(
-      new BandwidthUpgradeNegotiationFrame());
+  auto bandwidth_upgrade_negotiation =
+      std::make_unique<BandwidthUpgradeNegotiationFrame>();
   bandwidth_upgrade_negotiation->set_event_type(
       BandwidthUpgradeNegotiationFrame::CLIENT_INTRODUCTION);
   bandwidth_upgrade_negotiation->set_allocated_client_introduction(
       client_introduction);
 
-  return toBytes(newOfflineFrame(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION,
-                                 bandwidth_upgrade_negotiation));
+  return toBytes(NewOfflineFrame(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION,
+                                 std::move(bandwidth_upgrade_negotiation)));
 }
 
 ConstPtr<ByteArray> OfflineFrames::forKeepAlive() {
-  Ptr<KeepAliveFrame> keep_alive_frame(new KeepAliveFrame());
-  return toBytes(newOfflineFrame(V1Frame::KEEP_ALIVE, keep_alive_frame));
+  return toBytes(
+      NewOfflineFrame(V1Frame::KEEP_ALIVE, std::make_unique<KeepAliveFrame>()));
 }
 
 ConnectionRequestFrame::Medium OfflineFrames::mediumToConnectionRequestMedium(

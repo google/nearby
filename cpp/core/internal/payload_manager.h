@@ -277,6 +277,7 @@ class PayloadManager
       payload_status_update_executor_;
 
   Ptr<EndpointManager<Platform> > endpoint_manager_;
+  std::shared_ptr<PayloadManager> self_{this, [](void*){}};
 };
 
 }  // namespace connections

@@ -134,14 +134,14 @@ P2PClusterPCPHandler<Platform>::startDiscoveryImpl(
 
   proto::connections::Medium bluetooth_medium =
       startBluetoothDiscovery(MakePtr(new FoundBluetoothAdvertisementProcessor(
-                                  MakePtr(this), client_proxy, service_id)),
+                                  self_, client_proxy, service_id)),
                               client_proxy, service_id);
   if (proto::connections::UNKNOWN_MEDIUM != bluetooth_medium) {
     mediums_started_successfully.push_back(bluetooth_medium);
   }
 
   proto::connections::Medium ble_medium = startBleDiscovery(
-      MakePtr(new FoundBleAdvertisementProcessor(MakePtr(this), client_proxy)),
+      MakePtr(new FoundBleAdvertisementProcessor(self_, client_proxy)),
       client_proxy, service_id);
   if (proto::connections::UNKNOWN_MEDIUM != ble_medium) {
     mediums_started_successfully.push_back(ble_medium);
@@ -312,7 +312,7 @@ void P2PClusterPCPHandler<Platform>::FoundBluetoothAdvertisementProcessor::
     onFoundBluetoothDevice(Ptr<BluetoothDevice> bluetooth_device) {
   pcp_handler_->runOnPCPHandlerThread(
       MakePtr(new OnFoundBluetoothDeviceRunnable(pcp_handler_, client_proxy_,
-                                                 MakePtr(this), service_id_,
+                                                 self_, service_id_,
                                                  bluetooth_device)));
 }
 
@@ -320,7 +320,7 @@ template <typename Platform>
 void P2PClusterPCPHandler<Platform>::FoundBluetoothAdvertisementProcessor::
     onLostBluetoothDevice(Ptr<BluetoothDevice> bluetooth_device) {
   pcp_handler_->runOnPCPHandlerThread(MakePtr(new OnLostBluetoothDeviceRunnable(
-      pcp_handler_, client_proxy_, MakePtr(this), service_id_,
+      pcp_handler_, client_proxy_, self_, service_id_,
       bluetooth_device)));
 }
 
@@ -450,7 +450,7 @@ void P2PClusterPCPHandler<Platform>::FoundBleAdvertisementProcessor::
                          const string& service_id,
                          ConstPtr<ByteArray> advertisement_bytes) {
   pcp_handler_->runOnPCPHandlerThread(MakePtr(new OnFoundBlePeripheralRunnable(
-      pcp_handler_, client_proxy_, MakePtr(this), service_id, ble_peripheral,
+      pcp_handler_, client_proxy_, self_, service_id, ble_peripheral,
       advertisement_bytes)));
 }
 
@@ -532,7 +532,7 @@ void P2PClusterPCPHandler<Platform>::FoundBleAdvertisementProcessor::
     onLostBlePeripheral(Ptr<BLE_PERIPHERAL> ble_peripheral,
                         const string& service_id) {
   pcp_handler_->runOnPCPHandlerThread(MakePtr(new OnLostBlePeripheralRunnable(
-      pcp_handler_, client_proxy_, MakePtr(this), service_id, ble_peripheral)));
+      pcp_handler_, client_proxy_, self_, service_id, ble_peripheral)));
 }
 
 template <typename Platform>
@@ -597,7 +597,7 @@ P2PClusterPCPHandler<Platform>::startBluetoothAdvertising(
     if (!medium_manager_->startListeningForIncomingBluetoothConnections(
             service_id,
             MakePtr(new IncomingBluetoothConnectionProcessor(
-                MakePtr(this), client_proxy, local_endpoint_name)))) {
+                self_, client_proxy, local_endpoint_name)))) {
       // TODO(tracyzhou): Add logging.
       return proto::connections::UNKNOWN_MEDIUM;
     }
@@ -654,7 +654,7 @@ proto::connections::Medium P2PClusterPCPHandler<Platform>::startBleAdvertising(
     if (!medium_manager_->startListeningForIncomingBleConnections(
             service_id,
             MakePtr(new IncomingBleConnectionProcessor(
-                MakePtr(this), client_proxy, local_endpoint_name)))) {
+                self_, client_proxy, local_endpoint_name)))) {
       // TODO(ahlee): logger.atWarning().log("In startBleAdvertising(%s), client
       // %d failed to start listening for incoming BLE connections to ServiceId
       // %s", local_endpoint_name, clientProxy.getClientId(), service_id);

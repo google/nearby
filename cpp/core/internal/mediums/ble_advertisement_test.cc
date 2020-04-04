@@ -1,5 +1,7 @@
 #include "core/internal/mediums/ble_advertisement.h"
 
+#include <algorithm>
+
 #include "gtest/gtest.h"
 
 namespace location {
@@ -224,9 +226,10 @@ TEST(BLEAdvertisementTest, DeserializationWorksWithExtraBytes) {
 
   // Copy the bytes into a new array with extra bytes. We must explicitly
   // define how long our array is because we can't use variable length arrays.
-  char raw_ble_advertisement_bytes[kLongAdvertisementLength];
+  char raw_ble_advertisement_bytes[kLongAdvertisementLength] {};
   memcpy(raw_ble_advertisement_bytes, scoped_ble_advertisement_bytes->getData(),
-         kLongAdvertisementLength);
+         std::min(sizeof(raw_ble_advertisement_bytes),
+                  scoped_ble_advertisement_bytes->size()));
 
   // Re-parse the BLE advertisement using our extra long advertisement bytes.
   ScopedPtr<ConstPtr<ByteArray> > scoped_long_ble_advertisement_bytes(

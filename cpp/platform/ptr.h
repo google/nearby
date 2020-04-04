@@ -4,77 +4,14 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <type_traits>
 
-#include "platform/impl/default/default_lock.h"
 #include "platform/logging.h"
 #include "platform/port/down_cast.h"
 
 namespace location {
 namespace nearby {
-
-namespace ptr_impl {
-
-class RefCount {
- public:
-  RefCount() : lock_(), count_(kInitialCount) {}
-
-  // Returns false if this operation doesn't make conceptual sense any more
-  // (for example, if it leads to bringing count_ back from the dead).
-  bool increment() {
-    bool result;
-
-    lock_.lock();
-    {
-      // Avoid coming back from the dead.
-      if (count_ < kInitialCount) {
-        result = false;
-      } else {
-        count_++;
-        result = true;
-      }
-    }
-    lock_.unlock();
-
-    return result;
-  }
-
-  // Returns true if after this operation, count_ is 0.
-  bool decrement() {
-    bool result;
-
-    lock_.lock();
-    {
-      // It's alright for count_ to go negative because it will only be exactly
-      // 0 once (since increment() makes sure that once you go negative, you
-      // can't come back from the dead).
-      count_--;
-      result = (count_ == 0);
-    }
-    lock_.unlock();
-
-    return result;
-  }
-
- private:
-  static const std::int32_t kInitialCount;
-
-  DefaultLock lock_;
-  std::int32_t count_;
-};
-
-}  // namespace ptr_impl
-
-template <typename T>
-class ObjectDestroyer {
- public:
-  static void destroy(T* t) { delete t; }
-};
-
-template <typename T>
-class ArrayDestroyer {
- public:
-  static void destroy(T* t) { delete[] t; }
-};
 
 // Forward declarations to make it possible for Ptr (a class template) to
 // declare ConstifyPtr, DowncastPtr, and DowncastConstPtr (function templates)
@@ -85,7 +22,7 @@ class ArrayDestroyer {
 // Ptr (which is what one might reasonably expect).
 //
 // See https://isocpp.org/wiki/faq/templates#template-friends for more.
-template <typename T, template <typename> class Destroyer = ObjectDestroyer>
+template <typename T>
 class Ptr;
 template <typename T>
 class ConstPtr;
@@ -96,128 +33,74 @@ Ptr<ChildT> DowncastPtr(Ptr<BaseT> base_ptr);
 template <typename ChildT, typename BaseT>
 ConstPtr<ChildT> DowncastConstPtr(ConstPtr<BaseT> base_ptr);
 
-// A layer of indirection over a raw pointer, to buy flexibility in the
-// future to use, for instance:
-//
-// a) the in-built shared_ptr in modern implementations of C++,
-// b) a custom reference-counting mechanism, etc.
-//
-// , all without having to touch every line of our codebase that uses
-// pointers.
-//
-// Destroyer defines how the owned pointee should be destroyed, and is
-// expected to be a class template that provides at least a destroy()
-// method, like so:
-//
-// template <typename T>
-// class MyDestroyer {
-// public:
-//   static void destroy(T* t);
-// };
-//
-// It defaults to ObjectDestroyer<T>.
-template <typename T, template <typename> class Destroyer>
+// A layer of indirection over a raw pointer.
+// It is being deprecated in favor of standard c++ smart pointers.
+// For transion period, Ptr<T> will behave similar to shared_ptr<T>.
+// New code should use shrared_ptr<T> or unique_ptr<T> and not Ptr<T>.
+template <typename T>
 class Ptr {
  public:
   // Provide an alias for use as a dependent name.
   typedef T PointeeType;
 
-  Ptr() : pointee_(nullptr), ref_count_(nullptr) {}
-  explicit Ptr(T* pointee, bool is_ref_counted = false,
-               ptr_impl::RefCount* ref_count = nullptr)
-      : pointee_(pointee),
-        ref_count_(
-            is_ref_counted
-                ? (ref_count != nullptr ? ref_count : new ptr_impl::RefCount())
-                : nullptr) {
-    init();
-  }
-  Ptr(const Ptr& that) : pointee_(that.pointee_), ref_count_(that.ref_count_) {
-    init();
-  }
+  Ptr() = default;
+  explicit Ptr(T* pointee) : ptr_(pointee) {}
+  Ptr(const Ptr& that) = default;
 
-  Ptr& operator=(const Ptr& other) {
-    if (pointee_ != other.pointee_) {
-      // If we're not currently ref-counted, then an assignment shouldn't lead
-      // to any destruction of our past state -- that's the responsibility of
-      // whichever instance of Ptr believes it owns pointee_.
-      destroy(false);
+  Ptr(std::shared_ptr<T> ptr) : ptr_(ptr) {}  // NOLINT
 
-      pointee_ = other.pointee_;
-      ref_count_ = other.ref_count_;
-
-      init();
-    }
+  template <typename T2>
+  Ptr<T>& operator=(T2* ptr) {
+    Ptr<T> tmp(ptr);
+    this->ptr_.swap(tmp);
     return *this;
   }
+
+  Ptr& operator=(const Ptr& other) = default;
 
   // Conversion to Ptr<T2>, where T is trivially convertible to T2.  E.g.
   // conversion from derived to base class.
   template <typename T2>
-  operator Ptr<T2>() {
-    return Ptr<T2>(pointee_, isRefCounted(), ref_count_);
+  operator Ptr<T2>() {  // NOLINT
+    return Ptr<T2>(std::static_pointer_cast<T2>(this->ptr_));
+  }
+  operator Ptr() {  // NOLINT
+    return Ptr(*this);
   }
 
-  ~Ptr() {
-    if (isRefCounted()) {
-      destroy();
-    } else {
-      // Left empty on purpose.
-    }
-  }
+  explicit operator std::shared_ptr<T>() { return this->ptr_; }
+
+  ~Ptr() = default;
 
   bool operator==(const Ptr& other) const {
-    assert(!(this->isNull()));
-    assert(!(other.isNull()));
-
-    return ((*(this->pointee_) == *(other.pointee_)) &&
-            (this->isRefCounted() == other.isRefCounted()));
+    return *(this->ptr_) == *(other.ptr_);
   }
-
   bool operator!=(const Ptr& other) const { return !(*this == other); }
 
   bool operator<(const Ptr& other) const {
-    assert(!(this->isNull()));
-    assert(!(other.isNull()));
-
-    return *(this->pointee_) < *(other.pointee_);
+    return *(this->ptr_) < *(other.ptr_);
   }
 
-  // Calls Destroyer::destroy() to perform deallocation of pointee_.
-  void destroy(bool should_destroy_if_not_ref_counted = true) {
-    bool need_to_destroy = isRefCounted() ? ref_count_->decrement()
-                                          : should_destroy_if_not_ref_counted;
-    if (need_to_destroy) {
-      delete ref_count_;
-      Destroyer<T>::destroy(pointee_);
-    }
+  // No-op: refcounted objects will be destroyed correctly
+  ABSL_DEPRECATED("Use c++ smart pointers directly instead of Ptr<T>")
+  void destroy(bool = true) {}
 
-    ref_count_ = NULL;  // NOLINT
-    pointee_ = NULL;    // NOLINT
-  }
+  // No-op: refcounted objects will be destroyed correctly
+  ABSL_DEPRECATED("Use c++ smart pointers directly instead of Ptr<T>")
+  void clear() {}
 
-  // Use this function only when the ownership is held by someone else, and this
-  // Ptr object has no responsibility to destroy it.
-  void clear() {
-    if (isRefCounted()) {
-      NEARBY_LOG(FATAL, "Attempting to invoke clear() on a RefCounted Ptr.");
-    }
+  T& operator*() const { return *ptr_; }
 
-    pointee_ = NULL;  // NOLINT
-  }
+  T* operator->() const { return ptr_.get(); }
+  T* get() { return ptr_.get(); }
+  void reset() { return ptr_.reset(); }
 
-  T& operator*() const {
-    assert(pointee_ != NULL);  // NOLINT
-    return *pointee_;
-  }
+  ABSL_DEPRECATED("Use c++ smart pointers directly instead of Ptr<T>")
+  bool isNull() const { return !this->ptr_; }
 
-  T* operator->() const {
-    assert(pointee_ != NULL);  // NOLINT
-    return pointee_;
-  }
-
-  bool isNull() const { return pointee_ == nullptr; }
-  bool isRefCounted() const { return ref_count_ != nullptr; }
+  // used by pipe.cc; introduced by cr/295271652
+  ABSL_DEPRECATED("Use c++ smart pointers directly instead of Ptr<T>")
+  bool isRefCounted() const { return true; }
 
  private:
   template <typename PointeeT>
@@ -227,16 +110,7 @@ class Ptr {
   template <typename ChildT, typename BaseT>
   friend ConstPtr<ChildT> DowncastConstPtr(ConstPtr<BaseT> base_ptr);
 
-  void init() {
-    if (isRefCounted()) {
-      if (!ref_count_->increment()) {
-        NEARBY_LOG(FATAL, "Failed to increment RefCount.");
-      }
-    }
-  }
-
-  T* pointee_;
-  ptr_impl::RefCount* ref_count_;
+  std::shared_ptr<T> ptr_;
 };
 
 // Convenience wrapper for a read-only version of Ptr (in which the pointee
@@ -259,9 +133,9 @@ template <typename T>
 class ConstPtr : public Ptr<T const> {
  public:
   ConstPtr() {}
-  explicit ConstPtr(T* pointee, bool is_ref_counted = false,
-                    ptr_impl::RefCount* ref_count = nullptr)
-      : Ptr<T const>(pointee, is_ref_counted, ref_count) {}
+  explicit ConstPtr(const T* pointee) : Ptr<T const>(pointee) {}
+  explicit ConstPtr(T* pointee) : Ptr<T const>(pointee) {}
+  explicit ConstPtr(Ptr<T> ptr) : Ptr<T const>(ptr) {}
 };
 
 // RAII wrapper over Ptr and ConstPtr (hereon referred to by the PtrType
@@ -291,33 +165,29 @@ class ScopedPtr {
  public:
   explicit ScopedPtr(typename PtrType::PointeeType* pointee) : ptr_(pointee) {}
   explicit ScopedPtr(PtrType ptr) : ptr_(ptr) {}
-  ~ScopedPtr() { ptr_.destroy(); }
+  ScopedPtr(const ScopedPtr&) = delete;
+  ~ScopedPtr() = default;
+
+  ScopedPtr& operator=(const ScopedPtr&) = delete;
 
   // Shadow methods for the underlying Ptr.
-  typename PtrType::PointeeType& operator*() const { return ptr_.operator*(); }
+  typename PtrType::PointeeType& operator*() const { return *ptr_; }
   typename PtrType::PointeeType* operator->() const {
     return ptr_.operator->();
   }
   bool isNull() const { return ptr_.isNull(); }
 
   // Accessor for the underlying Ptr.
-  PtrType get() const { return ptr_; }
+  PtrType get() const { return this->ptr_; }
 
-  // Releases the underlying Ptr from the clutches of this ScopedPtr,
-  // effectively resetting this ScopedPtr (and making its destructor be a no-op)
-  // -- useful for transfer of ownership from one ScopedPtr to another across
-  // scopes.
+  // Does nothing;
+  // this is to avoid unintended destruction of a managed pointer.
+  // TODO(b/149938110): remove this completely.
   PtrType release() {
-    PtrType released = ptr_;
-    ptr_ = PtrType();
-    return released;
+    return ptr_;
   }
 
  private:
-  // Disallow copy and assignment.
-  ScopedPtr(const ScopedPtr&);
-  ScopedPtr& operator=(const ScopedPtr&);
-
   PtrType ptr_;
 };
 
@@ -358,19 +228,19 @@ ConstPtr<T> MakeConstPtr(T* raw_ptr) {
 // reference).
 template <typename T>
 Ptr<T> MakeRefCountedPtr(T* raw_ptr) {
-  return Ptr<T>(raw_ptr, true);
+  return Ptr<T>(raw_ptr);
 }
 
 // ConstPtr counterpart to MakeRefCountedPtr().
 template <typename T>
 ConstPtr<T> MakeRefCountedConstPtr(T* raw_ptr) {
-  return ConstPtr<T>(raw_ptr, true);
+  return ConstPtr<T>(raw_ptr);
 }
 
 // Use this function to convert a Ptr object to a ConstPtr object.
 template <typename T>
 ConstPtr<T> ConstifyPtr(Ptr<T> ptr) {
-  return ConstPtr<T>(ptr.pointee_, ptr.isRefCounted(), ptr.ref_count_);
+  return ConstPtr<T>(ptr);
 }
 
 // Use this function to downcast from a Ptr<BaseT> to a Ptr<ChildT>.
@@ -382,16 +252,16 @@ ConstPtr<T> ConstifyPtr(Ptr<T> ptr) {
 //         Ptr<MyChild> my_child_ptr = DowncastPtr<MyChild>(my_base_ptr);
 template <typename ChildT, typename BaseT>
 Ptr<ChildT> DowncastPtr(Ptr<BaseT> base_ptr) {
-  return Ptr<ChildT>(DOWN_CAST<ChildT*>(base_ptr.pointee_),
-                     base_ptr.isRefCounted(), base_ptr.ref_count_);
+  static_assert(std::is_base_of_v<BaseT, ChildT>);
+  return Ptr<ChildT>(std::static_pointer_cast<ChildT>(base_ptr.ptr_));
 }
 
 // ConstPtr counterpart to DowncastPtr().
 template <typename ChildT, typename BaseT>
 ConstPtr<ChildT> DowncastConstPtr(ConstPtr<BaseT> base_ptr) {
+  static_assert(std::is_base_of_v<BaseT, ChildT>);
   return ConstPtr<ChildT>(
-      const_cast<ChildT*>(DOWN_CAST<const ChildT*>(base_ptr.pointee_)),
-      base_ptr.isRefCounted(), base_ptr.ref_count_);
+      std::static_pointer_cast<const ChildT>(base_ptr.ptr_));
 }
 
 }  // namespace nearby

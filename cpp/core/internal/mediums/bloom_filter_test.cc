@@ -71,8 +71,7 @@ TEST(BloomFilterTest, AddMultipleArgsReturnsNonemptyArray) {
   ScopedPtr<ConstPtr<ByteArray>> scoped_bloom_filter_bytes(
       scoped_bloom_filter->asBytes());
   std::string empty_string(kByteArrayLength, '\0');
-  ASSERT_NE(0, memcmp(scoped_bloom_filter_bytes->getData(), empty_string.data(),
-                      empty_string.size()));
+  ASSERT_NE(scoped_bloom_filter_bytes->asString(), empty_string);
 }
 
 /**

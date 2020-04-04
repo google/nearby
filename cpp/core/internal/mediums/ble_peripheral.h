@@ -22,6 +22,21 @@ class BLEPeripheral {
   ScopedPtr<ConstPtr<ByteArray>> id_;
 };
 
+
+// Represents BLE peripheral for testing.
+class BlePeripheral {
+ public:
+  explicit BlePeripheral(const ByteArray& id) : id_(id) {}
+  ~BlePeripheral() = default;
+
+  const ByteArray& GetId() const { return id_; }
+
+ private:
+  // A unique identifier for this peripheral. It can be the BLE advertisement it
+  // was found on, or even simply the BLE MAC address.
+  const ByteArray id_;
+};
+
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby

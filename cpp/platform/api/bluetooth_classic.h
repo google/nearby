@@ -60,7 +60,7 @@ class BluetoothServerSocket {
   //
   // The returned Ptr will be owned (and destroyed) by the caller. Returns
   // Exception::IO on error.
-  virtual ExceptionOr<Ptr<BluetoothSocket> > accept() = 0;
+  virtual ExceptionOr<Ptr<BluetoothSocket>> accept() = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html#close()
   //
@@ -116,8 +116,9 @@ class BluetoothClassicMedium {
   //
   // The returned Ptr will be owned (and destroyed) by the caller. Returns
   // Exception::IO on error.
-  virtual ExceptionOr<Ptr<BluetoothSocket> > connectToService(
-      Ptr<BluetoothDevice> remote_device, const std::string& service_uuid) = 0;
+  virtual ExceptionOr<Ptr<BluetoothSocket>> connectToService(
+      Ptr<BluetoothDevice> remote_device,
+      const std::string& service_uuid) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#listenUsingInsecureRfcommWithServiceRecord
   //
@@ -129,8 +130,9 @@ class BluetoothClassicMedium {
   //
   // The returned Ptr will be owned (and destroyed) by the caller. Returns
   // Exception::IO on error.
-  virtual ExceptionOr<Ptr<BluetoothServerSocket> > listenForService(
-      const std::string& service_name, const std::string& service_uuid) = 0;
+  virtual ExceptionOr<Ptr<BluetoothServerSocket>> listenForService(
+      const std::string& service_name,
+      const std::string& service_uuid) = 0;
 };
 
 }  // namespace nearby

@@ -1,3 +1,14 @@
+// Any changes in this file maybe cause the unmapped result in the PLX tables.
+// Please remember to update the table schemas:
+//   1. Check your changes are rolled out in the MPM.
+//      https://mpmbrowse.corp.google.com/package/location/nearby/lingo
+//   2. Check the new lingo job is scheduled and completed.
+//      https://borgcron-dashboard.corp.google.com/#user=social-copresence-batch
+//   3. Runs PLX script to update schema.
+//      https://plx.corp.google.com/scripts2/script_e1._9eb6f3_e3cd_419b_b483_c1e42abc824a
+//
+//   Or you can wait one or two days then run the above Step3. dircetly.
+
 syntax = "proto2";
 
 package location.nearby.proto.connections;
@@ -145,6 +156,7 @@ enum PayloadStatus {
   REMOTE_CANCELLATION = 8;
 }
 
+// next_id: 16
 // Result of an upgrade attempt.
 enum BandwidthUpgradeResult {
   UNKNOWN_BANDWIDTH_UPGRADE_RESULT = 0;
@@ -173,10 +185,26 @@ enum BandwidthUpgradeResult {
   // record analytics (e.g. the client disconnected).
   UNFINISHED_ERROR = 10;
 
-  // TODO(mariaines): add a REMOTE_ERROR when we implement a cancellation
+  // TODO(b/151833661): add a REMOTE_ERROR when we implement a cancellation
   // message, for the case when the remote endpoint had an error on their end.
+
+  // Error during setting up Bluetooth.
+  BLUETOOTH_MEDIUM_ERROR = 11;
+
+  // Error during setting up WIFI Aware.
+  WIFI_AWARE_MEDIUM_ERROR = 12;
+
+  // Error during setting up WIFI Lan.
+  WIFI_LAN_MEDIUM_ERROR = 13;
+
+  // Error during setting up WIFI Hotspot.
+  WIFI_HOTSPOT_MEDIUM_ERROR = 14;
+
+  // Error during setting up WIFI Direct.
+  WIFI_DIRECT_MEDIUM_ERROR = 15;
 }
 
+// next_id: 34
 // The stage at which an error occurred.
 enum BandwidthUpgradeErrorStage {
   UNKNOWN_BANDWIDTH_UPGRADE_ERROR_STAGE = 0;
@@ -207,12 +235,16 @@ enum BandwidthUpgradeErrorStage {
   WIFI_LISTEN_INCOMING = 11;
   // On the outgoing side, connecting to the hotspot.
   WIFI_CONNECT_TO_HOTSPOT = 12;
+  // Creating the WIFI Hotspot EndpointChannel
+  WIFI_HOTSPOT_SOCKET_CREATION = 28;
 
   // WIFI_LAN
   // On the incoming side, listening for incoming wifi connections.
   WIFI_LAN_LISTEN_INCOMING = 13;
   // On the incoming side, invalid (null or loopback) Inet Address.
   WIFI_LAN_IP_ADDRESS = 14;
+  // Creating the WIFI Lan EndpointChannel
+  WIFI_LAN_SOCKET_CREATION = 29;
   // On the outgoing side, connecting to the local wifi socket.
   WIFI_LAN_SOCKET_CONNECTION = 15;
 
@@ -225,6 +257,8 @@ enum BandwidthUpgradeErrorStage {
   BLUETOOTH_CONNECT_OUTGOING = 18;
   // On the outgoing side, parsing the remote Bluetooth MAC address.
   BLUETOOTH_PARSE_MAC_ADDRESS = 19;
+  // Creating the BLUETOOTH EndpointChannel
+  BLUETOOTH_SOCKET_CREATION = 30;
 
   // WIFI_AWARE
   // On the incoming side, listening for incoming Wifi Aware connections.
@@ -235,6 +269,8 @@ enum BandwidthUpgradeErrorStage {
   WIFI_AWARE_SUBSCRIBE = 22;
   // On the outgoing side, connecting to the Wifi Aware network.
   WIFI_AWARE_CONNECT_TO_NETWORK = 23;
+  // Creating the WIFI Aware EndpointChannel
+  WIFI_AWARE_SOCKET_CREATION = 31;
 
   // WIFI_DIRECT
   // On the incoming side, listening for incoming Wifi Direct connections.
@@ -245,4 +281,10 @@ enum BandwidthUpgradeErrorStage {
   WIFI_DIRECT_CONNECT_OUTGOING = 26;
   // On the outgoing side, parsing the remote device address.
   WIFI_DIRECT_PARSE_DEVICE_ADDRESS = 27;
+  // Creating the WIFI Direct EndpointChannel
+  WIFI_DIRECT_SOCKET_CREATION = 32;
+
+  // WEB_RTC
+  // Creating the WEB_RTC EndpointChannel
+  WEB_RTC_SOCKET_CREATION = 33;
 }

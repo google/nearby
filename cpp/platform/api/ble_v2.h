@@ -39,7 +39,7 @@ struct BLEAdvertisementData {
   std::set<std::string> service_uuids;
   // Maps service UUIDs to their service data.
   // Ownership of the map values is tied to ownership of BLEAdvertisementData.
-  std::map<std::string, ConstPtr<ByteArray> > service_data;
+  std::map<std::string, ConstPtr<ByteArray>> service_data;
 };
 
 // Opaque wrapper over a BLE peripheral. Must be able to uniquely identify a
@@ -217,7 +217,8 @@ class GATTServer {
   // about this descriptor, please go to:
   // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
   virtual Ptr<GATTCharacteristic> createCharacteristic(
-      const std::string& service_uuid, const std::string& characteristic_uuid,
+      const std::string& service_uuid,
+      const std::string& characteristic_uuid,
       const std::set<GATTCharacteristic::Permission::Value>& permissions,
       const std::set<GATTCharacteristic::Property::Value>& properties) = 0;
 
@@ -384,7 +385,9 @@ class BLEMediumV2 {
   //   HIGH:
   //     - Connection interval = ~100ms - 125ms
   virtual Ptr<ClientGATTConnection> connectToGATTServer(
-      Ptr<BLEPeripheralV2> peripheral, MTU mtu, PowerMode::Value power_mode,
+      Ptr<BLEPeripheralV2> peripheral,
+      MTU mtu,
+      PowerMode::Value power_mode,
       Ptr<ClientGATTConnectionLifecycleCallback>
           connection_lifecycle_callback) = 0;
 

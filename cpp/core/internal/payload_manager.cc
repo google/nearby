@@ -581,7 +581,9 @@ PayloadManager<Platform>::PayloadManager(
       payload_status_update_executor_(Platform::createSingleThreadExecutor()),
       endpoint_manager_(endpoint_manager) {
   endpoint_manager_->registerIncomingOfflineFrameProcessor(
-      V1Frame::PAYLOAD_TRANSFER, MakePtr(this));
+      V1Frame::PAYLOAD_TRANSFER, std::static_pointer_cast<
+          typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>(
+          self_));
 }
 
 template <typename Platform>
@@ -591,7 +593,9 @@ PayloadManager<Platform>::~PayloadManager() {
 
   // Unregister ourselves from the IncomingOfflineFrameProcessors.
   endpoint_manager_->unregisterIncomingOfflineFrameProcessor(
-      V1Frame::CONNECTION_RESPONSE, MakePtr(this));
+      V1Frame::CONNECTION_RESPONSE, std::static_pointer_cast<
+          typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>(
+          self_));
 
   // Stop all the ongoing Runnables (as gracefully as possible).
   payload_status_update_executor_->shutdown();
@@ -640,7 +644,7 @@ void PayloadManager<Platform>::sendPayload(
   enqueueOutgoingPayload(
       send_payload_executor,
       MakePtr(new payload_manager::SendPayloadRunnable<Platform>(
-          MakePtr(this), client_proxy, endpoint_ids,
+          self_, client_proxy, endpoint_ids,
           scoped_payload.release())));
   // TODO(tracyzhou): Add logging.
 }
@@ -694,7 +698,7 @@ void PayloadManager<Platform>::processEndpointDisconnection(
     Ptr<CountDownLatch> process_disconnection_barrier) {
   payload_status_update_executor_->execute(MakePtr(
       new payload_manager::ProcessEndpointDisconnectionRunnable<Platform>(
-          MakePtr(this), client_proxy, endpoint_id,
+          self_, client_proxy, endpoint_id,
           process_disconnection_barrier)));
 }
 
@@ -830,7 +834,7 @@ void PayloadManager<Platform>::sendClientCallbacksForFinishedOutgoingPayload(
   payload_status_update_executor_->execute(MakePtr(
       new payload_manager::
           SendClientCallbacksForFinishedOutgoingPayloadRunnable<Platform>(
-              MakePtr(this), client_proxy, finished_endpoint_ids,
+              self_, client_proxy, finished_endpoint_ids,
               payload_header, num_bytes_successfully_transferred, status)));
 }
 
@@ -842,7 +846,7 @@ void PayloadManager<Platform>::sendClientCallbacksForFinishedIncomingPayload(
   payload_status_update_executor_->execute(MakePtr(
       new payload_manager::
           SendClientCallbacksForFinishedIncomingPayloadRunnable<Platform>(
-              MakePtr(this), client_proxy, endpoint_id, payload_header,
+              self_, client_proxy, endpoint_id, payload_header,
               offset_bytes, status)));
 }
 
@@ -935,7 +939,7 @@ void PayloadManager<Platform>::handleSuccessfulOutgoingChunk(
     std::int64_t payload_chunk_body_size) {
   payload_status_update_executor_->execute(MakePtr(
       new payload_manager::HandleSuccessfulOutgoingChunkRunnable<Platform>(
-          MakePtr(this), client_proxy, endpoint_id, payload_header,
+          self_, client_proxy, endpoint_id, payload_header,
           payload_chunk_flags, payload_chunk_offset, payload_chunk_body_size)));
 }
 
@@ -947,7 +951,7 @@ void PayloadManager<Platform>::handleSuccessfulIncomingChunk(
     std::int64_t payload_chunk_body_size) {
   payload_status_update_executor_->execute(MakePtr(
       new payload_manager::HandleSuccessfulIncomingChunkRunnable<Platform>(
-          MakePtr(this), client_proxy, endpoint_id, payload_header,
+          self_, client_proxy, endpoint_id, payload_header,
           payload_chunk_flags, payload_chunk_offset, payload_chunk_body_size)));
 }
 

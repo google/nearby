@@ -201,10 +201,7 @@ EndpointChannelManager<Platform>::ChannelState::updateChannelForEndpoint(
   ScopedPtr<Ptr<EndpointChannel> > scoped_previous_endpoint_channel(
       previous_endpoint_channel);
 
-  // Upgrade endpoint_channel to be reference-counted before starting to track
-  // it (and make it clear that endpoint_channel no longer owns the raw
-  // pointer).
-  endpoint_metadata->endpoint_channel = MakeRefCountedPtr(&(*endpoint_channel));
+  endpoint_metadata->endpoint_channel = endpoint_channel;
   endpoint_channel.clear();
   endpoint_id_to_metadata_[endpoint_id] = endpoint_metadata;
 
