@@ -18,3 +18,7 @@
 	path = third_party/smhasher
 	url = https://github.com/aappleby/smhasher
 	branch = master
+[submodule "third_party/depot_tools"]
+	path = third_party/depot_tools
+	url = https://chromium.googlesource.com/chromium/tools/depot_tools.git
+	branch = master
