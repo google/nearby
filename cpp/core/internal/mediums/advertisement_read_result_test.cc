@@ -47,16 +47,6 @@ const std::int64_t
         SamplePlatform>::kAdvertisementBaseBackoffDurationMillis =
         ToInt64Milliseconds(kAdvertisementBaseBackoffDuration);
 
-template<>
-const std::int64_t AdvertisementReadResult<
-    SamplePlatform>::kAdvertisementBaseBackoffDurationMillis =
-    absl::ToInt64Milliseconds(kAdvertisementBaseBackoffDuration);
-
-template<>
-const std::int64_t AdvertisementReadResult<
-    SamplePlatform>::kAdvertisementMaxBackoffDurationMillis =
-    absl::ToInt64Milliseconds(kAdvertisementMaxBackoffDuration);
-
 TEST(AdvertisementReadResultTest, AdvertisementExists) {
   AdvertisementReadResult<SamplePlatform> advertisement_read_result;
   advertisement_read_result.recordLastReadStatus(/* is_success= */ true);

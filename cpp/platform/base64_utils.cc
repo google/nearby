@@ -49,7 +49,7 @@ ByteArray Base64Utils::decode(absl::string_view base64_string) {
   return ByteArray(decoded_string);
 }
 
-Ptr<ByteArray> Base64Utils::decode(const std::string& base64_string) {
+Ptr<ByteArray> Base64Utils::decode(absl::string_view base64_string) {
   return decode<Ptr<ByteArray>>(base64_string);
 }
 

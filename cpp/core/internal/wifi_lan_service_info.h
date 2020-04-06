@@ -66,9 +66,9 @@ class WifiLanServiceInfo {
   // The maximum length for endpoint id in encrypted WifiLanServiceInfo string.
   static constexpr int kMaxEndpointNameLength = 131;
 
-  static constexpr uint16 kVersionBitmask = 0x0E0;
-  static constexpr uint16 kPcpBitmask = 0x01F;
-  static constexpr uint16 kVersionShift = 5;
+  static constexpr int kVersionBitmask = 0x0E0;
+  static constexpr int kPcpBitmask = 0x01F;
+  static constexpr int kVersionShift = 5;
 
   WifiLanServiceInfo(Version version, PCP::Value pcp,
                      absl::string_view endpoint_id,

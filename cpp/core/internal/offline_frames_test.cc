@@ -47,7 +47,7 @@ constexpr ConnectionRequestFrame::Medium ToConnectionRequestMedium(
 TEST(OfflineFramesTest, CanParseMessageFromBytes) {
   const string endpoint_id{"ABC"};
   const string endpoint_name{"XYZ"};
-  const int32 nonce{1234};
+  const int nonce{1234};
   const std::vector<proto::connections::Medium> mediums{Medium::BLE,
                                                         Medium::BLUETOOTH};
 
