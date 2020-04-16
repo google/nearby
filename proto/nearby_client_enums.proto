@@ -10,10 +10,12 @@ option objc_class_prefix = "GNCP";
 enum UserType {
   UNKNOWN_USER_TYPE = 0;
   PRODUCTION = 1;
+// nearby:google3-begin
   MODULEFOOD = 2;
   TEST = 3;
   PRESTO_DOGFOOD = 4;
   AUTO_TEST = 5;
+// nearby:google3-end
 }
 
 // The client that is logging.
