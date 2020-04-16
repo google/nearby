@@ -15,8 +15,7 @@ namespace mediums {
 // ble_v2.createAdvertisementHeader
 // LINT.IfChange
 const std::uint32_t BLEAdvertisementHeader::kServiceIdBloomFilterLength = 10;
-// LINT.ThenChange(//depot/google3/core/internal/\
-//     mediums/ble_v2.h)
+// LINT.ThenChange(cpp/core/internal/mediums/ble_v2.h)
 const std::uint32_t BLEAdvertisementHeader::kAdvertisementHashLength = 4;
 
 const std::uint32_t BLEAdvertisementHeader::kVersionAndNumSlotsLength = 1;
