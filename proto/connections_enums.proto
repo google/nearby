@@ -1,15 +1,17 @@
-// nearby:google3-begin
-// Any changes in this file maybe cause the unmapped result in the PLX tables.
-// Please remember to update the table schemas:
-//   1. Check your changes are rolled out in the MPM.
-//      https://mpmbrowse.corp.google.com/package/location/nearby/lingo
-//   2. Check the new lingo job is scheduled and completed.
-//      https://borgcron-dashboard.corp.google.com/#user=social-copresence-batch
-//   3. Runs PLX script to update schema.
-//      https://plx.corp.google.com/scripts2/script_e1._9eb6f3_e3cd_419b_b483_c1e42abc824a
+// Copyright 2020 Google LLC
 //
-//   Or you can wait one or two days then run the above Step3. dircetly.
-// nearby:google3-end
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 
 syntax = "proto2";
 
