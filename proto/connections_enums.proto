@@ -1,0 +1,294 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+syntax = "proto2";
+
+package location.nearby.proto.connections;
+
+option java_package = "com.google.location.nearby.proto";
+option java_outer_classname = "ConnectionsEnums";
+option objc_class_prefix = "GNCP";
+
+// The type of event being logged.
+// Lightweight START_* and STOP_* events track instances of potential crashes
+// that would result in a ClientSession not being logged.
+enum EventType {
+  UNKNOWN_EVENT_TYPE = 0;
+
+  // A completed ClientSession, logged after a client disconnects.
+  CLIENT_SESSION = 1;
+
+  // Corresponds to googleApiClient.connect() and the beginning of a
+  // ClientSession.
+  START_CLIENT_SESSION = 2;
+
+  // Corresponds to googleApiClient.disconnect() and the end of a ClientSession.
+  STOP_CLIENT_SESSION = 3;
+
+  // Corresponds to the beginning of a StrategySession.
+  START_STRATEGY_SESSION = 4;
+
+  // Corresponds to the end of a StrategySession.
+  STOP_STRATEGY_SESSION = 5;
+}
+
+// The strategy used for a session of Nearby.Connections.
+// Values correspond to
+// http://cs/?q=symbol:com.google.android.gms.nearby.connection.Strategy
+enum ConnectionsStrategy {
+  UNKNOWN_STRATEGY = 0;
+  MDNS_LOCAL_WIFI = 1 [deprecated = true];
+  RADIO_P2P = 2 [deprecated = true];
+  P2P_CLUSTER = 3;
+  P2P_STAR = 4;
+  P2P_POINT_TO_POINT = 5;
+}
+
+// The role a device is playing in one StrategySession.
+enum SessionRole {
+  UNKNOWN_SESSION_ROLE = 0;
+  ADVERTISER = 1;
+  DISCOVERER = 2;
+}
+
+enum Medium {
+  UNKNOWN_MEDIUM = 0;
+  MDNS = 1;
+  BLUETOOTH = 2;
+  WIFI_HOTSPOT = 3;
+  BLE = 4;
+  WIFI_LAN = 5;
+  WIFI_AWARE = 6;
+  NFC = 7;
+  WIFI_DIRECT = 8;
+  WEB_RTC = 9;
+}
+
+// The result of a ConnectionRequest.
+enum ConnectionRequestResponse {
+  UNKNOWN_CONNECTION_REQUEST_RESPONSE = 0;
+  ACCEPTED = 1;
+  REJECTED = 2;
+
+  // The advertiser neither accepted nor rejected the request.
+  IGNORED = 3;
+
+  // The corresponding ConnectionAttempt failed, and so the request never
+  // reached the advertiser.
+  NOT_SENT = 4;
+}
+
+// Result of a connection attempt.
+enum ConnectionAttemptResult {
+  UNKNOWN_CONNECTION_ATTEMPT_RESULT = 0;
+  RESULT_SUCCESS = 1;
+  RESULT_ERROR = 2;
+  RESULT_CANCELLED = 3;
+}
+
+// Whether this device is attempting an incoming or outgoing connection.
+enum ConnectionAttemptDirection {
+  UNKNOWN_CONNECTION_ATTEMPT_DIRECTION = 0;
+  INCOMING = 1;
+  OUTGOING = 2;
+}
+
+// Whether this is an initial or upgrade connection attempt.
+enum ConnectionAttemptType {
+  UNKNOWN_CONNECTION_ATTEMPT_TYPE = 0;
+  INITIAL = 1;
+  UPGRADE = 2;
+}
+
+// The reason that an EstablishedConnection was disconnected.
+enum DisconnectionReason {
+  UNKNOWN_DISCONNECTION_REASON = 0;
+  LOCAL_DISCONNECTION = 1;
+  REMOTE_DISCONNECTION = 2;
+  IO_ERROR = 3;
+  UPGRADED = 4;
+  SHUTDOWN = 5;
+  UNFINISHED = 6;
+}
+
+// The type of a Payload.
+// Values correspond to
+// http://cs/?q=symbol:com.google.android.gms.nearby.connection.Payload.Type
+enum PayloadType {
+  UNKNOWN_PAYLOAD_TYPE = 0;
+  BYTES = 1;
+  FILE = 2;
+  STREAM = 3;
+}
+
+// The status of a Payload.
+enum PayloadStatus {
+  UNKNOWN_PAYLOAD_STATUS = 0;
+  SUCCESS = 1;
+
+  // A local error like failing to attach/detach a chunk.
+  LOCAL_ERROR = 2;
+
+  // The remote endpoint notified us of a local error on their end.
+  REMOTE_ERROR = 3;
+
+  // An IO error while reading from or writing to the remote endpoint.
+  ENDPOINT_IO_ERROR = 4;
+
+  // No errors so far; we expect this payload to be completed on a new medium.
+  MOVED_TO_NEW_MEDIUM = 5;
+
+  // The connection was closed before this payload could complete.
+  CONNECTION_CLOSED = 6;
+
+  // The payload was canceled by the local client.
+  LOCAL_CANCELLATION = 7;
+
+  // The payload was canceled by the remote endpoint.
+  REMOTE_CANCELLATION = 8;
+}
+
+// next_id: 16
+// Result of an upgrade attempt.
+enum BandwidthUpgradeResult {
+  UNKNOWN_BANDWIDTH_UPGRADE_RESULT = 0;
+  UPGRADE_RESULT_SUCCESS = 1;
+
+  // Generic error not covered by a more specific error.
+  UPGRADE_RESULT_ERROR = 2;
+
+  // Error during setup of the new medium, e.g. failure to start or connect to
+  // the hotspot.
+  MEDIUM_ERROR = 3;
+
+  // Error during the protocol handshake (e.g. received an unexpected frame).
+  PROTOCOL_ERROR = 4;
+
+  // Failure to read or write, on either the new or old medium.
+  RESULT_IO_ERROR = 5;
+
+  // E.g. no endpoint channel found.
+  CHANNEL_ERROR = 6;
+
+  // E.g. upgrading from Bluetooth to Bluetooth.
+  ALREADY_ON_MEDIUM_ERROR = 7;
+
+  // For some reason, the attempt was never finished before it was time to
+  // record analytics (e.g. the client disconnected).
+  UNFINISHED_ERROR = 10;
+
+  // TODO(b/151833661): add a REMOTE_ERROR when we implement a cancellation
+  // message, for the case when the remote endpoint had an error on their end.
+
+  // Error during setting up Bluetooth.
+  BLUETOOTH_MEDIUM_ERROR = 11;
+
+  // Error during setting up WIFI Aware.
+  WIFI_AWARE_MEDIUM_ERROR = 12;
+
+  // Error during setting up WIFI Lan.
+  WIFI_LAN_MEDIUM_ERROR = 13;
+
+  // Error during setting up WIFI Hotspot.
+  WIFI_HOTSPOT_MEDIUM_ERROR = 14;
+
+  // Error during setting up WIFI Direct.
+  WIFI_DIRECT_MEDIUM_ERROR = 15;
+}
+
+// next_id: 34
+// The stage at which an error occurred.
+enum BandwidthUpgradeErrorStage {
+  UNKNOWN_BANDWIDTH_UPGRADE_ERROR_STAGE = 0;
+
+  // Common protocol or setup stages.
+
+  CLIENT_INTRODUCTION = 1;
+  NETWORK_AVAILABLE = 2;
+  LAST_WRITE_TO_PRIOR_CHANNEL = 3;
+  SAFE_TO_CLOSE_PRIOR_CHANNEL = 4;
+  // Creating the new EndpointChannel.
+  SOCKET_CREATION = 5;
+  // Getting the previous EndpointChannel
+  PRIOR_ENDPOINT_CHANNEL = 6;
+  // The upgrade attempt was not finished.
+  UPGRADE_UNFINISHED = 7;
+  // Upgrade successfully
+  UPGRADE_SUCCESS = 8;
+
+  // Medium-specific stages.
+  // TODO(xlythe) Make sure each stage maps to one, and only one, possible
+  // failure. Re-using these stages makes it hard to understand what happened.
+
+  // WIFI_HOTSPOT
+  // On the incoming side, starting up the hotspot.
+  WIFI_START_HOTSPOT = 10;
+  // On the incoming side, listening for incoming wifi connections.
+  WIFI_LISTEN_INCOMING = 11;
+  // On the outgoing side, connecting to the hotspot.
+  WIFI_CONNECT_TO_HOTSPOT = 12;
+  // Creating the WIFI Hotspot EndpointChannel
+  WIFI_HOTSPOT_SOCKET_CREATION = 28;
+
+  // WIFI_LAN
+  // On the incoming side, listening for incoming wifi connections.
+  WIFI_LAN_LISTEN_INCOMING = 13;
+  // On the incoming side, invalid (null or loopback) Inet Address.
+  WIFI_LAN_IP_ADDRESS = 14;
+  // Creating the WIFI Lan EndpointChannel
+  WIFI_LAN_SOCKET_CREATION = 29;
+  // On the outgoing side, connecting to the local wifi socket.
+  WIFI_LAN_SOCKET_CONNECTION = 15;
+
+  // BLUETOOTH
+  // On the incoming side, listening for incoming Bluetooth connections.
+  BLUETOOTH_LISTEN_INCOMING = 16;
+  // On the incoming side, obtaining the local Bluetooth MAC address.
+  BLUETOOTH_OBTAIN_MAC_ADDRESS = 17;
+  // On the outgoing side, connecting to a Bluetooth socket.
+  BLUETOOTH_CONNECT_OUTGOING = 18;
+  // On the outgoing side, parsing the remote Bluetooth MAC address.
+  BLUETOOTH_PARSE_MAC_ADDRESS = 19;
+  // Creating the BLUETOOTH EndpointChannel
+  BLUETOOTH_SOCKET_CREATION = 30;
+
+  // WIFI_AWARE
+  // On the incoming side, listening for incoming Wifi Aware connections.
+  WIFI_AWARE_LISTEN_INCOMING = 20;
+  // On the incoming side, publishing a Wifi Aware advertisement.
+  WIFI_AWARE_PUBLISH = 21;
+  // On the outgoing side, subscribing for Wifi Aware advertisements.
+  WIFI_AWARE_SUBSCRIBE = 22;
+  // On the outgoing side, connecting to the Wifi Aware network.
+  WIFI_AWARE_CONNECT_TO_NETWORK = 23;
+  // Creating the WIFI Aware EndpointChannel
+  WIFI_AWARE_SOCKET_CREATION = 31;
+
+  // WIFI_DIRECT
+  // On the incoming side, listening for incoming Wifi Direct connections.
+  WIFI_DIRECT_LISTEN_INCOMING = 24;
+  // On the incoming side, starting a Wifi Direct group.
+  WIFI_DIRECT_CREATE_GROUP = 25;
+  // On the outgoing side, connecting to a Wifi Direct socket.
+  WIFI_DIRECT_CONNECT_OUTGOING = 26;
+  // On the outgoing side, parsing the remote device address.
+  WIFI_DIRECT_PARSE_DEVICE_ADDRESS = 27;
+  // Creating the WIFI Direct EndpointChannel
+  WIFI_DIRECT_SOCKET_CREATION = 32;
+
+  // WEB_RTC
+  // Creating the WEB_RTC EndpointChannel
+  WEB_RTC_SOCKET_CREATION = 33;
+}

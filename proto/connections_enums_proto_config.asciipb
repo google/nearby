@@ -1,0 +1,5 @@
+optimize_mode: LITE_RUNTIME
+
+allowed_enum: "location.nearby.proto.connections.Medium"
+allowed_enum: "location.nearby.proto.connections.DisconnectionReason"
+allowed_enum: "location.nearby.proto.connections.PayloadStatus"

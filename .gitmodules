@@ -1,0 +1,24 @@
+[submodule "third_party/ukey2"]
+	path = third_party/ukey2
+	url = sso://team/nearby-eng/ukey2
+	branch = master
+[submodule "third_party/protobuf"]
+	path = third_party/protobuf
+	url = https://github.com/protocolbuffers/protobuf
+	branch = master
+[submodule "third_party/gtest"]
+	path = third_party/gtest
+	url = https://github.com/google/googletest
+	branch = master
+[submodule "third_party/absl"]
+	path = third_party/absl
+	url = https://github.com/abseil/abseil-cpp
+	branch = master
+[submodule "third_party/smhasher"]
+	path = third_party/smhasher
+	url = https://github.com/aappleby/smhasher
+	branch = master
+[submodule "third_party/depot_tools"]
+	path = third_party/depot_tools
+	url = https://chromium.googlesource.com/chromium/tools/depot_tools.git
+	branch = master
