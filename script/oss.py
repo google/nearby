@@ -86,6 +86,7 @@ def post_process_oss_files(path, args):
   else:
     top_dirs = ["cpp", "proto"]
   transforms = (
+    ("third_party/webrtc/files/stable/", ""),
     ("third_party/", ""),
     ("location/nearby/connections/core", "core"),
     ("location/nearby/cpp/platform", "platform"),
