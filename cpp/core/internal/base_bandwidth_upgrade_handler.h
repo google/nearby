@@ -19,13 +19,9 @@ namespace connections {
 
 namespace base_bandwidth_upgrade_handler {
 
-template <typename>
 class RevertRunnable;
-template <typename>
 class InitiateBandwidthUpgradeForEndpointRunnable;
-template <typename>
 class ProcessEndpointDisconnectionRunnable;
-template <typename>
 class ProcessBandwidthUpgradeNegotiationFrameRunnable;
 
 }  // namespace base_bandwidth_upgrade_handler
@@ -55,26 +51,28 @@ class ProcessBandwidthUpgradeNegotiationFrameRunnable;
 //       BANDWIDTH_UPGRADE_NEGOTIATION.SAFE_TO_CLOSE_PRIOR_CHANNEL from the
 //       other, and upon doing so, close the prior EndpointChannel.
 // </ul>
-template <typename Platform>
-class BaseBandwidthUpgradeHandler : public BandwidthUpgradeHandler<Platform> {
+class BaseBandwidthUpgradeHandler : public BandwidthUpgradeHandler {
  public:
-  BaseBandwidthUpgradeHandler(
-      Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager);
-  ~BaseBandwidthUpgradeHandler();
+  using Platform = platform::ImplementationPlatform;
 
-  void revert();
+  explicit BaseBandwidthUpgradeHandler(
+      Ptr<EndpointChannelManager> endpoint_channel_manager);
+  ~BaseBandwidthUpgradeHandler() override;
+
+  void revert() override;
   void processEndpointDisconnection(
       Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
-      Ptr<CountDownLatch> process_disconnection_barrier);
+      Ptr<CountDownLatch> process_disconnection_barrier) override;
   // Initiates the bandwidth upgrade and sends an UPGRADE_PATH_AVAILABLE
   // OfflineFrame.
   void initiateBandwidthUpgradeForEndpoint(
-      Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id);
+      Ptr<ClientProxy<Platform> > client_proxy,
+      const string& endpoint_id) override;
   void processBandwidthUpgradeNegotiationFrame(
       ConstPtr<BandwidthUpgradeNegotiationFrame> bandwidth_upgrade_negotiation,
       Ptr<ClientProxy<Platform> > to_client_proxy,
       const string& from_endpoint_id,
-      proto::connections::Medium current_medium);
+      proto::connections::Medium current_medium) override;
 
  protected:
   // Represents the incoming Socket the Initiator has gotten after initializing
@@ -117,7 +115,7 @@ class BaseBandwidthUpgradeHandler : public BandwidthUpgradeHandler<Platform> {
   // @BandwidthUpgradeHandlerThread
   virtual proto::connections::Medium getUpgradeMedium() = 0;
 
-  Ptr<EndpointChannelManager<Platform> > getEndpointChannelManager();
+  Ptr<EndpointChannelManager> getEndpointChannelManager();
   // Common functionality to take an incoming connection and go through the
   // upgrade process.
   // @BandwidthUpgradeHandlerThread
@@ -126,15 +124,11 @@ class BaseBandwidthUpgradeHandler : public BandwidthUpgradeHandler<Platform> {
   void runOnBandwidthUpgradeHandlerThread(Ptr<Runnable> runnable);
 
  private:
-  template <typename>
   friend class base_bandwidth_upgrade_handler::RevertRunnable;
-  template <typename>
   friend class base_bandwidth_upgrade_handler::
       InitiateBandwidthUpgradeForEndpointRunnable;
-  template <typename>
   friend class base_bandwidth_upgrade_handler::
       ProcessEndpointDisconnectionRunnable;
-  template <typename>
   friend class base_bandwidth_upgrade_handler::
       ProcessBandwidthUpgradeNegotiationFrameRunnable;
 
@@ -162,7 +156,7 @@ class BaseBandwidthUpgradeHandler : public BandwidthUpgradeHandler<Platform> {
   Ptr<BandwidthUpgradeNegotiationFrame::ClientIntroduction>
   readClientIntroductionFrame(Ptr<EndpointChannel> endpoint_channel);
 
-  Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager_;
+  Ptr<EndpointChannelManager> endpoint_channel_manager_;
   ScopedPtr<Ptr<typename Platform::ScheduledExecutorType> > alarm_executor_;
   ScopedPtr<Ptr<typename Platform::SingleThreadExecutorType> > serial_executor_;
   // Stores each upgraded endpoint's previous EndpointChannel (that was
@@ -183,7 +177,5 @@ class BaseBandwidthUpgradeHandler : public BandwidthUpgradeHandler<Platform> {
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-#include "core/internal/base_bandwidth_upgrade_handler.cc"
 
 #endif  // CORE_INTERNAL_BASE_BANDWIDTH_UPGRADE_HANDLER_H_

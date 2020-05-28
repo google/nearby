@@ -95,7 +95,7 @@ class EndpointManager {
   };
 
   explicit EndpointManager(
-      Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager);
+      Ptr<EndpointChannelManager> endpoint_channel_manager);
   ~EndpointManager();
 
   // Invoked from the constructors of the various *Manager components that make
@@ -211,7 +211,7 @@ class EndpointManager {
   ScopedPtr<Ptr<ThreadUtils> > thread_utils_;
   ScopedPtr<Ptr<SystemClock> > system_clock_;
 
-  Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager_;
+  Ptr<EndpointChannelManager> endpoint_channel_manager_;
 
   typedef std::map<V1Frame::FrameType, Ptr<IncomingOfflineFrameProcessor> >
       IncomingOfflineFrameProcessorsMap;

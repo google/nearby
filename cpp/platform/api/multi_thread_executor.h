@@ -10,11 +10,9 @@ namespace nearby {
 // unbounded queue.
 //
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html#newFixedThreadPool-int-
-template <typename ConcreteSubmittableExecutor>
-class MultiThreadExecutor
-    : public SubmittableExecutor<ConcreteSubmittableExecutor> {
+class MultiThreadExecutor : public SubmittableExecutor {
  public:
-  ~MultiThreadExecutor() override {}
+  ~MultiThreadExecutor() override = default;
 };
 
 }  // namespace nearby

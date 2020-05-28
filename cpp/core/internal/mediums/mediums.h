@@ -5,6 +5,7 @@
 #include "core/internal/mediums/ble_v2.h"
 #include "core/internal/mediums/bluetooth_classic.h"
 #include "core/internal/mediums/bluetooth_radio.h"
+#include "core/internal/mediums/wifi_lan.h"
 #include "platform/ptr.h"
 
 namespace location {
@@ -27,6 +28,8 @@ class Mediums {
   Ptr<BLE<Platform> > ble() const;
   // Returns a handle to V2 of the Bluetooth Low Energy (BLE) medium.
   Ptr<mediums::BLEV2<Platform> > bleV2() const;
+  // Returns a handle to the Wifi-Lan medium.
+  Ptr<mediums::WifiLan<Platform> > wifi_lan() const;
 
  private:
   // The order of declaration is critical for both construction and
@@ -41,6 +44,7 @@ class Mediums {
   ScopedPtr<Ptr<BluetoothClassic<Platform> > > bluetooth_classic_;
   ScopedPtr<Ptr<BLE<Platform> > > ble_;
   ScopedPtr<Ptr<mediums::BLEV2<Platform> > > ble_v2_;
+  ScopedPtr<Ptr<mediums::WifiLan<Platform> > > wifi_lan_;
 };
 
 }  // namespace connections

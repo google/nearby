@@ -21,6 +21,8 @@ class Utils {
   static ConstPtr<ByteArray> legacySha256HashOnlyForPrinting(
       Ptr<HashUtils> hash_utils, ConstPtr<ByteArray> source, size_t length);
 
+  static ConstPtr<ByteArray> generateRandomBytes(size_t length);
+
  private:
   static std::string bytesToPrintableHexString(ConstPtr<ByteArray> bytes);
 };

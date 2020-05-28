@@ -29,9 +29,9 @@ template <typename Platform>
 class PCPManager {
  public:
   PCPManager(Ptr<MediumManager<Platform> > medium_manager,
-             Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager,
+             Ptr<EndpointChannelManager> endpoint_channel_manager,
              Ptr<EndpointManager<Platform> > endpoint_manager,
-             Ptr<BandwidthUpgradeManager<Platform> > bandwidth_upgrade_manager);
+             Ptr<BandwidthUpgradeManager> bandwidth_upgrade_manager);
   ~PCPManager();
 
   Status::Value startAdvertising(

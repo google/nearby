@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include "platform/api/platform.h"
 #include "platform/synchronized.h"
 #include "proto/connections_enums.pb.h"
 
@@ -10,6 +11,8 @@ namespace nearby {
 namespace connections {
 
 namespace {
+
+using Platform = platform::ImplementationPlatform;
 
 std::int32_t bytesToInt(ConstPtr<ByteArray> bytes) {
   const char* int_bytes = bytes->getData();
@@ -33,36 +36,36 @@ ConstPtr<ByteArray> intToBytes(std::int32_t value) {
   return MakeConstPtr(new ByteArray(int_bytes, sizeof(int_bytes)));
 }
 
-ExceptionOr<ConstPtr<ByteArray> > readExactly(Ptr<InputStream> reader,
-                                              std::int64_t size) {
+ExceptionOr<ConstPtr<ByteArray>> readExactly(Ptr<InputStream> reader,
+                                             std::int64_t size) {
   string buffer;
   std::int64_t remaining_size = size;
 
   while (remaining_size > 0) {
-    ExceptionOr<ConstPtr<ByteArray> > read_bytes = reader->read(remaining_size);
+    ExceptionOr<ConstPtr<ByteArray>> read_bytes = reader->read(remaining_size);
     if (!read_bytes.ok()) {
       if (Exception::IO == read_bytes.exception()) {
-        return ExceptionOr<ConstPtr<ByteArray> >(read_bytes.exception());
+        return ExceptionOr<ConstPtr<ByteArray>>(read_bytes.exception());
       }
     }
     // Avoid leaks.
-    ScopedPtr<ConstPtr<ByteArray> > scoped_read_bytes(read_bytes.result());
+    ScopedPtr<ConstPtr<ByteArray>> scoped_read_bytes(read_bytes.result());
 
     // In Java, EOFException is a sub-variant of IOException.
     if (scoped_read_bytes.isNull() || scoped_read_bytes->size() == 0) {
-      return ExceptionOr<ConstPtr<ByteArray> >(Exception::IO);
+      return ExceptionOr<ConstPtr<ByteArray>>(Exception::IO);
     }
 
     buffer.append(scoped_read_bytes->getData(), scoped_read_bytes->size());
     remaining_size -= scoped_read_bytes->size();
   }
 
-  return ExceptionOr<ConstPtr<ByteArray> >(
+  return ExceptionOr<ConstPtr<ByteArray>>(
       MakeConstPtr(new ByteArray(buffer.data(), buffer.size())));
 }
 
 ExceptionOr<std::int32_t> readInt(Ptr<InputStream> reader) {
-  ExceptionOr<ConstPtr<ByteArray> > read_bytes =
+  ExceptionOr<ConstPtr<ByteArray>> read_bytes =
       readExactly(reader, sizeof(std::int32_t));
   if (!read_bytes.ok()) {
     if (Exception::IO == read_bytes.exception()) {
@@ -70,7 +73,7 @@ ExceptionOr<std::int32_t> readInt(Ptr<InputStream> reader) {
     }
   }
   // Avoid leaks.
-  ScopedPtr<ConstPtr<ByteArray> > scoped_read_bytes(read_bytes.result());
+  ScopedPtr<ConstPtr<ByteArray>> scoped_read_bytes(read_bytes.result());
 
   return ExceptionOr<std::int32_t>(bytesToInt(scoped_read_bytes.get()));
 }
@@ -82,10 +85,9 @@ Exception::Value writeInt(Ptr<OutputStream> writer, std::int32_t value) {
 }  // namespace
 
 // TODO(b/150763574): Move implementatiopn to header or .inc file.
-template <typename Platform>
-BaseEndpointChannel<Platform>::BaseEndpointChannel(const string& channel_name,
-                                                   Ptr<InputStream> reader,
-                                                   Ptr<OutputStream> writer)
+BaseEndpointChannel::BaseEndpointChannel(absl::string_view channel_name,
+                                         Ptr<InputStream> reader,
+                                         Ptr<OutputStream> writer)
     : last_read_timestamp_(-1),
       channel_name_(channel_name),
       system_clock_(Platform::createSystemClock()),
@@ -100,8 +102,7 @@ BaseEndpointChannel<Platform>::BaseEndpointChannel(const string& channel_name,
           Platform::createConditionVariable(is_paused_lock_.get())),
       is_paused_(Platform::createAtomicBoolean(false)) {}
 
-template <typename Platform>
-BaseEndpointChannel<Platform>::~BaseEndpointChannel() {
+BaseEndpointChannel::~BaseEndpointChannel() {
   // WARNING: Make sure to never access reader_ and writer_ from here.
   //
   // They're owned by the specialized *Socket classes that are in turn
@@ -114,14 +115,13 @@ BaseEndpointChannel<Platform>::~BaseEndpointChannel() {
   // of this class).
 }
 
-template <typename Platform>
-ExceptionOr<ConstPtr<ByteArray> > BaseEndpointChannel<Platform>::read() {
+ExceptionOr<ConstPtr<ByteArray>> BaseEndpointChannel::read() {
   Synchronized s(reader_lock_.get());
 
   ExceptionOr<std::int32_t> read_int = readInt(reader_);
   if (!read_int.ok()) {
     if (Exception::IO == read_int.exception()) {
-      return ExceptionOr<ConstPtr<ByteArray> >(read_int.exception());
+      return ExceptionOr<ConstPtr<ByteArray>>(read_int.exception());
     }
   }
 
@@ -131,11 +131,11 @@ ExceptionOr<ConstPtr<ByteArray> > BaseEndpointChannel<Platform>::read() {
     return ExceptionOr<ConstPtr<ByteArray>>(Exception::IO);
   }
 
-  ExceptionOr<ConstPtr<ByteArray> > read_bytes =
+  ExceptionOr<ConstPtr<ByteArray>> read_bytes =
       readExactly(reader_, read_int.result());
   if (!read_bytes.ok()) {
     if (Exception::IO == read_bytes.exception()) {
-      return ExceptionOr<ConstPtr<ByteArray> >(read_bytes.exception());
+      return ExceptionOr<ConstPtr<ByteArray>>(read_bytes.exception());
     }
   }
 
@@ -154,7 +154,7 @@ ExceptionOr<ConstPtr<ByteArray> > BaseEndpointChannel<Platform>::read() {
     // short-circuit out of here on error.
     read_bytes_result.destroy();
     if (decoded_bytes == nullptr) {
-      return ExceptionOr<ConstPtr<ByteArray> >(
+      return ExceptionOr<ConstPtr<ByteArray>>(
           Exception::INVALID_PROTOCOL_BUFFER);
     }
     read_bytes_result = MakeConstPtr(
@@ -162,16 +162,14 @@ ExceptionOr<ConstPtr<ByteArray> > BaseEndpointChannel<Platform>::read() {
   }
 
   last_read_timestamp_ = system_clock_->elapsedRealtime();
-  return ExceptionOr<ConstPtr<ByteArray> >(read_bytes_result);
+  return ExceptionOr<ConstPtr<ByteArray>>(read_bytes_result);
 }
 
-template <typename Platform>
-Exception::Value BaseEndpointChannel<Platform>::write(
-    ConstPtr<ByteArray> data) {
+Exception::Value BaseEndpointChannel::write(ConstPtr<ByteArray> data) {
   Synchronized s(writer_lock_.get());
 
   // Avoid leaks.
-  ScopedPtr<ConstPtr<ByteArray> > scoped_data(data);
+  ScopedPtr<ConstPtr<ByteArray>> scoped_data(data);
 
   if (isPaused()) {
     blockUntilUnpaused();
@@ -191,7 +189,7 @@ Exception::Value BaseEndpointChannel<Platform>::write(
     data_to_write = scoped_data.release();
   }
   // Avoid leaks.
-  ScopedPtr<ConstPtr<ByteArray> > scoped_data_to_write(data_to_write);
+  ScopedPtr<ConstPtr<ByteArray>> scoped_data_to_write(data_to_write);
 
   Exception::Value write_exception = writeInt(
       writer_, static_cast<std::int32_t>(scoped_data_to_write->size()));
@@ -218,8 +216,7 @@ Exception::Value BaseEndpointChannel<Platform>::write(
   return Exception::NONE;
 }
 
-template <typename Platform>
-void BaseEndpointChannel<Platform>::close() {
+void BaseEndpointChannel::close() {
   //                      WARNING WARNING WARNING
   //
   // This block deviates from the corresponding Java code.
@@ -246,8 +243,7 @@ void BaseEndpointChannel<Platform>::close() {
   // TODO(tracyzhou): Add logging.
 }
 
-template <typename Platform>
-void BaseEndpointChannel<Platform>::close(
+void BaseEndpointChannel::close(
     proto::connections::DisconnectionReason reason) {
   //                      WARNING WARNING WARNING
   //
@@ -259,8 +255,7 @@ void BaseEndpointChannel<Platform>::close(
   // TODO(tracyzhou): Add logging.
 }
 
-template <typename Platform>
-string BaseEndpointChannel<Platform>::getType() {
+string BaseEndpointChannel::getType() {
   string subtype = isEncryptionEnabled() ? "ENCRYPTED_" : "";
   switch (getMedium()) {
     case proto::connections::Medium::BLUETOOTH:
@@ -278,46 +273,32 @@ string BaseEndpointChannel<Platform>::getType() {
   }
 }
 
-template <typename Platform>
-string BaseEndpointChannel<Platform>::getName() {
-  return channel_name_;
-}
+string BaseEndpointChannel::getName() { return channel_name_; }
 
-template <typename Platform>
-void BaseEndpointChannel<Platform>::enableEncryption(
+void BaseEndpointChannel::enableEncryption(
     Ptr<securegcm::D2DConnectionContextV1> encryption_context) {
   assert(!encryption_context.isNull());
   encryption_context_->set(encryption_context);
 }
 
-template <typename Platform>
-bool BaseEndpointChannel<Platform>::isPaused() {
-  return is_paused_->get();
-}
+bool BaseEndpointChannel::isPaused() { return is_paused_->get(); }
 
-template <typename Platform>
-void BaseEndpointChannel<Platform>::pause() {
-  is_paused_->set(true);
-}
+void BaseEndpointChannel::pause() { is_paused_->set(true); }
 
-template <typename Platform>
-void BaseEndpointChannel<Platform>::resume() {
+void BaseEndpointChannel::resume() {
   is_paused_->set(false);
   unblockPausedWriter();
 }
 
-template <typename Platform>
-std::int64_t BaseEndpointChannel<Platform>::getLastReadTimestamp() {
+std::int64_t BaseEndpointChannel::getLastReadTimestamp() {
   return last_read_timestamp_;
 }
 
-template <typename Platform>
-bool BaseEndpointChannel<Platform>::isEncryptionEnabled() {
+bool BaseEndpointChannel::isEncryptionEnabled() {
   return !encryption_context_->get().isNull();
 }
 
-template <typename Platform>
-void BaseEndpointChannel<Platform>::unblockPausedWriter() {
+void BaseEndpointChannel::unblockPausedWriter() {
   Synchronized s(is_paused_lock_.get());
 
   // Notify to tell the thread calling wait() to check again.
@@ -329,8 +310,7 @@ void BaseEndpointChannel<Platform>::unblockPausedWriter() {
   is_paused_condition_variable_->notify();
 }
 
-template <typename Platform>
-void BaseEndpointChannel<Platform>::blockUntilUnpaused() {
+void BaseEndpointChannel::blockUntilUnpaused() {
   Synchronized s(is_paused_lock_.get());
 
   // For more on how this works, see

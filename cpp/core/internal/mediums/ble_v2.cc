@@ -460,8 +460,8 @@ void BLEV2<Platform>::stopScanning() {
 
 // TODO(b/112199086) Change to RecurringCancelableAlarm
 template <typename Platform>
-Ptr<CancelableAlarm<Platform>> BLEV2<Platform>::createOnLostAlarm() {
-  return Ptr<CancelableAlarm<Platform>>();
+Ptr<CancelableAlarm> BLEV2<Platform>::createOnLostAlarm() {
+  return Ptr<CancelableAlarm>();
 }
 
 // Returns true if the device is currently accepting incoming BLE socket

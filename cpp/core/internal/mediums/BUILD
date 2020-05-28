@@ -1,12 +1,30 @@
 cc_library(
+    name = "utils",
+    srcs = [
+        "utils.cc",
+    ],
+    hdrs = [
+        "utils.h",
+    ],
+    visibility = [
+        "//core/internal/mediums/webrtc:__pkg__",
+    ],
+    deps = [
+        "//platform:types",
+        "//platform:utils",
+        "//platform/api",
+        "//platform/port:string",
+        "//absl/strings",
+    ],
+)
+
+cc_library(
     name = "mediums",
     srcs = [
         "ble_advertisement.cc",
         "ble_advertisement_header.cc",
         "ble_packet.cc",
         "ble_peripheral.cc",
-        "utils.cc",
-        "utils.h",
     ],
     hdrs = [
         "advertisement_read_result.cc",
@@ -34,9 +52,12 @@ cc_library(
         "mediums.h",
         "uuid.cc",
         "uuid.h",
+        "wifi_lan.cc",
+        "wifi_lan.h",
     ],
     visibility = ["//core/internal:__pkg__"],
     deps = [
+        ":utils",
         "//platform:logging",
         "//platform:types",
         "//platform:utils",
@@ -53,7 +74,8 @@ cc_test(
     srcs = ["advertisement_read_result_test.cc"],
     deps = [
         ":mediums",
-        "//platform/impl/default",
+        "//platform/api",
+        "//platform/impl/g3",
         "//testing/base/public:gunit_main",
         "//absl/time",
     ],
@@ -65,6 +87,8 @@ cc_test(
     deps = [
         ":mediums",
         "//platform:utils",
+        "//platform/api",
+        "//platform/impl/g3",
         "//testing/base/public:gunit_main",
     ],
 )
@@ -74,6 +98,8 @@ cc_test(
     srcs = ["ble_advertisement_test.cc"],
     deps = [
         ":mediums",
+        "//platform/api",
+        "//platform/impl/g3",
         "//testing/base/public:gunit_main",
     ],
 )
@@ -83,6 +109,8 @@ cc_test(
     srcs = ["ble_packet_test.cc"],
     deps = [
         ":mediums",
+        "//platform/api",
+        "//platform/impl/g3",
         "//testing/base/public:gunit_main",
     ],
 )
@@ -92,6 +120,8 @@ cc_test(
     srcs = ["bloom_filter_test.cc"],
     deps = [
         ":mediums",
+        "//platform/api",
+        "//platform/impl/g3",
         "//testing/base/public:gunit_main",
     ],
 )
@@ -101,7 +131,8 @@ cc_test(
     srcs = ["lost_entity_tracker_test.cc"],
     deps = [
         ":mediums",
-        "//platform/impl/default",
+        "//platform/api",
+        "//platform/impl/g3",
         "//testing/base/public:gunit_main",
     ],
 )

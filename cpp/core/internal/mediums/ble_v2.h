@@ -166,7 +166,7 @@ class BLEV2 {
   struct ScanningInfo {
     ScanningInfo(const string& service_id,
                  Ptr<ScanCallbackFacade> scan_callback_facade,
-                 Ptr<CancelableAlarm<Platform>> on_lost_alarm)
+                 Ptr<CancelableAlarm> on_lost_alarm)
         : service_id(service_id),
           scan_callback_facade(scan_callback_facade),
           on_lost_alarm(on_lost_alarm) {}
@@ -177,7 +177,7 @@ class BLEV2 {
     const string service_id;
     ScopedPtr<Ptr<ScanCallbackFacade>> scan_callback_facade;
     // TODO(ahlee): Change to recurring cancelable alarm
-    ScopedPtr<Ptr<CancelableAlarm<Platform>>> on_lost_alarm;
+    ScopedPtr<Ptr<CancelableAlarm>> on_lost_alarm;
   };
 
   struct AdvertisingInfo {
@@ -236,7 +236,7 @@ class BLEV2 {
       Ptr<BLEPeripheralV2> ble_peripheral,
       ConstPtr<BLEAdvertisementData> advertisement_data);
   void processOnLostTimeout();
-  Ptr<CancelableAlarm<Platform>> createOnLostAlarm();
+  Ptr<CancelableAlarm> createOnLostAlarm();
 
   bool isAdvertisementGattServerRunning();
   bool startAdvertisementGattServer(const string& service_id,

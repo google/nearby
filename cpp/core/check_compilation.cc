@@ -1,4 +1,3 @@
-
 #include <vector>
 
 #include "core/core.h"
@@ -6,15 +5,18 @@
 #include "core/params.h"
 #include "core/payload.h"
 #include "core/status.h"
+#include "platform/api/platform.h"
 #include "platform/byte_array.h"
 #include "platform/file_impl.h"
-#include "platform/impl/sample/sample_platform.h"
+#include "platform/impl/shared/sample/sample_wifi_medium.h"
 #include "platform/port/string.h"
 #include "platform/ptr.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
+
+using TestPlatform = platform::ImplementationPlatform;
 
 class ResultListenerImpl : public ResultListener {
  public:
@@ -53,7 +55,7 @@ class PayloadListenerImpl : public PayloadListener {
 };
 
 void check_compilation() {
-  Core<sample::SamplePlatform> core;
+  Core<TestPlatform> core;
 
   const string name = "name";
   const string service_id = "service_id";

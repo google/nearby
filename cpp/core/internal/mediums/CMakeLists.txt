@@ -52,7 +52,7 @@ target_link_libraries(core_internal_mediums_test
     core_internal_mediums
     gtest
     gtest_main
-    platform_impl_default
+    platform_impl_g3
     platform_utils
 )
 

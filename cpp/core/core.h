@@ -32,15 +32,20 @@ namespace connections {
  *   SystemClock
  *   ConditionVariable
  *
- * The Platform class must also provide typedefs for the following subset of
- * primitives to identify the concrete classes:
+ * A sample Platform definitions can be found at
+ * //platform/impl/shared/sample/sample_platform.cc
  *
- *   SingleThreadExecutorType
- *   MultiThreadExecutorType
- *   ScheduledExecutorType
+ * It is no longer necessary to parametrize system types with a platform type.
+ * New, recommended approach is to define platform support by implementing
+ * static methods of "location::nearby::platform::ImplementationPlatform" class.
+ * every library class that needs platform support, must include platform
+ * header "platform/api/platform.h" and use it.
+ * To keep textual compatibility, one could define the following alias
+ * "using Platform = platform::ImplementationPlatform;".
+ * this will replace the "template <typename Platform>" declaration.
  *
- * A sample Platform class can be found at
- * //platform/impl/sample/sample_platform.h
+ * As an added benefit, this will allow to not include *.cc files from *.h,
+ * and let more static analysis happen at compiler stage.
  */
 template <typename Platform>
 class Core {

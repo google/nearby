@@ -24,7 +24,7 @@ namespace nearby {
 struct BLEAdvertisementData {
   typedef std::int8_t TXPowerLevel;
 
-  static const TXPowerLevel UNSPECIFIED_TX_POWER_LEVEL =
+  static constexpr TXPowerLevel UNSPECIFIED_TX_POWER_LEVEL =
       std::numeric_limits<TXPowerLevel>::min();
 
   bool is_connectable;

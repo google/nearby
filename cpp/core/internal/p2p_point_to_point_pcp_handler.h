@@ -27,8 +27,8 @@ class P2PPointToPointPCPHandler : public P2PStarPCPHandler<Platform> {
   P2PPointToPointPCPHandler(
       Ptr<MediumManager<Platform> > medium_manager,
       Ptr<EndpointManager<Platform> > endpoint_manager,
-      Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager,
-      Ptr<BandwidthUpgradeManager<Platform> > bandwidth_upgrade_manager);
+      Ptr<EndpointChannelManager> endpoint_channel_manager,
+      Ptr<BandwidthUpgradeManager> bandwidth_upgrade_manager);
 
   Strategy getStrategy() override;
   PCP::Value getPCP() override;

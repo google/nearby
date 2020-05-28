@@ -11,9 +11,9 @@ namespace connections {
 template <typename Platform>
 PCPManager<Platform>::PCPManager(
     Ptr<MediumManager<Platform> > medium_manager,
-    Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager,
+    Ptr<EndpointChannelManager> endpoint_channel_manager,
     Ptr<EndpointManager<Platform> > endpoint_manager,
-    Ptr<BandwidthUpgradeManager<Platform> > bandwidth_upgrade_manager)
+    Ptr<BandwidthUpgradeManager> bandwidth_upgrade_manager)
     : pcp_handlers_(), current_pcp_handler_() {
   pcp_handlers_[PCP::P2P_CLUSTER] = MakePtr(new P2PClusterPCPHandler<Platform>(
       medium_manager, endpoint_manager, endpoint_channel_manager,

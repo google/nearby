@@ -6,42 +6,31 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-template <typename Platform>
-Ptr<BluetoothEndpointChannel<Platform> >
-BluetoothEndpointChannel<Platform>::createOutgoing(
+Ptr<BluetoothEndpointChannel> BluetoothEndpointChannel::createOutgoing(
     Ptr<MediumManager<Platform> > medium_manager, const string& channel_name,
     Ptr<BluetoothSocket> bluetooth_socket) {
-  return MakePtr(
-      new BluetoothEndpointChannel<Platform>(channel_name, bluetooth_socket));
+  return MakePtr(new BluetoothEndpointChannel(channel_name, bluetooth_socket));
 }
 
-template <typename Platform>
-Ptr<BluetoothEndpointChannel<Platform> >
-BluetoothEndpointChannel<Platform>::createIncoming(
+Ptr<BluetoothEndpointChannel> BluetoothEndpointChannel::createIncoming(
     Ptr<MediumManager<Platform> > medium_manager, const string& channel_name,
     Ptr<BluetoothSocket> bluetooth_socket) {
-  return MakePtr(
-      new BluetoothEndpointChannel<Platform>(channel_name, bluetooth_socket));
+  return MakePtr(new BluetoothEndpointChannel(channel_name, bluetooth_socket));
 }
 
-template <typename Platform>
-BluetoothEndpointChannel<Platform>::BluetoothEndpointChannel(
+BluetoothEndpointChannel::BluetoothEndpointChannel(
     const string& channel_name, Ptr<BluetoothSocket> bluetooth_socket)
-    : BaseEndpointChannel<Platform>(channel_name,
-                                    bluetooth_socket->getInputStream(),
-                                    bluetooth_socket->getOutputStream()),
+    : BaseEndpointChannel(channel_name, bluetooth_socket->getInputStream(),
+                          bluetooth_socket->getOutputStream()),
       bluetooth_socket_(bluetooth_socket) {}
 
-template <typename Platform>
-BluetoothEndpointChannel<Platform>::~BluetoothEndpointChannel() {}
+BluetoothEndpointChannel::~BluetoothEndpointChannel() {}
 
-template <typename Platform>
-proto::connections::Medium BluetoothEndpointChannel<Platform>::getMedium() {
+proto::connections::Medium BluetoothEndpointChannel::getMedium() {
   return proto::connections::Medium::BLUETOOTH;
 }
 
-template <typename Platform>
-void BluetoothEndpointChannel<Platform>::closeImpl() {
+void BluetoothEndpointChannel::closeImpl() {
   Exception::Value exception = bluetooth_socket_->close();
   if (exception != Exception::NONE) {
     if (exception == Exception::IO) {

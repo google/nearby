@@ -1,19 +1,21 @@
 #include "platform/pipe.h"
 
+#include "platform/api/platform.h"
 #include "platform/synchronized.h"
 
 namespace location {
 namespace nearby {
 
+namespace {
+using Platform = platform::ImplementationPlatform;
+}
+
 namespace pipe {
 
-template <typename Platform>
 class PipeInputStream : public InputStream {
  public:
-  explicit PipeInputStream(Ptr<Pipe<Platform>> pipe) : pipe_(pipe) {}
-  ~PipeInputStream() override {
-    close();
-  }
+  explicit PipeInputStream(Ptr<Pipe> pipe) : pipe_(pipe) {}
+  ~PipeInputStream() override { close(); }
   ExceptionOr<ConstPtr<ByteArray>> read() override { return read(kChunkSize); }
 
   ExceptionOr<ConstPtr<ByteArray>> read(std::int64_t size) override {
@@ -27,18 +29,15 @@ class PipeInputStream : public InputStream {
   }
 
  private:
-  static const std::int64_t kChunkSize = 64 * 1024;
+  static constexpr std::int64_t kChunkSize = 64 * 1024;
 
-  Ptr<Pipe<Platform>> pipe_;
+  Ptr<Pipe> pipe_;
 };
 
-template <typename Platform>
 class PipeOutputStream : public OutputStream {
  public:
-  explicit PipeOutputStream(Ptr<Pipe<Platform>> pipe) : pipe_(pipe) {}
-  ~PipeOutputStream() override {
-    close();
-  }
+  explicit PipeOutputStream(Ptr<Pipe> pipe) : pipe_(pipe) {}
+  ~PipeOutputStream() override { close(); }
 
   Exception::Value write(ConstPtr<ByteArray> data) override {
     // Avoid leaks.
@@ -59,13 +58,12 @@ class PipeOutputStream : public OutputStream {
   }
 
  private:
-  Ptr<Pipe<Platform>> pipe_;
+  Ptr<Pipe> pipe_;
 };
 
 }  // namespace pipe
 
-template <typename Platform>
-Pipe<Platform>::Pipe()
+Pipe::Pipe()
     : lock_(Platform::createLock()),
       cond_(Platform::createConditionVariable(lock_.get())),
       buffer_(),
@@ -73,8 +71,7 @@ Pipe<Platform>::Pipe()
       output_stream_closed_(false),
       read_all_chunks_(false) {}
 
-template <typename Platform>
-Pipe<Platform>::~Pipe() {
+Pipe::~Pipe() {
   // Deallocate all the chunks still left in buffer_.
   for (BufferType::iterator chunk_iter = buffer_.begin();
        chunk_iter != buffer_.end(); ++chunk_iter) {
@@ -82,20 +79,17 @@ Pipe<Platform>::~Pipe() {
   }
 }
 
-template <typename Platform>
-Ptr<InputStream> Pipe<Platform>::createInputStream(Ptr<Pipe> self) {
+Ptr<InputStream> Pipe::createInputStream(Ptr<Pipe> self) {
   assert(self.isRefCounted());
-  return MakeRefCountedPtr(new pipe::PipeInputStream<Platform>(self));
+  return MakeRefCountedPtr(new pipe::PipeInputStream(self));
 }
 
-template <typename Platform>
-Ptr<OutputStream> Pipe<Platform>::createOutputStream(Ptr<Pipe> self) {
+Ptr<OutputStream> Pipe::createOutputStream(Ptr<Pipe> self) {
   assert(self.isRefCounted());
-  return MakeRefCountedPtr(new pipe::PipeOutputStream<Platform>(self));
+  return MakeRefCountedPtr(new pipe::PipeOutputStream(self));
 }
 
-template <typename Platform>
-ExceptionOr<ConstPtr<ByteArray>> Pipe<Platform>::read(std::int64_t size) {
+ExceptionOr<ConstPtr<ByteArray>> Pipe::read(std::int64_t size) {
   Synchronized s(lock_.get());
 
   // We're done reading all the chunks that were written before the OutputStream
@@ -148,15 +142,13 @@ ExceptionOr<ConstPtr<ByteArray>> Pipe<Platform>::read(std::int64_t size) {
   }
 }
 
-template <typename Platform>
-Exception::Value Pipe<Platform>::write(ConstPtr<ByteArray> data) {
+Exception::Value Pipe::write(ConstPtr<ByteArray> data) {
   Synchronized s(lock_.get());
 
   return writeLocked(data);
 }
 
-template <typename Platform>
-void Pipe<Platform>::markInputStreamClosed() {
+void Pipe::markInputStreamClosed() {
   Synchronized s(lock_.get());
 
   input_stream_closed_ = true;
@@ -165,8 +157,7 @@ void Pipe<Platform>::markInputStreamClosed() {
   cond_->notify();
 }
 
-template <typename Platform>
-void Pipe<Platform>::markOutputStreamClosed() {
+void Pipe::markOutputStreamClosed() {
   Synchronized s(lock_.get());
 
   // Write a sentinel null chunk before marking output_stream_closed as true.
@@ -174,8 +165,7 @@ void Pipe<Platform>::markOutputStreamClosed() {
   output_stream_closed_ = true;
 }
 
-template <typename Platform>
-Exception::Value Pipe<Platform>::writeLocked(ConstPtr<ByteArray> data) {
+Exception::Value Pipe::writeLocked(ConstPtr<ByteArray> data) {
   // Avoid leaks.
   ScopedPtr<ConstPtr<ByteArray>> scoped_data(data);
 
@@ -190,8 +180,7 @@ Exception::Value Pipe<Platform>::writeLocked(ConstPtr<ByteArray> data) {
   return Exception::NONE;
 }
 
-template <typename Platform>
-bool Pipe<Platform>::eitherStreamClosed() const {
+bool Pipe::eitherStreamClosed() const {
   return input_stream_closed_ || output_stream_closed_;
 }
 
