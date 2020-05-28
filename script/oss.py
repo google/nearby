@@ -61,7 +61,9 @@ def copy_files_to_oss_project(src_root, dst_root):
   shutil.rmtree(dst_root + "/proto", ignore_errors=True)
   shutil.copytree(src_root + "/proto", dst_root + "/proto/")
   shutil.copytree(src_root + "/cpp/platform/", dst_root + "/cpp/platform/")
+  shutil.copytree(src_root + "/cpp/platform_v2/", dst_root + "/cpp/platform_v2/")
   shutil.copytree(src_root + "/connections/core/", dst_root + "/cpp/core/")
+  shutil.copytree(src_root + "/connections/core_v2/", dst_root + "/cpp/core_v2/")
   shutil.copytree(src_root + "/connections/proto/", dst_root + "/proto/connections/")
 
 def detect_file_copy_header_options(fname, lines):
@@ -87,7 +89,9 @@ def post_process_oss_files(path, args):
     top_dirs = ["cpp", "proto"]
   transforms = (
     ("third_party/", ""),
+    ("location/nearby/connections/core_v2", "core_v2"),
     ("location/nearby/connections/core", "core"),
+    ("location/nearby/cpp/platform_v2", "platform_v2"),
     ("location/nearby/cpp/platform", "platform"),
     ("security/cryptauth/lib/securegcm", "securegcm"),
     ("testing/base/public/gmock.h", "gmock/gmock.h"),
