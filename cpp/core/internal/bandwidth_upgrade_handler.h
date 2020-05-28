@@ -4,6 +4,7 @@
 #include "core/internal/client_proxy.h"
 #include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/api/count_down_latch.h"
+#include "platform/api/platform.h"
 #include "platform/port/string.h"
 #include "proto/connections_enums.pb.h"
 
@@ -13,9 +14,10 @@ namespace connections {
 
 // Defines the set of methods that need to be implemented to handle the
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
-template <typename Platform>
 class BandwidthUpgradeHandler {
  public:
+  using Platform = platform::ImplementationPlatform;
+
   virtual ~BandwidthUpgradeHandler() {}
 
   // Reverts any changes made to the device in the process of upgrading

@@ -41,7 +41,7 @@ class FileImplTest : public ::testing::Test {
     ASSERT_TRUE(bytes.result().isNull());
   }
 
-  static const int64_t kMaxSize = 3;
+  static constexpr int64_t kMaxSize = 3;
 
   std::unique_ptr<TempPath> temp_path_;
   std::string path_;

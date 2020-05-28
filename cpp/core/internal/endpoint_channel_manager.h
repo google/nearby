@@ -9,6 +9,8 @@
 #include "platform/api/ble.h"
 #include "platform/api/bluetooth_classic.h"
 #include "platform/api/lock.h"
+#include "platform/api/platform.h"
+#include "platform/api/wifi_lan.h"
 #include "platform/port/string.h"
 #include "platform/ptr.h"
 #include "securegcm/d2d_connection_context_v1.h"
@@ -22,10 +24,11 @@ namespace connections {
 //
 // The factory methods would be static, but for the fact that they need to use
 // the MediumManager.
-template <typename Platform>
 class EndpointChannelManager {
  public:
-  explicit EndpointChannelManager(Ptr<MediumManager<Platform> > medium_manager);
+  using Platform = platform::ImplementationPlatform;
+
+  explicit EndpointChannelManager(Ptr<MediumManager<Platform>> medium_manager);
   ~EndpointChannelManager();
 
   Ptr<EndpointChannel> createOutgoingBluetoothEndpointChannel(
@@ -37,6 +40,11 @@ class EndpointChannelManager {
       const string& channel_name, Ptr<BLESocket> ble_socket);
   Ptr<EndpointChannel> createIncomingBLEEndpointChannel(
       const string& channel_name, Ptr<BLESocket> ble_socket);
+
+  Ptr<EndpointChannel> CreateOutgoingWifiLanEndpointChannel(
+      const string& channel_name, Ptr<WifiLanSocket> wifi_lan_socket);
+  Ptr<EndpointChannel> CreateIncomingWifiLanEndpointChannel(
+      const string& channel_name, Ptr<WifiLanSocket> wifi_lan_socket);
 
   // Registers the initial EndpointChannel to be associated with an endpoint;
   // if there already exists a previously-associated EndpointChannel, that will
@@ -137,7 +145,5 @@ class EndpointChannelManager {
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-#include "core/internal/endpoint_channel_manager.cc"
 
 #endif  // CORE_INTERNAL_ENDPOINT_CHANNEL_MANAGER_H_

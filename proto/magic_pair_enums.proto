@@ -9,6 +9,7 @@ option java_api_version = 2;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "MagicPairEnums";
 option objc_class_prefix = "GNCP";
+option go_api_flag = "OPEN_TO_OPAQUE_HYBRID";  // See http://go/go-api-flag.
 
 // Enums related to logged events. For event codes, see NearbyEventCodes.
 message MagicPairEvent {

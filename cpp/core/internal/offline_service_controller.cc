@@ -11,11 +11,11 @@ OfflineServiceController<Platform>::OfflineServiceController()
     : ServiceController<Platform>(),
       medium_manager_(new MediumManager<Platform>()),
       endpoint_channel_manager_(
-          new EndpointChannelManager<Platform>(medium_manager_.get())),
+          new EndpointChannelManager(medium_manager_.get())),
       endpoint_manager_(
           new EndpointManager<Platform>(endpoint_channel_manager_.get())),
       payload_manager_(new PayloadManager<Platform>(endpoint_manager_.get())),
-      bandwidth_upgrade_manager_(new BandwidthUpgradeManager<Platform>(
+      bandwidth_upgrade_manager_(new BandwidthUpgradeManager(
           medium_manager_.get(), endpoint_channel_manager_.get(),
           endpoint_manager_.get())),
       pcp_manager_(new PCPManager<Platform>(

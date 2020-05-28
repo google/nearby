@@ -4,6 +4,7 @@
 #include "core/internal/base_endpoint_channel.h"
 #include "core/internal/medium_manager.h"
 #include "platform/api/ble.h"
+#include "platform/api/platform.h"
 #include "platform/port/string.h"
 #include "platform/ptr.h"
 #include "proto/connections_enums.pb.h"
@@ -12,13 +13,14 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-template <typename Platform>
-class BLEEndpointChannel : public BaseEndpointChannel<Platform> {
+class BLEEndpointChannel : public BaseEndpointChannel {
  public:
-  static Ptr<BLEEndpointChannel<Platform> > createOutgoing(
+  using Platform = platform::ImplementationPlatform;
+
+  static Ptr<BLEEndpointChannel> createOutgoing(
       Ptr<MediumManager<Platform> > medium_manager, const string& channel_name,
       Ptr<BLESocket> ble_socket);
-  static Ptr<BLEEndpointChannel<Platform> > createIncoming(
+  static Ptr<BLEEndpointChannel> createIncoming(
       Ptr<MediumManager<Platform> > medium_manager, const string& channel_name,
       Ptr<BLESocket> ble_socket);
 
@@ -38,7 +40,5 @@ class BLEEndpointChannel : public BaseEndpointChannel<Platform> {
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-#include "core/internal/ble_endpoint_channel.cc"
 
 #endif  // CORE_INTERNAL_BLE_ENDPOINT_CHANNEL_H_

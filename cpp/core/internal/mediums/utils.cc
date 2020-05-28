@@ -1,8 +1,10 @@
 #include "core/internal/mediums/utils.h"
 
+#include <cstdint>
 #include <sstream>
 
 #include "platform/exception.h"
+#include "platform/prng.h"
 #include "absl/strings/escaping.h"
 
 namespace location {
@@ -46,6 +48,26 @@ ConstPtr<ByteArray> Utils::legacySha256HashOnlyForPrinting(
   ScopedPtr<ConstPtr<ByteArray>> formatted_hex_byte_array(MakeConstPtr(
       new ByteArray(formatted_hex_string.data(), formatted_hex_string.size())));
   return Utils::sha256Hash(hash_utils, formatted_hex_byte_array.get(), length);
+}
+
+ConstPtr<ByteArray> Utils::generateRandomBytes(size_t length) {
+  Prng rng;
+  std::string data;
+  data.reserve(length);
+
+  // Adds 4 random bytes per iteration.
+  while (length > 0) {
+    std::uint32_t val = rng.nextUInt32();
+    for (int i = 0; i < 4; i++) {
+      data += val & 0xFF;
+      val >>= 8;
+      length--;
+
+      if (!length) break;
+    }
+  }
+
+  return MakeConstPtr(new ByteArray(data));
 }
 
 std::string Utils::bytesToPrintableHexString(ConstPtr<ByteArray> bytes) {

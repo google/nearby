@@ -33,7 +33,7 @@ class WebRtcSignalingMessenger {
 
   virtual bool registerSignaling() = 0;
   virtual bool unregisterSignaling() = 0;
-  virtual bool sendMessage(const string& peer_id,
+  virtual bool sendMessage(const std::string& peer_id,
                            ConstPtr<ByteArray> message) = 0;
   virtual bool startReceivingMessages(
       Ptr<SignalingMessageListener> listener) = 0;

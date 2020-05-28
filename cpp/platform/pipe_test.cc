@@ -4,8 +4,7 @@
 
 #include <cstring>
 
-#include "platform/impl/default/default_condition_variable.h"
-#include "platform/impl/default/default_lock.h"
+#include "platform/api/platform.h"
 #include "platform/port/string.h"
 #include "platform/prng.h"
 #include "platform/ptr.h"
@@ -17,16 +16,7 @@ namespace location {
 namespace nearby {
 namespace {
 
-class SamplePlatform {
- public:
-  static Ptr<Lock> createLock() { return MakePtr(new DefaultLock()); }
-  static Ptr<ConditionVariable> createConditionVariable(Ptr<Lock> lock) {
-    return MakePtr(
-        new DefaultConditionVariable(DowncastPtr<DefaultLock>(lock)));
-  }
-};
-
-using SamplePipe = Pipe<SamplePlatform>;
+using SamplePipe = Pipe;
 
 TEST(PipeTest, SimpleWriteRead) {
   auto pipe = MakeRefCountedPtr(new SamplePipe());

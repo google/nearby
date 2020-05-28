@@ -48,12 +48,7 @@ class StartAdvertisingCallable : public Callable<Status::Value> {
         service_id_(service_id),
         local_endpoint_name_(local_endpoint_name),
         options_(options),
-        // Convert the passed in connection_lifecycle_listener Ptr into a
-        // reference counted one. The advertising session and any connected
-        // endpoints need a handle to the same connection_lifecycle_listener, so
-        // there is no clear model of who actually owns the listener.
-        connection_lifecycle_listener_(
-            MakeRefCountedPtr(&(*connection_lifecycle_listener))) {}
+        connection_lifecycle_listener_(connection_lifecycle_listener) {}
 
   ExceptionOr<Status::Value> call() override {
     // Ask the implementation to attempt to start advertising.
@@ -675,8 +670,8 @@ const std::int64_t
 template <typename Platform>
 BasePCPHandler<Platform>::BasePCPHandler(
     Ptr<EndpointManager<Platform>> endpoint_manager,
-    Ptr<EndpointChannelManager<Platform>> endpoint_channel_manager,
-    Ptr<BandwidthUpgradeManager<Platform>> bandwidth_upgrade_manager)
+    Ptr<EndpointChannelManager> endpoint_channel_manager,
+    Ptr<BandwidthUpgradeManager> bandwidth_upgrade_manager)
     : endpoint_manager_(endpoint_manager),
       endpoint_channel_manager_(endpoint_channel_manager),
       bandwidth_upgrade_manager_(bandwidth_upgrade_manager),
@@ -1137,6 +1132,14 @@ Exception::Value BasePCPHandler<Platform>::onIncomingConnection(
     return Exception::IO;
   }
 
+  // The ConnectionRequest frame has two fields that both contain the
+  // EndpointInfo. The legacy field stores it as a string while the newer field
+  // stores it as a byte array. We'll attempt to grab from the newer field, but
+  // will accept the older string if it's all that exists.
+  const std::string& endpoint_name = connection_request.has_endpoint_info()
+                                         ? connection_request.endpoint_info()
+                                         : connection_request.endpoint_name();
+
   // We've successfully connected to the device, and are now about to jump on to
   // the EncryptionRunner thread to start running our encryption protocol. We'll
   // mark ourselves as pending in case we get another call to requestConnection
@@ -1146,7 +1149,7 @@ Exception::Value BasePCPHandler<Platform>::onIncomingConnection(
           .insert(std::make_pair(
               connection_request.endpoint_id(),
               PendingConnectionInfo::newIncomingPendingConnectionInfo(
-                  client_proxy, connection_request.endpoint_name(),
+                  client_proxy, endpoint_name,
                   scoped_endpoint_channel.release(), connection_request.nonce(),
                   start_time_millis, advertising_connection_lifecycle_listener_,
                   OfflineFrames::connectionRequestMediumsToMediums(
@@ -1378,7 +1381,7 @@ void BasePCPHandler<Platform>::evaluateConnectionResult(
     } else {
       pending_rejected_connection_close_alarms_.insert(std::make_pair(
           endpoint_id,
-          MakePtr(new CancelableAlarm<Platform>(
+          MakePtr(new CancelableAlarm(
               "BasePCPHandler.evaluateConnectionResult() delayed close",
               MakePtr(
                   new base_pcp_handler::
@@ -1407,7 +1410,7 @@ BasePCPHandler<Platform>::readConnectionRequestFrame(
 
   // To avoid a device connecting but never sending their introductory frame, we
   // time out the connection after a certain amount of time.
-  CancelableAlarm<Platform> timeout_alarm(
+  CancelableAlarm timeout_alarm(
       "PCPHandler(" + this->getStrategy().getName() +
           ").readConnectionRequestFrame",
       MakePtr(

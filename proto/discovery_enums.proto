@@ -8,6 +8,7 @@ option (logs_proto.file_not_used_for_logging_except_enums) = true;
 option java_api_version = 2;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "DiscoveryEnums";
+option go_api_flag = "OPEN_TO_OPAQUE_HYBRID";  // See http://go/go-api-flag.
 
 // NEXT ID: 132
 enum DiscoveryEvent {

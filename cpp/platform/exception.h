@@ -15,13 +15,13 @@ struct Exception {
     EXECUTION,
     // New code should use the kConstants.
     // Old CONSTANTS are deprecated, and should not be used.
-    kFailed = -1,  // Initial value of Exception; any unknown error.
+    kFailed = -1,     // Initial value of Exception; any unknown error.
     kSuccess = NONE,  // No exception.
-    kIo = IO,  // IO Error happened.
+    kIo = IO,         // IO Error happened.
     kInterrupted = INTERRUPTED,  // Operation was interrupted.
     kInvalidProtocolBuffer = INVALID_PROTOCOL_BUFFER,  // Couldn't parse.
-    kExecution = EXECUTION,  // Couldn't execute.
-    kTimeout,  // Operarion did not finish within specified time.
+    kExecution = EXECUTION,                            // Couldn't execute.
+    kTimeout,  // Operation did not finish within specified time.
   };
   Value value {kFailed};
 };

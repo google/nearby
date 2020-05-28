@@ -1,0 +1,133 @@
+syntax = "proto2";
+
+package location.nearby.proto;
+
+import "logs/proto/logs_annotations/logs_annotations.proto";
+
+option (logs_proto.file_not_used_for_logging_except_enums) = true;
+option java_api_version = 2;
+option java_package = "com.google.location.nearby.proto";
+option java_outer_classname = "ErrorCodeEnums";
+option objc_class_prefix = "GNCP";
+
+// The type of the error.
+// It help to sort error codes to different types to analyze and also impact the
+// logcat print it as Warning or Severe.
+enum ErrorType {
+  UNKNOWN_TYPE = 0;
+
+  // The error should not happen on production, it's like the input is null or
+  // not invalid or it's a unexpected API call. For example, start advertising
+  // with empty service ID or start advertising with the same service ID twice.
+  DEVELOPING = 1;
+
+  // It’s about the device's capabilities, some devices may not support the
+  // feature Nearby used. E.g. The device not support BLE advertising
+  DEVICE = 2;
+
+  // The failure return from the system or library API we used to communicate
+  // with the medium. E.g. get null OS objects or call the API but get a
+  // negative return value which indicates that the system does not allow to do
+  // that now.
+  SYSTEM = 3;
+
+  // The network related failure. E.g. get an EOF exception while reading pipe
+  // or fail to create connection.
+  NETWORK = 4;
+
+  // This may not be a failure, it can be the things we are interested in, like
+  // to count how many BLE advertisements the device received in a specified
+  // period and how many different advertisements in it, it can help us to know
+  // the user under a clean or dirty environment.
+  OTHERS = 5;
+}
+
+// The event which the error occurs on.
+enum Event {
+  UNKNOWN_EVENT = 0;
+  START_ADVERTISING = 1;
+  STOP_ADVERTISING = 2;
+  START_LISTENING_INCOMING_CONNECTION = 3;
+  STOP_LISTENING_INCOMING_CONNECTION = 4;
+  START_DISCOVERING = 5;
+  STOP_DISCOVERING = 6;
+  CONNECT = 7;
+  DISCONNECT = 8;
+  ACCEPT_CONNECTION = 9;
+  REJECT_CONNECTION = 10;
+  SEND_PAYLOAD = 11;
+  CANCEL_PAYLOAD = 12;
+  RECEIVE_PAYLOAD = 13;
+}
+
+// The error to identify the common failure for all mediums. The range between 0
+// and 30.
+enum CommonError {
+  UNKNOWN_ERROR = 0;
+
+  // The common error for all mediums, the range between 0 and 30.
+
+  // Developing error, the input with invalid format or empty.
+  INVALID_PARAMETER = 1;
+  // Device error, the BLE not available on this device.
+  BLE_NOT_AVAILABLE = 2;
+  // System error, the medium in the unexpected state, e.g. we have check the
+  // medium is on, after then it suddently off and cause Nearby
+  // Connection failed.
+  UNEXPECTED_MEDIUM_STATE = 3;
+
+  // Reserved 4 to 30
+}
+
+// The error for event START_ADVERTISING. The range between 31 and 99.
+enum StartAdvertisingError {
+  // Developing error, not allow to advertising fast pair model id and sharing
+  // fast advertisement at the same time, they are both use fast
+  // advertisement, and only allow 1 fast advertisement at the same time.
+  MULTIPLE_FAST_ADVERTISEMENT_NOT_ALLOWED = 31;
+  // System error, there's already someone advertising fast advertisement, not
+  // allow to start another one.
+  FAST_ADVERTISEMENT_ALREADY_ADVERTISED = 32;
+  // Developing error, this service ID already requested, should not request
+  // it again without stop advertising.
+  DUPLICATE_ADVERTISING_REQUESTED = 33;
+  // System error, failed to start GATT server
+  START_GATT_SERVER_FAILED = 34;
+  // System error, all advertising slot ran out, can't available for new
+  // regular advertisement.
+  BLE_MAX_GATT_ADVERTISEMENT_SLOT_REACHED = 35;
+  // System error, failed to start advertising for legacy advertisements
+  START_LEGACY_ADVERTISING_FAILED = 36;
+  // System error, start advertising for legacy advertisements but timed out
+  START_LEGACY_ADVERTISING_TIMEOUT = 37;
+  // System error, failed to start advertising for extended advertisements
+  START_EXTENDED_ADVERTISING_FAILED = 38;
+  // System error, start advertising for extended advertisements but timed out
+  START_EXTENDED_ADVERTISING_TIMEOUT = 39;
+
+  // Next ID :40
+}
+
+enum Description {
+  UNKNOWN = 0;
+  NULL_SERVICE_ID = 1;
+  NULL_ADVERTISEMENT_BYTES = 2;
+  CONNECTIONS_FEATURE_DISABLED = 3;
+  STALE_SDK_VERSION = 4;
+  FEATURE_BLUETOOTH_NOT_SUPPORTED = 5;
+  FEATURE_BLUETOOTH_LE_NOT_SUPPORTED = 6;
+  NULL_BLUETOOTH_MANAGER = 7;
+  NULL_BLUETOOTH_ADAPTER = 8;
+  INVALID_FAST_PAIR_MODEL_ID = 9;
+  INVALID_FAST_ADVERTISEMENT_DATA = 10;
+  INVALID_ADVERTISEMENT_HEADER_DATA = 11;
+  INVALID_REGULAR_ADVERTISEMENT_DATA = 12;
+  NULL_BLUETOOTH_LE_ADVERTISER_COMPAT = 13;
+  ADVERTISE_FAILED_ALREADY_STARTED = 14;
+  ADVERTISE_FAILED_DATA_TOO_LARGE = 15;
+  ADVERTISE_FAILED_FEATURE_UNSUPPORTED = 16;
+  ADVERTISE_FAILED_INTERNAL_ERROR = 17;
+  ADVERTISE_FAILED_TOO_MANY_ADVERTISERS = 18;
+  INTERRUPTED_EXCEPTION = 19;
+  EXECUTION_EXCEPTION = 20;
+}

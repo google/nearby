@@ -466,7 +466,7 @@ const std::int32_t EndpointManager<Platform>::kMaxConcurrentEndpoints = 50;
 
 template <typename Platform>
 EndpointManager<Platform>::EndpointManager(
-    Ptr<EndpointChannelManager<Platform>> endpoint_channel_manager)
+    Ptr<EndpointChannelManager> endpoint_channel_manager)
     : thread_utils_(Platform::createThreadUtils()),
       system_clock_(Platform::createSystemClock()),
       endpoint_channel_manager_(endpoint_channel_manager),

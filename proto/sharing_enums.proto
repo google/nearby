@@ -9,6 +9,7 @@ option java_api_version = 2;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "SharingEnums";
 option objc_class_prefix = "GNSHP";
+option go_api_flag = "OPEN_TO_OPAQUE_HYBRID";  // See http://go/go-api-flag.
 
 /*
 We use event based logging (an event object can be constructed and logged
@@ -108,6 +109,21 @@ enum EventType {
 
   // Set data usage preference.
   SET_DATA_USAGE = 28;
+
+  // Receiver dismisses a fast initialization
+  DISMISS_FAST_INITIALIZATION = 29;
+
+  // Cancel connection.
+  CANCEL_CONNECTION = 30;
+}
+
+// Event category to differentiate whether this comes from sender or receiver,
+// whether this is for communication flow, or for settings.
+enum EventCategory {
+  UNKNOWN_EVENT_CATEGORY = 0;
+  SENDING_EVENT = 1;
+  RECEIVING_EVENT = 2;
+  SETTINGS_EVENT = 3;
 }
 
 // Status of nearby sharing.
@@ -234,6 +250,7 @@ enum ServerResponseState {
   SERVER_RESPONSE_STATUS_PERMISSION_DENIED = 5;
   SERVER_RESPONSE_STATUS_UNAVAILABLE = 6;
   SERVER_RESPONSE_STATUS_UNAUTHENTICATED = 7;
+  SERVER_RESPONSE_STATUS_INVALID_ARGUMENT = 9;
 
   // For GoogleAuthException.
   SERVER_RESPONSE_GOOGLE_AUTH_FAILURE = 8;

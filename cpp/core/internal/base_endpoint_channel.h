@@ -16,15 +16,15 @@
 #include "platform/ptr.h"
 #include "proto/connections_enums.pb.h"
 #include "securegcm/d2d_connection_context_v1.h"
+#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-template <typename Platform>
 class BaseEndpointChannel : public EndpointChannel {
  public:
-  BaseEndpointChannel(const string& channel_name, Ptr<InputStream> reader,
+  BaseEndpointChannel(absl::string_view channel_name, Ptr<InputStream> reader,
                       Ptr<OutputStream> writer);
   ~BaseEndpointChannel() override;
 
@@ -69,7 +69,7 @@ class BaseEndpointChannel : public EndpointChannel {
 
  private:
   // Used to sanity check that our frame sizes are reasonable.
-  static const std::int32_t kMaxAllowedReadBytes = 1048576;  // 1MB
+  static constexpr std::int32_t kMaxAllowedReadBytes = 1048576;  // 1MB
 
   bool isEncryptionEnabled();
   void unblockPausedWriter();
@@ -106,7 +106,5 @@ class BaseEndpointChannel : public EndpointChannel {
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-#include "core/internal/base_endpoint_channel.cc"
 
 #endif  // CORE_INTERNAL_BASE_ENDPOINT_CHANNEL_H_

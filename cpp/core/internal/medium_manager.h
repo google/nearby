@@ -122,6 +122,45 @@ class MediumManager {
   Ptr<BLESocket> connectToBlePeripheral(Ptr<BLE_PERIPHERAL> ble_peripheral,
                                         const string& service_id);
 
+  // ~~~~~~~~~~~~~~~~~~~~~~~~ WIFI-LAN ~~~~~~~~~~~~~~~~~~~~~~~~
+
+  bool IsWifiLanAvailable();
+
+  bool StartWifiLanAdvertising(absl::string_view service_id,
+                               absl::string_view wifi_lan_service_info_name);
+  void StopWifiLanAdvertising(absl::string_view service_id);
+
+  class FoundWifiLanServiceProcessor {
+   public:
+    virtual ~FoundWifiLanServiceProcessor() {}
+
+    virtual void OnFoundWifiLanService(
+        Ptr<WifiLanService> wifi_lan_service) = 0;
+    virtual void OnLostWifiLanService(Ptr<WifiLanService> wifi_lan_service) = 0;
+  };
+
+  bool StartWifiLanDiscovery(
+      absl::string_view service_id,
+      Ptr<FoundWifiLanServiceProcessor> found_wifi_lan_service_processor);
+  void StopWifiLanDiscovery(absl::string_view service_id);
+
+  class IncomingWifiLanConnectionProcessor {
+   public:
+    virtual ~IncomingWifiLanConnectionProcessor() {}
+
+    virtual void OnIncomingWifiLanConnection(
+        Ptr<WifiLanSocket> wifi_lan_socket) = 0;
+  };
+
+  bool IsListeningForIncomingWifiLanConnections(absl::string_view service_id);
+  bool StartListeningForIncomingWifiLanConnections(
+      absl::string_view service_id, Ptr<IncomingWifiLanConnectionProcessor>
+                                        incoming_wifi_lan_connection_processor);
+  void StopListeningForIncomingWifiLanConnections(absl::string_view service_id);
+
+  Ptr<WifiLanSocket> ConnectToWifiLanService(
+      Ptr<WifiLanService> wifi_lan_service, absl::string_view service_id);
+
  private:
   // The destructor for this needs to be manually invoked after the locks below
   // are acquired, so it cannot be a ScopedPtr.
@@ -129,6 +168,7 @@ class MediumManager {
 
   ScopedPtr<Ptr<Lock> > bluetooth_classic_lock_;
   ScopedPtr<Ptr<Lock> > ble_lock_;
+  ScopedPtr<Ptr<Lock> > wifi_lan_lock_;
 };
 
 }  // namespace connections

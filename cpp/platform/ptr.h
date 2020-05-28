@@ -46,6 +46,7 @@ class Ptr {
   Ptr() = default;
   explicit Ptr(T* pointee) : ptr_(pointee) {}
   Ptr(const Ptr& that) = default;
+  Ptr(Ptr&& that) = default;
 
   Ptr(std::shared_ptr<T> ptr) : ptr_(ptr) {}  // NOLINT
 
@@ -81,18 +82,23 @@ class Ptr {
     return *(this->ptr_) < *(other.ptr_);
   }
 
-  // No-op: refcounted objects will be destroyed correctly
   ABSL_DEPRECATED("Use c++ smart pointers directly instead of Ptr<T>")
-  void destroy(bool = true) {}
+  void destroy(bool = true) {
+    // Legacy code expects isNull() to return true after destroy().
+    ptr_.reset();
+  }
 
-  // No-op: refcounted objects will be destroyed correctly
   ABSL_DEPRECATED("Use c++ smart pointers directly instead of Ptr<T>")
-  void clear() {}
+  void clear() {
+    // Legacy code expects isNull() to return true after clear().
+    ptr_.reset();
+  }
 
   T& operator*() const { return *ptr_; }
 
   T* operator->() const { return ptr_.get(); }
   T* get() { return ptr_.get(); }
+  T* get() const { return ptr_.get(); }
   void reset() { return ptr_.reset(); }
 
   ABSL_DEPRECATED("Use c++ smart pointers directly instead of Ptr<T>")
@@ -180,11 +186,12 @@ class ScopedPtr {
   // Accessor for the underlying Ptr.
   PtrType get() const { return this->ptr_; }
 
-  // Does nothing;
-  // this is to avoid unintended destruction of a managed pointer.
   // TODO(b/149938110): remove this completely.
   PtrType release() {
-    return ptr_;
+    // Legacy code expects isNull() to return true after release().
+    PtrType ptr = std::move(ptr_);
+    ptr_.clear();
+    return ptr;
   }
 
  private:
@@ -252,14 +259,16 @@ ConstPtr<T> ConstifyPtr(Ptr<T> ptr) {
 //         Ptr<MyChild> my_child_ptr = DowncastPtr<MyChild>(my_base_ptr);
 template <typename ChildT, typename BaseT>
 Ptr<ChildT> DowncastPtr(Ptr<BaseT> base_ptr) {
-  static_assert(std::is_base_of_v<BaseT, ChildT>);
+  static_assert(std::is_base_of<BaseT, ChildT>::value,
+                "Types do not share base class.");
   return Ptr<ChildT>(std::static_pointer_cast<ChildT>(base_ptr.ptr_));
 }
 
 // ConstPtr counterpart to DowncastPtr().
 template <typename ChildT, typename BaseT>
 ConstPtr<ChildT> DowncastConstPtr(ConstPtr<BaseT> base_ptr) {
-  static_assert(std::is_base_of_v<BaseT, ChildT>);
+  static_assert(std::is_base_of<BaseT, ChildT>::value,
+                "Types do not share base class.");
   return ConstPtr<ChildT>(
       std::static_pointer_cast<const ChildT>(base_ptr.ptr_));
 }

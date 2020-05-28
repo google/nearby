@@ -6,38 +6,32 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-template <typename Platform>
-BandwidthUpgradeManager<Platform>::BandwidthUpgradeManager(
+BandwidthUpgradeManager::BandwidthUpgradeManager(
     Ptr<MediumManager<Platform> > medium_manager,
-    Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager,
+    Ptr<EndpointChannelManager> endpoint_channel_manager,
     Ptr<EndpointManager<Platform> > endpoint_manager)
     : endpoint_manager_(endpoint_manager),
       bandwidth_upgrade_handlers_(),
       current_bandwidth_upgrade_handler_() {}
 
-template <typename Platform>
-BandwidthUpgradeManager<Platform>::~BandwidthUpgradeManager() {
+BandwidthUpgradeManager::~BandwidthUpgradeManager() {
   // TODO(ahlee): Make sure we don't repeat the mistake fixed in cl/201883908.
 }
 
-template <typename Platform>
-void BandwidthUpgradeManager<Platform>::initiateBandwidthUpgradeForEndpoint(
+void BandwidthUpgradeManager::initiateBandwidthUpgradeForEndpoint(
     Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
     proto::connections::Medium medium) {}
 
-template <typename Platform>
-void BandwidthUpgradeManager<Platform>::processIncomingOfflineFrame(
+void BandwidthUpgradeManager::processIncomingOfflineFrame(
     ConstPtr<OfflineFrame> offline_frame, const string& from_endpoint_id,
     Ptr<ClientProxy<Platform> > to_client_proxy,
     proto::connections::Medium current_medium) {}
 
-template <typename Platform>
-void BandwidthUpgradeManager<Platform>::processEndpointDisconnection(
+void BandwidthUpgradeManager::processEndpointDisconnection(
     Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
     Ptr<CountDownLatch> process_disconnection_barrier) {}
 
-template <typename Platform>
-bool BandwidthUpgradeManager<Platform>::setCurrentBandwidthUpgradeHandler(
+bool BandwidthUpgradeManager::setCurrentBandwidthUpgradeHandler(
     proto::connections::Medium medium) {
   return false;
 }

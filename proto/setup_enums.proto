@@ -9,6 +9,7 @@ option java_api_version = 2;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "SetupEnums";
 option objc_class_prefix = "GNSP";
+option go_api_flag = "OPEN_TO_OPAQUE_HYBRID";  // See http://go/go-api-flag.
 
 // The type of event being logged.
 // Lightweight START_* and STOP_* events track instances of potential crashes
