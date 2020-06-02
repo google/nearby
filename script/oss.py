@@ -107,6 +107,7 @@ def post_process_oss_files(path, args):
     ("_portable_proto.pb.h", ".pb.h"),
     (".proto.h", ".pb.h"),
   )
+
   for root, dirs, files in os.walk(path):
     if top_level and top_dirs:
       # we must convert cpp/ and proto/ subtrees.
@@ -125,6 +126,8 @@ def post_process_oss_files(path, args):
       lines=[]
       google3_ignore = False
       with open(fname, "r") as f:
+        add_proto_lite_runtime = args.proto_lite_runtime and fname.endswith(".proto")
+
         for line in f:
           orig = line
 
@@ -149,6 +152,13 @@ def post_process_oss_files(path, args):
             if google3_ignore:
               modified = True
               continue
+
+          if add_proto_lite_runtime and line.startswith("option "):
+            lines.append("option optimize_for = LITE_RUNTIME;")
+            modified = True
+            # LITE_RUNTIME should be added only once per file.
+            add_proto_lite_runtime = False
+
           lines.append(line)
 
       if args.fix_oss_headers:
@@ -158,6 +168,7 @@ def post_process_oss_files(path, args):
             prefix, offset = options
             lines = add_copyright(lines, prefix, offset)
             modified = True
+
       if modified:
         with open(fname, "w") as f:
           for line in lines:
@@ -178,6 +189,7 @@ def main():
   parser.add_argument('--no-copy', action='store_true', default=False)
   parser.add_argument('--no-subst', action='store_true', default=False)
   parser.add_argument('--no-recurse', action='store_true', default=False)
+  parser.add_argument('--proto-lite-runtime', action='store_true', default=False)
   args = parser.parse_args()
   if args.google3_filter:
     print("google3-specific code will be removed")
