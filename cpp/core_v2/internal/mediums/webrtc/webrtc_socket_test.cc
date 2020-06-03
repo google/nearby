@@ -5,7 +5,7 @@
 #include "platform_v2/base/byte_array.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "webrtc/files/stable/webrtc/api/data_channel_interface.h"
+#include "webrtc/api/data_channel_interface.h"
 
 namespace location {
 namespace nearby {

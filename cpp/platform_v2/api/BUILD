@@ -1,12 +1,8 @@
 cc_library(
-    name = "api",
+    name = "types",
     hdrs = [
         "atomic_boolean.h",
         "atomic_reference.h",
-        "ble.h",
-        "ble_v2.h",
-        "bluetooth_adapter.h",
-        "bluetooth_classic.h",
         "cancelable.h",
         "condition_variable.h",
         "count_down_latch.h",
@@ -17,12 +13,32 @@ cc_library(
         "listenable_future.h",
         "mutex.h",
         "output_file.h",
-        "platform.h",
         "scheduled_executor.h",
-        "server_sync.h",
         "settable_future.h",
         "submittable_executor.h",
         "system_clock.h",
+    ],
+    visibility = [
+        "//platform_v2/base:__pkg__",
+        "//platform_v2/impl:__subpackages__",
+        "//platform_v2/public:__pkg__",
+    ],
+    deps = [
+        "//platform_v2/base",
+        "//absl/base:core_headers",
+        "//absl/strings",
+        "//absl/time",
+    ],
+)
+
+cc_library(
+    name = "comm",
+    hdrs = [
+        "ble.h",
+        "ble_v2.h",
+        "bluetooth_adapter.h",
+        "bluetooth_classic.h",
+        "server_sync.h",
         "webrtc.h",
         "wifi.h",
         "wifi_lan.h",
@@ -30,14 +46,29 @@ cc_library(
     visibility = [
         "//platform_v2/base:__pkg__",
         "//platform_v2/impl:__subpackages__",
-        "//platform_v2/public:__subpackages__",
+        "//platform_v2/public:__pkg__",
     ],
     deps = [
         "//platform_v2/base",
-        "//absl/base:core_headers",
         "//absl/strings",
-        "//absl/time",
+        "//absl/types:optional",
+        "//webrtc/api:libjingle_peerconnection_api",
+    ],
+)
+
+cc_library(
+    name = "platform",
+    hdrs = [
+        "platform.h",
+    ],
+    visibility = [
+        "//platform_v2/impl:__subpackages__",
+        "//platform_v2/public:__pkg__",
+    ],
+    deps = [
+        ":comm",
+        ":types",
+        "//absl/strings",
         "//absl/types:any",
-        "//webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
     ],
 )

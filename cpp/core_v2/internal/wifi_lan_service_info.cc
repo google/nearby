@@ -33,7 +33,7 @@ WifiLanServiceInfo::WifiLanServiceInfo(Version version, Pcp pcp,
   version_ = version;
   pcp_ = pcp;
   service_id_hash_ = service_id_hash;
-  endpoint_id_ = endpoint_id;
+  endpoint_id_ = std::string(endpoint_id);
 }
 
 WifiLanServiceInfo::WifiLanServiceInfo(absl::string_view service_info_string) {
@@ -41,14 +41,14 @@ WifiLanServiceInfo::WifiLanServiceInfo(absl::string_view service_info_string) {
 
   if (service_info_bytes.Empty()) {
     NEARBY_LOG(
-        ERROR,
+        INFO,
         "Cannot deserialize WifiLanServiceInfo: failed Base64 decoding of %s",
         std::string(service_info_string).c_str());
     return;
   }
 
   if (service_info_bytes.size() > kMaxLanServiceNameLength) {
-    NEARBY_LOG(ERROR,
+    NEARBY_LOG(INFO,
                "Cannot deserialize WifiLanServiceInfo: expecting max %d raw "
                "bytes, got %" PRIu64,
                kMaxLanServiceNameLength, service_info_bytes.size());
@@ -56,7 +56,7 @@ WifiLanServiceInfo::WifiLanServiceInfo(absl::string_view service_info_string) {
   }
 
   if (service_info_bytes.size() < kMinLanServiceNameLength) {
-    NEARBY_LOG(ERROR,
+    NEARBY_LOG(INFO,
                "Cannot deserialize WifiLanServiceInfo: expecting min %d raw "
                "bytes, got %" PRIu64,
                kMinLanServiceNameLength, service_info_bytes.size());
@@ -96,7 +96,7 @@ WifiLanServiceInfo::WifiLanServiceInfo(absl::string_view service_info_string) {
           // the air, or older versions of GmsCore intermingling with newer
           // ones.
           NEARBY_LOG(
-              ERROR,
+              INFO,
               "Cannot deserialize WifiLanServiceInfo: unsupported V1 PCP %d",
               pcp_);
           break;
@@ -107,8 +107,7 @@ WifiLanServiceInfo::WifiLanServiceInfo(absl::string_view service_info_string) {
       // TODO(edwinwu): [ANALYTICIZE] This either represents corruption over
       // the air, or older versions of GmsCore intermingling with newer ones.
       NEARBY_LOG(
-          ERROR,
-          "Cannot deserialize WifiLanServiceInfo: unsupported Version %d",
+          INFO, "Cannot deserialize WifiLanServiceInfo: unsupported Version %d",
           version_);
       break;
   }
@@ -119,9 +118,7 @@ WifiLanServiceInfo::operator std::string() const {
     return "";
   }
 
-  ByteArray wifi_lan_service_info_name_bytes(kMinLanServiceNameLength);
-  auto* wifi_lan_service_info_name_bytes_write_ptr =
-      wifi_lan_service_info_name_bytes.data();
+  std::string out;
 
   // The upper 3 bits are the Version.
   auto version_and_pcp_byte = static_cast<char>(
@@ -129,50 +126,15 @@ WifiLanServiceInfo::operator std::string() const {
   // The lower 5 bits are the PCP.
   version_and_pcp_byte |=
       static_cast<char>(static_cast<uint32_t>(pcp_) & kPcpBitmask);
-  *wifi_lan_service_info_name_bytes_write_ptr = version_and_pcp_byte;
-  wifi_lan_service_info_name_bytes_write_ptr++;
 
-  switch (pcp_) {
-    case Pcp::kP2pCluster:  // Fall through
-    case Pcp::kP2pStar:     // Fall through
-    case Pcp::kP2pPointToPoint:
-      // The next 32 bits are the endpoint_id.
-      if (endpoint_id_.size() != kEndpointIdLength) {
-        NEARBY_LOG(
-            ERROR,
-            "Cannot serialize WifiLanServiceInfo: V1 Endpoint ID %s (%" PRIu64
-            " bytes) should be exactly %d bytes",
-            endpoint_id_.c_str(), endpoint_id_.size(), kEndpointIdLength);
-        return "";
-      }
-      memcpy(wifi_lan_service_info_name_bytes_write_ptr, endpoint_id_.data(),
-             kEndpointIdLength);
-      wifi_lan_service_info_name_bytes_write_ptr += kEndpointIdLength;
+  out.reserve(kMinLanServiceNameLength);
+  out.append(1, version_and_pcp_byte);
+  out.append(endpoint_id_);
+  out.append(std::string(service_id_hash_));
+  // The last byte is reserved to fit the kMinLanServiceNameLength.
+  out.append(" ");
 
-      // The next 24 bits are the service_id_hash.
-      if (service_id_hash_.size() != kServiceIdHashLength) {
-        NEARBY_LOG(
-            ERROR,
-            "Cannot serialize WifiLanServiceInfo: V1 ServiceID hash (%" PRIu64
-            " bytes) should be exactly %d bytes",
-            service_id_hash_.size(), kServiceIdHashLength);
-        return "";
-      }
-      memcpy(wifi_lan_service_info_name_bytes_write_ptr,
-             service_id_hash_.data(), kServiceIdHashLength);
-      wifi_lan_service_info_name_bytes_write_ptr += kServiceIdHashLength;
-
-      // The next bits are the endpoint_name.
-      // TODO(edwinwu): Implements to parse endpoint_name.
-      break;
-    default:
-      NEARBY_LOG(ERROR,
-                 "Cannot serialize WifiLanServiceInfo: unsupported V1 PCP %d",
-                 pcp_);
-      return "";
-  }
-
-  return Base64Utils::Encode(wifi_lan_service_info_name_bytes);
+  return Base64Utils::Encode(ByteArray{std::move(out)});
 }
 
 }  // namespace connections

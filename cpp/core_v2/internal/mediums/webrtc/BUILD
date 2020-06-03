@@ -1,29 +1,41 @@
 cc_library(
     name = "webrtc",
     srcs = [
+        "connection_flow.cc",
+        "peer_connection_observer_impl.cc",
         "webrtc_socket.cc",
     ],
     hdrs = [
+        "connection_flow.h",
+        "data_channel_listener.h",
+        "local_ice_candidate_listener.h",
+        "peer_connection_observer_impl.h",
         "webrtc_socket.h",
     ],
     deps = [
         "//core_v2:core_types",
         "//platform_v2/base",
-        "//platform_v2/public",
+        "//platform_v2/public:comm",
         "//platform_v2/public:logging",
-        "//webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//platform_v2/public:types",
+        "//absl/memory",
+        "//webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
 cc_test(
     name = "webrtc_test",
-    srcs = ["webrtc_socket_test.cc"],
+    srcs = [
+        "connection_flow_test.cc",
+        "webrtc_socket_test.cc",
+    ],
     deps = [
         ":webrtc",
         "//platform_v2/base",
         "//platform_v2/impl/g3",  # buildcleaner: keep
+        "//platform_v2/public:comm",
         "//testing/base/public:gunit_main",
-        "//webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
@@ -34,7 +46,8 @@ cc_test(
         ":peer_id",
         "//platform_v2/base",
         "//platform_v2/impl/g3",  #buildcleaner: keep
-        "//platform_v2/public",
+        "//platform_v2/public:comm",
+        "//platform_v2/public:types",
         "//testing/base/public:gunit_main",
     ],
 )
@@ -48,7 +61,7 @@ cc_test(
         "//platform_v2/impl/g3",  # buildcleaner: keep
         "//net/proto2/public:proto2",
         "//testing/base/public:gunit_main",
-        "//webrtc/files/stable/webrtc/pc:peerconnection",  # buildcleaner: keep
+        "//webrtc/pc:peerconnection",  # buildcleaner: keep
     ],
 )
 
@@ -71,6 +84,6 @@ cc_library(
         ":peer_id",
         "//platform_v2/base",
         "//location/nearby/mediums/proto:web_rtc_signaling_frames_cc_proto",
-        "//webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//webrtc/api:libjingle_peerconnection_api",
     ],
 )

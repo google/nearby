@@ -11,9 +11,9 @@ namespace {
 const char kId[] = "AB12";
 
 TEST(BlePeripheralTest, ConstructionWorks) {
-  ByteArray id(kId);
+  ByteArray id{kId};
 
-  BlePeripheral ble_peripheral(id);
+  BlePeripheral ble_peripheral{id};
 
   EXPECT_TRUE(ble_peripheral.IsValid());
   EXPECT_EQ(id, ble_peripheral.GetId());

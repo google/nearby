@@ -81,9 +81,8 @@ class BasePcpHandler : public PcpHandler,
   BasePcpHandler(BasePcpHandler&&) = delete;
   BasePcpHandler& operator=(BasePcpHandler&&) = delete;
 
-  // We have been asked by the client to start advertising. Once we successfully
-  // start advertising, we'll change the ClientProxy's state.
-  // ConnectionListener (info.listener) will be notified in case of any event.
+  // Starts advertising. Once successfully started, changes ClientProxy's state.
+  // Notifies ConnectionListener (info.listener) in case of any event.
   // See
   // https://source.corp.google.com/piper///depot/google3/core_v2/listeners.h;l=78
   Status StartAdvertising(ClientProxy* client_proxy,
@@ -91,58 +90,52 @@ class BasePcpHandler : public PcpHandler,
                           const ConnectionOptions& options,
                           const ConnectionRequestInfo& info) override;
 
-  // If Advertising is active, stop it, and change CLientProxy state,
-  // otherwise do nothing.
+  // Stops Advertising is active, and changes CLientProxy state,
+  // otherwise does nothing.
   void StopAdvertising(ClientProxy* client_proxy) override;
 
-  // Start discovery of endpoints that may be advertising.
-  // Update ClientProxy state once discovery started.
+  // Starts discovery of endpoints that may be advertising.
+  // Updates ClientProxy state once discovery started.
   // DiscoveryListener will get called in case of any event.
   Status StartDiscovery(ClientProxy* client_proxy,
                         const std::string& service_id,
                         const ConnectionOptions& options,
                         const DiscoveryListener& listener) override;
 
-  // If Discovery is active, stop it, and change CLientProxy state,
-  // otherwise do nothing.
+  // Stops Discovery if it is active, and changes CLientProxy state,
+  // otherwise does nothing.
   void StopDiscovery(ClientProxy* client_proxy) override;
 
-  // If remote endpoint has been successfully discovered, request it to form a
-  // connection, update state on ClientProxy.
+  // Requests a newly discoveered remote endpoint it to form a connection.
+  // Updates state on ClientProxy.
   Status RequestConnection(ClientProxy* client_proxy,
                            const std::string& endpoint_id,
-                           const ConnectionRequestInfo& info) override {
-    return Status{Status::kError};
-  }
+                           const ConnectionRequestInfo& info) override;
 
-  // Either party may call this to accept connection on their part.
+  // Called by either party to accept connection on their part.
   // Until both parties call it, connection will not reach a data phase.
-  // Update state in ClientProxy.
+  // Updates state in ClientProxy.
   Status AcceptConnection(ClientProxy* client_proxy,
                           const std::string& endpoint_id,
-                          const PayloadListener& payload_listener) override {
-    return Status{Status::kError};
-  }
+                          const PayloadListener& payload_listener) override;
 
-  // Either party may call this to accept connection on their part.
+  // Called by either party to reject connection on their part.
   // If either party does call it, connection will terminate.
-  // Update state in ClientProxy.
+  // Updates state in ClientProxy.
   Status RejectConnection(ClientProxy* client_proxy,
-                          const std::string& endpoint_id) override {
-    return Status{Status::kError};
-  }
+                          const std::string& endpoint_id) override;
 
   // @EndpointManagerReaderThread
   void OnIncomingFrame(const OfflineFrame& frame,
                        const std::string& endpoint_id, ClientProxy* client,
-                       proto::connections::Medium medium) override {}
+                       proto::connections::Medium medium) override;
 
   // Called when an endpoint disconnects while we're waiting for both sides to
   // approve/reject the connection.
   // @EndpointManagerThread
   void OnEndpointDisconnect(ClientProxy* client_proxy,
                             const std::string& endpoint_id,
-                            CountDownLatch* barrier) override {}
+                            CountDownLatch* barrier) override;
 
  protected:
   // The result of a call to startAdvertisingImpl() or startDiscoveryImpl().
@@ -156,14 +149,11 @@ class BasePcpHandler : public PcpHandler,
   // Represents an endpoint that we've discovered. Typically, the implementation
   // will know how to connect to this endpoint if asked. (eg. It holds on to a
   // BluetoothDevice)
-  class DiscoveredEndpoint {
-   public:
-    virtual ~DiscoveredEndpoint() = default;
-
-    virtual std::string GetEndpointId() const = 0;
-    virtual std::string GetEndpointName() const = 0;
-    virtual std::string GetServiceId() const = 0;
-    virtual proto::connections::Medium GetMedium() const = 0;
+  struct DiscoveredEndpoint {
+    std::string endpoint_id;
+    std::string endpoint_name;
+    std::string service_id;
+    proto::connections::Medium medium;
   };
 
   struct ConnectImplResult {
@@ -183,12 +173,18 @@ class BasePcpHandler : public PcpHandler,
 
   // @PcpHandlerThread
   void OnEndpointLost(ClientProxy* client_proxy,
-                      const DiscoveredEndpoint* endpoint);
+                      const DiscoveredEndpoint& endpoint);
 
   Exception OnIncomingConnection(
       ClientProxy* client_proxy, const std::string& remote_device_name,
       std::unique_ptr<EndpointChannel> endpoint_channel,
       proto::connections::Medium medium);  // throws Exception::IO
+
+  virtual bool HasOutgoingConnections(ClientProxy* client_proxy) const;
+  virtual bool HasIncomingConnections(ClientProxy* client_proxy) const;
+
+  virtual bool CanSendOutgoingConnection(ClientProxy* client_proxy) const;
+  virtual bool CanReceiveIncomingConnection(ClientProxy* client_proxy) const;
 
   // @PcpHandlerThread
   virtual StartOperationResult StartAdvertisingImpl(
@@ -218,6 +214,74 @@ class BasePcpHandler : public PcpHandler,
   EndpointChannelManager* channel_manager_;
 
  private:
+  struct PendingConnectionInfo {
+    PendingConnectionInfo() = default;
+    PendingConnectionInfo(PendingConnectionInfo&& other) = default;
+    PendingConnectionInfo& operator=(PendingConnectionInfo&&) = default;
+    ~PendingConnectionInfo();
+
+    // Passes crypto context that we acquired in DH session for temporary
+    // ownership here.
+    void SetCryptoContext(std::unique_ptr<securegcm::UKey2Handshake> ukey2);
+
+    // Pass Accept notification to client.
+    void LocalEndpointAcceptedConnection(
+        const std::string& endpoint_id,
+        const PayloadListener& payload_listener);
+
+    // Pass Reject notification to client.
+    void LocalEndpointRejectedConnection(const std::string& endpoint_id);
+
+    // Client state tracker to report events to. Never changes. Always valid.
+    ClientProxy* client = nullptr;
+    // Peer endpoint name, or empty, if not discovered yet. May change.
+    std::string remote_endpoint_name;
+    std::int32_t nonce = 0;
+    bool is_incoming = false;
+    absl::Time start_time {absl::InfinitePast()};
+    // Client callbacks. Always valid.
+    ConnectionListener listener;
+
+    // Only set for outgoing connections. If set, we must call
+    // result->Set() when connection is established, or rejected.
+    Swapper<Future<Status>> result = nullptr;
+
+    // Only (possibly) vector for incoming connections.
+    std::vector<proto::connections::Medium> supported_mediums;
+
+    // Keep track of a channel before we pass it to EndpointChannelManager.
+    std::unique_ptr<EndpointChannel> channel;
+
+    // Crypto context; initially empty; established first thing after channel
+    // creation by running UKey2 session. While it is in progress, we keep track
+    // of channel ourselves. Once it is done, we pass channel over to
+    // EndpointChannelManager. We keep crypto context until connection is
+    // accepted. Crypto context is passed over to channel_manager_ before
+    // switching to connected state, where Payload may be exchanged.
+    std::unique_ptr<securegcm::UKey2Handshake> ukey2;
+  };
+
+  // @EncryptionRunnerThread
+  // Called internally when DH session has negotiated a key successfully.
+  void OnEncryptionSuccessImpl(const std::string& endpoint_id,
+                               std::unique_ptr<securegcm::UKey2Handshake> ukey2,
+                               const std::string& auth_token,
+                               const ByteArray& raw_auth_token);
+
+  // @EncryptionRunnerThread
+  // Called internally when DH session was not able to negotiate a key.
+  void OnEncryptionFailureImpl(const std::string& endpoint_id,
+                               EndpointChannel* channel);
+
+  EncryptionRunner::ResultListener GetResultListener();
+
+  void OnEncryptionSuccessRunnable(
+      const std::string& endpoint_id,
+      std::unique_ptr<securegcm::UKey2Handshake> ukey2,
+      const std::string& auth_token, const ByteArray& raw_auth_token);
+  void OnEncryptionFailureRunnable(const std::string& endpoint_id,
+                                   EndpointChannel* endpoint_channel);
+
   static Exception WriteConnectionRequestFrame(
       EndpointChannel* endpoint_channel, const std::string& local_endpoint_id,
       const std::string& local_endpoint_name, std::int32_t nonce,
@@ -235,6 +299,25 @@ class BasePcpHandler : public PcpHandler,
   // Returns true if the new endpoint is preferred over the old endpoint.
   bool IsPreferred(const BasePcpHandler::DiscoveredEndpoint& new_endpoint,
                    const BasePcpHandler::DiscoveredEndpoint& old_endpoint);
+
+  // Returns true, if connection party should respect the specified topology.
+  bool ShouldEnforceTopologyConstraints() const;
+
+  // Returns true, if connection party should attempt to upgrade itself to
+  // use a higher bandwidth medium, if it is available.
+  bool AutoUpgradeBandwidth() const;
+
+  // Returns true if the incoming connection should be killed. This only
+  // happens when an incoming connection arrives while we have an outgoing
+  // connection to the same endpoint and we need to stop one connection.
+  bool BreakTie(ClientProxy* client, const std::string& endpoint_id,
+                std::int32_t incoming_nonce, EndpointChannel* channel);
+  // We're not sure how far our outgoing connection has gotten. We may (or may
+  // not) have called ClientProxy::OnConnectionInitiated. Therefore, we'll
+  // call both preInit and preResult failures.
+  void ProcessTieBreakLoss(ClientProxy* client_proxy,
+                           const std::string& endpoint_id,
+                           PendingConnectionInfo* info);
 
   // Called when an incoming connection has been accepted by both sides.
   //
@@ -285,6 +368,12 @@ class BasePcpHandler : public PcpHandler,
   ScheduledExecutor alarm_executor_;
   SingleThreadExecutor serial_executor_;
 
+  // A map of endpoint id -> PendingConnectionInfo. Entries in this map imply
+  // that there is an active connection to the endpoint and we're waiting for
+  // both sides to accept before allowing payloads through. Once the fate of
+  // the connection is decided (either accepted or rejected), it should be
+  // removed from this map.
+  absl::flat_hash_map<std::string, PendingConnectionInfo> pending_connections_;
   // A map of endpoint id -> DiscoveredEndpoint.
   absl::flat_hash_map<std::string, std::unique_ptr<DiscoveredEndpoint>>
       discovered_endpoints_;

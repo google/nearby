@@ -24,7 +24,7 @@ class BluetoothDevice : public api::BluetoothDevice {
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
   std::string GetName() const override;
-  BluetoothAdapter& GetAdapter();
+  BluetoothAdapter& GetAdapter() { return adapter_; }
 
  private:
   // Only BluetoothAdapter may instantiate BluetoothDevice.
@@ -41,8 +41,8 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   using Status = api::BluetoothAdapter::Status;
   using ScanMode = api::BluetoothAdapter::ScanMode;
 
-  BluetoothAdapter() = default;
-  ~BluetoothAdapter() override = default;
+  explicit BluetoothAdapter() = default;
+  ~BluetoothAdapter() override;
 
   // Synchronously sets the status of the BluetoothAdapter to 'status', and
   // returns true if the operation was a success.
@@ -71,16 +71,11 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   BluetoothDevice& GetDevice() { return device_; }
 
  private:
-  void RunOnCallbackThread(std::function<void()> runnable) {
-    serial_executor_.Execute(std::move(runnable));
-  }
-
   mutable absl::Mutex mutex_;
   BluetoothDevice device_{this};
   ScanMode mode_ ABSL_GUARDED_BY(mutex_) = ScanMode::kNone;
   std::string name_ ABSL_GUARDED_BY(mutex_) = "unknown G3 BT device";
   bool enabled_ ABSL_GUARDED_BY(mutex_) = false;
-  SingleThreadExecutor serial_executor_;
 };
 
 }  // namespace g3

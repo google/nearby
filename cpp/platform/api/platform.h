@@ -12,7 +12,9 @@
 #include "platform/api/condition_variable.h"
 #include "platform/api/count_down_latch.h"
 #include "platform/api/hash_utils.h"
+#include "platform/api/input_file.h"
 #include "platform/api/lock.h"
+#include "platform/api/output_file.h"
 #include "platform/api/scheduled_executor.h"
 #include "platform/api/server_sync.h"
 #include "platform/api/settable_future_def.h"
@@ -71,6 +73,9 @@ class ImplementationPlatform {
   static Ptr<HashUtils> createHashUtils();
   static Ptr<ThreadUtils> createThreadUtils();
   static Ptr<SystemClock> createSystemClock();
+  static Ptr<InputFile> createInputFile(std::int64_t payload_id,
+                                        std::int64_t total_size);
+  static Ptr<OutputFile> createOutputFile(std::int64_t payload_id);
 
   // Java-like Executors
   // Type aliases used to API 1.0 compatibility.
@@ -96,7 +101,6 @@ class ImplementationPlatform {
   static Ptr<WebRtcSignalingMessenger> createWebRtcSignalingMessenger(
       const std::string& self_id);
   static std::string getDeviceId();
-  static std::string getPayloadPath(int64_t payload_id);
 };
 
 }  // namespace platform

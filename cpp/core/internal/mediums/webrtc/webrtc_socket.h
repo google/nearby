@@ -6,7 +6,7 @@
 #include "platform/api/output_stream.h"
 #include "platform/api/socket.h"
 #include "platform/pipe.h"
-#include "webrtc/files/stable/webrtc/api/data_channel_interface.h"
+#include "webrtc/api/data_channel_interface.h"
 
 namespace location {
 namespace nearby {

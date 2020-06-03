@@ -1,4 +1,4 @@
-#include "platform_v2/public/file.h"
+#include "platform_v2/impl/shared/file.h"
 
 #include <cstddef>
 #include <memory>
@@ -8,6 +8,7 @@
 
 namespace location {
 namespace nearby {
+namespace shared {
 
 // InputFile
 
@@ -47,7 +48,7 @@ Exception InputFile::Close() {
 
 // OutputFile
 
-OutputFile::OutputFile(absl::string_view path) : file_(path) {}
+OutputFile::OutputFile(absl::string_view path) : file_(std::string(path)) {}
 
 Exception OutputFile::Write(const ByteArray& data) {
   if (!file_.is_open()) {
@@ -75,5 +76,6 @@ Exception OutputFile::Close() {
   return {Exception::kSuccess};
 }
 
+}  // namespace shared
 }  // namespace nearby
 }  // namespace location

@@ -224,6 +224,8 @@ enum LogSource {
   // Represents the OEM partners (like Samsung) that we're working with to
   // verify functionality on their devices.
   OEM_DEVICES = 4;
+  // Represents the device for debugging.
+  DEBUG_DEVICES = 5;
 }
 
 // The Fast Share server action name.

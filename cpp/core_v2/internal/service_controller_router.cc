@@ -190,24 +190,25 @@ void ServiceControllerRouter::SendPayload(
   // We have to capture it by value inside the lambda, and pass it over to
   // the executor as an std::function<void()> instance.
   // Lambda must be copyable, in order ot satisfy std::function<> requirements.
-  // To make it so, we  need Payload wrapped by a copyable wrapper.
+  // To make it so, we need Payload wrapped by a copyable wrapper.
   // std::shared_ptr<> is used, because it is copyable.
   auto shared_payload = std::make_shared<Payload>(std::move(payload));
+  const std::vector<std::string> endpoints =
+      std::vector<std::string>(endpoint_ids.begin(), endpoint_ids.end());
+
   RouteToServiceController(
-      [this, client, shared_payload,
-       endpoint_ids = std::vector(endpoint_ids.begin(), endpoint_ids.end()),
-       &callback]() {
+      [this, client, shared_payload, endpoints, &callback]() {
         if (!ClientHasAcquiredServiceController(client)) {
           callback.result_cb({Status::kOutOfOrderApiCall});
           return;
         }
 
-        if (!ClientHasConnectionToAtLeastOneEndpoint(client, endpoint_ids)) {
+        if (!ClientHasConnectionToAtLeastOneEndpoint(client, endpoints)) {
           callback.result_cb({Status::kEndpointUnknown});
           return;
         }
 
-        service_controller_->SendPayload(client, endpoint_ids,
+        service_controller_->SendPayload(client, endpoints,
                                          std::move(*shared_payload));
 
         // At this point, we've queued up the send Payload request with the

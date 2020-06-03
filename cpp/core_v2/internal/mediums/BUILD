@@ -5,6 +5,7 @@ cc_library(
         "ble_advertisement.cc",
         "ble_advertisement_header.cc",
         "ble_packet.cc",
+        "bloom_filter.cc",
         "bluetooth_radio.cc",
         "uuid.cc",
     ],
@@ -14,6 +15,7 @@ cc_library(
         "ble_advertisement_header.h",
         "ble_packet.h",
         "ble_peripheral.h",
+        "bloom_filter.h",
         "bluetooth_radio.h",
         "lost_entity_tracker.h",
         "uuid.h",
@@ -23,12 +25,15 @@ cc_library(
     ],
     deps = [
         "//platform_v2/base",
-        "//platform_v2/public",
+        "//platform_v2/public:comm",
         "//platform_v2/public:logging",
+        "//platform_v2/public:types",
         "//absl/container:flat_hash_map",
         "//absl/container:flat_hash_set",
+        "//absl/numeric:int128",
         "//absl/strings",
         "//absl/time",
+        "//smhasher:libmurmur3",
     ],
 )
 
@@ -41,7 +46,8 @@ cc_library(
     ],
     deps = [
         "//platform_v2/base",
-        "//platform_v2/public",
+        "//platform_v2/public:comm",
+        "//platform_v2/public:types",
     ],
 )
 
@@ -53,6 +59,7 @@ cc_test(
         "ble_advertisement_test.cc",
         "ble_packet_test.cc",
         "ble_peripheral_test.cc",
+        "bloom_filter_test.cc",
         "bluetooth_radio_test.cc",
         "lost_entity_tracker_test.cc",
         "uuid_test.cc",
@@ -62,8 +69,9 @@ cc_test(
         ":mediums",
         "//platform_v2/base",
         "//platform_v2/impl/g3",  # build_cleaner: keep
-        "//platform_v2/public",
+        "//platform_v2/public:comm",
         "//platform_v2/public:logging",
+        "//platform_v2/public:types",
         "//testing/base/public:gunit_main",
         "//absl/time",
     ],

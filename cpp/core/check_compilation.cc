@@ -7,7 +7,7 @@
 #include "core/status.h"
 #include "platform/api/platform.h"
 #include "platform/byte_array.h"
-#include "platform/file_impl.h"
+#include "platform/impl/shared/file_impl.h"
 #include "platform/impl/shared/sample/sample_wifi_medium.h"
 #include "platform/port/string.h"
 #include "platform/ptr.h"
