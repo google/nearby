@@ -19,13 +19,13 @@
 #include <limits>
 #include <map>
 #include <memory>
-#include <optional>
 #include <set>
 #include <string>
 
 #include "platform_v2/base/byte_array.h"
 #include "platform_v2/base/exception.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
 
 namespace location {
 namespace nearby {
@@ -133,7 +133,7 @@ class ClientGattConnection {
   //
   // It is okay for duplicate services to exist, as long as the specified
   // characteristic UUID is unique among all services of the same UUID.
-  virtual std::optional<GattCharacteristic> GetCharacteristic(
+  virtual absl::optional<GattCharacteristic> GetCharacteristic(
       absl::string_view service_uuid,
       absl::string_view characteristic_uuid) = 0;
 
@@ -141,7 +141,7 @@ class ClientGattConnection {
   // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic.html#getValue()
   //
   // Reads a GATT characteristic. No value is returned upon error.
-  virtual std::optional<ByteArray> ReadCharacteristic(
+  virtual absl::optional<ByteArray> ReadCharacteristic(
       const GattCharacteristic& characteristic) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic.html#setValue(byte[])
@@ -223,7 +223,7 @@ class GattServer {
   // descriptor and subscribe for characteristic changes. For more information
   // about this descriptor, please go to:
   // https://www.bluetooth.com/specifications/Gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.Gatt.client_characteristic_configuration.xml
-  virtual std::optional<GattCharacteristic> CreateCharacteristic(
+  virtual absl::optional<GattCharacteristic> CreateCharacteristic(
       absl::string_view service_uuid, absl::string_view characteristic_uuid,
       const std::set<GattCharacteristic::Permission>& permissions,
       const std::set<GattCharacteristic::Property>& properties) = 0;

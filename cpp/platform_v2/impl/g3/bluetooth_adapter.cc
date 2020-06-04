@@ -16,7 +16,7 @@
 
 #include <string>
 
-#include "platform_v2/impl/g3/medium_environment.h"
+#include "platform_v2/base/medium_environment.h"
 
 namespace location {
 namespace nearby {
@@ -25,15 +25,22 @@ namespace g3 {
 BluetoothDevice::BluetoothDevice(BluetoothAdapter* adapter)
     : adapter_(*adapter) {}
 
+BluetoothAdapter::~BluetoothAdapter() { SetStatus(Status::kDisabled); }
+
 std::string BluetoothDevice::GetName() const { return adapter_.GetName(); }
 
-bool BluetoothAdapter::SetStatus(Status status) ABSL_LOCKS_EXCLUDED(mutex_) {
-  absl::MutexLock lock(&mutex_);
-  enabled_ = (status == Status::kEnabled);
-  RunOnCallbackThread([this]() {
-    auto& env = MediumEnvironment::Instance();
-    env.OnBluetoothAdapterChangedState(*this);
-  });
+bool BluetoothAdapter::SetStatus(Status status) {
+  BluetoothAdapter::ScanMode mode;
+  bool enabled = status == Status::kEnabled;
+  std::string name;
+  {
+    absl::MutexLock lock(&mutex_);
+    enabled_ = enabled;
+    name = name_;
+    mode = mode_;
+  }
+  auto& env = MediumEnvironment::Instance();
+  env.OnBluetoothAdapterChangedState(*this, device_, name, enabled, mode);
   return true;
 }
 
@@ -48,13 +55,17 @@ BluetoothAdapter::ScanMode BluetoothAdapter::GetScanMode() const {
 }
 
 bool BluetoothAdapter::SetScanMode(BluetoothAdapter::ScanMode mode) {
-  absl::MutexLock lock(&mutex_);
-  if (enabled_) return false;
-  mode_ = mode;
-  RunOnCallbackThread([this]() {
-    auto& env = MediumEnvironment::Instance();
-    env.OnBluetoothAdapterChangedState(*this);
-  });
+  bool enabled;
+  std::string name;
+  {
+    absl::MutexLock lock(&mutex_);
+    mode_ = mode;
+    name = name_;
+    enabled = enabled_;
+  }
+  auto& env = MediumEnvironment::Instance();
+  env.OnBluetoothAdapterChangedState(*this, device_, std::move(name), enabled,
+                                     mode);
   return true;
 }
 
@@ -64,13 +75,17 @@ std::string BluetoothAdapter::GetName() const {
 }
 
 bool BluetoothAdapter::SetName(absl::string_view name) {
-  absl::MutexLock lock(&mutex_);
-  if (enabled_) return false;
-  name_ = name;
-  RunOnCallbackThread([this]() {
-    auto& env = MediumEnvironment::Instance();
-    env.OnBluetoothAdapterChangedState(*this);
-  });
+  BluetoothAdapter::ScanMode mode;
+  bool enabled;
+  {
+    absl::MutexLock lock(&mutex_);
+    name_ = name;
+    enabled = enabled_;
+    mode = mode_;
+  }
+  auto& env = MediumEnvironment::Instance();
+  env.OnBluetoothAdapterChangedState(*this, device_, std::string(name), enabled,
+                                     mode);
   return true;
 }
 

@@ -26,12 +26,11 @@ class BlePeripheral {
  public:
   BlePeripheral() = default;
   explicit BlePeripheral(const ByteArray& id) : id_(id) {}
-  ~BlePeripheral() = default;
-
   BlePeripheral(const BlePeripheral&) = default;
   BlePeripheral& operator=(const BlePeripheral&) = default;
   BlePeripheral(BlePeripheral&&) = default;
   BlePeripheral& operator=(BlePeripheral&&) = default;
+  ~BlePeripheral() = default;
 
   bool IsValid() const { return !id_.Empty(); }
   ByteArray GetId() const { return id_; }

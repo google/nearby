@@ -23,10 +23,7 @@ cc_library(
     visibility = [
         "//platform_v2/impl:__subpackages__",
     ],
-    deps = [
-        "//platform_v2/api",
-        "//platform_v2/base",
-    ],
+    deps = ["//platform_v2/api:types"],
 )
 
 cc_library(
@@ -42,7 +39,31 @@ cc_library(
     ],
     deps = [
         ":posix_mutex",
-        "//platform_v2/api",
+        "//platform_v2/api:types",
+    ],
+)
+
+cc_library(
+    name = "file",
+    srcs = ["file.cc"],
+    hdrs = ["file.h"],
+    visibility = [
+        "//platform_v2/impl:__subpackages__",
+    ],
+    deps = [
+        "//platform_v2/api:types",
         "//platform_v2/base",
+        "//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "file_test",
+    srcs = ["file_test.cc"],
+    deps = [
+        ":file",
+        "//file/util:temp_path",
+        "//platform_v2/base",
+        "//testing/base/public:gunit_main",
     ],
 )

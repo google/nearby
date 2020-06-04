@@ -31,17 +31,17 @@ namespace connections {
 template <typename Platform>
 class UUID {
  public:
-  explicit UUID(const string& data);
+  explicit UUID(const std::string& data);
   UUID(std::int64_t most_sig_bits, std::int64_t least_sig_bits);
   ~UUID();
 
   // Returns the canonical textual representation
   // (https://en.wikipedia.org/wiki/Universally_unique_identifier#Format) of the
   // UUID.
-  string str();
+  std::string str();
 
  private:
-  string data_;
+  std::string data_;
 };
 
 }  // namespace connections

@@ -33,7 +33,9 @@ class ByteArray {
   ByteArray& operator=(ByteArray&&) = default;
 
   // Create ByteArray from string.
-  explicit ByteArray(absl::string_view source) { data_ = source; }
+  explicit ByteArray(absl::string_view source) {
+    SetData(source.data(), source.size());
+  }
 
   // Create default-initialized ByteArray of a given size.
   explicit ByteArray(size_t size) { SetData(size); }

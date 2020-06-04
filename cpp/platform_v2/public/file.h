@@ -16,47 +16,53 @@
 #define PLATFORM_V2_PUBLIC_FILE_H_
 
 #include <cstdint>
-#include <fstream>
+#include <memory>
+#include <string>
 
 #include "platform_v2/api/input_file.h"
 #include "platform_v2/api/output_file.h"
+#include "platform_v2/api/platform.h"
+#include "platform_v2/base/byte_array.h"
 #include "platform_v2/base/exception.h"
-#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
 
 class InputFile final : public api::InputFile {
  public:
-  explicit InputFile(const std::string& path, std::int64_t size);
+  using Platform = api::ImplementationPlatform;
+  InputFile(std::int64_t payload_id, std::int64_t size)
+      : impl_(Platform::CreateInputFile(payload_id, size)) {}
   ~InputFile() override = default;
   InputFile(InputFile&&) = default;
   InputFile& operator=(InputFile&&) = default;
 
-  ExceptionOr<ByteArray> Read(std::int64_t size) override;
-  std::string GetFilePath() const override { return path_; }
-  std::int64_t GetTotalSize() const override { return total_size_; }
-  Exception Close() override;
+  ExceptionOr<ByteArray> Read(std::int64_t size) override {
+    return impl_->Read(size);
+  }
+  std::string GetFilePath() const override { return impl_->GetFilePath(); }
+  std::int64_t GetTotalSize() const override { return impl_->GetTotalSize(); }
+  Exception Close() override { return impl_->Close(); }
 
  private:
-  std::ifstream file_;
-  std::string path_;
-  std::int64_t total_size_;
+  std::unique_ptr<api::InputFile> impl_;
 };
 
 class OutputFile final : public api::OutputFile {
  public:
-  explicit OutputFile(absl::string_view path);
+  using Platform = api::ImplementationPlatform;
+  explicit OutputFile(std::int64_t payload_id)
+      : impl_(Platform::CreateOutputFile(payload_id)) {}
   ~OutputFile() override = default;
   OutputFile(OutputFile&&) = default;
   OutputFile& operator=(OutputFile&&) = default;
 
-  Exception Write(const ByteArray& data) override;
-  Exception Flush() override;
-  Exception Close() override;
+  Exception Write(const ByteArray& data) override { return impl_->Write(data); }
+  Exception Flush() override { return impl_->Flush(); }
+  Exception Close() override { return impl_->Close(); }
 
  private:
-  std::ofstream file_;
+  std::unique_ptr<api::OutputFile> impl_;
 };
 
 }  // namespace nearby

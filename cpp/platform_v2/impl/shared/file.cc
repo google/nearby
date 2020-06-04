@@ -12,78 +12,84 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "platform/file_impl.h"
+#include "platform_v2/impl/shared/file.h"
 
 #include <cstddef>
 #include <memory>
 
+#include "platform_v2/base/exception.h"
+#include "absl/strings/string_view.h"
+
 namespace location {
 namespace nearby {
+namespace shared {
 
 // InputFile
 
-InputFileImpl::InputFileImpl(const std::string& path, std::int64_t size)
+InputFile::InputFile(const std::string& path, std::int64_t size)
     : file_(path), path_(path), total_size_(size) {}
 
-ExceptionOr<ConstPtr<ByteArray>> InputFileImpl::read(int64_t size) {
+ExceptionOr<ByteArray> InputFile::Read(std::int64_t size) {
   if (!file_.is_open()) {
-    return ExceptionOr<ConstPtr<ByteArray>>(Exception::IO);
+    return ExceptionOr<ByteArray>{Exception::kIo};
   }
 
   if (file_.peek() == EOF) {
-    return ExceptionOr<ConstPtr<ByteArray>>(ConstPtr<ByteArray>());
+    return ExceptionOr<ByteArray>{ByteArray{}};
   }
 
   if (!file_.good()) {
-    return ExceptionOr<ConstPtr<ByteArray>>(Exception::IO);
+    return ExceptionOr<ByteArray>{Exception::kIo};
   }
 
-  std::unique_ptr<char[]> read_bytes {new char [size]};
+  ByteArray bytes(size);
+  std::unique_ptr<char[]> read_bytes{new char[size]};
   file_.read(read_bytes.get(), static_cast<ptrdiff_t>(size));
   auto num_bytes_read = file_.gcount();
   if (num_bytes_read == 0) {
-    return ExceptionOr<ConstPtr<ByteArray>>(Exception::IO);
+    return ExceptionOr<ByteArray>{Exception::kIo};
   }
 
-  return ExceptionOr<ConstPtr<ByteArray>>(
-      MakeConstPtr(new ByteArray(read_bytes.get(), num_bytes_read)));
+  return ExceptionOr<ByteArray>(ByteArray(read_bytes.get(), num_bytes_read));
 }
 
-std::string InputFileImpl::getFilePath() const { return path_; }
-
-std::int64_t InputFileImpl::getTotalSize() const { return total_size_; }
-
-void InputFileImpl::close() {
+Exception InputFile::Close() {
   if (file_.is_open()) {
     file_.close();
   }
+  return {Exception::kSuccess};
 }
 
 // OutputFile
 
-OutputFileImpl::OutputFileImpl(const std::string& path) : file_(path) {}
+OutputFile::OutputFile(absl::string_view path) : file_(std::string(path)) {}
 
-Exception::Value OutputFileImpl::write(ConstPtr<ByteArray> data) {
-  ScopedPtr<ConstPtr<ByteArray>> scoped_data(data);
-
+Exception OutputFile::Write(const ByteArray& data) {
   if (!file_.is_open()) {
-    return Exception::IO;
+    return {Exception::kIo};
   }
 
   if (!file_.good()) {
-    return Exception::IO;
+    return {Exception::kIo};
   }
 
-  file_.write(data->getData(), data->size());
+  file_.write(data.data(), data.size());
   file_.flush();
-  return file_.good() ? Exception::NONE : Exception::IO;
+  return {file_.good() ? Exception::kSuccess : Exception::kIo};
 }
 
-void OutputFileImpl::close() {
+Exception OutputFile::Flush() {
+  file_.flush();
+  return {file_.good() ? Exception::kSuccess : Exception::kIo};
+}
+
+Exception OutputFile::Close() {
   if (file_.is_open()) {
     file_.close();
   }
+  return {Exception::kSuccess};
 }
 
+}  // namespace shared
 }  // namespace nearby
 }  // namespace location

@@ -47,7 +47,7 @@ class Future final : public api::SettableFuture<T> {
   ExceptionOr<T> Get() override {
     auto ret_val = impl_->Get();
     if (ret_val.ok()) {
-      T result = std::any_cast<T>(ret_val.result());
+      T result = absl::any_cast<T>(ret_val.result());
       return ExceptionOr<T>{result};
     } else {
       return ExceptionOr<T>{ret_val.exception()};
@@ -60,7 +60,7 @@ class Future final : public api::SettableFuture<T> {
   ExceptionOr<T> Get(absl::Duration timeout) override {
     auto ret_val = impl_->Get(timeout);
     if (ret_val.ok()) {
-      T result = std::any_cast<T>(ret_val.result());
+      T result = absl::any_cast<T>(ret_val.result());
       return ExceptionOr<T>{result};
     } else {
       return ExceptionOr<T>{ret_val.exception()};

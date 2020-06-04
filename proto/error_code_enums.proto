@@ -18,6 +18,7 @@ package location.nearby.proto;
 
 import "logs/proto/logs_annotations/logs_annotations.proto";
 
+option optimize_for = LITE_RUNTIME;
 option (logs_proto.file_not_used_for_logging_except_enums) = true;
 option java_api_version = 2;
 option java_package = "com.google.location.nearby.proto";

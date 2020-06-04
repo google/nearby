@@ -61,24 +61,21 @@ class BleAdvertisement {
                    const std::string& endpoint_name,
                    const std::string& bluetooth_mac_address);
   explicit BleAdvertisement(const ByteArray& ble_advertisement_bytes);
-  ~BleAdvertisement() = default;
-
   BleAdvertisement(const BleAdvertisement&) = default;
   BleAdvertisement& operator=(const BleAdvertisement&) = default;
   BleAdvertisement(BleAdvertisement&&) = default;
   BleAdvertisement& operator=(BleAdvertisement&&) = default;
+  ~BleAdvertisement() = default;
 
   explicit operator ByteArray() const;
 
-  inline bool IsValid() const { return !endpoint_id_.empty(); }
-  inline Version GetVersion() const { return version_; }
-  inline Pcp GetPcp() const { return pcp_; }
-  inline ByteArray GetServiceIdHash() const{ return service_id_hash_; }
-  inline std::string GetEndpointId() const { return endpoint_id_; }
-  inline std::string GetEndpointName() const { return endpoint_name_; }
-  inline std::string GetBluetoothMacAddress() const {
-    return bluetooth_mac_address_;
-  }
+  bool IsValid() const { return !endpoint_id_.empty(); }
+  Version GetVersion() const { return version_; }
+  Pcp GetPcp() const { return pcp_; }
+  ByteArray GetServiceIdHash() const { return service_id_hash_; }
+  std::string GetEndpointId() const { return endpoint_id_; }
+  std::string GetEndpointName() const { return endpoint_name_; }
+  std::string GetBluetoothMacAddress() const { return bluetooth_mac_address_; }
 
  private:
   std::uint32_t ComputeEndpointNameLength(

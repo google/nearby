@@ -15,8 +15,9 @@
 #ifndef PLATFORM_V2_BASE_EXCEPTION_H_
 #define PLATFORM_V2_BASE_EXCEPTION_H_
 
-#include <type_traits>
 #include <utility>
+
+#include "absl/meta/type_traits.h"
 
 namespace location {
 namespace nearby {
@@ -78,7 +79,7 @@ class ExceptionOr {
   ExceptionOr(Exception exception) : exception_{exception} {}         // NOLINT
   // If there exists explicit conversion from from U to T,
   // then allow explicit conversion from ExceptionOr<U> to ExceptionOr<T>.
-  template <typename U, typename = std::void_t<decltype(T{std::declval<U>()})>>
+  template <typename U, typename = absl::void_t<decltype(T{std::declval<U>()})>>
   explicit ExceptionOr<T>(ExceptionOr<U> value) {
     if (!value.ok()) {
       exception_ = value.GetException();

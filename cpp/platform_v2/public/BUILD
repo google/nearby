@@ -13,15 +13,13 @@
 # limitations under the License.
 
 cc_library(
-    name = "public",
+    name = "types",
     srcs = [
-        "file.cc",
         "pipe.cc",
     ],
     hdrs = [
         "atomic_boolean.h",
         "atomic_reference.h",
-        "bluetooth_adapter.h",
         "cancelable.h",
         "cancelable_alarm.h",
         "condition_variable.h",
@@ -40,16 +38,35 @@ cc_library(
     ],
     visibility = [
         "//core_v2:__subpackages__",
-        "//platform_v2/impl:__subpackages__",
+        "//platform_v2/base:__pkg__",
+        "//platform_v2/public:__pkg__",
     ],
     deps = [
-        "//platform_v2/api",
+        "//platform_v2/api:platform",
+        "//platform_v2/api:types",
         "//platform_v2/base",
         "//platform_v2/base:util",
         "//absl/base:core_headers",
-        "//absl/strings",
         "//absl/time",
         "//absl/types:any",
+    ],
+)
+
+cc_library(
+    name = "comm",
+    hdrs = [
+        "bluetooth_adapter.h",
+        "webrtc.h",
+    ],
+    visibility = [
+        "//core_v2:__subpackages__",
+        "//platform_v2/public:__pkg__",
+    ],
+    deps = [
+        "//platform_v2/api:comm",
+        "//platform_v2/api:platform",
+        "//absl/strings",
+        "//webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
@@ -64,7 +81,7 @@ cc_library(
         "//platform_v2:__subpackages__",
     ],
     deps = [
-        "//platform:logging",
+        "//platform_v2/base:logging",
     ],
 )
 
@@ -76,7 +93,6 @@ cc_test(
         "bluetooth_adapter_test.cc",
         "count_down_latch_test.cc",
         "crypto_test.cc",
-        "file_test.cc",
         "future_test.cc",
         "logging_test.cc",
         "multi_thread_executor_test.cc",
@@ -87,13 +103,12 @@ cc_test(
     ],
     shard_count = 16,
     deps = [
+        ":comm",
         ":logging",
-        ":public",
-        "//file/util:temp_path",
+        ":types",
         "//platform_v2/base",
-        "//platform_v2/impl/g3",
+        "//platform_v2/impl/g3",  # build_cleaner: keep
         "//testing/base/public:gunit_main",
-        "//absl/strings",
         "//absl/synchronization",
         "//absl/time",
     ],

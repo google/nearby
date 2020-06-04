@@ -17,7 +17,6 @@ cc_library(
     srcs = [
         "base64_utils.cc",
         "cancelable_alarm.cc",
-        "file_impl.cc",
         "pipe.cc",
         "prng.cc",
         "reliability_utils.cc",
@@ -25,7 +24,6 @@ cc_library(
     hdrs = [
         "base64_utils.h",
         "cancelable_alarm.h",
-        "file_impl.h",
         "pipe.h",
         "prng.h",
         "reliability_utils.h",
@@ -77,7 +75,7 @@ cc_library(
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//core:__subpackages__",
-        "//platform_v2/public:__pkg__",
+        "//platform_v2/base:__pkg__",
     ],
     deps = [
         "//absl/base",
@@ -92,7 +90,6 @@ cc_test(
         "atomic_reference_test.cc",
         "byte_array_test.cc",
         "container_of_test.cc",
-        "file_impl_test.cc",
         "pipe_test.cc",
         "prng_test.cc",
         "ptr_test.cc",
@@ -100,7 +97,6 @@ cc_test(
     ],
     deps = [
         ":utils",
-        "//file/util:temp_path",
         "//platform:types",
         "//platform/api",
         "//platform/impl/g3",

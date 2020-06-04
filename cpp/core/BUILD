@@ -65,6 +65,7 @@ cc_library(
         "//platform:utils",
         "//platform/api",
         "//platform/impl/g3",
+        "//platform/impl/shared:file",
         "//platform/impl/shared/sample:sample_wifi_medium",
         "//platform/port:string",
     ],

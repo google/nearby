@@ -44,16 +44,16 @@ class PcpHandler {
   virtual ~PcpHandler() = default;
 
   // Return strategy supported by this protocol.
-  virtual Strategy GetStrategy() = 0;
+  virtual Strategy GetStrategy() const = 0;
 
   // Return concrete variant of protocol.
-  virtual Pcp GetPcp() = 0;
+  virtual Pcp GetPcp() const = 0;
 
   // We have been asked by the client to start advertising. Once we successfully
   // start advertising, we'll change the ClientProxy's state.
   // ConnectionListener (info.listener) will be notified in case of any event.
-  // See for details
-  // cpp/core_v2/listeners.h
+  // See
+  // cpp/core_v2/listeners.h;bpv=1;bpt=1;l=71?gsn=ConnectionListener
   virtual Status StartAdvertising(ClientProxy* client,
                                   const std::string& service_id,
                                   const ConnectionOptions& options,

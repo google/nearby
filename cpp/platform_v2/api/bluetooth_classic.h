@@ -21,8 +21,8 @@
 #include "platform_v2/base/byte_array.h"
 #include "platform_v2/base/exception.h"
 #include "platform_v2/base/input_stream.h"
+#include "platform_v2/base/listeners.h"
 #include "platform_v2/base/output_stream.h"
-#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -31,7 +31,7 @@ namespace api {
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
 class BluetoothDevice {
  public:
-  virtual ~BluetoothDevice() {}
+  virtual ~BluetoothDevice() = default;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
   virtual std::string GetName() const = 0;
@@ -40,32 +40,45 @@ class BluetoothDevice {
 // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html.
 class BluetoothSocket {
  public:
-  virtual ~BluetoothSocket() {}
+  virtual ~BluetoothSocket() = default;
 
-  // Returns the InputStream of the BluetoothSocket.
+  // NOTE:
+  // It is an undefined behavior if GetInputStream() or GetOutputStream() is
+  // called for a not-connected BluetoothSocket, i.e. any object that is not
+  // returned by BluetoothClassicMedium::ConnectToService() for client side or
+  // BluetoothServerSocket::Accept() for server side of connection.
+
+  // Returns the InputStream of this connected BluetoothSocket.
   virtual InputStream& GetInputStream() = 0;
 
-  // Returns the OutputStream of the BluetoothSocket.
+  // Returns the OutputStream of this connected BluetoothSocket.
   virtual OutputStream& GetOutputStream() = 0;
 
-  // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html#close()
-  //
+  // Closes both input and output streams, marks Socket as closed.
+  // After this call object should be treated as not connected.
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   virtual Exception Close() = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html#getRemoteDevice()
-  virtual BluetoothDevice& GetRemoteDevice() = 0;
+  // Returns valid BluetoothDevice pointer if there is a connection, and
+  // nullptr otherwise.
+  virtual BluetoothDevice* GetRemoteDevice() = 0;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html.
 class BluetoothServerSocket {
  public:
-  virtual ~BluetoothServerSocket() {}
+  virtual ~BluetoothServerSocket() = default;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html#accept()
   //
-  // returns Exception::kIo on error.
-  virtual ExceptionOr<std::unique_ptr<BluetoothSocket>> Accept() = 0;
+  // Blocks until either:
+  // - at least one incoming connection request is available, or
+  // - ServerSocket is closed.
+  // On success, returns connected socket, ready to exchange data.
+  // Returns nullptr on error.
+  // Once error is reported, it is permanent, and ServerSocket has to be closed.
+  virtual std::unique_ptr<BluetoothSocket> Accept() = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html#close()
   //
@@ -77,31 +90,33 @@ class BluetoothServerSocket {
 // medium.
 class BluetoothClassicMedium {
  public:
-  virtual ~BluetoothClassicMedium() {}
+  virtual ~BluetoothClassicMedium() = default;
 
-  class DiscoveryCallback {
-   public:
-    virtual ~DiscoveryCallback() {}
-
-    // BluetoothDevice* is not owned by callbacks.
-    // Pointer is guaranteed to remain valid for the duration of a call.
-    virtual void OnDeviceDiscovered(BluetoothDevice* device) = 0;
-    virtual void OnDeviceNameChanged(BluetoothDevice* device) = 0;
-    virtual void OnDeviceLost(BluetoothDevice* device) = 0;
+  struct DiscoveryCallback {
+    // BluetoothDevice is a proxy object created as a result of BT discovery.
+    // Its lifetime spans between calls to device_discovered_cb and
+    // device_lost_cb.
+    // It is safe to use BluetoothDevice in device_discovered_cb() callback
+    // and at any time afterwards, until device_lost_cb() is called.
+    // It is not safe to use BluetoothDevice after returning from
+    // device_lost_cb() callback.
+    std::function<void(BluetoothDevice& device)> device_discovered_cb =
+        DefaultCallback<BluetoothDevice&>();
+    std::function<void(BluetoothDevice& device)> device_name_changed_cb =
+        DefaultCallback<BluetoothDevice&>();
+    std::function<void(BluetoothDevice& device)> device_lost_cb =
+        DefaultCallback<BluetoothDevice&>();
   };
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#startDiscovery()
   //
   // Returns true once the process of discovery has been initiated.
-  //
-  // Does not take ownership of the passed-in discovery_callback -- destroying
-  // that is up to the caller.
-  virtual bool StartDiscovery(const DiscoveryCallback& discovery_callback) = 0;
+  virtual bool StartDiscovery(DiscoveryCallback discovery_callback) = 0;
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#cancelDiscovery()
   //
   // Returns true once discovery is well and truly stopped; after this returns,
   // there must be no more invocations of the DiscoveryCallback passed in to
-  // startDiscovery().
+  // StartDiscovery().
   virtual bool StopDiscovery() = 0;
 
   // A combination of
@@ -115,10 +130,10 @@ class BluetoothClassicMedium {
   // (https://en.wikipedia.org/wiki/Universally_unique_identifier#Versions_3_and_5_(namespace_name-based))
   // UUID.
   //
-  // On success, returns a new BluetoothSocket, wrapped in a ExceptionOr object.
-  // On error, returns Exception object.
-  virtual ExceptionOr<std::unique_ptr<BluetoothSocket>> ConnectToService(
-      BluetoothDevice* remote_device, absl::string_view service_uuid) = 0;
+  // On success, returns a new BluetoothSocket.
+  // On error, returns nullptr.
+  virtual std::unique_ptr<BluetoothSocket> ConnectToService(
+      BluetoothDevice& remote_device, const std::string& service_uuid) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#listenUsingInsecureRfcommWithServiceRecord
   //
@@ -128,9 +143,9 @@ class BluetoothClassicMedium {
   // (https://en.wikipedia.org/wiki/Universally_unique_identifier#Versions_3_and_5_(namespace_name-based))
   // UUID.
   //
-  //  Returns Exception::kIo on error.
-  virtual ExceptionOr<std::unique_ptr<BluetoothServerSocket>> ListenForService(
-      absl::string_view service_name, absl::string_view service_uuid) = 0;
+  //  Returns nullptr error.
+  virtual std::unique_ptr<BluetoothServerSocket> ListenForService(
+      const std::string& service_name, const std::string& service_uuid) = 0;
 };
 
 }  // namespace api

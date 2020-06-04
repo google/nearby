@@ -36,12 +36,11 @@ class BlePacket {
   BlePacket() = default;
   BlePacket(const ByteArray& service_id_hash, const ByteArray& data);
   explicit BlePacket(const ByteArray& ble_packet_byte);
-  ~BlePacket() = default;
-
   BlePacket(const BlePacket&) = default;
   BlePacket& operator=(const BlePacket&) = default;
   BlePacket(BlePacket&&) = default;
   BlePacket& operator=(BlePacket&&) = default;
+  ~BlePacket() = default;
 
   explicit operator ByteArray() const;
 

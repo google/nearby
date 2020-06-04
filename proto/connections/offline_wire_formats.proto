@@ -16,6 +16,7 @@ syntax = "proto2";
 
 package location.nearby.connections;
 
+option optimize_for = LITE_RUNTIME;
 option java_outer_classname = "OfflineWireFormatsProto";
 option java_package = "com.google.location.nearby.connections.proto";
 option objc_class_prefix = "GNCP";
@@ -214,11 +215,15 @@ message BandwidthUpgradeNegotiationFrame {
     optional BluetoothCredentials bluetooth_credentials = 4;
     optional WifiAwareCredentials wifi_aware_credentials = 5;
     optional WifiDirectCredentials wifi_direct_credentials = 6;
+
+    // Disable Encryption for this upgrade medium to improve throughput.
+    optional bool supports_disabling_encryption = 7;
   }
 
   // Accompanies CLIENT_INTRODUCTION events.
   message ClientIntroduction {
     optional string endpoint_id = 1;
+    optional bool supports_disabling_encryption = 2;
   }
 
   optional EventType event_type = 1;

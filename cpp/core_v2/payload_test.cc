@@ -42,7 +42,7 @@ TEST(PayloadTest, SupportsByteArrayType) {
 }
 
 TEST(PayloadTest, SupportsFileType) {
-  InputFile* raw_file = new InputFile("/path/to/file", 0);
+  InputFile* raw_file = new InputFile(/*payload_id=*/23, 0);
   std::unique_ptr<InputFile> file(raw_file);
   Payload payload(std::move(file));
   EXPECT_EQ(payload.GetType(), Payload::Type::kFile);
@@ -52,7 +52,7 @@ TEST(PayloadTest, SupportsFileType) {
 }
 
 TEST(PayloadTest, SupportsStreamType) {
-  InputFile* raw_file = new InputFile("/path/to/file", 0);
+  InputFile* raw_file = new InputFile(/*payload_id=*/17, 0);
   std::unique_ptr<InputStream> stream(raw_file);
   Payload payload(std::move(stream));
   EXPECT_EQ(payload.GetType(), Payload::Type::kStream);

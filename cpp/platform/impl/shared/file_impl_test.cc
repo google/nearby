@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "platform/file_impl.h"
+#include "platform/impl/shared/file_impl.h"
 
 #include <cstdio>
 #include <cstring>

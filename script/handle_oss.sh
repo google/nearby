@@ -17,4 +17,4 @@
 ./oss.py --all --google3-filter --no-subst --fix-oss-headers ../cmake
 ./oss.py --all --no-subst --fix-oss-headers .
 ./oss.py --all --google3-filter --no-subst --fix-oss-headers --no-recurse ..
-./oss.py --google3-filter --fix-oss-headers ..
+./oss.py --google3-filter --fix-oss-headers --proto-lite-runtime ..
