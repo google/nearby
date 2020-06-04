@@ -88,6 +88,7 @@ def post_process_oss_files(path, args):
   else:
     top_dirs = ["cpp", "proto"]
   transforms = (
+    ("::google3_proto_compat::MessageLite", "::google::protobuf::MessageLite"),
     ("third_party/webrtc/files/stable/", ""),
     ("webrtc/files/stable/", ""),
     ("third_party/", ""),
@@ -154,8 +155,9 @@ def post_process_oss_files(path, args):
               continue
 
           if add_proto_lite_runtime and line.startswith("option "):
-            lines.append("option optimize_for = LITE_RUNTIME;")
-            modified = True
+            if not line.startswith("option optimize_for = LITE_RUNTIME"):
+              lines.append("option optimize_for = LITE_RUNTIME;\n")
+              modified = True
             # LITE_RUNTIME should be added only once per file.
             add_proto_lite_runtime = False
 
