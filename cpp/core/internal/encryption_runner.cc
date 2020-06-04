@@ -115,7 +115,7 @@ class ServerRunnable : public Runnable {
         encryption_result_listener_(encryption_result_listener) {}
 
   void run() override {
-    CancelableAlarm<Platform> timeout_alarm(
+    CancelableAlarm timeout_alarm(
         "EncryptionRunner.startServer() timeout",
         MakePtr(new CancelableAlarmRunnable<Platform>(
             client_proxy_, endpoint_id_, endpoint_channel_)),
@@ -126,7 +126,7 @@ class ServerRunnable : public Runnable {
     // Java code throws a HandshakeException.
     if (server == nullptr) {
       logException();
-      handleHandshakeOrIOException(timeout_alarm);
+      handleHandshakeOrIOException(&timeout_alarm);
       return;
     }
 
@@ -135,7 +135,7 @@ class ServerRunnable : public Runnable {
     if (!client_init.ok()) {
       if (Exception::IO == client_init.exception()) {
         logException();
-        handleHandshakeOrIOException(timeout_alarm);
+        handleHandshakeOrIOException(&timeout_alarm);
         return;
       }
     }
@@ -152,7 +152,7 @@ class ServerRunnable : public Runnable {
       if (parse_result.alert_to_send != nullptr) {
         handleAlertException(parse_result);
       }
-      handleHandshakeOrIOException(timeout_alarm);
+      handleHandshakeOrIOException(&timeout_alarm);
       return;
     }
 
@@ -165,7 +165,7 @@ class ServerRunnable : public Runnable {
     // Java code throws a HandshakeException.
     if (server_init == nullptr) {
       logException();
-      handleHandshakeOrIOException(timeout_alarm);
+      handleHandshakeOrIOException(&timeout_alarm);
       return;
     }
 
@@ -174,7 +174,7 @@ class ServerRunnable : public Runnable {
     if (Exception::NONE != write_exception) {
       if (Exception::IO == write_exception) {
         logException();
-        handleHandshakeOrIOException(timeout_alarm);
+        handleHandshakeOrIOException(&timeout_alarm);
         return;
       }
     }
@@ -188,7 +188,7 @@ class ServerRunnable : public Runnable {
     if (!client_finish.ok()) {
       if (Exception::IO == client_finish.exception()) {
         logException();
-        handleHandshakeOrIOException(timeout_alarm);
+        handleHandshakeOrIOException(&timeout_alarm);
         return;
       }
     }
@@ -203,7 +203,7 @@ class ServerRunnable : public Runnable {
       if (parse_result.alert_to_send != nullptr) {
         handleAlertException(parse_result);
       }
-      handleHandshakeOrIOException(timeout_alarm);
+      handleHandshakeOrIOException(&timeout_alarm);
       return;
     }
 
@@ -216,7 +216,7 @@ class ServerRunnable : public Runnable {
                                            MakePtr(server.release()),
                                            encryption_result_listener_.get())) {
       logException();
-      handleHandshakeOrIOException(timeout_alarm);
+      handleHandshakeOrIOException(&timeout_alarm);
       return;
     }
   }
@@ -227,8 +227,8 @@ class ServerRunnable : public Runnable {
                endpoint_id_.c_str());
   }
 
-  void handleHandshakeOrIOException(CancelableAlarm<Platform>& timeout_alarm) {
-    timeout_alarm.cancel();
+  void handleHandshakeOrIOException(CancelableAlarm* timeout_alarm) {
+    timeout_alarm->cancel();
     encryption_result_listener_->onEncryptionFailure(endpoint_id_,
                                                      endpoint_channel_);
   }
@@ -272,7 +272,7 @@ class ClientRunnable : public Runnable {
         encryption_result_listener_(encryption_result_listener) {}
 
   void run() override {
-    CancelableAlarm<Platform> timeout_alarm(
+    CancelableAlarm timeout_alarm(
         "EncryptionRunner.startClient() timeout",
         MakePtr(new CancelableAlarmRunnable<Platform>(
             client_proxy_, endpoint_id_, endpoint_channel_)),
@@ -284,7 +284,7 @@ class ClientRunnable : public Runnable {
     // Java code throws a HandshakeException.
     if (client == nullptr) {
       logException();
-      handleHandshakeOrIOException(timeout_alarm);
+      handleHandshakeOrIOException(&timeout_alarm);
       return;
     }
 
@@ -294,7 +294,7 @@ class ClientRunnable : public Runnable {
     // Java code throws a HandshakeException.
     if (client_init == nullptr) {
       logException();
-      handleHandshakeOrIOException(timeout_alarm);
+      handleHandshakeOrIOException(&timeout_alarm);
       return;
     }
 
@@ -303,7 +303,7 @@ class ClientRunnable : public Runnable {
     if (Exception::NONE != write_init_exception) {
       if (Exception::IO == write_init_exception) {
         logException();
-        handleHandshakeOrIOException(timeout_alarm);
+        handleHandshakeOrIOException(&timeout_alarm);
         return;
       }
     }
@@ -317,7 +317,7 @@ class ClientRunnable : public Runnable {
     if (!server_init.ok()) {
       if (Exception::IO == server_init.exception()) {
         logException();
-        handleHandshakeOrIOException(timeout_alarm);
+        handleHandshakeOrIOException(&timeout_alarm);
         return;
       }
     }
@@ -333,7 +333,7 @@ class ClientRunnable : public Runnable {
       if (parse_result.alert_to_send != nullptr) {
         handleAlertException(parse_result);
       }
-      handleHandshakeOrIOException(timeout_alarm);
+      handleHandshakeOrIOException(&timeout_alarm);
       return;
     }
 
@@ -346,7 +346,7 @@ class ClientRunnable : public Runnable {
     // Java code throws a HandshakeException.
     if (client_finish == nullptr) {
       logException();
-      handleHandshakeOrIOException(timeout_alarm);
+      handleHandshakeOrIOException(&timeout_alarm);
       return;
     }
 
@@ -356,7 +356,7 @@ class ClientRunnable : public Runnable {
     if (Exception::NONE != write_finish_exception) {
       if (Exception::IO == write_finish_exception) {
         logException();
-        handleHandshakeOrIOException(timeout_alarm);
+        handleHandshakeOrIOException(&timeout_alarm);
         return;
       }
     }
@@ -370,7 +370,7 @@ class ClientRunnable : public Runnable {
                                            MakePtr(client.release()),
                                            encryption_result_listener_.get())) {
       logException();
-      handleHandshakeOrIOException(timeout_alarm);
+      handleHandshakeOrIOException(&timeout_alarm);
       return;
     }
   }
@@ -381,8 +381,8 @@ class ClientRunnable : public Runnable {
                endpoint_id_.c_str());
   }
 
-  void handleHandshakeOrIOException(CancelableAlarm<Platform>& timeout_alarm) {
-    timeout_alarm.cancel();
+  void handleHandshakeOrIOException(CancelableAlarm* timeout_alarm) {
+    timeout_alarm->cancel();
     encryption_result_listener_->onEncryptionFailure(endpoint_id_,
                                                      endpoint_channel_);
   }

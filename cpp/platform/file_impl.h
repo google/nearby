@@ -28,7 +28,7 @@ namespace nearby {
 
 class InputFileImpl final : public InputFile {
  public:
-  explicit InputFileImpl(const std::string& path, std::int64_t size);
+  InputFileImpl(const std::string& path, std::int64_t size);
   ~InputFileImpl() override {}
 
   ExceptionOr<ConstPtr<ByteArray>> read(std::int64_t size) override;

@@ -32,8 +32,8 @@ class OnIncomingWifiConnectionRunnable : public Runnable {
 template <typename Platform>
 WifiLanUpgradeHandler<Platform>::WifiLanUpgradeHandler(
     Ptr<MediumManager<Platform> > medium_manager,
-    Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager)
-    : BaseBandwidthUpgradeHandler<Platform>(endpoint_channel_manager),
+    Ptr<EndpointChannelManager> endpoint_channel_manager)
+    : BaseBandwidthUpgradeHandler(endpoint_channel_manager),
       medium_manager_(medium_manager) {}
 
 template <typename Platform>

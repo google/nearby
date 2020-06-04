@@ -62,8 +62,9 @@ target_link_libraries(core_build_test
     absl::strings
     core
     core_types
-    platform_impl_default_lock
-    platform_impl_sample
+    platform_impl_g3
+    platform_impl_shared_posix_lock
+    platform_impl_shared_sample
     platform_port_string
     platform_types
     platform_utils

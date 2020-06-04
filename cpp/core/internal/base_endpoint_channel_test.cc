@@ -14,7 +14,7 @@
 
 #include "core/internal/base_endpoint_channel.h"
 
-#include "platform/impl/default/default_platform.h"
+#include "platform/api/platform.h"
 #include "platform/pipe.h"
 #include "proto/connections_enums.pb.h"
 #include "gmock/gmock.h"
@@ -25,21 +25,7 @@ namespace nearby {
 namespace connections {
 namespace {
 
-class TestPlatform : public DefaultPlatform {
- public:
-  static SystemClock* createSystemClock() { return nullptr; }
-
-  static Ptr<AtomicBoolean> createAtomicBoolean(bool initial_value) {
-    return Ptr<AtomicBoolean>();
-  }
-
-  template <typename T>
-  static Ptr<AtomicReference<T>> createAtomicReference(const T& initial_value) {
-    return Ptr<AtomicReference<T>>();
-  }
-};
-
-class TestEndpointChannel : public BaseEndpointChannel<TestPlatform> {
+class TestEndpointChannel : public BaseEndpointChannel {
  public:
   explicit TestEndpointChannel(Ptr<InputStream> input_stream)
       : BaseEndpointChannel("channel", input_stream, Ptr<OutputStream>()) {}
@@ -48,7 +34,7 @@ class TestEndpointChannel : public BaseEndpointChannel<TestPlatform> {
   MOCK_METHOD(void, closeImpl, (), (override));
 };
 
-using SamplePipe = Pipe<TestPlatform>;
+using SamplePipe = Pipe;
 
 TEST(BaseEndpointChannelTest, ReadAfterInputStreamClosed) {
   auto pipe = MakeRefCountedPtr(new SamplePipe());

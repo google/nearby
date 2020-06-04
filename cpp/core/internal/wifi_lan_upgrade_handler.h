@@ -37,36 +37,35 @@ class OnIncomingWifiConnectionRunnable;
 
 // Manages the WIFI_LAN-specific methods needed to upgrade an EndpointChannel
 template <typename Platform>
-class WifiLanUpgradeHandler : public BaseBandwidthUpgradeHandler<Platform> {
+class WifiLanUpgradeHandler : public BaseBandwidthUpgradeHandler {
   // TODO(ahlee): Uncomment when WIFI_LAN plumbing is done.
   // public MediumManager<Platform>::IncomingWifiConnectionProcessor {
  public:
-  WifiLanUpgradeHandler(
-      Ptr<MediumManager<Platform> > medium_manager_,
-      Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager);
-  ~WifiLanUpgradeHandler();
+  WifiLanUpgradeHandler(Ptr<MediumManager<Platform> > medium_manager_,
+                        Ptr<EndpointChannelManager> endpoint_channel_manager);
+  ~WifiLanUpgradeHandler() override;
 
   void onIncomingWifiConnection(Ptr<Socket> socket);
 
  protected:
   // @BandwidthUpgradeHandlerThread
   ConstPtr<ByteArray> initializeUpgradedMediumForEndpoint(
-      const string& endpoint_id);
+      const string& endpoint_id) override;
   // @BandwidthUpgradeHandlerThread
   Ptr<EndpointChannel> createUpgradedEndpointChannel(
       const string& endpoint_id,
       ConstPtr<BandwidthUpgradeNegotiationFrame::UpgradePathInfo>
-          upgrade_path_info);
+          upgrade_path_info) override;
   // TODO(ahlee): Change the java counterparts of these methods to private.
-  proto::connections::Medium getUpgradeMedium();
+  proto::connections::Medium getUpgradeMedium() override;
   // @BandwidthUpgradeHandlerThread
-  void revertImpl();
+  void revertImpl() override;
 
  private:
   class IncomingWifiLanSocketConnection
-      : public BaseBandwidthUpgradeHandler<Platform>::IncomingSocketConnection {
+      : public BaseBandwidthUpgradeHandler::IncomingSocketConnection {
    public:
-    IncomingWifiLanSocketConnection(Ptr<Socket> socket)
+    explicit IncomingWifiLanSocketConnection(Ptr<Socket> socket)
         : new_endpoint_channel_(Ptr<EndpointChannel>()),
           // TODO(ahlee): Uncomment when plumbing for WIFI_LAN is done.
           // new_endpoint_channel_(getEndpointChannelManager()
@@ -75,15 +74,15 @@ class WifiLanUpgradeHandler : public BaseBandwidthUpgradeHandler<Platform> {
     // TODO(ahlee): This is only used for logging which is not currently
     // implemented. If we want to match the Java code in the future, we'll need
     // to add toString() to socket.h.
-    string socketToString() { return string(); }
-    void closeSocket() {
+    string socketToString() override { return string(); }
+    void closeSocket() override {
       // Ignore the potential Exception returned by close(), as a counterpart
       // to Java's closeQuietly().
       wifi_socket_->close();
     }
     // TODO(ahlee): Double check that the ownership of this is correct when
     // this is fully implemented.
-    Ptr<EndpointChannel> getEndpointChannel() {
+    Ptr<EndpointChannel> getEndpointChannel() override {
       return new_endpoint_channel_.release();
     }
 

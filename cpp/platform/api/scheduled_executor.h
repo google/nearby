@@ -17,7 +17,7 @@
 
 #include <cstdint>
 
-#include "platform/api/executor.h"
+#include "platform/api/submittable_executor_def.h"
 #include "platform/cancelable.h"
 #include "platform/ptr.h"
 #include "platform/runnable.h"
@@ -29,9 +29,9 @@ namespace nearby {
 // execute periodically.
 //
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ScheduledExecutorService.html
-class ScheduledExecutor : public Executor {
+class ScheduledExecutor : public SubmittableExecutor {
  public:
-  virtual ~ScheduledExecutor() {}
+  ~ScheduledExecutor() override = default;
 
   virtual Ptr<Cancelable> schedule(Ptr<Runnable> runnable,
                                    std::int64_t delay_millis) = 0;

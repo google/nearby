@@ -23,6 +23,7 @@
 #include "core/internal/endpoint_manager.h"
 #include "core/internal/medium_manager.h"
 #include "proto/connections/offline_wire_formats.pb.h"
+#include "platform/api/platform.h"
 #include "platform/port/string.h"
 #include "platform/ptr.h"
 #include "proto/connections_enums.pb.h"
@@ -33,14 +34,15 @@ namespace connections {
 
 // Manages all known {@link BandwidthUpgradeHandler} implementations, delegating
 // operations to the appropriate one as per the parameters passed in.
-template <typename Platform>
 class BandwidthUpgradeManager
-    : public EndpointManager<Platform>::IncomingOfflineFrameProcessor {
+    : public EndpointManager<
+          platform::ImplementationPlatform>::IncomingOfflineFrameProcessor {
  public:
-  BandwidthUpgradeManager(
-      Ptr<MediumManager<Platform> > medium_manager,
-      Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager,
-      Ptr<EndpointManager<Platform> > endpoint_manager);
+  using Platform = platform::ImplementationPlatform;
+
+  BandwidthUpgradeManager(Ptr<MediumManager<Platform>> medium_manager,
+                          Ptr<EndpointChannelManager> endpoint_channel_manager,
+                          Ptr<EndpointManager<Platform>> endpoint_manager);
   ~BandwidthUpgradeManager() override;
 
   // This is the point on the initiator side where the
@@ -64,17 +66,14 @@ class BandwidthUpgradeManager
   bool setCurrentBandwidthUpgradeHandler(proto::connections::Medium medium);
 
   Ptr<EndpointManager<Platform> > endpoint_manager_;
-  typedef std::map<proto::connections::Medium,
-                   Ptr<BandwidthUpgradeHandler<Platform> > >
+  typedef std::map<proto::connections::Medium, Ptr<BandwidthUpgradeHandler>>
       BandwidthUpgradeHandlersMap;
   BandwidthUpgradeHandlersMap bandwidth_upgrade_handlers_;
-  Ptr<BandwidthUpgradeHandler<Platform> > current_bandwidth_upgrade_handler_;
+  Ptr<BandwidthUpgradeHandler> current_bandwidth_upgrade_handler_;
 };
 
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-#include "core/internal/bandwidth_upgrade_manager.cc"
 
 #endif  // CORE_INTERNAL_BANDWIDTH_UPGRADE_MANAGER_H_

@@ -31,14 +31,11 @@ namespace nearby {
 
 namespace pipe {
 
-template <typename>
 class PipeInputStream;
-template <typename>
 class PipeOutputStream;
 
 }  // namespace pipe
 
-template <typename Platform>
 class Pipe {
  public:
   Pipe();
@@ -56,9 +53,7 @@ class Pipe {
   // classes.
   //////////////////////////////////////////////////////////////////////////////
 
-  template <typename>
   friend class pipe::PipeInputStream;
-  template <typename>
   friend class pipe::PipeOutputStream;
 
   ExceptionOr<ConstPtr<ByteArray> > read(std::int64_t size);
@@ -83,7 +78,5 @@ class Pipe {
 
 }  // namespace nearby
 }  // namespace location
-
-#include "platform/pipe.cc"
 
 #endif  // PLATFORM_PIPE_H_

@@ -122,7 +122,7 @@ class OutgoingStreamInternalPayload : public InternalPayload {
   }
 
  private:
-  static const std::int64_t kChunkSize = 64 * 1024;
+  static constexpr std::int64_t kChunkSize = 64 * 1024;
 };
 
 template <typename Platform>
@@ -205,7 +205,7 @@ class OutgoingFileInternalPayload : public InternalPayload {
   void close() override { payload_->asFile()->asInputFile()->close(); }
 
  private:
-  static const std::int64_t kChunkSize = 64 * 1024;
+  static constexpr std::int64_t kChunkSize = 64 * 1024;
 };
 
 class IncomingFileInternalPayload : public InternalPayload {
@@ -291,14 +291,13 @@ Ptr<InternalPayload> InternalPayloadFactory<Platform>::createIncoming(
 
     case PayloadTransferFrame::PayloadHeader::STREAM: {
       // pipe will be auto-destroyed when it is no longer referenced.
-      auto pipe = MakeRefCountedPtr(new Pipe<Platform>());
+      auto pipe = MakeRefCountedPtr(new Pipe());
 
       return MakePtr(new IncomingStreamInternalPayload<Platform>(
-          MakeConstPtr(new Payload(
-              payload_id,
-              MakeConstPtr(new Payload::Stream(
-                  Pipe<Platform>::createInputStream(pipe))))),
-          Pipe<Platform>::createOutputStream(pipe)));
+          MakeConstPtr(
+              new Payload(payload_id, MakeConstPtr(new Payload::Stream(
+                                          Pipe::createInputStream(pipe))))),
+          Pipe::createOutputStream(pipe)));
     }
 
     case PayloadTransferFrame::PayloadHeader::FILE: {

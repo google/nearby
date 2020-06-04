@@ -15,24 +15,65 @@
 #ifndef PLATFORM_API_SETTABLE_FUTURE_H_
 #define PLATFORM_API_SETTABLE_FUTURE_H_
 
-#include "platform/api/listenable_future.h"
+#include "platform/api/platform.h"
+#include "platform/api/settable_future_def.h"
+#include "platform/exception.h"
+#include "platform/ptr.h"
+#include "platform/runnable.h"
+#include "absl/types/any.h"
 
 namespace location {
 namespace nearby {
 
-// A SettableFuture is a type of Future whose result can be set.
-//
-// https://google.github.io/guava/releases/20.0/api/docs/com/google/common/util/concurrent/SettableFuture.html
+// "Common" part of implementation.
+// Placed here for textual compatibility to minimize scope of changes.
+// Can be (and should be) moved to a separate file outside "api" folder.
+// TODO(apolyudov): for API v2.0
+namespace platform {
+namespace impl {
+
 template <typename T>
-class SettableFuture : public ListenableFuture<T> {
+class SettableFutureImpl : public SettableFuture<T> {
  public:
-  ~SettableFuture() override {}
+  SettableFutureImpl() {
+    future_ = platform::ImplementationPlatform::createSettableFutureAny();
+  }
 
-  virtual bool set(T value) = 0;
+  ~SettableFutureImpl() override = default;
 
-  virtual bool setException(Exception exception) = 0;
+  bool set(T value) override { return future_->set(absl::any(value)); }
+
+  bool setException(Exception exception) override {
+    return future_->setException(exception);
+  }
+
+  void addListener(Ptr<Runnable> runnable, Executor* executor) override {
+    future_->addListener(runnable, executor);
+  }
+
+  ExceptionOr<T> get() override { return CommonGet(future_->get()); }
+  ExceptionOr<T> get(std::int64_t timeout_ms) override {
+    return CommonGet(future_->get(timeout_ms));
+  }
+
+ private:
+  ExceptionOr<T> CommonGet(ExceptionOr<absl::any> ret_val) {
+    if (ret_val.exception() != Exception::kSuccess) {
+      return ExceptionOr<T>{ret_val.exception()};
+    }
+    return ExceptionOr<T>{absl::any_cast<T>(ret_val.result())};
+  }
+
+  Ptr<SettableFuture<absl::any>> future_;
 };
+}  // namespace impl
 
+template <typename T>
+Ptr<SettableFuture<T>> ImplementationPlatform::createSettableFuture() {
+  return Ptr<SettableFuture<T>>(new impl::SettableFutureImpl<T>{});
+}
+
+}  // namespace platform
 }  // namespace nearby
 }  // namespace location
 

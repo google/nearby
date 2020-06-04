@@ -24,7 +24,8 @@ Mediums<Platform>::Mediums()
       bluetooth_classic_(
           new BluetoothClassic<Platform>(bluetooth_radio_.get())),
       ble_(new BLE<Platform>(bluetooth_radio_.get())),
-      ble_v2_(new mediums::BLEV2<Platform>(bluetooth_radio_.get())) {}
+      ble_v2_(new mediums::BLEV2<Platform>(bluetooth_radio_.get())),
+      wifi_lan_(new mediums::WifiLan<Platform>()) {}
 
 template <typename Platform>
 Mediums<Platform>::~Mediums() {
@@ -49,6 +50,11 @@ Ptr<BLE<Platform> > Mediums<Platform>::ble() const {
 template <typename Platform>
 Ptr<mediums::BLEV2<Platform> > Mediums<Platform>::bleV2() const {
   return ble_v2_.get();
+}
+
+template <typename Platform>
+Ptr<mediums::WifiLan<Platform> > Mediums<Platform>::wifi_lan() const {
+  return wifi_lan_.get();
 }
 
 }  // namespace connections

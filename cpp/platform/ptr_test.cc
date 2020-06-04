@@ -130,7 +130,8 @@ TEST(PtrTest, ScopedPtr_Release_RefCounted) {
 
   Ptr<int> ref_counted_2 = scoped_ref_counted_1.release();
 
-  ASSERT_EQ(*scoped_ref_counted_1, *ref_counted_2);
+  ASSERT_TRUE(scoped_ref_counted_1.isNull());
+  ASSERT_EQ(1234, *ref_counted_1);
   ASSERT_EQ(1234, *ref_counted_2);
 }
 
@@ -141,7 +142,7 @@ TEST(PtrTest, ScopedPtr_Release_RefCounted_Stay_Valid) {
 
   Ptr<int> ref_counted_3 = scoped_ref_counted_1.release();
 
-  ASSERT_EQ(*scoped_ref_counted_1, *ref_counted_3);
+  ASSERT_TRUE(scoped_ref_counted_1.isNull());
   ASSERT_EQ(1234, *ref_counted_2);
   ASSERT_EQ(1234, *ref_counted_3);
 }

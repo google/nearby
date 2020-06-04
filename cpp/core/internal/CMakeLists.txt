@@ -16,14 +16,21 @@ add_library(core_internal STATIC)
 
 target_sources(core_internal
   PRIVATE
+    bandwidth_upgrade_manager.cc
+    base_bandwidth_upgrade_handler.cc
+    base_endpoint_channel.cc
     ble_advertisement.cc
+    ble_endpoint_channel.cc
     bluetooth_device_name.cc
+    bluetooth_endpoint_channel.cc
+    endpoint_channel_manager.cc
     internal_payload.cc
     internal_payload.h
     loop_runner.cc
     loop_runner.h
     offline_frames.cc
     wifi_lan_service_info.cc
+    wifi_lan_endpoint_channel.cc
   PUBLIC
     bandwidth_upgrade_handler.h
     bandwidth_upgrade_manager.h
@@ -53,6 +60,7 @@ target_sources(core_internal
     pcp_manager.h
     service_controller.h
     service_controller_router.h
+    wifi_lan_endpoint_channel.h
     wifi_lan_upgrade_handler.h
 )
 
@@ -90,9 +98,9 @@ target_link_libraries(core_internal_test
     gmock
     gtest
     gtest_main
-    platform_impl_default
-    platform_impl_default_cond_var
-    platform_impl_default_lock
+    platform_impl_g3
+    platform_impl_shared_posix_condition_variable
+    platform_impl_shared_posix_lock
     platform_port_string
     platform_utils
 )

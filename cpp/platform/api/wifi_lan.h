@@ -21,6 +21,7 @@
 #include "platform/exception.h"
 #include "platform/port/string.h"
 #include "platform/ptr.h"
+#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -64,9 +65,10 @@ class WifiLanMedium {
  public:
   virtual ~WifiLanMedium() = default;
 
-  virtual bool StartAdvertising(const std::string& service_id,
-                                const string& wifi_lan_service_info_name) = 0;
-  virtual void StopAdvertising(const std::string& service_id) = 0;
+  virtual bool StartAdvertising(
+      absl::string_view service_id,
+      absl::string_view wifi_lan_service_info_name) = 0;
+  virtual void StopAdvertising(absl::string_view service_id) = 0;
 
   // Callback for WifiLan discover results.
   class DiscoveredServiceCallback {
@@ -78,9 +80,9 @@ class WifiLanMedium {
   };
 
   virtual bool StartDiscovery(
-      const std::string& service_id,
+      absl::string_view service_id,
       Ptr<DiscoveredServiceCallback> discovered_service_callback) = 0;
-  virtual void StopDiscovery(const std::string& service_id) = 0;
+  virtual void StopDiscovery(absl::string_view service_id) = 0;
 
   class AcceptedConnectionCallback {
    public:
@@ -90,16 +92,16 @@ class WifiLanMedium {
     // destroyed) by the recipient of the callback methods (i.e. the creator of
     // the concrete AcceptedConnectionCallback object).
     virtual void OnConnectionAccepted(Ptr<WifiLanSocket> socket,
-                                      const string& service_id) = 0;
+                                      absl::string_view service_id) = 0;
   };
 
   virtual bool StartAcceptingConnections(
-      const std::string& service_id,
+      absl::string_view service_id,
       Ptr<AcceptedConnectionCallback> accepted_connection_callback) = 0;
-  virtual void StopAcceptingConnections(const std::string& service_id) = 0;
+  virtual void StopAcceptingConnections(absl::string_view service_id) = 0;
 
   virtual Ptr<WifiLanSocket> Connect(Ptr<WifiLanService> wifi_lan_service,
-                                     const std::string& service_id) = 0;
+                                     absl::string_view service_id) = 0;
 };
 
 }  // namespace nearby

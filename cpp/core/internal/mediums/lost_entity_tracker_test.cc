@@ -14,7 +14,7 @@
 
 #include "core/internal/mediums/lost_entity_tracker.h"
 
-#include "platform/impl/default/default_platform.h"
+#include "platform/api/platform.h"
 #include "gtest/gtest.h"
 
 namespace location {
@@ -22,6 +22,8 @@ namespace nearby {
 namespace connections {
 namespace mediums {
 namespace {
+
+using TestPlatform = platform::ImplementationPlatform;
 
 struct TestEntity {
   int id;
@@ -32,7 +34,7 @@ struct TestEntity {
 };
 
 TEST(LostEntityTracker, NoEntitiesLost) {
-  LostEntityTracker<DefaultPlatform, TestEntity> lost_entity_tracker;
+  LostEntityTracker<TestPlatform, TestEntity> lost_entity_tracker;
   ScopedPtr<ConstPtr<TestEntity> > entity_1(MakeConstPtr(new TestEntity(1)));
   ScopedPtr<ConstPtr<TestEntity> > entity_2(MakeConstPtr(new TestEntity(2)));
   ScopedPtr<ConstPtr<TestEntity> > entity_3(MakeConstPtr(new TestEntity(3)));
@@ -55,7 +57,7 @@ TEST(LostEntityTracker, NoEntitiesLost) {
 }
 
 TEST(LostEntityTracker, AllEntitiesLost) {
-  LostEntityTracker<DefaultPlatform, TestEntity> lost_entity_tracker;
+  LostEntityTracker<TestPlatform, TestEntity> lost_entity_tracker;
   ScopedPtr<ConstPtr<TestEntity> > entity_1(MakeConstPtr(new TestEntity(1)));
   ScopedPtr<ConstPtr<TestEntity> > entity_2(MakeConstPtr(new TestEntity(2)));
   ScopedPtr<ConstPtr<TestEntity> > entity_3(MakeConstPtr(new TestEntity(3)));
@@ -69,7 +71,7 @@ TEST(LostEntityTracker, AllEntitiesLost) {
   ASSERT_TRUE(lost_entity_tracker.computeLostEntities().empty());
 
   // Go through a round without rediscovering any entities.
-  typename LostEntityTracker<DefaultPlatform, TestEntity>::EntitySet
+  typename LostEntityTracker<TestPlatform, TestEntity>::EntitySet
       lost_entities = lost_entity_tracker.computeLostEntities();
   ASSERT_TRUE(lost_entities.find(entity_1.get()) != lost_entities.end());
   ASSERT_TRUE(lost_entities.find(entity_2.get()) != lost_entities.end());
@@ -77,7 +79,7 @@ TEST(LostEntityTracker, AllEntitiesLost) {
 }
 
 TEST(LostEntityTracker, SomeEntitiesLost) {
-  LostEntityTracker<DefaultPlatform, TestEntity> lost_entity_tracker;
+  LostEntityTracker<TestPlatform, TestEntity> lost_entity_tracker;
   ScopedPtr<ConstPtr<TestEntity> > entity_1(MakeConstPtr(new TestEntity(1)));
   ScopedPtr<ConstPtr<TestEntity> > entity_2(MakeConstPtr(new TestEntity(2)));
   ScopedPtr<ConstPtr<TestEntity> > entity_3(MakeConstPtr(new TestEntity(3)));
@@ -94,7 +96,7 @@ TEST(LostEntityTracker, SomeEntitiesLost) {
   // was lost after the check.
   lost_entity_tracker.recordFoundEntity(entity_1.get());
   lost_entity_tracker.recordFoundEntity(entity_3.get());
-  typename LostEntityTracker<DefaultPlatform, TestEntity>::EntitySet
+  typename LostEntityTracker<TestPlatform, TestEntity>::EntitySet
       lost_entities = lost_entity_tracker.computeLostEntities();
   ASSERT_TRUE(lost_entities.find(entity_1.get()) == lost_entities.end());
   ASSERT_TRUE(lost_entities.find(entity_2.get()) != lost_entities.end());
@@ -102,7 +104,7 @@ TEST(LostEntityTracker, SomeEntitiesLost) {
 }
 
 TEST(LostEntityTracker, SameEntityMultipleCopies) {
-  LostEntityTracker<DefaultPlatform, TestEntity> lost_entity_tracker;
+  LostEntityTracker<TestPlatform, TestEntity> lost_entity_tracker;
   ScopedPtr<ConstPtr<TestEntity> > entity_1(MakeConstPtr(new TestEntity(1)));
   ScopedPtr<ConstPtr<TestEntity> > entity_1_copy(
       MakeConstPtr(new TestEntity(1)));
@@ -121,7 +123,7 @@ TEST(LostEntityTracker, SameEntityMultipleCopies) {
 
   // Go through a round without rediscovering any entities and verify that we
   // lost an entity equivalent to both copies of it.
-  typename LostEntityTracker<DefaultPlatform, TestEntity>::EntitySet
+  typename LostEntityTracker<TestPlatform, TestEntity>::EntitySet
       lost_entities = lost_entity_tracker.computeLostEntities();
   ASSERT_EQ(lost_entities.size(), 1);
   ASSERT_TRUE(lost_entities.find(entity_1.get()) != lost_entities.end());

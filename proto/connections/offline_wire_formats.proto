@@ -250,4 +250,6 @@ message PairedKeyEncryptionFrame {
 message MediumMetadata {
   // True if local device supports 5GHz.
   optional bool supports_5_ghz = 1;
+  // WiFi Lan BSSID
+  optional string bssid = 2;
 }
