@@ -103,6 +103,7 @@ def post_process_oss_files(path, args):
   else:
     top_dirs = ["cpp", "proto"]
   transforms = (
+    ("::google3_proto_compat::MessageLite", "::google::protobuf::MessageLite"),
     ("third_party/webrtc/files/stable/", ""),
     ("webrtc/files/stable/", ""),
     ("third_party/", ""),

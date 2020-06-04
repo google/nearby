@@ -79,9 +79,11 @@ class ImplementationPlatform {
 
   // Protocol implementations, domain-specific support
   static std::unique_ptr<BluetoothAdapter> CreateBluetoothAdapter();
-  static std::unique_ptr<BluetoothClassicMedium> CreateBluetoothClassicMedium();
-  static std::unique_ptr<BleMedium> CreateBleMedium();
-  static std::unique_ptr<ble_v2::BleMedium> CreateBleV2Medium();
+  static std::unique_ptr<BluetoothClassicMedium> CreateBluetoothClassicMedium(
+      BluetoothAdapter&);
+  static std::unique_ptr<BleMedium> CreateBleMedium(BluetoothAdapter&);
+  static std::unique_ptr<ble_v2::BleMedium> CreateBleV2Medium(
+      BluetoothAdapter&);
   static std::unique_ptr<ServerSyncMedium> CreateServerSyncMedium();
   static std::unique_ptr<WifiMedium> CreateWifiMedium();
   static std::unique_ptr<WifiLanMedium> CreateWifiLanMedium();

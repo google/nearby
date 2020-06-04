@@ -30,6 +30,11 @@ namespace connections {
 
 using ::location::nearby::proto::connections::Medium;
 
+constexpr absl::Duration EndpointManager::kKeepAliveWriteInterval;
+constexpr absl::Duration EndpointManager::kKeepAliveReadTimeout;
+constexpr absl::Duration EndpointManager::kProcessEndpointDisconnectionTimeout;
+constexpr absl::Time EndpointManager::kInvalidTimestamp;
+
 // A Runnable that continuously grabs the most recent EndpointChannel available
 // for an endpoint.
 //

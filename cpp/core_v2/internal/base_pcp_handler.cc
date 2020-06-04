@@ -35,6 +35,9 @@ namespace connections {
 using ::location::nearby::proto::connections::Medium;
 using ::securegcm::UKey2Handshake;
 
+constexpr absl::Duration BasePcpHandler::kConnectionRequestReadTimeout;
+constexpr absl::Duration BasePcpHandler::kRejectedConnectionCloseDelay;
+
 BasePcpHandler::BasePcpHandler(EndpointManager* endpoint_manager,
                                EndpointChannelManager* channel_manager)
     : endpoint_manager_(endpoint_manager), channel_manager_(channel_manager) {}

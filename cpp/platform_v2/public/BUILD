@@ -42,11 +42,13 @@ cc_library(
         "//platform_v2/public:__pkg__",
     ],
     deps = [
+        ":logging",
         "//platform_v2/api:platform",
         "//platform_v2/api:types",
         "//platform_v2/base",
         "//platform_v2/base:util",
         "//absl/base:core_headers",
+        "//absl/container:flat_hash_map",
         "//absl/time",
         "//absl/types:any",
     ],
@@ -54,8 +56,12 @@ cc_library(
 
 cc_library(
     name = "comm",
+    srcs = [
+        "bluetooth_classic.cc",
+    ],
     hdrs = [
         "bluetooth_adapter.h",
+        "bluetooth_classic.h",
         "webrtc.h",
     ],
     visibility = [
@@ -63,8 +69,12 @@ cc_library(
         "//platform_v2/public:__pkg__",
     ],
     deps = [
+        ":logging",
+        ":types",
         "//platform_v2/api:comm",
         "//platform_v2/api:platform",
+        "//platform_v2/base",
+        "//absl/container:flat_hash_map",
         "//absl/strings",
         "//webrtc/api:libjingle_peerconnection_api",
     ],
@@ -87,10 +97,12 @@ cc_library(
 
 cc_test(
     name = "public_test",
+    size = "small",
     srcs = [
         "atomic_boolean_test.cc",
         "atomic_reference_test.cc",
         "bluetooth_adapter_test.cc",
+        "bluetooth_classic_test.cc",
         "count_down_latch_test.cc",
         "crypto_test.cc",
         "future_test.cc",
@@ -107,6 +119,7 @@ cc_test(
         ":logging",
         ":types",
         "//platform_v2/base",
+        "//platform_v2/base:test_util",
         "//platform_v2/impl/g3",  # build_cleaner: keep
         "//testing/base/public:gunit_main",
         "//absl/synchronization",

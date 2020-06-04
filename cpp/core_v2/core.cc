@@ -26,6 +26,8 @@ namespace location {
 namespace nearby {
 namespace connections {
 
+constexpr absl::Duration Core::kWaitForDisconnect;
+
 Core::~Core() {
   CountDownLatch latch(1);
   router_.ClientDisconnecting(

@@ -22,6 +22,8 @@ namespace location {
 namespace nearby {
 namespace connections {
 
+constexpr absl::Duration BluetoothRadio::kPauseBetweenToggle;
+
 BluetoothRadio::BluetoothRadio() {
   if (!IsAdapterValid()) {
     NEARBY_LOG(ERROR, "Bluetooth adapter is not valid: BT is not supported");

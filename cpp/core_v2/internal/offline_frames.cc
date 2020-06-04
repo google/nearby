@@ -17,7 +17,7 @@
 #include <memory>
 #include <utility>
 
-#include "google/protobuf/message_lite.h"
+#include "core/internal/message_lite.h"
 #include "platform_v2/base/byte_array.h"
 
 namespace location {
@@ -28,7 +28,7 @@ namespace {
 
 using ExceptionOrOfflineFrame = ExceptionOr<OfflineFrame>;
 using Medium = proto::connections::Medium;
-using MessageLite = ::google3_proto_compat::MessageLite;
+using MessageLite = ::google::protobuf::MessageLite;
 
 ByteArray ToBytes(OfflineFrame&& frame) {
   ByteArray bytes(frame.ByteSizeLong());

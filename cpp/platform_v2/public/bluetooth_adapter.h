@@ -18,54 +18,80 @@
 #include <string>
 
 #include "platform_v2/api/bluetooth_adapter.h"
+#include "platform_v2/api/bluetooth_classic.h"
 #include "platform_v2/api/platform.h"
 #include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
 
+// https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
+class BluetoothDevice final {
+ public:
+  BluetoothDevice() = default;
+  BluetoothDevice(const BluetoothDevice&) = default;
+  BluetoothDevice& operator=(const BluetoothDevice&) = default;
+  explicit BluetoothDevice(api::BluetoothDevice* device) : impl_(device) {}
+  ~BluetoothDevice() = default;
+
+  // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
+  std::string GetName() const { return impl_->GetName(); }
+
+  api::BluetoothDevice& GetImpl() { return *impl_; }
+  bool IsValid() const { return impl_ != nullptr; }
+
+ private:
+  api::BluetoothDevice* impl_;
+};
+
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html
-class BluetoothAdapter : public api::BluetoothAdapter {
+class BluetoothAdapter final {
  public:
   using Status = api::BluetoothAdapter::Status;
   using ScanMode = api::BluetoothAdapter::ScanMode;
 
   BluetoothAdapter()
       : impl_(api::ImplementationPlatform::CreateBluetoothAdapter()) {}
-  ~BluetoothAdapter() override = default;
+  ~BluetoothAdapter() = default;
   BluetoothAdapter(BluetoothAdapter&&) = default;
   BluetoothAdapter& operator=(BluetoothAdapter&&) = default;
 
   // Synchronously sets the status of the BluetoothAdapter to 'status', and
   // returns true if the operation was a success.
-  bool SetStatus(Status status) override { return impl_->SetStatus(status); }
+  bool SetStatus(Status status) { return impl_->SetStatus(status); }
   Status GetStatus() const {
     return IsEnabled() ? Status::kEnabled : Status::kDisabled;
   }
 
   // Returns true if the BluetoothAdapter's current status is
   // Status::Value::kEnabled.
-  bool IsEnabled() const override { return impl_->IsEnabled(); }
+  bool IsEnabled() const { return impl_->IsEnabled(); }
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getScanMode()
   //
   // Returns ScanMode::kUnknown on error.
-  ScanMode GetScanMode() const override { return impl_->GetScanMode(); }
+  ScanMode GetScanMode() const { return impl_->GetScanMode(); }
 
   // Synchronously sets the scan mode of the adapter, and returns true if the
   // operation was a success.
-  bool SetScanMode(ScanMode scan_mode) override {
+  bool SetScanMode(ScanMode scan_mode) {
     return impl_->SetScanMode(scan_mode);
   }
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getName()
   // Returns an empty string on error
-  std::string GetName() const override { return impl_->GetName(); }
+  std::string GetName() const { return impl_->GetName(); }
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
-  bool SetName(absl::string_view name) override { return impl_->SetName(name); }
+  bool SetName(absl::string_view name) { return impl_->SetName(name); }
 
   bool IsValid() const { return impl_ != nullptr; }
+
+  // Returns reference to platform implementation.
+  // This is used to communicate with platform code, and for debugging purposes.
+  // Returned reference will remain valid for while BluetoothAdapter object is
+  // itself valid. It matches Core() object lifetime.
+  api::BluetoothAdapter& GetImpl() { return *impl_; }
 
  private:
   std::unique_ptr<api::BluetoothAdapter> impl_;
