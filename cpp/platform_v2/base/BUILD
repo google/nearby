@@ -24,6 +24,7 @@ cc_library(
         "//platform_v2/api:__subpackages__",
     ],
     deps = [
+        "//absl/meta:type_traits",
         "//absl/strings",
         "//absl/time",
     ],
@@ -32,9 +33,11 @@ cc_library(
 cc_library(
     name = "util",
     srcs = [
+        "base_input_stream.cc",
         "base_pipe.cc",
     ],
     hdrs = [
+        "base_input_stream.h",
         "base_mutex_lock.h",
         "base_pipe.h",
     ],
@@ -44,8 +47,44 @@ cc_library(
     ],
     deps = [
         ":base",
-        "//platform_v2/api",
+        "//platform_v2/api:types",
         "//absl/base:core_headers",
+    ],
+)
+
+cc_library(
+    name = "logging",
+    hdrs = [
+        "logging.h",
+    ],
+    visibility = [
+        "//platform_v2:__subpackages__",
+    ],
+    deps = [
+        "//platform:logging",
+    ],
+)
+
+cc_library(
+    name = "test_util",
+    testonly = True,
+    srcs = [
+        "medium_environment.cc",
+    ],
+    hdrs = [
+        "medium_environment.h",
+    ],
+    visibility = [
+        "//core_v2:__subpackages__",
+        "//platform_v2/impl:__subpackages__",
+        "//platform_v2/public:__pkg__",
+    ],
+    deps = [
+        ":base",
+        ":logging",
+        "//platform_v2/api:comm",
+        "//platform_v2/public:types",
+        "//absl/container:flat_hash_map",
     ],
 )
 

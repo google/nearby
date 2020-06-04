@@ -30,21 +30,20 @@ class WifiLanServiceInfo {
                      const ByteArray& service_id_hash,
                      absl::string_view endpoint_name);
   explicit WifiLanServiceInfo(absl::string_view service_info_string);
-  ~WifiLanServiceInfo() = default;
-
   WifiLanServiceInfo(const WifiLanServiceInfo&) = default;
   WifiLanServiceInfo& operator=(const WifiLanServiceInfo&) = default;
   WifiLanServiceInfo(WifiLanServiceInfo&&) = default;
   WifiLanServiceInfo& operator=(WifiLanServiceInfo&&) = default;
+  ~WifiLanServiceInfo() = default;
 
   explicit operator std::string() const;
 
-  inline bool IsValid() const { return !endpoint_id_.empty(); }
-  inline Version GetVersion() const { return version_; }
-  inline Pcp GetPcp() const { return pcp_; }
-  inline std::string GetEndpointId() const { return endpoint_id_; }
-  inline std::string GetEndpointName() const { return endpoint_name_; }
-  inline ByteArray GetServiceIdHash() const { return service_id_hash_; }
+  bool IsValid() const { return !endpoint_id_.empty(); }
+  Version GetVersion() const { return version_; }
+  Pcp GetPcp() const { return pcp_; }
+  std::string GetEndpointId() const { return endpoint_id_; }
+  std::string GetEndpointName() const { return endpoint_name_; }
+  ByteArray GetServiceIdHash() const { return service_id_hash_; }
 
  private:
   // The maximum length of encrypted WifiLanServiceInfo string.

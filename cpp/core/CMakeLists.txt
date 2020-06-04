@@ -49,6 +49,7 @@ target_link_libraries(core_build_test
     core
     core_types
     platform_impl_g3
+    platform_impl_shared_file
     platform_impl_shared_posix_lock
     platform_impl_shared_sample
     platform_port_string

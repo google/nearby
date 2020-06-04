@@ -1,6 +1,5 @@
 #include "platform_v2/base/base_pipe.h"
 
-#include "platform_v2/api/platform.h"
 #include "platform_v2/base/base_mutex_lock.h"
 #include "platform_v2/base/input_stream.h"
 #include "platform_v2/base/output_stream.h"

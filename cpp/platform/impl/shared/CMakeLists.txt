@@ -41,6 +41,26 @@ target_link_libraries(platform_impl_shared_posix_condition_variable
     absl::raw_logging_internal
 )
 
+add_library(platform_impl_shared_file STATIC)
+
+target_sources(platform_impl_shared_file
+  PRIVATE
+    "file_impl.cc"
+  PUBLIC
+    "file_impl.h"
+)
+
+target_include_directories(platform_impl_shared_file
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(platform_impl_shared_file
+  PUBLIC
+    platform_api
+    platform_types
+)
+
 add_library(platform_impl_shared_atomic_boolean STATIC)
 
 target_sources(platform_impl_shared_atomic_boolean

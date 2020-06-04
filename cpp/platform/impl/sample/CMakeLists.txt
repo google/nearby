@@ -12,6 +12,7 @@ target_link_libraries(platform_impl_sample
   PUBLIC
     absl::time
     platform_api
+    platform_impl_shared_file
     platform_port_string
     platform_types
     platform_utils

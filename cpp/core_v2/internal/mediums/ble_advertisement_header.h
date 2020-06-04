@@ -43,12 +43,11 @@ class BleAdvertisementHeader {
                          const ByteArray &advertisement_hash);
   explicit BleAdvertisementHeader(
       const std::string &ble_advertisement_header_string);
-  ~BleAdvertisementHeader() = default;
-
   BleAdvertisementHeader(const BleAdvertisementHeader &) = default;
   BleAdvertisementHeader &operator=(const BleAdvertisementHeader &) = default;
   BleAdvertisementHeader(BleAdvertisementHeader &&) = default;
   BleAdvertisementHeader &operator=(BleAdvertisementHeader &&) = default;
+  ~BleAdvertisementHeader() = default;
 
   // Produces an encoded binary string which can be decoded by the explicit
   // constructor. The returned string is empty if BleAdvertisementHeader is not

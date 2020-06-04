@@ -1,5 +1,5 @@
-#ifndef PLATFORM_FILE_IMPL_H_
-#define PLATFORM_FILE_IMPL_H_
+#ifndef PLATFORM_IMPL_SHARED_FILE_IMPL_H_
+#define PLATFORM_IMPL_SHARED_FILE_IMPL_H_
 
 #include <cstdint>
 #include <fstream>
@@ -43,4 +43,4 @@ class OutputFileImpl final : public OutputFile {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_FILE_IMPL_H_
+#endif  // PLATFORM_IMPL_SHARED_FILE_IMPL_H_

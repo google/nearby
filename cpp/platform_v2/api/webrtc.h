@@ -1,9 +1,10 @@
 #ifndef PLATFORM_V2_API_WEBRTC_H_
 #define PLATFORM_V2_API_WEBRTC_H_
 
-#include <vector>
+#include <memory>
 
 #include "platform_v2/base/byte_array.h"
+#include "absl/strings/string_view.h"
 #include "webrtc/api/peer_connection_interface.h"
 
 namespace location {
@@ -12,33 +13,32 @@ namespace api {
 
 class WebRtcSignalingMessenger {
  public:
+  using OnSignalingMessageCallback = std::function<void(const ByteArray&)>;
+
   virtual ~WebRtcSignalingMessenger() = default;
 
-  /** Called whenever we receive an inbox message from tachyon. */
-  class SignalingMessageListener {
-   public:
-    virtual ~SignalingMessageListener() = default;
-
-    virtual void OnSignalingMessage(const ByteArray& message) = 0;
-  };
-
-  class IceServersListener {
-   public:
-    virtual ~IceServersListener() = default;
-
-    virtual void OnIceServersFetched(
-        std::vector<webrtc::PeerConnectionInterface::IceServer>
-            ice_servers) = 0;
-  };
-
-  virtual bool RegisterSignaling() = 0;
-  virtual bool UnregisterSignaling() = 0;
-  virtual bool SendMessage(std::string_view peer_id,
+  virtual bool SendMessage(absl::string_view peer_id,
                            const ByteArray& message) = 0;
-  virtual bool StartReceivingMessages(
-      const SignalingMessageListener& listener) = 0;
-  virtual void GetIceServers(
-      const IceServersListener& ice_servers_listener) = 0;
+
+  virtual bool StartReceivingMessages(OnSignalingMessageCallback listener) = 0;
+  virtual void StopReceivingMessages() = 0;
+};
+
+class WebRtcMedium {
+ public:
+  using PeerConnectionCallback =
+      std::function<void(rtc::scoped_refptr<webrtc::PeerConnectionInterface>)>;
+
+  virtual ~WebRtcMedium() = default;
+
+  // Creates and returns a new webrtc::PeerConnectionInterface object via
+  // |callback|.
+  virtual void CreatePeerConnection(webrtc::PeerConnectionObserver* observer,
+                                    PeerConnectionCallback callback) = 0;
+
+  // Returns a signaling messenger for sending WebRTC signaling messages.
+  virtual std::unique_ptr<WebRtcSignalingMessenger> GetSignalingMessenger(
+      absl::string_view self_id) = 0;
 };
 
 }  // namespace api

@@ -43,3 +43,31 @@ cc_library(
     ],
     deps = ["//platform/api"],
 )
+
+cc_library(
+    name = "file",
+    srcs = ["file_impl.cc"],
+    hdrs = ["file_impl.h"],
+    visibility = [
+        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//core:__subpackages__",
+        "//platform/impl:__subpackages__",
+    ],
+    deps = [
+        "//platform:types",
+        "//platform/api",
+    ],
+)
+
+cc_test(
+    name = "file_test",
+    timeout = "short",
+    srcs = [
+        "file_impl_test.cc",
+    ],
+    deps = [
+        ":file",
+        "//file/util:temp_path",
+        "//testing/base/public:gunit_main",
+    ],
+)

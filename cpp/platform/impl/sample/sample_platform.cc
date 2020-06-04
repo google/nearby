@@ -20,6 +20,7 @@
 #include "platform/cancelable.h"
 #include "platform/impl/sample/atomic_reference_impl.h"
 #include "platform/impl/sample/settable_future_impl.h"
+#include "platform/impl/shared/file_impl.h"
 #include "platform/impl/shared/sample/sample_wifi_medium.h"
 #include "platform/port/string.h"
 #include "platform/ptr.h"
@@ -29,6 +30,12 @@
 namespace location {
 namespace nearby {
 namespace platform {
+
+namespace {
+std::string getPayloadPath(std::int64_t payload_id) {
+  return "/tmp/sample-" + std::to_string(payload_id);
+}
+}  // namespace
 
 Ptr<ScheduledExecutor> ImplementationPlatform::createScheduledExecutor() {
   return Ptr<ScheduledExecutor>{};
@@ -80,6 +87,16 @@ Ptr<AtomicBoolean> ImplementationPlatform::createAtomicBoolean(
   return Ptr<AtomicBoolean>{};
 }
 
+Ptr<InputFile> ImplementationPlatform::createInputFile(
+    std::int64_t payload_id, std::int64_t total_size) {
+  return MakePtr(new InputFileImpl(getPayloadPath(payload_id), total_size));
+}
+
+Ptr<OutputFile> ImplementationPlatform::createOutputFile(
+    std::int64_t payload_id) {
+  return MakePtr(new OutputFileImpl(getPayloadPath(payload_id)));
+}
+
 Ptr<BluetoothClassicMedium>
 ImplementationPlatform::createBluetoothClassicMedium() {
   return Ptr<BluetoothClassicMedium>();
@@ -115,10 +132,6 @@ Ptr<HashUtils> ImplementationPlatform::createHashUtils() {
 }
 
 std::string ImplementationPlatform::getDeviceId() { return "sample"; }
-
-std::string ImplementationPlatform::getPayloadPath(int64_t payload_id) {
-  return "/tmp/sample-" + std::to_string(payload_id);
-}
 
 }  // namespace platform
 }  // namespace nearby
