@@ -6,7 +6,9 @@ cc_library(
         "ble_advertisement_header.cc",
         "ble_packet.cc",
         "bloom_filter.cc",
+        "bluetooth_classic.cc",
         "bluetooth_radio.cc",
+        "mediums.cc",
         "uuid.cc",
     ],
     hdrs = [
@@ -16,14 +18,17 @@ cc_library(
         "ble_packet.h",
         "ble_peripheral.h",
         "bloom_filter.h",
+        "bluetooth_classic.h",
         "bluetooth_radio.h",
         "lost_entity_tracker.h",
+        "mediums.h",
         "uuid.h",
     ],
     visibility = [
-        "//core_v2/internal:__pkg__",
+        "//core_v2/internal:__subpackages__",
     ],
     deps = [
+        "//core_v2:core_types",
         "//platform_v2/base",
         "//platform_v2/public:comm",
         "//platform_v2/public:logging",
@@ -53,6 +58,7 @@ cc_library(
 
 cc_test(
     name = "core_v2_internal_mediums_test",
+    size = "small",
     srcs = [
         "advertisement_read_result_test.cc",
         "ble_advertisement_header_test.cc",
@@ -60,6 +66,7 @@ cc_test(
         "ble_packet_test.cc",
         "ble_peripheral_test.cc",
         "bloom_filter_test.cc",
+        "bluetooth_classic_test.cc",
         "bluetooth_radio_test.cc",
         "lost_entity_tracker_test.cc",
         "uuid_test.cc",
@@ -68,6 +75,7 @@ cc_test(
     deps = [
         ":mediums",
         "//platform_v2/base",
+        "//platform_v2/base:test_util",
         "//platform_v2/impl/g3",  # build_cleaner: keep
         "//platform_v2/public:comm",
         "//platform_v2/public:logging",

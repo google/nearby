@@ -19,7 +19,7 @@ cc_library(
         "//platform_v2/public:logging",
         "//platform_v2/public:types",
         "//absl/memory",
-        "//webrtc/api:libjingle_peerconnection_api",
+        "//webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
@@ -35,7 +35,7 @@ cc_test(
         "//platform_v2/impl/g3",  # buildcleaner: keep
         "//platform_v2/public:comm",
         "//testing/base/public:gunit_main",
-        "//webrtc/api:libjingle_peerconnection_api",
+        "//webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
@@ -61,7 +61,7 @@ cc_test(
         "//platform_v2/impl/g3",  # buildcleaner: keep
         "//net/proto2/public:proto2",
         "//testing/base/public:gunit_main",
-        "//webrtc/pc:peerconnection",  # buildcleaner: keep
+        "//webrtc/files/stable/webrtc/pc:peerconnection",  # buildcleaner: keep
     ],
 )
 
@@ -84,6 +84,6 @@ cc_library(
         ":peer_id",
         "//platform_v2/base",
         "//location/nearby/mediums/proto:web_rtc_signaling_frames_cc_proto",
-        "//webrtc/api:libjingle_peerconnection_api",
+        "//webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
     ],
 )

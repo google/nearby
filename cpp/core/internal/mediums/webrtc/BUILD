@@ -7,7 +7,7 @@ cc_library(
     deps = [
         "//platform:utils",
         "//platform/api",
-        "//webrtc/api:libjingle_peerconnection_api",
+        "//webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
@@ -20,7 +20,7 @@ cc_test(
         "//platform/api",
         "//platform/impl/g3",  # buildcleaner: keep
         "//testing/base/public:gunit_main",
-        "//webrtc/api:libjingle_peerconnection_api",
+        "//webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
@@ -45,7 +45,7 @@ cc_library(
         ":peer_id",
         "//platform:types",
         "//location/nearby/mediums/proto:web_rtc_signaling_frames_cc_proto",
-        "//webrtc/api:libjingle_peerconnection_api",
+        "//webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
@@ -72,6 +72,6 @@ cc_test(
         "//platform/impl/g3",  # buildcleaner: keep
         "//net/proto2/public:proto2",
         "//testing/base/public:gunit_main",
-        "//webrtc/pc:peerconnection",  # buildcleaner: keep
+        "//webrtc/files/stable/webrtc/pc:peerconnection",  # buildcleaner: keep
     ],
 )

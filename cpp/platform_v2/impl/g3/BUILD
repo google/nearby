@@ -39,10 +39,12 @@ cc_library(
     testonly = True,
     srcs = [
         "bluetooth_adapter.cc",
+        "bluetooth_classic.cc",
         "webrtc.cc",
     ],
     hdrs = [
         "bluetooth_adapter.h",
+        "bluetooth_classic.h",
         "webrtc.h",
     ],
     visibility = [
@@ -51,13 +53,17 @@ cc_library(
     deps = [
         ":types",
         "//platform_v2/api:comm",
+        "//platform_v2/base",
+        "//platform_v2/base:logging",
         "//platform_v2/base:test_util",
         "//absl/base:core_headers",
+        "//absl/container:flat_hash_map",
+        "//absl/container:flat_hash_set",
         "//absl/strings",
         "//absl/synchronization",
-        "//webrtc/api:create_peerconnection_factory",  #buildcleaner: keep
-        "//webrtc/api:libjingle_peerconnection_api",
-        "//webrtc/api/task_queue:default_task_queue_factory",
+        "//webrtc/files/stable/webrtc/api:create_peerconnection_factory",  #buildcleaner: keep
+        "//webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//webrtc/files/stable/webrtc/api/task_queue:default_task_queue_factory",
     ],
 )
 

@@ -52,7 +52,7 @@ cc_library(
         "//platform_v2/base",
         "//absl/strings",
         "//absl/types:optional",
-        "//webrtc/api:libjingle_peerconnection_api",
+        "//webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
     ],
 )
 

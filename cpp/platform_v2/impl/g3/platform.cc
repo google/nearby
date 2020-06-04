@@ -21,6 +21,7 @@
 #include "platform_v2/impl/g3/atomic_boolean.h"
 #include "platform_v2/impl/g3/atomic_reference_any.h"
 #include "platform_v2/impl/g3/bluetooth_adapter.h"
+#include "platform_v2/impl/g3/bluetooth_classic.h"
 #include "platform_v2/impl/g3/condition_variable.h"
 #include "platform_v2/impl/g3/count_down_latch.h"
 #include "platform_v2/impl/g3/multi_thread_executor.h"
@@ -96,15 +97,18 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
 }
 
 std::unique_ptr<BluetoothClassicMedium>
-ImplementationPlatform::CreateBluetoothClassicMedium() {
-  return std::unique_ptr<BluetoothClassicMedium>();
+ImplementationPlatform::CreateBluetoothClassicMedium(
+    api::BluetoothAdapter& adapter) {
+  return absl::make_unique<g3::BluetoothClassicMedium>(adapter);
 }
 
-std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium() {
+std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
+    api::BluetoothAdapter& adapter) {
   return std::unique_ptr<BleMedium>();
 }
 
-std::unique_ptr<ble_v2::BleMedium> ImplementationPlatform::CreateBleV2Medium() {
+std::unique_ptr<ble_v2::BleMedium> ImplementationPlatform::CreateBleV2Medium(
+    api::BluetoothAdapter& adapter) {
   return std::unique_ptr<ble_v2::BleMedium>();
 }
 

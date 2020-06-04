@@ -11,7 +11,7 @@
 #include "platform_v2/public/condition_variable.h"
 #include "platform_v2/public/mutex.h"
 #include "platform_v2/public/pipe.h"
-#include "webrtc/api/data_channel_interface.h"
+#include "webrtc/files/stable/webrtc/api/data_channel_interface.h"
 namespace location {
 namespace nearby {
 namespace connections {

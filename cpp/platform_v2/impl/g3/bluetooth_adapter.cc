@@ -3,6 +3,7 @@
 #include <string>
 
 #include "platform_v2/base/medium_environment.h"
+#include "platform_v2/impl/g3/bluetooth_classic.h"
 
 namespace location {
 namespace nearby {
@@ -11,9 +12,13 @@ namespace g3 {
 BluetoothDevice::BluetoothDevice(BluetoothAdapter* adapter)
     : adapter_(*adapter) {}
 
+std::string BluetoothDevice::GetName() const { return adapter_.GetName(); }
+
 BluetoothAdapter::~BluetoothAdapter() { SetStatus(Status::kDisabled); }
 
-std::string BluetoothDevice::GetName() const { return adapter_.GetName(); }
+void BluetoothAdapter::SetMedium(api::BluetoothClassicMedium* medium) {
+  medium_ = medium;
+}
 
 bool BluetoothAdapter::SetStatus(Status status) {
   BluetoothAdapter::ScanMode mode;

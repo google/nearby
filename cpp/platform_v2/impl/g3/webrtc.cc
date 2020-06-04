@@ -1,6 +1,6 @@
 #include "platform_v2/impl/g3/webrtc.h"
 
-#include "webrtc/api/task_queue/default_task_queue_factory.h"
+#include "webrtc/files/stable/webrtc/api/task_queue/default_task_queue_factory.h"
 
 namespace location {
 namespace nearby {

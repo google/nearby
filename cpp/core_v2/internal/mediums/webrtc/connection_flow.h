@@ -10,8 +10,8 @@
 #include "platform_v2/public/future.h"
 #include "platform_v2/public/single_thread_executor.h"
 #include "platform_v2/public/webrtc.h"
-#include "webrtc/api/data_channel_interface.h"
-#include "webrtc/api/peer_connection_interface.h"
+#include "webrtc/files/stable/webrtc/api/data_channel_interface.h"
+#include "webrtc/files/stable/webrtc/api/peer_connection_interface.h"
 
 namespace location {
 namespace nearby {

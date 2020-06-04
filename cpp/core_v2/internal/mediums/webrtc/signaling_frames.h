@@ -6,7 +6,7 @@
 #include "core_v2/internal/mediums/webrtc/peer_id.h"
 #include "platform_v2/base/byte_array.h"
 #include "location/nearby/mediums/proto/web_rtc_signaling_frames.pb.h"
-#include "webrtc/api/peer_connection_interface.h"
+#include "webrtc/files/stable/webrtc/api/peer_connection_interface.h"
 
 namespace location {
 namespace nearby {
