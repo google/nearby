@@ -14,7 +14,9 @@
 #include "platform_v2/api/condition_variable.h"
 #include "platform_v2/api/count_down_latch.h"
 #include "platform_v2/api/crypto.h"
+#include "platform_v2/api/input_file.h"
 #include "platform_v2/api/mutex.h"
+#include "platform_v2/api/output_file.h"
 #include "platform_v2/api/scheduled_executor.h"
 #include "platform_v2/api/server_sync.h"
 #include "platform_v2/api/settable_future.h"
@@ -41,6 +43,7 @@ class ImplementationPlatform {
   //   - condition variable (must work with regular mutex only)
   //   - Future<T> : to synchronize on Callable<T> schduled to execute.
   //   - CountDownLatch : to ensure at least N threads are waiting.
+  // - file I/O
   static std::unique_ptr<AtomicReference<absl::any>> CreateAtomicReferenceAny(
       absl::any initial_value);
   static std::unique_ptr<SettableFuture<absl::any>> CreateSettableFutureAny();
@@ -50,6 +53,9 @@ class ImplementationPlatform {
   static std::unique_ptr<Mutex> CreateMutex(Mutex::Mode mode);
   static std::unique_ptr<ConditionVariable> CreateConditionVariable(
       Mutex* mutex);
+  static std::unique_ptr<InputFile> CreateInputFile(std::int64_t payload_id,
+                                                    std::int64_t total_size);
+  static std::unique_ptr<OutputFile> CreateOutputFile(std::int64_t payload_id);
 
   // Java-like Executors
   static std::unique_ptr<SubmittableExecutor> CreateSingleThreadExecutor();
@@ -65,10 +71,8 @@ class ImplementationPlatform {
   static std::unique_ptr<ServerSyncMedium> CreateServerSyncMedium();
   static std::unique_ptr<WifiMedium> CreateWifiMedium();
   static std::unique_ptr<WifiLanMedium> CreateWifiLanMedium();
-  static std::unique_ptr<WebRtcSignalingMessenger>
-  CreateWebRtcSignalingMessenger(absl::string_view self_id);
+  static std::unique_ptr<WebRtcMedium> CreateWebRtcMedium();
   static std::string GetDeviceId();
-  static std::string GetPayloadPath(std::int64_t payload_id);
 };
 
 }  // namespace api

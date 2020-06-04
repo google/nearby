@@ -14,6 +14,7 @@ cc_library(
         "//platform:types",
         "//platform:utils",
         "//platform/api",
+        "//platform/impl/shared:file",
         "//platform/impl/shared/sample:sample_wifi_medium",
         "//platform/port:string",
         "//absl/time",

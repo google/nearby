@@ -15,6 +15,7 @@ cc_library(
         "//platform:types",
         "//platform/api",
         "//platform/impl/shared:atomic_boolean",
+        "//platform/impl/shared:file",
         "//platform/impl/shared:posix_condition_variable",
         "//platform/impl/shared:posix_lock",
         "//platform/port:string",

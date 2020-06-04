@@ -1,4 +1,4 @@
-#include "platform_v2/public/file.h"
+#include "platform_v2/impl/shared/file.h"
 
 #include <cstring>
 #include <fstream>
@@ -11,6 +11,7 @@
 
 namespace location {
 namespace nearby {
+namespace shared {
 
 class FileTest : public ::testing::Test {
  protected:
@@ -127,5 +128,6 @@ TEST_F(FileTest, OutputFile_Close) {
   EXPECT_EQ(output_file.Write(bytes), Exception{Exception::kIo});
 }
 
+}  // namespace shared
 }  // namespace nearby
 }  // namespace location

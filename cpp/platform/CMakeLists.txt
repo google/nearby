@@ -5,14 +5,12 @@ target_sources(platform_utils
   PRIVATE
     base64_utils.cc
     cancelable_alarm.cc
-    file_impl.cc
     pipe.cc
     prng.cc
     reliability_utils.cc
   PUBLIC
     base64_utils.h
     cancelable_alarm.h
-    file_impl.h
     pipe.h
     prng.h
     reliability_utils.h
@@ -53,7 +51,6 @@ add_executable(platform_test
   byte_array_test.cc
   container_of_test.cc
   exception_test.cc
-  file_impl_test.cc
   pipe_test.cc
   prng_test.cc
   ptr_test.cc

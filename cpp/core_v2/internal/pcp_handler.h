@@ -30,10 +30,10 @@ class PcpHandler {
   virtual ~PcpHandler() = default;
 
   // Return strategy supported by this protocol.
-  virtual Strategy GetStrategy() = 0;
+  virtual Strategy GetStrategy() const = 0;
 
   // Return concrete variant of protocol.
-  virtual Pcp GetPcp() = 0;
+  virtual Pcp GetPcp() const = 0;
 
   // We have been asked by the client to start advertising. Once we successfully
   // start advertising, we'll change the ClientProxy's state.

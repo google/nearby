@@ -3,7 +3,7 @@
 #include <memory>
 #include <utility>
 
-#include "core/internal/message_lite.h"
+#include "google/protobuf/message_lite.h"
 #include "platform_v2/base/byte_array.h"
 
 namespace location {

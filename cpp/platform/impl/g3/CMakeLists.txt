@@ -18,6 +18,7 @@ target_link_libraries(platform_impl_g3
     "platform_types"
     "platform_api"
     "platform_impl_shared_atomic_boolean"
+    "platform_impl_shared_file"
     "platform_impl_shared_posix_condition_variable"
     "platform_impl_shared_posix_lock"
     "platform_port_string"

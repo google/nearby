@@ -64,8 +64,18 @@ class MockPcpHandler : public BasePcpHandler {
   using BasePcpHandler::DiscoveredEndpoint;
   using BasePcpHandler::StartOperationResult;
 
-  MOCK_METHOD(Strategy, GetStrategy, (), (override));
-  MOCK_METHOD(Pcp, GetPcp, (), (override));
+  MOCK_METHOD(Strategy, GetStrategy, (), (const override));
+  MOCK_METHOD(Pcp, GetPcp, (), (const override));
+
+  MOCK_METHOD(bool, HasOutgoingConnections, (ClientProxy * client),
+              (const, override));
+  MOCK_METHOD(bool, HasIncomingConnections, (ClientProxy * client),
+              (const, override));
+
+  MOCK_METHOD(bool, CanSendOutgoingConnection, (ClientProxy * client),
+              (const, override));
+  MOCK_METHOD(bool, CanReceiveIncomingConnection, (ClientProxy * client),
+              (const, override));
 
   MOCK_METHOD(StartOperationResult, StartAdvertisingImpl,
               (ClientProxy * client, const string& service_id,
@@ -91,18 +101,12 @@ class MockPcpHandler : public BasePcpHandler {
                        std::unique_ptr<DiscoveredEndpoint> endpoint) {
     BasePcpHandler::OnEndpointFound(client, std::move(endpoint));
   }
-  void OnEndpointLost(ClientProxy* client, DiscoveredEndpoint* endpoint) {
+  void OnEndpointLost(ClientProxy* client, const DiscoveredEndpoint& endpoint) {
     BasePcpHandler::OnEndpointLost(client, endpoint);
   }
 };
 
-class MockDiscoveredEndpoint final : public MockPcpHandler::DiscoveredEndpoint {
- public:
-  MOCK_METHOD(std::string, GetEndpointId, (), (const override));
-  MOCK_METHOD(std::string, GetEndpointName, (), (const override));
-  MOCK_METHOD(std::string, GetServiceId, (), (const override));
-  MOCK_METHOD(Medium, GetMedium, (), (const override));
-};
+using MockDiscoveredEndpoint = MockPcpHandler::DiscoveredEndpoint;
 
 class BasePcpHandlerTest : public ::testing::Test {
  protected:
@@ -193,8 +197,7 @@ class BasePcpHandlerTest : public ::testing::Test {
     EXPECT_CALL(*channel_a, GetMedium).WillRepeatedly(Return(Medium::BLE));
     EXPECT_CALL(*channel_a, GetLastReadTimestamp)
         .WillRepeatedly(Return(absl::Now()));
-    EXPECT_CALL(*channel_a, IsPaused)
-        .WillRepeatedly(Return(false));
+    EXPECT_CALL(*channel_a, IsPaused).WillRepeatedly(Return(false));
     EXPECT_CALL(*channel_b, Read())
         .WillRepeatedly(Invoke(
             [channel = channel_b.get()]() { return channel->DoRead(); }));
@@ -206,9 +209,54 @@ class BasePcpHandlerTest : public ::testing::Test {
     EXPECT_CALL(*channel_b, GetMedium).WillRepeatedly(Return(Medium::BLE));
     EXPECT_CALL(*channel_b, GetLastReadTimestamp)
         .WillRepeatedly(Return(absl::Now()));
-    EXPECT_CALL(*channel_b, IsPaused)
-        .WillRepeatedly(Return(false));
+    EXPECT_CALL(*channel_b, IsPaused).WillRepeatedly(Return(false));
     return std::make_pair(std::move(channel_a), std::move(channel_b));
+  }
+
+  void RequestConnection(const std::string& endpoint_id,
+                         std::unique_ptr<MockEndpointChannel> channel_a,
+                         MockEndpointChannel* channel_b, ClientProxy* client,
+                         MockPcpHandler* pcp_handler) {
+    ConnectionRequestInfo info{
+        .name = "ABCD",
+        .listener = connection_listener_,
+    };
+    EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
+    EXPECT_CALL(*pcp_handler, CanSendOutgoingConnection)
+        .WillRepeatedly(Return(true));
+    EXPECT_CALL(*pcp_handler, GetStrategy)
+        .WillRepeatedly(Return(Strategy::kP2pCluster));
+    EXPECT_CALL(mock_connection_listener_.initiated_cb, Call).Times(1);
+    EXPECT_CALL(*pcp_handler, ConnectImpl)
+        .WillOnce(
+            Invoke([&channel_a](ClientProxy* client,
+                                MockPcpHandler::DiscoveredEndpoint* endpoint) {
+              return MockPcpHandler::ConnectImplResult{
+                  .medium = Medium::BLE,
+                  .status = {Status::kSuccess},
+                  .endpoint_channel = std::move(channel_a),
+              };
+            }));
+    // Simulate successful discovery.
+    auto encryption_runner = std::make_unique<EncryptionRunner>();
+    pcp_handler->OnEndpointFound(
+        client, std::make_unique<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+                    .endpoint_id = endpoint_id,
+                    .endpoint_name = info.name,
+                    .service_id = "service",
+                    .medium = Medium::BLE,
+                }));
+    auto other_client = std::make_unique<ClientProxy>();
+
+    // Run peer crypto in advance, if channel_b is provided.
+    // Otherwise stay in not-encrypted state.
+    if (channel_b != nullptr) {
+      encryption_runner->StartServer(other_client.get(), endpoint_id, channel_b,
+                                     {});
+    }
+    EXPECT_EQ(pcp_handler->RequestConnection(client, endpoint_id, info),
+              Status{Status::kSuccess});
+    NEARBY_LOG(INFO, "Stopping Encryption Runner");
   }
 
   Pipe pipe_a_;
@@ -279,6 +327,104 @@ TEST_F(BasePcpHandlerTest, StopDiscoveryChangesState) {
   EXPECT_TRUE(client->IsDiscovering());
   pcp_handler->StopDiscovery(client.get());
   EXPECT_FALSE(client->IsDiscovering());
+}
+
+TEST_F(BasePcpHandlerTest, RequestConnectionChangesState) {
+  std::string endpoint_id{"1234"};
+  auto client = std::make_unique<ClientProxy>();
+  auto ecm = std::make_unique<EndpointChannelManager>();
+  auto em = std::make_unique<EndpointManager>(ecm.get());
+  auto pcp_handler = std::make_unique<MockPcpHandler>(em.get(), ecm.get());
+  StartDiscovery(client.get(), pcp_handler.get());
+  auto channel_pair = SetupConnection(pipe_a_, pipe_b_);
+  auto& channel_b = channel_pair.second;
+  RequestConnection(endpoint_id, std::move(channel_pair.first), channel_b.get(),
+                    client.get(), pcp_handler.get());
+  NEARBY_LOG(INFO, "RequestConnection complete");
+  channel_b->Close();
+}
+
+TEST_F(BasePcpHandlerTest, AcceptConnectionChangesState) {
+  std::string endpoint_id{"1234"};
+  auto client = std::make_unique<ClientProxy>();
+  auto ecm = std::make_unique<EndpointChannelManager>();
+  auto em = std::make_unique<EndpointManager>(ecm.get());
+  auto pcp_handler = std::make_unique<MockPcpHandler>(em.get(), ecm.get());
+  StartDiscovery(client.get(), pcp_handler.get());
+  auto channel_pair = SetupConnection(pipe_a_, pipe_b_);
+  auto& channel_b = channel_pair.second;
+  RequestConnection(endpoint_id, std::move(channel_pair.first), channel_b.get(),
+                    client.get(), pcp_handler.get());
+  NEARBY_LOG(INFO, "Attempting to accept connection: id=%s",
+             endpoint_id.c_str());
+  EXPECT_EQ(pcp_handler->AcceptConnection(client.get(), endpoint_id, {}),
+            Status{Status::kSuccess});
+  NEARBY_LOG(INFO, "Closing connection: id=%s", endpoint_id.c_str());
+  channel_b->Close();
+}
+
+TEST_F(BasePcpHandlerTest, RejectConnectionChangesState) {
+  std::string endpoint_id{"1234"};
+  auto client = std::make_unique<ClientProxy>();
+  auto ecm = std::make_unique<EndpointChannelManager>();
+  auto em = std::make_unique<EndpointManager>(ecm.get());
+  auto pcp_handler = std::make_unique<MockPcpHandler>(em.get(), ecm.get());
+  StartDiscovery(client.get(), pcp_handler.get());
+  auto channel_pair = SetupConnection(pipe_a_, pipe_b_);
+  auto& channel_b = channel_pair.second;
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(1);
+  RequestConnection(endpoint_id, std::move(channel_pair.first), channel_b.get(),
+                    client.get(), pcp_handler.get());
+  NEARBY_LOG(INFO, "Attempting to reject connection: id=%s",
+             endpoint_id.c_str());
+  EXPECT_EQ(pcp_handler->RejectConnection(client.get(), endpoint_id),
+            Status{Status::kSuccess});
+  NEARBY_LOG(INFO, "Closing connection: id=%s", endpoint_id.c_str());
+  channel_b->Close();
+}
+
+TEST_F(BasePcpHandlerTest, OnIncomingFrameChangesState) {
+  std::string endpoint_id{"1234"};
+  auto client = std::make_unique<ClientProxy>();
+  auto ecm = std::make_unique<EndpointChannelManager>();
+  auto em = std::make_unique<EndpointManager>(ecm.get());
+  auto pcp_handler = std::make_unique<MockPcpHandler>(em.get(), ecm.get());
+  StartDiscovery(client.get(), pcp_handler.get());
+  auto channel_pair = SetupConnection(pipe_a_, pipe_b_);
+  auto& channel_b = channel_pair.second;
+  RequestConnection(endpoint_id, std::move(channel_pair.first), channel_b.get(),
+                    client.get(), pcp_handler.get());
+  NEARBY_LOG(INFO, "Attempting to accept connection: id=%s",
+             endpoint_id.c_str());
+  EXPECT_CALL(mock_connection_listener_.accepted_cb, Call).Times(1);
+  EXPECT_EQ(pcp_handler->AcceptConnection(client.get(), endpoint_id, {}),
+            Status{Status::kSuccess});
+  NEARBY_LOG(INFO, "Simulating remote accept: id=%s", endpoint_id.c_str());
+  auto frame =
+      parser::FromBytes(parser::ForConnectionResponse(Status::kSuccess));
+  pcp_handler->OnIncomingFrame(frame.result(), endpoint_id, client.get(),
+                               Medium::BLE);
+  NEARBY_LOG(INFO, "Closing connection: id=%s", endpoint_id.c_str());
+  channel_b->Close();
+}
+
+TEST_F(BasePcpHandlerTest, OnEndpointDisconnectChangesState) {
+  std::string endpoint_id{"1234"};
+  auto client = std::make_unique<ClientProxy>();
+  auto ecm = std::make_unique<EndpointChannelManager>();
+  auto em = std::make_unique<EndpointManager>(ecm.get());
+  auto pcp_handler = std::make_unique<MockPcpHandler>(em.get(), ecm.get());
+  StartDiscovery(client.get(), pcp_handler.get());
+  auto channel_pair = SetupConnection(pipe_a_, pipe_b_);
+  auto& channel_b = channel_pair.second;
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(1);
+  RequestConnection(endpoint_id, std::move(channel_pair.first), channel_b.get(),
+                    client.get(), pcp_handler.get());
+  NEARBY_LOG(INFO, "Simulating disconnect event: id=%s", endpoint_id.c_str());
+  CountDownLatch latch(1);
+  pcp_handler->OnEndpointDisconnect(client.get(), endpoint_id, &latch);
+  channel_b->Close();
+  EXPECT_TRUE(latch.Await(absl::Milliseconds(5000)).result());
 }
 
 }  // namespace

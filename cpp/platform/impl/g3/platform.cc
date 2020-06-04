@@ -25,6 +25,7 @@
 #include "platform/impl/g3/settable_future_impl.h"
 #include "platform/impl/g3/system_clock_impl.h"
 #include "platform/impl/shared/atomic_boolean_impl.h"
+#include "platform/impl/shared/file_impl.h"
 #include "platform/impl/shared/posix_condition_variable.h"
 #include "platform/impl/shared/posix_lock.h"
 #include "platform/port/string.h"
@@ -35,6 +36,12 @@
 namespace location {
 namespace nearby {
 namespace platform {
+
+namespace {
+std::string getPayloadPath(std::int64_t payload_id) {
+  return "/tmp/" + std::to_string(payload_id);
+}
+}  // namespace
 
 Ptr<SubmittableExecutor> ImplementationPlatform::createSingleThreadExecutor() {
   return Ptr<SubmittableExecutor>(/*new SingleThreadExecutorImpl()*/);
@@ -86,6 +93,16 @@ Ptr<AtomicBoolean> ImplementationPlatform::createAtomicBoolean(
   return Ptr<AtomicBoolean>(new AtomicBooleanImpl(initial_value));
 }
 
+Ptr<InputFile> ImplementationPlatform::createInputFile(
+    std::int64_t payload_id, std::int64_t total_size) {
+  return MakePtr(new InputFileImpl(getPayloadPath(payload_id), total_size));
+}
+
+Ptr<OutputFile> ImplementationPlatform::createOutputFile(
+    std::int64_t payload_id) {
+  return MakePtr(new OutputFileImpl(getPayloadPath(payload_id)));
+}
+
 Ptr<BluetoothClassicMedium>
 ImplementationPlatform::createBluetoothClassicMedium() {
   return Ptr<BluetoothClassicMedium>();
@@ -129,10 +146,6 @@ Ptr<HashUtils> ImplementationPlatform::createHashUtils() {
 std::string ImplementationPlatform::getDeviceId() {
   // TODO(alexchau): Get deviceId from base
   return "google3";
-}
-
-std::string ImplementationPlatform::getPayloadPath(int64_t payload_id) {
-  return "/tmp/" + std::to_string(payload_id);
 }
 
 }  // namespace platform
