@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "core/internal/p2p_cluster_pcp_handler.h"
-
 #include "platform/api/hash_utils.h"
 
 namespace location {
@@ -29,6 +28,11 @@ template <typename Platform>
 const BLEAdvertisement::Version::Value
     P2PClusterPCPHandler<Platform>::kBleAdvertisementVersion =
         BLEAdvertisement::Version::V1;
+
+template <typename Platform>
+const WifiLanServiceInfo::Version
+    P2PClusterPCPHandler<Platform>::kWifiLanServiceInfoVersion =
+        WifiLanServiceInfo::Version::kV1;
 
 template <typename Platform>
 ConstPtr<ByteArray> P2PClusterPCPHandler<Platform>::generateHash(
@@ -49,8 +53,8 @@ template <typename Platform>
 P2PClusterPCPHandler<Platform>::P2PClusterPCPHandler(
     Ptr<MediumManager<Platform>> medium_manager,
     Ptr<EndpointManager<Platform>> endpoint_manager,
-    Ptr<EndpointChannelManager<Platform>> endpoint_channel_manager,
-    Ptr<BandwidthUpgradeManager<Platform>> bandwidth_upgrade_manager)
+    Ptr<EndpointChannelManager> endpoint_channel_manager,
+    Ptr<BandwidthUpgradeManager> bandwidth_upgrade_manager)
     : BasePCPHandler<Platform>(endpoint_manager, endpoint_channel_manager,
                                bandwidth_upgrade_manager),
       medium_manager_(medium_manager) {}
@@ -72,6 +76,9 @@ template <typename Platform>
 std::vector<proto::connections::Medium>
 P2PClusterPCPHandler<Platform>::getConnectionMediumsByPriority() {
   std::vector<proto::connections::Medium> mediums;
+  if (medium_manager_->IsWifiLanAvailable()) {
+    mediums.push_back(proto::connections::WIFI_LAN);
+  }
   if (medium_manager_->isBluetoothAvailable()) {
     mediums.push_back(proto::connections::BLUETOOTH);
   }
@@ -94,6 +101,15 @@ P2PClusterPCPHandler<Platform>::startAdvertisingImpl(
     const string& local_endpoint_id, const string& local_endpoint_name,
     const AdvertisingOptions& options) {
   std::vector<proto::connections::Medium> mediums_started_successfully;
+
+  ScopedPtr<ConstPtr<ByteArray>> scoped_wifi_lan_service_id_hash(
+      generateHash(service_id, WifiLanServiceInfo::kServiceIdHashLength));
+  proto::connections::Medium wifi_lan_medium = StartWifiLanAdvertising(
+      client_proxy, service_id, scoped_wifi_lan_service_id_hash.get(),
+      local_endpoint_id, local_endpoint_name);
+  if (proto::connections::UNKNOWN_MEDIUM != wifi_lan_medium) {
+    mediums_started_successfully.push_back(wifi_lan_medium);
+  }
 
   ScopedPtr<ConstPtr<ByteArray>> scoped_bluetooth_service_id_hash(
       generateHash(service_id, BluetoothDeviceName::kServiceIdHashLength));
@@ -132,9 +148,13 @@ Status::Value P2PClusterPCPHandler<Platform>::stopAdvertisingImpl(
     Ptr<ClientProxy<Platform>> client_proxy) {
   medium_manager_->stopBleAdvertising(client_proxy->getAdvertisingServiceId());
   medium_manager_->turnOffBluetoothDiscoverability();
+  medium_manager_->StopWifiLanAdvertising(
+      client_proxy->getAdvertisingServiceId());
   medium_manager_->stopListeningForIncomingBleConnections(
       client_proxy->getAdvertisingServiceId());
   medium_manager_->stopListeningForIncomingBluetoothConnections(
+      client_proxy->getAdvertisingServiceId());
+  medium_manager_->StopListeningForIncomingWifiLanConnections(
       client_proxy->getAdvertisingServiceId());
   return Status::SUCCESS;
 }
@@ -145,6 +165,14 @@ P2PClusterPCPHandler<Platform>::startDiscoveryImpl(
     Ptr<ClientProxy<Platform>> client_proxy, const string& service_id,
     const DiscoveryOptions& options) {
   std::vector<proto::connections::Medium> mediums_started_successfully;
+
+  proto::connections::Medium wifi_lan_medium =
+      StartWifiLanDiscovery(MakePtr(new FoundWifiLanServiceProcessor(
+                                self_, client_proxy, service_id)),
+                            client_proxy, service_id);
+  if (proto::connections::UNKNOWN_MEDIUM != wifi_lan_medium) {
+    mediums_started_successfully.push_back(wifi_lan_medium);
+  }
 
   proto::connections::Medium bluetooth_medium =
       startBluetoothDiscovery(MakePtr(new FoundBluetoothAdvertisementProcessor(
@@ -184,6 +212,12 @@ typename BasePCPHandler<Platform>::ConnectImplResult
 P2PClusterPCPHandler<Platform>::connectImpl(
     Ptr<ClientProxy<Platform>> client_proxy,
     Ptr<typename BasePCPHandler<Platform>::DiscoveredEndpoint> endpoint) {
+  Ptr<WifiLanEndpoint> wifi_lan_endpoint =
+      DowncastPtr<WifiLanEndpoint>(endpoint);
+  if (!wifi_lan_endpoint.isNull()) {
+    return WifiLanConnectImpl(client_proxy, wifi_lan_endpoint);
+  }
+
   Ptr<BluetoothEndpoint> bluetooth_endpoint =
       DowncastPtr<BluetoothEndpoint>(endpoint);
   if (!bluetooth_endpoint.isNull()) {
@@ -307,6 +341,60 @@ void P2PClusterPCPHandler<Platform>::IncomingBleConnectionProcessor::
   pcp_handler_->onIncomingConnection(client_proxy_, remote_device_name,
                                      scoped_ble_endpoint_channel.release(),
                                      proto::connections::Medium::BLE);
+}
+
+//////////// P2PClusterPCPHandler::IncomingWifiLanConnectionProcessor /////////
+template <typename Platform>
+P2PClusterPCPHandler<Platform>::IncomingWifiLanConnectionProcessor::
+    IncomingWifiLanConnectionProcessor(
+        Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
+        Ptr<ClientProxy<Platform>> client_proxy,
+        absl::string_view local_endpoint_name)
+    : pcp_handler_(pcp_handler),
+      client_proxy_(client_proxy),
+      local_endpoint_name_(local_endpoint_name) {}
+
+template <typename Platform>
+void P2PClusterPCPHandler<Platform>::IncomingWifiLanConnectionProcessor::
+    OnIncomingWifiLanConnection(Ptr<WifiLanSocket> wifi_lan_socket) {
+  pcp_handler_->runOnPCPHandlerThread(
+      MakePtr(new OnIncomingWifiLanConnectionRunnable(
+          pcp_handler_, client_proxy_, wifi_lan_socket)));
+}
+
+template <typename Platform>
+P2PClusterPCPHandler<Platform>::IncomingWifiLanConnectionProcessor::
+    OnIncomingWifiLanConnectionRunnable::OnIncomingWifiLanConnectionRunnable(
+        Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
+        Ptr<ClientProxy<Platform>> client_proxy,
+        Ptr<WifiLanSocket> wifi_lan_socket)
+    : pcp_handler_(pcp_handler),
+      client_proxy_(client_proxy),
+      wifi_lan_socket_(wifi_lan_socket) {}
+
+template <typename Platform>
+void P2PClusterPCPHandler<Platform>::IncomingWifiLanConnectionProcessor::
+    OnIncomingWifiLanConnectionRunnable::run() {
+  string remote_service_name =
+      wifi_lan_socket_->GetRemoteWifiLanService()->GetName();
+  ScopedPtr<Ptr<EndpointChannel>> scoped_wifi_lan_endpoint_channel(
+      pcp_handler_->endpoint_channel_manager_
+          ->CreateIncomingWifiLanEndpointChannel(remote_service_name,
+                                                 wifi_lan_socket_));
+  if (!scoped_wifi_lan_endpoint_channel.isNull()) {
+    // TODO(b/149806065): Add logging.
+  } else {
+    Exception::Value exception = wifi_lan_socket_->Close();
+    wifi_lan_socket_.destroy();
+    if (Exception::NONE != exception) {
+      if (Exception::IO == exception) {
+        // TODO(b/149806065): Add logging.
+      }
+    }
+  }
+  pcp_handler_->onIncomingConnection(client_proxy_, remote_service_name,
+                                     scoped_wifi_lan_endpoint_channel.release(),
+                                     proto::connections::Medium::WIFI_LAN);
 }
 
 ///////// P2PClusterPCPHandler::FoundBluetoothAdvertisementProcessor //////////
@@ -596,6 +684,137 @@ void P2PClusterPCPHandler<Platform>::FoundBleAdvertisementProcessor::
   }
 }
 
+////////// P2PClusterPCPHandler::FoundWifiLanServiceProcessor ///////////
+template <typename Platform>
+P2PClusterPCPHandler<Platform>::FoundWifiLanServiceProcessor::
+    FoundWifiLanServiceProcessor(
+        Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
+        Ptr<ClientProxy<Platform>> client_proxy, absl::string_view service_id)
+    : pcp_handler_(pcp_handler),
+      client_proxy_(client_proxy),
+      service_id_(service_id),
+      expected_service_id_hash_(generateHash(
+          string(service_id), WifiLanServiceInfo::kServiceIdHashLength)) {}
+
+template <typename Platform>
+void P2PClusterPCPHandler<Platform>::FoundWifiLanServiceProcessor::
+    OnFoundWifiLanService(Ptr<WifiLanService> wifi_lan_service) {
+  pcp_handler_->runOnPCPHandlerThread(MakePtr(new OnFoundWifiLanServiceRunnable(
+      pcp_handler_, client_proxy_, self_, service_id_, wifi_lan_service)));
+}
+
+template <typename Platform>
+void P2PClusterPCPHandler<Platform>::FoundWifiLanServiceProcessor::
+    OnLostWifiLanService(Ptr<WifiLanService> wifi_lan_service) {
+  pcp_handler_->runOnPCPHandlerThread(MakePtr(new OnLostWifiLanServiceRunnable(
+      pcp_handler_, client_proxy_, self_, service_id_, wifi_lan_service)));
+}
+
+template <typename Platform>
+bool P2PClusterPCPHandler<Platform>::FoundWifiLanServiceProcessor::
+    IsRecognizedWifiLanEndpoint(Ptr<WifiLanServiceInfo> wifi_lan_service_info) {
+  if (wifi_lan_service_info.isNull()) {
+    return false;
+  }
+
+  if (wifi_lan_service_info->GetPcp() != pcp_handler_->getPCP()) {
+    return false;
+  }
+
+  if (*(wifi_lan_service_info->GetServiceIdHash()) !=
+      *(expected_service_id_hash_.get())) {
+    return false;
+  }
+
+  return true;
+}
+
+template <typename Platform>
+P2PClusterPCPHandler<Platform>::FoundWifiLanServiceProcessor::
+    OnFoundWifiLanServiceRunnable::OnFoundWifiLanServiceRunnable(
+        Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
+        Ptr<ClientProxy<Platform>> client_proxy,
+        Ptr<FoundWifiLanServiceProcessor> found_wifi_lan_service_processor,
+        absl::string_view service_id, Ptr<WifiLanService> wifi_lan_service)
+    : pcp_handler_(pcp_handler),
+      client_proxy_(client_proxy),
+      found_wifi_lan_service_processor_(found_wifi_lan_service_processor),
+      service_id_(service_id),
+      wifi_lan_service_(wifi_lan_service),
+      expected_service_id_hash_(generateHash(
+          string(service_id), WifiLanServiceInfo::kServiceIdHashLength)) {}
+
+template <typename Platform>
+void P2PClusterPCPHandler<Platform>::FoundWifiLanServiceProcessor::
+    OnFoundWifiLanServiceRunnable::run() {
+  // Make sure we are still discovering before proceeding.
+  if (!client_proxy_->isDiscovering()) {
+    return;
+  }
+
+  // Parse the WifiLan service name.
+  ScopedPtr<Ptr<WifiLanServiceInfo>> wifi_lan_service_info(
+      WifiLanServiceInfo::FromString(wifi_lan_service_->GetName()));
+
+  // Make sure the WifiLan service name points to a valid endpoint we're
+  // discovering.
+  if (!found_wifi_lan_service_processor_->IsRecognizedWifiLanEndpoint(
+          wifi_lan_service_info.get())) {
+    return;
+  }
+
+  // Report the discovered endpoint to the client.
+  pcp_handler_->onEndpointFound(
+      client_proxy_,
+      MakePtr(new WifiLanEndpoint(
+          wifi_lan_service_.release(),
+          wifi_lan_service_info->GetEndpointId(),
+          wifi_lan_service_info->GetEndpointName(), service_id_)));
+}
+
+template <typename Platform>
+P2PClusterPCPHandler<Platform>::FoundWifiLanServiceProcessor::
+    OnLostWifiLanServiceRunnable::OnLostWifiLanServiceRunnable(
+        Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
+        Ptr<ClientProxy<Platform>> client_proxy,
+        Ptr<FoundWifiLanServiceProcessor> found_wifi_lan_service_processor,
+        absl::string_view service_id, Ptr<WifiLanService> wifi_lan_service)
+    : pcp_handler_(pcp_handler),
+      client_proxy_(client_proxy),
+      found_wifi_lan_service_processor_(found_wifi_lan_service_processor),
+      service_id_(service_id),
+      wifi_lan_service_(wifi_lan_service.operator->()) {}
+
+template <typename Platform>
+void P2PClusterPCPHandler<Platform>::FoundWifiLanServiceProcessor::
+    OnLostWifiLanServiceRunnable::run() {
+  // Make sure we are still discovering before proceeding.
+  if (!client_proxy_->isDiscovering()) {
+    // TODO(b/149806065): Add logging.
+    return;
+  }
+
+  // Parse the WifiLan service name.
+  ScopedPtr<Ptr<WifiLanServiceInfo>> wifi_lan_service_info(
+      WifiLanServiceInfo::FromString(wifi_lan_service_->GetName()));
+
+  // Make sure the WifiLan service name points to a valid endpoint we're
+  // discovering.
+  if (!found_wifi_lan_service_processor_->IsRecognizedWifiLanEndpoint(
+          wifi_lan_service_info.get())) {
+    return;
+  }
+
+  // Report the endpoint as lost to the client.
+  // TODO(b/149806065): Add logging.
+  pcp_handler_->onEndpointLost(
+      client_proxy_,
+      MakePtr(new WifiLanEndpoint(
+          Ptr<WifiLanService>(wifi_lan_service_.release()),
+          wifi_lan_service_info->GetEndpointId(),
+          wifi_lan_service_info->GetEndpointName(), service_id_)));
+}
+
 //////////////////// END IMPLEMENTATIONS FOR NESTED CLASSES ////////////////////
 
 template <typename Platform>
@@ -725,6 +944,65 @@ proto::connections::Medium P2PClusterPCPHandler<Platform>::startBleDiscovery(
 }
 
 template <typename Platform>
+proto::connections::Medium
+P2PClusterPCPHandler<Platform>::StartWifiLanAdvertising(
+    Ptr<ClientProxy<Platform>> client_proxy, absl::string_view service_id,
+    ConstPtr<ByteArray> service_id_hash, absl::string_view local_endpoint_id,
+    absl::string_view local_endpoint_name) {
+  // Start listening for connections before advertising in case a connection
+  // request comes in very quickly.
+  if (!medium_manager_->IsListeningForIncomingWifiLanConnections(service_id)) {
+    if (!medium_manager_->StartListeningForIncomingWifiLanConnections(
+            service_id, MakePtr(new IncomingWifiLanConnectionProcessor(
+                            self_, client_proxy, local_endpoint_name)))) {
+      // TODO(b/149806065): logger.atWarning().log("In
+      // StartWifiLanAdvertising(%s), client %d failed to start listening for
+      // incoming WifiLan connections to ServiceId %s", local_endpoint_name,
+      // clientProxy.getClientId(), service_id);
+      return proto::connections::UNKNOWN_MEDIUM;
+    }
+
+    // TODO(b/149806065): Add logging.
+  }
+
+  // Generate a WifiLanServiceInfo.
+  const string wifi_lan_service_info =
+      WifiLanServiceInfo::AsString(kWifiLanServiceInfoVersion,
+                                   getPCP(),
+                                   local_endpoint_id,
+                                   service_id_hash);
+  if (wifi_lan_service_info.empty()) {
+    // TODO(b/149806065): Add logging.
+    return proto::connections::UNKNOWN_MEDIUM;
+  } else {
+    // TODO(b/149806065): Add logging.
+  }
+
+  // TODO(b/149806065): Add logging
+
+  if (!medium_manager_->StartWifiLanAdvertising(
+          service_id, wifi_lan_service_info)) {
+    // TODO(b/149806065): Add logging
+    medium_manager_->StopWifiLanAdvertising(service_id);
+    return proto::connections::UNKNOWN_MEDIUM;
+  }
+  return proto::connections::WIFI_LAN;
+}
+
+template <typename Platform>
+proto::connections::Medium
+P2PClusterPCPHandler<Platform>::StartWifiLanDiscovery(
+      Ptr<FoundWifiLanServiceProcessor> processor,
+      Ptr<ClientProxy<Platform> > client_proxy, absl::string_view service_id) {
+  if (!medium_manager_->StartWifiLanDiscovery(service_id, processor)) {
+    // TODO(b/149806065): Add logging.
+    return proto::connections::UNKNOWN_MEDIUM;
+  }
+
+  return proto::connections::WIFI_LAN;
+}
+
+template <typename Platform>
 typename BasePCPHandler<Platform>::ConnectImplResult
 P2PClusterPCPHandler<Platform>::bluetoothConnectImpl(
     Ptr<ClientProxy<Platform>> client_proxy,
@@ -795,6 +1073,38 @@ string P2PClusterPCPHandler<Platform>::getBlePeripheralId(
 #else
   return ble_peripheral->getBluetoothDevice()->getName();
 #endif
+}
+
+template <typename Platform>
+typename BasePCPHandler<Platform>::ConnectImplResult
+P2PClusterPCPHandler<Platform>::WifiLanConnectImpl(
+    Ptr<ClientProxy<Platform>> client_proxy,
+    Ptr<WifiLanEndpoint> wifi_lan_endpoint) {
+  Ptr<WifiLanService> remote_wifi_lan_service =
+      wifi_lan_endpoint->GetWifiLanService();
+
+  Ptr<WifiLanSocket> wifi_lan_socket = medium_manager_->ConnectToWifiLanService(
+      remote_wifi_lan_service, wifi_lan_endpoint->getServiceId());
+
+  if (wifi_lan_socket.isNull()) {
+    return typename BasePCPHandler<Platform>::ConnectImplResult(
+        proto::connections::Medium::WIFI_LAN, Status::BLUETOOTH_ERROR);
+  }
+
+  ScopedPtr<Ptr<EndpointChannel>> scoped_wifi_lan_endpoint_channel(
+      this->endpoint_channel_manager_->CreateOutgoingWifiLanEndpointChannel(
+          wifi_lan_endpoint->getEndpointId(), wifi_lan_socket));
+
+  if (scoped_wifi_lan_endpoint_channel.isNull()) {
+    wifi_lan_socket->Close();
+    wifi_lan_socket.destroy();  // Avoid leaks.
+    return typename BasePCPHandler<Platform>::ConnectImplResult(
+        proto::connections::Medium::WIFI_LAN, Status::ERROR);
+  }
+
+  // TODO(b/149806065): Add logging.
+  return typename BasePCPHandler<Platform>::ConnectImplResult(
+      scoped_wifi_lan_endpoint_channel.release());
 }
 
 }  // namespace connections

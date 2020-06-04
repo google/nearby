@@ -36,7 +36,7 @@ class ServerSyncDevice {
   virtual std::string getOwnGuid() = 0;
 };
 
-// Container of operations that can be performed over the Chrome Sync medium.
+// Container of operations that can be performed over the Server Sync medium.
 class ServerSyncMedium {
  public:
   virtual ~ServerSyncMedium() {}

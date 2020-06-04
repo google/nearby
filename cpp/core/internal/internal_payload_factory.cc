@@ -18,10 +18,11 @@
 
 #include "core/payload.h"
 #include "platform/api/condition_variable.h"
+#include "platform/api/input_file.h"
 #include "platform/api/lock.h"
+#include "platform/api/output_file.h"
 #include "platform/byte_array.h"
 #include "platform/exception.h"
-#include "platform/file_impl.h"
 #include "platform/pipe.h"
 
 namespace location {
@@ -122,7 +123,7 @@ class OutgoingStreamInternalPayload : public InternalPayload {
   }
 
  private:
-  static const std::int64_t kChunkSize = 64 * 1024;
+  static constexpr std::int64_t kChunkSize = 64 * 1024;
 };
 
 template <typename Platform>
@@ -205,7 +206,7 @@ class OutgoingFileInternalPayload : public InternalPayload {
   void close() override { payload_->asFile()->asInputFile()->close(); }
 
  private:
-  static const std::int64_t kChunkSize = 64 * 1024;
+  static constexpr std::int64_t kChunkSize = 64 * 1024;
 };
 
 class IncomingFileInternalPayload : public InternalPayload {
@@ -291,21 +292,19 @@ Ptr<InternalPayload> InternalPayloadFactory<Platform>::createIncoming(
 
     case PayloadTransferFrame::PayloadHeader::STREAM: {
       // pipe will be auto-destroyed when it is no longer referenced.
-      auto pipe = MakeRefCountedPtr(new Pipe<Platform>());
+      auto pipe = MakeRefCountedPtr(new Pipe());
 
       return MakePtr(new IncomingStreamInternalPayload<Platform>(
-          MakeConstPtr(new Payload(
-              payload_id,
-              MakeConstPtr(new Payload::Stream(
-                  Pipe<Platform>::createInputStream(pipe))))),
-          Pipe<Platform>::createOutputStream(pipe)));
+          MakeConstPtr(
+              new Payload(payload_id, MakeConstPtr(new Payload::Stream(
+                                          Pipe::createInputStream(pipe))))),
+          Pipe::createOutputStream(pipe)));
     }
 
     case PayloadTransferFrame::PayloadHeader::FILE: {
-      const std::string payload_path = Platform::getPayloadPath(payload_id);
-      Ptr<InputFile> input_file = MakePtr(new InputFileImpl(
-          payload_path, payload_transfer_frame.payload_header().total_size()));
-      Ptr<OutputFile> output_file = MakePtr(new OutputFileImpl(payload_path));
+      Ptr<OutputFile> output_file = Platform::createOutputFile(payload_id);
+      Ptr<InputFile> input_file = Platform::createInputFile(
+          payload_id, payload_transfer_frame.payload_header().total_size());
       ConstPtr<Payload> payload = MakeConstPtr(
           new Payload(payload_id, MakeConstPtr(new Payload::File(input_file))));
       return MakePtr(new IncomingFileInternalPayload(

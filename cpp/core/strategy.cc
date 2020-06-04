@@ -39,7 +39,7 @@ bool Strategy::isValid() const {
   return kP2PStar == *this || kP2PCluster == *this || kP2PPointToPoint == *this;
 }
 
-string Strategy::getName() const {
+std::string Strategy::getName() const {
   if (Strategy::kP2PCluster == *this) {
     return "P2P_CLUSTER";
   } else if (Strategy::kP2PStar == *this) {

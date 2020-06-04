@@ -16,21 +16,20 @@
 
 #include "core/internal/ble_endpoint_channel.h"
 #include "core/internal/bluetooth_endpoint_channel.h"
+#include "core/internal/wifi_lan_endpoint_channel.h"
 #include "platform/synchronized.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-template <typename Platform>
-EndpointChannelManager<Platform>::EndpointChannelManager(
+EndpointChannelManager::EndpointChannelManager(
     Ptr<MediumManager<Platform> > medium_manager)
     : lock_(Platform::createLock()),
       medium_manager_(medium_manager),
       channel_state_(new ChannelState()) {}
 
-template <typename Platform>
-EndpointChannelManager<Platform>::~EndpointChannelManager() {
+EndpointChannelManager::~EndpointChannelManager() {
   Synchronized s(lock_.get());
 
   // TODO(tracyzhou): logger.atDebug().log("Initiating shutdown of
@@ -40,40 +39,47 @@ EndpointChannelManager<Platform>::~EndpointChannelManager() {
   // down.");
 }
 
-template <typename Platform>
 Ptr<EndpointChannel>
-EndpointChannelManager<Platform>::createOutgoingBluetoothEndpointChannel(
+EndpointChannelManager::createOutgoingBluetoothEndpointChannel(
     const string& channel_name, Ptr<BluetoothSocket> bluetooth_socket) {
-  return BluetoothEndpointChannel<Platform>::createOutgoing(
-      medium_manager_, channel_name, bluetooth_socket);
+  return BluetoothEndpointChannel::createOutgoing(medium_manager_, channel_name,
+                                                  bluetooth_socket);
 }
 
-template <typename Platform>
 Ptr<EndpointChannel>
-EndpointChannelManager<Platform>::createIncomingBluetoothEndpointChannel(
+EndpointChannelManager::createIncomingBluetoothEndpointChannel(
     const string& channel_name, Ptr<BluetoothSocket> bluetooth_socket) {
-  return BluetoothEndpointChannel<Platform>::createIncoming(
-      medium_manager_, channel_name, bluetooth_socket);
+  return BluetoothEndpointChannel::createIncoming(medium_manager_, channel_name,
+                                                  bluetooth_socket);
 }
 
-template <typename Platform>
-Ptr<EndpointChannel>
-EndpointChannelManager<Platform>::createOutgoingBLEEndpointChannel(
+Ptr<EndpointChannel> EndpointChannelManager::createOutgoingBLEEndpointChannel(
     const string& channel_name, Ptr<BLESocket> ble_socket) {
-  return BLEEndpointChannel<Platform>::createOutgoing(medium_manager_,
-                                                      channel_name, ble_socket);
+  return BLEEndpointChannel::createOutgoing(medium_manager_, channel_name,
+                                            ble_socket);
 }
 
-template <typename Platform>
-Ptr<EndpointChannel>
-EndpointChannelManager<Platform>::createIncomingBLEEndpointChannel(
+Ptr<EndpointChannel> EndpointChannelManager::createIncomingBLEEndpointChannel(
     const string& channel_name, Ptr<BLESocket> ble_socket) {
-  return BLEEndpointChannel<Platform>::createIncoming(medium_manager_,
-                                                      channel_name, ble_socket);
+  return BLEEndpointChannel::createIncoming(medium_manager_, channel_name,
+                                            ble_socket);
 }
 
-template <typename Platform>
-void EndpointChannelManager<Platform>::registerChannelForEndpoint(
+Ptr<EndpointChannel>
+EndpointChannelManager::CreateOutgoingWifiLanEndpointChannel(
+    const string& channel_name, Ptr<WifiLanSocket> wifi_lan_socket) {
+  return WifiLanEndpointChannel::CreateOutgoing(
+      medium_manager_, channel_name, wifi_lan_socket);
+}
+
+Ptr<EndpointChannel>
+EndpointChannelManager::CreateIncomingWifiLanEndpointChannel(
+    const string& channel_name, Ptr<WifiLanSocket> wifi_lan_socket) {
+  return WifiLanEndpointChannel::CreateIncoming(
+      medium_manager_, channel_name, wifi_lan_socket);
+}
+
+void EndpointChannelManager::registerChannelForEndpoint(
     Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
     Ptr<EndpointChannel> endpoint_channel) {
   Synchronized s(lock_.get());
@@ -88,9 +94,7 @@ void EndpointChannelManager<Platform>::registerChannelForEndpoint(
 }
 
 #ifdef BANDWIDTH_UPGRADE_MANAGER_IMPLEMENTED
-template <typename Platform>
-Ptr<EndpointChannel>
-EndpointChannelManager<Platform>::replaceChannelForEndpoint(
+Ptr<EndpointChannel> EndpointChannelManager::replaceChannelForEndpoint(
     Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
     Ptr<EndpointChannel> endpoint_channel) {
   Synchronized s(lock_.get());
@@ -110,8 +114,7 @@ EndpointChannelManager<Platform>::replaceChannelForEndpoint(
 }
 #endif
 
-template <typename Platform>
-bool EndpointChannelManager<Platform>::encryptChannelForEndpoint(
+bool EndpointChannelManager::encryptChannelForEndpoint(
     const string& endpoint_id,
     Ptr<securegcm::D2DConnectionContextV1> encryption_context) {
   Synchronized s(lock_.get());
@@ -139,16 +142,14 @@ bool EndpointChannelManager<Platform>::encryptChannelForEndpoint(
   return true;
 }
 
-template <typename Platform>
-Ptr<EndpointChannel> EndpointChannelManager<Platform>::getChannelForEndpoint(
+Ptr<EndpointChannel> EndpointChannelManager::getChannelForEndpoint(
     const string& endpoint_id) {
   Synchronized s(lock_.get());
 
   return channel_state_->getChannelForEndpoint(endpoint_id);
 }
 
-template <typename Platform>
-void EndpointChannelManager<Platform>::setActiveEndpointChannel(
+void EndpointChannelManager::setActiveEndpointChannel(
     Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
     Ptr<EndpointChannel> endpoint_channel) {
 #ifdef BANDWIDTH_UPGRADE_MANAGER_IMPLEMENTED
@@ -169,8 +170,7 @@ void EndpointChannelManager<Platform>::setActiveEndpointChannel(
       channel_state_->updateChannelForEndpoint(endpoint_id, endpoint_channel));
 }
 
-template <typename Platform>
-void EndpointChannelManager<Platform>::encryptChannel(
+void EndpointChannelManager::encryptChannel(
     const string& endpoint_id, Ptr<EndpointChannel> endpoint_channel,
     Ptr<securegcm::D2DConnectionContextV1> encryption_context) {
   // TODO(tracyzhou): Add logging.
@@ -179,8 +179,7 @@ void EndpointChannelManager<Platform>::encryptChannel(
 
 ///////////////////////////////// ChannelState /////////////////////////////////
 
-template <typename Platform>
-EndpointChannelManager<Platform>::ChannelState::~ChannelState() {
+EndpointChannelManager::ChannelState::~ChannelState() {
   while (!endpoint_id_to_metadata_.empty()) {
     typename EndpointIdToMetadataMap::iterator it =
         endpoint_id_to_metadata_.begin();
@@ -190,15 +189,13 @@ EndpointChannelManager<Platform>::ChannelState::~ChannelState() {
   }
 }
 
-template <typename Platform>
-bool EndpointChannelManager<Platform>::ChannelState::isEndpointEncrypted(
+bool EndpointChannelManager::ChannelState::isEndpointEncrypted(
     const string& endpoint_id) {
   return !getEncryptionContextForEndpoint(endpoint_id).isNull();
 }
 
-template <typename Platform>
 Ptr<EndpointChannel>
-EndpointChannelManager<Platform>::ChannelState::updateChannelForEndpoint(
+EndpointChannelManager::ChannelState::updateChannelForEndpoint(
     const string& endpoint_id, Ptr<EndpointChannel> endpoint_channel) {
   Ptr<EndpointChannel> previous_endpoint_channel;
   Ptr<EndpointMetaData> endpoint_metadata;
@@ -222,11 +219,10 @@ EndpointChannelManager<Platform>::ChannelState::updateChannelForEndpoint(
   return scoped_previous_endpoint_channel.release();
 }
 
-template <typename Platform>
-Ptr<securegcm::D2DConnectionContextV1> EndpointChannelManager<Platform>::
-    ChannelState::updateEncryptionContextForEndpoint(
-        const string& endpoint_id,
-        Ptr<securegcm::D2DConnectionContextV1> encryption_context) {
+Ptr<securegcm::D2DConnectionContextV1>
+EndpointChannelManager::ChannelState::updateEncryptionContextForEndpoint(
+    const string& endpoint_id,
+    Ptr<securegcm::D2DConnectionContextV1> encryption_context) {
   Ptr<securegcm::D2DConnectionContextV1> previous_encryption_context;
   Ptr<EndpointMetaData> endpoint_metadata;
 
@@ -248,8 +244,7 @@ Ptr<securegcm::D2DConnectionContextV1> EndpointChannelManager<Platform>::
   return scoped_previous_encryption_context.release();
 }
 
-template <typename Platform>
-bool EndpointChannelManager<Platform>::ChannelState::removeEndpoint(
+bool EndpointChannelManager::ChannelState::removeEndpoint(
     const string& endpoint_id, proto::connections::DisconnectionReason reason) {
   typename EndpointIdToMetadataMap::iterator it =
       endpoint_id_to_metadata_.find(endpoint_id);
@@ -263,9 +258,8 @@ bool EndpointChannelManager<Platform>::ChannelState::removeEndpoint(
   return true;
 }
 
-template <typename Platform>
 Ptr<securegcm::D2DConnectionContextV1>
-EndpointChannelManager<Platform>::ChannelState::getEncryptionContextForEndpoint(
+EndpointChannelManager::ChannelState::getEncryptionContextForEndpoint(
     const string& endpoint_id) {
   typename EndpointIdToMetadataMap::iterator it =
       endpoint_id_to_metadata_.find(endpoint_id);
@@ -276,9 +270,8 @@ EndpointChannelManager<Platform>::ChannelState::getEncryptionContextForEndpoint(
   return it->second->encryption_context;
 }
 
-template <typename Platform>
 Ptr<EndpointChannel>
-EndpointChannelManager<Platform>::ChannelState::getChannelForEndpoint(
+EndpointChannelManager::ChannelState::getChannelForEndpoint(
     const string& endpoint_id) {
   typename EndpointIdToMetadataMap::iterator it =
       endpoint_id_to_metadata_.find(endpoint_id);
@@ -289,8 +282,7 @@ EndpointChannelManager<Platform>::ChannelState::getChannelForEndpoint(
   return it->second->endpoint_channel;
 }
 
-template <typename Platform>
-bool EndpointChannelManager<Platform>::unregisterChannelForEndpoint(
+bool EndpointChannelManager::unregisterChannelForEndpoint(
     const string& endpoint_id) {
   Synchronized s(lock_.get());
 

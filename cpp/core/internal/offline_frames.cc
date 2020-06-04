@@ -75,7 +75,8 @@ ExceptionOrOfflineFrame OfflineFrames::fromBytes(
     ConstPtr<ByteArray> offline_frame_bytes) {
   auto offline_frame = std::make_unique<OfflineFrame>();
 
-  if (!offline_frame->ParseFromString(offline_frame_bytes->asString())) {
+  if (!offline_frame->ParseFromArray(offline_frame_bytes->getData(),
+                                     offline_frame_bytes->size())) {
     return ExceptionOrOfflineFrame(Exception::INVALID_PROTOCOL_BUFFER);
   }
 
@@ -92,6 +93,7 @@ V1Frame::FrameType OfflineFrames::getFrameType(
   return V1Frame::UNKNOWN_FRAME_TYPE;
 }
 
+// TODO(b/155752436): Use byte array endpoint_info instead of endpoint_name.
 ConstPtr<ByteArray> OfflineFrames::forConnectionRequest(
     const std::string &endpoint_id, const std::string &endpoint_name,
     std::int32_t nonce,
@@ -99,6 +101,7 @@ ConstPtr<ByteArray> OfflineFrames::forConnectionRequest(
   auto connection_request = std::make_unique<ConnectionRequestFrame>();
   connection_request->set_endpoint_id(endpoint_id);
   connection_request->set_endpoint_name(endpoint_name);
+  connection_request->set_endpoint_info(endpoint_name);
   connection_request->set_nonce(nonce);
 
   for (std::vector<proto::connections::Medium>::const_iterator it =

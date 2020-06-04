@@ -18,138 +18,115 @@ namespace location {
 namespace nearby {
 namespace connections {
 
+namespace {
+using Platform = platform::ImplementationPlatform;
+}
+
 namespace base_bandwidth_upgrade_handler {
 
-template <typename Platform>
 class RevertRunnable : public Runnable {
  public:
-  void run() {}
+  void run() override {}
 };
 
-template <typename Platform>
 class InitiateBandwidthUpgradeForEndpointRunnable : public Runnable {
  public:
-  void run() {}
+  void run() override {}
 };
 
-template <typename Platform>
 class ProcessEndpointDisconnectionRunnable : public Runnable {
  public:
-  void run() {}
+  void run() override {}
 };
 
-template <typename Platform>
 class ProcessBandwidthUpgradeNegotiationFrameRunnable : public Runnable {
  public:
-  void run() {}
+  void run() override {}
 };
 
 }  // namespace base_bandwidth_upgrade_handler
 
-template <typename Platform>
-BaseBandwidthUpgradeHandler<Platform>::BaseBandwidthUpgradeHandler(
-    Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager)
+BaseBandwidthUpgradeHandler::BaseBandwidthUpgradeHandler(
+    Ptr<EndpointChannelManager> endpoint_channel_manager)
     : endpoint_channel_manager_(endpoint_channel_manager),
-      alarm_executor_(),
-      serial_executor_(),
+      alarm_executor_(nullptr),
+      serial_executor_(nullptr),
       previous_endpoint_channels_(),
       in_progress_upgrades_(),
       safe_to_close_write_timestamps_() {}
 
-template <typename Platform>
-BaseBandwidthUpgradeHandler<Platform>::~BaseBandwidthUpgradeHandler() {}
+BaseBandwidthUpgradeHandler::~BaseBandwidthUpgradeHandler() {}
 
-template <typename Platform>
-void BaseBandwidthUpgradeHandler<Platform>::revert() {}
+void BaseBandwidthUpgradeHandler::revert() {}
 
-template <typename Platform>
-void BaseBandwidthUpgradeHandler<Platform>::processEndpointDisconnection(
+void BaseBandwidthUpgradeHandler::processEndpointDisconnection(
     Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
     Ptr<CountDownLatch> process_disconnection_barrier) {}
 
-template <typename Platform>
-void BaseBandwidthUpgradeHandler<Platform>::initiateBandwidthUpgradeForEndpoint(
+void BaseBandwidthUpgradeHandler::initiateBandwidthUpgradeForEndpoint(
     Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id) {}
 
-template <typename Platform>
-void BaseBandwidthUpgradeHandler<Platform>::
-    processBandwidthUpgradeNegotiationFrame(
-        ConstPtr<BandwidthUpgradeNegotiationFrame>
-            bandwidth_upgrade_negotiation,
-        Ptr<ClientProxy<Platform> > to_client_proxy,
-        const string& from_endpoint_id,
-        proto::connections::Medium current_medium) {}
+void BaseBandwidthUpgradeHandler::processBandwidthUpgradeNegotiationFrame(
+    ConstPtr<BandwidthUpgradeNegotiationFrame> bandwidth_upgrade_negotiation,
+    Ptr<ClientProxy<Platform> > to_client_proxy, const string& from_endpoint_id,
+    proto::connections::Medium current_medium) {}
 
-template <typename Platform>
-Ptr<EndpointChannelManager<Platform> >
-BaseBandwidthUpgradeHandler<Platform>::getEndpointChannelManager() {
+Ptr<EndpointChannelManager>
+BaseBandwidthUpgradeHandler::getEndpointChannelManager() {
   return endpoint_channel_manager_;
 }
 
-template <typename Platform>
-void BaseBandwidthUpgradeHandler<Platform>::onIncomingConnection(
+void BaseBandwidthUpgradeHandler::onIncomingConnection(
     Ptr<IncomingSocketConnection> incoming_socket_connection) {}
 
-template <typename Platform>
-void BaseBandwidthUpgradeHandler<Platform>::runOnBandwidthUpgradeHandlerThread(
+void BaseBandwidthUpgradeHandler::runOnBandwidthUpgradeHandlerThread(
     Ptr<Runnable> runnable) {}
 
-template <typename Platform>
-void BaseBandwidthUpgradeHandler<Platform>::runUpgradeProtocol(
+void BaseBandwidthUpgradeHandler::runUpgradeProtocol(
     Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
     Ptr<EndpointChannel> new_endpoint_channel) {}
 
-template <typename Platform>
-void BaseBandwidthUpgradeHandler<Platform>::
-    processBandwidthUpgradePathAvailableEvent(
-        const string& endpoint_id, Ptr<ClientProxy<Platform> > client_proxy,
-        ConstPtr<BandwidthUpgradeNegotiationFrame::UpgradePathInfo>
-            upgrade_path_info,
-        proto::connections::Medium current_medium) {}
+void BaseBandwidthUpgradeHandler::processBandwidthUpgradePathAvailableEvent(
+    const string& endpoint_id, Ptr<ClientProxy<Platform> > client_proxy,
+    ConstPtr<BandwidthUpgradeNegotiationFrame::UpgradePathInfo>
+        upgrade_path_info,
+    proto::connections::Medium current_medium) {}
 
-template <typename Platform>
-Ptr<EndpointChannel> BaseBandwidthUpgradeHandler<Platform>::
-    processBandwidthUpgradePathAvailableEventInternal(
-        const string& endpoint_id, Ptr<ClientProxy<Platform> > client_proxy,
-        ConstPtr<BandwidthUpgradeNegotiationFrame::UpgradePathInfo>
-            upgrade_path_info) {
+Ptr<EndpointChannel>
+BaseBandwidthUpgradeHandler::processBandwidthUpgradePathAvailableEventInternal(
+    const string& endpoint_id, Ptr<ClientProxy<Platform> > client_proxy,
+    ConstPtr<BandwidthUpgradeNegotiationFrame::UpgradePathInfo>
+        upgrade_path_info) {
   return Ptr<EndpointChannel>();
 }
 
-template <typename Platform>
-void BaseBandwidthUpgradeHandler<Platform>::processLastWriteToPriorChannelEvent(
+void BaseBandwidthUpgradeHandler::processLastWriteToPriorChannelEvent(
     Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id) {}
 
-template <typename Platform>
-void BaseBandwidthUpgradeHandler<Platform>::processSafeToClosePriorChannelEvent(
+void BaseBandwidthUpgradeHandler::processSafeToClosePriorChannelEvent(
     Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id) {}
 
-template <typename Platform>
-std::int64_t BaseBandwidthUpgradeHandler<Platform>::calculateCloseDelay(
+std::int64_t BaseBandwidthUpgradeHandler::calculateCloseDelay(
     const string& endpoint_id) {
   return 0;
 }
 
-template <typename Platform>
-std::int64_t
-BaseBandwidthUpgradeHandler<Platform>::getMillisSinceSafeCloseWritten(
+std::int64_t BaseBandwidthUpgradeHandler::getMillisSinceSafeCloseWritten(
     const string& endpoint_id) {
   return 0;
 }
 
 // TODO(ahlee): This will differ from the Java code as we don't have to handle
 // analytics in the C++ code.
-template <typename Platform>
-void BaseBandwidthUpgradeHandler<Platform>::
+void BaseBandwidthUpgradeHandler::
     attemptToRecordBandwidthUpgradeErrorForUnknownEndpoint(
         proto::connections::BandwidthUpgradeResult result,
         proto::connections::BandwidthUpgradeErrorStage error_stage) {}
 
 // TODO(ahlee): This will differ from the Java code (previously threw an
 // UpgradeException).
-template <typename Platform>
 Ptr<BandwidthUpgradeNegotiationFrame::ClientIntroduction>
-BaseBandwidthUpgradeHandler<Platform>::readClientIntroductionFrame(
+BaseBandwidthUpgradeHandler::readClientIntroductionFrame(
     Ptr<EndpointChannel> endpoint_channel) {
   return Ptr<BandwidthUpgradeNegotiationFrame::ClientIntroduction>();
 }

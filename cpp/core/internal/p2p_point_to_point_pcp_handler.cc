@@ -22,8 +22,8 @@ template <typename Platform>
 P2PPointToPointPCPHandler<Platform>::P2PPointToPointPCPHandler(
     Ptr<MediumManager<Platform> > medium_manager,
     Ptr<EndpointManager<Platform> > endpoint_manager,
-    Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager,
-    Ptr<BandwidthUpgradeManager<Platform> > bandwidth_upgrade_manager)
+    Ptr<EndpointChannelManager> endpoint_channel_manager,
+    Ptr<BandwidthUpgradeManager> bandwidth_upgrade_manager)
     : P2PStarPCPHandler<Platform>(medium_manager, endpoint_manager,
                                   endpoint_channel_manager,
                                   bandwidth_upgrade_manager),

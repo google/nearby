@@ -14,7 +14,7 @@
 
 #include "core/internal/mediums/advertisement_read_result.h"
 
-#include "platform/impl/default/default_platform.h"
+#include "platform/api/platform.h"
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -24,23 +24,7 @@ namespace nearby {
 namespace connections {
 namespace mediums {
 
-class SampleSystemClock : public SystemClock {
- public:
-  SampleSystemClock() {}
-  ~SampleSystemClock() override {}
-
-  std::int64_t elapsedRealtime() override {
-    return absl::ToUnixMillis(absl::Now());
-  }
-};
-
-class SamplePlatform {
- public:
-  static Ptr<Lock> createLock() { return DefaultPlatform::createLock(); }
-  static Ptr<SystemClock> createSystemClock() {
-    return MakePtr(new SampleSystemClock());
-  }
-};
+using TestPlatform = platform::ImplementationPlatform;
 
 constexpr char kAdvertisementBytes[] = {0x0A, 0x0B, 0x0C};
 
@@ -53,16 +37,16 @@ const absl::Duration kAdvertisementMaxBackoffDuration =
 
 template <>
 const std::int64_t AdvertisementReadResult<
-    SamplePlatform>::kAdvertisementMaxBackoffDurationMillis =
+    TestPlatform>::kAdvertisementMaxBackoffDurationMillis =
         ToInt64Milliseconds(kAdvertisementMaxBackoffDuration);
 template <>
 const std::int64_t
     AdvertisementReadResult<
-        SamplePlatform>::kAdvertisementBaseBackoffDurationMillis =
+        TestPlatform>::kAdvertisementBaseBackoffDurationMillis =
         ToInt64Milliseconds(kAdvertisementBaseBackoffDuration);
 
 TEST(AdvertisementReadResultTest, AdvertisementExists) {
-  AdvertisementReadResult<SamplePlatform> advertisement_read_result;
+  AdvertisementReadResult<TestPlatform> advertisement_read_result;
   advertisement_read_result.recordLastReadStatus(/* is_success= */ true);
 
   std::int32_t slot = 6;
@@ -75,7 +59,7 @@ TEST(AdvertisementReadResultTest, AdvertisementExists) {
 }
 
 TEST(AdvertisementReadResultTest, AdvertisementNonExistent) {
-  AdvertisementReadResult<SamplePlatform> advertisement_read_result;
+  AdvertisementReadResult<TestPlatform> advertisement_read_result;
   advertisement_read_result.recordLastReadStatus(/* is_success= */ true);
 
   std::int32_t slot = 6;
@@ -84,23 +68,23 @@ TEST(AdvertisementReadResultTest, AdvertisementNonExistent) {
 }
 
 TEST(AdvertisementReadResultTest, EvaluateRetryStatusInitialized) {
-  AdvertisementReadResult<SamplePlatform> advertisement_read_result;
+  AdvertisementReadResult<TestPlatform> advertisement_read_result;
 
   ASSERT_EQ(advertisement_read_result.evaluateRetryStatus(),
-            AdvertisementReadResult<SamplePlatform>::RetryStatus::RETRY);
+            AdvertisementReadResult<TestPlatform>::RetryStatus::RETRY);
 }
 
 TEST(AdvertisementReadResultTest, EvaluateRetryStatusSuccess) {
-  AdvertisementReadResult<SamplePlatform> advertisement_read_result;
+  AdvertisementReadResult<TestPlatform> advertisement_read_result;
   advertisement_read_result.recordLastReadStatus(/* is_success= */ true);
 
   ASSERT_EQ(advertisement_read_result.evaluateRetryStatus(),
             AdvertisementReadResult<
-                SamplePlatform>::RetryStatus::PREVIOUSLY_SUCCEEDED);
+                TestPlatform>::RetryStatus::PREVIOUSLY_SUCCEEDED);
 }
 
 TEST(AdvertisementReadResultTest, EvaluateRetryStatusTooSoon) {
-  AdvertisementReadResult<SamplePlatform> advertisement_read_result;
+  AdvertisementReadResult<TestPlatform> advertisement_read_result;
   advertisement_read_result.recordLastReadStatus(/* is_success= */ false);
 
   // Sleep for some time, but not long enough to warrant a retry.
@@ -108,22 +92,22 @@ TEST(AdvertisementReadResultTest, EvaluateRetryStatusTooSoon) {
       absl::ToInt64Milliseconds(kAdvertisementBaseBackoffDuration) / 2));
 
   ASSERT_EQ(advertisement_read_result.evaluateRetryStatus(),
-            AdvertisementReadResult<SamplePlatform>::RetryStatus::TOO_SOON);
+            AdvertisementReadResult<TestPlatform>::RetryStatus::TOO_SOON);
 }
 
 TEST(AdvertisementReadResultTest, EvaluateRetryStatusRetry) {
-  AdvertisementReadResult<SamplePlatform> advertisement_read_result;
+  AdvertisementReadResult<TestPlatform> advertisement_read_result;
   advertisement_read_result.recordLastReadStatus(/* is_success= */ false);
 
   // Sleep long enough to warrant a retry.
   absl::SleepFor(kAdvertisementBaseBackoffDuration);
 
   ASSERT_EQ(advertisement_read_result.evaluateRetryStatus(),
-            AdvertisementReadResult<SamplePlatform>::RetryStatus::RETRY);
+            AdvertisementReadResult<TestPlatform>::RetryStatus::RETRY);
 }
 
 TEST(AdvertisementReadResultTest, ReportStatusExponentialBackoff) {
-  AdvertisementReadResult<SamplePlatform> advertisement_read_result;
+  AdvertisementReadResult<TestPlatform> advertisement_read_result;
   advertisement_read_result.recordLastReadStatus(/* is_success= */ false);
 
   // Record an additional failure so our backoff duration increases.
@@ -134,11 +118,11 @@ TEST(AdvertisementReadResultTest, ReportStatusExponentialBackoff) {
   absl::SleepFor(kAdvertisementBaseBackoffDuration);
 
   ASSERT_EQ(advertisement_read_result.evaluateRetryStatus(),
-            AdvertisementReadResult<SamplePlatform>::RetryStatus::TOO_SOON);
+            AdvertisementReadResult<TestPlatform>::RetryStatus::TOO_SOON);
 }
 
 TEST(AdvertisementReadResultTest, ReportStatusExponentialBackoffMax) {
-  AdvertisementReadResult<SamplePlatform> advertisement_read_result;
+  AdvertisementReadResult<TestPlatform> advertisement_read_result;
   advertisement_read_result.recordLastReadStatus(/* is_success= */ false);
 
   // Record an absurd amount of failures so we hit the maximum backoff duration.
@@ -151,11 +135,11 @@ TEST(AdvertisementReadResultTest, ReportStatusExponentialBackoffMax) {
   absl::SleepFor(kAdvertisementMaxBackoffDuration);
 
   ASSERT_EQ(advertisement_read_result.evaluateRetryStatus(),
-            AdvertisementReadResult<SamplePlatform>::RetryStatus::RETRY);
+            AdvertisementReadResult<TestPlatform>::RetryStatus::RETRY);
 }
 
 TEST(AdvertisementReadResultTest, GetDurationSinceRead) {
-  AdvertisementReadResult<SamplePlatform> advertisement_read_result;
+  AdvertisementReadResult<TestPlatform> advertisement_read_result;
   advertisement_read_result.recordLastReadStatus(/* is_success= */ true);
 
   std::int64_t sleepTime = 420;

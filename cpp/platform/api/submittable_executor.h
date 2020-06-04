@@ -15,37 +15,40 @@
 #ifndef PLATFORM_API_SUBMITTABLE_EXECUTOR_H_
 #define PLATFORM_API_SUBMITTABLE_EXECUTOR_H_
 
+#include <functional>
+
 #include "platform/api/executor.h"
 #include "platform/api/future.h"
-#include "platform/callable.h"
-#include "platform/port/down_cast.h"
-#include "platform/ptr.h"
+#include "platform/api/platform.h"
+#include "platform/api/settable_future.h"
+#include "platform/api/submittable_executor_def.h"
+#include "platform/exception.h"
 
 namespace location {
 namespace nearby {
 
-// Each per-platform concrete implementation is expected to extend from
-// SubmittableExecutor and provide an override of its submit() method.
-//
-// e.g.
-// class IOSSubmittableExecutor
-//                      : public SubmittableExecutor<IOSSubmittableExecutor> {
-//  public:
-//   template <typename T>
-//   Ptr<Future<T> > submit(Ptr<Callable<T> > callable) {
-//     ...
-//   }
-// }
-template <typename ConcreteSubmittableExecutor>
-class SubmittableExecutor : public Executor {
- public:
-  ~SubmittableExecutor() override {}
-
-  template <typename T>
-  Ptr<Future<T>> submit(Ptr<Callable<T>> callable) {
-    return DOWN_CAST<ConcreteSubmittableExecutor*>(this)->submit(callable);
+// "Common" part of implementation.
+// Placed here for textual compatibility to minimize scope of changes.
+// Can be (and should be) moved to a separate file outside "api" folder.
+// TODO(apolyudov): for API v2.0
+template <typename T>
+Ptr<Future<T>> SubmittableExecutor::submit(Ptr<Callable<T>> callable) {
+  using Platform = platform::ImplementationPlatform;
+  Ptr<SettableFuture<T>> future{Platform::createSettableFuture<T>()};
+  bool submitted = DoSubmit([callable, future]() {
+    ExceptionOr<T> result = callable->call();
+    if (result.ok()) {
+      future->set(std::move(result.result()));
+    } else {
+      future->setException({result.exception()});
+    }
+  });
+  if (!submitted) {
+    // Raise Exception::kExecution if we are shutting down.
+    future->setException({Exception::kExecution});
   }
-};
+  return future;
+}
 
 }  // namespace nearby
 }  // namespace location

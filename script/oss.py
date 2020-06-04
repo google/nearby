@@ -76,7 +76,9 @@ def copy_files_to_oss_project(src_root, dst_root):
   shutil.rmtree(dst_root + "/proto", ignore_errors=True)
   shutil.copytree(src_root + "/proto", dst_root + "/proto/")
   shutil.copytree(src_root + "/cpp/platform/", dst_root + "/cpp/platform/")
+  shutil.copytree(src_root + "/cpp/platform_v2/", dst_root + "/cpp/platform_v2/")
   shutil.copytree(src_root + "/connections/core/", dst_root + "/cpp/core/")
+  shutil.copytree(src_root + "/connections/core_v2/", dst_root + "/cpp/core_v2/")
   shutil.copytree(src_root + "/connections/proto/", dst_root + "/proto/connections/")
 
 def detect_file_copy_header_options(fname, lines):
@@ -101,8 +103,13 @@ def post_process_oss_files(path, args):
   else:
     top_dirs = ["cpp", "proto"]
   transforms = (
+    ("::google3_proto_compat::MessageLite", "::google::protobuf::MessageLite"),
+    ("third_party/webrtc/files/stable/", ""),
+    ("webrtc/files/stable/", ""),
     ("third_party/", ""),
+    ("location/nearby/connections/core_v2", "core_v2"),
     ("location/nearby/connections/core", "core"),
+    ("location/nearby/cpp/platform_v2", "platform_v2"),
     ("location/nearby/cpp/platform", "platform"),
     ("security/cryptauth/lib/securegcm", "securegcm"),
     ("testing/base/public/gmock.h", "gmock/gmock.h"),
@@ -116,6 +123,7 @@ def post_process_oss_files(path, args):
     ("_portable_proto.pb.h", ".pb.h"),
     (".proto.h", ".pb.h"),
   )
+
   for root, dirs, files in os.walk(path):
     if top_level and top_dirs:
       # we must convert cpp/ and proto/ subtrees.
@@ -134,6 +142,8 @@ def post_process_oss_files(path, args):
       lines=[]
       google3_ignore = False
       with open(fname, "r") as f:
+        add_proto_lite_runtime = args.proto_lite_runtime and fname.endswith(".proto")
+
         for line in f:
           orig = line
 
@@ -158,6 +168,14 @@ def post_process_oss_files(path, args):
             if google3_ignore:
               modified = True
               continue
+
+          if add_proto_lite_runtime and line.startswith("option "):
+            if not line.startswith("option optimize_for = LITE_RUNTIME"):
+              lines.append("option optimize_for = LITE_RUNTIME;\n")
+              modified = True
+            # LITE_RUNTIME should be added only once per file.
+            add_proto_lite_runtime = False
+
           lines.append(line)
 
       if args.fix_oss_headers:
@@ -167,6 +185,7 @@ def post_process_oss_files(path, args):
             prefix, offset = options
             lines = add_copyright(lines, prefix, offset)
             modified = True
+
       if modified:
         with open(fname, "w") as f:
           for line in lines:
@@ -187,6 +206,7 @@ def main():
   parser.add_argument('--no-copy', action='store_true', default=False)
   parser.add_argument('--no-subst', action='store_true', default=False)
   parser.add_argument('--no-recurse', action='store_true', default=False)
+  parser.add_argument('--proto-lite-runtime', action='store_true', default=False)
   args = parser.parse_args()
   if args.google3_filter:
     print("google3-specific code will be removed")

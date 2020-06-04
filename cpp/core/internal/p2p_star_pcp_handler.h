@@ -41,11 +41,10 @@ namespace connections {
 template <typename Platform>
 class P2PStarPCPHandler : public P2PClusterPCPHandler<Platform> {
  public:
-  P2PStarPCPHandler(
-      Ptr<MediumManager<Platform> > medium_manager,
-      Ptr<EndpointManager<Platform> > endpoint_manager,
-      Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager,
-      Ptr<BandwidthUpgradeManager<Platform> > bandwidth_upgrade_manager);
+  P2PStarPCPHandler(Ptr<MediumManager<Platform> > medium_manager,
+                    Ptr<EndpointManager<Platform> > endpoint_manager,
+                    Ptr<EndpointChannelManager> endpoint_channel_manager,
+                    Ptr<BandwidthUpgradeManager> bandwidth_upgrade_manager);
   ~P2PStarPCPHandler() override;
 
   Strategy getStrategy() override;

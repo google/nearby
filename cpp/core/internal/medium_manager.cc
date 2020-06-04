@@ -24,13 +24,15 @@ template <typename Platform>
 MediumManager<Platform>::MediumManager()
     : mediums_(new Mediums<Platform>()),
       bluetooth_classic_lock_(Platform::createLock()),
-      ble_lock_(Platform::createLock()) {}
+      ble_lock_(Platform::createLock()),
+      wifi_lan_lock_(Platform::createLock()) {}
 
 template <typename Platform>
 MediumManager<Platform>::~MediumManager() {
   // TODO(reznor): log.atDebug().log("Initiating shutdown of MediumManager.");
   Synchronized s1(bluetooth_classic_lock_.get());
   Synchronized s2(ble_lock_.get());
+  Synchronized s3(wifi_lan_lock_.get());
 
   mediums_.destroy();
   // TODO(reznor): log.atDebug().log("MediumManager has shut down.");
@@ -368,6 +370,131 @@ Ptr<BLESocket> MediumManager<Platform>::connectToBlePeripheral(
 #else
   return mediums_->ble()->connect(ble_peripheral, service_id);
 #endif
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~ WIFILAN ~~~~~~~~~~~~~~~~~~~~~~~~
+template <typename Platform>
+bool MediumManager<Platform>::IsWifiLanAvailable() {
+  Synchronized s(wifi_lan_lock_.get());
+
+  return mediums_->wifi_lan()->IsAvailable();
+}
+
+template <typename Platform>
+bool MediumManager<Platform>::StartWifiLanAdvertising(
+    absl::string_view service_id, absl::string_view service_info_name) {
+  Synchronized s(wifi_lan_lock_.get());
+
+  return mediums_->wifi_lan()->StartAdvertising(service_id, service_info_name);
+}
+
+template <typename Platform>
+void MediumManager<Platform>::StopWifiLanAdvertising(
+    absl::string_view service_id) {
+  Synchronized s(wifi_lan_lock_.get());
+
+  mediums_->wifi_lan()->StopAdvertising(service_id);
+}
+
+template <typename Platform>
+class DiscoveredServiceCallback : public mediums::DiscoveredServiceCallback {
+ public:
+  typedef typename MediumManager<Platform>::FoundWifiLanServiceProcessor
+      FoundWifiLanServiceProcessor;
+
+  explicit DiscoveredServiceCallback(
+      Ptr<FoundWifiLanServiceProcessor> found_wifi_lan_service_processor)
+      : found_wifi_lan_service_processor_(found_wifi_lan_service_processor) {}
+
+  void OnServiceDiscovered(Ptr<WifiLanService> wifi_lan_service) override {
+    found_wifi_lan_service_processor_->OnFoundWifiLanService(wifi_lan_service);
+  }
+
+  void OnServiceLost(Ptr<WifiLanService> wifi_lan_service) override {
+    found_wifi_lan_service_processor_->OnLostWifiLanService(wifi_lan_service);
+  }
+
+ private:
+  ScopedPtr<Ptr<FoundWifiLanServiceProcessor> >
+      found_wifi_lan_service_processor_;
+};
+
+template <typename Platform>
+bool MediumManager<Platform>::StartWifiLanDiscovery(
+    absl::string_view service_id,
+    Ptr<FoundWifiLanServiceProcessor> found_wifi_lan_service_processor) {
+  Synchronized s(wifi_lan_lock_.get());
+
+  return mediums_->wifi_lan()->StartDiscovery(
+      service_id, MakePtr(new DiscoveredServiceCallback<Platform>(
+                      found_wifi_lan_service_processor)));
+}
+
+template <typename Platform>
+void MediumManager<Platform>::StopWifiLanDiscovery(
+    absl::string_view service_id) {
+  Synchronized s(wifi_lan_lock_.get());
+
+  mediums_->wifi_lan()->StopDiscovery(service_id);
+}
+
+template <typename Platform>
+class WifiLanAcceptedConnectionCallback
+    : public mediums::WifiLan<Platform>::AcceptedConnectionCallback {
+ public:
+  typedef typename MediumManager<Platform>::IncomingWifiLanConnectionProcessor
+      IncomingWifiLanConnectionProcessor;
+
+  explicit WifiLanAcceptedConnectionCallback(
+      Ptr<IncomingWifiLanConnectionProcessor>
+          incoming_wifi_lan_connection_processor)
+      : incoming_wifi_lan_connection_processor_(
+            incoming_wifi_lan_connection_processor) {}
+
+  void OnConnectionAccepted(Ptr<WifiLanSocket> socket,
+                            absl::string_view service_id) override {
+    incoming_wifi_lan_connection_processor_->OnIncomingWifiLanConnection(
+        socket);
+  }
+
+ private:
+  ScopedPtr<Ptr<IncomingWifiLanConnectionProcessor> >
+      incoming_wifi_lan_connection_processor_;
+};
+
+template <typename Platform>
+bool MediumManager<Platform>::IsListeningForIncomingWifiLanConnections(
+    absl::string_view service_id) {
+  Synchronized s(wifi_lan_lock_.get());
+
+  return mediums_->wifi_lan()->IsAcceptingConnections(service_id);
+}
+
+template <typename Platform>
+bool MediumManager<Platform>::StartListeningForIncomingWifiLanConnections(
+    absl::string_view service_id, Ptr<IncomingWifiLanConnectionProcessor>
+                                  incoming_wifi_lan_connection_processor) {
+  Synchronized s(wifi_lan_lock_.get());
+
+  return mediums_->wifi_lan()->StartAcceptingConnections(
+      service_id, MakePtr(new WifiLanAcceptedConnectionCallback<Platform>(
+                      incoming_wifi_lan_connection_processor)));
+}
+
+template <typename Platform>
+void MediumManager<Platform>::StopListeningForIncomingWifiLanConnections(
+    absl::string_view service_id) {
+  Synchronized s(wifi_lan_lock_.get());
+
+  mediums_->wifi_lan()->StopAcceptingConnections(service_id);
+}
+
+template <typename Platform>
+Ptr<WifiLanSocket> MediumManager<Platform>::ConnectToWifiLanService(
+    Ptr<WifiLanService> wifi_lan_service, absl::string_view service_id) {
+  Synchronized s(wifi_lan_lock_.get());
+
+  return mediums_->wifi_lan()->Connect(wifi_lan_service, service_id);
 }
 
 }  // namespace connections

@@ -83,10 +83,9 @@ class BasePCPHandler
       public EndpointManager<Platform>::IncomingOfflineFrameProcessor {
  public:
   // TODO(tracyzhou): Add SecureRandom.
-  BasePCPHandler(
-      Ptr<EndpointManager<Platform> > endpoint_manager,
-      Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager,
-      Ptr<BandwidthUpgradeManager<Platform> > bandwidth_upgrade_manager);
+  BasePCPHandler(Ptr<EndpointManager<Platform> > endpoint_manager,
+                 Ptr<EndpointChannelManager> endpoint_channel_manager,
+                 Ptr<BandwidthUpgradeManager> bandwidth_upgrade_manager);
   ~BasePCPHandler() override;
 
   // We have been asked by the client to start advertising. Once we successfully
@@ -253,8 +252,8 @@ class BasePCPHandler
   virtual proto::connections::Medium getDefaultUpgradeMedium() = 0;
 
   Ptr<EndpointManager<Platform> > endpoint_manager_;
-  Ptr<EndpointChannelManager<Platform> > endpoint_channel_manager_;
-  Ptr<BandwidthUpgradeManager<Platform> > bandwidth_upgrade_manager_;
+  Ptr<EndpointChannelManager> endpoint_channel_manager_;
+  Ptr<BandwidthUpgradeManager> bandwidth_upgrade_manager_;
 
  private:
   template <typename>
@@ -487,7 +486,7 @@ class BasePCPHandler
   // reading the message (in which case, this alarm should be cancelled as it's
   // no longer needed), but this alarm is the fallback in case that doesn't
   // happen.
-  typedef std::map<string, Ptr<CancelableAlarm<Platform> > >
+  typedef std::map<string, Ptr<CancelableAlarm> >
       PendingRejectedConnectionCloseAlarmsMap;
   PendingRejectedConnectionCloseAlarmsMap
       pending_rejected_connection_close_alarms_;

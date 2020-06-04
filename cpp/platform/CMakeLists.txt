@@ -13,17 +13,18 @@
 # limitations under the License.
 
 add_library(platform_utils STATIC
-  base64_utils.cc
-  file_impl.cc
-  prng.cc
-  reliability_utils.cc
 )
 
 target_sources(platform_utils
+  PRIVATE
+    base64_utils.cc
+    cancelable_alarm.cc
+    pipe.cc
+    prng.cc
+    reliability_utils.cc
   PUBLIC
     base64_utils.h
     cancelable_alarm.h
-    file_impl.h
     pipe.h
     prng.h
     reliability_utils.h
@@ -32,8 +33,11 @@ target_sources(platform_utils
 
 target_link_libraries(platform_utils
   PUBLIC
-    platform_types
     platform_api
+    platform_types
+    platform_impl_g3
+    platform_impl_shared_posix_lock
+    platform_impl_shared_posix_condition_variable
     absl::strings
 )
 
@@ -61,7 +65,6 @@ add_executable(platform_test
   byte_array_test.cc
   container_of_test.cc
   exception_test.cc
-  file_impl_test.cc
   pipe_test.cc
   prng_test.cc
   ptr_test.cc
@@ -76,8 +79,7 @@ target_link_libraries(platform_test
     gtest
     gtest_main
     platform_api
-    platform_impl_default_cond_var
-    platform_impl_default_lock
+    platform_impl_g3
     platform_types
     platform_utils
 )
@@ -88,7 +90,6 @@ add_test(
 )
 
 add_subdirectory(api)
-add_subdirectory(api2)
-add_subdirectory(impl/sample)
-add_subdirectory(impl/default)
+add_subdirectory(impl/g3)
+add_subdirectory(impl/shared)
 add_subdirectory(port)

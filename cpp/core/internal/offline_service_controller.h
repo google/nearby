@@ -82,11 +82,10 @@ class OfflineServiceController : public ServiceController<Platform> {
   // on the destructors running (strictly) in the reverse order; a deviation
   // from that will lead to crashes at runtime.
   ScopedPtr<Ptr<MediumManager<Platform> > > medium_manager_;
-  ScopedPtr<Ptr<EndpointChannelManager<Platform> > > endpoint_channel_manager_;
+  ScopedPtr<Ptr<EndpointChannelManager>> endpoint_channel_manager_;
   ScopedPtr<Ptr<EndpointManager<Platform> > > endpoint_manager_;
   ScopedPtr<Ptr<PayloadManager<Platform> > > payload_manager_;
-  ScopedPtr<Ptr<BandwidthUpgradeManager<Platform> > >
-      bandwidth_upgrade_manager_;
+  ScopedPtr<Ptr<BandwidthUpgradeManager>> bandwidth_upgrade_manager_;
   ScopedPtr<Ptr<PCPManager<Platform> > > pcp_manager_;
 };
 

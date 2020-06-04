@@ -51,7 +51,7 @@ class ByteArray {
     data_.assign(size, value);
   }
 
-  char* getData() { return data_.data(); }
+  char* getData() { return &data_[0]; }
   const char* getData() const { return data_.data(); }
   size_t size() const { return data_.size(); }
 

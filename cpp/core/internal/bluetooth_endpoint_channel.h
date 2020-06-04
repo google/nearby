@@ -18,6 +18,7 @@
 #include "core/internal/base_endpoint_channel.h"
 #include "core/internal/medium_manager.h"
 #include "platform/api/bluetooth_classic.h"
+#include "platform/api/platform.h"
 #include "platform/port/string.h"
 #include "platform/ptr.h"
 #include "proto/connections_enums.pb.h"
@@ -26,13 +27,14 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-template <typename Platform>
-class BluetoothEndpointChannel : public BaseEndpointChannel<Platform> {
+class BluetoothEndpointChannel : public BaseEndpointChannel {
  public:
-  static Ptr<BluetoothEndpointChannel<Platform> > createOutgoing(
+  using Platform = platform::ImplementationPlatform;
+
+  static Ptr<BluetoothEndpointChannel> createOutgoing(
       Ptr<MediumManager<Platform> > medium_manager, const string& channel_name,
       Ptr<BluetoothSocket> bluetooth_socket);
-  static Ptr<BluetoothEndpointChannel<Platform> > createIncoming(
+  static Ptr<BluetoothEndpointChannel> createIncoming(
       Ptr<MediumManager<Platform> > medium_manager, const string& channel_name,
       Ptr<BluetoothSocket> bluetooth_socket);
 
@@ -53,7 +55,5 @@ class BluetoothEndpointChannel : public BaseEndpointChannel<Platform> {
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-#include "core/internal/bluetooth_endpoint_channel.cc"
 
 #endif  // CORE_INTERNAL_BLUETOOTH_ENDPOINT_CHANNEL_H_

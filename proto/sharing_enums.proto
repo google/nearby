@@ -16,6 +16,7 @@ syntax = "proto2";
 
 package location.nearby.proto.sharing;
 
+option optimize_for = LITE_RUNTIME;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "SharingEnums";
 option objc_class_prefix = "GNSHP";
@@ -118,6 +119,21 @@ enum EventType {
 
   // Set data usage preference.
   SET_DATA_USAGE = 28;
+
+  // Receiver dismisses a fast initialization
+  DISMISS_FAST_INITIALIZATION = 29;
+
+  // Cancel connection.
+  CANCEL_CONNECTION = 30;
+}
+
+// Event category to differentiate whether this comes from sender or receiver,
+// whether this is for communication flow, or for settings.
+enum EventCategory {
+  UNKNOWN_EVENT_CATEGORY = 0;
+  SENDING_EVENT = 1;
+  RECEIVING_EVENT = 2;
+  SETTINGS_EVENT = 3;
 }
 
 // Status of nearby sharing.
@@ -218,6 +234,8 @@ enum LogSource {
   // Represents the OEM partners (like Samsung) that we're working with to
   // verify functionality on their devices.
   OEM_DEVICES = 4;
+  // Represents the device for debugging.
+  DEBUG_DEVICES = 5;
 }
 
 // The Fast Share server action name.
@@ -244,6 +262,7 @@ enum ServerResponseState {
   SERVER_RESPONSE_STATUS_PERMISSION_DENIED = 5;
   SERVER_RESPONSE_STATUS_UNAVAILABLE = 6;
   SERVER_RESPONSE_STATUS_UNAUTHENTICATED = 7;
+  SERVER_RESPONSE_STATUS_INVALID_ARGUMENT = 9;
 
   // For GoogleAuthException.
   SERVER_RESPONSE_GOOGLE_AUTH_FAILURE = 8;

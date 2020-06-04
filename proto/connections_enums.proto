@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 syntax = "proto2";
 
 package location.nearby.proto.connections;
 
+option optimize_for = LITE_RUNTIME;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "ConnectionsEnums";
 option objc_class_prefix = "GNCP";
