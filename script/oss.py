@@ -17,6 +17,7 @@
 
 import argparse
 import os
+import re
 import shutil
 import sys
 
@@ -34,6 +35,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.""".split("\n")
 
+headline_match=".*Copyright [0-9,\- ]+ Google.*"
+
 MISSING = 0
 HEADLINE = 1
 PARTIAL = 2
@@ -41,20 +44,24 @@ FULL = 3
 
 def has_copyright(lines, max_lookup=3):
   pos = 0
+  result = MISSING
+  headline = re.compile(headline_match)
   for line in lines:
     pos += 1 # points to the next line
-    if line.find(copy_header[0]) >= 0:
+    if headline.match(line) != None:
+      result = HEADLINE
       break
     if pos > max_lookup:
-      return MISSING
-
-  result = HEADLINE
+      return result
 
   for line in copy_header[1:]:
+    if pos >= len(lines):
+      return result
     if lines[pos].find(line) < 0:
       return result
     else:
       result = PARTIAL
+      pos += 1
 
   return FULL
 
