@@ -1,20 +1,9 @@
-// nearby:google3-begin
-// Any changes in this file maybe cause the unmapped result in the PLX tables.
-// Please remember to update the table schemas:
-//   1. Check your changes are rolled out in the MPM.
-//      https://mpmbrowse.corp.google.com/package/location/nearby/lingo
-//   2. Check the new lingo job is scheduled and completed.
-//      https://borgcron-dashboard.corp.google.com/#user=social-copresence-batch
-//   3. Runs PLX script to update schema.
-//      https://plx.corp.google.com/scripts2/script_e1._9eb6f3_e3cd_419b_b483_c1e42abc824a
-//
-//   Or you can wait one or two days then run the above Step3. dircetly.
-// nearby:google3-end
 
 syntax = "proto2";
 
 package location.nearby.proto.connections;
 
+option optimize_for = LITE_RUNTIME;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "ConnectionsEnums";
 option objc_class_prefix = "GNCP";

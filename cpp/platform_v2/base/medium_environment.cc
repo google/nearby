@@ -21,8 +21,23 @@ MediumEnvironment& MediumEnvironment::Instance() {
   return *env;
 }
 
+void MediumEnvironment::Start() {
+  if (!enabled_.exchange(true)) {
+    NEARBY_LOG(INFO, "MediumEnvironment::Start()");
+    Reset();
+  }
+}
+
+void MediumEnvironment::Stop() {
+  if (enabled_.exchange(false)) {
+    NEARBY_LOG(INFO, "MediumEnvironment::Stop()");
+    Sync(false);
+  }
+}
+
 void MediumEnvironment::Reset() {
   RunOnMediumEnvironmentThread([this]() {
+    NEARBY_LOG(INFO, "MediumEnvironment::Reset()");
     bluetooth_adapters_.clear();
     bluetooth_mediums_.clear();
   });
@@ -31,6 +46,7 @@ void MediumEnvironment::Reset() {
 
 void MediumEnvironment::Sync(bool enable_notifications) {
   enable_notifications_ = enable_notifications;
+  NEARBY_LOG(INFO, "MediumEnvironment::sync(%d)", enable_notifications);
   int count = 0;
   do {
     CountDownLatch latch(1);
@@ -50,6 +66,7 @@ void MediumEnvironment::Sync(bool enable_notifications) {
 void MediumEnvironment::OnBluetoothAdapterChangedState(
     api::BluetoothAdapter& adapter, api::BluetoothDevice& adapter_device,
     std::string name, bool enabled, api::BluetoothAdapter::ScanMode mode) {
+  if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &adapter, &adapter_device,
                                 name = std::move(name), enabled, mode]() {
     NEARBY_LOG(INFO,
@@ -74,6 +91,7 @@ void MediumEnvironment::OnDeviceStateChanged(
     BluetoothMediumContext& info, api::BluetoothDevice& device,
     const std::string& name, api::BluetoothAdapter::ScanMode mode,
     bool enabled) {
+  if (!enabled_) return;
   auto item = info.devices.find(&device);
   if (item == info.devices.end()) {
     NEARBY_LOG(
@@ -136,6 +154,7 @@ void MediumEnvironment::RunOnMediumEnvironmentThread(
 void MediumEnvironment::RegisterBluetoothMedium(
     api::BluetoothClassicMedium& medium,
     api::BluetoothAdapter& medium_adapter) {
+  if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium, &medium_adapter]() {
     auto& context = bluetooth_mediums_
                         .insert({&medium,
@@ -156,6 +175,7 @@ void MediumEnvironment::RegisterBluetoothMedium(
 
 void MediumEnvironment::UpdateBluetoothMedium(
     api::BluetoothClassicMedium& medium, BluetoothDiscoveryCallback callback) {
+  if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium,
                                 callback = std::move(callback)]() {
     auto item = bluetooth_mediums_.find(&medium);
@@ -178,6 +198,7 @@ void MediumEnvironment::UpdateBluetoothMedium(
 
 void MediumEnvironment::UnregisterBluetoothMedium(
     api::BluetoothClassicMedium& medium) {
+  if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium]() {
     auto item = bluetooth_mediums_.extract(&medium);
     if (item.empty()) return;

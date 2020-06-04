@@ -14,7 +14,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-./oss.py --all --google3-filter --no-subst --fix-oss-headers ../cmake
-./oss.py --all --no-subst --fix-oss-headers .
-./oss.py --all --google3-filter --no-subst --fix-oss-headers --no-recurse ..
-./oss.py --google3-filter --fix-oss-headers --proto-lite-runtime ..
+./oss.py --google3-filter --proto-lite-runtime ..

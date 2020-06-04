@@ -442,17 +442,6 @@ class HandleSuccessfulOutgoingChunkRunnable : public Runnable {
       return;
     }
 
-    // nearby:google3-begin
-    // TODO(reznor): The fact that we've sent total_size bytes (which we will
-    // always know 1 frame before we get the SUCCESS frame), also tells us this
-    // is the last chunk - should we add those smarts, or just be simple and
-    // always have the last IN_PROGRESS have the same numbers as the following
-    // SUCCESS? I prefer the simplicity, but it'll look stupid if we send all
-    // the bytes and then remain hanging because the remote device disconnected
-    // at just that point, so at least consider injecting the smarts.
-    // TODO(reznor): Should we check whether payload_header.total_size ==
-    // payload_chunk.offset?
-    // nearby:google3-end
     bool is_last_chunk = (payload_chunk_flags_ &
                           PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
     PayloadTransferUpdate update(
@@ -516,16 +505,6 @@ class HandleSuccessfulIncomingChunkRunnable : public Runnable {
       return;
     }
 
-    // nearby:google3-begin
-    // TODO(reznor): The fact that we've received total_size bytes (which we
-    // will always know 1 frame before we get the SUCCESS frame), also tells us
-    // this is the last chunk - should we add those smarts, or just be simple
-    // and always have the last IN_PROGRESS have the same numbers as the
-    // following SUCCESS? I prefer the simplicity, but it'll look stupid if we
-    // get all the bytes and then remain hanging because the remote device
-    // disconnected at just that point, so at least consider injecting the
-    // smarts.
-    // nearby:google3-end
     bool is_last_chunk = (payload_chunk_flags_ &
                           PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
     PayloadTransferUpdate update(

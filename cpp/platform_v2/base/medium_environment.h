@@ -27,6 +27,16 @@ class MediumEnvironment {
   // Creates and returns a reference to the global test environment instance.
   static MediumEnvironment& Instance();
 
+  // Global ON/OFF switch for medium environment.
+  // Start & Stop work as On/Off switch for this object.
+  // Default state (after creation) is ON, to make it compatible with early
+  // tests that are already using it and relying on it being ON.
+
+  // Enables Medium environment.
+  void Start();
+  // Disables Medium environment.
+  void Stop();
+
   // Clears state. No notifications are sent.
   void Reset();
 
@@ -95,6 +105,7 @@ class MediumEnvironment {
                             api::BluetoothAdapter::ScanMode mode, bool enabled);
   void RunOnMediumEnvironmentThread(std::function<void()> runnable);
 
+  std::atomic_bool enabled_ = true;
   std::atomic_int job_count_ = 0;
   std::atomic_bool enable_notifications_ = false;
   SingleThreadExecutor executor_;

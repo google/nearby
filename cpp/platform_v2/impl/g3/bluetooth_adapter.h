@@ -70,9 +70,13 @@ class BluetoothAdapter : public api::BluetoothAdapter {
 
   BluetoothDevice& GetDevice() { return device_; }
 
+  void SetMedium(api::BluetoothClassicMedium* medium);
+  api::BluetoothClassicMedium* GetMedium() { return medium_; }
+
  private:
   mutable absl::Mutex mutex_;
   BluetoothDevice device_{this};
+  api::BluetoothClassicMedium* medium_ = nullptr;
   ScanMode mode_ ABSL_GUARDED_BY(mutex_) = ScanMode::kNone;
   std::string name_ ABSL_GUARDED_BY(mutex_) = "unknown G3 BT device";
   bool enabled_ ABSL_GUARDED_BY(mutex_) = false;
