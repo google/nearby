@@ -1,6 +1,6 @@
 [submodule "third_party/ukey2"]
 	path = third_party/ukey2
-	url = sso://team/nearby-eng/ukey2
+	url = https://github.com/google/ukey2
 	branch = master
 [submodule "third_party/protobuf"]
 	path = third_party/protobuf
