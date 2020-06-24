@@ -9,6 +9,7 @@
 #include "core_v2/status.h"
 #include "core_v2/strategy.h"
 #include "platform_v2/base/byte_array.h"
+#include "platform_v2/base/prng.h"
 #include "platform_v2/public/mutex.h"
 #include "proto/connections_enums.pb.h"
 // Prefer using absl:: versions of a set and a map; they tend to be more
@@ -187,6 +188,7 @@ class ClientProxy final {
 
   mutable RecursiveMutex mutex_;
   std::int64_t client_id_;
+  Prng prng_;
 
   // If not empty, we are currently advertising and accepting connection
   // requests for the given service_id.

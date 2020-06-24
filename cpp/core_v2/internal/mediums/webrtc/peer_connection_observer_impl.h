@@ -17,8 +17,7 @@ class PeerConnectionObserverImpl : public webrtc::PeerConnectionObserver {
   ~PeerConnectionObserverImpl() override = default;
   PeerConnectionObserverImpl(
       ConnectionFlow* connection_flow,
-      LocalIceCandidateListener local_ice_candidate_listener,
-      SingleThreadExecutor* executor);
+      LocalIceCandidateListener local_ice_candidate_listener);
 
   // webrtc::PeerConnectionObserver:
   void OnIceCandidate(const webrtc::IceCandidateInterface* candidate) override;
@@ -37,7 +36,7 @@ class PeerConnectionObserverImpl : public webrtc::PeerConnectionObserver {
 
   ConnectionFlow* connection_flow_;
   LocalIceCandidateListener local_ice_candidate_listener_;
-  SingleThreadExecutor* single_threaded_signaling_offloader_;
+  SingleThreadExecutor single_threaded_signaling_offloader_;
 };
 
 }  // namespace mediums

@@ -12,6 +12,10 @@ BluetoothClassic& Mediums::GetBluetoothClassic() {
   return bluetooth_classic_;
 }
 
+WifiLan& Mediums::GetWifiLan() {
+  return wifi_lan_;
+}
+
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location

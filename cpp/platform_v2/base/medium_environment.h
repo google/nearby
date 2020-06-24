@@ -5,9 +5,12 @@
 
 #include "platform_v2/api/bluetooth_adapter.h"
 #include "platform_v2/api/bluetooth_classic.h"
+#include "platform_v2/api/webrtc.h"
+#include "platform_v2/base/byte_array.h"
 #include "platform_v2/base/listeners.h"
 #include "platform_v2/public/single_thread_executor.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -21,6 +24,12 @@ class MediumEnvironment {
  public:
   using BluetoothDiscoveryCallback =
       api::BluetoothClassicMedium::DiscoveryCallback;
+  using OnSignalingMessageCallback =
+      api::WebRtcSignalingMessenger::OnSignalingMessageCallback;
+  using WifiLanDiscoveredServiceCallback =
+      api::WifiLanMedium::DiscoveredServiceCallback;
+  using WifiLanAcceptedConnectionCallback =
+      api::WifiLanMedium::AcceptedConnectionCallback;
   MediumEnvironment(const MediumEnvironment&) = delete;
   MediumEnvironment& operator=(const MediumEnvironment&) = delete;
 
@@ -84,12 +93,41 @@ class MediumEnvironment {
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterBluetoothMedium(api::BluetoothClassicMedium& medium);
 
+  // Registers |callback| to receive messages sent to device with id |self_id|.
+  void RegisterWebRtcSignalingMessenger(absl::string_view self_id,
+                                        OnSignalingMessageCallback callback);
+
+  // Unregisters the callback listening to incoming messages for |self_id|.
+  void UnregisterWebRtcSignalingMessenger(absl::string_view self_id);
+
+  // Simulates sending a signaling message |message| to device with id
+  // |peer_id|.
+  void SendWebRtcSignalingMessage(absl::string_view peer_id,
+                                  const ByteArray& message);
+  // Wifi-Lan medium registration/update calls.
+  void RegisterWifiLanMedium(api::WifiLanMedium& medium);
+  void UpdateWifiLanMediumForDiscovery(
+      api::WifiLanMedium& medium, api::WifiLanService& service,
+      const std::string& service_id,
+      WifiLanDiscoveredServiceCallback discovery_callback, bool enabled);
+  void UpdateWifiLanMediumForAcceptedConnection(
+      api::WifiLanMedium& medium, const std::string& service_id,
+      WifiLanAcceptedConnectionCallback accepted_connection_callback);
+  void UnregisterWifiLanMedium(api::WifiLanMedium& medium);
+
  private:
   struct BluetoothMediumContext {
     BluetoothDiscoveryCallback callback;
     api::BluetoothAdapter* adapter = nullptr;
     // discovered device vs device name map.
     absl::flat_hash_map<api::BluetoothDevice*, std::string> devices;
+  };
+
+  struct WifiLanMediumContext {
+    WifiLanDiscoveredServiceCallback discovery_callback;
+    WifiLanAcceptedConnectionCallback accepted_connection_callback;
+    // discovered service vs service name map.
+    absl::flat_hash_map<api::WifiLanService*, std::string> services;
   };
 
   // This is a singleton object, for which destructor will never be called.
@@ -99,10 +137,17 @@ class MediumEnvironment {
   MediumEnvironment() = default;
   ~MediumEnvironment() = default;
 
-  void OnDeviceStateChanged(BluetoothMediumContext& info,
-                            api::BluetoothDevice& device,
-                            const std::string& name,
-                            api::BluetoothAdapter::ScanMode mode, bool enabled);
+  void OnBluetoothDeviceStateChanged(BluetoothMediumContext& info,
+                                     api::BluetoothDevice& device,
+                                     const std::string& name,
+                                     api::BluetoothAdapter::ScanMode mode,
+                                     bool enabled);
+
+  void OnWifiLanServiceStateChanged(WifiLanMediumContext& info,
+                                    api::WifiLanService& service,
+                                    const std::string& service_id,
+                                    bool enabled);
+
   void RunOnMediumEnvironmentThread(std::function<void()> runnable);
 
   std::atomic_bool enabled_ = true;
@@ -116,6 +161,13 @@ class MediumEnvironment {
       bluetooth_adapters_;
   absl::flat_hash_map<api::BluetoothClassicMedium*, BluetoothMediumContext>
       bluetooth_mediums_;
+
+  // Maps peer id to callback for receiving signaling messages.
+  absl::flat_hash_map<std::string, OnSignalingMessageCallback>
+      webrtc_signaling_callback_;
+
+  absl::flat_hash_map<api::WifiLanMedium*, WifiLanMediumContext>
+      wifi_lan_mediums_;
 };
 
 }  // namespace nearby

@@ -25,14 +25,20 @@ ClientProxy::~ClientProxy() { Reset(); }
 std::int64_t ClientProxy::GetClientId() const { return client_id_; }
 
 std::string ClientProxy::GenerateLocalEndpointId() {
-  // 1) Concatenate the DeviceID with this ClientID.
+  // 1) Concatenate the Random 64-bit value with "client" string.
   // 2) Compute a hash of that concatenation.
   // 3) Base64-encode that hash, to make it human-readable.
-  // 4) Use only the first 4 bytes of that Base64 encoding.
-  ByteArray id_hash(Crypto::Sha256(
-      absl::StrCat(api::ImplementationPlatform::GetDeviceId(), GetClientId())));
+  // 4) Use only the first kEndpointIdLength bytes to make ID.
+  ByteArray id_hash = Crypto::Sha256(
+      absl::StrCat("client", prng_.NextInt64()));
 
-  return Base64Utils::Encode(id_hash).substr(0, kEndpointIdLength);
+  std::string id = Base64Utils::Encode(id_hash).substr(0, kEndpointIdLength);
+
+  NEARBY_LOG(
+      INFO, "ClientProxy [Local Endpoint Generated]: client=%p; endpoint_id=%s",
+      this, id.c_str());
+
+  return id;
 }
 
 void ClientProxy::Reset() {
@@ -113,9 +119,17 @@ void ClientProxy::OnEndpointFound(const std::string& service_id,
                                   proto::connections::Medium medium) {
   MutexLock lock(&mutex_);
 
-  if (!IsDiscoveringServiceId(service_id)) return;
+  NEARBY_LOG(INFO,
+             "ClientProxy [Endpoint Found]: [enter] id=%s; service=%s; name=%s",
+             endpoint_id.c_str(), service_id.c_str(), endpoint_name.c_str());
+  if (!IsDiscoveringServiceId(service_id)) {
+    NEARBY_LOG(INFO, "ClientProxy [Endpoint Found]: [no discovery] id=%s",
+               endpoint_id.c_str());
+    return;
+  }
   if (discovered_endpoint_ids_.count(endpoint_id)) {
-    // TODO(tracyzhou): Add logging.
+    NEARBY_LOG(INFO, "ClientProxy [Endpoint Found]: [duplicate] id=%s",
+               endpoint_id.c_str());
     return;
   }
   discovered_endpoint_ids_.insert(endpoint_id);
@@ -150,7 +164,11 @@ void ClientProxy::OnConnectionInitiated(const std::string& endpoint_id,
   // Instead of using structured binding which is nice, but banned
   // (can not use c++17 features, until chromium does) we unpack manually.
   auto& pair_iter = result.first;
-  bool& inserted = result.second;
+  bool inserted = result.second;
+  NEARBY_LOG(INFO,
+             "ClientProxy [Connection Initiated]: add Connection: client=%p, "
+             "id=%s; inserted=%d",
+             this, endpoint_id.c_str(), inserted);
   DCHECK(inserted);
   const Connection& item = pair_iter->second;
   // Notify the client.
@@ -164,7 +182,9 @@ void ClientProxy::OnConnectionAccepted(const std::string& endpoint_id) {
   MutexLock lock(&mutex_);
 
   if (!HasPendingConnectionToEndpoint(endpoint_id)) {
-    // TODO(tracyzhou): Add logging.
+    NEARBY_LOG(
+        INFO, "ClientProxy [Connection Accepted]: no pending connection; id=%s",
+        endpoint_id.c_str());
     return;
   }
 
@@ -181,8 +201,9 @@ void ClientProxy::OnConnectionRejected(const std::string& endpoint_id,
   MutexLock lock(&mutex_);
 
   if (!HasPendingConnectionToEndpoint(endpoint_id)) {
-    NEARBY_LOG(INFO, "ClientProxy [Rejected]: no pending connection; id=%s",
-               endpoint_id.c_str());
+    NEARBY_LOG(
+        INFO, "ClientProxy [Connection Rejected]: no pending connection; id=%s",
+        endpoint_id.c_str());
     return;
   }
 
@@ -311,7 +332,10 @@ void ClientProxy::LocalEndpointAcceptedConnection(
   MutexLock lock(&mutex_);
 
   if (HasLocalEndpointResponded(endpoint_id)) {
-    // TODO(tracyzhou): Add logging.
+    NEARBY_LOG(
+        INFO,
+        "ClientProxy [Local Accepted]: local endpoint has responded; id=%s",
+        endpoint_id.c_str());
     return;
   }
 
@@ -327,7 +351,10 @@ void ClientProxy::LocalEndpointRejectedConnection(
   MutexLock lock(&mutex_);
 
   if (HasLocalEndpointResponded(endpoint_id)) {
-    // TODO(tracyzhou): Add logging.
+    NEARBY_LOG(
+        INFO,
+        "ClientProxy [Local Rejected]: local endpoint has responded; id=%s",
+        endpoint_id.c_str());
     return;
   }
 
@@ -339,7 +366,10 @@ void ClientProxy::RemoteEndpointAcceptedConnection(
   MutexLock lock(&mutex_);
 
   if (HasRemoteEndpointResponded(endpoint_id)) {
-    // TODO(tracyzhou): Add logging.
+    NEARBY_LOG(
+        INFO,
+        "ClientProxy [Remote Accepted]: remote endpoint has responded; id=%s",
+        endpoint_id.c_str());
     return;
   }
 
@@ -351,7 +381,10 @@ void ClientProxy::RemoteEndpointRejectedConnection(
   MutexLock lock(&mutex_);
 
   if (HasRemoteEndpointResponded(endpoint_id)) {
-    // TODO(tracyzhou): Add logging.
+    NEARBY_LOG(
+        INFO,
+        "ClientProxy [Remote Rejected]: remote endpoint has responded; id=%s",
+        endpoint_id.c_str());
     return;
   }
 

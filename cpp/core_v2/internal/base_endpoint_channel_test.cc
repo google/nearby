@@ -27,6 +27,7 @@ namespace {
 
 using ::location::nearby::proto::connections::DisconnectionReason;
 using ::location::nearby::proto::connections::Medium;
+using EncryptionContext = BaseEndpointChannel::EncryptionContext;
 
 class TestEndpointChannel : public BaseEndpointChannel {
  public:
@@ -76,12 +77,12 @@ std::function<void(const ByteArray&)> MakeDataMonitor(const std::string& label,
   };
 }
 
-std::pair<std::unique_ptr<securegcm::D2DConnectionContextV1>,
-          std::unique_ptr<securegcm::D2DConnectionContextV1>>
+std::pair<std::shared_ptr<EncryptionContext>,
+          std::shared_ptr<EncryptionContext>>
 DoDhKeyExchange(BaseEndpointChannel* channel_a,
                 BaseEndpointChannel* channel_b) {
-  std::unique_ptr<securegcm::D2DConnectionContextV1> context_a;
-  std::unique_ptr<securegcm::D2DConnectionContextV1> context_b;
+  std::shared_ptr<EncryptionContext> context_a;
+  std::shared_ptr<EncryptionContext> context_b;
   EncryptionRunner crypto_a;
   EncryptionRunner crypto_b;
   ClientProxy proxy_a;
@@ -98,7 +99,7 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
                 NEARBY_LOG(INFO, "client-A side key negotiation done");
                 EXPECT_TRUE(ukey2->VerifyHandshake());
                 auto context = ukey2->ToConnectionContext();
-                EXPECT_NE (context, nullptr);
+                EXPECT_NE(context, nullptr);
                 context_a = std::move(context);
                 latch.CountDown();
               },
@@ -119,7 +120,7 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
                 NEARBY_LOG(INFO, "client-B side key negotiation done");
                 EXPECT_TRUE(ukey2->VerifyHandshake());
                 auto context = ukey2->ToConnectionContext();
-                EXPECT_NE (context, nullptr);
+                EXPECT_NE(context, nullptr);
                 context_b = std::move(context);
                 latch.CountDown();
               },
@@ -196,7 +197,7 @@ TEST(BaseEndpointChannelTest, NotEncryptedReadWriteCanBeIntercepted) {
     absl::MutexLock lock(&mutex);
     std::string message{tx_message};
     EXPECT_TRUE(capture_a.find(message) != std::string::npos ||
-               capture_b.find(message) != std::string::npos);
+                capture_b.find(message) != std::string::npos);
   }
 
   // Shutdown test environment.
@@ -239,8 +240,8 @@ TEST(BaseEndpointChannelTest, EncryptedReadWriteCanNotBeIntercepted) {
   auto [context_a, context_b] = DoDhKeyExchange(&channel_a, &channel_b);
   ASSERT_NE(context_a, nullptr);
   ASSERT_NE(context_b, nullptr);
-  channel_a.EnableEncryption(context_a.get());
-  channel_b.EnableEncryption(context_b.get());
+  channel_a.EnableEncryption(context_a);
+  channel_b.EnableEncryption(context_b);
 
   EXPECT_EQ(channel_a.GetType(), "ENCRYPTED_BLUETOOTH");
   EXPECT_EQ(channel_b.GetType(), "ENCRYPTED_BLUETOOTH");
@@ -292,26 +293,25 @@ TEST(BaseEndpointChannelTest, CanBesuspendedAndResumed) {
   // Pause and make sure reader blocks.
   MultiThreadExecutor pause_resume_executor(2);
   channel_a.Pause();
-  pause_resume_executor.Execute([&channel_a, &more_message](){
+  pause_resume_executor.Execute([&channel_a, &more_message]() {
     // Write will block until channel is resumed, or closed.
     EXPECT_TRUE(channel_a.Write(more_message).Ok());
   });
-  std::atomic_bool done = false;
+  CountDownLatch latch(1);
   ByteArray read_more;
-  pause_resume_executor.Execute([&channel_b, &read_more, &done](){
+  pause_resume_executor.Execute([&channel_b, &read_more, &latch]() {
     // Read will block until channel is resumed, or closed.
     auto response = channel_b.Read();
     EXPECT_TRUE(response.ok());
     read_more = std::move(response.result());
-    done = true;
+    latch.CountDown();
   });
   absl::SleepFor(absl::Milliseconds(500));
   EXPECT_TRUE(read_more.Empty());
 
   // Resume; verify that data transfer comepleted.
   channel_a.Resume();
-  absl::SleepFor(absl::Milliseconds(500));
-  EXPECT_TRUE(done);
+  EXPECT_TRUE(latch.Await(absl::Milliseconds(1000)).result());
   EXPECT_EQ(read_more, more_message);
 
   // Shutdown test environment.

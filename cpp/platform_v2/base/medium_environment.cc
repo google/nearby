@@ -7,6 +7,7 @@
 
 #include "platform_v2/api/bluetooth_adapter.h"
 #include "platform_v2/api/bluetooth_classic.h"
+#include "platform_v2/api/wifi_lan.h"
 #include "platform_v2/base/logging.h"
 #include "platform_v2/public/count_down_latch.h"
 
@@ -40,6 +41,7 @@ void MediumEnvironment::Reset() {
     NEARBY_LOG(INFO, "MediumEnvironment::Reset()");
     bluetooth_adapters_.clear();
     bluetooth_mediums_.clear();
+    wifi_lan_mediums_.clear();
   });
   Sync();
 }
@@ -77,7 +79,7 @@ void MediumEnvironment::OnBluetoothAdapterChangedState(
       if (info.adapter == &adapter) continue;
       NEARBY_LOG(INFO, "[adapter=%p, device=%p] notify: adapter=%p", &adapter,
                  &adapter_device, info.adapter);
-      OnDeviceStateChanged(info, adapter_device, name, mode, enabled);
+      OnBluetoothDeviceStateChanged(info, adapter_device, name, mode, enabled);
     }
     // We don't care if there is an adapter already since all we store is a
     // pointer. Pointer must remain valid for the duration of a Core session
@@ -87,16 +89,17 @@ void MediumEnvironment::OnBluetoothAdapterChangedState(
   });
 }
 
-void MediumEnvironment::OnDeviceStateChanged(
+void MediumEnvironment::OnBluetoothDeviceStateChanged(
     BluetoothMediumContext& info, api::BluetoothDevice& device,
     const std::string& name, api::BluetoothAdapter::ScanMode mode,
     bool enabled) {
   if (!enabled_) return;
   auto item = info.devices.find(&device);
   if (item == info.devices.end()) {
-    NEARBY_LOG(
-        INFO, "G3 OnDeviceStateChanged [device impl=%p]: new device; notify=%d",
-        &device, enable_notifications_.load());
+    NEARBY_LOG(INFO,
+               "G3 OnBluetoothDeviceStateChanged [device impl=%p]: new device; "
+               "notify=%d",
+               &device, enable_notifications_.load());
     if (mode == api::BluetoothAdapter::ScanMode::kConnectableDiscoverable &&
         enabled) {
       // New device is turned on, and is in discoverable state.
@@ -108,10 +111,10 @@ void MediumEnvironment::OnDeviceStateChanged(
       }
     }
   } else {
-    NEARBY_LOG(
-        INFO,
-        "G3 OnDeviceStateChanged [device impl=%p]: exisitng device; notify=%d",
-        &device, enable_notifications_.load());
+    NEARBY_LOG(INFO,
+               "G3 OnBluetoothDeviceStateChanged [device impl=%p]: exisitng "
+               "device; notify=%d",
+               &device, enable_notifications_.load());
     auto& discovered_name = item->second;
     if (mode == api::BluetoothAdapter::ScanMode::kConnectableDiscoverable &&
         enabled) {
@@ -145,6 +148,39 @@ void MediumEnvironment::OnDeviceStateChanged(
   }
 }
 
+void MediumEnvironment::OnWifiLanServiceStateChanged(
+    WifiLanMediumContext& info, api::WifiLanService& service,
+    const std::string& service_id, bool enabled) {
+  if (!enabled_) return;
+  auto item = info.services.find(&service);
+  if (item == info.services.end()) {
+    NEARBY_LOG(INFO,
+               "G3 OnWifiLanServiceStateChanged [service impl=%p]: new service",
+               &service);
+    info.services.emplace(&service, service.GetName());
+    if (enabled) {
+      RunOnMediumEnvironmentThread([&info, &service, service_id]() {
+        info.discovery_callback.service_discovered_cb(service, service_id);
+      });
+    }
+  } else {
+    NEARBY_LOG(INFO,
+               "G3 OnWifiLanServiceStateChanged [service impl=%p]: exisitng "
+               "service",
+               &service);
+    if (enabled) {
+      RunOnMediumEnvironmentThread([&info, &service, service_id]() {
+        info.discovery_callback.service_discovered_cb(service, service_id);
+      });
+    } else {
+      RunOnMediumEnvironmentThread([&info, &service, service_id]() {
+        info.discovery_callback.service_lost_cb(service, service_id);
+      });
+      info.services.erase(item);
+    }
+  }
+}
+
 void MediumEnvironment::RunOnMediumEnvironmentThread(
     std::function<void()> runnable) {
   job_count_++;
@@ -167,8 +203,9 @@ void MediumEnvironment::RegisterBluetoothMedium(
                owned_adapter);
     for (auto& [adapter, device] : bluetooth_adapters_) {
       if (adapter == nullptr) continue;
-      OnDeviceStateChanged(context, *device, adapter->GetName(),
-                           adapter->GetScanMode(), adapter->IsEnabled());
+      OnBluetoothDeviceStateChanged(context, *device, adapter->GetName(),
+                                    adapter->GetScanMode(),
+                                    adapter->IsEnabled());
     }
   });
 }
@@ -190,8 +227,9 @@ void MediumEnvironment::UpdateBluetoothMedium(
         owned_adapter->IsEnabled(), owned_adapter->GetScanMode());
     for (auto& [adapter, device] : bluetooth_adapters_) {
       if (adapter == nullptr) continue;
-      OnDeviceStateChanged(context, *device, adapter->GetName(),
-                           adapter->GetScanMode(), adapter->IsEnabled());
+      OnBluetoothDeviceStateChanged(context, *device, adapter->GetName(),
+                                    adapter->GetScanMode(),
+                                    adapter->IsEnabled());
     }
   });
 }
@@ -205,6 +243,101 @@ void MediumEnvironment::UnregisterBluetoothMedium(
     auto& context = item.mapped();
     NEARBY_LOG(INFO, "Unregistered medium for device=%s",
                context.adapter->GetName().c_str());
+  });
+}
+
+void MediumEnvironment::RegisterWebRtcSignalingMessenger(
+    absl::string_view self_id, OnSignalingMessageCallback callback) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread(
+      [this, self_id{std::string(self_id)}, callback{std::move(callback)}]() {
+        webrtc_signaling_callback_[self_id] = std::move(callback);
+        NEARBY_LOG(INFO, "Registered signaling message callback for id = %s",
+                   self_id.c_str());
+      });
+}
+
+void MediumEnvironment::UnregisterWebRtcSignalingMessenger(
+    absl::string_view self_id) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, self_id{std::string(self_id)}]() {
+    auto item = webrtc_signaling_callback_.extract(self_id);
+    if (item.empty()) return;
+    NEARBY_LOG(INFO, "Unregistered signaling message callback for id = %s",
+               self_id.c_str());
+  });
+}
+
+void MediumEnvironment::SendWebRtcSignalingMessage(absl::string_view peer_id,
+                                                   const ByteArray& message) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread(
+      [this, peer_id{std::string(peer_id)}, message]() {
+        auto item = webrtc_signaling_callback_.find(peer_id);
+        if (item == webrtc_signaling_callback_.end()) {
+          NEARBY_LOG(WARNING, "No callback registered for peer id = %s",
+                     peer_id.c_str());
+          return;
+        }
+
+        item->second(message);
+      });
+}
+
+void MediumEnvironment::RegisterWifiLanMedium(api::WifiLanMedium& medium) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium]() {
+    wifi_lan_mediums_.insert({&medium, WifiLanMediumContext{}});
+    NEARBY_LOG(INFO, "Registered: medium=%p", &medium);
+  });
+}
+
+void MediumEnvironment::UpdateWifiLanMediumForDiscovery(
+    api::WifiLanMedium& medium, api::WifiLanService& service,
+    const std::string& service_id, WifiLanDiscoveredServiceCallback callback,
+    bool enabled) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium, &service, service_id,
+                                callback = std::move(callback), enabled]() {
+    auto item = wifi_lan_mediums_.find(&medium);
+    if (item == wifi_lan_mediums_.end()) {
+      NEARBY_LOG(
+          INFO, "Update WifiLan medium failed. There is no medium registered.");
+      return;
+    }
+    auto& context = item->second;
+    context.discovery_callback = std::move(callback);
+    NEARBY_LOG(INFO, "Updated: this=%p; medium=%p", this, &medium);
+    OnWifiLanServiceStateChanged(context, service, service_id, enabled);
+  });
+}
+
+void MediumEnvironment::UpdateWifiLanMediumForAcceptedConnection(
+    api::WifiLanMedium& medium, const std::string& service_id,
+    WifiLanAcceptedConnectionCallback accepted_connection_callback) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium,
+                                accepted_connection_callback =
+                                    std::move(accepted_connection_callback)]() {
+    auto item = wifi_lan_mediums_.find(&medium);
+    if (item == wifi_lan_mediums_.end()) {
+      NEARBY_LOG(
+          INFO, "Update WifiLan medium failed. There is no medium registered.");
+      return;
+    }
+    auto& context = item->second;
+    context.accepted_connection_callback =
+        std::move(accepted_connection_callback);
+    NEARBY_LOG(INFO, "Updated: this=%p; medium=%p", this, &medium);
+  });
+}
+
+void MediumEnvironment::UnregisterWifiLanMedium(api::WifiLanMedium& medium) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium]() {
+    auto item = wifi_lan_mediums_.extract(&medium);
+    if (item.empty()) return;
+    NEARBY_LOG(INFO, "Unregistered WifiLan medium");
   });
 }
 

@@ -40,8 +40,7 @@ class FakeEndpointChannel : public EndpointChannel {
   std::string GetType() const override { return "fake-channel-type"; }
   std::string GetName() const override { return "fake-channel"; }
   Medium GetMedium() const override { return Medium::BLE; }
-  void EnableEncryption(
-      securegcm::D2DConnectionContextV1* connection_context) override {}
+  void EnableEncryption(std::shared_ptr<EncryptionContext> context) override {}
   bool IsPaused() const override { return false; }
   void Pause() override {}
   void Resume() override {}

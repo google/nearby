@@ -66,7 +66,6 @@ std::shared_ptr<EndpointChannel> EndpointChannelManager::GetChannelForEndpoint(
 void EndpointChannelManager::SetActiveEndpointChannel(
     ClientProxy* client, const std::string& endpoint_id,
     std::unique_ptr<EndpointChannel> channel) {
-
   // Update the channel first, then encrypt this new channel, if
   // crypto context is present.
   channel_state_.UpdateChannelForEndpoint(endpoint_id, std::move(channel));
@@ -75,18 +74,19 @@ void EndpointChannelManager::SetActiveEndpointChannel(
   if (endpoint->IsEncrypted()) channel_state_.EncryptChannel(endpoint);
 }
 
+///////////////////////////////// ChannelState /////////////////////////////////
+
 // endpoint - channel endpoint to encrypt
 bool EndpointChannelManager::ChannelState::EncryptChannel(
     EndpointChannelManager::ChannelState::EndpointData* endpoint) {
   if (endpoint != nullptr && endpoint->channel != nullptr &&
       endpoint->context != nullptr) {
-    endpoint->channel->EnableEncryption(endpoint->context.get());
+    endpoint->channel->EnableEncryption(endpoint->context);
     return true;
   }
   return false;
 }
 
-///////////////////////////////// ChannelState /////////////////////////////////
 EndpointChannelManager::ChannelState::EndpointData*
 EndpointChannelManager::ChannelState::LookupEndpointData(
     const std::string& endpoint_id) {

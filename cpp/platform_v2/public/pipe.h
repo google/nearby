@@ -7,8 +7,7 @@ namespace location {
 namespace nearby {
 
 // See for details:
-// TODO(apolyudov): replace with cs/ link once it becomes available.
-// https://critique-ng.corp.google.com/cl/310492721/depot/google3/platform_v2/base/base_pipe.h
+// http://google3/platform_v2/base/base_pipe.h
 class Pipe final : public BasePipe {
  public:
   Pipe();

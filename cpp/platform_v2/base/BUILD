@@ -14,9 +14,11 @@ cc_library(
         "input_stream.h",
         "listeners.h",
         "output_stream.h",
+        "payload_id.h",
         "prng.h",
         "runnable.h",
         "socket.h",
+        "types.h",
     ],
     visibility = [
         "//core_v2:__subpackages__",
@@ -42,6 +44,7 @@ cc_library(
         "base_pipe.h",
     ],
     visibility = [
+        "//core_v2:__subpackages__",
         "//platform_v2/impl:__subpackages__",
         "//platform_v2/public:__pkg__",
     ],
@@ -61,7 +64,8 @@ cc_library(
         "//platform_v2:__subpackages__",
     ],
     deps = [
-        "//platform:logging",
+        "//platform_v2/api:platform",
+        "//platform_v2/api:types",
     ],
 )
 
@@ -85,6 +89,7 @@ cc_library(
         "//platform_v2/api:comm",
         "//platform_v2/public:types",
         "//absl/container:flat_hash_map",
+        "//absl/strings",
     ],
 )
 

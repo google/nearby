@@ -74,9 +74,9 @@ class BasePcpHandler : public PcpHandler,
  public:
   using FrameProcessor = EndpointManager::FrameProcessor;
 
-  // TODO(tracyzhou): Add SecureRandom.
+  // TODO(apolyudov): Add SecureRandom.
   BasePcpHandler(EndpointManager* endpoint_manager,
-                 EndpointChannelManager* channel_manager);
+                 EndpointChannelManager* channel_manager, Pcp pcp);
   ~BasePcpHandler() override;
   BasePcpHandler(BasePcpHandler&&) = delete;
   BasePcpHandler& operator=(BasePcpHandler&&) = delete;
@@ -106,7 +106,7 @@ class BasePcpHandler : public PcpHandler,
   // otherwise does nothing.
   void StopDiscovery(ClientProxy* client_proxy) override;
 
-  // Requests a newly discoveered remote endpoint it to form a connection.
+  // Requests a newly discovered remote endpoint it to form a connection.
   // Updates state on ClientProxy.
   Status RequestConnection(ClientProxy* client_proxy,
                            const std::string& endpoint_id,
@@ -126,8 +126,8 @@ class BasePcpHandler : public PcpHandler,
                           const std::string& endpoint_id) override;
 
   // @EndpointManagerReaderThread
-  void OnIncomingFrame(const OfflineFrame& frame,
-                       const std::string& endpoint_id, ClientProxy* client,
+  void OnIncomingFrame(OfflineFrame& frame, const std::string& endpoint_id,
+                       ClientProxy* client,
                        proto::connections::Medium medium) override;
 
   // Called when an endpoint disconnects while we're waiting for both sides to
@@ -136,6 +136,9 @@ class BasePcpHandler : public PcpHandler,
   void OnEndpointDisconnect(ClientProxy* client_proxy,
                             const std::string& endpoint_id,
                             CountDownLatch* barrier) override;
+
+  Pcp GetPcp() const override { return pcp_; }
+  Strategy GetStrategy() const override { return strategy_; }
 
  protected:
   // The result of a call to startAdvertisingImpl() or startDiscoveryImpl().
@@ -149,6 +152,17 @@ class BasePcpHandler : public PcpHandler,
   // Represents an endpoint that we've discovered. Typically, the implementation
   // will know how to connect to this endpoint if asked. (eg. It holds on to a
   // BluetoothDevice)
+  //
+  // NOTE(DiscoveredEndpoint):
+  // Specific protocol is expected to derive from it, as follows:
+  // struct ProtocolEndpoint : public DiscoveredEndpoint {
+  //   ProtocolContext context;
+  // };
+  // Protocol then allocates instance with std::make_shared<ProtocolEndpoint>(),
+  // and passes this instance to OnEndpointFound() method.
+  // When calling OnEndpointLost(), protocol does not need to pass the same
+  // instance (but it can if implementation desires to do so).
+  // BasePcpHandler will hold on to the shared_ptr<DiscoveredEndpoint>.
   struct DiscoveredEndpoint {
     std::string endpoint_id;
     std::string endpoint_name;
@@ -169,7 +183,7 @@ class BasePcpHandler : public PcpHandler,
 
   // @PcpHandlerThread
   void OnEndpointFound(ClientProxy* client_proxy,
-                       std::unique_ptr<DiscoveredEndpoint> endpoint);
+                       std::shared_ptr<DiscoveredEndpoint> endpoint);
 
   // @PcpHandlerThread
   void OnEndpointLost(ClientProxy* client_proxy,
@@ -238,7 +252,7 @@ class BasePcpHandler : public PcpHandler,
     std::string remote_endpoint_name;
     std::int32_t nonce = 0;
     bool is_incoming = false;
-    absl::Time start_time {absl::InfinitePast()};
+    absl::Time start_time{absl::InfinitePast()};
     // Client callbacks. Always valid.
     ConnectionListener listener;
 
@@ -375,7 +389,7 @@ class BasePcpHandler : public PcpHandler,
   // removed from this map.
   absl::flat_hash_map<std::string, PendingConnectionInfo> pending_connections_;
   // A map of endpoint id -> DiscoveredEndpoint.
-  absl::flat_hash_map<std::string, std::unique_ptr<DiscoveredEndpoint>>
+  absl::flat_hash_map<std::string, std::shared_ptr<DiscoveredEndpoint>>
       discovered_endpoints_;
   // A map of endpoint id -> alarm. These alarms delay closing the
   // EndpointChannel to give the other side enough time to read the rejection
@@ -400,9 +414,11 @@ class BasePcpHandler : public PcpHandler,
   // stops discovering because it might still be useful downstream of
   // discovery (eg: connection speed, etc.)
   ConnectionOptions discovery_options_;
+  Pcp pcp_;
+  Strategy strategy_{PcpToStrategy(pcp_)};
   Prng prng_;
   EncryptionRunner encryption_runner_;
-  EndpointManager::FrameProcessor::Handle handle_;
+  EndpointManager::FrameProcessor::Handle handle_ = nullptr;
 };
 
 }  // namespace connections

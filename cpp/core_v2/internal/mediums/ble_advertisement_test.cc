@@ -10,20 +10,20 @@ namespace connections {
 namespace mediums {
 namespace {
 
-const BleAdvertisement::Version kVersion = BleAdvertisement::Version::kV2;
-const BleAdvertisement::SocketVersion kSocketVersion =
+constexpr BleAdvertisement::Version kVersion = BleAdvertisement::Version::kV2;
+constexpr BleAdvertisement::SocketVersion kSocketVersion =
     BleAdvertisement::SocketVersion::kV2;
-const char kServiceIDHashBytes[] = "\x0a\x0b\x0c";
-const char kData[] =
-    "How much wood can a woodchuck chuck if a wood chuck would chuck wood?";
+constexpr absl::string_view kServiceIDHashBytes{"\x0a\x0b\x0c"};
+constexpr absl::string_view kData{
+    "How much wood can a woodchuck chuck if a wood chuck would chuck wood?"};
 // This corresponds to the length of a specific BleAdvertisement packed with the
 // kData given above. Be sure to update this if kData ever changes.
-const size_t kAdvertisementLength = 77;
-const size_t kLongAdvertisementLength = kAdvertisementLength + 1000;
+constexpr size_t kAdvertisementLength = 77;
+constexpr size_t kLongAdvertisementLength = kAdvertisementLength + 1000;
 
 TEST(BleAdvertisementTest, ConstructionWorksV1) {
-  ByteArray service_id_hash{kServiceIDHashBytes};
-  ByteArray data{kData};
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray data{std::string(kData)};
 
   BleAdvertisement ble_advertisement{BleAdvertisement::Version::kV1,
                                      BleAdvertisement::SocketVersion::kV1,
@@ -42,8 +42,8 @@ TEST(BleAdvertisementTest, ConstructionFailsWithBadVersion) {
   BleAdvertisement::Version bad_version =
       static_cast<BleAdvertisement::Version>(666);
 
-  ByteArray service_id_hash{kServiceIDHashBytes};
-  ByteArray data{kData};
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray data{std::string(kData)};
 
   BleAdvertisement ble_advertisement{bad_version, kSocketVersion,
                                      service_id_hash, data};
@@ -55,8 +55,8 @@ TEST(BleAdvertisementTest, ConstructionFailsWithBadSocketVersion) {
   BleAdvertisement::SocketVersion bad_socket_version =
       static_cast<BleAdvertisement::SocketVersion>(666);
 
-  ByteArray service_id_hash{kServiceIDHashBytes};
-  ByteArray data{kData};
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray data{std::string(kData)};
 
   BleAdvertisement ble_advertisement{kVersion, bad_socket_version,
                                      service_id_hash, data};
@@ -68,7 +68,7 @@ TEST(BleAdvertisementTest, ConstructionFailsWithShortServiceIdHash) {
   char short_service_id_hash_bytes[] = "\x0a\x0b";
 
   ByteArray bad_service_id_hash{short_service_id_hash_bytes};
-  ByteArray data{kData};
+  ByteArray data{std::string(kData)};
 
   BleAdvertisement ble_advertisement{kVersion, kSocketVersion,
                                      bad_service_id_hash, data};
@@ -80,7 +80,7 @@ TEST(BleAdvertisementTest, ConstructionFailsWithLongServiceIdHash) {
   char long_service_id_hash_bytes[] = "\x0a\x0b\x0c\x0d";
 
   ByteArray bad_service_id_hash{long_service_id_hash_bytes};
-  ByteArray data{kData};
+  ByteArray data{std::string(kData)};
 
   BleAdvertisement ble_advertisement{kVersion, kSocketVersion,
                                      bad_service_id_hash, data};
@@ -93,7 +93,7 @@ TEST(BleAdvertisementTest, ConstructionFailsWithLongData) {
   // attribute length because it needs some room for the preceding fields.
   char long_data[512]{};
 
-  ByteArray service_id_hash{kServiceIDHashBytes};
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
   ByteArray bad_data{long_data, 512};
 
   BleAdvertisement ble_advertisement{kVersion, kSocketVersion, service_id_hash,
@@ -103,8 +103,8 @@ TEST(BleAdvertisementTest, ConstructionFailsWithLongData) {
 }
 
 TEST(BleAdvertisementTest, ConstructionFromSerializedBytesWorks) {
-  ByteArray service_id_hash{kServiceIDHashBytes};
-  ByteArray data{kData};
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray data{std::string(kData)};
 
   BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion,
                                          service_id_hash, data};
@@ -120,13 +120,10 @@ TEST(BleAdvertisementTest, ConstructionFromSerializedBytesWorks) {
 }
 
 TEST(BleAdvertisementTest, ConstructionFromSerializedBytesWithEmptyDataWorks) {
-  char empty_data[0]{};
-
-  ByteArray service_id_hash{kServiceIDHashBytes};
-  ByteArray data{empty_data};
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
 
   BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion,
-                                         service_id_hash, data};
+                                         service_id_hash, ByteArray()};
   ByteArray ble_advertisement_bytes{org_ble_advertisement};
   BleAdvertisement ble_advertisement{ble_advertisement_bytes};
 
@@ -134,13 +131,12 @@ TEST(BleAdvertisementTest, ConstructionFromSerializedBytesWithEmptyDataWorks) {
   EXPECT_EQ(kVersion, ble_advertisement.GetVersion());
   EXPECT_EQ(kSocketVersion, ble_advertisement.GetSocketVersion());
   EXPECT_EQ(service_id_hash, ble_advertisement.GetServiceIdHash());
-  EXPECT_EQ(data.size(), ble_advertisement.GetData().size());
-  EXPECT_EQ(data, ble_advertisement.GetData());
+  EXPECT_TRUE(ble_advertisement.GetData().Empty());
 }
 
 TEST(BleAdvertisementTest, ConstructionFromExtraSerializedBytesWorks) {
-  ByteArray service_id_hash{kServiceIDHashBytes};
-  ByteArray data{kData};
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray data{std::string(kData)};
 
   BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion,
                                          service_id_hash, data};
@@ -173,8 +169,8 @@ TEST(BleAdvertisementTest, ConstructionFromNullBytesFails) {
 }
 
 TEST(BleAdvertisementTest, ConstructionFromShortLengthSerializedBytesFails) {
-  ByteArray service_id_hash{kServiceIDHashBytes};
-  ByteArray data{kData};
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray data{std::string(kData)};
 
   BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion,
                                          service_id_hash, data};
@@ -190,8 +186,8 @@ TEST(BleAdvertisementTest, ConstructionFromShortLengthSerializedBytesFails) {
 
 TEST(BleAdvertisementTest,
      ConstructionFromSerializedBytesWithInvalidDataLengthFails) {
-  ByteArray service_id_hash{kServiceIDHashBytes};
-  ByteArray data{kData};
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray data{std::string(kData)};
 
   BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion,
                                          service_id_hash, data};

@@ -11,6 +11,23 @@ namespace location {
 namespace nearby {
 namespace g3 {
 
+class WebRtcSignalingMessenger : public api::WebRtcSignalingMessenger {
+ public:
+  using OnSignalingMessageCallback =
+      api::WebRtcSignalingMessenger::OnSignalingMessageCallback;
+
+  explicit WebRtcSignalingMessenger(absl::string_view self_id);
+  ~WebRtcSignalingMessenger() override = default;
+
+  bool SendMessage(absl::string_view peer_id,
+                   const ByteArray& message) override;
+  bool StartReceivingMessages(OnSignalingMessageCallback listener) override;
+  void StopReceivingMessages() override;
+
+ private:
+  absl::string_view self_id_;
+};
+
 class WebRtcMedium : public api::WebRtcMedium {
  public:
   using PeerConnectionCallback = api::WebRtcMedium::PeerConnectionCallback;
@@ -26,6 +43,8 @@ class WebRtcMedium : public api::WebRtcMedium {
   // Returns a signaling messenger for sending WebRTC signaling messages.
   std::unique_ptr<api::WebRtcSignalingMessenger> GetSignalingMessenger(
       absl::string_view self_id) override;
+ private:
+  std::unique_ptr<rtc::Thread> signaling_thread_;
 };
 
 }  // namespace g3

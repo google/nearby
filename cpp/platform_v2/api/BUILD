@@ -11,6 +11,7 @@ cc_library(
         "future.h",
         "input_file.h",
         "listenable_future.h",
+        "log_message.h",
         "mutex.h",
         "output_file.h",
         "scheduled_executor.h",
@@ -62,12 +63,14 @@ cc_library(
         "platform.h",
     ],
     visibility = [
+        "//platform_v2/base:__pkg__",
         "//platform_v2/impl:__subpackages__",
         "//platform_v2/public:__pkg__",
     ],
     deps = [
         ":comm",
         ":types",
+        "//platform_v2/base",
         "//absl/strings",
         "//absl/types:any",
     ],

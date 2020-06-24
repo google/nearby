@@ -19,8 +19,8 @@ namespace {
 using Medium = proto::connections::Medium;
 using ::testing::EqualsProto;
 
-constexpr char kEndpointId[] = "ABC";
-constexpr char kEndpointName[] = "XYZ";
+constexpr absl::string_view kEndpointId{"ABC"};
+constexpr absl::string_view kEndpointName{"XYZ"};
 constexpr int kNonce = 1234;
 constexpr std::array<Medium, 9> kMediums = {
     Medium::MDNS, Medium::BLUETOOTH,   Medium::WIFI_HOTSPOT,
@@ -78,9 +78,9 @@ TEST(OfflineFramesTest, CanGenerateConnectionRequest) {
         mediums: WEB_RTC
       >
     >)pb";
-  ByteArray bytes =
-      ForConnectionRequest(kEndpointId, kEndpointName, kNonce,
-                           std::vector(kMediums.begin(), kMediums.end()));
+  ByteArray bytes = ForConnectionRequest(
+      std::string(kEndpointId), std::string(kEndpointName), kNonce,
+      std::vector(kMediums.begin(), kMediums.end()));
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = FromBytes(bytes).result();
@@ -223,7 +223,7 @@ TEST(OfflineFramesTest, CanGenerateBandwidthUpgradeIntroduction) {
         client_introduction: < endpoint_id: "ABC" >
       >
     >)pb";
-  ByteArray bytes = ForBandwidthUpgradeIntroduction(kEndpointId);
+  ByteArray bytes = ForBandwidthUpgradeIntroduction(std::string(kEndpointId));
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = FromBytes(bytes).result();

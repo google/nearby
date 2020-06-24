@@ -25,7 +25,6 @@ namespace {
 
 using ::location::nearby::proto::connections::DisconnectionReason;
 using ::location::nearby::proto::connections::Medium;
-using ::securegcm::D2DConnectionContextV1;
 using ::testing::_;
 using ::testing::MockFunction;
 using ::testing::Return;
@@ -41,7 +40,7 @@ class MockEndpointChannel : public EndpointChannel {
   MOCK_METHOD(std::string, GetName, (), (const override));
   MOCK_METHOD(Medium, GetMedium, (), (const override));
   MOCK_METHOD(void, EnableEncryption,
-              (D2DConnectionContextV1 * connection_context),
+              (std::shared_ptr<EncryptionContext> context),
               (override));
   MOCK_METHOD(bool, IsPaused, (), (const override));
   MOCK_METHOD(void, Pause, (), (override));
@@ -65,7 +64,7 @@ class MockEndpointChannel : public EndpointChannel {
 class MockFrameProcessor : public EndpointManager::FrameProcessor {
  public:
   MOCK_METHOD(void, OnIncomingFrame,
-              (const OfflineFrame& offline_frame,
+              (OfflineFrame & offline_frame,
                const std::string& from_endpoint_id, ClientProxy* to_client,
                Medium current_medium),
               (override));

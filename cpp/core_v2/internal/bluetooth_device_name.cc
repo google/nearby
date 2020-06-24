@@ -6,14 +6,13 @@
 #include <utility>
 
 #include "platform_v2/base/base64_utils.h"
+#include "platform_v2/base/base_input_stream.h"
 #include "platform_v2/public/logging.h"
+#include "absl/strings/str_cat.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
-
-// TODO(edwinwu): Define bitfield struct to replace pointer arithmetic for
-// those bit parsing.
 
 BluetoothDeviceName::BluetoothDeviceName(Version version, Pcp pcp,
                                          absl::string_view endpoint_id,
@@ -71,84 +70,75 @@ BluetoothDeviceName::BluetoothDeviceName(
     return;
   }
 
+  BaseInputStream base_input_stream{bluetooth_device_name_bytes};
+  // The first 1 byte is supposed to be the version and pcp.
+  auto version_and_pcp_byte = static_cast<char>(base_input_stream.ReadUint8());
   // The upper 3 bits are supposed to be the version.
-  version_ = static_cast<Version>(
-      (bluetooth_device_name_bytes.data()[0] & kVersionBitmask) >> 5);
-  const char* read_ptr = bluetooth_device_name_bytes.data();
-  switch (version_) {
-    case Version::kV1:
-      // The lower 5 bits of the V1 payload are supposed to be the Pcp.
-      pcp_ = static_cast<Pcp>(*read_ptr & kPcpBitmask);
-      read_ptr++;
-      switch (pcp_) {
-        case Pcp::kP2pCluster:  // Fall through
-        case Pcp::kP2pStar:     // Fall through
-        case Pcp::kP2pPointToPoint: {
-          // The next 32 bits are supposed to be the endpoint_id.
-          endpoint_id_ = std::string(read_ptr, kEndpointIdLength);
-          read_ptr += kEndpointIdLength;
-
-          // The next 24 bits are supposed to be the service_id_hash.
-          service_id_hash_ = ByteArray(read_ptr, kServiceIdHashLength);
-          read_ptr += kServiceIdHashLength;
-
-          // The next 56 bits are supposed to be reserved, and can be left
-          // untouched.
-          read_ptr += kReservedLength;
-
-          // The next 8 bits are supposed to be the length of the endpoint_name.
-          std::uint32_t expected_endpoint_name_length =
-              static_cast<std::uint32_t>(*read_ptr &
-                                         kEndpointNameLengthBitmask);
-          read_ptr++;
-
-          // Check that the stated endpoint_name_length is the same as what we
-          // received (based off of the length of bluetooth_device_name_bytes).
-          std::uint32_t actual_endpoint_name_length =
-              kMaxBluetoothDeviceNameLength -
-              bluetooth_device_name_bytes.size();
-          if (actual_endpoint_name_length != expected_endpoint_name_length) {
-            NEARBY_LOG(INFO,
-                       "Cannot deserialize BluetoothDeviceName: expected "
-                       "endpointName to be %d bytes, got %d bytes",
-                       expected_endpoint_name_length,
-                       actual_endpoint_name_length);
-
-            endpoint_id_.empty();
-            return;
-          }
-
-          endpoint_name_ = std::string{read_ptr, actual_endpoint_name_length};
-          read_ptr += actual_endpoint_name_length;
-        } break;
-
-        default:
-          // TODO(edwinwu): [ANALYTICIZE] This either represents corruption over
-          // the air, or older versions of GmsCore intermingling with newer
-          // ones.
-          NEARBY_LOG(
-              INFO,
-              "Cannot deserialize BluetoothDeviceName: unsupported V1 PCP %d",
-              pcp_);
-          break;
-      }
-      break;
-
-    default:
-      // TODO(edwinwu): [ANALYTICIZE] This either represents corruption over
-      // the air, or older versions of GmsCore intermingling with newer ones.
-      NEARBY_LOG(
-          INFO,
-          "Cannot deserialize BluetoothDeviceName: unsupported Version %d",
-          version_);
-      break;
+  version_ =
+      static_cast<Version>((version_and_pcp_byte & kVersionBitmask) >> 5);
+  if (version_ != Version::kV1) {
+    NEARBY_LOG(INFO,
+               "Cannot deserialize BluetoothDeviceName: unsupported version=%d",
+               version_);
+    return;
   }
+  // The lower 5 bits are supposed to be the Pcp.
+  pcp_ = static_cast<Pcp>(version_and_pcp_byte & kPcpBitmask);
+  switch (pcp_) {
+    case Pcp::kP2pCluster:  // Fall through
+    case Pcp::kP2pStar:     // Fall through
+    case Pcp::kP2pPointToPoint:
+      break;
+    default:
+      NEARBY_LOG(
+          INFO, "Cannot deserialize BluetoothDeviceName: unsupported V1 PCP %d",
+          pcp_);
+      return;
+  }
+
+  // The next 4 bytes are supposed to be the endpoint_id.
+  endpoint_id_ = std::string{base_input_stream.ReadBytes(kEndpointIdLength)};
+
+  // The next 3 bytes are supposed to be the service_id_hash.
+  service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
+
+  // The next 7 bytes are supposed to be reserved, and can be left
+  // untouched.
+  base_input_stream.ReadBytes(kReservedLength);
+
+  // The next 1 byte are supposed to be the length of the endpoint_name.
+  std::uint32_t expected_endpoint_name_length = base_input_stream.ReadUint8();
+
+  // The rest bytes are supposed to be the endpoint_name
+  auto endpoint_name_bytes =
+      base_input_stream.ReadBytes(expected_endpoint_name_length);
+  if (endpoint_name_bytes.Empty() ||
+      endpoint_name_bytes.size() != expected_endpoint_name_length) {
+    NEARBY_LOG(INFO,
+               "Cannot deserialize BluetoothDeviceName: expected "
+               "endpointName to be %d bytes, got %" PRIu64,
+               expected_endpoint_name_length, endpoint_name_bytes.size());
+
+    // Clear enpoint_id for validadity.
+    endpoint_id_.clear();
+    return;
+  }
+  endpoint_name_ = std::string{endpoint_name_bytes};
 }
 
 BluetoothDeviceName::operator std::string() const {
   if (!IsValid()) {
     return "";
   }
+
+  // The upper 3 bits are the Version.
+  auto version_and_pcp_byte = static_cast<char>(
+      (static_cast<uint32_t>(Version::kV1) << 5) & kVersionBitmask);
+  // The lower 5 bits are the PCP.
+  version_and_pcp_byte |=
+      static_cast<char>(static_cast<uint32_t>(pcp_) & kPcpBitmask);
+
+  ByteArray reserved_bytes{kReservedLength};
 
   std::string usable_endpoint_name(endpoint_name_);
   if (endpoint_name_.size() > kMaxEndpointNameLength) {
@@ -160,24 +150,14 @@ BluetoothDeviceName::operator std::string() const {
     usable_endpoint_name.erase(kMaxEndpointNameLength);
   }
 
-  std::string out;
-
-  // The upper 3 bits are the Version.
-  auto version_and_pcp_byte = static_cast<char>(
-      (static_cast<uint32_t>(Version::kV1) << 5) & kVersionBitmask);
-  // The lower 5 bits are the PCP.
-  version_and_pcp_byte |=
-      static_cast<char>(static_cast<uint32_t>(pcp_) & kPcpBitmask);
-  // TODO(edwinwu): Change to StrCat to gain performance.
-  out.reserve(kMaxBluetoothDeviceNameLength -
-              (kMaxEndpointNameLength - usable_endpoint_name.length()));
-  out.append(1, version_and_pcp_byte);
-  out.append(endpoint_id_);
-  out.append(std::string(service_id_hash_));
-  ByteArray reserverdBytes{kReservedLength};
-  out.append(std::string(reserverdBytes));
-  out.append(1, usable_endpoint_name.size());
-  out.append(usable_endpoint_name);
+  // clang-format off
+  std::string out = absl::StrCat(std::string(1, version_and_pcp_byte),
+                                 endpoint_id_,
+                                 std::string(service_id_hash_),
+                                 std::string(reserved_bytes),
+                                 std::string(1, usable_endpoint_name.size()),
+                                 usable_endpoint_name);
+  // clang-format on
 
   return Base64Utils::Encode(ByteArray{std::move(out)});
 }

@@ -15,6 +15,7 @@
 #include "platform_v2/api/count_down_latch.h"
 #include "platform_v2/api/crypto.h"
 #include "platform_v2/api/input_file.h"
+#include "platform_v2/api/log_message.h"
 #include "platform_v2/api/mutex.h"
 #include "platform_v2/api/output_file.h"
 #include "platform_v2/api/scheduled_executor.h"
@@ -25,8 +26,8 @@
 #include "platform_v2/api/webrtc.h"
 #include "platform_v2/api/wifi.h"
 #include "platform_v2/api/wifi_lan.h"
+#include "platform_v2/base/payload_id.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/any.h"
 
 namespace location {
 namespace nearby {
@@ -44,18 +45,32 @@ class ImplementationPlatform {
   //   - Future<T> : to synchronize on Callable<T> schduled to execute.
   //   - CountDownLatch : to ensure at least N threads are waiting.
   // - file I/O
-  static std::unique_ptr<AtomicReference<absl::any>> CreateAtomicReferenceAny(
-      absl::any initial_value);
-  static std::unique_ptr<SettableFuture<absl::any>> CreateSettableFutureAny();
+  // - Logging
+
+  // Atomics:
+  // =======
+
+  // Atomic boolean: special case. Uses native platform atomics.
+  // Does not use locking.
+  // Does not use dynamic memory allocations in operations.
   static std::unique_ptr<AtomicBoolean> CreateAtomicBoolean(bool initial_value);
+
+  // Supports enums and integers up to 32-bit.
+  // Does not use locking, if platform supports 32-bit atimics natively.
+  // Does not use dynamic memory allocations in operations.
+  static std::unique_ptr<AtomicUint32>
+  CreateAtomicUint32(std::uint32_t value);
+
   static std::unique_ptr<CountDownLatch> CreateCountDownLatch(
       std::int32_t count);
   static std::unique_ptr<Mutex> CreateMutex(Mutex::Mode mode);
   static std::unique_ptr<ConditionVariable> CreateConditionVariable(
       Mutex* mutex);
-  static std::unique_ptr<InputFile> CreateInputFile(std::int64_t payload_id,
+  static std::unique_ptr<InputFile> CreateInputFile(PayloadId payload_id,
                                                     std::int64_t total_size);
-  static std::unique_ptr<OutputFile> CreateOutputFile(std::int64_t payload_id);
+  static std::unique_ptr<OutputFile> CreateOutputFile(PayloadId payload_id);
+  static std::unique_ptr<LogMessage> CreateLogMessage(
+      const char* file, int line, LogMessage::Severity severity);
 
   // Java-like Executors
   static std::unique_ptr<SubmittableExecutor> CreateSingleThreadExecutor();
@@ -74,7 +89,6 @@ class ImplementationPlatform {
   static std::unique_ptr<WifiMedium> CreateWifiMedium();
   static std::unique_ptr<WifiLanMedium> CreateWifiLanMedium();
   static std::unique_ptr<WebRtcMedium> CreateWebRtcMedium();
-  static std::string GetDeviceId();
 };
 
 }  // namespace api

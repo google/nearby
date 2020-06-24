@@ -50,7 +50,7 @@ void EndpointManager::EndpointChannelLoopRunnable(
     std::shared_ptr<EndpointChannel> channel =
         channel_manager_->GetChannelForEndpoint(endpoint_id);
     if (channel == nullptr) {
-      // TODO(tracyzhou): Add logging.
+      NEARBY_LOG(INFO, "Endpoint channel is nullptr, bail out.");
       break;
     }
 
@@ -58,7 +58,8 @@ void EndpointManager::EndpointChannelLoopRunnable(
     // EndpointChannel for this endpoint, there's nothing more to do here.
     if ((last_failed_medium != Medium::UNKNOWN_MEDIUM) &&
         (channel->GetMedium() == last_failed_medium)) {
-      // TODO(tracyzhou): Add logging.
+      NEARBY_LOG(
+          INFO, "No new endpoint channel is found after a failure, exit loop.");
       break;
     }
 
@@ -68,7 +69,8 @@ void EndpointManager::EndpointChannelLoopRunnable(
       Exception exception = keep_using_channel.GetException();
       if (exception.Raised(Exception::kIo)) {
         last_failed_medium = channel->GetMedium();
-        // TODO(tracyzhou): Add logging.
+        NEARBY_LOG(INFO, "Endpoint channel IO exception; last_failed_medium=%d",
+                   last_failed_medium);
         continue;
       }
       if (exception.Raised(Exception::kInterrupted)) {
@@ -77,7 +79,8 @@ void EndpointManager::EndpointChannelLoopRunnable(
     }
 
     if (!keep_using_channel.result()) {
-      // TODO(tracyzhou): Add logging.
+      NEARBY_LOG(INFO, "Dropping current channel: last medium=%d",
+                 last_failed_medium);
       break;
     }
   }
@@ -113,7 +116,7 @@ ExceptionOr<bool> EndpointManager::HandleData(
     if (!wrapped_frame.ok()) {
       if (wrapped_frame.GetException().Raised(
               Exception::kInvalidProtocolBuffer)) {
-        NEARBY_LOG(INFO, "failed to decode; endpoint=%s; channel=%s; skip",
+        NEARBY_LOG(INFO, "Failed to decode; endpoint=%s; channel=%s; skip",
                    endpoint_id.c_str(), endpoint_channel->GetType().c_str());
         continue;
       } else {
@@ -129,7 +132,14 @@ ExceptionOr<bool> EndpointManager::HandleData(
     EndpointManager::FrameProcessor* frame_processor =
         GetFrameProcessor(frame_type);
     if (frame_processor == nullptr) {
-      NEARBY_LOG(ERROR, "Unhandled message: type=%d", frame_type);
+      // report messages without handlers, except KEEP_ALIVE, which has
+      // no explicit handler.
+      if (frame_type == V1Frame::KEEP_ALIVE) {
+        NEARBY_LOG(INFO, "KeepAlive message for: id=%s", endpoint_id.c_str());
+      } else {
+        NEARBY_LOG(ERROR, "Unhandled message: id=%s, type=%d",
+                   endpoint_id.c_str(), frame_type);
+      }
       continue;
     }
 
@@ -142,11 +152,11 @@ ExceptionOr<bool> EndpointManager::HandleKeepAlive(
     EndpointChannel* endpoint_channel) {
   // Check if it has been too long since we received a frame from our
   // endpoint.
-  if ((endpoint_channel->GetLastReadTimestamp() != kInvalidTimestamp) &&
-      ((endpoint_channel->GetLastReadTimestamp() +
-        EndpointManager::kKeepAliveReadTimeout) <
-       SystemClock::ElapsedRealtime())) {
-    // TODO(tracyzhou): Add logging.
+  auto last_read_time = endpoint_channel->GetLastReadTimestamp();
+  if (last_read_time != kInvalidTimestamp &&
+      SystemClock::ElapsedRealtime() >
+          (last_read_time + EndpointManager::kKeepAliveReadTimeout)) {
+    NEARBY_LOG(INFO, "Receive timeout expired; aborting KeepAlive worker.");
     return ExceptionOr<bool>(false);
   }
 
@@ -226,7 +236,7 @@ EndpointManager::RegisterFrameProcessor(
   RunOnEndpointManagerThread([this, frame_type, &latch, processor]() {
     auto it = frame_processors_.find(frame_type);
     if (it != frame_processors_.end()) {
-      // TODO(tracyzhou): Add logging.
+      NEARBY_LOG(INFO, "Frame processor found, updated; type=%d", frame_type);
       it->second = processor;
     } else {
       frame_processors_.emplace(frame_type, processor);
@@ -238,21 +248,27 @@ EndpointManager::RegisterFrameProcessor(
 }
 
 void EndpointManager::UnregisterFrameProcessor(V1Frame::FrameType frame_type,
-                                               const void* handle) {
-  RunOnEndpointManagerThread([this, frame_type, handle]() {
+                                               const void* handle, bool sync) {
+  if (handle == nullptr) return;
+  CountDownLatch latch(1);
+  RunOnEndpointManagerThread([this, frame_type, handle, &latch, sync]() {
     auto it = frame_processors_.find(frame_type);
     if (it == frame_processors_.end()) return;
-    if (it->second != handle) {
+    if (it->second == handle) {
+      frame_processors_.erase(it);
+      NEARBY_LOG(INFO, "Unregistered: type=%d", frame_type);
+    } else {
       NEARBY_LOG(INFO,
                  "Failed to unregister: type=%d; handle mismatch: passed=%p, "
                  "expected=%p",
                  frame_type, handle, it->second);
-      return;
     }
-
-    frame_processors_.erase(it);
-    NEARBY_LOG(INFO, "unregistered: type=%d", frame_type);
+    if (sync) latch.CountDown();
   });
+  if (sync) {
+    latch.Await();
+    NEARBY_LOG(INFO, "Unregistered: [sync done] type=%d", frame_type);
+  }
 }
 
 EndpointManager::FrameProcessor* EndpointManager::GetFrameProcessor(
@@ -267,6 +283,8 @@ EndpointManager::FrameProcessor* EndpointManager::GetFrameProcessor(
     latch.CountDown();
   });
   latch.Await();
+  NEARBY_LOG(INFO, "GetFrameProcessor: type=%d; processor=%p", frame_type,
+             processor);
   return processor;
 }
 
@@ -345,7 +363,8 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
                                     return HandleKeepAlive(channel);
                                   });
     });
-    // TODO(tracyzhou): Add logging.
+    NEARBY_LOG(INFO, "Workers started, notifying client; id=%s",
+               endpoint_id.c_str());
 
     // It's now time to let the client know of this new connection so that
     // they can accept or reject it.
@@ -419,7 +438,8 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
     EnsureWorkersTerminated(endpoint_id);
 
     client->OnDisconnected(endpoint_id, notify);
-    // TODO(tracyzhou): Add logging.
+    NEARBY_LOG(INFO, "Removed endpoint; id=%s",
+               endpoint_id.c_str());
   }
 }
 

@@ -70,18 +70,24 @@ enum CommonError {
 
   // Developing error, the input with invalid format or empty.
   INVALID_PARAMETER = 1;
-  // Device error, the BLE not available on this device.
-  BLE_NOT_AVAILABLE = 2;
+  // Device error, the medium not available on this device.
+  MEDIUM_NOT_AVAILABLE = 2;
   // System error, the medium in the unexpected state, e.g. we have check the
   // medium is on, after then it suddently off and cause Nearby
   // Connection failed.
   UNEXPECTED_MEDIUM_STATE = 3;
+  // System error, the medim not available because the resource ran out. e.g.
+  // the Wi-Fi Direct initialized cause Wi-Fi Aware not available, or BLE
+  // connections hit the maximan number, or Wi-Fi Hotstop already created.
+  OUT_OF_RESOURCE = 4;
 
-  // Reserved 4 to 30
+  // Reserved 5 to 30
 }
 
 // The error for event START_ADVERTISING. The range between 31 and 99.
 enum StartAdvertisingError {
+  reserved 37, 39;
+
   // Developing error, not allow to advertising fast pair model id and sharing
   // fast advertisement at the same time, they are both use fast
   // advertisement, and only allow 1 fast advertisement at the same time.
@@ -99,17 +105,32 @@ enum StartAdvertisingError {
   BLE_MAX_GATT_ADVERTISEMENT_SLOT_REACHED = 35;
   // System error, failed to start advertising for legacy advertisements
   START_LEGACY_ADVERTISING_FAILED = 36;
-  // System error, start advertising for legacy advertisements but timed out
-  START_LEGACY_ADVERTISING_TIMEOUT = 37;
   // System error, failed to start advertising for extended advertisements
   START_EXTENDED_ADVERTISING_FAILED = 38;
-  // System error, start advertising for extended advertisements but timed out
-  START_EXTENDED_ADVERTISING_TIMEOUT = 39;
+  // System error, there's already someone advertising on Bluetooth, not allow
+  // to start another one.
+  BLUETOOTH_ALREADY_ADVERTISED = 40;
+  // System error, failed to modify the Bluetooth name.
+  MODIFY_BLUETOOTH_NAME_FAILED = 41;
+  // System error, failed to persist the original Bluetooth name into shared
+  // preference.
+  PERSIST_ORIGINAL_BLUETOOTH_NAME_FAILED = 42;
+  // System error, failed to start advertising.
+  START_ADVERTISING_FAILED = 43;
 
-  // Next ID :40
+  // Developing error, not allow to advertising on Wi-Fi Lan(TDLS) without
+  // accetpting connections. The connection may comes in very quickly, so need
+  // to accetpt connections before advertising.
+  SHOULD_ACCEPT_CONNECTIONS_BEFORE_ADVERTISING_ON_WIFI_LAN = 44;
+  // System error, failed to acquire WifiAwareSession
+  ACQUIRE_WIFI_AWARE_SESSION_FAILED = 45;
+
+  // Next ID :46
 }
 
 enum Description {
+  reserved 28;
+
   UNKNOWN = 0;
   NULL_SERVICE_ID = 1;
   NULL_ADVERTISEMENT_BYTES = 2;
@@ -131,4 +152,23 @@ enum Description {
   ADVERTISE_FAILED_TOO_MANY_ADVERTISERS = 18;
   INTERRUPTED_EXCEPTION = 19;
   EXECUTION_EXCEPTION = 20;
+  NULL_BLUETOOTH_DEVICE_NAME = 21;
+  SET_SCAN_MODE_FAILED = 22;
+  INVOKE_API_FAILED = 23;
+  TIMEOUT = 24;
+  NULL_NFC_TAG = 25;
+  FEATURE_NFC_NOT_SUPPORTED = 26;
+  FEATURE_NFC_HOST_CARD_EMULATION_NOT_SUPPORTED = 27;
+  WITHOUT_CONNECTED_WIFI_NETWOR = 29;
+  MULTICAST_NOT_SUPPORTED = 30;
+  NSD_NOT_ENABLED = 31;
+  INVALID_PORT_NUMBER = 32;
+  NULL_SERVICE_NAME = 33;
+  NULL_SERVICE_TYPE = 34;
+  WITHOUT_CONNECTED_WIFI_NETWORK = 35;
+  FEATURE_WIFI_AWARE_NOT_SUPPORTED = 36;
+  NULL_CONNECTIVITY_MANAGER = 37;
+  NULL_WIFI_AWARE_MANAGER = 38;
+  STALE_ANDROID_VERSION = 39;
+  NULL_SERVICE_INFO = 40;
 }

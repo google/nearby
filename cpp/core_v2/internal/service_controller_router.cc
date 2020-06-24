@@ -9,6 +9,7 @@
 #include "core_v2/options.h"
 #include "core_v2/params.h"
 #include "core_v2/payload.h"
+#include "platform_v2/public/logging.h"
 #include "absl/time/clock.h"
 
 namespace location {
@@ -16,7 +17,7 @@ namespace nearby {
 namespace connections {
 
 ServiceControllerRouter::~ServiceControllerRouter() {
-  // TODO(tracyzhou): Add logging.
+  NEARBY_LOG(INFO, "ServiceControllerRouter going down.");
 
   // And make sure that cleanup is the last thing we do.
   serializer_.Shutdown();
@@ -128,7 +129,10 @@ void ServiceControllerRouter::AcceptConnection(ClientProxy* client,
     }
 
     if (client->HasLocalEndpointResponded(endpoint_id)) {
-      // TODO(tracyzhou): logging
+      NEARBY_LOG(INFO,
+                 "[ServiceControllerRouter:Accept]: Client has local "
+                 "endpoint responded; id=%s",
+                 endpoint_id.c_str());
       callback.result_cb({Status::kOutOfOrderApiCall});
       return;
     }
@@ -154,7 +158,10 @@ void ServiceControllerRouter::RejectConnection(ClientProxy* client,
         }
 
         if (client->HasLocalEndpointResponded(endpoint_id)) {
-          // TODO(tracyzhou): logging
+          NEARBY_LOG(INFO,
+                     "[ServiceControllerRouter:Reject]: Client has local "
+                     "endpoint responded; id=%s",
+                     endpoint_id.c_str());
           callback.result_cb({Status::kOutOfOrderApiCall});
           return;
         }
@@ -264,8 +271,9 @@ void ServiceControllerRouter::ClientDisconnecting(
   RouteToServiceController([this, client, callback]() {
     if (ClientHasAcquiredServiceController(client)) {
       DoneWithStrategySessionForClient(client);
-      // Log the completion of this client's connection.
-      // TODO(tracyzhou): Add logging.
+      NEARBY_LOG(INFO,
+                 "[ServiceControllerRouter:Disconnect]: Client has completed "
+                 "the client's connection");
     }
     callback.result_cb({Status::kSuccess});
   });
@@ -298,14 +306,18 @@ Status ServiceControllerRouter::AcquireServiceControllerForClient(
     bool is_the_only_client_of_service_controller =
         clients_.size() == 1 && ClientHasAcquiredServiceController(client);
     if (!is_the_only_client_of_service_controller) {
-      // TODO(tracyzhou): logging
+      NEARBY_LOG(INFO,
+                 "[ServiceControllerRouter:AcquireServiceControllerForClient]: "
+                 "Client has already active strategy.");
       return {Status::kAlreadyHaveActiveStrategy};
     }
 
     // If the client still has connected endpoints, they must disconnect before
     // they can switch.
     if (!client->GetConnectedEndpoints().empty()) {
-      // TODO(tracyzhou): logging
+      NEARBY_LOG(INFO,
+                 "[ServiceControllerRouter:AcquireServiceControllerForClient]: "
+                 "Client has connected endpoints.");
       return {Status::kOutOfOrderApiCall};
     }
 
@@ -369,7 +381,7 @@ bool ServiceControllerRouter::ClientHasConnectionToAtLeastOneEndpoint(
 Status ServiceControllerRouter::UpdateCurrentServiceControllerAndStrategy(
     Strategy strategy) {
   if (!strategy.IsValid()) {
-    // TODO(tracyzhou): logging
+    NEARBY_LOG(INFO, "Strategy is not valid.");
     return {Status::kError};
   }
 
