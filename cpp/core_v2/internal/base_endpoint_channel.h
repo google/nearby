@@ -16,6 +16,7 @@
 #define CORE_V2_INTERNAL_BASE_ENDPOINT_CHANNEL_H_
 
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include "core_v2/internal/endpoint_channel.h"
@@ -64,7 +65,7 @@ class BaseEndpointChannel : public EndpointChannel {
   // Enables encryption on the EndpointChannel.
   // Should be called after connection is accepted by both parties, and
   // before entering data phase, where Payloads may be exchanged.
-  void EnableEncryption(securegcm::D2DConnectionContextV1* context) override;
+  void EnableEncryption(std::shared_ptr<EncryptionContext> context) override;
 
   // True if the EndpointChannel is currently pausing all writes.
   bool IsPaused() const ABSL_LOCKS_EXCLUDED(is_paused_mutex_) override;
@@ -88,7 +89,8 @@ class BaseEndpointChannel : public EndpointChannel {
   // Used to sanity check that our frame sizes are reasonable.
   static constexpr std::int32_t kMaxAllowedReadBytes = 1048576;  // 1MB
 
-  bool IsEncryptionEnabled() const;
+  bool IsEncryptionEnabledLocked() const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(crypto_mutex_);
   void UnblockPausedWriter() ABSL_EXCLUSIVE_LOCKS_REQUIRED(is_paused_mutex_);
   void BlockUntilUnpaused() ABSL_EXCLUSIVE_LOCKS_REQUIRED(is_paused_mutex_);
   void CloseIo() ABSL_NO_THREAD_SAFETY_ANALYSIS;
@@ -108,11 +110,10 @@ class BaseEndpointChannel : public EndpointChannel {
   Mutex writer_mutex_;
   OutputStream* writer_ ABSL_PT_GUARDED_BY(writer_mutex_);
 
-  // Used by both read and write to protect payload encryption/decryption.
-  Mutex crypto_mutex_;
   // An encryptor/decryptor. May be null.
-  securegcm::D2DConnectionContextV1* encryption_context_
-      ABSL_PT_GUARDED_BY(crypto_mutex_) = nullptr;
+  mutable Mutex crypto_mutex_;
+  std::shared_ptr<EncryptionContext> crypto_context_
+      ABSL_GUARDED_BY(crypto_mutex_) ABSL_PT_GUARDED_BY(crypto_mutex_);
 
   mutable Mutex is_paused_mutex_;
   ConditionVariable is_paused_cond_{&is_paused_mutex_};

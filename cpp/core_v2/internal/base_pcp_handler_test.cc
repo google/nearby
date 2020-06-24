@@ -14,6 +14,7 @@
 
 #include "core_v2/internal/base_pcp_handler.h"
 
+#include <atomic>
 #include <memory>
 
 #include "core_v2/internal/base_endpoint_channel.h"
@@ -71,7 +72,7 @@ class MockEndpointChannel : public BaseEndpointChannel {
 class MockPcpHandler : public BasePcpHandler {
  public:
   MockPcpHandler(EndpointManager* em, EndpointChannelManager* ecm)
-      : BasePcpHandler(em, ecm) {}
+      : BasePcpHandler(em, ecm, Pcp::kP2pCluster) {}
 
   // Expose protected inner types of a base type for mocking.
   using BasePcpHandler::ConnectImplResult;
@@ -112,7 +113,7 @@ class MockPcpHandler : public BasePcpHandler {
 
   // Mock adapters for protected non-virtual methods of a base class.
   void OnEndpointFound(ClientProxy* client,
-                       std::unique_ptr<DiscoveredEndpoint> endpoint) {
+                       std::shared_ptr<DiscoveredEndpoint> endpoint) {
     BasePcpHandler::OnEndpointFound(client, std::move(endpoint));
   }
   void OnEndpointLost(ClientProxy* client, const DiscoveredEndpoint& endpoint) {
@@ -120,7 +121,25 @@ class MockPcpHandler : public BasePcpHandler {
   }
 };
 
-using MockDiscoveredEndpoint = MockPcpHandler::DiscoveredEndpoint;
+class MockContext {
+ public:
+  explicit MockContext(std::atomic_bool* destroyed = nullptr) {
+    destroyed_ = destroyed;
+  }
+  MockContext(MockContext&&) = default;
+  MockContext& operator=(MockContext&&) = default;
+
+  ~MockContext() {
+    if (destroyed_) *destroyed_ = true;
+  }
+
+ private:
+  Swapper<std::atomic_bool> destroyed_{nullptr};
+};
+
+struct MockDiscoveredEndpoint : public MockPcpHandler::DiscoveredEndpoint {
+  MockContext context;
+};
 
 class BasePcpHandlerTest : public ::testing::Test {
  protected:
@@ -230,7 +249,8 @@ class BasePcpHandlerTest : public ::testing::Test {
   void RequestConnection(const std::string& endpoint_id,
                          std::unique_ptr<MockEndpointChannel> channel_a,
                          MockEndpointChannel* channel_b, ClientProxy* client,
-                         MockPcpHandler* pcp_handler) {
+                         MockPcpHandler* pcp_handler,
+                         std::atomic_bool* flag = nullptr) {
     ConnectionRequestInfo info{
         .name = "ABCD",
         .listener = connection_listener_,
@@ -254,11 +274,14 @@ class BasePcpHandlerTest : public ::testing::Test {
     // Simulate successful discovery.
     auto encryption_runner = std::make_unique<EncryptionRunner>();
     pcp_handler->OnEndpointFound(
-        client, std::make_unique<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
-                    .endpoint_id = endpoint_id,
-                    .endpoint_name = info.name,
-                    .service_id = "service",
-                    .medium = Medium::BLE,
+        client, std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+                    {
+                        .endpoint_id = endpoint_id,
+                        .endpoint_name = info.name,
+                        .service_id = "service",
+                        .medium = Medium::BLE,
+                    },
+                    MockContext{flag},
                 }));
     auto other_client = std::make_unique<ClientProxy>();
 
@@ -439,6 +462,29 @@ TEST_F(BasePcpHandlerTest, OnEndpointDisconnectChangesState) {
   pcp_handler->OnEndpointDisconnect(client.get(), endpoint_id, &latch);
   channel_b->Close();
   EXPECT_TRUE(latch.Await(absl::Milliseconds(5000)).result());
+}
+
+TEST_F(BasePcpHandlerTest, DestructorIsCalledOnProtocolEndpoint) {
+  std::atomic_bool destroyed_flag = false;
+  {
+    std::string endpoint_id{"1234"};
+    ClientProxy client;
+    EndpointChannelManager ecm;
+    EndpointManager em(&ecm);
+    MockPcpHandler pcp_handler(&em, &ecm);
+    StartDiscovery(&client, &pcp_handler);
+    auto channel_pair = SetupConnection(pipe_a_, pipe_b_);
+    auto& channel_b = channel_pair.second;
+    RequestConnection(endpoint_id, std::move(channel_pair.first),
+                      channel_b.get(), &client, &pcp_handler, &destroyed_flag);
+    NEARBY_LOG(INFO, "Attempting to accept connection: id=%s",
+               endpoint_id.c_str());
+    EXPECT_EQ(pcp_handler.AcceptConnection(&client, endpoint_id, {}),
+              Status{Status::kSuccess});
+    NEARBY_LOG(INFO, "Closing connection: id=%s", endpoint_id.c_str());
+    channel_b->Close();
+  }
+  EXPECT_TRUE(destroyed_flag.load());
 }
 
 }  // namespace

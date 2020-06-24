@@ -28,8 +28,8 @@ struct DataChannelListener {
   std::function<void()> data_channel_closed_cb = DefaultCallback<>();
 
   // Called when a new message was received on the data channel.
-  std::function<void(ByteArray)> data_channel_message_received_cb =
-      DefaultCallback<ByteArray>();
+  std::function<void(const ByteArray&)> data_channel_message_received_cb =
+      DefaultCallback<const ByteArray&>();
 
   // Called when the data channel indicates that the buffered amount has
   // changed.

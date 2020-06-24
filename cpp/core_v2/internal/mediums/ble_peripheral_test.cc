@@ -22,10 +22,10 @@ namespace connections {
 namespace mediums {
 namespace {
 
-const char kId[] = "AB12";
+constexpr absl::string_view kId{"AB12"};
 
 TEST(BlePeripheralTest, ConstructionWorks) {
-  ByteArray id{kId};
+  ByteArray id{std::string(kId)};
 
   BlePeripheral ble_peripheral{id};
 

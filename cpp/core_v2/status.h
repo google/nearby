@@ -38,6 +38,7 @@ struct Status {
     kAlreadyConnectedToEndpoint,
     kNotConnectedToEndpoint,
     kBluetoothError,
+    kWifiLanError,
     kPayloadUnknown,
   };
   Value value {kError};

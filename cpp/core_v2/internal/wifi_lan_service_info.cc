@@ -20,7 +20,9 @@
 #include <utility>
 
 #include "platform_v2/base/base64_utils.h"
+#include "platform_v2/base/base_input_stream.h"
 #include "platform_v2/public/logging.h"
+#include "absl/strings/str_cat.h"
 
 namespace location {
 namespace nearby {
@@ -47,7 +49,8 @@ WifiLanServiceInfo::WifiLanServiceInfo(Version version, Pcp pcp,
   version_ = version;
   pcp_ = pcp;
   service_id_hash_ = service_id_hash;
-  endpoint_id_ = std::string(endpoint_id);
+  endpoint_id_ = endpoint_id;
+  endpoint_name_ = endpoint_name;
 }
 
 WifiLanServiceInfo::WifiLanServiceInfo(absl::string_view service_info_string) {
@@ -77,62 +80,69 @@ WifiLanServiceInfo::WifiLanServiceInfo(absl::string_view service_info_string) {
     return;
   }
 
-  // The upper 3 bits are supposed to be the version.
-  version_ = static_cast<Version>(
-      (service_info_bytes.data()[0] & kVersionBitmask) >> kVersionShift);
-  const char* service_info_bytes_read_ptr = service_info_bytes.data();
-  switch (version_) {
-    case Version::kV1:
-      // The lower 5 bits of the V1 payload are supposed to be the Pcp.
-      pcp_ = static_cast<Pcp>(*service_info_bytes_read_ptr & kPcpBitmask);
-      service_info_bytes_read_ptr++;
-      switch (pcp_) {
-        case Pcp::kP2pCluster:  // Fall through
-        case Pcp::kP2pStar:     // Fall through
-        case Pcp::kP2pPointToPoint:
-          // The next 32 bits are supposed to be the endpoint_id.
-          endpoint_id_ =
-              std::string(service_info_bytes_read_ptr, kEndpointIdLength);
-          service_info_bytes_read_ptr += kEndpointIdLength;
-
-          // The next 24 bits are supposed to be the service_id_hash.
-          service_id_hash_ =
-              ByteArray(service_info_bytes_read_ptr, kServiceIdHashLength);
-          service_info_bytes_read_ptr += kServiceIdHashLength;
-
-          // The next bits are supposed to be endpoint_name.
-          // TODO(edwinwu): Implements it. Temp to set "found_device".
-          endpoint_name_ = "found_device";
-          break;
-
-        default:
-          // TODO(edwinwu): [ANALYTICIZE] This either represents corruption over
-          // the air, or older versions of GmsCore intermingling with newer
-          // ones.
-          NEARBY_LOG(
-              INFO,
-              "Cannot deserialize WifiLanServiceInfo: unsupported V1 PCP %d",
-              pcp_);
-          break;
-      }
-      break;
-
-    default:
-      // TODO(edwinwu): [ANALYTICIZE] This either represents corruption over
-      // the air, or older versions of GmsCore intermingling with newer ones.
-      NEARBY_LOG(
-          INFO, "Cannot deserialize WifiLanServiceInfo: unsupported Version %d",
-          version_);
-      break;
+  if (service_info_bytes.size() > kMaxEndpointNameLength) {
+    NEARBY_LOG(INFO,
+               "Cannot deserialize WifiLanServiceInfo: expecting max %d raw "
+               "bytes, got %" PRIu64,
+               kMaxEndpointNameLength, service_info_bytes.size());
+    return;
   }
+
+  BaseInputStream base_input_stream{service_info_bytes};
+  // The first 1 byte is supposed to be the version and pcp.
+  auto version_and_pcp_byte = static_cast<char>(base_input_stream.ReadUint8());
+  // The upper 3 bits are supposed to be the version.
+  version_ =
+      static_cast<Version>((version_and_pcp_byte & kVersionBitmask) >> 5);
+  if (version_ != Version::kV1) {
+    NEARBY_LOG(INFO,
+               "Cannot deserialize WifiLanServiceInfo: unsupported Version %d",
+               version_);
+    return;
+  }
+  // The lower 5 bits are supposed to be the Pcp.
+  pcp_ = static_cast<Pcp>(version_and_pcp_byte & kPcpBitmask);
+  switch (pcp_) {
+    case Pcp::kP2pCluster:  // Fall through
+    case Pcp::kP2pStar:     // Fall through
+    case Pcp::kP2pPointToPoint:
+      break;
+    default:
+      NEARBY_LOG(INFO,
+                 "Cannot deserialize WifiLanServiceInfo: unsupported V1 PCP %d",
+                 pcp_);
+  }
+
+  // The next 4 bytes are supposed to be the endpoint_id.
+  endpoint_id_ = std::string{base_input_stream.ReadBytes(kEndpointIdLength)};
+
+  // The next 3 bytes are supposed to be the service_id_hash.
+  service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
+
+  // The next 1 byte are supposed to be the length of the endpoint_name.
+  std::uint32_t expected_endpoint_name_length = base_input_stream.ReadUint8();
+
+  // The rest bytes are supposed to be the endpoint_name
+  auto endpoint_name_bytes =
+      base_input_stream.ReadBytes(expected_endpoint_name_length);
+  if (endpoint_name_bytes.Empty() ||
+      endpoint_name_bytes.size() != expected_endpoint_name_length) {
+    NEARBY_LOG(INFO,
+               "Cannot deserialize WifiLanServiceInfo: expected "
+               "endpointName to be %d bytes, got %" PRIu64,
+               expected_endpoint_name_length, endpoint_name_bytes.size());
+
+    // Clear enpoint_id for validadity.
+    endpoint_id_.clear();
+    return;
+  }
+  endpoint_name_ = std::string{endpoint_name_bytes};
 }
 
 WifiLanServiceInfo::operator std::string() const {
   if (!IsValid()) {
     return "";
   }
-
-  std::string out;
 
   // The upper 3 bits are the Version.
   auto version_and_pcp_byte = static_cast<char>(
@@ -141,12 +151,23 @@ WifiLanServiceInfo::operator std::string() const {
   version_and_pcp_byte |=
       static_cast<char>(static_cast<uint32_t>(pcp_) & kPcpBitmask);
 
-  out.reserve(kMinLanServiceNameLength);
-  out.append(1, version_and_pcp_byte);
-  out.append(endpoint_id_);
-  out.append(std::string(service_id_hash_));
-  // The last byte is reserved to fit the kMinLanServiceNameLength.
-  out.append(" ");
+  std::string usable_endpoint_name(endpoint_name_);
+  if (endpoint_name_.size() > kMaxEndpointNameLength) {
+    NEARBY_LOG(
+        INFO,
+        "While serializing WifiLanServiceInfo, truncating Endpoint Name %s "
+        "(%lu bytes) down to %d bytes",
+        endpoint_name_.c_str(), endpoint_name_.size(), kMaxEndpointNameLength);
+    usable_endpoint_name.erase(kMaxEndpointNameLength);
+  }
+
+  // clang-format off
+  std::string out = absl::StrCat(std::string(1, version_and_pcp_byte),
+                                 endpoint_id_,
+                                 std::string(service_id_hash_),
+                                 std::string(1, usable_endpoint_name.size()),
+                                 usable_endpoint_name);
+  // clang-format on
 
   return Base64Utils::Encode(ByteArray{std::move(out)});
 }

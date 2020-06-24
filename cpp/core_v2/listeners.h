@@ -53,20 +53,20 @@ struct ConnectionResponseInfo {
   std::string authentication_token;
   ByteArray raw_authentication_token;
   ByteArray endpoint_info;
-  bool is_incoming_connection;
-  bool is_connection_verified;
+  bool is_incoming_connection = false;
+  bool is_connection_verified = false;
 };
 
 struct PayloadProgressInfo {
-  std::int64_t payload_id;
+  std::int64_t payload_id = 0;
   enum class Status {
     kSuccess,
     kFailure,
     kInProgress,
     kCanceled,
-  } status;
-  std::int64_t total_bytes;
-  std::int64_t bytes_transferred;
+  } status = Status::kSuccess;
+  std::int64_t total_bytes = 0;
+  std::int64_t bytes_transferred = 0;
 };
 
 enum class DistanceInfo {

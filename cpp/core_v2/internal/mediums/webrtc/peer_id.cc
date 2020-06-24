@@ -46,6 +46,8 @@ PeerId PeerId::FromSeed(const ByteArray& seed) {
   return PeerId(BytesToStringUppercase(hashed_seed));
 }
 
+bool PeerId::IsValid() const { return !id_.empty(); }
+
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby

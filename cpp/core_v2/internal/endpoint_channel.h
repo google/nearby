@@ -20,6 +20,7 @@
 
 #include "platform_v2/base/byte_array.h"
 #include "platform_v2/base/exception.h"
+#include "platform_v2/public/mutex.h"
 #include "proto/connections_enums.pb.h"
 #include "securegcm/d2d_connection_context_v1.h"
 #include "absl/time/clock.h"
@@ -31,6 +32,8 @@ namespace connections {
 class EndpointChannel {
  public:
   virtual ~EndpointChannel() = default;
+
+  using EncryptionContext = ::securegcm::D2DConnectionContextV1;
 
   virtual ExceptionOr<ByteArray>
   Read() = 0;  // throws Exception::IO, Exception::INTERRUPTED
@@ -54,8 +57,7 @@ class EndpointChannel {
   virtual proto::connections::Medium GetMedium() const = 0;
 
   // Enables encryption on the EndpointChannel.
-  virtual void EnableEncryption(
-      securegcm::D2DConnectionContextV1* context) = 0;
+  virtual void EnableEncryption(std::shared_ptr<EncryptionContext> context) = 0;
 
   // True if the EndpointChannel is currently pausing all writes.
   virtual bool IsPaused() const = 0;

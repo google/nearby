@@ -25,28 +25,30 @@
 #include "platform_v2/api/bluetooth_classic.h"
 #include "platform_v2/api/condition_variable.h"
 #include "platform_v2/api/count_down_latch.h"
+#include "platform_v2/api/log_message.h"
 #include "platform_v2/api/mutex.h"
 #include "platform_v2/api/scheduled_executor.h"
 #include "platform_v2/api/server_sync.h"
-#include "platform_v2/api/settable_future.h"
 #include "platform_v2/api/submittable_executor.h"
 #include "platform_v2/api/webrtc.h"
 #include "platform_v2/api/wifi.h"
 #include "platform_v2/impl/g3/atomic_boolean.h"
-#include "platform_v2/impl/g3/atomic_reference_any.h"
+#include "platform_v2/impl/g3/atomic_reference.h"
 #include "platform_v2/impl/g3/bluetooth_adapter.h"
 #include "platform_v2/impl/g3/bluetooth_classic.h"
 #include "platform_v2/impl/g3/condition_variable.h"
 #include "platform_v2/impl/g3/count_down_latch.h"
+#include "platform_v2/impl/g3/log_message.h"
 #include "platform_v2/impl/g3/multi_thread_executor.h"
 #include "platform_v2/impl/g3/mutex.h"
 #include "platform_v2/impl/g3/scheduled_executor.h"
-#include "platform_v2/impl/g3/settable_future_any.h"
 #include "platform_v2/impl/g3/single_thread_executor.h"
 #include "platform_v2/impl/g3/webrtc.h"
+#include "platform_v2/impl/g3/wifi_lan.h"
 #include "platform_v2/impl/shared/file.h"
 #include "absl/base/integral_types.h"
 #include "absl/memory/memory.h"
+#include "absl/strings/str_cat.h"
 #include "absl/time/time.h"
 
 namespace location {
@@ -54,8 +56,8 @@ namespace nearby {
 namespace api {
 
 namespace {
-std::string GetPayloadPath(std::int64_t payload_id) {
-  return "/tmp/" + std::to_string(payload_id);
+std::string GetPayloadPath(PayloadId payload_id) {
+  return absl::StrCat("/tmp/", payload_id);
 }
 }  // namespace
 
@@ -74,14 +76,9 @@ ImplementationPlatform::CreateScheduledExecutor() {
   return absl::make_unique<g3::ScheduledExecutor>();
 }
 
-std::unique_ptr<AtomicReference<absl::any>>
-ImplementationPlatform::CreateAtomicReferenceAny(absl::any initial_value) {
-  return absl::make_unique<g3::AtomicReferenceAny>(initial_value);
-}
-
-std::unique_ptr<SettableFuture<absl::any>>
-ImplementationPlatform::CreateSettableFutureAny() {
-  return absl::make_unique<g3::SettableFutureAny>();
+std::unique_ptr<AtomicUint32>
+ImplementationPlatform::CreateAtomicUint32(std::uint32_t value) {
+  return absl::make_unique<g3::AtomicUint32>(value);
 }
 
 std::unique_ptr<BluetoothAdapter>
@@ -100,14 +97,19 @@ std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
-    std::int64_t payload_id, std::int64_t total_size) {
+    PayloadId payload_id, std::int64_t total_size) {
   return absl::make_unique<shared::InputFile>(GetPayloadPath(payload_id),
                                               total_size);
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
-    std::int64_t payload_id) {
+    PayloadId payload_id) {
   return absl::make_unique<shared::OutputFile>(GetPayloadPath(payload_id));
+}
+
+std::unique_ptr<LogMessage> ImplementationPlatform::CreateLogMessage(
+    const char* file, int line, LogMessage::Severity severity) {
+  return absl::make_unique<g3::LogMessage>(file, line, severity);
 }
 
 std::unique_ptr<BluetoothClassicMedium>
@@ -136,7 +138,7 @@ std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() {
 }
 
 std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
-  return std::unique_ptr<WifiLanMedium>();
+  return absl::make_unique<g3::WifiLanMedium>();
 }
 
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
@@ -154,11 +156,6 @@ std::unique_ptr<ConditionVariable>
 ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
   return std::unique_ptr<ConditionVariable>(
       new g3::ConditionVariable(static_cast<g3::Mutex*>(mutex)));
-}
-
-std::string ImplementationPlatform::GetDeviceId() {
-  // TODO(alexchau): Get deviceId from base
-  return "google3";
 }
 
 }  // namespace api

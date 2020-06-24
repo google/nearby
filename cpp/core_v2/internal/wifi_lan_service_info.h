@@ -81,8 +81,6 @@ class WifiLanServiceInfo {
   std::string endpoint_id_;
   // Connected hash service id.
   ByteArray service_id_hash_;
-  // TODO(edwinwu): Replaces endpointName as endPointInfo eventually;
-  // it is not in this version yet for endpointName.
   // Connected endpoint name.
   std::string endpoint_name_;
 };

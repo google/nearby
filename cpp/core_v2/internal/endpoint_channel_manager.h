@@ -29,8 +29,6 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-using EncryptionContext = ::securegcm::D2DConnectionContextV1;
-
 // NOTE(std::string):
 // All the strings in internal class public interfaces should be exchanged as
 // const std::string& if they are immutable, and as std::string
@@ -47,6 +45,8 @@ using EncryptionContext = ::securegcm::D2DConnectionContextV1;
 // are interacting.
 class EndpointChannelManager final {
  public:
+  using EncryptionContext = EndpointChannel::EncryptionContext;
+
   ~EndpointChannelManager();
 
   // Registers the initial EndpointChannel to be associated with an endpoint;
@@ -111,10 +111,12 @@ class EndpointChannelManager final {
       }
 
       // True if we have a 'context' for the endpoint.
-      bool IsEncrypted() const { return context != nullptr; }
+      bool IsEncrypted() const {
+        return context != nullptr;
+      }
 
       std::shared_ptr<EndpointChannel> channel;
-      std::unique_ptr<EncryptionContext> context;
+      std::shared_ptr<EncryptionContext> context;
       proto::connections::DisconnectionReason disconnect_reason =
           proto::connections::DisconnectionReason::UNKNOWN_DISCONNECTION_REASON;
     };

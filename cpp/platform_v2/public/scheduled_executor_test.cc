@@ -26,6 +26,14 @@
 namespace location {
 namespace nearby {
 
+// kShortDelay must be significant enough to guarantee that OS under heavy load
+// should be able to execute the non-blocking test paths within this time.
+absl::Duration kShortDelay = absl::Milliseconds(100);
+
+// kLongDelay must be long enough to make sure that under OS under heavy load
+// will let kShortDelay fire and jobs scheduled before the kLongDelay fires.
+absl::Duration kLongDelay = 10 * kShortDelay;
+
 TEST(ScheduledExecutorTest, ConsructorDestructorWorks) {
   ScheduledExecutor executor;
 }
@@ -42,7 +50,7 @@ TEST(ScheduledExecutorTest, CanExecute) {
   {
     absl::MutexLock lock(&mutex);
     if (!done) {
-      cond.WaitWithTimeout(&mutex, absl::Seconds(1));
+      cond.WaitWithTimeout(&mutex, kLongDelay);
     }
   }
   EXPECT_TRUE(done);
@@ -53,25 +61,25 @@ TEST(ScheduledExecutorTest, CanSchedule) {
   std::atomic_int value = 0;
   absl::Mutex mutex;
   absl::CondVar cond;
-  // schedule job due in 100 ms.
+  // schedule job due in kLongDelay.
   executor.Schedule(
       [&value, &cond]() {
         EXPECT_EQ(value, 1);
         value = 5;
         cond.Signal();
       },
-      absl::Milliseconds(100));
-  // schedule job due in 10 ms; must fire before the first one.
+      kLongDelay);
+  // schedule job due in kShortDelay; must fire before the first one.
   executor.Schedule(
       [&value]() {
         EXPECT_EQ(value, 0);
         value = 1;
       },
-      absl::Milliseconds(10));
+      kShortDelay);
   {
-    // wait for the final job to unblock us.
+    // wait for the final job to unblock us; wait longer than kLongDelay.
     absl::MutexLock lock(&mutex);
-    cond.WaitWithTimeout(&mutex, absl::Milliseconds(1000));
+    cond.WaitWithTimeout(&mutex, 2 * kLongDelay);
   }
   EXPECT_EQ(value, 5);
 }
@@ -80,10 +88,10 @@ TEST(ScheduledExecutorTest, CanCancel) {
   ScheduledExecutor executor;
   std::atomic_int value = 0;
   Cancelable cancelable =
-      executor.Schedule([&value]() { value += 1; }, absl::Milliseconds(10));
+      executor.Schedule([&value]() { value += 1; }, kShortDelay);
   EXPECT_EQ(value, 0);
   EXPECT_TRUE(cancelable.Cancel());
-  absl::SleepFor(absl::Milliseconds(500));
+  absl::SleepFor(kLongDelay);
   EXPECT_EQ(value, 0);
 }
 
@@ -92,17 +100,17 @@ TEST(ScheduledExecutorTest, FailToCancel) {
   absl::CondVar cond;
   ScheduledExecutor executor;
   std::atomic_int value = 0;
-  // Schedule job in 10ms, which will we will attempt to cancel later.
+  // Schedule job in kShortDelay, which will we will attempt to cancel later.
   Cancelable cancelable =
-      executor.Schedule([&value]() { value += 1; }, absl::Milliseconds(10));
-  // schedule another job to test results of the first one, in 50ms from now.
+      executor.Schedule([&value]() { value += 1; }, kShortDelay);
+  // schedule another job to test results of the first one, in kLongDelay.
   executor.Schedule(
       [&cancelable, &cond]() {
         EXPECT_FALSE(cancelable.Cancel());
         // Wake up main thread.
         cond.Signal();
       },
-      absl::Milliseconds(50));
+      kLongDelay);
   {
     absl::MutexLock lock(&mutex);
     cond.Wait(&mutex);

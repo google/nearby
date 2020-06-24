@@ -39,8 +39,7 @@ namespace connections {
 // The rest of arguments have the same meaning as the corresponding
 // methods in the definition of location::nearby::Core API.
 //
-// See details here:
-// cpp/core_v2/core.h
+// See details here: cpp/core_v2/core.h
 class ServiceController {
  public:
   virtual ~ServiceController() = default;

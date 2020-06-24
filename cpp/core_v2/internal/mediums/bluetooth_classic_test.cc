@@ -38,6 +38,7 @@ class BluetoothClassicTest : public ::testing::Test {
   using DiscoveryCallback = BluetoothClassicMedium::DiscoveryCallback;
 
   BluetoothClassicTest() {
+    env_.Start();
     env_.Reset();
     radio_a_ = std::make_unique<BluetoothRadio>();
     radio_b_ = std::make_unique<BluetoothRadio>();
@@ -60,6 +61,7 @@ class BluetoothClassicTest : public ::testing::Test {
     radio_a_.reset();
     radio_b_.reset();
     env_.Reset();
+    env_.Stop();
   }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};

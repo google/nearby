@@ -25,15 +25,15 @@ namespace nearby {
 namespace connections {
 namespace {
 
-const WifiLanServiceInfo::Version kVersion = WifiLanServiceInfo::Version::kV1;
-const Pcp kPcp = Pcp::kP2pCluster;
-const char kEndPointID[] = "AB12";
-const char kServiceIDHashBytes[] = "\x0a\x0b\x0c";
-// TODO(edwinwu): Temp to set empty string for endpoint_name.
-const char kEndPointName[] = "";
+constexpr WifiLanServiceInfo::Version kVersion =
+    WifiLanServiceInfo::Version::kV1;
+constexpr Pcp kPcp = Pcp::kP2pCluster;
+constexpr absl::string_view kEndPointID{"AB12"};
+constexpr absl::string_view kServiceIDHashBytes{"\x0a\x0b\x0c"};
+constexpr absl::string_view kEndPointName{"RAWK + ROWL!"};
 
 TEST(WifiLanServiceInfoTest, ConstructionWorks) {
-  ByteArray service_id_hash{kServiceIDHashBytes};
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
   WifiLanServiceInfo wifi_lan_service_info{kVersion, kPcp, kEndPointID,
                                            service_id_hash, kEndPointName};
 
@@ -42,10 +42,11 @@ TEST(WifiLanServiceInfoTest, ConstructionWorks) {
   EXPECT_EQ(kVersion, wifi_lan_service_info.GetVersion());
   EXPECT_EQ(kEndPointID, wifi_lan_service_info.GetEndpointId());
   EXPECT_EQ(service_id_hash, wifi_lan_service_info.GetServiceIdHash());
+  EXPECT_EQ(kEndPointName, wifi_lan_service_info.GetEndpointName());
 }
 
 TEST(WifiLanServiceInfoTest, ConstructionFromSerializedStringWorks) {
-  ByteArray service_id_hash{kServiceIDHashBytes};
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
   WifiLanServiceInfo org_wifi_lan_service_info{kVersion, kPcp, kEndPointID,
                                                service_id_hash, kEndPointName};
   std::string wifi_lan_service_info_string{org_wifi_lan_service_info};
@@ -57,12 +58,13 @@ TEST(WifiLanServiceInfoTest, ConstructionFromSerializedStringWorks) {
   EXPECT_EQ(kVersion, wifi_lan_service_info.GetVersion());
   EXPECT_EQ(kEndPointID, wifi_lan_service_info.GetEndpointId());
   EXPECT_EQ(service_id_hash, wifi_lan_service_info.GetServiceIdHash());
+  EXPECT_EQ(kEndPointName, wifi_lan_service_info.GetEndpointName());
 }
 
 TEST(WifiLanServiceInfoTest, ConstructionFailsWithBadVersion) {
   auto bad_version = static_cast<WifiLanServiceInfo::Version>(666);
 
-  ByteArray service_id_hash{kServiceIDHashBytes};
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
   WifiLanServiceInfo wifi_lan_service_info{bad_version, kPcp, kEndPointID,
                                            service_id_hash, kEndPointName};
 
@@ -72,7 +74,7 @@ TEST(WifiLanServiceInfoTest, ConstructionFailsWithBadVersion) {
 TEST(WifiLanServiceInfoTest, ConstructionFailsWithBadPCP) {
   auto bad_pcp = static_cast<Pcp>(666);
 
-  ByteArray service_id_hash{kServiceIDHashBytes};
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
   WifiLanServiceInfo wifi_lan_service_info{kVersion, bad_pcp, kEndPointID,
                                            service_id_hash, kEndPointName};
 
@@ -82,7 +84,7 @@ TEST(WifiLanServiceInfoTest, ConstructionFailsWithBadPCP) {
 TEST(WifiLanServiceInfoTest, ConstructionFailsWithShortEndpointId) {
   std::string short_endpoint_id("AB1");
 
-  ByteArray service_id_hash{kServiceIDHashBytes};
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
   WifiLanServiceInfo wifi_lan_service_info{kVersion, kPcp, short_endpoint_id,
                                            service_id_hash, kEndPointName};
 
@@ -92,7 +94,7 @@ TEST(WifiLanServiceInfoTest, ConstructionFailsWithShortEndpointId) {
 TEST(WifiLanServiceInfoTest, ConstructionFailsWithLongEndpointId) {
   std::string long_endpoint_id("AB12X");
 
-  ByteArray service_id_hash{kServiceIDHashBytes};
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
   WifiLanServiceInfo wifi_lan_service_info{kVersion, kPcp, long_endpoint_id,
                                            service_id_hash, kEndPointName};
 

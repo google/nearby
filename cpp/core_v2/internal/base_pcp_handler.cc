@@ -21,6 +21,7 @@
 #include <memory>
 
 #include "core_v2/internal/offline_frames.h"
+#include "core_v2/internal/pcp_handler.h"
 #include "platform_v2/public/logging.h"
 #include "platform_v2/public/system_clock.h"
 #include "securegcm/d2d_connection_context_v1.h"
@@ -39,17 +40,25 @@ constexpr absl::Duration BasePcpHandler::kConnectionRequestReadTimeout;
 constexpr absl::Duration BasePcpHandler::kRejectedConnectionCloseDelay;
 
 BasePcpHandler::BasePcpHandler(EndpointManager* endpoint_manager,
-                               EndpointChannelManager* channel_manager)
-    : endpoint_manager_(endpoint_manager), channel_manager_(channel_manager) {}
+                               EndpointChannelManager* channel_manager, Pcp pcp)
+    : endpoint_manager_(endpoint_manager),
+      channel_manager_(channel_manager),
+      pcp_(pcp) {}
 
 BasePcpHandler::~BasePcpHandler() {
   // Unregister ourselves from the FrameProcessors.
+  NEARBY_LOGS(INFO) << "BasePcpHandler: going down; strategy="
+                    << strategy_.GetName();
   endpoint_manager_->UnregisterFrameProcessor(V1Frame::CONNECTION_RESPONSE,
                                               handle_);
 
   // Stop all the ongoing Runnables (as gracefully as possible).
+  NEARBY_LOGS(INFO) << "BasePcpHandler: bringing down executors; strategy="
+                    << strategy_.GetName();
   serial_executor_.Shutdown();
   alarm_executor_.Shutdown();
+  NEARBY_LOGS(INFO) << "BasePcpHandler: is down; strategy="
+                    << strategy_.GetName();
 }
 
 Status BasePcpHandler::StartAdvertising(ClientProxy* client,
@@ -563,7 +572,7 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
 //  return bandwidth_upgrade_medium_.Get();
 //}
 
-void BasePcpHandler::OnIncomingFrame(const OfflineFrame& frame,
+void BasePcpHandler::OnIncomingFrame(OfflineFrame& frame,
                                      const string& endpoint_id,
                                      ClientProxy* client,
                                      proto::connections::Medium medium) {
@@ -620,7 +629,7 @@ ConnectionOptions BasePcpHandler::GetConnectionOptions() const {
 
 void BasePcpHandler::OnEndpointFound(
     ClientProxy* client,
-    std::unique_ptr<BasePcpHandler::DiscoveredEndpoint> endpoint) {
+    std::shared_ptr<BasePcpHandler::DiscoveredEndpoint> endpoint) {
   // Check if we've seen this endpoint ID before.
   std::string& endpoint_id = endpoint->endpoint_id;
   BasePcpHandler::DiscoveredEndpoint* previously_discovered_endpoint =
@@ -631,8 +640,7 @@ void BasePcpHandler::OnEndpointFound(
     // If this is the first medium we've discovered this endpoint over, then add
     // it to the map.
     const auto& owned_endpoint =
-        discovered_endpoints_
-            .emplace(endpoint_id, std::move(endpoint))
+        discovered_endpoints_.emplace(endpoint_id, std::move(endpoint))
             .first->second;
 
     NEARBY_LOG(INFO, "Adding new endpoint: id=%s", endpoint_id.c_str());
@@ -655,8 +663,7 @@ void BasePcpHandler::OnEndpointFound(
     NEARBY_LOG(INFO, "Rediscovered endpoint on new media: id=%s",
                endpoint_id.c_str());
     if (IsPreferred(*endpoint, *previously_discovered_endpoint)) {
-      discovered_endpoints_.insert_or_assign(endpoint_id,
-                                             std::move(endpoint));
+      discovered_endpoints_.insert_or_assign(endpoint_id, std::move(endpoint));
     }
   }
 }
@@ -664,8 +671,7 @@ void BasePcpHandler::OnEndpointFound(
 void BasePcpHandler::OnEndpointLost(
     ClientProxy* client, const BasePcpHandler::DiscoveredEndpoint& endpoint) {
   // Look up the DiscoveredEndpoint we have in our cache.
-  const auto* discovered_endpoint =
-      GetDiscoveredEndpoint(endpoint.endpoint_id);
+  const auto* discovered_endpoint = GetDiscoveredEndpoint(endpoint.endpoint_id);
   if (discovered_endpoint == nullptr) {
     NEARBY_LOG(INFO, "No previous endpoint (nothing to lose): id=%s",
                endpoint.endpoint_id.c_str());
@@ -747,7 +753,7 @@ Exception BasePcpHandler::OnIncomingConnection(
   OfflineFrame& frame = wrapped_frame.result();
   const ConnectionRequestFrame& connection_request =
       frame.v1().connection_request();
-  NEARBY_LOG(ERROR,
+  NEARBY_LOG(INFO,
              "Incoming connection request; client_id=0x%" PRIX64
              "; device=%s; id=%s",
              client->GetClientId(), remote_device_name.c_str(),
@@ -944,7 +950,7 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
     bool succeeded = ukey2->VerifyHandshake();
     CHECK(succeeded);  // If this fails, it's a UKEY2 protocol bug.
     auto context = ukey2->ToConnectionContext();
-    assert(context);  // there is no way how this can fail, if Verify succeeded.
+    CHECK(context);  // there is no way how this can fail, if Verify succeeded.
     // If it did, it's a UKEY2 protocol bug.
 
     channel_manager_->EncryptChannelForEndpoint(endpoint_id,

@@ -30,7 +30,7 @@ class Strategy {
   static const Strategy kP2pStar;
   static const Strategy kP2pPointToPoint;
 
-  Strategy() : Strategy(kNone) {}
+  constexpr Strategy() : Strategy(kNone) {}
 
   constexpr Strategy(const Strategy& other)
       : connection_type_(other.connection_type_),
@@ -62,7 +62,7 @@ class Strategy {
     kOneToMany = 2,
     kManyToMany = 3,
   };
-  Strategy(ConnectionType connection_type, TopologyType topology_type)
+  constexpr Strategy(ConnectionType connection_type, TopologyType topology_type)
       : connection_type_(connection_type), topology_type_(topology_type) {}
 
   ConnectionType connection_type_;

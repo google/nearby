@@ -78,8 +78,6 @@ class BleAdvertisement {
   std::string GetBluetoothMacAddress() const { return bluetooth_mac_address_; }
 
  private:
-  std::uint32_t ComputeEndpointNameLength(
-      const ByteArray& ble_advertisement_bytes) const;
   ByteArray BluetoothMacAddressHexStringToBytes(
       const std::string& bluetooth_mac_address) const;
   std::string HexBytesToColonDelimitedString(const ByteArray& hex_bytes) const;

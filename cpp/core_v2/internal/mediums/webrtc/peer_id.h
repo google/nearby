@@ -26,19 +26,22 @@ namespace connections {
 namespace mediums {
 
 // PeerId is used as an identifier to exchange SDP messages to establish WebRTC
-// p2p connection.
+// p2p connection. An empty PeerId is considered to be invalid.
 class PeerId {
  public:
-  explicit PeerId(const string& id) : id_(id) {}
+  PeerId() = default;
+  explicit PeerId(const std::string& id) : id_(id) {}
   ~PeerId() = default;
 
   static PeerId FromRandom();
   static PeerId FromSeed(const ByteArray& seed);
 
-  const string& GetId() const { return id_; }
+  bool IsValid() const;
+
+  const std::string& GetId() const { return id_; }
 
  private:
-  const string id_;
+  std::string id_;
 };
 
 }  // namespace mediums
