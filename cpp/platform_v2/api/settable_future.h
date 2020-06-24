@@ -16,8 +16,15 @@ class SettableFuture : public ListenableFuture<T> {
  public:
   ~SettableFuture() override = default;
 
-  virtual bool Set(const T& value) = 0;
-  virtual bool Set(T&& value) = 0;
+  // Completes the future successfully. The value is returned to any waiters.
+  // Returns true, if value was set.
+  // Returns false, if Future is already in "done" state.
+  virtual bool Set(T value) = 0;
+
+  // Completes the future unsuccessfully. The exception value is returned to any
+  // waiters.
+  // Returns true, if exception was set.
+  // Returns false, if Future is already in "done" state.
   virtual bool SetException(Exception exception) = 0;
 };
 

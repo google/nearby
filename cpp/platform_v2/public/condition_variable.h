@@ -21,10 +21,9 @@ class ConditionVariable final {
   ConditionVariable(ConditionVariable&&) = default;
   ConditionVariable& operator=(ConditionVariable&&) = default;
 
-  // https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html#notify--
   void Notify() { impl_->Notify(); }
-  // https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html#wait--
   Exception Wait() { return impl_->Wait(); }
+  Exception Wait(absl::Duration timeout) { return impl_->Wait(timeout); }
 
  private:
   std::unique_ptr<api::ConditionVariable> impl_;

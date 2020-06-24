@@ -1,10 +1,11 @@
 #ifndef PLATFORM_V2_BASE_BYTE_ARRAY_H_
 #define PLATFORM_V2_BASE_BYTE_ARRAY_H_
 
+#include <array>
 #include <cstdint>
 #include <string>
-
-#include "absl/strings/string_view.h"
+#include <type_traits>
+#include <utility>
 
 namespace location {
 namespace nearby {
@@ -13,13 +14,22 @@ class ByteArray {
  public:
   // Create an empty ByteArray
   ByteArray() = default;
+  template <size_t N>
+  explicit ByteArray(const std::array<char, N>& data) {
+    SetData(data.data(), data.size());
+  }
   ByteArray(const ByteArray&) = default;
   ByteArray& operator=(const ByteArray&) = default;
   ByteArray(ByteArray&&) = default;
   ByteArray& operator=(ByteArray&&) = default;
 
-  // Create ByteArray from string.
-  explicit ByteArray(absl::string_view source) {
+  // Moves string out of temporary, allowing for a zero-copy constructions.
+  // This is an optimization for very large strings.
+  explicit ByteArray(std::string&& source) : data_(std::move(source)) {}
+
+  // Create ByteArray by copy of a std::string. This can't be a string_view,
+  // because it will conflict with std::string&& version of constructor.
+  explicit ByteArray(const std::string& source) {
     SetData(source.data(), source.size());
   }
 
@@ -59,7 +69,12 @@ class ByteArray {
   friend bool operator!=(const ByteArray& lhs, const ByteArray& rhs);
   friend bool operator<(const ByteArray& lhs, const ByteArray& rhs);
 
-  explicit operator std::string() const { return data_; }
+  // Returns a copy of internal representation as std::string.
+  explicit operator std::string() const& { return data_; }
+
+  // Moves string out of temporary ByteArray, allowing for a zero-copy
+  // operation.
+  explicit operator std::string() const&& { return std::move(data_); }
 
  private:
   std::string data_;

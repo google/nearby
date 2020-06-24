@@ -2,7 +2,9 @@
 
 #include <inttypes.h>
 
+#include "platform_v2/base/base_input_stream.h"
 #include "platform_v2/public/logging.h"
+#include "absl/strings/str_cat.h"
 
 namespace location {
 namespace nearby {
@@ -42,11 +44,15 @@ BleAdvertisement::BleAdvertisement(const ByteArray &ble_advertisement_bytes) {
     return;
   }
 
-  // Now, time to read the bytes!
-  const auto *read_ptr = ble_advertisement_bytes.data();
+  ByteArray advertisement_bytes{ble_advertisement_bytes};
+  BaseInputStream base_input_stream{advertisement_bytes};
+  // The first 1 byte is supposed to be the version and socket version.
+  auto version_and_socket_version_byte =
+      static_cast<char>(base_input_stream.ReadUint8());
 
-  // 1. Version.
-  version_ = static_cast<Version>((*read_ptr & kVersionBitmask) >> 5);
+  // Version.
+  version_ = static_cast<Version>(
+      (version_and_socket_version_byte & kVersionBitmask) >> 5);
   if (!IsSupportedVersion(version_)) {
     NEARBY_LOG(INFO,
                "Cannot deserialize BleAdvertisement: unsupported Version %u",
@@ -54,57 +60,48 @@ BleAdvertisement::BleAdvertisement(const ByteArray &ble_advertisement_bytes) {
     return;
   }
 
-  // 2. Socket Version.
-  socket_version_ =
-      static_cast<SocketVersion>((*read_ptr & kSocketVersionBitmask) >> 2);
+  // Socket version.
+  socket_version_ = static_cast<SocketVersion>(
+      (version_and_socket_version_byte & kSocketVersionBitmask) >> 2);
   if (!IsSupportedSocketVersion(socket_version_)) {
     NEARBY_LOG(
         INFO,
-        "Cannot deserialize BLEAdvertisement: unsupported SocketVersion %u",
+        "Cannot deserialize BleAdvertisement: unsupported SocketVersion %u",
         socket_version_);
     version_ = Version::kUndefined;
     return;
   }
-  read_ptr += kVersionLength;
 
-  // 3. Service ID hash.
-  service_id_hash_ = ByteArray(read_ptr, kServiceIdHashLength);
-  read_ptr += kServiceIdHashLength;
+  // The next 3 bytes are supposed to be the service_id_hash.
+  service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
 
-  // 4.1. Data size.
-  size_t expected_data_size = DeserializeDataSize(read_ptr);
+  // The next 4 bytes are supposed to be the length of the data.
+  std::uint32_t expected_data_size = base_input_stream.ReadUint32();
   if (expected_data_size < 0) {
-    NEARBY_LOG(
-        INFO,
-        "Cannot deserialize BleAdvertisement: negative data size %" PRIu64,
-        expected_data_size);
-    version_ = Version::kUndefined;
-    return;
-  }
-  read_ptr += kDataSizeLength;
-
-  // Check that the stated data size is the same as what we received.
-  size_t actual_data_size = ComputeDataSize(ble_advertisement_bytes);
-  if (actual_data_size < expected_data_size) {
     NEARBY_LOG(INFO,
-               "Cannot deserialize BLEAdvertisement: expected data to be %zu "
-               "bytes, got %" PRIu64 " bytes",
-               expected_data_size, actual_data_size);
+               "Cannot deserialize BleAdvertisement: negative data size %d",
+               expected_data_size);
     version_ = Version::kUndefined;
     return;
   }
 
-  // 4.2. Data.
-  data_ = ByteArray(read_ptr, expected_data_size);
-  read_ptr += expected_data_size;
+  // The rest bytes are supposed to be the data.
+  // Check that the stated data size is the same as what we received.
+  data_ = base_input_stream.ReadBytes(expected_data_size);
+  if (data_.size() != expected_data_size) {
+    NEARBY_LOG(INFO,
+               "Cannot deserialize BleAdvertisement: expected data to be %u "
+               "bytes, got %" PRIu64 " bytes ",
+               expected_data_size, data_.size());
+    version_ = Version::kUndefined;
+    return;
+  }
 }
 
 BleAdvertisement::operator ByteArray() const {
   if (!IsValid()) {
     return ByteArray{};
   }
-
-  std::string out;
 
   // The first 3 bits are the Version.
   char version_and_socket_version_byte =
@@ -117,11 +114,13 @@ BleAdvertisement::operator ByteArray() const {
   auto *data_size_bytes_write_ptr = data_size_bytes.data();
   SerializeDataSize(data_size_bytes_write_ptr, data_.size());
 
-  out.reserve(1 + service_id_hash_.size() + 1 + data_.size());
-  out.append(1, version_and_socket_version_byte);
-  out.append(std::string(service_id_hash_));
-  out.append(std::string(data_size_bytes));
-  out.append(std::string(data_));
+  // clang-format off
+  std::string out =
+      absl::StrCat(std::string(1, version_and_socket_version_byte),
+                   std::string(service_id_hash_),
+                   std::string(data_size_bytes),
+                   std::string(data_));
+  // clang-format on
 
   return ByteArray{std::move(out)};
 }
@@ -166,33 +165,6 @@ void BleAdvertisement::SerializeDataSize(char *data_size_bytes_write_ptr,
   for (int i = 0; i < kDataSizeLength; ++i) {
     data_size_bytes_write_ptr[i] = data_size_bytes[kDataSizeLength - i - 1];
   }
-}
-
-size_t BleAdvertisement::DeserializeDataSize(
-    const char *data_size_bytes_read_ptr) const {
-  // Allocate a chunk of memory to store our deserialized size.
-  char data_size_bytes[kDataSizeLength];
-
-  // Assign the bits of our size from the given raw bytes, keeping in mind that
-  // we need to convert from Big Endian to Little Endian in the process.
-  for (int i = 0; i < kDataSizeLength; ++i) {
-    data_size_bytes[i] = data_size_bytes_read_ptr[kDataSizeLength - i - 1];
-  }
-
-  // Interpret the char array as a single int.
-  return static_cast<size_t>(
-      *(reinterpret_cast<std::uint32_t *>(&data_size_bytes)));
-}
-
-size_t BleAdvertisement::ComputeDataSize(
-    const ByteArray &ble_advertisement_bytes) const {
-  return ble_advertisement_bytes.size() - kMinAdvertisementLength;
-}
-
-size_t BleAdvertisement::ComputeAdvertisementLength(
-    const ByteArray &data) const {
-  // The advertisement length is the minimum length + the length of the data.
-  return kMinAdvertisementLength + data.size();
 }
 
 }  // namespace mediums

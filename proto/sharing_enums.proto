@@ -4,6 +4,7 @@ package location.nearby.proto.sharing;
 
 import "logs/proto/logs_annotations/logs_annotations.proto";
 
+option optimize_for = LITE_RUNTIME;
 option (logs_proto.file_not_used_for_logging_except_enums) = true;
 option java_api_version = 2;
 option java_package = "com.google.location.nearby.proto";
@@ -90,7 +91,7 @@ enum EventType {
   OPEN_RECEIVED_ATTACHMENTS = 21;
 
   // User opens the setup activity.
-  LAUNCH_SETUP_ACTIVITY = 22;
+  LAUNCH_SETUP_ACTIVITY = 22 [deprecated = true];
 
   // User adds a contact.
   ADD_CONTACT = 23;
@@ -115,6 +116,16 @@ enum EventType {
 
   // Cancel connection.
   CANCEL_CONNECTION = 30;
+
+  // User starts a chimera activity (e.g. ConsentsChimeraActivity,
+  // ContactSelectChimeraActivity...)
+  LAUNCH_ACTIVITY = 31;
+
+  // Receiver dismisses a privacy notification.
+  DISMISS_PRIVACY_NOTIFICATION = 32;
+
+  // Receiver taps a privacy notification.
+  TAP_PRIVACY_NOTIFICATION = 33;
 }
 
 // Event category to differentiate whether this comes from sender or receiver,
@@ -265,4 +276,16 @@ enum ScanType {
   FOREGROUND_SCAN = 1;
   FOREGROUND_RETRY_SCAN = 2;
   DIRECT_SHARE_SCAN = 3;
+}
+
+// The class name of chimera activity.
+enum ActivityName {
+  UNKNOWN_ACTIVITY = 0;
+
+  SHARE_SHEET_ACTIVITY = 1;
+  SETTINGS_ACTIVITY = 2;
+  RECEIVE_SURFACE_ACTIVITY = 3;
+  SETUP_ACTIVITY = 4;
+  CONTACT_SELECT_ACTIVITY = 5;
+  CONSENTS_ACTIVITY = 6;
 }

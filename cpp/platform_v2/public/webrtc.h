@@ -5,10 +5,38 @@
 
 #include "platform_v2/api/platform.h"
 #include "platform_v2/api/webrtc.h"
-#include "webrtc/files/stable/webrtc/api/peer_connection_interface.h"
+#include "webrtc/api/peer_connection_interface.h"
 
 namespace location {
 namespace nearby {
+
+class WebRtcSignalingMessenger final {
+ public:
+  using OnSignalingMessageCallback =
+      api::WebRtcSignalingMessenger::OnSignalingMessageCallback;
+
+  explicit WebRtcSignalingMessenger(
+      std::unique_ptr<api::WebRtcSignalingMessenger> messenger)
+      : impl_(std::move(messenger)) {}
+  ~WebRtcSignalingMessenger() = default;
+  WebRtcSignalingMessenger(WebRtcSignalingMessenger&&) = default;
+  WebRtcSignalingMessenger operator=(WebRtcSignalingMessenger&&) = delete;
+
+  bool SendMessage(absl::string_view peer_id, const ByteArray& message) {
+    return impl_->SendMessage(peer_id, message);
+  }
+
+  bool StartReceivingMessages(OnSignalingMessageCallback listener) {
+    return impl_->StartReceivingMessages(listener);
+  }
+
+  void StopReceivingMessages() { impl_->StopReceivingMessages(); }
+
+  bool IsValid() const { return impl_ != nullptr; }
+
+ private:
+  std::unique_ptr<api::WebRtcSignalingMessenger> impl_;
+};
 
 class WebRtcMedium final {
  public:
@@ -27,9 +55,10 @@ class WebRtcMedium final {
   }
 
   // Returns a signaling messenger for sending WebRTC signaling messages.
-  std::unique_ptr<api::WebRtcSignalingMessenger> GetSignalingMessenger(
+  std::unique_ptr<WebRtcSignalingMessenger> GetSignalingMessenger(
       absl::string_view self_id) {
-    return impl_->GetSignalingMessenger(self_id);
+    return std::make_unique<WebRtcSignalingMessenger>(
+        impl_->GetSignalingMessenger(self_id));
   }
 
   bool IsValid() const { return impl_ != nullptr; }

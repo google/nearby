@@ -10,7 +10,7 @@ namespace nearby {
 namespace connections {
 namespace {
 
-constexpr char kString[] = "some string";
+constexpr absl::string_view kString{"some string"};
 constexpr std::uint64_t kNum1 = 0x123456789abcdef0;
 constexpr std::uint64_t kNum2 = 0x21436587a9cbed0f;
 

@@ -2,6 +2,7 @@
 
 #include <inttypes.h>
 
+#include "platform_v2/base/base_input_stream.h"
 #include "platform_v2/public/logging.h"
 #include "absl/strings/escaping.h"
 
@@ -55,82 +56,70 @@ BleAdvertisement::BleAdvertisement(const ByteArray& ble_advertisement_bytes) {
     return;
   }
 
-  // Start reading the bytes.
-  auto* ble_advertisement_bytes_read_ptr = ble_advertisement_bytes.data();
-
-  // The first 3 bits are supposed to be the version.
-  version_ = static_cast<Version>(
-      (*ble_advertisement_bytes_read_ptr & kVersionBitmask) >> 5);
+  ByteArray advertisement_bytes{ble_advertisement_bytes};
+  BaseInputStream base_input_stream{advertisement_bytes};
+  // The first 1 byte is supposed to be the version and pcp.
+  auto version_and_pcp_byte = static_cast<char>(base_input_stream.ReadUint8());
+  // The upper 3 bits are supposed to be the version.
+  version_ =
+      static_cast<Version>((version_and_pcp_byte & kVersionBitmask) >> 5);
   if (version_ != Version::kV1) {
-    NEARBY_LOG(ERROR,
+    NEARBY_LOG(INFO,
                "Cannot deserialize BleAdvertisement: unsupported Version %d",
                version_);
     return;
   }
-
-  pcp_ = static_cast<Pcp>(*ble_advertisement_bytes_read_ptr & kPcpBitmask);
-  ble_advertisement_bytes_read_ptr++;
+  // The lower 5 bits are supposed to be the Pcp.
+  pcp_ = static_cast<Pcp>(version_and_pcp_byte & kPcpBitmask);
   switch (pcp_) {
     case Pcp::kP2pCluster:  // Fall through
     case Pcp::kP2pStar:     // Fall through
-    case Pcp::kP2pPointToPoint: {
-      // The next 24 bits are supposed to be the service_id_hash.
-      service_id_hash_ =
-          ByteArray(ble_advertisement_bytes_read_ptr, kServiceIdHashLength);
-      ble_advertisement_bytes_read_ptr += kServiceIdHashLength;
-
-      // The next 32 bits are supposed to be the endpoint_id.
-      endpoint_id_ =
-          std::string(ble_advertisement_bytes_read_ptr, kEndpointIdLength);
-      ble_advertisement_bytes_read_ptr += kEndpointIdLength;
-
-      // The next 8 bits are the length of the endpoint name.
-      auto expected_endpoint_name_length = static_cast<std::uint32_t>(
-          *ble_advertisement_bytes_read_ptr & kEndpointNameLengthBitmask);
-      ble_advertisement_bytes_read_ptr++;
-
-      // The next x bits are the endpoint name. (Max length is 131 bytes).
-      // Check that the stated endpoint_name_length is the same as what we
-      // received (based off of the length of ble_advertisement_bytes).
-      auto actual_endpoint_name_length =
-          ComputeEndpointNameLength(ble_advertisement_bytes);
-      if (actual_endpoint_name_length < expected_endpoint_name_length) {
-        NEARBY_LOG(
-            ERROR,
-            "Cannot deserialize BleAdvertisement: expected endpointName to "
-            "be %d bytes, got %d bytes",
-            expected_endpoint_name_length, actual_endpoint_name_length);
-
-        // Clear enpoint_id for validadity.
-        endpoint_id_.clear();
-        return;
-      }
-      endpoint_name_ = std::string(ble_advertisement_bytes_read_ptr,
-                                   expected_endpoint_name_length);
-      ble_advertisement_bytes_read_ptr += expected_endpoint_name_length;
-
-      // The next 48 bits are the bluetooth mac address.
-      auto bluetooth_mac_address_bytes = ByteArray(
-          ble_advertisement_bytes_read_ptr, kBluetoothMacAddressLength);
-      // If the Bluetooth MAC Address bytes are unset or invalid, leave the
-      // string empty. Otherwise, convert it to the proper colon delimited
-      // format.
-      if (!IsBluetoothMacAddressUnset(bluetooth_mac_address_bytes)) {
-        bluetooth_mac_address_ =
-            HexBytesToColonDelimitedString(bluetooth_mac_address_bytes);
-      }
+    case Pcp::kP2pPointToPoint:
       break;
-    }
-
     default:
-      // TODO(edwinwu): [ANALYTICIZE] This either represents corruption over
-      // the air, or older versions of GmsCore intermingling with newer
-      // ones.
-      NEARBY_LOG(ERROR,
+      NEARBY_LOG(INFO,
                  "Cannot deserialize BleAdvertisement: uunsupported V1 PCP %d",
                  pcp_);
-      break;
   }
+
+  // The next 3 bytes are supposed to be the service_id_hash.
+  service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
+
+  // The next 4 bytes are supposed to be the endpoint_id.
+  endpoint_id_ = std::string{base_input_stream.ReadBytes(kEndpointIdLength)};
+
+  // The next 1 byte are supposed to be the length of the endpoint_name.
+  std::uint32_t expected_endpoint_name_length = base_input_stream.ReadUint8();
+
+  // The next x bytes are the endpoint name. (Max length is 131 bytes).
+  // Check that the stated endpoint_name_length is the same as what we
+  // received.
+  auto endpoint_name_bytes =
+      base_input_stream.ReadBytes(expected_endpoint_name_length);
+  if (endpoint_name_bytes.Empty() ||
+      endpoint_name_bytes.size() != expected_endpoint_name_length) {
+    NEARBY_LOG(INFO,
+               "Cannot deserialize BleAdvertisement: expected "
+               "endpointName to be %d bytes, got %" PRIu64,
+               expected_endpoint_name_length, endpoint_name_bytes.size());
+
+    // Clear enpoint_id for validadity.
+    endpoint_id_.clear();
+    return;
+  }
+  endpoint_name_ = std::string{endpoint_name_bytes};
+
+  // The next 6 bytes are the bluetooth mac address.
+  auto bluetooth_mac_address_bytes =
+      base_input_stream.ReadBytes(kBluetoothMacAddressLength);
+  // If the Bluetooth MAC Address bytes are unset or invalid, leave the
+  // string empty. Otherwise, convert it to the proper colon delimited
+  // format.
+  if (!IsBluetoothMacAddressUnset(bluetooth_mac_address_bytes)) {
+    bluetooth_mac_address_ =
+        HexBytesToColonDelimitedString(bluetooth_mac_address_bytes);
+  }
+  base_input_stream.Close();
 }
 
 BleAdvertisement::operator ByteArray() const {
@@ -138,34 +127,29 @@ BleAdvertisement::operator ByteArray() const {
     return ByteArray();
   }
 
-  std::string out;
-
   // The first 3 bits are the Version.
   char version_and_pcp_byte =
       (static_cast<char>(version_) << 5) & kVersionBitmask;
   // The next 5 bits are the Pcp.
   version_and_pcp_byte |= static_cast<char>(pcp_) & kPcpBitmask;
-  out.reserve(1 + service_id_hash_.size() + kEndpointIdLength + 1 +
-              endpoint_name_.size() + kBluetoothMacAddressLength);
-  out.append(1, version_and_pcp_byte);
-  out.append(std::string(service_id_hash_));
-  out.append(endpoint_id_);
-  out.append(1, endpoint_name_.size());
-  out.append(endpoint_name_);
-  // The next 48 bits are the bluetooth mac address. If bluetooth_mac_address is
+
+  // clang-format off
+  std::string out = absl::StrCat(std::string(1, version_and_pcp_byte),
+                                 std::string(service_id_hash_),
+                                 endpoint_id_,
+                                 std::string(1, endpoint_name_.size()),
+                                 endpoint_name_);
+  // clang-format on
+
+  // The next 6 bytes are the bluetooth mac address. If bluetooth_mac_address is
   // invalid or empty, we get back a null byte array.
   auto bluetooth_mac_address_bytes(
       BluetoothMacAddressHexStringToBytes(bluetooth_mac_address_));
   if (!bluetooth_mac_address_bytes.Empty()) {
-    out.append(bluetooth_mac_address_bytes.data(), kBluetoothMacAddressLength);
+    absl::StrAppend(&out, std::string(bluetooth_mac_address_bytes));
   }
 
   return ByteArray(std::move(out));
-}
-
-std::uint32_t BleAdvertisement::ComputeEndpointNameLength(
-    const ByteArray& ble_advertisement_bytes) const {
-  return ble_advertisement_bytes.size() - kMinAdvertisementLength;
 }
 
 ByteArray BleAdvertisement::BluetoothMacAddressHexStringToBytes(

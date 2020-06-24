@@ -46,7 +46,7 @@ Exception::Value WebRtcSocket<Platform>::OutputStreamImpl::close() {
 // WebRtcSocket
 template <typename Platform>
 WebRtcSocket<Platform>::WebRtcSocket(
-    const string& name,
+    const std::string& name,
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel)
     : name_(name),
       data_channel_(std::move(data_channel)),

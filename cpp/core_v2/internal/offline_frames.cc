@@ -14,7 +14,7 @@ namespace {
 
 using ExceptionOrOfflineFrame = ExceptionOr<OfflineFrame>;
 using Medium = proto::connections::Medium;
-using MessageLite = ::google3_proto_compat::MessageLite;
+using MessageLite = ::google::protobuf::MessageLite;
 
 ByteArray ToBytes(OfflineFrame&& frame) {
   ByteArray bytes(frame.ByteSizeLong());

@@ -8,16 +8,17 @@ namespace nearby {
 namespace connections {
 namespace mediums {
 namespace {
+
 constexpr BleAdvertisementHeader::Version kVersion =
     BleAdvertisementHeader::Version::kV2;
 constexpr int kNumSlots = 2;
-constexpr char kServiceIDBloomFilter[] =
-    "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a";
-constexpr char kAdvertisementHash[] = "\x0a\x0b\x0c\x0d";
+constexpr absl::string_view kServiceIDBloomFilter{
+    "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"};
+constexpr absl::string_view kAdvertisementHash{"\x0a\x0b\x0c\x0d"};
 
 TEST(BleAdvertisementHeaderTest, ConstructionWorks) {
-  ByteArray service_id_bloom_filter{kServiceIDBloomFilter};
-  ByteArray advertisement_hash{kAdvertisementHash};
+  ByteArray service_id_bloom_filter{std::string(kServiceIDBloomFilter)};
+  ByteArray advertisement_hash{std::string(kAdvertisementHash)};
 
   BleAdvertisementHeader ble_advertisement_header{
       kVersion, kNumSlots, service_id_bloom_filter, advertisement_hash};
@@ -34,11 +35,23 @@ TEST(BleAdvertisementHeaderTest, ConstructionWorks) {
 TEST(BleAdvertisementHeaderTest, ConstructionFailsWithBadVersion) {
   auto bad_version = static_cast<BleAdvertisementHeader::Version>(666);
 
-  ByteArray service_id_bloom_filter{kServiceIDBloomFilter};
-  ByteArray advertisement_hash{kAdvertisementHash};
+  ByteArray service_id_bloom_filter{std::string(kServiceIDBloomFilter)};
+  ByteArray advertisement_hash{std::string(kAdvertisementHash)};
 
   BleAdvertisementHeader ble_advertisement_header{
       bad_version, kNumSlots, service_id_bloom_filter, advertisement_hash};
+
+  EXPECT_FALSE(ble_advertisement_header.IsValid());
+}
+
+TEST(BleAdvertisementHeaderTest, ConstructionFailsWitZeroNumSlot) {
+  int num_slot = 0;
+
+  ByteArray service_id_bloom_filter{std::string(kServiceIDBloomFilter)};
+  ByteArray advertisement_hash{std::string(kAdvertisementHash)};
+
+  BleAdvertisementHeader ble_advertisement_header{
+      kVersion, num_slot, service_id_bloom_filter, advertisement_hash};
 
   EXPECT_FALSE(ble_advertisement_header.IsValid());
 }
@@ -48,7 +61,7 @@ TEST(BleAdvertisementHeaderTest,
   char short_service_id_bloom_filter[] = "\x01\x02\x03\x04\x05\x06\x07\x08\x09";
 
   ByteArray short_service_id_bloom_filter_bytes{short_service_id_bloom_filter};
-  ByteArray advertisement_hash{kAdvertisementHash};
+  ByteArray advertisement_hash{std::string(kAdvertisementHash)};
 
   BleAdvertisementHeader ble_advertisement_header{
       kVersion, kNumSlots, short_service_id_bloom_filter_bytes,
@@ -63,7 +76,7 @@ TEST(BleAdvertisementHeaderTest,
       "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b";
 
   ByteArray service_id_bloom_filter{long_service_id_bloom_filter};
-  ByteArray advertisement_hash{kAdvertisementHash};
+  ByteArray advertisement_hash{std::string(kAdvertisementHash)};
 
   BleAdvertisementHeader ble_advertisement_header{
       kVersion, kNumSlots, service_id_bloom_filter, advertisement_hash};
@@ -74,7 +87,7 @@ TEST(BleAdvertisementHeaderTest,
 TEST(BleAdvertisementHeaderTest, ConstructionFailsWithShortAdvertisementHash) {
   char short_advertisement_hash[] = "\x0a\x0b\x0c";
 
-  ByteArray service_id_bloom_filter{kServiceIDBloomFilter};
+  ByteArray service_id_bloom_filter{std::string(kServiceIDBloomFilter)};
   ByteArray advertisement_hash{short_advertisement_hash};
 
   BleAdvertisementHeader ble_advertisement_header{
@@ -86,7 +99,7 @@ TEST(BleAdvertisementHeaderTest, ConstructionFailsWithShortAdvertisementHash) {
 TEST(BleAdvertisementHeaderTest, ConstructionFailsWithLongAdvertisementHash) {
   char long_advertisement_hash[] = "\x0a\x0b\x0c\x0d\x0e";
 
-  ByteArray service_id_bloom_filter{kServiceIDBloomFilter};
+  ByteArray service_id_bloom_filter{std::string(kServiceIDBloomFilter)};
   ByteArray advertisement_hash{long_advertisement_hash};
   BleAdvertisementHeader ble_advertisement_header{
       kVersion, kNumSlots, service_id_bloom_filter, advertisement_hash};
@@ -95,8 +108,8 @@ TEST(BleAdvertisementHeaderTest, ConstructionFailsWithLongAdvertisementHash) {
 }
 
 TEST(BleAdvertisementHeaderTest, ConstructionFromSerializedStringWorks) {
-  ByteArray service_id_bloom_filter{kServiceIDBloomFilter};
-  ByteArray advertisement_hash{kAdvertisementHash};
+  ByteArray service_id_bloom_filter{std::string(kServiceIDBloomFilter)};
+  ByteArray advertisement_hash{std::string(kAdvertisementHash)};
 
   BleAdvertisementHeader org_ble_advertisement_header{
       kVersion, kNumSlots, service_id_bloom_filter, advertisement_hash};
@@ -116,8 +129,8 @@ TEST(BleAdvertisementHeaderTest, ConstructionFromSerializedStringWorks) {
 }
 
 TEST(BleAdvertisementHeaderTest, ConstructionFromExtraBytesWorks) {
-  ByteArray service_id_bloom_filter{kServiceIDBloomFilter};
-  ByteArray advertisement_hash{kAdvertisementHash};
+  ByteArray service_id_bloom_filter{std::string(kServiceIDBloomFilter)};
+  ByteArray advertisement_hash{std::string(kAdvertisementHash)};
 
   BleAdvertisementHeader ble_advertisement_header{
       kVersion, kNumSlots, service_id_bloom_filter, advertisement_hash};
@@ -145,8 +158,8 @@ TEST(BleAdvertisementHeaderTest, ConstructionFromExtraBytesWorks) {
 }
 
 TEST(BleAdvertisementHeaderTest, ConstructionFromShortLengthFails) {
-  ByteArray service_id_bloom_filter{kServiceIDBloomFilter};
-  ByteArray advertisement_hash{kAdvertisementHash};
+  ByteArray service_id_bloom_filter{std::string(kServiceIDBloomFilter)};
+  ByteArray advertisement_hash{std::string(kAdvertisementHash)};
 
   BleAdvertisementHeader ble_advertisement_header{
       kVersion, kNumSlots, service_id_bloom_filter, advertisement_hash};

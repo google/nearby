@@ -11,7 +11,7 @@
 #include "platform_v2/public/condition_variable.h"
 #include "platform_v2/public/mutex.h"
 #include "platform_v2/public/pipe.h"
-#include "webrtc/files/stable/webrtc/api/data_channel_interface.h"
+#include "webrtc/api/data_channel_interface.h"
 namespace location {
 namespace nearby {
 namespace connections {
@@ -27,7 +27,7 @@ constexpr int kMaxDataSize = 1 * 1024 * 1024;
 // which could lead to data loss.
 class WebRtcSocket : public Socket {
  public:
-  WebRtcSocket(const string& name,
+  WebRtcSocket(const std::string& name,
                rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel);
   ~WebRtcSocket() override = default;
 
@@ -78,7 +78,7 @@ class WebRtcSocket : public Socket {
   bool SendMessage(const ByteArray& data);
   void BlockUntilSufficientSpaceInBuffer(int length);
 
-  string name_;
+  std::string name_;
   rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel_;
 
   Pipe pipe_;

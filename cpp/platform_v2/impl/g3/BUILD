@@ -2,25 +2,27 @@ cc_library(
     name = "types",
     testonly = True,
     srcs = [
+        "log_message.cc",
         "scheduled_executor.cc",
         "system_clock.cc",
     ],
     hdrs = [
         "atomic_boolean.h",
-        "atomic_reference_any.h",
+        "atomic_reference.h",
         "condition_variable.h",
         "count_down_latch.h",
+        "log_message.h",
         "multi_thread_executor.h",
         "mutex.h",
         "pipe.h",
         "scheduled_executor.h",
-        "settable_future_any.h",
         "single_thread_executor.h",
     ],
     visibility = [
         "//platform_v2/impl/g3:__pkg__",
     ],
     deps = [
+        "//base",
         "//platform_v2/api:platform",
         "//platform_v2/api:types",
         "//platform_v2/base",
@@ -41,11 +43,13 @@ cc_library(
         "bluetooth_adapter.cc",
         "bluetooth_classic.cc",
         "webrtc.cc",
+        "wifi_lan.cc",
     ],
     hdrs = [
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
         "webrtc.h",
+        "wifi_lan.h",
     ],
     visibility = [
         "//platform_v2/impl/g3:__pkg__",
@@ -61,9 +65,9 @@ cc_library(
         "//absl/container:flat_hash_set",
         "//absl/strings",
         "//absl/synchronization",
-        "//webrtc/files/stable/webrtc/api:create_peerconnection_factory",  #buildcleaner: keep
-        "//webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
-        "//webrtc/files/stable/webrtc/api/task_queue:default_task_queue_factory",
+        "//webrtc/api:create_peerconnection_factory",  #buildcleaner: keep
+        "//webrtc/api:libjingle_peerconnection_api",
+        "//webrtc/api/task_queue:default_task_queue_factory",
     ],
 )
 
@@ -105,6 +109,7 @@ cc_library(
         "//platform_v2/impl/shared:file",
         "//absl/base:core_headers",
         "//absl/memory",
+        "//absl/strings",
         "//absl/time",
     ],
 )

@@ -27,7 +27,7 @@ class MutexTest : public testing::Test {
 
  protected:
   SingleThreadExecutor executor_;
-  const absl::Duration kTimeToWait = absl::Milliseconds(200);
+  const absl::Duration kTimeToWait = absl::Milliseconds(500);
   std::atomic_int step_ = 0;
   absl::Mutex step_mutex_;
   absl::CondVar step_cond_;

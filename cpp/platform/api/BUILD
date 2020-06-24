@@ -47,7 +47,7 @@ cc_library(
         "//platform/port:string",
         "//absl/strings",
         "//absl/types:any",
-        "//webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//webrtc/api:libjingle_peerconnection_api",
     ],
 )
 

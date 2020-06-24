@@ -1,24 +1,49 @@
 #include "platform_v2/impl/g3/webrtc.h"
 
-#include "webrtc/files/stable/webrtc/api/task_queue/default_task_queue_factory.h"
+#include <memory>
+
+#include "platform_v2/base/medium_environment.h"
+#include "webrtc/api/task_queue/default_task_queue_factory.h"
 
 namespace location {
 namespace nearby {
 namespace g3 {
+
+WebRtcSignalingMessenger::WebRtcSignalingMessenger(absl::string_view self_id)
+    : self_id_(self_id) {}
+
+bool WebRtcSignalingMessenger::SendMessage(absl::string_view peer_id,
+                                           const ByteArray& message) {
+  auto& env = MediumEnvironment::Instance();
+  env.SendWebRtcSignalingMessage(peer_id, message);
+  return true;
+}
+
+bool WebRtcSignalingMessenger::StartReceivingMessages(
+    OnSignalingMessageCallback listener) {
+  auto& env = MediumEnvironment::Instance();
+  env.RegisterWebRtcSignalingMessenger(self_id_, listener);
+  return true;
+}
+
+void WebRtcSignalingMessenger::StopReceivingMessages() {
+  auto& env = MediumEnvironment::Instance();
+  env.UnregisterWebRtcSignalingMessenger(self_id_);
+}
 
 void WebRtcMedium::CreatePeerConnection(
     webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {
   webrtc::PeerConnectionInterface::RTCConfiguration rtc_config;
   webrtc::PeerConnectionDependencies dependencies(observer);
 
-  std::unique_ptr<rtc::Thread> signaling_thread = rtc::Thread::Create();
-  signaling_thread->SetName("signaling_thread", nullptr);
-  RTC_CHECK(signaling_thread->Start()) << "Failed to start thread";
+  signaling_thread_ = rtc::Thread::Create();
+  signaling_thread_->SetName("signaling_thread", nullptr);
+  RTC_CHECK(signaling_thread_->Start()) << "Failed to start thread";
 
   webrtc::PeerConnectionFactoryDependencies factory_dependencies;
   factory_dependencies.task_queue_factory =
       webrtc::CreateDefaultTaskQueueFactory();
-  factory_dependencies.signaling_thread = signaling_thread.release();
+  factory_dependencies.signaling_thread = signaling_thread_.get();
 
   callback(webrtc::CreateModularPeerConnectionFactory(
                std::move(factory_dependencies))
@@ -27,8 +52,7 @@ void WebRtcMedium::CreatePeerConnection(
 
 std::unique_ptr<api::WebRtcSignalingMessenger>
 WebRtcMedium::GetSignalingMessenger(absl::string_view self_id) {
-  // TODO(bfranz): Implement
-  return nullptr;
+  return std::make_unique<WebRtcSignalingMessenger>(self_id);
 }
 
 }  // namespace g3
