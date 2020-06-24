@@ -39,7 +39,7 @@ class BluetoothSocket : public api::BluetoothSocket {
  public:
   BluetoothSocket() = default;
   explicit BluetoothSocket(BluetoothAdapter* adapter) : adapter_(adapter) {}
-  ~BluetoothSocket() override = default;
+  ~BluetoothSocket() override;
 
   // Connects to another BluetoothSocket, to form a functional low-level
   // channel. From this point on, and until Close is called, connection exists.
@@ -78,6 +78,8 @@ class BluetoothSocket : public api::BluetoothSocket {
   BluetoothDevice* GetRemoteDevice() override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
+  void DoClose() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
   // Returns true if connection exists to the (possibly closed) remote socket.
   bool IsConnectedLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -94,7 +96,8 @@ class BluetoothSocket : public api::BluetoothSocket {
   // Output pipe is initialized by constructor, it remains always valid, until
   // it is closed. it represents output part of a local socket. Input part of a
   // local socket comes from the peer socket, after connection.
-  Pipe output_;
+  std::shared_ptr<Pipe> output_ {new Pipe};
+  std::shared_ptr<Pipe> input_;
   mutable absl::Mutex mutex_;
   BluetoothAdapter* adapter_ = nullptr;  // Our Adapter. Read only.
   BluetoothSocket* remote_socket_ ABSL_GUARDED_BY(mutex_) = nullptr;

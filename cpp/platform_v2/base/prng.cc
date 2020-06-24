@@ -52,7 +52,7 @@ std::uint32_t Prng::NextUint32() {
 
 std::int64_t Prng::NextInt64() {
   return (static_cast<std::int64_t>(NextInt32()) << 32) |
-         (static_cast<std::int64_t>(NextInt32()));
+         (static_cast<std::int64_t>(NextUint32()));
 }
 
 }  // namespace nearby

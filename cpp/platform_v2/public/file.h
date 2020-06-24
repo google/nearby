@@ -24,45 +24,89 @@
 #include "platform_v2/api/platform.h"
 #include "platform_v2/base/byte_array.h"
 #include "platform_v2/base/exception.h"
+#include "platform_v2/base/input_stream.h"
+#include "platform_v2/base/output_stream.h"
 
 namespace location {
 namespace nearby {
 
-class InputFile final : public api::InputFile {
+class InputFile final {
  public:
   using Platform = api::ImplementationPlatform;
-  InputFile(std::int64_t payload_id, std::int64_t size)
-      : impl_(Platform::CreateInputFile(payload_id, size)) {}
-  ~InputFile() override = default;
+  InputFile(PayloadId payload_id, std::int64_t size)
+      : impl_(Platform::CreateInputFile(payload_id, size)), id_(payload_id) {}
+  ~InputFile() = default;
   InputFile(InputFile&&) = default;
   InputFile& operator=(InputFile&&) = default;
 
-  ExceptionOr<ByteArray> Read(std::int64_t size) override {
-    return impl_->Read(size);
-  }
-  std::string GetFilePath() const override { return impl_->GetFilePath(); }
-  std::int64_t GetTotalSize() const override { return impl_->GetTotalSize(); }
-  Exception Close() override { return impl_->Close(); }
+  // Reads up to size bytes and returns as a ByteArray object wrapped by
+  // ExceptionOr.
+  // Returns Exception::kIo on error, or end of file.
+  ExceptionOr<ByteArray> Read(std::int64_t size) { return impl_->Read(size); }
+
+  // Returns a string that uniqely identifies this file.
+  std::string GetFilePath() const { return impl_->GetFilePath(); }
+
+  // Returns total size of this file in bytes.
+  std::int64_t GetTotalSize() const { return impl_->GetTotalSize(); }
+
+  // Disallows further reads from the file and frees system resources,
+  // associated with it.
+  Exception Close() { return impl_->Close(); }
+
+  // Returns a handle to the underlying input stream.
+  //
+  // Returned handle will remain valid even if InputFile is moved, for as long
+  // as original InputFile lifetime continues.
+  // Side effects of any non-const operation invoked for InputFile (such as
+  // Read, or Close will be observable through InputStream& handle, and vice
+  // versa.
+  InputStream& GetInputStream() { return *impl_; }
+
+  // Returns payload id of this file. The closest "file" equivalent is inode.
+  PayloadId GetPayloadId() const { return id_; }
 
  private:
   std::unique_ptr<api::InputFile> impl_;
+  PayloadId id_;
 };
 
-class OutputFile final : public api::OutputFile {
+class OutputFile final {
  public:
   using Platform = api::ImplementationPlatform;
-  explicit OutputFile(std::int64_t payload_id)
-      : impl_(Platform::CreateOutputFile(payload_id)) {}
-  ~OutputFile() override = default;
+  explicit OutputFile(PayloadId payload_id)
+      : impl_(Platform::CreateOutputFile(payload_id)), id_(payload_id) {}
+  ~OutputFile() = default;
   OutputFile(OutputFile&&) = default;
   OutputFile& operator=(OutputFile&&) = default;
 
-  Exception Write(const ByteArray& data) override { return impl_->Write(data); }
-  Exception Flush() override { return impl_->Flush(); }
-  Exception Close() override { return impl_->Close(); }
+  // Writes all data from ByteArray object to the underlying stream.
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  Exception Write(const ByteArray& data) { return impl_->Write(data); }
+
+  // Ensures that all data written by previous calls to Write() is passed
+  // down to the applicable transport layer.
+  Exception Flush() { return impl_->Flush(); }
+
+  // Disallows further writes to the file and frees system resources,
+  // associated with it.
+  Exception Close() { return impl_->Close(); }
+
+  // Returns a handle to the underlying  output stream.
+  //
+  // Returned handle will remain valid even if OutputFile is moved, for as long
+  // as original OutputFile lifetime continues.
+  // Side effects of any non-const operation invoked for OutputFile (such as
+  // Write, or Close will be observable through OutputStream& handle, and vice
+  // versa.
+  OutputStream& GetOutputStream() { return *impl_; }
+
+  // Returns payload id of this file. The closest "file" equivalent is inode.
+  PayloadId GetPayloadId() const { return id_; }
 
  private:
   std::unique_ptr<api::OutputFile> impl_;
+  PayloadId id_;
 };
 
 }  // namespace nearby

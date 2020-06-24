@@ -16,11 +16,14 @@
 
 #include <cassert>
 
+#include "core_v2/internal/offline_frames.h"
 #include "platform_v2/base/byte_array.h"
 #include "platform_v2/base/exception.h"
+#include "platform_v2/public/logging.h"
 #include "platform_v2/public/mutex.h"
 #include "platform_v2/public/mutex_lock.h"
 #include "proto/connections_enums.pb.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 
 namespace location {
@@ -113,13 +116,33 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
     result = std::move(read_bytes.result());
   }
 
-  // If encryption is enabled, decode the message.
-  if (IsEncryptionEnabled()) {
+  {
     MutexLock crypto_lock(&crypto_mutex_);
-    result = ByteArray(std::move(
-        *encryption_context_->DecodeMessageFromPeer(std::string(result))));
-    if (result.Empty()) {
-      return ExceptionOr<ByteArray>(Exception::kInvalidProtocolBuffer);
+    if (IsEncryptionEnabledLocked()) {
+      // If encryption is enabled, decode the message.
+      std::string input(std::move(result));
+      std::unique_ptr<std::string> decrypted_data =
+          crypto_context_->DecodeMessageFromPeer(
+              std::string(std::move(result)));
+      if (decrypted_data) {
+        result = ByteArray(std::move(*decrypted_data));
+      } else {
+        // It could be a protocol race, where remote party sends a KEEP_ALIVE
+        // before encryption is setup on their side, and we receive it after
+        // we switched to encryption mode.
+        // In this case, we verify that message is indeed a valid KEEP_ALIVE,
+        // and let it through if it is, otherwise message is erased.
+        // TODO(apolyudov): verify this happens at most once per session.
+        result = {};
+        auto parsed = parser::FromBytes(ByteArray(input));
+        if (parsed.ok() &&
+            parser::GetFrameType(parsed.result()) == V1Frame::KEEP_ALIVE) {
+          result = ByteArray(input);
+        }
+      }
+      if (result.Empty()) {
+        return ExceptionOr<ByteArray>(Exception::kInvalidProtocolBuffer);
+      }
     }
   }
 
@@ -142,10 +165,12 @@ Exception BaseEndpointChannel::Write(const ByteArray& data) {
   const ByteArray* data_to_write = &data;
   {
     MutexLock crypto_lock(&crypto_mutex_);
-    // If encryption is enabled, encode the message.
-    if (IsEncryptionEnabled()) {
-      encrypted_data = ByteArray(std::move(
-          *encryption_context_->EncodeMessageToPeer(std::string(data))));
+    if (IsEncryptionEnabledLocked()) {
+      // If encryption is enabled, encode the message.
+      std::unique_ptr<std::string> encrypted =
+          crypto_context_->EncodeMessageToPeer(std::string(data));
+      if (!encrypted) return {Exception::kIo};
+      encrypted_data = ByteArray(std::move(*encrypted));
       data_to_write = &encrypted_data;
     }
   }
@@ -154,17 +179,15 @@ Exception BaseEndpointChannel::Write(const ByteArray& data) {
     MutexLock lock(&writer_mutex_);
     Exception write_exception =
         WriteInt(writer_, static_cast<std::int32_t>(data_to_write->size()));
-    if (!write_exception.Ok()) {
+    if (write_exception.Raised()) {
       return write_exception;
     }
-
     write_exception = writer_->Write(*data_to_write);
-    if (write_exception.Ok()) {
+    if (write_exception.Raised()) {
       return write_exception;
     }
-
     Exception flush_exception = writer_->Flush();
-    if (!flush_exception.Ok()) {
+    if (flush_exception.Raised()) {
       return flush_exception;
     }
   }
@@ -210,7 +233,8 @@ void BaseEndpointChannel::Close(
 }
 
 std::string BaseEndpointChannel::GetType() const {
-  std::string subtype = IsEncryptionEnabled() ? "ENCRYPTED_" : "";
+  MutexLock crypto_lock(&crypto_mutex_);
+  std::string subtype = IsEncryptionEnabledLocked() ? "ENCRYPTED_" : "";
 
   switch (GetMedium()) {
     case proto::connections::Medium::BLUETOOTH:
@@ -231,9 +255,9 @@ std::string BaseEndpointChannel::GetType() const {
 std::string BaseEndpointChannel::GetName() const { return channel_name_; }
 
 void BaseEndpointChannel::EnableEncryption(
-    securegcm::D2DConnectionContextV1* encryption_context) {
-  MutexLock lock(&crypto_mutex_);
-  encryption_context_ = encryption_context;
+    std::shared_ptr<EncryptionContext> context) {
+  MutexLock crypto_lock(&crypto_mutex_);
+  crypto_context_ = context;
 }
 
 bool BaseEndpointChannel::IsPaused() const {
@@ -257,8 +281,8 @@ absl::Time BaseEndpointChannel::GetLastReadTimestamp() const {
   return last_read_timestamp_;
 }
 
-bool BaseEndpointChannel::IsEncryptionEnabled() const {
-  return encryption_context_ != nullptr;
+bool BaseEndpointChannel::IsEncryptionEnabledLocked() const {
+  return crypto_context_ != nullptr;
 }
 
 void BaseEndpointChannel::BlockUntilUnpaused() {

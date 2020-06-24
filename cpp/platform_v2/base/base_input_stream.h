@@ -41,13 +41,12 @@ class BaseInputStream : public InputStream {
   std::uint16_t ReadUint16();
   std::uint32_t ReadUint32();
   std::uint64_t ReadUint64();
+  ByteArray ReadBytes(int size);
   bool IsAvailable(int size) const {
     return buffer_.size() - position_ >= size;
   }
 
  private:
-  ByteArray ReadBytes(int size);
-
   ByteArray &buffer_;
   int position_{0};
 };

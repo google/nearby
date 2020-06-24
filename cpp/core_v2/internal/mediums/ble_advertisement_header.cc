@@ -17,7 +17,9 @@
 #include <inttypes.h>
 
 #include "platform_v2/base/base64_utils.h"
+#include "platform_v2/base/base_input_stream.h"
 #include "platform_v2/public/logging.h"
+#include "absl/strings/str_cat.h"
 
 namespace location {
 namespace nearby {
@@ -27,8 +29,7 @@ namespace mediums {
 BleAdvertisementHeader::BleAdvertisementHeader(
     Version version, int num_slots, const ByteArray &service_id_bloom_filter,
     const ByteArray &advertisement_hash) {
-  // TODO(edwinwu): Checks if num_slots needs to be >= 0
-  if (version != Version::kV2 ||
+  if (version != Version::kV2 || num_slots <= 0 ||
       service_id_bloom_filter.size() != kServiceIdBloomFilterLength ||
       advertisement_hash.size() != kAdvertisementHashLength) {
     return;
@@ -61,13 +62,12 @@ BleAdvertisementHeader::BleAdvertisementHeader(
     return;
   }
 
-  // Start reading the bytes.
-  auto *ble_advertisement_header_read_ptr =
-      ble_advertisement_header_bytes.data();
-
-  // The first 3 bits are supposed to be the version.
-  version_ = static_cast<Version>(
-      (*ble_advertisement_header_read_ptr & kVersionBitmask) >> 5);
+  BaseInputStream base_input_stream{ble_advertisement_header_bytes};
+  // The first 1 byte is supposed to be the version and number of slots.
+  auto version_and_pcp_byte = static_cast<char>(base_input_stream.ReadUint8());
+  // The upper 3 bits are supposed to be the version.
+  version_ =
+      static_cast<Version>((version_and_pcp_byte & kVersionBitmask) >> 5);
   if (version_ != Version::kV2) {
     NEARBY_LOG(
         ERROR,
@@ -75,20 +75,19 @@ BleAdvertisementHeader::BleAdvertisementHeader(
         version_);
     return;
   }
-  // The last 5 bits of the first byte represent the number of slots.
-  num_slots_ = static_cast<std::uint32_t>(*ble_advertisement_header_read_ptr &
-                                          kNumSlotsBitmask);
-  ble_advertisement_header_read_ptr++;
+  // The lower 5 bits are supposed to be the number of slots.
+  num_slots_ = static_cast<int>(version_and_pcp_byte & kNumSlotsBitmask);
+  if (num_slots_ <= 0) {
+    version_ = Version::kUndefined;
+    return;
+  }
 
-  // Service ID bloom filter.
+  // The next 10 bytes are supposed to be the service_id_bloom_filter.
   service_id_bloom_filter_ =
-      ByteArray(ble_advertisement_header_read_ptr, kServiceIdBloomFilterLength);
-  ble_advertisement_header_read_ptr += kServiceIdBloomFilterLength;
+      base_input_stream.ReadBytes(kServiceIdBloomFilterLength);
 
-  // Advertisement hash.
-  advertisement_hash_ =
-      ByteArray(ble_advertisement_header_read_ptr, kAdvertisementHashLength);
-  ble_advertisement_header_read_ptr += kAdvertisementHashLength;
+  // The next 4 bytes are supposed to be the advertisement_hash.
+  advertisement_hash_ = base_input_stream.ReadBytes(kAdvertisementHashLength);
 }
 
 BleAdvertisementHeader::operator std::string() const {
@@ -96,18 +95,18 @@ BleAdvertisementHeader::operator std::string() const {
     return "";
   }
 
-  std::string out;
-
   // The first 3 bits are the Version.
   char version_and_num_slots_byte =
       (static_cast<char>(version_) << 5) & kVersionBitmask;
   // The next 5 bits are the number of slots.
   version_and_num_slots_byte |=
       static_cast<char>(num_slots_) & kNumSlotsBitmask;
-  out.reserve(1 + service_id_bloom_filter_.size() + advertisement_hash_.size());
-  out.append(1, version_and_num_slots_byte);
-  out.append(std::string(service_id_bloom_filter_));
-  out.append(std::string(advertisement_hash_));
+
+  // clang-format off
+  std::string out = absl::StrCat(std::string(1, version_and_num_slots_byte),
+                                 std::string(service_id_bloom_filter_),
+                                 std::string(advertisement_hash_));
+  // clang-format on
 
   return Base64Utils::Encode(ByteArray(std::move(out)));
 }

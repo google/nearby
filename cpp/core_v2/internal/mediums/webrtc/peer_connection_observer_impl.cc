@@ -24,11 +24,9 @@ namespace mediums {
 
 PeerConnectionObserverImpl::PeerConnectionObserverImpl(
     ConnectionFlow* connection_flow,
-    LocalIceCandidateListener local_ice_candidate_listener,
-    SingleThreadExecutor* executor)
+    LocalIceCandidateListener local_ice_candidate_listener)
     : connection_flow_(connection_flow),
-      local_ice_candidate_listener_(std::move(local_ice_candidate_listener)),
-      single_threaded_signaling_offloader_(executor) {}
+      local_ice_candidate_listener_(std::move(local_ice_candidate_listener)) {}
 
 void PeerConnectionObserverImpl::OnIceCandidate(
     const webrtc::IceCandidateInterface* candidate) {
@@ -73,7 +71,7 @@ void PeerConnectionObserverImpl ::OnRenegotiationNeeded() {
 }
 
 void PeerConnectionObserverImpl::OffloadFromSignalingThread(Runnable runnable) {
-  single_threaded_signaling_offloader_->Execute(std::move(runnable));
+  single_threaded_signaling_offloader_.Execute(std::move(runnable));
 }
 
 }  // namespace mediums

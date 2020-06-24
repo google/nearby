@@ -15,60 +15,38 @@
 #ifndef PLATFORM_V2_PUBLIC_FUTURE_H_
 #define PLATFORM_V2_PUBLIC_FUTURE_H_
 
-#include "platform_v2/api/executor.h"
-#include "platform_v2/api/platform.h"
-#include "platform_v2/api/settable_future.h"
-#include "platform_v2/base/exception.h"
-#include "platform_v2/base/runnable.h"
-#include "absl/time/time.h"
-#include "absl/types/any.h"
+#include "platform_v2/public/settable_future.h"
 
 namespace location {
 namespace nearby {
 
 template <typename T>
-class Future final : public api::SettableFuture<T> {
+class Future final {
  public:
-  using Platform = api::ImplementationPlatform;
-  ~Future() override = default;
-  Future() : impl_(Platform::CreateSettableFutureAny().release()) {}
-  Future(Future&& other) = default;
-  Future& operator=(Future&& other) = default;
-
-  void AddListener(Runnable runnable, api::Executor* executor) override {
-    impl_->AddListener(runnable, executor);
-  }
-  bool Set(const T& value) override { return impl_->Set(absl::any(value)); }
-  bool Set(T&& value) override { return impl_->Set(absl::any(value)); }
-  bool SetException(Exception exception) override {
+  virtual bool Set(T value) { return impl_->Set(std::move(value)); }
+  virtual bool SetException(Exception exception) {
     return impl_->SetException(exception);
   }
-  // throws Exception::kInterrupted, Exception::kExecution
-  ExceptionOr<T> Get() override {
-    auto ret_val = impl_->Get();
-    if (ret_val.ok()) {
-      T result = absl::any_cast<T>(ret_val.result());
-      return ExceptionOr<T>{result};
-    } else {
-      return ExceptionOr<T>{ret_val.exception()};
-    }
+  virtual ExceptionOr<T> Get() { return impl_->Get(); }
+  virtual ExceptionOr<T> Get(absl::Duration timeout) {
+    return impl_->Get(timeout);
   }
-
-  // throws Exception::kInterrupted, Exception::kExecution
-  // throws Exception::kTimeout if timeout is exceeded while waiting for
-  // result.
-  ExceptionOr<T> Get(absl::Duration timeout) override {
-    auto ret_val = impl_->Get(timeout);
-    if (ret_val.ok()) {
-      T result = absl::any_cast<T>(ret_val.result());
-      return ExceptionOr<T>{result};
-    } else {
-      return ExceptionOr<T>{ret_val.exception()};
-    }
+  void AddListener(Runnable runnable, api::Executor* executor) {
+    impl_->AddListener(std::move(runnable), executor);
   }
 
  private:
-  std::unique_ptr<api::SettableFuture<absl::any>> impl_;
+  // Instance of future implementation is wrapped in shared_ptr<> to make
+  // it possible to pass Future by value and share the implementation.
+  // This allows for the following constructions:
+  // 1)
+  // Future<bool> future;
+  // RunOnXyzThread([future]() { future.Set(DoTheJobAndReport()); });
+  // if (future.Get().Ok()) { /*...*/ }
+  // 2)
+  // Future<bool> future = DoSomeAsyncWork(); // Returns future, but keeps copy.
+  // if (future.Get().Ok()) { /*...*/ }
+  std::shared_ptr<SettableFuture<T>> impl_{new SettableFuture<T>()};
 };
 
 }  // namespace nearby

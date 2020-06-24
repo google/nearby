@@ -29,17 +29,17 @@ namespace mediums {
 // p2p connection.
 class PeerId {
  public:
-  explicit PeerId(const string& id) : id_(id) {}
+  explicit PeerId(const std::string& id) : id_(id) {}
   ~PeerId() = default;
 
   static ConstPtr<PeerId> FromRandom(Ptr<HashUtils> hash_utils);
   static ConstPtr<PeerId> FromSeed(ConstPtr<ByteArray> seed,
                                    Ptr<HashUtils> hash_utils);
 
-  const string& GetId() const { return id_; }
+  const std::string& GetId() const { return id_; }
 
  private:
-  const string id_;
+  const std::string id_;
 };
 
 }  // namespace mediums

@@ -24,7 +24,7 @@ namespace connections {
 namespace mediums {
 namespace {
 
-const size_t kByteArrayLength = 100;
+constexpr size_t kByteArrayLength = 100;
 
 TEST(BloomFilterTest, EmptyFilterReturnsEmptyArray) {
   BloomFilter<kByteArrayLength> bloom_filter;

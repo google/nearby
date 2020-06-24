@@ -24,6 +24,8 @@ cc_library(
         "bluetooth_radio.cc",
         "mediums.cc",
         "uuid.cc",
+        "webrtc.cc",
+        "wifi_lan.cc",
     ],
     hdrs = [
         "advertisement_read_result.h",
@@ -37,22 +39,29 @@ cc_library(
         "lost_entity_tracker.h",
         "mediums.h",
         "uuid.h",
+        "webrtc.h",
+        "wifi_lan.h",
     ],
     visibility = [
         "//core_v2/internal:__subpackages__",
     ],
     deps = [
         "//core_v2:core_types",
+        "//core_v2/internal/mediums/webrtc",
         "//platform_v2/base",
+        "//platform_v2/base:util",
         "//platform_v2/public:comm",
         "//platform_v2/public:logging",
         "//platform_v2/public:types",
+        "//location/nearby/mediums/proto:web_rtc_signaling_frames_cc_proto",
         "//absl/container:flat_hash_map",
         "//absl/container:flat_hash_set",
         "//absl/numeric:int128",
         "//absl/strings",
         "//absl/time",
         "//smhasher:libmurmur3",
+        "//webrtc/api:libjingle_peerconnection_api",
+        "//webrtc/api:scoped_refptr",
     ],
 )
 
@@ -84,10 +93,13 @@ cc_test(
         "bluetooth_radio_test.cc",
         "lost_entity_tracker_test.cc",
         "uuid_test.cc",
+        "webrtc_test.cc",
+        "wifi_lan_test.cc",
     ],
     shard_count = 16,
     deps = [
         ":mediums",
+        "//core_v2/internal/mediums/webrtc",
         "//platform_v2/base",
         "//platform_v2/base:test_util",
         "//platform_v2/impl/g3",  # build_cleaner: keep

@@ -81,9 +81,6 @@ class BleAdvertisement {
   bool IsSupportedSocketVersion(SocketVersion socket_version) const;
   void SerializeDataSize(char *data_size_bytes_write_ptr,
                          size_t data_size) const;
-  size_t DeserializeDataSize(const char *data_size_bytes_read_ptr) const;
-  size_t ComputeDataSize(const ByteArray &ble_advertisement_bytes) const;
-  size_t ComputeAdvertisementLength(const ByteArray &data) const;
 
   static constexpr int kVersionLength = 1;
   // Length of one int. Be sure to re-evaluate how we compute data size in this

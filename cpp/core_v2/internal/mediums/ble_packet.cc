@@ -14,7 +14,9 @@
 
 #include "core_v2/internal/mediums/ble_packet.h"
 
+#include "platform_v2/base/base_input_stream.h"
 #include "platform_v2/public/logging.h"
+#include "absl/strings/str_cat.h"
 
 namespace location {
 namespace nearby {
@@ -44,13 +46,14 @@ BlePacket::BlePacket(const ByteArray& ble_packet_bytes) {
     return;
   }
 
-  const char *ble_packet_bytes_read_ptr = ble_packet_bytes.data();
-  service_id_hash_ =
-      ByteArray(ble_packet_bytes_read_ptr, kServiceIdHashLength);
-  ble_packet_bytes_read_ptr += kServiceIdHashLength;
+  ByteArray packet_bytes{ble_packet_bytes};
+  BaseInputStream base_input_stream{packet_bytes};
+  // The first 3 bytes are supposed to be the service_id_hash.
+  service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
 
-  data_ = ByteArray(ble_packet_bytes_read_ptr,
-                    ble_packet_bytes.size() - kServiceIdHashLength);
+  // The rest bytes are supposed to be the data.
+  data_ = base_input_stream.ReadBytes(ble_packet_bytes.size() -
+                                      kServiceIdHashLength);
 }
 
 BlePacket::operator ByteArray() const {
@@ -58,11 +61,8 @@ BlePacket::operator ByteArray() const {
     return ByteArray();
   }
 
-  std::string out;
-
-  out.reserve(service_id_hash_.size() + data_.size());
-  out.append(std::string(service_id_hash_));
-  out.append(std::string(data_));
+  std::string out =
+      absl::StrCat(std::string(service_id_hash_), std::string(data_));
 
   return ByteArray(std::move(out));
 }

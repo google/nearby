@@ -79,4 +79,12 @@ TEST(ByteArrayTest, SetExplicitData) {
   EXPECT_EQ(0, memcmp(message, bytes.data(), kMessageSize));
 }
 
+TEST(ByteArrayTest, CreateFromNonNullTerminatedStdArray) {
+  constexpr static const std::array data{'a', '\x00', 'b'};
+  ByteArray bytes{data};
+  EXPECT_EQ(bytes.size(), 3);
+  EXPECT_EQ(bytes.size(), std::string(bytes).size());
+  EXPECT_EQ(std::string(bytes), std::string(data.data(), data.size()));
+}
+
 }  // namespace

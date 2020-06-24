@@ -65,7 +65,14 @@ class EndpointManager {
     virtual ~FrameProcessor() = default;
 
     // @EndpointManagerReaderThread
-    virtual void OnIncomingFrame(const OfflineFrame& offline_frame,
+    // Called for every incoming frame of registered type.
+    // NOTE(OfflineFrame& frame):
+    // For large payload in data phase, resources may be saved if data is moved,
+    // rather than copied (if passing data by reference is not an option).
+    // To achieve that, OfflineFrame needs to be either mutabe lvalue reference,
+    // or rvalue reference. Rvalue references are discouraged by go/cstyle,
+    // and that leaves us with mutable lvalue reference.
+    virtual void OnIncomingFrame(OfflineFrame& offline_frame,
                                  const std::string& from_endpoint_id,
                                  ClientProxy* to_client,
                                  proto::connections::Medium current_medium) = 0;
@@ -91,7 +98,7 @@ class EndpointManager {
   const FrameProcessor::Handle RegisterFrameProcessor(
       V1Frame::FrameType frame_type, FrameProcessor* processor);
   void UnregisterFrameProcessor(V1Frame::FrameType frame_type,
-                                const void* handle);
+                                const void* handle, bool sync = false);
 
   // Invoked from the different PcpHandler implementations (of which there can
   // be only one at a time).

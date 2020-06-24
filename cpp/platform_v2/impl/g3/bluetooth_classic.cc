@@ -27,9 +27,15 @@ namespace location {
 namespace nearby {
 namespace g3 {
 
+BluetoothSocket::~BluetoothSocket() {
+  absl::MutexLock lock(&mutex_);
+  DoClose();
+}
+
 void BluetoothSocket::Connect(BluetoothSocket& other) {
   absl::MutexLock lock(&mutex_);
   remote_socket_ = &other;
+  input_ = other.output_;
 }
 
 bool BluetoothSocket::IsConnected() const {
@@ -43,7 +49,7 @@ bool BluetoothSocket::IsClosed() const {
 }
 
 bool BluetoothSocket::IsConnectedLocked() const {
-  return remote_socket_ != nullptr;
+  return input_ != nullptr;
 }
 
 InputStream& BluetoothSocket::GetInputStream() {
@@ -58,29 +64,29 @@ OutputStream& BluetoothSocket::GetOutputStream() {
 
 InputStream& BluetoothSocket::GetLocalInputStream() {
   absl::MutexLock lock(&mutex_);
-  return output_.GetInputStream();
+  return output_->GetInputStream();
 }
 
 OutputStream& BluetoothSocket::GetLocalOutputStream() {
   absl::MutexLock lock(&mutex_);
-  return output_.GetOutputStream();
+  return output_->GetOutputStream();
 }
 
 Exception BluetoothSocket::Close() {
-  BluetoothSocket* remote_socket = nullptr;
-  {
-    absl::MutexLock lock(&mutex_);
-    if (!closed_) {
-      remote_socket = remote_socket_;
-      output_.GetOutputStream().Close();
-      output_.GetInputStream().Close();
-      closed_ = true;
-    }
-  }
-  if (remote_socket != nullptr) {
-    remote_socket->Close();
-  }
+  absl::MutexLock lock(&mutex_);
+  DoClose();
   return {Exception::kSuccess};
+}
+
+void BluetoothSocket::DoClose() {
+  if (!closed_) {
+    remote_socket_ = nullptr;
+    output_->GetOutputStream().Close();
+    output_->GetInputStream().Close();
+    input_->GetOutputStream().Close();
+    input_->GetInputStream().Close();
+    closed_ = true;
+  }
 }
 
 BluetoothSocket* BluetoothSocket::GetRemoteSocket() {
