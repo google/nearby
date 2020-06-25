@@ -1,0 +1,7 @@
+optimize_mode: LITE_RUNTIME
+
+allowed_enum: "location.nearby.mediums.proto.SocketVersion"
+allowed_message: "location.nearby.mediums.proto.SocketControlFrame"
+allowed_enum: "location.nearby.mediums.proto.SocketControlFrame.ControlFrameType"
+allowed_message: "location.nearby.mediums.proto.IntroductionFrame"
+allowed_message: "location.nearby.mediums.proto.DisconnectionFrame"

@@ -19,7 +19,8 @@ namespace nearby {
 template <typename Derived, typename Base>
 inline Derived down_cast(Base* value) {
   using DerivedType = typename std::remove_pointer<Derived>::type;
-  static_assert(std::is_base_of<Base, DerivedType>::value);
+  static_assert(std::is_base_of<Base, DerivedType>::value,
+                "incompatible casting");
   return static_cast<Derived>(value);
 }
 
