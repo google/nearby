@@ -22,7 +22,6 @@
 #include "platform_v2/api/platform.h"
 #include "platform_v2/public/mutex.h"
 #include "platform_v2/public/mutex_lock.h"
-#include "absl/types/any.h"
 
 namespace location {
 namespace nearby {
@@ -34,8 +33,7 @@ class AtomicReference;
 // Platform-based atomic type, for something convertible to std::uint32_t.
 template <typename T>
 class AtomicReference<T, std::enable_if_t<sizeof(T) <= sizeof(std::uint32_t) &&
-                                              std::is_trivially_copyable_v<T>,
-                                          void>>
+                                          std::is_trivially_copyable<T>::value>>
     final {
  public:
   using Platform = api::ImplementationPlatform;
@@ -56,9 +54,9 @@ class AtomicReference<T, std::enable_if_t<sizeof(T) <= sizeof(std::uint32_t) &&
 // Atomic type that is using Platform mutex to provide atomicity.
 // Supports any copyable type.
 template <typename T>
-class AtomicReference<T, std::enable_if_t<(sizeof(T) > sizeof(std::uint32_t) ||
-                                           !std::is_trivially_copyable_v<T>),
-                                          void>>
+class AtomicReference<T,
+                      std::enable_if_t<(sizeof(T) > sizeof(std::uint32_t) ||
+                                        !std::is_trivially_copyable<T>::value)>>
     final {
  public:
   explicit AtomicReference(T value) {

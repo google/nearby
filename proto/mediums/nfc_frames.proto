@@ -1,0 +1,43 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package location.nearby.mediums;
+
+option optimize_for = LITE_RUNTIME;
+option java_outer_classname = "NfcFramesProto";
+option java_package = "com.google.location.nearby.mediums.proto";
+
+// The data to be sent to scanning devices from advertising devices during
+// adveritising.
+message AdvertisementData {
+  // The tag in the advertisement.
+  optional bytes tag = 1;
+
+  // A public key associated with the advertisement.
+  optional bytes public_key = 2;
+}
+
+// The data to be sent to advertisers from scanning device during discovery.
+message AdvertisementRequest {
+  // Service id of the scanning device.
+  optional string service_id = 1;
+
+  // Endpoint id of the scanning device.
+  optional string endpoint_id = 2;
+
+  // Public key from the scanning device.
+  optional bytes public_key = 3;
+}

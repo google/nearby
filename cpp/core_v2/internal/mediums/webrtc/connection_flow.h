@@ -101,7 +101,7 @@ class ConnectionFlow {
       std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
           ice_candidates) ABSL_LOCKS_EXCLUDED(mutex_);
   // Get a future for the data channel.
-  Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>* GetDataChannel();
+  Future<rtc::scoped_refptr<webrtc::DataChannelInterface>> GetDataChannel();
   // Close the peer connection and data channel.
   bool Close() ABSL_LOCKS_EXCLUDED(mutex_);
 

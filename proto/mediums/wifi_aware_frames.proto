@@ -1,0 +1,62 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package location.nearby.mediums;
+
+option optimize_for = LITE_RUNTIME;
+option java_outer_classname = "WifiAwareFramesProto";
+option java_package = "com.google.location.nearby.mediums.proto";
+
+message WifiAwareFrame {
+  enum FrameType {
+    UNKNOWN_FRAME_TYPE = 0;
+    HOST_NETWORK = 1;
+    NETWORK_AVAILABLE = 2;
+    IP_AVAILABLE = 3;
+    CANCELLATION = 4;
+  }
+  optional FrameType type = 1;
+
+  // Exactly one of the following fields will be set.
+  optional HostNetworkFrame host_network = 2;
+  optional NetworkAvailableFrame network_available = 3;
+  optional IpAvailableFrame ip_available = 4;
+  optional CancellationFrame cancellation = 7;
+
+  // The id of each frame.
+  optional int32 frame_id = 5;
+
+  // A byte array of size 2. It is the id and comparable token of a WifiAware
+  // endpoint session.
+  optional bytes session_id = 6;
+}
+
+message HostNetworkFrame {}
+
+message NetworkAvailableFrame {}
+
+message IpAvailableFrame {
+  // NOTE: We use string here, rather than int. This is because the WiFi Aware
+  // ip address has a network interface appended to the end. It looks like
+  // 'fe80::a321:2935:9b2d:d7e7%aware_data0', where the %aware_data0 at the end
+  // lets Android know which type of network this address is associated with.
+  // If this information is lost, we won't be able to connect to the remote
+  // device's ServerSocket.
+  optional string ip_address = 1;
+  optional int32 port = 2;
+}
+
+message CancellationFrame {}

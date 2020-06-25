@@ -125,14 +125,13 @@ WebRtcSocketWrapper WebRtc::Connect(const PeerId& peer_id) {
   NEARBY_LOG(INFO, "Attempting to make a WebRTC connection to %s.",
              peer_id.GetId().c_str());
 
-  std::shared_ptr<Future<WebRtcSocketWrapper>> socket_future =
-      ListenForWebRtcSocketFuture(connection_flow_->GetDataChannel(),
-                                  AcceptedConnectionCallback());
+  Future<WebRtcSocketWrapper> socket_future = ListenForWebRtcSocketFuture(
+      connection_flow_->GetDataChannel(), AcceptedConnectionCallback());
 
   // The two devices have discovered each other, hence we have a timeout for
   // establishing the transport channel.
   ExceptionOr<WebRtcSocketWrapper> result =
-      socket_future->Get(kDataChannelTimeout);
+      socket_future.Get(kDataChannelTimeout);
   if (result.ok()) return result.result();
 
   Disconnect();
@@ -163,18 +162,17 @@ void WebRtc::StopAcceptingConnections() {
   NEARBY_LOG(INFO, "Stopped accepting WebRTC connections");
 }
 
-std::shared_ptr<Future<WebRtcSocketWrapper>>
-WebRtc::ListenForWebRtcSocketFuture(
-    Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>*
+Future<WebRtcSocketWrapper> WebRtc::ListenForWebRtcSocketFuture(
+    Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>
         data_channel_future,
     AcceptedConnectionCallback callback) {
-  auto socket_future = std::make_shared<Future<WebRtcSocketWrapper>>();
+  Future<WebRtcSocketWrapper> socket_future;
   auto data_channel_runnable = [this, socket_future, data_channel_future,
-                                callback{std::move(callback)}]() {
+                                callback{std::move(callback)}]() mutable {
     // The overall timeout of creating the socket and data channel is controlled
     // by the caller of this function.
     ExceptionOr<rtc::scoped_refptr<webrtc::DataChannelInterface>> res =
-        data_channel_future->Get();
+        data_channel_future.Get();
     if (res.ok()) {
       WebRtcSocketWrapper wrapper = CreateWebRtcSocketWrapper(res.result());
       callback.accepted_cb(wrapper);
@@ -182,15 +180,15 @@ WebRtc::ListenForWebRtcSocketFuture(
         MutexLock lock(&mutex_);
         socket_ = wrapper;
       }
-      socket_future->Set(wrapper);
+      socket_future.Set(wrapper);
     } else {
       NEARBY_LOG(WARNING, "Failed to get WebRtcSocket.");
-      socket_future->Set(WebRtcSocketWrapper());
+      socket_future.Set(WebRtcSocketWrapper());
     }
   };
 
-  data_channel_future->AddListener(std::move(data_channel_runnable),
-                                   &single_thread_executor_);
+  data_channel_future.AddListener(std::move(data_channel_runnable),
+                                  &single_thread_executor_);
 
   return socket_future;
 }

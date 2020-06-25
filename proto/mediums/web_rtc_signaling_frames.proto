@@ -1,0 +1,108 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package location.nearby.mediums;
+
+option optimize_for = LITE_RUNTIME;
+option java_outer_classname = "WebRtcSignalingFramesProto";
+option java_package = "com.google.location.nearby.mediums.proto";
+
+message WebRtcSignalingFrame {
+  enum FrameType {
+    UNKNOWN_FRAME_TYPE = 0;
+    OFFER_TYPE = 1;
+    ANSWER_TYPE = 2;
+    ICE_CANDIDATES_TYPE = 3;
+    READY_FOR_SIGNALING_POKE_TYPE = 4;
+  }
+
+  optional PeerId sender_id = 1;
+
+  optional FrameType type = 2;
+
+  oneof Frame {
+    Offer offer = 3;
+    Answer answer = 4;
+    IceCandidates ice_candidates = 5;
+    ReadyForSignalingPoke ready_for_signaling_poke = 6;
+  }
+}
+
+// The id of the peer who sent the signaling frame.
+message PeerId {
+  optional string id = 1;
+}
+
+// https://en.wikipedia.org/wiki/Session_Description_Protocol
+// SDP (Session Description Protocol) is the standard describing a peer-to-peer
+// connection. SDP contains the codec, source address, and timing information of
+// audio and video. An example message is:
+// v=0
+// t=0 0
+// a=group:BUNDLE data
+// a=msid-semantic: WMS
+// m=application 9 DTLS/SCTP 5000
+// c=IN IP4 0.0.0.0
+// b=AS:30
+// a=ice-ufrag:zaEf
+// a=ice-pwd:w9+RrqMj1RbC++15mNcRoRG5
+// a=ice-options:trickle renomination
+// a=fingerprint:sha-256
+// B3:FE:B9:E1:F4:58:F6:05:A7:0D:3C:E6:E5:0A:44:A0:88:F4:50:90:41:D6:2E:A3:84:D8:C5:0C:40:2E:DB:6D
+// a=setup:active
+// a=mid:data
+// a=sctpmap:5000 webrtc-datachannel 1024
+// a=candidate:1 1 UDP 2130706431 10.0.1.1 8998 typ host
+// a=candidate:2 1 UDP 1694498815 192.0.2.3 45664 typ srflx raddr
+message SessionDescription {
+  // See the SDP example above.
+  optional string description = 1;
+}
+
+// https://en.wikipedia.org/wiki/Interactive_Connectivity_Establishment
+// https://www.slideshare.net/saghul/ice-4414037
+// An example message contains:
+// sdp_mid = data
+// sdp_m_line_index = 0
+// sdp = candidate:198238137 1 udp 2122262783
+// 620:0:1000:fd1f:1cc5:76e0:78ba:6c54 41539 typ host generation 0 ufrag kq7J
+// network-id 4 network-cost 10:
+message IceCandidate {
+  // See the lines beginning with a=candidate in the SDP example above.
+  optional string sdp = 1;
+  // For valid values, see https://tools.ietf.org/html/rfc4566 -> Media Types
+  // This ID uniquely identifies a given media stream with which the candidate
+  // is associated. Example: data
+  optional string sdp_mid = 2;
+  // A zero-based index of the m-line describing the media associated with the
+  // candidate. Example: 0
+  optional int32 sdp_m_line_index = 3;
+}
+
+message IceCandidates {
+  repeated IceCandidate ice_candidates = 1;
+}
+
+message Offer {
+  optional SessionDescription session_description = 1;
+}
+
+message Answer {
+  optional SessionDescription session_description = 1;
+}
+
+// Sent from answerer->offerer once the answerer is ready to receive the offer.
+message ReadyForSignalingPoke {}

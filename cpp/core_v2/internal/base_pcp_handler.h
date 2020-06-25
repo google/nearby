@@ -178,6 +178,15 @@ class BasePcpHandler : public PcpHandler,
   // instance (but it can if implementation desires to do so).
   // BasePcpHandler will hold on to the shared_ptr<DiscoveredEndpoint>.
   struct DiscoveredEndpoint {
+    DiscoveredEndpoint(std::string endpoint_id, std::string endpoint_name,
+                       std::string service_id,
+                       proto::connections::Medium medium)
+        : endpoint_id(std::move(endpoint_id)),
+          endpoint_name(std::move(endpoint_name)),
+          service_id(std::move(service_id)),
+          medium(medium) {}
+    virtual ~DiscoveredEndpoint() = default;
+
     std::string endpoint_id;
     std::string endpoint_name;
     std::string service_id;

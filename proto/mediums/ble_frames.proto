@@ -1,0 +1,53 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package location.nearby.mediums;
+
+option optimize_for = LITE_RUNTIME;
+option java_outer_classname = "BleFramesProto";
+option java_package = "com.google.location.nearby.mediums.proto";
+option objc_class_prefix = "GNCM";
+
+// This should map exactly to BleAdvertisement's socket versions.
+// TODO(alexanderkang): Make BleAdvertisement reference this proto.
+enum SocketVersion {
+  UNKNOWN_SOCKET_VERSION = 0;
+  V1 = 1;
+  V2 = 2;
+}
+
+message SocketControlFrame {
+  enum ControlFrameType {
+    UNKNOWN_CONTROL_FRAME_TYPE = 0;
+    INTRODUCTION = 1;
+    DISCONNECTION = 2;
+  }
+
+  optional ControlFrameType type = 1;
+
+  // Exactly one of the following fields will be set.
+  optional IntroductionFrame introduction = 2;
+  optional DisconnectionFrame disconnection = 3;
+}
+
+message IntroductionFrame {
+  optional bytes service_id_hash = 1;
+  optional SocketVersion socket_version = 2;
+}
+
+message DisconnectionFrame {
+  optional bytes service_id_hash = 1;
+}
