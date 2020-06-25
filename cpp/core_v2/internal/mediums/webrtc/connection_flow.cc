@@ -31,6 +31,8 @@ namespace nearby {
 namespace connections {
 namespace mediums {
 
+constexpr absl::Duration ConnectionFlow::kTimeout;
+
 namespace {
 // This is the same as the nearby data channel name.
 const char kDataChannelName[] = "dataChannel";
@@ -231,9 +233,9 @@ bool ConnectionFlow::OnRemoteIceCandidatesReceived(
   return true;
 }
 
-Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>*
+Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>
 ConnectionFlow::GetDataChannel() {
-  return &data_channel_future_;
+  return data_channel_future_;
 }
 
 bool ConnectionFlow::Close() {

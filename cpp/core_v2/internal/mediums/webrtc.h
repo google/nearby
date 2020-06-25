@@ -88,8 +88,8 @@ class WebRtc {
   bool InitWebRtcFlow(Role role, const PeerId& self_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  std::shared_ptr<Future<WebRtcSocketWrapper>> ListenForWebRtcSocketFuture(
-      Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>*
+  Future<WebRtcSocketWrapper> ListenForWebRtcSocketFuture(
+      Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>
           data_channel_future,
       AcceptedConnectionCallback callback);
 

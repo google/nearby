@@ -42,6 +42,7 @@ HEADLINE = 1
 PARTIAL = 2
 FULL = 3
 
+
 def has_copyright(lines, max_lookup=3):
   pos = 0
   result = MISSING
@@ -65,6 +66,7 @@ def has_copyright(lines, max_lookup=3):
 
   return FULL
 
+
 def add_copyright(lines, prefix, offset):
   new_lines = lines[0:offset]
   if offset:
@@ -78,6 +80,7 @@ def add_copyright(lines, prefix, offset):
   new_lines.extend(lines[offset:])
   return new_lines
 
+
 def copy_files_to_oss_project(src_root, dst_root):
   shutil.rmtree(dst_root + "/cpp", ignore_errors=True)
   shutil.rmtree(dst_root + "/proto", ignore_errors=True)
@@ -87,6 +90,8 @@ def copy_files_to_oss_project(src_root, dst_root):
   shutil.copytree(src_root + "/connections/core/", dst_root + "/cpp/core/")
   shutil.copytree(src_root + "/connections/core_v2/", dst_root + "/cpp/core_v2/")
   shutil.copytree(src_root + "/connections/proto/", dst_root + "/proto/connections/")
+  shutil.copytree(src_root + "/mediums/proto/", dst_root + "/proto/mediums/")
+
 
 def detect_file_copy_header_options(fname, lines):
   if not lines:
@@ -101,6 +106,7 @@ def detect_file_copy_header_options(fname, lines):
   if lines[0].startswith("#!"):
     return ("#", 1)
   return None
+
 
 def post_process_oss_files(path, args):
   modified_total = 0
@@ -203,6 +209,7 @@ def post_process_oss_files(path, args):
 
   return modified_total
 
+
 def main():
   parser = argparse.ArgumentParser('Opensource Nearby Release Tool')
   parser.add_argument('target', action='store', type=str, nargs="+", default=[])
@@ -231,6 +238,7 @@ def main():
   for dst in args.target:
     total += post_process_oss_files(dst, args)
   print("Total modified: {} files".format(total))
+
 
 if __name__ == "__main__":
   sys.exit(main())
