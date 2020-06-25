@@ -12,6 +12,8 @@
 #include "core_v2/internal/endpoint_manager.h"
 #include "core_v2/internal/mediums/bluetooth_classic.h"
 #include "core_v2/internal/mediums/mediums.h"
+#include "core_v2/internal/mediums/webrtc.h"
+#include "core_v2/internal/mediums/webrtc/peer_id.h"
 #include "core_v2/internal/pcp.h"
 #include "core_v2/internal/wifi_lan_service_info.h"
 #include "core_v2/options.h"
@@ -69,10 +71,23 @@ class P2pClusterPcpHandler : public BasePcpHandler {
 
  private:
   struct BluetoothEndpoint : public BasePcpHandler::DiscoveredEndpoint {
+    BluetoothEndpoint(DiscoveredEndpoint endpoint, BluetoothDevice device)
+        : DiscoveredEndpoint(std::move(endpoint)),
+          bluetooth_device(std::move(device)) {}
+
     BluetoothDevice bluetooth_device;
   };
   struct WifiLanEndpoint : public BasePcpHandler::DiscoveredEndpoint {
+    WifiLanEndpoint(DiscoveredEndpoint endpoint, WifiLanService service)
+        : DiscoveredEndpoint(std::move(endpoint)),
+          wifi_lan_service(std::move(service)) {}
     WifiLanService wifi_lan_service;
+  };
+  struct WebRtcEndpoint : public BasePcpHandler::DiscoveredEndpoint {
+    WebRtcEndpoint(DiscoveredEndpoint endpoint, mediums::PeerId peer_id)
+        : DiscoveredEndpoint(std::move(endpoint)),
+          peer_id(std::move(peer_id)) {}
+    mediums::PeerId peer_id;
   };
 
   using BluetoothDiscoveredDeviceCallback =
@@ -124,9 +139,21 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   BasePcpHandler::ConnectImplResult WifiLanConnectImpl(
       ClientProxy* client, WifiLanEndpoint* endpoint);
 
+  // WebRtc
+  proto::connections::Medium StartListeningForWebRtcConnections(
+      ClientProxy* client, const std::string& service_id,
+      const std::string& local_endpoint_id,
+      const std::string& local_endpoint_name);
+  BasePcpHandler::ConnectImplResult WebRtcConnectImpl(
+      ClientProxy* client, WebRtcEndpoint* webrtc_endpoint);
+  mediums::PeerId CreatePeerIdFromAdvertisement(const string& service_id,
+                                                const string& endpoint_id,
+                                                const string& endpoint_name);
+
   BluetoothRadio& bluetooth_radio_;
   BluetoothClassic& bluetooth_medium_;
   WifiLan& wifi_lan_medium_;
+  mediums::WebRtc& webrtc_medium_;
 };
 
 }  // namespace connections

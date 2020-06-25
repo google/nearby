@@ -124,6 +124,10 @@ class MockContext {
 };
 
 struct MockDiscoveredEndpoint : public MockPcpHandler::DiscoveredEndpoint {
+  MockDiscoveredEndpoint(DiscoveredEndpoint endpoint, MockContext context)
+      : DiscoveredEndpoint(std::move(endpoint)),
+        context(std::move(context)) {}
+
   MockContext context;
 };
 
@@ -262,10 +266,10 @@ class BasePcpHandlerTest : public ::testing::Test {
     pcp_handler->OnEndpointFound(
         client, std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
                     {
-                        .endpoint_id = endpoint_id,
-                        .endpoint_name = info.name,
-                        .service_id = "service",
-                        .medium = Medium::BLE,
+                        endpoint_id,
+                        info.name,
+                        "service",
+                        Medium::BLE,
                     },
                     MockContext{flag},
                 }));

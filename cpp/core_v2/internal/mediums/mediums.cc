@@ -16,6 +16,8 @@ WifiLan& Mediums::GetWifiLan() {
   return wifi_lan_;
 }
 
+mediums::WebRtc& Mediums::GetWebRtc() { return webrtc_; }
+
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location

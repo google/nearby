@@ -1,7 +1,11 @@
 #include "core_v2/internal/p2p_cluster_pcp_handler.h"
 
+#include "core_v2/internal/base_pcp_handler.h"
 #include "core_v2/internal/bluetooth_endpoint_channel.h"
+#include "core_v2/internal/mediums/webrtc/webrtc_socket_wrapper.h"
+#include "core_v2/internal/webrtc_endpoint_channel.h"
 #include "core_v2/internal/wifi_lan_endpoint_channel.h"
+#include "platform_v2/base/types.h"
 #include "platform_v2/public/crypto.h"
 #include "proto/connections_enums.pb.h"
 
@@ -23,21 +27,23 @@ P2pClusterPcpHandler::P2pClusterPcpHandler(
     : BasePcpHandler(endpoint_manager, endpoint_channel_manager, pcp),
       bluetooth_radio_(mediums.GetBluetoothRadio()),
       bluetooth_medium_(mediums.GetBluetoothClassic()),
-      wifi_lan_medium_(mediums.GetWifiLan()) {}
+      wifi_lan_medium_(mediums.GetWifiLan()),
+      webrtc_medium_(mediums.GetWebRtc()) {}
 
 // Returns a vector or mediums sorted in order or decreasing priority for
 // all the supported mediums.
-// NOTE: currently we only have BT, but eventually it will be more, and items
-// will have to be sorted in the order of decreasing traffic bandwidth.
-// Example: WiFi_LAN, BT, BLE
+// Example: WiFi_LAN, WEB_RTC, BT, BLE
 std::vector<proto::connections::Medium>
 P2pClusterPcpHandler::GetConnectionMediumsByPriority() {
   std::vector<proto::connections::Medium> mediums;
-  if (bluetooth_medium_.IsAvailable()) {
-    mediums.push_back(proto::connections::BLUETOOTH);
-  }
   if (wifi_lan_medium_.IsAvailable()) {
     mediums.push_back(proto::connections::WIFI_LAN);
+  }
+  if (webrtc_medium_.IsAvailable()) {
+    mediums.push_back(proto::connections::WEB_RTC);
+  }
+  if (bluetooth_medium_.IsAvailable()) {
+    mediums.push_back(proto::connections::BLUETOOTH);
   }
   return mediums;
 }
@@ -52,16 +58,6 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
     const std::string& local_endpoint_name, const ConnectionOptions& options) {
   std::vector<proto::connections::Medium> mediums_started_successfully;
 
-  const ByteArray bluetooth_hash =
-      GenerateHash(service_id, BluetoothDeviceName::kServiceIdHashLength);
-  proto::connections::Medium bluetooth_medium =
-      StartBluetoothAdvertising(client, service_id, bluetooth_hash,
-                                local_endpoint_id, local_endpoint_name);
-  if (bluetooth_medium != proto::connections::UNKNOWN_MEDIUM) {
-    NEARBY_LOG(INFO, "P2pClusterPcpHandler::StartAdvertisingImpl: BT added");
-    mediums_started_successfully.push_back(bluetooth_medium);
-  }
-
   const ByteArray wifi_lan_hash =
       GenerateHash(service_id, WifiLanServiceInfo::kServiceIdHashLength);
   proto::connections::Medium wifi_lan_medium =
@@ -71,6 +67,22 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
     NEARBY_LOG(INFO,
                "P2pClusterPcpHandler::StartAdvertisingImpl: WifiLan added");
     mediums_started_successfully.push_back(wifi_lan_medium);
+  }
+
+  proto::connections::Medium webrtc_medium = StartListeningForWebRtcConnections(
+      client, service_id, local_endpoint_id, local_endpoint_name);
+  if (webrtc_medium != proto::connections::UNKNOWN_MEDIUM) {
+    mediums_started_successfully.push_back(webrtc_medium);
+  }
+
+  const ByteArray bluetooth_hash =
+      GenerateHash(service_id, BluetoothDeviceName::kServiceIdHashLength);
+  proto::connections::Medium bluetooth_medium =
+      StartBluetoothAdvertising(client, service_id, bluetooth_hash,
+                                local_endpoint_id, local_endpoint_name);
+  if (bluetooth_medium != proto::connections::UNKNOWN_MEDIUM) {
+    NEARBY_LOG(INFO, "P2pClusterPcpHandler::StartAdvertisingImpl: BT added");
+    mediums_started_successfully.push_back(bluetooth_medium);
   }
 
   if (mediums_started_successfully.empty()) {
@@ -91,9 +103,13 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
 }
 
 Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
-  wifi_lan_medium_.StopAdvertising(client->GetAdvertisingServiceId());
   bluetooth_medium_.TurnOffDiscoverability();
   bluetooth_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
+
+  webrtc_medium_.StopAcceptingConnections();
+
+  wifi_lan_medium_.StopAdvertising(client->GetAdvertisingServiceId());
+
   return {Status::kSuccess};
 }
 
@@ -163,10 +179,10 @@ P2pClusterPcpHandler::MakeBluetoothDeviceDiscoveredHandler(
       OnEndpointFound(client,
                       std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
                           {
-                              .endpoint_id = device_name.GetEndpointId(),
-                              .endpoint_name = device_name.GetEndpointName(),
-                              .service_id = service_id,
-                              .medium = proto::connections::Medium::BLUETOOTH,
+                              device_name.GetEndpointId(),
+                              device_name.GetEndpointName(),
+                              service_id,
+                              proto::connections::Medium::BLUETOOTH,
                           },
                           device,
                       }));
@@ -203,16 +219,15 @@ P2pClusterPcpHandler::MakeBluetoothDeviceLostHandler(
                  "BT discovery handler (LOST) [client=%p, service=%s]: report "
                  "to client",
                  client, service_id.c_str());
-      OnEndpointLost(client,
-                     BluetoothEndpoint{
-                         {
-                             .endpoint_id = device_name.GetEndpointId(),
-                             .endpoint_name = device_name.GetEndpointName(),
-                             .service_id = service_id,
-                             .medium = proto::connections::Medium::BLUETOOTH,
-                         },
-                         device,
-                     });
+      OnEndpointLost(client, BluetoothEndpoint{
+                                 {
+                                     device_name.GetEndpointId(),
+                                     device_name.GetEndpointName(),
+                                     service_id,
+                                     proto::connections::Medium::BLUETOOTH,
+                                 },
+                                 device,
+                             });
     });
   };
 }
@@ -282,16 +297,15 @@ P2pClusterPcpHandler::MakeWifiLanServiceDiscoveredHandler(
                  "service=%s; id=%s; name=%s",
                  service_id.c_str(), service_name.GetEndpointId().c_str(),
                  service_name.GetEndpointName().c_str());
-      OnEndpointFound(client,
-                      std::make_shared<WifiLanEndpoint>(WifiLanEndpoint{
-                          {
-                              .endpoint_id = service_name.GetEndpointId(),
-                              .endpoint_name = service_name.GetEndpointName(),
-                              .service_id = service_id,
-                              .medium = proto::connections::Medium::WIFI_LAN,
-                          },
-                          service,
-                      }));
+      OnEndpointFound(client, std::make_shared<WifiLanEndpoint>(WifiLanEndpoint{
+                                  {
+                                      service_name.GetEndpointId(),
+                                      service_name.GetEndpointName(),
+                                      service_id,
+                                      proto::connections::Medium::WIFI_LAN,
+                                  },
+                                  service,
+                              }));
     });
   };
 }
@@ -328,16 +342,15 @@ P2pClusterPcpHandler::MakeWifiLanServiceLostHandler(
           "WifiLan discovery handler (LOST) [client=%p, service=%s]: report "
           "to client",
           client, service_id.c_str());
-      OnEndpointLost(client,
-                     WifiLanEndpoint{
-                         {
-                             .endpoint_id = service_name.GetEndpointId(),
-                             .endpoint_name = service_name.GetEndpointName(),
-                             .service_id = service_id,
-                             .medium = proto::connections::Medium::WIFI_LAN,
-                         },
-                         service,
-                     });
+      OnEndpointLost(client, WifiLanEndpoint{
+                                 {
+                                     service_name.GetEndpointId(),
+                                     service_name.GetEndpointName(),
+                                     service_id,
+                                     proto::connections::Medium::WIFI_LAN,
+                                 },
+                                 service,
+                             });
     });
   };
 }
@@ -346,18 +359,6 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
     ClientProxy* client, const std::string& service_id,
     const ConnectionOptions& options) {
   std::vector<proto::connections::Medium> mediums_started_successfully;
-
-  proto::connections::Medium bluetooth_medium = StartBluetoothDiscovery(
-      {
-          .device_discovered_cb =
-              MakeBluetoothDeviceDiscoveredHandler(client, service_id),
-          .device_lost_cb = MakeBluetoothDeviceLostHandler(client, service_id),
-      },
-      client, service_id);
-  if (bluetooth_medium != proto::connections::UNKNOWN_MEDIUM) {
-    NEARBY_LOG(INFO, "P2pClusterPcpHandler::StartDiscoveryImpl: BT added");
-    mediums_started_successfully.push_back(bluetooth_medium);
-  }
 
   proto::connections::Medium wifi_lan_medium = StartWifiLanDiscovery(
       {
@@ -369,6 +370,18 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
   if (wifi_lan_medium != proto::connections::UNKNOWN_MEDIUM) {
     NEARBY_LOG(INFO, "P2pClusterPcpHandler::StartDiscoveryImpl: WifiLan added");
     mediums_started_successfully.push_back(wifi_lan_medium);
+  }
+
+  proto::connections::Medium bluetooth_medium = StartBluetoothDiscovery(
+      {
+          .device_discovered_cb =
+              MakeBluetoothDeviceDiscoveredHandler(client, service_id),
+          .device_lost_cb = MakeBluetoothDeviceLostHandler(client, service_id),
+      },
+      client, service_id);
+  if (bluetooth_medium != proto::connections::UNKNOWN_MEDIUM) {
+    NEARBY_LOG(INFO, "P2pClusterPcpHandler::StartDiscoveryImpl: BT added");
+    mediums_started_successfully.push_back(bluetooth_medium);
   }
 
   if (mediums_started_successfully.empty()) {
@@ -392,15 +405,35 @@ Status P2pClusterPcpHandler::StopDiscoveryImpl(ClientProxy* client) {
 
 BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::ConnectImpl(
     ClientProxy* client, BasePcpHandler::DiscoveredEndpoint* endpoint) {
-  BluetoothEndpoint* bluetooth_endpoint =
-      static_cast<BluetoothEndpoint*>(endpoint);
-  if (bluetooth_endpoint) {
-    return BluetoothConnectImpl(client, bluetooth_endpoint);
+  if (!endpoint) {
+    return BasePcpHandler::ConnectImplResult{
+        .status = {Status::kError},
+    };
   }
-
-  WifiLanEndpoint* wifi_lan_endpoint = static_cast<WifiLanEndpoint*>(endpoint);
-  if (wifi_lan_endpoint) {
-    return WifiLanConnectImpl(client, wifi_lan_endpoint);
+  switch (endpoint->medium) {
+    case proto::connections::Medium::BLUETOOTH: {
+      auto* bluetooth_endpoint = down_cast<BluetoothEndpoint*>(endpoint);
+      if (bluetooth_endpoint) {
+        return BluetoothConnectImpl(client, bluetooth_endpoint);
+      }
+      break;
+    }
+    case proto::connections::Medium::WIFI_LAN: {
+      auto* wifi_lan_endpoint = down_cast<WifiLanEndpoint*>(endpoint);
+      if (wifi_lan_endpoint) {
+        return WifiLanConnectImpl(client, wifi_lan_endpoint);
+      }
+      break;
+    }
+    case proto::connections::Medium::WEB_RTC: {
+      auto* webrtc_endpoint = down_cast<WebRtcEndpoint*>(endpoint);
+      if (webrtc_endpoint) {
+        return WebRtcConnectImpl(client, webrtc_endpoint);
+      }
+      break;
+    }
+    default:
+      break;
   }
 
   return BasePcpHandler::ConnectImplResult{
@@ -652,6 +685,74 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiLanConnectImpl(
       .status = {Status::kSuccess},
       .endpoint_channel = std::move(channel),
   };
+}
+
+proto::connections::Medium
+P2pClusterPcpHandler::StartListeningForWebRtcConnections(
+    ClientProxy* client, const string& service_id,
+    const string& local_endpoint_id, const string& local_endpoint_name) {
+  if (!webrtc_medium_.IsAvailable()) {
+    return proto::connections::UNKNOWN_MEDIUM;
+  }
+
+  if (!webrtc_medium_.IsAcceptingConnections()) {
+    mediums::PeerId self_id = CreatePeerIdFromAdvertisement(
+        service_id, local_endpoint_id, local_endpoint_name);
+    if (!webrtc_medium_.StartAcceptingConnections(
+            self_id, {[this, client, local_endpoint_name](
+                          mediums::WebRtcSocketWrapper socket) {
+              if (!socket.IsValid()) {
+                NEARBY_LOG(ERROR, "Invalid socket in accept callback: name=%s",
+                           local_endpoint_name.c_str());
+                return;
+              }
+
+              RunOnPcpHandlerThread(
+                  [this, client, socket = std::move(socket)]() {
+                    string remote_device_name = "WebRtcSocket";
+                    auto channel = absl::make_unique<WebRtcEndpointChannel>(
+                        remote_device_name, socket);
+
+                    OnIncomingConnection(client, remote_device_name,
+                                         std::move(channel),
+                                         proto::connections::WEB_RTC);
+                  });
+            }})) {
+      return proto::connections::UNKNOWN_MEDIUM;
+    }
+  }
+
+  return proto::connections::WEB_RTC;
+}
+
+BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WebRtcConnectImpl(
+    ClientProxy* client, WebRtcEndpoint* webrtc_endpoint) {
+  mediums::WebRtcSocketWrapper socket_wrapper =
+      webrtc_medium_.Connect(webrtc_endpoint->peer_id);
+
+  if (!socket_wrapper.IsValid()) {
+    return BasePcpHandler::ConnectImplResult{.status = {Status::kError}};
+  }
+
+  auto channel = absl::make_unique<WebRtcEndpointChannel>(
+      webrtc_endpoint->endpoint_id, socket_wrapper);
+
+  if (!channel) {
+    socket_wrapper.Close();
+    return BasePcpHandler::ConnectImplResult{.status = {Status::kError}};
+  }
+
+  return BasePcpHandler::ConnectImplResult{
+      .medium = proto::connections::Medium::WEB_RTC,
+      .status = {Status::kSuccess},
+      .endpoint_channel = std::move(channel)};
+}
+
+mediums::PeerId P2pClusterPcpHandler::CreatePeerIdFromAdvertisement(
+    const std::string& service_id, const std::string& endpoint_id,
+    const std::string& endpoint_name) {
+  std::string seed = absl::StrCat(service_id, endpoint_id, endpoint_name);
+  return mediums::PeerId::FromSeed(ByteArray(seed));
 }
 
 }  // namespace connections

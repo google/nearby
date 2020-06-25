@@ -34,9 +34,9 @@ BluetoothDeviceName::BluetoothDeviceName(Version version, Pcp pcp,
 
   version_ = version;
   pcp_ = pcp;
-  endpoint_id_ = endpoint_id;
+  endpoint_id_ = std::string(endpoint_id);
   service_id_hash_ = service_id_hash;
-  endpoint_name_ = endpoint_name;
+  endpoint_name_ = std::string(endpoint_name);
 }
 
 BluetoothDeviceName::BluetoothDeviceName(

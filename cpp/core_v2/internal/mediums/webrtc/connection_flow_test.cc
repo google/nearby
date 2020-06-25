@@ -80,10 +80,10 @@ TEST(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
 
   // Retrieve Data Channels
   ExceptionOr<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      offerer_channel = offerer->GetDataChannel()->Get(absl::Seconds(1));
+      offerer_channel = offerer->GetDataChannel().Get(absl::Seconds(1));
   EXPECT_TRUE(offerer_channel.ok());
   ExceptionOr<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      answerer_channel = answerer->GetDataChannel()->Get(absl::Seconds(1));
+      answerer_channel = answerer->GetDataChannel().Get(absl::Seconds(1));
   EXPECT_TRUE(answerer_channel.ok());
 
   // Send message on data channel

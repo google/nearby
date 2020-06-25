@@ -1,0 +1,29 @@
+syntax = "proto2";
+
+package location.nearby.mediums;
+
+option optimize_for = LITE_RUNTIME;
+option java_outer_classname = "NfcFramesProto";
+option java_package = "com.google.location.nearby.mediums.proto";
+
+// The data to be sent to scanning devices from advertising devices during
+// adveritising.
+message AdvertisementData {
+  // The tag in the advertisement.
+  optional bytes tag = 1;
+
+  // A public key associated with the advertisement.
+  optional bytes public_key = 2;
+}
+
+// The data to be sent to advertisers from scanning device during discovery.
+message AdvertisementRequest {
+  // Service id of the scanning device.
+  optional string service_id = 1;
+
+  // Endpoint id of the scanning device.
+  optional string endpoint_id = 2;
+
+  // Public key from the scanning device.
+  optional bytes public_key = 3;
+}

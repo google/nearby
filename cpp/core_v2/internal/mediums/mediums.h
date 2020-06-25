@@ -3,8 +3,8 @@
 
 #include "core_v2/internal/mediums/bluetooth_classic.h"
 #include "core_v2/internal/mediums/bluetooth_radio.h"
+#include "core_v2/internal/mediums/webrtc.h"
 #include "core_v2/internal/mediums/wifi_lan.h"
-
 
 namespace location {
 namespace nearby {
@@ -25,6 +25,9 @@ class Mediums {
   // Returns a handle to the Wifi-Lan medium.
   WifiLan& GetWifiLan();
 
+  // Returns a handle to the WebRtc medium.
+  mediums::WebRtc& GetWebRtc();
+
  private:
   // The order of declaration is critical for both construction and
   // destruction.
@@ -37,6 +40,7 @@ class Mediums {
   BluetoothRadio bluetooth_radio_;
   BluetoothClassic bluetooth_classic_{bluetooth_radio_};
   WifiLan wifi_lan_;
+  mediums::WebRtc webrtc_;
 };
 
 }  // namespace connections
