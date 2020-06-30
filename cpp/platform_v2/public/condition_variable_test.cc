@@ -17,6 +17,7 @@
 #include "platform_v2/public/logging.h"
 #include "platform_v2/public/mutex.h"
 #include "platform_v2/public/single_thread_executor.h"
+#include "platform_v2/public/system_clock.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
@@ -68,7 +69,12 @@ TEST(ConditionVariableTest, WaitTerminatesOnTimeoutWithoutNotify) {
   Mutex mutex;
   ConditionVariable cond{&mutex};
   MutexLock lock(&mutex);
-  EXPECT_EQ(cond.Wait(absl::Milliseconds(100)), Exception{Exception::kTimeout});
+
+  const absl::Duration kWaitTime = absl::Milliseconds(100);
+  absl::Time start = SystemClock::ElapsedRealtime();
+  cond.Wait(kWaitTime);
+  absl::Duration duration = SystemClock::ElapsedRealtime() - start;
+  EXPECT_GE(duration, kWaitTime);
 }
 
 }  // namespace

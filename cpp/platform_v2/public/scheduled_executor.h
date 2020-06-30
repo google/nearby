@@ -64,6 +64,12 @@ class ScheduledExecutor final {
     DoShutdown();
   }
 
+  int GetTid(int index) const {
+    MutexLock lock(&mutex_);
+    return impl_->GetTid(index);
+  }
+  int Tid() const { return GetTid(0); }
+
   Cancelable Schedule(Runnable&& runnable, absl::Duration duration)
       ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);
@@ -79,7 +85,7 @@ class ScheduledExecutor final {
     }
   }
 
-  Mutex mutex_;
+  mutable Mutex mutex_;
   std::unique_ptr<api::ScheduledExecutor> ABSL_GUARDED_BY(mutex_) impl_;
 };
 

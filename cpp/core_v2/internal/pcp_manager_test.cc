@@ -87,6 +87,8 @@ TEST_F(PcpManagerTest, CanConnect) {
   EXPECT_EQ(user_b.GetDiscovered().endpoint_name, user_a.GetName());
   user_b.RequestConnection(&connection_latch);
   EXPECT_TRUE(connection_latch.Await(absl::Milliseconds(1000)).result());
+  user_a.Stop();
+  user_b.Stop();
   env_.Stop();
 }
 
@@ -107,6 +109,8 @@ TEST_F(PcpManagerTest, CanAccept) {
   user_a.AcceptConnection(&accept_latch);
   user_b.AcceptConnection(&accept_latch);
   EXPECT_TRUE(accept_latch.Await(absl::Milliseconds(1000)).result());
+  user_a.Stop();
+  user_b.Stop();
   env_.Stop();
 }
 
@@ -127,6 +131,8 @@ TEST_F(PcpManagerTest, CanReject) {
   user_b.ExpectRejectedConnection(reject_latch);
   user_a.RejectConnection(nullptr);
   EXPECT_TRUE(reject_latch.Await(absl::Milliseconds(1000)).result());
+  user_a.Stop();
+  user_b.Stop();
   env_.Stop();
 }
 

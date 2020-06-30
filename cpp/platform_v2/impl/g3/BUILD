@@ -45,7 +45,6 @@ cc_library(
         "//absl/base:core_headers",
         "//absl/synchronization",
         "//absl/time",
-        "//absl/types:any",
         "//thread",
     ],
 )
