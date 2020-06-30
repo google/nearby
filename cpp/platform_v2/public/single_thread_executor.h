@@ -18,6 +18,7 @@ class SingleThreadExecutor final : public SubmittableExecutor {
   ~SingleThreadExecutor() override = default;
   SingleThreadExecutor(SingleThreadExecutor&&) = default;
   SingleThreadExecutor& operator=(SingleThreadExecutor&&) = default;
+  int Tid() const { return GetTid(0); }
 };
 
 }  // namespace nearby

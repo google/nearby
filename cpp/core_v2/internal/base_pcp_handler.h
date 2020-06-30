@@ -17,6 +17,7 @@
 #include "core_v2/status.h"
 #include "proto/connections/offline_wire_formats.pb.h"
 #include "platform_v2/base/prng.h"
+#include "platform_v2/public/atomic_boolean.h"
 #include "platform_v2/public/atomic_reference.h"
 #include "platform_v2/public/cancelable_alarm.h"
 #include "platform_v2/public/count_down_latch.h"
@@ -139,6 +140,7 @@ class BasePcpHandler : public PcpHandler,
 
   Pcp GetPcp() const override { return pcp_; }
   Strategy GetStrategy() const override { return strategy_; }
+  void DisconnectFromEndpointManager();
 
  protected:
   // The result of a call to startAdvertisingImpl() or startDiscoveryImpl().
@@ -423,6 +425,8 @@ class BasePcpHandler : public PcpHandler,
   // stops discovering because it might still be useful downstream of
   // discovery (eg: connection speed, etc.)
   ConnectionOptions discovery_options_;
+
+  AtomicBoolean stop_{false};
   Pcp pcp_;
   Strategy strategy_{PcpToStrategy(pcp_)};
   Prng prng_;

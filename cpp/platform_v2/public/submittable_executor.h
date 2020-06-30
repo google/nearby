@@ -17,6 +17,8 @@
 namespace location {
 namespace nearby {
 
+inline int GetCurrentTid() { return api::GetCurrentTid(); }
+
 // Main interface to be used by platform as a base class for
 // - MultiThreadExecutor
 // - SingleThreadExecutor
@@ -39,6 +41,11 @@ class SubmittableExecutor : public api::SubmittableExecutor {
   void Execute(Runnable&& runnable) ABSL_LOCKS_EXCLUDED(mutex_) override {
     MutexLock lock(&mutex_);
     if (impl_) impl_->Execute(std::move(runnable));
+  }
+
+  int GetTid(int index) const ABSL_LOCKS_EXCLUDED(mutex_) override {
+    MutexLock lock(&mutex_);
+    return impl_ ? impl_->GetTid(index) : 0;
   }
 
   void Shutdown() ABSL_LOCKS_EXCLUDED(mutex_) override {
@@ -86,7 +93,7 @@ class SubmittableExecutor : public api::SubmittableExecutor {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) override {
     return impl_ ? impl_->DoSubmit(std::move(wrapped_callable)) : false;
   }
-  Mutex mutex_;
+  mutable Mutex mutex_;
   std::unique_ptr<api::SubmittableExecutor> ABSL_GUARDED_BY(mutex_) impl_;
 };
 

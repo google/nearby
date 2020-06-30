@@ -21,6 +21,18 @@ PcpManager::PcpManager(Mediums& mediums,
                                                   channel_manager);
 }
 
+void PcpManager::DisconnectFromEndpointManager() {
+  if (shutdown_.Set(true)) return;
+  for (auto& item : handlers_) {
+    if (!item.second) continue;
+    item.second->DisconnectFromEndpointManager();
+  }
+}
+
+PcpManager::~PcpManager() {
+  DisconnectFromEndpointManager();
+}
+
 Status PcpManager::StartAdvertising(ClientProxy* client,
                                     const string& service_id,
                                     const ConnectionOptions& options,

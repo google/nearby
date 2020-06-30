@@ -69,5 +69,6 @@ cc_test(
         ":file",
         "//file/util:temp_path",
         "//testing/base/public:gunit_main",
+        "//absl/strings",
     ],
 )
