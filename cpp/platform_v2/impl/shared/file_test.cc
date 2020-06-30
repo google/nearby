@@ -8,6 +8,7 @@
 #include "file/util/temp_path.h"
 #include "platform_v2/base/byte_array.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -22,7 +23,7 @@ class FileTest : public ::testing::Test {
     file_ = std::fstream(path_, std::fstream::in | std::fstream::out);
   }
 
-  void WriteToFile(const std::string& text) {
+  void WriteToFile(absl::string_view text) {
     file_ << text;
     file_.flush();
     size_ += text.size();

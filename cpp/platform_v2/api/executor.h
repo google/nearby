@@ -7,6 +7,8 @@ namespace location {
 namespace nearby {
 namespace api {
 
+int GetCurrentTid();
+
 // This abstract class is the superclass of all classes representing an
 // Executor.
 class Executor {
@@ -19,6 +21,8 @@ class Executor {
 
   // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html#shutdown--
   virtual void Shutdown() = 0;
+
+  virtual int GetTid(int index) const = 0;
 };
 
 }  // namespace api

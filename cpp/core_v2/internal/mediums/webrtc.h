@@ -138,11 +138,11 @@ class WebRtc {
   std::vector<::location::nearby::mediums::IceCandidate>
       pending_local_ice_candidates_ ABSL_GUARDED_BY(mutex_);
 
+  WebRtcMedium medium_;
   std::unique_ptr<ConnectionFlow> connection_flow_;
   std::unique_ptr<WebRtcSignalingMessenger> signaling_messenger_
       ABSL_GUARDED_BY(mutex_);
   WebRtcSocketWrapper socket_ ABSL_GUARDED_BY(mutex_);
-  WebRtcMedium medium_;
 
   SingleThreadExecutor single_thread_executor_;
 };

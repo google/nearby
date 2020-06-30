@@ -44,7 +44,7 @@ bool PayloadManager::SendPayloadLoop(
   for (const auto& endpoint : unavailable_endpoints) {
     HandleFinishedOutgoingPayload(
         client, {endpoint->id}, payload_header, next_chunk_offset,
-        EndpointInfoStatusToPayloadStatus(endpoint->status));
+        EndpointInfoStatusToPayloadStatus(endpoint->status.Get()));
   }
 
   // Update the still-active recipients of this payload.
@@ -142,8 +142,8 @@ PayloadManager::GetAvailableAndUnavailableEndpoints(
   Endpoints unavailable;
   for (auto* endpoint_info : pending_payload.GetEndpoints()) {
     NEARBY_LOG(INFO, "EndpointInfo: %p; id=%s; status=%d", endpoint_info,
-               endpoint_info->id.c_str(), endpoint_info->status);
-    if (endpoint_info->status ==
+               endpoint_info->id.c_str(), endpoint_info->status.Get());
+    if (endpoint_info->status.Get() ==
         PayloadManager::EndpointInfo::Status::kAvailable) {
       available.push_back(endpoint_info);
     } else {
@@ -239,12 +239,16 @@ void PayloadManager::CancelAllPayloads() {
   }
 }
 
-PayloadManager::~PayloadManager() {
-  NEARBY_LOG(INFO, "PayloadManager: going down; self=%p", this);
-  shutdown_.Set(true);
+void PayloadManager::DisconnectFromEndpointManager() {
+  if (shutdown_.Set(true)) return;
   // Unregister ourselves from the FrameProcessors.
   endpoint_manager_->UnregisterFrameProcessor(V1Frame::PAYLOAD_TRANSFER,
                                               handle_, true);
+}
+
+PayloadManager::~PayloadManager() {
+  NEARBY_LOG(INFO, "PayloadManager: going down; self=%p", this);
+  DisconnectFromEndpointManager();
   CancelAllPayloads();
   NEARBY_LOG(INFO, "PayloadManager: turn down payload executors; self=%p",
              this);
@@ -385,7 +389,11 @@ void PayloadManager::OnIncomingFrame(
 void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
                                           const std::string& endpoint_id,
                                           CountDownLatch* barrier) {
-  RunOnStatusUpdateThread([this, client, endpoint_id, &barrier]() {
+  if (shutdown_.Get()) {
+    if (barrier) barrier->CountDown();
+    return;
+  }
+  RunOnStatusUpdateThread([this, client, endpoint_id, barrier]() {
     // Iterate through all our payloads and look for payloads associated
     // with this endpoint.
     MutexLock lock(&mutex_);
@@ -907,7 +915,7 @@ PayloadManager::EndpointInfo::ControlMessageEventToEndpointInfoStatus(
 
 void PayloadManager::EndpointInfo::SetStatusFromControlMessage(
     const PayloadTransferFrame::ControlMessage& control_message) {
-  status = ControlMessageEventToEndpointInfoStatus(control_message.event());
+  status.Set(ControlMessageEventToEndpointInfoStatus(control_message.event()));
 }
 
 //////////////////////////////// PendingPayload ////////////////////////////////
@@ -924,7 +932,7 @@ PayloadManager::PendingPayload::PendingPayload(
   for (const auto& id : endpoint_ids) {
     endpoints_.emplace(id, EndpointInfo{
                                .id = id,
-                               .status = EndpointInfo::Status::kAvailable,
+                               .status {EndpointInfo::Status::kAvailable},
                            });
   }
 }

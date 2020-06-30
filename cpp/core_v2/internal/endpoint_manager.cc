@@ -200,6 +200,7 @@ EndpointManager::EndpointManager(EndpointChannelManager* manager)
     : channel_manager_(manager) {}
 
 EndpointManager::~EndpointManager() {
+  NEARBY_LOG(INFO, "EndpointManager going down");
   CountDownLatch latch(1);
   RunOnEndpointManagerThread([this, &latch]() {
     NEARBY_LOG(INFO, "Bringing down endpoints");
@@ -208,10 +209,8 @@ EndpointManager::~EndpointManager() {
       EndpointState& state = item.second;
       // This will close the channel; all workers will sense that and
       // terminate.
-      NEARBY_LOG(INFO, "Bringing down endpoint channels: id=%s",
-                 endpoint_id.c_str());
-      WaitForEndpointDisconnectionProcessing(state.client, endpoint_id);
       channel_manager_->UnregisterChannelForEndpoint(endpoint_id);
+      state.barrier.Await();
     }
     latch.CountDown();
   });
@@ -236,9 +235,12 @@ EndpointManager::RegisterFrameProcessor(
   RunOnEndpointManagerThread([this, frame_type, &latch, processor]() {
     auto it = frame_processors_.find(frame_type);
     if (it != frame_processors_.end()) {
-      NEARBY_LOG(INFO, "Frame processor found, updated; type=%d", frame_type);
+      NEARBY_LOGS(INFO) << "Frame processor found: updated; type=" << frame_type
+                        << "; processor=" << processor << "; self=" << this;
       it->second = processor;
     } else {
+      NEARBY_LOGS(INFO) << "Frame processor added; type=" << frame_type
+                        << "; processor=" << processor << "; self=" << this;
       frame_processors_.emplace(frame_type, processor);
     }
     latch.CountDown();
@@ -249,14 +251,22 @@ EndpointManager::RegisterFrameProcessor(
 
 void EndpointManager::UnregisterFrameProcessor(V1Frame::FrameType frame_type,
                                                const void* handle, bool sync) {
+  NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [enter]: handle=" << handle;
   if (handle == nullptr) return;
   CountDownLatch latch(1);
   RunOnEndpointManagerThread([this, frame_type, handle, &latch, sync]() {
     auto it = frame_processors_.find(frame_type);
-    if (it == frame_processors_.end()) return;
+    if (it == frame_processors_.end()) {
+      NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [not found]: handle="
+                        << handle;
+      if (sync) latch.CountDown();
+      return;
+    }
+    NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [found]: handle=" << handle;
     if (it->second == handle) {
       frame_processors_.erase(it);
-      NEARBY_LOG(INFO, "Unregistered: type=%d", frame_type);
+      NEARBY_LOGS(INFO) << "Unregistered: type=" << frame_type
+                        << "; processor=" << handle << "; self=" << this;
     } else {
       NEARBY_LOG(INFO,
                  "Failed to unregister: type=%d; handle mismatch: passed=%p, "
@@ -267,7 +277,8 @@ void EndpointManager::UnregisterFrameProcessor(V1Frame::FrameType frame_type,
   });
   if (sync) {
     latch.Await();
-    NEARBY_LOG(INFO, "Unregistered: [sync done] type=%d", frame_type);
+    NEARBY_LOGS(INFO) << "Unregistered [sync done]: type=" << frame_type
+                      << "; processor=" << handle << "; self=" << this;
   }
 }
 
@@ -294,10 +305,13 @@ void EndpointManager::EnsureWorkersTerminated(const std::string& endpoint_id) {
     // If another instance of data and keep-alive handlers is running, it will
     // terminate soon; we should block until it happens.
     EndpointState& endpoint_state = item->second;
-    NEARBY_LOG(INFO, "Waiting for workers to terminate for endpoint_id='%s'",
-               endpoint_id.c_str());
+    NEARBY_LOGS(INFO) << "Waiting for workers to terminate for id: "
+                      << endpoint_id;
     endpoint_state.barrier.Await();
     endpoints_.erase(item);
+    NEARBY_LOGS(INFO) << "Workers terminated for id: " << endpoint_id;
+  } else {
+    NEARBY_LOGS(INFO) << "EndpointState not found for id: " << endpoint_id;
   }
 }
 
@@ -378,8 +392,8 @@ void EndpointManager::UnregisterEndpoint(ClientProxy* client,
                                          const std::string& endpoint_id) {
   CountDownLatch latch(1);
   RunOnEndpointManagerThread([this, client, endpoint_id, &latch]() {
-    channel_manager_->UnregisterChannelForEndpoint(endpoint_id);
-    RemoveEndpoint(client, endpoint_id, /*notify=*/false);
+    RemoveEndpoint(client, endpoint_id,
+                   client->IsConnectedToEndpoint(endpoint_id));
     latch.CountDown();
   });
   latch.Await();
@@ -391,7 +405,6 @@ void EndpointManager::UnregisterEndpoint(ClientProxy* client,
 void EndpointManager::DiscardEndpoint(ClientProxy* client,
                                       const std::string& endpoint_id) {
   RunOnEndpointManagerThread([this, client, endpoint_id]() {
-    channel_manager_->UnregisterChannelForEndpoint(endpoint_id);
     RemoveEndpoint(client, endpoint_id,
                    /*notify=*/
                    client->IsConnectedToEndpoint(endpoint_id));
@@ -435,25 +448,50 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
     // should be no further interactions with the endpoint.
     // (See b/37352254 for history)
     WaitForEndpointDisconnectionProcessing(client, endpoint_id);
-    EnsureWorkersTerminated(endpoint_id);
 
     client->OnDisconnected(endpoint_id, notify);
-    NEARBY_LOG(INFO, "Removed endpoint; id=%s",
-               endpoint_id.c_str());
+    NEARBY_LOG(INFO, "Removed endpoint; id=%s", endpoint_id.c_str());
   }
 }
 
 // @EndpointManagerThread
 void EndpointManager::WaitForEndpointDisconnectionProcessing(
     ClientProxy* client, const std::string& endpoint_id) {
-  CountDownLatch barrier(frame_processors_.size());
+  NEARBY_LOGS(INFO) << "Wait: client=" << client << "; id=" << endpoint_id;
+  auto total_size = frame_processors_.size();
+  NEARBY_LOGS(INFO) << "Total frame processors: " << total_size;
+  if (!total_size) return;
+  CountDownLatch barrier(total_size);
 
+  int valid = 0;
   for (auto& item : frame_processors_) {
-    auto& processor = item.second;
-    processor->OnEndpointDisconnect(client, endpoint_id, &barrier);
+    auto* processor = item.second;
+    NEARBY_LOGS(INFO) << "processor=" << processor << "; type=" << item.first;
+    if (processor) {
+      valid++;
+      processor->OnEndpointDisconnect(client, endpoint_id, &barrier);
+    } else {
+      barrier.CountDown();
+    }
   }
 
-  barrier.Await(kProcessEndpointDisconnectionTimeout);
+  if (!valid) {
+    NEARBY_LOGS(INFO) << "No valid frame processors.";
+    return;
+  } else {
+    NEARBY_LOGS(INFO) << "Valid frame processors: " << valid;
+  }
+
+  NEARBY_LOGS(INFO) << "Waiting for " << valid
+                    << " frame processors to disconnect from: " << endpoint_id;
+  if (!barrier.Await(kProcessEndpointDisconnectionTimeout).result()) {
+    NEARBY_LOGS(INFO) << "Failed to disconnect frame processors from: "
+                      << endpoint_id;
+  } else {
+    NEARBY_LOGS(INFO)
+        << "Finished waiting for frame processors to disconnect from: "
+        << endpoint_id;
+  }
 }
 
 std::vector<std::string> EndpointManager::SendTransferFrameBytes(

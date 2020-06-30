@@ -35,38 +35,38 @@ class ServiceController {
   ServiceController& operator=(const ServiceController&) = delete;
 
   // Starts advertising an endpoint for a local app.
-  virtual Status StartAdvertising(ClientProxy* client_proxy,
+  virtual Status StartAdvertising(ClientProxy* client,
                                   const std::string& service_id,
                                   const ConnectionOptions& options,
                                   const ConnectionRequestInfo& info) = 0;
-  virtual void StopAdvertising(ClientProxy* client_proxy) = 0;
+  virtual void StopAdvertising(ClientProxy* client) = 0;
 
-  virtual Status StartDiscovery(ClientProxy* client_proxy,
+  virtual Status StartDiscovery(ClientProxy* client,
                                 const std::string& service_id,
                                 const ConnectionOptions& options,
                                 const DiscoveryListener& listener) = 0;
-  virtual void StopDiscovery(ClientProxy* client_proxy) = 0;
+  virtual void StopDiscovery(ClientProxy* client) = 0;
 
-  virtual Status RequestConnection(ClientProxy* client_proxy,
+  virtual Status RequestConnection(ClientProxy* client,
                                    const std::string& endpoint_id,
                                    const ConnectionRequestInfo& info) = 0;
-  virtual Status AcceptConnection(ClientProxy* client_proxy,
+  virtual Status AcceptConnection(ClientProxy* client,
                                   const std::string& endpoint_id,
                                   const PayloadListener& listener) = 0;
-  virtual Status RejectConnection(ClientProxy* client_proxy,
+  virtual Status RejectConnection(ClientProxy* client,
                                   const std::string& endpoint_id) = 0;
 
-  virtual void InitiateBandwidthUpgrade(ClientProxy* client_proxy,
+  virtual void InitiateBandwidthUpgrade(ClientProxy* client,
                                         const std::string& endpoint_id) = 0;
 
-  virtual void SendPayload(ClientProxy* client_proxy,
+  virtual void SendPayload(ClientProxy* client,
                            const std::vector<std::string>& endpoint_ids,
                            Payload payload) = 0;
 
-  virtual Status CancelPayload(ClientProxy* client_proxy,
-                               std::int64_t payload_id) = 0;
+  virtual Status CancelPayload(ClientProxy* client,
+                               Payload::Id payload_id) = 0;
 
-  virtual void DisconnectFromEndpoint(ClientProxy* client_proxy,
+  virtual void DisconnectFromEndpoint(ClientProxy* client,
                                       const std::string& endpoint_id) = 0;
 };
 
