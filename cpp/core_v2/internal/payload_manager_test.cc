@@ -39,6 +39,7 @@ class PayloadSimulationUser : public SimulationUser {
   explicit PayloadSimulationUser(absl::string_view name)
       : SimulationUser(std::string(name)) {}
   ~PayloadSimulationUser() override {
+    NEARBY_LOGS(INFO) << "PayloadSimulationUser: [down] name=" << name_;
     // SystemClock::Sleep(kDefaultTimeout);
   }
 
@@ -123,6 +124,8 @@ TEST_F(PayloadManagerTest, CanSendBytePayload) {
   EXPECT_EQ(user_a.GetPayload().AsBytes(), ByteArray(std::string(kMessage)));
   NEARBY_LOG(INFO, "Test completed.");
 
+  user_a.Stop();
+  user_b.Stop();
   env_.Stop();
 }
 
@@ -171,6 +174,8 @@ TEST_F(PayloadManagerTest, CanSendStreamPayload) {
   rx.Close();
   tx.Close();
   NEARBY_LOG(INFO, "Test completed.");
+  user_a.Stop();
+  user_b.Stop();
   env_.Stop();
 }
 
@@ -227,6 +232,8 @@ TEST_F(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
   rx.Close();
 
   NEARBY_LOG(INFO, "Test completed.");
+  user_a.Stop();
+  user_b.Stop();
   env_.Stop();
 }
 
@@ -283,6 +290,8 @@ TEST_F(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   rx.Close();
 
   NEARBY_LOG(INFO, "Test completed.");
+  user_a.Stop();
+  user_b.Stop();
   env_.Stop();
 }
 

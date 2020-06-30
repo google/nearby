@@ -53,7 +53,6 @@ cc_library(
         "//absl/base:core_headers",
         "//absl/container:flat_hash_map",
         "//absl/time",
-        "//absl/types:any",
     ],
 )
 

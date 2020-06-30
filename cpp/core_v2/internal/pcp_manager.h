@@ -17,15 +17,16 @@
 
 #include <string>
 
+#include "core_v2/internal/base_pcp_handler.h"
 #include "core_v2/internal/client_proxy.h"
 #include "core_v2/internal/endpoint_channel_manager.h"
 #include "core_v2/internal/endpoint_manager.h"
 #include "core_v2/internal/mediums/mediums.h"
-#include "core_v2/internal/pcp_handler.h"
 #include "core_v2/listeners.h"
 #include "core_v2/options.h"
 #include "core_v2/status.h"
 #include "core_v2/strategy.h"
+#include "platform_v2/public/atomic_boolean.h"
 #include "absl/container/flat_hash_map.h"
 
 namespace location {
@@ -43,7 +44,7 @@ class PcpManager {
  public:
   PcpManager(Mediums& mediums, EndpointChannelManager& channel_manager,
              EndpointManager& endpoint_manager);
-  ~PcpManager() = default;
+  ~PcpManager();
 
   Status StartAdvertising(ClientProxy* client_proxy, const string& service_id,
                           const ConnectionOptions& options,
@@ -62,13 +63,15 @@ class PcpManager {
   Status RejectConnection(ClientProxy* client_proxy, const string& endpoint_id);
 
   proto::connections::Medium GetBandwidthUpgradeMedium();
+  void DisconnectFromEndpointManager();
 
  private:
   bool SetCurrentPcpHandler(Strategy strategy);
   PcpHandler* GetPcpHandler(Pcp pcp) const;
 
-  absl::flat_hash_map<Pcp, std::unique_ptr<PcpHandler>> handlers_;
-  PcpHandler* current_;
+  AtomicBoolean shutdown_{false};
+  absl::flat_hash_map<Pcp, std::unique_ptr<BasePcpHandler>> handlers_;
+  PcpHandler* current_ = nullptr;
 };
 
 }  // namespace connections

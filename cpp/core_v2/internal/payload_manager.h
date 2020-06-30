@@ -29,6 +29,7 @@
 #include "proto/connections/offline_wire_formats.pb.h"
 #include "platform_v2/base/byte_array.h"
 #include "platform_v2/public/atomic_boolean.h"
+#include "platform_v2/public/atomic_reference.h"
 #include "platform_v2/public/count_down_latch.h"
 #include "platform_v2/public/mutex.h"
 #include "proto/connections_enums.pb.h"
@@ -61,6 +62,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   void OnEndpointDisconnect(ClientProxy* client, const std::string& endpoint_id,
                             CountDownLatch* barrier) override;
 
+  void DisconnectFromEndpointManager();
+
  private:
   // Information about an endpoint for a particular payload.
   struct EndpointInfo {
@@ -79,7 +82,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
         PayloadTransferFrame::ControlMessage::EventType event);
 
     std::string id;
-    Status status = Status::kUnknown;
+    AtomicReference<Status> status {Status::kUnknown};
     std::int64_t offset = 0;
   };
 

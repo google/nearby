@@ -71,8 +71,8 @@ class SettableFuture : public api::SettableFuture<T> {
     MutexLock lock(&mutex_);
     while (!done_) {
       absl::Time start_time = SystemClock::ElapsedRealtime();
-      if (completed_.Wait(timeout).Raised(Exception::kTimeout)) {
-        SetExceptionLocked({Exception::kTimeout});
+      if (completed_.Wait(timeout).Raised(Exception::kInterrupted)) {
+        SetExceptionLocked({Exception::kInterrupted});
         break;
       }
       absl::Duration spent = SystemClock::ElapsedRealtime() - start_time;

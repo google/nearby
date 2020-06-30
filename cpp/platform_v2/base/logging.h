@@ -43,7 +43,12 @@ class LogMessageVoidify {
   location::nearby::api::LogMessage::Severity::kError
 #define NEARBY_SEVERITY_FATAL \
   location::nearby::api::LogMessage::Severity::kFatal
-
+#if defined(_WIN32)
+// wingdi.h defines ERROR to be 0. When we call LOG(ERROR), it gets substituted
+// with 0, and it expands to NEARBY_SEVERITY_0. To allow us to keep using this
+// syntax, we define this macro to do the same thing as NEARBY_SEVERITY_ERROR.
+#define NEARBY_SEVERITY_0 location::nearby::api::LogMessage::Severity::kError
+#endif  // defined(_WIN32)
 #define NEARBY_SEVERITY(severity) NEARBY_SEVERITY_##severity
 
 // Log enabling

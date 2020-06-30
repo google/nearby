@@ -46,12 +46,9 @@ BasePcpHandler::BasePcpHandler(EndpointManager* endpoint_manager,
       pcp_(pcp) {}
 
 BasePcpHandler::~BasePcpHandler() {
-  // Unregister ourselves from the FrameProcessors.
   NEARBY_LOGS(INFO) << "BasePcpHandler: going down; strategy="
-                    << strategy_.GetName();
-  endpoint_manager_->UnregisterFrameProcessor(V1Frame::CONNECTION_RESPONSE,
-                                              handle_);
-
+                    << strategy_.GetName() << "; handle=" << handle_;
+  DisconnectFromEndpointManager();
   // Stop all the ongoing Runnables (as gracefully as possible).
   NEARBY_LOGS(INFO) << "BasePcpHandler: bringing down executors; strategy="
                     << strategy_.GetName();
@@ -61,8 +58,17 @@ BasePcpHandler::~BasePcpHandler() {
                     << strategy_.GetName();
 }
 
+void BasePcpHandler::DisconnectFromEndpointManager() {
+  if (stop_.Set(true)) return;
+  NEARBY_LOGS(INFO) << "BasePcpHandler: Unregister from EPM; strategy="
+                    << strategy_.GetName() << "; handle=" << handle_;
+  // Unregister ourselves from EPM message dispatcher.
+  endpoint_manager_->UnregisterFrameProcessor(V1Frame::CONNECTION_RESPONSE,
+                                              handle_, true);
+}
+
 Status BasePcpHandler::StartAdvertising(ClientProxy* client,
-                                        const string& service_id,
+                                        const std::string& service_id,
                                         const ConnectionOptions& options,
                                         const ConnectionRequestInfo& info) {
   Future<Status> response;
@@ -99,7 +105,7 @@ void BasePcpHandler::StopAdvertising(ClientProxy* client) {
 }
 
 Status BasePcpHandler::StartDiscovery(ClientProxy* client,
-                                      const string& service_id,
+                                      const std::string& service_id,
                                       const ConnectionOptions& options,
                                       const DiscoveryListener& listener) {
   Future<Status> response;
@@ -136,7 +142,7 @@ void BasePcpHandler::StopDiscovery(ClientProxy* client) {
   WaitForLatch("stopDiscovery", &latch);
 }
 
-void BasePcpHandler::WaitForLatch(const string& method_name,
+void BasePcpHandler::WaitForLatch(const std::string& method_name,
                                   CountDownLatch* latch) {
   Exception await_exception = latch->Await();
   if (!await_exception.Ok()) {
@@ -146,7 +152,7 @@ void BasePcpHandler::WaitForLatch(const string& method_name,
   }
 }
 
-Status BasePcpHandler::WaitForResult(const string& method_name,
+Status BasePcpHandler::WaitForResult(const std::string& method_name,
                                      std::int64_t client_id,
                                      Future<Status>* future) {
   if (!future) {
@@ -170,9 +176,10 @@ void BasePcpHandler::RunOnPcpHandlerThread(Runnable runnable) {
 EncryptionRunner::ResultListener BasePcpHandler::GetResultListener() {
   return {
       .on_success_cb =
-          [this](const string& endpoint_id,
+          [this](const std::string& endpoint_id,
                  std::unique_ptr<UKey2Handshake> ukey2,
-                 const string& auth_token, const ByteArray& raw_auth_token) {
+                 const std::string& auth_token,
+                 const ByteArray& raw_auth_token) {
             RunOnPcpHandlerThread([this, endpoint_id,
                                    raw_ukey2 = ukey2.release(), auth_token,
                                    raw_auth_token]() mutable {
@@ -182,7 +189,7 @@ EncryptionRunner::ResultListener BasePcpHandler::GetResultListener() {
             });
           },
       .on_failure_cb =
-          [this](const string& endpoint_id, EndpointChannel* channel) {
+          [this](const std::string& endpoint_id, EndpointChannel* channel) {
             RunOnPcpHandlerThread([this, endpoint_id, channel]() {
               OnEncryptionFailureRunnable(endpoint_id, channel);
             });
@@ -191,8 +198,8 @@ EncryptionRunner::ResultListener BasePcpHandler::GetResultListener() {
 }
 
 void BasePcpHandler::OnEncryptionSuccessRunnable(
-    const string& endpoint_id, std::unique_ptr<UKey2Handshake> ukey2,
-    const string& auth_token, const ByteArray& raw_auth_token) {
+    const std::string& endpoint_id, std::unique_ptr<UKey2Handshake> ukey2,
+    const std::string& auth_token, const ByteArray& raw_auth_token) {
   // Quick fail if we've been removed from pending connections while we were
   // busy running UKEY2.
   auto it = pending_connections_.find(endpoint_id);
@@ -217,7 +224,8 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
 
   // Set ourselves up so that we receive all acceptance/rejection messages
   handle_ = endpoint_manager_->RegisterFrameProcessor(
-      V1Frame::CONNECTION_RESPONSE, this);
+      V1Frame::CONNECTION_RESPONSE,
+      static_cast<EndpointManager::FrameProcessor*>(this));
 
   // Now we register our endpoint so that we can listen for both sides to
   // accept.
@@ -239,7 +247,7 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
 }
 
 void BasePcpHandler::OnEncryptionFailureRunnable(
-    const string& endpoint_id, EndpointChannel* endpoint_channel) {
+    const std::string& endpoint_id, EndpointChannel* endpoint_channel) {
   auto it = pending_connections_.find(endpoint_id);
   if (it == pending_connections_.end()) {
     NEARBY_LOG(INFO,
@@ -270,7 +278,7 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
 }
 
 Status BasePcpHandler::RequestConnection(ClientProxy* client,
-                                         const string& endpoint_id,
+                                         const std::string& endpoint_id,
                                          const ConnectionRequestInfo& info) {
   Future<Status> result;
   RunOnPcpHandlerThread([this, client, &info, endpoint_id, &result]() {
@@ -372,7 +380,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
 }
 
 BasePcpHandler::DiscoveredEndpoint* BasePcpHandler::GetDiscoveredEndpoint(
-    const string& endpoint_id) {
+    const std::string& endpoint_id) {
   auto it = discovered_endpoints_.find(endpoint_id);
   if (it == discovered_endpoints_.end()) {
     return nullptr;
@@ -414,15 +422,15 @@ bool BasePcpHandler::CanReceiveIncomingConnection(ClientProxy* client) const {
 }
 
 Exception BasePcpHandler::WriteConnectionRequestFrame(
-    EndpointChannel* endpoint_channel, const string& local_endpoint_id,
-    const string& local_endpoint_name, std::int32_t nonce,
+    EndpointChannel* endpoint_channel, const std::string& local_endpoint_id,
+    const std::string& local_endpoint_name, std::int32_t nonce,
     const std::vector<proto::connections::Medium>& supported_mediums) {
   return endpoint_channel->Write(parser::ForConnectionRequest(
       local_endpoint_id, local_endpoint_name, nonce, supported_mediums));
 }
 
 void BasePcpHandler::ProcessPreConnectionInitiationFailure(
-    const string& endpoint_id, EndpointChannel* channel, Status status,
+    const std::string& endpoint_id, EndpointChannel* channel, Status status,
     Future<Status>* result) {
   if (channel != nullptr) {
     channel->Close();
@@ -437,7 +445,7 @@ void BasePcpHandler::ProcessPreConnectionInitiationFailure(
 }
 
 void BasePcpHandler::ProcessPreConnectionResultFailure(
-    ClientProxy* client, const string& endpoint_id) {
+    ClientProxy* client, const std::string& endpoint_id) {
   auto item = pending_connections_.extract(endpoint_id);
   endpoint_manager_->DiscardEndpoint(client, endpoint_id);
   client->OnConnectionRejected(endpoint_id, {Status::kError});
@@ -462,7 +470,7 @@ bool BasePcpHandler::AutoUpgradeBandwidth() const {
 }
 
 Status BasePcpHandler::AcceptConnection(
-    ClientProxy* client, const string& endpoint_id,
+    ClientProxy* client, const std::string& endpoint_id,
     const PayloadListener& payload_listener) {
   Future<Status> response;
   RunOnPcpHandlerThread(
@@ -517,7 +525,7 @@ Status BasePcpHandler::AcceptConnection(
 }
 
 Status BasePcpHandler::RejectConnection(ClientProxy* client,
-                                        const string& endpoint_id) {
+                                        const std::string& endpoint_id) {
   Future<Status> response;
   RunOnPcpHandlerThread([this, client, endpoint_id, &response]() {
     NEARBY_LOG(INFO, "RejectConnection: id=%s", endpoint_id.c_str());
@@ -573,7 +581,7 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
 //}
 
 void BasePcpHandler::OnIncomingFrame(OfflineFrame& frame,
-                                     const string& endpoint_id,
+                                     const std::string& endpoint_id,
                                      ClientProxy* client,
                                      proto::connections::Medium medium) {
   CountDownLatch latch(1);
@@ -609,8 +617,12 @@ void BasePcpHandler::OnIncomingFrame(OfflineFrame& frame,
 }
 
 void BasePcpHandler::OnEndpointDisconnect(ClientProxy* client,
-                                          const string& endpoint_id,
+                                          const std::string& endpoint_id,
                                           CountDownLatch* barrier) {
+  if (stop_.Get()) {
+    if (barrier) barrier->CountDown();
+    return;
+  }
   RunOnPcpHandlerThread([this, client, endpoint_id, barrier]() {
     auto item = pending_alarms_.find(endpoint_id);
     if (item != pending_alarms_.end()) {
@@ -716,7 +728,7 @@ bool BasePcpHandler::IsPreferred(
 }
 
 Exception BasePcpHandler::OnIncomingConnection(
-    ClientProxy* client, const string& remote_device_name,
+    ClientProxy* client, const std::string& remote_device_name,
     std::unique_ptr<EndpointChannel> channel,
     proto::connections::Medium medium) {
   absl::Time start_time = SystemClock::ElapsedRealtime();
@@ -811,7 +823,8 @@ Exception BasePcpHandler::OnIncomingConnection(
   return {Exception::kSuccess};
 }
 
-bool BasePcpHandler::BreakTie(ClientProxy* client, const string& endpoint_id,
+bool BasePcpHandler::BreakTie(ClientProxy* client,
+                              const std::string& endpoint_id,
                               std::int32_t incoming_nonce,
                               EndpointChannel* endpoint_channel) {
   auto it = pending_connections_.find(endpoint_id);
@@ -849,7 +862,7 @@ bool BasePcpHandler::BreakTie(ClientProxy* client, const string& endpoint_id,
 }
 
 void BasePcpHandler::ProcessTieBreakLoss(
-    ClientProxy* client, const string& endpoint_id,
+    ClientProxy* client, const std::string& endpoint_id,
     BasePcpHandler::PendingConnectionInfo* info) {
   ProcessPreConnectionInitiationFailure(endpoint_id, info->channel.get(),
                                         {Status::kEndpointIoError},
@@ -859,7 +872,7 @@ void BasePcpHandler::ProcessTieBreakLoss(
 }
 
 void BasePcpHandler::InitiateBandwidthUpgrade(
-    ClientProxy* client, const string& endpoint_id,
+    ClientProxy* client, const std::string& endpoint_id,
     const std::vector<proto::connections::Medium>& supported_mediums) {
   // When we successfully connect to a remote endpoint and a bandwidth upgrade
   // medium has not yet been decided, we'll pick the highest bandwidth medium
@@ -908,7 +921,7 @@ proto::connections::Medium BasePcpHandler::ChooseBestUpgradeMedium(
 }
 
 void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
-                                              const string& endpoint_id,
+                                              const std::string& endpoint_id,
                                               bool can_close_immediately) {
   // Short-circuit immediately if we're not in an actionable state yet. We will
   // be called again once the other side has made their decision.
@@ -1046,12 +1059,12 @@ BasePcpHandler::PendingConnectionInfo::~PendingConnectionInfo() {
 }
 
 void BasePcpHandler::PendingConnectionInfo::LocalEndpointAcceptedConnection(
-    const string& endpoint_id, const PayloadListener& payload_listener) {
+    const std::string& endpoint_id, const PayloadListener& payload_listener) {
   client->LocalEndpointAcceptedConnection(endpoint_id, payload_listener);
 }
 
 void BasePcpHandler::PendingConnectionInfo::LocalEndpointRejectedConnection(
-    const string& endpoint_id) {
+    const std::string& endpoint_id) {
   client->LocalEndpointRejectedConnection(endpoint_id);
 }
 

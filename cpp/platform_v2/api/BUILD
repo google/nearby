@@ -86,6 +86,5 @@ cc_library(
         ":types",
         "//platform_v2/base",
         "//absl/strings",
-        "//absl/types:any",
     ],
 )

@@ -18,6 +18,7 @@
 #include <string>
 
 #include "core_v2/internal/client_proxy.h"
+#include "core_v2/internal/offline_service_controller.h"
 #include "core_v2/internal/service_controller.h"
 #include "core_v2/internal/service_controller_router.h"
 #include "core_v2/listeners.h"
@@ -33,7 +34,8 @@ namespace connections {
 // This class defines the API of the Nearby Connections Core library.
 class Core {
  public:
-  explicit Core(std::function<ServiceController*()> factory)
+  explicit Core(std::function<ServiceController*()> factory =
+                    []() { return new OfflineServiceController; })
       : router_(factory) {}
   ~Core();
   Core(Core&&) = default;

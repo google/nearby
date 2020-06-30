@@ -27,6 +27,7 @@ cc_library(
         "internal_payload.cc",
         "internal_payload_factory.cc",
         "offline_frames.cc",
+        "offline_service_controller.cc",
         "p2p_cluster_pcp_handler.cc",
         "p2p_point_to_point_pcp_handler.cc",
         "p2p_star_pcp_handler.cc",
@@ -51,6 +52,7 @@ cc_library(
         "internal_payload.h",
         "internal_payload_factory.h",
         "offline_frames.h",
+        "offline_service_controller.h",
         "p2p_cluster_pcp_handler.h",
         "p2p_point_to_point_pcp_handler.h",
         "p2p_star_pcp_handler.h",
@@ -94,10 +96,12 @@ cc_library(
     name = "internal_test",
     testonly = True,
     srcs = [
+        "offline_simulation_user.cc",
         "simulation_user.cc",
     ],
     hdrs = [
         "mock_service_controller.h",
+        "offline_simulation_user.h",
         "simulation_user.h",
     ],
     visibility = [
@@ -110,6 +114,7 @@ cc_library(
         "//platform_v2/public:types",
         "//testing/base/public:gunit",
         "//absl/functional:bind_front",
+        "//absl/strings",
     ],
 )
 
@@ -127,6 +132,7 @@ cc_test(
         "endpoint_manager_test.cc",
         "internal_payload_factory_test.cc",
         "offline_frames_test.cc",
+        "offline_service_controller_test.cc",
         "p2p_cluster_pcp_handler_test.cc",
         "payload_manager_test.cc",
         "pcp_manager_test.cc",

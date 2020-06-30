@@ -41,7 +41,6 @@ class ConditionVariable {
   // Waits while timeout has not expired for Notify to be called.
   // May return prematurely in case of interrupt, if supported by platform.
   // Returns kSuccess, or kInterrupted on interrupt.
-  // If Timeout expired, and Notify was not called, returns kTimeout.
   virtual Exception Wait(absl::Duration timeout) = 0;
 };
 

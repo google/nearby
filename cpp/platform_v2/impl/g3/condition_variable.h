@@ -34,9 +34,8 @@ class ConditionVariable : public api::ConditionVariable {
     return {Exception::kSuccess};
   }
   Exception Wait(absl::Duration timeout) override {
-    return cond_var_.WaitWithTimeout(mutex_, timeout)
-               ? Exception{Exception::kTimeout}
-               : Exception{Exception::kSuccess};
+    cond_var_.WaitWithTimeout(mutex_, timeout);
+    return {Exception::kSuccess};
   }
   void Notify() override { cond_var_.SignalAll(); }
 
