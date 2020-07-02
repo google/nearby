@@ -135,6 +135,7 @@ def post_process_oss_files(path, args):
     ("location/nearby/connections/proto", "proto/connections"),
     ("_portable_proto.pb.h", ".pb.h"),
     (".proto.h", ".pb.h"),
+    ("smhasher/MurmurHash3.h", "smhasher/src/MurmurHash3.h"),
   )
 
   for root, dirs, files in os.walk(path):

@@ -3,7 +3,7 @@ project(smhasher CXX)
 cmake_minimum_required(VERSION 3.13)
 
 add_library(smhasher_murmur3 STATIC
-  cpp/src/smhasher/MurmurHash3.cpp
+  cpp/src/smhasher/src/MurmurHash3.cpp
 )
 
 target_include_directories(smhasher_murmur3
