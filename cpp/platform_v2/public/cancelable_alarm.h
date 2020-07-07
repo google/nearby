@@ -21,6 +21,7 @@ namespace nearby {
  */
 class CancelableAlarm {
  public:
+  CancelableAlarm() = default;
   CancelableAlarm(absl::string_view name, std::function<void()>&& runnable,
                   absl::Duration delay, ScheduledExecutor* scheduled_executor)
       : name_(name),
@@ -42,6 +43,10 @@ class CancelableAlarm {
   bool Cancel() {
     MutexLock lock(&mutex_);
     return cancelable_.Cancel();
+  }
+
+  bool IsValid() {
+    return cancelable_.IsValid();
   }
 
  private:

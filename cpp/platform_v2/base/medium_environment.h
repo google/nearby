@@ -104,16 +104,47 @@ class MediumEnvironment {
   // |peer_id|.
   void SendWebRtcSignalingMessage(absl::string_view peer_id,
                                   const ByteArray& message);
-  // Wifi-Lan medium registration/update calls.
-  void RegisterWifiLanMedium(api::WifiLanMedium& medium);
+  // Adds medium-related info to allow for discovery/advertising to work.
+  // This provides acccess to this medium from other mediums, when protocol
+  // expects they should communicate.
+  void RegisterWifiLanMedium(api::WifiLanMedium& medium,
+                             api::WifiLanService& service);
+
+  // Updates advertising info to indicate the current medium is exposing
+  // advertising event.
+  void UpdateWifiLanMediumForAdvertising(
+      api::WifiLanMedium& medium, api::WifiLanService& service,
+      const std::string& service_id, bool enabled);
+
+  // Updates discovery callback info to allow for dispatch of discovery events.
+  //
+  // Invokes callback asynchronously when any changes happen to discoverable
+  // devices, or if the defice is turned off, whether or not it is discoverable,
+  // if it was ever reported as discoverable.
+  //
+  // This should be called when discoverable state changes.
+  // with user-specified callback when discovery is enabled, and with default
+  // (empty) callback otherwise.
   void UpdateWifiLanMediumForDiscovery(
       api::WifiLanMedium& medium, api::WifiLanService& service,
       const std::string& service_id,
       WifiLanDiscoveredServiceCallback discovery_callback, bool enabled);
+
+  // Updates Accepted connection callback info to allow for dispatch of
+  // advertising events.
   void UpdateWifiLanMediumForAcceptedConnection(
-      api::WifiLanMedium& medium, const std::string& service_id,
+      api::WifiLanMedium& medium, api::WifiLanService& service,
+      const std::string& service_id,
       WifiLanAcceptedConnectionCallback accepted_connection_callback);
+
+  // Removes medium-related info. This should correspond to device power off.
   void UnregisterWifiLanMedium(api::WifiLanMedium& medium);
+
+  // Call back when advertising has created the server socket and is ready for
+  // connect.
+  void CallWifiLanAcceptedConnectionCallback(api::WifiLanMedium& medium,
+                                             api::WifiLanSocket& socket,
+                                             const std::string& service_id);
 
  private:
   struct BluetoothMediumContext {
@@ -126,8 +157,8 @@ class MediumEnvironment {
   struct WifiLanMediumContext {
     WifiLanDiscoveredServiceCallback discovery_callback;
     WifiLanAcceptedConnectionCallback accepted_connection_callback;
-    // discovered service vs service name map.
-    absl::flat_hash_map<api::WifiLanService*, std::string> services;
+    api::WifiLanService* service = nullptr;
+    bool advertising = false;
   };
 
   // This is a singleton object, for which destructor will never be called.
