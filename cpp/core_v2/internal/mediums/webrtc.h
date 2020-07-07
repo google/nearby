@@ -10,9 +10,12 @@
 #include "core_v2/internal/mediums/webrtc/peer_id.h"
 #include "core_v2/internal/mediums/webrtc/webrtc_socket.h"
 #include "core_v2/internal/mediums/webrtc/webrtc_socket_wrapper.h"
+#include "platform_v2/public/cancelable_alarm.h"
+#include "platform_v2/public/scheduled_executor.h"
 #include "platform_v2/base/byte_array.h"
 #include "platform_v2/base/listeners.h"
 #include "platform_v2/base/runnable.h"
+#include "platform_v2/public/atomic_boolean.h"
 #include "platform_v2/public/future.h"
 #include "platform_v2/public/mutex.h"
 #include "platform_v2/public/single_thread_executor.h"
@@ -112,8 +115,11 @@ class WebRtc {
   void LogAndDisconnect(const std::string& error_message)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
+  // Runs on @MainThread.
+  void Disconnect() ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Runs on @MainThread and |single_thread_executor_|.
-  void Disconnect() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void DisconnectLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   void LogAndShutdownSignaling(const std::string& error_message)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
@@ -128,6 +134,9 @@ class WebRtc {
   void ShutdownIceCandidateCollection();
 
   void OffloadFromSignalingThread(Runnable runnable);
+
+  // Runs on |restart_receive_messages_executor_|.
+  void RestartReceiveMessages() ABSL_LOCKS_EXCLUDED(mutex_);
 
   Mutex mutex_;
 
@@ -145,6 +154,10 @@ class WebRtc {
   WebRtcSocketWrapper socket_ ABSL_GUARDED_BY(mutex_);
 
   SingleThreadExecutor single_thread_executor_;
+
+  // Restarts the signaling messenger for receiving messages.
+  ScheduledExecutor restart_receive_messages_executor_;
+  CancelableAlarm restart_receive_messages_alarm_;
 };
 
 }  // namespace mediums

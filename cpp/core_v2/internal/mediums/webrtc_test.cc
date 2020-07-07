@@ -89,28 +89,139 @@ TEST(WebRtcTest, StartAndStopAcceptingConnections) {
   EXPECT_FALSE(webrtc.IsAcceptingConnections());
 }
 
-// Tests the flow when the device calls StartAcceptingConnections() after
-// calling Connect() without disconnecting in between.
-TEST(WebRtcTest, Connect_ThenStartAcceptingConnections) {
-  // TODO(himanshujaju) - Complete the test.
-}
-
 // Tests the flow when the device tries to connect to two different peers
 // without disconnecting in between.
 TEST(WebRtcTest, ConnectTwice) {
-  // TODO(himanshujaju) - Complete the test.
+  WebRtc receiver, sender, device_c;
+  WebRtcSocketWrapper receiver_socket, sender_socket;
+  const PeerId self_id("self_id"), other_id("other_id");
+  Future<bool> connected;
+  ByteArray message("message xyz");
+
+  receiver.StartAcceptingConnections(
+      self_id,
+      {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
+        receiver_socket = wrapper;
+        connected.Set(receiver_socket.IsValid());
+      }});
+
+  using MockAcceptedCallback =
+      testing::MockFunction<void(WebRtcSocketWrapper socket)>;
+  testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
+  device_c.StartAcceptingConnections(other_id,
+                                     {mock_accepted_callback_.AsStdFunction()});
+
+  sender_socket = sender.Connect(self_id);
+  EXPECT_TRUE(sender_socket.IsValid());
+
+  ExceptionOr<bool> devices_connected = connected.Get();
+  ASSERT_TRUE(devices_connected.ok());
+  EXPECT_TRUE(devices_connected.result());
+
+  WebRtcSocketWrapper socket = sender.Connect(other_id);
+  EXPECT_FALSE(socket.IsValid());
+
+  EXPECT_TRUE(receiver_socket.IsValid());
+  EXPECT_TRUE(sender_socket.IsValid());
+
+  sender_socket.GetOutputStream().Write(message);
+  ExceptionOr<ByteArray> received_msg =
+      receiver_socket.GetInputStream().Read(/*size=*/32);
+  ASSERT_TRUE(received_msg.ok());
+  EXPECT_EQ(message, received_msg.result());
+
+  receiver_socket.Close();
 }
 
 // Tests the flow when the two devices exchange SDP messages and connect to each
 // other but disconnect before being able to send/receive the actual data.
 TEST(WebRtcTest, ConnectBothDevicesAndAbort) {
-  // TODO(himanshujaju) - Complete the test.
+  WebRtc receiver, sender;
+  WebRtcSocketWrapper receiver_socket, sender_socket;
+  const PeerId self_id("self_id");
+  Future<bool> connected;
+  ByteArray message("message xyz");
+
+  receiver.StartAcceptingConnections(
+      self_id,
+      {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
+        receiver_socket = wrapper;
+        connected.Set(receiver_socket.IsValid());
+      }});
+
+  sender_socket = sender.Connect(self_id);
+  EXPECT_TRUE(sender_socket.IsValid());
+
+  ExceptionOr<bool> devices_connected = connected.Get();
+  ASSERT_TRUE(devices_connected.ok());
+  EXPECT_TRUE(devices_connected.result());
+
+  receiver_socket.Close();
 }
 
 // Tests the flow when the two devices exchange SDP messages and connect to each
 // other and the actual data is exchanged successfully between the devices.
 TEST(WebRtcTest, ConnectBothDevicesAndSendData) {
-  // TODO(himanshujaju) - Complete the test.
+  WebRtc receiver, sender;
+  WebRtcSocketWrapper receiver_socket, sender_socket;
+  const PeerId self_id("self_id");
+  Future<bool> connected;
+  ByteArray message("message");
+
+  receiver.StartAcceptingConnections(
+      self_id,
+      {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
+        receiver_socket = wrapper;
+        connected.Set(receiver_socket.IsValid());
+      }});
+
+  sender_socket = sender.Connect(self_id);
+  EXPECT_TRUE(sender_socket.IsValid());
+
+  ExceptionOr<bool> devices_connected = connected.Get();
+  ASSERT_TRUE(devices_connected.ok());
+  EXPECT_TRUE(devices_connected.result());
+
+  sender_socket.GetOutputStream().Write(message);
+  ExceptionOr<ByteArray> received_msg =
+      receiver_socket.GetInputStream().Read(/*size=*/32);
+  ASSERT_TRUE(received_msg.ok());
+  EXPECT_EQ(message, received_msg.result());
+
+  receiver_socket.Close();
+}
+
+// Tests the flow when the two devices exchange SDP messages and connect to each
+// other but the signaling channel is closed before sending the data.
+TEST(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
+  WebRtc receiver, sender;
+  WebRtcSocketWrapper receiver_socket, sender_socket;
+  const PeerId self_id("self_id");
+  Future<bool> connected;
+  ByteArray message("message xyz");
+
+  receiver.StartAcceptingConnections(
+      self_id,
+      {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
+        receiver_socket = wrapper;
+        connected.Set(receiver_socket.IsValid());
+      }});
+
+  sender_socket = sender.Connect(self_id);
+  EXPECT_TRUE(sender_socket.IsValid());
+
+  ExceptionOr<bool> devices_connected = connected.Get();
+  ASSERT_TRUE(devices_connected.ok());
+  EXPECT_TRUE(devices_connected.result());
+
+  // Only shuts down signaling channel.
+  receiver.StopAcceptingConnections();
+
+  sender_socket.GetOutputStream().Write(message);
+  ExceptionOr<ByteArray> received_msg =
+      receiver_socket.GetInputStream().Read(/*size=*/32);
+  ASSERT_TRUE(received_msg.ok());
+  EXPECT_EQ(message, received_msg.result());
 }
 
 }  // namespace
