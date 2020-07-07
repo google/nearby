@@ -602,7 +602,7 @@ proto::connections::Medium P2pClusterPcpHandler::StartWifiLanAdvertising(
       service_id.c_str());
   if (!wifi_lan_medium_.StartAcceptingConnections(
           service_id, {.accepted_cb = [this, client, local_endpoint_name](
-                                          WifiLanSocket& socket,
+                                          WifiLanSocket socket,
                                           const std::string& service_id) {
             if (!socket.IsValid()) {
               NEARBY_LOG(ERROR, "Invalid socket in accept callback: name=%s",

@@ -116,8 +116,8 @@ class WifiLanMedium final {
   };
 
   struct AcceptedConnectionCallback {
-    std::function<void(WifiLanSocket& socket, const std::string& service_id)>
-        accepted_cb = DefaultCallback<WifiLanSocket&, const std::string&>();
+    std::function<void(WifiLanSocket socket, const std::string& service_id)>
+        accepted_cb = DefaultCallback<WifiLanSocket, const std::string&>();
   };
   struct AcceptedConnectionInfo {
     WifiLanSocket socket;

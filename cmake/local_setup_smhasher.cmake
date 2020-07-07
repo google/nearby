@@ -16,16 +16,16 @@ set(PKG_STAGE_SRC_ROOT ${TOOLS_ROOT}/src/smhasher)
 if (NOT EXISTS ${PKG_STAGE_SRC_ROOT}/CMakeLists.txt)
   set(PKG_SRC_ROOT ${PROJECT_SOURCE_DIR}/third_party/smhasher)
   execute_process(
-    COMMAND mkdir -p ${PKG_STAGE_SRC_ROOT}/cpp/src/smhasher
+    COMMAND mkdir -p ${PKG_STAGE_SRC_ROOT}/cpp/src/smhasher/src
   )
   execute_process(
-    COMMAND mkdir -p ${PKG_STAGE_SRC_ROOT}/cpp/include/smhasher
+    COMMAND mkdir -p ${PKG_STAGE_SRC_ROOT}/cpp/include/smhasher/src
   )
   execute_process(
-    COMMAND cp ${PKG_SRC_ROOT}/src/MurmurHash3.cpp ${PKG_STAGE_SRC_ROOT}/cpp/src/smhasher
+    COMMAND cp ${PKG_SRC_ROOT}/src/MurmurHash3.cpp ${PKG_STAGE_SRC_ROOT}/cpp/src/smhasher/src
   )
   execute_process(
-    COMMAND cp ${PKG_SRC_ROOT}/src/MurmurHash3.h ${PKG_STAGE_SRC_ROOT}/cpp/include/smhasher
+    COMMAND cp ${PKG_SRC_ROOT}/src/MurmurHash3.h ${PKG_STAGE_SRC_ROOT}/cpp/include/smhasher/src
   )
   execute_process(
     COMMAND cp cmake/CMakeLists-smhasher.txt ${PKG_STAGE_SRC_ROOT}/CMakeLists.txt

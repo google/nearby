@@ -107,6 +107,7 @@ cc_test(
         "atomic_reference_test.cc",
         "bluetooth_adapter_test.cc",
         "bluetooth_classic_test.cc",
+        "cancelable_alarm_test.cc",
         "condition_variable_test.cc",
         "count_down_latch_test.cc",
         "crypto_test.cc",

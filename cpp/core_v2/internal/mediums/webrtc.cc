@@ -21,11 +21,13 @@
 #include "core_v2/internal/mediums/webrtc/signaling_frames.h"
 #include "platform_v2/base/byte_array.h"
 #include "platform_v2/base/listeners.h"
+#include "platform_v2/public/cancelable_alarm.h"
 #include "platform_v2/public/future.h"
 #include "platform_v2/public/logging.h"
 #include "platform_v2/public/mutex_lock.h"
 #include "location/nearby/mediums/proto/web_rtc_signaling_frames.pb.h"
 #include "absl/strings/str_cat.h"
+#include "absl/time/time.h"
 #include "webrtc/api/jsep.h"
 
 namespace location {
@@ -36,19 +38,22 @@ namespace mediums {
 namespace {
 
 // The maximum amount of time to wait to connect to a data channel via WebRTC.
-// TODO(himanshujaju): Should this be configurable per platform?
 constexpr absl::Duration kDataChannelTimeout = absl::Milliseconds(5000);
+
+// Delay between restarting signaling messenger to receive messages.
+constexpr absl::Duration kRestartReceiveMessagesDuration = absl::Seconds(60);
 
 }  // namespace
 
 WebRtc::WebRtc() = default;
 
 WebRtc::~WebRtc() {
+  // This ensures that all pending callbacks are run before we reset the medium
+  // and we are not accepting new runnables.
+  restart_receive_messages_executor_.Shutdown();
   single_thread_executor_.Shutdown();
-  {
-    MutexLock lock(&mutex_);
-    Disconnect();
-  }
+
+  Disconnect();
 }
 
 bool WebRtc::IsAvailable() { return medium_.IsValid(); }
@@ -84,6 +89,11 @@ bool WebRtc::StartAcceptingConnections(const PeerId& self_id,
 
     if (!InitWebRtcFlow(Role::kOfferer, self_id)) return false;
 
+    restart_receive_messages_alarm_ = CancelableAlarm(
+        "restart_receiving_messages_webrtc",
+        std::bind(&WebRtc::RestartReceiveMessages, this),
+        kRestartReceiveMessagesDuration, &restart_receive_messages_executor_);
+
     SessionDescriptionWrapper offer = connection_flow_->CreateOffer();
     pending_local_offer_ = webrtc_frames::EncodeOffer(self_id, offer.GetSdp());
     if (!SetLocalSessionDescription(std::move(offer))) {
@@ -103,23 +113,25 @@ bool WebRtc::StartAcceptingConnections(const PeerId& self_id,
 }
 
 WebRtcSocketWrapper WebRtc::Connect(const PeerId& peer_id) {
-  MutexLock lock(&mutex_);
-
   if (!IsAvailable()) {
     Disconnect();
     return WebRtcSocketWrapper();
   }
 
-  if (role_ != Role::kNone) {
-    NEARBY_LOG(WARNING,
-               "Cannot connect with WebRtc because we are already acting as %d",
-               role_);
-    return WebRtcSocketWrapper();
-  }
+  {
+    MutexLock lock(&mutex_);
+    if (role_ != Role::kNone) {
+      NEARBY_LOG(
+          WARNING,
+          "Cannot connect with WebRtc because we are already acting as %d",
+          role_);
+      return WebRtcSocketWrapper();
+    }
 
-  peer_id_ = peer_id;
-  if (!InitWebRtcFlow(Role::kAnswerer, PeerId::FromRandom())) {
-    return WebRtcSocketWrapper();
+    peer_id_ = peer_id;
+    if (!InitWebRtcFlow(Role::kAnswerer, PeerId::FromRandom())) {
+      return WebRtcSocketWrapper();
+    }
   }
 
   NEARBY_LOG(INFO, "Attempting to make a WebRTC connection to %s.",
@@ -130,6 +142,9 @@ WebRtcSocketWrapper WebRtc::Connect(const PeerId& peer_id) {
 
   // The two devices have discovered each other, hence we have a timeout for
   // establishing the transport channel.
+  // NOTE - We should not hold |mutex_| while waiting for the data channel since
+  // it would block incoming signaling messages from being processed, resulting
+  // in a timeout in creating the socket.
   ExceptionOr<WebRtcSocketWrapper> result =
       socket_future.Get(kDataChannelTimeout);
   if (result.ok()) return result.result();
@@ -200,7 +215,8 @@ WebRtcSocketWrapper WebRtc::CreateWebRtcSocketWrapper(
   }
 
   auto socket = std::make_unique<WebRtcSocket>("WebRtcSocket", data_channel);
-  socket->SetOnSocketClosedListener({std::bind(&WebRtc::Disconnect, this)});
+  socket->SetOnSocketClosedListener(
+      {[this]() { OffloadFromSignalingThread([this]() { Disconnect(); }); }});
   return WebRtcSocketWrapper(std::move(socket));
 }
 
@@ -231,7 +247,7 @@ bool WebRtc::InitWebRtcFlow(Role role, const PeerId& self_id) {
   if (!signaling_messenger_->IsValid() ||
       !signaling_messenger_->StartReceivingMessages(
           signaling_message_callback)) {
-    Disconnect();
+    DisconnectLocked();
     return false;
   }
 
@@ -407,7 +423,7 @@ void WebRtc::SendAnswerToPeer() {
 
 void WebRtc::LogAndDisconnect(const std::string& error_message) {
   NEARBY_LOG(WARNING, "Disconnecting WebRTC : %s", error_message.c_str());
-  Disconnect();
+  DisconnectLocked();
 }
 
 void WebRtc::LogAndShutdownSignaling(const std::string& error_message) {
@@ -422,6 +438,11 @@ void WebRtc::ShutdownSignaling() {
   pending_local_offer_ = ByteArray();
   pending_local_ice_candidates_.clear();
 
+  if (restart_receive_messages_alarm_.IsValid()) {
+    restart_receive_messages_alarm_.Cancel();
+    restart_receive_messages_alarm_ = CancelableAlarm();
+  }
+
   if (signaling_messenger_) {
     signaling_messenger_->StopReceivingMessages();
     signaling_messenger_.reset();
@@ -431,6 +452,11 @@ void WebRtc::ShutdownSignaling() {
 }
 
 void WebRtc::Disconnect() {
+  MutexLock lock(&mutex_);
+  DisconnectLocked();
+}
+
+void WebRtc::DisconnectLocked() {
   ShutdownSignaling();
   ShutdownWebRtcSocket();
   ShutdownIceCandidateCollection();
@@ -452,6 +478,34 @@ void WebRtc::ShutdownIceCandidateCollection() {
 
 void WebRtc::OffloadFromSignalingThread(Runnable runnable) {
   single_thread_executor_.Execute(std::move(runnable));
+}
+
+void WebRtc::RestartReceiveMessages() {
+  if (!IsAcceptingConnections()) {
+    NEARBY_LOG(INFO,
+               "Skipping restart since we are not accepting connections.");
+    return;
+  }
+
+  NEARBY_LOG(INFO, "Restarting listening for receiving signaling messages.");
+  {
+    MutexLock lock(&mutex_);
+    signaling_messenger_->StopReceivingMessages();
+
+    signaling_messenger_ = medium_.GetSignalingMessenger(self_id_.GetId());
+
+    auto signaling_message_callback = [this](ByteArray message) {
+      OffloadFromSignalingThread([this, message{std::move(message)}]() {
+        ProcessSignalingMessage(message);
+      });
+    };
+
+    if (!signaling_messenger_->IsValid() ||
+        !signaling_messenger_->StartReceivingMessages(
+            signaling_message_callback)) {
+      DisconnectLocked();
+    }
+  }
 }
 
 }  // namespace mediums

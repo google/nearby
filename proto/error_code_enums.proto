@@ -117,9 +117,10 @@ enum StartAdvertisingError {
   // System error, all advertising slot ran out, can't available for new
   // regular advertisement.
   BLE_MAX_GATT_ADVERTISEMENT_SLOT_REACHED = 35;
-  // System error, failed to start advertising for legacy advertisements
+  // System error, failed to start advertising for legacy advertisements on BLE
   START_LEGACY_ADVERTISING_FAILED = 36;
-  // System error, failed to start advertising for extended advertisements
+  // System error, failed to start advertising for extended advertisements on
+  // BLE
   START_EXTENDED_ADVERTISING_FAILED = 38;
   // System error, there's already someone advertising on Bluetooth, not allow
   // to start another one.
@@ -140,6 +141,22 @@ enum StartAdvertisingError {
   ACQUIRE_WIFI_AWARE_SESSION_FAILED = 45;
 
   // Next ID :46
+}
+
+// The error for event START_DISCOVERING. The range between 31 and 99.
+enum StartDiscoveringError {
+  // Developing error, this service ID already requested, should not request it
+  // again without stop discovering.
+  DUPLICATE_DISCOVERING_REQUESTED = 31;
+  // System error, failed to start discovering for legacy advertisements on BLE
+  START_LEGACY_DISCOVERING_FAILED = 32;
+  // System error, failed to start discovering for extended advertisements on
+  // BLE
+  START_EXTENDED_DISCOVERING_FAILED = 33;
+  // System error, failed to start discovering.
+  START_DISCOVERING_FAILED = 34;
+
+  // Next ID :34
 }
 
 enum Description {
@@ -185,4 +202,15 @@ enum Description {
   NULL_WIFI_AWARE_MANAGER = 38;
   STALE_ANDROID_VERSION = 39;
   NULL_SERVICE_INFO = 40;
+  NULL_WORK_SOURCE = 41;
+  NULL_CALLBACK = 42;
+  NULL_BLUETOOTH_LE_SCANNER_COMPAT = 43;
+  EMPTY_WORK_SOURCE_CACHE = 44;
+  SCAN_FAILED_ALREADY_STARTED = 45;
+  SCAN_FAILED_APPLICATION_REGISTRATION_FAILED = 46;
+  SCAN_FAILED_INTERNAL_ERROR = 47;
+  SCAN_FAILED_FEATURE_UNSUPPORTED = 48;
+  SCAN_FAILED_BLUETOOTH_DISABLED = 49;
+  SCAN_FILTERS_NOT_ALLOWED_FOR_LOCATION = 50;
+  BLUETOOTH_SCAN_REJUVENATE_FAILED = 51;
 }
