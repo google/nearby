@@ -57,24 +57,28 @@ bool WifiLan::StartAdvertising(const std::string& service_id,
     return false;
   }
 
-  NEARBY_LOG(INFO, "Turned on WifiLan advertising with service info name=%s",
-             wifi_lan_service_info_name.c_str());
+  NEARBY_LOGS(INFO) << "Turned on WifiLan advertising with service info name="
+                    << wifi_lan_service_info_name
+                    << ", service id=" << service_id;
   advertising_info_.service_id = service_id;
   return true;
 }
 
-void WifiLan::StopAdvertising(const std::string& service_id) {
+bool WifiLan::StopAdvertising(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
   if (!IsAdvertisingLocked()) {
     NEARBY_LOG(INFO, "Can't turn off WifiLan advertising; it is already off");
-    return;
+    return false;
   }
 
-  medium_.StopAdvertising(advertising_info_.service_id);
+  NEARBY_LOG(INFO, "Turned off WifiLan advertising with service id=%s",
+             service_id.c_str());
+  bool ret = medium_.StopAdvertising(advertising_info_.service_id);
   // Reset our bundle of advertising state to mark that we're no longer
   // advertising.
   advertising_info_.Clear();
+  return ret;
 }
 
 bool WifiLan::IsAdvertising() {
@@ -117,23 +121,28 @@ bool WifiLan::StartDiscovery(const std::string& service_id,
     return false;
   }
 
+  NEARBY_LOG(INFO, "Turned on WifiLan discovering with service id=%s",
+             service_id.c_str());
   // Mark the fact that we're currently performing a WifiLan discovering.
   discovering_info_.service_id = service_id;
   return true;
 }
 
-void WifiLan::StopDiscovery(const std::string& service_id) {
+bool WifiLan::StopDiscovery(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
   if (!IsDiscoveringLocked(service_id)) {
     NEARBY_LOG(INFO,
                "Can't turn off WifiLan discovering because we never started "
                "discovering.");
-    return;
+    return false;
   }
 
-  medium_.StopDiscovery(service_id);
+  NEARBY_LOG(INFO, "Turned off WifiLan discovering with service id=%s",
+             service_id.c_str());
+  bool ret = medium_.StopDiscovery(service_id);
   discovering_info_.Clear();
+  return ret;
 }
 
 bool WifiLan::IsDiscovering(const std::string& service_id) {
@@ -183,20 +192,22 @@ bool WifiLan::StartAcceptingConnections(const std::string& service_id,
   return true;
 }
 
-void WifiLan::StopAcceptingConnections(const std::string& service_id) {
+bool WifiLan::StopAcceptingConnections(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
   if (!IsAcceptingConnectionsLocked(service_id)) {
     NEARBY_LOG(INFO,
                "Can't stop accepting WifiLan connections because it was never "
                "started.");
-    return;
+    return false;
   }
 
-  medium_.StopAcceptingConnections(accepting_connections_info_.service_id);
+  bool ret =
+      medium_.StopAcceptingConnections(accepting_connections_info_.service_id);
   // Reset our bundle of accepting connections state to mark that we're no
   // longer accepting connections.
   accepting_connections_info_.Clear();
+  return ret;
 }
 
 bool WifiLan::IsAcceptingConnections(const std::string& service_id) {

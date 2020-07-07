@@ -38,7 +38,9 @@ class Cancelable final {
   explicit Cancelable(std::shared_ptr<api::Cancelable> impl)
       : impl_(std::move(impl)) {}
 
-  bool Cancel() { return impl_->Cancel(); }
+  bool Cancel() { return impl_ ? impl_->Cancel() : false; }
+
+  bool IsValid() { return impl_ != nullptr; }
 
  private:
   std::shared_ptr<api::Cancelable> impl_;

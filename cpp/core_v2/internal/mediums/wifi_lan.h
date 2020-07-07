@@ -44,7 +44,7 @@ class WifiLan {
 
   // Disables WifiLan advertising, and restores service info name to
   // what they were before the call to StartAdvertising().
-  void StopAdvertising(const std::string& service_id)
+  bool StopAdvertising(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool IsAdvertising() ABSL_LOCKS_EXCLUDED(mutex_);
@@ -57,7 +57,7 @@ class WifiLan {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables WifiLan discovery mode.
-  void StopDiscovery(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StopDiscovery(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool IsDiscovering(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -68,7 +68,7 @@ class WifiLan {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Closes socket corresponding to a service id.
-  void StopAcceptingConnections(const std::string& service_id)
+  bool StopAcceptingConnections(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool IsAcceptingConnections(const std::string& service_id)

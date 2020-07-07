@@ -62,6 +62,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
               [this](api::WifiLanService& service,
                      const std::string& service_id) {
                 MutexLock lock(&mutex_);
+                if (services_.empty()) return;
                 auto item = services_.extract(&service);
                 auto& context = *item.mapped();
                 NEARBY_LOG(INFO, "Removing service=%p, impl=%p",
@@ -101,9 +102,8 @@ bool WifiLanMedium::StartAcceptingConnections(
                 if (!pair.second) {
                   NEARBY_LOG(INFO, "Adding (again) socket=%p, impl=%p",
                              &context.socket, &socket);
-                  return;
+                  context.socket = WifiLanSocket(&socket);
                 }
-                context.socket = WifiLanSocket(&socket);
                 NEARBY_LOG(INFO, "Adding socket=%p, impl=%p", &context.socket,
                            &socket);
                 accepted_connection_callback_.accepted_cb(context.socket,
@@ -120,7 +120,7 @@ bool WifiLanMedium::StopAcceptingConnections(const std::string& service_id) {
     NEARBY_LOG(INFO, "WifiLan accepted connection disabled: impl=%p",
                &GetImpl());
   }
-  return impl_->StopDiscovery(service_id);
+  return impl_->StopAcceptingConnections(service_id);
 }
 
 WifiLanSocket WifiLanMedium::Connect(WifiLanService& service,
