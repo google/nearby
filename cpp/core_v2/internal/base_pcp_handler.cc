@@ -288,6 +288,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
       return;
     }
 
+    std::vector<DiscoveredEndpoint*> endpoints;
     auto endpoint = GetDiscoveredEndpoint(endpoint_id);
     if (endpoint == nullptr) {
       NEARBY_LOG(INFO, "Discovered endpoint not found: id=%s",
@@ -296,9 +297,31 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
       return;
     }
 
-    auto connect_impl_result = ConnectImpl(client, endpoint);
-    std::unique_ptr<EndpointChannel> channel =
-        std::move(connect_impl_result.endpoint_channel);
+    auto webrtc_endpoint = absl::make_unique<WebRtcEndpoint>(
+        DiscoveredEndpoint{endpoint->endpoint_id, endpoint->endpoint_name,
+                           endpoint->service_id,
+                           proto::connections::Medium::WEB_RTC},
+        CreatePeerIdFromAdvertisement(endpoint->service_id,
+                                      endpoint->endpoint_id,
+                                      endpoint->endpoint_name));
+    endpoints.push_back(endpoint);
+    endpoints.push_back(webrtc_endpoint.get());
+
+    std::sort(endpoints.begin(), endpoints.end(),
+              [this](DiscoveredEndpoint* a, DiscoveredEndpoint* b) -> bool {
+                return IsPreferred(*a, *b);
+              });
+
+    std::unique_ptr<EndpointChannel> channel;
+    ConnectImplResult connect_impl_result;
+
+    for (auto connect_endpoint : endpoints) {
+      connect_impl_result = ConnectImpl(client, connect_endpoint);
+      if (connect_impl_result.status.Ok()) {
+        channel = std::move(connect_impl_result.endpoint_channel);
+        break;
+      }
+    }
 
     if (channel == nullptr) {
       NEARBY_LOG(INFO, "Endpoint channel not available: id=%s",
@@ -1052,6 +1075,13 @@ void BasePcpHandler::PendingConnectionInfo::LocalEndpointAcceptedConnection(
 void BasePcpHandler::PendingConnectionInfo::LocalEndpointRejectedConnection(
     const std::string& endpoint_id) {
   client->LocalEndpointRejectedConnection(endpoint_id);
+}
+
+mediums::PeerId BasePcpHandler::CreatePeerIdFromAdvertisement(
+    const std::string& service_id, const std::string& endpoint_id,
+    const std::string& endpoint_name) {
+  std::string seed = absl::StrCat(service_id, endpoint_id, endpoint_name);
+  return mediums::PeerId::FromSeed(ByteArray(std::move(seed)));
 }
 
 }  // namespace connections

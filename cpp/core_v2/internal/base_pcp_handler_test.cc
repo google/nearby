@@ -93,10 +93,14 @@ class MockPcpHandler : public BasePcpHandler {
   MOCK_METHOD(Status, StopDiscoveryImpl, (ClientProxy * client), (override));
   MOCK_METHOD(ConnectImplResult, ConnectImpl,
               (ClientProxy * client, DiscoveredEndpoint* endpoint), (override));
-  MOCK_METHOD(std::vector<proto::connections::Medium>,
-              GetConnectionMediumsByPriority, (), (override));
   MOCK_METHOD(proto::connections::Medium, GetDefaultUpgradeMedium, (),
               (override));
+
+  std::vector<proto::connections::Medium> GetConnectionMediumsByPriority()
+      override {
+    return {proto::connections::Medium::BLE,
+            proto::connections::Medium::WEB_RTC};
+  }
 
   // Mock adapters for protected non-virtual methods of a base class.
   void OnEndpointFound(ClientProxy* client,

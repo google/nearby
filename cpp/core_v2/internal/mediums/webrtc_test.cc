@@ -2,6 +2,7 @@
 
 #include "core_v2/internal/mediums/webrtc/webrtc_socket_wrapper.h"
 #include "platform_v2/base/listeners.h"
+#include "platform_v2/base/medium_environment.h"
 #include "platform_v2/public/mutex_lock.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -13,8 +14,16 @@ namespace mediums {
 
 namespace {
 
+class WebRtcTest : public ::testing::Test {
+ protected:
+  WebRtcTest() {
+    MediumEnvironment::Instance().Stop();
+    MediumEnvironment::Instance().Start({.webrtc_enabled = true});
+  }
+};
+
 // Basic test to check that device is accepting connections when initialized.
-TEST(WebRtcTest, NotAcceptingConnections) {
+TEST_F(WebRtcTest, NotAcceptingConnections) {
   WebRtc webrtc;
   ASSERT_TRUE(webrtc.IsAvailable());
   EXPECT_FALSE(webrtc.IsAcceptingConnections());
@@ -22,7 +31,7 @@ TEST(WebRtcTest, NotAcceptingConnections) {
 
 // Tests the flow when the device tries to accept connections twice. In this
 // case, only the first call is successful and subsequent calls fail.
-TEST(WebRtcTest, StartAcceptingConnectionTwice) {
+TEST_F(WebRtcTest, StartAcceptingConnectionTwice) {
   using MockAcceptedCallback =
       testing::MockFunction<void(WebRtcSocketWrapper socket)>;
   testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
@@ -40,7 +49,7 @@ TEST(WebRtcTest, StartAcceptingConnectionTwice) {
 
 // Tests the flow when the device tries to connect but the data channel times
 // out.
-TEST(WebRtcTest, Connect_DataChannelTimeOut) {
+TEST_F(WebRtcTest, Connect_DataChannelTimeOut) {
   WebRtc webrtc;
   PeerId peer_id("peer_id");
 
@@ -54,7 +63,7 @@ TEST(WebRtcTest, Connect_DataChannelTimeOut) {
 
 // Tests the flow when the device calls Connect() after calling
 // StartAcceptingConnections() without StopAcceptingConnections().
-TEST(WebRtcTest, StartAcceptingConnection_ThenConnect) {
+TEST_F(WebRtcTest, StartAcceptingConnection_ThenConnect) {
   using MockAcceptedCallback =
       testing::MockFunction<void(WebRtcSocketWrapper socket)>;
   testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
@@ -74,7 +83,7 @@ TEST(WebRtcTest, StartAcceptingConnection_ThenConnect) {
 
 // Tests the flow when the device calls StartAcceptingConnections but the medium
 // is closed before a peer device can connect to it.
-TEST(WebRtcTest, StartAndStopAcceptingConnections) {
+TEST_F(WebRtcTest, StartAndStopAcceptingConnections) {
   using MockAcceptedCallback =
       testing::MockFunction<void(WebRtcSocketWrapper socket)>;
   testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
@@ -91,7 +100,7 @@ TEST(WebRtcTest, StartAndStopAcceptingConnections) {
 
 // Tests the flow when the device tries to connect to two different peers
 // without disconnecting in between.
-TEST(WebRtcTest, ConnectTwice) {
+TEST_F(WebRtcTest, ConnectTwice) {
   WebRtc receiver, sender, device_c;
   WebRtcSocketWrapper receiver_socket, sender_socket;
   const PeerId self_id("self_id"), other_id("other_id");
@@ -135,7 +144,7 @@ TEST(WebRtcTest, ConnectTwice) {
 
 // Tests the flow when the two devices exchange SDP messages and connect to each
 // other but disconnect before being able to send/receive the actual data.
-TEST(WebRtcTest, ConnectBothDevicesAndAbort) {
+TEST_F(WebRtcTest, ConnectBothDevicesAndAbort) {
   WebRtc receiver, sender;
   WebRtcSocketWrapper receiver_socket, sender_socket;
   const PeerId self_id("self_id");
@@ -161,7 +170,7 @@ TEST(WebRtcTest, ConnectBothDevicesAndAbort) {
 
 // Tests the flow when the two devices exchange SDP messages and connect to each
 // other and the actual data is exchanged successfully between the devices.
-TEST(WebRtcTest, ConnectBothDevicesAndSendData) {
+TEST_F(WebRtcTest, ConnectBothDevicesAndSendData) {
   WebRtc receiver, sender;
   WebRtcSocketWrapper receiver_socket, sender_socket;
   const PeerId self_id("self_id");
@@ -193,7 +202,7 @@ TEST(WebRtcTest, ConnectBothDevicesAndSendData) {
 
 // Tests the flow when the two devices exchange SDP messages and connect to each
 // other but the signaling channel is closed before sending the data.
-TEST(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
+TEST_F(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
   WebRtc receiver, sender;
   WebRtcSocketWrapper receiver_socket, sender_socket;
   const PeerId self_id("self_id");

@@ -20,21 +20,24 @@ namespace g3 {
 
 class WifiLanMedium;
 
-// Opaque wrapper over a WifiLan service which contains encoded WifiLan service
-// info name.
+// Opaque wrapper over a WifiLan service which contains packed
+// |WifiLanServiceInfo| string name.
 class WifiLanService : public api::WifiLanService {
  public:
-  explicit WifiLanService(std::string name) : name_(std::move(name)) {}
+  explicit WifiLanService(std::string service_info_name)
+      : service_info_name_(std::move(service_info_name)) {}
   ~WifiLanService() override = default;
 
-  void SetName(std::string name) { name_ = std::move(name); }
-  std::string GetName() const override { return name_; }
+  void SetName(std::string service_info_name) {
+    service_info_name_ = std::move(service_info_name);
+  }
+  std::string GetName() const override { return service_info_name_; }
 
   void SetMedium(WifiLanMedium* medium) { medium_ = medium; }
   WifiLanMedium* GetMedium() { return medium_; }
 
  private:
-  std::string name_;
+  std::string service_info_name_;
   WifiLanMedium* medium_ = nullptr;
 };
 
@@ -151,7 +154,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   ~WifiLanMedium() override;
 
   bool StartAdvertising(const std::string& service_id,
-                        const std::string& wifi_lan_service_info_name) override
+                        const std::string& service_info_name) override
       ABSL_LOCKS_EXCLUDED(mutex_);
   bool StopAdvertising(const std::string& service_id) override
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -201,7 +204,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   };
 
   absl::Mutex mutex_;
-  WifiLanService service_{"wifi_lan_service_info_name"};
+  WifiLanService service_{"unknown G3 WifiLan service"};
 
   // A thread pool dedicated to running all the accept loops from
   // StartAdvertising().
@@ -211,8 +214,6 @@ class WifiLanMedium : public api::WifiLanMedium {
   // A thread pool dedicated to wait to complete the accept_loops_runner_.
   MultiThreadExecutor close_accept_loops_runner_{kMaxConcurrentAcceptLoops};
 
-  // TODO(edwinwu): Extend it to hashmap to accept multiple sockets for multiple
-  // entrance.
   // A server socket is established when start advertising.
   std::unique_ptr<WifiLanServerSocket> server_socket_;
   AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);

@@ -83,12 +83,6 @@ class P2pClusterPcpHandler : public BasePcpHandler {
           wifi_lan_service(std::move(service)) {}
     WifiLanService wifi_lan_service;
   };
-  struct WebRtcEndpoint : public BasePcpHandler::DiscoveredEndpoint {
-    WebRtcEndpoint(DiscoveredEndpoint endpoint, mediums::PeerId peer_id)
-        : DiscoveredEndpoint(std::move(endpoint)),
-          peer_id(std::move(peer_id)) {}
-    mediums::PeerId peer_id;
-  };
 
   using BluetoothDiscoveredDeviceCallback =
       BluetoothClassic::DiscoveredDeviceCallback;
@@ -101,7 +95,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
 
   static ByteArray GenerateHash(const std::string& source, size_t size);
 
-  // Bluetooth.
+  // Bluetooth
   bool IsRecognizedBluetoothEndpoint(const std::string& name_string,
                                      const std::string& service_id,
                                      const BluetoothDeviceName& name) const;
@@ -119,10 +113,10 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   BasePcpHandler::ConnectImplResult BluetoothConnectImpl(
       ClientProxy* client, BluetoothEndpoint* endpoint);
 
-  // WifiLan.
-  bool IsRecognizedWifiLanEndpoint(const std::string& name_string,
-                                   const std::string& service_id,
-                                   const WifiLanServiceInfo& name) const;
+  // WifiLan
+  bool IsRecognizedWifiLanEndpoint(
+      const std::string& service_id,
+      const WifiLanServiceInfo& service_info) const;
   std::function<void(WifiLanService&, const std::string&)>
   MakeWifiLanServiceDiscoveredHandler(ClientProxy* client,
                                       const std::string& service_id);
@@ -146,9 +140,6 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       const std::string& local_endpoint_name);
   BasePcpHandler::ConnectImplResult WebRtcConnectImpl(
       ClientProxy* client, WebRtcEndpoint* webrtc_endpoint);
-  mediums::PeerId CreatePeerIdFromAdvertisement(const string& service_id,
-                                                const string& endpoint_id,
-                                                const string& endpoint_name);
 
   BluetoothRadio& bluetooth_radio_;
   BluetoothClassic& bluetooth_medium_;

@@ -10,6 +10,7 @@
 #include "core_v2/internal/encryption_runner.h"
 #include "core_v2/internal/endpoint_channel_manager.h"
 #include "core_v2/internal/endpoint_manager.h"
+#include "core_v2/internal/mediums/webrtc.h"
 #include "core_v2/internal/pcp.h"
 #include "core_v2/internal/pcp_handler.h"
 #include "core_v2/listeners.h"
@@ -181,6 +182,14 @@ class BasePcpHandler : public PcpHandler,
     proto::connections::Medium medium;
   };
 
+  struct WebRtcEndpoint : public DiscoveredEndpoint {
+    WebRtcEndpoint(DiscoveredEndpoint endpoint, mediums::PeerId peer_id)
+        : DiscoveredEndpoint(std::move(endpoint)),
+          peer_id(std::move(peer_id)) {}
+
+    mediums::PeerId peer_id;
+  };
+
   struct ConnectImplResult {
     proto::connections::Medium medium =
         proto::connections::Medium::UNKNOWN_MEDIUM;
@@ -234,6 +243,10 @@ class BasePcpHandler : public PcpHandler,
   virtual std::vector<proto::connections::Medium>
   GetConnectionMediumsByPriority() = 0;
   virtual proto::connections::Medium GetDefaultUpgradeMedium() = 0;
+
+  mediums::PeerId CreatePeerIdFromAdvertisement(const string& service_id,
+                                                const string& endpoint_id,
+                                                const string& endpoint_name);
 
   EndpointManager* endpoint_manager_;
   EndpointChannelManager* channel_manager_;

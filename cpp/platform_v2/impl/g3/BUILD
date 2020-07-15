@@ -105,6 +105,7 @@ cc_library(
         "//platform_v2/api:comm",
         "//platform_v2/api:platform",
         "//platform_v2/api:types",
+        "//platform_v2/base:test_util",
         "//platform_v2/impl/shared:file",
         "//absl/base:core_headers",
         "//absl/memory",

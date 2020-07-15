@@ -121,6 +121,18 @@ enum EventType {
 
   // Receiver taps a privacy notification.
   TAP_PRIVACY_NOTIFICATION = 33;
+
+  // Receiver taps a help page.
+  TAP_HELP = 34;
+
+  // Receiver taps a feedback.
+  TAP_FEEDBACK = 35;
+
+  // Receiver adds quick settings tile.
+  ADD_QUICK_SETTINGS_TILE = 36;
+
+  // Receiver removes quick settings tile.
+  REMOVE_QUICK_SETTINGS_TILE = 37;
 }
 
 // Event category to differentiate whether this comes from sender or receiver,
