@@ -13,7 +13,8 @@ namespace location {
 namespace nearby {
 namespace api {
 
-// Opaque wrapper over a WifiLan service which contains encoded service name.
+// Opaque wrapper over a WifiLan service which contains packed
+// |WifiLanServiceInfo| string name.
 class WifiLanService {
  public:
   virtual ~WifiLanService() = default;
@@ -57,10 +58,8 @@ class WifiLanMedium {
       const std::string& wifi_lan_service_info_name) = 0;
   virtual bool StopAdvertising(const std::string& service_id) = 0;
 
+  // Callback that is invoked when a discovered service is found or lost.
   struct DiscoveredServiceCallback {
-    // The WifiLanService* is not owned by callbacks.
-    // It is passed to give access to its non-const methods.
-    // It is guaranteed to be valid for the duration of call.
     std::function<void(WifiLanService& wifi_lan_service,
                        const std::string& service_id)>
         service_discovered_cb =

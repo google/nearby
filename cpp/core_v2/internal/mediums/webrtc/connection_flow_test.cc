@@ -5,6 +5,7 @@
 
 #include "core_v2/internal/mediums/webrtc/session_description_wrapper.h"
 #include "platform_v2/base/byte_array.h"
+#include "platform_v2/base/medium_environment.h"
 #include "platform_v2/public/webrtc.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -20,6 +21,14 @@ namespace connections {
 namespace mediums {
 namespace {
 
+class ConnectionFlowTest : public ::testing::Test {
+ protected:
+  ConnectionFlowTest() {
+    MediumEnvironment::Instance().Stop();
+    MediumEnvironment::Instance().Start({.webrtc_enabled = true});
+  }
+};
+
 std::unique_ptr<webrtc::IceCandidateInterface> CopyCandidate(
     const webrtc::IceCandidateInterface* candidate) {
   return webrtc::CreateIceCandidate(candidate->sdp_mid(),
@@ -29,7 +38,7 @@ std::unique_ptr<webrtc::IceCandidateInterface> CopyCandidate(
 
 // TODO(bfranz) - Add test that deterministically sends answerer_ice_candidates
 // before answer is sent.
-TEST(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
+TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
   WebRtcMedium webrtc_medium_offerer, webrtc_medium_answerer;
 
   Future<ByteArray> message_received_future;
@@ -95,7 +104,7 @@ TEST(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
   EXPECT_EQ(received_message.result(), ByteArray{message});
 }
 
-TEST(ConnectionFlowTest, CreateAnswerBeforeOfferReceived) {
+TEST_F(ConnectionFlowTest, CreateAnswerBeforeOfferReceived) {
   WebRtcMedium webrtc_medium;
 
   std::unique_ptr<ConnectionFlow> answerer = ConnectionFlow::Create(
@@ -106,7 +115,7 @@ TEST(ConnectionFlowTest, CreateAnswerBeforeOfferReceived) {
   EXPECT_FALSE(answer.IsValid());
 }
 
-TEST(ConnectionFlowTest, SetAnswerBeforeOffer) {
+TEST_F(ConnectionFlowTest, SetAnswerBeforeOffer) {
   WebRtcMedium webrtc_medium_offerer, webrtc_medium_answerer;
 
   std::unique_ptr<ConnectionFlow> offerer =
@@ -128,7 +137,7 @@ TEST(ConnectionFlowTest, SetAnswerBeforeOffer) {
   EXPECT_FALSE(offerer->OnAnswerReceived(answer));
 }
 
-TEST(ConnectionFlowTest, CannotCreateOfferAfterClose) {
+TEST_F(ConnectionFlowTest, CannotCreateOfferAfterClose) {
   WebRtcMedium webrtc_medium;
 
   std::unique_ptr<ConnectionFlow> offerer = ConnectionFlow::Create(
@@ -140,7 +149,7 @@ TEST(ConnectionFlowTest, CannotCreateOfferAfterClose) {
   EXPECT_FALSE(offerer->CreateOffer().IsValid());
 }
 
-TEST(ConnectionFlowTest, CannotSetSessionDescriptionAfterClose) {
+TEST_F(ConnectionFlowTest, CannotSetSessionDescriptionAfterClose) {
   WebRtcMedium webrtc_medium;
 
   std::unique_ptr<ConnectionFlow> offerer = ConnectionFlow::Create(
@@ -155,7 +164,7 @@ TEST(ConnectionFlowTest, CannotSetSessionDescriptionAfterClose) {
   EXPECT_FALSE(offerer->SetLocalSessionDescription(offer));
 }
 
-TEST(ConnectionFlowTest, CannotReceiveOfferAfterClose) {
+TEST_F(ConnectionFlowTest, CannotReceiveOfferAfterClose) {
   WebRtcMedium webrtc_medium_offerer, webrtc_medium_answerer;
 
   std::unique_ptr<ConnectionFlow> offerer =
