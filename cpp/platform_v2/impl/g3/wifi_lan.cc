@@ -170,7 +170,7 @@ Exception WifiLanServerSocket::DoClose() {
 WifiLanMedium::WifiLanMedium() {
   service_.SetMedium(this);
   auto& env = MediumEnvironment::Instance();
-  env.RegisterWifiLanMedium(*this, service_);
+  env.RegisterWifiLanMedium(*this);
 }
 
 WifiLanMedium::~WifiLanMedium() {
@@ -181,7 +181,6 @@ WifiLanMedium::~WifiLanMedium() {
   StopAdvertising(advertising_info_.service_id);
   StopDiscovery(discovering_info_.service_id);
 
-  accept_loops_runner_.Shutdown();
   NEARBY_LOG(INFO,
              "WifiLanMedium dtor advertising_accept_thread_running_ = %d",
              acceptance_thread_running_.load());
@@ -195,12 +194,11 @@ WifiLanMedium::~WifiLanMedium() {
   }
 }
 
-bool WifiLanMedium::StartAdvertising(
-    const std::string& service_id,
-    const std::string& wifi_lan_service_info_name) {
+bool WifiLanMedium::StartAdvertising(const std::string& service_id,
+                                     const std::string& service_info_name) {
   NEARBY_LOG(INFO,
-             "G3 WifiLan StartAdvertising: service_id=%s, service_name=%s",
-             service_id.c_str(), wifi_lan_service_info_name.c_str());
+             "G3 WifiLan StartAdvertising: service_id=%s, service_info_name=%s",
+             service_id.c_str(), service_info_name.c_str());
   auto& env = MediumEnvironment::Instance();
   env.UpdateWifiLanMediumForAdvertising(*this, service_, service_id, true);
 
@@ -230,8 +228,9 @@ bool WifiLanMedium::StopAdvertising(const std::string& service_id) {
   {
     absl::MutexLock lock(&mutex_);
     if (advertising_info_.Empty()) {
-      NEARBY_LOG(
-          INFO, "Can't stop advertising because we never started advertising.");
+      NEARBY_LOG(INFO,
+                 "G3 WifiLan StopAdvertising: Can't stop advertising because "
+                 "we never started advertising.");
       return false;
     }
     advertising_info_.Clear();
@@ -241,14 +240,17 @@ bool WifiLanMedium::StopAdvertising(const std::string& service_id) {
   env.UpdateWifiLanMediumForAdvertising(*this, service_, service_id, false);
   accept_loops_runner_.Shutdown();
   if (server_socket_ == nullptr) {
-    NEARBY_LOG(ERROR, "Failed to find WifiLan Server socket: service_id=%s",
-               service_id.c_str());
+    NEARBY_LOGS(ERROR) << "G3 WifiLan StopAdvertising: failed to find WifiLan "
+                         "Server socket: service_id="
+                      << service_id;
     // Fall through for server socket not found.
     return true;
   }
 
   if (!server_socket_->Close().Ok()) {
-    NEARBY_LOG(INFO, "Failed to close WifiLan server socket for %s.",
+    NEARBY_LOG(INFO,
+               "G3 WifiLan StopAdvertising: Failed to close WifiLan server "
+               "socket for %s.",
                service_id.c_str());
     return false;
   }
@@ -261,8 +263,8 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
   NEARBY_LOG(INFO, "G3 WifiLan StartDiscovery: service_id=%s",
              service_id.c_str());
   auto& env = MediumEnvironment::Instance();
-  env.UpdateWifiLanMediumForDiscovery(*this, service_, service_id,
-                                      std::move(callback), true);
+  env.UpdateWifiLanMediumForDiscovery(*this, service_id, std::move(callback),
+                                      true);
   {
     absl::MutexLock lock(&mutex_);
     discovering_info_.service_id = service_id;
@@ -276,15 +278,16 @@ bool WifiLanMedium::StopDiscovery(const std::string& service_id) {
   {
     absl::MutexLock lock(&mutex_);
     if (discovering_info_.Empty()) {
-      NEARBY_LOG(
-          INFO, "Can't stop discovering because we never started discovering.");
+      NEARBY_LOG(INFO,
+                 "G3 WifiLan StopDiscovery: Can't stop discovering because we "
+                 "never started discovering.");
       return false;
     }
     discovering_info_.Clear();
   }
 
   auto& env = MediumEnvironment::Instance();
-  env.UpdateWifiLanMediumForDiscovery(*this, service_, service_id, {}, false);
+  env.UpdateWifiLanMediumForDiscovery(*this, service_id, {}, false);
   return true;
 }
 
@@ -293,8 +296,7 @@ bool WifiLanMedium::StartAcceptingConnections(
   NEARBY_LOG(INFO, "G3 WifiLan StartAcceptingConnections: service_id=%s",
              service_id.c_str());
   auto& env = MediumEnvironment::Instance();
-  env.UpdateWifiLanMediumForAcceptedConnection(*this, service_, service_id,
-                                               callback);
+  env.UpdateWifiLanMediumForAcceptedConnection(*this, service_id, callback);
   return true;
 }
 
@@ -302,7 +304,7 @@ bool WifiLanMedium::StopAcceptingConnections(const std::string& service_id) {
   NEARBY_LOG(INFO, "G3 WifiLan StopAcceptingConnections: service_id=%s",
              service_id.c_str());
   auto& env = MediumEnvironment::Instance();
-  env.UpdateWifiLanMediumForAcceptedConnection(*this, service_, service_id, {});
+  env.UpdateWifiLanMediumForAcceptedConnection(*this, service_id, {});
   return true;
 }
 
@@ -315,28 +317,31 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::Connect(
 
   if (!medium) return {};  // Can't find medium. Bail out.
 
-  WifiLanServerSocket* server_socket = nullptr;
+  WifiLanServerSocket* remote_server_socket = nullptr;
   NEARBY_LOG(INFO,
              "G3 WifiLan Connect [peer]: medium=%p, service=%p, service_id=%s",
              medium, &remote_service, service_id.c_str());
   // Then, find our server socket context in this medium.
   {
     absl::MutexLock medium_lock(&medium->mutex_);
-    server_socket = medium->server_socket_.get();
-    if (server_socket == nullptr) {
-      NEARBY_LOG(ERROR, "Failed to find WifiLan Server socket: service_id=%s",
+    remote_server_socket = medium->server_socket_.get();
+    if (remote_server_socket == nullptr) {
+      NEARBY_LOG(ERROR,
+                 "G3 WifiLan Connect: Failed to find WifiLan Server socket: "
+                 "service_id=%s",
                  service_id.c_str());
+      // Fall through for server socket not found.
       return {};
     }
   }
 
   auto socket = std::make_unique<WifiLanSocket>();
   // Finally, Request to connect to this socket.
-  if (!server_socket->Connect(*socket)) {
-    NEARBY_LOG(
-        ERROR,
-        "Failed to connect to existing WifiLan Server socket: service_id=%s",
-        service_id.c_str());
+  if (!remote_server_socket->Connect(*socket)) {
+    NEARBY_LOG(ERROR,
+               "G3 WifiLan Connect: Failed to connect to existing WifiLan "
+               "Server socket: service_id=%s",
+               service_id.c_str());
     return {};
   }
 

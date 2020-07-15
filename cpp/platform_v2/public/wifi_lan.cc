@@ -22,8 +22,8 @@ namespace nearby {
 
 bool WifiLanMedium::StartAdvertising(
     const std::string& service_id,
-    const std::string& wifi_lan_service_info_name) {
-  return impl_->StartAdvertising(service_id, wifi_lan_service_info_name);
+    const std::string& service_info_name) {
+  return impl_->StartAdvertising(service_id, service_info_name);
 }
 
 bool WifiLanMedium::StopAdvertising(const std::string& service_id) {
@@ -48,13 +48,18 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
                     &service, absl::make_unique<ServiceDiscoveryInfo>());
                 auto& context = *pair.first->second;
                 if (!pair.second) {
-                  NEARBY_LOG(INFO, "Adding (again) service=%p, impl=%p",
-                             &context.service, &service);
+                  NEARBY_LOG(INFO,
+                             "Discovering (again) service=%p, impl=%p, "
+                             "service_info_name=%s",
+                             &context.service, &service,
+                             service.GetName().c_str());
                   return;
                 }
                 context.service = WifiLanService(&service);
-                NEARBY_LOG(INFO, "Adding service=%p, impl=%p", &context.service,
-                           &service);
+                NEARBY_LOG(
+                    INFO,
+                    "Discovering service=%p, impl=%p, service_info_name=%s",
+                    &context.service, &service, service.GetName().c_str());
                 discovered_service_callback_.service_discovered_cb(
                     context.service, service_id);
               },
@@ -100,12 +105,13 @@ bool WifiLanMedium::StartAcceptingConnections(
                     &socket, absl::make_unique<AcceptedConnectionInfo>());
                 auto& context = *pair.first->second;
                 if (!pair.second) {
-                  NEARBY_LOG(INFO, "Adding (again) socket=%p, impl=%p",
+                  NEARBY_LOG(INFO, "Accepting (again) socket=%p, impl=%p",
                              &context.socket, &socket);
                   context.socket = WifiLanSocket(&socket);
+                } else {
+                  NEARBY_LOG(INFO, "Accepting socket=%p, impl=%p",
+                             &context.socket, &socket);
                 }
-                NEARBY_LOG(INFO, "Adding socket=%p, impl=%p", &context.socket,
-                           &socket);
                 accepted_connection_callback_.accepted_cb(context.socket,
                                                           service_id);
               },

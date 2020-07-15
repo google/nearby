@@ -32,6 +32,7 @@
 #include "platform_v2/api/submittable_executor.h"
 #include "platform_v2/api/webrtc.h"
 #include "platform_v2/api/wifi.h"
+#include "platform_v2/base/medium_environment.h"
 #include "platform_v2/impl/g3/atomic_boolean.h"
 #include "platform_v2/impl/g3/atomic_reference.h"
 #include "platform_v2/impl/g3/bluetooth_adapter.h"
@@ -147,7 +148,11 @@ std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
 }
 
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
-  return absl::make_unique<g3::WebRtcMedium>();
+  if (MediumEnvironment::Instance().GetEnvironmentConfig().webrtc_enabled) {
+    return absl::make_unique<g3::WebRtcMedium>();
+  } else {
+    return nullptr;
+  }
 }
 
 std::unique_ptr<Mutex> ImplementationPlatform::CreateMutex(Mutex::Mode mode) {

@@ -94,6 +94,9 @@ enum CommonError {
   // the Wi-Fi Direct initialized cause Wi-Fi Aware not available, or BLE
   // connections hit the maximan number, or Wi-Fi Hotstop already created.
   OUT_OF_RESOURCE = 4;
+  // Others error, the error happens when user cancel the flow, it's not a
+  // real failure.
+  FLOW_CANCELED = 5;
 
   // Reserved 5 to 30
 }
@@ -155,8 +158,56 @@ enum StartDiscoveringError {
   START_EXTENDED_DISCOVERING_FAILED = 33;
   // System error, failed to start discovering.
   START_DISCOVERING_FAILED = 34;
+  // Network error, invalid remote target info, discover the nearby devices but
+  // the information not valid.
+  INVALID_TARGET_INFO = 35;
+  // Network error, failed to fetch the advertisement from the remote devices.
+  FETCH_ADVERTISEMENT_FAILED = 36;
+  // Network error, failed to fetch the advertisement via GATT from the remote
+  // devices.
+  GATT_FETCH_ADVERTISEMENT_FAILED = 37;
+  // Network error, failed to fetch the advertisement via L2CAP from the remote
+  // devices.
+  L2CAP_FETCH_ADVERTISEMENT_FAILED = 38;
+  // System error, the medium not available when trying to fetch advertisements.
+  // e.g. fetch advertisements but BT disabled unexpectedly.
+  NOT_AVAILABLE_TO_FETCH_ADVERTISEMENT = 39;
+  // System error, failed to acquire WifiAwareSession
+  ACQUIRE_WIFI_AWARE_SESSION_FOR_DISCOVERING_FAILED = 40;
 
-  // Next ID :34
+  // Next ID :40
+}
+
+// The error for event CONNECT. The range between 31 and 99.
+enum ConnectError {
+  // Network error, failed to connect to remote device because we lost the
+  // target without MAC address to connect to. e.g. BLE cache MAC address in
+  // medium, it may lost when just try to connect.
+  UNEXPECT_TARGET_LOST = 31;
+  // System error, failed to establish connection on GATT
+  ESTABLISH_GATT_CONNECTION_FAILED = 32;
+  // System error, failed to establish connection on L2CAP
+  ESTABLISH_L2CAP_CONNECTION_FAILED = 33;
+  // Developing error, the MAC address not valid for connecting
+  INVALID_MAC_ADDRESS = 34;
+  // Others error, unexpected interrupt when sleep before connect GATT for
+  // waiting GATT server ready. Should not hapepen, it may be the process be
+  // killed.
+  SLEEP_BEFORE_CONNECT_GATT_INTERRUPTED = 35;
+  // Others error, unexpected interrupt when sleep after GATT connect to wait
+  // GATT connection ready to transfer data. Should not hapepen, it may be
+  // the process be killed.
+  SLEEP_AFTER_GATT_CONNECTED_INTERRUPTED = 36;
+  // Network error, failed to configure the GATT connection priority, it may
+  // failed when the connection still wait for the status update from network or
+  // just a RemoteException.
+  REQUEST_GATT_CONNECTION_PRIORITY_FAILED = 37;
+  // Network error, failed to change connection for data transferring on L2CAP
+  // connection.
+  L2CAP_SWITCH_TO_DATA_TRANSFERRING_FAILED = 38;
+  // Network error, failed to change connection for data transferring on GATT
+  // connection.
+  GATT_SWITCH_TO_DATA_TRANSFERRING_FAILED = 39;
 }
 
 enum Description {
@@ -213,4 +264,25 @@ enum Description {
   SCAN_FAILED_BLUETOOTH_DISABLED = 49;
   SCAN_FILTERS_NOT_ALLOWED_FOR_LOCATION = 50;
   BLUETOOTH_SCAN_REJUVENATE_FAILED = 51;
+  NULL_BLE_PERIPHERAL = 52;
+  NULL_BLUETOOTH_GATT = 53;
+  UNEXPECTED_BLUETOOTH_STATE = 54;
+  REMOTE_EXCEPTION = 55;
+  INVALID_BLUETOOTH_SOCKET_STATE_BEFORE_CONNECT = 56;
+  BLUETOOTH_SOCKET_CLOSED_AFTER_CONNECTED = 57;
+  INVALID_BLUETOOTH_CHANNEL = 58;
+  NULL_BLUETOOTH_DEVICE = 59;
+  NULL_BLUETOOTH_PROXY = 60;
+  INVALID_PACKET_LENGTH = 61;
+  INVALID_PACKET_BYTES = 62;
+  UNEXPECTED_EOF_EXCEPTION = 63;
+  SOCKET_CLOSED_OR_TIMEOUT = 64;
+  INVALID_IPV4_ADDRESS = 65;
+  INVALID_IPV6_ADDRESS = 66;
+  NULL_ADDRESS = 67;
+  INVALID_VERSION = 68;
+  SET_CONNECTION_PRIORITY_FAILED = 69;
+  SET_CONNECTION_PRIORITY_INTERRUPTED = 70;
+  UNKNOWN_IO_EXCEPTION = 71;
+  READ_CHARACTERISTIC_FAILED = 72;
 }

@@ -26,7 +26,8 @@
 namespace location {
 namespace nearby {
 
-// Opaque wrapper over a WifiLan service which contains encoded service name.
+// Opaque wrapper over a WifiLan service which contains packed
+// |WifiLanServiceInfo| string name.
 class WifiLanService final {
  public:
   WifiLanService() = default;
@@ -127,7 +128,7 @@ class WifiLanMedium final {
   ~WifiLanMedium() = default;
 
   bool StartAdvertising(const std::string& service_id,
-                        const std::string& wifi_lan_service_info_name);
+                        const std::string& service_info_name);
   bool StopAdvertising(const std::string& service_id);
 
   // Returns true once the WifiLan discovery has been initiated.

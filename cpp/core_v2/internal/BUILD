@@ -155,7 +155,6 @@ cc_test(
         "//testing/base/public:gunit",
         "//testing/base/public:gunit_main",
         "//absl/container:flat_hash_set",
-        "//absl/functional:bind_front",
         "//absl/strings",
         "//absl/synchronization",
         "//absl/time",

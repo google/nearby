@@ -63,6 +63,7 @@ cc_test(
     deps = [
         ":webrtc",
         "//platform_v2/base",
+        "//platform_v2/base:test_util",
         "//platform_v2/impl/g3",  # buildcleaner: keep
         "//platform_v2/public:comm",
         "//platform_v2/public:types",
