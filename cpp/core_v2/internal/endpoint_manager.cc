@@ -241,7 +241,7 @@ EndpointManager::~EndpointManager() {
   NEARBY_LOG(INFO, "EndpointManager is down");
 }
 
-const EndpointManager::FrameProcessor::Handle
+EndpointManager::FrameProcessor::Handle
 EndpointManager::RegisterFrameProcessor(
     V1Frame::FrameType frame_type, EndpointManager::FrameProcessor* processor) {
   const FrameProcessor::Handle handle = processor;

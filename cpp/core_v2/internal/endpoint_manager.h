@@ -95,7 +95,7 @@ class EndpointManager {
   // FrameProcessor* instances are of dynamic duration and survive all sessions.
   // returns unique handle to be used for unregistering.
   // Blocks until registration is complete.
-  const FrameProcessor::Handle RegisterFrameProcessor(
+  FrameProcessor::Handle RegisterFrameProcessor(
       V1Frame::FrameType frame_type, FrameProcessor* processor);
   void UnregisterFrameProcessor(V1Frame::FrameType frame_type,
                                 const void* handle, bool sync = false);

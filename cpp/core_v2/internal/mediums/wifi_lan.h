@@ -23,6 +23,7 @@
 #include "platform_v2/public/mutex.h"
 #include "platform_v2/public/wifi_lan.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 
 namespace location {
 namespace nearby {
@@ -39,7 +40,7 @@ class WifiLan {
   // Sets custom service info name, and then enables WifiLan advertising.
   // Returns true, if name is successfully set, and false otherwise.
   bool StartAdvertising(const std::string& service_id,
-                        const std::string& wifi_lan_service_info_name)
+                        const std::string& service_info_name)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables WifiLan advertising, and restores service info name to
@@ -47,7 +48,7 @@ class WifiLan {
   bool StopAdvertising(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool IsAdvertising() ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsAdvertising(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Enables WifiLan discovery mode. Will report any discoverable services in
   // range through a callback. Returns true, if discovery mode was enabled,
@@ -84,31 +85,53 @@ class WifiLan {
 
  private:
   struct AdvertisingInfo {
-    bool Empty() const { return service_id.empty(); }
-    void Clear() { service_id.clear(); }
+    bool Empty() const { return service_ids.empty(); }
+    void Clear() { service_ids.clear(); }
+    void Add(const std::string& service_id) { service_ids.emplace(service_id); }
+    void Remove(const std::string& service_id) {
+      service_ids.erase(service_id);
+    }
+    bool Existed(const std::string& service_id) const {
+      return service_ids.contains(service_id);
+    }
 
-    std::string service_id;
+    absl::flat_hash_set<std::string> service_ids;
   };
 
   struct DiscoveringInfo {
-    bool Empty() const { return service_id.empty(); }
-    void Clear() { service_id.clear(); }
+    bool Empty() const { return service_ids.empty(); }
+    void Clear() { service_ids.clear(); }
+    void Add(const std::string& service_id) { service_ids.emplace(service_id); }
+    void Remove(const std::string& service_id) {
+      service_ids.erase(service_id);
+    }
+    bool Existed(const std::string& service_id) const {
+      return service_ids.contains(service_id);
+    }
 
-    std::string service_id;
+    absl::flat_hash_set<std::string> service_ids;
   };
 
   struct AcceptingConnectionsInfo {
-    bool Empty() const { return service_id.empty(); }
-    void Clear() { service_id.clear(); }
+    bool Empty() const { return service_ids.empty(); }
+    void Clear() { service_ids.clear(); }
+    void Add(const std::string& service_id) { service_ids.emplace(service_id); }
+    void Remove(const std::string& service_id) {
+      service_ids.erase(service_id);
+    }
+    bool Existed(const std::string& service_id) const {
+      return service_ids.contains(service_id);
+    }
 
-    std::string service_id;
+    absl::flat_hash_set<std::string> service_ids;
   };
 
   // Same as IsAvailable(), but must be called with mutex_ held.
   bool IsAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
     // Same as IsAdvertising(), but must be called with mutex_ held.
-  bool IsAdvertisingLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool IsAdvertisingLocked(const std::string& service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Same as IsDiscovering(), but must be called with mutex_ held.
   bool IsDiscoveringLocked(const std::string& service_id)

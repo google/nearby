@@ -29,6 +29,15 @@
 namespace location {
 namespace nearby {
 
+// Environment config that can control availability of certain mediums for
+// testing.
+struct EnvironmentConfig {
+  // Control whether WEB_RTC medium is enabled in the environment.
+  // This is currently set to false, due to http://b/139734036 that would lead
+  // to flaky tests.
+  bool webrtc_enabled = false;
+};
+
 // MediumEnvironment is a simulated environment which allows multiple instances
 // of simulated HW devices to "work" together as if they are physical.
 // For each medium type it provides necessary methods to implement
@@ -44,6 +53,7 @@ class MediumEnvironment {
       api::WifiLanMedium::DiscoveredServiceCallback;
   using WifiLanAcceptedConnectionCallback =
       api::WifiLanMedium::AcceptedConnectionCallback;
+
   MediumEnvironment(const MediumEnvironment&) = delete;
   MediumEnvironment& operator=(const MediumEnvironment&) = delete;
 
@@ -56,7 +66,7 @@ class MediumEnvironment {
   // tests that are already using it and relying on it being ON.
 
   // Enables Medium environment.
-  void Start();
+  void Start(EnvironmentConfig config = EnvironmentConfig());
   // Disables Medium environment.
   void Stop();
 
@@ -107,6 +117,8 @@ class MediumEnvironment {
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterBluetoothMedium(api::BluetoothClassicMedium& medium);
 
+  const EnvironmentConfig& GetEnvironmentConfig();
+
   // Registers |callback| to receive messages sent to device with id |self_id|.
   void RegisterWebRtcSignalingMessenger(absl::string_view self_id,
                                         OnSignalingMessageCallback callback);
@@ -121,8 +133,7 @@ class MediumEnvironment {
   // Adds medium-related info to allow for discovery/advertising to work.
   // This provides acccess to this medium from other mediums, when protocol
   // expects they should communicate.
-  void RegisterWifiLanMedium(api::WifiLanMedium& medium,
-                             api::WifiLanService& service);
+  void RegisterWifiLanMedium(api::WifiLanMedium& medium);
 
   // Updates advertising info to indicate the current medium is exposing
   // advertising event.
@@ -140,16 +151,14 @@ class MediumEnvironment {
   // with user-specified callback when discovery is enabled, and with default
   // (empty) callback otherwise.
   void UpdateWifiLanMediumForDiscovery(
-      api::WifiLanMedium& medium, api::WifiLanService& service,
-      const std::string& service_id,
-      WifiLanDiscoveredServiceCallback discovery_callback, bool enabled);
+      api::WifiLanMedium& medium, const std::string& service_id,
+      WifiLanDiscoveredServiceCallback callback, bool enabled);
 
   // Updates Accepted connection callback info to allow for dispatch of
   // advertising events.
   void UpdateWifiLanMediumForAcceptedConnection(
-      api::WifiLanMedium& medium, api::WifiLanService& service,
-      const std::string& service_id,
-      WifiLanAcceptedConnectionCallback accepted_connection_callback);
+      api::WifiLanMedium& medium, const std::string& service_id,
+      WifiLanAcceptedConnectionCallback callback);
 
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterWifiLanMedium(api::WifiLanMedium& medium);
@@ -168,11 +177,15 @@ class MediumEnvironment {
     absl::flat_hash_map<api::BluetoothDevice*, std::string> devices;
   };
 
-  struct WifiLanMediumContext {
+  struct WifiLanServiceIdContext {
     WifiLanDiscoveredServiceCallback discovery_callback;
     WifiLanAcceptedConnectionCallback accepted_connection_callback;
-    api::WifiLanService* service = nullptr;
     bool advertising = false;
+  };
+
+  struct WifiLanMediumContext {
+    api::WifiLanService* wifi_lan_service = nullptr;
+    absl::flat_hash_map<std::string, WifiLanServiceIdContext> services;
   };
 
   // This is a singleton object, for which destructor will never be called.
@@ -199,6 +212,7 @@ class MediumEnvironment {
   std::atomic_int job_count_ = 0;
   std::atomic_bool enable_notifications_ = false;
   SingleThreadExecutor executor_;
+  EnvironmentConfig config_;
 
   // The following data members are accessed in the context of a private
   // executor_ thread.

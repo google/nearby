@@ -34,10 +34,10 @@ bool WifiLan::IsAvailable() const {
 bool WifiLan::IsAvailableLocked() const { return medium_.IsValid(); }
 
 bool WifiLan::StartAdvertising(const std::string& service_id,
-                               const std::string& wifi_lan_service_info_name) {
+                               const std::string& service_info_name) {
   MutexLock lock(&mutex_);
 
-  if (wifi_lan_service_info_name.empty()) {
+  if (service_info_name.empty()) {
     NEARBY_LOG(
         INFO,
         "Refusing to turn on WifiLan advertising. Empty service info name.");
@@ -50,45 +50,45 @@ bool WifiLan::StartAdvertising(const std::string& service_id,
     return false;
   }
 
-  if (!medium_.StartAdvertising(service_id, wifi_lan_service_info_name)) {
+  if (!medium_.StartAdvertising(service_id, service_info_name)) {
     NEARBY_LOG(
         INFO, "Failed to turn on WifiLan advertising with service info name=%s",
-        wifi_lan_service_info_name.c_str());
+        service_info_name.c_str());
     return false;
   }
 
   NEARBY_LOGS(INFO) << "Turned on WifiLan advertising with service info name="
-                    << wifi_lan_service_info_name
+                    << service_info_name
                     << ", service id=" << service_id;
-  advertising_info_.service_id = service_id;
+  advertising_info_.Add(service_id);
   return true;
 }
 
 bool WifiLan::StopAdvertising(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
-  if (!IsAdvertisingLocked()) {
+  if (!IsAdvertisingLocked(service_id)) {
     NEARBY_LOG(INFO, "Can't turn off WifiLan advertising; it is already off");
     return false;
   }
 
   NEARBY_LOG(INFO, "Turned off WifiLan advertising with service id=%s",
              service_id.c_str());
-  bool ret = medium_.StopAdvertising(advertising_info_.service_id);
+  bool ret = medium_.StopAdvertising(service_id);
   // Reset our bundle of advertising state to mark that we're no longer
   // advertising.
-  advertising_info_.Clear();
+  advertising_info_.Remove(service_id);
   return ret;
 }
 
-bool WifiLan::IsAdvertising() {
+bool WifiLan::IsAdvertising(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
-  return IsAdvertisingLocked();
+  return IsAdvertisingLocked(service_id);
 }
 
-bool WifiLan::IsAdvertisingLocked() {
-  return !advertising_info_.Empty();
+bool WifiLan::IsAdvertisingLocked(const std::string& service_id) {
+  return advertising_info_.Existed(service_id);
 }
 
 bool WifiLan::StartDiscovery(const std::string& service_id,
@@ -124,7 +124,7 @@ bool WifiLan::StartDiscovery(const std::string& service_id,
   NEARBY_LOG(INFO, "Turned on WifiLan discovering with service id=%s",
              service_id.c_str());
   // Mark the fact that we're currently performing a WifiLan discovering.
-  discovering_info_.service_id = service_id;
+  discovering_info_.Add(service_id);
   return true;
 }
 
@@ -152,7 +152,7 @@ bool WifiLan::IsDiscovering(const std::string& service_id) {
 }
 
 bool WifiLan::IsDiscoveringLocked(const std::string& service_id) {
-  return !discovering_info_.Empty();
+  return discovering_info_.Existed(service_id);
 }
 
 bool WifiLan::StartAcceptingConnections(const std::string& service_id,
@@ -188,7 +188,7 @@ bool WifiLan::StartAcceptingConnections(const std::string& service_id,
     return false;
   }
 
-  accepting_connections_info_.service_id = service_id;
+  accepting_connections_info_.Add(service_id);
   return true;
 }
 
@@ -202,11 +202,10 @@ bool WifiLan::StopAcceptingConnections(const std::string& service_id) {
     return false;
   }
 
-  bool ret =
-      medium_.StopAcceptingConnections(accepting_connections_info_.service_id);
+  bool ret = medium_.StopAcceptingConnections(service_id);
   // Reset our bundle of accepting connections state to mark that we're no
   // longer accepting connections.
-  accepting_connections_info_.Clear();
+  accepting_connections_info_.Remove(service_id);
   return ret;
 }
 
@@ -217,7 +216,7 @@ bool WifiLan::IsAcceptingConnections(const std::string& service_id) {
 }
 
 bool WifiLan::IsAcceptingConnectionsLocked(const std::string& service_id) {
-  return !accepting_connections_info_.Empty();
+  return accepting_connections_info_.Existed(service_id);
 }
 
 WifiLanSocket WifiLan::Connect(WifiLanService& wifi_lan_service,
