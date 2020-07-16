@@ -37,7 +37,7 @@ class AtomicReference<T, std::enable_if_t<sizeof(T) <= sizeof(std::uint32_t) &&
     final {
  public:
   using Platform = api::ImplementationPlatform;
-  explicit AtomicReference(T value)
+  AtomicReference(T value)
       : impl_(Platform::CreateAtomicUint32(static_cast<std::uint32_t>(value))) {
   }
   ~AtomicReference() = default;
