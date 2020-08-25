@@ -21,13 +21,14 @@
 #include "platform_v2/public/logging.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
 namespace {
 
 constexpr absl::string_view kServiceID{"com.google.location.nearby.apps.test"};
-constexpr absl::string_view kServiceName{"service name"};
+constexpr absl::string_view kServiceInfoName{"Simulated service info name"};
 
 class WifiLanMediumTest : public ::testing::Test {
  protected:
@@ -58,10 +59,10 @@ TEST_F(WifiLanMediumTest, CanStartAdvertising) {
   WifiLanMedium wifi_a;
   WifiLanMedium wifi_b;
   std::string service_id(kServiceID);
-  std::string service_name{kServiceName};
+  std::string service_info_name{kServiceInfoName};
   CountDownLatch found_latch(1);
 
-  wifi_a.StartAdvertising(service_id, service_name);
+  wifi_a.StartAdvertising(service_id, service_info_name);
 
   EXPECT_TRUE(wifi_b.StartDiscovery(
       service_id, DiscoveredServiceCallback{
@@ -82,7 +83,7 @@ TEST_F(WifiLanMediumTest, CanStartDiscovery) {
   WifiLanMedium wifi_a;
   WifiLanMedium wifi_b;
   std::string service_id(kServiceID);
-  std::string service_name{kServiceName};
+  std::string service_info_name{kServiceInfoName};
   CountDownLatch found_latch(1);
   CountDownLatch lost_latch(1);
 
@@ -90,16 +91,16 @@ TEST_F(WifiLanMediumTest, CanStartDiscovery) {
                         DiscoveredServiceCallback{
                             .service_discovered_cb =
                                 [&found_latch](WifiLanService& service,
-                                               const std::string& service_id) {
+                                               absl::string_view service_id) {
                                   found_latch.CountDown();
                                 },
                             .service_lost_cb =
                                 [&lost_latch](WifiLanService& service,
-                                              const std::string& service_id) {
+                                              absl::string_view service_id) {
                                   lost_latch.CountDown();
                                 },
                         });
-  EXPECT_TRUE(wifi_b.StartAdvertising(service_id, service_name));
+  EXPECT_TRUE(wifi_b.StartAdvertising(service_id, service_info_name));
   EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
   EXPECT_TRUE(wifi_b.StopAdvertising(service_id));
   EXPECT_TRUE(lost_latch.Await(absl::Milliseconds(1000)).result());
@@ -112,7 +113,7 @@ TEST_F(WifiLanMediumTest, CanStopDiscovery) {
   WifiLanMedium wifi_a;
   WifiLanMedium wifi_b;
   std::string service_id(kServiceID);
-  std::string service_name{kServiceName};
+  std::string service_info_name{kServiceInfoName};
   CountDownLatch found_latch(1);
   CountDownLatch lost_latch(1);
 
@@ -120,16 +121,16 @@ TEST_F(WifiLanMediumTest, CanStopDiscovery) {
                         DiscoveredServiceCallback{
                             .service_discovered_cb =
                                 [&found_latch](WifiLanService& service,
-                                               const std::string& service_id) {
+                                               absl::string_view service_id) {
                                   found_latch.CountDown();
                                 },
                             .service_lost_cb =
                                 [&lost_latch](WifiLanService& service,
-                                              const std::string& service_id) {
+                                              absl::string_view service_id) {
                                   lost_latch.CountDown();
                                 },
                         });
-  EXPECT_TRUE(wifi_b.StartAdvertising(service_id, service_name));
+  EXPECT_TRUE(wifi_b.StartAdvertising(service_id, service_info_name));
   EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
   EXPECT_TRUE(wifi_a.StopDiscovery(service_id));
   EXPECT_TRUE(wifi_b.StopAdvertising(service_id));
@@ -142,7 +143,7 @@ TEST_F(WifiLanMediumTest, CanStartAcceptingConnectionsAndConnect) {
   WifiLanMedium wifi_a;
   WifiLanMedium wifi_b;
   std::string service_id(kServiceID);
-  std::string service_name{kServiceName};
+  std::string service_info_name{kServiceInfoName};
   CountDownLatch found_latch(1);
   CountDownLatch accepted_latch(1);
 
@@ -159,7 +160,7 @@ TEST_F(WifiLanMediumTest, CanStartAcceptingConnectionsAndConnect) {
                 found_latch.CountDown();
               },
       });
-  wifi_b.StartAdvertising(service_id, service_name);
+  wifi_b.StartAdvertising(service_id, service_info_name);
   wifi_b.StartAcceptingConnections(
       service_id,
       AcceptedConnectionCallback{
@@ -182,6 +183,7 @@ TEST_F(WifiLanMediumTest, CanStartAcceptingConnectionsAndConnect) {
   }
   EXPECT_TRUE(accepted_latch.Await(absl::Milliseconds(1000)).result());
   EXPECT_TRUE(socket_a.IsValid());
+  wifi_b.StopAcceptingConnections(service_id);
   wifi_b.StopAdvertising(service_id);
   wifi_a.StopDiscovery(service_id);
   env_.Stop();

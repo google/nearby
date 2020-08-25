@@ -48,9 +48,7 @@ bool BluetoothSocket::IsClosed() const {
   return closed_;
 }
 
-bool BluetoothSocket::IsConnectedLocked() const {
-  return input_ != nullptr;
-}
+bool BluetoothSocket::IsConnectedLocked() const { return input_ != nullptr; }
 
 InputStream& BluetoothSocket::GetInputStream() {
   auto* remote_socket = GetRemoteSocket();
@@ -177,13 +175,13 @@ Exception BluetoothServerSocket::DoClose() {
 BluetoothClassicMedium::BluetoothClassicMedium(api::BluetoothAdapter& adapter)
     // TODO(apolyudov): implement and use downcast<> with static assertions.
     : adapter_(static_cast<BluetoothAdapter*>(&adapter)) {
-  adapter_->SetMedium(this);
+  adapter_->SetBluetoothClassicMedium(this);
   auto& env = MediumEnvironment::Instance();
   env.RegisterBluetoothMedium(*this, GetAdapter());
 }
 
 BluetoothClassicMedium::~BluetoothClassicMedium() {
-  adapter_->SetMedium(nullptr);
+  adapter_->SetBluetoothClassicMedium(nullptr);
   auto& env = MediumEnvironment::Instance();
   env.UnregisterBluetoothMedium(*this);
 }
@@ -207,7 +205,8 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
              this, &GetAdapter(), &GetAdapter().GetDevice());
   // First, find an instance of remote medium, that exposed this device.
   auto& adapter = static_cast<BluetoothDevice&>(remote_device).GetAdapter();
-  auto* medium = static_cast<BluetoothClassicMedium*>(adapter.GetMedium());
+  auto* medium =
+      static_cast<BluetoothClassicMedium*>(adapter.GetBluetoothClassicMedium());
 
   if (!medium) return {};  // Adapter is not bound to medium. Bail out.
 
@@ -253,6 +252,12 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
   absl::MutexLock lock(&mutex_);
   sockets_.emplace(service_uuid, socket.get());
   return socket;
+}
+
+api::BluetoothDevice* BluetoothClassicMedium::FindRemoteDevice(
+    const std::string& mac_address) {
+  auto& env = MediumEnvironment::Instance();
+  return env.FindBluetoothDevice(mac_address);
 }
 
 }  // namespace g3

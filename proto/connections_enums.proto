@@ -160,7 +160,7 @@ enum PayloadStatus {
   REMOTE_CANCELLATION = 8;
 }
 
-// next_id: 16
+// next_id: 17
 // Result of an upgrade attempt.
 enum BandwidthUpgradeResult {
   UNKNOWN_BANDWIDTH_UPGRADE_RESULT = 0;
@@ -206,9 +206,12 @@ enum BandwidthUpgradeResult {
 
   // Error during setting up WIFI Direct.
   WIFI_DIRECT_MEDIUM_ERROR = 15;
+
+  // Error during setting up WebRTC.
+  WEB_RTC_MEDIUM_ERROR = 16;
 }
 
-// next_id: 34
+// next_id: 35
 // The stage at which an error occurred.
 enum BandwidthUpgradeErrorStage {
   UNKNOWN_BANDWIDTH_UPGRADE_ERROR_STAGE = 0;
@@ -291,4 +294,6 @@ enum BandwidthUpgradeErrorStage {
   // WEB_RTC
   // Creating the WEB_RTC EndpointChannel
   WEB_RTC_SOCKET_CREATION = 33;
+  // On the incoming side, listening for incoming WebRTC connections.
+  WEB_RTC_LISTEN_INCOMING = 34;
 }

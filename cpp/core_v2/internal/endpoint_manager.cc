@@ -241,8 +241,7 @@ EndpointManager::~EndpointManager() {
   NEARBY_LOG(INFO, "EndpointManager is down");
 }
 
-EndpointManager::FrameProcessor::Handle
-EndpointManager::RegisterFrameProcessor(
+EndpointManager::FrameProcessor::Handle EndpointManager::RegisterFrameProcessor(
     V1Frame::FrameType frame_type, EndpointManager::FrameProcessor* processor) {
   const FrameProcessor::Handle handle = processor;
   CountDownLatch latch(1);
@@ -332,6 +331,7 @@ void EndpointManager::EnsureWorkersTerminated(const std::string& endpoint_id) {
 void EndpointManager::RegisterEndpoint(ClientProxy* client,
                                        const std::string& endpoint_id,
                                        const ConnectionResponseInfo& info,
+                                       const ConnectionOptions& options,
                                        std::unique_ptr<EndpointChannel> channel,
                                        const ConnectionListener& listener) {
   CountDownLatch latch(1);
@@ -343,7 +343,8 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
   // We ignore the risk of job not scheduled (and an associated risk of memory
   // leak), because this may only happen during service shutdown.
   RunOnEndpointManagerThread([this, client, channel = channel.release(),
-                              &endpoint_id, &info, &listener, &latch]() {
+                              &endpoint_id, &info, &options, &listener,
+                              &latch]() {
     // Pass ownership of channel to EndpointChannelManager
     NEARBY_LOG(INFO, "Registering endpoint with channel manager: id=%s",
                endpoint_id.c_str());
@@ -396,7 +397,7 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
 
     // It's now time to let the client know of this new connection so that
     // they can accept or reject it.
-    client->OnConnectionInitiated(endpoint_id, info, listener);
+    client->OnConnectionInitiated(endpoint_id, info, options, listener);
     latch.CountDown();
   });
   latch.Await();

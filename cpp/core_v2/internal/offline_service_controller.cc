@@ -20,9 +20,7 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-OfflineServiceController::~OfflineServiceController() {
-  Stop();
-}
+OfflineServiceController::~OfflineServiceController() { Stop(); }
 
 void OfflineServiceController::Stop() {
   if (stop_.Set(true)) return;
@@ -52,8 +50,8 @@ void OfflineServiceController::StopDiscovery(ClientProxy* client) {
 
 Status OfflineServiceController::RequestConnection(
     ClientProxy* client, const std::string& endpoint_id,
-    const ConnectionRequestInfo& info) {
-  return pcp_manager_.RequestConnection(client, endpoint_id, info);
+    const ConnectionRequestInfo& info, const ConnectionOptions& options) {
+  return pcp_manager_.RequestConnection(client, endpoint_id, info, options);
 }
 
 Status OfflineServiceController::AcceptConnection(

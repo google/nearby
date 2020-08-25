@@ -94,6 +94,8 @@ class EndpointChannelManager final {
   bool UnregisterChannelForEndpoint(const std::string& endpoint_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  int GetConnectedEndpointsCount() const ABSL_LOCKS_EXCLUDED(mutex_);
+
  private:
   // Tracks channel state for all endpoints. This includes what EndpointChannel
   // the endpoint is currently using and whether or not the EndpointChannel has
@@ -111,9 +113,7 @@ class EndpointChannelManager final {
       }
 
       // True if we have a 'context' for the endpoint.
-      bool IsEncrypted() const {
-        return context != nullptr;
-      }
+      bool IsEncrypted() const { return context != nullptr; }
 
       std::shared_ptr<EndpointChannel> channel;
       std::shared_ptr<EncryptionContext> context;
@@ -148,6 +148,7 @@ class EndpointChannelManager final {
                         proto::connections::DisconnectionReason reason);
 
     bool EncryptChannel(EndpointData* endpoint);
+    int GetConnectedEndpointsCount() const { return endpoints_.size(); }
 
    private:
     // Endpoint ID -> EndpointData. Contains everything we know about the
@@ -160,7 +161,7 @@ class EndpointChannelManager final {
                                 std::unique_ptr<EndpointChannel> channel)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  Mutex mutex_;
+  mutable Mutex mutex_;
   ChannelState channel_state_ ABSL_GUARDED_BY(mutex_);
 };
 

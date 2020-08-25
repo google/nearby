@@ -34,9 +34,7 @@ cc_library(
     hdrs = [
         "posix_condition_variable.h",
     ],
-    visibility = [
-        "//platform_v2/impl:__subpackages__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":posix_mutex",
         "//platform_v2/api:types",

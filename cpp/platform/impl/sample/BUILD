@@ -19,11 +19,7 @@ cc_library(
         "sample_platform.cc",
         "settable_future_impl.h",
     ],
-    visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//core:__subpackages__",
-        "//location/nearby/setup/core:__subpackages__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         "//platform:types",
         "//platform:utils",

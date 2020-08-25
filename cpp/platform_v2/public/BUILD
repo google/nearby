@@ -59,10 +59,12 @@ cc_library(
 cc_library(
     name = "comm",
     srcs = [
+        "ble.cc",
         "bluetooth_classic.cc",
         "wifi_lan.cc",
     ],
     hdrs = [
+        "ble.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
         "webrtc.h",
@@ -105,6 +107,7 @@ cc_test(
     srcs = [
         "atomic_boolean_test.cc",
         "atomic_reference_test.cc",
+        "ble_test.cc",
         "bluetooth_adapter_test.cc",
         "bluetooth_classic_test.cc",
         "cancelable_alarm_test.cc",
@@ -129,6 +132,7 @@ cc_test(
         "//platform_v2/base:test_util",
         "//platform_v2/impl/g3",  # build_cleaner: keep
         "//testing/base/public:gunit_main",
+        "//absl/strings",
         "//absl/synchronization",
         "//absl/time",
     ],

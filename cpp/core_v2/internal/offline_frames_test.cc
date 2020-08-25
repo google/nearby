@@ -93,7 +93,7 @@ TEST(OfflineFramesTest, CanGenerateConnectionRequest) {
       >
     >)pb";
   ByteArray bytes = ForConnectionRequest(
-      std::string(kEndpointId), std::string(kEndpointName), kNonce,
+      std::string(kEndpointId), ByteArray{std::string(kEndpointName)}, kNonce,
       std::vector(kMediums.begin(), kMediums.end()));
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
@@ -171,7 +171,7 @@ TEST(OfflineFramesTest, CanGenerateDataPayloadTransfer) {
   EXPECT_THAT(message, EqualsProto(kExpected));
 }
 
-TEST(OfflineFramesTest, CanGenerateBandwidthUpgradeWifiHotspot) {
+TEST(OfflineFramesTest, CanGenerateBwuWifiHotspotPathAvailable) {
   constexpr char kExpected[] =
       R"pb(
     version: V1
@@ -189,14 +189,60 @@ TEST(OfflineFramesTest, CanGenerateBandwidthUpgradeWifiHotspot) {
         >
       >
     >)pb";
-  ByteArray bytes = ForBandwidthUpgradeWifiHotspot("ssid", "password", 1234);
+  ByteArray bytes = ForBwuWifiHotspotPathAvailable("ssid", "password", 1234);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = FromBytes(bytes).result();
   EXPECT_THAT(message, EqualsProto(kExpected));
 }
 
-TEST(OfflineFramesTest, CanGenerateBandwidthUpgradeLastWrite) {
+TEST(OfflineFramesTest, CanGenerateBwuWifiLanPathAvailable) {
+  constexpr char kExpected[] =
+      R"pb(
+    version: V1
+    v1: <
+      type: BANDWIDTH_UPGRADE_NEGOTIATION
+      bandwidth_upgrade_negotiation: <
+        event_type: UPGRADE_PATH_AVAILABLE
+        upgrade_path_info: <
+          medium: WIFI_LAN
+          wifi_lan_socket: < ip_address: "\x01\x02\x03\x04" wifi_port: 1234 >
+        >
+      >
+    >)pb";
+  ByteArray bytes = ForBwuWifiLanPathAvailable("\x01\x02\x03\x04", 1234);
+  auto response = FromBytes(bytes);
+  ASSERT_TRUE(response.ok());
+  OfflineFrame message = FromBytes(bytes).result();
+  EXPECT_THAT(message, EqualsProto(kExpected));
+}
+
+TEST(OfflineFramesTest, CanGenerateBwuBluetoothPathAvailable) {
+  constexpr char kExpected[] =
+      R"pb(
+    version: V1
+    v1: <
+      type: BANDWIDTH_UPGRADE_NEGOTIATION
+      bandwidth_upgrade_negotiation: <
+        event_type: UPGRADE_PATH_AVAILABLE
+        upgrade_path_info: <
+          medium: BLUETOOTH
+          bluetooth_credentials: <
+            service_name: "service"
+            mac_address: "\x11\x22\x33\x44\x55\x66"
+          >
+        >
+      >
+    >)pb";
+  ByteArray bytes =
+      ForBwuBluetoothPathAvailable("service", "\x11\x22\x33\x44\x55\x66");
+  auto response = FromBytes(bytes);
+  ASSERT_TRUE(response.ok());
+  OfflineFrame message = FromBytes(bytes).result();
+  EXPECT_THAT(message, EqualsProto(kExpected));
+}
+
+TEST(OfflineFramesTest, CanGenerateBwuLastWrite) {
   constexpr char kExpected[] =
       R"pb(
     version: V1
@@ -204,14 +250,14 @@ TEST(OfflineFramesTest, CanGenerateBandwidthUpgradeLastWrite) {
       type: BANDWIDTH_UPGRADE_NEGOTIATION
       bandwidth_upgrade_negotiation: < event_type: LAST_WRITE_TO_PRIOR_CHANNEL >
     >)pb";
-  ByteArray bytes = ForBandwidthUpgradeLastWrite();
+  ByteArray bytes = ForBwuLastWrite();
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = FromBytes(bytes).result();
   EXPECT_THAT(message, EqualsProto(kExpected));
 }
 
-TEST(OfflineFramesTest, CanGenerateBandwidthUpgradeSafeToClose) {
+TEST(OfflineFramesTest, CanGenerateBwuSafeToClose) {
   constexpr char kExpected[] =
       R"pb(
     version: V1
@@ -219,14 +265,14 @@ TEST(OfflineFramesTest, CanGenerateBandwidthUpgradeSafeToClose) {
       type: BANDWIDTH_UPGRADE_NEGOTIATION
       bandwidth_upgrade_negotiation: < event_type: SAFE_TO_CLOSE_PRIOR_CHANNEL >
     >)pb";
-  ByteArray bytes = ForBandwidthUpgradeSafeToClose();
+  ByteArray bytes = ForBwuSafeToClose();
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = FromBytes(bytes).result();
   EXPECT_THAT(message, EqualsProto(kExpected));
 }
 
-TEST(OfflineFramesTest, CanGenerateBandwidthUpgradeIntroduction) {
+TEST(OfflineFramesTest, CanGenerateBwuIntroduction) {
   constexpr char kExpected[] =
       R"pb(
     version: V1
@@ -237,7 +283,7 @@ TEST(OfflineFramesTest, CanGenerateBandwidthUpgradeIntroduction) {
         client_introduction: < endpoint_id: "ABC" >
       >
     >)pb";
-  ByteArray bytes = ForBandwidthUpgradeIntroduction(std::string(kEndpointId));
+  ByteArray bytes = ForBwuIntroduction(std::string(kEndpointId));
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = FromBytes(bytes).result();

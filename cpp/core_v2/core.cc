@@ -68,10 +68,11 @@ void Core::StopDiscovery(ResultCallback callback) {
 
 void Core::RequestConnection(absl::string_view endpoint_id,
                              ConnectionRequestInfo info,
+                             ConnectionOptions options,
                              ResultCallback callback) {
   assert(!endpoint_id.empty());
 
-  router_.RequestConnection(&client_, endpoint_id, info, callback);
+  router_.RequestConnection(&client_, endpoint_id, info, options, callback);
 }
 
 void Core::AcceptConnection(absl::string_view endpoint_id,

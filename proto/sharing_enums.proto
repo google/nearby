@@ -147,6 +147,12 @@ enum EventType {
 
   // Receiver removes quick settings tile.
   REMOVE_QUICK_SETTINGS_TILE = 37;
+
+  // Receiver phone consent clicked.
+  LAUNCH_PHONE_CONSENT = 38;
+
+  // Receiver taps quick settings tile.
+  TAP_QUICK_SETTINGS_TILE = 39;
 }
 
 // Event category to differentiate whether this comes from sender or receiver,
@@ -190,6 +196,19 @@ enum AttachmentTransmissionStatus {
   COMPLETE_ATTACHMENT_TRANSMISSION_STATUS = 1;
   CANCELED_ATTACHMENT_TRANSMISSION_STATUS = 2;
   FAILED_ATTACHMENT_TRANSMISSION_STATUS = 3;
+  REJECTED_ATTACHMENT = 4;
+  TIMED_OUT_ATTACHMENT = 5;
+  AWAITING_REMOTE_ACCEPTANCE_FAILED_ATTACHMENT = 6;
+  NOT_ENOUGH_SPACE_ATTACHMENT = 7;
+  FAILED_NO_TRANSFER_UPDATE_CALLBACK = 8;
+  MEDIA_UNAVAILABLE_ATTACHMENT = 9;
+  UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT = 10;
+  NO_ATTACHMENT_FOUND = 11;
+  FAILED_NO_SHARE_TARGET_ENDPOINT = 12;
+  FAILED_PAIRED_KEYHANDSHAKE = 13;
+  FAILED_NULL_CONNECTION = 14;
+  FAILED_NO_PAYLOAD = 15;
+  FAILED_WRITE_INTRODUCTION = 16;
 }
 
 // The status of advertising and discovering sessions. Used by

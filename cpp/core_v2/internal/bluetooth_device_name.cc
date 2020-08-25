@@ -22,6 +22,7 @@
 #include "platform_v2/base/base64_utils.h"
 #include "platform_v2/base/base_input_stream.h"
 #include "platform_v2/public/logging.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 
 namespace location {
@@ -31,7 +32,7 @@ namespace connections {
 BluetoothDeviceName::BluetoothDeviceName(Version version, Pcp pcp,
                                          absl::string_view endpoint_id,
                                          const ByteArray& service_id_hash,
-                                         absl::string_view endpoint_name) {
+                                         const ByteArray& endpoint_info) {
   if (version != Version::kV1 || endpoint_id.empty() ||
       endpoint_id.length() != kEndpointIdLength ||
       service_id_hash.size() != kServiceIdHashLength) {
@@ -50,7 +51,7 @@ BluetoothDeviceName::BluetoothDeviceName(Version version, Pcp pcp,
   pcp_ = pcp;
   endpoint_id_ = std::string(endpoint_id);
   service_id_hash_ = service_id_hash;
-  endpoint_name_ = std::string(endpoint_name);
+  endpoint_info_ = endpoint_info;
 }
 
 BluetoothDeviceName::BluetoothDeviceName(
@@ -120,24 +121,22 @@ BluetoothDeviceName::BluetoothDeviceName(
   // untouched.
   base_input_stream.ReadBytes(kReservedLength);
 
-  // The next 1 byte are supposed to be the length of the endpoint_name.
-  std::uint32_t expected_endpoint_name_length = base_input_stream.ReadUint8();
+  // The next 1 byte are supposed to be the length of the endpoint_info.
+  std::uint32_t expected_endpoint_info_length = base_input_stream.ReadUint8();
 
-  // The rest bytes are supposed to be the endpoint_name
-  auto endpoint_name_bytes =
-      base_input_stream.ReadBytes(expected_endpoint_name_length);
-  if (endpoint_name_bytes.Empty() ||
-      endpoint_name_bytes.size() != expected_endpoint_name_length) {
+  // The rest bytes are supposed to be the endpoint_info
+  endpoint_info_ = base_input_stream.ReadBytes(expected_endpoint_info_length);
+  if (endpoint_info_.Empty() ||
+      endpoint_info_.size() != expected_endpoint_info_length) {
     NEARBY_LOG(INFO,
                "Cannot deserialize BluetoothDeviceName: expected "
-               "endpointName to be %d bytes, got %" PRIu64,
-               expected_endpoint_name_length, endpoint_name_bytes.size());
+               "endpoint info to be %d bytes, got %" PRIu64,
+               expected_endpoint_info_length, endpoint_info_.size());
 
     // Clear enpoint_id for validadity.
     endpoint_id_.clear();
     return;
   }
-  endpoint_name_ = std::string{endpoint_name_bytes};
 }
 
 BluetoothDeviceName::operator std::string() const {
@@ -154,14 +153,14 @@ BluetoothDeviceName::operator std::string() const {
 
   ByteArray reserved_bytes{kReservedLength};
 
-  std::string usable_endpoint_name(endpoint_name_);
-  if (endpoint_name_.size() > kMaxEndpointNameLength) {
+  ByteArray usable_endpoint_info(endpoint_info_);
+  if (endpoint_info_.size() > kMaxEndpointInfoLength) {
     NEARBY_LOG(INFO,
                "While serializing Advertisement, truncating Endpoint Name %s "
                "(%lu bytes) down to %d bytes",
-               endpoint_name_.c_str(), endpoint_name_.size(),
-               kMaxEndpointNameLength);
-    usable_endpoint_name.erase(kMaxEndpointNameLength);
+               absl::BytesToHexString(endpoint_info_.data()).c_str(),
+               endpoint_info_.size(), kMaxEndpointInfoLength);
+    usable_endpoint_info.SetData(endpoint_info_.data(), kMaxEndpointInfoLength);
   }
 
   // clang-format off
@@ -169,8 +168,8 @@ BluetoothDeviceName::operator std::string() const {
                                  endpoint_id_,
                                  std::string(service_id_hash_),
                                  std::string(reserved_bytes),
-                                 std::string(1, usable_endpoint_name.size()),
-                                 usable_endpoint_name);
+                                 std::string(1, usable_endpoint_info.size()),
+                                 std::string(usable_endpoint_info));
   // clang-format on
 
   return Base64Utils::Encode(ByteArray{std::move(out)});

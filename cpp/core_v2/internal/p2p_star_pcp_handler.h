@@ -20,7 +20,6 @@
 #include "core_v2/internal/client_proxy.h"
 #include "core_v2/internal/endpoint_channel_manager.h"
 #include "core_v2/internal/endpoint_manager.h"
-#include "core_v2/internal/mediums/mediums.h"
 #include "core_v2/internal/p2p_cluster_pcp_handler.h"
 #include "core_v2/internal/pcp.h"
 #include "core_v2/strategy.h"
@@ -31,7 +30,7 @@ namespace connections {
 
 // Concrete implementation of the PcpHandler for the P2P_STAR PCP. This Pcp is
 // for mediums that have one server with (potentially) many clients; all mediums
-// in P2P_CLUSTER are valid for P2P_STAR, but not all mediums in P2P_STAR and
+// in P2P_CLUSTER are valid for P2P_STAR, but not all mediums in P2P_STAR are
 // valid for P2P_CLUSTER.
 //
 // Currently, this implementation advertises/discovers over Bluetooth
@@ -49,9 +48,6 @@ class P2pStarPcpHandler : public P2pClusterPcpHandler {
 
   bool CanSendOutgoingConnection(ClientProxy* client) const override;
   bool CanReceiveIncomingConnection(ClientProxy* client) const override;
-
- private:
-  Mediums* mediums_;
 };
 
 }  // namespace connections

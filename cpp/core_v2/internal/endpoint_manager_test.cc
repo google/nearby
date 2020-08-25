@@ -20,6 +20,7 @@
 #include "core_v2/internal/client_proxy.h"
 #include "core_v2/internal/endpoint_channel_manager.h"
 #include "core_v2/internal/offline_frames.h"
+#include "core_v2/options.h"
 #include "platform_v2/base/byte_array.h"
 #include "platform_v2/base/exception.h"
 #include "platform_v2/public/count_down_latch.h"
@@ -54,8 +55,7 @@ class MockEndpointChannel : public EndpointChannel {
   MOCK_METHOD(std::string, GetName, (), (const override));
   MOCK_METHOD(Medium, GetMedium, (), (const override));
   MOCK_METHOD(void, EnableEncryption,
-              (std::shared_ptr<EncryptionContext> context),
-              (override));
+              (std::shared_ptr<EncryptionContext> context), (override));
   MOCK_METHOD(bool, IsPaused, (), (const override));
   MOCK_METHOD(void, Pause, (), (override));
   MOCK_METHOD(void, Resume, (), (override));
@@ -103,22 +103,23 @@ class EndpointManagerTest : public ::testing::Test {
     EXPECT_CALL(*channel, GetLastReadTimestamp())
         .WillRepeatedly(Return(start_time_));
     EXPECT_CALL(mock_listener_.initiated_cb, Call).Times(1);
-    em_.RegisterEndpoint(&client_, endpoint_id_, info_, std::move(channel),
-                         listener_);
+    em_.RegisterEndpoint(&client_, endpoint_id_, info_, options_,
+                         std::move(channel), listener_);
     if (should_close) {
       EXPECT_TRUE(done.Await(absl::Milliseconds(1000)).result());
     }
   }
 
   ClientProxy client_;
+  ConnectionOptions options_;
   std::vector<std::unique_ptr<EndpointManager::FrameProcessor>> processors_;
   EndpointChannelManager ecm_;
   EndpointManager em_{&ecm_};
   std::string endpoint_id_ = "endpoint_id";
   ConnectionResponseInfo info_ = {
-      .remote_endpoint_name = "name",
+      .remote_endpoint_info = ByteArray{"info"},
       .authentication_token = "auth_token",
-      .raw_authentication_token = ByteArray("auth_token"),
+      .raw_authentication_token = ByteArray{"auth_token"},
       .is_incoming_connection = true,
   };
   struct MockConnectionListener {
@@ -172,8 +173,10 @@ TEST_F(EndpointManagerTest, UnregisterEndpointCallsOnDisconnected) {
 TEST_F(EndpointManagerTest, RegisterFrameProcessorWorks) {
   auto endpoint_channel = std::make_unique<MockEndpointChannel>();
   auto connect_request = std::make_unique<MockFrameProcessor>();
-  auto read_data = parser::ForConnectionRequest("endpoint_id", "endpoint_name",
-                                                1234, std::vector{Medium::BLE});
+  ByteArray endpoint_info{"endpoint_name"};
+  auto read_data =
+      parser::ForConnectionRequest("endpoint_id", endpoint_info,
+                                   1234, std::vector{Medium::BLE});
   EXPECT_CALL(*connect_request, OnIncomingFrame);
   EXPECT_CALL(*connect_request, OnEndpointDisconnect);
   EXPECT_CALL(*endpoint_channel, Read())

@@ -88,7 +88,7 @@ class ByteArray {
 
   // Moves string out of temporary ByteArray, allowing for a zero-copy
   // operation.
-  explicit operator std::string() const&& { return std::move(data_); }
+  explicit operator std::string() && { return std::move(data_); }
 
  private:
   std::string data_;

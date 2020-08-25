@@ -154,6 +154,8 @@ class WifiLanMedium final {
 
   api::WifiLanMedium& GetImpl() { return *impl_; }
 
+  WifiLanService FindRemoteService(const std::string& ip_address, int port);
+
  private:
   Mutex mutex_;
   std::unique_ptr<api::WifiLanMedium> impl_;

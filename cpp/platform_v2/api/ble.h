@@ -19,7 +19,6 @@
 #include "platform_v2/base/byte_array.h"
 #include "platform_v2/base/input_stream.h"
 #include "platform_v2/base/output_stream.h"
-#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -29,15 +28,17 @@ namespace api {
 // particular BLE device to connect to its GATT server.
 class BlePeripheral {
  public:
-  virtual ~BlePeripheral() {}
+  virtual ~BlePeripheral() = default;
 
-  // The returned reference lifetime matches BlePeripheral object.
-  virtual BluetoothDevice& GetBluetoothDevice() = 0;
+  virtual std::string GetName() const = 0;
+
+  virtual ByteArray GetAdvertisementBytes(
+      const std::string& service_id) const = 0;
 };
 
 class BleSocket {
  public:
-  virtual ~BleSocket() {}
+  virtual ~BleSocket() = default;
 
   // Returns the InputStream of the BleSocket.
   // On error, returned stream will report Exception::kIo on any operation.
@@ -59,64 +60,58 @@ class BleSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   virtual Exception Close() = 0;
 
-  // The returned object is not owned by the caller, and can be invalidated once
-  // the BleSocket object is destroyed.
-  virtual BlePeripheral& GetRemotePeripheral() = 0;
+  // Returns valid BlePeripheral pointer if there is a connection, and
+  // nullptr otherwise.
+  virtual BlePeripheral* GetRemotePeripheral() = 0;
 };
 
 // Container of operations that can be performed over the BLE medium.
 class BleMedium {
  public:
-  virtual ~BleMedium() {}
+  virtual ~BleMedium() = default;
 
-  virtual bool StartAdvertising(absl::string_view service_id,
-                                const ByteArray& advertisement) = 0;
-  virtual void StopAdvertising(absl::string_view service_id) = 0;
+  virtual bool StartAdvertising(const std::string& service_id,
+                                const ByteArray& advertisement_bytes) = 0;
+  virtual bool StopAdvertising(const std::string& service_id) = 0;
 
-  class DiscoveredPeripheralCallback {
-   public:
-    virtual ~DiscoveredPeripheralCallback() {}
-
-    // The BlePeripheral* is not owned by callbacks.
-    // It is passed to give access to its non-const methods.
-    // It is guaranteed to be valid for the duration of call.
-    virtual void OnPeripheralDiscovered(BlePeripheral* ble_peripheral,
-                                        absl::string_view service_id,
-                                        const ByteArray& advertisement) = 0;
-    virtual void OnPeripheralLost(BlePeripheral* ble_peripheral,
-                                  absl::string_view service_id) = 0;
+  // Callback that is invoked when a discovered peripheral is found or lost.
+  struct DiscoveredPeripheralCallback {
+    std::function<void(BlePeripheral& peripheral,
+                       const std::string& service_id)>
+        peripheral_discovered_cb =
+            DefaultCallback<BlePeripheral&, const std::string&>();
+    std::function<void(BlePeripheral& peripheral,
+                       const std::string& service_id)>
+        peripheral_lost_cb =
+            DefaultCallback<BlePeripheral&, const std::string&>();
   };
 
   // Returns true once the BLE scan has been initiated.
-  virtual bool StartScanning(
-      absl::string_view service_id,
-      const DiscoveredPeripheralCallback& discovered_peripheral_callback) = 0;
+  virtual bool StartScanning(const std::string& service_id,
+                             DiscoveredPeripheralCallback callback) = 0;
 
   // Returns true once BLE scanning for service_id is well and truly stopped;
   // after this returns, there must be no more invocations of the
   // DiscoveredPeripheralCallback passed in to StartScanning() for service_id.
-  virtual void StopScanning(absl::string_view service_id) = 0;
+  virtual bool StopScanning(const std::string& service_id) = 0;
 
   // Callback that is invoked when a new connection is accepted.
-  class AcceptedConnectionCallback {
-   public:
-    virtual ~AcceptedConnectionCallback() {}
-
-    virtual void OnConnectionAccepted(std::unique_ptr<BleSocket> socket,
-                                      absl::string_view service_id) = 0;
+  struct AcceptedConnectionCallback {
+    std::function<void(BleSocket& socket, const std::string& service_id)>
+        accepted_cb = DefaultCallback<BleSocket&, const std::string&>();
   };
 
   // Returns true once BLE socket connection requests to service_id can be
   // accepted.
   virtual bool StartAcceptingConnections(
-      absl::string_view service_id,
-      const AcceptedConnectionCallback& accepted_connection_callback) = 0;
-  virtual void StopAcceptingConnections(const std::string& service_id) = 0;
+      const std::string& service_id, AcceptedConnectionCallback callback) = 0;
+  virtual bool StopAcceptingConnections(const std::string& service_id) = 0;
 
-  // BlePeripheral* is not owned by this call;
-  // it must remain valid for the duration of a call.
-  virtual std::unique_ptr<BleSocket> Connect(BlePeripheral* ble_peripheral,
-                                             absl::string_view service_id) = 0;
+  // Connects to a BLE peripheral.
+  // On success, returns a new BleSocket.
+  // On error, returns nullptr.
+  virtual std::unique_ptr<BleSocket> Connect(BlePeripheral& peripheral,
+                                             const std::string& service_id) = 0;
 };
 
 }  // namespace api

@@ -73,6 +73,7 @@ class ServiceControllerRouter {
 
   void RequestConnection(ClientProxy* client, absl::string_view endpoint_id,
                          const ConnectionRequestInfo& info,
+                         const ConnectionOptions& options,
                          const ResultCallback& callback);
   void AcceptConnection(ClientProxy* client, absl::string_view endpoint_id,
                         const PayloadListener& listener,

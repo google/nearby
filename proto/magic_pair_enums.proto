@@ -53,6 +53,9 @@ message MagicPairEvent {
 
     // Parsing something (e.g. BR/EDR Handover data) failed.
     PARSE_EXCEPTION = 6;
+
+    // A failure at MDH.
+    MDH_REMOTE_EXCEPTION = 7;
   }
 
   enum BrEdrHandoverErrorCode {

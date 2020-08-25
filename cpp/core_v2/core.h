@@ -118,7 +118,8 @@ class Core {
   //         issue with Bluetooth/WiFi.
   //     Status::STATUS_ERROR if we failed to connect for any other reason.
   void RequestConnection(absl::string_view endpoint_id,
-                         ConnectionRequestInfo info, ResultCallback callback);
+                         ConnectionRequestInfo info, ConnectionOptions options,
+                         ResultCallback callback);
 
   // Accepts a connection to a remote endpoint. This method must be called
   // before Payloads can be exchanged with the remote endpoint.

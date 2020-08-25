@@ -92,12 +92,13 @@ class PcpHandler {
   // connection, update state on ClientProxy.
   virtual Status RequestConnection(ClientProxy* client,
                                    const std::string& endpoint_id,
-                                   const ConnectionRequestInfo& info) = 0;
+                                   const ConnectionRequestInfo& info,
+                                   const ConnectionOptions& options) = 0;
 
   // Either party may call this to accept connection on their part.
   // Until both parties call it, connection will not reach a data phase.
   // Update state in ClientProxy.
-  virtual Status AcceptConnection(ClientProxy* clientProxy,
+  virtual Status AcceptConnection(ClientProxy* client,
                                   const std::string& endpoint_id,
                                   const PayloadListener& payload_listener) = 0;
 

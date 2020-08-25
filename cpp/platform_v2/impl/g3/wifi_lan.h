@@ -17,6 +17,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "platform_v2/api/wifi_lan.h"
 #include "platform_v2/base/byte_array.h"
@@ -46,13 +47,23 @@ class WifiLanService : public api::WifiLanService {
     service_info_name_ = std::move(service_info_name);
   }
   std::string GetName() const override { return service_info_name_; }
+  std::pair<std::string, int> GetServiceAddress() const override {
+    return std::make_pair(ip_address_, port_);
+  }
 
   void SetMedium(WifiLanMedium* medium) { medium_ = medium; }
   WifiLanMedium* GetMedium() { return medium_; }
 
+  void SetServiceAddress(const std::string& ip_address, int port) {
+    ip_address_ = ip_address;
+    port_ = port;
+  }
+
  private:
   std::string service_info_name_;
   WifiLanMedium* medium_ = nullptr;
+  std::string ip_address_;
+  int port_;
 };
 
 class WifiLanSocket : public api::WifiLanSocket {
@@ -108,7 +119,7 @@ class WifiLanSocket : public api::WifiLanSocket {
   // Output pipe is initialized by constructor, it remains always valid, until
   // it is closed. it represents output part of a local socket. Input part of a
   // local socket comes from the peer socket, after connection.
-  std::shared_ptr<Pipe> output_ {new Pipe};
+  std::shared_ptr<Pipe> output_{new Pipe};
   std::shared_ptr<Pipe> input_;
   mutable absl::Mutex mutex_;
   WifiLanService* service_;
@@ -130,7 +141,8 @@ class WifiLanServerSocket {
   // Called by the server side of a connection.
   // Returns WifiLanSocket to the server side.
   // If not null, returned socket is connected to its remote (client-side) peer.
-  std::unique_ptr<api::WifiLanSocket> Accept() ABSL_LOCKS_EXCLUDED(mutex_);
+  std::unique_ptr<api::WifiLanSocket> Accept(WifiLanService* service)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Blocks until either:
   // - connection is available, or
@@ -199,6 +211,9 @@ class WifiLanMedium : public api::WifiLanMedium {
   std::unique_ptr<api::WifiLanSocket> Connect(
       api::WifiLanService& remote_service,
       const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
+
+  api::WifiLanService* FindRemoteService(const std::string& ip_address,
+                                         int port) override;
 
  private:
   static constexpr int kMaxConcurrentAcceptLoops = 5;

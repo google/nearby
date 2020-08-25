@@ -122,8 +122,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
       // If encryption is enabled, decode the message.
       std::string input(std::move(result));
       std::unique_ptr<std::string> decrypted_data =
-          crypto_context_->DecodeMessageFromPeer(
-              std::string(std::move(result)));
+          crypto_context_->DecodeMessageFromPeer(input);
       if (decrypted_data) {
         result = ByteArray(std::move(*decrypted_data));
       } else {

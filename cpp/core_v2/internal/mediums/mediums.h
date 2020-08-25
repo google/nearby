@@ -15,6 +15,7 @@
 #ifndef CORE_V2_INTERNAL_MEDIUMS_MEDIUMS_H_
 #define CORE_V2_INTERNAL_MEDIUMS_MEDIUMS_H_
 
+#include "core_v2/internal/mediums/ble.h"
 #include "core_v2/internal/mediums/bluetooth_classic.h"
 #include "core_v2/internal/mediums/bluetooth_radio.h"
 #include "core_v2/internal/mediums/webrtc.h"
@@ -36,6 +37,9 @@ class Mediums {
   // Returns a handle to the Bluetooth Classic medium.
   BluetoothClassic& GetBluetoothClassic();
 
+  // Returns a handle to the Ble medium.
+  Ble& GetBle();
+
   // Returns a handle to the Wifi-Lan medium.
   WifiLan& GetWifiLan();
 
@@ -53,6 +57,7 @@ class Mediums {
   // corresponding radio.
   BluetoothRadio bluetooth_radio_;
   BluetoothClassic bluetooth_classic_{bluetooth_radio_};
+  Ble ble_{bluetooth_radio_};
   WifiLan wifi_lan_;
   mediums::WebRtc webrtc_;
 };

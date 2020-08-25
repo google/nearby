@@ -65,11 +65,11 @@ class EncryptionRunner {
   };
 
   // @AnyThread
-  void StartServer(ClientProxy* client_proxy, const std::string& endpoint_id,
+  void StartServer(ClientProxy* client, const std::string& endpoint_id,
                    EndpointChannel* endpoint_channel,
                    ResultListener&& result_listener);
   // @AnyThread
-  void StartClient(ClientProxy* client_proxy, const std::string& endpoint_id,
+  void StartClient(ClientProxy* client, const std::string& endpoint_id,
                    EndpointChannel* endpoint_channel,
                    ResultListener&& result_listener);
 

@@ -27,12 +27,33 @@ namespace connections {
 BleAdvertisement::BleAdvertisement(Version version, Pcp pcp,
                                    const ByteArray& service_id_hash,
                                    const std::string& endpoint_id,
-                                   const std::string& endpoint_name,
+                                   const ByteArray& endpoint_info,
                                    const std::string& bluetooth_mac_address) {
-  if (version != Version::kV1 ||
-      service_id_hash.size() != kServiceIdHashLength || endpoint_id.empty() ||
+  DoInitialize(/*fast_advertisement=*/false, version, pcp, service_id_hash,
+               endpoint_id, endpoint_info, bluetooth_mac_address);
+}
+
+BleAdvertisement::BleAdvertisement(Version version, Pcp pcp,
+                                   const std::string& endpoint_id,
+                                   const ByteArray& endpoint_info) {
+  DoInitialize(/*fast_advertisement=*/true, version, pcp, {}, endpoint_id,
+               endpoint_info, {});
+}
+
+void BleAdvertisement::DoInitialize(bool fast_advertisement, Version version,
+                                    Pcp pcp, const ByteArray& service_id_hash,
+                                    const std::string& endpoint_id,
+                                    const ByteArray& endpoint_info,
+                                    const std::string& bluetooth_mac_address) {
+  fast_advertisement_ = fast_advertisement;
+  if (!fast_advertisement_) {
+    if (service_id_hash.size() != kServiceIdHashLength) return;
+  }
+  int max_endpoint_info_length =
+      fast_advertisement_ ? kMaxFastEndpointInfoLength : kMaxEndpointInfoLength;
+  if (version != Version::kV1 || endpoint_id.empty() ||
       endpoint_id.length() != kEndpointIdLength ||
-      endpoint_name.length() > kMaxEndpointNameLength) {
+      endpoint_info.size() > max_endpoint_info_length) {
     return;
   }
 
@@ -49,20 +70,29 @@ BleAdvertisement::BleAdvertisement(Version version, Pcp pcp,
   pcp_ = pcp;
   service_id_hash_ = service_id_hash;
   endpoint_id_ = endpoint_id;
-  endpoint_name_ = endpoint_name;
-  if (!BluetoothMacAddressHexStringToBytes(bluetooth_mac_address).Empty()) {
-    bluetooth_mac_address_ = bluetooth_mac_address;
+  endpoint_info_ = endpoint_info;
+  if (!fast_advertisement_) {
+    if (!BluetoothUtils::FromString(bluetooth_mac_address).Empty()) {
+      bluetooth_mac_address_ = bluetooth_mac_address;
+    }
   }
 }
 
-BleAdvertisement::BleAdvertisement(const ByteArray& ble_advertisement_bytes) {
+BleAdvertisement::BleAdvertisement(bool fast_advertisement,
+                                   const ByteArray& ble_advertisement_bytes) {
+  fast_advertisement_ = fast_advertisement;
+
   if (ble_advertisement_bytes.Empty()) {
     NEARBY_LOG(ERROR,
                "Cannot deserialize BleAdvertisement: null bytes passed in.");
     return;
   }
 
-  if (ble_advertisement_bytes.size() < kMinAdvertisementLength) {
+  int min_advertisement_length = fast_advertisement_
+                                     ? kMinFastAdvertisementLength
+                                     : kMinAdvertisementLength;
+
+  if (ble_advertisement_bytes.size() < min_advertisement_length) {
     NEARBY_LOG(ERROR,
                "Cannot deserialize BleAdvertisement: expecting min %d raw "
                "bytes, got %" PRIu64,
@@ -96,43 +126,44 @@ BleAdvertisement::BleAdvertisement(const ByteArray& ble_advertisement_bytes) {
                  pcp_);
   }
 
-  // The next 3 bytes are supposed to be the service_id_hash.
-  service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
+  // The next 3 bytes are supposed to be the service_id_hash if not fast
+  // advertisment.
+  if (!fast_advertisement_)
+    service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
 
   // The next 4 bytes are supposed to be the endpoint_id.
   endpoint_id_ = std::string{base_input_stream.ReadBytes(kEndpointIdLength)};
 
-  // The next 1 byte are supposed to be the length of the endpoint_name.
-  std::uint32_t expected_endpoint_name_length = base_input_stream.ReadUint8();
+  // The next 1 byte are supposed to be the length of the endpoint_info.
+  std::uint32_t expected_endpoint_info_length = base_input_stream.ReadUint8();
 
-  // The next x bytes are the endpoint name. (Max length is 131 bytes).
-  // Check that the stated endpoint_name_length is the same as what we
-  // received.
-  auto endpoint_name_bytes =
-      base_input_stream.ReadBytes(expected_endpoint_name_length);
-  if (endpoint_name_bytes.Empty() ||
-      endpoint_name_bytes.size() != expected_endpoint_name_length) {
+  // The next x bytes are the endpoint info. (Max length is 131 bytes or 17
+  // bytes as fast_advertisement being true).
+  endpoint_info_ = base_input_stream.ReadBytes(expected_endpoint_info_length);
+  const int max_endpoint_info_length =
+      fast_advertisement_ ? kMaxFastEndpointInfoLength : kMaxEndpointInfoLength;
+  if (endpoint_info_.Empty() ||
+      endpoint_info_.size() != expected_endpoint_info_length ||
+      endpoint_info_.size() > max_endpoint_info_length) {
     NEARBY_LOG(INFO,
-               "Cannot deserialize BleAdvertisement: expected "
-               "endpointName to be %d bytes, got %" PRIu64,
-               expected_endpoint_name_length, endpoint_name_bytes.size());
+               "Cannot deserialize BleAdvertisement(fast advertisement=%d): "
+               "expected endpointInfo to be %d bytes, got %" PRIu64,
+               fast_advertisement_, expected_endpoint_info_length,
+               endpoint_info_.size());
 
     // Clear enpoint_id for validadity.
     endpoint_id_.clear();
     return;
   }
-  endpoint_name_ = std::string{endpoint_name_bytes};
 
-  // The next 6 bytes are the bluetooth mac address.
-  auto bluetooth_mac_address_bytes =
-      base_input_stream.ReadBytes(kBluetoothMacAddressLength);
-  // If the Bluetooth MAC Address bytes are unset or invalid, leave the
-  // string empty. Otherwise, convert it to the proper colon delimited
-  // format.
-  if (!IsBluetoothMacAddressUnset(bluetooth_mac_address_bytes)) {
+  // The next 6 bytes are the bluetooth mac address if not fast advertisment.
+  if (!fast_advertisement_) {
+    auto bluetooth_mac_address_bytes =
+        base_input_stream.ReadBytes(BluetoothUtils::kBluetoothMacAddressLength);
     bluetooth_mac_address_ =
-        HexBytesToColonDelimitedString(bluetooth_mac_address_bytes);
+        BluetoothUtils::ToString(bluetooth_mac_address_bytes);
   }
+
   base_input_stream.Close();
 }
 
@@ -147,72 +178,33 @@ BleAdvertisement::operator ByteArray() const {
   // The next 5 bits are the Pcp.
   version_and_pcp_byte |= static_cast<char>(pcp_) & kPcpBitmask;
 
-  // clang-format off
-  std::string out = absl::StrCat(std::string(1, version_and_pcp_byte),
-                                 std::string(service_id_hash_),
-                                 endpoint_id_,
-                                 std::string(1, endpoint_name_.size()),
-                                 endpoint_name_);
-  // clang-format on
+  std::string out;
+  if (fast_advertisement_) {
+    // clang-format off
+    out = absl::StrCat(std::string(1, version_and_pcp_byte),
+                                   endpoint_id_,
+                                   std::string(1, endpoint_info_.size()),
+                                   std::string(endpoint_info_));
+    // clang-format on
+  } else {
+    // clang-format off
+    out = absl::StrCat(std::string(1, version_and_pcp_byte),
+                                   std::string(service_id_hash_),
+                                   endpoint_id_,
+                                   std::string(1, endpoint_info_.size()),
+                                   std::string(endpoint_info_));
+    // clang-format on
 
-  // The next 6 bytes are the bluetooth mac address. If bluetooth_mac_address is
-  // invalid or empty, we get back a null byte array.
-  auto bluetooth_mac_address_bytes(
-      BluetoothMacAddressHexStringToBytes(bluetooth_mac_address_));
-  if (!bluetooth_mac_address_bytes.Empty()) {
-    absl::StrAppend(&out, std::string(bluetooth_mac_address_bytes));
+    // The next 6 bytes are the bluetooth mac address. If bluetooth_mac_address
+    // is invalid or empty, we get back a null byte array.
+    auto bluetooth_mac_address_bytes{
+        BluetoothUtils::FromString(bluetooth_mac_address_)};
+    if (!bluetooth_mac_address_bytes.Empty()) {
+      absl::StrAppend(&out, std::string(bluetooth_mac_address_bytes));
+    }
   }
 
   return ByteArray(std::move(out));
-}
-
-ByteArray BleAdvertisement::BluetoothMacAddressHexStringToBytes(
-    const std::string& bluetooth_mac_address) const {
-  std::string bt_mac_address(bluetooth_mac_address);
-
-  // Remove the colon delimiters.
-  bt_mac_address.erase(
-      std::remove(bt_mac_address.begin(), bt_mac_address.end(), ':'),
-      bt_mac_address.end());
-
-  // If the bluetooth mac address is invalid (wrong size), return a null byte
-  // array.
-  if (bt_mac_address.length() != kBluetoothMacAddressLength * 2) {
-    return ByteArray();
-  }
-
-  // Convert to bytes. If MAC Address bytes are unset, return a null byte array.
-  auto bt_mac_address_string(absl::HexStringToBytes(bt_mac_address));
-  auto bt_mac_address_bytes =
-      ByteArray(bt_mac_address_string.data(), bt_mac_address_string.size());
-  if (IsBluetoothMacAddressUnset(bt_mac_address_bytes)) {
-    return ByteArray();
-  }
-  return bt_mac_address_bytes;
-}
-
-std::string BleAdvertisement::HexBytesToColonDelimitedString(
-    const ByteArray& hex_bytes) const {
-  // Convert the hex bytes to a string.
-  std::string colon_delimited_string(
-      absl::BytesToHexString(std::string(hex_bytes.data(), hex_bytes.size())));
-  absl::AsciiStrToUpper(&colon_delimited_string);
-
-  // Insert the colons.
-  for (int i = colon_delimited_string.length() - 2; i > 0; i -= 2) {
-    colon_delimited_string.insert(i, ":");
-  }
-  return colon_delimited_string;
-}
-
-bool BleAdvertisement::IsBluetoothMacAddressUnset(
-    const ByteArray& bluetooth_mac_address_bytes) const {
-  for (int i = 0; i < bluetooth_mac_address_bytes.size(); i++) {
-    if (bluetooth_mac_address_bytes.data()[i] != 0) {
-      return false;
-    }
-  }
-  return true;
 }
 
 }  // namespace connections

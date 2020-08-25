@@ -22,6 +22,7 @@
 #include "platform_v2/public/wifi_lan.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -47,7 +48,6 @@ TEST_F(WifiLanTest, CanConstructValidObject) {
   WifiLan wifi_lan_a;
   WifiLan wifi_lan_b;
   std::string service_id(kServiceID);
-  std::string service_name{kServiceInfoName};
 
   EXPECT_TRUE(wifi_lan_a.IsAvailable());
   EXPECT_TRUE(wifi_lan_b.IsAvailable());
@@ -59,19 +59,19 @@ TEST_F(WifiLanTest, CanStartAdvertising) {
   WifiLan wifi_lan_a;
   WifiLan wifi_lan_b;
   std::string service_id(kServiceID);
-  std::string service_name{kServiceInfoName};
+  std::string service_info_name{kServiceInfoName};
   CountDownLatch found_latch(1);
 
   wifi_lan_b.StartDiscovery(
       service_id, DiscoveredServiceCallback{
                       .service_discovered_cb =
                           [&found_latch](WifiLanService& service,
-                                         const std::string& service_id) {
+                                         absl::string_view service_id) {
                             found_latch.CountDown();
                           },
                   });
 
-  EXPECT_TRUE(wifi_lan_a.StartAdvertising(service_id, service_name));
+  EXPECT_TRUE(wifi_lan_a.StartAdvertising(service_id, service_info_name));
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(wifi_lan_a.StopAdvertising(service_id));
   EXPECT_TRUE(wifi_lan_b.StopDiscovery(service_id));
@@ -83,11 +83,11 @@ TEST_F(WifiLanTest, CanStartDiscovery) {
   WifiLan wifi_lan_a;
   WifiLan wifi_lan_b;
   std::string service_id(kServiceID);
-  std::string service_name{kServiceInfoName};
+  std::string service_info_name{kServiceInfoName};
   CountDownLatch accept_latch(1);
   CountDownLatch lost_latch(1);
 
-  wifi_lan_b.StartAdvertising(service_id, service_name);
+  wifi_lan_b.StartAdvertising(service_id, service_info_name);
 
   EXPECT_TRUE(wifi_lan_a.StartDiscovery(
       service_id, {
@@ -114,17 +114,17 @@ TEST_F(WifiLanTest, CanStartAcceptingConnectionsAndConnect) {
   WifiLan wifi_lan_a;
   WifiLan wifi_lan_b;
   std::string service_id(kServiceID);
-  std::string service_name{kServiceInfoName};
+  std::string service_info_name{kServiceInfoName};
   CountDownLatch found_latch(1);
   CountDownLatch accept_latch(1);
 
-  wifi_lan_a.StartAdvertising(service_id, service_name);
+  wifi_lan_a.StartAdvertising(service_id, service_info_name);
   wifi_lan_a.StartAcceptingConnections(
       service_id,
       {
           .accepted_cb = [&accept_latch](
                              WifiLanSocket socket,
-                             const std::string&) { accept_latch.CountDown(); },
+                             absl::string_view) { accept_latch.CountDown(); },
       });
   WifiLanService discovered_service;
   wifi_lan_b.StartDiscovery(
@@ -132,7 +132,7 @@ TEST_F(WifiLanTest, CanStartAcceptingConnectionsAndConnect) {
       {
           .service_discovered_cb =
               [&found_latch, &discovered_service](
-                  WifiLanService& service, const std::string& service_id) {
+                  WifiLanService& service, absl::string_view service_id) {
                 discovered_service = service;
                 NEARBY_LOG(INFO, "Discovered service=%p [impl=%p]", &service,
                            &service.GetImpl());
@@ -149,6 +149,7 @@ TEST_F(WifiLanTest, CanStartAcceptingConnectionsAndConnect) {
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(socket.IsValid());
   wifi_lan_b.StopDiscovery(service_id);
+  wifi_lan_a.StopAcceptingConnections(service_id);
   wifi_lan_a.StopAdvertising(service_id);
   env_.Stop();
 }

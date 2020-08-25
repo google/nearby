@@ -18,6 +18,7 @@ cc_library(
         "base_endpoint_channel.cc",
         "base_pcp_handler.cc",
         "ble_advertisement.cc",
+        "ble_endpoint_channel.cc",
         "bluetooth_device_name.cc",
         "bluetooth_endpoint_channel.cc",
         "client_proxy.cc",
@@ -42,6 +43,7 @@ cc_library(
         "base_endpoint_channel.h",
         "base_pcp_handler.h",
         "ble_advertisement.h",
+        "ble_endpoint_channel.h",
         "bluetooth_device_name.h",
         "bluetooth_endpoint_channel.h",
         "client_proxy.h",
@@ -83,8 +85,10 @@ cc_library(
         "//proto:connections_enums_portable_proto",
         "//securegcm:ukey2",
         "//absl/base:core_headers",
+        "//absl/container:btree",
         "//absl/container:flat_hash_map",
         "//absl/container:flat_hash_set",
+        "//absl/functional:bind_front",
         "//absl/memory",
         "//absl/strings",
         "//absl/time",
@@ -110,6 +114,7 @@ cc_library(
     deps = [
         ":internal",
         "//core_v2:core_types",
+        "//platform_v2/base",
         "//platform_v2/base:test_util",
         "//platform_v2/public:types",
         "//testing/base/public:gunit",
@@ -121,6 +126,7 @@ cc_library(
 cc_test(
     name = "core_v2_internal_test",
     size = "small",
+    timeout = "moderate",
     srcs = [
         "base_endpoint_channel_test.cc",
         "base_pcp_handler_test.cc",

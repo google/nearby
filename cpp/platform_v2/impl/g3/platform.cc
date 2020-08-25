@@ -19,7 +19,6 @@
 
 #include "platform_v2/api/atomic_boolean.h"
 #include "platform_v2/api/atomic_reference.h"
-#include "platform_v2/api/ble.h"
 #include "platform_v2/api/ble_v2.h"
 #include "platform_v2/api/bluetooth_adapter.h"
 #include "platform_v2/api/bluetooth_classic.h"
@@ -35,6 +34,7 @@
 #include "platform_v2/base/medium_environment.h"
 #include "platform_v2/impl/g3/atomic_boolean.h"
 #include "platform_v2/impl/g3/atomic_reference.h"
+#include "platform_v2/impl/g3/ble.h"
 #include "platform_v2/impl/g3/bluetooth_adapter.h"
 #include "platform_v2/impl/g3/bluetooth_classic.h"
 #include "platform_v2/impl/g3/condition_variable.h"
@@ -126,7 +126,7 @@ ImplementationPlatform::CreateBluetoothClassicMedium(
 
 std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
     api::BluetoothAdapter& adapter) {
-  return std::unique_ptr<BleMedium>();
+  return absl::make_unique<g3::BleMedium>(adapter);
 }
 
 std::unique_ptr<ble_v2::BleMedium> ImplementationPlatform::CreateBleV2Medium(
