@@ -49,10 +49,9 @@ struct ResultCallback {
 };
 
 struct ConnectionResponseInfo {
-  std::string remote_endpoint_name;
+  ByteArray remote_endpoint_info;
   std::string authentication_token;
   ByteArray raw_authentication_token;
-  ByteArray endpoint_info;
   bool is_incoming_connection = false;
   bool is_connection_verified = false;
 };
@@ -135,13 +134,13 @@ struct DiscoveryListener {
   // Called when a remote endpoint is discovered.
   //
   // endpoint_id   - The ID of the remote endpoint that was discovered.
-  // endpoint_name - The human readable name of the remote endpoint.
+  // endpoint_info - The info of the remote endpoint representd by ByteArray.
   // service_id    - The ID of the service advertised by the remote endpoint.
   std::function<void(const std::string& endpoint_id,
-                     const std::string& endpoint_name,
+                     const ByteArray& endpoint_info,
                      const std::string& service_id)>
       endpoint_found_cb =
-          DefaultCallback<const std::string&, const std::string&,
+          DefaultCallback<const std::string&, const ByteArray&,
                           const std::string&>();
 
   // Called when a remote endpoint is no longer discoverable; only called for

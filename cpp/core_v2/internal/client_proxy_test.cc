@@ -17,6 +17,7 @@
 #include <string>
 
 #include "core_v2/listeners.h"
+#include "core_v2/options.h"
 #include "core_v2/strategy.h"
 #include "platform_v2/base/byte_array.h"
 #include "gmock/gmock.h"
@@ -36,7 +37,7 @@ class ClientProxyTest : public testing::Test {
  protected:
   struct MockDiscoveryListener {
     StrictMock<MockFunction<void(const std::string& endpoint_id,
-                                 const std::string& endpoint_name,
+                                 const ByteArray& endpoint_info,
                                  const std::string& service_id)>>
         endpoint_found_cb;
     StrictMock<MockFunction<void(const std::string& endpoint_id)>>
@@ -66,14 +67,14 @@ class ClientProxyTest : public testing::Test {
   };
 
   struct Endpoint {
-    std::string name;
+    ByteArray info;
     std::string id;
   };
 
   Endpoint StartAdvertising(ClientProxy* client, ConnectionListener listener) {
     Endpoint endpoint{
-        .name = "advertising endpoint name",
-        .id = client->GenerateLocalEndpointId(),
+        .info = ByteArray{"advertising endpoint name"},
+        .id = client->GetLocalEndpointId(),
     };
     client->StartedAdvertising(service_id_, strategy_, listener,
                                absl::MakeSpan(mediums_));
@@ -82,8 +83,8 @@ class ClientProxyTest : public testing::Test {
 
   Endpoint StartDiscovery(ClientProxy* client, DiscoveryListener listener) {
     Endpoint endpoint{
-        .name = "discovery endpoint name",
-        .id = client->GenerateLocalEndpointId(),
+        .info = ByteArray{"discovery endpoint name"},
+        .id = client->GetLocalEndpointId(),
     };
     client->StartedDiscovery(service_id_, strategy_, listener,
                              absl::MakeSpan(mediums_));
@@ -92,7 +93,8 @@ class ClientProxyTest : public testing::Test {
 
   void OnDiscoveryEndpointFound(ClientProxy* client, const Endpoint& endpoint) {
     EXPECT_CALL(mock_discovery_.endpoint_found_cb, Call).Times(1);
-    client->OnEndpointFound(service_id_, endpoint.id, endpoint.name, medium_);
+    client->OnEndpointFound(service_id_, endpoint.id, endpoint.info,
+                            medium_);
   }
 
   void OnDiscoveryEndpointLost(ClientProxy* client, const Endpoint& endpoint) {
@@ -105,8 +107,9 @@ class ClientProxyTest : public testing::Test {
     EXPECT_CALL(mock_discovery_connection_.initiated_cb, Call).Times(1);
     const std::string auth_token{"auth_token"};
     const ByteArray raw_auth_token{auth_token};
-    advertising_connection_info_.remote_endpoint_name = endpoint.name;
+    advertising_connection_info_.remote_endpoint_info = endpoint.info;
     client->OnConnectionInitiated(endpoint.id, advertising_connection_info_,
+                                  connection_options_,
                                   discovery_connection_listener_);
     EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint.id));
   }
@@ -222,6 +225,7 @@ class ClientProxyTest : public testing::Test {
       .payload_progress_cb =
           mock_discovery_payload_.payload_progress_cb.AsStdFunction(),
   };
+  ConnectionOptions connection_options_;
 };
 
 TEST_F(ClientProxyTest, ConstructorDestructorWorks) { SUCCEED(); }
@@ -231,8 +235,8 @@ TEST_F(ClientProxyTest, ClientIdIsUnique) {
 }
 
 TEST_F(ClientProxyTest, GeneratedEndpointIdIsUnique) {
-  EXPECT_NE(client1_.GenerateLocalEndpointId(),
-            client2_.GenerateLocalEndpointId());
+  EXPECT_NE(client1_.GetLocalEndpointId(),
+            client2_.GetLocalEndpointId());
 }
 
 TEST_F(ClientProxyTest, ResetClearsState) {

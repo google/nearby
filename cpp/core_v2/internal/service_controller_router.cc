@@ -106,23 +106,25 @@ void ServiceControllerRouter::StopDiscovery(ClientProxy* client,
 
 void ServiceControllerRouter::RequestConnection(
     ClientProxy* client, absl::string_view endpoint_id,
-    const ConnectionRequestInfo& info, const ResultCallback& callback) {
-  RouteToServiceController(
-      [this, client, endpoint_id = std::string(endpoint_id), info, callback]() {
-        if (!ClientHasAcquiredServiceController(client)) {
-          callback.result_cb({Status::kOutOfOrderApiCall});
-          return;
-        }
+    const ConnectionRequestInfo& info, const ConnectionOptions& options,
+    const ResultCallback& callback) {
+  RouteToServiceController([this, client,
+                            endpoint_id = std::string(endpoint_id), info,
+                            options, callback]() {
+    if (!ClientHasAcquiredServiceController(client)) {
+      callback.result_cb({Status::kOutOfOrderApiCall});
+      return;
+    }
 
-        if (client->HasPendingConnectionToEndpoint(endpoint_id) ||
-            client->IsConnectedToEndpoint(endpoint_id)) {
-          callback.result_cb({Status::kAlreadyConnectedToEndpoint});
-          return;
-        }
+    if (client->HasPendingConnectionToEndpoint(endpoint_id) ||
+        client->IsConnectedToEndpoint(endpoint_id)) {
+      callback.result_cb({Status::kAlreadyConnectedToEndpoint});
+      return;
+    }
 
-        callback.result_cb(
-            service_controller_->RequestConnection(client, endpoint_id, info));
-      });
+    callback.result_cb(service_controller_->RequestConnection(
+        client, endpoint_id, info, options));
+  });
 }
 
 void ServiceControllerRouter::AcceptConnection(ClientProxy* client,
@@ -218,7 +220,7 @@ void ServiceControllerRouter::SendPayload(
       std::vector<std::string>(endpoint_ids.begin(), endpoint_ids.end());
 
   RouteToServiceController(
-      [this, client, shared_payload, endpoints, &callback]() {
+      [this, client, shared_payload, endpoints, callback]() {
         if (!ClientHasAcquiredServiceController(client)) {
           callback.result_cb({Status::kOutOfOrderApiCall});
           return;

@@ -34,6 +34,10 @@ class WifiLanService {
   virtual ~WifiLanService() = default;
 
   virtual std::string GetName() const = 0;
+
+  // Returns the local device's <IP address, port> as a pair.
+  // IP address is in byte sequence, in network order.
+  virtual std::pair<std::string, int> GetServiceAddress() const = 0;
 };
 
 class WifiLanSocket {
@@ -102,8 +106,7 @@ class WifiLanMedium {
   // Returns true once WifiLan socket connection requests to service_id can be
   // accepted.
   virtual bool StartAcceptingConnections(
-      const std::string& service_id,
-      AcceptedConnectionCallback callback) = 0;
+      const std::string& service_id, AcceptedConnectionCallback callback) = 0;
   virtual bool StopAcceptingConnections(const std::string& service_id) = 0;
 
   // Connects to a WifiLan service.
@@ -111,6 +114,9 @@ class WifiLanMedium {
   // On error, returns nullptr.
   virtual std::unique_ptr<WifiLanSocket> Connect(
       WifiLanService& service, const std::string& service_id) = 0;
+
+  virtual WifiLanService* FindRemoteService(const std::string& ip_address,
+                                            int port) = 0;
 };
 
 }  // namespace api

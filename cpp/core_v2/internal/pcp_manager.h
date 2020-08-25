@@ -46,21 +46,22 @@ class PcpManager {
              EndpointManager& endpoint_manager);
   ~PcpManager();
 
-  Status StartAdvertising(ClientProxy* client_proxy, const string& service_id,
+  Status StartAdvertising(ClientProxy* client, const string& service_id,
                           const ConnectionOptions& options,
                           const ConnectionRequestInfo& info);
-  void StopAdvertising(ClientProxy* client_proxy);
+  void StopAdvertising(ClientProxy* client);
 
-  Status StartDiscovery(ClientProxy* client_proxy, const string& service_id,
+  Status StartDiscovery(ClientProxy* client, const string& service_id,
                         const ConnectionOptions& options,
                         DiscoveryListener listener);
-  void StopDiscovery(ClientProxy* client_proxy);
+  void StopDiscovery(ClientProxy* client);
 
-  Status RequestConnection(ClientProxy* client_proxy, const string& endpoint_id,
-                           const ConnectionRequestInfo& info);
-  Status AcceptConnection(ClientProxy* client_proxy, const string& endpoint_id,
+  Status RequestConnection(ClientProxy* client, const string& endpoint_id,
+                           const ConnectionRequestInfo& info,
+                           const ConnectionOptions& options);
+  Status AcceptConnection(ClientProxy* client, const string& endpoint_id,
                           const PayloadListener& payload_listener);
-  Status RejectConnection(ClientProxy* client_proxy, const string& endpoint_id);
+  Status RejectConnection(ClientProxy* client, const string& endpoint_id);
 
   proto::connections::Medium GetBandwidthUpgradeMedium();
   void DisconnectFromEndpointManager();

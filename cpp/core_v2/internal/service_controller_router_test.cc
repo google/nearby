@@ -115,20 +115,22 @@ class ServiceControllerRouterTest : public testing::Test {
                          ResultCallback callback) {
     EXPECT_CALL(mock_, RequestConnection)
         .WillOnce(Return(Status{Status::kSuccess}));
+    ConnectionOptions options;
     {
       MutexLock lock(&mutex_);
       complete_ = false;
-      router_.RequestConnection(client, endpoint_id, request_info, callback);
+      router_.RequestConnection(client, endpoint_id, request_info, options,
+                                callback);
       while (!complete_) cond_.Wait();
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
     ConnectionResponseInfo response_info{
-        .remote_endpoint_name = "endpoint_name",
+        .remote_endpoint_info = ByteArray{"endpoint_name"},
         .authentication_token = "auth_token",
-        .raw_authentication_token = ByteArray("auth_token"),
+        .raw_authentication_token = ByteArray{"auth_token"},
         .is_incoming_connection = true,
     };
-    client->OnConnectionInitiated(endpoint_id, response_info,
+    client->OnConnectionInitiated(endpoint_id, response_info, options,
                                   request_info.listener);
     EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint_id));
   }
@@ -256,7 +258,7 @@ class ServiceControllerRouterTest : public testing::Test {
   std::vector<proto::connections::Medium> mediums_{
       proto::connections::Medium::BLUETOOTH};
   const ConnectionRequestInfo kConnectionRequestInfo{
-      .name = kRequestorName,
+      .endpoint_info = ByteArray{kRequestorName},
       .listener = ConnectionListener(),
   };
 

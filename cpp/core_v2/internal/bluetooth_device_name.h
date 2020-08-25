@@ -44,7 +44,7 @@ class BluetoothDeviceName {
   BluetoothDeviceName() = default;
   BluetoothDeviceName(Version version, Pcp pcp, absl::string_view endpoint_id,
                       const ByteArray& service_id_hash,
-                      absl::string_view endpoint_name);
+                      const ByteArray& endpoint_info);
   explicit BluetoothDeviceName(absl::string_view bluetooth_device_name_string);
   BluetoothDeviceName(const BluetoothDeviceName&) = default;
   BluetoothDeviceName& operator=(const BluetoothDeviceName&) = default;
@@ -59,15 +59,15 @@ class BluetoothDeviceName {
   Pcp GetPcp() const { return pcp_; }
   std::string GetEndpointId() const { return endpoint_id_; }
   ByteArray GetServiceIdHash() const { return service_id_hash_; }
-  std::string GetEndpointName() const { return endpoint_name_; }
+  ByteArray GetEndpointInfo() const { return endpoint_info_; }
 
  private:
   static constexpr int kMaxBluetoothDeviceNameLength = 147;
   static constexpr int kEndpointIdLength = 4;
   static constexpr int kReservedLength = 7;
-  static constexpr int kMaxEndpointNameLength = 131;
+  static constexpr int kMaxEndpointInfoLength = 131;
   static constexpr int kMinBluetoothDeviceNameLength =
-      kMaxBluetoothDeviceNameLength - kMaxEndpointNameLength;
+      kMaxBluetoothDeviceNameLength - kMaxEndpointInfoLength;
 
   static constexpr int kVersionBitmask = 0x0E0;
   static constexpr int kPcpBitmask = 0x01F;
@@ -77,7 +77,7 @@ class BluetoothDeviceName {
   Pcp pcp_{Pcp::kUnknown};
   std::string endpoint_id_;
   ByteArray service_id_hash_;
-  std::string endpoint_name_;
+  ByteArray endpoint_info_;
 };
 
 }  // namespace connections

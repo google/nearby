@@ -22,6 +22,7 @@
 #include "core_v2/internal/endpoint_manager.h"
 #include "core_v2/internal/payload_manager.h"
 #include "core_v2/internal/pcp_manager.h"
+#include "core_v2/options.h"
 #include "platform_v2/base/medium_environment.h"
 #include "platform_v2/public/condition_variable.h"
 #include "platform_v2/public/count_down_latch.h"
@@ -41,18 +42,22 @@ class SimulationUser {
  public:
   struct DiscoveredInfo {
     std::string endpoint_id;
-    std::string endpoint_name;
+    ByteArray endpoint_info;
     std::string service_id;
 
     bool Empty() const { return endpoint_id.empty(); }
     void Clear() { endpoint_id.clear(); }
   };
 
-  explicit SimulationUser(const std::string& device_name)
-      : name_(device_name) {}
-  virtual ~SimulationUser() {
-    Stop();
-  }
+  explicit SimulationUser(
+      const std::string& device_name,
+      BooleanMediumSelector allowed = BooleanMediumSelector())
+      : info_{ByteArray{device_name}},
+        options_{
+            .strategy = Strategy::kP2pCluster,
+            .allowed = allowed,
+        } {}
+  virtual ~SimulationUser() { Stop(); }
   void Stop() {
     pm_.DisconnectFromEndpointManager();
     mgr_.DisconnectFromEndpointManager();
@@ -94,7 +99,7 @@ class SimulationUser {
   void ExpectPayload(CountDownLatch& latch) { payload_latch_ = &latch; }
 
   const DiscoveredInfo& GetDiscovered() const { return discovered_; }
-  std::string GetName() const { return name_; }
+  ByteArray GetInfo() const { return info_; }
 
   bool WaitForProgress(std::function<bool(const PayloadProgressInfo&)> pred,
                        absl::Duration timeout);
@@ -109,7 +114,7 @@ class SimulationUser {
 
   // DiscoveryListener callbacks
   void OnEndpointFound(const std::string& endpoint_id,
-                       const std::string& endpoint_name,
+                       const ByteArray& endpoint_info,
                        const std::string& service_id);
   void OnEndpointLost(const std::string& endpoint_id);
 
@@ -120,6 +125,7 @@ class SimulationUser {
 
   std::string service_id_;
   DiscoveredInfo discovered_;
+  ConnectionOptions connection_options_;
   Mutex progress_mutex_;
   ConditionVariable progress_sync_{&progress_mutex_};
   PayloadProgressInfo progress_info_;
@@ -132,9 +138,9 @@ class SimulationUser {
   CountDownLatch* payload_latch_ = nullptr;
   Future<bool>* future_ = nullptr;
   std::function<bool(const PayloadProgressInfo&)> predicate_;
-  std::string name_;
+  ByteArray info_;
   Mediums mediums_;
-  ConnectionOptions options_{.strategy = Strategy::kP2pCluster};
+  ConnectionOptions options_;
   ClientProxy client_;
   EndpointChannelManager ecm_;
   EndpointManager em_{&ecm_};

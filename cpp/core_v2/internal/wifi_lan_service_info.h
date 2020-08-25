@@ -42,7 +42,7 @@ class WifiLanServiceInfo {
   WifiLanServiceInfo() = default;
   WifiLanServiceInfo(Version version, Pcp pcp, absl::string_view endpoint_id,
                      const ByteArray& service_id_hash,
-                     absl::string_view endpoint_name);
+                     const ByteArray& endpoint_info);
   explicit WifiLanServiceInfo(absl::string_view service_info_string);
   WifiLanServiceInfo(const WifiLanServiceInfo&) = default;
   WifiLanServiceInfo& operator=(const WifiLanServiceInfo&) = default;
@@ -56,7 +56,7 @@ class WifiLanServiceInfo {
   Version GetVersion() const { return version_; }
   Pcp GetPcp() const { return pcp_; }
   std::string GetEndpointId() const { return endpoint_id_; }
-  std::string GetEndpointName() const { return endpoint_name_; }
+  ByteArray GetEndpointInfo() const { return endpoint_info_; }
   ByteArray GetServiceIdHash() const { return service_id_hash_; }
 
  private:
@@ -67,7 +67,7 @@ class WifiLanServiceInfo {
   // The length for endpoint id in encrypted WifiLanServiceInfo string.
   static constexpr int kEndpointIdLength = 4;
   // The maximum length for endpoint id in encrypted WifiLanServiceInfo string.
-  static constexpr int kMaxEndpointNameLength = 131;
+  static constexpr int kMaxEndpointInfoLength = 131;
 
   static constexpr int kVersionBitmask = 0x0E0;
   static constexpr int kPcpBitmask = 0x01F;
@@ -81,8 +81,8 @@ class WifiLanServiceInfo {
   std::string endpoint_id_;
   // Connected hash service id.
   ByteArray service_id_hash_;
-  // Connected endpoint name.
-  std::string endpoint_name_;
+  // Connected endpoint info.
+  ByteArray endpoint_info_;
 };
 
 }  // namespace connections

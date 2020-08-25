@@ -26,6 +26,7 @@
 #include "proto/connections_enums.pb.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 
 namespace location {
@@ -38,21 +39,22 @@ ClientProxy::~ClientProxy() { Reset(); }
 
 std::int64_t ClientProxy::GetClientId() const { return client_id_; }
 
-std::string ClientProxy::GenerateLocalEndpointId() {
-  // 1) Concatenate the Random 64-bit value with "client" string.
-  // 2) Compute a hash of that concatenation.
-  // 3) Base64-encode that hash, to make it human-readable.
-  // 4) Use only the first kEndpointIdLength bytes to make ID.
-  ByteArray id_hash = Crypto::Sha256(
-      absl::StrCat("client", prng_.NextInt64()));
-
-  std::string id = Base64Utils::Encode(id_hash).substr(0, kEndpointIdLength);
-
-  NEARBY_LOG(
-      INFO, "ClientProxy [Local Endpoint Generated]: client=%p; endpoint_id=%s",
-      this, id.c_str());
-
-  return id;
+std::string ClientProxy::GetLocalEndpointId() {
+  if (local_endpoint_id_.empty()) {
+    // 1) Concatenate the Random 64-bit value with "client" string.
+    // 2) Compute a hash of that concatenation.
+    // 3) Base64-encode that hash, to make it human-readable.
+    // 4) Use only the first kEndpointIdLength bytes to make ID.
+    ByteArray id_hash =
+        Crypto::Sha256(absl::StrCat("client", prng_.NextInt64()));
+    std::string id = Base64Utils::Encode(id_hash).substr(0, kEndpointIdLength);
+    NEARBY_LOG(
+        INFO,
+        "ClientProxy [Local Endpoint Generated]: client=%p; endpoint_id=%s",
+        this, id.c_str());
+    local_endpoint_id_ = id;
+  }
+  return local_endpoint_id_;
 }
 
 void ClientProxy::Reset() {
@@ -69,6 +71,7 @@ void ClientProxy::StartedAdvertising(
     absl::Span<proto::connections::Medium> mediums) {
   MutexLock lock(&mutex_);
 
+  if (connections_.empty()) local_endpoint_id_.clear();
   advertising_info_ = {service_id, listener};
 }
 
@@ -78,6 +81,7 @@ void ClientProxy::StoppedAdvertising() {
   if (IsAdvertising()) {
     advertising_info_.Clear();
   }
+  if (connections_.empty()) local_endpoint_id_.clear();
 }
 
 bool ClientProxy::IsAdvertising() const {
@@ -97,6 +101,7 @@ void ClientProxy::StartedDiscovery(
     absl::Span<proto::connections::Medium> mediums) {
   MutexLock lock(&mutex_);
 
+  if (connections_.empty()) local_endpoint_id_.clear();
   discovery_info_ = DiscoveryInfo{service_id, listener};
 }
 
@@ -107,6 +112,7 @@ void ClientProxy::StoppedDiscovery() {
     discovered_endpoint_ids_.clear();
     discovery_info_.Clear();
   }
+  if (connections_.empty()) local_endpoint_id_.clear();
 }
 
 bool ClientProxy::IsDiscoveringServiceId(const std::string& service_id) const {
@@ -129,13 +135,14 @@ std::string ClientProxy::GetDiscoveryServiceId() const {
 
 void ClientProxy::OnEndpointFound(const std::string& service_id,
                                   const std::string& endpoint_id,
-                                  const std::string& endpoint_name,
+                                  const ByteArray& endpoint_info,
                                   proto::connections::Medium medium) {
   MutexLock lock(&mutex_);
 
   NEARBY_LOG(INFO,
-             "ClientProxy [Endpoint Found]: [enter] id=%s; service=%s; name=%s",
-             endpoint_id.c_str(), service_id.c_str(), endpoint_name.c_str());
+             "ClientProxy [Endpoint Found]: [enter] id=%s; service=%s; info=%s",
+             endpoint_id.c_str(), service_id.c_str(),
+             absl::BytesToHexString(endpoint_info.data()).c_str());
   if (!IsDiscoveringServiceId(service_id)) {
     NEARBY_LOG(INFO, "ClientProxy [Endpoint Found]: [no discovery] id=%s",
                endpoint_id.c_str());
@@ -147,7 +154,7 @@ void ClientProxy::OnEndpointFound(const std::string& service_id,
     return;
   }
   discovered_endpoint_ids_.insert(endpoint_id);
-  discovery_info_.listener.endpoint_found_cb(endpoint_id, endpoint_name,
+  discovery_info_.listener.endpoint_found_cb(endpoint_id, endpoint_info,
                                              service_id);
 }
 
@@ -164,6 +171,7 @@ void ClientProxy::OnEndpointLost(const std::string& service_id,
 
 void ClientProxy::OnConnectionInitiated(const std::string& endpoint_id,
                                         const ConnectionResponseInfo& info,
+                                        const ConnectionOptions& options,
                                         const ConnectionListener& listener) {
   MutexLock lock(&mutex_);
 
@@ -174,6 +182,7 @@ void ClientProxy::OnConnectionInitiated(const std::string& endpoint_id,
       endpoint_id, Connection{
                        .is_incoming = info.is_incoming_connection,
                        .connection_listener = listener,
+                       .connection_options = options,
                    });
   // Instead of using structured binding which is nice, but banned
   // (can not use c++17 features, until chromium does) we unpack manually.
@@ -248,6 +257,7 @@ void ClientProxy::OnDisconnected(const std::string& endpoint_id, bool notify) {
       item->connection_listener.disconnected_cb({endpoint_id});
     }
     connections_.erase(endpoint_id);
+    if (connections_.empty()) local_endpoint_id_.clear();
   }
 }
 
@@ -260,6 +270,17 @@ bool ClientProxy::ConnectionStatusMatches(const std::string& endpoint_id,
     return item->status == status;
   }
   return false;
+}
+
+BooleanMediumSelector ClientProxy::GetUpgradeMediums(
+    const std::string& endpoint_id) const {
+  MutexLock lock(&mutex_);
+
+  const Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return item->connection_options.allowed;
+  }
+  return {};
 }
 
 bool ClientProxy::IsConnectedToEndpoint(const std::string& endpoint_id) const {
@@ -483,6 +504,7 @@ void ClientProxy::RemoveAllEndpoints() {
   // endpoint, in the case when this is called from stopAllEndpoints(). For now,
   // just remove without notifying.
   connections_.clear();
+  local_endpoint_id_.clear();
 }
 
 bool ClientProxy::ConnectionStatusesContains(

@@ -207,6 +207,11 @@ message BandwidthUpgradeNegotiationFrame {
       optional int32 frequency = 4;
     }
 
+    // Accompanies Medium.WEB_RTC
+    message WebRtcCredentials {
+      optional string peer_id = 1;
+    }
+
     optional Medium medium = 1;
 
     // Exactly one of the following fields will be set.
@@ -215,6 +220,7 @@ message BandwidthUpgradeNegotiationFrame {
     optional BluetoothCredentials bluetooth_credentials = 4;
     optional WifiAwareCredentials wifi_aware_credentials = 5;
     optional WifiDirectCredentials wifi_direct_credentials = 6;
+    optional WebRtcCredentials web_rtc_credentials = 8;
 
     // Disable Encryption for this upgrade medium to improve throughput.
     optional bool supports_disabling_encryption = 7;

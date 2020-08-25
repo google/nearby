@@ -32,7 +32,7 @@ void SimulationUser::OnConnectionInitiated(const std::string& endpoint_id,
     NEARBY_LOG(INFO, "StartAdvertising: initiated_cb called");
     discovered_ = DiscoveredInfo{
         .endpoint_id = endpoint_id,
-        .endpoint_name = name_,
+        .endpoint_info = GetInfo(),
         .service_id = service_id_,
     };
   }
@@ -49,12 +49,12 @@ void SimulationUser::OnConnectionRejected(const std::string& endpoint_id,
 }
 
 void SimulationUser::OnEndpointFound(const std::string& endpoint_id,
-                                     const std::string& endpoint_name,
+                                     const ByteArray& endpoint_info,
                                      const std::string& service_id) {
   NEARBY_LOG(INFO, "Device discovered: id=%s", endpoint_id.c_str());
   discovered_ = DiscoveredInfo{
       .endpoint_id = endpoint_id,
-      .endpoint_name = endpoint_name,
+      .endpoint_info = endpoint_info,
       .service_id = service_id,
   };
   if (found_latch_) found_latch_->CountDown();
@@ -111,7 +111,7 @@ void SimulationUser::StartAdvertising(const std::string& service_id,
   };
   EXPECT_TRUE(mgr_.StartAdvertising(&client_, service_id_, options_,
                                     {
-                                        .name = name_,
+                                        .endpoint_info = info_,
                                         .listener = std::move(listener),
                                     })
                   .Ok());
@@ -142,12 +142,14 @@ void SimulationUser::RequestConnection(CountDownLatch* latch) {
       .rejected_cb =
           absl::bind_front(&SimulationUser::OnConnectionRejected, this),
   };
-  EXPECT_TRUE(mgr_.RequestConnection(&client_, discovered_.endpoint_id,
-                                     {
-                                         .name = discovered_.endpoint_name,
-                                         .listener = std::move(listener),
-                                     })
-                  .Ok());
+  EXPECT_TRUE(
+      mgr_.RequestConnection(&client_, discovered_.endpoint_id,
+                             {
+                                 .endpoint_info = discovered_.endpoint_info,
+                                 .listener = std::move(listener),
+                             },
+                             connection_options_)
+          .Ok());
 }
 
 void SimulationUser::AcceptConnection(CountDownLatch* latch) {

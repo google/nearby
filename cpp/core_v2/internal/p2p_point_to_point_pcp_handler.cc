@@ -21,8 +21,7 @@ namespace connections {
 P2pPointToPointPcpHandler::P2pPointToPointPcpHandler(
     Mediums& mediums, EndpointManager& endpoint_manager,
     EndpointChannelManager& channel_manager, Pcp pcp)
-    : P2pStarPcpHandler(mediums, endpoint_manager, channel_manager, pcp),
-      mediums_(&mediums) {}
+    : P2pStarPcpHandler(mediums, endpoint_manager, channel_manager, pcp) {}
 
 std::vector<proto::connections::Medium>
 P2pPointToPointPcpHandler::GetConnectionMediumsByPriority() {

@@ -34,38 +34,40 @@ constexpr absl::string_view kEndPointName{"RAWK + ROWL!"};
 
 TEST(BluetoothDeviceNameTest, ConstructionWorks) {
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   BluetoothDeviceName bluetooth_device_name{kVersion, kPcp, kEndPointID,
-                                            service_id_hash, kEndPointName};
+                                            service_id_hash, endpoint_info};
 
   EXPECT_TRUE(bluetooth_device_name.IsValid());
   EXPECT_EQ(kVersion, bluetooth_device_name.GetVersion());
   EXPECT_EQ(kPcp, bluetooth_device_name.GetPcp());
   EXPECT_EQ(kEndPointID, bluetooth_device_name.GetEndpointId());
   EXPECT_EQ(service_id_hash, bluetooth_device_name.GetServiceIdHash());
-  EXPECT_EQ(kEndPointName, bluetooth_device_name.GetEndpointName());
+  EXPECT_EQ(endpoint_info, bluetooth_device_name.GetEndpointInfo());
 }
 
 TEST(BluetoothDeviceNameTest, ConstructionWorksWithEmptyEndpointName) {
-  std::string empty_endpoint_name;
+  ByteArray empty_endpoint_info;
 
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
   BluetoothDeviceName bluetooth_device_name{
-      kVersion, kPcp, kEndPointID, service_id_hash, empty_endpoint_name};
+      kVersion, kPcp, kEndPointID, service_id_hash, empty_endpoint_info};
 
   EXPECT_TRUE(bluetooth_device_name.IsValid());
   EXPECT_EQ(kVersion, bluetooth_device_name.GetVersion());
   EXPECT_EQ(kPcp, bluetooth_device_name.GetPcp());
   EXPECT_EQ(kEndPointID, bluetooth_device_name.GetEndpointId());
   EXPECT_EQ(service_id_hash, bluetooth_device_name.GetServiceIdHash());
-  EXPECT_EQ(empty_endpoint_name, bluetooth_device_name.GetEndpointName());
+  EXPECT_EQ(empty_endpoint_info, bluetooth_device_name.GetEndpointInfo());
 }
 
 TEST(BluetoothDeviceNameTest, ConstructionFailsWithBadVersion) {
   auto bad_version = static_cast<BluetoothDeviceName::Version>(666);
 
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   BluetoothDeviceName bluetooth_device_name{bad_version, kPcp, kEndPointID,
-                                            service_id_hash, kEndPointName};
+                                            service_id_hash, endpoint_info};
 
   EXPECT_FALSE(bluetooth_device_name.IsValid());
 }
@@ -74,8 +76,9 @@ TEST(BluetoothDeviceNameTest, ConstructionFailsWithBadPcp) {
   auto bad_pcp = static_cast<Pcp>(666);
 
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   BluetoothDeviceName bluetooth_device_name{kVersion, bad_pcp, kEndPointID,
-                                            service_id_hash, kEndPointName};
+                                            service_id_hash, endpoint_info};
 
   EXPECT_FALSE(bluetooth_device_name.IsValid());
 }
@@ -84,8 +87,9 @@ TEST(BluetoothDeviceNameTest, ConstructionFailsWithShortEndpointId) {
   std::string short_endpoint_id("AB1");
 
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   BluetoothDeviceName bluetooth_device_name{kVersion, kPcp, short_endpoint_id,
-                                            service_id_hash, kEndPointName};
+                                            service_id_hash, endpoint_info};
 
   EXPECT_FALSE(bluetooth_device_name.IsValid());
 }
@@ -94,8 +98,9 @@ TEST(BluetoothDeviceNameTest, ConstructionFailsWithLongEndpointId) {
   std::string long_endpoint_id("AB12X");
 
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   BluetoothDeviceName bluetooth_device_name{kVersion, kPcp, long_endpoint_id,
-                                            service_id_hash, kEndPointName};
+                                            service_id_hash, endpoint_info};
 
   EXPECT_FALSE(bluetooth_device_name.IsValid());
 }
@@ -104,8 +109,9 @@ TEST(BluetoothDeviceNameTest, ConstructionFailsWithShortServiceIdHash) {
   char short_service_id_hash_bytes[] = "\x0a\x0b";
 
   ByteArray short_service_id_hash{short_service_id_hash_bytes};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   BluetoothDeviceName bluetooth_device_name{
-      kVersion, kPcp, kEndPointID, short_service_id_hash, kEndPointName};
+      kVersion, kPcp, kEndPointID, short_service_id_hash, endpoint_info};
 
   EXPECT_FALSE(bluetooth_device_name.IsValid());
 }
@@ -114,8 +120,9 @@ TEST(BluetoothDeviceNameTest, ConstructionFailsWithLongServiceIdHash) {
   char long_service_id_hash_bytes[] = "\x0a\x0b\x0c\x0d";
 
   ByteArray long_service_id_hash{long_service_id_hash_bytes};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   BluetoothDeviceName bluetooth_device_name{
-      kVersion, kPcp, kEndPointID, long_service_id_hash, kEndPointName};
+      kVersion, kPcp, kEndPointID, long_service_id_hash, endpoint_info};
 
   EXPECT_FALSE(bluetooth_device_name.IsValid());
 }
@@ -133,8 +140,9 @@ TEST(BluetoothDeviceNameTest, ConstructionFailsWithShortStringLength) {
 TEST(BluetoothDeviceNameTest, ConstructionFailsWithWrongEndpointNameLength) {
   // Serialize good data into a good Bluetooth Device Name.
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   BluetoothDeviceName bluetooth_device_name{kVersion, kPcp, kEndPointID,
-                                            service_id_hash, kEndPointName};
+                                            service_id_hash, endpoint_info};
   auto bluetooth_device_name_string = std::string(bluetooth_device_name);
 
   // Base64-decode the good Bluetooth Device Name.
@@ -159,9 +167,10 @@ TEST(BluetoothDeviceNameTest, ConstructionFailsWithWrongEndpointNameLength) {
 
 TEST(BluetoothDeviceNameTest, CanParseGeneratedName) {
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   // Build name1 from scratch.
   BluetoothDeviceName name1{kVersion, kPcp, kEndPointID, service_id_hash,
-                            kEndPointName};
+                            endpoint_info};
   // Build name2 from string composed from name1.
   BluetoothDeviceName name2{std::string(name1)};
   EXPECT_TRUE(name1.IsValid());
@@ -170,7 +179,7 @@ TEST(BluetoothDeviceNameTest, CanParseGeneratedName) {
   EXPECT_EQ(name1.GetPcp(), name2.GetPcp());
   EXPECT_EQ(name1.GetEndpointId(), name2.GetEndpointId());
   EXPECT_EQ(name1.GetServiceIdHash(), name2.GetServiceIdHash());
-  EXPECT_EQ(name1.GetEndpointName(), name2.GetEndpointName());
+  EXPECT_EQ(name1.GetEndpointInfo(), name2.GetEndpointInfo());
 }
 
 }  // namespace

@@ -95,8 +95,8 @@ class EndpointManager {
   // FrameProcessor* instances are of dynamic duration and survive all sessions.
   // returns unique handle to be used for unregistering.
   // Blocks until registration is complete.
-  FrameProcessor::Handle RegisterFrameProcessor(
-      V1Frame::FrameType frame_type, FrameProcessor* processor);
+  FrameProcessor::Handle RegisterFrameProcessor(V1Frame::FrameType frame_type,
+                                                FrameProcessor* processor);
   void UnregisterFrameProcessor(V1Frame::FrameType frame_type,
                                 const void* handle, bool sync = false);
 
@@ -105,6 +105,7 @@ class EndpointManager {
   // Blocks until registration is complete.
   void RegisterEndpoint(ClientProxy* client, const std::string& endpoint_id,
                         const ConnectionResponseInfo& info,
+                        const ConnectionOptions& options,
                         std::unique_ptr<EndpointChannel> channel,
                         const ConnectionListener& listener);
   // Called when a client explicitly asks to disconnect from this endpoint. In
@@ -215,8 +216,7 @@ class EndpointManager {
 
   EndpointChannelManager* channel_manager_;
 
-  absl::flat_hash_map<V1Frame::FrameType, FrameProcessor*>
-      frame_processors_;
+  absl::flat_hash_map<V1Frame::FrameType, FrameProcessor*> frame_processors_;
 
   // We keep track of all registered channel endpoints here.
   absl::flat_hash_map<std::string, EndpointState> endpoints_;

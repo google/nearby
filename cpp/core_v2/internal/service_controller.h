@@ -62,7 +62,8 @@ class ServiceController {
 
   virtual Status RequestConnection(ClientProxy* client,
                                    const std::string& endpoint_id,
-                                   const ConnectionRequestInfo& info) = 0;
+                                   const ConnectionRequestInfo& info,
+                                   const ConnectionOptions& options) = 0;
   virtual Status AcceptConnection(ClientProxy* client,
                                   const std::string& endpoint_id,
                                   const PayloadListener& listener) = 0;
@@ -76,8 +77,7 @@ class ServiceController {
                            const std::vector<std::string>& endpoint_ids,
                            Payload payload) = 0;
 
-  virtual Status CancelPayload(ClientProxy* client,
-                               Payload::Id payload_id) = 0;
+  virtual Status CancelPayload(ClientProxy* client, Payload::Id payload_id) = 0;
 
   virtual void DisconnectFromEndpoint(ClientProxy* client,
                                       const std::string& endpoint_id) = 0;

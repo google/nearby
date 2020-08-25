@@ -88,6 +88,11 @@ void EndpointChannelManager::SetActiveEndpointChannel(
   if (endpoint->IsEncrypted()) channel_state_.EncryptChannel(endpoint);
 }
 
+int EndpointChannelManager::GetConnectedEndpointsCount() const {
+  MutexLock lock(&mutex_);
+  return channel_state_.GetConnectedEndpointsCount();
+}
+
 ///////////////////////////////// ChannelState /////////////////////////////////
 
 // endpoint - channel endpoint to encrypt

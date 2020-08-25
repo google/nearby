@@ -58,8 +58,7 @@ bool WifiLan::StartAdvertising(const std::string& service_id,
   }
 
   NEARBY_LOGS(INFO) << "Turned on WifiLan advertising with service info name="
-                    << service_info_name
-                    << ", service id=" << service_id;
+                    << service_info_name << ", service id=" << service_id;
   advertising_info_.Add(service_id);
   return true;
 }
@@ -222,7 +221,8 @@ bool WifiLan::IsAcceptingConnectionsLocked(const std::string& service_id) {
 WifiLanSocket WifiLan::Connect(WifiLanService& wifi_lan_service,
                                const std::string& service_id) {
   MutexLock lock(&mutex_);
-  NEARBY_LOG(INFO, "WifiLan::Connect: service=%p", &wifi_lan_service);
+  NEARBY_LOG(INFO, "WifiLan::Connect: service=%p, service_info_name=%s",
+             &wifi_lan_service, wifi_lan_service.GetName().c_str());
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   WifiLanSocket socket;
 
@@ -242,11 +242,17 @@ WifiLanSocket WifiLan::Connect(WifiLanService& wifi_lan_service,
 
   socket = medium_.Connect(wifi_lan_service, service_id);
   if (!socket.IsValid()) {
-    NEARBY_LOG(INFO, "Failed to Connect via WifiLan [service=%s]",
+    NEARBY_LOG(INFO, "Failed to Connect via WifiLan [service_id=%s]",
                service_id.c_str());
   }
 
   return socket;
+}
+
+WifiLanService WifiLan::GetRemoteWifiLanService(const std::string& ip_address,
+                                                int port) {
+  MutexLock lock(&mutex_);
+  return medium_.FindRemoteService(ip_address, port);
 }
 
 }  // namespace connections

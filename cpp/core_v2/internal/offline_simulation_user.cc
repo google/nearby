@@ -15,6 +15,7 @@
 #include "core_v2/internal/offline_simulation_user.h"
 
 #include "core_v2/listeners.h"
+#include "platform_v2/base/byte_array.h"
 #include "platform_v2/public/count_down_latch.h"
 #include "platform_v2/public/system_clock.h"
 #include "absl/functional/bind_front.h"
@@ -32,7 +33,7 @@ void OfflineSimulationUser::OnConnectionInitiated(
     NEARBY_LOG(INFO, "StartAdvertising: initiated_cb called");
     discovered_ = DiscoveredInfo{
         .endpoint_id = endpoint_id,
-        .endpoint_name = name_,
+        .endpoint_info = GetInfo(),
         .service_id = service_id_,
     };
   }
@@ -57,12 +58,12 @@ void OfflineSimulationUser::OnEndpointDisconnect(
 }
 
 void OfflineSimulationUser::OnEndpointFound(const std::string& endpoint_id,
-                                            const std::string& endpoint_name,
+                                            const ByteArray& endpoint_info,
                                             const std::string& service_id) {
   NEARBY_LOG(INFO, "Device discovered: id=%s", endpoint_id.c_str());
   discovered_ = DiscoveredInfo{
       .endpoint_id = endpoint_id,
-      .endpoint_name = endpoint_name,
+      .endpoint_info = endpoint_info,
       .service_id = service_id,
   };
   if (found_latch_) found_latch_->CountDown();
@@ -121,7 +122,7 @@ Status OfflineSimulationUser::StartAdvertising(const std::string& service_id,
   };
   return ctrl_.StartAdvertising(&client_, service_id_, options_,
                                 {
-                                    .name = name_,
+                                    .endpoint_info = info_,
                                     .listener = std::move(listener),
                                 });
 }
@@ -131,8 +132,10 @@ void OfflineSimulationUser::StopAdvertising() {
 }
 
 Status OfflineSimulationUser::StartDiscovery(const std::string& service_id,
-                                             CountDownLatch* latch) {
-  found_latch_ = latch;
+                                             CountDownLatch* found_latch,
+                                             CountDownLatch* lost_latch) {
+  found_latch_ = found_latch;
+  lost_latch_ = lost_latch;
   DiscoveryListener listener = {
       .endpoint_found_cb =
           absl::bind_front(&OfflineSimulationUser::OnEndpointFound, this),
@@ -158,11 +161,13 @@ Status OfflineSimulationUser::RequestConnection(CountDownLatch* latch) {
       .disconnected_cb =
           absl::bind_front(&OfflineSimulationUser::OnEndpointDisconnect, this),
   };
-  return ctrl_.RequestConnection(&client_, discovered_.endpoint_id,
-                                 {
-                                     .name = discovered_.endpoint_name,
-                                     .listener = std::move(listener),
-                                 });
+  return ctrl_.RequestConnection(
+      &client_, discovered_.endpoint_id,
+      {
+          .endpoint_info = discovered_.endpoint_info,
+          .listener = std::move(listener),
+      },
+      connection_options_);
 }
 
 Status OfflineSimulationUser::AcceptConnection(CountDownLatch* latch) {

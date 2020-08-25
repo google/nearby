@@ -83,6 +83,9 @@ class WifiLan {
                         const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  WifiLanService GetRemoteWifiLanService(const std::string& ip_address,
+                                         int port) ABSL_LOCKS_EXCLUDED(mutex_);
+
  private:
   struct AdvertisingInfo {
     bool Empty() const { return service_ids.empty(); }
@@ -129,7 +132,7 @@ class WifiLan {
   // Same as IsAvailable(), but must be called with mutex_ held.
   bool IsAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-    // Same as IsAdvertising(), but must be called with mutex_ held.
+  // Same as IsAdvertising(), but must be called with mutex_ held.
   bool IsAdvertisingLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 

@@ -35,6 +35,9 @@ class BluetoothDevice {
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
   virtual std::string GetName() const = 0;
+
+  // Returns BT MAC address assigned to this device.
+  virtual std::string GetMacAddress() const = 0;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html.
@@ -146,6 +149,8 @@ class BluetoothClassicMedium {
   //  Returns nullptr error.
   virtual std::unique_ptr<BluetoothServerSocket> ListenForService(
       const std::string& service_name, const std::string& service_uuid) = 0;
+
+  virtual BluetoothDevice* FindRemoteDevice(const std::string& mac_address) = 0;
 };
 
 }  // namespace api
