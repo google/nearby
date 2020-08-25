@@ -10,8 +10,8 @@ P2pStarPcpHandler::P2pStarPcpHandler(Mediums& mediums,
                                      EndpointManager& endpoint_manager,
                                      EndpointChannelManager& channel_manager,
                                      Pcp pcp)
-    : P2pClusterPcpHandler(mediums, &endpoint_manager, &channel_manager, pcp),
-      mediums_(&mediums) {}
+    : P2pClusterPcpHandler(&mediums, &endpoint_manager, &channel_manager, pcp) {
+}
 
 std::vector<proto::connections::Medium>
 P2pStarPcpHandler::GetConnectionMediumsByPriority() {

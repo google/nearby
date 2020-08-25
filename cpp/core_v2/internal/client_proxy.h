@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "core_v2/listeners.h"
+#include "core_v2/options.h"
 #include "core_v2/status.h"
 #include "core_v2/strategy.h"
 #include "platform_v2/base/byte_array.h"
@@ -35,7 +36,7 @@ class ClientProxy final {
 
   std::int64_t GetClientId() const;
 
-  std::string GenerateLocalEndpointId();
+  std::string GetLocalEndpointId();
 
   // Clears all the runtime state of this client.
   void Reset();
@@ -64,7 +65,7 @@ class ClientProxy final {
   // Proxies to the client's DiscoveryListener::OnEndpointFound() callback.
   void OnEndpointFound(const std::string& service_id,
                        const std::string& endpoint_id,
-                       const std::string& endpoint_name,
+                       const ByteArray& endpoint_info,
                        proto::connections::Medium medium);
   // Proxies to the client's DiscoveryListener::OnEndpointLost() callback.
   void OnEndpointLost(const std::string& service_id,
@@ -73,6 +74,7 @@ class ClientProxy final {
   // Proxies to the client's ConnectionListener::OnInitiated() callback.
   void OnConnectionInitiated(const std::string& endpoint_id,
                              const ConnectionResponseInfo& info,
+                             const ConnectionOptions& options,
                              const ConnectionListener& listener);
 
   // Proxies to the client's ConnectionListener::OnAccepted() callback.
@@ -88,6 +90,8 @@ class ClientProxy final {
   // ConnectionListener.disconnected_cb() callback.
   void OnDisconnected(const std::string& endpoint_id, bool notify);
 
+  // Returns all mediums eligible for upgrade.
+  BooleanMediumSelector GetUpgradeMediums(const std::string& endpoint_id) const;
   // Returns true if it's safe to send payloads to this endpoint.
   bool IsConnectedToEndpoint(const std::string& endpoint_id) const;
   // Returns all endpoints that can safely be sent payloads.
@@ -157,6 +161,7 @@ class ClientProxy final {
     Status status{kPending};
     ConnectionListener connection_listener;
     PayloadListener payload_listener;
+    ConnectionOptions connection_options;
   };
 
   struct AdvertisingInfo {
@@ -188,6 +193,7 @@ class ClientProxy final {
 
   mutable RecursiveMutex mutex_;
   std::int64_t client_id_;
+  std::string local_endpoint_id_;
   Prng prng_;
 
   // If not empty, we are currently advertising and accepting connection

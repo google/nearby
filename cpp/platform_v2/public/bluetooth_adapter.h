@@ -11,6 +11,29 @@
 namespace location {
 namespace nearby {
 
+// Opaque wrapper over a BLE peripheral. Must contain enough data about a
+// particular BLE peripheral to connect to its GATT server.
+class BlePeripheral final {
+ public:
+  BlePeripheral() = default;
+  BlePeripheral(const BlePeripheral&) = default;
+  BlePeripheral& operator=(const BlePeripheral&) = default;
+  explicit BlePeripheral(api::BlePeripheral* peripheral) : impl_(peripheral) {}
+  ~BlePeripheral() = default;
+
+  std::string GetName() const { return impl_->GetName(); }
+
+  ByteArray GetAdvertisementBytes(const std::string& service_id) const {
+    return impl_->GetAdvertisementBytes(service_id);
+  }
+
+  api::BlePeripheral& GetImpl() { return *impl_; }
+  bool IsValid() const { return impl_ != nullptr; }
+
+ private:
+  api::BlePeripheral* impl_;
+};
+
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
 class BluetoothDevice final {
  public:

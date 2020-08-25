@@ -20,12 +20,27 @@ constexpr absl::string_view kMessage = "message";
 constexpr absl::Duration kProgressTimeout = absl::Milliseconds(1000);
 constexpr absl::Duration kDefaultTimeout = absl::Milliseconds(1000);
 
+constexpr BooleanMediumSelector kTestCases[] = {
+    BooleanMediumSelector{
+        .bluetooth = true,
+    },
+    BooleanMediumSelector{
+        .wifi_lan = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .wifi_lan = true,
+    },
+};
+
 class PayloadSimulationUser : public SimulationUser {
  public:
-  explicit PayloadSimulationUser(absl::string_view name)
-      : SimulationUser(std::string(name)) {}
+  explicit PayloadSimulationUser(
+      absl::string_view name,
+      BooleanMediumSelector allowed = BooleanMediumSelector())
+      : SimulationUser(std::string(name), allowed) {}
   ~PayloadSimulationUser() override {
-    NEARBY_LOGS(INFO) << "PayloadSimulationUser: [down] name=" << name_;
+    NEARBY_LOGS(INFO) << "PayloadSimulationUser: [down] name=" << info_.data();
     // SystemClock::Sleep(kDefaultTimeout);
   }
 
@@ -51,7 +66,8 @@ class PayloadSimulationUser : public SimulationUser {
   Payload::Id sender_payload_id_ = 0;
 };
 
-class PayloadManagerTest : public ::testing::Test {
+class PayloadManagerTest
+    : public ::testing::TestWithParam<BooleanMediumSelector> {
  protected:
   PayloadManagerTest() { env_.Stop(); }
 
@@ -61,7 +77,7 @@ class PayloadManagerTest : public ::testing::Test {
     user_b.StartDiscovery(std::string(kServiceId), &discovery_latch_);
     EXPECT_TRUE(discovery_latch_.Await(kDefaultTimeout).result());
     EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
-    EXPECT_EQ(user_b.GetDiscovered().endpoint_name, user_a.GetName());
+    EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
     EXPECT_FALSE(user_b.GetDiscovered().endpoint_id.empty());
     NEARBY_LOG(INFO, "EP-B: [discovered] %s",
                user_b.GetDiscovered().endpoint_id.c_str());
@@ -85,23 +101,23 @@ class PayloadManagerTest : public ::testing::Test {
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
-TEST_F(PayloadManagerTest, CanCreateOne) {
+TEST_P(PayloadManagerTest, CanCreateOne) {
   env_.Start();
-  PayloadSimulationUser user_a(kDeviceA);
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
   env_.Stop();
 }
 
-TEST_F(PayloadManagerTest, CanCreateMultiple) {
+TEST_P(PayloadManagerTest, CanCreateMultiple) {
   env_.Start();
-  PayloadSimulationUser user_a(kDeviceA);
-  PayloadSimulationUser user_b(kDeviceB);
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
   env_.Stop();
 }
 
-TEST_F(PayloadManagerTest, CanSendBytePayload) {
+TEST_P(PayloadManagerTest, CanSendBytePayload) {
   env_.Start();
-  PayloadSimulationUser user_a(kDeviceA);
-  PayloadSimulationUser user_b(kDeviceB);
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
   ASSERT_TRUE(SetupConnection(user_a, user_b));
 
   user_a.ExpectPayload(payload_latch_);
@@ -115,10 +131,10 @@ TEST_F(PayloadManagerTest, CanSendBytePayload) {
   env_.Stop();
 }
 
-TEST_F(PayloadManagerTest, CanSendStreamPayload) {
+TEST_P(PayloadManagerTest, CanSendStreamPayload) {
   env_.Start();
-  PayloadSimulationUser user_a(kDeviceA);
-  PayloadSimulationUser user_b(kDeviceB);
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
   ASSERT_TRUE(SetupConnection(user_a, user_b));
 
   auto pipe = std::make_shared<Pipe>();
@@ -165,10 +181,10 @@ TEST_F(PayloadManagerTest, CanSendStreamPayload) {
   env_.Stop();
 }
 
-TEST_F(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
+TEST_P(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
   env_.Start();
-  PayloadSimulationUser user_a(kDeviceA);
-  PayloadSimulationUser user_b(kDeviceB);
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
   ASSERT_TRUE(SetupConnection(user_a, user_b));
 
   auto pipe = std::make_shared<Pipe>();
@@ -212,7 +228,7 @@ TEST_F(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
       [status = PayloadProgressInfo::Status::kCanceled](
           const PayloadProgressInfo& info) { return info.status == status; },
       kProgressTimeout));
-  NEARBY_LOG(INFO, "Stream cancelation recevied.");
+  NEARBY_LOG(INFO, "Stream cancelation received.");
 
   tx.Close();
   rx.Close();
@@ -223,10 +239,10 @@ TEST_F(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
   env_.Stop();
 }
 
-TEST_F(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
+TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   env_.Start();
-  PayloadSimulationUser user_a(kDeviceA);
-  PayloadSimulationUser user_b(kDeviceB);
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
   ASSERT_TRUE(SetupConnection(user_a, user_b));
 
   auto pipe = std::make_shared<Pipe>();
@@ -270,7 +286,7 @@ TEST_F(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
       [status = PayloadProgressInfo::Status::kCanceled](
           const PayloadProgressInfo& info) { return info.status == status; },
       kProgressTimeout));
-  NEARBY_LOG(INFO, "Stream cancelation recevied.");
+  NEARBY_LOG(INFO, "Stream cancelation received.");
 
   tx.Close();
   rx.Close();
@@ -280,6 +296,9 @@ TEST_F(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   user_b.Stop();
   env_.Stop();
 }
+
+INSTANTIATE_TEST_SUITE_P(ParametrisedPayloadManagerTest, PayloadManagerTest,
+                         ::testing::ValuesIn(kTestCases));
 
 }  // namespace
 }  // namespace connections

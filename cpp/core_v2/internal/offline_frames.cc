@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "core/internal/message_lite.h"
+#include "proto/connections/offline_wire_formats.pb.h"
 #include "platform_v2/base/byte_array.h"
 
 namespace location {
@@ -13,7 +14,6 @@ namespace parser {
 namespace {
 
 using ExceptionOrOfflineFrame = ExceptionOr<OfflineFrame>;
-using Medium = proto::connections::Medium;
 using MessageLite = ::google::protobuf::MessageLite;
 
 ByteArray ToBytes(OfflineFrame&& frame) {
@@ -44,7 +44,7 @@ V1Frame::FrameType GetFrameType(const OfflineFrame& frame) {
 }
 
 ByteArray ForConnectionRequest(const std::string& endpoint_id,
-                               const std::string& endpoint_name,
+                               const ByteArray& endpoint_info,
                                std::int32_t nonce,
                                const std::vector<Medium>& mediums) {
   OfflineFrame frame;
@@ -54,8 +54,8 @@ ByteArray ForConnectionRequest(const std::string& endpoint_id,
   v1_frame->set_type(V1Frame::CONNECTION_REQUEST);
   auto* connection_request = v1_frame->mutable_connection_request();
   connection_request->set_endpoint_id(endpoint_id);
-  connection_request->set_endpoint_name(endpoint_name);
-  connection_request->set_endpoint_info(endpoint_name);
+  connection_request->set_endpoint_name(std::string(endpoint_info));
+  connection_request->set_endpoint_info(std::string(endpoint_info));
   connection_request->set_nonce(nonce);
   for (const auto& medium : mediums) {
     connection_request->add_mediums(MediumToConnectionRequestMedium(medium));
@@ -108,7 +108,7 @@ ByteArray ForControlPayloadTransfer(
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForBandwidthUpgradeWifiHotspot(const std::string& ssid,
+ByteArray ForBwuWifiHotspotPathAvailable(const std::string& ssid,
                                          const std::string& password,
                                          std::int32_t port) {
   OfflineFrame frame;
@@ -120,8 +120,7 @@ ByteArray ForBandwidthUpgradeWifiHotspot(const std::string& ssid,
   sub_frame->set_event_type(
       BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
   auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
-  upgrade_path_info->set_medium(
-      BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WIFI_HOTSPOT);
+  upgrade_path_info->set_medium(UpgradePathInfo::WIFI_HOTSPOT);
   auto* wifi_hotspot_credentials =
       upgrade_path_info->mutable_wifi_hotspot_credentials();
   wifi_hotspot_credentials->set_ssid(ssid);
@@ -131,7 +130,46 @@ ByteArray ForBandwidthUpgradeWifiHotspot(const std::string& ssid,
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForBandwidthUpgradeLastWrite() {
+ByteArray ForBwuWifiLanPathAvailable(const std::string& ip_address,
+                                     std::int32_t port) {
+  OfflineFrame frame;
+
+  frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION);
+  auto* sub_frame = v1_frame->mutable_bandwidth_upgrade_negotiation();
+  sub_frame->set_event_type(
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+  auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
+  upgrade_path_info->set_medium(UpgradePathInfo::WIFI_LAN);
+  auto* wifi_lan_socket = upgrade_path_info->mutable_wifi_lan_socket();
+  wifi_lan_socket->set_ip_address(ip_address);
+  wifi_lan_socket->set_wifi_port(port);
+
+  return ToBytes(std::move(frame));
+}
+
+ByteArray ForBwuBluetoothPathAvailable(const std::string& service_id,
+                                       const std::string& mac_address) {
+  OfflineFrame frame;
+
+  frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION);
+  auto* sub_frame = v1_frame->mutable_bandwidth_upgrade_negotiation();
+  sub_frame->set_event_type(
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+  auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
+  upgrade_path_info->set_medium(UpgradePathInfo::BLUETOOTH);
+  auto* bluetooth_credentials =
+      upgrade_path_info->mutable_bluetooth_credentials();
+  bluetooth_credentials->set_mac_address(mac_address);
+  bluetooth_credentials->set_service_name(service_id);
+
+  return ToBytes(std::move(frame));
+}
+
+ByteArray ForBwuLastWrite() {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -144,7 +182,7 @@ ByteArray ForBandwidthUpgradeLastWrite() {
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForBandwidthUpgradeSafeToClose() {
+ByteArray ForBwuSafeToClose() {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -157,7 +195,7 @@ ByteArray ForBandwidthUpgradeSafeToClose() {
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForBandwidthUpgradeIntroduction(const std::string& endpoint_id) {
+ByteArray ForBwuIntroduction(const std::string& endpoint_id) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -168,6 +206,21 @@ ByteArray ForBandwidthUpgradeIntroduction(const std::string& endpoint_id) {
       BandwidthUpgradeNegotiationFrame::CLIENT_INTRODUCTION);
   auto* client_introduction = sub_frame->mutable_client_introduction();
   client_introduction->set_endpoint_id(endpoint_id);
+
+  return ToBytes(std::move(frame));
+}
+
+ByteArray ForBwuFailure(const UpgradePathInfo& info) {
+  OfflineFrame frame;
+
+  frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION);
+  auto* sub_frame = v1_frame->mutable_bandwidth_upgrade_negotiation();
+  sub_frame->set_event_type(
+      BandwidthUpgradeNegotiationFrame::UPGRADE_FAILURE);
+  auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
+  *upgrade_path_info = info;
 
   return ToBytes(std::move(frame));
 }
@@ -183,8 +236,57 @@ ByteArray ForKeepAlive() {
   return ToBytes(std::move(frame));
 }
 
-ConnectionRequestFrame::Medium MediumToConnectionRequestMedium(
-    proto::connections::Medium medium) {
+UpgradePathInfo::Medium MediumToUpgradePathInfoMedium(Medium medium) {
+  switch (medium) {
+    case Medium::MDNS:
+      return UpgradePathInfo::MDNS;
+    case Medium::BLUETOOTH:
+      return UpgradePathInfo::BLUETOOTH;
+    case Medium::WIFI_HOTSPOT:
+      return UpgradePathInfo::WIFI_HOTSPOT;
+    case Medium::BLE:
+      return UpgradePathInfo::BLE;
+    case Medium::WIFI_LAN:
+      return UpgradePathInfo::WIFI_LAN;
+    case Medium::WIFI_AWARE:
+      return UpgradePathInfo::WIFI_AWARE;
+    case Medium::NFC:
+      return UpgradePathInfo::NFC;
+    case Medium::WIFI_DIRECT:
+      return UpgradePathInfo::WIFI_DIRECT;
+    case Medium::WEB_RTC:
+      return UpgradePathInfo::WEB_RTC;
+    default:
+      return UpgradePathInfo::UNKNOWN_MEDIUM;
+  }
+}
+
+Medium UpgradePathInfoMediumToMedium(UpgradePathInfo::Medium medium) {
+  switch (medium) {
+    case UpgradePathInfo::MDNS:
+      return Medium::MDNS;
+    case UpgradePathInfo::BLUETOOTH:
+      return Medium::BLUETOOTH;
+    case UpgradePathInfo::WIFI_HOTSPOT:
+      return Medium::WIFI_HOTSPOT;
+    case UpgradePathInfo::BLE:
+      return Medium::BLE;
+    case UpgradePathInfo::WIFI_LAN:
+      return Medium::WIFI_LAN;
+    case UpgradePathInfo::WIFI_AWARE:
+      return Medium::WIFI_AWARE;
+    case UpgradePathInfo::NFC:
+      return Medium::NFC;
+    case UpgradePathInfo::WIFI_DIRECT:
+      return Medium::WIFI_DIRECT;
+    case UpgradePathInfo::WEB_RTC:
+      return Medium::WEB_RTC;
+    default:
+      return Medium::UNKNOWN_MEDIUM;
+  }
+}
+
+ConnectionRequestFrame::Medium MediumToConnectionRequestMedium(Medium medium) {
   switch (medium) {
     case Medium::MDNS:
       return ConnectionRequestFrame::MDNS;
@@ -209,8 +311,7 @@ ConnectionRequestFrame::Medium MediumToConnectionRequestMedium(
   }
 }
 
-proto::connections::Medium ConnectionRequestMediumToMedium(
-    ConnectionRequestFrame::Medium medium) {
+Medium ConnectionRequestMediumToMedium(ConnectionRequestFrame::Medium medium) {
   switch (medium) {
     case ConnectionRequestFrame::MDNS:
       return Medium::MDNS;
@@ -235,9 +336,9 @@ proto::connections::Medium ConnectionRequestMediumToMedium(
   }
 }
 
-std::vector<proto::connections::Medium> ConnectionRequestMediumsToMediums(
+std::vector<Medium> ConnectionRequestMediumsToMediums(
     const ConnectionRequestFrame& frame) {
-  std::vector<proto::connections::Medium> result;
+  std::vector<Medium> result;
   for (const auto& int_medium : frame.mediums()) {
     result.push_back(ConnectionRequestMediumToMedium(
         static_cast<ConnectionRequestFrame::Medium>(int_medium)));

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "core_v2/options.h"
 #include "proto/connections/offline_wire_formats.pb.h"
 #include "platform_v2/base/byte_array.h"
 #include "platform_v2/base/exception.h"
@@ -13,6 +14,8 @@ namespace location {
 namespace nearby {
 namespace connections {
 namespace parser {
+
+using UpgradePathInfo = BandwidthUpgradeNegotiationFrame::UpgradePathInfo;
 
 // Serialize/Deserialize Nearby Connections Protocol messages.
 
@@ -25,12 +28,13 @@ ExceptionOr<OfflineFrame> FromBytes(const ByteArray& offline_frame_bytes);
 // V1Frame::UNKNOWN_FRAME_TYPE, if frame contents is not recognized.
 V1Frame::FrameType GetFrameType(const OfflineFrame& offline_frame);
 
-// Build ConnectionRequest message.
+// Builds Connection Request / Response messages.
 ByteArray ForConnectionRequest(
-    const std::string& endpoint_id, const std::string& endpoint_name,
-    std::int32_t nonce, const std::vector<proto::connections::Medium>& mediums);
+    const std::string& endpoint_id, const ByteArray& endpoint_info,
+    std::int32_t nonce, const std::vector<Medium>& mediums);
 ByteArray ForConnectionResponse(std::int32_t status);
 
+// Builds Payload transfer messages.
 ByteArray ForDataPayloadTransfer(
     const PayloadTransferFrame::PayloadHeader& header,
     const PayloadTransferFrame::PayloadChunk& chunk);
@@ -38,19 +42,27 @@ ByteArray ForControlPayloadTransfer(
     const PayloadTransferFrame::PayloadHeader& header,
     const PayloadTransferFrame::ControlMessage& control);
 
-ByteArray ForBandwidthUpgradeWifiHotspot(
-    const std::string& ssid, const std::string& password, std::int32_t port);
-ByteArray ForBandwidthUpgradeLastWrite();
-ByteArray ForBandwidthUpgradeSafeToClose();
-ByteArray ForBandwidthUpgradeIntroduction(const std::string& endpoint_id);
+// Builds Bandwidth Upgrade [BWU] messages.
+ByteArray ForBwuIntroduction(const std::string& endpoint_id);
+ByteArray ForBwuWifiHotspotPathAvailable(const std::string& ssid,
+                                         const std::string& password,
+                                         std::int32_t port);
+ByteArray ForBwuWifiLanPathAvailable(const std::string& ip_address,
+                                     std::int32_t port);
+ByteArray ForBwuBluetoothPathAvailable(const std::string& service_id,
+                                       const std::string& mac_address);
+ByteArray ForBwuFailure(const UpgradePathInfo& info);
+ByteArray ForBwuLastWrite();
+ByteArray ForBwuSafeToClose();
 
 ByteArray ForKeepAlive();
 
-ConnectionRequestFrame::Medium MediumToConnectionRequestMedium(
-    proto::connections::Medium medium);
-proto::connections::Medium ConnectionRequestMediumToMedium(
-    ConnectionRequestFrame::Medium medium);
-std::vector<proto::connections::Medium> ConnectionRequestMediumsToMediums(
+UpgradePathInfo::Medium MediumToUpgradePathInfoMedium(Medium medium);
+Medium UpgradePathInfoMediumToMedium(UpgradePathInfo::Medium medium);
+
+ConnectionRequestFrame::Medium MediumToConnectionRequestMedium(Medium medium);
+Medium ConnectionRequestMediumToMedium(ConnectionRequestFrame::Medium medium);
+std::vector<Medium> ConnectionRequestMediumsToMediums(
     const ConnectionRequestFrame& connection_request_frame);
 
 }  // namespace parser

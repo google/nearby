@@ -2,6 +2,7 @@ cc_library(
     name = "mediums",
     srcs = [
         "advertisement_read_result.cc",
+        "ble.cc",
         "ble_advertisement.cc",
         "ble_advertisement_header.cc",
         "ble_packet.cc",
@@ -15,6 +16,7 @@ cc_library(
     ],
     hdrs = [
         "advertisement_read_result.h",
+        "ble.h",
         "ble_advertisement.h",
         "ble_advertisement_header.h",
         "ble_packet.h",
@@ -56,6 +58,7 @@ cc_library(
     srcs = ["utils.cc"],
     hdrs = ["utils.h"],
     visibility = [
+        "//core_v2/internal:__pkg__",
         "//core_v2/internal/mediums/webrtc:__pkg__",
     ],
     deps = [
@@ -74,6 +77,7 @@ cc_test(
         "ble_advertisement_test.cc",
         "ble_packet_test.cc",
         "ble_peripheral_test.cc",
+        "ble_test.cc",
         "bloom_filter_test.cc",
         "bluetooth_classic_test.cc",
         "bluetooth_radio_test.cc",
@@ -93,6 +97,7 @@ cc_test(
         "//platform_v2/public:logging",
         "//platform_v2/public:types",
         "//testing/base/public:gunit_main",
+        "//absl/strings",
         "//absl/time",
     ],
 )

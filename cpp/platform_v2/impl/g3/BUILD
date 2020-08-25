@@ -39,12 +39,14 @@ cc_library(
     name = "comm",
     testonly = True,
     srcs = [
+        "ble.cc",
         "bluetooth_adapter.cc",
         "bluetooth_classic.cc",
         "webrtc.cc",
         "wifi_lan.cc",
     ],
     hdrs = [
+        "ble.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
         "webrtc.h",
@@ -76,9 +78,7 @@ cc_library(
     srcs = [
         "crypto.cc",
     ],
-    visibility = [
-        "//platform_v2/g3:__pkg__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         "//platform_v2/api:types",
         "//platform_v2/base",
@@ -94,7 +94,6 @@ cc_library(
         "platform.cc",
     ],
     visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//core_v2:__subpackages__",
         "//platform_v2:__subpackages__",
     ],

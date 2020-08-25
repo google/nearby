@@ -40,7 +40,8 @@ class OfflineServiceController : public ServiceController {
 
   Status RequestConnection(ClientProxy* client,
                            const std::string& endpoint_id,
-                           const ConnectionRequestInfo& info) override;
+                           const ConnectionRequestInfo& info,
+                           const ConnectionOptions& options) override;
   Status AcceptConnection(ClientProxy* client,
                           const std::string& endpoint_id,
                           const PayloadListener& listener) override;
@@ -51,8 +52,8 @@ class OfflineServiceController : public ServiceController {
                                 const std::string& endpoint_id) override;
 
   void SendPayload(ClientProxy* client,
-                           const std::vector<std::string>& endpoint_ids,
-                           Payload payload) override;
+                   const std::vector<std::string>& endpoint_ids,
+                   Payload payload) override;
   Status CancelPayload(ClientProxy* client,
                        Payload::Id payload_id) override;
 

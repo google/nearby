@@ -3,7 +3,6 @@
 
 #include "core_v2/internal/endpoint_channel_manager.h"
 #include "core_v2/internal/endpoint_manager.h"
-#include "core_v2/internal/mediums/mediums.h"
 #include "core_v2/internal/p2p_star_pcp_handler.h"
 #include "core_v2/internal/pcp.h"
 #include "core_v2/strategy.h"
@@ -15,7 +14,7 @@ namespace connections {
 // Concrete implementation of the PCPHandler for the P2P_POINT_TO_POINT. This
 // PCP is for mediums that have limitations on the number of simultaneous
 // connections; all mediums in P2P_STAR are valid for P2P_POINT_TO_POINT, but
-// not all mediums in P2P_POINT_TO_POINT and valid for P2P_STAR.
+// not all mediums in P2P_POINT_TO_POINT are valid for P2P_STAR.
 //
 // Currently, this implementation advertises/discovers over Bluetooth
 // and connects over Bluetooth.
@@ -31,9 +30,6 @@ class P2pPointToPointPcpHandler : public P2pStarPcpHandler {
 
   bool CanSendOutgoingConnection(ClientProxy* client) const override;
   bool CanReceiveIncomingConnection(ClientProxy* client) const override;
-
- private:
-  Mediums* mediums_;
 };
 
 }  // namespace connections

@@ -82,7 +82,7 @@ class BluetoothSocket : public api::BluetoothSocket {
   // Output pipe is initialized by constructor, it remains always valid, until
   // it is closed. it represents output part of a local socket. Input part of a
   // local socket comes from the peer socket, after connection.
-  std::shared_ptr<Pipe> output_ {new Pipe};
+  std::shared_ptr<Pipe> output_{new Pipe};
   std::shared_ptr<Pipe> input_;
   mutable absl::Mutex mutex_;
   BluetoothAdapter* adapter_ = nullptr;  // Our Adapter. Read only.
@@ -206,6 +206,9 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   std::unique_ptr<api::BluetoothServerSocket> ListenForService(
       const std::string& service_name, const std::string& service_uuid) override
       ABSL_LOCKS_EXCLUDED(mutex_);
+
+  api::BluetoothDevice* FindRemoteDevice(
+      const std::string& mac_address) override;
 
  private:
   absl::Mutex mutex_;

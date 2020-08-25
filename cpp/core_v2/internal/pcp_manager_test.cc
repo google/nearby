@@ -4,6 +4,7 @@
 
 #include "core_v2/internal/endpoint_channel_manager.h"
 #include "core_v2/internal/simulation_user.h"
+#include "core_v2/options.h"
 #include "platform_v2/base/medium_environment.h"
 #include "platform_v2/public/count_down_latch.h"
 #include "gmock/gmock.h"
@@ -19,58 +20,71 @@ constexpr char kServiceId[] = "service-id";
 constexpr char kDeviceA[] = "device-A";
 constexpr char kDeviceB[] = "device-B";
 
-class PcpManagerTest : public ::testing::Test {
+constexpr BooleanMediumSelector kTestCases[] = {
+    BooleanMediumSelector{
+        .bluetooth = true,
+    },
+    BooleanMediumSelector{
+        .wifi_lan = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .wifi_lan = true,
+    },
+};
+
+class PcpManagerTest : public ::testing::TestWithParam<BooleanMediumSelector> {
  protected:
   PcpManagerTest() { env_.Stop(); }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
-TEST_F(PcpManagerTest, CanCreateOne) {
+TEST_P(PcpManagerTest, CanCreateOne) {
   env_.Start();
-  SimulationUser user(kDeviceA);
+  SimulationUser user(kDeviceA, GetParam());
   env_.Stop();
 }
 
-TEST_F(PcpManagerTest, CanCreateMany) {
+TEST_P(PcpManagerTest, CanCreateMany) {
   env_.Start();
-  SimulationUser user_a(kDeviceA);
-  SimulationUser user_b(kDeviceB);
+  SimulationUser user_a(kDeviceA, GetParam());
+  SimulationUser user_b(kDeviceB, GetParam());
   env_.Stop();
 }
 
-TEST_F(PcpManagerTest, CanAdvertise) {
+TEST_P(PcpManagerTest, CanAdvertise) {
   env_.Start();
-  SimulationUser user_a(kDeviceA);
-  SimulationUser user_b(kDeviceB);
+  SimulationUser user_a(kDeviceA, GetParam());
+  SimulationUser user_b(kDeviceB, GetParam());
   user_a.StartAdvertising(kServiceId, nullptr);
   env_.Stop();
 }
 
-TEST_F(PcpManagerTest, CanDiscover) {
+TEST_P(PcpManagerTest, CanDiscover) {
   env_.Start();
-  SimulationUser user_a("device-a");
-  SimulationUser user_b("device-b");
+  SimulationUser user_a("device-a", GetParam());
+  SimulationUser user_b("device-b", GetParam());
   user_a.StartAdvertising(kServiceId, nullptr);
   CountDownLatch latch(1);
   user_b.StartDiscovery(kServiceId, &latch);
   EXPECT_TRUE(latch.Await(absl::Milliseconds(1000)).result());
   EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
-  EXPECT_EQ(user_b.GetDiscovered().endpoint_name, user_a.GetName());
+  EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
   env_.Stop();
 }
 
-TEST_F(PcpManagerTest, CanConnect) {
+TEST_P(PcpManagerTest, CanConnect) {
   env_.Start();
-  SimulationUser user_a("device-a");
-  SimulationUser user_b("device-b");
+  SimulationUser user_a("device-a", GetParam());
+  SimulationUser user_b("device-b", GetParam());
   CountDownLatch discovery_latch(1);
   CountDownLatch connection_latch(2);
   user_a.StartAdvertising(kServiceId, &connection_latch);
   user_b.StartDiscovery(kServiceId, &discovery_latch);
   EXPECT_TRUE(discovery_latch.Await(absl::Milliseconds(1000)).result());
   EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
-  EXPECT_EQ(user_b.GetDiscovered().endpoint_name, user_a.GetName());
+  EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
   user_b.RequestConnection(&connection_latch);
   EXPECT_TRUE(connection_latch.Await(absl::Milliseconds(1000)).result());
   user_a.Stop();
@@ -78,10 +92,10 @@ TEST_F(PcpManagerTest, CanConnect) {
   env_.Stop();
 }
 
-TEST_F(PcpManagerTest, CanAccept) {
+TEST_P(PcpManagerTest, CanAccept) {
   env_.Start();
-  SimulationUser user_a("device-a");
-  SimulationUser user_b("device-b");
+  SimulationUser user_a("device-a", GetParam());
+  SimulationUser user_b("device-b", GetParam());
   CountDownLatch discovery_latch(1);
   CountDownLatch connection_latch(2);
   CountDownLatch accept_latch(2);
@@ -89,7 +103,7 @@ TEST_F(PcpManagerTest, CanAccept) {
   user_b.StartDiscovery(kServiceId, &discovery_latch);
   EXPECT_TRUE(discovery_latch.Await(absl::Milliseconds(1000)).result());
   EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
-  EXPECT_EQ(user_b.GetDiscovered().endpoint_name, user_a.GetName());
+  EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
   user_b.RequestConnection(&connection_latch);
   EXPECT_TRUE(connection_latch.Await(absl::Milliseconds(1000)).result());
   user_a.AcceptConnection(&accept_latch);
@@ -100,10 +114,10 @@ TEST_F(PcpManagerTest, CanAccept) {
   env_.Stop();
 }
 
-TEST_F(PcpManagerTest, CanReject) {
+TEST_P(PcpManagerTest, CanReject) {
   env_.Start();
-  SimulationUser user_a("device-a");
-  SimulationUser user_b("device-b");
+  SimulationUser user_a("device-a", GetParam());
+  SimulationUser user_b("device-b", GetParam());
   CountDownLatch discovery_latch(1);
   CountDownLatch connection_latch(2);
   CountDownLatch reject_latch(1);
@@ -111,7 +125,7 @@ TEST_F(PcpManagerTest, CanReject) {
   user_b.StartDiscovery(kServiceId, &discovery_latch);
   EXPECT_TRUE(discovery_latch.Await(absl::Milliseconds(1000)).result());
   EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
-  EXPECT_EQ(user_b.GetDiscovered().endpoint_name, user_a.GetName());
+  EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
   user_b.RequestConnection(&connection_latch);
   EXPECT_TRUE(connection_latch.Await(absl::Milliseconds(1000)).result());
   user_b.ExpectRejectedConnection(reject_latch);
@@ -121,6 +135,9 @@ TEST_F(PcpManagerTest, CanReject) {
   user_b.Stop();
   env_.Stop();
 }
+
+INSTANTIATE_TEST_SUITE_P(ParametrisedPcpManagerTest, PcpManagerTest,
+                         ::testing::ValuesIn(kTestCases));
 
 }  // namespace
 }  // namespace connections
