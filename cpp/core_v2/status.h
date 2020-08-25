@@ -24,6 +24,7 @@ struct Status {
     kAlreadyConnectedToEndpoint,
     kNotConnectedToEndpoint,
     kBluetoothError,
+    kBleError,
     kWifiLanError,
     kPayloadUnknown,
   };

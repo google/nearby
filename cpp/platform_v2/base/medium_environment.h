@@ -33,6 +33,10 @@ class MediumEnvironment {
  public:
   using BluetoothDiscoveryCallback =
       api::BluetoothClassicMedium::DiscoveryCallback;
+  using BleDiscoveredPeripheralCallback =
+      api::BleMedium::DiscoveredPeripheralCallback;
+  using BleAcceptedConnectionCallback =
+      api::BleMedium::AcceptedConnectionCallback;
   using OnSignalingMessageCallback =
       api::WebRtcSignalingMessenger::OnSignalingMessageCallback;
   using WifiLanDiscoveredServiceCallback =
@@ -103,6 +107,9 @@ class MediumEnvironment {
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterBluetoothMedium(api::BluetoothClassicMedium& medium);
 
+  // Returns a Bluetooth Device object matching given mac address to nullptr.
+  api::BluetoothDevice* FindBluetoothDevice(const std::string& mac_address);
+
   const EnvironmentConfig& GetEnvironmentConfig();
 
   // Registers |callback| to receive messages sent to device with id |self_id|.
@@ -116,6 +123,48 @@ class MediumEnvironment {
   // |peer_id|.
   void SendWebRtcSignalingMessage(absl::string_view peer_id,
                                   const ByteArray& message);
+
+  // Adds medium-related info to allow for scanning/advertising to work.
+  // This provides acccess to this medium from other mediums, when protocol
+  // expects they should communicate.
+  void RegisterBleMedium(api::BleMedium& medium);
+
+  // Updates advertising info to indicate the current medium is exposing
+  // advertising event.
+  void UpdateBleMediumForAdvertising(api::BleMedium& medium,
+                                     api::BlePeripheral& peripheral,
+                                     const std::string& service_id,
+                                     bool enabled);
+
+  // Updates discovery callback info to allow for dispatch of discovery events.
+  //
+  // Invokes callback asynchronously when any changes happen to discoverable
+  // devices, or if the defice is turned off, whether or not it is discoverable,
+  // if it was ever reported as discoverable.
+  //
+  // This should be called when discoverable state changes.
+  // with user-specified callback when discovery is enabled, and with default
+  // (empty) callback otherwise.
+  void UpdateBleMediumForScanning(api::BleMedium& medium,
+                                  const std::string& service_id,
+                                  BleDiscoveredPeripheralCallback callback,
+                                  bool enabled);
+
+  // Updates Accepted connection callback info to allow for dispatch of
+  // advertising events.
+  void UpdateBleMediumForAcceptedConnection(
+      api::BleMedium& medium, const std::string& service_id,
+      BleAcceptedConnectionCallback callback);
+
+  // Removes medium-related info. This should correspond to device power off.
+  void UnregisterBleMedium(api::BleMedium& medium);
+
+  // Call back when advertising has created the server socket and is ready for
+  // connect.
+  void CallBleAcceptedConnectionCallback(api::BleMedium& medium,
+                                         api::BleSocket& socket,
+                                         const std::string& service_id);
+
   // Adds medium-related info to allow for discovery/advertising to work.
   // This provides acccess to this medium from other mediums, when protocol
   // expects they should communicate.
@@ -123,9 +172,10 @@ class MediumEnvironment {
 
   // Updates advertising info to indicate the current medium is exposing
   // advertising event.
-  void UpdateWifiLanMediumForAdvertising(
-      api::WifiLanMedium& medium, api::WifiLanService& service,
-      const std::string& service_id, bool enabled);
+  void UpdateWifiLanMediumForAdvertising(api::WifiLanMedium& medium,
+                                         api::WifiLanService& service,
+                                         const std::string& service_id,
+                                         bool enabled);
 
   // Updates discovery callback info to allow for dispatch of discovery events.
   //
@@ -155,12 +205,23 @@ class MediumEnvironment {
                                              api::WifiLanSocket& socket,
                                              const std::string& service_id);
 
+  // Returns WiFi LAN service matching IP address and port, or nullptr.
+  api::WifiLanService* FindWifiLanService(const std::string& ip_address,
+                                         int port);
+
  private:
   struct BluetoothMediumContext {
     BluetoothDiscoveryCallback callback;
     api::BluetoothAdapter* adapter = nullptr;
     // discovered device vs device name map.
     absl::flat_hash_map<api::BluetoothDevice*, std::string> devices;
+  };
+
+  struct BleMediumContext {
+    BleDiscoveredPeripheralCallback discovery_callback;
+    BleAcceptedConnectionCallback accepted_connection_callback;
+    api::BlePeripheral* ble_peripheral = nullptr;
+    bool advertising = false;
   };
 
   struct WifiLanServiceIdContext {
@@ -187,6 +248,10 @@ class MediumEnvironment {
                                      api::BluetoothAdapter::ScanMode mode,
                                      bool enabled);
 
+  void OnBlePeripheralStateChanged(BleMediumContext& info,
+                                   api::BlePeripheral& peripheral,
+                                   const std::string& service_id, bool enabled);
+
   void OnWifiLanServiceStateChanged(WifiLanMediumContext& info,
                                     api::WifiLanService& service,
                                     const std::string& service_id,
@@ -206,6 +271,8 @@ class MediumEnvironment {
       bluetooth_adapters_;
   absl::flat_hash_map<api::BluetoothClassicMedium*, BluetoothMediumContext>
       bluetooth_mediums_;
+
+  absl::flat_hash_map<api::BleMedium*, BleMediumContext> ble_mediums_;
 
   // Maps peer id to callback for receiving signaling messages.
   absl::flat_hash_map<std::string, OnSignalingMessageCallback>

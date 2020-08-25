@@ -4,10 +4,12 @@ cc_library(
     name = "base",
     srcs = [
         "base64_utils.cc",
+        "bluetooth_utils.cc",
         "prng.cc",
     ],
     hdrs = [
         "base64_utils.h",
+        "bluetooth_utils.h",
         "byte_array.h",
         "callable.h",
         "exception.h",
@@ -28,6 +30,7 @@ cc_library(
     deps = [
         "//absl/meta:type_traits",
         "//absl/strings",
+        "//absl/strings:str_format",
         "//absl/time",
     ],
 )
@@ -96,6 +99,7 @@ cc_library(
 cc_test(
     name = "platform_base_test",
     srcs = [
+        "bluetooth_utils_test.cc",
         "byte_array_test.cc",
         "prng_test.cc",
     ],

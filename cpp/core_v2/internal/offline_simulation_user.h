@@ -5,6 +5,7 @@
 
 #include "core_v2/internal/client_proxy.h"
 #include "core_v2/internal/offline_service_controller.h"
+#include "core_v2/options.h"
 #include "platform_v2/public/atomic_boolean.h"
 #include "platform_v2/public/condition_variable.h"
 #include "platform_v2/public/count_down_latch.h"
@@ -25,15 +26,21 @@ class OfflineSimulationUser {
  public:
   struct DiscoveredInfo {
     std::string endpoint_id;
-    std::string endpoint_name;
+    ByteArray endpoint_info;
     std::string service_id;
 
     bool Empty() const { return endpoint_id.empty(); }
     void Clear() { endpoint_id.clear(); }
   };
 
-  explicit OfflineSimulationUser(absl::string_view device_name)
-      : name_(device_name) {}
+  explicit OfflineSimulationUser(
+      absl::string_view device_name,
+      BooleanMediumSelector allowed = BooleanMediumSelector())
+      : info_{ByteArray{std::string(device_name)}},
+        options_{
+            .strategy = Strategy::kP2pCluster,
+            .allowed = allowed,
+        } {}
   virtual ~OfflineSimulationUser() = default;
 
   // Calls PcpManager::StartAdvertising().
@@ -45,9 +52,13 @@ class OfflineSimulationUser {
   void StopAdvertising();
 
   // Calls PcpManager::StartDiscovery().
-  // If latch is provided, will call latch->CountDown() in the endpoint_found_cb
-  // callback.
-  Status StartDiscovery(const std::string& service_id, CountDownLatch* latch);
+  // If found_latch is provided, will call found_latch->CountDown() in the
+  // endpoint_found_cb callback.
+  // If lost_latch is provided, will call lost_latch->CountDown() in the
+  // endpoint_lost_cb callback.
+  Status StartDiscovery(const std::string& service_id,
+                        CountDownLatch* found_latch,
+                        CountDownLatch* lost_latch = nullptr);
 
   // Calls PcpManager::StopDiscovery().
   void StopDiscovery();
@@ -79,7 +90,7 @@ class OfflineSimulationUser {
   void ExpectDisconnect(CountDownLatch& latch) { disconnect_latch_ = &latch; }
 
   const DiscoveredInfo& GetDiscovered() const { return discovered_; }
-  std::string GetName() const { return name_; }
+  ByteArray GetInfo() const { return info_; }
 
   bool WaitForProgress(std::function<bool(const PayloadProgressInfo&)> pred,
                        absl::Duration timeout);
@@ -109,6 +120,8 @@ class OfflineSimulationUser {
   }
 
   void Stop() {
+    StopAdvertising();
+    StopDiscovery();
     ctrl_.Stop();
   }
 
@@ -123,7 +136,7 @@ class OfflineSimulationUser {
 
   // DiscoveryListener callbacks
   void OnEndpointFound(const std::string& endpoint_id,
-                       const std::string& endpoint_name,
+                       const ByteArray& endpoint_info,
                        const std::string& service_id);
   void OnEndpointLost(const std::string& endpoint_id);
 
@@ -134,6 +147,8 @@ class OfflineSimulationUser {
 
   std::string service_id_;
   DiscoveredInfo discovered_;
+  ConnectionOptions connection_options_;
+
   Mutex progress_mutex_;
   ConditionVariable progress_sync_{&progress_mutex_};
   PayloadProgressInfo progress_info_;
@@ -148,8 +163,8 @@ class OfflineSimulationUser {
   CountDownLatch* disconnect_latch_ = nullptr;
   Future<bool>* future_ = nullptr;
   std::function<bool(const PayloadProgressInfo&)> predicate_;
-  std::string name_;
-  ConnectionOptions options_{.strategy = Strategy::kP2pCluster};
+  ByteArray info_;
+  ConnectionOptions options_;
   ClientProxy client_;
   OfflineServiceController ctrl_;
 };

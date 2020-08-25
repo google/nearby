@@ -6,9 +6,7 @@ cc_library(
     hdrs = [
         "core.h",
     ],
-    visibility = [
-        "//core_v2:__subpackages__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":core_types",
         "//core_v2/internal",
@@ -42,6 +40,7 @@ cc_library(
         "//platform_v2/public:comm",
         "//platform_v2/public:logging",
         "//platform_v2/public:types",
+        "//proto:connections_enums_portable_proto",
         "//absl/strings",
         "//absl/types:variant",
     ],

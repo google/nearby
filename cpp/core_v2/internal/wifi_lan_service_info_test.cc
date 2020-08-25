@@ -20,21 +20,23 @@ constexpr absl::string_view kEndPointName{"RAWK + ROWL!"};
 
 TEST(WifiLanServiceInfoTest, ConstructionWorks) {
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
-  WifiLanServiceInfo wifi_lan_service_info{kVersion, kPcp, kEndPointID,
-                                           service_id_hash, kEndPointName};
+  ByteArray endpoint_info{std::string(kEndPointName)};
+  WifiLanServiceInfo wifi_lan_service_info{
+      kVersion, kPcp, kEndPointID, service_id_hash, endpoint_info};
 
   EXPECT_TRUE(wifi_lan_service_info.IsValid());
   EXPECT_EQ(kPcp, wifi_lan_service_info.GetPcp());
   EXPECT_EQ(kVersion, wifi_lan_service_info.GetVersion());
   EXPECT_EQ(kEndPointID, wifi_lan_service_info.GetEndpointId());
   EXPECT_EQ(service_id_hash, wifi_lan_service_info.GetServiceIdHash());
-  EXPECT_EQ(kEndPointName, wifi_lan_service_info.GetEndpointName());
+  EXPECT_EQ(endpoint_info, wifi_lan_service_info.GetEndpointInfo());
 }
 
 TEST(WifiLanServiceInfoTest, ConstructionFromSerializedStringWorks) {
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   WifiLanServiceInfo org_wifi_lan_service_info{kVersion, kPcp, kEndPointID,
-                                               service_id_hash, kEndPointName};
+                                               service_id_hash, endpoint_info};
   std::string wifi_lan_service_info_string{org_wifi_lan_service_info};
 
   WifiLanServiceInfo wifi_lan_service_info{wifi_lan_service_info_string};
@@ -44,15 +46,16 @@ TEST(WifiLanServiceInfoTest, ConstructionFromSerializedStringWorks) {
   EXPECT_EQ(kVersion, wifi_lan_service_info.GetVersion());
   EXPECT_EQ(kEndPointID, wifi_lan_service_info.GetEndpointId());
   EXPECT_EQ(service_id_hash, wifi_lan_service_info.GetServiceIdHash());
-  EXPECT_EQ(kEndPointName, wifi_lan_service_info.GetEndpointName());
+  EXPECT_EQ(endpoint_info, wifi_lan_service_info.GetEndpointInfo());
 }
 
 TEST(WifiLanServiceInfoTest, ConstructionFailsWithBadVersion) {
   auto bad_version = static_cast<WifiLanServiceInfo::Version>(666);
 
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   WifiLanServiceInfo wifi_lan_service_info{bad_version, kPcp, kEndPointID,
-                                           service_id_hash, kEndPointName};
+                                           service_id_hash, endpoint_info};
 
   EXPECT_FALSE(wifi_lan_service_info.IsValid());
 }
@@ -61,8 +64,9 @@ TEST(WifiLanServiceInfoTest, ConstructionFailsWithBadPCP) {
   auto bad_pcp = static_cast<Pcp>(666);
 
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   WifiLanServiceInfo wifi_lan_service_info{kVersion, bad_pcp, kEndPointID,
-                                           service_id_hash, kEndPointName};
+                                           service_id_hash, endpoint_info};
 
   EXPECT_FALSE(wifi_lan_service_info.IsValid());
 }
@@ -71,8 +75,9 @@ TEST(WifiLanServiceInfoTest, ConstructionFailsWithShortEndpointId) {
   std::string short_endpoint_id("AB1");
 
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   WifiLanServiceInfo wifi_lan_service_info{kVersion, kPcp, short_endpoint_id,
-                                           service_id_hash, kEndPointName};
+                                           service_id_hash, endpoint_info};
 
   EXPECT_FALSE(wifi_lan_service_info.IsValid());
 }
@@ -81,8 +86,9 @@ TEST(WifiLanServiceInfoTest, ConstructionFailsWithLongEndpointId) {
   std::string long_endpoint_id("AB12X");
 
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   WifiLanServiceInfo wifi_lan_service_info{kVersion, kPcp, long_endpoint_id,
-                                           service_id_hash, kEndPointName};
+                                           service_id_hash, endpoint_info};
 
   EXPECT_FALSE(wifi_lan_service_info.IsValid());
 }
@@ -91,8 +97,9 @@ TEST(WifiLanServiceInfoTest, ConstructionFailsWithShortServiceIdHash) {
   char short_service_id_hash_bytes[] = "\x0a\x0b";
 
   ByteArray short_service_id_hash{short_service_id_hash_bytes};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   WifiLanServiceInfo wifi_lan_service_info{
-      kVersion, kPcp, kEndPointID, short_service_id_hash, kEndPointName};
+      kVersion, kPcp, kEndPointID, short_service_id_hash, endpoint_info};
 
   EXPECT_FALSE(wifi_lan_service_info.IsValid());
 }
@@ -101,8 +108,9 @@ TEST(WifiLanServiceInfoTest, ConstructionFailsWithLongServiceIdHash) {
   char long_service_id_hash_bytes[] = "\x0a\x0b\x0c\x0d";
 
   ByteArray long_service_id_hash{long_service_id_hash_bytes};
+  ByteArray endpoint_info{std::string(kEndPointName)};
   WifiLanServiceInfo wifi_lan_service_info{kVersion, kPcp, kEndPointID,
-                                           long_service_id_hash, kEndPointName};
+                                           long_service_id_hash, endpoint_info};
 
   EXPECT_FALSE(wifi_lan_service_info.IsValid());
 }

@@ -83,8 +83,12 @@ enum CommonError {
   // Others error, the error happens when user cancel the flow, it's not a
   // real failure.
   FLOW_CANCELED = 5;
+  // Developing error, an unexpect call that the medium not ready, need to do
+  // something before this call. e.g. call WifiAwareImpli#connectToSocket but
+  // never join network before this call.
+  UNEXPECTED_CALL = 6;
 
-  // Reserved 5 to 30
+  // Reserved 7 to 30
 }
 
 // The error for event START_ADVERTISING. The range between 31 and 99.
@@ -161,7 +165,27 @@ enum StartDiscoveringError {
   // System error, failed to acquire WifiAwareSession
   ACQUIRE_WIFI_AWARE_SESSION_FOR_DISCOVERING_FAILED = 40;
 
-  // Next ID :40
+  // Next ID :41
+}
+
+// The error for event START_LISTENING_INCOMING_CONNECTION. The range between 31
+// and 99.
+enum StartListeningIncomingConnectionError {
+  // Developing error, this service ID already requested, should not request it
+  // again without stop accepting.
+  DUPLICATE_ACCEPTING_CONNECTION_REQUESTED = 31;
+  // System error, failed to open a GATT server for listening incoming GATT
+  // connection.
+  OPEN_GATT_SERVER_FAILED = 32;
+  // System error, failed to accept the incoming GATT connection
+  ACCEPT_GATT_CONNECTION_FAILED = 33;
+  // System error, failed to accept the incoming L2CAP connection
+  ACCEPT_L2CAP_CONNECTION_FAILED = 34;
+  // Network error, wait the GATT connection ready after the connection
+  // established but never.
+  CREATE_GATT_SERVER_SOCKET_NOT_READY = 35;
+
+  // Next ID :36
 }
 
 // The error for event CONNECT. The range between 31 and 99.
@@ -194,10 +218,22 @@ enum ConnectError {
   // Network error, failed to change connection for data transferring on GATT
   // connection.
   GATT_SWITCH_TO_DATA_TRANSFERRING_FAILED = 39;
+  // System error, failed to establish connection
+  ESTABLISH_CONNECTION_FAILED = 40;
+  // Developing error, this connection already established, should not request
+  // it again.
+  DUPLICATE_CONNECTION_REQUESTED = 41;
+  // Network error, the connection lost.
+  CONNECTION_LOST = 42;
+  // Network error, failed to connect to the network. e.g. an aware network,
+  // hotspot or a direct network.
+  CONNECT_TO_NETWORK_FAILED = 43;
+
+  // Next ID :44
 }
 
 enum Description {
-  reserved 28;
+  reserved 28, 29;
 
   UNKNOWN = 0;
   NULL_SERVICE_ID = 1;
@@ -227,7 +263,6 @@ enum Description {
   NULL_NFC_TAG = 25;
   FEATURE_NFC_NOT_SUPPORTED = 26;
   FEATURE_NFC_HOST_CARD_EMULATION_NOT_SUPPORTED = 27;
-  WITHOUT_CONNECTED_WIFI_NETWOR = 29;
   MULTICAST_NOT_SUPPORTED = 30;
   NSD_NOT_ENABLED = 31;
   INVALID_PORT_NUMBER = 32;
@@ -271,4 +306,64 @@ enum Description {
   SET_CONNECTION_PRIORITY_INTERRUPTED = 70;
   UNKNOWN_IO_EXCEPTION = 71;
   READ_CHARACTERISTIC_FAILED = 72;
+  WIFI_HOTSPOT_ENABLED = 73;
+  AWARE_UNAVAILABLE = 74;
+  IN_BLACK_LIST = 75;
+  FEATURE_WIFI_NOT_SUPPORTED = 76;
+  NULL_WIFI_MANAGER = 77;
+  SOCKET_CLOSED = 78;
+  SOCKET_ALREADY_CONNECTED = 79;
+  NFC_TECH_NOT_SUPPORTED = 80;
+  NFC_SERVICE_DIED = 81;
+  BIND_NFC_SERVICE_FAILED = 82;
+  NFC_CREATE_SOCKET_FAILED = 83;
+  NULL_WIFI_AWARE_PEER = 84;
+  NETWORK_ALREADY_JOINED = 85;
+  JOIN_AWARE_NETWORK_CANCELLED = 86;
+  NETWORK_UNAVAILABLE = 87;
+  WITHOUT_ACTIVE_AWARE_NETWORK = 88;
+  WITHOUT_JOINED_AWARE_NETWORK = 89;
+  CONNET_TO_SOCKET_CANCELLED = 90;
+  NULL_SSID = 91;
+  NULL_PASSWORD = 92;
+  FEATURE_WIFI_DIRECT_NOT_SUPPORTED = 93;
+  NULL_WIFI_P2P_MANAGER = 94;
+  P2P_GROUP_FORMED = 95;
+  ACQUIRE_P2P_CHANNEL_FAILED = 96;
+  P2P_UNSUPPORTED = 97;
+  INTERNAL_ERROR = 98;
+  BUSY = 99;
+  REFLECTION_ERROR = 100;
+  NETWORK_ERROR_EHOSTUNREACH = 101;
+  NETWORK_ERROR_ENETUNREACH = 102;
+  ADD_NETWORK_FAILED = 103;
+  UPDATE_NETWORK_FAILED = 104;
+  ALREADY_IN_PROGRESS = 105;
+  INVALID_ARGS = 106;
+  NOT_AUTHORIZED = 107;
+  INVALID_NETWORK_ID = 108;
+  WIFI_MANAGER_ENABLE_NETWORK_FAILED = 109;
+  WIFI_MANAGER_RECONNECT_FAILED = 110;
+  WITHOUT_ACTIVE_NETWORK = 111;
+  WEBRTC_CONNECTION_FLOW_EXIST = 112;
+  NULL_DROID_GUARD_RESULT = 113;
+  TACHYON_SIGNALING_MESSENGER_EXIST = 114;
+  TACHYON_ALREADY_START_RECEIVE_MESSAGE = 115;
+  TACHYON_RECEIVE_MESSAGE_FAILED = 116;
+  TACHYON_RECEIVE_MESSAGE_INTERRUPTED = 117;
+  TACHYON_RECEIVE_MESSAGE_EXECUTION_EXCEPTION = 118;
+  TACHYON_RECEIVE_MESSAGE_TIMEOUT = 119;
+  TACHYON_RECEIVE_MESSAGE_AUTH_EXCEPTION = 120;
+  TACHYON_RECEIVE_MESSAGE_STATUS_EXCEPTION = 121;
+  TACHYON_SEND_MESSAGE_AUTH_EXCEPTION = 122;
+  TACHYON_SEND_MESSAGE_STATUS_EXCEPTION = 123;
+  TACHYON_GET_ICE_SERVER_AUTH_EXCEPTION = 124;
+  TACHYON_GET_ICE_SERVER_STATUS_EXCEPTION = 125;
+  EMPTY_TACHYON_ICE_SERVER = 126;
+  POTENTIAL_WEBRTC_LIB_LOADING_FAILURE = 127;
+  UNEXPECTED_GATT_DESCRIPTOR = 128;
+  FAIL_TO_RECEIVE_L2CAP_PACKET = 129;
+  WITHOUT_PSM_VALUE = 130;
+  SOCKET_BIND_LISTEN_FAILED = 131;
+  UNEXPECTED_PACKET_CONTENT = 132;
 }

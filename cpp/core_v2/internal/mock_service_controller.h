@@ -35,7 +35,8 @@ class MockServiceController : public ServiceController {
 
   MOCK_METHOD(Status, RequestConnection,
               (ClientProxy * client, const std::string& endpoint_id,
-               const ConnectionRequestInfo& info),
+               const ConnectionRequestInfo& info,
+               const ConnectionOptions& options),
               (override));
 
   MOCK_METHOD(Status, AcceptConnection,

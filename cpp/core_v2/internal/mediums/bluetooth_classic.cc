@@ -368,6 +368,12 @@ BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
   return socket;
 }
 
+BluetoothDevice BluetoothClassic::FindRemoteDevice(
+    const std::string& mac_address) {
+  MutexLock lock(&mutex_);
+  return medium_.FindRemoteDevice(mac_address);
+}
+
 std::string BluetoothClassic::GenerateUuidFromString(const std::string& data) {
   return std::string(Uuid(data));
 }
