@@ -31,8 +31,12 @@ ByteArray Utils::GenerateRandomBytes(size_t length) {
 }
 
 ByteArray Utils::Sha256Hash(const ByteArray& source, size_t length) {
+  return Utils::Sha256Hash(std::string(source), length);
+}
+
+ByteArray Utils::Sha256Hash(const std::string& source, size_t length) {
   ByteArray full_hash(length);
-  full_hash.CopyAt(0, Crypto::Sha256(std::string(source)));
+  full_hash.CopyAt(0, Crypto::Sha256(source));
   return full_hash;
 }
 

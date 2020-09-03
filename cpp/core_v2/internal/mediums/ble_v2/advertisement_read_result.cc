@@ -1,4 +1,4 @@
-#include "core_v2/internal/mediums/advertisement_read_result.h"
+#include "core_v2/internal/mediums/ble_v2/advertisement_read_result.h"
 
 #include <algorithm>
 #include <vector>

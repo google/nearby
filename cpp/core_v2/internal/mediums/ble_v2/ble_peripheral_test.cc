@@ -1,4 +1,4 @@
-#include "core_v2/internal/mediums/ble_peripheral.h"
+#include "core_v2/internal/mediums/ble_v2/ble_peripheral.h"
 
 #include "gtest/gtest.h"
 

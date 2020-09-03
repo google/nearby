@@ -46,7 +46,8 @@ bool BleMedium::StartScanning(const std::string& service_id,
                              &context.peripheral, &peripheral,
                              peripheral.GetName().c_str());
                   discovered_peripheral_callback_.peripheral_discovered_cb(
-                      context.peripheral, service_id);
+                      context.peripheral, service_id,
+                      /*fast_advertisement=*/false);
                 }
               },
           .peripheral_lost_cb =

@@ -235,6 +235,11 @@ bool ConnectionFlow::InitPeerConnection(WebRtcMedium& webrtc_medium) {
       &peer_connection_observer_,
       [this, &success_future](
           rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection) {
+        if (!peer_connection) {
+          success_future.Set(false);
+          return;
+        }
+
         peer_connection_ = peer_connection;
         success_future.Set(true);
       });
@@ -324,7 +329,9 @@ bool ConnectionFlow::CloseLocked() {
   state_ = State::kEnded;
 
   data_channel_future_.SetException({Exception::kInterrupted});
-  peer_connection_->Close();
+  if (peer_connection_)
+    peer_connection_->Close();
+
   data_channel_observer_.reset();
   NEARBY_LOG(INFO, "Closed WebRTC connection.");
   return true;

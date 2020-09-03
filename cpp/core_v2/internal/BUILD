@@ -61,6 +61,7 @@ cc_library(
         "//core/internal:message_lite",
         "//core_v2:core_types",
         "//core_v2/internal/mediums",
+        "//core_v2/internal/mediums:utils",
         "//core_v2/internal/mediums/webrtc",
         "//proto/connections:offline_wire_formats_portable_proto",
         "//platform_v2/base",

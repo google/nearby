@@ -33,6 +33,12 @@ void WebRtcSignalingMessenger::StopReceivingMessages() {
 
 void WebRtcMedium::CreatePeerConnection(
     webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {
+  auto& env = MediumEnvironment::Instance();
+  if (!env.GetUseValidPeerConnection()) {
+    callback(nullptr);
+    return;
+  }
+
   webrtc::PeerConnectionInterface::RTCConfiguration rtc_config;
   webrtc::PeerConnectionDependencies dependencies(observer);
 
