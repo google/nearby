@@ -1,11 +1,7 @@
 cc_library(
     name = "mediums",
     srcs = [
-        "advertisement_read_result.cc",
         "ble.cc",
-        "ble_advertisement.cc",
-        "ble_advertisement_header.cc",
-        "ble_packet.cc",
         "bloom_filter.cc",
         "bluetooth_classic.cc",
         "bluetooth_radio.cc",
@@ -15,12 +11,7 @@ cc_library(
         "wifi_lan.cc",
     ],
     hdrs = [
-        "advertisement_read_result.h",
         "ble.h",
-        "ble_advertisement.h",
-        "ble_advertisement_header.h",
-        "ble_packet.h",
-        "ble_peripheral.h",
         "bloom_filter.h",
         "bluetooth_classic.h",
         "bluetooth_radio.h",
@@ -37,7 +28,6 @@ cc_library(
         "//core_v2:core_types",
         "//core_v2/internal/mediums/webrtc",
         "//platform_v2/base",
-        "//platform_v2/base:util",
         "//platform_v2/public:comm",
         "//platform_v2/public:logging",
         "//platform_v2/public:types",
@@ -59,11 +49,11 @@ cc_library(
     hdrs = ["utils.h"],
     visibility = [
         "//core_v2/internal:__pkg__",
+        "//core_v2/internal/mediums/ble_v2:__pkg__",
         "//core_v2/internal/mediums/webrtc:__pkg__",
     ],
     deps = [
         "//platform_v2/base",
-        "//platform_v2/public:comm",
         "//platform_v2/public:types",
     ],
 )
@@ -72,11 +62,6 @@ cc_test(
     name = "core_v2_internal_mediums_test",
     size = "small",
     srcs = [
-        "advertisement_read_result_test.cc",
-        "ble_advertisement_header_test.cc",
-        "ble_advertisement_test.cc",
-        "ble_packet_test.cc",
-        "ble_peripheral_test.cc",
         "ble_test.cc",
         "bloom_filter_test.cc",
         "bluetooth_classic_test.cc",

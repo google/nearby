@@ -1,5 +1,5 @@
-#ifndef CORE_V2_INTERNAL_MEDIUMS_BLE_PACKET_H_
-#define CORE_V2_INTERNAL_MEDIUMS_BLE_PACKET_H_
+#ifndef CORE_V2_INTERNAL_MEDIUMS_BLE_V2_BLE_PACKET_H_
+#define CORE_V2_INTERNAL_MEDIUMS_BLE_V2_BLE_PACKET_H_
 
 #include <limits>
 
@@ -47,4 +47,4 @@ class BlePacket {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_V2_INTERNAL_MEDIUMS_BLE_PACKET_H_
+#endif  // CORE_V2_INTERNAL_MEDIUMS_BLE_V2_BLE_PACKET_H_

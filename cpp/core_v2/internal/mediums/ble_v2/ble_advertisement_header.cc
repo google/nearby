@@ -1,4 +1,4 @@
-#include "core_v2/internal/mediums/ble_advertisement_header.h"
+#include "core_v2/internal/mediums/ble_v2/ble_advertisement_header.h"
 
 #include <inttypes.h>
 

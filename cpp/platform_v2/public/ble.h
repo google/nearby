@@ -72,9 +72,10 @@ class BleMedium final {
   using Platform = api::ImplementationPlatform;
   struct DiscoveredPeripheralCallback {
     std::function<void(BlePeripheral& peripheral,
-                       const std::string& service_id)>
+                       const std::string& service_id,
+                       bool fast_advertisement)>
         peripheral_discovered_cb =
-            DefaultCallback<BlePeripheral&, const std::string&>();
+            DefaultCallback<BlePeripheral&, const std::string&, bool>();
     std::function<void(BlePeripheral& peripheral,
                        const std::string& service_id)>
         peripheral_lost_cb =

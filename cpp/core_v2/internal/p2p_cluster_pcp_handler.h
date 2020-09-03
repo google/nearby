@@ -111,6 +111,8 @@ class P2pClusterPcpHandler : public BasePcpHandler {
 
   static constexpr BluetoothDeviceName::Version kBluetoothDeviceNameVersion =
       BluetoothDeviceName::Version::kV1;
+  static constexpr BleAdvertisement::Version kBleAdvertisementVersion =
+      BleAdvertisement::Version::kV1;
   static constexpr WifiLanServiceInfo::Version kWifiLanServiceInfoVersion =
       WifiLanServiceInfo::Version::kV1;
 
@@ -143,13 +145,14 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                const BleAdvertisement& advertisement) const;
   void BlePeripheralDiscoveredHandler(ClientProxy* client,
                                       BlePeripheral& peripheral,
-                                      const std::string& service_id);
+                                      const std::string& service_id,
+                                      bool fast_advertisement);
   void BlePeripheralLostHandler(ClientProxy* client, BlePeripheral& peripheral,
                                 const std::string& service_id);
   proto::connections::Medium StartBleAdvertising(
       ClientProxy* client, const std::string& service_id,
-      const ByteArray& service_id_hash, const std::string& local_endpoint_id,
-      const ByteArray& local_endpoint_info);
+      const std::string& local_endpoint_id,
+      const ByteArray& local_endpoint_info, const ConnectionOptions& options);
   proto::connections::Medium StartBleScanning(
       BleDiscoveredPeripheralCallback callback, ClientProxy* client,
       const std::string& service_id);

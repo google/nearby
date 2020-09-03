@@ -136,6 +136,20 @@ enum StartAdvertisingError {
   // Next ID :46
 }
 
+// The error for event START_ADVERTISING. The range between 31 and 99.
+enum StopAdvertisingError {
+  // System error, failed to stop advertising.
+  STOP_ADVERTISING_FAILED = 31;
+  // System error, failed to modify the Bluetooth name.
+  RESTORE_BLUETOOTH_NAME_FAILED = 32;
+  // System error, failed to stop advertising for BLE legacy advertisements.
+  STOP_LEGACY_ADVERTISING_FAILED = 33;
+  // System error, failed to stop advertising for BLE extended advertisements.
+  STOP_EXTENDED_ADVERTISING_FAILED = 34;
+
+  // Next ID :35
+}
+
 // The error for event START_DISCOVERING. The range between 31 and 99.
 enum StartDiscoveringError {
   // Developing error, this service ID already requested, should not request it
@@ -184,6 +198,11 @@ enum StartListeningIncomingConnectionError {
   // Network error, wait the GATT connection ready after the connection
   // established but never.
   CREATE_GATT_SERVER_SOCKET_NOT_READY = 35;
+  // System error, failed to accept the incoming connection
+  ACCEPT_CONNECTION_FAILED = 36;
+  // System error, failed to create a server socket for listening incoming
+  // connection.
+  CREATE_SERVER_SOCKET_FAILED = 37;
 
   // Next ID :36
 }
@@ -366,4 +385,15 @@ enum Description {
   WITHOUT_PSM_VALUE = 130;
   SOCKET_BIND_LISTEN_FAILED = 131;
   UNEXPECTED_PACKET_CONTENT = 132;
+  UNREGISTER_NSD_MANAGER_FAILED = 133;
+  PUBLISH_EMPTY_ADVERTISEMENT_FAILED = 134;
+  BLUETOOTH_SOCKET_NOT_IN_LISTENING_STATE = 135;
+  INVALID_BLUETOOTH_SOCKET_SIGNAL_SIZE = 136;
+  INVALID_BLUETOOTH_SOCKET_SIGNAL_STATUS = 137;
+  GET_ADDRESS_FAILED = 138;
+  NULL_LOCAL_ADDRESS = 139;
+  IS_LOOPBACK_ADDRESS = 140;
+  SOCKET_NOT_BOUND = 141;
+  INVALID_REMOTE_ADDRESS = 142;
+  SOCKET_ALREADY_BOUND = 143;
 }
