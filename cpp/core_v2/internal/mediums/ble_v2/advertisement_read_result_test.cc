@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "core_v2/internal/mediums/advertisement_read_result.h"
+#include "core_v2/internal/mediums/ble_v2/advertisement_read_result.h"
 
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"

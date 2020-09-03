@@ -27,6 +27,7 @@ class Utils {
  public:
   static ByteArray GenerateRandomBytes(size_t length);
   static ByteArray Sha256Hash(const ByteArray& source, size_t length);
+  static ByteArray Sha256Hash(const std::string& source, size_t length);
 };
 
 }  // namespace connections

@@ -262,6 +262,9 @@ bool WebRtc::InitWebRtcFlow(Role role, const PeerId& self_id) {
 
   connection_flow_ = ConnectionFlow::Create(GetLocalIceCandidateListener(),
                                             GetDataChannelListener(), medium_);
+  if (!connection_flow_)
+      return false;
+
   return true;
 }
 

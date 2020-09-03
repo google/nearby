@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "core_v2/internal/mediums/ble_advertisement_header.h"
+#include "core_v2/internal/mediums/ble_v2/ble_advertisement_header.h"
 
 #include "platform_v2/base/base64_utils.h"
 #include "gtest/gtest.h"

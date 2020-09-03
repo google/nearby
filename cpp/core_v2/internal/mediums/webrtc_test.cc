@@ -247,6 +247,38 @@ TEST_F(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
   EXPECT_EQ(message, received_msg.result());
 }
 
+TEST_F(WebRtcTest, StartAcceptingConnections_NullPeerConnection) {
+  using MockAcceptedCallback =
+      testing::MockFunction<void(WebRtcSocketWrapper socket)>;
+  testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
+
+  MediumEnvironment::Instance().SetUseValidPeerConnection(
+      /*use_valid_peer_connection=*/false);
+
+  WebRtc webrtc;
+  PeerId self_id("peer_id");
+
+  ASSERT_TRUE(webrtc.IsAvailable());
+  EXPECT_FALSE(webrtc.StartAcceptingConnections(
+      self_id, {mock_accepted_callback_.AsStdFunction()}));
+}
+
+TEST_F(WebRtcTest, Connect_NullPeerConnection) {
+  using MockAcceptedCallback =
+      testing::MockFunction<void(WebRtcSocketWrapper socket)>;
+  testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
+
+  MediumEnvironment::Instance().SetUseValidPeerConnection(
+      /*use_valid_peer_connection=*/false);
+
+  WebRtc webrtc;
+  PeerId self_id("peer_id");
+
+  ASSERT_TRUE(webrtc.IsAvailable());
+  WebRtcSocketWrapper wrapper = webrtc.Connect(PeerId("random_peer_id"));
+  EXPECT_FALSE(wrapper.IsValid());
+}
+
 }  // namespace
 
 }  // namespace mediums

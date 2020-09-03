@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "core_v2/internal/mediums/ble_packet.h"
+#include "core_v2/internal/mediums/ble_v2/ble_packet.h"
 
 #include "gtest/gtest.h"
 

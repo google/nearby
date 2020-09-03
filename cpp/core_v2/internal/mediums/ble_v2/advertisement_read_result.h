@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_V2_INTERNAL_MEDIUMS_ADVERTISEMENT_READ_RESULT_H_
-#define CORE_V2_INTERNAL_MEDIUMS_ADVERTISEMENT_READ_RESULT_H_
+#ifndef CORE_V2_INTERNAL_MEDIUMS_BLE_V2_ADVERTISEMENT_READ_RESULT_H_
+#define CORE_V2_INTERNAL_MEDIUMS_BLE_V2_ADVERTISEMENT_READ_RESULT_H_
 
 #include <cstdint>
 #include <vector>
@@ -101,4 +101,4 @@ class AdvertisementReadResult {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_V2_INTERNAL_MEDIUMS_ADVERTISEMENT_READ_RESULT_H_
+#endif  // CORE_V2_INTERNAL_MEDIUMS_BLE_V2_ADVERTISEMENT_READ_RESULT_H_

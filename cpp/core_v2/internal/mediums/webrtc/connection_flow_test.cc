@@ -198,6 +198,16 @@ TEST_F(ConnectionFlowTest, CannotReceiveOfferAfterClose) {
   EXPECT_FALSE(answerer->OnOfferReceived(offer));
 }
 
+TEST_F(ConnectionFlowTest, NullPeerConnection) {
+  MediumEnvironment::Instance().SetUseValidPeerConnection(
+      /*use_valid_peer_connection=*/false);
+
+  WebRtcMedium medium;
+  std::unique_ptr<ConnectionFlow> answerer = ConnectionFlow::Create(
+      LocalIceCandidateListener(), DataChannelListener(), medium);
+  EXPECT_EQ(answerer, nullptr);
+}
+
 }  // namespace
 }  // namespace mediums
 }  // namespace connections

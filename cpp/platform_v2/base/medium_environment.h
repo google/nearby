@@ -138,6 +138,12 @@ class MediumEnvironment {
   void SendWebRtcSignalingMessage(absl::string_view peer_id,
                                   const ByteArray& message);
 
+  // Used to set if WebRtcMedium should use a valid peer connection or nullptr
+  // in tests.
+  void SetUseValidPeerConnection(bool use_valid_peer_connection);
+
+  bool GetUseValidPeerConnection();
+
   // Adds medium-related info to allow for scanning/advertising to work.
   // This provides acccess to this medium from other mediums, when protocol
   // expects they should communicate.
@@ -221,7 +227,7 @@ class MediumEnvironment {
 
   // Returns WiFi LAN service matching IP address and port, or nullptr.
   api::WifiLanService* FindWifiLanService(const std::string& ip_address,
-                                         int port);
+                                          int port);
 
  private:
   struct BluetoothMediumContext {
@@ -294,6 +300,8 @@ class MediumEnvironment {
 
   absl::flat_hash_map<api::WifiLanMedium*, WifiLanMediumContext>
       wifi_lan_mediums_;
+
+  bool use_valid_peer_connection_ = true;
 };
 
 }  // namespace nearby

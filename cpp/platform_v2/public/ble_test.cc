@@ -69,13 +69,13 @@ TEST_F(BleMediumTest, CanStartAdvertising) {
   ble_a.StartAdvertising(service_id, advertisement_bytes);
 
   EXPECT_TRUE(ble_b.StartScanning(
-      service_id, DiscoveredPeripheralCallback{
-                      .peripheral_discovered_cb =
-                          [&found_latch](BlePeripheral& peripheral,
-                                         const std::string& service_id) {
-                            found_latch.CountDown();
-                          },
-                  }));
+      service_id,
+      DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&found_latch](
+                  BlePeripheral& peripheral, const std::string& service_id,
+                  bool fast_advertisement) { found_latch.CountDown(); },
+      }));
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_a.StopAdvertising(service_id));
   EXPECT_TRUE(ble_b.StopScanning(service_id));
@@ -93,19 +93,19 @@ TEST_F(BleMediumTest, CanStartScanning) {
   CountDownLatch found_latch(1);
   CountDownLatch lost_latch(1);
 
-  ble_a.StartScanning(service_id,
-                      DiscoveredPeripheralCallback{
-                          .peripheral_discovered_cb =
-                              [&found_latch](BlePeripheral& peripheral,
-                                             const std::string& service_id) {
-                                found_latch.CountDown();
-                              },
-                          .peripheral_lost_cb =
-                              [&lost_latch](BlePeripheral& peripheral,
-                                            const std::string& service_id) {
-                                lost_latch.CountDown();
-                              },
-                      });
+  ble_a.StartScanning(
+      service_id,
+      DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&found_latch](
+                  BlePeripheral& peripheral, const std::string& service_id,
+                  bool fast_advertisement) { found_latch.CountDown(); },
+          .peripheral_lost_cb =
+              [&lost_latch](BlePeripheral& peripheral,
+                            const std::string& service_id) {
+                lost_latch.CountDown();
+              },
+      });
   EXPECT_TRUE(ble_b.StartAdvertising(service_id, advertisement_bytes));
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_b.StopAdvertising(service_id));
@@ -125,19 +125,19 @@ TEST_F(BleMediumTest, CanStopDiscovery) {
   CountDownLatch found_latch(1);
   CountDownLatch lost_latch(1);
 
-  ble_a.StartScanning(service_id,
-                      DiscoveredPeripheralCallback{
-                          .peripheral_discovered_cb =
-                              [&found_latch](BlePeripheral& peripheral,
-                                             const std::string& service_id) {
-                                found_latch.CountDown();
-                              },
-                          .peripheral_lost_cb =
-                              [&lost_latch](BlePeripheral& peripheral,
-                                            const std::string& service_id) {
-                                lost_latch.CountDown();
-                              },
-                      });
+  ble_a.StartScanning(
+      service_id,
+      DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&found_latch](
+                  BlePeripheral& peripheral, const std::string& service_id,
+                  bool fast_advertisement) { found_latch.CountDown(); },
+          .peripheral_lost_cb =
+              [&lost_latch](BlePeripheral& peripheral,
+                            const std::string& service_id) {
+                lost_latch.CountDown();
+              },
+      });
   EXPECT_TRUE(ble_b.StartAdvertising(service_id, advertisement_bytes));
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_a.StopScanning(service_id));
@@ -163,9 +163,13 @@ TEST_F(BleMediumTest, CanStartAcceptingConnectionsAndConnect) {
       DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
               [&found_latch, &discovered_peripheral](
-                  BlePeripheral& peripheral, const std::string& service_id) {
-                NEARBY_LOG(INFO, "Peripheral discovered: %s, %p",
-                           peripheral.GetName().c_str(), &peripheral);
+                  BlePeripheral& peripheral, const std::string& service_id,
+                  bool fast_advertisement) {
+                NEARBY_LOG(
+                    INFO,
+                    "Peripheral discovered: %s, %p, fast advertisement: %d",
+                    peripheral.GetName().c_str(), &peripheral,
+                    fast_advertisement);
                 discovered_peripheral = &peripheral;
                 found_latch.CountDown();
               },
