@@ -12,26 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_V2_INTERNAL_MEDIUMS_UTILS_H_
-#define CORE_V2_INTERNAL_MEDIUMS_UTILS_H_
+#include "core_v2/internal/mediums/ble_v2/ble_peripheral.h"
 
-#include <memory>
-
-#include "platform_v2/base/byte_array.h"
+#include "gtest/gtest.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
+namespace mediums {
+namespace {
 
-class Utils {
- public:
-  static ByteArray GenerateRandomBytes(size_t length);
-  static ByteArray Sha256Hash(const ByteArray& source, size_t length);
-  static ByteArray Sha256Hash(const std::string& source, size_t length);
-};
+constexpr absl::string_view kId{"AB12"};
 
+TEST(BlePeripheralTest, ConstructionWorks) {
+  ByteArray id{std::string(kId)};
+
+  BlePeripheral ble_peripheral{id};
+
+  EXPECT_TRUE(ble_peripheral.IsValid());
+  EXPECT_EQ(id, ble_peripheral.GetId());
+}
+
+TEST(BlePeripheralTest, ConstructionEmptyFails) {
+  BlePeripheral ble_peripheral;
+
+  EXPECT_FALSE(ble_peripheral.IsValid());
+  EXPECT_TRUE(ble_peripheral.GetId().Empty());
+}
+
+}  // namespace
+}  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-#endif  // CORE_V2_INTERNAL_MEDIUMS_UTILS_H_

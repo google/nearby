@@ -70,8 +70,8 @@ struct MediumSelector {
     // Mediums are sorted in order of decreasing preference.
     if (wifi_lan == value) mediums.push_back(Medium::WIFI_LAN);
     if (web_rtc == value) mediums.push_back(Medium::WEB_RTC);
-    if (ble == value) mediums.push_back(Medium::BLE);
     if (bluetooth == value) mediums.push_back(Medium::BLUETOOTH);
+    if (ble == value) mediums.push_back(Medium::BLE);
     return mediums;
   }
 };
@@ -87,6 +87,7 @@ struct ConnectionOptions {
   bool auto_upgrade_bandwidth;
   bool enforce_topology_constraints;
   ByteArray remote_bluetooth_mac_address;
+  std::string fast_advertisement_service_uuid;
   // Verify if  ConnectionOptions is in a not-initialized (Empty) state.
   bool Empty() const { return strategy.IsNone(); }
   // Bring  ConnectionOptions to a not-initialized (Empty) state.

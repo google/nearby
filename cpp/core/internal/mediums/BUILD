@@ -101,7 +101,6 @@ cc_test(
     deps = [
         ":mediums",
         "//platform:utils",
-        "//platform/api",
         "//platform/impl/g3",
         "//testing/base/public:gunit_main",
     ],
@@ -112,7 +111,6 @@ cc_test(
     srcs = ["ble_advertisement_test.cc"],
     deps = [
         ":mediums",
-        "//platform/api",
         "//platform/impl/g3",
         "//testing/base/public:gunit_main",
     ],
@@ -123,7 +121,6 @@ cc_test(
     srcs = ["ble_packet_test.cc"],
     deps = [
         ":mediums",
-        "//platform/api",
         "//platform/impl/g3",
         "//testing/base/public:gunit_main",
     ],
@@ -134,7 +131,6 @@ cc_test(
     srcs = ["bloom_filter_test.cc"],
     deps = [
         ":mediums",
-        "//platform/api",
         "//platform/impl/g3",
         "//testing/base/public:gunit_main",
     ],
