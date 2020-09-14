@@ -154,7 +154,7 @@ class MediumEnvironment {
   void UpdateBleMediumForAdvertising(api::BleMedium& medium,
                                      api::BlePeripheral& peripheral,
                                      const std::string& service_id,
-                                     bool enabled);
+                                     bool fast_advertisement, bool enabled);
 
   // Updates discovery callback info to allow for dispatch of discovery events.
   //
@@ -242,6 +242,7 @@ class MediumEnvironment {
     BleAcceptedConnectionCallback accepted_connection_callback;
     api::BlePeripheral* ble_peripheral = nullptr;
     bool advertising = false;
+    bool fast_advertisement = false;
   };
 
   struct WifiLanServiceIdContext {
@@ -270,7 +271,8 @@ class MediumEnvironment {
 
   void OnBlePeripheralStateChanged(BleMediumContext& info,
                                    api::BlePeripheral& peripheral,
-                                   const std::string& service_id, bool enabled);
+                                   const std::string& service_id,
+                                   bool fast_advertisement, bool enabled);
 
   void OnWifiLanServiceStateChanged(WifiLanMediumContext& info,
                                     api::WifiLanService& service,

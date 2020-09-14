@@ -388,6 +388,11 @@ BluetoothDevice BluetoothClassic::FindRemoteDevice(
   return medium_.FindRemoteDevice(mac_address);
 }
 
+std::string BluetoothClassic::GetMacAddress() const {
+  MutexLock lock(&mutex_);
+  return medium_.GetMacAddress();
+}
+
 std::string BluetoothClassic::GenerateUuidFromString(const std::string& data) {
   return std::string(Uuid(data));
 }

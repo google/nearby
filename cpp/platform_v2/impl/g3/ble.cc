@@ -196,15 +196,20 @@ BleMedium::~BleMedium() {
   }
 }
 
-bool BleMedium::StartAdvertising(const std::string& service_id,
-                                 const ByteArray& advertisement_bytes) {
+bool BleMedium::StartAdvertising(
+    const std::string& service_id, const ByteArray& advertisement_bytes,
+    const std::string& fast_advertisement_service_uuid) {
   NEARBY_LOGS(INFO) << "G3 Ble StartAdvertising: service_id=" << service_id
                     << ", advertisement bytes=" << advertisement_bytes.data()
-                    << "(" << advertisement_bytes.size() << ")";
+                    << "(" << advertisement_bytes.size() << "),"
+                    << " fast advertisement service uuid="
+                    << fast_advertisement_service_uuid;
   auto& env = MediumEnvironment::Instance();
   auto& peripheral = adapter_->GetPeripheral();
   peripheral.SetAdvertisementBytes(service_id, advertisement_bytes);
-  env.UpdateBleMediumForAdvertising(*this, peripheral, service_id, true);
+  bool fast_advertisement = !fast_advertisement_service_uuid.empty();
+  env.UpdateBleMediumForAdvertising(*this, peripheral, service_id,
+                                    fast_advertisement, true);
 
   absl::MutexLock lock(&mutex_);
   if (server_socket_ != nullptr) server_socket_.release();
@@ -241,7 +246,8 @@ bool BleMedium::StopAdvertising(const std::string& service_id) {
 
   auto& env = MediumEnvironment::Instance();
   env.UpdateBleMediumForAdvertising(*this, adapter_->GetPeripheral(),
-                                    service_id, false);
+                                    service_id, /*fast_advertisement=*/false,
+                                    /*enabled=*/false);
   accept_loops_runner_.Shutdown();
   if (server_socket_ == nullptr) {
     NEARBY_LOGS(ERROR) << "G3 Ble StopAdvertising: Failed to find Ble Server "

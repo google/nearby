@@ -95,6 +95,15 @@ std::string ClientProxy::GetAdvertisingServiceId() const {
   return advertising_info_.service_id;
 }
 
+std::string ClientProxy::GetServiceId() const {
+  MutexLock lock(&mutex_);
+  if (IsAdvertising())
+    return advertising_info_.service_id;
+  if (IsDiscovering())
+    return discovery_info_.service_id;
+  return "idle_service_id";
+}
+
 void ClientProxy::StartedDiscovery(
     const std::string& service_id, Strategy strategy,
     const DiscoveryListener& listener,
@@ -239,12 +248,12 @@ void ClientProxy::OnConnectionRejected(const std::string& endpoint_id,
 }
 
 void ClientProxy::OnBandwidthChanged(const std::string& endpoint_id,
-                                     std::int32_t quality) {
+                                     Medium new_medium) {
   MutexLock lock(&mutex_);
 
   const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    item->connection_listener.bandwidth_changed_cb(endpoint_id, quality);
+    item->connection_listener.bandwidth_changed_cb(endpoint_id, new_medium);
   }
 }
 

@@ -70,16 +70,17 @@ class BleMedium {
  public:
   virtual ~BleMedium() = default;
 
-  virtual bool StartAdvertising(const std::string& service_id,
-                                const ByteArray& advertisement_bytes) = 0;
+  virtual bool StartAdvertising(
+      const std::string& service_id, const ByteArray& advertisement_bytes,
+      const std::string& fast_advertisement_service_uuid) = 0;
   virtual bool StopAdvertising(const std::string& service_id) = 0;
 
   // Callback that is invoked when a discovered peripheral is found or lost.
   struct DiscoveredPeripheralCallback {
-    std::function<void(BlePeripheral& peripheral,
-                       const std::string& service_id)>
+    std::function<void(BlePeripheral& peripheral, const std::string& service_id,
+                       bool fast_advertisement)>
         peripheral_discovered_cb =
-            DefaultCallback<BlePeripheral&, const std::string&>();
+            DefaultCallback<BlePeripheral&, const std::string&, bool>();
     std::function<void(BlePeripheral& peripheral,
                        const std::string& service_id)>
         peripheral_lost_cb =

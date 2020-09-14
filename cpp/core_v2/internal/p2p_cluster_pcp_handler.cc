@@ -851,7 +851,8 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
       INFO, "P2pClusterPcpHandler::StartBleAdvertising: service_id=%s: come up",
       service_id.c_str());
 
-  if (!ble_medium_.StartAdvertising(service_id, advertisement_bytes)) {
+  if (!ble_medium_.StartAdvertising(service_id, advertisement_bytes,
+                                    options.fast_advertisement_service_uuid)) {
     NEARBY_LOGS(INFO) << "P2pClusterPcpHandler::StartBleAdvertising: failed to "
                          "start advertising, advertisement_bytes=%p"
                       << advertisement_bytes.data();

@@ -67,7 +67,10 @@ Status OfflineServiceController::RejectConnection(
 
 void OfflineServiceController::InitiateBandwidthUpgrade(
     ClientProxy* client, const std::string& endpoint_id) {
-  // TODO(apolyudov): implement.
+  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
+                    << " initiated a manual bandwidth upgrade with endpoint id="
+                    << endpoint_id;
+  bwu_manager_.InitiateBwuForEndpoint(client, endpoint_id);
 }
 
 void OfflineServiceController::SendPayload(

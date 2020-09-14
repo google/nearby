@@ -36,7 +36,8 @@ bool Ble::IsAvailable() const {
 bool Ble::IsAvailableLocked() const { return medium_.IsValid(); }
 
 bool Ble::StartAdvertising(const std::string& service_id,
-                           const ByteArray& advertisement_bytes) {
+                           const ByteArray& advertisement_bytes,
+                           const std::string& fast_advertisement_service_uuid) {
   MutexLock lock(&mutex_);
 
   if (advertisement_bytes.Empty()) {
@@ -73,12 +74,17 @@ bool Ble::StartAdvertising(const std::string& service_id,
   NEARBY_LOGS(INFO) << "Turning on BLE advertising with advertisement bytes="
                     << advertisement_bytes.data() << "("
                     << advertisement_bytes.size() << ")"
-                    << ", service id=" << service_id;
-  if (!medium_.StartAdvertising(service_id, advertisement_bytes)) {
+                    << ", service id=" << service_id
+                    << ", fast advertisement service uuid="
+                    << fast_advertisement_service_uuid;
+  if (!medium_.StartAdvertising(service_id, advertisement_bytes,
+                                fast_advertisement_service_uuid)) {
     NEARBY_LOGS(INFO)
         << "Failed to turn on BLE advertising with advertisement bytes="
         << advertisement_bytes.data() << "(" << advertisement_bytes.size()
-        << ")";
+        << ")"
+        << ", fast advertisement service uuid="
+        << fast_advertisement_service_uuid;
     return false;
   }
 

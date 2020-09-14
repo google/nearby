@@ -24,6 +24,10 @@ namespace location {
 namespace nearby {
 namespace connections {
 
+namespace {
+constexpr absl::string_view kUpgradeServiceIdPostfix = "_UPGRADE";
+}
+
 ByteArray Utils::GenerateRandomBytes(size_t length) {
   Prng rng;
   std::string data;
@@ -52,6 +56,22 @@ ByteArray Utils::Sha256Hash(const std::string& source, size_t length) {
   ByteArray full_hash(length);
   full_hash.CopyAt(0, Crypto::Sha256(source));
   return full_hash;
+}
+
+std::string Utils::WrapUpgradeServiceId(const std::string& service_id) {
+  if (service_id.empty()) {
+    return {};
+  }
+  return service_id + std::string(kUpgradeServiceIdPostfix);
+}
+
+std::string Utils::UnwrapUpgradeServiceId(
+    const std::string& upgrade_service_id) {
+  auto pos = upgrade_service_id.find(kUpgradeServiceIdPostfix);
+  if (pos != std::string::npos) {
+    return std::string(upgrade_service_id, 0, pos);
+  }
+  return upgrade_service_id;
 }
 
 }  // namespace connections

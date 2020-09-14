@@ -114,7 +114,8 @@ class BleMedium final {
 
   // Returns true once the BLE advertising has been initiated.
   bool StartAdvertising(const std::string& service_id,
-                        const ByteArray& advertisement_bytes);
+                        const ByteArray& advertisement_bytes,
+                        const std::string& fast_advertisement_service_uuid);
   bool StopAdvertising(const std::string& service_id);
 
   // Returns true once the BLE scan has been initiated.

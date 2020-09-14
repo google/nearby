@@ -89,6 +89,11 @@ go_proto_library(
     deps = [":connections_enums_proto"],
 )
 
+java_proto_library(
+    name = "connections_enums_java_proto",
+    deps = [":connections_enums_proto"],
+)
+
 portable_proto_library(
     name = "connections_enums_portable_proto",
     config = ":connections_enums_proto_config",
