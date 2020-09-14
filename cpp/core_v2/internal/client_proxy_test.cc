@@ -153,7 +153,7 @@ class ClientProxyTest : public testing::Test {
   void OnDiscoveryBandwidthChanged(ClientProxy* client,
                                    const Endpoint& endpoint) {
     EXPECT_CALL(mock_discovery_connection_.bandwidth_changed_cb, Call).Times(1);
-    client->OnBandwidthChanged(endpoint.id, 1);
+    client->OnBandwidthChanged(endpoint.id, Medium::WIFI_LAN);
   }
 
   void OnDiscoveryConnectionDisconnected(ClientProxy* client,

@@ -137,8 +137,9 @@ class BleMedium : public api::BleMedium {
   ~BleMedium() override;
 
   // Returns true once the Ble advertising has been initiated.
-  bool StartAdvertising(const std::string& service_id,
-                        const ByteArray& advertisement_bytes) override
+  bool StartAdvertising(
+      const std::string& service_id, const ByteArray& advertisement_bytes,
+      const std::string& fast_advertisement_service_uuid) override
       ABSL_LOCKS_EXCLUDED(mutex_);
   bool StopAdvertising(const std::string& service_id) override
       ABSL_LOCKS_EXCLUDED(mutex_);

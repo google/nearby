@@ -51,6 +51,7 @@ ByteArray ForBwuWifiLanPathAvailable(const std::string& ip_address,
                                      std::int32_t port);
 ByteArray ForBwuBluetoothPathAvailable(const std::string& service_id,
                                        const std::string& mac_address);
+ByteArray ForBwuWebrtcPathAvailable(const std::string& peer_id);
 ByteArray ForBwuFailure(const UpgradePathInfo& info);
 ByteArray ForBwuLastWrite();
 ByteArray ForBwuSafeToClose();

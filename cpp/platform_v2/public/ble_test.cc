@@ -15,6 +15,7 @@ namespace {
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 constexpr absl::string_view kServiceID{"com.google.location.nearby.apps.test"};
 constexpr absl::string_view kAdvertisementString{"\x0a\x0b\x0c\x0d"};
+constexpr absl::string_view kFastAdvertisementServiceUuid{"\xff\xfe"};
 
 class BleMediumTest : public ::testing::Test {
  protected:
@@ -50,9 +51,11 @@ TEST_F(BleMediumTest, CanStartAdvertising) {
   BleMedium ble_b{adapter_b_};
   std::string service_id(kServiceID);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  std::string fast_advertisement_service_uuid(kFastAdvertisementServiceUuid);
   CountDownLatch found_latch(1);
 
-  ble_a.StartAdvertising(service_id, advertisement_bytes);
+  ble_a.StartAdvertising(service_id, advertisement_bytes,
+                         fast_advertisement_service_uuid);
 
   EXPECT_TRUE(ble_b.StartScanning(
       service_id,
@@ -76,6 +79,7 @@ TEST_F(BleMediumTest, CanStartScanning) {
   BleMedium ble_b{adapter_b_};
   std::string service_id(kServiceID);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  std::string fast_advertisement_service_uuid(kFastAdvertisementServiceUuid);
   CountDownLatch found_latch(1);
   CountDownLatch lost_latch(1);
 
@@ -92,7 +96,8 @@ TEST_F(BleMediumTest, CanStartScanning) {
                 lost_latch.CountDown();
               },
       });
-  EXPECT_TRUE(ble_b.StartAdvertising(service_id, advertisement_bytes));
+  EXPECT_TRUE(ble_b.StartAdvertising(service_id, advertisement_bytes,
+                                     fast_advertisement_service_uuid));
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_b.StopAdvertising(service_id));
   EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
@@ -108,6 +113,7 @@ TEST_F(BleMediumTest, CanStopDiscovery) {
   BleMedium ble_b{adapter_b_};
   std::string service_id(kServiceID);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  std::string fast_advertisement_service_uuid(kFastAdvertisementServiceUuid);
   CountDownLatch found_latch(1);
   CountDownLatch lost_latch(1);
 
@@ -124,7 +130,8 @@ TEST_F(BleMediumTest, CanStopDiscovery) {
                 lost_latch.CountDown();
               },
       });
-  EXPECT_TRUE(ble_b.StartAdvertising(service_id, advertisement_bytes));
+  EXPECT_TRUE(ble_b.StartAdvertising(service_id, advertisement_bytes,
+                                     fast_advertisement_service_uuid));
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_a.StopScanning(service_id));
   EXPECT_TRUE(ble_b.StopAdvertising(service_id));
@@ -140,6 +147,7 @@ TEST_F(BleMediumTest, CanStartAcceptingConnectionsAndConnect) {
   BleMedium ble_b{adapter_b_};
   std::string service_id(kServiceID);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  std::string fast_advertisement_service_uuid(kFastAdvertisementServiceUuid);
   CountDownLatch found_latch(1);
   CountDownLatch accepted_latch(1);
 
@@ -160,7 +168,8 @@ TEST_F(BleMediumTest, CanStartAcceptingConnectionsAndConnect) {
                 found_latch.CountDown();
               },
       });
-  ble_b.StartAdvertising(service_id, advertisement_bytes);
+  ble_b.StartAdvertising(service_id, advertisement_bytes,
+                         fast_advertisement_service_uuid);
   ble_b.StartAcceptingConnections(
       service_id,
       AcceptedConnectionCallback{

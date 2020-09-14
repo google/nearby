@@ -18,6 +18,7 @@ namespace {
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 constexpr absl::string_view kServiceID{"com.google.location.nearby.apps.test"};
 constexpr absl::string_view kAdvertisementString{"\x0a\x0b\x0c\x0d"};
+constexpr absl::string_view kFastAdvertisementServiceUuid{"\xff\xfe"};
 
 class BleTest : public ::testing::Test {
  protected:
@@ -55,6 +56,7 @@ TEST_F(BleTest, CanStartAdvertising) {
   radio_b.Enable();
   std::string service_id(kServiceID);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  std::string fast_advertisement_service_uuid(kFastAdvertisementServiceUuid);
   CountDownLatch found_latch(1);
 
   ble_b.StartScanning(
@@ -66,7 +68,8 @@ TEST_F(BleTest, CanStartAdvertising) {
                   bool fast_advertisement) { found_latch.CountDown(); },
       });
 
-  EXPECT_TRUE(ble_a.StartAdvertising(service_id, advertisement_bytes));
+  EXPECT_TRUE(ble_a.StartAdvertising(service_id, advertisement_bytes,
+                                     fast_advertisement_service_uuid));
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_a.StopAdvertising(service_id));
   EXPECT_TRUE(ble_b.StopScanning(service_id));
@@ -83,10 +86,12 @@ TEST_F(BleTest, CanStartDiscovery) {
   radio_b.Enable();
   std::string service_id(kServiceID);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  std::string fast_advertisement_service_uuid(kFastAdvertisementServiceUuid);
   CountDownLatch accept_latch(1);
   CountDownLatch lost_latch(1);
 
-  ble_b.StartAdvertising(service_id, advertisement_bytes);
+  ble_b.StartAdvertising(service_id, advertisement_bytes,
+                         fast_advertisement_service_uuid);
 
   EXPECT_TRUE(ble_a.StartScanning(
       service_id,
@@ -118,10 +123,12 @@ TEST_F(BleTest, CanStartAcceptingConnectionsAndConnect) {
   radio_b.Enable();
   std::string service_id(kServiceID);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  std::string fast_advertisement_service_uuid(kFastAdvertisementServiceUuid);
   CountDownLatch found_latch(1);
   CountDownLatch accept_latch(1);
 
-  ble_a.StartAdvertising(service_id, advertisement_bytes);
+  ble_a.StartAdvertising(service_id, advertisement_bytes,
+                         fast_advertisement_service_uuid);
   ble_a.StartAcceptingConnections(
       service_id,
       {
