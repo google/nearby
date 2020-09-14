@@ -14,6 +14,8 @@
 
 #include "platform_v2/public/bluetooth_adapter.h"
 
+#include "platform_v2/base/bluetooth_utils.h"
+#include "platform_v2/public/logging.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -51,6 +53,14 @@ TEST(BluetoothAdapterTest, CanSetMode) {
             BluetoothAdapter::ScanMode::kConnectableDiscoverable);
   EXPECT_TRUE(adapter.SetScanMode(BluetoothAdapter::ScanMode::kNone));
   EXPECT_EQ(adapter.GetScanMode(), BluetoothAdapter::ScanMode::kNone);
+}
+
+TEST(BluetoothAdapterTest, CanGetMacAddress) {
+  BluetoothAdapter adapter;
+  std::string bt_mac =
+      BluetoothUtils::ToString(ByteArray(adapter.GetMacAddress()));
+  NEARBY_LOG(INFO, "BT MAC: '%s'", bt_mac.c_str());
+  EXPECT_NE(bt_mac, "");
 }
 
 }  // namespace

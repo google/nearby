@@ -150,7 +150,7 @@ enum StartAdvertisingError {
   // Next ID :46
 }
 
-// The error for event START_ADVERTISING. The range between 31 and 99.
+// The error for event STOP_ADVERTISING. The range between 31 and 99.
 enum StopAdvertisingError {
   // System error, failed to stop advertising.
   STOP_ADVERTISING_FAILED = 31;
@@ -194,6 +194,18 @@ enum StartDiscoveringError {
   ACQUIRE_WIFI_AWARE_SESSION_FOR_DISCOVERING_FAILED = 40;
 
   // Next ID :41
+}
+
+// The error for event STOP_DISCOVERING. The range between 31 and 99.
+enum StopDiscoveringError {
+  // System error, failed to stop discovering.
+  STOP_DISCOVERING_FAILED = 31;
+  // System error, failed to stop discovering for BLE legacy scanning.
+  STOP_LEGACY_DISCOVERING_FAILED = 32;
+  // System error, failed to stop discovering for BLE extended scanning.
+  STOP_EXTENDED_DISCOVERING_FAILED = 33;
+
+  // Next ID :34
 }
 
 // The error for event START_LISTENING_INCOMING_CONNECTION. The range between 31

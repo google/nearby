@@ -183,6 +183,24 @@ ByteArray ForBwuBluetoothPathAvailable(const std::string& service_id,
   return ToBytes(std::move(frame));
 }
 
+ByteArray ForBwuWebrtcPathAvailable(const std::string& peer_id) {
+  OfflineFrame frame;
+
+  frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION);
+  auto* sub_frame = v1_frame->mutable_bandwidth_upgrade_negotiation();
+  sub_frame->set_event_type(
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+  auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
+  upgrade_path_info->set_medium(UpgradePathInfo::WEB_RTC);
+  auto* webrtc_credentials =
+      upgrade_path_info->mutable_web_rtc_credentials();
+  webrtc_credentials->set_peer_id(peer_id);
+
+  return ToBytes(std::move(frame));
+}
+
 ByteArray ForBwuLastWrite() {
   OfflineFrame frame;
 

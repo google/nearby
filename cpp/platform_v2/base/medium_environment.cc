@@ -191,7 +191,7 @@ api::BluetoothDevice* MediumEnvironment::FindBluetoothDevice(
 
 void MediumEnvironment::OnBlePeripheralStateChanged(
     BleMediumContext& info, api::BlePeripheral& peripheral,
-    const std::string& service_id, bool enabled) {
+    const std::string& service_id, bool fast_advertisement, bool enabled) {
   if (!enabled_) return;
   NEARBY_LOG(INFO,
              "G3 OnBleServiceStateChanged [peripheral impl=%p]; context=%p; "
@@ -199,13 +199,15 @@ void MediumEnvironment::OnBlePeripheralStateChanged(
              &peripheral, &info, service_id.c_str(),
              enable_notifications_.load());
   if (!enable_notifications_) return;
-  RunOnMediumEnvironmentThread([&info, enabled, &peripheral, service_id]() {
+  RunOnMediumEnvironmentThread([&info, enabled, &peripheral, service_id,
+                                fast_advertisement]() {
     NEARBY_LOG(INFO,
                "G3 [Run] OnBlePeripheralStateChanged [peripheral impl=%p]; "
                "context=%p; service_id=%s; enabled=%d",
                &peripheral, &info, service_id.c_str(), enabled);
     if (enabled) {
-      info.discovery_callback.peripheral_discovered_cb(peripheral, service_id);
+      info.discovery_callback.peripheral_discovered_cb(peripheral, service_id,
+                                                       fast_advertisement);
     } else {
       info.discovery_callback.peripheral_lost_cb(peripheral, service_id);
     }
@@ -318,10 +320,10 @@ void MediumEnvironment::RegisterBleMedium(api::BleMedium& medium) {
 
 void MediumEnvironment::UpdateBleMediumForAdvertising(
     api::BleMedium& medium, api::BlePeripheral& peripheral,
-    const std::string& service_id, bool enabled) {
+    const std::string& service_id, bool fast_advertisement, bool enabled) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread(
-      [this, &medium, &peripheral, service_id, enabled]() {
+      [this, &medium, &peripheral, service_id, fast_advertisement, enabled]() {
         auto item = ble_mediums_.find(&medium);
         if (item == ble_mediums_.end()) {
           NEARBY_LOG(INFO,
@@ -332,17 +334,20 @@ void MediumEnvironment::UpdateBleMediumForAdvertising(
         auto& context = item->second;
         context.ble_peripheral = &peripheral;
         context.advertising = enabled;
-        NEARBY_LOG(INFO,
-                   "Update Ble medium for advertising: this=%p; medium=%p; "
-                   "service_id=%s; name=%s; enabled=%d; ",
-                   this, &medium, service_id.c_str(),
-                   peripheral.GetName().c_str(), enabled);
+        context.fast_advertisement = fast_advertisement;
+        NEARBY_LOG(
+            INFO,
+            "Update Ble medium for advertising: this=%p; medium=%p; "
+            "service_id=%s; name=%s; fast_advertisement=%d; enabled=%d; ",
+            this, &medium, service_id.c_str(), peripheral.GetName().c_str(),
+            fast_advertisement, enabled);
         for (auto& medium_info : ble_mediums_) {
           auto& local_medium = medium_info.first;
           auto& info = medium_info.second;
           // Do not send notification to the same medium.
           if (local_medium == &medium) continue;
-          OnBlePeripheralStateChanged(info, peripheral, service_id, enabled);
+          OnBlePeripheralStateChanged(info, peripheral, service_id,
+                                      fast_advertisement, enabled);
         }
       });
 }
@@ -374,7 +379,8 @@ void MediumEnvironment::UpdateBleMediumForScanning(
           // Search advertising mediums and send notification.
           if (info.advertising && enabled) {
             OnBlePeripheralStateChanged(context, *(info.ble_peripheral),
-                                        service_id, enabled);
+                                        service_id, info.fast_advertisement,
+                                        enabled);
           }
         }
       });
