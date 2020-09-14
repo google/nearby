@@ -45,6 +45,7 @@ class BluetoothDevice final {
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
   std::string GetName() const { return impl_->GetName(); }
+  std::string GetMacAddress() const { return impl_->GetMacAddress(); }
 
   api::BluetoothDevice& GetImpl() { return *impl_; }
   bool IsValid() const { return impl_ != nullptr; }
@@ -90,6 +91,7 @@ class BluetoothAdapter final {
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getName()
   // Returns an empty string on error
   std::string GetName() const { return impl_->GetName(); }
+  std::string GetMacAddress() const { return impl_->GetMacAddress(); }
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
   bool SetName(absl::string_view name) { return impl_->SetName(name); }

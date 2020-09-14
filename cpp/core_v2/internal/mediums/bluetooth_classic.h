@@ -100,6 +100,8 @@ class BluetoothClassic {
                           const std::string& service_name)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  std::string GetMacAddress() const ABSL_LOCKS_EXCLUDED(mutex_);
+
   BluetoothDevice FindRemoteDevice(const std::string& mac_address)
       ABSL_LOCKS_EXCLUDED(mutex_);
 

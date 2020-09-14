@@ -13,6 +13,7 @@
 //   default-initialized.
 // - callbacks may be initialized with lambdas; lambda definitions are concize.
 
+#include "core_v2/options.h"
 #include "core_v2/payload.h"
 #include "core_v2/status.h"
 #include "platform_v2/base/byte_array.h"
@@ -110,10 +111,9 @@ struct ConnectionListener {
   // Called when the connection's available bandwidth has changed.
   //
   // endpoint_id - The identifier for the remote endpoint.
-  // quality     - TODO(apolyudov): document.
-  std::function<void(const std::string& endpoint_id, std::int32_t quality)>
-      bandwidth_changed_cb =
-          DefaultCallback<const std::string&, std::int32_t>();
+  // medium      - Medium we upgraded to.
+  std::function<void(const std::string& endpoint_id, Medium medium)>
+      bandwidth_changed_cb = DefaultCallback<const std::string&, Medium>();
 };
 
 struct DiscoveryListener {
@@ -125,9 +125,8 @@ struct DiscoveryListener {
   std::function<void(const std::string& endpoint_id,
                      const ByteArray& endpoint_info,
                      const std::string& service_id)>
-      endpoint_found_cb =
-          DefaultCallback<const std::string&, const ByteArray&,
-                          const std::string&>();
+      endpoint_found_cb = DefaultCallback<const std::string&, const ByteArray&,
+                                          const std::string&>();
 
   // Called when a remote endpoint is no longer discoverable; only called for
   // endpoints that previously had been passed to {@link

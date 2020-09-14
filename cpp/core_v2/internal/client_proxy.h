@@ -51,11 +51,14 @@ class ClientProxy final {
   bool IsAdvertising() const;
   std::string GetAdvertisingServiceId() const;
 
+  // Get service ID of a surrently active link (either advertising, or
+  // discovering).
+  std::string GetServiceId() const;
+
   // Marks this client as discovering with the given callback.
-  void StartedDiscovery(
-      const std::string& service_id, Strategy strategy,
-      const DiscoveryListener& discovery_listener,
-      absl::Span<proto::connections::Medium> mediums);
+  void StartedDiscovery(const std::string& service_id, Strategy strategy,
+                        const DiscoveryListener& discovery_listener,
+                        absl::Span<proto::connections::Medium> mediums);
   // Marks this client as not discovering at all.
   void StoppedDiscovery();
   bool IsDiscoveringServiceId(const std::string& service_id) const;
@@ -83,7 +86,7 @@ class ClientProxy final {
   void OnConnectionRejected(const std::string& endpoint_id,
                             const Status& status);
 
-  void OnBandwidthChanged(const std::string& endpoint_id, std::int32_t quality);
+  void OnBandwidthChanged(const std::string& endpoint_id, Medium new_medium);
 
   // Removes the endpoint from this client's list of connected endpoints. If
   // notify is true, also calls the client's

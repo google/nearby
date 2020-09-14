@@ -18,7 +18,7 @@ TEST(ListenersTest, EnsureDefaultInitializedIsCallable) {
   listener.accepted_cb(endpoint_id);
   listener.rejected_cb(endpoint_id, {Status::kError});
   listener.disconnected_cb(endpoint_id);
-  listener.bandwidth_changed_cb(endpoint_id, int());
+  listener.bandwidth_changed_cb(endpoint_id, Medium());
   SUCCEED();
 }
 
@@ -35,7 +35,7 @@ TEST(ListenersTest, EnsurePartiallyInitializedIsCallable) {
   listener.accepted_cb(endpoint_id);
   listener.rejected_cb(endpoint_id, {Status::kError});
   listener.disconnected_cb(endpoint_id);
-  listener.bandwidth_changed_cb(endpoint_id, int());
+  listener.bandwidth_changed_cb(endpoint_id, Medium());
   EXPECT_TRUE(initiated_cb_called);
 }
 

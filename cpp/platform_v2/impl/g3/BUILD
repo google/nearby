@@ -18,9 +18,7 @@ cc_library(
         "scheduled_executor.h",
         "single_thread_executor.h",
     ],
-    visibility = [
-        "//platform_v2/impl/g3:__pkg__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         "//base",
         "//platform_v2/api:platform",
@@ -52,9 +50,7 @@ cc_library(
         "webrtc.h",
         "wifi_lan.h",
     ],
-    visibility = [
-        "//platform_v2/impl/g3:__pkg__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":types",
         "//platform_v2/api:comm",

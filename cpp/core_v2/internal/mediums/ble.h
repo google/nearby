@@ -31,7 +31,8 @@ class Ble {
   // Sets custom advertisement data, and then enables Ble advertising.
   // Returns true, if data is successfully set, and false otherwise.
   bool StartAdvertising(const std::string& service_id,
-                        const ByteArray& advertisement_bytes)
+                        const ByteArray& advertisement_bytes,
+                        const std::string& fast_advertisement_service_uuid)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables Ble advertising.

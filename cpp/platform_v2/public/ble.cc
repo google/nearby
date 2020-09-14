@@ -6,9 +6,11 @@
 namespace location {
 namespace nearby {
 
-bool BleMedium::StartAdvertising(const std::string& service_id,
-                                 const ByteArray& advertisement_bytes) {
-  return impl_->StartAdvertising(service_id, advertisement_bytes);
+bool BleMedium::StartAdvertising(
+    const std::string& service_id, const ByteArray& advertisement_bytes,
+    const std::string& fast_advertisement_service_uuid) {
+  return impl_->StartAdvertising(service_id, advertisement_bytes,
+                                 fast_advertisement_service_uuid);
 }
 
 bool BleMedium::StopAdvertising(const std::string& service_id) {
@@ -27,7 +29,7 @@ bool BleMedium::StartScanning(const std::string& service_id,
       {
           .peripheral_discovered_cb =
               [this](api::BlePeripheral& peripheral,
-                     const std::string& service_id) {
+                     const std::string& service_id, bool fast_advertisement) {
                 MutexLock lock(&mutex_);
                 auto pair = peripherals_.emplace(
                     &peripheral, absl::make_unique<ScanningInfo>());
@@ -46,8 +48,7 @@ bool BleMedium::StartScanning(const std::string& service_id,
                              &context.peripheral, &peripheral,
                              peripheral.GetName().c_str());
                   discovered_peripheral_callback_.peripheral_discovered_cb(
-                      context.peripheral, service_id,
-                      /*fast_advertisement=*/false);
+                      context.peripheral, service_id, fast_advertisement);
                 }
               },
           .peripheral_lost_cb =
