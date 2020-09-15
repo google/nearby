@@ -16,6 +16,7 @@
 #define CORE_V2_INTERNAL_BWU_MANAGER_H_
 
 #include <string>
+#include <vector>
 
 #include "core_v2/internal/bwu_handler.h"
 #include "core_v2/internal/client_proxy.h"
