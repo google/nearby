@@ -67,7 +67,7 @@ std::string Utils::WrapUpgradeServiceId(const std::string& service_id) {
 
 std::string Utils::UnwrapUpgradeServiceId(
     const std::string& upgrade_service_id) {
-  auto pos = upgrade_service_id.find(kUpgradeServiceIdPostfix);
+  auto pos = upgrade_service_id.find(std::string(kUpgradeServiceIdPostfix));
   if (pos != std::string::npos) {
     return std::string(upgrade_service_id, 0, pos);
   }

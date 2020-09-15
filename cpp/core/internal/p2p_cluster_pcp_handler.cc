@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "core/internal/p2p_cluster_pcp_handler.h"
+
 #include "platform/api/hash_utils.h"
 
 namespace location {
