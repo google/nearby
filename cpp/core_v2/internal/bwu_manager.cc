@@ -474,9 +474,8 @@ void BwuManager::ProcessLastWriteToPriorChannelEvent(
     successfully_upgraded_endpoints_.emplace(endpoint_id);
     return;
   }
-  try {
-    previous_endpoint_channel->Write(parser::ForBwuSafeToClose());
-  } catch (IOException e) {
+
+  if (!previous_endpoint_channel->Write(parser::ForBwuSafeToClose()).Ok()) {
     previous_endpoint_channel->Close(DisconnectionReason::IO_ERROR);
     // Remove this prior EndpointChannel from previous_endpoint_channels to
     // avoid leaks.
@@ -489,6 +488,7 @@ void BwuManager::ProcessLastWriteToPriorChannelEvent(
         endpoint_id.c_str());
     return;
   }
+
   // The upgrade protocol's clean shutdown of the prior EndpointChannel will
   // conclude when we receive a corresponding
   // BANDWIDTH_UPGRADE_NEGOTIATION.SAFE_TO_CLOSE_PRIOR_CHANNEL OfflineFrame
@@ -585,7 +585,7 @@ void BwuManager::ProcessUpgradeFailureEvent(
   Medium last = parser::UpgradePathInfoMediumToMedium(upgrade_info.medium());
   std::vector<Medium> all_possible_mediums =
       client->GetUpgradeMediums(endpoint_id).GetMediums(true);
-  std::vector untried_mediums(all_possible_mediums);
+  std::vector<Medium> untried_mediums(all_possible_mediums);
   for (Medium medium : all_possible_mediums) {
     untried_mediums.erase(untried_mediums.begin());
     if (medium == last) {
