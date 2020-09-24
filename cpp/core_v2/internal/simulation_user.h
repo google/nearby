@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include "core_v2/internal/bwu_manager.h"
 #include "core_v2/internal/client_proxy.h"
 #include "core_v2/internal/endpoint_channel_manager.h"
 #include "core_v2/internal/endpoint_manager.h"
@@ -144,7 +145,8 @@ class SimulationUser {
   ClientProxy client_;
   EndpointChannelManager ecm_;
   EndpointManager em_{&ecm_};
-  PcpManager mgr_{mediums_, ecm_, em_};
+  BwuManager bwu_{mediums_, em_, ecm_, {}, {}};
+  PcpManager mgr_{mediums_, ecm_, em_, bwu_};
   PayloadManager pm_{em_};
 };
 

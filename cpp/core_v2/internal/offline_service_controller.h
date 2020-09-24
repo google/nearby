@@ -81,9 +81,10 @@ class OfflineServiceController : public ServiceController {
   EndpointChannelManager channel_manager_;
   EndpointManager endpoint_manager_{&channel_manager_};
   PayloadManager payload_manager_{endpoint_manager_};
-  PcpManager pcp_manager_{mediums_, channel_manager_, endpoint_manager_};
   BwuManager bwu_manager_{
       mediums_, endpoint_manager_, channel_manager_, {}, {}};
+  PcpManager pcp_manager_{mediums_, channel_manager_, endpoint_manager_,
+                          bwu_manager_};
 };
 
 }  // namespace connections

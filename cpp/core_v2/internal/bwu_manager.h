@@ -79,7 +79,8 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // Function initiates the bandwidth upgrade and sends an
   // UPGRADE_PATH_AVAILABLE OfflineFrame.
   void InitiateBwuForEndpoint(ClientProxy* client_proxy,
-                              const std::string& endpoint_id);
+                              const std::string& endpoint_id,
+                              Medium new_medium = Medium::UNKNOWN_MEDIUM);
 
   // == EndpointManager::FrameProcessor interface ==.
   // This is the point on the inbound BWU protocol where the handler_ is set.

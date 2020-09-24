@@ -18,6 +18,7 @@
 
 #include "core_v2/internal/bwu_handler.h"
 #include "core_v2/internal/offline_frames.h"
+#include "core_v2/internal/webrtc_bwu_handler.h"
 #include "platform_v2/base/byte_array.h"
 #include "platform_v2/public/count_down_latch.h"
 #include "proto/connections_enums.pb.h"
@@ -66,7 +67,11 @@ void BwuManager::InitBwuHandlers() {
       .incoming_connection_cb =
           absl::bind_front(&BwuManager::OnIncomingConnection, this),
   };
-  // TODO(apolyudov): inject instances of supported upgrade medium handlers.
+  if (config_.allow_upgrade_to.web_rtc) {
+    handlers_.emplace(Medium::WEB_RTC,
+                      std::make_unique<WebrtcBwuHandler>(
+                          *mediums_, *channel_manager_, notifications));
+  }
 }
 
 void BwuManager::Shutdown() {
@@ -104,12 +109,17 @@ void BwuManager::Shutdown() {
 }
 
 // This is the point on the Initiator side where the
-// currentBwuMedium is set.
+// medium_ is set.
 void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
-                                        const std::string& endpoint_id) {
-  RunOnBwuManagerThread([this, client, endpoint_id]() {
-    auto* handler = SetCurrentBwuHandler(ChooseBestUpgradeMedium(
-        client->GetUpgradeMediums(endpoint_id).GetMediums(true)));
+                                        const std::string& endpoint_id,
+                                        Medium new_medium) {
+  RunOnBwuManagerThread([this, client, endpoint_id, new_medium]() {
+    Medium proposed_medium = ChooseBestUpgradeMedium(
+        client->GetUpgradeMediums(endpoint_id).GetMediums(true));
+    if (new_medium != Medium::UNKNOWN_MEDIUM) {
+      proposed_medium = new_medium;
+    }
+    auto* handler = SetCurrentBwuHandler(proposed_medium);
 
     if (!handler) return;
 

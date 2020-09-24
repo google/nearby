@@ -120,6 +120,7 @@ class BleMedium final {
 
   // Returns true once the BLE scan has been initiated.
   bool StartScanning(const std::string& service_id,
+                     const std::string& fast_advertisement_service_uuid,
                      DiscoveredPeripheralCallback callback);
 
   // Returns true once BLE scanning for service_id is well and truly stopped;

@@ -79,6 +79,13 @@ struct MediumSelector {
 // Feature On/Off switch for mediums.
 using BooleanMediumSelector = MediumSelector<bool>;
 
+// Represents the various power levels that can be used, on mediums that support
+// it.
+enum class PowerLevel {
+  kHighPower = 0,
+  kLowPower = 1,
+};
+
 // Connection Options: used for both Advertising and Discovery.
 // All fields are mutable, to make the type copy-assignable.
 struct ConnectionOptions {
@@ -86,6 +93,8 @@ struct ConnectionOptions {
   BooleanMediumSelector allowed{BooleanMediumSelector().SetAll(true)};
   bool auto_upgrade_bandwidth;
   bool enforce_topology_constraints;
+  bool low_power;
+  bool enable_bluetooth_listening;
   ByteArray remote_bluetooth_mac_address;
   std::string fast_advertisement_service_uuid;
   // Verify if  ConnectionOptions is in a not-initialized (Empty) state.
