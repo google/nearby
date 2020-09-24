@@ -95,8 +95,19 @@ message ConnectionResponseFrame {
   //
   // - ConnectionsStatusCodes.STATUS_OK
   // - ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED.
-  optional int32 status = 1;
+  optional int32 status = 1 [deprecated = true];
   optional bytes handshake_data = 2;
+
+  // Used to replace the status integer parameter with a meaningful enum item.
+  // Map ConnectionsStatusCodes.STATUS_OK to ACCEPT and
+  // ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED to REJECT.
+  // Flag: connection_replace_status_with_response_connectionResponseFrame
+  enum ResponseStatus {
+    UNKNOWN_RESPONSE_STATUS = 0;
+    ACCEPT = 1;
+    REJECT = 2;
+  }
+  optional ResponseStatus response = 3;
 }
 
 message PayloadTransferFrame {

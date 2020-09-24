@@ -56,7 +56,7 @@ class ImplementationPlatform {
   // - synchronization primitives:
   //   - mutex (regular, and recursive)
   //   - condition variable (must work with regular mutex only)
-  //   - Future<T> : to synchronize on Callable<T> schduled to execute.
+  //   - Future<T> : to synchronize on Callable<T> scheduled to execute.
   //   - CountDownLatch : to ensure at least N threads are waiting.
   // - file I/O
   // - Logging
@@ -72,8 +72,7 @@ class ImplementationPlatform {
   // Supports enums and integers up to 32-bit.
   // Does not use locking, if platform supports 32-bit atimics natively.
   // Does not use dynamic memory allocations in operations.
-  static std::unique_ptr<AtomicUint32>
-  CreateAtomicUint32(std::uint32_t value);
+  static std::unique_ptr<AtomicUint32> CreateAtomicUint32(std::uint32_t value);
 
   static std::unique_ptr<CountDownLatch> CreateCountDownLatch(
       std::int32_t count);

@@ -39,6 +39,7 @@ class P2pStarPcpHandler : public P2pClusterPcpHandler {
  public:
   P2pStarPcpHandler(Mediums& mediums, EndpointManager& endpoint_manager,
                     EndpointChannelManager& channel_manager,
+                    BwuManager& bwu_manager,
                     Pcp pcp = Pcp::kP2pStar);
 
  protected:

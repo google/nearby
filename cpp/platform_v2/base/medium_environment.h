@@ -165,10 +165,10 @@ class MediumEnvironment {
   // This should be called when discoverable state changes.
   // with user-specified callback when discovery is enabled, and with default
   // (empty) callback otherwise.
-  void UpdateBleMediumForScanning(api::BleMedium& medium,
-                                  const std::string& service_id,
-                                  BleDiscoveredPeripheralCallback callback,
-                                  bool enabled);
+  void UpdateBleMediumForScanning(
+      api::BleMedium& medium, const std::string& service_id,
+      const std::string& fast_advertisement_service_uuid,
+      BleDiscoveredPeripheralCallback callback, bool enabled);
 
   // Updates Accepted connection callback info to allow for dispatch of
   // advertising events.

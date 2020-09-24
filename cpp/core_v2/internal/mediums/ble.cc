@@ -120,6 +120,7 @@ bool Ble::IsAdvertisingLocked(const std::string& service_id) {
 }
 
 bool Ble::StartScanning(const std::string& service_id,
+                        const std::string& fast_advertisement_service_uuid,
                         DiscoveredPeripheralCallback callback) {
   MutexLock lock(&mutex_);
 
@@ -147,7 +148,8 @@ bool Ble::StartScanning(const std::string& service_id,
     return false;
   }
 
-  if (!medium_.StartScanning(service_id, callback)) {
+  if (!medium_.StartScanning(service_id, fast_advertisement_service_uuid,
+                             callback)) {
     NEARBY_LOGS(INFO) << "Failed to start scan of BLE services.";
     return false;
   }

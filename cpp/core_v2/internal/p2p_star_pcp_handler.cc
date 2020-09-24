@@ -23,9 +23,9 @@ namespace connections {
 P2pStarPcpHandler::P2pStarPcpHandler(Mediums& mediums,
                                      EndpointManager& endpoint_manager,
                                      EndpointChannelManager& channel_manager,
-                                     Pcp pcp)
-    : P2pClusterPcpHandler(&mediums, &endpoint_manager, &channel_manager, pcp) {
-}
+                                     BwuManager& bwu_manager, Pcp pcp)
+    : P2pClusterPcpHandler(&mediums, &endpoint_manager, &channel_manager,
+                           &bwu_manager, pcp) {}
 
 std::vector<proto::connections::Medium>
 P2pStarPcpHandler::GetConnectionMediumsByPriority() {

@@ -254,7 +254,7 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
   return socket;
 }
 
-api::BluetoothDevice* BluetoothClassicMedium::FindRemoteDevice(
+api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
     const std::string& mac_address) {
   auto& env = MediumEnvironment::Instance();
   return env.FindBluetoothDevice(mac_address);
