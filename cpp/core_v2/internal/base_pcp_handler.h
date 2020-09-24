@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "core_v2/internal/bwu_manager.h"
 #include "core_v2/internal/client_proxy.h"
 #include "core_v2/internal/encryption_runner.h"
 #include "core_v2/internal/endpoint_channel_manager.h"
@@ -81,7 +82,8 @@ class BasePcpHandler : public PcpHandler,
 
   // TODO(apolyudov): Add SecureRandom.
   BasePcpHandler(Mediums* mediums, EndpointManager* endpoint_manager,
-                 EndpointChannelManager* channel_manager, Pcp pcp);
+                 EndpointChannelManager* channel_manager,
+                 BwuManager* bwu_manager, Pcp pcp);
   ~BasePcpHandler() override;
   BasePcpHandler(BasePcpHandler&&) = delete;
   BasePcpHandler& operator=(BasePcpHandler&&) = delete;
@@ -90,8 +92,7 @@ class BasePcpHandler : public PcpHandler,
   // Notifies ConnectionListener (info.listener) in case of any event.
   // See
   // https://source.corp.google.com/piper///depot/google3/core_v2/listeners.h;l=78
-  Status StartAdvertising(ClientProxy* client,
-                          const std::string& service_id,
+  Status StartAdvertising(ClientProxy* client, const std::string& service_id,
                           const ConnectionOptions& options,
                           const ConnectionRequestInfo& info) override;
 
@@ -102,8 +103,7 @@ class BasePcpHandler : public PcpHandler,
   // Starts discovery of endpoints that may be advertising.
   // Updates ClientProxy state once discovery started.
   // DiscoveryListener will get called in case of any event.
-  Status StartDiscovery(ClientProxy* client,
-                        const std::string& service_id,
+  Status StartDiscovery(ClientProxy* client, const std::string& service_id,
                         const ConnectionOptions& options,
                         const DiscoveryListener& listener) override;
 
@@ -113,16 +113,14 @@ class BasePcpHandler : public PcpHandler,
 
   // Requests a newly discovered remote endpoint it to form a connection.
   // Updates state on ClientProxy.
-  Status RequestConnection(ClientProxy* client,
-                           const std::string& endpoint_id,
+  Status RequestConnection(ClientProxy* client, const std::string& endpoint_id,
                            const ConnectionRequestInfo& info,
                            const ConnectionOptions& options) override;
 
   // Called by either party to accept connection on their part.
   // Until both parties call it, connection will not reach a data phase.
   // Updates state in ClientProxy.
-  Status AcceptConnection(ClientProxy* client,
-                          const std::string& endpoint_id,
+  Status AcceptConnection(ClientProxy* client, const std::string& endpoint_id,
                           const PayloadListener& payload_listener) override;
 
   // Called by either party to reject connection on their part.
@@ -139,12 +137,12 @@ class BasePcpHandler : public PcpHandler,
   // Called when an endpoint disconnects while we're waiting for both sides to
   // approve/reject the connection.
   // @EndpointManagerThread
-  void OnEndpointDisconnect(ClientProxy* client,
-                            const std::string& endpoint_id,
+  void OnEndpointDisconnect(ClientProxy* client, const std::string& endpoint_id,
                             CountDownLatch* barrier) override;
 
   Pcp GetPcp() const override { return pcp_; }
   Strategy GetStrategy() const override { return strategy_; }
+  Medium GetBwuMedium() const { return bwu_medium_.Get(); }
   void DisconnectFromEndpointManager();
 
  protected:
@@ -227,8 +225,7 @@ class BasePcpHandler : public PcpHandler,
                        std::shared_ptr<DiscoveredEndpoint> endpoint);
 
   // @PcpHandlerThread
-  void OnEndpointLost(ClientProxy* client,
-                      const DiscoveredEndpoint& endpoint);
+  void OnEndpointLost(ClientProxy* client, const DiscoveredEndpoint& endpoint);
 
   Exception OnIncomingConnection(
       ClientProxy* client, const ByteArray& remote_endpoint_info,
@@ -270,8 +267,8 @@ class BasePcpHandler : public PcpHandler,
 
   // Returns a vector of discovered endpoints, sorted in order of decreasing
   // preference.
-  std::vector<BasePcpHandler::DiscoveredEndpoint*>
-  GetDiscoveredEndpoints(const std::string& endpoint_id);
+  std::vector<BasePcpHandler::DiscoveredEndpoint*> GetDiscoveredEndpoints(
+      const std::string& endpoint_id);
 
   mediums::PeerId CreatePeerIdFromAdvertisement(const string& service_id,
                                                 const string& endpoint_id,
@@ -402,6 +399,11 @@ class BasePcpHandler : public PcpHandler,
   proto::connections::Medium ChooseBestUpgradeMedium(
       const std::vector<proto::connections::Medium>& supported_mediums);
 
+  std::unique_ptr<BasePcpHandler::DiscoveredEndpoint>
+  GetRemoteBluetoothMacAddressEndpoint(
+      std::string endpoint_id, std::string remote_bluetooth_mac_address,
+      std::vector<DiscoveredEndpoint*> endpoints);
+
   void ProcessPreConnectionInitiationFailure(const std::string& endpoint_id,
                                              EndpointChannel* channel,
                                              Status status,
@@ -429,8 +431,7 @@ class BasePcpHandler : public PcpHandler,
   Status WaitForResult(const std::string& method_name, std::int64_t client_id,
                        Future<Status>* future);
 
-  AtomicReference<proto::connections::Medium> bandwidth_upgrade_medium_{
-      proto::connections::Medium::UNKNOWN_MEDIUM};
+  AtomicReference<Medium> bwu_medium_{Medium::UNKNOWN_MEDIUM};
   ScheduledExecutor alarm_executor_;
   SingleThreadExecutor serial_executor_;
 
@@ -472,6 +473,7 @@ class BasePcpHandler : public PcpHandler,
   Strategy strategy_{PcpToStrategy(pcp_)};
   Prng prng_;
   EncryptionRunner encryption_runner_;
+  BwuManager* bwu_manager_;
   EndpointManager::FrameProcessor::Handle handle_ = nullptr;
 };
 
