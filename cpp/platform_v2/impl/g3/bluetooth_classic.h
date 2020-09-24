@@ -207,7 +207,7 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
       const std::string& service_name, const std::string& service_uuid) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  api::BluetoothDevice* FindRemoteDevice(
+  api::BluetoothDevice* GetRemoteDevice(
       const std::string& mac_address) override;
 
  private:

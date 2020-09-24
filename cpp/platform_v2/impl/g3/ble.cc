@@ -252,11 +252,15 @@ bool BleMedium::StopAdvertising(const std::string& service_id) {
   return true;
 }
 
-bool BleMedium::StartScanning(const std::string& service_id,
-                              DiscoveredPeripheralCallback callback) {
+bool BleMedium::StartScanning(
+    const std::string& service_id,
+    const std::string& fast_advertisement_service_uuid,
+    DiscoveredPeripheralCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Ble StartScanning: service_id=" << service_id;
   auto& env = MediumEnvironment::Instance();
-  env.UpdateBleMediumForScanning(*this, service_id, std::move(callback), true);
+  env.UpdateBleMediumForScanning(*this, service_id,
+                                 fast_advertisement_service_uuid,
+                                 std::move(callback), true);
   {
     absl::MutexLock lock(&mutex_);
     scanning_info_.service_id = service_id;
@@ -277,7 +281,7 @@ bool BleMedium::StopScanning(const std::string& service_id) {
   }
 
   auto& env = MediumEnvironment::Instance();
-  env.UpdateBleMediumForScanning(*this, service_id, {}, false);
+  env.UpdateBleMediumForScanning(*this, service_id, {}, {}, false);
   return true;
 }
 

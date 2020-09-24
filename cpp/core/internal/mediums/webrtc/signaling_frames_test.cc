@@ -96,7 +96,7 @@ TEST(SignalingFramesTest, EncodeValidOffer) {
 
 TEST(SignalingFramesTest, DecodeValidOffer) {
   location::nearby::mediums::WebRtcSignalingFrame frame;
-  proto2::TextFormat::ParseFromString(kOfferProto, &frame);
+  proto2::TextFormat::ParseFromStringPiece(kOfferProto, &frame);
   Ptr<webrtc::SessionDescriptionInterface> decoded_offer = DecodeOffer(frame);
 
   EXPECT_EQ(webrtc::SdpType::kOffer, decoded_offer->GetType());
@@ -120,7 +120,7 @@ TEST(SignalingFramesTest, EncodeValidAnswer) {
 
 TEST(SignalingFramesTest, DecodeValidAnswer) {
   location::nearby::mediums::WebRtcSignalingFrame frame;
-  proto2::TextFormat::ParseFromString(kAnswerProto, &frame);
+  proto2::TextFormat::ParseFromStringPiece(kAnswerProto, &frame);
   Ptr<webrtc::SessionDescriptionInterface> decoded_answer = DecodeAnswer(frame);
 
   EXPECT_EQ(webrtc::SdpType::kAnswer, decoded_answer->GetType());
@@ -163,7 +163,7 @@ TEST(SignalingFramesTest, DecodeValidIceCandidates) {
   std::vector<location::nearby::mediums::IceCandidate> encoded_candidates_vec;
 
   location::nearby::mediums::WebRtcSignalingFrame frame;
-  proto2::TextFormat::ParseFromString(kIceCandidatesProto, &frame);
+  proto2::TextFormat::ParseFromStringPiece(kIceCandidatesProto, &frame);
   std::vector<ConstPtr<webrtc::IceCandidateInterface>> decoded_candidates =
       DecodeIceCandidates(frame);
 

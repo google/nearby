@@ -146,6 +146,7 @@ class BleMedium : public api::BleMedium {
 
   // Returns true once the Ble scanning has been initiated.
   bool StartScanning(const std::string& service_id,
+                     const std::string& fast_advertisement_service_uuid,
                      DiscoveredPeripheralCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
