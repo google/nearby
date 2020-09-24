@@ -9,6 +9,7 @@
 #include "core_v2/internal/offline_frames.h"
 #include "core_v2/internal/pcp_handler.h"
 #include "core_v2/options.h"
+#include "platform_v2/base/bluetooth_utils.h"
 #include "platform_v2/public/logging.h"
 #include "platform_v2/public/system_clock.h"
 #include "securegcm/d2d_connection_context_v1.h"
@@ -29,11 +30,13 @@ constexpr absl::Duration BasePcpHandler::kRejectedConnectionCloseDelay;
 
 BasePcpHandler::BasePcpHandler(Mediums* mediums,
                                EndpointManager* endpoint_manager,
-                               EndpointChannelManager* channel_manager, Pcp pcp)
+                               EndpointChannelManager* channel_manager,
+                               BwuManager* bwu_manager, Pcp pcp)
     : mediums_(mediums),
       endpoint_manager_(endpoint_manager),
       channel_manager_(channel_manager),
-      pcp_(pcp) {}
+      pcp_(pcp),
+      bwu_manager_(bwu_manager) {}
 
 BasePcpHandler::~BasePcpHandler() {
   NEARBY_LOGS(INFO) << "BasePcpHandler: going down; strategy="
@@ -63,23 +66,23 @@ Status BasePcpHandler::StartAdvertising(ClientProxy* client,
                                         const ConnectionRequestInfo& info) {
   Future<Status> response;
   ConnectionOptions advertising_options = options.CompatibleOptions();
-  RunOnPcpHandlerThread(
-      [this, client, &service_id, &info, &advertising_options, &response]() {
-        auto result = StartAdvertisingImpl(
-            client, service_id, client->GetLocalEndpointId(),
-            info.endpoint_info, advertising_options);
-        if (!result.status.Ok()) {
-          response.Set(result.status);
-          return;
-        }
+  RunOnPcpHandlerThread([this, client, &service_id, &info, &advertising_options,
+                         &response]() {
+    auto result =
+        StartAdvertisingImpl(client, service_id, client->GetLocalEndpointId(),
+                             info.endpoint_info, advertising_options);
+    if (!result.status.Ok()) {
+      response.Set(result.status);
+      return;
+    }
 
-        // Now that we've succeeded, mark the client as advertising.
-        advertising_options_ = advertising_options;
-        advertising_listener_ = info.listener;
-        client->StartedAdvertising(service_id, GetStrategy(), info.listener,
-                                   absl::MakeSpan(result.mediums));
-        response.Set({Status::kSuccess});
-      });
+    // Now that we've succeeded, mark the client as advertising.
+    advertising_options_ = advertising_options;
+    advertising_listener_ = info.listener;
+    client->StartedAdvertising(service_id, GetStrategy(), info.listener,
+                               absl::MakeSpan(result.mediums));
+    response.Set({Status::kSuccess});
+  });
   return WaitForResult(
       absl::StrCat("StartAdvertising(", std::string(info.endpoint_info), ")"),
       client->GetClientId(), &response);
@@ -232,8 +235,8 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
           .raw_authentication_token = raw_auth_token,
           .is_incoming_connection = connection_info.is_incoming,
       },
-      connection_info.options,
-      std::move(connection_info.channel), connection_info.listener);
+      connection_info.options, std::move(connection_info.channel),
+      connection_info.listener);
 
   if (connection_info.result != nullptr) {
     NEARBY_LOG(INFO, "Connection established; Finalising future OK");
@@ -318,14 +321,20 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
       OnEndpointFound(client, webrtc_endpoint);
     }
 
-    auto endpoints = GetDiscoveredEndpoints(endpoint_id);
+    auto discovered_endpoints = GetDiscoveredEndpoints(endpoint_id);
     std::unique_ptr<EndpointChannel> channel;
     ConnectImplResult connect_impl_result;
 
-    // TODO(b/156634369): add GetRemoteBluetoothMacAddressEndpoint here for
-    // valid remote mac address.
+    auto remote_bluetooth_mac_address =
+        BluetoothUtils::ToString(options.remote_bluetooth_mac_address);
+    if (!remote_bluetooth_mac_address.empty()) {
+      auto additional_endpoint = GetRemoteBluetoothMacAddressEndpoint(
+          endpoint_id, remote_bluetooth_mac_address, discovered_endpoints);
+      if (additional_endpoint != nullptr)
+        discovered_endpoints.push_back(additional_endpoint.get());
+    }
 
-    for (auto connect_endpoint : endpoints) {
+    for (auto connect_endpoint : discovered_endpoints) {
       connect_impl_result = ConnectImpl(client, connect_endpoint);
       if (connect_impl_result.status.Ok()) {
         channel = std::move(connect_impl_result.endpoint_channel);
@@ -610,10 +619,6 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
   return WaitForResult(absl::StrCat("RejectConnection(", endpoint_id, ")"),
                        client->GetClientId(), &response);
 }
-
-// proto::connections::Medium BasePcpHandler::GetBandwidthUpgradeMedium() {
-//  return bandwidth_upgrade_medium_.Get();
-//}
 
 void BasePcpHandler::OnIncomingFrame(OfflineFrame& frame,
                                      const std::string& endpoint_id,
@@ -928,7 +933,7 @@ void BasePcpHandler::ProcessTieBreakLoss(
 
 void BasePcpHandler::InitiateBandwidthUpgrade(
     ClientProxy* client, const std::string& endpoint_id,
-    const std::vector<proto::connections::Medium>& supported_mediums) {
+    const std::vector<Medium>& supported_mediums) {
   // When we successfully connect to a remote endpoint and a bandwidth upgrade
   // medium has not yet been decided, we'll pick the highest bandwidth medium
   // supported by both us and the remote endpoint. Once we pick a medium, all
@@ -938,16 +943,14 @@ void BasePcpHandler::InitiateBandwidthUpgrade(
   // way to prevent mediums, like Wifi Hotspot, from interfering with active
   // connections (although it's suboptimal for bandwidth throughput). When all
   // endpoints disconnect, we reset the bandwidth upgrade medium.
-  if (bandwidth_upgrade_medium_.Get() ==
-      proto::connections::Medium::UNKNOWN_MEDIUM) {
-    bandwidth_upgrade_medium_.Set(ChooseBestUpgradeMedium(supported_mediums));
+  Medium bwu_medium = bwu_medium_.Get();
+  if (bwu_medium == Medium::UNKNOWN_MEDIUM) {
+    bwu_medium = ChooseBestUpgradeMedium(supported_mediums);
+    bwu_medium_.Set(bwu_medium);
   }
 
-  if (AutoUpgradeBandwidth() && (bandwidth_upgrade_medium_.Get() !=
-                                 proto::connections::Medium::UNKNOWN_MEDIUM)) {
-    // TODO(apolyudov): Bring bandwidth upgrade back, when it is ready.
-    //    bandwidth_upgrade_->InitiateBandwidthUpgradeForEndpoint(
-    //        client, endpoint_id, bandwidth_upgrade_medium_.Get());
+  if (AutoUpgradeBandwidth() && bwu_medium != Medium::UNKNOWN_MEDIUM) {
+    bwu_manager_->InitiateBwuForEndpoint(client, endpoint_id, bwu_medium);
   }
 }
 
@@ -973,6 +976,55 @@ proto::connections::Medium BasePcpHandler::ChooseBestUpgradeMedium(
   }
 
   return proto::connections::Medium::UNKNOWN_MEDIUM;
+}
+
+std::unique_ptr<BasePcpHandler::DiscoveredEndpoint>
+BasePcpHandler::GetRemoteBluetoothMacAddressEndpoint(
+    std::string endpoint_id, std::string remote_bluetooth_mac_address,
+    std::vector<DiscoveredEndpoint*> endpoints) {
+  if (!discovery_options_.allowed.bluetooth) {
+    return nullptr;
+  }
+
+  if (endpoints.empty()) {
+    NEARBY_LOGS(INFO)
+        << "Cannot append remote Bluetooth MAC Address, because endpointId "
+        << endpoint_id << " has not been discovered";
+    return nullptr;
+  }
+
+  for (auto endpoint : endpoints) {
+    if (endpoint->medium == proto::connections::Medium::BLUETOOTH) {
+      NEARBY_LOGS(INFO)
+          << "Cannot append remote Bluetooth MAC Address, because the "
+             "endpoint has already been found over Bluetooth.";
+      return nullptr;
+    }
+  }
+
+  auto remote_bluetooth_device =
+      mediums_->GetBluetoothClassic().GetRemoteDevice(
+          remote_bluetooth_mac_address);
+  if (!remote_bluetooth_device.IsValid()) {
+    NEARBY_LOGS(INFO)
+        << "Cannot append remote Bluetooth MAC Address, because a valid "
+           "Bluetooth device could not be derived.";
+    return nullptr;
+  }
+
+  auto bluetooth_endpoint =
+      std::make_unique<BluetoothEndpoint>(BluetoothEndpoint{
+          {
+              endpoint_id,
+              endpoints[0]->endpoint_info,
+              endpoints[0]->service_id,
+              proto::connections::Medium::BLUETOOTH,
+          },
+          remote_bluetooth_device,
+      });
+  NEARBY_LOGS(INFO) << "Appended remote Bluetooth device "
+                    << remote_bluetooth_mac_address;
+  return bluetooth_endpoint;
 }
 
 void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,

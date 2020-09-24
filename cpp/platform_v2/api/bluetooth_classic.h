@@ -136,7 +136,7 @@ class BluetoothClassicMedium {
   virtual std::unique_ptr<BluetoothServerSocket> ListenForService(
       const std::string& service_name, const std::string& service_uuid) = 0;
 
-  virtual BluetoothDevice* FindRemoteDevice(const std::string& mac_address) = 0;
+  virtual BluetoothDevice* GetRemoteDevice(const std::string& mac_address) = 0;
 };
 
 }  // namespace api

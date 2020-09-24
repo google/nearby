@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "core_v2/internal/base_endpoint_channel.h"
+#include "core_v2/internal/bwu_manager.h"
 #include "core_v2/internal/client_proxy.h"
 #include "core_v2/internal/encryption_runner.h"
 #include "core_v2/internal/offline_frames.h"
@@ -76,8 +77,9 @@ class MockPcpHandler : public BasePcpHandler {
  public:
   using DiscoveredEndpoint = BasePcpHandler::DiscoveredEndpoint;
 
-  MockPcpHandler(Mediums* m, EndpointManager* em, EndpointChannelManager* ecm)
-      : BasePcpHandler(m, em, ecm, Pcp::kP2pCluster) {}
+  MockPcpHandler(Mediums* m, EndpointManager* em, EndpointChannelManager* ecm,
+                 BwuManager* bwu)
+      : BasePcpHandler(m, em, ecm, bwu, Pcp::kP2pCluster) {}
 
   // Expose protected inner types of a base type for mocking.
   using BasePcpHandler::ConnectImplResult;
@@ -367,7 +369,8 @@ TEST_P(BasePcpHandlerTest, ConstructorDestructorWorks) {
   Mediums m;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
-  MockPcpHandler pcp_handler(&m, &em, &ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
   SUCCEED();
 }
 
@@ -376,7 +379,8 @@ TEST_P(BasePcpHandlerTest, StartAdvertisingChangesState) {
   Mediums m;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
-  MockPcpHandler pcp_handler(&m, &em, &ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
   StartAdvertising(&client, &pcp_handler);
 }
 
@@ -385,7 +389,8 @@ TEST_P(BasePcpHandlerTest, StopAdvertisingChangesState) {
   Mediums m;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
-  MockPcpHandler pcp_handler(&m, &em, &ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
   StartAdvertising(&client, &pcp_handler);
   EXPECT_CALL(pcp_handler, StopAdvertisingImpl(&client)).Times(1);
   EXPECT_TRUE(client.IsAdvertising());
@@ -398,7 +403,8 @@ TEST_P(BasePcpHandlerTest, StartDiscoveryChangesState) {
   Mediums m;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
-  MockPcpHandler pcp_handler(&m, &em, &ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
   StartDiscovery(&client, &pcp_handler);
 }
 
@@ -407,7 +413,8 @@ TEST_P(BasePcpHandlerTest, StopDiscoveryChangesState) {
   Mediums m;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
-  MockPcpHandler pcp_handler(&m, &em, &ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
   StartDiscovery(&client, &pcp_handler);
   EXPECT_CALL(pcp_handler, StopDiscoveryImpl(&client)).Times(1);
   EXPECT_TRUE(client.IsDiscovering());
@@ -421,7 +428,8 @@ TEST_P(BasePcpHandlerTest, RequestConnectionChangesState) {
   Mediums m;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
-  MockPcpHandler pcp_handler(&m, &em, &ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
   StartDiscovery(&client, &pcp_handler);
   auto mediums = pcp_handler.GetDiscoveryMediums();
   auto connect_medium = mediums[mediums.size() - 1];
@@ -444,7 +452,8 @@ TEST_P(BasePcpHandlerTest, AcceptConnectionChangesState) {
   Mediums m;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
-  MockPcpHandler pcp_handler(&m, &em, &ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
   StartDiscovery(&client, &pcp_handler);
   auto mediums = pcp_handler.GetDiscoveryMediums();
   auto connect_medium = mediums[mediums.size() - 1];
@@ -471,7 +480,8 @@ TEST_P(BasePcpHandlerTest, RejectConnectionChangesState) {
   Mediums m;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
-  MockPcpHandler pcp_handler(&m, &em, &ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
   StartDiscovery(&client, &pcp_handler);
   auto mediums = pcp_handler.GetDiscoveryMediums();
   auto connect_medium = mediums[mediums.size() - 1];
@@ -494,7 +504,8 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
   Mediums m;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
-  MockPcpHandler pcp_handler(&m, &em, &ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
   StartDiscovery(&client, &pcp_handler);
   auto mediums = pcp_handler.GetDiscoveryMediums();
   auto connect_medium = mediums[mediums.size() - 1];
@@ -530,7 +541,8 @@ TEST_P(BasePcpHandlerTest, DestructorIsCalledOnProtocolEndpoint) {
     Mediums m;
     EndpointChannelManager ecm;
     EndpointManager em(&ecm);
-    MockPcpHandler pcp_handler(&m, &em, &ecm);
+    BwuManager bwu(m, em, ecm, {}, {});
+    MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
     StartDiscovery(&client, &pcp_handler);
     auto mediums = pcp_handler.GetDiscoveryMediums();
     auto connect_medium = mediums[mediums.size() - 1];
@@ -569,7 +581,8 @@ TEST_P(BasePcpHandlerTest, MultipleMediumsProduceSingleEndpointLostEvent) {
     Mediums m;
     EndpointChannelManager ecm;
     EndpointManager em(&ecm);
-    MockPcpHandler pcp_handler(&m, &em, &ecm);
+    BwuManager bwu(m, em, ecm, {}, {});
+    MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
     StartDiscovery(&client, &pcp_handler);
     auto mediums = pcp_handler.GetDiscoveryMediums();
     auto connect_medium = mediums[mediums.size() - 1];
