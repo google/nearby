@@ -75,7 +75,6 @@ cc_library(
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//core:__subpackages__",
-        "//platform_v2/base:__pkg__",
     ],
     deps = [
         "//absl/base",

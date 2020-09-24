@@ -20,7 +20,7 @@ option optimize_for = LITE_RUNTIME;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "DiscoveryEnums";
 
-// NEXT ID: 132
+// NEXT ID: 133
 enum DiscoveryEvent {
   UNKNOWN_DISCOVERY_EVENT = 0;
 
@@ -403,6 +403,10 @@ enum DiscoveryEvent {
 
   // User has seen a low battery notification.
   FAST_PAIR_LOW_BATTERY_NOTIFICATION_SHOWN = 131;
+
+  // Connection Tracker Manager (Baymax) recovered the connection of the
+  // companion app.
+  FAST_PAIR_CONNECTION_TRACKER_RECOVER_COMPANION_APP = 132;
 
   // Deprecated.
   reserved 65, 67 to 72;

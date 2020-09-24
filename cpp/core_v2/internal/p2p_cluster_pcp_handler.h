@@ -21,6 +21,7 @@
 #include "core_v2/internal/base_pcp_handler.h"
 #include "core_v2/internal/ble_advertisement.h"
 #include "core_v2/internal/bluetooth_device_name.h"
+#include "core_v2/internal/bwu_manager.h"
 #include "core_v2/internal/client_proxy.h"
 #include "core_v2/internal/endpoint_channel_manager.h"
 #include "core_v2/internal/endpoint_manager.h"
@@ -52,6 +53,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
  public:
   P2pClusterPcpHandler(Mediums* mediums, EndpointManager* endpoint_manager,
                        EndpointChannelManager* channel_manager,
+                       BwuManager* bwu_manager,
                        Pcp pcp = Pcp::kP2pCluster);
   ~P2pClusterPcpHandler() override = default;
 
@@ -131,6 +133,9 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       WifiLanServiceInfo::Version::kV1;
 
   static ByteArray GenerateHash(const std::string& source, size_t size);
+  static bool ShouldAdvertiseBluetoothMacOverBle(PowerLevel power_level);
+  static bool ShouldAcceptBluetoothConnections(
+      const ConnectionOptions& options);
 
   // Bluetooth
   bool IsRecognizedBluetoothEndpoint(const std::string& name_string,
@@ -169,7 +174,8 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       const ByteArray& local_endpoint_info, const ConnectionOptions& options);
   proto::connections::Medium StartBleScanning(
       BleDiscoveredPeripheralCallback callback, ClientProxy* client,
-      const std::string& service_id);
+      const std::string& service_id,
+      const std::string& fast_advertisement_service_uuid);
   BasePcpHandler::ConnectImplResult BleConnectImpl(ClientProxy* client,
                                                    BleEndpoint* endpoint);
 

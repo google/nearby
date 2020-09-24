@@ -32,7 +32,7 @@ namespace {
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 constexpr absl::string_view kServiceID{"com.google.location.nearby.apps.test"};
 constexpr absl::string_view kAdvertisementString{"\x0a\x0b\x0c\x0d"};
-constexpr absl::string_view kFastAdvertisementServiceUuid{"\xff\xfe"};
+constexpr absl::string_view kFastAdvertisementServiceUuid{"\xf3\xfe"};
 
 class BleTest : public ::testing::Test {
  protected:
@@ -75,6 +75,7 @@ TEST_F(BleTest, CanStartAdvertising) {
 
   ble_b.StartScanning(
       service_id,
+      fast_advertisement_service_uuid,
       DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
               [&found_latch](
@@ -109,6 +110,7 @@ TEST_F(BleTest, CanStartDiscovery) {
 
   EXPECT_TRUE(ble_a.StartScanning(
       service_id,
+      fast_advertisement_service_uuid,
       DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
               [&accept_latch](
@@ -153,6 +155,7 @@ TEST_F(BleTest, CanStartAcceptingConnectionsAndConnect) {
   BlePeripheral discovered_peripheral;
   ble_b.StartScanning(
       service_id,
+      fast_advertisement_service_uuid,
       {
           .peripheral_discovered_cb =
               [&found_latch, &discovered_peripheral](

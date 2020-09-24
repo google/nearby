@@ -354,10 +354,12 @@ void MediumEnvironment::UpdateBleMediumForAdvertising(
 
 void MediumEnvironment::UpdateBleMediumForScanning(
     api::BleMedium& medium, const std::string& service_id,
+    const std::string& fast_advertisement_service_uuid,
     BleDiscoveredPeripheralCallback callback, bool enabled) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread(
-      [this, &medium, service_id, callback = std::move(callback), enabled]() {
+      [this, &medium, service_id, fast_advertisement_service_uuid,
+       callback = std::move(callback), enabled]() {
         auto item = ble_mediums_.find(&medium);
         if (item == ble_mediums_.end()) {
           NEARBY_LOG(INFO,
@@ -367,10 +369,12 @@ void MediumEnvironment::UpdateBleMediumForScanning(
         }
         auto& context = item->second;
         context.discovery_callback = std::move(callback);
-        NEARBY_LOG(INFO,
-                   "Update Ble medium for scanning: this=%p; medium=%p; "
-                   "service_id=%s; enabled=%d ;",
-                   this, &medium, service_id.c_str(), enabled);
+        NEARBY_LOG(
+            INFO,
+            "Update Ble medium for scanning: this=%p; medium=%p; "
+            "service_id=%s; fast_advertisement_service_uuid=%s; enabled=%d ;",
+            this, &medium, service_id.c_str(),
+            fast_advertisement_service_uuid.c_str(), enabled);
         for (auto& medium_info : ble_mediums_) {
           auto& local_medium = medium_info.first;
           auto& info = medium_info.second;

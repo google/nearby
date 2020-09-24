@@ -31,8 +31,10 @@ bool BleMedium::StopAdvertising(const std::string& service_id) {
   return impl_->StopAdvertising(service_id);
 }
 
-bool BleMedium::StartScanning(const std::string& service_id,
-                              DiscoveredPeripheralCallback callback) {
+bool BleMedium::StartScanning(
+    const std::string& service_id,
+    const std::string& fast_advertisement_service_uuid,
+    DiscoveredPeripheralCallback callback) {
   {
     MutexLock lock(&mutex_);
     discovered_peripheral_callback_ = std::move(callback);
@@ -40,6 +42,7 @@ bool BleMedium::StartScanning(const std::string& service_id,
   }
   return impl_->StartScanning(
       service_id,
+      fast_advertisement_service_uuid,
       {
           .peripheral_discovered_cb =
               [this](api::BlePeripheral& peripheral,
