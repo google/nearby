@@ -4,6 +4,7 @@
 #include "core_v2/internal/ble_advertisement.h"
 #include "core_v2/internal/ble_endpoint_channel.h"
 #include "core_v2/internal/bluetooth_endpoint_channel.h"
+#include "core_v2/internal/bwu_manager.h"
 #include "core_v2/internal/mediums/utils.h"
 #include "core_v2/internal/mediums/webrtc/webrtc_socket_wrapper.h"
 #include "core_v2/internal/webrtc_endpoint_channel.h"
@@ -23,10 +24,22 @@ ByteArray P2pClusterPcpHandler::GenerateHash(const std::string& source,
   return Utils::Sha256Hash(source, size);
 }
 
+bool P2pClusterPcpHandler::ShouldAdvertiseBluetoothMacOverBle(
+    PowerLevel power_level) {
+  return power_level == PowerLevel::kHighPower;
+}
+
+bool P2pClusterPcpHandler::ShouldAcceptBluetoothConnections(
+    const ConnectionOptions& options) {
+  return options.enable_bluetooth_listening;
+}
+
 P2pClusterPcpHandler::P2pClusterPcpHandler(
     Mediums* mediums, EndpointManager* endpoint_manager,
-    EndpointChannelManager* endpoint_channel_manager, Pcp pcp)
-    : BasePcpHandler(mediums, endpoint_manager, endpoint_channel_manager, pcp),
+    EndpointChannelManager* endpoint_channel_manager, BwuManager* bwu_manager,
+    Pcp pcp)
+    : BasePcpHandler(mediums, endpoint_manager, endpoint_channel_manager,
+                     bwu_manager, pcp),
       bluetooth_radio_(mediums->GetBluetoothRadio()),
       bluetooth_medium_(mediums->GetBluetoothClassic()),
       ble_medium_(mediums->GetBle()),
@@ -131,10 +144,12 @@ Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
   bluetooth_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
 
   ble_medium_.StopAdvertising(client->GetAdvertisingServiceId());
+  ble_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
 
   webrtc_medium_.StopAcceptingConnections();
 
   wifi_lan_medium_.StopAdvertising(client->GetAdvertisingServiceId());
+  wifi_lan_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
 
   return {Status::kSuccess};
 }
@@ -311,12 +326,11 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
       return;
     }
 
-    // Parse the Ble advertisement bytes.
+    // Parse the BLE advertisement bytes.
     BleAdvertisement advertisement(
-        fast_advertisement,
-        peripheral.GetAdvertisementBytes(service_id));
+        fast_advertisement, peripheral.GetAdvertisementBytes(service_id));
 
-    // Make sure the Ble advertisement points to a valid
+    // Make sure the BLE advertisement points to a valid
     // endpoint we're discovering.
     if (!IsRecognizedBleEndpoint(service_id, advertisement)) return;
 
@@ -343,7 +357,34 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
                                 peripheral,
                             }));
 
-    // TODO(b/156632928): Check for Bluetooth device with remote mac address.
+    // Make sure we can connect to this device via Classic Bluetooth.
+    std::string remote_bluetooth_mac_address =
+        advertisement.GetBluetoothMacAddress();
+    if (remote_bluetooth_mac_address.empty()) {
+      NEARBY_LOGS(INFO)
+          << "No Bluetooth Classic MAC address found in advertisement";
+      return;
+    }
+
+    BluetoothDevice remote_bluetooth_device =
+        bluetooth_medium_.GetRemoteDevice(remote_bluetooth_mac_address);
+    if (!remote_bluetooth_device.IsValid()) {
+      NEARBY_LOGS(INFO) << "A valid Bluetooth device could not be derived from "
+                           "the MAC address "
+                        << remote_bluetooth_mac_address;
+      return;
+    }
+
+    OnEndpointFound(client,
+                    std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
+                        {
+                            advertisement.GetEndpointId(),
+                            advertisement.GetEndpointInfo(),
+                            service_id,
+                            proto::connections::Medium::BLUETOOTH,
+                        },
+                        remote_bluetooth_device,
+                    }));
   });
 }
 
@@ -547,7 +588,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
             .peripheral_lost_cb = absl::bind_front(
                 &P2pClusterPcpHandler::BlePeripheralLostHandler, this, client),
         },
-        client, service_id);
+        client, service_id, options.fast_advertisement_service_uuid);
     if (ble_medium != proto::connections::UNKNOWN_MEDIUM) {
       NEARBY_LOG(INFO, "P2pClusterPcpHandler::StartDiscoveryImpl: Ble added");
       mediums_started_successfully.push_back(ble_medium);
@@ -753,51 +794,90 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
     const std::string& local_endpoint_id, const ByteArray& local_endpoint_info,
     const ConnectionOptions& options) {
   bool fast_advertisement = !options.fast_advertisement_service_uuid.empty();
+  PowerLevel power_level =
+      options.low_power ? PowerLevel::kLowPower : PowerLevel::kHighPower;
 
   // Start listening for connections before advertising in case a connection
-  // request comes in very quickly.
+  // request comes in very quickly. BLE allows connecting over BLE itself, as
+  // well as advertising the Bluetooth MAC address to allow connecting over
+  // Bluetooth Classic.
   NEARBY_LOGS(INFO) << "P2pClusterPcpHandler::StartBleAdvertising: service_id="
                     << service_id << ": start";
-  if (ble_medium_.IsAcceptingConnections(service_id)) {
-    NEARBY_LOGS(ERROR) << "Ble is already accepting connections for service_id="
-                       << service_id;
-    return proto::connections::UNKNOWN_MEDIUM;
-  }
+  if (!ble_medium_.IsAcceptingConnections(service_id)) {
+    if (!bluetooth_radio_.Enable() ||
+        !ble_medium_.StartAcceptingConnections(
+            service_id, {.accepted_cb = [this, client, local_endpoint_info](
+                                            BleSocket socket,
+                                            const std::string& service_id) {
+              if (!socket.IsValid()) {
+                NEARBY_LOG(ERROR, "Invalid socket in accept callback: name=%s",
+                           std::string(local_endpoint_info).c_str());
+                return;
+              }
+              RunOnPcpHandlerThread([this, client, local_endpoint_info,
+                                     service_id,
+                                     socket = std::move(socket)]() mutable {
+                std::string remote_peripheral_name =
+                    socket.GetRemotePeripheral().GetName();
+                auto channel = absl::make_unique<BleEndpointChannel>(
+                    remote_peripheral_name, socket);
+                ByteArray remote_peripheral_info =
+                    socket.GetRemotePeripheral().GetAdvertisementBytes(
+                        service_id);
 
-  NEARBY_LOGS(INFO) << "P2pClusterPcpHandler::StartBleAdvertising: service_id="
-                    << service_id << ": invoking";
-  if (!bluetooth_radio_.Enable() ||
-      !ble_medium_.StartAcceptingConnections(
-          service_id,
-          {.accepted_cb = [this, client, local_endpoint_info](
-                              BleSocket socket, const std::string& service_id) {
-            if (!socket.IsValid()) {
-              NEARBY_LOG(ERROR, "Invalid socket in accept callback: name=%s",
-                         std::string(local_endpoint_info).c_str());
-              return;
-            }
-            RunOnPcpHandlerThread([this, client, local_endpoint_info,
-                                   service_id,
-                                   socket = std::move(socket)]() mutable {
-              std::string remote_peripheral_name =
-                  socket.GetRemotePeripheral().GetName();
-              auto channel = absl::make_unique<BleEndpointChannel>(
-                  remote_peripheral_name, socket);
-              ByteArray remote_peripheral_info =
-                  socket.GetRemotePeripheral().GetAdvertisementBytes(
-                      service_id);
-
-              OnIncomingConnection(client, remote_peripheral_info,
-                                   std::move(channel),
-                                   proto::connections::Medium::BLE);
-            });
-          }})) {
+                OnIncomingConnection(client, remote_peripheral_info,
+                                     std::move(channel),
+                                     proto::connections::Medium::BLE);
+              });
+            }})) {
+      NEARBY_LOGS(ERROR)
+          << "Ble failed to start accepting connections for service_id="
+          << service_id;
+      return proto::connections::UNKNOWN_MEDIUM;
+    }
     NEARBY_LOGS(ERROR)
-        << "Ble failed to start accepting connections for service_id="
+        << "Ble succeed to start accepting connections for service_id="
         << service_id;
-    return proto::connections::UNKNOWN_MEDIUM;
   }
-  // TODO(b/156632928): Should check for Bluetooth connection here
+
+  if (ShouldAdvertiseBluetoothMacOverBle(power_level) ||
+      ShouldAcceptBluetoothConnections(options)) {
+    if (bluetooth_medium_.IsAvailable() &&
+        !bluetooth_medium_.IsAcceptingConnections(service_id)) {
+      if (!bluetooth_radio_.Enable() ||
+          !bluetooth_medium_.StartAcceptingConnections(
+              service_id, {.accepted_cb = [this, client, local_endpoint_info](
+                                              BluetoothSocket socket) {
+                if (!socket.IsValid()) {
+                  NEARBY_LOG(ERROR,
+                             "Invalid socket in accept callback: name=%s",
+                             std::string(local_endpoint_info).c_str());
+                  return;
+                }
+                RunOnPcpHandlerThread([this, client, local_endpoint_info,
+                                       socket = std::move(socket)]() mutable {
+                  std::string remote_device_name =
+                      socket.GetRemoteDevice().GetName();
+                  auto channel = absl::make_unique<BluetoothEndpointChannel>(
+                      remote_device_name, socket);
+                  ByteArray remote_device_info{remote_device_name};
+
+                  OnIncomingConnection(client, remote_device_info,
+                                       std::move(channel),
+                                       proto::connections::Medium::BLUETOOTH);
+                });
+              }})) {
+        NEARBY_LOGS(ERROR)
+            << "BT failed to start accepting connections for service_id="
+            << service_id;
+        ble_medium_.StopAcceptingConnections(service_id);
+        return proto::connections::UNKNOWN_MEDIUM;
+      }
+      NEARBY_LOGS(ERROR)
+          << "BT succeed to start accepting connections for service_id="
+          << service_id;
+    }
+  }
 
   NEARBY_LOG(INFO,
              "P2pClusterPcpHandler::StartBleAdvertising: service=%s: "
@@ -814,8 +894,10 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
   } else {
     const ByteArray service_id_hash =
         GenerateHash(service_id, BleAdvertisement::kServiceIdHashLength);
-    // TODO(b/156632928): Should advertise Bluetooth MacAddress Over Ble
     std::string bluetooth_mac_address;
+    if (bluetooth_medium_.IsAvailable() &&
+        ShouldAdvertiseBluetoothMacOverBle(power_level))
+      bluetooth_mac_address = bluetooth_medium_.GetMacAddress();
 
     advertisement_bytes = ByteArray(BleAdvertisement(
         kBleAdvertisementVersion, GetPcp(), service_id_hash, local_endpoint_id,
@@ -852,9 +934,11 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
 
 proto::connections::Medium P2pClusterPcpHandler::StartBleScanning(
     BleDiscoveredPeripheralCallback callback, ClientProxy* client,
-    const std::string& service_id) {
+    const std::string& service_id,
+    const std::string& fast_advertisement_service_uuid) {
   if (bluetooth_radio_.Enable() &&
-      ble_medium_.StartScanning(service_id, std::move(callback))) {
+      ble_medium_.StartScanning(service_id, fast_advertisement_service_uuid,
+                                std::move(callback))) {
     NEARBY_LOGS(INFO) << "P2pClusterPcpHandler::StartBleScanning: ok";
     return proto::connections::BLE;
   } else {

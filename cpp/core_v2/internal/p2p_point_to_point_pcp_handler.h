@@ -22,6 +22,7 @@ class P2pPointToPointPcpHandler : public P2pStarPcpHandler {
  public:
   P2pPointToPointPcpHandler(Mediums& mediums, EndpointManager& endpoint_manager,
                             EndpointChannelManager& channel_manager,
+                            BwuManager& bwu_manager,
                             Pcp pcp = Pcp::kP2pPointToPoint);
 
  protected:

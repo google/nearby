@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "core_v2/internal/bwu_manager.h"
 #include "core_v2/options.h"
 #include "platform_v2/base/medium_environment.h"
 #include "platform_v2/public/count_down_latch.h"
@@ -61,7 +62,8 @@ TEST_P(P2pClusterPcpHandlerTest, CanConstructOne) {
   Mediums mediums;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
-  P2pClusterPcpHandler handler(&mediums, &em, &ecm);
+  BwuManager bwu(mediums, em, ecm, {}, {});
+  P2pClusterPcpHandler handler(&mediums, &em, &ecm, &bwu);
   env_.Stop();
 }
 
@@ -73,8 +75,10 @@ TEST_P(P2pClusterPcpHandlerTest, CanConstructMultiple) {
   EndpointChannelManager ecm_b;
   EndpointManager em_a(&ecm_a);
   EndpointManager em_b(&ecm_b);
-  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a);
-  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a);
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b);
   env_.Stop();
 }
 
@@ -84,7 +88,8 @@ TEST_P(P2pClusterPcpHandlerTest, CanAdvertise) {
   Mediums mediums_a;
   EndpointChannelManager ecm_a;
   EndpointManager em_a(&ecm_a);
-  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a);
   EXPECT_EQ(
       handler_a.StartAdvertising(&client_a_, service_id_, options_,
                                  {.endpoint_info = ByteArray{endpoint_name}}),
@@ -101,8 +106,10 @@ TEST_P(P2pClusterPcpHandlerTest, CanDiscover) {
   EndpointChannelManager ecm_b;
   EndpointManager em_a(&ecm_a);
   EndpointManager em_b(&ecm_b);
-  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a);
-  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a);
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b);
   CountDownLatch latch(1);
   EXPECT_EQ(
       handler_a.StartAdvertising(&client_a_, service_id_, options_,
@@ -141,8 +148,12 @@ TEST_P(P2pClusterPcpHandlerTest, CanConnect) {
   EndpointChannelManager ecm_b;
   EndpointManager em_a(&ecm_a);
   EndpointManager em_b(&ecm_b);
-  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a);
-  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {},
+                   {.allow_upgrade_to = {.bluetooth = true}});
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {},
+                   {.allow_upgrade_to = {.bluetooth = true}});
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a);
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b);
   CountDownLatch discover_latch(1);
   CountDownLatch connect_latch(2);
   struct DiscoveredInfo {
@@ -207,6 +218,8 @@ TEST_P(P2pClusterPcpHandlerTest, CanConnect) {
       },
       options_);
   EXPECT_TRUE(connect_latch.Await(absl::Milliseconds(1000)).result());
+  bwu_a.Shutdown();
+  bwu_b.Shutdown();
   env_.Stop();
 }
 

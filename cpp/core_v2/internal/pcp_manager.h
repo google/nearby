@@ -4,6 +4,7 @@
 #include <string>
 
 #include "core_v2/internal/base_pcp_handler.h"
+#include "core_v2/internal/bwu_manager.h"
 #include "core_v2/internal/client_proxy.h"
 #include "core_v2/internal/endpoint_channel_manager.h"
 #include "core_v2/internal/endpoint_manager.h"
@@ -29,7 +30,7 @@ namespace connections {
 class PcpManager {
  public:
   PcpManager(Mediums& mediums, EndpointChannelManager& channel_manager,
-             EndpointManager& endpoint_manager);
+             EndpointManager& endpoint_manager, BwuManager& bwu_manager);
   ~PcpManager();
 
   Status StartAdvertising(ClientProxy* client, const string& service_id,
