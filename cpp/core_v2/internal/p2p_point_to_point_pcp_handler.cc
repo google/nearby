@@ -27,8 +27,17 @@ P2pPointToPointPcpHandler::P2pPointToPointPcpHandler(
 std::vector<proto::connections::Medium>
 P2pPointToPointPcpHandler::GetConnectionMediumsByPriority() {
   std::vector<proto::connections::Medium> mediums;
+  if (mediums_->GetWifiLan().IsAvailable()) {
+    mediums.push_back(proto::connections::WIFI_LAN);
+  }
+  if (mediums_->GetWebRtc().IsAvailable()) {
+    mediums.push_back(proto::connections::WEB_RTC);
+  }
   if (mediums_->GetBluetoothClassic().IsAvailable()) {
     mediums.push_back(proto::connections::BLUETOOTH);
+  }
+  if (mediums_->GetBle().IsAvailable()) {
+    mediums.push_back(proto::connections::BLE);
   }
   return mediums;
 }
