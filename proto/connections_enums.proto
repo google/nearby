@@ -147,7 +147,7 @@ enum PayloadStatus {
   REMOTE_CANCELLATION = 8;
 }
 
-// next_id: 17
+// next_id: 18
 // Result of an upgrade attempt.
 enum BandwidthUpgradeResult {
   UNKNOWN_BANDWIDTH_UPGRADE_RESULT = 0;
@@ -176,9 +176,6 @@ enum BandwidthUpgradeResult {
   // record analytics (e.g. the client disconnected).
   UNFINISHED_ERROR = 10;
 
-  // TODO(b/151833661): add a REMOTE_ERROR when we implement a cancellation
-  // message, for the case when the remote endpoint had an error on their end.
-
   // Error during setting up Bluetooth.
   BLUETOOTH_MEDIUM_ERROR = 11;
 
@@ -196,6 +193,9 @@ enum BandwidthUpgradeResult {
 
   // Error during setting up WebRTC.
   WEB_RTC_MEDIUM_ERROR = 16;
+
+  // When the remote endpoint had an error on their end.
+  RESULT_REMOTE_ERROR = 17;
 }
 
 // next_id: 35
@@ -217,6 +217,8 @@ enum BandwidthUpgradeErrorStage {
   UPGRADE_UNFINISHED = 7;
   // Upgrade successfully
   UPGRADE_SUCCESS = 8;
+  // Upgrade cancel
+  UPGRADE_CANCEL = 9;
 
   // Medium-specific stages.
   // TODO(xlythe) Make sure each stage maps to one, and only one, possible

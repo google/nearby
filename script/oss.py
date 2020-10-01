@@ -96,7 +96,7 @@ def copy_files_to_oss_project(src_root, dst_root):
 def detect_file_copy_header_options(fname, lines):
   if not lines:
     return None # ignore empty file
-  suffixes = [".cc", ".cpp", ".cxx", ".c", ".h", ".hpp", ".inc", ".proto"]
+  suffixes = [".cc", ".cpp", ".cxx", ".c", ".h", ".hpp", ".inc", ".mm", ".proto"]
   for suffix in suffixes:
     if fname.endswith(suffix):
       return ("//", 0)
