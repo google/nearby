@@ -254,6 +254,17 @@ ByteArray ForKeepAlive() {
   return ToBytes(std::move(frame));
 }
 
+ByteArray ForDisconnection() {
+  OfflineFrame frame;
+
+  frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::DISCONNECTION);
+  v1_frame->mutable_disconnection();
+
+  return ToBytes(std::move(frame));
+}
+
 UpgradePathInfo::Medium MediumToUpgradePathInfoMedium(Medium medium) {
   switch (medium) {
     case Medium::MDNS:

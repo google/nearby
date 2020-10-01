@@ -30,11 +30,11 @@ BwuManager::BwuManager(
   if (config_.bandwidth_upgrade_retry_delay == absl::ZeroDuration()) {
     config_.bandwidth_upgrade_retry_delay = absl::Seconds(5);
   }
-  if (config_.bandwidth_upgrade_retry_delay == absl::ZeroDuration()) {
-    config_.bandwidth_upgrade_retry_delay = absl::Seconds(10);
+  if (config_.bandwidth_upgrade_retry_max_delay == absl::ZeroDuration()) {
+    config_.bandwidth_upgrade_retry_max_delay = absl::Seconds(10);
   }
   if (config_.allow_upgrade_to.All(false)) {
-    config.allow_upgrade_to.web_rtc = true;
+    config_.allow_upgrade_to.web_rtc = true;
   }
   if (!handlers.empty()) {
     handlers_ = std::move(handlers);
@@ -43,7 +43,7 @@ BwuManager::BwuManager(
   }
 
   // Register the offline frame processor.
-  endpoint_manager.RegisterFrameProcessor(
+  endpoint_manager_->RegisterFrameProcessor(
       V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION, this);
 }
 

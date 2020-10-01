@@ -136,6 +136,9 @@ ExceptionOr<bool> EndpointManager::HandleData(
       // no explicit handler.
       if (frame_type == V1Frame::KEEP_ALIVE) {
         NEARBY_LOG(INFO, "KeepAlive message for: id=%s", endpoint_id.c_str());
+      } else if (frame_type == V1Frame::DISCONNECTION) {
+        NEARBY_LOG(INFO, "Disconnect message for: id=%s", endpoint_id.c_str());
+        endpoint_channel->Close();
       } else {
         NEARBY_LOG(ERROR, "Unhandled message: id=%s, type=%d",
                    endpoint_id.c_str(), frame_type);
