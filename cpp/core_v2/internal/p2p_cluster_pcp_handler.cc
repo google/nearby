@@ -328,9 +328,16 @@ bool P2pClusterPcpHandler::IsRecognizedBleEndpoint(
 
 void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
     ClientProxy* client, BlePeripheral& peripheral,
+<<<<<<< HEAD
     const std::string& service_id, bool fast_advertisement) {
   RunOnPcpHandlerThread([this, client, &peripheral, service_id,
                          fast_advertisement]() {
+=======
+    const std::string& service_id, const ByteArray& advertisement_bytes,
+    bool fast_advertisement) {
+  RunOnPcpHandlerThread([this, client, &peripheral, service_id,
+                         advertisement_bytes, fast_advertisement]() {
+>>>>>>> release
     // Make sure we are still discovering before proceeding.
     if (!client->IsDiscovering()) {
       NEARBY_LOG(INFO,
@@ -341,8 +348,12 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
     }
 
     // Parse the BLE advertisement bytes.
+<<<<<<< HEAD
     BleAdvertisement advertisement(
         fast_advertisement, peripheral.GetAdvertisementBytes(service_id));
+=======
+    BleAdvertisement advertisement(fast_advertisement, advertisement_bytes);
+>>>>>>> release
 
     // Make sure the BLE advertisement points to a valid
     // endpoint we're discovering.
@@ -582,6 +593,12 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
             .device_discovered_cb = absl::bind_front(
                 &P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler, this,
                 client, service_id),
+<<<<<<< HEAD
+=======
+            .device_name_changed_cb = absl::bind_front(
+                &P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler, this,
+                client, service_id),
+>>>>>>> release
             .device_lost_cb = absl::bind_front(
                 &P2pClusterPcpHandler::BluetoothDeviceLostHandler, this, client,
                 service_id),
@@ -728,9 +745,17 @@ proto::connections::Medium P2pClusterPcpHandler::StartBluetoothAdvertising(
              absl::BytesToHexString(service_id_hash.data()).c_str(),
              absl::BytesToHexString(local_endpoint_info.data()).c_str());
   // Generate a BluetoothDeviceName with which to become Bluetooth discoverable.
+<<<<<<< HEAD
   std::string device_name(BluetoothDeviceName(
       kBluetoothDeviceNameVersion, GetPcp(), local_endpoint_id, service_id_hash,
       local_endpoint_info));
+=======
+  // TODO(b/169550050): Implement UWBAddress.
+  // TODO(b/169303359): Implement WebRtcState.
+  std::string device_name(BluetoothDeviceName(
+      kBluetoothDeviceNameVersion, GetPcp(), local_endpoint_id, service_id_hash,
+      local_endpoint_info, ByteArray{}, WebRtcState::kUnconnectable));
+>>>>>>> release
   if (device_name.empty()) {
     NEARBY_LOG(INFO,
                "P2pClusterPcpHandler::StartBluetoothAdvertising: generate "
@@ -901,10 +926,18 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
   // Generate a BleAdvertisement. If a fast advertisement service UUID was
   // provided, create a fast BleAdvertisement.
   ByteArray advertisement_bytes;
+<<<<<<< HEAD
   if (fast_advertisement) {
     advertisement_bytes =
         ByteArray(BleAdvertisement(kBleAdvertisementVersion, GetPcp(),
                                    local_endpoint_id, local_endpoint_info));
+=======
+  // TODO(b/169550050): Implement UWBAddress.
+  if (fast_advertisement) {
+    advertisement_bytes = ByteArray(
+        BleAdvertisement(kBleAdvertisementVersion, GetPcp(), local_endpoint_id,
+                         local_endpoint_info, ByteArray{}));
+>>>>>>> release
   } else {
     const ByteArray service_id_hash =
         GenerateHash(service_id, BleAdvertisement::kServiceIdHashLength);
@@ -913,9 +946,17 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
         ShouldAdvertiseBluetoothMacOverBle(power_level))
       bluetooth_mac_address = bluetooth_medium_.GetMacAddress();
 
+<<<<<<< HEAD
     advertisement_bytes = ByteArray(BleAdvertisement(
         kBleAdvertisementVersion, GetPcp(), service_id_hash, local_endpoint_id,
         local_endpoint_info, bluetooth_mac_address));
+=======
+    // TODO(b/169303359): Implement WebRtcState.
+    advertisement_bytes = ByteArray(BleAdvertisement(
+        kBleAdvertisementVersion, GetPcp(), service_id_hash, local_endpoint_id,
+        local_endpoint_info, bluetooth_mac_address, ByteArray{},
+        WebRtcState::kUnconnectable));
+>>>>>>> release
   }
   if (advertisement_bytes.Empty()) {
     NEARBY_LOG(INFO,
@@ -1036,9 +1077,17 @@ proto::connections::Medium P2pClusterPcpHandler::StartWifiLanAdvertising(
              absl::BytesToHexString(service_id_hash.data()).c_str(),
              absl::BytesToHexString(local_endpoint_info.data()).c_str());
   // Generate a WifiLanServiceInfo with which to become WifiLan discoverable.
+<<<<<<< HEAD
   std::string service_info_name(WifiLanServiceInfo(
       kWifiLanServiceInfoVersion, GetPcp(), local_endpoint_id, service_id_hash,
       local_endpoint_info));
+=======
+  // TODO(b/169550050): Implement UWBAddress.
+  // TODO(b/169303359): Implement WebRtcState.
+  std::string service_info_name(WifiLanServiceInfo(
+      kWifiLanServiceInfoVersion, GetPcp(), local_endpoint_id, service_id_hash,
+      local_endpoint_info, ByteArray{}, WebRtcState::kUnconnectable));
+>>>>>>> release
   if (service_info_name.empty()) {
     NEARBY_LOG(INFO,
                "P2pClusterPcpHandler::StartWifiLanAdvertising: generate "

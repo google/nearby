@@ -17,6 +17,10 @@
 
 #include <cstdint>
 
+<<<<<<< HEAD
+=======
+#include "core_v2/internal/base_pcp_handler.h"
+>>>>>>> release
 #include "core_v2/internal/pcp.h"
 #include "platform_v2/base/byte_array.h"
 #include "absl/strings/string_view.h"
@@ -42,7 +46,13 @@ class WifiLanServiceInfo {
   WifiLanServiceInfo() = default;
   WifiLanServiceInfo(Version version, Pcp pcp, absl::string_view endpoint_id,
                      const ByteArray& service_id_hash,
+<<<<<<< HEAD
                      const ByteArray& endpoint_info);
+=======
+                     const ByteArray& endpoint_info,
+                     const ByteArray& uwb_address,
+                     WebRtcState web_rtc_state);
+>>>>>>> release
   explicit WifiLanServiceInfo(absl::string_view service_info_string);
   WifiLanServiceInfo(const WifiLanServiceInfo&) = default;
   WifiLanServiceInfo& operator=(const WifiLanServiceInfo&) = default;
@@ -58,6 +68,7 @@ class WifiLanServiceInfo {
   std::string GetEndpointId() const { return endpoint_id_; }
   ByteArray GetEndpointInfo() const { return endpoint_info_; }
   ByteArray GetServiceIdHash() const { return service_id_hash_; }
+<<<<<<< HEAD
 
  private:
   // The maximum length of encrypted WifiLanServiceInfo string.
@@ -68,10 +79,21 @@ class WifiLanServiceInfo {
   static constexpr int kEndpointIdLength = 4;
   // The maximum length for endpoint id in encrypted WifiLanServiceInfo string.
   static constexpr int kMaxEndpointInfoLength = 131;
+=======
+  ByteArray GetUwbAddress() const { return uwb_address_; }
+  WebRtcState GetWebRtcState() const { return web_rtc_state_; }
+
+ private:
+  static constexpr int kMinLanServiceNameLength = 9;
+  static constexpr int kEndpointIdLength = 4;
+  static constexpr int kMaxEndpointInfoLength = 131;
+  static constexpr int kUwbAddressLengthSize = 1;
+>>>>>>> release
 
   static constexpr int kVersionBitmask = 0x0E0;
   static constexpr int kPcpBitmask = 0x01F;
   static constexpr int kVersionShift = 5;
+<<<<<<< HEAD
 
   // WifiLanServiceInfo version.
   Version version_ = Version::kUndefined;
@@ -83,6 +105,18 @@ class WifiLanServiceInfo {
   ByteArray service_id_hash_;
   // Connected endpoint info.
   ByteArray endpoint_info_;
+=======
+  static constexpr int kWebRtcConnectableFlagBitmask = 0x01;
+
+  Version version_{Version::kUndefined};
+  Pcp pcp_{Pcp::kUnknown};
+  std::string endpoint_id_;
+  ByteArray service_id_hash_;
+  ByteArray endpoint_info_;
+  // TODO(b/169550050): Define UWB address field.
+  ByteArray uwb_address_;
+  WebRtcState web_rtc_state_{WebRtcState::kUndefined};
+>>>>>>> release
 };
 
 }  // namespace connections

@@ -30,6 +30,7 @@ BleAdvertisement::BleAdvertisement(Version version,
                                    const ByteArray &service_id_hash,
                                    const ByteArray &data,
                                    const ByteArray &device_token) {
+<<<<<<< HEAD
   DoInitialize(/*fast_advertisement=*/false, version, socket_version,
                service_id_hash, data, device_token);
 }
@@ -40,6 +41,10 @@ BleAdvertisement::BleAdvertisement(Version version,
                                    const ByteArray &device_token) {
   DoInitialize(/*fast_advertisement=*/true, version, socket_version,
                {}, data, device_token);
+=======
+  DoInitialize(/*fast_advertisement=*/service_id_hash.Empty(), version,
+               socket_version, service_id_hash, data, device_token);
+>>>>>>> release
 }
 
 void BleAdvertisement::DoInitialize(bool fast_advertisement, Version version,

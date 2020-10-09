@@ -170,10 +170,15 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // Stores each upgraded endpoint's previous EndpointChannel (that was
   // displaced in favor of a new EndpointChannel) temporarily, until it can
   // safely be shut down for good in processLastWriteToPriorChannelEvent().
+<<<<<<< HEAD
   absl::flat_hash_map<std::string, std::unique_ptr<EndpointChannel>>
       previous_endpoint_channels_;
   absl::flat_hash_map<std::string, std::shared_ptr<EndpointChannel>>
       old_channels_;
+=======
+  absl::flat_hash_map<std::string, std::shared_ptr<EndpointChannel>>
+      previous_endpoint_channels_;
+>>>>>>> release
   absl::flat_hash_set<std::string> successfully_upgraded_endpoints_;
   // Maps endpointId -> ClientProxy for which
   // initiateBwuForEndpoint() has been called but which have not

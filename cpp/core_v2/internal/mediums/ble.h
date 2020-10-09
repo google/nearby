@@ -102,8 +102,11 @@ class Ble {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
+<<<<<<< HEAD
   static constexpr int kMaxAdvertisementLength = 512;
 
+=======
+>>>>>>> release
   struct AdvertisingInfo {
     bool Empty() const { return service_ids.empty(); }
     void Clear() { service_ids.clear(); }
@@ -146,6 +149,14 @@ class Ble {
     absl::flat_hash_set<std::string> service_ids;
   };
 
+<<<<<<< HEAD
+=======
+  static constexpr int kMaxAdvertisementLength = 512;
+
+  static ByteArray GenerateHash(const std::string& source, size_t size);
+  static ByteArray GenerateDeviceToken();
+
+>>>>>>> release
   // Same as IsAvailable(), but must be called with mutex_ held.
   bool IsAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -161,6 +172,13 @@ class Ble {
   bool IsAcceptingConnectionsLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
+<<<<<<< HEAD
+=======
+  // Extract connection advertisement from medium advertisement.
+  ByteArray UnwrapAdvertisementBytes(
+      const ByteArray& medium_advertisement_data);
+
+>>>>>>> release
   mutable Mutex mutex_;
   BluetoothRadio& radio_ ABSL_GUARDED_BY(mutex_);
   BluetoothAdapter& adapter_ ABSL_GUARDED_BY(mutex_){
@@ -168,6 +186,10 @@ class Ble {
   BleMedium medium_ ABSL_GUARDED_BY(mutex_){adapter_};
   AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
   ScanningInfo scanning_info_ ABSL_GUARDED_BY(mutex_);
+<<<<<<< HEAD
+=======
+  DiscoveredPeripheralCallback discovered_peripheral_callback_;
+>>>>>>> release
   AcceptingConnectionsInfo accepting_connections_info_ ABSL_GUARDED_BY(mutex_);
 };
 

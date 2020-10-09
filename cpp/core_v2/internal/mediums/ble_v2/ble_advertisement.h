@@ -61,8 +61,11 @@ class BleAdvertisement {
   BleAdvertisement(Version version, SocketVersion socket_version,
                    const ByteArray &service_id_hash, const ByteArray &data,
                    const ByteArray &device_token);
+<<<<<<< HEAD
   BleAdvertisement(Version version, SocketVersion socket_version,
                    const ByteArray &data, const ByteArray &device_token);
+=======
+>>>>>>> release
   explicit BleAdvertisement(const ByteArray &ble_advertisement_bytes);
   BleAdvertisement(const BleAdvertisement &) = default;
   BleAdvertisement &operator=(const BleAdvertisement &) = default;

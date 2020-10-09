@@ -165,6 +165,10 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   void BlePeripheralDiscoveredHandler(ClientProxy* client,
                                       BlePeripheral& peripheral,
                                       const std::string& service_id,
+<<<<<<< HEAD
+=======
+                                      const ByteArray& advertisement_bytes,
+>>>>>>> release
                                       bool fast_advertisement);
   void BlePeripheralLostHandler(ClientProxy* client, BlePeripheral& peripheral,
                                 const std::string& service_id);
