@@ -245,6 +245,13 @@ bool ConnectionFlow::Close() {
 
 bool ConnectionFlow::InitPeerConnection(WebRtcMedium& webrtc_medium) {
   Future<bool> success_future;
+<<<<<<< HEAD
+=======
+  // CreatePeerConnection callback may be invoked after ConnectionFlow lifetime
+  // has ended, in case of a timeout. Future is captured by value, and is safe
+  // to access, but it is not safe to access ConnectionFlow member variables
+  // unless the Future::Set() returns true.
+>>>>>>> release
   webrtc_medium.CreatePeerConnection(
       &peer_connection_observer_,
       [this, success_future](rtc::scoped_refptr<webrtc::PeerConnectionInterface>
@@ -254,6 +261,14 @@ bool ConnectionFlow::InitPeerConnection(WebRtcMedium& webrtc_medium) {
           return;
         }
 
+<<<<<<< HEAD
+=======
+        // If this fails, means we have already assigned something to
+        // success_future; it is either:
+        // 1) this is the 2nd call of this callback (and this is a bug), or
+        // 2) Get(timeout) has set the future value as exception already.
+        if (success_future.IsSet()) return;
+>>>>>>> release
         peer_connection_ = peer_connection;
         success_future.Set(true);
       });
