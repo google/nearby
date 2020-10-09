@@ -17,6 +17,7 @@
 
 #include <cstdint>
 
+#include "core_v2/internal/base_pcp_handler.h"
 #include "core_v2/internal/pcp.h"
 #include "platform_v2/base/byte_array.h"
 #include "absl/strings/string_view.h"
@@ -42,7 +43,9 @@ class WifiLanServiceInfo {
   WifiLanServiceInfo() = default;
   WifiLanServiceInfo(Version version, Pcp pcp, absl::string_view endpoint_id,
                      const ByteArray& service_id_hash,
-                     const ByteArray& endpoint_info);
+                     const ByteArray& endpoint_info,
+                     const ByteArray& uwb_address,
+                     WebRtcState web_rtc_state);
   explicit WifiLanServiceInfo(absl::string_view service_info_string);
   WifiLanServiceInfo(const WifiLanServiceInfo&) = default;
   WifiLanServiceInfo& operator=(const WifiLanServiceInfo&) = default;
@@ -58,31 +61,28 @@ class WifiLanServiceInfo {
   std::string GetEndpointId() const { return endpoint_id_; }
   ByteArray GetEndpointInfo() const { return endpoint_info_; }
   ByteArray GetServiceIdHash() const { return service_id_hash_; }
+  ByteArray GetUwbAddress() const { return uwb_address_; }
+  WebRtcState GetWebRtcState() const { return web_rtc_state_; }
 
  private:
-  // The maximum length of encrypted WifiLanServiceInfo string.
-  static constexpr int kMaxLanServiceNameLength = 47;
-  // The minimum length of encrypted WifiLanServiceInfo string.
   static constexpr int kMinLanServiceNameLength = 9;
-  // The length for endpoint id in encrypted WifiLanServiceInfo string.
   static constexpr int kEndpointIdLength = 4;
-  // The maximum length for endpoint id in encrypted WifiLanServiceInfo string.
   static constexpr int kMaxEndpointInfoLength = 131;
+  static constexpr int kUwbAddressLengthSize = 1;
 
   static constexpr int kVersionBitmask = 0x0E0;
   static constexpr int kPcpBitmask = 0x01F;
   static constexpr int kVersionShift = 5;
+  static constexpr int kWebRtcConnectableFlagBitmask = 0x01;
 
-  // WifiLanServiceInfo version.
-  Version version_ = Version::kUndefined;
-  // Pre-Connection Protocols version.
-  Pcp pcp_ = Pcp::kUnknown;
-  // Connected endpoint id.
+  Version version_{Version::kUndefined};
+  Pcp pcp_{Pcp::kUnknown};
   std::string endpoint_id_;
-  // Connected hash service id.
   ByteArray service_id_hash_;
-  // Connected endpoint info.
   ByteArray endpoint_info_;
+  // TODO(b/169550050): Define UWB address field.
+  ByteArray uwb_address_;
+  WebRtcState web_rtc_state_{WebRtcState::kUndefined};
 };
 
 }  // namespace connections

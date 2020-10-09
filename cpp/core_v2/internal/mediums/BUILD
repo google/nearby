@@ -39,7 +39,9 @@ cc_library(
         "//core_v2/internal:__subpackages__",
     ],
     deps = [
+        ":utils",
         "//core_v2:core_types",
+        "//core_v2/internal/mediums/ble_v2",
         "//core_v2/internal/mediums/webrtc",
         "//platform_v2/base",
         "//platform_v2/public:comm",
@@ -63,6 +65,7 @@ cc_library(
     hdrs = ["utils.h"],
     visibility = [
         "//core_v2/internal:__pkg__",
+        "//core_v2/internal/mediums:__pkg__",
         "//core_v2/internal/mediums/ble_v2:__pkg__",
         "//core_v2/internal/mediums/webrtc:__pkg__",
     ],

@@ -17,6 +17,7 @@
 
 #include <cstdint>
 
+#include "core_v2/internal/base_pcp_handler.h"
 #include "core_v2/internal/pcp.h"
 #include "platform_v2/base/byte_array.h"
 #include "absl/strings/string_view.h"
@@ -44,7 +45,9 @@ class BluetoothDeviceName {
   BluetoothDeviceName() = default;
   BluetoothDeviceName(Version version, Pcp pcp, absl::string_view endpoint_id,
                       const ByteArray& service_id_hash,
-                      const ByteArray& endpoint_info);
+                      const ByteArray& endpoint_info,
+                      const ByteArray& uwb_address,
+                      WebRtcState web_rtc_state);
   explicit BluetoothDeviceName(absl::string_view bluetooth_device_name_string);
   BluetoothDeviceName(const BluetoothDeviceName&) = default;
   BluetoothDeviceName& operator=(const BluetoothDeviceName&) = default;
@@ -60,24 +63,28 @@ class BluetoothDeviceName {
   std::string GetEndpointId() const { return endpoint_id_; }
   ByteArray GetServiceIdHash() const { return service_id_hash_; }
   ByteArray GetEndpointInfo() const { return endpoint_info_; }
+  ByteArray GetUwbAddress() const { return uwb_address_; }
+  WebRtcState GetWebRtcState() const { return web_rtc_state_; }
 
  private:
-  static constexpr int kMaxBluetoothDeviceNameLength = 147;
   static constexpr int kEndpointIdLength = 4;
-  static constexpr int kReservedLength = 7;
+  static constexpr int kReservedLength = 6;
   static constexpr int kMaxEndpointInfoLength = 131;
-  static constexpr int kMinBluetoothDeviceNameLength =
-      kMaxBluetoothDeviceNameLength - kMaxEndpointInfoLength;
+  static constexpr int kMinBluetoothDeviceNameLength = 16;
 
   static constexpr int kVersionBitmask = 0x0E0;
   static constexpr int kPcpBitmask = 0x01F;
   static constexpr int kEndpointNameLengthBitmask = 0x0FF;
+  static constexpr int kWebRtcConnectableFlagBitmask = 0x01;
 
   Version version_{Version::kUndefined};
   Pcp pcp_{Pcp::kUnknown};
   std::string endpoint_id_;
   ByteArray service_id_hash_;
   ByteArray endpoint_info_;
+  // TODO(b/169550050): Define UWB address field.
+  ByteArray uwb_address_;
+  WebRtcState web_rtc_state_{WebRtcState::kUndefined};
 };
 
 }  // namespace connections

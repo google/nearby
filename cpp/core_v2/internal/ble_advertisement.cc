@@ -16,6 +16,7 @@
 
 #include <inttypes.h>
 
+#include "core_v2/internal/base_pcp_handler.h"
 #include "platform_v2/base/base_input_stream.h"
 #include "platform_v2/public/logging.h"
 #include "absl/strings/escaping.h"
@@ -28,23 +29,29 @@ BleAdvertisement::BleAdvertisement(Version version, Pcp pcp,
                                    const ByteArray& service_id_hash,
                                    const std::string& endpoint_id,
                                    const ByteArray& endpoint_info,
-                                   const std::string& bluetooth_mac_address) {
+                                   const std::string& bluetooth_mac_address,
+                                   const ByteArray& uwb_address,
+                                   WebRtcState web_rtc_state) {
   DoInitialize(/*fast_advertisement=*/false, version, pcp, service_id_hash,
-               endpoint_id, endpoint_info, bluetooth_mac_address);
+               endpoint_id, endpoint_info, bluetooth_mac_address, uwb_address,
+               web_rtc_state);
 }
 
 BleAdvertisement::BleAdvertisement(Version version, Pcp pcp,
                                    const std::string& endpoint_id,
-                                   const ByteArray& endpoint_info) {
+                                   const ByteArray& endpoint_info,
+                                   const ByteArray& uwb_address) {
   DoInitialize(/*fast_advertisement=*/true, version, pcp, {}, endpoint_id,
-               endpoint_info, {});
+               endpoint_info, {}, uwb_address, WebRtcState::kUndefined);
 }
 
 void BleAdvertisement::DoInitialize(bool fast_advertisement, Version version,
                                     Pcp pcp, const ByteArray& service_id_hash,
                                     const std::string& endpoint_id,
                                     const ByteArray& endpoint_info,
-                                    const std::string& bluetooth_mac_address) {
+                                    const std::string& bluetooth_mac_address,
+                                    const ByteArray& uwb_address,
+                                    WebRtcState web_rtc_state) {
   fast_advertisement_ = fast_advertisement;
   if (!fast_advertisement_) {
     if (service_id_hash.size() != kServiceIdHashLength) return;
@@ -71,10 +78,13 @@ void BleAdvertisement::DoInitialize(bool fast_advertisement, Version version,
   service_id_hash_ = service_id_hash;
   endpoint_id_ = endpoint_id;
   endpoint_info_ = endpoint_info;
+  uwb_address_ = uwb_address;
   if (!fast_advertisement_) {
     if (!BluetoothUtils::FromString(bluetooth_mac_address).Empty()) {
       bluetooth_mac_address_ = bluetooth_mac_address;
     }
+
+    web_rtc_state_ = web_rtc_state;
   }
 }
 
@@ -134,7 +144,7 @@ BleAdvertisement::BleAdvertisement(bool fast_advertisement,
   // The next 4 bytes are supposed to be the endpoint_id.
   endpoint_id_ = std::string{base_input_stream.ReadBytes(kEndpointIdLength)};
 
-  // The next 1 byte are supposed to be the length of the endpoint_info.
+  // The next 1 byte is supposed to be the length of the endpoint_info.
   std::uint32_t expected_endpoint_info_length = base_input_stream.ReadUint8();
 
   // The next x bytes are the endpoint info. (Max length is 131 bytes or 17
@@ -151,7 +161,7 @@ BleAdvertisement::BleAdvertisement(bool fast_advertisement,
                fast_advertisement_, expected_endpoint_info_length,
                endpoint_info_.size());
 
-    // Clear enpoint_id for validadity.
+    // Clear enpoint_id for validity.
     endpoint_id_.clear();
     return;
   }
@@ -162,6 +172,35 @@ BleAdvertisement::BleAdvertisement(bool fast_advertisement,
         base_input_stream.ReadBytes(BluetoothUtils::kBluetoothMacAddressLength);
     bluetooth_mac_address_ =
         BluetoothUtils::ToString(bluetooth_mac_address_bytes);
+  }
+
+  // The next 1 byte is supposed to be the length of the uwb_address.
+  std::uint32_t expected_uwb_address_length = base_input_stream.ReadUint8();
+  // If the length of uwb_address is not zero, then retrieve it.
+  if (expected_uwb_address_length != 0) {
+    uwb_address_ = base_input_stream.ReadBytes(expected_uwb_address_length);
+    if (uwb_address_.Empty() ||
+        uwb_address_.size() != expected_uwb_address_length) {
+      NEARBY_LOG(INFO,
+                 "Cannot deserialize BleAdvertisement: "
+                 "expected uwbAddress size to be %d bytes, got %" PRIu64,
+                 expected_uwb_address_length, uwb_address_.size());
+
+      // Clear enpoint_id for validity.
+      endpoint_id_.clear();
+      return;
+    }
+  }
+
+  // The next 1 byte is extra field.
+  web_rtc_state_ = WebRtcState::kUndefined;
+  if (!fast_advertisement_) {
+    if (base_input_stream.IsAvailable(kExtraFieldLength)) {
+      auto extra_field = static_cast<char>(base_input_stream.ReadUint8());
+      web_rtc_state_ = (extra_field & kWebRtcConnectableFlagBitmask) == 1
+                           ? WebRtcState::kConnectable
+                           : WebRtcState::kUnconnectable;
+    }
   }
 
   base_input_stream.Close();
@@ -182,26 +221,45 @@ BleAdvertisement::operator ByteArray() const {
   if (fast_advertisement_) {
     // clang-format off
     out = absl::StrCat(std::string(1, version_and_pcp_byte),
-                                   endpoint_id_,
-                                   std::string(1, endpoint_info_.size()),
-                                   std::string(endpoint_info_));
+                       endpoint_id_,
+                       std::string(1, endpoint_info_.size()),
+                       std::string(endpoint_info_));
     // clang-format on
   } else {
     // clang-format off
     out = absl::StrCat(std::string(1, version_and_pcp_byte),
-                                   std::string(service_id_hash_),
-                                   endpoint_id_,
-                                   std::string(1, endpoint_info_.size()),
-                                   std::string(endpoint_info_));
+                       std::string(service_id_hash_),
+                       endpoint_id_,
+                       std::string(1, endpoint_info_.size()),
+                       std::string(endpoint_info_));
     // clang-format on
 
     // The next 6 bytes are the bluetooth mac address. If bluetooth_mac_address
-    // is invalid or empty, we get back a null byte array.
+    // is invalid or empty, we get back a empty byte array.
     auto bluetooth_mac_address_bytes{
         BluetoothUtils::FromString(bluetooth_mac_address_)};
     if (!bluetooth_mac_address_bytes.Empty()) {
       absl::StrAppend(&out, std::string(bluetooth_mac_address_bytes));
     }
+  }
+
+  // The next bytes are UWB address field.
+  if (!uwb_address_.Empty()) {
+    absl::StrAppend(&out, std::string(1, uwb_address_.size()));
+    absl::StrAppend(&out, std::string(uwb_address_));
+  } else {
+    // Write UWB address with length 0 to be able to read the next field when
+    // decode.
+    absl::StrAppend(&out, std::string(1, uwb_address_.size()));
+  }
+
+  // The next 1 byte is extra field.
+  if (!fast_advertisement_) {
+    int web_rtc_connectable_flag =
+        (web_rtc_state_ == WebRtcState::kConnectable) ? 1 : 0;
+    char extra_field_byte = static_cast<char>(web_rtc_connectable_flag) &
+                            kWebRtcConnectableFlagBitmask;
+    absl::StrAppend(&out, std::string(1, extra_field_byte));
   }
 
   return ByteArray(std::move(out));

@@ -31,7 +31,9 @@ namespace connections {
 WifiLanServiceInfo::WifiLanServiceInfo(Version version, Pcp pcp,
                                        absl::string_view endpoint_id,
                                        const ByteArray& service_id_hash,
-                                       const ByteArray& endpoint_info) {
+                                       const ByteArray& endpoint_info,
+                                       const ByteArray& uwb_address,
+                                       WebRtcState web_rtc_state) {
   if (version != Version::kV1 || endpoint_id.empty() ||
       endpoint_id.length() != kEndpointIdLength ||
       service_id_hash.size() != kServiceIdHashLength) {
@@ -51,6 +53,8 @@ WifiLanServiceInfo::WifiLanServiceInfo(Version version, Pcp pcp,
   service_id_hash_ = service_id_hash;
   endpoint_id_ = std::string(endpoint_id);
   endpoint_info_ = endpoint_info;
+  uwb_address_ = uwb_address;
+  web_rtc_state_ = web_rtc_state;
 }
 
 WifiLanServiceInfo::WifiLanServiceInfo(absl::string_view service_info_string) {
@@ -61,14 +65,6 @@ WifiLanServiceInfo::WifiLanServiceInfo(absl::string_view service_info_string) {
         INFO,
         "Cannot deserialize WifiLanServiceInfo: failed Base64 decoding of %s",
         std::string(service_info_string).c_str());
-    return;
-  }
-
-  if (service_info_bytes.size() > kMaxLanServiceNameLength) {
-    NEARBY_LOG(INFO,
-               "Cannot deserialize WifiLanServiceInfo: expecting max %d raw "
-               "bytes, got %" PRIu64,
-               kMaxLanServiceNameLength, service_info_bytes.size());
     return;
   }
 
@@ -119,6 +115,20 @@ WifiLanServiceInfo::WifiLanServiceInfo(absl::string_view service_info_string) {
   // The next 3 bytes are supposed to be the service_id_hash.
   service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
 
+  // The next 1 byte are supposed to be the length of the UWB address.
+  std::uint32_t expected_uwb_address_length = base_input_stream.ReadUint8();
+
+  // The next bytes are supposed to be UWB address if length is not zero.
+  if (expected_uwb_address_length != 0) {
+    uwb_address_ = base_input_stream.ReadBytes(expected_uwb_address_length);
+  }
+
+  // The next 1 byte is extra field.
+  auto extra_field = static_cast<char>(base_input_stream.ReadUint8());
+  web_rtc_state_ = (extra_field & kWebRtcConnectableFlagBitmask) == 1
+                       ? WebRtcState::kConnectable
+                       : WebRtcState::kUnconnectable;
+
   // The next 1 byte are supposed to be the length of the endpoint_info.
   std::uint32_t expected_endpoint_info_length = base_input_stream.ReadUint8();
 
@@ -149,6 +159,12 @@ WifiLanServiceInfo::operator std::string() const {
   version_and_pcp_byte |=
       static_cast<char>(static_cast<uint32_t>(pcp_) & kPcpBitmask);
 
+  // A byte contains WebRtcState state.
+  int web_rtc_connectable_flag =
+      (web_rtc_state_ == WebRtcState::kConnectable) ? 1 : 0;
+  char field_byte = static_cast<char>(web_rtc_connectable_flag) &
+                    kWebRtcConnectableFlagBitmask;
+
   ByteArray usable_endpoint_info(endpoint_info_);
   if (endpoint_info_.size() > kMaxEndpointInfoLength) {
     NEARBY_LOG(
@@ -160,13 +176,29 @@ WifiLanServiceInfo::operator std::string() const {
     usable_endpoint_info.SetData(endpoint_info_.data(), kMaxEndpointInfoLength);
   }
 
-  // clang-format off
-  std::string out = absl::StrCat(std::string(1, version_and_pcp_byte),
-                                 endpoint_id_,
-                                 std::string(service_id_hash_),
-                                 std::string(1, usable_endpoint_info.size()),
-                                 std::string(usable_endpoint_info));
-  // clang-format on
+  std::string out;
+  if (!uwb_address_.Empty()) {
+    // clang-format off
+    out = absl::StrCat(std::string(1, version_and_pcp_byte),
+                       endpoint_id_,
+                       std::string(service_id_hash_),
+                       std::string(1, uwb_address_.size()),
+                       std::string(uwb_address_),
+                       std::string(1, field_byte),
+                       std::string(1, usable_endpoint_info.size()),
+                       std::string(usable_endpoint_info));
+    // clang-format on
+  } else {
+    // clang-format off
+    out = absl::StrCat(std::string(1, version_and_pcp_byte),
+                       endpoint_id_,
+                       std::string(service_id_hash_),
+                       std::string(1, uwb_address_.size()),
+                       std::string(1, field_byte),
+                       std::string(1, usable_endpoint_info.size()),
+                       std::string(usable_endpoint_info));
+    // clang-format on
+  }
 
   return Base64Utils::Encode(ByteArray{std::move(out)});
 }
