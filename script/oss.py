@@ -19,6 +19,7 @@ import argparse
 import os
 import re
 import shutil
+import stat
 import sys
 
 copy_header="""Copyright 2020 Google LLC
@@ -200,6 +201,7 @@ def post_process_oss_files(path, args):
             modified = True
 
       if modified:
+        os.chmod(fname, os.stat(fname).st_mode | stat.S_IWRITE)
         with open(fname, "w") as f:
           for line in lines:
             f.write(line)

@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "core/internal/message_lite.h"
+#include "core_v2/status.h"
 #include "proto/connections/offline_wire_formats.pb.h"
 #include "platform_v2/base/byte_array.h"
 
@@ -71,7 +72,14 @@ ByteArray ForConnectionResponse(std::int32_t status) {
   auto* v1_frame = frame.mutable_v1();
   v1_frame->set_type(V1Frame::CONNECTION_RESPONSE);
   auto* sub_frame = v1_frame->mutable_connection_response();
+
+  // For backward compatiblility, here still sets both status and response
+  // parameters until the response feature is roll out in all supported
+  // devices.
   sub_frame->set_status(status);
+  sub_frame->set_response(status == Status::kSuccess
+                              ? ConnectionResponseFrame::ACCEPT
+                              : ConnectionResponseFrame::REJECT);
 
   return ToBytes(std::move(frame));
 }

@@ -25,8 +25,9 @@ class SettableFuture : public api::SettableFuture<T> {
       exception_ = {Exception::kSuccess};
       completed_.Notify();
       InvokeAllLocked();
+      return true;
     }
-    return true;
+    return false;
   }
 
   void AddListener(Runnable runnable, api::Executor* executor) override {
@@ -36,6 +37,11 @@ class SettableFuture : public api::SettableFuture<T> {
     } else {
       listeners_.emplace_back(std::make_pair(executor, std::move(runnable)));
     }
+  }
+
+  bool IsSet() const {
+    MutexLock lock(&mutex_);
+    return done_;
   }
 
   bool SetException(Exception exception) override {
@@ -94,7 +100,7 @@ class SettableFuture : public api::SettableFuture<T> {
     listeners_.clear();
   }
 
-  Mutex mutex_;
+  mutable Mutex mutex_;
   ConditionVariable completed_{&mutex_};
   std::vector<std::pair<api::Executor*, std::function<void()>>> listeners_;
   bool done_{false};
