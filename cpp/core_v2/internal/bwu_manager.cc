@@ -1,6 +1,7 @@
 #include "core_v2/internal/bwu_manager.h"
 
 #include <algorithm>
+#include <memory>
 
 #include "core_v2/internal/bwu_handler.h"
 #include "core_v2/internal/offline_frames.h"
@@ -192,7 +193,7 @@ void BwuManager::OnEndpointDisconnect(ClientProxy* client,
       handler_->OnEndpointDisconnect(client, endpoint_id);
     }
 
-    auto item = old_channels_.extract(endpoint_id);
+    auto item = previous_endpoint_channels_.extract(endpoint_id);
 
     if (!item.empty()) {
       auto old_channel = item.mapped();
@@ -260,7 +261,10 @@ void BwuManager::OnBwuNegotiationFrame(ClientProxy* client,
 }
 
 void BwuManager::OnIncomingConnection(
-    ClientProxy* client, BwuHandler::IncomingSocketConnection* connection) {
+    ClientProxy* client,
+    BwuHandler::IncomingSocketConnection* mutable_connection) {
+  auto connection = std::make_shared<BwuHandler::IncomingSocketConnection>(
+      std::move(*mutable_connection));
   RunOnBwuManagerThread([this, client, connection]() {
     EndpointChannel* channel = connection->channel.get();
     if (channel == nullptr) {
@@ -329,7 +333,7 @@ void BwuManager::RunUpgradeProtocol(
   // continue when we receive a corresponding
   // BANDWIDTH_UPGRADE_NEGOTIATION.LAST_WRITE_TO_PRIOR_CHANNEL OfflineFrame from
   // the remote device, so for now, just store that previous EndpointChannel.
-  old_channels_.emplace(endpoint_id, old_channel);
+  previous_endpoint_channels_.emplace(endpoint_id, old_channel);
 
   // If we already read LAST_WRITE on the old endpoint channel, then we can
   // safely close it now.

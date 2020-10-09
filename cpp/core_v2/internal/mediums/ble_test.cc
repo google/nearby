@@ -60,12 +60,12 @@ TEST_F(BleTest, CanStartAdvertising) {
   CountDownLatch found_latch(1);
 
   ble_b.StartScanning(
-      service_id,
-      fast_advertisement_service_uuid,
+      service_id, fast_advertisement_service_uuid,
       DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
               [&found_latch](
                   BlePeripheral& peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
                   bool fast_advertisement) { found_latch.CountDown(); },
       });
 
@@ -95,12 +95,12 @@ TEST_F(BleTest, CanStartDiscovery) {
                          fast_advertisement_service_uuid);
 
   EXPECT_TRUE(ble_a.StartScanning(
-      service_id,
-      fast_advertisement_service_uuid,
+      service_id, fast_advertisement_service_uuid,
       DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
               [&accept_latch](
                   BlePeripheral& peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
                   bool fast_advertisement) { accept_latch.CountDown(); },
           .peripheral_lost_cb =
               [&lost_latch](BlePeripheral& peripheral,
@@ -140,12 +140,12 @@ TEST_F(BleTest, CanStartAcceptingConnectionsAndConnect) {
       });
   BlePeripheral discovered_peripheral;
   ble_b.StartScanning(
-      service_id,
-      fast_advertisement_service_uuid,
+      service_id, fast_advertisement_service_uuid,
       {
           .peripheral_discovered_cb =
               [&found_latch, &discovered_peripheral](
                   BlePeripheral& peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
                 discovered_peripheral = peripheral;
                 NEARBY_LOG(

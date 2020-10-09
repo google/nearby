@@ -93,7 +93,10 @@ TEST(OfflineFramesTest, CanGenerateConnectionResponse) {
     version: V1
     v1: <
       type: CONNECTION_RESPONSE
-      connection_response: < status: 1 >
+      connection_response: <
+        status: 1
+        response: REJECT
+      >
     >)pb";
   ByteArray bytes = ForConnectionResponse(1);
   auto response = FromBytes(bytes);
