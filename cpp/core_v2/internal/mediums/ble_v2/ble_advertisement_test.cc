@@ -67,10 +67,7 @@ TEST(BleAdvertisementTest, ConstructionWorksV1ForFastAdvertisement) {
 
   BleAdvertisement ble_advertisement{BleAdvertisement::Version::kV1,
                                      BleAdvertisement::SocketVersion::kV1,
-<<<<<<< HEAD
-=======
                                      ByteArray{},
->>>>>>> release
                                      fast_data,
                                      device_token};
 
@@ -101,10 +98,7 @@ TEST(BleAdvertisementTest, ConstructionFailsWithBadVersion) {
 
   BleAdvertisement fast_ble_advertisement{bad_version,
                                           kSocketVersion,
-<<<<<<< HEAD
-=======
                                           ByteArray{},
->>>>>>> release
                                           data,
                                           device_token};
   EXPECT_FALSE(fast_ble_advertisement.IsValid());
@@ -127,10 +121,7 @@ TEST(BleAdvertisementTest, ConstructionFailsWithBadSocketVersion) {
 
   BleAdvertisement fast_ble_advertisement{kVersion,
                                           bad_socket_version,
-<<<<<<< HEAD
-=======
                                           ByteArray{},
->>>>>>> release
                                           data,
                                           device_token};
   EXPECT_FALSE(fast_ble_advertisement.IsValid());
@@ -186,10 +177,7 @@ TEST(BleAdvertisementTest, ConstructionFailsWithLongData) {
 
   BleAdvertisement fast_ble_advertisement{kVersion,
                                           kSocketVersion,
-<<<<<<< HEAD
-=======
                                           ByteArray{},
->>>>>>> release
                                           bad_data,
                                           device_token};
   EXPECT_FALSE(fast_ble_advertisement.IsValid());
@@ -221,10 +209,7 @@ TEST(BleAdvertisementTest,
 
   BleAdvertisement ble_advertisement{kVersion,
                                      kSocketVersion,
-<<<<<<< HEAD
-=======
                                      ByteArray{},
->>>>>>> release
                                      fast_data,
                                      ByteArray{}};
 
@@ -262,20 +247,14 @@ TEST(BleAdvertisementTest, ConstructionFailsWithWrongSizeofDeviceToken) {
 
   BleAdvertisement fast_ble_advertisement_1{kVersion,
                                             kSocketVersion,
-<<<<<<< HEAD
-=======
                                             ByteArray{},
->>>>>>> release
                                             data,
                                             bad_device_token_1};
   EXPECT_FALSE(fast_ble_advertisement_1.IsValid());
 
   BleAdvertisement fast_ble_advertisement_2{kVersion,
                                             kSocketVersion,
-<<<<<<< HEAD
-=======
                                             ByteArray{},
->>>>>>> release
                                             data,
                                             bad_device_token_2};
   EXPECT_FALSE(fast_ble_advertisement_2.IsValid());
@@ -312,10 +291,7 @@ TEST(BleAdvertisementTest,
 
   BleAdvertisement org_ble_advertisement{kVersion,
                                          kSocketVersion,
-<<<<<<< HEAD
-=======
                                          ByteArray{},
->>>>>>> release
                                          fast_data,
                                          device_token};
 
@@ -358,10 +334,7 @@ TEST(BleAdvertisementTest,
 
   BleAdvertisement org_ble_advertisement{kVersion,
                                          kSocketVersion,
-<<<<<<< HEAD
-=======
                                          ByteArray{},
->>>>>>> release
                                          ByteArray(),
                                          device_token};
   ByteArray ble_advertisement_bytes{org_ble_advertisement};
@@ -416,10 +389,7 @@ TEST(BleAdvertisementTest,
 
   BleAdvertisement org_ble_advertisement{kVersion,
                                          kSocketVersion,
-<<<<<<< HEAD
-=======
                                          ByteArray{},
->>>>>>> release
                                          fast_data,
                                          device_token};
   ByteArray org_ble_advertisement_bytes{org_ble_advertisement};
@@ -478,10 +448,7 @@ TEST(BleAdvertisementTest,
 
   BleAdvertisement org_ble_advertisement{kVersion,
                                          kSocketVersion,
-<<<<<<< HEAD
-=======
                                          ByteArray{},
->>>>>>> release
                                          fast_data,
                                          device_token};
   ByteArray org_ble_advertisement_bytes{org_ble_advertisement};
@@ -533,10 +500,7 @@ TEST(BleAdvertisementTest,
 
   BleAdvertisement org_ble_advertisement{kVersion,
                                          kSocketVersion,
-<<<<<<< HEAD
-=======
                                          ByteArray{},
->>>>>>> release
                                          fast_data,
                                          device_token};
   ByteArray org_ble_advertisement_bytes{org_ble_advertisement};

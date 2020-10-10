@@ -15,10 +15,7 @@
 #ifndef CORE_V2_INTERNAL_BLE_ADVERTISEMENT_H_
 #define CORE_V2_INTERNAL_BLE_ADVERTISEMENT_H_
 
-<<<<<<< HEAD
-=======
 #include "core_v2/internal/base_pcp_handler.h"
->>>>>>> release
 #include "core_v2/internal/pcp.h"
 #include "platform_v2/base/bluetooth_utils.h"
 #include "platform_v2/base/byte_array.h"
@@ -31,11 +28,7 @@ namespace connections {
 // Advertising + Discovery.
 //
 // <p>[VERSION][PCP][SERVICE_ID_HASH][ENDPOINT_ID][ENDPOINT_INFO_SIZE]
-<<<<<<< HEAD
-//    [ENDPOINT_INFO][BLUETOOTH_MAC]
-=======
 //    [ENDPOINT_INFO][BLUETOOTH_MAC][UWB_ADDRESS_SIZE][UWB_ADDRESS][EXTRA_FIELD]
->>>>>>> release
 //
 // <p>The fast version of this advertisement simply omits SERVICE_ID_HASH and
 //    the Bluetooth MAC address.
@@ -57,12 +50,6 @@ class BleAdvertisement {
   static constexpr int kServiceIdHashLength = 3;
   static constexpr int kEndpointIdLength = 4;
   static constexpr int kEndpointInfoSizeLength = 1;
-<<<<<<< HEAD
-  static constexpr int kEndpointInfoLengthBitmask = 0x0FF;
-  static constexpr int kMinAdvertisementLength =
-      kVersionAndPcpLength + kServiceIdHashLength + kEndpointIdLength +
-      kEndpointInfoSizeLength + BluetoothUtils::kBluetoothMacAddressLength;
-=======
   static constexpr int kBluetoothMacAddressLength =
       BluetoothUtils::kBluetoothMacAddressLength;
   static constexpr int kUwbAddressSizeLength = 1;
@@ -72,32 +59,18 @@ class BleAdvertisement {
   static constexpr int kMinAdvertisementLength =
       kVersionAndPcpLength + kServiceIdHashLength + kEndpointIdLength +
       kEndpointInfoSizeLength + kBluetoothMacAddressLength;
->>>>>>> release
 
   // The difference between normal and fast advertisements is that the fast one
   // omits the SERVICE_ID_HASH and Bluetooth MAC address. This is done to save
   // space.
-<<<<<<< HEAD
-  static constexpr int kMinFastAdvertisementLength =
-      kMinAdvertisementLength - kServiceIdHashLength -
-      BluetoothUtils::kBluetoothMacAddressLength;
-=======
   static constexpr int kMinFastAdvertisementLength = kMinAdvertisementLength -
                                                      kServiceIdHashLength -
                                                      kBluetoothMacAddressLength;
->>>>>>> release
   static constexpr int kMaxEndpointInfoLength = 131;
   static constexpr int kMaxFastEndpointInfoLength = 17;
 
   BleAdvertisement() = default;
   BleAdvertisement(Version version, Pcp pcp, const std::string& endpoint_id,
-<<<<<<< HEAD
-                   const ByteArray& endpoint_info);
-  BleAdvertisement(Version version, Pcp pcp, const ByteArray& service_id_hash,
-                   const std::string& endpoint_id,
-                   const ByteArray& endpoint_info,
-                   const std::string& bluetooth_mac_address);
-=======
                    const ByteArray& endpoint_info,
                    const ByteArray& uwb_address);
   BleAdvertisement(Version version, Pcp pcp, const ByteArray& service_id_hash,
@@ -106,7 +79,6 @@ class BleAdvertisement {
                    const std::string& bluetooth_mac_address,
                    const ByteArray& uwb_address,
                    WebRtcState web_rtc_state);
->>>>>>> release
   BleAdvertisement(bool fast_advertisement,
                    const ByteArray& ble_advertisement_bytes);
   BleAdvertisement(const BleAdvertisement&) = default;
@@ -125,41 +97,27 @@ class BleAdvertisement {
   std::string GetEndpointId() const { return endpoint_id_; }
   ByteArray GetEndpointInfo() const { return endpoint_info_; }
   std::string GetBluetoothMacAddress() const { return bluetooth_mac_address_; }
-<<<<<<< HEAD
-=======
   ByteArray GetUwbAddress() const { return uwb_address_; }
   WebRtcState GetWebRtcState() const { return web_rtc_state_; }
->>>>>>> release
 
  private:
   void DoInitialize(bool fast_advertisement, Version version, Pcp pcp,
                     const ByteArray& service_id_hash,
                     const std::string& endpoint_id,
                     const ByteArray& endpoint_info,
-<<<<<<< HEAD
-                    const std::string& bluetooth_mac_address);
-
-  bool fast_advertisement_ = false;
-  Version version_ = Version::kUndefined;
-  Pcp pcp_ = Pcp::kUnknown;
-=======
                     const std::string& bluetooth_mac_address,
                     const ByteArray& uwb_address, WebRtcState web_rtc_state);
 
   bool fast_advertisement_ = false;
   Version version_{Version::kUndefined};
   Pcp pcp_{Pcp::kUnknown};
->>>>>>> release
   ByteArray service_id_hash_;
   std::string endpoint_id_;
   ByteArray endpoint_info_;
   std::string bluetooth_mac_address_;
-<<<<<<< HEAD
-=======
   // TODO(b/169550050): Define UWB address field.
   ByteArray uwb_address_;
   WebRtcState web_rtc_state_{WebRtcState::kUndefined};
->>>>>>> release
 };
 
 }  // namespace connections

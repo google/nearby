@@ -84,8 +84,6 @@ Swapper<T> MakeSwapper(T* value) {
   return Swapper<T>(value);
 }
 
-<<<<<<< HEAD
-=======
 // Represents the WebRtc state that mediums are connectable or not.
 enum class WebRtcState {
   kUndefined = 0,
@@ -93,7 +91,6 @@ enum class WebRtcState {
   kUnconnectable = 2,
 };
 
->>>>>>> release
 // A base implementation of the PcpHandler interface that takes care of all
 // bookkeeping and handshake protocols that are common across all PcpHandler
 // implementations -- thus, every concrete PcpHandler implementation must extend
@@ -422,18 +419,11 @@ class BasePcpHandler : public PcpHandler,
   proto::connections::Medium ChooseBestUpgradeMedium(
       const std::vector<proto::connections::Medium>& supported_mediums);
 
-<<<<<<< HEAD
-  std::unique_ptr<BasePcpHandler::DiscoveredEndpoint>
-  GetRemoteBluetoothMacAddressEndpoint(
-      std::string endpoint_id, std::string remote_bluetooth_mac_address,
-      std::vector<DiscoveredEndpoint*> endpoints);
-=======
   // Returns true if the bluetooth endpoint based on remote bluetooth mac
   // address is created and added into discovered_endpoints_ with key
   // endpoint_id.
   bool AddRemoteBluetoothMacAddressEndpoint(
       std::string endpoint_id, std::string remote_bluetooth_mac_address);
->>>>>>> release
 
   void ProcessPreConnectionInitiationFailure(const std::string& endpoint_id,
                                              EndpointChannel* channel,

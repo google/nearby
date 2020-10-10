@@ -65,13 +65,9 @@ bool BleMedium::StartScanning(
                              &context.peripheral, &peripheral,
                              peripheral.GetName().c_str());
                   discovered_peripheral_callback_.peripheral_discovered_cb(
-<<<<<<< HEAD
-                      context.peripheral, service_id, fast_advertisement);
-=======
                       context.peripheral, service_id,
                       context.peripheral.GetAdvertisementBytes(service_id),
                       fast_advertisement);
->>>>>>> release
                 }
               },
           .peripheral_lost_cb =
