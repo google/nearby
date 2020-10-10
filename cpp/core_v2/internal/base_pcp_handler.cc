@@ -335,21 +335,6 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
       OnEndpointFound(client, webrtc_endpoint);
     }
 
-<<<<<<< HEAD
-    auto discovered_endpoints = GetDiscoveredEndpoints(endpoint_id);
-    std::unique_ptr<EndpointChannel> channel;
-    ConnectImplResult connect_impl_result;
-
-    auto remote_bluetooth_mac_address =
-        BluetoothUtils::ToString(options.remote_bluetooth_mac_address);
-    if (!remote_bluetooth_mac_address.empty()) {
-      auto additional_endpoint = GetRemoteBluetoothMacAddressEndpoint(
-          endpoint_id, remote_bluetooth_mac_address, discovered_endpoints);
-      if (additional_endpoint != nullptr)
-        discovered_endpoints.push_back(additional_endpoint.get());
-    }
-
-=======
     auto remote_bluetooth_mac_address =
         BluetoothUtils::ToString(options.remote_bluetooth_mac_address);
     if (!remote_bluetooth_mac_address.empty()) {
@@ -363,7 +348,6 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
     std::unique_ptr<EndpointChannel> channel;
     ConnectImplResult connect_impl_result;
 
->>>>>>> release
     for (auto connect_endpoint : discovered_endpoints) {
       connect_impl_result = ConnectImpl(client, connect_endpoint);
       if (connect_impl_result.status.Ok()) {
@@ -667,9 +651,6 @@ void BasePcpHandler::OnIncomingFrame(OfflineFrame& frame,
     const ConnectionResponseFrame& connection_response =
         frame.v1().connection_response();
 
-<<<<<<< HEAD
-    if (connection_response.status() == Status::kSuccess) {
-=======
     // For backward compatible, here still check both status and
     // response parameters until the response feature is roll out in all
     // supported devices.
@@ -681,7 +662,6 @@ void BasePcpHandler::OnIncomingFrame(OfflineFrame& frame,
       accepted = connection_response.status() == Status::kSuccess;
     }
     if (accepted) {
->>>>>>> release
       NEARBY_LOG(INFO, "OnConnectionResponse: remote accepted; id=%s",
                  endpoint_id.c_str());
       client->RemoteEndpointAcceptedConnection(endpoint_id);
@@ -1022,21 +1002,6 @@ proto::connections::Medium BasePcpHandler::ChooseBestUpgradeMedium(
   return proto::connections::Medium::UNKNOWN_MEDIUM;
 }
 
-<<<<<<< HEAD
-std::unique_ptr<BasePcpHandler::DiscoveredEndpoint>
-BasePcpHandler::GetRemoteBluetoothMacAddressEndpoint(
-    std::string endpoint_id, std::string remote_bluetooth_mac_address,
-    std::vector<DiscoveredEndpoint*> endpoints) {
-  if (!discovery_options_.allowed.bluetooth) {
-    return nullptr;
-  }
-
-  if (endpoints.empty()) {
-    NEARBY_LOGS(INFO)
-        << "Cannot append remote Bluetooth MAC Address, because endpointId "
-        << endpoint_id << " has not been discovered";
-    return nullptr;
-=======
 bool BasePcpHandler::AddRemoteBluetoothMacAddressEndpoint(
     std::string endpoint_id, std::string remote_bluetooth_mac_address) {
   if (!discovery_options_.allowed.bluetooth) {
@@ -1050,22 +1015,15 @@ bool BasePcpHandler::AddRemoteBluetoothMacAddressEndpoint(
                       << endpoint_id << " has not been discovered "
                       << "[" << remote_bluetooth_mac_address << "]";
     return false;
->>>>>>> release
   }
 
   for (auto endpoint : endpoints) {
     if (endpoint->medium == proto::connections::Medium::BLUETOOTH) {
       NEARBY_LOGS(INFO)
-<<<<<<< HEAD
-          << "Cannot append remote Bluetooth MAC Address, because the "
-             "endpoint has already been found over Bluetooth.";
-      return nullptr;
-=======
           << "Cannot append remote Bluetooth MAC Address endpoint, because the "
              "endpoint has already been found over Bluetooth "
           << "[" << remote_bluetooth_mac_address << "]";
       return false;
->>>>>>> release
     }
   }
 
@@ -1073,16 +1031,6 @@ bool BasePcpHandler::AddRemoteBluetoothMacAddressEndpoint(
       mediums_->GetBluetoothClassic().GetRemoteDevice(
           remote_bluetooth_mac_address);
   if (!remote_bluetooth_device.IsValid()) {
-<<<<<<< HEAD
-    NEARBY_LOGS(INFO)
-        << "Cannot append remote Bluetooth MAC Address, because a valid "
-           "Bluetooth device could not be derived.";
-    return nullptr;
-  }
-
-  auto bluetooth_endpoint =
-      std::make_unique<BluetoothEndpoint>(BluetoothEndpoint{
-=======
     NEARBY_LOGS(INFO) << "Cannot append remote Bluetooth MAC Address endpoint, "
                          "because a valid "
                          "Bluetooth device could not be derived "
@@ -1092,7 +1040,6 @@ bool BasePcpHandler::AddRemoteBluetoothMacAddressEndpoint(
 
   auto bluetooth_endpoint =
       std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
->>>>>>> release
           {
               endpoint_id,
               endpoints[0]->endpoint_info,
@@ -1101,15 +1048,9 @@ bool BasePcpHandler::AddRemoteBluetoothMacAddressEndpoint(
           },
           remote_bluetooth_device,
       });
-<<<<<<< HEAD
-  NEARBY_LOGS(INFO) << "Appended remote Bluetooth device "
-                    << remote_bluetooth_mac_address;
-  return bluetooth_endpoint;
-=======
 
   discovered_endpoints_.emplace(endpoint_id, std::move(bluetooth_endpoint));
   return true;
->>>>>>> release
 }
 
 void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,

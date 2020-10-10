@@ -18,12 +18,9 @@
 #include <string>
 #include <utility>
 
-<<<<<<< HEAD
-=======
 #include "core_v2/internal/mediums/ble_v2/ble_advertisement.h"
 #include "core_v2/internal/mediums/utils.h"
 #include "platform_v2/base/prng.h"
->>>>>>> release
 #include "platform_v2/public/logging.h"
 #include "platform_v2/public/mutex_lock.h"
 
@@ -31,8 +28,6 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-<<<<<<< HEAD
-=======
 ByteArray Ble::GenerateHash(const std::string& source, size_t size) {
   return Utils::Sha256Hash(source, size);
 }
@@ -42,7 +37,6 @@ ByteArray Ble::GenerateDeviceToken() {
                            mediums::BleAdvertisement::kDeviceTokenLength);
 }
 
->>>>>>> release
 Ble::Ble(BluetoothRadio& radio) : radio_(radio) {}
 
 bool Ble::IsAvailable() const {
@@ -95,9 +89,6 @@ bool Ble::StartAdvertising(const std::string& service_id,
                     << ", service id=" << service_id
                     << ", fast advertisement service uuid="
                     << fast_advertisement_service_uuid;
-<<<<<<< HEAD
-  if (!medium_.StartAdvertising(service_id, advertisement_bytes,
-=======
 
   // Wrap the connections advertisement to the medium advertisement.
   const bool fast_advertisement = !fast_advertisement_service_uuid.empty();
@@ -115,7 +106,6 @@ bool Ble::StartAdvertising(const std::string& service_id,
   }
 
   if (!medium_.StartAdvertising(service_id, medium_advertisement_bytes,
->>>>>>> release
                                 fast_advertisement_service_uuid)) {
     NEARBY_LOGS(INFO)
         << "Failed to turn on BLE advertising with advertisement bytes="
@@ -162,11 +152,8 @@ bool Ble::StartScanning(const std::string& service_id,
                         DiscoveredPeripheralCallback callback) {
   MutexLock lock(&mutex_);
 
-<<<<<<< HEAD
-=======
   discovered_peripheral_callback_ = std::move(callback);
 
->>>>>>> release
   if (service_id.empty()) {
     NEARBY_LOGS(INFO)
         << "Refusing to start BLE scanning with empty service id.";
@@ -191,10 +178,6 @@ bool Ble::StartScanning(const std::string& service_id,
     return false;
   }
 
-<<<<<<< HEAD
-  if (!medium_.StartScanning(service_id, fast_advertisement_service_uuid,
-                             callback)) {
-=======
   if (!medium_.StartScanning(
           service_id, fast_advertisement_service_uuid,
           {
@@ -218,7 +201,6 @@ bool Ble::StartScanning(const std::string& service_id,
                         peripheral, service_id);
                   },
           })) {
->>>>>>> release
     NEARBY_LOGS(INFO) << "Failed to start scan of BLE services.";
     return false;
   }
@@ -355,8 +337,6 @@ BleSocket Ble::Connect(BlePeripheral& peripheral,
   return socket;
 }
 
-<<<<<<< HEAD
-=======
 ByteArray Ble::UnwrapAdvertisementBytes(
     const ByteArray& medium_advertisement_data) {
   mediums::BleAdvertisement medium_ble_advertisement{medium_advertisement_data};
@@ -367,7 +347,6 @@ ByteArray Ble::UnwrapAdvertisementBytes(
   return medium_ble_advertisement.GetData();
 }
 
->>>>>>> release
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location

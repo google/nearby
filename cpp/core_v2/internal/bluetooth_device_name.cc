@@ -32,13 +32,9 @@ namespace connections {
 BluetoothDeviceName::BluetoothDeviceName(Version version, Pcp pcp,
                                          absl::string_view endpoint_id,
                                          const ByteArray& service_id_hash,
-<<<<<<< HEAD
-                                         const ByteArray& endpoint_info) {
-=======
                                          const ByteArray& endpoint_info,
                                          const ByteArray& uwb_address,
                                          WebRtcState web_rtc_state) {
->>>>>>> release
   if (version != Version::kV1 || endpoint_id.empty() ||
       endpoint_id.length() != kEndpointIdLength ||
       service_id_hash.size() != kServiceIdHashLength) {
@@ -58,11 +54,8 @@ BluetoothDeviceName::BluetoothDeviceName(Version version, Pcp pcp,
   endpoint_id_ = std::string(endpoint_id);
   service_id_hash_ = service_id_hash;
   endpoint_info_ = endpoint_info;
-<<<<<<< HEAD
-=======
   uwb_address_ = uwb_address;
   web_rtc_state_ = web_rtc_state;
->>>>>>> release
 }
 
 BluetoothDeviceName::BluetoothDeviceName(
@@ -78,18 +71,6 @@ BluetoothDeviceName::BluetoothDeviceName(
     return;
   }
 
-<<<<<<< HEAD
-  if (bluetooth_device_name_bytes.size() > kMaxBluetoothDeviceNameLength) {
-    NEARBY_LOG(INFO,
-               "Cannot deserialize BluetoothDeviceName: expecting max %d raw "
-               "bytes, got %" PRIu64,
-               kMaxBluetoothDeviceNameLength,
-               bluetooth_device_name_bytes.size());
-    return;
-  }
-
-=======
->>>>>>> release
   if (bluetooth_device_name_bytes.size() < kMinBluetoothDeviceNameLength) {
     NEARBY_LOG(INFO,
                "Cannot deserialize BluetoothDeviceName: expecting min %d raw "
@@ -131,13 +112,6 @@ BluetoothDeviceName::BluetoothDeviceName(
   // The next 3 bytes are supposed to be the service_id_hash.
   service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
 
-<<<<<<< HEAD
-  // The next 7 bytes are supposed to be reserved, and can be left
-  // untouched.
-  base_input_stream.ReadBytes(kReservedLength);
-
-  // The next 1 byte are supposed to be the length of the endpoint_info.
-=======
 
   // The next 1 byte is field containning WebRtc state.
   auto field_byte = static_cast<char>(base_input_stream.ReadUint8());
@@ -150,7 +124,6 @@ BluetoothDeviceName::BluetoothDeviceName(
   base_input_stream.ReadBytes(kReservedLength);
 
   // The next 1 byte is supposed to be the length of the endpoint_info.
->>>>>>> release
   std::uint32_t expected_endpoint_info_length = base_input_stream.ReadUint8();
 
   // The rest bytes are supposed to be the endpoint_info
@@ -166,8 +139,6 @@ BluetoothDeviceName::BluetoothDeviceName(
     endpoint_id_.clear();
     return;
   }
-<<<<<<< HEAD
-=======
 
   // If the input stream has extra bytes, it's for UWB address. The first byte
   // is the address length. It can be 2-byte short address or 8-byte extended
@@ -191,7 +162,6 @@ BluetoothDeviceName::BluetoothDeviceName(
       }
     }
   }
->>>>>>> release
 }
 
 BluetoothDeviceName::operator std::string() const {
@@ -206,15 +176,12 @@ BluetoothDeviceName::operator std::string() const {
   version_and_pcp_byte |=
       static_cast<char>(static_cast<uint32_t>(pcp_) & kPcpBitmask);
 
-<<<<<<< HEAD
-=======
   // A byte contains WebRtcState state.
   int web_rtc_connectable_flag =
       (web_rtc_state_ == WebRtcState::kConnectable) ? 1 : 0;
   char field_byte = static_cast<char>(web_rtc_connectable_flag) &
                     kWebRtcConnectableFlagBitmask;
 
->>>>>>> release
   ByteArray reserved_bytes{kReservedLength};
 
   ByteArray usable_endpoint_info(endpoint_info_);
@@ -231,24 +198,18 @@ BluetoothDeviceName::operator std::string() const {
   std::string out = absl::StrCat(std::string(1, version_and_pcp_byte),
                                  endpoint_id_,
                                  std::string(service_id_hash_),
-<<<<<<< HEAD
-=======
                                  std::string(1, field_byte),
->>>>>>> release
                                  std::string(reserved_bytes),
                                  std::string(1, usable_endpoint_info.size()),
                                  std::string(usable_endpoint_info));
   // clang-format on
 
-<<<<<<< HEAD
-=======
   // If UWB address is available, attach it at the end.
   if (!uwb_address_.Empty()) {
     absl::StrAppend(&out, std::string(1, uwb_address_.size()));
     absl::StrAppend(&out, std::string(uwb_address_));
   }
 
->>>>>>> release
   return Base64Utils::Encode(ByteArray{std::move(out)});
 }
 

@@ -34,12 +34,9 @@ class Future final {
   void AddListener(Runnable runnable, api::Executor* executor) {
     impl_->AddListener(std::move(runnable), executor);
   }
-<<<<<<< HEAD
-=======
   bool IsSet() const {
     return impl_->IsSet();
   }
->>>>>>> release
 
  private:
   // Instance of future implementation is wrapped in shared_ptr<> to make
