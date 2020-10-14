@@ -174,32 +174,35 @@ BleAdvertisement::BleAdvertisement(bool fast_advertisement,
         BluetoothUtils::ToString(bluetooth_mac_address_bytes);
   }
 
-  // The next 1 byte is supposed to be the length of the uwb_address.
-  std::uint32_t expected_uwb_address_length = base_input_stream.ReadUint8();
-  // If the length of uwb_address is not zero, then retrieve it.
-  if (expected_uwb_address_length != 0) {
-    uwb_address_ = base_input_stream.ReadBytes(expected_uwb_address_length);
-    if (uwb_address_.Empty() ||
-        uwb_address_.size() != expected_uwb_address_length) {
-      NEARBY_LOG(INFO,
-                 "Cannot deserialize BleAdvertisement: "
-                 "expected uwbAddress size to be %d bytes, got %" PRIu64,
-                 expected_uwb_address_length, uwb_address_.size());
+  // The next 1 byte is supposed to be the length of the uwb_address. If the
+  // next byte is not available then it should be a fast advertisement and skip
+  // it for remaining bytes.
+  if (base_input_stream.IsAvailable(1)) {
+    std::uint32_t expected_uwb_address_length = base_input_stream.ReadUint8();
+    // If the length of uwb_address is not zero, then retrieve it.
+    if (expected_uwb_address_length != 0) {
+      uwb_address_ = base_input_stream.ReadBytes(expected_uwb_address_length);
+      if (uwb_address_.Empty() ||
+          uwb_address_.size() != expected_uwb_address_length) {
+        NEARBY_LOG(INFO,
+                   "Cannot deserialize BleAdvertisement: "
+                   "expected uwbAddress size to be %d bytes, got %" PRIu64,
+                   expected_uwb_address_length, uwb_address_.size());
 
-      // Clear enpoint_id for validity.
-      endpoint_id_.clear();
-      return;
+        // Clear enpoint_id for validity.
+        endpoint_id_.clear();
+        return;
+      }
     }
-  }
 
-  // The next 1 byte is extra field.
-  web_rtc_state_ = WebRtcState::kUndefined;
-  if (!fast_advertisement_) {
-    if (base_input_stream.IsAvailable(kExtraFieldLength)) {
-      auto extra_field = static_cast<char>(base_input_stream.ReadUint8());
-      web_rtc_state_ = (extra_field & kWebRtcConnectableFlagBitmask) == 1
-                           ? WebRtcState::kConnectable
-                           : WebRtcState::kUnconnectable;
+    // The next 1 byte is extra field.
+    if (!fast_advertisement_) {
+      if (base_input_stream.IsAvailable(kExtraFieldLength)) {
+        auto extra_field = static_cast<char>(base_input_stream.ReadUint8());
+        web_rtc_state_ = (extra_field & kWebRtcConnectableFlagBitmask) == 1
+                             ? WebRtcState::kConnectable
+                             : WebRtcState::kUnconnectable;
+      }
     }
   }
 
@@ -247,7 +250,7 @@ BleAdvertisement::operator ByteArray() const {
   if (!uwb_address_.Empty()) {
     absl::StrAppend(&out, std::string(1, uwb_address_.size()));
     absl::StrAppend(&out, std::string(uwb_address_));
-  } else {
+  } else if (!fast_advertisement_) {
     // Write UWB address with length 0 to be able to read the next field when
     // decode.
     absl::StrAppend(&out, std::string(1, uwb_address_.size()));

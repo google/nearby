@@ -276,9 +276,9 @@ void BwuManager::OnBwuNegotiationFrame(ClientProxy* client,
 
 void BwuManager::OnIncomingConnection(
     ClientProxy* client,
-    BwuHandler::IncomingSocketConnection* mutable_connection) {
-  auto connection = std::make_shared<BwuHandler::IncomingSocketConnection>(
-      std::move(*mutable_connection));
+    std::unique_ptr<BwuHandler::IncomingSocketConnection> mutable_connection) {
+  std::shared_ptr<BwuHandler::IncomingSocketConnection> connection(
+      mutable_connection.release());
   RunOnBwuManagerThread([this, client, connection]() {
     EndpointChannel* channel = connection->channel.get();
     if (channel == nullptr) {

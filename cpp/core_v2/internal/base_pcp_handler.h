@@ -191,17 +191,20 @@ class BasePcpHandler : public PcpHandler,
   struct DiscoveredEndpoint {
     DiscoveredEndpoint(std::string endpoint_id, ByteArray endpoint_info,
                        std::string service_id,
-                       proto::connections::Medium medium)
+                       proto::connections::Medium medium,
+                       WebRtcState web_rtc_state)
         : endpoint_id(std::move(endpoint_id)),
           endpoint_info(std::move(endpoint_info)),
           service_id(std::move(service_id)),
-          medium(medium) {}
+          medium(medium),
+          web_rtc_state(web_rtc_state) {}
     virtual ~DiscoveredEndpoint() = default;
 
     std::string endpoint_id;
     ByteArray endpoint_info;
     std::string service_id;
     proto::connections::Medium medium;
+    WebRtcState web_rtc_state;
   };
 
   struct BluetoothEndpoint : public DiscoveredEndpoint {
@@ -420,10 +423,15 @@ class BasePcpHandler : public PcpHandler,
       const std::vector<proto::connections::Medium>& supported_mediums);
 
   // Returns true if the bluetooth endpoint based on remote bluetooth mac
-  // address is created and added into discovered_endpoints_ with key
+  // address is created and appended into discovered_endpoints_ with key
   // endpoint_id.
-  bool AddRemoteBluetoothMacAddressEndpoint(
-      std::string endpoint_id, std::string remote_bluetooth_mac_address);
+  bool AppendRemoteBluetoothMacAddressEndpoint(
+      const std::string& endpoint_id,
+      const std::string& remote_bluetooth_mac_address);
+
+  // Returns true if the webrtc endpoint is created and appended into
+  // discovered_endpoints_ with key endpoint_id.
+  bool AppendWebRTCEndpoint(const std::string& endpoint_id);
 
   void ProcessPreConnectionInitiationFailure(const std::string& endpoint_id,
                                              EndpointChannel* channel,
