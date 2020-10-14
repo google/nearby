@@ -136,7 +136,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   proto::connections::Medium StartBluetoothAdvertising(
       ClientProxy* client, const std::string& service_id,
       const ByteArray& service_id_hash, const std::string& local_endpoint_id,
-      const ByteArray& local_endpoint_info);
+      const ByteArray& local_endpoint_info, WebRtcState web_rtc_state);
   proto::connections::Medium StartBluetoothDiscovery(
       BluetoothDiscoveredDeviceCallback callback, ClientProxy* client,
       const std::string& service_id);
@@ -158,7 +158,8 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   proto::connections::Medium StartBleAdvertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
-      const ByteArray& local_endpoint_info, const ConnectionOptions& options);
+      const ByteArray& local_endpoint_info, const ConnectionOptions& options,
+      WebRtcState web_rtc_state);
   proto::connections::Medium StartBleScanning(
       BleDiscoveredPeripheralCallback callback, ClientProxy* client,
       const std::string& service_id,
@@ -178,7 +179,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   proto::connections::Medium StartWifiLanAdvertising(
       ClientProxy* client, const std::string& service_id,
       const ByteArray& service_id_hash, const std::string& local_endpoint_id,
-      const ByteArray& local_endpoint_info);
+      const ByteArray& local_endpoint_info, WebRtcState web_rtc_state);
   proto::connections::Medium StartWifiLanDiscovery(
       WifiLanDiscoveredServiceCallback callback, ClientProxy* client,
       const std::string& service_id);
