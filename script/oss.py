@@ -201,10 +201,12 @@ def post_process_oss_files(path, args):
             modified = True
 
       if modified:
-        os.chmod(fname, os.stat(fname).st_mode | stat.S_IWRITE)
+        old_mode = os.stat(fname).st_mode
+        os.chmod(fname, old_mode | stat.S_IWRITE)
         with open(fname, "w") as f:
           for line in lines:
             f.write(line)
+        os.chmod(fname, old_mode)
         modified_total += 1
     if args.no_recurse:
       break

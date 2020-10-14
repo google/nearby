@@ -324,6 +324,7 @@ class BasePcpHandlerTest
                   info.endpoint_info,
                   "service",
                   discovered_medium,
+                  WebRtcState::kUndefined,
               },
               MockContext{flag},
           }));

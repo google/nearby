@@ -62,7 +62,7 @@ class BwuHandler {
 
   struct BwuNotifications {
     std::function<void(ClientProxy* client,
-                       IncomingSocketConnection* connection)>
+                       std::unique_ptr<IncomingSocketConnection> connection)>
         incoming_connection_cb;
   };
 };
