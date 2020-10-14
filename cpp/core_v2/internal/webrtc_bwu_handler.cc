@@ -53,11 +53,13 @@ void WebrtcBwuHandler::OnIncomingWebrtcConnection(
     mediums::WebRtcSocketWrapper socket) {
   std::string service_id = Utils::UnwrapUpgradeServiceId(upgrade_service_id);
   auto channel = std::make_unique<WebRtcEndpointChannel>(service_id, socket);
-  IncomingSocketConnection connection{
-      std::make_unique<WebrtcIncomingSocket>(service_id, socket),
-      std::move(channel)};
+  auto webrtc_socket =
+      std::make_unique<WebrtcIncomingSocket>(service_id, socket);
+  std::unique_ptr<IncomingSocketConnection> connection(
+      new IncomingSocketConnection{std::move(webrtc_socket),
+                                   std::move(channel)});
 
-  bwu_notifications_.incoming_connection_cb(client, &connection);
+  bwu_notifications_.incoming_connection_cb(client, std::move(connection));
 }
 
 // Called by BWU initiator. BT Medium is set up, and BWU request is prepared,

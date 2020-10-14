@@ -15,6 +15,7 @@
 #ifndef CORE_V2_INTERNAL_BWU_MANAGER_H_
 #define CORE_V2_INTERNAL_BWU_MANAGER_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -121,8 +122,9 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // Common functionality to take an incoming connection and go through the
   // upgrade process. This is a callback, invoked by concrete handlers, once
   // connection is available.
-  void OnIncomingConnection(ClientProxy* client,
-                            BwuHandler::IncomingSocketConnection* connection);
+  void OnIncomingConnection(
+      ClientProxy* client,
+      std::unique_ptr<BwuHandler::IncomingSocketConnection> mutable_connection);
 
   void RunUpgradeProtocol(ClientProxy* client, const std::string& endpoint_id,
                           std::unique_ptr<EndpointChannel> new_channel);

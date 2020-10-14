@@ -91,19 +91,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
     const ConnectionOptions& options) {
   std::vector<proto::connections::Medium> mediums_started_successfully;
 
-  if (options.allowed.wifi_lan) {
-    const ByteArray wifi_lan_hash =
-        GenerateHash(service_id, WifiLanServiceInfo::kServiceIdHashLength);
-    proto::connections::Medium wifi_lan_medium =
-        StartWifiLanAdvertising(client, service_id, wifi_lan_hash,
-                                local_endpoint_id, local_endpoint_info);
-    if (wifi_lan_medium != proto::connections::UNKNOWN_MEDIUM) {
-      NEARBY_LOG(INFO,
-                 "P2pClusterPcpHandler::StartAdvertisingImpl: WifiLan added");
-      mediums_started_successfully.push_back(wifi_lan_medium);
-    }
-  }
-
+  WebRtcState web_rtc_state{WebRtcState::kUnconnectable};
   if (options.allowed.web_rtc) {
     proto::connections::Medium webrtc_medium =
         StartListeningForWebRtcConnections(
@@ -112,15 +100,29 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
       NEARBY_LOG(INFO,
                  "P2pClusterPcpHandler::StartAdvertisingImpl: WebRtc added");
       mediums_started_successfully.push_back(webrtc_medium);
+      web_rtc_state = WebRtcState::kConnectable;
+    }
+  }
+
+  if (options.allowed.wifi_lan) {
+    const ByteArray wifi_lan_hash =
+        GenerateHash(service_id, WifiLanServiceInfo::kServiceIdHashLength);
+    proto::connections::Medium wifi_lan_medium = StartWifiLanAdvertising(
+        client, service_id, wifi_lan_hash, local_endpoint_id,
+        local_endpoint_info, web_rtc_state);
+    if (wifi_lan_medium != proto::connections::UNKNOWN_MEDIUM) {
+      NEARBY_LOG(INFO,
+                 "P2pClusterPcpHandler::StartAdvertisingImpl: WifiLan added");
+      mediums_started_successfully.push_back(wifi_lan_medium);
     }
   }
 
   if (options.allowed.bluetooth) {
     const ByteArray bluetooth_hash =
         GenerateHash(service_id, BluetoothDeviceName::kServiceIdHashLength);
-    proto::connections::Medium bluetooth_medium =
-        StartBluetoothAdvertising(client, service_id, bluetooth_hash,
-                                  local_endpoint_id, local_endpoint_info);
+    proto::connections::Medium bluetooth_medium = StartBluetoothAdvertising(
+        client, service_id, bluetooth_hash, local_endpoint_id,
+        local_endpoint_info, web_rtc_state);
     if (bluetooth_medium != proto::connections::UNKNOWN_MEDIUM) {
       NEARBY_LOG(INFO, "P2pClusterPcpHandler::StartAdvertisingImpl: BT added");
       mediums_started_successfully.push_back(bluetooth_medium);
@@ -128,8 +130,9 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
   }
 
   if (options.allowed.ble) {
-    proto::connections::Medium ble_medium = StartBleAdvertising(
-        client, service_id, local_endpoint_id, local_endpoint_info, options);
+    proto::connections::Medium ble_medium =
+        StartBleAdvertising(client, service_id, local_endpoint_id,
+                            local_endpoint_info, options, web_rtc_state);
     if (ble_medium != proto::connections::UNKNOWN_MEDIUM) {
       NEARBY_LOG(INFO, "P2pClusterPcpHandler::StartAdvertisingImpl: Ble added");
       mediums_started_successfully.push_back(ble_medium);
@@ -236,6 +239,7 @@ void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
                             device_name.GetEndpointInfo(),
                             service_id,
                             proto::connections::Medium::BLUETOOTH,
+                            device_name.GetWebRtcState()
                         },
                         device,
                     }));
@@ -275,6 +279,7 @@ void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
                                device_name.GetEndpointInfo(),
                                service_id,
                                proto::connections::Medium::BLUETOOTH,
+                               WebRtcState::kUndefined
                            });
   });
 }
@@ -367,6 +372,7 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
                                     advertisement.GetEndpointInfo(),
                                     service_id,
                                     proto::connections::Medium::BLE,
+                                    advertisement.GetWebRtcState()
                                 },
                                 peripheral,
                             }));
@@ -396,6 +402,7 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
                             advertisement.GetEndpointInfo(),
                             service_id,
                             proto::connections::Medium::BLUETOOTH,
+                            advertisement.GetWebRtcState(),
                         },
                         remote_bluetooth_device,
                     }));
@@ -435,6 +442,7 @@ void P2pClusterPcpHandler::BlePeripheralLostHandler(
                                  ble_endpoint_state.endpoint_info,
                                  service_id,
                                  proto::connections::Medium::BLE,
+                                 WebRtcState::kUndefined,
                              });
     }
   });
@@ -509,6 +517,7 @@ void P2pClusterPcpHandler::WifiLanServiceDiscoveredHandler(
                                     service_info.GetEndpointInfo(),
                                     service_id,
                                     proto::connections::Medium::WIFI_LAN,
+                                    service_info.GetWebRtcState(),
                                 },
                                 service,
                             }));
@@ -550,6 +559,7 @@ void P2pClusterPcpHandler::WifiLanServiceLostHandler(
                                service_info.GetEndpointInfo(),
                                service_id,
                                proto::connections::Medium::WIFI_LAN,
+                               WebRtcState::kUndefined,
                            });
   });
 }
@@ -680,7 +690,7 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::ConnectImpl(
 proto::connections::Medium P2pClusterPcpHandler::StartBluetoothAdvertising(
     ClientProxy* client, const std::string& service_id,
     const ByteArray& service_id_hash, const std::string& local_endpoint_id,
-    const ByteArray& local_endpoint_info) {
+    const ByteArray& local_endpoint_info, WebRtcState web_rtc_state) {
   // Start listening for connections before advertising in case a connection
   // request comes in very quickly.
   NEARBY_LOG(
@@ -732,10 +742,9 @@ proto::connections::Medium P2pClusterPcpHandler::StartBluetoothAdvertising(
              absl::BytesToHexString(local_endpoint_info.data()).c_str());
   // Generate a BluetoothDeviceName with which to become Bluetooth discoverable.
   // TODO(b/169550050): Implement UWBAddress.
-  // TODO(b/169303359): Implement WebRtcState.
   std::string device_name(BluetoothDeviceName(
       kBluetoothDeviceNameVersion, GetPcp(), local_endpoint_id, service_id_hash,
-      local_endpoint_info, ByteArray{}, WebRtcState::kUnconnectable));
+      local_endpoint_info, ByteArray{}, web_rtc_state));
   if (device_name.empty()) {
     NEARBY_LOG(INFO,
                "P2pClusterPcpHandler::StartBluetoothAdvertising: generate "
@@ -811,7 +820,7 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
 proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
     ClientProxy* client, const std::string& service_id,
     const std::string& local_endpoint_id, const ByteArray& local_endpoint_info,
-    const ConnectionOptions& options) {
+    const ConnectionOptions& options, WebRtcState web_rtc_state) {
   bool fast_advertisement = !options.fast_advertisement_service_uuid.empty();
   PowerLevel power_level =
       options.low_power ? PowerLevel::kLowPower : PowerLevel::kHighPower;
@@ -919,11 +928,10 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
         ShouldAdvertiseBluetoothMacOverBle(power_level))
       bluetooth_mac_address = bluetooth_medium_.GetMacAddress();
 
-    // TODO(b/169303359): Implement WebRtcState.
-    advertisement_bytes = ByteArray(BleAdvertisement(
-        kBleAdvertisementVersion, GetPcp(), service_id_hash, local_endpoint_id,
-        local_endpoint_info, bluetooth_mac_address, ByteArray{},
-        WebRtcState::kUnconnectable));
+    advertisement_bytes = ByteArray(
+        BleAdvertisement(kBleAdvertisementVersion, GetPcp(), service_id_hash,
+                         local_endpoint_id, local_endpoint_info,
+                         bluetooth_mac_address, ByteArray{}, web_rtc_state));
   }
   if (advertisement_bytes.Empty()) {
     NEARBY_LOG(INFO,
@@ -993,7 +1001,7 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
 proto::connections::Medium P2pClusterPcpHandler::StartWifiLanAdvertising(
     ClientProxy* client, const std::string& service_id,
     const ByteArray& service_id_hash, const std::string& local_endpoint_id,
-    const ByteArray& local_endpoint_info) {
+    const ByteArray& local_endpoint_info, WebRtcState web_rtc_state) {
   // Start listening for connections before advertising in case a connection
   // request comes in very quickly.
   NEARBY_LOG(INFO,
@@ -1045,10 +1053,9 @@ proto::connections::Medium P2pClusterPcpHandler::StartWifiLanAdvertising(
              absl::BytesToHexString(local_endpoint_info.data()).c_str());
   // Generate a WifiLanServiceInfo with which to become WifiLan discoverable.
   // TODO(b/169550050): Implement UWBAddress.
-  // TODO(b/169303359): Implement WebRtcState.
   std::string service_info_name(WifiLanServiceInfo(
       kWifiLanServiceInfoVersion, GetPcp(), local_endpoint_id, service_id_hash,
-      local_endpoint_info, ByteArray{}, WebRtcState::kUnconnectable));
+      local_endpoint_info, ByteArray{}, web_rtc_state));
   if (service_info_name.empty()) {
     NEARBY_LOG(INFO,
                "P2pClusterPcpHandler::StartWifiLanAdvertising: generate "
