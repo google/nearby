@@ -707,7 +707,7 @@ Medium BwuManager::ChooseBestUpgradeMedium(const std::vector<Medium>& mediums) {
     // switch.
     NEARBY_LOG(
         INFO,
-        "Current upgrade medium %s is not supported by the remote endpoint",
+        "Current upgrade medium %d is not supported by the remote endpoint",
         medium_);
   }
 
