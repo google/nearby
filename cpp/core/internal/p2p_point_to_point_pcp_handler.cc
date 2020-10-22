@@ -18,56 +18,44 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-template <typename Platform>
-P2PPointToPointPCPHandler<Platform>::P2PPointToPointPCPHandler(
-    Ptr<MediumManager<Platform> > medium_manager,
-    Ptr<EndpointManager<Platform> > endpoint_manager,
-    Ptr<EndpointChannelManager> endpoint_channel_manager,
-    Ptr<BandwidthUpgradeManager> bandwidth_upgrade_manager)
-    : P2PStarPCPHandler<Platform>(medium_manager, endpoint_manager,
-                                  endpoint_channel_manager,
-                                  bandwidth_upgrade_manager),
-      medium_manager_(medium_manager) {}
+P2pPointToPointPcpHandler::P2pPointToPointPcpHandler(
+    Mediums& mediums, EndpointManager& endpoint_manager,
+    EndpointChannelManager& channel_manager, BwuManager& bwu_manager, Pcp pcp)
+    : P2pStarPcpHandler(mediums, endpoint_manager, channel_manager, bwu_manager,
+                        pcp) {}
 
-template <typename Platform>
-Strategy P2PPointToPointPCPHandler<Platform>::getStrategy() {
-  return Strategy::kP2PPointToPoint;
-}
-
-template <typename Platform>
-PCP::Value P2PPointToPointPCPHandler<Platform>::getPCP() {
-  return PCP::P2P_POINT_TO_POINT;
-}
-
-template <typename Platform>
 std::vector<proto::connections::Medium>
-P2PPointToPointPCPHandler<Platform>::getConnectionMediumsByPriority() {
+P2pPointToPointPcpHandler::GetConnectionMediumsByPriority() {
   std::vector<proto::connections::Medium> mediums;
-  if (medium_manager_->isBluetoothAvailable()) {
+  if (mediums_->GetWifiLan().IsAvailable()) {
+    mediums.push_back(proto::connections::WIFI_LAN);
+  }
+  if (mediums_->GetWebRtc().IsAvailable()) {
+    mediums.push_back(proto::connections::WEB_RTC);
+  }
+  if (mediums_->GetBluetoothClassic().IsAvailable()) {
     mediums.push_back(proto::connections::BLUETOOTH);
   }
-  if (medium_manager_->isBleAvailable()) {
+  if (mediums_->GetBle().IsAvailable()) {
     mediums.push_back(proto::connections::BLE);
   }
   return mediums;
 }
 
-template <typename Platform>
-bool P2PPointToPointPCPHandler<Platform>::canSendOutgoingConnection(
-    Ptr<ClientProxy<Platform> > client_proxy) {
+bool P2pPointToPointPcpHandler::CanSendOutgoingConnection(
+    ClientProxy* client) const {
   // For point to point, we can only send an outgoing connection while we have
   // no other connections.
-  return !this->hasOutgoingConnections(client_proxy) &&
-      !this->hasIncomingConnections(client_proxy);
+  return !this->HasOutgoingConnections(client) &&
+         !this->HasIncomingConnections(client);
 }
 
-template <typename Platform>
-bool P2PPointToPointPCPHandler<Platform>::canReceiveIncomingConnection(
-    Ptr<ClientProxy<Platform> > client_proxy) {
+bool P2pPointToPointPcpHandler::CanReceiveIncomingConnection(
+    ClientProxy* client) const {
   // For point to point, we can only receive an incoming connection while we
   // have no other connections.
-  return !this->hasOutgoingConnections(client_proxy) &&
-      !this->hasIncomingConnections(client_proxy);
+  return !this->HasOutgoingConnections(client) &&
+         !this->HasIncomingConnections(client);
 }
 
 }  // namespace connections

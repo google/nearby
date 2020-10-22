@@ -14,118 +14,102 @@
 
 #include "core/internal/mediums/bluetooth_radio.h"
 
-#include "platform/exception.h"
+#include "platform/base/exception.h"
+#include "platform/public/logging.h"
+#include "platform/public/system_clock.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-template <typename Platform>
-std::int64_t BluetoothRadio<Platform>::kPauseBetweenToggleDurationMillis = 3000;
+constexpr absl::Duration BluetoothRadio::kPauseBetweenToggle;
 
-template <typename Platform>
-BluetoothRadio<Platform>::BluetoothRadio()
-    : bluetooth_adapter_(Platform::createBluetoothAdapter()),
-      thread_utils_(Platform::createThreadUtils()),
-      originally_enabled_() {
-  if (bluetooth_adapter_.isNull()) {
-    // TODO(reznor): log.atSevere().log("Failed to retrieve default
-    // BluetoothAdapter, Bluetooth is unsupported.");
+BluetoothRadio::BluetoothRadio() {
+  if (!IsAdapterValid()) {
+    NEARBY_LOG(ERROR, "Bluetooth adapter is not valid: BT is not supported");
   }
 }
 
-template <typename Platform>
-BluetoothRadio<Platform>::~BluetoothRadio() {
+BluetoothRadio::~BluetoothRadio() {
   // We never enabled Bluetooth, nothing to do.
-  if (originally_enabled_.isNull()) {
+  if (!ever_saved_state_.Get()) {
+    NEARBY_LOG(INFO, "BT adapter was not used. Not touching HW.");
     return;
   }
-
-  // Make sure we cleanup the one non-ScopedPtr member before we leave the
-  // destructor.
-  ScopedPtr<Ptr<AtomicBoolean> > scoped_originally_enabled(originally_enabled_);
 
   // Toggle Bluetooth regardless of our original state. Some devices/chips can
   // start to freak out after some time (e.g. b/37775337), and this helps to
   // ensure BT resets properly.
-  toggle();
+  NEARBY_LOG(INFO, "Toggle BT adapter state before releasing adapter.");
+  Toggle();
 
-  if (!setBluetoothState(originally_enabled_->get())) {
-    // TODO(reznor): log.atWarning().log("Failed to turn Bluetooth back to its
-    // original state.");
+  NEARBY_LOG(INFO, "Bring BT adapter to original state");
+  if (!SetBluetoothState(originally_enabled_.Get())) {
+    NEARBY_LOG(INFO, "Failed to restore BT adapter original state.");
   }
 }
 
-template <typename Platform>
-bool BluetoothRadio<Platform>::enable() {
-  if (!saveOriginalState()) {
+bool BluetoothRadio::Enable() {
+  if (!SaveOriginalState()) {
     return false;
   }
 
-  return setBluetoothState(true);
+  return SetBluetoothState(true);
 }
 
-template <typename Platform>
-bool BluetoothRadio<Platform>::disable() {
-  if (!saveOriginalState()) {
+bool BluetoothRadio::Disable() {
+  if (!SaveOriginalState()) {
     return false;
   }
 
-  return setBluetoothState(false);
+  return SetBluetoothState(false);
 }
 
-template <typename Platform>
-bool BluetoothRadio<Platform>::isEnabled() {
-  return !bluetooth_adapter_.isNull() && isInDesiredState(true);
+bool BluetoothRadio::IsEnabled() const {
+  return IsAdapterValid() && IsInDesiredState(true);
 }
 
-template <typename Platform>
-void BluetoothRadio<Platform>::toggle() {
-  if (!saveOriginalState()) {
-    return;
+bool BluetoothRadio::Toggle() {
+  if (!SaveOriginalState()) {
+    return false;
   }
 
-  if (!setBluetoothState(false)) {
-    // TODO(reznor): log.atWarning().log("Failed to turn Bluetooth off while
-    // toggling state.");
+  if (!SetBluetoothState(false)) {
+    NEARBY_LOG(INFO, "BT Toggle: Failed to turn BT off.");
+    return false;
   }
 
-  if (Exception::INTERRUPTED ==
-      thread_utils_->sleep(kPauseBetweenToggleDurationMillis)) {
-    // TODO(reznor): log.atSevere().withCause(e).log("Interrupted while waiting
-    // in between a Bluetooth toggle.");
-    return;
+  if (SystemClock::Sleep(kPauseBetweenToggle).Raised(Exception::kInterrupted)) {
+    NEARBY_LOG(INFO, "BT Toggle: interrupted before turing on.");
+    return false;
   }
 
-  if (!setBluetoothState(true)) {
-    // TODO(reznor): log.atWarning().log("Failed to turn Bluetooth on while
-    // toggling state.");
+  if (!SetBluetoothState(true)) {
+    NEARBY_LOG(INFO, "BT Toggle: Failed to turn BT on.");
+    return false;
   }
+
+  return true;
 }
 
-template <typename Platform>
-bool BluetoothRadio<Platform>::setBluetoothState(bool enable) {
-  return bluetooth_adapter_->setStatus(
-      enable ? BluetoothAdapter::Status::ENABLED
-             : BluetoothAdapter::Status::DISABLED);
+bool BluetoothRadio::SetBluetoothState(bool enable) {
+  return bluetooth_adapter_.SetStatus(
+      enable ? BluetoothAdapter::Status::kEnabled
+             : BluetoothAdapter::Status::kDisabled);
 }
 
-template <typename Platform>
-bool BluetoothRadio<Platform>::isInDesiredState(bool should_be_enabled) const {
-  return ((should_be_enabled && bluetooth_adapter_->isEnabled()) ||
-          (!should_be_enabled && !bluetooth_adapter_->isEnabled()));
+bool BluetoothRadio::IsInDesiredState(bool should_be_enabled) const {
+  return bluetooth_adapter_.IsEnabled() == should_be_enabled;
 }
 
-template <typename Platform>
-bool BluetoothRadio<Platform>::saveOriginalState() {
-  if (bluetooth_adapter_.isNull()) {
+bool BluetoothRadio::SaveOriginalState() {
+  if (!IsAdapterValid()) {
     return false;
   }
 
   // If we haven't saved the original state of the radio, save it.
-  if (originally_enabled_.isNull()) {
-    originally_enabled_ =
-        Platform::createAtomicBoolean(bluetooth_adapter_->isEnabled());
+  if (!ever_saved_state_.Set(true)) {
+    originally_enabled_.Set(bluetooth_adapter_.IsEnabled());
   }
 
   return true;

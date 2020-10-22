@@ -18,16 +18,14 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-InternalPayload::InternalPayload(ConstPtr<Payload> payload)
-    : payload_(payload), payload_id_(payload_->getId()) {}
+InternalPayload::InternalPayload(Payload payload)
+    : payload_(std::move(payload)), payload_id_(payload_.GetId()) {}
 
-InternalPayload::~InternalPayload() {}
-
-ConstPtr<Payload> InternalPayload::releasePayload() {
-  return payload_.release();
+Payload InternalPayload::ReleasePayload() {
+  return std::move(payload_);
 }
 
-std::int64_t InternalPayload::getId() const { return payload_id_; }
+Payload::Id InternalPayload::GetId() const { return payload_id_; }
 
 }  // namespace connections
 }  // namespace nearby

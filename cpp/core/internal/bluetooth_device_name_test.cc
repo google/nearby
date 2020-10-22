@@ -15,9 +15,9 @@
 #include "core/internal/bluetooth_device_name.h"
 
 #include <cstring>
+#include <memory>
 
-#include "platform/base64_utils.h"
-#include "platform/port/string.h"
+#include "platform/base/base64_utils.h"
 #include "gtest/gtest.h"
 
 namespace location {
@@ -25,185 +25,216 @@ namespace nearby {
 namespace connections {
 namespace {
 
-const BluetoothDeviceName::Version::Value version =
-    BluetoothDeviceName::Version::V1;
-const PCP::Value pcp = PCP::P2P_CLUSTER;
-const char endpoint_id[] = "AB12";
-const char service_id_hash_bytes[] = {0x0A, 0x0B, 0x0C};
-const char endpoint_name[] = "RAWK + ROWL!";
+constexpr BluetoothDeviceName::Version kVersion =
+    BluetoothDeviceName::Version::kV1;
+constexpr Pcp kPcp = Pcp::kP2pCluster;
+constexpr absl::string_view kEndPointID{"AB12"};
+constexpr absl::string_view kServiceIDHashBytes{"\x0a\x0b\x0c"};
+constexpr absl::string_view kEndPointName{"RAWK + ROWL!"};
+constexpr WebRtcState kWebRtcState = WebRtcState::kConnectable;
 
-TEST(BluetoothDeviceNameTest, SerializationDeserializationWorks) {
-  ScopedPtr<Ptr<ByteArray> > scoped_service_id_hash(new ByteArray(
-      service_id_hash_bytes, sizeof(service_id_hash_bytes) / sizeof(char)));
+// TODO(b/169550050): Implement UWBAddress.
+TEST(BluetoothDeviceNameTest, ConstructionWorks) {
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
+  BluetoothDeviceName bluetooth_device_name{kVersion,
+                                            kPcp,
+                                            kEndPointID,
+                                            service_id_hash,
+                                            endpoint_info,
+                                            ByteArray{},
+                                            kWebRtcState};
 
-  std::string bluetooth_device_name_string = BluetoothDeviceName::asString(
-      version, pcp, endpoint_id, ConstifyPtr(scoped_service_id_hash.get()),
-      endpoint_name);
-  ScopedPtr<Ptr<BluetoothDeviceName> > scoped_bluetooth_device_name(
-      BluetoothDeviceName::fromString(bluetooth_device_name_string));
-
-  ASSERT_EQ(pcp, scoped_bluetooth_device_name->getPCP());
-  ASSERT_EQ(version, scoped_bluetooth_device_name->getVersion());
-  ASSERT_EQ(endpoint_id, scoped_bluetooth_device_name->getEndpointId());
-  ASSERT_EQ(sizeof(service_id_hash_bytes) / sizeof(char),
-            scoped_bluetooth_device_name->getServiceIdHash()->size());
-  ASSERT_EQ(0,
-            memcmp(service_id_hash_bytes,
-                   scoped_bluetooth_device_name->getServiceIdHash()->getData(),
-                   scoped_bluetooth_device_name->getServiceIdHash()->size()));
-  ASSERT_EQ(endpoint_name, scoped_bluetooth_device_name->getEndpointName());
+  EXPECT_TRUE(bluetooth_device_name.IsValid());
+  EXPECT_EQ(kVersion, bluetooth_device_name.GetVersion());
+  EXPECT_EQ(kPcp, bluetooth_device_name.GetPcp());
+  EXPECT_EQ(kEndPointID, bluetooth_device_name.GetEndpointId());
+  EXPECT_EQ(service_id_hash, bluetooth_device_name.GetServiceIdHash());
+  EXPECT_EQ(endpoint_info, bluetooth_device_name.GetEndpointInfo());
+  EXPECT_EQ(kWebRtcState, bluetooth_device_name.GetWebRtcState());
 }
 
-TEST(BluetoothDeviceNameTest,
-     SerializationDeserializationWorksWithEmptyEndpointName) {
-  std::string empty_endpoint_name;
+TEST(BluetoothDeviceNameTest, ConstructionWorksWithEmptyEndpointName) {
+  ByteArray empty_endpoint_info;
 
-  ScopedPtr<Ptr<ByteArray> > scoped_service_id_hash(new ByteArray(
-      service_id_hash_bytes, sizeof(service_id_hash_bytes) / sizeof(char)));
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  BluetoothDeviceName bluetooth_device_name{kVersion,
+                                            kPcp,
+                                            kEndPointID,
+                                            service_id_hash,
+                                            empty_endpoint_info,
+                                            ByteArray{},
+                                            kWebRtcState};
 
-  std::string bluetooth_device_name_string = BluetoothDeviceName::asString(
-      version, pcp, endpoint_id, ConstifyPtr(scoped_service_id_hash.get()),
-      empty_endpoint_name);
-  ScopedPtr<Ptr<BluetoothDeviceName> > scoped_bluetooth_device_name(
-      BluetoothDeviceName::fromString(bluetooth_device_name_string));
-
-  ASSERT_EQ(pcp, scoped_bluetooth_device_name->getPCP());
-  ASSERT_EQ(version, scoped_bluetooth_device_name->getVersion());
-  ASSERT_EQ(endpoint_id, scoped_bluetooth_device_name->getEndpointId());
-  ASSERT_EQ(sizeof(service_id_hash_bytes) / sizeof(char),
-            scoped_bluetooth_device_name->getServiceIdHash()->size());
-  ASSERT_EQ(0,
-            memcmp(service_id_hash_bytes,
-                   scoped_bluetooth_device_name->getServiceIdHash()->getData(),
-                   scoped_bluetooth_device_name->getServiceIdHash()->size()));
-  ASSERT_EQ(empty_endpoint_name,
-            scoped_bluetooth_device_name->getEndpointName());
+  EXPECT_TRUE(bluetooth_device_name.IsValid());
+  EXPECT_EQ(kVersion, bluetooth_device_name.GetVersion());
+  EXPECT_EQ(kPcp, bluetooth_device_name.GetPcp());
+  EXPECT_EQ(kEndPointID, bluetooth_device_name.GetEndpointId());
+  EXPECT_EQ(service_id_hash, bluetooth_device_name.GetServiceIdHash());
+  EXPECT_EQ(empty_endpoint_info, bluetooth_device_name.GetEndpointInfo());
+  EXPECT_EQ(kWebRtcState, bluetooth_device_name.GetWebRtcState());
 }
 
-TEST(BluetoothDeviceNameTest, SerializationFailsWithBadVersion) {
-  BluetoothDeviceName::Version::Value bad_version =
-      static_cast<BluetoothDeviceName::Version::Value>(666);
+TEST(BluetoothDeviceNameTest, ConstructionFailsWithBadVersion) {
+  auto bad_version = static_cast<BluetoothDeviceName::Version>(666);
 
-  ScopedPtr<Ptr<ByteArray> > scoped_service_id_hash(new ByteArray(
-      service_id_hash_bytes, sizeof(service_id_hash_bytes) / sizeof(char)));
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
+  BluetoothDeviceName bluetooth_device_name{bad_version,
+                                            kPcp,
+                                            kEndPointID,
+                                            service_id_hash,
+                                            endpoint_info,
+                                            ByteArray{},
+                                            kWebRtcState};
 
-  std::string bluetooth_device_name_string = BluetoothDeviceName::asString(
-      bad_version, pcp, endpoint_id, ConstifyPtr(scoped_service_id_hash.get()),
-      endpoint_name);
-
-  ASSERT_TRUE(bluetooth_device_name_string.empty());
+  EXPECT_FALSE(bluetooth_device_name.IsValid());
 }
 
-TEST(BluetoothDeviceNameTest, SerializationFailsWithBadPCP) {
-  PCP::Value bad_pcp = static_cast<PCP::Value>(666);
+TEST(BluetoothDeviceNameTest, ConstructionFailsWithBadPcp) {
+  auto bad_pcp = static_cast<Pcp>(666);
 
-  ScopedPtr<Ptr<ByteArray> > scoped_service_id_hash(new ByteArray(
-      service_id_hash_bytes, sizeof(service_id_hash_bytes) / sizeof(char)));
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
+  BluetoothDeviceName bluetooth_device_name{kVersion,
+                                            bad_pcp,
+                                            kEndPointID,
+                                            service_id_hash,
+                                            endpoint_info,
+                                            ByteArray{},
+                                            kWebRtcState};
 
-  std::string bluetooth_device_name_string = BluetoothDeviceName::asString(
-      version, bad_pcp, endpoint_id, ConstifyPtr(scoped_service_id_hash.get()),
-      endpoint_name);
-
-  ASSERT_TRUE(bluetooth_device_name_string.empty());
+  EXPECT_FALSE(bluetooth_device_name.IsValid());
 }
 
-TEST(BluetoothDeviceNameTest, SerializationFailsWithShortEndpointId) {
+TEST(BluetoothDeviceNameTest, ConstructionFailsWithShortEndpointId) {
   std::string short_endpoint_id("AB1");
 
-  ScopedPtr<Ptr<ByteArray> > scoped_service_id_hash(new ByteArray(
-      service_id_hash_bytes, sizeof(service_id_hash_bytes) / sizeof(char)));
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
+  BluetoothDeviceName bluetooth_device_name{kVersion,
+                                            kPcp,
+                                            short_endpoint_id,
+                                            service_id_hash,
+                                            endpoint_info,
+                                            ByteArray{},
+                                            kWebRtcState};
 
-  std::string bluetooth_device_name_string = BluetoothDeviceName::asString(
-      version, pcp, short_endpoint_id,
-      ConstifyPtr(scoped_service_id_hash.get()), endpoint_name);
-
-  ASSERT_TRUE(bluetooth_device_name_string.empty());
+  EXPECT_FALSE(bluetooth_device_name.IsValid());
 }
 
-TEST(BluetoothDeviceNameTest, SerializationFailsWithLongEndpointId) {
+TEST(BluetoothDeviceNameTest, ConstructionFailsWithLongEndpointId) {
   std::string long_endpoint_id("AB12X");
 
-  ScopedPtr<Ptr<ByteArray> > scoped_service_id_hash(new ByteArray(
-      service_id_hash_bytes, sizeof(service_id_hash_bytes) / sizeof(char)));
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
+  BluetoothDeviceName bluetooth_device_name{kVersion,
+                                            kPcp,
+                                            long_endpoint_id,
+                                            service_id_hash,
+                                            endpoint_info,
+                                            ByteArray{},
+                                            kWebRtcState};
 
-  std::string bluetooth_device_name_string = BluetoothDeviceName::asString(
-      version, pcp, long_endpoint_id, ConstifyPtr(scoped_service_id_hash.get()),
-      endpoint_name);
-
-  ASSERT_TRUE(bluetooth_device_name_string.empty());
+  EXPECT_FALSE(bluetooth_device_name.IsValid());
 }
 
-TEST(BluetoothDeviceNameTest, SerializationFailsWithShortServiceIdHash) {
-  char short_service_id_hash_bytes[] = {0x0A, 0x0B};
+TEST(BluetoothDeviceNameTest, ConstructionFailsWithShortServiceIdHash) {
+  char short_service_id_hash_bytes[] = "\x0a\x0b";
 
-  ScopedPtr<Ptr<ByteArray> > scoped_short_service_id_hash(
-      new ByteArray(short_service_id_hash_bytes,
-                    sizeof(short_service_id_hash_bytes) / sizeof(char)));
+  ByteArray short_service_id_hash{short_service_id_hash_bytes};
+  ByteArray endpoint_info{std::string(kEndPointName)};
+  BluetoothDeviceName bluetooth_device_name{kVersion,
+                                            kPcp,
+                                            kEndPointID,
+                                            short_service_id_hash,
+                                            endpoint_info,
+                                            ByteArray{},
+                                            kWebRtcState};
 
-  std::string bluetooth_device_name_string = BluetoothDeviceName::asString(
-      version, pcp, endpoint_id,
-      ConstifyPtr(scoped_short_service_id_hash.get()), endpoint_name);
-
-  ASSERT_TRUE(bluetooth_device_name_string.empty());
+  EXPECT_FALSE(bluetooth_device_name.IsValid());
 }
 
-TEST(BluetoothDeviceNameTest, SerializationFailsWithLongServiceIdHash) {
-  char long_service_id_hash_bytes[] = {0x0A, 0x0B, 0x0C, 0x0D};
+TEST(BluetoothDeviceNameTest, ConstructionFailsWithLongServiceIdHash) {
+  char long_service_id_hash_bytes[] = "\x0a\x0b\x0c\x0d";
 
-  ScopedPtr<Ptr<ByteArray> > scoped_long_service_id_hash(
-      new ByteArray(long_service_id_hash_bytes,
-                    sizeof(long_service_id_hash_bytes) / sizeof(char)));
+  ByteArray long_service_id_hash{long_service_id_hash_bytes};
+  ByteArray endpoint_info{std::string(kEndPointName)};
+  BluetoothDeviceName bluetooth_device_name{kVersion,
+                                            kPcp,
+                                            kEndPointID,
+                                            long_service_id_hash,
+                                            endpoint_info,
+                                            ByteArray{},
+                                            kWebRtcState};
 
-  std::string bluetooth_device_name_string = BluetoothDeviceName::asString(
-      version, pcp, endpoint_id, ConstifyPtr(scoped_long_service_id_hash.get()),
-      endpoint_name);
-
-  ASSERT_TRUE(bluetooth_device_name_string.empty());
+  EXPECT_FALSE(bluetooth_device_name.IsValid());
 }
 
-TEST(BluetoothDeviceNameTest, DeserializationFailsWithShortLength) {
-  char bluetooth_device_name_bytes[] = {'X'};
+TEST(BluetoothDeviceNameTest, ConstructionFailsWithShortStringLength) {
+  char bluetooth_device_name_string[] = "X";
 
-  ScopedPtr<Ptr<ByteArray> > scoped_bluetooth_device_name_bytes(
-      new ByteArray(bluetooth_device_name_bytes,
-                    sizeof(bluetooth_device_name_bytes) / sizeof(char)));
+  ByteArray bluetooth_device_name_bytes{bluetooth_device_name_string};
+  BluetoothDeviceName bluetooth_device_name{
+      Base64Utils::Encode(bluetooth_device_name_bytes)};
 
-  ScopedPtr<Ptr<BluetoothDeviceName> > scoped_bluetooth_device_name(
-      BluetoothDeviceName::fromString(Base64Utils::encode(
-          ConstifyPtr(scoped_bluetooth_device_name_bytes.get()))));
-
-  ASSERT_TRUE(scoped_bluetooth_device_name.isNull());
+  EXPECT_FALSE(bluetooth_device_name.IsValid());
 }
 
-TEST(BluetoothDeviceNameTest, DeserializationFailsWithWrongEndpointNameLength) {
+TEST(BluetoothDeviceNameTest, ConstructionFailsWithWrongEndpointNameLength) {
   // Serialize good data into a good Bluetooth Device Name.
-  ScopedPtr<Ptr<ByteArray> > scoped_service_id_hash(new ByteArray(
-      service_id_hash_bytes, sizeof(service_id_hash_bytes) / sizeof(char)));
-
-  std::string bluetooth_device_name_string = BluetoothDeviceName::asString(
-      version, pcp, endpoint_id, ConstifyPtr(scoped_service_id_hash.get()),
-      endpoint_name);
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
+  BluetoothDeviceName bluetooth_device_name{kVersion,
+                                            kPcp,
+                                            kEndPointID,
+                                            service_id_hash,
+                                            endpoint_info,
+                                            ByteArray{},
+                                            kWebRtcState};
+  auto bluetooth_device_name_string = std::string(bluetooth_device_name);
 
   // Base64-decode the good Bluetooth Device Name.
-  ScopedPtr<Ptr<ByteArray> > scoped_bluetooth_device_name_bytes(
-      Base64Utils::decode(bluetooth_device_name_string));
+  ByteArray bluetooth_device_name_bytes =
+      Base64Utils::Decode(bluetooth_device_name_string);
   // Corrupt the EndpointNameLength bits (120-127) by reversing all of them.
-  std::string corrupt_bluetooth_device_name_bytes(
-      scoped_bluetooth_device_name_bytes->getData(),
-      scoped_bluetooth_device_name_bytes->size());
-  corrupt_bluetooth_device_name_bytes[15] ^= 0x0FF;
+  std::string corrupt_string(bluetooth_device_name_bytes.data(),
+                             bluetooth_device_name_bytes.size());
+  corrupt_string[15] ^= 0x0FF;
   // Base64-encode the corrupted bytes into a corrupt Bluetooth Device Name.
-  ScopedPtr<Ptr<ByteArray> > scoped_corrupt_bluetooth_device_name_bytes(
-      new ByteArray(corrupt_bluetooth_device_name_bytes.data(),
-                    corrupt_bluetooth_device_name_bytes.size()));
-  std::string corrupt_bluetooth_device_name_string(Base64Utils::encode(
-      ConstifyPtr(scoped_corrupt_bluetooth_device_name_bytes.get())));
+  ByteArray corrupt_bluetooth_device_name_bytes{corrupt_string.data(),
+                                                corrupt_string.size()};
+  std::string corrupt_bluetooth_device_name_string(
+      Base64Utils::Encode(corrupt_bluetooth_device_name_bytes));
 
   // And deserialize the corrupt Bluetooth Device Name.
-  ScopedPtr<Ptr<BluetoothDeviceName> > scoped_bluetooth_device_name(
-      BluetoothDeviceName::fromString(corrupt_bluetooth_device_name_string));
+  BluetoothDeviceName corrupt_bluetooth_device_name(
+      corrupt_bluetooth_device_name_string);
 
-  ASSERT_TRUE(scoped_bluetooth_device_name.isNull());
+  EXPECT_FALSE(corrupt_bluetooth_device_name.IsValid());
+}
+
+TEST(BluetoothDeviceNameTest, CanParseGeneratedName) {
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
+  // Build name1 from scratch.
+  BluetoothDeviceName name1{kVersion,
+                            kPcp,
+                            kEndPointID,
+                            service_id_hash,
+                            endpoint_info,
+                            ByteArray{},
+                            kWebRtcState};
+  // Build name2 from string composed from name1.
+  BluetoothDeviceName name2{std::string(name1)};
+  EXPECT_TRUE(name1.IsValid());
+  EXPECT_TRUE(name2.IsValid());
+  EXPECT_EQ(name1.GetVersion(), name2.GetVersion());
+  EXPECT_EQ(name1.GetPcp(), name2.GetPcp());
+  EXPECT_EQ(name1.GetEndpointId(), name2.GetEndpointId());
+  EXPECT_EQ(name1.GetServiceIdHash(), name2.GetServiceIdHash());
+  EXPECT_EQ(name1.GetEndpointInfo(), name2.GetEndpointInfo());
+  EXPECT_EQ(name1.GetWebRtcState(), name2.GetWebRtcState());
 }
 
 }  // namespace

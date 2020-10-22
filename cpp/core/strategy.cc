@@ -18,33 +18,29 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-const Strategy Strategy::kP2PCluster(Strategy::ConnectionType::P2P,
-                                     Strategy::TopologyType::M_TO_N);
+const Strategy Strategy::kNone = {Strategy::ConnectionType::kNone,
+                                  Strategy::TopologyType::kUnknown};
+const Strategy Strategy::kP2pCluster{Strategy::ConnectionType::kPointToPoint,
+                                     Strategy::TopologyType::kManyToMany};
+const Strategy Strategy::kP2pStar{Strategy::ConnectionType::kPointToPoint,
+                                  Strategy::TopologyType::kOneToMany};
+const Strategy Strategy::kP2pPointToPoint{
+    Strategy::ConnectionType::kPointToPoint, Strategy::TopologyType::kOneToOne};
 
-const Strategy Strategy::kP2PStar(Strategy::ConnectionType::P2P,
-                                  Strategy::TopologyType::ONE_TO_N);
-
-const Strategy Strategy::kP2PPointToPoint(Strategy::ConnectionType::P2P,
-                                          Strategy::TopologyType::ONE_TO_ONE);
-
-Strategy::Strategy(ConnectionType::Value connection_type,
-                   TopologyType::Value topology_type)
-    : connection_type(connection_type), topology_type(topology_type) {}
-
-Strategy::Strategy(const Strategy& that)
-    : connection_type(that.connection_type),
-      topology_type(that.topology_type) {}
-
-bool Strategy::isValid() const {
-  return kP2PStar == *this || kP2PCluster == *this || kP2PPointToPoint == *this;
+bool Strategy::IsNone() const {
+  return *this == kNone;
 }
 
-std::string Strategy::getName() const {
-  if (Strategy::kP2PCluster == *this) {
+bool Strategy::IsValid() const {
+  return *this == kP2pStar || *this == kP2pCluster || *this ==kP2pPointToPoint;
+}
+
+std::string Strategy::GetName() const {
+  if (*this == Strategy::kP2pCluster) {
     return "P2P_CLUSTER";
-  } else if (Strategy::kP2PStar == *this) {
+  } else if (*this == Strategy::kP2pStar) {
     return "P2P_STAR";
-  } else if (Strategy::kP2PPointToPoint == *this) {
+  } else if (*this == Strategy::kP2pPointToPoint) {
     return "P2P_POINT_TO_POINT";
   } else {
     return "UNKNOWN";
@@ -52,8 +48,8 @@ std::string Strategy::getName() const {
 }
 
 bool operator==(const Strategy& lhs, const Strategy& rhs) {
-  return lhs.connection_type == rhs.connection_type &&
-         lhs.topology_type == rhs.topology_type;
+  return lhs.connection_type_ == rhs.connection_type_ &&
+         lhs.topology_type_ == rhs.topology_type_;
 }
 
 bool operator!=(const Strategy& lhs, const Strategy& rhs) {

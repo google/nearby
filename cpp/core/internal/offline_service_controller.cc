@@ -20,103 +20,79 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-template <typename Platform>
-OfflineServiceController<Platform>::OfflineServiceController()
-    : ServiceController<Platform>(),
-      medium_manager_(new MediumManager<Platform>()),
-      endpoint_channel_manager_(
-          new EndpointChannelManager(medium_manager_.get())),
-      endpoint_manager_(
-          new EndpointManager<Platform>(endpoint_channel_manager_.get())),
-      payload_manager_(new PayloadManager<Platform>(endpoint_manager_.get())),
-      bandwidth_upgrade_manager_(new BandwidthUpgradeManager(
-          medium_manager_.get(), endpoint_channel_manager_.get(),
-          endpoint_manager_.get())),
-      pcp_manager_(new PCPManager<Platform>(
-          medium_manager_.get(), endpoint_channel_manager_.get(),
-          endpoint_manager_.get(), bandwidth_upgrade_manager_.get())) {}
+OfflineServiceController::~OfflineServiceController() { Stop(); }
 
-template <typename Platform>
-OfflineServiceController<Platform>::~OfflineServiceController() {}
-
-template <typename Platform>
-Status::Value OfflineServiceController<Platform>::startAdvertising(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_name,
-    const string& service_id, const AdvertisingOptions& advertising_options,
-    Ptr<ConnectionLifecycleListener> connection_lifecycle_listener) {
-  return pcp_manager_->startAdvertising(client_proxy, endpoint_name, service_id,
-                                        advertising_options,
-                                        connection_lifecycle_listener);
+void OfflineServiceController::Stop() {
+  if (stop_.Set(true)) return;
+  payload_manager_.DisconnectFromEndpointManager();
+  pcp_manager_.DisconnectFromEndpointManager();
 }
 
-template <typename Platform>
-void OfflineServiceController<Platform>::stopAdvertising(
-    Ptr<ClientProxy<Platform> > client_proxy) {
-  pcp_manager_->stopAdvertising(client_proxy);
+Status OfflineServiceController::StartAdvertising(
+    ClientProxy* client, const std::string& service_id,
+    const ConnectionOptions& options, const ConnectionRequestInfo& info) {
+  return pcp_manager_.StartAdvertising(client, service_id, options, info);
 }
 
-template <typename Platform>
-Status::Value OfflineServiceController<Platform>::startDiscovery(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& service_id,
-    const DiscoveryOptions& discovery_options,
-    Ptr<DiscoveryListener> discovery_listener) {
-  return pcp_manager_->startDiscovery(client_proxy, service_id,
-                                      discovery_options, discovery_listener);
+void OfflineServiceController::StopAdvertising(ClientProxy* client) {
+  pcp_manager_.StopAdvertising(client);
 }
 
-template <typename Platform>
-void OfflineServiceController<Platform>::stopDiscovery(
-    Ptr<ClientProxy<Platform> > client_proxy) {
-  pcp_manager_->stopDiscovery(client_proxy);
+Status OfflineServiceController::StartDiscovery(
+    ClientProxy* client, const std::string& service_id,
+    const ConnectionOptions& options, const DiscoveryListener& listener) {
+  return pcp_manager_.StartDiscovery(client, service_id, options, listener);
 }
 
-template <typename Platform>
-Status::Value OfflineServiceController<Platform>::requestConnection(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_name,
-    const string& endpoint_id,
-    Ptr<ConnectionLifecycleListener> connection_lifecycle_listener) {
-  return pcp_manager_->requestConnection(
-      client_proxy, endpoint_name, endpoint_id, connection_lifecycle_listener);
+void OfflineServiceController::StopDiscovery(ClientProxy* client) {
+  pcp_manager_.StopDiscovery(client);
 }
 
-template <typename Platform>
-Status::Value OfflineServiceController<Platform>::acceptConnection(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
-    Ptr<PayloadListener> payload_listener) {
-  return pcp_manager_->acceptConnection(client_proxy, endpoint_id,
-                                        payload_listener);
+void OfflineServiceController::InjectEndpoint(
+    ClientProxy* client, const std::string& service_id,
+    const OutOfBandConnectionMetadata& metadata) {
+  pcp_manager_.InjectEndpoint(client, service_id, metadata);
 }
 
-template <typename Platform>
-Status::Value OfflineServiceController<Platform>::rejectConnection(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id) {
-  return pcp_manager_->rejectConnection(client_proxy, endpoint_id);
+Status OfflineServiceController::RequestConnection(
+    ClientProxy* client, const std::string& endpoint_id,
+    const ConnectionRequestInfo& info, const ConnectionOptions& options) {
+  return pcp_manager_.RequestConnection(client, endpoint_id, info, options);
 }
 
-template <typename Platform>
-void OfflineServiceController<Platform>::initiateBandwidthUpgrade(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id) {
-  bandwidth_upgrade_manager_->initiateBandwidthUpgradeForEndpoint(
-      client_proxy, endpoint_id, pcp_manager_->getBandwidthUpgradeMedium());
+Status OfflineServiceController::AcceptConnection(
+    ClientProxy* client, const std::string& endpoint_id,
+    const PayloadListener& listener) {
+  return pcp_manager_.AcceptConnection(client, endpoint_id, listener);
 }
 
-template <typename Platform>
-void OfflineServiceController<Platform>::sendPayload(
-    Ptr<ClientProxy<Platform> > client_proxy,
-    const std::vector<string>& endpoint_ids, ConstPtr<Payload> payload) {
-  payload_manager_->sendPayload(client_proxy, endpoint_ids, payload);
+Status OfflineServiceController::RejectConnection(
+    ClientProxy* client, const std::string& endpoint_id) {
+  return pcp_manager_.RejectConnection(client, endpoint_id);
 }
 
-template <typename Platform>
-Status::Value OfflineServiceController<Platform>::cancelPayload(
-    Ptr<ClientProxy<Platform> > client_proxy, std::int64_t payload_id) {
-  return payload_manager_->cancelPayload(client_proxy, payload_id);
+void OfflineServiceController::InitiateBandwidthUpgrade(
+    ClientProxy* client, const std::string& endpoint_id) {
+  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
+                    << " initiated a manual bandwidth upgrade with endpoint id="
+                    << endpoint_id;
+  bwu_manager_.InitiateBwuForEndpoint(client, endpoint_id);
 }
 
-template <typename Platform>
-void OfflineServiceController<Platform>::disconnectFromEndpoint(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id) {
-  endpoint_manager_->unregisterEndpoint(client_proxy, endpoint_id);
+void OfflineServiceController::SendPayload(
+    ClientProxy* client, const std::vector<std::string>& endpoint_ids,
+    Payload payload) {
+  payload_manager_.SendPayload(client, endpoint_ids, std::move(payload));
+}
+
+Status OfflineServiceController::CancelPayload(ClientProxy* client,
+                                               std::int64_t payload_id) {
+  return payload_manager_.CancelPayload(client, payload_id);
+}
+
+void OfflineServiceController::DisconnectFromEndpoint(
+    ClientProxy* client, const std::string& endpoint_id) {
+  endpoint_manager_.UnregisterEndpoint(client, endpoint_id);
 }
 
 }  // namespace connections

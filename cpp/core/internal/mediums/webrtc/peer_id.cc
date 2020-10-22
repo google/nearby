@@ -28,26 +28,25 @@ namespace mediums {
 namespace {
 constexpr int kPeerIdLength = 64;
 
-std::string BytesToStringUppercase(ConstPtr<ByteArray> bytes) {
+std::string BytesToStringUppercase(const ByteArray& bytes) {
   std::string hex_string(
-      absl::BytesToHexString(std::string(bytes->getData(), bytes->size())));
+      absl::BytesToHexString(std::string(bytes.data(), bytes.size())));
   absl::AsciiStrToUpper(&hex_string);
   return hex_string;
 }
 }  // namespace
 
-ConstPtr<PeerId> PeerId::FromRandom(Ptr<HashUtils> hash_utils) {
-  return FromSeed(Utils::generateRandomBytes(kPeerIdLength), hash_utils);
+PeerId PeerId::FromRandom() {
+  return FromSeed(Utils::GenerateRandomBytes(kPeerIdLength));
 }
 
-ConstPtr<PeerId> PeerId::FromSeed(ConstPtr<ByteArray> seed,
-                                  Ptr<HashUtils> hash_utils) {
-  ScopedPtr<ConstPtr<ByteArray>> full_hash(
-      Utils::sha256Hash(hash_utils, seed, kPeerIdLength));
-  ScopedPtr<ConstPtr<ByteArray>> hashedSeed(
-      MakeConstPtr(new ByteArray(full_hash->getData(), kPeerIdLength / 2)));
-  return MakeConstPtr(new PeerId(BytesToStringUppercase(hashedSeed.get())));
+PeerId PeerId::FromSeed(const ByteArray& seed) {
+  ByteArray full_hash(Utils::Sha256Hash(seed, kPeerIdLength));
+  ByteArray hashed_seed(full_hash.data(), kPeerIdLength / 2);
+  return PeerId(BytesToStringUppercase(hashed_seed));
 }
+
+bool PeerId::IsValid() const { return !id_.empty(); }
 
 }  // namespace mediums
 }  // namespace connections

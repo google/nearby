@@ -16,8 +16,9 @@
 #define CORE_INTERNAL_MEDIUMS_UUID_H_
 
 #include <cstdint>
+#include <string>
 
-#include "platform/port/string.h"
+#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -28,17 +29,24 @@ namespace connections {
 // UUID.
 //
 // https://developer.android.com/reference/java/util/UUID.html
-template <typename Platform>
-class UUID {
+class Uuid final {
  public:
-  explicit UUID(const std::string& data);
-  UUID(std::int64_t most_sig_bits, std::int64_t least_sig_bits);
-  ~UUID();
+  Uuid() : Uuid("uuid") {}
+  explicit Uuid(absl::string_view data);
+  Uuid(std::uint64_t most_sig_bits, std::uint64_t least_sig_bits);
+  Uuid(const Uuid&) = default;
+  Uuid& operator=(const Uuid&) = default;
+  Uuid(Uuid&&) = default;
+  Uuid& operator=(Uuid&&) = default;
+  ~Uuid() = default;
 
   // Returns the canonical textual representation
   // (https://en.wikipedia.org/wiki/Universally_unique_identifier#Format) of the
   // UUID.
-  std::string str();
+  explicit operator std::string() const;
+  std::string data() const {
+    return data_;
+  }
 
  private:
   std::string data_;
@@ -47,7 +55,5 @@ class UUID {
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-#include "core/internal/mediums/uuid.cc"
 
 #endif  // CORE_INTERNAL_MEDIUMS_UUID_H_

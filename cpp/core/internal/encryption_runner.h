@@ -15,11 +15,14 @@
 #ifndef CORE_INTERNAL_ENCRYPTION_RUNNER_H_
 #define CORE_INTERNAL_ENCRYPTION_RUNNER_H_
 
+#include <string>
+
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel.h"
-#include "platform/byte_array.h"
-#include "platform/port/string.h"
-#include "platform/ptr.h"
+#include "core/listeners.h"
+#include "platform/base/byte_array.h"
+#include "platform/public/scheduled_executor.h"
+#include "platform/public/single_thread_executor.h"
 #include "securegcm/ukey2_handshake.h"
 
 namespace location {
@@ -28,60 +31,56 @@ namespace connections {
 
 // Encrypts a connection over UKEY2.
 //
-// <p>NOTE: Stalled EndpointChannels will be disconnected after {TIMEOUT_MILLIS}
-// milliseconds. This is to prevent unverified endpoints from maintaining an
+// NOTE: Stalled EndpointChannels will be disconnected after kTimeout.
+// This is to prevent unverified endpoints from maintaining an
 // indefinite connection to us.
-template <typename Platform>
 class EncryptionRunner {
  public:
-  EncryptionRunner();
+  EncryptionRunner() = default;
   ~EncryptionRunner();
 
-  class ResultListener {
-   public:
-    virtual ~ResultListener() {}
-
+  struct ResultListener {
     // @EncryptionRunnerThread
-    virtual void onEncryptionSuccess(
-        const string& endpoint_id,
-        Ptr<securegcm::UKey2Handshake> ukey2_handshake,
-        const string& authentication_token,
-        ConstPtr<ByteArray> raw_authentication_token) = 0;
+    std::function<void(const std::string& endpoint_id,
+                       std::unique_ptr<securegcm::UKey2Handshake> ukey2,
+                       const std::string& auth_token,
+                       const ByteArray& raw_auth_token)>
+        on_success_cb =
+            DefaultCallback<const std::string&,
+                            std::unique_ptr<securegcm::UKey2Handshake>,
+                            const std::string&, const ByteArray&>();
 
     // Encryption has failed. The remote_endpoint_id and channel are given so
     // that any pending state can be cleaned up.
     //
-    // <p>We return the EndpointChannel because, at this stage, simultaneous
+    // We return the EndpointChannel because, at this stage, simultaneous
     // connections are a possibility. Use this channel to verify that the state
     // you're cleaning up is for this EndpointChannel, and not state for another
     // channel to the same endpoint.
     //
     // @EncryptionRunnerThread
-    virtual void onEncryptionFailure(const string& endpoint_id,
-                                     Ptr<EndpointChannel> channel) = 0;
+    std::function<void(const std::string& endpoint_id,
+                       EndpointChannel* channel)>
+        on_failure_cb = DefaultCallback<const std::string&, EndpointChannel*>();
   };
 
   // @AnyThread
-  void startServer(Ptr<ClientProxy<Platform> > client_proxy,
-                   const string& endpoint_id,
-                   Ptr<EndpointChannel> endpoint_channel,
-                   Ptr<ResultListener> result_listener);
+  void StartServer(ClientProxy* client, const std::string& endpoint_id,
+                   EndpointChannel* endpoint_channel,
+                   ResultListener&& result_listener);
   // @AnyThread
-  void startClient(Ptr<ClientProxy<Platform> > client_proxy,
-                   const string& endpoint_id,
-                   Ptr<EndpointChannel> endpoint_channel,
-                   Ptr<ResultListener> result_listener);
+  void StartClient(ClientProxy* client, const std::string& endpoint_id,
+                   EndpointChannel* endpoint_channel,
+                   ResultListener&& result_listener);
 
  private:
-  ScopedPtr<Ptr<typename Platform::ScheduledExecutorType> > alarm_executor_;
-  ScopedPtr<Ptr<typename Platform::SingleThreadExecutorType> > server_executor_;
-  ScopedPtr<Ptr<typename Platform::SingleThreadExecutorType> > client_executor_;
+  ScheduledExecutor alarm_executor_;
+  SingleThreadExecutor server_executor_;
+  SingleThreadExecutor client_executor_;
 };
 
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-#include "core/internal/encryption_runner.cc"
 
 #endif  // CORE_INTERNAL_ENCRYPTION_RUNNER_H_

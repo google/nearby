@@ -14,202 +14,181 @@
 
 #include "core/internal/wifi_lan_service_info.h"
 
-#include <cstring>
+#include <inttypes.h>
 
-#include "platform/base64_utils.h"
+#include <cstring>
+#include <utility>
+
+#include "platform/base/base64_utils.h"
+#include "platform/base/base_input_stream.h"
+#include "platform/public/logging.h"
+#include "absl/strings/str_cat.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-Ptr<WifiLanServiceInfo> WifiLanServiceInfo::FromString(
-    absl::string_view wifi_lan_service_info_string) {
-  ScopedPtr<Ptr<ByteArray> > scoped_wifi_lan_service_info_name_bytes(
-      Base64Utils::decode(wifi_lan_service_info_string));
-  if (scoped_wifi_lan_service_info_name_bytes.isNull()) {
-    // TODO(b/149806065): logger.atDebug().log("Cannot deserialize
-    // WifiLanServiceInfo: failed Base64 decoding of %s",
-    // WifiLanServiceInfoString);
-    return Ptr<WifiLanServiceInfo>();
+WifiLanServiceInfo::WifiLanServiceInfo(Version version, Pcp pcp,
+                                       absl::string_view endpoint_id,
+                                       const ByteArray& service_id_hash,
+                                       const ByteArray& endpoint_info,
+                                       const ByteArray& uwb_address,
+                                       WebRtcState web_rtc_state) {
+  if (version != Version::kV1 || endpoint_id.empty() ||
+      endpoint_id.length() != kEndpointIdLength ||
+      service_id_hash.size() != kServiceIdHashLength ||
+      endpoint_info.size() > kMaxEndpointInfoLength) {
+    return;
   }
-
-  if (scoped_wifi_lan_service_info_name_bytes->size() >
-      kMaxLanServiceNameLength) {
-    // TODO(b/149806065): logger.atDebug().log("Cannot deserialize
-    // WifiLanServiceInfo: expecting max %d raw bytes, got %d",
-    // MAX_WIFILAN_SERVICE_INFO_LENGTH, wifiLanServiceInfoNameBytes.length);
-    return Ptr<WifiLanServiceInfo>();
-  }
-
-  if (scoped_wifi_lan_service_info_name_bytes->size() <
-      kMinLanServiceNameLength) {
-    // TODO(b/149806065): logger.atDebug().log("Cannot deserialize
-    // WifiLanServiceInfo: expecting min %d raw bytes, got %d",
-    // MIN_WIFILAN_SERVICE_INFO_LENGTH, wifiLanServiceInfoNameBytes.length);
-    return Ptr<WifiLanServiceInfo>();
-  }
-
-  // The upper 3 bits are supposed to be the version.
-  Version version = static_cast<Version>(
-      (scoped_wifi_lan_service_info_name_bytes->getData()[0] &
-       kVersionBitmask) >>
-      kVersionShift);
-
-  switch (version) {
-    case Version::kV1:
-      return CreateV1WifiLanServiceInfo(
-          ConstifyPtr(scoped_wifi_lan_service_info_name_bytes.get()));
-
-    default:
-      // TODO(b/149806065): [ANALYTICIZE] This either represents corruption over
-      // the air, or older versions of GmsCore intermingling with newer ones.
-
-      // TODO(b/149806065): logger.atDebug().log("Cannot deserialize
-      // WifiLanServiceInfo: unsupported Version %d", version);
-      return Ptr<WifiLanServiceInfo>();
-  }
-}
-
-std::string WifiLanServiceInfo::AsString(Version version, PCP::Value pcp,
-                                         absl::string_view endpoint_id,
-                                         ConstPtr<ByteArray> service_id_hash) {
-  Ptr<ByteArray> wifi_lan_service_info_name_bytes;
-  switch (version) {
-    case Version::kV1:
-      wifi_lan_service_info_name_bytes =
-          CreateV1Bytes(pcp, endpoint_id, service_id_hash);
-      if (wifi_lan_service_info_name_bytes.isNull()) {
-        return "";
-      }
-      break;
-
-    default:
-      // TODO(b/149806065): logger.atDebug().log("Cannot serialize
-      // WifiLanServiceInfo: unsupported Version %d", version);
-      return "";
-  }
-  ScopedPtr<Ptr<ByteArray> > scoped_wifi_lan_service_info_name_bytes(
-      wifi_lan_service_info_name_bytes);
-
-  // WifiLanServiceInfo needs to be binary safe, so apply a Base64 encoding
-  // over the raw bytes.
-  return Base64Utils::encode(
-      ConstifyPtr(scoped_wifi_lan_service_info_name_bytes.get()));
-}
-
-Ptr<WifiLanServiceInfo> WifiLanServiceInfo::CreateV1WifiLanServiceInfo(
-    ConstPtr<ByteArray> wifi_lan_service_info_name_bytes) {
-  const char* wifi_lan_service_info_name_bytes_read_ptr =
-      wifi_lan_service_info_name_bytes->getData();
-
-  // The lower 5 bits of the V1 payload are supposed to be the PCP.
-  PCP::Value pcp = static_cast<PCP::Value>(
-      *wifi_lan_service_info_name_bytes_read_ptr & kPcpBitmask);
-  wifi_lan_service_info_name_bytes_read_ptr++;
-
   switch (pcp) {
-    case PCP::P2P_CLUSTER:  // Fall through
-    case PCP::P2P_STAR:     // Fall through
-    case PCP::P2P_POINT_TO_POINT: {
-      // The next 32 bits are supposed to be the endpoint_id.
-      std::string endpoint_id(wifi_lan_service_info_name_bytes_read_ptr,
-                              kEndpointIdLength);
-      wifi_lan_service_info_name_bytes_read_ptr += kEndpointIdLength;
-
-      // The next 24 bits are supposed to be the scoped_service_id_hash.
-      ScopedPtr<ConstPtr<ByteArray> > scoped_service_id_hash(
-          MakeConstPtr(new ByteArray(wifi_lan_service_info_name_bytes_read_ptr,
-                                     kServiceIdHashLength)));
-      wifi_lan_service_info_name_bytes_read_ptr += kServiceIdHashLength;
-
-      // The next bits are supposed to be endpoint_name.
-      // TODO(b/149806065): Implements it. Temp to set "found_device".
-      std::string endpoint_name("found_device");
-
-      return MakePtr(new WifiLanServiceInfo(Version::kV1, pcp, endpoint_id,
-                                            scoped_service_id_hash.release(),
-                                            endpoint_name));
-    }
+    case Pcp::kP2pCluster:  // Fall through
+    case Pcp::kP2pStar:     // Fall through
+    case Pcp::kP2pPointToPoint:
+      break;
     default:
-      // TODO(b/149806065): [ANALYTICIZE] This either represents corruption over
-      // the air, or older versions of GmsCore intermingling with newer ones.
+      return;
+  }
 
-      // TODO(b/149806065): logger.atDebug().log("Cannot deserialize
-      // WifiLanServiceInfo: unsupported V1 PCP %d", pcp);
-      return Ptr<WifiLanServiceInfo>();
+  version_ = version;
+  pcp_ = pcp;
+  service_id_hash_ = service_id_hash;
+  endpoint_id_ = std::string(endpoint_id);
+  endpoint_info_ = endpoint_info;
+  uwb_address_ = uwb_address;
+  web_rtc_state_ = web_rtc_state;
+}
+
+WifiLanServiceInfo::WifiLanServiceInfo(absl::string_view service_info_name,
+                                       absl::string_view endpoint_info_name) {
+  ByteArray service_info_bytes = Base64Utils::Decode(service_info_name);
+  endpoint_info_ = Base64Utils::Decode(endpoint_info_name);
+  if (endpoint_info_.size() > kMaxEndpointInfoLength) {
+    NEARBY_LOG(INFO,
+               "Cannot deserialize EndpointInfo: expecting endpoint info "
+               "max %d raw bytes, got %" PRIu64,
+               kMaxEndpointInfoLength, endpoint_info_.size());
+    return;
+  }
+
+  if (service_info_bytes.Empty()) {
+    NEARBY_LOG(
+        INFO,
+        "Cannot deserialize WifiLanServiceInfo: failed Base64 decoding of %s",
+        std::string(service_info_name).c_str());
+    return;
+  }
+
+  if (service_info_bytes.size() < kMinLanServiceNameLength) {
+    NEARBY_LOG(INFO,
+               "Cannot deserialize WifiLanServiceInfo: expecting min %d raw "
+               "bytes, got %" PRIu64,
+               kMinLanServiceNameLength, service_info_bytes.size());
+    return;
+  }
+
+  BaseInputStream base_input_stream{service_info_bytes};
+  // The first 1 byte is supposed to be the version and pcp.
+  auto version_and_pcp_byte = static_cast<char>(base_input_stream.ReadUint8());
+  // The upper 3 bits are supposed to be the version.
+  version_ =
+      static_cast<Version>((version_and_pcp_byte & kVersionBitmask) >> 5);
+  if (version_ != Version::kV1) {
+    NEARBY_LOG(INFO,
+               "Cannot deserialize WifiLanServiceInfo: unsupported Version %d",
+               version_);
+    return;
+  }
+  // The lower 5 bits are supposed to be the Pcp.
+  pcp_ = static_cast<Pcp>(version_and_pcp_byte & kPcpBitmask);
+  switch (pcp_) {
+    case Pcp::kP2pCluster:  // Fall through
+    case Pcp::kP2pStar:     // Fall through
+    case Pcp::kP2pPointToPoint:
+      break;
+    default:
+      NEARBY_LOG(INFO,
+                 "Cannot deserialize WifiLanServiceInfo: unsupported V1 PCP %d",
+                 pcp_);
+  }
+
+  // The next 4 bytes are supposed to be the endpoint_id.
+  endpoint_id_ = std::string{base_input_stream.ReadBytes(kEndpointIdLength)};
+
+  // The next 3 bytes are supposed to be the service_id_hash.
+  service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
+
+  // The next 1 byte is supposed to be the length of the uwb_address. If
+  // available, continues to deserialize UWB address and extra field of WebRtc
+  // state.
+  if (base_input_stream.IsAvailable(1)) {
+    std::uint32_t expected_uwb_address_length = base_input_stream.ReadUint8();
+    // If the length of uwb_address is not zero, then retrieve it.
+    if (expected_uwb_address_length != 0) {
+      uwb_address_ = base_input_stream.ReadBytes(expected_uwb_address_length);
+      if (uwb_address_.Empty() ||
+          uwb_address_.size() != expected_uwb_address_length) {
+        NEARBY_LOG(INFO,
+                   "Cannot deserialize WifiLanServiceInfo: expected "
+                   "uwbAddress size to be %d bytes, got %" PRIu64,
+                   expected_uwb_address_length, uwb_address_.size());
+        // Clear enpoint_id for validity.
+        endpoint_id_.clear();
+        return;
+      }
+    }
+
+    // The next 1 byte is extra field.
+    web_rtc_state_ = WebRtcState::kUndefined;
+    if (base_input_stream.IsAvailable(kExtraFieldLength)) {
+      auto extra_field = static_cast<char>(base_input_stream.ReadUint8());
+      web_rtc_state_ = (extra_field & kWebRtcConnectableFlagBitmask) == 1
+                           ? WebRtcState::kConnectable
+                           : WebRtcState::kUnconnectable;
+    }
   }
 }
 
-std::uint32_t WifiLanServiceInfo::ComputeEndpointNameLength(
-    ConstPtr<ByteArray> wifi_lan_service_info_name_bytes) {
-  return kMaxEndpointNameLength -
-         (kMaxLanServiceNameLength - wifi_lan_service_info_name_bytes->size());
-}
-
-Ptr<ByteArray> WifiLanServiceInfo::CreateV1Bytes(
-    PCP::Value pcp, absl::string_view endpoint_id,
-    ConstPtr<ByteArray> service_id_hash) {
-  Ptr<ByteArray> wifi_lan_service_info_name_bytes{
-      new ByteArray{kMinLanServiceNameLength}};
-
-  char* wifi_lan_service_info_name_bytes_write_ptr =
-      wifi_lan_service_info_name_bytes->getData();
+WifiLanServiceInfo::operator std::string() const {
+  if (!IsValid()) {
+    return "";
+  }
 
   // The upper 3 bits are the Version.
-  char version_and_pcp_byte = static_cast<char>(
+  auto version_and_pcp_byte = static_cast<char>(
       (static_cast<uint32_t>(Version::kV1) << 5) & kVersionBitmask);
   // The lower 5 bits are the PCP.
-  version_and_pcp_byte |= static_cast<char>(pcp & kPcpBitmask);
-  *wifi_lan_service_info_name_bytes_write_ptr = version_and_pcp_byte;
-  wifi_lan_service_info_name_bytes_write_ptr++;
+  version_and_pcp_byte |=
+      static_cast<char>(static_cast<uint32_t>(pcp_) & kPcpBitmask);
 
-  switch (pcp) {
-    case PCP::P2P_CLUSTER:  // Fall through
-    case PCP::P2P_STAR:     // Fall through
-    case PCP::P2P_POINT_TO_POINT:
-      // The next 32 bits are the endpoint_id.
-      if (endpoint_id.size() != kEndpointIdLength) {
-        // TODO(b/149806065): logger.atDebug().log("Cannot serialize
-        // WifiLanServiceInfo: V1 Endpoint ID %s (%d bytes) should be exactly
-        // %d bytes", endpointId, endpointId.length(), ENDPOINT_ID_LENGTH);
-        return Ptr<ByteArray>();
-      }
-      memcpy(wifi_lan_service_info_name_bytes_write_ptr, endpoint_id.data(),
-             kEndpointIdLength);
-      wifi_lan_service_info_name_bytes_write_ptr += kEndpointIdLength;
+  std::string out = absl::StrCat(std::string(1, version_and_pcp_byte),
+                                 endpoint_id_, std::string(service_id_hash_));
 
-      // The next 24 bits are the service_id_hash.
-      if (service_id_hash->size() != kServiceIdHashLength) {
-        // TODO(b/149806065): logger.atDebug().log("Cannot serialize
-        // WifiLanServiceInfo: V1 ServiceID hash (%d bytes) should be exactly
-        // %d bytes", serviceIdHash.length, SERVICE_ID_HASH_LENGTH);
-        return Ptr<ByteArray>();
-      }
-      memcpy(wifi_lan_service_info_name_bytes_write_ptr,
-             service_id_hash->getData(), kServiceIdHashLength);
-      wifi_lan_service_info_name_bytes_write_ptr += kServiceIdHashLength;
-
-      // The next bits are the endpoint_name.
-      // TODO(b/149806065): Implements to parse endpoint_name.
-      break;
-    default:
-      // TODO(b/149806065): logger.atDebug().log("Cannot serialize
-      // WifiLanServiceInfo: unsupported V1 PCP %d", pcp);
-      return Ptr<ByteArray>();
+  // The next bytes are UWB address field.
+  if (!uwb_address_.Empty()) {
+    absl::StrAppend(&out, std::string(1, uwb_address_.size()));
+    absl::StrAppend(&out, std::string(uwb_address_));
+  } else {
+    // Write UWB address with length 0 to be able to read the next field, which
+    // needs to be appended.
+    if (web_rtc_state_ != WebRtcState::kUndefined)
+      absl::StrAppend(&out, std::string(1, uwb_address_.size()));
   }
 
-  return wifi_lan_service_info_name_bytes;
+  // The next 1 byte is extra field.
+  if (web_rtc_state_ != WebRtcState::kUndefined) {
+    int web_rtc_connectable_flag =
+        (web_rtc_state_ == WebRtcState::kConnectable) ? 1 : 0;
+    char field_byte = static_cast<char>(web_rtc_connectable_flag) &
+                      kWebRtcConnectableFlagBitmask;
+    absl::StrAppend(&out, std::string(1, field_byte));
+  }
+
+  return Base64Utils::Encode(ByteArray{std::move(out)});
 }
 
-WifiLanServiceInfo::WifiLanServiceInfo(Version version, PCP::Value pcp,
-                                       absl::string_view endpoint_id,
-                                       ConstPtr<ByteArray> service_id_hash,
-                                       absl::string_view endpoint_name)
-    : version_(version),
-      pcp_(pcp),
-      endpoint_id_(endpoint_id),
-      service_id_hash_(service_id_hash),
-      endpoint_name_(endpoint_name) {}
+std::string WifiLanServiceInfo::GetEndpointInfoName() const {
+  return Base64Utils::Encode(endpoint_info_);
+}
 
 }  // namespace connections
 }  // namespace nearby

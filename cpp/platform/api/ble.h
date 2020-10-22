@@ -16,122 +16,107 @@
 #define PLATFORM_API_BLE_H_
 
 #include "platform/api/bluetooth_classic.h"
-#include "platform/api/input_stream.h"
-#include "platform/api/output_stream.h"
-#include "platform/byte_array.h"
-#include "platform/ptr.h"
+#include "platform/base/byte_array.h"
+#include "platform/base/input_stream.h"
+#include "platform/base/output_stream.h"
 
 namespace location {
 namespace nearby {
+namespace api {
 
 // Opaque wrapper over a BLE peripheral. Must contain enough data about a
 // particular BLE device to connect to its GATT server.
-class BLEPeripheral {
+class BlePeripheral {
  public:
-  virtual ~BLEPeripheral() {}
+  virtual ~BlePeripheral() = default;
 
-  // The returned Ptr is not owned by the caller, and can be invalidated once
-  // the corresponding BLEPeripheral object is destroyed.
-  virtual Ptr<BluetoothDevice> getBluetoothDevice() = 0;
+  virtual std::string GetName() const = 0;
+
+  virtual ByteArray GetAdvertisementBytes(
+      const std::string& service_id) const = 0;
 };
 
-class BLESocket {
+class BleSocket {
  public:
-  virtual ~BLESocket() {}
+  virtual ~BleSocket() = default;
 
-  // Returns the InputStream of the BLESocket, or a null Ptr<InputStream>
-  // on error.
+  // Returns the InputStream of the BleSocket.
+  // On error, returned stream will report Exception::kIo on any operation.
   //
-  // The returned Ptr is not owned by the caller, and can be invalidated once
-  // the BLESocket object is destroyed.
-  virtual Ptr<InputStream> getInputStream() = 0;
+  // The returned object is not owned by the caller, and can be invalidated once
+  // the BleSocket object is destroyed.
+  virtual InputStream& GetInputStream() = 0;
 
-  // Returns the OutputStream of the BLESocket, or a null
-  // Ptr<OutputStream> on error.
+  // Returns the OutputStream of the BleSocket.
+  // On error, returned stream will report Exception::kIo on any operation.
   //
-  // The returned Ptr is not owned by the caller, and can be invalidated once
-  // the BLESocket object is destroyed.
-  virtual Ptr<OutputStream> getOutputStream() = 0;
+  // The returned object is not owned by the caller, and can be invalidated once
+  // the BleSocket object is destroyed.
+  virtual OutputStream& GetOutputStream() = 0;
 
   // Conforms to the same contract as
   // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html#close().
   //
-  // Returns Exception::IO on error, Exception::NONE otherwise.
-  virtual Exception::Value close() = 0;
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  virtual Exception Close() = 0;
 
-  // The returned Ptr is not owned by the caller, and can be invalidated once
-  // the BLESocket object is destroyed.
-  virtual Ptr<BLEPeripheral> getRemotePeripheral() = 0;
+  // Returns valid BlePeripheral pointer if there is a connection, and
+  // nullptr otherwise.
+  virtual BlePeripheral* GetRemotePeripheral() = 0;
 };
 
 // Container of operations that can be performed over the BLE medium.
-class BLEMedium {
+class BleMedium {
  public:
-  virtual ~BLEMedium() {}
+  virtual ~BleMedium() = default;
 
-  // Takes ownership of (and is responsible for destroying) the passed-in
-  // 'advertisement'.
-  virtual bool startAdvertising(const std::string& service_id,
-                                ConstPtr<ByteArray> advertisement) = 0;
-  virtual void stopAdvertising(const std::string& service_id) = 0;
+  virtual bool StartAdvertising(
+      const std::string& service_id, const ByteArray& advertisement_bytes,
+      const std::string& fast_advertisement_service_uuid) = 0;
+  virtual bool StopAdvertising(const std::string& service_id) = 0;
 
-  class DiscoveredPeripheralCallback {
-   public:
-    virtual ~DiscoveredPeripheralCallback() {}
-
-    // The Ptrs provided in these callback methods will be owned (and
-    // destroyed) by the recipient of the callback methods (i.e. the creator of
-    // the concrete DiscoveredPeripheralCallback object).
-    virtual void onPeripheralDiscovered(Ptr<BLEPeripheral> ble_peripheral,
-                                        const std::string& service_id,
-                                        ConstPtr<ByteArray> advertisement) = 0;
-    virtual void onPeripheralLost(Ptr<BLEPeripheral> ble_peripheral,
-                                  const std::string& service_id) = 0;
+  // Callback that is invoked when a discovered peripheral is found or lost.
+  struct DiscoveredPeripheralCallback {
+    std::function<void(BlePeripheral& peripheral, const std::string& service_id,
+                       bool fast_advertisement)>
+        peripheral_discovered_cb =
+            DefaultCallback<BlePeripheral&, const std::string&, bool>();
+    std::function<void(BlePeripheral& peripheral,
+                       const std::string& service_id)>
+        peripheral_lost_cb =
+            DefaultCallback<BlePeripheral&, const std::string&>();
   };
 
   // Returns true once the BLE scan has been initiated.
-  //
-  // Does not take ownership of the passed-in discovered_peripheral_callback --
-  // destroying that is up to the caller.
-  virtual bool startScanning(
-      const std::string& service_id,
-      Ptr<DiscoveredPeripheralCallback> discovered_peripheral_callback) = 0;
+  virtual bool StartScanning(const std::string& service_id,
+                             const std::string& fast_advertisement_service_uuid,
+                             DiscoveredPeripheralCallback callback) = 0;
+
   // Returns true once BLE scanning for service_id is well and truly stopped;
   // after this returns, there must be no more invocations of the
-  // DiscoveredPeripheralCallback passed in to startScanning() for service_id.
-  //
-  // Does not need to bother with destroying the DiscoveredPeripheralCallback
-  // passed in to startScanning() -- that's the job of the caller.
-  virtual void stopScanning(const std::string& service_id) = 0;
+  // DiscoveredPeripheralCallback passed in to StartScanning() for service_id.
+  virtual bool StopScanning(const std::string& service_id) = 0;
 
   // Callback that is invoked when a new connection is accepted.
-  class AcceptedConnectionCallback {
-   public:
-    virtual ~AcceptedConnectionCallback() {}
-
-    // The Ptr provided in this callback method will be owned (and
-    // destroyed) by the recipient of the callback methods (i.e. the creator of
-    // the concrete AcceptedConnectionCallback object).
-    virtual void onConnectionAccepted(Ptr<BLESocket> socket,
-                                      const std::string& service_id) = 0;
+  struct AcceptedConnectionCallback {
+    std::function<void(BleSocket& socket, const std::string& service_id)>
+        accepted_cb = DefaultCallback<BleSocket&, const std::string&>();
   };
 
   // Returns true once BLE socket connection requests to service_id can be
   // accepted.
-  //
-  // Does not take ownership of the passed-in accepted_connection_callback --
-  // destroying that is up to the caller.
-  virtual bool startAcceptingConnections(
-      const std::string& service_id,
-      Ptr<AcceptedConnectionCallback> accepted_connection_callback) = 0;
-  virtual void stopAcceptingConnections(const std::string& service_id) = 0;
+  virtual bool StartAcceptingConnections(
+      const std::string& service_id, AcceptedConnectionCallback callback) = 0;
+  virtual bool StopAcceptingConnections(const std::string& service_id) = 0;
 
-  // The returned Ptr will be owned (and destroyed) by the caller. Returns
-  // a null Ptr<BleSocket> on error.
-  virtual Ptr<BLESocket> connect(Ptr<BLEPeripheral> ble_peripheral,
-                                 const std::string& service_id) = 0;
+  // Connects to a BLE peripheral.
+  // On success, returns a new BleSocket.
+  // On error, returns nullptr.
+  virtual std::unique_ptr<BleSocket> Connect(BlePeripheral& peripheral,
+                                             const std::string& service_id) = 0;
 };
 
+}  // namespace api
 }  // namespace nearby
 }  // namespace location
 

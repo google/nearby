@@ -24,68 +24,102 @@ namespace connections {
 namespace mediums {
 namespace {
 
-const size_t kByteArrayLength = 100;
+constexpr size_t kByteArrayLength = 100;
 
 TEST(BloomFilterTest, EmptyFilterReturnsEmptyArray) {
-  ScopedPtr<Ptr<BloomFilter<kByteArrayLength>>> scoped_bloom_filter(
-      new BloomFilter<kByteArrayLength>());
+  BloomFilter<kByteArrayLength> bloom_filter;
 
-  ScopedPtr<ConstPtr<ByteArray>> scoped_bloom_filter_bytes(
-      scoped_bloom_filter->asBytes());
+  ByteArray bloom_filter_bytes(bloom_filter);
   std::string empty_string(kByteArrayLength, '\0');
-  ASSERT_EQ(0, memcmp(scoped_bloom_filter_bytes->getData(), empty_string.data(),
-                      empty_string.size()));
+
+  EXPECT_EQ(empty_string, std::string(bloom_filter_bytes));
 }
 
 TEST(BloomFilterTest, EmptyFilterNeverContains) {
-  ScopedPtr<Ptr<BloomFilter<kByteArrayLength>>> scoped_bloom_filter(
-      new BloomFilter<kByteArrayLength>());
+  BloomFilter<kByteArrayLength> bloom_filter;
 
-  ASSERT_FALSE(scoped_bloom_filter->possiblyContains("ELEMENT_1"));
-  ASSERT_FALSE(scoped_bloom_filter->possiblyContains("ELEMENT_2"));
-  ASSERT_FALSE(scoped_bloom_filter->possiblyContains("ELEMENT_3"));
+  EXPECT_FALSE(bloom_filter.PossiblyContains("ELEMENT_1"));
+  EXPECT_FALSE(bloom_filter.PossiblyContains("ELEMENT_2"));
+  EXPECT_FALSE(bloom_filter.PossiblyContains("ELEMENT_3"));
 }
 
 TEST(BloomFilterTest, AddSuccess) {
-  ScopedPtr<Ptr<BloomFilter<kByteArrayLength>>> scoped_bloom_filter(
-      new BloomFilter<kByteArrayLength>());
-  ASSERT_FALSE(scoped_bloom_filter->possiblyContains("ELEMENT_1"));
+  BloomFilter<kByteArrayLength> bloom_filter;
 
-  scoped_bloom_filter->add("ELEMENT_1");
-  ASSERT_TRUE(scoped_bloom_filter->possiblyContains("ELEMENT_1"));
+  EXPECT_FALSE(bloom_filter.PossiblyContains("ELEMENT_1"));
+
+  bloom_filter.Add("ELEMENT_1");
+
+  EXPECT_TRUE(bloom_filter.PossiblyContains("ELEMENT_1"));
 }
 
 TEST(BloomFilterTest, AddOnlyGivenArg) {
-  ScopedPtr<Ptr<BloomFilter<kByteArrayLength>>> scoped_bloom_filter(
-      new BloomFilter<kByteArrayLength>());
-  scoped_bloom_filter->add("ELEMENT_1");
+  BloomFilter<kByteArrayLength> bloom_filter;
 
-  ASSERT_TRUE(scoped_bloom_filter->possiblyContains("ELEMENT_1"));
-  ASSERT_FALSE(scoped_bloom_filter->possiblyContains("ELEMENT_2"));
-  ASSERT_FALSE(scoped_bloom_filter->possiblyContains("ELEMENT_3"));
+  bloom_filter.Add("ELEMENT_1");
+
+  EXPECT_TRUE(bloom_filter.PossiblyContains("ELEMENT_1"));
+  EXPECT_FALSE(bloom_filter.PossiblyContains("ELEMENT_2"));
+  EXPECT_FALSE(bloom_filter.PossiblyContains("ELEMENT_3"));
 }
 
 TEST(BloomFilterTest, AddMultipleArgs) {
-  ScopedPtr<Ptr<BloomFilter<kByteArrayLength>>> scoped_bloom_filter(
-      new BloomFilter<kByteArrayLength>());
-  scoped_bloom_filter->add("ELEMENT_1");
-  scoped_bloom_filter->add("ELEMENT_2");
+  BloomFilter<kByteArrayLength> bloom_filter;
 
-  ASSERT_TRUE(scoped_bloom_filter->possiblyContains("ELEMENT_1"));
-  ASSERT_TRUE(scoped_bloom_filter->possiblyContains("ELEMENT_2"));
-  ASSERT_FALSE(scoped_bloom_filter->possiblyContains("ELEMENT_3"));
+  bloom_filter.Add("ELEMENT_1");
+  bloom_filter.Add("ELEMENT_2");
+
+  EXPECT_TRUE(bloom_filter.PossiblyContains("ELEMENT_1"));
+  EXPECT_TRUE(bloom_filter.PossiblyContains("ELEMENT_2"));
+  EXPECT_FALSE(bloom_filter.PossiblyContains("ELEMENT_3"));
 }
 
 TEST(BloomFilterTest, AddMultipleArgsReturnsNonemptyArray) {
-  ScopedPtr<Ptr<BloomFilter<10>>> scoped_bloom_filter(new BloomFilter<10>());
-  scoped_bloom_filter->add("ELEMENT_1");
-  scoped_bloom_filter->add("ELEMENT_2");
-  scoped_bloom_filter->add("ELEMENT_3");
+  BloomFilter<10> bloom_filter;
 
-  ScopedPtr<ConstPtr<ByteArray>> scoped_bloom_filter_bytes(
-      scoped_bloom_filter->asBytes());
+  bloom_filter.Add("ELEMENT_1");
+  bloom_filter.Add("ELEMENT_2");
+  bloom_filter.Add("ELEMENT_3");
+
+  ByteArray bloom_filter_bytes(bloom_filter);
   std::string empty_string(kByteArrayLength, '\0');
-  ASSERT_NE(scoped_bloom_filter_bytes->asString(), empty_string);
+
+  EXPECT_NE(std::string(bloom_filter_bytes), empty_string);
+}
+
+TEST(BloomFilterTest, CopyConstructorAndAssignmentSuccess) {
+  BloomFilter<kByteArrayLength> bloom_filter;
+
+  EXPECT_FALSE(bloom_filter.PossiblyContains("ELEMENT_1"));
+
+  bloom_filter.Add("ELEMENT_1");
+
+  BloomFilter<kByteArrayLength> bloom_filter_copy_1{bloom_filter};
+  BloomFilter<kByteArrayLength> bloom_filter_copy_2 = bloom_filter;
+
+  EXPECT_TRUE(bloom_filter.PossiblyContains("ELEMENT_1"));
+  EXPECT_TRUE(bloom_filter_copy_1.PossiblyContains("ELEMENT_1"));
+  EXPECT_TRUE(bloom_filter_copy_2.PossiblyContains("ELEMENT_1"));
+}
+
+TEST(BloomFilterTest, MoveConstructorSuccess) {
+  BloomFilter<kByteArrayLength> bloom_filter;
+
+  bloom_filter.Add("ELEMENT_1");
+
+  BloomFilter<kByteArrayLength> bloom_filter_move{std::move(bloom_filter)};
+
+  EXPECT_TRUE(bloom_filter_move.PossiblyContains("ELEMENT_1"));
+}
+
+TEST(BloomFilterTest, MoveAssignmentSuccess) {
+  BloomFilter<kByteArrayLength> bloom_filter;
+
+  bloom_filter.Add("ELEMENT_1");
+
+  BloomFilter<kByteArrayLength> bloom_filter_move = std::move(bloom_filter);
+
+  EXPECT_TRUE(bloom_filter_move.PossiblyContains("ELEMENT_1"));
 }
 
 /**
@@ -100,10 +134,10 @@ TEST(BloomFilterTest, AddMultipleArgsReturnsNonemptyArray) {
  * something like [ 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, ..., 1, 0].
  */
 TEST(BloomFilterTest, RandomnessNoEndBias) {
-  ScopedPtr<Ptr<BloomFilter<kByteArrayLength>>> scoped_bloom_filter(
-      new BloomFilter<kByteArrayLength>());
+  BloomFilter<kByteArrayLength> bloom_filter;
+
   // Add one element to our BloomFilter.
-  scoped_bloom_filter->add("ELEMENT_1");
+  bloom_filter.Add("ELEMENT_1");
 
   std::int32_t non_zero_count = 0;
   std::int32_t longest_zero_streak = 0;
@@ -112,11 +146,9 @@ TEST(BloomFilterTest, RandomnessNoEndBias) {
   // Record the amount of non-zero bytes and the longest streak of zero bytes in
   // the resulting BloomFilter. This is an approximation of reasonable
   // distribution since we're recording by bytes instead of bits.
-  ScopedPtr<ConstPtr<ByteArray>> scoped_bloom_filter_bytes(
-      scoped_bloom_filter->asBytes());
-  const char* bloom_filter_bytes_read_ptr =
-      scoped_bloom_filter_bytes->getData();
-  for (int i = 0; i < scoped_bloom_filter_bytes->size(); i++) {
+  ByteArray bloom_filter_bytes(bloom_filter);
+  const char* bloom_filter_bytes_read_ptr = bloom_filter_bytes.data();
+  for (int i = 0; i < bloom_filter_bytes.size(); i++) {
     if (*bloom_filter_bytes_read_ptr == '\0') {
       current_zero_streak++;
     } else {
@@ -141,31 +173,31 @@ TEST(BloomFilterTest, RandomnessNoEndBias) {
   //     kByteArrayLength - one end of the array.
   std::int32_t longest_acceptable_zero_streak =
       kByteArrayLength - (kByteArrayLength / non_zero_count);
-  ASSERT_TRUE(longest_zero_streak <= longest_acceptable_zero_streak);
+
+  EXPECT_TRUE(longest_zero_streak <= longest_acceptable_zero_streak);
 }
 
 TEST(BloomFilterTest, RandomnessFalsePositiveRate) {
-  ScopedPtr<Ptr<BloomFilter<10>>> scoped_bloom_filter(new BloomFilter<10>());
+  BloomFilter<10> bloom_filter;
+
   // Add 5 distinct elements to the BloomFilter.
-  scoped_bloom_filter->add("ELEMENT_1");
-  scoped_bloom_filter->add("ELEMENT_2");
-  scoped_bloom_filter->add("ELEMENT_3");
-  scoped_bloom_filter->add("ELEMENT_4");
-  scoped_bloom_filter->add("ELEMENT_5");
+  bloom_filter.Add("ELEMENT_1");
+  bloom_filter.Add("ELEMENT_2");
+  bloom_filter.Add("ELEMENT_3");
+  bloom_filter.Add("ELEMENT_4");
+  bloom_filter.Add("ELEMENT_5");
 
   std::int32_t false_positives = 0;
   // Now test 100 other elements and record the number of false positives.
   for (int i = 5; i < 105; i++) {
     false_positives +=
-        scoped_bloom_filter->possiblyContains("ELEMENT_" + std::to_string(i))
-            ? 1
-            : 0;
+        bloom_filter.PossiblyContains("ELEMENT_" + std::to_string(i)) ? 1 : 0;
   }
 
   // We expect the false positive rate to be 3% with 5 elements in a 10 byte
   // filter. Thus, we give a little leeway and verify that the false positive
   // rate is no more than 5%.
-  ASSERT_LE(false_positives, 5);
+  EXPECT_LE(false_positives, 5);
 }
 
 }  // namespace

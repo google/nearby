@@ -15,49 +15,61 @@
 #ifndef PLATFORM_API_WIFI_LAN_H_
 #define PLATFORM_API_WIFI_LAN_H_
 
-#include "platform/api/input_stream.h"
-#include "platform/api/output_stream.h"
-#include "platform/byte_array.h"
-#include "platform/exception.h"
-#include "platform/port/string.h"
-#include "platform/ptr.h"
+#include <string>
+
+#include "platform/base/byte_array.h"
+#include "platform/base/input_stream.h"
+#include "platform/base/listeners.h"
+#include "platform/base/output_stream.h"
 #include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
+namespace api {
 
-// Opaque wrapper over a WifiLan service which contains encoded service name.
+// Opaque wrapper over a WifiLan service which contains packed
+// |WifiLanServiceInfo| string name.
 class WifiLanService {
  public:
   virtual ~WifiLanService() = default;
 
-  virtual std::string GetName() = 0;
+  // Returns the packed string of |WifiLanServiceInfo|. Note that the packed
+  // string would not include TXTRecord, which inheritor should save it in
+  // another store.
+  virtual std::string GetServiceName() const = 0;
+
+  // Returns the packed string of endpoint info with named key.
+  virtual std::string GetTxtRecord(const std::string& key) const = 0;
+
+  // Returns the local device's <IP address, port> as a pair.
+  // IP address is in byte sequence, in network order.
+  virtual std::pair<std::string, int> GetServiceAddress() const = 0;
 };
 
 class WifiLanSocket {
  public:
   virtual ~WifiLanSocket() = default;
 
-  // Returns the InputStream of the WifiLanSocket, or a null Ptr<InputStream>
-  // on error.
+  // Returns the InputStream of the WifiLanSocket.
+  // On error, returned stream will report Exception::kIo on any operation.
   //
-  // The returned Ptr is not owned by the caller, and can be invalidated once
+  // The returned object is not owned by the caller, and can be invalidated once
   // the WifiLanSocket object is destroyed.
-  virtual Ptr<InputStream> GetInputStream() = 0;
+  virtual InputStream& GetInputStream() = 0;
 
-  // Returns the OutputStream of the WifiLanSocket, or a null
-  // Ptr<OutputStream> on error.
+  // Returns the OutputStream of the WifiLanSocket.
+  // On error, returned stream will report Exception::kIo on any operation.
   //
-  // The returned Ptr is not owned by the caller, and can be invalidated once
+  // The returned object is not owned by the caller, and can be invalidated once
   // the WifiLanSocket object is destroyed.
-  virtual Ptr<OutputStream> GetOutputStream() = 0;
+  virtual OutputStream& GetOutputStream() = 0;
 
-  // Returns Exception::IO on error, Exception::NONE otherwise.
-  virtual Exception::Value Close() = 0;
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  virtual Exception Close() = 0;
 
-  // The returned Ptr is not owned by the caller, and can be invalidated once
-  // the WifiLanSocket object is destroyed.
-  virtual Ptr<WifiLanService> GetRemoteWifiLanService() = 0;
+  // Returns valid WifiLanService pointer if there is a connection, and
+  // nullptr otherwise.
+  virtual WifiLanService* GetRemoteWifiLanService() = 0;
 };
 
 // Container of operations that can be performed over the WifiLan medium.
@@ -66,44 +78,55 @@ class WifiLanMedium {
   virtual ~WifiLanMedium() = default;
 
   virtual bool StartAdvertising(
-      absl::string_view service_id,
-      absl::string_view wifi_lan_service_info_name) = 0;
-  virtual void StopAdvertising(absl::string_view service_id) = 0;
+      const std::string& service_id,
+      const std::string& wifi_lan_service_info_name,
+      const std::string& endpoint_info_name) = 0;
+  virtual bool StopAdvertising(const std::string& service_id) = 0;
 
-  // Callback for WifiLan discover results.
-  class DiscoveredServiceCallback {
-   public:
-    virtual ~DiscoveredServiceCallback() = default;
-
-    virtual void OnServiceDiscovered(Ptr<WifiLanService> wifi_lan_service) = 0;
-    virtual void OnServiceLost(Ptr<WifiLanService> wifi_lan_service) = 0;
+  // Callback that is invoked when a discovered service is found or lost.
+  struct DiscoveredServiceCallback {
+    std::function<void(WifiLanService& wifi_lan_service,
+                       const std::string& service_id)>
+        service_discovered_cb =
+            DefaultCallback<WifiLanService&, const std::string&>();
+    std::function<void(WifiLanService& wifi_lan_service,
+                       const std::string& service_id)>
+        service_lost_cb =
+            DefaultCallback<WifiLanService&, const std::string&>();
   };
 
-  virtual bool StartDiscovery(
-      absl::string_view service_id,
-      Ptr<DiscoveredServiceCallback> discovered_service_callback) = 0;
-  virtual void StopDiscovery(absl::string_view service_id) = 0;
+  // Returns true once the WifiLan discovery has been initiated.
+  virtual bool StartDiscovery(const std::string& service_id,
+                              DiscoveredServiceCallback callback) = 0;
 
-  class AcceptedConnectionCallback {
-   public:
-    virtual ~AcceptedConnectionCallback() = default;
+  // Returns true once WifiLan discovery for service_id is well and truly
+  // stopped; after this returns, there must be no more invocations of the
+  // DiscoveredServiceCallback passed in to StartDiscovery() for service_id.
+  virtual bool StopDiscovery(const std::string& service_id) = 0;
 
-    // The Ptr provided in this callback method will be owned (and
-    // destroyed) by the recipient of the callback methods (i.e. the creator of
-    // the concrete AcceptedConnectionCallback object).
-    virtual void OnConnectionAccepted(Ptr<WifiLanSocket> socket,
-                                      absl::string_view service_id) = 0;
+  // Callback that is invoked when a new connection is accepted.
+  struct AcceptedConnectionCallback {
+    std::function<void(WifiLanSocket& socket, const std::string& service_id)>
+        accepted_cb = DefaultCallback<WifiLanSocket&, const std::string&>();
   };
 
+  // Returns true once WifiLan socket connection requests to service_id can be
+  // accepted.
   virtual bool StartAcceptingConnections(
-      absl::string_view service_id,
-      Ptr<AcceptedConnectionCallback> accepted_connection_callback) = 0;
-  virtual void StopAcceptingConnections(absl::string_view service_id) = 0;
+      const std::string& service_id, AcceptedConnectionCallback callback) = 0;
+  virtual bool StopAcceptingConnections(const std::string& service_id) = 0;
 
-  virtual Ptr<WifiLanSocket> Connect(Ptr<WifiLanService> wifi_lan_service,
-                                     absl::string_view service_id) = 0;
+  // Connects to a WifiLan service.
+  // On success, returns a new WifiLanSocket.
+  // On error, returns nullptr.
+  virtual std::unique_ptr<WifiLanSocket> Connect(
+      WifiLanService& service, const std::string& service_id) = 0;
+
+  virtual WifiLanService* FindRemoteService(const std::string& ip_address,
+                                            int port) = 0;
 };
 
+}  // namespace api
 }  // namespace nearby
 }  // namespace location
 

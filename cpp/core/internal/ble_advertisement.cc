@@ -14,276 +14,258 @@
 
 #include "core/internal/ble_advertisement.h"
 
-#include <algorithm>
+#include <inttypes.h>
 
-#include "absl/strings/ascii.h"
+#include "core/internal/base_pcp_handler.h"
+#include "platform/base/base_input_stream.h"
+#include "platform/public/logging.h"
 #include "absl/strings/escaping.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-const std::uint32_t BLEAdvertisement::kServiceIdHashLength = 3;
-
-const std::uint32_t BLEAdvertisement::kVersionAndPcpLength = 1;
-// Should be defined as EndpointManager<Platform>::kEndpointIdLength, but that
-// involves making BLEAdvertisement templatized on Platform just for
-// that one little thing, so forego it (at least for now).
-const std::uint32_t BLEAdvertisement::kEndpointIdLength = 4;
-const std::uint32_t BLEAdvertisement::kEndpointNameSizeLength = 1;
-const std::uint32_t BLEAdvertisement::kBluetoothMacAddressLength = 6;
-const std::uint32_t BLEAdvertisement::kMinAdvertisementLength =
-    kVersionAndPcpLength + kServiceIdHashLength + kEndpointIdLength +
-    kEndpointNameSizeLength + kBluetoothMacAddressLength;
-const std::uint32_t BLEAdvertisement::kMaxEndpointNameLength = 131;
-
-const std::uint16_t BLEAdvertisement::kVersionBitmask = 0x0E0;
-const std::uint16_t BLEAdvertisement::kPCPBitmask = 0x01F;
-const std::uint16_t BLEAdvertisement::kEndpointNameLengthBitmask = 0x0FF;
-
-Ptr<BLEAdvertisement> BLEAdvertisement::fromBytes(
-    ConstPtr<ByteArray> ble_advertisement_bytes) {
-  if (ble_advertisement_bytes.isNull()) {
-    // TODO(ahlee): Logger.atDebug().log("Cannot deserialize BleAdvertisement:
-    // null bytes passed in.");
-    return Ptr<BLEAdvertisement>();
-  }
-
-  if (ble_advertisement_bytes->size() < kMinAdvertisementLength) {
-    // TODO(ahlee): Logger.atDebug().log("Cannot deserialize BleAdvertisement:
-    // expecting min %d raw bytes, got %d", kMinAdvertisementLength,
-    // ble_advertisement_bytes->size());
-    return Ptr<BLEAdvertisement>();
-  }
-
-  // Start reading the bytes.
-  const char* ble_advertisement_bytes_read_ptr =
-      ble_advertisement_bytes->getData();
-
-  // The first 3 bits are supposed to be the version.
-  Version::Value version = static_cast<Version::Value>(
-      (*ble_advertisement_bytes_read_ptr & kVersionBitmask) >> 5);
-  if (version != Version::V1) {
-    // TODO(ahlee): logger.atDebug().log("Cannot deserialize BleAdvertisement:
-    // unsupported Version %d", version);
-    return Ptr<BLEAdvertisement>();
-  }
-
-  PCP::Value pcp =
-      static_cast<PCP::Value>(*ble_advertisement_bytes_read_ptr & kPCPBitmask);
-  ble_advertisement_bytes_read_ptr++;
-  if (pcp != PCP::P2P_CLUSTER && pcp != PCP::P2P_STAR &&
-      pcp != PCP::P2P_POINT_TO_POINT) {
-    // TODO(ahlee): logger.atDebug().log("Cannot deserialize BleAdvertisement:
-    // unsupported V1 PCP %d", pcp);
-    return Ptr<BLEAdvertisement>();
-  }
-
-  // Avoid leaks.
-  ScopedPtr<ConstPtr<ByteArray> > scoped_service_id_hash(MakeConstPtr(
-      new ByteArray(ble_advertisement_bytes_read_ptr, kServiceIdHashLength)));
-  ble_advertisement_bytes_read_ptr += kServiceIdHashLength;
-
-  std::string endpoint_id(ble_advertisement_bytes_read_ptr, kEndpointIdLength);
-  ble_advertisement_bytes_read_ptr += kEndpointIdLength;
-
-  std::uint32_t expected_endpoint_name_length = static_cast<std::uint32_t>(
-      *ble_advertisement_bytes_read_ptr & kEndpointNameLengthBitmask);
-  ble_advertisement_bytes_read_ptr++;
-
-  // Check that the stated endpoint_name_length is the same as what we
-  // received (based off of the length of ble_advertisement_bytes).
-  std::uint32_t actual_endpoint_name_length =
-      computeEndpointNameLength(ble_advertisement_bytes);
-  if (actual_endpoint_name_length < expected_endpoint_name_length) {
-    // TODO(ahlee): Logger.atDebug().log("Cannot deserialize BleAdvertisement:
-    // expected endpointName to be %d bytes, got %d bytes",
-    // expected_endpoint_name_length, actual_endpoint_name_length);
-    return Ptr<BLEAdvertisement>();
-  }
-
-  std::string endpoint_name(ble_advertisement_bytes_read_ptr,
-                            expected_endpoint_name_length);
-  ble_advertisement_bytes_read_ptr += expected_endpoint_name_length;
-
-  // Avoid leaks.
-  ScopedPtr<ConstPtr<ByteArray> > scoped_bluetooth_mac_address_bytes(
-      MakeConstPtr(new ByteArray(ble_advertisement_bytes_read_ptr,
-                                 kBluetoothMacAddressLength)));
-  std::string bluetooth_mac_address;
-  // If the Bluetooth MAC Address bytes are unset or invalid, leave the string
-  // empty. Otherwise, convert it to the proper colon delimited format.
-  if (!isBluetoothMacAddressUnset(scoped_bluetooth_mac_address_bytes.get())) {
-    bluetooth_mac_address = hexBytesToColonDelimitedString(
-        scoped_bluetooth_mac_address_bytes.get());
-  }
-
-  return MakePtr(
-      new BLEAdvertisement(version, pcp, scoped_service_id_hash.release(),
-                           endpoint_id, endpoint_name, bluetooth_mac_address));
+BleAdvertisement::BleAdvertisement(Version version, Pcp pcp,
+                                   const ByteArray& service_id_hash,
+                                   const std::string& endpoint_id,
+                                   const ByteArray& endpoint_info,
+                                   const std::string& bluetooth_mac_address,
+                                   const ByteArray& uwb_address,
+                                   WebRtcState web_rtc_state) {
+  DoInitialize(/*fast_advertisement=*/false, version, pcp, service_id_hash,
+               endpoint_id, endpoint_info, bluetooth_mac_address, uwb_address,
+               web_rtc_state);
 }
 
-ConstPtr<ByteArray> BLEAdvertisement::toBytes(
-    Version::Value version, PCP::Value pcp, ConstPtr<ByteArray> service_id_hash,
-    const std::string& endpoint_id, const std::string& endpoint_name,
-    const std::string& bluetooth_mac_address) {
-  if (version != Version::V1) {
-    // TODO(ahlee): logger.atDebug().log("Cannot serialize BleAdvertisement:
-    // unsupported Version %d", version);
-    return ConstPtr<ByteArray>();
+BleAdvertisement::BleAdvertisement(Version version, Pcp pcp,
+                                   const std::string& endpoint_id,
+                                   const ByteArray& endpoint_info,
+                                   const ByteArray& uwb_address) {
+  DoInitialize(/*fast_advertisement=*/true, version, pcp, {}, endpoint_id,
+               endpoint_info, {}, uwb_address, WebRtcState::kUndefined);
+}
+
+void BleAdvertisement::DoInitialize(bool fast_advertisement, Version version,
+                                    Pcp pcp, const ByteArray& service_id_hash,
+                                    const std::string& endpoint_id,
+                                    const ByteArray& endpoint_info,
+                                    const std::string& bluetooth_mac_address,
+                                    const ByteArray& uwb_address,
+                                    WebRtcState web_rtc_state) {
+  fast_advertisement_ = fast_advertisement;
+  if (!fast_advertisement_) {
+    if (service_id_hash.size() != kServiceIdHashLength) return;
+  }
+  int max_endpoint_info_length =
+      fast_advertisement_ ? kMaxFastEndpointInfoLength : kMaxEndpointInfoLength;
+  if (version != Version::kV1 || endpoint_id.empty() ||
+      endpoint_id.length() != kEndpointIdLength ||
+      endpoint_info.size() > max_endpoint_info_length) {
+    return;
   }
 
-  if (pcp != PCP::P2P_CLUSTER && pcp != PCP::P2P_STAR &&
-      pcp != PCP::P2P_POINT_TO_POINT) {
-    // TODO(ahlee): logger.atDebug().log("Cannot serialize BleAdvertisement:
-    // unsupported V1 PCP %d", pcp);
-    return ConstPtr<ByteArray>();
+  switch (pcp) {
+    case Pcp::kP2pCluster:  // Fall through
+    case Pcp::kP2pStar:     // Fall through
+    case Pcp::kP2pPointToPoint:
+      break;
+    default:
+      return;
   }
 
-  if (endpoint_name.size() > kMaxEndpointNameLength) {
-    // TODO(ahlee): logger.atDebug().log("Cannot serialize BleAdvertisement:
-    // expected an endpointName of at most %d bytes but got %d",
-    // kMaxEndpoingNameLength, endpoint_name.size());
-    return ConstPtr<ByteArray>();
+  version_ = version;
+  pcp_ = pcp;
+  service_id_hash_ = service_id_hash;
+  endpoint_id_ = endpoint_id;
+  endpoint_info_ = endpoint_info;
+  uwb_address_ = uwb_address;
+  if (!fast_advertisement_) {
+    if (!BluetoothUtils::FromString(bluetooth_mac_address).Empty()) {
+      bluetooth_mac_address_ = bluetooth_mac_address;
+    }
+
+    web_rtc_state_ = web_rtc_state;
+  }
+}
+
+BleAdvertisement::BleAdvertisement(bool fast_advertisement,
+                                   const ByteArray& ble_advertisement_bytes) {
+  fast_advertisement_ = fast_advertisement;
+
+  if (ble_advertisement_bytes.Empty()) {
+    NEARBY_LOG(ERROR,
+               "Cannot deserialize BleAdvertisement: null bytes passed in.");
+    return;
   }
 
-  std::uint32_t ble_advertisement_length =
-      computeAdvertisementLength(endpoint_name);
-  Ptr<ByteArray> ble_advertisement_bytes{
-      new ByteArray{ble_advertisement_length}};
-  char* ble_advertisement_bytes_write_ptr = ble_advertisement_bytes->getData();
+  int min_advertisement_length = fast_advertisement_
+                                     ? kMinFastAdvertisementLength
+                                     : kMinAdvertisementLength;
+
+  if (ble_advertisement_bytes.size() < min_advertisement_length) {
+    NEARBY_LOG(ERROR,
+               "Cannot deserialize BleAdvertisement: expecting min %d raw "
+               "bytes, got %" PRIu64,
+               kMinAdvertisementLength, ble_advertisement_bytes.size());
+    return;
+  }
+
+  ByteArray advertisement_bytes{ble_advertisement_bytes};
+  BaseInputStream base_input_stream{advertisement_bytes};
+  // The first 1 byte is supposed to be the version and pcp.
+  auto version_and_pcp_byte = static_cast<char>(base_input_stream.ReadUint8());
+  // The upper 3 bits are supposed to be the version.
+  version_ =
+      static_cast<Version>((version_and_pcp_byte & kVersionBitmask) >> 5);
+  if (version_ != Version::kV1) {
+    NEARBY_LOG(INFO,
+               "Cannot deserialize BleAdvertisement: unsupported Version %d",
+               version_);
+    return;
+  }
+  // The lower 5 bits are supposed to be the Pcp.
+  pcp_ = static_cast<Pcp>(version_and_pcp_byte & kPcpBitmask);
+  switch (pcp_) {
+    case Pcp::kP2pCluster:  // Fall through
+    case Pcp::kP2pStar:     // Fall through
+    case Pcp::kP2pPointToPoint:
+      break;
+    default:
+      NEARBY_LOG(INFO,
+                 "Cannot deserialize BleAdvertisement: uunsupported V1 PCP %d",
+                 pcp_);
+  }
+
+  // The next 3 bytes are supposed to be the service_id_hash if not fast
+  // advertisment.
+  if (!fast_advertisement_)
+    service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
+
+  // The next 4 bytes are supposed to be the endpoint_id.
+  endpoint_id_ = std::string{base_input_stream.ReadBytes(kEndpointIdLength)};
+
+  // The next 1 byte is supposed to be the length of the endpoint_info.
+  std::uint32_t expected_endpoint_info_length = base_input_stream.ReadUint8();
+
+  // The next x bytes are the endpoint info. (Max length is 131 bytes or 17
+  // bytes as fast_advertisement being true).
+  endpoint_info_ = base_input_stream.ReadBytes(expected_endpoint_info_length);
+  const int max_endpoint_info_length =
+      fast_advertisement_ ? kMaxFastEndpointInfoLength : kMaxEndpointInfoLength;
+  if (endpoint_info_.Empty() ||
+      endpoint_info_.size() != expected_endpoint_info_length ||
+      endpoint_info_.size() > max_endpoint_info_length) {
+    NEARBY_LOG(INFO,
+               "Cannot deserialize BleAdvertisement(fast advertisement=%d): "
+               "expected endpointInfo to be %d bytes, got %" PRIu64,
+               fast_advertisement_, expected_endpoint_info_length,
+               endpoint_info_.size());
+
+    // Clear enpoint_id for validity.
+    endpoint_id_.clear();
+    return;
+  }
+
+  // The next 6 bytes are the bluetooth mac address if not fast advertisment.
+  if (!fast_advertisement_) {
+    auto bluetooth_mac_address_bytes =
+        base_input_stream.ReadBytes(BluetoothUtils::kBluetoothMacAddressLength);
+    bluetooth_mac_address_ =
+        BluetoothUtils::ToString(bluetooth_mac_address_bytes);
+  }
+
+  // The next 1 byte is supposed to be the length of the uwb_address. If the
+  // next byte is not available then it should be a fast advertisement and skip
+  // it for remaining bytes.
+  if (base_input_stream.IsAvailable(1)) {
+    std::uint32_t expected_uwb_address_length = base_input_stream.ReadUint8();
+    // If the length of uwb_address is not zero, then retrieve it.
+    if (expected_uwb_address_length != 0) {
+      uwb_address_ = base_input_stream.ReadBytes(expected_uwb_address_length);
+      if (uwb_address_.Empty() ||
+          uwb_address_.size() != expected_uwb_address_length) {
+        NEARBY_LOG(INFO,
+                   "Cannot deserialize BleAdvertisement: "
+                   "expected uwbAddress size to be %d bytes, got %" PRIu64,
+                   expected_uwb_address_length, uwb_address_.size());
+
+        // Clear enpoint_id for validity.
+        endpoint_id_.clear();
+        return;
+      }
+    }
+
+    // The next 1 byte is extra field.
+    if (!fast_advertisement_) {
+      if (base_input_stream.IsAvailable(kExtraFieldLength)) {
+        auto extra_field = static_cast<char>(base_input_stream.ReadUint8());
+        web_rtc_state_ = (extra_field & kWebRtcConnectableFlagBitmask) == 1
+                             ? WebRtcState::kConnectable
+                             : WebRtcState::kUnconnectable;
+      }
+    }
+  }
+
+  base_input_stream.Close();
+}
+
+BleAdvertisement::operator ByteArray() const {
+  if (!IsValid()) {
+    return ByteArray();
+  }
 
   // The first 3 bits are the Version.
   char version_and_pcp_byte =
-      static_cast<char>((version << 5) & kVersionBitmask);
-  // The next 5 bits are the PCP.
-  version_and_pcp_byte |= static_cast<char>(pcp & kPCPBitmask);
-  *ble_advertisement_bytes_write_ptr = version_and_pcp_byte;
-  ble_advertisement_bytes_write_ptr++;
+      (static_cast<char>(version_) << 5) & kVersionBitmask;
+  // The next 5 bits are the Pcp.
+  version_and_pcp_byte |= static_cast<char>(pcp_) & kPcpBitmask;
 
-  // The next 24 bits are the service id hash.
-  memcpy(ble_advertisement_bytes_write_ptr, service_id_hash->getData(),
-         kServiceIdHashLength);
-  ble_advertisement_bytes_write_ptr += kServiceIdHashLength;
+  std::string out;
+  if (fast_advertisement_) {
+    // clang-format off
+    out = absl::StrCat(std::string(1, version_and_pcp_byte),
+                       endpoint_id_,
+                       std::string(1, endpoint_info_.size()),
+                       std::string(endpoint_info_));
+    // clang-format on
+  } else {
+    // clang-format off
+    out = absl::StrCat(std::string(1, version_and_pcp_byte),
+                       std::string(service_id_hash_),
+                       endpoint_id_,
+                       std::string(1, endpoint_info_.size()),
+                       std::string(endpoint_info_));
+    // clang-format on
 
-  // The next 32 bits are the endpoint id.
-  memcpy(ble_advertisement_bytes_write_ptr, endpoint_id.data(),
-         kEndpointIdLength);
-  ble_advertisement_bytes_write_ptr += kEndpointIdLength;
-
-  // The next 8 bits are the length of the endpoint name.
-  *ble_advertisement_bytes_write_ptr =
-      static_cast<char>(endpoint_name.size() & kEndpointNameLengthBitmask);
-  ble_advertisement_bytes_write_ptr++;
-
-  // The next x bits are the endpoint name. (Max length is 131 bytes).
-  memcpy(ble_advertisement_bytes_write_ptr, endpoint_name.data(),
-         endpoint_name.size());
-  ble_advertisement_bytes_write_ptr += endpoint_name.size();
-
-  // The next 48 bits are the bluetooth mac address. If bluetooth_mac_address is
-  // invalid or empty, we get back a null byte array.
-  // Avoid leaks.
-  ScopedPtr<ConstPtr<ByteArray> > scoped_bluetooth_mac_address_bytes(
-      bluetoothMacAddressToHexBytes(bluetooth_mac_address));
-  if (!scoped_bluetooth_mac_address_bytes.isNull()) {
-    memcpy(ble_advertisement_bytes_write_ptr,
-           scoped_bluetooth_mac_address_bytes->getData(),
-           kBluetoothMacAddressLength);
-  }
-  ble_advertisement_bytes_write_ptr += kBluetoothMacAddressLength;
-
-  return ConstifyPtr(ble_advertisement_bytes);
-}
-
-std::string BLEAdvertisement::hexBytesToColonDelimitedString(
-    ConstPtr<ByteArray> hex_bytes) {
-  // Convert the hex bytes to a string.
-  std::string colon_delimited_string(absl::BytesToHexString(
-      hex_bytes->asString()));
-  absl::AsciiStrToUpper(&colon_delimited_string);
-
-  // Insert the colons.
-  for (int i = colon_delimited_string.length() - 2; i > 0; i -= 2) {
-    colon_delimited_string.insert(i, ":");
-  }
-  return colon_delimited_string;
-}
-
-// TODO(ahlee): Rename to bluetoothMacAddressHexStringToBytes
-ConstPtr<ByteArray> BLEAdvertisement::bluetoothMacAddressToHexBytes(
-    const std::string& bluetooth_mac_address) {
-  std::string bt_mac_address(bluetooth_mac_address);
-
-  // Remove the colon delimiters.
-  bt_mac_address.erase(
-      std::remove(bt_mac_address.begin(), bt_mac_address.end(), ':'),
-      bt_mac_address.end());
-
-  // If the bluetooth mac address is invalid (wrong size), return a null byte
-  // array.
-  if (bt_mac_address.length() != kBluetoothMacAddressLength * 2) {
-    return ConstPtr<ByteArray>();
-  }
-
-  // Convert to bytes.
-  std::string bt_mac_address_bytes(absl::HexStringToBytes(bt_mac_address));
-  return MakeConstPtr(
-      new ByteArray(bt_mac_address_bytes.data(), bt_mac_address_bytes.size()));
-}
-
-bool BLEAdvertisement::isBluetoothMacAddressUnset(
-    ConstPtr<ByteArray> bluetooth_mac_address_bytes) {
-  for (int i = 0; i < bluetooth_mac_address_bytes->size(); i++) {
-    if (bluetooth_mac_address_bytes->getData()[i] != 0) {
-      return false;
+    // The next 6 bytes are the bluetooth mac address. If bluetooth_mac_address
+    // is invalid or empty, we get back a empty byte array.
+    auto bluetooth_mac_address_bytes{
+        BluetoothUtils::FromString(bluetooth_mac_address_)};
+    if (!bluetooth_mac_address_bytes.Empty()) {
+      absl::StrAppend(&out, std::string(bluetooth_mac_address_bytes));
     }
   }
-  return true;
-}
 
-std::uint32_t BLEAdvertisement::computeEndpointNameLength(
-    ConstPtr<ByteArray> ble_advertisement_bytes) {
-  return ble_advertisement_bytes->size() - kMinAdvertisementLength;
-}
+  // The next bytes are UWB address field.
+  if (!uwb_address_.Empty()) {
+    absl::StrAppend(&out, std::string(1, uwb_address_.size()));
+    absl::StrAppend(&out, std::string(uwb_address_));
+  } else if (!fast_advertisement_) {
+    // Write UWB address with length 0 to be able to read the next field when
+    // decode.
+    absl::StrAppend(&out, std::string(1, uwb_address_.size()));
+  }
 
-std::uint32_t BLEAdvertisement::computeAdvertisementLength(
-    const std::string& endpoint_name) {
-  return kMinAdvertisementLength + endpoint_name.size();
-}
+  // The next 1 byte is extra field.
+  if (!fast_advertisement_) {
+    int web_rtc_connectable_flag =
+        (web_rtc_state_ == WebRtcState::kConnectable) ? 1 : 0;
+    char extra_field_byte = static_cast<char>(web_rtc_connectable_flag) &
+                            kWebRtcConnectableFlagBitmask;
+    absl::StrAppend(&out, std::string(1, extra_field_byte));
+  }
 
-BLEAdvertisement::BLEAdvertisement(Version::Value version, PCP::Value pcp,
-                                   ConstPtr<ByteArray> service_id_hash,
-                                   const std::string& endpoint_id,
-                                   const std::string& endpoint_name,
-                                   const std::string& bluetooth_mac_address)
-    : version_(version),
-      pcp_(pcp),
-      service_id_hash_(service_id_hash),
-      endpoint_id_(endpoint_id),
-      endpoint_name_(endpoint_name),
-      bluetooth_mac_address_(bluetooth_mac_address) {}
-
-BLEAdvertisement::~BLEAdvertisement() {
-  // Nothing to do.
-}
-
-BLEAdvertisement::Version::Value BLEAdvertisement::getVersion() const {
-  return version_;
-}
-
-PCP::Value BLEAdvertisement::getPCP() const { return pcp_; }
-
-std::string BLEAdvertisement::getEndpointId() const { return endpoint_id_; }
-
-ConstPtr<ByteArray> BLEAdvertisement::getServiceIdHash() const {
-  return service_id_hash_.get();
-}
-
-std::string BLEAdvertisement::getEndpointName() const { return endpoint_name_; }
-
-std::string BLEAdvertisement::getBluetoothMacAddress() const {
-  return bluetooth_mac_address_;
+  return ByteArray(std::move(out));
 }
 
 }  // namespace connections

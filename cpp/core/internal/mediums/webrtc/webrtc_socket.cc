@@ -14,7 +14,8 @@
 
 #include "core/internal/mediums/webrtc/webrtc_socket.h"
 
-#include "platform/synchronized.h"
+#include "platform/public/logging.h"
+#include "platform/public/mutex_lock.h"
 
 namespace location {
 namespace nearby {
@@ -22,128 +23,89 @@ namespace connections {
 namespace mediums {
 
 // OutputStreamImpl
-template <typename Platform>
-Exception::Value WebRtcSocket<Platform>::OutputStreamImpl::write(
-    ConstPtr<ByteArray> data) {
-  ScopedPtr<ConstPtr<ByteArray>> scoped_data(data);
-
-  if (scoped_data->size() > kMaxDataSize) {
+Exception WebRtcSocket::OutputStreamImpl::Write(const ByteArray& data) {
+  if (data.size() > kMaxDataSize) {
     NEARBY_LOG(WARNING, "Sending data larger than 1MB");
-    return Exception::IO;
+    return {Exception::kIo};
   }
 
-  socket_->BlockUntilSufficientSpaceInBuffer(scoped_data->size());
+  socket_->BlockUntilSufficientSpaceInBuffer(data.size());
 
   if (socket_->IsClosed()) {
     NEARBY_LOG(WARNING, "Tried sending message while socket is closed");
-    return Exception::IO;
+    return {Exception::kIo};
   }
 
-  if (!socket_->SendMessage(scoped_data.release())) {
-    return Exception::IO;
+  if (!socket_->SendMessage(data)) {
+    return {Exception::kIo};
   }
-  return Exception::NONE;
+  return {Exception::kSuccess};
 }
 
-template <typename Platform>
-Exception::Value WebRtcSocket<Platform>::OutputStreamImpl::flush() {
+Exception WebRtcSocket::OutputStreamImpl::Flush() {
   // Java implementation is empty.
-  return Exception::NONE;
+  return {Exception::kSuccess};
 }
 
-template <typename Platform>
-Exception::Value WebRtcSocket<Platform>::OutputStreamImpl::close() {
-  socket_->close();
-  return Exception::NONE;
+Exception WebRtcSocket::OutputStreamImpl::Close() {
+  socket_->Close();
+  return {Exception::kSuccess};
 }
 
 // WebRtcSocket
-template <typename Platform>
-WebRtcSocket<Platform>::WebRtcSocket(
+WebRtcSocket::WebRtcSocket(
     const std::string& name,
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel)
-    : name_(name),
-      data_channel_(std::move(data_channel)),
-      pipe_(MakeRefCountedPtr(new Pipe())),
-      incoming_data_piped_input_stream_(Pipe::createInputStream(pipe_)),
-      incoming_data_piped_output_stream_(Pipe::createOutputStream(pipe_)),
-      output_stream_(MakePtr(new OutputStreamImpl(this))),
-      closed_(Platform::createAtomicBoolean(false)),
-      backpressure_lock_(Platform::createLock()),
-      buffer_variable_(
-          Platform::createConditionVariable(backpressure_lock_.get())) {}
+    : name_(name), data_channel_(std::move(data_channel)) {}
 
-template <typename Platform>
-Ptr<InputStream> WebRtcSocket<Platform>::getInputStream() {
-  return incoming_data_piped_input_stream_.get();
-}
+InputStream& WebRtcSocket::GetInputStream() { return pipe_.GetInputStream(); }
 
-template <typename Platform>
-Ptr<OutputStream> WebRtcSocket<Platform>::getOutputStream() {
-  return output_stream_.get();
-}
+OutputStream& WebRtcSocket::GetOutputStream() { return output_stream_; }
 
-template <typename Platform>
-void WebRtcSocket<Platform>::close() {
+void WebRtcSocket::Close() {
   if (IsClosed()) return;
 
-  closed_->set(true);
-  incoming_data_piped_output_stream_->close();
-  incoming_data_piped_input_stream_->close();
+  closed_.Set(true);
+  pipe_.GetInputStream().Close();
+  pipe_.GetOutputStream().Close();
   data_channel_->Close();
   WakeUpWriter();
-  if (!socket_closed_listener_.isNull()) {
-    socket_closed_listener_->OnSocketClosed();
+  socket_closed_listener_.socket_closed_cb();
+}
+
+void WebRtcSocket::NotifyDataChannelMsgReceived(const ByteArray& message) {
+  if (!pipe_.GetOutputStream().Write(message).Ok()) {
+    Close();
+    return;
   }
+
+  if (!pipe_.GetOutputStream().Flush().Ok()) Close();
 }
 
-template <typename Platform>
-void WebRtcSocket<Platform>::NotifyDataChannelMsgReceived(
-    ConstPtr<ByteArray> message) {
-  Exception::Value exception =
-      incoming_data_piped_output_stream_->write(message);
-  if (exception != Exception::NONE) close();
+void WebRtcSocket::NotifyDataChannelBufferedAmountChanged() { WakeUpWriter(); }
 
-  exception = incoming_data_piped_output_stream_->flush();
-  if (exception != Exception::NONE) close();
+bool WebRtcSocket::SendMessage(const ByteArray& data) {
+  return data_channel_->Send(
+      webrtc::DataBuffer(std::string(data.data(), data.size())));
 }
 
-template <typename Platform>
-void WebRtcSocket<Platform>::NotifyDataChannelBufferedAmountChanged() {
-  WakeUpWriter();
+bool WebRtcSocket::IsClosed() { return closed_.Get(); }
+
+void WebRtcSocket::WakeUpWriter() {
+  MutexLock lock(&backpressure_mutex_);
+  buffer_variable_.Notify();
 }
 
-template <typename Platform>
-bool WebRtcSocket<Platform>::SendMessage(ConstPtr<ByteArray> data) {
-  ScopedPtr<ConstPtr<ByteArray>> scoped_data(data);
-  return data_channel_->Send(webrtc::DataBuffer(
-      std::string(scoped_data->getData(), scoped_data->size())));
+void WebRtcSocket::SetOnSocketClosedListener(SocketClosedListener&& listener) {
+  socket_closed_listener_ = std::move(listener);
 }
 
-template <typename Platform>
-bool WebRtcSocket<Platform>::IsClosed() {
-  return closed_->get();
-}
-
-template <typename Platform>
-void WebRtcSocket<Platform>::WakeUpWriter() {
-  Synchronized s(backpressure_lock_.get());
-  buffer_variable_->notify();
-}
-
-template <typename Platform>
-void WebRtcSocket<Platform>::SetOnSocketClosedListener(
-    Ptr<SocketClosedListener> listener) {
-  socket_closed_listener_ = listener;
-}
-
-template <typename Platform>
-void WebRtcSocket<Platform>::BlockUntilSufficientSpaceInBuffer(int length) {
-  Synchronized s(backpressure_lock_.get());
+void WebRtcSocket::BlockUntilSufficientSpaceInBuffer(int length) {
+  MutexLock lock(&backpressure_mutex_);
   while (!IsClosed() &&
          (data_channel_->buffered_amount() + length > kMaxDataSize)) {
     // TODO(himanshujaju): Add wait with timeout.
-    buffer_variable_->wait();
+    buffer_variable_.Wait();
   }
 }
 

@@ -14,25 +14,30 @@
 
 cc_library(
     name = "core",
-    hdrs = [
+    srcs = [
         "core.cc",
+    ],
+    hdrs = [
         "core.h",
     ],
     visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__pkg__",
-        "//location/nearby/setup/core/internal:__pkg__",
+        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
     ],
     deps = [
-        ":types",
+        ":core_types",
         "//core/internal",
-        "//platform:types",
+        "//platform/public:comm",
+        "//platform/public:logging",
+        "//platform/public:types",
+        "//absl/strings",
+        "//absl/time",
+        "//absl/types:span",
     ],
 )
 
 cc_library(
-    name = "types",
+    name = "core_types",
     srcs = [
-        "payload.cc",
         "strategy.cc",
     ],
     hdrs = [
@@ -44,29 +49,43 @@ cc_library(
         "strategy.h",
     ],
     visibility = [
-        "//core/internal:__pkg__",
-        "//location/nearby/setup/core/internal:__pkg__",
+        "//core:__subpackages__",
     ],
     deps = [
-        "//platform:types",
-        "//platform:utils",
-        "//platform/api",
-        "//platform/port:string",
+        "//platform/base",
+        "//platform/public:comm",
+        "//platform/public:logging",
+        "//platform/public:types",
+        "//proto:connections_enums_portable_proto",
+        "//absl/strings",
+        "//absl/types:variant",
     ],
 )
 
-cc_library(
-    name = "check_compilation",
-    srcs = ["check_compilation.cc"],
+cc_test(
+    name = "core_test",
+    size = "small",
+    srcs = [
+        "core_test.cc",
+        "listeners_test.cc",
+        "payload_test.cc",
+        "status_test.cc",
+        "strategy_test.cc",
+    ],
+    shard_count = 16,
     deps = [
         ":core",
-        ":types",
-        "//platform:types",
-        "//platform:utils",
-        "//platform/api",
-        "//platform/impl/g3",
-        "//platform/impl/shared:file",
-        "//platform/impl/shared/sample:sample_wifi_medium",
-        "//platform/port:string",
+        ":core_types",
+        "//core/internal",
+        "//core/internal:internal_test",
+        "//platform/base",
+        "//platform/impl/g3",  # build_cleaner: keep
+        "//platform/public:comm",
+        "//platform/public:logging",
+        "//platform/public:types",
+        "//testing/base/public:gunit_main",
+        "//absl/strings",
+        "//absl/time",
+        "//absl/types:variant",
     ],
 )

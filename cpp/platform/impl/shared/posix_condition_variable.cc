@@ -16,27 +16,29 @@
 
 namespace location {
 namespace nearby {
+namespace posix {
 
-PosixConditionVariable::PosixConditionVariable(Ptr<PosixLock> lock)
-    : lock_(lock), attr_(), cond_() {
+ConditionVariable::ConditionVariable(Mutex* mutex)
+    : mutex_(mutex), attr_(), cond_() {
   pthread_condattr_init(&attr_);
 
   pthread_cond_init(&cond_, &attr_);
 }
 
-PosixConditionVariable::~PosixConditionVariable() {
+ConditionVariable::~ConditionVariable() {
   pthread_cond_destroy(&cond_);
 
   pthread_condattr_destroy(&attr_);
 }
 
-void PosixConditionVariable::notify() { pthread_cond_broadcast(&cond_); }
+void ConditionVariable::Notify() { pthread_cond_broadcast(&cond_); }
 
-Exception::Value PosixConditionVariable::wait() {
-  pthread_cond_wait(&cond_, &(lock_->mutex_));
+Exception ConditionVariable::Wait() {
+  pthread_cond_wait(&cond_, &(mutex_->mutex_));
 
-  return Exception::kSuccess;
+  return {Exception::kSuccess};
 }
 
+}  // namespace posix
 }  // namespace nearby
 }  // namespace location

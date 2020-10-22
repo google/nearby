@@ -14,9 +14,9 @@
 
 #include "core/internal/mediums/webrtc/webrtc_socket.h"
 
-#include "platform/api/platform.h"
-#include "platform/byte_array.h"
-#include "platform/ptr.h"
+#include <memory>
+
+#include "platform/base/byte_array.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "webrtc/api/data_channel_interface.h"
@@ -28,7 +28,7 @@ namespace mediums {
 
 namespace {
 
-using TestPlatform = platform::ImplementationPlatform;
+// using TestPlatform = platform::ImplementationPlatform;
 
 const char kSocketName[] = "TestSocket";
 
@@ -57,110 +57,109 @@ class MockDataChannel
 
 }  // namespace
 
-class MockSocketClosedListener
-    : public WebRtcSocket<TestPlatform>::SocketClosedListener {
- public:
-  MOCK_METHOD(void, OnSocketClosed, ());
-};
-
 TEST(WebRtcSocketTest, ReadFromSocket) {
-  ConstPtr<ByteArray> kMessage = MakeConstPtr(new ByteArray("Message"));
+  const ByteArray kMessage{"Message"};
   rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
-  WebRtcSocket<TestPlatform> webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
   webrtc_socket.NotifyDataChannelMsgReceived(kMessage);
-  ExceptionOr<ConstPtr<ByteArray>> result =
-      webrtc_socket.getInputStream()->read();
+  ExceptionOr<ByteArray> result = webrtc_socket.GetInputStream().Read(7);
   EXPECT_TRUE(result.ok());
   EXPECT_EQ(result.result(), kMessage);
 }
 
 TEST(WebRtcSocketTest, ReadMultipleMessages) {
   rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
-  WebRtcSocket<TestPlatform> webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
-  webrtc_socket.NotifyDataChannelMsgReceived(MakeConstPtr(new ByteArray("Me")));
-  webrtc_socket.NotifyDataChannelMsgReceived(
-      MakeConstPtr(new ByteArray("ssa")));
-  webrtc_socket.NotifyDataChannelMsgReceived(MakeConstPtr(new ByteArray("ge")));
-  ExceptionOr<ConstPtr<ByteArray>> result;
+  webrtc_socket.NotifyDataChannelMsgReceived(ByteArray{"Me"});
+  webrtc_socket.NotifyDataChannelMsgReceived(ByteArray{"ssa"});
+  webrtc_socket.NotifyDataChannelMsgReceived(ByteArray{"ge"});
+
+  ExceptionOr<ByteArray> result;
 
   // This behaviour is different from the Java code
-  result = webrtc_socket.getInputStream()->read();
+  result = webrtc_socket.GetInputStream().Read(7);
   EXPECT_TRUE(result.ok());
-  EXPECT_EQ(result.result()->asString(), "Me");
+  EXPECT_EQ(result.result(), ByteArray{"Me"});
 
-  result = webrtc_socket.getInputStream()->read();
+  result = webrtc_socket.GetInputStream().Read(7);
   EXPECT_TRUE(result.ok());
-  EXPECT_EQ(result.result()->asString(), "ssa");
+  EXPECT_EQ(result.result(), ByteArray{"ssa"});
 
-  result = webrtc_socket.getInputStream()->read();
+  result = webrtc_socket.GetInputStream().Read(7);
   EXPECT_TRUE(result.ok());
-  EXPECT_EQ(result.result()->asString(), "ge");
+  EXPECT_EQ(result.result(), ByteArray{"ge"});
 }
 
 TEST(WebRtcSocketTest, WriteToSocket) {
-  ConstPtr<ByteArray> kMessage = MakeConstPtr(new ByteArray("Message"));
+  const ByteArray kMessage{"Message"};
   rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
-  WebRtcSocket<TestPlatform> webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
   EXPECT_CALL(*mock_data_channel, Send(testing::_))
       .WillRepeatedly(testing::Return(true));
-  EXPECT_EQ(webrtc_socket.getOutputStream()->write(kMessage), Exception::NONE);
+  EXPECT_TRUE(webrtc_socket.GetOutputStream().Write(kMessage).Ok());
 }
 
 TEST(WebRtcSocketTest, SendDataBiggerThanMax) {
-  ConstPtr<ByteArray> kMessage = MakeConstPtr(new ByteArray(kMaxDataSize + 1));
+  const ByteArray kMessage{kMaxDataSize + 1};
   rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
-  WebRtcSocket<TestPlatform> webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
   EXPECT_CALL(*mock_data_channel, Send(testing::_)).Times(0);
-  EXPECT_EQ(webrtc_socket.getOutputStream()->write(kMessage), Exception::IO);
+  EXPECT_EQ(webrtc_socket.GetOutputStream().Write(kMessage),
+            Exception{Exception::kIo});
 }
 
 TEST(WebRtcSocketTest, WriteToDataChannelFails) {
-  ConstPtr<ByteArray> kMessage = MakeConstPtr(new ByteArray("Message"));
+  ByteArray kMessage{"Message"};
   rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
-  WebRtcSocket<TestPlatform> webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
   ON_CALL(*mock_data_channel, Send(testing::_))
       .WillByDefault(testing::Return(false));
-  EXPECT_EQ(webrtc_socket.getOutputStream()->write(kMessage), Exception::IO);
+  EXPECT_EQ(webrtc_socket.GetOutputStream().Write(kMessage),
+            Exception{Exception::kIo});
 }
 
 TEST(WebRtcSocketTest, Close) {
   rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
-  ScopedPtr<Ptr<MockSocketClosedListener>> mock_listener(
-      MakePtr(new MockSocketClosedListener()));
-  WebRtcSocket<TestPlatform> webrtc_socket(kSocketName, mock_data_channel);
-  webrtc_socket.SetOnSocketClosedListener(mock_listener.get());
+  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
-  EXPECT_CALL(*mock_listener, OnSocketClosed());
   EXPECT_CALL(*mock_data_channel, Close());
-  webrtc_socket.close();
+
+  int socket_closed_cb_called = 0;
+
+  webrtc_socket.SetOnSocketClosedListener(
+      {.socket_closed_cb = [&]() { socket_closed_cb_called++; }});
+  webrtc_socket.Close();
+
+  EXPECT_EQ(socket_closed_cb_called, 1);
 }
 
 TEST(WebRtcSocketTest, WriteOnClosedChannel) {
-  ConstPtr<ByteArray> kMessage = MakeConstPtr(new ByteArray("Message"));
+  ByteArray kMessage{"Message"};
   rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
-  WebRtcSocket<TestPlatform> webrtc_socket(kSocketName, mock_data_channel);
-  webrtc_socket.close();
+  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
+  webrtc_socket.Close();
 
   EXPECT_CALL(*mock_data_channel, Send(testing::_)).Times(0);
-  EXPECT_EQ(webrtc_socket.getOutputStream()->write(kMessage), Exception::IO);
+  EXPECT_EQ(webrtc_socket.GetOutputStream().Write(kMessage),
+            Exception{Exception::kIo});
 }
 
 TEST(WebRtcSocketTest, ReadFromClosedChannel) {
-  ConstPtr<ByteArray> kMessage = MakeConstPtr(new ByteArray("Message"));
+  ByteArray kMessage{"Message"};
   rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
-  WebRtcSocket<TestPlatform> webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
   ON_CALL(*mock_data_channel, Send(testing::_))
       .WillByDefault(testing::Return(true));
 
-  webrtc_socket.getOutputStream()->write(kMessage);
-  webrtc_socket.close();
+  webrtc_socket.GetOutputStream().Write(kMessage);
+  webrtc_socket.Close();
 
-  EXPECT_EQ(webrtc_socket.getInputStream()->read().exception(), Exception::IO);
+  EXPECT_EQ(webrtc_socket.GetInputStream().Read(7).exception(), Exception::kIo);
 }
 
 }  // namespace mediums

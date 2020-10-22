@@ -18,44 +18,43 @@ namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
-
 namespace webrtc_frames {
 using WebRtcSignalingFrame = location::nearby::mediums::WebRtcSignalingFrame;
 
 namespace {
 
-ConstPtr<ByteArray> FrameToByteArray(
-    const WebRtcSignalingFrame& signaling_frame) {
+ByteArray FrameToByteArray(const WebRtcSignalingFrame& signaling_frame) {
   std::string message;
   signaling_frame.SerializeToString(&message);
-  return MakeConstPtr(new ByteArray(message.c_str(), message.size()));
+  return ByteArray(message.c_str(), message.size());
 }
 
-void SetSenderId(ConstPtr<PeerId> sender_id, WebRtcSignalingFrame& frame) {
-  frame.mutable_sender_id()->set_id(sender_id->GetId());
+void SetSenderId(const PeerId& sender_id, WebRtcSignalingFrame& frame) {
+  frame.mutable_sender_id()->set_id(sender_id.GetId());
 }
 
-ConstPtr<webrtc::IceCandidateInterface> DecodeIceCandidate(
-    const location::nearby::mediums::IceCandidate& ice_candidate_proto) {
+std::unique_ptr<webrtc::IceCandidateInterface> DecodeIceCandidate(
+    location::nearby::mediums::IceCandidate ice_candidate_proto) {
   webrtc::SdpParseError error;
-  return ConstPtr<webrtc::IceCandidateInterface>(webrtc::CreateIceCandidate(
-      ice_candidate_proto.sdp_mid(), ice_candidate_proto.sdp_m_line_index(),
-      ice_candidate_proto.sdp(), &error));
+  return std::unique_ptr<webrtc::IceCandidateInterface>(
+      webrtc::CreateIceCandidate(ice_candidate_proto.sdp_mid(),
+                                 ice_candidate_proto.sdp_m_line_index(),
+                                 ice_candidate_proto.sdp(), &error));
 }
 
 }  // namespace
 
-ConstPtr<ByteArray> EncodeReadyForSignalingPoke(ConstPtr<PeerId> sender_id) {
+ByteArray EncodeReadyForSignalingPoke(const PeerId& sender_id) {
   WebRtcSignalingFrame signaling_frame;
   signaling_frame.set_type(WebRtcSignalingFrame::READY_FOR_SIGNALING_POKE_TYPE);
   SetSenderId(sender_id, signaling_frame);
-  signaling_frame.mutable_ready_for_signaling_poke();
+  signaling_frame.set_allocated_ready_for_signaling_poke(
+      new location::nearby::mediums::ReadyForSignalingPoke());
   return FrameToByteArray(std::move(signaling_frame));
 }
 
-ConstPtr<ByteArray> EncodeOffer(
-    ConstPtr<PeerId> sender_id,
-    const webrtc::SessionDescriptionInterface& offer) {
+ByteArray EncodeOffer(const PeerId& sender_id,
+                      const webrtc::SessionDescriptionInterface& offer) {
   WebRtcSignalingFrame signaling_frame;
   signaling_frame.set_type(WebRtcSignalingFrame::OFFER_TYPE);
   SetSenderId(sender_id, signaling_frame);
@@ -67,9 +66,8 @@ ConstPtr<ByteArray> EncodeOffer(
   return FrameToByteArray(std::move(signaling_frame));
 }
 
-ConstPtr<ByteArray> EncodeAnswer(
-    ConstPtr<PeerId> sender_id,
-    const webrtc::SessionDescriptionInterface& answer) {
+ByteArray EncodeAnswer(const PeerId& sender_id,
+                       const webrtc::SessionDescriptionInterface& answer) {
   WebRtcSignalingFrame signaling_frame;
   signaling_frame.set_type(WebRtcSignalingFrame::ANSWER_TYPE);
   SetSenderId(sender_id, signaling_frame);
@@ -81,8 +79,8 @@ ConstPtr<ByteArray> EncodeAnswer(
   return FrameToByteArray(std::move(signaling_frame));
 }
 
-ConstPtr<ByteArray> EncodeIceCandidates(
-    ConstPtr<PeerId> sender_id,
+ByteArray EncodeIceCandidates(
+    const PeerId& sender_id,
     const std::vector<location::nearby::mediums::IceCandidate>&
         ice_candidates) {
   WebRtcSignalingFrame signaling_frame;
@@ -95,25 +93,23 @@ ConstPtr<ByteArray> EncodeIceCandidates(
   return FrameToByteArray(std::move(signaling_frame));
 }
 
-Ptr<webrtc::SessionDescriptionInterface> DecodeOffer(
+std::unique_ptr<webrtc::SessionDescriptionInterface> DecodeOffer(
     const WebRtcSignalingFrame& frame) {
-  return MakePtr(webrtc::CreateSessionDescription(
-                     webrtc::SdpType::kOffer,
-                     frame.offer().session_description().description())
-                     .release());
+  return webrtc::CreateSessionDescription(
+      webrtc::SdpType::kOffer,
+      frame.offer().session_description().description());
 }
 
-Ptr<webrtc::SessionDescriptionInterface> DecodeAnswer(
+std::unique_ptr<webrtc::SessionDescriptionInterface> DecodeAnswer(
     const WebRtcSignalingFrame& frame) {
-  return MakePtr(webrtc::CreateSessionDescription(
-                     webrtc::SdpType::kAnswer,
-                     frame.answer().session_description().description())
-                     .release());
+  return webrtc::CreateSessionDescription(
+      webrtc::SdpType::kAnswer,
+      frame.answer().session_description().description());
 }
 
-std::vector<ConstPtr<webrtc::IceCandidateInterface>> DecodeIceCandidates(
+std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> DecodeIceCandidates(
     const WebRtcSignalingFrame& frame) {
-  std::vector<ConstPtr<webrtc::IceCandidateInterface>> ice_candidates;
+  std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> ice_candidates;
   for (const auto& candidate : frame.ice_candidates().ice_candidates()) {
     ice_candidates.push_back(DecodeIceCandidate(candidate));
   }
@@ -132,7 +128,6 @@ location::nearby::mediums::IceCandidate EncodeIceCandidate(
 }
 
 }  // namespace webrtc_frames
-
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby

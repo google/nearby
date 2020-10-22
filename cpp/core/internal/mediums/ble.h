@@ -16,196 +16,171 @@
 #define CORE_INTERNAL_MEDIUMS_BLE_H_
 
 #include <cstdint>
+#include <string>
 
 #include "core/internal/mediums/bluetooth_radio.h"
-#include "platform/api/ble.h"
-#include "platform/api/bluetooth_adapter.h"
-#include "platform/api/lock.h"
-#include "platform/byte_array.h"
-#include "platform/port/string.h"
-#include "platform/ptr.h"
+#include "core/listeners.h"
+#include "platform/base/byte_array.h"
+#include "platform/public/ble.h"
+#include "platform/public/multi_thread_executor.h"
+#include "platform/public/mutex.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-template <typename Platform>
-class BLE {
+class Ble {
  public:
-  explicit BLE(Ptr<BluetoothRadio<Platform>> bluetooth_radio);
-  ~BLE();
+  using DiscoveredPeripheralCallback = BleMedium::DiscoveredPeripheralCallback;
+  using AcceptedConnectionCallback = BleMedium::AcceptedConnectionCallback;
 
-  bool isAvailable();
+  explicit Ble(BluetoothRadio& bluetooth_radio);
+  ~Ble() = default;
 
-  bool startAdvertising(const string& service_id,
-                        ConstPtr<ByteArray> advertisement);
-  void stopAdvertising();
+  // Returns true, if Ble communications are supported by a platform.
+  bool IsAvailable() const ABSL_LOCKS_EXCLUDED(mutex_);
 
-  class DiscoveredPeripheralCallback {
-   public:
-    virtual ~DiscoveredPeripheralCallback() {}
+  // Sets custom advertisement data, and then enables Ble advertising.
+  // Returns true, if data is successfully set, and false otherwise.
+  bool StartAdvertising(const std::string& service_id,
+                        const ByteArray& advertisement_bytes,
+                        const std::string& fast_advertisement_service_uuid)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-    virtual void onPeripheralDiscovered(Ptr<BLEPeripheral> ble_peripheral,
-                                        const string& service_id,
-                                        ConstPtr<ByteArray> advertisement) = 0;
-    virtual void onPeripheralLost(Ptr<BLEPeripheral> ble_peripheral,
-                                  const string& service_id) = 0;
-  };
+  // Disables Ble advertising.
+  bool StopAdvertising(const std::string& service_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool startScanning(
-      const string& service_id,
-      Ptr<DiscoveredPeripheralCallback> discovered_peripheral_callback);
-  void stopScanning();
+  bool IsAdvertising(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
-  class AcceptedConnectionCallback {
-   public:
-    virtual ~AcceptedConnectionCallback() {}
+  // Enables Ble scanning mode. Will report any discoverable peripherals in
+  // range through a callback. Returns true, if scanning mode was enabled,
+  // false otherwise.
+  bool StartScanning(const std::string& service_id,
+                     const std::string& fast_advertisement_service_uuid,
+                     DiscoveredPeripheralCallback callback)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-    virtual void onConnectionAccepted(Ptr<BLESocket> socket,
-                                      const string& service_id) = 0;
-  };
+  // Disables Ble discovery mode.
+  bool StopScanning(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool startAcceptingConnections(
-      const string& service_id,
-      Ptr<AcceptedConnectionCallback> accepted_connection_callback);
-  void stopAcceptingConnections();
-  bool isAcceptingConnections();
+  bool IsScanning(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
-  Ptr<BLESocket> connect(Ptr<BLEPeripheral> ble_peripheral,
-                         const string& service_id);
+  // Starts a worker thread, creates a Ble socket, associates it with a
+  // service id.
+  bool StartAcceptingConnections(const std::string& service_id,
+                                 AcceptedConnectionCallback callback)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Closes socket corresponding to a service id.
+  bool StopAcceptingConnections(const std::string& service_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  bool IsAcceptingConnections(const std::string& service_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Returns true if this object owns a valid platform implementation.
+  bool IsMediumValid() const ABSL_LOCKS_EXCLUDED(mutex_) {
+    MutexLock lock(&mutex_);
+    return medium_.IsValid();
+  }
+
+  // Returns true if this object has a valid BluetoothAdapter reference.
+  bool IsAdapterValid() const ABSL_LOCKS_EXCLUDED(mutex_) {
+    MutexLock lock(&mutex_);
+    return adapter_.IsValid();
+  }
+
+  // Establishes connection to Ble peripheral that was might be started on
+  // another peripheral with StartAcceptingConnections() using the same
+  // service_id. Blocks until connection is established, or server-side is
+  // terminated. Returns socket instance. On success, BleSocket.IsValid() return
+  // true.
+  BleSocket Connect(BlePeripheral& peripheral, const std::string& service_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
-  // TODO(ahlee): Rename to DiscoveredPeripheralCallbackBridge
-  class BLEDiscoveredPeripheralCallback
-      : public BLEMedium::DiscoveredPeripheralCallback {
-   public:
-    explicit BLEDiscoveredPeripheralCallback(
-        Ptr<BLE::DiscoveredPeripheralCallback> discovered_peripheral_callback)
-        : discovered_peripheral_callback_(discovered_peripheral_callback) {}
-    ~BLEDiscoveredPeripheralCallback() override {
-      // Nothing to do.
+  struct AdvertisingInfo {
+    bool Empty() const { return service_ids.empty(); }
+    void Clear() { service_ids.clear(); }
+    void Add(const std::string& service_id) { service_ids.emplace(service_id); }
+    void Remove(const std::string& service_id) {
+      service_ids.erase(service_id);
+    }
+    bool Existed(const std::string& service_id) const {
+      return service_ids.contains(service_id);
     }
 
-    void onPeripheralDiscovered(Ptr<BLEPeripheral> ble_peripheral,
-                                const string& service_id,
-                                ConstPtr<ByteArray> advertisement) override {
-      discovered_peripheral_callback_->onPeripheralDiscovered(
-          ble_peripheral, service_id, advertisement);
-    }
-    void onPeripheralLost(Ptr<BLEPeripheral> ble_peripheral,
-                          const string& service_id) override {
-      discovered_peripheral_callback_->onPeripheralLost(ble_peripheral,
-                                                        service_id);
-    }
-
-   private:
-    ScopedPtr<Ptr<BLE::DiscoveredPeripheralCallback>>
-        discovered_peripheral_callback_;
-  };
-
-  // TODO(ahlee): Rename to AcceptedConnectionCallbackBridge
-  class BLEAcceptedConnectionCallback
-      : public BLEMedium::AcceptedConnectionCallback {
-   public:
-    explicit BLEAcceptedConnectionCallback(
-        Ptr<BLE::AcceptedConnectionCallback> accepted_connection_callback)
-        : accepted_connection_callback_(accepted_connection_callback) {}
-    ~BLEAcceptedConnectionCallback() override {
-      // Nothing to do.
-    }
-
-    void onConnectionAccepted(Ptr<BLESocket> ble_socket,
-                              const string& service_id) override {
-      accepted_connection_callback_->onConnectionAccepted(ble_socket,
-                                                          service_id);
-    }
-
-   private:
-    ScopedPtr<Ptr<BLE::AcceptedConnectionCallback>>
-        accepted_connection_callback_;
+    absl::flat_hash_set<std::string> service_ids;
   };
 
   struct ScanningInfo {
-    ScanningInfo(
-        const string& service_id,
-        Ptr<BLEDiscoveredPeripheralCallback> ble_discovered_peripheral_callback)
-        : service_id(service_id),
-          ble_discovered_peripheral_callback(
-              ble_discovered_peripheral_callback) {}
-    ~ScanningInfo() {
-      // Nothing to do (the ScopedPtr members take care of themselves).
+    bool Empty() const { return service_ids.empty(); }
+    void Clear() { service_ids.clear(); }
+    void Add(const std::string& service_id) { service_ids.emplace(service_id); }
+    void Remove(const std::string& service_id) {
+      service_ids.erase(service_id);
+    }
+    bool Existed(const std::string& service_id) const {
+      return service_ids.contains(service_id);
     }
 
-    const string service_id;
-    ScopedPtr<Ptr<BLEDiscoveredPeripheralCallback>>
-        ble_discovered_peripheral_callback;
-  };
-
-  struct AdvertisingInfo {
-    explicit AdvertisingInfo(const string& service_id)
-        : service_id(service_id) {}
-    ~AdvertisingInfo() {}
-
-    const string service_id;
+    absl::flat_hash_set<std::string> service_ids;
   };
 
   struct AcceptingConnectionsInfo {
-    AcceptingConnectionsInfo(
-        const string& service_id,
-        Ptr<BLEAcceptedConnectionCallback> ble_accepted_connection_callback)
-        : service_id(service_id),
-          ble_accepted_connection_callback(ble_accepted_connection_callback) {}
-    ~AcceptingConnectionsInfo() {
-      // Nothing to do (the ScopedPtr members take care of themselves).
+    bool Empty() const { return service_ids.empty(); }
+    void Clear() { service_ids.clear(); }
+    void Add(const std::string& service_id) { service_ids.emplace(service_id); }
+    void Remove(const std::string& service_id) {
+      service_ids.erase(service_id);
+    }
+    bool Existed(const std::string& service_id) const {
+      return service_ids.contains(service_id);
     }
 
-    const string service_id;
-    ScopedPtr<Ptr<BLEAcceptedConnectionCallback>>
-        ble_accepted_connection_callback;
+    absl::flat_hash_set<std::string> service_ids;
   };
 
-  static const std::int32_t kMaxAdvertisementLength;
+  static constexpr int kMaxAdvertisementLength = 512;
 
-  bool isAdvertising();
-  bool isScanning();
+  static ByteArray GenerateHash(const std::string& source, size_t size);
+  static ByteArray GenerateDeviceToken();
 
-  // ------------ GENERAL ------------
+  // Same as IsAvailable(), but must be called with mutex_ held.
+  bool IsAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  ScopedPtr<Ptr<Lock>> lock_;
+  // Same as IsAdvertising(), but must be called with mutex_ held.
+  bool IsAdvertisingLocked(const std::string& service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  // ------------ CORE BLE ------------
+  // Same as IsDiscovering(), but must be called with mutex_ held.
+  bool IsScanningLocked(const std::string& service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  Ptr<BluetoothRadio<Platform>> bluetooth_radio_;
-  ScopedPtr<Ptr<BluetoothAdapter>> bluetooth_adapter_;
-  // The underlying, per-platform implementation.
-  ScopedPtr<Ptr<BLEMedium>> ble_medium_;
+  // Same as IsAcceptingConnections(), but must be called with mutex_ held.
+  bool IsAcceptingConnectionsLocked(const std::string& service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  // ------------ DISCOVERY ------------
+  // Extract connection advertisement from medium advertisement.
+  ByteArray UnwrapAdvertisementBytes(
+      const ByteArray& medium_advertisement_data);
 
-  // A bundle of state required to start/stop BLE scanning. When non-null,
-  // we are currently performing a BLE scan.
-  // In the Java code this maps to the bleListener and
-  // bleScanningMediumOperation.
-  Ptr<ScanningInfo> scanning_info_;
-
-  // ------------ ADVERTISING ------------
-
-  // A bundle of state required to start/stop BLE advertising. When non-null,
-  // we are currently advertising over BLE.
-  // In the Java code this maps to bleAdvertiser, advertiseCallback, and
-  // bleAdvertisingMediumOperation.
-  Ptr<AdvertisingInfo> advertising_info_;
-
-  // A bundle of state required to start/stop accepting BLE connections. When
-  // non-null, we are currently accepting BLE connections.
-  // In the Java code this maps to the bleServerSocket.
-  Ptr<AcceptingConnectionsInfo> accepting_connections_info_;
+  mutable Mutex mutex_;
+  BluetoothRadio& radio_ ABSL_GUARDED_BY(mutex_);
+  BluetoothAdapter& adapter_ ABSL_GUARDED_BY(mutex_){
+      radio_.GetBluetoothAdapter()};
+  BleMedium medium_ ABSL_GUARDED_BY(mutex_){adapter_};
+  AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
+  ScanningInfo scanning_info_ ABSL_GUARDED_BY(mutex_);
+  DiscoveredPeripheralCallback discovered_peripheral_callback_;
+  AcceptingConnectionsInfo accepting_connections_info_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-#include "core/internal/mediums/ble.cc"
 
 #endif  // CORE_INTERNAL_MEDIUMS_BLE_H_

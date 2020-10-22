@@ -17,18 +17,21 @@
 
 namespace location {
 namespace nearby {
+namespace api {
 
 // A boolean value that may be updated atomically.
-//
-// https://docs.oracle.com/javase/7/docs/api/java/util/concurrent/atomic/AtomicBoolean.html
 class AtomicBoolean {
  public:
-  virtual ~AtomicBoolean() {}
+  virtual ~AtomicBoolean() = default;
 
-  virtual bool get() = 0;
-  virtual void set(bool value) = 0;
+  // Atomically read and return current value.
+  virtual bool Get() const = 0;
+
+  // Atomically exchange original value with a new one. Return previous value.
+  virtual bool Set(bool value) = 0;
 };
 
+}  // namespace api
 }  // namespace nearby
 }  // namespace location
 

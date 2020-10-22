@@ -15,10 +15,9 @@
 #ifndef CORE_INTERNAL_MEDIUMS_LOST_ENTITY_TRACKER_H_
 #define CORE_INTERNAL_MEDIUMS_LOST_ENTITY_TRACKER_H_
 
-#include <set>
-
-#include "platform/api/lock.h"
-#include "platform/ptr.h"
+#include "platform/public/mutex.h"
+#include "platform/public/mutex_lock.h"
+#include "absl/container/flat_hash_set.h"
 
 namespace location {
 namespace nearby {
@@ -28,36 +27,68 @@ namespace mediums {
 // Tracks "lost" entities based on a manual update/compute model. Used by
 // mediums that only report found devices. Lost entities are computed based off
 // of whether a specific entity was rediscovered since the last call to
-// computeLostEntities.
+// ComputeLostEntities.
 //
 // Note: Entity must overload the < and == operators.
-template <typename Platform, typename Entity>
+template <typename Entity>
 class LostEntityTracker {
  public:
-  typedef std::set<ConstPtr<Entity> > EntitySet;
+  using EntitySet = absl::flat_hash_set<Entity>;
 
   LostEntityTracker();
   ~LostEntityTracker();
 
   // Records the given entity as being recently found, whether or not this is
   // our first time discovering the entity.
-  void recordFoundEntity(ConstPtr<Entity> entity);
+  void RecordFoundEntity(const Entity& entity) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Computes and returns the set of entities considered lost since the last
   // time this method was called.
-  EntitySet computeLostEntities();
+  EntitySet ComputeLostEntities() ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
-  ScopedPtr<Ptr<Lock> > lock_;
-  EntitySet current_entities_;
-  EntitySet previously_found_entities_;
+  Mutex mutex_;
+  EntitySet current_entities_ ABSL_GUARDED_BY(mutex_);
+  EntitySet previously_found_entities_ ABSL_GUARDED_BY(mutex_);
 };
+
+template <typename Entity>
+LostEntityTracker<Entity>::LostEntityTracker()
+    : current_entities_{}, previously_found_entities_{} {}
+
+template <typename Entity>
+LostEntityTracker<Entity>::~LostEntityTracker() {
+  previously_found_entities_.clear();
+  current_entities_.clear();
+}
+
+template <typename Entity>
+void LostEntityTracker<Entity>::RecordFoundEntity(const Entity& entity) {
+  MutexLock lock(&mutex_);
+
+  current_entities_.insert(entity);
+}
+
+template <typename Entity>
+typename LostEntityTracker<Entity>::EntitySet
+LostEntityTracker<Entity>::ComputeLostEntities() {
+  MutexLock lock(&mutex_);
+
+  // The set of lost entities is the previously found set MINUS the currently
+  // found set.
+  for (const auto& item : current_entities_) {
+    previously_found_entities_.erase(item);
+  }
+  auto lost_entities = std::move(previously_found_entities_);
+  previously_found_entities_ = std::move(current_entities_);
+  current_entities_ = {};
+
+  return lost_entities;
+}
 
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-#include "core/internal/mediums/lost_entity_tracker.cc"
 
 #endif  // CORE_INTERNAL_MEDIUMS_LOST_ENTITY_TRACKER_H_
