@@ -87,9 +87,7 @@ def copy_files_to_oss_project(src_root, dst_root):
   shutil.rmtree(dst_root + "/proto", ignore_errors=True)
   shutil.copytree(src_root + "/proto", dst_root + "/proto/")
   shutil.copytree(src_root + "/cpp/platform/", dst_root + "/cpp/platform/")
-  shutil.copytree(src_root + "/cpp/platform_v2/", dst_root + "/cpp/platform_v2/")
   shutil.copytree(src_root + "/connections/core/", dst_root + "/cpp/core/")
-  shutil.copytree(src_root + "/connections/core_v2/", dst_root + "/cpp/core_v2/")
   shutil.copytree(src_root + "/connections/proto/", dst_root + "/proto/connections/")
   shutil.copytree(src_root + "/mediums/proto/", dst_root + "/proto/mediums/")
 
@@ -121,9 +119,7 @@ def post_process_oss_files(path, args):
     ("third_party/webrtc/files/stable/", ""),
     ("webrtc/files/stable/", ""),
     ("third_party/", ""),
-    ("location/nearby/connections/core_v2", "core_v2"),
     ("location/nearby/connections/core", "core"),
-    ("location/nearby/cpp/platform_v2", "platform_v2"),
     ("location/nearby/cpp/platform", "platform"),
     ("security/cryptauth/lib/securegcm", "securegcm"),
     ("testing/base/public/gmock.h", "gmock/gmock.h"),
