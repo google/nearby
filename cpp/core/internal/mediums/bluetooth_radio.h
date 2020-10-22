@@ -17,20 +17,21 @@
 
 #include <cstdint>
 
-#include "platform/api/atomic_boolean.h"
-#include "platform/api/bluetooth_adapter.h"
-#include "platform/api/thread_utils.h"
-#include "platform/ptr.h"
+#include "platform/public/atomic_boolean.h"
+#include "platform/public/bluetooth_adapter.h"
+#include "absl/time/clock.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
 // Provides the operations that can be performed on the Bluetooth radio.
-template <typename Platform>
 class BluetoothRadio {
  public:
   BluetoothRadio();
+  BluetoothRadio(BluetoothRadio&&) = default;
+  BluetoothRadio& operator=(BluetoothRadio&&) = default;
+
   // Reverts the Bluetooth radio to its original state.
   ~BluetoothRadio();
 
@@ -40,44 +41,54 @@ class BluetoothRadio {
   // this class.
   //
   // Returns true if enabled successfully.
-  bool enable();
+  bool Enable();
+
   // Disables Bluetooth.
   //
   // Returns true if disabled successfully.
-  bool disable();
-  // Returns true if the Bluetooth radio is currently enabled.
-  bool isEnabled();
+  bool Disable();
 
-  void toggle();
+  // Returns true if the Bluetooth radio is currently enabled.
+  bool IsEnabled() const;
+
+  // Turn BT radio Off, delay for kPauseBetweenToggle and then turn it On.
+  // This will block calling thread for at least kPauseBetweenToggle duration.
+  bool Toggle();
+
+  // Returns result of BluetoothAdapter::IsValid() for private adapter instance.
+  bool IsAdapterValid() const {
+    return bluetooth_adapter_.IsValid();
+  }
+
+  BluetoothAdapter& GetBluetoothAdapter() {
+    return bluetooth_adapter_;
+  }
 
  private:
-  static std::int64_t kPauseBetweenToggleDurationMillis;
+  static constexpr absl::Duration kPauseBetweenToggle = absl::Seconds(3);
 
-  bool setBluetoothState(bool enable);
-  bool isInDesiredState(bool should_be_enabled) const;
+  bool SetBluetoothState(bool enable);
+  bool IsInDesiredState(bool should_be_enabled) const;
   // To be called in enable(), disable(), and toggle(). This will remember the
   // original state of the radio before any radio state has been modified.
   // Returns false if Bluetooth doesn't exist on the device and the state cannot
   // be obtained.
-  bool saveOriginalState();
+  bool SaveOriginalState();
 
-  // Null if the device does not support Bluetooth.
-  ScopedPtr<Ptr<BluetoothAdapter>> bluetooth_adapter_;
-  ScopedPtr<Ptr<ThreadUtils>> thread_utils_;
+  // BluetoothAdapter::IsValid() will return false if BT is not supported.
+  BluetoothAdapter bluetooth_adapter_;
+
   // The Bluetooth radio's original state, before we modified it. True if
-  // originally enabled, false if originally disabled, null if we never modified
-  // the radio state. We restore the radio to its original state in the
-  // destructor.
-  //
-  // This is a Ptr instead of a ScopedPtr because it's lazily initialized
-  // (and ScopedPtr doesn't support re-assignment).
-  Ptr<AtomicBoolean> originally_enabled_;
+  // originally enabled, false if originally disabled.
+  // We restore the radio to its original state in the destructor.
+
+  AtomicBoolean originally_enabled_{false};
+  // false if we never modified the radio state, true otherwise.
+  AtomicBoolean ever_saved_state_{false};
 };
 
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-#include "core/internal/mediums/bluetooth_radio.cc"
 
 #endif  // CORE_INTERNAL_MEDIUMS_BLUETOOTH_RADIO_H_

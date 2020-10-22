@@ -15,10 +15,10 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_ID_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_ID_H_
 
-#include "platform/api/hash_utils.h"
-#include "platform/byte_array.h"
-#include "platform/port/string.h"
-#include "platform/ptr.h"
+#include <memory>
+#include <string>
+
+#include "platform/base/byte_array.h"
 
 namespace location {
 namespace nearby {
@@ -26,20 +26,22 @@ namespace connections {
 namespace mediums {
 
 // PeerId is used as an identifier to exchange SDP messages to establish WebRTC
-// p2p connection.
+// p2p connection. An empty PeerId is considered to be invalid.
 class PeerId {
  public:
+  PeerId() = default;
   explicit PeerId(const std::string& id) : id_(id) {}
   ~PeerId() = default;
 
-  static ConstPtr<PeerId> FromRandom(Ptr<HashUtils> hash_utils);
-  static ConstPtr<PeerId> FromSeed(ConstPtr<ByteArray> seed,
-                                   Ptr<HashUtils> hash_utils);
+  static PeerId FromRandom();
+  static PeerId FromSeed(const ByteArray& seed);
+
+  bool IsValid() const;
 
   const std::string& GetId() const { return id_; }
 
  private:
-  const std::string id_;
+  std::string id_;
 };
 
 }  // namespace mediums

@@ -15,25 +15,27 @@
 #ifndef CORE_INTERNAL_P2P_CLUSTER_PCP_HANDLER_H_
 #define CORE_INTERNAL_P2P_CLUSTER_PCP_HANDLER_H_
 
+#include <memory>
 #include <vector>
 
-#include "core/internal/bandwidth_upgrade_manager.h"
 #include "core/internal/base_pcp_handler.h"
 #include "core/internal/ble_advertisement.h"
-#include "core/internal/ble_compat.h"
 #include "core/internal/bluetooth_device_name.h"
+#include "core/internal/bwu_manager.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel_manager.h"
 #include "core/internal/endpoint_manager.h"
-#include "core/internal/medium_manager.h"
+#include "core/internal/mediums/bluetooth_classic.h"
+#include "core/internal/mediums/mediums.h"
+#include "core/internal/mediums/webrtc.h"
+#include "core/internal/mediums/webrtc/peer_id.h"
 #include "core/internal/pcp.h"
 #include "core/internal/wifi_lan_service_info.h"
 #include "core/options.h"
 #include "core/strategy.h"
-#include "platform/api/bluetooth_classic.h"
-#include "platform/byte_array.h"
-#include "platform/port/string.h"
-#include "platform/ptr.h"
+#include "platform/base/byte_array.h"
+#include "platform/public/bluetooth_classic.h"
+#include "platform/public/wifi_lan.h"
 #include "proto/connections_enums.pb.h"
 
 namespace location {
@@ -45,490 +47,181 @@ namespace connections {
 // and all devices are considered equal. For asymmetric mediums, where one
 // device is a server and the others are clients, use P2PStarPCPHandler instead.
 //
-// <p>Currently, this implementation advertises/discovers over BLE and Bluetooth
-// and connects over Bluetooth.
-template <typename Platform>
-class P2PClusterPCPHandler : public BasePCPHandler<Platform> {
+// Currently, this implementation advertises/discovers over Bluetooth and
+// connects over Bluetooth.
+class P2pClusterPcpHandler : public BasePcpHandler {
  public:
-  P2PClusterPCPHandler(Ptr<MediumManager<Platform>> medium_manager,
-                       Ptr<EndpointManager<Platform>> endpoint_manager,
-                       Ptr<EndpointChannelManager> endpoint_channel_manager,
-                       Ptr<BandwidthUpgradeManager> bandwidth_upgrade_manager);
-  ~P2PClusterPCPHandler() override;
-
-  Strategy getStrategy() override;
-  PCP::Value getPCP() override;
+  P2pClusterPcpHandler(Mediums* mediums, EndpointManager* endpoint_manager,
+                       EndpointChannelManager* channel_manager,
+                       BwuManager* bwu_manager,
+                       Pcp pcp = Pcp::kP2pCluster);
+  ~P2pClusterPcpHandler() override = default;
 
  protected:
-  std::vector<proto::connections::Medium> getConnectionMediumsByPriority()
+  std::vector<proto::connections::Medium> GetConnectionMediumsByPriority()
       override;
-  proto::connections::Medium getDefaultUpgradeMedium() override;
+  proto::connections::Medium GetDefaultUpgradeMedium() override;
 
   // @PCPHandlerThread
-  Ptr<typename BasePCPHandler<Platform>::StartOperationResult>
-  startAdvertisingImpl(Ptr<ClientProxy<Platform>> client_proxy,
-                       const string& service_id,
-                       const string& local_endpoint_id,
-                       const string& local_endpoint_name,
-                       const AdvertisingOptions& options) override;
+  BasePcpHandler::StartOperationResult StartAdvertisingImpl(
+      ClientProxy* client, const std::string& service_id,
+      const std::string& local_endpoint_id,
+      const ByteArray& local_endpoint_info,
+      const ConnectionOptions& options) override;
 
   // @PCPHandlerThread
-  Status::Value stopAdvertisingImpl(
-      Ptr<ClientProxy<Platform>> client_proxy) override;
+  Status StopAdvertisingImpl(ClientProxy* client) override;
 
   // @PCPHandlerThread
-  Ptr<typename BasePCPHandler<Platform>::StartOperationResult>
-  startDiscoveryImpl(Ptr<ClientProxy<Platform>> client_proxy,
-                     const string& service_id,
-                     const DiscoveryOptions& options) override;
+  BasePcpHandler::StartOperationResult StartDiscoveryImpl(
+      ClientProxy* client, const std::string& service_id,
+      const ConnectionOptions& options) override;
 
   // @PCPHandlerThread
-  Status::Value stopDiscoveryImpl(
-      Ptr<ClientProxy<Platform>> client_proxy) override;
+  Status StopDiscoveryImpl(ClientProxy* client) override;
 
   // @PCPHandlerThread
-  typename BasePCPHandler<Platform>::ConnectImplResult connectImpl(
-      Ptr<ClientProxy<Platform>> client_proxy,
-      Ptr<typename BasePCPHandler<Platform>::DiscoveredEndpoint> endpoint)
-      override;
+  Status InjectEndpointImpl(
+      ClientProxy* client, const std::string& service_id,
+      const OutOfBandConnectionMetadata& metadata) override;
+
+  // @PCPHandlerThread
+  BasePcpHandler::ConnectImplResult ConnectImpl(
+      ClientProxy* client,
+      BasePcpHandler::DiscoveredEndpoint* endpoint) override;
 
  private:
-  template <typename>
-  friend class IncomingBluetoothConnectionProcessor;
-  template <typename>
-  friend class IncomingBleConnectionProcessor;
-  template <typename>
-  friend class IncomingWifiLanConnectionProcessor;
-  template <typename>
-  friend class FoundBluetoothAdvertisementProcessor;
-  template <typename>
-  friend class FoundBleAdvertisementProcessor;
-  template <typename>
-  friend class FoundWifiLanServiceProcessor;
+  struct BluetoothEndpoint : public BasePcpHandler::DiscoveredEndpoint {
+    BluetoothEndpoint(DiscoveredEndpoint endpoint, BluetoothDevice device)
+        : DiscoveredEndpoint(std::move(endpoint)),
+          bluetooth_device(std::move(device)) {}
 
-  class IncomingBluetoothConnectionProcessor
-      : public MediumManager<Platform>::IncomingBluetoothConnectionProcessor {
-   public:
-    IncomingBluetoothConnectionProcessor(
-        Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
-        Ptr<ClientProxy<Platform>> client_proxy,
-        const string& local_endpoint_name);
-
-    void onIncomingBluetoothConnection(
-        Ptr<BluetoothSocket> bluetooth_socket) override;
-
-   private:
-    class OnIncomingBluetoothConnectionRunnable : public Runnable {
-     public:
-      OnIncomingBluetoothConnectionRunnable(
-          Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
-          Ptr<ClientProxy<Platform>> client_proxy,
-          Ptr<BluetoothSocket> bluetooth_socket);
-
-      void run() override;
-
-     private:
-      Ptr<P2PClusterPCPHandler<Platform>> pcp_handler_;
-      Ptr<ClientProxy<Platform>> client_proxy_;
-      Ptr<BluetoothSocket> bluetooth_socket_;
-    };
-
-    Ptr<P2PClusterPCPHandler<Platform>> pcp_handler_;
-    Ptr<ClientProxy<Platform>> client_proxy_;
-    const string local_endpoint_name_;
+    BluetoothDevice bluetooth_device;
+  };
+  struct BleEndpoint : public BasePcpHandler::DiscoveredEndpoint {
+    BleEndpoint(DiscoveredEndpoint endpoint, BlePeripheral peripheral)
+        : DiscoveredEndpoint(std::move(endpoint)),
+          ble_peripheral(std::move(peripheral)) {}
+    BlePeripheral ble_peripheral;
   };
 
-  class IncomingBleConnectionProcessor
-      : public MediumManager<Platform>::IncomingBleConnectionProcessor {
+  // Holds the state required to re-create a BleEndpoint we see on a
+  // BlePeripheral, so BlePeripheralLostHandler can call
+  // BasePcpHandler::OnEndpointLost() with the same information as was passed
+  // in to BasePCPHandler::onEndpointFound().
+  struct BleEndpointState {
    public:
-    IncomingBleConnectionProcessor(
-        Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
-        Ptr<ClientProxy<Platform>> client_proxy,
-        const string& local_endpoint_name);
+    BleEndpointState(const string& endpoint_id, const ByteArray& endpoint_info)
+        : endpoint_id(endpoint_id), endpoint_info(endpoint_info) {}
 
-    void onIncomingBleConnection(Ptr<BLESocket> ble_socket,
-                                 const string& service_id) override;
+    std::string endpoint_id;
+    ByteArray endpoint_info;
+  };
+  struct WifiLanEndpoint : public BasePcpHandler::DiscoveredEndpoint {
+    WifiLanEndpoint(DiscoveredEndpoint endpoint, WifiLanService service)
+        : DiscoveredEndpoint(std::move(endpoint)),
+          wifi_lan_service(std::move(service)) {}
 
-   private:
-    class OnIncomingBleConnectionRunnable : public Runnable {
-     public:
-      OnIncomingBleConnectionRunnable(
-          Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
-          Ptr<ClientProxy<Platform>> client_proxy, Ptr<BLESocket> ble_socket);
-
-      void run() override;
-
-     private:
-      Ptr<P2PClusterPCPHandler<Platform>> pcp_handler_;
-      Ptr<ClientProxy<Platform>> client_proxy_;
-      Ptr<BLESocket> ble_socket_;
-    };
-
-    Ptr<P2PClusterPCPHandler<Platform>> pcp_handler_;
-    Ptr<ClientProxy<Platform>> client_proxy_;
-    const string local_endpoint_name_;
+    WifiLanService wifi_lan_service;
   };
 
-  class IncomingWifiLanConnectionProcessor
-      : public MediumManager<Platform>::IncomingWifiLanConnectionProcessor {
-   public:
-    IncomingWifiLanConnectionProcessor(
-        Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
-        Ptr<ClientProxy<Platform>> client_proxy,
-        absl::string_view local_endpoint_name);
+  using BluetoothDiscoveredDeviceCallback =
+      BluetoothClassic::DiscoveredDeviceCallback;
+  using BleDiscoveredPeripheralCallback = Ble::DiscoveredPeripheralCallback;
+  using WifiLanDiscoveredServiceCallback = WifiLan::DiscoveredServiceCallback;
 
-    void OnIncomingWifiLanConnection(
-        Ptr<WifiLanSocket> wifi_lan_socket) override;
+  static constexpr BluetoothDeviceName::Version kBluetoothDeviceNameVersion =
+      BluetoothDeviceName::Version::kV1;
+  static constexpr BleAdvertisement::Version kBleAdvertisementVersion =
+      BleAdvertisement::Version::kV1;
+  static constexpr WifiLanServiceInfo::Version kWifiLanServiceInfoVersion =
+      WifiLanServiceInfo::Version::kV1;
 
-   private:
-    class OnIncomingWifiLanConnectionRunnable : public Runnable {
-     public:
-      OnIncomingWifiLanConnectionRunnable(
-          Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
-          Ptr<ClientProxy<Platform>> client_proxy,
-          Ptr<WifiLanSocket> wifi_lan_socket);
+  static ByteArray GenerateHash(const std::string& source, size_t size);
+  static bool ShouldAdvertiseBluetoothMacOverBle(PowerLevel power_level);
+  static bool ShouldAcceptBluetoothConnections(
+      const ConnectionOptions& options);
 
-      void run() override;
+  // Bluetooth
+  bool IsRecognizedBluetoothEndpoint(const std::string& name_string,
+                                     const std::string& service_id,
+                                     const BluetoothDeviceName& name) const;
+  void BluetoothDeviceDiscoveredHandler(ClientProxy* client,
+                                        const std::string& service_id,
+                                        BluetoothDevice& device);
+  void BluetoothDeviceLostHandler(ClientProxy* client,
+                                  const std::string& service_id,
+                                  BluetoothDevice& device);
+  proto::connections::Medium StartBluetoothAdvertising(
+      ClientProxy* client, const std::string& service_id,
+      const ByteArray& service_id_hash, const std::string& local_endpoint_id,
+      const ByteArray& local_endpoint_info, WebRtcState web_rtc_state);
+  proto::connections::Medium StartBluetoothDiscovery(
+      BluetoothDiscoveredDeviceCallback callback, ClientProxy* client,
+      const std::string& service_id);
+  BasePcpHandler::ConnectImplResult BluetoothConnectImpl(
+      ClientProxy* client, BluetoothEndpoint* endpoint);
 
-     private:
-      Ptr<P2PClusterPCPHandler<Platform>> pcp_handler_;
-      Ptr<ClientProxy<Platform>> client_proxy_;
-      Ptr<WifiLanSocket> wifi_lan_socket_;
-    };
+  // Ble
+  // Maps a BlePeripheral to its corresponding BleEndpointState.
+  absl::flat_hash_map<std::string, BleEndpointState> found_ble_endpoints_;
+  bool IsRecognizedBleEndpoint(const std::string& service_id,
+                               const BleAdvertisement& advertisement) const;
+  void BlePeripheralDiscoveredHandler(ClientProxy* client,
+                                      BlePeripheral& peripheral,
+                                      const std::string& service_id,
+                                      const ByteArray& advertisement_bytes,
+                                      bool fast_advertisement);
+  void BlePeripheralLostHandler(ClientProxy* client, BlePeripheral& peripheral,
+                                const std::string& service_id);
+  proto::connections::Medium StartBleAdvertising(
+      ClientProxy* client, const std::string& service_id,
+      const std::string& local_endpoint_id,
+      const ByteArray& local_endpoint_info, const ConnectionOptions& options,
+      WebRtcState web_rtc_state);
+  proto::connections::Medium StartBleScanning(
+      BleDiscoveredPeripheralCallback callback, ClientProxy* client,
+      const std::string& service_id,
+      const std::string& fast_advertisement_service_uuid);
+  BasePcpHandler::ConnectImplResult BleConnectImpl(ClientProxy* client,
+                                                   BleEndpoint* endpoint);
 
-    Ptr<P2PClusterPCPHandler<Platform>> pcp_handler_;
-    Ptr<ClientProxy<Platform>> client_proxy_;
-    const string local_endpoint_name_;
-  };
-
-  class FoundBluetoothAdvertisementProcessor
-      : public MediumManager<Platform>::FoundBluetoothDeviceProcessor {
-   public:
-    FoundBluetoothAdvertisementProcessor(
-        Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
-        Ptr<ClientProxy<Platform>> client_proxy, const string& service_id);
-
-    void onFoundBluetoothDevice(Ptr<BluetoothDevice> bluetooth_device) override;
-    void onLostBluetoothDevice(Ptr<BluetoothDevice> bluetooth_device) override;
-
-   private:
-    class OnFoundBluetoothDeviceRunnable : public Runnable {
-     public:
-      OnFoundBluetoothDeviceRunnable(
-          Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
-          Ptr<ClientProxy<Platform>> client_proxy,
-          Ptr<FoundBluetoothAdvertisementProcessor>
-              found_bluetooth_advertisement_processor,
-          const string& service_id, Ptr<BluetoothDevice> bluetooth_device);
-
-      void run() override;
-
-     private:
-      Ptr<P2PClusterPCPHandler<Platform>> pcp_handler_;
-      Ptr<ClientProxy<Platform>> client_proxy_;
-      Ptr<FoundBluetoothAdvertisementProcessor>
-          found_bluetooth_advertisement_processor_;
-      const string service_id_;
-      ScopedPtr<Ptr<BluetoothDevice>> bluetooth_device_;
-    };
-
-    class OnLostBluetoothDeviceRunnable : public Runnable {
-     public:
-      OnLostBluetoothDeviceRunnable(
-          Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
-          Ptr<ClientProxy<Platform>> client_proxy,
-          Ptr<FoundBluetoothAdvertisementProcessor>
-              found_bluetooth_advertisement_processor,
-          const string& service_id, Ptr<BluetoothDevice> bluetooth_device);
-
-      void run() override;
-
-     private:
-      Ptr<P2PClusterPCPHandler<Platform>> pcp_handler_;
-      Ptr<ClientProxy<Platform>> client_proxy_;
-      Ptr<FoundBluetoothAdvertisementProcessor>
-          found_bluetooth_advertisement_processor_;
-      const string service_id_;
-      ScopedPtr<Ptr<BluetoothDevice>> bluetooth_device_;
-    };
-
-    bool isRecognizedBluetoothEndpoint(
-        const string& found_bluetooth_device_name,
-        Ptr<BluetoothDeviceName> bluetooth_device_name);
-
-    Ptr<P2PClusterPCPHandler<Platform>> pcp_handler_;
-    Ptr<ClientProxy<Platform>> client_proxy_;
-    const string service_id_;
-    ScopedPtr<ConstPtr<ByteArray>> expected_service_id_hash_;
-    std::shared_ptr<FoundBluetoothAdvertisementProcessor> self_{this,
-                                                                [](void*) {}};
-  };
-
-  class FoundBleAdvertisementProcessor
-      : public MediumManager<Platform>::FoundBlePeripheralProcessor {
-   public:
-    FoundBleAdvertisementProcessor(
-        Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
-        Ptr<ClientProxy<Platform>> client_proxy);
-
-    void onFoundBlePeripheral(Ptr<BLE_PERIPHERAL> ble_peripheral,
-                              const string& service_id,
-                              ConstPtr<ByteArray> advertisement_bytes) override;
-    void onLostBlePeripheral(Ptr<BLE_PERIPHERAL> ble_peripheral,
-                             const string& service_id) override;
-
-   private:
-    class OnFoundBlePeripheralRunnable : public Runnable {
-     public:
-      OnFoundBlePeripheralRunnable(
-          Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
-          Ptr<ClientProxy<Platform>> client_proxy,
-          Ptr<FoundBleAdvertisementProcessor> found_ble_advertisement_processor,
-          const string& service_id, Ptr<BLE_PERIPHERAL> ble_peripheral,
-          ConstPtr<ByteArray> advertisement_bytes);
-
-      void run() override;
-
-     private:
-      Ptr<P2PClusterPCPHandler<Platform>> pcp_handler_;
-      Ptr<ClientProxy<Platform>> client_proxy_;
-      Ptr<FoundBleAdvertisementProcessor> found_ble_advertisement_processor_;
-      const string service_id_;
-      ScopedPtr<Ptr<BLE_PERIPHERAL>> ble_peripheral_;
-      ScopedPtr<ConstPtr<ByteArray>> advertisement_bytes_;
-      ScopedPtr<ConstPtr<ByteArray>> expected_service_id_hash_;
-    };
-
-    class OnLostBlePeripheralRunnable : public Runnable {
-     public:
-      OnLostBlePeripheralRunnable(
-          Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
-          Ptr<ClientProxy<Platform>> client_proxy,
-          Ptr<FoundBleAdvertisementProcessor> found_ble_advertisement_processor,
-          const string& service_id, Ptr<BLE_PERIPHERAL> ble_peripheral);
-
-      void run() override;
-
-     private:
-      Ptr<P2PClusterPCPHandler<Platform>> pcp_handler_;
-      Ptr<ClientProxy<Platform>> client_proxy_;
-      Ptr<FoundBleAdvertisementProcessor> found_ble_advertisement_processor_;
-      const string service_id_;
-      ScopedPtr<Ptr<BLE_PERIPHERAL>> ble_peripheral_;
-    };
-
-    // Holds the state required to re-create a BLEEndpoint we see on a
-    // BLEPeripheral, so OnLostBlePeripheralRunnable::run() can call
-    // BasePCPHandler::onEndpointLost() with the same information as was passed
-    // in to BasePCPHandler::onEndpointFound().
-    struct BLEEndpointState {
-     public:
-      BLEEndpointState(const string& endpoint_id, const string& endpoint_name)
-          : endpoint_id(endpoint_id), endpoint_name(endpoint_name) {}
-
-      const string endpoint_id;
-      const string endpoint_name;
-    };
-
-    Ptr<P2PClusterPCPHandler<Platform>> pcp_handler_;
-    Ptr<ClientProxy<Platform>> client_proxy_;
-
-    // Maps a BLEPeripheral to its corresponding BLEEndpointState.
-    typedef std::map<string, BLEEndpointState> FoundBLEEndpointsMap;
-    FoundBLEEndpointsMap found_ble_endpoints_;
-    std::shared_ptr<FoundBleAdvertisementProcessor> self_{this, [](void*) {}};
-  };
-
-  class FoundWifiLanServiceProcessor
-      : public MediumManager<Platform>::FoundWifiLanServiceProcessor {
-   public:
-    FoundWifiLanServiceProcessor(
-        Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
-        Ptr<ClientProxy<Platform>> client_proxy,
-        absl::string_view service_id);
-
-    void OnFoundWifiLanService(Ptr<WifiLanService> wifi_lan_service) override;
-    void OnLostWifiLanService(Ptr<WifiLanService> wifi_lan_service) override;
-
-   private:
-    class OnFoundWifiLanServiceRunnable : public Runnable {
-     public:
-      OnFoundWifiLanServiceRunnable(
-          Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
-          Ptr<ClientProxy<Platform>> client_proxy,
-          Ptr<FoundWifiLanServiceProcessor> found_wifi_lan_service_processor,
-          absl::string_view service_id, Ptr<WifiLanService> wifi_lan_service);
-
-      void run() override;
-
-     private:
-      Ptr<P2PClusterPCPHandler<Platform>> pcp_handler_;
-      Ptr<ClientProxy<Platform>> client_proxy_;
-      Ptr<FoundWifiLanServiceProcessor> found_wifi_lan_service_processor_;
-      const string service_id_;
-      ScopedPtr<Ptr<WifiLanService>> wifi_lan_service_;
-      ScopedPtr<ConstPtr<ByteArray>> expected_service_id_hash_;
-    };
-
-    class OnLostWifiLanServiceRunnable : public Runnable {
-     public:
-      OnLostWifiLanServiceRunnable(
-          Ptr<P2PClusterPCPHandler<Platform>> pcp_handler,
-          Ptr<ClientProxy<Platform>> client_proxy,
-          Ptr<FoundWifiLanServiceProcessor> found_wifi_lan_service_processor,
-          absl::string_view service_id, Ptr<WifiLanService> wifi_lan_service);
-
-      void run() override;
-
-     private:
-      Ptr<P2PClusterPCPHandler<Platform>> pcp_handler_;
-      Ptr<ClientProxy<Platform>> client_proxy_;
-      Ptr<FoundWifiLanServiceProcessor> found_wifi_lan_service_processor_;
-      const string service_id_;
-      ScopedPtr<Ptr<WifiLanService>> wifi_lan_service_;
-    };
-
-    bool IsRecognizedWifiLanEndpoint(
-        Ptr<WifiLanServiceInfo> wifi_lan_service_info);
-
-    Ptr<P2PClusterPCPHandler<Platform>> pcp_handler_;
-    Ptr<ClientProxy<Platform>> client_proxy_;
-    const string service_id_;
-    ScopedPtr<ConstPtr<ByteArray>> expected_service_id_hash_;
-    std::shared_ptr<FoundWifiLanServiceProcessor> self_{this, [](void*) {}};
-  };
-
-  class BluetoothEndpoint
-      : public BasePCPHandler<Platform>::DiscoveredEndpoint {
-   public:
-    Ptr<BluetoothDevice> getBluetoothDevice() {
-      return bluetooth_device_.get();
-    }
-    string getEndpointId() override { return endpoint_id_; }
-    string getEndpointName() override { return endpoint_name_; }
-    string getServiceId() override { return service_id_; }
-    proto::connections::Medium getMedium() override {
-      return proto::connections::Medium::BLUETOOTH;
-    }
-
-   private:
-    BluetoothEndpoint(Ptr<BluetoothDevice> bluetooth_device,
-                      const string& endpoint_id, const string& endpoint_name,
-                      const string& service_id)
-        : bluetooth_device_(bluetooth_device),
-          endpoint_id_(endpoint_id),
-          endpoint_name_(endpoint_name),
-          service_id_(service_id) {}
-
-    friend class FoundBluetoothAdvertisementProcessor;
-
-    ScopedPtr<Ptr<BluetoothDevice>> bluetooth_device_;
-    const string endpoint_id_;
-    const string endpoint_name_;
-    const string service_id_;
-  };
-
-  class BLEEndpoint : public BasePCPHandler<Platform>::DiscoveredEndpoint {
-   public:
-    Ptr<BLE_PERIPHERAL> getBlePeripheral() { return ble_peripheral_.get(); }
-    string getEndpointId() override { return endpoint_id_; }
-    string getEndpointName() override { return endpoint_name_; }
-    string getServiceId() override { return service_id_; }
-    proto::connections::Medium getMedium() override {
-      return proto::connections::Medium::BLE;
-    }
-
-   private:
-    BLEEndpoint(Ptr<BLE_PERIPHERAL> ble_peripheral, const string& endpoint_id,
-                const string& endpoint_name, const string& service_id)
-        : ble_peripheral_(ble_peripheral),
-          endpoint_id_(endpoint_id),
-          endpoint_name_(endpoint_name),
-          service_id_(service_id) {}
-
-    friend class FoundBleAdvertisementProcessor;
-
-    ScopedPtr<Ptr<BLE_PERIPHERAL>> ble_peripheral_;
-    const string endpoint_id_;
-    const string endpoint_name_;
-    const string service_id_;
-  };
-
-  class WifiLanEndpoint : public BasePCPHandler<Platform>::DiscoveredEndpoint {
-   public:
-    Ptr<WifiLanService> GetWifiLanService() { return wifi_lan_service_.get(); }
-    string getEndpointId() override { return endpoint_id_; }
-    string getEndpointName() override { return endpoint_name_; }
-    string getServiceId() override { return service_id_; }
-    proto::connections::Medium getMedium() override {
-      return proto::connections::Medium::WIFI_LAN;
-    }
-
-   private:
-    WifiLanEndpoint(Ptr<WifiLanService> wifi_lan_service,
-                    absl::string_view endpoint_id,
-                    absl::string_view endpoint_name,
-                    absl::string_view service_id)
-        : wifi_lan_service_(wifi_lan_service),
-          endpoint_id_(endpoint_id),
-          endpoint_name_(endpoint_name),
-          service_id_(service_id) {}
-
-    friend class FoundWifiLanServiceProcessor;
-
-    ScopedPtr<Ptr<WifiLanService>> wifi_lan_service_;
-    const string endpoint_id_;
-    const string endpoint_name_;
-    const string service_id_;
-  };
-
-  static const BluetoothDeviceName::Version::Value kBluetoothDeviceNameVersion;
-  static const BLEAdvertisement::Version::Value kBleAdvertisementVersion;
-  static const WifiLanServiceInfo::Version kWifiLanServiceInfoVersion;
-
-  static ConstPtr<ByteArray> generateHash(const string& source, size_t size);
-  static string getBlePeripheralId(Ptr<BLE_PERIPHERAL> ble_peripheral);
-
-  proto::connections::Medium startBluetoothAdvertising(
-      Ptr<ClientProxy<Platform>> client_proxy, const string& service_id,
-      ConstPtr<ByteArray> service_id_hash, const string& local_endpoint_id,
-      const string& local_endpoint_name);
-  proto::connections::Medium startBluetoothDiscovery(
-      Ptr<FoundBluetoothAdvertisementProcessor> processor,
-      Ptr<ClientProxy<Platform>> client_proxy, const string& service_id);
-  typename BasePCPHandler<Platform>::ConnectImplResult bluetoothConnectImpl(
-      Ptr<ClientProxy<Platform>> client_proxy,
-      Ptr<BluetoothEndpoint> bluetooth_endpoint);
-
-  proto::connections::Medium startBleAdvertising(
-      Ptr<ClientProxy<Platform>> client_proxy, const string& service_id,
-      ConstPtr<ByteArray> service_id_hash, const string& local_endpoint_id,
-      const string& local_endpoint_name);
-  proto::connections::Medium startBleDiscovery(
-      Ptr<FoundBleAdvertisementProcessor> processor,
-      Ptr<ClientProxy<Platform>> client_proxy, const string& service_id);
-  typename BasePCPHandler<Platform>::ConnectImplResult bleConnectImpl(
-      Ptr<ClientProxy<Platform>> client_proxy, Ptr<BLEEndpoint> ble_endpoint);
-
+  // WifiLan
+  bool IsRecognizedWifiLanEndpoint(
+      const std::string& service_id,
+      const WifiLanServiceInfo& service_info) const;
+  void WifiLanServiceDiscoveredHandler(ClientProxy* client,
+                                       WifiLanService& service,
+                                       const std::string& service_id);
+  void WifiLanServiceLostHandler(ClientProxy* client, WifiLanService& service,
+                                 const std::string& service_id);
   proto::connections::Medium StartWifiLanAdvertising(
-      Ptr<ClientProxy<Platform>> client_proxy, absl::string_view service_id,
-      ConstPtr<ByteArray> service_id_hash, absl::string_view local_endpoint_id,
-      absl::string_view local_endpoint_name);
+      ClientProxy* client, const std::string& service_id,
+      const ByteArray& service_id_hash, const std::string& local_endpoint_id,
+      const ByteArray& local_endpoint_info, WebRtcState web_rtc_state);
   proto::connections::Medium StartWifiLanDiscovery(
-      Ptr<FoundWifiLanServiceProcessor> processor,
-      Ptr<ClientProxy<Platform>> client_proxy, absl::string_view service_id);
-  typename BasePCPHandler<Platform>::ConnectImplResult WifiLanConnectImpl(
-      Ptr<ClientProxy<Platform>> client_proxy,
-      Ptr<WifiLanEndpoint> wifi_lan_endpoint);
+      WifiLanDiscoveredServiceCallback callback, ClientProxy* client,
+      const std::string& service_id);
+  BasePcpHandler::ConnectImplResult WifiLanConnectImpl(
+      ClientProxy* client, WifiLanEndpoint* endpoint);
 
-  Ptr<MediumManager<Platform>> medium_manager_;
-  std::shared_ptr<P2PClusterPCPHandler> self_{this, [](void*) {}};
+  // WebRtc
+  proto::connections::Medium StartListeningForWebRtcConnections(
+      ClientProxy* client, const std::string& service_id,
+      const std::string& local_endpoint_id,
+      const ByteArray& local_endpoint_info);
+  BasePcpHandler::ConnectImplResult WebRtcConnectImpl(
+      ClientProxy* client, WebRtcEndpoint* webrtc_endpoint);
+
+  BluetoothRadio& bluetooth_radio_;
+  BluetoothClassic& bluetooth_medium_;
+  Ble& ble_medium_;
+  WifiLan& wifi_lan_medium_;
+  mediums::WebRtc& webrtc_medium_;
 };
 
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-#include "core/internal/p2p_cluster_pcp_handler.cc"
 
 #endif  // CORE_INTERNAL_P2P_CLUSTER_PCP_HANDLER_H_

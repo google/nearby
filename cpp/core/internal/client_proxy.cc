@@ -16,587 +16,522 @@
 
 #include <cstdlib>
 #include <limits>
-#include <sstream>
 #include <utility>
 
-#include "platform/api/hash_utils.h"
-#include "platform/base64_utils.h"
-#include "platform/prng.h"
-#include "platform/synchronized.h"
+#include "platform/base/base64_utils.h"
+#include "platform/base/prng.h"
+#include "platform/public/crypto.h"
+#include "platform/public/logging.h"
+#include "platform/public/mutex_lock.h"
 #include "proto/connections_enums.pb.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-namespace client_proxy {
+ClientProxy::ClientProxy() : client_id_(Prng().NextInt64()) {}
 
-template <typename K, typename V>
-void eraseOwnedPtrFromMap(std::map<K, Ptr<V>>& m, const K& k) {
-  typename std::map<K, Ptr<V>>::iterator it = m.find(k);
-  if (it != m.end()) {
-    it->second.destroy();
-    m.erase(it);
+ClientProxy::~ClientProxy() { Reset(); }
+
+std::int64_t ClientProxy::GetClientId() const { return client_id_; }
+
+std::string ClientProxy::GetLocalEndpointId() {
+  if (local_endpoint_id_.empty()) {
+    // 1) Concatenate the Random 64-bit value with "client" string.
+    // 2) Compute a hash of that concatenation.
+    // 3) Base64-encode that hash, to make it human-readable.
+    // 4) Use only the first kEndpointIdLength bytes to make ID.
+    ByteArray id_hash =
+        Crypto::Sha256(absl::StrCat("client", prng_.NextInt64()));
+    std::string id = Base64Utils::Encode(id_hash).substr(0, kEndpointIdLength);
+    NEARBY_LOG(
+        INFO,
+        "ClientProxy [Local Endpoint Generated]: client=%p; endpoint_id=%s",
+        this, id.c_str());
+    local_endpoint_id_ = id;
   }
+  return local_endpoint_id_;
 }
 
-}  // namespace client_proxy
+void ClientProxy::Reset() {
+  MutexLock lock(&mutex_);
 
-template <typename Platform>
-const std::int32_t ClientProxy<Platform>::kEndpointIdLength = 4;
-
-template <typename Platform>
-ClientProxy<Platform>::ClientProxy()
-    : lock_(Platform::createLock()), client_id_(Prng().nextInt64()) {}
-
-template <typename Platform>
-ClientProxy<Platform>::~ClientProxy() {
-  reset();
+  StoppedAdvertising();
+  StoppedDiscovery();
+  RemoveAllEndpoints();
 }
 
-template <typename Platform>
-std::int64_t ClientProxy<Platform>::getClientId() const {
-  return client_id_;
+void ClientProxy::StartedAdvertising(
+    const std::string& service_id, Strategy strategy,
+    const ConnectionListener& listener,
+    absl::Span<proto::connections::Medium> mediums) {
+  MutexLock lock(&mutex_);
+
+  if (connections_.empty()) local_endpoint_id_.clear();
+  advertising_info_ = {service_id, listener};
 }
 
-template <typename Platform>
-std::string ClientProxy<Platform>::generateLocalEndpointId() {
-  // 1) Concatenate the DeviceID with this ClientID.
-  // 2) Compute a hash of that concatenation.
-  // 3) Base64-encode that hash, to make it human-readable.
-  // 4) Use only the first 4 bytes of that Base64 encoding.
+void ClientProxy::StoppedAdvertising() {
+  MutexLock lock(&mutex_);
 
-  std::ostringstream client_id_str;
-  client_id_str << getClientId();
-
-  ScopedPtr<Ptr<HashUtils>> hash_utils(Platform::createHashUtils());
-  ScopedPtr<ConstPtr<ByteArray>> id_hash(
-      hash_utils->sha256(Platform::getDeviceId() + client_id_str.str()));
-
-  return Base64Utils::encode(id_hash.get()).substr(0, kEndpointIdLength);
-}
-
-template <typename Platform>
-void ClientProxy<Platform>::reset() {
-  Synchronized s(lock_.get());
-
-  stoppedAdvertising();
-  stoppedDiscovery();
-  removeAllEndpoints();
-}
-
-template <typename Platform>
-void ClientProxy<Platform>::startedAdvertising(
-    const std::string& service_id, const Strategy& strategy,
-    Ptr<ConnectionLifecycleListener> connection_lifecycle_listener,
-    const std::vector<proto::connections::Medium>& mediums) {
-  Synchronized s(lock_.get());
-
-  advertising_info_.destroy();
-  advertising_info_ =
-      MakePtr(new AdvertisingInfo(service_id, connection_lifecycle_listener));
-}
-
-template <typename Platform>
-void ClientProxy<Platform>::stoppedAdvertising() {
-  Synchronized s(lock_.get());
-
-  if (isAdvertising()) {
-    advertising_info_.destroy();
+  if (IsAdvertising()) {
+    advertising_info_.Clear();
   }
+  if (connections_.empty()) local_endpoint_id_.clear();
 }
 
-template <typename Platform>
-bool ClientProxy<Platform>::isAdvertising() {
-  Synchronized s(lock_.get());
+bool ClientProxy::IsAdvertising() const {
+  MutexLock lock(&mutex_);
 
-  return !advertising_info_.isNull();
+  return !advertising_info_.IsEmpty();
 }
 
-template <typename Platform>
-std::string ClientProxy<Platform>::getAdvertisingServiceId() {
-  Synchronized s(lock_.get());
-
-  if (!isAdvertising()) {
-    return "";
-  }
-
-  return advertising_info_->service_id;
+std::string ClientProxy::GetAdvertisingServiceId() const {
+  MutexLock lock(&mutex_);
+  return advertising_info_.service_id;
 }
 
-template <typename Platform>
-void ClientProxy<Platform>::startedDiscovery(
-    const std::string& service_id, const Strategy& strategy,
-    Ptr<DiscoveryListener> discovery_listener,
-    const std::vector<proto::connections::Medium>& mediums) {
-  Synchronized s(lock_.get());
-
-  discovery_info_.destroy();
-  discovery_info_ = MakePtr(new DiscoveryInfo(service_id, discovery_listener));
+std::string ClientProxy::GetServiceId() const {
+  MutexLock lock(&mutex_);
+  if (IsAdvertising())
+    return advertising_info_.service_id;
+  if (IsDiscovering())
+    return discovery_info_.service_id;
+  return "idle_service_id";
 }
 
-template <typename Platform>
-void ClientProxy<Platform>::stoppedDiscovery() {
-  Synchronized s(lock_.get());
+void ClientProxy::StartedDiscovery(
+    const std::string& service_id, Strategy strategy,
+    const DiscoveryListener& listener,
+    absl::Span<proto::connections::Medium> mediums) {
+  MutexLock lock(&mutex_);
 
-  if (isDiscovering()) {
+  if (connections_.empty()) local_endpoint_id_.clear();
+  discovery_info_ = DiscoveryInfo{service_id, listener};
+}
+
+void ClientProxy::StoppedDiscovery() {
+  MutexLock lock(&mutex_);
+
+  if (IsDiscovering()) {
     discovered_endpoint_ids_.clear();
-    discovery_info_.destroy();
+    discovery_info_.Clear();
   }
+  if (connections_.empty()) local_endpoint_id_.clear();
 }
 
-template <typename Platform>
-bool ClientProxy<Platform>::isDiscoveringServiceId(
-    const std::string& service_id) {
-  Synchronized s(lock_.get());
+bool ClientProxy::IsDiscoveringServiceId(const std::string& service_id) const {
+  MutexLock lock(&mutex_);
 
-  return isDiscovering() && service_id == discovery_info_->service_id;
+  return IsDiscovering() && service_id == discovery_info_.service_id;
 }
 
-template <typename Platform>
-bool ClientProxy<Platform>::isDiscovering() {
-  Synchronized s(lock_.get());
+bool ClientProxy::IsDiscovering() const {
+  MutexLock lock(&mutex_);
 
-  return !discovery_info_.isNull();
+  return !discovery_info_.IsEmpty();
 }
 
-template <typename Platform>
-std::string ClientProxy<Platform>::getDiscoveryServiceId() {
-  Synchronized s(lock_.get());
+std::string ClientProxy::GetDiscoveryServiceId() const {
+  MutexLock lock(&mutex_);
 
-  if (!isDiscovering()) {
-    return "";
+  return discovery_info_.service_id;
+}
+
+void ClientProxy::OnEndpointFound(const std::string& service_id,
+                                  const std::string& endpoint_id,
+                                  const ByteArray& endpoint_info,
+                                  proto::connections::Medium medium) {
+  MutexLock lock(&mutex_);
+
+  NEARBY_LOG(INFO,
+             "ClientProxy [Endpoint Found]: [enter] id=%s; service=%s; info=%s",
+             endpoint_id.c_str(), service_id.c_str(),
+             absl::BytesToHexString(endpoint_info.data()).c_str());
+  if (!IsDiscoveringServiceId(service_id)) {
+    NEARBY_LOG(INFO, "ClientProxy [Endpoint Found]: [no discovery] id=%s",
+               endpoint_id.c_str());
+    return;
   }
-
-  return discovery_info_->service_id;
-}
-
-template <typename Platform>
-void ClientProxy<Platform>::onEndpointFound(const std::string& endpoint_id,
-                                            const std::string& service_id,
-                                            const std::string& endpoint_name,
-                                            proto::connections::Medium medium) {
-  Synchronized s(lock_.get());
-
-  if (isDiscoveringServiceId(service_id)) {
-    if (discovered_endpoint_ids_.find(endpoint_id) !=
-        discovered_endpoint_ids_.end()) {
-      // TODO(tracyzhou): Add logging.
-      return;
-    }
-    discovered_endpoint_ids_.insert(endpoint_id);
-    discovery_info_->discovery_listener->onEndpointFound(MakeConstPtr(
-        new OnEndpointFoundParams(endpoint_id, service_id, endpoint_name)));
+  if (discovered_endpoint_ids_.count(endpoint_id)) {
+    NEARBY_LOG(INFO, "ClientProxy [Endpoint Found]: [duplicate] id=%s",
+               endpoint_id.c_str());
+    return;
   }
+  discovered_endpoint_ids_.insert(endpoint_id);
+  discovery_info_.listener.endpoint_found_cb(endpoint_id, endpoint_info,
+                                             service_id);
 }
 
-template <typename Platform>
-void ClientProxy<Platform>::onEndpointLost(const std::string& service_id,
-                                           const std::string& endpoint_id) {
-  Synchronized s(lock_.get());
+void ClientProxy::OnEndpointLost(const std::string& service_id,
+                                 const std::string& endpoint_id) {
+  MutexLock lock(&mutex_);
 
-  if (isDiscoveringServiceId(service_id)) {
-    std::set<std::string>::const_iterator it =
-        discovered_endpoint_ids_.find(endpoint_id);
-    if (it == discovered_endpoint_ids_.end()) {
-      return;
-    }
-    discovered_endpoint_ids_.erase(it);
-    discovery_info_->discovery_listener->onEndpointLost(
-        MakeConstPtr(new OnEndpointLostParams(endpoint_id)));
-  }
+  if (!IsDiscoveringServiceId(service_id)) return;
+  const auto it = discovered_endpoint_ids_.find(endpoint_id);
+  if (it == discovered_endpoint_ids_.end()) return;
+  discovered_endpoint_ids_.erase(it);
+  discovery_info_.listener.endpoint_lost_cb(endpoint_id);
 }
 
-template <typename Platform>
-void ClientProxy<Platform>::onConnectionInitiated(
-    const std::string& endpoint_id, const std::string& endpoint_name,
-    const std::string& authentication_token,
-    ConstPtr<ByteArray> raw_authentication_token, bool is_incoming_connection,
-    Ptr<ConnectionLifecycleListener> connection_lifecycle_listener) {
-  Synchronized s(lock_.get());
-
-  ScopedPtr<ConstPtr<ByteArray>> scoped_raw_authentication_token(
-      raw_authentication_token);
+void ClientProxy::OnConnectionInitiated(const std::string& endpoint_id,
+                                        const ConnectionResponseInfo& info,
+                                        const ConnectionOptions& options,
+                                        const ConnectionListener& listener) {
+  MutexLock lock(&mutex_);
 
   // Whether this is incoming or outgoing, the local and remote endpoints both
   // still need to accept this connection, so set its establishment status to
   // PENDING.
-  connection_establishment_statuses_.insert(
-      std::make_pair(endpoint_id, ConnectionMetadata(is_incoming_connection)));
-
-  // Remember the ConnectionLifecycleListener for this endpoint.
-  connection_lifecycle_listeners_.insert(
-      std::make_pair(endpoint_id, connection_lifecycle_listener));
-
+  auto result = connections_.emplace(
+      endpoint_id, Connection{
+                       .is_incoming = info.is_incoming_connection,
+                       .connection_listener = listener,
+                       .connection_options = options,
+                   });
+  // Instead of using structured binding which is nice, but banned
+  // (can not use c++17 features, until chromium does) we unpack manually.
+  auto& pair_iter = result.first;
+  bool inserted = result.second;
+  NEARBY_LOG(INFO,
+             "ClientProxy [Connection Initiated]: add Connection: client=%p, "
+             "id=%s; inserted=%d",
+             this, endpoint_id.c_str(), inserted);
+  DCHECK(inserted);
+  const Connection& item = pair_iter->second;
   // Notify the client.
   //
   // Note: we allow devices to connect to an advertiser even after it stops
-  // advertising, so no need to check isAdvertising() here.
-  connection_lifecycle_listeners_.find(endpoint_id)
-      ->second->onConnectionInitiated(
-          MakeConstPtr(new OnConnectionInitiatedParams(
-              endpoint_id, endpoint_name, authentication_token,
-              scoped_raw_authentication_token.release(),
-              is_incoming_connection)));
+  // advertising, so no need to check IsAdvertising() here.
+  item.connection_listener.initiated_cb(endpoint_id, info);
 }
 
-template <typename Platform>
-void ClientProxy<Platform>::onConnectionResult(const std::string& endpoint_id,
-                                               Status::Value status) {
-  Synchronized s(lock_.get());
+void ClientProxy::OnConnectionAccepted(const std::string& endpoint_id) {
+  MutexLock lock(&mutex_);
 
-  if (!hasPendingConnectionToEndpoint(endpoint_id)) {
-    // TODO(tracyzhou): Add logging.
+  if (!HasPendingConnectionToEndpoint(endpoint_id)) {
+    NEARBY_LOG(
+        INFO, "ClientProxy [Connection Accepted]: no pending connection; id=%s",
+        endpoint_id.c_str());
     return;
   }
 
   // Notify the client.
-  connection_lifecycle_listeners_.find(endpoint_id)
-      ->second->onConnectionResult(
-          MakeConstPtr(new OnConnectionResultParams(endpoint_id, status)));
-  if (Status::SUCCESS == status) {
-    // Mark ourselves as connected. Payloads should now be allowed.
-    typename ConnectionEstablishmentStatusesMap::iterator it =
-        connection_establishment_statuses_.find(endpoint_id);
-    if (it != connection_establishment_statuses_.end()) {
-      it->second.status = ConnectionEstablishmentStatus::CONNECTED;
-    }
-  } else {
-    // Otherwise, clean up.
-    onDisconnected(endpoint_id, false /* notify */);
+  Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    item->connection_listener.accepted_cb(endpoint_id);
+    item->status = Connection::kConnected;
   }
 }
 
-template <typename Platform>
-void ClientProxy<Platform>::onBandwidthChanged(const std::string& endpoint_id,
-                                               std::int32_t quality) {
-  Synchronized s(lock_.get());
+void ClientProxy::OnConnectionRejected(const std::string& endpoint_id,
+                                       const Status& status) {
+  MutexLock lock(&mutex_);
 
-  ConnectionLifecycleListenersMap::iterator it =
-      connection_lifecycle_listeners_.find(endpoint_id);
-  if (it != connection_lifecycle_listeners_.end()) {
-    it->second->onBandwidthChanged(
-        MakeConstPtr(new OnBandwidthChangedParams(endpoint_id, quality)));
+  if (!HasPendingConnectionToEndpoint(endpoint_id)) {
+    NEARBY_LOG(
+        INFO, "ClientProxy [Connection Rejected]: no pending connection; id=%s",
+        endpoint_id.c_str());
+    return;
+  }
+
+  // Notify the client.
+  const Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    item->connection_listener.rejected_cb(endpoint_id, status);
+    OnDisconnected(endpoint_id, false /* notify */);
   }
 }
 
-template <typename Platform>
-void ClientProxy<Platform>::onDisconnected(const std::string& endpoint_id,
-                                           bool notify) {
-  Synchronized s(lock_.get());
+void ClientProxy::OnBandwidthChanged(const std::string& endpoint_id,
+                                     Medium new_medium) {
+  MutexLock lock(&mutex_);
 
-  connection_establishment_statuses_.erase(endpoint_id);
+  const Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    item->connection_listener.bandwidth_changed_cb(endpoint_id, new_medium);
+  }
+}
 
-  client_proxy::eraseOwnedPtrFromMap(payload_listeners_, endpoint_id);
+void ClientProxy::OnDisconnected(const std::string& endpoint_id, bool notify) {
+  MutexLock lock(&mutex_);
 
-  ConnectionLifecycleListenersMap::iterator it =
-      connection_lifecycle_listeners_.find(endpoint_id);
-  if (it != connection_lifecycle_listeners_.end()) {
+  const Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
     if (notify) {
-      it->second->onDisconnected(
-          MakeConstPtr(new OnDisconnectedParams(endpoint_id)));
+      item->connection_listener.disconnected_cb({endpoint_id});
     }
-    it->second.destroy();
-    connection_lifecycle_listeners_.erase(it);
+    connections_.erase(endpoint_id);
+    if (connections_.empty()) local_endpoint_id_.clear();
   }
 }
 
-template <typename Platform>
-bool ClientProxy<Platform>::isConnectedToEndpoint(
-    const std::string& endpoint_id) {
-  Synchronized s(lock_.get());
+bool ClientProxy::ConnectionStatusMatches(const std::string& endpoint_id,
+                                          Connection::Status status) const {
+  MutexLock lock(&mutex_);
 
-  typename ConnectionEstablishmentStatusesMap::iterator it =
-      connection_establishment_statuses_.find(endpoint_id);
-  if (it == connection_establishment_statuses_.end()) {
-    return false;
+  const Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return item->status == status;
   }
-  const ConnectionMetadata& metadata = it->second;
-  return metadata.status == ConnectionEstablishmentStatus::CONNECTED;
+  return false;
 }
 
-template <typename Platform>
-std::vector<std::string> ClientProxy<Platform>::getConnectedEndpoints() {
-  Synchronized s(lock_.get());
+BooleanMediumSelector ClientProxy::GetUpgradeMediums(
+    const std::string& endpoint_id) const {
+  MutexLock lock(&mutex_);
+
+  const Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return item->connection_options.allowed;
+  }
+  return {};
+}
+
+bool ClientProxy::IsConnectedToEndpoint(const std::string& endpoint_id) const {
+  return ConnectionStatusMatches(endpoint_id, Connection::kConnected);
+}
+
+std::vector<std::string> ClientProxy::GetMatchingEndpoints(
+    std::function<bool(const Connection&)> pred) const {
+  MutexLock lock(&mutex_);
 
   std::vector<std::string> connected_endpoints;
 
-  for (typename ConnectionEstablishmentStatusesMap::iterator it =
-           connection_establishment_statuses_.begin();
-       it != connection_establishment_statuses_.end(); it++) {
-    const std::string& endpoint_id = it->first;
-    const ConnectionMetadata& metadata = it->second;
-    if (ConnectionEstablishmentStatus::CONNECTED == metadata.status) {
+  for (const auto& pair : connections_) {
+    const auto& endpoint_id = pair.first;
+    const auto& connection = pair.second;
+    if (pred(connection)) {
       connected_endpoints.push_back(endpoint_id);
     }
   }
   return connected_endpoints;
 }
 
-template <typename Platform>
-std::vector<std::string> ClientProxy<Platform>::getPendingConnectedEndpoints() {
-  Synchronized s(lock_.get());
+std::vector<std::string> ClientProxy::GetPendingConnectedEndpoints() const {
+  return GetMatchingEndpoints([](const Connection& connection) {
+    return connection.status != Connection::kConnected;
+  });
+}
 
-  std::vector<std::string> pending_connected_endpoints;
+std::vector<std::string> ClientProxy::GetConnectedEndpoints() const {
+  return GetMatchingEndpoints([](const Connection& connection) {
+    return connection.status == Connection::kConnected;
+  });
+}
 
-  for (typename ConnectionEstablishmentStatusesMap::iterator it =
-           connection_establishment_statuses_.begin();
-       it != connection_establishment_statuses_.end(); it++) {
-    const std::string& endpoint_id = it->first;
-    const ConnectionMetadata& metadata = it->second;
-    if (ConnectionEstablishmentStatus::CONNECTED != metadata.status) {
-      pending_connected_endpoints.push_back(endpoint_id);
+std::int32_t ClientProxy::GetNumOutgoingConnections() const {
+  return GetMatchingEndpoints([](const Connection& connection) {
+           return connection.status == Connection::kConnected &&
+                  !connection.is_incoming;
+         })
+      .size();
+}
+
+std::int32_t ClientProxy::GetNumIncomingConnections() const {
+  return GetMatchingEndpoints([](const Connection& connection) {
+           return connection.status == Connection::kConnected &&
+                  connection.is_incoming;
+         })
+      .size();
+}
+
+bool ClientProxy::HasPendingConnectionToEndpoint(
+    const std::string& endpoint_id) const {
+  MutexLock lock(&mutex_);
+
+  const Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return item->status != Connection::kConnected;
+  }
+  return false;
+}
+
+bool ClientProxy::HasLocalEndpointResponded(
+    const std::string& endpoint_id) const {
+  MutexLock lock(&mutex_);
+
+  return ConnectionStatusesContains(
+      endpoint_id,
+      static_cast<Connection::Status>(Connection::kLocalEndpointAccepted |
+                                      Connection::kLocalEndpointRejected));
+}
+
+bool ClientProxy::HasRemoteEndpointResponded(
+    const std::string& endpoint_id) const {
+  MutexLock lock(&mutex_);
+
+  return ConnectionStatusesContains(
+      endpoint_id,
+      static_cast<Connection::Status>(Connection::kRemoteEndpointAccepted |
+                                      Connection::kRemoteEndpointRejected));
+}
+
+void ClientProxy::LocalEndpointAcceptedConnection(
+    const std::string& endpoint_id, const PayloadListener& listener) {
+  MutexLock lock(&mutex_);
+
+  if (HasLocalEndpointResponded(endpoint_id)) {
+    NEARBY_LOG(
+        INFO,
+        "ClientProxy [Local Accepted]: local endpoint has responded; id=%s",
+        endpoint_id.c_str());
+    return;
+  }
+
+  AppendConnectionStatus(endpoint_id, Connection::kLocalEndpointAccepted);
+  Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    item->payload_listener = listener;
+  }
+}
+
+void ClientProxy::LocalEndpointRejectedConnection(
+    const std::string& endpoint_id) {
+  MutexLock lock(&mutex_);
+
+  if (HasLocalEndpointResponded(endpoint_id)) {
+    NEARBY_LOG(
+        INFO,
+        "ClientProxy [Local Rejected]: local endpoint has responded; id=%s",
+        endpoint_id.c_str());
+    return;
+  }
+
+  AppendConnectionStatus(endpoint_id, Connection::kLocalEndpointRejected);
+}
+
+void ClientProxy::RemoteEndpointAcceptedConnection(
+    const std::string& endpoint_id) {
+  MutexLock lock(&mutex_);
+
+  if (HasRemoteEndpointResponded(endpoint_id)) {
+    NEARBY_LOG(
+        INFO,
+        "ClientProxy [Remote Accepted]: remote endpoint has responded; id=%s",
+        endpoint_id.c_str());
+    return;
+  }
+
+  AppendConnectionStatus(endpoint_id, Connection::kRemoteEndpointAccepted);
+}
+
+void ClientProxy::RemoteEndpointRejectedConnection(
+    const std::string& endpoint_id) {
+  MutexLock lock(&mutex_);
+
+  if (HasRemoteEndpointResponded(endpoint_id)) {
+    NEARBY_LOG(
+        INFO,
+        "ClientProxy [Remote Rejected]: remote endpoint has responded; id=%s",
+        endpoint_id.c_str());
+    return;
+  }
+
+  AppendConnectionStatus(endpoint_id, Connection::kRemoteEndpointRejected);
+}
+
+bool ClientProxy::IsConnectionAccepted(const std::string& endpoint_id) const {
+  MutexLock lock(&mutex_);
+
+  return ConnectionStatusesContains(endpoint_id,
+                                    Connection::kLocalEndpointAccepted) &&
+         ConnectionStatusesContains(endpoint_id,
+                                    Connection::kRemoteEndpointAccepted);
+}
+
+bool ClientProxy::IsConnectionRejected(const std::string& endpoint_id) const {
+  MutexLock lock(&mutex_);
+
+  return ConnectionStatusesContains(
+      endpoint_id,
+      static_cast<Connection::Status>(Connection::kLocalEndpointRejected |
+                                      Connection::kRemoteEndpointRejected));
+}
+
+bool ClientProxy::LocalConnectionIsAccepted(std::string endpoint_id) const {
+  return ConnectionStatusesContains(
+      endpoint_id, ClientProxy::Connection::kLocalEndpointAccepted);
+}
+
+bool ClientProxy::RemoteConnectionIsAccepted(std::string endpoint_id) const {
+  return ConnectionStatusesContains(
+      endpoint_id, ClientProxy::Connection::kRemoteEndpointAccepted);
+}
+
+void ClientProxy::OnPayload(const std::string& endpoint_id, Payload payload) {
+  MutexLock lock(&mutex_);
+
+  if (IsConnectedToEndpoint(endpoint_id)) {
+    const Connection* item = LookupConnection(endpoint_id);
+    if (item != nullptr) {
+      item->payload_listener.payload_cb(endpoint_id, std::move(payload));
     }
   }
-  return pending_connected_endpoints;
 }
 
-template <typename Platform>
-std::int32_t ClientProxy<Platform>::getNumOutgoingConnections() {
-  Synchronized s(lock_.get());
+const ClientProxy::Connection* ClientProxy::LookupConnection(
+    const std::string& endpoint_id) const {
+  auto item = connections_.find(endpoint_id);
+  return item != connections_.end() ? &item->second : nullptr;
+}
 
-  std::int32_t num_outgoing_connections = 0;
+ClientProxy::Connection* ClientProxy::LookupConnection(
+    const std::string& endpoint_id) {
+  auto item = connections_.find(endpoint_id);
+  return item != connections_.end() ? &item->second : nullptr;
+}
 
-  for (typename ConnectionEstablishmentStatusesMap::iterator it =
-           connection_establishment_statuses_.begin();
-       it != connection_establishment_statuses_.end(); it++) {
-    const ConnectionMetadata& metadata = it->second;
-    if (ConnectionEstablishmentStatus::CONNECTED == metadata.status &&
-        !metadata.is_incoming) {
-      num_outgoing_connections++;
+void ClientProxy::OnPayloadProgress(const std::string& endpoint_id,
+                                    const PayloadProgressInfo& info) {
+  MutexLock lock(&mutex_);
+
+  if (IsConnectedToEndpoint(endpoint_id)) {
+    Connection* item = LookupConnection(endpoint_id);
+    if (item != nullptr) {
+      item->payload_listener.payload_progress_cb(endpoint_id, info);
     }
   }
-  return num_outgoing_connections;
 }
 
-template <typename Platform>
-std::int32_t ClientProxy<Platform>::getNumIncomingConnections() {
-  Synchronized s(lock_.get());
-
-  std::int32_t num_incoming_connections = 0;
-
-  for (typename ConnectionEstablishmentStatusesMap::iterator it =
-           connection_establishment_statuses_.begin();
-       it != connection_establishment_statuses_.end(); it++) {
-    const ConnectionMetadata& metadata = it->second;
-    if (ConnectionEstablishmentStatus::CONNECTED == metadata.status &&
-        metadata.is_incoming) {
-      num_incoming_connections++;
-    }
-  }
-  return num_incoming_connections;
+bool operator==(const ClientProxy& lhs, const ClientProxy& rhs) {
+  return lhs.GetClientId() == rhs.GetClientId();
 }
 
-template <typename Platform>
-bool ClientProxy<Platform>::hasPendingConnectionToEndpoint(
-    const std::string& endpoint_id) {
-  Synchronized s(lock_.get());
-
-  typename ConnectionEstablishmentStatusesMap::iterator it =
-      connection_establishment_statuses_.find(endpoint_id);
-  if (it == connection_establishment_statuses_.end()) {
-    return false;
-  }
-  const ConnectionMetadata& metadata = it->second;
-  return metadata.status != ConnectionEstablishmentStatus::CONNECTED;
+bool operator<(const ClientProxy& lhs, const ClientProxy& rhs) {
+  return lhs.GetClientId() < rhs.GetClientId();
 }
 
-template <typename Platform>
-bool ClientProxy<Platform>::hasLocalEndpointResponded(
-    const std::string& endpoint_id) {
-  Synchronized s(lock_.get());
-
-  return connectionEstablishmentStatusesContains(
-             endpoint_id,
-             ConnectionEstablishmentStatus::LOCAL_ENDPOINT_ACCEPTED) ||
-         connectionEstablishmentStatusesContains(
-             endpoint_id,
-             ConnectionEstablishmentStatus::LOCAL_ENDPOINT_REJECTED);
-}
-
-template <typename Platform>
-bool ClientProxy<Platform>::hasRemoteEndpointResponded(
-    const std::string& endpoint_id) {
-  Synchronized s(lock_.get());
-
-  return connectionEstablishmentStatusesContains(
-             endpoint_id,
-             ConnectionEstablishmentStatus::REMOTE_ENDPOINT_ACCEPTED) ||
-         connectionEstablishmentStatusesContains(
-             endpoint_id,
-             ConnectionEstablishmentStatus::REMOTE_ENDPOINT_REJECTED);
-}
-
-template <typename Platform>
-void ClientProxy<Platform>::localEndpointAcceptedConnection(
-    const std::string& endpoint_id, Ptr<PayloadListener> payload_listener) {
-  Synchronized s(lock_.get());
-
-  if (hasLocalEndpointResponded(endpoint_id)) {
-    // TODO(tracyzhou): Add logging.
-    return;
-  }
-
-  appendConnectionEstablishmentStatus(
-      endpoint_id, ConnectionEstablishmentStatus::LOCAL_ENDPOINT_ACCEPTED);
-  payload_listeners_.insert(std::make_pair(endpoint_id, payload_listener));
-}
-
-template <typename Platform>
-void ClientProxy<Platform>::localEndpointRejectedConnection(
-    const std::string& endpoint_id) {
-  Synchronized s(lock_.get());
-
-  if (hasLocalEndpointResponded(endpoint_id)) {
-    // TODO(tracyzhou): Add logging.
-    return;
-  }
-
-  appendConnectionEstablishmentStatus(
-      endpoint_id, ConnectionEstablishmentStatus::LOCAL_ENDPOINT_REJECTED);
-}
-
-template <typename Platform>
-void ClientProxy<Platform>::remoteEndpointAcceptedConnection(
-    const std::string& endpoint_id) {
-  Synchronized s(lock_.get());
-
-  if (hasRemoteEndpointResponded(endpoint_id)) {
-    // TODO(tracyzhou): Add logging.
-    return;
-  }
-
-  appendConnectionEstablishmentStatus(
-      endpoint_id, ConnectionEstablishmentStatus::REMOTE_ENDPOINT_ACCEPTED);
-}
-
-template <typename Platform>
-void ClientProxy<Platform>::remoteEndpointRejectedConnection(
-    const std::string& endpoint_id) {
-  Synchronized s(lock_.get());
-
-  if (hasRemoteEndpointResponded(endpoint_id)) {
-    // TODO(tracyzhou): Add logging.
-    return;
-  }
-
-  appendConnectionEstablishmentStatus(
-      endpoint_id, ConnectionEstablishmentStatus::REMOTE_ENDPOINT_REJECTED);
-}
-
-template <typename Platform>
-bool ClientProxy<Platform>::isConnectionAccepted(
-    const std::string& endpoint_id) {
-  Synchronized s(lock_.get());
-
-  return connectionEstablishmentStatusesContains(
-             endpoint_id,
-             ConnectionEstablishmentStatus::LOCAL_ENDPOINT_ACCEPTED) &&
-         connectionEstablishmentStatusesContains(
-             endpoint_id,
-             ConnectionEstablishmentStatus::REMOTE_ENDPOINT_ACCEPTED);
-}
-
-template <typename Platform>
-bool ClientProxy<Platform>::isConnectionRejected(
-    const std::string& endpoint_id) {
-  Synchronized s(lock_.get());
-
-  return connectionEstablishmentStatusesContains(
-             endpoint_id,
-             ConnectionEstablishmentStatus::LOCAL_ENDPOINT_REJECTED) ||
-         connectionEstablishmentStatusesContains(
-             endpoint_id,
-             ConnectionEstablishmentStatus::REMOTE_ENDPOINT_REJECTED);
-}
-
-template <typename Platform>
-void ClientProxy<Platform>::onPayloadReceived(const std::string& endpoint_id,
-                                              ConstPtr<Payload> payload) {
-  Synchronized s(lock_.get());
-
-  // Avoid leaks.
-  ScopedPtr<ConstPtr<Payload>> scoped_payload(payload);
-
-  if (isConnectedToEndpoint(endpoint_id)) {
-    payload_listeners_.find(endpoint_id)
-        ->second->onPayloadReceived(MakeConstPtr(new OnPayloadReceivedParams(
-            endpoint_id, scoped_payload.release())));
-  }
-}
-
-template <typename Platform>
-void ClientProxy<Platform>::onPayloadTransferUpdate(
-    const std::string& endpoint_id,
-    const PayloadTransferUpdate& payload_transfer_update) {
-  Synchronized s(lock_.get());
-
-  if (isConnectedToEndpoint(endpoint_id)) {
-    payload_listeners_.find(endpoint_id)
-        ->second->onPayloadTransferUpdate(
-            MakeConstPtr(new OnPayloadTransferUpdateParams(
-                endpoint_id, payload_transfer_update)));
-  }
-}
-
-template <typename Platform>
-bool ClientProxy<Platform>::operator==(const ClientProxy<Platform>& rhs) {
-  return this->getClientId() == rhs.getClientId();
-}
-
-template <typename Platform>
-bool ClientProxy<Platform>::operator<(const ClientProxy<Platform>& rhs) {
-  return this->getClientId() < rhs.getClientId();
-}
-
-template <typename Platform>
-void ClientProxy<Platform>::removeAllEndpoints() {
-  Synchronized s(lock_.get());
+void ClientProxy::RemoveAllEndpoints() {
+  MutexLock lock(&mutex_);
 
   // Note: we may want to notify the client of onDisconnected() for each
   // endpoint, in the case when this is called from stopAllEndpoints(). For now,
   // just remove without notifying.
-  for (ConnectionLifecycleListenersMap::iterator it =
-           connection_lifecycle_listeners_.begin();
-       it != connection_lifecycle_listeners_.end(); it++) {
-    it->second.destroy();
-  }
-  connection_lifecycle_listeners_.clear();
-
-  for (PayloadListenersMap::iterator it = payload_listeners_.begin();
-       it != payload_listeners_.end(); it++) {
-    it->second.destroy();
-  }
-  payload_listeners_.clear();
-
-  connection_establishment_statuses_.clear();
+  connections_.clear();
+  local_endpoint_id_.clear();
 }
 
-template <typename Platform>
-bool ClientProxy<Platform>::connectionEstablishmentStatusesContains(
-    const std::string& endpoint_id,
-    typename ConnectionEstablishmentStatus::Value status_to_match) {
-  typename ConnectionEstablishmentStatusesMap::iterator it =
-      connection_establishment_statuses_.find(endpoint_id);
-  if (it == connection_establishment_statuses_.end()) {
-    return false;
+bool ClientProxy::ConnectionStatusesContains(
+    const std::string& endpoint_id, Connection::Status status_to_match) const {
+  const Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return (item->status & status_to_match) != 0;
   }
-  const ConnectionMetadata& metadata = it->second;
-  return (metadata.status & status_to_match) != 0;
+  return false;
 }
 
-template <typename Platform>
-void ClientProxy<Platform>::appendConnectionEstablishmentStatus(
-    const std::string& endpoint_id,
-    typename ConnectionEstablishmentStatus::Value status_to_append) {
-  typename ConnectionEstablishmentStatusesMap::iterator it =
-      connection_establishment_statuses_.find(endpoint_id);
-  if (it == connection_establishment_statuses_.end()) {
-    return;
+void ClientProxy::AppendConnectionStatus(const std::string& endpoint_id,
+                                         Connection::Status status_to_append) {
+  Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    item->status =
+        static_cast<Connection::Status>(item->status | status_to_append);
   }
-  ConnectionMetadata& metadata = it->second;
-  metadata.status = static_cast<typename ConnectionEstablishmentStatus::Value>(
-      metadata.status | status_to_append);
 }
 
 }  // namespace connections

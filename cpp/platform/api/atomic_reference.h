@@ -15,48 +15,25 @@
 #ifndef PLATFORM_API_ATOMIC_REFERENCE_H_
 #define PLATFORM_API_ATOMIC_REFERENCE_H_
 
-#include "platform/api/atomic_reference_def.h"
-#include "platform/api/platform.h"
-#include "platform/ptr.h"
-#include "absl/types/any.h"
+#include <cstdint>
 
 namespace location {
 namespace nearby {
+namespace api {
 
-// "Common" part of implementation.
-// Placed here for textual compatibility to minimize scope of changes.
-// Can be (and should be) moved to a separate file outside "api" folder.
-// TODO(apolyudov): for API v2.0
-namespace platform {
-namespace impl {
-template <typename T>
-class AtomicReferenceImpl : public AtomicReference<T> {
+// Type that allows 32-bit atomic reads and writes.
+class AtomicUint32 {
  public:
-  explicit AtomicReferenceImpl(T initial_value) {
-    atomic_ = platform::ImplementationPlatform::createAtomicReferenceAny(
-        absl::any(initial_value));
-  }
+  virtual ~AtomicUint32() = default;
 
-  ~AtomicReferenceImpl() override = default;
+  // Atomically reads and returns stored value.
+  virtual std::uint32_t Get() const = 0;
 
-  void set(T new_value) override { atomic_->set(absl::any(new_value)); }
-
-  T get() override { return absl::any_cast<T>(atomic_->get()); }
-
- private:
-  Ptr<AtomicReference<absl::any>> atomic_;
+  // Atomically stores value.
+  virtual void Set(std::uint32_t value) = 0;
 };
 
-}  // namespace impl
-
-template <typename T>
-Ptr<AtomicReference<T>> ImplementationPlatform::createAtomicReference(
-    T initial_value) {
-  return Ptr<AtomicReference<T>>(
-      new impl::AtomicReferenceImpl<T>{initial_value});
-}
-
-}  // namespace platform
+}  // namespace api
 }  // namespace nearby
 }  // namespace location
 

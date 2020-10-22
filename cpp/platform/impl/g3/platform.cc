@@ -19,149 +19,155 @@
 
 #include "platform/api/atomic_boolean.h"
 #include "platform/api/atomic_reference.h"
-#include "platform/api/ble.h"
 #include "platform/api/ble_v2.h"
 #include "platform/api/bluetooth_adapter.h"
 #include "platform/api/bluetooth_classic.h"
 #include "platform/api/condition_variable.h"
 #include "platform/api/count_down_latch.h"
-#include "platform/api/hash_utils.h"
-#include "platform/api/lock.h"
+#include "platform/api/log_message.h"
+#include "platform/api/mutex.h"
 #include "platform/api/scheduled_executor.h"
 #include "platform/api/server_sync.h"
-#include "platform/api/settable_future.h"
 #include "platform/api/submittable_executor.h"
-#include "platform/api/system_clock.h"
-#include "platform/api/thread_utils.h"
 #include "platform/api/webrtc.h"
 #include "platform/api/wifi.h"
-#include "platform/impl/g3/atomic_reference_impl.h"
-#include "platform/impl/g3/settable_future_impl.h"
-#include "platform/impl/g3/system_clock_impl.h"
-#include "platform/impl/shared/atomic_boolean_impl.h"
-#include "platform/impl/shared/file_impl.h"
-#include "platform/impl/shared/posix_condition_variable.h"
-#include "platform/impl/shared/posix_lock.h"
-#include "platform/port/string.h"
-#include "platform/ptr.h"
-#include "absl/synchronization/mutex.h"
+#include "platform/base/medium_environment.h"
+#include "platform/impl/g3/atomic_boolean.h"
+#include "platform/impl/g3/atomic_reference.h"
+#include "platform/impl/g3/ble.h"
+#include "platform/impl/g3/bluetooth_adapter.h"
+#include "platform/impl/g3/bluetooth_classic.h"
+#include "platform/impl/g3/condition_variable.h"
+#include "platform/impl/g3/count_down_latch.h"
+#include "platform/impl/g3/log_message.h"
+#include "platform/impl/g3/multi_thread_executor.h"
+#include "platform/impl/g3/mutex.h"
+#include "platform/impl/g3/scheduled_executor.h"
+#include "platform/impl/g3/single_thread_executor.h"
+#include "platform/impl/g3/webrtc.h"
+#include "platform/impl/g3/wifi_lan.h"
+#include "platform/impl/shared/file.h"
+#include "absl/base/integral_types.h"
+#include "absl/memory/memory.h"
+#include "absl/strings/str_cat.h"
 #include "absl/time/time.h"
 
 namespace location {
 namespace nearby {
-namespace platform {
+namespace api {
 
 namespace {
-std::string getPayloadPath(std::int64_t payload_id) {
-  return "/tmp/" + std::to_string(payload_id);
+std::string GetPayloadPath(PayloadId payload_id) {
+  return absl::StrCat("/tmp/", payload_id);
 }
 }  // namespace
 
-Ptr<SubmittableExecutor> ImplementationPlatform::createSingleThreadExecutor() {
-  return Ptr<SubmittableExecutor>(/*new SingleThreadExecutorImpl()*/);
+int GetCurrentTid() {
+  const LiveThread* my = Thread_GetMyLiveThread();
+  return LiveThread_Pthread_TID(my);
 }
 
-Ptr<SubmittableExecutor> ImplementationPlatform::createMultiThreadExecutor(
-    int max_concurrency) {
-  return Ptr<SubmittableExecutor>(/*new MultiThreadExecutorImpl()*/);
+std::unique_ptr<SubmittableExecutor>
+ImplementationPlatform::CreateSingleThreadExecutor() {
+  return absl::make_unique<g3::SingleThreadExecutor>();
 }
 
-Ptr<ScheduledExecutor> ImplementationPlatform::createScheduledExecutor() {
-  return Ptr<ScheduledExecutor>(/*new ScheduledExecutorImpl()*/);
+std::unique_ptr<SubmittableExecutor>
+ImplementationPlatform::CreateMultiThreadExecutor(int max_concurrency) {
+  return absl::make_unique<g3::MultiThreadExecutor>(max_concurrency);
 }
 
-Ptr<AtomicReference<absl::any>>
-ImplementationPlatform::createAtomicReferenceAny(absl::any initial_value) {
-  return Ptr<AtomicReference<absl::any>>(
-      new AtomicReferenceImpl(initial_value));
+std::unique_ptr<ScheduledExecutor>
+ImplementationPlatform::CreateScheduledExecutor() {
+  return absl::make_unique<g3::ScheduledExecutor>();
 }
 
-Ptr<SettableFuture<absl::any>>
-ImplementationPlatform::createSettableFutureAny() {
-  return Ptr<SettableFuture<std::any>>(new SettableFutureImpl{});
+std::unique_ptr<AtomicUint32>
+ImplementationPlatform::CreateAtomicUint32(std::uint32_t value) {
+  return absl::make_unique<g3::AtomicUint32>(value);
 }
 
-Ptr<BluetoothAdapter> ImplementationPlatform::createBluetoothAdapter() {
-  return Ptr<BluetoothAdapter>{};
+std::unique_ptr<BluetoothAdapter>
+ImplementationPlatform::CreateBluetoothAdapter() {
+  return absl::make_unique<g3::BluetoothAdapter>();
 }
 
-Ptr<WifiMedium> ImplementationPlatform::createWifiMedium() {
-  return Ptr<WifiMedium>();
-}
-
-Ptr<CountDownLatch> ImplementationPlatform::createCountDownLatch(
+std::unique_ptr<CountDownLatch> ImplementationPlatform::CreateCountDownLatch(
     std::int32_t count) {
-  return Ptr<CountDownLatch>(/*new CountDownLatchImpl(count)*/);
+  return absl::make_unique<g3::CountDownLatch>(count);
 }
 
-Ptr<ThreadUtils> ImplementationPlatform::createThreadUtils() {
-  return Ptr<ThreadUtils>(/*new ThreadUtilsImpl()*/);
-}
-
-Ptr<SystemClock> ImplementationPlatform::createSystemClock() {
-  return Ptr<SystemClock>(new SystemClockImpl());
-}
-
-Ptr<AtomicBoolean> ImplementationPlatform::createAtomicBoolean(
+std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(
     bool initial_value) {
-  return Ptr<AtomicBoolean>(new AtomicBooleanImpl(initial_value));
+  return absl::make_unique<g3::AtomicBoolean>(initial_value);
 }
 
-Ptr<InputFile> ImplementationPlatform::createInputFile(
-    std::int64_t payload_id, std::int64_t total_size) {
-  return MakePtr(new InputFileImpl(getPayloadPath(payload_id), total_size));
+std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
+    PayloadId payload_id, std::int64_t total_size) {
+  return absl::make_unique<shared::InputFile>(GetPayloadPath(payload_id),
+                                              total_size);
 }
 
-Ptr<OutputFile> ImplementationPlatform::createOutputFile(
-    std::int64_t payload_id) {
-  return MakePtr(new OutputFileImpl(getPayloadPath(payload_id)));
+std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
+    PayloadId payload_id) {
+  return absl::make_unique<shared::OutputFile>(GetPayloadPath(payload_id));
 }
 
-Ptr<BluetoothClassicMedium>
-ImplementationPlatform::createBluetoothClassicMedium() {
-  return Ptr<BluetoothClassicMedium>();
+std::unique_ptr<LogMessage> ImplementationPlatform::CreateLogMessage(
+    const char* file, int line, LogMessage::Severity severity) {
+  return absl::make_unique<g3::LogMessage>(file, line, severity);
 }
 
-Ptr<BLEMedium> ImplementationPlatform::createBLEMedium() {
-  return Ptr<BLEMedium>();
+std::unique_ptr<BluetoothClassicMedium>
+ImplementationPlatform::CreateBluetoothClassicMedium(
+    api::BluetoothAdapter& adapter) {
+  return absl::make_unique<g3::BluetoothClassicMedium>(adapter);
 }
 
-Ptr<BLEMediumV2> ImplementationPlatform::createBLEMediumV2() {
-  return Ptr<BLEMediumV2>();
+std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
+    api::BluetoothAdapter& adapter) {
+  return absl::make_unique<g3::BleMedium>(adapter);
 }
 
-Ptr<ServerSyncMedium> ImplementationPlatform::createServerSyncMedium() {
-  return Ptr<ServerSyncMedium>(/*new ServerSyncMediumImpl()*/);
+std::unique_ptr<ble_v2::BleMedium> ImplementationPlatform::CreateBleV2Medium(
+    api::BluetoothAdapter& adapter) {
+  return std::unique_ptr<ble_v2::BleMedium>();
 }
 
-Ptr<WifiLanMedium> ImplementationPlatform::createWifiLanMedium() {
-  return Ptr<WifiLanMedium>();
+std::unique_ptr<ServerSyncMedium>
+ImplementationPlatform::CreateServerSyncMedium() {
+  return std::unique_ptr<ServerSyncMedium>(/*new ServerSyncMediumImpl()*/);
 }
 
-//Ptr<WebRtcSignalingMessenger>
-//ImplementationPlatform::createWebRtcSignalingMessenger(
-//    const std::string& self_id) {
-//  return Ptr<WebRtcSignalingMessenger>(/*new FCMSignalingMessenger()*/);
-//}
-
-Ptr<Lock> ImplementationPlatform::createLock() {
-  return Ptr<Lock>(new PosixLock());
+std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() {
+  return std::unique_ptr<WifiMedium>();
 }
 
-Ptr<ConditionVariable> ImplementationPlatform::createConditionVariable(
-    Ptr<Lock> lock) {
-  return Ptr<ConditionVariable>(new PosixConditionVariable(lock));
+std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
+  return absl::make_unique<g3::WifiLanMedium>();
 }
 
-Ptr<HashUtils> ImplementationPlatform::createHashUtils() {
-  return Ptr<HashUtils>(/*new HashUtilsImpl()*/);
+std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
+  if (MediumEnvironment::Instance().GetEnvironmentConfig().webrtc_enabled) {
+    return absl::make_unique<g3::WebRtcMedium>();
+  } else {
+    return nullptr;
+  }
 }
 
-std::string ImplementationPlatform::getDeviceId() {
-  // TODO(alexchau): Get deviceId from base
-  return "google3";
+std::unique_ptr<Mutex> ImplementationPlatform::CreateMutex(Mutex::Mode mode) {
+  if (mode == Mutex::Mode::kRecursive)
+    return absl::make_unique<g3::RecursiveMutex>();
+  else
+    return absl::make_unique<g3::Mutex>(mode == Mutex::Mode::kRegular);
 }
 
-}  // namespace platform
+std::unique_ptr<ConditionVariable>
+ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
+  return std::unique_ptr<ConditionVariable>(
+      new g3::ConditionVariable(static_cast<g3::Mutex*>(mutex)));
+}
+
+}  // namespace api
 }  // namespace nearby
 }  // namespace location

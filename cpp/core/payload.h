@@ -16,81 +16,90 @@
 #define CORE_PAYLOAD_H_
 
 #include <cstdint>
+#include <functional>
+#include <memory>
+#include <utility>
 
-#include "platform/api/input_file.h"
-#include "platform/api/input_stream.h"
-#include "platform/byte_array.h"
-#include "platform/ptr.h"
+#include "platform/base/byte_array.h"
+#include "platform/base/input_stream.h"
+#include "platform/base/payload_id.h"
+#include "platform/base/prng.h"
+#include "platform/public/file.h"
+#include "absl/types/variant.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
+// Payload is default-constructible, and moveable, but not copyable container
+// that holds at most one instance of one of:
+// ByteArray, InputStream, or InputFile.
 class Payload {
  public:
-  struct Type {
-    enum Value { UNKNOWN = 0, BYTES = 1, FILE = 2, STREAM = 3 };
-  };
+  using Id = PayloadId;
+  // Order of types in variant, and values in Type enum is important.
+  // Enum values must match respective variant types.
+  using Content = absl::variant<absl::monostate, ByteArray,
+                                std::function<InputStream&()>, InputFile>;
+  enum class Type { kUnknown = 0, kBytes = 1, kStream = 2, kFile = 3 };
 
-  class Stream {
-   public:
-    Ptr<InputStream> asInputStream() const;
+  Payload(Payload&& other) = default;
+  ~Payload() = default;
+  Payload& operator=(Payload&& other) = default;
 
-   private:
-    template <typename>
-    friend class InternalPayloadFactory;
-    friend class Payload;
+  // Default (invalid) payload.
+  Payload() : content_(absl::monostate()) {}
 
-    explicit Stream(Ptr<InputStream> input_stream);
-    ScopedPtr<Ptr<InputStream> > input_stream_;
-  };
+  // Constructors for outgoing payloads.
+  explicit Payload(ByteArray&& bytes) : content_(std::move(bytes)) {}
+  explicit Payload(const ByteArray& bytes) : content_(bytes) {}
+  explicit Payload(std::function<InputStream&()> stream)
+      : content_(std::move(stream)) {}
 
-  class File {
-   public:
-    Ptr<InputFile> asInputFile() const;
+  // Constructors for incoming payloads.
+  Payload(Id id, ByteArray&& bytes) : content_(std::move(bytes)), id_(id) {}
+  Payload(Id id, const ByteArray& bytes) : content_(bytes), id_(id) {}
+  Payload(Id id, std::function<InputStream&()> stream)
+      : content_(std::move(stream)), id_(id) {}
 
-   private:
-    template <typename>
-    friend class InternalPayloadFactory;
-    friend class Payload;
+  // Constructor for incoming and outgoing file payloads.
+  Payload(Id id, InputFile file) : content_(std::move(file)), id_(id) {}
 
-    explicit File(const Ptr<InputFile>& input_file);
-    ScopedPtr<Ptr<InputFile> > input_file_;
-  };
+  // Returns ByteArray payload, if it has been defined, or empty ByteArray.
+  const ByteArray& AsBytes() const& {
+    static const ByteArray empty;  // NOLINT: function-level static is OK.
+    auto* result = absl::get_if<ByteArray>(&content_);
+    return result ? *result : empty;
+  }
+  ByteArray&& AsBytes() && {
+    auto* result = absl::get_if<ByteArray>(&content_);
+    return result ? std::move(*result) : std::move(ByteArray());
+  }
+  // Returns InputStream* payload, if it has been defined, or nullptr.
+  InputStream* AsStream() {
+    auto* result = absl::get_if<std::function<InputStream&()>>(&content_);
+    return result ? &(*result)() : nullptr;
+  }
+  // Returns InputFile* payload, if it has been defined, or nullptr.
+  InputFile* AsFile() { return absl::get_if<InputFile>(&content_); }
 
-  static Ptr<Payload> fromBytes(ConstPtr<ByteArray> bytes);
-  static Ptr<Payload> fromStream(Ptr<InputStream> input_stream);
-  static Ptr<Payload> fromFile(const Ptr<InputFile>& input_file);
+  // Returns Payload unique ID.
+  Id GetId() const { return id_; }
 
-  ConstPtr<ByteArray> asBytes() const;
-  ConstPtr<Stream> asStream() const;
-  ConstPtr<File> asFile() const;
+  // Returns Payload type.
+  Type GetType() const { return type_; }
 
-  // For when clients of this class want to assume ownership of the
-  // ConstPtr<ByteArray> that represents a BYTES Payload.
-  ConstPtr<ByteArray> releaseBytes() const;
-
-  std::int64_t getId() const;
-  Type::Value getType() const;
+  // Generate Payload Id; to be passed to outgoing file constructor.
+  static Id GenerateId() { return Prng().NextInt64(); }
 
  private:
-  template <typename>
-  friend class InternalPayloadFactory;
+  Type FindType(const Content& content) const {
+    return static_cast<Type>(content_.index());
+  }
 
-  static std::int64_t generateId();
-
-  Payload(std::int64_t id, ConstPtr<ByteArray> bytes);
-  Payload(std::int64_t id, ConstPtr<Stream> stream);
-  Payload(std::int64_t id, ConstPtr<File> file);
-
-  std::int64_t id_;
-  Type::Value type_;
-  // This field is mutable because of releaseBytes(), which is just a physically
-  // non-const operation that doesn't alter the conceptual const-ness of the
-  // Payload object.
-  mutable ScopedPtr<ConstPtr<ByteArray> > bytes_;
-  ScopedPtr<ConstPtr<File> > file_;
-  ScopedPtr<ConstPtr<Stream> > stream_;
+  Content content_;
+  Id id_{GenerateId()};
+  Type type_{FindType(content_)};
 };
 
 }  // namespace connections

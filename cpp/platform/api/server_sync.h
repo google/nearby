@@ -17,61 +17,59 @@
 
 #include <string>
 
-#include "platform/byte_array.h"
-#include "platform/ptr.h"
+#include "platform/base/byte_array.h"
+#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
+namespace api {
 
 // Abstraction that represents a Nearby endpoint exchanging data through
 // ServerSync Medium.
 class ServerSyncDevice {
  public:
-  virtual ~ServerSyncDevice() {}
+  virtual ~ServerSyncDevice() = default;
 
-  virtual std::string getName() = 0;
-
-  virtual std::string getGuid() = 0;
-
-  virtual std::string getOwnGuid() = 0;
+  virtual std::string GetName() const = 0;
+  virtual std::string GetGuid() const = 0;
+  virtual std::string GetOwnGuid() const = 0;
 };
 
-// Container of operations that can be performed over the Server Sync medium.
+// Container of operations that can be performed over the Chrome Sync medium.
 class ServerSyncMedium {
  public:
-  virtual ~ServerSyncMedium() {}
+  virtual ~ServerSyncMedium() = default;
 
-  // Takes ownership of (and is responsible for destroying) the passed-in
-  // 'endpoint_info'.
-  virtual bool startAdvertising(const std::string& service_id,
-                                const std::string& endpoint_id,
-                                ConstPtr<ByteArray> endpoint_info) = 0;
-  virtual void stopAdvertising(const std::string& service_id) = 0;
+  virtual bool StartAdvertising(absl::string_view service_id,
+                                absl::string_view endpoint_id,
+                                const ByteArray& endpoint_info) = 0;
+  virtual void StopAdvertising(absl::string_view service_id) = 0;
 
   class DiscoveredDeviceCallback {
    public:
-    virtual ~DiscoveredDeviceCallback() {}
+    virtual ~DiscoveredDeviceCallback() = default;
 
     // Called on a new ServerSyncDevice discovery.
-    virtual void onDeviceDiscovered(Ptr<ServerSyncDevice> device,
-                                    const std::string& service_id,
-                                    const std::string& endpoint_id,
-                                    ConstPtr<ByteArray> endpoint_info) = 0;
+    virtual void OnDeviceDiscovered(ServerSyncDevice* device,
+                                    absl::string_view service_id,
+                                    absl::string_view endpoint_id,
+                                    const ByteArray& endpoint_info) = 0;
     // Called when ServerSyncDevice is no longer reachable.
-    virtual void onDeviceLost(Ptr<ServerSyncDevice> device,
-                              const std::string& service_id) = 0;
+    virtual void OnDeviceLost(ServerSyncDevice* device,
+                              absl::string_view service_id) = 0;
   };
 
   // Returns true once the Chrome Sync scan has been initiated.
-  virtual bool startDiscovery(
-      const std::string& service_id,
-      Ptr<DiscoveredDeviceCallback> discovered_device_callback) = 0;
+  virtual bool StartDiscovery(
+      absl::string_view service_id,
+      const DiscoveredDeviceCallback& discovered_device_callback) = 0;
   // Returns true once Chrome Sync scan for service_id is well and truly
   // stopped; after this returns, there must be no more invocations of the
   // DiscoveredDeviceCallback passed in to startScanning() for service_id.
-  virtual void stopDiscovery(const std::string& service_id) = 0;
+  virtual void StopDiscovery(absl::string_view service_id) = 0;
 };
 
+}  // namespace api
 }  // namespace nearby
 }  // namespace location
 

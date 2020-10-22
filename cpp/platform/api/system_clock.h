@@ -15,19 +15,20 @@
 #ifndef PLATFORM_API_SYSTEM_CLOCK_H_
 #define PLATFORM_API_SYSTEM_CLOCK_H_
 
-#include <cstdint>
+#include "platform/base/exception.h"
+#include "absl/time/clock.h"
 
 namespace location {
 namespace nearby {
 
-class SystemClock {
+class SystemClock final {
  public:
-  virtual ~SystemClock() {}
-
-  // Returns the time (in milliseconds) since the system was booted, and
-  // includes deep sleep. This clock should be guaranteed to be monotonic, and
-  // should continue to tick even when the CPU is in power saving modes.
-  virtual std::int64_t elapsedRealtime() = 0;
+  // Initialize global system state.
+  static void Init();
+  // Returns current absolute time. It is guaranteed to be monotonic.
+  static absl::Time ElapsedRealtime();
+  // Pauses current thread for the specified duration.
+  static Exception Sleep(absl::Duration duration);
 };
 
 }  // namespace nearby

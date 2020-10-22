@@ -14,291 +14,203 @@
 
 #include "core/internal/bluetooth_device_name.h"
 
-#include <cstring>
+#include <inttypes.h>
 
-#include "platform/base64_utils.h"
+#include <cstring>
+#include <utility>
+
+#include "platform/base/base64_utils.h"
+#include "platform/base/base_input_stream.h"
+#include "platform/public/logging.h"
+#include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-const std::uint32_t BluetoothDeviceName::kServiceIdHashLength = 3;
-
-const std::uint32_t BluetoothDeviceName::kMaxBluetoothDeviceNameLength = 147;
-// Should be defined as ClientProxy<Platform>::kEndpointIdLength, but that
-// involves making BluetoothDeviceName templatized on Platform just for
-// that one little thing, so forego it (at least for now).
-const std::uint32_t BluetoothDeviceName::kEndpointIdLength = 4;
-const std::uint32_t BluetoothDeviceName::kReservedLength = 7;
-const std::uint32_t BluetoothDeviceName::kMaxEndpointNameLength = 131;
-const std::uint32_t BluetoothDeviceName::kMinBluetoothDeviceNameLength =
-    kMaxBluetoothDeviceNameLength - kMaxEndpointNameLength;
-
-const std::uint16_t BluetoothDeviceName::kVersionBitmask = 0x0E0;
-const std::uint16_t BluetoothDeviceName::kPCPBitmask = 0x01F;
-const std::uint16_t BluetoothDeviceName::kEndpointNameLengthBitmask = 0x0FF;
-
-Ptr<BluetoothDeviceName> BluetoothDeviceName::fromString(
-    const std::string& bluetooth_device_name_string) {
-  ScopedPtr<Ptr<ByteArray> > scoped_bluetooth_device_name_bytes(
-      Base64Utils::decode(bluetooth_device_name_string));
-  if (scoped_bluetooth_device_name_bytes.isNull()) {
-    // TODO(reznor): logger.atDebug().log("Cannot deserialize
-    // BluetoothDeviceName: failed Base64 decoding of %s",
-    // bluetoothDeviceNameString);
-    return Ptr<BluetoothDeviceName>();
+BluetoothDeviceName::BluetoothDeviceName(Version version, Pcp pcp,
+                                         absl::string_view endpoint_id,
+                                         const ByteArray& service_id_hash,
+                                         const ByteArray& endpoint_info,
+                                         const ByteArray& uwb_address,
+                                         WebRtcState web_rtc_state) {
+  if (version != Version::kV1 || endpoint_id.empty() ||
+      endpoint_id.length() != kEndpointIdLength ||
+      service_id_hash.size() != kServiceIdHashLength) {
+    return;
   }
-
-  if (scoped_bluetooth_device_name_bytes->size() >
-      kMaxBluetoothDeviceNameLength) {
-    // TODO(reznor): logger.atDebug().log("Cannot deserialize
-    // BluetoothDeviceName: expecting max %d raw bytes, got %d",
-    // MAX_BLUETOOTH_DEVICE_NAME_LENGTH, bluetoothDeviceNameBytes.length);
-    return Ptr<BluetoothDeviceName>();
-  }
-
-  if (scoped_bluetooth_device_name_bytes->size() <
-      kMinBluetoothDeviceNameLength) {
-    // TODO(reznor): logger.atDebug().log("Cannot deserialize
-    // BluetoothDeviceName: expecting min %d raw bytes, got %d",
-    // MIN_BLUETOOTH_DEVICE_NAME_LENGTH, bluetoothDeviceNameBytes.length);
-    return Ptr<BluetoothDeviceName>();
-  }
-
-  // The first 3 bits are supposed to be the version.
-  Version::Value version = static_cast<Version::Value>(
-      (scoped_bluetooth_device_name_bytes->getData()[0] & kVersionBitmask) >>
-      5);
-
-  switch (version) {
-    case Version::V1:
-      return createV1BluetoothDeviceName(
-          ConstifyPtr(scoped_bluetooth_device_name_bytes.get()));
-
-    default:
-      // TODO(reznor): [ANALYTICIZE] This either represents corruption over the
-      // air, or older versions of GmsCore intermingling with newer ones.
-
-      // TODO(reznor): logger.atDebug().log("Cannot deserialize
-      // BluetoothDeviceName: unsupported Version %d", version);
-      return Ptr<BluetoothDeviceName>();
-  }
-}
-
-std::string BluetoothDeviceName::asString(Version::Value version,
-                                          PCP::Value pcp,
-                                          const std::string& endpoint_id,
-                                          ConstPtr<ByteArray> service_id_hash,
-                                          const std::string& endpoint_name) {
-  std::string usable_endpoint_name(endpoint_name);
-  if (endpoint_name.size() > kMaxEndpointNameLength) {
-    // TODO(reznor): logger.atWarning().log("While serializing Advertisement,
-    // truncating Endpoint Name %s (%d bytes) down to %d bytes", endpointName,
-    // endpointNameBytes.length, MAX_ENDPOINT_NAME_LENGTH);
-    usable_endpoint_name.erase(kMaxEndpointNameLength);
-  }
-  ScopedPtr<Ptr<ByteArray> > scoped_endpoint_name_bytes(
-      new ByteArray(usable_endpoint_name.data(), usable_endpoint_name.size()));
-
-  Ptr<ByteArray> bluetooth_device_name_bytes;
-  switch (version) {
-    case Version::V1:
-      bluetooth_device_name_bytes =
-          createV1Bytes(pcp, endpoint_id, service_id_hash,
-                        ConstifyPtr(scoped_endpoint_name_bytes.get()));
-      if (bluetooth_device_name_bytes.isNull()) {
-        return "";
-      }
-      break;
-
-    default:
-      // TODO(reznor): logger.atDebug().log("Cannot serialize
-      // BluetoothDeviceName: unsupported Version %d", version);
-      return "";
-  }
-  ScopedPtr<Ptr<ByteArray> > scoped_bluetooth_device_name_bytes(
-      bluetooth_device_name_bytes);
-
-  // BluetoothDeviceName needs to be binary safe, so apply a Base64 encoding
-  // over the raw bytes.
-  return Base64Utils::encode(
-      ConstifyPtr(scoped_bluetooth_device_name_bytes.get()));
-}
-
-Ptr<BluetoothDeviceName> BluetoothDeviceName::createV1BluetoothDeviceName(
-    ConstPtr<ByteArray> bluetooth_device_name_bytes) {
-  const char* bluetooth_device_name_bytes_read_ptr =
-      bluetooth_device_name_bytes->getData();
-
-  // The first 5 bits of the V1 payload are supposed to be the PCP.
-  PCP::Value pcp = static_cast<PCP::Value>(
-      *bluetooth_device_name_bytes_read_ptr & kPCPBitmask);
-  bluetooth_device_name_bytes_read_ptr++;
-
   switch (pcp) {
-    case PCP::P2P_CLUSTER:  // Fall through
-    case PCP::P2P_STAR:     // Fall through
-    case PCP::P2P_POINT_TO_POINT: {
-      // The next 32 bits are supposed to be the endpoint_id.
-      std::string endpoint_id(bluetooth_device_name_bytes_read_ptr,
-                              kEndpointIdLength);
-      bluetooth_device_name_bytes_read_ptr += kEndpointIdLength;
+    case Pcp::kP2pCluster:  // Fall through
+    case Pcp::kP2pStar:     // Fall through
+    case Pcp::kP2pPointToPoint:
+      break;
+    default:
+      return;
+  }
 
-      // The next 24 bits are supposed to be the scoped_service_id_hash.
-      ScopedPtr<ConstPtr<ByteArray> > scoped_service_id_hash(
-          MakeConstPtr(new ByteArray(bluetooth_device_name_bytes_read_ptr,
-                                     kServiceIdHashLength)));
-      bluetooth_device_name_bytes_read_ptr += kServiceIdHashLength;
+  version_ = version;
+  pcp_ = pcp;
+  endpoint_id_ = std::string(endpoint_id);
+  service_id_hash_ = service_id_hash;
+  endpoint_info_ = endpoint_info;
+  uwb_address_ = uwb_address;
+  web_rtc_state_ = web_rtc_state;
+}
 
-      // The next 56 bits are supposed to be reserved, and can be left
-      // untouched.
-      bluetooth_device_name_bytes_read_ptr += kReservedLength;
+BluetoothDeviceName::BluetoothDeviceName(
+    absl::string_view bluetooth_device_name_string) {
+  ByteArray bluetooth_device_name_bytes =
+      Base64Utils::Decode(bluetooth_device_name_string);
 
-      // The next 8 bits are supposed to be the length of the endpoint_name.
-      std::uint32_t expected_endpoint_name_length = static_cast<std::uint32_t>(
-          *bluetooth_device_name_bytes_read_ptr & kEndpointNameLengthBitmask);
-      bluetooth_device_name_bytes_read_ptr++;
+  if (bluetooth_device_name_bytes.Empty()) {
+    NEARBY_LOG(
+        INFO,
+        "Cannot deserialize BluetoothDeviceName: failed Base64 decoding of %s",
+        std::string(bluetooth_device_name_string).c_str());
+    return;
+  }
 
-      // Check that the stated endpoint_name_length is the same as what we
-      // received (based off of the length of bluetooth_device_name_bytes).
-      std::uint32_t actual_endpoint_name_length =
-          computeEndpointNameLength(bluetooth_device_name_bytes);
-      if (actual_endpoint_name_length != expected_endpoint_name_length) {
-        // TODO(reznor): logger.atDebug().log("Cannot deserialize
-        // BluetoothDeviceName: expected endpointName to be %d bytes, got %d
-        // bytes", expectedEndpointNameLength, actualEndpointNameLength);
-        return Ptr<BluetoothDeviceName>();
+  if (bluetooth_device_name_bytes.size() < kMinBluetoothDeviceNameLength) {
+    NEARBY_LOG(INFO,
+               "Cannot deserialize BluetoothDeviceName: expecting min %d raw "
+               "bytes, got %" PRIu64,
+               kMinBluetoothDeviceNameLength,
+               bluetooth_device_name_bytes.size());
+    return;
+  }
+
+  BaseInputStream base_input_stream{bluetooth_device_name_bytes};
+  // The first 1 byte is supposed to be the version and pcp.
+  auto version_and_pcp_byte = static_cast<char>(base_input_stream.ReadUint8());
+  // The upper 3 bits are supposed to be the version.
+  version_ =
+      static_cast<Version>((version_and_pcp_byte & kVersionBitmask) >> 5);
+  if (version_ != Version::kV1) {
+    NEARBY_LOG(INFO,
+               "Cannot deserialize BluetoothDeviceName: unsupported version=%d",
+               version_);
+    return;
+  }
+  // The lower 5 bits are supposed to be the Pcp.
+  pcp_ = static_cast<Pcp>(version_and_pcp_byte & kPcpBitmask);
+  switch (pcp_) {
+    case Pcp::kP2pCluster:  // Fall through
+    case Pcp::kP2pStar:     // Fall through
+    case Pcp::kP2pPointToPoint:
+      break;
+    default:
+      NEARBY_LOG(
+          INFO, "Cannot deserialize BluetoothDeviceName: unsupported V1 PCP %d",
+          pcp_);
+      return;
+  }
+
+  // The next 4 bytes are supposed to be the endpoint_id.
+  endpoint_id_ = std::string{base_input_stream.ReadBytes(kEndpointIdLength)};
+
+  // The next 3 bytes are supposed to be the service_id_hash.
+  service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
+
+
+  // The next 1 byte is field containning WebRtc state.
+  auto field_byte = static_cast<char>(base_input_stream.ReadUint8());
+  web_rtc_state_ = (field_byte & kWebRtcConnectableFlagBitmask) == 1
+                       ? WebRtcState::kConnectable
+                       : WebRtcState::kUnconnectable;
+
+  // The next 6 bytes are supposed to be reserved, and can be left
+  // untouched.
+  base_input_stream.ReadBytes(kReservedLength);
+
+  // The next 1 byte is supposed to be the length of the endpoint_info.
+  std::uint32_t expected_endpoint_info_length = base_input_stream.ReadUint8();
+
+  // The rest bytes are supposed to be the endpoint_info
+  endpoint_info_ = base_input_stream.ReadBytes(expected_endpoint_info_length);
+  if (endpoint_info_.Empty() ||
+      endpoint_info_.size() != expected_endpoint_info_length) {
+    NEARBY_LOG(INFO,
+               "Cannot deserialize BluetoothDeviceName: expected "
+               "endpoint info to be %d bytes, got %" PRIu64,
+               expected_endpoint_info_length, endpoint_info_.size());
+
+    // Clear enpoint_id for validadity.
+    endpoint_id_.clear();
+    return;
+  }
+
+  // If the input stream has extra bytes, it's for UWB address. The first byte
+  // is the address length. It can be 2-byte short address or 8-byte extended
+  // address.
+  if (base_input_stream.IsAvailable(1)) {
+    // The next 1 byte is supposed to be the length of the uwb_address.
+    std::uint32_t expected_uwb_address_length = base_input_stream.ReadUint8();
+    // If the length of usb_address is not zero, then retrieve it.
+    if (expected_uwb_address_length != 0) {
+      uwb_address_ = base_input_stream.ReadBytes(expected_uwb_address_length);
+      if (uwb_address_.Empty() ||
+          uwb_address_.size() != expected_uwb_address_length) {
+        NEARBY_LOG(INFO,
+                   "Cannot deserialize BluetoothDeviceName: "
+                   "expected uwbAddress size to be %d bytes, got %" PRIu64,
+                   expected_uwb_address_length, uwb_address_.size());
+
+        // Clear enpoint_id for validadity.
+        endpoint_id_.clear();
+        return;
       }
-
-      std::string endpoint_name(bluetooth_device_name_bytes_read_ptr,
-                                actual_endpoint_name_length);
-      bluetooth_device_name_bytes_read_ptr += actual_endpoint_name_length;
-
-      return MakePtr(new BluetoothDeviceName(Version::V1, pcp, endpoint_id,
-                                             scoped_service_id_hash.release(),
-                                             endpoint_name));
     }
-    default:
-      // TODO(reznor): [ANALYTICIZE] This either represents corruption over the
-      // air, or older versions of GmsCore intermingling with newer ones.
-
-      // TODO(reznor): logger.atDebug().log("Cannot deserialize
-      // BluetoothDeviceName: unsupported V1 PCP %d", pcp);
-      return Ptr<BluetoothDeviceName>();
   }
 }
 
-std::uint32_t BluetoothDeviceName::computeEndpointNameLength(
-    ConstPtr<ByteArray> bluetooth_device_name_bytes) {
-  return kMaxEndpointNameLength -
-         (kMaxBluetoothDeviceNameLength - bluetooth_device_name_bytes->size());
-}
-
-std::uint32_t BluetoothDeviceName::computeBluetoothDeviceNameLength(
-    ConstPtr<ByteArray> endpoint_name_bytes) {
-  return kMaxBluetoothDeviceNameLength -
-         (kMaxEndpointNameLength - endpoint_name_bytes->size());
-}
-
-Ptr<ByteArray> BluetoothDeviceName::createV1Bytes(
-    PCP::Value pcp, const std::string& endpoint_id,
-    ConstPtr<ByteArray> service_id_hash,
-    ConstPtr<ByteArray> endpoint_name_bytes) {
-  std::uint32_t bluetooth_device_name_length =
-      computeBluetoothDeviceNameLength(endpoint_name_bytes);
-  Ptr<ByteArray> bluetooth_device_name_bytes{
-      new ByteArray{bluetooth_device_name_length}};
-
-  char* bluetooth_device_name_bytes_write_ptr =
-      bluetooth_device_name_bytes->getData();
-
-  // The first 3 bits are the Version.
-  char version_and_pcp_byte =
-      static_cast<char>((Version::V1 << 5) & kVersionBitmask);
-  // The next 5 bits are the PCP.
-  version_and_pcp_byte |= static_cast<char>(pcp & kPCPBitmask);
-  *bluetooth_device_name_bytes_write_ptr = version_and_pcp_byte;
-  bluetooth_device_name_bytes_write_ptr++;
-
-  switch (pcp) {
-    case PCP::P2P_CLUSTER:  // Fall through
-    case PCP::P2P_STAR:     // Fall through
-    case PCP::P2P_POINT_TO_POINT:
-      // The next 32 bits are the endpoint_id.
-      if (endpoint_id.size() != kEndpointIdLength) {
-        // TODO(reznor): logger.atDebug().log("Cannot serialize
-        // BluetoothDeviceName: V1 Endpoint ID %s (%d bytes) should be exactly
-        // %d bytes", endpointId, endpointId.length(), ENDPOINT_ID_LENGTH);
-        return Ptr<ByteArray>();
-      }
-      memcpy(bluetooth_device_name_bytes_write_ptr, endpoint_id.data(),
-             kEndpointIdLength);
-      bluetooth_device_name_bytes_write_ptr += kEndpointIdLength;
-
-      // The next 24 bits are the service_id_hash.
-      if (service_id_hash->size() != kServiceIdHashLength) {
-        // TODO(reznor): logger.atDebug().log("Cannot serialize
-        // BluetoothDeviceName: V1 ServiceID hash (%d bytes) should be exactly
-        // %d bytes", serviceIdHash.length, SERVICE_ID_HASH_LENGTH);
-        return Ptr<ByteArray>();
-      }
-      memcpy(bluetooth_device_name_bytes_write_ptr, service_id_hash->getData(),
-             kServiceIdHashLength);
-      bluetooth_device_name_bytes_write_ptr += kServiceIdHashLength;
-
-      // The next 56 bits are reserved, and should all be zeroed out, so do
-      // that and then jump over 56 bits to position things for the next write.
-      memset(bluetooth_device_name_bytes_write_ptr, 0, kReservedLength);
-      bluetooth_device_name_bytes_write_ptr += kReservedLength;
-
-      // The next 8 bits are the length of the endpoint_name.
-      *bluetooth_device_name_bytes_write_ptr = static_cast<char>(
-          endpoint_name_bytes->size() & kEndpointNameLengthBitmask);
-      bluetooth_device_name_bytes_write_ptr++;
-
-      // The remaining bits are filled with the endpoint_name.
-      memcpy(bluetooth_device_name_bytes_write_ptr,
-             endpoint_name_bytes->getData(), endpoint_name_bytes->size());
-      bluetooth_device_name_bytes_write_ptr += endpoint_name_bytes->size();
-
-      break;
-    default:
-      // TODO(reznor): logger.atDebug().log("Cannot serialize
-      // BluetoothDeviceName: unsupported V1 PCP %d", pcp);
-      return Ptr<ByteArray>();
+BluetoothDeviceName::operator std::string() const {
+  if (!IsValid()) {
+    return "";
   }
 
-  return bluetooth_device_name_bytes;
-}
+  // The upper 3 bits are the Version.
+  auto version_and_pcp_byte = static_cast<char>(
+      (static_cast<uint32_t>(Version::kV1) << 5) & kVersionBitmask);
+  // The lower 5 bits are the PCP.
+  version_and_pcp_byte |=
+      static_cast<char>(static_cast<uint32_t>(pcp_) & kPcpBitmask);
 
-BluetoothDeviceName::BluetoothDeviceName(Version::Value version, PCP::Value pcp,
-                                         const std::string& endpoint_id,
-                                         ConstPtr<ByteArray> service_id_hash,
-                                         const std::string& endpoint_name)
-    : version_(version),
-      pcp_(pcp),
-      endpoint_id_(endpoint_id),
-      service_id_hash_(service_id_hash),
-      endpoint_name_(endpoint_name) {}
+  // A byte contains WebRtcState state.
+  int web_rtc_connectable_flag =
+      (web_rtc_state_ == WebRtcState::kConnectable) ? 1 : 0;
+  char field_byte = static_cast<char>(web_rtc_connectable_flag) &
+                    kWebRtcConnectableFlagBitmask;
 
-BluetoothDeviceName::~BluetoothDeviceName() {
-  // Nothing to do.
-}
+  ByteArray reserved_bytes{kReservedLength};
 
-BluetoothDeviceName::Version::Value BluetoothDeviceName::getVersion() const {
-  return version_;
-}
+  ByteArray usable_endpoint_info(endpoint_info_);
+  if (endpoint_info_.size() > kMaxEndpointInfoLength) {
+    NEARBY_LOG(INFO,
+               "While serializing Advertisement, truncating Endpoint Name %s "
+               "(%lu bytes) down to %d bytes",
+               absl::BytesToHexString(endpoint_info_.data()).c_str(),
+               endpoint_info_.size(), kMaxEndpointInfoLength);
+    usable_endpoint_info.SetData(endpoint_info_.data(), kMaxEndpointInfoLength);
+  }
 
-PCP::Value BluetoothDeviceName::getPCP() const { return pcp_; }
+  // clang-format off
+  std::string out = absl::StrCat(std::string(1, version_and_pcp_byte),
+                                 endpoint_id_,
+                                 std::string(service_id_hash_),
+                                 std::string(1, field_byte),
+                                 std::string(reserved_bytes),
+                                 std::string(1, usable_endpoint_info.size()),
+                                 std::string(usable_endpoint_info));
+  // clang-format on
 
-std::string BluetoothDeviceName::getEndpointId() const { return endpoint_id_; }
+  // If UWB address is available, attach it at the end.
+  if (!uwb_address_.Empty()) {
+    absl::StrAppend(&out, std::string(1, uwb_address_.size()));
+    absl::StrAppend(&out, std::string(uwb_address_));
+  }
 
-ConstPtr<ByteArray> BluetoothDeviceName::getServiceIdHash() const {
-  return service_id_hash_.get();
-}
-
-std::string BluetoothDeviceName::getEndpointName() const {
-  return endpoint_name_;
+  return Base64Utils::Encode(ByteArray{std::move(out)});
 }
 
 }  // namespace connections

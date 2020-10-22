@@ -16,45 +16,44 @@
 
 #include <string>
 
+#include "platform/public/logging.h"
+#include "platform/public/wifi_lan.h"
+
 namespace location {
 namespace nearby {
 namespace connections {
 
-Ptr<WifiLanEndpointChannel>
-WifiLanEndpointChannel::CreateOutgoing(
-    Ptr<MediumManager<Platform>> medium_manager,
-    absl::string_view channel_name, Ptr<WifiLanSocket> wifi_lan_socket) {
-  return MakePtr(
-      new WifiLanEndpointChannel(channel_name, wifi_lan_socket));
+namespace {
+
+OutputStream* GetOutputStreamOrNull(WifiLanSocket& socket) {
+  if (socket.GetRemoteWifiLanService().IsValid())
+    return &socket.GetOutputStream();
+  return nullptr;
 }
 
-Ptr<WifiLanEndpointChannel>
-WifiLanEndpointChannel::CreateIncoming(
-    Ptr<MediumManager<Platform>> medium_manager,
-    absl::string_view channel_name, Ptr<WifiLanSocket> wifi_lan_socket) {
-  return MakePtr(
-      new WifiLanEndpointChannel(channel_name, wifi_lan_socket));
+InputStream* GetInputStreamOrNull(WifiLanSocket& socket) {
+  if (socket.GetRemoteWifiLanService().IsValid())
+    return &socket.GetInputStream();
+  return nullptr;
 }
 
-WifiLanEndpointChannel::WifiLanEndpointChannel(
-    absl::string_view channel_name, Ptr<WifiLanSocket> wifi_lan_socket)
-    : BaseEndpointChannel(channel_name,
-                          wifi_lan_socket->GetInputStream(),
-                          wifi_lan_socket->GetOutputStream()),
-      wifi_lan_socket_(wifi_lan_socket) {}
+}  // namespace
 
-WifiLanEndpointChannel::~WifiLanEndpointChannel() {}
+WifiLanEndpointChannel::WifiLanEndpointChannel(const std::string& channel_name,
+                                               WifiLanSocket socket)
+    : BaseEndpointChannel(channel_name, GetInputStreamOrNull(socket),
+                          GetOutputStreamOrNull(socket)),
+      wifi_lan_socket_(std::move(socket)) {}
 
-proto::connections::Medium WifiLanEndpointChannel::getMedium() {
+proto::connections::Medium WifiLanEndpointChannel::GetMedium() const {
   return proto::connections::Medium::WIFI_LAN;
 }
 
-void WifiLanEndpointChannel::closeImpl() {
-  Exception::Value exception = wifi_lan_socket_->Close();
-  if (exception != Exception::NONE) {
-    if (exception == Exception::IO) {
-      // TODO(b/149806065): Add logging.
-    }
+void WifiLanEndpointChannel::CloseImpl() {
+  auto status = wifi_lan_socket_.Close();
+  if (!status.Ok()) {
+    NEARBY_LOG(INFO, "Failed to close WifiLan socket: exception=%d",
+               status.value);
   }
 }
 

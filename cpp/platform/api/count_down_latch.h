@@ -17,10 +17,12 @@
 
 #include <cstdint>
 
-#include "platform/exception.h"
+#include "platform/base/exception.h"
+#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {
+namespace api {
 
 // A synchronization aid that allows one or more threads to wait until a set of
 // operations being performed in other threads completes.
@@ -28,14 +30,15 @@ namespace nearby {
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CountDownLatch.html
 class CountDownLatch {
  public:
-  virtual ~CountDownLatch() {}
+  virtual ~CountDownLatch() = default;
 
-  virtual Exception::Value await() = 0;  // throws Exception::INTERRUPTED
-  virtual ExceptionOr<bool> await(
-      std::int32_t timeout_millis) = 0;  // throws Exception::INTERRUPTED
-  virtual void countDown() = 0;
+  virtual Exception Await() = 0;  // throws Exception::kInterrupted
+  virtual ExceptionOr<bool> Await(
+      absl::Duration timeout) = 0;  // throws Exception::kInterrupted
+  virtual void CountDown() = 0;
 };
 
+}  // namespace api
 }  // namespace nearby
 }  // namespace location
 

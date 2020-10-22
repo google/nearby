@@ -16,41 +16,25 @@
 #define CORE_INTERNAL_WIFI_LAN_ENDPOINT_CHANNEL_H_
 
 #include "core/internal/base_endpoint_channel.h"
-#include "core/internal/medium_manager.h"
-#include "platform/api/platform.h"
-#include "platform/api/wifi_lan.h"
-#include "platform/port/string.h"
-#include "platform/ptr.h"
+#include "platform/public/wifi_lan.h"
 #include "proto/connections_enums.pb.h"
-#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-class WifiLanEndpointChannel : public BaseEndpointChannel {
+class WifiLanEndpointChannel final : public BaseEndpointChannel {
  public:
-  using Platform = platform::ImplementationPlatform;
+  // Creates both outgoing and incoming WifiLan channels.
+  WifiLanEndpointChannel(const std::string& channel_name,
+                         WifiLanSocket socket);
 
-  static Ptr<WifiLanEndpointChannel> CreateOutgoing(
-      Ptr<MediumManager<Platform>> medium_manager,
-      absl::string_view channel_name, Ptr<WifiLanSocket> wifi_lan_socket);
-  static Ptr<WifiLanEndpointChannel> CreateIncoming(
-      Ptr<MediumManager<Platform>> medium_manager,
-      absl::string_view channel_name, Ptr<WifiLanSocket> wifi_lan_socket);
-
-  ~WifiLanEndpointChannel() override;
-
-  proto::connections::Medium getMedium() override;
-
- protected:
-  void closeImpl() override;
+  proto::connections::Medium GetMedium() const override;
 
  private:
-  WifiLanEndpointChannel(absl::string_view channel_name,
-                         Ptr<WifiLanSocket> wifi_lan_socket);
+  void CloseImpl() override;
 
-  ScopedPtr<Ptr<WifiLanSocket> > wifi_lan_socket_;
+  WifiLanSocket wifi_lan_socket_;
 };
 
 }  // namespace connections

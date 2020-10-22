@@ -15,144 +15,24 @@
 #ifndef CORE_PARAMS_H_
 #define CORE_PARAMS_H_
 
-#include <cstdint>
-#include <vector>
+#include <string>
 
 #include "core/listeners.h"
-#include "core/options.h"
-#include "platform/port/string.h"
-#include "platform/ptr.h"
+#include "platform/base/byte_array.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-struct StartAdvertisingParams {
-  Ptr<ResultListener> result_listener;
-  const std::string name;
-  const std::string service_id;
-  const AdvertisingOptions advertising_options;
-  Ptr<ConnectionLifecycleListener> connection_lifecycle_listener;
-
-  StartAdvertisingParams(
-      Ptr<ResultListener> result_listener, const std::string& name,
-      const std::string& service_id,
-      const AdvertisingOptions& advertising_options,
-      Ptr<ConnectionLifecycleListener> connection_lifecycle_listener)
-      : result_listener(result_listener),
-        name(name),
-        service_id(service_id),
-        advertising_options(advertising_options),
-        connection_lifecycle_listener(connection_lifecycle_listener) {}
-};
-
-struct StopAdvertisingParams {
-  // Intentionally left empty.
-};
-
-struct StartDiscoveryParams {
-  Ptr<ResultListener> result_listener;
-  const std::string service_id;
-  const DiscoveryOptions discovery_options;
-  Ptr<DiscoveryListener> discovery_listener;
-
-  StartDiscoveryParams(Ptr<ResultListener> result_listener,
-                       const std::string& service_id,
-                       const DiscoveryOptions& discovery_options,
-                       Ptr<DiscoveryListener> discovery_listener)
-      : result_listener(result_listener),
-        service_id(service_id),
-        discovery_options(discovery_options),
-        discovery_listener(discovery_listener) {}
-};
-
-struct StopDiscoveryParams {
-  // Intentionally left empty.
-};
-
-struct RequestConnectionParams {
-  Ptr<ResultListener> result_listener;
-  const std::string name;
-  const std::string remote_endpoint_id;
-  Ptr<ConnectionLifecycleListener> connection_lifecycle_listener;
-
-  RequestConnectionParams(
-      Ptr<ResultListener> result_listener, const std::string& name,
-      const std::string& remote_endpoint_id,
-      Ptr<ConnectionLifecycleListener> connection_lifecycle_listener)
-      : result_listener(result_listener),
-        name(name),
-        remote_endpoint_id(remote_endpoint_id),
-        connection_lifecycle_listener(connection_lifecycle_listener) {}
-};
-
-struct AcceptConnectionParams {
-  Ptr<ResultListener> result_listener;
-  const std::string remote_endpoint_id;
-  Ptr<PayloadListener> payload_listener;
-
-  AcceptConnectionParams(Ptr<ResultListener> result_listener,
-                         const std::string& remote_endpoint_id,
-                         Ptr<PayloadListener> payload_listener)
-      : result_listener(result_listener),
-        remote_endpoint_id(remote_endpoint_id),
-        payload_listener(payload_listener) {}
-};
-
-struct RejectConnectionParams {
-  Ptr<ResultListener> result_listener;
-  const std::string remote_endpoint_id;
-
-  RejectConnectionParams(Ptr<ResultListener> result_listener,
-                         const std::string& remote_endpoint_id)
-      : result_listener(result_listener),
-        remote_endpoint_id(remote_endpoint_id) {}
-};
-
-struct SendPayloadParams {
-  Ptr<ResultListener> result_listener;
-  const std::vector<std::string> remote_endpoint_ids;
-  ConstPtr<Payload> payload;
-
-  SendPayloadParams(Ptr<ResultListener> result_listener,
-                    const std::vector<std::string>& remote_endpoint_ids,
-                    ConstPtr<Payload> payload)
-      : result_listener(result_listener),
-        remote_endpoint_ids(remote_endpoint_ids),
-        payload(payload) {}
-};
-
-struct CancelPayloadParams {
-  Ptr<ResultListener> result_listener;
-  const std::int64_t payload_id;
-
-  CancelPayloadParams(Ptr<ResultListener> result_listener,
-                      std::int64_t payload_id)
-      : result_listener(result_listener), payload_id(payload_id) {}
-};
-
-struct InitiateBandwidthUpgradeParams {
-  Ptr<ResultListener> result_listener;
-  const std::string remote_endpoint_id;
-
-  InitiateBandwidthUpgradeParams(Ptr<ResultListener> result_listener,
-                                 const std::string& remote_endpoint_id)
-      : result_listener(result_listener),
-        remote_endpoint_id(remote_endpoint_id) {}
-};
-
-struct DisconnectFromEndpointParams {
-  const std::string remote_endpoint_id;
-
-  explicit DisconnectFromEndpointParams(const std::string& remote_endpoint_id)
-      : remote_endpoint_id(remote_endpoint_id) {}
-};
-
-struct StopAllEndpointsParams {
-  Ptr<ResultListener> result_listener;
-
-  explicit StopAllEndpointsParams(Ptr<ResultListener> result_listener)
-      : result_listener(result_listener) {}
+// Used by Discovery in Core::RequestConnection().
+// Used by Advertising in Core::StartAdvertising().
+struct ConnectionRequestInfo {
+  // endpoint_info - Identifing information about this endpoint (eg. name,
+  //                 device type).
+  // listener      - A set of callbacks notified when remote endpoints request a
+  //                 connection to this endpoint.
+  ByteArray endpoint_info;
+  ConnectionListener listener;
 };
 
 }  // namespace connections

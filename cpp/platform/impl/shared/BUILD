@@ -13,20 +13,18 @@
 # limitations under the License.
 
 cc_library(
-    name = "posix_lock",
+    name = "posix_mutex",
     srcs = [
-        "posix_lock.cc",
+        "posix_mutex.cc",
     ],
     hdrs = [
-        "posix_lock.h",
+        "posix_mutex.h",
     ],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//platform/impl:__subpackages__",
     ],
-    deps = [
-        "//platform/api",
-    ],
+    deps = ["//platform/api:types"],
 )
 
 cc_library(
@@ -39,49 +37,35 @@ cc_library(
     ],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//platform/impl:__subpackages__",
     ],
     deps = [
-        ":posix_lock",
-        "//platform:types",
-        "//platform/api:condition_variable",
+        ":posix_mutex",
+        "//platform/api:types",
     ],
-)
-
-cc_library(
-    name = "atomic_boolean",
-    hdrs = ["atomic_boolean_impl.h"],
-    visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//platform/impl:__subpackages__",
-    ],
-    deps = ["//platform/api"],
 )
 
 cc_library(
     name = "file",
-    srcs = ["file_impl.cc"],
-    hdrs = ["file_impl.h"],
+    srcs = ["file.cc"],
+    hdrs = ["file.h"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//core:__subpackages__",
         "//platform/impl:__subpackages__",
     ],
     deps = [
-        "//platform:types",
-        "//platform/api",
+        "//platform/api:types",
+        "//platform/base",
+        "//absl/strings",
     ],
 )
 
 cc_test(
     name = "file_test",
-    timeout = "short",
-    srcs = [
-        "file_impl_test.cc",
-    ],
+    srcs = ["file_test.cc"],
     deps = [
         ":file",
         "//file/util:temp_path",
+        "//platform/base",
         "//testing/base/public:gunit_main",
         "//absl/strings",
     ],

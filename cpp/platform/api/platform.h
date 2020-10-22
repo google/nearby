@@ -16,108 +16,95 @@
 #define PLATFORM_API_PLATFORM_H_
 
 #include <cstdint>
+#include <memory>
+#include <string>
 
 #include "platform/api/atomic_boolean.h"
-#include "platform/api/atomic_reference_def.h"
+#include "platform/api/atomic_reference.h"
 #include "platform/api/ble.h"
 #include "platform/api/ble_v2.h"
 #include "platform/api/bluetooth_adapter.h"
 #include "platform/api/bluetooth_classic.h"
 #include "platform/api/condition_variable.h"
 #include "platform/api/count_down_latch.h"
-#include "platform/api/hash_utils.h"
+#include "platform/api/crypto.h"
 #include "platform/api/input_file.h"
-#include "platform/api/lock.h"
+#include "platform/api/log_message.h"
+#include "platform/api/mutex.h"
 #include "platform/api/output_file.h"
 #include "platform/api/scheduled_executor.h"
 #include "platform/api/server_sync.h"
-#include "platform/api/settable_future_def.h"
-#include "platform/api/submittable_executor_def.h"
+#include "platform/api/settable_future.h"
+#include "platform/api/submittable_executor.h"
 #include "platform/api/system_clock.h"
-#include "platform/api/thread_utils.h"
-//#include "platform/api/webrtc.h"
+#include "platform/api/webrtc.h"
 #include "platform/api/wifi.h"
 #include "platform/api/wifi_lan.h"
-
-// Project-specific basic types, that are not part of API.
-// TODO(apolyudov): replace with c++ standard types.
-#include "platform/port/string.h"
-#include "platform/ptr.h"
-#include "absl/types/any.h"
+#include "platform/base/payload_id.h"
+#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
-namespace platform {
+namespace api {
 
 // API rework notes:
 // https://docs.google.com/spreadsheets/d/1erZNkX7pX8s5jWTHdxgjntxTMor3BGiY2H_fC_ldtoQ/edit#gid=381357998
 class ImplementationPlatform {
  public:
-  // Class Templates in platform code.
-  //
-  // Platform interface does not support templates directly.
-  // This is a design decision. The purpose is to have type isolation
-  // between platform library (or simply platform) and core library.
-  // Another goal is to make a platform implementation a black box,
-  // which does not leak implementation details in any form, be that types,
-  // methods, or variables.
-  //
-  // Core library code does provide platform-specific class templates
-  // on top of (a non-templated) platform support.
-  //
-  // For every common library template that needs platform support,
-  // platform must provide an absl::any specialization of class template:
-  template <typename T>
-  static Ptr<AtomicReference<T>> createAtomicReference(T initial_value = T{});
-  template <typename T>
-  static Ptr<SettableFuture<T>> createSettableFuture();
+  // General platform support:
+  // - atomic variables (boolean, and any other copyable type)
+  // - synchronization primitives:
+  //   - mutex (regular, and recursive)
+  //   - condition variable (must work with regular mutex only)
+  //   - Future<T> : to synchronize on Callable<T> scheduled to execute.
+  //   - CountDownLatch : to ensure at least N threads are waiting.
+  // - file I/O
+  // - Logging
 
-  // AtomicReference<T>
-  static Ptr<AtomicReference<absl::any>> createAtomicReferenceAny(
-      absl::any initial_value);
+  // Atomics:
+  // =======
 
-  // SettableFuture<T>
-  static Ptr<SettableFuture<absl::any>> createSettableFutureAny();
+  // Atomic boolean: special case. Uses native platform atomics.
+  // Does not use locking.
+  // Does not use dynamic memory allocations in operations.
+  static std::unique_ptr<AtomicBoolean> CreateAtomicBoolean(bool initial_value);
 
-  // Non-template methods: general platform support.
-  static Ptr<AtomicBoolean> createAtomicBoolean(bool initial_value);
-  static Ptr<CountDownLatch> createCountDownLatch(std::int32_t count);
-  static Ptr<Lock> createLock();
-  static Ptr<ConditionVariable> createConditionVariable(Ptr<Lock> lock);
-  static Ptr<HashUtils> createHashUtils();
-  static Ptr<ThreadUtils> createThreadUtils();
-  static Ptr<SystemClock> createSystemClock();
-  static Ptr<InputFile> createInputFile(std::int64_t payload_id,
-                                        std::int64_t total_size);
-  static Ptr<OutputFile> createOutputFile(std::int64_t payload_id);
+  // Supports enums and integers up to 32-bit.
+  // Does not use locking, if platform supports 32-bit atimics natively.
+  // Does not use dynamic memory allocations in operations.
+  static std::unique_ptr<AtomicUint32> CreateAtomicUint32(std::uint32_t value);
+
+  static std::unique_ptr<CountDownLatch> CreateCountDownLatch(
+      std::int32_t count);
+  static std::unique_ptr<Mutex> CreateMutex(Mutex::Mode mode);
+  static std::unique_ptr<ConditionVariable> CreateConditionVariable(
+      Mutex* mutex);
+  static std::unique_ptr<InputFile> CreateInputFile(PayloadId payload_id,
+                                                    std::int64_t total_size);
+  static std::unique_ptr<OutputFile> CreateOutputFile(PayloadId payload_id);
+  static std::unique_ptr<LogMessage> CreateLogMessage(
+      const char* file, int line, LogMessage::Severity severity);
 
   // Java-like Executors
-  // Type aliases used to API 1.0 compatibility.
-  // They will be retired soon.
-  // TODO(apolyudov): cleanup.
-  using SingleThreadExecutorType = SubmittableExecutor;
-  using MultiThreadExecutorType = SubmittableExecutor;
-  using ScheduledExecutorType = ScheduledExecutor;
-
-  static Ptr<SubmittableExecutor> createSingleThreadExecutor();
-  static Ptr<SubmittableExecutor> createMultiThreadExecutor(
+  static std::unique_ptr<SubmittableExecutor> CreateSingleThreadExecutor();
+  static std::unique_ptr<SubmittableExecutor> CreateMultiThreadExecutor(
       std::int32_t max_concurrency);
-  static Ptr<ScheduledExecutor> createScheduledExecutor();
+  static std::unique_ptr<ScheduledExecutor> CreateScheduledExecutor();
 
   // Protocol implementations, domain-specific support
-  static Ptr<BluetoothAdapter> createBluetoothAdapter();
-  static Ptr<WifiMedium> createWifiMedium();
-  static Ptr<BluetoothClassicMedium> createBluetoothClassicMedium();
-  static Ptr<BLEMedium> createBLEMedium();
-  static Ptr<BLEMediumV2> createBLEMediumV2();
-  static Ptr<ServerSyncMedium> createServerSyncMedium();
-  static Ptr<WifiLanMedium> createWifiLanMedium();
-//  static Ptr<WebRtcSignalingMessenger> createWebRtcSignalingMessenger(
-//      const std::string& self_id);
-  static std::string getDeviceId();
+  static std::unique_ptr<BluetoothAdapter> CreateBluetoothAdapter();
+  static std::unique_ptr<BluetoothClassicMedium> CreateBluetoothClassicMedium(
+      BluetoothAdapter&);
+  static std::unique_ptr<BleMedium> CreateBleMedium(BluetoothAdapter&);
+  static std::unique_ptr<ble_v2::BleMedium> CreateBleV2Medium(
+      BluetoothAdapter&);
+  static std::unique_ptr<ServerSyncMedium> CreateServerSyncMedium();
+  static std::unique_ptr<WifiMedium> CreateWifiMedium();
+  static std::unique_ptr<WifiLanMedium> CreateWifiLanMedium();
+  static std::unique_ptr<WebRtcMedium> CreateWebRtcMedium();
 };
 
-}  // namespace platform
+}  // namespace api
 }  // namespace nearby
 }  // namespace location
 

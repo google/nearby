@@ -17,30 +17,33 @@
 #include <iomanip>
 #include <sstream>
 
-#include "platform/api/hash_utils.h"
-#include "platform/ptr.h"
+#include "platform/public/crypto.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
+namespace {
+std::ostream& write_hex(std::ostream& os, absl::string_view data) {
+  for (const auto b : data) {
+    os  << std::setfill('0')
+        << std::setw(2)
+        << std::hex
+        << (static_cast<unsigned int>(b) & 0x0ff);
+  }
+  return os;
+}
+}  // namespace
 
-template <typename Platform>
-UUID<Platform>::UUID(const string& data) {
+Uuid::Uuid(absl::string_view data) : data_(Crypto::Md5(data)) {
   // Based on the Java counterpart at
   // http://androidxref.com/8.0.0_r4/xref/libcore/ojluni/src/main/java/java/util/UUID.java#162.
-  ScopedPtr<Ptr<HashUtils> > scoped_hash_utils(Platform::createHashUtils());
-  ScopedPtr<ConstPtr<ByteArray> > scoped_md5_bytes(
-      scoped_hash_utils->md5(data));
-  data_.assign(scoped_md5_bytes->getData(), scoped_md5_bytes->size());
-
   data_[6] &= 0x0f;  // Clear version.
   data_[6] |= 0x30;  // Set to version 3.
   data_[8] &= 0x3f;  // Clear variant.
   data_[8] |= 0x80;  // Set to IETF variant.
 }
 
-template <typename Platform>
-UUID<Platform>::UUID(std::int64_t most_sig_bits, std::int64_t least_sig_bits) {
+Uuid::Uuid(std::uint64_t most_sig_bits, std::uint64_t least_sig_bits) {
   // Base on the Java counterpart at
   // http://androidxref.com/8.0.0_r4/xref/libcore/ojluni/src/main/java/java/util/UUID.java#104.
   data_.reserve(sizeof(most_sig_bits) + sizeof(least_sig_bits));
@@ -64,47 +67,19 @@ UUID<Platform>::UUID(std::int64_t most_sig_bits, std::int64_t least_sig_bits) {
   data_[15] = static_cast<char>((least_sig_bits >> 0) & 0x0ff);
 }
 
-template <typename Platform>
-UUID<Platform>::~UUID() {}
-
-template <typename Platform>
-string UUID<Platform>::str() {
+Uuid::operator std::string() const {
   // Based on the Java counterpart at
   // http://androidxref.com/8.0.0_r4/xref/libcore/ojluni/src/main/java/java/util/UUID.java#375.
-
-  // The masking with 0x0ff is essential because we're taking 8-bit bytes and
-  // casting them to integers (which, depending on the platform, are 16- or
-  // 32-bits wide); without that, we get a leading FF (16-bit) or FFFFFF
-  // (32-bit) when the MSB of the 8-bit byte is 1.
-  //
-  // And the cast to an integer is required because std::hex only takes effect
-  // on integral types (and no, uint8_t doesn't activate it).
-#define BYTE_TO_HEX(b)                          \
-  std::setfill('0') << std::setw(2) << std::hex \
-                    << (static_cast<unsigned int>(b) & 0x0ff)
-
   std::ostringstream md5_hex;
-
-  md5_hex << BYTE_TO_HEX(data_[0]);
-  md5_hex << BYTE_TO_HEX(data_[1]);
-  md5_hex << BYTE_TO_HEX(data_[2]);
-  md5_hex << BYTE_TO_HEX(data_[3]);
+  write_hex(md5_hex, absl::string_view(&data_[0], 4));
   md5_hex << "-";
-  md5_hex << BYTE_TO_HEX(data_[4]);
-  md5_hex << BYTE_TO_HEX(data_[5]);
+  write_hex(md5_hex, absl::string_view(&data_[4], 2));
   md5_hex << "-";
-  md5_hex << BYTE_TO_HEX(data_[6]);
-  md5_hex << BYTE_TO_HEX(data_[7]);
+  write_hex(md5_hex, absl::string_view(&data_[6], 2));
   md5_hex << "-";
-  md5_hex << BYTE_TO_HEX(data_[8]);
-  md5_hex << BYTE_TO_HEX(data_[9]);
+  write_hex(md5_hex, absl::string_view(&data_[8], 2));
   md5_hex << "-";
-  md5_hex << BYTE_TO_HEX(data_[10]);
-  md5_hex << BYTE_TO_HEX(data_[11]);
-  md5_hex << BYTE_TO_HEX(data_[12]);
-  md5_hex << BYTE_TO_HEX(data_[13]);
-  md5_hex << BYTE_TO_HEX(data_[14]);
-  md5_hex << BYTE_TO_HEX(data_[15]);
+  write_hex(md5_hex, absl::string_view(&data_[10], 6));
 
   return md5_hex.str();
 }

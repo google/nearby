@@ -15,77 +15,73 @@
 #ifndef CORE_INTERNAL_PCP_MANAGER_H_
 #define CORE_INTERNAL_PCP_MANAGER_H_
 
-#include <map>
+#include <string>
 
-#include "core/internal/bandwidth_upgrade_manager.h"
+#include "core/internal/base_pcp_handler.h"
+#include "core/internal/bwu_manager.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel_manager.h"
 #include "core/internal/endpoint_manager.h"
-#include "core/internal/medium_manager.h"
-#include "core/internal/pcp_handler.h"
+#include "core/internal/mediums/mediums.h"
 #include "core/listeners.h"
 #include "core/options.h"
 #include "core/status.h"
 #include "core/strategy.h"
-#include "platform/port/string.h"
-#include "platform/ptr.h"
+#include "platform/public/atomic_boolean.h"
+#include "absl/container/flat_hash_map.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-// Manages all known PCPHandler implementations, delegating operations to the
+// Manages all known PcpHandler implementations, delegating operations to the
 // appropriate one as per the parameters passed in.
 //
-// <p>This will only ever be used by the OfflineServiceController, which has all
+// This will only ever be used by the OfflineServiceController, which has all
 // of its entrypoints invoked serially, so there's no synchronization needed.
-template <typename Platform>
-class PCPManager {
+// Public method semantics matches definition in the
+// cpp/core/internal/service_controller.h
+class PcpManager {
  public:
-  PCPManager(Ptr<MediumManager<Platform> > medium_manager,
-             Ptr<EndpointChannelManager> endpoint_channel_manager,
-             Ptr<EndpointManager<Platform> > endpoint_manager,
-             Ptr<BandwidthUpgradeManager> bandwidth_upgrade_manager);
-  ~PCPManager();
+  PcpManager(Mediums& mediums, EndpointChannelManager& channel_manager,
+             EndpointManager& endpoint_manager, BwuManager& bwu_manager);
+  ~PcpManager();
 
-  Status::Value startAdvertising(
-      Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_name,
-      const string& service_id, const AdvertisingOptions& advertising_options,
-      Ptr<ConnectionLifecycleListener> connection_lifecycle_listener);
-  void stopAdvertising(Ptr<ClientProxy<Platform> > client_proxy);
+  Status StartAdvertising(ClientProxy* client, const string& service_id,
+                          const ConnectionOptions& options,
+                          const ConnectionRequestInfo& info);
+  void StopAdvertising(ClientProxy* client);
 
-  Status::Value startDiscovery(Ptr<ClientProxy<Platform> > client_proxy,
-                               const string& service_id,
-                               const DiscoveryOptions& discovery_options,
-                               Ptr<DiscoveryListener> discovery_listener);
-  void stopDiscovery(Ptr<ClientProxy<Platform> > client_proxy);
+  Status StartDiscovery(ClientProxy* client, const string& service_id,
+                        const ConnectionOptions& options,
+                        DiscoveryListener listener);
+  void StopDiscovery(ClientProxy* client);
 
-  Status::Value requestConnection(
-      Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_name,
-      const string& endpoint_id,
-      Ptr<ConnectionLifecycleListener> connection_lifecycle_listener);
-  Status::Value acceptConnection(Ptr<ClientProxy<Platform> > client_proxy,
-                                 const string& endpoint_id,
-                                 Ptr<PayloadListener> payload_listener);
-  Status::Value rejectConnection(Ptr<ClientProxy<Platform> > client_proxy,
-                                 const string& endpoint_id);
+  void InjectEndpoint(ClientProxy* client,
+                      const std::string& service_id,
+                      const OutOfBandConnectionMetadata& metadata);
 
-  proto::connections::Medium getBandwidthUpgradeMedium();
+  Status RequestConnection(ClientProxy* client, const string& endpoint_id,
+                           const ConnectionRequestInfo& info,
+                           const ConnectionOptions& options);
+  Status AcceptConnection(ClientProxy* client, const string& endpoint_id,
+                          const PayloadListener& payload_listener);
+  Status RejectConnection(ClientProxy* client, const string& endpoint_id);
+
+  proto::connections::Medium GetBandwidthUpgradeMedium();
+  void DisconnectFromEndpointManager();
 
  private:
-  bool setCurrentPCPHandler(const Strategy& strategy);
-  PCP::Value deducePCP(const Strategy& strategy);
-  Ptr<PCPHandler<Platform> > getPCPHandler(PCP::Value pcp);
+  bool SetCurrentPcpHandler(Strategy strategy);
+  PcpHandler* GetPcpHandler(Pcp pcp) const;
 
-  typedef std::map<PCP::Value, Ptr<PCPHandler<Platform> > > PCPHandlersMap;
-  PCPHandlersMap pcp_handlers_;
-  Ptr<PCPHandler<Platform> > current_pcp_handler_;
+  AtomicBoolean shutdown_{false};
+  absl::flat_hash_map<Pcp, std::unique_ptr<BasePcpHandler>> handlers_;
+  PcpHandler* current_ = nullptr;
 };
 
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-#include "core/internal/pcp_manager.cc"
 
 #endif  // CORE_INTERNAL_PCP_MANAGER_H_

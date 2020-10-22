@@ -15,135 +15,114 @@
 #include "core/core.h"
 
 #include <cassert>
+#include <vector>
+
+#include "core/options.h"
+#include "platform/public/count_down_latch.h"
+#include "platform/public/logging.h"
+#include "absl/time/clock.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-template <typename Platform>
-Core<Platform>::Core()
-    : client_proxy_(new ClientProxy<Platform>()),
-      service_controller_router_(new ServiceControllerRouter<Platform>()) {}
+constexpr absl::Duration Core::kWaitForDisconnect;
 
-template <typename Platform>
-Core<Platform>::~Core() {
-  service_controller_router_->clientDisconnecting(client_proxy_.get());
+Core::~Core() {
+  CountDownLatch latch(1);
+  router_.ClientDisconnecting(
+      &client_, {
+                    .result_cb = [&latch](Status) { latch.CountDown(); },
+                });
+  if (!latch.Await(kWaitForDisconnect).result()) {
+    NEARBY_LOG(FATAL, "Unable to shutdown");
+  }
 }
 
-template <typename Platform>
-void Core<Platform>::startAdvertising(
-    ConstPtr<StartAdvertisingParams> start_advertising_params) {
-  assert(!start_advertising_params->result_listener.isNull());
-  assert(!start_advertising_params->connection_lifecycle_listener.isNull());
-  assert(!start_advertising_params->service_id.empty());
-  assert(start_advertising_params->advertising_options.strategy.isValid());
+void Core::StartAdvertising(absl::string_view service_id,
+                            ConnectionOptions options,
+                            ConnectionRequestInfo info,
+                            ResultCallback callback) {
+  assert(!service_id.empty());
+  assert(options.strategy.IsValid());
 
-  service_controller_router_->startAdvertising(client_proxy_.get(),
-                                               start_advertising_params);
+  router_.StartAdvertising(&client_, service_id, options, info, callback);
 }
 
-template <typename Platform>
-void Core<Platform>::stopAdvertising(
-    ConstPtr<StopAdvertisingParams> stop_advertising_params) {
-  service_controller_router_->stopAdvertising(client_proxy_.get(),
-                                              stop_advertising_params);
+void Core::StopAdvertising(const ResultCallback callback) {
+  router_.StopAdvertising(&client_, callback);
 }
 
-template <typename Platform>
-void Core<Platform>::startDiscovery(
-    ConstPtr<StartDiscoveryParams> start_discovery_params) {
-  assert(!start_discovery_params->result_listener.isNull());
-  assert(!start_discovery_params->discovery_listener.isNull());
-  assert(!start_discovery_params->service_id.empty());
-  assert(start_discovery_params->discovery_options.strategy.isValid());
+void Core::StartDiscovery(absl::string_view service_id,
+                          ConnectionOptions options, DiscoveryListener listener,
+                          ResultCallback callback) {
+  assert(!service_id.empty());
+  assert(options.strategy.IsValid());
 
-  service_controller_router_->startDiscovery(client_proxy_.get(),
-                                             start_discovery_params);
+  router_.StartDiscovery(&client_, service_id, options, listener, callback);
 }
 
-template <typename Platform>
-void Core<Platform>::stopDiscovery(
-    ConstPtr<StopDiscoveryParams> stop_discovery_params) {
-  service_controller_router_->stopDiscovery(client_proxy_.get(),
-                                            stop_discovery_params);
+void Core::InjectEndpoint(absl::string_view service_id,
+                          OutOfBandConnectionMetadata metadata,
+                          ResultCallback callback) {
+  router_.InjectEndpoint(&client_, service_id, metadata, callback);
 }
 
-template <typename Platform>
-void Core<Platform>::requestConnection(
-    ConstPtr<RequestConnectionParams> request_connection_params) {
-  assert(!request_connection_params->result_listener.isNull());
-  assert(!request_connection_params->connection_lifecycle_listener.isNull());
-  assert(!request_connection_params->remote_endpoint_id.empty());
-
-  service_controller_router_->requestConnection(client_proxy_.get(),
-                                                request_connection_params);
+void Core::StopDiscovery(ResultCallback callback) {
+  router_.StopDiscovery(&client_, callback);
 }
 
-template <typename Platform>
-void Core<Platform>::acceptConnection(
-    ConstPtr<AcceptConnectionParams> accept_connection_params) {
-  assert(!accept_connection_params->result_listener.isNull());
-  assert(!accept_connection_params->payload_listener.isNull());
-  assert(!accept_connection_params->remote_endpoint_id.empty());
+void Core::RequestConnection(absl::string_view endpoint_id,
+                             ConnectionRequestInfo info,
+                             ConnectionOptions options,
+                             ResultCallback callback) {
+  assert(!endpoint_id.empty());
 
-  service_controller_router_->acceptConnection(client_proxy_.get(),
-                                               accept_connection_params);
+  router_.RequestConnection(&client_, endpoint_id, info, options, callback);
 }
 
-template <typename Platform>
-void Core<Platform>::rejectConnection(
-    ConstPtr<RejectConnectionParams> reject_connection_params) {
-  assert(!reject_connection_params->result_listener.isNull());
-  assert(!reject_connection_params->remote_endpoint_id.empty());
+void Core::AcceptConnection(absl::string_view endpoint_id,
+                            PayloadListener listener, ResultCallback callback) {
+  assert(!endpoint_id.empty());
 
-  service_controller_router_->rejectConnection(client_proxy_.get(),
-                                               reject_connection_params);
+  router_.AcceptConnection(&client_, endpoint_id, listener, callback);
 }
 
-template <typename Platform>
-void Core<Platform>::initiateBandwidthUpgrade(
-    ConstPtr<InitiateBandwidthUpgradeParams>
-        initiate_bandwidth_upgrade_params) {
-  service_controller_router_->initiateBandwidthUpgrade(
-      client_proxy_.get(), initiate_bandwidth_upgrade_params);
+void Core::RejectConnection(absl::string_view endpoint_id,
+                            ResultCallback callback) {
+  assert(!endpoint_id.empty());
+
+  router_.RejectConnection(&client_, endpoint_id, callback);
 }
 
-template <typename Platform>
-void Core<Platform>::sendPayload(
-    ConstPtr<SendPayloadParams> send_payload_params) {
-  assert(!send_payload_params->result_listener.isNull());
-  assert(!send_payload_params->remote_endpoint_ids.empty());
-  assert(!send_payload_params->payload.isNull());
-  // TODO(tracyzhou): Do sanity check on payload based on payload type.
-
-  service_controller_router_->sendPayload(client_proxy_.get(),
-                                          send_payload_params);
+void Core::InitiateBandwidthUpgrade(absl::string_view endpoint_id,
+                                    ResultCallback callback) {
+  router_.InitiateBandwidthUpgrade(&client_, endpoint_id, callback);
 }
 
-template <typename Platform>
-void Core<Platform>::cancelPayload(
-    ConstPtr<CancelPayloadParams> cancel_payload_params) {
-  assert(!cancel_payload_params->result_listener.isNull());
-  assert(cancel_payload_params->payload_id != 0);
+void Core::SendPayload(absl::Span<const std::string> endpoint_ids,
+                       Payload payload, ResultCallback callback) {
+  assert(payload.GetType() != Payload::Type::kUnknown);
+  assert(!endpoint_ids.empty());
 
-  service_controller_router_->cancelPayload(client_proxy_.get(),
-                                            cancel_payload_params);
+  router_.SendPayload(&client_, endpoint_ids, std::move(payload), callback);
 }
 
-template <typename Platform>
-void Core<Platform>::disconnectFromEndpoint(
-    ConstPtr<DisconnectFromEndpointParams> disconnect_from_endpoint_params) {
-  assert(!disconnect_from_endpoint_params->remote_endpoint_id.empty());
+void Core::CancelPayload(std::int64_t payload_id, ResultCallback callback) {
+  assert(payload_id != 0);
 
-  service_controller_router_->disconnectFromEndpoint(
-      client_proxy_.get(), disconnect_from_endpoint_params);
+  router_.CancelPayload(&client_, payload_id, callback);
 }
 
-template <typename Platform>
-void Core<Platform>::stopAllEndpoints(
-    ConstPtr<StopAllEndpointsParams> stop_all_endpoints_params) {
-  service_controller_router_->stopAllEndpoints(client_proxy_.get(),
-                                               stop_all_endpoints_params);
+void Core::DisconnectFromEndpoint(absl::string_view endpoint_id,
+                                  ResultCallback callback) {
+  assert(!endpoint_id.empty());
+
+  router_.DisconnectFromEndpoint(&client_, endpoint_id, callback);
+}
+
+void Core::StopAllEndpoints(ResultCallback callback) {
+  router_.StopAllEndpoints(&client_, callback);
 }
 
 }  // namespace connections

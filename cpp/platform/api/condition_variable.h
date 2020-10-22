@@ -15,10 +15,12 @@
 #ifndef PLATFORM_API_CONDITION_VARIABLE_H_
 #define PLATFORM_API_CONDITION_VARIABLE_H_
 
-#include "platform/exception.h"
+#include "platform/base/exception.h"
+#include "absl/time/clock.h"
 
 namespace location {
 namespace nearby {
+namespace api {
 
 // The ConditionVariable class is a synchronization primitive that can be used
 // to block a thread, or multiple threads at the same time, until another thread
@@ -28,12 +30,21 @@ class ConditionVariable {
  public:
   virtual ~ConditionVariable() {}
 
-  // https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html#notify--
-  virtual void notify() = 0;
-  // https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html#wait--
-  virtual Exception::Value wait() = 0;  // throws Exception::INTERRUPTED
+  // Notifies all the waiters that condition state has changed.
+  virtual void Notify() = 0;
+
+  // Waits indefinitely for Notify to be called.
+  // May return prematurely in case of interrupt, if supported by platform.
+  // Returns kSuccess, or kInterrupted on interrupt.
+  virtual Exception Wait() = 0;
+
+  // Waits while timeout has not expired for Notify to be called.
+  // May return prematurely in case of interrupt, if supported by platform.
+  // Returns kSuccess, or kInterrupted on interrupt.
+  virtual Exception Wait(absl::Duration timeout) = 0;
 };
 
+}  // namespace api
 }  // namespace nearby
 }  // namespace location
 

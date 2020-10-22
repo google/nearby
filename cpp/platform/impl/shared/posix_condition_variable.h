@@ -18,26 +18,27 @@
 #include <pthread.h>
 
 #include "platform/api/condition_variable.h"
-#include "platform/impl/shared/posix_lock.h"
-#include "platform/ptr.h"
+#include "platform/impl/shared/posix_mutex.h"
 
 namespace location {
 namespace nearby {
+namespace posix {
 
-class PosixConditionVariable : public ConditionVariable {
+class ConditionVariable : public api::ConditionVariable {
  public:
-  explicit PosixConditionVariable(Ptr<PosixLock> lock);
-  ~PosixConditionVariable() override;
+  explicit ConditionVariable(Mutex* mutex);
+  ~ConditionVariable() override;
 
-  void notify() override;
-  Exception::Value wait() override;
+  void Notify() override;
+  Exception Wait() override;
 
  private:
-  Ptr<PosixLock> lock_;
+  Mutex* mutex_;
   pthread_condattr_t attr_;
   pthread_cond_t cond_;
 };
 
+}  // namespace posix
 }  // namespace nearby
 }  // namespace location
 

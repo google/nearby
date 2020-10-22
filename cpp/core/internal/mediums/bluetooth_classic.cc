@@ -14,467 +14,387 @@
 
 #include "core/internal/mediums/bluetooth_classic.h"
 
+#include <memory>
+#include <string>
 #include <utility>
 
 #include "core/internal/mediums/uuid.h"
-#include "platform/synchronized.h"
+#include "platform/public/logging.h"
+#include "platform/public/mutex_lock.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-template <typename Platform>
-const std::int32_t BluetoothClassic<Platform>::kMaxConcurrentAcceptLoops = 5;
+BluetoothClassic::BluetoothClassic(BluetoothRadio& radio) : radio_(radio) {}
 
-template <typename Platform>
-BluetoothClassic<Platform>::BluetoothClassic(
-    Ptr<BluetoothRadio<Platform>> bluetooth_radio)
-    : lock_(Platform::createLock()),
-      bluetooth_radio_(bluetooth_radio),
-      bluetooth_adapter_(Platform::createBluetoothAdapter()),
-      bluetooth_classic_medium_(Platform::createBluetoothClassicMedium()),
-      scan_info_(),
-      original_scan_mode_(BluetoothAdapter::ScanMode::UNKNOWN),
-      original_device_name_(),
-      accept_loops_thread_pool_(
-          Platform::createMultiThreadExecutor(kMaxConcurrentAcceptLoops)),
-      bluetooth_server_sockets_() {}
-
-template <typename Platform>
-BluetoothClassic<Platform>::~BluetoothClassic() {
-  stopDiscovery();
-  for (BluetoothServerSocketMap::iterator it =
-           bluetooth_server_sockets_.begin();
-       it != bluetooth_server_sockets_.end(); ++it) {
-    stopAcceptingConnections(it->first);
+BluetoothClassic::~BluetoothClassic() {
+  // Destructor is not taking locks, but methods it is calling are.
+  StopDiscovery();
+  while (!server_sockets_.empty()) {
+    StopAcceptingConnections(server_sockets_.begin()->first);
   }
-  turnOffDiscoverability();
+  TurnOffDiscoverability();
 
   // All the AcceptLoopRunnable objects in here should already have gotten an
   // opportunity to shut themselves down cleanly in the calls to
-  // stopAcceptingConnections() above.
-  accept_loops_thread_pool_->shutdown();
-
-  original_device_name_.destroy();
-  scan_info_.destroy();
+  // StopAcceptingConnections() above.
+  accept_loops_runner_.Shutdown();
 }
 
-template <typename Platform>
-bool BluetoothClassic<Platform>::isAvailable() {
-  Synchronized s(lock_.get());
+bool BluetoothClassic::IsAvailable() const {
+  MutexLock lock(&mutex_);
 
-  return !bluetooth_classic_medium_.isNull() && !bluetooth_adapter_.isNull();
+  return IsAvailableLocked();
 }
 
-template <typename Platform>
-bool BluetoothClassic<Platform>::turnOnDiscoverability(
-    const string& device_name) {
-  Synchronized s(lock_.get());
+bool BluetoothClassic::IsAvailableLocked() const {
+  return medium_.IsValid() && adapter_.IsValid();
+}
+
+bool BluetoothClassic::TurnOnDiscoverability(const std::string& device_name) {
+  MutexLock lock(&mutex_);
 
   if (device_name.empty()) {
-    // TODO(ahlee): logger.atSevere().log("Refusing to turn on Bluetooth
-    // discoverability because a null deviceName was passed in.");
+    NEARBY_LOG(INFO,
+               "Refusing to turn on BT discoverability. Empty device name.");
     return false;
   }
 
-  if (!bluetooth_radio_->isEnabled()) {
-    // TODO(reznor): log.atSevere().log("Can't turn on Bluetooth discoverability
-    // because Bluetooth isn't enabled.");
+  if (!radio_.IsEnabled()) {
+    NEARBY_LOG(INFO, "Can't turn on BT discoverability. BT is off.");
     return false;
   }
 
-  if (!isAvailable()) {
-    // TODO(reznor): log.atSevere().log("Can't turn on Bluetooth discoverability
-    // because Bluetooth isn't available.");
+  if (!IsAvailableLocked()) {
+    NEARBY_LOG(INFO, "Can't turn on BT discoverability. BT is not available.");
     return false;
   }
 
-  if (isDiscoverable()) {
-    // TODO(reznor): log.atSevere().log("Refusing to turn on Bluetooth
-    // discoverability with device name %s because we're already discoverable
-    // with device name %s.", deviceName, bluetoothAdapter.getName());
+  if (IsDiscoverable()) {
+    NEARBY_LOG(INFO,
+               "Refusing to turn on BT discoverability; new name='%s'; "
+               "current name='%s'",
+               device_name.c_str(), adapter_.GetName().c_str());
     return false;
   }
 
-  if (!modifyDeviceName(device_name)) {
-    // TODO(reznor): log.atSevere().log("Failed to turn on Bluetooth
-    // discoverability because we couldn't set the device name to %s",
-    // deviceName);
+  if (!ModifyDeviceName(device_name)) {
+    NEARBY_LOG(INFO,
+               "Failed to turn on BT discoverability; "
+               "failed to set name to %s",
+               device_name.c_str());
     return false;
   }
 
-  if (!modifyScanMode(BluetoothAdapter::ScanMode::CONNECTABLE_DISCOVERABLE)) {
-    // TODO(reznor): log.atSevere().log("Failed to turn on Bluetooth
-    // discoverability because we couldn't set the scan mode to %d",
-    // BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE);
+  if (!ModifyScanMode(ScanMode::kConnectableDiscoverable)) {
+    NEARBY_LOG(INFO,
+               "Failed to turn on BT discoverability; "
+               "failed to set scan_mode to %d",
+               ScanMode::kConnectableDiscoverable);
 
     // Don't forget to perform this rollback of the partial state changes we've
     // made til now.
-    restoreDeviceName();
+    RestoreDeviceName();
     return false;
   }
 
-  // TODO(reznor): log.atVerbose().log("Turned on Bluetooth discoverability with
-  // deviceName %s", deviceName);
+  NEARBY_LOG(INFO, "Turned on BT discoverability with device_name=%s",
+             device_name.c_str());
   return true;
 }
 
-template <typename Platform>
-void BluetoothClassic<Platform>::turnOffDiscoverability() {
-  Synchronized s(lock_.get());
+bool BluetoothClassic::TurnOffDiscoverability() {
+  MutexLock lock(&mutex_);
 
-  if (!isDiscoverable()) {
-    // TODO(reznor): log.atDebug().log("Can't turn off Bluetooth discoverability
-    // because it was never turned on.");
-    return;
-  }
-
-  restoreScanMode();
-  restoreDeviceName();
-
-  // TODO(reznor): log.atVerbose().log("Turned Bluetooth discoverability off");
-}
-
-template <typename Platform>
-bool BluetoothClassic<Platform>::isDiscoverable() const {
-  return ((!original_device_name_.isNull()) &&
-          (BluetoothAdapter::ScanMode::CONNECTABLE_DISCOVERABLE ==
-           bluetooth_adapter_->getScanMode()));
-}
-
-template <typename Platform>
-bool BluetoothClassic<Platform>::modifyDeviceName(const string& device_name) {
-  original_device_name_ = bluetooth_adapter_->getName();
-
-  if (!bluetooth_adapter_->setName(device_name)) {
-    original_device_name_.destroy();
+  if (!IsDiscoverable()) {
+    NEARBY_LOG(INFO, "Can't turn off BT discoverability; it is already off");
     return false;
   }
 
+  RestoreScanMode();
+  RestoreDeviceName();
+
+  NEARBY_LOG(INFO, "Turned Bluetooth discoverability off");
   return true;
 }
 
-template <typename Platform>
-bool BluetoothClassic<Platform>::modifyScanMode(
-    BluetoothAdapter::ScanMode::Value scan_mode) {
-  original_scan_mode_ = bluetooth_adapter_->getScanMode();
+bool BluetoothClassic::IsDiscoverable() const {
+  return (!original_device_name_.empty() &&
+          (adapter_.GetScanMode() == ScanMode::kConnectableDiscoverable));
+}
 
-  if (!bluetooth_adapter_->setScanMode(scan_mode)) {
-    original_scan_mode_ = BluetoothAdapter::ScanMode::UNKNOWN;
+bool BluetoothClassic::ModifyDeviceName(const std::string& device_name) {
+  if (original_device_name_.empty()) {
+    original_device_name_ = adapter_.GetName();
+  }
+
+  return adapter_.SetName(device_name);
+}
+
+bool BluetoothClassic::ModifyScanMode(ScanMode scan_mode) {
+  if (original_scan_mode_ == ScanMode::kUnknown) {
+    original_scan_mode_ = adapter_.GetScanMode();
+  }
+
+  if (!adapter_.SetScanMode(scan_mode)) {
+    original_scan_mode_ = ScanMode::kUnknown;
     return false;
   }
 
   return true;
 }
 
-template <typename Platform>
-void BluetoothClassic<Platform>::restoreScanMode() {
-  if (!bluetooth_adapter_->setScanMode(original_scan_mode_)) {
-    // TODO(reznor): log.atWarning().log("Failed to restore original Bluetooth
-    // scan mode to %d", originalScanMode);
+bool BluetoothClassic::RestoreScanMode() {
+  if (original_scan_mode_ == ScanMode::kUnknown ||
+      !adapter_.SetScanMode(original_scan_mode_)) {
+    NEARBY_LOG(INFO, "Failed to restore original Bluetooth scan mode to %d",
+               original_scan_mode_);
+    return false;
   }
 
   // Regardless of whether or not we could actually restore the Bluetooth scan
   // mode, reset our relevant state.
-  original_scan_mode_ = BluetoothAdapter::ScanMode::UNKNOWN;
+  original_scan_mode_ = ScanMode::kUnknown;
+  return true;
 }
 
-template <typename Platform>
-void BluetoothClassic<Platform>::restoreDeviceName() {
-  if (!bluetooth_adapter_->setName(*original_device_name_)) {
-    // TODO(reznor): log.atWarning().log("Failed to restore original Bluetooth
-    // device name to %s", originalDeviceName);
+bool BluetoothClassic::RestoreDeviceName() {
+  if (original_device_name_.empty() ||
+      !adapter_.SetName(original_device_name_)) {
+    NEARBY_LOG(INFO, "Failed to restore original Bluetooth device name to %s",
+               original_device_name_.c_str());
+    return false;
   }
-
-  // Regardless of whether or not we could actually restore the Bluetooth device
-  // name, reset the marker that opens us up for business for the next time
-  // 'round.
-  original_device_name_.destroy();
+  original_device_name_.clear();
+  return true;
 }
 
-template <typename Platform>
-bool BluetoothClassic<Platform>::startDiscovery(
-    Ptr<DiscoveredDeviceCallback> discovered_device_callback) {
-  Synchronized s(lock_.get());
+bool BluetoothClassic::StartDiscovery(DiscoveredDeviceCallback callback) {
+  MutexLock lock(&mutex_);
 
-  if (discovered_device_callback.isNull()) {
-    // TODO(reznor): log.atSevere().log("Refusing to start discovery of
-    // Bluetooth devices because a null discoveredDeviceCallback was passed
-    // in.");
-    return false;
-  }
-  // Avoid leaks.
-  ScopedPtr<Ptr<DiscoveredDeviceCallback>> scoped_discovered_device_callback(
-      discovered_device_callback);
-
-  if (!bluetooth_radio_->isEnabled()) {
-    // TODO(reznor): log.atSevere().log("Can't discover Bluetooth devices
-    // because Bluetooth isn't enabled.");
+  if (!radio_.IsEnabled()) {
+    NEARBY_LOG(INFO, "Can't discover BT devices because BT isn't enabled.");
     return false;
   }
 
-  if (!isAvailable()) {
-    // TODO(reznor): log.atSevere().log("Can't discover Bluetooth devices
-    // because Bluetooth isn't available.");
+  if (!IsAvailableLocked()) {
+    NEARBY_LOG(INFO, "Can't discover BT devices because BT isn't available.");
     return false;
   }
 
-  if (isDiscovering()) {
-    // TODO(reznor): log.atSevere().log("Refusing to start discovery of
-    // Bluetooth devices because another discovery is already in-progress.");
+  if (IsDiscovering()) {
+    NEARBY_LOG(INFO,
+               "Refusing to start discovery of BT devices because another "
+               "discovery is already in-progress.");
     return false;
   }
 
-  // Avoid leaks.
-  ScopedPtr<Ptr<BluetoothDiscoveryCallback>>
-      scoped_bluetooth_discovery_callback(new BluetoothDiscoveryCallback(
-          scoped_discovered_device_callback.get()));
-
-  if (!bluetooth_classic_medium_->startDiscovery(
-          scoped_bluetooth_discovery_callback.get())) {
-    // TODO(reznor): log.atSevere().log("Failed to start discovery of Bluetooth
-    // devices.");
+  if (!medium_.StartDiscovery(callback)) {
+    NEARBY_LOG(INFO, "Failed to start discovery of BT devices.");
     return false;
   }
 
   // Mark the fact that we're currently performing a Bluetooth scan.
-  scan_info_ =
-      MakePtr(new ScanInfo(scoped_discovered_device_callback.release(),
-                           scoped_bluetooth_discovery_callback.release()));
+  scan_info_.valid = true;
+
   return true;
 }
 
-template <typename Platform>
-void BluetoothClassic<Platform>::stopDiscovery() {
-  Synchronized s(lock_.get());
+bool BluetoothClassic::StopDiscovery() {
+  MutexLock lock(&mutex_);
 
-  if (!isDiscovering()) {
-    // TODO(reznor): log.atDebug().log("Can't stop discovery of Bluetooth
-    // devices because it never started.");
-    return;
+  if (!IsDiscovering()) {
+    NEARBY_LOG(INFO,
+               "Can't stop discovery of BT devices because it never started.");
+    return false;
   }
 
-  if (!bluetooth_classic_medium_->stopDiscovery()) {
-    // TODO(reznor): log.atWarning().log("Failed to stop discovery of Bluetooth
-    // devices.");
+  if (!medium_.StopDiscovery()) {
+    NEARBY_LOG(INFO, "Failed to stop discovery of Bluetooth devices.");
+    return false;
   }
-  // Regardless of whether or not stopDiscovery() succeeded, destroy scan_info_
-  // to:
-  //
-  // a) Avoid a leak.
-  // b) Mark the fact that we're no longer performing a Bluetooth discovery.
-  scan_info_.destroy();
+
+  scan_info_.valid = false;
+  return true;
 }
 
-template <typename Platform>
-bool BluetoothClassic<Platform>::isDiscovering() const {
-  return !scan_info_.isNull();
-}
+bool BluetoothClassic::IsDiscovering() const { return scan_info_.valid; }
 
-template <typename Platform>
-class AcceptLoopRunnable : public Runnable {
- public:
-  AcceptLoopRunnable(
-      Ptr<typename BluetoothClassic<Platform>::AcceptedConnectionCallback>
-          accepted_connection_callback,
-      Ptr<BluetoothServerSocket> listening_socket, const string& service_name)
-      : accepted_connection_callback_(accepted_connection_callback),
-        listening_socket_(listening_socket),
-        service_name_(service_name) {}
+bool BluetoothClassic::StartAcceptingConnections(
+    const std::string& service_name, AcceptedConnectionCallback callback) {
+  MutexLock lock(&mutex_);
 
-  void run() override {
-    while (true) {
-      ExceptionOr<Ptr<BluetoothSocket>> bluetooth_socket =
-          listening_socket_->accept();
-      if (!bluetooth_socket.ok()) {
-        if (Exception::IO == bluetooth_socket.exception()) {
-          Utils::closeSocket(listening_socket_, "Bluetooth", service_name_);
-        }
-        break;
-      }
-
-      accepted_connection_callback_->onConnectionAccepted(
-          bluetooth_socket.result());
-    }
-  }
-
- private:
-  ScopedPtr<
-      Ptr<typename BluetoothClassic<Platform>::AcceptedConnectionCallback>>
-      accepted_connection_callback_;
-  Ptr<BluetoothServerSocket> listening_socket_;
-  const string service_name_;
-};
-
-template <typename Platform>
-bool BluetoothClassic<Platform>::startAcceptingConnections(
-    const string& service_name,
-    Ptr<AcceptedConnectionCallback> accepted_connection_callback) {
-  Synchronized s(lock_.get());
-
-  // Avoid leaks.
-  ScopedPtr<Ptr<AcceptedConnectionCallback>>
-      scoped_accepted_connection_callback(accepted_connection_callback);
-  if (scoped_accepted_connection_callback.isNull() || service_name.empty()) {
-    // TODO(reznor): log.atSevere().log("Refusing to start accepting Bluetooth
-    // connections because at least one of serviceName or
-    // acceptedConnectionCallback is null.");
+  if (service_name.empty()) {
+    NEARBY_LOG(
+        INFO,
+        "Refusing to start accepting BT connections; service name is empty.");
     return false;
   }
 
-  if (!bluetooth_radio_->isEnabled()) {
-    // TODO(reznor): log.atSevere().log("Can't create Bluetooth server socket
-    // for %s because Bluetooth isn't enabled.", serviceName);
+  if (!radio_.IsEnabled()) {
+    NEARBY_LOG(INFO,
+               "Can't create BT server socket [service=%s]; BT is disabled.",
+               service_name.c_str());
     return false;
   }
 
-  if (!isAvailable()) {
-    // TODO(reznor): log.atSevere().log("Can't start accepting BLuetooth
-    // connections for %s because Bluetooth isn't available.", serviceName);
+  if (!IsAvailableLocked()) {
+    NEARBY_LOG(
+        INFO,
+        "Can't start accepting BT connections [service=%s]; BT not available.",
+        service_name.c_str());
     return false;
   }
 
-  if (isAcceptingConnections(service_name)) {
-    // TODO(reznor): log.atSevere().log("Refusing to start accepting Bluetooth
-    // connections for %s because a Bluetooth server is already in-progress for
-    // that service name.", serviceName);
+  if (IsAcceptingConnectionsLocked(service_name)) {
+    NEARBY_LOG(INFO,
+               "Refusing to start accepting BT connections [service=%s]; BT "
+               "server is already in-progress with the same name.",
+               service_name.c_str());
     return false;
   }
 
-  ExceptionOr<Ptr<BluetoothServerSocket>> listening_socket =
-      bluetooth_classic_medium_->listenForService(
-          service_name, generateUUIDFromString(service_name));
-  if (!listening_socket.ok()) {
-    if (Exception::IO == listening_socket.exception()) {
-      // TODO(reznor): log.atSevere().withCause(e).log("Failed to start
-      // accepting Bluetooth connections for %s.", serviceName);
-      return false;
-    }
+  BluetoothServerSocket socket = medium_.ListenForService(
+      service_name, GenerateUuidFromString(service_name));
+  if (!socket.IsValid()) {
+    NEARBY_LOG(INFO, "Failed to start accepting Bluetooth connections for %s.",
+               service_name.c_str());
+    return false;
   }
-
-  // Start the accept loop on a dedicated thread - this stays alive and
-  // listening for new incoming connections until stopAcceptingConnections() is
-  // invoked.
-  accept_loops_thread_pool_->execute(MakePtr(new AcceptLoopRunnable<Platform>(
-      scoped_accepted_connection_callback.release(), listening_socket.result(),
-      service_name)));
 
   // Mark the fact that there's an in-progress Bluetooth server accepting
   // connections.
-  bluetooth_server_sockets_.insert(
-      std::make_pair(service_name, listening_socket.result()));
+  auto owned_socket =
+      server_sockets_.emplace(service_name, std::move(socket)).first->second;
+
+  // Start the accept loop on a dedicated thread - this stays alive and
+  // listening for new incoming connections until StopAcceptingConnections() is
+  // invoked.
+  accept_loops_runner_.Execute([callback = std::move(callback),
+                                server_socket = std::move(owned_socket),
+                                service_name]() mutable {
+    while (true) {
+      BluetoothSocket client_socket = server_socket.Accept();
+      if (!client_socket.IsValid()) {
+        server_socket.Close();
+        break;
+      }
+
+      callback.accepted_cb(std::move(client_socket));
+    }
+  });
+
   return true;
 }
 
-template <typename Platform>
-bool BluetoothClassic<Platform>::isAcceptingConnections(
-    const string& service_name) {
-  Synchronized s(lock_.get());
+bool BluetoothClassic::IsAcceptingConnections(const std::string& service_name) {
+  MutexLock lock(&mutex_);
 
-  return bluetooth_server_sockets_.find(service_name) !=
-         bluetooth_server_sockets_.end();
+  return IsAcceptingConnectionsLocked(service_name);
 }
 
-template <typename Platform>
-void BluetoothClassic<Platform>::stopAcceptingConnections(
-    const string& service_name) {
-  Synchronized s(lock_.get());
+bool BluetoothClassic::IsAcceptingConnectionsLocked(
+    const std::string& service_name) {
+  return server_sockets_.find(service_name) != server_sockets_.end();
+}
+
+bool BluetoothClassic::StopAcceptingConnections(
+    const std::string& service_name) {
+  MutexLock lock(&mutex_);
 
   if (service_name.empty()) {
-    // TODO(ahlee): logger.atSevere().log("Unable to stop accepting Bluetooth
-    // connections because the serviceName is empty.");
-    return;
+    NEARBY_LOG(INFO,
+               "Unable to stop accepting BT connections because the "
+               "service_name is empty.");
+    return false;
   }
 
-  if (!isAcceptingConnections(service_name)) {
-    // TODO(reznor): log.atDebug().log("Can't stop accepting Bluetooth
-    // connections for %s because it was never started.", serviceName);
-    return;
+  const auto& it = server_sockets_.find(service_name);
+  if (it == server_sockets_.end()) {
+    NEARBY_LOG(INFO,
+               "Can't stop accepting BT connections for %s because it was "
+               "never started.",
+               service_name.c_str());
+    return false;
   }
 
   // Closing the BluetoothServerSocket will kick off the suicide of the thread
   // in accept_loops_thread_pool_ that blocks on BluetoothServerSocket.accept().
   // That may take some time to complete, but there's no particular reason to
   // wait around for it.
-  BluetoothServerSocketMap::iterator listening_socket_iter =
-      bluetooth_server_sockets_.find(service_name);
+  auto item = server_sockets_.extract(it);
 
   // Store a handle to the BluetoothServerSocket, so we can use it after
-  // removing the entry from bluetooth_server_sockets_; making it scoped
+  // removing the entry from server_sockets_; making it scoped
   // is a bonus that takes care of deallocation before we leave this method.
-  ScopedPtr<Ptr<BluetoothServerSocket>> scoped_listening_socket(
-      listening_socket_iter->second);
+  BluetoothServerSocket& listening_socket = item.mapped();
 
   // Regardless of whether or not we fail to close the existing
-  // BluetoothServerSocket, remove it from bluetooth_server_sockets_ so that it
+  // BluetoothServerSocket, remove it from server_sockets_ so that it
   // frees up this service for another round.
-  bluetooth_server_sockets_.erase(listening_socket_iter);
 
   // Finally, close the BluetoothServerSocket.
-  Exception::Value e = scoped_listening_socket->close();
-  if (Exception::NONE != e) {
-    if (Exception::IO == e) {
-      // TODO(reznor): log.atSevere().withCause(e).log("Failed to close
-      // Bluetooth server socket for %s.", serviceName);
-    }
+  if (!listening_socket.Close().Ok()) {
+    NEARBY_LOG(INFO, "Failed to close BT server socket for %s.",
+               service_name.c_str());
+    return false;
   }
+
+  return true;
 }
 
-template <typename Platform>
-Ptr<BluetoothSocket> BluetoothClassic<Platform>::connect(
-    Ptr<BluetoothDevice> bluetooth_device, const string& service_name) {
-  Synchronized s(lock_.get());
+BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
+                                          const std::string& service_name) {
+  MutexLock lock(&mutex_);
+  NEARBY_LOG(INFO, "BluetoothClassic::Connect: device=%p", &bluetooth_device);
+  // Socket to return. To allow for NRVO to work, it has to be a single object.
+  BluetoothSocket socket;
 
-  if (bluetooth_device.isNull() || service_name.empty()) {
-    // TODO(reznor): log.atSevere().log("Refusing to create client Bluetooth
-    // socket because at least one of bluetoothDevice or serviceName is null.");
-    return Ptr<BluetoothSocket>();
+  if (service_name.empty()) {
+    NEARBY_LOG(
+        INFO,
+        "Refusing to create client BT socket because service_name is empty.");
+    return socket;
   }
 
-  if (!bluetooth_radio_->isEnabled()) {
-    // TODO(reznor): log.atSevere().log("Can't create client Bluetooth socket to
-    // %s because Bluetooth isn't enabled.", bluetoothSocketName);
-    return Ptr<BluetoothSocket>();
+  if (!radio_.IsEnabled()) {
+    NEARBY_LOG(INFO,
+               "Can't create client BT socket [service=%s]: BT isn't enabled.",
+               service_name.c_str());
+    return socket;
   }
 
-  if (!isAvailable()) {
-    // TODO(reznor): log.atSevere().log("Can't create client Bluetooth socket to
-    // %s because Bluetooth isn't available.", bluetoothSocketName);
-    return Ptr<BluetoothSocket>();
+  if (!IsAvailableLocked()) {
+    NEARBY_LOG(
+        INFO, "Can't create client BT socket [service=%s]; BT isn't available.",
+        service_name.c_str());
+    return socket;
   }
 
-  //                      WARNING WARNING WARNING
-  //
-  // This block deviates from the corresponding Java code.
-  //
-  // In Java, we pause an in-progress discovery before attempting this
-  // connection, and then resume it after, but the memory management of the
-  // DiscoveredDeviceCallback is complicated in C++, and would need a severe
-  // deviation from the Java code, so we're choosing the lesser of 2 evils, and
-  // introducing this (simplifying) deviation instead -- also, this deviation is
-  // fairly inconsequential since we don't yet have a use-case that needs a
-  // device that:
-  //
-  // a) uses the C++ code,
-  // b) has Bluetooth Classic support, and
-  // c) plays the role of Discoverer.
-  ExceptionOr<Ptr<BluetoothSocket>> bluetooth_socket =
-      bluetooth_classic_medium_->connectToService(
-          bluetooth_device, generateUUIDFromString(service_name));
-  if (!bluetooth_socket.ok()) {
-    if (Exception::IO == bluetooth_socket.exception()) {
-      // TODO(reznor): log.atSevere().log("Failed to connect via Bluetooth
-      // socket to %s.", bluetoothSocketName);
-    }
-    return Ptr<BluetoothSocket>();
+  socket = medium_.ConnectToService(bluetooth_device,
+                                    GenerateUuidFromString(service_name));
+  if (!socket.IsValid()) {
+    NEARBY_LOG(INFO, "Failed to Connect via BT [service=%s]",
+               service_name.c_str());
   }
 
-  return bluetooth_socket.result();
+  return socket;
 }
 
-template <typename Platform>
-string BluetoothClassic<Platform>::generateUUIDFromString(const string& data) {
-  return UUID<Platform>(data).str();
+BluetoothDevice BluetoothClassic::GetRemoteDevice(
+    const std::string& mac_address) {
+  MutexLock lock(&mutex_);
+  return medium_.GetRemoteDevice(mac_address);
+}
+
+std::string BluetoothClassic::GetMacAddress() const {
+  MutexLock lock(&mutex_);
+  return medium_.GetMacAddress();
+}
+
+std::string BluetoothClassic::GenerateUuidFromString(const std::string& data) {
+  return std::string(Uuid(data));
 }
 
 }  // namespace connections

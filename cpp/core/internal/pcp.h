@@ -19,15 +19,20 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-struct PCP {
-  enum Value {
-    UNKNOWN = 0,
-    P2P_STAR = 1,
-    P2P_CLUSTER = 2,
-    P2P_POINT_TO_POINT = 3,
-  };
+// The PreConnectionProtocol (PCP) defines the combinations of interactions
+// between the techniques (ultrasound audio, Bluetooth device names, BLE
+// advertisements) used for offline Advertisement + Discovery, and identifies
+// the steps to go through on each device.
+//
+// See go/nearby-offline-data-interchange-formats for more.
+enum class Pcp {
+  kUnknown = 0,
+  kP2pStar = 1,
+  kP2pCluster = 2,
+  kP2pPointToPoint = 3,
+  // PCP is only allocated 5 bits in our data interchange formats, so there can
+  // never be more than 31 PCP values.
 };
-
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location

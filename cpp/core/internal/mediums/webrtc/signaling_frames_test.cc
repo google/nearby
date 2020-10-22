@@ -17,7 +17,6 @@
 #include <memory>
 
 #include "core/internal/mediums/webrtc/peer_id.h"
-#include "platform/ptr.h"
 #include "net/proto2/public/text_format.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -81,12 +80,11 @@ const char kIceCandidatesProto[] = R"(
 }  // namespace
 
 TEST(SignalingFramesTest, SignalingPoke) {
-  ConstPtr<PeerId> sender_id(new PeerId("abc"));
-  ConstPtr<ByteArray> encoded_poke = EncodeReadyForSignalingPoke(sender_id);
+  PeerId sender_id("abc");
+  ByteArray encoded_poke = EncodeReadyForSignalingPoke(sender_id);
 
   location::nearby::mediums::WebRtcSignalingFrame frame;
-  frame.ParseFromString(
-      std::string(encoded_poke->getData(), encoded_poke->size()));
+  frame.ParseFromString(std::string(encoded_poke.data(), encoded_poke.size()));
 
   EXPECT_THAT(frame, testing::EqualsProto(R"(
                 sender_id { id: "abc" }
@@ -96,22 +94,23 @@ TEST(SignalingFramesTest, SignalingPoke) {
 }
 
 TEST(SignalingFramesTest, EncodeValidOffer) {
-  ConstPtr<PeerId> sender_id(new PeerId("abc"));
+  PeerId sender_id("abc");
   std::unique_ptr<webrtc::SessionDescriptionInterface> offer =
       webrtc::CreateSessionDescription(webrtc::SdpType::kOffer, kSampleSdp);
-  ConstPtr<ByteArray> encoded_offer = EncodeOffer(sender_id, *offer);
+  ByteArray encoded_offer = EncodeOffer(sender_id, *offer);
 
   location::nearby::mediums::WebRtcSignalingFrame frame;
   frame.ParseFromString(
-      std::string(encoded_offer->getData(), encoded_offer->size()));
+      std::string(encoded_offer.data(), encoded_offer.size()));
 
   EXPECT_THAT(frame, testing::EqualsProto(kOfferProto));
 }
 
-TEST(SignalingFramesTest, DecodeValidOffer) {
+TEST(SignaingFramesTest, DecodeValidOffer) {
   location::nearby::mediums::WebRtcSignalingFrame frame;
-  proto2::TextFormat::ParseFromStringPiece(kOfferProto, &frame);
-  Ptr<webrtc::SessionDescriptionInterface> decoded_offer = DecodeOffer(frame);
+  proto2::TextFormat::ParseFromString(kOfferProto, &frame);
+  std::unique_ptr<webrtc::SessionDescriptionInterface> decoded_offer =
+      DecodeOffer(frame);
 
   EXPECT_EQ(webrtc::SdpType::kOffer, decoded_offer->GetType());
   std::string description;
@@ -120,22 +119,23 @@ TEST(SignalingFramesTest, DecodeValidOffer) {
 }
 
 TEST(SignalingFramesTest, EncodeValidAnswer) {
-  ConstPtr<PeerId> sender_id(new PeerId("abc"));
-  std::unique_ptr<webrtc::SessionDescriptionInterface> answer =
-      webrtc::CreateSessionDescription(webrtc::SdpType::kAnswer, kSampleSdp);
-  ConstPtr<ByteArray> encoded_answer = EncodeAnswer(sender_id, *answer);
+  PeerId sender_id("abc");
+  std::unique_ptr<webrtc::SessionDescriptionInterface> answer(
+      webrtc::CreateSessionDescription(webrtc::SdpType::kAnswer, kSampleSdp));
+  ByteArray encoded_answer = EncodeAnswer(sender_id, *answer);
 
   location::nearby::mediums::WebRtcSignalingFrame frame;
   frame.ParseFromString(
-      std::string(encoded_answer->getData(), encoded_answer->size()));
+      std::string(encoded_answer.data(), encoded_answer.size()));
 
   EXPECT_THAT(frame, testing::EqualsProto(kAnswerProto));
 }
 
 TEST(SignalingFramesTest, DecodeValidAnswer) {
   location::nearby::mediums::WebRtcSignalingFrame frame;
-  proto2::TextFormat::ParseFromStringPiece(kAnswerProto, &frame);
-  Ptr<webrtc::SessionDescriptionInterface> decoded_answer = DecodeAnswer(frame);
+  proto2::TextFormat::ParseFromString(kAnswerProto, &frame);
+  std::unique_ptr<webrtc::SessionDescriptionInterface> decoded_answer =
+      DecodeAnswer(frame);
 
   EXPECT_EQ(webrtc::SdpType::kAnswer, decoded_answer->GetType());
   std::string description;
@@ -144,42 +144,40 @@ TEST(SignalingFramesTest, DecodeValidAnswer) {
 }
 
 TEST(SignalingFramesTest, EncodeValidIceCandidates) {
-  ConstPtr<PeerId> sender_id(new PeerId("abc"));
+  PeerId sender_id("abc");
   webrtc::SdpParseError error;
 
-  std::vector<ConstPtr<webrtc::IceCandidateInterface>> ice_candidates;
+  std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> ice_candidates;
   ice_candidates.emplace_back(webrtc::CreateIceCandidate(
       kIceSdpMid, kIceSdpMLineIndex, kIceCandidateSdp1, &error));
   ice_candidates.emplace_back(webrtc::CreateIceCandidate(
       kIceSdpMid, kIceSdpMLineIndex, kIceCandidateSdp2, &error));
   std::vector<location::nearby::mediums::IceCandidate> encoded_candidates_vec;
   for (const auto& ice_candidate : ice_candidates) {
-    encoded_candidates_vec.push_back(EncodeIceCandidate(*ice_candidate.get()));
+    encoded_candidates_vec.push_back(EncodeIceCandidate(*ice_candidate));
   }
-  ConstPtr<ByteArray> encoded_candidates =
+  ByteArray encoded_candidates =
       EncodeIceCandidates(sender_id, encoded_candidates_vec);
 
   location::nearby::mediums::WebRtcSignalingFrame frame;
   frame.ParseFromString(
-      std::string(encoded_candidates->getData(), encoded_candidates->size()));
+      std::string(encoded_candidates.data(), encoded_candidates.size()));
 
   EXPECT_THAT(frame, testing::EqualsProto(kIceCandidatesProto));
 }
 
 TEST(SignalingFramesTest, DecodeValidIceCandidates) {
   webrtc::SdpParseError error;
-
-  std::vector<ConstPtr<webrtc::IceCandidateInterface>> ice_candidates;
+  std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> ice_candidates;
   ice_candidates.emplace_back(webrtc::CreateIceCandidate(
       kIceSdpMid, kIceSdpMLineIndex, kIceCandidateSdp1, &error));
   ice_candidates.emplace_back(webrtc::CreateIceCandidate(
       kIceSdpMid, kIceSdpMLineIndex, kIceCandidateSdp2, &error));
-  std::vector<location::nearby::mediums::IceCandidate> encoded_candidates_vec;
 
   location::nearby::mediums::WebRtcSignalingFrame frame;
-  proto2::TextFormat::ParseFromStringPiece(kIceCandidatesProto, &frame);
-  std::vector<ConstPtr<webrtc::IceCandidateInterface>> decoded_candidates =
-      DecodeIceCandidates(frame);
+  proto2::TextFormat::ParseFromString(kIceCandidatesProto, &frame);
+  std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
+      decoded_candidates = DecodeIceCandidates(frame);
 
   ASSERT_EQ(2u, decoded_candidates.size());
   for (int i = 0; i < static_cast<int>(decoded_candidates.size()); i++) {

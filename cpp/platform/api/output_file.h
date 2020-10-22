@@ -15,25 +15,21 @@
 #ifndef PLATFORM_API_OUTPUT_FILE_H_
 #define PLATFORM_API_OUTPUT_FILE_H_
 
-#include "platform/byte_array.h"
-#include "platform/exception.h"
-#include "platform/ptr.h"
+#include "platform/base/byte_array.h"
+#include "platform/base/exception.h"
+#include "platform/base/output_stream.h"
 
 namespace location {
 namespace nearby {
+namespace api {
 
 // An OutputFile represents a writable file on the system.
-class OutputFile {
+class OutputFile : public OutputStream {
  public:
-  virtual ~OutputFile() {}
-
-  // Takes ownership of the passed-in ConstPtr, and ensures that it is destroyed
-  // even upon error (i.e. when the return value is not Exception::NONE).
-  virtual Exception::Value write(
-      ConstPtr<ByteArray> data) = 0;  // throws Exception::IO
-  virtual void close() = 0;
+  ~OutputFile() override = default;
 };
 
+}  // namespace api
 }  // namespace nearby
 }  // namespace location
 

@@ -14,214 +14,249 @@
 
 #include "core/internal/mediums/wifi_lan.h"
 
-#include "platform/synchronized.h"
+#include <memory>
+#include <string>
+#include <utility>
+
+#include "platform/public/logging.h"
+#include "platform/public/mutex_lock.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
-namespace mediums {
 
-template <typename Platform>
-WifiLan<Platform>::WifiLan()
-    : lock_(Platform::createLock()),
-      wifi_lan_medium_(Platform::createWifiLanMedium()) {}
+bool WifiLan::IsAvailable() const {
+  MutexLock lock(&mutex_);
 
-template <typename Platform>
-bool WifiLan<Platform>::IsAvailable() {
-  Synchronized s(lock_.get());
-
-  return !wifi_lan_medium_.isNull();
+  return IsAvailableLocked();
 }
 
-template <typename Platform>
-bool WifiLan<Platform>::StartAdvertising(
-    absl::string_view service_id,
-    absl::string_view wifi_lan_service_info_name) {
-  Synchronized s(lock_.get());
+bool WifiLan::IsAvailableLocked() const { return medium_.IsValid(); }
 
-  if (!IsAvailable()) {
+bool WifiLan::StartAdvertising(const std::string& service_id,
+                               const std::string& service_info_name,
+                               const std::string& endpoint_info_name) {
+  MutexLock lock(&mutex_);
+
+  if (service_info_name.empty()) {
+    NEARBY_LOG(
+        INFO,
+        "Refusing to turn on WifiLan advertising. Empty service info name.");
     return false;
   }
 
-  // TODO(b/149806065): Implements platform wifi-lan medium.
-  // wifi_lan_medium_->StartAdvertising(service_id,
-  // wifi_lan_service_info_name));
-
-  advertising_info_.service_id.assign(service_id.data());
-  return false;
-}
-
-template <typename Platform>
-void WifiLan<Platform>::StopAdvertising(absl::string_view service_id) {
-  Synchronized s(lock_.get());
-
-  if (!IsAdvertising()) {
-    return;
+  if (!IsAvailableLocked()) {
+    NEARBY_LOG(INFO,
+               "Can't turn on WifiLan advertising. WifiLan is not available.");
+    return false;
   }
 
-  // TODO(b/149806065): Implements platform wifi-lan medium.
-  // wifi_lan_medium_->StopAdvertising(advertising_info_.service_id);
+  if (!medium_.StartAdvertising(service_id, service_info_name,
+                                endpoint_info_name)) {
+    NEARBY_LOG(
+        INFO, "Failed to turn on WifiLan advertising with service info name=%s",
+        service_info_name.c_str());
+    return false;
+  }
+
+  NEARBY_LOGS(INFO) << "Turned on WifiLan advertising with service info name="
+                    << service_info_name << ", service id=" << service_id;
+  advertising_info_.Add(service_id);
+  return true;
+}
+
+bool WifiLan::StopAdvertising(const std::string& service_id) {
+  MutexLock lock(&mutex_);
+
+  if (!IsAdvertisingLocked(service_id)) {
+    NEARBY_LOG(INFO, "Can't turn off WifiLan advertising; it is already off");
+    return false;
+  }
+
+  NEARBY_LOG(INFO, "Turned off WifiLan advertising with service id=%s",
+             service_id.c_str());
+  bool ret = medium_.StopAdvertising(service_id);
   // Reset our bundle of advertising state to mark that we're no longer
   // advertising.
-  advertising_info_.service_id.clear();
+  advertising_info_.Remove(service_id);
+  return ret;
 }
 
-template <typename Platform>
-bool WifiLan<Platform>::IsAdvertising() {
-  Synchronized s(lock_.get());
+bool WifiLan::IsAdvertising(const std::string& service_id) {
+  MutexLock lock(&mutex_);
 
-  return !advertising_info_.service_id.empty();
+  return IsAdvertisingLocked(service_id);
 }
 
-template <typename Platform>
-bool WifiLan<Platform>::StartDiscovery(
-    absl::string_view service_id,
-    Ptr<DiscoveredServiceCallback> discovered_service_callback) {
-  Synchronized s(lock_.get());
+bool WifiLan::IsAdvertisingLocked(const std::string& service_id) {
+  return advertising_info_.Existed(service_id);
+}
 
-  if (discovered_service_callback.isNull() || service_id.empty()) {
-    // TODO(b/149806065): logger.atSevere().log("Refusing to start WifiLan
-    // discovering because a null parameter was passed in.");
+bool WifiLan::StartDiscovery(const std::string& service_id,
+                             DiscoveredServiceCallback callback) {
+  MutexLock lock(&mutex_);
+
+  if (service_id.empty()) {
+    NEARBY_LOG(INFO,
+               "Refusing to start WifiLan discovering with empty service id.");
     return false;
   }
 
-  if (IsDiscovering(service_id)) {
-    // TODO(b/149806065): logger.atSevere().log("Refusing to start WifiLan
-    // discovering because we are already discovering.");
+  if (!IsAvailableLocked()) {
+    NEARBY_LOG(
+        INFO,
+        "Can't discover WifiLan services because WifiLan isn't available.");
     return false;
   }
 
-  if (!IsAvailable()) {
-    // TODO(b/149806065): logger.atSevere().log("Can't start WifiLan discovering
-    // because WifiLan isn't available.");
+  if (IsDiscoveringLocked(service_id)) {
+    NEARBY_LOG(
+        INFO,
+        "Refusing to start discovery of WifiLan services because another "
+        "discovery is already in-progress.");
     return false;
   }
 
-  // Avoid leaks.
-  ScopedPtr<Ptr<DiscoveredServiceCallbackBridge>>
-      scoped_discovered_service_callback_bridge(
-          new DiscoveredServiceCallbackBridge(discovered_service_callback));
+  if (!medium_.StartDiscovery(service_id, callback)) {
+    NEARBY_LOG(INFO, "Failed to start discovery of WifiLan services.");
+    return false;
+  }
 
-  // TODO(b/149806065): Implements platform wifi-lan medium.
-  // A possible implementation is:
-  // wifi_lan_medium_->StartDiscovery(
-  //     service_id, Ptr<DiscoveredServiceCallbackBridge>(
-  //                     discovered_service_callback_bridge.release()));
-
-  discovering_info_.service_id.assign(service_id.data());
-  return false;
+  NEARBY_LOG(INFO, "Turned on WifiLan discovering with service id=%s",
+             service_id.c_str());
+  // Mark the fact that we're currently performing a WifiLan discovering.
+  discovering_info_.Add(service_id);
+  return true;
 }
 
-template <typename Platform>
-void WifiLan<Platform>::StopDiscovery(absl::string_view service_id) {
-  Synchronized s(lock_.get());
+bool WifiLan::StopDiscovery(const std::string& service_id) {
+  MutexLock lock(&mutex_);
 
-  if (!IsDiscovering(service_id)) {
-    // TODO(b/149806065): logger.atDebug().log("Can't turn off WifiLan
-    // discovering because we never started discovering.");
-    return;
-  }
-
-  // TODO(b/149806065): Implements platform wifi-lan medium.
-  // wifi_lan_medium_->StopDiscovery(discovering_info_.service_id);
-  // Reset our bundle of scanning state to mark that we're no longer scanning.
-  discovering_info_.service_id.clear();
-}
-
-template <typename Platform>
-bool WifiLan<Platform>::IsDiscovering(absl::string_view service_id) {
-  Synchronized s(lock_.get());
-
-  return !discovering_info_.service_id.empty();
-}
-
-template <typename Platform>
-bool WifiLan<Platform>::StartAcceptingConnections(
-    absl::string_view service_id,
-    Ptr<AcceptedConnectionCallback> accepted_connection_callback) {
-  Synchronized s(lock_.get());
-
-  if (accepted_connection_callback.isNull() || service_id.empty()) {
-    // TODO(b/149806065): logger.atSevere().log("Refusing to start accepting
-    // WifiLan connections because a null parameter was passed in.");
+  if (!IsDiscoveringLocked(service_id)) {
+    NEARBY_LOG(INFO,
+               "Can't turn off WifiLan discovering because we never started "
+               "discovering.");
     return false;
   }
 
-  if (IsAcceptingConnections(service_id)) {
-    // TODO(b/149806065): logger.atSevere().log("Refusing to start accepting
-    // WifiLan connections for %s because another WifiLan service socket is
-    // already in-progress.", service_id);
-    return false;
-  }
-
-  if (!IsAvailable()) {
-    // TODO(b/149806065): logger.atSevere().log("Can't start accepting WifiLan
-    // connections for %s because WifiLan isn't available.", serviceId);
-    return false;
-  }
-
-  ScopedPtr<Ptr<WifiLanAcceptedConnectionCallback>>
-      scoped_wifi_lan_accepted_connection_callback(
-          new WifiLanAcceptedConnectionCallback(
-              accepted_connection_callback));
-
-  // TODO(b/149806065): Implements platform wifi-lan medium.
-  // A possible implementation is:
-  // wifi_lan_medium_->StartAcceptingConnections(
-  //     service_id, Ptr<WifiLanAcceptedConnectionCallback>(
-  //                     wifi_lan_accepted_connection_callback.release()));
-
-  accepting_connections_info_.service_id.assign(service_id.data());
-  return false;
+  NEARBY_LOG(INFO, "Turned off WifiLan discovering with service id=%s",
+             service_id.c_str());
+  bool ret = medium_.StopDiscovery(service_id);
+  discovering_info_.Clear();
+  return ret;
 }
 
-template <typename Platform>
-void WifiLan<Platform>::StopAcceptingConnections(absl::string_view service_id) {
-  Synchronized s(lock_.get());
+bool WifiLan::IsDiscovering(const std::string& service_id) {
+  MutexLock lock(&mutex_);
 
-  if (!IsAcceptingConnections(service_id)) {
-    // TODO(b/149806065): logger.atDebug().log("Can't stop accepting WifiLan
-    // connections because it was never started.");
-    return;
+  return IsDiscoveringLocked(service_id);
+}
+
+bool WifiLan::IsDiscoveringLocked(const std::string& service_id) {
+  return discovering_info_.Existed(service_id);
+}
+
+bool WifiLan::StartAcceptingConnections(const std::string& service_id,
+                                        AcceptedConnectionCallback callback) {
+  MutexLock lock(&mutex_);
+
+  if (service_id.empty()) {
+    NEARBY_LOG(INFO,
+               "Refusing to start accepting WifiLan connections with empty "
+               "service id.");
+    return false;
   }
 
-  // TODO(b/149806065): Implements platform wifi-lan medium.);
-  // A possible implementation is:
-  // wifi_lan_medium_->StopAcceptingConnections(
-  //     accepting_connections_info_.service_id);
+  if (!IsAvailableLocked()) {
+    NEARBY_LOG(INFO,
+               "Can't start accepting WifiLan connections for %s because "
+               "WifiLan isn't available.",
+               service_id.c_str());
+    return false;
+  }
 
+  if (IsAcceptingConnectionsLocked(service_id)) {
+    NEARBY_LOG(INFO,
+               "Refusing to start accepting WifiLan connections for %s because "
+               "another WifiLan service socket is already in-progress.",
+               service_id.c_str());
+    return false;
+  }
+
+  if (!medium_.StartAcceptingConnections(service_id, callback)) {
+    NEARBY_LOG(INFO, "Failed to accept connections callback for %s.",
+               service_id.c_str());
+    return false;
+  }
+
+  accepting_connections_info_.Add(service_id);
+  return true;
+}
+
+bool WifiLan::StopAcceptingConnections(const std::string& service_id) {
+  MutexLock lock(&mutex_);
+
+  if (!IsAcceptingConnectionsLocked(service_id)) {
+    NEARBY_LOG(INFO,
+               "Can't stop accepting WifiLan connections because it was never "
+               "started.");
+    return false;
+  }
+
+  bool ret = medium_.StopAcceptingConnections(service_id);
   // Reset our bundle of accepting connections state to mark that we're no
   // longer accepting connections.
-  accepting_connections_info_.service_id.clear();
+  accepting_connections_info_.Remove(service_id);
+  return ret;
 }
 
-template <typename Platform>
-bool WifiLan<Platform>::IsAcceptingConnections(absl::string_view service_id) {
-  Synchronized s(lock_.get());
+bool WifiLan::IsAcceptingConnections(const std::string& service_id) {
+  MutexLock lock(&mutex_);
 
-  return !accepting_connections_info_.service_id.empty();
+  return IsAcceptingConnectionsLocked(service_id);
 }
 
-template <typename Platform>
-Ptr<WifiLanSocket> WifiLan<Platform>::Connect(
-    Ptr<WifiLanService> wifi_lan_service, absl::string_view service_id) {
-  Synchronized s(lock_.get());
+bool WifiLan::IsAcceptingConnectionsLocked(const std::string& service_id) {
+  return accepting_connections_info_.Existed(service_id);
+}
 
-  if (wifi_lan_service.isNull() || service_id.empty()) {
-    return Ptr<WifiLanSocket>();
+WifiLanSocket WifiLan::Connect(WifiLanService& wifi_lan_service,
+                               const std::string& service_id) {
+  MutexLock lock(&mutex_);
+  NEARBY_LOG(INFO, "WifiLan::Connect: service=%p, service_info_name=%s",
+             &wifi_lan_service, wifi_lan_service.GetServiceName().c_str());
+  // Socket to return. To allow for NRVO to work, it has to be a single object.
+  WifiLanSocket socket;
+
+  if (service_id.empty()) {
+    NEARBY_LOG(INFO,
+               "Refusing to create WifiLan socket with empty service_id.");
+    return socket;
   }
 
-  if (!IsAvailable()) {
-    return Ptr<WifiLanSocket>();
+  if (!IsAvailableLocked()) {
+    NEARBY_LOG(INFO,
+               "Can't create client WifiLan socket [service_id=%s]; WifiLan "
+               "isn't available.",
+               service_id.c_str());
+    return socket;
   }
 
-  // TODO(b/149806065): Implements platform wifi-lan medium.
-  // A possible implementation is:
-  // return wifi_lan_medium_->Connect(wifi_lan_service, service_id);
-  return Ptr<WifiLanSocket>();
+  socket = medium_.Connect(wifi_lan_service, service_id);
+  if (!socket.IsValid()) {
+    NEARBY_LOG(INFO, "Failed to Connect via WifiLan [service_id=%s]",
+               service_id.c_str());
+  }
+
+  return socket;
 }
 
-}  // namespace mediums
+WifiLanService WifiLan::GetRemoteWifiLanService(const std::string& ip_address,
+                                                int port) {
+  MutexLock lock(&mutex_);
+  return medium_.FindRemoteService(ip_address, port);
+}
+
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
