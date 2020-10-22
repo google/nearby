@@ -1,3 +1,17 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef CORE_INTERNAL_SERVICE_CONTROLLER_ROUTER_H_
 #define CORE_INTERNAL_SERVICE_CONTROLLER_ROUTER_H_
 
@@ -24,7 +38,7 @@ namespace connections {
 // the former.
 //
 // All the activities are documented in the public API class:
-// https://source.corp.google.com/piper///depot/google3/core_v2/core.h
+// cpp/core_v2/core.h
 //
 // In every method, ClientProxy* represents the client app which receives
 // notifications from Nearby Connections service and forwards them to the app.
