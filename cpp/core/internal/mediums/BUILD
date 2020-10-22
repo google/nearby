@@ -1,148 +1,93 @@
-# Copyright 2020 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-cc_library(
-    name = "utils",
-    srcs = [
-        "utils.cc",
-    ],
-    hdrs = [
-        "utils.h",
-    ],
-    visibility = [
-        "//core/internal/mediums/webrtc:__pkg__",
-    ],
-    deps = [
-        "//platform:types",
-        "//platform:utils",
-        "//platform/api",
-        "//platform/port:string",
-        "//absl/strings",
-    ],
-)
-
 cc_library(
     name = "mediums",
     srcs = [
-        "ble_advertisement.cc",
-        "ble_advertisement_header.cc",
-        "ble_packet.cc",
-        "ble_peripheral.cc",
+        "ble.cc",
+        "bloom_filter.cc",
+        "bluetooth_classic.cc",
+        "bluetooth_radio.cc",
+        "mediums.cc",
+        "uuid.cc",
+        "webrtc.cc",
+        "wifi_lan.cc",
     ],
     hdrs = [
-        "advertisement_read_result.cc",
-        "advertisement_read_result.h",
-        "ble.cc",
         "ble.h",
-        "ble_advertisement.h",
-        "ble_advertisement_header.h",
-        "ble_packet.h",
-        "ble_peripheral.h",
-        "ble_v2.cc",
-        "ble_v2.h",
-        "bloom_filter.cc",
         "bloom_filter.h",
-        "bluetooth_classic.cc",
         "bluetooth_classic.h",
-        "bluetooth_radio.cc",
         "bluetooth_radio.h",
-        "discovered_peripheral_callback.h",
-        "discovered_peripheral_tracker.cc",
-        "discovered_peripheral_tracker.h",
-        "lost_entity_tracker.cc",
         "lost_entity_tracker.h",
-        "mediums.cc",
         "mediums.h",
-        "uuid.cc",
         "uuid.h",
-        "wifi_lan.cc",
+        "webrtc.h",
         "wifi_lan.h",
     ],
-    visibility = ["//core/internal:__pkg__"],
+    visibility = [
+        "//core/internal:__subpackages__",
+    ],
     deps = [
         ":utils",
-        "//platform:logging",
-        "//platform:types",
-        "//platform:utils",
-        "//platform/api",
-        "//platform/port:string",
+        "//core:core_types",
+        "//core/internal/mediums/ble_v2",
+        "//core/internal/mediums/webrtc",
+        "//proto/connections:offline_wire_formats_portable_proto",
+        "//platform/base",
+        "//platform/public:comm",
+        "//platform/public:logging",
+        "//platform/public:types",
+        "//location/nearby/mediums/proto:web_rtc_signaling_frames_cc_proto",
+        "//absl/container:flat_hash_map",
+        "//absl/container:flat_hash_set",
         "//absl/numeric:int128",
         "//absl/strings",
-        "//smhasher:libmurmur3",
-    ],
-)
-
-cc_test(
-    name = "advertisement_read_result_test",
-    srcs = ["advertisement_read_result_test.cc"],
-    deps = [
-        ":mediums",
-        "//platform/api",
-        "//platform/impl/g3",
-        "//testing/base/public:gunit_main",
         "//absl/time",
+        "//smhasher:libmurmur3",
+        "//webrtc/api:libjingle_peerconnection_api",
+        "//webrtc/api:scoped_refptr",
+    ],
+)
+
+cc_library(
+    name = "utils",
+    srcs = ["utils.cc"],
+    hdrs = ["utils.h"],
+    visibility = [
+        "//core/internal:__pkg__",
+        "//core/internal/mediums:__pkg__",
+        "//core/internal/mediums/ble_v2:__pkg__",
+        "//core/internal/mediums/webrtc:__pkg__",
+    ],
+    deps = [
+        "//proto/connections:offline_wire_formats_portable_proto",
+        "//platform/base",
+        "//platform/public:types",
     ],
 )
 
 cc_test(
-    name = "ble_advertisement_header_test",
-    srcs = ["ble_advertisement_header_test.cc"],
-    deps = [
-        ":mediums",
-        "//platform:utils",
-        "//platform/impl/g3",
-        "//testing/base/public:gunit_main",
+    name = "core_internal_mediums_test",
+    size = "small",
+    srcs = [
+        "ble_test.cc",
+        "bloom_filter_test.cc",
+        "bluetooth_classic_test.cc",
+        "bluetooth_radio_test.cc",
+        "lost_entity_tracker_test.cc",
+        "uuid_test.cc",
+        "webrtc_test.cc",
+        "wifi_lan_test.cc",
     ],
-)
-
-cc_test(
-    name = "ble_advertisement_test",
-    srcs = ["ble_advertisement_test.cc"],
+    shard_count = 16,
     deps = [
         ":mediums",
-        "//platform/impl/g3",
+        "//core/internal/mediums/webrtc",
+        "//platform/base",
+        "//platform/base:test_util",
+        "//platform/impl/g3",  # build_cleaner: keep
+        "//platform/public:comm",
+        "//platform/public:logging",
+        "//platform/public:types",
         "//testing/base/public:gunit_main",
-    ],
-)
-
-cc_test(
-    name = "ble_packet_test",
-    srcs = ["ble_packet_test.cc"],
-    deps = [
-        ":mediums",
-        "//platform/impl/g3",
-        "//testing/base/public:gunit_main",
-    ],
-)
-
-cc_test(
-    name = "bloom_filter_test",
-    srcs = ["bloom_filter_test.cc"],
-    deps = [
-        ":mediums",
-        "//platform/impl/g3",
-        "//testing/base/public:gunit_main",
-    ],
-)
-
-cc_test(
-    name = "lost_entity_tracker_test",
-    srcs = ["lost_entity_tracker_test.cc"],
-    deps = [
-        ":mediums",
-        "//platform/api",
-        "//platform/impl/g3",
-        "//testing/base/public:gunit_main",
+        "//absl/strings",
+        "//absl/time",
     ],
 )

@@ -1,76 +1,76 @@
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #ifndef CORE_INTERNAL_SERVICE_CONTROLLER_H_
 #define CORE_INTERNAL_SERVICE_CONTROLLER_H_
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include "core/internal/client_proxy.h"
 #include "core/listeners.h"
 #include "core/options.h"
+#include "core/params.h"
 #include "core/payload.h"
 #include "core/status.h"
-#include "platform/port/string.h"
-#include "platform/ptr.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-template <typename Platform>
+// Interface defines the core functionality of Nearby Connections Service.
+//
+// In every method, ClientProxy* represents the client app which receives
+// notifications from Nearby Connections service and forwards them to the app.
+// ResultCallback arguments are not provided for this class, because all methods
+// are called synchronously.
+// The rest of arguments have the same meaning as the corresponding
+// methods in the definition of location::nearby::Core API.
+//
+// See details here:
+// https://source.corp.google.com/piper///depot/google3/core/core.h
 class ServiceController {
  public:
-  virtual ~ServiceController() {}
+  virtual ~ServiceController() = default;
+  ServiceController() = default;
+  ServiceController(const ServiceController&) = delete;
+  ServiceController& operator=(const ServiceController&) = delete;
 
-  virtual Status::Value startAdvertising(
-      Ptr<ClientProxy<Platform> > client_proxy,
-      const std::string& endpoint_name, const std::string& service_id,
-      const AdvertisingOptions& advertising_options,
-      Ptr<ConnectionLifecycleListener> connection_lifecycle_listener) = 0;
-  virtual void stopAdvertising(Ptr<ClientProxy<Platform> > client_proxy) = 0;
+  // Starts advertising an endpoint for a local app.
+  virtual Status StartAdvertising(ClientProxy* client,
+                                  const std::string& service_id,
+                                  const ConnectionOptions& options,
+                                  const ConnectionRequestInfo& info) = 0;
+  virtual void StopAdvertising(ClientProxy* client) = 0;
 
-  virtual Status::Value startDiscovery(
-      Ptr<ClientProxy<Platform> > client_proxy, const std::string& service_id,
-      const DiscoveryOptions& discovery_options,
-      Ptr<DiscoveryListener> discovery_listener) = 0;
-  virtual void stopDiscovery(Ptr<ClientProxy<Platform> > client_proxy) = 0;
+  virtual Status StartDiscovery(ClientProxy* client,
+                                const std::string& service_id,
+                                const ConnectionOptions& options,
+                                const DiscoveryListener& listener) = 0;
+  virtual void StopDiscovery(ClientProxy* client) = 0;
 
-  virtual Status::Value requestConnection(
-      Ptr<ClientProxy<Platform> > client_proxy,
-      const std::string& endpoint_name, const std::string& endpoint_id,
-      Ptr<ConnectionLifecycleListener> connection_lifecycle_listener) = 0;
-  virtual Status::Value acceptConnection(
-      Ptr<ClientProxy<Platform> > client_proxy, const std::string& endpoint_id,
-      Ptr<PayloadListener> payload_listener) = 0;
-  virtual Status::Value rejectConnection(
-      Ptr<ClientProxy<Platform> > client_proxy,
-      const std::string& endpoint_id) = 0;
+  virtual void InjectEndpoint(ClientProxy* client,
+                              const std::string& service_id,
+                              const OutOfBandConnectionMetadata& metadata) = 0;
 
-  virtual void initiateBandwidthUpgrade(
-      Ptr<ClientProxy<Platform> > client_proxy,
-      const std::string& endpoint_id) = 0;
+  virtual Status RequestConnection(ClientProxy* client,
+                                   const std::string& endpoint_id,
+                                   const ConnectionRequestInfo& info,
+                                   const ConnectionOptions& options) = 0;
+  virtual Status AcceptConnection(ClientProxy* client,
+                                  const std::string& endpoint_id,
+                                  const PayloadListener& listener) = 0;
+  virtual Status RejectConnection(ClientProxy* client,
+                                  const std::string& endpoint_id) = 0;
 
-  virtual void sendPayload(Ptr<ClientProxy<Platform> > client_proxy,
+  virtual void InitiateBandwidthUpgrade(ClientProxy* client,
+                                        const std::string& endpoint_id) = 0;
+
+  virtual void SendPayload(ClientProxy* client,
                            const std::vector<std::string>& endpoint_ids,
-                           ConstPtr<Payload> payload) = 0;
+                           Payload payload) = 0;
 
-  virtual Status::Value cancelPayload(Ptr<ClientProxy<Platform> > client_proxy,
-                                      std::int64_t payload_id) = 0;
+  virtual Status CancelPayload(ClientProxy* client, Payload::Id payload_id) = 0;
 
-  virtual void disconnectFromEndpoint(Ptr<ClientProxy<Platform> > client_proxy,
+  virtual void DisconnectFromEndpoint(ClientProxy* client,
                                       const std::string& endpoint_id) = 0;
 };
 

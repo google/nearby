@@ -1,26 +1,12 @@
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #ifndef CORE_INTERNAL_BLUETOOTH_DEVICE_NAME_H_
 #define CORE_INTERNAL_BLUETOOTH_DEVICE_NAME_H_
 
 #include <cstdint>
 
+#include "core/internal/base_pcp_handler.h"
 #include "core/internal/pcp.h"
-#include "platform/byte_array.h"
-#include "platform/port/string.h"
-#include "platform/ptr.h"
+#include "platform/base/byte_array.h"
+#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -33,64 +19,58 @@ namespace connections {
 class BluetoothDeviceName {
  public:
   // Versions of the BluetoothDeviceName.
-  struct Version {
-    enum Value {
-      V1 = 1,
-      // Version is only allocated 3 bits in the BluetoothDeviceName, so this
-      // can never go beyond V7.
-    };
+  enum class Version {
+    kUndefined = 0,
+    kV1 = 1,
+    // Version is only allocated 3 bits in the BluetoothDeviceName, so this
+    // can never go beyond V7.
   };
 
-  static Ptr<BluetoothDeviceName> fromString(
-      const std::string& bluetooth_device_name_string);
+  static constexpr int kServiceIdHashLength = 3;
 
-  static std::string asString(Version::Value version, PCP::Value pcp,
-                              const std::string& endpoint_id,
-                              ConstPtr<ByteArray> service_id_hash,
-                              const std::string& endpoint_name);
+  BluetoothDeviceName() = default;
+  BluetoothDeviceName(Version version, Pcp pcp, absl::string_view endpoint_id,
+                      const ByteArray& service_id_hash,
+                      const ByteArray& endpoint_info,
+                      const ByteArray& uwb_address,
+                      WebRtcState web_rtc_state);
+  explicit BluetoothDeviceName(absl::string_view bluetooth_device_name_string);
+  BluetoothDeviceName(const BluetoothDeviceName&) = default;
+  BluetoothDeviceName& operator=(const BluetoothDeviceName&) = default;
+  BluetoothDeviceName(BluetoothDeviceName&&) = default;
+  BluetoothDeviceName& operator=(BluetoothDeviceName&&) = default;
+  ~BluetoothDeviceName() = default;
 
-  static const std::uint32_t kServiceIdHashLength;
+  explicit operator std::string() const;
 
-  ~BluetoothDeviceName();
-
-  Version::Value getVersion() const;
-  PCP::Value getPCP() const;
-  std::string getEndpointId() const;
-  ConstPtr<ByteArray> getServiceIdHash() const;
-  std::string getEndpointName() const;
+  bool IsValid() const { return !endpoint_id_.empty(); }
+  Version GetVersion() const { return version_; }
+  Pcp GetPcp() const { return pcp_; }
+  std::string GetEndpointId() const { return endpoint_id_; }
+  ByteArray GetServiceIdHash() const { return service_id_hash_; }
+  ByteArray GetEndpointInfo() const { return endpoint_info_; }
+  ByteArray GetUwbAddress() const { return uwb_address_; }
+  WebRtcState GetWebRtcState() const { return web_rtc_state_; }
 
  private:
-  static Ptr<BluetoothDeviceName> createV1BluetoothDeviceName(
-      ConstPtr<ByteArray> bluetooth_device_name_bytes);
-  static std::uint32_t computeEndpointNameLength(
-      ConstPtr<ByteArray> bluetooth_device_name_bytes);
-  static std::uint32_t computeBluetoothDeviceNameLength(
-      ConstPtr<ByteArray> endpoint_name_bytes);
-  static Ptr<ByteArray> createV1Bytes(PCP::Value pcp,
-                                      const std::string& endpoint_id,
-                                      ConstPtr<ByteArray> service_id_hash,
-                                      ConstPtr<ByteArray> endpoint_name_bytes);
+  static constexpr int kEndpointIdLength = 4;
+  static constexpr int kReservedLength = 6;
+  static constexpr int kMaxEndpointInfoLength = 131;
+  static constexpr int kMinBluetoothDeviceNameLength = 16;
 
-  static const std::uint32_t kMaxBluetoothDeviceNameLength;
-  static const std::uint32_t kEndpointIdLength;
-  static const std::uint32_t kReservedLength;
-  static const std::uint32_t kMaxEndpointNameLength;
-  static const std::uint32_t kMinBluetoothDeviceNameLength;
+  static constexpr int kVersionBitmask = 0x0E0;
+  static constexpr int kPcpBitmask = 0x01F;
+  static constexpr int kEndpointNameLengthBitmask = 0x0FF;
+  static constexpr int kWebRtcConnectableFlagBitmask = 0x01;
 
-  static const std::uint16_t kVersionBitmask;
-  static const std::uint16_t kPCPBitmask;
-  static const std::uint16_t kEndpointNameLengthBitmask;
-
-  BluetoothDeviceName(Version::Value version, PCP::Value pcp,
-                      const std::string& endpoint_id,
-                      ConstPtr<ByteArray> service_id_hash,
-                      const std::string& endpoint_name);
-
-  const Version::Value version_;
-  const PCP::Value pcp_;
-  const std::string endpoint_id_;
-  ScopedPtr<ConstPtr<ByteArray> > service_id_hash_;
-  const std::string endpoint_name_;
+  Version version_{Version::kUndefined};
+  Pcp pcp_{Pcp::kUnknown};
+  std::string endpoint_id_;
+  ByteArray service_id_hash_;
+  ByteArray endpoint_info_;
+  // TODO(b/169550050): Define UWB address field.
+  ByteArray uwb_address_;
+  WebRtcState web_rtc_state_{WebRtcState::kUndefined};
 };
 
 }  // namespace connections

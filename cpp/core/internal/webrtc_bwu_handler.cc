@@ -1,0 +1,171 @@
+#include "core/internal/webrtc_bwu_handler.h"
+
+#include <locale>
+#include <string>
+
+#include "core/internal/client_proxy.h"
+#include "core/internal/mediums/utils.h"
+#include "core/internal/mediums/webrtc/peer_id.h"
+#include "core/internal/offline_frames.h"
+#include "core/internal/webrtc_endpoint_channel.h"
+#include "absl/functional/bind_front.h"
+
+// Manages the Bluetooth-specific methods needed to upgrade an {@link
+// EndpointChannel}.
+
+namespace location {
+namespace nearby {
+namespace connections {
+
+WebrtcBwuHandler::WebrtcBwuHandler(Mediums& mediums,
+                                   EndpointChannelManager& channel_manager,
+                                   BwuNotifications notifications)
+    : BaseBwuHandler(channel_manager, std::move(notifications)),
+      mediums_(mediums) {}
+
+void WebrtcBwuHandler::Revert() {
+  if (!active_service_ids_.empty()) {
+    webrtc_.StopAcceptingConnections();
+    active_service_ids_.clear();
+  }
+
+  NEARBY_LOG(INFO, "WebrtcBwuHandler successfully reverted state.");
+}
+
+// Accept Connection Callback.
+// Notifies that the remote party called WebRtc::Connect()
+// for this socket.
+void WebrtcBwuHandler::OnIncomingWebrtcConnection(
+    ClientProxy* client, const std::string& upgrade_service_id,
+    mediums::WebRtcSocketWrapper socket) {
+  std::string service_id = Utils::UnwrapUpgradeServiceId(upgrade_service_id);
+  auto channel = std::make_unique<WebRtcEndpointChannel>(service_id, socket);
+  auto webrtc_socket =
+      std::make_unique<WebrtcIncomingSocket>(service_id, socket);
+  std::unique_ptr<IncomingSocketConnection> connection(
+      new IncomingSocketConnection{std::move(webrtc_socket),
+                                   std::move(channel)});
+
+  bwu_notifications_.incoming_connection_cb(client, std::move(connection));
+}
+
+// Called by BWU initiator. BT Medium is set up, and BWU request is prepared,
+// with necessary info (service_id, MAC address) for remote party to perform
+// discovery.
+ByteArray WebrtcBwuHandler::InitializeUpgradedMediumForEndpoint(
+    ClientProxy* client, const std::string& service_id,
+    const std::string& endpoint_id) {
+  // Use wrapped service ID to avoid have the same ID with the one for
+  // startAdvertising. Otherwise, the listening request would be ignored because
+  // the medium already start accepting the connection because the client not
+  // stop the advertising yet.
+  std::string upgrade_service_id = Utils::WrapUpgradeServiceId(service_id);
+
+  LocationHint location_hint = Utils::BuildLocationHint(GetCountryCode());
+
+  mediums::PeerId self_id{mediums::PeerId::FromRandom()};
+  if (!webrtc_.IsAcceptingConnections()) {
+    if (!webrtc_.StartAcceptingConnections(
+            self_id, location_hint,
+            {
+                .accepted_cb = absl::bind_front(
+                    &WebrtcBwuHandler::OnIncomingWebrtcConnection, this, client,
+                    upgrade_service_id),
+            })) {
+      NEARBY_LOG(ERROR,
+                 "WebRtcBwuHandler couldn't initiate the WEB_RTC upgrade for "
+                 "endpoint %s because it failed to start listening for "
+                 "incoming WebRTC connections.",
+                 endpoint_id.c_str());
+      return {};
+    }
+    NEARBY_LOG(INFO,
+               "WebRtcBwuHandler successfully started listening for incoming "
+               "WebRTC connections while upgrading endpoint %s",
+               endpoint_id.c_str());
+  }
+
+  // cache service ID to revert
+  active_service_ids_.emplace(upgrade_service_id);
+
+  return parser::ForBwuWebrtcPathAvailable(self_id.GetId(), location_hint);
+}
+
+// Called by BWU target. Retrieves a new medium info from incoming message,
+// and establishes connection over WebRTC using this info.
+std::unique_ptr<EndpointChannel>
+WebrtcBwuHandler::CreateUpgradedEndpointChannel(
+    ClientProxy* client, const std::string& service_id,
+    const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
+  const UpgradePathInfo::WebRtcCredentials& web_rtc_credentials =
+      upgrade_path_info.web_rtc_credentials();
+  mediums::PeerId peer_id(web_rtc_credentials.peer_id());
+
+  LocationHint location_hint;
+  location_hint.set_format(LocationStandard::UNKNOWN);
+  if (web_rtc_credentials.has_location_hint()) {
+    location_hint = web_rtc_credentials.location_hint();
+  }
+  NEARBY_LOG(INFO,
+             "WebRtcBwuHandler is attempting to connect to remote peer %s, "
+             "location hint %s",
+             peer_id.GetId().c_str(), location_hint.DebugString().c_str());
+
+  mediums::WebRtcSocketWrapper socket = webrtc_.Connect(peer_id, location_hint);
+  if (!socket.IsValid()) {
+    NEARBY_LOG(ERROR,
+               "WebRtcBwuHandler failed to connect to remote peer (%s) on "
+               "endpoint %s, aborting upgrade.",
+               peer_id.GetId().c_str(), endpoint_id.c_str());
+    return nullptr;
+  }
+
+  NEARBY_LOG(INFO,
+             "WebRtcBwuHandler successfully connected to remote "
+             "peer (%s) while upgrading endpoint %s.",
+             peer_id.GetId().c_str(), endpoint_id.c_str());
+
+  // Create a new WebRtcEndpointChannel.
+  auto channel = std::make_unique<WebRtcEndpointChannel>(service_id, socket);
+  if (channel == nullptr) {
+    socket.Close();
+    NEARBY_LOG(ERROR,
+               "WebRtcBwuHandler failed to create new EndpointChannel for "
+               "outgoing socket %p, aborting upgrade.",
+               &socket.GetImpl());
+  }
+
+  return channel;
+}
+
+void WebrtcBwuHandler::OnEndpointDisconnect(ClientProxy* client,
+                                            const std::string& endpoint_id) {}
+
+std::string WebrtcBwuHandler::GetCountryCode() {
+  std::string default_locale_name = std::locale("").name();
+
+  // locale name has a format: <lang>_<country>.<encoding>
+  int s = default_locale_name.find("_");
+  int e = default_locale_name.find(".");
+
+  if (s == -1 || e == -1) {
+    return "";
+  }
+
+  auto country_code = default_locale_name.substr(s + 1, e - s - 1);
+  std::transform(country_code.begin(), country_code.end(), country_code.begin(),
+                 std::towlower);
+  return country_code;
+}
+
+WebrtcBwuHandler::WebrtcIncomingSocket::WebrtcIncomingSocket(
+    const std::string& name, mediums::WebRtcSocketWrapper socket)
+    : name_(name), socket_(socket) {}
+
+void WebrtcBwuHandler::WebrtcIncomingSocket::Close() { socket_.Close(); }
+
+std::string WebrtcBwuHandler::WebrtcIncomingSocket::ToString() { return name_; }
+
+}  // namespace connections
+}  // namespace nearby
+}  // namespace location

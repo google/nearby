@@ -20,7 +20,9 @@ proto_library(
         "offline_wire_formats.proto",
     ],
     cc_api_version = 2,
-    visibility = ["//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__"],
+    visibility = [
+        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+    ],
 )
 
 java_lite_proto_library(
@@ -44,7 +46,10 @@ portable_proto_library(
     proto_deps = [
         ":offline_wire_formats_proto",
     ],
-    visibility = ["//location/nearby/connections:__subpackages__"],
+    visibility = [
+        "//location/nearby/connections:__subpackages__",
+        "//platform:__subpackages__",
+    ],
 )
 
 filegroup(

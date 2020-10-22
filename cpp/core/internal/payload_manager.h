@@ -1,303 +1,285 @@
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #ifndef CORE_INTERNAL_PAYLOAD_MANAGER_H_
 #define CORE_INTERNAL_PAYLOAD_MANAGER_H_
 
 #include <cstdint>
-#include <map>
+#include <memory>
+#include <string>
 #include <vector>
 
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_manager.h"
 #include "core/internal/internal_payload.h"
-#include "core/internal/internal_payload_factory.h"
-#include "core/internal/loop_runner.h"
 #include "core/listeners.h"
 #include "core/payload.h"
 #include "core/status.h"
 #include "proto/connections/offline_wire_formats.pb.h"
-#include "platform/api/count_down_latch.h"
-#include "platform/api/lock.h"
-#include "platform/byte_array.h"
-#include "platform/port/string.h"
-#include "platform/ptr.h"
-#include "platform/runnable.h"
+#include "platform/base/byte_array.h"
+#include "platform/public/atomic_boolean.h"
+#include "platform/public/atomic_reference.h"
+#include "platform/public/count_down_latch.h"
+#include "platform/public/mutex.h"
 #include "proto/connections_enums.pb.h"
+#include "absl/container/flat_hash_map.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-namespace payload_manager {
-
-template <typename>
-class SendPayloadRunnable;
-template <typename>
-class ProcessEndpointDisconnectionRunnable;
-template <typename>
-class SendClientCallbacksForFinishedOutgoingPayloadRunnable;
-template <typename>
-class SendClientCallbacksForFinishedIncomingPayloadRunnable;
-template <typename>
-class HandleSuccessfulOutgoingChunkRunnable;
-template <typename>
-class HandleSuccessfulIncomingChunkRunnable;
-
-}  // namespace payload_manager
-
-template <typename Platform>
-class PayloadManager
-    : public EndpointManager<Platform>::IncomingOfflineFrameProcessor {
+class PayloadManager : public EndpointManager::FrameProcessor {
  public:
-  explicit PayloadManager(Ptr<EndpointManager<Platform> > endpoint_manager);
+  using EndpointIds = std::vector<std::string>;
+  constexpr static const absl::Duration kWaitCloseTimeout =
+      absl::Milliseconds(5000);
+
+  explicit PayloadManager(EndpointManager& endpoint_manager);
   ~PayloadManager() override;
 
-  void sendPayload(Ptr<ClientProxy<Platform> > client_proxy,
-                   const std::vector<string>& endpoint_ids,
-                   ConstPtr<Payload> payload);
-  Status::Value cancelPayload(Ptr<ClientProxy<Platform> > client_proxy,
-                              std::int64_t payload_id);
+  void SendPayload(ClientProxy* client, const EndpointIds& endpoint_ids,
+                   Payload payload);
+  Status CancelPayload(ClientProxy* client, Payload::Id payload_id);
 
   // @EndpointManagerReaderThread
-  void processIncomingOfflineFrame(
-      ConstPtr<OfflineFrame> offline_frame, const string& from_endpoint_id,
-      Ptr<ClientProxy<Platform> > to_client_proxy,
-      proto::connections::Medium current_medium) override;
+  void OnIncomingFrame(OfflineFrame& offline_frame,
+                       const std::string& from_endpoint_id,
+                       ClientProxy* to_client,
+                       proto::connections::Medium current_medium) override;
 
   // @EndpointManagerThread
-  void processEndpointDisconnection(
-      Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
-      Ptr<CountDownLatch> process_disconnection_barrier) override;
+  void OnEndpointDisconnect(ClientProxy* client, const std::string& endpoint_id,
+                            CountDownLatch* barrier) override;
+
+  void DisconnectFromEndpointManager();
 
  private:
   // Information about an endpoint for a particular payload.
-  class EndpointInfo {
-   public:
+  struct EndpointInfo {
     // Status set for the endpoint out-of-band via a ControlMessage.
-    struct Status {
-      enum Value { UNKNOWN, AVAILABLE, CANCELED, ERROR };
+    enum class Status {
+      kUnknown,
+      kAvailable,
+      kCanceled,
+      kError,
     };
 
-    explicit EndpointInfo(string id);
+    void SetStatusFromControlMessage(
+        const PayloadTransferFrame::ControlMessage& control_message);
 
-    string getId() const;
-    typename EndpointInfo::Status::Value getStatus() const;
-    std::int64_t getOffset() const;
-
-    void setStatus(const PayloadTransferFrame::ControlMessage& control_message);
-    void setOffset(std::int64_t offset);
-
-   private:
-    static typename Status::Value controlMessageEventToEndpointInfoStatus(
+    static Status ControlMessageEventToEndpointInfoStatus(
         PayloadTransferFrame::ControlMessage::EventType event);
 
-    const string id_;
-    typename Status::Value status_;
-    std::int64_t offset_;
+    std::string id;
+    AtomicReference<Status> status {Status::kUnknown};
+    std::int64_t offset = 0;
   };
 
   // Tracks state for an InternalPayload and the endpoints associated with it.
   class PendingPayload {
    public:
-    static Ptr<PendingPayload> createIncoming(
-        Ptr<InternalPayload> internal_payload, const string& endpoint_id);
-    static Ptr<PendingPayload> createOutgoing(
-        Ptr<InternalPayload> internal_payload,
-        const std::vector<string>& endpoint_ids);
+    PendingPayload(std::unique_ptr<InternalPayload> internal_payload,
+                   const EndpointIds& endpoint_ids, bool is_incoming);
+    PendingPayload(PendingPayload&&) = default;
+    PendingPayload& operator=(PendingPayload&&) = default;
 
-    ~PendingPayload();
+    ~PendingPayload() { Close(); }
 
-    std::int64_t getId();
+    Payload::Id GetId() const;
 
-    Ptr<InternalPayload> getInternalPayload();
+    InternalPayload* GetInternalPayload();
 
-    bool isLocallyCanceled();
-    void markLocallyCanceled();
-    bool isIncoming();
+    bool IsLocallyCanceled() const;
+    void MarkLocallyCanceled();
+    bool IsIncoming() const;
 
     // Gets the EndpointInfo objects for the endpoints (still) associated with
     // this payload.
-    std::vector<Ptr<EndpointInfo> > getEndpoints() const;
+    std::vector<const EndpointInfo*> GetEndpoints() const
+        ABSL_LOCKS_EXCLUDED(mutex_);
     // Returns the EndpointInfo for a given endpoint ID. Returns null if the
     // endpoint is not associated with this payload.
-    Ptr<EndpointInfo> getEndpoint(const string& endpoint_id);
+    EndpointInfo* GetEndpoint(const std::string& endpoint_id)
+        ABSL_LOCKS_EXCLUDED(mutex_);
 
     // Removes the given endpoints, e.g. on error.
-    void removeEndpoints(const std::vector<string>& endpoint_ids_to_remove);
+    void RemoveEndpoints(const EndpointIds& endpoint_ids_to_remove)
+        ABSL_LOCKS_EXCLUDED(mutex_);
 
     // Sets the status for a particular endpoint.
-    void setEndpointStatusFromControlMessage(
-        const string& endpoint_id,
-        const PayloadTransferFrame::ControlMessage& control_message);
+    void SetEndpointStatusFromControlMessage(
+        const std::string& endpoint_id,
+        const PayloadTransferFrame::ControlMessage& control_message)
+        ABSL_LOCKS_EXCLUDED(mutex_);
 
     // Sets the offset for a particular endpoint.
-    void setOffsetForEndpoint(const string& endpoint_id, std::int64_t offset);
+    void SetOffsetForEndpoint(const std::string& endpoint_id,
+                              std::int64_t offset) ABSL_LOCKS_EXCLUDED(mutex_);
 
-    void close();
+    // Closes internal_payload_ and triggers close_event_.
+    // Close is called when a pending peyload does not have associated
+    // endpoints.
+    void Close();
+
+    // Waits for close_event_  or for timeout to happen.
+    // Returns true, if event happened, false otherwise.
+    bool WaitForClose();
+    bool IsClosed();
 
    private:
-    PendingPayload(Ptr<InternalPayload> internal_payload,
-                   const std::vector<string>& endpoint_ids, bool is_incoming);
-
-    ScopedPtr<Ptr<Lock> > lock_;
-
-    ScopedPtr<Ptr<InternalPayload> > internal_payload_;
-    const bool is_incoming_;
-    ScopedPtr<Ptr<AtomicBoolean> > is_locally_cancelled_;
-    typedef std::map<string, Ptr<EndpointInfo> > EndpointsMap;
-    EndpointsMap endpoints_;
+    mutable Mutex mutex_;
+    bool is_incoming_;
+    AtomicBoolean is_locally_canceled_{false};
+    CountDownLatch close_event_{1};
+    std::unique_ptr<InternalPayload> internal_payload_;
+    absl::flat_hash_map<std::string, EndpointInfo> endpoints_
+        ABSL_GUARDED_BY(mutex_);
   };
 
   // Tracks and manages PendingPayload objects in a synchronized manner.
   class PendingPayloads {
    public:
-    PendingPayloads();
-    ~PendingPayloads();
+    PendingPayloads() = default;
+    ~PendingPayloads() = default;
 
-    void startTrackingPayload(std::int64_t payload_id,
-                              Ptr<PendingPayload> pending_payload);
-    Ptr<PendingPayload> stopTrackingPayload(std::int64_t payload_id);
-    Ptr<PendingPayload> getPayload(std::int64_t payload_id);
-    std::vector<Ptr<PendingPayload> > getAllPayloads();
+    void StartTrackingPayload(Payload::Id payload_id,
+                              std::unique_ptr<PendingPayload> pending_payload)
+        ABSL_LOCKS_EXCLUDED(mutex_);
+    std::unique_ptr<PendingPayload> StopTrackingPayload(Payload::Id payload_id)
+        ABSL_LOCKS_EXCLUDED(mutex_);
+    PendingPayload* GetPayload(Payload::Id payload_id) const
+        ABSL_LOCKS_EXCLUDED(mutex_);
+    std::vector<Payload::Id> GetAllPayloads() ABSL_LOCKS_EXCLUDED(mutex_);
 
    private:
-    ScopedPtr<Ptr<Lock> > lock_;
-    typedef std::map<std::int64_t, Ptr<PendingPayload> > PendingPayloadsMap;
-    PendingPayloadsMap pending_payloads_;
+    mutable Mutex mutex_;
+    absl::flat_hash_map<Payload::Id, std::unique_ptr<PendingPayload>>
+        pending_payloads_ ABSL_GUARDED_BY(mutex_);
   };
 
-  template <typename>
-  friend class payload_manager::SendPayloadRunnable;
-  template <typename>
-  friend class payload_manager::ProcessEndpointDisconnectionRunnable;
-  template <typename>
-  friend class payload_manager::
-      SendClientCallbacksForFinishedOutgoingPayloadRunnable;
-  template <typename>
-  friend class payload_manager::
-      SendClientCallbacksForFinishedIncomingPayloadRunnable;
-  template <typename>
-  friend class payload_manager::HandleSuccessfulOutgoingChunkRunnable;
-  template <typename>
-  friend class payload_manager::HandleSuccessfulIncomingChunkRunnable;
+  using Endpoints = std::vector<const EndpointInfo*>;
+  static std::string ToString(const EndpointIds& endpoint_ids);
+  static std::string ToString(const Endpoints& endpoints);
+
+  // Splits the endpoints for this payload by availability.
+  // Returns a pair of lists of EndpointInfo*, with the first being the list of
+  // still-available endpoints, and the second for unavailable endpoints.
+  static std::pair<Endpoints, Endpoints> GetAvailableAndUnavailableEndpoints(
+      const PendingPayload& pending_payload);
+
+  // Converts list of EndpointInfo to list of Endpoint ids.
+  // Returns list of endpoint ids.
+  static EndpointIds EndpointsToEndpointIds(const Endpoints& endpoints);
+
+  bool SendPayloadLoop(ClientProxy* client, PendingPayload& pending_payload,
+                       PayloadTransferFrame::PayloadHeader& payload_header,
+                       std::int64_t& next_chunk_offset);
+  void SendClientCallbacksForFinishedIncomingPayloadRunnable(
+      ClientProxy* client, const std::string& endpoint_id,
+      const PayloadTransferFrame::PayloadHeader& payload_header,
+      std::int64_t offset_bytes, proto::connections::PayloadStatus status);
 
   // Converts the status of an endpoint that's been set out-of-band via a remote
   // ControlMessage to the PayloadStatus for handling of that endpoint-payload
   // pair.
-  static proto::connections::PayloadStatus endpointInfoStatusToPayloadStatus(
-      typename EndpointInfo::Status::Value status);
+  static proto::connections::PayloadStatus EndpointInfoStatusToPayloadStatus(
+      EndpointInfo::Status status);
   // Converts a ControlMessage::EventType for a particular payload to a
   // PayloadStatus. Called when we've received a ControlMessage with this event
   // from a remote endpoint; thus the PayloadStatuses are REMOTE_*.
-  static proto::connections::PayloadStatus controlMessageEventToPayloadStatus(
+  static proto::connections::PayloadStatus ControlMessageEventToPayloadStatus(
       PayloadTransferFrame::ControlMessage::EventType event);
-  static PayloadTransferUpdate::Status::Value
-  payloadStatusToTransferUpdateStatus(proto::connections::PayloadStatus status);
+  static PayloadProgressInfo::Status PayloadStatusToTransferUpdateStatus(
+      proto::connections::PayloadStatus status);
 
-  ConstPtr<PayloadTransferFrame::PayloadHeader> createPayloadHeader(
-      ConstPtr<InternalPayload> internal_payload);
-  ConstPtr<PayloadTransferFrame::PayloadChunk> createPayloadChunk(
-      std::int64_t payload_chunk_offset,
-      ConstPtr<ByteArray> payload_chunk_body);
+  PayloadTransferFrame::PayloadHeader CreatePayloadHeader(
+      const InternalPayload& payload);
+  PayloadTransferFrame::PayloadChunk CreatePayloadChunk(std::int64_t offset,
+                                                        ByteArray body);
 
-  Ptr<PendingPayload> createIncomingPayload(
-      const PayloadTransferFrame& payload_transfer_frame,
-      const string& endpoint_id);
+  PendingPayload* CreateIncomingPayload(const PayloadTransferFrame& frame,
+                                        const std::string& endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void sendClientCallbacksForFinishedOutgoingPayload(
-      Ptr<ClientProxy<Platform> > client_proxy,
-      const std::vector<string>& finished_endpoint_ids,
+  Payload::Id CreateOutgoingPayload(Payload payload,
+                                    const EndpointIds& endpoint_ids)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  void SendClientCallbacksForFinishedOutgoingPayload(
+      ClientProxy* client, const EndpointIds& finished_endpoint_ids,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int64_t num_bytes_successfully_transferred,
       proto::connections::PayloadStatus status);
-  void sendClientCallbacksForFinishedIncomingPayload(
-      Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
+  void SendClientCallbacksForFinishedIncomingPayload(
+      ClientProxy* client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int64_t offset_bytes, proto::connections::PayloadStatus status);
 
-  void sendControlMessage(
-      const std::vector<string>& endpoint_ids,
+  void SendControlMessage(
+      const EndpointIds& endpoint_ids,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int64_t num_bytes_successfully_transferred,
       PayloadTransferFrame::ControlMessage::EventType event_type);
 
   // Handles a finished outgoing payload for the given endpointIds. All statuses
   // except for SUCCESS are handled here.
-  void handleFinishedOutgoingPayload(
-      Ptr<ClientProxy<Platform> > client_proxy,
-      const std::vector<string>& finished_endpoint_ids,
+  void HandleFinishedOutgoingPayload(
+      ClientProxy* client, const EndpointIds& finished_endpoint_ids,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int64_t num_bytes_successfully_transferred,
-      proto::connections::PayloadStatus status);
-  void handleFinishedIncomingPayload(
-      Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
+      proto::connections::PayloadStatus status =
+          proto::connections::PayloadStatus::UNKNOWN_PAYLOAD_STATUS);
+  void HandleFinishedIncomingPayload(
+      ClientProxy* client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int64_t offset_bytes, proto::connections::PayloadStatus status);
 
-  void handleSuccessfulOutgoingChunk(
-      Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
+  void HandleSuccessfulOutgoingChunk(
+      ClientProxy* client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
       std::int64_t payload_chunk_body_size);
-  void handleSuccessfulIncomingChunk(
-      Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
+  void HandleSuccessfulIncomingChunk(
+      ClientProxy* client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
       std::int64_t payload_chunk_body_size);
 
-  void processDataPacket(Ptr<ClientProxy<Platform> > to_client_proxy,
-                         const string& from_endpoint_id,
-                         const PayloadTransferFrame& payload_transfer_frame);
-  void processControlPacket(Ptr<ClientProxy<Platform> > to_client_proxy,
-                            const string& from_endpoint_id,
-                            const PayloadTransferFrame& payload_transfer_frame);
+  void ProcessDataPacket(ClientProxy* to_client,
+                         const std::string& from_endpoint_id,
+                         PayloadTransferFrame& payload_transfer_frame);
+  void ProcessControlPacket(ClientProxy* to_client,
+                            const std::string& from_endpoint_id,
+                            PayloadTransferFrame& payload_transfer_frame);
 
   // @PayloadStatusUpdateThread
-  void notifyClientOfIncomingPayloadTransferUpdate(
-      Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
-      const PayloadTransferUpdate& payload_transfer_update,
-      bool done_with_payload);
+  void NotifyClientOfIncomingPayloadProgressInfo(
+      ClientProxy* client, const std::string& endpoint_id,
+      const PayloadProgressInfo& payload_transfer_update);
 
-  Ptr<typename Platform::SingleThreadExecutorType> getOutgoingPayloadExecutor(
-      Payload::Type::Value payload_type);
+  SingleThreadExecutor* GetOutgoingPayloadExecutor(Payload::Type payload_type);
 
-  void enqueueOutgoingPayload(
-      Ptr<typename Platform::SingleThreadExecutorType> executor,
-      Ptr<Runnable> runnable);
+  void RunOnStatusUpdateThread(std::function<void()> runnable);
+  bool NotifyShutdown() ABSL_LOCKS_EXCLUDED(mutex_);
+  void DestroyPendingPayload(Payload::Id payload_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  PendingPayload* GetPayload(Payload::Id payload_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void CancelAllPayloads() ABSL_LOCKS_EXCLUDED(mutex_);
 
-  ScopedPtr<Ptr<InternalPayloadFactory<Platform> > > internal_payload_factory_;
-  ScopedPtr<Ptr<LoopRunner> > send_payload_loop_runner_;
-  ScopedPtr<Ptr<PendingPayloads> > pending_payloads_;
+  mutable Mutex mutex_;
+  EndpointManager::FrameProcessor::Handle handle_;
+  AtomicBoolean shutdown_{false};
+  std::unique_ptr<CountDownLatch> shutdown_barrier_;
+  int send_payload_count_ = 0;
+  PendingPayloads pending_payloads_ ABSL_GUARDED_BY(mutex_);
+  SingleThreadExecutor bytes_payload_executor_;
+  SingleThreadExecutor file_payload_executor_;
+  SingleThreadExecutor stream_payload_executor_;
+  SingleThreadExecutor payload_status_update_executor_;
 
-  ScopedPtr<Ptr<typename Platform::SingleThreadExecutorType> >
-      bytes_payload_executor_;
-  ScopedPtr<Ptr<typename Platform::SingleThreadExecutorType> >
-      file_payload_executor_;
-  ScopedPtr<Ptr<typename Platform::SingleThreadExecutorType> >
-      stream_payload_executor_;
-  ScopedPtr<Ptr<typename Platform::SingleThreadExecutorType> >
-      payload_status_update_executor_;
-
-  Ptr<EndpointManager<Platform> > endpoint_manager_;
-  std::shared_ptr<PayloadManager> self_{this, [](void*){}};
+  EndpointManager* endpoint_manager_;
 };
 
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-#include "core/internal/payload_manager.cc"
 
 #endif  // CORE_INTERNAL_PAYLOAD_MANAGER_H_
