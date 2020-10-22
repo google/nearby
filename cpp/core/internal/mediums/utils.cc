@@ -1,63 +1,27 @@
 #include "core/internal/mediums/utils.h"
 
-#include <cstdint>
-#include <sstream>
+#include <memory>
+#include <string>
 
-#include "platform/exception.h"
-#include "platform/prng.h"
-#include "absl/strings/escaping.h"
+#include "platform/base/prng.h"
+#include "platform/public/crypto.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-void Utils::closeSocket(Ptr<BluetoothServerSocket> socket,
-                        const std::string& type, const std::string& name) {
-  if (!socket.isNull()) {
-    Exception::Value e = socket->close();
-    if (Exception::NONE != e) {
-      if (Exception::IO == e) {
-        // TODO(reznor): log.atWarning().withCause(e).log("Failed to close
-        // %sSocket %s", type, name);
-      }
-      return;
-    }
-    // TODO(reznor): log.atVerbose().log("Closed %sSocket %s", type, name);
-  }
+namespace {
+constexpr absl::string_view kUpgradeServiceIdPostfix = "_UPGRADE";
 }
 
-ConstPtr<ByteArray> Utils::sha256Hash(Ptr<HashUtils> hash_utils,
-                                      ConstPtr<ByteArray> source,
-                                      size_t length) {
-  if (source.isNull()) {
-    return ConstPtr<ByteArray>();
-  }
-
-  ScopedPtr<ConstPtr<ByteArray>> full_hash(
-      hash_utils->sha256(std::string(source->getData(), source->size())));
-  return MakeConstPtr(new ByteArray(full_hash->getData(), length));
-}
-
-ConstPtr<ByteArray> Utils::legacySha256HashOnlyForPrinting(
-    Ptr<HashUtils> hash_utils, ConstPtr<ByteArray> source, size_t length) {
-  if (source.isNull()) {
-    return ConstPtr<ByteArray>();
-  }
-
-  std::string formatted_hex_string = Utils::bytesToPrintableHexString(source);
-  ScopedPtr<ConstPtr<ByteArray>> formatted_hex_byte_array(MakeConstPtr(
-      new ByteArray(formatted_hex_string.data(), formatted_hex_string.size())));
-  return Utils::sha256Hash(hash_utils, formatted_hex_byte_array.get(), length);
-}
-
-ConstPtr<ByteArray> Utils::generateRandomBytes(size_t length) {
+ByteArray Utils::GenerateRandomBytes(size_t length) {
   Prng rng;
   std::string data;
   data.reserve(length);
 
   // Adds 4 random bytes per iteration.
   while (length > 0) {
-    std::uint32_t val = rng.nextUInt32();
+    std::uint32_t val = rng.NextUint32();
     for (int i = 0; i < 4; i++) {
       data += val & 0xFF;
       val >>= 8;
@@ -67,27 +31,46 @@ ConstPtr<ByteArray> Utils::generateRandomBytes(size_t length) {
     }
   }
 
-  return MakeConstPtr(new ByteArray(data));
+  return ByteArray(data);
 }
 
-std::string Utils::bytesToPrintableHexString(ConstPtr<ByteArray> bytes) {
-  std::string hex_string(
-      absl::BytesToHexString(std::string(bytes->getData(), bytes->size())));
+ByteArray Utils::Sha256Hash(const ByteArray& source, size_t length) {
+  return Utils::Sha256Hash(std::string(source), length);
+}
 
-  // Print out the byte array as a space separated listing of hex bytes.
-  std::ostringstream formatted_hex_string_stream;
-  formatted_hex_string_stream << "[ ";
-  for (int i = 0; i < hex_string.size(); i += 2) {
-    formatted_hex_string_stream << "0x";
-    // This is safe because we have the guarantee that hex_string is of even
-    // length (because a hex encoding will always be double the size of its
-    // input).
-    formatted_hex_string_stream << hex_string[i] << hex_string[i + 1];
-    formatted_hex_string_stream << " ";
+ByteArray Utils::Sha256Hash(const std::string& source, size_t length) {
+  ByteArray full_hash(length);
+  full_hash.CopyAt(0, Crypto::Sha256(source));
+  return full_hash;
+}
+
+std::string Utils::WrapUpgradeServiceId(const std::string& service_id) {
+  if (service_id.empty()) {
+    return {};
   }
-  formatted_hex_string_stream << "]";
+  return service_id + std::string(kUpgradeServiceIdPostfix);
+}
 
-  return formatted_hex_string_stream.str();
+std::string Utils::UnwrapUpgradeServiceId(
+    const std::string& upgrade_service_id) {
+  auto pos = upgrade_service_id.find(std::string(kUpgradeServiceIdPostfix));
+  if (pos != std::string::npos) {
+    return std::string(upgrade_service_id, 0, pos);
+  }
+  return upgrade_service_id;
+}
+
+LocationHint Utils::BuildLocationHint(const std::string& location) {
+  LocationHint location_hint;
+  if (!location.empty()) {
+    location_hint.set_location(location);
+    if (location.at(0) == '+') {
+      location_hint.set_format(LocationStandard::E164_CALLING);
+    } else {
+      location_hint.set_format(LocationStandard::ISO_3166_1_ALPHA_2);
+    }
+  }
+  return location_hint;
 }
 
 }  // namespace connections

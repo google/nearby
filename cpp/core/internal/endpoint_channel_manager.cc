@@ -1,284 +1,138 @@
 #include "core/internal/endpoint_channel_manager.h"
 
-#include "core/internal/ble_endpoint_channel.h"
-#include "core/internal/bluetooth_endpoint_channel.h"
-#include "core/internal/wifi_lan_endpoint_channel.h"
-#include "platform/synchronized.h"
+#include <memory>
+
+#include "platform/public/logging.h"
+#include "platform/public/mutex.h"
+#include "platform/public/mutex_lock.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-EndpointChannelManager::EndpointChannelManager(
-    Ptr<MediumManager<Platform> > medium_manager)
-    : lock_(Platform::createLock()),
-      medium_manager_(medium_manager),
-      channel_state_(new ChannelState()) {}
-
 EndpointChannelManager::~EndpointChannelManager() {
-  Synchronized s(lock_.get());
-
-  // TODO(tracyzhou): logger.atDebug().log("Initiating shutdown of
-  // EndpointChannelManager.")
-  channel_state_.destroy();
-  // TODO(tracyzhou): logger.atDebug().log("EndpointChannelManager has shut
-  // down.");
+  MutexLock lock(&mutex_);
+  channel_state_.DestroyAll();
 }
 
-Ptr<EndpointChannel>
-EndpointChannelManager::createOutgoingBluetoothEndpointChannel(
-    const string& channel_name, Ptr<BluetoothSocket> bluetooth_socket) {
-  return BluetoothEndpointChannel::createOutgoing(medium_manager_, channel_name,
-                                                  bluetooth_socket);
+void EndpointChannelManager::RegisterChannelForEndpoint(
+    ClientProxy* client, const std::string& endpoint_id,
+    std::unique_ptr<EndpointChannel> channel) {
+  MutexLock lock(&mutex_);
+
+  SetActiveEndpointChannel(client, endpoint_id, std::move(channel));
+
+  NEARBY_LOG(INFO, "Registered channel: id=%s", endpoint_id.c_str());
 }
 
-Ptr<EndpointChannel>
-EndpointChannelManager::createIncomingBluetoothEndpointChannel(
-    const string& channel_name, Ptr<BluetoothSocket> bluetooth_socket) {
-  return BluetoothEndpointChannel::createIncoming(medium_manager_, channel_name,
-                                                  bluetooth_socket);
-}
+void EndpointChannelManager::ReplaceChannelForEndpoint(
+    ClientProxy* client, const std::string& endpoint_id,
+    std::unique_ptr<EndpointChannel> channel) {
+  MutexLock lock(&mutex_);
 
-Ptr<EndpointChannel> EndpointChannelManager::createOutgoingBLEEndpointChannel(
-    const string& channel_name, Ptr<BLESocket> ble_socket) {
-  return BLEEndpointChannel::createOutgoing(medium_manager_, channel_name,
-                                            ble_socket);
-}
-
-Ptr<EndpointChannel> EndpointChannelManager::createIncomingBLEEndpointChannel(
-    const string& channel_name, Ptr<BLESocket> ble_socket) {
-  return BLEEndpointChannel::createIncoming(medium_manager_, channel_name,
-                                            ble_socket);
-}
-
-Ptr<EndpointChannel>
-EndpointChannelManager::CreateOutgoingWifiLanEndpointChannel(
-    const string& channel_name, Ptr<WifiLanSocket> wifi_lan_socket) {
-  return WifiLanEndpointChannel::CreateOutgoing(
-      medium_manager_, channel_name, wifi_lan_socket);
-}
-
-Ptr<EndpointChannel>
-EndpointChannelManager::CreateIncomingWifiLanEndpointChannel(
-    const string& channel_name, Ptr<WifiLanSocket> wifi_lan_socket) {
-  return WifiLanEndpointChannel::CreateIncoming(
-      medium_manager_, channel_name, wifi_lan_socket);
-}
-
-void EndpointChannelManager::registerChannelForEndpoint(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
-    Ptr<EndpointChannel> endpoint_channel) {
-  Synchronized s(lock_.get());
-
-  // Just in case there was a previous channel, unregister (and, thus, close) it
-  // now.
-  unregisterChannelForEndpoint(endpoint_id);
-
-  setActiveEndpointChannel(client_proxy, endpoint_id, endpoint_channel);
-
-  // TODO(tracyzhou): Add logging.
-}
-
-#ifdef BANDWIDTH_UPGRADE_MANAGER_IMPLEMENTED
-Ptr<EndpointChannel> EndpointChannelManager::replaceChannelForEndpoint(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
-    Ptr<EndpointChannel> endpoint_channel) {
-  Synchronized s(lock_.get());
-
-  ScopedPtr<Ptr<EndpointChannel> > scoped_previous_endpoint_channel(
-      channel_state_->getChannelForEndpoint(endpoint_id));
-  if (scoped_previous_endpoint_channel.isNull()) {
-    // TODO(tracyzhou): Add logging.
-    return Ptr<EndpointChannel>();
+  auto* endpoint = channel_state_.LookupEndpointData(endpoint_id);
+  if (endpoint != nullptr && endpoint->channel == nullptr) {
+    NEARBY_LOG(INFO, "Channel is missing while trying to update: id=%s",
+               endpoint_id.c_str());
   }
 
-  setActiveEndpointChannel(client_proxy, endpoint_id, endpoint_channel);
-
-  // TODO(tracyzhou): Add logging.
-
-  return scoped_previous_endpoint_channel.release();
+  SetActiveEndpointChannel(client, endpoint_id, std::move(channel));
 }
-#endif
 
-bool EndpointChannelManager::encryptChannelForEndpoint(
-    const string& endpoint_id,
-    Ptr<securegcm::D2DConnectionContextV1> encryption_context) {
-  Synchronized s(lock_.get());
+bool EndpointChannelManager::EncryptChannelForEndpoint(
+    const std::string& endpoint_id,
+    std::unique_ptr<EncryptionContext> context) {
+  MutexLock lock(&mutex_);
 
-  ScopedPtr<Ptr<EndpointChannel> > scoped_endpoint_channel(
-      channel_state_->getChannelForEndpoint(endpoint_id));
-  if (scoped_endpoint_channel.isNull()) {
-    // TODO(tracyzhou): Add logging.
-    return false;
+  channel_state_.UpdateEncryptionContextForEndpoint(endpoint_id,
+                                                    std::move(context));
+  auto* endpoint = channel_state_.LookupEndpointData(endpoint_id);
+  return channel_state_.EncryptChannel(endpoint);
+}
+
+std::shared_ptr<EndpointChannel> EndpointChannelManager::GetChannelForEndpoint(
+    const std::string& endpoint_id) {
+  MutexLock lock(&mutex_);
+
+  auto* endpoint = channel_state_.LookupEndpointData(endpoint_id);
+  if (endpoint == nullptr) {
+    NEARBY_LOG(INFO, "No channel info: id=%s", endpoint_id.c_str());
+    return {};
   }
 
-  // We found the requested EndpointChannel, so encrypt it.
-  encryptChannel(endpoint_id, scoped_endpoint_channel.get(),
-                 encryption_context);
-
-  // Then update 'endpoint_id' to use this new 'encryption_context' here
-  // onwards.
-  //
-  // Remember to manage the memory of the returned
-  // Ptr<securegcm::D2DConnectionContextV1> responsibly, even though we don't
-  // need what's returned.
-  ScopedPtr<Ptr<securegcm::D2DConnectionContextV1> >(
-      channel_state_->updateEncryptionContextForEndpoint(endpoint_id,
-                                                         encryption_context));
-  return true;
+  return endpoint->channel;
 }
 
-Ptr<EndpointChannel> EndpointChannelManager::getChannelForEndpoint(
-    const string& endpoint_id) {
-  Synchronized s(lock_.get());
+void EndpointChannelManager::SetActiveEndpointChannel(
+    ClientProxy* client, const std::string& endpoint_id,
+    std::unique_ptr<EndpointChannel> channel) {
+  // Update the channel first, then encrypt this new channel, if
+  // crypto context is present.
+  channel_state_.UpdateChannelForEndpoint(endpoint_id, std::move(channel));
 
-  return channel_state_->getChannelForEndpoint(endpoint_id);
+  auto* endpoint = channel_state_.LookupEndpointData(endpoint_id);
+  if (endpoint->IsEncrypted()) channel_state_.EncryptChannel(endpoint);
 }
 
-void EndpointChannelManager::setActiveEndpointChannel(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
-    Ptr<EndpointChannel> endpoint_channel) {
-#ifdef BANDWIDTH_UPGRADE_MANAGER_IMPLEMENTED
-  // If the endpoint is currently encrypted, encrypt this new
-  // 'endpoint_channel'.
-  if (channel_state_->isEndpointEncrypted(endpoint_id)) {
-    encryptChannel(
-        endpoint_id, endpoint_channel,
-        channel_state_->getEncryptionContextForEndpoint(endpoint_id));
-  }
-#endif
-
-  // Then update 'endpoint_id' to use this new 'endpoint_channel' here onwards.
-  //
-  // Remember to manage the memory of the returned Ptr<EndpointChannel>
-  // responsibly, even though we don't need what's returned.
-  ScopedPtr<Ptr<EndpointChannel> >(
-      channel_state_->updateChannelForEndpoint(endpoint_id, endpoint_channel));
-}
-
-void EndpointChannelManager::encryptChannel(
-    const string& endpoint_id, Ptr<EndpointChannel> endpoint_channel,
-    Ptr<securegcm::D2DConnectionContextV1> encryption_context) {
-  // TODO(tracyzhou): Add logging.
-  endpoint_channel->enableEncryption(encryption_context);
+int EndpointChannelManager::GetConnectedEndpointsCount() const {
+  MutexLock lock(&mutex_);
+  return channel_state_.GetConnectedEndpointsCount();
 }
 
 ///////////////////////////////// ChannelState /////////////////////////////////
 
-EndpointChannelManager::ChannelState::~ChannelState() {
-  while (!endpoint_id_to_metadata_.empty()) {
-    typename EndpointIdToMetadataMap::iterator it =
-        endpoint_id_to_metadata_.begin();
-    // TODO(tracyzhou): Add logging.
-    removeEndpoint(it->first,
-                   proto::connections::DisconnectionReason::SHUTDOWN);
+// endpoint - channel endpoint to encrypt
+bool EndpointChannelManager::ChannelState::EncryptChannel(
+    EndpointChannelManager::ChannelState::EndpointData* endpoint) {
+  if (endpoint != nullptr && endpoint->channel != nullptr &&
+      endpoint->context != nullptr) {
+    endpoint->channel->EnableEncryption(endpoint->context);
+    return true;
   }
+  return false;
 }
 
-bool EndpointChannelManager::ChannelState::isEndpointEncrypted(
-    const string& endpoint_id) {
-  return !getEncryptionContextForEndpoint(endpoint_id).isNull();
+EndpointChannelManager::ChannelState::EndpointData*
+EndpointChannelManager::ChannelState::LookupEndpointData(
+    const std::string& endpoint_id) {
+  auto item = endpoints_.find(endpoint_id);
+  return item != endpoints_.end() ? &item->second : nullptr;
 }
 
-Ptr<EndpointChannel>
-EndpointChannelManager::ChannelState::updateChannelForEndpoint(
-    const string& endpoint_id, Ptr<EndpointChannel> endpoint_channel) {
-  Ptr<EndpointChannel> previous_endpoint_channel;
-  Ptr<EndpointMetaData> endpoint_metadata;
-
-  typename EndpointIdToMetadataMap::iterator it =
-      endpoint_id_to_metadata_.find(endpoint_id);
-  if (it == endpoint_id_to_metadata_.end()) {
-    endpoint_metadata = MakePtr(new EndpointMetaData());
-  } else {
-    endpoint_metadata = it->second;
-    previous_endpoint_channel = endpoint_metadata->endpoint_channel;
-  }
-  // Avoid leaks.
-  ScopedPtr<Ptr<EndpointChannel> > scoped_previous_endpoint_channel(
-      previous_endpoint_channel);
-
-  endpoint_metadata->endpoint_channel = endpoint_channel;
-  endpoint_channel.clear();
-  endpoint_id_to_metadata_[endpoint_id] = endpoint_metadata;
-
-  return scoped_previous_endpoint_channel.release();
+void EndpointChannelManager::ChannelState::UpdateChannelForEndpoint(
+    const std::string& endpoint_id, std::unique_ptr<EndpointChannel> channel) {
+  // Create EndpointData instance, if necessary, and populate channel.
+  endpoints_[endpoint_id].channel = std::move(channel);
 }
 
-Ptr<securegcm::D2DConnectionContextV1>
-EndpointChannelManager::ChannelState::updateEncryptionContextForEndpoint(
-    const string& endpoint_id,
-    Ptr<securegcm::D2DConnectionContextV1> encryption_context) {
-  Ptr<securegcm::D2DConnectionContextV1> previous_encryption_context;
-  Ptr<EndpointMetaData> endpoint_metadata;
-
-  typename EndpointIdToMetadataMap::iterator it =
-      endpoint_id_to_metadata_.find(endpoint_id);
-  if (it == endpoint_id_to_metadata_.end()) {
-    endpoint_metadata = MakePtr(new EndpointMetaData());
-  } else {
-    endpoint_metadata = it->second;
-    previous_encryption_context = endpoint_metadata->encryption_context;
-  }
-  // Avoid leaks.
-  ScopedPtr<Ptr<securegcm::D2DConnectionContextV1> >
-      scoped_previous_encryption_context(previous_encryption_context);
-
-  endpoint_metadata->encryption_context = encryption_context;
-  endpoint_id_to_metadata_[endpoint_id] = endpoint_metadata;
-
-  return scoped_previous_encryption_context.release();
+void EndpointChannelManager::ChannelState::UpdateEncryptionContextForEndpoint(
+    const std::string& endpoint_id,
+    std::unique_ptr<EncryptionContext> context) {
+  // Create EndpointData instance, if necessary, and populate crypto context.
+  endpoints_[endpoint_id].context = std::move(context);
 }
 
-bool EndpointChannelManager::ChannelState::removeEndpoint(
-    const string& endpoint_id, proto::connections::DisconnectionReason reason) {
-  typename EndpointIdToMetadataMap::iterator it =
-      endpoint_id_to_metadata_.find(endpoint_id);
-  if (it == endpoint_id_to_metadata_.end()) {
-    return false;
-  }
-
-  it->second->endpoint_channel->close(reason);
-  it->second.destroy();
-  endpoint_id_to_metadata_.erase(it);
+bool EndpointChannelManager::ChannelState::RemoveEndpoint(
+    const std::string& endpoint_id,
+    proto::connections::DisconnectionReason reason) {
+  auto item = endpoints_.find(endpoint_id);
+  if (item == endpoints_.end()) return false;
+  item->second.disconnect_reason = reason;
+  endpoints_.erase(item);
   return true;
 }
 
-Ptr<securegcm::D2DConnectionContextV1>
-EndpointChannelManager::ChannelState::getEncryptionContextForEndpoint(
-    const string& endpoint_id) {
-  typename EndpointIdToMetadataMap::iterator it =
-      endpoint_id_to_metadata_.find(endpoint_id);
-  if (it == endpoint_id_to_metadata_.end()) {
-    return Ptr<securegcm::D2DConnectionContextV1>();
-  }
+bool EndpointChannelManager::UnregisterChannelForEndpoint(
+    const std::string& endpoint_id) {
+  MutexLock lock(&mutex_);
 
-  return it->second->encryption_context;
-}
-
-Ptr<EndpointChannel>
-EndpointChannelManager::ChannelState::getChannelForEndpoint(
-    const string& endpoint_id) {
-  typename EndpointIdToMetadataMap::iterator it =
-      endpoint_id_to_metadata_.find(endpoint_id);
-  if (it == endpoint_id_to_metadata_.end()) {
-    return Ptr<EndpointChannel>();
-  }
-
-  return it->second->endpoint_channel;
-}
-
-bool EndpointChannelManager::unregisterChannelForEndpoint(
-    const string& endpoint_id) {
-  Synchronized s(lock_.get());
-
-  if (!channel_state_->removeEndpoint(
+  if (!channel_state_.RemoveEndpoint(
           endpoint_id,
           proto::connections::DisconnectionReason::LOCAL_DISCONNECTION)) {
     return false;
   }
 
-  // TODO(tracyzhou): Add logging.
+  NEARBY_LOG(INFO, "Unregistered channel: id=%s", endpoint_id.c_str());
 
   return true;
 }

@@ -1,747 +1,542 @@
 #include "core/internal/endpoint_manager.h"
 
+#include <memory>
 #include <utility>
 
+#include "core/internal/endpoint_channel.h"
 #include "core/internal/offline_frames.h"
+#include "platform/base/exception.h"
+#include "platform/public/count_down_latch.h"
+#include "platform/public/logging.h"
 #include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-namespace endpoint_manager {
+using ::location::nearby::proto::connections::Medium;
+
+constexpr absl::Duration EndpointManager::kKeepAliveWriteInterval;
+constexpr absl::Duration EndpointManager::kKeepAliveReadTimeout;
+constexpr absl::Duration EndpointManager::kProcessEndpointDisconnectionTimeout;
+constexpr absl::Time EndpointManager::kInvalidTimestamp;
 
 // A Runnable that continuously grabs the most recent EndpointChannel available
-// for an endpoint. Override
-// EndpointChannelLoopRunnable.execute(EndpointChannel) to interact with the
-// EndpointChannel.
-template <typename Platform>
-class EndpointChannelLoopRunnable : public Runnable {
- public:
-  EndpointChannelLoopRunnable(Ptr<EndpointManager<Platform>> endpoint_manager,
-                              const string& runnable_name,
-                              Ptr<ClientProxy<Platform>> client_proxy,
-                              const string& endpoint_id)
-      : endpoint_manager_(endpoint_manager),
-        runnable_name_(runnable_name),
-        client_proxy_(client_proxy),
-        endpoint_id_(endpoint_id) {}
-  ~EndpointChannelLoopRunnable() override {}
-
-  void run() override {
-    // The implication of using the EndpointChannel's medium to identify it is
-    // that this loop will break if we ever allow creating multiple
-    // EndpointChannels to the same endpoint over the same medium.
-    proto::connections::Medium last_failed_endpoint_channel_medium =
-        proto::connections::UNKNOWN_MEDIUM;
-    while (true) {
-      // It's important to keep re-fetching the EndpointChannel for an endpoint
-      // because it can be changed out from under us (for example, when we
-      // upgrade from Bluetooth to Wifi).
-      ScopedPtr<Ptr<EndpointChannel>> scoped_endpoint_channel(
-          endpoint_manager_->endpoint_channel_manager_->getChannelForEndpoint(
-              endpoint_id_));
-      if (scoped_endpoint_channel.isNull()) {
-        // TODO(tracyzhou): Add logging.
-        break;
-      }
-
-      // If we're looping back around after a failure, and there's not a new
-      // EndpointChannel for this endpoint, there's nothing more to do here.
-      if ((last_failed_endpoint_channel_medium !=
-           proto::connections::UNKNOWN_MEDIUM) &&
-          (scoped_endpoint_channel->getMedium() ==
-           last_failed_endpoint_channel_medium)) {
-        // TODO(tracyzhou): Add logging.
-        break;
-      }
-
-      ExceptionOr<bool> keep_using_channel =
-          useHealthyEndpointChannel(scoped_endpoint_channel.get());
-
-      if (!keep_using_channel.ok()) {
-        Exception::Value exception = keep_using_channel.exception();
-        if (Exception::IO == exception) {
-          last_failed_endpoint_channel_medium =
-              scoped_endpoint_channel->getMedium();
-          // TODO(tracyzhou): Add logging.
-          continue;
-        }
-        if (Exception::INTERRUPTED == exception) {
-          // Thread.currentThread().interrupt();
-          // TODO(tracyzhou): Add logging.
-          break;
-        }
-      }
-
-      if (!keep_using_channel.result()) {
-        // TODO(tracyzhou): Add logging.
-        break;
-      }
+// for an endpoint.
+//
+// handler - Called whenever an EndpointChannel is available for endpointId.
+//           Implementations are expected to read/write freely to the
+//           EndpointChannel until an Exception::IO is thrown. Once an
+//           Exception::IO occurs, a check will be performed to see if another
+//           EndpointChannel is available for the given endpoint and, if so,
+//           handler(EndpointChannel) will be called again. Return false to exit
+//           the loop.
+void EndpointManager::EndpointChannelLoopRunnable(
+    const std::string& runnable_name, ClientProxy* client,
+    const std::string& endpoint_id, CountDownLatch* barrier,
+    std::function<ExceptionOr<bool>(EndpointChannel*)> handler) {
+  // EndpointChannelManager will not let multiple channels exist simultaneously
+  // for the same endpoint_id; it will be closing "old" channels as new ones
+  // come. (There will be a short overlap).
+  // Closed channel will return Exception::kIo for any Read, and loop (below)
+  // will retry and attempt to pick another channel.
+  // If channel is deleted (no mapping), or it is still the same channel
+  // (same Medium) on which we got the Exception::kIo, we terminate the loop.
+  Medium last_failed_medium = Medium::UNKNOWN_MEDIUM;
+  while (true) {
+    // It's important to keep re-fetching the EndpointChannel for an endpoint
+    // because it can be changed out from under us (for example, when we
+    // upgrade from Bluetooth to Wifi).
+    std::shared_ptr<EndpointChannel> channel =
+        channel_manager_->GetChannelForEndpoint(endpoint_id);
+    if (channel == nullptr) {
+      NEARBY_LOG(INFO, "Endpoint channel is nullptr, bail out.");
+      break;
     }
 
-    // Always clear out all state related to this endpoint before terminating
-    // this thread.
-    endpoint_manager_->discardEndpoint(client_proxy_, endpoint_id_);
-  }
+    // If we're looping back around after a failure, and there's not a new
+    // EndpointChannel for this endpoint, there's nothing more to do here.
+    if ((last_failed_medium != Medium::UNKNOWN_MEDIUM) &&
+        (channel->GetMedium() == last_failed_medium)) {
+      NEARBY_LOG(
+          INFO, "No new endpoint channel is found after a failure, exit loop.");
+      break;
+    }
 
-  // Called whenever an EndpointChannel is available for endpointId.
-  // Implementations are expected to read/write freely to the EndpointChannel
-  // until an Exception::IO is thrown. Once an Exception::IO occurs, a check
-  // will be performed to see if another EndpointChannel is available for the
-  // given endpoint and, if so, useHealthyEndpointChannel(EndpointChannel) will
-  // be called again.
-  //
-  // <p>Return false to exit the loop.
-  virtual ExceptionOr<bool> useHealthyEndpointChannel(
-      Ptr<EndpointChannel> endpoint_channel) = 0;  // throws Exception::IO,
-                                                   // Exception::INTERRUPTED
+    ExceptionOr<bool> keep_using_channel = handler(channel.get());
 
- protected:
-  Ptr<EndpointManager<Platform>> endpoint_manager_;
-  const string runnable_name_;
-  Ptr<ClientProxy<Platform>> client_proxy_;
-  const string endpoint_id_;
-};
-
-template <typename Platform>
-class ReaderRunnable : public EndpointChannelLoopRunnable<Platform> {
- public:
-  ReaderRunnable(Ptr<EndpointManager<Platform>> endpoint_manager,
-                 Ptr<ClientProxy<Platform>> client_proxy,
-                 const string& endpoint_id)
-      : EndpointChannelLoopRunnable<Platform>(endpoint_manager, "Read",
-                                              client_proxy, endpoint_id) {}
-
-  // @EndpointManagerReaderThread
-  ExceptionOr<bool> useHealthyEndpointChannel(
-      Ptr<EndpointChannel> endpoint_channel) override {
-    // Read as much as we can from the healthy EndpointChannel - when it is no
-    // longer in good shape (i.e. our read from it throws an Exception), our
-    // super class will loop back around and try our luck in case there's been
-    // a replacement for this endpoint since we last checked with the
-    // EndpointChannelManager.
-    while (true) {
-      ExceptionOr<ConstPtr<ByteArray>> read_bytes = endpoint_channel->read();
-      if (!read_bytes.ok()) {
-        if (Exception::INVALID_PROTOCOL_BUFFER == read_bytes.exception()) {
-          // TODO(reznor): logger.atDebug().withCause(e).log("EndpointManager
-          // failed to decode message from endpoint %s on channel %s,
-          // discarding.", endpointId, endpointChannel.getType());
-          continue;
-        } else if (Exception::IO == read_bytes.exception()) {
-          return ExceptionOr<bool>(read_bytes.exception());
-        }
-      }
-      ScopedPtr<ConstPtr<ByteArray>> scoped_read_bytes(read_bytes.result());
-
-      ExceptionOr<ConstPtr<OfflineFrame>> offline_frame =
-          OfflineFrames::fromBytes(scoped_read_bytes.get());
-      if (!offline_frame.ok()) {
-        if (Exception::INVALID_PROTOCOL_BUFFER == offline_frame.exception()) {
-          // TODO(reznor): logger.atDebug().withCause(e).log("EndpointManager
-          // received an invalid OfflineFrame from endpoint %s on channel %s,
-          // discarding.", endpointId, endpointChannel.getType());
-          continue;
-        }
-      }
-      ScopedPtr<ConstPtr<OfflineFrame>> scoped_offline_frame(
-          offline_frame.result());
-
-      // Route the incoming offlineFrame to its registered processor.
-      V1Frame::FrameType frame_type =
-          OfflineFrames::getFrameType(scoped_offline_frame.get());
-      Ptr<typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>
-          incoming_offline_frame_processor =
-              this->endpoint_manager_->getOfflineFrameProcessor(frame_type);
-      if (incoming_offline_frame_processor.isNull()) {
-        // TODO(tracyzhou): Add logging.
+    if (!keep_using_channel.ok()) {
+      Exception exception = keep_using_channel.GetException();
+      if (exception.Raised(Exception::kIo)) {
+        last_failed_medium = channel->GetMedium();
+        NEARBY_LOG(INFO, "Endpoint channel IO exception; last_failed_medium=%d",
+                   last_failed_medium);
         continue;
       }
-
-      incoming_offline_frame_processor->processIncomingOfflineFrame(
-          scoped_offline_frame.release(), this->endpoint_id_,
-          this->client_proxy_, endpoint_channel->getMedium());
-    }
-  }
-};
-
-template <typename Platform>
-class KeepAliveManagerRunnable : public EndpointChannelLoopRunnable<Platform> {
- public:
-  KeepAliveManagerRunnable(Ptr<EndpointManager<Platform>> endpoint_manager,
-                           Ptr<ClientProxy<Platform>> client_proxy,
-                           const string& endpoint_id)
-      : EndpointChannelLoopRunnable<Platform>(
-            endpoint_manager, "KeepAliveManager", client_proxy, endpoint_id) {}
-
-  // @EndpointManagerKeepAliveThread
-  ExceptionOr<bool> useHealthyEndpointChannel(
-      Ptr<EndpointChannel> endpoint_channel) override {
-    // Check if it has been too long since we received a frame from our
-    // endpoint.
-    if ((endpoint_channel->getLastReadTimestamp() != -1) &&
-        ((endpoint_channel->getLastReadTimestamp() +
-          EndpointManager<Platform>::kKeepAliveReadTimeoutMillis) <
-         this->endpoint_manager_->system_clock_->elapsedRealtime())) {
-      // TODO(tracyzhou): Add logging.
-      return ExceptionOr<bool>(false);
-    }
-
-    // Attempt to send the KeepAlive frame over the endpoint channel - if the
-    // write fails, our super class will loop back around and try our luck again
-    // in case there's been a replacement for this endpoint.
-    Exception::Value write_exception =
-        endpoint_channel->write(OfflineFrames::forKeepAlive());
-    if (Exception::NONE != write_exception) {
-      if (Exception::IO == write_exception) {
-        return ExceptionOr<bool>(write_exception);
+      if (exception.Raised(Exception::kInterrupted)) {
+        break;
       }
     }
 
-    // We sleep as the very last step because we want to minimize the caching of
-    // the EndpointChannel. If we do hold on to the EndpointChannel, and it's
-    // switched out from under us in BandwidthUpgradeManager, our write will
-    // trigger an erroneous write to the encryption context that will cascade
-    // into all our remote endpoint's future reads failing.
-    Exception::Value sleep_exception =
-        this->endpoint_manager_->thread_utils_->sleep(
-            EndpointManager<Platform>::kKeepAliveWriteIntervalMillis);
-    if (Exception::NONE != sleep_exception) {
-      if (Exception::INTERRUPTED == sleep_exception) {
-        return ExceptionOr<bool>(sleep_exception);
+    if (!keep_using_channel.result()) {
+      NEARBY_LOG(INFO, "Dropping current channel: last medium=%d",
+                 last_failed_medium);
+      break;
+    }
+  }
+  // Indicate we're out of the loop and it is ok to schedule another instance
+  // if needed.
+  NEARBY_LOG(INFO, "Worker going down; name=%s; id=%s", runnable_name.c_str(),
+             endpoint_id.c_str());
+  barrier->CountDown();
+
+  // Always clear out all state related to this endpoint before terminating
+  // this thread.
+  DiscardEndpoint(client, endpoint_id);
+  NEARBY_LOG(INFO, "Worker done; name=%s; id=%s", runnable_name.c_str(),
+             endpoint_id.c_str());
+}
+
+ExceptionOr<bool> EndpointManager::HandleData(
+    const std::string& endpoint_id, ClientProxy* client,
+    EndpointChannel* endpoint_channel) {
+  // Read as much as we can from the healthy EndpointChannel - when it is no
+  // longer in good shape (i.e. our read from it throws an Exception), our
+  // super class will loop back around and try our luck in case there's been
+  // a replacement for this endpoint since we last checked with the
+  // EndpointChannelManager.
+  while (true) {
+    ExceptionOr<ByteArray> bytes = endpoint_channel->Read();
+    if (!bytes.ok()) {
+      NEARBY_LOG(INFO, "Stop reading on read-time exception: %d",
+                 bytes.exception());
+      return ExceptionOr<bool>(bytes.exception());
+    }
+    ExceptionOr<OfflineFrame> wrapped_frame = parser::FromBytes(bytes.result());
+    if (!wrapped_frame.ok()) {
+      if (wrapped_frame.GetException().Raised(
+              Exception::kInvalidProtocolBuffer)) {
+        NEARBY_LOG(INFO, "Failed to decode; endpoint=%s; channel=%s; skip",
+                   endpoint_id.c_str(), endpoint_channel->GetType().c_str());
+        continue;
+      } else {
+        NEARBY_LOG(INFO, "Stop reading on parse-time exception: %d",
+                   wrapped_frame.exception());
+        return ExceptionOr<bool>(wrapped_frame.exception());
       }
     }
+    OfflineFrame& frame = wrapped_frame.result();
 
-    return ExceptionOr<bool>(true);
+    // Route the incoming offlineFrame to its registered processor.
+    V1Frame::FrameType frame_type = parser::GetFrameType(frame);
+    EndpointManager::FrameProcessor* frame_processor =
+        GetFrameProcessor(frame_type);
+    if (frame_processor == nullptr) {
+      // report messages without handlers, except KEEP_ALIVE, which has
+      // no explicit handler.
+      if (frame_type == V1Frame::KEEP_ALIVE) {
+        NEARBY_LOG(INFO, "KeepAlive message for: id=%s", endpoint_id.c_str());
+      } else if (frame_type == V1Frame::DISCONNECTION) {
+        NEARBY_LOG(INFO, "Disconnect message for: id=%s", endpoint_id.c_str());
+        endpoint_channel->Close();
+      } else {
+        NEARBY_LOG(ERROR, "Unhandled message: id=%s, type=%d",
+                   endpoint_id.c_str(), frame_type);
+      }
+      continue;
+    }
+
+    frame_processor->OnIncomingFrame(frame, endpoint_id, client,
+                                     endpoint_channel->GetMedium());
   }
-};
+}
 
-template <typename Platform>
-class RegisterIncomingOfflineFrameProcessorRunnable : public Runnable {
- public:
-  RegisterIncomingOfflineFrameProcessorRunnable(
-      Ptr<EndpointManager<Platform>> endpoint_manager,
-      V1Frame::FrameType frame_type,
-      Ptr<typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>
-          processor)
-      : endpoint_manager_(endpoint_manager),
-        frame_type_(frame_type),
-        processor_(processor) {}
+ExceptionOr<bool> EndpointManager::HandleKeepAlive(
+    EndpointChannel* endpoint_channel) {
+  // Check if it has been too long since we received a frame from our
+  // endpoint.
+  auto last_read_time = endpoint_channel->GetLastReadTimestamp();
+  if (last_read_time != kInvalidTimestamp &&
+      SystemClock::ElapsedRealtime() >
+          (last_read_time + EndpointManager::kKeepAliveReadTimeout)) {
+    NEARBY_LOG(INFO, "Receive timeout expired; aborting KeepAlive worker.");
+    return ExceptionOr<bool>(false);
+  }
 
-  void run() override {
-    typename EndpointManager<
-        Platform>::IncomingOfflineFrameProcessorsMap::iterator it =
-        endpoint_manager_->incoming_offline_frame_processors_.find(frame_type_);
-    if (it != endpoint_manager_->incoming_offline_frame_processors_.end()) {
-      // TODO(tracyzhou): Add logging.
-      it->second = processor_;
+  // Attempt to send the KeepAlive frame over the endpoint channel - if the
+  // write fails, our super class will loop back around and try our luck again
+  // in case there's been a replacement for this endpoint.
+  Exception write_exception = endpoint_channel->Write(parser::ForKeepAlive());
+  if (!write_exception.Ok()) {
+    return ExceptionOr<bool>(write_exception);
+  }
+
+  // We sleep as the very last step because we want to minimize the caching of
+  // the EndpointChannel. If we do hold on to the EndpointChannel, and it's
+  // switched out from under us in BandwidthUpgradeManager, our write will
+  // trigger an erroneous write to the encryption context that will cascade
+  // into all our remote endpoint's future reads failing.
+  Exception sleep_exception =
+      SystemClock::Sleep(EndpointManager::kKeepAliveWriteInterval);
+  if (!sleep_exception.Ok()) {
+    return ExceptionOr<bool>(sleep_exception);
+  }
+
+  return ExceptionOr<bool>(true);
+}
+
+bool operator==(const EndpointManager::FrameProcessor& lhs,
+                const EndpointManager::FrameProcessor& rhs) {
+  // We're comparing addresses because these objects are callbacks which need to
+  // be matched by exact instances.
+  return &lhs == &rhs;
+}
+
+bool operator<(const EndpointManager::FrameProcessor& lhs,
+               const EndpointManager::FrameProcessor& rhs) {
+  // We're comparing addresses because these objects are callbacks which need to
+  // be matched by exact instances.
+  return &lhs < &rhs;
+}
+
+EndpointManager::EndpointManager(EndpointChannelManager* manager)
+    : channel_manager_(manager) {}
+
+EndpointManager::~EndpointManager() {
+  NEARBY_LOG(INFO, "EndpointManager going down");
+  CountDownLatch latch(1);
+  RunOnEndpointManagerThread([this, &latch]() {
+    NEARBY_LOG(INFO, "Bringing down endpoints");
+    for (auto& item : endpoints_) {
+      const std::string& endpoint_id = item.first;
+      EndpointState& state = item.second;
+      // This will close the channel; all workers will sense that and
+      // terminate.
+      channel_manager_->UnregisterChannelForEndpoint(endpoint_id);
+      state.barrier.Await();
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  NEARBY_LOG(INFO, "Bringing down worker threads");
+
+  // Stop all the ongoing Runnables (as gracefully as possible).
+  // Order matters: bring worker pools down first; serial_executor_ thread
+  // should go last, since workers schedule jobs there even during shutdown.
+  handlers_executor_.Shutdown();
+  keep_alive_executor_.Shutdown();
+  NEARBY_LOG(INFO, "Bringing down control thread");
+  serial_executor_.Shutdown();
+  NEARBY_LOG(INFO, "EndpointManager is down");
+}
+
+EndpointManager::FrameProcessor::Handle EndpointManager::RegisterFrameProcessor(
+    V1Frame::FrameType frame_type, EndpointManager::FrameProcessor* processor) {
+  const FrameProcessor::Handle handle = processor;
+  CountDownLatch latch(1);
+  RunOnEndpointManagerThread([this, frame_type, &latch, processor]() {
+    auto it = frame_processors_.find(frame_type);
+    if (it != frame_processors_.end()) {
+      NEARBY_LOGS(INFO) << "Frame processor found: updated; type=" << frame_type
+                        << "; processor=" << processor << "; self=" << this;
+      it->second = processor;
     } else {
-      endpoint_manager_->incoming_offline_frame_processors_.insert(
-          std::make_pair(frame_type_, processor_));
+      NEARBY_LOGS(INFO) << "Frame processor added; type=" << frame_type
+                        << "; processor=" << processor << "; self=" << this;
+      frame_processors_.emplace(frame_type, processor);
     }
-  }
+    latch.CountDown();
+  });
+  latch.Await();
+  return handle;
+}
 
- private:
-  Ptr<EndpointManager<Platform>> endpoint_manager_;
-  const V1Frame::FrameType frame_type_;
-  Ptr<typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>
-      processor_;
-};
-
-template <typename Platform>
-class UnregisterIncomingOfflineFrameProcessorRunnable : public Runnable {
- public:
-  UnregisterIncomingOfflineFrameProcessorRunnable(
-      Ptr<EndpointManager<Platform>> endpoint_manager,
-      V1Frame::FrameType frame_type,
-      Ptr<typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>
-          processor)
-      : endpoint_manager_(endpoint_manager),
-        frame_type_(frame_type),
-        processor_(processor) {}
-
-  void run() override {
-    typename EndpointManager<
-        Platform>::IncomingOfflineFrameProcessorsMap::iterator it =
-        endpoint_manager_->incoming_offline_frame_processors_.find(frame_type_);
-    if (it != endpoint_manager_->incoming_offline_frame_processors_.end()) {
-      if (it->second != processor_) {
-        // TODO(tracyzhou): Add logging.
-        return;
-      }
-
-      endpoint_manager_->incoming_offline_frame_processors_.erase(it);
+void EndpointManager::UnregisterFrameProcessor(V1Frame::FrameType frame_type,
+                                               const void* handle, bool sync) {
+  NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [enter]: handle=" << handle;
+  if (handle == nullptr) return;
+  CountDownLatch latch(1);
+  RunOnEndpointManagerThread([this, frame_type, handle, &latch, sync]() {
+    auto it = frame_processors_.find(frame_type);
+    if (it == frame_processors_.end()) {
+      NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [not found]: handle="
+                        << handle;
+      if (sync) latch.CountDown();
+      return;
     }
+    NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [found]: handle=" << handle;
+    if (it->second == handle) {
+      frame_processors_.erase(it);
+      NEARBY_LOGS(INFO) << "Unregistered: type=" << frame_type
+                        << "; processor=" << handle << "; self=" << this;
+    } else {
+      NEARBY_LOG(INFO,
+                 "Failed to unregister: type=%d; handle mismatch: passed=%p, "
+                 "expected=%p",
+                 frame_type, handle, it->second);
+    }
+    if (sync) latch.CountDown();
+  });
+  if (sync) {
+    latch.Await();
+    NEARBY_LOGS(INFO) << "Unregistered [sync done]: type=" << frame_type
+                      << "; processor=" << handle << "; self=" << this;
   }
+}
 
- private:
-  Ptr<EndpointManager<Platform>> endpoint_manager_;
-  const V1Frame::FrameType frame_type_;
-  Ptr<typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>
-      processor_;
-};
+EndpointManager::FrameProcessor* EndpointManager::GetFrameProcessor(
+    V1Frame::FrameType frame_type) {
+  EndpointManager::FrameProcessor* processor = nullptr;
+  CountDownLatch latch(1);
+  RunOnEndpointManagerThread([this, frame_type, &processor, &latch]() {
+    auto it = frame_processors_.find(frame_type);
+    if (it != frame_processors_.end()) {
+      processor = it->second;
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  NEARBY_LOG(INFO, "GetFrameProcessor: type=%d; processor=%p", frame_type,
+             processor);
+  return processor;
+}
 
-template <typename Platform>
-class RegisterEndpointRunnable : public Runnable {
- public:
-  RegisterEndpointRunnable(
-      Ptr<EndpointManager<Platform>> endpoint_manager,
-      Ptr<ClientProxy<Platform>> client_proxy, const string& endpoint_id,
-      const string& endpoint_name, const string& authentication_token,
-      ConstPtr<ByteArray> raw_authentication_token, bool is_incoming,
-      Ptr<EndpointChannel> endpoint_channel,
-      Ptr<ConnectionLifecycleListener> connection_lifecycle_listener,
-      Ptr<CountDownLatch> latch)
-      : endpoint_manager_(endpoint_manager),
-        client_proxy_(client_proxy),
-        endpoint_id_(endpoint_id),
-        endpoint_name_(endpoint_name),
-        authentication_token_(authentication_token),
-        raw_authentication_token_(raw_authentication_token),
-        is_incoming_(is_incoming),
-        endpoint_channel_(endpoint_channel),
-        connection_lifecycle_listener_(connection_lifecycle_listener),
-        latch_(latch) {}
+void EndpointManager::EnsureWorkersTerminated(const std::string& endpoint_id) {
+  auto item = endpoints_.find(endpoint_id);
+  if (item != endpoints_.end()) {
+    // If another instance of data and keep-alive handlers is running, it will
+    // terminate soon; we should block until it happens.
+    EndpointState& endpoint_state = item->second;
+    NEARBY_LOGS(INFO) << "Waiting for workers to terminate for id: "
+                      << endpoint_id;
+    endpoint_state.barrier.Await();
+    endpoints_.erase(item);
+    NEARBY_LOGS(INFO) << "Workers terminated for id: " << endpoint_id;
+  } else {
+    NEARBY_LOGS(INFO) << "EndpointState not found for id: " << endpoint_id;
+  }
+}
 
-  void run() override {
-    endpoint_manager_->endpoint_channel_manager_->registerChannelForEndpoint(
-        client_proxy_, endpoint_id_, endpoint_channel_);
+void EndpointManager::RegisterEndpoint(ClientProxy* client,
+                                       const std::string& endpoint_id,
+                                       const ConnectionResponseInfo& info,
+                                       const ConnectionOptions& options,
+                                       std::unique_ptr<EndpointChannel> channel,
+                                       const ConnectionListener& listener) {
+  CountDownLatch latch(1);
 
-    // For every endpoint, there's one Reader instance running on the
-    // EndpointManagerReaderThread. This instance reads from the endpoint and
-    // delegates incoming frames to various IncomingOfflineFrameProcessors.
-    // Once the frame has been properly handled, it starts reading again for the
-    // next frame. If the Reader fails its read and no other EndpointChannels
-    // are available for this endpoint, a disconnection will be initiated.
-    endpoint_manager_->startEndpointReader(MakePtr(new ReaderRunnable<Platform>(
-        endpoint_manager_, client_proxy_, endpoint_id_)));
+  // NOTE (unique_ptr<> capture):
+  // std::unique_ptr<> is not copyable, so we can not pass it to
+  // lambda capture, because lambda eventually is converted to std::function<>.
+  // Instead, we release() a pointer, and pass a raw pointer, which is copyalbe.
+  // We ignore the risk of job not scheduled (and an associated risk of memory
+  // leak), because this may only happen during service shutdown.
+  RunOnEndpointManagerThread([this, client, channel = channel.release(),
+                              &endpoint_id, &info, &options, &listener,
+                              &latch]() {
+    // Pass ownership of channel to EndpointChannelManager
+    NEARBY_LOG(INFO, "Registering endpoint with channel manager: id=%s",
+               endpoint_id.c_str());
+    channel_manager_->RegisterChannelForEndpoint(
+        client, endpoint_id, std::unique_ptr<EndpointChannel>(channel));
 
-    // For every endpoint, there's one KeepAliveManager instance running on the
-    // EndpointManagerKeepAliveThread. This instance will periodically
-    // send out a ping* to the endpoint while listening for an incoming pong**.
-    // If it fails to send the ping, or if no pong is heard within
-    // kKeepAliveReadTimeoutMillis milliseconds, it initiates a
+    EnsureWorkersTerminated(endpoint_id);
+    EndpointState& endpoint_state =
+        endpoints_.emplace(endpoint_id, EndpointState()).first->second;
+    endpoint_state.client = client;
+
+    NEARBY_LOG(INFO, "Starting workers: id=%s", endpoint_id.c_str());
+    // For every endpoint, there's normally only one Read handler instance
+    // running on the handlers_executor_ pool. This instance reads data from the
+    // endpoint and delegates incoming frames to various FrameProcessors.
+    // Once the frame has been properly handled, it starts reading again for
+    // the next frame. If the handler fails its read and no other
+    // EndpointChannels are available for this endpoint, a disconnection
+    // will be initiated.
+    StartEndpointReader(
+        [this, client, endpoint_id, barrier = &endpoint_state.barrier]() {
+          EndpointChannelLoopRunnable(
+              "Read", client, endpoint_id, barrier,
+              [this, client, endpoint_id](EndpointChannel* channel) {
+                return HandleData(endpoint_id, client, channel);
+              });
+        });
+
+    // For every endpoint, there's only one KeepAliveManager instance
+    // running on the keep_alive_executor_ pool. This instance will
+    // periodically send out a ping* to the endpoint while listening for an
+    // incoming pong**. If it fails to send the ping, or if no pong is heard
+    // within kKeepAliveReadTimeoutMillis milliseconds, it initiates a
     // disconnection.
     //
-    // (*) Bluetooth requires a constant outgoing stream of messages. If there's
-    // silence, Android will break the socket. This is why we ping.
+    // (*) Bluetooth requires a constant outgoing stream of messages. If
+    // there's silence, Android will break the socket. This is why we ping.
     // (**) Wifi Hotspots can fail to notice a connection has been lost, and
-    // they will happily keep writing to /dev/null. This is why we listen for
-    // the pong.
-    endpoint_manager_->startEndpointKeepAliveManager(
-        MakePtr(new KeepAliveManagerRunnable<Platform>(
-            endpoint_manager_, client_proxy_, endpoint_id_)));
-    // TODO(tracyzhou): Add logging.
+    // they will happily keep writing to /dev/null. This is why we listen
+    // for the pong.
+    StartEndpointKeepAliveManager([this, client, endpoint_id,
+                                   barrier = &endpoint_state.barrier]() {
+      EndpointChannelLoopRunnable("KeepAliveManager", client, endpoint_id,
+                                  barrier, [this](EndpointChannel* channel) {
+                                    return HandleKeepAlive(channel);
+                                  });
+    });
+    NEARBY_LOG(INFO, "Workers started, notifying client; id=%s",
+               endpoint_id.c_str());
 
-    // It's now time to let the client know of this new connection so that they
-    // can accept or reject it.
-    client_proxy_->onConnectionInitiated(
-        endpoint_id_, endpoint_name_, authentication_token_,
-        raw_authentication_token_.release(), is_incoming_,
-        connection_lifecycle_listener_.release());
-    latch_->countDown();
-  }
-
- private:
-  Ptr<EndpointManager<Platform>> endpoint_manager_;
-  Ptr<ClientProxy<Platform>> client_proxy_;
-  const string endpoint_id_;
-  const string endpoint_name_;
-  const string authentication_token_;
-  ScopedPtr<ConstPtr<ByteArray>> raw_authentication_token_;
-  const bool is_incoming_;
-  Ptr<EndpointChannel> endpoint_channel_;
-  ScopedPtr<Ptr<ConnectionLifecycleListener>> connection_lifecycle_listener_;
-  Ptr<CountDownLatch> latch_;
-};
-
-template <typename Platform>
-class UnregisterEndpointRunnable : public Runnable {
- public:
-  UnregisterEndpointRunnable(Ptr<EndpointManager<Platform>> endpoint_manager,
-                             Ptr<ClientProxy<Platform>> client_proxy,
-                             const string& endpoint_id,
-                             Ptr<CountDownLatch> latch)
-      : endpoint_manager_(endpoint_manager),
-        client_proxy_(client_proxy),
-        endpoint_id_(endpoint_id),
-        latch_(latch) {}
-
-  void run() override {
-    endpoint_manager_->removeEndpoint(
-        client_proxy_, endpoint_id_, /*send_disconnection_notification=*/false);
-
-    latch_->countDown();
-  }
-
- private:
-  Ptr<EndpointManager<Platform>> endpoint_manager_;
-  Ptr<ClientProxy<Platform>> client_proxy_;
-  const string endpoint_id_;
-  Ptr<CountDownLatch> latch_;
-};
-
-template <typename Platform>
-class DiscardEndpointRunnable : public Runnable {
- public:
-  DiscardEndpointRunnable(Ptr<EndpointManager<Platform>> endpoint_manager,
-                          Ptr<ClientProxy<Platform>> client_proxy,
-                          const string& endpoint_id)
-      : endpoint_manager_(endpoint_manager),
-        client_proxy_(client_proxy),
-        endpoint_id_(endpoint_id) {}
-
-  void run() override {
-    endpoint_manager_->removeEndpoint(
-        client_proxy_, endpoint_id_,
-        /*send_disconnection_notification=*/
-        client_proxy_->isConnectedToEndpoint(endpoint_id_));
-  }
-
- private:
-  Ptr<EndpointManager<Platform>> endpoint_manager_;
-  Ptr<ClientProxy<Platform>> client_proxy_;
-  const string endpoint_id_;
-};
-
-template <typename Platform>
-class GetOfflineFrameProcessorCallable
-    : public Callable<Ptr<
-          typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>> {
- public:
-  typedef Ptr<typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>
-      ReturnType;
-
-  GetOfflineFrameProcessorCallable(
-      Ptr<EndpointManager<Platform>> endpoint_manager,
-      V1Frame::FrameType frame_type)
-      : endpoint_manager_(endpoint_manager), frame_type_(frame_type) {}
-
-  ExceptionOr<ReturnType> call() override {
-    typename EndpointManager<
-        Platform>::IncomingOfflineFrameProcessorsMap::iterator it =
-        endpoint_manager_->incoming_offline_frame_processors_.find(frame_type_);
-    if (it == endpoint_manager_->incoming_offline_frame_processors_.end()) {
-      return ExceptionOr<ReturnType>(ReturnType());
-    }
-    return ExceptionOr<ReturnType>(it->second);
-  }
-
- private:
-  Ptr<EndpointManager<Platform>> endpoint_manager_;
-  const V1Frame::FrameType frame_type_;
-};
-
-}  // namespace endpoint_manager
-
-template <typename Platform>
-bool EndpointManager<Platform>::IncomingOfflineFrameProcessor::operator==(
-    const EndpointManager<Platform>::IncomingOfflineFrameProcessor& rhs) {
-  // We're comparing addresses because these objects are callbacks which need to
-  // be matched by exact instances.
-  return this == &rhs;
+    // It's now time to let the client know of this new connection so that
+    // they can accept or reject it.
+    client->OnConnectionInitiated(endpoint_id, info, options, listener);
+    latch.CountDown();
+  });
+  latch.Await();
 }
 
-template <typename Platform>
-bool EndpointManager<Platform>::IncomingOfflineFrameProcessor::operator<(
-    const EndpointManager<Platform>::IncomingOfflineFrameProcessor& rhs) {
-  // We're comparing addresses because these objects are callbacks which need to
-  // be matched by exact instances.
-  return this < &rhs;
+void EndpointManager::UnregisterEndpoint(ClientProxy* client,
+                                         const std::string& endpoint_id) {
+  CountDownLatch latch(1);
+  RunOnEndpointManagerThread([this, client, endpoint_id, &latch]() {
+    RemoveEndpoint(client, endpoint_id,
+                   client->IsConnectedToEndpoint(endpoint_id));
+    latch.CountDown();
+  });
+  latch.Await();
 }
 
-template <typename Platform>
-const std::int32_t EndpointManager<Platform>::kKeepAliveWriteIntervalMillis =
-    5000;
-template <typename Platform>
-const std::int32_t EndpointManager<Platform>::kKeepAliveReadTimeoutMillis =
-    30000;
-template <typename Platform>
-const std::int32_t
-    EndpointManager<Platform>::kProcessEndpointDisconnectionTimeoutMillis =
-        2000;
-template <typename Platform>
-const std::int32_t EndpointManager<Platform>::kMaxConcurrentEndpoints = 50;
-
-template <typename Platform>
-EndpointManager<Platform>::EndpointManager(
-    Ptr<EndpointChannelManager> endpoint_channel_manager)
-    : thread_utils_(Platform::createThreadUtils()),
-      system_clock_(Platform::createSystemClock()),
-      endpoint_channel_manager_(endpoint_channel_manager),
-      incoming_offline_frame_processors_(),
-      endpoint_keep_alive_manager_thread_pool_(
-          Platform::createMultiThreadExecutor(kMaxConcurrentEndpoints)),
-      endpoint_readers_thread_pool_(
-          Platform::createMultiThreadExecutor(kMaxConcurrentEndpoints)),
-      serial_executor_(Platform::createSingleThreadExecutor()) {}
-
-template <typename Platform>
-EndpointManager<Platform>::~EndpointManager() {
-  // TODO(tracyzhou): Add logging.
-  // Stop all the ongoing Runnables (as gracefully as possible).
-  serial_executor_->shutdown();
-  endpoint_readers_thread_pool_->shutdown();
-  endpoint_keep_alive_manager_thread_pool_->shutdown();
-
-  // 'incoming_offline_frame_processors' does not own the processors.
-  incoming_offline_frame_processors_.clear();
-  // TODO(tracyzhou): Add logging.
+// Designed to run asynchronously. It is called from IO thread pools, and
+// jobs in these pools may be waited for from the EndpointManager thread. If we
+// allow synchronous behavior here it will cause a live lock.
+void EndpointManager::DiscardEndpoint(ClientProxy* client,
+                                      const std::string& endpoint_id) {
+  RunOnEndpointManagerThread([this, client, endpoint_id]() {
+    RemoveEndpoint(client, endpoint_id,
+                   /*notify=*/
+                   client->IsConnectedToEndpoint(endpoint_id));
+  });
 }
 
-template <typename Platform>
-void EndpointManager<Platform>::registerIncomingOfflineFrameProcessor(
-    V1Frame::FrameType frame_type,
-    Ptr<typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>
-        processor) {
-  runOnEndpointManagerThread(MakePtr(
-      new endpoint_manager::RegisterIncomingOfflineFrameProcessorRunnable<
-          Platform>(self_, frame_type, processor)));
-}
-
-template <typename Platform>
-void EndpointManager<Platform>::unregisterIncomingOfflineFrameProcessor(
-    V1Frame::FrameType frame_type,
-    Ptr<typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>
-        processor) {
-  runOnEndpointManagerThread(MakePtr(
-      new endpoint_manager::UnregisterIncomingOfflineFrameProcessorRunnable<
-          Platform>(self_, frame_type, processor)));
-}
-
-template <typename Platform>
-Ptr<typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>
-EndpointManager<Platform>::getOfflineFrameProcessor(
-    V1Frame::FrameType frame_type) {
-  typedef Ptr<typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>
-      PtrIncomingOfflineFrameProcessor;
-  typedef Ptr<Future<PtrIncomingOfflineFrameProcessor>> ResultType;
-
-  ScopedPtr<ResultType> future_result(
-      runOnEndpointManagerThread<PtrIncomingOfflineFrameProcessor>(MakePtr(
-          new endpoint_manager::GetOfflineFrameProcessorCallable<Platform>(
-              self_, frame_type))));
-
-  return waitForResult("getOfflineFrameProcessor", future_result.get());
-}
-
-template <typename Platform>
-void EndpointManager<Platform>::registerEndpoint(
-    Ptr<ClientProxy<Platform>> client_proxy, const string& endpoint_id,
-    const string& endpoint_name, const string& authentication_token,
-    ConstPtr<ByteArray> raw_authentication_token, bool is_incoming,
-    Ptr<EndpointChannel> endpoint_channel,
-    Ptr<ConnectionLifecycleListener> connection_lifecycle_listener) {
-  ScopedPtr<Ptr<CountDownLatch>> latch(Platform::createCountDownLatch(1));
-  runOnEndpointManagerThread(
-      MakePtr(new endpoint_manager::RegisterEndpointRunnable<Platform>(
-          self_, client_proxy, endpoint_id, endpoint_name,
-          authentication_token, raw_authentication_token, is_incoming,
-          endpoint_channel, connection_lifecycle_listener, latch.get())));
-  waitForLatch("registerEndpoint", latch.get());
-}
-
-template <typename Platform>
-void EndpointManager<Platform>::unregisterEndpoint(
-    Ptr<ClientProxy<Platform>> client_proxy, const string& endpoint_id) {
-  ScopedPtr<Ptr<CountDownLatch>> latch(Platform::createCountDownLatch(1));
-  runOnEndpointManagerThread(
-      MakePtr(new endpoint_manager::UnregisterEndpointRunnable<Platform>(
-          self_, client_proxy, endpoint_id, latch.get())));
-  waitForLatch("unregisterEndpoint", latch.get());
-}
-
-template <typename Platform>
-void EndpointManager<Platform>::discardEndpoint(
-    Ptr<ClientProxy<Platform>> client_proxy, const string& endpoint_id) {
-  runOnEndpointManagerThread(
-      MakePtr(new endpoint_manager::DiscardEndpointRunnable<Platform>(
-          self_, client_proxy, endpoint_id)));
-}
-
-template <typename Platform>
-std::vector<string> EndpointManager<Platform>::sendPayloadChunk(
+std::vector<std::string> EndpointManager::SendPayloadChunk(
     const PayloadTransferFrame::PayloadHeader& payload_header,
     const PayloadTransferFrame::PayloadChunk& payload_chunk,
-    const std::vector<string>& endpoint_ids) {
-  ConstPtr<ByteArray> payload_transfer_frame_bytes =
-      OfflineFrames::forDataPayloadTransferFrame(payload_header, payload_chunk);
+    const std::vector<std::string>& endpoint_ids) {
+  ByteArray bytes =
+      parser::ForDataPayloadTransfer(payload_header, payload_chunk);
 
-  return sendTransferFrameBytes(endpoint_ids, payload_transfer_frame_bytes,
-                                payload_header.id(),
+  return SendTransferFrameBytes(endpoint_ids, bytes, payload_header.id(),
                                 /*offset=*/payload_chunk.offset(),
                                 /*packet_type=*/"DATA");
 }
 
-template <typename Platform>
-void EndpointManager<Platform>::sendControlMessage(
-    const PayloadTransferFrame::PayloadHeader& payload_header,
-    const PayloadTransferFrame::ControlMessage& control_message,
-    const std::vector<string>& endpoint_ids) {
-  ConstPtr<ByteArray> payload_transfer_frame_bytes =
-      OfflineFrames::forControlPayloadTransferFrame(payload_header,
-                                                    control_message);
+std::vector<std::string> EndpointManager::SendControlMessage(
+    const PayloadTransferFrame::PayloadHeader& header,
+    const PayloadTransferFrame::ControlMessage& control,
+    const std::vector<std::string>& endpoint_ids) {
+  ByteArray bytes = parser::ForControlPayloadTransfer(header, control);
 
-  sendTransferFrameBytes(endpoint_ids, payload_transfer_frame_bytes,
-                         payload_header.id(),
-                         /*offset=*/control_message.offset(),
-                         /*packet_type=*/"CONTROL");
-}
-
-template <typename Platform>
-void EndpointManager<Platform>::waitForLatch(const string& method_name,
-                                             Ptr<CountDownLatch> latch) {
-  Exception::Value await_exception = latch->await();
-  if (Exception::NONE != await_exception) {
-    if (Exception::INTERRUPTED == await_exception) {
-      // TODO(tracyzhou): Add logging.
-      // Thread.currentThread().interrupt();
-    }
-  }
-}
-
-template <typename Platform>
-void EndpointManager<Platform>::waitForLatch(const string& method_name,
-                                             Ptr<CountDownLatch> latch,
-                                             std::int32_t timeout_millis) {
-  ExceptionOr<bool> await_succeeded = latch->await(timeout_millis);
-
-  if (!await_succeeded.ok()) {
-    // TODO(tracyzhou): Add logging.
-    if (Exception::INTERRUPTED == await_succeeded.exception()) {
-      // TODO(tracyzhou): Add logging.
-      // Thread.currentThread().interrupt();
-      return;
-    }
-  }
-
-  if (!await_succeeded.result()) {
-    // TODO(tracyzhou): Add logging.
-  }
-}
-
-template <typename Platform>
-template <typename T>
-T EndpointManager<Platform>::waitForResult(const string& method_name,
-                                           Ptr<Future<T>> result_future) {
-  ExceptionOr<T> result = result_future->get();
-
-  if (!result.ok()) {
-    Exception::Value exception = result.exception();
-    if (Exception::INTERRUPTED == exception ||
-        Exception::EXECUTION == exception) {
-      // TODO(tracyzhou): Add logging.
-      if (Exception::INTERRUPTED == exception) {
-        // Thread.currentThread().interrupt();
-      }
-      return T();
-    }
-  }
-
-  return result.result();
+  return SendTransferFrameBytes(endpoint_ids, bytes, header.id(),
+                                /*offset=*/control.offset(),
+                                /*packet_type=*/"CONTROL");
 }
 
 // @EndpointManagerThread
-template <typename Platform>
-void EndpointManager<Platform>::removeEndpoint(
-    Ptr<ClientProxy<Platform>> client_proxy, const string& endpoint_id,
-    bool send_disconnection_notification) {
-  // Unregistering from endpoint_channel_manager_ will also serve to terminate
-  // the dedicated reader and KeepAlive threads we started when we registered
+void EndpointManager::RemoveEndpoint(ClientProxy* client,
+                                     const std::string& endpoint_id,
+                                     bool notify) {
+  // Unregistering from channel_manager_ will also serve to terminate
+  // the dedicated handler and KeepAlive threads we started when we registered
   // this endpoint.
-  if (endpoint_channel_manager_->unregisterChannelForEndpoint(endpoint_id)) {
+  if (channel_manager_->UnregisterChannelForEndpoint(endpoint_id)) {
     // Notify all frame processors of the disconnection immediately and wait
     // for them to clean up state. Only once all processors are done cleaning
     // up, we can remove the endpoint from ClientProxy after which there
     // should be no further interactions with the endpoint.
     // (See b/37352254 for history)
-    waitForEndpointDisconnectionProcessing(client_proxy, endpoint_id);
+    WaitForEndpointDisconnectionProcessing(client, endpoint_id);
 
-    client_proxy->onDisconnected(endpoint_id, send_disconnection_notification);
-    // TODO(tracyzhou): Add logging.
+    client->OnDisconnected(endpoint_id, notify);
+    NEARBY_LOG(INFO, "Removed endpoint; id=%s", endpoint_id.c_str());
   }
 }
 
 // @EndpointManagerThread
-template <typename Platform>
-void EndpointManager<Platform>::waitForEndpointDisconnectionProcessing(
-    Ptr<ClientProxy<Platform>> client_proxy, const string& endpoint_id) {
-  ScopedPtr<Ptr<CountDownLatch>> process_disconnection_barrier(
-      Platform::createCountDownLatch(static_cast<std::int32_t>(
-          incoming_offline_frame_processors_.size())));
+void EndpointManager::WaitForEndpointDisconnectionProcessing(
+    ClientProxy* client, const std::string& endpoint_id) {
+  NEARBY_LOGS(INFO) << "Wait: client=" << client << "; id=" << endpoint_id;
+  auto total_size = frame_processors_.size();
+  NEARBY_LOGS(INFO) << "Total frame processors: " << total_size;
+  if (!total_size) return;
+  CountDownLatch barrier(total_size);
 
-  for (typename IncomingOfflineFrameProcessorsMap::iterator it =
-           incoming_offline_frame_processors_.begin();
-       it != incoming_offline_frame_processors_.end(); it++) {
-    it->second->processEndpointDisconnection(
-        client_proxy, endpoint_id, process_disconnection_barrier.get());
+  int valid = 0;
+  for (auto& item : frame_processors_) {
+    auto* processor = item.second;
+    NEARBY_LOGS(INFO) << "processor=" << processor << "; type=" << item.first;
+    if (processor) {
+      valid++;
+      processor->OnEndpointDisconnect(client, endpoint_id, &barrier);
+    } else {
+      barrier.CountDown();
+    }
   }
 
-  waitForLatch("waitForEndpointDisconnectionProcessing",
-               process_disconnection_barrier.get(),
-               kProcessEndpointDisconnectionTimeoutMillis);
+  if (!valid) {
+    NEARBY_LOGS(INFO) << "No valid frame processors.";
+    return;
+  } else {
+    NEARBY_LOGS(INFO) << "Valid frame processors: " << valid;
+  }
+
+  NEARBY_LOGS(INFO) << "Waiting for " << valid
+                    << " frame processors to disconnect from: " << endpoint_id;
+  if (!barrier.Await(kProcessEndpointDisconnectionTimeout).result()) {
+    NEARBY_LOGS(INFO) << "Failed to disconnect frame processors from: "
+                      << endpoint_id;
+  } else {
+    NEARBY_LOGS(INFO)
+        << "Finished waiting for frame processors to disconnect from: "
+        << endpoint_id;
+  }
 }
 
-template <typename Platform>
-std::vector<string> EndpointManager<Platform>::sendTransferFrameBytes(
-    const std::vector<string>& endpoint_ids,
-    ConstPtr<ByteArray> payload_transfer_frame_bytes, std::int64_t payload_id,
-    std::int64_t offset, const string& packet_type) {
-  ScopedPtr<ConstPtr<ByteArray>> scoped_payload_transfer_frame_bytes(
-      payload_transfer_frame_bytes);
-  std::vector<string> failed_endpoint_ids;
-  for (std::vector<string>::const_iterator it = endpoint_ids.begin();
-       it != endpoint_ids.end(); it++) {
-    const string& endpoint_id = *it;
+std::vector<std::string> EndpointManager::SendTransferFrameBytes(
+    const std::vector<std::string>& endpoint_ids, const ByteArray& bytes,
+    std::int64_t payload_id, std::int64_t offset,
+    const std::string& packet_type) {
+  std::vector<std::string> failed_endpoint_ids;
+  for (const std::string& endpoint_id : endpoint_ids) {
+    std::shared_ptr<EndpointChannel> channel =
+        channel_manager_->GetChannelForEndpoint(endpoint_id);
 
-    ScopedPtr<Ptr<EndpointChannel>> scoped_endpoint_channel(
-        endpoint_channel_manager_->getChannelForEndpoint(endpoint_id));
-
-    if (scoped_endpoint_channel.isNull()) {
+    if (channel == nullptr) {
       // We no longer know about this endpoint (it was either explicitly
       // unregistered, or a read/write error made us unregister it internally).
-      // TODO(tracyzhou): Add logging.
+      NEARBY_LOG(INFO, "Channel not available; id=%s", endpoint_id.c_str());
       failed_endpoint_ids.push_back(endpoint_id);
       continue;
     }
 
-    Exception::Value write_exception = scoped_endpoint_channel->write(
-        scoped_payload_transfer_frame_bytes.release());
-    if (Exception::NONE != write_exception) {
-      if (Exception::IO == write_exception) {
-        // TODO(tracyzhou): Add logging.
-        failed_endpoint_ids.push_back(endpoint_id);
-        continue;
-      }
+    Exception write_exception = channel->Write(bytes);
+    if (!write_exception.Ok()) {
+      failed_endpoint_ids.push_back(endpoint_id);
+      NEARBY_LOG(INFO, "Failed to send packet; endpoint_id=%s",
+                 endpoint_id.c_str());
+      continue;
     }
   }
 
   return failed_endpoint_ids;
 }
 
-template <typename Platform>
-void EndpointManager<Platform>::startEndpointReader(Ptr<Runnable> runnable) {
-  endpoint_readers_thread_pool_->execute(runnable);
+void EndpointManager::StartEndpointReader(Runnable runnable) {
+  handlers_executor_.Execute(std::move(runnable));
 }
 
-template <typename Platform>
-void EndpointManager<Platform>::startEndpointKeepAliveManager(
-    Ptr<Runnable> runnable) {
-  endpoint_keep_alive_manager_thread_pool_->execute(runnable);
+void EndpointManager::StartEndpointKeepAliveManager(Runnable runnable) {
+  keep_alive_executor_.Execute(std::move(runnable));
 }
 
-template <typename Platform>
-void EndpointManager<Platform>::runOnEndpointManagerThread(
-    Ptr<Runnable> runnable) {
-  serial_executor_->execute(runnable);
-}
-
-template <typename Platform>
-template <typename T>
-Ptr<Future<T>> EndpointManager<Platform>::runOnEndpointManagerThread(
-    Ptr<Callable<T>> callable) {
-  return serial_executor_->submit(callable);
+void EndpointManager::RunOnEndpointManagerThread(Runnable runnable) {
+  serial_executor_.Execute(std::move(runnable));
 }
 
 }  // namespace connections

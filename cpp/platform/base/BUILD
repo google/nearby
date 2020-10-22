@@ -1,0 +1,124 @@
+load("//ads/util/non_compile:non_compile.bzl", "cc_with_non_compile_test")
+
+cc_library(
+    name = "base",
+    srcs = [
+        "base64_utils.cc",
+        "bluetooth_utils.cc",
+        "prng.cc",
+    ],
+    hdrs = [
+        "base64_utils.h",
+        "bluetooth_utils.h",
+        "byte_array.h",
+        "callable.h",
+        "exception.h",
+        "input_stream.h",
+        "listeners.h",
+        "output_stream.h",
+        "payload_id.h",
+        "prng.h",
+        "runnable.h",
+        "socket.h",
+        "types.h",
+    ],
+    visibility = [
+        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//core:__subpackages__",
+        "//platform:__subpackages__",
+        "//platform/api:__subpackages__",
+    ],
+    deps = [
+        "//absl/meta:type_traits",
+        "//absl/strings",
+        "//absl/strings:str_format",
+        "//absl/time",
+    ],
+)
+
+cc_library(
+    name = "util",
+    srcs = [
+        "base_input_stream.cc",
+        "base_pipe.cc",
+    ],
+    hdrs = [
+        "base_input_stream.h",
+        "base_mutex_lock.h",
+        "base_pipe.h",
+    ],
+    visibility = [
+        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//core:__subpackages__",
+        "//platform/impl:__subpackages__",
+        "//platform/public:__pkg__",
+    ],
+    deps = [
+        ":base",
+        "//platform/api:types",
+        "//absl/base:core_headers",
+    ],
+)
+
+cc_library(
+    name = "logging",
+    hdrs = [
+        "logging.h",
+    ],
+    visibility = [
+        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//platform:__subpackages__",
+    ],
+    deps = [
+        "//platform/api:platform",
+        "//platform/api:types",
+    ],
+)
+
+cc_library(
+    name = "test_util",
+    testonly = True,
+    srcs = [
+        "medium_environment.cc",
+    ],
+    hdrs = [
+        "medium_environment.h",
+    ],
+    visibility = [
+        "//core:__subpackages__",
+        "//platform/impl:__subpackages__",
+        "//platform/public:__pkg__",
+    ],
+    deps = [
+        ":base",
+        ":logging",
+        "//platform/api:comm",
+        "//platform/public:types",
+        "//absl/container:flat_hash_map",
+        "//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "platform_base_test",
+    srcs = [
+        "bluetooth_utils_test.cc",
+        "byte_array_test.cc",
+        "prng_test.cc",
+    ],
+    deps = [
+        ":base",
+        "//testing/base/public:gunit_main",
+    ],
+)
+
+cc_with_non_compile_test(
+    name = "exception_test",
+    srcs = [
+        "exception_test.cc",
+    ],
+    deps = [
+        ":base",
+        "//testing/base/public:gunit_main",
+    ],
+)

@@ -50,17 +50,8 @@ this is a "source root" directory of the project
 pre-requisites:
 openssl, cmake, c++ toolchain (c++17-capable)
 
-from "source root", run:
+TODO
 
-```
-mkdir build; cd build
-cmake -Dnearby_USE_LOCAL_PROTOBUF=ON -Dnearby_USE_LOCAL_ABSL=ON ..
-make
-```
 ## Running unit tests
 
-from "source root/build", run:
-
-```
-ctest -V
-```
+TODO

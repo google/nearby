@@ -2,39 +2,24 @@
 #define CORE_INTERNAL_BLE_ENDPOINT_CHANNEL_H_
 
 #include "core/internal/base_endpoint_channel.h"
-#include "core/internal/medium_manager.h"
-#include "platform/api/ble.h"
-#include "platform/api/platform.h"
-#include "platform/port/string.h"
-#include "platform/ptr.h"
+#include "platform/public/ble.h"
 #include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-class BLEEndpointChannel : public BaseEndpointChannel {
+class BleEndpointChannel final : public BaseEndpointChannel {
  public:
-  using Platform = platform::ImplementationPlatform;
+  // Creates both outgoing and incoming Ble channels.
+  BleEndpointChannel(const std::string& channel_name, BleSocket socket);
 
-  static Ptr<BLEEndpointChannel> createOutgoing(
-      Ptr<MediumManager<Platform> > medium_manager, const string& channel_name,
-      Ptr<BLESocket> ble_socket);
-  static Ptr<BLEEndpointChannel> createIncoming(
-      Ptr<MediumManager<Platform> > medium_manager, const string& channel_name,
-      Ptr<BLESocket> ble_socket);
-
-  ~BLEEndpointChannel() override;
-
-  proto::connections::Medium getMedium() override;
-
- protected:
-  void closeImpl() override;
+  proto::connections::Medium GetMedium() const override;
 
  private:
-  BLEEndpointChannel(const string& channel_name, Ptr<BLESocket> ble_socket);
+  void CloseImpl() override;
 
-  ScopedPtr<Ptr<BLESocket> > ble_socket_;
+  BleSocket ble_socket_;
 };
 
 }  // namespace connections

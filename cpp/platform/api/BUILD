@@ -1,69 +1,77 @@
-package(default_visibility = [
-    "//core:__subpackages__",
-    "//platform:__subpackages__",
-    "//location/nearby/setup/core:__subpackages__",
-])
-
 cc_library(
-    name = "api",
+    name = "types",
     hdrs = [
         "atomic_boolean.h",
         "atomic_reference.h",
-        "atomic_reference_def.h",
+        "cancelable.h",
+        "condition_variable.h",
+        "count_down_latch.h",
+        "crypto.h",
+        "executor.h",
+        "future.h",
+        "input_file.h",
+        "listenable_future.h",
+        "log_message.h",
+        "mutex.h",
+        "output_file.h",
+        "scheduled_executor.h",
+        "settable_future.h",
+        "submittable_executor.h",
+        "system_clock.h",
+    ],
+    visibility = [
+        "//platform/base:__pkg__",
+        "//platform/impl:__subpackages__",
+        "//platform/public:__pkg__",
+    ],
+    deps = [
+        "//platform/base",
+        "//absl/base:core_headers",
+        "//absl/strings",
+        "//absl/time",
+    ],
+)
+
+cc_library(
+    name = "comm",
+    hdrs = [
         "ble.h",
         "ble_v2.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
-        "condition_variable.h",
-        "count_down_latch.h",
-        "executor.h",
-        "future.h",
-        "hash_utils.h",
-        "input_file.h",
-        "input_stream.h",
-        "listenable_future.h",
-        "lock.h",
-        "multi_thread_executor.h",
-        "output_file.h",
-        "output_stream.h",
-        "platform.h",
-        "scheduled_executor.h",
         "server_sync.h",
-        "settable_future.h",
-        "settable_future_def.h",
-        "single_thread_executor.h",
-        "socket.h",
-        "submittable_executor.h",
-        "submittable_executor_def.h",
-        "system_clock.h",
-        "thread_utils.h",
         "webrtc.h",
         "wifi.h",
         "wifi_lan.h",
     ],
+    visibility = [
+        "//platform/base:__pkg__",
+        "//platform/impl:__subpackages__",
+        "//platform/public:__pkg__",
+    ],
     deps = [
-        "//platform:types",
-        "//platform/port:down_cast",
-        "//platform/port:string",
+        "//proto/connections:offline_wire_formats_portable_proto",
+        "//platform/base",
         "//absl/strings",
-        "//absl/types:any",
+        "//absl/types:optional",
         "//webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
 cc_library(
-    name = "lock",
-    hdrs = ["lock.h"],
-    visibility = [
-        "//platform:__subpackages__",
+    name = "platform",
+    hdrs = [
+        "platform.h",
     ],
-)
-
-cc_library(
-    name = "condition_variable",
-    hdrs = ["condition_variable.h"],
     visibility = [
-        "//platform:__subpackages__",
+        "//platform/base:__pkg__",
+        "//platform/impl:__subpackages__",
+        "//platform/public:__pkg__",
     ],
-    deps = ["//platform:types"],
+    deps = [
+        ":comm",
+        ":types",
+        "//platform/base",
+        "//absl/strings",
+    ],
 )

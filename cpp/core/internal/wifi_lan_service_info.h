@@ -3,10 +3,9 @@
 
 #include <cstdint>
 
+#include "core/internal/base_pcp_handler.h"
 #include "core/internal/pcp.h"
-#include "platform/byte_array.h"
-#include "platform/port/string.h"
-#include "platform/ptr.h"
+#include "platform/base/byte_array.h"
 #include "absl/strings/string_view.h"
 
 namespace location {
@@ -21,72 +20,68 @@ class WifiLanServiceInfo {
  public:
   // Versions of the WifiLanServiceInfo.
   enum class Version {
+    kUndefined = 0,
     kV1 = 1,
   };
 
-  // Static method to deserialize from the encrypted string to
-  // WifiLanServiceInfo object.
-  // TODO(b/149762166): Ptr is deprectaed. Uses shrared_ptr<T> or unique_ptr<T>.
-  static Ptr<WifiLanServiceInfo> FromString(
-      absl::string_view wifi_lan_service_info_string);
-
-  // Static method to serialize to encrypted string from WifiLanServiceInfo
-  // object.
-  static std::string AsString(Version version, PCP::Value pcp,
-                              absl::string_view endpoint_id,
-                              ConstPtr<ByteArray> service_id_hash);
-
+  // The key of TXTRecord for EndpointInfo.
+  static constexpr absl::string_view kKeyEndpointInfo{"n"};
   static constexpr std::uint32_t kServiceIdHashLength = 3;
+  static constexpr int kMaxEndpointInfoLength = 131;
 
+  WifiLanServiceInfo() = default;
+  WifiLanServiceInfo(Version version, Pcp pcp, absl::string_view endpoint_id,
+                     const ByteArray& service_id_hash,
+                     const ByteArray& endpoint_info,
+                     const ByteArray& uwb_address,
+                     WebRtcState web_rtc_state);
+
+  // Constructs WifiLanService through packed string of WifiLanServiceInfo and
+  // EndpointInfo.
+  //
+  // service_info_name  - A packed string of |WifiLanServiceInfo|. It does
+  //                        not include endpoint_info which should be stored
+  //                        in next param bleow.
+  // endpoint_info_name - The endpoint info packed string.
+  WifiLanServiceInfo(absl::string_view service_info_name,
+                     absl::string_view endpoint_info_name);
+  WifiLanServiceInfo(const WifiLanServiceInfo&) = default;
+  WifiLanServiceInfo& operator=(const WifiLanServiceInfo&) = default;
+  WifiLanServiceInfo(WifiLanServiceInfo&&) = default;
+  WifiLanServiceInfo& operator=(WifiLanServiceInfo&&) = default;
   ~WifiLanServiceInfo() = default;
 
-  inline Version GetVersion() const { return version_; }
-  inline PCP::Value GetPcp() const { return pcp_; }
-  inline std::string GetEndpointId() const { return endpoint_id_; }
-  inline ConstPtr<ByteArray> GetServiceIdHash() const {
-    return service_id_hash_.get();
-  }
-  inline std::string GetEndpointName() const { return endpoint_name_; }
+  explicit operator std::string() const;
+  std::string GetEndpointInfoName() const;
+
+  bool IsValid() const { return !endpoint_id_.empty(); }
+  Version GetVersion() const { return version_; }
+  Pcp GetPcp() const { return pcp_; }
+  std::string GetEndpointId() const { return endpoint_id_; }
+  ByteArray GetEndpointInfo() const { return endpoint_info_; }
+  ByteArray GetServiceIdHash() const { return service_id_hash_; }
+  ByteArray GetUwbAddress() const { return uwb_address_; }
+  WebRtcState GetWebRtcState() const { return web_rtc_state_; }
 
  private:
-  static Ptr<WifiLanServiceInfo> CreateV1WifiLanServiceInfo(
-      ConstPtr<ByteArray> wifi_lan_service_info_name_bytes);
-  static std::uint32_t ComputeEndpointNameLength(
-      ConstPtr<ByteArray> wifi_lan_service_info_name_bytes);
-  static Ptr<ByteArray> CreateV1Bytes(PCP::Value pcp,
-                                      absl::string_view endpoint_id,
-                                      ConstPtr<ByteArray> service_id_hash);
-
-  // The maximum length of encrypted WifiLanServiceInfo string.
-  static constexpr int kMaxLanServiceNameLength = 47;
-  // The minimum length of encrypted WifiLanServiceInfo string.
   static constexpr int kMinLanServiceNameLength = 9;
-  // The length for endpoint id in encrypted WifiLanServiceInfo string.
   static constexpr int kEndpointIdLength = 4;
-  // The maximum length for endpoint id in encrypted WifiLanServiceInfo string.
-  static constexpr int kMaxEndpointNameLength = 131;
+  static constexpr int kUwbAddressLengthSize = 1;
+  static constexpr int kExtraFieldLength = 1;
 
   static constexpr int kVersionBitmask = 0x0E0;
   static constexpr int kPcpBitmask = 0x01F;
   static constexpr int kVersionShift = 5;
+  static constexpr int kWebRtcConnectableFlagBitmask = 0x01;
 
-  WifiLanServiceInfo(Version version, PCP::Value pcp,
-                     absl::string_view endpoint_id,
-                     ConstPtr<ByteArray> service_id_hash,
-                     absl::string_view endpoint_name);
-
-  // WifiLanServiceInfo version.
-  const Version version_;
-  // Pre-Connection Protocols version.
-  const PCP::Value pcp_;
-  // Connected endpoint id.
-  const std::string endpoint_id_;
-  // Connected hash service id.
-  ScopedPtr<ConstPtr<ByteArray> > service_id_hash_;
-  // TODO(b/149806065): Replaces endpointName as endPointInfo eventually;
-  // it is not in this version yet for endpointName.
-  // Connected endpoint name.
-  const std::string endpoint_name_;
+  Version version_{Version::kUndefined};
+  Pcp pcp_{Pcp::kUnknown};
+  std::string endpoint_id_;
+  ByteArray service_id_hash_;
+  ByteArray endpoint_info_;
+  // TODO(b/169550050): Define UWB address field.
+  ByteArray uwb_address_;
+  WebRtcState web_rtc_state_{WebRtcState::kUndefined};
 };
 
 }  // namespace connections
