@@ -1,45 +1,50 @@
 #ifndef PLATFORM_API_WEBRTC_H_
 #define PLATFORM_API_WEBRTC_H_
 
-#include <vector>
+#include <memory>
 
-#include "platform/byte_array.h"
-#include "platform/ptr.h"
+#include "proto/connections/offline_wire_formats.pb.h"
+#include "proto/connections/offline_wire_formats.pb.h"
+#include "platform/base/byte_array.h"
+#include "absl/strings/string_view.h"
 #include "webrtc/api/peer_connection_interface.h"
 
 namespace location {
 namespace nearby {
+namespace api {
 
 class WebRtcSignalingMessenger {
  public:
+  using OnSignalingMessageCallback = std::function<void(const ByteArray&)>;
+
   virtual ~WebRtcSignalingMessenger() = default;
 
-  /** Called whenever we receive an inbox message from tachyon. */
-  class SignalingMessageListener {
-   public:
-    virtual ~SignalingMessageListener() = default;
+  virtual bool SendMessage(absl::string_view peer_id,
+                           const ByteArray& message) = 0;
 
-    virtual void onSignalingMessage(ConstPtr<ByteArray> message) = 0;
-  };
-
-  class IceServersListener {
-   public:
-    virtual ~IceServersListener() = default;
-
-    virtual void OnIceServersFetched(
-        std::vector<Ptr<webrtc::PeerConnectionInterface::IceServer>>
-            ice_servers) = 0;
-  };
-
-  virtual bool registerSignaling() = 0;
-  virtual bool unregisterSignaling() = 0;
-  virtual bool sendMessage(const std::string& peer_id,
-                           ConstPtr<ByteArray> message) = 0;
-  virtual bool startReceivingMessages(
-      Ptr<SignalingMessageListener> listener) = 0;
-  virtual void getIceServers(Ptr<IceServersListener> ice_servers_listener) = 0;
+  virtual bool StartReceivingMessages(OnSignalingMessageCallback listener) = 0;
+  virtual void StopReceivingMessages() = 0;
 };
 
+class WebRtcMedium {
+ public:
+  using PeerConnectionCallback =
+      std::function<void(rtc::scoped_refptr<webrtc::PeerConnectionInterface>)>;
+
+  virtual ~WebRtcMedium() = default;
+
+  // Creates and returns a new webrtc::PeerConnectionInterface object via
+  // |callback|.
+  virtual void CreatePeerConnection(webrtc::PeerConnectionObserver* observer,
+                                    PeerConnectionCallback callback) = 0;
+
+  // Returns a signaling messenger for sending WebRTC signaling messages.
+  virtual std::unique_ptr<WebRtcSignalingMessenger> GetSignalingMessenger(
+      absl::string_view self_id,
+      const connections::LocationHint& location_hint) = 0;
+};
+
+}  // namespace api
 }  // namespace nearby
 }  // namespace location
 

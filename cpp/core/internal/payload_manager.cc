@@ -1,639 +1,305 @@
 #include "core/internal/payload_manager.h"
 
 #include <algorithm>
+#include <cinttypes>
+#include <memory>
+#include <string>
 #include <utility>
 
-#include "platform/synchronized.h"
+#include "core/internal/internal_payload_factory.h"
+#include "platform/public/count_down_latch.h"
+#include "platform/public/mutex_lock.h"
+#include "platform/public/single_thread_executor.h"
+#include "platform/public/system_clock.h"
+#include "absl/memory/memory.h"
+#include "absl/strings/str_cat.h"
+#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-namespace payload_manager {
+// C++14 requires to declare this.
+// TODO(apolyudov): remove when migration to c++17 is possible.
+constexpr const absl::Duration PayloadManager::kWaitCloseTimeout;
 
-template <typename K, typename V>
-void eraseOwnedPtrFromMap(std::map<K, Ptr<V> >& m, const K& k) {
-  typename std::map<K, Ptr<V> >::iterator it = m.find(k);
-  if (it != m.end()) {
-    it->second.destroy();
-    m.erase(it);
+bool PayloadManager::SendPayloadLoop(
+    ClientProxy* client, PendingPayload& pending_payload,
+    PayloadTransferFrame::PayloadHeader& payload_header,
+    std::int64_t& next_chunk_offset) {
+  // in lieu of structured binding:
+  auto pair = GetAvailableAndUnavailableEndpoints(pending_payload);
+  const EndpointIds& available_endpoint_ids =
+      EndpointsToEndpointIds(pair.first);
+  const Endpoints& unavailable_endpoints = pair.second;
+
+  NEARBY_LOG(INFO,
+             "SendPayloadLoop: Available: { %s }; Unavailable: { %s }; "
+             "payload_id=%" PRIX64 "; self=%p",
+             ToString(available_endpoint_ids).c_str(),
+             ToString(unavailable_endpoints).c_str(),
+             static_cast<Payload::Id>(payload_header.id()), this);
+
+  // First, handle any non-available endpoints.
+  for (const auto& endpoint : unavailable_endpoints) {
+    HandleFinishedOutgoingPayload(
+        client, {endpoint->id}, payload_header, next_chunk_offset,
+        EndpointInfoStatusToPayloadStatus(endpoint->status.Get()));
+  }
+
+  // Update the still-active recipients of this payload.
+  if (available_endpoint_ids.empty()) {
+    NEARBY_LOG(INFO, "No more available endpoints: payload_id=%" PRIX64,
+               pending_payload.GetInternalPayload()->GetId());
+    return false;
+  }
+
+  // Check if the payload has been cancelled by the client and, if so,
+  // notify the remaining recipients.
+  if (pending_payload.IsLocallyCanceled()) {
+    NEARBY_LOG(INFO, "Payload canceled locally: payload_id=%" PRIX64,
+               pending_payload.GetInternalPayload()->GetId());
+    HandleFinishedOutgoingPayload(
+        client, available_endpoint_ids, payload_header, next_chunk_offset,
+        proto::connections::PayloadStatus::LOCAL_CANCELLATION);
+    return false;
+  }
+
+  // Update the current offsets for all endpoints still active for this
+  // payload. For the sake of accuracy, we update the pending payload here
+  // because it's after all payload terminating events are handled, but
+  // right before we actually start detaching the next chunk.
+  for (const auto& endpoint_id : available_endpoint_ids) {
+    pending_payload.SetOffsetForEndpoint(endpoint_id, next_chunk_offset);
+  }
+
+  // This will block if there is no data to transfer.
+  // It will resume when new data arrives, or if Close() is called.
+  ByteArray next_chunk =
+      pending_payload.GetInternalPayload()->DetachNextChunk();
+  if (shutdown_.Get()) return false;
+  // Save chunk size. We'll need it after we move next_chunk.
+  auto next_chunk_size = next_chunk.size();
+  if (!next_chunk_size &&
+      pending_payload.GetInternalPayload()->GetTotalSize() > 0 &&
+      pending_payload.GetInternalPayload()->GetTotalSize() <
+          next_chunk_offset) {
+    NEARBY_LOG(INFO, "Payload xfer failed: payload_id=%" PRIX64,
+               pending_payload.GetInternalPayload()->GetId());
+    HandleFinishedOutgoingPayload(
+        client, available_endpoint_ids, payload_header, next_chunk_offset,
+        proto::connections::PayloadStatus::LOCAL_ERROR);
+    return false;
+  }
+
+  PayloadTransferFrame::PayloadChunk payload_chunk(
+      CreatePayloadChunk(next_chunk_offset, std::move(next_chunk)));
+  const EndpointIds& failed_endpoint_ids = endpoint_manager_->SendPayloadChunk(
+      payload_header, payload_chunk, available_endpoint_ids);
+  // Check whether at least one endpoint failed.
+  if (!failed_endpoint_ids.empty()) {
+    NEARBY_LOG(INFO,
+               "Payload xfer: endpoints failed: payload_id=%" PRIX64
+               "; ids={%s}",
+               static_cast<std::int64_t>(payload_header.id()),
+               ToString(failed_endpoint_ids).c_str());
+    HandleFinishedOutgoingPayload(
+        client, failed_endpoint_ids, payload_header, next_chunk_offset,
+        proto::connections::PayloadStatus::ENDPOINT_IO_ERROR);
+  }
+
+  // Check whether at least one endpoint succeeded -- if they all failed,
+  // we'll just go right back to the top of the loop and break out when
+  // availableEndpointIds is re-synced and found to be empty at that point.
+  if (failed_endpoint_ids.size() < available_endpoint_ids.size()) {
+    for (const auto& endpoint_id : available_endpoint_ids) {
+      if (std::find(failed_endpoint_ids.begin(), failed_endpoint_ids.end(),
+                    endpoint_id) == failed_endpoint_ids.end()) {
+        HandleSuccessfulOutgoingChunk(
+            client, endpoint_id, payload_header, payload_chunk.flags(),
+            payload_chunk.offset(), payload_chunk.body().size());
+      }
+    }
+
+    next_chunk_offset += next_chunk_size;
+
+    if (!next_chunk_size) {
+      // That was the last chunk, we're outta here.
+      NEARBY_LOG(
+          INFO, "Payload xfer done: payload_id=%" PRIX64 "; size=%" PRId64,
+          pending_payload.GetInternalPayload()->GetId(), next_chunk_offset);
+      return false;
+    }
+  }
+
+  return true;
+}
+
+std::pair<PayloadManager::Endpoints, PayloadManager::Endpoints>
+PayloadManager::GetAvailableAndUnavailableEndpoints(
+    const PendingPayload& pending_payload) {
+  Endpoints available;
+  Endpoints unavailable;
+  for (auto* endpoint_info : pending_payload.GetEndpoints()) {
+    NEARBY_LOG(INFO, "EndpointInfo: %p; id=%s; status=%d", endpoint_info,
+               endpoint_info->id.c_str(), endpoint_info->status.Get());
+    if (endpoint_info->status.Get() ==
+        PayloadManager::EndpointInfo::Status::kAvailable) {
+      available.push_back(endpoint_info);
+    } else {
+      unavailable.push_back(endpoint_info);
+    }
+  }
+  return std::make_pair(std::move(available), std::move(unavailable));
+}
+
+PayloadManager::EndpointIds PayloadManager::EndpointsToEndpointIds(
+    const Endpoints& endpoints) {
+  EndpointIds endpoint_ids;
+  endpoint_ids.reserve(endpoints.size());
+  for (const auto& item : endpoints) {
+    if (item) {
+      endpoint_ids.emplace_back(item->id);
+    }
+  }
+  return endpoint_ids;
+}
+
+std::string PayloadManager::ToString(const Endpoints& endpoints) {
+  std::string endpoints_string = absl::StrCat(endpoints.size(), ": ");
+  bool first = true;
+  for (const auto& item : endpoints) {
+    if (first) {
+      absl::StrAppend(&endpoints_string, item->id);
+      first = false;
+    } else {
+      absl::StrAppend(&endpoints_string, ", ", item->id);
+    }
+  }
+  return endpoints_string;
+}
+
+std::string PayloadManager::ToString(const EndpointIds& endpoint_ids) {
+  std::string endpoints_string = absl::StrCat(endpoint_ids.size(), ": ");
+  bool first = true;
+  for (const auto& id : endpoint_ids) {
+    if (first) {
+      absl::StrAppend(&endpoints_string, id);
+      first = false;
+    } else {
+      absl::StrAppend(&endpoints_string, ", ", id);
+    }
+  }
+  return endpoints_string;
+}
+
+// Creates and starts tracking a PendingPayload for this Payload.
+Payload::Id PayloadManager::CreateOutgoingPayload(
+    Payload payload, const EndpointIds& endpoint_ids) {
+  auto internal_payload{CreateOutgoingInternalPayload(std::move(payload))};
+  Payload::Id payload_id = internal_payload->GetId();
+  NEARBY_LOG(INFO, "CreateOutgoingPayload: payload_id=%" PRIX64, payload_id);
+  MutexLock lock(&mutex_);
+  pending_payloads_.StartTrackingPayload(
+      payload_id, absl::make_unique<PendingPayload>(std::move(internal_payload),
+                                                    endpoint_ids,
+                                                    /*is_incoming=*/false));
+
+  return payload_id;
+}
+
+PayloadManager::PayloadManager(EndpointManager& endpoint_manager)
+    : endpoint_manager_(&endpoint_manager) {
+  handle_ = endpoint_manager_->RegisterFrameProcessor(V1Frame::PAYLOAD_TRANSFER,
+                                                      this);
+}
+
+void PayloadManager::CancelAllPayloads() {
+  NEARBY_LOG(INFO, "PayloadManager: canceling payloads; self=%p", this);
+  {
+    MutexLock lock(&mutex_);
+    int pending_outgoing_payloads = 0;
+    for (const auto& pending_id : pending_payloads_.GetAllPayloads()) {
+      auto* pending = pending_payloads_.GetPayload(pending_id);
+      if (!pending->IsIncoming()) pending_outgoing_payloads++;
+      pending->MarkLocallyCanceled();
+      pending->Close();  // To unblock the sender thread, if there is no data.
+    }
+    if (pending_outgoing_payloads) {
+      shutdown_barrier_ =
+          absl::make_unique<CountDownLatch>(pending_outgoing_payloads);
+    }
+  }
+
+  if (shutdown_barrier_) {
+    NEARBY_LOG(INFO,
+               "PayloadManager: waiting for pending outgoing payloads; self=%p",
+               this);
+    shutdown_barrier_->Await();
   }
 }
 
-template <typename Platform>
-class SendPayloadRunnable : public Runnable {
- public:
-  SendPayloadRunnable(Ptr<PayloadManager<Platform> > payload_manager,
-                      Ptr<ClientProxy<Platform> > client_proxy,
-                      const std::vector<string>& endpoint_ids,
-                      ConstPtr<Payload> payload)
-      : payload_manager_(payload_manager),
-        client_proxy_(client_proxy),
-        endpoint_ids_(endpoint_ids),
-        payload_(payload) {}
-
-  void run() override {
-    // If successfully created, pending_payload is owned by
-    // PayloadManager::pending_payloads_ until
-    // PayloadManager::PendingPayloads::stopTrackingPayload() is invoked.
-    Ptr<typename PayloadManager<Platform>::PendingPayload> pending_payload(
-        createOutgoingPayload(payload_.release(), endpoint_ids_));
-    if (pending_payload.isNull()) {
-      // TODO(tracyzhou): Add logging.
-      return;
-    }
-
-    ScopedPtr<ConstPtr<PayloadTransferFrame::PayloadHeader> > payload_header(
-        payload_manager_->createPayloadHeader(
-            ConstifyPtr(pending_payload->getInternalPayload())));
-
-    payload_manager_->send_payload_loop_runner_->loop(
-        MakePtr(new LoopCallable(payload_manager_, client_proxy_,
-                                 pending_payload, payload_header.get())));
-  }
-
- private:
-  class LoopCallable : public Callable<bool> {
-   public:
-    LoopCallable(
-        Ptr<PayloadManager<Platform> > payload_manager,
-        Ptr<ClientProxy<Platform> > client_proxy,
-        Ptr<typename PayloadManager<Platform>::PendingPayload> pending_payload,
-        ConstPtr<PayloadTransferFrame::PayloadHeader> payload_header)
-        : next_chunk_offset_(0),
-          payload_manager_(payload_manager),
-          client_proxy_(client_proxy),
-          pending_payload_(pending_payload),
-          payload_header_(payload_header) {}
-
-    ExceptionOr<bool> call() override {
-      AvailableAndUnavailableEndpoints available_and_unavailable_endpoints =
-          getAvailableAndUnavailableEndpoints(ConstifyPtr(pending_payload_));
-      const UnavailableEndpoints& unavailable_endpoints =
-          available_and_unavailable_endpoints.second;
-
-      // First, handle any non-available endpoints.
-      for (typename UnavailableEndpoints::const_iterator it =
-               unavailable_endpoints.begin();
-           it != unavailable_endpoints.end(); it++) {
-        Ptr<typename PayloadManager<Platform>::EndpointInfo> endpoint_info =
-            *it;
-        payload_manager_->handleFinishedOutgoingPayload(
-            client_proxy_, std::vector<string>(1, endpoint_info->getId()),
-            *payload_header_, next_chunk_offset_,
-            PayloadManager<Platform>::endpointInfoStatusToPayloadStatus(
-                endpoint_info->getStatus()));
-      }
-
-      // Update the still-active recipients of this payload.
-      const AvailableEndpointIds& available_endpoint_ids =
-          available_and_unavailable_endpoints.first;
-      if (available_endpoint_ids.empty()) {
-        // TODO(tracyzhou): Add logging.
-        return ExceptionOr<bool>(false);
-      }
-
-      // Check if the payload has been cancelled by the client and, if so,
-      // notify the remaining recipients.
-      if (pending_payload_->isLocallyCanceled()) {
-        // TODO(tracyzhou): Add logging.
-        payload_manager_->handleFinishedOutgoingPayload(
-            client_proxy_, available_endpoint_ids, *payload_header_,
-            next_chunk_offset_,
-            proto::connections::PayloadStatus::LOCAL_CANCELLATION);
-        return ExceptionOr<bool>(false);
-      }
-
-      // Update the current offsets for all endpoints still active for this
-      // payload. For the sake of accuracy, we update the pending payload here
-      // because it's after all payload terminating events are handled, but
-      // right before we actually start detaching the next chunk.
-      for (AvailableEndpointIds::const_iterator it =
-               available_endpoint_ids.begin();
-           it != available_endpoint_ids.end(); it++) {
-        const string& endpoint_id = *it;
-        pending_payload_->setOffsetForEndpoint(endpoint_id, next_chunk_offset_);
-      }
-
-      ExceptionOr<ConstPtr<ByteArray> > next_chunk =
-          pending_payload_->getInternalPayload()->detachNextChunk();
-      if (!next_chunk.ok()) {
-        if (Exception::IO == next_chunk.exception()) {
-          // TODO(tracyzhou): Add logging.
-          payload_manager_->handleFinishedOutgoingPayload(
-              client_proxy_, available_endpoint_ids, *payload_header_,
-              next_chunk_offset_,
-              proto::connections::PayloadStatus::LOCAL_ERROR);
-          return ExceptionOr<bool>(false);
-        }
-      }
-
-      ScopedPtr<ConstPtr<ByteArray> > scoped_next_chunk(next_chunk.result());
-      ScopedPtr<ConstPtr<PayloadTransferFrame::PayloadChunk> > payload_chunk(
-          payload_manager_->createPayloadChunk(next_chunk_offset_,
-                                               scoped_next_chunk.get()));
-      std::vector<string> failed_endpoint_ids =
-          payload_manager_->endpoint_manager_->sendPayloadChunk(
-              *payload_header_, *payload_chunk, available_endpoint_ids);
-
-      // Check whether at least one endpoint failed.
-      if (!failed_endpoint_ids.empty()) {
-        payload_manager_->handleFinishedOutgoingPayload(
-            client_proxy_, failed_endpoint_ids, *payload_header_,
-            next_chunk_offset_,
-            proto::connections::PayloadStatus::ENDPOINT_IO_ERROR);
-      }
-
-      // Check whether at least one endpoint succeeded -- if they all failed,
-      // we'll just go right back to the top of the loop and break out when
-      // availableEndpointIds is re-synced and found to be empty at that point.
-      if (failed_endpoint_ids.size() < available_endpoint_ids.size()) {
-        for (std::vector<string>::const_iterator it =
-                 available_endpoint_ids.begin();
-             it != available_endpoint_ids.end(); it++) {
-          const string& endpoint_id = *it;
-          if (std::find(failed_endpoint_ids.begin(), failed_endpoint_ids.end(),
-                        endpoint_id) == failed_endpoint_ids.end()) {
-            payload_manager_->handleSuccessfulOutgoingChunk(
-                client_proxy_, endpoint_id, *payload_header_,
-                payload_chunk->flags(), payload_chunk->offset(),
-                payload_chunk->body().size());
-          }
-        }
-
-        // TODO(tracyzhou): Add logging.
-        if (scoped_next_chunk.isNull()) {
-          // That was the last chunk, we're outta here.
-          return ExceptionOr<bool>(false);
-        }
-
-        next_chunk_offset_ += scoped_next_chunk->size();
-      }
-      return ExceptionOr<bool>(true);
-    }
-
-   private:
-    typedef std::vector<string> AvailableEndpointIds;
-    typedef std::vector<Ptr<typename PayloadManager<Platform>::EndpointInfo> >
-        UnavailableEndpoints;
-    typedef std::pair<AvailableEndpointIds, UnavailableEndpoints>
-        AvailableAndUnavailableEndpoints;
-
-    // Splits the endpoints for this payload by availability. Returns a pair of
-    // lists, with the first being the list of still-available endpoint IDs and
-    // the second the list of EndpointInfos for unavailable endpoints.
-    static AvailableAndUnavailableEndpoints getAvailableAndUnavailableEndpoints(
-        ConstPtr<typename PayloadManager<Platform>::PendingPayload>
-            pending_payload) {
-      AvailableEndpointIds available_endpoint_ids;
-      UnavailableEndpoints unavailable_endpoints;
-      std::vector<Ptr<typename PayloadManager<Platform>::EndpointInfo> >
-          endpoints = pending_payload->getEndpoints();
-      for (typename std::vector<Ptr<typename PayloadManager<
-               Platform>::EndpointInfo> >::const_iterator it =
-               endpoints.begin();
-           it != endpoints.end(); it++) {
-        Ptr<typename PayloadManager<Platform>::EndpointInfo> endpoint_info =
-            *it;
-        if (PayloadManager<Platform>::EndpointInfo::Status::AVAILABLE ==
-            endpoint_info->getStatus()) {
-          available_endpoint_ids.push_back(endpoint_info->getId());
-        } else {
-          unavailable_endpoints.push_back(endpoint_info);
-        }
-      }
-      return std::make_pair(available_endpoint_ids, unavailable_endpoints);
-    }
-
-    // Keep track of the chunk offset across iterations.
-    std::int64_t next_chunk_offset_;
-    Ptr<PayloadManager<Platform> > payload_manager_;
-    Ptr<ClientProxy<Platform> > client_proxy_;
-    Ptr<typename PayloadManager<Platform>::PendingPayload> pending_payload_;
-    ConstPtr<PayloadTransferFrame::PayloadHeader> payload_header_;
-  };
-
-  // Creates and starts tracking a PendingPayload for this Payload. Returns null
-  // if unable to create the InternalPayload.
-  Ptr<typename PayloadManager<Platform>::PendingPayload> createOutgoingPayload(
-      ConstPtr<Payload> payload, const std::vector<string>& endpoint_ids) {
-    ScopedPtr<ConstPtr<Payload> > scoped_payload(payload);
-
-    ScopedPtr<Ptr<InternalPayload> > internal_payload(
-        payload_manager_->internal_payload_factory_->createOutgoing(
-            scoped_payload.release()));
-    if (internal_payload.isNull()) {
-      return Ptr<typename PayloadManager<Platform>::PendingPayload>();
-    }
-
-    std::int64_t payload_id = internal_payload->getId();
-    ScopedPtr<Ptr<typename PayloadManager<Platform>::PendingPayload> >
-        pending_payload(
-            PayloadManager<Platform>::PendingPayload::createOutgoing(
-                internal_payload.release(), endpoint_ids));
-    payload_manager_->pending_payloads_->startTrackingPayload(
-        payload_id, pending_payload.release());
-
-    return payload_manager_->pending_payloads_->getPayload(payload_id);
-  }
-
-  Ptr<PayloadManager<Platform> > payload_manager_;
-  Ptr<ClientProxy<Platform> > client_proxy_;
-  std::vector<string> endpoint_ids_;
-  ScopedPtr<ConstPtr<Payload> > payload_;
-};
-
-template <typename Platform>
-class ProcessEndpointDisconnectionRunnable : public Runnable {
- public:
-  ProcessEndpointDisconnectionRunnable(
-      Ptr<PayloadManager<Platform> > payload_manager,
-      Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
-      Ptr<CountDownLatch> process_disconnection_barrier)
-      : payload_manager_(payload_manager),
-        client_proxy_(client_proxy),
-        endpoint_id_(endpoint_id),
-        process_disconnection_barrier_(process_disconnection_barrier) {}
-
-  void run() override {
-    std::vector<string> endpoints_to_remove(1, endpoint_id_);
-
-    // Iterate through all our payloads and look for payloads associated with
-    // this endpoint.
-    std::vector<Ptr<typename PayloadManager<Platform>::PendingPayload> >
-        pending = payload_manager_->pending_payloads_->getAllPayloads();
-    for (typename std::vector<Ptr<typename PayloadManager<
-             Platform>::PendingPayload> >::const_iterator it = pending.begin();
-         it != pending.end(); it++) {
-      Ptr<typename PayloadManager<Platform>::PendingPayload> pending_payload =
-          *it;
-      Ptr<typename PayloadManager<Platform>::EndpointInfo> endpoint_info =
-          pending_payload->getEndpoint(endpoint_id_);
-      if (endpoint_info.isNull()) {
-        continue;
-      }
-
-      // Stop tracking the endpoint for this payload.
-      pending_payload->removeEndpoints(endpoints_to_remove);
-
-      std::int64_t payload_id = pending_payload->getId();
-      std::int64_t payload_total_size =
-          pending_payload->getInternalPayload()->getTotalSize();
-
-      // If no endpoints are left for this payload, stop tracking it and close
-      // it.
-      if (pending_payload->getEndpoints().empty()) {
-        pending_payload =
-            payload_manager_->pending_payloads_->stopTrackingPayload(
-                pending_payload->getId());
-        pending_payload->close();
-        pending_payload.destroy();
-      }
-
-      // Create the payload transfer update.
-      PayloadTransferUpdate update(
-          payload_id, PayloadTransferUpdate::Status::FAILURE,
-          payload_total_size, endpoint_info->getOffset());
-
-      // Send a client notification of a payload transfer failure.
-      client_proxy_->onPayloadTransferUpdate(endpoint_id_, update);
-    }
-
-    process_disconnection_barrier_->countDown();
-  }
-
- private:
-  Ptr<PayloadManager<Platform> > payload_manager_;
-  Ptr<ClientProxy<Platform> > client_proxy_;
-  const string endpoint_id_;
-  Ptr<CountDownLatch> process_disconnection_barrier_;
-};
-
-template <typename Platform>
-class SendClientCallbacksForFinishedOutgoingPayloadRunnable : public Runnable {
- public:
-  SendClientCallbacksForFinishedOutgoingPayloadRunnable(
-      Ptr<PayloadManager<Platform> > payload_manager,
-      Ptr<ClientProxy<Platform> > client_proxy,
-      const std::vector<string>& finished_endpoint_ids,
-      const PayloadTransferFrame::PayloadHeader& payload_header,
-      std::int64_t num_bytes_successfully_transferred,
-      proto::connections::PayloadStatus status)
-      : payload_manager_(payload_manager),
-        client_proxy_(client_proxy),
-        finished_endpoint_ids_(finished_endpoint_ids),
-        payload_header_(payload_header),
-        num_bytes_successfully_transferred_(num_bytes_successfully_transferred),
-        status_(status) {}
-
-  void run() override {
-    // Make sure we're still tracking this payload.
-    Ptr<typename PayloadManager<Platform>::PendingPayload> pending_payload =
-        payload_manager_->pending_payloads_->getPayload(payload_header_.id());
-    if (pending_payload.isNull()) {
-      return;
-    }
-
-    PayloadTransferUpdate update(
-        payload_header_.id(),
-        PayloadManager<Platform>::payloadStatusToTransferUpdateStatus(status_),
-        payload_header_.total_size(), num_bytes_successfully_transferred_);
-    for (std::vector<string>::const_iterator it =
-             finished_endpoint_ids_.begin();
-         it != finished_endpoint_ids_.end(); it++) {
-      const string& endpoint_id = *it;
-
-      // Skip sending notifications if we have stopped tracking this endpoint.
-      if (pending_payload->getEndpoint(endpoint_id).isNull()) {
-        continue;
-      }
-
-      // Notify the client.
-      client_proxy_->onPayloadTransferUpdate(endpoint_id, update);
-    }
-
-    // Remove these endpoints from our tracking list for this payload.
-    pending_payload->removeEndpoints(finished_endpoint_ids_);
-
-    // Close the payload and stop tracking it if no endpoints remain.
-    if (pending_payload->getEndpoints().empty()) {
-      pending_payload =
-          payload_manager_->pending_payloads_->stopTrackingPayload(
-              payload_header_.id());
-      pending_payload->close();
-      pending_payload.destroy();
-    }
-  }
-
- private:
-  Ptr<PayloadManager<Platform> > payload_manager_;
-  Ptr<ClientProxy<Platform> > client_proxy_;
-  const std::vector<string> finished_endpoint_ids_;
-  const PayloadTransferFrame::PayloadHeader payload_header_;
-  const std::int64_t num_bytes_successfully_transferred_;
-  const proto::connections::PayloadStatus status_;
-};
-
-template <typename Platform>
-class SendClientCallbacksForFinishedIncomingPayloadRunnable : public Runnable {
- public:
-  SendClientCallbacksForFinishedIncomingPayloadRunnable(
-      Ptr<PayloadManager<Platform> > payload_manager,
-      Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
-      const PayloadTransferFrame::PayloadHeader& payload_header,
-      std::int64_t offset_bytes, proto::connections::PayloadStatus status)
-      : payload_manager_(payload_manager),
-        client_proxy_(client_proxy),
-        endpoint_id_(endpoint_id),
-        payload_header_(payload_header),
-        offset_bytes_(offset_bytes),
-        status_(status) {}
-
-  void run() override {
-    // Make sure we're still tracking this payload.
-    Ptr<typename PayloadManager<Platform>::PendingPayload> pending_payload =
-        payload_manager_->pending_payloads_->getPayload(payload_header_.id());
-    if (pending_payload.isNull()) {
-      return;
-    }
-
-    // Unless we never started tracking this payload (meaning we failed to even
-    // create the InternalPayload), notify the client (and close it).
-    PayloadTransferUpdate update(
-        payload_header_.id(),
-        PayloadManager<Platform>::payloadStatusToTransferUpdateStatus(status_),
-        payload_header_.total_size(), offset_bytes_);
-    payload_manager_->notifyClientOfIncomingPayloadTransferUpdate(
-        client_proxy_, endpoint_id_, update, /*done_with_payload=*/true);
-  }
-
- private:
-  Ptr<PayloadManager<Platform> > payload_manager_;
-  Ptr<ClientProxy<Platform> > client_proxy_;
-  const string endpoint_id_;
-  const PayloadTransferFrame::PayloadHeader payload_header_;
-  const std::int64_t offset_bytes_;
-  const proto::connections::PayloadStatus status_;
-};
-
-template <typename Platform>
-class HandleSuccessfulOutgoingChunkRunnable : public Runnable {
- public:
-  HandleSuccessfulOutgoingChunkRunnable(
-      Ptr<PayloadManager<Platform> > payload_manager,
-      Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
-      const PayloadTransferFrame::PayloadHeader& payload_header,
-      std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
-      std::int64_t payload_chunk_body_size)
-      : payload_manager_(payload_manager),
-        client_proxy_(client_proxy),
-        endpoint_id_(endpoint_id),
-        payload_header_(payload_header),
-        payload_chunk_flags_(payload_chunk_flags),
-        payload_chunk_offset_(payload_chunk_offset),
-        payload_chunk_body_size_(payload_chunk_body_size) {}
-
-  void run() override {
-    // Make sure we're still tracking this payload and its associated endpoint.
-    Ptr<typename PayloadManager<Platform>::PendingPayload> pending_payload =
-        payload_manager_->pending_payloads_->getPayload(payload_header_.id());
-    if (pending_payload.isNull() ||
-        pending_payload->getEndpoint(endpoint_id_).isNull()) {
-      return;
-    }
-
-    // TODO(reznor): The fact that we've sent total_size bytes (which we will
-    // always know 1 frame before we get the SUCCESS frame), also tells us this
-    // is the last chunk - should we add those smarts, or just be simple and
-    // always have the last IN_PROGRESS have the same numbers as the following
-    // SUCCESS? I prefer the simplicity, but it'll look stupid if we send all
-    // the bytes and then remain hanging because the remote device disconnected
-    // at just that point, so at least consider injecting the smarts.
-    // TODO(reznor): Should we check whether payload_header.total_size ==
-    // payload_chunk.offset?
-    bool is_last_chunk = (payload_chunk_flags_ &
-                          PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
-    PayloadTransferUpdate update(
-        payload_header_.id(),
-        is_last_chunk ? PayloadTransferUpdate::Status::SUCCESS
-                      : PayloadTransferUpdate::Status::IN_PROGRESS,
-        payload_header_.total_size(),
-        is_last_chunk ? payload_chunk_offset_
-                      : payload_chunk_offset_ + payload_chunk_body_size_);
-
-    // Notify the client.
-    client_proxy_->onPayloadTransferUpdate(endpoint_id_, update);
-
-    if (is_last_chunk) {
-      // Stop tracking this endpoint.
-      pending_payload->removeEndpoints(std::vector<string>(1, endpoint_id_));
-
-      // Close the payload and stop tracking it if no endpoints remain.
-      if (pending_payload->getEndpoints().empty()) {
-        pending_payload =
-            payload_manager_->pending_payloads_->stopTrackingPayload(
-                payload_header_.id());
-        pending_payload->close();
-        pending_payload.destroy();
-      }
-    }
-  }
-
- private:
-  Ptr<PayloadManager<Platform> > payload_manager_;
-  Ptr<ClientProxy<Platform> > client_proxy_;
-  const string endpoint_id_;
-  const PayloadTransferFrame::PayloadHeader payload_header_;
-  const std::int32_t payload_chunk_flags_;
-  const std::int64_t payload_chunk_offset_;
-  const std::int64_t payload_chunk_body_size_;
-};
-
-template <typename Platform>
-class HandleSuccessfulIncomingChunkRunnable : public Runnable {
- public:
-  HandleSuccessfulIncomingChunkRunnable(
-      Ptr<PayloadManager<Platform> > payload_manager,
-      Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
-      const PayloadTransferFrame::PayloadHeader& payload_header,
-      std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
-      std::int64_t payload_chunk_body_size)
-      : payload_manager_(payload_manager),
-        client_proxy_(client_proxy),
-        endpoint_id_(endpoint_id),
-        payload_header_(payload_header),
-        payload_chunk_flags_(payload_chunk_flags),
-        payload_chunk_offset_(payload_chunk_offset),
-        payload_chunk_body_size_(payload_chunk_body_size) {}
-
-  void run() override {
-    // Make sure we're still tracking this payload.
-    Ptr<typename PayloadManager<Platform>::PendingPayload> pending_payload =
-        payload_manager_->pending_payloads_->getPayload(payload_header_.id());
-    if (pending_payload.isNull()) {
-      return;
-    }
-
-    // TODO(reznor): The fact that we've received total_size bytes (which we
-    // will always know 1 frame before we get the SUCCESS frame), also tells us
-    // this is the last chunk - should we add those smarts, or just be simple
-    // and always have the last IN_PROGRESS have the same numbers as the
-    // following SUCCESS? I prefer the simplicity, but it'll look stupid if we
-    // get all the bytes and then remain hanging because the remote device
-    // disconnected at just that point, so at least consider injecting the
-    // smarts.
-    bool is_last_chunk = (payload_chunk_flags_ &
-                          PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
-    PayloadTransferUpdate update(
-        payload_header_.id(),
-        is_last_chunk ? PayloadTransferUpdate::Status::SUCCESS
-                      : PayloadTransferUpdate::Status::IN_PROGRESS,
-        payload_header_.total_size(),
-        is_last_chunk ? payload_chunk_offset_
-                      : payload_chunk_offset_ + payload_chunk_body_size_);
-
-    // Notify the client of this update.
-    payload_manager_->notifyClientOfIncomingPayloadTransferUpdate(
-        client_proxy_, endpoint_id_, update, is_last_chunk);
-  }
-
- private:
-  Ptr<PayloadManager<Platform> > payload_manager_;
-  Ptr<ClientProxy<Platform> > client_proxy_;
-  const string endpoint_id_;
-  const PayloadTransferFrame::PayloadHeader payload_header_;
-  const std::int32_t payload_chunk_flags_;
-  const std::int64_t payload_chunk_offset_;
-  const std::int64_t payload_chunk_body_size_;
-};
-
-template <typename Platform>
-class ProcessDataPacketRunnable : public Runnable {
- public:
-  ProcessDataPacketRunnable(Ptr<ClientProxy<Platform> > to_client_proxy,
-                            const string& from_endpoint_id,
-                            ConstPtr<Payload> payload)
-      : to_client_proxy_(to_client_proxy),
-        from_endpoint_id_(from_endpoint_id),
-        payload_(payload) {}
-
-  void run() override {
-    to_client_proxy_->onPayloadReceived(from_endpoint_id_, payload_.release());
-  }
-
- private:
-  Ptr<ClientProxy<Platform> > to_client_proxy_;
-  const string from_endpoint_id_;
-  ScopedPtr<ConstPtr<Payload> > payload_;
-};
-
-}  // namespace payload_manager
-
-template <typename Platform>
-PayloadManager<Platform>::PayloadManager(
-    Ptr<EndpointManager<Platform> > endpoint_manager)
-    : internal_payload_factory_(new InternalPayloadFactory<Platform>()),
-      send_payload_loop_runner_(new LoopRunner("sendPayload")),
-      pending_payloads_(new PendingPayloads()),
-      bytes_payload_executor_(Platform::createSingleThreadExecutor()),
-      file_payload_executor_(Platform::createSingleThreadExecutor()),
-      stream_payload_executor_(Platform::createSingleThreadExecutor()),
-      payload_status_update_executor_(Platform::createSingleThreadExecutor()),
-      endpoint_manager_(endpoint_manager) {
-  endpoint_manager_->registerIncomingOfflineFrameProcessor(
-      V1Frame::PAYLOAD_TRANSFER, std::static_pointer_cast<
-          typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>(
-          self_));
+void PayloadManager::DisconnectFromEndpointManager() {
+  if (shutdown_.Set(true)) return;
+  // Unregister ourselves from the FrameProcessors.
+  endpoint_manager_->UnregisterFrameProcessor(V1Frame::PAYLOAD_TRANSFER,
+                                              handle_, true);
 }
 
-template <typename Platform>
-PayloadManager<Platform>::~PayloadManager() {
-  // TODO(reznor):
-  // logger.atDebug().log("Initiating shutdown of PayloadManager");
+PayloadManager::~PayloadManager() {
+  NEARBY_LOG(INFO, "PayloadManager: going down; self=%p", this);
+  DisconnectFromEndpointManager();
+  CancelAllPayloads();
+  NEARBY_LOG(INFO, "PayloadManager: turn down payload executors; self=%p",
+             this);
+  bytes_payload_executor_.Shutdown();
+  stream_payload_executor_.Shutdown();
+  file_payload_executor_.Shutdown();
 
-  // Unregister ourselves from the IncomingOfflineFrameProcessors.
-  endpoint_manager_->unregisterIncomingOfflineFrameProcessor(
-      V1Frame::CONNECTION_RESPONSE, std::static_pointer_cast<
-          typename EndpointManager<Platform>::IncomingOfflineFrameProcessor>(
-          self_));
-
-  // Stop all the ongoing Runnables (as gracefully as possible).
-  payload_status_update_executor_->shutdown();
-  bytes_payload_executor_->shutdown();
-  file_payload_executor_->shutdown();
-  stream_payload_executor_->shutdown();
-
-  typedef Ptr<typename PayloadManager<Platform>::PendingPayload>
-      PtrPendingPayload;
-
+  CountDownLatch stop_latch(1);
   // Clear our tracked pending payloads.
-  std::vector<PtrPendingPayload> pending = pending_payloads_->getAllPayloads();
-  for (typename std::vector<PtrPendingPayload>::const_iterator it =
-           pending.begin();
-       it != pending.end(); it++) {
-    PtrPendingPayload pending_payload =
-        pending_payloads_->stopTrackingPayload((*it)->getId());
-    pending_payload->close();
-    pending_payload.destroy();
-  }
+  RunOnStatusUpdateThread([this, &stop_latch]() {
+    NEARBY_LOG(INFO, "PayloadManager: stop tracking payloads; self=%p", this);
+    MutexLock lock(&mutex_);
+    for (const auto& pending_id : pending_payloads_.GetAllPayloads()) {
+      pending_payloads_.StopTrackingPayload(pending_id);
+    }
+    stop_latch.CountDown();
+  });
+  stop_latch.Await();
 
-  // TODO(reznor):
-  // logger.atVerbose().log("PayloadManager has shut down.");
+  NEARBY_LOG(INFO, "PayloadManager: turn down notification executor; self=%p",
+             this);
+  // Stop all the ongoing Runnables (as gracefully as possible).
+  payload_status_update_executor_.Shutdown();
+
+  NEARBY_LOG(INFO, "PayloadManager: down; self=%p", this);
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::sendPayload(
-    Ptr<ClientProxy<Platform> > client_proxy,
-    const std::vector<string>& endpoint_ids, ConstPtr<Payload> payload) {
-  Ptr<typename Platform::SingleThreadExecutorType> send_payload_executor =
-      getOutgoingPayloadExecutor(payload->getType());
-  // The send_payload_executor will be null if the payload is of a type
-  // we cannot work with. This should never be reached since the
-  // ServiceControllerRouter has already checked whether or not we can work with
-  // this Payload type.
-  ScopedPtr<ConstPtr<Payload> > scoped_payload(payload);
-  if (send_payload_executor.isNull()) {
-    // TODO(tracyzhou): Add logging.
+bool PayloadManager::NotifyShutdown() {
+  MutexLock lock(&mutex_);
+  if (!shutdown_.Get()) return false;
+  if (!shutdown_barrier_) return false;
+  NEARBY_LOG(INFO, "PayloadManager [shutdown mode]");
+  shutdown_barrier_->CountDown();
+  return true;
+}
+
+void PayloadManager::SendPayload(ClientProxy* client,
+                                 const EndpointIds& endpoint_ids,
+                                 Payload payload) {
+  if (shutdown_.Get()) return;
+  NEARBY_LOG(INFO, "SendPayload: endpoint_ids={%s}",
+             ToString(endpoint_ids).c_str());
+  auto executor = GetOutgoingPayloadExecutor(payload.GetType());
+  // The |executor| will be null if the payload is of a type we cannot work
+  // with. This should never be reached since the ServiceControllerRouter has
+  // already checked whether or not we can work with this Payload type.
+  if (!executor) {
+    NEARBY_LOG(INFO,
+               "PayloadManager::SendPayload: unsupported: id=%" PRIX64
+               ", type=%d",
+               payload.GetId(), payload.GetType());
     return;
   }
 
@@ -641,87 +307,143 @@ void PayloadManager<Platform>::sendPayload(
   // other payload of the same type from even starting until this one is
   // completely done with. If we ever want to provide isolation across
   // ClientProxy objects this will need to be significantly re-architected.
-  enqueueOutgoingPayload(
-      send_payload_executor,
-      MakePtr(new payload_manager::SendPayloadRunnable<Platform>(
-          self_, client_proxy, endpoint_ids,
-          scoped_payload.release())));
-  // TODO(tracyzhou): Add logging.
+  Payload::Type payload_type = payload.GetType();
+  Payload::Id payload_id =
+      CreateOutgoingPayload(std::move(payload), endpoint_ids);
+  executor->Execute([this, client, endpoint_ids, payload_id]() {
+    if (shutdown_.Get()) return;
+    PendingPayload* pending_payload = GetPayload(payload_id);
+    if (!pending_payload) return;
+    auto* internal_payload = pending_payload->GetInternalPayload();
+    if (!internal_payload) return;
+    PayloadTransferFrame::PayloadHeader payload_header{
+        CreatePayloadHeader(*internal_payload)};
+    bool should_continue = true;
+    std::int64_t next_chunk_offset = 0;
+    while (should_continue && !shutdown_.Get()) {
+      should_continue = SendPayloadLoop(client, *pending_payload,
+                                        payload_header, next_chunk_offset);
+    }
+    RunOnStatusUpdateThread(
+        [this, payload_id]() { DestroyPendingPayload(payload_id); });
+  });
+  NEARBY_LOG(INFO,
+             "PayloadManager: xfer scheduled: self=%p; id=%" PRIX64 ", type=%d",
+             this, payload_id, payload_type);
 }
 
-template <typename Platform>
-Status::Value PayloadManager<Platform>::cancelPayload(
-    Ptr<ClientProxy<Platform> > client_proxy, std::int64_t payload_id) {
-  Ptr<typename PayloadManager<Platform>::PendingPayload> canceled_payload =
-      pending_payloads_->getPayload(payload_id);
-  if (canceled_payload.isNull()) {
-    // TODO(tracyzhou): Add logging.
-    return Status::PAYLOAD_UNKNOWN;
+PayloadManager::PendingPayload* PayloadManager::GetPayload(
+    Payload::Id payload_id) const {
+  MutexLock lock(&mutex_);
+  return pending_payloads_.GetPayload(payload_id);
+}
+
+Status PayloadManager::CancelPayload(ClientProxy* client,
+                                     Payload::Id payload_id) {
+  PendingPayload* canceled_payload = GetPayload(payload_id);
+  if (!canceled_payload) {
+    NEARBY_LOG(INFO, "PayloadManager: not found; payload_id=%" PRIX64,
+               payload_id);
+    return {Status::kPayloadUnknown};
   }
 
   // Mark the payload as canceled.
-  canceled_payload->markLocallyCanceled();
-  // TODO(tracyzhou): Add logging.
+  canceled_payload->MarkLocallyCanceled();
+  NEARBY_LOG(INFO, "PayloadManager: canceled; id=%" PRIX64, payload_id);
 
   // Return SUCCESS immediately. Remaining cleanup and updates will be sent in
-  // sendPayload() or processIncomingOfflineFrame()
-  return Status::SUCCESS;
+  // SendPayload() or OnIncomingFrame()
+  return {Status::kSuccess};
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::processIncomingOfflineFrame(
-    ConstPtr<OfflineFrame> offline_frame, const string& from_endpoint_id,
-    Ptr<ClientProxy<Platform> > to_client_proxy,
-    proto::connections::Medium current_medium) {
-  ScopedPtr<ConstPtr<OfflineFrame> > scoped_offline_frame(offline_frame);
-  const PayloadTransferFrame& payload_transfer_frame =
-      scoped_offline_frame->v1().payload_transfer();
+// @EndpointManagerDataPool
+void PayloadManager::OnIncomingFrame(
+    OfflineFrame& offline_frame, const std::string& from_endpoint_id,
+    ClientProxy* to_client, proto::connections::Medium current_medium) {
+  PayloadTransferFrame& frame =
+      *offline_frame.mutable_v1()->mutable_payload_transfer();
 
-  switch (payload_transfer_frame.packet_type()) {
+  switch (frame.packet_type()) {
     case PayloadTransferFrame::CONTROL:
-      processControlPacket(to_client_proxy, from_endpoint_id,
-                           payload_transfer_frame);
+      NEARBY_LOG(INFO,
+                 "PayloadManager::OnIncomingFrame [CONTROL]: self=%p; id=%s",
+                 this, from_endpoint_id.c_str());
+      ProcessControlPacket(to_client, from_endpoint_id, frame);
       break;
     case PayloadTransferFrame::DATA:
-      processDataPacket(to_client_proxy, from_endpoint_id,
-                        payload_transfer_frame);
+      NEARBY_LOG(INFO, "PayloadManager::OnIncomingFrame [DATA]: self=%p; id=%s",
+                 this, from_endpoint_id.c_str());
+      ProcessDataPacket(to_client, from_endpoint_id, frame);
       break;
     default:
-      // TODO(tracyzhou): Add logging.
+      NEARBY_LOG(
+          INFO,
+          "PayloadManager: invalid frame; remote endpoint: self=%p; id=%s",
+          this, from_endpoint_id.c_str());
       break;
   }
+  NEARBY_LOG(INFO, "PayloadManager::OnIncomingFrame [DONE]: self=%p; id=%s",
+             this, from_endpoint_id.c_str());
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::processEndpointDisconnection(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
-    Ptr<CountDownLatch> process_disconnection_barrier) {
-  payload_status_update_executor_->execute(MakePtr(
-      new payload_manager::ProcessEndpointDisconnectionRunnable<Platform>(
-          self_, client_proxy, endpoint_id,
-          process_disconnection_barrier)));
+void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
+                                          const std::string& endpoint_id,
+                                          CountDownLatch* barrier) {
+  if (shutdown_.Get()) {
+    if (barrier) barrier->CountDown();
+    return;
+  }
+  RunOnStatusUpdateThread([this, client, endpoint_id, barrier]() {
+    // Iterate through all our payloads and look for payloads associated
+    // with this endpoint.
+    MutexLock lock(&mutex_);
+    for (const auto& payload_id : pending_payloads_.GetAllPayloads()) {
+      auto* pending_payload = pending_payloads_.GetPayload(payload_id);
+      if (!pending_payload) continue;
+      auto endpoint_info = pending_payload->GetEndpoint(endpoint_id);
+      if (!endpoint_info) continue;
+
+      // Stop tracking the endpoint for this payload.
+      pending_payload->RemoveEndpoints({endpoint_id});
+
+      std::int64_t payload_total_size =
+          pending_payload->GetInternalPayload()->GetTotalSize();
+
+      // If no endpoints are left for this payload, close it.
+      if (pending_payload->GetEndpoints().empty()) {
+        pending_payload->Close();
+      }
+
+      // Create the payload transfer update.
+      PayloadProgressInfo update{payload_id,
+                                 PayloadProgressInfo::Status::kFailure,
+                                 payload_total_size, endpoint_info->offset};
+
+      // Send a client notification of a payload transfer failure.
+      client->OnPayloadProgress(endpoint_id, update);
+    }
+
+    barrier->CountDown();
+  });
 }
 
-template <typename Platform>
 proto::connections::PayloadStatus
-PayloadManager<Platform>::endpointInfoStatusToPayloadStatus(
-    typename EndpointInfo::Status::Value status) {
+PayloadManager::EndpointInfoStatusToPayloadStatus(EndpointInfo::Status status) {
   switch (status) {
-    case EndpointInfo::Status::CANCELED:
+    case EndpointInfo::Status::kCanceled:
       return proto::connections::PayloadStatus::REMOTE_CANCELLATION;
-    case EndpointInfo::Status::ERROR:
+    case EndpointInfo::Status::kError:
       return proto::connections::PayloadStatus::REMOTE_ERROR;
-    case EndpointInfo::Status::AVAILABLE:
+    case EndpointInfo::Status::kAvailable:
       return proto::connections::PayloadStatus::SUCCESS;
     default:
-      // TODO(tracyzhou): Add logging.
+      NEARBY_LOG(INFO, "PayloadManager: unknown status=%d", status);
       return proto::connections::PayloadStatus::UNKNOWN_PAYLOAD_STATUS;
   }
 }
 
-template <typename Platform>
 proto::connections::PayloadStatus
-PayloadManager<Platform>::controlMessageEventToPayloadStatus(
+PayloadManager::ControlMessageEventToPayloadStatus(
     PayloadTransferFrame::ControlMessage::EventType event) {
   switch (event) {
     case PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR:
@@ -729,130 +451,146 @@ PayloadManager<Platform>::controlMessageEventToPayloadStatus(
     case PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED:
       return proto::connections::PayloadStatus::REMOTE_CANCELLATION;
     default:
-      // TODO(tracyzhou): Add logging.
+      NEARBY_LOG(INFO, "PayloadManager: unknown event=%d", event);
       return proto::connections::PayloadStatus::UNKNOWN_PAYLOAD_STATUS;
   }
 }
 
-template <typename Platform>
-PayloadTransferUpdate::Status::Value
-PayloadManager<Platform>::payloadStatusToTransferUpdateStatus(
+PayloadProgressInfo::Status PayloadManager::PayloadStatusToTransferUpdateStatus(
     proto::connections::PayloadStatus status) {
   switch (status) {
     case proto::connections::LOCAL_CANCELLATION:
     case proto::connections::REMOTE_CANCELLATION:
-      return PayloadTransferUpdate::Status::CANCELED;
+      return PayloadProgressInfo::Status::kCanceled;
     case proto::connections::SUCCESS:
-      return PayloadTransferUpdate::Status::SUCCESS;
+      return PayloadProgressInfo::Status::kSuccess;
     default:
-      return PayloadTransferUpdate::Status::FAILURE;
+      return PayloadProgressInfo::Status::kFailure;
   }
 }
 
-template <typename Platform>
-Ptr<typename Platform::SingleThreadExecutorType>
-PayloadManager<Platform>::getOutgoingPayloadExecutor(
-    Payload::Type::Value payload_type) {
+SingleThreadExecutor* PayloadManager::GetOutgoingPayloadExecutor(
+    Payload::Type payload_type) {
   switch (payload_type) {
-    case Payload::Type::BYTES:
-      return bytes_payload_executor_.get();
-    case Payload::Type::FILE:
-      return file_payload_executor_.get();
-    case Payload::Type::STREAM:
-      return stream_payload_executor_.get();
+    case Payload::Type::kBytes:
+      return &bytes_payload_executor_;
+    case Payload::Type::kFile:
+      return &file_payload_executor_;
+    case Payload::Type::kStream:
+      return &stream_payload_executor_;
     default:
-      return Ptr<typename Platform::SingleThreadExecutorType>();
+      return nullptr;
   }
 }
 
-template <typename Platform>
-ConstPtr<PayloadTransferFrame::PayloadHeader>
-PayloadManager<Platform>::createPayloadHeader(
-    ConstPtr<InternalPayload> internal_payload) {
-  ScopedPtr<Ptr<PayloadTransferFrame::PayloadHeader> > payload_header(
-      new PayloadTransferFrame::PayloadHeader());
+PayloadTransferFrame::PayloadHeader PayloadManager::CreatePayloadHeader(
+    const InternalPayload& internal_payload) {
+  PayloadTransferFrame::PayloadHeader payload_header;
 
-  payload_header->set_id(internal_payload->getId());
-  payload_header->set_type(internal_payload->getType());
-  payload_header->set_total_size(internal_payload->getTotalSize());
+  payload_header.set_id(internal_payload.GetId());
+  payload_header.set_type(internal_payload.GetType());
+  payload_header.set_total_size(internal_payload.GetTotalSize());
 
-  return ConstifyPtr(payload_header.release());
+  return payload_header;
 }
 
-template <typename Platform>
-ConstPtr<PayloadTransferFrame::PayloadChunk>
-PayloadManager<Platform>::createPayloadChunk(
-    std::int64_t payload_chunk_offset, ConstPtr<ByteArray> payload_chunk_body) {
-  ScopedPtr<Ptr<PayloadTransferFrame::PayloadChunk> > payload_chunk(
-      new PayloadTransferFrame::PayloadChunk());
+PayloadTransferFrame::PayloadChunk PayloadManager::CreatePayloadChunk(
+    std::int64_t payload_chunk_offset, ByteArray payload_chunk_body) {
+  PayloadTransferFrame::PayloadChunk payload_chunk;
 
-  payload_chunk->set_offset(payload_chunk_offset);
-  if (!payload_chunk_body.isNull()) {
-    payload_chunk->set_body(payload_chunk_body->getData(),
-                            payload_chunk_body->size());
+  payload_chunk.set_offset(payload_chunk_offset);
+  payload_chunk.set_flags(0);
+  if (!payload_chunk_body.Empty()) {
+    payload_chunk.set_body(std::string(std::move(payload_chunk_body)));
+  } else {
+    payload_chunk.set_flags(payload_chunk.flags() |
+                            PayloadTransferFrame::PayloadChunk::LAST_CHUNK);
   }
 
-  // This is a null-initialized Integer, so it needs to be initialized to avoid
-  // inadvertent NPEs.
-  payload_chunk->set_flags(0);
-  if (payload_chunk_body.isNull()) {
-    payload_chunk->set_flags(payload_chunk->flags() |
-                             PayloadTransferFrame::PayloadChunk::LAST_CHUNK);
-  }
-
-  return ConstifyPtr(payload_chunk.release());
+  return payload_chunk;
 }
 
-template <typename Platform>
-Ptr<typename PayloadManager<Platform>::PendingPayload>
-PayloadManager<Platform>::createIncomingPayload(
-    const PayloadTransferFrame& payload_transfer_frame,
-    const string& endpoint_id) {
-  ScopedPtr<Ptr<InternalPayload> > internal_payload(
-      internal_payload_factory_->createIncoming(payload_transfer_frame));
-  if (internal_payload.isNull()) {
-    return Ptr<typename PayloadManager<Platform>::PendingPayload>();
+PayloadManager::PendingPayload* PayloadManager::CreateIncomingPayload(
+    const PayloadTransferFrame& frame, const std::string& endpoint_id) {
+  auto internal_payload = CreateIncomingInternalPayload(frame);
+  if (!internal_payload) {
+    return nullptr;
   }
 
-  std::int64_t payload_id = internal_payload->getId();
-  ScopedPtr<Ptr<typename PayloadManager<Platform>::PendingPayload> >
-      pending_payload(PendingPayload::createIncoming(internal_payload.release(),
-                                                     endpoint_id));
-  pending_payloads_->startTrackingPayload(payload_id,
-                                          pending_payload.release());
+  Payload::Id payload_id = internal_payload->GetId();
+  NEARBY_LOG(INFO, "CreateIncomingPayload: payload_id=%" PRIX64, payload_id);
+  MutexLock lock(&mutex_);
+  pending_payloads_.StartTrackingPayload(
+      payload_id,
+      absl::make_unique<PendingPayload>(std::move(internal_payload),
+                                        EndpointIds{endpoint_id}, true));
 
-  return pending_payloads_->getPayload(payload_id);
+  return pending_payloads_.GetPayload(payload_id);
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::sendClientCallbacksForFinishedOutgoingPayload(
-    Ptr<ClientProxy<Platform> > client_proxy,
-    const std::vector<string>& finished_endpoint_ids,
+void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
+    ClientProxy* client, const EndpointIds& finished_endpoint_ids,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t num_bytes_successfully_transferred,
     proto::connections::PayloadStatus status) {
-  payload_status_update_executor_->execute(MakePtr(
-      new payload_manager::
-          SendClientCallbacksForFinishedOutgoingPayloadRunnable<Platform>(
-              self_, client_proxy, finished_endpoint_ids,
-              payload_header, num_bytes_successfully_transferred, status)));
+  RunOnStatusUpdateThread([this, client, finished_endpoint_ids, payload_header,
+                           num_bytes_successfully_transferred, status]() {
+    // Make sure we're still tracking this payload.
+    PendingPayload* pending_payload = GetPayload(payload_header.id());
+    if (!pending_payload) {
+      return;
+    }
+
+    PayloadProgressInfo update{
+        payload_header.id(),
+        PayloadManager::PayloadStatusToTransferUpdateStatus(status),
+        payload_header.total_size(), num_bytes_successfully_transferred};
+    for (const auto& endpoint_id : finished_endpoint_ids) {
+      // Skip sending notifications if we have stopped tracking this
+      // endpoint.
+      if (!pending_payload->GetEndpoint(endpoint_id)) {
+        continue;
+      }
+
+      // Notify the client.
+      client->OnPayloadProgress(endpoint_id, update);
+    }
+
+    // Remove these endpoints from our tracking list for this payload.
+    pending_payload->RemoveEndpoints(finished_endpoint_ids);
+
+    // Close the payload if no endpoints remain.
+    if (pending_payload->GetEndpoints().empty()) {
+      pending_payload->Close();
+    }
+  });
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::sendClientCallbacksForFinishedIncomingPayload(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
+void PayloadManager::SendClientCallbacksForFinishedIncomingPayload(
+    ClientProxy* client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t offset_bytes, proto::connections::PayloadStatus status) {
-  payload_status_update_executor_->execute(MakePtr(
-      new payload_manager::
-          SendClientCallbacksForFinishedIncomingPayloadRunnable<Platform>(
-              self_, client_proxy, endpoint_id, payload_header,
-              offset_bytes, status)));
+  RunOnStatusUpdateThread(
+      [this, client, endpoint_id, payload_header, offset_bytes, status]() {
+        // Make sure we're still tracking this payload.
+        PendingPayload* pending_payload = GetPayload(payload_header.id());
+        if (!pending_payload) {
+          return;
+        }
+
+        // Unless we never started tracking this payload (meaning we failed to
+        // even create the InternalPayload), notify the client (and close it).
+        PayloadProgressInfo update{
+            payload_header.id(),
+            PayloadManager::PayloadStatusToTransferUpdateStatus(status),
+            payload_header.total_size(), offset_bytes};
+        NotifyClientOfIncomingPayloadProgressInfo(client, endpoint_id, update);
+        DestroyPendingPayload(payload_header.id());
+      });
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::sendControlMessage(
-    const std::vector<string>& endpoint_ids,
+void PayloadManager::SendControlMessage(
+    const EndpointIds& endpoint_ids,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t num_bytes_successfully_transferred,
     PayloadTransferFrame::ControlMessage::EventType event_type) {
@@ -860,29 +598,31 @@ void PayloadManager<Platform>::sendControlMessage(
   control_message.set_event(event_type);
   control_message.set_offset(num_bytes_successfully_transferred);
 
-  endpoint_manager_->sendControlMessage(payload_header, control_message,
+  endpoint_manager_->SendControlMessage(payload_header, control_message,
                                         endpoint_ids);
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::handleFinishedOutgoingPayload(
-    Ptr<ClientProxy<Platform> > client_proxy,
-    const std::vector<string>& finished_endpoint_ids,
+void PayloadManager::HandleFinishedOutgoingPayload(
+    ClientProxy* client, const EndpointIds& finished_endpoint_ids,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t num_bytes_successfully_transferred,
     proto::connections::PayloadStatus status) {
-  sendClientCallbacksForFinishedOutgoingPayload(
-      client_proxy, finished_endpoint_ids, payload_header,
+  // This call will destroy a pending payload.
+  SendClientCallbacksForFinishedOutgoingPayload(
+      client, finished_endpoint_ids, payload_header,
       num_bytes_successfully_transferred, status);
 
   switch (status) {
     case proto::connections::PayloadStatus::LOCAL_ERROR:
-      sendControlMessage(finished_endpoint_ids, payload_header,
+      SendControlMessage(finished_endpoint_ids, payload_header,
                          num_bytes_successfully_transferred,
                          PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR);
       break;
     case proto::connections::PayloadStatus::LOCAL_CANCELLATION:
-      sendControlMessage(
+      NEARBY_LOG(INFO,
+                 "Sending PAYLOAD_CANCEL to receiver side; payload_id=%" PRIX64,
+                 static_cast<std::int64_t>(payload_header.id()));
+      SendControlMessage(
           finished_endpoint_ids, payload_header,
           num_bytes_successfully_transferred,
           PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED);
@@ -890,10 +630,8 @@ void PayloadManager<Platform>::handleFinishedOutgoingPayload(
     case proto::connections::PayloadStatus::ENDPOINT_IO_ERROR:
       // Unregister these endpoints, since we had an IO error on the physical
       // connection.
-      for (std::vector<string>::const_iterator it =
-               finished_endpoint_ids.begin();
-           it != finished_endpoint_ids.end(); it++) {
-        endpoint_manager_->discardEndpoint(client_proxy, *it);
+      for (const auto& endpoint_id : finished_endpoint_ids) {
+        endpoint_manager_->DiscardEndpoint(client, endpoint_id);
       }
       break;
     case proto::connections::PayloadStatus::REMOTE_ERROR:
@@ -901,28 +639,26 @@ void PayloadManager<Platform>::handleFinishedOutgoingPayload(
       // No special handling needed for these.
       break;
     default:
-      // TODO(tracyzhou): Add logging.
+      NEARBY_LOG(INFO, "PayloadManager: unknown status=%d", status);
       break;
   }
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::handleFinishedIncomingPayload(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
+void PayloadManager::HandleFinishedIncomingPayload(
+    ClientProxy* client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t offset_bytes, proto::connections::PayloadStatus status) {
-  sendClientCallbacksForFinishedIncomingPayload(
-      client_proxy, endpoint_id, payload_header, offset_bytes, status);
+  SendClientCallbacksForFinishedIncomingPayload(
+      client, endpoint_id, payload_header, offset_bytes, status);
 
   switch (status) {
     case proto::connections::PayloadStatus::LOCAL_ERROR:
-      sendControlMessage(std::vector<string>(1, endpoint_id), payload_header,
-                         offset_bytes,
+      SendControlMessage({endpoint_id}, payload_header, offset_bytes,
                          PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR);
       break;
     case proto::connections::PayloadStatus::LOCAL_CANCELLATION:
-      sendControlMessage(
-          std::vector<string>(1, endpoint_id), payload_header, offset_bytes,
+      SendControlMessage(
+          {endpoint_id}, payload_header, offset_bytes,
           PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED);
       break;
     default:
@@ -931,73 +667,144 @@ void PayloadManager<Platform>::handleFinishedIncomingPayload(
   }
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::handleSuccessfulOutgoingChunk(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
+void PayloadManager::HandleSuccessfulOutgoingChunk(
+    ClientProxy* client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
     std::int64_t payload_chunk_body_size) {
-  payload_status_update_executor_->execute(MakePtr(
-      new payload_manager::HandleSuccessfulOutgoingChunkRunnable<Platform>(
-          self_, client_proxy, endpoint_id, payload_header,
-          payload_chunk_flags, payload_chunk_offset, payload_chunk_body_size)));
+  RunOnStatusUpdateThread([this, client, endpoint_id, payload_header,
+                           payload_chunk_flags, payload_chunk_offset,
+                           payload_chunk_body_size]() {
+    // Make sure we're still tracking this payload and its associated
+    // endpoint.
+    PendingPayload* pending_payload = GetPayload(payload_header.id());
+    if (!pending_payload || !pending_payload->GetEndpoint(endpoint_id)) {
+      NEARBY_LOG(INFO,
+                 "HandleSuccessfulOutgoingChunk: endpoint not found: id=%s",
+                 endpoint_id.c_str());
+      return;
+    }
+
+    bool is_last_chunk = (payload_chunk_flags &
+                          PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
+    PayloadProgressInfo update{
+        payload_header.id(),
+        is_last_chunk ? PayloadProgressInfo::Status::kSuccess
+                      : PayloadProgressInfo::Status::kInProgress,
+        payload_header.total_size(),
+        is_last_chunk ? payload_chunk_offset
+                      : payload_chunk_offset + payload_chunk_body_size};
+
+    // Notify the client.
+    client->OnPayloadProgress(endpoint_id, update);
+
+    if (is_last_chunk) {
+      // Stop tracking this endpoint.
+      pending_payload->RemoveEndpoints({endpoint_id});
+
+      // Close the payload if no endpoints remain.
+      if (pending_payload->GetEndpoints().empty()) {
+        pending_payload->Close();
+      }
+    }
+  });
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::handleSuccessfulIncomingChunk(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
+// @PayloadManagerStatusUpdateThread
+void PayloadManager::DestroyPendingPayload(Payload::Id payload_id) {
+  bool is_incoming = false;
+  {
+    MutexLock lock(&mutex_);
+    auto pending = pending_payloads_.StopTrackingPayload(payload_id);
+    if (!pending) return;
+    is_incoming = pending->IsIncoming();
+    const char* direction = is_incoming ? "incoming" : "outgoing";
+    NEARBY_LOG(INFO,
+               "PayloadManager: destroying %s pending payload: "
+               "self=%p; id=%" PRIX64,
+               direction, this, payload_id);
+    pending->Close();
+    pending.reset();
+  }
+  if (!is_incoming) NotifyShutdown();
+}
+
+void PayloadManager::HandleSuccessfulIncomingChunk(
+    ClientProxy* client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
     std::int64_t payload_chunk_body_size) {
-  payload_status_update_executor_->execute(MakePtr(
-      new payload_manager::HandleSuccessfulIncomingChunkRunnable<Platform>(
-          self_, client_proxy, endpoint_id, payload_header,
-          payload_chunk_flags, payload_chunk_offset, payload_chunk_body_size)));
+  RunOnStatusUpdateThread([this, client, endpoint_id, payload_header,
+                           payload_chunk_flags, payload_chunk_offset,
+                           payload_chunk_body_size]() {
+    // Make sure we're still tracking this payload.
+    PendingPayload* pending_payload = GetPayload(payload_header.id());
+    if (!pending_payload) {
+      return;
+    }
+
+    bool is_last_chunk = (payload_chunk_flags &
+                          PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
+    PayloadProgressInfo update{
+        payload_header.id(),
+        is_last_chunk ? PayloadProgressInfo::Status::kSuccess
+                      : PayloadProgressInfo::Status::kInProgress,
+        payload_header.total_size(),
+        is_last_chunk ? payload_chunk_offset
+                      : payload_chunk_offset + payload_chunk_body_size};
+
+    // Notify the client of this update.
+    NotifyClientOfIncomingPayloadProgressInfo(client, endpoint_id, update);
+  });
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::processDataPacket(
-    Ptr<ClientProxy<Platform> > to_client_proxy, const string& from_endpoint_id,
-    const PayloadTransferFrame& payload_transfer_frame) {
-  const PayloadTransferFrame::PayloadHeader& payload_header =
-      payload_transfer_frame.payload_header();
-  const PayloadTransferFrame::PayloadChunk& payload_chunk =
-      payload_transfer_frame.payload_chunk();
-  // TODO(tracyzhou): Add logging.
+// @EndpointManagerDataPool
+void PayloadManager::ProcessDataPacket(
+    ClientProxy* to_client, const std::string& from_endpoint_id,
+    PayloadTransferFrame& payload_transfer_frame) {
+  PayloadTransferFrame::PayloadHeader& payload_header =
+      *payload_transfer_frame.mutable_payload_header();
+  PayloadTransferFrame::PayloadChunk& payload_chunk =
+      *payload_transfer_frame.mutable_payload_chunk();
 
-  Ptr<typename PayloadManager<Platform>::PendingPayload> pending_payload;
+  PendingPayload* pending_payload;
   if (payload_chunk.offset() == 0) {
     pending_payload =
-        createIncomingPayload(payload_transfer_frame, from_endpoint_id);
-    if (pending_payload.isNull()) {
-      // TODO(tracyzhou): Add logging.
+        CreateIncomingPayload(payload_transfer_frame, from_endpoint_id);
+    if (!pending_payload) {
       // Send the error to the remote endpoint.
-      sendControlMessage(std::vector<string>(1, from_endpoint_id),
-                         payload_header, payload_chunk.offset(),
+      SendControlMessage({from_endpoint_id}, payload_header,
+                         payload_chunk.offset(),
                          PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR);
       return;
     }
 
     // Also, let the client know of this new incoming payload.
-    payload_status_update_executor_->execute(
-        MakePtr(new payload_manager::ProcessDataPacketRunnable<Platform>(
-            to_client_proxy, from_endpoint_id,
-            pending_payload->getInternalPayload()->releasePayload())));
-    // TODO(tracyzhou): Add logging.
+    RunOnStatusUpdateThread([to_client, from_endpoint_id, pending_payload]() {
+      NEARBY_LOG(INFO, "ProcessDataPacket [new]: id=%s; payload_id=%" PRIX64,
+                 from_endpoint_id.c_str(), pending_payload->GetId());
+      to_client->OnPayload(
+          from_endpoint_id,
+          pending_payload->GetInternalPayload()->ReleasePayload());
+    });
   } else {
-    pending_payload = pending_payloads_->getPayload(payload_header.id());
-    if (pending_payload.isNull()) {
-      // TODO(tracyzhou): Add logging.
+    pending_payload = GetPayload(payload_header.id());
+    if (!pending_payload) {
+      NEARBY_LOG(INFO,
+                 "ProcessDataPacket: [missing] id=%s; payload_id=%" PRIX64,
+                 from_endpoint_id.c_str(),
+                 static_cast<std::int64_t>(payload_header.id()));
       return;
     }
   }
 
-  if (pending_payload->isLocallyCanceled()) {
+  if (pending_payload->IsLocallyCanceled()) {
     // This incoming payload was canceled by the client. Drop this frame and do
     // all the cleanup. See go/nc-cancel-payload
-    handleFinishedIncomingPayload(
-        to_client_proxy, from_endpoint_id, payload_header,
-        payload_chunk.offset(),
+    NEARBY_LOG(INFO, "ProcessDataPacket: [cancel] id=%s; payload_id=%" PRIX64,
+               from_endpoint_id.c_str(), pending_payload->GetId());
+    HandleFinishedIncomingPayload(
+        to_client, from_endpoint_id, payload_header, payload_chunk.offset(),
         proto::connections::PayloadStatus::LOCAL_CANCELLATION);
     return;
   }
@@ -1007,69 +814,73 @@ void PayloadManager<Platform>::processDataPacket(
   // back to the client. For the sake of accuracy, we update the pending payload
   // here because it's after all payload terminating events are handled, but
   // right before we actually start attaching the next chunk.
-  pending_payload->setOffsetForEndpoint(from_endpoint_id,
+  pending_payload->SetOffsetForEndpoint(from_endpoint_id,
                                         payload_chunk.offset());
 
-  Exception::Value attach_next_chunk_exception =
-      pending_payload->getInternalPayload()->attachNextChunk(
-          MakeConstPtr(new ByteArray(payload_chunk.body().data(),
-                                     payload_chunk.body().size())));
-  if (Exception::NONE != attach_next_chunk_exception) {
-    if (Exception::IO == attach_next_chunk_exception) {
-      // TODO(tracyzhou): Add logging.
-      handleFinishedIncomingPayload(
-          to_client_proxy, from_endpoint_id, payload_header,
-          payload_chunk.offset(),
-          proto::connections::PayloadStatus::LOCAL_ERROR);
-      return;
-    }
+  // Save size of packet before we move it.
+  std::int64_t payload_body_size = payload_chunk.body().size();
+  if (pending_payload->GetInternalPayload()
+          ->AttachNextChunk(ByteArray(std::move(*payload_chunk.mutable_body())))
+          .Raised()) {
+    NEARBY_LOG(INFO,
+               "ProcessDataPacket: [data: error] id=%s; payload_id=%" PRIX64,
+               from_endpoint_id.c_str(), pending_payload->GetId());
+    HandleFinishedIncomingPayload(
+        to_client, from_endpoint_id, payload_header, payload_chunk.offset(),
+        proto::connections::PayloadStatus::LOCAL_ERROR);
+    return;
   }
 
-  handleSuccessfulIncomingChunk(
-      to_client_proxy, from_endpoint_id, payload_header, payload_chunk.flags(),
-      payload_chunk.offset(), payload_chunk.body().size());
+  NEARBY_LOG(INFO, "ProcessDataPacket: [data: ok] id=%s; payload_id=%" PRIX64,
+             from_endpoint_id.c_str(), pending_payload->GetId());
+  HandleSuccessfulIncomingChunk(to_client, from_endpoint_id, payload_header,
+                                payload_chunk.flags(), payload_chunk.offset(),
+                                payload_body_size);
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::processControlPacket(
-    Ptr<ClientProxy<Platform> > to_client_proxy, const string& from_endpoint_id,
-    const PayloadTransferFrame& payload_transfer_frame) {
+// @EndpointManagerDataPool
+void PayloadManager::ProcessControlPacket(
+    ClientProxy* to_client, const std::string& from_endpoint_id,
+    PayloadTransferFrame& payload_transfer_frame) {
   const PayloadTransferFrame::PayloadHeader& payload_header =
       payload_transfer_frame.payload_header();
   const PayloadTransferFrame::ControlMessage& control_message =
       payload_transfer_frame.control_message();
-  Ptr<PayloadManager<Platform>::PendingPayload> pending_payload =
-      pending_payloads_->getPayload(payload_header.id());
-  if (pending_payload.isNull()) {
+  PendingPayload* pending_payload = GetPayload(payload_header.id());
+  if (!pending_payload) {
     // TODO(tracyzhou): Add logging.
     return;
   }
 
   switch (control_message.event()) {
     case PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED:
-      if (pending_payload->isIncoming()) {
+      if (pending_payload->IsIncoming()) {
+        NEARBY_LOG(INFO, "Incoming PAYLOAD_CANCELED: from id=%s; self=%p",
+                   from_endpoint_id.c_str(), this);
         // No need to mark the pending payload as cancelled, since this is a
         // remote cancellation for an incoming payload -- we handle everything
         // inline here.
-        handleFinishedIncomingPayload(
-            to_client_proxy, from_endpoint_id, payload_header,
+        HandleFinishedIncomingPayload(
+            to_client, from_endpoint_id, payload_header,
             control_message.offset(),
-            controlMessageEventToPayloadStatus(control_message.event()));
+            ControlMessageEventToPayloadStatus(control_message.event()));
       } else {
+        NEARBY_LOG(INFO, "Outgoing PAYLOAD_CANCELED: from id=%s; self=%p",
+                   from_endpoint_id.c_str(), this);
         // Mark the payload as canceled *for this endpoint*.
-        pending_payload->setEndpointStatusFromControlMessage(from_endpoint_id,
+        pending_payload->SetEndpointStatusFromControlMessage(from_endpoint_id,
                                                              control_message);
       }
       // TODO(tracyzhou): Add logging.
       break;
     case PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR:
-      if (pending_payload->isIncoming()) {
-        handleFinishedIncomingPayload(
-            to_client_proxy, from_endpoint_id, payload_header,
+      if (pending_payload->IsIncoming()) {
+        HandleFinishedIncomingPayload(
+            to_client, from_endpoint_id, payload_header,
             control_message.offset(),
-            controlMessageEventToPayloadStatus(control_message.event()));
+            ControlMessageEventToPayloadStatus(control_message.event()));
       } else {
-        pending_payload->setEndpointStatusFromControlMessage(from_endpoint_id,
+        pending_payload->SetEndpointStatusFromControlMessage(from_endpoint_id,
                                                              control_message);
       }
       break;
@@ -1079,277 +890,177 @@ void PayloadManager<Platform>::processControlPacket(
   }
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::notifyClientOfIncomingPayloadTransferUpdate(
-    Ptr<ClientProxy<Platform> > client_proxy, const string& endpoint_id,
-    const PayloadTransferUpdate& payload_transfer_update,
-    bool done_with_payload) {
-  client_proxy->onPayloadTransferUpdate(endpoint_id, payload_transfer_update);
-  if (done_with_payload) {
-    // We're done with this payload (either received the last chunk, or had a
-    // failure), so remove it from the incoming payloads that we're tracking.
-    Ptr<typename PayloadManager<Platform>::PendingPayload> pending_payload =
-        pending_payloads_->stopTrackingPayload(
-            payload_transfer_update.payload_id);
-    pending_payload->close();
-    pending_payload.destroy();
-  }
-}
-
-template <typename Platform>
-void PayloadManager<Platform>::enqueueOutgoingPayload(
-    Ptr<typename Platform::SingleThreadExecutorType> executor,
-    Ptr<Runnable> runnable) {
-  executor->execute(runnable);
+// @PayloadManagerStatusUpdateThread
+void PayloadManager::NotifyClientOfIncomingPayloadProgressInfo(
+    ClientProxy* client, const std::string& endpoint_id,
+    const PayloadProgressInfo& payload_transfer_update) {
+  client->OnPayloadProgress(endpoint_id, payload_transfer_update);
 }
 
 ///////////////////////////////// EndpointInfo /////////////////////////////////
 
-template <typename Platform>
-PayloadManager<Platform>::EndpointInfo::EndpointInfo(string id)
-    : id_(id), status_(Status::AVAILABLE), offset_(0) {}
-
-template <typename Platform>
-typename PayloadManager<Platform>::EndpointInfo::Status::Value
-PayloadManager<Platform>::EndpointInfo::controlMessageEventToEndpointInfoStatus(
+PayloadManager::EndpointInfo::Status
+PayloadManager::EndpointInfo::ControlMessageEventToEndpointInfoStatus(
     PayloadTransferFrame::ControlMessage::EventType event) {
   switch (event) {
     case PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR:
-      return Status::ERROR;
+      return Status::kError;
     case PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED:
-      return Status::CANCELED;
+      return Status::kCanceled;
     default:
       // TODO(tracyzhou): Add logging.
-      return Status::UNKNOWN;
+      return Status::kUnknown;
   }
 }
 
-template <typename Platform>
-string PayloadManager<Platform>::EndpointInfo::getId() const {
-  return id_;
-}
-
-template <typename Platform>
-typename PayloadManager<Platform>::EndpointInfo::Status::Value
-PayloadManager<Platform>::EndpointInfo::getStatus() const {
-  return status_;
-}
-
-template <typename Platform>
-std::int64_t PayloadManager<Platform>::EndpointInfo::getOffset() const {
-  return offset_;
-}
-
-template <typename Platform>
-void PayloadManager<Platform>::EndpointInfo::setStatus(
+void PayloadManager::EndpointInfo::SetStatusFromControlMessage(
     const PayloadTransferFrame::ControlMessage& control_message) {
-  status_ = controlMessageEventToEndpointInfoStatus(control_message.event());
-}
-
-template <typename Platform>
-void PayloadManager<Platform>::EndpointInfo::setOffset(std::int64_t offset) {
-  offset_ = offset;
+  status.Set(ControlMessageEventToEndpointInfoStatus(control_message.event()));
 }
 
 //////////////////////////////// PendingPayload ////////////////////////////////
 
-template <typename Platform>
-Ptr<typename PayloadManager<Platform>::PendingPayload>
-PayloadManager<Platform>::PendingPayload::createIncoming(
-    Ptr<InternalPayload> internal_payload, const string& endpoint_id) {
-  return MakeRefCountedPtr(new PendingPayload(
-      internal_payload, std::vector<string>(1, endpoint_id), true));
-}
-
-template <typename Platform>
-Ptr<typename PayloadManager<Platform>::PendingPayload>
-PayloadManager<Platform>::PendingPayload::createOutgoing(
-    Ptr<InternalPayload> internal_payload,
-    const std::vector<string>& endpoint_ids) {
-  return MakeRefCountedPtr(
-      new PendingPayload(internal_payload, endpoint_ids, false));
-}
-
-template <typename Platform>
-PayloadManager<Platform>::PendingPayload::PendingPayload(
-    Ptr<InternalPayload> internal_payload,
-    const std::vector<string>& endpoint_ids, bool is_incoming)
-    : lock_(Platform::createLock()),
-      internal_payload_(internal_payload),
-      is_incoming_(is_incoming),
-      is_locally_cancelled_(Platform::createAtomicBoolean(false)),
-      endpoints_() {
-  for (std::vector<string>::const_iterator it = endpoint_ids.begin();
-       it != endpoint_ids.end(); it++) {
-    endpoints_.insert(std::make_pair(*it, MakePtr(new EndpointInfo(*it))));
+PayloadManager::PendingPayload::PendingPayload(
+    std::unique_ptr<InternalPayload> internal_payload,
+    const EndpointIds& endpoint_ids, bool is_incoming)
+    : is_incoming_(is_incoming),
+      internal_payload_(std::move(internal_payload)) {
+  // Initially we mark all endpoints as available.
+  // Later on some may become canceled, some may experience data transfer
+  // failures. Any of these situations will cause endpoint to be marked as
+  // unavailable.
+  for (const auto& id : endpoint_ids) {
+    endpoints_.emplace(id, EndpointInfo{
+                               .id = id,
+                               .status {EndpointInfo::Status::kAvailable},
+                           });
   }
 }
 
-template <typename Platform>
-PayloadManager<Platform>::PendingPayload::~PendingPayload() {
-  for (typename EndpointsMap::iterator it = endpoints_.begin();
-       it != endpoints_.end(); it++) {
-    it->second.destroy();
-  }
-  endpoints_.clear();
+Payload::Id PayloadManager::PendingPayload::GetId() const {
+  return internal_payload_->GetId();
 }
 
-template <typename Platform>
-std::int64_t PayloadManager<Platform>::PendingPayload::getId() {
-  return internal_payload_->getId();
-}
-
-template <typename Platform>
-Ptr<InternalPayload>
-PayloadManager<Platform>::PendingPayload::getInternalPayload() {
+InternalPayload* PayloadManager::PendingPayload::GetInternalPayload() {
   return internal_payload_.get();
 }
 
-template <typename Platform>
-bool PayloadManager<Platform>::PendingPayload::isLocallyCanceled() {
-  return is_locally_cancelled_->get();
+bool PayloadManager::PendingPayload::IsLocallyCanceled() const {
+  return is_locally_canceled_.Get();
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::PendingPayload::markLocallyCanceled() {
-  is_locally_cancelled_->set(true);
+void PayloadManager::PendingPayload::MarkLocallyCanceled() {
+  is_locally_canceled_.Set(true);
 }
 
-template <typename Platform>
-bool PayloadManager<Platform>::PendingPayload::isIncoming() {
-  return is_incoming_;
-}
+bool PayloadManager::PendingPayload::IsIncoming() const { return is_incoming_; }
 
-template <typename Platform>
-std::vector<Ptr<typename PayloadManager<Platform>::EndpointInfo> >
-PayloadManager<Platform>::PendingPayload::getEndpoints() const {
-  Synchronized s(lock_.get());
+std::vector<const PayloadManager::EndpointInfo*>
+PayloadManager::PendingPayload::GetEndpoints() const {
+  MutexLock lock(&mutex_);
 
-  std::vector<Ptr<typename PayloadManager<Platform>::EndpointInfo> > result;
-  for (typename EndpointsMap::const_iterator it = endpoints_.begin();
-       it != endpoints_.end(); it++) {
-    result.push_back(it->second);
+  std::vector<const EndpointInfo*> result;
+  for (const auto& item : endpoints_) {
+    result.push_back(&item.second);
   }
   return result;
 }
 
-template <typename Platform>
-Ptr<typename PayloadManager<Platform>::EndpointInfo>
-PayloadManager<Platform>::PendingPayload::getEndpoint(
-    const string& endpoint_id) {
-  Synchronized s(lock_.get());
+PayloadManager::EndpointInfo* PayloadManager::PendingPayload::GetEndpoint(
+    const std::string& endpoint_id) {
+  MutexLock lock(&mutex_);
 
-  typename EndpointsMap::iterator it = endpoints_.find(endpoint_id);
+  auto it = endpoints_.find(endpoint_id);
   if (it == endpoints_.end()) {
-    return Ptr<typename PayloadManager<Platform>::EndpointInfo>();
+    return {};
   }
 
-  return it->second;
+  return &it->second;
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::PendingPayload::removeEndpoints(
-    const std::vector<string>& endpoint_ids_to_remove) {
-  Synchronized s(lock_.get());
+void PayloadManager::PendingPayload::RemoveEndpoints(
+    const EndpointIds& endpoint_ids) {
+  MutexLock lock(&mutex_);
 
-  for (std::vector<string>::const_iterator it = endpoint_ids_to_remove.begin();
-       it != endpoint_ids_to_remove.end(); it++) {
-    payload_manager::eraseOwnedPtrFromMap(endpoints_, *it);
+  for (const auto& id : endpoint_ids) {
+    endpoints_.erase(id);
   }
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::PendingPayload::
-    setEndpointStatusFromControlMessage(
-        const string& endpoint_id,
-        const PayloadTransferFrame::ControlMessage& control_message) {
-  Synchronized s(lock_.get());
+void PayloadManager::PendingPayload::SetEndpointStatusFromControlMessage(
+    const std::string& endpoint_id,
+    const PayloadTransferFrame::ControlMessage& control_message) {
+  MutexLock lock(&mutex_);
 
-  typename EndpointsMap::iterator it = endpoints_.find(endpoint_id);
-  if (it != endpoints_.end()) {
-    it->second->setStatus(control_message);
+  auto item = endpoints_.find(endpoint_id);
+  if (item != endpoints_.end()) {
+    item->second.SetStatusFromControlMessage(control_message);
   }
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::PendingPayload::setOffsetForEndpoint(
-    const string& endpoint_id, std::int64_t offset) {
-  Synchronized s(lock_.get());
+void PayloadManager::PendingPayload::SetOffsetForEndpoint(
+    const std::string& endpoint_id, std::int64_t offset) {
+  MutexLock lock(&mutex_);
 
-  typename EndpointsMap::iterator it = endpoints_.find(endpoint_id);
-  if (it != endpoints_.end()) {
-    it->second->setOffset(offset);
+  auto item = endpoints_.find(endpoint_id);
+  if (item != endpoints_.end()) {
+    item->second.offset = offset;
   }
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::PendingPayload::close() {
-  internal_payload_->close();
+void PayloadManager::PendingPayload::Close() {
+  if (internal_payload_) internal_payload_->Close();
+  close_event_.CountDown();
+}
+
+bool PayloadManager::PendingPayload::WaitForClose() {
+  return close_event_.Await(kWaitCloseTimeout).result();
+}
+
+bool PayloadManager::PendingPayload::IsClosed() {
+  return close_event_.Await(absl::ZeroDuration()).result();
+}
+
+void PayloadManager::RunOnStatusUpdateThread(std::function<void()> runnable) {
+  payload_status_update_executor_.Execute(std::move(runnable));
 }
 
 /////////////////////////////// PendingPayloads ///////////////////////////////
 
-template <typename Platform>
-PayloadManager<Platform>::PendingPayloads::PendingPayloads()
-    : lock_(Platform::createLock()), pending_payloads_() {}
+void PayloadManager::PendingPayloads::StartTrackingPayload(
+    Payload::Id payload_id, std::unique_ptr<PendingPayload> pending_payload) {
+  MutexLock lock(&mutex_);
 
-template <typename Platform>
-PayloadManager<Platform>::PendingPayloads::~PendingPayloads() {
-  for (typename PendingPayloadsMap::iterator it = pending_payloads_.begin();
-       it != pending_payloads_.end(); it++) {
-    it->second.destroy();
-  }
-  pending_payloads_.clear();
+  auto pair = pending_payloads_.emplace(payload_id, std::move(pending_payload));
+  NEARBY_LOG(INFO, "StartTrackingPayload: payload_id=%" PRIX64 "; inserted=%d",
+             payload_id, pair.second);
 }
 
-template <typename Platform>
-void PayloadManager<Platform>::PendingPayloads::startTrackingPayload(
-    std::int64_t payload_id,
-    Ptr<typename PayloadManager<Platform>::PendingPayload> pending_payload) {
-  Synchronized s(lock_.get());
+std::unique_ptr<PayloadManager::PendingPayload>
+PayloadManager::PendingPayloads::StopTrackingPayload(Payload::Id payload_id) {
+  MutexLock lock(&mutex_);
 
-  pending_payloads_.insert(std::make_pair(payload_id, pending_payload));
+  auto it = pending_payloads_.find(payload_id);
+  if (it == pending_payloads_.end()) return {};
+
+  auto item = pending_payloads_.extract(it);
+  return std::move(item.mapped());
 }
 
-template <typename Platform>
-Ptr<typename PayloadManager<Platform>::PendingPayload>
-PayloadManager<Platform>::PendingPayloads::stopTrackingPayload(
-    std::int64_t payload_id) {
-  Synchronized s(lock_.get());
+PayloadManager::PendingPayload* PayloadManager::PendingPayloads::GetPayload(
+    Payload::Id payload_id) const {
+  MutexLock lock(&mutex_);
 
-  typename PendingPayloadsMap::iterator it = pending_payloads_.find(payload_id);
-  if (it == pending_payloads_.end()) {
-    return Ptr<typename PayloadManager<Platform>::PendingPayload>();
-  }
-
-  Ptr<typename PayloadManager<Platform>::PendingPayload> pending_payload =
-      it->second;
-  pending_payloads_.erase(it);
-
-  return pending_payload;
+  auto item = pending_payloads_.find(payload_id);
+  return item != pending_payloads_.end() ? item->second.get() : nullptr;
 }
 
-template <typename Platform>
-Ptr<typename PayloadManager<Platform>::PendingPayload>
-PayloadManager<Platform>::PendingPayloads::getPayload(std::int64_t payload_id) {
-  Synchronized s(lock_.get());
+std::vector<Payload::Id> PayloadManager::PendingPayloads::GetAllPayloads() {
+  MutexLock lock(&mutex_);
 
-  typename PendingPayloadsMap::iterator it = pending_payloads_.find(payload_id);
-  if (it == pending_payloads_.end()) {
-    return Ptr<typename PayloadManager<Platform>::PendingPayload>();
-  }
-  return it->second;
-}
-
-template <typename Platform>
-std::vector<Ptr<typename PayloadManager<Platform>::PendingPayload> >
-PayloadManager<Platform>::PendingPayloads::getAllPayloads() {
-  Synchronized s(lock_.get());
-
-  std::vector<Ptr<typename PayloadManager<Platform>::PendingPayload> > result;
-  for (typename PendingPayloadsMap::iterator it = pending_payloads_.begin();
-       it != pending_payloads_.end(); it++) {
-    result.push_back(it->second);
+  std::vector<Payload::Id> result;
+  for (const auto& item : pending_payloads_) {
+    result.push_back(item.first);
   }
   return result;
 }

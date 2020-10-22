@@ -6,64 +6,47 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-template <typename Platform>
-P2PStarPCPHandler<Platform>::P2PStarPCPHandler(
-    Ptr<MediumManager<Platform> > medium_manager,
-    Ptr<EndpointManager<Platform> > endpoint_manager,
-    Ptr<EndpointChannelManager> endpoint_channel_manager,
-    Ptr<BandwidthUpgradeManager> bandwidth_upgrade_manager)
-    : P2PClusterPCPHandler<Platform>(medium_manager, endpoint_manager,
-                                     endpoint_channel_manager,
-                                     bandwidth_upgrade_manager),
-      medium_manager_(medium_manager) {}
+P2pStarPcpHandler::P2pStarPcpHandler(Mediums& mediums,
+                                     EndpointManager& endpoint_manager,
+                                     EndpointChannelManager& channel_manager,
+                                     BwuManager& bwu_manager, Pcp pcp)
+    : P2pClusterPcpHandler(&mediums, &endpoint_manager, &channel_manager,
+                           &bwu_manager, pcp) {}
 
-template <typename Platform>
-P2PStarPCPHandler<Platform>::~P2PStarPCPHandler() {}
-
-template <typename Platform>
-Strategy P2PStarPCPHandler<Platform>::getStrategy() {
-  return Strategy::kP2PStar;
-}
-
-template <typename Platform>
-PCP::Value P2PStarPCPHandler<Platform>::getPCP() {
-  return PCP::P2P_STAR;
-}
-
-template <typename Platform>
 std::vector<proto::connections::Medium>
-P2PStarPCPHandler<Platform>::getConnectionMediumsByPriority() {
+P2pStarPcpHandler::GetConnectionMediumsByPriority() {
   std::vector<proto::connections::Medium> mediums;
-  if (medium_manager_->isBluetoothAvailable()) {
+  if (mediums_->GetWifiLan().IsAvailable()) {
+    mediums.push_back(proto::connections::WIFI_LAN);
+  }
+  if (mediums_->GetWebRtc().IsAvailable()) {
+    mediums.push_back(proto::connections::WEB_RTC);
+  }
+  if (mediums_->GetBluetoothClassic().IsAvailable()) {
     mediums.push_back(proto::connections::BLUETOOTH);
   }
-  if (medium_manager_->isBleAvailable()) {
+  if (mediums_->GetBle().IsAvailable()) {
     mediums.push_back(proto::connections::BLE);
   }
   return mediums;
 }
 
-template <typename Platform>
-proto::connections::Medium
-P2PStarPCPHandler<Platform>::getDefaultUpgradeMedium() {
+proto::connections::Medium P2pStarPcpHandler::GetDefaultUpgradeMedium() {
   return proto::connections::Medium::WIFI_HOTSPOT;
 }
 
-template <typename Platform>
-bool P2PStarPCPHandler<Platform>::canSendOutgoingConnection(
-    Ptr<ClientProxy<Platform> > client_proxy) {
+bool P2pStarPcpHandler::CanSendOutgoingConnection(ClientProxy* client) const {
   // For star, we can only send an outgoing connection while we have no other
   // connections.
-  return !this->hasOutgoingConnections(client_proxy) &&
-      !this->hasIncomingConnections(client_proxy);
+  return !this->HasOutgoingConnections(client) &&
+         !this->HasIncomingConnections(client);
 }
 
-template <typename Platform>
-bool P2PStarPCPHandler<Platform>::canReceiveIncomingConnection(
-    Ptr<ClientProxy<Platform> > client_proxy) {
+bool P2pStarPcpHandler::CanReceiveIncomingConnection(
+    ClientProxy* client) const {
   // For star, we can only receive an incoming connection if we've sent no
   // outgoing connections.
-  return !this->hasOutgoingConnections(client_proxy);
+  return !this->HasOutgoingConnections(client);
 }
 
 }  // namespace connections

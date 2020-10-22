@@ -2,40 +2,41 @@
 
 #include <string>
 
+#include "platform/public/bluetooth_classic.h"
+#include "platform/public/logging.h"
+
 namespace location {
 namespace nearby {
 namespace connections {
 
-Ptr<BluetoothEndpointChannel> BluetoothEndpointChannel::createOutgoing(
-    Ptr<MediumManager<Platform> > medium_manager, const string& channel_name,
-    Ptr<BluetoothSocket> bluetooth_socket) {
-  return MakePtr(new BluetoothEndpointChannel(channel_name, bluetooth_socket));
+namespace {
+
+OutputStream* GetOutputStreamOrNull(BluetoothSocket& socket) {
+  if (socket.GetRemoteDevice().IsValid()) return &socket.GetOutputStream();
+  return nullptr;
 }
 
-Ptr<BluetoothEndpointChannel> BluetoothEndpointChannel::createIncoming(
-    Ptr<MediumManager<Platform> > medium_manager, const string& channel_name,
-    Ptr<BluetoothSocket> bluetooth_socket) {
-  return MakePtr(new BluetoothEndpointChannel(channel_name, bluetooth_socket));
+InputStream* GetInputStreamOrNull(BluetoothSocket& socket) {
+  if (socket.GetRemoteDevice().IsValid()) return &socket.GetInputStream();
+  return nullptr;
 }
+
+}  // namespace
 
 BluetoothEndpointChannel::BluetoothEndpointChannel(
-    const string& channel_name, Ptr<BluetoothSocket> bluetooth_socket)
-    : BaseEndpointChannel(channel_name, bluetooth_socket->getInputStream(),
-                          bluetooth_socket->getOutputStream()),
-      bluetooth_socket_(bluetooth_socket) {}
+    const std::string& channel_name, BluetoothSocket socket)
+    : BaseEndpointChannel(channel_name, GetInputStreamOrNull(socket),
+                          GetOutputStreamOrNull(socket)),
+      bluetooth_socket_(std::move(socket)) {}
 
-BluetoothEndpointChannel::~BluetoothEndpointChannel() {}
-
-proto::connections::Medium BluetoothEndpointChannel::getMedium() {
+proto::connections::Medium BluetoothEndpointChannel::GetMedium() const {
   return proto::connections::Medium::BLUETOOTH;
 }
 
-void BluetoothEndpointChannel::closeImpl() {
-  Exception::Value exception = bluetooth_socket_->close();
-  if (exception != Exception::NONE) {
-    if (exception == Exception::IO) {
-      // TODO(tracyzhou): Add logging.
-    }
+void BluetoothEndpointChannel::CloseImpl() {
+  auto status = bluetooth_socket_.Close();
+  if (!status.Ok()) {
+    NEARBY_LOG(INFO, "Failed to close BT socket: exception=%d", status.value);
   }
 }
 

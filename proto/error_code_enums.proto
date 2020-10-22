@@ -219,6 +219,15 @@ enum StartListeningIncomingConnectionError {
   // Next ID :36
 }
 
+// The error for event STOP_LISTENING_INCOMING_CONNECTION. The range between 31
+// and 99.
+enum StopListeningIncomingConnectionError {
+  // System error, failed to stop accepting the incoming connection
+  STOP_ACCEPTING_CONNECTION_FAILED = 31;
+
+  // Next ID :32
+}
+
 // The error for event CONNECT. The range between 31 and 99.
 enum ConnectError {
   // Network error, failed to connect to remote device because we lost the
@@ -413,4 +422,5 @@ enum Description {
   INVALID_WEBRTC_STATE = 146;
   NULL_DATA_CHANNEL = 147;
   CREATE_OFFER_FAILED = 148;
+  CLOSE_SERVER_SOCKET_FAILED = 149;
 }
