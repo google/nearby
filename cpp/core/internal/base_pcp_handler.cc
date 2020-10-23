@@ -673,12 +673,12 @@ void BasePcpHandler::OnIncomingFrame(OfflineFrame& frame,
 
 void BasePcpHandler::OnEndpointDisconnect(ClientProxy* client,
                                           const std::string& endpoint_id,
-                                          CountDownLatch* barrier) {
+                                          CountDownLatch barrier) {
   if (stop_.Get()) {
-    if (barrier) barrier->CountDown();
+    barrier.CountDown();
     return;
   }
-  RunOnPcpHandlerThread([this, client, endpoint_id, barrier]() {
+  RunOnPcpHandlerThread([this, client, endpoint_id, barrier]() mutable {
     auto item = pending_alarms_.find(endpoint_id);
     if (item != pending_alarms_.end()) {
       auto& alarm = item->second;
@@ -686,7 +686,7 @@ void BasePcpHandler::OnEndpointDisconnect(ClientProxy* client,
       pending_alarms_.erase(item);
     }
     ProcessPreConnectionResultFailure(client, endpoint_id);
-    barrier->CountDown();
+    barrier.CountDown();
   });
 }
 

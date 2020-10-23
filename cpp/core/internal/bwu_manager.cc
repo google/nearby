@@ -3,9 +3,11 @@
 #include <algorithm>
 #include <memory>
 
+#include "core/internal/bluetooth_bwu_handler.h"
 #include "core/internal/bwu_handler.h"
 #include "core/internal/offline_frames.h"
 #include "core/internal/webrtc_bwu_handler.h"
+#include "core/internal/wifi_lan_bwu_handler.h"
 #include "platform/base/byte_array.h"
 #include "platform/public/count_down_latch.h"
 #include "proto/connections_enums.pb.h"
@@ -54,9 +56,19 @@ void BwuManager::InitBwuHandlers() {
       .incoming_connection_cb =
           absl::bind_front(&BwuManager::OnIncomingConnection, this),
   };
+  if (config_.allow_upgrade_to.wifi_lan) {
+    handlers_.emplace(Medium::WIFI_LAN,
+                      std::make_unique<WifiLanBwuHandler>(
+                          *mediums_, *channel_manager_, notifications));
+  }
   if (config_.allow_upgrade_to.web_rtc) {
     handlers_.emplace(Medium::WEB_RTC,
                       std::make_unique<WebrtcBwuHandler>(
+                          *mediums_, *channel_manager_, notifications));
+  }
+  if (config_.allow_upgrade_to.bluetooth) {
+    handlers_.emplace(Medium::BLUETOOTH,
+                      std::make_unique<BluetoothBwuHandler>(
                           *mediums_, *channel_manager_, notifications));
   }
 }
@@ -67,30 +79,25 @@ void BwuManager::Shutdown() {
   endpoint_manager_->UnregisterFrameProcessor(
       V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION, this);
 
-  CountDownLatch latch(1);
-
-  RunOnBwuManagerThread([this, &latch]() {
-    for (auto& item : previous_endpoint_channels_) {
-      EndpointChannel* channel = item.second.get();
-      if (!channel) continue;
-      channel->Close(DisconnectionReason::SHUTDOWN);
-    }
-
-    CancelAllRetryUpgradeAlarms();
-    medium_ = Medium::UNKNOWN_MEDIUM;
-    for (auto& item : handlers_) {
-      BwuHandler& handler = *item.second;
-      handler.Revert();
-    }
-    handlers_.clear();
-    latch.CountDown();
-  });
-
-  latch.Await();
-
   // Stop all the ongoing Runnables (as gracefully as possible).
   alarm_executor_.Shutdown();
   serial_executor_.Shutdown();
+
+  // After worker threads are down we became exclusive owners of data and
+  // may access it from current thread.
+  for (auto& item : previous_endpoint_channels_) {
+    EndpointChannel* channel = item.second.get();
+    if (!channel) continue;
+    channel->Close(DisconnectionReason::SHUTDOWN);
+  }
+
+  CancelAllRetryUpgradeAlarms();
+  medium_ = Medium::UNKNOWN_MEDIUM;
+  for (auto& item : handlers_) {
+    BwuHandler& handler = *item.second;
+    handler.Revert();
+  }
+  handlers_.clear();
 
   NEARBY_LOG(INFO, "BwuHandler has shut down.");
 }
@@ -182,10 +189,10 @@ void BwuManager::OnIncomingFrame(OfflineFrame& frame,
 
 void BwuManager::OnEndpointDisconnect(ClientProxy* client,
                                       const std::string& endpoint_id,
-                                      CountDownLatch* barrier) {
-  RunOnBwuManagerThread([this, client, endpoint_id, barrier]() {
+                                      CountDownLatch barrier) {
+  RunOnBwuManagerThread([this, client, endpoint_id, barrier]() mutable {
     if (medium_ == Medium::UNKNOWN_MEDIUM) {
-      barrier->CountDown();
+      barrier.CountDown();
       return;
     }
 
@@ -213,7 +220,7 @@ void BwuManager::OnEndpointDisconnect(ClientProxy* client,
     if (channel_manager_->GetConnectedEndpointsCount() <= 1) {
       Revert();
     }
-    barrier->CountDown();
+    barrier.CountDown();
   });
 }
 
@@ -540,6 +547,8 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
              "BWU_NEGOTIATION.SAFE_TO_CLOSE_PRIOR_CHANNEL OfflineFrame while "
              "trying to upgrade endpoint %s.",
              endpoint_id.c_str());
+
+  previous_endpoint_channel->Write(parser::ForDisconnection());
 
   // Wait for in-flight messages to reach their peers.
   SystemClock::Sleep(absl::Seconds(1));

@@ -473,7 +473,7 @@ void EndpointManager::WaitForEndpointDisconnectionProcessing(
     NEARBY_LOGS(INFO) << "processor=" << processor << "; type=" << item.first;
     if (processor) {
       valid++;
-      processor->OnEndpointDisconnect(client, endpoint_id, &barrier);
+      processor->OnEndpointDisconnect(client, endpoint_id, barrier);
     } else {
       barrier.CountDown();
     }

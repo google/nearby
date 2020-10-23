@@ -46,7 +46,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
   // @EndpointManagerThread
   void OnEndpointDisconnect(ClientProxy* client, const std::string& endpoint_id,
-                            CountDownLatch* barrier) override;
+                            CountDownLatch barrier) override;
 
   void DisconnectFromEndpointManager();
 
