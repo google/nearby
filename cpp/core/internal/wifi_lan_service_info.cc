@@ -28,6 +28,11 @@ namespace location {
 namespace nearby {
 namespace connections {
 
+// These definitions are necessary before C++17.
+constexpr absl::string_view WifiLanServiceInfo::kKeyEndpointInfo;
+constexpr std::uint32_t WifiLanServiceInfo::kServiceIdHashLength;
+constexpr int WifiLanServiceInfo::kMaxEndpointInfoLength;
+
 WifiLanServiceInfo::WifiLanServiceInfo(Version version, Pcp pcp,
                                        absl::string_view endpoint_id,
                                        const ByteArray& service_id_hash,

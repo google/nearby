@@ -42,6 +42,7 @@ class BwuHandler {
   virtual ByteArray InitializeUpgradedMediumForEndpoint(
       ClientProxy* client, const std::string& service_id,
       const std::string& endpoint_id) = 0;
+
   // Called to revert any state changed by the Initiator to setup the upgraded
   // medium for an endpoint.
   // @BwuHandlerThread
@@ -55,6 +56,7 @@ class BwuHandler {
       ClientProxy* client, const std::string& service_id,
       const std::string& endpoint_id,
       const UpgradePathInfo& upgrade_path_info) = 0;
+
   // Returns the upgrade medium of the BwuHandler.
   // @BwuHandlerThread
   virtual Medium GetUpgradeMedium() const = 0;

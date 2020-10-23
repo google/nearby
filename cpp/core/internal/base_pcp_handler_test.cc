@@ -393,6 +393,7 @@ TEST_P(BasePcpHandlerTest, ConstructorDestructorWorks) {
   BwuManager bwu(m, em, ecm, {}, {});
   MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
   SUCCEED();
+  bwu.Shutdown();
 }
 
 TEST_P(BasePcpHandlerTest, StartAdvertisingChangesState) {
@@ -403,6 +404,7 @@ TEST_P(BasePcpHandlerTest, StartAdvertisingChangesState) {
   BwuManager bwu(m, em, ecm, {}, {});
   MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
   StartAdvertising(&client, &pcp_handler);
+  bwu.Shutdown();
 }
 
 TEST_P(BasePcpHandlerTest, StopAdvertisingChangesState) {
@@ -417,6 +419,7 @@ TEST_P(BasePcpHandlerTest, StopAdvertisingChangesState) {
   EXPECT_TRUE(client.IsAdvertising());
   pcp_handler.StopAdvertising(&client);
   EXPECT_FALSE(client.IsAdvertising());
+  bwu.Shutdown();
 }
 
 TEST_P(BasePcpHandlerTest, StartDiscoveryChangesState) {
@@ -427,6 +430,7 @@ TEST_P(BasePcpHandlerTest, StartDiscoveryChangesState) {
   BwuManager bwu(m, em, ecm, {}, {});
   MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
   StartDiscovery(&client, &pcp_handler);
+  bwu.Shutdown();
 }
 
 TEST_P(BasePcpHandlerTest, StopDiscoveryChangesState) {
@@ -441,6 +445,7 @@ TEST_P(BasePcpHandlerTest, StopDiscoveryChangesState) {
   EXPECT_TRUE(client.IsDiscovering());
   pcp_handler.StopDiscovery(&client);
   EXPECT_FALSE(client.IsDiscovering());
+  bwu.Shutdown();
 }
 
 TEST_P(BasePcpHandlerTest, RequestConnectionChangesState) {
@@ -464,6 +469,7 @@ TEST_P(BasePcpHandlerTest, RequestConnectionChangesState) {
                     &pcp_handler, connect_medium);
   NEARBY_LOG(INFO, "RequestConnection complete");
   channel_b->Close();
+  bwu.Shutdown();
   pcp_handler.DisconnectFromEndpointManager();
 }
 
@@ -492,6 +498,7 @@ TEST_P(BasePcpHandlerTest, AcceptConnectionChangesState) {
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
   NEARBY_LOGS(INFO) << "Closing connection: id=" << endpoint_id;
   channel_b->Close();
+  bwu.Shutdown();
   pcp_handler.DisconnectFromEndpointManager();
 }
 
@@ -516,6 +523,7 @@ TEST_P(BasePcpHandlerTest, RejectConnectionChangesState) {
             Status{Status::kSuccess});
   NEARBY_LOGS(INFO) << "Closing connection: id=" << endpoint_id;
   channel_b->Close();
+  bwu.Shutdown();
   pcp_handler.DisconnectFromEndpointManager();
 }
 
@@ -550,6 +558,7 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
                               connect_medium);
   NEARBY_LOGS(INFO) << "Closing connection: id=" << endpoint_id;
   channel_b->Close();
+  bwu.Shutdown();
   pcp_handler.DisconnectFromEndpointManager();
 }
 
@@ -582,6 +591,7 @@ TEST_P(BasePcpHandlerTest, DestructorIsCalledOnProtocolEndpoint) {
     EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
     NEARBY_LOG(INFO, "Closing connection: id=%s", endpoint_id.c_str());
     channel_b->Close();
+    bwu.Shutdown();
     pcp_handler.DisconnectFromEndpointManager();
     bwu.Shutdown();
   }
@@ -629,6 +639,7 @@ TEST_P(BasePcpHandlerTest, MultipleMediumsProduceSingleEndpointLostEvent) {
     }
     NEARBY_LOG(INFO, "Closing connection: id=%s", endpoint_id.c_str());
     channel_b->Close();
+    bwu.Shutdown();
     pcp_handler.DisconnectFromEndpointManager();
   }
   EXPECT_EQ(destroyed_flag.load(), mediums_count);
@@ -686,6 +697,7 @@ TEST_F(BasePcpHandlerTest, InjectEndpoint) {
             .medium = Medium::BLUETOOTH,
             .remote_bluetooth_mac_address = ByteArray(kFakeMacAddress),
         });
+  bwu.Shutdown();
 }
 
 }  // namespace
