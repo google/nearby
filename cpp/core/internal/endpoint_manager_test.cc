@@ -71,7 +71,7 @@ class MockFrameProcessor : public EndpointManager::FrameProcessor {
 
   MOCK_METHOD(void, OnEndpointDisconnect,
               (ClientProxy * client, const std::string& endpoint_id,
-               CountDownLatch* barrier),
+               CountDownLatch barrier),
               (override));
 };
 

@@ -388,12 +388,12 @@ void PayloadManager::OnIncomingFrame(
 
 void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
                                           const std::string& endpoint_id,
-                                          CountDownLatch* barrier) {
+                                          CountDownLatch barrier) {
   if (shutdown_.Get()) {
-    if (barrier) barrier->CountDown();
+    barrier.CountDown();
     return;
   }
-  RunOnStatusUpdateThread([this, client, endpoint_id, barrier]() {
+  RunOnStatusUpdateThread([this, client, endpoint_id, barrier]() mutable {
     // Iterate through all our payloads and look for payloads associated
     // with this endpoint.
     MutexLock lock(&mutex_);
@@ -423,7 +423,7 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
       client->OnPayloadProgress(endpoint_id, update);
     }
 
-    barrier->CountDown();
+    barrier.CountDown();
   });
 }
 

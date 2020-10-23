@@ -59,6 +59,7 @@ ByteArray ForBwuLastWrite();
 ByteArray ForBwuSafeToClose();
 
 ByteArray ForKeepAlive();
+ByteArray ForDisconnection();
 
 UpgradePathInfo::Medium MediumToUpgradePathInfoMedium(Medium medium);
 Medium UpgradePathInfoMediumToMedium(UpgradePathInfo::Medium medium);

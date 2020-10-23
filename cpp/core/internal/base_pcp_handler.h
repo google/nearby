@@ -149,7 +149,7 @@ class BasePcpHandler : public PcpHandler,
   // approve/reject the connection.
   // @EndpointManagerThread
   void OnEndpointDisconnect(ClientProxy* client, const std::string& endpoint_id,
-                            CountDownLatch* barrier) override;
+                            CountDownLatch barrier) override;
 
   Pcp GetPcp() const override { return pcp_; }
   Strategy GetStrategy() const override { return strategy_; }
