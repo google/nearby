@@ -62,6 +62,7 @@ class SimulationUser {
   void Stop() {
     pm_.DisconnectFromEndpointManager();
     mgr_.DisconnectFromEndpointManager();
+    bwu_.Shutdown();
   }
 
   // Calls PcpManager::StartAdvertising.

@@ -34,8 +34,8 @@ class CountDownLatch final {
   using Platform = api::ImplementationPlatform;
   explicit CountDownLatch(int count)
       : impl_(Platform::CreateCountDownLatch(count)) {}
-  CountDownLatch(CountDownLatch&&) = default;
-  CountDownLatch& operator=(CountDownLatch&&) = default;
+  CountDownLatch(const CountDownLatch&) = default;
+  CountDownLatch& operator=(const CountDownLatch&) = default;
   ~CountDownLatch() = default;
 
   Exception Await() { return impl_->Await(); }
@@ -45,7 +45,7 @@ class CountDownLatch final {
   void CountDown() { impl_->CountDown(); }
 
  private:
-  std::unique_ptr<api::CountDownLatch> impl_;
+  std::shared_ptr<api::CountDownLatch> impl_;
 };
 
 }  // namespace nearby

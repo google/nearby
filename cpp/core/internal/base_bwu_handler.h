@@ -44,8 +44,6 @@ class BaseBwuHandler : public BwuHandler {
       : channel_manager_(&channel_manager),
         bwu_notifications_(std::move(bwu_notifications)) {}
   ~BaseBwuHandler() override = default;
-  void OnIncomingConnection(ClientProxy* client,
-                            IncomingSocketConnection* connection);
 
  protected:
   // Represents the incoming Socket the Initiator has gotten after initializing
