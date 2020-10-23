@@ -16,13 +16,21 @@
 
 #include <memory>
 
+#include "core/internal/offline_frames.h"
+#include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/public/logging.h"
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
+#include "platform/public/system_clock.h"
+#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
+
+namespace {
+const absl::Duration kDataTransferDelay = absl::Milliseconds(500);
+}
 
 EndpointChannelManager::~EndpointChannelManager() {
   MutexLock lock(&mutex_);
@@ -132,6 +140,11 @@ bool EndpointChannelManager::ChannelState::RemoveEndpoint(
   auto item = endpoints_.find(endpoint_id);
   if (item == endpoints_.end()) return false;
   item->second.disconnect_reason = reason;
+  auto channel = item->second.channel;
+  if (channel) {
+    channel->Write(parser::ForDisconnection());
+    SystemClock::Sleep(kDataTransferDelay);
+  }
   endpoints_.erase(item);
   return true;
 }

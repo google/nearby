@@ -84,7 +84,7 @@ class EndpointManager {
     // @EndpointManagerThread
     virtual void OnEndpointDisconnect(ClientProxy* client,
                                       const std::string& endpoint_id,
-                                      CountDownLatch* barrier) = 0;
+                                      CountDownLatch barrier) = 0;
   };
 
   explicit EndpointManager(EndpointChannelManager* manager);
