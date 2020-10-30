@@ -70,8 +70,6 @@ void ClientProxy::StartedAdvertising(
     const ConnectionListener& listener,
     absl::Span<proto::connections::Medium> mediums) {
   MutexLock lock(&mutex_);
-
-  if (connections_.empty()) local_endpoint_id_.clear();
   advertising_info_ = {service_id, listener};
 }
 
@@ -81,7 +79,7 @@ void ClientProxy::StoppedAdvertising() {
   if (IsAdvertising()) {
     advertising_info_.Clear();
   }
-  if (connections_.empty()) local_endpoint_id_.clear();
+  ResetLocalEndpointIdIfNeeded();
 }
 
 bool ClientProxy::IsAdvertising() const {
@@ -97,10 +95,8 @@ std::string ClientProxy::GetAdvertisingServiceId() const {
 
 std::string ClientProxy::GetServiceId() const {
   MutexLock lock(&mutex_);
-  if (IsAdvertising())
-    return advertising_info_.service_id;
-  if (IsDiscovering())
-    return discovery_info_.service_id;
+  if (IsAdvertising()) return advertising_info_.service_id;
+  if (IsDiscovering()) return discovery_info_.service_id;
   return "idle_service_id";
 }
 
@@ -109,8 +105,6 @@ void ClientProxy::StartedDiscovery(
     const DiscoveryListener& listener,
     absl::Span<proto::connections::Medium> mediums) {
   MutexLock lock(&mutex_);
-
-  if (connections_.empty()) local_endpoint_id_.clear();
   discovery_info_ = DiscoveryInfo{service_id, listener};
 }
 
@@ -121,7 +115,7 @@ void ClientProxy::StoppedDiscovery() {
     discovered_endpoint_ids_.clear();
     discovery_info_.Clear();
   }
-  if (connections_.empty()) local_endpoint_id_.clear();
+  ResetLocalEndpointIdIfNeeded();
 }
 
 bool ClientProxy::IsDiscoveringServiceId(const std::string& service_id) const {
@@ -266,7 +260,7 @@ void ClientProxy::OnDisconnected(const std::string& endpoint_id, bool notify) {
       item->connection_listener.disconnected_cb({endpoint_id});
     }
     connections_.erase(endpoint_id);
-    if (connections_.empty()) local_endpoint_id_.clear();
+    ResetLocalEndpointIdIfNeeded();
   }
 }
 
@@ -514,6 +508,13 @@ void ClientProxy::RemoveAllEndpoints() {
   // just remove without notifying.
   connections_.clear();
   local_endpoint_id_.clear();
+}
+
+void ClientProxy::ResetLocalEndpointIdIfNeeded() {
+  MutexLock lock(&mutex_);
+  if (connections_.empty() && !IsAdvertising() && !IsDiscovering()) {
+    local_endpoint_id_.clear();
+  }
 }
 
 bool ClientProxy::ConnectionStatusesContains(
