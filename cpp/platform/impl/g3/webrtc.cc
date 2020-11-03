@@ -32,6 +32,10 @@ void WebRtcSignalingMessenger::StopReceivingMessages() {
   env.UnregisterWebRtcSignalingMessenger(self_id_);
 }
 
+const std::string WebRtcMedium::GetDefaultCountryCode() {
+  return "US";
+}
+
 void WebRtcMedium::CreatePeerConnection(
     webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {
   auto& env = MediumEnvironment::Instance();

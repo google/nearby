@@ -42,6 +42,10 @@ WebRtc::~WebRtc() {
   Disconnect();
 }
 
+const std::string WebRtc::GetDefaultCountryCode() {
+  return medium_.GetDefaultCountryCode();
+}
+
 bool WebRtc::IsAvailable() { return medium_.IsValid(); }
 
 bool WebRtc::IsAcceptingConnections() {
