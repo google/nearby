@@ -14,7 +14,6 @@
 
 #include "core/internal/webrtc_bwu_handler.h"
 
-#include <locale>
 #include <string>
 
 #include "core/internal/client_proxy.h"
@@ -75,7 +74,8 @@ ByteArray WebrtcBwuHandler::InitializeUpgradedMediumForEndpoint(
   // stop the advertising yet.
   std::string upgrade_service_id = Utils::WrapUpgradeServiceId(service_id);
 
-  LocationHint location_hint = Utils::BuildLocationHint(GetCountryCode());
+  LocationHint location_hint =
+      Utils::BuildLocationHint(webrtc_.GetDefaultCountryCode());
 
   mediums::PeerId self_id{mediums::PeerId::FromRandom()};
   if (!webrtc_.IsAcceptingConnections()) {
@@ -154,23 +154,6 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
 
 void WebrtcBwuHandler::OnEndpointDisconnect(ClientProxy* client,
                                             const std::string& endpoint_id) {}
-
-std::string WebrtcBwuHandler::GetCountryCode() {
-  std::string default_locale_name = std::locale("").name();
-
-  // locale name has a format: <lang>_<country>.<encoding>
-  int s = default_locale_name.find("_");
-  int e = default_locale_name.find(".");
-
-  if (s == -1 || e == -1) {
-    return "";
-  }
-
-  auto country_code = default_locale_name.substr(s + 1, e - s - 1);
-  std::transform(country_code.begin(), country_code.end(), country_code.begin(),
-                 std::towlower);
-  return country_code;
-}
 
 WebrtcBwuHandler::WebrtcIncomingSocket::WebrtcIncomingSocket(
     const std::string& name, mediums::WebRtcSocketWrapper socket)
