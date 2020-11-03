@@ -38,6 +38,8 @@ class WebRtcMedium : public api::WebRtcMedium {
   WebRtcMedium() = default;
   ~WebRtcMedium() override = default;
 
+  const std::string GetDefaultCountryCode() override;
+
   // Creates and returns a new webrtc::PeerConnectionInterface object via
   // |callback|.
   void CreatePeerConnection(webrtc::PeerConnectionObserver* observer,
