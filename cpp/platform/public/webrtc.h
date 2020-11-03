@@ -61,6 +61,12 @@ class WebRtcMedium final {
   WebRtcMedium(WebRtcMedium&&) = delete;
   WebRtcMedium& operator=(WebRtcMedium&&) = delete;
 
+  // Gets the default two-letter country code associated with current locale.
+  // For example, en_US locale resolves to "US".
+  const std::string GetDefaultCountryCode() {
+    return impl_->GetDefaultCountryCode();
+  }
+
   // Creates and returns a new webrtc::PeerConnectionInterface object via
   // |callback|.
   void CreatePeerConnection(webrtc::PeerConnectionObserver* observer,
