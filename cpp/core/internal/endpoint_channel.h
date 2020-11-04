@@ -59,6 +59,9 @@ class EndpointChannel {
   // Enables encryption on the EndpointChannel.
   virtual void EnableEncryption(std::shared_ptr<EncryptionContext> context) = 0;
 
+  // Disables encryption on the EndpointChannel.
+  virtual void DisableEncryption() = 0;
+
   // True if the EndpointChannel is currently pausing all writes.
   virtual bool IsPaused() const = 0;
 
