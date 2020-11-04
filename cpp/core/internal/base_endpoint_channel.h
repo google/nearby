@@ -53,6 +53,9 @@ class BaseEndpointChannel : public EndpointChannel {
   // before entering data phase, where Payloads may be exchanged.
   void EnableEncryption(std::shared_ptr<EncryptionContext> context) override;
 
+  // Disables encryption on the EndpointChannel.
+  void DisableEncryption() override;
+
   // True if the EndpointChannel is currently pausing all writes.
   bool IsPaused() const ABSL_LOCKS_EXCLUDED(is_paused_mutex_) override;
 
