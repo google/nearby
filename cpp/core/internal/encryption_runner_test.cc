@@ -55,6 +55,7 @@ class FakeEndpointChannel : public EndpointChannel {
   std::string GetName() const override { return "fake-channel"; }
   Medium GetMedium() const override { return Medium::BLE; }
   void EnableEncryption(std::shared_ptr<EncryptionContext> context) override {}
+  void DisableEncryption() override {}
   bool IsPaused() const override { return false; }
   void Pause() override {}
   void Resume() override {}
