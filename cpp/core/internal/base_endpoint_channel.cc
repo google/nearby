@@ -245,6 +245,11 @@ void BaseEndpointChannel::EnableEncryption(
   crypto_context_ = context;
 }
 
+void BaseEndpointChannel::DisableEncryption() {
+  MutexLock crypto_lock(&crypto_mutex_);
+  crypto_context_.reset();
+}
+
 bool BaseEndpointChannel::IsPaused() const {
   MutexLock lock(&is_paused_mutex_);
   return is_paused_;

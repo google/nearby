@@ -548,7 +548,14 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
              "trying to upgrade endpoint %s.",
              endpoint_id.c_str());
 
+  // Each encrypted message includes the key to decrypt the next message. The
+  // disconnect message is optional and may not be received under normal
+  // circumstances so it is necessary to send it unencrypted. This way the
+  // serial crypto context does not increment here.
+  previous_endpoint_channel->DisableEncryption();
   previous_endpoint_channel->Write(parser::ForDisconnection());
+
+  // TODO(b/172380349): Match the Java implementation with no sleep call
 
   // Wait for in-flight messages to reach their peers.
   SystemClock::Sleep(absl::Seconds(1));
