@@ -12,24 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "core/internal/internal_payload.h"
+#ifndef CORE_INTERNAL_OFFLINE_FRAMES_VALIDATOR_H_
+#define CORE_INTERNAL_OFFLINE_FRAMES_VALIDATOR_H_
+
+#include "proto/connections/offline_wire_formats.pb.h"
+#include "platform/base/exception.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
+namespace parser {
 
-// The definition is necessary before C++17.
-constexpr int InternalPayload::kIndeterminateSize;
+Exception EnsureValidOfflineFrame(const OfflineFrame& offline_frame);
 
-InternalPayload::InternalPayload(Payload payload)
-    : payload_(std::move(payload)), payload_id_(payload_.GetId()) {}
-
-Payload InternalPayload::ReleasePayload() {
-  return std::move(payload_);
-}
-
-Payload::Id InternalPayload::GetId() const { return payload_id_; }
-
+}  // namespace parser
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
+
+#endif  // CORE_INTERNAL_OFFLINE_FRAMES_VALIDATOR_H_

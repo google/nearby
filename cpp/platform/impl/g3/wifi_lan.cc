@@ -374,6 +374,13 @@ api::WifiLanService* WifiLanMedium::FindRemoteService(
   return env.FindWifiLanService(ip_address, port);
 }
 
+std::pair<std::string, int> WifiLanMedium::GetServiceAddress(
+    const std::string& service_id) {
+  NEARBY_LOGS(INFO) << "G3 WifiLan GetServiceAddress: service_id="
+                    << service_id;
+  return service_.GetServiceAddress();
+}
+
 }  // namespace g3
 }  // namespace nearby
 }  // namespace location

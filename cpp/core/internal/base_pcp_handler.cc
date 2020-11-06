@@ -488,8 +488,10 @@ Exception BasePcpHandler::WriteConnectionRequestFrame(
     EndpointChannel* endpoint_channel, const std::string& local_endpoint_id,
     const ByteArray& local_endpoint_info, std::int32_t nonce,
     const std::vector<proto::connections::Medium>& supported_mediums) {
+  // TODO(b/172178926): Add WifiLan 5GHz and BSSID support.
   return endpoint_channel->Write(parser::ForConnectionRequest(
-      local_endpoint_id, local_endpoint_info, nonce, supported_mediums));
+      local_endpoint_id, local_endpoint_info, nonce, /*supports_5_ghz =*/false,
+      /*bssid=*/std::string{}, supported_mediums));
 }
 
 void BasePcpHandler::ProcessPreConnectionInitiationFailure(
