@@ -145,5 +145,10 @@ WifiLanService WifiLanMedium::FindRemoteService(const std::string& ip_address,
   return WifiLanService(impl_->FindRemoteService(ip_address, port));
 }
 
+std::pair<std::string, int> WifiLanMedium::GetServiceAddress(
+    const std::string& service_id) {
+  return impl_->GetServiceAddress(service_id);
+}
+
 }  // namespace nearby
 }  // namespace location

@@ -33,6 +33,8 @@ namespace connections {
 // Payload.
 class InternalPayload {
  public:
+  static constexpr int kIndeterminateSize = -1;
+
   explicit InternalPayload(Payload payload);
   virtual ~InternalPayload() = default;
 

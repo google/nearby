@@ -232,6 +232,9 @@ class WifiLanMedium : public api::WifiLanMedium {
   api::WifiLanService* FindRemoteService(const std::string& ip_address,
                                          int port) override;
 
+  std::pair<std::string, int> GetServiceAddress(
+      const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
+
  private:
   static constexpr int kMaxConcurrentAcceptLoops = 5;
 

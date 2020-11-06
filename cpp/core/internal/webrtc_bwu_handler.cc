@@ -23,9 +23,6 @@
 #include "core/internal/webrtc_endpoint_channel.h"
 #include "absl/functional/bind_front.h"
 
-// Manages the Bluetooth-specific methods needed to upgrade an {@link
-// EndpointChannel}.
-
 namespace location {
 namespace nearby {
 namespace connections {
@@ -62,9 +59,9 @@ void WebrtcBwuHandler::OnIncomingWebrtcConnection(
   bwu_notifications_.incoming_connection_cb(client, std::move(connection));
 }
 
-// Called by BWU initiator. BT Medium is set up, and BWU request is prepared,
-// with necessary info (service_id, MAC address) for remote party to perform
-// discovery.
+// Called by BWU initiator. Set up WebRTC upgraded medium for this endpoint,
+// and returns a upgrade path info (PeerId, LocationHint) for remote party to
+// perform discovery.
 ByteArray WebrtcBwuHandler::InitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& service_id,
     const std::string& endpoint_id) {
