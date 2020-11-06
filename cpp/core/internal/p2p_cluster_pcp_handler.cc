@@ -142,14 +142,16 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
   };
 }
 
+// StopAcceptingConnections invokes for webrtc is suppressed for now to
+// unblock CrOS dogfood integration. Disconnect will invoke ShutdownSignaling
+// to release resources.
+// TODO (hais): add corresponding logic back (b/172518506).
 Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
   bluetooth_medium_.TurnOffDiscoverability();
   bluetooth_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
 
   ble_medium_.StopAdvertising(client->GetAdvertisingServiceId());
   ble_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
-
-  webrtc_medium_.StopAcceptingConnections();
 
   wifi_lan_medium_.StopAdvertising(client->GetAdvertisingServiceId());
   wifi_lan_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
@@ -218,17 +220,13 @@ void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
         << "Invoking BasePcpHandler::OnEndpointFound() for BT service="
         << service_id << "; id=" << device_name.GetEndpointId() << "; name="
         << absl::BytesToHexString(device_name.GetEndpointInfo().data());
-    OnEndpointFound(client,
-                    std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
-                        {
-                            device_name.GetEndpointId(),
-                            device_name.GetEndpointInfo(),
-                            service_id,
-                            proto::connections::Medium::BLUETOOTH,
-                            device_name.GetWebRtcState()
-                        },
-                        device,
-                    }));
+    OnEndpointFound(
+        client, std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
+                    {device_name.GetEndpointId(), device_name.GetEndpointInfo(),
+                     service_id, proto::connections::Medium::BLUETOOTH,
+                     device_name.GetWebRtcState()},
+                    device,
+                }));
   });
 }
 
@@ -260,13 +258,11 @@ void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
                "BT discovery handler (LOST) [client=%p, service=%s]: report "
                "to client",
                client, service_id.c_str());
-    OnEndpointLost(client, DiscoveredEndpoint{
-                               device_name.GetEndpointId(),
-                               device_name.GetEndpointInfo(),
-                               service_id,
-                               proto::connections::Medium::BLUETOOTH,
-                               WebRtcState::kUndefined
-                           });
+    OnEndpointLost(client,
+                   DiscoveredEndpoint{device_name.GetEndpointId(),
+                                      device_name.GetEndpointInfo(), service_id,
+                                      proto::connections::Medium::BLUETOOTH,
+                                      WebRtcState::kUndefined});
   });
 }
 
@@ -353,13 +349,10 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
         << service_id << "; id=" << advertisement.GetEndpointId() << "; name="
         << absl::BytesToHexString(advertisement.GetEndpointInfo().data());
     OnEndpointFound(client, std::make_shared<BleEndpoint>(BleEndpoint{
-                                {
-                                    advertisement.GetEndpointId(),
-                                    advertisement.GetEndpointInfo(),
-                                    service_id,
-                                    proto::connections::Medium::BLE,
-                                    advertisement.GetWebRtcState()
-                                },
+                                {advertisement.GetEndpointId(),
+                                 advertisement.GetEndpointInfo(), service_id,
+                                 proto::connections::Medium::BLE,
+                                 advertisement.GetWebRtcState()},
                                 peripheral,
                             }));
 
@@ -561,10 +554,8 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
   // If this is an out-of-band connection, do not start actual discovery, since
   // this connection is intended to be completed via InjectEndpointImpl().
   if (options.is_out_of_band_connection) {
-    return {
-        .status = {Status::kSuccess},
-        .mediums = options.allowed.GetMediums(true)
-    };
+    return {.status = {Status::kSuccess},
+            .mediums = options.allowed.GetMediums(true)};
   }
 
   std::vector<proto::connections::Medium> mediums_started_successfully;
@@ -643,8 +634,7 @@ Status P2pClusterPcpHandler::StopDiscoveryImpl(ClientProxy* client) {
 }
 
 Status P2pClusterPcpHandler::InjectEndpointImpl(
-    ClientProxy* client,
-    const std::string& service_id,
+    ClientProxy* client, const std::string& service_id,
     const OutOfBandConnectionMetadata& metadata) {
   NEARBY_LOG(INFO, "InjectEndpoint");
   // Bluetooth is the only supported out-of-band connection medium.
@@ -906,8 +896,7 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
               service_id, {.accepted_cb = [this, client, local_endpoint_info](
                                               BluetoothSocket socket) {
                 if (!socket.IsValid()) {
-                  NEARBY_LOG(INFO,
-                             "Invalid socket in accept callback: name=%s",
+                  NEARBY_LOG(INFO, "Invalid socket in accept callback: name=%s",
                              std::string(local_endpoint_info).c_str());
                   return;
                 }
@@ -1160,8 +1149,9 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiLanConnectImpl(
 
 proto::connections::Medium
 P2pClusterPcpHandler::StartListeningForWebRtcConnections(
-    ClientProxy* client, const string& service_id,
-    const string& local_endpoint_id, const ByteArray& local_endpoint_info) {
+    ClientProxy* client, const std::string& service_id,
+    const std::string& local_endpoint_id,
+    const ByteArray& local_endpoint_info) {
   if (!webrtc_medium_.IsAvailable()) {
     return proto::connections::UNKNOWN_MEDIUM;
   }
@@ -1169,10 +1159,9 @@ P2pClusterPcpHandler::StartListeningForWebRtcConnections(
   if (!webrtc_medium_.IsAcceptingConnections()) {
     mediums::PeerId self_id = CreatePeerIdFromAdvertisement(
         service_id, local_endpoint_id, local_endpoint_info);
-    LocationHint location_hint;
-    location_hint.set_format(LocationStandard::UNKNOWN);
+    std::string empty_country_code;
     if (!webrtc_medium_.StartAcceptingConnections(
-            self_id, location_hint,
+            self_id, Utils::BuildLocationHint(empty_country_code),
             {[this, client,
               local_endpoint_info](mediums::WebRtcSocketWrapper socket) {
               if (!socket.IsValid()) {
@@ -1183,7 +1172,7 @@ P2pClusterPcpHandler::StartListeningForWebRtcConnections(
 
               RunOnPcpHandlerThread(
                   [this, client, socket = std::move(socket)]() {
-                    string remote_device_name = "WebRtcSocket";
+                    std::string remote_device_name = "WebRtcSocket";
                     auto channel = absl::make_unique<WebRtcEndpointChannel>(
                         remote_device_name, socket);
                     ByteArray remote_device_info{remote_device_name};
@@ -1202,13 +1191,11 @@ P2pClusterPcpHandler::StartListeningForWebRtcConnections(
 
 BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WebRtcConnectImpl(
     ClientProxy* client, WebRtcEndpoint* webrtc_endpoint) {
-  LocationHint location_hint;
-  location_hint.set_format(LocationStandard::UNKNOWN);
-mediums::WebRtcSocketWrapper socket_wrapper =
-    webrtc_medium_.Connect(webrtc_endpoint->peer_id, location_hint);
-
-if (!socket_wrapper.IsValid()) {
-  return BasePcpHandler::ConnectImplResult{.status = {Status::kError}};
+  std::string empty_country_code;
+  mediums::WebRtcSocketWrapper socket_wrapper = webrtc_medium_.Connect(
+      webrtc_endpoint->peer_id, Utils::BuildLocationHint(empty_country_code));
+  if (!socket_wrapper.IsValid()) {
+    return BasePcpHandler::ConnectImplResult{.status = {Status::kError}};
   }
 
   auto channel = absl::make_unique<WebRtcEndpointChannel>(

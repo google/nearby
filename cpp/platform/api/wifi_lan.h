@@ -110,6 +110,9 @@ class WifiLanMedium {
 
   virtual WifiLanService* FindRemoteService(const std::string& ip_address,
                                             int port) = 0;
+
+  virtual std::pair<std::string, int> GetServiceAddress(
+      const std::string& service_id) = 0;
 };
 
 }  // namespace api

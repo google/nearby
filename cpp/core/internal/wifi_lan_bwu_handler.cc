@@ -47,20 +47,28 @@ ByteArray WifiLanBwuHandler::InitializeUpgradedMediumForEndpoint(
                  endpoint_id.c_str());
       return {};
     }
-    NEARBY_LOG(INFO,
-               "WifiLanBwuHandler successfully started listening for incoming "
-               "WifiLan connections while upgrading endpoint %s",
-               endpoint_id.c_str());
+    NEARBY_LOGS(INFO)
+        << "WifiLanBwuHandler successfully started listening for incoming "
+           "WifiLan connections while upgrading endpoint "
+        << endpoint_id;
   }
 
   // cache service ID to revert
   active_service_ids_.emplace(upgrade_service_id);
 
-  // TODO(b/169303360): Implements wifiLanCredntials for wif_lan_medium to
-  // get ip_address and port.
-  std::string ip_addresss;
-  std::int32_t port = 0;
-  return parser::ForBwuWifiLanPathAvailable(ip_addresss, port);
+  auto service_address = wifi_lan_medium_.GetServiceAddress(upgrade_service_id);
+  auto ip_address = service_address.first;
+  auto port = service_address.second;
+  if (ip_address.empty()) {
+    NEARBY_LOGS(INFO)
+        << "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
+           "endpoint "
+        << endpoint_id
+        << " because the wifi_lan ip address were unable to be obtained.";
+    return {};
+  }
+
+  return parser::ForBwuWifiLanPathAvailable(ip_address, port);
 }
 
 void WifiLanBwuHandler::Revert() {
@@ -78,8 +86,28 @@ std::unique_ptr<EndpointChannel>
 WifiLanBwuHandler::CreateUpgradedEndpointChannel(
     ClientProxy* client, const std::string& service_id,
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
-  // TODO(b/169303360): Implements connect WifiLan over ip address and port.
-  WifiLanSocket socket;
+  if (!upgrade_path_info.has_wifi_lan_socket()) {
+    return nullptr;
+  }
+  const UpgradePathInfo::WifiLanSocket& wifi_lan_socket =
+      upgrade_path_info.wifi_lan_socket();
+  if (!wifi_lan_socket.has_ip_address() || !wifi_lan_socket.has_wifi_port()) {
+    return nullptr;
+  }
+
+  const std::string& ip_address = wifi_lan_socket.ip_address();
+  int32 port = wifi_lan_socket.wifi_port();
+
+  WifiLanService wifi_lan_service =
+      wifi_lan_medium_.GetRemoteWifiLanService(ip_address, port);
+  if (!wifi_lan_service.IsValid()) {
+    return nullptr;
+  }
+  WifiLanSocket socket =
+      wifi_lan_medium_.Connect(wifi_lan_service, service_id);
+  if (!socket.IsValid()) {
+    return nullptr;
+  }
 
   // Create a new WifiLanEndpointChannel.
   auto channel = std::make_unique<WifiLanEndpointChannel>(service_id, socket);
