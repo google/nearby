@@ -76,6 +76,8 @@ std::string Utils::UnwrapUpgradeServiceId(
 
 LocationHint Utils::BuildLocationHint(const std::string& location) {
   LocationHint location_hint;
+  location_hint.set_format(LocationStandard::UNKNOWN);
+
   if (!location.empty()) {
     location_hint.set_location(location);
     if (location.at(0) == '+') {

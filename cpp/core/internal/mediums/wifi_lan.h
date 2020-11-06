@@ -88,6 +88,9 @@ class WifiLan {
   WifiLanService GetRemoteWifiLanService(const std::string& ip_address,
                                          int port) ABSL_LOCKS_EXCLUDED(mutex_);
 
+  std::pair<std::string, int> GetServiceAddress(const std::string& service_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
  private:
   struct AdvertisingInfo {
     bool Empty() const { return service_ids.empty(); }

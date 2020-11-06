@@ -45,7 +45,8 @@ V1Frame::FrameType GetFrameType(const OfflineFrame& offline_frame);
 // Builds Connection Request / Response messages.
 ByteArray ForConnectionRequest(const std::string& endpoint_id,
                                const ByteArray& endpoint_info,
-                               std::int32_t nonce,
+                               std::int32_t nonce, bool supports_5_ghz,
+                               const std::string& bssid,
                                const std::vector<Medium>& mediums);
 ByteArray ForConnectionResponse(std::int32_t status);
 
@@ -61,9 +62,20 @@ ByteArray ForControlPayloadTransfer(
 ByteArray ForBwuIntroduction(const std::string& endpoint_id);
 ByteArray ForBwuWifiHotspotPathAvailable(const std::string& ssid,
                                          const std::string& password,
-                                         std::int32_t port);
+                                         std::int32_t port,
+                                         const std::string& gateway,
+                                         bool supports_disabling_encryption);
 ByteArray ForBwuWifiLanPathAvailable(const std::string& ip_address,
                                      std::int32_t port);
+ByteArray ForBwuWifiAwarePathAvailable(const std::string& service_id,
+                                       const std::string& service_info,
+                                       const std::string& password,
+                                       bool supports_disabling_encryption);
+ByteArray ForBwuWifiDirectPathAvailable(const std::string& ssid,
+                                        const std::string& password,
+                                        std::int32_t port,
+                                        std::int32_t frequency,
+                                        bool supports_disabling_encryption);
 ByteArray ForBwuBluetoothPathAvailable(const std::string& service_id,
                                        const std::string& mac_address);
 ByteArray ForBwuWebrtcPathAvailable(const std::string& peer_id,

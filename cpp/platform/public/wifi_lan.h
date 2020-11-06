@@ -106,6 +106,7 @@ class WifiLanSocket final {
 class WifiLanMedium final {
  public:
   using Platform = api::ImplementationPlatform;
+
   struct DiscoveredServiceCallback {
     std::function<void(WifiLanService& wifi_lan_service,
                        const std::string& service_id)>
@@ -116,6 +117,7 @@ class WifiLanMedium final {
         service_lost_cb =
             DefaultCallback<WifiLanService&, const std::string&>();
   };
+
   struct ServiceDiscoveryInfo {
     WifiLanService service;
   };
@@ -124,6 +126,7 @@ class WifiLanMedium final {
     std::function<void(WifiLanSocket socket, const std::string& service_id)>
         accepted_cb = DefaultCallback<WifiLanSocket, const std::string&>();
   };
+
   struct AcceptedConnectionInfo {
     WifiLanSocket socket;
   };
@@ -160,6 +163,8 @@ class WifiLanMedium final {
   api::WifiLanMedium& GetImpl() { return *impl_; }
 
   WifiLanService FindRemoteService(const std::string& ip_address, int port);
+
+  std::pair<std::string, int> GetServiceAddress(const std::string& service_id);
 
  private:
   Mutex mutex_;
