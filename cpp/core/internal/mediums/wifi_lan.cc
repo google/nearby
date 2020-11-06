@@ -243,6 +243,12 @@ WifiLanService WifiLan::GetRemoteWifiLanService(const std::string& ip_address,
   return medium_.FindRemoteService(ip_address, port);
 }
 
+std::pair<std::string, int> WifiLan::GetServiceAddress(
+    const std::string& service_id) {
+  MutexLock lock(&mutex_);
+  return medium_.GetServiceAddress(service_id);
+}
+
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location

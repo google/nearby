@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "core/internal/message_lite.h"
+#include "core/internal/offline_frames_validator.h"
 #include "core/status.h"
 #include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/base/byte_array.h"
@@ -30,6 +31,10 @@ ExceptionOrOfflineFrame FromBytes(const ByteArray& bytes) {
   OfflineFrame frame;
 
   if (frame.ParseFromString(std::string(bytes))) {
+    Exception validation_exception = EnsureValidOfflineFrame(frame);
+    if (validation_exception.Raised()) {
+      return ExceptionOrOfflineFrame(validation_exception);
+    }
     return ExceptionOrOfflineFrame(std::move(frame));
   } else {
     return ExceptionOrOfflineFrame(Exception::kInvalidProtocolBuffer);
@@ -46,7 +51,8 @@ V1Frame::FrameType GetFrameType(const OfflineFrame& frame) {
 
 ByteArray ForConnectionRequest(const std::string& endpoint_id,
                                const ByteArray& endpoint_info,
-                               std::int32_t nonce,
+                               std::int32_t nonce, bool supports_5_ghz,
+                               const std::string& bssid,
                                const std::vector<Medium>& mediums) {
   OfflineFrame frame;
 
@@ -54,12 +60,21 @@ ByteArray ForConnectionRequest(const std::string& endpoint_id,
   auto* v1_frame = frame.mutable_v1();
   v1_frame->set_type(V1Frame::CONNECTION_REQUEST);
   auto* connection_request = v1_frame->mutable_connection_request();
-  connection_request->set_endpoint_id(endpoint_id);
-  connection_request->set_endpoint_name(std::string(endpoint_info));
-  connection_request->set_endpoint_info(std::string(endpoint_info));
+  if (!endpoint_id.empty())
+    connection_request->set_endpoint_id(endpoint_id);
+  if (!endpoint_info.Empty()) {
+    connection_request->set_endpoint_name(std::string(endpoint_info));
+    connection_request->set_endpoint_info(std::string(endpoint_info));
+  }
   connection_request->set_nonce(nonce);
-  for (const auto& medium : mediums) {
-    connection_request->add_mediums(MediumToConnectionRequestMedium(medium));
+  auto* medium_metadata = connection_request->mutable_medium_metadata();
+  medium_metadata->set_supports_5_ghz(supports_5_ghz);
+  if (!bssid.empty())
+    medium_metadata->set_bssid(bssid);
+  if (!mediums.empty()) {
+    for (const auto& medium : mediums) {
+      connection_request->add_mediums(MediumToConnectionRequestMedium(medium));
+    }
   }
 
   return ToBytes(std::move(frame));
@@ -118,7 +133,9 @@ ByteArray ForControlPayloadTransfer(
 
 ByteArray ForBwuWifiHotspotPathAvailable(const std::string& ssid,
                                          const std::string& password,
-                                         std::int32_t port) {
+                                         std::int32_t port,
+                                         const std::string& gateway,
+                                         bool supports_disabling_encryption) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -129,11 +146,14 @@ ByteArray ForBwuWifiHotspotPathAvailable(const std::string& ssid,
       BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
   auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
   upgrade_path_info->set_medium(UpgradePathInfo::WIFI_HOTSPOT);
+  upgrade_path_info->set_supports_disabling_encryption(
+      supports_disabling_encryption);
   auto* wifi_hotspot_credentials =
       upgrade_path_info->mutable_wifi_hotspot_credentials();
   wifi_hotspot_credentials->set_ssid(ssid);
   wifi_hotspot_credentials->set_password(password);
   wifi_hotspot_credentials->set_port(port);
+  wifi_hotspot_credentials->set_gateway(gateway);
 
   return ToBytes(std::move(frame));
 }
@@ -153,6 +173,58 @@ ByteArray ForBwuWifiLanPathAvailable(const std::string& ip_address,
   auto* wifi_lan_socket = upgrade_path_info->mutable_wifi_lan_socket();
   wifi_lan_socket->set_ip_address(ip_address);
   wifi_lan_socket->set_wifi_port(port);
+
+  return ToBytes(std::move(frame));
+}
+
+ByteArray ForBwuWifiAwarePathAvailable(const std::string& service_id,
+                                       const std::string& service_info,
+                                       const std::string& password,
+                                       bool supports_disabling_encryption) {
+  OfflineFrame frame;
+
+  frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION);
+  auto* sub_frame = v1_frame->mutable_bandwidth_upgrade_negotiation();
+  sub_frame->set_event_type(
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+  auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
+  upgrade_path_info->set_medium(UpgradePathInfo::WIFI_AWARE);
+  upgrade_path_info->set_supports_disabling_encryption(
+      supports_disabling_encryption);
+  auto* wifi_aware_credentials =
+      upgrade_path_info->mutable_wifi_aware_credentials();
+  wifi_aware_credentials->set_service_id(service_id);
+  wifi_aware_credentials->set_service_info(service_info);
+  if (!password.empty()) wifi_aware_credentials->set_password(password);
+
+  return ToBytes(std::move(frame));
+}
+
+ByteArray ForBwuWifiDirectPathAvailable(const std::string& ssid,
+                                        const std::string& password,
+                                        std::int32_t port,
+                                        std::int32_t frequency,
+                                        bool supports_disabling_encryption) {
+  OfflineFrame frame;
+
+  frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION);
+  auto* sub_frame = v1_frame->mutable_bandwidth_upgrade_negotiation();
+  sub_frame->set_event_type(
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+  auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
+  upgrade_path_info->set_medium(UpgradePathInfo::WIFI_DIRECT);
+  upgrade_path_info->set_supports_disabling_encryption(
+      supports_disabling_encryption);
+  auto* wifi_direct_credentials =
+      upgrade_path_info->mutable_wifi_direct_credentials();
+  wifi_direct_credentials->set_ssid(ssid);
+  wifi_direct_credentials->set_password(password);
+  wifi_direct_credentials->set_port(port);
+  wifi_direct_credentials->set_frequency(frequency);
 
   return ToBytes(std::move(frame));
 }

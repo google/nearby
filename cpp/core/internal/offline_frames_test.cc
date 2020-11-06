@@ -22,6 +22,8 @@ using ::testing::EqualsProto;
 constexpr absl::string_view kEndpointId{"ABC"};
 constexpr absl::string_view kEndpointName{"XYZ"};
 constexpr int kNonce = 1234;
+constexpr bool kSupports5ghz = true;
+constexpr absl::string_view kBssid{"FF:FF:FF:FF:FF:FF"};
 constexpr std::array<Medium, 9> kMediums = {
     Medium::MDNS, Medium::BLUETOOTH,   Medium::WIFI_HOTSPOT,
     Medium::BLE,  Medium::WIFI_LAN,    Medium::WIFI_AWARE,
@@ -41,6 +43,11 @@ TEST(OfflineFramesTest, CanParseMessageFromBytes) {
     sub_frame->set_endpoint_name(kEndpointName);
     sub_frame->set_endpoint_info(kEndpointName);
     sub_frame->set_nonce(kNonce);
+    auto* medium_metadata = sub_frame->mutable_medium_metadata();
+
+    medium_metadata->set_supports_5_ghz(kSupports5ghz);
+    medium_metadata->set_bssid(kBssid);
+
     for (auto& medium : kMediums) {
       sub_frame->add_mediums(MediumToConnectionRequestMedium(medium));
     }
@@ -67,6 +74,10 @@ TEST(OfflineFramesTest, CanGenerateConnectionRequest) {
         endpoint_name: "XYZ"
         endpoint_info: "XYZ"
         nonce: 1234
+        medium_metadata: <
+          supports_5_ghz: true
+          bssid: "FF:FF:FF:FF:FF:FF"
+        >
         mediums: MDNS
         mediums: BLUETOOTH
         mediums: WIFI_HOTSPOT
@@ -80,6 +91,7 @@ TEST(OfflineFramesTest, CanGenerateConnectionRequest) {
     >)pb";
   ByteArray bytes = ForConnectionRequest(
       std::string(kEndpointId), ByteArray{std::string(kEndpointName)}, kNonce,
+      kSupports5ghz, std::string(kBssid),
       std::vector(kMediums.begin(), kMediums.end()));
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
@@ -174,11 +186,14 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiHotspotPathAvailable) {
             ssid: "ssid"
             password: "password"
             port: 1234
+            gateway: "0.0.0.0"
           >
+          supports_disabling_encryption: false
         >
       >
     >)pb";
-  ByteArray bytes = ForBwuWifiHotspotPathAvailable("ssid", "password", 1234);
+  ByteArray bytes = ForBwuWifiHotspotPathAvailable("ssid", "password", 1234,
+                                                   "0.0.0.0", false);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = FromBytes(bytes).result();
@@ -200,6 +215,61 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiLanPathAvailable) {
       >
     >)pb";
   ByteArray bytes = ForBwuWifiLanPathAvailable("\x01\x02\x03\x04", 1234);
+  auto response = FromBytes(bytes);
+  ASSERT_TRUE(response.ok());
+  OfflineFrame message = FromBytes(bytes).result();
+  EXPECT_THAT(message, EqualsProto(kExpected));
+}
+
+TEST(OfflineFramesTest, CanGenerateBwuWifiAwarePathAvailable) {
+  constexpr char kExpected[] =
+      R"pb(
+    version: V1
+    v1: <
+      type: BANDWIDTH_UPGRADE_NEGOTIATION
+      bandwidth_upgrade_negotiation: <
+        event_type: UPGRADE_PATH_AVAILABLE
+        upgrade_path_info: <
+          medium: WIFI_AWARE
+          wifi_aware_credentials: <
+            service_id: "service_id"
+            service_info: "service_info"
+            password: "password"
+          >
+          supports_disabling_encryption: false
+        >
+      >
+    >)pb";
+  ByteArray bytes = ForBwuWifiAwarePathAvailable("service_id", "service_info",
+                                                 "password", false);
+  auto response = FromBytes(bytes);
+  ASSERT_TRUE(response.ok());
+  OfflineFrame message = FromBytes(bytes).result();
+  EXPECT_THAT(message, EqualsProto(kExpected));
+}
+
+TEST(OfflineFramesTest, CanGenerateBwuWifiDirectPathAvailable) {
+  constexpr char kExpected[] =
+      R"pb(
+    version: V1
+    v1: <
+      type: BANDWIDTH_UPGRADE_NEGOTIATION
+      bandwidth_upgrade_negotiation: <
+        event_type: UPGRADE_PATH_AVAILABLE
+        upgrade_path_info: <
+          medium: WIFI_DIRECT
+          wifi_direct_credentials: <
+            ssid: "DIRECT-A0-0123456789AB"
+            password: "password"
+            port: 1000
+            frequency: 1000
+          >
+          supports_disabling_encryption: false
+        >
+      >
+    >)pb";
+  ByteArray bytes = ForBwuWifiDirectPathAvailable(
+      "DIRECT-A0-0123456789AB", "password", 1000, 1000, false);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = FromBytes(bytes).result();

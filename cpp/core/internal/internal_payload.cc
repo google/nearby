@@ -4,6 +4,9 @@ namespace location {
 namespace nearby {
 namespace connections {
 
+// The definition is necessary before C++17.
+constexpr int InternalPayload::kIndeterminateSize;
+
 InternalPayload::InternalPayload(Payload payload)
     : payload_(std::move(payload)), payload_id_(payload_.GetId()) {}
 

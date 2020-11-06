@@ -113,6 +113,7 @@ message PayloadTransferFrame {
     optional int64 id = 1;
     optional PayloadType type = 2;
     optional int64 total_size = 3;
+    optional bool is_sensitive = 4;
   }
 
   // Accompanies DATA packets.
