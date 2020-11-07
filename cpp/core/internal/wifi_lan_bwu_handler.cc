@@ -110,7 +110,7 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
   }
 
   const std::string& ip_address = wifi_lan_socket.ip_address();
-  int32 port = wifi_lan_socket.wifi_port();
+  std::int32_t port = wifi_lan_socket.wifi_port();
 
   WifiLanService wifi_lan_service =
       wifi_lan_medium_.GetRemoteWifiLanService(ip_address, port);
