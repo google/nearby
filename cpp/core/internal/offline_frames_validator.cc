@@ -21,6 +21,7 @@ using WifiAwareCredentials = UpgradePathInfo::WifiAwareCredentials;
 using WifiDirectCredentials = UpgradePathInfo::WifiDirectCredentials;
 using BluetoothCredentials = UpgradePathInfo::BluetoothCredentials;
 using WebRtcCredentials = UpgradePathInfo::WebRtcCredentials;
+using Medium = location::nearby::connections::Medium;
 
 constexpr absl::string_view kIpv4PatternString{
     "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
@@ -225,7 +226,7 @@ Exception EnsureValidBandwidthUpgradePathAvailableFrame(
     const UpgradePathInfo& upgrade_path_info) {
   if (!upgrade_path_info.has_medium())
     return {Exception::kInvalidProtocolBuffer};
-  switch (upgrade_path_info.medium()) {
+  switch (static_cast<Medium>(upgrade_path_info.medium())) {
     case Medium::WIFI_HOTSPOT:
       if (upgrade_path_info.has_wifi_hotspot_credentials()) {
         return EnsureValidBandwidthUpgradeWifiHotspotPathAvailableFrame(
