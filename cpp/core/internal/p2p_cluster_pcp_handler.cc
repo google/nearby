@@ -142,16 +142,15 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
   };
 }
 
-// StopAcceptingConnections invokes for webrtc is suppressed for now to
-// unblock CrOS dogfood integration. Disconnect will invoke ShutdownSignaling
-// to release resources.
-// TODO (hais): add corresponding logic back (b/172518506).
 Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
   bluetooth_medium_.TurnOffDiscoverability();
   bluetooth_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
 
   ble_medium_.StopAdvertising(client->GetAdvertisingServiceId());
   ble_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
+
+  webrtc_medium_.StopAcceptingConnection(client->GetAdvertisingServiceId(),
+                                         client->GetLocalEndpointId());
 
   wifi_lan_medium_.StopAdvertising(client->GetAdvertisingServiceId());
   wifi_lan_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
@@ -1161,7 +1160,8 @@ P2pClusterPcpHandler::StartListeningForWebRtcConnections(
         service_id, local_endpoint_id, local_endpoint_info);
     std::string empty_country_code;
     if (!webrtc_medium_.StartAcceptingConnections(
-            self_id, Utils::BuildLocationHint(empty_country_code),
+            self_id, service_id, local_endpoint_id,
+            Utils::BuildLocationHint(empty_country_code),
             {[this, client,
               local_endpoint_info](mediums::WebRtcSocketWrapper socket) {
               if (!socket.IsValid()) {

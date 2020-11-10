@@ -23,6 +23,7 @@
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/webrtc.h"
 #include "location/nearby/mediums/proto/web_rtc_signaling_frames.pb.h"
+#include "absl/container/flat_hash_set.h"
 #include "webrtc/api/data_channel_interface.h"
 #include "webrtc/api/jsep.h"
 #include "webrtc/api/scoped_refptr.h"
@@ -56,10 +57,18 @@ class WebRtc {
   // Runs on @MainThread.
   bool IsAcceptingConnections() ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Returns if the device is accepting connection with specific service id and
+  // local endpoint id. Runs on @MainThread.
+  bool IsAcceptingConnection(const std::string& service_id,
+                             const std::string& local_endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Prepares the device to accept incoming WebRtc connections. Returns a
   // boolean value indicating if the device has started accepting connections.
   // Runs on @MainThread.
   bool StartAcceptingConnections(const PeerId& self_id,
+                                 const std::string& service_id,
+                                 const std::string& local_endpoint_id,
                                  const LocationHint& location_hint,
                                  AcceptedConnectionCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -68,6 +77,13 @@ class WebRtc {
   // StartAcceptingConnections() is called.
   // Runs on @MainThread.
   void StopAcceptingConnections() ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Try to stop (accepting) the specific connection with provided service id
+  // and local endpoint id. If the specific connection is not the latest one,
+  // then nothing will happen; if it's the latest one,
+  void StopAcceptingConnection(const std::string& service_id,
+                               const std::string& local_endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Initiates a WebRtc connection with peer device identified by |peer_id|.
   // Runs on @MainThread.
@@ -168,6 +184,9 @@ class WebRtc {
   // Restarts the signaling messenger for receiving messages.
   ScheduledExecutor restart_receive_messages_executor_;
   CancelableAlarm restart_receive_messages_alarm_;
+
+  std::string latest_service_id_ ABSL_GUARDED_BY(mutex_);
+  std::string latest_local_endpoint_id_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace mediums

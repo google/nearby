@@ -63,7 +63,8 @@ ByteArray WebrtcBwuHandler::InitializeUpgradedMediumForEndpoint(
   mediums::PeerId self_id{mediums::PeerId::FromRandom()};
   if (!webrtc_.IsAcceptingConnections()) {
     if (!webrtc_.StartAcceptingConnections(
-            self_id, location_hint,
+            self_id, upgrade_service_id, client->GetLocalEndpointId(),
+            location_hint,
             {
                 .accepted_cb = absl::bind_front(
                     &WebrtcBwuHandler::OnIncomingWebrtcConnection, this, client,

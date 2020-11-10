@@ -54,6 +54,8 @@ bool WebRtc::IsAcceptingConnections() {
 }
 
 bool WebRtc::StartAcceptingConnections(const PeerId& self_id,
+                                       const std::string& service_id,
+                                       const std::string& local_endpoint_id,
                                        const LocationHint& location_hint,
                                        AcceptedConnectionCallback callback) {
   if (!IsAvailable()) {
@@ -64,17 +66,10 @@ bool WebRtc::StartAcceptingConnections(const PeerId& self_id,
     return false;
   }
 
-  if (IsAcceptingConnections()) {
-    NEARBY_LOG(WARNING, "Already accepting WebRTC connections.");
-    return false;
-  }
-
   {
     MutexLock lock(&mutex_);
-    if (role_ != Role::kNone) {
-      NEARBY_LOG(WARNING,
-                 "Cannot start accepting WebRTC connections, current role %d",
-                 role_);
+    if (self_id_.GetId() == self_id.GetId()) {
+      NEARBY_LOG(WARNING, "Already accepting WebRTC connections.");
       return false;
     }
 
@@ -96,6 +91,8 @@ bool WebRtc::StartAcceptingConnections(const PeerId& self_id,
     // the actual transport can begin.
     ListenForWebRtcSocketFuture(connection_flow_->GetDataChannel(),
                                 std::move(callback));
+    latest_service_id_ = service_id;
+    latest_local_endpoint_id_ = local_endpoint_id;
     NEARBY_LOG(INFO, "Started listening for WebRtc connections as %s",
                self_id.GetId().c_str());
   }
@@ -167,6 +164,19 @@ void WebRtc::StopAcceptingConnections() {
     ShutdownSignaling();
   }
   NEARBY_LOG(INFO, "Stopped accepting WebRTC connections");
+}
+
+void WebRtc::StopAcceptingConnection(const std::string& service_id,
+                                     const std::string& local_endpoint_id) {
+  MutexLock lock(&mutex_);
+  if (service_id == latest_service_id_ &&
+      local_endpoint_id == latest_local_endpoint_id_) {
+    StopAcceptingConnections();
+  } else {
+    NEARBY_LOG(INFO,
+               "Skipped StopAcceptingConnection since we are not the latest"
+               "ongoing connection.");
+  }
 }
 
 Future<WebRtcSocketWrapper> WebRtc::ListenForWebRtcSocketFuture(
@@ -256,8 +266,7 @@ bool WebRtc::InitWebRtcFlow(Role role, const PeerId& self_id,
 
   connection_flow_ = ConnectionFlow::Create(GetLocalIceCandidateListener(),
                                             GetDataChannelListener(), medium_);
-  if (!connection_flow_)
-      return false;
+  if (!connection_flow_) return false;
 
   return true;
 }
