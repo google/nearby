@@ -62,12 +62,14 @@ const std::string WebRtc::GetDefaultCountryCode() {
 
 bool WebRtc::IsAvailable() { return medium_.IsValid(); }
 
-bool WebRtc::IsAcceptingConnections() {
+bool WebRtc::IsAcceptingConnections(const std::string& service_id) {
   MutexLock lock(&mutex_);
+  // TODO(hais): refractor the implementation with maps.
   return role_ == Role::kOfferer;
 }
 
 bool WebRtc::StartAcceptingConnections(const PeerId& self_id,
+                                       const std::string& service_id,
                                        const LocationHint& location_hint,
                                        AcceptedConnectionCallback callback) {
   if (!IsAvailable()) {
@@ -78,7 +80,7 @@ bool WebRtc::StartAcceptingConnections(const PeerId& self_id,
     return false;
   }
 
-  if (IsAcceptingConnections()) {
+  if (IsAcceptingConnections(service_id)) {
     NEARBY_LOG(WARNING, "Already accepting WebRTC connections.");
     return false;
   }
@@ -96,7 +98,8 @@ bool WebRtc::StartAcceptingConnections(const PeerId& self_id,
 
     restart_receive_messages_alarm_ = CancelableAlarm(
         "restart_receiving_messages_webrtc",
-        std::bind(&WebRtc::RestartReceiveMessages, this, location_hint),
+        std::bind(&WebRtc::RestartReceiveMessages, this, location_hint,
+                  service_id),
         kRestartReceiveMessagesDuration, &restart_receive_messages_executor_);
 
     SessionDescriptionWrapper offer = connection_flow_->CreateOffer();
@@ -168,11 +171,12 @@ bool WebRtc::SetLocalSessionDescription(SessionDescriptionWrapper sdp) {
   return true;
 }
 
-void WebRtc::StopAcceptingConnections() {
-  if (!IsAcceptingConnections()) {
+void WebRtc::StopAcceptingConnections(const std::string& service_id) {
+  if (!IsAcceptingConnections(service_id)) {
     NEARBY_LOG(INFO,
                "Skipped StopAcceptingConnections since we are not currently "
-               "accepting WebRTC connections");
+               "accepting WebRTC connections for %s",
+               service_id.c_str());
     return;
   }
 
@@ -270,8 +274,7 @@ bool WebRtc::InitWebRtcFlow(Role role, const PeerId& self_id,
 
   connection_flow_ = ConnectionFlow::Create(GetLocalIceCandidateListener(),
                                             GetDataChannelListener(), medium_);
-  if (!connection_flow_)
-      return false;
+  if (!connection_flow_) return false;
 
   return true;
 }
@@ -491,8 +494,9 @@ void WebRtc::OffloadFromSignalingThread(Runnable runnable) {
   single_thread_executor_.Execute(std::move(runnable));
 }
 
-void WebRtc::RestartReceiveMessages(const LocationHint& location_hint) {
-  if (!IsAcceptingConnections()) {
+void WebRtc::RestartReceiveMessages(const LocationHint& location_hint,
+                                    const std::string& service_id) {
+  if (!IsAcceptingConnections(service_id)) {
     NEARBY_LOG(INFO,
                "Skipping restart since we are not accepting connections.");
     return;

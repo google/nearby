@@ -60,6 +60,7 @@ cc_test(
         "signaling_frames_test.cc",
         "webrtc_socket_test.cc",
     ],
+    tags = ["notsan"],  # NOTE(b/139734036): known data race in usrsctplib.
     deps = [
         ":webrtc",
         "//platform/base",
