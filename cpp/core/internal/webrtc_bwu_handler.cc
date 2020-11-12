@@ -20,10 +20,10 @@ WebrtcBwuHandler::WebrtcBwuHandler(Mediums& mediums,
       mediums_(mediums) {}
 
 void WebrtcBwuHandler::Revert() {
-  if (!active_service_ids_.empty()) {
-    webrtc_.StopAcceptingConnections();
-    active_service_ids_.clear();
+  for (const auto& service_id : active_service_ids_) {
+    webrtc_.StopAcceptingConnections(service_id);
   }
+  active_service_ids_.clear();
 
   NEARBY_LOG(INFO, "WebrtcBwuHandler successfully reverted state.");
 }
@@ -61,9 +61,9 @@ ByteArray WebrtcBwuHandler::InitializeUpgradedMediumForEndpoint(
       Utils::BuildLocationHint(webrtc_.GetDefaultCountryCode());
 
   mediums::PeerId self_id{mediums::PeerId::FromRandom()};
-  if (!webrtc_.IsAcceptingConnections()) {
+  if (!webrtc_.IsAcceptingConnections(service_id)) {
     if (!webrtc_.StartAcceptingConnections(
-            self_id, location_hint,
+            self_id, upgrade_service_id, location_hint,
             {
                 .accepted_cb = absl::bind_front(
                     &WebrtcBwuHandler::OnIncomingWebrtcConnection, this, client,
