@@ -304,9 +304,7 @@ void MediumEnvironment::UnregisterBluetoothMedium(
   RunOnMediumEnvironmentThread([this, &medium]() {
     auto item = bluetooth_mediums_.extract(&medium);
     if (item.empty()) return;
-    auto& context = item.mapped();
-    NEARBY_LOG(INFO, "Unregistered medium for device=%s",
-               context.adapter->GetName().c_str());
+    NEARBY_LOGS(INFO) << "Unregistered Bluetooth medium:" << &medium;
   });
 }
 

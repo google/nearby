@@ -37,6 +37,7 @@
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/webrtc.h"
 #include "location/nearby/mediums/proto/web_rtc_signaling_frames.pb.h"
+#include "absl/container/flat_hash_set.h"
 #include "webrtc/api/data_channel_interface.h"
 #include "webrtc/api/jsep.h"
 #include "webrtc/api/scoped_refptr.h"
@@ -66,22 +67,24 @@ class WebRtc {
   // Runs on @MainThread.
   bool IsAvailable();
 
-  // Returns if the device is ready to accept connections from remote devices.
+  // Returns if the device is accepting connection with specific service id.
   // Runs on @MainThread.
-  bool IsAcceptingConnections() ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsAcceptingConnections(const std::string& service_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Prepares the device to accept incoming WebRtc connections. Returns a
   // boolean value indicating if the device has started accepting connections.
   // Runs on @MainThread.
   bool StartAcceptingConnections(const PeerId& self_id,
+                                 const std::string& service_id,
                                  const LocationHint& location_hint,
                                  AcceptedConnectionCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Prevents device from accepting future connections until
-  // StartAcceptingConnections() is called.
-  // Runs on @MainThread.
-  void StopAcceptingConnections() ABSL_LOCKS_EXCLUDED(mutex_);
+  // Try to stop (accepting) the specific connection with provided service id.
+  // Runs on @MainThread
+  void StopAcceptingConnections(const std::string& service_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Initiates a WebRtc connection with peer device identified by |peer_id|.
   // Runs on @MainThread.
@@ -159,7 +162,8 @@ class WebRtc {
   void OffloadFromSignalingThread(Runnable runnable);
 
   // Runs on |restart_receive_messages_executor_|.
-  void RestartReceiveMessages(const LocationHint& location_hint)
+  void RestartReceiveMessages(const LocationHint& location_hint,
+                              const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   Mutex mutex_;
