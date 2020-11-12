@@ -53,14 +53,9 @@ class WebRtc {
   // Runs on @MainThread.
   bool IsAvailable();
 
-  // Returns if the device is ready to accept connections from remote devices.
+  // Returns if the device is accepting connection with specific service id.
   // Runs on @MainThread.
-  bool IsAcceptingConnections() ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Returns if the device is accepting connection with specific service id and
-  // local endpoint id. Runs on @MainThread.
-  bool IsAcceptingConnection(const std::string& service_id,
-                             const std::string& local_endpoint_id)
+  bool IsAcceptingConnections(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Prepares the device to accept incoming WebRtc connections. Returns a
@@ -68,21 +63,13 @@ class WebRtc {
   // Runs on @MainThread.
   bool StartAcceptingConnections(const PeerId& self_id,
                                  const std::string& service_id,
-                                 const std::string& local_endpoint_id,
                                  const LocationHint& location_hint,
                                  AcceptedConnectionCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Prevents device from accepting future connections until
-  // StartAcceptingConnections() is called.
-  // Runs on @MainThread.
-  void StopAcceptingConnections() ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Try to stop (accepting) the specific connection with provided service id
-  // and local endpoint id. If the specific connection is not the latest one,
-  // then nothing will happen; if it's the latest one,
-  void StopAcceptingConnection(const std::string& service_id,
-                               const std::string& local_endpoint_id)
+  // Try to stop (accepting) the specific connection with provided service id.
+  // Runs on @MainThread
+  void StopAcceptingConnections(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Initiates a WebRtc connection with peer device identified by |peer_id|.
@@ -161,7 +148,8 @@ class WebRtc {
   void OffloadFromSignalingThread(Runnable runnable);
 
   // Runs on |restart_receive_messages_executor_|.
-  void RestartReceiveMessages(const LocationHint& location_hint)
+  void RestartReceiveMessages(const LocationHint& location_hint,
+                              const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   Mutex mutex_;
@@ -184,9 +172,6 @@ class WebRtc {
   // Restarts the signaling messenger for receiving messages.
   ScheduledExecutor restart_receive_messages_executor_;
   CancelableAlarm restart_receive_messages_alarm_;
-
-  std::string latest_service_id_ ABSL_GUARDED_BY(mutex_);
-  std::string latest_local_endpoint_id_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace mediums

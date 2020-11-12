@@ -78,17 +78,6 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
   std::vector<proto::connections::Medium> mediums_started_successfully;
 
   WebRtcState web_rtc_state{WebRtcState::kUnconnectable};
-  if (options.allowed.web_rtc) {
-    proto::connections::Medium webrtc_medium =
-        StartListeningForWebRtcConnections(
-            client, service_id, local_endpoint_id, local_endpoint_info);
-    if (webrtc_medium != proto::connections::UNKNOWN_MEDIUM) {
-      NEARBY_LOG(INFO,
-                 "P2pClusterPcpHandler::StartAdvertisingImpl: WebRtc added");
-      mediums_started_successfully.push_back(webrtc_medium);
-      web_rtc_state = WebRtcState::kConnectable;
-    }
-  }
 
   if (options.allowed.wifi_lan) {
     const ByteArray wifi_lan_hash =
@@ -149,9 +138,6 @@ Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
   ble_medium_.StopAdvertising(client->GetAdvertisingServiceId());
   ble_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
 
-  webrtc_medium_.StopAcceptingConnection(client->GetAdvertisingServiceId(),
-                                         client->GetLocalEndpointId());
-
   wifi_lan_medium_.StopAdvertising(client->GetAdvertisingServiceId());
   wifi_lan_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
 
@@ -193,8 +179,8 @@ bool P2pClusterPcpHandler::IsRecognizedBluetoothEndpoint(
 
 void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
     ClientProxy* client, const std::string& service_id,
-    BluetoothDevice& device) {
-  RunOnPcpHandlerThread([this, client, service_id, &device]() {
+    BluetoothDevice device) {
+  RunOnPcpHandlerThread([this, client, service_id, device]() {
     // Make sure we are still discovering before proceeding.
     if (!client->IsDiscovering()) {
       NEARBY_LOG(INFO,
@@ -205,7 +191,7 @@ void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
     }
 
     // Parse the Bluetooth device name.
-    const std::string& device_name_string = device.GetName();
+    const std::string device_name_string = device.GetName();
     BluetoothDeviceName device_name(device_name_string);
 
     // Make sure the Bluetooth device name points to a valid
@@ -690,10 +676,6 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::ConnectImpl(
       break;
     }
     case proto::connections::Medium::WEB_RTC: {
-      auto* webrtc_endpoint = down_cast<WebRtcEndpoint*>(endpoint);
-      if (webrtc_endpoint) {
-        return WebRtcConnectImpl(client, webrtc_endpoint);
-      }
       break;
     }
     default:
@@ -1155,13 +1137,12 @@ P2pClusterPcpHandler::StartListeningForWebRtcConnections(
     return proto::connections::UNKNOWN_MEDIUM;
   }
 
-  if (!webrtc_medium_.IsAcceptingConnections()) {
+  if (!webrtc_medium_.IsAcceptingConnections(service_id)) {
     mediums::PeerId self_id = CreatePeerIdFromAdvertisement(
         service_id, local_endpoint_id, local_endpoint_info);
     std::string empty_country_code;
     if (!webrtc_medium_.StartAcceptingConnections(
-            self_id, service_id, local_endpoint_id,
-            Utils::BuildLocationHint(empty_country_code),
+            self_id, service_id, Utils::BuildLocationHint(empty_country_code),
             {[this, client,
               local_endpoint_info](mediums::WebRtcSocketWrapper socket) {
               if (!socket.IsValid()) {

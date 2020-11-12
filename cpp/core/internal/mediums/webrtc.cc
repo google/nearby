@@ -48,14 +48,14 @@ const std::string WebRtc::GetDefaultCountryCode() {
 
 bool WebRtc::IsAvailable() { return medium_.IsValid(); }
 
-bool WebRtc::IsAcceptingConnections() {
+bool WebRtc::IsAcceptingConnections(const std::string& service_id) {
   MutexLock lock(&mutex_);
+  // TODO(hais): refractor the implementation with maps.
   return role_ == Role::kOfferer;
 }
 
 bool WebRtc::StartAcceptingConnections(const PeerId& self_id,
                                        const std::string& service_id,
-                                       const std::string& local_endpoint_id,
                                        const LocationHint& location_hint,
                                        AcceptedConnectionCallback callback) {
   if (!IsAvailable()) {
@@ -66,10 +66,17 @@ bool WebRtc::StartAcceptingConnections(const PeerId& self_id,
     return false;
   }
 
+  if (IsAcceptingConnections(service_id)) {
+    NEARBY_LOG(WARNING, "Already accepting WebRTC connections.");
+    return false;
+  }
+
   {
     MutexLock lock(&mutex_);
-    if (self_id_.GetId() == self_id.GetId()) {
-      NEARBY_LOG(WARNING, "Already accepting WebRTC connections.");
+    if (role_ != Role::kNone) {
+      NEARBY_LOG(WARNING,
+                 "Cannot start accepting WebRTC connections, current role %d",
+                 role_);
       return false;
     }
 
@@ -77,7 +84,8 @@ bool WebRtc::StartAcceptingConnections(const PeerId& self_id,
 
     restart_receive_messages_alarm_ = CancelableAlarm(
         "restart_receiving_messages_webrtc",
-        std::bind(&WebRtc::RestartReceiveMessages, this, location_hint),
+        std::bind(&WebRtc::RestartReceiveMessages, this, location_hint,
+                  service_id),
         kRestartReceiveMessagesDuration, &restart_receive_messages_executor_);
 
     SessionDescriptionWrapper offer = connection_flow_->CreateOffer();
@@ -91,8 +99,6 @@ bool WebRtc::StartAcceptingConnections(const PeerId& self_id,
     // the actual transport can begin.
     ListenForWebRtcSocketFuture(connection_flow_->GetDataChannel(),
                                 std::move(callback));
-    latest_service_id_ = service_id;
-    latest_local_endpoint_id_ = local_endpoint_id;
     NEARBY_LOG(INFO, "Started listening for WebRtc connections as %s",
                self_id.GetId().c_str());
   }
@@ -151,11 +157,12 @@ bool WebRtc::SetLocalSessionDescription(SessionDescriptionWrapper sdp) {
   return true;
 }
 
-void WebRtc::StopAcceptingConnections() {
-  if (!IsAcceptingConnections()) {
+void WebRtc::StopAcceptingConnections(const std::string& service_id) {
+  if (!IsAcceptingConnections(service_id)) {
     NEARBY_LOG(INFO,
                "Skipped StopAcceptingConnections since we are not currently "
-               "accepting WebRTC connections");
+               "accepting WebRTC connections for %s",
+               service_id.c_str());
     return;
   }
 
@@ -164,19 +171,6 @@ void WebRtc::StopAcceptingConnections() {
     ShutdownSignaling();
   }
   NEARBY_LOG(INFO, "Stopped accepting WebRTC connections");
-}
-
-void WebRtc::StopAcceptingConnection(const std::string& service_id,
-                                     const std::string& local_endpoint_id) {
-  MutexLock lock(&mutex_);
-  if (service_id == latest_service_id_ &&
-      local_endpoint_id == latest_local_endpoint_id_) {
-    StopAcceptingConnections();
-  } else {
-    NEARBY_LOG(INFO,
-               "Skipped StopAcceptingConnection since we are not the latest"
-               "ongoing connection.");
-  }
 }
 
 Future<WebRtcSocketWrapper> WebRtc::ListenForWebRtcSocketFuture(
@@ -486,8 +480,9 @@ void WebRtc::OffloadFromSignalingThread(Runnable runnable) {
   single_thread_executor_.Execute(std::move(runnable));
 }
 
-void WebRtc::RestartReceiveMessages(const LocationHint& location_hint) {
-  if (!IsAcceptingConnections()) {
+void WebRtc::RestartReceiveMessages(const LocationHint& location_hint,
+                                    const std::string& service_id) {
+  if (!IsAcceptingConnections(service_id)) {
     NEARBY_LOG(INFO,
                "Skipping restart since we are not accepting connections.");
     return;
