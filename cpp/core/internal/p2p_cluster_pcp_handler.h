@@ -25,6 +25,7 @@
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel_manager.h"
 #include "core/internal/endpoint_manager.h"
+#include "core/internal/injected_bluetooth_device_store.h"
 #include "core/internal/mediums/bluetooth_classic.h"
 #include "core/internal/mediums/mediums.h"
 #include "core/internal/mediums/webrtc.h"
@@ -51,10 +52,11 @@ namespace connections {
 // connects over Bluetooth.
 class P2pClusterPcpHandler : public BasePcpHandler {
  public:
-  P2pClusterPcpHandler(Mediums* mediums, EndpointManager* endpoint_manager,
-                       EndpointChannelManager* channel_manager,
-                       BwuManager* bwu_manager,
-                       Pcp pcp = Pcp::kP2pCluster);
+  P2pClusterPcpHandler(
+      Mediums* mediums, EndpointManager* endpoint_manager,
+      EndpointChannelManager* channel_manager, BwuManager* bwu_manager,
+      InjectedBluetoothDeviceStore& injected_bluetooth_device_store,
+      Pcp pcp = Pcp::kP2pCluster);
   ~P2pClusterPcpHandler() override = default;
 
  protected:
@@ -218,6 +220,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   Ble& ble_medium_;
   WifiLan& wifi_lan_medium_;
   mediums::WebRtc& webrtc_medium_;
+  InjectedBluetoothDeviceStore& injected_bluetooth_device_store_;
 };
 
 }  // namespace connections
