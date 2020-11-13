@@ -96,7 +96,8 @@ class Core {
   //                         available.
   //   Possible status codes include:
   //     Status::kSuccess if endpoint injection was attempted.
-  //     Status::kError if bluetooth_mac_address is malformed.
+  //     Status::kError if endpoint_id, endpoint_info, or
+  //         remote_bluetooth_mac_address are malformed.
   //     Status::kOutOfOrderApiCall if the app is not discovering.
   void InjectEndpoint(absl::string_view service_id,
                       OutOfBandConnectionMetadata metadata,

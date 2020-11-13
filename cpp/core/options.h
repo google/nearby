@@ -128,6 +128,19 @@ struct OutOfBandConnectionMetadata {
   // Medium to use for the out-of-band connection.
   Medium medium;
 
+  // Endpoint ID to use for the injected connection; will be included in the
+  // endpoint_found_cb callback. Must be exactly 4 bytes and should be randomly-
+  // generated such that no two IDs are identical.
+  std::string endpoint_id;
+
+  // Endpoint info to use for the injected connection; will be included in the
+  // endpoint_found_cb callback. Should uniquely identify the InjectEndpoint()
+  // call so that the client which made the call can verify the endpoint
+  // that was found is the one that was injected.
+  //
+  // Cannot be empty, and must be <131 bytes.
+  ByteArray endpoint_info;
+
   // Used for Bluetooth connections.
   ByteArray remote_bluetooth_mac_address;
 };

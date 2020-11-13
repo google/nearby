@@ -23,10 +23,11 @@ namespace connections {
 // and connects over Bluetooth.
 class P2pStarPcpHandler : public P2pClusterPcpHandler {
  public:
-  P2pStarPcpHandler(Mediums& mediums, EndpointManager& endpoint_manager,
-                    EndpointChannelManager& channel_manager,
-                    BwuManager& bwu_manager,
-                    Pcp pcp = Pcp::kP2pStar);
+  P2pStarPcpHandler(
+      Mediums& mediums, EndpointManager& endpoint_manager,
+      EndpointChannelManager& channel_manager, BwuManager& bwu_manager,
+      InjectedBluetoothDeviceStore& injected_bluetooth_device_store,
+      Pcp pcp = Pcp::kP2pStar);
 
  protected:
   std::vector<proto::connections::Medium> GetConnectionMediumsByPriority()
