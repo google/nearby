@@ -22,6 +22,7 @@
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel_manager.h"
 #include "core/internal/endpoint_manager.h"
+#include "core/internal/injected_bluetooth_device_store.h"
 #include "core/internal/mediums/mediums.h"
 #include "core/listeners.h"
 #include "core/options.h"
@@ -44,7 +45,8 @@ namespace connections {
 class PcpManager {
  public:
   PcpManager(Mediums& mediums, EndpointChannelManager& channel_manager,
-             EndpointManager& endpoint_manager, BwuManager& bwu_manager);
+             EndpointManager& endpoint_manager, BwuManager& bwu_manager,
+             InjectedBluetoothDeviceStore& injected_bluetooth_device_store);
   ~PcpManager();
 
   Status StartAdvertising(ClientProxy* client, const string& service_id,

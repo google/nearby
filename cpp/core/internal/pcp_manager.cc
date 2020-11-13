@@ -23,17 +23,20 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-PcpManager::PcpManager(Mediums& mediums,
-                       EndpointChannelManager& channel_manager,
-                       EndpointManager& endpoint_manager,
-                       BwuManager& bwu_manager) {
+PcpManager::PcpManager(
+    Mediums& mediums, EndpointChannelManager& channel_manager,
+    EndpointManager& endpoint_manager, BwuManager& bwu_manager,
+    InjectedBluetoothDeviceStore& injected_bluetooth_device_store) {
   handlers_[Pcp::kP2pCluster] = std::make_unique<P2pClusterPcpHandler>(
-      &mediums, &endpoint_manager, &channel_manager, &bwu_manager);
+      &mediums, &endpoint_manager, &channel_manager, &bwu_manager,
+      injected_bluetooth_device_store);
   handlers_[Pcp::kP2pStar] = std::make_unique<P2pStarPcpHandler>(
-      mediums, endpoint_manager, channel_manager, bwu_manager);
+      mediums, endpoint_manager, channel_manager, bwu_manager,
+      injected_bluetooth_device_store);
   handlers_[Pcp::kP2pPointToPoint] =
-      std::make_unique<P2pPointToPointPcpHandler>(mediums, endpoint_manager,
-                                                  channel_manager, bwu_manager);
+      std::make_unique<P2pPointToPointPcpHandler>(
+          mediums, endpoint_manager, channel_manager, bwu_manager,
+          injected_bluetooth_device_store);
 }
 
 void PcpManager::DisconnectFromEndpointManager() {

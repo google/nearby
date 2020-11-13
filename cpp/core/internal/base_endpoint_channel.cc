@@ -248,6 +248,8 @@ std::string BaseEndpointChannel::GetType() const {
       return absl::StrCat(subtype, "WIFI_HOTSPOT");
     case proto::connections::Medium::WIFI_LAN:
       return absl::StrCat(subtype, "WIFI_LAN");
+    case proto::connections::Medium::WEB_RTC:
+      return absl::StrCat(subtype, "WEB_RTC");
     default:
       return "UNKNOWN";
   }
