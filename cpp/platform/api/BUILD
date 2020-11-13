@@ -59,6 +59,7 @@ cc_library(
         "wifi_lan.h",
     ],
     visibility = [
+        "//core/internal:__subpackages__",
         "//platform/base:__pkg__",
         "//platform/impl:__subpackages__",
         "//platform/public:__pkg__",

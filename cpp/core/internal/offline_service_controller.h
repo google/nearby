@@ -23,6 +23,7 @@
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel_manager.h"
 #include "core/internal/endpoint_manager.h"
+#include "core/internal/injected_bluetooth_device_store.h"
 #include "core/internal/mediums/mediums.h"
 #include "core/internal/payload_manager.h"
 #include "core/internal/pcp_manager.h"
@@ -87,8 +88,9 @@ class OfflineServiceController : public ServiceController {
   PayloadManager payload_manager_{endpoint_manager_};
   BwuManager bwu_manager_{
       mediums_, endpoint_manager_, channel_manager_, {}, {}};
+  InjectedBluetoothDeviceStore injected_bluetooth_device_store_;
   PcpManager pcp_manager_{mediums_, channel_manager_, endpoint_manager_,
-                          bwu_manager_};
+                          bwu_manager_, injected_bluetooth_device_store_};
 };
 
 }  // namespace connections

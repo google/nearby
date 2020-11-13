@@ -51,6 +51,7 @@ bool P2pClusterPcpHandler::ShouldAcceptBluetoothConnections(
 P2pClusterPcpHandler::P2pClusterPcpHandler(
     Mediums* mediums, EndpointManager* endpoint_manager,
     EndpointChannelManager* endpoint_channel_manager, BwuManager* bwu_manager,
+    InjectedBluetoothDeviceStore& injected_bluetooth_device_store,
     Pcp pcp)
     : BasePcpHandler(mediums, endpoint_manager, endpoint_channel_manager,
                      bwu_manager, pcp),
@@ -58,7 +59,8 @@ P2pClusterPcpHandler::P2pClusterPcpHandler(
       bluetooth_medium_(mediums->GetBluetoothClassic()),
       ble_medium_(mediums->GetBle()),
       wifi_lan_medium_(mediums->GetWifiLan()),
-      webrtc_medium_(mediums->GetWebRtc()) {}
+      webrtc_medium_(mediums->GetWebRtc()),
+      injected_bluetooth_device_store_(injected_bluetooth_device_store) {}
 
 // Returns a vector or mediums sorted in order or decreasing priority for
 // all the supported mediums.
@@ -638,21 +640,20 @@ Status P2pClusterPcpHandler::InjectEndpointImpl(
   NEARBY_LOG(INFO, "InjectEndpoint");
   // Bluetooth is the only supported out-of-band connection medium.
   if (metadata.medium != Medium::BLUETOOTH) {
-    NEARBY_LOG(WARNING, "StartDiscoveryImpl: Only Bluetooth is supported");
+    NEARBY_LOG(WARNING, "InjectEndpointImpl: Only Bluetooth is supported");
     return {Status::kError};
   }
 
-  std::string remote_bluetooth_mac_address =
-      BluetoothUtils::ToString(metadata.remote_bluetooth_mac_address);
-  if (remote_bluetooth_mac_address.empty()) {
-    NEARBY_LOG(WARNING, "StartDiscoveryImpl: Missing Bluetooth MAC");
-    return {Status::kError};
-  }
+  BluetoothDevice remote_bluetooth_device =
+      injected_bluetooth_device_store_.CreateInjectedBluetoothDevice(
+          metadata.remote_bluetooth_mac_address,
+          metadata.endpoint_id,
+          metadata.endpoint_info,
+          GenerateHash(service_id, BluetoothDeviceName::kServiceIdHashLength),
+          GetPcp());
 
-  auto remote_bluetooth_device =
-      GetRemoteBluetoothDevice(remote_bluetooth_mac_address);
   if (!remote_bluetooth_device.IsValid()) {
-    NEARBY_LOG(WARNING, "StartDiscoveryImpl: Invalid Bluetooth MAC");
+    NEARBY_LOG(WARNING, "InjectEndpointImpl: Invalid parameters");
     return {Status::kError};
   }
 

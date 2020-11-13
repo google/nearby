@@ -31,7 +31,18 @@ namespace location {
 namespace nearby {
 namespace connections {
 namespace {
+// Length of a MAC address, which consists of 6 bytes uniquely identifying a
+// hardware interface.
 const std::size_t kMacAddressLength = 6u;
+
+// Length used for an endpoint ID, which identifies a device discovery and
+// associated connection request.
+const std::size_t kEndpointIdLength = 4u;
+
+// Maximum length for information describing an endpoint; this information is
+// advertised by one device and can be used by the other device to identify the
+// advertiser.
+const std::size_t kMaxEndpointInfoLength = 131u;
 }  // namespace
 
 ServiceControllerRouter::~ServiceControllerRouter() {
@@ -118,6 +129,17 @@ void ServiceControllerRouter::InjectEndpoint(
     // Currently, Bluetooth is the only supported medium for endpoint injection.
     if (metadata.medium != Medium::BLUETOOTH ||
         metadata.remote_bluetooth_mac_address.size() != kMacAddressLength) {
+      callback.result_cb({Status::kError});
+      return;
+    }
+
+    if (metadata.endpoint_id.size() != kEndpointIdLength) {
+      callback.result_cb({Status::kError});
+      return;
+    }
+
+    if (metadata.endpoint_info.Empty() ||
+        metadata.endpoint_info.size() > kMaxEndpointInfoLength) {
       callback.result_cb({Status::kError});
       return;
     }
