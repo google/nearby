@@ -149,7 +149,12 @@ Exception BaseEndpointChannel::Write(const ByteArray& data) {
   ByteArray encrypted_data;
   const ByteArray* data_to_write = &data;
   {
+    // Holding both mutexes is necessary to prevent the keep alive and payload
+    // threads from writing encrypted messages out of order which causes a
+    // failure to decrypt on the reader side.
     MutexLock crypto_lock(&crypto_mutex_);
+    MutexLock lock(&writer_mutex_);
+
     if (IsEncryptionEnabledLocked()) {
       // If encryption is enabled, encode the message.
       std::unique_ptr<std::string> encrypted =
@@ -158,10 +163,7 @@ Exception BaseEndpointChannel::Write(const ByteArray& data) {
       encrypted_data = ByteArray(std::move(*encrypted));
       data_to_write = &encrypted_data;
     }
-  }
 
-  {
-    MutexLock lock(&writer_mutex_);
     Exception write_exception =
         WriteInt(writer_, static_cast<std::int32_t>(data_to_write->size()));
     if (write_exception.Raised()) {
