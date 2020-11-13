@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "core/internal/bwu_manager.h"
+#include "core/internal/injected_bluetooth_device_store.h"
 #include "core/options.h"
 #include "platform/base/medium_environment.h"
 #include "platform/public/count_down_latch.h"
@@ -63,7 +64,8 @@ TEST_P(P2pClusterPcpHandlerTest, CanConstructOne) {
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
   BwuManager bwu(mediums, em, ecm, {}, {});
-  P2pClusterPcpHandler handler(&mediums, &em, &ecm, &bwu);
+  InjectedBluetoothDeviceStore ibds;
+  P2pClusterPcpHandler handler(&mediums, &em, &ecm, &bwu, ibds);
   env_.Stop();
 }
 
@@ -77,8 +79,10 @@ TEST_P(P2pClusterPcpHandlerTest, CanConstructMultiple) {
   EndpointManager em_b(&ecm_b);
   BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
   BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
-  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a);
-  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b);
+  InjectedBluetoothDeviceStore ibds_a;
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
   env_.Stop();
 }
 
@@ -89,7 +93,8 @@ TEST_P(P2pClusterPcpHandlerTest, CanAdvertise) {
   EndpointChannelManager ecm_a;
   EndpointManager em_a(&ecm_a);
   BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
-  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a);
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
   EXPECT_EQ(
       handler_a.StartAdvertising(&client_a_, service_id_, options_,
                                  {.endpoint_info = ByteArray{endpoint_name}}),
@@ -108,8 +113,10 @@ TEST_P(P2pClusterPcpHandlerTest, CanDiscover) {
   EndpointManager em_b(&ecm_b);
   BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
   BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
-  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a);
-  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b);
+  InjectedBluetoothDeviceStore ibds_a;
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
   CountDownLatch latch(1);
   EXPECT_EQ(
       handler_a.StartAdvertising(&client_a_, service_id_, options_,
@@ -152,8 +159,10 @@ TEST_P(P2pClusterPcpHandlerTest, CanConnect) {
                    {.allow_upgrade_to = {.bluetooth = true}});
   BwuManager bwu_b(mediums_b, em_b, ecm_b, {},
                    {.allow_upgrade_to = {.bluetooth = true}});
-  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a);
-  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b);
+  InjectedBluetoothDeviceStore ibds_a;
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
   CountDownLatch discover_latch(1);
   CountDownLatch connect_latch(2);
   struct DiscoveredInfo {

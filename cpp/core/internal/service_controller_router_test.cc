@@ -28,6 +28,8 @@ namespace connections {
 namespace {
 using ::testing::Return;
 constexpr std::array<char, 6> kFakeMacAddress = {'a', 'b', 'c', 'd', 'e', 'f'};
+constexpr std::array<char, 6> kFakeInjectedEndpointInfo = {'g', 'h', 'i'};
+const char kFakeInejctedEndpointId[] = "abcd";
 }  // namespace
 
 // This class must be in the same namespace as ServiceControllerRouter for
@@ -256,6 +258,8 @@ class ServiceControllerRouterTest : public testing::Test {
   };
   const OutOfBandConnectionMetadata kOutOfBandConnectionMetadata{
       .medium = Medium::BLUETOOTH,
+      .endpoint_id = kFakeInejctedEndpointId,
+      .endpoint_info = ByteArray(kFakeInjectedEndpointInfo),
       .remote_bluetooth_mac_address = ByteArray(kFakeMacAddress),
   };
 

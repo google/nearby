@@ -6,9 +6,10 @@ namespace connections {
 
 P2pPointToPointPcpHandler::P2pPointToPointPcpHandler(
     Mediums& mediums, EndpointManager& endpoint_manager,
-    EndpointChannelManager& channel_manager, BwuManager& bwu_manager, Pcp pcp)
+    EndpointChannelManager& channel_manager, BwuManager& bwu_manager,
+    InjectedBluetoothDeviceStore& injected_bluetooth_device_store, Pcp pcp)
     : P2pStarPcpHandler(mediums, endpoint_manager, channel_manager, bwu_manager,
-                        pcp) {}
+                        injected_bluetooth_device_store, pcp) {}
 
 std::vector<proto::connections::Medium>
 P2pPointToPointPcpHandler::GetConnectionMediumsByPriority() {

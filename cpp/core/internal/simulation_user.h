@@ -7,6 +7,7 @@
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel_manager.h"
 #include "core/internal/endpoint_manager.h"
+#include "core/internal/injected_bluetooth_device_store.h"
 #include "core/internal/payload_manager.h"
 #include "core/internal/pcp_manager.h"
 #include "core/options.h"
@@ -137,7 +138,8 @@ class SimulationUser {
   EndpointChannelManager ecm_;
   EndpointManager em_{&ecm_};
   BwuManager bwu_{mediums_, em_, ecm_, {}, {}};
-  PcpManager mgr_{mediums_, ecm_, em_, bwu_};
+  InjectedBluetoothDeviceStore injected_bluetooth_device_store_;
+  PcpManager mgr_{mediums_, ecm_, em_, bwu_, injected_bluetooth_device_store_};
   PayloadManager pm_{em_};
 };
 
