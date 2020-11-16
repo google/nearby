@@ -165,17 +165,19 @@ Exception BaseEndpointChannel::Write(const ByteArray& data) {
   {
     // Holding both mutexes is necessary to prevent the keep alive and payload
     // threads from writing encrypted messages out of order which causes a
-    // failure to decrypt on the reader side.
-    MutexLock crypto_lock(&crypto_mutex_);
+    // failure to decrypt on the reader side. However we need to release the
+    // crypto lock after encrypting to ensure read decryption is not blocked.
     MutexLock lock(&writer_mutex_);
-
-    if (IsEncryptionEnabledLocked()) {
-      // If encryption is enabled, encode the message.
-      std::unique_ptr<std::string> encrypted =
-          crypto_context_->EncodeMessageToPeer(std::string(data));
-      if (!encrypted) return {Exception::kIo};
-      encrypted_data = ByteArray(std::move(*encrypted));
-      data_to_write = &encrypted_data;
+    {
+      MutexLock crypto_lock(&crypto_mutex_);
+      if (IsEncryptionEnabledLocked()) {
+        // If encryption is enabled, encode the message.
+        std::unique_ptr<std::string> encrypted =
+            crypto_context_->EncodeMessageToPeer(std::string(data));
+        if (!encrypted) return {Exception::kIo};
+        encrypted_data = ByteArray(std::move(*encrypted));
+        data_to_write = &encrypted_data;
+      }
     }
 
     Exception write_exception =
