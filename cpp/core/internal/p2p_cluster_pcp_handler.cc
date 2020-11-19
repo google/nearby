@@ -37,8 +37,7 @@ bool P2pClusterPcpHandler::ShouldAcceptBluetoothConnections(
 P2pClusterPcpHandler::P2pClusterPcpHandler(
     Mediums* mediums, EndpointManager* endpoint_manager,
     EndpointChannelManager* endpoint_channel_manager, BwuManager* bwu_manager,
-    InjectedBluetoothDeviceStore& injected_bluetooth_device_store,
-    Pcp pcp)
+    InjectedBluetoothDeviceStore& injected_bluetooth_device_store, Pcp pcp)
     : BasePcpHandler(mediums, endpoint_manager, endpoint_channel_manager,
                      bwu_manager, pcp),
       bluetooth_radio_(mediums->GetBluetoothRadio()),
@@ -103,6 +102,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
     if (bluetooth_medium != proto::connections::UNKNOWN_MEDIUM) {
       NEARBY_LOG(INFO, "P2pClusterPcpHandler::StartAdvertisingImpl: BT added");
       mediums_started_successfully.push_back(bluetooth_medium);
+      bluetooth_classic_advertiser_client_id_ = client->GetClientId();
     }
   }
 
@@ -134,7 +134,14 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
 }
 
 Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
-  bluetooth_medium_.TurnOffDiscoverability();
+  if (client->GetClientId() == bluetooth_classic_advertiser_client_id_) {
+    bluetooth_medium_.TurnOffDiscoverability();
+  } else {
+    NEARBY_LOG(INFO,
+               "Skipped BT TurnOffDiscoverability for client %d, client that "
+               "turned on discoverability is %d",
+               client->GetClientId(), bluetooth_classic_advertiser_client_id_);
+  }
   bluetooth_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
 
   ble_medium_.StopAdvertising(client->GetAdvertisingServiceId());
@@ -581,6 +588,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
     if (bluetooth_medium != proto::connections::UNKNOWN_MEDIUM) {
       NEARBY_LOG(INFO, "P2pClusterPcpHandler::StartDiscoveryImpl: BT added");
       mediums_started_successfully.push_back(bluetooth_medium);
+      bluetooth_classic_discoverer_client_id_ = client->GetClientId();
     }
   }
 
@@ -615,7 +623,14 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
 
 Status P2pClusterPcpHandler::StopDiscoveryImpl(ClientProxy* client) {
   wifi_lan_medium_.StopDiscovery(client->GetDiscoveryServiceId());
-  bluetooth_medium_.StopDiscovery();
+  if (client->GetClientId() == bluetooth_classic_discoverer_client_id_) {
+    bluetooth_medium_.StopDiscovery();
+  } else {
+    NEARBY_LOG(INFO,
+               "Skipped BT stopDiscovery for client %d, client that started "
+               "discovery is %d",
+               client->GetClientId(), bluetooth_classic_discoverer_client_id_);
+  }
   ble_medium_.StopScanning(client->GetDiscoveryServiceId());
   return {Status::kSuccess};
 }
@@ -632,8 +647,7 @@ Status P2pClusterPcpHandler::InjectEndpointImpl(
 
   BluetoothDevice remote_bluetooth_device =
       injected_bluetooth_device_store_.CreateInjectedBluetoothDevice(
-          metadata.remote_bluetooth_mac_address,
-          metadata.endpoint_id,
+          metadata.remote_bluetooth_mac_address, metadata.endpoint_id,
           metadata.endpoint_info,
           GenerateHash(service_id, BluetoothDeviceName::kServiceIdHashLength),
           GetPcp());
@@ -1143,7 +1157,7 @@ P2pClusterPcpHandler::StartListeningForWebRtcConnections(
         service_id, local_endpoint_id, local_endpoint_info);
     std::string empty_country_code;
     if (!webrtc_medium_.StartAcceptingConnections(
-            self_id, service_id, Utils::BuildLocationHint(empty_country_code),
+            service_id, self_id, Utils::BuildLocationHint(empty_country_code),
             {[this, client,
               local_endpoint_info](mediums::WebRtcSocketWrapper socket) {
               if (!socket.IsValid()) {

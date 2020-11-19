@@ -43,10 +43,10 @@ TEST_F(WebRtcTest, StartAcceptingConnectionTwice) {
 
   ASSERT_TRUE(webrtc.IsAvailable());
   ASSERT_TRUE(webrtc.StartAcceptingConnections(
-      self_id, service_id, location_hint,
+      service_id, self_id, location_hint,
       {mock_accepted_callback_.AsStdFunction()}));
   EXPECT_FALSE(webrtc.StartAcceptingConnections(
-      self_id, service_id, location_hint,
+      service_id, self_id, location_hint,
       {mock_accepted_callback_.AsStdFunction()}));
   EXPECT_TRUE(webrtc.IsAcceptingConnections(std::string{}));
 }
@@ -64,7 +64,7 @@ TEST_F(WebRtcTest, Connect_DataChannelTimeOut) {
   EXPECT_FALSE(wrapper_1.IsValid());
 
   EXPECT_TRUE(webrtc.StartAcceptingConnections(
-      peer_id, service_id, location_hint, AcceptedConnectionCallback()));
+      service_id, peer_id, location_hint, AcceptedConnectionCallback()));
 }
 
 // Tests the flow when the device calls Connect() after calling
@@ -81,14 +81,14 @@ TEST_F(WebRtcTest, StartAcceptingConnection_ThenConnect) {
 
   ASSERT_TRUE(webrtc.IsAvailable());
   ASSERT_TRUE(webrtc.StartAcceptingConnections(
-      self_id, service_id, location_hint,
+      service_id, self_id, location_hint,
       {mock_accepted_callback_.AsStdFunction()}));
   WebRtcSocketWrapper wrapper =
       webrtc.Connect(PeerId("random_peer_id"), location_hint);
   EXPECT_TRUE(webrtc.IsAcceptingConnections(std::string{}));
   EXPECT_FALSE(wrapper.IsValid());
   EXPECT_FALSE(webrtc.StartAcceptingConnections(
-      self_id, service_id, location_hint,
+      service_id, self_id, location_hint,
       {mock_accepted_callback_.AsStdFunction()}));
 }
 
@@ -106,7 +106,7 @@ TEST_F(WebRtcTest, StartAndStopAcceptingConnections) {
 
   ASSERT_TRUE(webrtc.IsAvailable());
   ASSERT_TRUE(webrtc.StartAcceptingConnections(
-      self_id, service_id, location_hint,
+      service_id, self_id, location_hint,
       {mock_accepted_callback_.AsStdFunction()}));
   webrtc.StopAcceptingConnections(service_id);
   EXPECT_FALSE(webrtc.IsAcceptingConnections(std::string{}));
@@ -124,7 +124,7 @@ TEST_F(WebRtcTest, ConnectTwice) {
   ByteArray message("message xyz");
 
   receiver.StartAcceptingConnections(
-      self_id, service_id, location_hint,
+      service_id, self_id, location_hint,
       {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
@@ -133,7 +133,7 @@ TEST_F(WebRtcTest, ConnectTwice) {
   using MockAcceptedCallback =
       testing::MockFunction<void(WebRtcSocketWrapper socket)>;
   testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
-  device_c.StartAcceptingConnections(other_id, service_id, location_hint,
+  device_c.StartAcceptingConnections(service_id, other_id, location_hint,
                                      {mock_accepted_callback_.AsStdFunction()});
 
   sender_socket = sender.Connect(self_id, location_hint);
@@ -170,7 +170,7 @@ TEST_F(WebRtcTest, ConnectBothDevicesAndAbort) {
   ByteArray message("message xyz");
 
   receiver.StartAcceptingConnections(
-      self_id, service_id, location_hint,
+      service_id, self_id, location_hint,
       {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
@@ -198,7 +198,7 @@ TEST_F(WebRtcTest, ConnectBothDevicesAndSendData) {
   ByteArray message("message");
 
   receiver.StartAcceptingConnections(
-      self_id, service_id, location_hint,
+      service_id, self_id, location_hint,
       {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
@@ -232,7 +232,7 @@ TEST_F(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
   ByteArray message("message xyz");
 
   receiver.StartAcceptingConnections(
-      self_id, service_id, location_hint,
+      service_id, self_id, location_hint,
       {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
@@ -270,7 +270,7 @@ TEST_F(WebRtcTest, StartAcceptingConnections_NullPeerConnection) {
 
   ASSERT_TRUE(webrtc.IsAvailable());
   EXPECT_FALSE(webrtc.StartAcceptingConnections(
-      self_id, service_id, location_hint,
+      service_id, self_id, location_hint,
       {mock_accepted_callback_.AsStdFunction()}));
 }
 

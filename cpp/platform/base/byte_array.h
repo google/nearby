@@ -1,6 +1,7 @@
 #ifndef PLATFORM_BASE_BYTE_ARRAY_H_
 #define PLATFORM_BASE_BYTE_ARRAY_H_
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <string>
