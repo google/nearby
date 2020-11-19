@@ -61,8 +61,8 @@ class WebRtc {
   // Prepares the device to accept incoming WebRtc connections. Returns a
   // boolean value indicating if the device has started accepting connections.
   // Runs on @MainThread.
-  bool StartAcceptingConnections(const PeerId& self_id,
-                                 const std::string& service_id,
+  bool StartAcceptingConnections(const std::string& service_id,
+                                 const PeerId& self_id,
                                  const LocationHint& location_hint,
                                  AcceptedConnectionCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
