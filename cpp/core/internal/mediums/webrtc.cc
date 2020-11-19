@@ -68,8 +68,8 @@ bool WebRtc::IsAcceptingConnections(const std::string& service_id) {
   return role_ == Role::kOfferer;
 }
 
-bool WebRtc::StartAcceptingConnections(const PeerId& self_id,
-                                       const std::string& service_id,
+bool WebRtc::StartAcceptingConnections(const std::string& service_id,
+                                       const PeerId& self_id,
                                        const LocationHint& location_hint,
                                        AcceptedConnectionCallback callback) {
   if (!IsAvailable()) {
