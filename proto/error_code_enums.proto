@@ -286,6 +286,14 @@ enum ConnectError {
   // Next ID :44
 }
 
+// The error for event DISCONNECT. The range between 31 and 99.
+enum DisconnectError {
+  // System error, failed to disconnect the network.
+  DISCONNECT_NETWORK_FAILED = 31;
+
+  // Next ID :32
+}
+
 enum Description {
   reserved 28, 29;
 
