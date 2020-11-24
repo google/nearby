@@ -19,6 +19,7 @@
 #include "platform/api/wifi_lan.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/input_stream.h"
+#include "platform/base/nsd_service_info.h"
 #include "platform/base/output_stream.h"
 #include "platform/public/mutex.h"
 #include "absl/container/flat_hash_map.h"
@@ -26,8 +27,7 @@
 namespace location {
 namespace nearby {
 
-// Opaque wrapper over a WifiLan service which contains packed
-// |WifiLanServiceInfo| string name and the TXT Record.
+// Opaque wrapper over a WifiLan service which contains |NsdServiceInfo|.
 class WifiLanService final {
  public:
   WifiLanService() = default;
@@ -36,12 +36,7 @@ class WifiLanService final {
   explicit WifiLanService(api::WifiLanService* service) : impl_(service) {}
   ~WifiLanService() = default;
 
-  std::string GetServiceName() const { return impl_->GetServiceName(); }
-
-  std::string GetTxtRecord(const std::string& key) const {
-    return impl_->GetTxtRecord(key);
-  }
-
+  NsdServiceInfo GetServiceInfo() const { return impl_->GetServiceInfo(); }
   api::WifiLanService& GetImpl() { return *impl_; }
   bool IsValid() const { return impl_ != nullptr; }
 
@@ -119,7 +114,7 @@ class WifiLanMedium final {
   };
 
   struct ServiceDiscoveryInfo {
-    WifiLanService service;
+    WifiLanService wifi_lan_service;
   };
 
   struct AcceptedConnectionCallback {
@@ -135,8 +130,7 @@ class WifiLanMedium final {
   ~WifiLanMedium() = default;
 
   bool StartAdvertising(const std::string& service_id,
-                        const std::string& service_info_name,
-                        const std::string& endpoint_info_name);
+                        const NsdServiceInfo& nsd_service_info);
   bool StopAdvertising(const std::string& service_id);
 
   // Returns true once the WifiLan discovery has been initiated.
@@ -156,13 +150,14 @@ class WifiLanMedium final {
 
   // Returns a new WifiLanSocket. On Success, WifiLanSocket::IsValid()
   // returns true.
-  WifiLanSocket Connect(WifiLanService& service, const std::string& service_id);
+  WifiLanSocket Connect(WifiLanService& wifi_lan_service,
+                        const std::string& service_id);
 
   bool IsValid() const { return impl_ != nullptr; }
 
   api::WifiLanMedium& GetImpl() { return *impl_; }
 
-  WifiLanService FindRemoteService(const std::string& ip_address, int port);
+  WifiLanService GetRemoteService(const std::string& ip_address, int port);
 
   std::pair<std::string, int> GetServiceAddress(const std::string& service_id);
 

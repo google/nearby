@@ -53,6 +53,7 @@ cc_library(
     ],
     deps = [
         "//platform/base",
+        "//platform/base:util",
         "//platform/public:comm",
         "//platform/public:logging",
         "//platform/public:types",

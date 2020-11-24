@@ -34,14 +34,13 @@ bool WifiLan::IsAvailable() const {
 bool WifiLan::IsAvailableLocked() const { return medium_.IsValid(); }
 
 bool WifiLan::StartAdvertising(const std::string& service_id,
-                               const std::string& service_info_name,
-                               const std::string& endpoint_info_name) {
+                               const NsdServiceInfo& nsd_service_info) {
   MutexLock lock(&mutex_);
 
-  if (service_info_name.empty()) {
-    NEARBY_LOG(
-        INFO,
-        "Refusing to turn on WifiLan advertising. Empty service info name.");
+  if (!nsd_service_info.IsValid()) {
+    NEARBY_LOGS(INFO)
+        << "Refusing to turn on WifiLan advertising. nsd_service_info is not "
+           "valid.";
     return false;
   }
 
@@ -51,16 +50,19 @@ bool WifiLan::StartAdvertising(const std::string& service_id,
     return false;
   }
 
-  if (!medium_.StartAdvertising(service_id, service_info_name,
-                                endpoint_info_name)) {
-    NEARBY_LOG(
-        INFO, "Failed to turn on WifiLan advertising with service info name=%s",
-        service_info_name.c_str());
+  if (!medium_.StartAdvertising(service_id, nsd_service_info)) {
+    NEARBY_LOGS(INFO)
+        << "Failed to turn on WifiLan advertising with wifi_lan_service="
+        << &nsd_service_info
+        << ", service_info_name=" << nsd_service_info.GetServiceInfoName()
+        << ", service_id=" << service_id;
     return false;
   }
 
-  NEARBY_LOGS(INFO) << "Turned on WifiLan advertising with service info name="
-                    << service_info_name << ", service id=" << service_id;
+  NEARBY_LOGS(INFO) << "Turned on WifiLan advertising with wifi_lan_service="
+                    << &nsd_service_info << ", service_info_name="
+                    << nsd_service_info.GetServiceInfoName()
+                    << ", service_id=" << service_id;
   advertising_info_.Add(service_id);
   return true;
 }
@@ -73,7 +75,7 @@ bool WifiLan::StopAdvertising(const std::string& service_id) {
     return false;
   }
 
-  NEARBY_LOG(INFO, "Turned off WifiLan advertising with service id=%s",
+  NEARBY_LOG(INFO, "Turned off WifiLan advertising with service_id=%s",
              service_id.c_str());
   bool ret = medium_.StopAdvertising(service_id);
   // Reset our bundle of advertising state to mark that we're no longer
@@ -98,7 +100,7 @@ bool WifiLan::StartDiscovery(const std::string& service_id,
 
   if (service_id.empty()) {
     NEARBY_LOG(INFO,
-               "Refusing to start WifiLan discovering with empty service id.");
+               "Refusing to start WifiLan discovering with empty service_id.");
     return false;
   }
 
@@ -122,7 +124,7 @@ bool WifiLan::StartDiscovery(const std::string& service_id,
     return false;
   }
 
-  NEARBY_LOG(INFO, "Turned on WifiLan discovering with service id=%s",
+  NEARBY_LOG(INFO, "Turned on WifiLan discovering with service_id=%s",
              service_id.c_str());
   // Mark the fact that we're currently performing a WifiLan discovering.
   discovering_info_.Add(service_id);
@@ -139,7 +141,7 @@ bool WifiLan::StopDiscovery(const std::string& service_id) {
     return false;
   }
 
-  NEARBY_LOG(INFO, "Turned off WifiLan discovering with service id=%s",
+  NEARBY_LOG(INFO, "Turned off WifiLan discovering with service_id=%s",
              service_id.c_str());
   bool ret = medium_.StopDiscovery(service_id);
   discovering_info_.Clear();
@@ -163,7 +165,7 @@ bool WifiLan::StartAcceptingConnections(const std::string& service_id,
   if (service_id.empty()) {
     NEARBY_LOG(INFO,
                "Refusing to start accepting WifiLan connections with empty "
-               "service id.");
+               "service_id.");
     return false;
   }
 
@@ -223,8 +225,10 @@ bool WifiLan::IsAcceptingConnectionsLocked(const std::string& service_id) {
 WifiLanSocket WifiLan::Connect(WifiLanService& wifi_lan_service,
                                const std::string& service_id) {
   MutexLock lock(&mutex_);
-  NEARBY_LOG(INFO, "WifiLan::Connect: service=%p, service_info_name=%s",
-             &wifi_lan_service, wifi_lan_service.GetServiceName().c_str());
+  NEARBY_LOGS(INFO) << "WifiLan::Connect: wifi_lan_service="
+                    << &wifi_lan_service << ", service_info_name="
+                    << wifi_lan_service.GetServiceInfo().GetServiceInfoName()
+                    << ", service_id=" << service_id;
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   WifiLanSocket socket;
 
@@ -254,7 +258,7 @@ WifiLanSocket WifiLan::Connect(WifiLanService& wifi_lan_service,
 WifiLanService WifiLan::GetRemoteWifiLanService(const std::string& ip_address,
                                                 int port) {
   MutexLock lock(&mutex_);
-  return medium_.FindRemoteService(ip_address, port);
+  return medium_.GetRemoteService(ip_address, port);
 }
 
 std::pair<std::string, int> WifiLan::GetServiceAddress(

@@ -55,21 +55,6 @@ java_proto_library(
 )
 
 proto_library(
-    name = "error_code_enums_proto",
-    srcs = ["error_code_enums.proto"],
-    cc_api_version = 2,
-    compatible_with = ["//buildenv/target:appengine"],
-    deps = [
-        "//logs/proto/logs_annotations",
-    ],
-)
-
-java_lite_proto_library(
-    name = "error_code_enums_java_proto_lite",
-    deps = [":error_code_enums_proto"],
-)
-
-proto_library(
     name = "connections_enums_proto",
     srcs = ["connections_enums.proto"],
     cc_api_version = 2,

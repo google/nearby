@@ -34,6 +34,7 @@ constexpr absl::string_view kServiceID{"com.google.location.nearby.apps.test"};
 constexpr absl::string_view kServiceInfoName{
     "Simulated WifiLan service encrypted string #1"};
 constexpr absl::string_view kEndpointName{"Simulated endpoint name"};
+constexpr absl::string_view kEndpointInfoKey{"n"};
 
 class WifiLanTest : public ::testing::Test {
  protected:
@@ -73,8 +74,11 @@ TEST_F(WifiLanTest, CanStartAdvertising) {
                           },
                   });
 
-  EXPECT_TRUE(wifi_lan_a.StartAdvertising(service_id, service_info_name,
-                                          endpoint_info_name));
+  NsdServiceInfo nsd_service_info;
+  nsd_service_info.SetServiceInfoName(service_info_name);
+  nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
+                                endpoint_info_name);
+  EXPECT_TRUE(wifi_lan_a.StartAdvertising(service_id, nsd_service_info));
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(wifi_lan_a.StopAdvertising(service_id));
   EXPECT_TRUE(wifi_lan_b.StopDiscovery(service_id));
@@ -91,8 +95,11 @@ TEST_F(WifiLanTest, CanStartDiscovery) {
   CountDownLatch accept_latch(1);
   CountDownLatch lost_latch(1);
 
-  wifi_lan_b.StartAdvertising(service_id, service_info_name,
-                              endpoint_info_name);
+  NsdServiceInfo nsd_service_info;
+  nsd_service_info.SetServiceInfoName(service_info_name);
+  nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
+                                endpoint_info_name);
+  wifi_lan_b.StartAdvertising(service_id, nsd_service_info);
 
   EXPECT_TRUE(wifi_lan_a.StartDiscovery(
       service_id, {
@@ -124,8 +131,11 @@ TEST_F(WifiLanTest, CanStartAcceptingConnectionsAndConnect) {
   CountDownLatch found_latch(1);
   CountDownLatch accept_latch(1);
 
-  wifi_lan_a.StartAdvertising(service_id, service_info_name,
-                              endpoint_info_name);
+  NsdServiceInfo nsd_service_info;
+  nsd_service_info.SetServiceInfoName(service_info_name);
+  nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
+                                endpoint_info_name);
+  wifi_lan_a.StartAdvertising(service_id, nsd_service_info);
   wifi_lan_a.StartAcceptingConnections(
       service_id,
       {
