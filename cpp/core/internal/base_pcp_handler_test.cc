@@ -593,7 +593,6 @@ TEST_P(BasePcpHandlerTest, DestructorIsCalledOnProtocolEndpoint) {
     channel_b->Close();
     bwu.Shutdown();
     pcp_handler.DisconnectFromEndpointManager();
-    bwu.Shutdown();
   }
   EXPECT_EQ(destroyed_flag.load(), mediums_count);
 }
