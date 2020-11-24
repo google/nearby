@@ -276,6 +276,8 @@ message MediumMetadata {
   optional bool supports_5_ghz = 1;
   // WiFi Lan BSSID
   optional string bssid = 2;
+  // IP address
+  optional bytes ip_address = 3;
 }
 
 // LocationHint is used to specify a location as well as format.

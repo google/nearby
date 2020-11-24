@@ -20,6 +20,7 @@
 #include "platform/base/byte_array.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/listeners.h"
+#include "platform/base/nsd_service_info.h"
 #include "platform/base/output_stream.h"
 #include "absl/strings/string_view.h"
 
@@ -27,23 +28,17 @@ namespace location {
 namespace nearby {
 namespace api {
 
-// Opaque wrapper over a WifiLan service which contains packed
-// |WifiLanServiceInfo| string name.
+// Opaque wrapper over a WifiLan service which contains |NsdServiceInfo|.
 class WifiLanService {
  public:
   virtual ~WifiLanService() = default;
 
-  // Returns the packed string of |WifiLanServiceInfo|. Note that the packed
-  // string would not include TXTRecord, which inheritor should save it in
-  // another store.
-  virtual std::string GetServiceName() const = 0;
-
-  // Returns the packed string of endpoint info with named key.
-  virtual std::string GetTxtRecord(const std::string& key) const = 0;
-
-  // Returns the local device's <IP address, port> as a pair.
-  // IP address is in byte sequence, in network order.
-  virtual std::pair<std::string, int> GetServiceAddress() const = 0;
+  // Returns the |NsdServiceInfo| which contains the packed string of
+  // |WifiLanServiceInfo| and the endpoint info with named key in a TXTRecord
+  // map.
+  // The details refer to
+  // https://developer.android.com/reference/android/net/nsd/NsdServiceInfo.html.
+  virtual NsdServiceInfo GetServiceInfo() const = 0;
 };
 
 class WifiLanSocket {
@@ -77,10 +72,8 @@ class WifiLanMedium {
  public:
   virtual ~WifiLanMedium() = default;
 
-  virtual bool StartAdvertising(
-      const std::string& service_id,
-      const std::string& wifi_lan_service_info_name,
-      const std::string& endpoint_info_name) = 0;
+  virtual bool StartAdvertising(const std::string& service_id,
+                                const NsdServiceInfo& nsd_service_info) = 0;
   virtual bool StopAdvertising(const std::string& service_id) = 0;
 
   // Callback that is invoked when a discovered service is found or lost.
@@ -120,10 +113,10 @@ class WifiLanMedium {
   // On success, returns a new WifiLanSocket.
   // On error, returns nullptr.
   virtual std::unique_ptr<WifiLanSocket> Connect(
-      WifiLanService& service, const std::string& service_id) = 0;
+      WifiLanService& wifi_lan_service, const std::string& service_id) = 0;
 
-  virtual WifiLanService* FindRemoteService(const std::string& ip_address,
-                                            int port) = 0;
+  virtual WifiLanService* GetRemoteService(const std::string& ip_address,
+                                           int port) = 0;
 
   virtual std::pair<std::string, int> GetServiceAddress(
       const std::string& service_id) = 0;

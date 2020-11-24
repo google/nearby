@@ -18,6 +18,7 @@
 #include <memory>
 
 #include "platform/base/base64_utils.h"
+#include "platform/base/nsd_service_info.h"
 #include "gtest/gtest.h"
 
 namespace location {
@@ -63,11 +64,9 @@ TEST(WifiLanServiceInfoTest, ConstructionFromSerializedStringWorks) {
                                                endpoint_info,
                                                ByteArray{},
                                                kWebRtcState};
-  std::string wifi_lan_service_info_string{org_wifi_lan_service_info};
-  auto endpoint_info_name = org_wifi_lan_service_info.GetEndpointInfoName();
+  NsdServiceInfo nsd_service_info{org_wifi_lan_service_info};
 
-  WifiLanServiceInfo wifi_lan_service_info{wifi_lan_service_info_string,
-                                           endpoint_info_name};
+  WifiLanServiceInfo wifi_lan_service_info{nsd_service_info};
 
   EXPECT_TRUE(wifi_lan_service_info.IsValid());
   EXPECT_EQ(kPcp, wifi_lan_service_info.GetPcp());
@@ -174,14 +173,15 @@ TEST(WifiLanServiceInfoTest, ConstructionFailsWithLongServiceIdHash) {
   EXPECT_FALSE(wifi_lan_service_info.IsValid());
 }
 
-TEST(WifiLanServiceInfoTest, ConstructionFailsWithShortStringLength) {
-  char wifi_lan_service_info_string[] = {'X', '\0'};
-  ByteArray endpoint_info{std::string(kEndPointName)};
+TEST(WifiLanServiceInfoTest, ConstructionFailsWithShortServiceNameLength) {
+  char wifi_lan_service_info_name[] = {'X', '\0'};
+  ByteArray wifi_lan_service_info_bytes{wifi_lan_service_info_name};
 
-  ByteArray wifi_lan_service_info_bytes{wifi_lan_service_info_string};
-  WifiLanServiceInfo wifi_lan_service_info{
-      Base64Utils::Encode(wifi_lan_service_info_bytes),
-      Base64Utils::Encode(endpoint_info)};
+  NsdServiceInfo nsd_service_info;
+  nsd_service_info.SetServiceInfoName(
+      Base64Utils::Encode(wifi_lan_service_info_bytes));
+
+  WifiLanServiceInfo wifi_lan_service_info{nsd_service_info};
 
   EXPECT_FALSE(wifi_lan_service_info.IsValid());
 }
