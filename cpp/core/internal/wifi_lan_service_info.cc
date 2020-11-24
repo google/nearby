@@ -63,18 +63,22 @@ WifiLanServiceInfo::WifiLanServiceInfo(Version version, Pcp pcp,
   web_rtc_state_ = web_rtc_state;
 }
 
-WifiLanServiceInfo::WifiLanServiceInfo(absl::string_view service_info_name,
-                                       absl::string_view endpoint_info_name) {
-  ByteArray service_info_bytes = Base64Utils::Decode(service_info_name);
-  endpoint_info_ = Base64Utils::Decode(endpoint_info_name);
-  if (endpoint_info_.size() > kMaxEndpointInfoLength) {
-    NEARBY_LOG(INFO,
-               "Cannot deserialize EndpointInfo: expecting endpoint info "
-               "max %d raw bytes, got %" PRIu64,
-               kMaxEndpointInfoLength, endpoint_info_.size());
-    return;
+WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
+  auto txt_endpoint_info_name =
+      nsd_service_info.GetTxtRecord(std::string(kKeyEndpointInfo));
+  if (!txt_endpoint_info_name.empty()) {
+    endpoint_info_ = Base64Utils::Decode(txt_endpoint_info_name);
+    if (endpoint_info_.size() > kMaxEndpointInfoLength) {
+      NEARBY_LOG(INFO,
+                 "Cannot deserialize EndpointInfo: expecting endpoint info "
+                 "max %d raw bytes, got %" PRIu64,
+                 kMaxEndpointInfoLength, endpoint_info_.size());
+      return;
+    }
   }
 
+  auto service_info_name = nsd_service_info.GetServiceInfoName();
+  ByteArray service_info_bytes = Base64Utils::Decode(service_info_name);
   if (service_info_bytes.Empty()) {
     NEARBY_LOG(
         INFO,
@@ -153,9 +157,9 @@ WifiLanServiceInfo::WifiLanServiceInfo(absl::string_view service_info_name,
   }
 }
 
-WifiLanServiceInfo::operator std::string() const {
+WifiLanServiceInfo::operator NsdServiceInfo() const {
   if (!IsValid()) {
-    return "";
+    return {};
   }
 
   // The upper 3 bits are the Version.
@@ -188,11 +192,12 @@ WifiLanServiceInfo::operator std::string() const {
     absl::StrAppend(&out, std::string(1, field_byte));
   }
 
-  return Base64Utils::Encode(ByteArray{std::move(out)});
-}
-
-std::string WifiLanServiceInfo::GetEndpointInfoName() const {
-  return Base64Utils::Encode(endpoint_info_);
+  NsdServiceInfo nsd_service_info;
+  nsd_service_info.SetServiceInfoName(
+      Base64Utils::Encode(ByteArray{std::move(out)}));
+  nsd_service_info.SetTxtRecord(std::string(kKeyEndpointInfo),
+                                Base64Utils::Encode(endpoint_info_));
+  return nsd_service_info;
 }
 
 }  // namespace connections

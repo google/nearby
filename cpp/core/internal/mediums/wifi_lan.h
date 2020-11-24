@@ -37,12 +37,11 @@ class WifiLan {
   // Returns true, if WifiLan communications are supported by a platform.
   bool IsAvailable() const ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Sets custom service info name, endpoint info name and then enables WifiLan
-  // advertising.
+  // Sets custom service info name, endpoint info name in NsdServiceInfo and
+  // then enables WifiLan advertising.
   // Returns true, if name is successfully set, and false otherwise.
   bool StartAdvertising(const std::string& service_id,
-                        const std::string& service_info_name,
-                        const std::string& endpoint_info_name)
+                        const NsdServiceInfo& nsd_service_info)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables WifiLan advertising, and restores service info name to

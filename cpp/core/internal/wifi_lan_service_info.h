@@ -20,6 +20,7 @@
 #include "core/internal/base_pcp_handler.h"
 #include "core/internal/pcp.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/nsd_service_info.h"
 #include "absl/strings/string_view.h"
 
 namespace location {
@@ -50,23 +51,15 @@ class WifiLanServiceInfo {
                      const ByteArray& uwb_address,
                      WebRtcState web_rtc_state);
 
-  // Constructs WifiLanService through packed string of WifiLanServiceInfo and
-  // EndpointInfo.
-  //
-  // service_info_name  - A packed string of |WifiLanServiceInfo|. It does
-  //                        not include endpoint_info which should be stored
-  //                        in next param bleow.
-  // endpoint_info_name - The endpoint info packed string.
-  WifiLanServiceInfo(absl::string_view service_info_name,
-                     absl::string_view endpoint_info_name);
+  // Constructs WifiLanServiceInfo through NsdServiceInfo.
+  explicit WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info);
   WifiLanServiceInfo(const WifiLanServiceInfo&) = default;
   WifiLanServiceInfo& operator=(const WifiLanServiceInfo&) = default;
   WifiLanServiceInfo(WifiLanServiceInfo&&) = default;
   WifiLanServiceInfo& operator=(WifiLanServiceInfo&&) = default;
   ~WifiLanServiceInfo() = default;
 
-  explicit operator std::string() const;
-  std::string GetEndpointInfoName() const;
+  explicit operator NsdServiceInfo() const;
 
   bool IsValid() const { return !endpoint_id_.empty(); }
   Version GetVersion() const { return version_; }
