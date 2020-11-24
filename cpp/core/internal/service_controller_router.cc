@@ -34,6 +34,7 @@ const std::size_t kMaxEndpointInfoLength = 131u;
 ServiceControllerRouter::~ServiceControllerRouter() {
   NEARBY_LOG(INFO, "ServiceControllerRouter going down.");
 
+  service_controller_.reset();
   // And make sure that cleanup is the last thing we do.
   serializer_.Shutdown();
 }
@@ -390,8 +391,8 @@ void ServiceControllerRouter::ReleaseServiceControllerForClient(
     ClientProxy* client) {
   clients_.erase(client);
 
+  // service_controller_ won't be released here. Instead, in desctructor.
   if (clients_.empty()) {
-    service_controller_.reset();
     current_strategy_ = Strategy{};
   }
 }

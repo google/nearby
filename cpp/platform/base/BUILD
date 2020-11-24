@@ -15,6 +15,7 @@ cc_library(
         "exception.h",
         "input_stream.h",
         "listeners.h",
+        "nsd_service_info.h",
         "output_stream.h",
         "payload_id.h",
         "prng.h",
@@ -29,6 +30,7 @@ cc_library(
         "//platform/api:__subpackages__",
     ],
     deps = [
+        "//absl/container:flat_hash_map",
         "//absl/meta:type_traits",
         "//absl/strings",
         "//absl/strings:str_format",
@@ -41,11 +43,13 @@ cc_library(
     srcs = [
         "base_input_stream.cc",
         "base_pipe.cc",
+        "byte_utils.cc",
     ],
     hdrs = [
         "base_input_stream.h",
         "base_mutex_lock.h",
         "base_pipe.h",
+        "byte_utils.h",
     ],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
@@ -57,6 +61,7 @@ cc_library(
         ":base",
         "//platform/api:types",
         "//absl/base:core_headers",
+        "//absl/strings:str_format",
     ],
 )
 
@@ -108,6 +113,18 @@ cc_test(
     ],
     deps = [
         ":base",
+        "//testing/base/public:gunit_main",
+    ],
+)
+
+cc_test(
+    name = "platform_util_test",
+    srcs = [
+        "byte_utils_test.cc",
+    ],
+    deps = [
+        ":base",
+        ":util",
         "//testing/base/public:gunit_main",
     ],
 )

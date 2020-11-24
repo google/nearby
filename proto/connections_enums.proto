@@ -44,6 +44,9 @@ enum EventType {
 
   // Corresponds to the end of a StrategySession.
   STOP_STRATEGY_SESSION = 5;
+
+  // Logs when the error happen.
+  ERROR_CODE = 6;
 }
 
 // The strategy used for a session of Nearby.Connections.
