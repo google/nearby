@@ -7,10 +7,8 @@ namespace location {
 namespace nearby {
 
 bool WifiLanMedium::StartAdvertising(const std::string& service_id,
-                                     const std::string& service_info_name,
-                                     const std::string& endpoint_info_name) {
-  return impl_->StartAdvertising(service_id, service_info_name,
-                                 endpoint_info_name);
+                                     const NsdServiceInfo& nsd_service_info) {
+  return impl_->StartAdvertising(service_id, nsd_service_info);
 }
 
 bool WifiLanMedium::StopAdvertising(const std::string& service_id) {
@@ -28,40 +26,46 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
       service_id,
       {
           .service_discovered_cb =
-              [this](api::WifiLanService& service,
+              [this](api::WifiLanService& wifi_lan_service,
                      const std::string& service_id) {
                 MutexLock lock(&mutex_);
                 auto pair = services_.emplace(
-                    &service, absl::make_unique<ServiceDiscoveryInfo>());
+                    &wifi_lan_service,
+                    absl::make_unique<ServiceDiscoveryInfo>());
                 auto& context = *pair.first->second;
                 if (!pair.second) {
                   NEARBY_LOG(INFO,
                              "Discovering (again) service=%p, impl=%p, "
                              "service_info_name=%s",
-                             &context.service, &service,
-                             service.GetServiceName().c_str());
+                             &context.wifi_lan_service, &wifi_lan_service,
+                             wifi_lan_service.GetServiceInfo()
+                                 .GetServiceInfoName()
+                                 .c_str());
                 } else {
-                  context.service = WifiLanService(&service);
-                  NEARBY_LOG(INFO,
-                             "Discovering service=%p, impl=%p, "
-                             "service_info_name=%s",
-                             &context.service, &service,
-                             service.GetServiceName().c_str());
+                  context.wifi_lan_service = WifiLanService(&wifi_lan_service);
+                  NEARBY_LOG(
+                      INFO,
+                      "Discovering wifi_lan_service=%p, service_info_name=%s",
+                      &wifi_lan_service,
+                      wifi_lan_service.GetServiceInfo()
+                          .GetServiceInfoName()
+                          .c_str());
                 }
                 discovered_service_callback_.service_discovered_cb(
-                    context.service, service_id);
+                    context.wifi_lan_service, service_id);
               },
           .service_lost_cb =
-              [this](api::WifiLanService& service,
+              [this](api::WifiLanService& wifi_lan_service,
                      const std::string& service_id) {
                 MutexLock lock(&mutex_);
                 if (services_.empty()) return;
-                auto context = services_.find(&service);
+                auto context = services_.find(&wifi_lan_service);
                 if (context == services_.end()) return;
-                NEARBY_LOG(INFO, "Removing service=%p, impl=%p",
-                           &(context->second->service), &service);
+                NEARBY_LOG(INFO, "Removing wifi_lan_service=%p, impl=%p",
+                           &(context->second->wifi_lan_service),
+                           &wifi_lan_service);
                 discovered_service_callback_.service_lost_cb(
-                    context->second->service, service_id);
+                    context->second->wifi_lan_service, service_id);
               },
       });
 }
@@ -117,18 +121,19 @@ bool WifiLanMedium::StopAcceptingConnections(const std::string& service_id) {
   return impl_->StopAcceptingConnections(service_id);
 }
 
-WifiLanSocket WifiLanMedium::Connect(WifiLanService& service,
+WifiLanSocket WifiLanMedium::Connect(WifiLanService& wifi_lan_service,
                                      const std::string& service_id) {
   NEARBY_LOG(
       INFO,
       "WifiLanMedium::Connect: service=%p [impl=%p, service_info_name=%s]",
-      &service, &service.GetImpl(), service.GetServiceName().c_str());
-  return WifiLanSocket(impl_->Connect(service.GetImpl(), service_id));
+      &wifi_lan_service, &wifi_lan_service.GetImpl(),
+      wifi_lan_service.GetServiceInfo().GetServiceInfoName().c_str());
+  return WifiLanSocket(impl_->Connect(wifi_lan_service.GetImpl(), service_id));
 }
 
-WifiLanService WifiLanMedium::FindRemoteService(const std::string& ip_address,
+WifiLanService WifiLanMedium::GetRemoteService(const std::string& ip_address,
                                                 int port) {
-  return WifiLanService(impl_->FindRemoteService(ip_address, port));
+  return WifiLanService(impl_->GetRemoteService(ip_address, port));
 }
 
 std::pair<std::string, int> WifiLanMedium::GetServiceAddress(

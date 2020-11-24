@@ -201,28 +201,32 @@ void MediumEnvironment::OnBlePeripheralStateChanged(
 }
 
 void MediumEnvironment::OnWifiLanServiceStateChanged(
-    WifiLanMediumContext& info, api::WifiLanService& service,
+    WifiLanMediumContext& info, api::WifiLanService& wifi_lan_service,
     const std::string& service_id, bool enabled) {
   if (!enabled_) return;
-  NEARBY_LOG(INFO,
-             "G3 OnWifiLanServiceStateChanged [service impl=%p]; context=%p; "
-             "service_id=%s; notify=%d",
-             &service, &info, service_id.c_str(), enable_notifications_.load());
+  NEARBY_LOG(
+      INFO,
+      "G3 OnWifiLanServiceStateChanged [wifi_lan_service impl=%p]; context=%p; "
+      "service_id=%s; notify=%d",
+      &wifi_lan_service, &info, service_id.c_str(),
+      enable_notifications_.load());
   if (!enable_notifications_) return;
-  RunOnMediumEnvironmentThread([&info, enabled, &service, service_id]() {
-    NEARBY_LOG(INFO,
-               "G3 [Run] OnWifiLanServiceStateChanged [service impl=%p]; "
-               "context=%p; service_id=%s; enabled=%d",
-               &service, &info, service_id.c_str(), enabled);
+  RunOnMediumEnvironmentThread([&info, enabled, &wifi_lan_service,
+                                service_id]() {
+    NEARBY_LOG(
+        INFO,
+        "G3 [Run] OnWifiLanServiceStateChanged [wifi_lan_service impl=%p]; "
+        "context=%p; service_id=%s; enabled=%d",
+        &wifi_lan_service, &info, service_id.c_str(), enabled);
     auto service_id_context = info.services.find(service_id);
     if (service_id_context == info.services.end()) return;
 
     if (enabled) {
       service_id_context->second.discovery_callback.service_discovered_cb(
-          service, service_id);
+          wifi_lan_service, service_id);
     } else {
-      service_id_context->second.discovery_callback.service_lost_cb(service,
-                                                                    service_id);
+      service_id_context->second.discovery_callback.service_lost_cb(
+          wifi_lan_service, service_id);
     }
   });
 }
@@ -477,10 +481,10 @@ void MediumEnvironment::RegisterWifiLanMedium(api::WifiLanMedium& medium) {
 }
 
 void MediumEnvironment::UpdateWifiLanMediumForAdvertising(
-    api::WifiLanMedium& medium, api::WifiLanService& service,
+    api::WifiLanMedium& medium, api::WifiLanService& wifi_lan_service,
     const std::string& service_id, bool enabled) {
   if (!enabled_) return;
-  RunOnMediumEnvironmentThread([this, &medium, &service, service_id,
+  RunOnMediumEnvironmentThread([this, &medium, &wifi_lan_service, service_id,
                                 enabled]() {
     auto item = wifi_lan_mediums_.find(&medium);
     if (item == wifi_lan_mediums_.end()) {
@@ -490,7 +494,7 @@ void MediumEnvironment::UpdateWifiLanMediumForAdvertising(
       return;
     }
     auto& context = item->second;
-    context.wifi_lan_service = &service;
+    context.wifi_lan_service = &wifi_lan_service;
     auto service_id_context = context.services.find(service_id);
     if (service_id_context == context.services.end()) {
       WifiLanServiceIdContext id_context{
@@ -500,17 +504,19 @@ void MediumEnvironment::UpdateWifiLanMediumForAdvertising(
     } else {
       service_id_context->second.advertising = enabled;
     }
-    NEARBY_LOG(INFO,
-               "Update WifiLan medium for advertising: this=%p; medium=%p; "
-               "service_id=%s; name=%s; enabled=%d",
-               this, &medium, service_id.c_str(),
-               service.GetServiceName().c_str(), enabled);
+    NEARBY_LOG(
+        INFO,
+        "Update WifiLan medium for advertising: this=%p; medium=%p; "
+        "service_id=%s; wifi_lan_service=%p, service_info_name=%s; enabled=%d",
+        this, &medium, service_id.c_str(), &wifi_lan_service,
+        wifi_lan_service.GetServiceInfo().GetServiceInfoName().c_str(),
+        enabled);
     for (auto& medium_info : wifi_lan_mediums_) {
       auto& local_medium = medium_info.first;
       auto& info = medium_info.second;
       // Do not send notification to the same medium.
       if (local_medium == &medium) continue;
-      OnWifiLanServiceStateChanged(info, service, service_id, enabled);
+      OnWifiLanServiceStateChanged(info, wifi_lan_service, service_id, enabled);
     }
   });
 }
@@ -620,25 +626,26 @@ void MediumEnvironment::CallWifiLanAcceptedConnectionCallback(
   });
 }
 
-api::WifiLanService* MediumEnvironment::FindWifiLanService(
+api::WifiLanService* MediumEnvironment::GetWifiLanService(
     const std::string& ip_address, int port) {
-  api::WifiLanService* remote_service = nullptr;
+  api::WifiLanService* remote_wifi_lan_service = nullptr;
   CountDownLatch latch(1);
   RunOnMediumEnvironmentThread(
-      [this, &remote_service, &ip_address, port, &latch]() {
+      [this, &remote_wifi_lan_service, &ip_address, port, &latch]() {
         for (auto& item : wifi_lan_mediums_) {
-          auto* service = item.second.wifi_lan_service;
-          if (!service) continue;
-          auto addr = remote_service->GetServiceAddress();
+          auto* wifi_lan_service = item.second.wifi_lan_service;
+          if (!wifi_lan_service) continue;
+          auto addr =
+              remote_wifi_lan_service->GetServiceInfo().GetServiceAddress();
           if (addr.first == ip_address && addr.second == port) {
-            remote_service = service;
+            remote_wifi_lan_service = wifi_lan_service;
             break;
           }
         }
         latch.CountDown();
       });
   latch.Await();
-  return remote_service;
+  return remote_wifi_lan_service;
 }
 
 }  // namespace nearby

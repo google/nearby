@@ -8,6 +8,7 @@
 #include "platform/api/webrtc.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/listeners.h"
+#include "platform/base/nsd_service_info.h"
 #include "platform/public/single_thread_executor.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
@@ -179,7 +180,7 @@ class MediumEnvironment {
   // Updates advertising info to indicate the current medium is exposing
   // advertising event.
   void UpdateWifiLanMediumForAdvertising(api::WifiLanMedium& medium,
-                                         api::WifiLanService& service,
+                                         api::WifiLanService& wifi_lan_service,
                                          const std::string& service_id,
                                          bool enabled);
 
@@ -212,8 +213,8 @@ class MediumEnvironment {
                                              const std::string& service_id);
 
   // Returns WiFi LAN service matching IP address and port, or nullptr.
-  api::WifiLanService* FindWifiLanService(const std::string& ip_address,
-                                          int port);
+  api::WifiLanService* GetWifiLanService(const std::string& ip_address,
+                                         int port);
 
  private:
   struct BluetoothMediumContext {
@@ -261,7 +262,7 @@ class MediumEnvironment {
                                    bool fast_advertisement, bool enabled);
 
   void OnWifiLanServiceStateChanged(WifiLanMediumContext& info,
-                                    api::WifiLanService& service,
+                                    api::WifiLanService& wifi_lan_service,
                                     const std::string& service_id,
                                     bool enabled);
 

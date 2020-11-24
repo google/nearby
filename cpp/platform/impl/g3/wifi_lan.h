@@ -8,6 +8,7 @@
 #include "platform/api/wifi_lan.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/input_stream.h"
+#include "platform/base/nsd_service_info.h"
 #include "platform/base/output_stream.h"
 #include "platform/impl/g3/multi_thread_executor.h"
 #include "platform/impl/g3/pipe.h"
@@ -21,39 +22,18 @@ namespace g3 {
 
 class WifiLanMedium;
 
-// Opaque wrapper over a WifiLan service which contains packed
-// |WifiLanServiceInfo| string name.
+// Opaque wrapper over a WifiLan service which contains |NsdServiceInfo|.
 class WifiLanService : public api::WifiLanService {
  public:
-  explicit WifiLanService(std::string service_info_name)
-      : service_info_name_(std::move(service_info_name)) {}
+  WifiLanService() = default;
+  explicit WifiLanService(NsdServiceInfo nsd_service_info)
+      : nsd_service_info_(std::move(nsd_service_info)) {}
   ~WifiLanService() override = default;
 
-  std::string GetServiceName() const override { return service_info_name_; }
+  NsdServiceInfo GetServiceInfo() const override { return nsd_service_info_; }
 
-  void SetServiceName(std::string service_info_name) {
-    service_info_name_ = std::move(service_info_name);
-  }
-
-  std::string GetTxtRecord(const std::string& txt_record_key) const override {
-    if (txt_records_.empty()) return {};
-    auto record = txt_records_.find(txt_record_key);
-    if (record == txt_records_.end()) return {};
-    return record->second;
-  }
-
-  void SetTxtRecord(const std::string& txt_record_key,
-                    const std::string& txt_record_value) {
-    txt_records_.emplace(txt_record_key, txt_record_value);
-  }
-
-  std::pair<std::string, int> GetServiceAddress() const override {
-    return std::make_pair(ip_address_, port_);
-  }
-
-  void SetServiceAddress(const std::string& ip_address, int port) {
-    ip_address_ = ip_address;
-    port_ = port;
+  void SetServiceInfo(NsdServiceInfo nsd_service_info) {
+    nsd_service_info_ = std::move(nsd_service_info);
   }
 
   WifiLanMedium* GetMedium() { return medium_; }
@@ -61,17 +41,15 @@ class WifiLanService : public api::WifiLanService {
   void SetMedium(WifiLanMedium* medium) { medium_ = medium; }
 
  private:
-  std::string service_info_name_;
-  absl::flat_hash_map<std::string, std::string> txt_records_;
+  NsdServiceInfo nsd_service_info_;
   WifiLanMedium* medium_ = nullptr;
-  std::string ip_address_;
-  int port_;
 };
 
 class WifiLanSocket : public api::WifiLanSocket {
  public:
   WifiLanSocket() = default;
-  explicit WifiLanSocket(WifiLanService* service) : service_(service) {}
+  explicit WifiLanSocket(WifiLanService* wifi_lan_service)
+      : wifi_lan_service_(wifi_lan_service) {}
   ~WifiLanSocket() override;
 
   // Connect to another WifiLanSocket, to form a functional low-level channel.
@@ -124,7 +102,7 @@ class WifiLanSocket : public api::WifiLanSocket {
   std::shared_ptr<Pipe> output_{new Pipe};
   std::shared_ptr<Pipe> input_;
   mutable absl::Mutex mutex_;
-  WifiLanService* service_;
+  WifiLanService* wifi_lan_service_;
   WifiLanSocket* remote_socket_ ABSL_GUARDED_BY(mutex_) = nullptr;
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };
@@ -182,8 +160,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   ~WifiLanMedium() override;
 
   bool StartAdvertising(const std::string& service_id,
-                        const std::string& service_info_name,
-                        const std::string& endpoint_info_name) override
+                        const NsdServiceInfo& nsd_service_info) override
       ABSL_LOCKS_EXCLUDED(mutex_);
   bool StopAdvertising(const std::string& service_id) override
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -212,11 +189,11 @@ class WifiLanMedium : public api::WifiLanMedium {
   // On success, returns a new WifiLanSocket.
   // On error, returns nullptr.
   std::unique_ptr<api::WifiLanSocket> Connect(
-      api::WifiLanService& remote_service,
+      api::WifiLanService& remote_wifi_lan_service,
       const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
 
-  api::WifiLanService* FindRemoteService(const std::string& ip_address,
-                                         int port) override;
+  api::WifiLanService* GetRemoteService(const std::string& ip_address,
+                                        int port) override;
 
   std::pair<std::string, int> GetServiceAddress(
       const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
@@ -238,8 +215,11 @@ class WifiLanMedium : public api::WifiLanMedium {
     std::string service_id;
   };
 
+  void SetWifiLanService(const NsdServiceInfo& nsd_service_info);
+  std::pair<std::string, int> GetFakeServiceAddress() const;
+
   absl::Mutex mutex_;
-  WifiLanService service_{"unknown G3 WifiLan service"};
+  WifiLanService wifi_lan_service_;
 
   // A thread pool dedicated to running all the accept loops from
   // StartAdvertising().

@@ -17,6 +17,7 @@
 #include "core/payload.h"
 #include "core/status.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/byte_utils.h"
 #include "platform/base/listeners.h"
 
 namespace location {
@@ -36,6 +37,10 @@ struct ResultCallback {
 };
 
 struct ConnectionResponseInfo {
+  std::string GetAuthenticationDigits() {
+    return ByteUtils::ToFourDigitString(raw_authentication_token);
+  }
+
   ByteArray remote_endpoint_info;
   std::string authentication_token;
   ByteArray raw_authentication_token;
