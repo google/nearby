@@ -19,7 +19,11 @@ class BluetoothEndpointChannel final : public BaseEndpointChannel {
 
   proto::connections::Medium GetMedium() const override;
 
+  int GetMaxTransmitPacketSize() const override;
+
  private:
+  static constexpr int kDefaultBTMaxTransmitPacketSize = 1980;  // 990 * 2 Bytes
+
   void CloseImpl() override;
 
   BluetoothSocket bluetooth_socket_;

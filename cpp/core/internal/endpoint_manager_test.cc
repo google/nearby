@@ -40,6 +40,7 @@ class MockEndpointChannel : public EndpointChannel {
   MOCK_METHOD(std::string, GetType, (), (const override));
   MOCK_METHOD(std::string, GetName, (), (const override));
   MOCK_METHOD(Medium, GetMedium, (), (const override));
+  MOCK_METHOD(int, GetMaxTransmitPacketSize, (), (const override));
   MOCK_METHOD(void, EnableEncryption,
               (std::shared_ptr<EncryptionContext> context), (override));
   MOCK_METHOD(void, DisableEncryption, (), (override));

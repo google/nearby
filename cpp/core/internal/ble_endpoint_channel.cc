@@ -33,6 +33,10 @@ proto::connections::Medium BleEndpointChannel::GetMedium() const {
   return proto::connections::Medium::BLE;
 }
 
+int BleEndpointChannel::GetMaxTransmitPacketSize() const {
+  return kDefaultBleMaxTransmitPacketSize;
+}
+
 void BleEndpointChannel::CloseImpl() {
   auto status = ble_socket_.Close();
   if (!status.Ok()) {

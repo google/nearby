@@ -48,7 +48,8 @@ TEST_F(WebRtcTest, StartAcceptingConnectionTwice) {
   EXPECT_FALSE(webrtc.StartAcceptingConnections(
       service_id, self_id, location_hint,
       {mock_accepted_callback_.AsStdFunction()}));
-  EXPECT_TRUE(webrtc.IsAcceptingConnections(std::string{}));
+  EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
+  EXPECT_FALSE(webrtc.IsAcceptingConnections(std::string{}));
 }
 
 // Tests the flow when the device tries to connect but the data channel times
@@ -85,7 +86,7 @@ TEST_F(WebRtcTest, StartAcceptingConnection_ThenConnect) {
       {mock_accepted_callback_.AsStdFunction()}));
   WebRtcSocketWrapper wrapper =
       webrtc.Connect(PeerId("random_peer_id"), location_hint);
-  EXPECT_TRUE(webrtc.IsAcceptingConnections(std::string{}));
+  EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
   EXPECT_FALSE(wrapper.IsValid());
   EXPECT_FALSE(webrtc.StartAcceptingConnections(
       service_id, self_id, location_hint,
@@ -108,8 +109,9 @@ TEST_F(WebRtcTest, StartAndStopAcceptingConnections) {
   ASSERT_TRUE(webrtc.StartAcceptingConnections(
       service_id, self_id, location_hint,
       {mock_accepted_callback_.AsStdFunction()}));
+  EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
   webrtc.StopAcceptingConnections(service_id);
-  EXPECT_FALSE(webrtc.IsAcceptingConnections(std::string{}));
+  EXPECT_FALSE(webrtc.IsAcceptingConnections(service_id));
 }
 
 // Tests the flow when the device tries to connect to two different peers
@@ -130,11 +132,8 @@ TEST_F(WebRtcTest, ConnectTwice) {
         connected.Set(receiver_socket.IsValid());
       }});
 
-  using MockAcceptedCallback =
-      testing::MockFunction<void(WebRtcSocketWrapper socket)>;
-  testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
   device_c.StartAcceptingConnections(service_id, other_id, location_hint,
-                                     {mock_accepted_callback_.AsStdFunction()});
+                                     {[](WebRtcSocketWrapper wrapper) {}});
 
   sender_socket = sender.Connect(self_id, location_hint);
   EXPECT_TRUE(sender_socket.IsValid());
@@ -143,8 +142,11 @@ TEST_F(WebRtcTest, ConnectTwice) {
   ASSERT_TRUE(devices_connected.ok());
   EXPECT_TRUE(devices_connected.result());
 
-  WebRtcSocketWrapper socket = sender.Connect(other_id, location_hint);
-  EXPECT_FALSE(socket.IsValid());
+  WebRtcSocketWrapper socket =
+      sender.Connect(other_id, location_hint);
+  EXPECT_TRUE(socket.IsValid());
+  socket.Close();
+
 
   EXPECT_TRUE(receiver_socket.IsValid());
   EXPECT_TRUE(sender_socket.IsValid());

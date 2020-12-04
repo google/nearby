@@ -47,14 +47,14 @@ void WebRtcMedium::CreatePeerConnection(
   webrtc::PeerConnectionInterface::RTCConfiguration rtc_config;
   webrtc::PeerConnectionDependencies dependencies(observer);
 
-  signaling_thread_ = rtc::Thread::Create();
-  signaling_thread_->SetName("signaling_thread", nullptr);
-  RTC_CHECK(signaling_thread_->Start()) << "Failed to start thread";
+  std::unique_ptr<rtc::Thread> signaling_thread = rtc::Thread::Create();
+  signaling_thread->SetName("signaling_thread", nullptr);
+  RTC_CHECK(signaling_thread->Start()) << "Failed to start thread";
 
   webrtc::PeerConnectionFactoryDependencies factory_dependencies;
   factory_dependencies.task_queue_factory =
       webrtc::CreateDefaultTaskQueueFactory();
-  factory_dependencies.signaling_thread = signaling_thread_.get();
+  factory_dependencies.signaling_thread = signaling_thread.release();
 
   callback(webrtc::CreateModularPeerConnectionFactory(
                std::move(factory_dependencies))
