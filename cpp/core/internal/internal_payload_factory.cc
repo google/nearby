@@ -22,6 +22,7 @@
 #include "platform/base/exception.h"
 #include "platform/public/condition_variable.h"
 #include "platform/public/file.h"
+#include "platform/public/logging.h"
 #include "platform/public/mutex.h"
 #include "platform/public/pipe.h"
 #include "absl/memory/memory.h"
@@ -47,7 +48,7 @@ class BytesInternalPayload : public InternalPayload {
 
   // Relinquishes ownership of the payload_; retrieves and returns the stored
   // ByteArray.
-  ByteArray DetachNextChunk() override {
+  ByteArray DetachNextChunk(int chunk_size) override {
     if (detached_only_chunk_) {
       return {};
     }
@@ -80,11 +81,11 @@ class OutgoingStreamInternalPayload : public InternalPayload {
 
   std::int64_t GetTotalSize() const override { return -1; }
 
-  ByteArray DetachNextChunk() override {
+  ByteArray DetachNextChunk(int chunk_size) override {
     InputStream* input_stream = payload_.AsStream();
     if (!input_stream) return {};
 
-    ExceptionOr<ByteArray> bytes_read = input_stream->Read(kChunkSize);
+    ExceptionOr<ByteArray> bytes_read = input_stream->Read(chunk_size);
     if (!bytes_read.ok()) {
       input_stream->Close();
       return {};
@@ -93,8 +94,8 @@ class OutgoingStreamInternalPayload : public InternalPayload {
     ByteArray scoped_bytes_read = std::move(bytes_read.result());
 
     if (scoped_bytes_read.Empty()) {
-      // TODO(reznor): logger.atVerbose().log("No more data for outgoing payload
-      // %s, closing InputStream.", this);
+      NEARBY_LOGS(INFO) << "No more data for outgoing payload " << this
+                        << ", closing InputStream.";
 
       input_stream->Close();
       return {};
@@ -113,9 +114,6 @@ class OutgoingStreamInternalPayload : public InternalPayload {
     InputStream* stream = payload_.AsStream();
     if (stream) stream->Close();
   }
-
- private:
-  static constexpr std::int64_t kChunkSize = Pipe::kChunkSize;
 };
 
 class IncomingStreamInternalPayload : public InternalPayload {
@@ -129,7 +127,7 @@ class IncomingStreamInternalPayload : public InternalPayload {
 
   std::int64_t GetTotalSize() const override { return -1; }
 
-  ByteArray DetachNextChunk() override { return {}; }
+  ByteArray DetachNextChunk(int chunk_size) override { return {}; }
 
   Exception AttachNextChunk(const ByteArray& chunk) override {
     if (chunk.Empty()) {
@@ -158,11 +156,11 @@ class OutgoingFileInternalPayload : public InternalPayload {
 
   std::int64_t GetTotalSize() const override { return total_size_; }
 
-  ByteArray DetachNextChunk() override {
+  ByteArray DetachNextChunk(int chunk_size) override {
     InputFile* file = payload_.AsFile();
     if (!file) return {};
 
-    ExceptionOr<ByteArray> bytes_read = file->Read(kChunkSize);
+    ExceptionOr<ByteArray> bytes_read = file->Read(chunk_size);
     if (!bytes_read.ok()) {
       return {};
     }
@@ -190,7 +188,6 @@ class OutgoingFileInternalPayload : public InternalPayload {
 
  private:
   std::int64_t total_size_;
-  static constexpr std::int64_t kChunkSize = 64 * 1024;
 };
 
 class IncomingFileInternalPayload : public InternalPayload {
@@ -207,7 +204,7 @@ class IncomingFileInternalPayload : public InternalPayload {
 
   std::int64_t GetTotalSize() const override { return total_size_; }
 
-  ByteArray DetachNextChunk() override { return {}; }
+  ByteArray DetachNextChunk(int chunk_size) override { return {}; }
 
   Exception AttachNextChunk(const ByteArray& chunk) override {
     if (chunk.Empty()) {

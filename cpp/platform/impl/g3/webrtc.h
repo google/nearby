@@ -65,7 +65,6 @@ class WebRtcMedium : public api::WebRtcMedium {
       const connections::LocationHint& location_hint) override;
 
  private:
-  std::unique_ptr<rtc::Thread> signaling_thread_;
 };
 
 }  // namespace g3

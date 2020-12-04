@@ -417,16 +417,14 @@ void EndpointManager::UnregisterEndpoint(ClientProxy* client,
   latch.Await();
 }
 
-// Designed to run asynchronously. It is called from IO thread pools, and
-// jobs in these pools may be waited for from the EndpointManager thread. If we
-// allow synchronous behavior here it will cause a live lock.
-void EndpointManager::DiscardEndpoint(ClientProxy* client,
-                                      const std::string& endpoint_id) {
-  RunOnEndpointManagerThread([this, client, endpoint_id]() {
-    RemoveEndpoint(client, endpoint_id,
-                   /*notify=*/
-                   client->IsConnectedToEndpoint(endpoint_id));
-  });
+int EndpointManager::GetMaxTransmitPacketSize(const std::string& endpoint_id) {
+  std::shared_ptr<EndpointChannel> channel =
+      channel_manager_->GetChannelForEndpoint(endpoint_id);
+  if (channel == nullptr) {
+    return 0;
+  }
+
+  return channel->GetMaxTransmitPacketSize();
 }
 
 std::vector<std::string> EndpointManager::SendPayloadChunk(
@@ -439,6 +437,18 @@ std::vector<std::string> EndpointManager::SendPayloadChunk(
   return SendTransferFrameBytes(endpoint_ids, bytes, payload_header.id(),
                                 /*offset=*/payload_chunk.offset(),
                                 /*packet_type=*/"DATA");
+}
+
+// Designed to run asynchronously. It is called from IO thread pools, and
+// jobs in these pools may be waited for from the EndpointManager thread. If we
+// allow synchronous behavior here it will cause a live lock.
+void EndpointManager::DiscardEndpoint(ClientProxy* client,
+                                      const std::string& endpoint_id) {
+  RunOnEndpointManagerThread([this, client, endpoint_id]() {
+    RemoveEndpoint(client, endpoint_id,
+                   /*notify=*/
+                   client->IsConnectedToEndpoint(endpoint_id));
+  });
 }
 
 std::vector<std::string> EndpointManager::SendControlMessage(

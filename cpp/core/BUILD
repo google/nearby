@@ -21,7 +21,7 @@ cc_library(
         "core.h",
     ],
     visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//googlemac/iPhone/Shared/Nearby/Connections_v2:__subpackages__",
     ],
     deps = [
         ":core_types",
