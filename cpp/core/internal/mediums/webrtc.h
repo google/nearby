@@ -37,6 +37,7 @@
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/webrtc.h"
 #include "location/nearby/mediums/proto/web_rtc_signaling_frames.pb.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "webrtc/api/data_channel_interface.h"
 #include "webrtc/api/jsep.h"
@@ -99,65 +100,102 @@ class WebRtc {
     kAnswerer = 2,
   };
 
-  bool InitWebRtcFlow(Role role, const PeerId& self_id,
-                      const LocationHint& location_hint)
+  struct ConnectionInfo {
+    std::unique_ptr<ConnectionFlow> connection_flow;
+    std::unique_ptr<WebRtcSignalingMessenger> signaling_messenger;
+    WebRtcSocketWrapper socket;
+    CancelableAlarm restart_receive_messages_alarm;
+
+    PeerId self_id;
+    PeerId peer_id;
+    ByteArray pending_local_offer;
+    std::vector<::location::nearby::mediums::IceCandidate>
+        pending_local_ice_candidates;
+  };
+
+  bool InitWebRtcFlow(const Role& role, const PeerId& self_id,
+                      const LocationHint& location_hint,
+                      const std::string& connection_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Future<WebRtcSocketWrapper> ListenForWebRtcSocketFuture(
+      const Role& role, const std::string& connection_id,
       Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>
           data_channel_future,
       AcceptedConnectionCallback callback);
 
   WebRtcSocketWrapper CreateWebRtcSocketWrapper(
+      const Role& role, const std::string& connection_id,
       rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel);
 
-  LocalIceCandidateListener GetLocalIceCandidateListener();
+  LocalIceCandidateListener GetLocalIceCandidateListener(
+      const Role& role, const std::string& connection_id);
   void OnLocalIceCandidate(
+      const Role& role, const std::string& connection_id,
       const webrtc::IceCandidateInterface* local_ice_candidate);
 
-  DataChannelListener GetDataChannelListener();
-  void OnDataChannelClosed();
-  void OnDataChannelMessageReceived(const ByteArray& message);
-  void OnDataChannelBufferedAmountChanged();
+  DataChannelListener GetDataChannelListener(const Role& role,
+                                             const std::string& connection_id);
+  void OnDataChannelClosed(const Role& role, const std::string& connection_id);
+  void OnDataChannelMessageReceived(const Role& role,
+                                    const std::string& connection_id,
+                                    const ByteArray& message);
+  void OnDataChannelBufferedAmountChanged(const Role& role,
+                                          const std::string& connection_id);
 
   // Runs on @MainThread and |single_thread_executor_|.
-  bool SetLocalSessionDescription(SessionDescriptionWrapper sdp)
+  bool SetLocalSessionDescription(SessionDescriptionWrapper sdp, Role role,
+                                  const std::string& connection_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on |single_thread_executor_|.
-  bool IsSignaling() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool IsSignaling(const Role& role, const std::string& connection_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on |single_thread_executor_|.
-  void ProcessSignalingMessage(const ByteArray& message)
+  void ProcessSignalingMessage(const Role& role,
+                               const std::string& connection_id,
+                               const ByteArray& message)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Runs on |single_thread_executor_|.
-  void SendOfferAndIceCandidatesToPeer() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void SendOfferAndIceCandidatesToPeer(const std::string& service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on |single_thread_executor_|.
-  void SendAnswerToPeer() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void SendAnswerToPeer(const std::string& peer_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on @MainThread and |single_thread_executor_|.
-  void LogAndDisconnect(const std::string& error_message)
+  void LogAndDisconnect(const Role& role, const std::string& connection_id,
+                        const std::string& error_message)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on @MainThread.
-  void Disconnect() ABSL_LOCKS_EXCLUDED(mutex_);
+  void Disconnect(const Role& role, const std::string& connection_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Runs on @MainThread and |single_thread_executor_|.
-  void DisconnectLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void DisconnectLocked(const Role& role, const std::string& connection_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  void LogAndShutdownSignaling(const std::string& error_message)
+  void LogAndShutdownSignaling(const Role& role,
+                               const std::string& connection_id,
+                               const std::string& error_message)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on @MainThread and |single_thread_executor_|.
-  void ShutdownSignaling() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void ShutdownSignaling(const Role& role, const std::string& connection_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on @MainThread and |single_thread_executor_|.
-  void ShutdownWebRtcSocket() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void ShutdownWebRtcSocket(const Role& role, const std::string& connection_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on @MainThread and |single_thread_executor_|.
-  void ShutdownIceCandidateCollection();
+  void ShutdownIceCandidateCollection(const Role& role,
+                                      const std::string& connection_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   void OffloadFromSignalingThread(Runnable runnable);
 
@@ -166,26 +204,27 @@ class WebRtc {
                               const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  void PrintStatus(const std::string& func);
+
+  ConnectionInfo* GetConnectionInfo(const Role& role,
+                                    const std::string& connection_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
   Mutex mutex_;
 
-  Role role_ ABSL_GUARDED_BY(mutex_) = Role::kNone;
-  PeerId self_id_ ABSL_GUARDED_BY(mutex_);
-  PeerId peer_id_ ABSL_GUARDED_BY(mutex_);
-  ByteArray pending_local_offer_ ABSL_GUARDED_BY(mutex_);
-  std::vector<::location::nearby::mediums::IceCandidate>
-      pending_local_ice_candidates_ ABSL_GUARDED_BY(mutex_);
-
   WebRtcMedium medium_;
-  std::unique_ptr<ConnectionFlow> connection_flow_;
-  std::unique_ptr<WebRtcSignalingMessenger> signaling_messenger_
-      ABSL_GUARDED_BY(mutex_);
-  WebRtcSocketWrapper socket_ ABSL_GUARDED_BY(mutex_);
 
   SingleThreadExecutor single_thread_executor_;
 
   // Restarts the signaling messenger for receiving messages.
   ScheduledExecutor restart_receive_messages_executor_;
-  CancelableAlarm restart_receive_messages_alarm_;
+
+  // Use service_id as key for accepting connections.
+  absl::flat_hash_map<std::string, ConnectionInfo> accepting_map_
+      ABSL_GUARDED_BY(mutex_);
+  // Use remote peer_id as key for connecting connections.
+  absl::flat_hash_map<std::string, ConnectionInfo> connecting_map_
+      ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace mediums

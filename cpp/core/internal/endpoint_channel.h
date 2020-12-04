@@ -56,6 +56,10 @@ class EndpointChannel {
   // Returns the analytics enum representing the medium of this EndpointChannel.
   virtual proto::connections::Medium GetMedium() const = 0;
 
+  // Returns the maximum supported transmit packet size(MTU) for the underlying
+  // transport.
+  virtual int GetMaxTransmitPacketSize() const = 0;
+
   // Enables encryption on the EndpointChannel.
   virtual void EnableEncryption(std::shared_ptr<EncryptionContext> context) = 0;
 
