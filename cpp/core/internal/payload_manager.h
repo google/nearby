@@ -189,6 +189,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   static PayloadProgressInfo::Status PayloadStatusToTransferUpdateStatus(
       proto::connections::PayloadStatus status);
 
+  int GetOptimalChunkSize(EndpointIds endpoint_ids);
+
   PayloadTransferFrame::PayloadHeader CreatePayloadHeader(
       const InternalPayload& payload);
   PayloadTransferFrame::PayloadChunk CreatePayloadChunk(std::int64_t offset,

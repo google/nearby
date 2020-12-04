@@ -48,6 +48,10 @@ class BaseEndpointChannel : public EndpointChannel {
   // Returns the name of the EndpointChannel.
   std::string GetName() const override;
 
+  // Returns the maximum supported transmit packet size(MTU) for the underlying
+  // transport.
+  int GetMaxTransmitPacketSize() const override;
+
   // Enables encryption on the EndpointChannel.
   // Should be called after connection is accepted by both parties, and
   // before entering data phase, where Payloads may be exchanged.
@@ -77,6 +81,9 @@ class BaseEndpointChannel : public EndpointChannel {
  private:
   // Used to sanity check that our frame sizes are reasonable.
   static constexpr std::int32_t kMaxAllowedReadBytes = 1048576;  // 1MB
+
+  // The default maximum transmit unit/packet size.
+  static constexpr int kDefaultMaxTransmitPacketSize = 65536;  // 64 KB
 
   bool IsEncryptionEnabledLocked() const
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(crypto_mutex_);

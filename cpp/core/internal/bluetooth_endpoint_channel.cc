@@ -33,6 +33,10 @@ proto::connections::Medium BluetoothEndpointChannel::GetMedium() const {
   return proto::connections::Medium::BLUETOOTH;
 }
 
+int BluetoothEndpointChannel::GetMaxTransmitPacketSize() const {
+  return kDefaultBTMaxTransmitPacketSize;
+}
+
 void BluetoothEndpointChannel::CloseImpl() {
   auto status = bluetooth_socket_.Close();
   if (!status.Ok()) {

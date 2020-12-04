@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cinttypes>
+#include <limits>
 #include <memory>
 #include <string>
 #include <utility>
@@ -75,8 +76,9 @@ bool PayloadManager::SendPayloadLoop(
 
   // This will block if there is no data to transfer.
   // It will resume when new data arrives, or if Close() is called.
+  int chunk_size = GetOptimalChunkSize(available_endpoint_ids);
   ByteArray next_chunk =
-      pending_payload.GetInternalPayload()->DetachNextChunk();
+      pending_payload.GetInternalPayload()->DetachNextChunk(chunk_size);
   if (shutdown_.Get()) return false;
   // Save chunk size. We'll need it after we move next_chunk.
   auto next_chunk_size = next_chunk.size();
@@ -481,6 +483,15 @@ SingleThreadExecutor* PayloadManager::GetOutgoingPayloadExecutor(
     default:
       return nullptr;
   }
+}
+
+int PayloadManager::GetOptimalChunkSize(EndpointIds endpoint_ids) {
+  int minChunkSize = std::numeric_limits<int>::max();
+  for (const auto& endpoint_id : endpoint_ids) {
+    minChunkSize = std::min(
+        minChunkSize, endpoint_manager_->GetMaxTransmitPacketSize(endpoint_id));
+  }
+  return minChunkSize;
 }
 
 PayloadTransferFrame::PayloadHeader PayloadManager::CreatePayloadHeader(

@@ -49,8 +49,10 @@ class InternalPayload {
   // byte blobs for sending across a hard boundary (like the other side of
   // a Binder, or another device altogether).
   //
+  // @param chunk_size The preferred size of the next chunk. Depending on
+  // payload type, the provided size may be ignored.
   // @return The next chunk from the Payload, or null if we've reached the end.
-  virtual ByteArray DetachNextChunk() = 0;
+  virtual ByteArray DetachNextChunk(int chunk_size) = 0;
 
   // Adds the next chunk that comprises the Payload to which this object is
   // bound.
