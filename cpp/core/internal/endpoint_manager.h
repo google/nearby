@@ -112,6 +112,10 @@ class EndpointManager {
   // this case, we do not notify the client of onDisconnected().
   void UnregisterEndpoint(ClientProxy* client, const std::string& endpoint_id);
 
+  // Returns the maximum supported transmit packet size(MTU) for the underlying
+  // transport.
+  int GetMaxTransmitPacketSize(const std::string& endpoint_id);
+
   // Returns the list of endpoints to which sending this chunk failed.
   //
   // Invoked from the PayloadManager's sendPayload() method.

@@ -259,6 +259,11 @@ std::string BaseEndpointChannel::GetType() const {
 
 std::string BaseEndpointChannel::GetName() const { return channel_name_; }
 
+int BaseEndpointChannel::GetMaxTransmitPacketSize() const {
+  // Return default value if the medium never define it's chunk size.
+  return kDefaultMaxTransmitPacketSize;
+}
+
 void BaseEndpointChannel::EnableEncryption(
     std::shared_ptr<EncryptionContext> context) {
   MutexLock crypto_lock(&crypto_mutex_);

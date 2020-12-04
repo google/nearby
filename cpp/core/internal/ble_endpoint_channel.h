@@ -30,7 +30,11 @@ class BleEndpointChannel final : public BaseEndpointChannel {
 
   proto::connections::Medium GetMedium() const override;
 
+  int GetMaxTransmitPacketSize() const override;
+
  private:
+  static constexpr int kDefaultBleMaxTransmitPacketSize = 512;  // 512 bytes
+
   void CloseImpl() override;
 
   BleSocket ble_socket_;
