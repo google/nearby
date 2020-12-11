@@ -93,20 +93,6 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       BasePcpHandler::DiscoveredEndpoint* endpoint) override;
 
  private:
-  struct BluetoothEndpoint : public BasePcpHandler::DiscoveredEndpoint {
-    BluetoothEndpoint(DiscoveredEndpoint endpoint, BluetoothDevice device)
-        : DiscoveredEndpoint(std::move(endpoint)),
-          bluetooth_device(std::move(device)) {}
-
-    BluetoothDevice bluetooth_device;
-  };
-  struct BleEndpoint : public BasePcpHandler::DiscoveredEndpoint {
-    BleEndpoint(DiscoveredEndpoint endpoint, BlePeripheral peripheral)
-        : DiscoveredEndpoint(std::move(endpoint)),
-          ble_peripheral(std::move(peripheral)) {}
-    BlePeripheral ble_peripheral;
-  };
-
   // Holds the state required to re-create a BleEndpoint we see on a
   // BlePeripheral, so BlePeripheralLostHandler can call
   // BasePcpHandler::OnEndpointLost() with the same information as was passed
@@ -118,13 +104,6 @@ class P2pClusterPcpHandler : public BasePcpHandler {
 
     std::string endpoint_id;
     ByteArray endpoint_info;
-  };
-  struct WifiLanEndpoint : public BasePcpHandler::DiscoveredEndpoint {
-    WifiLanEndpoint(DiscoveredEndpoint endpoint, WifiLanService service)
-        : DiscoveredEndpoint(std::move(endpoint)),
-          wifi_lan_service(std::move(service)) {}
-
-    WifiLanService wifi_lan_service;
   };
 
   using BluetoothDiscoveredDeviceCallback =
