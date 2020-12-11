@@ -20,7 +20,7 @@ option optimize_for = LITE_RUNTIME;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "DiscoveryEnums";
 
-// NEXT ID: 133
+// NEXT ID: 147
 enum DiscoveryEvent {
   UNKNOWN_DISCOVERY_EVENT = 0;
 
@@ -407,6 +407,45 @@ enum DiscoveryEvent {
   // Connection Tracker Manager (Baymax) recovered the connection of the
   // companion app.
   FAST_PAIR_CONNECTION_TRACKER_RECOVER_COMPANION_APP = 132;
+
+  // Half sheet is shown for initial Fast Pair.
+  HALF_SHEET_PAIR_SHOWN = 133;
+
+  // Half sheet is clicked by users.
+  HALF_SHEET_PAIR_CLICKED = 134;
+
+  // Half sheet is gone without user interactions.
+  HALF_SHEET_PAIR_AUTO_DISMISSED = 135;
+
+  // Half sheet is dismissed by users.
+  HALF_SHEET_PAIR_DISMISSED = 136;
+
+  // Half sheet is banned by users.
+  HALF_SHEET_PAIR_BANNED = 137;
+
+  // Half sheet is shown for available secondary Fast Pair device.
+  HALF_SHEET_PAIR_SECONDARY_SHOWN = 138;
+
+  // Half sheet is clicked by users.
+  HALF_SHEET_PAIR_SECONDARY_CLICKED = 139;
+
+  // Half sheet is gone without user interactions.
+  HALF_SHEET_PAIR_SECONDARY_AUTO_DISMISSED = 140;
+
+  // Half sheet is dismissed by users.
+  HALF_SHEET_PAIR_SECONDARY_DISMISSED = 141;
+
+  // Half sheet is banned by users.
+  HALF_SHEET_PAIR_SECONDARY_BANNED = 142;
+
+  // Half sheet is shown for retroactive pairing of a Fast Pair device.
+  HALF_SHEET_PAIR_RETROACTIVE_SHOWN = 143;
+
+  // Half sheet is clicked by users.
+  HALF_SHEET_PAIR_RETROACTIVE_CLICKED = 144;
+
+  // Half sheet is dismissed by users.
+  HALF_SHEET_PAIR_RETROACTIVE_DISMISSED = 145;
 
   // Deprecated.
   reserved 65, 67 to 72;

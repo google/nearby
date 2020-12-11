@@ -220,6 +220,13 @@ class BasePcpHandler : public PcpHandler,
     BluetoothDevice bluetooth_device;
   };
 
+  struct BleEndpoint : public BasePcpHandler::DiscoveredEndpoint {
+    BleEndpoint(DiscoveredEndpoint endpoint, BlePeripheral peripheral)
+        : DiscoveredEndpoint(std::move(endpoint)),
+          ble_peripheral(std::move(peripheral)) {}
+    BlePeripheral ble_peripheral;
+  };
+
   struct WifiLanEndpoint : public DiscoveredEndpoint {
     WifiLanEndpoint(DiscoveredEndpoint endpoint, WifiLanService service)
         : DiscoveredEndpoint(std::move(endpoint)),
