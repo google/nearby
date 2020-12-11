@@ -27,7 +27,7 @@ namespace connections {
 namespace mediums {
 
 namespace {
-
+const int kTwoMBSize = 2000000;
 class WebRtcTest : public ::testing::Test {
  protected:
   WebRtcTest() {
@@ -156,11 +156,9 @@ TEST_F(WebRtcTest, ConnectTwice) {
   ASSERT_TRUE(devices_connected.ok());
   EXPECT_TRUE(devices_connected.result());
 
-  WebRtcSocketWrapper socket =
-      sender.Connect(other_id, location_hint);
+  WebRtcSocketWrapper socket = sender.Connect(other_id, location_hint);
   EXPECT_TRUE(socket.IsValid());
   socket.Close();
-
 
   EXPECT_TRUE(receiver_socket.IsValid());
   EXPECT_TRUE(sender_socket.IsValid());
@@ -269,6 +267,64 @@ TEST_F(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
       receiver_socket.GetInputStream().Read(/*size=*/32);
   ASSERT_TRUE(received_msg.ok());
   EXPECT_EQ(message, received_msg.result());
+}
+
+// Tests the flow when the two devices created two data channel and transfer
+// data in the same time.
+TEST_F(WebRtcTest, TwoChannels_SendData) {
+  WebRtc receiver, sender;
+  WebRtcSocketWrapper receiver_socket1, receiver_socket2, sender_socket1,
+      sender_socket2;
+  const PeerId self_id1("self_id1"), self_id2("self_id2");
+  const std::string service_id1("service1"), service_id2("service2");
+  LocationHint location_hint;
+  Future<bool> connected1, connected2;
+  ByteArray message;
+  message.SetData(kTwoMBSize / 10, 'c');
+
+  receiver.StartAcceptingConnections(
+      service_id1, self_id1, location_hint,
+      {[&receiver_socket1, connected1](WebRtcSocketWrapper wrapper) mutable {
+        receiver_socket1 = wrapper;
+        connected1.Set(receiver_socket1.IsValid());
+      }});
+
+  receiver.StartAcceptingConnections(
+      service_id2, self_id2, location_hint,
+      {[&receiver_socket2, connected2](WebRtcSocketWrapper wrapper) mutable {
+        receiver_socket2 = wrapper;
+        connected2.Set(receiver_socket2.IsValid());
+      }});
+
+  sender_socket1 = sender.Connect(self_id1, location_hint);
+  EXPECT_TRUE(sender_socket1.IsValid());
+
+  sender_socket2 = sender.Connect(self_id2, location_hint);
+  EXPECT_TRUE(sender_socket2.IsValid());
+
+  ExceptionOr<bool> devices_connected1 = connected1.Get();
+  ASSERT_TRUE(devices_connected1.ok());
+  EXPECT_TRUE(devices_connected1.result());
+
+  ExceptionOr<bool> devices_connected2 = connected1.Get();
+  ASSERT_TRUE(devices_connected2.ok());
+  EXPECT_TRUE(devices_connected2.result());
+
+  // Only shuts down signaling channel.
+  receiver.StopAcceptingConnections(service_id1);
+  receiver.StopAcceptingConnections(service_id2);
+
+  for (int i = 0; i < 10; i++) {
+    sender_socket1.GetOutputStream().Write(message);
+    sender_socket2.GetOutputStream().Write(message);
+    ExceptionOr<ByteArray> received_msg1 =
+        receiver_socket1.GetInputStream().Read(kTwoMBSize / 10);
+    ASSERT_TRUE(received_msg1.ok());
+    ExceptionOr<ByteArray> received_msg2 =
+        receiver_socket2.GetInputStream().Read(kTwoMBSize / 10);
+    EXPECT_EQ(message, received_msg1.result());
+    EXPECT_EQ(message, received_msg2.result());
+  }
 }
 
 TEST_F(WebRtcTest, StartAcceptingConnections_NullPeerConnection) {
