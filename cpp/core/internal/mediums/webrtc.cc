@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <memory>
+#include <sstream>
 
 #include "core/internal/mediums/webrtc/session_description_wrapper.h"
 #include "core/internal/mediums/webrtc/signaling_frames.h"
@@ -35,6 +36,10 @@ constexpr absl::Duration kRestartReceiveMessagesDuration = absl::Seconds(60);
 WebRtc::WebRtc() = default;
 
 WebRtc::~WebRtc() {
+  {
+    MutexLock lock(&mutex_);
+    NEARBY_LOGS(WARNING) << "Destructing Webrtc: " << InternalStatesToString();
+  }
   // This ensures that all pending callbacks are run before we reset the medium
   // and we are not accepting new runnables.
   restart_receive_messages_executor_.Shutdown();
@@ -89,6 +94,8 @@ bool WebRtc::StartAcceptingConnections(const std::string& service_id,
   }
   {
     MutexLock lock(&mutex_);
+    NEARBY_LOGS(WARNING) << "StartAcceptingConnections: "
+                         << InternalStatesToString();
     accepting_map_.emplace(service_id,
                            ConnectionInfo{.socket = WebRtcSocketWrapper()});
     ConnectionInfo* connection_info = &accepting_map_[service_id];
@@ -107,6 +114,7 @@ bool WebRtc::StartAcceptingConnections(const std::string& service_id,
         webrtc_frames::EncodeOffer(self_id, offer.GetSdp());
     if (!SetLocalSessionDescription(std::move(offer), Role::kOfferer,
                                     service_id)) {
+      NEARBY_LOG(WARNING, "Failed to set local session description.");
       return false;
     }
 
@@ -117,7 +125,7 @@ bool WebRtc::StartAcceptingConnections(const std::string& service_id,
         Role::kOfferer, service_id,
         connection_info->connection_flow->GetDataChannel(),
         std::move(callback));
-    NEARBY_LOG(INFO, "Started listening for WebRtc connections as %s",
+    NEARBY_LOG(WARNING, "Started listening for WebRtc connections as %s",
                self_id.GetId().c_str());
   }
 
@@ -127,12 +135,16 @@ bool WebRtc::StartAcceptingConnections(const std::string& service_id,
 WebRtcSocketWrapper WebRtc::Connect(const PeerId& peer_id,
                                     const LocationHint& location_hint) {
   if (!IsAvailable()) {
-    Disconnect(Role::kAnswerer, peer_id.GetId());
+    MutexLock lock(&mutex_);
+    LogAndDisconnect(Role::kAnswerer, peer_id.GetId(),
+                     "WebRTC is not available for data transfer.");
     return WebRtcSocketWrapper();
   }
 
   {
     MutexLock lock(&mutex_);
+    NEARBY_LOGS(WARNING) << "Start Connecting to " << peer_id.GetId() << ":\n"
+                         << InternalStatesToString();
     if (connecting_map_.contains(peer_id.GetId())) {
       NEARBY_LOG(
           ERROR,
@@ -149,7 +161,7 @@ WebRtcSocketWrapper WebRtc::Connect(const PeerId& peer_id,
     }
   }
 
-  NEARBY_LOG(ERROR, "Attempting to make a WebRTC connection to %s.",
+  NEARBY_LOG(WARNING, "Attempting to make a WebRTC connection to %s.",
              peer_id.GetId().c_str());
   Future<WebRtcSocketWrapper> socket_future;
   {
@@ -167,8 +179,14 @@ WebRtcSocketWrapper WebRtc::Connect(const PeerId& peer_id,
   // in a timeout in creating the socket.
   ExceptionOr<WebRtcSocketWrapper> result =
       socket_future.Get(kDataChannelTimeout);
-  if (result.ok()) return result.result();
+  if (result.ok()) {
+    NEARBY_LOGS(WARNING) << "Succeeded to make WebRTC connection to "
+                         << peer_id.GetId();
+    return result.result();
+  }
 
+  NEARBY_LOGS(WARNING) << "Failed to make WebRTC connection to "
+                       << peer_id.GetId();
   Disconnect(Role::kAnswerer, peer_id.GetId());
   return WebRtcSocketWrapper();
 }
@@ -190,7 +208,7 @@ bool WebRtc::SetLocalSessionDescription(SessionDescriptionWrapper sdp,
 
 void WebRtc::StopAcceptingConnections(const std::string& service_id) {
   if (!IsAcceptingConnections(service_id)) {
-    NEARBY_LOG(INFO,
+    NEARBY_LOG(WARNING,
                "Skipped StopAcceptingConnections since we are not currently "
                "accepting WebRTC connections for %s",
                service_id.c_str());
@@ -199,9 +217,11 @@ void WebRtc::StopAcceptingConnections(const std::string& service_id) {
 
   {
     MutexLock lock(&mutex_);
-    ShutdownSignaling(Role::kOfferer, service_id);
+    LogAndShutdownSignaling(Role::kOfferer, service_id,
+                            "Invoked by StopAcceptingConnections.");
   }
-  NEARBY_LOG(INFO, "Stopped accepting WebRTC connections");
+  NEARBY_LOG(WARNING, "Stopped accepting WebRTC connections for %s",
+             service_id.c_str());
 }
 
 Future<WebRtcSocketWrapper> WebRtc::ListenForWebRtcSocketFuture(
@@ -261,7 +281,10 @@ bool WebRtc::InitWebRtcFlow(const Role& role, const PeerId& self_id,
                             const LocationHint& location_hint,
                             const std::string& connection_id) {
   ConnectionInfo* connection_info = GetConnectionInfo(role, connection_id);
-  if (!connection_info) return false;
+  if (!connection_info) {
+    NEARBY_LOGS(WARNING) << "Can not find matching connection info.";
+    return false;
+  }
   connection_info->self_id = self_id;
 
   if (connection_info->connection_flow) {
@@ -316,6 +339,9 @@ bool WebRtc::InitWebRtcFlow(const Role& role, const PeerId& self_id,
     return false;
   }
 
+  NEARBY_LOGS(WARNING) << "Succeeded to create connection flow for role:"
+                       << role_names_[role]
+                       << ", connection_id: " << connection_id;
   return true;
 }
 
@@ -331,6 +357,8 @@ void WebRtc::OnLocalIceCandidate(
     ConnectionInfo* connection_info = GetConnectionInfo(role, connection_id);
     if (IsSignaling(role, connection_id)) {
       if (connection_info && connection_info->signaling_messenger) {
+        NEARBY_LOG(WARNING, "Sending local ice candidates to %s",
+                   connection_info->peer_id.GetId().c_str());
         connection_info->signaling_messenger->SendMessage(
             connection_info->peer_id.GetId(),
             webrtc_frames::EncodeIceCandidates(connection_info->self_id,
@@ -421,7 +449,12 @@ void WebRtc::ProcessSignalingMessage(const Role& role,
                                      const ByteArray& message) {
   MutexLock lock(&mutex_);
   ConnectionInfo* connection_info = GetConnectionInfo(role, connection_id);
-  if (!connection_info) return;
+  if (!connection_info) {
+    NEARBY_LOG(ERROR,
+               "Could not find connection info for role: %s, connection_id: %s",
+               role_names_[role].c_str(), connection_id.c_str());
+    return;
+  }
 
   if (!connection_info->connection_flow) {
     LogAndDisconnect(role, connection_id,
@@ -444,12 +477,12 @@ void WebRtc::ProcessSignalingMessage(const Role& role,
   if (frame.has_ready_for_signaling_poke() &&
       !connection_info->peer_id.IsValid()) {
     connection_info->peer_id = PeerId(frame.sender_id().id());
-    NEARBY_LOG(INFO, "Peer %s is ready for signaling",
+    NEARBY_LOG(WARNING, "Peer %s is ready for signaling",
                connection_info->peer_id.GetId().c_str());
   }
 
   if (!IsSignaling(role, connection_id)) {
-    NEARBY_LOG(INFO,
+    NEARBY_LOG(WARNING,
                "Ignoring WebRTC frame: we are not currently listening for "
                "signaling messages");
     return;
@@ -457,28 +490,43 @@ void WebRtc::ProcessSignalingMessage(const Role& role,
 
   if (frame.sender_id().id() != connection_info->peer_id.GetId()) {
     NEARBY_LOG(
-        INFO, "Ignoring WebRTC frame: we are only listening for another peer.");
+        WARNING,
+        "Ignoring WebRTC frame: we are only listening for another peer.");
     return;
   }
 
   if (frame.has_ready_for_signaling_poke()) {
+    NEARBY_LOG(WARNING,
+               "Received ready-for-poke for role: %s connection_id: %s",
+               role_names_[role].c_str(), connection_id.c_str());
     SendOfferAndIceCandidatesToPeer(connection_id);
   } else if (frame.has_offer()) {
+    NEARBY_LOG(WARNING, "Received offer for role: %s connection_id: %s",
+               role_names_[role].c_str(), connection_id.c_str());
     DCHECK(role == Role::kAnswerer);
     connection_info->connection_flow->OnOfferReceived(
         SessionDescriptionWrapper(webrtc_frames::DecodeOffer(frame).release()));
     SendAnswerToPeer(connection_id);
   } else if (frame.has_answer()) {
+    NEARBY_LOG(WARNING, "Received answer for role: %s connection_id: %s",
+               role_names_[role].c_str(), connection_id.c_str());
     DCHECK(role == Role::kOfferer);
     connection_info->connection_flow->OnAnswerReceived(
         SessionDescriptionWrapper(
             webrtc_frames::DecodeAnswer(frame).release()));
   } else if (frame.has_ice_candidates()) {
+    NEARBY_LOG(WARNING,
+               "Received ice candidates for role: %s connection_id: %s",
+               role_names_[role].c_str(), connection_id.c_str());
     if (!connection_info->connection_flow->OnRemoteIceCandidatesReceived(
             webrtc_frames::DecodeIceCandidates(frame))) {
       LogAndDisconnect(role, connection_id,
                        "Could not add remote ice candidates.");
     }
+  } else {
+    NEARBY_LOG(WARNING,
+               "Received unknown frame type for role: %s connection_id: %s",
+               role_names_[role].c_str(), connection_id.c_str());
   }
 }
 
@@ -493,6 +541,7 @@ void WebRtc::SendOfferAndIceCandidatesToPeer(const std::string& service_id) {
     return;
   }
 
+  NEARBY_LOG(WARNING, "Sending offer from %s", service_id.c_str());
   if (!connection_info->signaling_messenger->SendMessage(
           connection_info->peer_id.GetId(),
           connection_info->pending_local_offer)) {
@@ -503,6 +552,8 @@ void WebRtc::SendOfferAndIceCandidatesToPeer(const std::string& service_id) {
   connection_info->pending_local_offer = ByteArray();
 
   if (!connection_info->pending_local_ice_candidates.empty()) {
+    NEARBY_LOG(WARNING, "Sending local pending ice candidates from %s",
+               service_id.c_str());
     connection_info->signaling_messenger->SendMessage(
         connection_info->peer_id.GetId(),
         webrtc_frames::EncodeIceCandidates(
@@ -522,6 +573,7 @@ void WebRtc::SendAnswerToPeer(const std::string& peer_id) {
   if (!SetLocalSessionDescription(std::move(answer), Role::kAnswerer, peer_id))
     return;
 
+  NEARBY_LOGS(WARNING) << "Sending answer to peer " << peer_id;
   if (!connection_info->signaling_messenger->SendMessage(
           connection_info->peer_id.GetId(), answer_message)) {
     LogAndDisconnect(Role::kAnswerer, peer_id,
@@ -542,8 +594,10 @@ void WebRtc::LogAndDisconnect(const Role& role,
 void WebRtc::LogAndShutdownSignaling(const Role& role,
                                      const std::string& connection_id,
                                      const std::string& error_message) {
-  NEARBY_LOG(WARNING, "Stopping WebRTC role: %d, connection id: %s, msg: %s",
-             role, connection_id.c_str(), error_message.c_str());
+  NEARBY_LOG(WARNING,
+             "Stopping WebRTC role: %s, connection id: %s, msg: %s:\n%s",
+             role_names_[role].c_str(), connection_id.c_str(),
+             error_message.c_str(), InternalStatesToString().c_str());
   ShutdownSignaling(role, connection_id);
 }
 
@@ -580,6 +634,9 @@ void WebRtc::Disconnect(const Role& role, const std::string& connection_id) {
 
 void WebRtc::DisconnectLocked(const Role& role,
                               const std::string& connection_id) {
+  NEARBY_LOGS(WARNING) << "Disconnecting role: " << role_names_[role]
+                       << " connection_id: " << connection_id << ":\n"
+                       << InternalStatesToString();
   ShutdownSignaling(role, connection_id);
   ShutdownWebRtcSocket(role, connection_id);
   ShutdownIceCandidateCollection(role, connection_id);
@@ -617,12 +674,12 @@ void WebRtc::OffloadFromSignalingThread(Runnable runnable) {
 void WebRtc::RestartReceiveMessages(const LocationHint& location_hint,
                                     const std::string& service_id) {
   if (!IsAcceptingConnections(service_id)) {
-    NEARBY_LOG(INFO,
+    NEARBY_LOG(WARNING,
                "Skipping restart since we are not accepting connections.");
     return;
   }
 
-  NEARBY_LOG(INFO, "Restarting listening for receiving signaling messages.");
+  NEARBY_LOG(WARNING, "Restarting listening for receiving signaling messages.");
   {
     MutexLock lock(&mutex_);
     ConnectionInfo* connection_info =
@@ -666,6 +723,33 @@ WebRtc::ConnectionInfo* WebRtc::GetConnectionInfo(
     return &connecting_map_[connection_id];
   }
   return nullptr;
+}
+
+std::string WebRtc::ConnectionInfo::ToString() const {
+  std::ostringstream result;
+  result << (connection_flow == nullptr ? "connection_flow is null, "
+                                        : "connection_flow is valid, ");
+  result << (signaling_messenger == nullptr ? "signaling_messenger is null, "
+                                            : "signaling_messenger is valid, ");
+  result << (socket.IsValid() ? "socket is valid, " : "socket is not valid, ");
+  result << "remote peer_id: " << peer_id.GetId() << ", ";
+  result << "self peer_id: " << self_id.GetId();
+  return result.str();
+}
+
+std::string WebRtc::InternalStatesToString() {
+  std::ostringstream map_values;
+  map_values << "connecting map size: " << connecting_map_.size()
+             << ", accepting map size: " << accepting_map_.size() << "\n";
+  for (auto& item : connecting_map_) {
+    map_values << "connecting " << item.first << ": " << item.second.ToString()
+               << "\n";
+  }
+  for (auto& item : accepting_map_) {
+    map_values << "accepting " << item.first << ": " << item.second.ToString()
+               << "\n";
+  }
+  return map_values.str();
 }
 
 }  // namespace mediums
