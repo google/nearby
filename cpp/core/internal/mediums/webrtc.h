@@ -86,6 +86,11 @@ class WebRtc {
     kAnswerer = 2,
   };
 
+  absl::flat_hash_map<Role, std::string> role_names_{
+      {Role::kNone, "None"},
+      {Role::kOfferer, "Offerer"},
+      {Role::kAnswerer, "Answerer"}};
+
   struct ConnectionInfo {
     std::unique_ptr<ConnectionFlow> connection_flow;
     std::unique_ptr<WebRtcSignalingMessenger> signaling_messenger;
@@ -97,6 +102,7 @@ class WebRtc {
     ByteArray pending_local_offer;
     std::vector<::location::nearby::mediums::IceCandidate>
         pending_local_ice_candidates;
+    std::string ToString() const;
   };
 
   bool InitWebRtcFlow(const Role& role, const PeerId& self_id,
@@ -195,6 +201,8 @@ class WebRtc {
   ConnectionInfo* GetConnectionInfo(const Role& role,
                                     const std::string& connection_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  std::string InternalStatesToString() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Mutex mutex_;
 
