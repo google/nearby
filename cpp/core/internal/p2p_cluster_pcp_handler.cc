@@ -137,12 +137,14 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
 Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
   if (client->GetClientId() == bluetooth_classic_advertiser_client_id_) {
     bluetooth_medium_.TurnOffDiscoverability();
+    bluetooth_classic_advertiser_client_id_ = 0;
   } else {
     NEARBY_LOG(INFO,
                "Skipped BT TurnOffDiscoverability for client %d, client that "
                "turned on discoverability is %d",
                client->GetClientId(), bluetooth_classic_advertiser_client_id_);
   }
+
   bluetooth_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
 
   ble_medium_.StopAdvertising(client->GetAdvertisingServiceId());
@@ -621,12 +623,14 @@ Status P2pClusterPcpHandler::StopDiscoveryImpl(ClientProxy* client) {
   wifi_lan_medium_.StopDiscovery(client->GetDiscoveryServiceId());
   if (client->GetClientId() == bluetooth_classic_discoverer_client_id_) {
     bluetooth_medium_.StopDiscovery();
+    bluetooth_classic_discoverer_client_id_ = 0;
   } else {
     NEARBY_LOG(INFO,
                "Skipped BT stopDiscovery for client %d, client that started "
                "discovery is %d",
                client->GetClientId(), bluetooth_classic_discoverer_client_id_);
   }
+
   ble_medium_.StopScanning(client->GetDiscoveryServiceId());
   return {Status::kSuccess};
 }
