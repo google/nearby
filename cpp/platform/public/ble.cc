@@ -51,18 +51,10 @@ bool BleMedium::StartScanning(
                 auto pair = peripherals_.emplace(
                     &peripheral, absl::make_unique<ScanningInfo>());
                 auto& context = *pair.first->second;
-                if (!pair.second) {
-                  NEARBY_LOG(INFO,
-                             "Discovering (again) peripheral=%p, impl=%p, "
-                             "peripheral name=%s",
-                             &context.peripheral, &peripheral,
-                             peripheral.GetName().c_str());
-                } else {
+                if (pair.second) {
                   context.peripheral = BlePeripheral(&peripheral);
                   NEARBY_LOG(INFO,
-                             "Discovering peripheral=%p, impl=%p, "
-                             "peripheral name=%s",
-                             &context.peripheral, &peripheral,
+                             "Discovered peripheral '%s'",
                              peripheral.GetName().c_str());
                   discovered_peripheral_callback_.peripheral_discovered_cb(
                       context.peripheral, service_id,

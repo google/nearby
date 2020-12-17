@@ -280,6 +280,8 @@ message MediumMetadata {
   optional bytes ip_address = 3;
   // True if local device supports 6GHz.
   optional bool supports_6_ghz = 4;
+  // True if local device has mobile radio.
+  optional bool mobile_radio = 5;
 }
 
 // LocationHint is used to specify a location as well as format.
