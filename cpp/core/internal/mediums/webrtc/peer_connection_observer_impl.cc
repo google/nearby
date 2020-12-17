@@ -16,7 +16,6 @@ PeerConnectionObserverImpl::PeerConnectionObserverImpl(
 
 void PeerConnectionObserverImpl::OnIceCandidate(
     const webrtc::IceCandidateInterface* candidate) {
-  NEARBY_LOG(INFO, "OnIceCandidate");
   local_ice_candidate_listener_.local_ice_candidate_found_cb(candidate);
 }
 

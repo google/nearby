@@ -34,13 +34,6 @@ bool PayloadManager::SendPayloadLoop(
       EndpointsToEndpointIds(pair.first);
   const Endpoints& unavailable_endpoints = pair.second;
 
-  NEARBY_LOG(INFO,
-             "SendPayloadLoop: Available: { %s }; Unavailable: { %s }; "
-             "payload_id=%" PRIX64 "; self=%p",
-             ToString(available_endpoint_ids).c_str(),
-             ToString(unavailable_endpoints).c_str(),
-             static_cast<Payload::Id>(payload_header.id()), this);
-
   // First, handle any non-available endpoints.
   for (const auto& endpoint : unavailable_endpoints) {
     HandleFinishedOutgoingPayload(
@@ -143,8 +136,6 @@ PayloadManager::GetAvailableAndUnavailableEndpoints(
   Endpoints available;
   Endpoints unavailable;
   for (auto* endpoint_info : pending_payload.GetEndpoints()) {
-    NEARBY_LOG(INFO, "EndpointInfo: %p; id=%s; status=%d", endpoint_info,
-               endpoint_info->id.c_str(), endpoint_info->status.Get());
     if (endpoint_info->status.Get() ==
         PayloadManager::EndpointInfo::Status::kAvailable) {
       available.push_back(endpoint_info);
@@ -373,19 +364,15 @@ void PayloadManager::OnIncomingFrame(
       ProcessControlPacket(to_client, from_endpoint_id, frame);
       break;
     case PayloadTransferFrame::DATA:
-      NEARBY_LOG(INFO, "PayloadManager::OnIncomingFrame [DATA]: self=%p; id=%s",
-                 this, from_endpoint_id.c_str());
       ProcessDataPacket(to_client, from_endpoint_id, frame);
       break;
     default:
       NEARBY_LOG(
-          INFO,
+          WARNING,
           "PayloadManager: invalid frame; remote endpoint: self=%p; id=%s",
           this, from_endpoint_id.c_str());
       break;
   }
-  NEARBY_LOG(INFO, "PayloadManager::OnIncomingFrame [DONE]: self=%p; id=%s",
-             this, from_endpoint_id.c_str());
 }
 
 void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
@@ -801,7 +788,7 @@ void PayloadManager::ProcessDataPacket(
   } else {
     pending_payload = GetPayload(payload_header.id());
     if (!pending_payload) {
-      NEARBY_LOG(INFO,
+      NEARBY_LOG(WARNING,
                  "ProcessDataPacket: [missing] id=%s; payload_id=%" PRIX64,
                  from_endpoint_id.c_str(),
                  static_cast<std::int64_t>(payload_header.id()));
@@ -833,7 +820,7 @@ void PayloadManager::ProcessDataPacket(
   if (pending_payload->GetInternalPayload()
           ->AttachNextChunk(ByteArray(std::move(*payload_chunk.mutable_body())))
           .Raised()) {
-    NEARBY_LOG(INFO,
+    NEARBY_LOG(WARNING,
                "ProcessDataPacket: [data: error] id=%s; payload_id=%" PRIX64,
                from_endpoint_id.c_str(), pending_payload->GetId());
     HandleFinishedIncomingPayload(
@@ -842,8 +829,6 @@ void PayloadManager::ProcessDataPacket(
     return;
   }
 
-  NEARBY_LOG(INFO, "ProcessDataPacket: [data: ok] id=%s; payload_id=%" PRIX64,
-             from_endpoint_id.c_str(), pending_payload->GetId());
   HandleSuccessfulIncomingChunk(to_client, from_endpoint_id, payload_header,
                                 payload_chunk.flags(), payload_chunk.offset(),
                                 payload_body_size);
