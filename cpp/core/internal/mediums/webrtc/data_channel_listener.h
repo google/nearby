@@ -11,7 +11,10 @@ namespace mediums {
 
 // Callbacks from the data channel.
 struct DataChannelListener {
-  std::function<void()> data_channel_closed_cb = DefaultCallback<>();
+  // Called when the data channel is created.
+  std::function<void(rtc::scoped_refptr<webrtc::DataChannelInterface>)>
+      data_channel_created_cb =
+          DefaultCallback<rtc::scoped_refptr<webrtc::DataChannelInterface>>();
 
   // Called when a new message was received on the data channel.
   std::function<void(const ByteArray&)> data_channel_message_received_cb =
@@ -21,6 +24,9 @@ struct DataChannelListener {
   // changed.
   std::function<void()> data_channel_buffered_amount_changed_cb =
       DefaultCallback<>();
+
+  // Called when the data channel is closed.
+  std::function<void()> data_channel_closed_cb = DefaultCallback<>();
 };
 
 }  // namespace mediums

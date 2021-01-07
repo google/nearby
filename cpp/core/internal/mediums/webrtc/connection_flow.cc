@@ -91,6 +91,11 @@ ConnectionFlow::ConnectionFlow(
 
 ConnectionFlow::~ConnectionFlow() { Close(); }
 
+ConnectionFlow::State ConnectionFlow::GetState() {
+  MutexLock lock(&mutex_);
+  return state_;
+}
+
 SessionDescriptionWrapper ConnectionFlow::CreateOffer() {
   MutexLock lock(&mutex_);
 
@@ -219,11 +224,6 @@ bool ConnectionFlow::OnRemoteIceCandidatesReceived(
   return true;
 }
 
-Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-ConnectionFlow::GetDataChannel() {
-  return data_channel_future_;
-}
-
 bool ConnectionFlow::Close() {
   MutexLock lock(&mutex_);
   return CloseLocked();
@@ -275,16 +275,20 @@ void ConnectionFlow::ProcessOnPeerConnectionChange(
   if (new_state == PeerConnectionState::kClosed ||
       new_state == PeerConnectionState::kFailed ||
       new_state == PeerConnectionState::kDisconnected) {
-    MutexLock lock(&mutex_);
-    CloseAndNotifyLocked();
+    Close();
   }
 }
 
-void ConnectionFlow::ProcessDataChannelConnected() {
+void ConnectionFlow::ProcessDataChannelConnected(
+    rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
   MutexLock lock(&mutex_);
   NEARBY_LOG(INFO, "Data channel state changed to connected.");
-  if (!TransitionState(State::kWaitingToConnect, State::kConnected))
-    CloseAndNotifyLocked();
+  if (!TransitionState(State::kWaitingToConnect, State::kConnected)) {
+    data_channel->Close();
+    return;
+  }
+
+  data_channel_listener_.data_channel_created_cb(std::move(data_channel));
 }
 
 webrtc::DataChannelObserver* ConnectionFlow::CreateDataChannelObserver(
@@ -294,15 +298,14 @@ webrtc::DataChannelObserver* ConnectionFlow::CreateDataChannelObserver(
                                   data_channel{std::move(data_channel)}]() {
       if (data_channel->state() ==
           webrtc::DataChannelInterface::DataState::kOpen) {
-        data_channel_future_.Set(std::move(data_channel));
-        OffloadFromSignalingThread([this]() { ProcessDataChannelConnected(); });
+        OffloadFromSignalingThread(
+            [this, data_channel{std::move(data_channel)}]() {
+              ProcessDataChannelConnected(std::move(data_channel));
+            });
       } else if (data_channel->state() ==
                  webrtc::DataChannelInterface::DataState::kClosed) {
         data_channel->UnregisterObserver();
-        OffloadFromSignalingThread([this]() {
-          MutexLock lock(&mutex_);
-          CloseAndNotifyLocked();
-        });
+        data_channel_listener_.data_channel_closed_cb();
       }
     };
     data_channel_observer_ = absl::make_unique<DataChannelObserverImpl>(
@@ -325,19 +328,12 @@ bool ConnectionFlow::TransitionState(State current_state, State new_state) {
   return true;
 }
 
-void ConnectionFlow::CloseAndNotifyLocked() {
-  if (CloseLocked()) {
-    data_channel_listener_.data_channel_closed_cb();
-  }
-}
-
 bool ConnectionFlow::CloseLocked() {
   if (state_ == State::kEnded) {
     return false;
   }
   state_ = State::kEnded;
 
-  data_channel_future_.SetException({Exception::kInterrupted});
   if (peer_connection_) peer_connection_->Close();
 
   data_channel_observer_.reset();

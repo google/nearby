@@ -63,7 +63,7 @@ class WebRtc {
   // boolean value indicating if the device has started accepting connections.
   // Runs on @MainThread.
   bool StartAcceptingConnections(const std::string& service_id,
-                                 const PeerId& self_id,
+                                 const PeerId& self_peer_id,
                                  const LocationHint& location_hint,
                                  AcceptedConnectionCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -73,9 +73,11 @@ class WebRtc {
   void StopAcceptingConnections(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Initiates a WebRtc connection with peer device identified by |peer_id|.
+  // Initiates a WebRtc connection with peer device identified by |peer_id|
+  // with internal retry for maximum attempts of kConnectAttemptsLimit.
   // Runs on @MainThread.
-  WebRtcSocketWrapper Connect(const PeerId& peer_id,
+  WebRtcSocketWrapper Connect(const std::string& service_id,
+                              const PeerId& peer_id,
                               const LocationHint& location_hint)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -86,138 +88,152 @@ class WebRtc {
     kAnswerer = 2,
   };
 
-  absl::flat_hash_map<Role, std::string> role_names_{
-      {Role::kNone, "None"},
-      {Role::kOfferer, "Offerer"},
-      {Role::kAnswerer, "Answerer"}};
+  struct AcceptingConnectionsInfo {
+    // The self_peer_id is generated from the BT/WiFi advertisements and allows
+    // the scanner to message us over Tachyon.
+    PeerId self_peer_id;
 
-  struct ConnectionInfo {
-    std::unique_ptr<ConnectionFlow> connection_flow;
+    // The registered callback. When there's an incoming connection, this
+    // callback is notified.
+    AcceptedConnectionCallback accepted_connection_callback;
+
+    // Allows us to communicate with the Tachyon web server.
     std::unique_ptr<WebRtcSignalingMessenger> signaling_messenger;
-    WebRtcSocketWrapper socket;
-    CancelableAlarm restart_receive_messages_alarm;
 
-    PeerId self_id;
-    PeerId peer_id;
-    ByteArray pending_local_offer;
-    std::vector<::location::nearby::mediums::IceCandidate>
-        pending_local_ice_candidates;
-    std::string ToString() const;
+    // Restarts the tachyon inbox receives messages streaming rpc if the
+    // streaming rpc times out. The streaming rpc times out after 60s while
+    // advertising. Non-null when listening for WebRTC connections as an
+    // offerer.
+    CancelableAlarm restart_tachyon_receive_messages_alarm;
   };
 
-  bool InitWebRtcFlow(const Role& role, const PeerId& self_id,
-                      const LocationHint& location_hint,
-                      const std::string& connection_id)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  struct ConnectionRequestInfo {
+    // The self_peer_id is randomly generated and allows the advertiser to
+    // message us over Tachyon.
+    PeerId self_peer_id;
 
-  Future<WebRtcSocketWrapper> ListenForWebRtcSocketFuture(
-      const Role& role, const std::string& connection_id,
-      Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-          data_channel_future,
-      AcceptedConnectionCallback callback);
+    // Allows us to communicate with the Tachyon web server.
+    std::unique_ptr<WebRtcSignalingMessenger> signaling_messenger;
 
-  WebRtcSocketWrapper CreateWebRtcSocketWrapper(
-      const Role& role, const std::string& connection_id,
-      rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel);
+    // The pending DataChannel future. Our client will be blocked on this while
+    // they wait for us to set up the channel over Tachyon.
+    Future<WebRtcSocketWrapper> socket_future;
+  };
 
-  LocalIceCandidateListener GetLocalIceCandidateListener(
-      const Role& role, const std::string& connection_id);
-  void OnLocalIceCandidate(
-      const Role& role, const std::string& connection_id,
-      const webrtc::IceCandidateInterface* local_ice_candidate);
+  static constexpr int kConnectAttemptsLimit = 3;
 
-  DataChannelListener GetDataChannelListener(const Role& role,
-                                             const std::string& connection_id);
-  void OnDataChannelClosed(const Role& role, const std::string& connection_id);
-  void OnDataChannelMessageReceived(const Role& role,
-                                    const std::string& connection_id,
-                                    const ByteArray& message);
-  void OnDataChannelBufferedAmountChanged(const Role& role,
-                                          const std::string& connection_id);
-
-  // Runs on @MainThread and |single_thread_executor_|.
-  bool SetLocalSessionDescription(SessionDescriptionWrapper sdp, Role role,
-                                  const std::string& connection_id)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Runs on |single_thread_executor_|.
-  bool IsSignaling(const Role& role, const std::string& connection_id)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Runs on |single_thread_executor_|.
-  void ProcessSignalingMessage(const Role& role,
-                               const std::string& connection_id,
-                               const ByteArray& message)
-      ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Runs on |single_thread_executor_|.
-  void SendOfferAndIceCandidatesToPeer(const std::string& service_id)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Runs on |single_thread_executor_|.
-  void SendAnswerToPeer(const std::string& peer_id)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Runs on @MainThread and |single_thread_executor_|.
-  void LogAndDisconnect(const Role& role, const std::string& connection_id,
-                        const std::string& error_message)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
+  // Attempt to initiates a WebRtc connection with peer device identified by
+  // |peer_id|.
   // Runs on @MainThread.
-  void Disconnect(const Role& role, const std::string& connection_id)
+  WebRtcSocketWrapper AttemptToConnect(const std::string& service_id,
+                                       const PeerId& peer_id,
+                                       const LocationHint& location_hint)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Runs on @MainThread and |single_thread_executor_|.
-  void DisconnectLocked(const Role& role, const std::string& connection_id)
+  // Returns if the device is accepting connection with specific service id.
+  // Runs on @MainThread.
+  bool IsAcceptingConnectionsLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  void LogAndShutdownSignaling(const Role& role,
-                               const std::string& connection_id,
-                               const std::string& error_message)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Runs on @MainThread and |single_thread_executor_|.
-  void ShutdownSignaling(const Role& role, const std::string& connection_id)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Runs on @MainThread and |single_thread_executor_|.
-  void ShutdownWebRtcSocket(const Role& role, const std::string& connection_id)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Runs on @MainThread and |single_thread_executor_|.
-  void ShutdownIceCandidateCollection(const Role& role,
-                                      const std::string& connection_id)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  void OffloadFromSignalingThread(Runnable runnable);
-
-  // Runs on |restart_receive_messages_executor_|.
-  void RestartReceiveMessages(const LocationHint& location_hint,
-                              const std::string& service_id)
+  // Runs on |single_thread_executor_|.
+  void ProcessTachyonInboxMessage(const std::string& service_id,
+                                  const ByteArray& message)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void PrintStatus(const std::string& func);
-
-  ConnectionInfo* GetConnectionInfo(const Role& role,
-                                    const std::string& connection_id)
+  // Runs on |single_thread_executor_|.
+  void SendOffer(const std::string& service_id, const PeerId& remote_peer_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  std::string InternalStatesToString() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  // Runs on |single_thread_executor_|.
+  void ReceiveOffer(const PeerId& remote_peer_id,
+                    SessionDescriptionWrapper offer)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Runs on |single_thread_executor_|.
+  void SendAnswer(const PeerId& remote_peer_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Runs on |single_thread_executor_|.
+  void ReceiveAnswer(const PeerId& remote_peer_id,
+                     SessionDescriptionWrapper answer)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Runs on |single_thread_executor_|.
+  void ReceiveIceCandidates(
+      const PeerId& remote_peer_id,
+      std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
+          ice_candidates) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Runs on |single_thread_executor_|.
+  std::unique_ptr<ConnectionFlow> CreateConnectionFlow(
+      const std::string& service_id, const PeerId& remote_peer_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Runs on |single_thread_executor_|.
+  std::unique_ptr<ConnectionFlow> GetConnectionFlow(
+      const PeerId& remote_peer_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Runs on |single_thread_executor_|.
+  void RemoveConnectionFlow(const PeerId& remote_peer_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Runs on |single_thread_executor_|.
+  void ProcessDataChannelCreated(
+      const std::string& service_id, const PeerId& remote_peer_id,
+      rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Runs on |single_thread_executor_|.
+  void ProcessDataChannelMessage(const PeerId& remote_peer_id,
+                                 const ByteArray& message)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Runs on |single_thread_executor_|.
+  void ProcessDataChannelBufferAmountChanged(const PeerId& remote_peer_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Runs on |single_thread_executor_|.
+  void ProcessDataChannelClosed(const PeerId& remote_peer_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Runs on |single_thread_executor_|.
+  void ProcessLocalIceCandidate(
+      const std::string& service_id, const PeerId& remote_peer_id,
+      const ::location::nearby::mediums::IceCandidate ice_candidate)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Runs on |single_thread_executor_|.
+  void ProcessRestartTachyonReceiveMessages(const std::string& service_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  void OffloadFromThread(Runnable runnable);
 
   Mutex mutex_;
 
   WebRtcMedium medium_;
 
-  SingleThreadExecutor single_thread_executor_;
+  // The single thread we throw the potentially blocking work on to.
+  ScheduledExecutor single_thread_executor_;
 
-  // Restarts the signaling messenger for receiving messages.
-  ScheduledExecutor restart_receive_messages_executor_;
+  // A map of ServiceID -> State for all services that are listening for
+  // incoming connections.
+  absl::flat_hash_map<std::string, AcceptingConnectionsInfo>
+      accepting_connections_info_ ABSL_GUARDED_BY(mutex_);
 
-  // Use service_id as key for accepting connections.
-  absl::flat_hash_map<std::string, ConnectionInfo> accepting_map_
-      ABSL_GUARDED_BY(mutex_);
-  // Use remote peer_id as key for connecting connections.
-  absl::flat_hash_map<std::string, ConnectionInfo> connecting_map_
+  // A map of a remote PeerId -> State for pending connection requests. As
+  // messages from Tachyon come in, this lets us look up the connection request
+  // info to handle the interaction.
+  absl::flat_hash_map<std::string, ConnectionRequestInfo>
+      requesting_connections_info_ ABSL_GUARDED_BY(mutex_);
+
+  // A map of a remote PeerId -> ConnectionFlow. For each connection, we create
+  // a unique ConnectionFlow.
+  absl::flat_hash_map<std::string, std::unique_ptr<ConnectionFlow>>
+      connection_flows_ ABSL_GUARDED_BY(mutex_);
+
+  // A map of a remote PeerId -> Socket. Non-empty while we have active
+  // connections.
+  absl::flat_hash_map<std::string, WebRtcSocketWrapper> sockets_
       ABSL_GUARDED_BY(mutex_);
 };
 
