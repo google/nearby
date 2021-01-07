@@ -23,7 +23,6 @@
 #include "core/internal/mediums/webrtc/peer_connection_observer_impl.h"
 #include "core/internal/mediums/webrtc/session_description_wrapper.h"
 #include "platform/base/runnable.h"
-#include "platform/public/future.h"
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/webrtc.h"
 #include "webrtc/api/data_channel_interface.h"
@@ -69,11 +68,25 @@ namespace mediums {
  */
 class ConnectionFlow {
  public:
+  enum class State {
+    kInitialized,
+    kCreatingOffer,
+    kWaitingForAnswer,
+    kReceivedOffer,
+    kCreatingAnswer,
+    kWaitingToConnect,
+    kConnected,
+    kEnded,
+  };
+
   // This method blocks on the creation of the peer connection object.
   static std::unique_ptr<ConnectionFlow> Create(
       LocalIceCandidateListener local_ice_candidate_listener,
       DataChannelListener data_channel_listener, WebRtcMedium& webrtc_medium);
   ~ConnectionFlow();
+
+  // Returns the current state of the ConnectionFlow.
+  State GetState() ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Create the offer that will be sent to the remote. Mirrors the behaviour of
   // PeerConnectionInterface::CreateOffer.
@@ -100,8 +113,6 @@ class ConnectionFlow {
   bool OnRemoteIceCandidatesReceived(
       std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
           ice_candidates) ABSL_LOCKS_EXCLUDED(mutex_);
-  // Get a future for the data channel.
-  Future<rtc::scoped_refptr<webrtc::DataChannelInterface>> GetDataChannel();
   // Close the peer connection and data channel.
   bool Close() ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -117,17 +128,6 @@ class ConnectionFlow {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
-  enum class State {
-    kInitialized,
-    kCreatingOffer,
-    kWaitingForAnswer,
-    kReceivedOffer,
-    kCreatingAnswer,
-    kWaitingToConnect,
-    kConnected,
-    kEnded,
-  };
-
   ConnectionFlow(LocalIceCandidateListener local_ice_candidate_listener,
                  DataChannelListener data_channel_listener);
 
@@ -141,7 +141,9 @@ class ConnectionFlow {
 
   bool SetRemoteSessionDescription(SessionDescriptionWrapper sdp);
 
-  void ProcessDataChannelConnected() ABSL_LOCKS_EXCLUDED(mutex_);
+  void ProcessDataChannelConnected(
+      rtc::scoped_refptr<webrtc::DataChannelInterface>)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   void CloseAndNotifyLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool CloseLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
@@ -154,8 +156,6 @@ class ConnectionFlow {
   DataChannelListener data_channel_listener_;
 
   std::unique_ptr<DataChannelObserverImpl> data_channel_observer_;
-
-  Future<rtc::scoped_refptr<webrtc::DataChannelInterface>> data_channel_future_;
 
   PeerConnectionObserverImpl peer_connection_observer_;
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;

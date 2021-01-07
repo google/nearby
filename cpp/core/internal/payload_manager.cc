@@ -1041,6 +1041,11 @@ void PayloadManager::PendingPayloads::StartTrackingPayload(
     Payload::Id payload_id, std::unique_ptr<PendingPayload> pending_payload) {
   MutexLock lock(&mutex_);
 
+  // If the |payload_id| is being re-used, always prefer the newer payload.
+  auto it = pending_payloads_.find(payload_id);
+  if (it != pending_payloads_.end()) {
+    pending_payloads_.erase(payload_id);
+  }
   auto pair = pending_payloads_.emplace(payload_id, std::move(pending_payload));
   NEARBY_LOG(INFO, "StartTrackingPayload: payload_id=%" PRIX64 "; inserted=%d",
              payload_id, pair.second);

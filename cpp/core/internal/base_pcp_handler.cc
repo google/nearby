@@ -239,7 +239,10 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
 
   if (!ukey2) {
     // Fail early, if there is no crypto context.
-    ProcessPreConnectionResultFailure(connection_info.client, endpoint_id);
+    ProcessPreConnectionInitiationFailure(
+        endpoint_id, connection_info.channel.get(), {Status::kEndpointIoError},
+        connection_info.result.get());
+    connection_info.result.reset();
     return;
   }
 

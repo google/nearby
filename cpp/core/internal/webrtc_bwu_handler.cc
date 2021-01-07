@@ -122,7 +122,8 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
              "location hint %s",
              peer_id.GetId().c_str(), location_hint.DebugString().c_str());
 
-  mediums::WebRtcSocketWrapper socket = webrtc_.Connect(peer_id, location_hint);
+  mediums::WebRtcSocketWrapper socket =
+      webrtc_.Connect(service_id, peer_id, location_hint);
   if (!socket.IsValid()) {
     NEARBY_LOG(ERROR,
                "WebRtcBwuHandler failed to connect to remote peer (%s) on "

@@ -1203,7 +1203,8 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WebRtcConnectImpl(
     ClientProxy* client, WebRtcEndpoint* webrtc_endpoint) {
   std::string empty_country_code;
   mediums::WebRtcSocketWrapper socket_wrapper = webrtc_medium_.Connect(
-      webrtc_endpoint->peer_id, Utils::BuildLocationHint(empty_country_code));
+      webrtc_endpoint->service_id, webrtc_endpoint->peer_id,
+      Utils::BuildLocationHint(empty_country_code));
   if (!socket_wrapper.IsValid()) {
     return BasePcpHandler::ConnectImplResult{.status = {Status::kError}};
   }

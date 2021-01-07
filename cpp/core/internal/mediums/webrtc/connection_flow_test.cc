@@ -57,6 +57,11 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
 
   Future<ByteArray> message_received_future;
 
+  Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>
+      offerer_data_channel_future;
+  Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>
+      answerer_data_channel_future;
+
   std::unique_ptr<ConnectionFlow> offerer, answerer;
 
   // Send Ice Candidates immediately when you retrieve them
@@ -70,7 +75,12 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
              if (answerer)
                answerer->OnRemoteIceCandidatesReceived(std::move(vec));
            }},
-      DataChannelListener(), webrtc_medium_offerer);
+      {.data_channel_created_cb =
+           [&offerer_data_channel_future](
+               rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
+             offerer_data_channel_future.Set(std::move(data_channel));
+           }},
+      webrtc_medium_offerer);
   ASSERT_NE(offerer, nullptr);
   answerer = ConnectionFlow::Create(
       {.local_ice_candidate_found_cb =
@@ -82,7 +92,12 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
              if (offerer)
                offerer->OnRemoteIceCandidatesReceived(std::move(vec));
            }},
-      {.data_channel_message_received_cb =
+      {.data_channel_created_cb =
+           [&answerer_data_channel_future](
+               rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
+             answerer_data_channel_future.Set(std::move(data_channel));
+           },
+       .data_channel_message_received_cb =
            [&message_received_future](ByteArray bytes) {
              message_received_future.Set(std::move(bytes));
            }},
@@ -103,10 +118,10 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
 
   // Retrieve Data Channels
   ExceptionOr<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      offerer_channel = offerer->GetDataChannel().Get(absl::Seconds(1));
+      offerer_channel = offerer_data_channel_future.Get(absl::Seconds(1));
   EXPECT_TRUE(offerer_channel.ok());
   ExceptionOr<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      answerer_channel = answerer->GetDataChannel().Get(absl::Seconds(1));
+      answerer_channel = answerer_data_channel_future.Get(absl::Seconds(1));
   EXPECT_TRUE(answerer_channel.ok());
 
   // Send message on data channel
