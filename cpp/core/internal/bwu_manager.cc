@@ -301,6 +301,13 @@ void BwuManager::OnIncomingConnection(
       return;
     }
 
+    if (!WriteClientIntroductionAckFrame(channel)) {
+      // This was never a fully EstablishedConnection, no need to provide a
+      // closure reason.
+      channel->Close();
+      return;
+    }
+
     const std::string& endpoint_id = introduction.endpoint_id();
     auto item = in_progress_upgrades_.extract(endpoint_id);
     if (item.empty()) return;
@@ -424,6 +431,22 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
     return {};
   }
 
+  if (upgrade_path_info.supports_client_introduction_ack()) {
+    if (!ReadClientIntroductionAckFrame(channel.get())) {
+      // This was never a fully EstablishedConnection, no need to provide a
+      // closure reason.
+      channel->Close();
+
+      NEARBY_LOG(
+          ERROR,
+          "Failed to read BWU_NEGOTIATION.CLIENT_INTRODUCTION_ACK OfflineFrame "
+          "to newly-created EndpointChannel %s, aborting upgrade.",
+          channel->GetName().c_str());
+
+      return {};
+    }
+  }
+
   NEARBY_LOG(
       INFO,
       "Successfully wrote  BWU_NEGOTIATION.CLIENT_INTRODUCTION OfflineFrame to "
@@ -473,17 +496,64 @@ void BwuManager::RunUpgradeFailedProtocol(
 
 bool BwuManager::ReadClientIntroductionFrame(EndpointChannel* channel,
                                              ClientIntroduction& introduction) {
+  CancelableAlarm timeout_alarm(
+      "BwuManager::ReadClientIntroductionFrame",
+      [channel]() {
+        NEARBY_LOG(
+            ERROR,
+            "In BandwidthUpgradeManager, failed to read the "
+            "ClientIntroductionFrame after %d seconds. Timing out and closing "
+            "EndpointChannel %s.",
+            kReadClientIntroductionFrameTimeout, channel->GetType().c_str());
+        channel->Close();
+      },
+      kReadClientIntroductionFrameTimeout, &alarm_executor_);
   auto data = channel->Read();
+  timeout_alarm.Cancel();
   if (!data.ok()) return false;
   auto transfer(parser::FromBytes(data.result()));
   if (!transfer.ok()) return false;
   OfflineFrame frame = transfer.result();
   if (!frame.has_v1() || !frame.v1().has_bandwidth_upgrade_negotiation())
     return false;
+  if (frame.v1().bandwidth_upgrade_negotiation().event_type() !=
+      BandwidthUpgradeNegotiationFrame::CLIENT_INTRODUCTION)
+    return false;
   const auto& frame_intro =
       frame.v1().bandwidth_upgrade_negotiation().client_introduction();
   introduction = frame_intro;
   return true;
+}
+
+bool BwuManager::ReadClientIntroductionAckFrame(EndpointChannel* channel) {
+  CancelableAlarm timeout_alarm(
+      "BwuManager::ReadClientIntroductionAckFrame",
+      [channel]() {
+        NEARBY_LOG(ERROR,
+                   "In BandwidthUpgradeManager, failed to read the "
+                   "ClientIntroductionAckFrame after %d seconds. Timing out "
+                   "and closing EndpointChannel %s.",
+                   kReadClientIntroductionFrameTimeout,
+                   channel->GetType().c_str());
+        channel->Close();
+      },
+      kReadClientIntroductionFrameTimeout, &alarm_executor_);
+  auto data = channel->Read();
+  timeout_alarm.Cancel();
+  if (!data.ok()) return false;
+  auto transfer(parser::FromBytes(data.result()));
+  if (!transfer.ok()) return false;
+  OfflineFrame frame = transfer.result();
+  if (!frame.has_v1() || !frame.v1().has_bandwidth_upgrade_negotiation())
+    return false;
+  if (frame.v1().bandwidth_upgrade_negotiation().event_type() !=
+      BandwidthUpgradeNegotiationFrame::CLIENT_INTRODUCTION_ACK)
+    return false;
+  return true;
+}
+
+bool BwuManager::WriteClientIntroductionAckFrame(EndpointChannel* channel) {
+  return channel->Write(parser::ForBwuIntroductionAck()).Ok();
 }
 
 void BwuManager::ProcessLastWriteToPriorChannelEvent(

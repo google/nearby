@@ -132,8 +132,7 @@ class BasePcpHandler : public PcpHandler,
   // otherwise does nothing.
   void StopDiscovery(ClientProxy* client) override;
 
-  void InjectEndpoint(ClientProxy* client,
-                      const std::string& service_id,
+  void InjectEndpoint(ClientProxy* client, const std::string& service_id,
                       const OutOfBandConnectionMetadata& metadata) override;
 
   // Requests a newly discovered remote endpoint it to form a connection.
@@ -294,8 +293,7 @@ class BasePcpHandler : public PcpHandler,
 
   // @PcpHandlerThread
   virtual Status InjectEndpointImpl(
-      ClientProxy* client,
-      const std::string& service_id,
+      ClientProxy* client, const std::string& service_id,
       const OutOfBandConnectionMetadata& metadata) = 0;
 
   // @PcpHandlerThread
@@ -480,6 +478,11 @@ class BasePcpHandler : public PcpHandler,
   void WaitForLatch(const std::string& method_name, CountDownLatch* latch);
   Status WaitForResult(const std::string& method_name, std::int64_t client_id,
                        Future<Status>* future);
+  bool MediumSupported(const proto::connections::Medium& medium,
+                       const ConnectionOptions& options) const;
+  std::vector<proto::connections::Medium>
+  GetSupportedConnectionMediumsByPriority(
+      const ConnectionOptions& options);
 
   AtomicReference<Medium> bwu_medium_{Medium::UNKNOWN_MEDIUM};
   ScheduledExecutor alarm_executor_;

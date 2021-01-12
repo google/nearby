@@ -203,6 +203,7 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiHotspotPathAvailable) {
             gateway: "0.0.0.0"
           >
           supports_disabling_encryption: false
+          supports_client_introduction_ack: true
         >
       >
     >)pb";
@@ -225,6 +226,7 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiLanPathAvailable) {
         upgrade_path_info: <
           medium: WIFI_LAN
           wifi_lan_socket: < ip_address: "\x01\x02\x03\x04" wifi_port: 1234 >
+          supports_client_introduction_ack: true
         >
       >
     >)pb";
@@ -251,6 +253,7 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiAwarePathAvailable) {
             password: "password"
           >
           supports_disabling_encryption: false
+          supports_client_introduction_ack: true
         >
       >
     >)pb";
@@ -279,6 +282,7 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiDirectPathAvailable) {
             frequency: 1000
           >
           supports_disabling_encryption: false
+          supports_client_introduction_ack: true
         >
       >
     >)pb";
@@ -304,6 +308,7 @@ TEST(OfflineFramesTest, CanGenerateBwuBluetoothPathAvailable) {
             service_name: "service"
             mac_address: "\x11\x22\x33\x44\x55\x66"
           >
+          supports_client_introduction_ack: true
         >
       >
     >)pb";
