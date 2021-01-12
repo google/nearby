@@ -46,6 +46,7 @@ ByteArray ForControlPayloadTransfer(
 
 // Builds Bandwidth Upgrade [BWU] messages.
 ByteArray ForBwuIntroduction(const std::string& endpoint_id);
+ByteArray ForBwuIntroductionAck();
 ByteArray ForBwuWifiHotspotPathAvailable(const std::string& ssid,
                                          const std::string& password,
                                          std::int32_t port,

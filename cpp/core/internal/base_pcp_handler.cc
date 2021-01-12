@@ -142,8 +142,7 @@ void BasePcpHandler::InjectEndpoint(
     ClientProxy* client, const std::string& service_id,
     const OutOfBandConnectionMetadata& metadata) {
   CountDownLatch latch(1);
-  RunOnPcpHandlerThread([this, client, service_id, metadata,
-                         &latch]() {
+  RunOnPcpHandlerThread([this, client, service_id, metadata, &latch]() {
     InjectEndpointImpl(client, service_id, metadata);
     latch.CountDown();
   });
@@ -330,7 +329,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
         BluetoothUtils::ToString(options.remote_bluetooth_mac_address);
     if (!remote_bluetooth_mac_address.empty()) {
       if (AppendRemoteBluetoothMacAddressEndpoint(endpoint_id,
-                                               remote_bluetooth_mac_address))
+                                                  remote_bluetooth_mac_address))
         NEARBY_LOGS(INFO) << "Appended remote Bluetooth MAC Address endpoint "
                           << "[" << remote_bluetooth_mac_address << "]";
     }
@@ -343,6 +342,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
     ConnectImplResult connect_impl_result;
 
     for (auto connect_endpoint : discovered_endpoints) {
+      if (!MediumSupported(connect_endpoint->medium, options)) continue;
       connect_impl_result = ConnectImpl(client, connect_endpoint);
       if (connect_impl_result.status.Ok()) {
         channel = std::move(connect_impl_result.endpoint_channel);
@@ -366,7 +366,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
     // endpoint about ourselves.
     Exception write_exception = WriteConnectionRequestFrame(
         channel.get(), client->GetLocalEndpointId(), info.endpoint_info, nonce,
-        GetConnectionMediumsByPriority());
+        GetSupportedConnectionMediumsByPriority(options));
     if (!write_exception.Ok()) {
       NEARBY_LOG(INFO, "Failed to send connection request: id=%s",
                  endpoint_id.c_str());
@@ -414,6 +414,27 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
   NEARBY_LOG(INFO, "Wait is complete: id=%s; status=%d", endpoint_id.c_str(),
              status.value);
   return status;
+}
+
+bool BasePcpHandler::MediumSupported(const proto::connections::Medium& medium,
+                                     const ConnectionOptions& options) const {
+  for (auto supported_medium :
+       options.allowed.GetMediums(/* is supported = */true)) {
+    if (medium == supported_medium) return true;
+  }
+  return false;
+}
+
+std::vector<proto::connections::Medium>
+BasePcpHandler::GetSupportedConnectionMediumsByPriority(
+    const ConnectionOptions& options) {
+  std::vector<proto::connections::Medium> supported_mediums_by_priority;
+  for (auto medium_by_priority : GetConnectionMediumsByPriority()) {
+    if (MediumSupported(medium_by_priority, options)) {
+      supported_mediums_by_priority.push_back(medium_by_priority);
+    }
+  }
+  return supported_mediums_by_priority;
 }
 
 // Get any single discovered endpoint for a given endpoint_id.
@@ -1038,13 +1059,8 @@ bool BasePcpHandler::AppendRemoteBluetoothMacAddressEndpoint(
 
   auto bluetooth_endpoint =
       std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
-          {
-              endpoint_id,
-              endpoint->endpoint_info,
-              endpoint->service_id,
-              proto::connections::Medium::BLUETOOTH,
-              WebRtcState::kUnconnectable
-          },
+          {endpoint_id, endpoint->endpoint_info, endpoint->service_id,
+           proto::connections::Medium::BLUETOOTH, WebRtcState::kUnconnectable},
           remote_bluetooth_device,
       });
 
@@ -1069,20 +1085,12 @@ bool BasePcpHandler::AppendWebRTCEndpoint(const std::string& endpoint_id) {
   }
   if (!should_connect_web_rtc) return false;
 
-  auto webrtc_endpoint =
-      std::make_shared<WebRtcEndpoint>(WebRtcEndpoint{
-          {
-              endpoint_id,
-              endpoint->endpoint_info,
-              endpoint->service_id,
-              proto::connections::Medium::WEB_RTC,
-              WebRtcState::kConnectable
-          },
-          CreatePeerIdFromAdvertisement(
-              endpoint->service_id,
-              endpoint->endpoint_id,
-              endpoint->endpoint_info),
-      });
+  auto webrtc_endpoint = std::make_shared<WebRtcEndpoint>(WebRtcEndpoint{
+      {endpoint_id, endpoint->endpoint_info, endpoint->service_id,
+       proto::connections::Medium::WEB_RTC, WebRtcState::kConnectable},
+      CreatePeerIdFromAdvertisement(endpoint->service_id, endpoint->endpoint_id,
+                                    endpoint->endpoint_info),
+  });
 
   discovered_endpoints_.emplace(endpoint_id, std::move(webrtc_endpoint));
   return true;

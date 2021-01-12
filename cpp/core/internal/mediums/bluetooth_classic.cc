@@ -332,6 +332,18 @@ bool BluetoothClassic::StopAcceptingConnections(
 
 BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
                                           const std::string& service_name) {
+  for (int attempts_count = 0; attempts_count < kConnectAttemptsLimit;
+       attempts_count++) {
+    auto wrapper_result = AttemptToConnect(bluetooth_device, service_name);
+    if (wrapper_result.IsValid()) {
+      return wrapper_result;
+    }
+  }
+  return BluetoothSocket();
+}
+
+BluetoothSocket BluetoothClassic::AttemptToConnect(
+    BluetoothDevice& bluetooth_device, const std::string& service_name) {
   MutexLock lock(&mutex_);
   NEARBY_LOG(INFO, "BluetoothClassic::Connect: device=%p", &bluetooth_device);
   // Socket to return. To allow for NRVO to work, it has to be a single object.
