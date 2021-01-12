@@ -81,7 +81,6 @@ cc_proto_library(
 
 java_lite_proto_library(
     name = "web_rtc_signaling_frames_java_proto_lite",
-    strict_deps = 0,
     visibility = [
         "//java/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/mediums:__subpackages__",
         "//javatests/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/mediums:__subpackages__",

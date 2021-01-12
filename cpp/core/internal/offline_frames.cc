@@ -160,6 +160,7 @@ ByteArray ForBwuWifiHotspotPathAvailable(const std::string& ssid,
       BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
   auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
   upgrade_path_info->set_medium(UpgradePathInfo::WIFI_HOTSPOT);
+  upgrade_path_info->set_supports_client_introduction_ack(true);
   upgrade_path_info->set_supports_disabling_encryption(
       supports_disabling_encryption);
   auto* wifi_hotspot_credentials =
@@ -184,6 +185,7 @@ ByteArray ForBwuWifiLanPathAvailable(const std::string& ip_address,
       BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
   auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
   upgrade_path_info->set_medium(UpgradePathInfo::WIFI_LAN);
+  upgrade_path_info->set_supports_client_introduction_ack(true);
   auto* wifi_lan_socket = upgrade_path_info->mutable_wifi_lan_socket();
   wifi_lan_socket->set_ip_address(ip_address);
   wifi_lan_socket->set_wifi_port(port);
@@ -205,6 +207,7 @@ ByteArray ForBwuWifiAwarePathAvailable(const std::string& service_id,
       BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
   auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
   upgrade_path_info->set_medium(UpgradePathInfo::WIFI_AWARE);
+  upgrade_path_info->set_supports_client_introduction_ack(true);
   upgrade_path_info->set_supports_disabling_encryption(
       supports_disabling_encryption);
   auto* wifi_aware_credentials =
@@ -231,6 +234,7 @@ ByteArray ForBwuWifiDirectPathAvailable(const std::string& ssid,
       BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
   auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
   upgrade_path_info->set_medium(UpgradePathInfo::WIFI_DIRECT);
+  upgrade_path_info->set_supports_client_introduction_ack(true);
   upgrade_path_info->set_supports_disabling_encryption(
       supports_disabling_encryption);
   auto* wifi_direct_credentials =
@@ -255,6 +259,7 @@ ByteArray ForBwuBluetoothPathAvailable(const std::string& service_id,
       BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
   auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
   upgrade_path_info->set_medium(UpgradePathInfo::BLUETOOTH);
+  upgrade_path_info->set_supports_client_introduction_ack(true);
   auto* bluetooth_credentials =
       upgrade_path_info->mutable_bluetooth_credentials();
   bluetooth_credentials->set_mac_address(mac_address);
@@ -275,6 +280,7 @@ ByteArray ForBwuWebrtcPathAvailable(const std::string& peer_id,
       BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
   auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
   upgrade_path_info->set_medium(UpgradePathInfo::WEB_RTC);
+  upgrade_path_info->set_supports_client_introduction_ack(true);
   auto* webrtc_credentials = upgrade_path_info->mutable_web_rtc_credentials();
   webrtc_credentials->set_peer_id(peer_id);
   auto* local_location_hint = webrtc_credentials->mutable_location_hint();
@@ -320,6 +326,19 @@ ByteArray ForBwuIntroduction(const std::string& endpoint_id) {
       BandwidthUpgradeNegotiationFrame::CLIENT_INTRODUCTION);
   auto* client_introduction = sub_frame->mutable_client_introduction();
   client_introduction->set_endpoint_id(endpoint_id);
+
+  return ToBytes(std::move(frame));
+}
+
+ByteArray ForBwuIntroductionAck() {
+  OfflineFrame frame;
+
+  frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION);
+  auto* sub_frame = v1_frame->mutable_bandwidth_upgrade_negotiation();
+  sub_frame->set_event_type(
+      BandwidthUpgradeNegotiationFrame::CLIENT_INTRODUCTION_ACK);
 
   return ToBytes(std::move(frame));
 }
