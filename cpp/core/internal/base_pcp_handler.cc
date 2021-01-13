@@ -79,6 +79,8 @@ Status BasePcpHandler::StartAdvertising(ClientProxy* client,
                                         const ConnectionOptions& options,
                                         const ConnectionRequestInfo& info) {
   Future<Status> response;
+  NEARBY_LOG(INFO, "StartAdvertising with supported mediums: %s",
+             GetStringValueOfSupportedMediums(options).c_str());
   ConnectionOptions advertising_options = options.CompatibleOptions();
   RunOnPcpHandlerThread([this, client, &service_id, &info, &advertising_options,
                          &response]() {
@@ -91,6 +93,12 @@ Status BasePcpHandler::StartAdvertising(ClientProxy* client,
     }
 
     // Now that we've succeeded, mark the client as advertising.
+    // Save the advertising options for local reference in later process like
+    // upgrading bandwidth.
+    // TODO(hais): saving advertising_options_ in clientProxy instead of here
+    // as java implementation does.
+    std::vector<proto::connections::Medium> supported_mediums =
+        advertising_options.GetMediums();
     advertising_options_ = advertising_options;
     advertising_listener_ = info.listener;
     client->StartedAdvertising(service_id, GetStrategy(), info.listener,
@@ -107,10 +115,22 @@ void BasePcpHandler::StopAdvertising(ClientProxy* client) {
   RunOnPcpHandlerThread([this, client, &latch]() {
     StopAdvertisingImpl(client);
     client->StoppedAdvertising();
-    advertising_options_.Clear();
+    // advertising_options_ is purposefully not cleared here.
     latch.CountDown();
   });
   WaitForLatch("StopAdvertising", &latch);
+}
+
+std::string BasePcpHandler::GetStringValueOfSupportedMediums(
+    const ConnectionOptions& options) const {
+  std::ostringstream result;
+  result << "{ ";
+  if (options.allowed.bluetooth) result << "bluetooth ";
+  if (options.allowed.ble) result << "ble ";
+  if (options.allowed.web_rtc) result << "webrtc ";
+  if (options.allowed.wifi_lan) result << "wifilan ";
+  result << "}";
+  return result.str();
 }
 
 Status BasePcpHandler::StartDiscovery(ClientProxy* client,
@@ -119,6 +139,9 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
                                       const DiscoveryListener& listener) {
   Future<Status> response;
   ConnectionOptions discovery_options = options.CompatibleOptions();
+
+  NEARBY_LOG(INFO, "StartDiscovery with supported mediums: %s",
+             GetStringValueOfSupportedMediums(options).c_str());
   RunOnPcpHandlerThread(
       [this, client, service_id, discovery_options, &listener, &response]() {
         // Ask the implementation to attempt to start discovery.
@@ -145,7 +168,7 @@ void BasePcpHandler::StopDiscovery(ClientProxy* client) {
   RunOnPcpHandlerThread([this, client, &latch]() {
     StopDiscoveryImpl(client);
     client->StoppedDiscovery();
-    discovery_options_.Clear();
+    // discovery_options_ is purposefully not cleared here.
     latch.CountDown();
   });
 
@@ -356,7 +379,9 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
     ConnectImplResult connect_impl_result;
 
     for (auto connect_endpoint : discovered_endpoints) {
-      if (!MediumSupported(connect_endpoint->medium, options)) continue;
+      if (!MediumSupportedByClientOptions(connect_endpoint->medium,
+                                          discovery_options_))
+        continue;
       connect_impl_result = ConnectImpl(client, connect_endpoint);
       if (connect_impl_result.status.Ok()) {
         channel = std::move(connect_impl_result.endpoint_channel);
@@ -380,7 +405,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
     // endpoint about ourselves.
     Exception write_exception = WriteConnectionRequestFrame(
         channel.get(), client->GetLocalEndpointId(), info.endpoint_info, nonce,
-        GetSupportedConnectionMediumsByPriority(options));
+        GetSupportedConnectionMediumsByPriority(discovery_options_));
     if (!write_exception.Ok()) {
       NEARBY_LOG(INFO, "Failed to send connection request: id=%s",
                  endpoint_id.c_str());
@@ -430,21 +455,25 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
   return status;
 }
 
-bool BasePcpHandler::MediumSupported(const proto::connections::Medium& medium,
-                                     const ConnectionOptions& options) const {
-  for (auto supported_medium :
-       options.allowed.GetMediums(/* is supported = */true)) {
-    if (medium == supported_medium) return true;
+bool BasePcpHandler::MediumSupportedByClientOptions(
+    const proto::connections::Medium& medium,
+    const ConnectionOptions& client_options) const {
+  for (auto supported_medium : client_options.GetMediums()) {
+    if (medium == supported_medium) {
+      return true;
+    }
   }
   return false;
 }
 
+// Get ordered supported connection medium based on local advertising/discovery
+// option. local_option is either advertising_options_ or discovery_options_.
 std::vector<proto::connections::Medium>
 BasePcpHandler::GetSupportedConnectionMediumsByPriority(
-    const ConnectionOptions& options) {
+    const ConnectionOptions& local_option) {
   std::vector<proto::connections::Medium> supported_mediums_by_priority;
   for (auto medium_by_priority : GetConnectionMediumsByPriority()) {
-    if (MediumSupported(medium_by_priority, options)) {
+    if (MediumSupportedByClientOptions(medium_by_priority, local_option)) {
       supported_mediums_by_priority.push_back(medium_by_priority);
     }
   }
@@ -994,21 +1023,13 @@ void BasePcpHandler::ProcessTieBreakLoss(
 
 void BasePcpHandler::InitiateBandwidthUpgrade(
     ClientProxy* client, const std::string& endpoint_id,
-    const std::vector<Medium>& supported_mediums) {
-  // When we successfully connect to a remote endpoint and a bandwidth upgrade
-  // medium has not yet been decided, we'll pick the highest bandwidth medium
-  // supported by both us and the remote endpoint. Once we pick a medium, all
-  // future connections will use it too. eg. If we chose Wifi LAN, we'll attempt
-  // to upgrade the 2nd, 3rd, etc remote endpoints with Wifi LAN even if they're
-  // on a different network (or had a better medium). This is a quick and easy
-  // way to prevent mediums, like Wifi Hotspot, from interfering with active
-  // connections (although it's suboptimal for bandwidth throughput). When all
-  // endpoints disconnect, we reset the bandwidth upgrade medium.
-  Medium bwu_medium = bwu_medium_.Get();
-  if (bwu_medium == Medium::UNKNOWN_MEDIUM) {
-    bwu_medium = ChooseBestUpgradeMedium(supported_mediums);
-    bwu_medium_.Set(bwu_medium);
-  }
+    const std::vector<Medium>& their_supported_mediums) {
+  // There was comments for re-using the same highest medium for upgrading. But
+  // given that end users may change data options all the time, it makes more
+  // sense to dynamically select the proper medium for upgrading.
+  // TODO(hais): when we add more mediums like Wifi Hotspot, we need to prevent
+  // upgrading interfering with active connections.
+  Medium bwu_medium = ChooseBestUpgradeMedium(their_supported_mediums);
 
   if (AutoUpgradeBandwidth() && bwu_medium != Medium::UNKNOWN_MEDIUM) {
     bwu_manager_->InitiateBwuForEndpoint(client, endpoint_id, bwu_medium);
@@ -1027,7 +1048,7 @@ proto::connections::Medium BasePcpHandler::ChooseBestUpgradeMedium(
 
   // Otherwise, pick the best medium we support.
   std::vector<proto::connections::Medium> my_mediums =
-      GetConnectionMediumsByPriority();
+      GetSupportedConnectionMediumsByPriority(advertising_options_);
   for (const auto& my_medium : my_mediums) {
     for (const auto& their_medium : their_mediums) {
       if (my_medium == their_medium) {
