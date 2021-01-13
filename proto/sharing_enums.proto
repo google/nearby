@@ -144,6 +144,12 @@ enum EventType {
 
   // Receiver taps quick settings tile.
   TAP_QUICK_SETTINGS_TILE = 39;
+
+  // Receiver Installation of APKs status.
+  INSTALL_APK = 40;
+
+  // Receiver verification of APKs status.
+  VERIFY_APK = 41;
 }
 
 // Event category to differentiate whether this comes from sender or receiver,
@@ -320,4 +326,28 @@ enum ActivityName {
   SETUP_ACTIVITY = 4;
   CONTACT_SELECT_ACTIVITY = 5;
   CONSENTS_ACTIVITY = 6;
+}
+
+enum ApkSource {
+  UNKNOWN_APK_SOURCE = 0;
+
+  FILE_BROSWER = 1;
+  LAUNCHER = 2;
+}
+
+// The Installation status of APK.
+enum InstallAPKStatus {
+  UNKNOWN_INSTALL_APK_STATUS = 0;
+
+  FAIL_INSTALLATION = 1;
+  SUCCESS_INSTALLATION = 2;
+}
+
+// The verification status of APK.
+enum VerifyAPKStatus {
+  UNKNOWN_VERIFY_APK_STATUS = 0;
+
+  NOT_INSTALLABLE = 1;
+  INSTALLABLE = 2;
+  ALREADY_INSTALLED = 3;
 }

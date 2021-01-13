@@ -152,7 +152,6 @@ class BasePcpHandler : public PcpHandler,
 
   Pcp GetPcp() const override { return pcp_; }
   Strategy GetStrategy() const override { return strategy_; }
-  Medium GetBwuMedium() const { return bwu_medium_.Get(); }
   void DisconnectFromEndpointManager();
 
  protected:
@@ -464,13 +463,15 @@ class BasePcpHandler : public PcpHandler,
   void WaitForLatch(const std::string& method_name, CountDownLatch* latch);
   Status WaitForResult(const std::string& method_name, std::int64_t client_id,
                        Future<Status>* future);
-  bool MediumSupported(const proto::connections::Medium& medium,
-                       const ConnectionOptions& options) const;
+  bool MediumSupportedByClientOptions(
+      const proto::connections::Medium& medium,
+      const ConnectionOptions& client_options) const;
   std::vector<proto::connections::Medium>
   GetSupportedConnectionMediumsByPriority(
-      const ConnectionOptions& options);
+      const ConnectionOptions& local_option);
+  std::string GetStringValueOfSupportedMediums(
+      const ConnectionOptions& options) const;
 
-  AtomicReference<Medium> bwu_medium_{Medium::UNKNOWN_MEDIUM};
   ScheduledExecutor alarm_executor_;
   SingleThreadExecutor serial_executor_;
 
