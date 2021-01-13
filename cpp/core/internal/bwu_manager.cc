@@ -21,6 +21,9 @@ namespace connections {
 using ::location::nearby::proto::connections::ConnectionAttemptResult;
 using ::location::nearby::proto::connections::DisconnectionReason;
 
+// Required for C++ 14 support in Chrome
+constexpr absl::Duration BwuManager::kReadClientIntroductionFrameTimeout;
+
 BwuManager::BwuManager(
     Mediums& mediums, EndpointManager& endpoint_manager,
     EndpointChannelManager& channel_manager,
