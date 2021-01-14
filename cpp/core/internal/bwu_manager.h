@@ -145,6 +145,8 @@ class BwuManager : public EndpointManager::FrameProcessor {
                                            const std::string& endpoint_id);
   bool ReadClientIntroductionFrame(EndpointChannel* endpoint_channel,
                                    ClientIntroduction& introduction);
+  bool ReadClientIntroductionAckFrame(EndpointChannel* endpoint_channel);
+  bool WriteClientIntroductionAckFrame(EndpointChannel* endpoint_channel);
   void ProcessEndpointDisconnection(ClientProxy* client,
                                     const std::string& endpoint_id,
                                     CountDownLatch* barrier);
