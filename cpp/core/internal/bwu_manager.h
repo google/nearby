@@ -99,6 +99,8 @@ class BwuManager : public EndpointManager::FrameProcessor {
   void Shutdown();
 
  private:
+  static constexpr absl::Duration kReadClientIntroductionFrameTimeout =
+      absl::Seconds(5);
   BwuHandler* SetCurrentBwuHandler(Medium medium);
   void InitBwuHandlers();
   void RunOnBwuManagerThread(std::function<void()> runnable);

@@ -473,7 +473,20 @@ void BwuManager::RunUpgradeFailedProtocol(
 
 bool BwuManager::ReadClientIntroductionFrame(EndpointChannel* channel,
                                              ClientIntroduction& introduction) {
+  CancelableAlarm timeout_alarm(
+      "BwuManager::ReadClientIntroductionFrame",
+      [channel]() {
+        NEARBY_LOG(
+            ERROR,
+            "In BandwidthUpgradeManager, failed to read the "
+            "ClientIntroductionFrame after %d seconds. Timing out and closing "
+            "EndpointChannel %s.",
+            kReadClientIntroductionFrameTimeout, channel->GetType().c_str());
+        channel->Close();
+      },
+      kReadClientIntroductionFrameTimeout, &alarm_executor_);
   auto data = channel->Read();
+  timeout_alarm.Cancel();
   if (!data.ok()) return false;
   auto transfer(parser::FromBytes(data.result()));
   if (!transfer.ok()) return false;
