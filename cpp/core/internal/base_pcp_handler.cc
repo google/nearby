@@ -81,14 +81,12 @@ Status BasePcpHandler::StartAdvertising(ClientProxy* client,
     // Now that we've succeeded, mark the client as advertising.
     // Save the advertising options for local reference in later process like
     // upgrading bandwidth.
-    // TODO(hais): saving advertising_options_ in clientProxy instead of here
-    // as java implementation does.
     std::vector<proto::connections::Medium> supported_mediums =
         advertising_options.GetMediums();
-    advertising_options_ = advertising_options;
     advertising_listener_ = info.listener;
     client->StartedAdvertising(service_id, GetStrategy(), info.listener,
-                               absl::MakeSpan(result.mediums));
+                               absl::MakeSpan(result.mediums),
+                               advertising_options);
     response.Set({Status::kSuccess});
   });
   return WaitForResult(
@@ -101,7 +99,6 @@ void BasePcpHandler::StopAdvertising(ClientProxy* client) {
   RunOnPcpHandlerThread([this, client, &latch]() {
     StopAdvertisingImpl(client);
     client->StoppedAdvertising();
-    // advertising_options_ is purposefully not cleared here.
     latch.CountDown();
   });
   WaitForLatch("StopAdvertising", &latch);
@@ -128,23 +125,22 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
 
   NEARBY_LOG(INFO, "StartDiscovery with supported mediums: %s",
              GetStringValueOfSupportedMediums(options).c_str());
-  RunOnPcpHandlerThread(
-      [this, client, service_id, discovery_options, &listener, &response]() {
-        // Ask the implementation to attempt to start discovery.
-        auto result = StartDiscoveryImpl(client, service_id, discovery_options);
-        if (!result.status.Ok()) {
-          response.Set(result.status);
-          return;
-        }
+  RunOnPcpHandlerThread([this, client, service_id, discovery_options, &listener,
+                         &response]() {
+    // Ask the implementation to attempt to start discovery.
+    auto result = StartDiscoveryImpl(client, service_id, discovery_options);
+    if (!result.status.Ok()) {
+      response.Set(result.status);
+      return;
+    }
 
-        // Now that we've succeeded, mark the client as discovering and clear
-        // out any old endpoints we had discovered.
-        discovery_options_ = discovery_options;
-        discovered_endpoints_.clear();
-        client->StartedDiscovery(service_id, GetStrategy(), listener,
-                                 absl::MakeSpan(result.mediums));
-        response.Set({Status::kSuccess});
-      });
+    // Now that we've succeeded, mark the client as discovering and clear
+    // out any old endpoints we had discovered.
+    discovered_endpoints_.clear();
+    client->StartedDiscovery(service_id, GetStrategy(), listener,
+                             absl::MakeSpan(result.mediums), discovery_options);
+    response.Set({Status::kSuccess});
+  });
   return WaitForResult(absl::StrCat("StartDiscovery(", service_id, ")"),
                        client->GetClientId(), &response);
 }
@@ -154,7 +150,6 @@ void BasePcpHandler::StopDiscovery(ClientProxy* client) {
   RunOnPcpHandlerThread([this, client, &latch]() {
     StopDiscoveryImpl(client);
     client->StoppedDiscovery();
-    // discovery_options_ is purposefully not cleared here.
     latch.CountDown();
   });
 
@@ -332,7 +327,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
 
     // If our child class says we can't send any more outgoing connections,
     // listen to them.
-    if (ShouldEnforceTopologyConstraints() &&
+    if (ShouldEnforceTopologyConstraints(client->GetAdvertisingOptions()) &&
         !CanSendOutgoingConnection(client)) {
       NEARBY_LOG(INFO, "Outgoing connection not allowed: id=%s",
                  endpoint_id.c_str());
@@ -351,13 +346,14 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
     auto remote_bluetooth_mac_address =
         BluetoothUtils::ToString(options.remote_bluetooth_mac_address);
     if (!remote_bluetooth_mac_address.empty()) {
-      if (AppendRemoteBluetoothMacAddressEndpoint(endpoint_id,
-                                                  remote_bluetooth_mac_address))
+      if (AppendRemoteBluetoothMacAddressEndpoint(
+              endpoint_id, remote_bluetooth_mac_address,
+              client->GetDiscoveryOptions()))
         NEARBY_LOGS(INFO) << "Appended remote Bluetooth MAC Address endpoint "
                           << "[" << remote_bluetooth_mac_address << "]";
     }
 
-    if (AppendWebRTCEndpoint(endpoint_id))
+    if (AppendWebRTCEndpoint(endpoint_id, client->GetDiscoveryOptions()))
       NEARBY_LOGS(INFO) << "Appended Web RTC endpoint.";
 
     auto discovered_endpoints = GetDiscoveredEndpoints(endpoint_id);
@@ -366,7 +362,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
 
     for (auto connect_endpoint : discovered_endpoints) {
       if (!MediumSupportedByClientOptions(connect_endpoint->medium,
-                                          discovery_options_))
+                                          client->GetDiscoveryOptions()))
         continue;
       connect_impl_result = ConnectImpl(client, connect_endpoint);
       if (connect_impl_result.status.Ok()) {
@@ -391,7 +387,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
     // endpoint about ourselves.
     Exception write_exception = WriteConnectionRequestFrame(
         channel.get(), client->GetLocalEndpointId(), info.endpoint_info, nonce,
-        GetSupportedConnectionMediumsByPriority(discovery_options_));
+        GetSupportedConnectionMediumsByPriority(client->GetDiscoveryOptions()));
     if (!write_exception.Ok()) {
       NEARBY_LOG(INFO, "Failed to send connection request: id=%s",
                  endpoint_id.c_str());
@@ -453,7 +449,7 @@ bool BasePcpHandler::MediumSupportedByClientOptions(
 }
 
 // Get ordered supported connection medium based on local advertising/discovery
-// option. local_option is either advertising_options_ or discovery_options_.
+// option.
 std::vector<proto::connections::Medium>
 BasePcpHandler::GetSupportedConnectionMediumsByPriority(
     const ConnectionOptions& local_option) {
@@ -487,6 +483,19 @@ BasePcpHandler::GetDiscoveredEndpoints(const std::string& endpoint_id) {
             [this](DiscoveredEndpoint* a, DiscoveredEndpoint* b) -> bool {
               return IsPreferred(*a, *b);
             });
+
+  return result;
+}
+
+std::vector<BasePcpHandler::DiscoveredEndpoint*>
+BasePcpHandler::GetDiscoveredEndpoints(
+    const proto::connections::Medium medium) {
+  std::vector<BasePcpHandler::DiscoveredEndpoint*> result;
+  for (const auto& item : discovered_endpoints_) {
+    if (item.second->medium == medium) {
+      result.push_back(item.second.get());
+    }
+  }
   return result;
 }
 
@@ -555,22 +564,24 @@ void BasePcpHandler::ProcessPreConnectionResultFailure(
   client->OnConnectionRejected(endpoint_id, {Status::kError});
 }
 
-bool BasePcpHandler::ShouldEnforceTopologyConstraints() const {
+bool BasePcpHandler::ShouldEnforceTopologyConstraints(
+    const ConnectionOptions& local_advertising_options) const {
   // Topology constraints only matter for the advertiser.
   // For discoverers, we'll always enforce them.
-  if (advertising_options_.strategy.IsNone()) {
+  if (local_advertising_options.strategy.IsNone()) {
     return true;
   }
 
-  return advertising_options_.enforce_topology_constraints;
+  return local_advertising_options.enforce_topology_constraints;
 }
 
-bool BasePcpHandler::AutoUpgradeBandwidth() const {
-  if (advertising_options_.strategy.IsNone()) {
+bool BasePcpHandler::AutoUpgradeBandwidth(
+    const ConnectionOptions& local_advertising_options) const {
+  if (local_advertising_options.strategy.IsNone()) {
     return true;
   }
 
-  return advertising_options_.auto_upgrade_bandwidth;
+  return local_advertising_options.auto_upgrade_bandwidth;
 }
 
 Status BasePcpHandler::AcceptConnection(
@@ -751,14 +762,6 @@ BluetoothDevice BasePcpHandler::GetRemoteBluetoothDevice(
       remote_bluetooth_mac_address);
 }
 
-ConnectionOptions BasePcpHandler::GetConnectionOptions() const {
-  return advertising_options_;
-}
-
-ConnectionOptions BasePcpHandler::GetDiscoveryOptions() const {
-  return discovery_options_;
-}
-
 void BasePcpHandler::OnEndpointFound(
     ClientProxy* client, std::shared_ptr<DiscoveredEndpoint> endpoint) {
   // Check if we've seen this endpoint ID before.
@@ -919,7 +922,7 @@ Exception BasePcpHandler::OnIncomingConnection(
 
   // If our child class says we can't accept any more incoming connections,
   // listen to them.
-  if (ShouldEnforceTopologyConstraints() &&
+  if (ShouldEnforceTopologyConstraints(client->GetAdvertisingOptions()) &&
       !CanReceiveIncomingConnection(client)) {
     return {Exception::kIo};
   }
@@ -1015,15 +1018,18 @@ void BasePcpHandler::InitiateBandwidthUpgrade(
   // sense to dynamically select the proper medium for upgrading.
   // TODO(hais): when we add more mediums like Wifi Hotspot, we need to prevent
   // upgrading interfering with active connections.
-  Medium bwu_medium = ChooseBestUpgradeMedium(their_supported_mediums);
+  Medium bwu_medium = ChooseBestUpgradeMedium(their_supported_mediums,
+                                              client->GetAdvertisingOptions());
 
-  if (AutoUpgradeBandwidth() && bwu_medium != Medium::UNKNOWN_MEDIUM) {
+  if (AutoUpgradeBandwidth(client->GetAdvertisingOptions()) &&
+      bwu_medium != Medium::UNKNOWN_MEDIUM) {
     bwu_manager_->InitiateBwuForEndpoint(client, endpoint_id, bwu_medium);
   }
 }
 
 proto::connections::Medium BasePcpHandler::ChooseBestUpgradeMedium(
-    const std::vector<proto::connections::Medium>& their_supported_mediums) {
+    const std::vector<proto::connections::Medium>& their_supported_mediums,
+    const ConnectionOptions& local_advertising_options) {
   // If the remote side did not report their supported mediums, choose an
   // appropriate default.
   std::vector<proto::connections::Medium> their_mediums =
@@ -1034,7 +1040,7 @@ proto::connections::Medium BasePcpHandler::ChooseBestUpgradeMedium(
 
   // Otherwise, pick the best medium we support.
   std::vector<proto::connections::Medium> my_mediums =
-      GetSupportedConnectionMediumsByPriority(advertising_options_);
+      GetSupportedConnectionMediumsByPriority(local_advertising_options);
   for (const auto& my_medium : my_mediums) {
     for (const auto& their_medium : their_mediums) {
       if (my_medium == their_medium) {
@@ -1048,8 +1054,9 @@ proto::connections::Medium BasePcpHandler::ChooseBestUpgradeMedium(
 
 bool BasePcpHandler::AppendRemoteBluetoothMacAddressEndpoint(
     const std::string& endpoint_id,
-    const std::string& remote_bluetooth_mac_address) {
-  if (!discovery_options_.allowed.bluetooth) {
+    const std::string& remote_bluetooth_mac_address,
+    const ConnectionOptions& local_discovery_options) {
+  if (!local_discovery_options.allowed.bluetooth) {
     return false;
   }
 
@@ -1089,8 +1096,10 @@ bool BasePcpHandler::AppendRemoteBluetoothMacAddressEndpoint(
   return true;
 }
 
-bool BasePcpHandler::AppendWebRTCEndpoint(const std::string& endpoint_id) {
-  if (!discovery_options_.allowed.web_rtc) {
+bool BasePcpHandler::AppendWebRTCEndpoint(
+    const std::string& endpoint_id,
+    const ConnectionOptions& local_discovery_options) {
+  if (!local_discovery_options.allowed.web_rtc) {
     return false;
   }
 

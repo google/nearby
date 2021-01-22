@@ -27,7 +27,7 @@ class WebRtcSignalingMessenger : public api::WebRtcSignalingMessenger {
   void StopReceivingMessages() override;
 
  private:
-  absl::string_view self_id_;
+  std::string self_id_;
   connections::LocationHint location_hint_;
 };
 

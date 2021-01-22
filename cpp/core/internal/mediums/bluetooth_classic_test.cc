@@ -180,8 +180,9 @@ TEST_F(BluetoothClassicTest, CanConnect) {
                 accept_latch.CountDown();
               },
       }));
+  CancellationFlag flag;
   BluetoothSocket socket_for_client =
-      bt_client.Connect(discovered_device, std::string(kServiceName));
+      bt_client.Connect(discovered_device, std::string(kServiceName), &flag);
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceName)));
   EXPECT_TRUE(socket_for_server.IsValid());

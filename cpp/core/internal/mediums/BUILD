@@ -31,6 +31,7 @@ cc_library(
         "//core/internal/mediums/webrtc",
         "//proto/connections:offline_wire_formats_portable_proto",
         "//platform/base",
+        "//platform/base:cancellation_flag",
         "//platform/public:comm",
         "//platform/public:logging",
         "//platform/public:types",

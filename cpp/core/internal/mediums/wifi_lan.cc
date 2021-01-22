@@ -208,8 +208,10 @@ bool WifiLan::IsAcceptingConnectionsLocked(const std::string& service_id) {
   return accepting_connections_info_.Existed(service_id);
 }
 
+// TODO(b/169303284): Handles Cancellation and registration.
 WifiLanSocket WifiLan::Connect(WifiLanService& wifi_lan_service,
-                               const std::string& service_id) {
+                               const std::string& service_id,
+                               CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "WifiLan::Connect: wifi_lan_service="
                     << &wifi_lan_service << ", service_info_name="

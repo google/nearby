@@ -290,8 +290,9 @@ bool Ble::IsAcceptingConnectionsLocked(const std::string& service_id) {
   return accepting_connections_info_.Existed(service_id);
 }
 
-BleSocket Ble::Connect(BlePeripheral& peripheral,
-                       const std::string& service_id) {
+// TODO(b/169303284): Handles Cancellation and registration.
+BleSocket Ble::Connect(BlePeripheral& peripheral, const std::string& service_id,
+                       CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "BLE::Connect: service=" << &peripheral;
   // Socket to return. To allow for NRVO to work, it has to be a single object.

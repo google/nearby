@@ -145,10 +145,9 @@ TEST_F(WifiLanTest, CanStartAcceptingConnectionsAndConnect) {
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   ASSERT_TRUE(discovered_service.IsValid());
-
+  CancellationFlag flag;
   WifiLanSocket socket =
-      wifi_lan_b.Connect(discovered_service, service_id);
-
+      wifi_lan_b.Connect(discovered_service, service_id, &flag);
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(socket.IsValid());
   wifi_lan_b.StopDiscovery(service_id);
