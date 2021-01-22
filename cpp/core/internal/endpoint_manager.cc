@@ -310,8 +310,6 @@ EndpointManager::FrameProcessor* EndpointManager::GetFrameProcessor(
     latch.CountDown();
   });
   latch.Await();
-  NEARBY_LOG(INFO, "GetFrameProcessor: type=%d; processor=%p", frame_type,
-             processor);
   return processor;
 }
 

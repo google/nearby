@@ -172,10 +172,8 @@ TEST_F(BleTest, CanStartAcceptingConnectionsAndConnect) {
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   ASSERT_TRUE(discovered_peripheral.IsValid());
-
-  BleSocket socket =
-      ble_b.Connect(discovered_peripheral, service_id);
-
+  CancellationFlag flag;
+  BleSocket socket = ble_b.Connect(discovered_peripheral, service_id, &flag);
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(socket.IsValid());
   ble_b.StopScanning(service_id);

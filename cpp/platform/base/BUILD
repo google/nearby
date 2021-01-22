@@ -95,6 +95,28 @@ cc_library(
 )
 
 cc_library(
+    name = "cancellation_flag",
+    srcs = [
+        "cancellation_flag.cc",
+    ],
+    hdrs = [
+        "cancellation_flag.h",
+    ],
+    visibility = [
+        "//core/internal:__subpackages__",
+        "//platform/api:__subpackages__",
+        "//platform/impl:__subpackages__",
+        "//platform/public:__pkg__",
+    ],
+    deps = [
+        ":base",
+        ":util",
+        "//absl/container:flat_hash_set",
+        "//absl/synchronization",
+    ],
+)
+
+cc_library(
     name = "test_util",
     testonly = True,
     srcs = [
@@ -139,6 +161,17 @@ cc_test(
     deps = [
         ":base",
         ":util",
+        "//testing/base/public:gunit_main",
+    ],
+)
+
+cc_test(
+    name = "cancellation_flag_test",
+    srcs = [
+        "cancellation_flag_test.cc",
+    ],
+    deps = [
+        ":cancellation_flag",
         "//testing/base/public:gunit_main",
     ],
 )

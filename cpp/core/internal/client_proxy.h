@@ -24,6 +24,7 @@
 #include "core/status.h"
 #include "core/strategy.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/cancellation_flag.h"
 #include "platform/base/prng.h"
 #include "platform/public/mutex.h"
 #include "proto/connections_enums.pb.h"
@@ -59,7 +60,8 @@ class ClientProxy final {
   void StartedAdvertising(
       const std::string& service_id, Strategy strategy,
       const ConnectionListener& connection_lifecycle_listener,
-      absl::Span<proto::connections::Medium> mediums);
+      absl::Span<proto::connections::Medium> mediums,
+      const ConnectionOptions& advertising_options = ConnectionOptions{});
   // Marks this client as not advertising.
   void StoppedAdvertising();
   bool IsAdvertising() const;
@@ -70,9 +72,11 @@ class ClientProxy final {
   std::string GetServiceId() const;
 
   // Marks this client as discovering with the given callback.
-  void StartedDiscovery(const std::string& service_id, Strategy strategy,
-                        const DiscoveryListener& discovery_listener,
-                        absl::Span<proto::connections::Medium> mediums);
+  void StartedDiscovery(
+      const std::string& service_id, Strategy strategy,
+      const DiscoveryListener& discovery_listener,
+      absl::Span<proto::connections::Medium> mediums,
+      const ConnectionOptions& discovery_options = ConnectionOptions{});
   // Marks this client as not discovering at all.
   void StoppedDiscovery();
   bool IsDiscoveringServiceId(const std::string& service_id) const;
@@ -153,6 +157,17 @@ class ClientProxy final {
   bool LocalConnectionIsAccepted(std::string endpoint_id) const;
   bool RemoteConnectionIsAccepted(std::string endpoint_id) const;
 
+  // Adds a CancellationFlag for endpoint id.
+  void AddCancellationFlag(const std::string& endpoint_id);
+  // Returns the CancellationFlag for endpoint id,
+  CancellationFlag* GetCancellationFlag(const std::string& endpoint_id);
+  // Sets the CancellationFlag to true for endpoint id.
+  void CancelEndpoint(const std::string& endpoint_id);
+  // Cancels all CancellationFlags.
+  void CancelAllEndpoints();
+  ConnectionOptions GetAdvertisingOptions() const;
+  ConnectionOptions GetDiscoveryOptions() const;
+
  private:
   struct Connection {
     // Status: may be either:
@@ -221,6 +236,19 @@ class ClientProxy final {
   // If not empty, we are currently discovering for the given service_id.
   DiscoveryInfo discovery_info_;
 
+  // The active ClientProxy's advertising constraints. Empty()
+  // returns true if the client hasn't started advertising false otherwise.
+  // Note: this is not cleared when the client stops advertising because it
+  // might still be useful downstream of advertising (eg: establishing
+  // connections, performing bandwidth upgrades, etc.)
+  ConnectionOptions advertising_options_;
+
+  // The active ClientProxy's discovery constraints. Null if the client
+  // hasn't started discovering. Note: this is not cleared when the client
+  // stops discovering because it might still be useful downstream of
+  // discovery (eg: connection speed, etc.)
+  ConnectionOptions discovery_options_;
+
   // Maps endpoint_id to endpoint connection state.
   absl::flat_hash_map<std::string, Connection> connections_;
 
@@ -230,6 +258,13 @@ class ClientProxy final {
   // happen because some mediums (like Bluetooth) repeatedly give us the same
   // endpoints after each scan.
   absl::flat_hash_set<std::string> discovered_endpoint_ids_;
+
+  // Maps endpoint_id to CancellationFlag.
+  absl::flat_hash_map<std::string, std::unique_ptr<CancellationFlag>>
+      cancellation_flags_;
+  // A default cancellation flag with isCancelled set be true.
+  std::unique_ptr<CancellationFlag> default_cancellation_flag_ =
+      std::make_unique<CancellationFlag>(true);
 };
 
 // Operator overloads when comparing Ptr<ClientProxy>.

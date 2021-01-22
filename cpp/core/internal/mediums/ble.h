@@ -21,6 +21,7 @@
 #include "core/internal/mediums/bluetooth_radio.h"
 #include "core/listeners.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/cancellation_flag.h"
 #include "platform/public/ble.h"
 #include "platform/public/multi_thread_executor.h"
 #include "platform/public/mutex.h"
@@ -98,7 +99,8 @@ class Ble {
   // service_id. Blocks until connection is established, or server-side is
   // terminated. Returns socket instance. On success, BleSocket.IsValid() return
   // true.
-  BleSocket Connect(BlePeripheral& peripheral, const std::string& service_id)
+  BleSocket Connect(BlePeripheral& peripheral, const std::string& service_id,
+                    CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:

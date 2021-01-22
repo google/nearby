@@ -344,8 +344,10 @@ bool BluetoothClassic::StopAcceptingConnections(
   return true;
 }
 
+// TODO(b/169303284): Handles Cancellation and registration.
 BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
-                                          const std::string& service_name) {
+                                          const std::string& service_name,
+                                          CancellationFlag* cancellation_flag) {
   for (int attempts_count = 0; attempts_count < kConnectAttemptsLimit;
        attempts_count++) {
     auto wrapper_result = AttemptToConnect(bluetooth_device, service_name);

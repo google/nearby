@@ -68,9 +68,11 @@ void ClientProxy::Reset() {
 void ClientProxy::StartedAdvertising(
     const std::string& service_id, Strategy strategy,
     const ConnectionListener& listener,
-    absl::Span<proto::connections::Medium> mediums) {
+    absl::Span<proto::connections::Medium> mediums,
+    const ConnectionOptions& advertising_options) {
   MutexLock lock(&mutex_);
   advertising_info_ = {service_id, listener};
+  advertising_options_ = advertising_options;
 }
 
 void ClientProxy::StoppedAdvertising() {
@@ -79,6 +81,7 @@ void ClientProxy::StoppedAdvertising() {
   if (IsAdvertising()) {
     advertising_info_.Clear();
   }
+  // advertising_options_ is purposefully not cleared here.
   ResetLocalEndpointIdIfNeeded();
 }
 
@@ -103,9 +106,11 @@ std::string ClientProxy::GetServiceId() const {
 void ClientProxy::StartedDiscovery(
     const std::string& service_id, Strategy strategy,
     const DiscoveryListener& listener,
-    absl::Span<proto::connections::Medium> mediums) {
+    absl::Span<proto::connections::Medium> mediums,
+    const ConnectionOptions& discovery_options) {
   MutexLock lock(&mutex_);
   discovery_info_ = DiscoveryInfo{service_id, listener};
+  discovery_options_ = discovery_options;
 }
 
 void ClientProxy::StoppedDiscovery() {
@@ -115,6 +120,7 @@ void ClientProxy::StoppedDiscovery() {
     discovered_endpoint_ids_.clear();
     discovery_info_.Clear();
   }
+  // discovery_options_ is purposefully not cleared here.
   ResetLocalEndpointIdIfNeeded();
 }
 
@@ -202,6 +208,11 @@ void ClientProxy::OnConnectionInitiated(const std::string& endpoint_id,
   // Note: we allow devices to connect to an advertiser even after it stops
   // advertising, so no need to check IsAdvertising() here.
   item.connection_listener.initiated_cb(endpoint_id, info);
+
+  if (info.is_incoming_connection) {
+    // Add CancellationFlag for advertisers once encryption succeeds.
+    AddCancellationFlag(endpoint_id);
+  }
 }
 
 void ClientProxy::OnConnectionAccepted(const std::string& endpoint_id) {
@@ -262,6 +273,8 @@ void ClientProxy::OnDisconnected(const std::string& endpoint_id, bool notify) {
     connections_.erase(endpoint_id);
     ResetLocalEndpointIdIfNeeded();
   }
+
+  CancelEndpoint(endpoint_id);
 }
 
 bool ClientProxy::ConnectionStatusMatches(const std::string& endpoint_id,
@@ -457,6 +470,42 @@ bool ClientProxy::RemoteConnectionIsAccepted(std::string endpoint_id) const {
       endpoint_id, ClientProxy::Connection::kRemoteEndpointAccepted);
 }
 
+void ClientProxy::AddCancellationFlag(const std::string& endpoint_id) {
+  auto item = cancellation_flags_.find(endpoint_id);
+  if (item != cancellation_flags_.end()) {
+    return;
+  }
+  cancellation_flags_.emplace(endpoint_id,
+                              std::make_unique<CancellationFlag>());
+}
+
+CancellationFlag* ClientProxy::GetCancellationFlag(
+    const std::string& endpoint_id) {
+  const auto item = cancellation_flags_.find(endpoint_id);
+  if (item == cancellation_flags_.end()) {
+    return default_cancellation_flag_.get();
+  }
+  return item->second.get();
+}
+
+void ClientProxy::CancelEndpoint(const std::string& endpoint_id) {
+  const auto item = cancellation_flags_.find(endpoint_id);
+  if (item == cancellation_flags_.end()) return;
+  item->second->Cancel();
+  cancellation_flags_.erase(item);
+}
+
+void ClientProxy::CancelAllEndpoints() {
+  for (const auto& item : cancellation_flags_) {
+    CancellationFlag* cancellation_flag = item.second.get();
+    if (cancellation_flag->Cancelled()) {
+      continue;
+    }
+    cancellation_flag->Cancel();
+  }
+  cancellation_flags_.clear();
+}
+
 void ClientProxy::OnPayload(const std::string& endpoint_id, Payload payload) {
   MutexLock lock(&mutex_);
 
@@ -507,6 +556,7 @@ void ClientProxy::RemoveAllEndpoints() {
   // endpoint, in the case when this is called from stopAllEndpoints(). For now,
   // just remove without notifying.
   connections_.clear();
+  cancellation_flags_.clear();
   local_endpoint_id_.clear();
 }
 
@@ -533,6 +583,14 @@ void ClientProxy::AppendConnectionStatus(const std::string& endpoint_id,
     item->status =
         static_cast<Connection::Status>(item->status | status_to_append);
   }
+}
+
+ConnectionOptions ClientProxy::GetAdvertisingOptions() const {
+  return advertising_options_;
+}
+
+ConnectionOptions ClientProxy::GetDiscoveryOptions() const {
+  return discovery_options_;
 }
 
 }  // namespace connections

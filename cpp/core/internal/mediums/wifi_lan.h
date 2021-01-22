@@ -19,6 +19,7 @@
 #include <string>
 
 #include "platform/base/byte_array.h"
+#include "platform/base/cancellation_flag.h"
 #include "platform/public/multi_thread_executor.h"
 #include "platform/public/mutex.h"
 #include "platform/public/wifi_lan.h"
@@ -81,7 +82,8 @@ class WifiLan {
   // Blocks until connection is established, or server-side is terminated.
   // Returns socket instance. On success, WifiLanSocket.IsValid() return true.
   WifiLanSocket Connect(WifiLanService& wifi_lan_service,
-                        const std::string& service_id)
+                        const std::string& service_id,
+                        CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   WifiLanService GetRemoteWifiLanService(const std::string& ip_address,

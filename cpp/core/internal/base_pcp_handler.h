@@ -311,6 +311,10 @@ class BasePcpHandler : public PcpHandler,
   std::vector<BasePcpHandler::DiscoveredEndpoint*> GetDiscoveredEndpoints(
       const std::string& endpoint_id);
 
+  // Returns a vector of discovered endpoints that share a given Medium.
+  std::vector<BasePcpHandler::DiscoveredEndpoint*> GetDiscoveredEndpoints(
+      const proto::connections::Medium medium);
+
   mediums::PeerId CreatePeerIdFromAdvertisement(const string& service_id,
                                                 const string& endpoint_id,
                                                 const ByteArray& endpoint_info);
@@ -407,11 +411,13 @@ class BasePcpHandler : public PcpHandler,
                    const BasePcpHandler::DiscoveredEndpoint& old_endpoint);
 
   // Returns true, if connection party should respect the specified topology.
-  bool ShouldEnforceTopologyConstraints() const;
+  bool ShouldEnforceTopologyConstraints(
+      const ConnectionOptions& local_advertising_options) const;
 
   // Returns true, if connection party should attempt to upgrade itself to
   // use a higher bandwidth medium, if it is available.
-  bool AutoUpgradeBandwidth() const;
+  bool AutoUpgradeBandwidth(
+      const ConnectionOptions& local_advertising_options) const;
 
   // Returns true if the incoming connection should be killed. This only
   // happens when an incoming connection arrives while we have an outgoing
@@ -438,18 +444,21 @@ class BasePcpHandler : public PcpHandler,
 
   // Returns the optimal medium supported by both devices.
   proto::connections::Medium ChooseBestUpgradeMedium(
-      const std::vector<proto::connections::Medium>& supported_mediums);
+      const std::vector<proto::connections::Medium>& supported_mediums,
+      const ConnectionOptions& local_advertising_options);
 
   // Returns true if the bluetooth endpoint based on remote bluetooth mac
   // address is created and appended into discovered_endpoints_ with key
   // endpoint_id.
   bool AppendRemoteBluetoothMacAddressEndpoint(
       const std::string& endpoint_id,
-      const std::string& remote_bluetooth_mac_address);
+      const std::string& remote_bluetooth_mac_address,
+      const ConnectionOptions& local_discovery_options);
 
   // Returns true if the webrtc endpoint is created and appended into
   // discovered_endpoints_ with key endpoint_id.
-  bool AppendWebRTCEndpoint(const std::string& endpoint_id);
+  bool AppendWebRTCEndpoint(const std::string& endpoint_id,
+                            const ConnectionOptions& local_discovery_options);
 
   void ProcessPreConnectionInitiationFailure(const std::string& endpoint_id,
                                              EndpointChannel* channel,
@@ -506,21 +515,9 @@ class BasePcpHandler : public PcpHandler,
   // doesn't happen.
   absl::flat_hash_map<std::string, CancelableAlarm> pending_alarms_;
 
-  // The active ClientProxy's advertising constraints. Empty()
-  // returns true if the client hasn't started advertising false otherwise.
-  // Note: this is not cleared when the client stops advertising because it
-  // might still be useful downstream of advertising (eg: establishing
-  // connections, performing bandwidth upgrades, etc.)
-  ConnectionOptions advertising_options_;
   // The active ClientProxy's connection lifecycle listener. Non-null while
   // advertising.
   ConnectionListener advertising_listener_;
-
-  // The active ClientProxy's discovery constraints. Null if the client
-  // hasn't started discovering. Note: this is not cleared when the client
-  // stops discovering because it might still be useful downstream of
-  // discovery (eg: connection speed, etc.)
-  ConnectionOptions discovery_options_;
 
   AtomicBoolean stop_{false};
   Pcp pcp_;

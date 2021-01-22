@@ -241,6 +241,83 @@ void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
   });
 }
 
+void P2pClusterPcpHandler::BluetoothNameChangedHandler(
+    ClientProxy* client, const std::string& service_id,
+    BluetoothDevice device) {
+  RunOnPcpHandlerThread([this, client, service_id, device]() {
+    // Make sure we are still discovering before proceeding.
+    if (!client->IsDiscovering()) {
+      NEARBY_LOG(INFO,
+                 "BT discovery handler (CHANGED) [client=%p, service=%s]: not "
+                 "in discovery mode",
+                 client, service_id.c_str());
+      return;
+    }
+
+    // Parse the Bluetooth device name.
+    const std::string device_name_string = device.GetName();
+    BluetoothDeviceName device_name(device_name_string);
+    NEARBY_LOG(INFO,
+               "BT discovery handler (CHANGED) [client=%p, service=%s]: "
+               "processing new name %s",
+               client, service_id.c_str(), device_name_string.c_str());
+
+    // By this point, the BluetoothDevice passed to us has a different name than
+    // what we may have discovered before. We need to iterate over the found
+    // BluetoothEndpoints and compare their addresses to see the devices are the
+    // same. We are not guaranteed to discover a match, since the old name may
+    // not have been formatted for Nearby Connections.
+    for (auto endpoint :
+         GetDiscoveredEndpoints(proto::connections::Medium::BLUETOOTH)) {
+      BluetoothEndpoint* bluetoothEndpoint =
+          static_cast<BluetoothEndpoint*>(endpoint);
+      NEARBY_LOG(INFO,
+                 "BT discovery handler (CHANGED) [client=%p, service=%s]: "
+                 "comparing MAC addresses with existing endpoint %s. They have "
+                 "MAC address %s and the new endpoint has MAC address %s.",
+                 client, service_id.c_str(),
+                 bluetoothEndpoint->bluetooth_device.GetName().c_str(),
+                 bluetoothEndpoint->bluetooth_device.GetMacAddress().c_str(),
+                 device.GetMacAddress().c_str());
+      if (bluetoothEndpoint->bluetooth_device.GetMacAddress() ==
+          device.GetMacAddress()) {
+        // Report the BluetoothEndpoint as lost to the client.
+        NEARBY_LOG(
+            INFO,
+            "BT discovery handler (LOST) [client=%p, service=%s]: report "
+            "to client",
+            client, service_id.c_str());
+        OnEndpointLost(client, *endpoint);
+        break;
+      }
+    }
+
+    // Make sure the Bluetooth device name points to a valid
+    // endpoint we're discovering.
+    if (!IsRecognizedBluetoothEndpoint(device_name_string, service_id,
+                                       device_name)) {
+      NEARBY_LOG(INFO,
+                 "BT discovery handler (CHANGED) [client=%p, service=%s]: The "
+                 "new name is not recognized. Ignoring.",
+                 client, service_id.c_str());
+      return;
+    }
+
+    // Report the discovered endpoint to the client.
+    NEARBY_LOGS(INFO)
+        << "Invoking BasePcpHandler::OnEndpointFound() for BT service="
+        << service_id << "; id=" << device_name.GetEndpointId() << "; name="
+        << absl::BytesToHexString(device_name.GetEndpointInfo().data());
+    OnEndpointFound(
+        client, std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
+                    {device_name.GetEndpointId(), device_name.GetEndpointInfo(),
+                     service_id, proto::connections::Medium::BLUETOOTH,
+                     device_name.GetWebRtcState()},
+                    device,
+                }));
+  });
+}
+
 void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
     ClientProxy* client, const std::string& service_id,
     BluetoothDevice& device) {
@@ -264,7 +341,7 @@ void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
                                        device_name))
       return;
 
-    // Report the discovered endpoint to the client.
+    // Report the BluetoothEndpoint as lost to the client.
     NEARBY_LOG(INFO,
                "BT discovery handler (LOST) [client=%p, service=%s]: report "
                "to client",
@@ -590,7 +667,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
                 &P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler, this,
                 client, service_id),
             .device_name_changed_cb = absl::bind_front(
-                &P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler, this,
+                &P2pClusterPcpHandler::BluetoothNameChangedHandler, this,
                 client, service_id),
             .device_lost_cb = absl::bind_front(
                 &P2pClusterPcpHandler::BluetoothDeviceLostHandler, this, client,
@@ -828,8 +905,9 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
     ClientProxy* client, BluetoothEndpoint* endpoint) {
   BluetoothDevice& device = endpoint->bluetooth_device;
 
-  BluetoothSocket bluetooth_socket =
-      bluetooth_medium_.Connect(device, endpoint->service_id);
+  BluetoothSocket bluetooth_socket = bluetooth_medium_.Connect(
+      device, endpoint->service_id,
+      client->GetCancellationFlag(endpoint->endpoint_id));
   if (!bluetooth_socket.IsValid()) {
     return BasePcpHandler::ConnectImplResult{
         .status = {Status::kBluetoothError},
@@ -1009,7 +1087,9 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
     ClientProxy* client, BleEndpoint* endpoint) {
   BlePeripheral& peripheral = endpoint->ble_peripheral;
 
-  BleSocket ble_socket = ble_medium_.Connect(peripheral, endpoint->service_id);
+  BleSocket ble_socket =
+      ble_medium_.Connect(peripheral, endpoint->service_id,
+                          client->GetCancellationFlag(endpoint->endpoint_id));
   if (!ble_socket.IsValid()) {
     return BasePcpHandler::ConnectImplResult{
         .status = {Status::kBleError},
@@ -1139,8 +1219,9 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiLanConnectImpl(
     ClientProxy* client, WifiLanEndpoint* endpoint) {
   WifiLanService& wifi_lan_service = endpoint->wifi_lan_service;
 
-  WifiLanSocket wifi_lan_socket =
-      wifi_lan_medium_.Connect(wifi_lan_service, endpoint->service_id);
+  WifiLanSocket wifi_lan_socket = wifi_lan_medium_.Connect(
+      wifi_lan_service, endpoint->service_id,
+      client->GetCancellationFlag(endpoint->endpoint_id));
   if (!wifi_lan_socket.IsValid()) {
     return BasePcpHandler::ConnectImplResult{
         .status = {Status::kWifiLanError},
@@ -1204,7 +1285,8 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WebRtcConnectImpl(
   std::string empty_country_code;
   mediums::WebRtcSocketWrapper socket_wrapper = webrtc_medium_.Connect(
       webrtc_endpoint->service_id, webrtc_endpoint->peer_id,
-      Utils::BuildLocationHint(empty_country_code));
+      Utils::BuildLocationHint(empty_country_code),
+      client->GetCancellationFlag(webrtc_endpoint->endpoint_id));
   if (!socket_wrapper.IsValid()) {
     return BasePcpHandler::ConnectImplResult{.status = {Status::kError}};
   }

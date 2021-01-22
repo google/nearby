@@ -32,7 +32,6 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-using ::location::nearby::proto::connections::ConnectionAttemptResult;
 using ::location::nearby::proto::connections::DisconnectionReason;
 
 // Required for C++ 14 support in Chrome
@@ -391,13 +390,6 @@ void BwuManager::ProcessBwuPathAvailableEvent(
 
   auto channel = ProcessBwuPathAvailableEventInternal(client, endpoint_id,
                                                       upgrade_path_info);
-  ConnectionAttemptResult connectionAttemptResult;
-  if (channel != nullptr) {
-    connectionAttemptResult = ConnectionAttemptResult::RESULT_SUCCESS;
-  } else {
-    connectionAttemptResult = ConnectionAttemptResult::RESULT_ERROR;
-  }
-
   if (channel == nullptr) {
     RunUpgradeFailedProtocol(client, endpoint_id, upgrade_path_info);
     return;
