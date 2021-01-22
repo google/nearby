@@ -117,8 +117,8 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
   if (!wifi_lan_service.IsValid()) {
     return nullptr;
   }
-  WifiLanSocket socket =
-      wifi_lan_medium_.Connect(wifi_lan_service, service_id);
+  WifiLanSocket socket = wifi_lan_medium_.Connect(
+      wifi_lan_service, service_id, client->GetCancellationFlag(endpoint_id));
   if (!socket.IsValid()) {
     return nullptr;
   }

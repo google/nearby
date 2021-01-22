@@ -21,6 +21,7 @@
 #include "core/internal/mediums/bluetooth_radio.h"
 #include "core/listeners.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/cancellation_flag.h"
 #include "platform/public/bluetooth_adapter.h"
 #include "platform/public/bluetooth_classic.h"
 #include "platform/public/multi_thread_executor.h"
@@ -111,7 +112,8 @@ class BluetoothClassic {
   // Returns socket instance. On success, BluetoothSocket.IsValid() return true.
   // Called by client.
   BluetoothSocket Connect(BluetoothDevice& bluetooth_device,
-                          const std::string& service_name)
+                          const std::string& service_name,
+                          CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   std::string GetMacAddress() const ABSL_LOCKS_EXCLUDED(mutex_);

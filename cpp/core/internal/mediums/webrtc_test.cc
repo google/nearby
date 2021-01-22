@@ -75,8 +75,9 @@ TEST_F(WebRtcTest, Connect_DataChannelTimeOut) {
   LocationHint location_hint;
 
   ASSERT_TRUE(webrtc.IsAvailable());
+  CancellationFlag flag;
   WebRtcSocketWrapper wrapper_1 =
-      webrtc.Connect(service_id, peer_id, location_hint);
+      webrtc.Connect(service_id, peer_id, location_hint, &flag);
   EXPECT_FALSE(wrapper_1.IsValid());
 
   EXPECT_TRUE(webrtc.StartAcceptingConnections(
@@ -99,8 +100,9 @@ TEST_F(WebRtcTest, StartAcceptingConnection_ThenConnect) {
   ASSERT_TRUE(webrtc.StartAcceptingConnections(
       service_id, self_id, location_hint,
       {mock_accepted_callback_.AsStdFunction()}));
-  WebRtcSocketWrapper wrapper =
-      webrtc.Connect(service_id, PeerId("random_peer_id"), location_hint);
+  CancellationFlag flag;
+  WebRtcSocketWrapper wrapper = webrtc.Connect(
+      service_id, PeerId("random_peer_id"), location_hint, &flag);
   EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
   EXPECT_FALSE(wrapper.IsValid());
   EXPECT_FALSE(webrtc.StartAcceptingConnections(
@@ -150,7 +152,8 @@ TEST_F(WebRtcTest, ConnectTwice) {
   device_c.StartAcceptingConnections(service_id, other_id, location_hint,
                                      {[](WebRtcSocketWrapper wrapper) {}});
 
-  sender_socket = sender.Connect(service_id, self_id, location_hint);
+  CancellationFlag flag;
+  sender_socket = sender.Connect(service_id, self_id, location_hint, &flag);
   EXPECT_TRUE(sender_socket.IsValid());
 
   ExceptionOr<bool> devices_connected = connected.Get();
@@ -158,7 +161,7 @@ TEST_F(WebRtcTest, ConnectTwice) {
   EXPECT_TRUE(devices_connected.result());
 
   WebRtcSocketWrapper socket =
-      sender.Connect(service_id, other_id, location_hint);
+      sender.Connect(service_id, other_id, location_hint, &flag);
   EXPECT_TRUE(socket.IsValid());
   socket.Close();
 
@@ -192,7 +195,8 @@ TEST_F(WebRtcTest, ConnectBothDevicesAndAbort) {
         connected.Set(receiver_socket.IsValid());
       }});
 
-  sender_socket = sender.Connect(service_id, self_id, location_hint);
+  CancellationFlag flag;
+  sender_socket = sender.Connect(service_id, self_id, location_hint, &flag);
   EXPECT_TRUE(sender_socket.IsValid());
 
   ExceptionOr<bool> devices_connected = connected.Get();
@@ -220,7 +224,8 @@ TEST_F(WebRtcTest, ConnectBothDevicesAndSendData) {
         connected.Set(receiver_socket.IsValid());
       }});
 
-  sender_socket = sender.Connect(service_id, self_id, location_hint);
+  CancellationFlag flag;
+  sender_socket = sender.Connect(service_id, self_id, location_hint, &flag);
   EXPECT_TRUE(sender_socket.IsValid());
 
   ExceptionOr<bool> devices_connected = connected.Get();
@@ -254,7 +259,8 @@ TEST_F(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
         connected.Set(receiver_socket.IsValid());
       }});
 
-  sender_socket = sender.Connect(service_id, self_id, location_hint);
+  CancellationFlag flag;
+  sender_socket = sender.Connect(service_id, self_id, location_hint, &flag);
   EXPECT_TRUE(sender_socket.IsValid());
 
   ExceptionOr<bool> devices_connected = connected.Get();
@@ -285,8 +291,9 @@ TEST_F(WebRtcTest, Connect_NullPeerConnection) {
   LocationHint location_hint;
 
   ASSERT_TRUE(webrtc.IsAvailable());
-  WebRtcSocketWrapper wrapper =
-      webrtc.Connect(service_id, PeerId("random_peer_id"), location_hint);
+  CancellationFlag flag;
+  WebRtcSocketWrapper wrapper = webrtc.Connect(
+      service_id, PeerId("random_peer_id"), location_hint, &flag);
   EXPECT_FALSE(wrapper.IsValid());
 }
 

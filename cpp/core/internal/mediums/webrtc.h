@@ -27,6 +27,7 @@
 #include "proto/connections/offline_wire_formats.pb.h"
 #include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/cancellation_flag.h"
 #include "platform/base/listeners.h"
 #include "platform/base/runnable.h"
 #include "platform/public/atomic_boolean.h"
@@ -92,7 +93,8 @@ class WebRtc {
   // Runs on @MainThread.
   WebRtcSocketWrapper Connect(const std::string& service_id,
                               const PeerId& peer_id,
-                              const LocationHint& location_hint)
+                              const LocationHint& location_hint,
+                              CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:

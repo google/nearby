@@ -208,7 +208,8 @@ void WebRtc::StopAcceptingConnections(const std::string& service_id) {
 
 WebRtcSocketWrapper WebRtc::Connect(const std::string& service_id,
                                     const PeerId& remote_peer_id,
-                                    const LocationHint& location_hint) {
+                                    const LocationHint& location_hint,
+                                    CancellationFlag* cancellation_flag) {
   for (int attempts_count = 0; attempts_count < kConnectAttemptsLimit;
        attempts_count++) {
     auto wrapper_result =

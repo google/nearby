@@ -84,6 +84,7 @@ cc_library(
     ],
     visibility = [
         "//core:__pkg__",
+        "//core/internal/fuzzers:__pkg__",
     ],
     deps = [
         ":message_lite",
@@ -94,6 +95,7 @@ cc_library(
         "//proto/connections:offline_wire_formats_portable_proto",
         "//platform/api:comm",
         "//platform/base",
+        "//platform/base:cancellation_flag",
         "//platform/base:util",
         "//platform/public:comm",
         "//platform/public:logging",

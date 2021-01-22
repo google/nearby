@@ -110,7 +110,8 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
     return nullptr;
   }
 
-  BluetoothSocket socket = bluetooth_medium_.Connect(device, service_name);
+  BluetoothSocket socket = bluetooth_medium_.Connect(
+      device, service_name, client->GetCancellationFlag(endpoint_id));
   if (!socket.IsValid()) {
     return nullptr;
   }

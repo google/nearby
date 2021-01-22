@@ -130,6 +130,9 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   void BluetoothDeviceDiscoveredHandler(ClientProxy* client,
                                         const std::string& service_id,
                                         BluetoothDevice device);
+  void BluetoothNameChangedHandler(ClientProxy* client,
+                                   const std::string& service_id,
+                                   BluetoothDevice device);
   void BluetoothDeviceLostHandler(ClientProxy* client,
                                   const std::string& service_id,
                                   BluetoothDevice& device);
