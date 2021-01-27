@@ -139,15 +139,21 @@ void ClientProxy::OnEndpointFound(const std::string& service_id,
              endpoint_id.c_str(), service_id.c_str(),
              absl::BytesToHexString(endpoint_info.data()).c_str());
   if (!IsDiscoveringServiceId(service_id)) {
-    NEARBY_LOG(INFO, "ClientProxy [Endpoint Found]: [no discovery] id=%s",
+    NEARBY_LOG(INFO,
+               "ClientProxy [Endpoint Found]: Ignoring event for id=%s because "
+               "this client is not discovering",
                endpoint_id.c_str());
     return;
   }
+
   if (discovered_endpoint_ids_.count(endpoint_id)) {
-    NEARBY_LOG(INFO, "ClientProxy [Endpoint Found]: [duplicate] id=%s",
+    NEARBY_LOG(WARNING,
+               "ClientProxy [Endpoint Found]: Ignoring event for id=%s because "
+               "this client already reported this endpoint as found",
                endpoint_id.c_str());
     return;
   }
+
   discovered_endpoint_ids_.insert(endpoint_id);
   discovery_info_.listener.endpoint_found_cb(endpoint_id, endpoint_info,
                                              service_id);
@@ -157,9 +163,25 @@ void ClientProxy::OnEndpointLost(const std::string& service_id,
                                  const std::string& endpoint_id) {
   MutexLock lock(&mutex_);
 
-  if (!IsDiscoveringServiceId(service_id)) return;
+  NEARBY_LOG(INFO, "ClientProxy [Endpoint Lost]: [enter] id=%s; service=%s",
+             endpoint_id.c_str(), service_id.c_str());
+  if (!IsDiscoveringServiceId(service_id)) {
+    NEARBY_LOG(INFO,
+               "ClientProxy [Endpoint Lost]: Ignoring event for id=%s because "
+               "this client is not discovering",
+               endpoint_id.c_str());
+    return;
+  }
+
   const auto it = discovered_endpoint_ids_.find(endpoint_id);
-  if (it == discovered_endpoint_ids_.end()) return;
+  if (it == discovered_endpoint_ids_.end()) {
+    NEARBY_LOG(WARNING,
+               "ClientProxy [Endpoint Lost]: Ignoring event for id=%s because "
+               "this client has not yet reported this endpoint as found",
+               endpoint_id.c_str());
+    return;
+  }
+
   discovered_endpoint_ids_.erase(it);
   discovery_info_.listener.endpoint_lost_cb(endpoint_id);
 }
