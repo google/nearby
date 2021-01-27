@@ -186,6 +186,12 @@ bool Ble::StartScanning(const std::string& service_id,
                          const std::string& service_id,
                          const ByteArray& medium_advertisement_bytes,
                          bool fast_advertisement) {
+                    // Don't bother trying to parse zero byte advertisements.
+                    if (medium_advertisement_bytes.size() == 0) {
+                      NEARBY_LOGS(INFO) << "Skipping zero byte advertisement "
+                                        << "with service_id: " << service_id;
+                      return;
+                    }
                     // Unwrap connection BleAdvertisement from medium
                     // BleAdvertisement.
                     auto connection_advertisement_bytes =
