@@ -17,6 +17,8 @@ syntax = "proto2";
 package location.nearby.proto;
 
 option optimize_for = LITE_RUNTIME;
+option (logs_proto.file_not_used_for_logging_except_enums) = true;
+option java_api_version = 2;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "BootstrapEnums";
 
