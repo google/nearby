@@ -124,6 +124,11 @@ proto_library(
     ],
 )
 
+java_proto_library(
+    name = "nearby_client_enums_java_proto",
+    deps = [":nearby_client_enums_proto"],
+)
+
 java_lite_proto_library(
     name = "nearby_client_enums_java_proto_lite",
     deps = [":nearby_client_enums_proto"],
