@@ -233,6 +233,8 @@ EncryptionRunner::ResultListener BasePcpHandler::GetResultListener() {
       .on_failure_cb =
           [this](const std::string& endpoint_id, EndpointChannel* channel) {
             RunOnPcpHandlerThread([this, endpoint_id, channel]() {
+              NEARBY_LOG(ERROR, "Encryption failed for %s on medium %d",
+                         endpoint_id.c_str(), channel->GetMedium());
               OnEncryptionFailureRunnable(endpoint_id, channel);
             });
           },
@@ -563,12 +565,15 @@ void BasePcpHandler::ProcessPreConnectionInitiationFailure(
     channel->Close();
   }
 
-  pending_connections_.erase(endpoint_id);
-
   if (result != nullptr) {
     NEARBY_LOG(INFO, "Connection failed; aborting future");
     result->Set(status);
   }
+
+  // result is hold inside a swapper, and saved in PendingConnectionInfo.
+  // PendingConnectionInfo destructor will clear the memory of SettableFuture
+  // shared_ptr for result.
+  pending_connections_.erase(endpoint_id);
 }
 
 void BasePcpHandler::ProcessPreConnectionResultFailure(
