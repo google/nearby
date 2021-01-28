@@ -21,6 +21,7 @@
 #include "platform/api/bluetooth_classic.h"
 #include "platform/api/webrtc.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/feature_flags.h"
 #include "platform/base/listeners.h"
 #include "platform/base/nsd_service_info.h"
 #include "platform/public/single_thread_executor.h"
@@ -229,6 +230,8 @@ class MediumEnvironment {
   // Returns WiFi LAN service matching IP address and port, or nullptr.
   api::WifiLanService* GetWifiLanService(const std::string& ip_address,
                                          int port);
+
+  void SetFeatureFlags(const FeatureFlags::Flags& flags);
 
  private:
   struct BluetoothMediumContext {

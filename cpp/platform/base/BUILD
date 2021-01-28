@@ -27,6 +27,7 @@ cc_library(
         "byte_array.h",
         "callable.h",
         "exception.h",
+        "feature_flags.h",
         "input_stream.h",
         "listeners.h",
         "nsd_service_info.h",
@@ -48,6 +49,7 @@ cc_library(
         "//absl/meta:type_traits",
         "//absl/strings",
         "//absl/strings:str_format",
+        "//absl/synchronization",
         "//absl/time",
     ],
 )
@@ -145,10 +147,13 @@ cc_test(
     srcs = [
         "bluetooth_utils_test.cc",
         "byte_array_test.cc",
+        "feature_flags_test.cc",
         "prng_test.cc",
     ],
     deps = [
         ":base",
+        ":test_util",
+        "//platform/impl/g3",  # build_cleaner: keep
         "//testing/base/public:gunit_main",
     ],
 )
