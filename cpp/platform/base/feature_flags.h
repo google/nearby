@@ -27,6 +27,7 @@ class FeatureFlags {
   // Holds for all the feature flags.
   struct Flags {
     bool enable_cancellation_flags = false;
+    bool resume_before_disconnect = true;
   };
 
   static const FeatureFlags& GetInstance() {
