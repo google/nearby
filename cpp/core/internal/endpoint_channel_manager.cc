@@ -18,6 +18,7 @@
 
 #include "core/internal/offline_frames.h"
 #include "proto/connections/offline_wire_formats.pb.h"
+#include "platform/base/feature_flags.h"
 #include "platform/public/logging.h"
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
@@ -142,6 +143,12 @@ bool EndpointChannelManager::ChannelState::RemoveEndpoint(
   item->second.disconnect_reason = reason;
   auto channel = item->second.channel;
   if (channel) {
+    // If the channel was paused (i.e. during a bandwidth upgrade negotiation)
+    // we resume to ensure the thread won't hang when trying to write to it.
+    if (FeatureFlags::GetInstance().GetFlags().resume_before_disconnect) {
+      channel->Resume();
+    }
+
     channel->Write(parser::ForDisconnection());
     SystemClock::Sleep(kDataTransferDelay);
   }
