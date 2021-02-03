@@ -54,36 +54,6 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-// Define a class that supports move operation for pointers using std::swap.
-// It replicates std::unique_ptr<> behavior, but it does not own the pointer,
-// so it does not attempt destroy it.
-// This approach was recommended during code review, as a better alternative to
-// reuse of std::unique_ptr<> with custom no-op deleter, for the sake of
-// readability.
-template <typename T>
-class Swapper {
- public:
-  Swapper(T* pointer) : pointer_(pointer) {}  // NOLINT.
-  Swapper(Swapper&& other) { *this = std::move(other); }
-  Swapper& operator=(Swapper&& other) {
-    std::swap(pointer_, other.pointer_);
-    return *this;
-  }
-  T* operator->() const { return pointer_; }
-  T& operator*() { return *pointer_; }
-  operator T*() { return pointer_; }  // NOLINT.
-  T* get() const { return pointer_; }
-  void reset() { pointer_ = nullptr; }
-
- private:
-  T* pointer_ = nullptr;
-};
-
-template <typename T>
-Swapper<T> MakeSwapper(T* value) {
-  return Swapper<T>(value);
-}
-
 // Represents the WebRtc state that mediums are connectable or not.
 enum class WebRtcState {
   kUndefined = 0,
@@ -355,7 +325,7 @@ class BasePcpHandler : public PcpHandler,
 
     // Only set for outgoing connections. If set, we must call
     // result->Set() when connection is established, or rejected.
-    Swapper<Future<Status>> result = nullptr;
+    std::weak_ptr<Future<Status>> result;
 
     // Only (possibly) vector for incoming connections.
     std::vector<proto::connections::Medium> supported_mediums;
