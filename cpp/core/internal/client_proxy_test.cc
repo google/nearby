@@ -6,6 +6,8 @@
 #include "core/options.h"
 #include "core/strategy.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/feature_flags.h"
+#include "platform/base/medium_environment.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_set.h"
@@ -16,10 +18,20 @@ namespace nearby {
 namespace connections {
 namespace {
 
+using FeatureFlags = FeatureFlags::Flags;
 using ::testing::MockFunction;
 using ::testing::StrictMock;
 
-class ClientProxyTest : public testing::Test {
+constexpr FeatureFlags kTestCases[] = {
+    FeatureFlags{
+        .enable_cancellation_flag = true,
+    },
+    FeatureFlags{
+        .enable_cancellation_flag = false,
+    },
+};
+
+class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags> {
  protected:
   struct MockDiscoveryListener {
     StrictMock<MockFunction<void(const std::string& endpoint_id,
@@ -97,8 +109,6 @@ class ClientProxyTest : public testing::Test {
                                   connection_options_,
                                   discovery_connection_listener_);
     EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint.id));
-    // Cancellation flag has been created and added into map.
-    EXPECT_FALSE(client->GetCancellationFlag(endpoint.id)->Cancelled());
   }
 
   void OnDiscoveryConnectionLocalAccepted(ClientProxy* client,
@@ -161,8 +171,6 @@ class ClientProxyTest : public testing::Test {
                                          const Endpoint& endpoint) {
     EXPECT_CALL(mock_discovery_connection_.disconnected_cb, Call).Times(1);
     client->OnDisconnected(endpoint.id, true);
-    // The Cancelled is always true as the default flag being returned.
-    EXPECT_TRUE(client->GetCancellationFlag(endpoint.id)->Cancelled());
   }
 
   void OnPayload(ClientProxy* client, const Endpoint& endpoint) {
@@ -216,6 +224,106 @@ class ClientProxyTest : public testing::Test {
   };
   ConnectionOptions connection_options_;
 };
+
+TEST_P(ClientProxyTest, CanCancelEndpoint) {
+  FeatureFlags feature_flags = GetParam();
+  MediumEnvironment::Instance().SetFeatureFlags(feature_flags);
+
+  Endpoint advertising_endpoint =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+  StartDiscovery(&client2_, discovery_listener_);
+  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
+  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
+
+  EXPECT_FALSE(
+      client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+
+  client2_.CancelEndpoint(advertising_endpoint.id);
+
+  // If FeatureFlag is disabled, Cancelled is false as no-op.
+  if (!feature_flags.enable_cancellation_flag) {
+    EXPECT_FALSE(
+        client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+  } else {
+    // The Cancelled is always true as the default flag being returned.
+    EXPECT_TRUE(
+        client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+  }
+}
+
+TEST_P(ClientProxyTest, CanCancelAllEndpoints) {
+  FeatureFlags feature_flags = GetParam();
+  MediumEnvironment::Instance().SetFeatureFlags(feature_flags);
+
+  Endpoint advertising_endpoint =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+  StartDiscovery(&client2_, discovery_listener_);
+  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
+  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
+
+  EXPECT_FALSE(
+      client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+
+  client2_.CancelAllEndpoints();
+
+  // If FeatureFlag is disabled, Cancelled is false as no-op.
+  if (!feature_flags.enable_cancellation_flag) {
+    EXPECT_FALSE(
+        client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+  } else {
+    // The Cancelled is always true as the default flag being returned.
+    EXPECT_TRUE(
+        client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+  }
+}
+
+TEST_P(ClientProxyTest, CanCancelAllEndpointsWithDifferentEndpoint) {
+  FeatureFlags feature_flags = GetParam();
+  MediumEnvironment::Instance().SetFeatureFlags(feature_flags);
+
+  ConnectionListener advertising_connection_listener_2;
+  ConnectionListener advertising_connection_listener_3;
+  ClientProxy client3;
+
+  StartDiscovery(&client1_, discovery_listener_);
+  Endpoint advertising_endpoint_2 =
+      StartAdvertising(&client2_, advertising_connection_listener_2);
+  Endpoint advertising_endpoint_3 =
+      StartAdvertising(&client3, advertising_connection_listener_3);
+  OnDiscoveryEndpointFound(&client1_, advertising_endpoint_2);
+  OnDiscoveryConnectionInitiated(&client1_, advertising_endpoint_2);
+  OnDiscoveryEndpointFound(&client1_, advertising_endpoint_3);
+  OnDiscoveryConnectionInitiated(&client1_, advertising_endpoint_3);
+
+  // The CancellationFlag of endpoint_2 and endpoint_3 have been added. Default
+  // Cancelled is false.
+  EXPECT_FALSE(
+      client1_.GetCancellationFlag(advertising_endpoint_2.id)->Cancelled());
+  EXPECT_FALSE(
+      client1_.GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
+
+  client1_.CancelAllEndpoints();
+
+  if (!feature_flags.enable_cancellation_flag) {
+    // The CancellationFlag of endpoint_2 and endpoint_3 will not be removed
+    // since it is not added. The default flag returned as Cancelled being true,
+    // but Cancelled requested is false since the FeatureFlag is off.
+    EXPECT_FALSE(
+        client1_.GetCancellationFlag(advertising_endpoint_2.id)->Cancelled());
+    EXPECT_FALSE(
+        client1_.GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
+  } else {
+    // Expect the CancellationFlag of endpoint_2 and endpoint_3 has been
+    // removed. The Cancelled is always true as the default flag being returned.
+    EXPECT_TRUE(
+        client1_.GetCancellationFlag(advertising_endpoint_2.id)->Cancelled());
+    EXPECT_TRUE(
+        client1_.GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
+  }
+}
+
+INSTANTIATE_TEST_SUITE_P(ParametrisedClientProxyTest, ClientProxyTest,
+                         ::testing::ValuesIn(kTestCases));
 
 TEST_F(ClientProxyTest, ConstructorDestructorWorks) { SUCCEED(); }
 
@@ -355,72 +463,6 @@ TEST_F(ClientProxyTest, OnPayloadProgressChangesState) {
   OnDiscoveryConnectionRemoteAccepted(&client2_, advertising_endpoint);
   OnDiscoveryConnectionAccepted(&client2_, advertising_endpoint);
   OnPayloadProgress(&client2_, advertising_endpoint);
-}
-
-TEST_F(ClientProxyTest, CanCancelEndpoint) {
-  Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
-
-  EXPECT_FALSE(
-      client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
-
-  client2_.CancelEndpoint(advertising_endpoint.id);
-
-  // The Cancelled is always true as the default flag being returned.
-  EXPECT_TRUE(
-      client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
-}
-
-TEST_F(ClientProxyTest, CanCancelAllEndpoints) {
-  Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
-
-  EXPECT_FALSE(
-      client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
-
-  client2_.CancelAllEndpoints();
-
-  // The Cancelled is always true as the default flag being returned.
-  EXPECT_TRUE(
-      client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
-}
-
-TEST_F(ClientProxyTest, CanCancelAllEndpointsWithDifferentEndpoint) {
-  ConnectionListener advertising_connection_listener_2;
-  ConnectionListener advertising_connection_listener_3;
-  ClientProxy client3;
-
-  StartDiscovery(&client1_, discovery_listener_);
-  Endpoint advertising_endpoint_2 =
-      StartAdvertising(&client2_, advertising_connection_listener_2);
-  Endpoint advertising_endpoint_3 =
-      StartAdvertising(&client3, advertising_connection_listener_3);
-  OnDiscoveryEndpointFound(&client1_, advertising_endpoint_2);
-  OnDiscoveryConnectionInitiated(&client1_, advertising_endpoint_2);
-  OnDiscoveryEndpointFound(&client1_, advertising_endpoint_3);
-  OnDiscoveryConnectionInitiated(&client1_, advertising_endpoint_3);
-
-  // The CancellationFlag of endpoint_2 and endpoint_3 have been added. Default
-  // Cancelled is false.
-  EXPECT_FALSE(
-      client1_.GetCancellationFlag(advertising_endpoint_2.id)->Cancelled());
-  EXPECT_FALSE(
-      client1_.GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
-
-  client1_.CancelAllEndpoints();
-
-  // Expect the CancellationFlag of endpoint_2 and endpoint_3 has been removed.
-  // The Cancelled is always true as the default flag being returned.
-  EXPECT_TRUE(
-      client1_.GetCancellationFlag(advertising_endpoint_2.id)->Cancelled());
-  EXPECT_TRUE(
-      client1_.GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
 }
 
 }  // namespace

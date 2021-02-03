@@ -185,7 +185,8 @@ bool BluetoothClassicMedium::StopDiscovery() {
 }
 
 std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
-    api::BluetoothDevice& remote_device, const std::string& service_uuid) {
+    api::BluetoothDevice& remote_device, const std::string& service_uuid,
+    CancellationFlag* cancellation_flag) {
   NEARBY_LOG(INFO,
              "G3 ConnectToService [self]: medium=%p, adapter=%p, device=%p",
              this, &GetAdapter(), &GetAdapter().GetDevice());
@@ -211,6 +212,13 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
                  service_uuid.c_str());
       return {};
     }
+  }
+
+  if (cancellation_flag->Cancelled()) {
+    NEARBY_LOGS(ERROR) << "G3 Bluetooth Connect: Has been cancelled: "
+                          "service_uuid="
+                       << service_uuid;
+    return {};
   }
 
   auto socket = std::make_unique<BluetoothSocket>(&GetAdapter());

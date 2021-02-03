@@ -68,6 +68,7 @@ cc_library(
         "//platform/api:comm",
         "//platform/api:platform",
         "//platform/base",
+        "//platform/base:cancellation_flag",
         "//absl/container:flat_hash_map",
         "//absl/strings",
         "//webrtc/api:libjingle_peerconnection_api",
