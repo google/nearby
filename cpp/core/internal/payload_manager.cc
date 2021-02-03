@@ -391,9 +391,11 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
       if (!pending_payload) continue;
       auto endpoint_info = pending_payload->GetEndpoint(endpoint_id);
       if (!endpoint_info) continue;
-
+      std::int64_t endpoint_offset = endpoint_info->offset;
       // Stop tracking the endpoint for this payload.
       pending_payload->RemoveEndpoints({endpoint_id});
+      // |endpoint_info| is longer valid after calling RemoveEndpoints.
+      endpoint_info = nullptr;
 
       std::int64_t payload_total_size =
           pending_payload->GetInternalPayload()->GetTotalSize();
@@ -406,7 +408,7 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
       // Create the payload transfer update.
       PayloadProgressInfo update{payload_id,
                                  PayloadProgressInfo::Status::kFailure,
-                                 payload_total_size, endpoint_info->offset};
+                                 payload_total_size, endpoint_offset};
 
       // Send a client notification of a payload transfer failure.
       client->OnPayloadProgress(endpoint_id, update);
