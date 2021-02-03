@@ -14,21 +14,72 @@
 
 #include "platform/base/cancellation_flag.h"
 
+#include "platform/base/feature_flags.h"
+#include "platform/base/medium_environment.h"
 #include "gtest/gtest.h"
 
 namespace location {
 namespace nearby {
+namespace {
 
-TEST(CancellationFlagTest, InitialValueIsFalse) {
+using FeatureFlags = FeatureFlags::Flags;
+
+constexpr FeatureFlags kTestCases[] = {
+    FeatureFlags{
+        .enable_cancellation_flag = true,
+    },
+    FeatureFlags{
+        .enable_cancellation_flag = false,
+    },
+};
+
+class CancellationFlagTest : public ::testing::TestWithParam<FeatureFlags> {
+ protected:
+  void SetUp() override {
+    feature_flags_ = GetParam();
+    env_.SetFeatureFlags(feature_flags_);
+  }
+
+  FeatureFlags feature_flags_;
+  MediumEnvironment& env_{MediumEnvironment::Instance()};
+};
+
+TEST_P(CancellationFlagTest, InitialValueIsFalse) {
   CancellationFlag flag;
+
+  // No matter FeatureFlag is enabled or not, Cancelled is always false.
   EXPECT_FALSE(flag.Cancelled());
 }
 
-TEST(CancellationFlagTest, CanCancel) {
-  CancellationFlag flag;
-  flag.Cancel();
+TEST_P(CancellationFlagTest, InitialValueAsTrue) {
+  CancellationFlag flag{true};
+
+  // If FeatureFlag is disabled, Cancelled is false as no-op.
+  if (!feature_flags_.enable_cancellation_flag) {
+    EXPECT_FALSE(flag.Cancelled());
+    return;
+  }
+
   EXPECT_TRUE(flag.Cancelled());
 }
 
+TEST_P(CancellationFlagTest, CanCancel) {
+  CancellationFlag flag;
+  flag.Cancel();
+
+  // If FeatureFlag is disabled, return as no-op immediately and
+  // Cancelled is always false.
+  if (!feature_flags_.enable_cancellation_flag) {
+    EXPECT_FALSE(flag.Cancelled());
+    return;
+  }
+
+  EXPECT_TRUE(flag.Cancelled());
+}
+
+INSTANTIATE_TEST_SUITE_P(ParametrisedCancellationFlagTest, CancellationFlagTest,
+                         ::testing::ValuesIn(kTestCases));
+
+}  // namespace
 }  // namespace nearby
 }  // namespace location

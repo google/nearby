@@ -317,8 +317,8 @@ bool WifiLanMedium::StopAcceptingConnections(const std::string& service_id) {
 }
 
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::Connect(
-    api::WifiLanService& remote_wifi_lan_service,
-    const std::string& service_id) {
+    api::WifiLanService& remote_wifi_lan_service, const std::string& service_id,
+    CancellationFlag* cancellation_flag) {
   NEARBY_LOG(
       INFO,
       "G3 WifiLan Connect: medium=%p, wifi_lan_service=%p, "
@@ -352,6 +352,13 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::Connect(
       // Fall through for server socket not found.
       return {};
     }
+  }
+
+  if (cancellation_flag->Cancelled()) {
+    NEARBY_LOGS(INFO) << "G3 WifiLan Connect: Has been cancelled: "
+                         "service_id="
+                      << service_id;
+    return {};
   }
 
   WifiLanService wifi_lan_service =

@@ -67,6 +67,7 @@ cc_library(
     deps = [
         "//proto/connections:offline_wire_formats_portable_proto",
         "//platform/base",
+        "//platform/base:cancellation_flag",
         "//absl/strings",
         "//absl/types:optional",
         "//webrtc/api:libjingle_peerconnection_api",

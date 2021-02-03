@@ -18,6 +18,7 @@
 #include <string>
 
 #include "platform/base/byte_array.h"
+#include "platform/base/cancellation_flag.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/listeners.h"
 #include "platform/base/nsd_service_info.h"
@@ -113,7 +114,8 @@ class WifiLanMedium {
   // On success, returns a new WifiLanSocket.
   // On error, returns nullptr.
   virtual std::unique_ptr<WifiLanSocket> Connect(
-      WifiLanService& wifi_lan_service, const std::string& service_id) = 0;
+      WifiLanService& wifi_lan_service, const std::string& service_id,
+      CancellationFlag* cancellation_flag) = 0;
 
   virtual WifiLanService* GetRemoteService(const std::string& ip_address,
                                            int port) = 0;

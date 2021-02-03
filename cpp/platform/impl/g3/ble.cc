@@ -317,7 +317,8 @@ bool BleMedium::StopAcceptingConnections(const std::string& service_id) {
 }
 
 std::unique_ptr<api::BleSocket> BleMedium::Connect(
-    api::BlePeripheral& remote_peripheral, const std::string& service_id) {
+    api::BlePeripheral& remote_peripheral, const std::string& service_id,
+    CancellationFlag* cancellation_flag) {
   NEARBY_LOG(INFO,
              "G3 Ble Connect [self]: medium=%p, adapter=%p, peripheral=%p, "
              "service_id=%s",
@@ -344,6 +345,13 @@ std::unique_ptr<api::BleSocket> BleMedium::Connect(
           << service_id;
       return {};
     }
+  }
+
+  if (cancellation_flag->Cancelled()) {
+    NEARBY_LOGS(ERROR) << "G3 BLE Connect: Has been cancelled: "
+                          "service_id="
+                       << service_id;
+    return {};
   }
 
   BlePeripheral peripheral = static_cast<BlePeripheral&>(remote_peripheral);

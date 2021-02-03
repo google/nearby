@@ -21,18 +21,19 @@ namespace location {
 namespace nearby {
 namespace {
 
-FeatureFlags::Flags kTestFeatureFlags{.enable_cancellation_flags = true};
+constexpr FeatureFlags::Flags kTestFeatureFlags{.enable_cancellation_flag =
+                                                    true};
 
-TEST(FeatureFlagsTest, ToStringWorks) {
+TEST(FeatureFlagsTest, ToSetFeatureWorks) {
   const FeatureFlags& features = FeatureFlags::GetInstance();
-  EXPECT_FALSE(features.GetFlags().enable_cancellation_flags);
+  EXPECT_FALSE(features.GetFlags().enable_cancellation_flag);
 
   MediumEnvironment& medium_environment = MediumEnvironment::Instance();
   medium_environment.SetFeatureFlags(kTestFeatureFlags);
-  EXPECT_TRUE(features.GetFlags().enable_cancellation_flags);
+  EXPECT_TRUE(features.GetFlags().enable_cancellation_flag);
 
   const FeatureFlags& another_features_ref = FeatureFlags::GetInstance();
-  EXPECT_TRUE(another_features_ref.GetFlags().enable_cancellation_flags);
+  EXPECT_TRUE(another_features_ref.GetFlags().enable_cancellation_flag);
 }
 
 }  // namespace

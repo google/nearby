@@ -143,7 +143,8 @@ class WebRtc {
   // Runs on @MainThread.
   WebRtcSocketWrapper AttemptToConnect(const std::string& service_id,
                                        const PeerId& peer_id,
-                                       const LocationHint& location_hint)
+                                       const LocationHint& location_hint,
+                                       CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns if the device is accepting connection with specific service id.

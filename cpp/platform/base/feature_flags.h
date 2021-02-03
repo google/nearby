@@ -26,7 +26,7 @@ class FeatureFlags {
  public:
   // Holds for all the feature flags.
   struct Flags {
-    bool enable_cancellation_flags = false;
+    bool enable_cancellation_flag = false;
     bool resume_before_disconnect = true;
   };
 
