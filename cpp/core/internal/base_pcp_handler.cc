@@ -260,7 +260,7 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
     // Fail early, if there is no crypto context.
     ProcessPreConnectionInitiationFailure(
         endpoint_id, connection_info.channel.get(), {Status::kEndpointIoError},
-        connection_info.result.get());
+        connection_info.result.lock().get());
     connection_info.result.reset();
     return;
   }
@@ -287,10 +287,10 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
       connection_info.options, std::move(connection_info.channel),
       connection_info.listener);
 
-  if (connection_info.result != nullptr) {
+  if (auto future_status = connection_info.result.lock()) {
     NEARBY_LOG(INFO, "Connection established; Finalising future OK");
-    connection_info.result->Set({Status::kSuccess});
-    connection_info.result = nullptr;
+    future_status->Set({Status::kSuccess});
+    connection_info.result.reset();
   }
 }
 
@@ -321,7 +321,7 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
 
   ProcessPreConnectionInitiationFailure(endpoint_id, info.channel.get(),
                                         {Status::kEndpointIoError},
-                                        info.result.get());
+                                        info.result.lock().get());
   info.result.reset();
 }
 
@@ -329,15 +329,15 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
                                          const std::string& endpoint_id,
                                          const ConnectionRequestInfo& info,
                                          const ConnectionOptions& options) {
-  Future<Status> result;
-  RunOnPcpHandlerThread([this, client, &info, options, endpoint_id, &result]() {
+  auto result = std::make_shared<Future<Status>>();
+  RunOnPcpHandlerThread([this, client, &info, options, endpoint_id, result]() {
     absl::Time start_time = SystemClock::ElapsedRealtime();
 
     // If we already have a pending connection, then we shouldn't allow any more
     // outgoing connections to this endpoint.
     if (pending_connections_.count(endpoint_id)) {
       NEARBY_LOG(INFO, "Connection already exists: id=%s", endpoint_id.c_str());
-      result.Set({Status::kAlreadyConnectedToEndpoint});
+      result->Set({Status::kAlreadyConnectedToEndpoint});
       return;
     }
 
@@ -347,7 +347,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
         !CanSendOutgoingConnection(client)) {
       NEARBY_LOG(INFO, "Outgoing connection not allowed: id=%s",
                  endpoint_id.c_str());
-      result.Set({Status::kOutOfOrderApiCall});
+      result->Set({Status::kOutOfOrderApiCall});
       return;
     }
 
@@ -355,7 +355,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
     if (endpoint == nullptr) {
       NEARBY_LOG(INFO, "Discovered endpoint not found: id=%s",
                  endpoint_id.c_str());
-      result.Set({Status::kEndpointUnknown});
+      result->Set({Status::kEndpointUnknown});
       return;
     }
 
@@ -391,7 +391,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
       NEARBY_LOG(INFO, "Endpoint channel not available: id=%s",
                  endpoint_id.c_str());
       ProcessPreConnectionInitiationFailure(
-          endpoint_id, channel.get(), connect_impl_result.status, &result);
+          endpoint_id, channel.get(), connect_impl_result.status, result.get());
       return;
     }
 
@@ -408,7 +408,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
       NEARBY_LOG(INFO, "Failed to send connection request: id=%s",
                  endpoint_id.c_str());
       ProcessPreConnectionInitiationFailure(
-          endpoint_id, channel.get(), {Status::kEndpointIoError}, &result);
+          endpoint_id, channel.get(), {Status::kEndpointIoError}, result.get());
       return;
     }
 
@@ -431,7 +431,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
                          .start_time = start_time,
                          .listener = info.listener,
                          .options = options,
-                         .result = MakeSwapper(&result),
+                         .result = result,
                          .channel = std::move(channel),
                      })
             .first->second.channel.get();
@@ -447,7 +447,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
              endpoint_id.c_str());
   auto status =
       WaitForResult(absl::StrCat("RequestConnection(", endpoint_id, ")"),
-                    client->GetClientId(), &result);
+                    client->GetClientId(), result.get());
   NEARBY_LOG(INFO, "Wait is complete: id=%s; status=%d", endpoint_id.c_str(),
              status.value);
   return status;
@@ -1024,8 +1024,8 @@ void BasePcpHandler::ProcessTieBreakLoss(
     BasePcpHandler::PendingConnectionInfo* info) {
   ProcessPreConnectionInitiationFailure(endpoint_id, info->channel.get(),
                                         {Status::kEndpointIoError},
-                                        info->result.get());
-  info->result = nullptr;
+                                        info->result.lock().get());
+  info->result.reset();
   ProcessPreConnectionResultFailure(client, endpoint_id);
 }
 
@@ -1269,9 +1269,10 @@ ExceptionOr<OfflineFrame> BasePcpHandler::ReadConnectionRequestFrame(
 ///////////////////// BasePcpHandler::PendingConnectionInfo ///////////////////
 
 BasePcpHandler::PendingConnectionInfo::~PendingConnectionInfo() {
-  if (result != nullptr) {
+  auto future_status = result.lock();
+  if (future_status && !future_status->IsSet()) {
     NEARBY_LOG(INFO, "Future was not set; destroying info");
-    result->Set({Status::kError});
+    future_status->Set({Status::kError});
   }
 
   if (channel != nullptr) {
