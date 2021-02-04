@@ -18,6 +18,7 @@
 #include "platform/api/platform.h"
 #include "platform/api/wifi_lan.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/cancellation_flag.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/nsd_service_info.h"
 #include "platform/base/output_stream.h"
@@ -151,7 +152,8 @@ class WifiLanMedium final {
   // Returns a new WifiLanSocket. On Success, WifiLanSocket::IsValid()
   // returns true.
   WifiLanSocket Connect(WifiLanService& wifi_lan_service,
-                        const std::string& service_id);
+                        const std::string& service_id,
+                        CancellationFlag* cancellation_flag);
 
   bool IsValid() const { return impl_ != nullptr; }
 

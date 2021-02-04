@@ -18,6 +18,7 @@
 #include "platform/api/ble.h"
 #include "platform/api/platform.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/cancellation_flag.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/output_stream.h"
 #include "platform/public/bluetooth_adapter.h"
@@ -137,7 +138,8 @@ class BleMedium final {
 
   // Returns a new BleSocket. On Success, BleSocket::IsValid()
   // returns true.
-  BleSocket Connect(BlePeripheral& peripheral, const std::string& service_id);
+  BleSocket Connect(BlePeripheral& peripheral, const std::string& service_id,
+                    CancellationFlag* cancellation_flag);
 
   bool IsValid() const { return impl_ != nullptr; }
 

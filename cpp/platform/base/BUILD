@@ -176,7 +176,10 @@ cc_test(
         "cancellation_flag_test.cc",
     ],
     deps = [
+        ":base",
         ":cancellation_flag",
+        ":test_util",
+        "//platform/impl/g3",  # build_cleaner: keep
         "//testing/base/public:gunit_main",
     ],
 )

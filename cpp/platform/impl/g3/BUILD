@@ -69,6 +69,7 @@ cc_library(
         ":types",
         "//platform/api:comm",
         "//platform/base",
+        "//platform/base:cancellation_flag",
         "//platform/base:logging",
         "//platform/base:test_util",
         "//absl/base:core_headers",

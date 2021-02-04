@@ -17,6 +17,7 @@
 
 #include "platform/api/bluetooth_classic.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/cancellation_flag.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/output_stream.h"
 
@@ -112,8 +113,9 @@ class BleMedium {
   // Connects to a BLE peripheral.
   // On success, returns a new BleSocket.
   // On error, returns nullptr.
-  virtual std::unique_ptr<BleSocket> Connect(BlePeripheral& peripheral,
-                                             const std::string& service_id) = 0;
+  virtual std::unique_ptr<BleSocket> Connect(
+      BlePeripheral& peripheral, const std::string& service_id,
+      CancellationFlag* cancellation_flag) = 0;
 };
 
 }  // namespace api
