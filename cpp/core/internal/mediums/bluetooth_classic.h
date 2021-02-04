@@ -170,7 +170,8 @@ class BluetoothClassic {
   // Returns socket instance. On success, BluetoothSocket.IsValid() return true.
   // Called by client.
   BluetoothSocket AttemptToConnect(BluetoothDevice& bluetooth_device,
-                                   const std::string& service_name);
+                                   const std::string& service_name,
+                                   CancellationFlag* cancellation_flag);
 
   mutable Mutex mutex_;
   BluetoothRadio& radio_ ABSL_GUARDED_BY(mutex_);

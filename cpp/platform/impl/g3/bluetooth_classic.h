@@ -201,8 +201,9 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   // On success, returns a new BluetoothSocket.
   // On error, returns nullptr.
   std::unique_ptr<api::BluetoothSocket> ConnectToService(
-      api::BluetoothDevice& remote_device,
-      const std::string& service_uuid) override ABSL_LOCKS_EXCLUDED(mutex_);
+      api::BluetoothDevice& remote_device, const std::string& service_uuid,
+      CancellationFlag* cancellation_flag) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   BluetoothAdapter& GetAdapter() { return *adapter_; }
 

@@ -227,6 +227,7 @@ TEST_P(P2pClusterPcpHandlerTest, CanConnect) {
   EXPECT_TRUE(discover_latch.Await(absl::Milliseconds(1000)).result());
   EXPECT_EQ(endpoint_name_a, std::string{discovered.endpoint_info});
 
+  client_b_.AddCancellationFlag(discovered.endpoint_id);
   handler_b.RequestConnection(
       &client_b_, discovered.endpoint_id,
       {

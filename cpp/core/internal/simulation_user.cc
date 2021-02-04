@@ -148,6 +148,7 @@ void SimulationUser::RequestConnection(CountDownLatch* latch) {
       .rejected_cb =
           absl::bind_front(&SimulationUser::OnConnectionRejected, this),
   };
+  client_.AddCancellationFlag(discovered_.endpoint_id);
   EXPECT_TRUE(
       mgr_.RequestConnection(&client_, discovered_.endpoint_id,
                              {

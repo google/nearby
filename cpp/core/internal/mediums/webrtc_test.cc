@@ -28,13 +28,105 @@ namespace mediums {
 
 namespace {
 
-class WebRtcTest : public ::testing::Test {
+using FeatureFlags = FeatureFlags::Flags;
+
+constexpr FeatureFlags kTestCases[] = {
+    FeatureFlags{
+        .enable_cancellation_flag = true,
+    },
+    FeatureFlags{
+        .enable_cancellation_flag = false,
+    },
+};
+
+class WebRtcTest : public ::testing::TestWithParam<FeatureFlags> {
  protected:
   WebRtcTest() {
     MediumEnvironment::Instance().Stop();
     MediumEnvironment::Instance().Start({.webrtc_enabled = true});
   }
 };
+
+// Tests the flow when the two devices exchange SDP messages and connect to each
+// other but the signaling channel is closed before sending the data.
+TEST_P(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
+  FeatureFlags feature_flags = GetParam();
+  MediumEnvironment::Instance().SetFeatureFlags(feature_flags);
+  WebRtc receiver, sender;
+  WebRtcSocketWrapper receiver_socket, sender_socket;
+  const PeerId self_id("self_id");
+  const std::string service_id("NearbySharing");
+  LocationHint location_hint;
+  Future<bool> connected;
+  ByteArray message("message xyz");
+
+  receiver.StartAcceptingConnections(
+      service_id, self_id, location_hint,
+      {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
+        receiver_socket = wrapper;
+        connected.Set(receiver_socket.IsValid());
+      }});
+
+  CancellationFlag flag;
+  sender_socket = sender.Connect(service_id, self_id, location_hint, &flag);
+  EXPECT_TRUE(sender_socket.IsValid());
+
+  ExceptionOr<bool> devices_connected = connected.Get();
+  ASSERT_TRUE(devices_connected.ok());
+  EXPECT_TRUE(devices_connected.result());
+
+  // Only shuts down signaling channel.
+  receiver.StopAcceptingConnections(service_id);
+
+  sender_socket.GetOutputStream().Write(message);
+  ExceptionOr<ByteArray> received_msg =
+      receiver_socket.GetInputStream().Read(/*size=*/32);
+  ASSERT_TRUE(received_msg.ok());
+  EXPECT_EQ(message, received_msg.result());
+}
+
+TEST_P(WebRtcTest, CanCancelConnect) {
+  FeatureFlags feature_flags = GetParam();
+  MediumEnvironment::Instance().SetFeatureFlags(feature_flags);
+  WebRtc receiver, sender;
+  WebRtcSocketWrapper receiver_socket, sender_socket;
+  const PeerId self_id("self_id");
+  const std::string service_id("NearbySharing");
+  LocationHint location_hint;
+  Future<bool> connected;
+  ByteArray message("message");
+
+  receiver.StartAcceptingConnections(
+      service_id, self_id, location_hint,
+      {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
+        receiver_socket = wrapper;
+        connected.Set(receiver_socket.IsValid());
+      }});
+
+  CancellationFlag flag(true);
+  sender_socket = sender.Connect(service_id, self_id, location_hint, &flag);
+  // If FeatureFlag is disabled, Cancelled is false as no-op.
+  if (!feature_flags.enable_cancellation_flag) {
+    EXPECT_TRUE(sender_socket.IsValid());
+
+    ExceptionOr<bool> devices_connected = connected.Get();
+    ASSERT_TRUE(devices_connected.ok());
+    EXPECT_TRUE(devices_connected.result());
+
+    sender_socket.GetOutputStream().Write(message);
+    ExceptionOr<ByteArray> received_msg =
+        receiver_socket.GetInputStream().Read(/*size=*/32);
+    ASSERT_TRUE(received_msg.ok());
+    EXPECT_EQ(message, received_msg.result());
+
+    receiver_socket.Close();
+  } else {
+    EXPECT_FALSE(sender_socket.IsValid());
+  }
+}
+
+INSTANTIATE_TEST_SUITE_P(ParametrisedWebRtcTest, WebRtcTest,
+                         ::testing::ValuesIn(kTestCases));
 
 // Basic test to check that device is accepting connections when initialized.
 TEST_F(WebRtcTest, NotAcceptingConnections) {
@@ -239,42 +331,6 @@ TEST_F(WebRtcTest, ConnectBothDevicesAndSendData) {
   EXPECT_EQ(message, received_msg.result());
 
   receiver_socket.Close();
-}
-
-// Tests the flow when the two devices exchange SDP messages and connect to each
-// other but the signaling channel is closed before sending the data.
-TEST_F(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
-  WebRtc receiver, sender;
-  WebRtcSocketWrapper receiver_socket, sender_socket;
-  const PeerId self_id("self_id");
-  const std::string service_id("NearbySharing");
-  LocationHint location_hint;
-  Future<bool> connected;
-  ByteArray message("message xyz");
-
-  receiver.StartAcceptingConnections(
-      service_id, self_id, location_hint,
-      {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
-        receiver_socket = wrapper;
-        connected.Set(receiver_socket.IsValid());
-      }});
-
-  CancellationFlag flag;
-  sender_socket = sender.Connect(service_id, self_id, location_hint, &flag);
-  EXPECT_TRUE(sender_socket.IsValid());
-
-  ExceptionOr<bool> devices_connected = connected.Get();
-  ASSERT_TRUE(devices_connected.ok());
-  EXPECT_TRUE(devices_connected.result());
-
-  // Only shuts down signaling channel.
-  receiver.StopAcceptingConnections(service_id);
-
-  sender_socket.GetOutputStream().Write(message);
-  ExceptionOr<ByteArray> received_msg =
-      receiver_socket.GetInputStream().Read(/*size=*/32);
-  ASSERT_TRUE(received_msg.ok());
-  EXPECT_EQ(message, received_msg.result());
 }
 
 TEST_F(WebRtcTest, Connect_NullPeerConnection) {
