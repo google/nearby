@@ -9,12 +9,13 @@ namespace nearby {
 BluetoothClassicMedium::~BluetoothClassicMedium() { StopDiscovery(); }
 
 BluetoothSocket BluetoothClassicMedium::ConnectToService(
-    BluetoothDevice& remote_device, const std::string& service_uuid) {
+    BluetoothDevice& remote_device, const std::string& service_uuid,
+    CancellationFlag* cancellation_flag) {
   NEARBY_LOG(INFO,
              "BluetoothClassicMedium::ConnectToService: device=%p [impl=%p]",
              &remote_device, &remote_device.GetImpl());
-  return BluetoothSocket(
-      impl_->ConnectToService(remote_device.GetImpl(), service_uuid));
+  return BluetoothSocket(impl_->ConnectToService(
+      remote_device.GetImpl(), service_uuid, cancellation_flag));
 }
 
 bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {

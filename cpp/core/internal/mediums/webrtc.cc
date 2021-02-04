@@ -198,8 +198,8 @@ WebRtcSocketWrapper WebRtc::Connect(const std::string& service_id,
                                     CancellationFlag* cancellation_flag) {
   for (int attempts_count = 0; attempts_count < kConnectAttemptsLimit;
        attempts_count++) {
-    auto wrapper_result =
-        AttemptToConnect(service_id, remote_peer_id, location_hint);
+    auto wrapper_result = AttemptToConnect(service_id, remote_peer_id,
+                                           location_hint, cancellation_flag);
     if (wrapper_result.IsValid()) {
       return wrapper_result;
     }
@@ -209,7 +209,7 @@ WebRtcSocketWrapper WebRtc::Connect(const std::string& service_id,
 
 WebRtcSocketWrapper WebRtc::AttemptToConnect(
     const std::string& service_id, const PeerId& remote_peer_id,
-    const LocationHint& location_hint) {
+    const LocationHint& location_hint, CancellationFlag* cancellation_flag) {
   ConnectionRequestInfo info = ConnectionRequestInfo();
   info.self_peer_id = PeerId::FromRandom();
   Future<WebRtcSocketWrapper> socket_future = info.socket_future;
@@ -221,6 +221,11 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
           WARNING,
           "Cannot connect to WebRTC peer %s because WebRTC is not available.",
           remote_peer_id.GetId().c_str());
+      return WebRtcSocketWrapper();
+    }
+
+    if (cancellation_flag->Cancelled()) {
+      NEARBY_LOGS(INFO) << "Cannot connect with WebRtc due to cancel.";
       return WebRtcSocketWrapper();
     }
 
