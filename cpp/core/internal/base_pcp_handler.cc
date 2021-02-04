@@ -377,8 +377,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
     ConnectImplResult connect_impl_result;
 
     for (auto connect_endpoint : discovered_endpoints) {
-      if (!MediumSupportedByClientOptions(connect_endpoint->medium,
-                                          client->GetDiscoveryOptions()))
+      if (!MediumSupportedByClientOptions(connect_endpoint->medium, options))
         continue;
       connect_impl_result = ConnectImpl(client, connect_endpoint);
       if (connect_impl_result.status.Ok()) {
@@ -403,7 +402,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
     // endpoint about ourselves.
     Exception write_exception = WriteConnectionRequestFrame(
         channel.get(), client->GetLocalEndpointId(), info.endpoint_info, nonce,
-        GetSupportedConnectionMediumsByPriority(client->GetDiscoveryOptions()));
+        GetSupportedConnectionMediumsByPriority(options));
     if (!write_exception.Ok()) {
       NEARBY_LOG(INFO, "Failed to send connection request: id=%s",
                  endpoint_id.c_str());
