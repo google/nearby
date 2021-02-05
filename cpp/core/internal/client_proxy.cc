@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "platform/base/base64_utils.h"
+#include "platform/base/feature_flags.h"
 #include "platform/base/prng.h"
 #include "platform/public/crypto.h"
 #include "platform/public/logging.h"
@@ -493,6 +494,11 @@ bool ClientProxy::RemoteConnectionIsAccepted(std::string endpoint_id) const {
 }
 
 void ClientProxy::AddCancellationFlag(const std::string& endpoint_id) {
+  // Don't insert the CancellationFlag to the map if feature flag is disabled.
+  if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
+    return;
+  }
+
   auto item = cancellation_flags_.find(endpoint_id);
   if (item != cancellation_flags_.end()) {
     return;

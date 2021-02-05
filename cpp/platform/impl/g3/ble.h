@@ -183,8 +183,9 @@ class BleMedium : public api::BleMedium {
   // On success, returns a new BleSocket.
   // On error, returns nullptr.
   std::unique_ptr<api::BleSocket> Connect(
-      api::BlePeripheral& remote_peripheral,
-      const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
+      api::BlePeripheral& remote_peripheral, const std::string& service_id,
+      CancellationFlag* cancellation_flag) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   BluetoothAdapter& GetAdapter() { return *adapter_; }
 

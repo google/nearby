@@ -19,6 +19,7 @@
 #include <string>
 
 #include "platform/base/byte_array.h"
+#include "platform/base/cancellation_flag.h"
 #include "platform/base/exception.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/listeners.h"
@@ -136,7 +137,8 @@ class BluetoothClassicMedium {
   // On success, returns a new BluetoothSocket.
   // On error, returns nullptr.
   virtual std::unique_ptr<BluetoothSocket> ConnectToService(
-      BluetoothDevice& remote_device, const std::string& service_uuid) = 0;
+      BluetoothDevice& remote_device, const std::string& service_uuid,
+      CancellationFlag* cancellation_flag) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#listenUsingInsecureRfcommWithServiceRecord
   //

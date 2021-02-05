@@ -171,18 +171,21 @@ class MockPcpHandler : public BasePcpHandler {
 
 class MockContext {
  public:
-  explicit MockContext(std::atomic_int* destroyed = nullptr) {
-    destroyed_ = destroyed;
+  explicit MockContext(std::atomic_int* destroyed = nullptr)
+      : destroyed_{destroyed} {}
+  MockContext(MockContext&& other) { *this = std::move(other); }
+  MockContext& operator=(MockContext&& other) {
+    destroyed_ = other.destroyed_;
+    other.destroyed_ = nullptr;
+    return *this;
   }
-  MockContext(MockContext&&) = default;
-  MockContext& operator=(MockContext&&) = default;
 
   ~MockContext() {
     if (destroyed_) (*destroyed_)++;
   }
 
  private:
-  Swapper<std::atomic_int> destroyed_{nullptr};
+  std::atomic_int* destroyed_;
 };
 
 struct MockDiscoveredEndpoint : public MockPcpHandler::DiscoveredEndpoint {
