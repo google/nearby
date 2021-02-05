@@ -204,7 +204,9 @@ class WifiLanMedium : public api::WifiLanMedium {
   // On error, returns nullptr.
   std::unique_ptr<api::WifiLanSocket> Connect(
       api::WifiLanService& remote_wifi_lan_service,
-      const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
+      const std::string& service_id,
+      CancellationFlag* cancellation_flag) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   api::WifiLanService* GetRemoteService(const std::string& ip_address,
                                         int port) override;

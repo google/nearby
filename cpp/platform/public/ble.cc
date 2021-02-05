@@ -127,13 +127,15 @@ bool BleMedium::StopAcceptingConnections(const std::string& service_id) {
 }
 
 BleSocket BleMedium::Connect(BlePeripheral& peripheral,
-                             const std::string& service_id) {
+                             const std::string& service_id,
+                             CancellationFlag* cancellation_flag) {
   {
     MutexLock lock(&mutex_);
     NEARBY_LOG(INFO, "BleMedium::Connect: peripheral=%p [impl=%p]", &peripheral,
                &peripheral.GetImpl());
   }
-  return BleSocket(impl_->Connect(peripheral.GetImpl(), service_id));
+  return BleSocket(
+      impl_->Connect(peripheral.GetImpl(), service_id, cancellation_flag));
 }
 
 }  // namespace nearby

@@ -167,6 +167,7 @@ Status OfflineSimulationUser::RequestConnection(CountDownLatch* latch) {
       .disconnected_cb =
           absl::bind_front(&OfflineSimulationUser::OnEndpointDisconnect, this),
   };
+  client_.AddCancellationFlag(discovered_.endpoint_id);
   return ctrl_.RequestConnection(
       &client_, discovered_.endpoint_id,
       {

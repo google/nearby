@@ -29,7 +29,19 @@ namespace location {
 namespace nearby {
 namespace {
 
-class BluetoothClassicMediumTest : public ::testing::Test {
+using FeatureFlags = FeatureFlags::Flags;
+
+constexpr FeatureFlags kTestCases[] = {
+    FeatureFlags{
+        .enable_cancellation_flag = true,
+    },
+    FeatureFlags{
+        .enable_cancellation_flag = false,
+    },
+};
+
+class BluetoothClassicMediumTest
+    : public ::testing::TestWithParam<FeatureFlags> {
  protected:
   using DiscoveryCallback = BluetoothClassicMedium::DiscoveryCallback;
   BluetoothClassicMediumTest() {
@@ -65,6 +77,114 @@ class BluetoothClassicMediumTest : public ::testing::Test {
   std::unique_ptr<BluetoothClassicMedium> bt_a_;
   std::unique_ptr<BluetoothClassicMedium> bt_b_;
 };
+
+TEST_P(BluetoothClassicMediumTest, CanConnectToService) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+
+  adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
+  CountDownLatch found_latch(1);
+  BluetoothDevice* discovered_device = nullptr;
+  bt_a_->StartDiscovery(DiscoveryCallback{
+      .device_discovered_cb =
+          [this, &found_latch, &discovered_device](BluetoothDevice& device) {
+            NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
+            EXPECT_EQ(device.GetName(), adapter_b_->GetName());
+            discovered_device = &device;
+            found_latch.CountDown();
+          },
+  });
+  adapter_b_->SetScanMode(BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  EXPECT_EQ(adapter_b_->GetScanMode(),
+            BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  std::string service_name{"service"};
+  std::string service_uuid("service-uuid");
+  BluetoothServerSocket server_socket =
+      bt_b_->ListenForService(service_name, service_uuid);
+  EXPECT_TRUE(server_socket.IsValid());
+  BluetoothSocket socket_a;
+  BluetoothSocket socket_b;
+  EXPECT_FALSE(socket_a.IsValid());
+  EXPECT_FALSE(socket_b.IsValid());
+  {
+    SingleThreadExecutor server_executor;
+    SingleThreadExecutor client_executor;
+    client_executor.Execute(
+        [this, &socket_a, discovered_device, &service_uuid, &server_socket]() {
+          CancellationFlag flag;
+          socket_a =
+              bt_a_->ConnectToService(*discovered_device, service_uuid, &flag);
+          if (!socket_a.IsValid()) server_socket.Close();
+        });
+    server_executor.Execute([&socket_b, &server_socket]() {
+      socket_b = server_socket.Accept();
+      if (!socket_b.IsValid()) server_socket.Close();
+    });
+  }
+  EXPECT_TRUE(socket_a.IsValid());
+  EXPECT_TRUE(socket_b.IsValid());
+  server_socket.Close();
+}
+
+TEST_P(BluetoothClassicMediumTest, CanCancelConnect) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+
+  adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
+  CountDownLatch found_latch(1);
+  BluetoothDevice* discovered_device = nullptr;
+  bt_a_->StartDiscovery(DiscoveryCallback{
+      .device_discovered_cb =
+          [this, &found_latch, &discovered_device](BluetoothDevice& device) {
+            NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
+            EXPECT_EQ(device.GetName(), adapter_b_->GetName());
+            discovered_device = &device;
+            found_latch.CountDown();
+          },
+  });
+  adapter_b_->SetScanMode(BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  EXPECT_EQ(adapter_b_->GetScanMode(),
+            BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  std::string service_name{"service"};
+  std::string service_uuid("service-uuid");
+  BluetoothServerSocket server_socket =
+      bt_b_->ListenForService(service_name, service_uuid);
+  EXPECT_TRUE(server_socket.IsValid());
+  BluetoothSocket socket_a;
+  BluetoothSocket socket_b;
+  EXPECT_FALSE(socket_a.IsValid());
+  EXPECT_FALSE(socket_b.IsValid());
+  {
+    SingleThreadExecutor server_executor;
+    SingleThreadExecutor client_executor;
+    client_executor.Execute(
+        [this, &socket_a, discovered_device, &service_uuid, &server_socket]() {
+          CancellationFlag flag(true);
+          socket_a =
+              bt_a_->ConnectToService(*discovered_device, service_uuid, &flag);
+          if (!socket_a.IsValid()) server_socket.Close();
+        });
+    server_executor.Execute([&socket_b, &server_socket]() {
+      socket_b = server_socket.Accept();
+      if (!socket_b.IsValid()) server_socket.Close();
+    });
+  }
+  // If FeatureFlag is disabled, Cancelled is false as no-op.
+  if (!feature_flags.enable_cancellation_flag) {
+    EXPECT_TRUE(socket_a.IsValid());
+    EXPECT_TRUE(socket_b.IsValid());
+  } else {
+    EXPECT_FALSE(socket_a.IsValid());
+    EXPECT_FALSE(socket_b.IsValid());
+  }
+  server_socket.Close();
+}
+
+INSTANTIATE_TEST_SUITE_P(ParametrisedBluetoothClassicMediumTest,
+                         BluetoothClassicMediumTest,
+                         ::testing::ValuesIn(kTestCases));
 
 TEST_F(BluetoothClassicMediumTest, ConstructorDestructorWorks) {
   // Make sure we can create functional adapters.
@@ -160,51 +280,6 @@ TEST_F(BluetoothClassicMediumTest, CanListenForService) {
   BluetoothServerSocket server_socket =
       bt_b_->ListenForService(service_name, service_uuid);
   EXPECT_TRUE(server_socket.IsValid());
-  server_socket.Close();
-}
-
-TEST_F(BluetoothClassicMediumTest, CanConnectToService) {
-  adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
-  CountDownLatch found_latch(1);
-  BluetoothDevice* discovered_device = nullptr;
-  bt_a_->StartDiscovery(DiscoveryCallback{
-      .device_discovered_cb =
-          [this, &found_latch, &discovered_device](BluetoothDevice& device) {
-            NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
-            EXPECT_EQ(device.GetName(), adapter_b_->GetName());
-            discovered_device = &device;
-            found_latch.CountDown();
-          },
-  });
-  adapter_b_->SetScanMode(BluetoothAdapter::ScanMode::kConnectableDiscoverable);
-  EXPECT_EQ(adapter_b_->GetScanMode(),
-            BluetoothAdapter::ScanMode::kConnectableDiscoverable);
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
-  std::string service_name{"service"};
-  std::string service_uuid("service-uuid");
-  BluetoothServerSocket server_socket =
-      bt_b_->ListenForService(service_name, service_uuid);
-  EXPECT_TRUE(server_socket.IsValid());
-  BluetoothSocket socket_a;
-  BluetoothSocket socket_b;
-  EXPECT_FALSE(socket_a.IsValid());
-  EXPECT_FALSE(socket_b.IsValid());
-  {
-    SingleThreadExecutor server_executor;
-    SingleThreadExecutor client_executor;
-    client_executor.Execute(
-        [this, &socket_a, discovered_device, &service_uuid, &server_socket]() {
-          socket_a = bt_a_->ConnectToService(*discovered_device, service_uuid);
-          if (!socket_a.IsValid()) server_socket.Close();
-        });
-    server_executor.Execute(
-        [&socket_b, &server_socket]() {
-          socket_b = server_socket.Accept();
-          if (!socket_b.IsValid()) server_socket.Close();
-        });
-  }
-  EXPECT_TRUE(socket_a.IsValid());
-  EXPECT_TRUE(socket_b.IsValid());
   server_socket.Close();
 }
 

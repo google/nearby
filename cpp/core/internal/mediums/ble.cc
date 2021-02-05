@@ -335,7 +335,12 @@ BleSocket Ble::Connect(BlePeripheral& peripheral, const std::string& service_id,
     return socket;
   }
 
-  socket = medium_.Connect(peripheral, service_id);
+  if (cancellation_flag->Cancelled()) {
+    NEARBY_LOGS(INFO) << "Can't create client BLE socket due to cancel.";
+    return socket;
+  }
+
+  socket = medium_.Connect(peripheral, service_id, cancellation_flag);
   if (!socket.IsValid()) {
     NEARBY_LOGS(INFO) << "Failed to Connect via BLE [service=" << service_id
                       << "]";

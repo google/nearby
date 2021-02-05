@@ -21,6 +21,7 @@
 #include "platform/api/bluetooth_classic.h"
 #include "platform/api/platform.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/cancellation_flag.h"
 #include "platform/base/exception.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/listeners.h"
@@ -179,7 +180,8 @@ class BluetoothClassicMedium final {
   // Returns a new BluetoothSocket. On Success, BluetoothSocket::IsValid()
   // returns true.
   BluetoothSocket ConnectToService(BluetoothDevice& remote_device,
-                                   const std::string& service_uuid);
+                                   const std::string& service_uuid,
+                                   CancellationFlag* cancellation_flag);
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#listenUsingInsecureRfcommWithServiceRecord
   //
