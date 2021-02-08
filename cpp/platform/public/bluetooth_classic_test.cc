@@ -283,6 +283,11 @@ TEST_F(BluetoothClassicMediumTest, CanListenForService) {
   server_socket.Close();
 }
 
+TEST_F(BluetoothClassicMediumTest, FailIfDiscovering) {
+  EXPECT_TRUE(bt_a_->StartDiscovery({}));
+  EXPECT_FALSE(bt_a_->StartDiscovery({}));
+}
+
 }  // namespace
 }  // namespace nearby
 }  // namespace location

@@ -33,18 +33,12 @@ BluetoothSocket BluetoothClassicMedium::ConnectToService(
 }
 
 bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {
-  {
-    MutexLock lock(&mutex_);
-    if (discovery_enabled_) {
-      NEARBY_LOG(INFO, "BT Discovery already enabled; impl=%p", &GetImpl());
-      return false;
-    }
-    discovery_callback_ = std::move(callback);
-    devices_.clear();
-    discovery_enabled_ = true;
-    NEARBY_LOG(INFO, "BT Discovery enabled; impl=%p", &GetImpl());
+  MutexLock lock(&mutex_);
+  if (discovery_enabled_) {
+    NEARBY_LOG(INFO, "BT Discovery already enabled; impl=%p", &GetImpl());
+    return false;
   }
-  return impl_->StartDiscovery({
+  bool success = impl_->StartDiscovery({
       .device_discovered_cb =
           [this](api::BluetoothDevice& device) {
             MutexLock lock(&mutex_);
@@ -82,17 +76,22 @@ bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {
             discovery_callback_.device_lost_cb(context.device);
           },
   });
+  if (success) {
+    discovery_callback_ = std::move(callback);
+    devices_.clear();
+    discovery_enabled_ = true;
+    NEARBY_LOG(INFO, "BT Discovery enabled; impl=%p", &GetImpl());
+  }
+  return success;
 }
 
 bool BluetoothClassicMedium::StopDiscovery() {
-  {
-    MutexLock lock(&mutex_);
-    if (!discovery_enabled_) return true;
-    discovery_enabled_ = false;
-    discovery_callback_ = {};
-    devices_.clear();
-    NEARBY_LOG(INFO, "BT Discovery disabled: impl=%p", &GetImpl());
-  }
+  MutexLock lock(&mutex_);
+  if (!discovery_enabled_) return true;
+  discovery_enabled_ = false;
+  discovery_callback_ = {};
+  devices_.clear();
+  NEARBY_LOG(INFO, "BT Discovery disabled: impl=%p", &GetImpl());
   return impl_->StopDiscovery();
 }
 
