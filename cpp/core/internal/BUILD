@@ -62,6 +62,7 @@ cc_library(
         "pcp_manager.h",
         "service_controller.h",
         "service_controller_router.h",
+        "stoppable_service_controller.h",
         "webrtc_bwu_handler.h",
         "webrtc_endpoint_channel.h",
         "wifi_lan_bwu_handler.h",

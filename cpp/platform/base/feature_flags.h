@@ -14,6 +14,10 @@ class FeatureFlags {
   struct Flags {
     bool enable_cancellation_flag = false;
     bool resume_before_disconnect = true;
+    // Disable ServiceController API (using StoppableServiceController) when
+    // ServiceController is released to prevent calls to that API from
+    // other threads.
+    bool disable_released_service_controller = true;
   };
 
   static const FeatureFlags& GetInstance() {
