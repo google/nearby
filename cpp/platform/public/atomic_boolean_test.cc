@@ -33,6 +33,17 @@ TEST(AtomicBooleanTest, GetReturnsWhatWasSet) {
   EXPECT_TRUE(value.Get());
 }
 
+TEST(AtomicBooleanTest, ImplicitGetTrueValue) {
+  AtomicBoolean value(true);
+
+  EXPECT_TRUE(value);
+}
+
+TEST(AtomicBooleanTest, ImplicitGetFalseValue) {
+  AtomicBoolean value(false);
+
+  EXPECT_FALSE(value);
+}
 }  // namespace
 }  // namespace nearby
 }  // namespace location

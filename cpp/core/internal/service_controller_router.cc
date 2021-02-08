@@ -24,7 +24,9 @@
 #include "core/options.h"
 #include "core/params.h"
 #include "core/payload.h"
+#include "platform/base/feature_flags.h"
 #include "platform/public/logging.h"
+#include "absl/memory/memory.h"
 #include "absl/time/clock.h"
 
 namespace location {
@@ -48,7 +50,15 @@ const std::size_t kMaxEndpointInfoLength = 131u;
 ServiceControllerRouter::~ServiceControllerRouter() {
   NEARBY_LOG(INFO, "ServiceControllerRouter going down.");
 
-  service_controller_.reset();
+  if (FeatureFlags::GetInstance()
+          .GetFlags()
+          .disable_released_service_controller) {
+    if (service_controller_) {
+      service_controller_->Shutdown();
+    }
+  } else {
+    service_controller_.reset();
+  }
   // And make sure that cleanup is the last thing we do.
   serializer_.Shutdown();
 }
@@ -427,7 +437,13 @@ void ServiceControllerRouter::ReleaseServiceControllerForClient(
     ClientProxy* client) {
   clients_.erase(client);
 
-  // service_controller_ won't be released here. Instead, in desctructor.
+  // service_controller_ won't be released here. Instead, in destructor.
+  if (FeatureFlags::GetInstance()
+          .GetFlags()
+          .disable_released_service_controller) {
+    service_controller_->Shutdown();
+  }
+
   if (clients_.empty()) {
     current_strategy_ = Strategy{};
   }
@@ -475,7 +491,8 @@ Status ServiceControllerRouter::UpdateCurrentServiceControllerAndStrategy(
     return {Status::kError};
   }
 
-  service_controller_.reset(service_controller_factory_());
+  service_controller_ = absl::make_unique<StoppableServiceController>(
+      service_controller_factory_());
   current_strategy_ = strategy;
 
   return {Status::kSuccess};
