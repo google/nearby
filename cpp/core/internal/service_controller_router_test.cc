@@ -50,15 +50,10 @@ const char kFakeInejctedEndpointId[] = "abcd";
 // friend class to work.
 class ServiceControllerRouterTest : public testing::Test {
  public:
-  ServiceControllerRouterTest() = default;
-  ~ServiceControllerRouterTest() override {
-    router_.service_controller_.release();
-  }
-
   void StartAdvertising(ClientProxy* client, std::string service_id,
                         ConnectionOptions options, ConnectionRequestInfo info,
                         ResultCallback callback) {
-    EXPECT_CALL(mock_, StartAdvertising)
+    EXPECT_CALL(*mock_, StartAdvertising)
         .WillOnce(Return(Status{Status::kSuccess}));
     {
       MutexLock lock(&mutex_);
@@ -73,7 +68,7 @@ class ServiceControllerRouterTest : public testing::Test {
   }
 
   void StopAdvertising(ClientProxy* client, ResultCallback callback) {
-    EXPECT_CALL(mock_, StopAdvertising).Times(1);
+    EXPECT_CALL(*mock_, StopAdvertising).Times(1);
     {
       MutexLock lock(&mutex_);
       complete_ = false;
@@ -88,7 +83,7 @@ class ServiceControllerRouterTest : public testing::Test {
                       ConnectionOptions options,
                       const DiscoveryListener& listener,
                       const ResultCallback& callback) {
-    EXPECT_CALL(mock_, StartDiscovery)
+    EXPECT_CALL(*mock_, StartDiscovery)
         .WillOnce(Return(Status{Status::kSuccess}));
     {
       MutexLock lock(&mutex_);
@@ -103,7 +98,7 @@ class ServiceControllerRouterTest : public testing::Test {
   }
 
   void StopDiscovery(ClientProxy* client, ResultCallback callback) {
-    EXPECT_CALL(mock_, StopDiscovery).Times(1);
+    EXPECT_CALL(*mock_, StopDiscovery).Times(1);
     {
       MutexLock lock(&mutex_);
       complete_ = false;
@@ -117,7 +112,7 @@ class ServiceControllerRouterTest : public testing::Test {
   void InjectEndpoint(ClientProxy* client, std::string service_id,
                       const OutOfBandConnectionMetadata& metadata,
                       ResultCallback callback) {
-    EXPECT_CALL(mock_, InjectEndpoint).Times(1);
+    EXPECT_CALL(*mock_, InjectEndpoint).Times(1);
     {
       MutexLock lock(&mutex_);
       complete_ = false;
@@ -129,7 +124,7 @@ class ServiceControllerRouterTest : public testing::Test {
   void RequestConnection(ClientProxy* client, const std::string& endpoint_id,
                          const ConnectionRequestInfo& request_info,
                          ResultCallback callback) {
-    EXPECT_CALL(mock_, RequestConnection)
+    EXPECT_CALL(*mock_, RequestConnection)
         .WillOnce(Return(Status{Status::kSuccess}));
     ConnectionOptions options;
     {
@@ -154,7 +149,7 @@ class ServiceControllerRouterTest : public testing::Test {
   void AcceptConnection(ClientProxy* client, const std::string endpoint_id,
                         const PayloadListener& listener,
                         const ResultCallback& callback) {
-    EXPECT_CALL(mock_, AcceptConnection)
+    EXPECT_CALL(*mock_, AcceptConnection)
         .WillOnce(Return(Status{Status::kSuccess}));
     // Pre-condition for successful Accept is: connection must exist.
     EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint_id));
@@ -174,7 +169,7 @@ class ServiceControllerRouterTest : public testing::Test {
 
   void RejectConnection(ClientProxy* client, const std::string endpoint_id,
                         ResultCallback callback) {
-    EXPECT_CALL(mock_, RejectConnection)
+    EXPECT_CALL(*mock_, RejectConnection)
         .WillOnce(Return(Status{Status::kSuccess}));
     // Pre-condition for successful Accept is: connection must exist.
     EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint_id));
@@ -192,7 +187,7 @@ class ServiceControllerRouterTest : public testing::Test {
   void InitiateBandwidthUpgrade(ClientProxy* client,
                                 const std::string endpoint_id,
                                 ResultCallback callback) {
-    EXPECT_CALL(mock_, InitiateBandwidthUpgrade).Times(1);
+    EXPECT_CALL(*mock_, InitiateBandwidthUpgrade).Times(1);
     EXPECT_TRUE(client->IsConnectedToEndpoint(endpoint_id));
     {
       MutexLock lock(&mutex_);
@@ -206,7 +201,7 @@ class ServiceControllerRouterTest : public testing::Test {
   void SendPayload(ClientProxy* client,
                    const std::vector<std::string>& endpoint_ids,
                    Payload payload, ResultCallback callback) {
-    EXPECT_CALL(mock_, SendPayload).Times(1);
+    EXPECT_CALL(*mock_, SendPayload).Times(1);
 
     bool connected = false;
     for (const auto& endpoint_id : endpoint_ids) {
@@ -225,7 +220,7 @@ class ServiceControllerRouterTest : public testing::Test {
 
   void CancelPayload(ClientProxy* client, std::int64_t payload_id,
                      ResultCallback callback) {
-    EXPECT_CALL(mock_, CancelPayload)
+    EXPECT_CALL(*mock_, CancelPayload)
         .WillOnce(Return(Status{Status::kSuccess}));
     {
       MutexLock lock(&mutex_);
@@ -239,7 +234,7 @@ class ServiceControllerRouterTest : public testing::Test {
   void DisconnectFromEndpoint(ClientProxy* client,
                               const std::string endpoint_id,
                               ResultCallback callback) {
-    EXPECT_CALL(mock_, DisconnectFromEndpoint).Times(1);
+    EXPECT_CALL(*mock_, DisconnectFromEndpoint).Times(1);
     EXPECT_TRUE(client->IsConnectedToEndpoint(endpoint_id));
     {
       MutexLock lock(&mutex_);
@@ -291,15 +286,20 @@ class ServiceControllerRouterTest : public testing::Test {
   ConditionVariable cond_{&mutex_};
   Status result_ ABSL_GUARDED_BY(mutex_) = {Status::kError};
   bool complete_ ABSL_GUARDED_BY(mutex_) = false;
-  MockServiceController mock_;
+  // `router_` will take over ownership and delete the mock
+  MockServiceController* mock_ = new MockServiceController();
   ClientProxy client_;
 
   ServiceControllerRouter router_{
-      [this]() -> ServiceController* { return &mock_; }};
+      [this]() -> ServiceController* { return mock_; }};
 };
 
 namespace {
-TEST_F(ServiceControllerRouterTest, CostructorDestructorWorks) { SUCCEED(); }
+TEST_F(ServiceControllerRouterTest, CostructorDestructorWorks) {
+  // This test doesn't create `router_`, so we must clean up manually
+  delete mock_;
+  SUCCEED();
+}
 
 TEST_F(ServiceControllerRouterTest, StartAdvertisingCalled) {
   StartAdvertising(&client_, kServiceId, kConnectionOptions,

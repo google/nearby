@@ -199,7 +199,7 @@ Status BasePcpHandler::WaitForResult(const std::string& method_name,
     NEARBY_LOG(INFO, "No future to wait for; return with error");
     return {Status::kError};
   }
-  NEARBY_LOG(INFO, "waiting for future to complete");
+  NEARBY_LOG(INFO, "Waiting for future to complete: %s", method_name.c_str());
   ExceptionOr<Status> result = future->Get();
   if (!result.ok()) {
     NEARBY_LOG(INFO, "Future:[%s] completed with exception: %d",
@@ -261,7 +261,6 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
     ProcessPreConnectionInitiationFailure(
         endpoint_id, connection_info.channel.get(), {Status::kEndpointIoError},
         connection_info.result.lock().get());
-    connection_info.result.reset();
     return;
   }
 
@@ -322,7 +321,6 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
   ProcessPreConnectionInitiationFailure(endpoint_id, info.channel.get(),
                                         {Status::kEndpointIoError},
                                         info.result.lock().get());
-  info.result.reset();
 }
 
 Status BasePcpHandler::RequestConnection(ClientProxy* client,
@@ -1024,7 +1022,6 @@ void BasePcpHandler::ProcessTieBreakLoss(
   ProcessPreConnectionInitiationFailure(endpoint_id, info->channel.get(),
                                         {Status::kEndpointIoError},
                                         info->result.lock().get());
-  info->result.reset();
   ProcessPreConnectionResultFailure(client, endpoint_id);
 }
 
