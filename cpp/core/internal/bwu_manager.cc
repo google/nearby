@@ -9,6 +9,7 @@
 #include "core/internal/webrtc_bwu_handler.h"
 #include "core/internal/wifi_lan_bwu_handler.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/feature_flags.h"
 #include "platform/public/count_down_latch.h"
 #include "proto/connections_enums.pb.h"
 #include "absl/functional/bind_front.h"
@@ -121,6 +122,11 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
 
     if (in_progress_upgrades_.contains(endpoint_id)) {
       return;
+    }
+    if (FeatureFlags::GetInstance()
+            .GetFlags()
+            .disallow_out_of_order_bwu_avail_event) {
+      CancelRetryUpgradeAlarm(endpoint_id);
     }
 
     auto channel = channel_manager_->GetChannelForEndpoint(endpoint_id);
@@ -297,9 +303,19 @@ void BwuManager::OnIncomingConnection(
     }
 
     const std::string& endpoint_id = introduction.endpoint_id();
-    auto item = in_progress_upgrades_.extract(endpoint_id);
-    if (item.empty()) return;
-    ClientProxy* mapped_client = item.mapped();
+    ClientProxy* mapped_client;
+    if (FeatureFlags::GetInstance()
+            .GetFlags()
+            .disallow_out_of_order_bwu_avail_event) {
+      const auto item = in_progress_upgrades_.find(endpoint_id);
+      if (item == in_progress_upgrades_.end()) return;
+      mapped_client = item->second;
+    } else {
+      auto item = in_progress_upgrades_.extract(endpoint_id);
+      if (item.empty()) return;
+      mapped_client = item.mapped();
+    }
+
     CancelRetryUpgradeAlarm(endpoint_id);
     if (mapped_client == nullptr) {
       // This was never a fully EstablishedConnection, no need to provide a
@@ -363,11 +379,28 @@ void BwuManager::RunUpgradeProtocol(
 void BwuManager::ProcessBwuPathAvailableEvent(
     ClientProxy* client, const string& endpoint_id,
     const UpgradePathInfo& upgrade_path_info) {
+  if (in_progress_upgrades_.contains(endpoint_id)) {
+    NEARBY_LOG(INFO, "Invoking duplicate ProcessBwuPathAvailableEvent for %s",
+               endpoint_id.c_str());
+    if (FeatureFlags::GetInstance()
+            .GetFlags()
+            .disallow_out_of_order_bwu_avail_event) {
+      NEARBY_LOG(WARNING,
+                 "BandwidthUpgradeManager is ignoring bandwidth upgrade for "
+                 "endpoint %s because we're already upgrading bandwidth for "
+                 "that endpoint. Something may have gone wrong, as it seems "
+                 "we're out of sync with the remote device.",
+                 endpoint_id.c_str());
+      return;
+    }
+  }
+
   Medium medium =
       parser::UpgradePathInfoMediumToMedium(upgrade_path_info.medium());
   if (medium_ == Medium::UNKNOWN_MEDIUM) {
     SetCurrentBwuHandler(medium);
   }
+
   // Check for the correct medium so we don't process an incorrect OfflineFrame.
   if (medium != medium_) {
     RunUpgradeFailedProtocol(client, endpoint_id, upgrade_path_info);
@@ -381,6 +414,11 @@ void BwuManager::ProcessBwuPathAvailableEvent(
     return;
   }
 
+  if (FeatureFlags::GetInstance()
+          .GetFlags()
+          .disallow_out_of_order_bwu_avail_event) {
+    in_progress_upgrades_.emplace(endpoint_id, client);
+  }
   RunUpgradeProtocol(client, endpoint_id, std::move(channel));
 }
 
@@ -642,6 +680,11 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
 
   // Report the success to the client
   client->OnBandwidthChanged(endpoint_id, channel->GetMedium());
+  if (FeatureFlags::GetInstance()
+          .GetFlags()
+          .disallow_out_of_order_bwu_avail_event) {
+    in_progress_upgrades_.erase(endpoint_id);
+  }
 }
 
 void BwuManager::ProcessUpgradeFailureEvent(
