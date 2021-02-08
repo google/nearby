@@ -261,7 +261,6 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
     ProcessPreConnectionInitiationFailure(
         endpoint_id, connection_info.channel.get(), {Status::kEndpointIoError},
         connection_info.result.lock().get());
-    connection_info.result.reset();
     return;
   }
 
@@ -322,7 +321,6 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
   ProcessPreConnectionInitiationFailure(endpoint_id, info.channel.get(),
                                         {Status::kEndpointIoError},
                                         info.result.lock().get());
-  info.result.reset();
 }
 
 Status BasePcpHandler::RequestConnection(ClientProxy* client,
@@ -1024,7 +1022,6 @@ void BasePcpHandler::ProcessTieBreakLoss(
   ProcessPreConnectionInitiationFailure(endpoint_id, info->channel.get(),
                                         {Status::kEndpointIoError},
                                         info->result.lock().get());
-  info->result.reset();
   ProcessPreConnectionResultFailure(client, endpoint_id);
 }
 
