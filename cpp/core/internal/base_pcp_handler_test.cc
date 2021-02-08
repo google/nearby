@@ -28,6 +28,7 @@
 #include "core/params.h"
 #include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/exception.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/pipe.h"
 #include "proto/connections_enums.pb.h"
@@ -72,6 +73,9 @@ class MockEndpointChannel : public BaseEndpointChannel {
 
   ExceptionOr<ByteArray> DoRead() { return BaseEndpointChannel::Read(); }
   Exception DoWrite(const ByteArray& data) {
+    if (broken_write_) {
+      return {Exception::kFailed};
+    }
     return BaseEndpointChannel::Write(data);
   }
   absl::Time DoGetLastReadTimestamp() {
@@ -88,6 +92,8 @@ class MockEndpointChannel : public BaseEndpointChannel {
   MOCK_METHOD(void, Pause, (), (override));
   MOCK_METHOD(void, Resume, (), (override));
   MOCK_METHOD(absl::Time, GetLastReadTimestamp, (), (const override));
+
+  bool broken_write_{false};
 };
 
 class MockPcpHandler : public BasePcpHandler {
@@ -311,7 +317,8 @@ class BasePcpHandlerTest
                          MockEndpointChannel* channel_b, ClientProxy* client,
                          MockPcpHandler* pcp_handler,
                          proto::connections::Medium connect_medium,
-                         std::atomic_int* flag = nullptr) {
+                         std::atomic_int* flag = nullptr,
+                         Status expected_result = {Status::kSuccess}) {
     ConnectionRequestInfo info{
         .endpoint_info = ByteArray{"ABCD"},
         .listener = connection_listener_,
@@ -325,7 +332,9 @@ class BasePcpHandlerTest
         .WillRepeatedly(Return(true));
     EXPECT_CALL(*pcp_handler, GetStrategy)
         .WillRepeatedly(Return(Strategy::kP2pCluster));
-    EXPECT_CALL(mock_connection_listener_.initiated_cb, Call).Times(1);
+    if (expected_result == Status{Status::kSuccess}) {
+      EXPECT_CALL(mock_connection_listener_.initiated_cb, Call).Times(1);
+    }
     // Simulate successful discovery.
     auto encryption_runner = std::make_unique<EncryptionRunner>();
     auto allowed_mediums = pcp_handler->GetDiscoveryMediums(client);
@@ -365,7 +374,7 @@ class BasePcpHandlerTest
     }
     EXPECT_EQ(
         pcp_handler->RequestConnection(client, endpoint_id, info, options),
-        Status{Status::kSuccess});
+        expected_result);
     NEARBY_LOG(INFO, "Stopping Encryption Runner");
   }
 
@@ -473,6 +482,33 @@ TEST_P(BasePcpHandlerTest, RequestConnectionChangesState) {
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
   RequestConnection(endpoint_id, std::move(channel_a), channel_b.get(), &client,
                     &pcp_handler, connect_medium);
+  NEARBY_LOG(INFO, "RequestConnection complete");
+  channel_b->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+}
+
+TEST_P(BasePcpHandlerTest, IoError_RequestConnectionFails) {
+  std::string endpoint_id{"1234"};
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(&client, &pcp_handler);
+  auto mediums = pcp_handler.GetDiscoveryMediums(&client);
+  auto connect_medium = mediums[mediums.size() - 1];
+  auto channel_pair = SetupConnection(pipe_a_, pipe_b_, connect_medium);
+  auto& channel_a = channel_pair.first;
+  auto& channel_b = channel_pair.second;
+  EXPECT_CALL(*channel_a, CloseImpl).Times(AtLeast(1));
+  EXPECT_CALL(*channel_b, CloseImpl).Times(AtLeast(1));
+  channel_b->broken_write_ = true;
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
+  RequestConnection(endpoint_id, std::move(channel_a), channel_b.get(), &client,
+                    &pcp_handler, connect_medium, nullptr,
+                    {Status::kEndpointIoError});
   NEARBY_LOG(INFO, "RequestConnection complete");
   channel_b->Close();
   bwu.Shutdown();

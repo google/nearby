@@ -38,6 +38,8 @@ class AtomicBoolean final  : public api::AtomicBoolean {
   bool Get() const override { return impl_->Get(); }
   bool Set(bool value) override { return impl_->Set(value); }
 
+  explicit operator bool() const { return Get(); }
+
  private:
   std::unique_ptr<api::AtomicBoolean> impl_;
 };
