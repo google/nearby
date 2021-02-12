@@ -63,9 +63,8 @@ InputStream& WebRtcSocket::GetInputStream() { return pipe_.GetInputStream(); }
 OutputStream& WebRtcSocket::GetOutputStream() { return output_stream_; }
 
 void WebRtcSocket::Close() {
-  if (IsClosed()) return;
+  if (closed_.Set(true)) return;
 
-  closed_.Set(true);
   pipe_.GetInputStream().Close();
   pipe_.GetOutputStream().Close();
   data_channel_->Close();

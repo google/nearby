@@ -104,7 +104,7 @@ Status BasePcpHandler::StartAdvertising(ClientProxy* client,
     response.Set({Status::kSuccess});
   });
   return WaitForResult(
-      absl::StrCat("StartAdvertising(", std::string(info.endpoint_info), ")"),
+      absl::StrCat("StartAdvertising(", service_id, ")"),
       client->GetClientId(), &response);
 }
 
