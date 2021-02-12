@@ -401,12 +401,29 @@ void BwuManager::ProcessBwuPathAvailableEvent(
     if (FeatureFlags::GetInstance()
             .GetFlags()
             .disallow_out_of_order_bwu_avail_event) {
-      NEARBY_LOG(WARNING,
-                 "BandwidthUpgradeManager is ignoring bandwidth upgrade for "
-                 "endpoint %s because we're already upgrading bandwidth for "
-                 "that endpoint. Something may have gone wrong, as it seems "
-                 "we're out of sync with the remote device.",
+      NEARBY_LOG(ERROR,
+                 "BandwidthUpgradeManager received a duplicate bandwidth "
+                 "upgrade for endpoint %s. We're out of sync with the remote "
+                 "device and cannot recover; closing all channels.",
                  endpoint_id.c_str());
+
+      auto item = previous_endpoint_channels_.extract(endpoint_id);
+      if (!item.empty()) {
+        std::shared_ptr<EndpointChannel> previous_endpoint_channel =
+            item.mapped();
+        if (previous_endpoint_channel) {
+          previous_endpoint_channel->Close(DisconnectionReason::IO_ERROR);
+        }
+      }
+      std::shared_ptr<EndpointChannel> new_channel =
+          channel_manager_->GetChannelForEndpoint(endpoint_id);
+      if (new_channel) {
+        // The upgraded channel never finished upgrading, and therefore is still
+        // paused.
+        new_channel->Resume();
+        new_channel->Close(DisconnectionReason::IO_ERROR);
+      }
+
       return;
     }
   }
