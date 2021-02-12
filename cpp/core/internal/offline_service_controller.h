@@ -75,7 +75,7 @@ class OfflineServiceController : public ServiceController {
   void DisconnectFromEndpoint(ClientProxy* client,
                               const std::string& endpoint_id) override;
 
-  void Stop();
+  void Stop() override;
 
  private:
   // Note that the order of declaration of these is crucial, because we depend

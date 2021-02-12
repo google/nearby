@@ -48,6 +48,13 @@ class ServiceController {
   ServiceController(const ServiceController&) = delete;
   ServiceController& operator=(const ServiceController&) = delete;
 
+  // Stops and disables service controller.
+  //
+  // When service controller is stopped all API call fail early.
+  // Note that all Core, ClientProxy objects referencing this service
+  // controller are affected.
+  virtual void Stop() = 0;
+
   // Starts advertising an endpoint for a local app.
   virtual Status StartAdvertising(ClientProxy* client,
                                   const std::string& service_id,
