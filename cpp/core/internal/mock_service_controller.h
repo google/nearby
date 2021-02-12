@@ -17,6 +17,7 @@ namespace connections {
  */
 class MockServiceController : public ServiceController {
  public:
+  MOCK_METHOD(void, Stop, (), (override));
   MOCK_METHOD(Status, StartAdvertising,
               (ClientProxy * client, const std::string& service_id,
                const ConnectionOptions& options,

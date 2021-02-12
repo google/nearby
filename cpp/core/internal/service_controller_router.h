@@ -7,7 +7,6 @@
 
 #include "core/internal/client_proxy.h"
 #include "core/internal/service_controller.h"
-#include "core/internal/stoppable_service_controller.h"
 #include "core/options.h"
 #include "core/params.h"
 #include "platform/base/runnable.h"
@@ -106,7 +105,7 @@ class ServiceControllerRouter {
 
   absl::flat_hash_set<ClientProxy*> clients_;
   std::function<ServiceController*()> service_controller_factory_;
-  std::unique_ptr<StoppableServiceController> service_controller_;
+  std::unique_ptr<ServiceController> service_controller_;
   Strategy current_strategy_;
   SingleThreadExecutor serializer_;
 };
