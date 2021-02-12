@@ -69,8 +69,7 @@ bool Ble::StartAdvertising(const std::string& service_id,
     return false;
   }
 
-  NEARBY_LOGS(INFO) << "Turning on BLE advertising with advertisement bytes="
-                    << advertisement_bytes.data() << "("
+  NEARBY_LOGS(INFO) << "Turning on BLE advertising (advertisement size="
                     << advertisement_bytes.size() << ")"
                     << ", service id=" << service_id
                     << ", fast advertisement service uuid="

@@ -1000,10 +1000,8 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
   }
 
   NEARBY_LOG(INFO,
-             "P2pClusterPcpHandler::StartBleAdvertising: service=%s: "
-             "make advertisement; id=%s, name=%s",
-             service_id.c_str(), local_endpoint_id.c_str(),
-             std::string(local_endpoint_info).c_str());
+             "P2pClusterPcpHandler::StartBleAdvertising: service=%s, id=%s",
+             service_id.c_str(), local_endpoint_id.c_str());
   // Generate a BleAdvertisement. If a fast advertisement service UUID was
   // provided, create a fast BleAdvertisement.
   ByteArray advertisement_bytes;
@@ -1031,10 +1029,6 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
                "BleAdvertisement failed");
     ble_medium_.StopAcceptingConnections(service_id);
     return proto::connections::UNKNOWN_MEDIUM;
-  } else {
-    NEARBY_LOGS(INFO) << "P2pClusterPcpHandler::StartBleAdvertising: generate "
-                         "BleAdvertisement succeeded; advertisement_bytes="
-                      << advertisement_bytes.data();
   }
 
   NEARBY_LOG(
