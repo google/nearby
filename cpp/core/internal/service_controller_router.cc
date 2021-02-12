@@ -54,7 +54,7 @@ ServiceControllerRouter::~ServiceControllerRouter() {
           .GetFlags()
           .disable_released_service_controller) {
     if (service_controller_) {
-      service_controller_->Shutdown();
+      service_controller_->Stop();
     }
   } else {
     service_controller_.reset();
@@ -441,7 +441,7 @@ void ServiceControllerRouter::ReleaseServiceControllerForClient(
   if (FeatureFlags::GetInstance()
           .GetFlags()
           .disable_released_service_controller) {
-    service_controller_->Shutdown();
+    service_controller_->Stop();
   }
 
   if (clients_.empty()) {
@@ -491,8 +491,7 @@ Status ServiceControllerRouter::UpdateCurrentServiceControllerAndStrategy(
     return {Status::kError};
   }
 
-  service_controller_ = absl::make_unique<StoppableServiceController>(
-      service_controller_factory_());
+  service_controller_.reset(service_controller_factory_());
   current_strategy_ = strategy;
 
   return {Status::kSuccess};
