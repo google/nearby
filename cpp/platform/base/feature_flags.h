@@ -35,6 +35,7 @@ class FeatureFlags {
     // Ignore subsequent BWU Available events when we're still processing the
     // first one.
     bool disallow_out_of_order_bwu_avail_event = true;
+    bool enable_async_bandwidth_upgrade = true;
   };
 
   static const FeatureFlags& GetInstance() {
