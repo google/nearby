@@ -343,10 +343,14 @@ bool ConnectionFlow::TransitionState(State current_state, State new_state) {
 }
 
 bool ConnectionFlow::CloseLocked() {
+  NEARBY_LOG(INFO, "Closing WebRTC connection.");
   if (state_ == State::kEnded) {
     return false;
   }
   state_ = State::kEnded;
+
+  single_threaded_signaling_offloader_.Shutdown();
+  peer_connection_observer_.Shutdown();
 
   if (peer_connection_) peer_connection_->Close();
 
