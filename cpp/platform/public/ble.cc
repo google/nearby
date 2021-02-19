@@ -53,9 +53,6 @@ bool BleMedium::StartScanning(
                 auto& context = *pair.first->second;
                 if (pair.second) {
                   context.peripheral = BlePeripheral(&peripheral);
-                  NEARBY_LOG(INFO,
-                             "Discovered peripheral '%s'",
-                             peripheral.GetName().c_str());
                   discovered_peripheral_callback_.peripheral_discovered_cb(
                       context.peripheral, service_id,
                       context.peripheral.GetAdvertisementBytes(service_id),

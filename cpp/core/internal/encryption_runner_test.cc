@@ -102,15 +102,16 @@ TEST(EncryptionRunnerTest, ReadWrite) {
       &user_a.client, "endpoint_id", &user_a.channel,
       {
           .on_success_cb =
-              [&response](const string& endpoint_id,
+              [&response](const std::string& endpoint_id,
                           std::unique_ptr<securegcm::UKey2Handshake> ukey2,
-                          const string& auth_token,
+                          const std::string& auth_token,
                           const ByteArray& raw_auth_token) {
                 response.server_status = Response::Status::kDone;
                 response.latch.CountDown();
               },
           .on_failure_cb =
-              [&response](const string& endpoint_id, EndpointChannel* channel) {
+              [&response](const std::string& endpoint_id,
+                          EndpointChannel* channel) {
                 response.server_status = Response::Status::kFailed;
                 response.latch.CountDown();
               },
@@ -119,15 +120,16 @@ TEST(EncryptionRunnerTest, ReadWrite) {
       &user_b.client, "endpoint_id", &user_b.channel,
       {
           .on_success_cb =
-              [&response](const string& endpoint_id,
+              [&response](const std::string& endpoint_id,
                           std::unique_ptr<securegcm::UKey2Handshake> ukey2,
-                          const string& auth_token,
+                          const std::string& auth_token,
                           const ByteArray& raw_auth_token) {
                 response.client_status = Response::Status::kDone;
                 response.latch.CountDown();
               },
           .on_failure_cb =
-              [&response](const string& endpoint_id, EndpointChannel* channel) {
+              [&response](const std::string& endpoint_id,
+                          EndpointChannel* channel) {
                 response.client_status = Response::Status::kFailed;
                 response.latch.CountDown();
               },
