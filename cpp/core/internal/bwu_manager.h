@@ -100,7 +100,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // Processes the BwuNegotiationFrames that come over the
   // EndpointChannel on both initiator and responder side of the upgrade.
   void OnBwuNegotiationFrame(ClientProxy* client,
-                             const BwuNegotiationFrame& frame,
+                             const BwuNegotiationFrame frame,
                              const string& endpoint_id);
 
   // Called to revert any state changed by the Initiator or Responder in the

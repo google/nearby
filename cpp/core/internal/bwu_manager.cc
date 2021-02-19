@@ -191,12 +191,18 @@ void BwuManager::OnIncomingFrame(OfflineFrame& frame,
   if (parser::GetFrameType(frame) != V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION)
     return;
   auto bwu_frame = frame.v1().bandwidth_upgrade_negotiation();
-  CountDownLatch latch(1);
-  RunOnBwuManagerThread([this, client, endpoint_id, &bwu_frame, &latch]() {
-    OnBwuNegotiationFrame(client, bwu_frame, endpoint_id);
-    latch.CountDown();
-  });
-  latch.Await();
+  if (FeatureFlags::GetInstance().GetFlags().enable_async_bandwidth_upgrade) {
+    RunOnBwuManagerThread([this, client, endpoint_id, bwu_frame]() {
+      OnBwuNegotiationFrame(client, bwu_frame, endpoint_id);
+    });
+  } else {
+    CountDownLatch latch(1);
+    RunOnBwuManagerThread([this, client, endpoint_id, bwu_frame, &latch]() {
+      OnBwuNegotiationFrame(client, bwu_frame, endpoint_id);
+      latch.CountDown();
+    });
+    latch.Await();
+  }
 }
 
 void BwuManager::OnEndpointDisconnect(ClientProxy* client,
@@ -260,7 +266,7 @@ void BwuManager::Revert() {
 }
 
 void BwuManager::OnBwuNegotiationFrame(ClientProxy* client,
-                                       const BwuNegotiationFrame& frame,
+                                       const BwuNegotiationFrame frame,
                                        const string& endpoint_id) {
   NEARBY_LOG(INFO, "OnBwuNegotiationFrame for endpoint %s",
              endpoint_id.c_str());
