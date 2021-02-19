@@ -62,12 +62,7 @@ BluetoothDeviceName::BluetoothDeviceName(
     absl::string_view bluetooth_device_name_string) {
   ByteArray bluetooth_device_name_bytes =
       Base64Utils::Decode(bluetooth_device_name_string);
-
   if (bluetooth_device_name_bytes.Empty()) {
-    NEARBY_LOG(
-        INFO,
-        "Cannot deserialize BluetoothDeviceName: failed Base64 decoding of %s",
-        std::string(bluetooth_device_name_string).c_str());
     return;
   }
 

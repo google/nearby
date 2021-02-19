@@ -107,9 +107,10 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
       {
           .on_success_cb =
               [&latch, &context_a](
-                  const string& endpoint_id,
+                  const std::string& endpoint_id,
                   std::unique_ptr<securegcm::UKey2Handshake> ukey2,
-                  const string& auth_token, const ByteArray& raw_auth_token) {
+                  const std::string& auth_token,
+                  const ByteArray& raw_auth_token) {
                 NEARBY_LOG(INFO, "client-A side key negotiation done");
                 EXPECT_TRUE(ukey2->VerifyHandshake());
                 auto context = ukey2->ToConnectionContext();
@@ -118,7 +119,8 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
                 latch.CountDown();
               },
           .on_failure_cb =
-              [&latch](const string& endpoint_id, EndpointChannel* channel) {
+              [&latch](const std::string& endpoint_id,
+                       EndpointChannel* channel) {
                 NEARBY_LOG(INFO, "client-A side key negotiation failed");
                 latch.CountDown();
               },
@@ -128,9 +130,10 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
       {
           .on_success_cb =
               [&latch, &context_b](
-                  const string& endpoint_id,
+                  const std::string& endpoint_id,
                   std::unique_ptr<securegcm::UKey2Handshake> ukey2,
-                  const string& auth_token, const ByteArray& raw_auth_token) {
+                  const std::string& auth_token,
+                  const ByteArray& raw_auth_token) {
                 NEARBY_LOG(INFO, "client-B side key negotiation done");
                 EXPECT_TRUE(ukey2->VerifyHandshake());
                 auto context = ukey2->ToConnectionContext();
@@ -139,7 +142,8 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
                 latch.CountDown();
               },
           .on_failure_cb =
-              [&latch](const string& endpoint_id, EndpointChannel* channel) {
+              [&latch](const std::string& endpoint_id,
+                       EndpointChannel* channel) {
                 NEARBY_LOG(INFO, "client-B side key negotiation failed");
                 latch.CountDown();
               },

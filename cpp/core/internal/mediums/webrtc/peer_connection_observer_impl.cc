@@ -28,6 +28,10 @@ PeerConnectionObserverImpl::PeerConnectionObserverImpl(
     : connection_flow_(connection_flow),
       local_ice_candidate_listener_(std::move(local_ice_candidate_listener)) {}
 
+PeerConnectionObserverImpl::~PeerConnectionObserverImpl() {
+    Shutdown();
+}
+
 void PeerConnectionObserverImpl::OnIceCandidate(
     const webrtc::IceCandidateInterface* candidate) {
   local_ice_candidate_listener_.local_ice_candidate_found_cb(candidate);
@@ -38,8 +42,10 @@ void PeerConnectionObserverImpl::OnSignalingChange(
   NEARBY_LOG(INFO, "OnSignalingChange: %d", new_state);
 
   OffloadFromSignalingThread([this, new_state]() {
-    if (new_state == webrtc::PeerConnectionInterface::SignalingState::kStable)
+    if (new_state == webrtc::PeerConnectionInterface::SignalingState::kStable &&
+        connection_flow_) {
       connection_flow_->OnSignalingStable();
+    }
   });
 }
 
@@ -47,8 +53,10 @@ void PeerConnectionObserverImpl::OnDataChannel(
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
   NEARBY_LOG(INFO, "OnDataChannel");
 
-  data_channel->RegisterObserver(
-      connection_flow_->CreateDataChannelObserver(data_channel));
+  if (connection_flow_) {
+    data_channel->RegisterObserver(
+        connection_flow_->CreateDataChannelObserver(data_channel));
+  }
 }
 
 void PeerConnectionObserverImpl::OnIceGatheringChange(
@@ -61,12 +69,19 @@ void PeerConnectionObserverImpl::OnConnectionChange(
   NEARBY_LOG(INFO, "OnConnectionChange: %d", new_state);
 
   OffloadFromSignalingThread([this, new_state]() {
-    connection_flow_->ProcessOnPeerConnectionChange(new_state);
+    if (connection_flow_) {
+      connection_flow_->ProcessOnPeerConnectionChange(new_state);
+    }
   });
 }
 
 void PeerConnectionObserverImpl ::OnRenegotiationNeeded() {
   NEARBY_LOG(INFO, "OnRenegotiationNeeded");
+}
+
+void PeerConnectionObserverImpl::Shutdown() {
+  single_threaded_signaling_offloader_.Shutdown();
+  connection_flow_ = nullptr;
 }
 
 void PeerConnectionObserverImpl::OffloadFromSignalingThread(Runnable runnable) {
