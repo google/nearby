@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "platform/api/cancelable.h"
+#include "platform/public/cancellable_task.h"
 
 namespace location {
 namespace nearby {
@@ -35,14 +36,21 @@ class Cancelable final {
 
   // This constructor is used internally only,
   // by other classes in "//platform/public/".
-  explicit Cancelable(std::shared_ptr<api::Cancelable> impl)
-      : impl_(std::move(impl)) {}
+  explicit Cancelable(std::shared_ptr<CancellableTask> task,
+                      std::shared_ptr<api::Cancelable> impl)
+      : task_{task}, impl_(std::move(impl)) {}
 
-  bool Cancel() { return impl_ ? impl_->Cancel() : false; }
+  bool Cancel() {
+    if (!impl_) return false;
+    bool result = impl_->Cancel();
+    task_->CancelAndWaitIfStarted();
+    return result;
+  }
 
   bool IsValid() { return impl_ != nullptr; }
 
  private:
+  std::shared_ptr<CancellableTask> task_;
   std::shared_ptr<api::Cancelable> impl_;
 };
 

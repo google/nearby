@@ -39,6 +39,9 @@ class FeatureFlags {
     // Let endpoint_manager erase deleted endpoint from endpoints_ inside
     // function RemoveEndpoint.
     bool endpoint_manager_ensure_workers_terminated_inside_remove = true;
+    // If a scheduled runnable is already running, Cancel() will synchronously
+    // wait for the task to complete.
+    bool cancel_waits_for_running_tasks = true;
   };
 
   static const FeatureFlags& GetInstance() {
