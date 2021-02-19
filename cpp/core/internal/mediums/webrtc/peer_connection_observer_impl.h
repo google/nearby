@@ -14,10 +14,10 @@ class ConnectionFlow;
 
 class PeerConnectionObserverImpl : public webrtc::PeerConnectionObserver {
  public:
-  ~PeerConnectionObserverImpl() override = default;
   PeerConnectionObserverImpl(
       ConnectionFlow* connection_flow,
       LocalIceCandidateListener local_ice_candidate_listener);
+  ~PeerConnectionObserverImpl() override;
 
   // webrtc::PeerConnectionObserver:
   void OnIceCandidate(const webrtc::IceCandidateInterface* candidate) override;
@@ -31,10 +31,12 @@ class PeerConnectionObserverImpl : public webrtc::PeerConnectionObserver {
       webrtc::PeerConnectionInterface::PeerConnectionState new_state) override;
   void OnRenegotiationNeeded() override;
 
+  void Shutdown();
+
  private:
   void OffloadFromSignalingThread(Runnable runnable);
 
-  ConnectionFlow* connection_flow_;
+  ConnectionFlow* volatile connection_flow_;
   LocalIceCandidateListener local_ice_candidate_listener_;
   SingleThreadExecutor single_threaded_signaling_offloader_;
 };
