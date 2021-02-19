@@ -23,6 +23,7 @@
 #include "platform/api/scheduled_executor.h"
 #include "platform/base/runnable.h"
 #include "platform/public/cancelable.h"
+#include "platform/public/cancellable_task.h"
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
 #include "absl/time/time.h"
@@ -73,8 +74,13 @@ class ScheduledExecutor final {
   Cancelable Schedule(Runnable&& runnable, absl::Duration duration)
       ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);
-    return impl_ ? Cancelable(impl_->Schedule(std::move(runnable), duration))
-                 : Cancelable();
+    if (impl_) {
+      auto task = std::make_shared<CancellableTask>(std::move(runnable));
+      return Cancelable(task,
+                        impl_->Schedule([task]() { (*task)(); }, duration));
+    } else {
+      return Cancelable();
+    }
   }
 
  private:

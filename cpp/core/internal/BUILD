@@ -185,6 +185,7 @@ cc_test(
         ":internal_test",
         "//core:core_types",
         "//core/internal/mediums",
+        "//core/internal/mediums:utils",
         "//proto/connections:offline_wire_formats_portable_proto",
         "//platform/base",
         "//platform/base:test_util",
