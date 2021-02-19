@@ -412,7 +412,7 @@ void BwuManager::ProcessBwuPathAvailableEvent(
         std::shared_ptr<EndpointChannel> previous_endpoint_channel =
             item.mapped();
         if (previous_endpoint_channel) {
-          previous_endpoint_channel->Close(DisconnectionReason::IO_ERROR);
+          previous_endpoint_channel->Close(DisconnectionReason::UNFINISHED);
         }
       }
       std::shared_ptr<EndpointChannel> new_channel =
@@ -421,7 +421,7 @@ void BwuManager::ProcessBwuPathAvailableEvent(
         // The upgraded channel never finished upgrading, and therefore is still
         // paused.
         new_channel->Resume();
-        new_channel->Close(DisconnectionReason::IO_ERROR);
+        new_channel->Close(DisconnectionReason::UNFINISHED);
       }
 
       return;
