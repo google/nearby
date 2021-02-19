@@ -6,10 +6,10 @@
 #include "core/internal/endpoint_channel.h"
 #include "core/internal/offline_frames.h"
 #include "platform/base/exception.h"
+#include "platform/base/feature_flags.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
 #include "proto/connections_enums.pb.h"
-
 namespace location {
 namespace nearby {
 namespace connections {
@@ -287,21 +287,19 @@ void EndpointManager::UnregisterFrameProcessor(V1Frame::FrameType frame_type,
 EndpointManager::FrameProcessor* EndpointManager::GetFrameProcessor(
     V1Frame::FrameType frame_type) {
   EndpointManager::FrameProcessor* processor = nullptr;
-  CountDownLatch latch(1);
-  RunOnEndpointManagerThread([this, frame_type, &processor, &latch]() {
-    auto it = frame_processors_.find(frame_type);
-    if (it != frame_processors_.end()) {
-      processor = it->second;
-    }
-    latch.CountDown();
-  });
-  latch.Await();
+  auto it = frame_processors_.find(frame_type);
+  if (it != frame_processors_.end()) {
+    processor = it->second;
+  }
   return processor;
 }
 
 void EndpointManager::EnsureWorkersTerminated(const std::string& endpoint_id) {
+  NEARBY_LOG(ERROR, "EnsureWorkersTerminated for endpoint %s",
+             endpoint_id.c_str());
   auto item = endpoints_.find(endpoint_id);
   if (item != endpoints_.end()) {
+    NEARBY_LOGS(INFO) << "EndpointState found for id: " << endpoint_id;
     // If another instance of data and keep-alive handlers is running, it will
     // terminate soon; we should block until it happens.
     EndpointState& endpoint_state = item->second;
@@ -332,13 +330,21 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
   RunOnEndpointManagerThread([this, client, channel = channel.release(),
                               &endpoint_id, &info, &options, &listener,
                               &latch]() {
+    if (endpoints_.contains(endpoint_id)) {
+      NEARBY_LOG(WARNING, "Registing duplicate endpoint %s",
+                 endpoint_id.c_str());
+      if (!FeatureFlags::GetInstance()
+               .GetFlags()
+               .endpoint_manager_ensure_workers_terminated_inside_remove) {
+        EnsureWorkersTerminated(endpoint_id);
+      }
+    }
     // Pass ownership of channel to EndpointChannelManager
     NEARBY_LOG(INFO, "Registering endpoint with channel manager: id=%s",
                endpoint_id.c_str());
     channel_manager_->RegisterChannelForEndpoint(
         client, endpoint_id, std::unique_ptr<EndpointChannel>(channel));
 
-    EnsureWorkersTerminated(endpoint_id);
     EndpointState& endpoint_state =
         endpoints_.emplace(endpoint_id, EndpointState()).first->second;
     endpoint_state.client = client;
@@ -392,6 +398,7 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
 
 void EndpointManager::UnregisterEndpoint(ClientProxy* client,
                                          const std::string& endpoint_id) {
+  NEARBY_LOG(ERROR, "UnregisterEndpoint for endpoint %s", endpoint_id.c_str());
   CountDownLatch latch(1);
   RunOnEndpointManagerThread([this, client, endpoint_id, &latch]() {
     RemoveEndpoint(client, endpoint_id,
@@ -428,6 +435,7 @@ std::vector<std::string> EndpointManager::SendPayloadChunk(
 // allow synchronous behavior here it will cause a live lock.
 void EndpointManager::DiscardEndpoint(ClientProxy* client,
                                       const std::string& endpoint_id) {
+  NEARBY_LOG(ERROR, "DiscardEndpoint for endpoint %s", endpoint_id.c_str());
   RunOnEndpointManagerThread([this, client, endpoint_id]() {
     RemoveEndpoint(client, endpoint_id,
                    /*notify=*/
@@ -450,6 +458,7 @@ std::vector<std::string> EndpointManager::SendControlMessage(
 void EndpointManager::RemoveEndpoint(ClientProxy* client,
                                      const std::string& endpoint_id,
                                      bool notify) {
+  NEARBY_LOG(ERROR, "RemoveEndpoint for endpoint %s", endpoint_id.c_str());
   // Unregistering from channel_manager_ will also serve to terminate
   // the dedicated handler and KeepAlive threads we started when we registered
   // this endpoint.
@@ -463,6 +472,11 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
 
     client->OnDisconnected(endpoint_id, notify);
     NEARBY_LOG(INFO, "Removed endpoint; id=%s", endpoint_id.c_str());
+  }
+  if (FeatureFlags::GetInstance()
+          .GetFlags()
+          .endpoint_manager_ensure_workers_terminated_inside_remove) {
+    EnsureWorkersTerminated(endpoint_id);
   }
 }
 
