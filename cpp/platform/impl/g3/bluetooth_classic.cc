@@ -92,9 +92,8 @@ BluetoothDevice* BluetoothSocket::GetRemoteDevice() {
 
 std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
   absl::MutexLock lock(&mutex_);
-  while (pending_sockets_.empty()) {
+  while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
-    if (closed_) break;
   }
   // whether or not we were running in the wait loop, return early if closed.
   if (closed_) return {};
