@@ -36,6 +36,9 @@ class FeatureFlags {
     // first one.
     bool disallow_out_of_order_bwu_avail_event = true;
     bool enable_async_bandwidth_upgrade = true;
+    // Let endpoint_manager erase deleted endpoint from endpoints_ inside
+    // function RemoveEndpoint.
+    bool endpoint_manager_ensure_workers_terminated_inside_remove = true;
   };
 
   static const FeatureFlags& GetInstance() {
