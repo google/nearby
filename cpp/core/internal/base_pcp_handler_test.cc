@@ -116,7 +116,7 @@ class MockPcpHandler : public BasePcpHandler {
               (override));
   MOCK_METHOD(Status, StopAdvertisingImpl, (ClientProxy * client), (override));
   MOCK_METHOD(StartOperationResult, StartDiscoveryImpl,
-              (ClientProxy * client, const string& service_id,
+              (ClientProxy * client, const std::string& service_id,
                const ConnectionOptions& options),
               (override));
   MOCK_METHOD(Status, StopDiscoveryImpl, (ClientProxy * client), (override));
