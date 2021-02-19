@@ -8,6 +8,7 @@ cc_library(
         "atomic_reference.h",
         "cancelable.h",
         "cancelable_alarm.h",
+        "cancellable_task.h",
         "condition_variable.h",
         "count_down_latch.h",
         "crypto.h",
@@ -93,6 +94,7 @@ cc_library(
 cc_test(
     name = "public_test",
     size = "small",
+    timeout = "moderate",
     srcs = [
         "atomic_boolean_test.cc",
         "atomic_reference_test.cc",
