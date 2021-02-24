@@ -48,6 +48,7 @@ BwuManager::BwuManager(
       endpoint_manager_(&endpoint_manager),
       channel_manager_(&channel_manager) {
   if (config_.bandwidth_upgrade_retry_delay == absl::ZeroDuration()) {
+    // Fancy new comment.
     config_.bandwidth_upgrade_retry_delay = absl::Seconds(5);
   }
   if (config_.bandwidth_upgrade_retry_max_delay == absl::ZeroDuration()) {
