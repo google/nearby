@@ -458,6 +458,13 @@ void WebRtc::SendOffer(const std::string& service_id,
   }
 
   SessionDescriptionWrapper offer = connection_flow->CreateOffer();
+  if (!offer.IsValid()) {
+    NEARBY_LOG(INFO,
+               "Unable to send offer. Failed to create our offer locally.");
+    RemoveConnectionFlow(remote_peer_id);
+    return;
+  }
+
   const webrtc::SessionDescriptionInterface& sdp = offer.GetSdp();
   if (!connection_flow->SetLocalSessionDescription(std::move(offer))) {
     NEARBY_LOG(INFO,
@@ -510,6 +517,13 @@ void WebRtc::SendAnswer(const PeerId& remote_peer_id) {
   }
 
   SessionDescriptionWrapper answer = entry->second->CreateAnswer();
+  if (!answer.IsValid()) {
+    NEARBY_LOG(INFO,
+               "Unable to send answer. Failed to create our answer locally.");
+    RemoveConnectionFlow(remote_peer_id);
+    return;
+  }
+
   const webrtc::SessionDescriptionInterface& sdp = answer.GetSdp();
   if (!entry->second->SetLocalSessionDescription(std::move(answer))) {
     NEARBY_LOG(INFO,

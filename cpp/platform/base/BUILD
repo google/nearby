@@ -68,7 +68,6 @@ cc_library(
         "byte_utils.h",
     ],
     visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//core:__subpackages__",
         "//platform/impl:__subpackages__",
         "//platform/public:__pkg__",

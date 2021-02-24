@@ -68,7 +68,6 @@ cc_library(
     visibility = [
         "//core/internal:__pkg__",
         "//core/internal/mediums:__pkg__",
-        "//core/internal/mediums/ble_v2:__pkg__",
         "//core/internal/mediums/webrtc:__pkg__",
     ],
     deps = [

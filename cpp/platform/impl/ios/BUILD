@@ -51,11 +51,7 @@ objc_library(
     srcs = [
         "platform.mm",
     ],
-    visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//core:__subpackages__",
-        "//platform:__subpackages__",
-    ],
+    visibility = ["//platform:__subpackages__"],
     deps = [
         ":types",
         "//platform/api:comm",
