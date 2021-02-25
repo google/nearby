@@ -29,6 +29,8 @@ class WebRtcSignalingMessenger : public api::WebRtcSignalingMessenger {
  public:
   using OnSignalingMessageCallback =
       api::WebRtcSignalingMessenger::OnSignalingMessageCallback;
+  using OnSignalingCompleteCallback =
+      api::WebRtcSignalingMessenger::OnSignalingCompleteCallback;
 
   explicit WebRtcSignalingMessenger(
       absl::string_view self_id,
@@ -37,7 +39,9 @@ class WebRtcSignalingMessenger : public api::WebRtcSignalingMessenger {
 
   bool SendMessage(absl::string_view peer_id,
                    const ByteArray& message) override;
-  bool StartReceivingMessages(OnSignalingMessageCallback listener) override;
+  bool StartReceivingMessages(
+      OnSignalingMessageCallback on_message_callback,
+      OnSignalingCompleteCallback on_complete_callback) override;
   void StopReceivingMessages() override;
 
  private:

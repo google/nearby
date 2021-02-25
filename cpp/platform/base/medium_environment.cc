@@ -59,6 +59,8 @@ void MediumEnvironment::Reset() {
     bluetooth_adapters_.clear();
     bluetooth_mediums_.clear();
     ble_mediums_.clear();
+    webrtc_signaling_message_callback_.clear();
+    webrtc_signaling_complete_callback_.clear();
     wifi_lan_mediums_.clear();
   });
   Sync();
@@ -439,11 +441,17 @@ void MediumEnvironment::CallBleAcceptedConnectionCallback(
 }
 
 void MediumEnvironment::RegisterWebRtcSignalingMessenger(
-    absl::string_view self_id, OnSignalingMessageCallback callback) {
+    absl::string_view self_id, OnSignalingMessageCallback message_callback,
+    OnSignalingCompleteCallback complete_callback) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread(
-      [this, self_id{std::string(self_id)}, callback{std::move(callback)}]() {
-        webrtc_signaling_callback_[self_id] = std::move(callback);
+      [this, self_id{std::string(self_id)},
+       message_callback{std::move(message_callback)},
+       complete_callback{std::move(complete_callback)}]() {
+        webrtc_signaling_message_callback_[self_id] =
+            std::move(message_callback);
+        webrtc_signaling_complete_callback_[self_id] =
+            std::move(complete_callback);
         NEARBY_LOG(INFO, "Registered signaling message callback for id = %s",
                    self_id.c_str());
       });
@@ -453,9 +461,11 @@ void MediumEnvironment::UnregisterWebRtcSignalingMessenger(
     absl::string_view self_id) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, self_id{std::string(self_id)}]() {
-    auto item = webrtc_signaling_callback_.extract(self_id);
-    if (item.empty()) return;
-    NEARBY_LOG(INFO, "Unregistered signaling message callback for id = %s",
+    auto message_callback_item =
+        webrtc_signaling_message_callback_.extract(self_id);
+    auto complete_callback_item =
+        webrtc_signaling_complete_callback_.extract(self_id);
+    NEARBY_LOG(INFO, "Unregistered signaling callbacks for id = %s",
                self_id.c_str());
   });
 }
@@ -465,14 +475,30 @@ void MediumEnvironment::SendWebRtcSignalingMessage(absl::string_view peer_id,
   if (!enabled_) return;
   RunOnMediumEnvironmentThread(
       [this, peer_id{std::string(peer_id)}, message]() {
-        auto item = webrtc_signaling_callback_.find(peer_id);
-        if (item == webrtc_signaling_callback_.end()) {
+        auto item = webrtc_signaling_message_callback_.find(peer_id);
+        if (item == webrtc_signaling_message_callback_.end()) {
           NEARBY_LOG(WARNING, "No callback registered for peer id = %s",
                      peer_id.c_str());
           return;
         }
 
         item->second(message);
+      });
+}
+
+void MediumEnvironment::SendWebRtcSignalingComplete(absl::string_view peer_id,
+                                                    bool success) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread(
+      [this, peer_id{std::string(peer_id)}, success]() {
+        auto item = webrtc_signaling_complete_callback_.find(peer_id);
+        if (item == webrtc_signaling_complete_callback_.end()) {
+          NEARBY_LOG(WARNING, "No callback registered for peer id = %s",
+                     peer_id.c_str());
+          return;
+        }
+
+        item->second(success);
       });
 }
 

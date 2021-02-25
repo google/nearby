@@ -158,9 +158,9 @@ TEST_F(WebRtcTest, StartAcceptingConnectionTwice) {
   EXPECT_FALSE(webrtc.IsAcceptingConnections(std::string{}));
 }
 
-// Tests the flow when the device tries to connect but the data channel times
-// out.
-TEST_F(WebRtcTest, Connect_DataChannelTimeOut) {
+// Tests the flow when the device tries to connect but there is no peer
+// accepting connections at the given peer ID.
+TEST_F(WebRtcTest, Connect_NoPeer) {
   WebRtc webrtc;
   PeerId peer_id("peer_id");
   const std::string service_id("NearbySharing");
@@ -351,6 +351,39 @@ TEST_F(WebRtcTest, Connect_NullPeerConnection) {
   WebRtcSocketWrapper wrapper = webrtc.Connect(
       service_id, PeerId("random_peer_id"), location_hint, &flag);
   EXPECT_FALSE(wrapper.IsValid());
+}
+
+// Tests the flow when the device calls StartAcceptingConnections and the
+// receive messages stream fails.
+TEST_F(WebRtcTest, ContinueAcceptingConnectionsOnComplete) {
+  using MockAcceptedCallback =
+      testing::MockFunction<void(WebRtcSocketWrapper socket)>;
+  testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
+
+  WebRtc webrtc;
+  PeerId self_id("peer_id");
+  const std::string service_id("NearbySharing");
+  LocationHint location_hint;
+
+  ASSERT_TRUE(webrtc.IsAvailable());
+  ASSERT_TRUE(webrtc.StartAcceptingConnections(
+      service_id, self_id, location_hint,
+      {mock_accepted_callback_.AsStdFunction()}));
+  EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
+
+  // Simulate a failure in receiving messages stream, WebRtc should restart
+  // accepting connections.
+  MediumEnvironment::Instance().SendWebRtcSignalingComplete(self_id.GetId(),
+                                                            /*success=*/false);
+  EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
+
+  // And a "success" message should not cause accepting connections to stop.
+  MediumEnvironment::Instance().SendWebRtcSignalingComplete(self_id.GetId(),
+                                                            /*success=*/true);
+  EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
+
+  webrtc.StopAcceptingConnections(service_id);
+  EXPECT_FALSE(webrtc.IsAcceptingConnections(service_id));
 }
 
 }  // namespace

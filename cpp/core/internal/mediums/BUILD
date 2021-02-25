@@ -52,6 +52,7 @@ cc_library(
         "//location/nearby/mediums/proto:web_rtc_signaling_frames_cc_proto",
         "//absl/container:flat_hash_map",
         "//absl/container:flat_hash_set",
+        "//absl/functional:bind_front",
         "//absl/numeric:int128",
         "//absl/strings",
         "//absl/time",

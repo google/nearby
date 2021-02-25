@@ -28,6 +28,8 @@ class WebRtcSignalingMessenger final {
  public:
   using OnSignalingMessageCallback =
       api::WebRtcSignalingMessenger::OnSignalingMessageCallback;
+  using OnSignalingCompleteCallback =
+      api::WebRtcSignalingMessenger::OnSignalingCompleteCallback;
 
   explicit WebRtcSignalingMessenger(
       std::unique_ptr<api::WebRtcSignalingMessenger> messenger)
@@ -40,8 +42,11 @@ class WebRtcSignalingMessenger final {
     return impl_->SendMessage(peer_id, message);
   }
 
-  bool StartReceivingMessages(OnSignalingMessageCallback listener) {
-    return impl_->StartReceivingMessages(listener);
+  bool StartReceivingMessages(
+      OnSignalingMessageCallback on_message_callback,
+      OnSignalingCompleteCallback on_complete_callback) {
+    return impl_->StartReceivingMessages(on_message_callback,
+                                         on_complete_callback);
   }
 
   void StopReceivingMessages() { impl_->StopReceivingMessages(); }

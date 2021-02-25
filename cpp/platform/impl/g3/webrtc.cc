@@ -35,9 +35,11 @@ bool WebRtcSignalingMessenger::SendMessage(absl::string_view peer_id,
 }
 
 bool WebRtcSignalingMessenger::StartReceivingMessages(
-    OnSignalingMessageCallback listener) {
+    OnSignalingMessageCallback on_message_callback,
+    OnSignalingCompleteCallback on_complete_callback) {
   auto& env = MediumEnvironment::Instance();
-  env.RegisterWebRtcSignalingMessenger(self_id_, listener);
+  env.RegisterWebRtcSignalingMessenger(self_id_, on_message_callback,
+                                       on_complete_callback);
   return true;
 }
 

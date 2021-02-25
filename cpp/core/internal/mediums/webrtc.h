@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_H_
 
+#include <cstddef>
 #include <memory>
 #include <string>
 
@@ -98,6 +99,9 @@ class WebRtc {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
+  static constexpr int kConnectAttemptsLimit = 3;
+  static constexpr int kRestartAcceptConnectionsLimit = 3;
+
   enum class Role {
     kNone = 0,
     kOfferer = 1,
@@ -121,6 +125,11 @@ class WebRtc {
     // advertising. Non-null when listening for WebRTC connections as an
     // offerer.
     CancelableAlarm restart_tachyon_receive_messages_alarm;
+
+    // Tracks the number of times we've restarted receiving messages after a
+    // failure. We limit the number to prevent endless restarts if we are
+    // repeatedly unable to communicate with Tachyon.
+    int restart_accept_connections_count = 0;
   };
 
   struct ConnectionRequestInfo {
@@ -136,8 +145,6 @@ class WebRtc {
     Future<WebRtcSocketWrapper> socket_future;
   };
 
-  static constexpr int kConnectAttemptsLimit = 3;
-
   // Attempt to initiates a WebRtc connection with peer device identified by
   // |peer_id|.
   // Runs on @MainThread.
@@ -151,6 +158,13 @@ class WebRtc {
   // Runs on @MainThread.
   bool IsAcceptingConnectionsLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Receives a message from the signaling messenger.
+  void OnSignalingMessage(const std::string& service_id,
+                          const ByteArray& message);
+
+  // Decides whether to restart receiving messages.
+  void OnSignalingComplete(const std::string& service_id, bool success);
 
   // Runs on |single_thread_executor_|.
   void ProcessTachyonInboxMessage(const std::string& service_id,
@@ -222,6 +236,10 @@ class WebRtc {
   // Runs on |single_thread_executor_|.
   void ProcessRestartTachyonReceiveMessages(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Runs on |single_thread_executor_|.
+  void RestartTachyonReceiveMessages(const std::string& service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   void OffloadFromThread(Runnable runnable);
 
