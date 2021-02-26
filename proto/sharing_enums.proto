@@ -296,6 +296,8 @@ enum ServerActionName {
   CHECK_REACHABILITY = 3;
   UPLOAD_CONTACTS = 4;
   UPDATE_DEVICE_NAME = 5;
+  UPLOAD_SENDER_CERTIFICATES = 6;
+  DOWNLOAD_SENDER_CERTIFICATES = 7;
 }
 
 // The Fast Share server response state.
