@@ -16,16 +16,12 @@ syntax = "proto2";
 
 package location.nearby.proto;
 
-import "logs/proto/logs_annotations/logs_annotations.proto";
 
 option optimize_for = LITE_RUNTIME;
-option jspb_use_correct_proto2_semantics = false;  // go/jspb-correct-proto2
-option (logs_proto.file_not_used_for_logging_except_enums) = true;
-option java_api_version = 2;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "DiscoveryEnums";
 
-// NEXT ID: 147
+// NEXT ID: 148
 enum DiscoveryEvent {
   UNKNOWN_DISCOVERY_EVENT = 0;
 
@@ -451,6 +447,14 @@ enum DiscoveryEvent {
 
   // Half sheet is dismissed by users.
   HALF_SHEET_PAIR_RETROACTIVE_DISMISSED = 145;
+
+  // User dismiss halfsheet but device get bluetooth connection event after
+  // certain time
+  HALF_SHEET_CONNECTION_AFTER_DISMISS = 146;
+
+  // User ban halfsheet but device get bluetooth connection event after certain
+  // time
+  HALF_SHEET_CONNECTION_AFTER_BAN = 147;
 
   // Deprecated.
   reserved 65, 67 to 72;
