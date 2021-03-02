@@ -679,7 +679,10 @@ void ClientProxy::ScheduleClearLocalHighVisModeCacheEndpointIdAlarm() {
              this, local_high_vis_mode_cache_endpoint_id_.c_str());
   clear_local_high_vis_mode_cache_endpoint_id_alarm_ = CancelableAlarm(
       "clear_high_power_endpoint_id_cache",
-      [this]() { local_high_vis_mode_cache_endpoint_id_.clear(); },
+      [this]() {
+        MutexLock lock(&mutex_);
+        local_high_vis_mode_cache_endpoint_id_.clear();
+      },
       kHighPowerAdvertisementEndpointIdCacheTimeout, &single_thread_executor_);
 }
 
