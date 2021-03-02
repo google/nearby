@@ -26,6 +26,7 @@
 #include "platform/base/byte_array.h"
 #include "platform/base/cancellation_flag.h"
 #include "platform/base/prng.h"
+#include "platform/public/cancelable_alarm.h"
 #include "platform/public/mutex.h"
 #include "proto/connections_enums.pb.h"
 // Prefer using absl:: versions of a set and a map; they tend to be more
@@ -43,6 +44,8 @@ namespace connections {
 class ClientProxy final {
  public:
   static constexpr int kEndpointIdLength = 4;
+  static constexpr absl::Duration
+      kHighPowerAdvertisementEndpointIdCacheTimeout = absl::Seconds(30);
 
   ClientProxy();
   ~ClientProxy();
@@ -168,6 +171,15 @@ class ClientProxy final {
   ConnectionOptions GetAdvertisingOptions() const;
   ConnectionOptions GetDiscoveryOptions() const;
 
+  // The endpoint id will be stable for 30 seconds after high visibility mode
+  // (high power and Bluetooth Classic) advertisement stops.
+  // If client re-enters high visibility mode within 30 seconds, he is going to
+  // have the same endpoint id.
+  void EnterHighVisibilityMode();
+  // Cleans up any modifications in high visibility mode. The endpoint id always
+  // rotates.
+  void ExitHighVisibilityMode();
+
  private:
   struct Connection {
     // Status: may be either:
@@ -223,11 +235,31 @@ class ClientProxy final {
                                Connection::Status status) const;
   std::vector<std::string> GetMatchingEndpoints(
       std::function<bool(const Connection&)> pred) const;
+  std::string GenerateLocalEndpointId();
+
+  void ScheduleClearLocalHighVisModeCacheEndpointIdAlarm();
+  void CancelClearLocalHighVisModeCacheEndpointIdAlarm();
 
   mutable RecursiveMutex mutex_;
+  Prng prng_;
   std::int64_t client_id_;
   std::string local_endpoint_id_;
-  Prng prng_;
+  // If currently is advertising in high visibility mode is true: high power and
+  // Bluetooth Classic enabled. When high_visibility_mode_ is true, the endpoint
+  // id is stable for 30s. When high_visibility_mode_ is false, the endpoint id
+  // always rotates.
+  bool high_vis_mode_{false};
+  // Caches the endpoint id when it is in high visibility mode advertisement for
+  // 30s. Currently, Nearby Connections keeps rotating endpoint id. The client
+  // (Nearby Share) treats different endpoints as different receivers, duplicate
+  // share targets for same devices occur on share sheet in this case.
+  // Therefore, we remember the high visibility mode advertisement  endpoint id
+  // here. empty if 1) There is no high power advertisement before 2) The
+  // endpoint id cached here in previous high visibility mode advertisement
+  // expires.
+  std::string local_high_vis_mode_cache_endpoint_id_;
+  ScheduledExecutor single_thread_executor_;
+  CancelableAlarm clear_local_high_vis_mode_cache_endpoint_id_alarm_;
 
   // If not empty, we are currently advertising and accepting connection
   // requests for the given service_id.

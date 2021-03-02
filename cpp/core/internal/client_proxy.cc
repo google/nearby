@@ -42,20 +42,33 @@ std::int64_t ClientProxy::GetClientId() const { return client_id_; }
 
 std::string ClientProxy::GetLocalEndpointId() {
   if (local_endpoint_id_.empty()) {
-    // 1) Concatenate the Random 64-bit value with "client" string.
-    // 2) Compute a hash of that concatenation.
-    // 3) Base64-encode that hash, to make it human-readable.
-    // 4) Use only the first kEndpointIdLength bytes to make ID.
-    ByteArray id_hash =
-        Crypto::Sha256(absl::StrCat("client", prng_.NextInt64()));
-    std::string id = Base64Utils::Encode(id_hash).substr(0, kEndpointIdLength);
-    NEARBY_LOG(
-        INFO,
-        "ClientProxy [Local Endpoint Generated]: client=%p; endpoint_id=%s",
-        this, id.c_str());
-    local_endpoint_id_ = id;
+    local_endpoint_id_ = GenerateLocalEndpointId();
   }
   return local_endpoint_id_;
+}
+
+std::string ClientProxy::GenerateLocalEndpointId() {
+  if (high_vis_mode_) {
+    if (!local_high_vis_mode_cache_endpoint_id_.empty()) {
+      NEARBY_LOG(INFO,
+                 "ClientProxy [Local Endpoint not Generated but return Cache]: "
+                 "client=%p; "
+                 "local_high_vis_mode_cache_endpoint_id_=%s",
+                 this, local_high_vis_mode_cache_endpoint_id_.c_str());
+      return local_high_vis_mode_cache_endpoint_id_;
+    }
+  }
+  // 1) Concatenate the Random 64-bit value with "client" string.
+  // 2) Compute a hash of that concatenation.
+  // 3) Base64-encode that hash, to make it human-readable.
+  // 4) Use only the first kEndpointIdLength bytes to make ID.
+  ByteArray id_hash = Crypto::Sha256(absl::StrCat("client", prng_.NextInt64()));
+  std::string id = Base64Utils::Encode(id_hash).substr(0, kEndpointIdLength);
+  NEARBY_LOG(
+      INFO, "ClientProxy [Local Endpoint Generated]: client=%p; endpoint_id=%s",
+      this, id.c_str());
+
+  return id;
 }
 
 void ClientProxy::Reset() {
@@ -64,6 +77,7 @@ void ClientProxy::Reset() {
   StoppedAdvertising();
   StoppedDiscovery();
   RemoveAllEndpoints();
+  ExitHighVisibilityMode();
 }
 
 void ClientProxy::StartedAdvertising(
@@ -72,18 +86,33 @@ void ClientProxy::StartedAdvertising(
     absl::Span<proto::connections::Medium> mediums,
     const ConnectionOptions& advertising_options) {
   MutexLock lock(&mutex_);
+  NEARBY_LOG(INFO, "ClientProxy [StartedAdvertising]: client=%p; ", this);
+
+  if (high_vis_mode_) {
+    local_high_vis_mode_cache_endpoint_id_ = local_endpoint_id_;
+    NEARBY_LOG(
+        INFO,
+        "ClientProxy [High Visibility Mode Adv, Cache EndpointId]: client=%p; "
+        "local_high_vis_mode_cache_endpoint_id_=%s",
+        this, local_high_vis_mode_cache_endpoint_id_.c_str());
+    CancelClearLocalHighVisModeCacheEndpointIdAlarm();
+  }
+
   advertising_info_ = {service_id, listener};
   advertising_options_ = advertising_options;
 }
 
 void ClientProxy::StoppedAdvertising() {
   MutexLock lock(&mutex_);
+  NEARBY_LOG(INFO, "ClientProxy [StoppedAdvertising]: client=%p; ", this);
 
   if (IsAdvertising()) {
     advertising_info_.Clear();
   }
   // advertising_options_ is purposefully not cleared here.
   ResetLocalEndpointIdIfNeeded();
+
+  ExitHighVisibilityMode();
 }
 
 bool ClientProxy::IsAdvertising() const {
@@ -619,6 +648,46 @@ ConnectionOptions ClientProxy::GetAdvertisingOptions() const {
 
 ConnectionOptions ClientProxy::GetDiscoveryOptions() const {
   return discovery_options_;
+}
+
+void ClientProxy::EnterHighVisibilityMode() {
+  MutexLock lock(&mutex_);
+  NEARBY_LOG(INFO, "ClientProxy [EnterHighVisibilityMode]: client=%p; ", this);
+
+  high_vis_mode_ = true;
+}
+
+void ClientProxy::ExitHighVisibilityMode() {
+  MutexLock lock(&mutex_);
+  NEARBY_LOG(INFO, "ClientProxy [ExitHighVisibilityMode]: client=%p; ", this);
+
+  high_vis_mode_ = false;
+  ScheduleClearLocalHighVisModeCacheEndpointIdAlarm();
+}
+
+void ClientProxy::ScheduleClearLocalHighVisModeCacheEndpointIdAlarm() {
+  CancelClearLocalHighVisModeCacheEndpointIdAlarm();
+
+  if (local_high_vis_mode_cache_endpoint_id_.empty()) return;
+
+  // Schedule to clear cache high visibility mode advertisement endpoint id in
+  // 30s.
+  NEARBY_LOG(INFO,
+             "ClientProxy [High Visibility Mode Adv, Schedule to Clear Cache "
+             "EndpointId]: client=%p; "
+             "local_high_vis_mode_cache_endpoint_id_=%s",
+             this, local_high_vis_mode_cache_endpoint_id_.c_str());
+  clear_local_high_vis_mode_cache_endpoint_id_alarm_ = CancelableAlarm(
+      "clear_high_power_endpoint_id_cache",
+      [this]() { local_high_vis_mode_cache_endpoint_id_.clear(); },
+      kHighPowerAdvertisementEndpointIdCacheTimeout, &single_thread_executor_);
+}
+
+void ClientProxy::CancelClearLocalHighVisModeCacheEndpointIdAlarm() {
+  if (clear_local_high_vis_mode_cache_endpoint_id_alarm_.IsValid()) {
+    clear_local_high_vis_mode_cache_endpoint_id_alarm_.Cancel();
+    clear_local_high_vis_mode_cache_endpoint_id_alarm_ = CancelableAlarm();
+  }
 }
 
 }  // namespace connections

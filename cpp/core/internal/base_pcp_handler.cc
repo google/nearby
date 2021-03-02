@@ -84,10 +84,19 @@ Status BasePcpHandler::StartAdvertising(ClientProxy* client,
   ConnectionOptions advertising_options = options.CompatibleOptions();
   RunOnPcpHandlerThread([this, client, &service_id, &info, &advertising_options,
                          &response]() {
+    // The endpoint id inside of the advertisement is different to high
+    // visibility and low visibility mode. In order to decide if client should
+    // grab the high visibility or low visibility id, it needs to tell client
+    // which one right now, before client#StartedAdvertising.
+    if (ShouldEnterHighVisibilityMode(advertising_options)) {
+      client->EnterHighVisibilityMode();
+    }
+
     auto result =
         StartAdvertisingImpl(client, service_id, client->GetLocalEndpointId(),
                              info.endpoint_info, advertising_options);
     if (!result.status.Ok()) {
+      client->ExitHighVisibilityMode();
       response.Set(result.status);
       return;
     }
@@ -103,9 +112,8 @@ Status BasePcpHandler::StartAdvertising(ClientProxy* client,
                                advertising_options);
     response.Set({Status::kSuccess});
   });
-  return WaitForResult(
-      absl::StrCat("StartAdvertising(", service_id, ")"),
-      client->GetClientId(), &response);
+  return WaitForResult(absl::StrCat("StartAdvertising(", service_id, ")"),
+                       client->GetClientId(), &response);
 }
 
 void BasePcpHandler::StopAdvertising(ClientProxy* client) {
@@ -128,6 +136,11 @@ std::string BasePcpHandler::GetStringValueOfSupportedMediums(
   if (options.allowed.wifi_lan) result << "wifilan ";
   result << "}";
   return result.str();
+}
+
+bool BasePcpHandler::ShouldEnterHighVisibilityMode(
+    const ConnectionOptions& options) {
+  return !options.low_power && options.allowed.bluetooth;
 }
 
 Status BasePcpHandler::StartDiscovery(ClientProxy* client,

@@ -465,6 +465,12 @@ class BasePcpHandler : public PcpHandler,
   std::string GetStringValueOfSupportedMediums(
       const ConnectionOptions& options) const;
 
+  // The endpoint id in high visibility mode is stable for 30 seconds, while in
+  // low visibility mode it always rotates. We assume a client is trying to
+  // rotate endpoint id when the options is "low power" (3P) or "disable
+  // Bluetooth classic" (1P).
+  bool ShouldEnterHighVisibilityMode(const ConnectionOptions& options);
+
   ScheduledExecutor alarm_executor_;
   SingleThreadExecutor serial_executor_;
 
