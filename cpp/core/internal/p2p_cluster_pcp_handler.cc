@@ -1051,9 +1051,10 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
 
   if (!ble_medium_.StartAdvertising(service_id, advertisement_bytes,
                                     options.fast_advertisement_service_uuid)) {
-    NEARBY_LOGS(INFO) << "P2pClusterPcpHandler::StartBleAdvertising: failed to "
-                         "start advertising, advertisement_bytes=%p"
-                      << advertisement_bytes.data();
+    NEARBY_LOGS(ERROR)
+        << "P2pClusterPcpHandler::StartBleAdvertising: failed to "
+           "start advertising, advertisement_bytes="
+        << absl::BytesToHexString(advertisement_bytes.data());
     ble_medium_.StopAcceptingConnections(service_id);
     return proto::connections::UNKNOWN_MEDIUM;
   }

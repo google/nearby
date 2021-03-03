@@ -23,6 +23,7 @@
 #include "platform/base/prng.h"
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
+#include "absl/strings/escaping.h"
 
 namespace location {
 namespace nearby {
@@ -106,10 +107,10 @@ bool Ble::StartAdvertising(const std::string& service_id,
 
   if (!medium_.StartAdvertising(service_id, medium_advertisement_bytes,
                                 fast_advertisement_service_uuid)) {
-    NEARBY_LOGS(INFO)
+    NEARBY_LOGS(ERROR)
         << "Failed to turn on BLE advertising with advertisement bytes="
-        << advertisement_bytes.data() << "(" << advertisement_bytes.size()
-        << ")"
+        << absl::BytesToHexString(advertisement_bytes.data())
+        << ", size=" << advertisement_bytes.size()
         << ", fast advertisement service uuid="
         << fast_advertisement_service_uuid;
     return false;
