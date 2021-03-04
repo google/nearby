@@ -81,6 +81,18 @@ void EndpointManager::EndpointChannelLoopRunnable(
 
     if (!keep_using_channel.ok()) {
       Exception exception = keep_using_channel.GetException();
+      // An "invalid proto" may be a final payload on a channel we're about to
+      // close, so we'll loop back around once. We set |last_failed_medium| to
+      // ensure we don't loop indefinitely. See crbug.com/1182031 for more
+      // detail.
+      if (exception.Raised(Exception::kInvalidProtocolBuffer)) {
+        last_failed_medium = channel->GetMedium();
+        NEARBY_LOG(INFO,
+                   "Received invalid protobuf message, re-fetching endpoint "
+                   "channel; last_failed_medium=%d",
+                   last_failed_medium);
+        continue;
+      }
       if (exception.Raised(Exception::kIo)) {
         last_failed_medium = channel->GetMedium();
         NEARBY_LOG(INFO, "Endpoint channel IO exception; last_failed_medium=%d",

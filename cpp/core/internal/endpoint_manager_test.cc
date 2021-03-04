@@ -253,6 +253,15 @@ TEST_F(EndpointManagerTest, SendControlMessageWorks) {
   NEARBY_LOG(INFO, "Will call destructors now");
 }
 
+TEST_F(EndpointManagerTest, SingleReadOnInvalidPayload) {
+  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+  EXPECT_CALL(*endpoint_channel, Read())
+      .WillOnce(
+          Return(ExceptionOr<ByteArray>(Exception::kInvalidProtocolBuffer)));
+  EXPECT_CALL(*endpoint_channel, Close(_)).Times(1);
+  RegisterEndpoint(std::move(endpoint_channel));
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
