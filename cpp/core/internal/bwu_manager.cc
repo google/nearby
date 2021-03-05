@@ -139,11 +139,7 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
     if (in_progress_upgrades_.contains(endpoint_id)) {
       return;
     }
-    if (FeatureFlags::GetInstance()
-            .GetFlags()
-            .disallow_out_of_order_bwu_avail_event) {
-      CancelRetryUpgradeAlarm(endpoint_id);
-    }
+    CancelRetryUpgradeAlarm(endpoint_id);
 
     auto channel = channel_manager_->GetChannelForEndpoint(endpoint_id);
 
@@ -335,17 +331,9 @@ void BwuManager::OnIncomingConnection(
 
     const std::string& endpoint_id = introduction.endpoint_id();
     ClientProxy* mapped_client;
-    if (FeatureFlags::GetInstance()
-            .GetFlags()
-            .disallow_out_of_order_bwu_avail_event) {
-      const auto item = in_progress_upgrades_.find(endpoint_id);
-      if (item == in_progress_upgrades_.end()) return;
-      mapped_client = item->second;
-    } else {
-      auto item = in_progress_upgrades_.extract(endpoint_id);
-      if (item.empty()) return;
-      mapped_client = item.mapped();
-    }
+    const auto item = in_progress_upgrades_.find(endpoint_id);
+    if (item == in_progress_upgrades_.end()) return;
+    mapped_client = item->second;
     CancelRetryUpgradeAlarm(endpoint_id);
     if (mapped_client == nullptr) {
       // This was never a fully EstablishedConnection, no need to provide a
@@ -418,34 +406,30 @@ void BwuManager::ProcessBwuPathAvailableEvent(
   if (in_progress_upgrades_.contains(endpoint_id)) {
     NEARBY_LOG(INFO, "Invoking duplicate ProcessBwuPathAvailableEvent for %s",
                endpoint_id.c_str());
-    if (FeatureFlags::GetInstance()
-            .GetFlags()
-            .disallow_out_of_order_bwu_avail_event) {
-      NEARBY_LOG(ERROR,
-                 "BandwidthUpgradeManager received a duplicate bandwidth "
-                 "upgrade for endpoint %s. We're out of sync with the remote "
-                 "device and cannot recover; closing all channels.",
-                 endpoint_id.c_str());
+    NEARBY_LOG(ERROR,
+               "BandwidthUpgradeManager received a duplicate bandwidth "
+               "upgrade for endpoint %s. We're out of sync with the remote "
+               "device and cannot recover; closing all channels.",
+               endpoint_id.c_str());
 
-      auto item = previous_endpoint_channels_.extract(endpoint_id);
-      if (!item.empty()) {
-        std::shared_ptr<EndpointChannel> previous_endpoint_channel =
-            item.mapped();
-        if (previous_endpoint_channel) {
-          previous_endpoint_channel->Close(DisconnectionReason::UNFINISHED);
-        }
+    auto item = previous_endpoint_channels_.extract(endpoint_id);
+    if (!item.empty()) {
+      std::shared_ptr<EndpointChannel> previous_endpoint_channel =
+          item.mapped();
+      if (previous_endpoint_channel) {
+        previous_endpoint_channel->Close(DisconnectionReason::UNFINISHED);
       }
-      std::shared_ptr<EndpointChannel> new_channel =
-          channel_manager_->GetChannelForEndpoint(endpoint_id);
-      if (new_channel) {
-        // The upgraded channel never finished upgrading, and therefore is still
-        // paused.
-        new_channel->Resume();
-        new_channel->Close(DisconnectionReason::UNFINISHED);
-      }
-
-      return;
     }
+    std::shared_ptr<EndpointChannel> new_channel =
+        channel_manager_->GetChannelForEndpoint(endpoint_id);
+    if (new_channel) {
+      // The upgraded channel never finished upgrading, and therefore is still
+      // paused.
+      new_channel->Resume();
+      new_channel->Close(DisconnectionReason::UNFINISHED);
+    }
+
+    return;
   }
   Medium medium =
       parser::UpgradePathInfoMediumToMedium(upgrade_path_info.medium());
@@ -467,11 +451,7 @@ void BwuManager::ProcessBwuPathAvailableEvent(
     return;
   }
 
-  if (FeatureFlags::GetInstance()
-          .GetFlags()
-          .disallow_out_of_order_bwu_avail_event) {
-    in_progress_upgrades_.emplace(endpoint_id, client);
-  }
+  in_progress_upgrades_.emplace(endpoint_id, client);
   RunUpgradeProtocol(client, endpoint_id, std::move(channel));
 }
 
@@ -753,11 +733,7 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
 
   // Report the success to the client
   client->OnBandwidthChanged(endpoint_id, channel->GetMedium());
-  if (FeatureFlags::GetInstance()
-          .GetFlags()
-          .disallow_out_of_order_bwu_avail_event) {
-    in_progress_upgrades_.erase(endpoint_id);
-  }
+  in_progress_upgrades_.erase(endpoint_id);
 }
 
 void BwuManager::ProcessUpgradeFailureEvent(

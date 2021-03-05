@@ -27,14 +27,6 @@ class FeatureFlags {
   // Holds for all the feature flags.
   struct Flags {
     bool enable_cancellation_flag = false;
-    bool resume_before_disconnect = true;
-    // Disable ServiceController API (using StoppableServiceController) when
-    // ServiceController is released to prevent calls to that API from
-    // other threads.
-    bool disable_released_service_controller = true;
-    // Ignore subsequent BWU Available events when we're still processing the
-    // first one.
-    bool disallow_out_of_order_bwu_avail_event = true;
     bool enable_async_bandwidth_upgrade = true;
     // Let endpoint_manager erase deleted endpoint from endpoints_ inside
     // function RemoveEndpoint.

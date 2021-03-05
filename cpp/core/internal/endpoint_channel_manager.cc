@@ -145,9 +145,7 @@ bool EndpointChannelManager::ChannelState::RemoveEndpoint(
   if (channel) {
     // If the channel was paused (i.e. during a bandwidth upgrade negotiation)
     // we resume to ensure the thread won't hang when trying to write to it.
-    if (FeatureFlags::GetInstance().GetFlags().resume_before_disconnect) {
-      channel->Resume();
-    }
+    channel->Resume();
 
     channel->Write(parser::ForDisconnection());
     SystemClock::Sleep(kDataTransferDelay);

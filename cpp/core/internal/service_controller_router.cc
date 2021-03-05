@@ -50,14 +50,8 @@ const std::size_t kMaxEndpointInfoLength = 131u;
 ServiceControllerRouter::~ServiceControllerRouter() {
   NEARBY_LOG(INFO, "ServiceControllerRouter going down.");
 
-  if (FeatureFlags::GetInstance()
-          .GetFlags()
-          .disable_released_service_controller) {
-    if (service_controller_) {
-      service_controller_->Stop();
-    }
-  } else {
-    service_controller_.reset();
+  if (service_controller_) {
+    service_controller_->Stop();
   }
   // And make sure that cleanup is the last thing we do.
   serializer_.Shutdown();
@@ -134,9 +128,8 @@ void ServiceControllerRouter::InjectEndpoint(
     ClientProxy* client, absl::string_view service_id,
     const OutOfBandConnectionMetadata& metadata,
     const ResultCallback& callback) {
-  RouteToServiceController(
-      [this, client, service_id = std::string(service_id), metadata,
-       callback]() {
+  RouteToServiceController([this, client, service_id = std::string(service_id),
+                            metadata, callback]() {
     // Currently, Bluetooth is the only supported medium for endpoint injection.
     if (metadata.medium != Medium::BLUETOOTH ||
         metadata.remote_bluetooth_mac_address.size() != kMacAddressLength) {
@@ -438,11 +431,7 @@ void ServiceControllerRouter::ReleaseServiceControllerForClient(
   clients_.erase(client);
 
   // service_controller_ won't be released here. Instead, in destructor.
-  if (FeatureFlags::GetInstance()
-          .GetFlags()
-          .disable_released_service_controller) {
-    service_controller_->Stop();
-  }
+  service_controller_->Stop();
 
   if (clients_.empty()) {
     current_strategy_ = Strategy{};
