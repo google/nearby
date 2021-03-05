@@ -34,6 +34,10 @@ namespace location {
 namespace nearby {
 namespace connections {
 
+// The definition is necessary before C++17.
+constexpr absl::Duration
+    ClientProxy::kHighPowerAdvertisementEndpointIdCacheTimeout;
+
 ClientProxy::ClientProxy() : client_id_(Prng().NextInt64()) {}
 
 ClientProxy::~ClientProxy() { Reset(); }
