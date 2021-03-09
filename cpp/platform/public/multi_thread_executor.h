@@ -17,6 +17,7 @@
 
 #include "platform/api/platform.h"
 #include "platform/public/submittable_executor.h"
+#include "absl/base/thread_annotations.h"
 
 namespace location {
 namespace nearby {
@@ -25,7 +26,7 @@ namespace nearby {
 // unbounded queue.
 //
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html#newFixedThreadPool-int-
-class MultiThreadExecutor final : public SubmittableExecutor {
+class ABSL_LOCKABLE MultiThreadExecutor final : public SubmittableExecutor {
  public:
   using Platform = api::ImplementationPlatform;
   explicit MultiThreadExecutor(int max_parallelism)

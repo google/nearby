@@ -81,5 +81,40 @@ TEST(SingleThreadExecutorTest, CanSubmit) {
   EXPECT_TRUE(future.Get().result());
 }
 
+struct ThreadCheckTestClass {
+  SingleThreadExecutor executor;
+  int value ABSL_GUARDED_BY(executor) = 0;
+
+  void incValue() ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor) { value++; }
+  int getValue() ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor) { return value; }
+};
+
+TEST(SingleThreadExecutorTest, ThreadCheck_ExecuteRunnable) {
+  ThreadCheckTestClass test_class;
+
+  test_class.executor.Execute(
+      [&test_class]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(test_class.executor) {
+        test_class.incValue();
+      });
+}
+
+TEST(SingleThreadExecutorTest, ThreadCheck_SubmitCallable) {
+  ThreadCheckTestClass test_class;
+  test_class.executor.Execute(
+      [&test_class]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(test_class.executor) {
+        test_class.incValue();
+      });
+  Future<int> future;
+
+  bool submitted = test_class.executor.Submit<int>(
+      [&test_class]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(test_class.executor) {
+        return ExceptionOr<int>{test_class.getValue()};
+      },
+      &future);
+
+  EXPECT_TRUE(submitted);
+  EXPECT_EQ(future.Get().result(), 1);
+}
+
 }  // namespace nearby
 }  // namespace location

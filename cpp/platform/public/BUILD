@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("//tools/build_defs/cc:cc_fake_binary.bzl", "cc_fake_binary")
+
 cc_library(
     name = "types",
     srcs = [
@@ -28,6 +30,7 @@ cc_library(
         "crypto.h",
         "file.h",
         "future.h",
+        "lockable.h",
         "logging.h",
         "multi_thread_executor.h",
         "mutex.h",
@@ -38,6 +41,8 @@ cc_library(
         "single_thread_executor.h",
         "submittable_executor.h",
         "system_clock.h",
+        "thread_check_callable.h",
+        "thread_check_runnable.h",
     ],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
@@ -139,5 +144,29 @@ cc_test(
         "//absl/strings",
         "//absl/synchronization",
         "//absl/time",
+    ],
+)
+
+cc_fake_binary(
+    name = "thread_check_nocompile",
+    srcs = ["thread_check_nocompile.cc"],
+    deps = [
+        ":types",
+        "//absl/time",
+    ],
+)
+
+py_test(
+    name = "thread_check_nocompile_test",
+    size = "large",
+    srcs = ["thread_check_nocompile_test.py"],
+    data = ["thread_check_nocompile"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    tags = ["non_compile_test"],
+    deps = [
+        "//pyglib/flags",
+        "//testing/pybase",
+        "//testing/pybase:fake_target_util",
     ],
 )

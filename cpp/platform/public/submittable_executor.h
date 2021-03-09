@@ -25,8 +25,12 @@
 #include "platform/base/callable.h"
 #include "platform/base/runnable.h"
 #include "platform/public/future.h"
+#include "platform/public/lockable.h"
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
+#include "platform/public/thread_check_callable.h"
+#include "platform/public/thread_check_runnable.h"
+#include "absl/base/thread_annotations.h"
 
 namespace location {
 namespace nearby {
@@ -36,7 +40,8 @@ inline int GetCurrentTid() { return api::GetCurrentTid(); }
 // Main interface to be used by platform as a base class for
 // - MultiThreadExecutor
 // - SingleThreadExecutor
-class SubmittableExecutor : public api::SubmittableExecutor {
+class ABSL_LOCKABLE SubmittableExecutor : public api::SubmittableExecutor,
+                                          public Lockable {
  public:
   ~SubmittableExecutor() override {
     MutexLock lock(&mutex_);
@@ -54,7 +59,7 @@ class SubmittableExecutor : public api::SubmittableExecutor {
   }
   void Execute(Runnable&& runnable) ABSL_LOCKS_EXCLUDED(mutex_) override {
     MutexLock lock(&mutex_);
-    if (impl_) impl_->Execute(std::move(runnable));
+    if (impl_) impl_->Execute(ThreadCheckRunnable(this, std::move(runnable)));
   }
 
   int GetTid(int index) const ABSL_LOCKS_EXCLUDED(mutex_) override {
@@ -74,14 +79,16 @@ class SubmittableExecutor : public api::SubmittableExecutor {
   bool Submit(Callable<T>&& callable, Future<T>* future)
       ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);
-    bool submitted = DoSubmit([callable{std::move(callable)}, future]() {
-      ExceptionOr<T> result = callable();
-      if (result.ok()) {
-        future->Set(result.result());
-      } else {
-        future->SetException({result.exception()});
-      }
-    });
+    bool submitted =
+        DoSubmit([callable = ThreadCheckCallable<T>(this, std::move(callable)),
+                  future]() {
+          ExceptionOr<T> result = callable();
+          if (result.ok()) {
+            future->Set(result.result());
+          } else {
+            future->SetException({result.exception()});
+          }
+        });
     if (!submitted) {
       // complete immediately with kExecution exception value.
       future->SetException({Exception::kExecution});

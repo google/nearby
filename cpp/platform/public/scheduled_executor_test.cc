@@ -175,5 +175,32 @@ TEST(ScheduledExecutorTest,
   EXPECT_EQ(value, 1);
 }
 
+struct ThreadCheckTestClass {
+  ScheduledExecutor executor;
+  int value ABSL_GUARDED_BY(executor) = 0;
+
+  void incValue() ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor) { value++; }
+  int getValue() ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor) { return value; }
+};
+
+TEST(ScheduledExecutorTest, ThreadCheck_Execute) {
+  ThreadCheckTestClass test_class;
+
+  test_class.executor.Execute(
+      [&test_class]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(test_class.executor) {
+        test_class.incValue();
+      });
+}
+
+TEST(ScheduledExecutorTest, ThreadCheck_Schedule) {
+  ThreadCheckTestClass test_class;
+
+  test_class.executor.Schedule(
+      [&test_class]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(test_class.executor) {
+        test_class.incValue();
+      },
+      absl::ZeroDuration());
+}
+
 }  // namespace nearby
 }  // namespace location

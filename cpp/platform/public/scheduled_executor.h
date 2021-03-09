@@ -24,8 +24,12 @@
 #include "platform/base/runnable.h"
 #include "platform/public/cancelable.h"
 #include "platform/public/cancellable_task.h"
+#include "platform/public/lockable.h"
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
+#include "platform/public/thread_check_callable.h"
+#include "platform/public/thread_check_runnable.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/time/time.h"
 
 namespace location {
@@ -35,7 +39,7 @@ namespace nearby {
 // execute periodically.
 //
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ScheduledExecutorService.html
-class ScheduledExecutor final {
+class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
  public:
   using Platform = api::ImplementationPlatform;
 
@@ -57,7 +61,7 @@ class ScheduledExecutor final {
   }
   void Execute(Runnable&& runnable) ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);
-    if (impl_) impl_->Execute(std::move(runnable));
+    if (impl_) impl_->Execute(ThreadCheckRunnable(this, std::move(runnable)));
   }
 
   void Shutdown() ABSL_LOCKS_EXCLUDED(mutex_) {
@@ -75,7 +79,8 @@ class ScheduledExecutor final {
       ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);
     if (impl_) {
-      auto task = std::make_shared<CancellableTask>(std::move(runnable));
+      auto task = std::make_shared<CancellableTask>(
+          ThreadCheckRunnable(this, std::move(runnable)));
       return Cancelable(task,
                         impl_->Schedule([task]() { (*task)(); }, duration));
     } else {
