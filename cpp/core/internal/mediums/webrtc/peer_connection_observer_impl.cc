@@ -29,7 +29,8 @@ PeerConnectionObserverImpl::PeerConnectionObserverImpl(
       local_ice_candidate_listener_(std::move(local_ice_candidate_listener)) {}
 
 PeerConnectionObserverImpl::~PeerConnectionObserverImpl() {
-    Shutdown();
+  MutexLock lock(&mutex_);
+  connection_flow_ = nullptr;
 }
 
 void PeerConnectionObserverImpl::OnIceCandidate(
@@ -42,6 +43,7 @@ void PeerConnectionObserverImpl::OnSignalingChange(
   NEARBY_LOG(INFO, "OnSignalingChange: %d", new_state);
 
   OffloadFromSignalingThread([this, new_state]() {
+    MutexLock lock(&mutex_);
     if (new_state == webrtc::PeerConnectionInterface::SignalingState::kStable &&
         connection_flow_) {
       connection_flow_->OnSignalingStable();
@@ -53,10 +55,17 @@ void PeerConnectionObserverImpl::OnDataChannel(
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
   NEARBY_LOG(INFO, "OnDataChannel");
 
-  if (connection_flow_) {
-    data_channel->RegisterObserver(
-        connection_flow_->CreateDataChannelObserver(data_channel));
+  webrtc::DataChannelObserver* data_channel_observer = nullptr;
+  {
+    MutexLock lock(&mutex_);
+    if (!connection_flow_) {
+      return;
+    }
+
+    data_channel_observer =
+        connection_flow_->CreateDataChannelObserver(data_channel);
   }
+  data_channel->RegisterObserver(data_channel_observer);
 }
 
 void PeerConnectionObserverImpl::OnIceGatheringChange(
@@ -69,6 +78,7 @@ void PeerConnectionObserverImpl::OnConnectionChange(
   NEARBY_LOG(INFO, "OnConnectionChange: %d", new_state);
 
   OffloadFromSignalingThread([this, new_state]() {
+    MutexLock lock(&mutex_);
     if (connection_flow_) {
       connection_flow_->ProcessOnPeerConnectionChange(new_state);
     }
@@ -79,8 +89,8 @@ void PeerConnectionObserverImpl ::OnRenegotiationNeeded() {
   NEARBY_LOG(INFO, "OnRenegotiationNeeded");
 }
 
-void PeerConnectionObserverImpl::Shutdown() {
-  single_threaded_signaling_offloader_.Shutdown();
+void PeerConnectionObserverImpl::DisconnectConnectionFlow() {
+  MutexLock lock(&mutex_);
   connection_flow_ = nullptr;
 }
 

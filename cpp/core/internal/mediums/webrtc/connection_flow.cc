@@ -350,7 +350,7 @@ bool ConnectionFlow::CloseLocked() {
   state_ = State::kEnded;
 
   single_threaded_signaling_offloader_.Shutdown();
-  peer_connection_observer_.Shutdown();
+  peer_connection_observer_.DisconnectConnectionFlow();
 
   if (peer_connection_) peer_connection_->Close();
 
