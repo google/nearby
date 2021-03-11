@@ -83,7 +83,7 @@ Status BasePcpHandler::StartAdvertising(ClientProxy* client,
              GetStringValueOfSupportedMediums(options).c_str());
   ConnectionOptions advertising_options = options.CompatibleOptions();
   RunOnPcpHandlerThread([this, client, &service_id, &info, &advertising_options,
-                         &response]() {
+                         &response]() RUN_ON_PCP_HANDLER_THREAD() {
     // The endpoint id inside of the advertisement is different to high
     // visibility and low visibility mode. In order to decide if client should
     // grab the high visibility or low visibility id, it needs to tell client
@@ -118,7 +118,7 @@ Status BasePcpHandler::StartAdvertising(ClientProxy* client,
 
 void BasePcpHandler::StopAdvertising(ClientProxy* client) {
   CountDownLatch latch(1);
-  RunOnPcpHandlerThread([this, client, &latch]() {
+  RunOnPcpHandlerThread([this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
     StopAdvertisingImpl(client);
     client->StoppedAdvertising();
     latch.CountDown();
@@ -153,7 +153,7 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
   NEARBY_LOG(INFO, "StartDiscovery with supported mediums: %s",
              GetStringValueOfSupportedMediums(options).c_str());
   RunOnPcpHandlerThread([this, client, service_id, discovery_options, &listener,
-                         &response]() {
+                         &response]() RUN_ON_PCP_HANDLER_THREAD() {
     // Ask the implementation to attempt to start discovery.
     auto result = StartDiscoveryImpl(client, service_id, discovery_options);
     if (!result.status.Ok()) {
@@ -174,7 +174,7 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
 
 void BasePcpHandler::StopDiscovery(ClientProxy* client) {
   CountDownLatch latch(1);
-  RunOnPcpHandlerThread([this, client, &latch]() {
+  RunOnPcpHandlerThread([this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
     StopDiscoveryImpl(client);
     client->StoppedDiscovery();
     latch.CountDown();
@@ -187,10 +187,11 @@ void BasePcpHandler::InjectEndpoint(
     ClientProxy* client, const std::string& service_id,
     const OutOfBandConnectionMetadata& metadata) {
   CountDownLatch latch(1);
-  RunOnPcpHandlerThread([this, client, service_id, metadata, &latch]() {
-    InjectEndpointImpl(client, service_id, metadata);
-    latch.CountDown();
-  });
+  RunOnPcpHandlerThread([this, client, service_id, metadata, &latch]()
+                            RUN_ON_PCP_HANDLER_THREAD() {
+                              InjectEndpointImpl(client, service_id, metadata);
+                              latch.CountDown();
+                            });
 
   WaitForLatch(absl::StrCat("InjectEndpoint(", service_id, ")"), &latch);
 }
@@ -235,17 +236,18 @@ EncryptionRunner::ResultListener BasePcpHandler::GetResultListener() {
                  std::unique_ptr<UKey2Handshake> ukey2,
                  const std::string& auth_token,
                  const ByteArray& raw_auth_token) {
-            RunOnPcpHandlerThread([this, endpoint_id,
-                                   raw_ukey2 = ukey2.release(), auth_token,
-                                   raw_auth_token]() mutable {
-              OnEncryptionSuccessRunnable(
-                  endpoint_id, std::unique_ptr<UKey2Handshake>(raw_ukey2),
-                  auth_token, raw_auth_token);
-            });
+            RunOnPcpHandlerThread(
+                [this, endpoint_id, raw_ukey2 = ukey2.release(), auth_token,
+                 raw_auth_token]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+                  OnEncryptionSuccessRunnable(
+                      endpoint_id, std::unique_ptr<UKey2Handshake>(raw_ukey2),
+                      auth_token, raw_auth_token);
+                });
           },
       .on_failure_cb =
           [this](const std::string& endpoint_id, EndpointChannel* channel) {
-            RunOnPcpHandlerThread([this, endpoint_id, channel]() {
+            RunOnPcpHandlerThread([this, endpoint_id,
+                                   channel]() RUN_ON_PCP_HANDLER_THREAD() {
               NEARBY_LOG(ERROR, "Encryption failed for %s on medium %d",
                          endpoint_id.c_str(), channel->GetMedium());
               OnEncryptionFailureRunnable(endpoint_id, channel);
@@ -341,7 +343,8 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
                                          const ConnectionRequestInfo& info,
                                          const ConnectionOptions& options) {
   auto result = std::make_shared<Future<Status>>();
-  RunOnPcpHandlerThread([this, client, &info, options, endpoint_id, result]() {
+  RunOnPcpHandlerThread([this, client, &info, options, endpoint_id,
+                         result]() RUN_ON_PCP_HANDLER_THREAD() {
     absl::Time start_time = SystemClock::ElapsedRealtime();
 
     // If we already have a pending connection, then we shouldn't allow any more
@@ -618,7 +621,8 @@ Status BasePcpHandler::AcceptConnection(
     const PayloadListener& payload_listener) {
   Future<Status> response;
   RunOnPcpHandlerThread(
-      [this, client, endpoint_id, payload_listener, &response]() {
+      [this, client, endpoint_id, payload_listener,
+       &response]() RUN_ON_PCP_HANDLER_THREAD() {
         NEARBY_LOG(INFO, "AcceptConnection: id=%s", endpoint_id.c_str());
         if (!pending_connections_.count(endpoint_id)) {
           NEARBY_LOG(INFO, "AcceptConnection: no pending connection for id=%s",
@@ -671,7 +675,8 @@ Status BasePcpHandler::AcceptConnection(
 Status BasePcpHandler::RejectConnection(ClientProxy* client,
                                         const std::string& endpoint_id) {
   Future<Status> response;
-  RunOnPcpHandlerThread([this, client, endpoint_id, &response]() {
+  RunOnPcpHandlerThread([this, client, endpoint_id,
+                         &response]() RUN_ON_PCP_HANDLER_THREAD() {
     NEARBY_LOG(INFO, "RejectConnection: id=%s", endpoint_id.c_str());
     if (!pending_connections_.count(endpoint_id)) {
       NEARBY_LOG(INFO, "RejectConnection: no pending connection for id=%s",
@@ -725,7 +730,8 @@ void BasePcpHandler::OnIncomingFrame(OfflineFrame& frame,
                                      ClientProxy* client,
                                      proto::connections::Medium medium) {
   CountDownLatch latch(1);
-  RunOnPcpHandlerThread([this, client, endpoint_id, frame, &latch]() {
+  RunOnPcpHandlerThread([this, client, endpoint_id, frame,
+                         &latch]() RUN_ON_PCP_HANDLER_THREAD() {
     NEARBY_LOG(INFO, "OnConnectionResponse: id=%s", endpoint_id.c_str());
 
     if (client->HasRemoteEndpointResponded(endpoint_id)) {
@@ -773,7 +779,8 @@ void BasePcpHandler::OnEndpointDisconnect(ClientProxy* client,
     barrier.CountDown();
     return;
   }
-  RunOnPcpHandlerThread([this, client, endpoint_id, barrier]() mutable {
+  RunOnPcpHandlerThread([this, client, endpoint_id,
+                         barrier]() RUN_ON_PCP_HANDLER_THREAD() mutable {
     auto item = pending_alarms_.find(endpoint_id);
     if (item != pending_alarms_.end()) {
       auto& alarm = item->second;

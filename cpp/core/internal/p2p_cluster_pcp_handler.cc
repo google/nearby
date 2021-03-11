@@ -206,7 +206,8 @@ bool P2pClusterPcpHandler::IsRecognizedBluetoothEndpoint(
 void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
     ClientProxy* client, const std::string& service_id,
     BluetoothDevice device) {
-  RunOnPcpHandlerThread([this, client, service_id, device]() {
+  RunOnPcpHandlerThread([this, client, service_id,
+                         device]() RUN_ON_PCP_HANDLER_THREAD() {
     // Make sure we are still discovering before proceeding.
     if (!client->IsDiscovering()) {
       NEARBY_LOG(INFO,
@@ -244,7 +245,8 @@ void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
 void P2pClusterPcpHandler::BluetoothNameChangedHandler(
     ClientProxy* client, const std::string& service_id,
     BluetoothDevice device) {
-  RunOnPcpHandlerThread([this, client, service_id, device]() {
+  RunOnPcpHandlerThread([this, client, service_id,
+                         device]() RUN_ON_PCP_HANDLER_THREAD() {
     // Make sure we are still discovering before proceeding.
     if (!client->IsDiscovering()) {
       NEARBY_LOG(INFO,
@@ -322,7 +324,8 @@ void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
     ClientProxy* client, const std::string& service_id,
     BluetoothDevice& device) {
   const std::string& device_name_string = device.GetName();
-  RunOnPcpHandlerThread([this, client, service_id, device_name_string]() {
+  RunOnPcpHandlerThread([this, client, service_id,
+                         device_name_string]() RUN_ON_PCP_HANDLER_THREAD() {
     // Make sure we are still discovering before proceeding.
     if (!client->IsDiscovering()) {
       NEARBY_LOG(INFO,
@@ -406,7 +409,8 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
     const std::string& service_id, const ByteArray& advertisement_bytes,
     bool fast_advertisement) {
   RunOnPcpHandlerThread([this, client, &peripheral, service_id,
-                         advertisement_bytes, fast_advertisement]() {
+                         advertisement_bytes,
+                         fast_advertisement]() RUN_ON_PCP_HANDLER_THREAD() {
     // Make sure we are still discovering before proceeding.
     if (!client->IsDiscovering()) {
       NEARBY_LOG(INFO,
@@ -482,7 +486,8 @@ void P2pClusterPcpHandler::BlePeripheralLostHandler(
   std::string peripheral_name = peripheral.GetName();
   NEARBY_LOG(INFO, "Ble: [LOST, SCHED] peripheral_name=%s",
              peripheral_name.c_str());
-  RunOnPcpHandlerThread([this, client, service_id, &peripheral]() {
+  RunOnPcpHandlerThread([this, client, service_id,
+                         &peripheral]() RUN_ON_PCP_HANDLER_THREAD() {
     // Make sure we are still discovering before proceeding.
     if (!client->IsDiscovering()) {
       NEARBY_LOG(INFO,
@@ -552,7 +557,8 @@ bool P2pClusterPcpHandler::IsRecognizedWifiLanEndpoint(
 void P2pClusterPcpHandler::WifiLanServiceDiscoveredHandler(
     ClientProxy* client, WifiLanService& wifi_lan_service,
     const std::string& service_id) {
-  RunOnPcpHandlerThread([this, client, service_id, &wifi_lan_service]() {
+  RunOnPcpHandlerThread([this, client, service_id,
+                         &wifi_lan_service]() RUN_ON_PCP_HANDLER_THREAD() {
     // Make sure we are still discovering before proceeding.
     if (!client->IsDiscovering()) {
       NEARBY_LOG(
@@ -597,7 +603,8 @@ void P2pClusterPcpHandler::WifiLanServiceLostHandler(
   NEARBY_LOG(INFO,
              "WifiLan: [LOST, SCHED] wifi_lan_service=%p, service_info_name=%s",
              &wifi_lan_service, nsd_service_info.GetServiceInfoName().c_str());
-  RunOnPcpHandlerThread([this, client, service_id, nsd_service_info]() {
+  RunOnPcpHandlerThread([this, client, service_id,
+                         nsd_service_info]() RUN_ON_PCP_HANDLER_THREAD() {
     // Make sure we are still discovering before proceeding.
     if (!client->IsDiscovering()) {
       NEARBY_LOG(
@@ -822,18 +829,20 @@ proto::connections::Medium P2pClusterPcpHandler::StartBluetoothAdvertising(
                          std::string(local_endpoint_info).c_str());
               return;
             }
-            RunOnPcpHandlerThread([this, client, local_endpoint_info,
-                                   socket = std::move(socket)]() mutable {
-              std::string remote_device_name =
-                  socket.GetRemoteDevice().GetName();
-              auto channel = absl::make_unique<BluetoothEndpointChannel>(
-                  remote_device_name, socket);
-              ByteArray remote_device_info{remote_device_name};
+            RunOnPcpHandlerThread(
+                [this, client, local_endpoint_info,
+                 socket =
+                     std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+                  std::string remote_device_name =
+                      socket.GetRemoteDevice().GetName();
+                  auto channel = absl::make_unique<BluetoothEndpointChannel>(
+                      remote_device_name, socket);
+                  ByteArray remote_device_info{remote_device_name};
 
-              OnIncomingConnection(client, remote_device_info,
-                                   std::move(channel),
-                                   proto::connections::Medium::BLUETOOTH);
-            });
+                  OnIncomingConnection(client, remote_device_info,
+                                       std::move(channel),
+                                       proto::connections::Medium::BLUETOOTH);
+                });
           }})) {
     NEARBY_LOG(INFO, "BT failed to start accepting connections for service=%s",
                service_id.c_str());
@@ -949,21 +958,22 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
                            std::string(local_endpoint_info).c_str());
                 return;
               }
-              RunOnPcpHandlerThread([this, client, local_endpoint_info,
-                                     service_id,
-                                     socket = std::move(socket)]() mutable {
-                std::string remote_peripheral_name =
-                    socket.GetRemotePeripheral().GetName();
-                auto channel = absl::make_unique<BleEndpointChannel>(
-                    remote_peripheral_name, socket);
-                ByteArray remote_peripheral_info =
-                    socket.GetRemotePeripheral().GetAdvertisementBytes(
-                        service_id);
+              RunOnPcpHandlerThread(
+                  [this, client, local_endpoint_info, service_id,
+                   socket = std::move(socket)]()
+                      RUN_ON_PCP_HANDLER_THREAD() mutable {
+                        std::string remote_peripheral_name =
+                            socket.GetRemotePeripheral().GetName();
+                        auto channel = absl::make_unique<BleEndpointChannel>(
+                            remote_peripheral_name, socket);
+                        ByteArray remote_peripheral_info =
+                            socket.GetRemotePeripheral().GetAdvertisementBytes(
+                                service_id);
 
-                OnIncomingConnection(client, remote_peripheral_info,
-                                     std::move(channel),
-                                     proto::connections::Medium::BLE);
-              });
+                        OnIncomingConnection(client, remote_peripheral_info,
+                                             std::move(channel),
+                                             proto::connections::Medium::BLE);
+                      });
             }})) {
       NEARBY_LOGS(INFO)
           << "Ble failed to start accepting connections for service_id="
@@ -988,18 +998,21 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
                              std::string(local_endpoint_info).c_str());
                   return;
                 }
-                RunOnPcpHandlerThread([this, client, local_endpoint_info,
-                                       socket = std::move(socket)]() mutable {
-                  std::string remote_device_name =
-                      socket.GetRemoteDevice().GetName();
-                  auto channel = absl::make_unique<BluetoothEndpointChannel>(
-                      remote_device_name, socket);
-                  ByteArray remote_device_info{remote_device_name};
+                RunOnPcpHandlerThread(
+                    [this, client, local_endpoint_info,
+                     socket = std::move(socket)]()
+                        RUN_ON_PCP_HANDLER_THREAD() mutable {
+                          std::string remote_device_name =
+                              socket.GetRemoteDevice().GetName();
+                          auto channel =
+                              absl::make_unique<BluetoothEndpointChannel>(
+                                  remote_device_name, socket);
+                          ByteArray remote_device_info{remote_device_name};
 
-                  OnIncomingConnection(client, remote_device_info,
-                                       std::move(channel),
-                                       proto::connections::Medium::BLUETOOTH);
-                });
+                          OnIncomingConnection(
+                              client, remote_device_info, std::move(channel),
+                              proto::connections::Medium::BLUETOOTH);
+                        });
               }})) {
         NEARBY_LOGS(INFO)
             << "BT failed to start accepting connections for service_id="
@@ -1129,20 +1142,22 @@ proto::connections::Medium P2pClusterPcpHandler::StartWifiLanAdvertising(
                          std::string(local_endpoint_info).c_str());
               return;
             }
-            RunOnPcpHandlerThread([this, client, local_endpoint_info,
-                                   socket = std::move(socket)]() mutable {
-              std::string remote_service_info_name =
-                  socket.GetRemoteWifiLanService()
-                      .GetServiceInfo()
-                      .GetServiceInfoName();
-              auto channel = absl::make_unique<WifiLanEndpointChannel>(
-                  remote_service_info_name, socket);
-              ByteArray remote_service_info{remote_service_info_name};
+            RunOnPcpHandlerThread(
+                [this, client, local_endpoint_info,
+                 socket = std::move(socket)]()
+                    RUN_ON_PCP_HANDLER_THREAD() mutable {
+                      std::string remote_service_info_name =
+                          socket.GetRemoteWifiLanService()
+                              .GetServiceInfo()
+                              .GetServiceInfoName();
+                      auto channel = absl::make_unique<WifiLanEndpointChannel>(
+                          remote_service_info_name, socket);
+                      ByteArray remote_service_info{remote_service_info_name};
 
-              OnIncomingConnection(client, remote_service_info,
-                                   std::move(channel),
-                                   proto::connections::Medium::WIFI_LAN);
-            });
+                      OnIncomingConnection(
+                          client, remote_service_info, std::move(channel),
+                          proto::connections::Medium::WIFI_LAN);
+                    });
           }})) {
     NEARBY_LOG(INFO,
                "WifiLan failed to start accepting connections for service=%s",
@@ -1257,7 +1272,8 @@ P2pClusterPcpHandler::StartListeningForWebRtcConnections(
               }
 
               RunOnPcpHandlerThread(
-                  [this, client, socket = std::move(socket)]() {
+                  [this, client,
+                   socket = std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() {
                     std::string remote_device_name = "WebRtcSocket";
                     auto channel = absl::make_unique<WebRtcEndpointChannel>(
                         remote_device_name, socket);

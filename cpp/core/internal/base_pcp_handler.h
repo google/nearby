@@ -61,6 +61,11 @@ enum class WebRtcState {
   kUnconnectable = 2,
 };
 
+// Annotations for methods that need to run on PCP handler thread.
+// Use only in BasePcpHandler and derived classes.
+#define RUN_ON_PCP_HANDLER_THREAD() \
+  ABSL_EXCLUSIVE_LOCKS_REQUIRED(GetPcpHandlerThread())
+
 // A base implementation of the PcpHandler interface that takes care of all
 // bookkeeping and handshake protocols that are common across all PcpHandler
 // implementations -- thus, every concrete PcpHandler implementation must extend
@@ -226,12 +231,12 @@ class BasePcpHandler : public PcpHandler,
   ConnectionOptions GetConnectionOptions() const;
   ConnectionOptions GetDiscoveryOptions() const;
 
-  // @PcpHandlerThread
   void OnEndpointFound(ClientProxy* client,
-                       std::shared_ptr<DiscoveredEndpoint> endpoint);
+                       std::shared_ptr<DiscoveredEndpoint> endpoint)
+      RUN_ON_PCP_HANDLER_THREAD();
 
-  // @PcpHandlerThread
-  void OnEndpointLost(ClientProxy* client, const DiscoveredEndpoint& endpoint);
+  void OnEndpointLost(ClientProxy* client, const DiscoveredEndpoint& endpoint)
+      RUN_ON_PCP_HANDLER_THREAD();
 
   Exception OnIncomingConnection(
       ClientProxy* client, const ByteArray& remote_endpoint_info,
@@ -244,30 +249,30 @@ class BasePcpHandler : public PcpHandler,
   virtual bool CanSendOutgoingConnection(ClientProxy* client) const;
   virtual bool CanReceiveIncomingConnection(ClientProxy* client) const;
 
-  // @PcpHandlerThread
   virtual StartOperationResult StartAdvertisingImpl(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
-      const ByteArray& local_endpoint_info,
-      const ConnectionOptions& options) = 0;
-  // @PcpHandlerThread
-  virtual Status StopAdvertisingImpl(ClientProxy* client) = 0;
+      const ByteArray& local_endpoint_info, const ConnectionOptions& options)
+      RUN_ON_PCP_HANDLER_THREAD() = 0;
 
-  // @PcpHandlerThread
+  virtual Status StopAdvertisingImpl(ClientProxy* client)
+      RUN_ON_PCP_HANDLER_THREAD() = 0;
+
   virtual StartOperationResult StartDiscoveryImpl(
       ClientProxy* client, const std::string& service_id,
-      const ConnectionOptions& options) = 0;
-  // @PcpHandlerThread
-  virtual Status StopDiscoveryImpl(ClientProxy* client) = 0;
+      const ConnectionOptions& options) RUN_ON_PCP_HANDLER_THREAD() = 0;
 
-  // @PcpHandlerThread
-  virtual Status InjectEndpointImpl(
-      ClientProxy* client, const std::string& service_id,
-      const OutOfBandConnectionMetadata& metadata) = 0;
+  virtual Status StopDiscoveryImpl(ClientProxy* client)
+      RUN_ON_PCP_HANDLER_THREAD() = 0;
 
-  // @PcpHandlerThread
+  virtual Status InjectEndpointImpl(ClientProxy* client,
+                                    const std::string& service_id,
+                                    const OutOfBandConnectionMetadata& metadata)
+      RUN_ON_PCP_HANDLER_THREAD() = 0;
+
   virtual ConnectImplResult ConnectImpl(ClientProxy* client,
-                                        DiscoveredEndpoint* endpoint) = 0;
+                                        DiscoveredEndpoint* endpoint)
+      RUN_ON_PCP_HANDLER_THREAD() = 0;
 
   virtual std::vector<proto::connections::Medium>
   GetConnectionMediumsByPriority() = 0;
@@ -288,6 +293,11 @@ class BasePcpHandler : public PcpHandler,
   mediums::PeerId CreatePeerIdFromAdvertisement(const string& service_id,
                                                 const string& endpoint_id,
                                                 const ByteArray& endpoint_info);
+
+  SingleThreadExecutor* GetPcpHandlerThread()
+      ABSL_LOCK_RETURNED(serial_executor_) {
+    return &serial_executor_;
+  }
 
   Mediums* mediums_;
   EndpointManager* endpoint_manager_;

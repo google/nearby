@@ -153,10 +153,12 @@ class MockPcpHandler : public BasePcpHandler {
 
   // Mock adapters for protected non-virtual methods of a base class.
   void OnEndpointFound(ClientProxy* client,
-                       std::shared_ptr<DiscoveredEndpoint> endpoint) {
+                       std::shared_ptr<DiscoveredEndpoint> endpoint)
+      ABSL_NO_THREAD_SAFETY_ANALYSIS {
     BasePcpHandler::OnEndpointFound(client, std::move(endpoint));
   }
-  void OnEndpointLost(ClientProxy* client, const DiscoveredEndpoint& endpoint) {
+  void OnEndpointLost(ClientProxy* client, const DiscoveredEndpoint& endpoint)
+      ABSL_NO_THREAD_SAFETY_ANALYSIS {
     BasePcpHandler::OnEndpointLost(client, endpoint);
   }
   std::vector<BasePcpHandler::DiscoveredEndpoint*> GetDiscoveredEndpoints(
