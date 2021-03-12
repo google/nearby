@@ -551,6 +551,7 @@ void BwuManager::RunUpgradeFailedProtocol(
   if (medium_ != Medium::UNKNOWN_MEDIUM) {
     Revert();
   }
+  in_progress_upgrades_.erase(endpoint_id);
 }
 
 bool BwuManager::ReadClientIntroductionFrame(EndpointChannel* channel,
