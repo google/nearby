@@ -258,6 +258,8 @@ TEST_F(EndpointManagerTest, SingleReadOnInvalidPayload) {
   EXPECT_CALL(*endpoint_channel, Read())
       .WillOnce(
           Return(ExceptionOr<ByteArray>(Exception::kInvalidProtocolBuffer)));
+  EXPECT_CALL(*endpoint_channel, Write(_))
+      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
   EXPECT_CALL(*endpoint_channel, Close(_)).Times(1);
   RegisterEndpoint(std::move(endpoint_channel));
 }
