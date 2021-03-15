@@ -47,7 +47,7 @@ constexpr absl::Time EndpointManager::kInvalidTimestamp;
 //           the loop.
 void EndpointManager::EndpointChannelLoopRunnable(
     const std::string& runnable_name, ClientProxy* client,
-    const std::string& endpoint_id, CountDownLatch* barrier,
+    const std::string& endpoint_id, std::weak_ptr<CountDownLatch> barrier,
     std::function<ExceptionOr<bool>(EndpointChannel*)> handler) {
   // EndpointChannelManager will not let multiple channels exist simultaneously
   // for the same endpoint_id; it will be closing "old" channels as new ones
@@ -114,7 +114,13 @@ void EndpointManager::EndpointChannelLoopRunnable(
   // if needed.
   NEARBY_LOG(INFO, "Worker going down; name=%s; id=%s", runnable_name.c_str(),
              endpoint_id.c_str());
-  barrier->CountDown();
+  if (auto latch = barrier.lock()) {
+    latch->CountDown();
+  } else {
+    NEARBY_LOG(WARNING,
+               "Barrier already expired in worker name=%s, for endpoint %s",
+               runnable_name.c_str(), endpoint_id.c_str());
+  }
 
   // Always clear out all state related to this endpoint before terminating
   // this thread.
@@ -239,7 +245,14 @@ EndpointManager::~EndpointManager() {
       // This will close the channel; all workers will sense that and
       // terminate.
       channel_manager_->UnregisterChannelForEndpoint(endpoint_id);
-      state.barrier.Await();
+      if (state.barrier) {
+        state.barrier->Await();
+      } else {
+        NEARBY_LOG(
+            WARNING,
+            "State barrier already freed before EM destructor for endpoint %s",
+            endpoint_id.c_str());
+      }
     }
     latch.CountDown();
   });
@@ -331,7 +344,15 @@ void EndpointManager::EnsureWorkersTerminated(const std::string& endpoint_id) {
     EndpointState& endpoint_state = item->second;
     NEARBY_LOGS(INFO) << "Waiting for workers to terminate for id: "
                       << endpoint_id;
-    endpoint_state.barrier.Await();
+    if (endpoint_state.barrier) {
+      endpoint_state.barrier->Await();
+    } else {
+      NEARBY_LOG(
+          WARNING,
+          "State barrier already freed before EnsureWorkersTerminated for "
+          "endpoint %s",
+          endpoint_id.c_str());
+    }
     endpoints_.erase(item);
     NEARBY_LOGS(INFO) << "Workers terminated for id: " << endpoint_id;
   } else {
@@ -383,8 +404,12 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
     // the next frame. If the handler fails its read and no other
     // EndpointChannels are available for this endpoint, a disconnection
     // will be initiated.
+    //
+    // Using weak_ptr just in case the barrier is freed, to save the UAF crash
+    // in b/179800119.
     StartEndpointReader(
-        [this, client, endpoint_id, barrier = &endpoint_state.barrier]() {
+        [this, client, endpoint_id,
+         barrier = std::weak_ptr<CountDownLatch>(endpoint_state.barrier)]() {
           EndpointChannelLoopRunnable(
               "Read", client, endpoint_id, barrier,
               [this, client, endpoint_id](EndpointChannel* channel) {
@@ -404,8 +429,12 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
     // (**) Wifi Hotspots can fail to notice a connection has been lost, and
     // they will happily keep writing to /dev/null. This is why we listen
     // for the pong.
+    //
+    // Using weak_ptr just in case the barrier is freed, to save the UAF crash
+    // in b/179800119.
     StartEndpointKeepAliveManager([this, client, endpoint_id,
-                                   barrier = &endpoint_state.barrier]() {
+                                   barrier = std::weak_ptr<CountDownLatch>(
+                                       endpoint_state.barrier)]() {
       EndpointChannelLoopRunnable("KeepAliveManager", client, endpoint_id,
                                   barrier, [this](EndpointChannel* channel) {
                                     return HandleKeepAlive(channel);

@@ -149,7 +149,8 @@ class EndpointManager {
     ClientProxy* client;
     // Execution barrier, used to ensure that all workers associated with an
     // endpoint on handlers_executor_ and keep_alive_executor_ are terminated.
-    CountDownLatch barrier{2};
+    std::shared_ptr<CountDownLatch> barrier =
+        std::make_shared<CountDownLatch>(2);
   };
 
   FrameProcessor* GetFrameProcessor(V1Frame::FrameType frame_type);
@@ -169,7 +170,7 @@ class EndpointManager {
 
   void EndpointChannelLoopRunnable(
       const std::string& runnable_name, ClientProxy* client_proxy,
-      const std::string& endpoint_id, CountDownLatch* barrier,
+      const std::string& endpoint_id, std::weak_ptr<CountDownLatch> barrier,
       std::function<ExceptionOr<bool>(EndpointChannel*)> handler);
 
   static void WaitForLatch(const std::string& method_name,
