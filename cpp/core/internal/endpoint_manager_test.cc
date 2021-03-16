@@ -188,10 +188,9 @@ TEST_F(EndpointManagerTest, RegisterFrameProcessorWorks) {
   // Register frame processor, then register endpoint.
   // Endpoint will read one frame, then fail to read more and terminate.
   // On disconnection, it will notify frame processor and we verify that.
-  const void* handle = em_.RegisterFrameProcessor(V1Frame::CONNECTION_REQUEST,
-                                                  connect_request.get());
+  em_.RegisterFrameProcessor(V1Frame::CONNECTION_REQUEST,
+                             connect_request.get());
   processors_.emplace_back(std::move(connect_request));
-  EXPECT_NE(handle, nullptr);
   RegisterEndpoint(std::move(endpoint_channel));
 }
 
@@ -206,11 +205,12 @@ TEST_F(EndpointManagerTest, UnregisterFrameProcessorWorks) {
   auto connect_request = std::make_unique<StrictMock<MockFrameProcessor>>();
 
   // Register frame processor and immediately unregister it.
-  const void* handle = em_.RegisterFrameProcessor(V1Frame::CONNECTION_REQUEST,
-                                                  connect_request.get());
+  em_.RegisterFrameProcessor(V1Frame::CONNECTION_REQUEST,
+                             connect_request.get());
+  em_.UnregisterFrameProcessor(V1Frame::CONNECTION_REQUEST,
+                               connect_request.get());
+
   processors_.emplace_back(std::move(connect_request));
-  EXPECT_NE(handle, nullptr);
-  em_.UnregisterFrameProcessor(V1Frame::CONNECTION_REQUEST, handle);
   // Endpoint will not send OnDisconnect notification to frame processor.
   RegisterEndpoint(std::move(endpoint_channel), false);
   em_.UnregisterEndpoint(&client_, endpoint_id_);

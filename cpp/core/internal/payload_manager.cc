@@ -217,8 +217,7 @@ Payload::Id PayloadManager::CreateOutgoingPayload(
 
 PayloadManager::PayloadManager(EndpointManager& endpoint_manager)
     : endpoint_manager_(&endpoint_manager) {
-  handle_ = endpoint_manager_->RegisterFrameProcessor(V1Frame::PAYLOAD_TRANSFER,
-                                                      this);
+  endpoint_manager_->RegisterFrameProcessor(V1Frame::PAYLOAD_TRANSFER, this);
 }
 
 void PayloadManager::CancelAllPayloads() {
@@ -249,8 +248,7 @@ void PayloadManager::CancelAllPayloads() {
 void PayloadManager::DisconnectFromEndpointManager() {
   if (shutdown_.Set(true)) return;
   // Unregister ourselves from the FrameProcessors.
-  endpoint_manager_->UnregisterFrameProcessor(V1Frame::PAYLOAD_TRANSFER,
-                                              handle_, true);
+  endpoint_manager_->UnregisterFrameProcessor(V1Frame::PAYLOAD_TRANSFER, this);
 }
 
 PayloadManager::~PayloadManager() {

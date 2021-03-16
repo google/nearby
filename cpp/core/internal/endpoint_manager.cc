@@ -269,9 +269,8 @@ EndpointManager::~EndpointManager() {
   NEARBY_LOG(INFO, "EndpointManager is down");
 }
 
-EndpointManager::FrameProcessor::Handle EndpointManager::RegisterFrameProcessor(
+void EndpointManager::RegisterFrameProcessor(
     V1Frame::FrameType frame_type, EndpointManager::FrameProcessor* processor) {
-  const FrameProcessor::Handle handle = processor;
   CountDownLatch latch(1);
   RunOnEndpointManagerThread([this, frame_type, &latch, processor]() {
     auto it = frame_processors_.find(frame_type);
@@ -287,40 +286,41 @@ EndpointManager::FrameProcessor::Handle EndpointManager::RegisterFrameProcessor(
     latch.CountDown();
   });
   latch.Await();
-  return handle;
 }
 
-void EndpointManager::UnregisterFrameProcessor(V1Frame::FrameType frame_type,
-                                               const void* handle, bool sync) {
-  NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [enter]: handle=" << handle;
-  if (handle == nullptr) return;
+void EndpointManager::UnregisterFrameProcessor(
+    V1Frame::FrameType frame_type,
+    const EndpointManager::FrameProcessor* processor) {
+  NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [enter]: processor ="
+                    << processor;
+  if (processor == nullptr) return;
   CountDownLatch latch(1);
-  RunOnEndpointManagerThread([this, frame_type, handle, &latch, sync]() {
+  RunOnEndpointManagerThread([this, frame_type, processor, &latch]() {
     auto it = frame_processors_.find(frame_type);
     if (it == frame_processors_.end()) {
-      NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [not found]: handle="
-                        << handle;
-      if (sync) latch.CountDown();
+      NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [not found]: processor="
+                        << processor;
+      latch.CountDown();
       return;
     }
-    NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [found]: handle=" << handle;
-    if (it->second == handle) {
+    NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [found]: processor="
+                      << processor;
+    if (it->second == processor) {
       frame_processors_.erase(it);
       NEARBY_LOGS(INFO) << "Unregistered: type=" << frame_type
-                        << "; processor=" << handle << "; self=" << this;
+                        << "; processor=" << processor << "; self=" << this;
     } else {
-      NEARBY_LOG(INFO,
-                 "Failed to unregister: type=%d; handle mismatch: passed=%p, "
-                 "expected=%p",
-                 frame_type, handle, it->second);
+      NEARBY_LOG(
+          INFO,
+          "Failed to unregister: type=%d; processor mismatch: passed=%p, "
+          "expected=%p",
+          frame_type, processor, it->second);
     }
-    if (sync) latch.CountDown();
+    latch.CountDown();
   });
-  if (sync) {
-    latch.Await();
-    NEARBY_LOGS(INFO) << "Unregistered [sync done]: type=" << frame_type
-                      << "; processor=" << handle << "; self=" << this;
-  }
+  latch.Await();
+  NEARBY_LOGS(INFO) << "Unregistered [sync done]: type=" << frame_type
+                    << "; processor=" << processor << "; self=" << this;
 }
 
 EndpointManager::FrameProcessor* EndpointManager::GetFrameProcessor(

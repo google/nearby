@@ -281,7 +281,6 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   void CancelAllPayloads() ABSL_LOCKS_EXCLUDED(mutex_);
 
   mutable Mutex mutex_;
-  EndpointManager::FrameProcessor::Handle handle_;
   AtomicBoolean shutdown_{false};
   std::unique_ptr<CountDownLatch> shutdown_barrier_;
   int send_payload_count_ = 0;

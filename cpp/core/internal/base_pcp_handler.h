@@ -511,7 +511,6 @@ class BasePcpHandler : public PcpHandler,
   Prng prng_;
   EncryptionRunner encryption_runner_;
   BwuManager* bwu_manager_;
-  EndpointManager::FrameProcessor::Handle handle_ = nullptr;
 };
 
 }  // namespace connections

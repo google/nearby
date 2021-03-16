@@ -60,8 +60,6 @@ class EndpointManager {
  public:
   class FrameProcessor {
    public:
-    using Handle = void*;
-
     virtual ~FrameProcessor() = default;
 
     // @EndpointManagerReaderThread
@@ -93,12 +91,11 @@ class EndpointManager {
   // Invoked from the constructors of the various *Manager components that make
   // up the OfflineServiceController implementation.
   // FrameProcessor* instances are of dynamic duration and survive all sessions.
-  // returns unique handle to be used for unregistering.
   // Blocks until registration is complete.
-  FrameProcessor::Handle RegisterFrameProcessor(V1Frame::FrameType frame_type,
-                                                FrameProcessor* processor);
+  void RegisterFrameProcessor(V1Frame::FrameType frame_type,
+                              FrameProcessor* processor);
   void UnregisterFrameProcessor(V1Frame::FrameType frame_type,
-                                const void* handle, bool sync = false);
+                                const FrameProcessor* processor);
 
   // Invoked from the different PcpHandler implementations (of which there can
   // be only one at a time).

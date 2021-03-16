@@ -54,7 +54,7 @@ BasePcpHandler::BasePcpHandler(Mediums* mediums,
 
 BasePcpHandler::~BasePcpHandler() {
   NEARBY_LOGS(INFO) << "BasePcpHandler: going down; strategy="
-                    << strategy_.GetName() << "; handle=" << handle_;
+                    << strategy_.GetName();
   DisconnectFromEndpointManager();
   // Stop all the ongoing Runnables (as gracefully as possible).
   NEARBY_LOGS(INFO) << "BasePcpHandler: bringing down executors; strategy="
@@ -68,10 +68,10 @@ BasePcpHandler::~BasePcpHandler() {
 void BasePcpHandler::DisconnectFromEndpointManager() {
   if (stop_.Set(true)) return;
   NEARBY_LOGS(INFO) << "BasePcpHandler: Unregister from EPM; strategy="
-                    << strategy_.GetName() << "; handle=" << handle_;
+                    << strategy_.GetName();
   // Unregister ourselves from EPM message dispatcher.
   endpoint_manager_->UnregisterFrameProcessor(V1Frame::CONNECTION_RESPONSE,
-                                              handle_, true);
+                                              this);
 }
 
 Status BasePcpHandler::StartAdvertising(ClientProxy* client,
@@ -284,9 +284,7 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
              endpoint_id.c_str());
 
   // Set ourselves up so that we receive all acceptance/rejection messages
-  handle_ = endpoint_manager_->RegisterFrameProcessor(
-      V1Frame::CONNECTION_RESPONSE,
-      static_cast<EndpointManager::FrameProcessor*>(this));
+  endpoint_manager_->RegisterFrameProcessor(V1Frame::CONNECTION_RESPONSE, this);
 
   // Now we register our endpoint so that we can listen for both sides to
   // accept.
