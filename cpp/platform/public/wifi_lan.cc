@@ -55,6 +55,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
                              wifi_lan_service.GetServiceInfo()
                                  .GetServiceInfoName()
                                  .c_str());
+                  return;
                 } else {
                   context.wifi_lan_service = WifiLanService(&wifi_lan_service);
                   NEARBY_LOG(
