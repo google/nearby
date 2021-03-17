@@ -57,6 +57,14 @@ TEST(CountDownLatch, LatchAwaitWithTimeoutCanExpire) {
   EXPECT_FALSE(response.result());
 }
 
+TEST(CountDownLatch, InitialCountZero_AwaitDoesNotBlock) {
+  CountDownLatch latch(0);
+
+  auto response = latch.Await();
+
+  EXPECT_TRUE(response.Ok());
+}
+
 }  // namespace
 }  // namespace nearby
 }  // namespace location
