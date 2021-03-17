@@ -67,6 +67,11 @@ BwuManager::BwuManager(
       V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION, this);
 }
 
+BwuManager::~BwuManager() {
+  NEARBY_LOG(INFO, "BwuManager going down");
+  Shutdown();
+}
+
 void BwuManager::InitBwuHandlers() {
   // Register the supported concrete BwuMedium implementations.
   BwuHandler::BwuNotifications notifications{

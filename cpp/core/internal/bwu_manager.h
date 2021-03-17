@@ -74,7 +74,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
              absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers,
              Config config);
 
-  ~BwuManager() override = default;
+  ~BwuManager() override;
 
   // This is the point on the outbound BWU protocol where the handler_ is set.
   // Function initiates the bandwidth upgrade and sends an
