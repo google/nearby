@@ -41,17 +41,20 @@ constexpr FeatureFlags kTestCases[] = {
 
 class WebRtcTest : public ::testing::TestWithParam<FeatureFlags> {
  protected:
-  WebRtcTest() {
-    MediumEnvironment::Instance().Stop();
-    MediumEnvironment::Instance().Start({.webrtc_enabled = true});
-  }
+  using MockAcceptedCallback =
+      testing::MockFunction<void(WebRtcSocketWrapper socket)>;
+
+  WebRtcTest() { env_.Stop(); }
+
+  MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
 // Tests the flow when the two devices exchange SDP messages and connect to each
 // other but the signaling channel is closed before sending the data.
 TEST_P(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
+  env_.Start({.webrtc_enabled = true});
   FeatureFlags feature_flags = GetParam();
-  MediumEnvironment::Instance().SetFeatureFlags(feature_flags);
+  env_.SetFeatureFlags(feature_flags);
   WebRtc receiver, sender;
   WebRtcSocketWrapper receiver_socket, sender_socket;
   const PeerId self_id("self_id");
@@ -83,11 +86,13 @@ TEST_P(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
       receiver_socket.GetInputStream().Read(/*size=*/32);
   ASSERT_TRUE(received_msg.ok());
   EXPECT_EQ(message, received_msg.result());
+  env_.Stop();
 }
 
 TEST_P(WebRtcTest, CanCancelConnect) {
+  env_.Start({.webrtc_enabled = true});
   FeatureFlags feature_flags = GetParam();
-  MediumEnvironment::Instance().SetFeatureFlags(feature_flags);
+  env_.SetFeatureFlags(feature_flags);
   WebRtc receiver, sender;
   WebRtcSocketWrapper receiver_socket, sender_socket;
   const PeerId self_id("self_id");
@@ -123,6 +128,7 @@ TEST_P(WebRtcTest, CanCancelConnect) {
   } else {
     EXPECT_FALSE(sender_socket.IsValid());
   }
+  env_.Stop();
 }
 
 INSTANTIATE_TEST_SUITE_P(ParametrisedWebRtcTest, WebRtcTest,
@@ -130,18 +136,18 @@ INSTANTIATE_TEST_SUITE_P(ParametrisedWebRtcTest, WebRtcTest,
 
 // Basic test to check that device is accepting connections when initialized.
 TEST_F(WebRtcTest, NotAcceptingConnections) {
+  env_.Start({.webrtc_enabled = true});
   WebRtc webrtc;
   ASSERT_TRUE(webrtc.IsAvailable());
   EXPECT_FALSE(webrtc.IsAcceptingConnections(std::string{}));
+  env_.Stop();
 }
 
 // Tests the flow when the device tries to accept connections twice. In this
 // case, only the first call is successful and subsequent calls fail.
 TEST_F(WebRtcTest, StartAcceptingConnectionTwice) {
-  using MockAcceptedCallback =
-      testing::MockFunction<void(WebRtcSocketWrapper socket)>;
+  env_.Start({.webrtc_enabled = true});
   testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
-
   WebRtc webrtc;
   PeerId self_id("peer_id");
   const std::string service_id("NearbySharing");
@@ -156,11 +162,13 @@ TEST_F(WebRtcTest, StartAcceptingConnectionTwice) {
       {mock_accepted_callback_.AsStdFunction()}));
   EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
   EXPECT_FALSE(webrtc.IsAcceptingConnections(std::string{}));
+  env_.Stop();
 }
 
 // Tests the flow when the device tries to connect but there is no peer
 // accepting connections at the given peer ID.
 TEST_F(WebRtcTest, Connect_NoPeer) {
+  env_.Start({.webrtc_enabled = true});
   WebRtc webrtc;
   PeerId peer_id("peer_id");
   const std::string service_id("NearbySharing");
@@ -174,15 +182,14 @@ TEST_F(WebRtcTest, Connect_NoPeer) {
 
   EXPECT_TRUE(webrtc.StartAcceptingConnections(
       service_id, peer_id, location_hint, AcceptedConnectionCallback()));
+  env_.Stop();
 }
 
 // Tests the flow when the device calls Connect() after calling
 // StartAcceptingConnections() without StopAcceptingConnections().
 TEST_F(WebRtcTest, StartAcceptingConnection_ThenConnect) {
-  using MockAcceptedCallback =
-      testing::MockFunction<void(WebRtcSocketWrapper socket)>;
+  env_.Start({.webrtc_enabled = true});
   testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
-
   WebRtc webrtc;
   PeerId self_id("peer_id");
   const std::string service_id("NearbySharing");
@@ -200,15 +207,14 @@ TEST_F(WebRtcTest, StartAcceptingConnection_ThenConnect) {
   EXPECT_FALSE(webrtc.StartAcceptingConnections(
       service_id, self_id, location_hint,
       {mock_accepted_callback_.AsStdFunction()}));
+  env_.Stop();
 }
 
 // Tests the flow when the device calls StartAcceptingConnections but the medium
 // is closed before a peer device can connect to it.
 TEST_F(WebRtcTest, StartAndStopAcceptingConnections) {
-  using MockAcceptedCallback =
-      testing::MockFunction<void(WebRtcSocketWrapper socket)>;
+  env_.Start({.webrtc_enabled = true});
   testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
-
   WebRtc webrtc;
   PeerId self_id("peer_id");
   const std::string service_id("NearbySharing");
@@ -221,11 +227,13 @@ TEST_F(WebRtcTest, StartAndStopAcceptingConnections) {
   EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
   webrtc.StopAcceptingConnections(service_id);
   EXPECT_FALSE(webrtc.IsAcceptingConnections(service_id));
+  env_.Stop();
 }
 
 // Tests the flow when the device tries to connect to two different peers
 // without disconnecting in between.
 TEST_F(WebRtcTest, ConnectTwice) {
+  env_.Start({.webrtc_enabled = true});
   WebRtc receiver, sender, device_c;
   WebRtcSocketWrapper receiver_socket, sender_socket;
   const PeerId self_id("self_id"), other_id("other_id");
@@ -267,11 +275,13 @@ TEST_F(WebRtcTest, ConnectTwice) {
   EXPECT_EQ(message, received_msg.result());
 
   receiver_socket.Close();
+  env_.Stop();
 }
 
 // Tests the flow when the two devices exchange SDP messages and connect to each
 // other but disconnect before being able to send/receive the actual data.
 TEST_F(WebRtcTest, ConnectBothDevicesAndAbort) {
+  env_.Start({.webrtc_enabled = true});
   WebRtc receiver, sender;
   WebRtcSocketWrapper receiver_socket, sender_socket;
   const PeerId self_id("self_id");
@@ -296,11 +306,13 @@ TEST_F(WebRtcTest, ConnectBothDevicesAndAbort) {
   EXPECT_TRUE(devices_connected.result());
 
   receiver_socket.Close();
+  env_.Stop();
 }
 
 // Tests the flow when the two devices exchange SDP messages and connect to each
 // other and the actual data is exchanged successfully between the devices.
 TEST_F(WebRtcTest, ConnectBothDevicesAndSendData) {
+  env_.Start({.webrtc_enabled = true});
   WebRtc receiver, sender;
   WebRtcSocketWrapper receiver_socket, sender_socket;
   const PeerId self_id("self_id");
@@ -331,14 +343,13 @@ TEST_F(WebRtcTest, ConnectBothDevicesAndSendData) {
   EXPECT_EQ(message, received_msg.result());
 
   receiver_socket.Close();
+  env_.Stop();
 }
 
 TEST_F(WebRtcTest, Connect_NullPeerConnection) {
-  using MockAcceptedCallback =
-      testing::MockFunction<void(WebRtcSocketWrapper socket)>;
+  env_.Start({.webrtc_enabled = true});
   testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
-
-  MediumEnvironment::Instance().SetUseValidPeerConnection(
+  env_.SetUseValidPeerConnection(
       /*use_valid_peer_connection=*/false);
 
   WebRtc webrtc;
@@ -351,15 +362,14 @@ TEST_F(WebRtcTest, Connect_NullPeerConnection) {
   WebRtcSocketWrapper wrapper = webrtc.Connect(
       service_id, PeerId("random_peer_id"), location_hint, &flag);
   EXPECT_FALSE(wrapper.IsValid());
+  env_.Stop();
 }
 
 // Tests the flow when the device calls StartAcceptingConnections and the
 // receive messages stream fails.
 TEST_F(WebRtcTest, ContinueAcceptingConnectionsOnComplete) {
-  using MockAcceptedCallback =
-      testing::MockFunction<void(WebRtcSocketWrapper socket)>;
+  env_.Start({.webrtc_enabled = true});
   testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
-
   WebRtc webrtc;
   PeerId self_id("peer_id");
   const std::string service_id("NearbySharing");
@@ -373,17 +383,18 @@ TEST_F(WebRtcTest, ContinueAcceptingConnectionsOnComplete) {
 
   // Simulate a failure in receiving messages stream, WebRtc should restart
   // accepting connections.
-  MediumEnvironment::Instance().SendWebRtcSignalingComplete(self_id.GetId(),
+  env_.SendWebRtcSignalingComplete(self_id.GetId(),
                                                             /*success=*/false);
   EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
 
   // And a "success" message should not cause accepting connections to stop.
-  MediumEnvironment::Instance().SendWebRtcSignalingComplete(self_id.GetId(),
+  env_.SendWebRtcSignalingComplete(self_id.GetId(),
                                                             /*success=*/true);
   EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
 
   webrtc.StopAcceptingConnections(service_id);
   EXPECT_FALSE(webrtc.IsAcceptingConnections(service_id));
+  env_.Stop();
 }
 
 }  // namespace
