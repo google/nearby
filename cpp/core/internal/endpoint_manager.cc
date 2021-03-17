@@ -35,6 +35,40 @@ constexpr absl::Duration EndpointManager::kKeepAliveReadTimeout;
 constexpr absl::Duration EndpointManager::kProcessEndpointDisconnectionTimeout;
 constexpr absl::Time EndpointManager::kInvalidTimestamp;
 
+class EndpointManager::LockedFrameProcessor {
+ public:
+  explicit LockedFrameProcessor(FrameProcessorWithMutex* fp)
+      : lock_{std::make_unique<MutexLock>(&fp->mutex_)},
+        frame_processor_with_mutex_{fp} {}
+
+  // Constructor of a no-op object.
+  LockedFrameProcessor() {}
+
+  explicit operator bool() const { return get() != nullptr; }
+
+  FrameProcessor* operator->() const { return get(); }
+
+  void set(FrameProcessor* frame_processor) {
+    if (frame_processor_with_mutex_)
+      frame_processor_with_mutex_->frame_processor_ = frame_processor;
+  }
+
+  FrameProcessor* get() const {
+    return frame_processor_with_mutex_
+               ? frame_processor_with_mutex_->frame_processor_
+               : nullptr;
+  }
+
+  void reset() {
+    if (frame_processor_with_mutex_)
+      frame_processor_with_mutex_->frame_processor_ = nullptr;
+  }
+
+ private:
+  std::unique_ptr<MutexLock> lock_;
+  FrameProcessorWithMutex* frame_processor_with_mutex_ = nullptr;
+};
+
 // A Runnable that continuously grabs the most recent EndpointChannel available
 // for an endpoint.
 //
@@ -161,9 +195,8 @@ ExceptionOr<bool> EndpointManager::HandleData(
 
     // Route the incoming offlineFrame to its registered processor.
     V1Frame::FrameType frame_type = parser::GetFrameType(frame);
-    EndpointManager::FrameProcessor* frame_processor =
-        GetFrameProcessor(frame_type);
-    if (frame_processor == nullptr) {
+    LockedFrameProcessor frame_processor = GetFrameProcessor(frame_type);
+    if (!frame_processor) {
       // report messages without handlers, except KEEP_ALIVE, which has
       // no explicit handler.
       if (frame_type == V1Frame::KEEP_ALIVE) {
@@ -277,7 +310,8 @@ void EndpointManager::RegisterFrameProcessor(
     if (it != frame_processors_.end()) {
       NEARBY_LOGS(INFO) << "Frame processor found: updated; type=" << frame_type
                         << "; processor=" << processor << "; self=" << this;
-      it->second = processor;
+      LockedFrameProcessor frame_processor_lock(&it->second);
+      frame_processor_lock.set(processor);
     } else {
       NEARBY_LOGS(INFO) << "Frame processor added; type=" << frame_type
                         << "; processor=" << processor << "; self=" << this;
@@ -305,8 +339,9 @@ void EndpointManager::UnregisterFrameProcessor(
     }
     NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [found]: processor="
                       << processor;
-    if (it->second == processor) {
-      frame_processors_.erase(it);
+    LockedFrameProcessor frame_processor_lock(&it->second);
+    if (frame_processor_lock.get() == processor) {
+      frame_processor_lock.reset();
       NEARBY_LOGS(INFO) << "Unregistered: type=" << frame_type
                         << "; processor=" << processor << "; self=" << this;
     } else {
@@ -314,7 +349,7 @@ void EndpointManager::UnregisterFrameProcessor(
           INFO,
           "Failed to unregister: type=%d; processor mismatch: passed=%p, "
           "expected=%p",
-          frame_type, processor, it->second);
+          frame_type, processor, frame_processor_lock.get());
     }
     latch.CountDown();
   });
@@ -323,14 +358,13 @@ void EndpointManager::UnregisterFrameProcessor(
                     << "; processor=" << processor << "; self=" << this;
 }
 
-EndpointManager::FrameProcessor* EndpointManager::GetFrameProcessor(
+EndpointManager::LockedFrameProcessor EndpointManager::GetFrameProcessor(
     V1Frame::FrameType frame_type) {
-  EndpointManager::FrameProcessor* processor = nullptr;
   auto it = frame_processors_.find(frame_type);
   if (it != frame_processors_.end()) {
-    processor = it->second;
+    return LockedFrameProcessor(&it->second);
   }
-  return processor;
+  return LockedFrameProcessor();
 }
 
 void EndpointManager::EnsureWorkersTerminated(const std::string& endpoint_id) {
@@ -546,8 +580,9 @@ void EndpointManager::WaitForEndpointDisconnectionProcessing(
 
   int valid = 0;
   for (auto& item : frame_processors_) {
-    auto* processor = item.second;
-    NEARBY_LOGS(INFO) << "processor=" << processor << "; type=" << item.first;
+    LockedFrameProcessor processor(&item.second);
+    NEARBY_LOGS(INFO) << "processor=" << processor.get()
+                      << "; type=" << item.first;
     if (processor) {
       valid++;
       processor->OnEndpointDisconnect(client, endpoint_id, barrier);

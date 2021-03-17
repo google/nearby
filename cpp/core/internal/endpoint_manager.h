@@ -150,7 +150,23 @@ class EndpointManager {
         std::make_shared<CountDownLatch>(2);
   };
 
-  FrameProcessor* GetFrameProcessor(V1Frame::FrameType frame_type);
+  // RAII accessor for FrameProcessor
+  class LockedFrameProcessor;
+
+  // Provides a mutex per FrameProcessor to prevent unregistering (and
+  // destroying) a FrameProcessor when it's in use.
+  class FrameProcessorWithMutex {
+   public:
+    explicit FrameProcessorWithMutex(FrameProcessor* frame_processor = nullptr)
+        : frame_processor_{frame_processor} {}
+
+   private:
+    FrameProcessor* frame_processor_;
+    Mutex mutex_;
+    friend class LockedFrameProcessor;
+  };
+
+  LockedFrameProcessor GetFrameProcessor(V1Frame::FrameType frame_type);
 
   ExceptionOr<bool> HandleData(const std::string& endpoint_id,
                                ClientProxy* client_proxy,
@@ -218,7 +234,8 @@ class EndpointManager {
 
   EndpointChannelManager* channel_manager_;
 
-  absl::flat_hash_map<V1Frame::FrameType, FrameProcessor*> frame_processors_;
+  absl::flat_hash_map<V1Frame::FrameType, FrameProcessorWithMutex>
+      frame_processors_;
 
   // We keep track of all registered channel endpoints here.
   absl::flat_hash_map<std::string, EndpointState> endpoints_;
