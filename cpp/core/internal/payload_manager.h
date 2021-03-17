@@ -39,6 +39,11 @@ namespace location {
 namespace nearby {
 namespace connections {
 
+// Annotations for methods that need to run on PayloadStatusUpdateThread.
+// Use only in PayloadManager
+#define RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() \
+  ABSL_EXCLUSIVE_LOCKS_REQUIRED(payload_status_update_executor_)
+
 class PayloadManager : public EndpointManager::FrameProcessor {
  public:
   using EndpointIds = std::vector<std::string>;
@@ -265,10 +270,10 @@ class PayloadManager : public EndpointManager::FrameProcessor {
                             const std::string& from_endpoint_id,
                             PayloadTransferFrame& payload_transfer_frame);
 
-  // @PayloadStatusUpdateThread
   void NotifyClientOfIncomingPayloadProgressInfo(
       ClientProxy* client, const std::string& endpoint_id,
-      const PayloadProgressInfo& payload_transfer_update);
+      const PayloadProgressInfo& payload_transfer_update)
+      RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD();
 
   SingleThreadExecutor* GetOutgoingPayloadExecutor(Payload::Type payload_type);
 
