@@ -27,6 +27,7 @@
 #include "platform/base/listeners.h"
 #include "platform/base/output_stream.h"
 #include "platform/public/bluetooth_adapter.h"
+#include "platform/public/logging.h"
 #include "platform/public/mutex.h"
 #include "absl/container/flat_hash_map.h"
 
@@ -101,12 +102,21 @@ class BluetoothServerSocket final {
   // On success, returns connected socket, ready to exchange data.
   // Returns nullptr on error.
   // Once error is reported, it is permanent, and ServerSocket has to be closed.
-  BluetoothSocket Accept() { return BluetoothSocket(impl_->Accept()); }
+  BluetoothSocket Accept() {
+    auto socket = impl_->Accept();
+    if (!socket) {
+      NEARBY_LOGS(INFO) << "Accept() failed on server socket: " << this;
+    }
+    return BluetoothSocket(std::move(socket));
+  }
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html#close()
   //
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() { return impl_->Close(); }
+  Exception Close() {
+    NEARBY_LOGS(INFO) << "Closing server socket: " << this;
+    return impl_->Close();
+  }
 
   bool IsValid() const { return impl_ != nullptr; }
   api::BluetoothServerSocket& GetImpl() { return *impl_; }

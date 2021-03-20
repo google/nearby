@@ -117,6 +117,7 @@ Status BasePcpHandler::StartAdvertising(ClientProxy* client,
 }
 
 void BasePcpHandler::StopAdvertising(ClientProxy* client) {
+  NEARBY_LOGS(INFO) << "StopAdvertising id=" << client->GetLocalEndpointId();
   CountDownLatch latch(1);
   RunOnPcpHandlerThread([this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
     StopAdvertisingImpl(client);
