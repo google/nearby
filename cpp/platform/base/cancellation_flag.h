@@ -17,6 +17,7 @@
 
 #include <memory>
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/synchronization/mutex.h"
 
 namespace location {
@@ -26,13 +27,16 @@ namespace nearby {
 // cleaned up as soon as possible.
 class CancellationFlag {
  public:
+  // The listener for cancellation.
+  using CancelListener = std::function<void()>;
+
   CancellationFlag();
   explicit CancellationFlag(bool cancelled);
   CancellationFlag(const CancellationFlag &) = delete;
   CancellationFlag &operator=(const CancellationFlag &) = delete;
   CancellationFlag(CancellationFlag &&) = default;
   CancellationFlag &operator=(CancellationFlag &&) = default;
-  virtual ~CancellationFlag() = default;
+  virtual ~CancellationFlag();
 
   // Set the flag as cancelled.
   void Cancel() ABSL_LOCKS_EXCLUDED(mutex_);
@@ -41,8 +45,33 @@ class CancellationFlag {
   bool Cancelled() const ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
+  friend class CancellationFlagListener;
+  friend class CancellationFlagPeer;
+
+  // The registration inserts the pointer of caller's listener callback into
+  // `listeners_`, a flat hash set which support the pointer type for hashing
+  // function. It conducts that 2 different pointers might point to the same
+  // callback function which is unusal and should avoid. Hence we make it as
+  // private and use `CancellationFlagListener` as a RAII to wrap the function.
+  // The caller should register listener as lambda or std::function
+  // via `CancellationFlagListener`.
+  void RegisterOnCancelListener(CancelListener *listener)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // The un-registration erases the pointer of caller's listener callback from
+  // `listeners_`. This is paired to RegisterOnCancelListener which is
+  // guaranteed to be called under `CancellationFlagListener`.
+  void UnregisterOnCancelListener(CancelListener *listener)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  int CancelListenersSize() const ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock lock(mutex_.get());
+    return listeners_.size();
+  }
+
   std::unique_ptr<absl::Mutex> mutex_;
   bool cancelled_ ABSL_GUARDED_BY(mutex_) = false;
+  absl::flat_hash_set<CancelListener *> ABSL_GUARDED_BY(mutex_) listeners_;
 };
 
 }  // namespace nearby

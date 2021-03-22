@@ -102,6 +102,7 @@ cc_library(
     ],
     hdrs = [
         "cancellation_flag.h",
+        "cancellation_flag_listener.h",
     ],
     visibility = [
         "//core/internal:__subpackages__",

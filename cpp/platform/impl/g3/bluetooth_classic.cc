@@ -18,6 +18,7 @@
 #include <string>
 
 #include "platform/api/bluetooth_classic.h"
+#include "platform/base/cancellation_flag_listener.h"
 #include "platform/base/logging.h"
 #include "platform/base/medium_environment.h"
 #include "platform/impl/g3/bluetooth_adapter.h"
@@ -233,6 +234,11 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
                        << service_uuid;
     return {};
   }
+
+  CancellationFlagListener listener(cancellation_flag, [&server_socket]() {
+    NEARBY_LOGS(INFO) << "G3 Bluetooth Cancel Connect.";
+    if (server_socket != nullptr) server_socket->Close();
+  });
 
   auto socket = std::make_unique<BluetoothSocket>(&GetAdapter());
   // Finally, Request to connect to this socket.

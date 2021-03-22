@@ -108,15 +108,15 @@ TEST_P(BluetoothClassicMediumTest, CanConnectToService) {
   EXPECT_FALSE(socket_a.IsValid());
   EXPECT_FALSE(socket_b.IsValid());
   {
+    CancellationFlag flag;
     SingleThreadExecutor server_executor;
     SingleThreadExecutor client_executor;
-    client_executor.Execute(
-        [this, &socket_a, discovered_device, &service_uuid, &server_socket]() {
-          CancellationFlag flag;
-          socket_a =
-              bt_a_->ConnectToService(*discovered_device, service_uuid, &flag);
-          if (!socket_a.IsValid()) server_socket.Close();
-        });
+    client_executor.Execute([this, &socket_a, discovered_device, &service_uuid,
+                             &server_socket, &flag]() {
+      socket_a =
+          bt_a_->ConnectToService(*discovered_device, service_uuid, &flag);
+      if (!socket_a.IsValid()) server_socket.Close();
+    });
     server_executor.Execute([&socket_b, &server_socket]() {
       socket_b = server_socket.Accept();
       if (!socket_b.IsValid()) server_socket.Close();
@@ -157,15 +157,15 @@ TEST_P(BluetoothClassicMediumTest, CanCancelConnect) {
   EXPECT_FALSE(socket_a.IsValid());
   EXPECT_FALSE(socket_b.IsValid());
   {
+    CancellationFlag flag(true);
     SingleThreadExecutor server_executor;
     SingleThreadExecutor client_executor;
-    client_executor.Execute(
-        [this, &socket_a, discovered_device, &service_uuid, &server_socket]() {
-          CancellationFlag flag(true);
-          socket_a =
-              bt_a_->ConnectToService(*discovered_device, service_uuid, &flag);
-          if (!socket_a.IsValid()) server_socket.Close();
-        });
+    client_executor.Execute([this, &socket_a, discovered_device, &service_uuid,
+                             &server_socket, &flag]() {
+      socket_a =
+          bt_a_->ConnectToService(*discovered_device, service_uuid, &flag);
+      if (!socket_a.IsValid()) server_socket.Close();
+    });
     server_executor.Execute([&socket_b, &server_socket]() {
       socket_b = server_socket.Accept();
       if (!socket_b.IsValid()) server_socket.Close();

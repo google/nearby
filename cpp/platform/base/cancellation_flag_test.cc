@@ -14,15 +14,40 @@
 
 #include "platform/base/cancellation_flag.h"
 
+#include <memory>
+
+#include "platform/base/cancellation_flag_listener.h"
 #include "platform/base/feature_flags.h"
 #include "platform/base/medium_environment.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace location {
 namespace nearby {
+
+class CancellationFlagPeer {
+ public:
+  explicit CancellationFlagPeer(CancellationFlag* cancellation_flag)
+      : cancellation_flag_(cancellation_flag) {}
+  void RegisterOnCancelListener(CancellationFlag::CancelListener* listener) {
+    cancellation_flag_->RegisterOnCancelListener(listener);
+  }
+  void UnregisterOnCancelListener(CancellationFlag::CancelListener* listener) {
+    cancellation_flag_->UnregisterOnCancelListener(listener);
+  }
+  int CancelListenersSize() const {
+    return cancellation_flag_->CancelListenersSize();
+  }
+
+ private:
+  CancellationFlag* cancellation_flag_;  // Not owned by CancellationFlagPeer.
+};
+
 namespace {
 
 using FeatureFlags = FeatureFlags::Flags;
+using ::testing::MockFunction;
+using ::testing::StrictMock;
 
 constexpr FeatureFlags kTestCases[] = {
     FeatureFlags{
@@ -64,7 +89,13 @@ TEST_P(CancellationFlagTest, InitialValueAsTrue) {
 }
 
 TEST_P(CancellationFlagTest, CanCancel) {
+  StrictMock<MockFunction<void()>> mock_cancel_callback;
+  CancellationFlag::CancelListener cancel_callback =
+      mock_cancel_callback.AsStdFunction();
+  EXPECT_CALL(mock_cancel_callback, Call)
+      .Times(feature_flags_.enable_cancellation_flag ? 1 : 0);
   CancellationFlag flag;
+  CancellationFlagListener cancellation_flag_listener(&flag, cancel_callback);
   flag.Cancel();
 
   // If FeatureFlag is disabled, return as no-op immediately and
@@ -77,9 +108,105 @@ TEST_P(CancellationFlagTest, CanCancel) {
   EXPECT_TRUE(flag.Cancelled());
 }
 
+TEST_P(CancellationFlagTest, ShouldOnlyCancelOnce) {
+  StrictMock<MockFunction<void()>> mock_cancel_callback;
+  CancellationFlag::CancelListener cancel_callback =
+      mock_cancel_callback.AsStdFunction();
+  EXPECT_CALL(mock_cancel_callback, Call)
+      .Times(feature_flags_.enable_cancellation_flag ? 1 : 0);
+
+  CancellationFlag flag;
+  CancellationFlagListener cancellation_flag_listener(&flag, cancel_callback);
+  flag.Cancel();
+  flag.Cancel();
+  flag.Cancel();
+
+  // If FeatureFlag is disabled, return as no-op immediately and
+  // Cancelled is always false.
+  if (!feature_flags_.enable_cancellation_flag) {
+    EXPECT_FALSE(flag.Cancelled());
+    return;
+  }
+
+  EXPECT_TRUE(flag.Cancelled());
+}
+
+TEST_P(CancellationFlagTest, CannotCancelAfterUnregister) {
+  StrictMock<MockFunction<void()>> mock_cancel_callback;
+  CancellationFlag::CancelListener cancel_callback =
+      mock_cancel_callback.AsStdFunction();
+  EXPECT_CALL(mock_cancel_callback, Call).Times(0);
+
+  CancellationFlag flag;
+  auto cancellation_flag_listener =
+      std::make_unique<CancellationFlagListener>(&flag, cancel_callback);
+  // Release immediately.
+  cancellation_flag_listener.reset();
+  flag.Cancel();
+}
+
 INSTANTIATE_TEST_SUITE_P(ParametrisedCancellationFlagTest, CancellationFlagTest,
                          ::testing::ValuesIn(kTestCases));
 
 }  // namespace
+
+TEST(CancellationFlagTest,
+     CancelMultiplesIfMultiplePointersToTheSameFunctionRegistered) {
+  location::nearby::FeatureFlags::Flags feature_flags_ =
+      location::nearby::FeatureFlags::Flags{
+          .enable_cancellation_flag = true,
+      };
+  MediumEnvironment::Instance().SetFeatureFlags(feature_flags_);
+
+  StrictMock<MockFunction<void()>> mock_cancel_callback;
+  CancellationFlag::CancelListener cancel_callback =
+      mock_cancel_callback.AsStdFunction();
+
+  CancellationFlag::CancelListener *callback_pointer_1 = &cancel_callback;
+  auto callback_pointer_2 =
+      std::make_unique<CancellationFlag::CancelListener>();
+  *callback_pointer_2 = cancel_callback;
+
+  EXPECT_NE(callback_pointer_1, callback_pointer_2.get());
+  EXPECT_CALL(mock_cancel_callback, Call).Times(2);
+
+  CancellationFlag flag;
+  CancellationFlagPeer flag_peer(&flag);
+  flag_peer.RegisterOnCancelListener(callback_pointer_1);
+  flag_peer.RegisterOnCancelListener(callback_pointer_2.get());
+
+  flag.Cancel();
+
+  flag_peer.UnregisterOnCancelListener(callback_pointer_2.get());
+  EXPECT_EQ(1, flag_peer.CancelListenersSize());
+  flag_peer.UnregisterOnCancelListener(callback_pointer_1);
+  EXPECT_EQ(0, flag_peer.CancelListenersSize());
+}
+
+TEST(CancellationFlagTest, RegisteredMultuipleTimesOnlyCancelOnce) {
+  location::nearby::FeatureFlags::Flags feature_flags_ =
+      location::nearby::FeatureFlags::Flags{
+          .enable_cancellation_flag = true,
+      };
+  MediumEnvironment::Instance().SetFeatureFlags(feature_flags_);
+
+  StrictMock<MockFunction<void()>> mock_cancel_callback;
+  CancellationFlag::CancelListener cancel_callback =
+      mock_cancel_callback.AsStdFunction();
+  EXPECT_CALL(mock_cancel_callback, Call).Times(1);
+
+  CancellationFlag flag;
+  CancellationFlagPeer flag_peer(&flag);
+  flag_peer.RegisterOnCancelListener(&cancel_callback);
+  flag_peer.RegisterOnCancelListener(&cancel_callback);
+  EXPECT_EQ(1, flag_peer.CancelListenersSize());
+
+  flag.Cancel();
+
+  flag_peer.UnregisterOnCancelListener(&cancel_callback);
+  EXPECT_EQ(0, flag_peer.CancelListenersSize());
+  flag_peer.UnregisterOnCancelListener(&cancel_callback);
+}
+
 }  // namespace nearby
 }  // namespace location

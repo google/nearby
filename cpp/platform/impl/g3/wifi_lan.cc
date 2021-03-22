@@ -19,6 +19,7 @@
 #include <string>
 
 #include "platform/api/wifi_lan.h"
+#include "platform/base/cancellation_flag_listener.h"
 #include "platform/base/logging.h"
 #include "platform/base/medium_environment.h"
 #include "platform/base/nsd_service_info.h"
@@ -360,6 +361,11 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::Connect(
                       << service_id;
     return {};
   }
+
+  CancellationFlagListener listener(cancellation_flag, [this]() {
+    NEARBY_LOGS(INFO) << "G3 WifiLan Cancel Connect.";
+    if (server_socket_ != nullptr) server_socket_->Close();
+  });
 
   WifiLanService wifi_lan_service =
       static_cast<WifiLanService&>(remote_wifi_lan_service);

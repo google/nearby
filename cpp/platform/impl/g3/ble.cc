@@ -19,6 +19,7 @@
 #include <string>
 
 #include "platform/api/ble.h"
+#include "platform/base/cancellation_flag_listener.h"
 #include "platform/base/logging.h"
 #include "platform/base/medium_environment.h"
 #include "absl/synchronization/mutex.h"
@@ -44,9 +45,7 @@ InputStream& BleSocket::GetInputStream() {
   return remote_socket->GetLocalInputStream();
 }
 
-OutputStream& BleSocket::GetOutputStream() {
-  return GetLocalOutputStream();
-}
+OutputStream& BleSocket::GetOutputStream() { return GetLocalOutputStream(); }
 
 BleSocket* BleSocket::GetRemoteSocket() {
   absl::MutexLock lock(&mutex_);
@@ -353,6 +352,11 @@ std::unique_ptr<api::BleSocket> BleMedium::Connect(
                        << service_id;
     return {};
   }
+
+  CancellationFlagListener listener(cancellation_flag, [this]() {
+    NEARBY_LOGS(INFO) << "G3 BLE Cancel Connect.";
+    if (server_socket_ != nullptr) server_socket_->Close();
+  });
 
   BlePeripheral peripheral = static_cast<BlePeripheral&>(remote_peripheral);
   auto socket = std::make_unique<BleSocket>(&peripheral);

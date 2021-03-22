@@ -28,30 +28,54 @@ CancellationFlag::CancellationFlag(bool cancelled) {
   cancelled_ = cancelled;
 }
 
-void CancellationFlag::Cancel() {
-  absl::MutexLock lock(mutex_.get());
+CancellationFlag::~CancellationFlag() {
+  listeners_.clear();
+}
 
+void CancellationFlag::Cancel() {
   // Return immediately as no-op if feature flag is not enabled.
   if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
     return;
   }
 
-  if (cancelled_) {
-    // Someone already cancelled. Return immediately.
-    return;
+  absl::flat_hash_set<CancelListener *> listeners;
+  {
+    absl::MutexLock lock(mutex_.get());
+    if (cancelled_) {
+      // Someone already cancelled. Return immediately.
+      return;
+    }
+    cancelled_ = true;
+
+    listeners = listeners_;
   }
-  cancelled_ = true;
+
+  for (const auto *listener : listeners) {
+    (*listener)();
+  }
 }
 
 bool CancellationFlag::Cancelled() const {
   absl::MutexLock lock(mutex_.get());
 
-  // Return falsea as no-op if feature flag is not enabled.
+  // Return false as no-op if feature flag is not enabled.
   if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
     return false;
   }
 
   return cancelled_;
+}
+
+void CancellationFlag::RegisterOnCancelListener(CancelListener *listener) {
+  absl::MutexLock lock(mutex_.get());
+
+  listeners_.emplace(listener);
+}
+
+void CancellationFlag::UnregisterOnCancelListener(CancelListener *listener) {
+  absl::MutexLock lock(mutex_.get());
+
+  listeners_.erase(listener);
 }
 
 }  // namespace nearby

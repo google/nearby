@@ -65,6 +65,7 @@ TEST_P(BleMediumTest, CanStartAcceptingConnectionsAndConnect) {
   std::string fast_advertisement_service_uuid(kFastAdvertisementServiceUuid);
   CountDownLatch found_latch(1);
   CountDownLatch accepted_latch(1);
+  CancellationFlag flag;
 
   BlePeripheral* discovered_peripheral = nullptr;
   ble_a.StartScanning(
@@ -102,8 +103,7 @@ TEST_P(BleMediumTest, CanStartAcceptingConnectionsAndConnect) {
   {
     SingleThreadExecutor client_executor;
     client_executor.Execute(
-        [&ble_a, &socket_a, discovered_peripheral, &service_id]() {
-          CancellationFlag flag;
+        [&ble_a, &socket_a, discovered_peripheral, &service_id, &flag]() {
           socket_a = ble_a.Connect(*discovered_peripheral, service_id, &flag);
         });
   }
@@ -127,6 +127,7 @@ TEST_P(BleMediumTest, CanCancelConnect) {
   std::string fast_advertisement_service_uuid(kFastAdvertisementServiceUuid);
   CountDownLatch found_latch(1);
   CountDownLatch accepted_latch(1);
+  CancellationFlag flag(true);
 
   BlePeripheral* discovered_peripheral = nullptr;
   ble_a.StartScanning(
@@ -164,8 +165,7 @@ TEST_P(BleMediumTest, CanCancelConnect) {
   {
     SingleThreadExecutor client_executor;
     client_executor.Execute(
-        [&ble_a, &socket_a, discovered_peripheral, &service_id]() {
-          CancellationFlag flag(true);
+        [&ble_a, &socket_a, discovered_peripheral, &service_id, &flag]() {
           socket_a = ble_a.Connect(*discovered_peripheral, service_id, &flag);
         });
   }
