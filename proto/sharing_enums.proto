@@ -160,6 +160,9 @@ enum EventType {
 
   // Receiver verification of APKs status.
   VERIFY_APK = 41;
+
+  // User starts a consent.
+  LAUNCH_CONSENT = 42;
 }
 
 // Event category to differentiate whether this comes from sender or receiver,
@@ -338,6 +341,12 @@ enum ActivityName {
   SETUP_ACTIVITY = 4;
   CONTACT_SELECT_ACTIVITY = 5;
   CONSENTS_ACTIVITY = 6;
+}
+
+enum ConsentType {
+  CONSENT_TYPE_UNKNOWN = 0;
+
+  CONSENT_TYPE_C11N = 1;
 }
 
 enum ApkSource {
