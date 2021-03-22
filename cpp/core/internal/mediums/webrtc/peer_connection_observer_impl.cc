@@ -29,8 +29,11 @@ PeerConnectionObserverImpl::PeerConnectionObserverImpl(
       local_ice_candidate_listener_(std::move(local_ice_candidate_listener)) {}
 
 PeerConnectionObserverImpl::~PeerConnectionObserverImpl() {
-  MutexLock lock(&mutex_);
-  connection_flow_ = nullptr;
+  {
+    MutexLock lock(&mutex_);
+    connection_flow_ = nullptr;
+  }
+  single_threaded_signaling_offloader_.Shutdown();
 }
 
 void PeerConnectionObserverImpl::OnIceCandidate(
@@ -76,13 +79,16 @@ void PeerConnectionObserverImpl::OnIceGatheringChange(
 void PeerConnectionObserverImpl::OnConnectionChange(
     webrtc::PeerConnectionInterface::PeerConnectionState new_state) {
   NEARBY_LOG(INFO, "OnConnectionChange: %d", new_state);
-
-  OffloadFromSignalingThread([this, new_state]() {
-    MutexLock lock(&mutex_);
-    if (connection_flow_) {
-      connection_flow_->ProcessOnPeerConnectionChange(new_state);
-    }
-  });
+  // Only callback into the connection_flow_ if we are not already disconnected.
+  MutexLock lock(&mutex_);
+  if (connection_flow_) {
+    OffloadFromSignalingThread([this, new_state]() {
+      MutexLock lock(&mutex_);
+      if (connection_flow_) {
+        connection_flow_->ProcessOnPeerConnectionChange(new_state);
+      }
+    });
+  }
 }
 
 void PeerConnectionObserverImpl ::OnRenegotiationNeeded() {
