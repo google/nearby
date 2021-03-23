@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_INTERNAL_PAYLOAD_FACTORY_H_
-#define CORE_INTERNAL_INTERNAL_PAYLOAD_FACTORY_H_
+#ifndef _CORE_INTERNAL_INTERNAL_PAYLOAD_FACTORY_H_
+#define _CORE_INTERNAL_INTERNAL_PAYLOAD_FACTORY_H_
 
 #include "core/internal/internal_payload.h"
 #include "core/payload.h"
@@ -35,4 +35,4 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_INTERNAL_PAYLOAD_FACTORY_H_
+#endif  // _CORE_INTERNAL_INTERNAL_PAYLOAD_FACTORY_H_

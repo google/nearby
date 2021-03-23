@@ -25,7 +25,7 @@
 #include "platform/public/logging.h"
 #include "platform/public/mutex.h"
 #include "platform/public/pipe.h"
-#include "absl/memory/memory.h"
+#include "third_party/absl/memory/memory.h"
 
 namespace location {
 namespace nearby {

@@ -41,9 +41,9 @@ cc_library(
     ],
     deps = [
         "//platform/base",
-        "//absl/base:core_headers",
-        "//absl/strings",
-        "//absl/time",
+        "//third_party/absl/base:core_headers",
+        "//third_party/absl/strings",
+        "//third_party/absl/time",
     ],
 )
 
@@ -69,9 +69,9 @@ cc_library(
         "//proto/connections:offline_wire_formats_portable_proto",
         "//platform/base",
         "//platform/base:cancellation_flag",
-        "//absl/strings",
-        "//absl/types:optional",
-        "//webrtc/api:libjingle_peerconnection_api",
+        "//third_party/absl/strings",
+        "//third_party/absl/types:optional",
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
@@ -90,6 +90,6 @@ cc_library(
         ":comm",
         ":types",
         "//platform/base",
-        "//absl/strings",
+        "//third_party/absl/strings",
     ],
 )

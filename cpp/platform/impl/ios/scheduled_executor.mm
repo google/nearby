@@ -19,7 +19,7 @@
 
 #include "platform/api/cancelable.h"
 #include "platform/base/runnable.h"
-#include "absl/time/clock.h"
+#include "third_party/absl/time/clock.h"
 
 namespace location {
 namespace nearby {

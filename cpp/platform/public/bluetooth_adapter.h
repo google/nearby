@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_PUBLIC_BLUETOOTH_ADAPTER_H_
-#define PLATFORM_PUBLIC_BLUETOOTH_ADAPTER_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_BLUETOOTH_ADAPTER_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_BLUETOOTH_ADAPTER_H_
 
 #include <string>
 
 #include "platform/api/bluetooth_adapter.h"
 #include "platform/api/bluetooth_classic.h"
 #include "platform/api/platform.h"
-#include "absl/strings/string_view.h"
+#include "third_party/absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -125,4 +125,4 @@ class BluetoothAdapter final {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_PUBLIC_BLUETOOTH_ADAPTER_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_BLUETOOTH_ADAPTER_H_

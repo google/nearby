@@ -14,9 +14,9 @@
 
 #include "core/internal/mediums/bloom_filter.h"
 
-#include "absl/numeric/int128.h"
-#include "absl/strings/numbers.h"
-#include "smhasher/src/MurmurHash3.h"
+#include "third_party/absl/numeric/int128.h"
+#include "third_party/absl/strings/numbers.h"
+#include "third_party/smhasher/src/MurmurHash3.h"
 
 namespace location {
 namespace nearby {

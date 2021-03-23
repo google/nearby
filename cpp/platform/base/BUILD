@@ -45,12 +45,12 @@ cc_library(
         "//platform/api:__subpackages__",
     ],
     deps = [
-        "//absl/container:flat_hash_map",
-        "//absl/meta:type_traits",
-        "//absl/strings",
-        "//absl/strings:str_format",
-        "//absl/synchronization",
-        "//absl/time",
+        "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/meta:type_traits",
+        "//third_party/absl/strings",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/synchronization",
+        "//third_party/absl/time",
     ],
 )
 
@@ -75,8 +75,8 @@ cc_library(
     deps = [
         ":base",
         "//platform/api:types",
-        "//absl/base:core_headers",
-        "//absl/strings:str_format",
+        "//third_party/absl/base:core_headers",
+        "//third_party/absl/strings:str_format",
     ],
 )
 
@@ -113,8 +113,8 @@ cc_library(
     deps = [
         ":base",
         ":util",
-        "//absl/container:flat_hash_set",
-        "//absl/synchronization",
+        "//third_party/absl/container:flat_hash_set",
+        "//third_party/absl/synchronization",
     ],
 )
 
@@ -137,8 +137,8 @@ cc_library(
         ":logging",
         "//platform/api:comm",
         "//platform/public:types",
-        "//absl/container:flat_hash_map",
-        "//absl/strings",
+        "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/strings",
     ],
 )
 

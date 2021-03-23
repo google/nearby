@@ -29,9 +29,9 @@ cc_library(
         "//platform/public:comm",
         "//platform/public:logging",
         "//platform/public:types",
-        "//absl/strings",
-        "//absl/time",
-        "//absl/types:span",
+        "//third_party/absl/strings",
+        "//third_party/absl/time",
+        "//third_party/absl/types:span",
     ],
 )
 
@@ -58,8 +58,8 @@ cc_library(
         "//platform/public:logging",
         "//platform/public:types",
         "//proto:connections_enums_portable_proto",
-        "//absl/strings",
-        "//absl/types:variant",
+        "//third_party/absl/strings",
+        "//third_party/absl/types:variant",
     ],
 )
 
@@ -85,8 +85,8 @@ cc_test(
         "//platform/public:logging",
         "//platform/public:types",
         "//testing/base/public:gunit_main",
-        "//absl/strings",
-        "//absl/time",
-        "//absl/types:variant",
+        "//third_party/absl/strings",
+        "//third_party/absl/time",
+        "//third_party/absl/types:variant",
     ],
 )

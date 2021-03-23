@@ -28,9 +28,9 @@
 #include "platform/public/system_clock.h"
 #include "securegcm/d2d_connection_context_v1.h"
 #include "securegcm/ukey2_handshake.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/strings/escaping.h"
-#include "absl/types/span.h"
+#include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/absl/strings/escaping.h"
+#include "third_party/absl/types/span.h"
 
 namespace location {
 namespace nearby {

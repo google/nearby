@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_BASE_BASE_MUTEX_LOCK_H_
-#define PLATFORM_BASE_BASE_MUTEX_LOCK_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_BASE_BASE_MUTEX_LOCK_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_BASE_BASE_MUTEX_LOCK_H_
 
 #include "platform/api/mutex.h"
-#include "absl/base/thread_annotations.h"
+#include "third_party/absl/base/thread_annotations.h"
 
 namespace location {
 namespace nearby {
@@ -37,4 +37,4 @@ class ABSL_SCOPED_LOCKABLE BaseMutexLock final {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_BASE_BASE_MUTEX_LOCK_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_BASE_BASE_MUTEX_LOCK_H_

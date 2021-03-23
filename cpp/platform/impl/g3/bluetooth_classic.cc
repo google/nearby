@@ -22,7 +22,7 @@
 #include "platform/base/logging.h"
 #include "platform/base/medium_environment.h"
 #include "platform/impl/g3/bluetooth_adapter.h"
-#include "absl/synchronization/mutex.h"
+#include "third_party/absl/synchronization/mutex.h"
 
 namespace location {
 namespace nearby {

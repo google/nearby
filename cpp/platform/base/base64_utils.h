@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_BASE_BASE64_UTILS_H_
-#define PLATFORM_BASE_BASE64_UTILS_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_BASE_BASE64_UTILS_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_BASE_BASE64_UTILS_H_
 
 #include "platform/base/byte_array.h"
-#include "absl/strings/string_view.h"
+#include "third_party/absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -30,4 +30,4 @@ class Base64Utils {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_BASE_BASE64_UTILS_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_BASE_BASE64_UTILS_H_

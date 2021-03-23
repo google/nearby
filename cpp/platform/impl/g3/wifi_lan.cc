@@ -24,7 +24,7 @@
 #include "platform/base/medium_environment.h"
 #include "platform/base/nsd_service_info.h"
 #include "platform/base/prng.h"
-#include "absl/synchronization/mutex.h"
+#include "third_party/absl/synchronization/mutex.h"
 
 namespace location {
 namespace nearby {

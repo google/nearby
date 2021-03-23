@@ -20,9 +20,9 @@
 #include "platform/base/exception.h"
 #include "platform/public/count_down_latch.h"
 #include "gtest/gtest.h"
-#include "absl/synchronization/mutex.h"
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
+#include "third_party/absl/synchronization/mutex.h"
+#include "third_party/absl/time/clock.h"
+#include "third_party/absl/time/time.h"
 
 namespace location {
 namespace nearby {

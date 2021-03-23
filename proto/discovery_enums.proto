@@ -16,10 +16,15 @@ syntax = "proto2";
 
 package location.nearby.proto;
 
+import "logs/proto/logs_annotations/logs_annotations.proto";
 
 option optimize_for = LITE_RUNTIME;
+option jspb_use_correct_proto2_semantics = false;  // go/jspb-correct-proto2
+option (logs_proto.file_not_used_for_logging_except_enums) = true;
+option java_api_version = 2;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "DiscoveryEnums";
+option go_api_flag = "OPEN_TO_OPAQUE_HYBRID";  // See http://go/go-api-flag.
 
 // NEXT ID: 149
 enum DiscoveryEvent {

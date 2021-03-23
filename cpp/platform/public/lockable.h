@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_PUBLIC_LOCKABLE_H_
-#define PLATFORM_PUBLIC_LOCKABLE_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_LOCKABLE_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_LOCKABLE_H_
 
-#include "absl/base/thread_annotations.h"
+#include "third_party/absl/base/thread_annotations.h"
 
 namespace location {
 namespace nearby {
@@ -48,4 +48,4 @@ class ABSL_SCOPED_LOCKABLE ThreadLockHolder {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_PUBLIC_LOCKABLE_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_LOCKABLE_H_

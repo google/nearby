@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_BASE_MEDIUM_ENVIRONMENT_H_
-#define PLATFORM_BASE_MEDIUM_ENVIRONMENT_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_BASE_MEDIUM_ENVIRONMENT_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_BASE_MEDIUM_ENVIRONMENT_H_
 
 #include <atomic>
 
@@ -25,8 +25,8 @@
 #include "platform/base/listeners.h"
 #include "platform/base/nsd_service_info.h"
 #include "platform/public/single_thread_executor.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/strings/string_view.h"
+#include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -330,4 +330,4 @@ class MediumEnvironment {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_BASE_MEDIUM_ENVIRONMENT_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_BASE_MEDIUM_ENVIRONMENT_H_

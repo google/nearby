@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_CONNECTION_FLOW_H_
-#define CORE_INTERNAL_MEDIUMS_WEBRTC_CONNECTION_FLOW_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_WEBRTC_CONNECTION_FLOW_H_
+#define _CORE_INTERNAL_MEDIUMS_WEBRTC_CONNECTION_FLOW_H_
 
 #include <memory>
 
@@ -25,8 +25,8 @@
 #include "platform/base/runnable.h"
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/webrtc.h"
-#include "webrtc/api/data_channel_interface.h"
-#include "webrtc/api/peer_connection_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/data_channel_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/peer_connection_interface.h"
 
 namespace location {
 namespace nearby {
@@ -173,4 +173,4 @@ class ConnectionFlow {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_CONNECTION_FLOW_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_WEBRTC_CONNECTION_FLOW_H_

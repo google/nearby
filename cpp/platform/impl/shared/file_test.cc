@@ -22,7 +22,7 @@
 #include "file/util/temp_path.h"
 #include "platform/base/byte_array.h"
 #include "gtest/gtest.h"
-#include "absl/strings/string_view.h"
+#include "third_party/absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {

@@ -17,7 +17,7 @@
 #include <cstdlib>
 
 #include "platform/base/base_input_stream.h"
-#include "absl/strings/str_format.h"
+#include "third_party/absl/strings/str_format.h"
 
 namespace location {
 namespace nearby {

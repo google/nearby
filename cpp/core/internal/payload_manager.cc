@@ -26,9 +26,9 @@
 #include "platform/public/mutex_lock.h"
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/system_clock.h"
-#include "absl/memory/memory.h"
-#include "absl/strings/str_cat.h"
-#include "absl/time/time.h"
+#include "third_party/absl/memory/memory.h"
+#include "third_party/absl/strings/str_cat.h"
+#include "third_party/absl/time/time.h"
 
 namespace location {
 namespace nearby {

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_STATUS_H_
-#define CORE_STATUS_H_
+#ifndef _CORE_STATUS_H_
+#define _CORE_STATUS_H_
 
 namespace location {
 namespace nearby {
@@ -58,4 +58,4 @@ inline bool operator!=(const Status& a, const Status& b) {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_STATUS_H_
+#endif  // _CORE_STATUS_H_

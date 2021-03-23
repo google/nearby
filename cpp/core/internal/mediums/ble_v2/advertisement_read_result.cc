@@ -18,8 +18,8 @@
 #include <vector>
 
 #include "platform/public/mutex_lock.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/time/clock.h"
+#include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/absl/time/clock.h"
 
 namespace location {
 namespace nearby {

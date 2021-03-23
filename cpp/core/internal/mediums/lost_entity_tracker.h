@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_LOST_ENTITY_TRACKER_H_
-#define CORE_INTERNAL_MEDIUMS_LOST_ENTITY_TRACKER_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_LOST_ENTITY_TRACKER_H_
+#define _CORE_INTERNAL_MEDIUMS_LOST_ENTITY_TRACKER_H_
 
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
-#include "absl/container/flat_hash_set.h"
+#include "third_party/absl/container/flat_hash_set.h"
 
 namespace location {
 namespace nearby {
@@ -91,4 +91,4 @@ LostEntityTracker<Entity>::ComputeLostEntities() {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_LOST_ENTITY_TRACKER_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_LOST_ENTITY_TRACKER_H_

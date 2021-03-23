@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_LISTENERS_H_
-#define CORE_LISTENERS_H_
+#ifndef _CORE_LISTENERS_H_
+#define _CORE_LISTENERS_H_
 
 #include <cstdint>
 #include <functional>
@@ -194,4 +194,4 @@ struct PayloadListener {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_LISTENERS_H_
+#endif  // _CORE_LISTENERS_H_

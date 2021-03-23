@@ -24,10 +24,10 @@
 #include "platform/base/medium_environment.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
-#include "absl/types/span.h"
+#include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/absl/time/clock.h"
+#include "third_party/absl/time/time.h"
+#include "third_party/absl/types/span.h"
 
 namespace location {
 namespace nearby {

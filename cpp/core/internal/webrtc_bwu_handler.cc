@@ -21,7 +21,7 @@
 #include "core/internal/mediums/webrtc/peer_id.h"
 #include "core/internal/offline_frames.h"
 #include "core/internal/webrtc_endpoint_channel.h"
-#include "absl/functional/bind_front.h"
+#include "third_party/absl/functional/bind_front.h"
 
 namespace location {
 namespace nearby {

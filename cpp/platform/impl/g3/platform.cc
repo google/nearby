@@ -47,10 +47,10 @@
 #include "platform/impl/g3/webrtc.h"
 #include "platform/impl/g3/wifi_lan.h"
 #include "platform/impl/shared/file.h"
-#include "absl/base/integral_types.h"
-#include "absl/memory/memory.h"
-#include "absl/strings/str_cat.h"
-#include "absl/time/time.h"
+#include "third_party/absl/base/integral_types.h"
+#include "third_party/absl/memory/memory.h"
+#include "third_party/absl/strings/str_cat.h"
+#include "third_party/absl/time/time.h"
 
 namespace location {
 namespace nearby {

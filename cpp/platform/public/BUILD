@@ -57,8 +57,8 @@ cc_library(
         "//platform/base",
         "//platform/base:logging",
         "//platform/base:util",
-        "//absl/base:core_headers",
-        "//absl/time",
+        "//third_party/absl/base:core_headers",
+        "//third_party/absl/time",
     ],
 )
 
@@ -89,9 +89,9 @@ cc_library(
         "//platform/api:platform",
         "//platform/base",
         "//platform/base:cancellation_flag",
-        "//absl/container:flat_hash_map",
-        "//absl/strings",
-        "//webrtc/api:libjingle_peerconnection_api",
+        "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/strings",
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
@@ -141,9 +141,9 @@ cc_test(
         "//platform/base:test_util",
         "//platform/impl/g3",  # build_cleaner: keep
         "//testing/base/public:gunit_main",
-        "//absl/strings",
-        "//absl/synchronization",
-        "//absl/time",
+        "//third_party/absl/strings",
+        "//third_party/absl/synchronization",
+        "//third_party/absl/time",
     ],
 )
 
@@ -152,7 +152,7 @@ cc_fake_binary(
     srcs = ["thread_check_nocompile.cc"],
     deps = [
         ":types",
-        "//absl/time",
+        "//third_party/absl/time",
     ],
 )
 

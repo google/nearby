@@ -23,7 +23,7 @@
 #include "proto/connections_enums.pb.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/time/clock.h"
+#include "third_party/absl/time/clock.h"
 
 namespace location {
 namespace nearby {

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_BASE_PCP_HANDLER_H_
-#define CORE_INTERNAL_BASE_PCP_HANDLER_H_
+#ifndef _CORE_INTERNAL_BASE_PCP_HANDLER_H_
+#define _CORE_INTERNAL_BASE_PCP_HANDLER_H_
 
 #include <cstdint>
 #include <memory>
@@ -46,9 +46,9 @@
 #include "proto/connections_enums.pb.h"
 #include "securegcm/d2d_connection_context_v1.h"
 #include "securegcm/ukey2_handshake.h"
-#include "absl/container/btree_map.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/time/time.h"
+#include "third_party/absl/container/btree_map.h"
+#include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/time/time.h"
 
 namespace location {
 namespace nearby {
@@ -87,7 +87,7 @@ class BasePcpHandler : public PcpHandler,
   // Starts advertising. Once successfully started, changes ClientProxy's state.
   // Notifies ConnectionListener (info.listener) in case of any event.
   // See
-  // cpp/core/listeners.h
+  // cpp/core/listeners.h;l=78
   Status StartAdvertising(ClientProxy* client, const std::string& service_id,
                           const ConnectionOptions& options,
                           const ConnectionRequestInfo& info) override;
@@ -517,4 +517,4 @@ class BasePcpHandler : public PcpHandler,
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_BASE_PCP_HANDLER_H_
+#endif  // _CORE_INTERNAL_BASE_PCP_HANDLER_H_

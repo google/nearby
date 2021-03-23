@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_PUBLIC_THREAD_CHECK_CALLABLE_H_
-#define PLATFORM_PUBLIC_THREAD_CHECK_CALLABLE_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_THREAD_CHECK_CALLABLE_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_THREAD_CHECK_CALLABLE_H_
 
 #include "platform/base/callable.h"
 #include "platform/public/lockable.h"
-#include "absl/base/thread_annotations.h"
+#include "third_party/absl/base/thread_annotations.h"
 
 namespace location {
 namespace nearby {
@@ -43,4 +43,4 @@ class ThreadCheckCallable {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_PUBLIC_THREAD_CHECK_CALLABLE_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_THREAD_CHECK_CALLABLE_H_

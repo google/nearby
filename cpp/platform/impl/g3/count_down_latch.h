@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_G3_COUNT_DOWN_LATCH_H_
-#define PLATFORM_IMPL_G3_COUNT_DOWN_LATCH_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_IMPL_G3_COUNT_DOWN_LATCH_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_IMPL_G3_COUNT_DOWN_LATCH_H_
 
 #include "platform/api/count_down_latch.h"
-#include "absl/base/thread_annotations.h"
-#include "absl/synchronization/mutex.h"
-#include "absl/time/clock.h"
+#include "third_party/absl/base/thread_annotations.h"
+#include "third_party/absl/synchronization/mutex.h"
+#include "third_party/absl/time/clock.h"
 
 namespace location {
 namespace nearby {
@@ -70,4 +70,4 @@ class CountDownLatch final : public api::CountDownLatch {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_G3_COUNT_DOWN_LATCH_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_IMPL_G3_COUNT_DOWN_LATCH_H_

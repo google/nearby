@@ -23,11 +23,11 @@
 #include "platform/public/webrtc.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/time/time.h"
-#include "webrtc/api/data_channel_interface.h"
-#include "webrtc/api/jsep.h"
-#include "webrtc/api/rtc_error.h"
-#include "webrtc/api/scoped_refptr.h"
+#include "third_party/absl/time/time.h"
+#include "third_party/webrtc/files/stable/webrtc/api/data_channel_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/jsep.h"
+#include "third_party/webrtc/files/stable/webrtc/api/rtc_error.h"
+#include "third_party/webrtc/files/stable/webrtc/api/scoped_refptr.h"
 
 namespace location {
 namespace nearby {

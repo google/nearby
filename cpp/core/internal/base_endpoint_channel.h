@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_BASE_ENDPOINT_CHANNEL_H_
-#define CORE_INTERNAL_BASE_ENDPOINT_CHANNEL_H_
+#ifndef _CORE_INTERNAL_BASE_ENDPOINT_CHANNEL_H_
+#define _CORE_INTERNAL_BASE_ENDPOINT_CHANNEL_H_
 
 #include <cstdint>
 #include <memory>
@@ -29,7 +29,7 @@
 #include "platform/public/system_clock.h"
 #include "proto/connections_enums.pb.h"
 #include "securegcm/d2d_connection_context_v1.h"
-#include "absl/base/thread_annotations.h"
+#include "third_party/absl/base/thread_annotations.h"
 
 namespace location {
 namespace nearby {
@@ -135,4 +135,4 @@ class BaseEndpointChannel : public EndpointChannel {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_BASE_ENDPOINT_CHANNEL_H_
+#endif  // _CORE_INTERNAL_BASE_ENDPOINT_CHANNEL_H_

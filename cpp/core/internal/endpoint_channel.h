@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_ENDPOINT_CHANNEL_H_
-#define CORE_INTERNAL_ENDPOINT_CHANNEL_H_
+#ifndef _CORE_INTERNAL_ENDPOINT_CHANNEL_H_
+#define _CORE_INTERNAL_ENDPOINT_CHANNEL_H_
 
 #include <cstdint>
 #include <string>
@@ -23,7 +23,7 @@
 #include "platform/public/mutex.h"
 #include "proto/connections_enums.pb.h"
 #include "securegcm/d2d_connection_context_v1.h"
-#include "absl/time/clock.h"
+#include "third_party/absl/time/clock.h"
 
 namespace location {
 namespace nearby {
@@ -94,4 +94,4 @@ inline bool operator!=(const EndpointChannel& lhs, const EndpointChannel& rhs) {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_ENDPOINT_CHANNEL_H_
+#endif  // _CORE_INTERNAL_ENDPOINT_CHANNEL_H_

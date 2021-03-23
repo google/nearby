@@ -302,6 +302,11 @@ message LocationHint {
   optional LocationStandard.Format format = 2;
 }
 
+// nearby:google3-begin
+// Copy from
+// https://source.corp.google.com/piper///depot/google3/media/webrtc/server/tachyon/proto/tachyon_enums.proto;rcl=334271491;l=10242
+// These numbers match must match the original definition.
+// nearby:google3-end
 message LocationStandard {
   enum Format {
     UNKNOWN = 0;

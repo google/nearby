@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_OFFLINE_FRAMES_VALIDATOR_H_
-#define CORE_INTERNAL_OFFLINE_FRAMES_VALIDATOR_H_
+#ifndef _CORE_INTERNAL_OFFLINE_FRAMES_VALIDATOR_H_
+#define _CORE_INTERNAL_OFFLINE_FRAMES_VALIDATOR_H_
 
 #include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/base/exception.h"
@@ -30,4 +30,4 @@ Exception EnsureValidOfflineFrame(const OfflineFrame& offline_frame);
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_OFFLINE_FRAMES_VALIDATOR_H_
+#endif  // _CORE_INTERNAL_OFFLINE_FRAMES_VALIDATOR_H_

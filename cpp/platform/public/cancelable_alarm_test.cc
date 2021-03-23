@@ -18,7 +18,7 @@
 #include "platform/public/scheduled_executor.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/time/time.h"
+#include "third_party/absl/time/time.h"
 
 namespace location {
 namespace nearby {

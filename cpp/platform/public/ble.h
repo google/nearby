@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_PUBLIC_BLE_H_
-#define PLATFORM_PUBLIC_BLE_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_BLE_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_BLE_H_
 
 #include "platform/api/ble.h"
 #include "platform/api/platform.h"
@@ -23,7 +23,7 @@
 #include "platform/base/output_stream.h"
 #include "platform/public/bluetooth_adapter.h"
 #include "platform/public/mutex.h"
-#include "absl/container/flat_hash_map.h"
+#include "third_party/absl/container/flat_hash_map.h"
 
 namespace location {
 namespace nearby {
@@ -163,4 +163,4 @@ class BleMedium final {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_PUBLIC_BLE_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_BLE_H_

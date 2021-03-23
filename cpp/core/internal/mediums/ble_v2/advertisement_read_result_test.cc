@@ -15,7 +15,7 @@
 #include "core/internal/mediums/ble_v2/advertisement_read_result.h"
 
 #include "gtest/gtest.h"
-#include "absl/time/clock.h"
+#include "third_party/absl/time/clock.h"
 
 namespace location {
 namespace nearby {

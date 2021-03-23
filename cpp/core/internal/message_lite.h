@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MESSAGE_LITE_H_
-#define CORE_INTERNAL_MESSAGE_LITE_H_
+#ifndef _CORE_INTERNAL_MESSAGE_LITE_H_
+#define _CORE_INTERNAL_MESSAGE_LITE_H_
 
 #include "google/protobuf/message_lite.h"
 
-#endif  // CORE_INTERNAL_MESSAGE_LITE_H_
+#endif  // _CORE_INTERNAL_MESSAGE_LITE_H_

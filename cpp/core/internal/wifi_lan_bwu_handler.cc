@@ -22,7 +22,7 @@
 #include "core/internal/offline_frames.h"
 #include "core/internal/wifi_lan_endpoint_channel.h"
 #include "platform/public/wifi_lan.h"
-#include "absl/functional/bind_front.h"
+#include "third_party/absl/functional/bind_front.h"
 
 namespace location {
 namespace nearby {

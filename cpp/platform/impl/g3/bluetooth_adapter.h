@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_G3_BLUETOOTH_ADAPTER_H_
-#define PLATFORM_IMPL_G3_BLUETOOTH_ADAPTER_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_IMPL_G3_BLUETOOTH_ADAPTER_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_IMPL_G3_BLUETOOTH_ADAPTER_H_
 
 #include <string>
 
@@ -21,9 +21,9 @@
 #include "platform/api/bluetooth_adapter.h"
 #include "platform/api/bluetooth_classic.h"
 #include "platform/impl/g3/single_thread_executor.h"
-#include "absl/base/thread_annotations.h"
-#include "absl/strings/string_view.h"
-#include "absl/synchronization/mutex.h"
+#include "third_party/absl/base/thread_annotations.h"
+#include "third_party/absl/strings/string_view.h"
+#include "third_party/absl/synchronization/mutex.h"
 
 namespace location {
 namespace nearby {
@@ -139,4 +139,4 @@ class BluetoothAdapter : public api::BluetoothAdapter {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_G3_BLUETOOTH_ADAPTER_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_IMPL_G3_BLUETOOTH_ADAPTER_H_

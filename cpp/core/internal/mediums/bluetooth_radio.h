@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_BLUETOOTH_RADIO_H_
-#define CORE_INTERNAL_MEDIUMS_BLUETOOTH_RADIO_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_BLUETOOTH_RADIO_H_
+#define _CORE_INTERNAL_MEDIUMS_BLUETOOTH_RADIO_H_
 
 #include <cstdint>
 
 #include "platform/public/atomic_boolean.h"
 #include "platform/public/bluetooth_adapter.h"
-#include "absl/time/clock.h"
+#include "third_party/absl/time/clock.h"
 
 namespace location {
 namespace nearby {
@@ -91,4 +91,4 @@ class BluetoothRadio {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_BLUETOOTH_RADIO_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_BLUETOOTH_RADIO_H_

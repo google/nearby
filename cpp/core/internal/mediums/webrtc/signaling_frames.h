@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_SIGNALING_FRAMES_H_
-#define CORE_INTERNAL_MEDIUMS_WEBRTC_SIGNALING_FRAMES_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_WEBRTC_SIGNALING_FRAMES_H_
+#define _CORE_INTERNAL_MEDIUMS_WEBRTC_SIGNALING_FRAMES_H_
 
 #include <vector>
 
 #include "core/internal/mediums/webrtc/peer_id.h"
 #include "platform/base/byte_array.h"
 #include "location/nearby/mediums/proto/web_rtc_signaling_frames.pb.h"
-#include "webrtc/api/peer_connection_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/peer_connection_interface.h"
 
 namespace location {
 namespace nearby {
@@ -55,4 +55,4 @@ std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> DecodeIceCandidates(
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_SIGNALING_FRAMES_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_WEBRTC_SIGNALING_FRAMES_H_

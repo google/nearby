@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_PAYLOAD_MANAGER_H_
-#define CORE_INTERNAL_PAYLOAD_MANAGER_H_
+#ifndef _CORE_INTERNAL_PAYLOAD_MANAGER_H_
+#define _CORE_INTERNAL_PAYLOAD_MANAGER_H_
 
 #include <cstdint>
 #include <memory>
@@ -33,7 +33,7 @@
 #include "platform/public/count_down_latch.h"
 #include "platform/public/mutex.h"
 #include "proto/connections_enums.pb.h"
-#include "absl/container/flat_hash_map.h"
+#include "third_party/absl/container/flat_hash_map.h"
 
 namespace location {
 namespace nearby {
@@ -302,4 +302,4 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_PAYLOAD_MANAGER_H_
+#endif  // _CORE_INTERNAL_PAYLOAD_MANAGER_H_

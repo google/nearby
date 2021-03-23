@@ -27,8 +27,8 @@
 #include "platform/base/types.h"
 #include "platform/public/crypto.h"
 #include "proto/connections_enums.pb.h"
-#include "absl/functional/bind_front.h"
-#include "absl/strings/escaping.h"
+#include "third_party/absl/functional/bind_front.h"
+#include "third_party/absl/strings/escaping.h"
 
 namespace location {
 namespace nearby {

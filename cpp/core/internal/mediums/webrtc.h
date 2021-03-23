@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_H_
-#define CORE_INTERNAL_MEDIUMS_WEBRTC_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_WEBRTC_H_
+#define _CORE_INTERNAL_MEDIUMS_WEBRTC_H_
 
 #include <cstddef>
 #include <memory>
@@ -39,11 +39,11 @@
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/webrtc.h"
 #include "location/nearby/mediums/proto/web_rtc_signaling_frames.pb.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
-#include "webrtc/api/data_channel_interface.h"
-#include "webrtc/api/jsep.h"
-#include "webrtc/api/scoped_refptr.h"
+#include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/webrtc/files/stable/webrtc/api/data_channel_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/jsep.h"
+#include "third_party/webrtc/files/stable/webrtc/api/scoped_refptr.h"
 
 namespace location {
 namespace nearby {
@@ -277,4 +277,4 @@ class WebRtc {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_WEBRTC_H_

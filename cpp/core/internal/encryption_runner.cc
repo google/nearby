@@ -24,9 +24,9 @@
 #include "platform/public/cancelable_alarm.h"
 #include "platform/public/logging.h"
 #include "securegcm/ukey2_handshake.h"
-#include "absl/strings/ascii.h"
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
+#include "third_party/absl/strings/ascii.h"
+#include "third_party/absl/time/clock.h"
+#include "third_party/absl/time/time.h"
 
 namespace location {
 namespace nearby {

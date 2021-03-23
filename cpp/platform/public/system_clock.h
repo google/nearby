@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_PUBLIC_SYSTEM_CLOCK_H_
-#define PLATFORM_PUBLIC_SYSTEM_CLOCK_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_SYSTEM_CLOCK_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_SYSTEM_CLOCK_H_
 
 #include "platform/api/system_clock.h"
 
-#endif  // PLATFORM_PUBLIC_SYSTEM_CLOCK_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_SYSTEM_CLOCK_H_

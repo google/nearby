@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_OFFLINE_SIMULATION_USER_H_
-#define CORE_INTERNAL_OFFLINE_SIMULATION_USER_H_
+#ifndef _CORE_INTERNAL_OFFLINE_SIMULATION_USER_H_
+#define _CORE_INTERNAL_OFFLINE_SIMULATION_USER_H_
 
 #include <string>
 
@@ -25,7 +25,7 @@
 #include "platform/public/count_down_latch.h"
 #include "platform/public/future.h"
 #include "gtest/gtest.h"
-#include "absl/strings/string_view.h"
+#include "third_party/absl/strings/string_view.h"
 
 // Test-only class to help run end-to-end simulations for nearby connections
 // protocol.
@@ -191,4 +191,4 @@ class OfflineSimulationUser {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_OFFLINE_SIMULATION_USER_H_
+#endif  // _CORE_INTERNAL_OFFLINE_SIMULATION_USER_H_

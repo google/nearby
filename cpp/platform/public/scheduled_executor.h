@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_PUBLIC_SCHEDULED_EXECUTOR_H_
-#define PLATFORM_PUBLIC_SCHEDULED_EXECUTOR_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_SCHEDULED_EXECUTOR_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_SCHEDULED_EXECUTOR_H_
 
 #include <cstdint>
 #include <functional>
@@ -29,8 +29,8 @@
 #include "platform/public/mutex_lock.h"
 #include "platform/public/thread_check_callable.h"
 #include "platform/public/thread_check_runnable.h"
-#include "absl/base/thread_annotations.h"
-#include "absl/time/time.h"
+#include "third_party/absl/base/thread_annotations.h"
+#include "third_party/absl/time/time.h"
 
 namespace location {
 namespace nearby {
@@ -103,4 +103,4 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_PUBLIC_SCHEDULED_EXECUTOR_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_SCHEDULED_EXECUTOR_H_

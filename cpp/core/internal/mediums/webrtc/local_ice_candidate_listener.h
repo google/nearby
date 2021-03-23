@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_LOCAL_ICE_CANDIDATE_LISTENER_H_
-#define CORE_INTERNAL_MEDIUMS_WEBRTC_LOCAL_ICE_CANDIDATE_LISTENER_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_WEBRTC_LOCAL_ICE_CANDIDATE_LISTENER_H_
+#define _CORE_INTERNAL_MEDIUMS_WEBRTC_LOCAL_ICE_CANDIDATE_LISTENER_H_
 
 #include "core/listeners.h"
-#include "webrtc/api/peer_connection_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/peer_connection_interface.h"
 
 namespace location {
 namespace nearby {
@@ -36,4 +36,4 @@ struct LocalIceCandidateListener {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_LOCAL_ICE_CANDIDATE_LISTENER_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_WEBRTC_LOCAL_ICE_CANDIDATE_LISTENER_H_

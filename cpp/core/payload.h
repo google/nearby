@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_PAYLOAD_H_
-#define CORE_PAYLOAD_H_
+#ifndef _CORE_PAYLOAD_H_
+#define _CORE_PAYLOAD_H_
 
 #include <cstdint>
 #include <functional>
@@ -25,7 +25,7 @@
 #include "platform/base/payload_id.h"
 #include "platform/base/prng.h"
 #include "platform/public/file.h"
-#include "absl/types/variant.h"
+#include "third_party/absl/types/variant.h"
 
 namespace location {
 namespace nearby {
@@ -106,4 +106,4 @@ class Payload {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_PAYLOAD_H_
+#endif  // _CORE_PAYLOAD_H_

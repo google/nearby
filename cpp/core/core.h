@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_CORE_H_
-#define CORE_CORE_H_
+#ifndef _CORE_CORE_H_
+#define _CORE_CORE_H_
 
 #include <string>
 
@@ -24,8 +24,8 @@
 #include "core/listeners.h"
 #include "core/options.h"
 #include "core/params.h"
-#include "absl/strings/string_view.h"
-#include "absl/types/span.h"
+#include "third_party/absl/strings/string_view.h"
+#include "third_party/absl/types/span.h"
 
 namespace location {
 namespace nearby {
@@ -244,4 +244,4 @@ class Core {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_CORE_H_
+#endif  // _CORE_CORE_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_INTERNAL_PAYLOAD_H_
-#define CORE_INTERNAL_INTERNAL_PAYLOAD_H_
+#ifndef _CORE_INTERNAL_INTERNAL_PAYLOAD_H_
+#define _CORE_INTERNAL_INTERNAL_PAYLOAD_H_
 
 #include <cstdint>
 
@@ -96,4 +96,4 @@ class InternalPayload {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_INTERNAL_PAYLOAD_H_
+#endif  // _CORE_INTERNAL_INTERNAL_PAYLOAD_H_

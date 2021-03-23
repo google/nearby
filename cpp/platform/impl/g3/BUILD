@@ -40,9 +40,9 @@ cc_library(
         "//platform/base",
         "//platform/base:util",
         "//platform/impl/shared:posix_mutex",
-        "//absl/base:core_headers",
-        "//absl/synchronization",
-        "//absl/time",
+        "//third_party/absl/base:core_headers",
+        "//third_party/absl/synchronization",
+        "//third_party/absl/time",
         "//thread",
     ],
 )
@@ -72,14 +72,14 @@ cc_library(
         "//platform/base:cancellation_flag",
         "//platform/base:logging",
         "//platform/base:test_util",
-        "//absl/base:core_headers",
-        "//absl/container:flat_hash_map",
-        "//absl/container:flat_hash_set",
-        "//absl/strings",
-        "//absl/synchronization",
-        "//webrtc/api:create_peerconnection_factory",  #buildcleaner: keep
-        "//webrtc/api:libjingle_peerconnection_api",
-        "//webrtc/api/task_queue:default_task_queue_factory",
+        "//third_party/absl/base:core_headers",
+        "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/container:flat_hash_set",
+        "//third_party/absl/strings",
+        "//third_party/absl/synchronization",
+        "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  #buildcleaner: keep
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//third_party/webrtc/files/stable/webrtc/api/task_queue:default_task_queue_factory",
     ],
 )
 
@@ -93,8 +93,8 @@ cc_library(
     deps = [
         "//platform/api:types",
         "//platform/base",
-        "//absl/strings",
-        "//openssl:crypto",
+        "//third_party/absl/strings",
+        "//third_party/openssl:crypto",
     ],
 )
 
@@ -117,9 +117,9 @@ cc_library(
         "//platform/api:types",
         "//platform/base:test_util",
         "//platform/impl/shared:file",
-        "//absl/base:core_headers",
-        "//absl/memory",
-        "//absl/strings",
-        "//absl/time",
+        "//third_party/absl/base:core_headers",
+        "//third_party/absl/memory",
+        "//third_party/absl/strings",
+        "//third_party/absl/time",
     ],
 )

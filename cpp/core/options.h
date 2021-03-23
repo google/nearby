@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_OPTIONS_H_
-#define CORE_OPTIONS_H_
+#ifndef _CORE_OPTIONS_H_
+#define _CORE_OPTIONS_H_
 
 #include "core/strategy.h"
 #include "platform/base/byte_array.h"
@@ -163,4 +163,4 @@ struct OutOfBandConnectionMetadata {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_OPTIONS_H_
+#endif  // _CORE_OPTIONS_H_

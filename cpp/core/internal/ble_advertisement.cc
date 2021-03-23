@@ -19,7 +19,7 @@
 #include "core/internal/base_pcp_handler.h"
 #include "platform/base/base_input_stream.h"
 #include "platform/public/logging.h"
-#include "absl/strings/escaping.h"
+#include "third_party/absl/strings/escaping.h"
 
 namespace location {
 namespace nearby {

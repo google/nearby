@@ -14,8 +14,8 @@
 
 #include "platform/base/bluetooth_utils.h"
 
-#include "absl/strings/escaping.h"
-#include "absl/strings/str_format.h"
+#include "third_party/absl/strings/escaping.h"
+#include "third_party/absl/strings/str_format.h"
 
 namespace location {
 namespace nearby {

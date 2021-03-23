@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_PCP_HANDLER_H_
-#define CORE_INTERNAL_PCP_HANDLER_H_
+#ifndef _CORE_INTERNAL_PCP_HANDLER_H_
+#define _CORE_INTERNAL_PCP_HANDLER_H_
 
 #include <vector>
 
@@ -67,7 +67,7 @@ class PcpHandler {
   // start advertising, we'll change the ClientProxy's state.
   // ConnectionListener (info.listener) will be notified in case of any event.
   // See
-  // cpp/core/listeners.h
+  // cpp/core/listeners.h;bpv=1;bpt=1;l=71?gsn=ConnectionListener
   virtual Status StartAdvertising(ClientProxy* client,
                                   const std::string& service_id,
                                   const ConnectionOptions& options,
@@ -120,4 +120,4 @@ class PcpHandler {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_PCP_HANDLER_H_
+#endif  // _CORE_INTERNAL_PCP_HANDLER_H_

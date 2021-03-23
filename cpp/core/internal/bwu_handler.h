@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_BWU_HANDLER_H_
-#define CORE_INTERNAL_BWU_HANDLER_H_
+#ifndef _CORE_INTERNAL_BWU_HANDLER_H_
+#define _CORE_INTERNAL_BWU_HANDLER_H_
 
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel.h"
@@ -87,4 +87,4 @@ class BwuHandler {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_BWU_HANDLER_H_
+#endif  // _CORE_INTERNAL_BWU_HANDLER_H_

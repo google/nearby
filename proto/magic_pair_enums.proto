@@ -16,11 +16,15 @@ syntax = "proto2";
 
 package location.nearby.proto;
 
+import "logs/proto/logs_annotations/logs_annotations.proto";
 
 option optimize_for = LITE_RUNTIME;
+option (logs_proto.file_not_used_for_logging_except_enums) = true;
+option java_api_version = 2;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "MagicPairEnums";
 option objc_class_prefix = "GNCP";
+option go_api_flag = "OPEN_TO_OPAQUE_HYBRID";  // See http://go/go-api-flag.
 
 // Enums related to logged events. For event codes, see NearbyEventCodes.
 message MagicPairEvent {

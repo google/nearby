@@ -26,8 +26,8 @@
 #include "platform/base/feature_flags.h"
 #include "platform/public/count_down_latch.h"
 #include "proto/connections_enums.pb.h"
-#include "absl/functional/bind_front.h"
-#include "absl/time/time.h"
+#include "third_party/absl/functional/bind_front.h"
+#include "third_party/absl/time/time.h"
 
 namespace location {
 namespace nearby {

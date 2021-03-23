@@ -17,8 +17,8 @@
 #include <sstream>
 
 #include "core/internal/mediums/utils.h"
-#include "absl/strings/ascii.h"
-#include "absl/strings/escaping.h"
+#include "third_party/absl/strings/ascii.h"
+#include "third_party/absl/strings/escaping.h"
 
 namespace location {
 namespace nearby {

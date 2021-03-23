@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_SESSION_DESCRIPTION_WRAPPER_H_
-#define CORE_INTERNAL_MEDIUMS_WEBRTC_SESSION_DESCRIPTION_WRAPPER_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_WEBRTC_SESSION_DESCRIPTION_WRAPPER_H_
+#define _CORE_INTERNAL_MEDIUMS_WEBRTC_SESSION_DESCRIPTION_WRAPPER_H_
 
-#include "webrtc/api/peer_connection_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/peer_connection_interface.h"
 
 // Wrapper object around SessionDescriptionInterface*.
 // This object owns the SessionDescriptionInterface* unless Release() has been
@@ -61,4 +61,4 @@ class SessionDescriptionWrapper {
   std::unique_ptr<webrtc::SessionDescriptionInterface> impl_;
 };
 
-#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_SESSION_DESCRIPTION_WRAPPER_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_WEBRTC_SESSION_DESCRIPTION_WRAPPER_H_

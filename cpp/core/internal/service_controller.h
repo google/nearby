@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_SERVICE_CONTROLLER_H_
-#define CORE_INTERNAL_SERVICE_CONTROLLER_H_
+#ifndef _CORE_INTERNAL_SERVICE_CONTROLLER_H_
+#define _CORE_INTERNAL_SERVICE_CONTROLLER_H_
 
 #include <cstdint>
 #include <string>
@@ -99,4 +99,4 @@ class ServiceController {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_SERVICE_CONTROLLER_H_
+#endif  // _CORE_INTERNAL_SERVICE_CONTROLLER_H_

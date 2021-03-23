@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_IOS_LOG_MESSAGE_H_
-#define PLATFORM_IMPL_IOS_LOG_MESSAGE_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_IMPL_IOS_LOG_MESSAGE_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_IMPL_IOS_LOG_MESSAGE_H_
 
 #include "base/logging.h"
 #include "platform/api/log_message.h"
@@ -39,4 +39,4 @@ class LogMessage : public api::LogMessage {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_IOS_LOG_MESSAGE_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_IMPL_IOS_LOG_MESSAGE_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_ID_H_
-#define CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_ID_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_ID_H_
+#define _CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_ID_H_
 
 #include <memory>
 #include <string>
@@ -49,4 +49,4 @@ class PeerId {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_ID_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_ID_H_

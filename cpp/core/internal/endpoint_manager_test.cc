@@ -29,9 +29,9 @@
 #include "proto/connections_enums.pb.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/synchronization/mutex.h"
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
+#include "third_party/absl/synchronization/mutex.h"
+#include "third_party/absl/time/clock.h"
+#include "third_party/absl/time/time.h"
 
 namespace location {
 namespace nearby {

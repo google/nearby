@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_SIMULATION_USER_H_
-#define CORE_INTERNAL_SIMULATION_USER_H_
+#ifndef _CORE_INTERNAL_SIMULATION_USER_H_
+#define _CORE_INTERNAL_SIMULATION_USER_H_
 
 #include <string>
 
@@ -161,4 +161,4 @@ class SimulationUser {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_SIMULATION_USER_H_
+#endif  // _CORE_INTERNAL_SIMULATION_USER_H_

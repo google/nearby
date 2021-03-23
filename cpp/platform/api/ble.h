@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_API_BLE_H_
-#define PLATFORM_API_BLE_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_API_BLE_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_API_BLE_H_
 
 #include "platform/api/bluetooth_classic.h"
 #include "platform/base/byte_array.h"
@@ -122,4 +122,4 @@ class BleMedium {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_API_BLE_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_API_BLE_H_

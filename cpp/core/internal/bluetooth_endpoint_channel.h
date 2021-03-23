@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_BLUETOOTH_ENDPOINT_CHANNEL_H_
-#define CORE_INTERNAL_BLUETOOTH_ENDPOINT_CHANNEL_H_
+#ifndef _CORE_INTERNAL_BLUETOOTH_ENDPOINT_CHANNEL_H_
+#define _CORE_INTERNAL_BLUETOOTH_ENDPOINT_CHANNEL_H_
 
 #include <string>
 
@@ -47,4 +47,4 @@ class BluetoothEndpointChannel final : public BaseEndpointChannel {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_BLUETOOTH_ENDPOINT_CHANNEL_H_
+#endif  // _CORE_INTERNAL_BLUETOOTH_ENDPOINT_CHANNEL_H_

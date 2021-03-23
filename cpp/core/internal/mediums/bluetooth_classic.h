@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_BLUETOOTH_CLASSIC_H_
-#define CORE_INTERNAL_MEDIUMS_BLUETOOTH_CLASSIC_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_BLUETOOTH_CLASSIC_H_
+#define _CORE_INTERNAL_MEDIUMS_BLUETOOTH_CLASSIC_H_
 
 #include <cstdint>
 #include <string>
@@ -26,7 +26,7 @@
 #include "platform/public/bluetooth_classic.h"
 #include "platform/public/multi_thread_executor.h"
 #include "platform/public/mutex.h"
-#include "absl/container/flat_hash_map.h"
+#include "third_party/absl/container/flat_hash_map.h"
 
 namespace location {
 namespace nearby {
@@ -207,4 +207,4 @@ class BluetoothClassic {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_BLUETOOTH_CLASSIC_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_BLUETOOTH_CLASSIC_H_

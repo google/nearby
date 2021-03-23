@@ -18,7 +18,7 @@
 #include "platform/base/byte_array.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/system_clock.h"
-#include "absl/functional/bind_front.h"
+#include "third_party/absl/functional/bind_front.h"
 
 namespace location {
 namespace nearby {

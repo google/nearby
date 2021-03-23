@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_P2P_POINT_TO_POINT_PCP_HANDLER_H_
-#define CORE_INTERNAL_P2P_POINT_TO_POINT_PCP_HANDLER_H_
+#ifndef _CORE_INTERNAL_P2P_POINT_TO_POINT_PCP_HANDLER_H_
+#define _CORE_INTERNAL_P2P_POINT_TO_POINT_PCP_HANDLER_H_
 
 #include "core/internal/endpoint_channel_manager.h"
 #include "core/internal/endpoint_manager.h"
@@ -52,4 +52,4 @@ class P2pPointToPointPcpHandler : public P2pStarPcpHandler {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_P2P_POINT_TO_POINT_PCP_HANDLER_H_
+#endif  // _CORE_INTERNAL_P2P_POINT_TO_POINT_PCP_HANDLER_H_

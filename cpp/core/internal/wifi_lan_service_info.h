@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_WIFI_LAN_SERVICE_INFO_H_
-#define CORE_INTERNAL_WIFI_LAN_SERVICE_INFO_H_
+#ifndef _CORE_INTERNAL_WIFI_LAN_SERVICE_INFO_H_
+#define _CORE_INTERNAL_WIFI_LAN_SERVICE_INFO_H_
 
 #include <cstdint>
 
@@ -21,7 +21,7 @@
 #include "core/internal/pcp.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/nsd_service_info.h"
-#include "absl/strings/string_view.h"
+#include "third_party/absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -95,4 +95,4 @@ class WifiLanServiceInfo {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_WIFI_LAN_SERVICE_INFO_H_
+#endif  // _CORE_INTERNAL_WIFI_LAN_SERVICE_INFO_H_

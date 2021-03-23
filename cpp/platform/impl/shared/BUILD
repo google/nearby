@@ -55,7 +55,7 @@ cc_library(
     deps = [
         "//platform/api:types",
         "//platform/base",
-        "//absl/strings",
+        "//third_party/absl/strings",
     ],
 )
 
@@ -67,6 +67,6 @@ cc_test(
         "//file/util:temp_path",
         "//platform/base",
         "//testing/base/public:gunit_main",
-        "//absl/strings",
+        "//third_party/absl/strings",
     ],
 )

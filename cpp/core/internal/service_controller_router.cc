@@ -26,8 +26,8 @@
 #include "core/payload.h"
 #include "platform/base/feature_flags.h"
 #include "platform/public/logging.h"
-#include "absl/memory/memory.h"
-#include "absl/time/clock.h"
+#include "third_party/absl/memory/memory.h"
+#include "third_party/absl/time/clock.h"
 
 namespace location {
 namespace nearby {

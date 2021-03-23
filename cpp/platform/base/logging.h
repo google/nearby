@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_BASE_LOGGING_H_
-#define PLATFORM_BASE_LOGGING_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_BASE_LOGGING_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_BASE_LOGGING_H_
 
 #include "platform/api/log_message.h"
 #include "platform/api/platform.h"
@@ -79,4 +79,4 @@ class LogMessageVoidify {
   NEARBY_LOG_IS_ON(severity)      \
   ? NEARBY_LOG_MESSAGE(severity)->Print(__VA_ARGS__) : (void)0
 
-#endif  // PLATFORM_BASE_LOGGING_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_BASE_LOGGING_H_

@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_BLUETOOTH_DEVICE_NAME_H_
-#define CORE_INTERNAL_BLUETOOTH_DEVICE_NAME_H_
+#ifndef _CORE_INTERNAL_BLUETOOTH_DEVICE_NAME_H_
+#define _CORE_INTERNAL_BLUETOOTH_DEVICE_NAME_H_
 
 #include <cstdint>
 
 #include "core/internal/base_pcp_handler.h"
 #include "core/internal/pcp.h"
 #include "platform/base/byte_array.h"
-#include "absl/strings/string_view.h"
+#include "third_party/absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -91,4 +91,4 @@ class BluetoothDeviceName {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_BLUETOOTH_DEVICE_NAME_H_
+#endif  // _CORE_INTERNAL_BLUETOOTH_DEVICE_NAME_H_

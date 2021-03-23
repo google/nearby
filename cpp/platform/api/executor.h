@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_API_EXECUTOR_H_
-#define PLATFORM_API_EXECUTOR_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_API_EXECUTOR_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_API_EXECUTOR_H_
 
 #include "platform/base/runnable.h"
 
@@ -43,4 +43,4 @@ class Executor {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_API_EXECUTOR_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_API_EXECUTOR_H_

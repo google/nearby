@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_G3_WIFI_LAN_H_
-#define PLATFORM_IMPL_G3_WIFI_LAN_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_IMPL_G3_WIFI_LAN_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_IMPL_G3_WIFI_LAN_H_
 
 #include <memory>
 #include <string>
@@ -26,9 +26,9 @@
 #include "platform/base/output_stream.h"
 #include "platform/impl/g3/multi_thread_executor.h"
 #include "platform/impl/g3/pipe.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/synchronization/mutex.h"
+#include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/absl/synchronization/mutex.h"
 
 namespace location {
 namespace nearby {
@@ -255,4 +255,4 @@ class WifiLanMedium : public api::WifiLanMedium {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_G3_WIFI_LAN_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_IMPL_G3_WIFI_LAN_H_

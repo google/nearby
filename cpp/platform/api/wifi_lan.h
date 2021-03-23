@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_API_WIFI_LAN_H_
-#define PLATFORM_API_WIFI_LAN_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_API_WIFI_LAN_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_API_WIFI_LAN_H_
 
 #include <string>
 
@@ -23,7 +23,7 @@
 #include "platform/base/listeners.h"
 #include "platform/base/nsd_service_info.h"
 #include "platform/base/output_stream.h"
-#include "absl/strings/string_view.h"
+#include "third_party/absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -128,4 +128,4 @@ class WifiLanMedium {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_API_WIFI_LAN_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_API_WIFI_LAN_H_

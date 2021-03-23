@@ -21,10 +21,11 @@
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
 #include "platform/public/webrtc.h"
-#include "absl/memory/memory.h"
-#include "absl/time/time.h"
-#include "webrtc/api/data_channel_interface.h"
-#include "webrtc/api/jsep.h"
+#include "third_party/absl/memory/memory.h"
+#include "third_party/absl/time/civil_time.h"
+#include "third_party/absl/time/time.h"
+#include "third_party/webrtc/files/stable/webrtc/api/data_channel_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/jsep.h"
 
 namespace location {
 namespace nearby {
@@ -37,6 +38,7 @@ constexpr absl::Duration ConnectionFlow::kPeerConnectionTimeout;
 namespace {
 // This is the same as the nearby data channel name.
 const char kDataChannelName[] = "dataChannel";
+
 
 class CreateSessionDescriptionObserverImpl
     : public webrtc::CreateSessionDescriptionObserver {
@@ -61,6 +63,9 @@ class CreateSessionDescriptionObserverImpl
   std::unique_ptr<Future<SessionDescriptionWrapper>> settable_future_;
 };
 
+template <auto value> constexpr auto TConstant = value;
+constexpr auto const MySuperConst = TConstant <100>;
+
 class SetSessionDescriptionObserverImpl
     : public webrtc::SetSessionDescriptionObserver {
  public:
@@ -72,7 +77,36 @@ class SetSessionDescriptionObserverImpl
   void OnFailure(webrtc::RTCError error) override {
     NEARBY_LOG(ERROR, "Error when setting session description: %s",
                error.message());
+    NEARBY_LOG(ERROR, "JFAN: Test copybara replication v2", error.message());
     settable_future_->SetException({Exception::kFailed});
+
+    std::cout << MySuperConst;
+
+    const std::string myString = "Hello World";
+
+    auto it = myString.find("Hello");
+    if (it != std::string::npos) std::cout << it << " Hello\n";
+
+    auto it2 = myString.find("World");
+    if (it2 != std::string::npos) std::cout << it2 << " World\n";
+
+    // additional enclosing scope so 'it' doesn't 'leak'
+    {
+      auto it = myString.find("Hello");
+      if (it != std::string::npos) std::cout << "Hello\n";
+    }
+
+    {
+      auto it = myString.find("World");
+      if (it != std::string::npos) std::cout << "World\n";
+    }
+
+    // C++17 with init if:
+    if (const auto it = myString.find("Hello"); it != std::string::npos)
+      std::cout << it << " Hello\n";
+
+    if (const auto it = myString.find("World"); it != std::string::npos)
+      std::cout << it << " World\n";
   }
 
  private:

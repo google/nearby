@@ -17,7 +17,7 @@
 #include "core/internal/bluetooth_endpoint_channel.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/offline_frames.h"
-#include "absl/functional/bind_front.h"
+#include "third_party/absl/functional/bind_front.h"
 
 // Manages the Bluetooth-specific methods needed to upgrade an {@link
 // EndpointChannel}.

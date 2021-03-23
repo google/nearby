@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_ENDPOINT_CHANNEL_MANAGER_H_
-#define CORE_INTERNAL_ENDPOINT_CHANNEL_MANAGER_H_
+#ifndef _CORE_INTERNAL_ENDPOINT_CHANNEL_MANAGER_H_
+#define _CORE_INTERNAL_ENDPOINT_CHANNEL_MANAGER_H_
 
 #include <memory>
 #include <string>
@@ -23,7 +23,7 @@
 #include "platform/public/logging.h"
 #include "platform/public/mutex.h"
 #include "securegcm/d2d_connection_context_v1.h"
-#include "absl/container/flat_hash_map.h"
+#include "third_party/absl/container/flat_hash_map.h"
 
 namespace location {
 namespace nearby {
@@ -169,4 +169,4 @@ class EndpointChannelManager final {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_ENDPOINT_CHANNEL_MANAGER_H_
+#endif  // _CORE_INTERNAL_ENDPOINT_CHANNEL_MANAGER_H_

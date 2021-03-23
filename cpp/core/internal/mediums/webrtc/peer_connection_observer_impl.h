@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_CONNECTION_OBSERVER_IMPL_H_
-#define CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_CONNECTION_OBSERVER_IMPL_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_CONNECTION_OBSERVER_IMPL_H_
+#define _CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_CONNECTION_OBSERVER_IMPL_H_
 
 #include "core/internal/mediums/webrtc/local_ice_candidate_listener.h"
 #include "platform/public/single_thread_executor.h"
-#include "webrtc/api/peer_connection_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/peer_connection_interface.h"
 
 namespace location {
 namespace nearby {
@@ -65,4 +65,4 @@ class PeerConnectionObserverImpl : public webrtc::PeerConnectionObserver {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_CONNECTION_OBSERVER_IMPL_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_CONNECTION_OBSERVER_IMPL_H_

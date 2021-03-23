@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_API_FUTURE_H_
-#define PLATFORM_API_FUTURE_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_API_FUTURE_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_API_FUTURE_H_
 
 #include "platform/base/exception.h"
-#include "absl/time/clock.h"
+#include "third_party/absl/time/clock.h"
 
 namespace location {
 namespace nearby {
@@ -43,4 +43,4 @@ class Future {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_API_FUTURE_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_API_FUTURE_H_

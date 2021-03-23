@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_G3_MULTI_THREAD_EXECUTOR_H_
-#define PLATFORM_IMPL_G3_MULTI_THREAD_EXECUTOR_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_IMPL_G3_MULTI_THREAD_EXECUTOR_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_IMPL_G3_MULTI_THREAD_EXECUTOR_H_
 
 #include <atomic>
 
 #include "platform/api/submittable_executor.h"
 #include "platform/impl/g3/count_down_latch.h"
-#include "absl/time/clock.h"
+#include "third_party/absl/time/clock.h"
 #include "thread/threadpool.h"
 
 namespace location {
@@ -70,4 +70,4 @@ class MultiThreadExecutor : public api::SubmittableExecutor {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_G3_MULTI_THREAD_EXECUTOR_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_IMPL_G3_MULTI_THREAD_EXECUTOR_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_IOS_ATOMIC_REFERENCE_H_
-#define PLATFORM_IMPL_IOS_ATOMIC_REFERENCE_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_IMPL_IOS_ATOMIC_REFERENCE_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_IMPL_IOS_ATOMIC_REFERENCE_H_
 
 #include <atomic>
 #include <cstdint>
@@ -44,4 +44,4 @@ class AtomicUint32 : public api::AtomicUint32 {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_IOS_ATOMIC_REFERENCE_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_IMPL_IOS_ATOMIC_REFERENCE_H_

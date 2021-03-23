@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_BASE_BWU_HANDLER_H_
-#define CORE_INTERNAL_BASE_BWU_HANDLER_H_
+#ifndef _CORE_INTERNAL_BASE_BWU_HANDLER_H_
+#define _CORE_INTERNAL_BASE_BWU_HANDLER_H_
 
 #include <cstdint>
 #include <memory>
@@ -28,8 +28,8 @@
 #include "platform/public/scheduled_executor.h"
 #include "platform/public/single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/time/clock.h"
+#include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/time/clock.h"
 
 namespace location {
 namespace nearby {
@@ -57,4 +57,4 @@ class BaseBwuHandler : public BwuHandler {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_BASE_BWU_HANDLER_H_
+#endif  // _CORE_INTERNAL_BASE_BWU_HANDLER_H_

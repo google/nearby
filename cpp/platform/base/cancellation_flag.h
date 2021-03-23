@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_BASE_CANCELLATION_FLAG_H_
-#define PLATFORM_BASE_CANCELLATION_FLAG_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_BASE_CANCELLATION_FLAG_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_BASE_CANCELLATION_FLAG_H_
 
 #include <memory>
 
-#include "absl/container/flat_hash_set.h"
-#include "absl/synchronization/mutex.h"
+#include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/absl/synchronization/mutex.h"
 
 namespace location {
 namespace nearby {
@@ -77,4 +77,4 @@ class CancellationFlag {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_BASE_CANCELLATION_FLAG_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_BASE_CANCELLATION_FLAG_H_

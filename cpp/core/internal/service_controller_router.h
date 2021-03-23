@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_SERVICE_CONTROLLER_ROUTER_H_
-#define CORE_INTERNAL_SERVICE_CONTROLLER_ROUTER_H_
+#ifndef _CORE_INTERNAL_SERVICE_CONTROLLER_ROUTER_H_
+#define _CORE_INTERNAL_SERVICE_CONTROLLER_ROUTER_H_
 
 #include <memory>
 #include <string>
@@ -25,9 +25,9 @@
 #include "core/params.h"
 #include "platform/base/runnable.h"
 #include "platform/public/single_thread_executor.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/strings/string_view.h"
-#include "absl/types/span.h"
+#include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/absl/strings/string_view.h"
+#include "third_party/absl/types/span.h"
 
 namespace location {
 namespace nearby {
@@ -127,4 +127,4 @@ class ServiceControllerRouter {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_SERVICE_CONTROLLER_ROUTER_H_
+#endif  // _CORE_INTERNAL_SERVICE_CONTROLLER_ROUTER_H_

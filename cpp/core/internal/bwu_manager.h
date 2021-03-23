@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_BWU_MANAGER_H_
-#define CORE_INTERNAL_BWU_MANAGER_H_
+#ifndef _CORE_INTERNAL_BWU_MANAGER_H_
+#define _CORE_INTERNAL_BWU_MANAGER_H_
 
 #include <memory>
 #include <string>
@@ -28,9 +28,9 @@
 #include "platform/base/byte_array.h"
 #include "platform/public/scheduled_executor.h"
 #include "proto/connections_enums.pb.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/time/time.h"
+#include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/absl/time/time.h"
 
 namespace location {
 namespace nearby {
@@ -193,4 +193,4 @@ class BwuManager : public EndpointManager::FrameProcessor {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_BWU_MANAGER_H_
+#endif  // _CORE_INTERNAL_BWU_MANAGER_H_

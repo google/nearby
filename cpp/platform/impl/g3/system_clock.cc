@@ -15,7 +15,7 @@
 #include "platform/api/system_clock.h"
 
 #include "platform/base/exception.h"
-#include "absl/time/clock.h"
+#include "third_party/absl/time/clock.h"
 
 namespace location {
 namespace nearby {

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_OFFLINE_FRAMES_H_
-#define CORE_INTERNAL_OFFLINE_FRAMES_H_
+#ifndef _CORE_INTERNAL_OFFLINE_FRAMES_H_
+#define _CORE_INTERNAL_OFFLINE_FRAMES_H_
 
 #include <cstdint>
 #include <vector>
@@ -101,4 +101,4 @@ std::vector<Medium> ConnectionRequestMediumsToMediums(
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_OFFLINE_FRAMES_H_
+#endif  // _CORE_INTERNAL_OFFLINE_FRAMES_H_

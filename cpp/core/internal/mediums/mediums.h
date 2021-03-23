@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_MEDIUMS_H_
-#define CORE_INTERNAL_MEDIUMS_MEDIUMS_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_MEDIUMS_H_
+#define _CORE_INTERNAL_MEDIUMS_MEDIUMS_H_
 
 #include "core/internal/mediums/ble.h"
 #include "core/internal/mediums/bluetooth_classic.h"
@@ -66,4 +66,4 @@ class Mediums {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_MEDIUMS_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_MEDIUMS_H_

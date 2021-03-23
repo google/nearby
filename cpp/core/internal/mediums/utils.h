@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_UTILS_H_
-#define CORE_INTERNAL_MEDIUMS_UTILS_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_UTILS_H_
+#define _CORE_INTERNAL_MEDIUMS_UTILS_H_
 
 #include <memory>
 
@@ -39,4 +39,4 @@ class Utils {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_UTILS_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_UTILS_H_

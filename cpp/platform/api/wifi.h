@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_API_WIFI_H_
-#define PLATFORM_API_WIFI_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_API_WIFI_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_API_WIFI_H_
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
-#include "absl/strings/string_view.h"
+#include "third_party/absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -101,4 +101,4 @@ class WifiMedium {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_API_WIFI_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_API_WIFI_H_

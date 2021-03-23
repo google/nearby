@@ -35,7 +35,7 @@
 #include "platform/impl/ios/scheduled_executor.h"
 #include "platform/impl/ios/single_thread_executor.h"
 #include "platform/impl/shared/file.h"
-#include "absl/memory/memory.h"
+#include "third_party/absl/memory/memory.h"
 
 namespace location {
 namespace nearby {

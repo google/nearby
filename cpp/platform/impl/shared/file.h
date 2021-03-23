@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_SHARED_FILE_H_
-#define PLATFORM_IMPL_SHARED_FILE_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_IMPL_SHARED_FILE_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_IMPL_SHARED_FILE_H_
 
 #include <cstdint>
 #include <fstream>
@@ -21,7 +21,7 @@
 #include "platform/api/input_file.h"
 #include "platform/api/output_file.h"
 #include "platform/base/exception.h"
-#include "absl/strings/string_view.h"
+#include "third_party/absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -64,4 +64,4 @@ class OutputFile final : public api::OutputFile {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_SHARED_FILE_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_IMPL_SHARED_FILE_H_

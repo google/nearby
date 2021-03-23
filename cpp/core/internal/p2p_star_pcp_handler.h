@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_P2P_STAR_PCP_HANDLER_H_
-#define CORE_INTERNAL_P2P_STAR_PCP_HANDLER_H_
+#ifndef _CORE_INTERNAL_P2P_STAR_PCP_HANDLER_H_
+#define _CORE_INTERNAL_P2P_STAR_PCP_HANDLER_H_
 
 #include <vector>
 
@@ -56,4 +56,4 @@ class P2pStarPcpHandler : public P2pClusterPcpHandler {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_P2P_STAR_PCP_HANDLER_H_
+#endif  // _CORE_INTERNAL_P2P_STAR_PCP_HANDLER_H_

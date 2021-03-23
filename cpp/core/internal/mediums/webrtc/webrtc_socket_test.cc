@@ -19,7 +19,7 @@
 #include "platform/base/byte_array.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "webrtc/api/data_channel_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/data_channel_interface.h"
 
 namespace location {
 namespace nearby {

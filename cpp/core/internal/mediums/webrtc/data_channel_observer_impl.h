@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_DATA_CHANNEL_OBSERVER_IMPL_H_
-#define CORE_INTERNAL_MEDIUMS_WEBRTC_DATA_CHANNEL_OBSERVER_IMPL_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_WEBRTC_DATA_CHANNEL_OBSERVER_IMPL_H_
+#define _CORE_INTERNAL_MEDIUMS_WEBRTC_DATA_CHANNEL_OBSERVER_IMPL_H_
 
 #include "core/internal/mediums/webrtc/data_channel_listener.h"
-#include "webrtc/api/data_channel_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/data_channel_interface.h"
 
 namespace location {
 namespace nearby {
@@ -46,4 +46,4 @@ class DataChannelObserverImpl : public webrtc::DataChannelObserver {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_DATA_CHANNEL_OBSERVER_IMPL_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_WEBRTC_DATA_CHANNEL_OBSERVER_IMPL_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_BLE_H_
-#define CORE_INTERNAL_MEDIUMS_BLE_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_BLE_H_
+#define _CORE_INTERNAL_MEDIUMS_BLE_H_
 
 #include <cstdint>
 #include <string>
@@ -25,8 +25,8 @@
 #include "platform/public/ble.h"
 #include "platform/public/multi_thread_executor.h"
 #include "platform/public/mutex.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
+#include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/container/flat_hash_set.h"
 
 namespace location {
 namespace nearby {
@@ -185,4 +185,4 @@ class Ble {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_BLE_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_BLE_H_

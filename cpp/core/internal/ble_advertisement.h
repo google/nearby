@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_BLE_ADVERTISEMENT_H_
-#define CORE_INTERNAL_BLE_ADVERTISEMENT_H_
+#ifndef _CORE_INTERNAL_BLE_ADVERTISEMENT_H_
+#define _CORE_INTERNAL_BLE_ADVERTISEMENT_H_
 
 #include "core/internal/base_pcp_handler.h"
 #include "core/internal/pcp.h"
@@ -124,4 +124,4 @@ class BleAdvertisement {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_BLE_ADVERTISEMENT_H_
+#endif  // _CORE_INTERNAL_BLE_ADVERTISEMENT_H_

@@ -23,7 +23,7 @@
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
 #include "platform/public/system_clock.h"
-#include "absl/time/time.h"
+#include "third_party/absl/time/time.h"
 
 namespace location {
 namespace nearby {

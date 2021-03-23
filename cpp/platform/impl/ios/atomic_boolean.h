@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_IOS_ATOMIC_BOOLEAN_H_
-#define PLATFORM_IMPL_IOS_ATOMIC_BOOLEAN_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_IMPL_IOS_ATOMIC_BOOLEAN_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_IMPL_IOS_ATOMIC_BOOLEAN_H_
 
 #include <atomic>
 
@@ -39,4 +39,4 @@ class AtomicBoolean : public api::AtomicBoolean {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_IOS_ATOMIC_BOOLEAN_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_IMPL_IOS_ATOMIC_BOOLEAN_H_

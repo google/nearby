@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_PCP_MANAGER_H_
-#define CORE_INTERNAL_PCP_MANAGER_H_
+#ifndef _CORE_INTERNAL_PCP_MANAGER_H_
+#define _CORE_INTERNAL_PCP_MANAGER_H_
 
 #include <string>
 
@@ -29,7 +29,7 @@
 #include "core/status.h"
 #include "core/strategy.h"
 #include "platform/public/atomic_boolean.h"
-#include "absl/container/flat_hash_map.h"
+#include "third_party/absl/container/flat_hash_map.h"
 
 namespace location {
 namespace nearby {
@@ -86,4 +86,4 @@ class PcpManager {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_PCP_MANAGER_H_
+#endif  // _CORE_INTERNAL_PCP_MANAGER_H_

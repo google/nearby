@@ -20,7 +20,7 @@
 #include "core/options.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
-#include "absl/time/clock.h"
+#include "third_party/absl/time/clock.h"
 
 namespace location {
 namespace nearby {

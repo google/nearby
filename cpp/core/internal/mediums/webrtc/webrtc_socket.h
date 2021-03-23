@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_H_
-#define CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_H_
+#define _CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_H_
 
 #include <memory>
 
@@ -25,7 +25,7 @@
 #include "platform/public/condition_variable.h"
 #include "platform/public/mutex.h"
 #include "platform/public/pipe.h"
-#include "webrtc/api/data_channel_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/data_channel_interface.h"
 namespace location {
 namespace nearby {
 namespace connections {
@@ -112,4 +112,4 @@ class WebRtcSocket : public Socket {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_H_

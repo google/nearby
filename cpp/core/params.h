@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_PARAMS_H_
-#define CORE_PARAMS_H_
+#ifndef _CORE_PARAMS_H_
+#define _CORE_PARAMS_H_
 
 #include <string>
 
@@ -39,4 +39,4 @@ struct ConnectionRequestInfo {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_PARAMS_H_
+#endif  // _CORE_PARAMS_H_

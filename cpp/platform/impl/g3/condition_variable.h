@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_G3_CONDITION_VARIABLE_H_
-#define PLATFORM_IMPL_G3_CONDITION_VARIABLE_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_IMPL_G3_CONDITION_VARIABLE_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_IMPL_G3_CONDITION_VARIABLE_H_
 
 #include "platform/api/condition_variable.h"
 #include "platform/base/exception.h"
 #include "platform/impl/g3/mutex.h"
-#include "absl/synchronization/mutex.h"
+#include "third_party/absl/synchronization/mutex.h"
 
 namespace location {
 namespace nearby {
@@ -48,4 +48,4 @@ class ConditionVariable : public api::ConditionVariable {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_G3_CONDITION_VARIABLE_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_IMPL_G3_CONDITION_VARIABLE_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_API_LOG_MESSAGE_H_
-#define PLATFORM_API_LOG_MESSAGE_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_API_LOG_MESSAGE_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_API_LOG_MESSAGE_H_
 
 #include <iostream>
 
@@ -56,4 +56,4 @@ class LogMessage {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_API_LOG_MESSAGE_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_API_LOG_MESSAGE_H_

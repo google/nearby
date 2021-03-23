@@ -45,10 +45,10 @@ cc_library(
         "//platform/public:logging",
         "//platform/public:types",
         "//location/nearby/mediums/proto:web_rtc_signaling_frames_cc_proto",
-        "//absl/memory",
-        "//absl/strings",
-        "//absl/time",
-        "//webrtc/api:libjingle_peerconnection_api",
+        "//third_party/absl/memory",
+        "//third_party/absl/strings",
+        "//third_party/absl/time",
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
@@ -70,9 +70,9 @@ cc_test(
         "//platform/public:types",
         "//net/proto2/public:proto2",
         "//testing/base/public:gunit_main",
-        "//absl/time",
-        "//webrtc/api:libjingle_peerconnection_api",
-        "//webrtc/api:rtc_error",
-        "//webrtc/api:scoped_refptr",
+        "//third_party/absl/time",
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//third_party/webrtc/files/stable/webrtc/api:rtc_error",
+        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
     ],
 )

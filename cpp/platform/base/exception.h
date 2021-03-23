@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_BASE_EXCEPTION_H_
-#define PLATFORM_BASE_EXCEPTION_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_BASE_EXCEPTION_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_BASE_EXCEPTION_H_
 
 #include <utility>
 
-#include "absl/meta/type_traits.h"
+#include "third_party/absl/meta/type_traits.h"
 
 namespace location {
 namespace nearby {
@@ -109,4 +109,4 @@ class ExceptionOr {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_BASE_EXCEPTION_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_BASE_EXCEPTION_H_

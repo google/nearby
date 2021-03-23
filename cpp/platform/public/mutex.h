@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_PUBLIC_MUTEX_H_
-#define PLATFORM_PUBLIC_MUTEX_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_MUTEX_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_MUTEX_H_
 
 #include <memory>
 
 #include "platform/api/mutex.h"
 #include "platform/api/platform.h"
-#include "absl/base/thread_annotations.h"
+#include "third_party/absl/base/thread_annotations.h"
 
 namespace location {
 namespace nearby {
@@ -75,4 +75,4 @@ class ABSL_LOCKABLE RecursiveMutex final {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_PUBLIC_MUTEX_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_MUTEX_H_

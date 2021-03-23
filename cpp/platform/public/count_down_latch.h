@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_PUBLIC_COUNT_DOWN_LATCH_H_
-#define PLATFORM_PUBLIC_COUNT_DOWN_LATCH_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_COUNT_DOWN_LATCH_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_COUNT_DOWN_LATCH_H_
 
 #include <cstdint>
 
 #include "platform/api/count_down_latch.h"
 #include "platform/api/platform.h"
 #include "platform/base/exception.h"
-#include "absl/time/time.h"
+#include "third_party/absl/time/time.h"
 
 namespace location {
 namespace nearby {
@@ -51,4 +51,4 @@ class CountDownLatch final {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_PUBLIC_COUNT_DOWN_LATCH_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_PUBLIC_COUNT_DOWN_LATCH_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_PERIPHERAL_H_
-#define CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_PERIPHERAL_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_PERIPHERAL_H_
+#define _CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_PERIPHERAL_H_
 
 #include "platform/base/byte_array.h"
 
@@ -46,4 +46,4 @@ class BlePeripheral {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_PERIPHERAL_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_PERIPHERAL_H_

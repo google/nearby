@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_BLOOM_FILTER_H_
-#define CORE_INTERNAL_MEDIUMS_BLOOM_FILTER_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_BLOOM_FILTER_H_
+#define _CORE_INTERNAL_MEDIUMS_BLOOM_FILTER_H_
 
 #include <bitset>
 #include <vector>
@@ -98,4 +98,4 @@ class BloomFilter final : public BloomFilterBase {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_BLOOM_FILTER_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_BLOOM_FILTER_H_

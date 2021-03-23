@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_BLE_V2_ADVERTISEMENT_READ_RESULT_H_
-#define CORE_INTERNAL_MEDIUMS_BLE_V2_ADVERTISEMENT_READ_RESULT_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_BLE_V2_ADVERTISEMENT_READ_RESULT_H_
+#define _CORE_INTERNAL_MEDIUMS_BLE_V2_ADVERTISEMENT_READ_RESULT_H_
 
 #include <cstdint>
 #include <vector>
@@ -21,9 +21,9 @@
 #include "platform/base/byte_array.h"
 #include "platform/public/mutex.h"
 #include "platform/public/system_clock.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/time/clock.h"
+#include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/absl/time/clock.h"
 
 namespace location {
 namespace nearby {
@@ -101,4 +101,4 @@ class AdvertisementReadResult {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_BLE_V2_ADVERTISEMENT_READ_RESULT_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_BLE_V2_ADVERTISEMENT_READ_RESULT_H_

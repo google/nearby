@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_BASE_CANCELLATION_FLAG_LISTENER_H_
-#define PLATFORM_BASE_CANCELLATION_FLAG_LISTENER_H_
+#ifndef LOCATION_NEARBY_CPP_PLATFORM_BASE_CANCELLATION_FLAG_LISTENER_H_
+#define LOCATION_NEARBY_CPP_PLATFORM_BASE_CANCELLATION_FLAG_LISTENER_H_
 
 #include "platform/base/cancellation_flag.h"
 
@@ -40,4 +40,4 @@ class CancellationFlagListener {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_BASE_CANCELLATION_FLAG_LISTENER_H_
+#endif  // LOCATION_NEARBY_CPP_PLATFORM_BASE_CANCELLATION_FLAG_LISTENER_H_

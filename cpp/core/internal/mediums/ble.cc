@@ -23,7 +23,7 @@
 #include "platform/base/prng.h"
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
-#include "absl/strings/escaping.h"
+#include "third_party/absl/strings/escaping.h"
 
 namespace location {
 namespace nearby {

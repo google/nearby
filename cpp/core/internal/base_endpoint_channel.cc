@@ -23,8 +23,8 @@
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
 #include "proto/connections_enums.pb.h"
-#include "absl/strings/escaping.h"
-#include "absl/strings/str_cat.h"
+#include "third_party/absl/strings/escaping.h"
+#include "third_party/absl/strings/str_cat.h"
 
 namespace location {
 namespace nearby {

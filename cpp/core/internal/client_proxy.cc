@@ -25,10 +25,10 @@
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
 #include "proto/connections_enums.pb.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/strings/escaping.h"
-#include "absl/strings/str_cat.h"
+#include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/absl/strings/escaping.h"
+#include "third_party/absl/strings/str_cat.h"
 
 namespace location {
 namespace nearby {

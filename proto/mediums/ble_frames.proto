@@ -23,6 +23,7 @@ option objc_class_prefix = "GNCM";
 
 // This should map exactly to BleAdvertisement's socket versions.
 // TODO(alexanderkang): Make BleAdvertisement reference this proto.
+// https://cs.corp.google.com/piper///depot/google3/java/com/google/android/gmscore/dev/modules/nearby/src/com/google/android/gms/nearby/mediums/bluetoothlowenergy/BleAdvertisement.java?l=57&cl=CS&rcl=214509192
 enum SocketVersion {
   UNKNOWN_SOCKET_VERSION = 0;
   V1 = 1;

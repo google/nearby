@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_UUID_H_
-#define CORE_INTERNAL_MEDIUMS_UUID_H_
+#ifndef _CORE_INTERNAL_MEDIUMS_UUID_H_
+#define _CORE_INTERNAL_MEDIUMS_UUID_H_
 
 #include <cstdint>
 #include <string>
 
-#include "absl/strings/string_view.h"
+#include "third_party/absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -56,4 +56,4 @@ class Uuid final {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_UUID_H_
+#endif  // _CORE_INTERNAL_MEDIUMS_UUID_H_
