@@ -88,21 +88,37 @@ cc_test(
         "bluetooth_radio_test.cc",
         "lost_entity_tracker_test.cc",
         "uuid_test.cc",
-        "webrtc_test.cc",
         "wifi_lan_test.cc",
     ],
     shard_count = 16,
+    deps = [
+        ":mediums",
+        "//platform/base:test_util",
+        "//platform/impl/g3",  # build_cleaner: keep
+        "//platform/public:comm",
+        "//platform/public:types",
+        "//testing/base/public:gunit_main",
+        "//absl/strings",
+        "//absl/time",
+    ],
+)
+
+cc_test(
+    name = "core_internal_mediums_webrtc_test",
+    size = "small",
+    srcs = [
+        "webrtc_test.cc",
+    ],
+    shard_count = 16,
+    tags = ["notsan"],  # NOTE(b/139734036): known data race in usrsctplib.
     deps = [
         ":mediums",
         "//core/internal/mediums/webrtc",
         "//platform/base",
         "//platform/base:test_util",
         "//platform/impl/g3",  # build_cleaner: keep
-        "//platform/public:comm",
-        "//platform/public:logging",
         "//platform/public:types",
         "//testing/base/public:gunit_main",
         "//absl/strings",
-        "//absl/time",
     ],
 )

@@ -104,7 +104,6 @@ class ServiceControllerRouter {
   void ClientDisconnecting(ClientProxy* client, const ResultCallback& callback);
 
  private:
-  friend class ServiceControllerRouterTest;
   static bool ClientHasConnectionToAtLeastOneEndpoint(
       ClientProxy* client, const std::vector<std::string>& remote_endpoint_ids);
 
