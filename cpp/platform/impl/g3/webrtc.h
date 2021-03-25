@@ -18,6 +18,7 @@
 #include <memory>
 
 #include "platform/api/webrtc.h"
+#include "platform/impl/g3/single_thread_executor.h"
 #include "absl/strings/string_view.h"
 #include "webrtc/api/peer_connection_interface.h"
 
@@ -54,7 +55,7 @@ class WebRtcMedium : public api::WebRtcMedium {
   using PeerConnectionCallback = api::WebRtcMedium::PeerConnectionCallback;
 
   WebRtcMedium() = default;
-  ~WebRtcMedium() override = default;
+  ~WebRtcMedium() override;
 
   const std::string GetDefaultCountryCode() override;
 
@@ -69,6 +70,8 @@ class WebRtcMedium : public api::WebRtcMedium {
       const connections::LocationHint& location_hint) override;
 
  private:
+  // Executor for handling calls to create a peer connection.
+  SingleThreadExecutor single_thread_executor_;
 };
 
 }  // namespace g3

@@ -32,6 +32,7 @@ namespace connections {
 namespace mediums {
 
 constexpr absl::Duration ConnectionFlow::kTimeout;
+constexpr absl::Duration ConnectionFlow::kPeerConnectionTimeout;
 
 namespace {
 // This is the same as the nearby data channel name.
@@ -136,6 +137,7 @@ SessionDescriptionWrapper ConnectionFlow::CreateOffer() {
     return std::move(result.result());
   }
 
+  NEARBY_LOG(ERROR, "Failed to create offer: %d", result.exception());
   return SessionDescriptionWrapper();
 }
 
@@ -159,6 +161,7 @@ SessionDescriptionWrapper ConnectionFlow::CreateAnswer() {
     return std::move(result.result());
   }
 
+  NEARBY_LOG(ERROR, "Failed to create answer: %d", result.exception());
   return SessionDescriptionWrapper();
 }
 
@@ -175,7 +178,12 @@ bool ConnectionFlow::SetLocalSessionDescription(SessionDescriptionWrapper sdp) {
   peer_connection_->SetLocalDescription(observer, sdp.Release());
 
   ExceptionOr<bool> result = success_future->Get(kTimeout);
-  return result.ok() && result.result();
+  bool success = result.ok() && result.result();
+  if (!success) {
+    NEARBY_LOG(ERROR, "Failed to set local session description: %d",
+               result.exception());
+  }
+  return success;
 }
 
 bool ConnectionFlow::SetRemoteSessionDescription(
@@ -190,7 +198,12 @@ bool ConnectionFlow::SetRemoteSessionDescription(
   peer_connection_->SetRemoteDescription(observer, sdp.Release());
 
   ExceptionOr<bool> result = success_future->Get(kTimeout);
-  return result.ok() && result.result();
+  bool success = result.ok() && result.result();
+  if (!success) {
+    NEARBY_LOG(ERROR, "Failed to set remote description: %d",
+               result.exception());
+  }
+  return success;
 }
 
 bool ConnectionFlow::OnOfferReceived(SessionDescriptionWrapper offer) {
@@ -267,8 +280,13 @@ bool ConnectionFlow::InitPeerConnection(WebRtcMedium& webrtc_medium) {
         success_future.Set(true);
       });
 
-  ExceptionOr<bool> result = success_future.Get(kTimeout);
-  return result.ok() && result.result();
+  ExceptionOr<bool> result = success_future.Get(kPeerConnectionTimeout);
+  bool success = result.ok() && result.result();
+  if (!success) {
+    NEARBY_LOG(ERROR, "Failed to create peer connection: %d",
+               result.exception());
+  }
+  return success;
 }
 
 void ConnectionFlow::OnSignalingStable() {

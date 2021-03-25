@@ -133,6 +133,8 @@ class ConnectionFlow {
 
   // TODO(bfranz): Consider whether this needs to be configurable per platform
   static constexpr absl::Duration kTimeout = absl::Milliseconds(250);
+  static constexpr absl::Duration kPeerConnectionTimeout =
+      absl::Milliseconds(2500);
 
   bool InitPeerConnection(WebRtcMedium& webrtc_medium);
 

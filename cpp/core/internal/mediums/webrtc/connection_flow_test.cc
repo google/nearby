@@ -223,6 +223,22 @@ TEST_F(ConnectionFlowTest, NullPeerConnection) {
   EXPECT_EQ(answerer, nullptr);
 }
 
+TEST_F(ConnectionFlowTest, PeerConnectionTimeout) {
+  MediumEnvironment::Instance().SetUseValidPeerConnection(
+      /*use_valid_peer_connection=*/true);
+  WebRtcMedium medium1;
+  std::unique_ptr<ConnectionFlow> flow1 = ConnectionFlow::Create(
+      LocalIceCandidateListener(), DataChannelListener(), medium1);
+  EXPECT_NE(flow1, nullptr);
+
+  // Attempt to trigger the 2.5s peer connection timeout.
+  MediumEnvironment::Instance().SetPeerConnectionLatency(absl::Seconds(5));
+  WebRtcMedium medium2;
+  std::unique_ptr<ConnectionFlow> flow2 = ConnectionFlow::Create(
+      LocalIceCandidateListener(), DataChannelListener(), medium2);
+  EXPECT_EQ(flow2, nullptr);
+}
+
 }  // namespace
 }  // namespace mediums
 }  // namespace connections

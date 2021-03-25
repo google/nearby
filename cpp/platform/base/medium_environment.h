@@ -153,6 +153,11 @@ class MediumEnvironment {
 
   bool GetUseValidPeerConnection();
 
+  // Used to set latency when creating the peer connection in tests.
+  void SetPeerConnectionLatency(absl::Duration peer_connection_latency);
+
+  absl::Duration GetPeerConnectionLatency();
+
   // Adds medium-related info to allow for scanning/advertising to work.
   // This provides acccess to this medium from other mediums, when protocol
   // expects they should communicate.
@@ -319,6 +324,7 @@ class MediumEnvironment {
       wifi_lan_mediums_;
 
   bool use_valid_peer_connection_ = true;
+  absl::Duration peer_connection_latency_ = absl::ZeroDuration();
 };
 
 }  // namespace nearby

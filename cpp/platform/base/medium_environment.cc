@@ -511,6 +511,15 @@ bool MediumEnvironment::GetUseValidPeerConnection() {
   return use_valid_peer_connection_;
 }
 
+void MediumEnvironment::SetPeerConnectionLatency(
+    absl::Duration peer_connection_latency) {
+  peer_connection_latency_ = peer_connection_latency;
+}
+
+absl::Duration MediumEnvironment::GetPeerConnectionLatency() {
+  return peer_connection_latency_;
+}
+
 void MediumEnvironment::RegisterWifiLanMedium(api::WifiLanMedium& medium) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium]() {
