@@ -42,6 +42,7 @@ cc_library(
         "//platform/base",
         "//absl/base:core_headers",
         "//absl/strings",
+        "//absl/strings:str_format",
         "//absl/time",
     ],
 )

@@ -17,6 +17,8 @@
 
 #include <iostream>
 
+#include "absl/strings/str_format.h"
+
 namespace location {
 namespace nearby {
 namespace api {
@@ -46,7 +48,10 @@ class LogMessage {
   virtual ~LogMessage() = default;
 
   // Printf like logging.
-  virtual void Print(const char* format, ...) = 0;
+  template <typename... Args>
+  void Print(const absl::FormatSpec<Args...>& format, const Args&... args) {
+    Stream() << absl::StrFormat(format, args...);
+  }
 
   // Returns a stream for std::cout like logging.
   virtual std::ostream& Stream() = 0;

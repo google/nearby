@@ -29,8 +29,6 @@ class LogMessage : public api::LogMessage {
   LogMessage(const char* file, int line, Severity severity);
   ~LogMessage() override;
 
-  void Print(const char* format, ...) override;
-
   std::ostream& Stream() override;
 
  private:

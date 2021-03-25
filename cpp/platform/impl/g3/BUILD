@@ -35,7 +35,6 @@ cc_library(
     visibility = ["//visibility:private"],
     deps = [
         "//base",
-        "//platform/api:platform",
         "//platform/api:types",
         "//platform/base",
         "//platform/base:util",

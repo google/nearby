@@ -363,9 +363,9 @@ void BwuManager::RunOnBwuManagerThread(Runnable runnable) {
 void BwuManager::RunUpgradeProtocol(
     ClientProxy* client, const std::string& endpoint_id,
     std::unique_ptr<EndpointChannel> new_channel) {
-  NEARBY_LOG(INFO, "RunUpgradeProtocol new channel @%d name: %s, medium: %d",
+  NEARBY_LOG(INFO, "RunUpgradeProtocol new channel @%p name: %s, medium: %d",
              new_channel.get(), new_channel->GetName().c_str(),
-             new_channel->GetMedium());
+             static_cast<int>(new_channel->GetMedium()));
   // First, register this new EndpointChannel as *the* EndpointChannel to use
   // for this endpoint here onwards. NOTE: We pause this new EndpointChannel
   // until we've completely drained the old EndpointChannel to avoid out of
@@ -572,7 +572,8 @@ bool BwuManager::ReadClientIntroductionFrame(EndpointChannel* channel,
             "In BandwidthUpgradeManager, failed to read the "
             "ClientIntroductionFrame after %d seconds. Timing out and closing "
             "EndpointChannel %s.",
-            kReadClientIntroductionFrameTimeout, channel->GetType().c_str());
+            kReadClientIntroductionFrameTimeout / absl::Seconds(1),
+            channel->GetType().c_str());
         channel->Close();
       },
       kReadClientIntroductionFrameTimeout, &alarm_executor_);
@@ -604,7 +605,7 @@ bool BwuManager::ReadClientIntroductionAckFrame(EndpointChannel* channel) {
                    "In BandwidthUpgradeManager, failed to read the "
                    "ClientIntroductionAckFrame after %d seconds. Timing out "
                    "and closing EndpointChannel %s.",
-                   kReadClientIntroductionFrameTimeout,
+                   kReadClientIntroductionFrameTimeout / absl::Seconds(1),
                    channel->GetType().c_str());
         channel->Close();
       },
