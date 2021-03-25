@@ -26,6 +26,10 @@ api::LogMessage::Severity g_min_log_severity = api::LogMessage::Severity::kInfo;
 
 inline absl::LogSeverity ConvertSeverity(api::LogMessage::Severity severity) {
   switch (severity) {
+    // api::LogMessage::Severity kVerbose and kInfo is mapped to
+    // absl::LogSeverity kInfo since absl::LogSeverity doesn't have kVerbose
+    // level.
+    case api::LogMessage::Severity::kVerbose:
     case api::LogMessage::Severity::kInfo:
       return absl::LogSeverity::kInfo;
     case api::LogMessage::Severity::kWarning:

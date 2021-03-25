@@ -23,9 +23,13 @@ namespace api {
 
 // A log message that prints to appropraite destination when ~LogMessage() is
 // called.
+//
+// note: the Severity enum should map (best effort) to the corresponding level
+// id that the platform logging implementation has.
 class LogMessage {
  public:
   enum class Severity {
+    kVerbose = -1,
     kInfo = 0,
     kWarning = 1,
     kError = 2,
