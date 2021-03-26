@@ -34,6 +34,7 @@ cc_library(
         "system_clock.h",
     ],
     visibility = [
+        "//googlemac/iPhone/Shared/Nearby/Connections_v2:__subpackages__",
         "//platform/base:__pkg__",
         "//platform/impl:__subpackages__",
         "//platform/public:__pkg__",
