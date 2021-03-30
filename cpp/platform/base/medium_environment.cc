@@ -62,6 +62,8 @@ void MediumEnvironment::Reset() {
     webrtc_signaling_message_callback_.clear();
     webrtc_signaling_complete_callback_.clear();
     wifi_lan_mediums_.clear();
+    use_valid_peer_connection_ = true;
+    peer_connection_latency_ = absl::ZeroDuration();
   });
   Sync();
 }
