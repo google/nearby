@@ -717,10 +717,12 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
   previous_endpoint_channel->DisableEncryption();
   previous_endpoint_channel->Write(parser::ForDisconnection());
 
-  // TODO(b/172380349): Match the Java implementation with no sleep call
-
-  // Wait for in-flight messages to reach their peers.
-  SystemClock::Sleep(absl::Seconds(1));
+  // Attempt to read the disconnect message from the previous channel. We don't
+  // care whether we successfully read it or whether we get an exception here.
+  // The idea is just to make sure the other side has had a chance to receive
+  // the full SAFE_TO_CLOSE_PRIOR_CHANNEL message before we actually close the
+  // channel. See b/172380349 for more context.
+  previous_endpoint_channel->Read();
   previous_endpoint_channel->Close(DisconnectionReason::UPGRADED);
 
   // Now that the old channel has been drained, we can unpause the new channel
