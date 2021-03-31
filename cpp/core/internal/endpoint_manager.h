@@ -30,6 +30,7 @@
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/system_clock.h"
 #include "proto/connections_enums.pb.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/time/time.h"
@@ -212,6 +213,9 @@ class EndpointManager {
   void WaitForEndpointDisconnectionProcessing(ClientProxy* client,
                                               const std::string& endpoint_id);
 
+  CountDownLatch NotifyFrameProcessorsOnEndpointDisconnect(
+      ClientProxy* client, const std::string& endpoint_id);
+
   std::vector<std::string> SendTransferFrameBytes(
       const std::vector<std::string>& endpoint_ids,
       const ByteArray& payload_transfer_frame_bytes, std::int64_t payload_id,
@@ -234,8 +238,9 @@ class EndpointManager {
 
   EndpointChannelManager* channel_manager_;
 
+  RecursiveMutex frame_processors_lock_;
   absl::flat_hash_map<V1Frame::FrameType, FrameProcessorWithMutex>
-      frame_processors_;
+      frame_processors_ ABSL_GUARDED_BY(frame_processors_lock_);
 
   // We keep track of all registered channel endpoints here.
   absl::flat_hash_map<std::string, EndpointState> endpoints_;

@@ -23,6 +23,7 @@
 #include "platform/base/feature_flags.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
+#include "platform/public/mutex_lock.h"
 #include "proto/connections_enums.pb.h"
 namespace location {
 namespace nearby {
@@ -304,22 +305,16 @@ EndpointManager::~EndpointManager() {
 
 void EndpointManager::RegisterFrameProcessor(
     V1Frame::FrameType frame_type, EndpointManager::FrameProcessor* processor) {
-  CountDownLatch latch(1);
-  RunOnEndpointManagerThread([this, frame_type, &latch, processor]() {
-    auto it = frame_processors_.find(frame_type);
-    if (it != frame_processors_.end()) {
-      NEARBY_LOGS(INFO) << "Frame processor found: updated; type=" << frame_type
-                        << "; processor=" << processor << "; self=" << this;
-      LockedFrameProcessor frame_processor_lock(&it->second);
-      frame_processor_lock.set(processor);
-    } else {
-      NEARBY_LOGS(INFO) << "Frame processor added; type=" << frame_type
-                        << "; processor=" << processor << "; self=" << this;
-      frame_processors_.emplace(frame_type, processor);
-    }
-    latch.CountDown();
-  });
-  latch.Await();
+  if (auto frame_processor = GetFrameProcessor(frame_type)) {
+    NEARBY_LOGS(INFO) << "Frame processor found: updated; type=" << frame_type
+                      << "; processor=" << processor << "; self=" << this;
+    frame_processor.set(processor);
+  } else {
+    MutexLock lock(&frame_processors_lock_);
+    NEARBY_LOGS(INFO) << "Frame processor added; type=" << frame_type
+                      << "; processor=" << processor << "; self=" << this;
+    frame_processors_.emplace(frame_type, processor);
+  }
 }
 
 void EndpointManager::UnregisterFrameProcessor(
@@ -328,20 +323,9 @@ void EndpointManager::UnregisterFrameProcessor(
   NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [enter]: processor ="
                     << processor;
   if (processor == nullptr) return;
-  CountDownLatch latch(1);
-  RunOnEndpointManagerThread([this, frame_type, processor, &latch]() {
-    auto it = frame_processors_.find(frame_type);
-    if (it == frame_processors_.end()) {
-      NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [not found]: processor="
-                        << processor;
-      latch.CountDown();
-      return;
-    }
-    NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [found]: processor="
-                      << processor;
-    LockedFrameProcessor frame_processor_lock(&it->second);
-    if (frame_processor_lock.get() == processor) {
-      frame_processor_lock.reset();
+  if (auto frame_processor = GetFrameProcessor(frame_type)) {
+    if (frame_processor.get() == processor) {
+      frame_processor.reset();
       NEARBY_LOGS(INFO) << "Unregistered: type=" << frame_type
                         << "; processor=" << processor << "; self=" << this;
     } else {
@@ -349,17 +333,17 @@ void EndpointManager::UnregisterFrameProcessor(
           INFO,
           "Failed to unregister: type=%d; processor mismatch: passed=%p, "
           "expected=%p",
-          frame_type, processor, frame_processor_lock.get());
+          frame_type, processor, frame_processor.get());
     }
-    latch.CountDown();
-  });
-  latch.Await();
-  NEARBY_LOGS(INFO) << "Unregistered [sync done]: type=" << frame_type
-                    << "; processor=" << processor << "; self=" << this;
+  } else {
+    NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [not found]: processor="
+                      << processor;
+  }
 }
 
 EndpointManager::LockedFrameProcessor EndpointManager::GetFrameProcessor(
     V1Frame::FrameType frame_type) {
+  MutexLock lock(&frame_processors_lock_);
   auto it = frame_processors_.find(frame_type);
   if (it != frame_processors_.end()) {
     return LockedFrameProcessor(&it->second);
@@ -573,9 +557,28 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
 void EndpointManager::WaitForEndpointDisconnectionProcessing(
     ClientProxy* client, const std::string& endpoint_id) {
   NEARBY_LOGS(INFO) << "Wait: client=" << client << "; id=" << endpoint_id;
+  CountDownLatch barrier =
+      NotifyFrameProcessorsOnEndpointDisconnect(client, endpoint_id);
+
+  NEARBY_LOGS(INFO) << "Waiting for frame processors to disconnect from: "
+                    << endpoint_id;
+  if (!barrier.Await(kProcessEndpointDisconnectionTimeout).result()) {
+    NEARBY_LOGS(INFO) << "Failed to disconnect frame processors from: "
+                      << endpoint_id;
+  } else {
+    NEARBY_LOGS(INFO)
+        << "Finished waiting for frame processors to disconnect from: "
+        << endpoint_id;
+  }
+}
+
+CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
+    ClientProxy* client, const std::string& endpoint_id) {
+  NEARBY_LOGS(INFO) << "NotifyFrameProcessorsOnEndpointDisconnect: client="
+                    << client << "; id=" << endpoint_id;
+  MutexLock lock(&frame_processors_lock_);
   auto total_size = frame_processors_.size();
   NEARBY_LOGS(INFO) << "Total frame processors: " << total_size;
-  if (!total_size) return;
   CountDownLatch barrier(total_size);
 
   int valid = 0;
@@ -593,21 +596,10 @@ void EndpointManager::WaitForEndpointDisconnectionProcessing(
 
   if (!valid) {
     NEARBY_LOGS(INFO) << "No valid frame processors.";
-    return;
   } else {
     NEARBY_LOGS(INFO) << "Valid frame processors: " << valid;
   }
-
-  NEARBY_LOGS(INFO) << "Waiting for " << valid
-                    << " frame processors to disconnect from: " << endpoint_id;
-  if (!barrier.Await(kProcessEndpointDisconnectionTimeout).result()) {
-    NEARBY_LOGS(INFO) << "Failed to disconnect frame processors from: "
-                      << endpoint_id;
-  } else {
-    NEARBY_LOGS(INFO)
-        << "Finished waiting for frame processors to disconnect from: "
-        << endpoint_id;
-  }
+  return barrier;
 }
 
 std::vector<std::string> EndpointManager::SendTransferFrameBytes(
