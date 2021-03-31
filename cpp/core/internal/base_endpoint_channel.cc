@@ -66,6 +66,7 @@ ExceptionOr<ByteArray> ReadExactly(InputStream* reader, std::int64_t size) {
     ByteArray result = read_bytes.result();
 
     if (result.Empty()) {
+      NEARBY_LOGS(WARNING) << __func__ << ": Empty result when reading bytes.";
       return ExceptionOr<ByteArray>(Exception::kIo);
     }
 
@@ -106,6 +107,8 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
     }
 
     if (read_int.result() < 0 || read_int.result() > kMaxAllowedReadBytes) {
+      NEARBY_LOGS(WARNING) << __func__ << ": Read an invalid number of bytes: "
+                           << read_int.result();
       return ExceptionOr<ByteArray>(Exception::kIo);
     }
 
@@ -140,6 +143,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
         }
       }
       if (result.Empty()) {
+        NEARBY_LOGS(WARNING) << __func__ << ": Unable to parse read result.";
         return ExceptionOr<ByteArray>(Exception::kInvalidProtocolBuffer);
       }
     }
@@ -174,7 +178,10 @@ Exception BaseEndpointChannel::Write(const ByteArray& data) {
         // If encryption is enabled, encode the message.
         std::unique_ptr<std::string> encrypted =
             crypto_context_->EncodeMessageToPeer(std::string(data));
-        if (!encrypted) return {Exception::kIo};
+        if (!encrypted) {
+          NEARBY_LOGS(WARNING) << __func__ << ": Failed to encrypt data.";
+          return {Exception::kIo};
+        }
         encrypted_data = ByteArray(std::move(*encrypted));
         data_to_write = &encrypted_data;
       }
@@ -183,14 +190,20 @@ Exception BaseEndpointChannel::Write(const ByteArray& data) {
     Exception write_exception =
         WriteInt(writer_, static_cast<std::int32_t>(data_to_write->size()));
     if (write_exception.Raised()) {
+      NEARBY_LOGS(WARNING) << __func__ << ": Failed to write header: "
+                           << write_exception.value;
       return write_exception;
     }
     write_exception = writer_->Write(*data_to_write);
     if (write_exception.Raised()) {
+      NEARBY_LOGS(WARNING) << __func__ << ": Failed to write data: "
+                           << write_exception.value;
       return write_exception;
     }
     Exception flush_exception = writer_->Flush();
     if (flush_exception.Raised()) {
+      NEARBY_LOGS(WARNING) << __func__ << ": Failed to flush writer: "
+                           << flush_exception.value;
       return flush_exception;
     }
   }
@@ -216,7 +229,8 @@ void BaseEndpointChannel::CloseIo() {
     // IO and Read() will proceed normally (with Exception::kIo).
     Exception exception = reader_->Close();
     if (!exception.Ok()) {
-      // Add logging.
+      NEARBY_LOGS(WARNING) << __func__
+                           << ": Exception closing reader: " << exception.value;
     }
   }
   {
@@ -225,7 +239,8 @@ void BaseEndpointChannel::CloseIo() {
     // IO and Write() will proceed normally (with Exception::kIo).
     Exception exception = writer_->Close();
     if (!exception.Ok()) {
-      // Add logging.
+      NEARBY_LOGS(WARNING) << __func__
+                           << ": Exception closing writer: " << exception.value;
     }
   }
 }
@@ -306,6 +321,8 @@ void BaseEndpointChannel::BlockUntilUnpaused() {
   while (is_paused_) {
     Exception wait_succeeded = is_paused_cond_.Wait();
     if (!wait_succeeded.Ok()) {
+      NEARBY_LOGS(WARNING) << __func__ << ": Failure waiting to unpause: "
+                           << wait_succeeded.value;
       return;
     }
   }
