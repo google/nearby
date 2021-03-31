@@ -21,7 +21,7 @@ option optimize_for = LITE_RUNTIME;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "DiscoveryEnums";
 
-// NEXT ID: 148
+// NEXT ID: 149
 enum DiscoveryEvent {
   UNKNOWN_DISCOVERY_EVENT = 0;
 
@@ -455,6 +455,9 @@ enum DiscoveryEvent {
   // User ban halfsheet but device get bluetooth connection event after certain
   // time
   HALF_SHEET_CONNECTION_AFTER_BAN = 147;
+
+  // User has clicked the companion header slice from device settings.
+  FAST_PAIR_DEVICE_COMPANION_HEADER_CLICKED = 148;
 
   // Deprecated.
   reserved 65, 67 to 72;
