@@ -144,6 +144,18 @@ bool BasePcpHandler::ShouldEnterHighVisibilityMode(
   return !options.low_power && options.allowed.bluetooth;
 }
 
+BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
+    const PendingConnectionInfo& connection_info) {
+  BooleanMediumSelector advertisment_mediums =
+      connection_info.client->GetAdvertisingOptions().allowed;
+  BooleanMediumSelector connection_mediums = connection_info.options.allowed;
+
+  return {.bluetooth = connection_mediums.bluetooth,
+          .ble = connection_mediums.ble,
+          .web_rtc = connection_mediums.web_rtc && advertisment_mediums.web_rtc,
+          .wifi_lan = connection_mediums.wifi_lan};
+}
+
 Status BasePcpHandler::StartDiscovery(ClientProxy* client,
                                       const std::string& service_id,
                                       const ConnectionOptions& options,
@@ -297,7 +309,23 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
           .raw_authentication_token = raw_auth_token,
           .is_incoming_connection = connection_info.is_incoming,
       },
-      connection_info.options, std::move(connection_info.channel),
+      {
+          .strategy = connection_info.options.strategy,
+          .allowed = ComputeIntersectionOfSupportedMediums(connection_info),
+          .auto_upgrade_bandwidth =
+              connection_info.options.auto_upgrade_bandwidth,
+          .enforce_topology_constraints =
+              connection_info.options.enforce_topology_constraints,
+          .low_power = connection_info.options.low_power,
+          .enable_bluetooth_listening =
+              connection_info.options.enable_bluetooth_listening,
+          .is_out_of_band_connection =
+              connection_info.options.is_out_of_band_connection,
+          .remote_bluetooth_mac_address =
+              connection_info.options.remote_bluetooth_mac_address,
+          .fast_advertisement_service_uuid =
+              connection_info.options.fast_advertisement_service_uuid,
+      }, std::move(connection_info.channel),
       connection_info.listener);
 
   if (auto future_status = connection_info.result.lock()) {

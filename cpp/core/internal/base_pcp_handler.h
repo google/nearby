@@ -481,6 +481,9 @@ class BasePcpHandler : public PcpHandler,
   // Bluetooth classic" (1P).
   bool ShouldEnterHighVisibilityMode(const ConnectionOptions& options);
 
+  BooleanMediumSelector ComputeIntersectionOfSupportedMediums(
+      const PendingConnectionInfo& connection_info);
+
   ScheduledExecutor alarm_executor_;
   SingleThreadExecutor serial_executor_;
 
