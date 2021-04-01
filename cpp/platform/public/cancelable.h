@@ -35,7 +35,7 @@ class Cancelable final {
   ~Cancelable() = default;
 
   // This constructor is used internally only,
-  // by other classes in "//platform/public/".
+  // by other classes in "//location/nearby/cpp/platform/public/".
   explicit Cancelable(std::shared_ptr<CancellableTask> task,
                       std::shared_ptr<api::Cancelable> impl)
       : task_{task}, impl_(std::move(impl)) {}

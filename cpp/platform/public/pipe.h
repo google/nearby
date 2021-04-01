@@ -21,7 +21,7 @@ namespace location {
 namespace nearby {
 
 // See for details:
-// http://google3/platform/base/base_pipe.h
+// https://github.com/google/nearby-connections/tree/master/cpp/platform/base/base_pipe.h
 class Pipe final : public BasePipe {
  public:
   Pipe();

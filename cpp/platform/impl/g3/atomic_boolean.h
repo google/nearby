@@ -24,7 +24,7 @@ namespace nearby {
 namespace g3 {
 
 // See documentation in
-// cpp/platform/api/atomic_boolean.h
+// https://github.com/google/nearby-connections/tree/master/cpp/platform/api/atomic_boolean.h
 class AtomicBoolean : public api::AtomicBoolean {
  public:
   explicit AtomicBoolean(bool initial_value) : value_(initial_value) {}

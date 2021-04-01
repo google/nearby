@@ -85,7 +85,7 @@ class BasePcpHandler : public PcpHandler,
   // Starts advertising. Once successfully started, changes ClientProxy's state.
   // Notifies ConnectionListener (info.listener) in case of any event.
   // See
-  // cpp/core/listeners.h
+  // https://github.com/google/nearby-connections/tree/master/cpp/core/listeners.h
   Status StartAdvertising(ClientProxy* client, const std::string& service_id,
                           const ConnectionOptions& options,
                           const ConnectionRequestInfo& info) override;

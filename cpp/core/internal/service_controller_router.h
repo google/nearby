@@ -38,7 +38,7 @@ namespace connections {
 // the former.
 //
 // All the activities are documented in the public API class:
-// cpp/core_v2/core.h
+// https://github.com/google/nearby-connections/tree/master/cpp/core/core.h
 //
 // In every method, ClientProxy* represents the client app which receives
 // notifications from Nearby Connections service and forwards them to the app.

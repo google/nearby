@@ -40,7 +40,7 @@ namespace connections {
 // methods in the definition of location::nearby::Core API.
 //
 // See details here:
-// cpp/core/core.h
+// https://github.com/google/nearby-connections/tree/master/cpp/core/core.h
 class ServiceController {
  public:
   virtual ~ServiceController() = default;

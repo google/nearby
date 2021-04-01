@@ -22,7 +22,7 @@
 #if defined NEARBY_WINDOWS_DLL
 #include "openssl/digest.h"
 #else
-#include "openssl/digest.h"
+#include "third_party/openssl/digest.h"
 #endif
 
 // Function implementations for platform/api/crypto.h.

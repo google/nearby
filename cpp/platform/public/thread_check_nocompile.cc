@@ -18,7 +18,7 @@
 
 // Snippets of invalid code that should trigger an error during thread
 // safety analysis at compile time.
-// See https://g3doc.corp.google.com/googletest/g3doc/cpp_nc_test.md
+// See https://g3doc.corp.google.com/third_party/googletest/g3doc/cpp_nc_test.md
 namespace location {
 namespace nearby {
 

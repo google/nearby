@@ -23,7 +23,7 @@ namespace nearby {
 namespace windows {
 
 // See documentation in
-// cpp/platform/api/log_message.h
+// https://github.com/google/nearby-connections/tree/master/cpp/platform/api/log_message.h
 class LogMessage : public api::LogMessage {
  public:
   LogMessage(const char* file, int line, Severity severity);

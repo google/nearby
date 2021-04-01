@@ -41,7 +41,7 @@ namespace connections {
 // This will only ever be used by the OfflineServiceController, which has all
 // of its entrypoints invoked serially, so there's no synchronization needed.
 // Public method semantics matches definition in the
-// cpp/core/internal/service_controller.h
+// https://github.com/google/nearby-connections/tree/master/cpp/core/internal/service_controller.h
 class PcpManager {
  public:
   PcpManager(Mediums& mediums, EndpointChannelManager& channel_manager,

@@ -16,10 +16,17 @@ syntax = "proto2";
 
 package location.nearby.proto;
 
+// COPYBARA_NEARBY_IMPORT_LOG_ANNOTATION
 
-option optimize_for = LITE_RUNTIME;
+// COPYBARA_NEARBY_OPTION_FILE_NOT_USED_FOR_LOGGING_BEGIN
+// COPYBARA_NEARBY_OPTION_FILE_NOT_USED_FOR_LOGGING_END
+// COPYBARA_NEARBY_OPTION_JAVA_API_VERSION
+
+option optimize_for = LITE_RUNTIME; // COPYBARA_NEARBY_OPTION_OPTIMIZE_FOR
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "NearbyEventCodes";
+// COPYBARA_NEARBY_OPTION_GO_API_FLAG_BEGIN
+// COPYBARA_NEARBY_OPTION_GO_API_FLAG_END
 
 // Event codes for the NEARBY log source. See:
 // http://google3/wireless/android/play/playlog/proto/event_code_enums.proto

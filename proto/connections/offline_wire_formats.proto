@@ -16,7 +16,7 @@ syntax = "proto2";
 
 package location.nearby.connections;
 
-option optimize_for = LITE_RUNTIME;
+option optimize_for = LITE_RUNTIME; // COPYBARA_NEARBY_OPTION_OPTIMIZE_FOR
 option java_outer_classname = "OfflineWireFormatsProto";
 option java_package = "com.google.location.nearby.connections.proto";
 option objc_class_prefix = "GNCP";
@@ -321,6 +321,8 @@ message LocationHint {
   optional LocationStandard.Format format = 2;
 }
 
+// COPYBARA_NEARBY_OFFLINE_WIRE_FORMATS_COMMENTS_BEGIN
+// COPYBARA_NEARBY_OFFLINE_WIRE_FORMATS_COMMENTS_END
 message LocationStandard {
   enum Format {
     UNKNOWN = 0;

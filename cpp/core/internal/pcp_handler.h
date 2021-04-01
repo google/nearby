@@ -51,7 +51,7 @@ inline Strategy PcpToStrategy(Pcp pcp) {
 // to do so).
 //
 // See details here:
-// cpp/core/core.h
+// https://github.com/google/nearby-connections/tree/master/cpp/core/core.h
 class PcpHandler {
  public:
   virtual ~PcpHandler() = default;
@@ -66,7 +66,7 @@ class PcpHandler {
   // start advertising, we'll change the ClientProxy's state.
   // ConnectionListener (info.listener) will be notified in case of any event.
   // See
-  // cpp/core/listeners.h
+  // https://github.com/google/nearby-connections/tree/master/cpp/core/listeners.h
   virtual Status StartAdvertising(ClientProxy* client,
                                   const std::string& service_id,
                                   const ConnectionOptions& options,
