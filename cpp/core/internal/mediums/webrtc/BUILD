@@ -54,6 +54,7 @@ cc_library(
 
 cc_test(
     name = "webrtc_test",
+    timeout = "short",
     srcs = [
         "connection_flow_test.cc",
         "peer_id_test.cc",

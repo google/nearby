@@ -27,9 +27,14 @@ class DataChannelObserverImpl : public webrtc::DataChannelObserver {
  public:
   using DataChannelStateChangeCallback = std::function<void()>;
 
-  ~DataChannelObserverImpl() override = default;
-  DataChannelObserverImpl(DataChannelListener* data_channel_listener,
-                          DataChannelStateChangeCallback callback);
+  // Creates and registers an observer for |data_channel|
+  // The observer is unregistered in destructor or when |data_channel|
+  // is closed.
+  DataChannelObserverImpl(
+      rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel,
+      DataChannelListener* data_channel_listener,
+      DataChannelStateChangeCallback callback);
+  ~DataChannelObserverImpl() override;
 
   // webrtc::DataChannelObserver:
   void OnStateChange() override;
@@ -37,8 +42,11 @@ class DataChannelObserverImpl : public webrtc::DataChannelObserver {
   void OnBufferedAmountChange(uint64_t sent_data_size) override;
 
  private:
+  void Disconnect();
+
   DataChannelListener* data_channel_listener_;
   DataChannelStateChangeCallback state_change_callback_;
+  rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel_;
 };
 
 }  // namespace mediums

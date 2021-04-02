@@ -31,33 +31,23 @@ class PeerConnectionObserverImpl : public webrtc::PeerConnectionObserver {
   PeerConnectionObserverImpl(
       ConnectionFlow* connection_flow,
       LocalIceCandidateListener local_ice_candidate_listener);
-  ~PeerConnectionObserverImpl() override;
+  ~PeerConnectionObserverImpl() override = default;
 
   // webrtc::PeerConnectionObserver:
   void OnIceCandidate(const webrtc::IceCandidateInterface* candidate) override;
   void OnSignalingChange(
-      webrtc::PeerConnectionInterface::SignalingState new_state) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      webrtc::PeerConnectionInterface::SignalingState new_state) override;
   void OnDataChannel(
-      rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) override;
   void OnIceGatheringChange(
       webrtc::PeerConnectionInterface::IceGatheringState new_state) override;
   void OnConnectionChange(
-      webrtc::PeerConnectionInterface::PeerConnectionState new_state) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      webrtc::PeerConnectionInterface::PeerConnectionState new_state) override;
   void OnRenegotiationNeeded() override;
 
-  void DisconnectConnectionFlow() ABSL_LOCKS_EXCLUDED(mutex_);
-
  private:
-  void OffloadFromSignalingThread(Runnable runnable);
-
-  // NOTE: This must be a recursive mutex due to the call interactions.
-  RecursiveMutex mutex_;  // protects access to connection_flow_
-  ConnectionFlow* connection_flow_ ABSL_GUARDED_BY(mutex_);
+  ConnectionFlow* connection_flow_;
   LocalIceCandidateListener local_ice_candidate_listener_;
-  SingleThreadExecutor single_threaded_signaling_offloader_;
 };
 
 }  // namespace mediums

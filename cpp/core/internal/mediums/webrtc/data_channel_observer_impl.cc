@@ -20,12 +20,24 @@ namespace connections {
 namespace mediums {
 
 DataChannelObserverImpl::DataChannelObserverImpl(
+    rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel,
     DataChannelListener* data_channel_listener,
     DataChannelStateChangeCallback callback)
     : data_channel_listener_(data_channel_listener),
-      state_change_callback_(std::move(callback)) {}
+      state_change_callback_(std::move(callback)),
+      data_channel_{std::move(data_channel)} {
+  data_channel_->RegisterObserver(this);
+}
 
-void DataChannelObserverImpl::OnStateChange() { state_change_callback_(); }
+DataChannelObserverImpl::~DataChannelObserverImpl() { Disconnect(); }
+
+void DataChannelObserverImpl::OnStateChange() {
+  if (data_channel_->state() ==
+      webrtc::DataChannelInterface::DataState::kClosed) {
+    Disconnect();
+  }
+  state_change_callback_();
+}
 
 void DataChannelObserverImpl::OnMessage(const webrtc::DataBuffer& buffer) {
   data_channel_listener_->data_channel_message_received_cb(
@@ -34,6 +46,14 @@ void DataChannelObserverImpl::OnMessage(const webrtc::DataBuffer& buffer) {
 
 void DataChannelObserverImpl::OnBufferedAmountChange(uint64_t sent_data_size) {
   data_channel_listener_->data_channel_buffered_amount_changed_cb();
+}
+
+void DataChannelObserverImpl::Disconnect() {
+  data_channel_->UnregisterObserver();
+  if (data_channel_listener_) {
+    data_channel_listener_->data_channel_closed_cb();
+    data_channel_listener_ = nullptr;
+  }
 }
 
 }  // namespace mediums

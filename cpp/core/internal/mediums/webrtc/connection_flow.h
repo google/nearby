@@ -118,7 +118,7 @@ class ConnectionFlow {
 
   // Invoked when the peer connection indicates that signaling is stable.
   void OnSignalingStable() ABSL_LOCKS_EXCLUDED(mutex_);
-  webrtc::DataChannelObserver* CreateDataChannelObserver(
+  void RegisterDataChannelObserver(
       rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel);
 
   // Invoked upon changes in the state of peer connection, e.g. react to
@@ -126,6 +126,11 @@ class ConnectionFlow {
   void ProcessOnPeerConnectionChange(
       webrtc::PeerConnectionInterface::PeerConnectionState new_state)
       ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // For tests only
+  webrtc::PeerConnectionInterface* GetPeerConnection() {
+    return peer_connection_.get();
+  }
 
  private:
   ConnectionFlow(LocalIceCandidateListener local_ice_candidate_listener,
@@ -148,7 +153,7 @@ class ConnectionFlow {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   void CloseAndNotifyLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  bool CloseLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool Close(bool close_peer_connection) ABSL_LOCKS_EXCLUDED(mutex_);
 
   void OffloadFromSignalingThread(Runnable runnable);
 
