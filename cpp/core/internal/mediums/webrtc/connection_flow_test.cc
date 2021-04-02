@@ -311,7 +311,7 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
       answerer_channel = answerer_data_channel_future.Get(absl::Seconds(1));
   EXPECT_TRUE(answerer_channel.ok());
 
-  answerer->GetPeerConnection()->Close();
+  answerer->Close();
 
   // Send message on data channel
   const char message[] = "Test";
@@ -393,7 +393,7 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
       answerer_channel = answerer_data_channel_future.Get(absl::Seconds(1));
   EXPECT_TRUE(answerer_channel.ok());
 
-  offerer->GetPeerConnection()->Close();
+  offerer->Close();
 
   // Send message on data channel
   const char message[] = "Test";

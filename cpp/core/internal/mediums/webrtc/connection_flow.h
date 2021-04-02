@@ -23,6 +23,7 @@
 #include "core/internal/mediums/webrtc/peer_connection_observer_impl.h"
 #include "core/internal/mediums/webrtc/session_description_wrapper.h"
 #include "platform/base/runnable.h"
+#include "platform/public/logging.h"
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/webrtc.h"
 #include "webrtc/api/data_channel_interface.h"
@@ -33,39 +34,6 @@ namespace nearby {
 namespace connections {
 namespace mediums {
 
-/**
- * Flow for an offerer:
- *
- * <ul>
- *   <li>INITIALIZED: After construction.
- *   <li>CREATING_OFFER: After CreateOffer(). Local ice candidate collection
- * begins.
- *   <li>WAITING_FOR_ANSWER: Until the remote peer sends their answer.
- *   <li>WAITING_TO_CONNECT: Until the data channel actually connects. Remote
- * ice candidates should be added with OnRemoteIceCandidatesReceived as they are
- * gathered.
- *   <li>CONNECTED: We successfully connected to the remote data
- * channel.
- *   <li>ENDED: The final state that can occur from any of the previous
- * states if we disconnect at any point in the flow.
- * </ul>
- *
- * <p>Flow for an answerer:
- *
- * <ul>
- *   <li>INITIALIZED: After construction.
- *   <li>RECEIVED_OFFER: After onOfferReceived().
- *   <li>CREATING_ANSWER: After CreateAnswer(). Local ice candidate collection
- * begins.
- *   <li>WAITING_TO_CONNECT: Until the data channel actually connects.
- * Remote ice candidates should be added with OnRemoteIceCandidatesReceived as
- * they are gathered.
- *   <li>CONNECTED: We successfully connected to the remote
- * data channel.
- *   <li>ENDED: The final state that can occur from any of the
- * previous states if we disconnect at any point in the flow.
- * </ul>
- */
 class ConnectionFlow {
  public:
   enum class State {
@@ -79,6 +47,40 @@ class ConnectionFlow {
     kEnded,
   };
 
+  class CreateSessionDescriptionObserverImpl
+      : public webrtc::CreateSessionDescriptionObserver {
+   public:
+    CreateSessionDescriptionObserverImpl(
+        ConnectionFlow* connection_flow,
+        Future<SessionDescriptionWrapper> settable_future,
+        State new_state_if_successful)
+        : connection_flow_(connection_flow),
+          settable_future_(std::move(settable_future)),
+          new_state_if_successful_(new_state_if_successful) {}
+    ~CreateSessionDescriptionObserverImpl() override = default;
+
+    // webrtc::CreateSessionDescriptionObserver
+    void OnSuccess(webrtc::SessionDescriptionInterface* desc) override {
+      NEARBY_LOG(INFO, "CreateSessionDescriptionObserverImpl::OnSuccess()");
+      connection_flow_->TransitionState(connection_flow_->state_,
+                                        new_state_if_successful_);
+      settable_future_.Set(SessionDescriptionWrapper{desc});
+    }
+
+    void OnFailure(webrtc::RTCError error) override {
+      NEARBY_LOG(ERROR,
+                 "CreateSessionDescriptionObserverImpl::OnFailure(): Error "
+                 "when creating session description: %d %s",
+                 error.type(), error.message());
+      settable_future_.SetException({Exception::kFailed});
+    }
+
+   private:
+    ConnectionFlow* connection_flow_;
+    Future<SessionDescriptionWrapper> settable_future_;
+    State new_state_if_successful_;
+  };
+
   // This method blocks on the creation of the peer connection object.
   static std::unique_ptr<ConnectionFlow> Create(
       LocalIceCandidateListener local_ice_candidate_listener,
@@ -86,51 +88,42 @@ class ConnectionFlow {
   ~ConnectionFlow();
 
   // Returns the current state of the ConnectionFlow.
-  State GetState() ABSL_LOCKS_EXCLUDED(mutex_);
+  State GetState();
 
   // Create the offer that will be sent to the remote. Mirrors the behaviour of
   // PeerConnectionInterface::CreateOffer.
-  SessionDescriptionWrapper CreateOffer() ABSL_LOCKS_EXCLUDED(mutex_);
+  SessionDescriptionWrapper CreateOffer();
   // Create the answer that will be sent to the remote. Mirrors the behaviour of
   // PeerConnectionInterface::CreateAnswer.
-  SessionDescriptionWrapper CreateAnswer() ABSL_LOCKS_EXCLUDED(mutex_);
+  SessionDescriptionWrapper CreateAnswer();
   // Set the local session description. |sdp| was created via CreateOffer()
   // or CreateAnswer().
-  bool SetLocalSessionDescription(SessionDescriptionWrapper sdp)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  bool SetLocalSessionDescription(SessionDescriptionWrapper sdp);
   // Invoked when an offer was received from a remote; this will set the remote
   // session description on the peer connection. Returns true if the offer was
   // successfully set as remote session description.
-  bool OnOfferReceived(SessionDescriptionWrapper offer)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  bool OnOfferReceived(SessionDescriptionWrapper offer);
   // Invoked when an answer was received from a remote; this will set the remote
   // session description on the peer connection. Returns true if the offer was
   // successfully set as remote session description.
-  bool OnAnswerReceived(SessionDescriptionWrapper answer)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  bool OnAnswerReceived(SessionDescriptionWrapper answer);
   // Invoked when an ice candidate was received from a remote; this will add the
   // ice candidate to the peer connection if ready or cache it otherwise.
   bool OnRemoteIceCandidatesReceived(
       std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
-          ice_candidates) ABSL_LOCKS_EXCLUDED(mutex_);
+          ice_candidates);
   // Close the peer connection and data channel.
-  bool Close() ABSL_LOCKS_EXCLUDED(mutex_);
+  bool Close();
 
   // Invoked when the peer connection indicates that signaling is stable.
-  void OnSignalingStable() ABSL_LOCKS_EXCLUDED(mutex_);
+  void OnSignalingStable();
   void RegisterDataChannelObserver(
       rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel);
 
   // Invoked upon changes in the state of peer connection, e.g. react to
   // disconnect.
   void ProcessOnPeerConnectionChange(
-      webrtc::PeerConnectionInterface::PeerConnectionState new_state)
-      ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // For tests only
-  webrtc::PeerConnectionInterface* GetPeerConnection() {
-    return peer_connection_.get();
-  }
+      webrtc::PeerConnectionInterface::PeerConnectionState new_state);
 
  private:
   ConnectionFlow(LocalIceCandidateListener local_ice_candidate_listener,
@@ -142,24 +135,15 @@ class ConnectionFlow {
       absl::Milliseconds(2500);
 
   bool InitPeerConnection(WebRtcMedium& webrtc_medium);
-
-  bool TransitionState(State current_state, State new_state)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  bool SetRemoteSessionDescription(SessionDescriptionWrapper sdp);
-
+  bool TransitionState(State current_state, State new_state);
+  bool SetRemoteSessionDescription(SessionDescriptionWrapper sdp,
+                                   State new_state);
   void ProcessDataChannelConnected(
-      rtc::scoped_refptr<webrtc::DataChannelInterface>)
-      ABSL_LOCKS_EXCLUDED(mutex_);
-
-  void CloseAndNotifyLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  bool Close(bool close_peer_connection) ABSL_LOCKS_EXCLUDED(mutex_);
-
+      rtc::scoped_refptr<webrtc::DataChannelInterface>);
   void OffloadFromSignalingThread(Runnable runnable);
+  bool RunOnSignalingThread(Runnable runnable);
 
-  Mutex mutex_;
-
-  State state_ ABSL_GUARDED_BY(mutex_) = State::kInitialized;
+  State state_ = State::kInitialized;
   DataChannelListener data_channel_listener_;
 
   std::unique_ptr<DataChannelObserverImpl> data_channel_observer_;
@@ -168,9 +152,10 @@ class ConnectionFlow {
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
 
   std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
-      cached_remote_ice_candidates_ ABSL_GUARDED_BY(mutex_);
+      cached_remote_ice_candidates_;
 
   SingleThreadExecutor single_threaded_signaling_offloader_;
+  rtc::WeakPtrFactory<ConnectionFlow> weak_factory_{this};
 };
 
 }  // namespace mediums

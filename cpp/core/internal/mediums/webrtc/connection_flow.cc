@@ -38,45 +38,58 @@ namespace {
 // This is the same as the nearby data channel name.
 const char kDataChannelName[] = "dataChannel";
 
-class CreateSessionDescriptionObserverImpl
-    : public webrtc::CreateSessionDescriptionObserver {
+class SetLocalDescriptionObserver
+    : public webrtc::SetLocalDescriptionObserverInterface {
  public:
-  explicit CreateSessionDescriptionObserverImpl(
-      Future<SessionDescriptionWrapper>* settable_future)
-      : settable_future_(settable_future) {}
-  ~CreateSessionDescriptionObserverImpl() override = default;
+  explicit SetLocalDescriptionObserver(Future<bool> settable_future)
+      : settable_future_(std::move(settable_future)) {}
 
-  // webrtc::CreateSessionDescriptionObserver
-  void OnSuccess(webrtc::SessionDescriptionInterface* desc) override {
-    settable_future_->Set(SessionDescriptionWrapper{desc});
-  }
+  void OnSetLocalDescriptionComplete(webrtc::RTCError error) override {
+    NEARBY_LOG(INFO,
+               "SetLocalDescriptionObserver::SetLocalDescriptionObserver()");
+    // On success, |error.ok()| is true.
+    if (error.ok()) {
+      settable_future_.Set(true);
+      return;
+    }
 
-  void OnFailure(webrtc::RTCError error) override {
-    NEARBY_LOG(ERROR, "Error when creating session description: %s",
-               error.message());
-    settable_future_->SetException({Exception::kFailed});
+    NEARBY_LOG(ERROR, "Error when setting local session description: %d %s",
+               error.type(), error.message());
+    settable_future_.SetException({Exception::kFailed});
   }
 
  private:
-  std::unique_ptr<Future<SessionDescriptionWrapper>> settable_future_;
+  Future<bool> settable_future_;
 };
 
-class SetSessionDescriptionObserverImpl
-    : public webrtc::SetSessionDescriptionObserver {
+class SetRemoteDescriptionObserver
+    : public webrtc::SetRemoteDescriptionObserverInterface {
  public:
-  explicit SetSessionDescriptionObserverImpl(Future<bool>* settable_future)
-      : settable_future_(settable_future) {}
+  explicit SetRemoteDescriptionObserver(Future<bool> settable_future)
+      : settable_future_(std::move(settable_future)) {}
 
-  void OnSuccess() override { settable_future_->Set(true); }
+  void OnSetRemoteDescriptionComplete(webrtc::RTCError error) override {
+    NEARBY_LOG(
+        INFO, "SetRemoteDescriptionObserver::OnSetRemoteDescriptionComplete()");
+    // On success, |error.ok()| is true.
+    if (error.ok()) {
+      NEARBY_LOG(INFO,
+                 "SetRemoteDescriptionObserver::OnSetRemoteDescriptionComplete("
+                 ") setting future to true");
+      settable_future_.Set(true);
+      NEARBY_LOG(INFO,
+                 "SetRemoteDescriptionObserver::OnSetRemoteDescriptionComplete("
+                 ") setting future done");
+      return;
+    }
 
-  void OnFailure(webrtc::RTCError error) override {
-    NEARBY_LOG(ERROR, "Error when setting session description: %s",
+    NEARBY_LOG(ERROR, "Error when setting remote session description: %s",
                error.message());
-    settable_future_->SetException({Exception::kFailed});
+    settable_future_.SetException({Exception::kFailed});
   }
 
  private:
-  std::unique_ptr<Future<bool>> settable_future_;
+  Future<bool> settable_future_;
 };
 
 using PeerConnectionState =
@@ -94,7 +107,7 @@ std::unique_ptr<ConnectionFlow> ConnectionFlow::Create(
     return connection_flow;
   }
 
-  return nullptr;
+  return std::unique_ptr<ConnectionFlow>();
 }
 
 ConnectionFlow::ConnectionFlow(
@@ -106,34 +119,39 @@ ConnectionFlow::ConnectionFlow(
 
 ConnectionFlow::~ConnectionFlow() { Close(); }
 
-ConnectionFlow::State ConnectionFlow::GetState() {
-  MutexLock lock(&mutex_);
-  return state_;
-}
+ConnectionFlow::State ConnectionFlow::GetState() { return state_; }
 
 SessionDescriptionWrapper ConnectionFlow::CreateOffer() {
-  MutexLock lock(&mutex_);
+  auto success_future = Future<SessionDescriptionWrapper>();
+  bool will_run = RunOnSignalingThread([this, success_future]() mutable {
+    if (!TransitionState(State::kInitialized, State::kCreatingOffer)) {
+      success_future.Set(SessionDescriptionWrapper());
+      return;
+    }
 
-  if (!TransitionState(State::kInitialized, State::kCreatingOffer)) {
-    return SessionDescriptionWrapper();
-  }
+    webrtc::DataChannelInit data_channel_init;
+    data_channel_init.reliable = true;
+    NEARBY_LOG(INFO,
+               "ConnectionFlow::CreateOffer() "
+               "peer_connection_->CreateDataChannel(...)");
+    rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
+        peer_connection_->CreateDataChannel(kDataChannelName,
+                                            &data_channel_init);
+    RegisterDataChannelObserver(data_channel);
 
-  webrtc::DataChannelInit data_channel_init;
-  data_channel_init.reliable = true;
-  rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
-      peer_connection_->CreateDataChannel(kDataChannelName, &data_channel_init);
-  RegisterDataChannelObserver(data_channel);
+    webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
+    rtc::scoped_refptr<CreateSessionDescriptionObserverImpl> observer =
+        new rtc::RefCountedObject<CreateSessionDescriptionObserverImpl>(
+            this, success_future, State::kWaitingForAnswer);
+    NEARBY_LOG(
+        INFO,
+        "ConnectionFlow::CreateOffer() peer_connection_->CreateOffer(...)");
+    peer_connection_->CreateOffer(observer, options);
+  });
+  if (!will_run) return SessionDescriptionWrapper();
 
-  auto success_future = new Future<SessionDescriptionWrapper>();
-  webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
-  rtc::scoped_refptr<CreateSessionDescriptionObserverImpl> observer =
-      new rtc::RefCountedObject<CreateSessionDescriptionObserverImpl>(
-          success_future);
-  peer_connection_->CreateOffer(observer, options);
-
-  ExceptionOr<SessionDescriptionWrapper> result = success_future->Get(kTimeout);
-  if (result.ok() &&
-      TransitionState(State::kCreatingOffer, State::kWaitingForAnswer)) {
+  ExceptionOr<SessionDescriptionWrapper> result = success_future.Get(kTimeout);
+  if (result.ok()) {
     return std::move(result.result());
   }
 
@@ -142,22 +160,26 @@ SessionDescriptionWrapper ConnectionFlow::CreateOffer() {
 }
 
 SessionDescriptionWrapper ConnectionFlow::CreateAnswer() {
-  MutexLock lock(&mutex_);
+  Future<SessionDescriptionWrapper> success_future;
+  bool will_run = RunOnSignalingThread([this, success_future]() mutable {
+    if (!TransitionState(State::kReceivedOffer, State::kCreatingAnswer)) {
+      success_future.Set(SessionDescriptionWrapper());
+      return;
+    }
 
-  if (!TransitionState(State::kReceivedOffer, State::kCreatingAnswer)) {
-    return SessionDescriptionWrapper();
-  }
+    webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
+    rtc::scoped_refptr<CreateSessionDescriptionObserverImpl> observer =
+        new rtc::RefCountedObject<CreateSessionDescriptionObserverImpl>(
+            this, std::move(success_future), State::kWaitingToConnect);
+    NEARBY_LOG(
+        INFO,
+        "ConnectionFlow::CreateAnswer() peer_connection_->CreateAnswer(...)");
+    peer_connection_->CreateAnswer(observer, options);
+  });
+  if (!will_run) return SessionDescriptionWrapper();
 
-  auto success_future = new Future<SessionDescriptionWrapper>();
-  webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
-  rtc::scoped_refptr<CreateSessionDescriptionObserverImpl> observer =
-      new rtc::RefCountedObject<CreateSessionDescriptionObserverImpl>(
-          success_future);
-  peer_connection_->CreateAnswer(observer, options);
-
-  ExceptionOr<SessionDescriptionWrapper> result = success_future->Get(kTimeout);
-  if (result.ok() &&
-      TransitionState(State::kCreatingAnswer, State::kWaitingToConnect)) {
+  ExceptionOr<SessionDescriptionWrapper> result = success_future.Get(kTimeout);
+  if (result.ok()) {
     return std::move(result.result());
   }
 
@@ -165,20 +187,29 @@ SessionDescriptionWrapper ConnectionFlow::CreateAnswer() {
   return SessionDescriptionWrapper();
 }
 
-bool ConnectionFlow::SetLocalSessionDescription(SessionDescriptionWrapper sdp) {
-  MutexLock lock(&mutex_);
+bool ConnectionFlow::SetLocalSessionDescription(
+    SessionDescriptionWrapper sdp_wrapper) {
+  Future<bool> success_future;
+  bool will_run = RunOnSignalingThread(
+      [this, success_future, sdp = std::move(sdp_wrapper)]() mutable {
+        if (!sdp.IsValid()) {
+          success_future.Set(false);
+          return;
+        }
+        rtc::scoped_refptr<SetLocalDescriptionObserver> observer =
+            new rtc::RefCountedObject<SetLocalDescriptionObserver>(
+                std::move(success_future));
 
-  if (state_ == State::kEnded) return false;
-  if (!sdp.IsValid()) return false;
+        NEARBY_LOG(INFO,
+                   "ConnectionFlow::SetLocalSessionDescription() "
+                   "peer_connection_->SetLocalDescription(...)");
+        peer_connection_->SetLocalDescription(
+            std::unique_ptr<webrtc::SessionDescriptionInterface>(sdp.Release()),
+            observer);
+      });
+  if (!will_run) return false;
 
-  auto success_future = new Future<bool>();
-  rtc::scoped_refptr<SetSessionDescriptionObserverImpl> observer =
-      new rtc::RefCountedObject<SetSessionDescriptionObserverImpl>(
-          success_future);
-
-  peer_connection_->SetLocalDescription(observer, sdp.Release());
-
-  ExceptionOr<bool> result = success_future->Get(kTimeout);
+  ExceptionOr<bool> result = success_future.Get(kTimeout);
   bool success = result.ok() && result.result();
   if (!success) {
     NEARBY_LOG(ERROR, "Failed to set local session description: %d",
@@ -188,75 +219,147 @@ bool ConnectionFlow::SetLocalSessionDescription(SessionDescriptionWrapper sdp) {
 }
 
 bool ConnectionFlow::SetRemoteSessionDescription(
-    SessionDescriptionWrapper sdp) {
-  if (!sdp.IsValid()) return false;
+    SessionDescriptionWrapper sdp_wrapper, State new_state) {
+  Future<bool> success_future;
+  bool will_run = RunOnSignalingThread([this, success_future,
+                                        sdp = std::move(sdp_wrapper),
+                                        new_state]() mutable {
+    if (!sdp.IsValid()) {
+      success_future.Set(false);
+      return;
+    }
 
-  auto success_future = new Future<bool>();
-  rtc::scoped_refptr<SetSessionDescriptionObserverImpl> observer =
-      new rtc::RefCountedObject<SetSessionDescriptionObserverImpl>(
-          success_future);
+    TransitionState(state_, new_state);
 
-  peer_connection_->SetRemoteDescription(observer, sdp.Release());
+    rtc::scoped_refptr<SetRemoteDescriptionObserver> observer =
+        new rtc::RefCountedObject<SetRemoteDescriptionObserver>(success_future);
 
-  ExceptionOr<bool> result = success_future->Get(kTimeout);
+    NEARBY_LOG(INFO,
+               "ConnectionFlow::SetRemoteSessionDescription() lambda "
+               "peer_connection_->SetRemoteDescription(...)");
+    peer_connection_->SetRemoteDescription(
+        std::unique_ptr<webrtc::SessionDescriptionInterface>(sdp.Release()),
+        observer);
+    NEARBY_LOG(INFO,
+               "ConnectionFlow::SetRemoteSessionDescription() lambda "
+               "peer_connection_->SetRemoteDescription(...) done");
+  });
+  if (!will_run) return false;
+
+  NEARBY_LOG(INFO,
+             "ConnectionFlow::SetRemoteSessionDescription() about to wait on "
+             "success_future");
+  ExceptionOr<bool> result = success_future.Get(kTimeout);
+  NEARBY_LOG(INFO,
+             "ConnectionFlow::SetRemoteSessionDescription() future is done");
   bool success = result.ok() && result.result();
   if (!success) {
     NEARBY_LOG(ERROR, "Failed to set remote description: %d",
                result.exception());
   }
+  NEARBY_LOG(
+      INFO, "ConnectionFlow::SetRemoteSessionDescription() returning success.");
   return success;
 }
 
 bool ConnectionFlow::OnOfferReceived(SessionDescriptionWrapper offer) {
-  MutexLock lock(&mutex_);
-
-  if (!TransitionState(State::kInitialized, State::kReceivedOffer)) {
-    return false;
-  }
-  return SetRemoteSessionDescription(std::move(offer));
+  NEARBY_LOG(INFO,
+             "ConnectionFlow::OnOfferReceived() setting remote description.");
+  return SetRemoteSessionDescription(std::move(offer), State::kReceivedOffer);
 }
 
 bool ConnectionFlow::OnAnswerReceived(SessionDescriptionWrapper answer) {
-  MutexLock lock(&mutex_);
-
-  if (!TransitionState(State::kWaitingForAnswer, State::kWaitingToConnect)) {
-    return false;
-  }
-  return SetRemoteSessionDescription(std::move(answer));
+  NEARBY_LOG(INFO,
+             "ConnectionFlow::OnOfferReceived() setting remote description.");
+  return SetRemoteSessionDescription(std::move(answer),
+                                     State::kWaitingToConnect);
 }
 
 bool ConnectionFlow::OnRemoteIceCandidatesReceived(
     std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
-        ice_candidates) {
-  MutexLock lock(&mutex_);
-
-  if (state_ == State::kEnded) {
-    NEARBY_LOG(WARNING,
-               "You cannot add ice candidates to a disconnected session.");
+        source_ice_candidates) {
+  // We can't use RunOnSignalingThread here because we need to capture
+  // |source_ice_candidates| by move.
+  if (peer_connection_->signaling_thread()->IsCurrent()) {
     return false;
   }
 
-  if (state_ != State::kWaitingToConnect && state_ != State::kConnected) {
-    cached_remote_ice_candidates_.insert(
-        cached_remote_ice_candidates_.end(),
-        std::make_move_iterator(ice_candidates.begin()),
-        std::make_move_iterator(ice_candidates.end()));
-    return true;
-  }
+  peer_connection_->signaling_thread()->PostTask(
+      RTC_FROM_HERE,
+      [this, ice_candidates = std::move(source_ice_candidates)]() mutable {
+        if (state_ == State::kEnded) {
+          NEARBY_LOG(
+              WARNING,
+              "You cannot add ice candidates to a disconnected session.");
+          return;
+        }
 
-  for (auto&& ice_candidate : ice_candidates) {
-    if (!peer_connection_->AddIceCandidate(ice_candidate.get())) {
-      NEARBY_LOG(WARNING, "Unable to add remote ice candidate.");
-    }
-  }
+        if (state_ != State::kWaitingToConnect && state_ != State::kConnected) {
+          NEARBY_LOG(INFO,
+                     "ConnectionFlow::OnRemoteIceCandidatesReceived() caching "
+                     "ice candidates since we are not connected yet.");
+          cached_remote_ice_candidates_.insert(
+              cached_remote_ice_candidates_.end(),
+              std::make_move_iterator(ice_candidates.begin()),
+              std::make_move_iterator(ice_candidates.end()));
+          return;
+        }
+        for (auto&& ice_candidate : ice_candidates) {
+          NEARBY_LOG(INFO,
+                     "ConnectionFlow::OnRemoteIceCandidatesReceived() "
+                     "peer_connection_->AddIceCandidate(...)");
+          if (!peer_connection_->AddIceCandidate(ice_candidate.get())) {
+            NEARBY_LOG(WARNING, "Unable to add remote ice candidate.");
+          }
+        }
+      });
   return true;
 }
 
 bool ConnectionFlow::Close() {
-  return Close(/* close_peer_connection= */ true);
+  // BLOCKs calling thread until this completes!
+  Future<bool> future;
+  bool will_run = RunOnSignalingThread([this, future]() mutable {
+    NEARBY_LOG(INFO,
+               "ConnectionFlow::Close() lambda Closing WebRTC connection on "
+               "signaling thread");
+    if (state_ == State::kEnded) {
+      NEARBY_LOG(INFO,
+                 "ConnectionFlow::Close() lambda in kEnded, early return");
+      future.Set(false);
+      return;
+    }
+    state_ = State::kEnded;
+
+    single_threaded_signaling_offloader_.Shutdown();
+
+    NEARBY_LOG(INFO,
+               "ConnectionFlow::Close() lambda peer_connection_->Close(...)");
+    if (peer_connection_) peer_connection_->Close();
+
+    weak_factory_.InvalidateWeakPtrs();
+
+    data_channel_observer_.reset();
+    NEARBY_LOG(INFO,
+               "ConnectionFlow::Close() lambda re-setting peer_connection_");
+    peer_connection_ = nullptr;
+    NEARBY_LOG(INFO, "ConnectionFlow::Close() lambda done");
+    future.Set(true);
+  });
+  if (will_run) {
+    NEARBY_LOG(INFO, "ConnectionFlow::Close() BLOCK waiting");
+    future.Get();
+    NEARBY_LOG(INFO, "ConnectionFlow::Close() UNBLOCK done");
+  } else {
+    NEARBY_LOG(INFO, "ConnectionFlow::Close() skipped shutdown");
+  }
+  return true;
 }
 
 bool ConnectionFlow::InitPeerConnection(WebRtcMedium& webrtc_medium) {
+  NEARBY_LOG(INFO,
+             "ConnectionFlow::InitPeerConnection() creating peer_connection_ "
+             "webrtc_medium.CreatePeerConnection()");
   Future<bool> success_future;
   // CreatePeerConnection callback may be invoked after ConnectionFlow lifetime
   // has ended, in case of a timeout. Future is captured by value, and is safe
@@ -266,6 +369,9 @@ bool ConnectionFlow::InitPeerConnection(WebRtcMedium& webrtc_medium) {
       &peer_connection_observer_,
       [this, success_future](rtc::scoped_refptr<webrtc::PeerConnectionInterface>
                                  peer_connection) mutable {
+        NEARBY_LOG(INFO,
+                   "ConnectionFlow::InitPeerConnection() lambda: "
+                   "peer_connection_ created");
         if (!peer_connection) {
           success_future.Set(false);
           return;
@@ -280,7 +386,13 @@ bool ConnectionFlow::InitPeerConnection(WebRtcMedium& webrtc_medium) {
         success_future.Set(true);
       });
 
+  NEARBY_LOG(INFO,
+             "ConnectionFlow::InitPeerConnection() BLOCK! waiting for "
+             "peer_connection_ future");
   ExceptionOr<bool> result = success_future.Get(kPeerConnectionTimeout);
+  NEARBY_LOG(INFO,
+             "ConnectionFlow::InitPeerConnection() future complete, "
+             "peer_connection_ should be set.");
   bool success = result.ok() && result.result();
   if (!success) {
     NEARBY_LOG(ERROR, "Failed to create peer connection: %d",
@@ -290,44 +402,49 @@ bool ConnectionFlow::InitPeerConnection(WebRtcMedium& webrtc_medium) {
 }
 
 void ConnectionFlow::OnSignalingStable() {
-  OffloadFromSignalingThread([this] {
-    MutexLock lock(&mutex_);
+  CHECK(rtc::Thread::Current() == peer_connection_->signaling_thread());
+  NEARBY_LOG(INFO, "ConnectionFlow::OnSignalingStable() called");
 
-    if (state_ != State::kWaitingToConnect && state_ != State::kConnected)
-      return;
+  if (state_ != State::kWaitingToConnect && state_ != State::kConnected) return;
 
-    for (auto&& ice_candidate : cached_remote_ice_candidates_) {
-      if (!peer_connection_->AddIceCandidate(ice_candidate.get())) {
-        NEARBY_LOG(WARNING, "Unable to add remote ice candidate.");
-      }
+  for (auto&& ice_candidate : cached_remote_ice_candidates_) {
+    NEARBY_LOG(INFO,
+               "ConnectionFlow::OnSignalingStable() "
+               "peer_connection_->AddIceCandidate(...)");
+    if (!peer_connection_->AddIceCandidate(ice_candidate.get())) {
+      NEARBY_LOG(WARNING, "Unable to add remote ice candidate.");
     }
-    cached_remote_ice_candidates_.clear();
-  });
+  }
+  cached_remote_ice_candidates_.clear();
 }
 
 void ConnectionFlow::ProcessOnPeerConnectionChange(
     webrtc::PeerConnectionInterface::PeerConnectionState new_state) {
-  if (new_state == PeerConnectionState::kClosed ||
-      new_state == PeerConnectionState::kFailed ||
+  CHECK(rtc::Thread::Current() == peer_connection_->signaling_thread());
+  NEARBY_LOG(INFO, "ConnectionFlow::ProcessOnPeerConnectionChange() called");
+  if (new_state == PeerConnectionState::kFailed ||
       new_state == PeerConnectionState::kDisconnected) {
-    // kClosed means that PeerConnection is already closed or
-    // is closing right now - PeerConnection::Close() triggered
-    // PeerConnectionObserver::OnConnectionChange(kClosed).
-    // We must not call PeerConnection::Close() again on that code path
-    Close(new_state != PeerConnectionState::kClosed);
+    Close();
   }
 }
 
 void ConnectionFlow::ProcessDataChannelConnected(
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
-  MutexLock lock(&mutex_);
+  CHECK(rtc::Thread::Current() == peer_connection_->signaling_thread());
+  NEARBY_LOG(INFO, "ConnectionFlow::ProcessDataChannelConnected() called");
   NEARBY_LOG(INFO, "Data channel state changed to connected.");
   if (!TransitionState(State::kWaitingToConnect, State::kConnected)) {
     data_channel->Close();
     return;
   }
 
-  data_channel_listener_.data_channel_created_cb(std::move(data_channel));
+  // Avoid blocking the signaling thread.
+  OffloadFromSignalingThread([this, data_channel{std::move(data_channel)}]() {
+    NEARBY_LOG(INFO,
+               "ConnectionFlow::ProcessDataChannelConnected() lambda calls "
+               "data_channel_listener created cb");
+    data_channel_listener_.data_channel_created_cb(std::move(data_channel));
+  });
 }
 
 void ConnectionFlow::RegisterDataChannelObserver(
@@ -336,10 +453,7 @@ void ConnectionFlow::RegisterDataChannelObserver(
     auto state_change_callback = [this, data_channel]() {
       if (data_channel->state() ==
           webrtc::DataChannelInterface::DataState::kOpen) {
-        OffloadFromSignalingThread(
-            [this, data_channel{std::move(data_channel)}]() {
-              ProcessDataChannelConnected(std::move(data_channel));
-            });
+        ProcessDataChannelConnected(std::move(data_channel));
       }
     };
     data_channel_observer_ = absl::make_unique<DataChannelObserverImpl>(
@@ -352,6 +466,7 @@ void ConnectionFlow::RegisterDataChannelObserver(
 }
 
 bool ConnectionFlow::TransitionState(State current_state, State new_state) {
+  CHECK(rtc::Thread::Current() == peer_connection_->signaling_thread());
   if (current_state != state_) {
     NEARBY_LOG(
         WARNING,
@@ -363,27 +478,36 @@ bool ConnectionFlow::TransitionState(State current_state, State new_state) {
   return true;
 }
 
-bool ConnectionFlow::Close(bool close_peer_connection) {
-  {
-    MutexLock lock(&mutex_);
-    if (state_ == State::kEnded) {
-      return false;
-    }
-    state_ = State::kEnded;
-  }
-  NEARBY_LOG(INFO, "Closing WebRTC connection.");
-
-  single_threaded_signaling_offloader_.Shutdown();
-
-  if (peer_connection_ && close_peer_connection) peer_connection_->Close();
-
-  data_channel_observer_.reset();
-  NEARBY_LOG(INFO, "Closed WebRTC connection.");
-  return true;
-}
-
 void ConnectionFlow::OffloadFromSignalingThread(Runnable runnable) {
   single_threaded_signaling_offloader_.Execute(std::move(runnable));
+}
+
+bool ConnectionFlow::RunOnSignalingThread(Runnable runnable) {
+  if (!peer_connection_ || !peer_connection_->signaling_thread()) {
+    NEARBY_LOG(ERROR,
+               "Cannot schedule task on signaling thread because the peer "
+               "connection is not available");
+    return false;
+  }
+  if (peer_connection_->signaling_thread()->IsCurrent()) {
+    // We already on the signaling thread so it is safe to run the task now.
+    runnable();
+    return true;
+  }
+  // It is possible for tasks to end up running on the signaling thread after
+  // this object
+  peer_connection_->signaling_thread()->PostTask(
+      RTC_FROM_HERE,
+      [weak_ptr = weak_factory_.GetWeakPtr(), task = std::move(runnable)] {
+        // don't run the task if the weak_ptr is no longer valid.
+        if (!weak_ptr) {
+          return;
+        }
+        task();
+      });
+  // peer_connection_->signaling_thread()->PostTask(RTC_FROM_HERE,
+  // std::move(runnable));
+  return true;
 }
 
 }  // namespace mediums
