@@ -69,7 +69,7 @@ enum SessionRole {
 
 enum Medium {
   UNKNOWN_MEDIUM = 0;
-  MDNS = 1;
+  MDNS = 1 [deprecated = true];
   BLUETOOTH = 2;
   WIFI_HOTSPOT = 3;
   BLE = 4;
