@@ -21,7 +21,7 @@ cc_library(
         "posix_mutex.h",
     ],
     visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//googlemac/iPhone/Shared/Nearby/Connections_v2:__subpackages__",
         "//platform/impl:__subpackages__",
     ],
     deps = ["//platform/api:types"],
@@ -36,7 +36,7 @@ cc_library(
         "posix_condition_variable.h",
     ],
     visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//googlemac/iPhone/Shared/Nearby/Connections_v2:__subpackages__",
     ],
     deps = [
         ":posix_mutex",
@@ -49,7 +49,7 @@ cc_library(
     srcs = ["file.cc"],
     hdrs = ["file.h"],
     visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//googlemac/iPhone/Shared/Nearby/Connections_v2:__subpackages__",
         "//platform/impl:__subpackages__",
     ],
     deps = [
