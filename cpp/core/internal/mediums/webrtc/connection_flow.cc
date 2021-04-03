@@ -101,8 +101,7 @@ ConnectionFlow::ConnectionFlow(
     LocalIceCandidateListener local_ice_candidate_listener,
     DataChannelListener data_channel_listener)
     : data_channel_listener_(std::move(data_channel_listener)),
-      peer_connection_observer_(this, std::move(local_ice_candidate_listener)) {
-}
+      local_ice_candidate_listener_(std::move(local_ice_candidate_listener)) {}
 
 ConnectionFlow::~ConnectionFlow() { Close(); }
 
@@ -263,7 +262,7 @@ bool ConnectionFlow::InitPeerConnection(WebRtcMedium& webrtc_medium) {
   // to access, but it is not safe to access ConnectionFlow member variables
   // unless the Future::Set() returns true.
   webrtc_medium.CreatePeerConnection(
-      &peer_connection_observer_,
+      this,
       [this, success_future](rtc::scoped_refptr<webrtc::PeerConnectionInterface>
                                  peer_connection) mutable {
         if (!peer_connection) {
@@ -305,8 +304,33 @@ void ConnectionFlow::OnSignalingStable() {
   });
 }
 
-void ConnectionFlow::ProcessOnPeerConnectionChange(
+void ConnectionFlow::OnIceCandidate(
+    const webrtc::IceCandidateInterface* candidate) {
+  local_ice_candidate_listener_.local_ice_candidate_found_cb(candidate);
+}
+
+void ConnectionFlow::OnSignalingChange(
+    webrtc::PeerConnectionInterface::SignalingState new_state) {
+  NEARBY_LOG(INFO, "OnSignalingChange: %d", new_state);
+  if (new_state == webrtc::PeerConnectionInterface::SignalingState::kStable) {
+    OnSignalingStable();
+  }
+}
+
+void ConnectionFlow::OnDataChannel(
+    rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
+  NEARBY_LOG(INFO, "OnDataChannel");
+  RegisterDataChannelObserver(std::move(data_channel));
+}
+
+void ConnectionFlow::OnIceGatheringChange(
+    webrtc::PeerConnectionInterface::IceGatheringState new_state) {
+  NEARBY_LOG(INFO, "OnIceGatheringChange: %d", new_state);
+}
+
+void ConnectionFlow::OnConnectionChange(
     webrtc::PeerConnectionInterface::PeerConnectionState new_state) {
+  NEARBY_LOG(INFO, "OnConnectionChange: %d", new_state);
   if (new_state == PeerConnectionState::kClosed ||
       new_state == PeerConnectionState::kFailed ||
       new_state == PeerConnectionState::kDisconnected) {
@@ -316,6 +340,10 @@ void ConnectionFlow::ProcessOnPeerConnectionChange(
     // We must not call PeerConnection::Close() again on that code path
     Close(new_state != PeerConnectionState::kClosed);
   }
+}
+
+void ConnectionFlow::OnRenegotiationNeeded() {
+  NEARBY_LOG(INFO, "OnRenegotiationNeeded");
 }
 
 void ConnectionFlow::ProcessDataChannelConnected(
