@@ -61,20 +61,44 @@ class CreateSessionDescriptionObserverImpl
   std::unique_ptr<Future<SessionDescriptionWrapper>> settable_future_;
 };
 
-class SetSessionDescriptionObserverImpl
-    : public webrtc::SetSessionDescriptionObserver {
+class SetLocalDescriptionObserver
+    : public webrtc::SetLocalDescriptionObserverInterface {
  public:
-  explicit SetSessionDescriptionObserverImpl(Future<bool>* settable_future)
+  explicit SetLocalDescriptionObserver(Future<bool>* settable_future)
       : settable_future_(settable_future) {}
 
-  void OnSuccess() override { settable_future_->Set(true); }
+  void OnSetLocalDescriptionComplete(webrtc::RTCError error) override {
+    // On success, |error.ok()| is true.
+    if (error.ok()) {
+      settable_future_->Set(true);
+      return;
+    }
 
-  void OnFailure(webrtc::RTCError error) override {
-    NEARBY_LOG(ERROR, "Error when setting session description: %s",
+    NEARBY_LOG(ERROR, "Error when setting local session description: %s",
                error.message());
     settable_future_->SetException({Exception::kFailed});
   }
+ private:
+  std::unique_ptr<Future<bool>> settable_future_;
+};
 
+class SetRemoteDescriptionObserver
+    : public webrtc::SetRemoteDescriptionObserverInterface {
+ public:
+  explicit SetRemoteDescriptionObserver(Future<bool>* settable_future)
+      : settable_future_(settable_future) {}
+
+  void OnSetRemoteDescriptionComplete(webrtc::RTCError error) override {
+    // On success, |error.ok()| is true.
+    if (error.ok()) {
+      settable_future_->Set(true);
+      return;
+    }
+
+    NEARBY_LOG(ERROR, "Error when setting remote session description: %s",
+               error.message());
+    settable_future_->SetException({Exception::kFailed});
+  }
  private:
   std::unique_ptr<Future<bool>> settable_future_;
 };
@@ -171,11 +195,13 @@ bool ConnectionFlow::SetLocalSessionDescription(SessionDescriptionWrapper sdp) {
   if (!sdp.IsValid()) return false;
 
   auto success_future = new Future<bool>();
-  rtc::scoped_refptr<SetSessionDescriptionObserverImpl> observer =
-      new rtc::RefCountedObject<SetSessionDescriptionObserverImpl>(
+  rtc::scoped_refptr<SetLocalDescriptionObserver> observer =
+      new rtc::RefCountedObject<SetLocalDescriptionObserver>(
           success_future);
 
-  peer_connection_->SetLocalDescription(observer, sdp.Release());
+  peer_connection_->SetLocalDescription(
+      std::unique_ptr<webrtc::SessionDescriptionInterface>(sdp.Release()),
+      observer);
 
   ExceptionOr<bool> result = success_future->Get(kTimeout);
   bool success = result.ok() && result.result();
@@ -191,11 +217,13 @@ bool ConnectionFlow::SetRemoteSessionDescription(
   if (!sdp.IsValid()) return false;
 
   auto success_future = new Future<bool>();
-  rtc::scoped_refptr<SetSessionDescriptionObserverImpl> observer =
-      new rtc::RefCountedObject<SetSessionDescriptionObserverImpl>(
+  rtc::scoped_refptr<SetRemoteDescriptionObserver> observer =
+      new rtc::RefCountedObject<SetRemoteDescriptionObserver>(
           success_future);
 
-  peer_connection_->SetRemoteDescription(observer, sdp.Release());
+  peer_connection_->SetRemoteDescription(
+      std::unique_ptr<webrtc::SessionDescriptionInterface>(sdp.Release()),
+      observer);
 
   ExceptionOr<bool> result = success_future->Get(kTimeout);
   bool success = result.ok() && result.result();
