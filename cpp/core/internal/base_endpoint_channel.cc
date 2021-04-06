@@ -139,6 +139,9 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
         auto parsed = parser::FromBytes(ByteArray(input));
         if (parsed.ok() &&
             parser::GetFrameType(parsed.result()) == V1Frame::KEEP_ALIVE) {
+          NEARBY_LOGS(INFO)
+              << __func__
+              << ": Read unencrypted KEEP_ALIVE on encrypted channel.";
           result = ByteArray(input);
         }
       }
@@ -247,6 +250,8 @@ void BaseEndpointChannel::CloseIo() {
 
 void BaseEndpointChannel::Close(
     proto::connections::DisconnectionReason reason) {
+  NEARBY_LOGS(INFO) << __func__
+                    << ": Closing endpoint channel, reason: " << reason;
   Close();
 }
 

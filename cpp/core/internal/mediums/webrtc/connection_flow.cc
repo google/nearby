@@ -366,6 +366,8 @@ void ConnectionFlow::OnConnectionChange(
     // is closing right now - PeerConnection::Close() triggered
     // PeerConnectionObserver::OnConnectionChange(kClosed).
     // We must not call PeerConnection::Close() again on that code path
+    NEARBY_LOG(INFO, "Closing due to peer connection state change: %d",
+               new_state);
     Close(new_state != PeerConnectionState::kClosed);
   }
 }

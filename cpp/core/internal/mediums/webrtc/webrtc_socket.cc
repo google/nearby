@@ -37,6 +37,7 @@ Exception WebRtcSocket::OutputStreamImpl::Write(const ByteArray& data) {
   }
 
   if (!socket_->SendMessage(data)) {
+    NEARBY_LOG(INFO, "Unable to write data to socket.");
     return {Exception::kIo};
   }
   return {Exception::kSuccess};

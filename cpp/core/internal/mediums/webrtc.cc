@@ -721,6 +721,9 @@ void WebRtc::ProcessDataChannelBufferAmountChanged(
 
 void WebRtc::ProcessDataChannelClosed(const PeerId& remote_peer_id) {
   MutexLock lock(&mutex_);
+  NEARBY_LOG(INFO,
+             "Data channel has closed, removing connection flow for peer %s.",
+             remote_peer_id.GetId().c_str());
   const auto& entry = sockets_.find(remote_peer_id.GetId());
   if (entry == sockets_.end()) {
     return;
