@@ -26,7 +26,6 @@ cc_library(
     deps = [
         ":core_types",
         "//core/internal",
-        "//platform/public:comm",
         "//platform/public:logging",
         "//platform/public:types",
         "//absl/strings",
@@ -54,8 +53,6 @@ cc_library(
     deps = [
         "//platform/base",
         "//platform/base:util",
-        "//platform/public:comm",
-        "//platform/public:logging",
         "//platform/public:types",
         "//proto:connections_enums_portable_proto",
         "//absl/strings",
@@ -81,7 +78,6 @@ cc_test(
         "//core/internal:internal_test",
         "//platform/base",
         "//platform/impl/g3",  # build_cleaner: keep
-        "//platform/public:comm",
         "//platform/public:logging",
         "//platform/public:types",
         "//testing/base/public:gunit_main",
