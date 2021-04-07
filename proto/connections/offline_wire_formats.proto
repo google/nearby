@@ -43,6 +43,7 @@ message V1Frame {
     KEEP_ALIVE = 5;
     DISCONNECTION = 6;
     PAIRED_KEY_ENCRYPTION = 7;
+    REQUEST_KEEP_ALIVE = 8;
   }
   optional FrameType type = 1;
 
