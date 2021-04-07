@@ -275,9 +275,9 @@ void BwuManager::Revert() {
   NEARBY_LOG(INFO, "Revert reseting medium %d", medium_);
   if (handler_) {
     handler_->Revert();
-    medium_ = Medium::UNKNOWN_MEDIUM;
     handler_ = nullptr;
   }
+  medium_ = Medium::UNKNOWN_MEDIUM;
 }
 
 void BwuManager::OnBwuNegotiationFrame(ClientProxy* client,
