@@ -85,6 +85,25 @@ TEST(BwuManagerTest, CanProcessBandwidthUpgradeFrames) {
   bwu_manager.Shutdown();
 }
 
+TEST(BwuManagerTest, InitiateBwu_UpgradeFails_NoCrash) {
+  ClientProxy client;
+  std::string endpoint_id("EP_A");
+  Mediums mediums;
+  EndpointChannelManager ecm;
+  EndpointManager em{&ecm};
+  BwuManager bwu_manager{mediums, em, ecm, {}, {}};
+  parser::UpgradePathInfo upgrade_path_info;
+  upgrade_path_info.set_medium(parser::UpgradePathInfo::WEB_RTC);
+
+  bwu_manager.InitiateBwuForEndpoint(&client, endpoint_id);
+  ExceptionOr<OfflineFrame> bwu_failed_frame =
+      parser::FromBytes(parser::ForBwuFailure(upgrade_path_info));
+  bwu_manager.OnIncomingFrame(bwu_failed_frame.result(), endpoint_id, &client,
+                              Medium::WEB_RTC);
+
+  bwu_manager.Shutdown();
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby

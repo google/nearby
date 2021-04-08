@@ -948,10 +948,13 @@ void BwuManager::CancelRetryUpgradeAlarm(const std::string& endpoint_id) {
 
 void BwuManager::CancelAllRetryUpgradeAlarms() {
   NEARBY_LOG(INFO, "CancelAllRetryUpgradeAlarms invoked");
-  for (const auto& item : retry_upgrade_alarms_) {
+  for (auto& item : retry_upgrade_alarms_) {
     const std::string& endpoint_id = item.first;
-    CancelRetryUpgradeAlarm(endpoint_id);
+    CancelableAlarm& cancellable_alarm = item.second.first;
+    NEARBY_LOG(INFO, "CancelRetryUpgradeAlarm for %s", endpoint_id.c_str());
+    cancellable_alarm.Cancel();
   }
+  retry_upgrade_alarms_.clear();
 }
 
 Medium BwuManager::GetEndpointMedium(const std::string& endpoint_id) {
