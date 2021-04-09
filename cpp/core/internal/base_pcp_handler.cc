@@ -104,8 +104,6 @@ Status BasePcpHandler::StartAdvertising(ClientProxy* client,
     // Now that we've succeeded, mark the client as advertising.
     // Save the advertising options for local reference in later process like
     // upgrading bandwidth.
-    std::vector<proto::connections::Medium> supported_mediums =
-        advertising_options.GetMediums();
     advertising_listener_ = info.listener;
     client->StartedAdvertising(service_id, GetStrategy(), info.listener,
                                absl::MakeSpan(result.mediums),
@@ -142,6 +140,43 @@ std::string BasePcpHandler::GetStringValueOfSupportedMediums(
 bool BasePcpHandler::ShouldEnterHighVisibilityMode(
     const ConnectionOptions& options) {
   return !options.low_power && options.allowed.bluetooth;
+}
+
+BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
+    const PendingConnectionInfo& connection_info) {
+  absl::flat_hash_set<Medium> intersection;
+  auto their_mediums = connection_info.supported_mediums;
+
+  // If no supported mediums were set, use the default upgrade medium.
+  if (their_mediums.empty()) {
+    their_mediums.push_back(GetDefaultUpgradeMedium());
+  }
+
+  for (Medium my_medium : GetConnectionMediumsByPriority()) {
+    if (std::find(their_mediums.begin(), their_mediums.end(), my_medium) !=
+        their_mediums.end()) {
+      // We use advertising options as a proxy to whether or not the local
+      // client does want to enable a WebRTC upgrade.
+      if (my_medium == location::nearby::proto::connections::Medium::WEB_RTC) {
+        ConnectionOptions advertising_options =
+            connection_info.client->GetAdvertisingOptions();
+
+        if (!advertising_options.enable_webrtc_listening &&
+            !advertising_options.allowed.web_rtc) {
+          // The local client does not allow WebRTC for listening or upgrades,
+          // ignore.
+          continue;
+        }
+      }
+
+      intersection.emplace(my_medium);
+    }
+  }
+
+  return {.bluetooth = intersection.contains(Medium::BLUETOOTH),
+          .ble = intersection.contains(Medium::BLE),
+          .web_rtc = intersection.contains(Medium::WEB_RTC),
+          .wifi_lan = intersection.contains(Medium::WIFI_LAN)};
 }
 
 Status BasePcpHandler::StartDiscovery(ClientProxy* client,
@@ -297,8 +332,26 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
           .raw_authentication_token = raw_auth_token,
           .is_incoming_connection = connection_info.is_incoming,
       },
-      connection_info.options, std::move(connection_info.channel),
-      connection_info.listener);
+      {
+          .strategy = connection_info.options.strategy,
+          .allowed = ComputeIntersectionOfSupportedMediums(connection_info),
+          .auto_upgrade_bandwidth =
+              connection_info.options.auto_upgrade_bandwidth,
+          .enforce_topology_constraints =
+              connection_info.options.enforce_topology_constraints,
+          .low_power = connection_info.options.low_power,
+          .enable_bluetooth_listening =
+              connection_info.options.enable_bluetooth_listening,
+          .enable_webrtc_listening =
+              connection_info.options.enable_webrtc_listening,
+          .is_out_of_band_connection =
+              connection_info.options.is_out_of_band_connection,
+          .remote_bluetooth_mac_address =
+              connection_info.options.remote_bluetooth_mac_address,
+          .fast_advertisement_service_uuid =
+              connection_info.options.fast_advertisement_service_uuid,
+      },
+      std::move(connection_info.channel), connection_info.listener);
 
   if (auto future_status = connection_info.result.lock()) {
     NEARBY_LOG(INFO, "Connection established; Finalising future OK");
@@ -1043,48 +1096,6 @@ void BasePcpHandler::ProcessTieBreakLoss(
   ProcessPreConnectionResultFailure(client, endpoint_id);
 }
 
-void BasePcpHandler::InitiateBandwidthUpgrade(
-    ClientProxy* client, const std::string& endpoint_id,
-    const std::vector<Medium>& their_supported_mediums) {
-  // There was comments for re-using the same highest medium for upgrading. But
-  // given that end users may change data options all the time, it makes more
-  // sense to dynamically select the proper medium for upgrading.
-  // TODO(hais): when we add more mediums like Wifi Hotspot, we need to prevent
-  // upgrading interfering with active connections.
-  Medium bwu_medium = ChooseBestUpgradeMedium(their_supported_mediums,
-                                              client->GetAdvertisingOptions());
-
-  if (AutoUpgradeBandwidth(client->GetAdvertisingOptions()) &&
-      bwu_medium != Medium::UNKNOWN_MEDIUM) {
-    bwu_manager_->InitiateBwuForEndpoint(client, endpoint_id, bwu_medium);
-  }
-}
-
-proto::connections::Medium BasePcpHandler::ChooseBestUpgradeMedium(
-    const std::vector<proto::connections::Medium>& their_supported_mediums,
-    const ConnectionOptions& local_advertising_options) {
-  // If the remote side did not report their supported mediums, choose an
-  // appropriate default.
-  std::vector<proto::connections::Medium> their_mediums =
-      their_supported_mediums;
-  if (their_supported_mediums.empty()) {
-    their_mediums.push_back(GetDefaultUpgradeMedium());
-  }
-
-  // Otherwise, pick the best medium we support.
-  std::vector<proto::connections::Medium> my_mediums =
-      GetSupportedConnectionMediumsByPriority(local_advertising_options);
-  for (const auto& my_medium : my_mediums) {
-    for (const auto& their_medium : their_mediums) {
-      if (my_medium == their_medium) {
-        return my_medium;
-      }
-    }
-  }
-
-  return proto::connections::Medium::UNKNOWN_MEDIUM;
-}
-
 bool BasePcpHandler::AppendRemoteBluetoothMacAddressEndpoint(
     const std::string& endpoint_id,
     const std::string& remote_bluetooth_mac_address,
@@ -1239,9 +1250,9 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
   }
 
   // Kick off the bandwidth upgrade for incoming connections.
-  if (connection_info.is_incoming) {
-    InitiateBandwidthUpgrade(client, endpoint_id,
-                             connection_info.supported_mediums);
+  if (connection_info.is_incoming &&
+      AutoUpgradeBandwidth(client->GetAdvertisingOptions())) {
+    bwu_manager_->InitiateBwuForEndpoint(client, endpoint_id);
   }
 }
 

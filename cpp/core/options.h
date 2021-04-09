@@ -95,6 +95,7 @@ struct ConnectionOptions {
   bool enforce_topology_constraints;
   bool low_power;
   bool enable_bluetooth_listening;
+  bool enable_webrtc_listening;
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;
   ByteArray remote_bluetooth_mac_address;
