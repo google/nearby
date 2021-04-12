@@ -13,6 +13,29 @@
 # limitations under the License.
 
 cc_library(
+    name = "types",
+    hdrs = [
+        "atomic_boolean.h",
+        "atomic_reference.h",
+    ],
+    deps = [
+        "//platform/api:types",
+    ],
+)
+
+cc_library(
+    name = "comm",
+    hdrs = [
+        "ble.h",
+    ],
+    visibility = ["//visibility:private"],
+    deps = [
+        "//platform/api:comm",
+        "//platform/base",
+    ],
+)
+
+cc_library(
     name = "crypto",
     testonly = True,
     srcs = [
@@ -34,7 +57,9 @@ cc_test(
         "crypto_test.cc",
     ],
     deps = [
+        ":comm",
         ":crypto",
+        ":types",
         "//platform/api:types",
         "//testing/base/public:gunit_main",
     ],
