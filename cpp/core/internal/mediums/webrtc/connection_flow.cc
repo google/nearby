@@ -23,6 +23,7 @@
 #include "platform/public/webrtc.h"
 #include "absl/memory/memory.h"
 #include "absl/time/time.h"
+#include "absl/time/civil_time.h"
 #include "webrtc/api/data_channel_interface.h"
 #include "webrtc/api/jsep.h"
 
@@ -76,6 +77,7 @@ class SetLocalDescriptionObserver
 
     NEARBY_LOG(ERROR, "Error when setting local session description: %s",
                error.message());
+    NEARBY_LOG(ERROR, "JFAN");
     settable_future_->SetException({Exception::kFailed});
   }
  private:
