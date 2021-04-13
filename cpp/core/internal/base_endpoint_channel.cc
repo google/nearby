@@ -137,12 +137,20 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
         // TODO(apolyudov): verify this happens at most once per session.
         result = {};
         auto parsed = parser::FromBytes(ByteArray(input));
-        if (parsed.ok() &&
-            parser::GetFrameType(parsed.result()) == V1Frame::KEEP_ALIVE) {
-          NEARBY_LOGS(INFO)
-              << __func__
-              << ": Read unencrypted KEEP_ALIVE on encrypted channel.";
-          result = ByteArray(input);
+        if (parsed.ok()) {
+          if (parser::GetFrameType(parsed.result()) == V1Frame::KEEP_ALIVE) {
+            NEARBY_LOGS(INFO)
+                << __func__
+                << ": Read unencrypted KEEP_ALIVE on encrypted channel.";
+            result = ByteArray(input);
+          } else {
+            NEARBY_LOGS(WARNING)
+                << __func__ << ": Read unexpected unencrypted frame of type "
+                << parser::GetFrameType(parsed.result());
+          }
+        } else {
+          NEARBY_LOGS(WARNING)
+              << __func__ << ": Unable to parse data as unencrypted message.";
         }
       }
       if (result.Empty()) {
