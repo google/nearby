@@ -14,12 +14,30 @@
 
 cc_library(
     name = "types",
+    srcs = [
+        "log_message.cc",
+        "system_clock.cc",
+    ],
     hdrs = [
         "atomic_boolean.h",
         "atomic_reference.h",
+        "cancelable.h",
+        "condition_variable.h",
+        "count_down_latch.h",
+        "executor.h",
+        "future.h",
+        "input_file.h",
+        "listenable_future.h",
+        "log_message.h",
+        "mutex.h",
+        "output_file.h",
+        "scheduled_executor.h",
+        "settable_future.h",
+        "submittable_executor.h",
     ],
     deps = [
         "//platform/api:types",
+        "//platform/base",
     ],
 )
 
@@ -27,6 +45,12 @@ cc_library(
     name = "comm",
     hdrs = [
         "ble.h",
+        "bluetooth_adapter.h",
+        "bluetooth_classic.h",
+        "server_sync.h",
+        "webrtc.h",
+        "wifi.h",
+        "wifi_lan.h",
     ],
     visibility = ["//visibility:private"],
     deps = [
@@ -37,7 +61,6 @@ cc_library(
 
 cc_library(
     name = "crypto",
-    testonly = True,
     srcs = [
         "crypto.cc",
     ],
@@ -47,6 +70,21 @@ cc_library(
         "//platform/base",
         "//absl/strings",
         "//openssl:crypto",
+    ],
+)
+
+cc_library(
+    name = "windows",
+    srcs = [
+        "platform.cc",
+    ],
+    deps = [
+        ":comm",
+        ":crypto",  # build_cleaner: keep
+        ":types",
+        "//platform/api:comm",
+        "//platform/api:platform",
+        "//platform/api:types",
     ],
 )
 

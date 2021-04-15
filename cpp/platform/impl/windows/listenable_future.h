@@ -12,32 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
-#define PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
+#ifndef PLATFORM_IMPL_WINDOWS_LISTENABLE_FUTURE_H_
+#define PLATFORM_IMPL_WINDOWS_LISTENABLE_FUTURE_H_
 
-#include "platform/api/atomic_reference.h"
+#include "platform/api/listenable_future.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
 
-// Type that allows 32-bit atomic reads and writes.
-class AtomicUint32 : public api::AtomicUint32 {
+// A Future that accepts completion listeners.
+//
+// https://guava.dev/releases/20.0/api/docs/com/google/common/util/concurrent/ListenableFuture.html
+template <typename T>
+class ListenableFuture : public api::ListenableFuture<T> {
  public:
   // TODO(b/184975123): replace with real implementation.
-  ~AtomicUint32() override = default;
+  ~ListenableFuture() override = default;
 
-  // Atomically reads and returns stored value.
   // TODO(b/184975123): replace with real implementation.
-  std::uint32_t Get() const override { return 0; };
-
-  // Atomically stores value.
-  // TODO(b/184975123): replace with real implementation.
-  void Set(std::uint32_t value) override {}
+  void AddListener(Runnable runnable, api::Executor* executor) {}
 };
 
 }  // namespace windows
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
+#endif  // PLATFORM_IMPL_WINDOWS_LISTENABLE_FUTURE_H_

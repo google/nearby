@@ -12,32 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
-#define PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
+#ifndef PLATFORM_IMPL_WINDOWS_EXECUTOR_H_
+#define PLATFORM_IMPL_WINDOWS_EXECUTOR_H_
 
-#include "platform/api/atomic_reference.h"
+#include "platform/api/executor.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
 
-// Type that allows 32-bit atomic reads and writes.
-class AtomicUint32 : public api::AtomicUint32 {
+// This abstract class is the superclass of all classes representing an
+// Executor.
+class Executor : public api::Executor {
  public:
+  // Before returning from destructor, executor must wait for all pending
+  // jobs to finish.
   // TODO(b/184975123): replace with real implementation.
-  ~AtomicUint32() override = default;
+  ~Executor() override = default;
+  // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html#execute-java.lang.Runnable-
+  // TODO(b/184975123): replace with real implementation.
+  void Execute(Runnable&& runnable) override {}
 
-  // Atomically reads and returns stored value.
+  // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html#shutdown--
   // TODO(b/184975123): replace with real implementation.
-  std::uint32_t Get() const override { return 0; };
+  void Shutdown() override {}
 
-  // Atomically stores value.
   // TODO(b/184975123): replace with real implementation.
-  void Set(std::uint32_t value) override {}
+  int GetTid(int index) const override { return 0; }
 };
 
 }  // namespace windows
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
+#endif  // PLATFORM_IMPL_WINDOWS_EXECUTOR_H_

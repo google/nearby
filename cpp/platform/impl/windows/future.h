@@ -12,32 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
-#define PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
+#ifndef PLATFORM_IMPL_WINDOWS_FUTURE_H_
+#define PLATFORM_IMPL_WINDOWS_FUTURE_H_
 
-#include "platform/api/atomic_reference.h"
+#include "platform/api/future.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
 
-// Type that allows 32-bit atomic reads and writes.
-class AtomicUint32 : public api::AtomicUint32 {
+// A Future represents the result of an asynchronous computation.
+//
+// https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Future.html
+template <typename T>
+class Future : public api::Future<T> {
  public:
   // TODO(b/184975123): replace with real implementation.
-  ~AtomicUint32() override = default;
+  ~Future() override = default;
 
-  // Atomically reads and returns stored value.
+  // throws Exception::kInterrupted, Exception::kExecution
   // TODO(b/184975123): replace with real implementation.
-  std::uint32_t Get() const override { return 0; };
+  ExceptionOr<T> Get() override { return ExceptionOr<T>{Exception::kFailed}; }
 
-  // Atomically stores value.
+  // throws Exception::kInterrupted, Exception::kExecution
+  // throws Exception::kTimeout if timeout is exceeded while waiting for
+  // result.
   // TODO(b/184975123): replace with real implementation.
-  void Set(std::uint32_t value) override {}
+  ExceptionOr<T> Get(absl::Duration timeout) override {
+    return ExceptionOr<T>{Exception::kFailed};
+  }
 };
 
 }  // namespace windows
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
+#endif  // PLATFORM_IMPL_WINDOWS_FUTURE_H_

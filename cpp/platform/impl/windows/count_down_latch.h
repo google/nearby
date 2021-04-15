@@ -12,32 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
-#define PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
+#ifndef PLATFORM_IMPL_WINDOWS_COUNT_DOWN_LATCH_H_
+#define PLATFORM_IMPL_WINDOWS_COUNT_DOWN_LATCH_H_
 
-#include "platform/api/atomic_reference.h"
+#include "platform/api/count_down_latch.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
 
-// Type that allows 32-bit atomic reads and writes.
-class AtomicUint32 : public api::AtomicUint32 {
+// A synchronization aid that allows one or more threads to wait until a set of
+// operations being performed in other threads completes.
+//
+// https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CountDownLatch.html
+class CountDownLatch : public api::CountDownLatch {
  public:
   // TODO(b/184975123): replace with real implementation.
-  ~AtomicUint32() override = default;
+  ~CountDownLatch() override = default;
 
-  // Atomically reads and returns stored value.
   // TODO(b/184975123): replace with real implementation.
-  std::uint32_t Get() const override { return 0; };
-
-  // Atomically stores value.
+  Exception Await() override { return Exception{}; }
   // TODO(b/184975123): replace with real implementation.
-  void Set(std::uint32_t value) override {}
+  ExceptionOr<bool> Await(absl::Duration timeout) override {
+    return Exception{};
+  }
+  // TODO(b/184975123): replace with real implementation.
+  void CountDown() override{};
 };
 
 }  // namespace windows
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
+#endif  // PLATFORM_IMPL_WINDOWS_COUNT_DOWN_LATCH_H_
