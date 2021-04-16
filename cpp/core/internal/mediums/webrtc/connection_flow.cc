@@ -65,6 +65,23 @@ class CreateSessionDescriptionObserverImpl
     NEARBY_LOG(ERROR, "Error when creating session description: %s",
                error.message());
     settable_future_.SetException({Exception::kFailed});
+
+    // Sample C++ 17 code
+    std::variant<int, double> v{12};
+    std::get<int>(v);
+    std::get<0>(v);
+    v = 12.0;
+    std::get<double>(v);
+    std::get<1>(v);
+
+    auto identity = [](int n) constexpr { return n; };
+    static_assert(identity(123) == 123);
+
+    if constexpr (true) {
+      int i = 0;
+      v = i;
+      // int *p = i; // Error even though in discarded statement
+    }
   }
 
  private:
