@@ -20,6 +20,7 @@
 #include "core/internal/mediums/webrtc/session_description_wrapper.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/medium_environment.h"
+#include "platform/public/count_down_latch.h"
 #include "platform/public/webrtc.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -173,7 +174,7 @@ TEST_F(ConnectionFlowTest, CannotCreateOfferAfterClose) {
       LocalIceCandidateListener(), DataChannelListener(), webrtc_medium);
   ASSERT_NE(offerer, nullptr);
 
-  EXPECT_TRUE(offerer->Close());
+  EXPECT_TRUE(offerer->CloseIfNotConnected());
 
   EXPECT_FALSE(offerer->CreateOffer().IsValid());
 }
@@ -188,7 +189,7 @@ TEST_F(ConnectionFlowTest, CannotSetSessionDescriptionAfterClose) {
   SessionDescriptionWrapper offer = offerer->CreateOffer();
   EXPECT_EQ(offer.GetType(), webrtc::SdpType::kOffer);
 
-  EXPECT_TRUE(offerer->Close());
+  EXPECT_TRUE(offerer->CloseIfNotConnected());
 
   EXPECT_FALSE(offerer->SetLocalSessionDescription(offer));
 }
@@ -205,7 +206,7 @@ TEST_F(ConnectionFlowTest, CannotReceiveOfferAfterClose) {
                              webrtc_medium_answerer);
   ASSERT_NE(answerer, nullptr);
 
-  EXPECT_TRUE(answerer->Close());
+  EXPECT_TRUE(answerer->CloseIfNotConnected());
 
   SessionDescriptionWrapper offer = offerer->CreateOffer();
   EXPECT_EQ(offer.GetType(), webrtc::SdpType::kOffer);
@@ -311,7 +312,13 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
       answerer_channel = answerer_data_channel_future.Get(absl::Seconds(1));
   EXPECT_TRUE(answerer_channel.ok());
 
-  answerer->GetPeerConnection()->Close();
+  CountDownLatch latch(1);
+  auto pc = answerer->GetPeerConnection();
+  pc->signaling_thread()->PostTask(RTC_FROM_HERE, [pc, latch]() mutable {
+    pc->Close();
+    latch.CountDown();
+  });
+  latch.Await();
 
   // Send message on data channel
   const char message[] = "Test";
@@ -393,7 +400,13 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
       answerer_channel = answerer_data_channel_future.Get(absl::Seconds(1));
   EXPECT_TRUE(answerer_channel.ok());
 
-  offerer->GetPeerConnection()->Close();
+  CountDownLatch latch(1);
+  auto pc = offerer->GetPeerConnection();
+  pc->signaling_thread()->PostTask(RTC_FROM_HERE, [pc, latch]() mutable {
+    pc->Close();
+    latch.CountDown();
+  });
+  latch.Await();
 
   // Send message on data channel
   const char message[] = "Test";

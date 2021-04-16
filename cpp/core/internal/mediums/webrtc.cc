@@ -188,11 +188,10 @@ void WebRtc::StopAcceptingConnections(const std::string& service_id) {
     // Skip fully connected connections in this step. If the connection was
     // formed while we were accepting connections, then it will stay alive until
     // it's explicitly closed.
-    if (entry->second->GetState() == ConnectionFlow::State::kConnected) {
+    if (!entry->second->CloseIfNotConnected()) {
       continue;
     }
 
-    entry->second->Close();
     connection_flows_.erase(peer_id);
   }
 
@@ -260,7 +259,6 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
           "Cannot connect to WebRTC peer %s because we failed to create a "
           "SignalingMessenger.",
           remote_peer_id.GetId().c_str());
-      connection_flow->Close();
       return WebRtcSocketWrapper();
     }
 
@@ -281,7 +279,6 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
                  "receiving messages over Tachyon.",
                  remote_peer_id.GetId().c_str());
       info.signaling_messenger.reset();
-      connection_flow->Close();
       return WebRtcSocketWrapper();
     }
 
@@ -294,7 +291,6 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
                  "the peer over Tachyon.",
                  remote_peer_id.GetId().c_str());
       info.signaling_messenger.reset();
-      connection_flow->Close();
       return WebRtcSocketWrapper();
     }
 
@@ -786,13 +782,9 @@ std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
 }
 
 void WebRtc::RemoveConnectionFlow(const PeerId& remote_peer_id) {
-  const auto& entry = connection_flows_.find(remote_peer_id.GetId());
-  if (entry == connection_flows_.end()) {
+  if (!connection_flows_.erase(remote_peer_id.GetId())) {
     return;
   }
-
-  entry->second->Close();
-  connection_flows_.erase(remote_peer_id.GetId());
 
   // If we had an outgoing connection request w/ this peer, report the failure
   // to the future that's being waited on.
