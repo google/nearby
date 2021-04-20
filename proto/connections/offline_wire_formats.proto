@@ -84,6 +84,8 @@ message ConnectionRequestFrame {
   repeated Medium mediums = 5;
   optional bytes endpoint_info = 6;
   optional MediumMetadata medium_metadata = 7;
+  optional int32 keep_alive_interval_millis = 8;
+  optional int32 keep_alive_timeout_millis = 9;
 }
 
 message ConnectionResponseFrame {
