@@ -42,7 +42,7 @@ class BluetoothDevice : public api::BluetoothDevice {
 class BluetoothSocket : public api::BluetoothSocket {
  public:
   // TODO(b/184975123): replace with real implementation.
-  ~BluetoothSocket();
+  ~BluetoothSocket() override;
 
   // NOTE:
   // It is an undefined behavior if GetInputStream() or GetOutputStream() is

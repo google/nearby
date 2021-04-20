@@ -43,7 +43,7 @@ class BlePeripheral : public api::BlePeripheral {
 class BleSocket : public api::BleSocket {
  public:
   // TODO(b/184975123): replace with real implementation.
-  ~BleSocket();
+  ~BleSocket() override;
 
   // Returns the InputStream of the BleSocket.
   // On error, returned stream will report Exception::kIo on any operation.

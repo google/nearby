@@ -42,7 +42,7 @@ class WifiLanService : public api::WifiLanService {
 class WifiLanSocket : public api::WifiLanSocket {
  public:
   // TODO(b/184975123): replace with real implementation.
-  ~WifiLanSocket();
+  ~WifiLanSocket() override;
 
   // Returns the InputStream of the WifiLanSocket.
   // On error, returned stream will report Exception::kIo on any operation.
