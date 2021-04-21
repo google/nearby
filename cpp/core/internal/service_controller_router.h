@@ -53,8 +53,7 @@ namespace connections {
 //    of a ServiceController interface, which does the actual job.
 class ServiceControllerRouter {
  public:
-  explicit ServiceControllerRouter(std::function<ServiceController*()> factory)
-      : service_controller_factory_(std::move(factory)) {}
+  explicit ServiceControllerRouter(std::function<ServiceController*()> factory);
   ~ServiceControllerRouter();
   ServiceControllerRouter(ServiceControllerRouter&&) = default;
   ServiceControllerRouter& operator=(ServiceControllerRouter&&) = default;

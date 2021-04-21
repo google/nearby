@@ -14,6 +14,7 @@
 
 #include "core/internal/client_proxy.h"
 
+#include <cinttypes>
 #include <cstdlib>
 #include <limits>
 #include <utility>
@@ -47,6 +48,10 @@ std::int64_t ClientProxy::GetClientId() const { return client_id_; }
 std::string ClientProxy::GetLocalEndpointId() {
   if (local_endpoint_id_.empty()) {
     local_endpoint_id_ = GenerateLocalEndpointId();
+    NEARBY_LOG(INFO,
+               "ClientProxy [Local Endpoint Generated]: client=%x" PRIx64
+               "; endpoint_id=%s",
+               GetClientId(), local_endpoint_id_.c_str());
   }
   return local_endpoint_id_;
 }
@@ -55,10 +60,10 @@ std::string ClientProxy::GenerateLocalEndpointId() {
   if (high_vis_mode_) {
     if (!local_high_vis_mode_cache_endpoint_id_.empty()) {
       NEARBY_LOG(INFO,
-                 "ClientProxy [Local Endpoint not Generated but return Cache]: "
-                 "client=%p; "
-                 "local_high_vis_mode_cache_endpoint_id_=%s",
-                 this, local_high_vis_mode_cache_endpoint_id_.c_str());
+                 "ClientProxy [Local Endpoint Re-using cached endpoint id]: "
+                 "client=%x" PRIx64
+                 "; local_high_vis_mode_cache_endpoint_id_=%s",
+                 GetClientId(), local_high_vis_mode_cache_endpoint_id_.c_str());
       return local_high_vis_mode_cache_endpoint_id_;
     }
   }
@@ -68,9 +73,6 @@ std::string ClientProxy::GenerateLocalEndpointId() {
   // 4) Use only the first kEndpointIdLength bytes to make ID.
   ByteArray id_hash = Crypto::Sha256(absl::StrCat("client", prng_.NextInt64()));
   std::string id = Base64Utils::Encode(id_hash).substr(0, kEndpointIdLength);
-  NEARBY_LOG(
-      INFO, "ClientProxy [Local Endpoint Generated]: client=%p; endpoint_id=%s",
-      this, id.c_str());
 
   return id;
 }
@@ -90,15 +92,15 @@ void ClientProxy::StartedAdvertising(
     absl::Span<proto::connections::Medium> mediums,
     const ConnectionOptions& advertising_options) {
   MutexLock lock(&mutex_);
-  NEARBY_LOG(INFO, "ClientProxy [StartedAdvertising]: client=%p; ", this);
+  NEARBY_LOG(INFO, "ClientProxy [StartedAdvertising]: client=%x" PRIx64,
+             GetClientId());
 
   if (high_vis_mode_) {
     local_high_vis_mode_cache_endpoint_id_ = local_endpoint_id_;
-    NEARBY_LOG(
-        INFO,
-        "ClientProxy [High Visibility Mode Adv, Cache EndpointId]: client=%p; "
-        "local_high_vis_mode_cache_endpoint_id_=%s",
-        this, local_high_vis_mode_cache_endpoint_id_.c_str());
+    NEARBY_LOG(INFO,
+               "ClientProxy [High Visibility Mode Adv, Cache EndpointId]: "
+               "client=%x" PRIx64 "; local_high_vis_mode_cache_endpoint_id_=%s",
+               GetClientId(), local_high_vis_mode_cache_endpoint_id_.c_str());
     CancelClearLocalHighVisModeCacheEndpointIdAlarm();
   }
 
@@ -108,7 +110,8 @@ void ClientProxy::StartedAdvertising(
 
 void ClientProxy::StoppedAdvertising() {
   MutexLock lock(&mutex_);
-  NEARBY_LOG(INFO, "ClientProxy [StoppedAdvertising]: client=%p; ", this);
+  NEARBY_LOG(INFO, "ClientProxy [StoppedAdvertising]: client=%x" PRIx64,
+             GetClientId());
 
   if (IsAdvertising()) {
     advertising_info_.Clear();
@@ -253,10 +256,11 @@ void ClientProxy::OnConnectionInitiated(const std::string& endpoint_id,
   // (can not use c++17 features, until chromium does) we unpack manually.
   auto& pair_iter = result.first;
   bool inserted = result.second;
-  NEARBY_LOG(INFO,
-             "ClientProxy [Connection Initiated]: add Connection: client=%p, "
-             "id=%s; inserted=%d",
-             this, endpoint_id.c_str(), inserted);
+  NEARBY_LOG(
+      INFO,
+      "ClientProxy [Connection Initiated]: add Connection: client=%x" PRIx64
+      "; endpoint_id=%s; inserted=%d",
+      GetClientId(), endpoint_id.c_str(), inserted);
   DCHECK(inserted);
   const Connection& item = pair_iter->second;
   // Notify the client.
@@ -315,6 +319,10 @@ void ClientProxy::OnBandwidthChanged(const std::string& endpoint_id,
   const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     item->connection_listener.bandwidth_changed_cb(endpoint_id, new_medium);
+    NEARBY_LOG(INFO,
+               "ClientProxy [reporting onBandwidthChanged]: client=%x" PRIx64
+               "; endpoint_id=%s",
+               GetClientId(), endpoint_id.c_str());
   }
 }
 
@@ -573,6 +581,11 @@ void ClientProxy::OnPayload(const std::string& endpoint_id, Payload payload) {
   if (IsConnectedToEndpoint(endpoint_id)) {
     const Connection* item = LookupConnection(endpoint_id);
     if (item != nullptr) {
+      NEARBY_LOG(INFO,
+                 "ClientProxy [reporting onPayloadReceived]: "
+                 "client=%x" PRIx64 "; endpoint_id=%s; payload_id=%x" PRIx64,
+                 GetClientId(), endpoint_id.c_str(),
+                 static_cast<std::int64_t>(payload.GetId()));
       item->payload_listener.payload_cb(endpoint_id, std::move(payload));
     }
   }
@@ -598,6 +611,22 @@ void ClientProxy::OnPayloadProgress(const std::string& endpoint_id,
     Connection* item = LookupConnection(endpoint_id);
     if (item != nullptr) {
       item->payload_listener.payload_progress_cb(endpoint_id, info);
+
+      if (info.status == PayloadProgressInfo::Status::kInProgress) {
+        NEARBY_LOG(VERBOSE,
+                   "ClientProxy [reporting onPayloadProgress]: "
+                   "client=%x" PRIx64 "; endpoint_id=%s; payload_id=%x" PRIx64
+                   ", payload_status=%d",
+                   GetClientId(), endpoint_id.c_str(), info.payload_id,
+                   info.status);
+      } else {
+        NEARBY_LOG(INFO,
+                   "ClientProxy [reporting onPayloadProgress]: "
+                   "client=%x" PRIx64 "; endpoint_id=%s; payload_id=%x" PRIx64
+                   ", payload_status=%d",
+                   GetClientId(), endpoint_id.c_str(), info.payload_id,
+                   info.status);
+      }
     }
   }
 }
@@ -656,14 +685,16 @@ ConnectionOptions ClientProxy::GetDiscoveryOptions() const {
 
 void ClientProxy::EnterHighVisibilityMode() {
   MutexLock lock(&mutex_);
-  NEARBY_LOG(INFO, "ClientProxy [EnterHighVisibilityMode]: client=%p; ", this);
+  NEARBY_LOG(INFO, "ClientProxy [EnterHighVisibilityMode]: client=%x" PRIx64,
+             GetClientId());
 
   high_vis_mode_ = true;
 }
 
 void ClientProxy::ExitHighVisibilityMode() {
   MutexLock lock(&mutex_);
-  NEARBY_LOG(INFO, "ClientProxy [ExitHighVisibilityMode]: client=%p; ", this);
+  NEARBY_LOG(INFO, "ClientProxy [ExitHighVisibilityMode]: client=%x" PRIx64,
+             GetClientId());
 
   high_vis_mode_ = false;
   ScheduleClearLocalHighVisModeCacheEndpointIdAlarm();
@@ -672,19 +703,31 @@ void ClientProxy::ExitHighVisibilityMode() {
 void ClientProxy::ScheduleClearLocalHighVisModeCacheEndpointIdAlarm() {
   CancelClearLocalHighVisModeCacheEndpointIdAlarm();
 
-  if (local_high_vis_mode_cache_endpoint_id_.empty()) return;
+  if (local_high_vis_mode_cache_endpoint_id_.empty()) {
+    NEARBY_LOG(VERBOSE,
+               "ClientProxy [There is no cached local high power advertising "
+               "endpoint Id.]: client=%x" PRIx64,
+               GetClientId());
+    return;
+  }
 
   // Schedule to clear cache high visibility mode advertisement endpoint id in
   // 30s.
   NEARBY_LOG(INFO,
              "ClientProxy [High Visibility Mode Adv, Schedule to Clear Cache "
-             "EndpointId]: client=%p; "
-             "local_high_vis_mode_cache_endpoint_id_=%s",
-             this, local_high_vis_mode_cache_endpoint_id_.c_str());
+             "EndpointId]: client=%x" PRIx64
+             "; local_high_vis_mode_cache_endpoint_id_=%s",
+             GetClientId(), local_high_vis_mode_cache_endpoint_id_.c_str());
   clear_local_high_vis_mode_cache_endpoint_id_alarm_ = CancelableAlarm(
       "clear_high_power_endpoint_id_cache",
       [this]() {
         MutexLock lock(&mutex_);
+        NEARBY_LOG(INFO,
+                   "ClientProxy [Cleared cached local high power advertising "
+                   "endpoint Id.]: client=%x" PRIx64
+                   "; local_high_vis_mode_cache_endpoint_id_=%s",
+                   GetClientId(),
+                   local_high_vis_mode_cache_endpoint_id_.c_str());
         local_high_vis_mode_cache_endpoint_id_.clear();
       },
       kHighPowerAdvertisementEndpointIdCacheTimeout, &single_thread_executor_);
