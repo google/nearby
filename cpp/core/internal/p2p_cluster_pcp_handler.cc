@@ -206,155 +206,168 @@ bool P2pClusterPcpHandler::IsRecognizedBluetoothEndpoint(
 void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
     ClientProxy* client, const std::string& service_id,
     BluetoothDevice device) {
-  RunOnPcpHandlerThread([this, client, service_id,
-                         device]() RUN_ON_PCP_HANDLER_THREAD() {
-    // Make sure we are still discovering before proceeding.
-    if (!client->IsDiscovering()) {
-      NEARBY_LOG(INFO,
-                 "BT discovery handler (FOUND) [client=%p, service=%s]: not "
-                 "in discovery mode",
-                 client, service_id.c_str());
-      return;
-    }
+  RunOnPcpHandlerThread(
+      "p2p-bt-device-discovered",
+      [this, client, service_id, device]()
+          RUN_ON_PCP_HANDLER_THREAD() {
+            // Make sure we are still discovering before proceeding.
+            if (!client->IsDiscovering()) {
+              NEARBY_LOG(
+                  INFO,
+                  "BT discovery handler (FOUND) [client=%p, service=%s]: not "
+                  "in discovery mode",
+                  client, service_id.c_str());
+              return;
+            }
 
-    // Parse the Bluetooth device name.
-    const std::string device_name_string = device.GetName();
-    BluetoothDeviceName device_name(device_name_string);
+            // Parse the Bluetooth device name.
+            const std::string device_name_string = device.GetName();
+            BluetoothDeviceName device_name(device_name_string);
 
-    // Make sure the Bluetooth device name points to a valid
-    // endpoint we're discovering.
-    if (!IsRecognizedBluetoothEndpoint(device_name_string, service_id,
-                                       device_name))
-      return;
+            // Make sure the Bluetooth device name points to a valid
+            // endpoint we're discovering.
+            if (!IsRecognizedBluetoothEndpoint(device_name_string, service_id,
+                                               device_name))
+              return;
 
-    // Report the discovered endpoint to the client.
-    NEARBY_LOGS(INFO)
-        << "Invoking BasePcpHandler::OnEndpointFound() for BT service="
-        << service_id << "; id=" << device_name.GetEndpointId() << "; name="
-        << absl::BytesToHexString(device_name.GetEndpointInfo().data());
-    OnEndpointFound(
-        client, std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
+            // Report the discovered endpoint to the client.
+            NEARBY_LOGS(INFO)
+                << "Invoking BasePcpHandler::OnEndpointFound() for BT service="
+                << service_id << "; id=" << device_name.GetEndpointId()
+                << "; name="
+                << absl::BytesToHexString(device_name.GetEndpointInfo().data());
+            OnEndpointFound(
+                client,
+                std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
                     {device_name.GetEndpointId(), device_name.GetEndpointInfo(),
                      service_id, proto::connections::Medium::BLUETOOTH,
                      device_name.GetWebRtcState()},
                     device,
                 }));
-  });
+          });
 }
 
 void P2pClusterPcpHandler::BluetoothNameChangedHandler(
     ClientProxy* client, const std::string& service_id,
     BluetoothDevice device) {
-  RunOnPcpHandlerThread([this, client, service_id,
-                         device]() RUN_ON_PCP_HANDLER_THREAD() {
-    // Make sure we are still discovering before proceeding.
-    if (!client->IsDiscovering()) {
-      NEARBY_LOG(INFO,
-                 "BT discovery handler (CHANGED) [client=%p, service=%s]: not "
-                 "in discovery mode",
-                 client, service_id.c_str());
-      return;
-    }
+  RunOnPcpHandlerThread(
+      "p2p-bt-name-changed",
+      [this, client, service_id, device]() RUN_ON_PCP_HANDLER_THREAD() {
+        // Make sure we are still discovering before proceeding.
+        if (!client->IsDiscovering()) {
+          NEARBY_LOG(
+              INFO,
+              "BT discovery handler (CHANGED) [client=%p, service=%s]: not "
+              "in discovery mode",
+              client, service_id.c_str());
+          return;
+        }
 
-    // Parse the Bluetooth device name.
-    const std::string device_name_string = device.GetName();
-    BluetoothDeviceName device_name(device_name_string);
-    NEARBY_LOG(INFO,
-               "BT discovery handler (CHANGED) [client=%p, service=%s]: "
-               "processing new name %s",
-               client, service_id.c_str(), device_name_string.c_str());
+        // Parse the Bluetooth device name.
+        const std::string device_name_string = device.GetName();
+        BluetoothDeviceName device_name(device_name_string);
+        NEARBY_LOG(INFO,
+                   "BT discovery handler (CHANGED) [client=%p, service=%s]: "
+                   "processing new name %s",
+                   client, service_id.c_str(), device_name_string.c_str());
 
-    // By this point, the BluetoothDevice passed to us has a different name than
-    // what we may have discovered before. We need to iterate over the found
-    // BluetoothEndpoints and compare their addresses to see the devices are the
-    // same. We are not guaranteed to discover a match, since the old name may
-    // not have been formatted for Nearby Connections.
-    for (auto endpoint :
-         GetDiscoveredEndpoints(proto::connections::Medium::BLUETOOTH)) {
-      BluetoothEndpoint* bluetoothEndpoint =
-          static_cast<BluetoothEndpoint*>(endpoint);
-      NEARBY_LOG(INFO,
-                 "BT discovery handler (CHANGED) [client=%p, service=%s]: "
-                 "comparing MAC addresses with existing endpoint %s. They have "
-                 "MAC address %s and the new endpoint has MAC address %s.",
-                 client, service_id.c_str(),
-                 bluetoothEndpoint->bluetooth_device.GetName().c_str(),
-                 bluetoothEndpoint->bluetooth_device.GetMacAddress().c_str(),
-                 device.GetMacAddress().c_str());
-      if (bluetoothEndpoint->bluetooth_device.GetMacAddress() ==
-          device.GetMacAddress()) {
-        // Report the BluetoothEndpoint as lost to the client.
-        NEARBY_LOG(
-            INFO,
-            "BT discovery handler (LOST) [client=%p, service=%s]: report "
-            "to client",
-            client, service_id.c_str());
-        OnEndpointLost(client, *endpoint);
-        break;
-      }
-    }
+        // By this point, the BluetoothDevice passed to us has a different name
+        // than what we may have discovered before. We need to iterate over the
+        // found BluetoothEndpoints and compare their addresses to see the
+        // devices are the same. We are not guaranteed to discover a match,
+        // since the old name may not have been formatted for Nearby
+        // Connections.
+        for (auto endpoint :
+             GetDiscoveredEndpoints(proto::connections::Medium::BLUETOOTH)) {
+          BluetoothEndpoint* bluetoothEndpoint =
+              static_cast<BluetoothEndpoint*>(endpoint);
+          NEARBY_LOG(
+              INFO,
+              "BT discovery handler (CHANGED) [client=%p, service=%s]: "
+              "comparing MAC addresses with existing endpoint %s. They have "
+              "MAC address %s and the new endpoint has MAC address %s.",
+              client, service_id.c_str(),
+              bluetoothEndpoint->bluetooth_device.GetName().c_str(),
+              bluetoothEndpoint->bluetooth_device.GetMacAddress().c_str(),
+              device.GetMacAddress().c_str());
+          if (bluetoothEndpoint->bluetooth_device.GetMacAddress() ==
+              device.GetMacAddress()) {
+            // Report the BluetoothEndpoint as lost to the client.
+            NEARBY_LOG(
+                INFO,
+                "BT discovery handler (LOST) [client=%p, service=%s]: report "
+                "to client",
+                client, service_id.c_str());
+            OnEndpointLost(client, *endpoint);
+            break;
+          }
+        }
 
-    // Make sure the Bluetooth device name points to a valid
-    // endpoint we're discovering.
-    if (!IsRecognizedBluetoothEndpoint(device_name_string, service_id,
-                                       device_name)) {
-      NEARBY_LOG(INFO,
-                 "BT discovery handler (CHANGED) [client=%p, service=%s]: The "
-                 "new name is not recognized. Ignoring.",
-                 client, service_id.c_str());
-      return;
-    }
+        // Make sure the Bluetooth device name points to a valid
+        // endpoint we're discovering.
+        if (!IsRecognizedBluetoothEndpoint(device_name_string, service_id,
+                                           device_name)) {
+          NEARBY_LOG(
+              INFO,
+              "BT discovery handler (CHANGED) [client=%p, service=%s]: The "
+              "new name is not recognized. Ignoring.",
+              client, service_id.c_str());
+          return;
+        }
 
-    // Report the discovered endpoint to the client.
-    NEARBY_LOGS(INFO)
-        << "Invoking BasePcpHandler::OnEndpointFound() for BT service="
-        << service_id << "; id=" << device_name.GetEndpointId() << "; name="
-        << absl::BytesToHexString(device_name.GetEndpointInfo().data());
-    OnEndpointFound(
-        client, std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
-                    {device_name.GetEndpointId(), device_name.GetEndpointInfo(),
-                     service_id, proto::connections::Medium::BLUETOOTH,
-                     device_name.GetWebRtcState()},
-                    device,
-                }));
-  });
+        // Report the discovered endpoint to the client.
+        NEARBY_LOGS(INFO)
+            << "Invoking BasePcpHandler::OnEndpointFound() for BT service="
+            << service_id << "; id=" << device_name.GetEndpointId() << "; name="
+            << absl::BytesToHexString(device_name.GetEndpointInfo().data());
+        OnEndpointFound(
+            client,
+            std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
+                {device_name.GetEndpointId(), device_name.GetEndpointInfo(),
+                 service_id, proto::connections::Medium::BLUETOOTH,
+                 device_name.GetWebRtcState()},
+                device,
+            }));
+      });
 }
 
 void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
     ClientProxy* client, const std::string& service_id,
     BluetoothDevice& device) {
   const std::string& device_name_string = device.GetName();
-  RunOnPcpHandlerThread([this, client, service_id,
-                         device_name_string]() RUN_ON_PCP_HANDLER_THREAD() {
-    // Make sure we are still discovering before proceeding.
-    if (!client->IsDiscovering()) {
-      NEARBY_LOG(INFO,
-                 "BT discovery handler (LOST) [client=%p, service=%s]: not "
-                 "in discovery mode",
-                 client, service_id.c_str());
-      return;
-    }
+  RunOnPcpHandlerThread(
+      "p2p-bt-device-lost", [this, client, service_id,
+                             device_name_string]() RUN_ON_PCP_HANDLER_THREAD() {
+        // Make sure we are still discovering before proceeding.
+        if (!client->IsDiscovering()) {
+          NEARBY_LOG(INFO,
+                     "BT discovery handler (LOST) [client=%p, service=%s]: not "
+                     "in discovery mode",
+                     client, service_id.c_str());
+          return;
+        }
 
-    // Parse the Bluetooth device name.
-    BluetoothDeviceName device_name(device_name_string);
+        // Parse the Bluetooth device name.
+        BluetoothDeviceName device_name(device_name_string);
 
-    // Make sure the Bluetooth device name points to a valid
-    // endpoint we're discovering.
-    if (!IsRecognizedBluetoothEndpoint(device_name_string, service_id,
-                                       device_name))
-      return;
+        // Make sure the Bluetooth device name points to a valid
+        // endpoint we're discovering.
+        if (!IsRecognizedBluetoothEndpoint(device_name_string, service_id,
+                                           device_name))
+          return;
 
-    // Report the BluetoothEndpoint as lost to the client.
-    NEARBY_LOG(INFO,
-               "BT discovery handler (LOST) [client=%p, service=%s]: report "
-               "to client",
-               client, service_id.c_str());
-    OnEndpointLost(client,
-                   DiscoveredEndpoint{device_name.GetEndpointId(),
-                                      device_name.GetEndpointInfo(), service_id,
-                                      proto::connections::Medium::BLUETOOTH,
-                                      WebRtcState::kUndefined});
-  });
+        // Report the BluetoothEndpoint as lost to the client.
+        NEARBY_LOG(
+            INFO,
+            "BT discovery handler (LOST) [client=%p, service=%s]: report "
+            "to client",
+            client, service_id.c_str());
+        OnEndpointLost(client, DiscoveredEndpoint{
+                                   device_name.GetEndpointId(),
+                                   device_name.GetEndpointInfo(), service_id,
+                                   proto::connections::Medium::BLUETOOTH,
+                                   WebRtcState::kUndefined});
+      });
 }
 
 bool P2pClusterPcpHandler::IsRecognizedBleEndpoint(
@@ -408,76 +421,81 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
     ClientProxy* client, BlePeripheral& peripheral,
     const std::string& service_id, const ByteArray& advertisement_bytes,
     bool fast_advertisement) {
-  RunOnPcpHandlerThread([this, client, &peripheral, service_id,
-                         advertisement_bytes,
-                         fast_advertisement]() RUN_ON_PCP_HANDLER_THREAD() {
-    // Make sure we are still discovering before proceeding.
-    if (!client->IsDiscovering()) {
-      NEARBY_LOG(INFO,
-                 "Ble scanning handler (FOUND) [client=%p, service_id=%s]: not "
-                 "in discovery mode",
-                 client, service_id.c_str());
-      return;
-    }
+  RunOnPcpHandlerThread(
+      "p2p-ble-device-discovered",
+      [this, client, &peripheral, service_id, advertisement_bytes,
+       fast_advertisement]() RUN_ON_PCP_HANDLER_THREAD() {
+        // Make sure we are still discovering before proceeding.
+        if (!client->IsDiscovering()) {
+          NEARBY_LOG(
+              INFO,
+              "Ble scanning handler (FOUND) [client=%p, service_id=%s]: not "
+              "in discovery mode",
+              client, service_id.c_str());
+          return;
+        }
 
-    // Parse the BLE advertisement bytes.
-    BleAdvertisement advertisement(fast_advertisement, advertisement_bytes);
+        // Parse the BLE advertisement bytes.
+        BleAdvertisement advertisement(fast_advertisement, advertisement_bytes);
 
-    // Make sure the BLE advertisement points to a valid
-    // endpoint we're discovering.
-    if (!IsRecognizedBleEndpoint(service_id, advertisement)) return;
+        // Make sure the BLE advertisement points to a valid
+        // endpoint we're discovering.
+        if (!IsRecognizedBleEndpoint(service_id, advertisement)) return;
 
-    // Store all the state we need to be able to re-create a BleEndpoint
-    // in BlePeripheralLostHandler, since that isn't privy to
-    // the bytes of the ble advertisement itself.
-    found_ble_endpoints_.emplace(
-        peripheral.GetName(),
-        BleEndpointState(advertisement.GetEndpointId(),
-                         advertisement.GetEndpointInfo()));
+        // Store all the state we need to be able to re-create a BleEndpoint
+        // in BlePeripheralLostHandler, since that isn't privy to
+        // the bytes of the ble advertisement itself.
+        found_ble_endpoints_.emplace(
+            peripheral.GetName(),
+            BleEndpointState(advertisement.GetEndpointId(),
+                             advertisement.GetEndpointInfo()));
 
-    // Report the discovered endpoint to the client.
-    NEARBY_LOGS(INFO)
-        << "Invoking BasePcpHandler::OnEndpointFound() for Ble service="
-        << service_id << "; id=" << advertisement.GetEndpointId() << "; name="
-        << absl::BytesToHexString(advertisement.GetEndpointInfo().data());
-    OnEndpointFound(client, std::make_shared<BleEndpoint>(BleEndpoint{
-                                {advertisement.GetEndpointId(),
-                                 advertisement.GetEndpointInfo(), service_id,
-                                 proto::connections::Medium::BLE,
-                                 advertisement.GetWebRtcState()},
-                                peripheral,
-                            }));
+        // Report the discovered endpoint to the client.
+        NEARBY_LOGS(INFO)
+            << "Invoking BasePcpHandler::OnEndpointFound() for Ble service="
+            << service_id << "; id=" << advertisement.GetEndpointId()
+            << "; name="
+            << absl::BytesToHexString(advertisement.GetEndpointInfo().data());
+        OnEndpointFound(
+            client,
+            std::make_shared<BleEndpoint>(BleEndpoint{
+                {advertisement.GetEndpointId(), advertisement.GetEndpointInfo(),
+                 service_id, proto::connections::Medium::BLE,
+                 advertisement.GetWebRtcState()},
+                peripheral,
+            }));
 
-    // Make sure we can connect to this device via Classic Bluetooth.
-    std::string remote_bluetooth_mac_address =
-        advertisement.GetBluetoothMacAddress();
-    if (remote_bluetooth_mac_address.empty()) {
-      NEARBY_LOGS(INFO)
-          << "No Bluetooth Classic MAC address found in advertisement";
-      return;
-    }
+        // Make sure we can connect to this device via Classic Bluetooth.
+        std::string remote_bluetooth_mac_address =
+            advertisement.GetBluetoothMacAddress();
+        if (remote_bluetooth_mac_address.empty()) {
+          NEARBY_LOGS(INFO)
+              << "No Bluetooth Classic MAC address found in advertisement";
+          return;
+        }
 
-    BluetoothDevice remote_bluetooth_device =
-        bluetooth_medium_.GetRemoteDevice(remote_bluetooth_mac_address);
-    if (!remote_bluetooth_device.IsValid()) {
-      NEARBY_LOGS(INFO) << "A valid Bluetooth device could not be derived from "
-                           "the MAC address "
-                        << remote_bluetooth_mac_address;
-      return;
-    }
+        BluetoothDevice remote_bluetooth_device =
+            bluetooth_medium_.GetRemoteDevice(remote_bluetooth_mac_address);
+        if (!remote_bluetooth_device.IsValid()) {
+          NEARBY_LOGS(INFO)
+              << "A valid Bluetooth device could not be derived from "
+                 "the MAC address "
+              << remote_bluetooth_mac_address;
+          return;
+        }
 
-    OnEndpointFound(client,
-                    std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
-                        {
-                            advertisement.GetEndpointId(),
-                            advertisement.GetEndpointInfo(),
-                            service_id,
-                            proto::connections::Medium::BLUETOOTH,
-                            advertisement.GetWebRtcState(),
-                        },
-                        remote_bluetooth_device,
-                    }));
-  });
+        OnEndpointFound(client,
+                        std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
+                            {
+                                advertisement.GetEndpointId(),
+                                advertisement.GetEndpointInfo(),
+                                service_id,
+                                proto::connections::Medium::BLUETOOTH,
+                                advertisement.GetWebRtcState(),
+                            },
+                            remote_bluetooth_device,
+                        }));
+      });
 }
 
 void P2pClusterPcpHandler::BlePeripheralLostHandler(
@@ -486,38 +504,40 @@ void P2pClusterPcpHandler::BlePeripheralLostHandler(
   std::string peripheral_name = peripheral.GetName();
   NEARBY_LOG(INFO, "Ble: [LOST, SCHED] peripheral_name=%s",
              peripheral_name.c_str());
-  RunOnPcpHandlerThread([this, client, service_id,
-                         &peripheral]() RUN_ON_PCP_HANDLER_THREAD() {
-    // Make sure we are still discovering before proceeding.
-    if (!client->IsDiscovering()) {
-      NEARBY_LOG(INFO,
-                 "Ble scanning handler (LOST) [client=%p, service_id=%s]: not "
-                 "in scanning mode",
-                 client, service_id.c_str());
-      return;
-    }
+  RunOnPcpHandlerThread(
+      "p2p-ble-device-lost",
+      [this, client, service_id, &peripheral]() RUN_ON_PCP_HANDLER_THREAD() {
+        // Make sure we are still discovering before proceeding.
+        if (!client->IsDiscovering()) {
+          NEARBY_LOG(
+              INFO,
+              "Ble scanning handler (LOST) [client=%p, service_id=%s]: not "
+              "in scanning mode",
+              client, service_id.c_str());
+          return;
+        }
 
-    // Remove this BlePeripheral from found_ble_endpoints_, and
-    // report the endpoint as lost to the client.
-    auto item = found_ble_endpoints_.find(peripheral.GetName());
-    if (item != found_ble_endpoints_.end()) {
-      BleEndpointState ble_endpoint_state(item->second);
-      found_ble_endpoints_.erase(item);
+        // Remove this BlePeripheral from found_ble_endpoints_, and
+        // report the endpoint as lost to the client.
+        auto item = found_ble_endpoints_.find(peripheral.GetName());
+        if (item != found_ble_endpoints_.end()) {
+          BleEndpointState ble_endpoint_state(item->second);
+          found_ble_endpoints_.erase(item);
 
-      // Report the discovered endpoint to the client.
-      NEARBY_LOG(INFO,
-                 "Ble scanning handler (LOST) [client=%p, "
-                 "service_id=%s]: report to client",
-                 client, service_id.c_str());
-      OnEndpointLost(client, DiscoveredEndpoint{
-                                 ble_endpoint_state.endpoint_id,
-                                 ble_endpoint_state.endpoint_info,
-                                 service_id,
-                                 proto::connections::Medium::BLE,
-                                 WebRtcState::kUndefined,
-                             });
-    }
-  });
+          // Report the discovered endpoint to the client.
+          NEARBY_LOG(INFO,
+                     "Ble scanning handler (LOST) [client=%p, "
+                     "service_id=%s]: report to client",
+                     client, service_id.c_str());
+          OnEndpointLost(client, DiscoveredEndpoint{
+                                     ble_endpoint_state.endpoint_id,
+                                     ble_endpoint_state.endpoint_info,
+                                     service_id,
+                                     proto::connections::Medium::BLE,
+                                     WebRtcState::kUndefined,
+                                 });
+        }
+      });
 }
 
 bool P2pClusterPcpHandler::IsRecognizedWifiLanEndpoint(
@@ -557,43 +577,46 @@ bool P2pClusterPcpHandler::IsRecognizedWifiLanEndpoint(
 void P2pClusterPcpHandler::WifiLanServiceDiscoveredHandler(
     ClientProxy* client, WifiLanService& wifi_lan_service,
     const std::string& service_id) {
-  RunOnPcpHandlerThread([this, client, service_id,
-                         &wifi_lan_service]() RUN_ON_PCP_HANDLER_THREAD() {
-    // Make sure we are still discovering before proceeding.
-    if (!client->IsDiscovering()) {
-      NEARBY_LOG(
-          INFO,
-          "WifiLan discovery handler (FOUND) [client=%p, service=%s]: not "
-          "in discovery mode",
-          client, service_id.c_str());
-      return;
-    }
+  RunOnPcpHandlerThread(
+      "p2p-wifi-service-discovered",
+      [this, client, service_id,
+       &wifi_lan_service]() RUN_ON_PCP_HANDLER_THREAD() {
+        // Make sure we are still discovering before proceeding.
+        if (!client->IsDiscovering()) {
+          NEARBY_LOG(
+              INFO,
+              "WifiLan discovery handler (FOUND) [client=%p, service=%s]: not "
+              "in discovery mode",
+              client, service_id.c_str());
+          return;
+        }
 
-    // Parse the WifiLanServiceInfo.
-    WifiLanServiceInfo service_info(wifi_lan_service.GetServiceInfo());
+        // Parse the WifiLanServiceInfo.
+        WifiLanServiceInfo service_info(wifi_lan_service.GetServiceInfo());
 
-    // Make sure the WifiLan service name points to a valid
-    // endpoint we're discovering.
-    if (!IsRecognizedWifiLanEndpoint(service_id, service_info)) return;
+        // Make sure the WifiLan service name points to a valid
+        // endpoint we're discovering.
+        if (!IsRecognizedWifiLanEndpoint(service_id, service_info)) return;
 
-    // Report the discovered endpoint to the client.
-    NEARBY_LOG(
-        INFO,
-        "Invoking BasePcpHandler::OnEndpointFound() for WifiLan "
-        "service_id=%s; endpoint_id=%s; endpoint_info=%s",
-        service_id.c_str(), service_info.GetEndpointId().c_str(),
-        absl::BytesToHexString(service_info.GetEndpointInfo().data()).c_str());
-    OnEndpointFound(client, std::make_shared<WifiLanEndpoint>(WifiLanEndpoint{
-                                {
-                                    service_info.GetEndpointId(),
-                                    service_info.GetEndpointInfo(),
-                                    service_id,
-                                    proto::connections::Medium::WIFI_LAN,
-                                    service_info.GetWebRtcState(),
-                                },
-                                wifi_lan_service,
-                            }));
-  });
+        // Report the discovered endpoint to the client.
+        NEARBY_LOG(INFO,
+                   "Invoking BasePcpHandler::OnEndpointFound() for WifiLan "
+                   "service_id=%s; endpoint_id=%s; endpoint_info=%s",
+                   service_id.c_str(), service_info.GetEndpointId().c_str(),
+                   absl::BytesToHexString(service_info.GetEndpointInfo().data())
+                       .c_str());
+        OnEndpointFound(client,
+                        std::make_shared<WifiLanEndpoint>(WifiLanEndpoint{
+                            {
+                                service_info.GetEndpointId(),
+                                service_info.GetEndpointInfo(),
+                                service_id,
+                                proto::connections::Medium::WIFI_LAN,
+                                service_info.GetWebRtcState(),
+                            },
+                            wifi_lan_service,
+                        }));
+      });
 }
 
 void P2pClusterPcpHandler::WifiLanServiceLostHandler(
@@ -603,39 +626,41 @@ void P2pClusterPcpHandler::WifiLanServiceLostHandler(
   NEARBY_LOG(INFO,
              "WifiLan: [LOST, SCHED] wifi_lan_service=%p, service_info_name=%s",
              &wifi_lan_service, nsd_service_info.GetServiceInfoName().c_str());
-  RunOnPcpHandlerThread([this, client, service_id,
-                         nsd_service_info]() RUN_ON_PCP_HANDLER_THREAD() {
-    // Make sure we are still discovering before proceeding.
-    if (!client->IsDiscovering()) {
-      NEARBY_LOG(
-          INFO,
-          "WifiLan discovery handler (LOST) [client=%p, service=%s]: not "
-          "in discovery mode",
-          client, service_id.c_str());
-      return;
-    }
+  RunOnPcpHandlerThread(
+      "p2p-wifi-service-lost",
+      [this, client, service_id,
+       nsd_service_info]() RUN_ON_PCP_HANDLER_THREAD() {
+        // Make sure we are still discovering before proceeding.
+        if (!client->IsDiscovering()) {
+          NEARBY_LOG(
+              INFO,
+              "WifiLan discovery handler (LOST) [client=%p, service=%s]: not "
+              "in discovery mode",
+              client, service_id.c_str());
+          return;
+        }
 
-    // Parse the WifiLanServiceInfo.
-    WifiLanServiceInfo service_info(nsd_service_info);
+        // Parse the WifiLanServiceInfo.
+        WifiLanServiceInfo service_info(nsd_service_info);
 
-    // Make sure the WifiLan service name points to a valid
-    // endpoint we're discovering.
-    if (!IsRecognizedWifiLanEndpoint(service_id, service_info)) return;
+        // Make sure the WifiLan service name points to a valid
+        // endpoint we're discovering.
+        if (!IsRecognizedWifiLanEndpoint(service_id, service_info)) return;
 
-    // Report the discovered endpoint to the client.
-    NEARBY_LOG(
-        INFO,
-        "WifiLan discovery handler (LOST) [client=%p, service_id=%s]: report "
-        "to client",
-        client, service_id.c_str());
-    OnEndpointLost(client, DiscoveredEndpoint{
-                               service_info.GetEndpointId(),
-                               service_info.GetEndpointInfo(),
-                               service_id,
-                               proto::connections::Medium::WIFI_LAN,
-                               WebRtcState::kUndefined,
-                           });
-  });
+        // Report the discovered endpoint to the client.
+        NEARBY_LOG(INFO,
+                   "WifiLan discovery handler (LOST) [client=%p, "
+                   "service_id=%s]: report "
+                   "to client",
+                   client, service_id.c_str());
+        OnEndpointLost(client, DiscoveredEndpoint{
+                                   service_info.GetEndpointId(),
+                                   service_info.GetEndpointInfo(),
+                                   service_id,
+                                   proto::connections::Medium::WIFI_LAN,
+                                   WebRtcState::kUndefined,
+                               });
+      });
 }
 
 BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
@@ -830,6 +855,7 @@ proto::connections::Medium P2pClusterPcpHandler::StartBluetoothAdvertising(
               return;
             }
             RunOnPcpHandlerThread(
+                "p2p-bt-on-incoming-connection",
                 [this, client, local_endpoint_info,
                  socket =
                      std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
@@ -959,6 +985,7 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
                 return;
               }
               RunOnPcpHandlerThread(
+                  "p2p-ble-on-incoming-connection",
                   [this, client, local_endpoint_info, service_id,
                    socket = std::move(socket)]()
                       RUN_ON_PCP_HANDLER_THREAD() mutable {
@@ -999,6 +1026,7 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
                   return;
                 }
                 RunOnPcpHandlerThread(
+                    "p2p-bt-on-incoming-connection",
                     [this, client, local_endpoint_info,
                      socket = std::move(socket)]()
                         RUN_ON_PCP_HANDLER_THREAD() mutable {
@@ -1143,6 +1171,7 @@ proto::connections::Medium P2pClusterPcpHandler::StartWifiLanAdvertising(
               return;
             }
             RunOnPcpHandlerThread(
+                "p2p-wifi-on-incoming-connection",
                 [this, client, local_endpoint_info,
                  socket = std::move(socket)]()
                     RUN_ON_PCP_HANDLER_THREAD() mutable {
@@ -1272,6 +1301,7 @@ P2pClusterPcpHandler::StartListeningForWebRtcConnections(
               }
 
               RunOnPcpHandlerThread(
+                  "p2p-rtc-on-incoming-connection",
                   [this, client,
                    socket = std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() {
                     std::string remote_device_name = "WebRtcSocket";

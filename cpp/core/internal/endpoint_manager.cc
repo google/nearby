@@ -91,6 +91,8 @@ void EndpointManager::EndpointChannelLoopRunnable(
   // will retry and attempt to pick another channel.
   // If channel is deleted (no mapping), or it is still the same channel
   // (same Medium) on which we got the Exception::kIo, we terminate the loop.
+  NEARBY_LOG(INFO, "Started worker loop name=%s, endpoint=%s",
+             runnable_name.c_str(), endpoint_id.c_str());
   Medium last_failed_medium = Medium::UNKNOWN_MEDIUM;
   while (true) {
     // It's important to keep re-fetching the EndpointChannel for an endpoint
@@ -271,7 +273,7 @@ EndpointManager::EndpointManager(EndpointChannelManager* manager)
 EndpointManager::~EndpointManager() {
   NEARBY_LOG(INFO, "EndpointManager going down");
   CountDownLatch latch(1);
-  RunOnEndpointManagerThread([this, &latch]() {
+  RunOnEndpointManagerThread("bring-down-endpoints", [this, &latch]() {
     NEARBY_LOG(INFO, "Bringing down endpoints");
     for (auto& item : endpoints_) {
       const std::string& endpoint_id = item.first;
@@ -392,9 +394,11 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
   // Instead, we release() a pointer, and pass a raw pointer, which is copyalbe.
   // We ignore the risk of job not scheduled (and an associated risk of memory
   // leak), because this may only happen during service shutdown.
-  RunOnEndpointManagerThread([this, client, channel = channel.release(),
-                              &endpoint_id, &info, &options, &listener,
-                              &latch]() {
+  RunOnEndpointManagerThread("register-endpoint", [this, client,
+                                                   channel = channel.release(),
+                                                   &endpoint_id, &info,
+                                                   &options, &listener,
+                                                   &latch]() {
     if (endpoints_.contains(endpoint_id)) {
       NEARBY_LOG(WARNING, "Registing duplicate endpoint %s",
                  endpoint_id.c_str());
@@ -473,7 +477,8 @@ void EndpointManager::UnregisterEndpoint(ClientProxy* client,
                                          const std::string& endpoint_id) {
   NEARBY_LOG(ERROR, "UnregisterEndpoint for endpoint %s", endpoint_id.c_str());
   CountDownLatch latch(1);
-  RunOnEndpointManagerThread([this, client, endpoint_id, &latch]() {
+  RunOnEndpointManagerThread("unregister-endpoint", [this, client, endpoint_id,
+                                                     &latch]() {
     RemoveEndpoint(client, endpoint_id,
                    client->IsConnectedToEndpoint(endpoint_id));
     latch.CountDown();
@@ -509,7 +514,7 @@ std::vector<std::string> EndpointManager::SendPayloadChunk(
 void EndpointManager::DiscardEndpoint(ClientProxy* client,
                                       const std::string& endpoint_id) {
   NEARBY_LOG(ERROR, "DiscardEndpoint for endpoint %s", endpoint_id.c_str());
-  RunOnEndpointManagerThread([this, client, endpoint_id]() {
+  RunOnEndpointManagerThread("discard-endpoint", [this, client, endpoint_id]() {
     RemoveEndpoint(client, endpoint_id,
                    /*notify=*/
                    client->IsConnectedToEndpoint(endpoint_id));
@@ -632,15 +637,16 @@ std::vector<std::string> EndpointManager::SendTransferFrameBytes(
 }
 
 void EndpointManager::StartEndpointReader(Runnable runnable) {
-  handlers_executor_.Execute(std::move(runnable));
+  handlers_executor_.Execute("reader", std::move(runnable));
 }
 
 void EndpointManager::StartEndpointKeepAliveManager(Runnable runnable) {
-  keep_alive_executor_.Execute(std::move(runnable));
+  keep_alive_executor_.Execute("keep-alive", std::move(runnable));
 }
 
-void EndpointManager::RunOnEndpointManagerThread(Runnable runnable) {
-  serial_executor_.Execute(std::move(runnable));
+void EndpointManager::RunOnEndpointManagerThread(const std::string& name,
+                                                 Runnable runnable) {
+  serial_executor_.Execute(name, std::move(runnable));
 }
 
 }  // namespace connections

@@ -271,19 +271,20 @@ bool BluetoothClassic::StartAcceptingConnections(
   // Start the accept loop on a dedicated thread - this stays alive and
   // listening for new incoming connections until StopAcceptingConnections() is
   // invoked.
-  accept_loops_runner_.Execute([callback = std::move(callback),
-                                server_socket = std::move(owned_socket),
-                                service_name]() mutable {
-    while (true) {
-      BluetoothSocket client_socket = server_socket.Accept();
-      if (!client_socket.IsValid()) {
-        server_socket.Close();
-        break;
-      }
+  accept_loops_runner_.Execute(
+      "bt-accept",
+      [callback = std::move(callback), server_socket = std::move(owned_socket),
+       service_name]() mutable {
+        while (true) {
+          BluetoothSocket client_socket = server_socket.Accept();
+          if (!client_socket.IsValid()) {
+            server_socket.Close();
+            break;
+          }
 
-      callback.accepted_cb(std::move(client_socket));
-    }
-  });
+          callback.accepted_cb(std::move(client_socket));
+        }
+      });
 
   return true;
 }

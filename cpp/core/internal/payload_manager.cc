@@ -281,6 +281,7 @@ PayloadManager::~PayloadManager() {
   CountDownLatch stop_latch(1);
   // Clear our tracked pending payloads.
   RunOnStatusUpdateThread(
+      "~payload-manager",
       [this, &stop_latch]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
         NEARBY_LOG(INFO, "PayloadManager: stop tracking payloads; self=%p",
                    this);
@@ -334,7 +335,8 @@ void PayloadManager::SendPayload(ClientProxy* client,
   Payload::Type payload_type = payload.GetType();
   Payload::Id payload_id =
       CreateOutgoingPayload(std::move(payload), endpoint_ids);
-  executor->Execute([this, client, endpoint_ids, payload_id, payload_type]() {
+  executor->Execute("send-payload", [this, client, endpoint_ids, payload_id,
+                                     payload_type]() {
     if (shutdown_.Get()) return;
     PendingPayload* pending_payload = GetPayload(payload_id);
     if (!pending_payload) {
@@ -355,7 +357,8 @@ void PayloadManager::SendPayload(ClientProxy* client,
       should_continue = SendPayloadLoop(client, *pending_payload,
                                         payload_header, next_chunk_offset);
     }
-    RunOnStatusUpdateThread([this, payload_id]()
+    RunOnStatusUpdateThread("destroy-payload",
+                            [this, payload_id]()
                                 RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
                                   DestroyPendingPayload(payload_id);
                                 });
@@ -430,6 +433,7 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
     return;
   }
   RunOnStatusUpdateThread(
+      "payload-manager-on-disconnect",
       [this, client, endpoint_id, barrier]()
           RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() mutable {
             // Iterate through all our payloads and look for payloads associated
@@ -586,62 +590,65 @@ void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t num_bytes_successfully_transferred,
     proto::connections::PayloadStatus status) {
-  RunOnStatusUpdateThread([this, client, finished_endpoint_ids, payload_header,
-                           num_bytes_successfully_transferred,
-                           status]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
-    // Make sure we're still tracking this payload.
-    PendingPayload* pending_payload = GetPayload(payload_header.id());
-    if (!pending_payload) {
-      return;
-    }
+  RunOnStatusUpdateThread(
+      "outgoing-payload-callbacks",
+      [this, client, finished_endpoint_ids, payload_header,
+       num_bytes_successfully_transferred,
+       status]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
+        // Make sure we're still tracking this payload.
+        PendingPayload* pending_payload = GetPayload(payload_header.id());
+        if (!pending_payload) {
+          return;
+        }
 
-    PayloadProgressInfo update{
-        payload_header.id(),
-        PayloadManager::PayloadStatusToTransferUpdateStatus(status),
-        payload_header.total_size(), num_bytes_successfully_transferred};
-    for (const auto& endpoint_id : finished_endpoint_ids) {
-      // Skip sending notifications if we have stopped tracking this
-      // endpoint.
-      if (!pending_payload->GetEndpoint(endpoint_id)) {
-        continue;
-      }
+        PayloadProgressInfo update{
+            payload_header.id(),
+            PayloadManager::PayloadStatusToTransferUpdateStatus(status),
+            payload_header.total_size(), num_bytes_successfully_transferred};
+        for (const auto& endpoint_id : finished_endpoint_ids) {
+          // Skip sending notifications if we have stopped tracking this
+          // endpoint.
+          if (!pending_payload->GetEndpoint(endpoint_id)) {
+            continue;
+          }
 
-      // Notify the client.
-      client->OnPayloadProgress(endpoint_id, update);
-    }
+          // Notify the client.
+          client->OnPayloadProgress(endpoint_id, update);
+        }
 
-    // Remove these endpoints from our tracking list for this payload.
-    pending_payload->RemoveEndpoints(finished_endpoint_ids);
+        // Remove these endpoints from our tracking list for this payload.
+        pending_payload->RemoveEndpoints(finished_endpoint_ids);
 
-    // Close the payload if no endpoints remain.
-    if (pending_payload->GetEndpoints().empty()) {
-      pending_payload->Close();
-    }
-  });
+        // Close the payload if no endpoints remain.
+        if (pending_payload->GetEndpoints().empty()) {
+          pending_payload->Close();
+        }
+      });
 }
 
 void PayloadManager::SendClientCallbacksForFinishedIncomingPayload(
     ClientProxy* client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t offset_bytes, proto::connections::PayloadStatus status) {
-  RunOnStatusUpdateThread([this, client, endpoint_id, payload_header,
-                           offset_bytes,
-                           status]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
-    // Make sure we're still tracking this payload.
-    PendingPayload* pending_payload = GetPayload(payload_header.id());
-    if (!pending_payload) {
-      return;
-    }
+  RunOnStatusUpdateThread(
+      "incoming-payload-callbacks",
+      [this, client, endpoint_id, payload_header, offset_bytes,
+       status]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
+        // Make sure we're still tracking this payload.
+        PendingPayload* pending_payload = GetPayload(payload_header.id());
+        if (!pending_payload) {
+          return;
+        }
 
-    // Unless we never started tracking this payload (meaning we failed to
-    // even create the InternalPayload), notify the client (and close it).
-    PayloadProgressInfo update{
-        payload_header.id(),
-        PayloadManager::PayloadStatusToTransferUpdateStatus(status),
-        payload_header.total_size(), offset_bytes};
-    NotifyClientOfIncomingPayloadProgressInfo(client, endpoint_id, update);
-    DestroyPendingPayload(payload_header.id());
-  });
+        // Unless we never started tracking this payload (meaning we failed to
+        // even create the InternalPayload), notify the client (and close it).
+        PayloadProgressInfo update{
+            payload_header.id(),
+            PayloadManager::PayloadStatusToTransferUpdateStatus(status),
+            payload_header.total_size(), offset_bytes};
+        NotifyClientOfIncomingPayloadProgressInfo(client, endpoint_id, update);
+        DestroyPendingPayload(payload_header.id());
+      });
 }
 
 void PayloadManager::SendControlMessage(
@@ -734,6 +741,7 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
     std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
     std::int64_t payload_chunk_body_size) {
   RunOnStatusUpdateThread(
+      "outgoing-chunk-success",
       [this, client, endpoint_id, payload_header, payload_chunk_flags,
        payload_chunk_offset,
        payload_chunk_body_size]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
@@ -799,6 +807,7 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
     std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
     std::int64_t payload_chunk_body_size) {
   RunOnStatusUpdateThread(
+      "incoming-chunk-success",
       [this, client, endpoint_id, payload_header, payload_chunk_flags,
        payload_chunk_offset,
        payload_chunk_body_size]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
@@ -858,6 +867,7 @@ void PayloadManager::ProcessDataPacket(
 
     // Also, let the client know of this new incoming payload.
     RunOnStatusUpdateThread(
+        "process-data-packet",
         [to_client, from_endpoint_id, pending_payload]()
             RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
               NEARBY_LOG(INFO,
@@ -1128,8 +1138,9 @@ bool PayloadManager::PendingPayload::IsClosed() {
   return close_event_.Await(absl::ZeroDuration()).result();
 }
 
-void PayloadManager::RunOnStatusUpdateThread(std::function<void()> runnable) {
-  payload_status_update_executor_.Execute(std::move(runnable));
+void PayloadManager::RunOnStatusUpdateThread(const std::string& name,
+                                             std::function<void()> runnable) {
+  payload_status_update_executor_.Execute(name, std::move(runnable));
 }
 
 /////////////////////////////// PendingPayloads ///////////////////////////////

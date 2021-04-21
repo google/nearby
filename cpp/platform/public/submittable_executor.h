@@ -26,6 +26,7 @@
 #include "platform/base/runnable.h"
 #include "platform/public/future.h"
 #include "platform/public/lockable.h"
+#include "platform/public/monitored_runnable.h"
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
 #include "platform/public/thread_check_callable.h"
@@ -57,9 +58,19 @@ class ABSL_LOCKABLE SubmittableExecutor : public api::SubmittableExecutor,
     }
     return *this;
   }
+  void Execute(const std::string& name, Runnable&& runnable)
+      ABSL_LOCKS_EXCLUDED(mutex_) {
+    MutexLock lock(&mutex_);
+    if (impl_)
+      impl_->Execute(MonitoredRunnable(
+          name, ThreadCheckRunnable(this, std::move(runnable))));
+  }
+
   void Execute(Runnable&& runnable) ABSL_LOCKS_EXCLUDED(mutex_) override {
     MutexLock lock(&mutex_);
-    if (impl_) impl_->Execute(ThreadCheckRunnable(this, std::move(runnable)));
+    if (impl_)
+      impl_->Execute(
+          MonitoredRunnable(ThreadCheckRunnable(this, std::move(runnable))));
   }
 
   int GetTid(int index) const ABSL_LOCKS_EXCLUDED(mutex_) override {

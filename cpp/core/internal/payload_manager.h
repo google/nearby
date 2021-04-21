@@ -277,7 +277,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
   SingleThreadExecutor* GetOutgoingPayloadExecutor(Payload::Type payload_type);
 
-  void RunOnStatusUpdateThread(std::function<void()> runnable);
+  void RunOnStatusUpdateThread(const std::string& name,
+                               std::function<void()> runnable);
   bool NotifyShutdown() ABSL_LOCKS_EXCLUDED(mutex_);
   void DestroyPendingPayload(Payload::Id payload_id)
       ABSL_LOCKS_EXCLUDED(mutex_);

@@ -266,7 +266,7 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
     // This allows a remote device to message us over Tachyon.
     auto signaling_complete_callback = [this, &socket_future](bool success) {
       if (!success) {
-        OffloadFromThread([&socket_future]() {
+        OffloadFromThread("rtc-signaling-fail", [&socket_future]() {
           socket_future.SetException({Exception::kFailed});
         });
       }
@@ -388,7 +388,7 @@ void WebRtc::ProcessLocalIceCandidate(
 
 void WebRtc::OnSignalingMessage(const std::string& service_id,
                                 const ByteArray& message) {
-  OffloadFromThread([this, service_id, message]() {
+  OffloadFromThread("rtc-on-signaling-message", [this, service_id, message]() {
     ProcessTachyonInboxMessage(service_id, message);
   });
 }
@@ -399,7 +399,7 @@ void WebRtc::OnSignalingComplete(const std::string& service_id, bool success) {
     return;
   }
 
-  OffloadFromThread([this, service_id]() {
+  OffloadFromThread("rtc-on-signaling-complete", [this, service_id]() {
     MutexLock lock(&mutex_);
     const auto& info_entry = accepting_connections_info_.find(service_id);
     if (info_entry == accepting_connections_info_.end()) {
@@ -661,8 +661,9 @@ void WebRtc::ProcessDataChannelCreated(
   // Transform the DataChannel into a socket.
   auto socket = std::make_unique<WebRtcSocket>("WebRtcSocket", data_channel);
   socket->SetOnSocketClosedListener({[this, remote_peer_id]() {
-    OffloadFromThread(
-        [this, remote_peer_id]() { ProcessDataChannelClosed(remote_peer_id); });
+    OffloadFromThread("rtc-socket-closed-cb", [this, remote_peer_id]() {
+      ProcessDataChannelClosed(remote_peer_id);
+    });
   }});
   WebRtcSocketWrapper wrapper = WebRtcSocketWrapper(std::move(socket));
 
@@ -745,6 +746,7 @@ std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
              ::location::nearby::mediums::IceCandidate encoded_ice_candidate =
                  webrtc_frames::EncodeIceCandidate(*ice_candidate);
              OffloadFromThread(
+                 "rtc-ice-candidates",
                  [this, service_id, remote_peer_id, encoded_ice_candidate]() {
                    ProcessLocalIceCandidate(service_id, remote_peer_id,
                                             encoded_ice_candidate);
@@ -756,6 +758,7 @@ std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
                 remote_peer_id](rtc::scoped_refptr<webrtc::DataChannelInterface>
                                     data_channel) {
                 OffloadFromThread(
+                    "rtc-channel-created",
                     [this, service_id, remote_peer_id, data_channel]() {
                       ProcessDataChannelCreated(service_id, remote_peer_id,
                                                 data_channel);
@@ -763,17 +766,19 @@ std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
               }},
           .data_channel_message_received_cb = {[this, remote_peer_id](
                                                    const ByteArray& message) {
-            OffloadFromThread([this, remote_peer_id, message]() {
-              ProcessDataChannelMessage(remote_peer_id, message);
-            });
+            OffloadFromThread(
+                "rtc-channel-messsage", [this, remote_peer_id, message]() {
+                  ProcessDataChannelMessage(remote_peer_id, message);
+                });
           }},
           .data_channel_buffered_amount_changed_cb = {[this, remote_peer_id]() {
-            OffloadFromThread([this, remote_peer_id]() {
-              ProcessDataChannelBufferAmountChanged(remote_peer_id);
-            });
+            OffloadFromThread(
+                "rtc-channel-buffer-change", [this, remote_peer_id]() {
+                  ProcessDataChannelBufferAmountChanged(remote_peer_id);
+                });
           }},
           .data_channel_closed_cb = {[this, remote_peer_id]() {
-            OffloadFromThread([this, remote_peer_id]() {
+            OffloadFromThread("rtc-channel-closed", [this, remote_peer_id]() {
               ProcessDataChannelClosed(remote_peer_id);
             });
           }},
@@ -796,8 +801,8 @@ void WebRtc::RemoveConnectionFlow(const PeerId& remote_peer_id) {
   }
 }
 
-void WebRtc::OffloadFromThread(Runnable runnable) {
-  single_thread_executor_.Execute(std::move(runnable));
+void WebRtc::OffloadFromThread(const std::string& name, Runnable runnable) {
+  single_thread_executor_.Execute(name, std::move(runnable));
 }
 
 }  // namespace mediums

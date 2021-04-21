@@ -131,7 +131,7 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
                                         Medium new_medium) {
   NEARBY_LOG(INFO, "InitiateBwuForEndpoint for endpoint %s with medium %d",
              endpoint_id.c_str(), new_medium);
-  RunOnBwuManagerThread([this, client, endpoint_id, new_medium]() {
+  RunOnBwuManagerThread("bwu-init", [this, client, endpoint_id, new_medium]() {
     Medium proposed_medium = ChooseBestUpgradeMedium(
         client->GetUpgradeMediums(endpoint_id).GetMediums(true));
     if (new_medium != Medium::UNKNOWN_MEDIUM) {
@@ -207,12 +207,14 @@ void BwuManager::OnIncomingFrame(OfflineFrame& frame,
     return;
   auto bwu_frame = frame.v1().bandwidth_upgrade_negotiation();
   if (FeatureFlags::GetInstance().GetFlags().enable_async_bandwidth_upgrade) {
-    RunOnBwuManagerThread([this, client, endpoint_id, bwu_frame]() {
-      OnBwuNegotiationFrame(client, bwu_frame, endpoint_id);
-    });
+    RunOnBwuManagerThread(
+        "bwu-on-incoming-frame", [this, client, endpoint_id, bwu_frame]() {
+          OnBwuNegotiationFrame(client, bwu_frame, endpoint_id);
+        });
   } else {
     CountDownLatch latch(1);
-    RunOnBwuManagerThread([this, client, endpoint_id, bwu_frame, &latch]() {
+    RunOnBwuManagerThread("bwu-on-incoming-frame", [this, client, endpoint_id,
+                                                    bwu_frame, &latch]() {
       OnBwuNegotiationFrame(client, bwu_frame, endpoint_id);
       latch.CountDown();
     });
@@ -224,38 +226,40 @@ void BwuManager::OnEndpointDisconnect(ClientProxy* client,
                                       const std::string& endpoint_id,
                                       CountDownLatch barrier) {
   NEARBY_LOG(INFO, "OnEndpointDisconnect for endpoint %s", endpoint_id.c_str());
-  RunOnBwuManagerThread([this, client, endpoint_id, barrier]() mutable {
-    if (medium_ == Medium::UNKNOWN_MEDIUM) {
-      barrier.CountDown();
-      return;
-    }
+  RunOnBwuManagerThread(
+      "bwu-on-endpoint-disconnect",
+      [this, client, endpoint_id, barrier]() mutable {
+        if (medium_ == Medium::UNKNOWN_MEDIUM) {
+          barrier.CountDown();
+          return;
+        }
 
-    if (handler_) {
-      handler_->OnEndpointDisconnect(client, endpoint_id);
-    }
+        if (handler_) {
+          handler_->OnEndpointDisconnect(client, endpoint_id);
+        }
 
-    auto item = previous_endpoint_channels_.extract(endpoint_id);
+        auto item = previous_endpoint_channels_.extract(endpoint_id);
 
-    if (!item.empty()) {
-      auto old_channel = item.mapped();
-      if (old_channel != nullptr) {
-        old_channel->Close(DisconnectionReason::SHUTDOWN);
-      }
-    }
-    in_progress_upgrades_.erase(endpoint_id);
-    CancelRetryUpgradeAlarm(endpoint_id);
+        if (!item.empty()) {
+          auto old_channel = item.mapped();
+          if (old_channel != nullptr) {
+            old_channel->Close(DisconnectionReason::SHUTDOWN);
+          }
+        }
+        in_progress_upgrades_.erase(endpoint_id);
+        CancelRetryUpgradeAlarm(endpoint_id);
 
-    successfully_upgraded_endpoints_.erase(endpoint_id);
+        successfully_upgraded_endpoints_.erase(endpoint_id);
 
-    // If this was our very last endpoint:
-    //
-    // a) revert all the changes for currentBwuMedium.
-    // b) reset currentBwuMedium.
-    if (channel_manager_->GetConnectedEndpointsCount() <= 1) {
-      Revert();
-    }
-    barrier.CountDown();
-  });
+        // If this was our very last endpoint:
+        //
+        // a) revert all the changes for currentBwuMedium.
+        // b) reset currentBwuMedium.
+        if (channel_manager_->GetConnectedEndpointsCount() <= 1) {
+          Revert();
+        }
+        barrier.CountDown();
+      });
 }
 
 BwuHandler* BwuManager::SetCurrentBwuHandler(Medium medium) {
@@ -312,7 +316,8 @@ void BwuManager::OnIncomingConnection(
              client->GetServiceId().c_str());
   std::shared_ptr<BwuHandler::IncomingSocketConnection> connection(
       mutable_connection.release());
-  RunOnBwuManagerThread([this, client, connection]() {
+  RunOnBwuManagerThread("bwu-on-incoming-connection", [this, client,
+                                                       connection]() {
     EndpointChannel* channel = connection->channel.get();
     if (channel == nullptr) {
       connection->socket->Close();
@@ -356,8 +361,9 @@ void BwuManager::OnIncomingConnection(
   });
 }
 
-void BwuManager::RunOnBwuManagerThread(Runnable runnable) {
-  serial_executor_.Execute(std::move(runnable));
+void BwuManager::RunOnBwuManagerThread(const std::string& name,
+                                       Runnable runnable) {
+  serial_executor_.Execute(name, std::move(runnable));
 }
 
 void BwuManager::RunUpgradeProtocol(
@@ -912,7 +918,8 @@ void BwuManager::RetryUpgradesAfterDelay(ClientProxy* client,
   CancelableAlarm alarm(
       "BWU alarm",
       [this, client, endpoint_id]() {
-        RunOnBwuManagerThread([this, client, endpoint_id]() {
+        RunOnBwuManagerThread("bwu-retry-upgrade", [this, client,
+                                                    endpoint_id]() {
           if (!client->IsConnectedToEndpoint(endpoint_id)) {
             return;
           }

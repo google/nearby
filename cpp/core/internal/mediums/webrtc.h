@@ -241,7 +241,7 @@ class WebRtc {
   void RestartTachyonReceiveMessages(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  void OffloadFromThread(Runnable runnable);
+  void OffloadFromThread(const std::string& name, Runnable runnable);
 
   Mutex mutex_;
 

@@ -360,6 +360,7 @@ void EncryptionRunner::StartServer(
     EndpointChannel* endpoint_channel,
     EncryptionRunner::ResultListener&& listener) {
   server_executor_.Execute(
+      "encryption-server",
       [runnable{ServerRunnable(client, &alarm_executor_, endpoint_id,
                                endpoint_channel, std::move(listener))}]() {
         runnable();
@@ -371,6 +372,7 @@ void EncryptionRunner::StartClient(
     EndpointChannel* endpoint_channel,
     EncryptionRunner::ResultListener&& listener) {
   client_executor_.Execute(
+      "encryption-client",
       [runnable{ClientRunnable(client, &alarm_executor_, endpoint_id,
                                endpoint_channel, std::move(listener))}]() {
         runnable();

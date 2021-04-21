@@ -234,7 +234,7 @@ class EndpointManager {
   void StartEndpointKeepAliveManager(Runnable runnable);
 
   // Executes all jobs sequentially, on a serial_executor_.
-  void RunOnEndpointManagerThread(Runnable runnable);
+  void RunOnEndpointManagerThread(const std::string& name, Runnable runnable);
 
   EndpointChannelManager* channel_manager_;
 

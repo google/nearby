@@ -103,7 +103,8 @@ class BwuManager : public EndpointManager::FrameProcessor {
       absl::Seconds(5);
   BwuHandler* SetCurrentBwuHandler(Medium medium);
   void InitBwuHandlers();
-  void RunOnBwuManagerThread(std::function<void()> runnable);
+  void RunOnBwuManagerThread(const std::string& name,
+                             std::function<void()> runnable);
   std::vector<Medium> StripOutUnavailableMediums(
       const std::vector<Medium>& mediums);
   Medium ChooseBestUpgradeMedium(const std::vector<Medium>& mediums);
