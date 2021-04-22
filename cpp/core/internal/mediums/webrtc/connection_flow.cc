@@ -535,7 +535,8 @@ bool ConnectionFlow::RunOnSignalingThread(Runnable&& runnable) {
 }
 
 bool ConnectionFlow::IsRunningOnSignalingThread() {
-  return signaling_thread_for_dcheck_only_ == rtc::Thread::Current();
+  return signaling_thread_for_dcheck_only_ != nullptr &&
+         signaling_thread_for_dcheck_only_ == rtc::Thread::Current();
 }
 
 rtc::scoped_refptr<webrtc::PeerConnectionInterface>
