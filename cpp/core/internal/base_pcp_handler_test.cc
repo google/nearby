@@ -561,7 +561,7 @@ TEST_P(BasePcpHandlerTest, AcceptConnectionChangesState) {
   EXPECT_EQ(pcp_handler.AcceptConnection(&client, endpoint_id, {}),
             Status{Status::kSuccess});
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
-  NEARBY_LOGS(INFO) << "Closing connection: id=" << endpoint_id;
+  NEARBY_LOG(INFO, "Closing connection: endpoint_id=%s", endpoint_id.c_str());
   channel_b->Close();
   bwu.Shutdown();
   pcp_handler.DisconnectFromEndpointManager();
@@ -585,10 +585,11 @@ TEST_P(BasePcpHandlerTest, RejectConnectionChangesState) {
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(1);
   RequestConnection(endpoint_id, std::move(channel_pair.first), channel_b.get(),
                     &client, &pcp_handler, connect_medium);
-  NEARBY_LOGS(INFO) << "Attempting to reject connection: id=" << endpoint_id;
+  NEARBY_LOG(INFO, "Attempting to reject connection: endpoint_id=%s",
+             endpoint_id.c_str());
   EXPECT_EQ(pcp_handler.RejectConnection(&client, endpoint_id),
             Status{Status::kSuccess});
-  NEARBY_LOGS(INFO) << "Closing connection: id=" << endpoint_id;
+  NEARBY_LOG(INFO, "Closing connection: endpoint_id=%s", endpoint_id.c_str());
   channel_b->Close();
   bwu.Shutdown();
   pcp_handler.DisconnectFromEndpointManager();
@@ -614,7 +615,8 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
   EXPECT_CALL(*channel_b, CloseImpl).Times(1);
   RequestConnection(endpoint_id, std::move(channel_a), channel_b.get(), &client,
                     &pcp_handler, connect_medium);
-  NEARBY_LOGS(INFO) << "Attempting to accept connection: id=" << endpoint_id;
+  NEARBY_LOG(INFO, "Attempting to accept connection: endpoint_id=%s",
+             endpoint_id.c_str());
   EXPECT_CALL(mock_connection_listener_.accepted_cb, Call).Times(1);
   EXPECT_CALL(mock_connection_listener_.disconnected_cb, Call)
       .Times(AtLeast(0));
@@ -625,7 +627,7 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
       parser::FromBytes(parser::ForConnectionResponse(Status::kSuccess));
   pcp_handler.OnIncomingFrame(frame.result(), endpoint_id, &client,
                               connect_medium);
-  NEARBY_LOGS(INFO) << "Closing connection: id=" << endpoint_id;
+  NEARBY_LOG(INFO, "Closing connection: endpoint_id=%s", endpoint_id.c_str());
   channel_b->Close();
   bwu.Shutdown();
   pcp_handler.DisconnectFromEndpointManager();

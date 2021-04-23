@@ -52,8 +52,8 @@ void OfflineSimulationUser::OnConnectionRejected(const std::string& endpoint_id,
 
 void OfflineSimulationUser::OnEndpointDisconnect(
     const std::string& endpoint_id) {
-  NEARBY_LOGS(INFO) << "OnEndpointDisconnect: self=" << this
-                    << "; id=" << endpoint_id;
+  NEARBY_LOG(INFO, "OnEndpointDisconnect: self=%p; endpoint_id=%s", this,
+             endpoint_id.c_str());
   if (disconnect_latch_) disconnect_latch_->CountDown();
 }
 
@@ -194,7 +194,8 @@ Status OfflineSimulationUser::RejectConnection(CountDownLatch* latch) {
 }
 
 void OfflineSimulationUser::Disconnect() {
-  NEARBY_LOGS(INFO) << "Disconnecting from id=" << discovered_.endpoint_id;
+  NEARBY_LOG(INFO, "Disconnecting from endpoint_id=%s",
+             discovered_.endpoint_id.c_str());
   ctrl_.DisconnectFromEndpoint(&client_, discovered_.endpoint_id);
 }
 
