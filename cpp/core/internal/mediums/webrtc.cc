@@ -62,15 +62,6 @@ WebRtc::~WebRtc() {
   for (const auto& service_id : service_ids) {
     StopAcceptingConnections(service_id);
   }
-
-  // Disconnect all connections
-  absl::flat_hash_set<std::string> peer_ids;
-  for (auto& item : sockets_) {
-    peer_ids.emplace(item.first);
-  }
-  for (const auto& peer_id : peer_ids) {
-    sockets_.find(peer_id)->second.Close();
-  }
 }
 
 const std::string WebRtc::GetDefaultCountryCode() {
@@ -653,28 +644,16 @@ void WebRtc::RestartTachyonReceiveMessages(const std::string& service_id) {
              service_id.c_str());
 }
 
-void WebRtc::ProcessDataChannelCreated(
-    const std::string& service_id, const PeerId& remote_peer_id,
-    rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
+void WebRtc::ProcessDataChannelOpen(const std::string& service_id,
+                                    const PeerId& remote_peer_id,
+                                    WebRtcSocketWrapper socket_wrapper) {
   MutexLock lock(&mutex_);
-
-  // Transform the DataChannel into a socket.
-  auto socket = std::make_unique<WebRtcSocket>("WebRtcSocket", data_channel);
-  socket->SetOnSocketClosedListener({[this, remote_peer_id]() {
-    OffloadFromThread("rtc-socket-closed-cb", [this, remote_peer_id]() {
-      ProcessDataChannelClosed(remote_peer_id);
-    });
-  }});
-  WebRtcSocketWrapper wrapper = WebRtcSocketWrapper(std::move(socket));
-
-  // Store this DataChannel so that we can update it later.
-  sockets_.emplace(remote_peer_id.GetId(), wrapper);
 
   // Notify the client of the newly formed socket.
   const auto& connection_request_entry =
       requesting_connections_info_.find(remote_peer_id.GetId());
   if (connection_request_entry != requesting_connections_info_.end()) {
-    connection_request_entry->second.socket_future.Set(wrapper);
+    connection_request_entry->second.socket_future.Set(socket_wrapper);
     return;
   }
 
@@ -682,38 +661,16 @@ void WebRtc::ProcessDataChannelCreated(
       accepting_connections_info_.find(service_id);
   if (accepting_connection_entry != accepting_connections_info_.end()) {
     accepting_connection_entry->second.accepted_connection_callback.accepted_cb(
-        wrapper);
+        socket_wrapper);
     return;
   }
 
   // No one to handle the newly created DataChannel, so we'll just close it.
-  wrapper.Close();
+  socket_wrapper.Close();
   NEARBY_LOG(INFO,
              "Ignoring new DataChannel because we "
              "are not accepting connections for service %s.",
              service_id.c_str());
-}
-
-void WebRtc::ProcessDataChannelMessage(const PeerId& remote_peer_id,
-                                       const ByteArray& message) {
-  MutexLock lock(&mutex_);
-  const auto& entry = sockets_.find(remote_peer_id.GetId());
-  if (entry == sockets_.end()) {
-    return;
-  }
-
-  entry->second.NotifyDataChannelMsgReceived(message);
-}
-
-void WebRtc::ProcessDataChannelBufferAmountChanged(
-    const PeerId& remote_peer_id) {
-  MutexLock lock(&mutex_);
-  const auto& entry = sockets_.find(remote_peer_id.GetId());
-  if (entry == sockets_.end()) {
-    return;
-  }
-
-  entry->second.NotifyDataChannelBufferedAmountChanged();
 }
 
 void WebRtc::ProcessDataChannelClosed(const PeerId& remote_peer_id) {
@@ -721,13 +678,6 @@ void WebRtc::ProcessDataChannelClosed(const PeerId& remote_peer_id) {
   NEARBY_LOG(INFO,
              "Data channel has closed, removing connection flow for peer %s.",
              remote_peer_id.GetId().c_str());
-  const auto& entry = sockets_.find(remote_peer_id.GetId());
-  if (entry == sockets_.end()) {
-    return;
-  }
-
-  entry->second.Close();
-  sockets_.erase(remote_peer_id.GetId());
 
   RemoveConnectionFlow(remote_peer_id);
 }
@@ -753,28 +703,13 @@ std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
                  });
            }}},
       {
-          .data_channel_created_cb =
-              {[this, service_id,
-                remote_peer_id](rtc::scoped_refptr<webrtc::DataChannelInterface>
-                                    data_channel) {
-                OffloadFromThread(
-                    "rtc-channel-created",
-                    [this, service_id, remote_peer_id, data_channel]() {
-                      ProcessDataChannelCreated(service_id, remote_peer_id,
-                                                data_channel);
-                    });
-              }},
-          .data_channel_message_received_cb = {[this, remote_peer_id](
-                                                   const ByteArray& message) {
+          .data_channel_open_cb = {[this, service_id, remote_peer_id](
+                                       WebRtcSocketWrapper socket_wrapper) {
             OffloadFromThread(
-                "rtc-channel-messsage", [this, remote_peer_id, message]() {
-                  ProcessDataChannelMessage(remote_peer_id, message);
-                });
-          }},
-          .data_channel_buffered_amount_changed_cb = {[this, remote_peer_id]() {
-            OffloadFromThread(
-                "rtc-channel-buffer-change", [this, remote_peer_id]() {
-                  ProcessDataChannelBufferAmountChanged(remote_peer_id);
+                "rtc-channel-created",
+                [this, service_id, remote_peer_id, socket_wrapper]() {
+                  ProcessDataChannelOpen(service_id, remote_peer_id,
+                                         socket_wrapper);
                 });
           }},
           .data_channel_closed_cb = {[this, remote_peer_id]() {

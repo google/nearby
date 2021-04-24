@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "core/internal/mediums/webrtc/session_description_wrapper.h"
+#include "core/internal/mediums/webrtc/webrtc_socket_wrapper.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/medium_environment.h"
 #include "platform/public/count_down_latch.h"
@@ -58,10 +59,7 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
 
   Future<ByteArray> message_received_future;
 
-  Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      offerer_data_channel_future;
-  Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      answerer_data_channel_future;
+  Future<WebRtcSocketWrapper> offerer_socket_future, answerer_socket_future;
 
   std::unique_ptr<ConnectionFlow> offerer, answerer;
 
@@ -76,10 +74,9 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
              if (answerer)
                answerer->OnRemoteIceCandidatesReceived(std::move(vec));
            }},
-      {.data_channel_created_cb =
-           [&offerer_data_channel_future](
-               rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
-             offerer_data_channel_future.Set(std::move(data_channel));
+      {.data_channel_open_cb =
+           [&offerer_socket_future](WebRtcSocketWrapper socket) {
+             offerer_socket_future.Set(std::move(socket));
            }},
       webrtc_medium_offerer);
   ASSERT_NE(offerer, nullptr);
@@ -93,14 +90,9 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
              if (offerer)
                offerer->OnRemoteIceCandidatesReceived(std::move(vec));
            }},
-      {.data_channel_created_cb =
-           [&answerer_data_channel_future](
-               rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
-             answerer_data_channel_future.Set(std::move(data_channel));
-           },
-       .data_channel_message_received_cb =
-           [&message_received_future](ByteArray bytes) {
-             message_received_future.Set(std::move(bytes));
+      {.data_channel_open_cb =
+           [&answerer_socket_future](WebRtcSocketWrapper socket) {
+             answerer_socket_future.Set(std::move(socket));
            }},
       webrtc_medium_answerer);
   ASSERT_NE(answerer, nullptr);
@@ -118,18 +110,19 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
   EXPECT_TRUE(answerer->SetLocalSessionDescription(std::move(answer)));
 
   // Retrieve Data Channels
-  ExceptionOr<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      offerer_channel = offerer_data_channel_future.Get(absl::Seconds(1));
-  EXPECT_TRUE(offerer_channel.ok());
-  ExceptionOr<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      answerer_channel = answerer_data_channel_future.Get(absl::Seconds(1));
-  EXPECT_TRUE(answerer_channel.ok());
+  ExceptionOr<WebRtcSocketWrapper> offerer_socket =
+      offerer_socket_future.Get(absl::Seconds(1));
+  EXPECT_TRUE(offerer_socket.ok());
+  ExceptionOr<WebRtcSocketWrapper> answerer_socket =
+      answerer_socket_future.Get(absl::Seconds(1));
+  EXPECT_TRUE(answerer_socket.ok());
 
   // Send message on data channel
   const char message[] = "Test";
-  offerer_channel.result()->Send(webrtc::DataBuffer(message));
+  offerer_socket.result().GetImpl().GetOutputStream().Write(
+      ByteArray(message, 4));
   ExceptionOr<ByteArray> received_message =
-      message_received_future.Get(absl::Seconds(1));
+      answerer_socket.result().GetImpl().GetInputStream().Read(4);
   EXPECT_TRUE(received_message.ok());
   EXPECT_EQ(received_message.result(), ByteArray{message});
 }
@@ -245,10 +238,7 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
 
   Future<ByteArray> message_received_future;
 
-  Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      offerer_data_channel_future;
-  Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      answerer_data_channel_future;
+  Future<WebRtcSocketWrapper> offerer_socket_future, answerer_socket_future;
 
   std::unique_ptr<ConnectionFlow> offerer, answerer;
 
@@ -263,10 +253,9 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
              if (answerer)
                answerer->OnRemoteIceCandidatesReceived(std::move(vec));
            }},
-      {.data_channel_created_cb =
-           [&offerer_data_channel_future](
-               rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
-             offerer_data_channel_future.Set(std::move(data_channel));
+      {.data_channel_open_cb =
+           [&offerer_socket_future](WebRtcSocketWrapper socket) {
+             offerer_socket_future.Set(std::move(socket));
            }},
       webrtc_medium_offerer);
   ASSERT_NE(offerer, nullptr);
@@ -280,14 +269,9 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
              if (offerer)
                offerer->OnRemoteIceCandidatesReceived(std::move(vec));
            }},
-      {.data_channel_created_cb =
-           [&answerer_data_channel_future](
-               rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
-             answerer_data_channel_future.Set(std::move(data_channel));
-           },
-       .data_channel_message_received_cb =
-           [&message_received_future](ByteArray bytes) {
-             message_received_future.Set(std::move(bytes));
+      {.data_channel_open_cb =
+           [&answerer_socket_future](WebRtcSocketWrapper wrapper) {
+             answerer_socket_future.Set(std::move(wrapper));
            }},
       webrtc_medium_answerer);
   ASSERT_NE(answerer, nullptr);
@@ -305,12 +289,12 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
   EXPECT_TRUE(answerer->SetLocalSessionDescription(std::move(answer)));
 
   // Retrieve Data Channels
-  ExceptionOr<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      offerer_channel = offerer_data_channel_future.Get(absl::Seconds(1));
-  EXPECT_TRUE(offerer_channel.ok());
-  ExceptionOr<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      answerer_channel = answerer_data_channel_future.Get(absl::Seconds(1));
-  EXPECT_TRUE(answerer_channel.ok());
+  ExceptionOr<WebRtcSocketWrapper> offerer_socket =
+      offerer_socket_future.Get(absl::Seconds(1));
+  EXPECT_TRUE(offerer_socket.ok());
+  ExceptionOr<WebRtcSocketWrapper> answerer_socket =
+      answerer_socket_future.Get(absl::Seconds(1));
+  EXPECT_TRUE(offerer_socket.ok());
 
   CountDownLatch latch(1);
   auto pc = answerer->GetPeerConnection();
@@ -321,10 +305,10 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
   latch.Await();
 
   // Send message on data channel
-  const char message[] = "Test";
-  offerer_channel.result()->Send(webrtc::DataBuffer(message));
+  std::string message = "Test";
+  offerer_socket.result().GetOutputStream().Write(ByteArray{message});
   ExceptionOr<ByteArray> received_message =
-      message_received_future.Get(absl::Seconds(1));
+      answerer_socket.result().GetInputStream().Read(4);
   EXPECT_FALSE(received_message.ok());
 }
 
@@ -333,10 +317,7 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
 
   Future<ByteArray> message_received_future;
 
-  Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      offerer_data_channel_future;
-  Future<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      answerer_data_channel_future;
+  Future<WebRtcSocketWrapper> offerer_socket_future, answerer_socket_future;
 
   std::unique_ptr<ConnectionFlow> offerer, answerer;
 
@@ -351,10 +332,9 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
              if (answerer)
                answerer->OnRemoteIceCandidatesReceived(std::move(vec));
            }},
-      {.data_channel_created_cb =
-           [&offerer_data_channel_future](
-               rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
-             offerer_data_channel_future.Set(std::move(data_channel));
+      {.data_channel_open_cb =
+           [&offerer_socket_future](WebRtcSocketWrapper socket) {
+             offerer_socket_future.Set(std::move(socket));
            }},
       webrtc_medium_offerer);
   ASSERT_NE(offerer, nullptr);
@@ -368,14 +348,9 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
              if (offerer)
                offerer->OnRemoteIceCandidatesReceived(std::move(vec));
            }},
-      {.data_channel_created_cb =
-           [&answerer_data_channel_future](
-               rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
-             answerer_data_channel_future.Set(std::move(data_channel));
-           },
-       .data_channel_message_received_cb =
-           [&message_received_future](ByteArray bytes) {
-             message_received_future.Set(std::move(bytes));
+      {.data_channel_open_cb =
+           [&answerer_socket_future](WebRtcSocketWrapper wrapper) {
+             answerer_socket_future.Set(std::move(wrapper));
            }},
       webrtc_medium_answerer);
   ASSERT_NE(answerer, nullptr);
@@ -393,12 +368,12 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
   EXPECT_TRUE(answerer->SetLocalSessionDescription(std::move(answer)));
 
   // Retrieve Data Channels
-  ExceptionOr<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      offerer_channel = offerer_data_channel_future.Get(absl::Seconds(1));
-  EXPECT_TRUE(offerer_channel.ok());
-  ExceptionOr<rtc::scoped_refptr<webrtc::DataChannelInterface>>
-      answerer_channel = answerer_data_channel_future.Get(absl::Seconds(1));
-  EXPECT_TRUE(answerer_channel.ok());
+  ExceptionOr<WebRtcSocketWrapper> offerer_socket =
+      offerer_socket_future.Get(absl::Seconds(1));
+  EXPECT_TRUE(offerer_socket.ok());
+  ExceptionOr<WebRtcSocketWrapper> answerer_socket =
+      answerer_socket_future.Get(absl::Seconds(1));
+  EXPECT_TRUE(offerer_socket.ok());
 
   CountDownLatch latch(1);
   auto pc = offerer->GetPeerConnection();
@@ -409,10 +384,10 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
   latch.Await();
 
   // Send message on data channel
-  const char message[] = "Test";
-  offerer_channel.result()->Send(webrtc::DataBuffer(message));
+  std::string message = "Test";
+  offerer_socket.result().GetOutputStream().Write(ByteArray{message});
   ExceptionOr<ByteArray> received_message =
-      message_received_future.Get(absl::Seconds(1));
+      answerer_socket.result().GetInputStream().Read(4);
   EXPECT_FALSE(received_message.ok());
 }
 }  // namespace

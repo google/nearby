@@ -18,7 +18,8 @@
 #include <memory>
 
 #include "core/internal/mediums/webrtc/session_description_wrapper.h"
-#include "platform/public/count_down_latch.h"
+#include "core/internal/mediums/webrtc/webrtc_socket.h"
+#include "core/internal/mediums/webrtc/webrtc_socket_wrapper.h"
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
 #include "platform/public/webrtc.h"
@@ -135,13 +136,9 @@ ConnectionFlow::ConnectionFlow(
 
 ConnectionFlow::~ConnectionFlow() {
   NEARBY_LOG(INFO, "~ConnectionFlow");
-  CountDownLatch latch(1);
-  if (RunOnSignalingThread([this, latch]() mutable {
-        CloseOnSignalingThread();
-        latch.CountDown();
-      })) {
-    latch.Await();
-  }
+  RunOnSignalingThread([this] { CloseOnSignalingThread(); });
+  shutdown_latch_.Await();
+  NEARBY_LOG(INFO, "~ConnectionFlow done");
 }
 
 SessionDescriptionWrapper ConnectionFlow::CreateOffer() {
@@ -170,9 +167,8 @@ void ConnectionFlow::CreateOfferOnSignalingThread(
   webrtc::DataChannelInit data_channel_init;
   data_channel_init.reliable = true;
   auto pc = GetPeerConnection();
-  rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
-      pc->CreateDataChannel(kDataChannelName, &data_channel_init);
-  RegisterDataChannelObserver(data_channel);
+  CreateSocketFromDataChannel(
+      pc->CreateDataChannel(kDataChannelName, &data_channel_init));
 
   webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
   rtc::scoped_refptr<CreateSessionDescriptionObserverImpl> observer =
@@ -384,6 +380,7 @@ bool ConnectionFlow::InitPeerConnection(WebRtcMedium& webrtc_medium) {
   ExceptionOr<bool> result = success_future.Get(kPeerConnectionTimeout);
   bool success = result.ok() && result.result();
   if (!success) {
+    shutdown_latch_.CountDown();
     NEARBY_LOG(ERROR, "Failed to create peer connection: %d",
                result.exception());
   }
@@ -399,6 +396,31 @@ void ConnectionFlow::OnSignalingStable() {
     }
   }
   cached_remote_ice_candidates_.clear();
+}
+
+void ConnectionFlow::CreateSocketFromDataChannel(
+    rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
+  NEARBY_LOG(INFO, "Creating data channel socket");
+  auto socket =
+      std::make_unique<WebRtcSocket>("WebRtcSocket", std::move(data_channel));
+  socket->SetSocketListener({
+      .socket_ready_cb = {[this](WebRtcSocket* socket) {
+        CHECK(IsRunningOnSignalingThread());
+        if (!TransitionState(State::kWaitingToConnect, State::kConnected)) {
+          NEARBY_LOG(ERROR,
+                     "Data channel socket is open but connection flow was not "
+                     "in the required state");
+          socket->Close();
+          return;
+        }
+        // Pass socket wrapper by copy on purpose
+        data_channel_listener_.data_channel_open_cb(socket_wrapper_);
+      }},
+      .socket_closed_cb = [callback =
+                               data_channel_listener_.data_channel_closed_cb](
+                              WebRtcSocket*) { callback(); },
+  });
+  socket_wrapper_ = WebRtcSocketWrapper(std::move(socket));
 }
 
 void ConnectionFlow::OnIceCandidate(
@@ -420,7 +442,7 @@ void ConnectionFlow::OnDataChannel(
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
   NEARBY_LOG(INFO, "OnDataChannel");
   CHECK(IsRunningOnSignalingThread());
-  RegisterDataChannelObserver(std::move(data_channel));
+  CreateSocketFromDataChannel(std::move(data_channel));
 }
 
 void ConnectionFlow::OnIceGatheringChange(
@@ -447,37 +469,6 @@ void ConnectionFlow::OnRenegotiationNeeded() {
   CHECK(IsRunningOnSignalingThread());
 }
 
-void ConnectionFlow::ProcessDataChannelConnectedOnSignalingThread(
-    rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
-  NEARBY_LOG(INFO, "Data channel state changed to connected.");
-  CHECK(IsRunningOnSignalingThread());
-  if (!TransitionState(State::kWaitingToConnect, State::kConnected)) {
-    data_channel->Close();
-    return;
-  }
-
-  data_channel_listener_.data_channel_created_cb(std::move(data_channel));
-}
-
-void ConnectionFlow::RegisterDataChannelObserver(
-    rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
-  CHECK(IsRunningOnSignalingThread());
-  if (!data_channel_observer_) {
-    auto state_change_callback = [this, data_channel]() {
-      if (data_channel->state() ==
-          webrtc::DataChannelInterface::DataState::kOpen) {
-        ProcessDataChannelConnectedOnSignalingThread(std::move(data_channel));
-      }
-    };
-    data_channel_observer_ = absl::make_unique<DataChannelObserverImpl>(
-        data_channel, &data_channel_listener_,
-        std::move(state_change_callback));
-    NEARBY_LOG(INFO, "Registered data channel observer");
-  } else {
-    NEARBY_LOG(WARNING, "Data channel observer already exists");
-  }
-}
-
 bool ConnectionFlow::TransitionState(State current_state, State new_state) {
   CHECK(IsRunningOnSignalingThread());
   if (current_state != state_) {
@@ -497,13 +488,19 @@ bool ConnectionFlow::CloseOnSignalingThread() {
     return false;
   }
   state_ = State::kEnded;
+  // This prevents other tasks from queuing on the signaling thread for this
+  // object.
   auto pc = GetAndResetPeerConnection();
 
-  NEARBY_LOG(INFO, "Closing WebRTC connection.");
+  NEARBY_LOG(INFO, "Closing WebRTC peer connection.");
+  // NOTE: Closing the peer conection will close the data channel and thus the
+  // socket implicitly.
   if (pc) pc->Close();
-  data_channel_observer_.reset();
+  NEARBY_LOG(INFO, "Closed WebRTC peer connection.");
+  // Prevent any already queued tasks from running on the signaling thread
   can_run_tasks_.reset();
-  NEARBY_LOG(INFO, "Closed WebRTC connection.");
+  // If anyone was waiting for shutdown to be done let them know.
+  shutdown_latch_.CountDown();
   return true;
 }
 
@@ -525,7 +522,7 @@ bool ConnectionFlow::RunOnSignalingThread(Runnable&& runnable) {
         // (signaling thread). This guarantees that if the weak_ptr is valid
         // when this task starts, it will stay valid until the task ends.
         if (!can_run_tasks.lock()) {
-          NEARBY_LOG(VERBOSE,
+          NEARBY_LOG(INFO,
                      "Peer connection already closed. Cannot run tasks.");
           return;
         }

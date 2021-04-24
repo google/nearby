@@ -209,18 +209,9 @@ class WebRtc {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on |single_thread_executor_|.
-  void ProcessDataChannelCreated(
-      const std::string& service_id, const PeerId& remote_peer_id,
-      rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel)
-      ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Runs on |single_thread_executor_|.
-  void ProcessDataChannelMessage(const PeerId& remote_peer_id,
-                                 const ByteArray& message)
-      ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Runs on |single_thread_executor_|.
-  void ProcessDataChannelBufferAmountChanged(const PeerId& remote_peer_id)
+  void ProcessDataChannelOpen(const std::string& service_id,
+                              const PeerId& remote_peer_id,
+                              WebRtcSocketWrapper socket_wrapper)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Runs on |single_thread_executor_|.
@@ -265,11 +256,6 @@ class WebRtc {
   // a unique ConnectionFlow.
   absl::flat_hash_map<std::string, std::unique_ptr<ConnectionFlow>>
       connection_flows_ ABSL_GUARDED_BY(mutex_);
-
-  // A map of a remote PeerId -> Socket. Non-empty while we have active
-  // connections.
-  absl::flat_hash_map<std::string, WebRtcSocketWrapper> sockets_
-      ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace mediums

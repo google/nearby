@@ -37,14 +37,6 @@ class WebRtcSocketWrapper final {
 
   OutputStream& GetOutputStream() { return impl_->GetOutputStream(); }
 
-  void NotifyDataChannelMsgReceived(const ByteArray& message) {
-    impl_->NotifyDataChannelMsgReceived(message);
-  }
-
-  void NotifyDataChannelBufferedAmountChanged() {
-    impl_->NotifyDataChannelBufferedAmountChanged();
-  }
-
   void Close() { return impl_->Close(); }
 
   bool IsValid() const { return impl_ != nullptr; }

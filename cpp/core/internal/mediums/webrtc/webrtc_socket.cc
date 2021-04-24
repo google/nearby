@@ -57,32 +57,89 @@ Exception WebRtcSocket::OutputStreamImpl::Close() {
 WebRtcSocket::WebRtcSocket(
     const std::string& name,
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel)
-    : name_(name), data_channel_(std::move(data_channel)) {}
+    : name_(name), data_channel_(std::move(data_channel)) {
+  NEARBY_LOGS(INFO) << "WebRtcSocket::WebRtcSocket(" << name_
+                       << ") this: " << this;
+  data_channel_->RegisterObserver(this);
+}
+
+WebRtcSocket::~WebRtcSocket() {
+  NEARBY_LOGS(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_
+                       << ") this: " << this;
+  Close();
+  NEARBY_LOGS(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_
+                       << ") this: " << this << " done";
+}
 
 InputStream& WebRtcSocket::GetInputStream() { return pipe_.GetInputStream(); }
 
 OutputStream& WebRtcSocket::GetOutputStream() { return output_stream_; }
 
 void WebRtcSocket::Close() {
+  NEARBY_LOGS(INFO) << "WebRtcSocket::Close(" << name_ << ") this: " << this;
   if (closed_.Set(true)) return;
 
-  pipe_.GetInputStream().Close();
-  pipe_.GetOutputStream().Close();
+  ClosePipe();
+  // NOTE: This call blocks and triggers a state change on the siginaling thread
+  // to 'closing' but does not block until 'closed' is sent so the data channel
+  // is not fully closed when this call is done.
   data_channel_->Close();
-  WakeUpWriter();
-  socket_closed_listener_.socket_closed_cb();
+  NEARBY_LOGS(INFO) << "WebRtcSocket::Close(" << name_ << ") this: " << this
+                       << " done";
 }
 
-void WebRtcSocket::NotifyDataChannelMsgReceived(const ByteArray& message) {
-  if (!pipe_.GetOutputStream().Write(message).Ok()) {
-    Close();
-    return;
+void WebRtcSocket::OnStateChange() {
+  // Running on the signaling thread right now.
+  NEARBY_LOGS(ERROR)
+      << "WebRtcSocket::OnStateChange() webrtc data channel state: "
+      << webrtc::DataChannelInterface::DataStateString(data_channel_->state());
+  switch (data_channel_->state()) {
+    case webrtc::DataChannelInterface::DataState::kConnecting:
+      break;
+    case webrtc::DataChannelInterface::DataState::kOpen:
+      // We implicitly depend on the |socket_listener_| to offload from
+      // the signaling thread so it does not get blocked.
+      socket_listener_.socket_ready_cb(this);
+      break;
+    case webrtc::DataChannelInterface::DataState::kClosing:
+      break;
+    case webrtc::DataChannelInterface::DataState::kClosed:
+      NEARBY_LOG(
+          ERROR,
+          "WebRtcSocket::OnStateChange() unregistering data channel observer.");
+      data_channel_->UnregisterObserver();
+      // This will trigger a destruction of the owning connection flow
+      // We implicitly depend on the |socket_listener_| to offload from
+      // the signaling thread so it does not get blocked.
+      socket_listener_.socket_closed_cb(this);
+
+      if (!closed_.Set(true)) {
+        ClosePipe();
+      }
+      break;
   }
+}
+void WebRtcSocket::OnMessage(const webrtc::DataBuffer& buffer) {
+  // This is a data channel callback on the signaling thread, lets off load so
+  // we don't block signaling.
+  OffloadFromSignalingThread(
+      [this, buffer = ByteArray(buffer.data.data<char>(), buffer.size())] {
+        if (!pipe_.GetOutputStream().Write(buffer).Ok()) {
+          Close();
+          return;
+        }
 
-  if (!pipe_.GetOutputStream().Flush().Ok()) Close();
+        if (!pipe_.GetOutputStream().Flush().Ok()) {
+          Close();
+        }
+      });
 }
 
-void WebRtcSocket::NotifyDataChannelBufferedAmountChanged() { WakeUpWriter(); }
+void WebRtcSocket::OnBufferedAmountChange(uint64_t sent_data_size) {
+  // This is a data channel callback on the signaling thread, lets off load so
+  // we don't block signaling.
+  OffloadFromSignalingThread([this] { WakeUpWriter(); });
+}
 
 bool WebRtcSocket::SendMessage(const ByteArray& data) {
   return data_channel_->Send(
@@ -91,13 +148,26 @@ bool WebRtcSocket::SendMessage(const ByteArray& data) {
 
 bool WebRtcSocket::IsClosed() { return closed_.Get(); }
 
+void WebRtcSocket::ClosePipe() {
+  NEARBY_LOGS(INFO) << "WebRtcSocket::ClosePipe(" << name_
+                       << ") this: " << this;
+  // This is thread-safe to close these sockets even if a read or write is in
+  // process on another thread, Close will wait for the exclusive mutex before
+  // setting state.
+  pipe_.GetInputStream().Close();
+  pipe_.GetOutputStream().Close();
+  WakeUpWriter();
+  NEARBY_LOGS(INFO) << "WebRtcSocket::ClosePipe(" << name_
+                       << ") this: " << this << " done";
+}
+
 void WebRtcSocket::WakeUpWriter() {
   MutexLock lock(&backpressure_mutex_);
   buffer_variable_.Notify();
 }
 
-void WebRtcSocket::SetOnSocketClosedListener(SocketClosedListener&& listener) {
-  socket_closed_listener_ = std::move(listener);
+void WebRtcSocket::SetSocketListener(SocketListener&& listener) {
+  socket_listener_ = std::move(listener);
 }
 
 void WebRtcSocket::BlockUntilSufficientSpaceInBuffer(int length) {
@@ -107,6 +177,10 @@ void WebRtcSocket::BlockUntilSufficientSpaceInBuffer(int length) {
     // TODO(himanshujaju): Add wait with timeout.
     buffer_variable_.Wait();
   }
+}
+
+void WebRtcSocket::OffloadFromSignalingThread(Runnable runnable) {
+  single_thread_executor_.Execute(std::move(runnable));
 }
 
 }  // namespace mediums

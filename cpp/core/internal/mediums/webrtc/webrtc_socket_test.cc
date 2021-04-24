@@ -58,23 +58,23 @@ class MockDataChannel
 }  // namespace
 
 TEST(WebRtcSocketTest, ReadFromSocket) {
-  const ByteArray kMessage{"Message"};
+  const char* message = "message";
   rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
-  webrtc_socket.NotifyDataChannelMsgReceived(kMessage);
+  webrtc_socket.OnMessage(webrtc::DataBuffer{message});
   ExceptionOr<ByteArray> result = webrtc_socket.GetInputStream().Read(7);
   EXPECT_TRUE(result.ok());
-  EXPECT_EQ(result.result(), kMessage);
+  EXPECT_EQ(result.result(), ByteArray{message});
 }
 
 TEST(WebRtcSocketTest, ReadMultipleMessages) {
   rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
-  webrtc_socket.NotifyDataChannelMsgReceived(ByteArray{"Me"});
-  webrtc_socket.NotifyDataChannelMsgReceived(ByteArray{"ssa"});
-  webrtc_socket.NotifyDataChannelMsgReceived(ByteArray{"ge"});
+  webrtc_socket.OnMessage(webrtc::DataBuffer{"Me"});
+  webrtc_socket.OnMessage(webrtc::DataBuffer{"ssa"});
+  webrtc_socket.OnMessage(webrtc::DataBuffer{"ge"});
 
   ExceptionOr<ByteArray> result;
 
@@ -131,9 +131,18 @@ TEST(WebRtcSocketTest, Close) {
 
   int socket_closed_cb_called = 0;
 
-  webrtc_socket.SetOnSocketClosedListener(
-      {.socket_closed_cb = [&]() { socket_closed_cb_called++; }});
+  webrtc_socket.SetSocketListener(
+      {.socket_closed_cb = [&](WebRtcSocket* socket) {
+        socket_closed_cb_called++;
+      }});
   webrtc_socket.Close();
+
+  // We have to fake the close event to get the callback to run.
+  ON_CALL(*mock_data_channel, state())
+      .WillByDefault(
+          testing::Return(webrtc::DataChannelInterface::DataState::kClosed));
+
+  webrtc_socket.OnStateChange();
 
   EXPECT_EQ(socket_closed_cb_called, 1);
 }
@@ -160,6 +169,63 @@ TEST(WebRtcSocketTest, ReadFromClosedChannel) {
   webrtc_socket.Close();
 
   EXPECT_EQ(webrtc_socket.GetInputStream().Read(7).exception(), Exception::kIo);
+}
+
+TEST(WebRtcSocketTest, DataChannelCloseEventCleansUp) {
+  rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
+  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
+
+  ON_CALL(*mock_data_channel, state())
+      .WillByDefault(
+          testing::Return(webrtc::DataChannelInterface::DataState::kClosed));
+
+  webrtc_socket.OnStateChange();
+
+  EXPECT_EQ(webrtc_socket.GetInputStream().Read(7).exception(), Exception::kIo);
+
+  // Calling Close again should be safe even if the channel is already shut
+  // down.
+  webrtc_socket.Close();
+}
+
+TEST(WebRtcSocketTest, OpenStateTriggersCallback) {
+  rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
+  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
+
+  int socket_ready_cb_called = 0;
+
+  webrtc_socket.SetSocketListener(
+      {.socket_ready_cb = [&](WebRtcSocket* socket) {
+        socket_ready_cb_called++;
+      }});
+
+  ON_CALL(*mock_data_channel, state())
+      .WillByDefault(
+          testing::Return(webrtc::DataChannelInterface::DataState::kOpen));
+
+  webrtc_socket.OnStateChange();
+
+  EXPECT_EQ(socket_ready_cb_called, 1);
+}
+
+TEST(WebRtcSocketTest, CloseStateTriggersCallback) {
+  rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
+  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
+
+  int socket_closed_cb_called = 0;
+
+  webrtc_socket.SetSocketListener(
+      {.socket_closed_cb = [&](WebRtcSocket* socket) {
+        socket_closed_cb_called++;
+      }});
+
+  ON_CALL(*mock_data_channel, state())
+      .WillByDefault(
+          testing::Return(webrtc::DataChannelInterface::DataState::kClosed));
+
+  webrtc_socket.OnStateChange();
+
+  EXPECT_EQ(socket_closed_cb_called, 1);
 }
 
 }  // namespace mediums

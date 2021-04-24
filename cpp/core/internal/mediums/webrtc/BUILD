@@ -16,7 +16,6 @@ cc_library(
     name = "webrtc",
     srcs = [
         "connection_flow.cc",
-        "data_channel_observer_impl.cc",
         "peer_id.cc",
         "signaling_frames.cc",
         "webrtc_socket.cc",
@@ -24,7 +23,6 @@ cc_library(
     hdrs = [
         "connection_flow.h",
         "data_channel_listener.h",
-        "data_channel_observer_impl.h",
         "local_ice_candidate_listener.h",
         "peer_id.h",
         "session_description_wrapper.h",

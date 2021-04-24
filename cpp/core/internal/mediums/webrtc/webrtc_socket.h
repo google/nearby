@@ -25,7 +25,9 @@
 #include "platform/public/condition_variable.h"
 #include "platform/public/mutex.h"
 #include "platform/public/pipe.h"
+#include "platform/public/single_thread_executor.h"
 #include "webrtc/api/data_channel_interface.h"
+
 namespace location {
 namespace nearby {
 namespace connections {
@@ -39,11 +41,11 @@ constexpr int kMaxDataSize = 1 * 1024 * 1024;
 //
 // Messages are buffered here to prevent the data channel from overflowing,
 // which could lead to data loss.
-class WebRtcSocket : public Socket {
+class WebRtcSocket : public Socket, public webrtc::DataChannelObserver {
  public:
   WebRtcSocket(const std::string& name,
                rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel);
-  ~WebRtcSocket() override = default;
+  ~WebRtcSocket() override;
 
   WebRtcSocket(const WebRtcSocket& other) = delete;
   WebRtcSocket& operator=(const WebRtcSocket& other) = delete;
@@ -53,20 +55,20 @@ class WebRtcSocket : public Socket {
   OutputStream& GetOutputStream() override;
   void Close() override;
 
-  // Callback from WebRTC data channel when new message has been received from
-  // the remote.
-  void NotifyDataChannelMsgReceived(const ByteArray& message);
+  // webrtc::DataChannelObserver:
+  void OnStateChange() override;
+  void OnMessage(const webrtc::DataBuffer& buffer) override;
+  void OnBufferedAmountChange(uint64_t sent_data_size) override;
 
-  // Callback from WebRTC data channel that the buffered data amount has
-  // changed.
-  void NotifyDataChannelBufferedAmountChanged();
-
-  // Listener class the gets called when the socket is closed.
-  struct SocketClosedListener {
-    std::function<void()> socket_closed_cb = DefaultCallback<>();
+  // Listener class the gets called when the socket is ready or closed
+  struct SocketListener {
+    std::function<void(WebRtcSocket*)> socket_ready_cb =
+        DefaultCallback<WebRtcSocket*>();
+    std::function<void(WebRtcSocket*)> socket_closed_cb =
+        DefaultCallback<WebRtcSocket*>();
   };
 
-  void SetOnSocketClosedListener(SocketClosedListener&& listener);
+  void SetSocketListener(SocketListener&& listener);
 
  private:
   class OutputStreamImpl : public OutputStream {
@@ -89,8 +91,10 @@ class WebRtcSocket : public Socket {
 
   void WakeUpWriter();
   bool IsClosed();
+  void ClosePipe();
   bool SendMessage(const ByteArray& data);
   void BlockUntilSufficientSpaceInBuffer(int length);
+  void OffloadFromSignalingThread(Runnable runnable);
 
   std::string name_;
   rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel_;
@@ -101,10 +105,14 @@ class WebRtcSocket : public Socket {
 
   AtomicBoolean closed_{false};
 
-  SocketClosedListener socket_closed_listener_;
+  SocketListener socket_listener_;
 
   mutable Mutex backpressure_mutex_;
   ConditionVariable buffer_variable_{&backpressure_mutex_};
+
+  // This should be destroyed first to ensure any remaining tasks flushed on
+  // shutdown get run while the other members are still alive.
+  SingleThreadExecutor single_thread_executor_;
 };
 
 }  // namespace mediums

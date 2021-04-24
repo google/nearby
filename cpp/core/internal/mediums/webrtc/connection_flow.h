@@ -18,10 +18,11 @@
 #include <memory>
 
 #include "core/internal/mediums/webrtc/data_channel_listener.h"
-#include "core/internal/mediums/webrtc/data_channel_observer_impl.h"
 #include "core/internal/mediums/webrtc/local_ice_candidate_listener.h"
 #include "core/internal/mediums/webrtc/session_description_wrapper.h"
+#include "core/internal/mediums/webrtc/webrtc_socket_wrapper.h"
 #include "platform/base/runnable.h"
+#include "platform/public/count_down_latch.h"
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/webrtc.h"
 #include "webrtc/api/data_channel_interface.h"
@@ -152,7 +153,8 @@ class ConnectionFlow : public webrtc::PeerConnectionObserver {
           ice_candidates);
   // Invoked when the peer connection indicates that signaling is stable.
   void OnSignalingStable() ABSL_LOCKS_EXCLUDED(mutex_);
-  void RegisterDataChannelObserver(
+
+  void CreateSocketFromDataChannel(
       rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel);
 
   // TODO(bfranz): Consider whether this needs to be configurable per platform
@@ -168,22 +170,20 @@ class ConnectionFlow : public webrtc::PeerConnectionObserver {
                                    State expected_entry_state,
                                    State exit_state);
 
-  void ProcessDataChannelConnectedOnSignalingThread(
-      rtc::scoped_refptr<webrtc::DataChannelInterface>)
-      ABSL_LOCKS_EXCLUDED(mutex_);
-
   bool CloseOnSignalingThread() ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool RunOnSignalingThread(Runnable&& runnable);
   bool IsRunningOnSignalingThread();
 
   Mutex mutex_;
+  // Used to prevent the destructor from returning while the signaling thread is
+  // still running CloseOnSignalingThread()
+  CountDownLatch shutdown_latch_{1};
 
   // State is used on signaling thread only.
   State state_ = State::kInitialized;
+  // Used to communicate data channel events back to the caller of Create()
   DataChannelListener data_channel_listener_;
-
-  std::unique_ptr<DataChannelObserverImpl> data_channel_observer_;
 
   LocalIceCandidateListener local_ice_candidate_listener_;
   // Peer connection can be used only on signaling thread. The only exception
@@ -204,6 +204,10 @@ class ConnectionFlow : public webrtc::PeerConnectionObserver {
   // peer connection call.
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_
       ABSL_GUARDED_BY(mutex_);
+
+  // Used to hold a reference to the WebRtcSocket while the data channel is
+  // connecting.
+  WebRtcSocketWrapper socket_wrapper_;
 
   std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
       cached_remote_ice_candidates_;
