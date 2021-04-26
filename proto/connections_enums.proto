@@ -67,6 +67,7 @@ enum SessionRole {
   DISCOVERER = 2;
 }
 
+// LINT.IfChange
 enum Medium {
   UNKNOWN_MEDIUM = 0;
   MDNS = 1 [deprecated = true];
@@ -79,6 +80,7 @@ enum Medium {
   WIFI_DIRECT = 8;
   WEB_RTC = 9;
 }
+// LINT.ThenChange(//depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/Medium.java)
 
 // The result of a ConnectionRequest.
 enum ConnectionRequestResponse {
