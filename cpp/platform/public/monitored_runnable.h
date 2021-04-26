@@ -65,10 +65,6 @@ class MonitoredRunnable {
   absl::Time post_time_ = SystemClock::ElapsedRealtime();
 };
 
-// These definitions are necessary before C++17.
-constexpr absl::Duration kMinReportedStartDelay;
-constexpr absl::Duration kMinReportedTaskDuration;
-
 }  // namespace nearby
 }  // namespace location
 
