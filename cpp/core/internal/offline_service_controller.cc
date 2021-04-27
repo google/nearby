@@ -14,6 +14,7 @@
 
 #include "core/internal/offline_service_controller.h"
 
+#include <cinttypes>
 #include <string>
 
 #include "absl/strings/str_join.h"
@@ -25,26 +26,26 @@ namespace connections {
 OfflineServiceController::~OfflineServiceController() { Stop(); }
 
 void OfflineServiceController::Stop() {
-  NEARBY_LOGS(INFO) << "Initiating shutdown of OfflineServiceController.";
+  NEARBY_LOG(INFO, "Initiating shutdown of OfflineServiceController.");
   if (stop_.Set(true)) return;
   payload_manager_.DisconnectFromEndpointManager();
   pcp_manager_.DisconnectFromEndpointManager();
-  NEARBY_LOGS(INFO) << "OfflineServiceController has shut down.";
+  NEARBY_LOG(INFO, "OfflineServiceController has shut down.");
 }
 
 Status OfflineServiceController::StartAdvertising(
     ClientProxy* client, const std::string& service_id,
     const ConnectionOptions& options, const ConnectionRequestInfo& info) {
   if (stop_) return {Status::kOutOfOrderApiCall};
-  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
-                    << " requested advertising to start.";
+  NEARBY_LOG(INFO, "Client %" PRIx64 " requested advertising to start.",
+             client->GetClientId());
   return pcp_manager_.StartAdvertising(client, service_id, options, info);
 }
 
 void OfflineServiceController::StopAdvertising(ClientProxy* client) {
   if (stop_) return;
-  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
-                    << " requested advertising to stop.";
+  NEARBY_LOG(INFO, "Client %" PRIx64 " requested advertising to stop.",
+             client->GetClientId());
   pcp_manager_.StopAdvertising(client);
 }
 
@@ -52,15 +53,15 @@ Status OfflineServiceController::StartDiscovery(
     ClientProxy* client, const std::string& service_id,
     const ConnectionOptions& options, const DiscoveryListener& listener) {
   if (stop_) return {Status::kOutOfOrderApiCall};
-  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
-                    << " requested discovery to start.";
+  NEARBY_LOG(INFO, "Client %" PRIx64 " requested discovery to start.",
+             client->GetClientId());
   return pcp_manager_.StartDiscovery(client, service_id, options, listener);
 }
 
 void OfflineServiceController::StopDiscovery(ClientProxy* client) {
   if (stop_) return;
-  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
-                    << " requested discovery to stop.";
+  NEARBY_LOG(INFO, "Client %" PRIx64 " requested discovery to stop.",
+             client->GetClientId());
   pcp_manager_.StopDiscovery(client);
 }
 
@@ -75,8 +76,9 @@ Status OfflineServiceController::RequestConnection(
     ClientProxy* client, const std::string& endpoint_id,
     const ConnectionRequestInfo& info, const ConnectionOptions& options) {
   if (stop_) return {Status::kOutOfOrderApiCall};
-  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
-                    << " requested a connection to endpoint id=" << endpoint_id;
+  NEARBY_LOG(INFO,
+             "Client %" PRIx64 " requested a connection to endpoint_id=%s",
+             client->GetClientId(), endpoint_id.c_str());
   return pcp_manager_.RequestConnection(client, endpoint_id, info, options);
 }
 
@@ -84,27 +86,28 @@ Status OfflineServiceController::AcceptConnection(
     ClientProxy* client, const std::string& endpoint_id,
     const PayloadListener& listener) {
   if (stop_) return {Status::kOutOfOrderApiCall};
-  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
-                    << " accepted the connection with endpoint id="
-                    << endpoint_id;
+  NEARBY_LOG(INFO,
+             "Client %" PRIx64 " accepted the connection with endpoint_id=%s",
+             client->GetClientId(), endpoint_id.c_str());
   return pcp_manager_.AcceptConnection(client, endpoint_id, listener);
 }
 
 Status OfflineServiceController::RejectConnection(
     ClientProxy* client, const std::string& endpoint_id) {
   if (stop_) return {Status::kOutOfOrderApiCall};
-  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
-                    << " rejected the connection with endpoint id="
-                    << endpoint_id;
+  NEARBY_LOG(INFO,
+             "Client %" PRIx64 " rejected the connection with endpoint_id=%s",
+             client->GetClientId(), endpoint_id.c_str());
   return pcp_manager_.RejectConnection(client, endpoint_id);
 }
 
 void OfflineServiceController::InitiateBandwidthUpgrade(
     ClientProxy* client, const std::string& endpoint_id) {
   if (stop_) return;
-  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
-                    << " initiated a manual bandwidth upgrade with endpoint id="
-                    << endpoint_id;
+  NEARBY_LOG(INFO,
+             "Client %" PRIx64
+             " initiated a manual bandwidth upgrade with endpoint_id=%s",
+             client->GetClientId(), endpoint_id.c_str());
   bwu_manager_.InitiateBwuForEndpoint(client, endpoint_id);
 }
 
@@ -112,27 +115,28 @@ void OfflineServiceController::SendPayload(
     ClientProxy* client, const std::vector<std::string>& endpoint_ids,
     Payload payload) {
   if (stop_) return;
-  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
-                    << " is sending payload=" << payload.GetId()
-                    << " to endpoint ids="
-                    << "{" << absl::StrJoin(endpoint_ids, ",").c_str() << "}";
+  NEARBY_LOG(INFO,
+             "Client %" PRIx64 " is sending payload_id=%" PRIx64
+             " to endpoint_ids={%s}",
+             client->GetClientId(), static_cast<std::int64_t>(payload.GetId()),
+             absl::StrJoin(endpoint_ids, ",").c_str());
   payload_manager_.SendPayload(client, endpoint_ids, std::move(payload));
 }
 
 Status OfflineServiceController::CancelPayload(ClientProxy* client,
                                                std::int64_t payload_id) {
   if (stop_) return {Status::kOutOfOrderApiCall};
-  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
-                    << " cancelled payload=" << payload_id;
+  NEARBY_LOG(INFO, "Client %" PRIx64 " cancelled payload_id=%" PRIx64,
+             client->GetClientId(), static_cast<int64_t>(payload_id));
   return payload_manager_.CancelPayload(client, payload_id);
 }
 
 void OfflineServiceController::DisconnectFromEndpoint(
     ClientProxy* client, const std::string& endpoint_id) {
   if (stop_) return;
-  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
-                    << " requested a disconnection from endpoint id="
-                    << endpoint_id;
+  NEARBY_LOG(
+      INFO, "Client %" PRIx64 " requested a disconnection from endpoint_id=%s",
+      client->GetClientId(), endpoint_id.c_str());
   endpoint_manager_.UnregisterEndpoint(client, endpoint_id);
 }
 
