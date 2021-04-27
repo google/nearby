@@ -15,11 +15,9 @@
 #ifndef PLATFORM_PUBLIC_MONITORED_RUNNABLE_H_
 #define PLATFORM_PUBLIC_MONITORED_RUNNABLE_H_
 
-#include <utility>
+#include <string>
 
 #include "platform/base/runnable.h"
-#include "platform/public/logging.h"
-#include "platform/public/pending_job_registry.h"
 #include "platform/public/system_clock.h"
 #include "absl/time/time.h"
 
@@ -32,34 +30,13 @@ namespace nearby {
 // to run for longer periods of time (minutes).
 class MonitoredRunnable {
  public:
-  explicit MonitoredRunnable(Runnable&& runnable) : runnable_{runnable} {}
-  MonitoredRunnable(const std::string& name, Runnable&& runnable)
-      : name_{name}, runnable_{runnable} {
-    PendingJobRegistry::GetInstance().AddPendingJob(name_, post_time_);
-  }
+  explicit MonitoredRunnable(Runnable&& runnable);
+  MonitoredRunnable(const std::string& name, Runnable&& runnable);
+  ~MonitoredRunnable();
 
-  void operator()() const {
-    auto start_time = SystemClock::ElapsedRealtime();
-    auto start_delay = start_time - post_time_;
-    if (start_delay >= kMinReportedStartDelay) {
-      NEARBY_LOGS(INFO) << "Task: \"" << name_ << "\" started after "
-                        << absl::ToInt64Seconds(start_delay) << " seconds";
-    }
-    PendingJobRegistry::GetInstance().RemovePendingJob(name_, post_time_);
-    PendingJobRegistry::GetInstance().AddRunningJob(name_, post_time_);
-    runnable_();
-    auto task_duration = SystemClock::ElapsedRealtime() - start_time;
-    if (task_duration >= kMinReportedTaskDuration) {
-      NEARBY_LOGS(INFO) << "Task: \"" << name_ << "\" finished after "
-                        << absl::ToInt64Seconds(task_duration) << " seconds";
-    }
-    PendingJobRegistry::GetInstance().RemoveRunningJob(name_, post_time_);
-    PendingJobRegistry::GetInstance().ListJobs();
-  }
+  void operator()() const;
 
  private:
-  static constexpr absl::Duration kMinReportedStartDelay = absl::Seconds(5);
-  static constexpr absl::Duration kMinReportedTaskDuration = absl::Seconds(10);
   const std::string name_;
   Runnable runnable_;
   absl::Time post_time_ = SystemClock::ElapsedRealtime();
