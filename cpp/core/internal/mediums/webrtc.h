@@ -26,7 +26,6 @@
 #include "core/internal/mediums/webrtc/webrtc_socket.h"
 #include "core/internal/mediums/webrtc/webrtc_socket_wrapper.h"
 #include "proto/connections/offline_wire_formats.pb.h"
-#include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/cancellation_flag.h"
 #include "platform/base/listeners.h"

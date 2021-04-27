@@ -24,7 +24,6 @@
 #include "core/params.h"
 #include "core/status.h"
 #include "core/strategy.h"
-#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

@@ -17,7 +17,6 @@
 
 #include "core/internal/base_endpoint_channel.h"
 #include "core/internal/mediums/webrtc/webrtc_socket_wrapper.h"
-#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

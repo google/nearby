@@ -19,7 +19,6 @@
 #include "core/internal/endpoint_channel.h"
 #include "core/internal/offline_frames.h"
 #include "platform/public/count_down_latch.h"
-#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

@@ -18,7 +18,6 @@
 #include <memory>
 
 #include "proto/connections/offline_wire_formats.pb.h"
-#include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/base/byte_array.h"
 
 namespace location {

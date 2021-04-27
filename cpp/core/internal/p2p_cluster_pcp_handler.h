@@ -37,7 +37,6 @@
 #include "platform/base/byte_array.h"
 #include "platform/public/bluetooth_classic.h"
 #include "platform/public/wifi_lan.h"
-#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

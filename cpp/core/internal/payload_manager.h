@@ -26,13 +26,11 @@
 #include "core/listeners.h"
 #include "core/payload.h"
 #include "core/status.h"
-#include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/base/byte_array.h"
 #include "platform/public/atomic_boolean.h"
 #include "platform/public/atomic_reference.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/mutex.h"
-#include "proto/connections_enums.pb.h"
 #include "absl/container/flat_hash_map.h"
 
 namespace location {

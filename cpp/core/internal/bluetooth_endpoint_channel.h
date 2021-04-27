@@ -19,7 +19,6 @@
 
 #include "core/internal/base_endpoint_channel.h"
 #include "platform/public/bluetooth_classic.h"
-#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

@@ -28,7 +28,6 @@
 #include "platform/base/prng.h"
 #include "platform/public/cancelable_alarm.h"
 #include "platform/public/mutex.h"
-#include "proto/connections_enums.pb.h"
 // Prefer using absl:: versions of a set and a map; they tend to be more
 // efficient: implementation is using open-addressing hash tables.
 #include "absl/container/flat_hash_map.h"

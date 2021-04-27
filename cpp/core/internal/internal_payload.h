@@ -18,7 +18,6 @@
 #include <cstdint>
 
 #include "core/payload.h"
-#include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
 

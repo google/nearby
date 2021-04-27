@@ -22,7 +22,6 @@
 #include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
-#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

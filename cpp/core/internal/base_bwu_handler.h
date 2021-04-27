@@ -22,12 +22,10 @@
 #include "core/internal/bwu_handler.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel_manager.h"
-#include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/public/cancelable_alarm.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/scheduled_executor.h"
 #include "platform/public/single_thread_executor.h"
-#include "proto/connections_enums.pb.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/time/clock.h"
 

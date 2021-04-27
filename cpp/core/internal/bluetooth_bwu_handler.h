@@ -21,10 +21,8 @@
 #include "core/internal/client_proxy.h"
 #include "core/internal/mediums/mediums.h"
 #include "core/internal/mediums/utils.h"
-#include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/public/bluetooth_classic.h"
 #include "platform/public/count_down_latch.h"
-#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {
