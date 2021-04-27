@@ -46,7 +46,7 @@ class PendingJobRegistry {
       ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<const std::string, absl::Time> running_jobs_
       ABSL_GUARDED_BY(mutex_);
-  absl::Time list_jobs_time_ = absl::UnixEpoch();
+  absl::Time list_jobs_time_ ABSL_GUARDED_BY(mutex_) = absl::UnixEpoch();
 };
 
 }  // namespace nearby
