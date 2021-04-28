@@ -255,11 +255,9 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
 
     // This registers ourselves w/ Tachyon, creating a room from the PeerId.
     // This allows a remote device to message us over Tachyon.
-    auto signaling_complete_callback = [this, &socket_future](bool success) {
+    auto signaling_complete_callback = [socket_future](bool success) mutable {
       if (!success) {
-        OffloadFromThread("rtc-signaling-fail", [&socket_future]() {
-          socket_future.SetException({Exception::kFailed});
-        });
+        socket_future.SetException({Exception::kFailed});
       }
     };
     if (!info.signaling_messenger->StartReceivingMessages(
