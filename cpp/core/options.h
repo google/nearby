@@ -99,6 +99,8 @@ struct ConnectionOptions {
   bool is_out_of_band_connection = false;
   ByteArray remote_bluetooth_mac_address;
   std::string fast_advertisement_service_uuid;
+  int keep_alive_interval_millis = 0;
+  int keep_alive_timeout_millis = 0;
   // Verify if  ConnectionOptions is in a not-initialized (Empty) state.
   bool Empty() const { return strategy.IsNone(); }
   // Bring  ConnectionOptions to a not-initialized (Empty) state.

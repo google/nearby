@@ -50,7 +50,15 @@ class OfflineSimulationUser {
   explicit OfflineSimulationUser(
       absl::string_view device_name,
       BooleanMediumSelector allowed = BooleanMediumSelector())
-      : info_{ByteArray{std::string(device_name)}},
+      : connection_options_{
+            .keep_alive_interval_millis = FeatureFlags::GetInstance()
+                                              .GetFlags()
+                                              .keep_alive_interval_millis,
+            .keep_alive_timeout_millis = FeatureFlags::GetInstance()
+                                             .GetFlags()
+                                             .keep_alive_timeout_millis,
+        },
+        info_{ByteArray{std::string(device_name)}},
         options_{
             .strategy = Strategy::kP2pCluster,
             .allowed = allowed,

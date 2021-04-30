@@ -64,9 +64,12 @@ V1Frame::FrameType GetFrameType(const OfflineFrame& frame) {
 
 ByteArray ForConnectionRequest(const std::string& endpoint_id,
                                const ByteArray& endpoint_info,
-                               std::int32_t nonce, bool supports_5_ghz,
+                               std::int32_t nonce,
+                               bool supports_5_ghz,
                                const std::string& bssid,
-                               const std::vector<Medium>& mediums) {
+                               const std::vector<Medium>& mediums,
+                               std::int32_t keep_alive_interval_millis,
+                               std::int32_t keep_alive_timeout_millis) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -88,6 +91,14 @@ ByteArray ForConnectionRequest(const std::string& endpoint_id,
     for (const auto& medium : mediums) {
       connection_request->add_mediums(MediumToConnectionRequestMedium(medium));
     }
+  }
+  if (keep_alive_interval_millis > 0) {
+    connection_request->set_keep_alive_interval_millis(
+        keep_alive_interval_millis);
+  }
+  if (keep_alive_timeout_millis > 0) {
+    connection_request->set_keep_alive_timeout_millis(
+        keep_alive_timeout_millis);
   }
 
   return ToBytes(std::move(frame));

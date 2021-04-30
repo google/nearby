@@ -329,6 +329,10 @@ class BasePcpHandlerTest
     ConnectionOptions options{
         .remote_bluetooth_mac_address =
             ByteArray{std::string("\x12\x34\x56\x78\x9a\xbc")},
+        .keep_alive_interval_millis =
+            FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis,
+        .keep_alive_timeout_millis =
+            FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis,
     };
     EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
     EXPECT_CALL(*pcp_handler, CanSendOutgoingConnection)

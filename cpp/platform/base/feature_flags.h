@@ -34,6 +34,9 @@ class FeatureFlags {
     // If a scheduled runnable is already running, Cancel() will synchronously
     // wait for the task to complete.
     bool cancel_waits_for_running_tasks = true;
+    // Keep Alive frame interval and timeout in millis.
+    std::int32_t keep_alive_interval_millis = 5000;
+    std::int32_t keep_alive_timeout_millis = 30000;
   };
 
   static const FeatureFlags& GetInstance() {

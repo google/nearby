@@ -26,6 +26,7 @@ cc_library(
     deps = [
         ":core_types",
         "//core/internal",
+        "//platform/base",
         "//platform/public:logging",
         "//platform/public:types",
         "//absl/strings",

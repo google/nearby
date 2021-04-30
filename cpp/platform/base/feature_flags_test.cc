@@ -21,12 +21,17 @@ namespace location {
 namespace nearby {
 namespace {
 
-constexpr FeatureFlags::Flags kTestFeatureFlags{.enable_cancellation_flag =
-                                                    true};
+constexpr FeatureFlags::Flags kTestFeatureFlags{
+    .enable_cancellation_flag = true,
+    .keep_alive_interval_millis = 5000,
+    .keep_alive_timeout_millis = 30000};
 
 TEST(FeatureFlagsTest, ToSetFeatureWorks) {
   const FeatureFlags& features = FeatureFlags::GetInstance();
   EXPECT_FALSE(features.GetFlags().enable_cancellation_flag);
+
+  EXPECT_EQ(5000, features.GetFlags().keep_alive_interval_millis);
+  EXPECT_EQ(30000, features.GetFlags().keep_alive_timeout_millis);
 
   MediumEnvironment& medium_environment = MediumEnvironment::Instance();
   medium_environment.SetFeatureFlags(kTestFeatureFlags);

@@ -43,6 +43,8 @@ constexpr std::array<Medium, 9> kMediums = {
     Medium::BLE,  Medium::WIFI_LAN,    Medium::WIFI_AWARE,
     Medium::NFC,  Medium::WIFI_DIRECT, Medium::WEB_RTC,
 };
+constexpr int kKeepAliveIntervalMillis = 1000;
+constexpr int kKeepAliveTimeoutMillis = 5000;
 
 TEST(OfflineFramesTest, CanParseMessageFromBytes) {
   OfflineFrame tx_message;
@@ -57,6 +59,8 @@ TEST(OfflineFramesTest, CanParseMessageFromBytes) {
     sub_frame->set_endpoint_name(kEndpointName);
     sub_frame->set_endpoint_info(kEndpointName);
     sub_frame->set_nonce(kNonce);
+    sub_frame->set_keep_alive_interval_millis(kKeepAliveIntervalMillis);
+    sub_frame->set_keep_alive_timeout_millis(kKeepAliveTimeoutMillis);
     auto* medium_metadata = sub_frame->mutable_medium_metadata();
 
     medium_metadata->set_supports_5_ghz(kSupports5ghz);
@@ -101,12 +105,15 @@ TEST(OfflineFramesTest, CanGenerateConnectionRequest) {
         mediums: NFC
         mediums: WIFI_DIRECT
         mediums: WEB_RTC
+        keep_alive_interval_millis: 1000
+        keep_alive_timeout_millis : 5000
       >
     >)pb";
   ByteArray bytes = ForConnectionRequest(
       std::string(kEndpointId), ByteArray{std::string(kEndpointName)}, kNonce,
       kSupports5ghz, std::string(kBssid),
-      std::vector(kMediums.begin(), kMediums.end()));
+      std::vector(kMediums.begin(), kMediums.end()), kKeepAliveIntervalMillis,
+      kKeepAliveTimeoutMillis);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = FromBytes(bytes).result();

@@ -374,7 +374,9 @@ class BasePcpHandler : public PcpHandler,
   static Exception WriteConnectionRequestFrame(
       EndpointChannel* endpoint_channel, const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info, std::int32_t nonce,
-      const std::vector<proto::connections::Medium>& supported_mediums);
+      const std::vector<proto::connections::Medium>& supported_mediums,
+      std::int32_t keep_alive_interval_millis,
+      std::int32_t keep_alive_timeout_millis);
 
   static constexpr absl::Duration kConnectionRequestReadTimeout =
       absl::Seconds(2);

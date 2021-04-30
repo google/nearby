@@ -364,6 +364,10 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
               connection_info.options.remote_bluetooth_mac_address,
           .fast_advertisement_service_uuid =
               connection_info.options.fast_advertisement_service_uuid,
+          .keep_alive_interval_millis =
+              connection_info.options.keep_alive_interval_millis,
+          .keep_alive_timeout_millis =
+              connection_info.options.keep_alive_timeout_millis,
       },
       std::move(connection_info.channel), connection_info.listener);
 
@@ -498,7 +502,9 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
         // endpoint about ourselves.
         Exception write_exception = WriteConnectionRequestFrame(
             channel.get(), client->GetLocalEndpointId(), info.endpoint_info,
-            nonce, GetSupportedConnectionMediumsByPriority(options));
+            nonce, GetSupportedConnectionMediumsByPriority(options),
+            options.keep_alive_interval_millis,
+            options.keep_alive_timeout_millis);
         if (!write_exception.Ok()) {
           NEARBY_LOG(INFO, "Failed to send connection request: endpoint_id=%s",
                      endpoint_id.c_str());
@@ -647,10 +653,13 @@ bool BasePcpHandler::CanReceiveIncomingConnection(ClientProxy* client) const {
 Exception BasePcpHandler::WriteConnectionRequestFrame(
     EndpointChannel* endpoint_channel, const std::string& local_endpoint_id,
     const ByteArray& local_endpoint_info, std::int32_t nonce,
-    const std::vector<proto::connections::Medium>& supported_mediums) {
+    const std::vector<proto::connections::Medium>& supported_mediums,
+    std::int32_t keep_alive_interval_millis,
+    std::int32_t keep_alive_timeout_millis) {
   return endpoint_channel->Write(parser::ForConnectionRequest(
       local_endpoint_id, local_endpoint_info, nonce, /*supports_5_ghz =*/false,
-      /*bssid=*/std::string{}, supported_mediums));
+      /*bssid=*/std::string{}, supported_mediums, keep_alive_interval_millis,
+      keep_alive_timeout_millis));
 }
 
 void BasePcpHandler::ProcessPreConnectionInitiationFailure(
@@ -1076,6 +1085,32 @@ Exception BasePcpHandler::OnIncomingConnection(
                                     ? connection_request.endpoint_info()
                                     : connection_request.endpoint_name()};
 
+  // Retrieve the keep-alive frame interval and timeout fields. If the frame
+  // doesn't have those fields, we need to get them as default from feature
+  // flags to prevent 0-values causing thread ill.
+  ConnectionOptions options = {.keep_alive_interval_millis = 0,
+                               .keep_alive_timeout_millis = 0};
+  if (connection_request.has_keep_alive_interval_millis() &&
+      connection_request.has_keep_alive_timeout_millis()) {
+    options.keep_alive_interval_millis =
+        connection_request.keep_alive_interval_millis();
+    options.keep_alive_timeout_millis =
+        connection_request.keep_alive_timeout_millis();
+  }
+  if (options.keep_alive_interval_millis == 0 ||
+      options.keep_alive_timeout_millis == 0 ||
+      options.keep_alive_interval_millis >= options.keep_alive_timeout_millis) {
+    NEARBY_LOG(WARNING,
+               "Incoming connection has wrong keep-alive frame interval=%d, "
+               "timeout=%d values; correct them as default.",
+               options.keep_alive_interval_millis,
+               options.keep_alive_timeout_millis);
+    options.keep_alive_interval_millis =
+        FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis;
+    options.keep_alive_timeout_millis =
+        FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis;
+  }
+
   // We've successfully connected to the device, and are now about to jump on to
   // the EncryptionRunner thread to start running our encryption protocol. We'll
   // mark ourselves as pending in case we get another call to RequestConnection
@@ -1090,6 +1125,7 @@ Exception BasePcpHandler::OnIncomingConnection(
                        .is_incoming = true,
                        .start_time = start_time,
                        .listener = advertising_listener_,
+                       .options = options,
                        .supported_mediums =
                            parser::ConnectionRequestMediumsToMediums(
                                connection_request),

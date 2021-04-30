@@ -171,7 +171,9 @@ class EndpointManager {
                                ClientProxy* client_proxy,
                                EndpointChannel* endpoint_channel);
 
-  ExceptionOr<bool> HandleKeepAlive(EndpointChannel* endpoint_channel);
+  ExceptionOr<bool> HandleKeepAlive(EndpointChannel* endpoint_channel,
+                                    absl::Duration keep_alive_interval,
+                                    absl::Duration keep_alive_timeout);
 
   // Waits for a given endpoint EndpointChannelLoopRunnable() workers to
   // terminate.
@@ -190,10 +192,6 @@ class EndpointManager {
   static void WaitForLatch(const std::string& method_name,
                            CountDownLatch* latch, std::int32_t timeout_millis);
 
-  static constexpr absl::Duration kKeepAliveWriteInterval =
-      absl::Milliseconds(5000);
-  static constexpr absl::Duration kKeepAliveReadTimeout =
-      absl::Milliseconds(30000);
   static constexpr absl::Duration kProcessEndpointDisconnectionTimeout =
       absl::Milliseconds(2000);
   static constexpr std::int32_t kMaxConcurrentEndpoints = 50;

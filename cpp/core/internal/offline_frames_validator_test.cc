@@ -45,6 +45,8 @@ constexpr std::array<Medium, 9> kMediums = {
     Medium::BLE,  Medium::WIFI_LAN,    Medium::WIFI_AWARE,
     Medium::NFC,  Medium::WIFI_DIRECT, Medium::WEB_RTC,
 };
+constexpr int kKeepAliveIntervalMillis = 1000;
+constexpr int kKeepAliveTimeoutMillis = 5000;
 
 TEST(OfflineFramesValidatorTest, ValidatesAsOkWithValidConnectionRequestFrame) {
   OfflineFrame offline_frame;
@@ -52,7 +54,8 @@ TEST(OfflineFramesValidatorTest, ValidatesAsOkWithValidConnectionRequestFrame) {
   ByteArray bytes = ForConnectionRequest(
       std::string(kEndpointId), ByteArray{std::string(kEndpointName)}, kNonce,
       kSupports5ghz, std::string(kBssid),
-      std::vector(kMediums.begin(), kMediums.end()));
+      std::vector(kMediums.begin(), kMediums.end()), kKeepAliveIntervalMillis,
+      kKeepAliveTimeoutMillis);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -67,7 +70,8 @@ TEST(OfflineFramesValidatorTest,
   ByteArray bytes = ForConnectionRequest(
       std::string(kEndpointId), ByteArray{std::string(kEndpointName)}, kNonce,
       kSupports5ghz, std::string(kBssid),
-      std::vector(kMediums.begin(), kMediums.end()));
+      std::vector(kMediums.begin(), kMediums.end()), kKeepAliveIntervalMillis,
+      kKeepAliveTimeoutMillis);
   offline_frame.ParseFromString(std::string(bytes));
   auto* v1_frame = offline_frame.mutable_v1();
 
@@ -86,7 +90,8 @@ TEST(OfflineFramesValidatorTest,
   ByteArray bytes = ForConnectionRequest(
       empty_enpoint_id, ByteArray{std::string(kEndpointName)}, kNonce,
       kSupports5ghz, std::string(kBssid),
-      std::vector(kMediums.begin(), kMediums.end()));
+      std::vector(kMediums.begin(), kMediums.end()), kKeepAliveIntervalMillis,
+      kKeepAliveTimeoutMillis);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -101,7 +106,8 @@ TEST(OfflineFramesValidatorTest,
   ByteArray empty_endpoint_info;
   ByteArray bytes = ForConnectionRequest(
       std::string(kEndpointId), empty_endpoint_info, kNonce, kSupports5ghz,
-      std::string(kBssid), std::vector(kMediums.begin(), kMediums.end()));
+      std::string(kBssid), std::vector(kMediums.begin(), kMediums.end()),
+      kKeepAliveIntervalMillis, kKeepAliveTimeoutMillis);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -116,8 +122,8 @@ TEST(OfflineFramesValidatorTest,
   std::string empty_bssid;
   ByteArray bytes = ForConnectionRequest(
       std::string(kEndpointId), ByteArray{std::string(kEndpointName)}, kNonce,
-      kSupports5ghz, empty_bssid,
-      std::vector(kMediums.begin(), kMediums.end()));
+      kSupports5ghz, empty_bssid, std::vector(kMediums.begin(), kMediums.end()),
+      kKeepAliveIntervalMillis, kKeepAliveTimeoutMillis);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -132,7 +138,8 @@ TEST(OfflineFramesValidatorTest,
   std::vector<Medium> empty_mediums;
   ByteArray bytes = ForConnectionRequest(
       std::string(kEndpointId), ByteArray{std::string(kEndpointName)}, kNonce,
-      kSupports5ghz, std::string(kBssid), empty_mediums);
+      kSupports5ghz, std::string(kBssid), empty_mediums,
+      kKeepAliveIntervalMillis, kKeepAliveTimeoutMillis);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);

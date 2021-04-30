@@ -176,8 +176,9 @@ TEST_F(EndpointManagerTest, RegisterFrameProcessorWorks) {
   auto endpoint_channel = std::make_unique<MockEndpointChannel>();
   auto connect_request = std::make_unique<MockFrameProcessor>();
   ByteArray endpoint_info{"endpoint_name"};
-  auto read_data = parser::ForConnectionRequest(
-      "endpoint_id", endpoint_info, 1234, false, "", std::vector{Medium::BLE});
+  auto read_data =
+      parser::ForConnectionRequest("endpoint_id", endpoint_info, 1234, false,
+                                   "", std::vector{Medium::BLE}, 0, 0);
   EXPECT_CALL(*connect_request, OnIncomingFrame);
   EXPECT_CALL(*connect_request, OnEndpointDisconnect);
   EXPECT_CALL(*endpoint_channel, Read())
