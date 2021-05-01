@@ -1149,9 +1149,9 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
 
     NEARBY_LOG(
         INFO,
-        "In onIncomingConnection(%s) for client %d, found a collision with "
-        "endpoint %s. We've already sent a connection request to them with "
-        "nonce %d, but they're also trying to connect to us with nonce %d.",
+        "In onIncomingConnection(%d) for client=%" PRIx64 ", found a collision "
+        "with endpoint %s. We've already sent a connection request to them with"
+        " nonce %d, but they're also trying to connect to us with nonce %d.",
         endpoint_channel->GetMedium(), client->GetClientId(),
         endpoint_id.c_str(), info.nonce, incoming_nonce);
     // Break the lowest connection. In the (extremely) rare case of a tie, break
@@ -1162,7 +1162,7 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
 
       NEARBY_LOG(
           INFO,
-          "In onIncomingConnection(%s) for client=%" PRIx64
+          "In onIncomingConnection(%d) for client=%" PRIx64
           ", cleaned up the collision with endpoint(id=%s) by closing their "
           "channel.",
           endpoint_channel->GetMedium(), client->GetClientId(),
@@ -1173,7 +1173,7 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
       // connection continue on.
       ProcessTieBreakLoss(client, endpoint_id, &info);
       NEARBY_LOG(INFO,
-                 "In onIncomingConnection(%s) for client=%" PRIx64
+                 "In onIncomingConnection(%d) for client=%" PRIx64
                  ", cleaned up the collision with endpoint %s by closing our "
                  "channel and notifying our client of the failure.",
                  endpoint_channel->GetMedium(), client->GetClientId(),
