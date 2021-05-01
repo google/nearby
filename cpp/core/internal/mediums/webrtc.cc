@@ -225,7 +225,7 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
     }
 
     if (cancellation_flag->Cancelled()) {
-      NEARBY_LOGS(INFO) << "Cannot connect with WebRtc due to cancel.";
+      NEARBY_LOG(INFO, "Cannot connect with WebRtc due to cancel.");
       return WebRtcSocketWrapper();
     }
 

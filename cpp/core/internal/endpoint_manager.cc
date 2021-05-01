@@ -14,6 +14,7 @@
 
 #include "core/internal/endpoint_manager.h"
 
+#include <cinttypes>
 #include <memory>
 #include <utility>
 
@@ -146,8 +147,8 @@ void EndpointManager::EndpointChannelLoopRunnable(
   }
   // Indicate we're out of the loop and it is ok to schedule another instance
   // if needed.
-  NEARBY_LOG(INFO, "Worker going down; name=%s; id=%s", runnable_name.c_str(),
-             endpoint_id.c_str());
+  NEARBY_LOG(INFO, "Worker going down; worker name=%s; endpoint_id=%s",
+             runnable_name.c_str(), endpoint_id.c_str());
   if (auto latch = barrier.lock()) {
     latch->CountDown();
   } else {
@@ -159,8 +160,8 @@ void EndpointManager::EndpointChannelLoopRunnable(
   // Always clear out all state related to this endpoint before terminating
   // this thread.
   DiscardEndpoint(client, endpoint_id);
-  NEARBY_LOG(INFO, "Worker done; name=%s; id=%s", runnable_name.c_str(),
-             endpoint_id.c_str());
+  NEARBY_LOG(INFO, "Worker done; worker name=%s; endpoint_id=%s",
+             runnable_name.c_str(), endpoint_id.c_str());
 }
 
 ExceptionOr<bool> EndpointManager::HandleData(
@@ -182,7 +183,7 @@ ExceptionOr<bool> EndpointManager::HandleData(
     if (!wrapped_frame.ok()) {
       if (wrapped_frame.GetException().Raised(
               Exception::kInvalidProtocolBuffer)) {
-        NEARBY_LOG(INFO, "Failed to decode; endpoint=%s; channel=%s; skip",
+        NEARBY_LOG(INFO, "Failed to decode; endpoint_id=%s; channel=%s; skip",
                    endpoint_id.c_str(), endpoint_channel->GetType().c_str());
         continue;
       } else {
@@ -200,13 +201,15 @@ ExceptionOr<bool> EndpointManager::HandleData(
       // report messages without handlers, except KEEP_ALIVE, which has
       // no explicit handler.
       if (frame_type == V1Frame::KEEP_ALIVE) {
-        NEARBY_LOG(INFO, "KeepAlive message for: id=%s", endpoint_id.c_str());
+        NEARBY_LOG(INFO, "KeepAlive message for endpoint %s",
+                   endpoint_id.c_str());
       } else if (frame_type == V1Frame::DISCONNECTION) {
-        NEARBY_LOG(INFO, "Disconnect message for: id=%s", endpoint_id.c_str());
+        NEARBY_LOG(INFO, "Disconnect message for endpoint %s",
+                   endpoint_id.c_str());
         endpoint_channel->Close();
       } else {
-        NEARBY_LOG(ERROR, "Unhandled message: id=%s, type=%d",
-                   endpoint_id.c_str(), frame_type);
+        NEARBY_LOG(ERROR, "Unhandled message: endpoint_id=%s, frame_type=%d",
+                   endpoint_id.c_str(), static_cast<int>(frame_type));
       }
       continue;
     }
@@ -267,10 +270,10 @@ EndpointManager::EndpointManager(EndpointChannelManager* manager)
     : channel_manager_(manager) {}
 
 EndpointManager::~EndpointManager() {
-  NEARBY_LOG(INFO, "EndpointManager going down");
+  NEARBY_LOG(INFO, "Initiating shutdown of EndpointManager.");
   CountDownLatch latch(1);
   RunOnEndpointManagerThread("bring-down-endpoints", [this, &latch]() {
-    NEARBY_LOG(INFO, "Bringing down endpoints");
+    NEARBY_LOG(INFO, "Bringing down endpoints.");
     for (auto& item : endpoints_) {
       const std::string& endpoint_id = item.first;
       EndpointState& state = item.second;
@@ -280,37 +283,41 @@ EndpointManager::~EndpointManager() {
       if (state.barrier) {
         state.barrier->Await();
       } else {
-        NEARBY_LOG(
-            WARNING,
-            "State barrier already freed before EM destructor for endpoint %s",
-            endpoint_id.c_str());
+        NEARBY_LOG(WARNING,
+                   "State barrier already freed before EM destructor for "
+                   "endpoint(id=%s).",
+                   endpoint_id.c_str());
       }
     }
     latch.CountDown();
   });
   latch.Await();
-  NEARBY_LOG(INFO, "Bringing down worker threads");
+  NEARBY_LOG(INFO, "Bringing down worker threads.");
 
   // Stop all the ongoing Runnables (as gracefully as possible).
   // Order matters: bring worker pools down first; serial_executor_ thread
   // should go last, since workers schedule jobs there even during shutdown.
   handlers_executor_.Shutdown();
   keep_alive_executor_.Shutdown();
-  NEARBY_LOG(INFO, "Bringing down control thread");
+  NEARBY_LOG(INFO, "Bringing down control thread.");
   serial_executor_.Shutdown();
-  NEARBY_LOG(INFO, "EndpointManager is down");
+  NEARBY_LOG(INFO, "EndpointManager has shut down.");
 }
 
 void EndpointManager::RegisterFrameProcessor(
     V1Frame::FrameType frame_type, EndpointManager::FrameProcessor* processor) {
   if (auto frame_processor = GetFrameProcessor(frame_type)) {
-    NEARBY_LOGS(INFO) << "Frame processor found: updated; type=" << frame_type
-                      << "; processor=" << processor << "; self=" << this;
+    NEARBY_LOG(INFO,
+               "EndpointManager received request to update registration of "
+               "frame processor %p for frame type %d, self=%p",
+               processor, static_cast<int>(frame_type), this);
     frame_processor.set(processor);
   } else {
     MutexLock lock(&frame_processors_lock_);
-    NEARBY_LOGS(INFO) << "Frame processor added; type=" << frame_type
-                      << "; processor=" << processor << "; self=" << this;
+    NEARBY_LOG(INFO,
+               "EndpointManager received request to add registration of "
+               "frame processor %p for frame type %d, self=%p",
+               processor, static_cast<int>(frame_type), this);
     frame_processors_.emplace(frame_type, processor);
   }
 }
@@ -318,24 +325,25 @@ void EndpointManager::RegisterFrameProcessor(
 void EndpointManager::UnregisterFrameProcessor(
     V1Frame::FrameType frame_type,
     const EndpointManager::FrameProcessor* processor) {
-  NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [enter]: processor ="
-                    << processor;
+  NEARBY_LOG(INFO, "UnregisterFrameProcessor [enter]: processor=%p", processor);
   if (processor == nullptr) return;
   if (auto frame_processor = GetFrameProcessor(frame_type)) {
     if (frame_processor.get() == processor) {
       frame_processor.reset();
-      NEARBY_LOGS(INFO) << "Unregistered: type=" << frame_type
-                        << "; processor=" << processor << "; self=" << this;
+      NEARBY_LOG(INFO,
+                 "EndpointManager unregister frame processor %p for frame type "
+                 "%d, self=%p",
+                 processor, static_cast<int>(frame_type), this);
     } else {
-      NEARBY_LOG(
-          INFO,
-          "Failed to unregister: type=%d; processor mismatch: passed=%p, "
-          "expected=%p",
-          frame_type, processor, frame_processor.get());
+      NEARBY_LOG(INFO,
+                 "EndpointManager cannot unregister frame processor %p because "
+                 " it is not registered for frame type %d, expected=%p",
+                 processor, static_cast<int>(frame_type),
+                 frame_processor.get());
     }
   } else {
-    NEARBY_LOGS(INFO) << "UnregisterFrameProcessor [not found]: processor="
-                      << processor;
+    NEARBY_LOG(INFO, "UnregisterFrameProcessor [not found]: processor=%p",
+               processor);
   }
 }
 
@@ -350,29 +358,32 @@ EndpointManager::LockedFrameProcessor EndpointManager::GetFrameProcessor(
 }
 
 void EndpointManager::EnsureWorkersTerminated(const std::string& endpoint_id) {
-  NEARBY_LOG(ERROR, "EnsureWorkersTerminated for endpoint %s",
+  NEARBY_LOG(ERROR, "EnsureWorkersTerminated for endpoint_id=%s",
              endpoint_id.c_str());
   auto item = endpoints_.find(endpoint_id);
   if (item != endpoints_.end()) {
-    NEARBY_LOGS(INFO) << "EndpointState found for id: " << endpoint_id;
+    NEARBY_LOG(INFO, "EndpointState found for endpoint_id=%s",
+               endpoint_id.c_str());
     // If another instance of data and keep-alive handlers is running, it will
     // terminate soon; we should block until it happens.
     EndpointState& endpoint_state = item->second;
-    NEARBY_LOGS(INFO) << "Waiting for workers to terminate for id: "
-                      << endpoint_id;
+    NEARBY_LOG(INFO, "Waiting for workers to terminate for endpoint_id=%s",
+               endpoint_id.c_str());
     if (endpoint_state.barrier) {
       endpoint_state.barrier->Await();
     } else {
       NEARBY_LOG(
           WARNING,
           "State barrier already freed before EnsureWorkersTerminated for "
-          "endpoint %s",
+          "endpoint(id=%s).",
           endpoint_id.c_str());
     }
     endpoints_.erase(item);
-    NEARBY_LOGS(INFO) << "Workers terminated for id: " << endpoint_id;
+    NEARBY_LOG(INFO, "Workers terminated for endpoint_id=%s",
+               endpoint_id.c_str());
   } else {
-    NEARBY_LOGS(INFO) << "EndpointState not found for id: " << endpoint_id;
+    NEARBY_LOG(INFO, "EndpointState not found for endpoint_id=%s",
+               endpoint_id.c_str());
   }
 }
 
@@ -396,7 +407,7 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
                                                    &options, &listener,
                                                    &latch]() {
     if (endpoints_.contains(endpoint_id)) {
-      NEARBY_LOG(WARNING, "Registing duplicate endpoint %s",
+      NEARBY_LOG(WARNING, "Registing duplicate endpoint(id=%s)",
                  endpoint_id.c_str());
       if (!FeatureFlags::GetInstance()
                .GetFlags()
@@ -409,15 +420,16 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
         absl::Milliseconds(options.keep_alive_interval_millis);
     absl::Duration keep_alive_timeout =
         absl::Milliseconds(options.keep_alive_timeout_millis);
-    NEARBY_LOGS(INFO) << "Registering endpoint " << endpoint_id.c_str()
-                      << " for client " << client->GetClientId()
-                      << " with keep-alive frame as interval="
-                      << absl::FormatDuration(keep_alive_interval).c_str()
-                      << ", timeout="
-                      << absl::FormatDuration(keep_alive_timeout).c_str();
+    NEARBY_LOG(INFO,
+               "Registering endpoint %s for client %" PRIx64
+               " with keep-alive frame as interval=%s, timeout=%s",
+               endpoint_id.c_str(), client->GetClientId(),
+               absl::FormatDuration(keep_alive_interval).c_str(),
+               absl::FormatDuration(keep_alive_timeout).c_str());
 
     // Pass ownership of channel to EndpointChannelManager
-    NEARBY_LOG(INFO, "Registering endpoint with channel manager: id=%s",
+    NEARBY_LOG(INFO,
+               "Registering endpoint with channel manager: endpoint_id=%s",
                endpoint_id.c_str());
     channel_manager_->RegisterChannelForEndpoint(
         client, endpoint_id, std::unique_ptr<EndpointChannel>(channel));
@@ -426,7 +438,9 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
         endpoints_.emplace(endpoint_id, EndpointState()).first->second;
     endpoint_state.client = client;
 
-    NEARBY_LOG(INFO, "Starting workers: id=%s", endpoint_id.c_str());
+    NEARBY_LOG(INFO,
+               "Registering endpoint %s and starting workers.",
+               endpoint_id.c_str());
     // For every endpoint, there's normally only one Read handler instance
     // running on the handlers_executor_ pool. This instance reads data from the
     // endpoint and delegates incoming frames to various FrameProcessors.
@@ -461,6 +475,8 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
     //
     // Using weak_ptr just in case the barrier is freed, to save the UAF crash
     // in b/179800119.
+    NEARBY_LOG(VERBOSE, "EndpointManager enabling KeepAlive for endpoint %s",
+               endpoint_id.c_str());
     StartEndpointKeepAliveManager(
         [this, client, endpoint_id, keep_alive_interval, keep_alive_timeout,
          barrier = std::weak_ptr<CountDownLatch>(endpoint_state.barrier)]() {
@@ -472,7 +488,8 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
                                        keep_alive_timeout);
               });
         });
-    NEARBY_LOG(INFO, "Workers started, notifying client; id=%s",
+    NEARBY_LOG(INFO,
+               "Registering endpoint %s, workers started and notifying client.",
                endpoint_id.c_str());
 
     // It's now time to let the client know of this new connection so that
@@ -485,7 +502,7 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
 
 void EndpointManager::UnregisterEndpoint(ClientProxy* client,
                                          const std::string& endpoint_id) {
-  NEARBY_LOG(ERROR, "UnregisterEndpoint for endpoint %s", endpoint_id.c_str());
+  NEARBY_LOG(ERROR, "Unregister endpoint for endpoint %s", endpoint_id.c_str());
   CountDownLatch latch(1);
   RunOnEndpointManagerThread(
       "unregister-endpoint", [this, client, endpoint_id, &latch]() {
@@ -523,7 +540,7 @@ std::vector<std::string> EndpointManager::SendPayloadChunk(
 // allow synchronous behavior here it will cause a live lock.
 void EndpointManager::DiscardEndpoint(ClientProxy* client,
                                       const std::string& endpoint_id) {
-  NEARBY_LOG(ERROR, "DiscardEndpoint for endpoint %s", endpoint_id.c_str());
+  NEARBY_LOG(ERROR, "Discard endpoint for endpoint %s", endpoint_id.c_str());
   RunOnEndpointManagerThread("discard-endpoint", [this, client, endpoint_id]() {
     RemoveEndpoint(client, endpoint_id,
                    /*notify=*/
@@ -546,7 +563,7 @@ std::vector<std::string> EndpointManager::SendControlMessage(
 void EndpointManager::RemoveEndpoint(ClientProxy* client,
                                      const std::string& endpoint_id,
                                      bool notify) {
-  NEARBY_LOG(ERROR, "RemoveEndpoint for endpoint %s", endpoint_id.c_str());
+  NEARBY_LOG(ERROR, "Remove endpoint for endpoint %s", endpoint_id.c_str());
   // Unregistering from channel_manager_ will also serve to terminate
   // the dedicated handler and KeepAlive threads we started when we registered
   // this endpoint.
@@ -559,7 +576,7 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
     WaitForEndpointDisconnectionProcessing(client, endpoint_id);
 
     client->OnDisconnected(endpoint_id, notify);
-    NEARBY_LOG(INFO, "Removed endpoint; id=%s", endpoint_id.c_str());
+    NEARBY_LOG(INFO, "Removed endpoint for endpoint %s", endpoint_id.c_str());
   }
   if (FeatureFlags::GetInstance()
           .GetFlags()
@@ -571,36 +588,42 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
 // @EndpointManagerThread
 void EndpointManager::WaitForEndpointDisconnectionProcessing(
     ClientProxy* client, const std::string& endpoint_id) {
-  NEARBY_LOGS(INFO) << "Wait: client=" << client << "; id=" << endpoint_id;
+  NEARBY_LOG(INFO, "Wait: client=%" PRIx64 "; endpoint_id=%s",
+             client->GetClientId(), endpoint_id.c_str());
   CountDownLatch barrier =
       NotifyFrameProcessorsOnEndpointDisconnect(client, endpoint_id);
 
-  NEARBY_LOGS(INFO) << "Waiting for frame processors to disconnect from: "
-                    << endpoint_id;
+  NEARBY_LOG(INFO,
+             "Waiting for frame processors to disconnect from: endpoint_id=%s",
+             endpoint_id.c_str());
   if (!barrier.Await(kProcessEndpointDisconnectionTimeout).result()) {
-    NEARBY_LOGS(INFO) << "Failed to disconnect frame processors from: "
-                      << endpoint_id;
+    NEARBY_LOG(INFO,
+               "Failed to disconnect frame processors from: endpoint_id=%s",
+               endpoint_id.c_str());
   } else {
-    NEARBY_LOGS(INFO)
-        << "Finished waiting for frame processors to disconnect from: "
-        << endpoint_id;
+    NEARBY_LOG(INFO,
+               "Finished waiting for frame processors to disconnect from: "
+               "endpoint_id=%s",
+               endpoint_id.c_str());
   }
 }
 
 CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
     ClientProxy* client, const std::string& endpoint_id) {
-  NEARBY_LOGS(INFO) << "NotifyFrameProcessorsOnEndpointDisconnect: client="
-                    << client << "; id=" << endpoint_id;
+  NEARBY_LOG(INFO,
+             "NotifyFrameProcessorsOnEndpointDisconnect: client=%" PRIx64
+             "; endpoint_id=%s",
+             client->GetClientId(), endpoint_id.c_str());
   MutexLock lock(&frame_processors_lock_);
   auto total_size = frame_processors_.size();
-  NEARBY_LOGS(INFO) << "Total frame processors: " << total_size;
+  NEARBY_LOG(INFO, "Total frame processors: %" PRId64, total_size);
   CountDownLatch barrier(total_size);
 
   int valid = 0;
   for (auto& item : frame_processors_) {
     LockedFrameProcessor processor(&item.second);
-    NEARBY_LOGS(INFO) << "processor=" << processor.get()
-                      << "; type=" << item.first;
+    NEARBY_LOG(INFO, "processor=%p; frame_type=%d", processor.get(),
+               static_cast<int>(item.first));
     if (processor) {
       valid++;
       processor->OnEndpointDisconnect(client, endpoint_id, barrier);
@@ -610,9 +633,9 @@ CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
   }
 
   if (!valid) {
-    NEARBY_LOGS(INFO) << "No valid frame processors.";
+    NEARBY_LOG(INFO, "No valid frame processors.");
   } else {
-    NEARBY_LOGS(INFO) << "Valid frame processors: " << valid;
+    NEARBY_LOG(INFO, "Valid frame processors: %d", valid);
   }
   return barrier;
 }
@@ -629,7 +652,11 @@ std::vector<std::string> EndpointManager::SendTransferFrameBytes(
     if (channel == nullptr) {
       // We no longer know about this endpoint (it was either explicitly
       // unregistered, or a read/write error made us unregister it internally).
-      NEARBY_LOG(INFO, "Channel not available; id=%s", endpoint_id.c_str());
+      NEARBY_LOG(ERROR,
+                 "EndpointManager failed to find EndpointChannel over which to "
+                 "write %s at offset %" PRId64 " of Payload %" PRIx64
+                 " to endpoint %s",
+                 packet_type.c_str(), offset, payload_id, endpoint_id.c_str());
       failed_endpoint_ids.push_back(endpoint_id);
       continue;
     }

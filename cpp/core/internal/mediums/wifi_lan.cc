@@ -38,9 +38,9 @@ bool WifiLan::StartAdvertising(const std::string& service_id,
   MutexLock lock(&mutex_);
 
   if (!nsd_service_info.IsValid()) {
-    NEARBY_LOGS(INFO)
-        << "Refusing to turn on WifiLan advertising. nsd_service_info is not "
-           "valid.";
+    NEARBY_LOG(INFO,
+               "Refusing to turn on WifiLan advertising. nsd_service_info is "
+               "not valid.");
     return false;
   }
 
@@ -51,18 +51,19 @@ bool WifiLan::StartAdvertising(const std::string& service_id,
   }
 
   if (!medium_.StartAdvertising(service_id, nsd_service_info)) {
-    NEARBY_LOGS(INFO)
-        << "Failed to turn on WifiLan advertising with wifi_lan_service="
-        << &nsd_service_info
-        << ", service_info_name=" << nsd_service_info.GetServiceInfoName()
-        << ", service_id=" << service_id;
+    NEARBY_LOG(INFO,
+               "Failed to turn on WifiLan advertising with "
+               "wifi_lan_service=%p, service_info_name=%s, service_id=%s",
+               &nsd_service_info, nsd_service_info.GetServiceInfoName().c_str(),
+               service_id.c_str());
     return false;
   }
 
-  NEARBY_LOGS(INFO) << "Turned on WifiLan advertising with wifi_lan_service="
-                    << &nsd_service_info << ", service_info_name="
-                    << nsd_service_info.GetServiceInfoName()
-                    << ", service_id=" << service_id;
+  NEARBY_LOG(INFO,
+             "Turned on WifiLan advertising with wifi_lan_service=%p, "
+             "service_info_name=%s, service_id=%s",
+             &nsd_service_info, nsd_service_info.GetServiceInfoName().c_str(),
+             service_id.c_str());
   advertising_info_.Add(service_id);
   return true;
 }
@@ -226,10 +227,12 @@ WifiLanSocket WifiLan::Connect(WifiLanService& wifi_lan_service,
                                const std::string& service_id,
                                CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << "WifiLan::Connect: wifi_lan_service="
-                    << &wifi_lan_service << ", service_info_name="
-                    << wifi_lan_service.GetServiceInfo().GetServiceInfoName()
-                    << ", service_id=" << service_id;
+  NEARBY_LOG(INFO,
+             "WifiLan::Connect: wifi_lan_service=%p, "
+             "service_info_name=%s, service_id=%s",
+             &wifi_lan_service,
+             wifi_lan_service.GetServiceInfo().GetServiceInfoName().c_str(),
+             service_id.c_str());
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   WifiLanSocket socket;
 
@@ -248,7 +251,7 @@ WifiLanSocket WifiLan::Connect(WifiLanService& wifi_lan_service,
   }
 
   if (cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(INFO) << "Can't create client WifiLan socket due to cancel.";
+    NEARBY_LOG(INFO, "Can't create client WifiLan socket due to cancel.");
     return socket;
   }
 

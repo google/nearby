@@ -113,7 +113,12 @@ class EndpointManagerTest : public ::testing::Test {
   }
 
   ClientProxy client_;
-  ConnectionOptions options_;
+  ConnectionOptions options_{
+      .keep_alive_interval_millis =
+          FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis,
+      .keep_alive_timeout_millis =
+          FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis,
+  };
   std::vector<std::unique_ptr<EndpointManager::FrameProcessor>> processors_;
   EndpointChannelManager ecm_;
   EndpointManager em_{&ecm_};
@@ -230,9 +235,9 @@ TEST_F(EndpointManagerTest, SendControlMessageWorks) {
   ON_CALL(*endpoint_channel, Read())
       .WillByDefault([channel = endpoint_channel.get()]() {
         if (channel->IsClosed()) return ExceptionOr<ByteArray>(Exception::kIo);
-        NEARBY_LOG(INFO, "Simulate read delay: wait");
+        NEARBY_LOG(INFO, "Simulate read delay: wait.");
         absl::SleepFor(absl::Milliseconds(100));
-        NEARBY_LOG(INFO, "Simulate read delay: done");
+        NEARBY_LOG(INFO, "Simulate read delay: done.");
         if (channel->IsClosed()) return ExceptionOr<ByteArray>(Exception::kIo);
         return ExceptionOr<ByteArray>(ByteArray{});
       });
@@ -240,7 +245,7 @@ TEST_F(EndpointManagerTest, SendControlMessageWorks) {
       .WillByDefault(
           [channel = endpoint_channel.get()](DisconnectionReason reason) {
             channel->DoClose();
-            NEARBY_LOG(INFO, "Channel closed");
+            NEARBY_LOG(INFO, "Channel closed.");
           });
   EXPECT_CALL(*endpoint_channel, Write(_))
       .WillRepeatedly(Return(Exception{Exception::kSuccess}));
@@ -249,9 +254,9 @@ TEST_F(EndpointManagerTest, SendControlMessageWorks) {
   auto failed_ids =
       em_.SendControlMessage(header, control, std::vector{endpoint_id_});
   EXPECT_EQ(failed_ids, std::vector<std::string>{});
-  NEARBY_LOG(INFO, "Will unregister endpoint now");
+  NEARBY_LOG(INFO, "Will unregister endpoint now.");
   em_.UnregisterEndpoint(&client_, endpoint_id_);
-  NEARBY_LOG(INFO, "Will call destructors now");
+  NEARBY_LOG(INFO, "Will call destructors now.");
 }
 
 TEST_F(EndpointManagerTest, SingleReadOnInvalidPayload) {

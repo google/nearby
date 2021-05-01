@@ -135,7 +135,7 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
 
   NEARBY_LOG(INFO,
              "WebRtcBwuHandler successfully connected to remote "
-             "peer (%s) while upgrading endpoint %s.",
+             "peer (%s) while upgrading endpoint %s",
              peer_id.GetId().c_str(), endpoint_id.c_str());
 
   // Create a new WebRtcEndpointChannel.

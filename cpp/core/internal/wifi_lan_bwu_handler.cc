@@ -61,10 +61,10 @@ ByteArray WifiLanBwuHandler::InitializeUpgradedMediumForEndpoint(
                  endpoint_id.c_str());
       return {};
     }
-    NEARBY_LOGS(INFO)
-        << "WifiLanBwuHandler successfully started listening for incoming "
-           "WifiLan connections while upgrading endpoint "
-        << endpoint_id;
+    NEARBY_LOG(INFO,
+               "WifiLanBwuHandler successfully started listening for incoming "
+               "WifiLan connections while upgrading endpoint %s",
+               endpoint_id.c_str());
   }
 
   // cache service ID to revert
@@ -74,11 +74,11 @@ ByteArray WifiLanBwuHandler::InitializeUpgradedMediumForEndpoint(
   auto ip_address = service_address.first;
   auto port = service_address.second;
   if (ip_address.empty()) {
-    NEARBY_LOGS(INFO)
-        << "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
-           "endpoint "
-        << endpoint_id
-        << " because the wifi_lan ip address were unable to be obtained.";
+    NEARBY_LOG(INFO,
+               "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
+               "endpoint %s because the wifi_lan ip address were unable to be "
+               "obtained.",
+               endpoint_id.c_str());
     return {};
   }
 

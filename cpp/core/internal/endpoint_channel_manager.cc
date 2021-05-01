@@ -34,8 +34,10 @@ const absl::Duration kDataTransferDelay = absl::Milliseconds(500);
 }
 
 EndpointChannelManager::~EndpointChannelManager() {
+  NEARBY_LOG(INFO, "Initiating shutdown of EndpointChannelManager.");
   MutexLock lock(&mutex_);
   channel_state_.DestroyAll();
+  NEARBY_LOG(INFO, "EndpointChannelManager has shut down.");
 }
 
 void EndpointChannelManager::RegisterChannelForEndpoint(
@@ -43,9 +45,11 @@ void EndpointChannelManager::RegisterChannelForEndpoint(
     std::unique_ptr<EndpointChannel> channel) {
   MutexLock lock(&mutex_);
 
+  NEARBY_LOG(
+      INFO,
+      "EndpointChannelManager registered channel of type %s to endpoint %s",
+      channel->GetType().c_str(), endpoint_id.c_str());
   SetActiveEndpointChannel(client, endpoint_id, std::move(channel));
-
-  NEARBY_LOG(INFO, "Registered channel: id=%s", endpoint_id.c_str());
 }
 
 void EndpointChannelManager::ReplaceChannelForEndpoint(
@@ -55,7 +59,9 @@ void EndpointChannelManager::ReplaceChannelForEndpoint(
 
   auto* endpoint = channel_state_.LookupEndpointData(endpoint_id);
   if (endpoint != nullptr && endpoint->channel == nullptr) {
-    NEARBY_LOG(INFO, "Channel is missing while trying to update: id=%s",
+    NEARBY_LOG(INFO,
+               "EndpointChannelManager is missing channel while trying to "
+               "update: endpoint %s",
                endpoint_id.c_str());
   }
 
@@ -79,7 +85,7 @@ std::shared_ptr<EndpointChannel> EndpointChannelManager::GetChannelForEndpoint(
 
   auto* endpoint = channel_state_.LookupEndpointData(endpoint_id);
   if (endpoint == nullptr) {
-    NEARBY_LOG(INFO, "No channel info: id=%s", endpoint_id.c_str());
+    NEARBY_LOG(INFO, "No channel info for endpoint %s", endpoint_id.c_str());
     return {};
   }
 
@@ -148,6 +154,10 @@ bool EndpointChannelManager::ChannelState::RemoveEndpoint(
     channel->Resume();
 
     channel->Write(parser::ForDisconnection());
+    NEARBY_LOG(
+        INFO,
+        "EndpointChannelManager reported the disconnection to endpoint %s.",
+        endpoint_id.c_str());
     SystemClock::Sleep(kDataTransferDelay);
   }
   endpoints_.erase(item);
@@ -164,7 +174,9 @@ bool EndpointChannelManager::UnregisterChannelForEndpoint(
     return false;
   }
 
-  NEARBY_LOG(INFO, "Unregistered channel: id=%s", endpoint_id.c_str());
+  NEARBY_LOG(INFO,
+             "EndpointChannelManager unregistered channel for endpoint %s",
+             endpoint_id.c_str());
 
   return true;
 }

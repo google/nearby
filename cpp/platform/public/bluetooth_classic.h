@@ -105,7 +105,7 @@ class BluetoothServerSocket final {
   BluetoothSocket Accept() {
     auto socket = impl_->Accept();
     if (!socket) {
-      NEARBY_LOGS(INFO) << "Accept() failed on server socket: " << this;
+      NEARBY_LOG(INFO, "Accept() failed on server socket:%p", this);
     }
     return BluetoothSocket(std::move(socket));
   }
@@ -114,7 +114,7 @@ class BluetoothServerSocket final {
   //
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() {
-    NEARBY_LOGS(INFO) << "Closing server socket: " << this;
+    NEARBY_LOG(INFO, "Closing server socket:%p", this);
     return impl_->Close();
   }
 

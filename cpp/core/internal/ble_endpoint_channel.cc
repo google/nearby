@@ -54,7 +54,10 @@ int BleEndpointChannel::GetMaxTransmitPacketSize() const {
 void BleEndpointChannel::CloseImpl() {
   auto status = ble_socket_.Close();
   if (!status.Ok()) {
-    NEARBY_LOG(INFO, "Failed to close Ble socket: exception=%d", status.value);
+    NEARBY_LOG(INFO,
+               "Failed to close underlying socket for BleEndpointChannel %s: "
+               "exception=%d",
+               GetName().c_str(), status.value);
   }
 }
 

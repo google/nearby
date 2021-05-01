@@ -54,7 +54,7 @@ class PayloadSimulationUser : public SimulationUser {
       BooleanMediumSelector allowed = BooleanMediumSelector())
       : SimulationUser(std::string(name), allowed) {}
   ~PayloadSimulationUser() override {
-    NEARBY_LOGS(INFO) << "PayloadSimulationUser: [down] name=" << info_.data();
+    NEARBY_LOG(INFO, "PayloadSimulationUser: [down] name=%s", info_.data());
     // SystemClock::Sleep(kDefaultTimeout);
   }
 
