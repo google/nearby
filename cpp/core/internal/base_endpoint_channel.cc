@@ -66,7 +66,7 @@ ExceptionOr<ByteArray> ReadExactly(InputStream* reader, std::int64_t size) {
     ByteArray result = read_bytes.result();
 
     if (result.Empty()) {
-      NEARBY_LOGS(WARNING) << __func__ << ": Empty result when reading bytes.";
+      NEARBY_LOG(WARNING, "%s: Empty result when reading bytes.", __func__);
       return ExceptionOr<ByteArray>(Exception::kIo);
     }
 
@@ -107,8 +107,8 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
     }
 
     if (read_int.result() < 0 || read_int.result() > kMaxAllowedReadBytes) {
-      NEARBY_LOGS(WARNING) << __func__ << ": Read an invalid number of bytes: "
-                           << read_int.result();
+      NEARBY_LOG(WARNING, "%s: Read an invalid number of bytes: %d", __func__,
+                 read_int.result());
       return ExceptionOr<ByteArray>(Exception::kIo);
     }
 
@@ -139,22 +139,24 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
         auto parsed = parser::FromBytes(ByteArray(input));
         if (parsed.ok()) {
           if (parser::GetFrameType(parsed.result()) == V1Frame::KEEP_ALIVE) {
-            NEARBY_LOGS(INFO)
-                << __func__
-                << ": Read unencrypted KEEP_ALIVE on encrypted channel.";
+            NEARBY_LOG(INFO,
+                       "%s: Read unencrypted KEEP_ALIVE on encrypted channel.",
+                       __func__);
             result = ByteArray(input);
           } else {
-            NEARBY_LOGS(WARNING)
-                << __func__ << ": Read unexpected unencrypted frame of type "
-                << parser::GetFrameType(parsed.result());
+            NEARBY_LOG(WARNING,
+                       "%s: Read unexpected unencrypted frame of type %d",
+                       __func__,
+                       static_cast<int>(parser::GetFrameType(parsed.result())));
           }
         } else {
-          NEARBY_LOGS(WARNING)
-              << __func__ << ": Unable to parse data as unencrypted message.";
+          NEARBY_LOG(WARNING,
+                     "%s: Unable to parse data as unencrypted message.",
+                     __func__);
         }
       }
       if (result.Empty()) {
-        NEARBY_LOGS(WARNING) << __func__ << ": Unable to parse read result.";
+        NEARBY_LOG(WARNING, "%s: Unable to parse read result", __func__);
         return ExceptionOr<ByteArray>(Exception::kInvalidProtocolBuffer);
       }
     }
@@ -190,7 +192,7 @@ Exception BaseEndpointChannel::Write(const ByteArray& data) {
         std::unique_ptr<std::string> encrypted =
             crypto_context_->EncodeMessageToPeer(std::string(data));
         if (!encrypted) {
-          NEARBY_LOGS(WARNING) << __func__ << ": Failed to encrypt data.";
+          NEARBY_LOG(WARNING, "%s: Failed to encrypt data.", __func__);
           return {Exception::kIo};
         }
         encrypted_data = ByteArray(std::move(*encrypted));
@@ -201,20 +203,20 @@ Exception BaseEndpointChannel::Write(const ByteArray& data) {
     Exception write_exception =
         WriteInt(writer_, static_cast<std::int32_t>(data_to_write->size()));
     if (write_exception.Raised()) {
-      NEARBY_LOGS(WARNING) << __func__ << ": Failed to write header: "
-                           << write_exception.value;
+      NEARBY_LOG(WARNING, "%s: Failed to write header: %d", __func__,
+                 static_cast<int>(write_exception.value));
       return write_exception;
     }
     write_exception = writer_->Write(*data_to_write);
     if (write_exception.Raised()) {
-      NEARBY_LOGS(WARNING) << __func__ << ": Failed to write data: "
-                           << write_exception.value;
+      NEARBY_LOG(WARNING, "%s: Failed to write data: %d", __func__,
+                 static_cast<int>(write_exception.value));
       return write_exception;
     }
     Exception flush_exception = writer_->Flush();
     if (flush_exception.Raised()) {
-      NEARBY_LOGS(WARNING) << __func__ << ": Failed to flush writer: "
-                           << flush_exception.value;
+      NEARBY_LOG(WARNING, "%s: Failed to flush writer: %d", __func__,
+                 static_cast<int>(flush_exception.value));
       return flush_exception;
     }
   }
@@ -240,8 +242,8 @@ void BaseEndpointChannel::CloseIo() {
     // IO and Read() will proceed normally (with Exception::kIo).
     Exception exception = reader_->Close();
     if (!exception.Ok()) {
-      NEARBY_LOGS(WARNING) << __func__
-                           << ": Exception closing reader: " << exception.value;
+      NEARBY_LOG(WARNING, "%s: Exception closing reader: %d", __func__,
+                 static_cast<int>(exception.value));
     }
   }
   {
@@ -250,16 +252,16 @@ void BaseEndpointChannel::CloseIo() {
     // IO and Write() will proceed normally (with Exception::kIo).
     Exception exception = writer_->Close();
     if (!exception.Ok()) {
-      NEARBY_LOGS(WARNING) << __func__
-                           << ": Exception closing writer: " << exception.value;
+      NEARBY_LOG(WARNING, "%s: Exception closing writer: %d", __func__,
+                 static_cast<int>(exception.value));
     }
   }
 }
 
 void BaseEndpointChannel::Close(
     proto::connections::DisconnectionReason reason) {
-  NEARBY_LOGS(INFO) << __func__
-                    << ": Closing endpoint channel, reason: " << reason;
+  NEARBY_LOG(INFO, "%s: Closing endpoint channel, reason: %d", __func__,
+             static_cast<int>(reason));
   Close();
 }
 
@@ -334,8 +336,8 @@ void BaseEndpointChannel::BlockUntilUnpaused() {
   while (is_paused_) {
     Exception wait_succeeded = is_paused_cond_.Wait();
     if (!wait_succeeded.Ok()) {
-      NEARBY_LOGS(WARNING) << __func__ << ": Failure waiting to unpause: "
-                           << wait_succeeded.value;
+      NEARBY_LOG(WARNING, "%s: Failure waiting to unpause: %d", __func__,
+                 static_cast<int>(wait_succeeded.value));
       return;
     }
   }

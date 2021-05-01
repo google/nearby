@@ -17,6 +17,7 @@
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
 #include "platform/public/system_clock.h"
+#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {
@@ -69,15 +70,15 @@ void PendingJobRegistry::ListJobs() {
   for (auto& job : pending_jobs_) {
     auto age = current_time - job.second;
     if (age >= kReportPendingJobsOlderThan) {
-      NEARBY_LOGS(INFO) << "Task \"" << job.first << "\" is waiting for "
-                        << absl::ToInt64Seconds(age) << " s";
+      NEARBY_LOG(INFO, "Task \"%s\" is waiting for %" PRIu64 " s",
+                 job.first.c_str(), absl::ToInt64Seconds(age));
     }
   }
   for (auto& job : running_jobs_) {
     auto age = current_time - job.second;
     if (age >= kReportRunningJobsOlderThan) {
-      NEARBY_LOGS(INFO) << "Task \"" << job.first << "\" is running for "
-                        << absl::ToInt64Seconds(age) << " s";
+      NEARBY_LOG(INFO, "Task \"%s\" is running for %" PRIu64 " s",
+                 job.first.c_str(), absl::ToInt64Seconds(age));
     }
   }
   list_jobs_time_ = current_time;

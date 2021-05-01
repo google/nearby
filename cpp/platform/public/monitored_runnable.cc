@@ -40,16 +40,16 @@ void MonitoredRunnable::operator()() const {
   auto start_time = SystemClock::ElapsedRealtime();
   auto start_delay = start_time - post_time_;
   if (start_delay >= kMinReportedStartDelay) {
-    NEARBY_LOGS(INFO) << "Task: \"" << name_ << "\" started after "
-                      << absl::ToInt64Seconds(start_delay) << " seconds";
+    NEARBY_LOG(INFO, "Task \"%s\" started after %" PRIu64 " seconds.",
+               name_.c_str(), absl::ToInt64Seconds(start_delay));
   }
   PendingJobRegistry::GetInstance().RemovePendingJob(name_, post_time_);
   PendingJobRegistry::GetInstance().AddRunningJob(name_, post_time_);
   runnable_();
   auto task_duration = SystemClock::ElapsedRealtime() - start_time;
   if (task_duration >= kMinReportedTaskDuration) {
-    NEARBY_LOGS(INFO) << "Task: \"" << name_ << "\" finished after "
-                      << absl::ToInt64Seconds(task_duration) << " seconds";
+    NEARBY_LOG(INFO, "Task \"%s\" finished after %" PRIu64 " seconds.",
+               name_.c_str(), absl::ToInt64Seconds(task_duration));
   }
   PendingJobRegistry::GetInstance().RemoveRunningJob(name_, post_time_);
   PendingJobRegistry::GetInstance().ListJobs();

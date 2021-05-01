@@ -389,7 +389,7 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
   }
 
   if (cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(INFO) << "Can't create client BT socket due to cancel.";
+    NEARBY_LOG(INFO, "Can't create client BT socket due to cancel.");
     return socket;
   }
 

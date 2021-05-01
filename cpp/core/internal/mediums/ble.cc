@@ -54,8 +54,8 @@ bool Ble::StartAdvertising(const std::string& service_id,
   MutexLock lock(&mutex_);
 
   if (advertisement_bytes.Empty()) {
-    NEARBY_LOGS(INFO)
-        << "Refusing to turn on BLE advertising. Empty advertisement data.";
+    NEARBY_LOG(
+        INFO, "Refusing to turn on BLE advertising. Empty advertisement data.");
     return false;
   }
 
@@ -68,27 +68,26 @@ bool Ble::StartAdvertising(const std::string& service_id,
   }
 
   if (IsAdvertisingLocked(service_id)) {
-    NEARBY_LOGS(INFO)
-        << "Failed to BLE advertise because we're already advertising.";
+    NEARBY_LOG(INFO,
+               "Failed to BLE advertise because we're already advertising.");
     return false;
   }
 
   if (!radio_.IsEnabled()) {
-    NEARBY_LOGS(INFO)
-        << "Can't start BLE scanning because Bluetooth was never turned on";
+    NEARBY_LOG(
+        INFO, "Can't start BLE scanning because Bluetooth was never turned on");
     return false;
   }
 
   if (!IsAvailableLocked()) {
-    NEARBY_LOGS(INFO) << "Can't turn on BLE advertising. BLE is not available.";
+    NEARBY_LOG(INFO, "Can't turn on BLE advertising. BLE is not available.");
     return false;
   }
-
-  NEARBY_LOGS(INFO) << "Turning on BLE advertising (advertisement size="
-                    << advertisement_bytes.size() << ")"
-                    << ", service id=" << service_id
-                    << ", fast advertisement service uuid="
-                    << fast_advertisement_service_uuid;
+  NEARBY_LOG(INFO,
+             "Turning on BLE advertising (advertisement size=%d), "
+             "service_id=%s, fast advertisement service uuid=%s",
+             advertisement_bytes.size(), service_id.c_str(),
+             fast_advertisement_service_uuid.c_str());
 
   // Wrap the connections advertisement to the medium advertisement.
   const bool fast_advertisement = !fast_advertisement_service_uuid.empty();
@@ -100,19 +99,20 @@ bool Ble::StartAdvertising(const std::string& service_id,
       fast_advertisement ? ByteArray{} : service_id_hash, advertisement_bytes,
       GenerateDeviceToken()}};
   if (medium_advertisement_bytes.Empty()) {
-    NEARBY_LOGS(INFO) << "Failed to BLE advertise because we could not "
-                         "create a medium advertisement.";
+    NEARBY_LOG(INFO,
+               "Failed to BLE advertise because we could not create a medium "
+               "advertisement.");
     return false;
   }
 
   if (!medium_.StartAdvertising(service_id, medium_advertisement_bytes,
                                 fast_advertisement_service_uuid)) {
-    NEARBY_LOGS(ERROR)
-        << "Failed to turn on BLE advertising with advertisement bytes="
-        << absl::BytesToHexString(advertisement_bytes.data())
-        << ", size=" << advertisement_bytes.size()
-        << ", fast advertisement service uuid="
-        << fast_advertisement_service_uuid;
+    NEARBY_LOG(ERROR,
+               "Failed to turn on BLE advertising with advertisement bytes=%s, "
+               "size=%d, fast advertisement service uuid=%s",
+               absl::BytesToHexString(advertisement_bytes.data()).c_str(),
+               advertisement_bytes.size(),
+               fast_advertisement_service_uuid.c_str());
     return false;
   }
 
@@ -124,12 +124,12 @@ bool Ble::StopAdvertising(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
   if (!IsAdvertisingLocked(service_id)) {
-    NEARBY_LOGS(INFO) << "Can't turn off BLE advertising; it is already off";
+    NEARBY_LOG(INFO, "Can't turn off BLE advertising; it is already off.");
     return false;
   }
 
-  NEARBY_LOGS(INFO) << "Turned off BLE advertising with service id="
-                    << service_id;
+  NEARBY_LOG(INFO, "Turned off BLE advertising with service_id=%s",
+             service_id.c_str());
   bool ret = medium_.StopAdvertising(service_id);
   // Reset our bundle of advertising state to mark that we're no longer
   // advertising.
@@ -155,26 +155,26 @@ bool Ble::StartScanning(const std::string& service_id,
   discovered_peripheral_callback_ = std::move(callback);
 
   if (service_id.empty()) {
-    NEARBY_LOGS(INFO)
-        << "Refusing to start BLE scanning with empty service id.";
+    NEARBY_LOG(INFO, "Refusing to start BLE scanning with empty service id.");
     return false;
   }
 
   if (IsScanningLocked(service_id)) {
-    NEARBY_LOGS(INFO) << "Refusing to start scan of BLE peripherals because "
-                         "another scanning is already in-progress.";
+    NEARBY_LOG(INFO,
+               "Refusing to start scan of BLE peripherals because another "
+               "scanning is already in-progress.");
     return false;
   }
 
   if (!radio_.IsEnabled()) {
-    NEARBY_LOGS(INFO)
-        << "Can't start BLE scanning because Bluetooth was never turned on";
+    NEARBY_LOG(
+        INFO,
+        "Can't start BLE scanning because Bluetooth was never turned on.");
     return false;
   }
 
   if (!IsAvailableLocked()) {
-    NEARBY_LOGS(INFO)
-        << "Can't scan BLE peripherals because BLE isn't available.";
+    NEARBY_LOG(INFO, "Can't scan BLE peripherals because BLE isn't available.");
     return false;
   }
 
@@ -188,8 +188,10 @@ bool Ble::StartScanning(const std::string& service_id,
                          bool fast_advertisement) {
                     // Don't bother trying to parse zero byte advertisements.
                     if (medium_advertisement_bytes.size() == 0) {
-                      NEARBY_LOGS(INFO) << "Skipping zero byte advertisement "
-                                        << "with service_id: " << service_id;
+                      NEARBY_LOG(
+                          INFO,
+                          "Skipping zero byte advertisement with service_id=%s",
+                          service_id.c_str());
                       return;
                     }
                     // Unwrap connection BleAdvertisement from medium
@@ -207,11 +209,12 @@ bool Ble::StartScanning(const std::string& service_id,
                         peripheral, service_id);
                   },
           })) {
-    NEARBY_LOGS(INFO) << "Failed to start scan of BLE services.";
+    NEARBY_LOG(INFO, "Failed to start scan of BLE services.");
     return false;
   }
 
-  NEARBY_LOGS(INFO) << "Turned on BLE scanning with service id=" << service_id;
+  NEARBY_LOG(INFO, "Turned on BLE scanning with service_id=%s",
+             service_id.c_str());
   // Mark the fact that we're currently performing a BLE discovering.
   scanning_info_.Add(service_id);
   return true;
@@ -221,8 +224,9 @@ bool Ble::StopScanning(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
   if (!IsScanningLocked(service_id)) {
-    NEARBY_LOGS(INFO) << "Can't turn off BLE sacanning because we never "
-                         "started scanning.";
+    NEARBY_LOG(
+        INFO,
+        "Can't turn off BLE sacanning because we never started scanning.");
     return false;
   }
 
@@ -248,33 +252,39 @@ bool Ble::StartAcceptingConnections(const std::string& service_id,
   MutexLock lock(&mutex_);
 
   if (service_id.empty()) {
-    NEARBY_LOGS(INFO)
-        << "Refusing to start accepting BLE connections with empty service id.";
+    NEARBY_LOG(
+        INFO,
+        "Refusing to start accepting BLE connections with empty service id.");
     return false;
   }
 
   if (IsAcceptingConnectionsLocked(service_id)) {
-    NEARBY_LOGS(INFO)
-        << "Refusing to start accepting BLE connections for " << service_id
-        << " because another BLE peripheral socket is already in-progress.";
+    NEARBY_LOG(INFO,
+               "Refusing to start accepting BLE connections for service_id=%s "
+               "because another BLE peripheral socket is already in-progress.",
+               service_id.c_str());
     return false;
   }
 
   if (!radio_.IsEnabled()) {
-    NEARBY_LOGS(INFO) << "Can't start accepting BLE connections for "
-                      << service_id << " because Bluetooth isn't enabled.";
+    NEARBY_LOG(INFO,
+               "Can't start accepting BLE connections for service_id=%s "
+               "because Bluetooth isn't enabled.",
+               service_id.c_str());
     return false;
   }
 
   if (!IsAvailableLocked()) {
-    NEARBY_LOGS(INFO) << "Can't start accepting BLE connections for "
-                      << service_id << " because BLE isn't available.";
+    NEARBY_LOG(INFO,
+               "Can't start accepting BLE connections for service_id=%s "
+               "because BLE isn't available.",
+               service_id.c_str());
     return false;
   }
 
   if (!medium_.StartAcceptingConnections(service_id, callback)) {
-    NEARBY_LOGS(INFO) << "Failed to accept connections callback for "
-                      << service_id << " .";
+    NEARBY_LOG(INFO, "Failed to accept connections callback for service_id=%s",
+               service_id.c_str());
     return false;
   }
 
@@ -286,8 +296,9 @@ bool Ble::StopAcceptingConnections(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
   if (!IsAcceptingConnectionsLocked(service_id)) {
-    NEARBY_LOGS(INFO)
-        << "Can't stop accepting BLE connections because it was never started.";
+    NEARBY_LOG(
+        INFO,
+        "Can't stop accepting BLE connections because it was never started.");
     return false;
   }
 
@@ -311,36 +322,41 @@ bool Ble::IsAcceptingConnectionsLocked(const std::string& service_id) {
 BleSocket Ble::Connect(BlePeripheral& peripheral, const std::string& service_id,
                        CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << "BLE::Connect: service=" << &peripheral;
+  NEARBY_LOG(INFO, "BLE::Connect to peripheral %p : service_id=%s", &peripheral,
+             service_id.c_str());
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   BleSocket socket;
 
   if (service_id.empty()) {
-    NEARBY_LOGS(INFO) << "Refusing to create BLE socket with empty service_id.";
+    NEARBY_LOG(INFO, "Refusing to create BLE socket with empty service_id.");
     return socket;
   }
 
   if (!radio_.IsEnabled()) {
-    NEARBY_LOGS(INFO) << "Can't create client BLE socket to " << &peripheral
-                      << " because Bluetooth isn't enabled.";
+    NEARBY_LOG(INFO,
+               "Can't create client BLE socket to peripheral=%p because "
+               "Bluetooth isn't enabled.",
+               &peripheral);
     return socket;
   }
 
   if (!IsAvailableLocked()) {
-    NEARBY_LOGS(INFO) << "Can't create client BLE socket [service_id="
-                      << service_id << "]; BLE isn't available.";
+    NEARBY_LOG(
+        INFO,
+        "Can't create client BLE socket [service_id=%s]; BLE isn't available.",
+        service_id.c_str());
     return socket;
   }
 
   if (cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(INFO) << "Can't create client BLE socket due to cancel.";
+    NEARBY_LOG(INFO, "Can't create client BLE socket due to cancel.");
     return socket;
   }
 
   socket = medium_.Connect(peripheral, service_id, cancellation_flag);
   if (!socket.IsValid()) {
-    NEARBY_LOGS(INFO) << "Failed to Connect via BLE [service=" << service_id
-                      << "]";
+    NEARBY_LOG(INFO, "Failed to Connect via BLE [service_id=%s]",
+               service_id.c_str());
   }
 
   return socket;
