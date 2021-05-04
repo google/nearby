@@ -70,7 +70,7 @@ bool PayloadManager::SendPayloadLoop(
   // notify the remaining recipients.
   if (pending_payload.IsLocallyCanceled()) {
     NEARBY_LOG(INFO,
-               "Aborting send of payload_id=%" PRIx64 " at offset %" PRIx64
+               "Aborting send of payload_id=%x" PRIx64 " at offset %x" PRIx64
                " since it is marked canceled.",
                static_cast<std::int64_t>(
                    pending_payload.GetInternalPayload()->GetId()),
@@ -101,7 +101,7 @@ bool PayloadManager::SendPayloadLoop(
       pending_payload.GetInternalPayload()->GetTotalSize() > 0 &&
       pending_payload.GetInternalPayload()->GetTotalSize() <
           next_chunk_offset) {
-    NEARBY_LOG(INFO, "Payload xfer failed: payload_id=%" PRIx64,
+    NEARBY_LOG(INFO, "Payload xfer failed: payload_id=%x" PRIx64,
                static_cast<std::int64_t>(
                    pending_payload.GetInternalPayload()->GetId()));
     HandleFinishedOutgoingPayload(
@@ -117,7 +117,7 @@ bool PayloadManager::SendPayloadLoop(
   // Check whether at least one endpoint failed.
   if (!failed_endpoint_ids.empty()) {
     NEARBY_LOG(INFO,
-               "Payload xfer: endpoints failed: payload_id=%" PRIx64
+               "Payload xfer: endpoints failed: payload_id=%x" PRIx64
                "; endpoint_ids={%s}",
                static_cast<std::int64_t>(payload_header.id()),
                ToString(failed_endpoint_ids).c_str());
@@ -139,8 +139,8 @@ bool PayloadManager::SendPayloadLoop(
       }
     }
     NEARBY_LOG(VERBOSE,
-               "PayloadManager done sending chunk at offset %" PRIx64
-               " of payload_id=%" PRIx64,
+               "PayloadManager done sending chunk at offset %x" PRIx64
+               " of payload_id=%x" PRIx64,
                next_chunk_offset,
                static_cast<std::int64_t>(
                    pending_payload.GetInternalPayload()->GetId()));
@@ -149,7 +149,7 @@ bool PayloadManager::SendPayloadLoop(
     if (!next_chunk_size) {
       // That was the last chunk, we're outta here.
       NEARBY_LOG(INFO,
-                 "Payload xfer done: payload_id=%" PRIx64 "; size=%" PRId64,
+                 "Payload xfer done: payload_id=%x" PRIx64 "; size=%" PRId64,
                  static_cast<std::int64_t>(
                      pending_payload.GetInternalPayload()->GetId()),
                  next_chunk_offset);
@@ -221,7 +221,7 @@ Payload::Id PayloadManager::CreateOutgoingPayload(
     Payload payload, const EndpointIds& endpoint_ids) {
   auto internal_payload{CreateOutgoingInternalPayload(std::move(payload))};
   Payload::Id payload_id = internal_payload->GetId();
-  NEARBY_LOG(INFO, "CreateOutgoingPayload: payload_id=%" PRIx64,
+  NEARBY_LOG(INFO, "CreateOutgoingPayload: payload_id=%x" PRIx64,
              static_cast<std::int64_t>(payload_id));
   MutexLock lock(&mutex_);
   pending_payloads_.StartTrackingPayload(
@@ -342,7 +342,7 @@ void PayloadManager::SendPayload(ClientProxy* client,
     if (!pending_payload) {
       NEARBY_LOG(INFO,
                  "PayloadManager failed to create InternalPayload for outgoing "
-                 "payload_id=%" PRIx64
+                 "payload_id=%x" PRIx64
                  ", payload_type=%d, aborting sendPayload().",
                  static_cast<std::int64_t>(payload_id), payload_type);
       return;
@@ -364,7 +364,7 @@ void PayloadManager::SendPayload(ClientProxy* client,
                                 });
   });
   NEARBY_LOG(INFO,
-             "PayloadManager: xfer scheduled: self=%p; payload_id=%" PRIx64
+             "PayloadManager: xfer scheduled: self=%p; payload_id=%x" PRIx64
              ", payload_type=%d",
              this, static_cast<std::int64_t>(payload_id), payload_type);
 }
@@ -380,7 +380,7 @@ Status PayloadManager::CancelPayload(ClientProxy* client,
   PendingPayload* canceled_payload = GetPayload(payload_id);
   if (!canceled_payload) {
     NEARBY_LOG(INFO,
-               "Client requested cancel for unknown payload_id=%" PRIx64
+               "Client requested cancel for unknown payload_id=%x" PRIx64
                ", ignoring.",
                static_cast<std::int64_t>(payload_id));
     return {Status::kPayloadUnknown};
@@ -389,7 +389,7 @@ Status PayloadManager::CancelPayload(ClientProxy* client,
   // Mark the payload as canceled.
   canceled_payload->MarkLocallyCanceled();
   NEARBY_LOG(INFO,
-             "Cancelling %s payload_id=%" PRIx64 " at request of client.",
+             "Cancelling %s payload_id=%x" PRIx64 " at request of client.",
              (canceled_payload->IsIncoming() ? "incoming" : "outgoing"),
              static_cast<std::int64_t>(payload_id));
 
@@ -574,7 +574,7 @@ PayloadManager::PendingPayload* PayloadManager::CreateIncomingPayload(
   }
 
   Payload::Id payload_id = internal_payload->GetId();
-  NEARBY_LOG(INFO, "CreateIncomingPayload: payload_id=%" PRIx64,
+  NEARBY_LOG(INFO, "CreateIncomingPayload: payload_id=%x" PRIx64,
              static_cast<std::int64_t>(payload_id));
   MutexLock lock(&mutex_);
   pending_payloads_.StartTrackingPayload(
@@ -682,7 +682,7 @@ void PayloadManager::HandleFinishedOutgoingPayload(
       break;
     case proto::connections::PayloadStatus::LOCAL_CANCELLATION:
       NEARBY_LOG(
-          INFO, "Sending PAYLOAD_CANCEL to receiver side; payload_id=%" PRIx64,
+          INFO, "Sending PAYLOAD_CANCEL to receiver side; payload_id=%x" PRIx64,
           static_cast<std::int64_t>(payload_header.id()));
       SendControlMessage(
           finished_endpoint_ids, payload_header,
@@ -728,7 +728,7 @@ void PayloadManager::HandleFinishedIncomingPayload(
       break;
     default:
       NEARBY_LOG(INFO,
-                 "Unhandled finished incoming payload_id=%" PRIx64
+                 "Unhandled finished incoming payload_id=%x" PRIx64
                  " with payload_status=%d!",
                  static_cast<std::int64_t>(payload_header.id()), status);
       break;
@@ -793,7 +793,7 @@ void PayloadManager::DestroyPendingPayload(Payload::Id payload_id) {
     const char* direction = is_incoming ? "incoming" : "outgoing";
     NEARBY_LOG(INFO,
                "PayloadManager: destroying %s pending payload: "
-               "self=%p; payload_id=%" PRIx64,
+               "self=%p; payload_id=%x" PRIx64,
                direction, this, static_cast<std::int64_t>(payload_id));
     pending->Close();
     pending.reset();
@@ -842,8 +842,8 @@ void PayloadManager::ProcessDataPacket(
   PayloadTransferFrame::PayloadChunk& payload_chunk =
       *payload_transfer_frame.mutable_payload_chunk();
   NEARBY_LOG(VERBOSE,
-             "PayloadManager got data OfflineFrame for payload_id=%" PRIx64
-             " from endpoint_id=%s at offset %" PRIx64,
+             "PayloadManager got data OfflineFrame for payload_id=%x" PRIx64
+             " from endpoint_id=%s at offset %x" PRIx64,
              static_cast<std::int64_t>(payload_header.id()),
              from_endpoint_id.c_str(), payload_chunk.offset());
 
@@ -854,7 +854,7 @@ void PayloadManager::ProcessDataPacket(
     if (!pending_payload) {
       NEARBY_LOG(WARNING,
                  "PayloadManager failed to create InternalPayload from "
-                 "PayloadTransferFrame with ID %" PRIx64
+                 "PayloadTransferFrame with ID %x" PRIx64
                  " and type %d, aborting receipt.",
                  static_cast<std::int64_t>(payload_header.id()),
                  payload_header.type());
@@ -871,7 +871,7 @@ void PayloadManager::ProcessDataPacket(
         [to_client, from_endpoint_id, pending_payload]()
             RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
               NEARBY_LOG(INFO,
-                         "PayloadManager received new payload_id=%" PRIx64
+                         "PayloadManager received new payload_id=%x" PRIx64
                          " from endpoint_id=%s",
                          static_cast<std::int64_t>(
                              pending_payload->GetInternalPayload()->GetId()),
@@ -885,7 +885,7 @@ void PayloadManager::ProcessDataPacket(
     if (!pending_payload) {
       NEARBY_LOG(
           WARNING,
-          "ProcessDataPacket: [missing] endpoint_id=%s; payload_id=%" PRIx64,
+          "ProcessDataPacket: [missing] endpoint_id=%s; payload_id=%x" PRIx64,
           from_endpoint_id.c_str(),
           static_cast<std::int64_t>(payload_header.id()));
       return;
@@ -897,7 +897,7 @@ void PayloadManager::ProcessDataPacket(
     // all the cleanup. See go/nc-cancel-payload
     NEARBY_LOG(
         INFO,
-        "ProcessDataPacket: [cancel] endpoint_id=%s; payload_id=%" PRIx64,
+        "ProcessDataPacket: [cancel] endpoint_id=%s; payload_id=%x" PRIx64,
         from_endpoint_id.c_str(),
         static_cast<std::int64_t>(pending_payload->GetId()));
     HandleFinishedIncomingPayload(
@@ -921,7 +921,7 @@ void PayloadManager::ProcessDataPacket(
           .Raised()) {
     NEARBY_LOG(
         ERROR,
-        "ProcessDataPacket: [data: error] endpoint_id=%s; payload_id=%" PRIx64,
+        "ProcessDataPacket: [data: error] endpoint_id=%s; payload_id=%x" PRIx64,
         from_endpoint_id.c_str(),
         static_cast<std::int64_t>(pending_payload->GetId()));
     HandleFinishedIncomingPayload(
@@ -946,7 +946,7 @@ void PayloadManager::ProcessControlPacket(
   PendingPayload* pending_payload = GetPayload(payload_header.id());
   if (!pending_payload) {
     NEARBY_LOG(INFO,
-               "Got ControlMessage for unknown payload_id=%" PRIx64
+               "Got ControlMessage for unknown payload_id=%x" PRIx64
                ", ignoring: %d",
                static_cast<std::int64_t>(payload_header.id()),
                control_message.event());
@@ -975,7 +975,7 @@ void PayloadManager::ProcessControlPacket(
                                                              control_message);
       }
       NEARBY_LOG(VERBOSE,
-                 "Marked %s payload_id=%" PRIx64
+                 "Marked %s payload_id=" PRIx64
                  " as canceled at request of endpoint_id=%s.",
                  (pending_payload->IsIncoming() ? "incoming" : "outgoing"),
                  static_cast<std::int64_t>(
@@ -994,7 +994,7 @@ void PayloadManager::ProcessControlPacket(
       }
       break;
     default:
-      NEARBY_LOG(INFO, "Unhandled control message %d for payload_id=%" PRIx64,
+      NEARBY_LOG(INFO, "Unhandled control message %d for payload_id= %x" PRIx64,
                  control_message.event(),
                  static_cast<std::int64_t>(
                      pending_payload->GetInternalPayload()->GetId()));
@@ -1155,7 +1155,7 @@ void PayloadManager::PendingPayloads::StartTrackingPayload(
     pending_payloads_.erase(payload_id);
   }
   auto pair = pending_payloads_.emplace(payload_id, std::move(pending_payload));
-  NEARBY_LOG(INFO, "StartTrackingPayload: payload_id=%" PRIx64 "; inserted=%d",
+  NEARBY_LOG(INFO, "StartTrackingPayload: payload_id=%x" PRIx64 "; inserted=%d",
              static_cast<std::int64_t>(payload_id), pair.second);
 }
 

@@ -94,9 +94,8 @@ class OutgoingStreamInternalPayload : public InternalPayload {
     ByteArray scoped_bytes_read = std::move(bytes_read.result());
 
     if (scoped_bytes_read.Empty()) {
-      NEARBY_LOG(INFO,
-                 "No more data for outgoing payload %p, closing InputStream.",
-                 this);
+      NEARBY_LOGS(INFO) << "No more data for outgoing payload " << this
+                        << ", closing InputStream.";
 
       input_stream->Close();
       return {};
@@ -132,10 +131,6 @@ class IncomingStreamInternalPayload : public InternalPayload {
 
   Exception AttachNextChunk(const ByteArray& chunk) override {
     if (chunk.Empty()) {
-      NEARBY_LOG(INFO,
-                 "Received null last chunk for incoming payload %p, closing "
-                 "OutputStream.",
-                 this);
       output_stream_->Close();
       return {Exception::kSuccess};
     }
