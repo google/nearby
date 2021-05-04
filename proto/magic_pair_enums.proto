@@ -70,6 +70,8 @@ message MagicPairEvent {
     UNKNOWN_BOND_ERROR_CODE = 0;
     BOND_BROKEN = 1;
     POSSIBLE_MITM = 2;
+    NO_PERMISSION = 3;
+    INCORRECT_VARIANT = 4;
   }
 
   enum ConnectErrorCode {
