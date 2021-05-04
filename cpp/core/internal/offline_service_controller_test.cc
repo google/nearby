@@ -346,11 +346,11 @@ TEST_P(OfflineServiceControllerTest, CanDisconnect) {
   OfflineSimulationUser user_a(kDeviceA, GetParam());
   OfflineSimulationUser user_b(kDeviceB, GetParam());
   ASSERT_TRUE(SetupConnection(user_a, user_b));
-  NEARBY_LOG(INFO, "Disconnecting");
+  NEARBY_LOGS(INFO) << "Disconnecting";
   user_b.ExpectDisconnect(disconnect_latch);
   user_b.Disconnect();
   EXPECT_TRUE(disconnect_latch.Await(kDisconnectTimeout).result());
-  NEARBY_LOG(INFO, "Disconnected");
+  NEARBY_LOGS(INFO) << "Disconnected";
   EXPECT_FALSE(user_b.IsConnected());
   user_a.Stop();
   user_b.Stop();

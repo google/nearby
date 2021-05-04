@@ -49,7 +49,7 @@ std::string ClientProxy::GetLocalEndpointId() {
   if (local_endpoint_id_.empty()) {
     local_endpoint_id_ = GenerateLocalEndpointId();
     NEARBY_LOG(INFO,
-               "ClientProxy [Local Endpoint Generated]: client=%" PRIx64
+               "ClientProxy [Local Endpoint Generated]: client=%x" PRIx64
                "; endpoint_id=%s",
                GetClientId(), local_endpoint_id_.c_str());
   }
@@ -61,7 +61,7 @@ std::string ClientProxy::GenerateLocalEndpointId() {
     if (!local_high_vis_mode_cache_endpoint_id_.empty()) {
       NEARBY_LOG(INFO,
                  "ClientProxy [Local Endpoint Re-using cached endpoint id]: "
-                 "client=%" PRIx64
+                 "client=%x" PRIx64
                  "; local_high_vis_mode_cache_endpoint_id_=%s",
                  GetClientId(), local_high_vis_mode_cache_endpoint_id_.c_str());
       return local_high_vis_mode_cache_endpoint_id_;
@@ -92,14 +92,14 @@ void ClientProxy::StartedAdvertising(
     absl::Span<proto::connections::Medium> mediums,
     const ConnectionOptions& advertising_options) {
   MutexLock lock(&mutex_);
-  NEARBY_LOG(INFO, "ClientProxy [StartedAdvertising]: client=%" PRIx64,
+  NEARBY_LOG(INFO, "ClientProxy [StartedAdvertising]: client=%x" PRIx64,
              GetClientId());
 
   if (high_vis_mode_) {
     local_high_vis_mode_cache_endpoint_id_ = local_endpoint_id_;
     NEARBY_LOG(INFO,
                "ClientProxy [High Visibility Mode Adv, Cache EndpointId]: "
-               "client=%" PRIx64 "; local_high_vis_mode_cache_endpoint_id_=%s",
+               "client=%x" PRIx64 "; local_high_vis_mode_cache_endpoint_id_=%s",
                GetClientId(), local_high_vis_mode_cache_endpoint_id_.c_str());
     CancelClearLocalHighVisModeCacheEndpointIdAlarm();
   }
@@ -110,7 +110,7 @@ void ClientProxy::StartedAdvertising(
 
 void ClientProxy::StoppedAdvertising() {
   MutexLock lock(&mutex_);
-  NEARBY_LOG(INFO, "ClientProxy [StoppedAdvertising]: client=%" PRIx64,
+  NEARBY_LOG(INFO, "ClientProxy [StoppedAdvertising]: client=%x" PRIx64,
              GetClientId());
 
   if (IsAdvertising()) {
@@ -258,7 +258,7 @@ void ClientProxy::OnConnectionInitiated(const std::string& endpoint_id,
   bool inserted = result.second;
   NEARBY_LOG(
       INFO,
-      "ClientProxy [Connection Initiated]: add Connection: client=%" PRIx64
+      "ClientProxy [Connection Initiated]: add Connection: client=%x" PRIx64
       "; endpoint_id=%s; inserted=%d",
       GetClientId(), endpoint_id.c_str(), inserted);
   DCHECK(inserted);
@@ -279,10 +279,9 @@ void ClientProxy::OnConnectionAccepted(const std::string& endpoint_id) {
   MutexLock lock(&mutex_);
 
   if (!HasPendingConnectionToEndpoint(endpoint_id)) {
-    NEARBY_LOG(INFO,
-               "ClientProxy [Connection Accepted]: no pending connection; "
-               "endpoint_id=%s",
-               endpoint_id.c_str());
+    NEARBY_LOG(
+        INFO, "ClientProxy [Connection Accepted]: no pending connection; id=%s",
+        endpoint_id.c_str());
     return;
   }
 
@@ -299,10 +298,9 @@ void ClientProxy::OnConnectionRejected(const std::string& endpoint_id,
   MutexLock lock(&mutex_);
 
   if (!HasPendingConnectionToEndpoint(endpoint_id)) {
-    NEARBY_LOG(INFO,
-               "ClientProxy [Connection Rejected]: no pending connection; "
-               "endpoint_id=%s",
-               endpoint_id.c_str());
+    NEARBY_LOG(
+        INFO, "ClientProxy [Connection Rejected]: no pending connection; id=%s",
+        endpoint_id.c_str());
     return;
   }
 
@@ -322,7 +320,7 @@ void ClientProxy::OnBandwidthChanged(const std::string& endpoint_id,
   if (item != nullptr) {
     item->connection_listener.bandwidth_changed_cb(endpoint_id, new_medium);
     NEARBY_LOG(INFO,
-               "ClientProxy [reporting onBandwidthChanged]: client=%" PRIx64
+               "ClientProxy [reporting onBandwidthChanged]: client=%x" PRIx64
                "; endpoint_id=%s",
                GetClientId(), endpoint_id.c_str());
   }
@@ -585,7 +583,7 @@ void ClientProxy::OnPayload(const std::string& endpoint_id, Payload payload) {
     if (item != nullptr) {
       NEARBY_LOG(INFO,
                  "ClientProxy [reporting onPayloadReceived]: "
-                 "client=%" PRIx64 "; endpoint_id=%s; payload_id=%" PRIx64,
+                 "client=%x" PRIx64 "; endpoint_id=%s; payload_id=%x" PRIx64,
                  GetClientId(), endpoint_id.c_str(),
                  static_cast<std::int64_t>(payload.GetId()));
       item->payload_listener.payload_cb(endpoint_id, std::move(payload));
@@ -617,14 +615,14 @@ void ClientProxy::OnPayloadProgress(const std::string& endpoint_id,
       if (info.status == PayloadProgressInfo::Status::kInProgress) {
         NEARBY_LOG(VERBOSE,
                    "ClientProxy [reporting onPayloadProgress]: "
-                   "client=%" PRIx64 "; endpoint_id=%s; payload_id=%" PRIx64
+                   "client=%x" PRIx64 "; endpoint_id=%s; payload_id=%x" PRIx64
                    ", payload_status=%d",
                    GetClientId(), endpoint_id.c_str(), info.payload_id,
                    info.status);
       } else {
         NEARBY_LOG(INFO,
                    "ClientProxy [reporting onPayloadProgress]: "
-                   "client=%" PRIx64 "; endpoint_id=%s; payload_id=%" PRIx64
+                   "client=%x" PRIx64 "; endpoint_id=%s; payload_id=%x" PRIx64
                    ", payload_status=%d",
                    GetClientId(), endpoint_id.c_str(), info.payload_id,
                    info.status);
@@ -687,7 +685,7 @@ ConnectionOptions ClientProxy::GetDiscoveryOptions() const {
 
 void ClientProxy::EnterHighVisibilityMode() {
   MutexLock lock(&mutex_);
-  NEARBY_LOG(INFO, "ClientProxy [EnterHighVisibilityMode]: client=%" PRIx64,
+  NEARBY_LOG(INFO, "ClientProxy [EnterHighVisibilityMode]: client=%x" PRIx64,
              GetClientId());
 
   high_vis_mode_ = true;
@@ -695,7 +693,7 @@ void ClientProxy::EnterHighVisibilityMode() {
 
 void ClientProxy::ExitHighVisibilityMode() {
   MutexLock lock(&mutex_);
-  NEARBY_LOG(INFO, "ClientProxy [ExitHighVisibilityMode]: client=%" PRIx64,
+  NEARBY_LOG(INFO, "ClientProxy [ExitHighVisibilityMode]: client=%x" PRIx64,
              GetClientId());
 
   high_vis_mode_ = false;
@@ -708,7 +706,7 @@ void ClientProxy::ScheduleClearLocalHighVisModeCacheEndpointIdAlarm() {
   if (local_high_vis_mode_cache_endpoint_id_.empty()) {
     NEARBY_LOG(VERBOSE,
                "ClientProxy [There is no cached local high power advertising "
-               "endpoint Id.]: client=%" PRIx64,
+               "endpoint Id.]: client=%x" PRIx64,
                GetClientId());
     return;
   }
@@ -717,7 +715,7 @@ void ClientProxy::ScheduleClearLocalHighVisModeCacheEndpointIdAlarm() {
   // 30s.
   NEARBY_LOG(INFO,
              "ClientProxy [High Visibility Mode Adv, Schedule to Clear Cache "
-             "EndpointId]: client=%" PRIx64
+             "EndpointId]: client=%x" PRIx64
              "; local_high_vis_mode_cache_endpoint_id_=%s",
              GetClientId(), local_high_vis_mode_cache_endpoint_id_.c_str());
   clear_local_high_vis_mode_cache_endpoint_id_alarm_ = CancelableAlarm(
@@ -726,7 +724,7 @@ void ClientProxy::ScheduleClearLocalHighVisModeCacheEndpointIdAlarm() {
         MutexLock lock(&mutex_);
         NEARBY_LOG(INFO,
                    "ClientProxy [Cleared cached local high power advertising "
-                   "endpoint Id.]: client=%" PRIx64
+                   "endpoint Id.]: client=%x" PRIx64
                    "; local_high_vis_mode_cache_endpoint_id_=%s",
                    GetClientId(),
                    local_high_vis_mode_cache_endpoint_id_.c_str());
