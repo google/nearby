@@ -409,12 +409,12 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
         absl::Milliseconds(options.keep_alive_interval_millis);
     absl::Duration keep_alive_timeout =
         absl::Milliseconds(options.keep_alive_timeout_millis);
-    NEARBY_LOG(INFO,
-               "Registering endpoint %s for client %d with keep-alive frame as "
-               "interval=%s, timeout=%s",
-               endpoint_id.c_str(), client->GetClientId(),
-               absl::FormatDuration(keep_alive_interval).c_str(),
-               absl::FormatDuration(keep_alive_timeout).c_str());
+    NEARBY_LOGS(INFO) << "Registering endpoint " << endpoint_id.c_str()
+                      << " for client " << client->GetClientId()
+                      << " with keep-alive frame as interval="
+                      << absl::FormatDuration(keep_alive_interval).c_str()
+                      << ", timeout="
+                      << absl::FormatDuration(keep_alive_timeout).c_str();
 
     // Pass ownership of channel to EndpointChannelManager
     NEARBY_LOG(INFO, "Registering endpoint with channel manager: id=%s",
@@ -487,12 +487,12 @@ void EndpointManager::UnregisterEndpoint(ClientProxy* client,
                                          const std::string& endpoint_id) {
   NEARBY_LOG(ERROR, "UnregisterEndpoint for endpoint %s", endpoint_id.c_str());
   CountDownLatch latch(1);
-  RunOnEndpointManagerThread("unregister-endpoint", [this, client, endpoint_id,
-                                                     &latch]() {
-    RemoveEndpoint(client, endpoint_id,
-                   client->IsConnectedToEndpoint(endpoint_id));
-    latch.CountDown();
-  });
+  RunOnEndpointManagerThread(
+      "unregister-endpoint", [this, client, endpoint_id, &latch]() {
+        RemoveEndpoint(client, endpoint_id,
+                       client->IsConnectedToEndpoint(endpoint_id));
+        latch.CountDown();
+      });
   latch.Await();
 }
 
