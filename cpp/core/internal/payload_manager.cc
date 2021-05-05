@@ -318,8 +318,7 @@ void PayloadManager::SendPayload(ClientProxy* client,
   Payload::Type payload_type = payload.GetType();
   Payload::Id payload_id =
       CreateOutgoingPayload(std::move(payload), endpoint_ids);
-  executor->Execute("send-payload", [this, client, endpoint_ids, payload_id,
-                                     payload_type]() {
+  executor->Execute("send-payload", [this, client, endpoint_ids, payload_id]() {
     if (shutdown_.Get()) return;
     PendingPayload* pending_payload = GetPayload(payload_id);
     if (!pending_payload) return;
