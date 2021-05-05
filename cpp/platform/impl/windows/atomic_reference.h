@@ -15,6 +15,8 @@
 #ifndef PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
 #define PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
 
+#include <atomic>
+
 #include "platform/api/atomic_reference.h"
 
 namespace location {
@@ -29,11 +31,14 @@ class AtomicUint32 : public api::AtomicUint32 {
 
   // Atomically reads and returns stored value.
   // TODO(b/184975123): replace with real implementation.
-  std::uint32_t Get() const override { return 0; };
+  std::uint32_t Get() const override { return atomic_uint32_; };
 
   // Atomically stores value.
   // TODO(b/184975123): replace with real implementation.
-  void Set(std::uint32_t value) override {}
+  void Set(std::uint32_t value) override { atomic_uint32_ = value; }
+
+ private:
+  std::atomic_int32_t atomic_uint32_;
 };
 
 }  // namespace windows

@@ -92,13 +92,14 @@ cc_test(
     name = "impl_test",
     size = "small",
     srcs = [
+        "atomic_boolean_tests.cc",
+        "atomic_uint32_tests.cc",
         "crypto_test.cc",
     ],
     deps = [
-        ":comm",
-        ":crypto",
         ":types",
         "//platform/api:types",
         "//testing/base/public:gunit_main",
+        "//googletest:gtest_no_google3",
     ],
 )
