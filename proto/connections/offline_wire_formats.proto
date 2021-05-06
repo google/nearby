@@ -60,7 +60,7 @@ message ConnectionRequestFrame {
   // Should always match cs/symbol:location.nearby.proto.connections.Medium
   enum Medium {
     UNKNOWN_MEDIUM = 0;
-    MDNS = 1;
+    MDNS = 1 [deprecated = true];
     BLUETOOTH = 2;
     WIFI_HOTSPOT = 3;
     BLE = 4;
@@ -176,7 +176,7 @@ message BandwidthUpgradeNegotiationFrame {
     // Should always match cs/symbol:location.nearby.proto.connections.Medium
     enum Medium {
       UNKNOWN_MEDIUM = 0;
-      MDNS = 1;
+      MDNS = 1 [deprecated = true];
       BLUETOOTH = 2;
       WIFI_HOTSPOT = 3;
       BLE = 4;
