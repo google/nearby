@@ -78,7 +78,7 @@ Exception EnsureValidConnectionResponseFrame(
 }
 
 Exception EnsureValidPayloadTransferDataFrame(const PayloadChunk& payload_chunk,
-                                              int totalSize) {
+                                              std::int64_t totalSize) {
   if (!payload_chunk.has_flags()) return {Exception::kInvalidProtocolBuffer};
 
   // Special case. The body can be null iff the chunk is flagged as the last
@@ -100,7 +100,7 @@ Exception EnsureValidPayloadTransferDataFrame(const PayloadChunk& payload_chunk,
 }
 
 Exception EnsureValidPayloadTransferControlFrame(
-    const ControlMessage& control_message, int totalSize) {
+    const ControlMessage& control_message, std::int64_t totalSize) {
   if (!control_message.has_offset() || control_message.offset() < 0)
     return {Exception::kInvalidProtocolBuffer};
   if (totalSize != InternalPayload::kIndeterminateSize &&
