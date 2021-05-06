@@ -169,7 +169,6 @@ py_test(
     srcs_version = "PY3",
     tags = ["non_compile_test"],
     deps = [
-        "//pyglib/flags",
         "//testing/pybase",
         "//testing/pybase:fake_target_util",
     ],
