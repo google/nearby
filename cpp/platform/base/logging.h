@@ -15,6 +15,10 @@
 #ifndef PLATFORM_BASE_LOGGING_H_
 #define PLATFORM_BASE_LOGGING_H_
 
+#if defined NEARBY_WINDOWS_DLL
+#include "base/logging.h"
+#endif
+
 #include "platform/api/log_message.h"
 #include "platform/api/platform.h"
 
