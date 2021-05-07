@@ -186,6 +186,11 @@ class BwuManager : public EndpointManager::FrameProcessor {
   absl::flat_hash_map<std::string, absl::Time> safe_to_close_write_timestamps_;
   absl::flat_hash_map<std::string, std::pair<CancelableAlarm, absl::Duration>>
       retry_upgrade_alarms_;
+  // Maps endpointId -> duration of delay before bwu retry.
+  // When bwu failed, retry_upgrade_alarms_ will clear the entry before the
+  // retry happen, then we can not find the last delay used in the alarm. Thus
+  // using a different map to keep track of the delays per endpoint.
+  absl::flat_hash_map<std::string, absl::Duration> retry_delays_;
 };
 
 }  // namespace connections

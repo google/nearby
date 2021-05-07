@@ -48,10 +48,24 @@ BwuManager::BwuManager(
       endpoint_manager_(&endpoint_manager),
       channel_manager_(&channel_manager) {
   if (config_.bandwidth_upgrade_retry_delay == absl::ZeroDuration()) {
-    config_.bandwidth_upgrade_retry_delay = absl::Seconds(5);
+    if (FeatureFlags::GetInstance().GetFlags().use_exp_backoff_in_bwu_retry) {
+      config_.bandwidth_upgrade_retry_delay =
+          FeatureFlags::GetInstance()
+              .GetFlags()
+              .bwu_retry_exp_backoff_initial_delay;
+    } else {
+      config_.bandwidth_upgrade_retry_delay = absl::Seconds(5);
+    }
   }
   if (config_.bandwidth_upgrade_retry_max_delay == absl::ZeroDuration()) {
-    config_.bandwidth_upgrade_retry_max_delay = absl::Seconds(10);
+    if (FeatureFlags::GetInstance().GetFlags().use_exp_backoff_in_bwu_retry) {
+      config_.bandwidth_upgrade_retry_max_delay =
+          FeatureFlags::GetInstance()
+              .GetFlags()
+              .bwu_retry_exp_backoff_maximum_delay;
+    } else {
+      config_.bandwidth_upgrade_retry_max_delay = absl::Seconds(10);
+    }
   }
   if (config_.allow_upgrade_to.All(false)) {
     config_.allow_upgrade_to.web_rtc = true;
@@ -247,6 +261,7 @@ void BwuManager::OnEndpointDisconnect(ClientProxy* client,
           }
         }
         in_progress_upgrades_.erase(endpoint_id);
+        retry_delays_.erase(endpoint_id);
         CancelRetryUpgradeAlarm(endpoint_id);
 
         successfully_upgraded_endpoints_.erase(endpoint_id);
@@ -316,49 +331,49 @@ void BwuManager::OnIncomingConnection(
              client->GetServiceId().c_str());
   std::shared_ptr<BwuHandler::IncomingSocketConnection> connection(
       mutable_connection.release());
-  RunOnBwuManagerThread("bwu-on-incoming-connection", [this, client,
-                                                       connection]() {
-    EndpointChannel* channel = connection->channel.get();
-    if (channel == nullptr) {
-      connection->socket->Close();
-      return;
-    }
+  RunOnBwuManagerThread(
+      "bwu-on-incoming-connection", [this, client, connection]() {
+        EndpointChannel* channel = connection->channel.get();
+        if (channel == nullptr) {
+          connection->socket->Close();
+          return;
+        }
 
-    ClientIntroduction introduction;
-    if (!ReadClientIntroductionFrame(channel, introduction)) {
-      // This was never a fully EstablishedConnection, no need to provide a
-      // closure reason.
-      channel->Close();
-      return;
-    }
+        ClientIntroduction introduction;
+        if (!ReadClientIntroductionFrame(channel, introduction)) {
+          // This was never a fully EstablishedConnection, no need to provide a
+          // closure reason.
+          channel->Close();
+          return;
+        }
 
-    if (!WriteClientIntroductionAckFrame(channel)) {
-      // This was never a fully EstablishedConnection, no need to provide a
-      // closure reason.
-      channel->Close();
-      return;
-    }
+        if (!WriteClientIntroductionAckFrame(channel)) {
+          // This was never a fully EstablishedConnection, no need to provide a
+          // closure reason.
+          channel->Close();
+          return;
+        }
 
-    const std::string& endpoint_id = introduction.endpoint_id();
-    ClientProxy* mapped_client;
-    const auto item = in_progress_upgrades_.find(endpoint_id);
-    if (item == in_progress_upgrades_.end()) return;
-    mapped_client = item->second;
-    CancelRetryUpgradeAlarm(endpoint_id);
-    if (mapped_client == nullptr) {
-      // This was never a fully EstablishedConnection, no need to provide a
-      // closure reason.
-      channel->Close();
-      return;
-    }
+        const std::string& endpoint_id = introduction.endpoint_id();
+        ClientProxy* mapped_client;
+        const auto item = in_progress_upgrades_.find(endpoint_id);
+        if (item == in_progress_upgrades_.end()) return;
+        mapped_client = item->second;
+        CancelRetryUpgradeAlarm(endpoint_id);
+        if (mapped_client == nullptr) {
+          // This was never a fully EstablishedConnection, no need to provide a
+          // closure reason.
+          channel->Close();
+          return;
+        }
 
-    CHECK(client == mapped_client);
+        CHECK(client == mapped_client);
 
-    // Use the introductory client information sent over to run the upgrade
-    // protocol.
-    RunUpgradeProtocol(mapped_client, endpoint_id,
-                       std::move(connection->channel));
-  });
+        // Use the introductory client information sent over to run the upgrade
+        // protocol.
+        RunUpgradeProtocol(mapped_client, endpoint_id,
+                           std::move(connection->channel));
+      });
 }
 
 void BwuManager::RunOnBwuManagerThread(const std::string& name,
@@ -835,7 +850,7 @@ void BwuManager::RetryUpgradeMediums(ClientProxy* client,
              "BwuManager is attempting to upgrade endpoint %s again with a new "
              " bandwidth upgrade medium.",
              endpoint_id.c_str());
-  InitiateBwuForEndpoint(client, endpoint_id);
+  InitiateBwuForEndpoint(client, endpoint_id, next_medium);
 }
 
 std::vector<Medium> BwuManager::StripOutUnavailableMediums(
@@ -918,30 +933,39 @@ void BwuManager::RetryUpgradesAfterDelay(ClientProxy* client,
   CancelableAlarm alarm(
       "BWU alarm",
       [this, client, endpoint_id]() {
-        RunOnBwuManagerThread("bwu-retry-upgrade", [this, client,
-                                                    endpoint_id]() {
-          if (!client->IsConnectedToEndpoint(endpoint_id)) {
-            return;
-          }
-          RetryUpgradeMediums(
-              client, endpoint_id,
-              client->GetUpgradeMediums(endpoint_id).GetMediums(true));
-        });
+        RunOnBwuManagerThread(
+            "bwu-retry-upgrade", [this, client, endpoint_id]() {
+              if (!client->IsConnectedToEndpoint(endpoint_id)) {
+                return;
+              }
+              RetryUpgradeMediums(
+                  client, endpoint_id,
+                  client->GetUpgradeMediums(endpoint_id).GetMediums(true));
+            });
       },
       delay, &alarm_executor_);
 
   retry_upgrade_alarms_.emplace(endpoint_id,
                                 std::make_pair(std::move(alarm), delay));
+  retry_delays_[endpoint_id] = delay;
   NEARBY_LOGS(INFO) << "Retry bandwidth upgrade after " << delay;
 }
 
 absl::Duration BwuManager::CalculateNextRetryDelay(
     const std::string& endpoint_id) {
-  auto item = retry_upgrade_alarms_.find(endpoint_id);
+  auto item = retry_delays_.find(endpoint_id);
   auto initial_delay = config_.bandwidth_upgrade_retry_delay;
-  auto delay = item == retry_upgrade_alarms_.end()
-                   ? initial_delay
-                   : item->second.second + initial_delay;
+  if (item == retry_delays_.end()) return initial_delay;
+  /*
+   * Without use_exp_backoff_in_bwu_retry, bwu retry intervals for the same
+   * endpoint_id in seconds will be like: 5, 10, 10, 10...
+   * With use_exp_backoff_in_bwu_retry enabled, bwu retry intervals in seconds
+   * would be like: 3, 6, 12, 24, ... 300, 300, ...
+   */
+  auto delay =
+      FeatureFlags::GetInstance().GetFlags().use_exp_backoff_in_bwu_retry
+          ? item->second * 2
+          : item->second + initial_delay;
   return std::min(delay, config_.bandwidth_upgrade_retry_max_delay);
 }
 
@@ -962,6 +986,7 @@ void BwuManager::CancelAllRetryUpgradeAlarms() {
     cancellable_alarm.Cancel();
   }
   retry_upgrade_alarms_.clear();
+  retry_delays_.clear();
 }
 
 Medium BwuManager::GetEndpointMedium(const std::string& endpoint_id) {
