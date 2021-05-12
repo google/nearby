@@ -64,6 +64,8 @@ namespace mediums {
  * data channel.
  *   <li>ENDED: The final state that can occur from any of the
  * previous states if we disconnect at any point in the flow.
+ *
+ * 
  * </ul>
  */
 class ConnectionFlow : public webrtc::PeerConnectionObserver {
