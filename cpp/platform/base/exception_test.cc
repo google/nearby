@@ -41,7 +41,7 @@ TEST(ExceptionOr, Result_Copy_Const) {
   EXPECT_FALSE(exception_or_vector.result().empty());
 
   // Expect a copy when not explicitly moving the result.
-  std::vector<int> copy = exception_or_vector.result();
+  const std::vector<int>& copy = exception_or_vector.result();
   EXPECT_FALSE(copy.empty());
   EXPECT_FALSE(exception_or_vector.result().empty());
 }
