@@ -99,12 +99,14 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
 
   // Create and send offer
   SessionDescriptionWrapper offer = offerer->CreateOffer();
+  ASSERT_TRUE(offer.IsValid());
   EXPECT_EQ(offer.GetType(), webrtc::SdpType::kOffer);
   EXPECT_TRUE(answerer->OnOfferReceived(offer));
   EXPECT_TRUE(offerer->SetLocalSessionDescription(std::move(offer)));
 
   // Create and send answer
   SessionDescriptionWrapper answer = answerer->CreateAnswer();
+  ASSERT_TRUE(answer.IsValid());
   EXPECT_EQ(answer.GetType(), webrtc::SdpType::kAnswer);
   EXPECT_TRUE(offerer->OnAnswerReceived(answer));
   EXPECT_TRUE(answerer->SetLocalSessionDescription(std::move(answer)));
@@ -151,11 +153,13 @@ TEST_F(ConnectionFlowTest, SetAnswerBeforeOffer) {
   ASSERT_NE(answerer, nullptr);
 
   SessionDescriptionWrapper offer = offerer->CreateOffer();
+  ASSERT_TRUE(offer.IsValid());
   EXPECT_EQ(offer.GetType(), webrtc::SdpType::kOffer);
   // Did not set offer as local session description
   EXPECT_TRUE(answerer->OnOfferReceived(offer));
 
   SessionDescriptionWrapper answer = answerer->CreateAnswer();
+  ASSERT_TRUE(answer.IsValid());
   EXPECT_EQ(answer.GetType(), webrtc::SdpType::kAnswer);
   EXPECT_FALSE(offerer->OnAnswerReceived(answer));
 }
@@ -180,6 +184,7 @@ TEST_F(ConnectionFlowTest, CannotSetSessionDescriptionAfterClose) {
   ASSERT_NE(offerer, nullptr);
 
   SessionDescriptionWrapper offer = offerer->CreateOffer();
+  ASSERT_TRUE(offer.IsValid());
   EXPECT_EQ(offer.GetType(), webrtc::SdpType::kOffer);
 
   EXPECT_TRUE(offerer->CloseIfNotConnected());
@@ -202,6 +207,7 @@ TEST_F(ConnectionFlowTest, CannotReceiveOfferAfterClose) {
   EXPECT_TRUE(answerer->CloseIfNotConnected());
 
   SessionDescriptionWrapper offer = offerer->CreateOffer();
+  ASSERT_TRUE(offer.IsValid());
   EXPECT_EQ(offer.GetType(), webrtc::SdpType::kOffer);
 
   EXPECT_FALSE(answerer->OnOfferReceived(offer));
@@ -278,12 +284,14 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
 
   // Create and send offer
   SessionDescriptionWrapper offer = offerer->CreateOffer();
+  ASSERT_TRUE(offer.IsValid());
   EXPECT_EQ(offer.GetType(), webrtc::SdpType::kOffer);
   EXPECT_TRUE(answerer->OnOfferReceived(offer));
   EXPECT_TRUE(offerer->SetLocalSessionDescription(std::move(offer)));
 
   // Create and send answer
   SessionDescriptionWrapper answer = answerer->CreateAnswer();
+  ASSERT_TRUE(answer.IsValid());
   EXPECT_EQ(answer.GetType(), webrtc::SdpType::kAnswer);
   EXPECT_TRUE(offerer->OnAnswerReceived(answer));
   EXPECT_TRUE(answerer->SetLocalSessionDescription(std::move(answer)));
@@ -357,12 +365,14 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
 
   // Create and send offer
   SessionDescriptionWrapper offer = offerer->CreateOffer();
+  ASSERT_TRUE(offer.IsValid());
   EXPECT_EQ(offer.GetType(), webrtc::SdpType::kOffer);
   EXPECT_TRUE(answerer->OnOfferReceived(offer));
   EXPECT_TRUE(offerer->SetLocalSessionDescription(std::move(offer)));
 
   // Create and send answer
   SessionDescriptionWrapper answer = answerer->CreateAnswer();
+  ASSERT_TRUE(answer.IsValid());
   EXPECT_EQ(answer.GetType(), webrtc::SdpType::kAnswer);
   EXPECT_TRUE(offerer->OnAnswerReceived(answer));
   EXPECT_TRUE(answerer->SetLocalSessionDescription(std::move(answer)));
