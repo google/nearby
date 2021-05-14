@@ -78,6 +78,9 @@ cc_library(
     srcs = [
         "platform.cc",
     ],
+    visibility = [
+        "//location/nearby/connections/windows:__subpackages__",
+    ],
     deps = [
         ":comm",
         ":crypto",  # build_cleaner: keep
