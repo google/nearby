@@ -602,14 +602,6 @@ void ClientProxy::OnPayloadProgress(const std::string& endpoint_id,
   }
 }
 
-bool operator==(const ClientProxy& lhs, const ClientProxy& rhs) {
-  return lhs.GetClientId() == rhs.GetClientId();
-}
-
-bool operator<(const ClientProxy& lhs, const ClientProxy& rhs) {
-  return lhs.GetClientId() < rhs.GetClientId();
-}
-
 void ClientProxy::RemoveAllEndpoints() {
   MutexLock lock(&mutex_);
 

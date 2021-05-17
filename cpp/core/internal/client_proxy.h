@@ -298,10 +298,6 @@ class ClientProxy final {
       std::make_unique<CancellationFlag>(true);
 };
 
-// Operator overloads when comparing Ptr<ClientProxy>.
-bool operator==(const ClientProxy& lhs, const ClientProxy& rhs);
-bool operator<(const ClientProxy& lhs, const ClientProxy& rhs);
-
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
