@@ -114,7 +114,7 @@ void WebRtcSocket::OnStateChange() {
       socket_listener_.socket_closed_cb(this);
 
       if (!closed_.Set(true)) {
-        ClosePipe();
+        OffloadFromSignalingThread([this] { ClosePipe(); });
       }
       break;
   }
@@ -161,6 +161,7 @@ void WebRtcSocket::ClosePipe() {
                        << ") this: " << this << " done";
 }
 
+// Must not be called on signalling thread.
 void WebRtcSocket::WakeUpWriter() {
   MutexLock lock(&backpressure_mutex_);
   buffer_variable_.Notify();
