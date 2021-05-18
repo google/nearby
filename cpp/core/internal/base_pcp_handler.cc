@@ -177,10 +177,14 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
     }
   }
 
-  return {.bluetooth = intersection.contains(Medium::BLUETOOTH),
-          .ble = intersection.contains(Medium::BLE),
-          .web_rtc = intersection.contains(Medium::WEB_RTC),
-          .wifi_lan = intersection.contains(Medium::WIFI_LAN)};
+  // Not using designated initializers here since the VS C++ compiler errors
+  // out indicating that MediumSelector<bool> is not an aggregate
+  MediumSelector<bool> mediumSelector{};
+  mediumSelector.bluetooth = intersection.contains(Medium::BLUETOOTH);
+  mediumSelector.ble = intersection.contains(Medium::BLE);
+  mediumSelector.web_rtc = intersection.contains(Medium::WEB_RTC);
+  mediumSelector.wifi_lan = intersection.contains(Medium::WIFI_LAN);
+  return mediumSelector;
 }
 
 Status BasePcpHandler::StartDiscovery(ClientProxy* client,
@@ -509,20 +513,22 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
         // protocol. We'll mark ourselves as pending in case we get another call
         // to RequestConnection or OnIncomingConnection, so that we can cancel
         // the connection if needed.
+        // Not using designated initializers here since the VS C++ compiler
+        // errors out indicating that MediumSelector<bool> is not an aggregate
+        PendingConnectionInfo pendingConnectionInfo{};
+        pendingConnectionInfo.client = client;
+        pendingConnectionInfo.remote_endpoint_info = endpoint->endpoint_info;
+        pendingConnectionInfo.nonce = nonce;
+        pendingConnectionInfo.is_incoming = false;
+        pendingConnectionInfo.start_time = start_time;
+        pendingConnectionInfo.listener = info.listener;
+        pendingConnectionInfo.options = options;
+        pendingConnectionInfo.result = result;
+        pendingConnectionInfo.channel = std::move(channel);
+
         EndpointChannel* endpoint_channel =
             pending_connections_
-                .emplace(endpoint_id,
-                         PendingConnectionInfo{
-                             .client = client,
-                             .remote_endpoint_info = endpoint->endpoint_info,
-                             .nonce = nonce,
-                             .is_incoming = false,
-                             .start_time = start_time,
-                             .listener = info.listener,
-                             .options = options,
-                             .result = result,
-                             .channel = std::move(channel),
-                         })
+                .emplace(endpoint_id, std::move(pendingConnectionInfo))
                 .first->second.channel.get();
 
         NEARBY_LOG(INFO, "Initiating secure connection: id=%s",
@@ -1083,23 +1089,24 @@ Exception BasePcpHandler::OnIncomingConnection(
   // the EncryptionRunner thread to start running our encryption protocol. We'll
   // mark ourselves as pending in case we get another call to RequestConnection
   // or OnIncomingConnection, so that we can cancel the connection if needed.
-  auto* owned_channel =
-      pending_connections_
-          .emplace(connection_request.endpoint_id(),
-                   PendingConnectionInfo{
-                       .client = client,
-                       .remote_endpoint_info = endpoint_info,
-                       .nonce = connection_request.nonce(),
-                       .is_incoming = true,
-                       .start_time = start_time,
-                       .listener = advertising_listener_,
-                       .options = options,
-                       .supported_mediums =
-                           parser::ConnectionRequestMediumsToMediums(
-                               connection_request),
-                       .channel = std::move(channel),
-                   })
-          .first->second.channel.get();
+  // Not using designated initializers here since the VS C++ compiler errors
+  // out indicating that MediumSelector<bool> is not an aggregate
+  PendingConnectionInfo pendingConnectionInfo{};
+  pendingConnectionInfo.client = client;
+  pendingConnectionInfo.remote_endpoint_info = endpoint_info;
+  pendingConnectionInfo.nonce = connection_request.nonce();
+  pendingConnectionInfo.is_incoming = true;
+  pendingConnectionInfo.start_time = start_time;
+  pendingConnectionInfo.listener = advertising_listener_;
+  pendingConnectionInfo.options = options;
+  pendingConnectionInfo.supported_mediums =
+      parser::ConnectionRequestMediumsToMediums(connection_request);
+  pendingConnectionInfo.channel = std::move(channel);
+
+  auto* owned_channel = pending_connections_
+                            .emplace(connection_request.endpoint_id(),
+                                     std::move(pendingConnectionInfo))
+                            .first->second.channel.get();
 
   // Next, we'll set up encryption.
   encryption_runner_.StartServer(client, connection_request.endpoint_id(),
