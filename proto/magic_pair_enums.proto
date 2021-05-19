@@ -57,6 +57,24 @@ message MagicPairEvent {
 
     // A failure at MDH.
     MDH_REMOTE_EXCEPTION = 7;
+
+    // For errors on GATT connection and retry success
+    SUCCESS_RETRY_GATT_ERROR = 8;
+
+    // For timeout on GATT connection and retry success
+    SUCCESS_RETRY_GATT_TIMEOUT = 9;
+
+    // For errors on secret handshake and retry success
+    SUCCESS_RETRY_SECRET_HANDSHAKE_ERROR = 10;
+
+    // For timeout on secret handshake and retry success
+    SUCCESS_RETRY_SECRET_HANDSHAKE_TIMEOUT = 11;
+
+    // For secret handshake fail and restart GATT connection success
+    SUCCESS_SECRET_HANDSHAKE_RECONNECT = 12;
+
+    // For address rotate and retry with new address success
+    SUCCESS_ADDRESS_ROTATE = 13;
   }
 
   enum BrEdrHandoverErrorCode {
