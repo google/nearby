@@ -75,6 +75,9 @@ message MagicPairEvent {
 
     // For address rotate and retry with new address success
     SUCCESS_ADDRESS_ROTATE = 13;
+
+    // For signal lost and retry with old address still success
+    SUCCESS_SIGNAL_LOST = 14;
   }
 
   enum BrEdrHandoverErrorCode {
