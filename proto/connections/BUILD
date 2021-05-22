@@ -21,7 +21,7 @@ proto_library(
     ],
     cc_api_version = 2,
     visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//googlemac/iPhone/Shared/Nearby/Connections_v2:__subpackages__",
     ],
 )
 
