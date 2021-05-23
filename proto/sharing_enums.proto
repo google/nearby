@@ -163,6 +163,11 @@ enum EventType {
 
   // User starts a consent.
   LAUNCH_CONSENT = 42;
+
+  // After receiving payloads, Nearby Share still needs to transfer the payloads
+  // to correct attachment formats and move files attachments from temporary
+  // directory to final destination.
+  PROCESS_RECEIVED_ATTACHMENTS_END = 43;
 }
 
 // Event category to differentiate whether this comes from sender or receiver,
@@ -220,6 +225,18 @@ enum AttachmentTransmissionStatus {
   FAILED_NULL_CONNECTION = 14;
   FAILED_NO_PAYLOAD = 15;
   FAILED_WRITE_INTRODUCTION = 16;
+}
+
+// The status of processing attachments after receiver received payloads
+// successfully.
+enum ProcessReceivedAttachmentsStatus {
+  PROCESSING_STATUS_UNKNOWN = 0;
+
+  PROCESSING_STATUS_COMPLETE_PROCESSING_ATTACHMENTS = 1;
+  PROCESSING_STATUS_FAILED_MOVING_FILES = 2;
+  PROCESSING_STATUS_FAILED_RECEIVING_APK = 3;
+  PROCESSING_STATUS_FAILED_RECEIVING_TEXT = 4;
+  PROCESSING_STATUS_FAILED_RECEIVING_WIFI_CREDENTIALS = 5;
 }
 
 // The status of advertising and discovering sessions. Used by
