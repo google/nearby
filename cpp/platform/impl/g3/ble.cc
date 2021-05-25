@@ -20,7 +20,7 @@
 
 #include "platform/api/ble.h"
 #include "platform/base/cancellation_flag_listener.h"
-#include "platform/base/logging.h"
+#include "platform/base/check.h"
 #include "platform/base/medium_environment.h"
 #include "absl/synchronization/mutex.h"
 

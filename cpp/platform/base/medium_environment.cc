@@ -24,7 +24,7 @@
 #include "platform/api/bluetooth_classic.h"
 #include "platform/api/wifi_lan.h"
 #include "platform/base/feature_flags.h"
-#include "platform/base/logging.h"
+#include "platform/base/check.h"
 #include "platform/public/count_down_latch.h"
 
 namespace location {

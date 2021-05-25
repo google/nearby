@@ -15,6 +15,7 @@
 #ifndef PLATFORM_BASE_LOGGING_H_
 #define PLATFORM_BASE_LOGGING_H_
 
+#include "base/check.h"
 #include "platform/api/log_message.h"
 #include "platform/api/platform.h"
 

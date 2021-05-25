@@ -15,7 +15,7 @@
 #ifndef PLATFORM_IMPL_G3_LOG_MESSAGE_H_
 #define PLATFORM_IMPL_G3_LOG_MESSAGE_H_
 
-#include "base/logging.h"
+#include "base/check.h"
 #include "platform/api/log_message.h"
 
 namespace location {

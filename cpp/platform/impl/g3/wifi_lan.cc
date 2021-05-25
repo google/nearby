@@ -20,7 +20,7 @@
 
 #include "platform/api/wifi_lan.h"
 #include "platform/base/cancellation_flag_listener.h"
-#include "platform/base/logging.h"
+#include "platform/base/check.h"
 #include "platform/base/medium_environment.h"
 #include "platform/base/nsd_service_info.h"
 #include "platform/base/prng.h"
