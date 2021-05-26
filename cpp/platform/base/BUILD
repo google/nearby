@@ -90,6 +90,7 @@ cc_library(
         "//platform:__subpackages__",
     ],
     deps = [
+        "//base:logging",
         "//platform/api:platform",
         "//platform/api:types",
     ],
