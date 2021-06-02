@@ -36,6 +36,7 @@ cc_library(
         "submittable_executor.h",
     ],
     deps = [
+        "//base",
         "//platform/api:types",
         "//platform/base",
     ],
@@ -88,6 +89,7 @@ cc_library(
         "//platform/api:comm",
         "//platform/api:platform",
         "//platform/api:types",
+        "//platform/impl/shared:file",
     ],
 )
 
