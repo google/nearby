@@ -285,7 +285,7 @@ message PairedKeyEncryptionFrame {
 message MediumMetadata {
   // True if local device supports 5GHz.
   optional bool supports_5_ghz = 1;
-  // WiFi Lan BSSID
+  // WiFi LAN BSSID
   optional string bssid = 2;
   // IP address
   optional bytes ip_address = 3;
@@ -293,6 +293,9 @@ message MediumMetadata {
   optional bool supports_6_ghz = 4;
   // True if local device has mobile radio.
   optional bool mobile_radio = 5;
+  // The frequency of the WiFi LAN AP (or -1 is not associated to an AP over
+  // WiFi).
+  optional int32 ap_frequency = 6 [default = -1];
 }
 
 // LocationHint is used to specify a location as well as format.
