@@ -239,6 +239,8 @@ class ClientProxy final {
   void ScheduleClearLocalHighVisModeCacheEndpointIdAlarm();
   void CancelClearLocalHighVisModeCacheEndpointIdAlarm();
 
+  std::string ToString(PayloadProgressInfo::Status status) const;
+
   mutable RecursiveMutex mutex_;
   Prng prng_;
   std::int64_t client_id_;
