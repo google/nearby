@@ -166,7 +166,7 @@ enum PayloadStatus {
   REMOTE_CANCELLATION = 8;
 }
 
-// next_id: 18
+// next_id: 19
 // Result of an upgrade attempt.
 enum BandwidthUpgradeResult {
   UNKNOWN_BANDWIDTH_UPGRADE_RESULT = 0;
@@ -215,6 +215,9 @@ enum BandwidthUpgradeResult {
 
   // When the remote endpoint had an error on their end.
   RESULT_REMOTE_ERROR = 17;
+
+  // The attempt was never made because a precondition check failed.
+  ATTEMPT_SKIPPED = 18;
 }
 
 // next_id: 35
