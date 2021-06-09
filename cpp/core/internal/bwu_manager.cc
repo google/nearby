@@ -616,7 +616,7 @@ bool BwuManager::ReadClientIntroductionFrame(EndpointChannel* channel,
 
 bool BwuManager::ReadClientIntroductionAckFrame(EndpointChannel* channel) {
   NEARBY_LOG(INFO,
-             "ReadClientIntroductionFrame with channel name: %s, medium: %d",
+             "ReadClientIntroductionAckFrame with channel name: %s, medium: %d",
              channel->GetName().c_str(), channel->GetMedium());
   CancelableAlarm timeout_alarm(
       "BwuManager::ReadClientIntroductionAckFrame",
