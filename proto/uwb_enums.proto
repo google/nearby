@@ -22,20 +22,22 @@ option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "UwbEnums";
 option objc_class_prefix = "GNUP";
 
-// The role which the device takes during UWB ranging.
+// The device type which the device takes during UWB ranging.
 // LINT.IfChange()
-enum RangingRole {
-  ROLE_UNKNOWN = 0;
-  ROLE_CONTROLLER = 1;
-  ROLE_CONTROLLEE = 2;
+enum DeviceType {
+  TYPE_UNKNOWN = 0;
+  TYPE_CONTROLLER = 1;
+  TYPE_CONTROLEE = 2;
 }
 // LINT.ThenChange(//depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/uwb/UwbOptions.java)
 
-// The type how a UWB session should be created.
+// The profile which the UWB session should use.
 // LINT.IfChange()
-enum SessionType {
-  TYPE_UNKNOWN = 0;
-  TYPE_UNICAST = 1;
-  TYPE_MULTICAST = 2;
+enum Profile {
+  PROFILE_UNKNOWN = 0;
+  PROFILE_DEVICE_TRACKER = 1;
+  PROFILE_NEARBY_SHARE = 2;
+  PROFILE_DEVICE_TRACKER_TESTING = 3;
+  PROFILE_NEARBY_SHARE_TESTING = 4;
 }
 // LINT.ThenChange(//depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/uwb/UwbOptions.java)
