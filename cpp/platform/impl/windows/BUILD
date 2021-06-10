@@ -48,6 +48,10 @@ cc_library(
         "ble.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
+        "bluetooth_classic_device.h",
+        "bluetooth_classic_medium.h",
+        "bluetooth_classic_server_socket.h",
+        "bluetooth_classic_socket.h",
         "server_sync.h",
         "webrtc.h",
         "wifi.h",
@@ -77,6 +81,10 @@ cc_library(
 cc_library(
     name = "windows",
     srcs = [
+        "bluetooth_classic_device.cc",
+        "bluetooth_classic_medium.cc",
+        "bluetooth_classic_server_socket.cc",
+        "bluetooth_classic_socket.cc",
         "platform.cc",
     ],
     visibility = [

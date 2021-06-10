@@ -1,0 +1,9 @@
+namespace location {
+namespace nearby {
+namespace windows {
+[default_interface] runtimeclass BluetoothClassicMedium {
+  BluetoothClassicMedium();
+};
+}  // namespace windows
+}  // namespace nearby
+}  // namespace location
