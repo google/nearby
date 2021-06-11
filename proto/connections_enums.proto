@@ -80,7 +80,10 @@ enum Medium {
   WIFI_DIRECT = 8;
   WEB_RTC = 9;
 }
-// LINT.ThenChange(//depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/Medium.java)
+// LINT.ThenChange(
+//     //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/Medium.java,
+//     //depot/google3/java/com/google/android/gms/nearby/internal/connection/api.proto
+// )
 
 // The result of a ConnectionRequest.
 enum ConnectionRequestResponse {
