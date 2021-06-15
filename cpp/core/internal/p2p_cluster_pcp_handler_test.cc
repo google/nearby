@@ -54,7 +54,7 @@ class P2pClusterPcpHandlerTest
       NEARBY_LOG(INFO, "SetUp: BT enabled");
     }
     if (options_.allowed.wifi_lan) {
-      NEARBY_LOG(INFO, "SetUp: Wifi LAN enabled");
+      NEARBY_LOG(INFO, "SetUp: WifiLan enabled");
     }
     if (options_.allowed.web_rtc) {
       NEARBY_LOG(INFO, "SetUp: WebRTC enabled");

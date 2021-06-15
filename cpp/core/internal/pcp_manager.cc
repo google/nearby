@@ -48,7 +48,9 @@ void PcpManager::DisconnectFromEndpointManager() {
 }
 
 PcpManager::~PcpManager() {
+  NEARBY_LOGS(INFO) << "Initiating shutdown of PcpManager.";
   DisconnectFromEndpointManager();
+  NEARBY_LOGS(INFO) << "PcpManager has shut down.";
 }
 
 Status PcpManager::StartAdvertising(ClientProxy* client,
