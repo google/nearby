@@ -52,8 +52,9 @@ proto::connections::Medium WifiLanEndpointChannel::GetMedium() const {
 void WifiLanEndpointChannel::CloseImpl() {
   auto status = wifi_lan_socket_.Close();
   if (!status.Ok()) {
-    NEARBY_LOG(INFO, "Failed to close WifiLan socket: exception=%d",
-               status.value);
+    NEARBY_LOGS(INFO)
+        << "Failed to close underlying socket for WifiLanEndpointChannel "
+        << GetName() << " : exception = " << status.value;
   }
 }
 

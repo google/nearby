@@ -54,7 +54,9 @@ int BluetoothEndpointChannel::GetMaxTransmitPacketSize() const {
 void BluetoothEndpointChannel::CloseImpl() {
   auto status = bluetooth_socket_.Close();
   if (!status.Ok()) {
-    NEARBY_LOG(INFO, "Failed to close BT socket: exception=%d", status.value);
+    NEARBY_LOGS(INFO)
+        << "Failed to close underlying socket for BluetoothEndpointChannel "
+        << GetName() << ": exception=" << status.value;
   }
 }
 
