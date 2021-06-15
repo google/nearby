@@ -131,6 +131,8 @@ class IncomingStreamInternalPayload : public InternalPayload {
 
   Exception AttachNextChunk(const ByteArray& chunk) override {
     if (chunk.Empty()) {
+      NEARBY_LOGS(INFO) << "Received null last chunk for incoming payload "
+                        << this << ", closing OutputStream.";
       output_stream_->Close();
       return {Exception::kSuccess};
     }

@@ -69,11 +69,10 @@ bool HandleEncryptionSuccess(const std::string& endpoint_id,
 void CancelableAlarmRunnable(ClientProxy* client,
                              const std::string& endpoint_id,
                              EndpointChannel* endpoint_channel) {
-  NEARBY_LOG(INFO,
-             "Timing out encryption for client %" PRId64
-             " to endpoint %s after %" PRId64 " ms",
-             client->GetClientId(), endpoint_id.c_str(),
-             static_cast<std::int64_t>(absl::ToInt64Milliseconds(kTimeout)));
+  NEARBY_LOGS(INFO) << "Timing out encryption for client "
+                    << client->GetClientId()
+                    << " to endpoint_id=" << endpoint_id << " after "
+                    << absl::FormatDuration(kTimeout);
   endpoint_channel->Close();
 }
 
@@ -123,8 +122,9 @@ class ServerRunnable final {
       return;
     }
 
-    NEARBY_LOG(INFO, "In StartServer(), read UKEY2 Message 1 from endpoint %s",
-               endpoint_id_.c_str());
+    NEARBY_LOGS(INFO)
+        << "In StartServer(), read UKEY2 Message 1 from endpoint(id="
+        << endpoint_id_ << ").";
 
     // Message 2 (Server Init)
     std::unique_ptr<std::string> server_init =
@@ -145,8 +145,9 @@ class ServerRunnable final {
       return;
     }
 
-    NEARBY_LOG(INFO, "In StartServer(), wrote UKEY2 Message 2 to endpoint %s",
-               endpoint_id_.c_str());
+    NEARBY_LOGS(INFO)
+        << "In StartServer(), wrote UKEY2 Message 2 to endpoint(id="
+        << endpoint_id_ << ").";
 
     // Message 3 (Client Finish)
     ExceptionOr<ByteArray> client_finish = channel_->Read();
@@ -170,8 +171,9 @@ class ServerRunnable final {
       return;
     }
 
-    NEARBY_LOG(INFO, "In StartServer(), read UKEY2 Message 3 from endpoint %s",
-               endpoint_id_.c_str());
+    NEARBY_LOGS(INFO)
+        << "In StartServer(), read UKEY2 Message 3 from endpoint(id="
+        << endpoint_id_ << ").";
 
     timeout_alarm.Cancel();
 
@@ -184,8 +186,8 @@ class ServerRunnable final {
 
  private:
   void LogException() const {
-    NEARBY_LOG(ERROR, "In StartServer(), UKEY2 failed with endpoint %s",
-               endpoint_id_.c_str());
+    NEARBY_LOGS(ERROR) << "In StartServer(), UKEY2 failed with endpoint(id="
+                       << endpoint_id_ << ").";
   }
 
   void HandleHandshakeOrIoException(CancelableAlarm* timeout_alarm) const {
@@ -198,10 +200,10 @@ class ServerRunnable final {
     Exception write_exception =
         channel_->Write(ByteArray(*parse_result.alert_to_send));
     if (!write_exception.Ok()) {
-      NEARBY_LOG(WARNING,
-                 "In StartServer(), client %" PRId64
-                 " failed to pass the alert error message to endpoint %s",
-                 client_->GetClientId(), endpoint_id_.c_str());
+      NEARBY_LOGS(WARNING)
+          << "In StartServer(), client " << client_->GetClientId()
+          << " failed to pass the alert error message to endpoint(id="
+          << endpoint_id_ << ").";
     }
   }
 
@@ -225,7 +227,7 @@ class ClientRunnable final {
 
   void operator()() const {
     CancelableAlarm timeout_alarm(
-        "EncryptionRunner.startClient() timeout",
+        "EncryptionRunner.StartClient() timeout",
         [this]() { CancelableAlarmRunnable(client_, endpoint_id_, channel_); },
         kTimeout, alarm_executor_);
 
@@ -257,8 +259,9 @@ class ClientRunnable final {
       return;
     }
 
-    NEARBY_LOG(INFO, "In startClient(), wrote UKEY2 Message 1 to endpoint %s",
-               endpoint_id_.c_str());
+    NEARBY_LOGS(INFO)
+        << "In StartClient(), wrote UKEY2 Message 1 to endpoint(id="
+        << endpoint_id_ << ").";
 
     // Message 2 (Server Init)
     ExceptionOr<ByteArray> server_init = channel_->Read();
@@ -282,8 +285,9 @@ class ClientRunnable final {
       return;
     }
 
-    NEARBY_LOG(INFO, "In startClient(), read UKEY2 Message 2 from endpoint %s",
-               endpoint_id_.c_str());
+    NEARBY_LOGS(INFO)
+        << "In StartClient(), read UKEY2 Message 2 from endpoint(id="
+        << endpoint_id_ << ").";
 
     // Message 3 (Client Finish)
     std::unique_ptr<std::string> client_finish =
@@ -304,8 +308,9 @@ class ClientRunnable final {
       return;
     }
 
-    NEARBY_LOG(INFO, "In startClient(), wrote UKEY2 Message 3 to endpoint %s",
-               endpoint_id_.c_str());
+    NEARBY_LOGS(INFO)
+        << "In StartClient(), wrote UKEY2 Message 3 to endpoint(id="
+        << endpoint_id_ << ").";
 
     timeout_alarm.Cancel();
 
@@ -318,8 +323,8 @@ class ClientRunnable final {
 
  private:
   void LogException() const {
-    NEARBY_LOG(ERROR, "In startClient(), UKEY2 failed with endpoint %s",
-               endpoint_id_.c_str());
+    NEARBY_LOGS(ERROR) << "In StartClient(), UKEY2 failed with endpoint(id="
+                       << endpoint_id_ << ").";
   }
 
   void HandleHandshakeOrIoException(CancelableAlarm* timeout_alarm) const {
@@ -332,10 +337,10 @@ class ClientRunnable final {
     Exception write_exception =
         channel_->Write(ByteArray(*parse_result.alert_to_send));
     if (!write_exception.Ok()) {
-      NEARBY_LOG(WARNING,
-                 "In startClient(), client %" PRId64
-                 " failed to pass the alert error message to endpoint %s",
-                 client_->GetClientId(), endpoint_id_.c_str());
+      NEARBY_LOGS(WARNING)
+          << "In StartClient(), client " << client_->GetClientId()
+          << " failed to pass the alert error message to endpoint(id="
+          << endpoint_id_ << ").";
     }
   }
 
