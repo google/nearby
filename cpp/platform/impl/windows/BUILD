@@ -97,6 +97,7 @@ cc_test(
     srcs = [
         "crypto_test.cc",
     ],
+    tags = ["windows"],
     deps = [
         ":comm",
         ":crypto",
