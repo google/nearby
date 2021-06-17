@@ -15,32 +15,27 @@
 #ifndef PLATFORM_IMPL_WINDOWS_LOG_MESSAGE_H_
 #define PLATFORM_IMPL_WINDOWS_LOG_MESSAGE_H_
 
+#include "base/logging.h"
 #include "platform/api/log_message.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
 
-// A log message that prints to appropraite destination when ~LogMessage() is
-// called.
-//
-// note: the Severity enum should map (best effort) to the corresponding level
-// id that the platform logging implementation has.
+// See documentation in
+// cpp/platform/api/log_message.h
 class LogMessage : public api::LogMessage {
  public:
-  // TODO(b/184975123): replace with real implementation.
-  ~LogMessage() override = default;
+  LogMessage(const char* file, int line, Severity severity);
+  ~LogMessage() override;
 
-  // Printf like logging.
-  // TODO(b/184975123): replace with real implementation.
-  void Print(const char* format, ...) override {}
+  void Print(const char* format, ...) override;
 
-  // Returns a stream for std::cout like logging.
-  // TODO(b/184975123): replace with real implementation.
-  std::ostream& Stream() override { return empty_stream_; }
+  std::ostream& Stream() override;
 
-  // TODO(b/184975123): replace with real implementation.
-  std::ostream empty_stream_;
+ private:
+  absl::LogStreamer log_streamer_;
+  static api::LogMessage::Severity min_log_severity_;
 };
 
 }  // namespace windows
