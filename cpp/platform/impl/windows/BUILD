@@ -36,6 +36,7 @@ cc_library(
         "submittable_executor.h",
     ],
     deps = [
+        "//base",
         "//platform/api:types",
         "//platform/base",
     ],
@@ -88,6 +89,24 @@ cc_library(
         "//platform/api:comm",
         "//platform/api:platform",
         "//platform/api:types",
+        "//platform/impl/shared:file",
+    ],
+)
+
+cc_library(
+    name = "test_utils",
+    srcs = [
+        "test_utils.cc",
+    ],
+    hdrs = [
+        "test_utils.h",
+    ],
+    visibility = [
+        "//location/nearby/connections/windows:__subpackages__",
+    ],
+    deps = [
+        "//platform/base",
+        "//absl/strings",
     ],
 )
 
@@ -96,12 +115,18 @@ cc_test(
     size = "small",
     srcs = [
         "crypto_test.cc",
+        "input_file_test.cc",
+        "output_file_test.cc",
     ],
     deps = [
         ":comm",
         ":crypto",
+        ":test_utils",
         ":types",
-        "//platform/api:types",
+        "//platform/api:platform",
+        "//platform/base",
+        "//platform/impl/windows",
+        "//platform/public:logging",
         "//testing/base/public:gunit_main",
     ],
 )
