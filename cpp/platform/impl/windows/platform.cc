@@ -14,6 +14,7 @@
 
 #include "platform/api/platform.h"
 
+#include "platform/impl/shared/file.h"
 #include "platform/impl/windows/atomic_boolean.h"
 #include "platform/impl/windows/atomic_reference.h"
 #include "platform/impl/windows/ble.h"
@@ -24,11 +25,9 @@
 #include "platform/impl/windows/count_down_latch.h"
 #include "platform/impl/windows/executor.h"
 #include "platform/impl/windows/future.h"
-#include "platform/impl/windows/input_file.h"
 #include "platform/impl/windows/listenable_future.h"
 #include "platform/impl/windows/log_message.h"
 #include "platform/impl/windows/mutex.h"
-#include "platform/impl/windows/output_file.h"
 #include "platform/impl/windows/scheduled_executor.h"
 #include "platform/impl/windows/server_sync.h"
 #include "platform/impl/windows/settable_future.h"
@@ -40,6 +39,12 @@
 namespace location {
 namespace nearby {
 namespace api {
+namespace {
+
+std::string GetPayloadPath(PayloadId payload_id) {
+  return absl::StrCat("/tmp/", payload_id);
+}
+}  // namespace
 
 // TODO(b/184975123): replace with real implementation.
 std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(
@@ -70,22 +75,22 @@ ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
   return std::unique_ptr<ConditionVariable>(new windows::ConditionVariable());
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     PayloadId payload_id, std::int64_t total_size) {
-  return absl::make_unique<windows::InputFile>();
+  return absl::make_unique<location::nearby::shared::InputFile>(
+      GetPayloadPath(payload_id), total_size);
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     PayloadId payload_id) {
-  return absl::make_unique<windows::OutputFile>();
+  return absl::make_unique<location::nearby::shared::OutputFile>(
+      GetPayloadPath(payload_id));
 }
 
 // TODO(b/184975123): replace with real implementation.
 std::unique_ptr<LogMessage> ImplementationPlatform::CreateLogMessage(
     const char* file, int line, LogMessage::Severity severity) {
-  return nullptr;
+  return absl::make_unique<windows::LogMessage>(file, line, severity);
 }
 
 // TODO(b/184975123): replace with real implementation.
