@@ -405,10 +405,6 @@ enum DiscoveryEvent {
   // User has seen a low battery notification.
   FAST_PAIR_LOW_BATTERY_NOTIFICATION_SHOWN = 131;
 
-  // Connection Tracker Manager (Baymax) recovered the connection of the
-  // companion app.
-  FAST_PAIR_CONNECTION_TRACKER_RECOVER_COMPANION_APP = 132;
-
   // Half sheet is shown for initial Fast Pair.
   HALF_SHEET_PAIR_SHOWN = 133;
 
@@ -460,7 +456,7 @@ enum DiscoveryEvent {
   FAST_PAIR_DEVICE_COMPANION_HEADER_CLICKED = 148;
 
   // Deprecated.
-  reserved 65, 67 to 72;
+  reserved 65, 67 to 72, 132;
 }
 
 // Deprecated: use NearbyType or different events for different types instead.
