@@ -76,15 +76,14 @@ class EndpointManager::LockedFrameProcessor {
 //           EndpointChannel until an Exception::IO is thrown. Once an
 //           Exception::IO occurs, a check will be performed to see if another
 //           EndpointChannel is available for the given endpoint and, if so,
-//           handler(EndpointChannel) will be called again. Return false to exit
-//           the loop.
+//           handler(EndpointChannel) will be called again.
 void EndpointManager::EndpointChannelLoopRunnable(
     const std::string& runnable_name, ClientProxy* client,
-    const std::string& endpoint_id, std::weak_ptr<CountDownLatch> barrier,
+    const std::string& endpoint_id,
     std::function<ExceptionOr<bool>(EndpointChannel*)> handler) {
   // EndpointChannelManager will not let multiple channels exist simultaneously
   // for the same endpoint_id; it will be closing "old" channels as new ones
-  // come. (There will be a short overlap).
+  // come.
   // Closed channel will return Exception::kIo for any Read, and loop (below)
   // will retry and attempt to pick another channel.
   // If channel is deleted (no mapping), or it is still the same channel
@@ -150,14 +149,6 @@ void EndpointManager::EndpointChannelLoopRunnable(
   // if needed.
   NEARBY_LOGS(INFO) << "Worker going down; worker name=" << runnable_name
                     << "; endpoint_id=" << endpoint_id;
-  if (auto latch = barrier.lock()) {
-    latch->CountDown();
-  } else {
-    NEARBY_LOG(WARNING,
-               "Barrier already expired in worker name=%s, for endpoint %s",
-               runnable_name.c_str(), endpoint_id.c_str());
-  }
-
   // Always clear out all state related to this endpoint before terminating
   // this thread.
   DiscardEndpoint(client, endpoint_id);
@@ -276,30 +267,11 @@ EndpointManager::~EndpointManager() {
   CountDownLatch latch(1);
   RunOnEndpointManagerThread("bring-down-endpoints", [this, &latch]() {
     NEARBY_LOG(INFO, "Bringing down endpoints");
-    for (auto& item : endpoints_) {
-      const std::string& endpoint_id = item.first;
-      EndpointState& state = item.second;
-      // This will close the channel; all workers will sense that and
-      // terminate.
-      channel_manager_->UnregisterChannelForEndpoint(endpoint_id);
-      if (state.barrier) {
-        state.barrier->Await();
-      } else {
-        NEARBY_LOGS(WARNING)
-            << "State barrier already freed before EM destructor for endpoint"
-            << endpoint_id;
-      }
-    }
+    endpoints_.clear();
     latch.CountDown();
   });
   latch.Await();
-  NEARBY_LOG(INFO, "Bringing down worker threads");
 
-  // Stop all the ongoing Runnables (as gracefully as possible).
-  // Order matters: bring worker pools down first; serial_executor_ thread
-  // should go last, since workers schedule jobs there even during shutdown.
-  handlers_executor_.Shutdown();
-  keep_alive_executor_.Shutdown();
   NEARBY_LOG(INFO, "Bringing down control thread");
   serial_executor_.Shutdown();
   NEARBY_LOG(INFO, "EndpointManager is down");
@@ -361,26 +333,16 @@ EndpointManager::LockedFrameProcessor EndpointManager::GetFrameProcessor(
   return LockedFrameProcessor();
 }
 
-void EndpointManager::EnsureWorkersTerminated(const std::string& endpoint_id) {
-  NEARBY_LOGS(ERROR) << "EnsureWorkersTerminated for endpoint " << endpoint_id;
+void EndpointManager::RemoveEndpointState(const std::string& endpoint_id) {
+  NEARBY_LOGS(VERBOSE) << "EnsureWorkersTerminated for endpoint "
+                       << endpoint_id;
   auto item = endpoints_.find(endpoint_id);
   if (item != endpoints_.end()) {
     NEARBY_LOGS(INFO) << "EndpointState found for endpoint " << endpoint_id;
     // If another instance of data and keep-alive handlers is running, it will
-    // terminate soon; we should block until it happens.
-    EndpointState& endpoint_state = item->second;
-    NEARBY_LOGS(INFO) << "Waiting for workers to terminate for endpoint "
-                      << endpoint_id;
-    if (endpoint_state.barrier) {
-      endpoint_state.barrier->Await();
-    } else {
-      NEARBY_LOGS(WARNING)
-          << "State barrier already freed before EnsureWorkersTerminated for "
-             "endpoint "
-          << endpoint_id;
-    }
+    // terminate soon. Removing EndpointState waits for workers to complete.
     endpoints_.erase(item);
-    NEARBY_LOGS(INFO) << "Workers terminated for endpoint " << endpoint_id;
+    NEARBY_LOGS(VERBOSE) << "Workers terminated for endpoint " << endpoint_id;
   } else {
     NEARBY_LOGS(INFO) << "EndpointState not found for endpoint " << endpoint_id;
   }
@@ -406,12 +368,10 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
                                                    &options, &listener,
                                                    &latch]() {
     if (endpoints_.contains(endpoint_id)) {
-      NEARBY_LOGS(WARNING) << "Registing duplicate endpoint " << endpoint_id;
-      if (!FeatureFlags::GetInstance()
-               .GetFlags()
-               .endpoint_manager_ensure_workers_terminated_inside_remove) {
-        EnsureWorkersTerminated(endpoint_id);
-      }
+      NEARBY_LOGS(WARNING) << "Registering duplicate endpoint " << endpoint_id;
+      // We must remove old endpoint state before registering a new one for the
+      // same endpoint_id.
+      RemoveEndpointState(endpoint_id);
     }
 
     absl::Duration keep_alive_interval =
@@ -432,32 +392,28 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
         client, endpoint_id, std::unique_ptr<EndpointChannel>(channel));
 
     EndpointState& endpoint_state =
-        endpoints_.emplace(endpoint_id, EndpointState()).first->second;
-    endpoint_state.client = client;
+        endpoints_
+            .emplace(endpoint_id, EndpointState(endpoint_id, channel_manager_))
+            .first->second;
 
     NEARBY_LOGS(INFO) << "Starting workers: endpoint " << endpoint_id;
     // For every endpoint, there's normally only one Read handler instance
-    // running on the handlers_executor_ pool. This instance reads data from the
+    // running on a dedicated thread. This instance reads data from the
     // endpoint and delegates incoming frames to various FrameProcessors.
     // Once the frame has been properly handled, it starts reading again for
     // the next frame. If the handler fails its read and no other
     // EndpointChannels are available for this endpoint, a disconnection
     // will be initiated.
-    //
-    // Using weak_ptr just in case the barrier is freed, to save the UAF crash
-    // in b/179800119.
-    StartEndpointReader(
-        [this, client, endpoint_id,
-         barrier = std::weak_ptr<CountDownLatch>(endpoint_state.barrier)]() {
-          EndpointChannelLoopRunnable(
-              "Read", client, endpoint_id, barrier,
-              [this, client, endpoint_id](EndpointChannel* channel) {
-                return HandleData(endpoint_id, client, channel);
-              });
-        });
+    endpoint_state.StartEndpointReader([this, client, endpoint_id]() {
+      EndpointChannelLoopRunnable(
+          "Read", client, endpoint_id,
+          [this, client, endpoint_id](EndpointChannel* channel) {
+            return HandleData(endpoint_id, client, channel);
+          });
+    });
 
     // For every endpoint, there's only one KeepAliveManager instance
-    // running on the keep_alive_executor_ pool. This instance will
+    // running on a dedicated thread. This instance will
     // periodically send out a ping* to the endpoint while listening for an
     // incoming pong**. If it fails to send the ping, or if no pong is heard
     // within keep_alive_interval_, it initiates a disconnection.
@@ -467,16 +423,12 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
     // (**) Wifi Hotspots can fail to notice a connection has been lost, and
     // they will happily keep writing to /dev/null. This is why we listen
     // for the pong.
-    //
-    // Using weak_ptr just in case the barrier is freed, to save the UAF crash
-    // in b/179800119.
     NEARBY_LOGS(VERBOSE) << "EndpointManager enabling KeepAlive for endpoint "
                          << endpoint_id;
-    StartEndpointKeepAliveManager(
-        [this, client, endpoint_id, keep_alive_interval, keep_alive_timeout,
-         barrier = std::weak_ptr<CountDownLatch>(endpoint_state.barrier)]() {
+    endpoint_state.StartEndpointKeepAliveManager(
+        [this, client, endpoint_id, keep_alive_interval, keep_alive_timeout]() {
           EndpointChannelLoopRunnable(
-              "KeepAliveManager", client, endpoint_id, barrier,
+              "KeepAliveManager", client, endpoint_id,
               [this, keep_alive_interval,
                keep_alive_timeout](EndpointChannel* channel) {
                 return HandleKeepAlive(channel, keep_alive_interval,
@@ -496,7 +448,7 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
 
 void EndpointManager::UnregisterEndpoint(ClientProxy* client,
                                          const std::string& endpoint_id) {
-  NEARBY_LOGS(ERROR) << "UnregisterEndpoint for endpoint " << endpoint_id;
+  NEARBY_LOGS(INFO) << "UnregisterEndpoint for endpoint " << endpoint_id;
   CountDownLatch latch(1);
   RunOnEndpointManagerThread(
       "unregister-endpoint", [this, client, endpoint_id, &latch]() {
@@ -536,7 +488,7 @@ std::vector<std::string> EndpointManager::SendPayloadChunk(
 // allow synchronous behavior here it will cause a live lock.
 void EndpointManager::DiscardEndpoint(ClientProxy* client,
                                       const std::string& endpoint_id) {
-  NEARBY_LOGS(ERROR) << "DiscardEndpoint for endpoint " << endpoint_id;
+  NEARBY_LOGS(VERBOSE) << "DiscardEndpoint for endpoint " << endpoint_id;
   RunOnEndpointManagerThread("discard-endpoint", [this, client, endpoint_id]() {
     RemoveEndpoint(client, endpoint_id,
                    /*notify=*/
@@ -561,7 +513,7 @@ std::vector<std::string> EndpointManager::SendControlMessage(
 void EndpointManager::RemoveEndpoint(ClientProxy* client,
                                      const std::string& endpoint_id,
                                      bool notify) {
-  NEARBY_LOGS(ERROR) << "RemoveEndpoint for endpoint " << endpoint_id;
+  NEARBY_LOGS(INFO) << "RemoveEndpoint for endpoint " << endpoint_id;
   // Unregistering from channel_manager_ will also serve to terminate
   // the dedicated handler and KeepAlive threads we started when we registered
   // this endpoint.
@@ -576,11 +528,7 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
     client->OnDisconnected(endpoint_id, notify);
     NEARBY_LOGS(INFO) << "Removed endpoint for endpoint " << endpoint_id;
   }
-  if (FeatureFlags::GetInstance()
-          .GetFlags()
-          .endpoint_manager_ensure_workers_terminated_inside_remove) {
-    EnsureWorkersTerminated(endpoint_id);
-  }
+  RemoveEndpointState(endpoint_id);
 }
 
 // @EndpointManagerThread
@@ -667,12 +615,25 @@ std::vector<std::string> EndpointManager::SendTransferFrameBytes(
   return failed_endpoint_ids;
 }
 
-void EndpointManager::StartEndpointReader(Runnable runnable) {
-  handlers_executor_.Execute("reader", std::move(runnable));
+EndpointManager::EndpointState::~EndpointState() {
+  // We must unregister the endpoint first to signal the runnables
+  // that they should exit their loops. SingleThreadExecutor destructors will
+  // wait for the workers to finish.
+  // |channel_manager_| is null when we moved from this object (in move
+  // constructor) which prevents unregistering the channel prematurely.
+  if (channel_manager_ != nullptr) {
+    NEARBY_LOG(VERBOSE, "EndpointState destructor %s", endpoint_id_.c_str());
+    channel_manager_->UnregisterChannelForEndpoint(endpoint_id_);
+  }
 }
 
-void EndpointManager::StartEndpointKeepAliveManager(Runnable runnable) {
-  keep_alive_executor_.Execute("keep-alive", std::move(runnable));
+void EndpointManager::EndpointState::StartEndpointReader(Runnable&& runnable) {
+  reader_thread_.Execute("reader", std::move(runnable));
+}
+
+void EndpointManager::EndpointState::StartEndpointKeepAliveManager(
+    Runnable&& runnable) {
+  keep_alive_thread_.Execute("keep-alive", std::move(runnable));
 }
 
 void EndpointManager::RunOnEndpointManagerThread(const std::string& name,
