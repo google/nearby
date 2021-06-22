@@ -93,6 +93,7 @@ message MagicPairEvent {
     POSSIBLE_MITM = 2;
     NO_PERMISSION = 3;
     INCORRECT_VARIANT = 4;
+    FAILED_BUT_ALREADY_RECEIVE_PASS_KEY = 5;
   }
 
   enum ConnectErrorCode {
