@@ -174,6 +174,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   using Endpoints = std::vector<const EndpointInfo*>;
   static std::string ToString(const EndpointIds& endpoint_ids);
   static std::string ToString(const Endpoints& endpoints);
+  static std::string ToString(Payload::Type type);
+  static std::string ToString(EndpointInfo::Status status);
 
   // Splits the endpoints for this payload by availability.
   // Returns a pair of lists of EndpointInfo*, with the first being the list of
