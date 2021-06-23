@@ -18,10 +18,8 @@
 #include <limits>
 #include <utility>
 
-#include "platform/base/base64_utils.h"
 #include "platform/base/feature_flags.h"
 #include "platform/base/prng.h"
-#include "platform/public/crypto.h"
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
 #include "proto/connections_enums.pb.h"
@@ -37,6 +35,11 @@ namespace connections {
 // The definition is necessary before C++17.
 constexpr absl::Duration
     ClientProxy::kHighPowerAdvertisementEndpointIdCacheTimeout;
+
+constexpr char kEndpointIdChars[] = {
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
+    'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+    'Y', 'Z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'};
 
 ClientProxy::ClientProxy() : client_id_(Prng().NextInt64()) {}
 
@@ -64,15 +67,10 @@ std::string ClientProxy::GenerateLocalEndpointId() {
       return local_high_vis_mode_cache_endpoint_id_;
     }
   }
-  // 1) Concatenate the Random 64-bit value with "client" string.
-  // 2) Compute a hash of that concatenation.
-  // 3) Base64-encode that hash, to make it human-readable.
-  // 4) Use only the first kEndpointIdLength bytes to make ID.
-  ByteArray id_hash = Crypto::Sha256(absl::StrCat("client", prng_.NextInt64()));
-  std::string id = Base64Utils::Encode(id_hash).substr(0, kEndpointIdLength);
-  NEARBY_LOGS(INFO) << "ClientProxy [Local Endpoint Generated]: client="
-                    << GetClientId() << "; endpoint_id=" << id;
-
+  std::string id;
+  for (int i = 0; i < kEndpointIdLength; i++) {
+    id += kEndpointIdChars[prng_.NextUint32() % sizeof(kEndpointIdChars)];
+  }
   return id;
 }
 
