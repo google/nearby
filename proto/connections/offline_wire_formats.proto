@@ -296,6 +296,13 @@ message MediumMetadata {
   // The frequency of the WiFi LAN AP (or -1 is not associated to an AP over
   // WiFi).
   optional int32 ap_frequency = 6 [default = -1];
+  // Available channels on the local device.
+  optional AvailableChannels available_channels = 7;
+}
+
+// Available channels on the local device.
+message AvailableChannels {
+  repeated int32 channels = 1 [packed = true];
 }
 
 // LocationHint is used to specify a location as well as format.
