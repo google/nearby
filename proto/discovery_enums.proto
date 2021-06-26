@@ -21,7 +21,7 @@ option optimize_for = LITE_RUNTIME;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "DiscoveryEnums";
 
-// NEXT ID: 149
+// NEXT ID: 150
 enum DiscoveryEvent {
   UNKNOWN_DISCOVERY_EVENT = 0;
 
@@ -454,6 +454,9 @@ enum DiscoveryEvent {
 
   // User has clicked the companion header slice from device settings.
   FAST_PAIR_DEVICE_COMPANION_HEADER_CLICKED = 148;
+
+  // The Fast Pair seeker feature is triggered in Wear OS.
+  WEAR_OS_FAST_PAIR_SEEKER_ACTION = 149;
 
   // Deprecated.
   reserved 65, 67 to 72, 132;
