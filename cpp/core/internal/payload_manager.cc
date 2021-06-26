@@ -684,9 +684,9 @@ void PayloadManager::HandleFinishedOutgoingPayload(
                          PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR);
       break;
     case proto::connections::PayloadStatus::LOCAL_CANCELLATION:
-      NEARBY_LOG(INFO,
-                 "Sending PAYLOAD_CANCEL to receiver side; payload_id=%" PRIx64,
-                 static_cast<std::int64_t>(payload_header.id()));
+      NEARBY_LOGS(INFO)
+          << "Sending PAYLOAD_CANCEL to receiver side; payload_id="
+          << payload_header.id();
       SendControlMessage(
           finished_endpoint_ids, payload_header,
           num_bytes_successfully_transferred,
