@@ -298,10 +298,17 @@ message MediumMetadata {
   optional int32 ap_frequency = 6 [default = -1];
   // Available channels on the local device.
   optional AvailableChannels available_channels = 7;
+  // Usable WiFi Direct client channels on the local device.
+  optional WifiDirectCliUsableChannels wifi_direct_cli_usable_channels = 8;
 }
 
 // Available channels on the local device.
 message AvailableChannels {
+  repeated int32 channels = 1 [packed = true];
+}
+
+// Usable WiFi Direct client channels on the local device.
+message WifiDirectCliUsableChannels {
   repeated int32 channels = 1 [packed = true];
 }
 
