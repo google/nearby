@@ -39,4 +39,5 @@ enum ClientType {
   MAGIC_PAIR = 2;
   SETUP = 3;
   SHARING = 4;
+  TRIANGLE = 5;
 }
