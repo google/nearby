@@ -132,3 +132,10 @@ cc_test(
         "//testing/base/public:gunit_main",
     ],
 )
+
+filegroup(
+    name = "all_files",
+    testonly = 1,
+    srcs = glob(["**"]),
+    visibility = ["//location/nearby:__pkg__"],
+)

@@ -204,3 +204,10 @@ cc_test(
         "//absl/types:span",
     ],
 )
+
+filegroup(
+    name = "all_files",
+    testonly = 1,
+    srcs = glob(["**"]),
+    visibility = ["//location/nearby:__pkg__"],
+)
