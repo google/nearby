@@ -95,8 +95,10 @@ void MediumEnvironment::OnBluetoothAdapterChangedState(
     api::BluetoothAdapter& adapter, api::BluetoothDevice& adapter_device,
     std::string name, bool enabled, api::BluetoothAdapter::ScanMode mode) {
   if (!enabled_) return;
+  CountDownLatch latch(1);
   RunOnMediumEnvironmentThread([this, &adapter, &adapter_device,
-                                name = std::move(name), enabled, mode]() {
+                                name = std::move(name), enabled, mode,
+                                &latch]() {
     NEARBY_LOG(INFO,
                "[adapter=%p, device=%p] update: name=%s, enabled=%d, mode=%d",
                &adapter, &adapter_device, name.c_str(), enabled, mode);
@@ -112,8 +114,14 @@ void MediumEnvironment::OnBluetoothAdapterChangedState(
     // pointer. Pointer must remain valid for the duration of a Core session
     // (since it is owned by the correspoinding Medium, and mediums lifetime
     // matches Core lifetime).
-    bluetooth_adapters_.emplace(&adapter, &adapter_device);
+    if (enabled) {
+      bluetooth_adapters_.emplace(&adapter, &adapter_device);
+    } else {
+      bluetooth_adapters_.erase(&adapter);
+    }
+    latch.CountDown();
   });
+  latch.Await();
 }
 
 void MediumEnvironment::OnBluetoothDeviceStateChanged(

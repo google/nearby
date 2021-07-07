@@ -113,7 +113,10 @@ class EndpointManagerTest : public ::testing::Test {
   }
 
   ClientProxy client_;
-  ConnectionOptions options_;
+  ConnectionOptions options_{
+      .keep_alive_interval_millis = 5000,
+      .keep_alive_timeout_millis = 30000,
+  };
   std::vector<std::unique_ptr<EndpointManager::FrameProcessor>> processors_;
   EndpointChannelManager ecm_;
   EndpointManager em_{&ecm_};

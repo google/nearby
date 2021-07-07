@@ -265,6 +265,8 @@ class BasePcpHandlerTest
         .allowed = allowed,
         .auto_upgrade_bandwidth = true,
         .enforce_topology_constraints = true,
+        .keep_alive_interval_millis = 5000,
+        .keep_alive_timeout_millis = 3000,
     };
     EXPECT_CALL(*pcp_handler, StartDiscoveryImpl(client, service_id, _))
         .WillOnce(Return(MockPcpHandler::StartOperationResult{
