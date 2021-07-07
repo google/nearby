@@ -106,3 +106,10 @@ filegroup(
     name = "ble_frames_portable_proto_config",
     srcs = ["ble_frames_portable_proto_config.asciipb"],
 )
+
+filegroup(
+    name = "all_files",
+    testonly = 1,
+    srcs = glob(["**"]),
+    visibility = ["//location/nearby:__pkg__"],
+)

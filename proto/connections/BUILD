@@ -56,3 +56,10 @@ filegroup(
     name = "offline_wire_formats_proto_config",
     srcs = ["offline_wire_formats_proto_config.asciipb"],
 )
+
+filegroup(
+    name = "all_files",
+    testonly = 1,
+    srcs = glob(["**"]),
+    visibility = ["//location/nearby:__pkg__"],
+)

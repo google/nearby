@@ -73,3 +73,10 @@ cc_test(
         "//webrtc/api:scoped_refptr",
     ],
 )
+
+filegroup(
+    name = "all_files",
+    testonly = 1,
+    srcs = glob(["**"]),
+    visibility = ["//location/nearby:__pkg__"],
+)

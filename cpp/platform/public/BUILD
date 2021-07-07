@@ -173,3 +173,10 @@ py_test(
         "//testing/pybase:fake_target_util",
     ],
 )
+
+filegroup(
+    name = "all_files",
+    testonly = 1,
+    srcs = glob(["**"]),
+    visibility = ["//location/nearby:__pkg__"],
+)

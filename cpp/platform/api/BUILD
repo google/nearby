@@ -93,3 +93,10 @@ cc_library(
         "//absl/strings",
     ],
 )
+
+filegroup(
+    name = "all_files",
+    testonly = 1,
+    srcs = glob(["**"]),
+    visibility = ["//location/nearby:__pkg__"],
+)

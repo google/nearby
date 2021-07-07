@@ -224,3 +224,10 @@ java_proto_library(
     name = "uwb_enums_java_proto",
     deps = [":uwb_enums_proto"],
 )
+
+filegroup(
+    name = "all_files",
+    testonly = 1,
+    srcs = glob(["**"]),
+    visibility = ["//location/nearby:__pkg__"],
+)
