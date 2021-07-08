@@ -14,6 +14,8 @@
 
 #include "core/internal/base_endpoint_channel.h"
 
+#include <functional>
+#include <string>
 #include <utility>
 
 #include "core/internal/encryption_runner.h"

@@ -16,6 +16,7 @@
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_H_
 
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <string>
 

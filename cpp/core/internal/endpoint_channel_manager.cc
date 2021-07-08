@@ -15,6 +15,8 @@
 #include "core/internal/endpoint_channel_manager.h"
 
 #include <memory>
+#include <string>
+#include <utility>
 
 #include "core/internal/offline_frames.h"
 #include "proto/connections/offline_wire_formats.pb.h"

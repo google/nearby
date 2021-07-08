@@ -16,6 +16,8 @@
 
 #include <atomic>
 #include <memory>
+#include <string>
+#include <utility>
 
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel_manager.h"

@@ -15,6 +15,8 @@
 #ifndef CORE_OPTIONS_H_
 #define CORE_OPTIONS_H_
 
+#include <string>
+
 #include "core/strategy.h"
 #include "platform/base/byte_array.h"
 #include "proto/connections_enums.pb.h"

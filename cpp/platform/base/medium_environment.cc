@@ -16,8 +16,11 @@
 
 #include <atomic>
 #include <cinttypes>
+#include <functional>
 #include <new>
+#include <string>
 #include <type_traits>
+#include <utility>
 
 #include "platform/api/ble.h"
 #include "platform/api/bluetooth_adapter.h"

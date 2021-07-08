@@ -15,7 +15,9 @@
 #ifndef PLATFORM_API_WEBRTC_H_
 #define PLATFORM_API_WEBRTC_H_
 
+#include <functional>
 #include <memory>
+#include <string>
 
 #include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/base/byte_array.h"
