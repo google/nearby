@@ -48,6 +48,7 @@ ClientProxy::~ClientProxy() { Reset(); }
 std::int64_t ClientProxy::GetClientId() const { return client_id_; }
 
 std::string ClientProxy::GetLocalEndpointId() {
+  MutexLock lock(&mutex_);
   if (local_endpoint_id_.empty()) {
     local_endpoint_id_ = GenerateLocalEndpointId();
     NEARBY_LOGS(INFO) << "ClientProxy [Local Endpoint Generated]: client="
