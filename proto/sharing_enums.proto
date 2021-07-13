@@ -171,6 +171,9 @@ enum EventType {
 
   // Toggle Show Notification setting item in Nearby Share setting.
   TOGGLE_SHOW_NOTIFICATION = 44;
+
+  // Set device name
+  SET_DEVICE_NAME_SIZE = 45;
 }
 
 // Event category to differentiate whether this comes from sender or receiver,
