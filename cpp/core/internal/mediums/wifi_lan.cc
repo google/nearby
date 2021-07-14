@@ -44,6 +44,12 @@ bool WifiLan::StartAdvertising(const std::string& service_id,
     return false;
   }
 
+  if (IsAdvertisingLocked(service_id)) {
+    NEARBY_LOGS(INFO)
+        << "Failed to WifiLan advertise because we're already advertising.";
+    return false;
+  }
+
   if (!IsAvailableLocked()) {
     NEARBY_LOG(INFO,
                "Can't turn on WifiLan advertising. WifiLan is not available.");
