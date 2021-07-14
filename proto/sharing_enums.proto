@@ -187,6 +187,12 @@ enum NearbySharingStatus {
   OFF = 2;
 }
 
+// Device visibility setting.
+// Keep in sync with
+// google/internal/location/nearby/sharing/v1/rpcs/devices.proto
+// sharing_enums.proto is with proto2 type, can't directly be used at proto3
+// without conversion or ugly wrapper. http://shortn/_kwjKdSKk8J
+// LINT.IfChange(Visibility)
 enum Visibility {
   UNKNOWN_VISIBILITY = 0;
 
@@ -195,7 +201,15 @@ enum Visibility {
   SELECTED_CONTACTS_ONLY = 3;
   HIDDEN = 4;
 }
+// LINT.ThenChange(
+//    //depot/google3/google/internal/location/nearby/sharing/v1/rpcs/devices.proto)
 
+// Device network setting.
+// Keep in sync with
+// google/internal/location/nearby/sharing/v1/rpcs/devices.proto
+// sharing_enums.proto is with proto2 type, can't directly be used at proto3
+// without conversion or ugly wrapper. http://shortn/_kwjKdSKk8J
+// LINT.IfChange(DataUsage)
 enum DataUsage {
   UNKNOWN_DATA_USAGE = 0;
 
@@ -203,6 +217,8 @@ enum DataUsage {
   WIFI_ONLY = 2;
   OFFLINE = 3;
 }
+// LINT.ThenChange(
+//    //depot/google3/google/internal/location/nearby/sharing/v1/rpcs/devices.proto)
 
 // The status of sending and receiving attachments. Used by SEND_ATTACHMENTS.
 enum AttachmentTransmissionStatus {
