@@ -168,6 +168,9 @@ enum EventType {
   // to correct attachment formats and move files attachments from temporary
   // directory to final destination.
   PROCESS_RECEIVED_ATTACHMENTS_END = 43;
+
+  // Toggle Show Notification setting item in Nearby Share setting.
+  TOGGLE_SHOW_NOTIFICATION = 44;
 }
 
 // Event category to differentiate whether this comes from sender or receiver,
@@ -388,4 +391,11 @@ enum VerifyAPKStatus {
   NOT_INSTALLABLE = 1;
   INSTALLABLE = 2;
   ALREADY_INSTALLED = 3;
+}
+
+enum ShowNotificationStatus {
+  UNKNOWN_SHOW_NOTIFICATION_STATUS = 0;
+
+  SHOW = 1;
+  NOT_SHOW = 2;
 }
