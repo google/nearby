@@ -14,6 +14,7 @@
 
 #include "platform/base/input_stream.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 
@@ -22,8 +23,9 @@
 
 namespace location {
 namespace nearby {
-
+namespace {
 constexpr size_t kSkipBufferSize = 64 * 1024;
+}  // namespace
 
 ExceptionOr<size_t> InputStream::Skip(size_t offset) {
   size_t bytes_left = offset;

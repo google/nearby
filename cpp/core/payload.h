@@ -25,6 +25,7 @@
 #include "platform/base/payload_id.h"
 #include "platform/base/prng.h"
 #include "platform/public/file.h"
+#include "platform/public/logging.h"
 #include "absl/types/variant.h"
 
 namespace location {
@@ -94,7 +95,7 @@ class Payload {
     CHECK(type_ == Type::kFile || type_ == Type::kStream);
     InputFile* file = AsFile();
     if (file != nullptr) {
-      CHECK(offset < file->GetTotalSize());
+      CHECK(file->GetTotalSize() > 0 && offset < (size_t)file->GetTotalSize());
     }
     offset_ = offset;
   }
