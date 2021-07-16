@@ -77,8 +77,20 @@ cc_library(
 cc_library(
     name = "windows",
     srcs = [
+        "bluetooth_classic_device.cc",
+        "bluetooth_classic_medium.cc",
+        "bluetooth_classic_server_socket.cc",
+        "bluetooth_classic_socket.cc",
         "platform.cc",
     ],
+    hdrs = [
+        "bluetooth_classic.h",
+        "bluetooth_classic_device.h",
+        "bluetooth_classic_medium.h",
+        "bluetooth_classic_server_socket.h",
+        "bluetooth_classic_socket.h",
+    ],
+    copts = ["-Iplatform/impl/windows/generated"],
     visibility = [
         "//location/nearby/connections/windows:__subpackages__",
     ],
@@ -90,6 +102,7 @@ cc_library(
         "//platform/api:platform",
         "//platform/api:types",
         "//platform/impl/shared:file",
+        "//platform/impl/windows/generated:types",
     ],
 )
 
@@ -106,7 +119,6 @@ cc_library(
     ],
     deps = [
         "//platform/base",
-        "//absl/strings",
     ],
 )
 
@@ -120,6 +132,7 @@ cc_test(
         "input_file_test.cc",
         "output_file_test.cc",
     ],
+    copts = ["-Iplatform/impl/windows/generated"],
     deps = [
         ":comm",
         ":crypto",
@@ -128,6 +141,7 @@ cc_test(
         "//platform/api:platform",
         "//platform/base",
         "//platform/impl/windows",
+        "//platform/impl/windows/generated:types",
         "//platform/public:logging",
         "//testing/base/public:gunit_main",
     ],

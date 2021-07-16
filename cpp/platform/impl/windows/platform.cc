@@ -19,7 +19,7 @@
 #include "platform/impl/windows/atomic_reference.h"
 #include "platform/impl/windows/ble.h"
 #include "platform/impl/windows/bluetooth_adapter.h"
-#include "platform/impl/windows/bluetooth_classic.h"
+#include "platform/impl/windows/bluetooth_classic_medium.h"
 #include "platform/impl/windows/cancelable.h"
 #include "platform/impl/windows/condition_variable.h"
 #include "platform/impl/windows/count_down_latch.h"
@@ -122,7 +122,7 @@ ImplementationPlatform::CreateBluetoothAdapter() {
 std::unique_ptr<BluetoothClassicMedium>
 ImplementationPlatform::CreateBluetoothClassicMedium(
     BluetoothAdapter& adapter) {
-  return absl::make_unique<windows::BluetoothClassicMedium>();
+  return absl::make_unique<location::nearby::windows::BluetoothClassicMedium>();
 }
 
 // TODO(b/184975123): replace with real implementation.
