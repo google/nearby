@@ -32,6 +32,12 @@ class BaseInputStream : public InputStream {
 
   ExceptionOr<ByteArray> Read(std::int64_t size) override;
 
+  ExceptionOr<size_t> Skip(size_t offset) override {
+    size_t real_offset = std::min(offset, buffer_.size() - position_);
+    position_ += real_offset;
+    return ExceptionOr<size_t>(real_offset);
+  }
+
   Exception Close() override {
     // Do nothing.
     return {Exception::kSuccess};

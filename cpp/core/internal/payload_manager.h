@@ -189,7 +189,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
   bool SendPayloadLoop(ClientProxy* client, PendingPayload& pending_payload,
                        PayloadTransferFrame::PayloadHeader& payload_header,
-                       std::int64_t& next_chunk_offset);
+                       std::int64_t& next_chunk_offset, size_t resume_offset);
   void SendClientCallbacksForFinishedIncomingPayloadRunnable(
       ClientProxy* client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
@@ -211,7 +211,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   int GetOptimalChunkSize(EndpointIds endpoint_ids);
 
   PayloadTransferFrame::PayloadHeader CreatePayloadHeader(
-      const InternalPayload& payload);
+      const InternalPayload& payload, size_t offset);
   PayloadTransferFrame::PayloadChunk CreatePayloadChunk(std::int64_t offset,
                                                         ByteArray body);
 

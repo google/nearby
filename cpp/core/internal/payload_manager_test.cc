@@ -311,6 +311,59 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   env_.Stop();
 }
 
+TEST_P(PayloadManagerTest, SendPayloadWithSkip_StreamPayload) {
+  constexpr size_t kOffset = 3;
+  env_.Start();
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
+  ASSERT_TRUE(SetupConnection(user_a, user_b));
+
+  auto pipe = std::make_shared<Pipe>();
+  OutputStream& tx = pipe->GetOutputStream();
+
+  user_a.ExpectPayload(payload_latch_);
+  const ByteArray message{std::string(kMessage)};
+  // The first write to the output stream will send the first PAYLOAD_TRANSFER
+  // packet with payload info and message data.
+  tx.Write(message);
+
+  Payload payload([pipe]() -> InputStream& {
+    return pipe->GetInputStream();  // NOLINT
+  });
+  payload.SetOffset(kOffset);
+  user_b.SendPayload(std::move(payload));
+  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  ASSERT_NE(user_a.GetPayload().AsStream(), nullptr);
+  InputStream& rx = *user_a.GetPayload().AsStream();
+  NEARBY_LOG(INFO, "Stream extracted.");
+
+  EXPECT_TRUE(user_a.WaitForProgress(
+      [&message](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= message.size() - kOffset;
+      },
+      kProgressTimeout));
+  ByteArray result = rx.Read(Pipe::kChunkSize).result();
+  EXPECT_EQ(result, ByteArray("sage"));
+  NEARBY_LOG(INFO, "Packet 1 handled.");
+
+  tx.Write(message);
+  EXPECT_TRUE(user_a.WaitForProgress(
+      [&message](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= 2 * message.size() - kOffset;
+      },
+      kProgressTimeout));
+  ByteArray result2 = rx.Read(Pipe::kChunkSize).result();
+  EXPECT_EQ(result2, message);
+  NEARBY_LOG(INFO, "Packet 2 handled.");
+
+  rx.Close();
+  tx.Close();
+  NEARBY_LOG(INFO, "Test completed.");
+  user_a.Stop();
+  user_b.Stop();
+  env_.Stop();
+}
+
 INSTANTIATE_TEST_SUITE_P(ParametrisedPayloadManagerTest, PayloadManagerTest,
                          ::testing::ValuesIn(kTestCases));
 

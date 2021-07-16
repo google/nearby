@@ -50,6 +50,8 @@ class InputFile final {
   // Returns total size of this file in bytes.
   std::int64_t GetTotalSize() const { return impl_->GetTotalSize(); }
 
+  ExceptionOr<size_t> Skip(size_t offset) { return impl_->Skip(offset); }
+
   // Disallows further reads from the file and frees system resources,
   // associated with it.
   Exception Close() { return impl_->Close(); }

@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_BASE_INPUT_STREAM_H_
-#define PLATFORM_BASE_INPUT_STREAM_H_
+#include "platform/base/input_stream.h"
 
+#include <cstddef>
 #include <cstdint>
 
 #include "platform/base/byte_array.h"
@@ -23,24 +23,20 @@
 namespace location {
 namespace nearby {
 
-// An InputStream represents an input stream of bytes.
-//
-// https://docs.oracle.com/javase/8/docs/api/java/io/InputStream.html
-class InputStream {
- public:
-  virtual ~InputStream() = default;
+constexpr size_t kSkipBufferSize = 64 * 1024;
 
-  // throws Exception::kIo
-  virtual ExceptionOr<ByteArray> Read(std::int64_t size) = 0;
-
-  // throws Exception::kIo
-  virtual ExceptionOr<size_t> Skip(size_t offset);
-
-  // throws Exception::kIo
-  virtual Exception Close() = 0;
-};
+ExceptionOr<size_t> InputStream::Skip(size_t offset) {
+  size_t bytes_left = offset;
+  while (bytes_left > 0) {
+    size_t chunk_size = std::min(bytes_left, kSkipBufferSize);
+    ExceptionOr<ByteArray> result = Read(chunk_size);
+    if (!result.ok()) {
+      return result.GetException();
+    }
+    bytes_left -= chunk_size;
+  }
+  return ExceptionOr<size_t>(offset);
+}
 
 }  // namespace nearby
 }  // namespace location
-
-#endif  // PLATFORM_BASE_INPUT_STREAM_H_

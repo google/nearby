@@ -40,7 +40,7 @@ constexpr const absl::Duration PayloadManager::kWaitCloseTimeout;
 bool PayloadManager::SendPayloadLoop(
     ClientProxy* client, PendingPayload& pending_payload,
     PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t& next_chunk_offset) {
+    std::int64_t& next_chunk_offset, size_t resume_offset) {
   // in lieu of structured binding:
   auto pair = GetAvailableAndUnavailableEndpoints(pending_payload);
   const EndpointIds& available_endpoint_ids =
@@ -81,6 +81,24 @@ bool PayloadManager::SendPayloadLoop(
   // payload. For the sake of accuracy, we update the pending payload here
   // because it's after all payload terminating events are handled, but
   // right before we actually start detaching the next chunk.
+  if (next_chunk_offset == 0 && resume_offset > 0) {
+    ExceptionOr<size_t> real_offset =
+        pending_payload.GetInternalPayload()->SkipToOffset(resume_offset);
+    if (!real_offset.ok()) {
+      // Stop sending since it may cause remote file merging failed.
+      NEARBY_LOGS(WARNING) << "PayloadManager failed to skip offset "
+                           << resume_offset << " on payload_id "
+                           << pending_payload.GetInternalPayload()->GetId();
+      HandleFinishedOutgoingPayload(
+          client, available_endpoint_ids, payload_header, next_chunk_offset,
+          proto::connections::PayloadStatus::LOCAL_ERROR);
+      return false;
+    }
+    NEARBY_LOGS(VERBOSE) << "PayloadManager successfully skipped "
+                         << real_offset.GetResult() << " bytes on payload_id "
+                         << pending_payload.GetInternalPayload()->GetId();
+    next_chunk_offset = real_offset.GetResult();
+  }
   for (const auto& endpoint_id : available_endpoint_ids) {
     pending_payload.SetOffsetForEndpoint(endpoint_id, next_chunk_offset);
   }
@@ -105,8 +123,12 @@ bool PayloadManager::SendPayloadLoop(
     return false;
   }
 
-  PayloadTransferFrame::PayloadChunk payload_chunk(
-      CreatePayloadChunk(next_chunk_offset, std::move(next_chunk)));
+  // Only need to handle outgoing data chunk offset, because the offset will be
+  // used to decide if the received chunk is the initial payload chunk.
+  // In other cases, the offset should only be used in both side logs when error
+  // happened.
+  PayloadTransferFrame::PayloadChunk payload_chunk(CreatePayloadChunk(
+      next_chunk_offset - resume_offset, std::move(next_chunk)));
   const EndpointIds& failed_endpoint_ids = endpoint_manager_->SendPayloadChunk(
       payload_header, payload_chunk, available_endpoint_ids);
   // Check whether at least one endpoint failed.
@@ -346,10 +368,15 @@ void PayloadManager::SendPayload(ClientProxy* client,
   // completely done with. If we ever want to provide isolation across
   // ClientProxy objects this will need to be significantly re-architected.
   Payload::Type payload_type = payload.GetType();
+  size_t resume_offset =
+      FeatureFlags::GetInstance().GetFlags().enable_send_payload_offset
+          ? payload.GetOffset()
+          : 0;
+
   Payload::Id payload_id =
       CreateOutgoingPayload(std::move(payload), endpoint_ids);
   executor->Execute("send-payload", [this, client, endpoint_ids, payload_id,
-                                     payload_type]() {
+                                     payload_type, resume_offset]() {
     if (shutdown_.Get()) return;
     PendingPayload* pending_payload = GetPayload(payload_id);
     if (!pending_payload) {
@@ -363,12 +390,13 @@ void PayloadManager::SendPayload(ClientProxy* client,
     auto* internal_payload = pending_payload->GetInternalPayload();
     if (!internal_payload) return;
     PayloadTransferFrame::PayloadHeader payload_header{
-        CreatePayloadHeader(*internal_payload)};
+        CreatePayloadHeader(*internal_payload, resume_offset)};
     bool should_continue = true;
     std::int64_t next_chunk_offset = 0;
     while (should_continue && !shutdown_.Get()) {
-      should_continue = SendPayloadLoop(client, *pending_payload,
-                                        payload_header, next_chunk_offset);
+      should_continue =
+          SendPayloadLoop(client, *pending_payload, payload_header,
+                          next_chunk_offset, resume_offset);
     }
     RunOnStatusUpdateThread("destroy-payload",
                             [this, payload_id]()
@@ -544,12 +572,16 @@ int PayloadManager::GetOptimalChunkSize(EndpointIds endpoint_ids) {
 }
 
 PayloadTransferFrame::PayloadHeader PayloadManager::CreatePayloadHeader(
-    const InternalPayload& internal_payload) {
+    const InternalPayload& internal_payload, size_t offset) {
   PayloadTransferFrame::PayloadHeader payload_header;
+  size_t payload_size = internal_payload.GetTotalSize();
 
   payload_header.set_id(internal_payload.GetId());
   payload_header.set_type(internal_payload.GetType());
-  payload_header.set_total_size(internal_payload.GetTotalSize());
+  payload_header.set_total_size(payload_size ==
+                                        InternalPayload::kIndeterminateSize
+                                    ? InternalPayload::kIndeterminateSize
+                                    : payload_size - offset);
 
   return payload_header;
 }

@@ -62,6 +62,11 @@ class BytesInternalPayload : public InternalPayload {
     return {Exception::kSuccess};
   }
 
+  ExceptionOr<size_t> SkipToOffset(size_t offset) override {
+    NEARBY_LOGS(WARNING) << "Bytes payload does not support offsets";
+    return {Exception::kIo};
+  }
+
  private:
   // We're caching the total size here because the backing payload will be
   // moved to another owner during the lifetime of an incoming
@@ -108,6 +113,25 @@ class OutgoingStreamInternalPayload : public InternalPayload {
     return {Exception::kIo};
   }
 
+  ExceptionOr<size_t> SkipToOffset(size_t offset) override {
+    InputStream* stream = payload_.AsStream();
+    if (stream == nullptr) return {Exception::kIo};
+
+    ExceptionOr<size_t> real_offset = stream->Skip(offset);
+    if (real_offset.ok() && real_offset.GetResult() == offset) {
+      return real_offset;
+    }
+    // Close the outgoing stream on any error
+    stream->Close();
+    if (!real_offset.ok()) {
+      return real_offset;
+    }
+    NEARBY_LOGS(WARNING) << "Skip offset: " << real_offset.GetResult()
+                         << ", expected offset: " << offset << " for payload "
+                         << this;
+    return {Exception::kIo};
+  }
+
   void Close() override {
     // Ignore the potential Exception returned by close(), as a counterpart
     // to Java's closeQuietly().
@@ -138,6 +162,12 @@ class IncomingStreamInternalPayload : public InternalPayload {
     }
 
     return output_stream_->Write(chunk);
+  }
+
+  ExceptionOr<size_t> SkipToOffset(size_t offset) override {
+    NEARBY_LOGS(WARNING) << "Cannot skip offset for an incoming Payload "
+                         << this;
+    return {Exception::kIo};
   }
 
   void Close() override { output_stream_->Close(); }
@@ -183,6 +213,28 @@ class OutgoingFileInternalPayload : public InternalPayload {
     return {Exception::kIo};
   }
 
+  ExceptionOr<size_t> SkipToOffset(size_t offset) override {
+    NEARBY_LOGS(INFO) << "SkipToOffset " << offset;
+    InputFile* file = payload_.AsFile();
+    if (!file) {
+      return {Exception::kIo};
+    }
+
+    ExceptionOr<size_t> real_offset = file->Skip(offset);
+    if (real_offset.ok() && real_offset.GetResult() == offset) {
+      return real_offset;
+    }
+    // Close the outgoing file on any error
+    file->Close();
+    if (!real_offset.ok()) {
+      return real_offset;
+    }
+    NEARBY_LOGS(WARNING) << "Skip offset: " << real_offset.GetResult()
+                         << ", expected offset: " << offset
+                         << " for file payload " << this;
+    return {Exception::kIo};
+  }
+
   void Close() override {
     InputFile* file = payload_.AsFile();
     if (file) file->Close();
@@ -216,6 +268,12 @@ class IncomingFileInternalPayload : public InternalPayload {
     }
 
     return output_file_.Write(chunk);
+  }
+
+  ExceptionOr<size_t> SkipToOffset(size_t offset) override {
+    NEARBY_LOGS(WARNING) << "Cannot skip offset for an incoming file Payload "
+                         << this;
+    return {Exception::kIo};
   }
 
   void Close() override { output_file_.Close(); }

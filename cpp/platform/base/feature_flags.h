@@ -40,6 +40,8 @@ class FeatureFlags {
     // with the exp backoff, retry intervals in seconds: 3, 6, 12, 24...
     absl::Duration bwu_retry_exp_backoff_initial_delay = absl::Seconds(3);
     absl::Duration bwu_retry_exp_backoff_maximum_delay = absl::Seconds(300);
+    // Support sending file and stream payloads starting from a non-zero offset.
+    bool enable_send_payload_offset = true;
   };
 
   static const FeatureFlags& GetInstance() {

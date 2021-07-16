@@ -127,6 +127,55 @@ TEST(InternalPayloadFActoryTest, CanCreateIternalPayloadFromFileMessage) {
   EXPECT_EQ(payload.GetId(), payload.AsFile()->GetPayloadId());
 }
 
+void CreateFileWithContents(Payload::Id payload_id, const ByteArray& contents) {
+  OutputFile file(payload_id);
+  EXPECT_TRUE(file.Write(contents).Ok());
+  EXPECT_TRUE(file.Close().Ok());
+}
+
+TEST(InternalPayloadFActoryTest,
+     SkipToOffset_FilePayloadValidOffset_SkipsOffset) {
+  ByteArray contents("0123456789");
+  constexpr size_t kOffset = 4;
+  size_t size_after_skip = contents.size() - kOffset;
+  Payload::Id payload_id = Payload::GenerateId();
+  CreateFileWithContents(payload_id, contents);
+  std::unique_ptr<InternalPayload> internal_payload =
+      CreateOutgoingInternalPayload(
+          Payload{payload_id, InputFile(payload_id, contents.size())});
+  EXPECT_NE(internal_payload, nullptr);
+
+  ExceptionOr<size_t> result = internal_payload->SkipToOffset(kOffset);
+
+  EXPECT_TRUE(result.ok());
+  EXPECT_EQ(result.GetResult(), kOffset);
+  EXPECT_EQ(internal_payload->GetTotalSize(), contents.size());
+  ByteArray contents_after_skip =
+      internal_payload->DetachNextChunk(size_after_skip);
+  EXPECT_EQ(contents_after_skip, ByteArray("456789"));
+}
+
+TEST(InternalPayloadFActoryTest,
+     SkipToOffset_StreamPayloadValidOffset_SkipsOffset) {
+  ByteArray contents("0123456789");
+  constexpr size_t kOffset = 6;
+  auto pipe = std::make_shared<Pipe>();
+  std::unique_ptr<InternalPayload> internal_payload =
+      CreateOutgoingInternalPayload(Payload{[pipe]() -> InputStream& {
+        return pipe->GetInputStream();  // NOLINT
+      }});
+  EXPECT_NE(internal_payload, nullptr);
+  pipe->GetOutputStream().Write(contents);
+
+  ExceptionOr<size_t> result = internal_payload->SkipToOffset(kOffset);
+
+  EXPECT_TRUE(result.ok());
+  EXPECT_EQ(result.GetResult(), kOffset);
+  EXPECT_EQ(internal_payload->GetTotalSize(), -1);
+  ByteArray contents_after_skip = internal_payload->DetachNextChunk(512);
+  EXPECT_EQ(contents_after_skip, ByteArray("6789"));
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby

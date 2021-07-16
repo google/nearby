@@ -79,6 +79,14 @@ class InternalPayload {
   // cleanup may be required by the concrete implementation.
   virtual Exception AttachNextChunk(const ByteArray& chunk) = 0;
 
+  // Skips current stream pointer to the offset.
+  //
+  // Used when this is a resume outgoing transfer, so we want to skip
+  // some data until the offset position.
+  //
+  // @return the offset really skipped
+  virtual ExceptionOr<size_t> SkipToOffset(size_t offset) = 0;
+
   // Cleans up any resources used by this Payload. Called when we're stopping
   // early, e.g. after being cancelled or having no more recipients left.
   virtual void Close() {}
