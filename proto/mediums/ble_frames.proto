@@ -34,6 +34,7 @@ message SocketControlFrame {
     UNKNOWN_CONTROL_FRAME_TYPE = 0;
     INTRODUCTION = 1;
     DISCONNECTION = 2;
+    PACKET_ACKNOWLEDGEMENT = 3;
   }
 
   optional ControlFrameType type = 1;
@@ -41,6 +42,7 @@ message SocketControlFrame {
   // Exactly one of the following fields will be set.
   optional IntroductionFrame introduction = 2;
   optional DisconnectionFrame disconnection = 3;
+  optional PacketAcknowledgementFrame packet_acknowledgement = 4;
 }
 
 message IntroductionFrame {
@@ -50,4 +52,9 @@ message IntroductionFrame {
 
 message DisconnectionFrame {
   optional bytes service_id_hash = 1;
+}
+
+message PacketAcknowledgementFrame {
+  optional bytes service_id_hash = 1;
+  optional int32 received_size = 2;
 }
