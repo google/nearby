@@ -35,9 +35,7 @@ cc_library(
     hdrs = [
         "posix_condition_variable.h",
     ],
-    visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections_v2:__subpackages__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":posix_mutex",
         "//platform/api:types",
