@@ -58,6 +58,7 @@ message V1Frame {
 
 message ConnectionRequestFrame {
   // Should always match cs/symbol:location.nearby.proto.connections.Medium
+  // LINT.IfChange
   enum Medium {
     UNKNOWN_MEDIUM = 0;
     MDNS = 1 [deprecated = true];
@@ -69,7 +70,9 @@ message ConnectionRequestFrame {
     NFC = 7;
     WIFI_DIRECT = 8;
     WEB_RTC = 9;
+    BLE_L2CAP = 10;
   }
+  // LINT.ThenChange(//depot/google3/proto/connections_enums.proto)
 
   optional string endpoint_id = 1;
   optional string endpoint_name = 2;

@@ -79,10 +79,12 @@ enum Medium {
   NFC = 7;
   WIFI_DIRECT = 8;
   WEB_RTC = 9;
+  BLE_L2CAP = 10;
 }
 // LINT.ThenChange(
 //     //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/Medium.java,
-//     //depot/google3/java/com/google/android/gms/nearby/internal/connection/api.proto
+//     //depot/google3/java/com/google/android/gms/nearby/internal/connection/api.proto,
+//     //depot/google3/proto/connections/offline_wire_formats.proto
 // )
 
 // The result of a ConnectionRequest.
