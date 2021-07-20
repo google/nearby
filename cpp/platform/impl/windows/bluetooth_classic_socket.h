@@ -16,13 +16,21 @@
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_SOCKET_H_
 
 #include "platform/api/bluetooth_classic.h"
+#include "platform/impl/windows/generated/winrt/Windows.Networking.Sockets.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
+
+// https://docs.microsoft.com/en-us/uwp/api/windows.networking.hostname?view=winrt-20348
+using winrt::Windows::Networking::HostName;
+// https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocket?view=winrt-20348
+using winrt::Windows::Networking::Sockets::StreamSocket;
+
 // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html.
 class BluetoothSocket : public api::BluetoothSocket {
  public:
+  BluetoothSocket();
   // TODO(b/184975123): replace with real implementation.
   ~BluetoothSocket() override;
 
@@ -52,6 +60,9 @@ class BluetoothSocket : public api::BluetoothSocket {
   // TODO(b/184975123): replace with real implementation.
   api::BluetoothDevice* GetRemoteDevice() override;
 
+  void ConnectAsync(HostName connectionHostName,
+                    winrt::hstring connectionServiceName);
+
  private:
   class FakeInputStream : public InputStream {
    public:
@@ -73,6 +84,8 @@ class BluetoothSocket : public api::BluetoothSocket {
   };
   FakeInputStream fake_input_stream_;
   FakeOutputStream fake_output_stream_;
+
+  StreamSocket windows_socket_;
 };
 
 }  // namespace windows

@@ -29,6 +29,15 @@ namespace location {
 namespace nearby {
 namespace windows {
 
+// https://docs.microsoft.com/en-us/uwp/api/windows.foundation.iasyncoperation-1?view=winrt-20348
+using winrt::Windows::Foundation::IAsyncOperation;
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommdeviceservicesresult?view=winrt-20348
+using winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommDeviceServicesResult;
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommserviceid?view=winrt-20348
+using winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId;
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothcachemode?view=winrt-20348
+using winrt::Windows::Devices::Bluetooth::BluetoothCacheMode;
+
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
 class BluetoothDevice : public api::BluetoothDevice {
  public:
@@ -48,6 +57,12 @@ class BluetoothDevice : public api::BluetoothDevice {
   std::string GetMacAddress() const override;
 
   std::string GetId() { return id_; }
+
+  winrt::Windows::Foundation::IAsyncOperation<
+      winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommDeviceServicesResult>
+  GetRfcommServicesForIdAsync(
+      const winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId
+          serviceId);
 
  private:
   // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothdevice?view=winrt-20348

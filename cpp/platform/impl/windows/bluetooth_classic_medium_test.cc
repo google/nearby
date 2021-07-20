@@ -21,6 +21,8 @@
 
 #include "gtest/gtest.h"
 #include "platform/impl/windows/bluetooth_classic_device.h"
+#include "platform/impl/windows/generated/winrt/Windows.Devices.Bluetooth.Rfcomm.h"
+#include "absl/strings/str_format.h"
 
 // TODO(jfcarroll): Find a way to mock winrt components in order to properly
 // unit test this. Once that's done, unit tests can be written, in a later C/L.
@@ -38,7 +40,15 @@ void device_discovered_cb(location::nearby::api::BluetoothDevice& device) {
   std::map<std::string, location::nearby::api::BluetoothDevice*>::const_iterator
       it = deviceList.find(address);
 
+  std::string buffer =
+      absl::StrFormat("processing device %s : ", address.c_str());
+
+  OutputDebugStringA(buffer.c_str());
+
   if (it == deviceList.end()) {
+    buffer = absl::StrFormat("adding device %s\n", address.c_str());
+
+    OutputDebugStringA(buffer.c_str());
     deviceList[device.GetMacAddress()] = &device;
   }
 }
@@ -60,9 +70,16 @@ TEST(TestCaseName, TestName) {
           .device_lost_cb = device_lost_cb,
       });
 
-  while (true) {
-    Sleep(1000);
-  }
+  // while (true) {
+  Sleep(30000);
+  //  }
+
+  auto currentDevice = deviceList["DC:DC:E2:F2:B5:99"];
+  auto serviceUuid = winrt::Windows::Devices::Bluetooth::Rfcomm::
+      RfcommServiceId::GenericFileTransfer();
+  location::nearby::CancellationFlag cancellationFlag;
+  bcm->ConnectToService(*currentDevice, "a82efa21-ae5c-3dde-9bbc-f16da7b16c5a",
+                        &cancellationFlag);
 
   EXPECT_EQ(1, 1);
   EXPECT_TRUE(true);

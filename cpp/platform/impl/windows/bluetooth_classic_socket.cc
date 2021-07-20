@@ -14,6 +14,8 @@
 
 #include "platform/impl/windows/bluetooth_classic_socket.h"
 
+#include "platform/impl/windows/generated/winrt/Windows.Networking.Sockets.h"
+
 namespace location {
 namespace nearby {
 namespace windows {
@@ -25,6 +27,9 @@ BluetoothSocket::~BluetoothSocket() {}
 // returned by BluetoothClassicMedium::ConnectToService() for client side or
 // BluetoothServerSocket::Accept() for server side of connection.
 
+BluetoothSocket::BluetoothSocket() {
+  windows_socket_ = StreamSocket();
+}
 // Returns the InputStream of this connected BluetoothSocket.
 // TODO(b/184975123): replace with real implementation.
 InputStream& BluetoothSocket::GetInputStream() {
@@ -48,6 +53,13 @@ Exception BluetoothSocket::Close() { return Exception(); }
 // nullptr otherwise.
 // TODO(b/184975123): replace with real implementation.
 api::BluetoothDevice* BluetoothSocket::GetRemoteDevice() { return nullptr; }
+
+void BluetoothSocket::ConnectAsync(
+    HostName connectionHostName,
+  winrt::hstring connectionServiceName) {
+  windows_socket_.ConnectAsync(connectionHostName,
+                               connectionServiceName);
+}
 
 }  // namespace windows
 }  // namespace nearby

@@ -15,9 +15,12 @@
 #include "platform/impl/windows/bluetooth_classic_medium.h"
 
 #include "platform/impl/windows/bluetooth_classic_device.h"
+#include "platform/impl/windows/bluetooth_classic_socket.h"
+#include "platform/impl/windows/generated/winrt/Windows.Devices.Bluetooth.Rfcomm.h"
 #include "platform/impl/windows/generated/winrt/Windows.Devices.Bluetooth.h"
 #include "platform/impl/windows/generated/winrt/Windows.Devices.Enumeration.h"
 #include "platform/impl/windows/generated/winrt/Windows.Foundation.Collections.h"
+#include "platform/impl/windows/generated/winrt/Windows.Storage.Streams.h"
 #include "platform/impl/windows/generated/winrt/base.h"
 
 namespace location {
@@ -37,24 +40,21 @@ BluetoothClassicMedium::BluetoothClassicMedium() {
   // added to the system after the initial device enumeration completes.
   // register event handlers before starting the watcher
   // https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicewatcher.added?view=winrt-20348
-  device_watcher_.Added(winrt::auto_revoke,
-                        {this, &BluetoothClassicMedium::DeviceWatcher_Added});
+  device_watcher_.Added({this, &BluetoothClassicMedium::DeviceWatcher_Added});
 
   // https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicewatcher.updated?view=winrt-20348
   device_watcher_.Updated(
-      winrt::auto_revoke,
       {this, &BluetoothClassicMedium::DeviceWatcher_Updated});
 
   // https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicewatcher.removed?view=winrt-20348
   device_watcher_.Removed(
-      winrt::auto_revoke,
       {this, &BluetoothClassicMedium::DeviceWatcher_Removed});
 }
 
 BluetoothClassicMedium::~BluetoothClassicMedium() {}
 
 // TODO(b/184975123): replace with real implementation.
-location::nearby::api::BluetoothDevice* GetRemoteDevice(
+api::BluetoothDevice* GetRemoteDevice(
     const std::string& mac_address) {
   return nullptr;
 }
@@ -89,14 +89,109 @@ bool BluetoothClassicMedium::StopDiscovery() {
   return result;
 }
 
-std::unique_ptr<location::nearby::api::BluetoothSocket>
+std::unique_ptr<api::BluetoothSocket>
 BluetoothClassicMedium::ConnectToService(
-    location::nearby::api::BluetoothDevice& remote_device,
+    api::BluetoothDevice& remote_device,
     const std::string& service_uuid,
-    location::nearby::CancellationFlag* cancellation_flag) {
-  return nullptr;
+    CancellationFlag* cancellation_flag) {
+  if (service_uuid.empty()) {
+    return nullptr;
+  }
+
+  if (cancellation_flag == nullptr) {
+    return nullptr;
+  }
+
+  winrt::guid service(service_uuid);
+
+  BluetoothDevice* currentDevice =
+      dynamic_cast<BluetoothDevice*>(&remote_device);
+
+  if (currentDevice == nullptr) {
+    return nullptr;
+  }
+
+  winrt::hstring deviceId = winrt::to_hstring(currentDevice->GetId());
+
+  if (!HaveAccess(deviceId)) {
+    return nullptr;
+  }
+
+  RfcommDeviceService requestedService(
+      GetRequestedService(currentDevice, service));
+
+  if (!CheckSDP(requestedService)) {
+    return nullptr;
+  }
+
+  device_watcher_.Stop();
+
+  EnterCriticalSection(&critical_section);
+
+  BluetoothSocket* rfcommSocket = new BluetoothSocket();
+
+  /*await*/ rfcommSocket->ConnectAsync(
+      requestedService.ConnectionHostName(),
+      requestedService.ConnectionServiceName());
+
+  LeaveCriticalSection(&critical_section);
+
+  return std::make_unique<BluetoothSocket>(*rfcommSocket);
 }
 
+bool BluetoothClassicMedium::HaveAccess(winrt::hstring deviceId) {
+  DeviceAccessStatus accessStatus =
+      DeviceAccessInformation::CreateFromId(deviceId).CurrentStatus();
+
+  if (accessStatus == DeviceAccessStatus::DeniedByUser) {
+    // This app does not have access to connect to the remote device (please
+    // grant access in Settings > Privacy > Other Devices
+
+    return false;
+  }
+
+  return true;
+}
+
+RfcommDeviceService BluetoothClassicMedium::GetRequestedService(
+    BluetoothDevice* device, winrt::guid service) {
+  RfcommServiceId rfcommServiceId = RfcommServiceId::FromUuid(service);
+
+  //  https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothdevice.getrfcommservicesforidasync?view=winrt-20348
+  auto rfcommServices =
+      /*await*/ device->GetRfcommServicesForIdAsync(rfcommServiceId);
+
+  RfcommDeviceService requestedService(nullptr);
+
+  if (rfcommServices.get().Services().Size() > 0) {
+    requestedService = rfcommServices.get().Services().GetAt(0);
+  } else {
+    return nullptr;
+  }
+
+  return requestedService;
+}
+
+bool BluetoothClassicMedium::CheckSDP(RfcommDeviceService requestedService) {
+  // Do various checks of the SDP record to make sure you are talking to a
+  // device that actually supports the Bluetooth Rfcomm Chat Service
+  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommdeviceservice.getsdprawattributesasync?view=winrt-20348
+  auto attributes = /*await*/ requestedService.GetSdpRawAttributesAsync();
+  if (!attributes.get().HasKey(SdpServiceNameAttributeId)) {
+    return false;
+  }
+
+  auto attributeReader = DataReader::FromBuffer(
+      attributes.get().Lookup(SdpServiceNameAttributeId));
+
+  auto attributeType = attributeReader.ReadByte();
+
+  if (attributeType != SdpServiceNameAttributeType) {
+    return false;
+  }
+
+  return true;
+}
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#listenUsingInsecureRfcommWithServiceRecord
 //
 // service_uuid is the canonical textual representation
@@ -107,14 +202,14 @@ BluetoothClassicMedium::ConnectToService(
 //
 //  Returns nullptr error.
 // TODO(b/184975123): replace with real implementation.
-std::unique_ptr<location::nearby::api::BluetoothServerSocket>
+std::unique_ptr<api::BluetoothServerSocket>
 BluetoothClassicMedium::ListenForService(const std::string& service_name,
                                          const std::string& service_uuid) {
   return nullptr;
 }
 
 // TODO(b/184975123): replace with real implementation.
-location::nearby::api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
+api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
     const std::string& mac_address) {
   return nullptr;
 }

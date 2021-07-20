@@ -36,6 +36,16 @@ using winrt::Windows::Devices::Enumeration::DeviceInformationUpdate;
 using winrt::Windows::Devices::Enumeration::DeviceWatcher;
 // https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicewatcherstatus?view=winrt-20348
 using winrt::Windows::Devices::Enumeration::DeviceWatcherStatus;
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommdeviceservice?view=winrt-20348
+using winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommDeviceService;
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.deviceaccessstatus?view=winrt-20348
+using winrt::Windows::Devices::Enumeration::DeviceAccessStatus;
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.deviceaccessinformation?view=winrt-20348
+using winrt::Windows::Devices::Enumeration::DeviceAccessInformation;
+//  https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommserviceid?view=winrt-20348
+using winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId;
+//  https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.datareader?view=winrt-20348
+using winrt::Windows::Storage::Streams::DataReader;
 
 // Bluetooth protocol ID = \"{e0cbf06c-cd8b-4647-bb8a-263b43f0f974}\"
 // https://docs.microsoft.com/en-us/windows/uwp/devices-sensors/aep-service-class-ids
@@ -45,7 +55,7 @@ using winrt::Windows::Devices::Enumeration::DeviceWatcherStatus;
 // Container of operations that can be performed over the Bluetooth Classic
 // medium.
 class BluetoothClassicMedium
-    : public location::nearby::api::BluetoothClassicMedium {
+    : public api::BluetoothClassicMedium {
  public:
   explicit BluetoothClassicMedium();
 
@@ -77,10 +87,10 @@ class BluetoothClassicMedium
   // On success, returns a new BluetoothSocket.
   // On error, returns nullptr.
   // TODO(b/184975123): replace with real implementation.
-  std::unique_ptr<location::nearby::api::BluetoothSocket> ConnectToService(
-      location::nearby::api::BluetoothDevice& remote_device,
+  std::unique_ptr<api::BluetoothSocket> ConnectToService(
+      api::BluetoothDevice& remote_device,
       const std::string& service_uuid,
-      location::nearby::CancellationFlag* cancellation_flag) override;
+      CancellationFlag* cancellation_flag) override;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#listenUsingInsecureRfcommWithServiceRecord
   //
@@ -92,12 +102,12 @@ class BluetoothClassicMedium
   //
   //  Returns nullptr error.
   // TODO(b/184975123): replace with real implementation.
-  std::unique_ptr<location::nearby::api::BluetoothServerSocket>
+  std::unique_ptr<api::BluetoothServerSocket>
   ListenForService(const std::string& service_name,
                    const std::string& service_uuid) override;
 
   // TODO(b/184975123): replace with real implementation.
-  location::nearby::api::BluetoothDevice* GetRemoteDevice(
+  api::BluetoothDevice* GetRemoteDevice(
       const std::string& mac_address) override;
 
  private:
@@ -116,9 +126,23 @@ class BluetoothClassicMedium
   winrt::fire_and_forget DeviceWatcher_Removed(
       DeviceWatcher sender, DeviceInformationUpdate deviceInfo);
 
+  bool HaveAccess(winrt::hstring deviceId);
+
+  winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommDeviceService
+  GetRequestedService(location::nearby::windows::BluetoothDevice* device,
+                      winrt::guid service);
+
+  bool CheckSDP(
+      winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommDeviceService
+          requestedService);
+
   BluetoothClassicMedium::DiscoveryCallback discovery_callback_;
 
   DeviceWatcher device_watcher_ = nullptr;
+
+  const uint16 SdpServiceNameAttributeId = 0x100;
+  const char SdpServiceNameAttributeType = (4 << 3) | 5;
+
   // https://docs.microsoft.com/en-us/uwp/cpp-ref-for-winrt/hstring
   std::map<winrt::hstring, std::unique_ptr<BluetoothDevice>> devices_by_id_;
 
