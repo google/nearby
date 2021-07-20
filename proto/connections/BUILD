@@ -49,6 +49,7 @@ portable_proto_library(
     visibility = [
         "//location/nearby/connections:__subpackages__",
         "//platform:__subpackages__",
+        "//nearby_connections:__subpackages__",
     ],
 )
 

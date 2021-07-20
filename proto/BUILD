@@ -91,7 +91,10 @@ portable_proto_library(
     proto_deps = [
         ":connections_enums_proto",
     ],
-    visibility = ["//location/nearby/connections:__subpackages__"],
+    visibility = [
+        "//location/nearby/connections:__subpackages__",
+        "//nearby_connections:__subpackages__",
+    ],
 )
 
 filegroup(
