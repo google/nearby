@@ -372,8 +372,8 @@ enum ConsentType {
 enum ApkSource {
   UNKNOWN_APK_SOURCE = 0;
 
-  FILE_BROSWER = 1;
-  LAUNCHER = 2;
+  APK_FROM_SD_CARD = 1;
+  INSTALLED_APP = 2;
 }
 
 // The Installation status of APK.
