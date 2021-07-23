@@ -45,6 +45,7 @@ cc_library(
         "//absl/strings",
         "//absl/time",
         "//webrtc/api:libjingle_peerconnection_api",
+        "//webrtc/pc:peerconnection",
     ],
 )
 
