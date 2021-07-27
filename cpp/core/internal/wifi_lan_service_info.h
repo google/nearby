@@ -17,11 +17,11 @@
 
 #include <cstdint>
 
+#include "absl/strings/string_view.h"
 #include "core/internal/base_pcp_handler.h"
 #include "core/internal/pcp.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/nsd_service_info.h"
-#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -48,8 +48,7 @@ class WifiLanServiceInfo {
   WifiLanServiceInfo(Version version, Pcp pcp, absl::string_view endpoint_id,
                      const ByteArray& service_id_hash,
                      const ByteArray& endpoint_info,
-                     const ByteArray& uwb_address,
-                     WebRtcState web_rtc_state);
+                     const ByteArray& uwb_address, WebRtcState web_rtc_state);
 
   // Constructs WifiLanServiceInfo through NsdServiceInfo.
   explicit WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info);

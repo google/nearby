@@ -17,9 +17,9 @@
 
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "platform/base/runnable.h"
 #include "platform/public/lockable.h"
-#include "absl/base/thread_annotations.h"
 
 namespace location {
 namespace nearby {

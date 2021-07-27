@@ -14,12 +14,12 @@
 
 #include "platform/public/mutex.h"
 
-#include "platform/public/condition_variable.h"
-#include "platform/public/single_thread_executor.h"
 #include "gtest/gtest.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "platform/public/condition_variable.h"
+#include "platform/public/single_thread_executor.h"
 
 namespace location {
 namespace nearby {

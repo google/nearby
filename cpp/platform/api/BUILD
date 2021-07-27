@@ -1,3 +1,4 @@
+licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,10 +41,10 @@ cc_library(
         "//platform/public:__pkg__",
     ],
     deps = [
-        "//platform/base",
         "//absl/base:core_headers",
         "//absl/strings",
         "//absl/time",
+        "//platform/base",
     ],
 )
 
@@ -67,10 +68,10 @@ cc_library(
     ],
     deps = [
         "//proto/connections:offline_wire_formats_portable_proto",
-        "//platform/base",
-        "//platform/base:cancellation_flag",
         "//absl/strings",
         "//absl/types:optional",
+        "//platform/base",
+        "//platform/base:cancellation_flag",
         "//webrtc/api:libjingle_peerconnection_api",
     ],
 )
@@ -89,7 +90,7 @@ cc_library(
     deps = [
         ":comm",
         ":types",
-        "//platform/base",
         "//absl/strings",
+        "//platform/base",
     ],
 )

@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 
+#include "absl/container/flat_hash_map.h"
 #include "platform/api/bluetooth_classic.h"
 #include "platform/api/platform.h"
 #include "platform/base/byte_array.h"
@@ -29,7 +30,6 @@
 #include "platform/public/bluetooth_adapter.h"
 #include "platform/public/logging.h"
 #include "platform/public/mutex.h"
-#include "absl/container/flat_hash_map.h"
 
 namespace location {
 namespace nearby {

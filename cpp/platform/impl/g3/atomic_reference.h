@@ -29,12 +29,8 @@ class AtomicUint32 : public api::AtomicUint32 {
   explicit AtomicUint32(std::int32_t value) : value_(value) {}
   ~AtomicUint32() override = default;
 
-  std::uint32_t Get() const override {
-    return value_;
-  }
-  void Set(std::uint32_t value) override {
-    value_ = value;
-  }
+  std::uint32_t Get() const override { return value_; }
+  void Set(std::uint32_t value) override { value_ = value; }
 
  private:
   std::atomic<std::uint32_t> value_;

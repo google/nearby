@@ -20,13 +20,16 @@
 #include <memory>
 #include <string>
 
+#include "proto/connections/offline_wire_formats.pb.h"
+#include "location/nearby/mediums/proto/web_rtc_signaling_frames.pb.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "core/internal/mediums/webrtc/connection_flow.h"
 #include "core/internal/mediums/webrtc/data_channel_listener.h"
 #include "core/internal/mediums/webrtc/local_ice_candidate_listener.h"
 #include "core/internal/mediums/webrtc/peer_id.h"
 #include "core/internal/mediums/webrtc/webrtc_socket.h"
 #include "core/internal/mediums/webrtc/webrtc_socket_wrapper.h"
-#include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/cancellation_flag.h"
 #include "platform/base/listeners.h"
@@ -38,9 +41,6 @@
 #include "platform/public/scheduled_executor.h"
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/webrtc.h"
-#include "location/nearby/mediums/proto/web_rtc_signaling_frames.pb.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
 #include "webrtc/api/data_channel_interface.h"
 #include "webrtc/api/jsep.h"
 #include "webrtc/api/scoped_refptr.h"

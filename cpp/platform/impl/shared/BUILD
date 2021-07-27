@@ -1,3 +1,4 @@
+licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,9 +50,9 @@ cc_library(
         "//platform/impl:__subpackages__",
     ],
     deps = [
+        "//absl/strings",
         "//platform/api:types",
         "//platform/base",
-        "//absl/strings",
     ],
 )
 
@@ -61,8 +62,8 @@ cc_test(
     deps = [
         ":file",
         "//file/util:temp_path",
-        "//platform/base",
         "//testing/base/public:gunit_main",
         "//absl/strings",
+        "//platform/base",
     ],
 )

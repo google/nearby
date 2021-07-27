@@ -18,8 +18,8 @@
 #include <cstdint>
 #include <vector>
 
-#include "core/options.h"
 #include "proto/connections/offline_wire_formats.pb.h"
+#include "core/options.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
 
@@ -44,8 +44,7 @@ V1Frame::FrameType GetFrameType(const OfflineFrame& offline_frame);
 // Builds Connection Request / Response messages.
 ByteArray ForConnectionRequest(const std::string& endpoint_id,
                                const ByteArray& endpoint_info,
-                               std::int32_t nonce,
-                               bool supports_5_ghz,
+                               std::int32_t nonce, bool supports_5_ghz,
                                const std::string& bssid,
                                const std::vector<Medium>& mediums,
                                std::int32_t keep_alive_interval_millis,

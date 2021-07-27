@@ -59,16 +59,16 @@ WebRtcSocket::WebRtcSocket(
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel)
     : name_(name), data_channel_(std::move(data_channel)) {
   NEARBY_LOGS(INFO) << "WebRtcSocket::WebRtcSocket(" << name_
-                       << ") this: " << this;
+                    << ") this: " << this;
   data_channel_->RegisterObserver(this);
 }
 
 WebRtcSocket::~WebRtcSocket() {
   NEARBY_LOGS(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_
-                       << ") this: " << this;
+                    << ") this: " << this;
   Close();
   NEARBY_LOGS(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_
-                       << ") this: " << this << " done";
+                    << ") this: " << this << " done";
 }
 
 InputStream& WebRtcSocket::GetInputStream() { return pipe_.GetInputStream(); }
@@ -85,7 +85,7 @@ void WebRtcSocket::Close() {
   // is not fully closed when this call is done.
   data_channel_->Close();
   NEARBY_LOGS(INFO) << "WebRtcSocket::Close(" << name_ << ") this: " << this
-                       << " done";
+                    << " done";
 }
 
 void WebRtcSocket::OnStateChange() {
@@ -150,15 +150,15 @@ bool WebRtcSocket::IsClosed() { return closed_.Get(); }
 
 void WebRtcSocket::ClosePipe() {
   NEARBY_LOGS(INFO) << "WebRtcSocket::ClosePipe(" << name_
-                       << ") this: " << this;
+                    << ") this: " << this;
   // This is thread-safe to close these sockets even if a read or write is in
   // process on another thread, Close will wait for the exclusive mutex before
   // setting state.
   pipe_.GetInputStream().Close();
   pipe_.GetOutputStream().Close();
   WakeUpWriter();
-  NEARBY_LOGS(INFO) << "WebRtcSocket::ClosePipe(" << name_
-                       << ") this: " << this << " done";
+  NEARBY_LOGS(INFO) << "WebRtcSocket::ClosePipe(" << name_ << ") this: " << this
+                    << " done";
 }
 
 // Must not be called on signalling thread.

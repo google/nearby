@@ -15,8 +15,8 @@
 #ifndef PLATFORM_BASE_BLUETOOTH_UTILS_H_
 #define PLATFORM_BASE_BLUETOOTH_UTILS_H_
 
-#include "platform/base/byte_array.h"
 #include "absl/strings/string_view.h"
+#include "platform/base/byte_array.h"
 
 namespace location {
 namespace nearby {

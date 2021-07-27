@@ -17,6 +17,9 @@
 #include <algorithm>
 #include <memory>
 
+#include "proto/connections_enums.pb.h"
+#include "absl/functional/bind_front.h"
+#include "absl/time/time.h"
 #include "core/internal/bluetooth_bwu_handler.h"
 #include "core/internal/bwu_handler.h"
 #include "core/internal/offline_frames.h"
@@ -25,9 +28,6 @@
 #include "platform/base/byte_array.h"
 #include "platform/base/feature_flags.h"
 #include "platform/public/count_down_latch.h"
-#include "proto/connections_enums.pb.h"
-#include "absl/functional/bind_front.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {
@@ -187,10 +187,10 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
     // connects over Bluetooth, and is not connected to LAN. Bluetooth is the
     // best medium, and we attempt to upgrade from Bluetooth to Bluetooth.
     // if (medium_ == channel->GetMedium()) {
-      NEARBY_LOGS(INFO) << "BwuManager ignoring the upgrade for endpoint "
-                        << endpoint_id
-                        << " because it is already connected over medium "
-                        << proto::connections::Medium_Name(medium_);
+    NEARBY_LOGS(INFO) << "BwuManager ignoring the upgrade for endpoint "
+                      << endpoint_id
+                      << " because it is already connected over medium "
+                      << proto::connections::Medium_Name(medium_);
     if (medium_ == channel->GetMedium()) {
       return;
     }

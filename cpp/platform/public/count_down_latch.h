@@ -17,10 +17,10 @@
 
 #include <cstdint>
 
+#include "absl/time/time.h"
 #include "platform/api/count_down_latch.h"
 #include "platform/api/platform.h"
 #include "platform/base/exception.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {

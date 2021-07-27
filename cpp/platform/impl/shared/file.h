@@ -18,10 +18,10 @@
 #include <cstdint>
 #include <fstream>
 
+#include "absl/strings/string_view.h"
 #include "platform/api/input_file.h"
 #include "platform/api/output_file.h"
 #include "platform/base/exception.h"
-#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {

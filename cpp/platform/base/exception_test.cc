@@ -16,9 +16,9 @@
 
 #include <vector>
 
-#include "platform/base/exception_test.nc.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "platform/base/exception_test.nc.h"
 
 namespace location::nearby {
 

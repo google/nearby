@@ -18,12 +18,12 @@
 #include <string>
 #include <utility>
 
+#include "absl/strings/escaping.h"
 #include "core/internal/mediums/ble_v2/ble_advertisement.h"
 #include "core/internal/mediums/utils.h"
 #include "platform/base/prng.h"
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
-#include "absl/strings/escaping.h"
 
 namespace location {
 namespace nearby {

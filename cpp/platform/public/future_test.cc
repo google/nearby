@@ -14,10 +14,10 @@
 
 #include "platform/public/future.h"
 
-#include "platform/public/single_thread_executor.h"
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "platform/public/single_thread_executor.h"
 
 namespace location {
 namespace nearby {
@@ -102,7 +102,7 @@ TEST(FutureTest, GetBlocksWhenNotReady) {
   Future<int> future;
   SingleThreadExecutor executor;
   absl::Time start = absl::Now();
-  executor.Execute([&future](){
+  executor.Execute([&future]() {
     absl::SleepFor(absl::Milliseconds(500));
     future.Set(10);
   });

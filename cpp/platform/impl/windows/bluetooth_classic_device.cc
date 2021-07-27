@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "platform/impl/windows/bluetooth_classic_device.h"
+
 #include <winstring.h>
 
 #include <codecvt>
@@ -19,8 +21,6 @@
 #include <string>
 
 #include "platform/impl/windows/generated/winrt/Windows.Devices.Bluetooth.h"
-
-#include "platform/impl/windows/bluetooth_classic_device.h"
 
 namespace location {
 namespace nearby {

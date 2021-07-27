@@ -16,12 +16,12 @@
 
 #include <memory>
 
-#include "platform/base/medium_environment.h"
-#include "platform/public/count_down_latch.h"
-#include "platform/public/logging.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "platform/base/medium_environment.h"
+#include "platform/public/count_down_latch.h"
+#include "platform/public/logging.h"
 
 namespace location {
 namespace nearby {

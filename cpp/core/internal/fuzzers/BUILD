@@ -1,3 +1,6 @@
+load("//security/fuzzing/blaze:cc_fuzz_target.bzl", "cc_fuzz_target")
+
+licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,15 +15,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//security/fuzzing/blaze:cc_fuzz_target.bzl", "cc_fuzz_target")
-
 cc_fuzz_target(
     name = "offline_frames_fuzzer",
     srcs = ["offline_frames_fuzzer.cc"],
     componentid = 148515,
     deps = [
+        "//security/fuzzing/blaze:default_init_google_for_cc_fuzz_target",
         "//core/internal",
         "//platform/base",
-        "//security/fuzzing/blaze:default_init_google_for_cc_fuzz_target",
     ],
 )

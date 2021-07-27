@@ -18,8 +18,8 @@
 #include <Windows.h>
 #include <stdio.h>
 
-#include <xstring>
 #include <string>
+#include <xstring>
 
 #include "platform/base/payload_id.h"
 

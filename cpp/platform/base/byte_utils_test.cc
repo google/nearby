@@ -14,8 +14,8 @@
 
 #include "platform/base/byte_utils.h"
 
-#include "platform/base/byte_array.h"
 #include "gtest/gtest.h"
+#include "platform/base/byte_array.h"
 
 namespace location {
 namespace nearby {

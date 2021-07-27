@@ -16,6 +16,9 @@
 
 #include <string>
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "absl/time/time.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel_manager.h"
 #include "core/internal/endpoint_manager.h"
@@ -23,9 +26,6 @@
 #include "core/internal/mediums/utils.h"
 #include "core/internal/offline_frames.h"
 #include "platform/public/system_clock.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {

@@ -42,7 +42,7 @@ struct Status {
     kWifiLanError,
     kPayloadUnknown,
   };
-  Value value {kError};
+  Value value{kError};
   bool Ok() const { return value == kSuccess; }
 };
 
@@ -50,9 +50,7 @@ inline bool operator==(const Status& a, const Status& b) {
   return a.value == b.value;
 }
 
-inline bool operator!=(const Status& a, const Status& b) {
-  return !(a == b);
-}
+inline bool operator!=(const Status& a, const Status& b) { return !(a == b); }
 
 }  // namespace connections
 }  // namespace nearby

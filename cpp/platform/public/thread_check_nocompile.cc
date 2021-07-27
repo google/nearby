@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "absl/time/time.h"
 #include "platform/public/scheduled_executor.h"
 #include "platform/public/single_thread_executor.h"
-#include "absl/time/time.h"
 
 // Snippets of invalid code that should trigger an error during thread
 // safety analysis at compile time.

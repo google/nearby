@@ -33,7 +33,7 @@ class Pipe : public BasePipe {
     Setup(std::move(mutex), std::move(cond));
   }
   ~Pipe() override = default;
-  Pipe(Pipe &&) = delete;
+  Pipe(Pipe&&) = delete;
   Pipe& operator=(Pipe&&) = delete;
 };
 

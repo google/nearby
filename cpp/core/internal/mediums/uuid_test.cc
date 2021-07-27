@@ -14,10 +14,10 @@
 
 #include "core/internal/mediums/uuid.h"
 
-#include "platform/public/crypto.h"
-#include "platform/public/logging.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "platform/public/crypto.h"
+#include "platform/public/logging.h"
 
 namespace location {
 namespace nearby {
@@ -52,16 +52,16 @@ TEST(UuidTest, CreateFromBinary) {
   EXPECT_EQ(uuid_data[3], (kNum1 >> 32) & 0xFF);
   EXPECT_EQ(uuid_data[4], (kNum1 >> 24) & 0xFF);
   EXPECT_EQ(uuid_data[5], (kNum1 >> 16) & 0xFF);
-  EXPECT_EQ(uuid_data[6], (kNum1 >>  8) & 0xFF);
-  EXPECT_EQ(uuid_data[7], (kNum1 >>  0) & 0xFF);
+  EXPECT_EQ(uuid_data[6], (kNum1 >> 8) & 0xFF);
+  EXPECT_EQ(uuid_data[7], (kNum1 >> 0) & 0xFF);
   EXPECT_EQ(uuid_data[8], (kNum2 >> 56) & 0xFF);
   EXPECT_EQ(uuid_data[9], (kNum2 >> 48) & 0xFF);
   EXPECT_EQ(uuid_data[10], (kNum2 >> 40) & 0xFF);
   EXPECT_EQ(uuid_data[11], (kNum2 >> 32) & 0xFF);
   EXPECT_EQ(uuid_data[12], (kNum2 >> 24) & 0xFF);
   EXPECT_EQ(uuid_data[13], (kNum2 >> 16) & 0xFF);
-  EXPECT_EQ(uuid_data[14], (kNum2 >>  8) & 0xFF);
-  EXPECT_EQ(uuid_data[15], (kNum2 >>  0) & 0xFF);
+  EXPECT_EQ(uuid_data[14], (kNum2 >> 8) & 0xFF);
+  EXPECT_EQ(uuid_data[15], (kNum2 >> 0) & 0xFF);
 }
 
 }  // namespace

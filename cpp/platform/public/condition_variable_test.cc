@@ -14,13 +14,13 @@
 
 #include "platform/public/condition_variable.h"
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "absl/time/time.h"
 #include "platform/public/logging.h"
 #include "platform/public/mutex.h"
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/system_clock.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {

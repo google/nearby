@@ -1,3 +1,6 @@
+load("//ads/util/non_compile:non_compile.bzl", "cc_with_non_compile_test")
+
+licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,8 +14,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-load("//ads/util/non_compile:non_compile.bzl", "cc_with_non_compile_test")
 
 cc_library(
     name = "base",
@@ -75,9 +76,9 @@ cc_library(
     ],
     deps = [
         ":base",
-        "//platform/api:types",
         "//absl/base:core_headers",
         "//absl/strings:str_format",
+        "//platform/api:types",
     ],
 )
 
@@ -137,10 +138,10 @@ cc_library(
     deps = [
         ":base",
         ":logging",
-        "//platform/api:comm",
-        "//platform/public:types",
         "//absl/container:flat_hash_map",
         "//absl/strings",
+        "//platform/api:comm",
+        "//platform/public:types",
     ],
 )
 
@@ -155,8 +156,8 @@ cc_test(
     deps = [
         ":base",
         ":test_util",
-        "//platform/impl/g3",  # build_cleaner: keep
         "//testing/base/public:gunit_main",
+        "//platform/impl/g3",  # build_cleaner: keep
     ],
 )
 
@@ -181,8 +182,8 @@ cc_test(
         ":base",
         ":cancellation_flag",
         ":test_util",
-        "//platform/impl/g3",  # build_cleaner: keep
         "//testing/base/public:gunit_main",
+        "//platform/impl/g3",  # build_cleaner: keep
     ],
 )
 

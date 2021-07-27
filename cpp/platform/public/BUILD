@@ -1,3 +1,6 @@
+load("//tools/build_defs/cc:cc_fake_binary.bzl", "cc_fake_binary")
+
+licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,8 +14,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-load("//tools/build_defs/cc:cc_fake_binary.bzl", "cc_fake_binary")
 
 cc_library(
     name = "types",
@@ -56,13 +57,13 @@ cc_library(
     ],
     deps = [
         ":logging",
+        "//absl/base:core_headers",
+        "//absl/time",
         "//platform/api:platform",
         "//platform/api:types",
         "//platform/base",
         "//platform/base:logging",
         "//platform/base:util",
-        "//absl/base:core_headers",
-        "//absl/time",
     ],
 )
 
@@ -89,12 +90,12 @@ cc_library(
         ":logging",
         ":types",
         "//proto/connections:offline_wire_formats_portable_proto",
+        "//absl/container:flat_hash_map",
+        "//absl/strings",
         "//platform/api:comm",
         "//platform/api:platform",
         "//platform/base",
         "//platform/base:cancellation_flag",
-        "//absl/container:flat_hash_map",
-        "//absl/strings",
         "//webrtc/api:libjingle_peerconnection_api",
     ],
 )
@@ -141,13 +142,13 @@ cc_test(
         ":comm",
         ":logging",
         ":types",
-        "//platform/base",
-        "//platform/base:test_util",
-        "//platform/impl/g3",  # build_cleaner: keep
         "//testing/base/public:gunit_main",
         "//absl/strings",
         "//absl/synchronization",
         "//absl/time",
+        "//platform/base",
+        "//platform/base:test_util",
+        "//platform/impl/g3",  # build_cleaner: keep
     ],
 )
 

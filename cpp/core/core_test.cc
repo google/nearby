@@ -14,13 +14,13 @@
 
 #include "core/core.h"
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "absl/time/clock.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/mock_service_controller.h"
 #include "core/internal/service_controller.h"
 #include "platform/public/logging.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-#include "absl/time/clock.h"
 
 namespace location {
 namespace nearby {

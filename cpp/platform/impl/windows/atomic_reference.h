@@ -15,9 +15,9 @@
 #ifndef PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
 #define PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_
 
-#include "platform/api/atomic_reference.h"
-
 #include <atomic>
+
+#include "platform/api/atomic_reference.h"
 
 namespace location {
 namespace nearby {

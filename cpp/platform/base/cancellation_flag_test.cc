@@ -16,11 +16,11 @@
 
 #include <memory>
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "platform/base/cancellation_flag_listener.h"
 #include "platform/base/feature_flags.h"
 #include "platform/base/medium_environment.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
 
 namespace location {
 namespace nearby {
@@ -162,7 +162,7 @@ TEST(CancellationFlagTest,
   CancellationFlag::CancelListener cancel_callback =
       mock_cancel_callback.AsStdFunction();
 
-  CancellationFlag::CancelListener *callback_pointer_1 = &cancel_callback;
+  CancellationFlag::CancelListener* callback_pointer_1 = &cancel_callback;
   auto callback_pointer_2 =
       std::make_unique<CancellationFlag::CancelListener>();
   *callback_pointer_2 = cancel_callback;

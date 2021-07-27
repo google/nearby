@@ -19,6 +19,8 @@
 #include <string>
 #include <utility>
 
+#include "absl/memory/memory.h"
+#include "absl/time/clock.h"
 #include "core/internal/client_proxy.h"
 #include "core/listeners.h"
 #include "core/options.h"
@@ -26,8 +28,6 @@
 #include "core/payload.h"
 #include "platform/base/feature_flags.h"
 #include "platform/public/logging.h"
-#include "absl/memory/memory.h"
-#include "absl/time/clock.h"
 
 namespace location {
 namespace nearby {

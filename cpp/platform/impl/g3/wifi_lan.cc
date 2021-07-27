@@ -18,13 +18,13 @@
 #include <memory>
 #include <string>
 
+#include "absl/synchronization/mutex.h"
 #include "platform/api/wifi_lan.h"
 #include "platform/base/cancellation_flag_listener.h"
 #include "platform/base/logging.h"
 #include "platform/base/medium_environment.h"
 #include "platform/base/nsd_service_info.h"
 #include "platform/base/prng.h"
-#include "absl/synchronization/mutex.h"
 
 namespace location {
 namespace nearby {

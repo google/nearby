@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <string>
 
+#include "absl/container/flat_hash_map.h"
 #include "core/internal/mediums/bluetooth_radio.h"
 #include "core/listeners.h"
 #include "platform/base/byte_array.h"
@@ -26,7 +27,6 @@
 #include "platform/public/bluetooth_classic.h"
 #include "platform/public/multi_thread_executor.h"
 #include "platform/public/mutex.h"
-#include "absl/container/flat_hash_map.h"
 
 namespace location {
 namespace nearby {

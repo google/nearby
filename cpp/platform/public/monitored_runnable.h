@@ -17,9 +17,9 @@
 
 #include <string>
 
+#include "absl/time/time.h"
 #include "platform/base/runnable.h"
 #include "platform/public/system_clock.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {

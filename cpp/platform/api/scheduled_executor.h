@@ -19,10 +19,10 @@
 #include <functional>
 #include <memory>
 
+#include "absl/time/time.h"
 #include "platform/api/cancelable.h"
 #include "platform/api/executor.h"
 #include "platform/base/runnable.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {

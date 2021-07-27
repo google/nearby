@@ -18,6 +18,10 @@
 #include <cstdint>
 #include <memory>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/time/time.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel.h"
 #include "core/internal/endpoint_channel_manager.h"
@@ -28,10 +32,6 @@
 #include "platform/public/multi_thread_executor.h"
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/system_clock.h"
-#include "absl/base/thread_annotations.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {

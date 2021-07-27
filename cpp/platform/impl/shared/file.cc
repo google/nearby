@@ -17,8 +17,8 @@
 #include <cstddef>
 #include <memory>
 
-#include "platform/base/exception.h"
 #include "absl/strings/string_view.h"
+#include "platform/base/exception.h"
 
 namespace location {
 namespace nearby {

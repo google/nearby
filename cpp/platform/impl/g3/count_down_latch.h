@@ -15,10 +15,10 @@
 #ifndef PLATFORM_IMPL_G3_COUNT_DOWN_LATCH_H_
 #define PLATFORM_IMPL_G3_COUNT_DOWN_LATCH_H_
 
-#include "platform/api/count_down_latch.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
+#include "platform/api/count_down_latch.h"
 
 namespace location {
 namespace nearby {

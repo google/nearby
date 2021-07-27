@@ -17,6 +17,8 @@
 
 #include <string>
 
+#include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/offline_service_controller.h"
 #include "core/options.h"
@@ -24,8 +26,6 @@
 #include "platform/public/condition_variable.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/future.h"
-#include "gtest/gtest.h"
-#include "absl/strings/string_view.h"
 
 // Test-only class to help run end-to-end simulations for nearby connections
 // protocol.

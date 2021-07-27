@@ -16,10 +16,10 @@
 
 #include <memory>
 
-#include "core/internal/mediums/webrtc/peer_id.h"
-#include "net/proto2/public/text_format.h"
+#include "google/protobuf/text_format.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "core/internal/mediums/webrtc/peer_id.h"
 
 namespace location {
 namespace nearby {

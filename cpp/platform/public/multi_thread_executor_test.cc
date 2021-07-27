@@ -17,11 +17,11 @@
 #include <atomic>
 #include <functional>
 
-#include "platform/base/exception.h"
 #include "gtest/gtest.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "platform/base/exception.h"
 
 namespace location {
 namespace nearby {

@@ -19,6 +19,11 @@
 #include <memory>
 #include <string>
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/time/clock.h"
+#include "absl/types/span.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/mock_service_controller.h"
 #include "core/internal/service_controller.h"
@@ -29,11 +34,6 @@
 #include "platform/public/condition_variable.h"
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/time/clock.h"
-#include "absl/types/span.h"
 
 namespace location {
 namespace nearby {

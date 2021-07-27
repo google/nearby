@@ -1,3 +1,4 @@
+licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -67,9 +68,9 @@ cc_library(
     ],
     visibility = ["//visibility:private"],
     deps = [
+        "//absl/strings",
         "//platform/api:types",
         "//platform/base",
-        "//absl/strings",
         "//openssl:crypto",
     ],
 )
@@ -90,7 +91,7 @@ cc_library(
         "bluetooth_classic_server_socket.h",
         "bluetooth_classic_socket.h",
     ],
-    copts = ["-Iplatform/impl/windows/generated"],
+    copts = ["-Ithird_party/nearby_connections/cpp/platform/impl/windows/generated"],
     visibility = [
         "//location/nearby/connections/windows:__subpackages__",
     ],
@@ -138,11 +139,11 @@ cc_test(
         ":crypto",
         ":test_utils",
         ":types",
+        "//testing/base/public:gunit_main",
         "//platform/api:platform",
         "//platform/base",
         "//platform/impl/windows",
         "//platform/impl/windows/generated:types",
         "//platform/public:logging",
-        "//testing/base/public:gunit_main",
     ],
 )

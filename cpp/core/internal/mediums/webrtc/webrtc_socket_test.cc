@@ -16,9 +16,9 @@
 
 #include <memory>
 
-#include "platform/base/byte_array.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "platform/base/byte_array.h"
 #include "webrtc/api/data_channel_interface.h"
 
 namespace location {

@@ -16,20 +16,20 @@
 
 #include <array>
 
+#include "gtest/gtest.h"
 #include "core/internal/bluetooth_device_name.h"
 #include "platform/base/bluetooth_utils.h"
 #include "platform/base/byte_array.h"
 #include "platform/public/bluetooth_adapter.h"
-#include "gtest/gtest.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 namespace {
 
-constexpr std::array<char, 6>
-    kTestRemoteBluetoothMacAddress{0x01, 0x23, 0x45, 0x67, 0x89, 0xab};
-constexpr std::array<char, 2> kTestEndpointInfo {0xcd, 0xef};
+constexpr std::array<char, 6> kTestRemoteBluetoothMacAddress{0x01, 0x23, 0x45,
+                                                             0x67, 0x89, 0xab};
+constexpr std::array<char, 2> kTestEndpointInfo{0xcd, 0xef};
 constexpr std::array<char, 3> kTestServiceIdHash{0x01, 0x23, 0x45};
 
 const char kTestEndpointId[] = "abcd";

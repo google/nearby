@@ -18,12 +18,12 @@
 #include <cstdint>
 #include <vector>
 
-#include "platform/base/byte_array.h"
-#include "platform/public/mutex.h"
-#include "platform/public/system_clock.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/time/clock.h"
+#include "platform/base/byte_array.h"
+#include "platform/public/mutex.h"
+#include "platform/public/system_clock.h"
 
 namespace location {
 namespace nearby {

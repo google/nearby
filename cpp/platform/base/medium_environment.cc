@@ -457,17 +457,15 @@ void MediumEnvironment::RegisterWebRtcSignalingMessenger(
     absl::string_view self_id, OnSignalingMessageCallback message_callback,
     OnSignalingCompleteCallback complete_callback) {
   if (!enabled_) return;
-  RunOnMediumEnvironmentThread(
-      [this, self_id{std::string(self_id)},
-       message_callback{std::move(message_callback)},
-       complete_callback{std::move(complete_callback)}]() {
-        webrtc_signaling_message_callback_[self_id] =
-            std::move(message_callback);
-        webrtc_signaling_complete_callback_[self_id] =
-            std::move(complete_callback);
-        NEARBY_LOG(INFO, "Registered signaling message callback for id = %s",
-                   self_id.c_str());
-      });
+  RunOnMediumEnvironmentThread([this, self_id{std::string(self_id)},
+                                message_callback{std::move(message_callback)},
+                                complete_callback{
+                                    std::move(complete_callback)}]() {
+    webrtc_signaling_message_callback_[self_id] = std::move(message_callback);
+    webrtc_signaling_complete_callback_[self_id] = std::move(complete_callback);
+    NEARBY_LOG(INFO, "Registered signaling message callback for id = %s",
+               self_id.c_str());
+  });
 }
 
 void MediumEnvironment::UnregisterWebRtcSignalingMessenger(

@@ -44,9 +44,7 @@ class Uuid final {
   // (https://en.wikipedia.org/wiki/Universally_unique_identifier#Format) of the
   // UUID.
   explicit operator std::string() const;
-  std::string data() const {
-    return data_;
-  }
+  std::string data() const { return data_; }
 
  private:
   std::string data_;

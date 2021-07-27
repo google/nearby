@@ -14,13 +14,13 @@
 
 #include "core/internal/payload_manager.h"
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "core/internal/simulation_user.h"
 #include "platform/base/byte_array.h"
 #include "platform/public/pipe.h"
 #include "platform/public/system_clock.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {

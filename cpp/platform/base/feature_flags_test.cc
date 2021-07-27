@@ -14,8 +14,8 @@
 
 #include "platform/base/feature_flags.h"
 
-#include "platform/base/medium_environment.h"
 #include "gtest/gtest.h"
+#include "platform/base/medium_environment.h"
 
 namespace location {
 namespace nearby {

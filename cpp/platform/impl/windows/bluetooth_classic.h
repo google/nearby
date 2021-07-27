@@ -17,7 +17,7 @@
 
 #include "platform/impl/windows/bluetooth_classic_device.h"
 #include "platform/impl/windows/bluetooth_classic_medium.h"
-#include "platform/impl/windows/bluetooth_classic_socket.h"
 #include "platform/impl/windows/bluetooth_classic_server_socket.h"
+#include "platform/impl/windows/bluetooth_classic_socket.h"
 
 #endif  // PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_H_

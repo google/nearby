@@ -19,6 +19,8 @@
 #include <memory>
 #include <string>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/time/clock.h"
 #include "core/internal/bwu_handler.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel_manager.h"
@@ -26,8 +28,6 @@
 #include "platform/public/count_down_latch.h"
 #include "platform/public/scheduled_executor.h"
 #include "platform/public/single_thread_executor.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/time/clock.h"
 
 namespace location {
 namespace nearby {

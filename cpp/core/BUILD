@@ -1,3 +1,4 @@
+licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,13 +27,13 @@ cc_library(
     ],
     deps = [
         ":core_types",
+        "//absl/strings",
+        "//absl/time",
+        "//absl/types:span",
         "//core/internal",
         "//platform/base",
         "//platform/public:logging",
         "//platform/public:types",
-        "//absl/strings",
-        "//absl/time",
-        "//absl/types:span",
     ],
 )
 
@@ -53,12 +54,12 @@ cc_library(
         "//core:__subpackages__",
     ],
     deps = [
-        "//platform/base",
-        "//platform/base:util",
-        "//platform/public:types",
         "//proto:connections_enums_portable_proto",
         "//absl/strings",
         "//absl/types:variant",
+        "//platform/base",
+        "//platform/base:util",
+        "//platform/public:types",
     ],
 )
 
@@ -76,15 +77,15 @@ cc_test(
     deps = [
         ":core",
         ":core_types",
+        "//testing/base/public:gunit_main",
+        "//absl/strings",
+        "//absl/time",
+        "//absl/types:variant",
         "//core/internal",
         "//core/internal:internal_test",
         "//platform/base",
         "//platform/impl/g3",  # build_cleaner: keep
         "//platform/public:logging",
         "//platform/public:types",
-        "//testing/base/public:gunit_main",
-        "//absl/strings",
-        "//absl/time",
-        "//absl/types:variant",
     ],
 )

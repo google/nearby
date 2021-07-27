@@ -16,18 +16,18 @@
 
 #include <string>
 
-#include "core/listeners.h"
-#include "core/options.h"
-#include "core/strategy.h"
-#include "platform/base/byte_array.h"
-#include "platform/base/feature_flags.h"
-#include "platform/base/medium_environment.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "core/listeners.h"
+#include "core/options.h"
+#include "core/strategy.h"
+#include "platform/base/byte_array.h"
+#include "platform/base/feature_flags.h"
+#include "platform/base/medium_environment.h"
 
 namespace location {
 namespace nearby {

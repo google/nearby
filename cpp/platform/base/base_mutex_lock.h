@@ -15,8 +15,8 @@
 #ifndef PLATFORM_BASE_BASE_MUTEX_LOCK_H_
 #define PLATFORM_BASE_BASE_MUTEX_LOCK_H_
 
-#include "platform/api/mutex.h"
 #include "absl/base/thread_annotations.h"
+#include "platform/api/mutex.h"
 
 namespace location {
 namespace nearby {

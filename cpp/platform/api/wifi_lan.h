@@ -17,13 +17,13 @@
 
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/cancellation_flag.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/listeners.h"
 #include "platform/base/nsd_service_info.h"
 #include "platform/base/output_stream.h"
-#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {

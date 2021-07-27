@@ -18,12 +18,12 @@
 #include <cstdint>
 #include <string>
 
-#include "platform/base/byte_array.h"
-#include "platform/base/exception.h"
-#include "platform/public/mutex.h"
 #include "proto/connections_enums.pb.h"
 #include "securegcm/d2d_connection_context_v1.h"
 #include "absl/time/clock.h"
+#include "platform/base/byte_array.h"
+#include "platform/base/exception.h"
+#include "platform/public/mutex.h"
 
 namespace location {
 namespace nearby {

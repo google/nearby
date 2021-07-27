@@ -64,8 +64,7 @@ void PendingJobRegistry::RemoveRunningJob(const std::string& name,
 void PendingJobRegistry::ListJobs() {
   auto current_time = SystemClock::ElapsedRealtime();
   MutexLock lock(&mutex_);
-  if (current_time - list_jobs_time_ < kMinReportInterval)
-    return;
+  if (current_time - list_jobs_time_ < kMinReportInterval) return;
   for (auto& job : pending_jobs_) {
     auto age = current_time - job.second;
     if (age >= kReportPendingJobsOlderThan) {

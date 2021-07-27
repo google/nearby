@@ -20,6 +20,11 @@
 #include <string>
 #include <vector>
 
+#include "securegcm/d2d_connection_context_v1.h"
+#include "securegcm/ukey2_handshake.h"
+#include "absl/container/btree_map.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/time/time.h"
 #include "core/internal/bwu_manager.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/encryption_runner.h"
@@ -42,11 +47,6 @@
 #include "platform/public/scheduled_executor.h"
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/system_clock.h"
-#include "securegcm/d2d_connection_context_v1.h"
-#include "securegcm/ukey2_handshake.h"
-#include "absl/container/btree_map.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {

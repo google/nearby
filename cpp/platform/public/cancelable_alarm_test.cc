@@ -14,11 +14,11 @@
 
 #include "platform/public/cancelable_alarm.h"
 
-#include "platform/public/atomic_boolean.h"
-#include "platform/public/scheduled_executor.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
+#include "platform/public/atomic_boolean.h"
+#include "platform/public/scheduled_executor.h"
 
 namespace location {
 namespace nearby {

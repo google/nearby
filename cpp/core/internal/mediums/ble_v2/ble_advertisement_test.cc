@@ -46,9 +46,7 @@ TEST(BleAdvertisementTest, ConstructionWorksV1) {
 
   BleAdvertisement ble_advertisement{BleAdvertisement::Version::kV1,
                                      BleAdvertisement::SocketVersion::kV1,
-                                     service_id_hash,
-                                     data,
-                                     device_token};
+                                     service_id_hash, data, device_token};
 
   EXPECT_TRUE(ble_advertisement.IsValid());
   EXPECT_FALSE(ble_advertisement.IsFastAdvertisement());
@@ -67,9 +65,7 @@ TEST(BleAdvertisementTest, ConstructionWorksV1ForFastAdvertisement) {
 
   BleAdvertisement ble_advertisement{BleAdvertisement::Version::kV1,
                                      BleAdvertisement::SocketVersion::kV1,
-                                     ByteArray{},
-                                     fast_data,
-                                     device_token};
+                                     ByteArray{}, fast_data, device_token};
 
   EXPECT_TRUE(ble_advertisement.IsValid());
   EXPECT_TRUE(ble_advertisement.IsFastAdvertisement());
@@ -89,18 +85,12 @@ TEST(BleAdvertisementTest, ConstructionFailsWithBadVersion) {
   ByteArray data{std::string(kData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement ble_advertisement{bad_version,
-                                     kSocketVersion,
-                                     service_id_hash,
-                                     data,
-                                     device_token};
+  BleAdvertisement ble_advertisement{bad_version, kSocketVersion,
+                                     service_id_hash, data, device_token};
   EXPECT_FALSE(ble_advertisement.IsValid());
 
-  BleAdvertisement fast_ble_advertisement{bad_version,
-                                          kSocketVersion,
-                                          ByteArray{},
-                                          data,
-                                          device_token};
+  BleAdvertisement fast_ble_advertisement{bad_version, kSocketVersion,
+                                          ByteArray{}, data, device_token};
   EXPECT_FALSE(fast_ble_advertisement.IsValid());
 }
 
@@ -112,18 +102,12 @@ TEST(BleAdvertisementTest, ConstructionFailsWithBadSocketVersion) {
   ByteArray data{std::string(kData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement ble_advertisement{kVersion,
-                                     bad_socket_version,
-                                     service_id_hash,
-                                     data,
-                                     device_token};
+  BleAdvertisement ble_advertisement{kVersion, bad_socket_version,
+                                     service_id_hash, data, device_token};
   EXPECT_FALSE(ble_advertisement.IsValid());
 
-  BleAdvertisement fast_ble_advertisement{kVersion,
-                                          bad_socket_version,
-                                          ByteArray{},
-                                          data,
-                                          device_token};
+  BleAdvertisement fast_ble_advertisement{kVersion, bad_socket_version,
+                                          ByteArray{}, data, device_token};
   EXPECT_FALSE(fast_ble_advertisement.IsValid());
 }
 
@@ -134,11 +118,8 @@ TEST(BleAdvertisementTest, ConstructionFailsWithShortServiceIdHash) {
   ByteArray data{std::string(kData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement ble_advertisement{kVersion,
-                                     kSocketVersion,
-                                     bad_service_id_hash,
-                                     data,
-                                     device_token};
+  BleAdvertisement ble_advertisement{kVersion, kSocketVersion,
+                                     bad_service_id_hash, data, device_token};
 
   EXPECT_FALSE(ble_advertisement.IsValid());
 }
@@ -150,11 +131,8 @@ TEST(BleAdvertisementTest, ConstructionFailsWithLongServiceIdHash) {
   ByteArray data{std::string(kData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement ble_advertisement{kVersion,
-                                     kSocketVersion,
-                                     bad_service_id_hash,
-                                     data,
-                                     device_token};
+  BleAdvertisement ble_advertisement{kVersion, kSocketVersion,
+                                     bad_service_id_hash, data, device_token};
 
   EXPECT_FALSE(ble_advertisement.IsValid());
 }
@@ -168,18 +146,12 @@ TEST(BleAdvertisementTest, ConstructionFailsWithLongData) {
   ByteArray bad_data{long_data, 512};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement ble_advertisement{kVersion,
-                                     kSocketVersion,
-                                     service_id_hash,
-                                     bad_data,
-                                     device_token};
+  BleAdvertisement ble_advertisement{kVersion, kSocketVersion, service_id_hash,
+                                     bad_data, device_token};
   EXPECT_FALSE(ble_advertisement.IsValid());
 
-  BleAdvertisement fast_ble_advertisement{kVersion,
-                                          kSocketVersion,
-                                          ByteArray{},
-                                          bad_data,
-                                          device_token};
+  BleAdvertisement fast_ble_advertisement{kVersion, kSocketVersion, ByteArray{},
+                                          bad_data, device_token};
   EXPECT_FALSE(fast_ble_advertisement.IsValid());
 }
 
@@ -187,11 +159,8 @@ TEST(BleAdvertisementTest, ConstructionWorksWithEmptyDeviceToken) {
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
   ByteArray data{std::string(kData)};
 
-  BleAdvertisement ble_advertisement{kVersion,
-                                     kSocketVersion,
-                                     service_id_hash,
-                                     data,
-                                     ByteArray{}};
+  BleAdvertisement ble_advertisement{kVersion, kSocketVersion, service_id_hash,
+                                     data, ByteArray{}};
 
   EXPECT_TRUE(ble_advertisement.IsValid());
   EXPECT_FALSE(ble_advertisement.IsFastAdvertisement());
@@ -207,11 +176,8 @@ TEST(BleAdvertisementTest,
      ConstructionWorksWithEmptyDeviceTokenForFastAdvertisement) {
   ByteArray fast_data{std::string(kFastData)};
 
-  BleAdvertisement ble_advertisement{kVersion,
-                                     kSocketVersion,
-                                     ByteArray{},
-                                     fast_data,
-                                     ByteArray{}};
+  BleAdvertisement ble_advertisement{kVersion, kSocketVersion, ByteArray{},
+                                     fast_data, ByteArray{}};
 
   EXPECT_TRUE(ble_advertisement.IsValid());
   EXPECT_TRUE(ble_advertisement.IsFastAdvertisement());
@@ -231,32 +197,20 @@ TEST(BleAdvertisementTest, ConstructionFailsWithWrongSizeofDeviceToken) {
   ByteArray bad_device_token_1{wrong_device_token_bytes_1};
   ByteArray bad_device_token_2{wrong_device_token_bytes_2};
 
-  BleAdvertisement ble_advertisement_1{kVersion,
-                                       kSocketVersion,
-                                       service_id_hash,
-                                       data,
-                                       bad_device_token_1};
+  BleAdvertisement ble_advertisement_1{
+      kVersion, kSocketVersion, service_id_hash, data, bad_device_token_1};
   EXPECT_FALSE(ble_advertisement_1.IsValid());
 
-  BleAdvertisement ble_advertisement_2{kVersion,
-                                       kSocketVersion,
-                                       service_id_hash,
-                                       data,
-                                       bad_device_token_2};
+  BleAdvertisement ble_advertisement_2{
+      kVersion, kSocketVersion, service_id_hash, data, bad_device_token_2};
   EXPECT_FALSE(ble_advertisement_2.IsValid());
 
-  BleAdvertisement fast_ble_advertisement_1{kVersion,
-                                            kSocketVersion,
-                                            ByteArray{},
-                                            data,
-                                            bad_device_token_1};
+  BleAdvertisement fast_ble_advertisement_1{
+      kVersion, kSocketVersion, ByteArray{}, data, bad_device_token_1};
   EXPECT_FALSE(fast_ble_advertisement_1.IsValid());
 
-  BleAdvertisement fast_ble_advertisement_2{kVersion,
-                                            kSocketVersion,
-                                            ByteArray{},
-                                            data,
-                                            bad_device_token_2};
+  BleAdvertisement fast_ble_advertisement_2{
+      kVersion, kSocketVersion, ByteArray{}, data, bad_device_token_2};
   EXPECT_FALSE(fast_ble_advertisement_2.IsValid());
 }
 
@@ -265,11 +219,8 @@ TEST(BleAdvertisementTest, ConstructionFromSerializedBytesWorks) {
   ByteArray data{std::string(kData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion,
-                                         kSocketVersion,
-                                         service_id_hash,
-                                         data,
-                                         device_token};
+  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion,
+                                         service_id_hash, data, device_token};
 
   ByteArray ble_advertisement_bytes{org_ble_advertisement};
   BleAdvertisement ble_advertisement{ble_advertisement_bytes};
@@ -289,11 +240,8 @@ TEST(BleAdvertisementTest,
   ByteArray fast_data{std::string(kFastData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion,
-                                         kSocketVersion,
-                                         ByteArray{},
-                                         fast_data,
-                                         device_token};
+  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion, ByteArray{},
+                                         fast_data, device_token};
 
   ByteArray ble_advertisement_bytes{org_ble_advertisement};
   BleAdvertisement ble_advertisement{ble_advertisement_bytes};
@@ -311,11 +259,8 @@ TEST(BleAdvertisementTest, ConstructionFromSerializedBytesWithEmptyDataWorks) {
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion,
-                                         kSocketVersion,
-                                         service_id_hash,
-                                         ByteArray(),
-                                         device_token};
+  BleAdvertisement org_ble_advertisement{
+      kVersion, kSocketVersion, service_id_hash, ByteArray(), device_token};
   ByteArray ble_advertisement_bytes{org_ble_advertisement};
   BleAdvertisement ble_advertisement{ble_advertisement_bytes};
 
@@ -332,11 +277,8 @@ TEST(BleAdvertisementTest,
      ConstructionFromSerializedBytesWithEmptyDataWorksForFastAdvertisement) {
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion,
-                                         kSocketVersion,
-                                         ByteArray{},
-                                         ByteArray(),
-                                         device_token};
+  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion, ByteArray{},
+                                         ByteArray(), device_token};
   ByteArray ble_advertisement_bytes{org_ble_advertisement};
   BleAdvertisement ble_advertisement{ble_advertisement_bytes};
 
@@ -353,11 +295,8 @@ TEST(BleAdvertisementTest, ConstructionFromExtraSerializedBytesWorks) {
   ByteArray data{std::string(kData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion,
-                                         kSocketVersion,
-                                         service_id_hash,
-                                         data,
-                                         device_token};
+  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion,
+                                         service_id_hash, data, device_token};
   ByteArray org_ble_advertisement_bytes{org_ble_advertisement};
 
   // Copy the bytes into a new array with extra bytes. We must explicitly
@@ -387,11 +326,8 @@ TEST(BleAdvertisementTest,
   ByteArray fast_data{std::string(kFastData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion,
-                                         kSocketVersion,
-                                         ByteArray{},
-                                         fast_data,
-                                         device_token};
+  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion, ByteArray{},
+                                         fast_data, device_token};
   ByteArray org_ble_advertisement_bytes{org_ble_advertisement};
 
   // Copy the bytes into a new array with extra bytes. We must explicitly
@@ -426,11 +362,8 @@ TEST(BleAdvertisementTest, ConstructionFromShortLengthSerializedBytesFails) {
   ByteArray data{std::string(kData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion,
-                                         kSocketVersion,
-                                         service_id_hash,
-                                         data,
-                                         device_token};
+  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion,
+                                         service_id_hash, data, device_token};
   ByteArray org_ble_advertisement_bytes{org_ble_advertisement};
 
   // Cut off the advertisement so that it's too short.
@@ -446,11 +379,8 @@ TEST(BleAdvertisementTest,
   ByteArray fast_data{std::string(kFastData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion,
-                                         kSocketVersion,
-                                         ByteArray{},
-                                         fast_data,
-                                         device_token};
+  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion, ByteArray{},
+                                         fast_data, device_token};
   ByteArray org_ble_advertisement_bytes{org_ble_advertisement};
 
   // Cut off the advertisement so that it's too short.
@@ -467,11 +397,8 @@ TEST(BleAdvertisementTest,
   ByteArray data{std::string(kData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion,
-                                         kSocketVersion,
-                                         service_id_hash,
-                                         data,
-                                         device_token};
+  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion,
+                                         service_id_hash, data, device_token};
   ByteArray org_ble_advertisement_bytes{org_ble_advertisement};
 
   // Corrupt the DATA_SIZE bits. Start by making a raw copy of the Ble
@@ -498,11 +425,8 @@ TEST(BleAdvertisementTest,
   ByteArray fast_data{std::string(kFastData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion,
-                                         kSocketVersion,
-                                         ByteArray{},
-                                         fast_data,
-                                         device_token};
+  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion, ByteArray{},
+                                         fast_data, device_token};
   ByteArray org_ble_advertisement_bytes{org_ble_advertisement};
 
   // Corrupt the DATA_SIZE bits. Start by making a raw copy of the Ble

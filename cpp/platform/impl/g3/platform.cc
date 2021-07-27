@@ -17,6 +17,10 @@
 #include <atomic>
 #include <memory>
 
+#include "absl/base/integral_types.h"
+#include "absl/memory/memory.h"
+#include "absl/strings/str_cat.h"
+#include "absl/time/time.h"
 #include "platform/api/atomic_boolean.h"
 #include "platform/api/atomic_reference.h"
 #include "platform/api/ble_v2.h"
@@ -47,10 +51,6 @@
 #include "platform/impl/g3/webrtc.h"
 #include "platform/impl/g3/wifi_lan.h"
 #include "platform/impl/shared/file.h"
-#include "absl/base/integral_types.h"
-#include "absl/memory/memory.h"
-#include "absl/strings/str_cat.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {
@@ -82,8 +82,8 @@ ImplementationPlatform::CreateScheduledExecutor() {
   return absl::make_unique<g3::ScheduledExecutor>();
 }
 
-std::unique_ptr<AtomicUint32>
-ImplementationPlatform::CreateAtomicUint32(std::uint32_t value) {
+std::unique_ptr<AtomicUint32> ImplementationPlatform::CreateAtomicUint32(
+    std::uint32_t value) {
   return absl::make_unique<g3::AtomicUint32>(value);
 }
 

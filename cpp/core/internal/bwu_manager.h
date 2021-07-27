@@ -19,6 +19,9 @@
 #include <string>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/time/time.h"
 #include "core/internal/bwu_handler.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_manager.h"
@@ -26,9 +29,6 @@
 #include "core/options.h"
 #include "platform/base/byte_array.h"
 #include "platform/public/scheduled_executor.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {

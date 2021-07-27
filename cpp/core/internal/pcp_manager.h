@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include "absl/container/flat_hash_map.h"
 #include "core/internal/base_pcp_handler.h"
 #include "core/internal/bwu_manager.h"
 #include "core/internal/client_proxy.h"
@@ -29,7 +30,6 @@
 #include "core/status.h"
 #include "core/strategy.h"
 #include "platform/public/atomic_boolean.h"
-#include "absl/container/flat_hash_map.h"
 
 namespace location {
 namespace nearby {
@@ -59,8 +59,7 @@ class PcpManager {
                         DiscoveryListener listener);
   void StopDiscovery(ClientProxy* client);
 
-  void InjectEndpoint(ClientProxy* client,
-                      const std::string& service_id,
+  void InjectEndpoint(ClientProxy* client, const std::string& service_id,
                       const OutOfBandConnectionMetadata& metadata);
 
   Status RequestConnection(ClientProxy* client, const string& endpoint_id,

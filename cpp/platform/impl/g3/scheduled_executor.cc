@@ -17,9 +17,9 @@
 #include <atomic>
 #include <memory>
 
+#include "absl/time/clock.h"
 #include "platform/api/cancelable.h"
 #include "platform/base/runnable.h"
-#include "absl/time/clock.h"
 
 namespace location {
 namespace nearby {

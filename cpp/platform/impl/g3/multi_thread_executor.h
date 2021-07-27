@@ -17,9 +17,9 @@
 
 #include <atomic>
 
+#include "absl/time/clock.h"
 #include "platform/api/submittable_executor.h"
 #include "platform/impl/g3/count_down_latch.h"
-#include "absl/time/clock.h"
 #include "thread/threadpool.h"
 
 namespace location {
@@ -59,9 +59,7 @@ class MultiThreadExecutor : public api::SubmittableExecutor {
   bool InShutdown() const { return shutdown_; }
 
  private:
-  void DoShutdown() {
-    shutdown_ = true;
-  }
+  void DoShutdown() { shutdown_ = true; }
   std::atomic_bool shutdown_ = false;
   ThreadPool thread_pool_;
 };

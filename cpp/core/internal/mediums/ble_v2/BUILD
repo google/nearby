@@ -1,3 +1,4 @@
+licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,15 +33,15 @@ cc_library(
         "//core/internal:__subpackages__",
     ],
     deps = [
+        "//absl/container:flat_hash_map",
+        "//absl/container:flat_hash_set",
+        "//absl/strings",
+        "//absl/time",
         "//core:core_types",
         "//platform/base",
         "//platform/base:util",
         "//platform/public:logging",
         "//platform/public:types",
-        "//absl/container:flat_hash_map",
-        "//absl/container:flat_hash_set",
-        "//absl/strings",
-        "//absl/time",
     ],
 )
 
@@ -55,9 +56,9 @@ cc_test(
     ],
     deps = [
         ":ble_v2",
-        "//platform/base",
-        "//platform/impl/g3",  # buildcleaner: keep
         "//testing/base/public:gunit_main",
         "//absl/time",
+        "//platform/base",
+        "//platform/impl/g3",  # buildcleaner: keep
     ],
 )

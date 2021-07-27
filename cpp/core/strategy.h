@@ -43,9 +43,7 @@ class Strategy {
   // Returns a string representing given strategy, for every valid strategy.
   std::string GetName() const;
   // Undefine strategy.
-  void Clear() {
-    *this = kNone;
-  }
+  void Clear() { *this = kNone; }
 
   friend bool operator==(const Strategy& lhs, const Strategy& rhs);
   friend bool operator!=(const Strategy& lhs, const Strategy& rhs);

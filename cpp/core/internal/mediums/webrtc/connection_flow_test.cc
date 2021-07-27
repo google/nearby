@@ -17,15 +17,15 @@
 #include <memory>
 #include <vector>
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "absl/time/time.h"
 #include "core/internal/mediums/webrtc/session_description_wrapper.h"
 #include "core/internal/mediums/webrtc/webrtc_socket_wrapper.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/medium_environment.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/webrtc.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-#include "absl/time/time.h"
 #include "webrtc/api/data_channel_interface.h"
 #include "webrtc/api/jsep.h"
 #include "webrtc/api/rtc_error.h"

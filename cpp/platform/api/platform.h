@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "platform/api/atomic_boolean.h"
 #include "platform/api/atomic_reference.h"
 #include "platform/api/ble.h"
@@ -41,7 +42,6 @@
 #include "platform/api/wifi.h"
 #include "platform/api/wifi_lan.h"
 #include "platform/base/payload_id.h"
-#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {

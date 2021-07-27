@@ -14,8 +14,8 @@
 
 #include "platform/base/base64_utils.h"
 
-#include "platform/base/byte_array.h"
 #include "absl/strings/escaping.h"
+#include "platform/base/byte_array.h"
 
 namespace location {
 namespace nearby {

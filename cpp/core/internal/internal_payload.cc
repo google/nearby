@@ -24,9 +24,7 @@ constexpr int InternalPayload::kIndeterminateSize;
 InternalPayload::InternalPayload(Payload payload)
     : payload_(std::move(payload)), payload_id_(payload_.GetId()) {}
 
-Payload InternalPayload::ReleasePayload() {
-  return std::move(payload_);
-}
+Payload InternalPayload::ReleasePayload() { return std::move(payload_); }
 
 Payload::Id InternalPayload::GetId() const { return payload_id_; }
 

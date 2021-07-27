@@ -14,6 +14,9 @@
 
 #include "core/internal/p2p_cluster_pcp_handler.h"
 
+#include "proto/connections_enums.pb.h"
+#include "absl/functional/bind_front.h"
+#include "absl/strings/escaping.h"
 #include "core/internal/base_pcp_handler.h"
 #include "core/internal/ble_advertisement.h"
 #include "core/internal/ble_endpoint_channel.h"
@@ -26,9 +29,6 @@
 #include "platform/base/nsd_service_info.h"
 #include "platform/base/types.h"
 #include "platform/public/crypto.h"
-#include "proto/connections_enums.pb.h"
-#include "absl/functional/bind_front.h"
-#include "absl/strings/escaping.h"
 
 namespace location {
 namespace nearby {

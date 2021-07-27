@@ -25,10 +25,8 @@ namespace connections {
 namespace {
 std::ostream& write_hex(std::ostream& os, absl::string_view data) {
   for (const auto b : data) {
-    os  << std::setfill('0')
-        << std::setw(2)
-        << std::hex
-        << (static_cast<unsigned int>(b) & 0x0ff);
+    os << std::setfill('0') << std::setw(2) << std::hex
+       << (static_cast<unsigned int>(b) & 0x0ff);
   }
   return os;
 }

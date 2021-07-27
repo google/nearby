@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "googletest/googletest/include/gtest/gtest.h"
 #include "platform/impl/windows/atomic_boolean.h"
+
+#include "gtest/gtest.h"
 
 TEST(atomic_boolean, SuccessfulCreation) {
   // Arrange

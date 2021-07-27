@@ -15,6 +15,7 @@
 #ifndef PLATFORM_PUBLIC_WIFI_LAN_H_
 #define PLATFORM_PUBLIC_WIFI_LAN_H_
 
+#include "absl/container/flat_hash_map.h"
 #include "platform/api/platform.h"
 #include "platform/api/wifi_lan.h"
 #include "platform/base/byte_array.h"
@@ -23,7 +24,6 @@
 #include "platform/base/nsd_service_info.h"
 #include "platform/base/output_stream.h"
 #include "platform/public/mutex.h"
-#include "absl/container/flat_hash_map.h"
 
 namespace location {
 namespace nearby {

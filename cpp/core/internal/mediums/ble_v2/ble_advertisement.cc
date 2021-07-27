@@ -16,9 +16,9 @@
 
 #include <inttypes.h>
 
+#include "absl/strings/str_cat.h"
 #include "platform/base/base_input_stream.h"
 #include "platform/public/logging.h"
-#include "absl/strings/str_cat.h"
 
 namespace location {
 namespace nearby {
@@ -86,8 +86,7 @@ BleAdvertisement::BleAdvertisement(const ByteArray &ble_advertisement_bytes) {
   BaseInputStream base_input_stream{advertisement_bytes};
   // The first 1 byte is supposed to be the version, socket version and the fast
   // advertisement flag.
-  auto version_byte =
-      static_cast<char>(base_input_stream.ReadUint8());
+  auto version_byte = static_cast<char>(base_input_stream.ReadUint8());
 
   // Version.
   version_ = static_cast<Version>((version_byte & kVersionBitmask) >> 5);
@@ -177,18 +176,14 @@ BleAdvertisement::operator ByteArray() const {
   // clang-format on
   if (fast_advertisement_) {
     std::string out =
-        absl::StrCat(std::string(1, version_byte),
-                     std::string(data_size_bytes),
-                     std::string(data_),
-                     std::string(device_token_));
+        absl::StrCat(std::string(1, version_byte), std::string(data_size_bytes),
+                     std::string(data_), std::string(device_token_));
     return ByteArray{std::move(out)};
   } else {
-    std::string out =
-        absl::StrCat(std::string(1, version_byte),
-                     std::string(service_id_hash_),
-                     std::string(data_size_bytes),
-                     std::string(data_),
-                     std::string(device_token_));
+    std::string out = absl::StrCat(
+        std::string(1, version_byte), std::string(service_id_hash_),
+        std::string(data_size_bytes), std::string(data_),
+        std::string(device_token_));
     return ByteArray{std::move(out)};
   }
   // clang-format on

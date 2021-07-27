@@ -18,10 +18,10 @@
 #include <functional>
 #include <string>
 
-#include "platform/base/exception.h"
 #include "gtest/gtest.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
+#include "platform/base/exception.h"
 
 namespace location {
 namespace nearby {

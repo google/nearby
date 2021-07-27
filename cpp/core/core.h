@@ -17,6 +17,8 @@
 
 #include <string>
 
+#include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/offline_service_controller.h"
 #include "core/internal/service_controller.h"
@@ -24,8 +26,6 @@
 #include "core/listeners.h"
 #include "core/options.h"
 #include "core/params.h"
-#include "absl/strings/string_view.h"
-#include "absl/types/span.h"
 
 namespace location {
 namespace nearby {

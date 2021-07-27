@@ -17,14 +17,14 @@
 #include <iterator>
 #include <memory>
 
+#include "absl/memory/memory.h"
+#include "absl/time/time.h"
 #include "core/internal/mediums/webrtc/session_description_wrapper.h"
 #include "core/internal/mediums/webrtc/webrtc_socket.h"
 #include "core/internal/mediums/webrtc/webrtc_socket_wrapper.h"
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
 #include "platform/public/webrtc.h"
-#include "absl/memory/memory.h"
-#include "absl/time/time.h"
 #include "webrtc/api/data_channel_interface.h"
 #include "webrtc/api/jsep.h"
 
@@ -522,8 +522,7 @@ bool ConnectionFlow::RunOnSignalingThread(Runnable&& runnable) {
         // (signaling thread). This guarantees that if the weak_ptr is valid
         // when this task starts, it will stay valid until the task ends.
         if (!can_run_tasks.lock()) {
-          NEARBY_LOG(INFO,
-                     "Peer connection already closed. Cannot run tasks.");
+          NEARBY_LOG(INFO, "Peer connection already closed. Cannot run tasks.");
           return;
         }
         task();

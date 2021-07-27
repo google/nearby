@@ -19,15 +19,15 @@
 #include <string>
 #include <vector>
 
+#include "absl/container/flat_hash_set.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/service_controller.h"
 #include "core/options.h"
 #include "core/params.h"
 #include "platform/base/runnable.h"
 #include "platform/public/single_thread_executor.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/strings/string_view.h"
-#include "absl/types/span.h"
 
 namespace location {
 namespace nearby {
@@ -70,8 +70,7 @@ class ServiceControllerRouter {
                       const ResultCallback& callback);
   void StopDiscovery(ClientProxy* client, const ResultCallback& callback);
 
-  void InjectEndpoint(ClientProxy* client,
-                      absl::string_view service_id,
+  void InjectEndpoint(ClientProxy* client, absl::string_view service_id,
                       const OutOfBandConnectionMetadata& metadata,
                       const ResultCallback& callback);
 

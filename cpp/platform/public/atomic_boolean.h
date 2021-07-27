@@ -26,7 +26,7 @@ namespace nearby {
 // A boolean value that may be updated atomically.
 // See documentation in
 // cpp/platform/api/atomic_boolean.h
-class AtomicBoolean final  : public api::AtomicBoolean {
+class AtomicBoolean final : public api::AtomicBoolean {
  public:
   using Platform = api::ImplementationPlatform;
   explicit AtomicBoolean(bool value = false)

@@ -17,10 +17,10 @@
 
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "platform/api/bluetooth_adapter.h"
 #include "platform/api/bluetooth_classic.h"
 #include "platform/api/platform.h"
-#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {
@@ -98,9 +98,7 @@ class BluetoothAdapter final {
 
   // Synchronously sets the scan mode of the adapter, and returns true if the
   // operation was a success.
-  bool SetScanMode(ScanMode scan_mode) {
-    return impl_->SetScanMode(scan_mode);
-  }
+  bool SetScanMode(ScanMode scan_mode) { return impl_->SetScanMode(scan_mode); }
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getName()
   // Returns an empty string on error

@@ -20,9 +20,9 @@
 #include <cstring>
 #include <string>
 
+#include "gtest/gtest.h"
 #include "platform/base/prng.h"
 #include "platform/base/runnable.h"
-#include "gtest/gtest.h"
 
 namespace location {
 namespace nearby {

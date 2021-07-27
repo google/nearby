@@ -19,6 +19,12 @@
 #include <string>
 #include <utility>
 
+#include "proto/connections_enums.pb.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "absl/synchronization/mutex.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel_manager.h"
 #include "core/internal/offline_frames.h"
@@ -28,12 +34,6 @@
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
 #include "platform/public/pipe.h"
-#include "proto/connections_enums.pb.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-#include "absl/synchronization/mutex.h"
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {

@@ -17,8 +17,8 @@
 
 #include <cstdint>
 
-#include "platform/base/exception.h"
 #include "absl/time/time.h"
+#include "platform/base/exception.h"
 
 namespace location {
 namespace nearby {

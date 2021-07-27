@@ -17,9 +17,9 @@
 #include <algorithm>
 #include <vector>
 
-#include "platform/public/mutex_lock.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/time/clock.h"
+#include "platform/public/mutex_lock.h"
 
 namespace location {
 namespace nearby {

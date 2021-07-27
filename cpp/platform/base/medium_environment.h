@@ -17,6 +17,8 @@
 
 #include <atomic>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/strings/string_view.h"
 #include "platform/api/bluetooth_adapter.h"
 #include "platform/api/bluetooth_classic.h"
 #include "platform/api/webrtc.h"
@@ -25,8 +27,6 @@
 #include "platform/base/listeners.h"
 #include "platform/base/nsd_service_info.h"
 #include "platform/public/single_thread_executor.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/strings/string_view.h"
 
 namespace location {
 namespace nearby {

@@ -14,11 +14,11 @@
 
 #include "platform/impl/windows/output_file.h"
 
+#include "gtest/gtest.h"
 #include "platform/api/platform.h"
 #include "platform/base/exception.h"
 #include "platform/base/payload_id.h"
 #include "platform/impl/windows/test_utils.h"
-#include "googletest/googletest/include/gtest/gtest.h"
 
 class OutputFileTests : public testing::Test {
  protected:

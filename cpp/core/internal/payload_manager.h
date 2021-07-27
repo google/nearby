@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_manager.h"
 #include "core/internal/internal_payload.h"
@@ -31,7 +32,6 @@
 #include "platform/public/atomic_reference.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/mutex.h"
-#include "absl/container/flat_hash_map.h"
 
 namespace location {
 namespace nearby {
@@ -85,7 +85,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
         PayloadTransferFrame::ControlMessage::EventType event);
 
     std::string id;
-    AtomicReference<Status> status {Status::kUnknown};
+    AtomicReference<Status> status{Status::kUnknown};
     std::int64_t offset = 0;
   };
 

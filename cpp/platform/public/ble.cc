@@ -41,8 +41,7 @@ bool BleMedium::StartScanning(
     peripherals_.clear();
   }
   return impl_->StartScanning(
-      service_id,
-      fast_advertisement_service_uuid,
+      service_id, fast_advertisement_service_uuid,
       {
           .peripheral_discovered_cb =
               [this](api::BlePeripheral& peripheral,

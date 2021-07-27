@@ -41,8 +41,7 @@ class LogMessageVoidify {
 // Severity enum conversion
 #define NEARBY_SEVERITY_VERBOSE \
   location::nearby::api::LogMessage::Severity::kVerbose
-#define NEARBY_SEVERITY_INFO \
-  location::nearby::api::LogMessage::Severity::kInfo
+#define NEARBY_SEVERITY_INFO location::nearby::api::LogMessage::Severity::kInfo
 #define NEARBY_SEVERITY_WARNING \
   location::nearby::api::LogMessage::Severity::kWarning
 #define NEARBY_SEVERITY_ERROR \

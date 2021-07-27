@@ -14,11 +14,11 @@
 
 #include "core/internal/offline_simulation_user.h"
 
+#include "absl/functional/bind_front.h"
 #include "core/listeners.h"
 #include "platform/base/byte_array.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/system_clock.h"
-#include "absl/functional/bind_front.h"
 
 namespace location {
 namespace nearby {
@@ -168,13 +168,12 @@ Status OfflineSimulationUser::RequestConnection(CountDownLatch* latch) {
           absl::bind_front(&OfflineSimulationUser::OnEndpointDisconnect, this),
   };
   client_.AddCancellationFlag(discovered_.endpoint_id);
-  return ctrl_.RequestConnection(
-      &client_, discovered_.endpoint_id,
-      {
-          .endpoint_info = discovered_.endpoint_info,
-          .listener = std::move(listener),
-      },
-      connection_options_);
+  return ctrl_.RequestConnection(&client_, discovered_.endpoint_id,
+                                 {
+                                     .endpoint_info = discovered_.endpoint_info,
+                                     .listener = std::move(listener),
+                                 },
+                                 connection_options_);
 }
 
 Status OfflineSimulationUser::AcceptConnection(CountDownLatch* latch) {

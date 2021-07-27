@@ -14,8 +14,8 @@
 
 #include "platform/public/count_down_latch.h"
 
-#include "platform/public/single_thread_executor.h"
 #include "gtest/gtest.h"
+#include "platform/public/single_thread_executor.h"
 
 namespace location {
 namespace nearby {

@@ -16,15 +16,15 @@
 
 #include <string>
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "absl/time/time.h"
 #include "core/internal/mediums/bluetooth_radio.h"
 #include "platform/base/medium_environment.h"
 #include "platform/public/bluetooth_classic.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
 #include "platform/public/system_clock.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {

@@ -17,13 +17,13 @@
 
 #include <string>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "platform/api/ble.h"
 #include "platform/api/bluetooth_adapter.h"
 #include "platform/api/bluetooth_classic.h"
 #include "platform/impl/g3/single_thread_executor.h"
-#include "absl/base/thread_annotations.h"
-#include "absl/strings/string_view.h"
-#include "absl/synchronization/mutex.h"
 
 namespace location {
 namespace nearby {

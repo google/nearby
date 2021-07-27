@@ -14,9 +14,9 @@
 
 #include "core/internal/mediums/ble_v2/ble_packet.h"
 
+#include "absl/strings/str_cat.h"
 #include "platform/base/base_input_stream.h"
 #include "platform/public/logging.h"
-#include "absl/strings/str_cat.h"
 
 namespace location {
 namespace nearby {

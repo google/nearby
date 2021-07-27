@@ -17,12 +17,12 @@
 #include <string>
 #include <utility>
 
-#include "core/internal/offline_frames.h"
 #include "proto/connections/offline_wire_formats.pb.h"
-#include "platform/base/byte_array.h"
-#include "platform/public/pipe.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "core/internal/offline_frames.h"
+#include "platform/base/byte_array.h"
+#include "platform/public/pipe.h"
 
 namespace location {
 namespace nearby {

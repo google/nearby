@@ -17,12 +17,12 @@
 #include <locale>
 #include <string>
 
+#include "absl/functional/bind_front.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/mediums/utils.h"
 #include "core/internal/offline_frames.h"
 #include "core/internal/wifi_lan_endpoint_channel.h"
 #include "platform/public/wifi_lan.h"
-#include "absl/functional/bind_front.h"
 
 namespace location {
 namespace nearby {
@@ -154,4 +154,3 @@ void WifiLanBwuHandler::OnIncomingWifiLanConnection(
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-

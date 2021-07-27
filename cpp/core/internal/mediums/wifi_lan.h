@@ -18,13 +18,13 @@
 #include <cstdint>
 #include <string>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/cancellation_flag.h"
 #include "platform/public/multi_thread_executor.h"
 #include "platform/public/mutex.h"
 #include "platform/public/wifi_lan.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
 
 namespace location {
 namespace nearby {

@@ -14,12 +14,12 @@
 
 #include "core/internal/mediums/webrtc.h"
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "core/internal/mediums/webrtc/webrtc_socket_wrapper.h"
 #include "platform/base/listeners.h"
 #include "platform/base/medium_environment.h"
 #include "platform/public/mutex_lock.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
 
 namespace location {
 namespace nearby {

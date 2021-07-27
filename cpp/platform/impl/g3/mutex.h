@@ -15,9 +15,9 @@
 #ifndef PLATFORM_IMPL_G3_MUTEX_H_
 #define PLATFORM_IMPL_G3_MUTEX_H_
 
+#include "absl/synchronization/mutex.h"
 #include "platform/api/mutex.h"
 #include "platform/impl/shared/posix_mutex.h"
-#include "absl/synchronization/mutex.h"
 
 namespace location {
 namespace nearby {

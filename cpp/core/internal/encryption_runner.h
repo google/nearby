@@ -17,13 +17,13 @@
 
 #include <string>
 
+#include "securegcm/ukey2_handshake.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel.h"
 #include "core/listeners.h"
 #include "platform/base/byte_array.h"
 #include "platform/public/scheduled_executor.h"
 #include "platform/public/single_thread_executor.h"
-#include "securegcm/ukey2_handshake.h"
 
 namespace location {
 namespace nearby {

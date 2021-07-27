@@ -19,6 +19,9 @@
 #include <string>
 #include <utility>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/synchronization/mutex.h"
 #include "platform/api/wifi_lan.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/input_stream.h"
@@ -26,9 +29,6 @@
 #include "platform/base/output_stream.h"
 #include "platform/impl/g3/multi_thread_executor.h"
 #include "platform/impl/g3/pipe.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/synchronization/mutex.h"
 
 namespace location {
 namespace nearby {
@@ -205,8 +205,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   std::unique_ptr<api::WifiLanSocket> Connect(
       api::WifiLanService& remote_wifi_lan_service,
       const std::string& service_id,
-      CancellationFlag* cancellation_flag) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   api::WifiLanService* GetRemoteService(const std::string& ip_address,
                                         int port) override;

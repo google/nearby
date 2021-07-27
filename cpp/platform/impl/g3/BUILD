@@ -1,3 +1,4 @@
+licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,14 +36,14 @@ cc_library(
     visibility = ["//visibility:private"],
     deps = [
         "//base",
+        "//absl/base:core_headers",
+        "//absl/synchronization",
+        "//absl/time",
         "//platform/api:platform",
         "//platform/api:types",
         "//platform/base",
         "//platform/base:util",
         "//platform/impl/shared:posix_mutex",
-        "//absl/base:core_headers",
-        "//absl/synchronization",
-        "//absl/time",
         "//thread",
     ],
 )
@@ -67,16 +68,16 @@ cc_library(
     visibility = ["//visibility:private"],
     deps = [
         ":types",
-        "//platform/api:comm",
-        "//platform/base",
-        "//platform/base:cancellation_flag",
-        "//platform/base:logging",
-        "//platform/base:test_util",
         "//absl/base:core_headers",
         "//absl/container:flat_hash_map",
         "//absl/container:flat_hash_set",
         "//absl/strings",
         "//absl/synchronization",
+        "//platform/api:comm",
+        "//platform/base",
+        "//platform/base:cancellation_flag",
+        "//platform/base:logging",
+        "//platform/base:test_util",
         "//webrtc/api:create_peerconnection_factory",  #buildcleaner: keep
         "//webrtc/api:libjingle_peerconnection_api",
         "//webrtc/api/task_queue:default_task_queue_factory",
@@ -91,9 +92,9 @@ cc_library(
     ],
     visibility = ["//visibility:private"],
     deps = [
+        "//absl/strings",
         "//platform/api:types",
         "//platform/base",
-        "//absl/strings",
         "//openssl:crypto",
     ],
 )
@@ -112,14 +113,14 @@ cc_library(
         ":comm",
         ":crypto",  # build_cleaner: keep
         ":types",
+        "//absl/base:core_headers",
+        "//absl/memory",
+        "//absl/strings",
+        "//absl/time",
         "//platform/api:comm",
         "//platform/api:platform",
         "//platform/api:types",
         "//platform/base:test_util",
         "//platform/impl/shared:file",
-        "//absl/base:core_headers",
-        "//absl/memory",
-        "//absl/strings",
-        "//absl/time",
     ],
 )

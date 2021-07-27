@@ -14,10 +14,10 @@
 
 #include "platform/public/bluetooth_adapter.h"
 
-#include "platform/base/bluetooth_utils.h"
-#include "platform/public/logging.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "platform/base/bluetooth_utils.h"
+#include "platform/public/logging.h"
 
 namespace location {
 namespace nearby {

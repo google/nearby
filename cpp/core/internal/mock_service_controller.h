@@ -15,8 +15,8 @@
 #ifndef CORE_INTERNAL_MOCK_SERVICE_CONTROLLER_H_
 #define CORE_INTERNAL_MOCK_SERVICE_CONTROLLER_H_
 
-#include "core/internal/service_controller.h"
 #include "gmock/gmock.h"
+#include "core/internal/service_controller.h"
 
 namespace location {
 namespace nearby {

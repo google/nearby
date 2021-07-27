@@ -29,9 +29,7 @@ class AtomicBoolean : public api::AtomicBoolean {
   ~AtomicBoolean() override = default;
 
   // Atomically read and return current value.
-  bool Get() const override {
-    return atomic_boolean_;
-  };
+  bool Get() const override { return atomic_boolean_; };
 
   // Atomically exchange original value with a new one. Return previous value.
   bool Set(bool value) override { return atomic_boolean_.exchange(value); };

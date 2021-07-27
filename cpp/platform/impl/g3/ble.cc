@@ -18,11 +18,11 @@
 #include <memory>
 #include <string>
 
+#include "absl/synchronization/mutex.h"
 #include "platform/api/ble.h"
 #include "platform/base/cancellation_flag_listener.h"
 #include "platform/base/logging.h"
 #include "platform/base/medium_environment.h"
-#include "absl/synchronization/mutex.h"
 
 namespace location {
 namespace nearby {

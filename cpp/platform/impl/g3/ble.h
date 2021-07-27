@@ -18,6 +18,10 @@
 #include <memory>
 #include <string>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/strings/escaping.h"
+#include "absl/synchronization/mutex.h"
 #include "platform/api/ble.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/input_stream.h"
@@ -26,10 +30,6 @@
 #include "platform/impl/g3/bluetooth_classic.h"
 #include "platform/impl/g3/multi_thread_executor.h"
 #include "platform/impl/g3/pipe.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/strings/escaping.h"
-#include "absl/synchronization/mutex.h"
 
 namespace location {
 namespace nearby {
@@ -68,8 +68,7 @@ class BleSocket : public api::BleSocket {
 
   // Returns valid BlePeripheral pointer if there is a connection, and
   // nullptr otherwise.
-  BlePeripheral* GetRemotePeripheral() override
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  BlePeripheral* GetRemotePeripheral() override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   void DoClose() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
@@ -90,7 +89,7 @@ class BleSocket : public api::BleSocket {
   // Output pipe is initialized by constructor, it remains always valid, until
   // it is closed. it represents output part of a local socket. Input part of a
   // local socket comes from the peer socket, after connection.
-  std::shared_ptr<Pipe> output_ {new Pipe};
+  std::shared_ptr<Pipe> output_{new Pipe};
   std::shared_ptr<Pipe> input_;
   mutable absl::Mutex mutex_;
   BlePeripheral* peripheral_;
@@ -173,8 +172,8 @@ class BleMedium : public api::BleMedium {
   // Returns true once Ble socket connection requests to service_id can be
   // accepted.
   bool StartAcceptingConnections(const std::string& service_id,
-                                 AcceptedConnectionCallback callback)
-      override ABSL_LOCKS_EXCLUDED(mutex_);
+                                 AcceptedConnectionCallback callback) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
   bool StopAcceptingConnections(const std::string& service_id) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -184,8 +183,7 @@ class BleMedium : public api::BleMedium {
   // On error, returns nullptr.
   std::unique_ptr<api::BleSocket> Connect(
       api::BlePeripheral& remote_peripheral, const std::string& service_id,
-      CancellationFlag* cancellation_flag) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   BluetoothAdapter& GetAdapter() { return *adapter_; }
 

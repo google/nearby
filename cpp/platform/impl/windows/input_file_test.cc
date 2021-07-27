@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "platform/base/payload_id.h"
-#include "platform/base/exception.h"
-
-#include "platform/public/logging.h"
-
 #include "platform/impl/windows/input_file.h"
-#include "platform/impl/windows/test_utils.h"
 
-#include "googletest/googletest/include/gtest/gtest.h"
+#include "gtest/gtest.h"
+#include "platform/base/exception.h"
+#include "platform/base/payload_id.h"
+#include "platform/impl/windows/test_utils.h"
+#include "platform/public/logging.h"
 
 class InputFileTests : public testing::Test {
  protected:
@@ -30,17 +28,17 @@ class InputFileTests : public testing::Test {
 
     hFile_ = CreateFileA(
         test_utils::GetPayloadPath(payloadId).c_str(),  // name of the write
-        GENERIC_WRITE,                                   // open for writing
-        0,                                               // do not share
-        NULL,                                            // default security
-        CREATE_ALWAYS,                                   // create new file only
-        FILE_ATTRIBUTE_NORMAL,                           // normal file
-        NULL);                                           // no attr. template
+        GENERIC_WRITE,                                  // open for writing
+        0,                                              // do not share
+        NULL,                                           // default security
+        CREATE_ALWAYS,                                  // create new file only
+        FILE_ATTRIBUTE_NORMAL,                          // normal file
+        NULL);                                          // no attr. template
 
     if (hFile_ == INVALID_HANDLE_VALUE) {
-      NEARBY_LOG(
-          ERROR, "Failed to create OutputFile with payloadId: %s and error: %d",
-          test_utils::GetPayloadPath(payloadId).c_str(), GetLastError());
+      NEARBY_LOG(ERROR,
+                 "Failed to create OutputFile with payloadId: %s and error: %d",
+                 test_utils::GetPayloadPath(payloadId).c_str(), GetLastError());
     }
 
     const char* buffer = TEST_STRING;

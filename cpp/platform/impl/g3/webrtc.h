@@ -17,9 +17,9 @@
 
 #include <memory>
 
+#include "absl/strings/string_view.h"
 #include "platform/api/webrtc.h"
 #include "platform/impl/g3/single_thread_executor.h"
-#include "absl/strings/string_view.h"
 #include "webrtc/api/peer_connection_interface.h"
 
 namespace location {

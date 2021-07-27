@@ -41,9 +41,7 @@ class CancelableAlarm {
       : name_(name),
         cancelable_(scheduled_executor->Schedule(std::move(runnable), delay)) {}
   ~CancelableAlarm() = default;
-  CancelableAlarm(CancelableAlarm&& other) {
-    *this = std::move(other);
-  }
+  CancelableAlarm(CancelableAlarm&& other) { *this = std::move(other); }
   CancelableAlarm& operator=(CancelableAlarm&& other) {
     MutexLock lock(&mutex_);
     {
@@ -59,9 +57,7 @@ class CancelableAlarm {
     return cancelable_.Cancel();
   }
 
-  bool IsValid() {
-    return cancelable_.IsValid();
-  }
+  bool IsValid() { return cancelable_.IsValid(); }
 
  private:
   Mutex mutex_;

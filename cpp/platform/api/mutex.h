@@ -45,7 +45,7 @@ class ABSL_LOCKABLE Mutex {
   virtual ~Mutex() {}
 
   virtual void Lock() ABSL_EXCLUSIVE_LOCK_FUNCTION() = 0;
-  virtual void Unlock()  ABSL_UNLOCK_FUNCTION() = 0;
+  virtual void Unlock() ABSL_UNLOCK_FUNCTION() = 0;
 };
 
 }  // namespace api

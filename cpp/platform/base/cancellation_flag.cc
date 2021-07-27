@@ -28,9 +28,7 @@ CancellationFlag::CancellationFlag(bool cancelled) {
   cancelled_ = cancelled;
 }
 
-CancellationFlag::~CancellationFlag() {
-  listeners_.clear();
-}
+CancellationFlag::~CancellationFlag() { listeners_.clear(); }
 
 void CancellationFlag::Cancel() {
   // Return immediately as no-op if feature flag is not enabled.

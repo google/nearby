@@ -17,14 +17,14 @@
 #include <array>
 #include <string>
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "absl/time/time.h"
 #include "core/internal/endpoint_channel_manager.h"
 #include "core/internal/simulation_user.h"
 #include "core/options.h"
 #include "platform/base/medium_environment.h"
 #include "platform/public/count_down_latch.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {
@@ -160,15 +160,13 @@ INSTANTIATE_TEST_SUITE_P(ParametrisedPcpManagerTest, PcpManagerTest,
 // Note: Not parameterized because InjectEndpoint only works over Bluetooth.
 TEST_F(PcpManagerTest, InjectEndpoint) {
   env_.Start();
-  SimulationUser user_a(kDeviceA,
-                        BooleanMediumSelector{.bluetooth = true});
+  SimulationUser user_a(kDeviceA, BooleanMediumSelector{.bluetooth = true});
   user_a.StartDiscovery(kServiceId, /*latch=*/nullptr);
-  user_a.InjectEndpoint(
-        kServiceId,
-        OutOfBandConnectionMetadata{
-          .medium = Medium::BLUETOOTH,
-          .remote_bluetooth_mac_address = ByteArray(kFakeMacAddress),
-        });
+  user_a.InjectEndpoint(kServiceId, OutOfBandConnectionMetadata{
+                                        .medium = Medium::BLUETOOTH,
+                                        .remote_bluetooth_mac_address =
+                                            ByteArray(kFakeMacAddress),
+                                    });
   user_a.Stop();
   env_.Stop();
 }

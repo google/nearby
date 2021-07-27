@@ -17,9 +17,9 @@
 
 #include <cstdint>
 
+#include "absl/time/clock.h"
 #include "platform/public/atomic_boolean.h"
 #include "platform/public/bluetooth_adapter.h"
-#include "absl/time/clock.h"
 
 namespace location {
 namespace nearby {
@@ -56,13 +56,9 @@ class BluetoothRadio {
   bool Toggle();
 
   // Returns result of BluetoothAdapter::IsValid() for private adapter instance.
-  bool IsAdapterValid() const {
-    return bluetooth_adapter_.IsValid();
-  }
+  bool IsAdapterValid() const { return bluetooth_adapter_.IsValid(); }
 
-  BluetoothAdapter& GetBluetoothAdapter() {
-    return bluetooth_adapter_;
-  }
+  BluetoothAdapter& GetBluetoothAdapter() { return bluetooth_adapter_; }
 
  private:
   static constexpr absl::Duration kPauseBetweenToggle = absl::Seconds(3);

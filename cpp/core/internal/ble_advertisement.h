@@ -77,8 +77,7 @@ class BleAdvertisement {
                    const std::string& endpoint_id,
                    const ByteArray& endpoint_info,
                    const std::string& bluetooth_mac_address,
-                   const ByteArray& uwb_address,
-                   WebRtcState web_rtc_state);
+                   const ByteArray& uwb_address, WebRtcState web_rtc_state);
   BleAdvertisement(bool fast_advertisement,
                    const ByteArray& ble_advertisement_bytes);
   BleAdvertisement(const BleAdvertisement&) = default;

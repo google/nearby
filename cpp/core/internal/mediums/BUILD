@@ -1,3 +1,4 @@
+licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,15 +41,7 @@ cc_library(
     ],
     deps = [
         ":utils",
-        "//core:core_types",
-        "//core/internal/mediums/ble_v2",
-        "//core/internal/mediums/webrtc",
         "//proto/connections:offline_wire_formats_portable_proto",
-        "//platform/base",
-        "//platform/base:cancellation_flag",
-        "//platform/public:comm",
-        "//platform/public:logging",
-        "//platform/public:types",
         "//location/nearby/mediums/proto:web_rtc_signaling_frames_cc_proto",
         "//absl/container:flat_hash_map",
         "//absl/container:flat_hash_set",
@@ -56,6 +49,14 @@ cc_library(
         "//absl/numeric:int128",
         "//absl/strings",
         "//absl/time",
+        "//core:core_types",
+        "//core/internal/mediums/ble_v2",
+        "//core/internal/mediums/webrtc",
+        "//platform/base",
+        "//platform/base:cancellation_flag",
+        "//platform/public:comm",
+        "//platform/public:logging",
+        "//platform/public:types",
         "//smhasher:libmurmur3",
         "//webrtc/api:libjingle_peerconnection_api",
         "//webrtc/api:scoped_refptr",
@@ -93,13 +94,13 @@ cc_test(
     shard_count = 16,
     deps = [
         ":mediums",
+        "//testing/base/public:gunit_main",
+        "//absl/strings",
+        "//absl/time",
         "//platform/base:test_util",
         "//platform/impl/g3",  # build_cleaner: keep
         "//platform/public:comm",
         "//platform/public:types",
-        "//testing/base/public:gunit_main",
-        "//absl/strings",
-        "//absl/time",
     ],
 )
 
@@ -113,12 +114,12 @@ cc_test(
     tags = ["notsan"],  # NOTE(b/139734036): known data race in usrsctplib.
     deps = [
         ":mediums",
+        "//testing/base/public:gunit_main",
+        "//absl/strings",
         "//core/internal/mediums/webrtc",
         "//platform/base",
         "//platform/base:test_util",
         "//platform/impl/g3",  # build_cleaner: keep
         "//platform/public:types",
-        "//testing/base/public:gunit_main",
-        "//absl/strings",
     ],
 )

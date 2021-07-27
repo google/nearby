@@ -17,10 +17,10 @@
 #include <cstdint>
 #include <string>
 
-#include "platform/base/byte_array.h"
 #include "absl/strings/string_view.h"
+#include "platform/base/byte_array.h"
 #if defined NEARBY_WINDOWS_DLL
-#include "openssl/digest.h"
+#include "openssl/boringssl/src/include/openssl/digest.h"
 #else
 #include "openssl/digest.h"
 #endif

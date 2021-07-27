@@ -79,13 +79,9 @@ TEST(PrngTest, ValidateLowerHalfOfInt64) {
   ValidateRandom(TestMode::kLowerHalfOfInt64);
 }
 
-TEST(PrngTest, ValidateInt32) {
-  ValidateRandom(TestMode::kInt32);
-}
+TEST(PrngTest, ValidateInt32) { ValidateRandom(TestMode::kInt32); }
 
-TEST(PrngTest, ValidateUint32) {
-  ValidateRandom(TestMode::kUint32);
-}
+TEST(PrngTest, ValidateUint32) { ValidateRandom(TestMode::kUint32); }
 
 }  // namespace nearby
 }  // namespace location

@@ -24,8 +24,8 @@ constexpr char kBluetoothMacAddressBytes[] = {0x00, 0x00, 0xe6,
                                               0x88, 0x64, 0x13};
 
 TEST(BluetoothUtilsTest, ToStringWorks) {
-  ByteArray bt_mac_address_bytes{
-      kBluetoothMacAddressBytes, sizeof(kBluetoothMacAddressBytes)};
+  ByteArray bt_mac_address_bytes{kBluetoothMacAddressBytes,
+                                 sizeof(kBluetoothMacAddressBytes)};
 
   auto bt_mac_address = BluetoothUtils::ToString(bt_mac_address_bytes);
 
@@ -33,8 +33,8 @@ TEST(BluetoothUtilsTest, ToStringWorks) {
 }
 
 TEST(BluetoothUtilsTest, FromStringWorks) {
-  ByteArray bt_mac_address_bytes{
-      kBluetoothMacAddressBytes, sizeof(kBluetoothMacAddressBytes)};
+  ByteArray bt_mac_address_bytes{kBluetoothMacAddressBytes,
+                                 sizeof(kBluetoothMacAddressBytes)};
 
   auto bt_mac_address_bytes_result =
       BluetoothUtils::FromString(kBluetoothMacAddress);

@@ -18,11 +18,11 @@
 #include <atomic>
 #include <memory>
 
+#include "absl/time/clock.h"
 #include "platform/api/cancelable.h"
 #include "platform/api/scheduled_executor.h"
 #include "platform/base/runnable.h"
 #include "platform/impl/g3/single_thread_executor.h"
-#include "absl/time/clock.h"
 #include "thread/threadpool.h"
 
 namespace location {
@@ -34,9 +34,7 @@ namespace g3 {
 class ScheduledExecutor final : public api::ScheduledExecutor {
  public:
   ScheduledExecutor() = default;
-  ~ScheduledExecutor() override {
-    executor_.Shutdown();
-  }
+  ~ScheduledExecutor() override { executor_.Shutdown(); }
 
   void Execute(Runnable&& runnable) override {
     executor_.Execute(std::move(runnable));
@@ -45,9 +43,8 @@ class ScheduledExecutor final : public api::ScheduledExecutor {
                                             absl::Duration delay) override;
   void Shutdown() override { executor_.Shutdown(); }
 
-  int GetTid(int index) const override {
-    return executor_.GetTid(index);
-  }
+  int GetTid(int index) const override { return executor_.GetTid(index); }
+
  private:
   SingleThreadExecutor executor_;
 };

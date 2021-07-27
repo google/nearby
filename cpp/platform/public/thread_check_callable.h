@@ -15,9 +15,9 @@
 #ifndef PLATFORM_PUBLIC_THREAD_CHECK_CALLABLE_H_
 #define PLATFORM_PUBLIC_THREAD_CHECK_CALLABLE_H_
 
+#include "absl/base/thread_annotations.h"
 #include "platform/base/callable.h"
 #include "platform/public/lockable.h"
-#include "absl/base/thread_annotations.h"
 
 namespace location {
 namespace nearby {

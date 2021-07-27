@@ -27,12 +27,10 @@ const Strategy Strategy::kP2pStar{Strategy::ConnectionType::kPointToPoint,
 const Strategy Strategy::kP2pPointToPoint{
     Strategy::ConnectionType::kPointToPoint, Strategy::TopologyType::kOneToOne};
 
-bool Strategy::IsNone() const {
-  return *this == kNone;
-}
+bool Strategy::IsNone() const { return *this == kNone; }
 
 bool Strategy::IsValid() const {
-  return *this == kP2pStar || *this == kP2pCluster || *this ==kP2pPointToPoint;
+  return *this == kP2pStar || *this == kP2pCluster || *this == kP2pPointToPoint;
 }
 
 std::string Strategy::GetName() const {

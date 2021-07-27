@@ -36,13 +36,9 @@ class InjectedBluetoothDevice : public api::BluetoothDevice {
   ~InjectedBluetoothDevice() override = default;
 
   // api::BluetoothDevice:
-  std::string GetName() const override {
-    return name_;
-  }
+  std::string GetName() const override { return name_; }
 
-  std::string GetMacAddress() const override {
-    return mac_address_;
-  }
+  std::string GetMacAddress() const override { return mac_address_; }
 
  private:
   const std::string name_;
@@ -55,13 +51,10 @@ InjectedBluetoothDeviceStore::InjectedBluetoothDeviceStore() = default;
 
 InjectedBluetoothDeviceStore::~InjectedBluetoothDeviceStore() = default;
 
-BluetoothDevice
-InjectedBluetoothDeviceStore::CreateInjectedBluetoothDevice(
+BluetoothDevice InjectedBluetoothDeviceStore::CreateInjectedBluetoothDevice(
     const ByteArray& remote_bluetooth_mac_address,
-    const std::string& endpoint_id,
-    const ByteArray& endpoint_info,
-    const ByteArray& service_id_hash,
-    Pcp pcp) {
+    const std::string& endpoint_id, const ByteArray& endpoint_info,
+    const ByteArray& service_id_hash, Pcp pcp) {
   std::string remote_bluetooth_mac_address_str =
       BluetoothUtils::ToString(remote_bluetooth_mac_address);
 
@@ -70,22 +63,17 @@ InjectedBluetoothDeviceStore::CreateInjectedBluetoothDevice(
     return BluetoothDevice(/*device=*/nullptr);
 
   // Non-empty endpoint info is required.
-  if (endpoint_info.Empty())
-    return BluetoothDevice(/*device=*/nullptr);
+  if (endpoint_info.Empty()) return BluetoothDevice(/*device=*/nullptr);
 
-  BluetoothDeviceName name(BluetoothDeviceName::Version::kV1,
-                           pcp,
-                           endpoint_id,
-                           service_id_hash,
-                           endpoint_info,
+  BluetoothDeviceName name(BluetoothDeviceName::Version::kV1, pcp, endpoint_id,
+                           service_id_hash, endpoint_info,
                            /*uwb_address=*/ByteArray(),
                            WebRtcState::kConnectable);
 
   // Note: BluetoothDeviceName internally verifies that |endpoint_id| and
   // |service_id_hash| are valid; the check below will fail if they are
   // malformed.
-  if (!name.IsValid())
-    return BluetoothDevice(/*device=*/nullptr);
+  if (!name.IsValid()) return BluetoothDevice(/*device=*/nullptr);
 
   auto injected_device = std::make_unique<InjectedBluetoothDevice>(
       static_cast<std::string>(name), remote_bluetooth_mac_address_str);

@@ -28,9 +28,7 @@ proto::connections::Medium WebRtcEndpointChannel::GetMedium() const {
   return proto::connections::Medium::WEB_RTC;
 }
 
-void WebRtcEndpointChannel::CloseImpl() {
-  webrtc_socket_.Close();
-}
+void WebRtcEndpointChannel::CloseImpl() { webrtc_socket_.Close(); }
 
 }  // namespace connections
 }  // namespace nearby

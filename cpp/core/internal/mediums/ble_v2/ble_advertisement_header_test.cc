@@ -14,8 +14,8 @@
 
 #include "core/internal/mediums/ble_v2/ble_advertisement_header.h"
 
-#include "platform/base/base64_utils.h"
 #include "gtest/gtest.h"
+#include "platform/base/base64_utils.h"
 
 namespace location {
 namespace nearby {

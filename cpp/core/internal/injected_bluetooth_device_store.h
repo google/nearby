@@ -51,10 +51,8 @@ class InjectedBluetoothDeviceStore {
   // deleted.
   BluetoothDevice CreateInjectedBluetoothDevice(
       const ByteArray& remote_bluetooth_mac_address,
-      const std::string& endpoint_id,
-      const ByteArray& endpoint_info,
-      const ByteArray& service_id_hash,
-      Pcp pcp);
+      const std::string& endpoint_id, const ByteArray& endpoint_info,
+      const ByteArray& service_id_hash, Pcp pcp);
 
  private:
   // Devices created by this class. BluetoothDevice objects returned by

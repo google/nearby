@@ -20,17 +20,17 @@
 #include <limits>
 #include <memory>
 
+#include "securegcm/d2d_connection_context_v1.h"
+#include "securegcm/ukey2_handshake.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/strings/escaping.h"
+#include "absl/types/span.h"
 #include "core/internal/offline_frames.h"
 #include "core/internal/pcp_handler.h"
 #include "core/options.h"
 #include "platform/base/bluetooth_utils.h"
 #include "platform/public/logging.h"
 #include "platform/public/system_clock.h"
-#include "securegcm/d2d_connection_context_v1.h"
-#include "securegcm/ukey2_handshake.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/strings/escaping.h"
-#include "absl/types/span.h"
 
 namespace location {
 namespace nearby {
@@ -963,7 +963,7 @@ void BasePcpHandler::OnEndpointLost(
   const auto* discovered_endpoint = GetDiscoveredEndpoint(endpoint.endpoint_id);
   if (discovered_endpoint == nullptr) {
     NEARBY_LOGS(INFO) << "No previous endpoint (nothing to lose): endpoint_id="
-                     << endpoint.endpoint_id;
+                      << endpoint.endpoint_id;
     return;
   }
 

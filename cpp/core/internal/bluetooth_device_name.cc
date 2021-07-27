@@ -19,11 +19,11 @@
 #include <cstring>
 #include <utility>
 
+#include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
 #include "platform/base/base64_utils.h"
 #include "platform/base/base_input_stream.h"
 #include "platform/public/logging.h"
-#include "absl/strings/escaping.h"
-#include "absl/strings/str_cat.h"
 
 namespace location {
 namespace nearby {
@@ -106,7 +106,6 @@ BluetoothDeviceName::BluetoothDeviceName(
 
   // The next 3 bytes are supposed to be the service_id_hash.
   service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
-
 
   // The next 1 byte is field containning WebRtc state.
   auto field_byte = static_cast<char>(base_input_stream.ReadUint8());

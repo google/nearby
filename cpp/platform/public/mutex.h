@@ -17,9 +17,9 @@
 
 #include <memory>
 
+#include "absl/base/thread_annotations.h"
 #include "platform/api/mutex.h"
 #include "platform/api/platform.h"
-#include "absl/base/thread_annotations.h"
 
 namespace location {
 namespace nearby {

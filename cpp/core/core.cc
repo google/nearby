@@ -17,11 +17,11 @@
 #include <cassert>
 #include <vector>
 
+#include "absl/time/clock.h"
 #include "core/options.h"
 #include "platform/base/feature_flags.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
-#include "absl/time/clock.h"
 
 namespace location {
 namespace nearby {

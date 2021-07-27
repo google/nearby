@@ -18,6 +18,9 @@
 #include <memory>
 #include <string>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/synchronization/mutex.h"
 #include "platform/api/bluetooth_classic.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
@@ -26,9 +29,6 @@
 #include "platform/base/output_stream.h"
 #include "platform/impl/g3/bluetooth_adapter.h"
 #include "platform/impl/g3/pipe.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/synchronization/mutex.h"
 
 namespace location {
 namespace nearby {
@@ -202,8 +202,7 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   // On error, returns nullptr.
   std::unique_ptr<api::BluetoothSocket> ConnectToService(
       api::BluetoothDevice& remote_device, const std::string& service_uuid,
-      CancellationFlag* cancellation_flag) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   BluetoothAdapter& GetAdapter() { return *adapter_; }
 

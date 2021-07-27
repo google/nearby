@@ -64,8 +64,7 @@ V1Frame::FrameType GetFrameType(const OfflineFrame& frame) {
 
 ByteArray ForConnectionRequest(const std::string& endpoint_id,
                                const ByteArray& endpoint_info,
-                               std::int32_t nonce,
-                               bool supports_5_ghz,
+                               std::int32_t nonce, bool supports_5_ghz,
                                const std::string& bssid,
                                const std::vector<Medium>& mediums,
                                std::int32_t keep_alive_interval_millis,
@@ -76,8 +75,7 @@ ByteArray ForConnectionRequest(const std::string& endpoint_id,
   auto* v1_frame = frame.mutable_v1();
   v1_frame->set_type(V1Frame::CONNECTION_REQUEST);
   auto* connection_request = v1_frame->mutable_connection_request();
-  if (!endpoint_id.empty())
-    connection_request->set_endpoint_id(endpoint_id);
+  if (!endpoint_id.empty()) connection_request->set_endpoint_id(endpoint_id);
   if (!endpoint_info.Empty()) {
     connection_request->set_endpoint_name(std::string(endpoint_info));
     connection_request->set_endpoint_info(std::string(endpoint_info));
@@ -85,8 +83,7 @@ ByteArray ForConnectionRequest(const std::string& endpoint_id,
   connection_request->set_nonce(nonce);
   auto* medium_metadata = connection_request->mutable_medium_metadata();
   medium_metadata->set_supports_5_ghz(supports_5_ghz);
-  if (!bssid.empty())
-    medium_metadata->set_bssid(bssid);
+  if (!bssid.empty()) medium_metadata->set_bssid(bssid);
   if (!mediums.empty()) {
     for (const auto& medium : mediums) {
       connection_request->add_mediums(MediumToConnectionRequestMedium(medium));

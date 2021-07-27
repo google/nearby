@@ -149,7 +149,7 @@ WifiLanSocket WifiLanMedium::Connect(WifiLanService& wifi_lan_service,
 }
 
 WifiLanService WifiLanMedium::GetRemoteService(const std::string& ip_address,
-                                                int port) {
+                                               int port) {
   return WifiLanService(impl_->GetRemoteService(ip_address, port));
 }
 

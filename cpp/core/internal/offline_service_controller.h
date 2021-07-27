@@ -52,8 +52,7 @@ class OfflineServiceController : public ServiceController {
                         const DiscoveryListener& listener) override;
   void StopDiscovery(ClientProxy* client) override;
 
-  void InjectEndpoint(ClientProxy* client,
-                      const std::string& service_id,
+  void InjectEndpoint(ClientProxy* client, const std::string& service_id,
                       const OutOfBandConnectionMetadata& metadata) override;
 
   Status RequestConnection(ClientProxy* client, const std::string& endpoint_id,

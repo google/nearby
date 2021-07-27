@@ -20,6 +20,7 @@
 #include <memory>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "platform/api/executor.h"
 #include "platform/api/submittable_executor.h"
 #include "platform/base/callable.h"
@@ -31,7 +32,6 @@
 #include "platform/public/mutex_lock.h"
 #include "platform/public/thread_check_callable.h"
 #include "platform/public/thread_check_runnable.h"
-#include "absl/base/thread_annotations.h"
 
 namespace location {
 namespace nearby {

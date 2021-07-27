@@ -14,9 +14,9 @@
 
 #include "platform/public/crypto.h"
 
-#include "platform/base/byte_array.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "platform/base/byte_array.h"
 
 namespace location {
 namespace nearby {

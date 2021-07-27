@@ -16,10 +16,10 @@
 
 #include <memory>
 
-#include "platform/base/byte_array.h"
-#include "platform/public/crypto.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "platform/base/byte_array.h"
+#include "platform/public/crypto.h"
 
 namespace location {
 namespace nearby {

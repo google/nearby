@@ -18,6 +18,11 @@
 #include <atomic>
 #include <memory>
 
+#include "proto/connections/offline_wire_formats.pb.h"
+#include "proto/connections_enums.pb.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "absl/time/time.h"
 #include "core/internal/base_endpoint_channel.h"
 #include "core/internal/bwu_manager.h"
 #include "core/internal/client_proxy.h"
@@ -26,16 +31,11 @@
 #include "core/listeners.h"
 #include "core/options.h"
 #include "core/params.h"
-#include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
 #include "platform/base/medium_environment.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/pipe.h"
-#include "proto/connections_enums.pb.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {

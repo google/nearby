@@ -20,14 +20,14 @@
 #include <string>
 #include <utility>
 
+#include "absl/memory/memory.h"
+#include "absl/strings/str_cat.h"
+#include "absl/time/time.h"
 #include "core/internal/internal_payload_factory.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/mutex_lock.h"
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/system_clock.h"
-#include "absl/memory/memory.h"
-#include "absl/strings/str_cat.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {
@@ -375,35 +375,36 @@ void PayloadManager::SendPayload(ClientProxy* client,
 
   Payload::Id payload_id =
       CreateOutgoingPayload(std::move(payload), endpoint_ids);
-  executor->Execute("send-payload", [this, client, endpoint_ids, payload_id,
-                                     payload_type, resume_offset]() {
-    if (shutdown_.Get()) return;
-    PendingPayload* pending_payload = GetPayload(payload_id);
-    if (!pending_payload) {
-      NEARBY_LOGS(INFO)
-          << "PayloadManager failed to create InternalPayload for outgoing "
-             "payload_id="
-          << payload_id << ", payload_type=" << ToString(payload_type)
-          << ", aborting sendPayload().";
-      return;
-    }
-    auto* internal_payload = pending_payload->GetInternalPayload();
-    if (!internal_payload) return;
-    PayloadTransferFrame::PayloadHeader payload_header{
-        CreatePayloadHeader(*internal_payload, resume_offset)};
-    bool should_continue = true;
-    std::int64_t next_chunk_offset = 0;
-    while (should_continue && !shutdown_.Get()) {
-      should_continue =
-          SendPayloadLoop(client, *pending_payload, payload_header,
-                          next_chunk_offset, resume_offset);
-    }
-    RunOnStatusUpdateThread("destroy-payload",
-                            [this, payload_id]()
-                                RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
-                                  DestroyPendingPayload(payload_id);
-                                });
-  });
+  executor->Execute(
+      "send-payload",
+      [this, client, endpoint_ids, payload_id, payload_type, resume_offset]() {
+        if (shutdown_.Get()) return;
+        PendingPayload* pending_payload = GetPayload(payload_id);
+        if (!pending_payload) {
+          NEARBY_LOGS(INFO)
+              << "PayloadManager failed to create InternalPayload for outgoing "
+                 "payload_id="
+              << payload_id << ", payload_type=" << ToString(payload_type)
+              << ", aborting sendPayload().";
+          return;
+        }
+        auto* internal_payload = pending_payload->GetInternalPayload();
+        if (!internal_payload) return;
+        PayloadTransferFrame::PayloadHeader payload_header{
+            CreatePayloadHeader(*internal_payload, resume_offset)};
+        bool should_continue = true;
+        std::int64_t next_chunk_offset = 0;
+        while (should_continue && !shutdown_.Get()) {
+          should_continue =
+              SendPayloadLoop(client, *pending_payload, payload_header,
+                              next_chunk_offset, resume_offset);
+        }
+        RunOnStatusUpdateThread("destroy-payload",
+                                [this, payload_id]()
+                                    RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
+                                      DestroyPendingPayload(payload_id);
+                                    });
+      });
   NEARBY_LOGS(INFO) << "PayloadManager: xfer scheduled: self=" << this
                     << "; payload_id=" << payload_id
                     << ", payload_type=" << ToString(payload_type);

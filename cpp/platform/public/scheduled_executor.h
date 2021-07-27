@@ -19,6 +19,8 @@
 #include <functional>
 #include <memory>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/time/time.h"
 #include "platform/api/platform.h"
 #include "platform/api/scheduled_executor.h"
 #include "platform/base/runnable.h"
@@ -30,8 +32,6 @@
 #include "platform/public/mutex_lock.h"
 #include "platform/public/thread_check_callable.h"
 #include "platform/public/thread_check_runnable.h"
-#include "absl/base/thread_annotations.h"
-#include "absl/time/time.h"
 
 namespace location {
 namespace nearby {

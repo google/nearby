@@ -35,8 +35,7 @@ class ListenableFuture : public Future<T> {
  public:
   ~ListenableFuture() override = default;
 
-  virtual void AddListener(Runnable runnable,
-                           Executor* executor) = 0;
+  virtual void AddListener(Runnable runnable, Executor* executor) = 0;
 };
 
 }  // namespace api

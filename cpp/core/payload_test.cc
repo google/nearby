@@ -17,12 +17,12 @@
 #include <memory>
 #include <type_traits>
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/input_stream.h"
 #include "platform/public/file.h"
 #include "platform/public/pipe.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
 
 namespace location {
 namespace nearby {
@@ -62,14 +62,13 @@ TEST(PayloadTest, SupportsStreamType) {
   constexpr size_t kOffset = 1234456;
   auto pipe = std::make_shared<Pipe>();
 
-  Payload payload(
-      [streamable = pipe]() -> InputStream& {
-        // For some reason, linter warns us that we return a dangling reference.
-        // This is not true: we return a reference to internal variable of a
-        // shared_ptr<Pipe> which remains valid while Payload is valid, since
-        // shared_ptr<Pipe> is captured by value.
-        return streamable->GetInputStream();  // NOLINT
-      });
+  Payload payload([streamable = pipe]() -> InputStream& {
+    // For some reason, linter warns us that we return a dangling reference.
+    // This is not true: we return a reference to internal variable of a
+    // shared_ptr<Pipe> which remains valid while Payload is valid, since
+    // shared_ptr<Pipe> is captured by value.
+    return streamable->GetInputStream();  // NOLINT
+  });
   payload.SetOffset(kOffset);
 
   EXPECT_EQ(payload.GetType(), Payload::Type::kStream);

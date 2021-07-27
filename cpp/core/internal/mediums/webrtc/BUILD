@@ -1,3 +1,4 @@
+licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,18 +35,18 @@ cc_library(
         "//core/internal:__subpackages__",
     ],
     deps = [
+        "//location/nearby/mediums/proto:web_rtc_signaling_frames_cc_proto",
+        "//absl/memory",
+        "//absl/strings",
+        "//absl/time",
         "//core:core_types",
         "//core/internal/mediums:utils",
         "//platform/base",
         "//platform/public:comm",
         "//platform/public:logging",
         "//platform/public:types",
-        "//location/nearby/mediums/proto:web_rtc_signaling_frames_cc_proto",
-        "//absl/memory",
-        "//absl/strings",
-        "//absl/time",
         "//webrtc/api:libjingle_peerconnection_api",
-        "//webrtc/pc:peerconnection",
+        "//third_party/webrtc/files/stable/webrtc/pc:peerconnection",
     ],
 )
 
@@ -61,14 +62,14 @@ cc_test(
     tags = ["notsan"],  # NOTE(b/139734036): known data race in usrsctplib.
     deps = [
         ":webrtc",
+        "//net/proto2/compat/public:proto2",
+        "//testing/base/public:gunit_main",
+        "//absl/time",
         "//platform/base",
         "//platform/base:test_util",
         "//platform/impl/g3",  # buildcleaner: keep
         "//platform/public:comm",
         "//platform/public:types",
-        "//net/proto2/public:proto2",
-        "//testing/base/public:gunit_main",
-        "//absl/time",
         "//webrtc/api:libjingle_peerconnection_api",
         "//webrtc/api:rtc_error",
         "//webrtc/api:scoped_refptr",

@@ -18,12 +18,12 @@
 #include <memory>
 #include <string>
 
+#include "securegcm/d2d_connection_context_v1.h"
+#include "absl/container/flat_hash_map.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel.h"
 #include "platform/public/logging.h"
 #include "platform/public/mutex.h"
-#include "securegcm/d2d_connection_context_v1.h"
-#include "absl/container/flat_hash_map.h"
 
 namespace location {
 namespace nearby {

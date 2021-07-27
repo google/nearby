@@ -15,6 +15,7 @@
 #ifndef PLATFORM_PUBLIC_BLE_H_
 #define PLATFORM_PUBLIC_BLE_H_
 
+#include "absl/container/flat_hash_map.h"
 #include "platform/api/ble.h"
 #include "platform/api/platform.h"
 #include "platform/base/byte_array.h"
@@ -23,7 +24,6 @@
 #include "platform/base/output_stream.h"
 #include "platform/public/bluetooth_adapter.h"
 #include "platform/public/mutex.h"
-#include "absl/container/flat_hash_map.h"
 
 namespace location {
 namespace nearby {

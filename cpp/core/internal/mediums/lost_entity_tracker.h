@@ -15,9 +15,9 @@
 #ifndef CORE_INTERNAL_MEDIUMS_LOST_ENTITY_TRACKER_H_
 #define CORE_INTERNAL_MEDIUMS_LOST_ENTITY_TRACKER_H_
 
+#include "absl/container/flat_hash_set.h"
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
-#include "absl/container/flat_hash_set.h"
 
 namespace location {
 namespace nearby {

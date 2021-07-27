@@ -22,10 +22,10 @@
 #include <set>
 #include <string>
 
-#include "platform/base/byte_array.h"
-#include "platform/base/exception.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
+#include "platform/base/byte_array.h"
+#include "platform/base/exception.h"
 
 namespace location {
 namespace nearby {

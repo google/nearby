@@ -15,9 +15,9 @@
 #ifndef PLATFORM_PUBLIC_PENDING_JOB_REGISTRY_H_
 #define PLATFORM_PUBLIC_PENDING_JOB_REGISTRY_H_
 
-#include "platform/public/mutex.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/time/time.h"
+#include "platform/public/mutex.h"
 
 namespace location {
 namespace nearby {

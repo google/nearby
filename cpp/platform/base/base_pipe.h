@@ -19,13 +19,13 @@
 #include <deque>
 #include <memory>
 
+#include "absl/base/thread_annotations.h"
 #include "platform/api/condition_variable.h"
 #include "platform/api/mutex.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/output_stream.h"
-#include "absl/base/thread_annotations.h"
 
 namespace location {
 namespace nearby {
@@ -80,9 +80,7 @@ class BasePipe {
     ExceptionOr<ByteArray> Read(std::int64_t size) override {
       return pipe_->Read(size);
     }
-    Exception Close() override {
-      return DoClose();
-    }
+    Exception Close() override { return DoClose(); }
 
    private:
     Exception DoClose() {
@@ -100,9 +98,7 @@ class BasePipe {
       return pipe_->Write(data);
     }
     Exception Flush() override { return {Exception::kSuccess}; }
-    Exception Close() override {
-      return DoClose();
-    }
+    Exception Close() override { return DoClose(); }
 
    private:
     Exception DoClose() {

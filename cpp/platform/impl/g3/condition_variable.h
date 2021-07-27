@@ -15,10 +15,10 @@
 #ifndef PLATFORM_IMPL_G3_CONDITION_VARIABLE_H_
 #define PLATFORM_IMPL_G3_CONDITION_VARIABLE_H_
 
+#include "absl/synchronization/mutex.h"
 #include "platform/api/condition_variable.h"
 #include "platform/base/exception.h"
 #include "platform/impl/g3/mutex.h"
-#include "absl/synchronization/mutex.h"
 
 namespace location {
 namespace nearby {
