@@ -1,4 +1,5 @@
 licenses(["notice"])
+
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,9 +13,6 @@ licenses(["notice"])
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-exports_files(["LICENSE"])  # needs to be on a line by itself for PRESUBMIT
-
 cc_library(
     name = "types",
     srcs = [
@@ -24,6 +22,7 @@ cc_library(
     hdrs = [
         "atomic_boolean.h",
         "atomic_reference.h",
+        "bluetooth_adapter.h",
         "cancelable.h",
         "condition_variable.h",
         "count_down_latch.h",
@@ -38,9 +37,6 @@ cc_library(
         "settable_future.h",
         "submittable_executor.h",
     ],
-    visibility = [
-        "//third_party/nearby_connections/windows:__subpackages__",
-    ],
     deps = [
         "//base",
         "//platform/api:types",
@@ -52,8 +48,11 @@ cc_library(
     name = "comm",
     hdrs = [
         "ble.h",
-        "bluetooth_adapter.h",
         "bluetooth_classic.h",
+        "bluetooth_classic_device.h",
+        "bluetooth_classic_medium.h",
+        "bluetooth_classic_server_socket.h",
+        "bluetooth_classic_socket.h",
         "server_sync.h",
         "webrtc.h",
         "wifi.h",
@@ -122,7 +121,7 @@ cc_library(
         "test_utils.h",
     ],
     visibility = [
-        "//location/nearby/windows:__subpackages__",
+        "//third_party/nearby_connections/windows:__subpackages__",
     ],
     deps = [
         "//platform/base",

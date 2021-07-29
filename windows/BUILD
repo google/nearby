@@ -1,4 +1,3 @@
-licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,9 +12,9 @@ licenses(["notice"])
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-exports_files(["LICENSE"])  # needs to be on a line by itself for PRESUBMIT
-
 load("//third_party/msvc:build_windows.bzl", "cc_windows_dll")
+
+licenses(["notice"])
 
 # Build with --config=lexan
 cc_windows_dll(
@@ -29,8 +28,6 @@ cc_windows_dll(
         "//absl/strings",
         "//core",
         "//platform/impl/windows",
-        "//platform/impl/windows:types",
-        "//platform/impl/windows/generated:types",
         "//webrtc/api:create_peerconnection_factory",
     ],
 )

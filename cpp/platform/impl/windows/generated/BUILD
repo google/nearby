@@ -32,7 +32,7 @@ cc_library(
     ],
     textual_hdrs = glob(["**/*.h"]),
     visibility = [
+        "//third_party/nearby_connections/connections/windows:__subpackages__",
         "//platform/impl/windows:__subpackages__",
-        "//third_party/nearby_connections/windows:__subpackages__",
     ],
 )
