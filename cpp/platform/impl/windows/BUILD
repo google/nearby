@@ -13,6 +13,8 @@ licenses(["notice"])
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+exports_files(["LICENSE"])  # needs to be on a line by itself for PRESUBMIT
+
 cc_library(
     name = "types",
     srcs = [
