@@ -51,6 +51,7 @@ cc_library(
         "strategy.h",
     ],
     visibility = [
+        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//core:__subpackages__",
     ],
     deps = [
