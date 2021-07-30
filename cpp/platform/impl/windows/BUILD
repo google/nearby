@@ -38,6 +38,9 @@ cc_library(
         "settable_future.h",
         "submittable_executor.h",
     ],
+    visibility = [
+        "//third_party/nearby_connections/windows:__subpackages__",
+    ],
     deps = [
         "//base",
         "//platform/api:types",
@@ -60,6 +63,7 @@ cc_library(
     deps = [
         "//platform/api:comm",
         "//platform/base",
+        "//platform/impl/windows/generated:types",
     ],
 )
 
@@ -95,7 +99,7 @@ cc_library(
     ],
     copts = ["-Ithird_party/nearby_connections/cpp/platform/impl/windows/generated"],
     visibility = [
-        "//location/nearby/connections/windows:__subpackages__",
+        "//third_party/nearby_connections/windows:__subpackages__",
     ],
     deps = [
         ":comm",
@@ -118,7 +122,7 @@ cc_library(
         "test_utils.h",
     ],
     visibility = [
-        "//location/nearby/connections/windows:__subpackages__",
+        "//location/nearby/windows:__subpackages__",
     ],
     deps = [
         "//platform/base",
