@@ -1,5 +1,4 @@
 licenses(["notice"])
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +12,7 @@ licenses(["notice"])
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 cc_library(
     name = "types",
     srcs = [
@@ -22,7 +22,6 @@ cc_library(
     hdrs = [
         "atomic_boolean.h",
         "atomic_reference.h",
-        "bluetooth_adapter.h",
         "cancelable.h",
         "condition_variable.h",
         "count_down_latch.h",
@@ -48,11 +47,8 @@ cc_library(
     name = "comm",
     hdrs = [
         "ble.h",
+        "bluetooth_adapter.h",
         "bluetooth_classic.h",
-        "bluetooth_classic_device.h",
-        "bluetooth_classic_medium.h",
-        "bluetooth_classic_server_socket.h",
-        "bluetooth_classic_socket.h",
         "server_sync.h",
         "webrtc.h",
         "wifi.h",
@@ -62,7 +58,6 @@ cc_library(
     deps = [
         "//platform/api:comm",
         "//platform/base",
-        "//platform/impl/windows/generated:types",
     ],
 )
 
@@ -98,7 +93,7 @@ cc_library(
     ],
     copts = ["-Ithird_party/nearby_connections/cpp/platform/impl/windows/generated"],
     visibility = [
-        "//third_party/nearby_connections/windows:__subpackages__",
+        "//location/nearby/connections/windows:__subpackages__",
     ],
     deps = [
         ":comm",
@@ -121,7 +116,7 @@ cc_library(
         "test_utils.h",
     ],
     visibility = [
-        "//third_party/nearby_connections/windows:__subpackages__",
+        "//location/nearby/connections/windows:__subpackages__",
     ],
     deps = [
         "//platform/base",

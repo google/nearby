@@ -23,7 +23,7 @@ cc_library(
     ],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//third_party/nearby_connections/windows:__subpackages__",
+        "//location/nearby/connections/windows:__subpackages__",
     ],
     deps = [
         ":core_types",
