@@ -1,4 +1,3 @@
-licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,26 +12,22 @@ licenses(["notice"])
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cc_library(
-    name = "types",
-    linkopts = [
-        "advapi32.lib",
-        "comdlg32.lib",
-        "gdi32.lib",
-        "kernel32.lib",
-        "odbc32.lib",
-        "odbccp32.lib",
-        "ole32.lib",
-        "oleaut32.lib",
-        "shell32.lib",
-        "user32.lib",
-        "uuid.lib",
-        "winmm.lib",
-        "winspool.lib",
-    ],
-    textual_hdrs = glob(["**/*.h"]),
-    visibility = [
-        "//third_party/nearby_connections/connections/windows:__subpackages__",
-        "//platform/impl/windows:__subpackages__",
+load("//third_party/msvc:build_windows.bzl", "cc_windows_dll")
+
+licenses(["notice"])
+
+# Build with --config=lexan
+cc_windows_dll(
+    name = "core_adapter",
+    srcs = ["core_adapter.cc"],
+    hdrs = ["core_adapter.h"],
+    copts = ["-DCORE_ADAPTER_BUILD_DLL"],
+    defines = ["CORE_ADAPTER_DLL"],
+    tags = ["windows-dll"],
+    deps = [
+        "//absl/strings",
+        "//core",
+        "//platform/impl/windows",
+        "//webrtc/api:create_peerconnection_factory",
     ],
 )
