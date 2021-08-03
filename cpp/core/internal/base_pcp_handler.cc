@@ -1008,7 +1008,7 @@ bool BasePcpHandler::IsPreferred(
   for (const auto& medium : mediums) {
     absl::StrAppend(&medium_string, medium, "; ");
   }
-  NEARBY_LOGS(FATAL) << "Failed to find either " << new_endpoint.medium
+  NEARBY_LOGS(ERROR) << "Failed to find either " << new_endpoint.medium
                      << " or " << old_endpoint.medium
                      << " in the list of locally supported mediums despite "
                         "expecting to find both, when deciding which medium "

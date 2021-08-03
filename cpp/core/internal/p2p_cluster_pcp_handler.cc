@@ -133,7 +133,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
   }
 
   if (mediums_started_successfully.empty()) {
-    NEARBY_LOGS(FATAL) << "Failed StartAdvertising("
+    NEARBY_LOGS(ERROR) << "Failed StartAdvertising("
                        << absl::BytesToHexString(local_endpoint_info.data())
                        << ") for client=" << client->GetClientId();
     return {
@@ -724,7 +724,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
   }
 
   if (mediums_started_successfully.empty()) {
-    NEARBY_LOGS(FATAL)
+    NEARBY_LOGS(ERROR)
         << "Failed StartDiscovery() for client=" << client->GetClientId()
         << " because we couldn't scan on Bluetooth, BLE, or WifiLan for "
            "service_id="
