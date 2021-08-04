@@ -34,6 +34,7 @@ cc_library(
         "submittable_executor.h",
         "system_clock.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//platform/base:__pkg__",
@@ -60,6 +61,7 @@ cc_library(
         "wifi.h",
         "wifi_lan.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//core/internal:__subpackages__",
         "//platform/base:__pkg__",
@@ -81,6 +83,7 @@ cc_library(
     hdrs = [
         "platform.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//platform/base:__pkg__",

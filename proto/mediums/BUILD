@@ -73,10 +73,16 @@ proto_library(
         "web_rtc_signaling_frames.proto",
     ],
     cc_api_version = 2,
+    compatible_with = [
+        "//buildenv/target:non_prod",
+    ],
 )
 
 cc_proto_library(
     name = "web_rtc_signaling_frames_cc_proto",
+    compatible_with = [
+        "//buildenv/target:non_prod",
+    ],
     visibility = [
         "//location/nearby/connections:__subpackages__",
         "//third_party/nearby_connections:__subpackages__",

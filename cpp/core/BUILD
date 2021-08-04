@@ -21,6 +21,7 @@ cc_library(
     hdrs = [
         "core.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//third_party/nearby_connections/windows:__subpackages__",
@@ -50,6 +51,7 @@ cc_library(
         "status.h",
         "strategy.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//core:__subpackages__",

@@ -22,6 +22,9 @@ proto_library(
         "offline_wire_formats.proto",
     ],
     cc_api_version = 2,
+    compatible_with = [
+        "//buildenv/target:non_prod",
+    ],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
     ],
@@ -38,6 +41,9 @@ java_lite_proto_library(
 
 portable_proto_library(
     name = "offline_wire_formats_portable_proto",
+    compatible_with = [
+        "//buildenv/target:non_prod",
+    ],
     config = ":offline_wire_formats_proto_config",
     copts = [
         "-DGOOGLE_PROTOBUF_NO_RTTI=1",

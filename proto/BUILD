@@ -24,7 +24,10 @@ proto_library(
     name = "connections_enums_proto",
     srcs = ["connections_enums.proto"],
     cc_api_version = 2,
-    compatible_with = ["//buildenv/target:appengine"],
+    compatible_with = [
+        "//buildenv/target:non_prod",
+        "//buildenv/target:appengine",
+    ],
     deps = [
         "//logs/proto/logs_annotations",
     ],
@@ -47,6 +50,9 @@ java_proto_library(
 
 portable_proto_library(
     name = "connections_enums_portable_proto",
+    compatible_with = [
+        "//buildenv/target:non_prod",
+    ],
     config = ":connections_enums_proto_config",
     copts = [
         "-DGOOGLE_PROTOBUF_NO_RTTI=1",
@@ -72,7 +78,10 @@ proto_library(
     name = "sharing_enums_proto",
     srcs = ["sharing_enums.proto"],
     cc_api_version = 2,
-    compatible_with = ["//buildenv/target:appengine"],
+    compatible_with = [
+        "//buildenv/target:non_prod",
+        "//buildenv/target:appengine",
+    ],
     deps = [
         "//logs/proto/logs_annotations",
     ],

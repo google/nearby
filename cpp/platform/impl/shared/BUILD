@@ -21,6 +21,7 @@ cc_library(
     hdrs = [
         "posix_mutex.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//platform/impl:__subpackages__",
     ],
@@ -35,6 +36,7 @@ cc_library(
     hdrs = [
         "posix_condition_variable.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         ":posix_mutex",
         "//platform/api:types",
@@ -45,6 +47,7 @@ cc_library(
     name = "file",
     srcs = ["file.cc"],
     hdrs = ["file.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//platform/impl:__subpackages__",

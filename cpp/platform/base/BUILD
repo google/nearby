@@ -40,6 +40,7 @@ cc_library(
         "socket.h",
         "types.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//core:__subpackages__",
@@ -69,6 +70,7 @@ cc_library(
         "base_pipe.h",
         "byte_utils.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//core:__subpackages__",
         "//platform/impl:__subpackages__",
@@ -87,6 +89,7 @@ cc_library(
     hdrs = [
         "logging.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//platform:__subpackages__",
@@ -107,6 +110,7 @@ cc_library(
         "cancellation_flag.h",
         "cancellation_flag_listener.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//core/internal:__subpackages__",
         "//platform/api:__subpackages__",
