@@ -18,7 +18,6 @@
 #include <string>
 #include <utility>
 
-#include "proto/connections_enums.pb.h"
 #include "securegcm/d2d_connection_context_v1.h"
 #include "securegcm/ukey2_handshake.h"
 #include "gmock/gmock.h"
@@ -36,6 +35,7 @@
 #include "platform/public/multi_thread_executor.h"
 #include "platform/public/pipe.h"
 #include "platform/public/single_thread_executor.h"
+#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

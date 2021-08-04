@@ -19,7 +19,6 @@
 #include <string>
 #include <utility>
 
-#include "proto/connections_enums.pb.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/synchronization/mutex.h"
@@ -34,6 +33,7 @@
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
 #include "platform/public/pipe.h"
+#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

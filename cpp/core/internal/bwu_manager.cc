@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <memory>
 
-#include "proto/connections_enums.pb.h"
 #include "absl/functional/bind_front.h"
 #include "absl/time/time.h"
 #include "core/internal/bluetooth_bwu_handler.h"
@@ -28,6 +27,7 @@
 #include "platform/base/byte_array.h"
 #include "platform/base/feature_flags.h"
 #include "platform/public/count_down_latch.h"
+#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

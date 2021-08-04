@@ -14,7 +14,6 @@
 
 #include "core/internal/encryption_runner.h"
 
-#include "proto/connections_enums.pb.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
@@ -24,6 +23,7 @@
 #include "platform/public/count_down_latch.h"
 #include "platform/public/pipe.h"
 #include "platform/public/system_clock.h"
+#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

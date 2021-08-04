@@ -1,6 +1,3 @@
-load("//tools/build_defs/cc:cc_fake_binary.bzl", "cc_fake_binary")
-
-licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +11,9 @@ licenses(["notice"])
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+load("//tools/build_defs/cc:cc_fake_binary.bzl", "cc_fake_binary")
+
+licenses(["notice"])
 
 cc_library(
     name = "types",
@@ -89,13 +89,13 @@ cc_library(
     deps = [
         ":logging",
         ":types",
-        "//proto/connections:offline_wire_formats_portable_proto",
         "//absl/container:flat_hash_map",
         "//absl/strings",
         "//platform/api:comm",
         "//platform/api:platform",
         "//platform/base",
         "//platform/base:cancellation_flag",
+        "//proto/connections:offline_wire_formats_portable_proto",
         "//webrtc/api:libjingle_peerconnection_api",
     ],
 )

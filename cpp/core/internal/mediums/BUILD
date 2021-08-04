@@ -1,4 +1,3 @@
-licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +11,7 @@ licenses(["notice"])
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+licenses(["notice"])
 
 cc_library(
     name = "mediums",
@@ -41,8 +41,6 @@ cc_library(
     ],
     deps = [
         ":utils",
-        "//proto/connections:offline_wire_formats_portable_proto",
-        "//location/nearby/mediums/proto:web_rtc_signaling_frames_cc_proto",
         "//absl/container:flat_hash_map",
         "//absl/container:flat_hash_set",
         "//absl/functional:bind_front",
@@ -57,6 +55,8 @@ cc_library(
         "//platform/public:comm",
         "//platform/public:logging",
         "//platform/public:types",
+        "//proto/connections:offline_wire_formats_portable_proto",
+        "//proto/mediums:web_rtc_signaling_frames_cc_proto",
         "//smhasher:libmurmur3",
         "//webrtc/api:libjingle_peerconnection_api",
         "//webrtc/api:scoped_refptr",
@@ -73,9 +73,9 @@ cc_library(
         "//core/internal/mediums/webrtc:__pkg__",
     ],
     deps = [
-        "//proto/connections:offline_wire_formats_portable_proto",
         "//platform/base",
         "//platform/public:types",
+        "//proto/connections:offline_wire_formats_portable_proto",
     ],
 )
 

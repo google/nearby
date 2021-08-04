@@ -1,4 +1,3 @@
-licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +11,7 @@ licenses(["notice"])
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+licenses(["notice"])
 
 cc_library(
     name = "core",
@@ -55,12 +55,12 @@ cc_library(
         "//core:__subpackages__",
     ],
     deps = [
-        "//proto:connections_enums_portable_proto",
         "//absl/strings",
         "//absl/types:variant",
         "//platform/base",
         "//platform/base:util",
         "//platform/public:types",
+        "//proto:connections_enums_portable_proto",
     ],
 )
 

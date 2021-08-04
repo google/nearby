@@ -18,8 +18,6 @@
 #include <atomic>
 #include <memory>
 
-#include "proto/connections/offline_wire_formats.pb.h"
-#include "proto/connections_enums.pb.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
@@ -36,6 +34,8 @@
 #include "platform/base/medium_environment.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/pipe.h"
+#include "proto/connections/offline_wire_formats.pb.h"
+#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

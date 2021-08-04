@@ -17,9 +17,9 @@
 
 #include <string>
 
-#include "proto/connections_enums.pb.h"
 #include "core/strategy.h"
 #include "platform/base/byte_array.h"
+#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

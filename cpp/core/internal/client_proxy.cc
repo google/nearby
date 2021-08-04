@@ -18,7 +18,6 @@
 #include <limits>
 #include <utility>
 
-#include "proto/connections_enums.pb.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
@@ -27,6 +26,7 @@
 #include "platform/base/prng.h"
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
+#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

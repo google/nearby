@@ -1,4 +1,3 @@
-licenses(["notice"])
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +11,7 @@ licenses(["notice"])
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+licenses(["notice"])
 
 cc_library(
     name = "internal",
@@ -89,8 +89,6 @@ cc_library(
     ],
     deps = [
         ":message_lite",
-        "//proto/connections:offline_wire_formats_portable_proto",
-        "//proto:connections_enums_portable_proto",
         "//absl/base:core_headers",
         "//absl/container:btree",
         "//absl/container:flat_hash_map",
@@ -111,6 +109,8 @@ cc_library(
         "//platform/public:comm",
         "//platform/public:logging",
         "//platform/public:types",
+        "//proto:connections_enums_portable_proto",
+        "//proto/connections:offline_wire_formats_portable_proto",
         "//securegcm:ukey2",
     ],
 )
@@ -184,8 +184,6 @@ cc_test(
     deps = [
         ":internal",
         ":internal_test",
-        "//proto/connections:offline_wire_formats_portable_proto",
-        "//proto:connections_enums_portable_proto",
         "//testing/base/public:gunit",
         "//testing/base/public:gunit_main",
         "//absl/container:flat_hash_set",
@@ -202,6 +200,8 @@ cc_test(
         "//platform/public:comm",
         "//platform/public:logging",
         "//platform/public:types",
+        "//proto:connections_enums_portable_proto",
+        "//proto/connections:offline_wire_formats_portable_proto",
         "//securegcm:ukey2",
     ],
 )

@@ -14,6 +14,8 @@
 
 load("//net/proto2/contrib/portable/cc:portable_proto_build_defs.bzl", "portable_proto_library")
 
+licenses(["notice"])
+
 proto_library(
     name = "offline_wire_formats_proto",
     srcs = [
@@ -48,8 +50,8 @@ portable_proto_library(
     ],
     visibility = [
         "//location/nearby/connections:__subpackages__",
-        "//platform:__subpackages__",
         "//nearby_connections:__subpackages__",
+        "//third_party/nearby_connections:__subpackages__",
     ],
 )
 

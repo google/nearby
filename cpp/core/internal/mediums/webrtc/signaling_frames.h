@@ -17,9 +17,9 @@
 
 #include <vector>
 
-#include "location/nearby/mediums/proto/web_rtc_signaling_frames.pb.h"
 #include "core/internal/mediums/webrtc/peer_id.h"
 #include "platform/base/byte_array.h"
+#include "proto/mediums/web_rtc_signaling_frames.pb.h"
 #include "webrtc/api/peer_connection_interface.h"
 
 namespace location {

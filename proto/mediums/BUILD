@@ -15,6 +15,8 @@
 load("//net/proto2/contrib/portable/cc:portable_proto_build_defs.bzl", "portable_proto_library")
 load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
+licenses(["notice"])
+
 package(default_visibility = ["//visibility:public"])
 
 proto_library(
@@ -77,7 +79,7 @@ cc_proto_library(
     name = "web_rtc_signaling_frames_cc_proto",
     visibility = [
         "//location/nearby/connections:__subpackages__",
-        "//nearby_connections:__subpackages__",
+        "//third_party/nearby_connections:__subpackages__",
     ],
     deps = [":web_rtc_signaling_frames_proto"],
 )

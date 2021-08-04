@@ -19,10 +19,10 @@
 #include <utility>
 #include <vector>
 
-#include "proto/connections/offline_wire_formats.pb.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "platform/base/byte_array.h"
+#include "proto/connections/offline_wire_formats.pb.h"
 
 namespace location {
 namespace nearby {

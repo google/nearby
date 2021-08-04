@@ -16,7 +16,6 @@
 
 #include <cassert>
 
-#include "proto/connections_enums.pb.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "core/internal/offline_frames.h"
@@ -25,6 +24,7 @@
 #include "platform/public/logging.h"
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
+#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

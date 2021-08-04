@@ -15,8 +15,8 @@
 #ifndef CORE_INTERNAL_OFFLINE_FRAMES_VALIDATOR_H_
 #define CORE_INTERNAL_OFFLINE_FRAMES_VALIDATOR_H_
 
-#include "proto/connections/offline_wire_formats.pb.h"
 #include "platform/base/exception.h"
+#include "proto/connections/offline_wire_formats.pb.h"
 
 namespace location {
 namespace nearby {

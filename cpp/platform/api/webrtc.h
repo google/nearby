@@ -19,9 +19,9 @@
 #include <memory>
 #include <string>
 
-#include "proto/connections/offline_wire_formats.pb.h"
 #include "absl/strings/string_view.h"
 #include "platform/base/byte_array.h"
+#include "proto/connections/offline_wire_formats.pb.h"
 #include "webrtc/api/peer_connection_interface.h"
 
 namespace location {
