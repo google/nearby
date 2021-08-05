@@ -22,6 +22,8 @@
 
 #include "platform/impl/windows/generated/winrt/Windows.Devices.Bluetooth.h"
 
+#include "platform/impl/windows/utils.h"
+
 namespace location {
 namespace nearby {
 namespace windows {
@@ -29,10 +31,14 @@ namespace windows {
 BluetoothDevice::~BluetoothDevice() {}
 
 BluetoothDevice::BluetoothDevice(
-    const winrt::Windows::Devices::Bluetooth::BluetoothDevice &bluetoothDevice)
+    const winrt::Windows::Devices::Bluetooth::BluetoothDevice& bluetoothDevice)
     : windows_bluetooth_device_(bluetoothDevice) {
   id_ = winrt::to_string(bluetoothDevice.DeviceId());
-  mac_address_ = bluetoothDevice.BluetoothAddress();
+
+  // Get the device address.
+  auto bluetoothAddress = bluetoothDevice.BluetoothAddress();
+
+  mac_address_ = uint64_to_mac_address_string(bluetoothAddress);
 }
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
@@ -41,8 +47,18 @@ std::string BluetoothDevice::GetName() const {
 }
 
 // Returns BT MAC address assigned to this device.
-// TODO(b/184975123): replace with real implementation.
-std::string BluetoothDevice::GetMacAddress() const { return "Un-implemented"; }
+std::string BluetoothDevice::GetMacAddress() const { return mac_address_; }
+
+// We are using Uncached because:
+// For the following APIs, Cached means only use values cached in the system
+// cached (if not cached then don't fall back to querying the device).
+// The device may be present, but not entered into the cache yet, so always
+// check the actual device.
+IAsyncOperation<RfcommDeviceServicesResult>
+BluetoothDevice::GetRfcommServicesForIdAsync(const RfcommServiceId serviceId) {
+  return windows_bluetooth_device_.GetRfcommServicesForIdAsync(
+      serviceId, BluetoothCacheMode::Uncached);
+}
 
 }  // namespace windows
 }  // namespace nearby

@@ -54,6 +54,7 @@ cc_library(
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//core:__subpackages__",
         "//platform/base:__pkg__",
+        "//platform/impl/windows:__subpackages__",
         "//platform/public:__pkg__",
     ],
     deps = [

@@ -14,6 +14,8 @@
 
 #include "platform/impl/windows/bluetooth_classic_socket.h"
 
+#include "platform/impl/windows/generated/winrt/Windows.Networking.Sockets.h"
+
 namespace location {
 namespace nearby {
 namespace windows {
@@ -24,6 +26,8 @@ BluetoothSocket::~BluetoothSocket() {}
 // called for a not-connected BluetoothSocket, i.e. any object that is not
 // returned by BluetoothClassicMedium::ConnectToService() for client side or
 // BluetoothServerSocket::Accept() for server side of connection.
+
+BluetoothSocket::BluetoothSocket() { windows_socket_ = StreamSocket(); }
 
 // Returns the InputStream of this connected BluetoothSocket.
 // TODO(b/184975123): replace with real implementation.
@@ -48,6 +52,16 @@ Exception BluetoothSocket::Close() { return Exception(); }
 // nullptr otherwise.
 // TODO(b/184975123): replace with real implementation.
 api::BluetoothDevice* BluetoothSocket::GetRemoteDevice() { return nullptr; }
+
+// Starts an asynchronous operation on a StreamSocket object to connect to a
+// remote network destination specified by a remote hostname and a remote
+// service name.
+winrt::Windows::Foundation::IAsyncAction BluetoothSocket::ConnectAsync(
+    HostName connectionHostName, winrt::hstring connectionServiceName) {
+  // https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocket.connectasync?view=winrt-20348
+  return windows_socket_.ConnectAsync(connectionHostName,
+                                      connectionServiceName);
+}
 
 }  // namespace windows
 }  // namespace nearby

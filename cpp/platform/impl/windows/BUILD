@@ -36,6 +36,7 @@ cc_library(
         "scheduled_executor.h",
         "settable_future.h",
         "submittable_executor.h",
+        "utils.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     deps = [
@@ -113,6 +114,7 @@ cc_library(
         "//platform/api:types",
         "//platform/impl/shared:file",
         "//platform/impl/windows/generated:types",
+        "//platform/public:types",
     ],
 )
 
