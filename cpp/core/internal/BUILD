@@ -139,6 +139,7 @@ cc_library(
     ],
     hdrs = [
         "mock_service_controller.h",
+        "mock_service_controller_router.h",
         "offline_simulation_user.h",
         "simulation_user.h",
     ],
@@ -147,7 +148,7 @@ cc_library(
     ],
     deps = [
         ":internal",
-        "//testing/base/public:gunit",
+        "//testing/base/public:gunit_for_library_testonly",
         "//absl/functional:bind_front",
         "//absl/strings",
         "//core:core_types",

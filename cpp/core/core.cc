@@ -15,6 +15,8 @@
 #include "core/core.h"
 
 #include <cassert>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/time/clock.h"
@@ -26,12 +28,15 @@
 namespace location {
 namespace nearby {
 namespace connections {
+namespace {
+constexpr absl::Duration kWaitForDisconnect = absl::Milliseconds(5000);
+}  // namespace
 
-constexpr absl::Duration Core::kWaitForDisconnect;
+Core::Core(ServiceControllerRouter* router) : router_(router) {}
 
 Core::~Core() {
   CountDownLatch latch(1);
-  router_.ClientDisconnecting(
+  router_->StopAllEndpoints(
       &client_, {
                     .result_cb = [&latch](Status) { latch.CountDown(); },
                 });
@@ -40,6 +45,10 @@ Core::~Core() {
   }
 }
 
+Core::Core(Core&&) = default;
+
+Core& Core::operator=(Core&&) = default;
+
 void Core::StartAdvertising(absl::string_view service_id,
                             ConnectionOptions options,
                             ConnectionRequestInfo info,
@@ -47,11 +56,11 @@ void Core::StartAdvertising(absl::string_view service_id,
   assert(!service_id.empty());
   assert(options.strategy.IsValid());
 
-  router_.StartAdvertising(&client_, service_id, options, info, callback);
+  router_->StartAdvertising(&client_, service_id, options, info, callback);
 }
 
 void Core::StopAdvertising(const ResultCallback callback) {
-  router_.StopAdvertising(&client_, callback);
+  router_->StopAdvertising(&client_, callback);
 }
 
 void Core::StartDiscovery(absl::string_view service_id,
@@ -60,17 +69,17 @@ void Core::StartDiscovery(absl::string_view service_id,
   assert(!service_id.empty());
   assert(options.strategy.IsValid());
 
-  router_.StartDiscovery(&client_, service_id, options, listener, callback);
+  router_->StartDiscovery(&client_, service_id, options, listener, callback);
 }
 
 void Core::InjectEndpoint(absl::string_view service_id,
                           OutOfBandConnectionMetadata metadata,
                           ResultCallback callback) {
-  router_.InjectEndpoint(&client_, service_id, metadata, callback);
+  router_->InjectEndpoint(&client_, service_id, metadata, callback);
 }
 
 void Core::StopDiscovery(ResultCallback callback) {
-  router_.StopDiscovery(&client_, callback);
+  router_->StopDiscovery(&client_, callback);
 }
 
 void Core::RequestConnection(absl::string_view endpoint_id,
@@ -95,26 +104,26 @@ void Core::RequestConnection(absl::string_view endpoint_id,
         FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis;
   }
 
-  router_.RequestConnection(&client_, endpoint_id, info, options, callback);
+  router_->RequestConnection(&client_, endpoint_id, info, options, callback);
 }
 
 void Core::AcceptConnection(absl::string_view endpoint_id,
                             PayloadListener listener, ResultCallback callback) {
   assert(!endpoint_id.empty());
 
-  router_.AcceptConnection(&client_, endpoint_id, listener, callback);
+  router_->AcceptConnection(&client_, endpoint_id, listener, callback);
 }
 
 void Core::RejectConnection(absl::string_view endpoint_id,
                             ResultCallback callback) {
   assert(!endpoint_id.empty());
 
-  router_.RejectConnection(&client_, endpoint_id, callback);
+  router_->RejectConnection(&client_, endpoint_id, callback);
 }
 
 void Core::InitiateBandwidthUpgrade(absl::string_view endpoint_id,
                                     ResultCallback callback) {
-  router_.InitiateBandwidthUpgrade(&client_, endpoint_id, callback);
+  router_->InitiateBandwidthUpgrade(&client_, endpoint_id, callback);
 }
 
 void Core::SendPayload(absl::Span<const std::string> endpoint_ids,
@@ -122,24 +131,24 @@ void Core::SendPayload(absl::Span<const std::string> endpoint_ids,
   assert(payload.GetType() != Payload::Type::kUnknown);
   assert(!endpoint_ids.empty());
 
-  router_.SendPayload(&client_, endpoint_ids, std::move(payload), callback);
+  router_->SendPayload(&client_, endpoint_ids, std::move(payload), callback);
 }
 
 void Core::CancelPayload(std::int64_t payload_id, ResultCallback callback) {
   assert(payload_id != 0);
 
-  router_.CancelPayload(&client_, payload_id, callback);
+  router_->CancelPayload(&client_, payload_id, callback);
 }
 
 void Core::DisconnectFromEndpoint(absl::string_view endpoint_id,
                                   ResultCallback callback) {
   assert(!endpoint_id.empty());
 
-  router_.DisconnectFromEndpoint(&client_, endpoint_id, callback);
+  router_->DisconnectFromEndpoint(&client_, endpoint_id, callback);
 }
 
 void Core::StopAllEndpoints(ResultCallback callback) {
-  router_.StopAllEndpoints(&client_, callback);
+  router_->StopAllEndpoints(&client_, callback);
 }
 
 }  // namespace connections

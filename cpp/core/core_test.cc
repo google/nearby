@@ -17,9 +17,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
-#include "core/internal/client_proxy.h"
-#include "core/internal/mock_service_controller.h"
-#include "core/internal/service_controller.h"
+#include "core/internal/mock_service_controller_router.h"
 #include "platform/public/logging.h"
 
 namespace location {
@@ -28,27 +26,23 @@ namespace connections {
 namespace {
 
 TEST(CoreTest, ConstructorDestructorWorks) {
-  MockServiceController mock;
-  Core core{[&mock]() { return &mock; }};
+  MockServiceControllerRouter mock;
+  // Called when Core is destroyed.
+  EXPECT_CALL(mock, StopAllEndpoints)
+      .WillOnce([&](ClientProxy* client, const ResultCallback& callback) {
+        callback.result_cb({Status::kSuccess});
+      });
+  Core core{&mock};
 }
 
 TEST(CoreTest, DestructorReportsFatalFailure) {
-  MockServiceController mock;
-  ON_CALL(mock, StopDiscovery).WillByDefault([](ClientProxy* client) {
-    NEARBY_LOG(INFO, "Blocking Endpoint disconnect for 10 sec");
-    absl::SleepFor(absl::Milliseconds(10000));
-  });
   ASSERT_DEATH(
-      [&mock]() {
-        Core core{[&mock]() { return &mock; }};
-        EXPECT_CALL(mock, StartDiscovery).Times(1);
-        EXPECT_CALL(mock, StopAdvertising).Times(1);
-        core.StartDiscovery("service_id", {.strategy = Strategy::kP2pCluster},
-                            {}, {.result_cb = [](Status status) {
-                              NEARBY_LOG(INFO, "Discovery status: %d",
-                                         static_cast<int>(status.value));
-                            }});
-      }(),
+      {
+        MockServiceControllerRouter mock;
+        // Never invoke the result callback so ~Core will time out.
+        EXPECT_CALL(mock, StopAllEndpoints);
+        Core core{&mock};
+      },
       "Unable to shutdown");
 }
 

@@ -53,71 +53,73 @@ namespace connections {
 //    of a ServiceController interface, which does the actual job.
 class ServiceControllerRouter {
  public:
-  explicit ServiceControllerRouter(std::function<ServiceController*()> factory);
-  ~ServiceControllerRouter();
-  ServiceControllerRouter(ServiceControllerRouter&&) = default;
-  ServiceControllerRouter& operator=(ServiceControllerRouter&&) = default;
+  ServiceControllerRouter();
+  virtual ~ServiceControllerRouter();
+  // Not copyable or movable
+  ServiceControllerRouter(const ServiceControllerRouter&) = delete;
+  ServiceControllerRouter& operator=(const ServiceControllerRouter&) = delete;
+  ServiceControllerRouter(ServiceControllerRouter&&) = delete;
+  ServiceControllerRouter& operator=(ServiceControllerRouter&&) = delete;
 
-  void StartAdvertising(ClientProxy* client, absl::string_view service_id,
-                        const ConnectionOptions& options,
-                        const ConnectionRequestInfo& info,
-                        const ResultCallback& callback);
-  void StopAdvertising(ClientProxy* client, const ResultCallback& callback);
+  virtual void StartAdvertising(ClientProxy* client,
+                                absl::string_view service_id,
+                                const ConnectionOptions& options,
+                                const ConnectionRequestInfo& info,
+                                const ResultCallback& callback);
+  virtual void StopAdvertising(ClientProxy* client,
+                               const ResultCallback& callback);
 
-  void StartDiscovery(ClientProxy* client, absl::string_view service_id,
-                      const ConnectionOptions& options,
-                      const DiscoveryListener& listener,
-                      const ResultCallback& callback);
-  void StopDiscovery(ClientProxy* client, const ResultCallback& callback);
+  virtual void StartDiscovery(ClientProxy* client, absl::string_view service_id,
+                              const ConnectionOptions& options,
+                              const DiscoveryListener& listener,
+                              const ResultCallback& callback);
+  virtual void StopDiscovery(ClientProxy* client,
+                             const ResultCallback& callback);
 
-  void InjectEndpoint(ClientProxy* client, absl::string_view service_id,
-                      const OutOfBandConnectionMetadata& metadata,
-                      const ResultCallback& callback);
+  virtual void InjectEndpoint(ClientProxy* client, absl::string_view service_id,
+                              const OutOfBandConnectionMetadata& metadata,
+                              const ResultCallback& callback);
 
-  void RequestConnection(ClientProxy* client, absl::string_view endpoint_id,
-                         const ConnectionRequestInfo& info,
-                         const ConnectionOptions& options,
-                         const ResultCallback& callback);
-  void AcceptConnection(ClientProxy* client, absl::string_view endpoint_id,
-                        const PayloadListener& listener,
-                        const ResultCallback& callback);
-  void RejectConnection(ClientProxy* client, absl::string_view endpoint_id,
-                        const ResultCallback& callback);
-
-  void InitiateBandwidthUpgrade(ClientProxy* client,
+  virtual void RequestConnection(ClientProxy* client,
+                                 absl::string_view endpoint_id,
+                                 const ConnectionRequestInfo& info,
+                                 const ConnectionOptions& options,
+                                 const ResultCallback& callback);
+  virtual void AcceptConnection(ClientProxy* client,
+                                absl::string_view endpoint_id,
+                                const PayloadListener& listener,
+                                const ResultCallback& callback);
+  virtual void RejectConnection(ClientProxy* client,
                                 absl::string_view endpoint_id,
                                 const ResultCallback& callback);
 
-  void SendPayload(ClientProxy* client,
-                   absl::Span<const std::string> endpoint_ids, Payload payload,
-                   const ResultCallback& callback);
-  void CancelPayload(ClientProxy* client, std::uint64_t payload_id,
-                     const ResultCallback& callback);
+  virtual void InitiateBandwidthUpgrade(ClientProxy* client,
+                                        absl::string_view endpoint_id,
+                                        const ResultCallback& callback);
 
-  void DisconnectFromEndpoint(ClientProxy* client,
-                              absl::string_view endpoint_id,
-                              const ResultCallback& callback);
-  void StopAllEndpoints(ClientProxy* client, const ResultCallback& callback);
+  virtual void SendPayload(ClientProxy* client,
+                           absl::Span<const std::string> endpoint_ids,
+                           Payload payload, const ResultCallback& callback);
+  virtual void CancelPayload(ClientProxy* client, std::uint64_t payload_id,
+                             const ResultCallback& callback);
 
-  void ClientDisconnecting(ClientProxy* client, const ResultCallback& callback);
+  virtual void DisconnectFromEndpoint(ClientProxy* client,
+                                      absl::string_view endpoint_id,
+                                      const ResultCallback& callback);
+  virtual void StopAllEndpoints(ClientProxy* client,
+                                const ResultCallback& callback);
+
+  void SetServiceControllerForTesting(
+      std::unique_ptr<ServiceController> service_controller);
 
  private:
-  static bool ClientHasConnectionToAtLeastOneEndpoint(
-      ClientProxy* client, const std::vector<std::string>& remote_endpoint_ids);
+  // Lazily create ServiceController.
+  ServiceController* GetServiceController();
 
   void RouteToServiceController(const std::string& name, Runnable runnable);
+  void FinishClientSession(ClientProxy* client);
 
-  Status AcquireServiceControllerForClient(ClientProxy* client,
-                                           Strategy strategy);
-  bool ClientHasAcquiredServiceController(ClientProxy* client) const;
-  void ReleaseServiceControllerForClient(ClientProxy* client);
-  void DoneWithStrategySessionForClient(ClientProxy* client);
-  Status UpdateCurrentServiceControllerAndStrategy(Strategy strategy);
-
-  absl::flat_hash_set<ClientProxy*> clients_;
-  std::function<ServiceController*()> service_controller_factory_;
   std::unique_ptr<ServiceController> service_controller_;
-  Strategy current_strategy_;
   SingleThreadExecutor serializer_;
 };
 
