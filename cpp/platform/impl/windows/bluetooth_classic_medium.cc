@@ -14,15 +14,18 @@
 
 #include "platform/impl/windows/bluetooth_classic_medium.h"
 
-#include "platform/base/exception.h"
-#include "platform/impl/windows/bluetooth_classic_device.h"
-#include "platform/impl/windows/bluetooth_classic_socket.h"
 #include "platform/impl/windows/generated/winrt/Windows.Devices.Bluetooth.Rfcomm.h"
 #include "platform/impl/windows/generated/winrt/Windows.Devices.Bluetooth.h"
 #include "platform/impl/windows/generated/winrt/Windows.Devices.Enumeration.h"
 #include "platform/impl/windows/generated/winrt/Windows.Foundation.Collections.h"
 #include "platform/impl/windows/generated/winrt/base.h"
+
+#include "platform/base/exception.h"
+#include "platform/impl/windows/bluetooth_classic_device.h"
+#include "platform/impl/windows/bluetooth_classic_socket.h"
 #include "platform/public/logging.h"
+#include "platform/base/cancellation_flag.h"
+#include "platform/base/cancellation_flag_listener.h"
 
 namespace location {
 namespace nearby {
@@ -135,6 +138,11 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
 
   std::unique_ptr<BluetoothSocket> rfcommSocket =
       std::make_unique<BluetoothSocket>();
+
+  location::nearby::CancellationFlagListener cancellationFlagListener(
+      cancellation_flag,
+      [&rfcommSocket]() { rfcommSocket.get()->CancelIOAsync().get();
+    });
 
   try {
     rfcommSocket

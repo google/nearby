@@ -56,6 +56,10 @@ using winrt::Windows::Storage::Streams::InputStreamOptions;
 // https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.datareader?view=winrt-20348
 using winrt::Windows::Storage::Streams::DataReader;
 
+// Represents an asynchronous action.
+// https://docs.microsoft.com/en-us/uwp/api/windows.foundation.iasyncaction?view=winrt-20348
+using winrt::Windows::Foundation::IAsyncAction;
+
 // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html.
 class BluetoothSocket : public api::BluetoothSocket {
  public:
@@ -88,8 +92,10 @@ class BluetoothSocket : public api::BluetoothSocket {
   api::BluetoothDevice* GetRemoteDevice() override;
 
   // Connect asynchronously to the target remote device
-  winrt::Windows::Foundation::IAsyncAction ConnectAsync(
-      HostName connectionHostName, winrt::hstring connectionServiceName);
+  IAsyncAction ConnectAsync(HostName connectionHostName,
+                            winrt::hstring connectionServiceName);
+
+  IAsyncAction CancelIOAsync();
 
  private:
   class BluetoothInputStream : public InputStream {

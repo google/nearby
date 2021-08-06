@@ -82,6 +82,12 @@ ExceptionOr<ByteArray> BluetoothSocket::BluetoothInputStream::Read(
   return ExceptionOr(data);
 }
 
+IAsyncAction BluetoothSocket::CancelIOAsync() {
+  // Cancels pending reads and writes over a StreamSocket object.
+  // https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocket.cancelioasync?view=winrt-20348
+  return windows_socket_.as<StreamSocket>().CancelIOAsync();
+}
+
 Exception BluetoothSocket::BluetoothInputStream::Close() {
   try {
     winrt_stream_.Close();
