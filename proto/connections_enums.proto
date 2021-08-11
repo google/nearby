@@ -171,6 +171,9 @@ enum PayloadStatus {
 
   // The payload was canceled by the remote endpoint.
   REMOTE_CANCELLATION = 8;
+
+  // The connection not encrypted yet.
+  ENDPOINT_UNENCRYPTED = 9;
 }
 
 // next_id: 19
