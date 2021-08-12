@@ -16,6 +16,7 @@
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_SOCKET_H_
 
 #include "platform/api/bluetooth_classic.h"
+
 #include "platform/impl/windows/generated/winrt/Windows.Foundation.h"
 #include "platform/impl/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "platform/impl/windows/generated/winrt/Windows.Storage.Streams.h"
@@ -64,6 +65,10 @@ using winrt::Windows::Foundation::IAsyncAction;
 class BluetoothSocket : public api::BluetoothSocket {
  public:
   BluetoothSocket();
+
+  BluetoothSocket(
+      winrt::Windows::Networking::Sockets::StreamSocket streamSocket)
+      : windows_socket_(streamSocket) {}
 
   // TODO(b/184975123): replace with real implementation.
   ~BluetoothSocket() override;

@@ -15,14 +15,60 @@
 #ifndef PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_SERVER_SOCKET_H_
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_SERVER_SOCKET_H_
 
+#include <Windows.h>
+
+#include <queue>
+
 #include "platform/api/bluetooth_classic.h"
+#include "platform/impl/windows/bluetooth_classic_socket.h"
+#include "platform/impl/windows/generated/winrt/Windows.Devices.Bluetooth.Rfcomm.h"
+#include "platform/impl/windows/generated/winrt/Windows.Foundation.h"
+#include "platform/impl/windows/generated/winrt/Windows.Networking.Sockets.h"
+#include "platform/impl/windows/generated/winrt/base.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
+
+// Supports listening for an incoming network connection using Bluetooth RFCOMM.
+// https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocketlistener?view=winrt-20348
+using winrt::Windows::Networking::Sockets::StreamSocketListener;
+
+// Provides data for a ConnectionReceived event on a StreamSocketListener
+// object.
+// https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocketlistenerconnectionreceivedeventargs?view=winrt-20348
+using winrt::Windows::Networking::Sockets::
+    StreamSocketListenerConnectionReceivedEventArgs;
+
+// Represents an asynchronous action.
+// https://docs.microsoft.com/en-us/uwp/api/windows.foundation.iasyncaction?view=winrt-20348
+using winrt::Windows::Foundation::IAsyncAction;
+
+// Specifies the quality of service for a StreamSocket object.
+// https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.socketqualityofservice?view=winrt-20348
+using winrt::Windows::Networking::Sockets::SocketQualityOfService;
+
+// Represents an instance of a local RFCOMM service.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommserviceprovider?view=winrt-20348
+using winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceProvider;
+
+// Represents an RFCOMM service ID.
+//  https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommserviceid?view=winrt-20348
+using winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId;
+
+// Writes data to an output stream.
+// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.datawriter?view=winrt-20348
+using winrt::Windows::Storage::Streams::DataWriter;
+
+// Specifies the type of character encoding for a stream.
+// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.unicodeencoding?view=winrt-20348
+using winrt::Windows::Storage::Streams::UnicodeEncoding;
+
 // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html.
 class BluetoothServerSocket : public api::BluetoothServerSocket {
  public:
+  BluetoothServerSocket();
+
   // TODO(b/184975123): replace with real implementation.
   ~BluetoothServerSocket() override;
 
@@ -34,14 +80,31 @@ class BluetoothServerSocket : public api::BluetoothServerSocket {
   // On success, returns connected socket, ready to exchange data.
   // Returns nullptr on error.
   // Once error is reported, it is permanent, and ServerSocket has to be closed.
-  // TODO(b/184975123): replace with real implementation.
   std::unique_ptr<api::BluetoothSocket> Accept() override;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html#close()
   //
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  // TODO(b/184975123): replace with real implementation.
   Exception Close() override;
+
+  Exception StartListening(const std::string& service_name,
+                           const std::string& service_uuid);
+
+ private:
+  void InitializeServiceSdpAttributes(RfcommServiceProvider rfcommProvider,
+                                      std::string service_name);
+
+  // This is used to store sockets in case Accept hasn't been called. Once
+  // Accept has been called the socket is popped from the queue and returned to
+  // the caller
+  std::queue<std::unique_ptr<BluetoothSocket>> bluetooth_sockets_;
+
+  StreamSocketListener stream_socket_listener_;
+
+  CRITICAL_SECTION critical_section_;
+  bool closed_ = false;
+
+  RfcommServiceProvider* rfcomm_provider_;
 };
 
 }  // namespace windows
