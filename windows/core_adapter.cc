@@ -20,12 +20,9 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-Core* InitCoreWithServiceControllerFactory(
-    std::function<ServiceController*()> factory) {
-  return new Core(factory);
+Core* InitCore(ServiceControllerRouter* router) {
+  return new Core(router);
 }
-
-Core* InitCore() { return new Core(); }
 
 void CloseCore(Core* pCore) {
   if (pCore) {

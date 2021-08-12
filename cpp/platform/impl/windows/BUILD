@@ -92,6 +92,7 @@ cc_library(
         "bluetooth_classic_server_socket.cc",
         "bluetooth_classic_socket.cc",
         "platform.cc",
+        "utils.cc",
     ],
     hdrs = [
         "bluetooth_classic.h",
