@@ -238,11 +238,16 @@ BleAdvertisement::operator ByteArray() const {
     // clang-format on
 
     // The next 6 bytes are the bluetooth mac address. If bluetooth_mac_address
-    // is invalid or empty, we get back a empty byte array.
+    // is invalid or empty, we get back an empty byte array.
     auto bluetooth_mac_address_bytes{
         BluetoothUtils::FromString(bluetooth_mac_address_)};
     if (!bluetooth_mac_address_bytes.Empty()) {
       absl::StrAppend(&out, std::string(bluetooth_mac_address_bytes));
+    } else {
+      // If bluetooth MAC address is invalid, then reserve the bytes.
+      auto fake_bt_mac_address_bytes =
+          ByteArray(BluetoothUtils::kBluetoothMacAddressLength);
+      absl::StrAppend(&out, std::string(fake_bt_mac_address_bytes));
     }
   }
 
