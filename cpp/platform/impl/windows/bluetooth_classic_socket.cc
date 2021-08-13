@@ -45,8 +45,16 @@ OutputStream& BluetoothSocket::GetOutputStream() {
 // Closes both input and output streams, marks Socket as closed.
 // After this call object should be treated as not connected.
 // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-// TODO(b/184975123): replace with real implementation.
-Exception BluetoothSocket::Close() { return Exception(); }
+Exception BluetoothSocket::Close() {
+  // The Close method aborts any pending operations and releases all unmanaged
+  // resources associated with the StreamSocket object, including the Input and
+  // Output streams
+  windows_socket_.Close();
+  windows_socket_ = nullptr;
+  input_stream_ = nullptr;
+  output_stream_ = nullptr;
+  return {Exception::kSuccess};
+}
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html#getRemoteDevice()
 // Returns valid BluetoothDevice pointer if there is a connection, and

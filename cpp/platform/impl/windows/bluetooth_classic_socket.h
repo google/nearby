@@ -16,7 +16,7 @@
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_SOCKET_H_
 
 #include "platform/api/bluetooth_classic.h"
-
+#include "platform/impl/windows/bluetooth_classic_device.h"
 #include "platform/impl/windows/generated/winrt/Windows.Foundation.h"
 #include "platform/impl/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "platform/impl/windows/generated/winrt/Windows.Storage.Streams.h"

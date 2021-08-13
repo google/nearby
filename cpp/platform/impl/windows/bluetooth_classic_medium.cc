@@ -44,11 +44,6 @@ BluetoothClassicMedium::BluetoothClassicMedium() {
 
 BluetoothClassicMedium::~BluetoothClassicMedium() {}
 
-// TODO(b/184975123): replace with real implementation.
-api::BluetoothDevice* GetRemoteDevice(const std::string& mac_address) {
-  return nullptr;
-}
-
 bool BluetoothClassicMedium::StartDiscovery(
     BluetoothClassicMedium::DiscoveryCallback discovery_callback) {
   EnterCriticalSection(&critical_section_);
@@ -148,7 +143,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   EnterCriticalSection(&critical_section_);
 
   std::unique_ptr<BluetoothSocket> rfcommSocket =
-      std::make_unique<BluetoothSocket>();
+      std::make_unique<BluetoothSocket>(nullptr);
 
   location::nearby::CancellationFlagListener cancellationFlagListener(
       cancellation_flag,
@@ -263,10 +258,9 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
   return std::move(bluetooth_server_socket);
 }
 
-// TODO(b/184975123): replace with real implementation.
 api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
     const std::string& mac_address) {
-  return nullptr;
+  return new BluetoothDevice(mac_address);
 }
 
 bool BluetoothClassicMedium::StartScanning() {
