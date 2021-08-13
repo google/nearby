@@ -59,11 +59,9 @@ class BluetoothDevice : public api::BluetoothDevice {
   BluetoothDevice& operator=(BluetoothDevice&&) = default;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
-  // TODO(b/184975123): replace with real implementation.
   std::string GetName() const override;
 
   // Returns BT MAC address assigned to this device.
-  // TODO(b/184975123): replace with real implementation.
   std::string GetMacAddress() const override;
 
   std::string GetId() { return id_; }

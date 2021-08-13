@@ -348,9 +348,9 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
 
 winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Removed(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfo) {
-  if (IsWatcherStarted()) {
-    EnterCriticalSection(&critical_section_);
+  EnterCriticalSection(&critical_section_);
 
+  if (IsWatcherStarted()) {
     if (discovery_callback_.device_lost_cb != nullptr) {
       discovery_callback_.device_lost_cb(*devices_by_id_[deviceInfo.Id()]);
     }
