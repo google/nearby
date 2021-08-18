@@ -407,11 +407,21 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
 BluetoothDevice BluetoothClassic::GetRemoteDevice(
     const std::string& mac_address) {
   MutexLock lock(&mutex_);
+
+  if (!IsAvailableLocked()) {
+    return {};
+  }
+
   return medium_.GetRemoteDevice(mac_address);
 }
 
 std::string BluetoothClassic::GetMacAddress() const {
   MutexLock lock(&mutex_);
+
+  if (!IsAvailableLocked()) {
+    return {};
+  }
+
   return medium_.GetMacAddress();
 }
 
