@@ -28,6 +28,7 @@ cc_library(
     ],
     deps = [
         ":core_types",
+        ":event_logger",
         "//absl/strings",
         "//absl/time",
         "//absl/types:span",
@@ -63,6 +64,16 @@ cc_library(
         "//platform/base:util",
         "//platform/public:types",
         "//proto:connections_enums_portable_proto",
+    ],
+)
+
+cc_library(
+    name = "event_logger",
+    hdrs = [
+        "event_logger.h",
+    ],
+    deps = [
+        "//logs/proto/location/nearby:nearby_client_log_cc_proto",
     ],
 )
 
