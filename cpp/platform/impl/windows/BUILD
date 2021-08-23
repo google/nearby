@@ -153,11 +153,17 @@ cc_test(
         ":crypto",
         ":test_utils",
         ":types",
+        ":windows",
         "//testing/base/public:gunit_main",
         "//platform/api:platform",
         "//platform/base",
-        "//platform/impl/windows",
         "//platform/impl/windows/generated:types",
         "//platform/public:logging",
     ],
+)
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+    visibility = ["//third_party/nearby_connections:__pkg__"],
 )

@@ -63,3 +63,9 @@ cc_test(
         "//platform/impl/g3",  # buildcleaner: keep
     ],
 )
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+    visibility = ["//third_party/nearby_connections:__pkg__"],
+)

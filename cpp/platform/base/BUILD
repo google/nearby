@@ -202,3 +202,9 @@ cc_with_non_compile_test(
         "//testing/base/public:gunit_main",
     ],
 )
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+    visibility = ["//third_party/nearby_connections:__pkg__"],
+)

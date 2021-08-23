@@ -180,3 +180,9 @@ py_test(
         "//testing/pybase:fake_target_util",
     ],
 )
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+    visibility = ["//third_party/nearby_connections:__pkg__"],
+)

@@ -210,3 +210,9 @@ cc_test(
         "//securegcm:ukey2",
     ],
 )
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+    visibility = ["//third_party/nearby_connections:__pkg__"],
+)

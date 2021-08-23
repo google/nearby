@@ -31,3 +31,9 @@ cc_windows_dll(
         "//webrtc/api:create_peerconnection_factory",
     ],
 )
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+    visibility = ["//third_party/nearby_connections:__pkg__"],
+)
