@@ -18,47 +18,67 @@
 #include <string>
 
 #include "platform/api/bluetooth_adapter.h"
+#include "platform/impl/windows/generated/winrt/Windows.Devices.Bluetooth.h"
+#include "platform/impl/windows/generated/winrt/Windows.Devices.Radios.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
 
-// https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html
+  // Represents a Bluetooth adapter.
+  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter?view=winrt-20348
+  using winrt::Windows::Devices::Bluetooth::IBluetoothAdapter;
+
+  // Represents a radio device on the system.
+  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.radios.radio?view=winrt-20348
+  using winrt::Windows::Devices::Radios::IRadio;
+
+  // Enumeration that describes possible radio states.
+  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.radios.radiostate?view=winrt-20348
+  using winrt::Windows::Devices::Radios::RadioState;
+
+  // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html
 class BluetoothAdapter : public api::BluetoothAdapter {
  public:
+  BluetoothAdapter();
+
   // TODO(b/184975123): replace with real implementation.
   ~BluetoothAdapter() override = default;
 
   // Synchronously sets the status of the BluetoothAdapter to 'status', and
   // returns true if the operation was a success.
-  // TODO(b/184975123): replace with real implementation.
-  bool SetStatus(Status status) override { return false; }
+  bool SetStatus(Status status) override;
   // Returns true if the BluetoothAdapter's current status is
   // Status::Value::kEnabled.
-  // TODO(b/184975123): replace with real implementation.
-  bool IsEnabled() const override { return false; }
+  bool IsEnabled() const override;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getScanMode()
   //
   // Returns ScanMode::kUnknown on error.
-  // TODO(b/184975123): replace with real implementation.
-  ScanMode GetScanMode() const override { return ScanMode::kUnknown; }
+  ScanMode GetScanMode() const override;
   // Synchronously sets the scan mode of the adapter, and returns true if the
   // operation was a success.
-  // TODO(b/184975123): replace with real implementation.
-  bool SetScanMode(ScanMode scan_mode) override { return false; }
+  bool SetScanMode(ScanMode scan_mode) override;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getName()
   // Returns an empty string on error
   // TODO(b/184975123): replace with real implementation.
-  std::string GetName() const override { return "Un-implemented"; }
+  std::string GetName() const override;
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
-  // TODO(b/184975123): replace with real implementation.
-  bool SetName(absl::string_view name) override { return false; }
+  bool SetName(absl::string_view name) override;
 
   // Returns BT MAC address assigned to this adapter.
-  // TODO(b/184975123): replace with real implementation.
-  std::string GetMacAddress() const override { return "Un-implemented"; }
+  std::string GetMacAddress() const override;
+
+ private:
+  IBluetoothAdapter
+      windows_bluetooth_adapter_;
+
+  IRadio windows_bluetooth_radio_;
+  char *GetGenericBluetoothAdapterInstanceID(void);
+  void find_and_replace(char *source, const char *strFind,
+                        const char *strReplace);
+  ScanMode scan_mode_ = ScanMode::kNone;
 };
 
 }  // namespace windows

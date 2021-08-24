@@ -55,6 +55,7 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//third_party/nearby_connections/cpp/analytics:__subpackages__",
         "//core:__subpackages__",
     ],
     deps = [
@@ -72,8 +73,12 @@ cc_library(
     hdrs = [
         "event_logger.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [
+        "//third_party/nearby_connections/cpp/analytics:__subpackages__",
+    ],
     deps = [
-        "//logs/proto/location/nearby:nearby_client_log_cc_proto",
+        "//third_party/nearby_connections/proto/analytics:connections_log_cc_proto",
     ],
 )
 

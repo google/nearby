@@ -25,9 +25,11 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
 #include "absl/types/span.h"
+#include "core/internal/mediums/utils.h"
 #include "core/internal/offline_frames.h"
 #include "core/internal/pcp_handler.h"
 #include "core/options.h"
+#include "platform/base/base64_utils.h"
 #include "platform/base/bluetooth_utils.h"
 #include "platform/public/logging.h"
 #include "platform/public/system_clock.h"
@@ -342,6 +344,7 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
   }
 
   connection_info.SetCryptoContext(std::move(ukey2));
+  connection_info.connection_token = GetHashedConnectionToken(raw_auth_token);
   NEARBY_LOGS(INFO)
       << "Register encrypted connection; wait for response; endpoint_id="
       << endpoint_id;
@@ -382,7 +385,8 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
           .keep_alive_timeout_millis =
               connection_info.options.keep_alive_timeout_millis,
       },
-      std::move(connection_info.channel), connection_info.listener);
+      std::move(connection_info.channel), connection_info.listener,
+      connection_info.connection_token);
 
   if (auto future_status = connection_info.result.lock()) {
     NEARBY_LOGS(INFO) << "Connection established; Finalising future OK.";
@@ -629,9 +633,12 @@ BasePcpHandler::GetDiscoveredEndpoints(
   return result;
 }
 
-void BasePcpHandler::PendingConnectionInfo::SetCryptoContext(
-    std::unique_ptr<UKey2Handshake> ukey2) {
-  this->ukey2 = std::move(ukey2);
+mediums::PeerId BasePcpHandler::CreatePeerIdFromAdvertisement(
+    const std::string& service_id, const std::string& endpoint_id,
+    const ByteArray& endpoint_info) {
+  std::string seed =
+      absl::StrCat(service_id, endpoint_id, std::string(endpoint_info));
+  return mediums::PeerId::FromSeed(ByteArray(std::move(seed)));
 }
 
 bool BasePcpHandler::HasOutgoingConnections(ClientProxy* client) const {
@@ -1415,7 +1422,20 @@ ExceptionOr<OfflineFrame> BasePcpHandler::ReadConnectionRequestFrame(
   return wrapped_frame;
 }
 
+std::string BasePcpHandler::GetHashedConnectionToken(
+    const ByteArray& token_bytes) {
+  auto token = std::string(token_bytes);
+  return location::nearby::Base64Utils::Encode(
+             Utils::Sha256Hash(token, token.size()))
+      .substr(0, kConnectionTokenLength);
+}
+
 ///////////////////// BasePcpHandler::PendingConnectionInfo ///////////////////
+
+void BasePcpHandler::PendingConnectionInfo::SetCryptoContext(
+    std::unique_ptr<UKey2Handshake> ukey2) {
+  this->ukey2 = std::move(ukey2);
+}
 
 BasePcpHandler::PendingConnectionInfo::~PendingConnectionInfo() {
   auto future_status = result.lock();
@@ -1441,14 +1461,6 @@ void BasePcpHandler::PendingConnectionInfo::LocalEndpointAcceptedConnection(
 void BasePcpHandler::PendingConnectionInfo::LocalEndpointRejectedConnection(
     const std::string& endpoint_id) {
   client->LocalEndpointRejectedConnection(endpoint_id);
-}
-
-mediums::PeerId BasePcpHandler::CreatePeerIdFromAdvertisement(
-    const std::string& service_id, const std::string& endpoint_id,
-    const ByteArray& endpoint_info) {
-  std::string seed =
-      absl::StrCat(service_id, endpoint_id, std::string(endpoint_info));
-  return mediums::PeerId::FromSeed(ByteArray(std::move(seed)));
 }
 
 }  // namespace connections

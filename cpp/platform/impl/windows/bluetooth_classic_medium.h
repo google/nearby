@@ -22,6 +22,7 @@
 #include "platform/impl/windows/bluetooth_classic_device.h"
 #include "platform/impl/windows/bluetooth_classic_server_socket.h"
 #include "platform/impl/windows/bluetooth_classic_socket.h"
+#include "platform/impl/windows/bluetooth_adapter.h"
 #include "platform/impl/windows/generated/winrt/Windows.Devices.Enumeration.h"
 #include "platform/impl/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "platform/impl/windows/generated/winrt/base.h"
@@ -86,7 +87,8 @@ using winrt::Windows::Storage::Streams::DataWriter;
 // medium.
 class BluetoothClassicMedium : public api::BluetoothClassicMedium {
  public:
-  explicit BluetoothClassicMedium();
+  BluetoothClassicMedium() = default;
+  BluetoothClassicMedium(const api::BluetoothAdapter& bluetoothAdapter);
 
   ~BluetoothClassicMedium() override;
 
@@ -176,6 +178,8 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   // CRITICAL_SECTION is a lightweight synchronization mechanism
   // https://docs.microsoft.com/en-us/windows/win32/sync/critical-section-objects
   CRITICAL_SECTION critical_section_;
+
+  BluetoothAdapter bluetooth_adapter_;
 };
 
 }  // namespace windows

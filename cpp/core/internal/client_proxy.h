@@ -16,9 +16,11 @@
 #define CORE_INTERNAL_CLIENT_PROXY_H_
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 
+#include "third_party/nearby_connections/cpp/analytics/analytics_recorder.h"
 #include "core/listeners.h"
 #include "core/options.h"
 #include "core/status.h"
@@ -46,7 +48,7 @@ class ClientProxy final {
   static constexpr absl::Duration
       kHighPowerAdvertisementEndpointIdCacheTimeout = absl::Seconds(30);
 
-  ClientProxy();
+  explicit ClientProxy(analytics::EventLogger* event_logger = nullptr);
   ~ClientProxy();
   ClientProxy(ClientProxy&&) = default;
   ClientProxy& operator=(ClientProxy&&) = default;
@@ -54,6 +56,8 @@ class ClientProxy final {
   std::int64_t GetClientId() const;
 
   std::string GetLocalEndpointId();
+
+  std::string GetConnectionToken(const std::string& endpoint_id);
 
   // Clears all the runtime state of this client.
   void Reset();
@@ -98,7 +102,8 @@ class ClientProxy final {
   void OnConnectionInitiated(const std::string& endpoint_id,
                              const ConnectionResponseInfo& info,
                              const ConnectionOptions& options,
-                             const ConnectionListener& listener);
+                             const ConnectionListener& listener,
+                             const std::string& connection_token);
 
   // Proxies to the client's ConnectionListener::OnAccepted() callback.
   void OnConnectionAccepted(const std::string& endpoint_id);
@@ -205,6 +210,7 @@ class ClientProxy final {
     ConnectionListener connection_listener;
     PayloadListener payload_listener;
     ConnectionOptions connection_options;
+    std::string connection_token;
   };
 
   struct AdvertisingInfo {
@@ -298,6 +304,10 @@ class ClientProxy final {
   // A default cancellation flag with isCancelled set be true.
   std::unique_ptr<CancellationFlag> default_cancellation_flag_ =
       std::make_unique<CancellationFlag>(true);
+
+  // An analytics logger with |EventLogger| provided by client, which is default
+  // nullptr as no-op.
+  std::unique_ptr<analytics::AnalyticsRecorder> analytics_recorder_;
 };
 
 }  // namespace connections

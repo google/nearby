@@ -348,6 +348,9 @@ class BasePcpHandler : public PcpHandler,
     // accepted. Crypto context is passed over to channel_manager_ before
     // switching to connected state, where Payload may be exchanged.
     std::unique_ptr<securegcm::UKey2Handshake> ukey2;
+
+    // Used in AnalyticsRecorder for devices connection tracking.
+    std::string connection_token;
   };
 
   // @EncryptionRunnerThread
@@ -382,6 +385,7 @@ class BasePcpHandler : public PcpHandler,
       absl::Seconds(2);
   static constexpr absl::Duration kRejectedConnectionCloseDelay =
       absl::Seconds(2);
+  static constexpr int kConnectionTokenLength = 8;
 
   void OnConnectionResponse(ClientProxy* client, const std::string& endpoint_id,
                             const OfflineFrame& frame);
@@ -445,6 +449,10 @@ class BasePcpHandler : public PcpHandler,
 
   ExceptionOr<OfflineFrame> ReadConnectionRequestFrame(
       EndpointChannel* channel);
+
+  // Returns an 8 characters length hashed string generated via a token byte
+  // array.
+  std::string GetHashedConnectionToken(const ByteArray& token_bytes);
 
   void WaitForLatch(const std::string& method_name, CountDownLatch* latch);
   Status WaitForResult(const std::string& method_name, std::int64_t client_id,

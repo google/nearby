@@ -108,7 +108,7 @@ class EndpointManagerTest : public ::testing::Test {
         .WillRepeatedly(Return(start_time_));
     EXPECT_CALL(mock_listener_.initiated_cb, Call).Times(1);
     em_.RegisterEndpoint(&client_, endpoint_id_, info_, options_,
-                         std::move(channel), listener_);
+                         std::move(channel), listener_, connection_token);
     if (should_close) {
       EXPECT_TRUE(done.Await(absl::Milliseconds(1000)).result());
     }
@@ -151,6 +151,7 @@ class EndpointManagerTest : public ::testing::Test {
       .bandwidth_changed_cb =
           mock_listener_.bandwidth_changed_cb.AsStdFunction(),
   };
+  std::string connection_token = "conntokn";
   absl::Time start_time_{absl::Now()};
 };
 

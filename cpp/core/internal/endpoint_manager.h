@@ -103,7 +103,8 @@ class EndpointManager {
                         const ConnectionResponseInfo& info,
                         const ConnectionOptions& options,
                         std::unique_ptr<EndpointChannel> channel,
-                        const ConnectionListener& listener);
+                        const ConnectionListener& listener,
+                        const std::string& connection_token);
   // Called when a client explicitly asks to disconnect from this endpoint. In
   // this case, we do not notify the client of onDisconnected().
   void UnregisterEndpoint(ClientProxy* client, const std::string& endpoint_id);

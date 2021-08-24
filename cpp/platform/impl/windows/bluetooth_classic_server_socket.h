@@ -88,7 +88,8 @@ class BluetoothServerSocket : public api::BluetoothServerSocket {
   Exception Close() override;
 
   Exception StartListening(const std::string& service_name,
-                           const std::string& service_uuid);
+                           const std::string& service_uuid,
+                           bool radioDiscoverable);
 
  private:
   void InitializeServiceSdpAttributes(RfcommServiceProvider rfcommProvider,

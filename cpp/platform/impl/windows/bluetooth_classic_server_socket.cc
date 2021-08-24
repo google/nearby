@@ -26,7 +26,7 @@
 namespace location {
 namespace nearby {
 namespace windows {
-BluetoothServerSocket::BluetoothServerSocket() {
+BluetoothServerSocket::BluetoothServerSocket() : rfcomm_provider_(nullptr) {
   InitializeCriticalSection(&critical_section_);
 }
 
@@ -61,8 +61,9 @@ std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
   return nullptr;
 }
 
-Exception BluetoothServerSocket::StartListening(
-    const std::string& service_name, const std::string& service_uuid) {
+Exception BluetoothServerSocket::StartListening(const std::string& service_name,
+                                                const std::string& service_uuid,
+                                                bool radioDiscoverable) {
   EnterCriticalSection(&critical_section_);
 
   winrt::guid service(service_uuid);
@@ -121,7 +122,7 @@ Exception BluetoothServerSocket::StartListening(
 
   try {
     rfcomm_provider_->StartAdvertising(
-        stream_socket_listener_.as<StreamSocketListener>(), true);
+        stream_socket_listener_.as<StreamSocketListener>(), radioDiscoverable);
   } catch (std::exception exception) {
     // We will log and eat the exception since the caller
     // expects nullptr if it fails

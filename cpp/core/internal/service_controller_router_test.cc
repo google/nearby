@@ -148,8 +148,9 @@ class ServiceControllerRouterTest : public testing::Test {
         .raw_authentication_token = ByteArray{"auth_token"},
         .is_incoming_connection = true,
     };
+    std::string connection_token{"conntokn"};
     client->OnConnectionInitiated(endpoint_id, response_info, options,
-                                  request_info.listener);
+                                  request_info.listener, connection_token);
     EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint_id));
   }
 

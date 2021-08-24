@@ -21,6 +21,7 @@
 #include "platform/base/cancellation_flag.h"
 #include "platform/base/cancellation_flag_listener.h"
 #include "platform/base/exception.h"
+#include "platform/impl/windows/bluetooth_adapter.h"
 #include "platform/impl/windows/bluetooth_classic_device.h"
 #include "platform/impl/windows/bluetooth_classic_server_socket.h"
 #include "platform/impl/windows/bluetooth_classic_socket.h"
@@ -36,7 +37,10 @@ namespace location {
 namespace nearby {
 namespace windows {
 
-BluetoothClassicMedium::BluetoothClassicMedium() {
+BluetoothClassicMedium::BluetoothClassicMedium(
+    const api::BluetoothAdapter& bluetoothAdapter)
+    : bluetooth_adapter_(
+          dynamic_cast<const BluetoothAdapter&>(bluetoothAdapter)) {
   InitializeCriticalSection(&critical_section_);
 
   InitializeDeviceWatcher();
@@ -253,7 +257,12 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
   auto bluetooth_server_socket =
       std::make_unique<location::nearby::windows::BluetoothServerSocket>();
 
-  bluetooth_server_socket->StartListening(service_name, service_uuid);
+  bool radioDiscoverable =
+      bluetooth_adapter_.GetScanMode() ==
+              BluetoothAdapter::ScanMode::kConnectableDiscoverable;
+
+  bluetooth_server_socket->StartListening(service_name, service_uuid,
+                                          radioDiscoverable);
 
   return std::move(bluetooth_server_socket);
 }

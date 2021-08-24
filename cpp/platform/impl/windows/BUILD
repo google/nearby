@@ -50,6 +50,7 @@ cc_library(
     name = "comm",
     hdrs = [
         "ble.h",
+        "bluetooth_adapter.h",
         "bluetooth_classic.h",
         "bluetooth_classic_device.h",
         "bluetooth_classic_medium.h",
@@ -87,6 +88,7 @@ cc_library(
 cc_library(
     name = "windows",
     srcs = [
+        "bluetooth_adapter.cc",
         "bluetooth_classic_device.cc",
         "bluetooth_classic_medium.cc",
         "bluetooth_classic_server_socket.cc",

@@ -15,10 +15,12 @@
 #ifndef CORE_CORE_H_
 #define CORE_CORE_H_
 
+#include <functional>
 #include <string>
 
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "core/event_logger.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/service_controller.h"
 #include "core/internal/service_controller_router.h"
@@ -34,6 +36,9 @@ namespace connections {
 class Core {
  public:
   explicit Core(ServiceControllerRouter* router);
+  // Client needs to call this constructor if analytics logger is needed.
+  Core(analytics::EventLogger* event_logger, ServiceControllerRouter* router)
+      : client_(event_logger), router_(router) {}
   ~Core();
   Core(Core&&);
   Core& operator=(Core&&);
