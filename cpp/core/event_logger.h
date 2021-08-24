@@ -15,11 +15,10 @@
 #ifndef CORE_EVENT_LOGGER_H_
 #define CORE_EVENT_LOGGER_H_
 
-#include "logs/proto/location/nearby/nearby_client_log.proto.h"
+#include "proto/analytics/connections_log.proto.h"
 
 namespace location {
 namespace nearby {
-namespace connections {
 namespace analytics {
 
 // Allows callers to log |ConnectionsLog| collected at Nearby Connections
@@ -30,11 +29,10 @@ class EventLogger {
 
   // Logs |ConnectionsLog| details. Might block to do I/O, e.g. upload
   // synchronously to some metrics server.
-  virtual void Log(const logs::ConnectionsLog& connections_log) = 0;
+  virtual void Log(const proto::ConnectionsLog& connections_log) = 0;
 };
 
 }  // namespace analytics
-}  // namespace connections
 }  // namespace nearby
 }  // namespace location
 

@@ -65,3 +65,9 @@ filegroup(
     name = "offline_wire_formats_proto_config",
     srcs = ["offline_wire_formats_proto_config.asciipb"],
 )
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+    visibility = ["//third_party/nearby_connections:__pkg__"],
+)

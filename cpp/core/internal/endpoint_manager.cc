@@ -353,7 +353,8 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
                                        const ConnectionResponseInfo& info,
                                        const ConnectionOptions& options,
                                        std::unique_ptr<EndpointChannel> channel,
-                                       const ConnectionListener& listener) {
+                                       const ConnectionListener& listener,
+                                       const std::string& connection_token) {
   CountDownLatch latch(1);
 
   // NOTE (unique_ptr<> capture):
@@ -366,6 +367,7 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
                                                    channel = channel.release(),
                                                    &endpoint_id, &info,
                                                    &options, &listener,
+                                                   &connection_token,
                                                    &latch]() {
     if (endpoints_.contains(endpoint_id)) {
       NEARBY_LOGS(WARNING) << "Registering duplicate endpoint " << endpoint_id;
@@ -440,7 +442,8 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
 
     // It's now time to let the client know of this new connection so that
     // they can accept or reject it.
-    client->OnConnectionInitiated(endpoint_id, info, options, listener);
+    client->OnConnectionInitiated(endpoint_id, info, options, listener,
+                                  connection_token);
     latch.CountDown();
   });
   latch.Await();

@@ -52,6 +52,7 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//third_party/nearby_connections/cpp/analytics:__subpackages__",
         "//core:__subpackages__",
         "//platform/base:__pkg__",
         "//platform/impl/windows:__subpackages__",
@@ -110,6 +111,7 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
+        "//third_party/nearby_connections/cpp/analytics:__subpackages__",
         "//core:__subpackages__",
         "//platform:__subpackages__",
     ],
@@ -177,4 +179,10 @@ py_test(
         "//testing/pybase",
         "//testing/pybase:fake_target_util",
     ],
+)
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+    visibility = ["//third_party/nearby_connections:__pkg__"],
 )

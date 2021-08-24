@@ -43,6 +43,7 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//third_party/nearby_connections/cpp/analytics:__subpackages__",
         "//core:__subpackages__",
         "//platform:__subpackages__",
         "//platform/api:__subpackages__",
@@ -200,4 +201,10 @@ cc_with_non_compile_test(
         ":base",
         "//testing/base/public:gunit_main",
     ],
+)
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+    visibility = ["//third_party/nearby_connections:__pkg__"],
 )

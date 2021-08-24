@@ -15,7 +15,9 @@
 #include "core/internal/client_proxy.h"
 
 #include <cstdlib>
+#include <functional>
 #include <limits>
+#include <string>
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
@@ -41,7 +43,12 @@ constexpr char kEndpointIdChars[] = {
     'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
     'Y', 'Z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'};
 
-ClientProxy::ClientProxy() : client_id_(Prng().NextInt64()) {}
+ClientProxy::ClientProxy(analytics::EventLogger* event_logger)
+    : client_id_(Prng().NextInt64()) {
+  NEARBY_LOGS(INFO) << "ClientProxy ctor event_logger=" << event_logger;
+  analytics_recorder_ =
+      std::make_unique<analytics::AnalyticsRecorder>(event_logger);
+}
 
 ClientProxy::~ClientProxy() { Reset(); }
 
@@ -56,6 +63,14 @@ std::string ClientProxy::GetLocalEndpointId() {
                       << "; endpoint_id=" << local_endpoint_id_;
   }
   return local_endpoint_id_;
+}
+
+std::string ClientProxy::GetConnectionToken(const std::string& endpoint_id) {
+  Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return item->connection_token;
+  }
+  return {};
 }
 
 std::string ClientProxy::GenerateLocalEndpointId() {
@@ -82,6 +97,7 @@ void ClientProxy::Reset() {
   StoppedDiscovery();
   RemoveAllEndpoints();
   ExitHighVisibilityMode();
+  analytics_recorder_->LogSession();
 }
 
 void ClientProxy::StartedAdvertising(
@@ -104,6 +120,10 @@ void ClientProxy::StartedAdvertising(
 
   advertising_info_ = {service_id, listener};
   advertising_options_ = advertising_options;
+
+  const std::vector<proto::connections::Medium> medium_vector(mediums.begin(),
+                                                              mediums.end());
+  analytics_recorder_->OnStartAdvertising(strategy, medium_vector);
 }
 
 void ClientProxy::StoppedAdvertising() {
@@ -113,6 +133,7 @@ void ClientProxy::StoppedAdvertising() {
 
   if (IsAdvertising()) {
     advertising_info_.Clear();
+    analytics_recorder_->OnStopAdvertising();
   }
   // advertising_options_ is purposefully not cleared here.
   ResetLocalEndpointIdIfNeeded();
@@ -146,6 +167,10 @@ void ClientProxy::StartedDiscovery(
   MutexLock lock(&mutex_);
   discovery_info_ = DiscoveryInfo{service_id, listener};
   discovery_options_ = discovery_options;
+
+  const std::vector<proto::connections::Medium> medium_vector(mediums.begin(),
+                                                              mediums.end());
+  analytics_recorder_->OnStartDiscovery(strategy, medium_vector);
 }
 
 void ClientProxy::StoppedDiscovery() {
@@ -154,6 +179,7 @@ void ClientProxy::StoppedDiscovery() {
   if (IsDiscovering()) {
     discovered_endpoint_ids_.clear();
     discovery_info_.Clear();
+    analytics_recorder_->OnStopDiscovery();
   }
   // discovery_options_ is purposefully not cleared here.
   ResetLocalEndpointIdIfNeeded();
@@ -203,6 +229,7 @@ void ClientProxy::OnEndpointFound(const std::string& service_id,
   discovered_endpoint_ids_.insert(endpoint_id);
   discovery_info_.listener.endpoint_found_cb(endpoint_id, endpoint_info,
                                              service_id);
+  analytics_recorder_->OnEndpointFound(medium);
 }
 
 void ClientProxy::OnEndpointLost(const std::string& service_id,
@@ -234,7 +261,8 @@ void ClientProxy::OnEndpointLost(const std::string& service_id,
 void ClientProxy::OnConnectionInitiated(const std::string& endpoint_id,
                                         const ConnectionResponseInfo& info,
                                         const ConnectionOptions& options,
-                                        const ConnectionListener& listener) {
+                                        const ConnectionListener& listener,
+                                        const std::string& connection_token) {
   MutexLock lock(&mutex_);
 
   // Whether this is incoming or outgoing, the local and remote endpoints both
@@ -245,6 +273,7 @@ void ClientProxy::OnConnectionInitiated(const std::string& endpoint_id,
                        .is_incoming = info.is_incoming_connection,
                        .connection_listener = listener,
                        .connection_options = options,
+                       .connection_token = connection_token,
                    });
   // Instead of using structured binding which is nice, but banned
   // (can not use c++17 features, until chromium does) we unpack manually.
@@ -265,6 +294,9 @@ void ClientProxy::OnConnectionInitiated(const std::string& endpoint_id,
   if (info.is_incoming_connection) {
     // Add CancellationFlag for advertisers once encryption succeeds.
     AddCancellationFlag(endpoint_id);
+    analytics_recorder_->OnConnectionRequestReceived(endpoint_id);
+  } else {
+    analytics_recorder_->OnConnectionRequestSent(endpoint_id);
   }
 }
 
@@ -449,6 +481,7 @@ void ClientProxy::LocalEndpointAcceptedConnection(
   if (item != nullptr) {
     item->payload_listener = listener;
   }
+  analytics_recorder_->OnLocalEndpointAccepted(endpoint_id);
 }
 
 void ClientProxy::LocalEndpointRejectedConnection(
@@ -463,6 +496,7 @@ void ClientProxy::LocalEndpointRejectedConnection(
   }
 
   AppendConnectionStatus(endpoint_id, Connection::kLocalEndpointRejected);
+  analytics_recorder_->OnLocalEndpointRejected(endpoint_id);
 }
 
 void ClientProxy::RemoteEndpointAcceptedConnection(
@@ -477,6 +511,7 @@ void ClientProxy::RemoteEndpointAcceptedConnection(
   }
 
   AppendConnectionStatus(endpoint_id, Connection::kRemoteEndpointAccepted);
+  analytics_recorder_->OnRemoteEndpointAccepted(endpoint_id);
 }
 
 void ClientProxy::RemoteEndpointRejectedConnection(
@@ -491,6 +526,7 @@ void ClientProxy::RemoteEndpointRejectedConnection(
   }
 
   AppendConnectionStatus(endpoint_id, Connection::kRemoteEndpointRejected);
+  analytics_recorder_->OnRemoteEndpointRejected(endpoint_id);
 }
 
 bool ClientProxy::IsConnectionAccepted(const std::string& endpoint_id) const {

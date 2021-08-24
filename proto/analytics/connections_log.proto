@@ -1,0 +1,357 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package location.nearby.analytics.proto;
+
+import "storage/datapol/annotations/proto/semantic_annotations.proto";
+import "third_party/nearby_connections/proto/connections_enums.proto";
+import "third_party/nearby_connections/proto/errorcode/error_code_enums.proto";
+
+option optimize_for = LITE_RUNTIME;
+option java_package = "com.google.location.nearby.analytics.proto";
+option java_outer_classname = "ConnectionsLogProto";
+option objc_class_prefix = "GNCP";
+
+// Top-level log proto for Nearby Connections.
+// LINT.IfChange(ConnectionsLog)
+message ConnectionsLog {
+  // The type of this log.
+  optional location.nearby.proto.connections.EventType event_type = 1;
+
+  // Non-null for EventType.CLIENT_SESSION.
+  // Encapsulates all client activity between connecting to and disconnecting
+  // from the Nearby Connections API via Client.
+  optional ClientSession client_session = 2;
+
+  // The version of Nearby Connections. E.g. "v1.0.4".
+  optional string version = 3 [(datapol.semantic_type) = ST_SOFTWARE_ID];
+
+  // for EventType.ERROR_CODE
+  optional ErrorCode error_code = 4;
+
+  // Encapsulates one session of a client connected to Nearby Connections API.
+  message ClientSession {
+    // Elapsed time in milliseconds between Client connect and
+    // disconnect.
+    optional int64 duration_millis = 1;
+
+    // Zero or more StrategySessions.
+    repeated StrategySession strategy_session = 2;
+  }
+
+  // One round of a particular Strategy done by a client.
+  message StrategySession {
+    // Elapsed time in milliseconds between a call to startAdvertising/Discovery
+    // and the end of this particular Strategy. A StrategySession may end due to
+    //     - the client disconnecting from Client;
+    //     - a call to stopAllEndpoints, which disconnects all endpoints and
+    //       stops any advertising/discovery;
+    //     - a new call to startAdvertising/Discovery.
+    optional int64 duration_millis = 1;
+
+    // The Strategy used for this session.
+    optional location.nearby.proto.connections.ConnectionsStrategy strategy = 2;
+
+    // The role(s) played by this device during this StrategySession.
+    repeated location.nearby.proto.connections.SessionRole role = 3;
+
+    // One or more of the following *Phase is present, depending on the role(s).
+
+    // Encapsulates discovery information.
+    repeated DiscoveryPhase discovery_phase = 4;
+    // Encapsulates advertising information.
+    repeated AdvertisingPhase advertising_phase = 5;
+
+    // Attempts at establishing a connection to another device.
+    repeated ConnectionAttempt connection_attempt = 6;
+
+    // Successful and accepted connections to another device.
+    repeated EstablishedConnection established_connection = 7;
+
+    // Attempts to upgrade a connection from one medium to another.
+    repeated BandwidthUpgradeAttempt upgrade_attempt = 9;
+  }
+
+  // Encapsulates activity during a period of discovery.
+  message DiscoveryPhase {
+    // Elapsed time in milliseconds between startDiscovery and stopDiscovery.
+    optional int64 duration_millis = 1;
+
+    // The Medium(s) used for discovery.
+    repeated location.nearby.proto.connections.Medium medium = 2;
+
+    // Discovered endpoints during this round of discovery.
+    repeated DiscoveredEndpoint discovered_endpoint = 3;
+
+    // Attempted ConnectionRequests (requested by the client). They may or
+    // may not reach the other endpoint.
+    repeated ConnectionRequest sent_connection_request = 4;
+
+    // UWB ranging related data during discovery (May range with multiple
+    // endpoints)
+    repeated UwbRangingProcess uwb_ranging = 5;
+
+    // The SendingEvent flow id.
+    optional int64 client_flow_id = 6 [(datapol.semantic_type) = ST_SESSION_ID];
+  }
+
+  // An endpoint discovered on a particular medium during discovery.
+  message DiscoveredEndpoint {
+    // The medium on which this endpoint was discovered.
+    optional location.nearby.proto.connections.Medium medium = 1;
+
+    // Elapsed time between the call to startDiscovery() and the time at which
+    // this endpoint was discovered.
+    optional int64 latency_millis = 2;
+  }
+
+  // Encapsulates activity during UWB ranging.
+  message UwbRangingProcess {
+    // Elapsed time in milliseconds between startRanging and stopRanging.
+    optional int64 duration_millis = 1;
+
+    // UWB raw ranging data received during discovery. This is optional. Only
+    // certain devices (Debug/Testing etc.) will log the raw data.
+    repeated RawUwbRangingEvent uwb_ranging_data = 2;
+
+    // Number of ranging data received
+    optional int32 number_of_ranging_data = 3;
+
+    // The minimum distance during a UWB ranging session
+    optional int32 distance_min = 4;
+
+    // The maximum distance during a UWB ranging session
+    optional int32 distance_max = 5;
+
+    // The average distance during a UWB ranging session
+    optional int32 distance_ave = 6;
+
+    // The distance variance during a UWB ranging session
+    optional int32 distance_variance = 7;
+
+    // The minimum AoA during a UWB ranging session
+    optional int32 azimuth_min = 8;
+
+    // The maximum AoA during a UWB ranging session
+    optional int32 azimuth_max = 9;
+
+    // The average AoA during a UWB ranging session
+    optional int32 azimuth_ave = 10;
+
+    // The AoA variance during a UWB ranging session
+    optional int32 azimuth_variance = 11;
+  }
+
+  // Ranging data received during discovery phase.
+  message RawUwbRangingEvent {
+    // Distance in cm
+    optional int32 distance = 1;
+
+    // Azimuth angle in degree
+    optional int32 azimuth_angle = 2;
+
+    // Polar angle in degree (0 if the device doesn't support it)
+    optional int32 polar_angle = 3;
+  }
+
+  // Encapsulates activity during a period of advertising.
+  message AdvertisingPhase {
+    // Elapsed time in milliseconds between startAdvertising and
+    // stopAdvertising.
+    optional int64 duration_millis = 1;
+
+    // The Medium(s) used for advertising.
+    repeated location.nearby.proto.connections.Medium medium = 2;
+
+    // Received ConnectionRequests from remote endpoints.
+    repeated ConnectionRequest received_connection_request = 3;
+
+    // The ReceivingEvent flow id.
+    optional int64 client_flow_id = 4 [(datapol.semantic_type) = ST_SESSION_ID];
+  }
+
+  // A request to connect, corresponding to the API's concept of
+  // request/accept/rejectConnection().
+  message ConnectionRequest {
+    // Elapsed time in milliseconds between the connection request being
+    // initiated and the responses being received.
+    optional int64 duration_millis = 1;
+
+    // Elapsed time in milliseconds between the start of the containing
+    // Advertising/DiscoveryPhase and the start of this ConnectionRequest, i.e.
+    // the time at which the request is sent (on the discoverer, at the request
+    // of the client) or received (on the advertiser, over the wire from the
+    // remote endpoint).
+    optional int64 request_delay_millis = 2;
+
+    // The local endpoint's response to this connection request.
+    optional location.nearby.proto.connections.ConnectionRequestResponse
+        local_response = 3;
+
+    // The remote endpoint's response to this connection request.
+    optional location.nearby.proto.connections.ConnectionRequestResponse
+        remote_response = 4;
+
+    // The SendingEvent flow id.
+    optional int64 client_flow_id = 5 [(datapol.semantic_type) = ST_SESSION_ID];
+  }
+
+  // An attempt to connect to an endpoint over a particular medium.
+  message ConnectionAttempt {
+    // Elapsed time in milliseconds between starting the connection attempt
+    // and succeeding/failing.
+    optional int64 duration_millis = 1;
+
+    // The type of connection attempt.
+    optional location.nearby.proto.connections.ConnectionAttemptType type = 2;
+
+    // The direction (incoming vs outgoing) of this attempt.
+    optional location.nearby.proto.connections.ConnectionAttemptDirection
+        direction = 3;
+
+    // The Medium of this connection attempt.
+    optional location.nearby.proto.connections.Medium medium = 4;
+
+    // The result of the connection attempt.
+    optional location.nearby.proto.connections.ConnectionAttemptResult
+        attempt_result = 5;
+
+    // The ReceivingEvent flow id.
+    optional int64 client_flow_id = 6 [(datapol.semantic_type) = ST_SESSION_ID];
+
+    // The token used to identify this connection pair.
+    optional string connection_token = 7
+        [(datapol.semantic_type) = ST_SESSION_ID];
+  }
+
+  // A successfully-established connection over a particular medium.
+  message EstablishedConnection {
+    // Elapsed time in milliseconds that the connection is active.
+    optional int64 duration_millis = 1;
+
+    // The Medium of this connection.
+    optional location.nearby.proto.connections.Medium medium = 2;
+
+    // Payloads sent over this connection.
+    repeated Payload sent_payload = 3;
+
+    // Payloads received over this connection.
+    repeated Payload received_payload = 4;
+
+    // The reason this connection was disconnected.
+    optional location.nearby.proto.connections.DisconnectionReason
+        disconnection_reason = 5;
+
+    // The SendingEvent flow id.
+    optional int64 client_flow_id = 6 [(datapol.semantic_type) = ST_SESSION_ID];
+
+    // The token use to identify this established connection.
+    optional string connection_token = 7
+        [(datapol.semantic_type) = ST_SESSION_ID];
+  }
+
+  // A Payload transferred (or attempted to be transferred) between devices.
+  message Payload {
+    // Elapsed time in milliseconds that num_bytes_transferred took to transfer.
+    optional int64 duration_millis = 1;
+
+    // The type of this payload.
+    optional location.nearby.proto.connections.PayloadType type = 2;
+
+    // Total size of the payload in bytes.
+    optional int64 total_size_bytes = 3;
+
+    // Total number of bytes transferred successfully.
+    optional int64 num_bytes_transferred = 4;
+
+    // The number of chunks used to transfer num_bytes_transferred.
+    optional int32 num_chunks = 5;
+
+    // The end status of the payload transfer.
+    optional location.nearby.proto.connections.PayloadStatus status = 6;
+  }
+
+  // An attempt to upgrade an existing connection from one medium to another.
+  message BandwidthUpgradeAttempt {
+    // The direction (incoming vs outgoing) of the upgrade attempt.
+    optional location.nearby.proto.connections.ConnectionAttemptDirection
+        direction = 1;
+
+    // Elapsed time in milliseconds of the upgrade attempt.
+    optional int64 duration_millis = 2;
+
+    // The original medium (e.g. bluetooth).
+    optional location.nearby.proto.connections.Medium from_medium = 3;
+
+    // The new medium that we're hoping to upgrade to (e.g. wifi).
+    optional location.nearby.proto.connections.Medium to_medium = 4;
+
+    // The result of the upgrade attempt.
+    optional location.nearby.proto.connections.BandwidthUpgradeResult
+        upgrade_result = 5;
+
+    // If upgrade_result is not success, the stage at which the error occurred.
+    optional location.nearby.proto.connections.BandwidthUpgradeErrorStage
+        error_stage = 6;
+
+    // The SendingEvent flow id.
+    optional int64 client_flow_id = 7 [(datapol.semantic_type) = ST_SESSION_ID];
+
+    // The token used to identify this upgrade pair.
+    optional string connection_token = 8
+        [(datapol.semantic_type) = ST_SESSION_ID];
+  }
+
+  // Next Id: 17
+  message ErrorCode {
+    // The direction (incoming vs outgoing) of this error.
+    optional location.nearby.proto.connections.ConnectionAttemptDirection
+        direction = 1;
+    optional string service_id = 2;
+    // The error medium (e.g. bluetooth).
+    optional location.nearby.proto.connections.Medium medium = 3;
+    // The event which the error occurs on.
+    optional location.nearby.errorcode.proto.Event event = 4;
+    // The error description.
+    optional location.nearby.errorcode.proto.Description description = 5;
+    // The flow id which the error occurs on.
+    optional int64 flow_id = 6 [(datapol.semantic_type) = ST_SESSION_ID];
+
+    // Error code value
+    oneof ErrorCodeDetail {
+      location.nearby.errorcode.proto.CommonError common_error = 7;
+      location.nearby.errorcode.proto.StartAdvertisingError
+          start_advertising_error = 8;
+      location.nearby.errorcode.proto.StartDiscoveringError
+          start_discovering_error = 9;
+      location.nearby.errorcode.proto.StopAdvertisingError
+          stop_advertising_error = 10;
+      location.nearby.errorcode.proto.StopDiscoveringError
+          stop_discovering_error = 11;
+      location.nearby.errorcode.proto.StartListeningIncomingConnectionError
+          start_listening_incoming_connection_error = 12;
+      location.nearby.errorcode.proto.StopListeningIncomingConnectionError
+          stop_listening_incoming_connection_error = 13;
+      location.nearby.errorcode.proto.ConnectError connect_error = 14;
+      location.nearby.errorcode.proto.DisconnectError disconnect_error = 15;
+    }
+
+    // The token use to identify this established connection.
+    optional string connection_token = 16
+        [(datapol.semantic_type) = ST_SESSION_ID];
+  }
+}
+// LINT.ThenChange()

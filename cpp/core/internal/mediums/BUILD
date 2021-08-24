@@ -125,3 +125,9 @@ cc_test(
         "//platform/public:types",
     ],
 )
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+    visibility = ["//third_party/nearby_connections:__pkg__"],
+)

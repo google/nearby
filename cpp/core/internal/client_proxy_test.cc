@@ -131,10 +131,11 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags> {
     EXPECT_CALL(mock_discovery_connection_.initiated_cb, Call).Times(1);
     const std::string auth_token{"auth_token"};
     const ByteArray raw_auth_token{auth_token};
+    const std::string connection_token{"conntokn"};
     advertising_connection_info_.remote_endpoint_info = endpoint.info;
-    client->OnConnectionInitiated(endpoint.id, advertising_connection_info_,
-                                  connection_options_,
-                                  discovery_connection_listener_);
+    client->OnConnectionInitiated(
+        endpoint.id, advertising_connection_info_, connection_options_,
+        discovery_connection_listener_, connection_token);
     EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint.id));
   }
 

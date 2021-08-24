@@ -106,6 +106,7 @@ cc_library(
         "platform.cc",
     ],
     visibility = [
+        "//third_party/nearby_connections/cpp/analytics:__subpackages__",
         "//core:__subpackages__",
         "//platform:__subpackages__",
     ],
@@ -123,4 +124,10 @@ cc_library(
         "//platform/base:test_util",
         "//platform/impl/shared:file",
     ],
+)
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+    visibility = ["//third_party/nearby_connections:__pkg__"],
 )

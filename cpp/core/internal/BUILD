@@ -99,6 +99,7 @@ cc_library(
         "//absl/strings",
         "//absl/time",
         "//absl/types:span",
+        "//third_party/nearby_connections/cpp/analytics",
         "//core:core_types",
         "//core/internal/mediums",
         "//core/internal/mediums:utils",
@@ -194,6 +195,7 @@ cc_test(
         "//absl/synchronization",
         "//absl/time",
         "//absl/types:span",
+        "//third_party/nearby_connections/cpp/analytics",
         "//core:core_types",
         "//core/internal/mediums",
         "//core/internal/mediums:utils",
@@ -207,4 +209,10 @@ cc_test(
         "//proto/connections:offline_wire_formats_portable_proto",
         "//securegcm:ukey2",
     ],
+)
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+    visibility = ["//third_party/nearby_connections:__pkg__"],
 )

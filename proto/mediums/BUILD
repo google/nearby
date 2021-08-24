@@ -117,3 +117,9 @@ filegroup(
     name = "ble_frames_portable_proto_config",
     srcs = ["ble_frames_portable_proto_config.asciipb"],
 )
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+    visibility = ["//third_party/nearby_connections:__pkg__"],
+)
