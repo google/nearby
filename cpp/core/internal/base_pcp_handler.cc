@@ -338,7 +338,9 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
   if (!ukey2) {
     // Fail early, if there is no crypto context.
     ProcessPreConnectionInitiationFailure(
-        endpoint_id, connection_info.channel.get(), {Status::kEndpointIoError},
+        connection_info.client, connection_info.channel->GetMedium(),
+        endpoint_id, connection_info.channel.get(), connection_info.is_incoming,
+        connection_info.start_time, {Status::kEndpointIoError},
         connection_info.result.lock().get());
     return;
   }
@@ -388,6 +390,21 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
       std::move(connection_info.channel), connection_info.listener,
       connection_info.connection_token);
 
+  if (connection_info.is_incoming) {
+    connection_info.client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
+        proto::connections::INITIAL, connection_info.channel->GetMedium(),
+        proto::connections::RESULT_SUCCESS,
+        SystemClock::ElapsedRealtime() - connection_info.start_time,
+        connection_info.connection_token);
+  } else {
+    connection_info.client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
+        endpoint_id, proto::connections::INITIAL,
+        connection_info.channel->GetMedium(),
+        proto::connections::RESULT_SUCCESS,
+        SystemClock::ElapsedRealtime() - connection_info.start_time,
+        connection_info.connection_token);
+  }
+
   if (auto future_status = connection_info.result.lock()) {
     NEARBY_LOGS(INFO) << "Connection established; Finalising future OK.";
     future_status->Set({Status::kSuccess});
@@ -420,9 +437,10 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
     return;
   }
 
-  ProcessPreConnectionInitiationFailure(endpoint_id, info.channel.get(),
-                                        {Status::kEndpointIoError},
-                                        info.result.lock().get());
+  ProcessPreConnectionInitiationFailure(
+      info.client, info.channel->GetMedium(), endpoint_id, info.channel.get(),
+      info.is_incoming, info.start_time, {Status::kEndpointIoError},
+      info.result.lock().get());
 }
 
 Status BasePcpHandler::RequestConnection(ClientProxy* client,
@@ -486,6 +504,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
         ConnectImplResult connect_impl_result;
 
         for (auto connect_endpoint : discovered_endpoints) {
+          absl::Time connect_start_time = SystemClock::ElapsedRealtime();
           if (!MediumSupportedByClientOptions(connect_endpoint->medium,
                                               options))
             continue;
@@ -493,15 +512,20 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
           if (connect_impl_result.status.Ok()) {
             channel = std::move(connect_impl_result.endpoint_channel);
             break;
+          } else {
+            LogConnectionAttempt(client, connect_endpoint->medium,
+                                 connect_endpoint->endpoint_id,
+                                 /* is_incoming = */ false, connect_start_time);
           }
         }
 
         if (channel == nullptr) {
           NEARBY_LOGS(INFO)
               << "Endpoint channel not available: endpoint_id=" << endpoint_id;
-          ProcessPreConnectionInitiationFailure(endpoint_id, channel.get(),
-                                                connect_impl_result.status,
-                                                result.get());
+          ProcessPreConnectionInitiationFailure(
+              client, channel->GetMedium(), endpoint_id, channel.get(),
+              /* is_incoming = */ false, start_time, connect_impl_result.status,
+              result.get());
           return;
         }
 
@@ -522,9 +546,10 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
         if (!write_exception.Ok()) {
           NEARBY_LOGS(INFO) << "Failed to send connection request: endpoint_id="
                             << endpoint_id;
-          ProcessPreConnectionInitiationFailure(endpoint_id, channel.get(),
-                                                {Status::kEndpointIoError},
-                                                result.get());
+          ProcessPreConnectionInitiationFailure(
+              client, channel->GetMedium(), endpoint_id, channel.get(),
+              /* is_incoming = */ false, start_time, {Status::kEndpointIoError},
+              result.get());
           return;
         }
 
@@ -682,8 +707,9 @@ Exception BasePcpHandler::WriteConnectionRequestFrame(
 }
 
 void BasePcpHandler::ProcessPreConnectionInitiationFailure(
-    const std::string& endpoint_id, EndpointChannel* channel, Status status,
-    Future<Status>* result) {
+    ClientProxy* client, Medium medium, const std::string& endpoint_id,
+    EndpointChannel* channel, bool is_incoming, absl::Time start_time,
+    Status status, Future<Status>* result) {
   if (channel != nullptr) {
     channel->Close();
   }
@@ -693,6 +719,7 @@ void BasePcpHandler::ProcessPreConnectionInitiationFailure(
     result->Set(status);
   }
 
+  LogConnectionAttempt(client, medium, endpoint_id, is_incoming, start_time);
   // result is hold inside a swapper, and saved in PendingConnectionInfo.
   // PendingConnectionInfo destructor will clear the memory of SettableFuture
   // shared_ptr for result.
@@ -1051,7 +1078,9 @@ Exception BasePcpHandler::OnIncomingConnection(
           << "Failed to parse incoming connection request; client="
           << client->GetClientId()
           << "; device=" << absl::BytesToHexString(remote_endpoint_info.data());
-      ProcessPreConnectionInitiationFailure("", channel.get(), {Status::kError},
+      ProcessPreConnectionInitiationFailure(client, medium, "", channel.get(),
+                                            /* is_incoming= */ false,
+                                            start_time, {Status::kError},
                                             nullptr);
       return {Exception::kSuccess};
     }
@@ -1217,9 +1246,10 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
 void BasePcpHandler::ProcessTieBreakLoss(
     ClientProxy* client, const std::string& endpoint_id,
     BasePcpHandler::PendingConnectionInfo* info) {
-  ProcessPreConnectionInitiationFailure(endpoint_id, info->channel.get(),
-                                        {Status::kEndpointIoError},
-                                        info->result.lock().get());
+  ProcessPreConnectionInitiationFailure(
+      client, info->channel->GetMedium(), endpoint_id, info->channel.get(),
+      info->is_incoming, info->start_time, {Status::kEndpointIoError},
+      info->result.lock().get());
   ProcessPreConnectionResultFailure(client, endpoint_id);
 }
 
@@ -1428,6 +1458,35 @@ std::string BasePcpHandler::GetHashedConnectionToken(
   return location::nearby::Base64Utils::Encode(
              Utils::Sha256Hash(token, token.size()))
       .substr(0, kConnectionTokenLength);
+}
+
+void BasePcpHandler::LogConnectionAttempt(ClientProxy* client, Medium medium,
+                                          const std::string& endpoint_id,
+                                          bool is_incoming,
+                                          absl::Time start_time) {
+  proto::connections::ConnectionAttemptResult result =
+      Cancelled(client, endpoint_id) ? proto::connections::RESULT_CANCELLED
+                                     : proto::connections::RESULT_ERROR;
+  if (is_incoming) {
+    client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
+        proto::connections::INITIAL, medium, result,
+        SystemClock::ElapsedRealtime() - start_time,
+        /* connection_token= */ "");
+  } else {
+    client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
+        endpoint_id, proto::connections::INITIAL, medium, result,
+        SystemClock::ElapsedRealtime() - start_time,
+        /* connection_token= */ "");
+  }
+}
+
+bool BasePcpHandler::Cancelled(ClientProxy* client,
+                               const std::string& endpoint_id) {
+  if (endpoint_id.empty()) {
+    return false;
+  }
+
+  return client->GetCancellationFlag(endpoint_id)->Cancelled();
 }
 
 ///////////////////// BasePcpHandler::PendingConnectionInfo ///////////////////

@@ -28,20 +28,45 @@ namespace location {
 namespace nearby {
 namespace analytics {
 
-using ConnectionsLog = ::location::nearby::analytics::proto::ConnectionsLog;
-using ClientSession = ConnectionsLog::ClientSession;
-using StrategySession = ConnectionsLog::StrategySession;
-using AdvertisingPhase = ConnectionsLog::AdvertisingPhase;
-using DiscoveryPhase = ConnectionsLog::DiscoveryPhase;
-using DiscoveredEndpoint = ConnectionsLog::DiscoveredEndpoint;
-using ConnectionRequest = ConnectionsLog::ConnectionRequest;
-using ConnectionRequestResponse =
-    ::location::nearby::proto::connections::ConnectionRequestResponse;
-using ConnectionStrategy =
-    ::location::nearby::proto::connections::ConnectionsStrategy;
-using EventType = ::location::nearby::proto::connections::EventType;
-using Medium = ::location::nearby::proto::connections::Medium;
-using SessionRole = ::location::nearby::proto::connections::SessionRole;
+using ::location::nearby::analytics::proto::ConnectionsLog;
+using AdvertisingPhase =
+    ::location::nearby::analytics::proto::ConnectionsLog::AdvertisingPhase;
+using ClientSession =
+    ::location::nearby::analytics::proto::ConnectionsLog::ClientSession;
+using ConnectionRequest =
+    ::location::nearby::analytics::proto::ConnectionsLog::ConnectionRequest;
+using DiscoveredEndpoint =
+    ::location::nearby::analytics::proto::ConnectionsLog::DiscoveredEndpoint;
+using DiscoveryPhase =
+    ::location::nearby::analytics::proto::ConnectionsLog::DiscoveryPhase;
+using StrategySession =
+    ::location::nearby::analytics::proto::ConnectionsLog::StrategySession;
+using ::location::nearby::proto::connections::ACCEPTED;
+using ::location::nearby::proto::connections::ADVERTISER;
+using ::location::nearby::proto::connections::CLIENT_SESSION;
+using ::location::nearby::proto::connections::ConnectionAttemptResult;
+using ::location::nearby::proto::connections::ConnectionAttemptType;
+using ::location::nearby::proto::connections::ConnectionRequestResponse;
+using ::location::nearby::proto::connections::ConnectionsStrategy;
+using ::location::nearby::proto::connections::DISCOVERER;
+using ::location::nearby::proto::connections::EventType;
+using ::location::nearby::proto::connections::IGNORED;
+using ::location::nearby::proto::connections::INCOMING;
+using ::location::nearby::proto::connections::INITIAL;
+using ::location::nearby::proto::connections::Medium;
+using ::location::nearby::proto::connections::NOT_SENT;
+using ::location::nearby::proto::connections::OUTGOING;
+using ::location::nearby::proto::connections::P2P_CLUSTER;
+using ::location::nearby::proto::connections::P2P_POINT_TO_POINT;
+using ::location::nearby::proto::connections::P2P_STAR;
+using ::location::nearby::proto::connections::REJECTED;
+using ::location::nearby::proto::connections::RESULT_SUCCESS;
+using ::location::nearby::proto::connections::SessionRole;
+using ::location::nearby::proto::connections::START_CLIENT_SESSION;
+using ::location::nearby::proto::connections::START_STRATEGY_SESSION;
+using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
+using ::location::nearby::proto::connections::STOP_STRATEGY_SESSION;
+using ::location::nearby::proto::connections::UNKNOWN_STRATEGY;
 
 // These definitions are necessary before C++17.
 constexpr absl::string_view AnalyticsRecorder::kVersion;
@@ -52,7 +77,7 @@ AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger)
   NEARBY_LOGS(INFO) << "AnalyticsRecorder ctor event_logger_=" << event_logger_;
   MutexLock lock(&mutex_);
   if (CanRecordAnalyticsLocked("OnStartClientSession")) {
-    LogEvent(::location::nearby::proto::connections::START_CLIENT_SESSION);
+    LogEvent(START_CLIENT_SESSION);
   }
 }
 
@@ -75,8 +100,7 @@ void AnalyticsRecorder::OnStartAdvertising(connections::Strategy strategy,
     return;
   }
   // Initialize/update a StrategySession.
-  UpdateStrategySessionLocked(
-      strategy, ::location::nearby::proto::connections::ADVERTISER);
+  UpdateStrategySessionLocked(strategy, ADVERTISER);
 
   // Initialize and set a AdvertisingPhase.
   started_advertising_phase_time_ = SystemClock::ElapsedRealtime();
@@ -92,6 +116,7 @@ void AnalyticsRecorder::OnStopAdvertising() {
   }
   RecordAdvertisingPhaseDurationLocked();
 }
+
 void AnalyticsRecorder::OnStartDiscovery(connections::Strategy strategy,
                                          const std::vector<Medium> &mediums) {
   MutexLock lock(&mutex_);
@@ -105,8 +130,7 @@ void AnalyticsRecorder::OnStartDiscovery(connections::Strategy strategy,
   }
 
   // Initialize/update a StrategySession.
-  UpdateStrategySessionLocked(
-      strategy, ::location::nearby::proto::connections::DISCOVERER);
+  UpdateStrategySessionLocked(strategy, DISCOVERER);
 
   // Initialize and set a DiscoveryPhase.
   started_discovery_phase_time_ = SystemClock::ElapsedRealtime();
@@ -177,8 +201,7 @@ void AnalyticsRecorder::OnRemoteEndpointAccepted(
   if (!CanRecordAnalyticsLocked("OnRemoteEndpointAccepted")) {
     return;
   }
-  RemoteEndpointRespondedLocked(
-      remote_endpoint_id, ::location::nearby::proto::connections::ACCEPTED);
+  RemoteEndpointRespondedLocked(remote_endpoint_id, ACCEPTED);
 }
 
 void AnalyticsRecorder::OnLocalEndpointAccepted(
@@ -187,8 +210,7 @@ void AnalyticsRecorder::OnLocalEndpointAccepted(
   if (!CanRecordAnalyticsLocked("OnLocalEndpointAccepted")) {
     return;
   }
-  LocalEndpointRespondedLocked(
-      remote_endpoint_id, ::location::nearby::proto::connections::ACCEPTED);
+  LocalEndpointRespondedLocked(remote_endpoint_id, ACCEPTED);
 }
 
 void AnalyticsRecorder::OnRemoteEndpointRejected(
@@ -197,8 +219,7 @@ void AnalyticsRecorder::OnRemoteEndpointRejected(
   if (!CanRecordAnalyticsLocked("OnRemoteEndpointRejected")) {
     return;
   }
-  RemoteEndpointRespondedLocked(
-      remote_endpoint_id, ::location::nearby::proto::connections::REJECTED);
+  RemoteEndpointRespondedLocked(remote_endpoint_id, REJECTED);
 }
 
 void AnalyticsRecorder::OnLocalEndpointRejected(
@@ -207,8 +228,65 @@ void AnalyticsRecorder::OnLocalEndpointRejected(
   if (!CanRecordAnalyticsLocked("OnLocalEndpointRejected")) {
     return;
   }
-  LocalEndpointRespondedLocked(
-      remote_endpoint_id, ::location::nearby::proto::connections::REJECTED);
+  LocalEndpointRespondedLocked(remote_endpoint_id, REJECTED);
+}
+
+void AnalyticsRecorder::OnIncomingConnectionAttempt(
+    ConnectionAttemptType type, Medium medium, ConnectionAttemptResult result,
+    absl::Duration duration, const std::string &connection_token) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnIncomingConnectionAttempt")) {
+    return;
+  }
+  if (current_strategy_session_ == nullptr) {
+    NEARBY_LOGS(INFO) << "Unable to record incoming connection attempt due to "
+                         "null current_strategy_session_";
+    return;
+  }
+  auto *connection_attempt =
+      current_strategy_session_->add_connection_attempt();
+  connection_attempt->set_duration_millis(absl::ToInt64Milliseconds(duration));
+  connection_attempt->set_type(type);
+  connection_attempt->set_direction(INCOMING);
+  connection_attempt->set_medium(medium);
+  connection_attempt->set_attempt_result(result);
+  connection_attempt->set_connection_token(connection_token);
+}
+
+void AnalyticsRecorder::OnOutgoingConnectionAttempt(
+    const std::string &remote_endpoint_id, ConnectionAttemptType type,
+    Medium medium, ConnectionAttemptResult result, absl::Duration duration,
+    const std::string &connection_token) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnOutgoingConnectionAttempt")) {
+    return;
+  }
+  if (current_strategy_session_ == nullptr) {
+    NEARBY_LOGS(INFO) << "Unable to record outgoing connection attempt due to "
+                         "null current_strategy_session_";
+    return;
+  }
+  auto *connection_attempt =
+      current_strategy_session_->add_connection_attempt();
+  connection_attempt->set_duration_millis(absl::ToInt64Milliseconds(duration));
+  connection_attempt->set_type(type);
+  connection_attempt->set_direction(OUTGOING);
+  connection_attempt->set_medium(medium);
+  connection_attempt->set_attempt_result(result);
+  connection_attempt->set_connection_token(connection_token);
+  if (type == INITIAL && result != RESULT_SUCCESS) {
+    auto it = outgoing_connection_requests_.find(remote_endpoint_id);
+    if (it != outgoing_connection_requests_.end()) {
+      // An outgoing, initial ConnectionAttempt has a corresponding
+      // ConnectionRequest that, since the ConnectionAttempt has failed, will
+      // never be delivered to the advertiser.
+      auto pair = outgoing_connection_requests_.extract(it);
+      std::unique_ptr<ConnectionRequest> &connection_request = pair.mapped();
+      connection_request->set_local_response(NOT_SENT);
+      connection_request->set_remote_response(NOT_SENT);
+      UpdateDiscovererConnectionRequestLocked(connection_request.release());
+    }
+  }
 }
 
 void AnalyticsRecorder::LogSession() {
@@ -220,7 +298,7 @@ void AnalyticsRecorder::LogSession() {
   client_session_->set_duration_millis(absl::ToInt64Milliseconds(
       SystemClock::ElapsedRealtime() - started_client_session_time_));
   LogClientSession();
-  LogEvent(::location::nearby::proto::connections::STOP_CLIENT_SESSION);
+  LogEvent(STOP_CLIENT_SESSION);
   session_was_logged_ = true;
 }
 
@@ -248,12 +326,11 @@ void AnalyticsRecorder::LogClientSession() {
   serial_executor_.Execute(
       "analytics-recorder", [this]() {
         ConnectionsLog connections_log;
-        connections_log.set_event_type(
-            ::location::nearby::proto::connections::CLIENT_SESSION);
+        connections_log.set_event_type(CLIENT_SESSION);
         connections_log.set_allocated_client_session(client_session_.release());
         connections_log.set_version(kVersion);
 
-        NEARBY_LOGS(VERBOSE)
+        NEARBY_LOGS(INFO)
             << "AnalyticsRecorder LogClientSession connections_log="
             << connections_log.DebugString();
 
@@ -283,10 +360,10 @@ void AnalyticsRecorder::UpdateStrategySessionLocked(
       // We've already acted as this role before, so make sure we've finished
       // recording the previous round.
       switch (role) {
-        case ::location::nearby::proto::connections::ADVERTISER:
+        case ADVERTISER:
           FinishAdvertisingPhaseLocked();
           break;
-        case ::location::nearby::proto::connections::DISCOVERER:
+        case DISCOVERER:
           FinishDiscoveryPhaseLocked();
           break;
         default:
@@ -299,7 +376,7 @@ void AnalyticsRecorder::UpdateStrategySessionLocked(
     // Otherwise, we're starting a new Strategy.
     current_strategy_ = strategy;
     FinishStrategySessionLocked();
-    LogEvent(::location::nearby::proto::connections::START_STRATEGY_SESSION);
+    LogEvent(START_STRATEGY_SESSION);
     current_strategy_session_ = std::make_unique<StrategySession>();
     started_strategy_session_time_ = SystemClock::ElapsedRealtime();
     current_strategy_session_->set_strategy(
@@ -391,8 +468,7 @@ bool AnalyticsRecorder::UpdateDiscovererConnectionRequestLocked(
     return false;
   }
   if (BothEndpointsRespondedLocked(request) ||
-      request->local_response() ==
-          ::location::nearby::proto::connections::NOT_SENT) {
+      request->local_response() == NOT_SENT) {
     request->set_duration_millis(
         absl::ToUnixMillis(SystemClock::ElapsedRealtime()) -
         request->duration_millis());
@@ -451,12 +527,10 @@ void AnalyticsRecorder::RemoteEndpointRespondedLocked(
 void AnalyticsRecorder::MarkConnectionRequestIgnoredLocked(
     ConnectionRequest *request) {
   if (!request->has_local_response()) {
-    request->set_local_response(
-        ::location::nearby::proto::connections::IGNORED);
+    request->set_local_response(IGNORED);
   }
   if (!request->has_remote_response()) {
-    request->set_remote_response(
-        ::location::nearby::proto::connections::IGNORED);
+    request->set_remote_response(IGNORED);
   }
 }
 
@@ -470,22 +544,22 @@ void AnalyticsRecorder::FinishStrategySessionLocked() {
         SystemClock::ElapsedRealtime() - SystemClock::ElapsedRealtime()));
     *client_session_->add_strategy_session() =
         *std::move(current_strategy_session_);
-    LogEvent(::location::nearby::proto::connections::STOP_STRATEGY_SESSION);
+    LogEvent(STOP_STRATEGY_SESSION);
   }
 }
 
-ConnectionStrategy AnalyticsRecorder::StrategyToConnectionStrategy(
+ConnectionsStrategy AnalyticsRecorder::StrategyToConnectionStrategy(
     connections::Strategy strategy) {
   if (strategy == connections::Strategy::kP2pCluster) {
-    return ::location::nearby::proto::connections::P2P_CLUSTER;
+    return P2P_CLUSTER;
   }
   if (strategy == connections::Strategy::kP2pStar) {
-    return ::location::nearby::proto::connections::P2P_STAR;
+    return P2P_STAR;
   }
   if (strategy == connections::Strategy::kP2pPointToPoint) {
-    return ::location::nearby::proto::connections::P2P_POINT_TO_POINT;
+    return P2P_POINT_TO_POINT;
   }
-  return ::location::nearby::proto::connections::UNKNOWN_STRATEGY;
+  return UNKNOWN_STRATEGY;
 }
 
 }  // namespace analytics

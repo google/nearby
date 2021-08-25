@@ -57,6 +57,10 @@ class ClientProxy final {
 
   std::string GetLocalEndpointId();
 
+  analytics::AnalyticsRecorder& GetAnalyticsRecorder() const {
+    return *analytics_recorder_;
+  }
+
   std::string GetConnectionToken(const std::string& endpoint_id);
 
   // Clears all the runtime state of this client.

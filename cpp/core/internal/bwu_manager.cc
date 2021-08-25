@@ -367,6 +367,8 @@ void BwuManager::OnIncomingConnection(
       mutable_connection.release());
   RunOnBwuManagerThread(
       "bwu-on-incoming-connection", [this, client, connection]() {
+        absl::Time connection_attempt_start_time =
+            SystemClock::ElapsedRealtime();
         EndpointChannel* channel = connection->channel.get();
         if (channel == nullptr) {
           NEARBY_LOG(
@@ -421,6 +423,13 @@ void BwuManager::OnIncomingConnection(
         }
 
         CHECK(client == mapped_client);
+
+        // The ConnectionAttempt has now succeeded, so record it as such.
+        client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
+            proto::connections::UPGRADE, channel->GetMedium(),
+            proto::connections::RESULT_SUCCESS,
+            SystemClock::ElapsedRealtime() - connection_attempt_start_time,
+            client->GetConnectionToken(endpoint_id));
 
         // Use the introductory client information sent over to run the upgrade
         // protocol.
@@ -537,8 +546,24 @@ void BwuManager::ProcessBwuPathAvailableEvent(
     return;
   }
 
+  absl::Time connection_attempt_start_time = SystemClock::ElapsedRealtime();
   auto channel = ProcessBwuPathAvailableEventInternal(client, endpoint_id,
                                                       upgrade_path_info);
+  proto::connections::ConnectionAttemptResult connection_attempt_result;
+  if (channel != nullptr) {
+    connection_attempt_result = proto::connections::RESULT_SUCCESS;
+  } else if (client->GetCancellationFlag(endpoint_id)->Cancelled()) {
+    connection_attempt_result = proto::connections::RESULT_CANCELLED;
+  } else {
+    connection_attempt_result = proto::connections::RESULT_ERROR;
+  }
+
+  client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
+      endpoint_id, proto::connections::UPGRADE, channel->GetMedium(),
+      connection_attempt_result,
+      SystemClock::ElapsedRealtime() - connection_attempt_start_time,
+      client->GetConnectionToken(endpoint_id));
+
   if (channel == nullptr) {
     NEARBY_LOG(INFO, "Failed to get new channel.");
     RunUpgradeFailedProtocol(client, endpoint_id, upgrade_path_info);

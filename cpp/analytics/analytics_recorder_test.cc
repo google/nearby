@@ -30,21 +30,20 @@ namespace nearby {
 namespace analytics {
 namespace {
 
-using ::location::nearby::proto::connections::ACCEPTED;
 using ::location::nearby::proto::connections::BLE;
 using ::location::nearby::proto::connections::BLUETOOTH;
 using ::location::nearby::proto::connections::CLIENT_SESSION;
-using ::location::nearby::proto::connections::ConnectionRequestResponse;
 using ::location::nearby::proto::connections::EventType;
-using ::location::nearby::proto::connections::IGNORED;
+using ::location::nearby::proto::connections::INITIAL;
 using ::location::nearby::proto::connections::Medium;
-using ::location::nearby::proto::connections::REJECTED;
+using ::location::nearby::proto::connections::RESULT_ERROR;
+using ::location::nearby::proto::connections::RESULT_SUCCESS;
 using ::location::nearby::proto::connections::START_STRATEGY_SESSION;
 using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
 using ::location::nearby::proto::connections::STOP_STRATEGY_SESSION;
 using ::testing::Contains;
-using ::testing::ElementsAre;
-using ::testing::UnorderedElementsAreArray;
+using ::testing::EqualsProto;
+using ::testing::proto::Partially;
 
 using ::location::nearby::analytics::proto::ConnectionsLog;
 using ClientSession =
@@ -105,7 +104,7 @@ TEST(AnalyticsRecorderTest, SessionOnlyLoggedOnceWorks) {
   analytics_recorder.LogSession();
   analytics_recorder.LogSession();
   analytics_recorder.LogSession();
-  EXPECT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   // Only called once.
   EXPECT_EQ(event_logger.GetLoggedClientSessionCount(), 1);
@@ -124,15 +123,20 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedAdvertisingCalls) {
   analytics_recorder.OnStartAdvertising(strategy, {BLUETOOTH});
 
   analytics_recorder.LogSession();
-  EXPECT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  constexpr char kExpected[] =
+      R"pb(
+    strategy_session <
+      strategy: P2P_STAR
+      role: ADVERTISER
+      advertising_phase < medium: BLE medium: BLUETOOTH >
+      advertising_phase < medium: BLUETOOTH >
+    >)pb";
 
   const ClientSession& client_session = event_logger.GetLoggedClientSession();
-  ASSERT_EQ(client_session.strategy_session_size(), 1);
-  ASSERT_EQ(client_session.strategy_session(0).advertising_phase_size(), 2);
-  EXPECT_THAT(client_session.strategy_session(0).advertising_phase(0).medium(),
-              UnorderedElementsAreArray(mediums));
-  EXPECT_THAT(client_session.strategy_session(0).advertising_phase(1).medium(),
-              ElementsAre(BLUETOOTH));
+
+  EXPECT_THAT(client_session, Partially(EqualsProto(kExpected)));
 }
 
 TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
@@ -150,29 +154,20 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
   analytics_recorder.OnStartDiscovery(strategy, {BLUETOOTH});
 
   analytics_recorder.LogSession();
-  EXPECT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
-  const ClientSession& client_session = event_logger.GetLoggedClientSession();
-  EXPECT_EQ(client_session.strategy_session_size(), 1);
-  EXPECT_EQ(client_session.strategy_session(0).discovery_phase_size(), 2);
-  EXPECT_THAT(client_session.strategy_session(0).discovery_phase(0).medium(),
-              UnorderedElementsAreArray(mediums));
-  EXPECT_EQ(client_session.strategy_session(0)
-                .discovery_phase(0)
-                .discovered_endpoint_size(),
-            2);
-  EXPECT_EQ(client_session.strategy_session(0)
-                .discovery_phase(0)
-                .discovered_endpoint(0)
-                .medium(),
-            BLUETOOTH);
-  EXPECT_EQ(client_session.strategy_session(0)
-                .discovery_phase(0)
-                .discovered_endpoint(1)
-                .medium(),
-            BLE);
-  EXPECT_THAT(client_session.strategy_session(0).discovery_phase(1).medium(),
-              ElementsAre(BLUETOOTH));
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: DISCOVERER
+                  discovery_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    discovered_endpoint < medium: BLUETOOTH >
+                    discovered_endpoint < medium: BLE >
+                  >
+                  discovery_phase < medium: BLUETOOTH >
+                >)pb")));
 }
 
 TEST(AnalyticsRecorderTest,
@@ -198,15 +193,24 @@ TEST(AnalyticsRecorderTest,
   analytics_recorder.OnStopAdvertising();
 
   analytics_recorder.LogSession();
-  EXPECT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   std::vector<EventType> event_types = event_logger.GetLoggedEventTypes();
   EXPECT_THAT(event_types, Contains(START_STRATEGY_SESSION).Times(1));
   EXPECT_THAT(event_types, Contains(STOP_STRATEGY_SESSION).Times(1));
-  const ClientSession& client_session = event_logger.GetLoggedClientSession();
-  EXPECT_EQ(client_session.strategy_session_size(), 1);
-  EXPECT_EQ(client_session.strategy_session(0).advertising_phase_size(), 3);
-  EXPECT_EQ(client_session.strategy_session(0).discovery_phase_size(), 3);
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  role: DISCOVERER
+                  discovery_phase < medium: BLE medium: BLUETOOTH >
+                  discovery_phase < medium: BLE medium: BLUETOOTH >
+                  discovery_phase < medium: BLE medium: BLUETOOTH >
+                  advertising_phase < medium: BLE medium: BLUETOOTH >
+                  advertising_phase < medium: BLE medium: BLUETOOTH >
+                  advertising_phase < medium: BLE medium: BLUETOOTH >
+                >)pb")));
 }
 
 TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
@@ -239,52 +243,39 @@ TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
   analytics_recorder.OnRemoteEndpointRejected(endpoint_id_3);
 
   analytics_recorder.LogSession();
-  EXPECT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
-  const ClientSession& client_session = event_logger.GetLoggedClientSession();
-  StrategySession strategy_session = client_session.strategy_session(0);
-  EXPECT_EQ(strategy_session.advertising_phase_size(), 1);
-  EXPECT_EQ(
-      strategy_session.advertising_phase(0).received_connection_request_size(),
-      4);
-  EXPECT_EQ(strategy_session.advertising_phase(0)
-                .received_connection_request(0)
-                .local_response(),
-            ACCEPTED);
-  EXPECT_EQ(strategy_session.advertising_phase(0)
-                .received_connection_request(0)
-                .remote_response(),
-            ACCEPTED);
-  EXPECT_EQ(strategy_session.advertising_phase(0)
-                .received_connection_request(1)
-                .local_response(),
-            ACCEPTED);
-  EXPECT_EQ(strategy_session.advertising_phase(0)
-                .received_connection_request(1)
-                .remote_response(),
-            REJECTED);
-  EXPECT_EQ(strategy_session.advertising_phase(0)
-                .received_connection_request(2)
-                .local_response(),
-            REJECTED);
-  EXPECT_EQ(strategy_session.advertising_phase(0)
-                .received_connection_request(2)
-                .remote_response(),
-            ACCEPTED);
-  EXPECT_EQ(strategy_session.advertising_phase(0)
-                .received_connection_request(3)
-                .local_response(),
-            REJECTED);
-  EXPECT_EQ(strategy_session.advertising_phase(0)
-                .received_connection_request(3)
-                .remote_response(),
-            REJECTED);
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    received_connection_request <
+                      request_delay_millis: 0
+                      local_response: ACCEPTED
+                      remote_response: ACCEPTED
+                    >
+                    received_connection_request <
+                      local_response: ACCEPTED
+                      remote_response: REJECTED
+                    >
+                    received_connection_request <
+                      local_response: REJECTED
+                      remote_response: ACCEPTED
+                    >
+                    received_connection_request <
+                      local_response: REJECTED
+                      remote_response: REJECTED
+                    >
+                  >
+                >)pb")));
 }
 
 TEST(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
   connections::Strategy strategy = connections::Strategy::kP2pStar;
   std::vector<Medium> mediums = {BLE, BLUETOOTH};
-
   std::string endpoint_id_0("endpoint_id_0");
   std::string endpoint_id_1("endpoint_id_1");
   std::string endpoint_id_2("endpoint_id_2");
@@ -313,29 +304,33 @@ TEST(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
   analytics_recorder.OnRemoteEndpointRejected(endpoint_id_3);
 
   analytics_recorder.LogSession();
-  EXPECT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
-  const ClientSession& client_session = event_logger.GetLoggedClientSession();
-  StrategySession strategy_session = client_session.strategy_session(0);
-  EXPECT_EQ(strategy_session.discovery_phase_size(), 1);
-  EXPECT_EQ(strategy_session.discovery_phase(0).sent_connection_request_size(),
-            4);
-  auto& sent_connection_request_0 =
-      strategy_session.discovery_phase(0).sent_connection_request(0);
-  EXPECT_EQ(sent_connection_request_0.local_response(), ACCEPTED);
-  EXPECT_EQ(sent_connection_request_0.remote_response(), ACCEPTED);
-  auto& sent_connection_request_1 =
-      strategy_session.discovery_phase(0).sent_connection_request(1);
-  EXPECT_EQ(sent_connection_request_1.local_response(), ACCEPTED);
-  EXPECT_EQ(sent_connection_request_1.remote_response(), REJECTED);
-  auto& sent_connection_request_2 =
-      strategy_session.discovery_phase(0).sent_connection_request(2);
-  EXPECT_EQ(sent_connection_request_2.local_response(), REJECTED);
-  EXPECT_EQ(sent_connection_request_2.remote_response(), ACCEPTED);
-  auto& sent_connection_request_3 =
-      strategy_session.discovery_phase(0).sent_connection_request(3);
-  EXPECT_EQ(sent_connection_request_3.local_response(), REJECTED);
-  EXPECT_EQ(sent_connection_request_3.remote_response(), REJECTED);
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: DISCOVERER
+                  discovery_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    sent_connection_request <
+                      local_response: ACCEPTED
+                      remote_response: ACCEPTED
+                    >
+                    sent_connection_request <
+                      local_response: ACCEPTED
+                      remote_response: REJECTED
+                    >
+                    sent_connection_request <
+                      local_response: REJECTED
+                      remote_response: ACCEPTED
+                    >
+                    sent_connection_request <
+                      local_response: REJECTED
+                      remote_response: REJECTED
+                    >
+                  >
+                >)pb")));
 }
 
 TEST(AnalyticsRecorderTest,
@@ -363,39 +358,29 @@ TEST(AnalyticsRecorderTest,
   analytics_recorder.OnConnectionRequestReceived(endpoint_id_2);
 
   analytics_recorder.LogSession();
-  EXPECT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
-  const ClientSession& client_session = event_logger.GetLoggedClientSession();
-  StrategySession strategy_session = client_session.strategy_session(0);
-  EXPECT_EQ(strategy_session.advertising_phase_size(), 1);
-  EXPECT_EQ(
-      strategy_session.advertising_phase(0).received_connection_request_size(),
-      3);
-
-  EXPECT_EQ(strategy_session.advertising_phase(0)
-                .received_connection_request(0)
-                .local_response(),
-            IGNORED);
-  EXPECT_EQ(strategy_session.advertising_phase(0)
-                .received_connection_request(0)
-                .remote_response(),
-            ACCEPTED);
-  EXPECT_EQ(strategy_session.advertising_phase(0)
-                .received_connection_request(1)
-                .local_response(),
-            ACCEPTED);
-  EXPECT_EQ(strategy_session.advertising_phase(0)
-                .received_connection_request(1)
-                .remote_response(),
-            IGNORED);
-  EXPECT_EQ(strategy_session.advertising_phase(0)
-                .received_connection_request(2)
-                .local_response(),
-            IGNORED);
-  EXPECT_EQ(strategy_session.advertising_phase(0)
-                .received_connection_request(2)
-                .remote_response(),
-            IGNORED);
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    received_connection_request <
+                      local_response: IGNORED
+                      remote_response: ACCEPTED
+                    >
+                    received_connection_request <
+                      local_response: ACCEPTED
+                      remote_response: IGNORED
+                    >
+                    received_connection_request <
+                      local_response: IGNORED
+                      remote_response: IGNORED
+                    >
+                  >
+                >)pb")));
 }
 
 TEST(AnalyticsRecorderTest,
@@ -424,38 +409,104 @@ TEST(AnalyticsRecorderTest,
   analytics_recorder.OnConnectionRequestSent(endpoint_id_2);
 
   analytics_recorder.LogSession();
-  EXPECT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
-  const ClientSession& client_session = event_logger.GetLoggedClientSession();
-  StrategySession strategy_session = client_session.strategy_session(0);
-  EXPECT_EQ(strategy_session.discovery_phase_size(), 1);
-  EXPECT_EQ(strategy_session.discovery_phase(0).sent_connection_request_size(),
-            3);
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: DISCOVERER
+                  discovery_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    sent_connection_request <
+                      local_response: IGNORED
+                      remote_response: ACCEPTED
+                    >
+                    sent_connection_request <
+                      local_response: ACCEPTED
+                      remote_response: IGNORED
+                    >
+                    sent_connection_request <
+                      local_response: IGNORED
+                      remote_response: IGNORED
+                    >
+                  >
+                >)pb")));
+}
 
-  EXPECT_EQ(strategy_session.discovery_phase(0)
-                .sent_connection_request(0)
-                .local_response(),
-            IGNORED);
-  EXPECT_EQ(strategy_session.discovery_phase(0)
-                .sent_connection_request(0)
-                .remote_response(),
-            ACCEPTED);
-  EXPECT_EQ(strategy_session.discovery_phase(0)
-                .sent_connection_request(1)
-                .local_response(),
-            ACCEPTED);
-  EXPECT_EQ(strategy_session.discovery_phase(0)
-                .sent_connection_request(1)
-                .remote_response(),
-            IGNORED);
-  EXPECT_EQ(strategy_session.discovery_phase(0)
-                .sent_connection_request(2)
-                .local_response(),
-            IGNORED);
-  EXPECT_EQ(strategy_session.discovery_phase(0)
-                .sent_connection_request(2)
-                .remote_response(),
-            IGNORED);
+TEST(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+  std::vector<Medium> mediums = {BLE, BLUETOOTH};
+  std::string endpoint_id("endpoint_id");
+  std::string connection_token("");
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder{&event_logger};
+
+  analytics_recorder.OnStartAdvertising(strategy, mediums);
+  analytics_recorder.OnIncomingConnectionAttempt(
+      INITIAL, BLUETOOTH, RESULT_SUCCESS, absl::Duration{}, connection_token);
+  analytics_recorder.OnStopAdvertising();
+
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase < medium: BLE medium: BLUETOOTH >
+                  connection_attempt <
+                    type: INITIAL
+                    direction: INCOMING
+                    medium: BLUETOOTH
+                    attempt_result: RESULT_SUCCESS
+                    connection_token: ""
+                  >
+                >)pb")));
+}
+
+TEST(AnalyticsRecorderTest,
+     FailedConnectionAttemptUpdatesConnectionRequestNotSent) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+  std::vector<Medium> mediums = {BLE, BLUETOOTH};
+  std::string endpoint_id("endpoint_id");
+  std::string connection_token("");
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder{&event_logger};
+
+  analytics_recorder.OnStartDiscovery(strategy, mediums);
+  analytics_recorder.OnConnectionRequestSent(endpoint_id);
+  analytics_recorder.OnOutgoingConnectionAttempt(
+      endpoint_id, INITIAL, BLUETOOTH, RESULT_ERROR, absl::Duration{},
+      connection_token);
+
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: DISCOVERER
+                  discovery_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    sent_connection_request <
+                      local_response: NOT_SENT
+                      remote_response: NOT_SENT
+                    >
+                  >
+                  connection_attempt <
+                    type: INITIAL
+                    direction: OUTGOING
+                    medium: BLUETOOTH
+                    attempt_result: RESULT_ERROR
+                    connection_token: ""
+                  >
+                >)pb")));
 }
 
 }  // namespace

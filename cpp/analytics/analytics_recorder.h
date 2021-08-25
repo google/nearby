@@ -67,6 +67,21 @@ class AnalyticsRecorder {
   void OnLocalEndpointRejected(const std::string &remote_endpoint_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Connection attempt
+  void OnIncomingConnectionAttempt(
+      ::location::nearby::proto::connections::ConnectionAttemptType type,
+      ::location::nearby::proto::connections::Medium medium,
+      ::location::nearby::proto::connections::ConnectionAttemptResult result,
+      absl::Duration duration, const std::string &connection_token)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void OnOutgoingConnectionAttempt(
+      const std::string &remote_endpoint_id,
+      ::location::nearby::proto::connections::ConnectionAttemptType type,
+      ::location::nearby::proto::connections::Medium medium,
+      ::location::nearby::proto::connections::ConnectionAttemptResult result,
+      absl::Duration duration, const std::string &connection_token)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Invokes event_logger_.Log() at the end of life of client. Log action is
   // called in a separate thread to allow synchronous potentially lengthy
   // execution.
