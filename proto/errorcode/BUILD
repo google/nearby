@@ -32,3 +32,10 @@ java_lite_proto_library(
     name = "error_code_enums_java_proto_lite",
     deps = [":error_code_enums_proto"],
 )
+
+filegroup(
+    name = "all_files",
+    testonly = 1,
+    srcs = glob(["**"]),
+    visibility = ["//third_party/nearby_connections:__pkg__"],
+)

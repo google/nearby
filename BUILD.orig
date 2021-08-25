@@ -1,0 +1,37 @@
+load("//gws/tools/gwsq/v3:gwsq_test.bzl", "gwsq_test")
+
+licenses(["notice"])
+
+exports_files(["LICENSE"])
+
+gwsq_test(
+    name = "nearby_gwsq_test",
+    src = "nearby.gwsq",
+)
+
+filegroup(
+    name = "all_files",
+    testonly = 1,
+    srcs = glob(["**"]) + [
+        "//third_party/nearby_connections/cpp/analytics:all_files",
+        "//third_party/nearby_connections/cpp/core:all_files",
+        "//third_party/nearby_connections/cpp/core/internal:all_files",
+        "//third_party/nearby_connections/cpp/core/internal/fuzzers:all_files",
+        "//third_party/nearby_connections/cpp/core/internal/mediums/ble_v2:all_files",
+        "//third_party/nearby_connections/cpp/core/internal/mediums:all_files",
+        "//third_party/nearby_connections/cpp/core/internal/mediums/webrtc:all_files",
+        "//third_party/nearby_connections/cpp/platform/api:all_files",
+        "//third_party/nearby_connections/cpp/platform/base:all_files",
+        "//third_party/nearby_connections/cpp/platform/impl/g3:all_files",
+        "//third_party/nearby_connections/cpp/platform/impl/shared:all_files",
+        "//third_party/nearby_connections/cpp/platform/impl/windows:all_files",
+        "//third_party/nearby_connections/cpp/platform/impl/windows/generated:all_files",
+        "//third_party/nearby_connections/cpp/platform/public:all_files",
+        "//third_party/nearby_connections/proto/analytics:all_files",
+        "//third_party/nearby_connections/proto:all_files",
+        "//third_party/nearby_connections/proto/connections:all_files",
+        "//third_party/nearby_connections/proto/errorcode:all_files",
+        "//third_party/nearby_connections/proto/mediums:all_files",
+        "//third_party/nearby_connections/windows:all_files",
+    ],
+)

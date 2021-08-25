@@ -56,3 +56,10 @@ cc_test(
         "//third_party/nearby_connections/proto/analytics:connections_log_cc_proto",
     ],
 )
+
+filegroup(
+    name = "all_files",
+    testonly = 1,
+    srcs = glob(["**"]),
+    visibility = ["//third_party/nearby_connections:__pkg__"],
+)
