@@ -19,11 +19,12 @@
 
 #include <string>
 
-#include "platform/impl/windows/generated/winrt/Windows.Devices.Bluetooth.Rfcomm.h"
-#include "absl/strings/str_format.h"
-#include "platform/impl/windows/bluetooth_classic_device.h"
-
 #include "gtest/gtest.h"
+#include "absl/strings/str_format.h"
+#include "platform/api/bluetooth_adapter.h"
+#include "platform/impl/windows/bluetooth_adapter.h"
+#include "platform/impl/windows/bluetooth_classic_device.h"
+#include "platform/impl/windows/generated/winrt/Windows.Devices.Bluetooth.Rfcomm.h"
 
 // TODO(jfcarroll): Find a way to mock winrt components in order to properly
 // unit test this. Once that's done, unit tests can be written, in a later C/L.
@@ -61,8 +62,17 @@ void device_lost_cb(location::nearby::api::BluetoothDevice& device) {
 }
 
 TEST(TestCaseName, TestName) {
+  auto bluetoothAdapter = location::nearby::windows::BluetoothAdapter();
+
+  std::string bluetoothAdapterName = bluetoothAdapter.GetName();
+  bluetoothAdapter.SetName("BluetoothTestName");
+  bluetoothAdapterName = bluetoothAdapter.GetName();
+  bluetoothAdapter.SetName("");
+  bluetoothAdapterName = bluetoothAdapter.GetName();
+
   std::unique_ptr<location::nearby::windows::BluetoothClassicMedium> bcm =
-      std::make_unique<location::nearby::windows::BluetoothClassicMedium>();
+      std::make_unique<location::nearby::windows::BluetoothClassicMedium>(
+          bluetoothAdapter);
 
   bcm->StartDiscovery(
       location::nearby::api::BluetoothClassicMedium::DiscoveryCallback{
@@ -74,10 +84,14 @@ TEST(TestCaseName, TestName) {
   Sleep(30000);
 
   auto currentDevice = deviceList["DC:DC:E2:F2:B5:99"];
-  auto serviceUuid = winrt::Windows::Devices::Bluetooth::Rfcomm::
-      RfcommServiceId::GenericFileTransfer();
+  auto serviceUuid = winrt::to_string(
+      winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId::SerialPort()
+          .AsString());
+
   location::nearby::CancellationFlag cancellationFlag;
-  bcm->ConnectToService(*currentDevice, "a82efa21-ae5c-3dde-9bbc-f16da7b16c5a",
+  bcm->ConnectToService(*currentDevice,
+                        //  "a82efa21-ae5c-3dde-9bbc-f16da7b16c5a",
+                        "00001101-0000-1000-8000-00805F9B34FB",
                         &cancellationFlag);
 
   EXPECT_EQ(1, 1);

@@ -75,9 +75,9 @@ class BluetoothAdapter : public api::BluetoothAdapter {
       windows_bluetooth_adapter_;
 
   IRadio windows_bluetooth_radio_;
-  char *GetGenericBluetoothAdapterInstanceID(void);
+  char *GetGenericBluetoothAdapterInstanceID(void) const;
   void find_and_replace(char *source, const char *strFind,
-                        const char *strReplace);
+                        const char *strReplace) const;
   ScanMode scan_mode_ = ScanMode::kNone;
 };
 

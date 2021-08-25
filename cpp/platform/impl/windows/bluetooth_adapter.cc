@@ -15,7 +15,6 @@
 #include "platform/impl/windows/bluetooth_adapter.h"
 
 #include <windows.h>
-#include <stdio.h>
 #include <winioctl.h>
 #include <bthdef.h>
 #include <bthioctl.h>
@@ -24,6 +23,7 @@
 #include <initguid.h>
 #include <objbase.h>
 #include <setupapi.h>
+#include <stdio.h>
 #include <usbiodef.h>
 
 #include <string>
@@ -37,6 +37,14 @@ typedef std::basic_string<TCHAR> tstring;
 
 // IOCTL to get local radio information
 #define BTH_GET_DEVICE_INFO_IOCTL 0x411008
+
+#define BUFFER_SIZE 64
+#define FILE_NAME_SIZE 1024
+
+#define REGISTRY_QUERY_FORMAT \
+  "SYSTEM\\ControlSet001\\Enum\\%s\\Device Parameters"
+
+#define BLUETOOTH_RADIO_REGISTRY_NAME_KEY "Local Name"
 
 namespace location {
 namespace nearby {
@@ -92,7 +100,90 @@ bool BluetoothAdapter::SetScanMode(ScanMode scan_mode) {
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getName()
 // Returns an empty string on error
 // TODO(b/184975123): replace with real implementation.
-std::string BluetoothAdapter::GetName() const { return "Un-implemented"; }
+std::string BluetoothAdapter::GetName() const {
+  char *instanceID = GetGenericBluetoothAdapterInstanceID();
+
+  if (instanceID == NULL) {
+    NEARBY_LOGS(ERROR)
+        << __func__ << ": Failed to get Generic Bluetooth Adapter InstanceID";
+    return std::string();
+  }
+  // Add 1 to length to get size (including null)
+  // Modify the InstanceID to the format that the Registry expects
+  char *instanceIDModified = new char[(strlen(instanceID) + 1) * sizeof(char)];
+  absl::SNPrintF(instanceIDModified,
+                 size_t((strlen(instanceID) + 1) * sizeof(char)), "%s",
+                 instanceID);
+  find_and_replace(instanceIDModified, "\\", "#");
+
+  // Change radio module local name in registry
+  HKEY hKey;
+  char rmLocalNameKey[FILE_NAME_SIZE] = {0};
+  LSTATUS ret;
+
+  absl::SNPrintF(rmLocalNameKey, sizeof(rmLocalNameKey), REGISTRY_QUERY_FORMAT,
+                 instanceID);
+
+  // Opens the specified registry key.
+  // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regopenkeyexa
+  ret = RegOpenKeyExA(
+      HKEY_LOCAL_MACHINE,  // A handle to an open registry key, using
+                           // predefined key for local machine
+      rmLocalNameKey,      // The name of the registry subkey to be opened.
+      0L,               // Specifies the option to apply when opening the key.
+      KEY_QUERY_VALUE,  // A mask that specifies the desired access rights to
+                        // the key to be opened.
+      &hKey);  // A pointer to a variable that receives a handle to the opened
+               // key
+
+  if (ret == ERROR_SUCCESS) {
+    BYTE rmLocalName[FILE_NAME_SIZE] = {0};
+    DWORD rmLocalNameSize = FILE_NAME_SIZE;
+    DWORD valueType;
+
+    LSTATUS status =
+        // Retrieves the type and data for the specified value name associated
+        // with an open registry key.
+        // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regqueryvalueexa
+        RegQueryValueExA(
+            hKey,  // A handle to an open registry key.
+            BLUETOOTH_RADIO_REGISTRY_NAME_KEY,  // The name of the registry
+                                                // value.
+            nullptr,            // This parameter is reserved and must be NULL.
+            &valueType,         // A pointer to a variable that receives a code
+                                // indicating the type of data stored in the
+                                // specified value.
+            &rmLocalName[0],    // A pointer to a buffer that receives the
+                                // value's data.
+            &rmLocalNameSize);  // A pointer to a variable that specifies the
+                                // size of the buffer pointed to by the lpData
+                                // parameter, in bytes.
+
+    // Closes a handle to the specified registry key.
+    // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regclosekey
+    RegCloseKey(hKey);
+
+    if (status == ERROR_SUCCESS) {
+      char str[FILE_NAME_SIZE]{0};
+      memcpy(str, rmLocalName, rmLocalNameSize);
+      return std::string(str);
+    }
+  }
+
+  // The local name is not in the registry, return the machine name
+  char localName[FILE_NAME_SIZE];
+  DWORD nameSize = FILE_NAME_SIZE;
+
+  // Retrieves the NetBIOS name of the local computer.
+  // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getcomputernamea
+  if (GetComputerNameA(localName, &nameSize)) {
+    return std::string(localName);
+  }
+
+  // If we're here, we couldn't get a local name, this should never happen
+  NEARBY_LOGS(ERROR) << __func__ << ": Failed to get any radio name";
+  return std::string();
+}
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
 bool BluetoothAdapter::SetName(absl::string_view name) {
@@ -114,16 +205,16 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
   find_and_replace(instanceIDModified, "\\", "#");
 
   HANDLE hDevice;
-  char fileName[1024] = {0};
+  char fileName[FILE_NAME_SIZE] = {0};
 
   // defined in usbiodef.h
   const GUID guid = GUID_DEVINTERFACE_USB_DEVICE;
 
-  OLECHAR guidOleStr[64];
-  int oleBufferLen = 64;
+  OLECHAR guidOleStr[BUFFER_SIZE];
+  int oleBufferLen = BUFFER_SIZE;
 
-  char guidStr[64];
-  int bufferLen = 64;
+  char guidStr[BUFFER_SIZE];
+  int bufferLen = BUFFER_SIZE;
   BOOL defaultCharUsed;
 
   // Converts a globally unique identifier (GUID) into a string of printable
@@ -172,8 +263,16 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
 
   // Creates or opens a file or I/O device.
   // https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea
-  hDevice =
-      CreateFileA(fileName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+  hDevice = CreateFileA(
+      fileName,       // The name of the file or device to be created or opened.
+      GENERIC_WRITE,  // The requested access to the file or device.
+      0,              // The requested sharing mode of the file or device.
+      NULL,           // A pointer to a SECURITY_ATTRIBUTES structure.
+      OPEN_EXISTING,  // An action to take on a file or device that exists or
+                      // does not exist.
+      0,              // The file or device attributes and flags.
+      NULL);  // A valid handle to a template file with the GENERIC_READ access
+              // right. This parameter can be NULL.
 
   delete[] instanceIDModified;
 
@@ -185,18 +284,23 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
 
   // Change radio module local name in registry
   HKEY hKey;
-  char rmLocalNameKey[1024] = {0};
+  char rmLocalNameKey[FILE_NAME_SIZE] = {0};
   LSTATUS ret;
 
-  absl::SNPrintF(rmLocalNameKey, sizeof(rmLocalNameKey),
-                 "SYSTEM\\ControlSet001\\Enum\\%s\\Device Parameters",
+  absl::SNPrintF(rmLocalNameKey, sizeof(rmLocalNameKey), REGISTRY_QUERY_FORMAT,
                  instanceID);
 
   // Opens the specified registry key. Note that key names are not case
   // sensitive.
   // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regopenkeyexa
-  ret = RegOpenKeyExA(HKEY_LOCAL_MACHINE, rmLocalNameKey, 0L, KEY_SET_VALUE,
-                      &hKey);
+  ret = RegOpenKeyExA(
+      HKEY_LOCAL_MACHINE,  // A handle to an open registry key.
+      rmLocalNameKey,      // The name of the registry subkey to be opened.
+      0L,             // Specifies the option to apply when opening the key.
+      KEY_SET_VALUE,  // A mask that specifies the desired access rights to the
+                      // key to be opened.
+      &hKey);  // A pointer to a variable that receives a handle to the opened
+               // key.
 
   if (ret != ERROR_SUCCESS) {
     NEARBY_LOGS(ERROR) << __func__
@@ -206,9 +310,15 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
 
   // Sets the data and type of a specified value under a registry key.
   // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regsetvalueexa
-  ret = RegSetValueExA(hKey, "Local Name", 0, REG_BINARY,
-                       (LPBYTE)std::string(name).c_str(),
-                       strlen(std::string(name).c_str()));
+  ret = RegSetValueExA(
+      hKey,                               // A handle to an open registry key
+      BLUETOOTH_RADIO_REGISTRY_NAME_KEY,  // The name of the value to be set.
+      0,           // This parameter is reserved and must be zero.
+      REG_BINARY,  // The type of data pointed to by the lpData parameter.
+      (LPBYTE)std::string(name).c_str(),  // The data to be stored.
+      strlen(
+          std::string(name).c_str()));  // The size of the information pointed
+                                        // to by the lpData parameter, in bytes.
 
   if (ret != ERROR_SUCCESS) {
     NEARBY_LOGS(ERROR) << __func__
@@ -229,8 +339,19 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
   // Sends a control code directly to a specified device driver, causing the
   // corresponding device to perform the corresponding operation.
   // https://docs.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-deviceiocontrol
-  if (!DeviceIoControl(hDevice, BTH_GET_DEVICE_INFO_IOCTL, &reload, 4, NULL, 0,
-                       &bytes, NULL)) {
+  if (!DeviceIoControl(
+          hDevice,  // A handle to the device on which the operation is to be
+                    // performed.
+          BTH_GET_DEVICE_INFO_IOCTL,  // The control code for the operation.
+          &reload,  // A pointer to the input buffer that contains the data
+                    // required to perform the operation.
+          sizeof(reload),  // The size of the input buffer, in bytes.
+          NULL,    // A pointer to the output buffer that is to receive the data
+                   // returned by the operation.
+          0,       // The size of the output buffer, in bytes.
+          &bytes,  // A pointer to a variable that receives the size of the data
+                   // stored in the output buffer, in bytes.
+          NULL)) {  // A pointer to an OVERLAPPED structure.
     NEARBY_LOGS(ERROR)
         << __func__
         << ": Failed to update radio module local name. Error code: "
@@ -243,7 +364,7 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
 }
 
 void BluetoothAdapter::find_and_replace(char *source, const char *strFind,
-                                        const char *strReplace) {
+                                        const char *strReplace) const {
   std::string s = std::string(source);
   std::string f = std::string(strFind);
   std::string r = std::string(strReplace);
@@ -256,7 +377,7 @@ void BluetoothAdapter::find_and_replace(char *source, const char *strFind,
   memcpy(source, s.c_str(), s.size());
 }
 
-char *BluetoothAdapter::GetGenericBluetoothAdapterInstanceID(void) {
+char *BluetoothAdapter::GetGenericBluetoothAdapterInstanceID(void) const {
   unsigned i;
   CONFIGRET r;
   HDEVINFO hDevInfo;
