@@ -553,7 +553,7 @@ bool P2pClusterPcpHandler::IsRecognizedWifiLanEndpoint(
   }
 
   ByteArray expected_service_id_hash =
-      GenerateHash(service_id, BluetoothDeviceName::kServiceIdHashLength);
+      GenerateHash(service_id, WifiLanServiceInfo::kServiceIdHashLength);
 
   if (service_info.GetServiceIdHash() != expected_service_id_hash) {
     NEARBY_LOGS(INFO)
