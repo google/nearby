@@ -43,8 +43,6 @@ class ScheduledExecutor final : public api::ScheduledExecutor {
                                             absl::Duration delay) override;
   void Shutdown() override { executor_.Shutdown(); }
 
-  int GetTid(int index) const override { return executor_.GetTid(index); }
-
  private:
   SingleThreadExecutor executor_;
 };

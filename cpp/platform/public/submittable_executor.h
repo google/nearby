@@ -73,11 +73,6 @@ class ABSL_LOCKABLE SubmittableExecutor : public api::SubmittableExecutor,
           MonitoredRunnable(ThreadCheckRunnable(this, std::move(runnable))));
   }
 
-  int GetTid(int index) const ABSL_LOCKS_EXCLUDED(mutex_) override {
-    MutexLock lock(&mutex_);
-    return impl_ ? impl_->GetTid(index) : 0;
-  }
-
   void Shutdown() ABSL_LOCKS_EXCLUDED(mutex_) override {
     MutexLock lock(&mutex_);
     DoShutdown();

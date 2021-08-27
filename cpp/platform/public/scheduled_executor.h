@@ -78,12 +78,6 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
     DoShutdown();
   }
 
-  int GetTid(int index) const {
-    MutexLock lock(&mutex_);
-    return impl_->GetTid(index);
-  }
-  int Tid() const { return GetTid(0); }
-
   Cancelable Schedule(Runnable&& runnable, absl::Duration duration)
       ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);
