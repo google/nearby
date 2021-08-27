@@ -42,7 +42,7 @@ DLL_API Core* __stdcall InitCoreWithServiceControllerFactory(
 
 // Initializes a default Core instance.
 // Returns the instance handle to c# client.
-DLL_API Core* __stdcall InitCore();
+DLL_API Core* __stdcall InitCore(ServiceControllerRouter* router);
 
 // Closes the core with stopping all endpoints, then free the memory.
 DLL_API void __stdcall CloseCore(Core* pCore);
