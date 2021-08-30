@@ -32,8 +32,10 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-// This class defines the API of the Nearby Connections Core library.
-class Core {
+COMPILE ERROR 3
+
+    // This class defines the API of the Nearby Connections Core library.
+    class Core {
  public:
   explicit Core(ServiceControllerRouter* router);
   // Client needs to call this constructor if analytics logger is needed.

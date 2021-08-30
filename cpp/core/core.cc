@@ -32,7 +32,10 @@ namespace {
 constexpr absl::Duration kWaitForDisconnect = absl::Milliseconds(5000);
 }  // namespace
 
-Core::Core(ServiceControllerRouter* router) : router_(router) {}
+COMPILE ERROR
+
+Core::Core(ServiceControllerRouter* router)
+    : router_(router) {}
 
 Core::~Core() {
   CountDownLatch latch(1);
@@ -45,7 +48,9 @@ Core::~Core() {
   }
 }
 
-Core::Core(Core&&) = default;
+COMPILE ERROR 2
+
+    Core::Core(Core&&) = default;
 
 Core& Core::operator=(Core&&) = default;
 
