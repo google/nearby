@@ -64,4 +64,7 @@ portable_proto_library(
 filegroup(
     name = "offline_wire_formats_proto_config",
     srcs = ["offline_wire_formats_proto_config.asciipb"],
+    compatible_with = [
+        "//buildenv/target:non_prod",
+    ],
 )

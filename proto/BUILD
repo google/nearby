@@ -72,6 +72,9 @@ portable_proto_library(
 filegroup(
     name = "connections_enums_proto_config",
     srcs = ["connections_enums_proto_config.asciipb"],
+    compatible_with = [
+        "//buildenv/target:non_prod",
+    ],
 )
 
 proto_library(

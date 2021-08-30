@@ -43,9 +43,6 @@ class SubmittableExecutor : public api::SubmittableExecutor {
   // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html#shutdown--
   // TODO(b/184975123): replace with real implementation.
   void Shutdown() override {}
-
-  // TODO(b/184975123): replace with real implementation.
-  int GetTid(int index) const override { return 0; }
 };
 
 }  // namespace windows
