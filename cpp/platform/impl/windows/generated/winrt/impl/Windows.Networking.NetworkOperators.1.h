@@ -423,6 +423,17 @@ WINRT_EXPORT namespace winrt::Windows::Networking::NetworkOperators
         IMobileBroadbandCellLte& operator=(IMobileBroadbandCellLte const&) & noexcept = default;
         IMobileBroadbandCellLte& operator=(IMobileBroadbandCellLte&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IMobileBroadbandCellNR :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IMobileBroadbandCellNR>
+    {
+        IMobileBroadbandCellNR(std::nullptr_t = nullptr) noexcept {}
+        IMobileBroadbandCellNR(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IMobileBroadbandCellNR(IMobileBroadbandCellNR const&) noexcept = default;
+        IMobileBroadbandCellNR(IMobileBroadbandCellNR&&) noexcept = default;
+        IMobileBroadbandCellNR& operator=(IMobileBroadbandCellNR const&) & noexcept = default;
+        IMobileBroadbandCellNR& operator=(IMobileBroadbandCellNR&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IMobileBroadbandCellTdscdma :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IMobileBroadbandCellTdscdma>
@@ -456,6 +467,28 @@ WINRT_EXPORT namespace winrt::Windows::Networking::NetworkOperators
         IMobileBroadbandCellsInfo& operator=(IMobileBroadbandCellsInfo const&) & noexcept = default;
         IMobileBroadbandCellsInfo& operator=(IMobileBroadbandCellsInfo&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IMobileBroadbandCellsInfo2 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IMobileBroadbandCellsInfo2>
+    {
+        IMobileBroadbandCellsInfo2(std::nullptr_t = nullptr) noexcept {}
+        IMobileBroadbandCellsInfo2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IMobileBroadbandCellsInfo2(IMobileBroadbandCellsInfo2 const&) noexcept = default;
+        IMobileBroadbandCellsInfo2(IMobileBroadbandCellsInfo2&&) noexcept = default;
+        IMobileBroadbandCellsInfo2& operator=(IMobileBroadbandCellsInfo2 const&) & noexcept = default;
+        IMobileBroadbandCellsInfo2& operator=(IMobileBroadbandCellsInfo2&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IMobileBroadbandCurrentSlotIndexChangedEventArgs :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IMobileBroadbandCurrentSlotIndexChangedEventArgs>
+    {
+        IMobileBroadbandCurrentSlotIndexChangedEventArgs(std::nullptr_t = nullptr) noexcept {}
+        IMobileBroadbandCurrentSlotIndexChangedEventArgs(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IMobileBroadbandCurrentSlotIndexChangedEventArgs(IMobileBroadbandCurrentSlotIndexChangedEventArgs const&) noexcept = default;
+        IMobileBroadbandCurrentSlotIndexChangedEventArgs(IMobileBroadbandCurrentSlotIndexChangedEventArgs&&) noexcept = default;
+        IMobileBroadbandCurrentSlotIndexChangedEventArgs& operator=(IMobileBroadbandCurrentSlotIndexChangedEventArgs const&) & noexcept = default;
+        IMobileBroadbandCurrentSlotIndexChangedEventArgs& operator=(IMobileBroadbandCurrentSlotIndexChangedEventArgs&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IMobileBroadbandDeviceInformation :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IMobileBroadbandDeviceInformation>
@@ -488,6 +521,17 @@ WINRT_EXPORT namespace winrt::Windows::Networking::NetworkOperators
         IMobileBroadbandDeviceInformation3(IMobileBroadbandDeviceInformation3&&) noexcept = default;
         IMobileBroadbandDeviceInformation3& operator=(IMobileBroadbandDeviceInformation3 const&) & noexcept = default;
         IMobileBroadbandDeviceInformation3& operator=(IMobileBroadbandDeviceInformation3&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IMobileBroadbandDeviceInformation4 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IMobileBroadbandDeviceInformation4>
+    {
+        IMobileBroadbandDeviceInformation4(std::nullptr_t = nullptr) noexcept {}
+        IMobileBroadbandDeviceInformation4(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IMobileBroadbandDeviceInformation4(IMobileBroadbandDeviceInformation4 const&) noexcept = default;
+        IMobileBroadbandDeviceInformation4(IMobileBroadbandDeviceInformation4&&) noexcept = default;
+        IMobileBroadbandDeviceInformation4& operator=(IMobileBroadbandDeviceInformation4 const&) & noexcept = default;
+        IMobileBroadbandDeviceInformation4& operator=(IMobileBroadbandDeviceInformation4&&) & noexcept = default;
     };
     struct __declspec(empty_bases) IMobileBroadbandDeviceService :
         winrt::Windows::Foundation::IInspectable,
@@ -818,6 +862,39 @@ WINRT_EXPORT namespace winrt::Windows::Networking::NetworkOperators
         IMobileBroadbandSarManager(IMobileBroadbandSarManager&&) noexcept = default;
         IMobileBroadbandSarManager& operator=(IMobileBroadbandSarManager const&) & noexcept = default;
         IMobileBroadbandSarManager& operator=(IMobileBroadbandSarManager&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IMobileBroadbandSlotInfo :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IMobileBroadbandSlotInfo>
+    {
+        IMobileBroadbandSlotInfo(std::nullptr_t = nullptr) noexcept {}
+        IMobileBroadbandSlotInfo(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IMobileBroadbandSlotInfo(IMobileBroadbandSlotInfo const&) noexcept = default;
+        IMobileBroadbandSlotInfo(IMobileBroadbandSlotInfo&&) noexcept = default;
+        IMobileBroadbandSlotInfo& operator=(IMobileBroadbandSlotInfo const&) & noexcept = default;
+        IMobileBroadbandSlotInfo& operator=(IMobileBroadbandSlotInfo&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IMobileBroadbandSlotInfoChangedEventArgs :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IMobileBroadbandSlotInfoChangedEventArgs>
+    {
+        IMobileBroadbandSlotInfoChangedEventArgs(std::nullptr_t = nullptr) noexcept {}
+        IMobileBroadbandSlotInfoChangedEventArgs(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IMobileBroadbandSlotInfoChangedEventArgs(IMobileBroadbandSlotInfoChangedEventArgs const&) noexcept = default;
+        IMobileBroadbandSlotInfoChangedEventArgs(IMobileBroadbandSlotInfoChangedEventArgs&&) noexcept = default;
+        IMobileBroadbandSlotInfoChangedEventArgs& operator=(IMobileBroadbandSlotInfoChangedEventArgs const&) & noexcept = default;
+        IMobileBroadbandSlotInfoChangedEventArgs& operator=(IMobileBroadbandSlotInfoChangedEventArgs&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IMobileBroadbandSlotManager :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IMobileBroadbandSlotManager>
+    {
+        IMobileBroadbandSlotManager(std::nullptr_t = nullptr) noexcept {}
+        IMobileBroadbandSlotManager(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IMobileBroadbandSlotManager(IMobileBroadbandSlotManager const&) noexcept = default;
+        IMobileBroadbandSlotManager(IMobileBroadbandSlotManager&&) noexcept = default;
+        IMobileBroadbandSlotManager& operator=(IMobileBroadbandSlotManager const&) & noexcept = default;
+        IMobileBroadbandSlotManager& operator=(IMobileBroadbandSlotManager&&) & noexcept = default;
     };
     struct __declspec(empty_bases) IMobileBroadbandTransmissionStateChangedEventArgs :
         winrt::Windows::Foundation::IInspectable,

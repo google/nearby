@@ -18,7 +18,7 @@ WINRT_EXPORT namespace winrt::Windows::Networking::Vpn
         VpnAppId& operator=(VpnAppId&&) & noexcept = default;
     };
     struct __declspec(empty_bases) VpnChannel : winrt::Windows::Networking::Vpn::IVpnChannel,
-        impl::require<VpnChannel, winrt::Windows::Networking::Vpn::IVpnChannel2, winrt::Windows::Networking::Vpn::IVpnChannel4>
+        impl::require<VpnChannel, winrt::Windows::Networking::Vpn::IVpnChannel2, winrt::Windows::Networking::Vpn::IVpnChannel4, winrt::Windows::Networking::Vpn::IVpnChannel5>
     {
         VpnChannel(std::nullptr_t) noexcept {}
         VpnChannel(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Networking::Vpn::IVpnChannel(ptr, take_ownership_from_abi) {}

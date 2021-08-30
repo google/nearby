@@ -24,6 +24,7 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel::Resources
         static auto GetForViewIndependentUse();
         static auto GetForViewIndependentUse(param::hstring const& name);
         static auto GetForUIContext(winrt::Windows::UI::UIContext const& context);
+        static auto GetDefaultPriPath(param::hstring const& packageFullName);
     };
 }
 #endif

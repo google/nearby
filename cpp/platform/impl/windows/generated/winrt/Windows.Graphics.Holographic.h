@@ -229,6 +229,16 @@ namespace winrt::impl
     {
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters3)->put_IsContentProtectionEnabled(value));
     }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Graphics::Holographic::HolographicDepthReprojectionMethod) consume_Windows_Graphics_Holographic_IHolographicCameraRenderingParameters4<D>::DepthReprojectionMethod() const
+    {
+        winrt::Windows::Graphics::Holographic::HolographicDepthReprojectionMethod value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters4)->get_DepthReprojectionMethod(reinterpret_cast<int32_t*>(&value)));
+        return value;
+    }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Graphics_Holographic_IHolographicCameraRenderingParameters4<D>::DepthReprojectionMethod(winrt::Windows::Graphics::Holographic::HolographicDepthReprojectionMethod const& value) const
+    {
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters4)->put_DepthReprojectionMethod(static_cast<int32_t>(value)));
+    }
     template <typename D> WINRT_IMPL_AUTO(com_array<winrt::Windows::Foundation::Numerics::float2>) consume_Windows_Graphics_Holographic_IHolographicCameraViewportParameters<D>::HiddenAreaMesh() const
     {
         uint32_t value_impl_size{};
@@ -743,6 +753,12 @@ namespace winrt::impl
     {
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration)->put_IsEnabled(value));
     }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Graphics::Holographic::HolographicDepthReprojectionMethod>) consume_Windows_Graphics_Holographic_IHolographicViewConfiguration2<D>::SupportedDepthReprojectionMethods() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration2)->get_SupportedDepthReprojectionMethods(&value));
+        return winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Graphics::Holographic::HolographicDepthReprojectionMethod>{ value, take_ownership_from_abi };
+    }
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
     struct produce<D, winrt::Windows::Graphics::Holographic::IHolographicCamera> : produce_base<D, winrt::Windows::Graphics::Holographic::IHolographicCamera>
@@ -1098,6 +1114,26 @@ namespace winrt::impl
         {
             typename D::abi_guard guard(this->shim());
             this->shim().IsContentProtectionEnabled(value);
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters4> : produce_base<D, winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters4>
+    {
+        int32_t __stdcall get_DepthReprojectionMethod(int32_t* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Graphics::Holographic::HolographicDepthReprojectionMethod>(this->shim().DepthReprojectionMethod());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall put_DepthReprojectionMethod(int32_t value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().DepthReprojectionMethod(*reinterpret_cast<winrt::Windows::Graphics::Holographic::HolographicDepthReprojectionMethod const*>(&value));
             return 0;
         }
         catch (...) { return to_hresult(); }
@@ -1929,6 +1965,20 @@ namespace winrt::impl
         catch (...) { return to_hresult(); }
     };
 #endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration2> : produce_base<D, winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration2>
+    {
+        int32_t __stdcall get_SupportedDepthReprojectionMethods(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Graphics::Holographic::HolographicDepthReprojectionMethod>>(this->shim().SupportedDepthReprojectionMethods());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
 }
 WINRT_EXPORT namespace winrt::Windows::Graphics::Holographic
 {
@@ -1988,6 +2038,7 @@ namespace std
     template<> struct hash<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters3> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters4> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Holographic::IHolographicCameraViewportParameters> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Holographic::IHolographicDisplay> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Holographic::IHolographicDisplay2> : winrt::impl::hash_base {};
@@ -2015,6 +2066,7 @@ namespace std
     template<> struct hash<winrt::Windows::Graphics::Holographic::IHolographicSpaceStatics2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Holographic::IHolographicSpaceStatics3> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Holographic::HolographicCamera> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Holographic::HolographicCameraPose> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Holographic::HolographicCameraRenderingParameters> : winrt::impl::hash_base {};

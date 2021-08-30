@@ -5,6 +5,7 @@
 WINRT_EXPORT namespace winrt::Windows::ApplicationModel
 {
     struct AppDisplayInfo;
+    struct AppInfo;
     struct EnteredBackgroundEventArgs;
     struct LeavingBackgroundEventArgs;
     struct SuspendingEventArgs;
@@ -50,6 +51,7 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel::Core
     struct IAppListEntry;
     struct IAppListEntry2;
     struct IAppListEntry3;
+    struct IAppListEntry4;
     struct ICoreApplication;
     struct ICoreApplication2;
     struct ICoreApplication3;
@@ -83,6 +85,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::ApplicationModel::Core::IAppListEntry>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::Core::IAppListEntry2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::Core::IAppListEntry3>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::ApplicationModel::Core::IAppListEntry4>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::Core::ICoreApplication>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::Core::ICoreApplication2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::Core::ICoreApplication3>{ using type = interface_category; };
@@ -122,6 +125,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::Core::IAppListEntry> = L"Windows.ApplicationModel.Core.IAppListEntry";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::Core::IAppListEntry2> = L"Windows.ApplicationModel.Core.IAppListEntry2";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::Core::IAppListEntry3> = L"Windows.ApplicationModel.Core.IAppListEntry3";
+    template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::Core::IAppListEntry4> = L"Windows.ApplicationModel.Core.IAppListEntry4";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::Core::ICoreApplication> = L"Windows.ApplicationModel.Core.ICoreApplication";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::Core::ICoreApplication2> = L"Windows.ApplicationModel.Core.ICoreApplication2";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::Core::ICoreApplication3> = L"Windows.ApplicationModel.Core.ICoreApplication3";
@@ -145,6 +149,7 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::Core::IAppListEntry>{ 0xEF00F07F,0x2108,0x490A,{ 0x87,0x7A,0x8A,0x9F,0x17,0xC2,0x5F,0xAD } }; // EF00F07F-2108-490A-877A-8A9F17C25FAD
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::Core::IAppListEntry2>{ 0xD0A618AD,0xBF35,0x42AC,{ 0xAC,0x06,0x86,0xEE,0xEB,0x41,0xD0,0x4B } }; // D0A618AD-BF35-42AC-AC06-86EEEB41D04B
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::Core::IAppListEntry3>{ 0x6099F28D,0xFC32,0x470A,{ 0xBC,0x69,0x4B,0x06,0x1A,0x76,0xEF,0x2E } }; // 6099F28D-FC32-470A-BC69-4B061A76EF2E
+    template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::Core::IAppListEntry4>{ 0x2A131ED2,0x56F5,0x487C,{ 0x86,0x97,0x51,0x66,0xF3,0xB3,0x3D,0xA0 } }; // 2A131ED2-56F5-487C-8697-5166F3B33DA0
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::Core::ICoreApplication>{ 0x0AACF7A4,0x5E1D,0x49DF,{ 0x80,0x34,0xFB,0x6A,0x68,0xBC,0x5E,0xD1 } }; // 0AACF7A4-5E1D-49DF-8034-FB6A68BC5ED1
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::Core::ICoreApplication2>{ 0x998681FB,0x1AB6,0x4B7F,{ 0xBE,0x4A,0x9A,0x06,0x45,0x22,0x4C,0x04 } }; // 998681FB-1AB6-4B7F-BE4A-9A0645224C04
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::Core::ICoreApplication3>{ 0xFEEC0D39,0x598B,0x4507,{ 0x8A,0x67,0x77,0x26,0x32,0x58,0x0A,0x57 } }; // FEEC0D39-598B-4507-8A67-772632580A57
@@ -191,6 +196,13 @@ namespace winrt::impl
         struct __declspec(novtable) type : inspectable_abi
         {
             virtual int32_t __stdcall LaunchForUserAsync(void*, void**) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::ApplicationModel::Core::IAppListEntry4>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_AppInfo(void**) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::ApplicationModel::Core::ICoreApplication>
@@ -402,6 +414,15 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::ApplicationModel::Core::IAppListEntry3>
     {
         template <typename D> using type = consume_Windows_ApplicationModel_Core_IAppListEntry3<D>;
+    };
+    template <typename D>
+    struct consume_Windows_ApplicationModel_Core_IAppListEntry4
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::ApplicationModel::AppInfo) AppInfo() const;
+    };
+    template <> struct consume<winrt::Windows::ApplicationModel::Core::IAppListEntry4>
+    {
+        template <typename D> using type = consume_Windows_ApplicationModel_Core_IAppListEntry4<D>;
     };
     template <typename D>
     struct consume_Windows_ApplicationModel_Core_ICoreApplication

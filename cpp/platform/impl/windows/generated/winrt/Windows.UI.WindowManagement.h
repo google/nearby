@@ -536,6 +536,12 @@ namespace winrt::impl
     {
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::UI::WindowManagement::IFullScreenPresentationConfiguration)->put_IsExclusive(value));
     }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::UI::WindowId>) consume_Windows_UI_WindowManagement_IWindowServicesStatics<D>::FindAllTopLevelWindowIds() const
+    {
+        void* result{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::UI::WindowManagement::IWindowServicesStatics)->FindAllTopLevelWindowIds(&result));
+        return winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::UI::WindowId>{ result, take_ownership_from_abi };
+    }
     template <typename D> WINRT_IMPL_AUTO(bool) consume_Windows_UI_WindowManagement_IWindowingEnvironment<D>::IsEnabled() const
     {
         bool value{};
@@ -1405,6 +1411,20 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
+    struct produce<D, winrt::Windows::UI::WindowManagement::IWindowServicesStatics> : produce_base<D, winrt::Windows::UI::WindowManagement::IWindowServicesStatics>
+    {
+        int32_t __stdcall FindAllTopLevelWindowIds(void** result) noexcept final try
+        {
+            clear_abi(result);
+            typename D::abi_guard guard(this->shim());
+            *result = detach_from<winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::UI::WindowId>>(this->shim().FindAllTopLevelWindowIds());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
     struct produce<D, winrt::Windows::UI::WindowManagement::IWindowingEnvironment> : produce_base<D, winrt::Windows::UI::WindowManagement::IWindowingEnvironment>
     {
         int32_t __stdcall get_IsEnabled(bool* value) noexcept final try
@@ -1528,6 +1548,10 @@ WINRT_EXPORT namespace winrt::Windows::UI::WindowManagement
         FullScreenPresentationConfiguration(impl::call_factory_cast<FullScreenPresentationConfiguration(*)(winrt::Windows::Foundation::IActivationFactory const&), FullScreenPresentationConfiguration>([](winrt::Windows::Foundation::IActivationFactory const& f) { return f.template ActivateInstance<FullScreenPresentationConfiguration>(); }))
     {
     }
+    inline auto WindowServices::FindAllTopLevelWindowIds()
+    {
+        return impl::call_factory_cast<winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::UI::WindowId>(*)(IWindowServicesStatics const&), WindowServices, IWindowServicesStatics>([](IWindowServicesStatics const& f) { return f.FindAllTopLevelWindowIds(); });
+    }
     inline auto WindowingEnvironment::FindAll()
     {
         return impl::call_factory_cast<winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::UI::WindowManagement::WindowingEnvironment>(*)(IWindowingEnvironmentStatics const&), WindowingEnvironment, IWindowingEnvironmentStatics>([](IWindowingEnvironmentStatics const& f) { return f.FindAll(); });
@@ -1558,6 +1582,7 @@ namespace std
     template<> struct hash<winrt::Windows::UI::WindowManagement::IDefaultPresentationConfiguration> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::UI::WindowManagement::IDisplayRegion> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::UI::WindowManagement::IFullScreenPresentationConfiguration> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::UI::WindowManagement::IWindowServicesStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::UI::WindowManagement::IWindowingEnvironment> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::UI::WindowManagement::IWindowingEnvironmentAddedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::UI::WindowManagement::IWindowingEnvironmentChangedEventArgs> : winrt::impl::hash_base {};
@@ -1577,6 +1602,7 @@ namespace std
     template<> struct hash<winrt::Windows::UI::WindowManagement::DefaultPresentationConfiguration> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::UI::WindowManagement::DisplayRegion> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::UI::WindowManagement::FullScreenPresentationConfiguration> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::UI::WindowManagement::WindowServices> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::UI::WindowManagement::WindowingEnvironment> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::UI::WindowManagement::WindowingEnvironmentAddedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::UI::WindowManagement::WindowingEnvironmentChangedEventArgs> : winrt::impl::hash_base {};

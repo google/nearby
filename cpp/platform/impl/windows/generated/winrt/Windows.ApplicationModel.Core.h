@@ -39,6 +39,12 @@ namespace winrt::impl
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::ApplicationModel::Core::IAppListEntry3)->LaunchForUserAsync(*(void**)(&user), &operation));
         return winrt::Windows::Foundation::IAsyncOperation<bool>{ operation, take_ownership_from_abi };
     }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::ApplicationModel::AppInfo) consume_Windows_ApplicationModel_Core_IAppListEntry4<D>::AppInfo() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::ApplicationModel::Core::IAppListEntry4)->get_AppInfo(&value));
+        return winrt::Windows::ApplicationModel::AppInfo{ value, take_ownership_from_abi };
+    }
     template <typename D> WINRT_IMPL_AUTO(hstring) consume_Windows_ApplicationModel_Core_ICoreApplication<D>::Id() const
     {
         void* value{};
@@ -452,6 +458,20 @@ namespace winrt::impl
             clear_abi(operation);
             typename D::abi_guard guard(this->shim());
             *operation = detach_from<winrt::Windows::Foundation::IAsyncOperation<bool>>(this->shim().LaunchForUserAsync(*reinterpret_cast<winrt::Windows::System::User const*>(&user)));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::ApplicationModel::Core::IAppListEntry4> : produce_base<D, winrt::Windows::ApplicationModel::Core::IAppListEntry4>
+    {
+        int32_t __stdcall get_AppInfo(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::ApplicationModel::AppInfo>(this->shim().AppInfo());
             return 0;
         }
         catch (...) { return to_hresult(); }
@@ -1188,6 +1208,7 @@ namespace std
     template<> struct hash<winrt::Windows::ApplicationModel::Core::IAppListEntry> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::Core::IAppListEntry2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::Core::IAppListEntry3> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::ApplicationModel::Core::IAppListEntry4> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::Core::ICoreApplication> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::Core::ICoreApplication2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::Core::ICoreApplication3> : winrt::impl::hash_base {};

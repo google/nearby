@@ -16,7 +16,8 @@ WINRT_EXPORT namespace winrt::Windows::System::Profile
         [[nodiscard]] static auto DeviceForm();
         static auto GetSystemPropertiesAsync(param::async_iterable<hstring> const& attributeNames);
     };
-    struct __declspec(empty_bases) AnalyticsVersionInfo : winrt::Windows::System::Profile::IAnalyticsVersionInfo
+    struct __declspec(empty_bases) AnalyticsVersionInfo : winrt::Windows::System::Profile::IAnalyticsVersionInfo,
+        impl::require<AnalyticsVersionInfo, winrt::Windows::System::Profile::IAnalyticsVersionInfo2>
     {
         AnalyticsVersionInfo(std::nullptr_t) noexcept {}
         AnalyticsVersionInfo(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::System::Profile::IAnalyticsVersionInfo(ptr, take_ownership_from_abi) {}

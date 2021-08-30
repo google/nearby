@@ -95,7 +95,7 @@ WINRT_EXPORT namespace winrt::Windows::AI::MachineLearning
         LearningModelSession& operator=(LearningModelSession&&) & noexcept = default;
     };
     struct __declspec(empty_bases) LearningModelSessionOptions : winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions,
-        impl::require<LearningModelSessionOptions, winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions2>
+        impl::require<LearningModelSessionOptions, winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions2, winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions3>
     {
         LearningModelSessionOptions(std::nullptr_t) noexcept {}
         LearningModelSessionOptions(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions(ptr, take_ownership_from_abi) {}

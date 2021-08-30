@@ -798,6 +798,17 @@ WINRT_EXPORT namespace winrt::Windows::System
         IUserStatics& operator=(IUserStatics const&) & noexcept = default;
         IUserStatics& operator=(IUserStatics&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IUserStatics2 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IUserStatics2>
+    {
+        IUserStatics2(std::nullptr_t = nullptr) noexcept {}
+        IUserStatics2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IUserStatics2(IUserStatics2 const&) noexcept = default;
+        IUserStatics2(IUserStatics2&&) noexcept = default;
+        IUserStatics2& operator=(IUserStatics2 const&) & noexcept = default;
+        IUserStatics2& operator=(IUserStatics2&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IUserWatcher :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IUserWatcher>

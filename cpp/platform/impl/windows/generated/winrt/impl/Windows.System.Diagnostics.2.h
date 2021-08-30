@@ -122,6 +122,8 @@ WINRT_EXPORT namespace winrt::Windows::System::Diagnostics
         SystemDiagnosticInfo& operator=(SystemDiagnosticInfo const&) & noexcept = default;
         SystemDiagnosticInfo& operator=(SystemDiagnosticInfo&&) & noexcept = default;
         static auto GetForCurrentSystem();
+        static auto IsArchitectureSupported(winrt::Windows::System::ProcessorArchitecture const& type);
+        [[nodiscard]] static auto PreferredArchitecture();
     };
     struct __declspec(empty_bases) SystemMemoryUsage : winrt::Windows::System::Diagnostics::ISystemMemoryUsage
     {

@@ -6,6 +6,7 @@ WINRT_EXPORT namespace winrt::Windows::Graphics
 {
     struct IGeometrySource2D;
     struct DisplayAdapterId;
+    struct DisplayId;
     struct PointInt32;
     struct RectInt32;
     struct SizeInt32;
@@ -14,10 +15,12 @@ namespace winrt::impl
 {
     template <> struct category<winrt::Windows::Graphics::IGeometrySource2D>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Graphics::DisplayAdapterId>{ using type = struct_category<uint32_t, int32_t>; };
+    template <> struct category<winrt::Windows::Graphics::DisplayId>{ using type = struct_category<uint64_t>; };
     template <> struct category<winrt::Windows::Graphics::PointInt32>{ using type = struct_category<int32_t, int32_t>; };
     template <> struct category<winrt::Windows::Graphics::RectInt32>{ using type = struct_category<int32_t, int32_t, int32_t, int32_t>; };
     template <> struct category<winrt::Windows::Graphics::SizeInt32>{ using type = struct_category<int32_t, int32_t>; };
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::DisplayAdapterId> = L"Windows.Graphics.DisplayAdapterId";
+    template <> inline constexpr auto& name_v<winrt::Windows::Graphics::DisplayId> = L"Windows.Graphics.DisplayId";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::PointInt32> = L"Windows.Graphics.PointInt32";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::RectInt32> = L"Windows.Graphics.RectInt32";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::SizeInt32> = L"Windows.Graphics.SizeInt32";
@@ -45,6 +48,14 @@ namespace winrt::impl
     template <> struct abi<Windows::Graphics::DisplayAdapterId>
     {
         using type = struct_Windows_Graphics_DisplayAdapterId;
+    };
+    struct struct_Windows_Graphics_DisplayId
+    {
+        uint64_t Value;
+    };
+    template <> struct abi<Windows::Graphics::DisplayId>
+    {
+        using type = struct_Windows_Graphics_DisplayId;
     };
     struct struct_Windows_Graphics_PointInt32
     {

@@ -6,6 +6,7 @@
 #include "winrt/impl/Windows.Graphics.1.h"
 #include "winrt/impl/Windows.Graphics.DirectX.1.h"
 #include "winrt/impl/Windows.Graphics.DirectX.Direct3D11.1.h"
+#include "winrt/impl/Windows.UI.1.h"
 #include "winrt/impl/Windows.UI.Composition.1.h"
 #include "winrt/impl/Windows.Graphics.Capture.1.h"
 WINRT_EXPORT namespace winrt::Windows::Graphics::Capture
@@ -32,6 +33,11 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Capture
         static auto Create(winrt::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice const& device, winrt::Windows::Graphics::DirectX::DirectXPixelFormat const& pixelFormat, int32_t numberOfBuffers, winrt::Windows::Graphics::SizeInt32 const& size);
         static auto CreateFreeThreaded(winrt::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice const& device, winrt::Windows::Graphics::DirectX::DirectXPixelFormat const& pixelFormat, int32_t numberOfBuffers, winrt::Windows::Graphics::SizeInt32 const& size);
     };
+    struct GraphicsCaptureAccess
+    {
+        GraphicsCaptureAccess() = delete;
+        static auto RequestAccessAsync(winrt::Windows::Graphics::Capture::GraphicsCaptureAccessKind const& request);
+    };
     struct __declspec(empty_bases) GraphicsCaptureItem : winrt::Windows::Graphics::Capture::IGraphicsCaptureItem
     {
         GraphicsCaptureItem(std::nullptr_t) noexcept {}
@@ -41,6 +47,8 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Capture
         GraphicsCaptureItem& operator=(GraphicsCaptureItem const&) & noexcept = default;
         GraphicsCaptureItem& operator=(GraphicsCaptureItem&&) & noexcept = default;
         static auto CreateFromVisual(winrt::Windows::UI::Composition::Visual const& visual);
+        static auto TryCreateFromWindowId(winrt::Windows::UI::WindowId const& windowId);
+        static auto TryCreateFromDisplayId(winrt::Windows::Graphics::DisplayId const& displayId);
     };
     struct __declspec(empty_bases) GraphicsCapturePicker : winrt::Windows::Graphics::Capture::IGraphicsCapturePicker
     {
@@ -53,7 +61,7 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Capture
         GraphicsCapturePicker& operator=(GraphicsCapturePicker&&) & noexcept = default;
     };
     struct __declspec(empty_bases) GraphicsCaptureSession : winrt::Windows::Graphics::Capture::IGraphicsCaptureSession,
-        impl::require<GraphicsCaptureSession, winrt::Windows::Graphics::Capture::IGraphicsCaptureSession2, winrt::Windows::Foundation::IClosable>
+        impl::require<GraphicsCaptureSession, winrt::Windows::Graphics::Capture::IGraphicsCaptureSession2, winrt::Windows::Graphics::Capture::IGraphicsCaptureSession3, winrt::Windows::Foundation::IClosable>
     {
         GraphicsCaptureSession(std::nullptr_t) noexcept {}
         GraphicsCaptureSession(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Graphics::Capture::IGraphicsCaptureSession(ptr, take_ownership_from_abi) {}

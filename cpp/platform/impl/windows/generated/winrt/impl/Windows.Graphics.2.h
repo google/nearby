@@ -18,6 +18,18 @@ WINRT_EXPORT namespace winrt::Windows::Graphics
     {
         return !(left == right);
     }
+    struct DisplayId
+    {
+        uint64_t Value;
+    };
+    inline bool operator==(DisplayId const& left, DisplayId const& right) noexcept
+    {
+        return left.Value == right.Value;
+    }
+    inline bool operator!=(DisplayId const& left, DisplayId const& right) noexcept
+    {
+        return !(left == right);
+    }
     struct PointInt32
     {
         int32_t X;

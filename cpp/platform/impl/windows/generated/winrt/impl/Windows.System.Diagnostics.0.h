@@ -20,6 +20,7 @@ WINRT_EXPORT namespace winrt::Windows::Foundation::Collections
 WINRT_EXPORT namespace winrt::Windows::System
 {
     struct AppDiagnosticInfo;
+    enum class ProcessorArchitecture : int32_t;
     struct User;
 }
 WINRT_EXPORT namespace winrt::Windows::System::Diagnostics
@@ -32,6 +33,7 @@ WINRT_EXPORT namespace winrt::Windows::System::Diagnostics
         Detecting = 3,
         Resolving = 4,
         VerifyingResolution = 5,
+        Executing = 6,
     };
     struct IDiagnosticActionResult;
     struct IDiagnosticInvoker;
@@ -51,6 +53,7 @@ WINRT_EXPORT namespace winrt::Windows::System::Diagnostics
     struct ISystemCpuUsageReport;
     struct ISystemDiagnosticInfo;
     struct ISystemDiagnosticInfoStatics;
+    struct ISystemDiagnosticInfoStatics2;
     struct ISystemMemoryUsage;
     struct ISystemMemoryUsageReport;
     struct DiagnosticActionResult;
@@ -88,6 +91,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::System::Diagnostics::ISystemCpuUsageReport>{ using type = interface_category; };
     template <> struct category<winrt::Windows::System::Diagnostics::ISystemDiagnosticInfo>{ using type = interface_category; };
     template <> struct category<winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::System::Diagnostics::ISystemMemoryUsage>{ using type = interface_category; };
     template <> struct category<winrt::Windows::System::Diagnostics::ISystemMemoryUsageReport>{ using type = interface_category; };
     template <> struct category<winrt::Windows::System::Diagnostics::DiagnosticActionResult>{ using type = class_category; };
@@ -138,6 +142,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::System::Diagnostics::ISystemCpuUsageReport> = L"Windows.System.Diagnostics.ISystemCpuUsageReport";
     template <> inline constexpr auto& name_v<winrt::Windows::System::Diagnostics::ISystemDiagnosticInfo> = L"Windows.System.Diagnostics.ISystemDiagnosticInfo";
     template <> inline constexpr auto& name_v<winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics> = L"Windows.System.Diagnostics.ISystemDiagnosticInfoStatics";
+    template <> inline constexpr auto& name_v<winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics2> = L"Windows.System.Diagnostics.ISystemDiagnosticInfoStatics2";
     template <> inline constexpr auto& name_v<winrt::Windows::System::Diagnostics::ISystemMemoryUsage> = L"Windows.System.Diagnostics.ISystemMemoryUsage";
     template <> inline constexpr auto& name_v<winrt::Windows::System::Diagnostics::ISystemMemoryUsageReport> = L"Windows.System.Diagnostics.ISystemMemoryUsageReport";
     template <> inline constexpr guid guid_v<winrt::Windows::System::Diagnostics::IDiagnosticActionResult>{ 0xC265A296,0xE73B,0x4097,{ 0xB2,0x8F,0x34,0x42,0xF0,0x3D,0xD8,0x31 } }; // C265A296-E73B-4097-B28F-3442F03DD831
@@ -158,6 +163,7 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::System::Diagnostics::ISystemCpuUsageReport>{ 0x2C26D0B2,0x9483,0x4F62,{ 0xAB,0x57,0x82,0xB2,0x9D,0x97,0x19,0xB8 } }; // 2C26D0B2-9483-4F62-AB57-82B29D9719B8
     template <> inline constexpr guid guid_v<winrt::Windows::System::Diagnostics::ISystemDiagnosticInfo>{ 0xA290FE05,0xDFF3,0x407F,{ 0x9A,0x1B,0x0B,0x2B,0x31,0x7C,0xA8,0x00 } }; // A290FE05-DFF3-407F-9A1B-0B2B317CA800
     template <> inline constexpr guid guid_v<winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics>{ 0xD404AC21,0xFC7D,0x45F0,{ 0x9A,0x3F,0x39,0x20,0x3A,0xED,0x9F,0x7E } }; // D404AC21-FC7D-45F0-9A3F-39203AED9F7E
+    template <> inline constexpr guid guid_v<winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics2>{ 0x79DED189,0x6AF9,0x4DA9,{ 0xA4,0x22,0x15,0xF7,0x32,0x55,0xB3,0xEB } }; // 79DED189-6AF9-4DA9-A422-15F73255B3EB
     template <> inline constexpr guid guid_v<winrt::Windows::System::Diagnostics::ISystemMemoryUsage>{ 0x17FFC595,0x1702,0x49CF,{ 0xAA,0x27,0x2F,0x0A,0x32,0x59,0x14,0x04 } }; // 17FFC595-1702-49CF-AA27-2F0A32591404
     template <> inline constexpr guid guid_v<winrt::Windows::System::Diagnostics::ISystemMemoryUsageReport>{ 0x38663C87,0x2A9F,0x403A,{ 0xBD,0x19,0x2C,0xF3,0xE8,0x16,0x95,0x00 } }; // 38663C87-2A9F-403A-BD19-2CF3E8169500
     template <> struct default_interface<winrt::Windows::System::Diagnostics::DiagnosticActionResult>{ using type = winrt::Windows::System::Diagnostics::IDiagnosticActionResult; };
@@ -329,6 +335,14 @@ namespace winrt::impl
         struct __declspec(novtable) type : inspectable_abi
         {
             virtual int32_t __stdcall GetForCurrentSystem(void**) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics2>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall IsArchitectureSupported(int32_t, bool*) noexcept = 0;
+            virtual int32_t __stdcall get_PreferredArchitecture(int32_t*) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::System::Diagnostics::ISystemMemoryUsage>
@@ -539,6 +553,16 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics>
     {
         template <typename D> using type = consume_Windows_System_Diagnostics_ISystemDiagnosticInfoStatics<D>;
+    };
+    template <typename D>
+    struct consume_Windows_System_Diagnostics_ISystemDiagnosticInfoStatics2
+    {
+        WINRT_IMPL_AUTO(bool) IsArchitectureSupported(winrt::Windows::System::ProcessorArchitecture const& type) const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::System::ProcessorArchitecture) PreferredArchitecture() const;
+    };
+    template <> struct consume<winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics2>
+    {
+        template <typename D> using type = consume_Windows_System_Diagnostics_ISystemDiagnosticInfoStatics2<D>;
     };
     template <typename D>
     struct consume_Windows_System_Diagnostics_ISystemMemoryUsage

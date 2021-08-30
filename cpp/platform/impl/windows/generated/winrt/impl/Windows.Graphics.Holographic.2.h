@@ -68,7 +68,7 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Holographic
         HolographicCameraPose& operator=(HolographicCameraPose&&) & noexcept = default;
     };
     struct __declspec(empty_bases) HolographicCameraRenderingParameters : winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters,
-        impl::require<HolographicCameraRenderingParameters, winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters2, winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters3>
+        impl::require<HolographicCameraRenderingParameters, winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters2, winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters3, winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters4>
     {
         HolographicCameraRenderingParameters(std::nullptr_t) noexcept {}
         HolographicCameraRenderingParameters(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters(ptr, take_ownership_from_abi) {}
@@ -219,7 +219,8 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Holographic
         HolographicSpaceCameraRemovedEventArgs& operator=(HolographicSpaceCameraRemovedEventArgs const&) & noexcept = default;
         HolographicSpaceCameraRemovedEventArgs& operator=(HolographicSpaceCameraRemovedEventArgs&&) & noexcept = default;
     };
-    struct __declspec(empty_bases) HolographicViewConfiguration : winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration
+    struct __declspec(empty_bases) HolographicViewConfiguration : winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration,
+        impl::require<HolographicViewConfiguration, winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration2>
     {
         HolographicViewConfiguration(std::nullptr_t) noexcept {}
         HolographicViewConfiguration(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration(ptr, take_ownership_from_abi) {}

@@ -981,6 +981,60 @@ namespace winrt::impl
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellLte)->get_TrackingAreaCode(&value));
         return winrt::Windows::Foundation::IReference<int32_t>{ value, take_ownership_from_abi };
     }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::IReference<int64_t>) consume_Windows_Networking_NetworkOperators_IMobileBroadbandCellNR<D>::CellId() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellNR)->get_CellId(&value));
+        return winrt::Windows::Foundation::IReference<int64_t>{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::IReference<int32_t>) consume_Windows_Networking_NetworkOperators_IMobileBroadbandCellNR<D>::ChannelNumber() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellNR)->get_ChannelNumber(&value));
+        return winrt::Windows::Foundation::IReference<int32_t>{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::IReference<int32_t>) consume_Windows_Networking_NetworkOperators_IMobileBroadbandCellNR<D>::PhysicalCellId() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellNR)->get_PhysicalCellId(&value));
+        return winrt::Windows::Foundation::IReference<int32_t>{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(hstring) consume_Windows_Networking_NetworkOperators_IMobileBroadbandCellNR<D>::ProviderId() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellNR)->get_ProviderId(&value));
+        return hstring{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::IReference<double>) consume_Windows_Networking_NetworkOperators_IMobileBroadbandCellNR<D>::ReferenceSignalReceivedPowerInDBm() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellNR)->get_ReferenceSignalReceivedPowerInDBm(&value));
+        return winrt::Windows::Foundation::IReference<double>{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::IReference<double>) consume_Windows_Networking_NetworkOperators_IMobileBroadbandCellNR<D>::ReferenceSignalReceivedQualityInDBm() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellNR)->get_ReferenceSignalReceivedQualityInDBm(&value));
+        return winrt::Windows::Foundation::IReference<double>{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::IReference<int32_t>) consume_Windows_Networking_NetworkOperators_IMobileBroadbandCellNR<D>::TimingAdvanceInNanoseconds() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellNR)->get_TimingAdvanceInNanoseconds(&value));
+        return winrt::Windows::Foundation::IReference<int32_t>{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::IReference<int32_t>) consume_Windows_Networking_NetworkOperators_IMobileBroadbandCellNR<D>::TrackingAreaCode() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellNR)->get_TrackingAreaCode(&value));
+        return winrt::Windows::Foundation::IReference<int32_t>{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::IReference<double>) consume_Windows_Networking_NetworkOperators_IMobileBroadbandCellNR<D>::SignalToNoiseRatioInDB() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellNR)->get_SignalToNoiseRatioInDB(&value));
+        return winrt::Windows::Foundation::IReference<double>{ value, take_ownership_from_abi };
+    }
     template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::IReference<int32_t>) consume_Windows_Networking_NetworkOperators_IMobileBroadbandCellTdscdma<D>::CellId() const
     {
         void* value{};
@@ -1137,6 +1191,24 @@ namespace winrt::impl
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellsInfo)->get_ServingCellsUmts(&value));
         return winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Networking::NetworkOperators::MobileBroadbandCellUmts>{ value, take_ownership_from_abi };
     }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Networking::NetworkOperators::MobileBroadbandCellNR>) consume_Windows_Networking_NetworkOperators_IMobileBroadbandCellsInfo2<D>::NeighboringCellsNR() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellsInfo2)->get_NeighboringCellsNR(&value));
+        return winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Networking::NetworkOperators::MobileBroadbandCellNR>{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Networking::NetworkOperators::MobileBroadbandCellNR>) consume_Windows_Networking_NetworkOperators_IMobileBroadbandCellsInfo2<D>::ServingCellsNR() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellsInfo2)->get_ServingCellsNR(&value));
+        return winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Networking::NetworkOperators::MobileBroadbandCellNR>{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(int32_t) consume_Windows_Networking_NetworkOperators_IMobileBroadbandCurrentSlotIndexChangedEventArgs<D>::CurrentSlotIndex() const
+    {
+        int32_t value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCurrentSlotIndexChangedEventArgs)->get_CurrentSlotIndex(&value));
+        return value;
+    }
     template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Networking::NetworkOperators::NetworkDeviceStatus) consume_Windows_Networking_NetworkOperators_IMobileBroadbandDeviceInformation<D>::NetworkDeviceStatus() const
     {
         winrt::Windows::Networking::NetworkOperators::NetworkDeviceStatus value{};
@@ -1256,6 +1328,12 @@ namespace winrt::impl
         void* value{};
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandDeviceInformation3)->get_SimGid1(&value));
         return hstring{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotManager) consume_Windows_Networking_NetworkOperators_IMobileBroadbandDeviceInformation4<D>::SlotManager() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandDeviceInformation4)->get_SlotManager(&value));
+        return winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotManager{ value, take_ownership_from_abi };
     }
     template <typename D> WINRT_IMPL_AUTO(winrt::guid) consume_Windows_Networking_NetworkOperators_IMobileBroadbandDeviceService<D>::DeviceServiceId() const
     {
@@ -1884,6 +1962,76 @@ namespace winrt::impl
     template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Networking_NetworkOperators_IMobileBroadbandSarManager<D>::StopTransmissionStateMonitoring() const
     {
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSarManager)->StopTransmissionStateMonitoring());
+    }
+    template <typename D> WINRT_IMPL_AUTO(int32_t) consume_Windows_Networking_NetworkOperators_IMobileBroadbandSlotInfo<D>::Index() const
+    {
+        int32_t value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotInfo)->get_Index(&value));
+        return value;
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotState) consume_Windows_Networking_NetworkOperators_IMobileBroadbandSlotInfo<D>::State() const
+    {
+        winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotState value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotInfo)->get_State(reinterpret_cast<int32_t*>(&value)));
+        return value;
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotInfo) consume_Windows_Networking_NetworkOperators_IMobileBroadbandSlotInfoChangedEventArgs<D>::SlotInfo() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotInfoChangedEventArgs)->get_SlotInfo(&value));
+        return winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotInfo{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotInfo>) consume_Windows_Networking_NetworkOperators_IMobileBroadbandSlotManager<D>::SlotInfos() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotManager)->get_SlotInfos(&value));
+        return winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotInfo>{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(int32_t) consume_Windows_Networking_NetworkOperators_IMobileBroadbandSlotManager<D>::CurrentSlotIndex() const
+    {
+        int32_t value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotManager)->get_CurrentSlotIndex(&value));
+        return value;
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Networking::NetworkOperators::MobileBroadbandModemStatus) consume_Windows_Networking_NetworkOperators_IMobileBroadbandSlotManager<D>::SetCurrentSlot(int32_t slotIndex) const
+    {
+        winrt::Windows::Networking::NetworkOperators::MobileBroadbandModemStatus result{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotManager)->SetCurrentSlot(slotIndex, reinterpret_cast<int32_t*>(&result)));
+        return result;
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Networking::NetworkOperators::MobileBroadbandModemStatus>) consume_Windows_Networking_NetworkOperators_IMobileBroadbandSlotManager<D>::SetCurrentSlotAsync(int32_t slotIndex) const
+    {
+        void* operation{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotManager)->SetCurrentSlotAsync(slotIndex, &operation));
+        return winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Networking::NetworkOperators::MobileBroadbandModemStatus>{ operation, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::event_token) consume_Windows_Networking_NetworkOperators_IMobileBroadbandSlotManager<D>::SlotInfoChanged(winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotManager, winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotInfoChangedEventArgs> const& handler) const
+    {
+        winrt::event_token token{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotManager)->add_SlotInfoChanged(*(void**)(&handler), put_abi(token)));
+        return token;
+    }
+    template <typename D> typename consume_Windows_Networking_NetworkOperators_IMobileBroadbandSlotManager<D>::SlotInfoChanged_revoker consume_Windows_Networking_NetworkOperators_IMobileBroadbandSlotManager<D>::SlotInfoChanged(auto_revoke_t, winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotManager, winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotInfoChangedEventArgs> const& handler) const
+    {
+        return impl::make_event_revoker<D, SlotInfoChanged_revoker>(this, SlotInfoChanged(handler));
+    }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Networking_NetworkOperators_IMobileBroadbandSlotManager<D>::SlotInfoChanged(winrt::event_token const& token) const noexcept
+    {
+        WINRT_VERIFY_(0, WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotManager)->remove_SlotInfoChanged(impl::bind_in(token)));
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::event_token) consume_Windows_Networking_NetworkOperators_IMobileBroadbandSlotManager<D>::CurrentSlotIndexChanged(winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotManager, winrt::Windows::Networking::NetworkOperators::MobileBroadbandCurrentSlotIndexChangedEventArgs> const& handler) const
+    {
+        winrt::event_token token{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotManager)->add_CurrentSlotIndexChanged(*(void**)(&handler), put_abi(token)));
+        return token;
+    }
+    template <typename D> typename consume_Windows_Networking_NetworkOperators_IMobileBroadbandSlotManager<D>::CurrentSlotIndexChanged_revoker consume_Windows_Networking_NetworkOperators_IMobileBroadbandSlotManager<D>::CurrentSlotIndexChanged(auto_revoke_t, winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotManager, winrt::Windows::Networking::NetworkOperators::MobileBroadbandCurrentSlotIndexChangedEventArgs> const& handler) const
+    {
+        return impl::make_event_revoker<D, CurrentSlotIndexChanged_revoker>(this, CurrentSlotIndexChanged(handler));
+    }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Networking_NetworkOperators_IMobileBroadbandSlotManager<D>::CurrentSlotIndexChanged(winrt::event_token const& token) const noexcept
+    {
+        WINRT_VERIFY_(0, WINRT_IMPL_SHIM(winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotManager)->remove_CurrentSlotIndexChanged(impl::bind_in(token)));
     }
     template <typename D> WINRT_IMPL_AUTO(bool) consume_Windows_Networking_NetworkOperators_IMobileBroadbandTransmissionStateChangedEventArgs<D>::IsTransmitting() const
     {
@@ -3772,6 +3920,84 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
+    struct produce<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellNR> : produce_base<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellNR>
+    {
+        int32_t __stdcall get_CellId(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Foundation::IReference<int64_t>>(this->shim().CellId());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_ChannelNumber(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Foundation::IReference<int32_t>>(this->shim().ChannelNumber());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_PhysicalCellId(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Foundation::IReference<int32_t>>(this->shim().PhysicalCellId());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_ProviderId(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<hstring>(this->shim().ProviderId());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_ReferenceSignalReceivedPowerInDBm(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Foundation::IReference<double>>(this->shim().ReferenceSignalReceivedPowerInDBm());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_ReferenceSignalReceivedQualityInDBm(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Foundation::IReference<double>>(this->shim().ReferenceSignalReceivedQualityInDBm());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_TimingAdvanceInNanoseconds(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Foundation::IReference<int32_t>>(this->shim().TimingAdvanceInNanoseconds());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_TrackingAreaCode(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Foundation::IReference<int32_t>>(this->shim().TrackingAreaCode());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_SignalToNoiseRatioInDB(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Foundation::IReference<double>>(this->shim().SignalToNoiseRatioInDB());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
     struct produce<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellTdscdma> : produce_base<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellTdscdma>
     {
         int32_t __stdcall get_CellId(void** value) noexcept final try
@@ -3998,6 +4224,41 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
+    struct produce<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellsInfo2> : produce_base<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellsInfo2>
+    {
+        int32_t __stdcall get_NeighboringCellsNR(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Networking::NetworkOperators::MobileBroadbandCellNR>>(this->shim().NeighboringCellsNR());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_ServingCellsNR(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Networking::NetworkOperators::MobileBroadbandCellNR>>(this->shim().ServingCellsNR());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCurrentSlotIndexChangedEventArgs> : produce_base<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCurrentSlotIndexChangedEventArgs>
+    {
+        int32_t __stdcall get_CurrentSlotIndex(int32_t* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<int32_t>(this->shim().CurrentSlotIndex());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
     struct produce<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandDeviceInformation> : produce_base<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandDeviceInformation>
     {
         int32_t __stdcall get_NetworkDeviceStatus(int32_t* value) noexcept final try
@@ -4164,6 +4425,20 @@ namespace winrt::impl
             clear_abi(value);
             typename D::abi_guard guard(this->shim());
             *value = detach_from<hstring>(this->shim().SimGid1());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandDeviceInformation4> : produce_base<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandDeviceInformation4>
+    {
+        int32_t __stdcall get_SlotManager(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotManager>(this->shim().SlotManager());
             return 0;
         }
         catch (...) { return to_hresult(); }
@@ -5151,6 +5426,104 @@ namespace winrt::impl
             return 0;
         }
         catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotInfo> : produce_base<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotInfo>
+    {
+        int32_t __stdcall get_Index(int32_t* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<int32_t>(this->shim().Index());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_State(int32_t* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotState>(this->shim().State());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotInfoChangedEventArgs> : produce_base<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotInfoChangedEventArgs>
+    {
+        int32_t __stdcall get_SlotInfo(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotInfo>(this->shim().SlotInfo());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotManager> : produce_base<D, winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotManager>
+    {
+        int32_t __stdcall get_SlotInfos(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotInfo>>(this->shim().SlotInfos());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_CurrentSlotIndex(int32_t* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<int32_t>(this->shim().CurrentSlotIndex());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall SetCurrentSlot(int32_t slotIndex, int32_t* result) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *result = detach_from<winrt::Windows::Networking::NetworkOperators::MobileBroadbandModemStatus>(this->shim().SetCurrentSlot(slotIndex));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall SetCurrentSlotAsync(int32_t slotIndex, void** operation) noexcept final try
+        {
+            clear_abi(operation);
+            typename D::abi_guard guard(this->shim());
+            *operation = detach_from<winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Networking::NetworkOperators::MobileBroadbandModemStatus>>(this->shim().SetCurrentSlotAsync(slotIndex));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall add_SlotInfoChanged(void* handler, winrt::event_token* token) noexcept final try
+        {
+            zero_abi<winrt::event_token>(token);
+            typename D::abi_guard guard(this->shim());
+            *token = detach_from<winrt::event_token>(this->shim().SlotInfoChanged(*reinterpret_cast<winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotManager, winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotInfoChangedEventArgs> const*>(&handler)));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall remove_SlotInfoChanged(winrt::event_token token) noexcept final
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().SlotInfoChanged(*reinterpret_cast<winrt::event_token const*>(&token));
+            return 0;
+        }
+        int32_t __stdcall add_CurrentSlotIndexChanged(void* handler, winrt::event_token* token) noexcept final try
+        {
+            zero_abi<winrt::event_token>(token);
+            typename D::abi_guard guard(this->shim());
+            *token = detach_from<winrt::event_token>(this->shim().CurrentSlotIndexChanged(*reinterpret_cast<winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotManager, winrt::Windows::Networking::NetworkOperators::MobileBroadbandCurrentSlotIndexChangedEventArgs> const*>(&handler)));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall remove_CurrentSlotIndexChanged(winrt::event_token token) noexcept final
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().CurrentSlotIndexChanged(*reinterpret_cast<winrt::event_token const*>(&token));
+            return 0;
+        }
     };
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
@@ -6173,12 +6546,16 @@ namespace std
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellCdma> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellGsm> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellLte> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellNR> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellTdscdma> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellUmts> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellsInfo> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCellsInfo2> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandCurrentSlotIndexChangedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandDeviceInformation> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandDeviceInformation2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandDeviceInformation3> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandDeviceInformation4> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandDeviceService> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandDeviceServiceCommandResult> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandDeviceServiceCommandSession> : winrt::impl::hash_base {};
@@ -6209,6 +6586,9 @@ namespace std
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandRadioStateChange> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandRadioStateChangeTriggerDetails> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSarManager> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotInfo> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotInfoChangedEventArgs> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandSlotManager> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandTransmissionStateChangedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandUicc> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IMobileBroadbandUiccApp> : winrt::impl::hash_base {};
@@ -6269,9 +6649,11 @@ namespace std
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandCellCdma> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandCellGsm> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandCellLte> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandCellNR> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandCellTdscdma> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandCellUmts> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandCellsInfo> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandCurrentSlotIndexChangedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandDeviceInformation> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandDeviceService> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandDeviceServiceCommandResult> : winrt::impl::hash_base {};
@@ -6296,6 +6678,9 @@ namespace std
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandRadioStateChange> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandRadioStateChangeTriggerDetails> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSarManager> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotInfo> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotInfoChangedEventArgs> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandSlotManager> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandTransmissionStateChangedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandUicc> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::MobileBroadbandUiccApp> : winrt::impl::hash_base {};

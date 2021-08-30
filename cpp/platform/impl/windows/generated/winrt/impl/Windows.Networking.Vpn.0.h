@@ -143,6 +143,7 @@ WINRT_EXPORT namespace winrt::Windows::Networking::Vpn
     struct IVpnChannel;
     struct IVpnChannel2;
     struct IVpnChannel4;
+    struct IVpnChannel5;
     struct IVpnChannelActivityEventArgs;
     struct IVpnChannelActivityStateChangedArgs;
     struct IVpnChannelConfiguration;
@@ -229,6 +230,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Networking::Vpn::IVpnChannel>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Networking::Vpn::IVpnChannel2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Networking::Vpn::IVpnChannel4>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Networking::Vpn::IVpnChannel5>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Networking::Vpn::IVpnChannelActivityEventArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Networking::Vpn::IVpnChannelActivityStateChangedArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Networking::Vpn::IVpnChannelConfiguration>{ using type = interface_category; };
@@ -369,6 +371,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::Vpn::IVpnChannel> = L"Windows.Networking.Vpn.IVpnChannel";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::Vpn::IVpnChannel2> = L"Windows.Networking.Vpn.IVpnChannel2";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::Vpn::IVpnChannel4> = L"Windows.Networking.Vpn.IVpnChannel4";
+    template <> inline constexpr auto& name_v<winrt::Windows::Networking::Vpn::IVpnChannel5> = L"Windows.Networking.Vpn.IVpnChannel5";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::Vpn::IVpnChannelActivityEventArgs> = L"Windows.Networking.Vpn.IVpnChannelActivityEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::Vpn::IVpnChannelActivityStateChangedArgs> = L"Windows.Networking.Vpn.IVpnChannelActivityStateChangedArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::Vpn::IVpnChannelConfiguration> = L"Windows.Networking.Vpn.IVpnChannelConfiguration";
@@ -421,6 +424,7 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Networking::Vpn::IVpnChannel>{ 0x4AC78D07,0xD1A8,0x4303,{ 0xA0,0x91,0xC8,0xD2,0xE0,0x91,0x5B,0xC3 } }; // 4AC78D07-D1A8-4303-A091-C8D2E0915BC3
     template <> inline constexpr guid guid_v<winrt::Windows::Networking::Vpn::IVpnChannel2>{ 0x2255D165,0x993B,0x4629,{ 0xAD,0x60,0xF1,0xC3,0xF3,0x53,0x7F,0x50 } }; // 2255D165-993B-4629-AD60-F1C3F3537F50
     template <> inline constexpr guid guid_v<winrt::Windows::Networking::Vpn::IVpnChannel4>{ 0xD7266EDE,0x2937,0x419D,{ 0x95,0x70,0x48,0x6A,0xEB,0xB8,0x18,0x03 } }; // D7266EDE-2937-419D-9570-486AEBB81803
+    template <> inline constexpr guid guid_v<winrt::Windows::Networking::Vpn::IVpnChannel5>{ 0xDE7A0992,0x8384,0x4FBC,{ 0x88,0x2C,0x1F,0xD2,0x31,0x24,0xCD,0x3B } }; // DE7A0992-8384-4FBC-882C-1FD23124CD3B
     template <> inline constexpr guid guid_v<winrt::Windows::Networking::Vpn::IVpnChannelActivityEventArgs>{ 0xA36C88F2,0xAFDC,0x4775,{ 0x85,0x5D,0xD4,0xAC,0x0A,0x35,0xFC,0x55 } }; // A36C88F2-AFDC-4775-855D-D4AC0A35FC55
     template <> inline constexpr guid guid_v<winrt::Windows::Networking::Vpn::IVpnChannelActivityStateChangedArgs>{ 0x3D750565,0xFDC0,0x4BBE,{ 0xA2,0x3B,0x45,0xFF,0xFC,0x6D,0x97,0xA1 } }; // 3D750565-FDC0-4BBE-A23B-45FFFC6D97A1
     template <> inline constexpr guid guid_v<winrt::Windows::Networking::Vpn::IVpnChannelConfiguration>{ 0x0E2DDCA2,0x2012,0x4FE4,{ 0xB1,0x79,0x8C,0x65,0x2C,0x6D,0x10,0x7E } }; // 0E2DDCA2-2012-4FE4-B179-8C652C6D107E
@@ -566,6 +570,16 @@ namespace winrt::impl
             virtual int32_t __stdcall StartReconnectingTransport(void*, void*) noexcept = 0;
             virtual int32_t __stdcall GetSlotTypeForTransportContext(void*, int32_t*) noexcept = 0;
             virtual int32_t __stdcall get_CurrentRequestTransportContext(void**) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Networking::Vpn::IVpnChannel5>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall AppendVpnReceivePacketBuffer(void*) noexcept = 0;
+            virtual int32_t __stdcall AppendVpnSendPacketBuffer(void*) noexcept = 0;
+            virtual int32_t __stdcall FlushVpnReceivePacketBuffers() noexcept = 0;
+            virtual int32_t __stdcall FlushVpnSendPacketBuffers() noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::Networking::Vpn::IVpnChannelActivityEventArgs>
@@ -1107,6 +1121,18 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::Networking::Vpn::IVpnChannel4>
     {
         template <typename D> using type = consume_Windows_Networking_Vpn_IVpnChannel4<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Networking_Vpn_IVpnChannel5
+    {
+        WINRT_IMPL_AUTO(void) AppendVpnReceivePacketBuffer(winrt::Windows::Networking::Vpn::VpnPacketBuffer const& decapsulatedPacketBuffer) const;
+        WINRT_IMPL_AUTO(void) AppendVpnSendPacketBuffer(winrt::Windows::Networking::Vpn::VpnPacketBuffer const& encapsulatedPacketBuffer) const;
+        WINRT_IMPL_AUTO(void) FlushVpnReceivePacketBuffers() const;
+        WINRT_IMPL_AUTO(void) FlushVpnSendPacketBuffers() const;
+    };
+    template <> struct consume<winrt::Windows::Networking::Vpn::IVpnChannel5>
+    {
+        template <typename D> using type = consume_Windows_Networking_Vpn_IVpnChannel5<D>;
     };
     template <typename D>
     struct consume_Windows_Networking_Vpn_IVpnChannelActivityEventArgs

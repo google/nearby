@@ -1784,6 +1784,8 @@ WINRT_EXPORT namespace winrt::Windows::UI::Xaml::Core::Direct
         CommandBarTemplateSettings_OverflowContentCompactYTranslation = 2384,
         CommandBarTemplateSettings_OverflowContentHiddenYTranslation = 2385,
         CommandBarTemplateSettings_OverflowContentMinimalYTranslation = 2386,
+        HandwritingView_IsCommandBarOpen = 2395,
+        HandwritingView_IsSwitchToKeyboardEnabled = 2396,
     };
     enum class XamlTypeIndex : int32_t
     {

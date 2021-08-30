@@ -95,6 +95,17 @@ WINRT_EXPORT namespace winrt::Windows::Devices::Geolocation
         IGeocoordinateSatelliteData& operator=(IGeocoordinateSatelliteData const&) & noexcept = default;
         IGeocoordinateSatelliteData& operator=(IGeocoordinateSatelliteData&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IGeocoordinateSatelliteData2 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IGeocoordinateSatelliteData2>
+    {
+        IGeocoordinateSatelliteData2(std::nullptr_t = nullptr) noexcept {}
+        IGeocoordinateSatelliteData2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IGeocoordinateSatelliteData2(IGeocoordinateSatelliteData2 const&) noexcept = default;
+        IGeocoordinateSatelliteData2(IGeocoordinateSatelliteData2&&) noexcept = default;
+        IGeocoordinateSatelliteData2& operator=(IGeocoordinateSatelliteData2 const&) & noexcept = default;
+        IGeocoordinateSatelliteData2& operator=(IGeocoordinateSatelliteData2&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IGeocoordinateWithPoint :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IGeocoordinateWithPoint>

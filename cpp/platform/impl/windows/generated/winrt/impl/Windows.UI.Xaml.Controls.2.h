@@ -1527,7 +1527,7 @@ WINRT_EXPORT namespace winrt::Windows::UI::Xaml::Controls
     };
     struct __declspec(empty_bases) HandwritingView : winrt::Windows::UI::Xaml::Controls::IHandwritingView,
         impl::base<HandwritingView, winrt::Windows::UI::Xaml::Controls::Control, winrt::Windows::UI::Xaml::FrameworkElement, winrt::Windows::UI::Xaml::UIElement, winrt::Windows::UI::Xaml::DependencyObject>,
-        impl::require<HandwritingView, winrt::Windows::UI::Xaml::Controls::IControl, winrt::Windows::UI::Xaml::Controls::IControl2, winrt::Windows::UI::Xaml::Controls::IControl3, winrt::Windows::UI::Xaml::Controls::IControl4, winrt::Windows::UI::Xaml::Controls::IControl5, winrt::Windows::UI::Xaml::Controls::IControl7, winrt::Windows::UI::Xaml::Controls::IControlProtected, winrt::Windows::UI::Xaml::Controls::IControlOverrides, winrt::Windows::UI::Xaml::Controls::IControlOverrides6, winrt::Windows::UI::Xaml::IFrameworkElement, winrt::Windows::UI::Xaml::IFrameworkElement2, winrt::Windows::UI::Xaml::IFrameworkElement3, winrt::Windows::UI::Xaml::IFrameworkElement4, winrt::Windows::UI::Xaml::IFrameworkElement6, winrt::Windows::UI::Xaml::IFrameworkElement7, winrt::Windows::UI::Xaml::IFrameworkElementProtected7, winrt::Windows::UI::Xaml::IFrameworkElementOverrides, winrt::Windows::UI::Xaml::IFrameworkElementOverrides2, winrt::Windows::UI::Xaml::IUIElement, winrt::Windows::UI::Xaml::IUIElement2, winrt::Windows::UI::Xaml::IUIElement3, winrt::Windows::UI::Xaml::IUIElement4, winrt::Windows::UI::Xaml::IUIElement5, winrt::Windows::UI::Xaml::IUIElement7, winrt::Windows::UI::Xaml::IUIElement8, winrt::Windows::UI::Xaml::IUIElement9, winrt::Windows::UI::Xaml::IUIElement10, winrt::Windows::UI::Xaml::IUIElementOverrides, winrt::Windows::UI::Xaml::IUIElementOverrides7, winrt::Windows::UI::Xaml::IUIElementOverrides8, winrt::Windows::UI::Xaml::IUIElementOverrides9, winrt::Windows::UI::Composition::IAnimationObject, winrt::Windows::UI::Composition::IVisualElement, winrt::Windows::UI::Xaml::IDependencyObject, winrt::Windows::UI::Xaml::IDependencyObject2>
+        impl::require<HandwritingView, winrt::Windows::UI::Xaml::Controls::IHandwritingView2, winrt::Windows::UI::Xaml::Controls::IControl, winrt::Windows::UI::Xaml::Controls::IControl2, winrt::Windows::UI::Xaml::Controls::IControl3, winrt::Windows::UI::Xaml::Controls::IControl4, winrt::Windows::UI::Xaml::Controls::IControl5, winrt::Windows::UI::Xaml::Controls::IControl7, winrt::Windows::UI::Xaml::Controls::IControlProtected, winrt::Windows::UI::Xaml::Controls::IControlOverrides, winrt::Windows::UI::Xaml::Controls::IControlOverrides6, winrt::Windows::UI::Xaml::IFrameworkElement, winrt::Windows::UI::Xaml::IFrameworkElement2, winrt::Windows::UI::Xaml::IFrameworkElement3, winrt::Windows::UI::Xaml::IFrameworkElement4, winrt::Windows::UI::Xaml::IFrameworkElement6, winrt::Windows::UI::Xaml::IFrameworkElement7, winrt::Windows::UI::Xaml::IFrameworkElementProtected7, winrt::Windows::UI::Xaml::IFrameworkElementOverrides, winrt::Windows::UI::Xaml::IFrameworkElementOverrides2, winrt::Windows::UI::Xaml::IUIElement, winrt::Windows::UI::Xaml::IUIElement2, winrt::Windows::UI::Xaml::IUIElement3, winrt::Windows::UI::Xaml::IUIElement4, winrt::Windows::UI::Xaml::IUIElement5, winrt::Windows::UI::Xaml::IUIElement7, winrt::Windows::UI::Xaml::IUIElement8, winrt::Windows::UI::Xaml::IUIElement9, winrt::Windows::UI::Xaml::IUIElement10, winrt::Windows::UI::Xaml::IUIElementOverrides, winrt::Windows::UI::Xaml::IUIElementOverrides7, winrt::Windows::UI::Xaml::IUIElementOverrides8, winrt::Windows::UI::Xaml::IUIElementOverrides9, winrt::Windows::UI::Composition::IAnimationObject, winrt::Windows::UI::Composition::IVisualElement, winrt::Windows::UI::Xaml::IDependencyObject, winrt::Windows::UI::Xaml::IDependencyObject2>
     {
         HandwritingView(std::nullptr_t) noexcept {}
         HandwritingView(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Xaml::Controls::IHandwritingView(ptr, take_ownership_from_abi) {}
@@ -1540,6 +1540,26 @@ WINRT_EXPORT namespace winrt::Windows::UI::Xaml::Controls
         [[nodiscard]] static auto PlacementAlignmentProperty();
         [[nodiscard]] static auto IsOpenProperty();
         [[nodiscard]] static auto AreCandidatesEnabledProperty();
+        [[nodiscard]] static auto IsSwitchToKeyboardEnabledProperty();
+        [[nodiscard]] static auto IsCommandBarOpenProperty();
+    };
+    struct __declspec(empty_bases) HandwritingViewCandidatesChangedEventArgs : winrt::Windows::UI::Xaml::Controls::IHandwritingViewCandidatesChangedEventArgs
+    {
+        HandwritingViewCandidatesChangedEventArgs(std::nullptr_t) noexcept {}
+        HandwritingViewCandidatesChangedEventArgs(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Xaml::Controls::IHandwritingViewCandidatesChangedEventArgs(ptr, take_ownership_from_abi) {}
+        HandwritingViewCandidatesChangedEventArgs(HandwritingViewCandidatesChangedEventArgs const&) noexcept = default;
+        HandwritingViewCandidatesChangedEventArgs(HandwritingViewCandidatesChangedEventArgs&&) noexcept = default;
+        HandwritingViewCandidatesChangedEventArgs& operator=(HandwritingViewCandidatesChangedEventArgs const&) & noexcept = default;
+        HandwritingViewCandidatesChangedEventArgs& operator=(HandwritingViewCandidatesChangedEventArgs&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) HandwritingViewTextSubmittedEventArgs : winrt::Windows::UI::Xaml::Controls::IHandwritingViewTextSubmittedEventArgs
+    {
+        HandwritingViewTextSubmittedEventArgs(std::nullptr_t) noexcept {}
+        HandwritingViewTextSubmittedEventArgs(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Xaml::Controls::IHandwritingViewTextSubmittedEventArgs(ptr, take_ownership_from_abi) {}
+        HandwritingViewTextSubmittedEventArgs(HandwritingViewTextSubmittedEventArgs const&) noexcept = default;
+        HandwritingViewTextSubmittedEventArgs(HandwritingViewTextSubmittedEventArgs&&) noexcept = default;
+        HandwritingViewTextSubmittedEventArgs& operator=(HandwritingViewTextSubmittedEventArgs const&) & noexcept = default;
+        HandwritingViewTextSubmittedEventArgs& operator=(HandwritingViewTextSubmittedEventArgs&&) & noexcept = default;
     };
     struct __declspec(empty_bases) Hub : winrt::Windows::UI::Xaml::Controls::IHub,
         impl::base<Hub, winrt::Windows::UI::Xaml::Controls::Control, winrt::Windows::UI::Xaml::FrameworkElement, winrt::Windows::UI::Xaml::UIElement, winrt::Windows::UI::Xaml::DependencyObject>,

@@ -204,5 +204,27 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Display
         IDisplayPropertiesStatics& operator=(IDisplayPropertiesStatics const&) & noexcept = default;
         IDisplayPropertiesStatics& operator=(IDisplayPropertiesStatics&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IDisplayServices :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IDisplayServices>
+    {
+        IDisplayServices(std::nullptr_t = nullptr) noexcept {}
+        IDisplayServices(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IDisplayServices(IDisplayServices const&) noexcept = default;
+        IDisplayServices(IDisplayServices&&) noexcept = default;
+        IDisplayServices& operator=(IDisplayServices const&) & noexcept = default;
+        IDisplayServices& operator=(IDisplayServices&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IDisplayServicesStatics :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IDisplayServicesStatics>
+    {
+        IDisplayServicesStatics(std::nullptr_t = nullptr) noexcept {}
+        IDisplayServicesStatics(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IDisplayServicesStatics(IDisplayServicesStatics const&) noexcept = default;
+        IDisplayServicesStatics(IDisplayServicesStatics&&) noexcept = default;
+        IDisplayServicesStatics& operator=(IDisplayServicesStatics const&) & noexcept = default;
+        IDisplayServicesStatics& operator=(IDisplayServicesStatics&&) & noexcept = default;
+    };
 }
 #endif

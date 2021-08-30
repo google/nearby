@@ -10,7 +10,7 @@
 WINRT_EXPORT namespace winrt::Windows::ApplicationModel::Core
 {
     struct __declspec(empty_bases) AppListEntry : winrt::Windows::ApplicationModel::Core::IAppListEntry,
-        impl::require<AppListEntry, winrt::Windows::ApplicationModel::Core::IAppListEntry2, winrt::Windows::ApplicationModel::Core::IAppListEntry3>
+        impl::require<AppListEntry, winrt::Windows::ApplicationModel::Core::IAppListEntry2, winrt::Windows::ApplicationModel::Core::IAppListEntry3, winrt::Windows::ApplicationModel::Core::IAppListEntry4>
     {
         AppListEntry(std::nullptr_t) noexcept {}
         AppListEntry(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::ApplicationModel::Core::IAppListEntry(ptr, take_ownership_from_abi) {}

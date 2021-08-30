@@ -38,6 +38,17 @@ WINRT_EXPORT namespace winrt::Windows::System::Profile
         IAnalyticsVersionInfo& operator=(IAnalyticsVersionInfo const&) & noexcept = default;
         IAnalyticsVersionInfo& operator=(IAnalyticsVersionInfo&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IAnalyticsVersionInfo2 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IAnalyticsVersionInfo2>
+    {
+        IAnalyticsVersionInfo2(std::nullptr_t = nullptr) noexcept {}
+        IAnalyticsVersionInfo2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IAnalyticsVersionInfo2(IAnalyticsVersionInfo2 const&) noexcept = default;
+        IAnalyticsVersionInfo2(IAnalyticsVersionInfo2&&) noexcept = default;
+        IAnalyticsVersionInfo2& operator=(IAnalyticsVersionInfo2 const&) & noexcept = default;
+        IAnalyticsVersionInfo2& operator=(IAnalyticsVersionInfo2&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IAppApplicabilityStatics :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IAppApplicabilityStatics>

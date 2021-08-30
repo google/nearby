@@ -61,6 +61,17 @@ WINRT_EXPORT namespace winrt::Windows::Networking::Vpn
         IVpnChannel4& operator=(IVpnChannel4 const&) & noexcept = default;
         IVpnChannel4& operator=(IVpnChannel4&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IVpnChannel5 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IVpnChannel5>
+    {
+        IVpnChannel5(std::nullptr_t = nullptr) noexcept {}
+        IVpnChannel5(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IVpnChannel5(IVpnChannel5 const&) noexcept = default;
+        IVpnChannel5(IVpnChannel5&&) noexcept = default;
+        IVpnChannel5& operator=(IVpnChannel5 const&) & noexcept = default;
+        IVpnChannel5& operator=(IVpnChannel5&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IVpnChannelActivityEventArgs :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IVpnChannelActivityEventArgs>

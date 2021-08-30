@@ -71,6 +71,28 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         IAnimationPropertyInfo& operator=(IAnimationPropertyInfo const&) & noexcept = default;
         IAnimationPropertyInfo& operator=(IAnimationPropertyInfo&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IAnimationPropertyInfo2 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IAnimationPropertyInfo2>
+    {
+        IAnimationPropertyInfo2(std::nullptr_t = nullptr) noexcept {}
+        IAnimationPropertyInfo2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IAnimationPropertyInfo2(IAnimationPropertyInfo2 const&) noexcept = default;
+        IAnimationPropertyInfo2(IAnimationPropertyInfo2&&) noexcept = default;
+        IAnimationPropertyInfo2& operator=(IAnimationPropertyInfo2 const&) & noexcept = default;
+        IAnimationPropertyInfo2& operator=(IAnimationPropertyInfo2&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IBackEasingFunction :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IBackEasingFunction>
+    {
+        IBackEasingFunction(std::nullptr_t = nullptr) noexcept {}
+        IBackEasingFunction(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IBackEasingFunction(IBackEasingFunction const&) noexcept = default;
+        IBackEasingFunction(IBackEasingFunction&&) noexcept = default;
+        IBackEasingFunction& operator=(IBackEasingFunction const&) & noexcept = default;
+        IBackEasingFunction& operator=(IBackEasingFunction&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IBooleanKeyFrameAnimation :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IBooleanKeyFrameAnimation>
@@ -81,6 +103,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         IBooleanKeyFrameAnimation(IBooleanKeyFrameAnimation&&) noexcept = default;
         IBooleanKeyFrameAnimation& operator=(IBooleanKeyFrameAnimation const&) & noexcept = default;
         IBooleanKeyFrameAnimation& operator=(IBooleanKeyFrameAnimation&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IBounceEasingFunction :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IBounceEasingFunction>
+    {
+        IBounceEasingFunction(std::nullptr_t = nullptr) noexcept {}
+        IBounceEasingFunction(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IBounceEasingFunction(IBounceEasingFunction const&) noexcept = default;
+        IBounceEasingFunction(IBounceEasingFunction&&) noexcept = default;
+        IBounceEasingFunction& operator=(IBounceEasingFunction const&) & noexcept = default;
+        IBounceEasingFunction& operator=(IBounceEasingFunction&&) & noexcept = default;
     };
     struct __declspec(empty_bases) IBounceScalarNaturalMotionAnimation :
         winrt::Windows::Foundation::IInspectable,
@@ -114,6 +147,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         IBounceVector3NaturalMotionAnimation(IBounceVector3NaturalMotionAnimation&&) noexcept = default;
         IBounceVector3NaturalMotionAnimation& operator=(IBounceVector3NaturalMotionAnimation const&) & noexcept = default;
         IBounceVector3NaturalMotionAnimation& operator=(IBounceVector3NaturalMotionAnimation&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) ICircleEasingFunction :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<ICircleEasingFunction>
+    {
+        ICircleEasingFunction(std::nullptr_t = nullptr) noexcept {}
+        ICircleEasingFunction(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        ICircleEasingFunction(ICircleEasingFunction const&) noexcept = default;
+        ICircleEasingFunction(ICircleEasingFunction&&) noexcept = default;
+        ICircleEasingFunction& operator=(ICircleEasingFunction const&) & noexcept = default;
+        ICircleEasingFunction& operator=(ICircleEasingFunction&&) & noexcept = default;
     };
     struct __declspec(empty_bases) IColorKeyFrameAnimation :
         winrt::Windows::Foundation::IInspectable,
@@ -412,6 +456,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         ICompositionEasingFunctionFactory& operator=(ICompositionEasingFunctionFactory const&) & noexcept = default;
         ICompositionEasingFunctionFactory& operator=(ICompositionEasingFunctionFactory&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) ICompositionEasingFunctionStatics :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<ICompositionEasingFunctionStatics>
+    {
+        ICompositionEasingFunctionStatics(std::nullptr_t = nullptr) noexcept {}
+        ICompositionEasingFunctionStatics(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        ICompositionEasingFunctionStatics(ICompositionEasingFunctionStatics const&) noexcept = default;
+        ICompositionEasingFunctionStatics(ICompositionEasingFunctionStatics&&) noexcept = default;
+        ICompositionEasingFunctionStatics& operator=(ICompositionEasingFunctionStatics const&) & noexcept = default;
+        ICompositionEasingFunctionStatics& operator=(ICompositionEasingFunctionStatics&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) ICompositionEffectBrush :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<ICompositionEffectBrush>
@@ -565,6 +620,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         ICompositionGraphicsDevice3(ICompositionGraphicsDevice3&&) noexcept = default;
         ICompositionGraphicsDevice3& operator=(ICompositionGraphicsDevice3 const&) & noexcept = default;
         ICompositionGraphicsDevice3& operator=(ICompositionGraphicsDevice3&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) ICompositionGraphicsDevice4 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<ICompositionGraphicsDevice4>
+    {
+        ICompositionGraphicsDevice4(std::nullptr_t = nullptr) noexcept {}
+        ICompositionGraphicsDevice4(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        ICompositionGraphicsDevice4(ICompositionGraphicsDevice4 const&) noexcept = default;
+        ICompositionGraphicsDevice4(ICompositionGraphicsDevice4&&) noexcept = default;
+        ICompositionGraphicsDevice4& operator=(ICompositionGraphicsDevice4 const&) & noexcept = default;
+        ICompositionGraphicsDevice4& operator=(ICompositionGraphicsDevice4&&) & noexcept = default;
     };
     struct __declspec(empty_bases) ICompositionLight :
         winrt::Windows::Foundation::IInspectable,
@@ -995,6 +1061,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         ICompositionSurfaceBrush3& operator=(ICompositionSurfaceBrush3 const&) & noexcept = default;
         ICompositionSurfaceBrush3& operator=(ICompositionSurfaceBrush3&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) ICompositionSurfaceFacade :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<ICompositionSurfaceFacade>
+    {
+        ICompositionSurfaceFacade(std::nullptr_t = nullptr) noexcept {}
+        ICompositionSurfaceFacade(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        ICompositionSurfaceFacade(ICompositionSurfaceFacade const&) noexcept = default;
+        ICompositionSurfaceFacade(ICompositionSurfaceFacade&&) noexcept = default;
+        ICompositionSurfaceFacade& operator=(ICompositionSurfaceFacade const&) & noexcept = default;
+        ICompositionSurfaceFacade& operator=(ICompositionSurfaceFacade&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) ICompositionTarget :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<ICompositionTarget>
@@ -1149,6 +1226,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         ICompositor6& operator=(ICompositor6 const&) & noexcept = default;
         ICompositor6& operator=(ICompositor6&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) ICompositor7 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<ICompositor7>
+    {
+        ICompositor7(std::nullptr_t = nullptr) noexcept {}
+        ICompositor7(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        ICompositor7(ICompositor7 const&) noexcept = default;
+        ICompositor7(ICompositor7&&) noexcept = default;
+        ICompositor7& operator=(ICompositor7 const&) & noexcept = default;
+        ICompositor7& operator=(ICompositor7&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) ICompositorStatics :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<ICompositorStatics>
@@ -1226,6 +1314,28 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         ICubicBezierEasingFunction& operator=(ICubicBezierEasingFunction const&) & noexcept = default;
         ICubicBezierEasingFunction& operator=(ICubicBezierEasingFunction&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IDelegatedInkTrailVisual :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IDelegatedInkTrailVisual>
+    {
+        IDelegatedInkTrailVisual(std::nullptr_t = nullptr) noexcept {}
+        IDelegatedInkTrailVisual(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IDelegatedInkTrailVisual(IDelegatedInkTrailVisual const&) noexcept = default;
+        IDelegatedInkTrailVisual(IDelegatedInkTrailVisual&&) noexcept = default;
+        IDelegatedInkTrailVisual& operator=(IDelegatedInkTrailVisual const&) & noexcept = default;
+        IDelegatedInkTrailVisual& operator=(IDelegatedInkTrailVisual&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IDelegatedInkTrailVisualStatics :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IDelegatedInkTrailVisualStatics>
+    {
+        IDelegatedInkTrailVisualStatics(std::nullptr_t = nullptr) noexcept {}
+        IDelegatedInkTrailVisualStatics(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IDelegatedInkTrailVisualStatics(IDelegatedInkTrailVisualStatics const&) noexcept = default;
+        IDelegatedInkTrailVisualStatics(IDelegatedInkTrailVisualStatics&&) noexcept = default;
+        IDelegatedInkTrailVisualStatics& operator=(IDelegatedInkTrailVisualStatics const&) & noexcept = default;
+        IDelegatedInkTrailVisualStatics& operator=(IDelegatedInkTrailVisualStatics&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IDistantLight :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IDistantLight>
@@ -1269,6 +1379,28 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         IDropShadow2(IDropShadow2&&) noexcept = default;
         IDropShadow2& operator=(IDropShadow2 const&) & noexcept = default;
         IDropShadow2& operator=(IDropShadow2&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IElasticEasingFunction :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IElasticEasingFunction>
+    {
+        IElasticEasingFunction(std::nullptr_t = nullptr) noexcept {}
+        IElasticEasingFunction(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IElasticEasingFunction(IElasticEasingFunction const&) noexcept = default;
+        IElasticEasingFunction(IElasticEasingFunction&&) noexcept = default;
+        IElasticEasingFunction& operator=(IElasticEasingFunction const&) & noexcept = default;
+        IElasticEasingFunction& operator=(IElasticEasingFunction&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IExponentialEasingFunction :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IExponentialEasingFunction>
+    {
+        IExponentialEasingFunction(std::nullptr_t = nullptr) noexcept {}
+        IExponentialEasingFunction(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IExponentialEasingFunction(IExponentialEasingFunction const&) noexcept = default;
+        IExponentialEasingFunction(IExponentialEasingFunction&&) noexcept = default;
+        IExponentialEasingFunction& operator=(IExponentialEasingFunction const&) & noexcept = default;
+        IExponentialEasingFunction& operator=(IExponentialEasingFunction&&) & noexcept = default;
     };
     struct __declspec(empty_bases) IExpressionAnimation :
         winrt::Windows::Foundation::IInspectable,
@@ -1446,6 +1578,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         IPointLight3& operator=(IPointLight3 const&) & noexcept = default;
         IPointLight3& operator=(IPointLight3&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IPowerEasingFunction :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IPowerEasingFunction>
+    {
+        IPowerEasingFunction(std::nullptr_t = nullptr) noexcept {}
+        IPowerEasingFunction(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IPowerEasingFunction(IPowerEasingFunction const&) noexcept = default;
+        IPowerEasingFunction(IPowerEasingFunction&&) noexcept = default;
+        IPowerEasingFunction& operator=(IPowerEasingFunction const&) & noexcept = default;
+        IPowerEasingFunction& operator=(IPowerEasingFunction&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IQuaternionKeyFrameAnimation :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IQuaternionKeyFrameAnimation>
@@ -1456,6 +1599,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         IQuaternionKeyFrameAnimation(IQuaternionKeyFrameAnimation&&) noexcept = default;
         IQuaternionKeyFrameAnimation& operator=(IQuaternionKeyFrameAnimation const&) & noexcept = default;
         IQuaternionKeyFrameAnimation& operator=(IQuaternionKeyFrameAnimation&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IRectangleClip :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IRectangleClip>
+    {
+        IRectangleClip(std::nullptr_t = nullptr) noexcept {}
+        IRectangleClip(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IRectangleClip(IRectangleClip const&) noexcept = default;
+        IRectangleClip(IRectangleClip&&) noexcept = default;
+        IRectangleClip& operator=(IRectangleClip const&) & noexcept = default;
+        IRectangleClip& operator=(IRectangleClip&&) & noexcept = default;
     };
     struct __declspec(empty_bases) IRedirectVisual :
         winrt::Windows::Foundation::IInspectable,
@@ -1522,6 +1676,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         IShapeVisual(IShapeVisual&&) noexcept = default;
         IShapeVisual& operator=(IShapeVisual const&) & noexcept = default;
         IShapeVisual& operator=(IShapeVisual&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) ISineEasingFunction :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<ISineEasingFunction>
+    {
+        ISineEasingFunction(std::nullptr_t = nullptr) noexcept {}
+        ISineEasingFunction(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        ISineEasingFunction(ISineEasingFunction const&) noexcept = default;
+        ISineEasingFunction(ISineEasingFunction&&) noexcept = default;
+        ISineEasingFunction& operator=(ISineEasingFunction const&) & noexcept = default;
+        ISineEasingFunction& operator=(ISineEasingFunction&&) & noexcept = default;
     };
     struct __declspec(empty_bases) ISpotLight :
         winrt::Windows::Foundation::IInspectable,
@@ -1732,6 +1897,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         IVisual3& operator=(IVisual3 const&) & noexcept = default;
         IVisual3& operator=(IVisual3&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IVisual4 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IVisual4>
+    {
+        IVisual4(std::nullptr_t = nullptr) noexcept {}
+        IVisual4(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IVisual4(IVisual4 const&) noexcept = default;
+        IVisual4(IVisual4&&) noexcept = default;
+        IVisual4& operator=(IVisual4 const&) & noexcept = default;
+        IVisual4& operator=(IVisual4&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IVisualCollection :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IVisualCollection>
@@ -1753,6 +1929,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         IVisualElement(IVisualElement&&) noexcept = default;
         IVisualElement& operator=(IVisualElement const&) & noexcept = default;
         IVisualElement& operator=(IVisualElement&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IVisualElement2 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IVisualElement2>
+    {
+        IVisualElement2(std::nullptr_t = nullptr) noexcept {}
+        IVisualElement2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IVisualElement2(IVisualElement2 const&) noexcept = default;
+        IVisualElement2(IVisualElement2&&) noexcept = default;
+        IVisualElement2& operator=(IVisualElement2 const&) & noexcept = default;
+        IVisualElement2& operator=(IVisualElement2&&) & noexcept = default;
     };
     struct __declspec(empty_bases) IVisualFactory :
         winrt::Windows::Foundation::IInspectable,

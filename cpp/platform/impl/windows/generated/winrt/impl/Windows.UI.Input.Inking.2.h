@@ -226,7 +226,8 @@ WINRT_EXPORT namespace winrt::Windows::UI::Input::Inking
         InkUnprocessedInput& operator=(InkUnprocessedInput const&) & noexcept = default;
         InkUnprocessedInput& operator=(InkUnprocessedInput&&) & noexcept = default;
     };
-    struct __declspec(empty_bases) PenAndInkSettings : winrt::Windows::UI::Input::Inking::IPenAndInkSettings
+    struct __declspec(empty_bases) PenAndInkSettings : winrt::Windows::UI::Input::Inking::IPenAndInkSettings,
+        impl::require<PenAndInkSettings, winrt::Windows::UI::Input::Inking::IPenAndInkSettings2>
     {
         PenAndInkSettings(std::nullptr_t) noexcept {}
         PenAndInkSettings(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Input::Inking::IPenAndInkSettings(ptr, take_ownership_from_abi) {}

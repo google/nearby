@@ -276,6 +276,10 @@ namespace winrt::impl
     {
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions2)->put_CloseModelOnSessionCreation(value));
     }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_AI_MachineLearning_ILearningModelSessionOptions3<D>::OverrideNamedDimension(param::hstring const& name, uint32_t dimension) const
+    {
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions3)->OverrideNamedDimension(*(void**)(&name), dimension));
+    }
     template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::AI::MachineLearning::LearningModel>) consume_Windows_AI_MachineLearning_ILearningModelStatics<D>::LoadFromStorageFileAsync(winrt::Windows::Storage::IStorageFile const& modelFile) const
     {
         void* operation{};
@@ -1346,6 +1350,19 @@ namespace winrt::impl
         {
             typename D::abi_guard guard(this->shim());
             this->shim().CloseModelOnSessionCreation(value);
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions3> : produce_base<D, winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions3>
+    {
+        int32_t __stdcall OverrideNamedDimension(void* name, uint32_t dimension) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().OverrideNamedDimension(*reinterpret_cast<hstring const*>(&name), dimension);
             return 0;
         }
         catch (...) { return to_hresult(); }
@@ -2847,6 +2864,7 @@ namespace std
     template<> struct hash<winrt::Windows::AI::MachineLearning::ILearningModelSessionFactory2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions2> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions3> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::AI::MachineLearning::ILearningModelStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::AI::MachineLearning::IMapFeatureDescriptor> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::AI::MachineLearning::ISequenceFeatureDescriptor> : winrt::impl::hash_base {};

@@ -43,7 +43,7 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel
         AppDisplayInfo& operator=(AppDisplayInfo&&) & noexcept = default;
     };
     struct __declspec(empty_bases) AppInfo : winrt::Windows::ApplicationModel::IAppInfo,
-        impl::require<AppInfo, winrt::Windows::ApplicationModel::IAppInfo2>
+        impl::require<AppInfo, winrt::Windows::ApplicationModel::IAppInfo2, winrt::Windows::ApplicationModel::IAppInfo3, winrt::Windows::ApplicationModel::IAppInfo4>
     {
         AppInfo(std::nullptr_t) noexcept {}
         AppInfo(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::ApplicationModel::IAppInfo(ptr, take_ownership_from_abi) {}

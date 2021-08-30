@@ -68,8 +68,10 @@ WINRT_EXPORT namespace winrt::Windows::Networking::Connectivity
         RsnaPsk = 8,
         Ihv = 9,
         Wpa3 = 10,
+        Wpa3Enterprise192Bits = 10,
         Wpa3Sae = 11,
         Owe = 12,
+        Wpa3Enterprise = 13,
     };
     enum class NetworkConnectivityLevel : int32_t
     {
@@ -97,6 +99,8 @@ WINRT_EXPORT namespace winrt::Windows::Networking::Connectivity
         WpaUseGroup = 7,
         RsnUseGroup = 8,
         Ihv = 9,
+        Gcmp = 10,
+        Gcmp256 = 11,
     };
     enum class NetworkTypes : uint32_t
     {

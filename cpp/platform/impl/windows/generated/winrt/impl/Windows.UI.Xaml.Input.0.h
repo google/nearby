@@ -107,6 +107,7 @@ WINRT_EXPORT namespace winrt::Windows::UI::Xaml::Input
         Chat = 58,
         NameOrPhoneNumber = 59,
         EmailNameOrAddress = 60,
+        Private = 61,
         Maps = 62,
         NumericPassword = 63,
         NumericPin = 64,

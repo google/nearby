@@ -8,6 +8,7 @@ static_assert(winrt::check_version(CPPWINRT_VERSION, "2.0.210505.3"), "Mismatche
 #include "winrt/Windows.Graphics.h"
 #include "winrt/impl/Windows.Foundation.2.h"
 #include "winrt/impl/Windows.Foundation.Collections.2.h"
+#include "winrt/impl/Windows.Graphics.2.h"
 #include "winrt/impl/Windows.Storage.Streams.2.h"
 #include "winrt/impl/Windows.Graphics.Display.2.h"
 namespace winrt::impl
@@ -631,6 +632,13 @@ namespace winrt::impl
     template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Graphics_Display_IDisplayPropertiesStatics<D>::DisplayContentsInvalidated(winrt::event_token const& token) const noexcept
     {
         WINRT_VERIFY_(0, WINRT_IMPL_SHIM(winrt::Windows::Graphics::Display::IDisplayPropertiesStatics)->remove_DisplayContentsInvalidated(impl::bind_in(token)));
+    }
+    template <typename D> WINRT_IMPL_AUTO(com_array<winrt::Windows::Graphics::DisplayId>) consume_Windows_Graphics_Display_IDisplayServicesStatics<D>::FindAll() const
+    {
+        uint32_t result_impl_size{};
+        struct struct_Windows_Graphics_DisplayId* result{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Graphics::Display::IDisplayServicesStatics)->FindAll(&result_impl_size, &result));
+        return com_array<winrt::Windows::Graphics::DisplayId>{ result, result_impl_size, take_ownership_from_abi };
     }
     template <typename H> struct delegate<winrt::Windows::Graphics::Display::DisplayPropertiesEventHandler, H> final : implements_delegate<winrt::Windows::Graphics::Display::DisplayPropertiesEventHandler, H>
     {
@@ -1480,6 +1488,26 @@ namespace winrt::impl
         }
     };
 #endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Graphics::Display::IDisplayServices> : produce_base<D, winrt::Windows::Graphics::Display::IDisplayServices>
+    {
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Graphics::Display::IDisplayServicesStatics> : produce_base<D, winrt::Windows::Graphics::Display::IDisplayServicesStatics>
+    {
+        int32_t __stdcall FindAll(uint32_t* __resultSize, struct struct_Windows_Graphics_DisplayId** result) noexcept final try
+        {
+            clear_abi(result);
+            typename D::abi_guard guard(this->shim());
+            std::tie(*__resultSize, *result) = detach_abi(this->shim().FindAll());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
 }
 WINRT_EXPORT namespace winrt::Windows::Graphics::Display
 {
@@ -1699,6 +1727,10 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Display
     {
         impl::call_factory<DisplayProperties, IDisplayPropertiesStatics>([&](IDisplayPropertiesStatics const& f) { return f.DisplayContentsInvalidated(token); });
     }
+    inline auto DisplayServices::FindAll()
+    {
+        return impl::call_factory_cast<com_array<winrt::Windows::Graphics::DisplayId>(*)(IDisplayServicesStatics const&), DisplayServices, IDisplayServicesStatics>([](IDisplayServicesStatics const& f) { return f.FindAll(); });
+    }
     template <typename L> DisplayPropertiesEventHandler::DisplayPropertiesEventHandler(L handler) :
         DisplayPropertiesEventHandler(impl::make_delegate<DisplayPropertiesEventHandler>(std::forward<L>(handler)))
     {
@@ -1745,6 +1777,8 @@ namespace std
     template<> struct hash<winrt::Windows::Graphics::Display::IDisplayInformation5> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Display::IDisplayInformationStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Display::IDisplayPropertiesStatics> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Graphics::Display::IDisplayServices> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Graphics::Display::IDisplayServicesStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Display::AdvancedColorInfo> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Display::BrightnessOverride> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Display::BrightnessOverrideSettings> : winrt::impl::hash_base {};
@@ -1754,6 +1788,7 @@ namespace std
     template<> struct hash<winrt::Windows::Graphics::Display::DisplayEnhancementOverrideCapabilitiesChangedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Display::DisplayInformation> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Display::DisplayProperties> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Graphics::Display::DisplayServices> : winrt::impl::hash_base {};
 #endif
 }
 #endif

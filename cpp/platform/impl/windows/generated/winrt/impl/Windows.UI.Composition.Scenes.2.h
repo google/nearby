@@ -191,7 +191,7 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition::Scenes
     };
     struct __declspec(empty_bases) SceneVisual : winrt::Windows::UI::Composition::Scenes::ISceneVisual,
         impl::base<SceneVisual, winrt::Windows::UI::Composition::ContainerVisual, winrt::Windows::UI::Composition::Visual, winrt::Windows::UI::Composition::CompositionObject>,
-        impl::require<SceneVisual, winrt::Windows::UI::Composition::IContainerVisual, winrt::Windows::UI::Composition::IVisual, winrt::Windows::UI::Composition::IVisual2, winrt::Windows::UI::Composition::IVisual3, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+        impl::require<SceneVisual, winrt::Windows::UI::Composition::IContainerVisual, winrt::Windows::UI::Composition::IVisual, winrt::Windows::UI::Composition::IVisual2, winrt::Windows::UI::Composition::IVisual3, winrt::Windows::UI::Composition::IVisual4, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
     {
         SceneVisual(std::nullptr_t) noexcept {}
         SceneVisual(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::Scenes::ISceneVisual(ptr, take_ownership_from_abi) {}

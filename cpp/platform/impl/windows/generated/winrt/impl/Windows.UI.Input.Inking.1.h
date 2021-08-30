@@ -495,6 +495,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Input::Inking
         IPenAndInkSettings& operator=(IPenAndInkSettings const&) & noexcept = default;
         IPenAndInkSettings& operator=(IPenAndInkSettings&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IPenAndInkSettings2 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IPenAndInkSettings2>
+    {
+        IPenAndInkSettings2(std::nullptr_t = nullptr) noexcept {}
+        IPenAndInkSettings2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IPenAndInkSettings2(IPenAndInkSettings2 const&) noexcept = default;
+        IPenAndInkSettings2(IPenAndInkSettings2&&) noexcept = default;
+        IPenAndInkSettings2& operator=(IPenAndInkSettings2 const&) & noexcept = default;
+        IPenAndInkSettings2& operator=(IPenAndInkSettings2&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IPenAndInkSettingsStatics :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IPenAndInkSettingsStatics>

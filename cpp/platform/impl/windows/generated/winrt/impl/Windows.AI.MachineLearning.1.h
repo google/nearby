@@ -203,6 +203,17 @@ WINRT_EXPORT namespace winrt::Windows::AI::MachineLearning
         ILearningModelSessionOptions2& operator=(ILearningModelSessionOptions2 const&) & noexcept = default;
         ILearningModelSessionOptions2& operator=(ILearningModelSessionOptions2&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) ILearningModelSessionOptions3 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<ILearningModelSessionOptions3>
+    {
+        ILearningModelSessionOptions3(std::nullptr_t = nullptr) noexcept {}
+        ILearningModelSessionOptions3(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        ILearningModelSessionOptions3(ILearningModelSessionOptions3 const&) noexcept = default;
+        ILearningModelSessionOptions3(ILearningModelSessionOptions3&&) noexcept = default;
+        ILearningModelSessionOptions3& operator=(ILearningModelSessionOptions3 const&) & noexcept = default;
+        ILearningModelSessionOptions3& operator=(ILearningModelSessionOptions3&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) ILearningModelStatics :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<ILearningModelStatics>

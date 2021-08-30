@@ -67,7 +67,8 @@ WINRT_EXPORT namespace winrt::Windows::Devices::Geolocation
         Geocoordinate& operator=(Geocoordinate const&) & noexcept = default;
         Geocoordinate& operator=(Geocoordinate&&) & noexcept = default;
     };
-    struct __declspec(empty_bases) GeocoordinateSatelliteData : winrt::Windows::Devices::Geolocation::IGeocoordinateSatelliteData
+    struct __declspec(empty_bases) GeocoordinateSatelliteData : winrt::Windows::Devices::Geolocation::IGeocoordinateSatelliteData,
+        impl::require<GeocoordinateSatelliteData, winrt::Windows::Devices::Geolocation::IGeocoordinateSatelliteData2>
     {
         GeocoordinateSatelliteData(std::nullptr_t) noexcept {}
         GeocoordinateSatelliteData(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Devices::Geolocation::IGeocoordinateSatelliteData(ptr, take_ownership_from_abi) {}

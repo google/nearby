@@ -52,6 +52,7 @@ WINRT_EXPORT namespace winrt::Windows::System::Profile
     struct IAnalyticsInfoStatics;
     struct IAnalyticsInfoStatics2;
     struct IAnalyticsVersionInfo;
+    struct IAnalyticsVersionInfo2;
     struct IAppApplicabilityStatics;
     struct IEducationSettingsStatics;
     struct IHardwareIdentificationStatics;
@@ -87,6 +88,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::System::Profile::IAnalyticsInfoStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::System::Profile::IAnalyticsInfoStatics2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::System::Profile::IAnalyticsVersionInfo>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::System::Profile::IAnalyticsVersionInfo2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::System::Profile::IAppApplicabilityStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::System::Profile::IEducationSettingsStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::System::Profile::IHardwareIdentificationStatics>{ using type = interface_category; };
@@ -142,6 +144,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::System::Profile::IAnalyticsInfoStatics> = L"Windows.System.Profile.IAnalyticsInfoStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::System::Profile::IAnalyticsInfoStatics2> = L"Windows.System.Profile.IAnalyticsInfoStatics2";
     template <> inline constexpr auto& name_v<winrt::Windows::System::Profile::IAnalyticsVersionInfo> = L"Windows.System.Profile.IAnalyticsVersionInfo";
+    template <> inline constexpr auto& name_v<winrt::Windows::System::Profile::IAnalyticsVersionInfo2> = L"Windows.System.Profile.IAnalyticsVersionInfo2";
     template <> inline constexpr auto& name_v<winrt::Windows::System::Profile::IAppApplicabilityStatics> = L"Windows.System.Profile.IAppApplicabilityStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::System::Profile::IEducationSettingsStatics> = L"Windows.System.Profile.IEducationSettingsStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::System::Profile::IHardwareIdentificationStatics> = L"Windows.System.Profile.IHardwareIdentificationStatics";
@@ -159,6 +162,7 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::System::Profile::IAnalyticsInfoStatics>{ 0x1D5EE066,0x188D,0x5BA9,{ 0x43,0x87,0xAC,0xAE,0xB0,0xE7,0xE3,0x05 } }; // 1D5EE066-188D-5BA9-4387-ACAEB0E7E305
     template <> inline constexpr guid guid_v<winrt::Windows::System::Profile::IAnalyticsInfoStatics2>{ 0x101704EA,0xA7F9,0x46D2,{ 0xAB,0x94,0x01,0x68,0x65,0xAF,0xDB,0x25 } }; // 101704EA-A7F9-46D2-AB94-016865AFDB25
     template <> inline constexpr guid guid_v<winrt::Windows::System::Profile::IAnalyticsVersionInfo>{ 0x926130B8,0x9955,0x4C74,{ 0xBD,0xC1,0x7C,0xD0,0xDE,0xCF,0x9B,0x03 } }; // 926130B8-9955-4C74-BDC1-7CD0DECF9B03
+    template <> inline constexpr guid guid_v<winrt::Windows::System::Profile::IAnalyticsVersionInfo2>{ 0x76E915B1,0xFF36,0x407C,{ 0x9F,0x57,0x16,0x0D,0x3E,0x54,0x07,0x47 } }; // 76E915B1-FF36-407C-9F57-160D3E540747
     template <> inline constexpr guid guid_v<winrt::Windows::System::Profile::IAppApplicabilityStatics>{ 0x1664A082,0x0F38,0x5C99,{ 0x83,0xE4,0x48,0x99,0x59,0x70,0x86,0x1C } }; // 1664A082-0F38-5C99-83E4-48995970861C
     template <> inline constexpr guid guid_v<winrt::Windows::System::Profile::IEducationSettingsStatics>{ 0xFC53F0EF,0x4D3E,0x4E13,{ 0x9B,0x23,0x50,0x5F,0x4D,0x09,0x1E,0x92 } }; // FC53F0EF-4D3E-4E13-9B23-505F4D091E92
     template <> inline constexpr guid guid_v<winrt::Windows::System::Profile::IHardwareIdentificationStatics>{ 0x971260E0,0xF170,0x4A42,{ 0xBD,0x55,0xA9,0x00,0xB2,0x12,0xDA,0xE2 } }; // 971260E0-F170-4A42-BD55-A900B212DAE2
@@ -198,6 +202,13 @@ namespace winrt::impl
         {
             virtual int32_t __stdcall get_DeviceFamily(void**) noexcept = 0;
             virtual int32_t __stdcall get_DeviceFamilyVersion(void**) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::System::Profile::IAnalyticsVersionInfo2>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_ProductName(void**) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::System::Profile::IAppApplicabilityStatics>
@@ -363,6 +374,15 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::System::Profile::IAnalyticsVersionInfo>
     {
         template <typename D> using type = consume_Windows_System_Profile_IAnalyticsVersionInfo<D>;
+    };
+    template <typename D>
+    struct consume_Windows_System_Profile_IAnalyticsVersionInfo2
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(hstring) ProductName() const;
+    };
+    template <> struct consume<winrt::Windows::System::Profile::IAnalyticsVersionInfo2>
+    {
+        template <typename D> using type = consume_Windows_System_Profile_IAnalyticsVersionInfo2<D>;
     };
     template <typename D>
     struct consume_Windows_System_Profile_IAppApplicabilityStatics

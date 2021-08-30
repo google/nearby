@@ -203,6 +203,17 @@ WINRT_EXPORT namespace winrt::Windows::System::Diagnostics
         ISystemDiagnosticInfoStatics& operator=(ISystemDiagnosticInfoStatics const&) & noexcept = default;
         ISystemDiagnosticInfoStatics& operator=(ISystemDiagnosticInfoStatics&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) ISystemDiagnosticInfoStatics2 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<ISystemDiagnosticInfoStatics2>
+    {
+        ISystemDiagnosticInfoStatics2(std::nullptr_t = nullptr) noexcept {}
+        ISystemDiagnosticInfoStatics2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        ISystemDiagnosticInfoStatics2(ISystemDiagnosticInfoStatics2 const&) noexcept = default;
+        ISystemDiagnosticInfoStatics2(ISystemDiagnosticInfoStatics2&&) noexcept = default;
+        ISystemDiagnosticInfoStatics2& operator=(ISystemDiagnosticInfoStatics2 const&) & noexcept = default;
+        ISystemDiagnosticInfoStatics2& operator=(ISystemDiagnosticInfoStatics2&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) ISystemMemoryUsage :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<ISystemMemoryUsage>

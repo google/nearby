@@ -1037,6 +1037,12 @@ namespace winrt::impl
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Storage::IStorageLibraryChangeReader)->AcceptChangesAsync(&operation));
         return winrt::Windows::Foundation::IAsyncAction{ operation, take_ownership_from_abi };
     }
+    template <typename D> WINRT_IMPL_AUTO(uint64_t) consume_Windows_Storage_IStorageLibraryChangeReader2<D>::GetLastChangeId() const
+    {
+        uint64_t result{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Storage::IStorageLibraryChangeReader2)->GetLastChangeId(&result));
+        return result;
+    }
     template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Storage::StorageLibraryChangeReader) consume_Windows_Storage_IStorageLibraryChangeTracker<D>::GetChangeReader() const
     {
         void* value{};
@@ -1050,6 +1056,30 @@ namespace winrt::impl
     template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Storage_IStorageLibraryChangeTracker<D>::Reset() const
     {
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Storage::IStorageLibraryChangeTracker)->Reset());
+    }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Storage_IStorageLibraryChangeTracker2<D>::Enable(winrt::Windows::Storage::StorageLibraryChangeTrackerOptions const& options) const
+    {
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Storage::IStorageLibraryChangeTracker2)->EnableWithOptions(*(void**)(&options)));
+    }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Storage_IStorageLibraryChangeTracker2<D>::Disable() const
+    {
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Storage::IStorageLibraryChangeTracker2)->Disable());
+    }
+    template <typename D> WINRT_IMPL_AUTO(bool) consume_Windows_Storage_IStorageLibraryChangeTrackerOptions<D>::TrackChangeDetails() const
+    {
+        bool value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Storage::IStorageLibraryChangeTrackerOptions)->get_TrackChangeDetails(&value));
+        return value;
+    }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Storage_IStorageLibraryChangeTrackerOptions<D>::TrackChangeDetails(bool value) const
+    {
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Storage::IStorageLibraryChangeTrackerOptions)->put_TrackChangeDetails(value));
+    }
+    template <typename D> WINRT_IMPL_AUTO(uint64_t) consume_Windows_Storage_IStorageLibraryLastChangeIdStatics<D>::Unknown() const
+    {
+        uint64_t value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Storage::IStorageLibraryLastChangeIdStatics)->get_Unknown(&value));
+        return value;
     }
     template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Storage::StorageLibrary>) consume_Windows_Storage_IStorageLibraryStatics<D>::GetLibraryAsync(winrt::Windows::Storage::KnownLibraryId const& libraryId) const
     {
@@ -3182,6 +3212,19 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
+    struct produce<D, winrt::Windows::Storage::IStorageLibraryChangeReader2> : produce_base<D, winrt::Windows::Storage::IStorageLibraryChangeReader2>
+    {
+        int32_t __stdcall GetLastChangeId(uint64_t* result) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *result = detach_from<uint64_t>(this->shim().GetLastChangeId());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
     struct produce<D, winrt::Windows::Storage::IStorageLibraryChangeTracker> : produce_base<D, winrt::Windows::Storage::IStorageLibraryChangeTracker>
     {
         int32_t __stdcall GetChangeReader(void** value) noexcept final try
@@ -3203,6 +3246,65 @@ namespace winrt::impl
         {
             typename D::abi_guard guard(this->shim());
             this->shim().Reset();
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Storage::IStorageLibraryChangeTracker2> : produce_base<D, winrt::Windows::Storage::IStorageLibraryChangeTracker2>
+    {
+        int32_t __stdcall EnableWithOptions(void* options) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().Enable(*reinterpret_cast<winrt::Windows::Storage::StorageLibraryChangeTrackerOptions const*>(&options));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall Disable() noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().Disable();
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Storage::IStorageLibraryChangeTrackerOptions> : produce_base<D, winrt::Windows::Storage::IStorageLibraryChangeTrackerOptions>
+    {
+        int32_t __stdcall get_TrackChangeDetails(bool* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<bool>(this->shim().TrackChangeDetails());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall put_TrackChangeDetails(bool value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().TrackChangeDetails(value);
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Storage::IStorageLibraryLastChangeId> : produce_base<D, winrt::Windows::Storage::IStorageLibraryLastChangeId>
+    {
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Storage::IStorageLibraryLastChangeIdStatics> : produce_base<D, winrt::Windows::Storage::IStorageLibraryLastChangeIdStatics>
+    {
+        int32_t __stdcall get_Unknown(uint64_t* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<uint64_t>(this->shim().Unknown());
             return 0;
         }
         catch (...) { return to_hresult(); }
@@ -4405,6 +4507,14 @@ WINRT_EXPORT namespace winrt::Windows::Storage
     {
         return impl::call_factory<StorageLibrary, IStorageLibraryStatics2>([&](IStorageLibraryStatics2 const& f) { return f.GetLibraryForUserAsync(user, libraryId); });
     }
+    inline StorageLibraryChangeTrackerOptions::StorageLibraryChangeTrackerOptions() :
+        StorageLibraryChangeTrackerOptions(impl::call_factory_cast<StorageLibraryChangeTrackerOptions(*)(winrt::Windows::Foundation::IActivationFactory const&), StorageLibraryChangeTrackerOptions>([](winrt::Windows::Foundation::IActivationFactory const& f) { return f.template ActivateInstance<StorageLibraryChangeTrackerOptions>(); }))
+    {
+    }
+    inline auto StorageLibraryLastChangeId::Unknown()
+    {
+        return impl::call_factory_cast<uint64_t(*)(IStorageLibraryLastChangeIdStatics const&), StorageLibraryLastChangeId, IStorageLibraryLastChangeIdStatics>([](IStorageLibraryLastChangeIdStatics const& f) { return f.Unknown(); });
+    }
     inline auto SystemDataPaths::GetDefault()
     {
         return impl::call_factory_cast<winrt::Windows::Storage::SystemDataPaths(*)(ISystemDataPathsStatics const&), SystemDataPaths, ISystemDataPathsStatics>([](ISystemDataPathsStatics const& f) { return f.GetDefault(); });
@@ -4563,7 +4673,12 @@ namespace std
     template<> struct hash<winrt::Windows::Storage::IStorageLibrary3> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Storage::IStorageLibraryChange> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Storage::IStorageLibraryChangeReader> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Storage::IStorageLibraryChangeReader2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Storage::IStorageLibraryChangeTracker> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Storage::IStorageLibraryChangeTracker2> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Storage::IStorageLibraryChangeTrackerOptions> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Storage::IStorageLibraryLastChangeId> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Storage::IStorageLibraryLastChangeIdStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Storage::IStorageLibraryStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Storage::IStorageLibraryStatics2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Storage::IStorageProvider> : winrt::impl::hash_base {};
@@ -4600,6 +4715,8 @@ namespace std
     template<> struct hash<winrt::Windows::Storage::StorageLibraryChange> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Storage::StorageLibraryChangeReader> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Storage::StorageLibraryChangeTracker> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Storage::StorageLibraryChangeTrackerOptions> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Storage::StorageLibraryLastChangeId> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Storage::StorageProvider> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Storage::StorageStreamTransaction> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Storage::StreamedFileDataRequest> : winrt::impl::hash_base {};

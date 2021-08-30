@@ -20,6 +20,18 @@ WINRT_EXPORT namespace winrt::Windows::UI
     {
         return !(left == right);
     }
+    struct WindowId
+    {
+        uint64_t Value;
+    };
+    inline bool operator==(WindowId const& left, WindowId const& right) noexcept
+    {
+        return left.Value == right.Value;
+    }
+    inline bool operator!=(WindowId const& left, WindowId const& right) noexcept
+    {
+        return !(left == right);
+    }
     struct __declspec(empty_bases) ColorHelper : winrt::Windows::UI::IColorHelper
     {
         ColorHelper(std::nullptr_t) noexcept {}

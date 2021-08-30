@@ -1086,6 +1086,10 @@ namespace winrt::impl
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::UI::Input::Inking::IPenAndInkSettings)->get_IsTouchHandwritingEnabled(&value));
         return value;
     }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_UI_Input_Inking_IPenAndInkSettings2<D>::SetPenHandedness(winrt::Windows::UI::Input::Inking::PenHandedness const& value) const
+    {
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::UI::Input::Inking::IPenAndInkSettings2)->SetPenHandedness(static_cast<int32_t>(value)));
+    }
     template <typename D> WINRT_IMPL_AUTO(winrt::Windows::UI::Input::Inking::PenAndInkSettings) consume_Windows_UI_Input_Inking_IPenAndInkSettingsStatics<D>::GetDefault() const
     {
         void* result{};
@@ -2758,6 +2762,19 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
+    struct produce<D, winrt::Windows::UI::Input::Inking::IPenAndInkSettings2> : produce_base<D, winrt::Windows::UI::Input::Inking::IPenAndInkSettings2>
+    {
+        int32_t __stdcall SetPenHandedness(int32_t value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().SetPenHandedness(*reinterpret_cast<winrt::Windows::UI::Input::Inking::PenHandedness const*>(&value));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
     struct produce<D, winrt::Windows::UI::Input::Inking::IPenAndInkSettingsStatics> : produce_base<D, winrt::Windows::UI::Input::Inking::IPenAndInkSettingsStatics>
     {
         int32_t __stdcall GetDefault(void** result) noexcept final try
@@ -2865,6 +2882,7 @@ namespace std
     template<> struct hash<winrt::Windows::UI::Input::Inking::IInkSynchronizer> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::UI::Input::Inking::IInkUnprocessedInput> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::UI::Input::Inking::IPenAndInkSettings> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::UI::Input::Inking::IPenAndInkSettings2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::UI::Input::Inking::IPenAndInkSettingsStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::UI::Input::Inking::InkDrawingAttributes> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::UI::Input::Inking::InkDrawingAttributesPencilProperties> : winrt::impl::hash_base {};

@@ -344,6 +344,7 @@ WINRT_EXPORT namespace winrt::Windows::Media::Capture
         HdrWithWcgVideo = 7,
         HdrWithWcgPhoto = 8,
         VideoHdr8 = 9,
+        CompressedCamera = 10,
     };
     enum class MediaCaptureDeviceExclusiveControlStatus : int32_t
     {
@@ -372,6 +373,9 @@ WINRT_EXPORT namespace winrt::Windows::Media::Capture
         Media = 2,
         GameChat = 3,
         Speech = 4,
+        FarFieldSpeech = 5,
+        UniformSpeech = 6,
+        VoiceTyping = 7,
     };
     enum class MediaStreamType : int32_t
     {
@@ -379,6 +383,7 @@ WINRT_EXPORT namespace winrt::Windows::Media::Capture
         VideoRecord = 1,
         Audio = 2,
         Photo = 3,
+        Metadata = 4,
     };
     enum class PhotoCaptureSource : int32_t
     {

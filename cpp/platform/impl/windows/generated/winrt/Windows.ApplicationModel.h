@@ -63,6 +63,19 @@ namespace winrt::impl
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::ApplicationModel::IAppInfo2)->get_Package(&value));
         return winrt::Windows::ApplicationModel::Package{ value, take_ownership_from_abi };
     }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::ApplicationModel::AppExecutionContext) consume_Windows_ApplicationModel_IAppInfo3<D>::ExecutionContext() const
+    {
+        winrt::Windows::ApplicationModel::AppExecutionContext value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::ApplicationModel::IAppInfo3)->get_ExecutionContext(reinterpret_cast<int32_t*>(&value)));
+        return value;
+    }
+    template <typename D> WINRT_IMPL_AUTO(com_array<hstring>) consume_Windows_ApplicationModel_IAppInfo4<D>::SupportedFileExtensions() const
+    {
+        uint32_t value_impl_size{};
+        void** value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::ApplicationModel::IAppInfo4)->get_SupportedFileExtensions(&value_impl_size, &value));
+        return com_array<hstring>{ value, value_impl_size, take_ownership_from_abi };
+    }
     template <typename D> WINRT_IMPL_AUTO(winrt::Windows::ApplicationModel::AppInfo) consume_Windows_ApplicationModel_IAppInfoStatics<D>::Current() const
     {
         void* value{};
@@ -1123,6 +1136,34 @@ namespace winrt::impl
         catch (...) { return to_hresult(); }
     };
 #endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::ApplicationModel::IAppInfo3> : produce_base<D, winrt::Windows::ApplicationModel::IAppInfo3>
+    {
+        int32_t __stdcall get_ExecutionContext(int32_t* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::ApplicationModel::AppExecutionContext>(this->shim().ExecutionContext());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::ApplicationModel::IAppInfo4> : produce_base<D, winrt::Windows::ApplicationModel::IAppInfo4>
+    {
+        int32_t __stdcall get_SupportedFileExtensions(uint32_t* __valueSize, void*** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            std::tie(*__valueSize, *value) = detach_abi(this->shim().SupportedFileExtensions());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
     struct produce<D, winrt::Windows::ApplicationModel::IAppInfoStatics> : produce_base<D, winrt::Windows::ApplicationModel::IAppInfoStatics>
     {
@@ -1151,6 +1192,7 @@ namespace winrt::impl
         }
         catch (...) { return to_hresult(); }
     };
+#endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
     struct produce<D, winrt::Windows::ApplicationModel::IAppInstallerInfo> : produce_base<D, winrt::Windows::ApplicationModel::IAppInstallerInfo>
@@ -2774,6 +2816,8 @@ namespace std
     template<> struct hash<winrt::Windows::ApplicationModel::IAppDisplayInfo> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::IAppInfo> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::IAppInfo2> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::ApplicationModel::IAppInfo3> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::ApplicationModel::IAppInfo4> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::IAppInfoStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::IAppInstallerInfo> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::IAppInstance> : winrt::impl::hash_base {};

@@ -52,7 +52,7 @@ WINRT_EXPORT namespace winrt::Windows::Storage
         static auto GetDefault();
     };
     struct __declspec(empty_bases) ApplicationData : winrt::Windows::Storage::IApplicationData,
-        impl::require<ApplicationData, winrt::Windows::Storage::IApplicationData2, winrt::Windows::Storage::IApplicationData3>
+        impl::require<ApplicationData, winrt::Windows::Storage::IApplicationData2, winrt::Windows::Storage::IApplicationData3, winrt::Windows::Foundation::IClosable>
     {
         ApplicationData(std::nullptr_t) noexcept {}
         ApplicationData(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Storage::IApplicationData(ptr, take_ownership_from_abi) {}
@@ -73,7 +73,8 @@ WINRT_EXPORT namespace winrt::Windows::Storage
         ApplicationDataCompositeValue& operator=(ApplicationDataCompositeValue const&) & noexcept = default;
         ApplicationDataCompositeValue& operator=(ApplicationDataCompositeValue&&) & noexcept = default;
     };
-    struct __declspec(empty_bases) ApplicationDataContainer : winrt::Windows::Storage::IApplicationDataContainer
+    struct __declspec(empty_bases) ApplicationDataContainer : winrt::Windows::Storage::IApplicationDataContainer,
+        impl::require<ApplicationDataContainer, winrt::Windows::Foundation::IClosable>
     {
         ApplicationDataContainer(std::nullptr_t) noexcept {}
         ApplicationDataContainer(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Storage::IApplicationDataContainer(ptr, take_ownership_from_abi) {}
@@ -246,7 +247,8 @@ WINRT_EXPORT namespace winrt::Windows::Storage
         StorageLibraryChange& operator=(StorageLibraryChange const&) & noexcept = default;
         StorageLibraryChange& operator=(StorageLibraryChange&&) & noexcept = default;
     };
-    struct __declspec(empty_bases) StorageLibraryChangeReader : winrt::Windows::Storage::IStorageLibraryChangeReader
+    struct __declspec(empty_bases) StorageLibraryChangeReader : winrt::Windows::Storage::IStorageLibraryChangeReader,
+        impl::require<StorageLibraryChangeReader, winrt::Windows::Storage::IStorageLibraryChangeReader2>
     {
         StorageLibraryChangeReader(std::nullptr_t) noexcept {}
         StorageLibraryChangeReader(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Storage::IStorageLibraryChangeReader(ptr, take_ownership_from_abi) {}
@@ -255,7 +257,8 @@ WINRT_EXPORT namespace winrt::Windows::Storage
         StorageLibraryChangeReader& operator=(StorageLibraryChangeReader const&) & noexcept = default;
         StorageLibraryChangeReader& operator=(StorageLibraryChangeReader&&) & noexcept = default;
     };
-    struct __declspec(empty_bases) StorageLibraryChangeTracker : winrt::Windows::Storage::IStorageLibraryChangeTracker
+    struct __declspec(empty_bases) StorageLibraryChangeTracker : winrt::Windows::Storage::IStorageLibraryChangeTracker,
+        impl::require<StorageLibraryChangeTracker, winrt::Windows::Storage::IStorageLibraryChangeTracker2>
     {
         StorageLibraryChangeTracker(std::nullptr_t) noexcept {}
         StorageLibraryChangeTracker(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Storage::IStorageLibraryChangeTracker(ptr, take_ownership_from_abi) {}
@@ -263,6 +266,28 @@ WINRT_EXPORT namespace winrt::Windows::Storage
         StorageLibraryChangeTracker(StorageLibraryChangeTracker&&) noexcept = default;
         StorageLibraryChangeTracker& operator=(StorageLibraryChangeTracker const&) & noexcept = default;
         StorageLibraryChangeTracker& operator=(StorageLibraryChangeTracker&&) & noexcept = default;
+        using winrt::Windows::Storage::IStorageLibraryChangeTracker::Enable;
+        using impl::consume_t<StorageLibraryChangeTracker, winrt::Windows::Storage::IStorageLibraryChangeTracker2>::Enable;
+    };
+    struct __declspec(empty_bases) StorageLibraryChangeTrackerOptions : winrt::Windows::Storage::IStorageLibraryChangeTrackerOptions
+    {
+        StorageLibraryChangeTrackerOptions(std::nullptr_t) noexcept {}
+        StorageLibraryChangeTrackerOptions(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Storage::IStorageLibraryChangeTrackerOptions(ptr, take_ownership_from_abi) {}
+        StorageLibraryChangeTrackerOptions();
+        StorageLibraryChangeTrackerOptions(StorageLibraryChangeTrackerOptions const&) noexcept = default;
+        StorageLibraryChangeTrackerOptions(StorageLibraryChangeTrackerOptions&&) noexcept = default;
+        StorageLibraryChangeTrackerOptions& operator=(StorageLibraryChangeTrackerOptions const&) & noexcept = default;
+        StorageLibraryChangeTrackerOptions& operator=(StorageLibraryChangeTrackerOptions&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) StorageLibraryLastChangeId : winrt::Windows::Storage::IStorageLibraryLastChangeId
+    {
+        StorageLibraryLastChangeId(std::nullptr_t) noexcept {}
+        StorageLibraryLastChangeId(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Storage::IStorageLibraryLastChangeId(ptr, take_ownership_from_abi) {}
+        StorageLibraryLastChangeId(StorageLibraryLastChangeId const&) noexcept = default;
+        StorageLibraryLastChangeId(StorageLibraryLastChangeId&&) noexcept = default;
+        StorageLibraryLastChangeId& operator=(StorageLibraryLastChangeId const&) & noexcept = default;
+        StorageLibraryLastChangeId& operator=(StorageLibraryLastChangeId&&) & noexcept = default;
+        [[nodiscard]] static auto Unknown();
     };
     struct __declspec(empty_bases) StorageProvider : winrt::Windows::Storage::IStorageProvider,
         impl::require<StorageProvider, winrt::Windows::Storage::IStorageProvider2>

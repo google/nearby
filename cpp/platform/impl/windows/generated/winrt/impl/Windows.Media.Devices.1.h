@@ -115,6 +115,17 @@ WINRT_EXPORT namespace winrt::Windows::Media::Devices
         IAdvancedVideoCaptureDeviceController8& operator=(IAdvancedVideoCaptureDeviceController8 const&) & noexcept = default;
         IAdvancedVideoCaptureDeviceController8& operator=(IAdvancedVideoCaptureDeviceController8&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IAdvancedVideoCaptureDeviceController9 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IAdvancedVideoCaptureDeviceController9>
+    {
+        IAdvancedVideoCaptureDeviceController9(std::nullptr_t = nullptr) noexcept {}
+        IAdvancedVideoCaptureDeviceController9(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IAdvancedVideoCaptureDeviceController9(IAdvancedVideoCaptureDeviceController9 const&) noexcept = default;
+        IAdvancedVideoCaptureDeviceController9(IAdvancedVideoCaptureDeviceController9&&) noexcept = default;
+        IAdvancedVideoCaptureDeviceController9& operator=(IAdvancedVideoCaptureDeviceController9 const&) & noexcept = default;
+        IAdvancedVideoCaptureDeviceController9& operator=(IAdvancedVideoCaptureDeviceController9&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IAudioDeviceController :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IAudioDeviceController>,
@@ -214,6 +225,39 @@ WINRT_EXPORT namespace winrt::Windows::Media::Devices
         IDialRequestedEventArgs(IDialRequestedEventArgs&&) noexcept = default;
         IDialRequestedEventArgs& operator=(IDialRequestedEventArgs const&) & noexcept = default;
         IDialRequestedEventArgs& operator=(IDialRequestedEventArgs&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IDigitalWindowBounds :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IDigitalWindowBounds>
+    {
+        IDigitalWindowBounds(std::nullptr_t = nullptr) noexcept {}
+        IDigitalWindowBounds(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IDigitalWindowBounds(IDigitalWindowBounds const&) noexcept = default;
+        IDigitalWindowBounds(IDigitalWindowBounds&&) noexcept = default;
+        IDigitalWindowBounds& operator=(IDigitalWindowBounds const&) & noexcept = default;
+        IDigitalWindowBounds& operator=(IDigitalWindowBounds&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IDigitalWindowCapability :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IDigitalWindowCapability>
+    {
+        IDigitalWindowCapability(std::nullptr_t = nullptr) noexcept {}
+        IDigitalWindowCapability(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IDigitalWindowCapability(IDigitalWindowCapability const&) noexcept = default;
+        IDigitalWindowCapability(IDigitalWindowCapability&&) noexcept = default;
+        IDigitalWindowCapability& operator=(IDigitalWindowCapability const&) & noexcept = default;
+        IDigitalWindowCapability& operator=(IDigitalWindowCapability&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IDigitalWindowControl :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IDigitalWindowControl>
+    {
+        IDigitalWindowControl(std::nullptr_t = nullptr) noexcept {}
+        IDigitalWindowControl(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IDigitalWindowControl(IDigitalWindowControl const&) noexcept = default;
+        IDigitalWindowControl(IDigitalWindowControl&&) noexcept = default;
+        IDigitalWindowControl& operator=(IDigitalWindowControl const&) & noexcept = default;
+        IDigitalWindowControl& operator=(IDigitalWindowControl&&) & noexcept = default;
     };
     struct __declspec(empty_bases) IExposureCompensationControl :
         winrt::Windows::Foundation::IInspectable,

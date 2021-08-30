@@ -155,5 +155,15 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Display
         [[nodiscard]] static DisplayContentsInvalidated_revoker DisplayContentsInvalidated(auto_revoke_t, winrt::Windows::Graphics::Display::DisplayPropertiesEventHandler const& handler);
         static auto DisplayContentsInvalidated(winrt::event_token const& token);
     };
+    struct __declspec(empty_bases) DisplayServices : winrt::Windows::Graphics::Display::IDisplayServices
+    {
+        DisplayServices(std::nullptr_t) noexcept {}
+        DisplayServices(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Graphics::Display::IDisplayServices(ptr, take_ownership_from_abi) {}
+        DisplayServices(DisplayServices const&) noexcept = default;
+        DisplayServices(DisplayServices&&) noexcept = default;
+        DisplayServices& operator=(DisplayServices const&) & noexcept = default;
+        DisplayServices& operator=(DisplayServices&&) & noexcept = default;
+        static auto FindAll();
+    };
 }
 #endif

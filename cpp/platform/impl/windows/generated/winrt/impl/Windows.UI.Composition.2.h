@@ -2,13 +2,27 @@
 
 #ifndef WINRT_Windows_UI_Composition_2_H
 #define WINRT_Windows_UI_Composition_2_H
-#include "winrt/impl/Windows.Foundation.1.h"
-#include "winrt/impl/Windows.Foundation.Collections.1.h"
-#include "winrt/impl/Windows.Graphics.1.h"
-#include "winrt/impl/Windows.Graphics.Effects.1.h"
+#include "winrt/impl/Windows.Foundation.2.h"
+#include "winrt/impl/Windows.Foundation.Collections.2.h"
+#include "winrt/impl/Windows.Foundation.Numerics.2.h"
+#include "winrt/impl/Windows.Graphics.2.h"
+#include "winrt/impl/Windows.Graphics.Effects.2.h"
 #include "winrt/impl/Windows.UI.Composition.1.h"
 WINRT_EXPORT namespace winrt::Windows::UI::Composition
 {
+    struct InkTrailPoint
+    {
+        winrt::Windows::Foundation::Point Point;
+        float Radius;
+    };
+    inline bool operator==(InkTrailPoint const& left, InkTrailPoint const& right) noexcept
+    {
+        return left.Point == right.Point && left.Radius == right.Radius;
+    }
+    inline bool operator!=(InkTrailPoint const& left, InkTrailPoint const& right) noexcept
+    {
+        return !(left == right);
+    }
     struct __declspec(empty_bases) AmbientLight : winrt::Windows::UI::Composition::IAmbientLight,
         impl::base<AmbientLight, winrt::Windows::UI::Composition::CompositionLight, winrt::Windows::UI::Composition::CompositionObject>,
         impl::require<AmbientLight, winrt::Windows::UI::Composition::IAmbientLight2, winrt::Windows::UI::Composition::ICompositionLight, winrt::Windows::UI::Composition::ICompositionLight2, winrt::Windows::UI::Composition::ICompositionLight3, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
@@ -35,7 +49,7 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
     };
     struct __declspec(empty_bases) AnimationPropertyInfo : winrt::Windows::UI::Composition::IAnimationPropertyInfo,
         impl::base<AnimationPropertyInfo, winrt::Windows::UI::Composition::CompositionObject>,
-        impl::require<AnimationPropertyInfo, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+        impl::require<AnimationPropertyInfo, winrt::Windows::UI::Composition::IAnimationPropertyInfo2, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
     {
         AnimationPropertyInfo(std::nullptr_t) noexcept {}
         AnimationPropertyInfo(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::IAnimationPropertyInfo(ptr, take_ownership_from_abi) {}
@@ -43,6 +57,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         AnimationPropertyInfo(AnimationPropertyInfo&&) noexcept = default;
         AnimationPropertyInfo& operator=(AnimationPropertyInfo const&) & noexcept = default;
         AnimationPropertyInfo& operator=(AnimationPropertyInfo&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) BackEasingFunction : winrt::Windows::UI::Composition::IBackEasingFunction,
+        impl::base<BackEasingFunction, winrt::Windows::UI::Composition::CompositionEasingFunction, winrt::Windows::UI::Composition::CompositionObject>,
+        impl::require<BackEasingFunction, winrt::Windows::UI::Composition::ICompositionEasingFunction, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+    {
+        BackEasingFunction(std::nullptr_t) noexcept {}
+        BackEasingFunction(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::IBackEasingFunction(ptr, take_ownership_from_abi) {}
+        BackEasingFunction(BackEasingFunction const&) noexcept = default;
+        BackEasingFunction(BackEasingFunction&&) noexcept = default;
+        BackEasingFunction& operator=(BackEasingFunction const&) & noexcept = default;
+        BackEasingFunction& operator=(BackEasingFunction&&) & noexcept = default;
     };
     struct __declspec(empty_bases) BooleanKeyFrameAnimation : winrt::Windows::UI::Composition::IBooleanKeyFrameAnimation,
         impl::base<BooleanKeyFrameAnimation, winrt::Windows::UI::Composition::KeyFrameAnimation, winrt::Windows::UI::Composition::CompositionAnimation, winrt::Windows::UI::Composition::CompositionObject>,
@@ -54,6 +79,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         BooleanKeyFrameAnimation(BooleanKeyFrameAnimation&&) noexcept = default;
         BooleanKeyFrameAnimation& operator=(BooleanKeyFrameAnimation const&) & noexcept = default;
         BooleanKeyFrameAnimation& operator=(BooleanKeyFrameAnimation&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) BounceEasingFunction : winrt::Windows::UI::Composition::IBounceEasingFunction,
+        impl::base<BounceEasingFunction, winrt::Windows::UI::Composition::CompositionEasingFunction, winrt::Windows::UI::Composition::CompositionObject>,
+        impl::require<BounceEasingFunction, winrt::Windows::UI::Composition::ICompositionEasingFunction, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+    {
+        BounceEasingFunction(std::nullptr_t) noexcept {}
+        BounceEasingFunction(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::IBounceEasingFunction(ptr, take_ownership_from_abi) {}
+        BounceEasingFunction(BounceEasingFunction const&) noexcept = default;
+        BounceEasingFunction(BounceEasingFunction&&) noexcept = default;
+        BounceEasingFunction& operator=(BounceEasingFunction const&) & noexcept = default;
+        BounceEasingFunction& operator=(BounceEasingFunction&&) & noexcept = default;
     };
     struct __declspec(empty_bases) BounceScalarNaturalMotionAnimation : winrt::Windows::UI::Composition::IBounceScalarNaturalMotionAnimation,
         impl::base<BounceScalarNaturalMotionAnimation, winrt::Windows::UI::Composition::ScalarNaturalMotionAnimation, winrt::Windows::UI::Composition::NaturalMotionAnimation, winrt::Windows::UI::Composition::CompositionAnimation, winrt::Windows::UI::Composition::CompositionObject>,
@@ -87,6 +123,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         BounceVector3NaturalMotionAnimation(BounceVector3NaturalMotionAnimation&&) noexcept = default;
         BounceVector3NaturalMotionAnimation& operator=(BounceVector3NaturalMotionAnimation const&) & noexcept = default;
         BounceVector3NaturalMotionAnimation& operator=(BounceVector3NaturalMotionAnimation&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) CircleEasingFunction : winrt::Windows::UI::Composition::ICircleEasingFunction,
+        impl::base<CircleEasingFunction, winrt::Windows::UI::Composition::CompositionEasingFunction, winrt::Windows::UI::Composition::CompositionObject>,
+        impl::require<CircleEasingFunction, winrt::Windows::UI::Composition::ICompositionEasingFunction, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+    {
+        CircleEasingFunction(std::nullptr_t) noexcept {}
+        CircleEasingFunction(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::ICircleEasingFunction(ptr, take_ownership_from_abi) {}
+        CircleEasingFunction(CircleEasingFunction const&) noexcept = default;
+        CircleEasingFunction(CircleEasingFunction&&) noexcept = default;
+        CircleEasingFunction& operator=(CircleEasingFunction const&) & noexcept = default;
+        CircleEasingFunction& operator=(CircleEasingFunction&&) & noexcept = default;
     };
     struct __declspec(empty_bases) ColorKeyFrameAnimation : winrt::Windows::UI::Composition::IColorKeyFrameAnimation,
         impl::base<ColorKeyFrameAnimation, winrt::Windows::UI::Composition::KeyFrameAnimation, winrt::Windows::UI::Composition::CompositionAnimation, winrt::Windows::UI::Composition::CompositionObject>,
@@ -250,6 +297,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         CompositionEasingFunction(CompositionEasingFunction&&) noexcept = default;
         CompositionEasingFunction& operator=(CompositionEasingFunction const&) & noexcept = default;
         CompositionEasingFunction& operator=(CompositionEasingFunction&&) & noexcept = default;
+        static auto CreateCubicBezierEasingFunction(winrt::Windows::UI::Composition::Compositor const& owner, winrt::Windows::Foundation::Numerics::float2 const& controlPoint1, winrt::Windows::Foundation::Numerics::float2 const& controlPoint2);
+        static auto CreateLinearEasingFunction(winrt::Windows::UI::Composition::Compositor const& owner);
+        static auto CreateStepEasingFunction(winrt::Windows::UI::Composition::Compositor const& owner);
+        static auto CreateStepEasingFunction(winrt::Windows::UI::Composition::Compositor const& owner, int32_t stepCount);
+        static auto CreateBackEasingFunction(winrt::Windows::UI::Composition::Compositor const& owner, winrt::Windows::UI::Composition::CompositionEasingFunctionMode const& mode, float amplitude);
+        static auto CreateBounceEasingFunction(winrt::Windows::UI::Composition::Compositor const& owner, winrt::Windows::UI::Composition::CompositionEasingFunctionMode const& mode, int32_t bounces, float bounciness);
+        static auto CreateCircleEasingFunction(winrt::Windows::UI::Composition::Compositor const& owner, winrt::Windows::UI::Composition::CompositionEasingFunctionMode const& mode);
+        static auto CreateElasticEasingFunction(winrt::Windows::UI::Composition::Compositor const& owner, winrt::Windows::UI::Composition::CompositionEasingFunctionMode const& mode, int32_t oscillations, float springiness);
+        static auto CreateExponentialEasingFunction(winrt::Windows::UI::Composition::Compositor const& owner, winrt::Windows::UI::Composition::CompositionEasingFunctionMode const& mode, float exponent);
+        static auto CreatePowerEasingFunction(winrt::Windows::UI::Composition::Compositor const& owner, winrt::Windows::UI::Composition::CompositionEasingFunctionMode const& mode, float power);
+        static auto CreateSineEasingFunction(winrt::Windows::UI::Composition::Compositor const& owner, winrt::Windows::UI::Composition::CompositionEasingFunctionMode const& mode);
     };
     struct __declspec(empty_bases) CompositionEffectBrush : winrt::Windows::UI::Composition::ICompositionEffectBrush,
         impl::base<CompositionEffectBrush, winrt::Windows::UI::Composition::CompositionBrush, winrt::Windows::UI::Composition::CompositionObject>,
@@ -330,7 +388,7 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
     };
     struct __declspec(empty_bases) CompositionGraphicsDevice : winrt::Windows::UI::Composition::ICompositionGraphicsDevice,
         impl::base<CompositionGraphicsDevice, winrt::Windows::UI::Composition::CompositionObject>,
-        impl::require<CompositionGraphicsDevice, winrt::Windows::UI::Composition::ICompositionGraphicsDevice2, winrt::Windows::UI::Composition::ICompositionGraphicsDevice3, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+        impl::require<CompositionGraphicsDevice, winrt::Windows::UI::Composition::ICompositionGraphicsDevice2, winrt::Windows::UI::Composition::ICompositionGraphicsDevice3, winrt::Windows::UI::Composition::ICompositionGraphicsDevice4, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
     {
         CompositionGraphicsDevice(std::nullptr_t) noexcept {}
         CompositionGraphicsDevice(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::ICompositionGraphicsDevice(ptr, take_ownership_from_abi) {}
@@ -672,7 +730,7 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         CompositionVisualSurface& operator=(CompositionVisualSurface&&) & noexcept = default;
     };
     struct __declspec(empty_bases) Compositor : winrt::Windows::UI::Composition::ICompositor,
-        impl::require<Compositor, winrt::Windows::UI::Composition::ICompositor2, winrt::Windows::UI::Composition::ICompositor3, winrt::Windows::UI::Composition::ICompositor4, winrt::Windows::UI::Composition::ICompositor5, winrt::Windows::UI::Composition::ICompositor6, winrt::Windows::UI::Composition::ICompositorWithProjectedShadow, winrt::Windows::UI::Composition::ICompositorWithRadialGradient, winrt::Windows::UI::Composition::ICompositorWithVisualSurface, winrt::Windows::Foundation::IClosable>
+        impl::require<Compositor, winrt::Windows::UI::Composition::ICompositor2, winrt::Windows::UI::Composition::ICompositor3, winrt::Windows::UI::Composition::ICompositor4, winrt::Windows::UI::Composition::ICompositor5, winrt::Windows::UI::Composition::ICompositor6, winrt::Windows::UI::Composition::ICompositorWithProjectedShadow, winrt::Windows::UI::Composition::ICompositorWithRadialGradient, winrt::Windows::UI::Composition::ICompositorWithVisualSurface, winrt::Windows::UI::Composition::ICompositor7, winrt::Windows::Foundation::IClosable>
     {
         Compositor(std::nullptr_t) noexcept {}
         Compositor(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::ICompositor(ptr, take_ownership_from_abi) {}
@@ -686,7 +744,7 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
     };
     struct __declspec(empty_bases) ContainerVisual : winrt::Windows::UI::Composition::IContainerVisual,
         impl::base<ContainerVisual, winrt::Windows::UI::Composition::Visual, winrt::Windows::UI::Composition::CompositionObject>,
-        impl::require<ContainerVisual, winrt::Windows::UI::Composition::IVisual, winrt::Windows::UI::Composition::IVisual2, winrt::Windows::UI::Composition::IVisual3, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+        impl::require<ContainerVisual, winrt::Windows::UI::Composition::IVisual, winrt::Windows::UI::Composition::IVisual2, winrt::Windows::UI::Composition::IVisual3, winrt::Windows::UI::Composition::IVisual4, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
     {
         ContainerVisual(std::nullptr_t) noexcept {}
         ContainerVisual(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::IContainerVisual(ptr, take_ownership_from_abi) {}
@@ -705,6 +763,19 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         CubicBezierEasingFunction(CubicBezierEasingFunction&&) noexcept = default;
         CubicBezierEasingFunction& operator=(CubicBezierEasingFunction const&) & noexcept = default;
         CubicBezierEasingFunction& operator=(CubicBezierEasingFunction&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) DelegatedInkTrailVisual : winrt::Windows::UI::Composition::IDelegatedInkTrailVisual,
+        impl::base<DelegatedInkTrailVisual, winrt::Windows::UI::Composition::Visual, winrt::Windows::UI::Composition::CompositionObject>,
+        impl::require<DelegatedInkTrailVisual, winrt::Windows::UI::Composition::IVisual, winrt::Windows::UI::Composition::IVisual2, winrt::Windows::UI::Composition::IVisual3, winrt::Windows::UI::Composition::IVisual4, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+    {
+        DelegatedInkTrailVisual(std::nullptr_t) noexcept {}
+        DelegatedInkTrailVisual(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::IDelegatedInkTrailVisual(ptr, take_ownership_from_abi) {}
+        DelegatedInkTrailVisual(DelegatedInkTrailVisual const&) noexcept = default;
+        DelegatedInkTrailVisual(DelegatedInkTrailVisual&&) noexcept = default;
+        DelegatedInkTrailVisual& operator=(DelegatedInkTrailVisual const&) & noexcept = default;
+        DelegatedInkTrailVisual& operator=(DelegatedInkTrailVisual&&) & noexcept = default;
+        static auto Create(winrt::Windows::UI::Composition::Compositor const& compositor);
+        static auto CreateForSwapChain(winrt::Windows::UI::Composition::Compositor const& compositor, winrt::Windows::UI::Composition::ICompositionSurface const& swapChain);
     };
     struct __declspec(empty_bases) DistantLight : winrt::Windows::UI::Composition::IDistantLight,
         impl::base<DistantLight, winrt::Windows::UI::Composition::CompositionLight, winrt::Windows::UI::Composition::CompositionObject>,
@@ -727,6 +798,28 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         DropShadow(DropShadow&&) noexcept = default;
         DropShadow& operator=(DropShadow const&) & noexcept = default;
         DropShadow& operator=(DropShadow&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) ElasticEasingFunction : winrt::Windows::UI::Composition::IElasticEasingFunction,
+        impl::base<ElasticEasingFunction, winrt::Windows::UI::Composition::CompositionEasingFunction, winrt::Windows::UI::Composition::CompositionObject>,
+        impl::require<ElasticEasingFunction, winrt::Windows::UI::Composition::ICompositionEasingFunction, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+    {
+        ElasticEasingFunction(std::nullptr_t) noexcept {}
+        ElasticEasingFunction(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::IElasticEasingFunction(ptr, take_ownership_from_abi) {}
+        ElasticEasingFunction(ElasticEasingFunction const&) noexcept = default;
+        ElasticEasingFunction(ElasticEasingFunction&&) noexcept = default;
+        ElasticEasingFunction& operator=(ElasticEasingFunction const&) & noexcept = default;
+        ElasticEasingFunction& operator=(ElasticEasingFunction&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) ExponentialEasingFunction : winrt::Windows::UI::Composition::IExponentialEasingFunction,
+        impl::base<ExponentialEasingFunction, winrt::Windows::UI::Composition::CompositionEasingFunction, winrt::Windows::UI::Composition::CompositionObject>,
+        impl::require<ExponentialEasingFunction, winrt::Windows::UI::Composition::ICompositionEasingFunction, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+    {
+        ExponentialEasingFunction(std::nullptr_t) noexcept {}
+        ExponentialEasingFunction(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::IExponentialEasingFunction(ptr, take_ownership_from_abi) {}
+        ExponentialEasingFunction(ExponentialEasingFunction const&) noexcept = default;
+        ExponentialEasingFunction(ExponentialEasingFunction&&) noexcept = default;
+        ExponentialEasingFunction& operator=(ExponentialEasingFunction const&) & noexcept = default;
+        ExponentialEasingFunction& operator=(ExponentialEasingFunction&&) & noexcept = default;
     };
     struct __declspec(empty_bases) ExpressionAnimation : winrt::Windows::UI::Composition::IExpressionAnimation,
         impl::base<ExpressionAnimation, winrt::Windows::UI::Composition::CompositionAnimation, winrt::Windows::UI::Composition::CompositionObject>,
@@ -785,7 +878,7 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
     };
     struct __declspec(empty_bases) LayerVisual : winrt::Windows::UI::Composition::ILayerVisual,
         impl::base<LayerVisual, winrt::Windows::UI::Composition::ContainerVisual, winrt::Windows::UI::Composition::Visual, winrt::Windows::UI::Composition::CompositionObject>,
-        impl::require<LayerVisual, winrt::Windows::UI::Composition::ILayerVisual2, winrt::Windows::UI::Composition::IContainerVisual, winrt::Windows::UI::Composition::IVisual, winrt::Windows::UI::Composition::IVisual2, winrt::Windows::UI::Composition::IVisual3, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+        impl::require<LayerVisual, winrt::Windows::UI::Composition::ILayerVisual2, winrt::Windows::UI::Composition::IContainerVisual, winrt::Windows::UI::Composition::IVisual, winrt::Windows::UI::Composition::IVisual2, winrt::Windows::UI::Composition::IVisual3, winrt::Windows::UI::Composition::IVisual4, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
     {
         LayerVisual(std::nullptr_t) noexcept {}
         LayerVisual(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::ILayerVisual(ptr, take_ownership_from_abi) {}
@@ -838,6 +931,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         PointLight& operator=(PointLight const&) & noexcept = default;
         PointLight& operator=(PointLight&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) PowerEasingFunction : winrt::Windows::UI::Composition::IPowerEasingFunction,
+        impl::base<PowerEasingFunction, winrt::Windows::UI::Composition::CompositionEasingFunction, winrt::Windows::UI::Composition::CompositionObject>,
+        impl::require<PowerEasingFunction, winrt::Windows::UI::Composition::ICompositionEasingFunction, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+    {
+        PowerEasingFunction(std::nullptr_t) noexcept {}
+        PowerEasingFunction(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::IPowerEasingFunction(ptr, take_ownership_from_abi) {}
+        PowerEasingFunction(PowerEasingFunction const&) noexcept = default;
+        PowerEasingFunction(PowerEasingFunction&&) noexcept = default;
+        PowerEasingFunction& operator=(PowerEasingFunction const&) & noexcept = default;
+        PowerEasingFunction& operator=(PowerEasingFunction&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) QuaternionKeyFrameAnimation : winrt::Windows::UI::Composition::IQuaternionKeyFrameAnimation,
         impl::base<QuaternionKeyFrameAnimation, winrt::Windows::UI::Composition::KeyFrameAnimation, winrt::Windows::UI::Composition::CompositionAnimation, winrt::Windows::UI::Composition::CompositionObject>,
         impl::require<QuaternionKeyFrameAnimation, winrt::Windows::UI::Composition::IKeyFrameAnimation, winrt::Windows::UI::Composition::IKeyFrameAnimation2, winrt::Windows::UI::Composition::IKeyFrameAnimation3, winrt::Windows::UI::Composition::ICompositionAnimation, winrt::Windows::UI::Composition::ICompositionAnimation2, winrt::Windows::UI::Composition::ICompositionAnimation3, winrt::Windows::UI::Composition::ICompositionAnimation4, winrt::Windows::UI::Composition::ICompositionAnimationBase, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
@@ -849,9 +953,20 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         QuaternionKeyFrameAnimation& operator=(QuaternionKeyFrameAnimation const&) & noexcept = default;
         QuaternionKeyFrameAnimation& operator=(QuaternionKeyFrameAnimation&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) RectangleClip : winrt::Windows::UI::Composition::IRectangleClip,
+        impl::base<RectangleClip, winrt::Windows::UI::Composition::CompositionClip, winrt::Windows::UI::Composition::CompositionObject>,
+        impl::require<RectangleClip, winrt::Windows::UI::Composition::ICompositionClip, winrt::Windows::UI::Composition::ICompositionClip2, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+    {
+        RectangleClip(std::nullptr_t) noexcept {}
+        RectangleClip(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::IRectangleClip(ptr, take_ownership_from_abi) {}
+        RectangleClip(RectangleClip const&) noexcept = default;
+        RectangleClip(RectangleClip&&) noexcept = default;
+        RectangleClip& operator=(RectangleClip const&) & noexcept = default;
+        RectangleClip& operator=(RectangleClip&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) RedirectVisual : winrt::Windows::UI::Composition::IRedirectVisual,
         impl::base<RedirectVisual, winrt::Windows::UI::Composition::ContainerVisual, winrt::Windows::UI::Composition::Visual, winrt::Windows::UI::Composition::CompositionObject>,
-        impl::require<RedirectVisual, winrt::Windows::UI::Composition::IContainerVisual, winrt::Windows::UI::Composition::IVisual, winrt::Windows::UI::Composition::IVisual2, winrt::Windows::UI::Composition::IVisual3, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+        impl::require<RedirectVisual, winrt::Windows::UI::Composition::IContainerVisual, winrt::Windows::UI::Composition::IVisual, winrt::Windows::UI::Composition::IVisual2, winrt::Windows::UI::Composition::IVisual3, winrt::Windows::UI::Composition::IVisual4, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
     {
         RedirectVisual(std::nullptr_t) noexcept {}
         RedirectVisual(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::IRedirectVisual(ptr, take_ownership_from_abi) {}
@@ -895,7 +1010,7 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
     };
     struct __declspec(empty_bases) ShapeVisual : winrt::Windows::UI::Composition::IShapeVisual,
         impl::base<ShapeVisual, winrt::Windows::UI::Composition::ContainerVisual, winrt::Windows::UI::Composition::Visual, winrt::Windows::UI::Composition::CompositionObject>,
-        impl::require<ShapeVisual, winrt::Windows::UI::Composition::IContainerVisual, winrt::Windows::UI::Composition::IVisual, winrt::Windows::UI::Composition::IVisual2, winrt::Windows::UI::Composition::IVisual3, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+        impl::require<ShapeVisual, winrt::Windows::UI::Composition::IContainerVisual, winrt::Windows::UI::Composition::IVisual, winrt::Windows::UI::Composition::IVisual2, winrt::Windows::UI::Composition::IVisual3, winrt::Windows::UI::Composition::IVisual4, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
     {
         ShapeVisual(std::nullptr_t) noexcept {}
         ShapeVisual(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::IShapeVisual(ptr, take_ownership_from_abi) {}
@@ -903,6 +1018,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
         ShapeVisual(ShapeVisual&&) noexcept = default;
         ShapeVisual& operator=(ShapeVisual const&) & noexcept = default;
         ShapeVisual& operator=(ShapeVisual&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) SineEasingFunction : winrt::Windows::UI::Composition::ISineEasingFunction,
+        impl::base<SineEasingFunction, winrt::Windows::UI::Composition::CompositionEasingFunction, winrt::Windows::UI::Composition::CompositionObject>,
+        impl::require<SineEasingFunction, winrt::Windows::UI::Composition::ICompositionEasingFunction, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+    {
+        SineEasingFunction(std::nullptr_t) noexcept {}
+        SineEasingFunction(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::ISineEasingFunction(ptr, take_ownership_from_abi) {}
+        SineEasingFunction(SineEasingFunction const&) noexcept = default;
+        SineEasingFunction(SineEasingFunction&&) noexcept = default;
+        SineEasingFunction& operator=(SineEasingFunction const&) & noexcept = default;
+        SineEasingFunction& operator=(SineEasingFunction&&) & noexcept = default;
     };
     struct __declspec(empty_bases) SpotLight : winrt::Windows::UI::Composition::ISpotLight,
         impl::base<SpotLight, winrt::Windows::UI::Composition::CompositionLight, winrt::Windows::UI::Composition::CompositionObject>,
@@ -950,7 +1076,7 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
     };
     struct __declspec(empty_bases) SpriteVisual : winrt::Windows::UI::Composition::ISpriteVisual,
         impl::base<SpriteVisual, winrt::Windows::UI::Composition::ContainerVisual, winrt::Windows::UI::Composition::Visual, winrt::Windows::UI::Composition::CompositionObject>,
-        impl::require<SpriteVisual, winrt::Windows::UI::Composition::ISpriteVisual2, winrt::Windows::UI::Composition::IContainerVisual, winrt::Windows::UI::Composition::IVisual, winrt::Windows::UI::Composition::IVisual2, winrt::Windows::UI::Composition::IVisual3, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+        impl::require<SpriteVisual, winrt::Windows::UI::Composition::ISpriteVisual2, winrt::Windows::UI::Composition::IContainerVisual, winrt::Windows::UI::Composition::IVisual, winrt::Windows::UI::Composition::IVisual2, winrt::Windows::UI::Composition::IVisual3, winrt::Windows::UI::Composition::IVisual4, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
     {
         SpriteVisual(std::nullptr_t) noexcept {}
         SpriteVisual(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::ISpriteVisual(ptr, take_ownership_from_abi) {}
@@ -1027,7 +1153,7 @@ WINRT_EXPORT namespace winrt::Windows::UI::Composition
     };
     struct __declspec(empty_bases) Visual : winrt::Windows::UI::Composition::IVisual,
         impl::base<Visual, winrt::Windows::UI::Composition::CompositionObject>,
-        impl::require<Visual, winrt::Windows::UI::Composition::IVisual2, winrt::Windows::UI::Composition::IVisual3, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
+        impl::require<Visual, winrt::Windows::UI::Composition::IVisual2, winrt::Windows::UI::Composition::IVisual3, winrt::Windows::UI::Composition::IVisual4, winrt::Windows::UI::Composition::ICompositionObject, winrt::Windows::UI::Composition::ICompositionObject2, winrt::Windows::UI::Composition::ICompositionObject3, winrt::Windows::UI::Composition::ICompositionObject4, winrt::Windows::Foundation::IClosable, winrt::Windows::UI::Composition::IAnimationObject>
     {
         Visual(std::nullptr_t) noexcept {}
         Visual(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Composition::IVisual(ptr, take_ownership_from_abi) {}

@@ -28,6 +28,7 @@ WINRT_EXPORT namespace winrt::Windows::UI
     struct Color;
     struct UIContentRoot;
     struct UIContext;
+    struct WindowId;
 }
 WINRT_EXPORT namespace winrt::Windows::UI::Composition
 {
@@ -81,6 +82,7 @@ WINRT_EXPORT namespace winrt::Windows::UI::WindowManagement
     struct IDefaultPresentationConfiguration;
     struct IDisplayRegion;
     struct IFullScreenPresentationConfiguration;
+    struct IWindowServicesStatics;
     struct IWindowingEnvironment;
     struct IWindowingEnvironmentAddedEventArgs;
     struct IWindowingEnvironmentChangedEventArgs;
@@ -100,6 +102,7 @@ WINRT_EXPORT namespace winrt::Windows::UI::WindowManagement
     struct DefaultPresentationConfiguration;
     struct DisplayRegion;
     struct FullScreenPresentationConfiguration;
+    struct WindowServices;
     struct WindowingEnvironment;
     struct WindowingEnvironmentAddedEventArgs;
     struct WindowingEnvironmentChangedEventArgs;
@@ -125,6 +128,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::UI::WindowManagement::IDefaultPresentationConfiguration>{ using type = interface_category; };
     template <> struct category<winrt::Windows::UI::WindowManagement::IDisplayRegion>{ using type = interface_category; };
     template <> struct category<winrt::Windows::UI::WindowManagement::IFullScreenPresentationConfiguration>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::UI::WindowManagement::IWindowServicesStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::UI::WindowManagement::IWindowingEnvironment>{ using type = interface_category; };
     template <> struct category<winrt::Windows::UI::WindowManagement::IWindowingEnvironmentAddedEventArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::UI::WindowManagement::IWindowingEnvironmentChangedEventArgs>{ using type = interface_category; };
@@ -144,6 +148,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::UI::WindowManagement::DefaultPresentationConfiguration>{ using type = class_category; };
     template <> struct category<winrt::Windows::UI::WindowManagement::DisplayRegion>{ using type = class_category; };
     template <> struct category<winrt::Windows::UI::WindowManagement::FullScreenPresentationConfiguration>{ using type = class_category; };
+    template <> struct category<winrt::Windows::UI::WindowManagement::WindowServices>{ using type = class_category; };
     template <> struct category<winrt::Windows::UI::WindowManagement::WindowingEnvironment>{ using type = class_category; };
     template <> struct category<winrt::Windows::UI::WindowManagement::WindowingEnvironmentAddedEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::UI::WindowManagement::WindowingEnvironmentChangedEventArgs>{ using type = class_category; };
@@ -167,6 +172,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::UI::WindowManagement::DefaultPresentationConfiguration> = L"Windows.UI.WindowManagement.DefaultPresentationConfiguration";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::WindowManagement::DisplayRegion> = L"Windows.UI.WindowManagement.DisplayRegion";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::WindowManagement::FullScreenPresentationConfiguration> = L"Windows.UI.WindowManagement.FullScreenPresentationConfiguration";
+    template <> inline constexpr auto& name_v<winrt::Windows::UI::WindowManagement::WindowServices> = L"Windows.UI.WindowManagement.WindowServices";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::WindowManagement::WindowingEnvironment> = L"Windows.UI.WindowManagement.WindowingEnvironment";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::WindowManagement::WindowingEnvironmentAddedEventArgs> = L"Windows.UI.WindowManagement.WindowingEnvironmentAddedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::WindowManagement::WindowingEnvironmentChangedEventArgs> = L"Windows.UI.WindowManagement.WindowingEnvironmentChangedEventArgs";
@@ -194,6 +200,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::UI::WindowManagement::IDefaultPresentationConfiguration> = L"Windows.UI.WindowManagement.IDefaultPresentationConfiguration";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::WindowManagement::IDisplayRegion> = L"Windows.UI.WindowManagement.IDisplayRegion";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::WindowManagement::IFullScreenPresentationConfiguration> = L"Windows.UI.WindowManagement.IFullScreenPresentationConfiguration";
+    template <> inline constexpr auto& name_v<winrt::Windows::UI::WindowManagement::IWindowServicesStatics> = L"Windows.UI.WindowManagement.IWindowServicesStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::WindowManagement::IWindowingEnvironment> = L"Windows.UI.WindowManagement.IWindowingEnvironment";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::WindowManagement::IWindowingEnvironmentAddedEventArgs> = L"Windows.UI.WindowManagement.IWindowingEnvironmentAddedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::WindowManagement::IWindowingEnvironmentChangedEventArgs> = L"Windows.UI.WindowManagement.IWindowingEnvironmentChangedEventArgs";
@@ -217,6 +224,7 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::UI::WindowManagement::IDefaultPresentationConfiguration>{ 0xD8C2B53B,0x2168,0x5703,{ 0xA8,0x53,0xD5,0x25,0x58,0x9F,0xE2,0xB9 } }; // D8C2B53B-2168-5703-A853-D525589FE2B9
     template <> inline constexpr guid guid_v<winrt::Windows::UI::WindowManagement::IDisplayRegion>{ 0xDB50C3A2,0x4094,0x5F47,{ 0x8C,0xB1,0xEA,0x01,0xDD,0xAF,0xAA,0x94 } }; // DB50C3A2-4094-5F47-8CB1-EA01DDAFAA94
     template <> inline constexpr guid guid_v<winrt::Windows::UI::WindowManagement::IFullScreenPresentationConfiguration>{ 0x43D3DCD8,0xD2A8,0x503D,{ 0xA6,0x26,0x15,0x53,0x3D,0x6D,0x5F,0x62 } }; // 43D3DCD8-D2A8-503D-A626-15533D6D5F62
+    template <> inline constexpr guid guid_v<winrt::Windows::UI::WindowManagement::IWindowServicesStatics>{ 0xCFF4D519,0x50A6,0x5C64,{ 0x97,0xF6,0xC2,0xD9,0x6A,0xDD,0x7F,0x42 } }; // CFF4D519-50A6-5C64-97F6-C2D96ADD7F42
     template <> inline constexpr guid guid_v<winrt::Windows::UI::WindowManagement::IWindowingEnvironment>{ 0x264363C0,0x2A49,0x5417,{ 0xB3,0xAE,0x48,0xA7,0x1C,0x63,0xA3,0xBD } }; // 264363C0-2A49-5417-B3AE-48A71C63A3BD
     template <> inline constexpr guid guid_v<winrt::Windows::UI::WindowManagement::IWindowingEnvironmentAddedEventArgs>{ 0xFF2A5B7F,0xF183,0x5C66,{ 0x99,0xB2,0x42,0x90,0x82,0x06,0x92,0x99 } }; // FF2A5B7F-F183-5C66-99B2-429082069299
     template <> inline constexpr guid guid_v<winrt::Windows::UI::WindowManagement::IWindowingEnvironmentChangedEventArgs>{ 0x4160CFC6,0x023D,0x5E9A,{ 0xB4,0x31,0x35,0x0E,0x67,0xDC,0x97,0x8A } }; // 4160CFC6-023D-5E9A-B431-350E67DC978A
@@ -441,6 +449,13 @@ namespace winrt::impl
         {
             virtual int32_t __stdcall get_IsExclusive(bool*) noexcept = 0;
             virtual int32_t __stdcall put_IsExclusive(bool) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::UI::WindowManagement::IWindowServicesStatics>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall FindAllTopLevelWindowIds(void**) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::UI::WindowManagement::IWindowingEnvironment>
@@ -728,6 +743,15 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::UI::WindowManagement::IFullScreenPresentationConfiguration>
     {
         template <typename D> using type = consume_Windows_UI_WindowManagement_IFullScreenPresentationConfiguration<D>;
+    };
+    template <typename D>
+    struct consume_Windows_UI_WindowManagement_IWindowServicesStatics
+    {
+        WINRT_IMPL_AUTO(winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::UI::WindowId>) FindAllTopLevelWindowIds() const;
+    };
+    template <> struct consume<winrt::Windows::UI::WindowManagement::IWindowServicesStatics>
+    {
+        template <typename D> using type = consume_Windows_UI_WindowManagement_IWindowServicesStatics<D>;
     };
     template <typename D>
     struct consume_Windows_UI_WindowManagement_IWindowingEnvironment

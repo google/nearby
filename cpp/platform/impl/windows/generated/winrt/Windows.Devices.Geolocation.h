@@ -203,6 +203,18 @@ namespace winrt::impl
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Devices::Geolocation::IGeocoordinateSatelliteData)->get_VerticalDilutionOfPrecision(&ppValue));
         return winrt::Windows::Foundation::IReference<double>{ ppValue, take_ownership_from_abi };
     }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::IReference<double>) consume_Windows_Devices_Geolocation_IGeocoordinateSatelliteData2<D>::GeometricDilutionOfPrecision() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Devices::Geolocation::IGeocoordinateSatelliteData2)->get_GeometricDilutionOfPrecision(&value));
+        return winrt::Windows::Foundation::IReference<double>{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::IReference<double>) consume_Windows_Devices_Geolocation_IGeocoordinateSatelliteData2<D>::TimeDilutionOfPrecision() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Devices::Geolocation::IGeocoordinateSatelliteData2)->get_TimeDilutionOfPrecision(&value));
+        return winrt::Windows::Foundation::IReference<double>{ value, take_ownership_from_abi };
+    }
     template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Devices::Geolocation::Geopoint) consume_Windows_Devices_Geolocation_IGeocoordinateWithPoint<D>::Point() const
     {
         void* value{};
@@ -816,6 +828,28 @@ namespace winrt::impl
             clear_abi(ppValue);
             typename D::abi_guard guard(this->shim());
             *ppValue = detach_from<winrt::Windows::Foundation::IReference<double>>(this->shim().VerticalDilutionOfPrecision());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Devices::Geolocation::IGeocoordinateSatelliteData2> : produce_base<D, winrt::Windows::Devices::Geolocation::IGeocoordinateSatelliteData2>
+    {
+        int32_t __stdcall get_GeometricDilutionOfPrecision(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Foundation::IReference<double>>(this->shim().GeometricDilutionOfPrecision());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_TimeDilutionOfPrecision(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Foundation::IReference<double>>(this->shim().TimeDilutionOfPrecision());
             return 0;
         }
         catch (...) { return to_hresult(); }
@@ -1482,6 +1516,7 @@ namespace std
     template<> struct hash<winrt::Windows::Devices::Geolocation::IGeocircleFactory> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Geolocation::IGeocoordinate> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Geolocation::IGeocoordinateSatelliteData> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Devices::Geolocation::IGeocoordinateSatelliteData2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Geolocation::IGeocoordinateWithPoint> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Geolocation::IGeocoordinateWithPositionData> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Geolocation::IGeocoordinateWithPositionSourceTimestamp> : winrt::impl::hash_base {};

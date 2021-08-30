@@ -2008,6 +2008,36 @@ namespace winrt::impl
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedMetadataTrackProvider)->get_TimedMetadataTracks(&value));
         return winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Media::Core::TimedMetadataTrack>{ value, take_ownership_from_abi };
     }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextBoutenType) consume_Windows_Media_Core_ITimedTextBouten<D>::Type() const
+    {
+        winrt::Windows::Media::Core::TimedTextBoutenType value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextBouten)->get_Type(reinterpret_cast<int32_t*>(&value)));
+        return value;
+    }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Media_Core_ITimedTextBouten<D>::Type(winrt::Windows::Media::Core::TimedTextBoutenType const& value) const
+    {
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextBouten)->put_Type(static_cast<int32_t>(value)));
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::UI::Color) consume_Windows_Media_Core_ITimedTextBouten<D>::Color() const
+    {
+        winrt::Windows::UI::Color value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextBouten)->get_Color(put_abi(value)));
+        return value;
+    }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Media_Core_ITimedTextBouten<D>::Color(winrt::Windows::UI::Color const& value) const
+    {
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextBouten)->put_Color(impl::bind_in(value)));
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextBoutenPosition) consume_Windows_Media_Core_ITimedTextBouten<D>::Position() const
+    {
+        winrt::Windows::Media::Core::TimedTextBoutenPosition value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextBouten)->get_Position(reinterpret_cast<int32_t*>(&value)));
+        return value;
+    }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Media_Core_ITimedTextBouten<D>::Position(winrt::Windows::Media::Core::TimedTextBoutenPosition const& value) const
+    {
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextBouten)->put_Position(static_cast<int32_t>(value)));
+    }
     template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextRegion) consume_Windows_Media_Core_ITimedTextCue<D>::CueRegion() const
     {
         void* value{};
@@ -2169,6 +2199,46 @@ namespace winrt::impl
     template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Media_Core_ITimedTextRegion<D>::ScrollMode(winrt::Windows::Media::Core::TimedTextScrollMode const& value) const
     {
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextRegion)->put_ScrollMode(static_cast<int32_t>(value)));
+    }
+    template <typename D> WINRT_IMPL_AUTO(hstring) consume_Windows_Media_Core_ITimedTextRuby<D>::Text() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextRuby)->get_Text(&value));
+        return hstring{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Media_Core_ITimedTextRuby<D>::Text(param::hstring const& value) const
+    {
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextRuby)->put_Text(*(void**)(&value)));
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextRubyPosition) consume_Windows_Media_Core_ITimedTextRuby<D>::Position() const
+    {
+        winrt::Windows::Media::Core::TimedTextRubyPosition value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextRuby)->get_Position(reinterpret_cast<int32_t*>(&value)));
+        return value;
+    }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Media_Core_ITimedTextRuby<D>::Position(winrt::Windows::Media::Core::TimedTextRubyPosition const& value) const
+    {
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextRuby)->put_Position(static_cast<int32_t>(value)));
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextRubyAlign) consume_Windows_Media_Core_ITimedTextRuby<D>::Align() const
+    {
+        winrt::Windows::Media::Core::TimedTextRubyAlign value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextRuby)->get_Align(reinterpret_cast<int32_t*>(&value)));
+        return value;
+    }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Media_Core_ITimedTextRuby<D>::Align(winrt::Windows::Media::Core::TimedTextRubyAlign const& value) const
+    {
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextRuby)->put_Align(static_cast<int32_t>(value)));
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextRubyReserve) consume_Windows_Media_Core_ITimedTextRuby<D>::Reserve() const
+    {
+        winrt::Windows::Media::Core::TimedTextRubyReserve value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextRuby)->get_Reserve(reinterpret_cast<int32_t*>(&value)));
+        return value;
+    }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Media_Core_ITimedTextRuby<D>::Reserve(winrt::Windows::Media::Core::TimedTextRubyReserve const& value) const
+    {
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextRuby)->put_Reserve(static_cast<int32_t>(value)));
     }
     template <typename D> WINRT_IMPL_AUTO(winrt::event_token) consume_Windows_Media_Core_ITimedTextSource<D>::Resolved(winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Media::Core::TimedTextSource, winrt::Windows::Media::Core::TimedTextSourceResolveResultEventArgs> const& handler) const
     {
@@ -2403,6 +2473,38 @@ namespace winrt::impl
     template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Media_Core_ITimedTextStyle2<D>::IsOverlineEnabled(bool value) const
     {
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextStyle2)->put_IsOverlineEnabled(value));
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextRuby) consume_Windows_Media_Core_ITimedTextStyle3<D>::Ruby() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextStyle3)->get_Ruby(&value));
+        return winrt::Windows::Media::Core::TimedTextRuby{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextBouten) consume_Windows_Media_Core_ITimedTextStyle3<D>::Bouten() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextStyle3)->get_Bouten(&value));
+        return winrt::Windows::Media::Core::TimedTextBouten{ value, take_ownership_from_abi };
+    }
+    template <typename D> WINRT_IMPL_AUTO(bool) consume_Windows_Media_Core_ITimedTextStyle3<D>::IsTextCombined() const
+    {
+        bool value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextStyle3)->get_IsTextCombined(&value));
+        return value;
+    }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Media_Core_ITimedTextStyle3<D>::IsTextCombined(bool value) const
+    {
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextStyle3)->put_IsTextCombined(value));
+    }
+    template <typename D> WINRT_IMPL_AUTO(double) consume_Windows_Media_Core_ITimedTextStyle3<D>::FontAngleInDegrees() const
+    {
+        double value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextStyle3)->get_FontAngleInDegrees(&value));
+        return value;
+    }
+    template <typename D> WINRT_IMPL_AUTO(void) consume_Windows_Media_Core_ITimedTextStyle3<D>::FontAngleInDegrees(double value) const
+    {
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::Media::Core::ITimedTextStyle3)->put_FontAngleInDegrees(value));
     }
     template <typename D> WINRT_IMPL_AUTO(int32_t) consume_Windows_Media_Core_ITimedTextSubformat<D>::StartIndex() const
     {
@@ -5652,6 +5754,55 @@ namespace winrt::impl
     };
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
+    struct produce<D, winrt::Windows::Media::Core::ITimedTextBouten> : produce_base<D, winrt::Windows::Media::Core::ITimedTextBouten>
+    {
+        int32_t __stdcall get_Type(int32_t* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Media::Core::TimedTextBoutenType>(this->shim().Type());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall put_Type(int32_t value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().Type(*reinterpret_cast<winrt::Windows::Media::Core::TimedTextBoutenType const*>(&value));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_Color(struct struct_Windows_UI_Color* value) noexcept final try
+        {
+            zero_abi<winrt::Windows::UI::Color>(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::UI::Color>(this->shim().Color());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall put_Color(struct struct_Windows_UI_Color value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().Color(*reinterpret_cast<winrt::Windows::UI::Color const*>(&value));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_Position(int32_t* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Media::Core::TimedTextBoutenPosition>(this->shim().Position());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall put_Position(int32_t value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().Position(*reinterpret_cast<winrt::Windows::Media::Core::TimedTextBoutenPosition const*>(&value));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
     struct produce<D, winrt::Windows::Media::Core::ITimedTextCue> : produce_base<D, winrt::Windows::Media::Core::ITimedTextCue>
     {
         int32_t __stdcall get_CueRegion(void** value) noexcept final try
@@ -5898,6 +6049,69 @@ namespace winrt::impl
         {
             typename D::abi_guard guard(this->shim());
             this->shim().ScrollMode(*reinterpret_cast<winrt::Windows::Media::Core::TimedTextScrollMode const*>(&value));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Media::Core::ITimedTextRuby> : produce_base<D, winrt::Windows::Media::Core::ITimedTextRuby>
+    {
+        int32_t __stdcall get_Text(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<hstring>(this->shim().Text());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall put_Text(void* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().Text(*reinterpret_cast<hstring const*>(&value));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_Position(int32_t* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Media::Core::TimedTextRubyPosition>(this->shim().Position());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall put_Position(int32_t value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().Position(*reinterpret_cast<winrt::Windows::Media::Core::TimedTextRubyPosition const*>(&value));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_Align(int32_t* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Media::Core::TimedTextRubyAlign>(this->shim().Align());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall put_Align(int32_t value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().Align(*reinterpret_cast<winrt::Windows::Media::Core::TimedTextRubyAlign const*>(&value));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_Reserve(int32_t* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Media::Core::TimedTextRubyReserve>(this->shim().Reserve());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall put_Reserve(int32_t value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().Reserve(*reinterpret_cast<winrt::Windows::Media::Core::TimedTextRubyReserve const*>(&value));
             return 0;
         }
         catch (...) { return to_hresult(); }
@@ -6260,6 +6474,56 @@ namespace winrt::impl
         {
             typename D::abi_guard guard(this->shim());
             this->shim().IsOverlineEnabled(value);
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Media::Core::ITimedTextStyle3> : produce_base<D, winrt::Windows::Media::Core::ITimedTextStyle3>
+    {
+        int32_t __stdcall get_Ruby(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Media::Core::TimedTextRuby>(this->shim().Ruby());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_Bouten(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::Media::Core::TimedTextBouten>(this->shim().Bouten());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_IsTextCombined(bool* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<bool>(this->shim().IsTextCombined());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall put_IsTextCombined(bool value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().IsTextCombined(value);
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_FontAngleInDegrees(double* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<double>(this->shim().FontAngleInDegrees());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall put_FontAngleInDegrees(double value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            this->shim().FontAngleInDegrees(value);
             return 0;
         }
         catch (...) { return to_hresult(); }
@@ -6987,15 +7251,18 @@ namespace std
     template<> struct hash<winrt::Windows::Media::Core::ITimedMetadataTrackFactory> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::ITimedMetadataTrackFailedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::ITimedMetadataTrackProvider> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Media::Core::ITimedTextBouten> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::ITimedTextCue> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::ITimedTextLine> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::ITimedTextRegion> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Media::Core::ITimedTextRuby> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::ITimedTextSource> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::ITimedTextSourceResolveResultEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::ITimedTextSourceStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::ITimedTextSourceStatics2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::ITimedTextStyle> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::ITimedTextStyle2> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Media::Core::ITimedTextStyle3> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::ITimedTextSubformat> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::IVideoStabilizationEffect> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::IVideoStabilizationEffectEnabledChangedEventArgs> : winrt::impl::hash_base {};
@@ -7060,9 +7327,11 @@ namespace std
     template<> struct hash<winrt::Windows::Media::Core::TimedMetadataTrack> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::TimedMetadataTrackError> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::TimedMetadataTrackFailedEventArgs> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Media::Core::TimedTextBouten> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::TimedTextCue> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::TimedTextLine> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::TimedTextRegion> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::Media::Core::TimedTextRuby> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::TimedTextSource> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::TimedTextSourceResolveResultEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::TimedTextStyle> : winrt::impl::hash_base {};

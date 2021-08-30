@@ -219,6 +219,7 @@ WINRT_EXPORT namespace winrt::Windows::Media::Audio
     struct ISpatialAudioFormatConfiguration;
     struct ISpatialAudioFormatConfigurationStatics;
     struct ISpatialAudioFormatSubtypeStatics;
+    struct ISpatialAudioFormatSubtypeStatics2;
     struct AudioDeviceInputNode;
     struct AudioDeviceOutputNode;
     struct AudioFileInputNode;
@@ -325,6 +326,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Media::Audio::ISpatialAudioFormatConfiguration>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Audio::ISpatialAudioFormatConfigurationStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Audio::ISpatialAudioFormatSubtypeStatics>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Media::Audio::ISpatialAudioFormatSubtypeStatics2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Audio::AudioDeviceInputNode>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Audio::AudioDeviceOutputNode>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Audio::AudioFileInputNode>{ using type = class_category; };
@@ -495,6 +497,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Audio::ISpatialAudioFormatConfiguration> = L"Windows.Media.Audio.ISpatialAudioFormatConfiguration";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Audio::ISpatialAudioFormatConfigurationStatics> = L"Windows.Media.Audio.ISpatialAudioFormatConfigurationStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Audio::ISpatialAudioFormatSubtypeStatics> = L"Windows.Media.Audio.ISpatialAudioFormatSubtypeStatics";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Audio::ISpatialAudioFormatSubtypeStatics2> = L"Windows.Media.Audio.ISpatialAudioFormatSubtypeStatics2";
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Audio::IAudioDeviceInputNode>{ 0xB01B6BE1,0x6F4E,0x49E2,{ 0xAC,0x01,0x55,0x9D,0x62,0xBE,0xB3,0xA9 } }; // B01B6BE1-6F4E-49E2-AC01-559D62BEB3A9
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Audio::IAudioDeviceOutputNode>{ 0x362EDBFF,0xFF1C,0x4434,{ 0x9E,0x0F,0xBD,0x2E,0xF5,0x22,0xAC,0x82 } }; // 362EDBFF-FF1C-4434-9E0F-BD2EF522AC82
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Audio::IAudioFileInputNode>{ 0x905B67C8,0x6F65,0x4CD4,{ 0x88,0x90,0x46,0x94,0x84,0x3C,0x27,0x6D } }; // 905B67C8-6F65-4CD4-8890-4694843C276D
@@ -559,6 +562,7 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Audio::ISpatialAudioFormatConfiguration>{ 0x32DF09A8,0x50F0,0x5395,{ 0x99,0x23,0x7D,0x44,0xCA,0x71,0xED,0x6D } }; // 32DF09A8-50F0-5395-9923-7D44CA71ED6D
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Audio::ISpatialAudioFormatConfigurationStatics>{ 0x2B5FEF71,0x67C9,0x4E5F,{ 0xA3,0x5B,0x41,0x68,0x07,0x11,0xF8,0xC7 } }; // 2B5FEF71-67C9-4E5F-A35B-41680711F8C7
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Audio::ISpatialAudioFormatSubtypeStatics>{ 0xB3DE8A47,0x83EE,0x4266,{ 0xA9,0x45,0xBE,0xDF,0x50,0x7A,0xFE,0xED } }; // B3DE8A47-83EE-4266-A945-BEDF507AFEED
+    template <> inline constexpr guid guid_v<winrt::Windows::Media::Audio::ISpatialAudioFormatSubtypeStatics2>{ 0x4565E6CB,0xD95B,0x5621,{ 0xB6,0xAF,0x0E,0x88,0x49,0xC5,0x7C,0x80 } }; // 4565E6CB-D95B-5621-B6AF-0E8849C57C80
     template <> struct default_interface<winrt::Windows::Media::Audio::AudioDeviceInputNode>{ using type = winrt::Windows::Media::Audio::IAudioDeviceInputNode; };
     template <> struct default_interface<winrt::Windows::Media::Audio::AudioDeviceOutputNode>{ using type = winrt::Windows::Media::Audio::IAudioDeviceOutputNode; };
     template <> struct default_interface<winrt::Windows::Media::Audio::AudioFileInputNode>{ using type = winrt::Windows::Media::Audio::IAudioFileInputNode; };
@@ -1267,6 +1271,13 @@ namespace winrt::impl
             virtual int32_t __stdcall get_DolbyAtmosForSpeakers(void**) noexcept = 0;
             virtual int32_t __stdcall get_DTSHeadphoneX(void**) noexcept = 0;
             virtual int32_t __stdcall get_DTSXUltra(void**) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Media::Audio::ISpatialAudioFormatSubtypeStatics2>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_DTSXForHomeTheater(void**) noexcept = 0;
         };
     };
     template <typename D>
@@ -2088,6 +2099,15 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::Media::Audio::ISpatialAudioFormatSubtypeStatics>
     {
         template <typename D> using type = consume_Windows_Media_Audio_ISpatialAudioFormatSubtypeStatics<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Media_Audio_ISpatialAudioFormatSubtypeStatics2
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(hstring) DTSXForHomeTheater() const;
+    };
+    template <> struct consume<winrt::Windows::Media::Audio::ISpatialAudioFormatSubtypeStatics2>
+    {
+        template <typename D> using type = consume_Windows_Media_Audio_ISpatialAudioFormatSubtypeStatics2<D>;
     };
 }
 #endif

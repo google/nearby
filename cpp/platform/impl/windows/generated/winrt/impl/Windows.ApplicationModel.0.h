@@ -50,6 +50,12 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel
         ForceTargetAppShutdown = 0x1,
         ApplyUpdateIfAvailable = 0x2,
     };
+    enum class AppExecutionContext : int32_t
+    {
+        Unknown = 0,
+        Host = 1,
+        Guest = 2,
+    };
     enum class LimitedAccessFeatureStatus : int32_t
     {
         Unavailable = 0,
@@ -91,6 +97,8 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel
     struct IAppDisplayInfo;
     struct IAppInfo;
     struct IAppInfo2;
+    struct IAppInfo3;
+    struct IAppInfo4;
     struct IAppInfoStatics;
     struct IAppInstallerInfo;
     struct IAppInstance;
@@ -179,6 +187,8 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::ApplicationModel::IAppDisplayInfo>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::IAppInfo>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::IAppInfo2>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::ApplicationModel::IAppInfo3>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::ApplicationModel::IAppInfo4>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::IAppInfoStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::IAppInstallerInfo>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::IAppInstance>{ using type = interface_category; };
@@ -260,6 +270,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::ApplicationModel::SuspendingEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::ApplicationModel::SuspendingOperation>{ using type = class_category; };
     template <> struct category<winrt::Windows::ApplicationModel::AddResourcePackageOptions>{ using type = enum_category; };
+    template <> struct category<winrt::Windows::ApplicationModel::AppExecutionContext>{ using type = enum_category; };
     template <> struct category<winrt::Windows::ApplicationModel::LimitedAccessFeatureStatus>{ using type = enum_category; };
     template <> struct category<winrt::Windows::ApplicationModel::PackageContentGroupState>{ using type = enum_category; };
     template <> struct category<winrt::Windows::ApplicationModel::PackageSignatureKind>{ using type = enum_category; };
@@ -299,6 +310,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::SuspendingEventArgs> = L"Windows.ApplicationModel.SuspendingEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::SuspendingOperation> = L"Windows.ApplicationModel.SuspendingOperation";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::AddResourcePackageOptions> = L"Windows.ApplicationModel.AddResourcePackageOptions";
+    template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::AppExecutionContext> = L"Windows.ApplicationModel.AppExecutionContext";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::LimitedAccessFeatureStatus> = L"Windows.ApplicationModel.LimitedAccessFeatureStatus";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::PackageContentGroupState> = L"Windows.ApplicationModel.PackageContentGroupState";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::PackageSignatureKind> = L"Windows.ApplicationModel.PackageSignatureKind";
@@ -309,6 +321,8 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::IAppDisplayInfo> = L"Windows.ApplicationModel.IAppDisplayInfo";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::IAppInfo> = L"Windows.ApplicationModel.IAppInfo";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::IAppInfo2> = L"Windows.ApplicationModel.IAppInfo2";
+    template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::IAppInfo3> = L"Windows.ApplicationModel.IAppInfo3";
+    template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::IAppInfo4> = L"Windows.ApplicationModel.IAppInfo4";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::IAppInfoStatics> = L"Windows.ApplicationModel.IAppInfoStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::IAppInstallerInfo> = L"Windows.ApplicationModel.IAppInstallerInfo";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::IAppInstance> = L"Windows.ApplicationModel.IAppInstance";
@@ -361,6 +375,8 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::IAppDisplayInfo>{ 0x1AEB1103,0xE4D4,0x41AA,{ 0xA4,0xF6,0xC4,0xA2,0x76,0xE7,0x9E,0xAC } }; // 1AEB1103-E4D4-41AA-A4F6-C4A276E79EAC
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::IAppInfo>{ 0xCF7F59B3,0x6A09,0x4DE8,{ 0xA6,0xC0,0x57,0x92,0xD5,0x68,0x80,0xD1 } }; // CF7F59B3-6A09-4DE8-A6C0-5792D56880D1
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::IAppInfo2>{ 0xBE4B1F5A,0x2098,0x431B,{ 0xBD,0x25,0xB3,0x08,0x78,0x74,0x8D,0x47 } }; // BE4B1F5A-2098-431B-BD25-B30878748D47
+    template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::IAppInfo3>{ 0x09A78E46,0x93A4,0x46DE,{ 0x93,0x97,0x08,0x43,0xB5,0x71,0x15,0xEA } }; // 09A78E46-93A4-46DE-9397-0843B57115EA
+    template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::IAppInfo4>{ 0x2F34BDEB,0x1609,0x4554,{ 0x9F,0x33,0x12,0xE1,0xE8,0x03,0xE0,0xD4 } }; // 2F34BDEB-1609-4554-9F33-12E1E803E0D4
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::IAppInfoStatics>{ 0xCF1F782A,0xE48B,0x4F0C,{ 0x9B,0x0B,0x79,0xC3,0xF8,0x95,0x7D,0xD7 } }; // CF1F782A-E48B-4F0C-9B0B-79C3F8957DD7
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::IAppInstallerInfo>{ 0x29AB2AC0,0xD4F6,0x42A3,{ 0xAD,0xCD,0xD6,0x58,0x3C,0x65,0x95,0x08 } }; // 29AB2AC0-D4F6-42A3-ADCD-D6583C659508
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::IAppInstance>{ 0x675F2B47,0xF25F,0x4532,{ 0x9F,0xD6,0x36,0x33,0xE0,0x63,0x4D,0x01 } }; // 675F2B47-F25F-4532-9FD6-3633E0634D01
@@ -461,6 +477,20 @@ namespace winrt::impl
         struct __declspec(novtable) type : inspectable_abi
         {
             virtual int32_t __stdcall get_Package(void**) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::ApplicationModel::IAppInfo3>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_ExecutionContext(int32_t*) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::ApplicationModel::IAppInfo4>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_SupportedFileExtensions(uint32_t* __valueSize, void***) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::ApplicationModel::IAppInfoStatics>
@@ -951,6 +981,24 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::ApplicationModel::IAppInfo2>
     {
         template <typename D> using type = consume_Windows_ApplicationModel_IAppInfo2<D>;
+    };
+    template <typename D>
+    struct consume_Windows_ApplicationModel_IAppInfo3
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::ApplicationModel::AppExecutionContext) ExecutionContext() const;
+    };
+    template <> struct consume<winrt::Windows::ApplicationModel::IAppInfo3>
+    {
+        template <typename D> using type = consume_Windows_ApplicationModel_IAppInfo3<D>;
+    };
+    template <typename D>
+    struct consume_Windows_ApplicationModel_IAppInfo4
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(com_array<hstring>) SupportedFileExtensions() const;
+    };
+    template <> struct consume<winrt::Windows::ApplicationModel::IAppInfo4>
+    {
+        template <typename D> using type = consume_Windows_ApplicationModel_IAppInfo4<D>;
     };
     template <typename D>
     struct consume_Windows_ApplicationModel_IAppInfoStatics

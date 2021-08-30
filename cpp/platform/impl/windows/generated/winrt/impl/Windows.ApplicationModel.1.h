@@ -38,6 +38,28 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel
         IAppInfo2& operator=(IAppInfo2 const&) & noexcept = default;
         IAppInfo2& operator=(IAppInfo2&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IAppInfo3 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IAppInfo3>
+    {
+        IAppInfo3(std::nullptr_t = nullptr) noexcept {}
+        IAppInfo3(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IAppInfo3(IAppInfo3 const&) noexcept = default;
+        IAppInfo3(IAppInfo3&&) noexcept = default;
+        IAppInfo3& operator=(IAppInfo3 const&) & noexcept = default;
+        IAppInfo3& operator=(IAppInfo3&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IAppInfo4 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IAppInfo4>
+    {
+        IAppInfo4(std::nullptr_t = nullptr) noexcept {}
+        IAppInfo4(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IAppInfo4(IAppInfo4 const&) noexcept = default;
+        IAppInfo4(IAppInfo4&&) noexcept = default;
+        IAppInfo4& operator=(IAppInfo4 const&) & noexcept = default;
+        IAppInfo4& operator=(IAppInfo4&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IAppInfoStatics :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IAppInfoStatics>

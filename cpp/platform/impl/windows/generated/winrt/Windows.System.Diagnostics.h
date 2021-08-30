@@ -307,6 +307,18 @@ namespace winrt::impl
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics)->GetForCurrentSystem(&value));
         return winrt::Windows::System::Diagnostics::SystemDiagnosticInfo{ value, take_ownership_from_abi };
     }
+    template <typename D> WINRT_IMPL_AUTO(bool) consume_Windows_System_Diagnostics_ISystemDiagnosticInfoStatics2<D>::IsArchitectureSupported(winrt::Windows::System::ProcessorArchitecture const& type) const
+    {
+        bool result{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics2)->IsArchitectureSupported(static_cast<int32_t>(type), &result));
+        return result;
+    }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::System::ProcessorArchitecture) consume_Windows_System_Diagnostics_ISystemDiagnosticInfoStatics2<D>::PreferredArchitecture() const
+    {
+        winrt::Windows::System::ProcessorArchitecture value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics2)->get_PreferredArchitecture(reinterpret_cast<int32_t*>(&value)));
+        return value;
+    }
     template <typename D> WINRT_IMPL_AUTO(winrt::Windows::System::Diagnostics::SystemMemoryUsageReport) consume_Windows_System_Diagnostics_ISystemMemoryUsage<D>::GetReport() const
     {
         void* value{};
@@ -812,6 +824,26 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
+    struct produce<D, winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics2> : produce_base<D, winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics2>
+    {
+        int32_t __stdcall IsArchitectureSupported(int32_t type, bool* result) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *result = detach_from<bool>(this->shim().IsArchitectureSupported(*reinterpret_cast<winrt::Windows::System::ProcessorArchitecture const*>(&type)));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+        int32_t __stdcall get_PreferredArchitecture(int32_t* value) noexcept final try
+        {
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<winrt::Windows::System::ProcessorArchitecture>(this->shim().PreferredArchitecture());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
     struct produce<D, winrt::Windows::System::Diagnostics::ISystemMemoryUsage> : produce_base<D, winrt::Windows::System::Diagnostics::ISystemMemoryUsage>
     {
         int32_t __stdcall GetReport(void** value) noexcept final try
@@ -882,6 +914,14 @@ WINRT_EXPORT namespace winrt::Windows::System::Diagnostics
     {
         return impl::call_factory_cast<winrt::Windows::System::Diagnostics::SystemDiagnosticInfo(*)(ISystemDiagnosticInfoStatics const&), SystemDiagnosticInfo, ISystemDiagnosticInfoStatics>([](ISystemDiagnosticInfoStatics const& f) { return f.GetForCurrentSystem(); });
     }
+    inline auto SystemDiagnosticInfo::IsArchitectureSupported(winrt::Windows::System::ProcessorArchitecture const& type)
+    {
+        return impl::call_factory<SystemDiagnosticInfo, ISystemDiagnosticInfoStatics2>([&](ISystemDiagnosticInfoStatics2 const& f) { return f.IsArchitectureSupported(type); });
+    }
+    inline auto SystemDiagnosticInfo::PreferredArchitecture()
+    {
+        return impl::call_factory_cast<winrt::Windows::System::ProcessorArchitecture(*)(ISystemDiagnosticInfoStatics2 const&), SystemDiagnosticInfo, ISystemDiagnosticInfoStatics2>([](ISystemDiagnosticInfoStatics2 const& f) { return f.PreferredArchitecture(); });
+    }
 }
 namespace std
 {
@@ -904,6 +944,7 @@ namespace std
     template<> struct hash<winrt::Windows::System::Diagnostics::ISystemCpuUsageReport> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::System::Diagnostics::ISystemDiagnosticInfo> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::System::Diagnostics::ISystemDiagnosticInfoStatics2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::System::Diagnostics::ISystemMemoryUsage> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::System::Diagnostics::ISystemMemoryUsageReport> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::System::Diagnostics::DiagnosticActionResult> : winrt::impl::hash_base {};

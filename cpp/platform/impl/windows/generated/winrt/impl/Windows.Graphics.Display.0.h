@@ -14,6 +14,10 @@ WINRT_EXPORT namespace winrt::Windows::Foundation::Collections
 {
     template <typename T> struct __declspec(empty_bases) IVectorView;
 }
+WINRT_EXPORT namespace winrt::Windows::Graphics
+{
+    struct DisplayId;
+}
 WINRT_EXPORT namespace winrt::Windows::Storage::Streams
 {
     struct IRandomAccessStream;
@@ -99,6 +103,8 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Display
     struct IDisplayInformation5;
     struct IDisplayInformationStatics;
     struct IDisplayPropertiesStatics;
+    struct IDisplayServices;
+    struct IDisplayServicesStatics;
     struct AdvancedColorInfo;
     struct BrightnessOverride;
     struct BrightnessOverrideSettings;
@@ -108,6 +114,7 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Display
     struct DisplayEnhancementOverrideCapabilitiesChangedEventArgs;
     struct DisplayInformation;
     struct DisplayProperties;
+    struct DisplayServices;
     struct NitRange;
     struct DisplayPropertiesEventHandler;
 }
@@ -131,6 +138,8 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Graphics::Display::IDisplayInformation5>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Graphics::Display::IDisplayInformationStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Graphics::Display::IDisplayPropertiesStatics>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Graphics::Display::IDisplayServices>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Graphics::Display::IDisplayServicesStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Graphics::Display::AdvancedColorInfo>{ using type = class_category; };
     template <> struct category<winrt::Windows::Graphics::Display::BrightnessOverride>{ using type = class_category; };
     template <> struct category<winrt::Windows::Graphics::Display::BrightnessOverrideSettings>{ using type = class_category; };
@@ -140,6 +149,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Graphics::Display::DisplayEnhancementOverrideCapabilitiesChangedEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::Graphics::Display::DisplayInformation>{ using type = class_category; };
     template <> struct category<winrt::Windows::Graphics::Display::DisplayProperties>{ using type = class_category; };
+    template <> struct category<winrt::Windows::Graphics::Display::DisplayServices>{ using type = class_category; };
     template <> struct category<winrt::Windows::Graphics::Display::AdvancedColorKind>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Graphics::Display::DisplayBrightnessOverrideOptions>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Graphics::Display::DisplayBrightnessOverrideScenario>{ using type = enum_category; };
@@ -159,6 +169,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Display::DisplayEnhancementOverrideCapabilitiesChangedEventArgs> = L"Windows.Graphics.Display.DisplayEnhancementOverrideCapabilitiesChangedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Display::DisplayInformation> = L"Windows.Graphics.Display.DisplayInformation";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Display::DisplayProperties> = L"Windows.Graphics.Display.DisplayProperties";
+    template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Display::DisplayServices> = L"Windows.Graphics.Display.DisplayServices";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Display::AdvancedColorKind> = L"Windows.Graphics.Display.AdvancedColorKind";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Display::DisplayBrightnessOverrideOptions> = L"Windows.Graphics.Display.DisplayBrightnessOverrideOptions";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Display::DisplayBrightnessOverrideScenario> = L"Windows.Graphics.Display.DisplayBrightnessOverrideScenario";
@@ -186,6 +197,8 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Display::IDisplayInformation5> = L"Windows.Graphics.Display.IDisplayInformation5";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Display::IDisplayInformationStatics> = L"Windows.Graphics.Display.IDisplayInformationStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Display::IDisplayPropertiesStatics> = L"Windows.Graphics.Display.IDisplayPropertiesStatics";
+    template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Display::IDisplayServices> = L"Windows.Graphics.Display.IDisplayServices";
+    template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Display::IDisplayServicesStatics> = L"Windows.Graphics.Display.IDisplayServicesStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Display::DisplayPropertiesEventHandler> = L"Windows.Graphics.Display.DisplayPropertiesEventHandler";
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Display::IAdvancedColorInfo>{ 0x8797DCFB,0xB229,0x4081,{ 0xAE,0x9A,0x2C,0xC8,0x5E,0x34,0xAD,0x6A } }; // 8797DCFB-B229-4081-AE9A-2CC85E34AD6A
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Display::IBrightnessOverride>{ 0x96C9621A,0xC143,0x4392,{ 0xBE,0xDD,0x4A,0x7E,0x95,0x74,0xC8,0xFD } }; // 96C9621A-C143-4392-BEDD-4A7E9574C8FD
@@ -205,6 +218,8 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Display::IDisplayInformation5>{ 0x3A5442DC,0x2CDE,0x4A8D,{ 0x80,0xD1,0x21,0xDC,0x5A,0xDC,0xC1,0xAA } }; // 3A5442DC-2CDE-4A8D-80D1-21DC5ADCC1AA
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Display::IDisplayInformationStatics>{ 0xC6A02A6C,0xD452,0x44DC,{ 0xBA,0x07,0x96,0xF3,0xC6,0xAD,0xF9,0xD1 } }; // C6A02A6C-D452-44DC-BA07-96F3C6ADF9D1
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Display::IDisplayPropertiesStatics>{ 0x6937ED8D,0x30EA,0x4DED,{ 0x82,0x71,0x45,0x53,0xFF,0x02,0xF6,0x8A } }; // 6937ED8D-30EA-4DED-8271-4553FF02F68A
+    template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Display::IDisplayServices>{ 0x1B54F32B,0x890D,0x5747,{ 0xBD,0x26,0xFD,0xBD,0xEB,0x0C,0x8A,0x71 } }; // 1B54F32B-890D-5747-BD26-FDBDEB0C8A71
+    template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Display::IDisplayServicesStatics>{ 0xDC2096BF,0x730A,0x5560,{ 0xB4,0x61,0x91,0xC1,0x3D,0x69,0x2E,0x0C } }; // DC2096BF-730A-5560-B461-91C13D692E0C
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Display::DisplayPropertiesEventHandler>{ 0xDBDD8B01,0xF1A1,0x46D1,{ 0x9E,0xE3,0x54,0x3B,0xCC,0x99,0x59,0x80 } }; // DBDD8B01-F1A1-46D1-9EE3-543BCC995980
     template <> struct default_interface<winrt::Windows::Graphics::Display::AdvancedColorInfo>{ using type = winrt::Windows::Graphics::Display::IAdvancedColorInfo; };
     template <> struct default_interface<winrt::Windows::Graphics::Display::BrightnessOverride>{ using type = winrt::Windows::Graphics::Display::IBrightnessOverride; };
@@ -214,6 +229,7 @@ namespace winrt::impl
     template <> struct default_interface<winrt::Windows::Graphics::Display::DisplayEnhancementOverrideCapabilities>{ using type = winrt::Windows::Graphics::Display::IDisplayEnhancementOverrideCapabilities; };
     template <> struct default_interface<winrt::Windows::Graphics::Display::DisplayEnhancementOverrideCapabilitiesChangedEventArgs>{ using type = winrt::Windows::Graphics::Display::IDisplayEnhancementOverrideCapabilitiesChangedEventArgs; };
     template <> struct default_interface<winrt::Windows::Graphics::Display::DisplayInformation>{ using type = winrt::Windows::Graphics::Display::IDisplayInformation; };
+    template <> struct default_interface<winrt::Windows::Graphics::Display::DisplayServices>{ using type = winrt::Windows::Graphics::Display::IDisplayServices; };
     template <> struct abi<winrt::Windows::Graphics::Display::IAdvancedColorInfo>
     {
         struct __declspec(novtable) type : inspectable_abi
@@ -421,6 +437,19 @@ namespace winrt::impl
             virtual int32_t __stdcall remove_ColorProfileChanged(winrt::event_token) noexcept = 0;
             virtual int32_t __stdcall add_DisplayContentsInvalidated(void*, winrt::event_token*) noexcept = 0;
             virtual int32_t __stdcall remove_DisplayContentsInvalidated(winrt::event_token) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Graphics::Display::IDisplayServices>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+        };
+    };
+    template <> struct abi<winrt::Windows::Graphics::Display::IDisplayServicesStatics>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall FindAll(uint32_t* __resultSize, struct struct_Windows_Graphics_DisplayId**) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::Graphics::Display::DisplayPropertiesEventHandler>
@@ -708,6 +737,23 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::Graphics::Display::IDisplayPropertiesStatics>
     {
         template <typename D> using type = consume_Windows_Graphics_Display_IDisplayPropertiesStatics<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Graphics_Display_IDisplayServices
+    {
+    };
+    template <> struct consume<winrt::Windows::Graphics::Display::IDisplayServices>
+    {
+        template <typename D> using type = consume_Windows_Graphics_Display_IDisplayServices<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Graphics_Display_IDisplayServicesStatics
+    {
+        WINRT_IMPL_AUTO(com_array<winrt::Windows::Graphics::DisplayId>) FindAll() const;
+    };
+    template <> struct consume<winrt::Windows::Graphics::Display::IDisplayServicesStatics>
+    {
+        template <typename D> using type = consume_Windows_Graphics_Display_IDisplayServicesStatics<D>;
     };
     struct struct_Windows_Graphics_Display_NitRange
     {

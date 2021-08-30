@@ -72,6 +72,7 @@ WINRT_EXPORT namespace winrt::Windows::Storage::Provider
         ValidationRequired = 0x1,
         StreamingAllowed = 0x2,
         AutoDehydrationAllowed = 0x4,
+        AllowFullRestartHydration = 0x8,
     };
     enum class StorageProviderInSyncPolicy : uint32_t
     {
@@ -97,6 +98,15 @@ WINRT_EXPORT namespace winrt::Windows::Storage::Provider
     {
         Unknown = 0,
         Personal = 1,
+    };
+    enum class StorageProviderState : int32_t
+    {
+        InSync = 0,
+        Syncing = 1,
+        Paused = 2,
+        Error = 3,
+        Warning = 4,
+        Offline = 5,
     };
     enum class StorageProviderUriSourceStatus : int32_t
     {
@@ -124,15 +134,23 @@ WINRT_EXPORT namespace winrt::Windows::Storage::Provider
     struct IFileUpdateRequest2;
     struct IFileUpdateRequestDeferral;
     struct IFileUpdateRequestedEventArgs;
+    struct IStorageProviderError;
+    struct IStorageProviderErrorCommand;
+    struct IStorageProviderErrorCommandFactory;
+    struct IStorageProviderErrorFactory;
     struct IStorageProviderFileTypeInfo;
     struct IStorageProviderFileTypeInfoFactory;
     struct IStorageProviderGetContentInfoForPathResult;
     struct IStorageProviderGetPathForContentUriResult;
+    struct IStorageProviderHandlerFactory;
     struct IStorageProviderItemPropertiesStatics;
     struct IStorageProviderItemProperty;
     struct IStorageProviderItemPropertyDefinition;
     struct IStorageProviderItemPropertySource;
     struct IStorageProviderPropertyCapabilities;
+    struct IStorageProviderStatus;
+    struct IStorageProviderStatusFactory;
+    struct IStorageProviderStatusSource;
     struct IStorageProviderSyncRootInfo;
     struct IStorageProviderSyncRootInfo2;
     struct IStorageProviderSyncRootInfo3;
@@ -144,12 +162,15 @@ WINRT_EXPORT namespace winrt::Windows::Storage::Provider
     struct FileUpdateRequest;
     struct FileUpdateRequestDeferral;
     struct FileUpdateRequestedEventArgs;
+    struct StorageProviderError;
+    struct StorageProviderErrorCommand;
     struct StorageProviderFileTypeInfo;
     struct StorageProviderGetContentInfoForPathResult;
     struct StorageProviderGetPathForContentUriResult;
     struct StorageProviderItemProperties;
     struct StorageProviderItemProperty;
     struct StorageProviderItemPropertyDefinition;
+    struct StorageProviderStatus;
     struct StorageProviderSyncRootInfo;
     struct StorageProviderSyncRootManager;
 }
@@ -162,15 +183,23 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Storage::Provider::IFileUpdateRequest2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::Provider::IFileUpdateRequestDeferral>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::Provider::IFileUpdateRequestedEventArgs>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderError>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderErrorCommand>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderErrorCommandFactory>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderErrorFactory>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderFileTypeInfo>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderFileTypeInfoFactory>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderGetContentInfoForPathResult>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderGetPathForContentUriResult>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderHandlerFactory>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderItemPropertiesStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderItemProperty>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderItemPropertyDefinition>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderItemPropertySource>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderPropertyCapabilities>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderStatus>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderStatusFactory>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderStatusSource>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo3>{ using type = interface_category; };
@@ -182,12 +211,15 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Storage::Provider::FileUpdateRequest>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::Provider::FileUpdateRequestDeferral>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::Provider::FileUpdateRequestedEventArgs>{ using type = class_category; };
+    template <> struct category<winrt::Windows::Storage::Provider::StorageProviderError>{ using type = class_category; };
+    template <> struct category<winrt::Windows::Storage::Provider::StorageProviderErrorCommand>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::Provider::StorageProviderFileTypeInfo>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::Provider::StorageProviderGetContentInfoForPathResult>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::Provider::StorageProviderGetPathForContentUriResult>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::Provider::StorageProviderItemProperties>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::Provider::StorageProviderItemProperty>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::Provider::StorageProviderItemPropertyDefinition>{ using type = class_category; };
+    template <> struct category<winrt::Windows::Storage::Provider::StorageProviderStatus>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::Provider::StorageProviderSyncRootInfo>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::Provider::StorageProviderSyncRootManager>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::Provider::CachedFileOptions>{ using type = enum_category; };
@@ -200,6 +232,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Storage::Provider::StorageProviderInSyncPolicy>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Storage::Provider::StorageProviderPopulationPolicy>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Storage::Provider::StorageProviderProtectionMode>{ using type = enum_category; };
+    template <> struct category<winrt::Windows::Storage::Provider::StorageProviderState>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Storage::Provider::StorageProviderUriSourceStatus>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Storage::Provider::UIStatus>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Storage::Provider::WriteActivationMode>{ using type = enum_category; };
@@ -208,12 +241,15 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::FileUpdateRequest> = L"Windows.Storage.Provider.FileUpdateRequest";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::FileUpdateRequestDeferral> = L"Windows.Storage.Provider.FileUpdateRequestDeferral";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::FileUpdateRequestedEventArgs> = L"Windows.Storage.Provider.FileUpdateRequestedEventArgs";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderError> = L"Windows.Storage.Provider.StorageProviderError";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderErrorCommand> = L"Windows.Storage.Provider.StorageProviderErrorCommand";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderFileTypeInfo> = L"Windows.Storage.Provider.StorageProviderFileTypeInfo";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderGetContentInfoForPathResult> = L"Windows.Storage.Provider.StorageProviderGetContentInfoForPathResult";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderGetPathForContentUriResult> = L"Windows.Storage.Provider.StorageProviderGetPathForContentUriResult";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderItemProperties> = L"Windows.Storage.Provider.StorageProviderItemProperties";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderItemProperty> = L"Windows.Storage.Provider.StorageProviderItemProperty";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderItemPropertyDefinition> = L"Windows.Storage.Provider.StorageProviderItemPropertyDefinition";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderStatus> = L"Windows.Storage.Provider.StorageProviderStatus";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderSyncRootInfo> = L"Windows.Storage.Provider.StorageProviderSyncRootInfo";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderSyncRootManager> = L"Windows.Storage.Provider.StorageProviderSyncRootManager";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::CachedFileOptions> = L"Windows.Storage.Provider.CachedFileOptions";
@@ -226,6 +262,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderInSyncPolicy> = L"Windows.Storage.Provider.StorageProviderInSyncPolicy";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderPopulationPolicy> = L"Windows.Storage.Provider.StorageProviderPopulationPolicy";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderProtectionMode> = L"Windows.Storage.Provider.StorageProviderProtectionMode";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderState> = L"Windows.Storage.Provider.StorageProviderState";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::StorageProviderUriSourceStatus> = L"Windows.Storage.Provider.StorageProviderUriSourceStatus";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::UIStatus> = L"Windows.Storage.Provider.UIStatus";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::WriteActivationMode> = L"Windows.Storage.Provider.WriteActivationMode";
@@ -236,15 +273,23 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IFileUpdateRequest2> = L"Windows.Storage.Provider.IFileUpdateRequest2";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IFileUpdateRequestDeferral> = L"Windows.Storage.Provider.IFileUpdateRequestDeferral";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IFileUpdateRequestedEventArgs> = L"Windows.Storage.Provider.IFileUpdateRequestedEventArgs";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderError> = L"Windows.Storage.Provider.IStorageProviderError";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderErrorCommand> = L"Windows.Storage.Provider.IStorageProviderErrorCommand";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderErrorCommandFactory> = L"Windows.Storage.Provider.IStorageProviderErrorCommandFactory";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderErrorFactory> = L"Windows.Storage.Provider.IStorageProviderErrorFactory";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderFileTypeInfo> = L"Windows.Storage.Provider.IStorageProviderFileTypeInfo";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderFileTypeInfoFactory> = L"Windows.Storage.Provider.IStorageProviderFileTypeInfoFactory";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderGetContentInfoForPathResult> = L"Windows.Storage.Provider.IStorageProviderGetContentInfoForPathResult";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderGetPathForContentUriResult> = L"Windows.Storage.Provider.IStorageProviderGetPathForContentUriResult";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderHandlerFactory> = L"Windows.Storage.Provider.IStorageProviderHandlerFactory";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderItemPropertiesStatics> = L"Windows.Storage.Provider.IStorageProviderItemPropertiesStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderItemProperty> = L"Windows.Storage.Provider.IStorageProviderItemProperty";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderItemPropertyDefinition> = L"Windows.Storage.Provider.IStorageProviderItemPropertyDefinition";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderItemPropertySource> = L"Windows.Storage.Provider.IStorageProviderItemPropertySource";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderPropertyCapabilities> = L"Windows.Storage.Provider.IStorageProviderPropertyCapabilities";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderStatus> = L"Windows.Storage.Provider.IStorageProviderStatus";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderStatusFactory> = L"Windows.Storage.Provider.IStorageProviderStatusFactory";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderStatusSource> = L"Windows.Storage.Provider.IStorageProviderStatusSource";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo> = L"Windows.Storage.Provider.IStorageProviderSyncRootInfo";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo2> = L"Windows.Storage.Provider.IStorageProviderSyncRootInfo2";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo3> = L"Windows.Storage.Provider.IStorageProviderSyncRootInfo3";
@@ -258,15 +303,23 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IFileUpdateRequest2>{ 0x82484648,0xBDBE,0x447B,{ 0xA2,0xEE,0x7A,0xFE,0x6A,0x03,0x2A,0x94 } }; // 82484648-BDBE-447B-A2EE-7AFE6A032A94
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IFileUpdateRequestDeferral>{ 0xFFCEDB2B,0x8ADE,0x44A5,{ 0xBB,0x00,0x16,0x4C,0x4E,0x72,0xF1,0x3A } }; // FFCEDB2B-8ADE-44A5-BB00-164C4E72F13A
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IFileUpdateRequestedEventArgs>{ 0x7B0A9342,0x3905,0x438D,{ 0xAA,0xEF,0x78,0xAE,0x26,0x5F,0x8D,0xD2 } }; // 7B0A9342-3905-438D-AAEF-78AE265F8DD2
+    template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderError>{ 0x47F2780B,0xEF7F,0x5910,{ 0xBF,0x83,0x33,0x1D,0x89,0x25,0x66,0x15 } }; // 47F2780B-EF7F-5910-BF83-331D89256615
+    template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderErrorCommand>{ 0xB6B18AED,0xBB65,0x5F26,{ 0x86,0xE4,0x1D,0x3E,0x34,0xD5,0x44,0x77 } }; // B6B18AED-BB65-5F26-86E4-1D3E34D54477
+    template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderErrorCommandFactory>{ 0xECC1F555,0x3AB4,0x556F,{ 0x8B,0xB2,0x7E,0x55,0x15,0xEE,0xD8,0xDC } }; // ECC1F555-3AB4-556F-8BB2-7E5515EED8DC
+    template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderErrorFactory>{ 0x97D6F240,0x61AB,0x51DC,{ 0x99,0x21,0x18,0xBD,0x0D,0xBE,0xF7,0x9E } }; // 97D6F240-61AB-51DC-9921-18BD0DBEF79E
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderFileTypeInfo>{ 0x1955B9C1,0x0184,0x5A88,{ 0x87,0xDF,0x45,0x44,0xF4,0x64,0x36,0x5D } }; // 1955B9C1-0184-5A88-87DF-4544F464365D
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderFileTypeInfoFactory>{ 0x3FA12C6F,0xCCE6,0x5D5D,{ 0x80,0xB1,0x38,0x9E,0x7C,0xF9,0x2D,0xBF } }; // 3FA12C6F-CCE6-5D5D-80B1-389E7CF92DBF
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderGetContentInfoForPathResult>{ 0x2564711D,0xAA89,0x4D12,{ 0x82,0xE3,0xF7,0x2A,0x92,0xE3,0x39,0x66 } }; // 2564711D-AA89-4D12-82E3-F72A92E33966
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderGetPathForContentUriResult>{ 0x63711A9D,0x4118,0x45A6,{ 0xAC,0xB6,0x22,0xC4,0x9D,0x01,0x9F,0x40 } }; // 63711A9D-4118-45A6-ACB6-22C49D019F40
+    template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderHandlerFactory>{ 0x6154DC3A,0xFC1D,0x5AAE,{ 0x9E,0x23,0xE8,0x65,0x9A,0x22,0xC5,0xF6 } }; // 6154DC3A-FC1D-5AAE-9E23-E8659A22C5F6
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderItemPropertiesStatics>{ 0x2D2C1C97,0x2704,0x4729,{ 0x8F,0xA9,0x7E,0x6B,0x8E,0x15,0x8C,0x2F } }; // 2D2C1C97-2704-4729-8FA9-7E6B8E158C2F
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderItemProperty>{ 0x476CB558,0x730B,0x4188,{ 0xB7,0xB5,0x63,0xB7,0x16,0xED,0x47,0x6D } }; // 476CB558-730B-4188-B7B5-63B716ED476D
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderItemPropertyDefinition>{ 0xC5B383BB,0xFF1F,0x4298,{ 0x83,0x1E,0xFF,0x1C,0x08,0x08,0x96,0x90 } }; // C5B383BB-FF1F-4298-831E-FF1C08089690
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderItemPropertySource>{ 0x8F6F9C3E,0xF632,0x4A9B,{ 0x8D,0x99,0xD2,0xD7,0xA1,0x1D,0xF5,0x6A } }; // 8F6F9C3E-F632-4A9B-8D99-D2D7A11DF56A
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderPropertyCapabilities>{ 0x658D2F0E,0x63B7,0x4567,{ 0xAC,0xF9,0x51,0xAB,0xE3,0x01,0xDD,0xA5 } }; // 658D2F0E-63B7-4567-ACF9-51ABE301DDA5
+    template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderStatus>{ 0xFF6E761D,0xFB8B,0x56C3,{ 0x9E,0x7A,0x05,0x30,0x9D,0x19,0x1F,0xB4 } }; // FF6E761D-FB8B-56C3-9E7A-05309D191FB4
+    template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderStatusFactory>{ 0xD64828C5,0x9B7A,0x5FA4,{ 0xB1,0x26,0x90,0xBD,0x18,0x93,0x6C,0x7F } }; // D64828C5-9B7A-5FA4-B126-90BD18936C7F
+    template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderStatusSource>{ 0x2E316BB2,0xFD43,0x5335,{ 0xB3,0xC4,0xA9,0x62,0xEE,0x31,0xD1,0x7E } }; // 2E316BB2-FD43-5335-B3C4-A962EE31D17E
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo>{ 0x7C1305C4,0x99F9,0x41AC,{ 0x89,0x04,0xAB,0x05,0x5D,0x65,0x49,0x26 } }; // 7C1305C4-99F9-41AC-8904-AB055D654926
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo2>{ 0xCF51B023,0x7CF1,0x5166,{ 0xBD,0xBA,0xEF,0xD9,0x5F,0x52,0x9E,0x31 } }; // CF51B023-7CF1-5166-BDBA-EFD95F529E31
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo3>{ 0x507A6617,0xBEF6,0x56FD,{ 0x85,0x5E,0x75,0xAC,0xE2,0xE4,0x5C,0xF5 } }; // 507A6617-BEF6-56FD-855E-75ACE2E45CF5
@@ -277,11 +330,14 @@ namespace winrt::impl
     template <> struct default_interface<winrt::Windows::Storage::Provider::FileUpdateRequest>{ using type = winrt::Windows::Storage::Provider::IFileUpdateRequest; };
     template <> struct default_interface<winrt::Windows::Storage::Provider::FileUpdateRequestDeferral>{ using type = winrt::Windows::Storage::Provider::IFileUpdateRequestDeferral; };
     template <> struct default_interface<winrt::Windows::Storage::Provider::FileUpdateRequestedEventArgs>{ using type = winrt::Windows::Storage::Provider::IFileUpdateRequestedEventArgs; };
+    template <> struct default_interface<winrt::Windows::Storage::Provider::StorageProviderError>{ using type = winrt::Windows::Storage::Provider::IStorageProviderError; };
+    template <> struct default_interface<winrt::Windows::Storage::Provider::StorageProviderErrorCommand>{ using type = winrt::Windows::Storage::Provider::IStorageProviderErrorCommand; };
     template <> struct default_interface<winrt::Windows::Storage::Provider::StorageProviderFileTypeInfo>{ using type = winrt::Windows::Storage::Provider::IStorageProviderFileTypeInfo; };
     template <> struct default_interface<winrt::Windows::Storage::Provider::StorageProviderGetContentInfoForPathResult>{ using type = winrt::Windows::Storage::Provider::IStorageProviderGetContentInfoForPathResult; };
     template <> struct default_interface<winrt::Windows::Storage::Provider::StorageProviderGetPathForContentUriResult>{ using type = winrt::Windows::Storage::Provider::IStorageProviderGetPathForContentUriResult; };
     template <> struct default_interface<winrt::Windows::Storage::Provider::StorageProviderItemProperty>{ using type = winrt::Windows::Storage::Provider::IStorageProviderItemProperty; };
     template <> struct default_interface<winrt::Windows::Storage::Provider::StorageProviderItemPropertyDefinition>{ using type = winrt::Windows::Storage::Provider::IStorageProviderItemPropertyDefinition; };
+    template <> struct default_interface<winrt::Windows::Storage::Provider::StorageProviderStatus>{ using type = winrt::Windows::Storage::Provider::IStorageProviderStatus; };
     template <> struct default_interface<winrt::Windows::Storage::Provider::StorageProviderSyncRootInfo>{ using type = winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo; };
     template <> struct abi<winrt::Windows::Storage::Provider::ICachedFileUpdaterStatics>
     {
@@ -346,6 +402,45 @@ namespace winrt::impl
             virtual int32_t __stdcall get_Request(void**) noexcept = 0;
         };
     };
+    template <> struct abi<winrt::Windows::Storage::Provider::IStorageProviderError>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_Id(void**) noexcept = 0;
+            virtual int32_t __stdcall get_Title(void**) noexcept = 0;
+            virtual int32_t __stdcall get_Message(void**) noexcept = 0;
+            virtual int32_t __stdcall get_FilePath(void**) noexcept = 0;
+            virtual int32_t __stdcall put_FilePath(void*) noexcept = 0;
+            virtual int32_t __stdcall get_PrimaryAction(void**) noexcept = 0;
+            virtual int32_t __stdcall put_PrimaryAction(void*) noexcept = 0;
+            virtual int32_t __stdcall get_SecondaryAction(void**) noexcept = 0;
+            virtual int32_t __stdcall put_SecondaryAction(void*) noexcept = 0;
+            virtual int32_t __stdcall get_InformationalLink(void**) noexcept = 0;
+            virtual int32_t __stdcall put_InformationalLink(void*) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Storage::Provider::IStorageProviderErrorCommand>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_Label(void**) noexcept = 0;
+            virtual int32_t __stdcall get_ActionUri(void**) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Storage::Provider::IStorageProviderErrorCommandFactory>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall CreateInstance(void*, void*, void**) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Storage::Provider::IStorageProviderErrorFactory>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall CreateInstance(void*, void*, void*, void**) noexcept = 0;
+        };
+    };
     template <> struct abi<winrt::Windows::Storage::Provider::IStorageProviderFileTypeInfo>
     {
         struct __declspec(novtable) type : inspectable_abi
@@ -381,6 +476,13 @@ namespace winrt::impl
             virtual int32_t __stdcall put_Status(int32_t) noexcept = 0;
             virtual int32_t __stdcall get_Path(void**) noexcept = 0;
             virtual int32_t __stdcall put_Path(void*) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Storage::Provider::IStorageProviderHandlerFactory>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall GetStatusSource(void*, void**) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::Storage::Provider::IStorageProviderItemPropertiesStatics>
@@ -424,6 +526,32 @@ namespace winrt::impl
         struct __declspec(novtable) type : inspectable_abi
         {
             virtual int32_t __stdcall IsPropertySupported(void*, bool*) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Storage::Provider::IStorageProviderStatus>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_Message(void**) noexcept = 0;
+            virtual int32_t __stdcall get_State(int32_t*) noexcept = 0;
+            virtual int32_t __stdcall get_ErrorMessages(void**) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Storage::Provider::IStorageProviderStatusFactory>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall CreateInstance(int32_t, void*, void**) noexcept = 0;
+            virtual int32_t __stdcall CreateInstance2(int32_t, void*, void*, void**) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Storage::Provider::IStorageProviderStatusSource>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall GetStatus(void**) noexcept = 0;
+            virtual int32_t __stdcall add_Changed(void*, winrt::event_token*) noexcept = 0;
+            virtual int32_t __stdcall remove_Changed(winrt::event_token) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo>
@@ -586,6 +714,53 @@ namespace winrt::impl
         template <typename D> using type = consume_Windows_Storage_Provider_IFileUpdateRequestedEventArgs<D>;
     };
     template <typename D>
+    struct consume_Windows_Storage_Provider_IStorageProviderError
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(hstring) Id() const;
+        [[nodiscard]] WINRT_IMPL_AUTO(hstring) Title() const;
+        [[nodiscard]] WINRT_IMPL_AUTO(hstring) Message() const;
+        [[nodiscard]] WINRT_IMPL_AUTO(hstring) FilePath() const;
+        WINRT_IMPL_AUTO(void) FilePath(param::hstring const& value) const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Storage::Provider::StorageProviderErrorCommand) PrimaryAction() const;
+        WINRT_IMPL_AUTO(void) PrimaryAction(winrt::Windows::Storage::Provider::StorageProviderErrorCommand const& value) const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Storage::Provider::StorageProviderErrorCommand) SecondaryAction() const;
+        WINRT_IMPL_AUTO(void) SecondaryAction(winrt::Windows::Storage::Provider::StorageProviderErrorCommand const& value) const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Storage::Provider::StorageProviderErrorCommand) InformationalLink() const;
+        WINRT_IMPL_AUTO(void) InformationalLink(winrt::Windows::Storage::Provider::StorageProviderErrorCommand const& value) const;
+    };
+    template <> struct consume<winrt::Windows::Storage::Provider::IStorageProviderError>
+    {
+        template <typename D> using type = consume_Windows_Storage_Provider_IStorageProviderError<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Storage_Provider_IStorageProviderErrorCommand
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(hstring) Label() const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Foundation::Uri) ActionUri() const;
+    };
+    template <> struct consume<winrt::Windows::Storage::Provider::IStorageProviderErrorCommand>
+    {
+        template <typename D> using type = consume_Windows_Storage_Provider_IStorageProviderErrorCommand<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Storage_Provider_IStorageProviderErrorCommandFactory
+    {
+        WINRT_IMPL_AUTO(winrt::Windows::Storage::Provider::StorageProviderErrorCommand) CreateInstance(param::hstring const& label, winrt::Windows::Foundation::Uri const& actionUri) const;
+    };
+    template <> struct consume<winrt::Windows::Storage::Provider::IStorageProviderErrorCommandFactory>
+    {
+        template <typename D> using type = consume_Windows_Storage_Provider_IStorageProviderErrorCommandFactory<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Storage_Provider_IStorageProviderErrorFactory
+    {
+        WINRT_IMPL_AUTO(winrt::Windows::Storage::Provider::StorageProviderError) CreateInstance(param::hstring const& id, param::hstring const& title, param::hstring const& message) const;
+    };
+    template <> struct consume<winrt::Windows::Storage::Provider::IStorageProviderErrorFactory>
+    {
+        template <typename D> using type = consume_Windows_Storage_Provider_IStorageProviderErrorFactory<D>;
+    };
+    template <typename D>
     struct consume_Windows_Storage_Provider_IStorageProviderFileTypeInfo
     {
         [[nodiscard]] WINRT_IMPL_AUTO(hstring) FileExtension() const;
@@ -629,6 +804,15 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::Storage::Provider::IStorageProviderGetPathForContentUriResult>
     {
         template <typename D> using type = consume_Windows_Storage_Provider_IStorageProviderGetPathForContentUriResult<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Storage_Provider_IStorageProviderHandlerFactory
+    {
+        WINRT_IMPL_AUTO(winrt::Windows::Storage::Provider::IStorageProviderStatusSource) GetStatusSource(param::hstring const& syncRootId) const;
+    };
+    template <> struct consume<winrt::Windows::Storage::Provider::IStorageProviderHandlerFactory>
+    {
+        template <typename D> using type = consume_Windows_Storage_Provider_IStorageProviderHandlerFactory<D>;
     };
     template <typename D>
     struct consume_Windows_Storage_Provider_IStorageProviderItemPropertiesStatics
@@ -682,6 +866,40 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::Storage::Provider::IStorageProviderPropertyCapabilities>
     {
         template <typename D> using type = consume_Windows_Storage_Provider_IStorageProviderPropertyCapabilities<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Storage_Provider_IStorageProviderStatus
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(hstring) Message() const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Storage::Provider::StorageProviderState) State() const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Storage::Provider::StorageProviderError>) ErrorMessages() const;
+    };
+    template <> struct consume<winrt::Windows::Storage::Provider::IStorageProviderStatus>
+    {
+        template <typename D> using type = consume_Windows_Storage_Provider_IStorageProviderStatus<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Storage_Provider_IStorageProviderStatusFactory
+    {
+        WINRT_IMPL_AUTO(winrt::Windows::Storage::Provider::StorageProviderStatus) CreateInstance(winrt::Windows::Storage::Provider::StorageProviderState const& state, param::hstring const& message) const;
+        WINRT_IMPL_AUTO(winrt::Windows::Storage::Provider::StorageProviderStatus) CreateInstance2(winrt::Windows::Storage::Provider::StorageProviderState const& state, param::hstring const& message, param::iterable<winrt::Windows::Storage::Provider::StorageProviderError> const& errorMessages) const;
+    };
+    template <> struct consume<winrt::Windows::Storage::Provider::IStorageProviderStatusFactory>
+    {
+        template <typename D> using type = consume_Windows_Storage_Provider_IStorageProviderStatusFactory<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Storage_Provider_IStorageProviderStatusSource
+    {
+        WINRT_IMPL_AUTO(winrt::Windows::Storage::Provider::StorageProviderStatus) GetStatus() const;
+        WINRT_IMPL_AUTO(winrt::event_token) Changed(winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Storage::Provider::IStorageProviderStatusSource, winrt::Windows::Foundation::IInspectable> const& handler) const;
+        using Changed_revoker = impl::event_revoker<winrt::Windows::Storage::Provider::IStorageProviderStatusSource, &impl::abi_t<winrt::Windows::Storage::Provider::IStorageProviderStatusSource>::remove_Changed>;
+        [[nodiscard]] Changed_revoker Changed(auto_revoke_t, winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Storage::Provider::IStorageProviderStatusSource, winrt::Windows::Foundation::IInspectable> const& handler) const;
+        WINRT_IMPL_AUTO(void) Changed(winrt::event_token const& token) const noexcept;
+    };
+    template <> struct consume<winrt::Windows::Storage::Provider::IStorageProviderStatusSource>
+    {
+        template <typename D> using type = consume_Windows_Storage_Provider_IStorageProviderStatusSource<D>;
     };
     template <typename D>
     struct consume_Windows_Storage_Provider_IStorageProviderSyncRootInfo

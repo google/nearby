@@ -160,6 +160,34 @@ WINRT_EXPORT namespace winrt::Windows::Media::Devices
         DialRequestedEventArgs& operator=(DialRequestedEventArgs const&) & noexcept = default;
         DialRequestedEventArgs& operator=(DialRequestedEventArgs&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) DigitalWindowBounds : winrt::Windows::Media::Devices::IDigitalWindowBounds
+    {
+        DigitalWindowBounds(std::nullptr_t) noexcept {}
+        DigitalWindowBounds(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Media::Devices::IDigitalWindowBounds(ptr, take_ownership_from_abi) {}
+        DigitalWindowBounds();
+        DigitalWindowBounds(DigitalWindowBounds const&) noexcept = default;
+        DigitalWindowBounds(DigitalWindowBounds&&) noexcept = default;
+        DigitalWindowBounds& operator=(DigitalWindowBounds const&) & noexcept = default;
+        DigitalWindowBounds& operator=(DigitalWindowBounds&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) DigitalWindowCapability : winrt::Windows::Media::Devices::IDigitalWindowCapability
+    {
+        DigitalWindowCapability(std::nullptr_t) noexcept {}
+        DigitalWindowCapability(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Media::Devices::IDigitalWindowCapability(ptr, take_ownership_from_abi) {}
+        DigitalWindowCapability(DigitalWindowCapability const&) noexcept = default;
+        DigitalWindowCapability(DigitalWindowCapability&&) noexcept = default;
+        DigitalWindowCapability& operator=(DigitalWindowCapability const&) & noexcept = default;
+        DigitalWindowCapability& operator=(DigitalWindowCapability&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) DigitalWindowControl : winrt::Windows::Media::Devices::IDigitalWindowControl
+    {
+        DigitalWindowControl(std::nullptr_t) noexcept {}
+        DigitalWindowControl(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Media::Devices::IDigitalWindowControl(ptr, take_ownership_from_abi) {}
+        DigitalWindowControl(DigitalWindowControl const&) noexcept = default;
+        DigitalWindowControl(DigitalWindowControl&&) noexcept = default;
+        DigitalWindowControl& operator=(DigitalWindowControl const&) & noexcept = default;
+        DigitalWindowControl& operator=(DigitalWindowControl&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) ExposureCompensationControl : winrt::Windows::Media::Devices::IExposureCompensationControl
     {
         ExposureCompensationControl(std::nullptr_t) noexcept {}
@@ -391,7 +419,7 @@ WINRT_EXPORT namespace winrt::Windows::Media::Devices
         TorchControl& operator=(TorchControl&&) & noexcept = default;
     };
     struct __declspec(empty_bases) VideoDeviceController : winrt::Windows::Media::Devices::IVideoDeviceController,
-        impl::require<VideoDeviceController, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController2, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController3, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController4, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController5, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController6, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController7, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController8>
+        impl::require<VideoDeviceController, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController2, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController3, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController4, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController5, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController6, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController7, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController8, winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController9>
     {
         VideoDeviceController(std::nullptr_t) noexcept {}
         VideoDeviceController(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Media::Devices::IVideoDeviceController(ptr, take_ownership_from_abi) {}

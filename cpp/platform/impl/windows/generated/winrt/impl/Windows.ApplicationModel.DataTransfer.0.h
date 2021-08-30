@@ -1219,14 +1219,14 @@ namespace winrt::impl
     template <typename D>
     struct consume_Windows_ApplicationModel_DataTransfer_IDataTransferManager
     {
-        WINRT_IMPL_AUTO(winrt::event_token) DataRequested(winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::ApplicationModel::DataTransfer::DataTransferManager, winrt::Windows::ApplicationModel::DataTransfer::DataRequestedEventArgs> const& eventHandler) const;
+        WINRT_IMPL_AUTO(winrt::event_token) DataRequested(winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::ApplicationModel::DataTransfer::DataTransferManager, winrt::Windows::ApplicationModel::DataTransfer::DataRequestedEventArgs> const& handler) const;
         using DataRequested_revoker = impl::event_revoker<winrt::Windows::ApplicationModel::DataTransfer::IDataTransferManager, &impl::abi_t<winrt::Windows::ApplicationModel::DataTransfer::IDataTransferManager>::remove_DataRequested>;
-        [[nodiscard]] DataRequested_revoker DataRequested(auto_revoke_t, winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::ApplicationModel::DataTransfer::DataTransferManager, winrt::Windows::ApplicationModel::DataTransfer::DataRequestedEventArgs> const& eventHandler) const;
-        WINRT_IMPL_AUTO(void) DataRequested(winrt::event_token const& eventCookie) const noexcept;
-        WINRT_IMPL_AUTO(winrt::event_token) TargetApplicationChosen(winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::ApplicationModel::DataTransfer::DataTransferManager, winrt::Windows::ApplicationModel::DataTransfer::TargetApplicationChosenEventArgs> const& eventHandler) const;
+        [[nodiscard]] DataRequested_revoker DataRequested(auto_revoke_t, winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::ApplicationModel::DataTransfer::DataTransferManager, winrt::Windows::ApplicationModel::DataTransfer::DataRequestedEventArgs> const& handler) const;
+        WINRT_IMPL_AUTO(void) DataRequested(winrt::event_token const& token) const noexcept;
+        WINRT_IMPL_AUTO(winrt::event_token) TargetApplicationChosen(winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::ApplicationModel::DataTransfer::DataTransferManager, winrt::Windows::ApplicationModel::DataTransfer::TargetApplicationChosenEventArgs> const& handler) const;
         using TargetApplicationChosen_revoker = impl::event_revoker<winrt::Windows::ApplicationModel::DataTransfer::IDataTransferManager, &impl::abi_t<winrt::Windows::ApplicationModel::DataTransfer::IDataTransferManager>::remove_TargetApplicationChosen>;
-        [[nodiscard]] TargetApplicationChosen_revoker TargetApplicationChosen(auto_revoke_t, winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::ApplicationModel::DataTransfer::DataTransferManager, winrt::Windows::ApplicationModel::DataTransfer::TargetApplicationChosenEventArgs> const& eventHandler) const;
-        WINRT_IMPL_AUTO(void) TargetApplicationChosen(winrt::event_token const& eventCookie) const noexcept;
+        [[nodiscard]] TargetApplicationChosen_revoker TargetApplicationChosen(auto_revoke_t, winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::ApplicationModel::DataTransfer::DataTransferManager, winrt::Windows::ApplicationModel::DataTransfer::TargetApplicationChosenEventArgs> const& handler) const;
+        WINRT_IMPL_AUTO(void) TargetApplicationChosen(winrt::event_token const& token) const noexcept;
     };
     template <> struct consume<winrt::Windows::ApplicationModel::DataTransfer::IDataTransferManager>
     {

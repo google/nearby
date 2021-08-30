@@ -56,6 +56,7 @@ WINRT_EXPORT namespace winrt::Windows::Storage
         Roaming = 1,
         Temporary = 2,
         LocalCache = 3,
+        SharedLocal = 4,
     };
     enum class CreationCollisionOption : int32_t
     {
@@ -96,6 +97,7 @@ WINRT_EXPORT namespace winrt::Windows::Storage
         VideosLibrary = 13,
         AllAppMods = 14,
         CurrentAppMods = 15,
+        DownloadsFolder = 16,
     };
     enum class KnownFoldersAccessStatus : int32_t
     {
@@ -104,6 +106,7 @@ WINRT_EXPORT namespace winrt::Windows::Storage
         DeniedByUser = 2,
         UserPromptRequired = 3,
         Allowed = 4,
+        AllowedPerAppFolder = 5,
     };
     enum class KnownLibraryId : int32_t
     {
@@ -196,7 +199,12 @@ WINRT_EXPORT namespace winrt::Windows::Storage
     struct IStorageLibrary3;
     struct IStorageLibraryChange;
     struct IStorageLibraryChangeReader;
+    struct IStorageLibraryChangeReader2;
     struct IStorageLibraryChangeTracker;
+    struct IStorageLibraryChangeTracker2;
+    struct IStorageLibraryChangeTrackerOptions;
+    struct IStorageLibraryLastChangeId;
+    struct IStorageLibraryLastChangeIdStatics;
     struct IStorageLibraryStatics;
     struct IStorageLibraryStatics2;
     struct IStorageProvider;
@@ -233,6 +241,8 @@ WINRT_EXPORT namespace winrt::Windows::Storage
     struct StorageLibraryChange;
     struct StorageLibraryChangeReader;
     struct StorageLibraryChangeTracker;
+    struct StorageLibraryChangeTrackerOptions;
+    struct StorageLibraryLastChangeId;
     struct StorageProvider;
     struct StorageStreamTransaction;
     struct StreamedFileDataRequest;
@@ -293,7 +303,12 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Storage::IStorageLibrary3>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::IStorageLibraryChange>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::IStorageLibraryChangeReader>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Storage::IStorageLibraryChangeReader2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::IStorageLibraryChangeTracker>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Storage::IStorageLibraryChangeTracker2>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Storage::IStorageLibraryChangeTrackerOptions>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Storage::IStorageLibraryLastChangeId>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Storage::IStorageLibraryLastChangeIdStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::IStorageLibraryStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::IStorageLibraryStatics2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Storage::IStorageProvider>{ using type = interface_category; };
@@ -330,6 +345,8 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Storage::StorageLibraryChange>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::StorageLibraryChangeReader>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::StorageLibraryChangeTracker>{ using type = class_category; };
+    template <> struct category<winrt::Windows::Storage::StorageLibraryChangeTrackerOptions>{ using type = class_category; };
+    template <> struct category<winrt::Windows::Storage::StorageLibraryLastChangeId>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::StorageProvider>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::StorageStreamTransaction>{ using type = class_category; };
     template <> struct category<winrt::Windows::Storage::StreamedFileDataRequest>{ using type = class_category; };
@@ -377,6 +394,8 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::StorageLibraryChange> = L"Windows.Storage.StorageLibraryChange";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::StorageLibraryChangeReader> = L"Windows.Storage.StorageLibraryChangeReader";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::StorageLibraryChangeTracker> = L"Windows.Storage.StorageLibraryChangeTracker";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::StorageLibraryChangeTrackerOptions> = L"Windows.Storage.StorageLibraryChangeTrackerOptions";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::StorageLibraryLastChangeId> = L"Windows.Storage.StorageLibraryLastChangeId";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::StorageProvider> = L"Windows.Storage.StorageProvider";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::StorageStreamTransaction> = L"Windows.Storage.StorageStreamTransaction";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::StreamedFileDataRequest> = L"Windows.Storage.StreamedFileDataRequest";
@@ -446,7 +465,12 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::IStorageLibrary3> = L"Windows.Storage.IStorageLibrary3";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::IStorageLibraryChange> = L"Windows.Storage.IStorageLibraryChange";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::IStorageLibraryChangeReader> = L"Windows.Storage.IStorageLibraryChangeReader";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::IStorageLibraryChangeReader2> = L"Windows.Storage.IStorageLibraryChangeReader2";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::IStorageLibraryChangeTracker> = L"Windows.Storage.IStorageLibraryChangeTracker";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::IStorageLibraryChangeTracker2> = L"Windows.Storage.IStorageLibraryChangeTracker2";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::IStorageLibraryChangeTrackerOptions> = L"Windows.Storage.IStorageLibraryChangeTrackerOptions";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::IStorageLibraryLastChangeId> = L"Windows.Storage.IStorageLibraryLastChangeId";
+    template <> inline constexpr auto& name_v<winrt::Windows::Storage::IStorageLibraryLastChangeIdStatics> = L"Windows.Storage.IStorageLibraryLastChangeIdStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::IStorageLibraryStatics> = L"Windows.Storage.IStorageLibraryStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::IStorageLibraryStatics2> = L"Windows.Storage.IStorageLibraryStatics2";
     template <> inline constexpr auto& name_v<winrt::Windows::Storage::IStorageProvider> = L"Windows.Storage.IStorageProvider";
@@ -509,7 +533,12 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::IStorageLibrary3>{ 0x8A281291,0x2154,0x4201,{ 0x81,0x13,0xD2,0xC0,0x5C,0xE1,0xAD,0x23 } }; // 8A281291-2154-4201-8113-D2C05CE1AD23
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::IStorageLibraryChange>{ 0x00980B23,0x2BE2,0x4909,{ 0xAA,0x48,0x15,0x9F,0x52,0x03,0xA5,0x1E } }; // 00980B23-2BE2-4909-AA48-159F5203A51E
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::IStorageLibraryChangeReader>{ 0xF205BC83,0xFCA2,0x41F9,{ 0x89,0x54,0xEE,0x2E,0x99,0x1E,0xB9,0x6F } }; // F205BC83-FCA2-41F9-8954-EE2E991EB96F
+    template <> inline constexpr guid guid_v<winrt::Windows::Storage::IStorageLibraryChangeReader2>{ 0xABF4868B,0xFBCC,0x4A4F,{ 0x99,0x9E,0xE7,0xAB,0x7C,0x64,0x6D,0xBE } }; // ABF4868B-FBCC-4A4F-999E-E7AB7C646DBE
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::IStorageLibraryChangeTracker>{ 0x9E157316,0x6073,0x44F6,{ 0x96,0x81,0x74,0x92,0xD1,0x28,0x6C,0x90 } }; // 9E157316-6073-44F6-9681-7492D1286C90
+    template <> inline constexpr guid guid_v<winrt::Windows::Storage::IStorageLibraryChangeTracker2>{ 0xCD051C3B,0x0F9F,0x42F9,{ 0x8F,0xB3,0x15,0x8D,0x82,0xE1,0x38,0x21 } }; // CD051C3B-0F9F-42F9-8FB3-158D82E13821
+    template <> inline constexpr guid guid_v<winrt::Windows::Storage::IStorageLibraryChangeTrackerOptions>{ 0xBB52BCD4,0x1A6D,0x59C0,{ 0xAD,0x2A,0x82,0x3A,0x20,0x53,0x24,0x83 } }; // BB52BCD4-1A6D-59C0-AD2A-823A20532483
+    template <> inline constexpr guid guid_v<winrt::Windows::Storage::IStorageLibraryLastChangeId>{ 0x5281826A,0xBBE1,0x53BC,{ 0x82,0xCA,0x81,0xCC,0x7F,0x03,0x93,0x29 } }; // 5281826A-BBE1-53BC-82CA-81CC7F039329
+    template <> inline constexpr guid guid_v<winrt::Windows::Storage::IStorageLibraryLastChangeIdStatics>{ 0x81A49128,0x2CA3,0x5309,{ 0xB0,0xD1,0xCF,0x07,0x88,0xE4,0x07,0x62 } }; // 81A49128-2CA3-5309-B0D1-CF0788E40762
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::IStorageLibraryStatics>{ 0x4208A6DB,0x684A,0x49C6,{ 0x9E,0x59,0x90,0x12,0x1E,0xE0,0x50,0xD6 } }; // 4208A6DB-684A-49C6-9E59-90121EE050D6
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::IStorageLibraryStatics2>{ 0xFFB08DDC,0xFA75,0x4695,{ 0xB9,0xD1,0x7F,0x81,0xF9,0x78,0x32,0xE3 } }; // FFB08DDC-FA75-4695-B9D1-7F81F97832E3
     template <> inline constexpr guid guid_v<winrt::Windows::Storage::IStorageProvider>{ 0xE705EED4,0xD478,0x47D6,{ 0xBA,0x46,0x1A,0x8E,0xBE,0x11,0x4A,0x20 } }; // E705EED4-D478-47D6-BA46-1A8EBE114A20
@@ -543,6 +572,8 @@ namespace winrt::impl
     template <> struct default_interface<winrt::Windows::Storage::StorageLibraryChange>{ using type = winrt::Windows::Storage::IStorageLibraryChange; };
     template <> struct default_interface<winrt::Windows::Storage::StorageLibraryChangeReader>{ using type = winrt::Windows::Storage::IStorageLibraryChangeReader; };
     template <> struct default_interface<winrt::Windows::Storage::StorageLibraryChangeTracker>{ using type = winrt::Windows::Storage::IStorageLibraryChangeTracker; };
+    template <> struct default_interface<winrt::Windows::Storage::StorageLibraryChangeTrackerOptions>{ using type = winrt::Windows::Storage::IStorageLibraryChangeTrackerOptions; };
+    template <> struct default_interface<winrt::Windows::Storage::StorageLibraryLastChangeId>{ using type = winrt::Windows::Storage::IStorageLibraryLastChangeId; };
     template <> struct default_interface<winrt::Windows::Storage::StorageProvider>{ using type = winrt::Windows::Storage::IStorageProvider; };
     template <> struct default_interface<winrt::Windows::Storage::StorageStreamTransaction>{ using type = winrt::Windows::Storage::IStorageStreamTransaction; };
     template <> struct default_interface<winrt::Windows::Storage::StreamedFileDataRequest>{ using type = winrt::Windows::Storage::Streams::IOutputStream; };
@@ -978,6 +1009,13 @@ namespace winrt::impl
             virtual int32_t __stdcall AcceptChangesAsync(void**) noexcept = 0;
         };
     };
+    template <> struct abi<winrt::Windows::Storage::IStorageLibraryChangeReader2>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall GetLastChangeId(uint64_t*) noexcept = 0;
+        };
+    };
     template <> struct abi<winrt::Windows::Storage::IStorageLibraryChangeTracker>
     {
         struct __declspec(novtable) type : inspectable_abi
@@ -985,6 +1023,35 @@ namespace winrt::impl
             virtual int32_t __stdcall GetChangeReader(void**) noexcept = 0;
             virtual int32_t __stdcall Enable() noexcept = 0;
             virtual int32_t __stdcall Reset() noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Storage::IStorageLibraryChangeTracker2>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall EnableWithOptions(void*) noexcept = 0;
+            virtual int32_t __stdcall Disable() noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Storage::IStorageLibraryChangeTrackerOptions>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_TrackChangeDetails(bool*) noexcept = 0;
+            virtual int32_t __stdcall put_TrackChangeDetails(bool) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Storage::IStorageLibraryLastChangeId>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+        };
+    };
+    template <> struct abi<winrt::Windows::Storage::IStorageLibraryLastChangeIdStatics>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_Unknown(uint64_t*) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::Storage::IStorageLibraryStatics>
@@ -1709,6 +1776,15 @@ namespace winrt::impl
         template <typename D> using type = consume_Windows_Storage_IStorageLibraryChangeReader<D>;
     };
     template <typename D>
+    struct consume_Windows_Storage_IStorageLibraryChangeReader2
+    {
+        WINRT_IMPL_AUTO(uint64_t) GetLastChangeId() const;
+    };
+    template <> struct consume<winrt::Windows::Storage::IStorageLibraryChangeReader2>
+    {
+        template <typename D> using type = consume_Windows_Storage_IStorageLibraryChangeReader2<D>;
+    };
+    template <typename D>
     struct consume_Windows_Storage_IStorageLibraryChangeTracker
     {
         WINRT_IMPL_AUTO(winrt::Windows::Storage::StorageLibraryChangeReader) GetChangeReader() const;
@@ -1718,6 +1794,43 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::Storage::IStorageLibraryChangeTracker>
     {
         template <typename D> using type = consume_Windows_Storage_IStorageLibraryChangeTracker<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Storage_IStorageLibraryChangeTracker2
+    {
+        WINRT_IMPL_AUTO(void) Enable(winrt::Windows::Storage::StorageLibraryChangeTrackerOptions const& options) const;
+        WINRT_IMPL_AUTO(void) Disable() const;
+    };
+    template <> struct consume<winrt::Windows::Storage::IStorageLibraryChangeTracker2>
+    {
+        template <typename D> using type = consume_Windows_Storage_IStorageLibraryChangeTracker2<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Storage_IStorageLibraryChangeTrackerOptions
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(bool) TrackChangeDetails() const;
+        WINRT_IMPL_AUTO(void) TrackChangeDetails(bool value) const;
+    };
+    template <> struct consume<winrt::Windows::Storage::IStorageLibraryChangeTrackerOptions>
+    {
+        template <typename D> using type = consume_Windows_Storage_IStorageLibraryChangeTrackerOptions<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Storage_IStorageLibraryLastChangeId
+    {
+    };
+    template <> struct consume<winrt::Windows::Storage::IStorageLibraryLastChangeId>
+    {
+        template <typename D> using type = consume_Windows_Storage_IStorageLibraryLastChangeId<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Storage_IStorageLibraryLastChangeIdStatics
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(uint64_t) Unknown() const;
+    };
+    template <> struct consume<winrt::Windows::Storage::IStorageLibraryLastChangeIdStatics>
+    {
+        template <typename D> using type = consume_Windows_Storage_IStorageLibraryLastChangeIdStatics<D>;
     };
     template <typename D>
     struct consume_Windows_Storage_IStorageLibraryStatics

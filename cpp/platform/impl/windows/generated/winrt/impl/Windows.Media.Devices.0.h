@@ -100,6 +100,12 @@ WINRT_EXPORT namespace winrt::Windows::Media::Devices
         Tungsten = 6,
         Candlelight = 7,
     };
+    enum class DigitalWindowMode : int32_t
+    {
+        Off = 0,
+        On = 1,
+        Auto = 2,
+    };
     enum class FocusMode : int32_t
     {
         Auto = 0,
@@ -248,6 +254,7 @@ WINRT_EXPORT namespace winrt::Windows::Media::Devices
     struct IAdvancedVideoCaptureDeviceController6;
     struct IAdvancedVideoCaptureDeviceController7;
     struct IAdvancedVideoCaptureDeviceController8;
+    struct IAdvancedVideoCaptureDeviceController9;
     struct IAudioDeviceController;
     struct IAudioDeviceModule;
     struct IAudioDeviceModuleNotificationEventArgs;
@@ -257,6 +264,9 @@ WINRT_EXPORT namespace winrt::Windows::Media::Devices
     struct ICallControlStatics;
     struct IDefaultAudioDeviceChangedEventArgs;
     struct IDialRequestedEventArgs;
+    struct IDigitalWindowBounds;
+    struct IDigitalWindowCapability;
+    struct IDigitalWindowControl;
     struct IExposureCompensationControl;
     struct IExposureControl;
     struct IExposurePriorityVideoControl;
@@ -303,6 +313,9 @@ WINRT_EXPORT namespace winrt::Windows::Media::Devices
     struct DefaultAudioCaptureDeviceChangedEventArgs;
     struct DefaultAudioRenderDeviceChangedEventArgs;
     struct DialRequestedEventArgs;
+    struct DigitalWindowBounds;
+    struct DigitalWindowCapability;
+    struct DigitalWindowControl;
     struct ExposureCompensationControl;
     struct ExposureControl;
     struct ExposurePriorityVideoControl;
@@ -350,6 +363,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController6>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController7>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController8>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController9>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Devices::IAudioDeviceController>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Devices::IAudioDeviceModule>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Devices::IAudioDeviceModuleNotificationEventArgs>{ using type = interface_category; };
@@ -359,6 +373,9 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Media::Devices::ICallControlStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Devices::IDefaultAudioDeviceChangedEventArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Devices::IDialRequestedEventArgs>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Media::Devices::IDigitalWindowBounds>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Media::Devices::IDigitalWindowCapability>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Media::Devices::IDigitalWindowControl>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Devices::IExposureCompensationControl>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Devices::IExposureControl>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Devices::IExposurePriorityVideoControl>{ using type = interface_category; };
@@ -405,6 +422,9 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Media::Devices::DefaultAudioCaptureDeviceChangedEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Devices::DefaultAudioRenderDeviceChangedEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Devices::DialRequestedEventArgs>{ using type = class_category; };
+    template <> struct category<winrt::Windows::Media::Devices::DigitalWindowBounds>{ using type = class_category; };
+    template <> struct category<winrt::Windows::Media::Devices::DigitalWindowCapability>{ using type = class_category; };
+    template <> struct category<winrt::Windows::Media::Devices::DigitalWindowControl>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Devices::ExposureCompensationControl>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Devices::ExposureControl>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Devices::ExposurePriorityVideoControl>{ using type = class_category; };
@@ -442,6 +462,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Media::Devices::CaptureSceneMode>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::Devices::CaptureUse>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::Devices::ColorTemperaturePreset>{ using type = enum_category; };
+    template <> struct category<winrt::Windows::Media::Devices::DigitalWindowMode>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::Devices::FocusMode>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::Devices::FocusPreset>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::Devices::HdrVideoMode>{ using type = enum_category; };
@@ -473,6 +494,9 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::DefaultAudioCaptureDeviceChangedEventArgs> = L"Windows.Media.Devices.DefaultAudioCaptureDeviceChangedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::DefaultAudioRenderDeviceChangedEventArgs> = L"Windows.Media.Devices.DefaultAudioRenderDeviceChangedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::DialRequestedEventArgs> = L"Windows.Media.Devices.DialRequestedEventArgs";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::DigitalWindowBounds> = L"Windows.Media.Devices.DigitalWindowBounds";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::DigitalWindowCapability> = L"Windows.Media.Devices.DigitalWindowCapability";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::DigitalWindowControl> = L"Windows.Media.Devices.DigitalWindowControl";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::ExposureCompensationControl> = L"Windows.Media.Devices.ExposureCompensationControl";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::ExposureControl> = L"Windows.Media.Devices.ExposureControl";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::ExposurePriorityVideoControl> = L"Windows.Media.Devices.ExposurePriorityVideoControl";
@@ -510,6 +534,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::CaptureSceneMode> = L"Windows.Media.Devices.CaptureSceneMode";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::CaptureUse> = L"Windows.Media.Devices.CaptureUse";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::ColorTemperaturePreset> = L"Windows.Media.Devices.ColorTemperaturePreset";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::DigitalWindowMode> = L"Windows.Media.Devices.DigitalWindowMode";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::FocusMode> = L"Windows.Media.Devices.FocusMode";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::FocusPreset> = L"Windows.Media.Devices.FocusPreset";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::HdrVideoMode> = L"Windows.Media.Devices.HdrVideoMode";
@@ -537,6 +562,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController6> = L"Windows.Media.Devices.IAdvancedVideoCaptureDeviceController6";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController7> = L"Windows.Media.Devices.IAdvancedVideoCaptureDeviceController7";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController8> = L"Windows.Media.Devices.IAdvancedVideoCaptureDeviceController8";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController9> = L"Windows.Media.Devices.IAdvancedVideoCaptureDeviceController9";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::IAudioDeviceController> = L"Windows.Media.Devices.IAudioDeviceController";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::IAudioDeviceModule> = L"Windows.Media.Devices.IAudioDeviceModule";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::IAudioDeviceModuleNotificationEventArgs> = L"Windows.Media.Devices.IAudioDeviceModuleNotificationEventArgs";
@@ -546,6 +572,9 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::ICallControlStatics> = L"Windows.Media.Devices.ICallControlStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::IDefaultAudioDeviceChangedEventArgs> = L"Windows.Media.Devices.IDefaultAudioDeviceChangedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::IDialRequestedEventArgs> = L"Windows.Media.Devices.IDialRequestedEventArgs";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::IDigitalWindowBounds> = L"Windows.Media.Devices.IDigitalWindowBounds";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::IDigitalWindowCapability> = L"Windows.Media.Devices.IDigitalWindowCapability";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::IDigitalWindowControl> = L"Windows.Media.Devices.IDigitalWindowControl";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::IExposureCompensationControl> = L"Windows.Media.Devices.IExposureCompensationControl";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::IExposureControl> = L"Windows.Media.Devices.IExposureControl";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Devices::IExposurePriorityVideoControl> = L"Windows.Media.Devices.IExposurePriorityVideoControl";
@@ -596,6 +625,7 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController6>{ 0xB6563A53,0x68A1,0x44B7,{ 0x9F,0x89,0xB5,0xFA,0x97,0xAC,0x0C,0xBE } }; // B6563A53-68A1-44B7-9F89-B5FA97AC0CBE
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController7>{ 0x8D2927F0,0xA054,0x50E7,{ 0xB7,0xDF,0x7C,0x04,0x23,0x4D,0x10,0xF0 } }; // 8D2927F0-A054-50E7-B7DF-7C04234D10F0
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController8>{ 0xD843F010,0xE7FB,0x595B,{ 0x9A,0x78,0x0E,0x54,0xC4,0x53,0x2B,0x43 } }; // D843F010-E7FB-595B-9A78-0E54C4532B43
+    template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController9>{ 0x8BDCA95D,0x0255,0x51BC,{ 0xA1,0x0D,0x5A,0x16,0x9E,0xC1,0x62,0x5A } }; // 8BDCA95D-0255-51BC-A10D-5A169EC1625A
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::IAudioDeviceController>{ 0xEDD4A388,0x79C7,0x4F7C,{ 0x90,0xE8,0xEF,0x93,0x4B,0x21,0x58,0x0A } }; // EDD4A388-79C7-4F7C-90E8-EF934B21580A
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::IAudioDeviceModule>{ 0x86CFAC36,0x47C1,0x4B33,{ 0x98,0x52,0x87,0x73,0xEC,0x4B,0xE1,0x23 } }; // 86CFAC36-47C1-4B33-9852-8773EC4BE123
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::IAudioDeviceModuleNotificationEventArgs>{ 0xE3E3CCAF,0x224C,0x48BE,{ 0x95,0x6B,0x9A,0x13,0x13,0x4E,0x96,0xE8 } }; // E3E3CCAF-224C-48BE-956B-9A13134E96E8
@@ -605,6 +635,9 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::ICallControlStatics>{ 0x03945AD5,0x85AB,0x40E1,{ 0xAF,0x19,0x56,0xC9,0x43,0x03,0xB0,0x19 } }; // 03945AD5-85AB-40E1-AF19-56C94303B019
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::IDefaultAudioDeviceChangedEventArgs>{ 0x110F882F,0x1C05,0x4657,{ 0xA1,0x8E,0x47,0xC9,0xB6,0x9F,0x07,0xAB } }; // 110F882F-1C05-4657-A18E-47C9B69F07AB
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::IDialRequestedEventArgs>{ 0x037B929E,0x953C,0x4286,{ 0x88,0x66,0x4F,0x0F,0x37,0x6C,0x85,0x5A } }; // 037B929E-953C-4286-8866-4F0F376C855A
+    template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::IDigitalWindowBounds>{ 0xDD4F21DD,0xD173,0x5C6B,{ 0x8C,0x25,0xBD,0xD2,0x6D,0x51,0x22,0xB1 } }; // DD4F21DD-D173-5C6B-8C25-BDD26D5122B1
+    template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::IDigitalWindowCapability>{ 0xD78BAD2C,0xF721,0x5244,{ 0xA1,0x96,0xB5,0x6C,0xCB,0xEC,0x60,0x6C } }; // D78BAD2C-F721-5244-A196-B56CCBEC606C
+    template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::IDigitalWindowControl>{ 0x23B69EFF,0x65D2,0x53EA,{ 0x87,0x80,0xDE,0x58,0x2B,0x48,0xB5,0x44 } }; // 23B69EFF-65D2-53EA-8780-DE582B48B544
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::IExposureCompensationControl>{ 0x81C8E834,0xDCEC,0x4011,{ 0xA6,0x10,0x1F,0x38,0x47,0xE6,0x4A,0xCA } }; // 81C8E834-DCEC-4011-A610-1F3847E64ACA
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::IExposureControl>{ 0x09E8CBE2,0xAD96,0x4F28,{ 0xA0,0xE0,0x96,0xED,0x7E,0x1B,0x5F,0xD2 } }; // 09E8CBE2-AD96-4F28-A0E0-96ED7E1B5FD2
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Devices::IExposurePriorityVideoControl>{ 0x2CB240A3,0x5168,0x4271,{ 0x9E,0xA5,0x47,0x62,0x1A,0x98,0xA3,0x52 } }; // 2CB240A3-5168-4271-9EA5-47621A98A352
@@ -655,6 +688,9 @@ namespace winrt::impl
     template <> struct default_interface<winrt::Windows::Media::Devices::DefaultAudioCaptureDeviceChangedEventArgs>{ using type = winrt::Windows::Media::Devices::IDefaultAudioDeviceChangedEventArgs; };
     template <> struct default_interface<winrt::Windows::Media::Devices::DefaultAudioRenderDeviceChangedEventArgs>{ using type = winrt::Windows::Media::Devices::IDefaultAudioDeviceChangedEventArgs; };
     template <> struct default_interface<winrt::Windows::Media::Devices::DialRequestedEventArgs>{ using type = winrt::Windows::Media::Devices::IDialRequestedEventArgs; };
+    template <> struct default_interface<winrt::Windows::Media::Devices::DigitalWindowBounds>{ using type = winrt::Windows::Media::Devices::IDigitalWindowBounds; };
+    template <> struct default_interface<winrt::Windows::Media::Devices::DigitalWindowCapability>{ using type = winrt::Windows::Media::Devices::IDigitalWindowCapability; };
+    template <> struct default_interface<winrt::Windows::Media::Devices::DigitalWindowControl>{ using type = winrt::Windows::Media::Devices::IDigitalWindowControl; };
     template <> struct default_interface<winrt::Windows::Media::Devices::ExposureCompensationControl>{ using type = winrt::Windows::Media::Devices::IExposureCompensationControl; };
     template <> struct default_interface<winrt::Windows::Media::Devices::ExposureControl>{ using type = winrt::Windows::Media::Devices::IExposureControl; };
     template <> struct default_interface<winrt::Windows::Media::Devices::ExposurePriorityVideoControl>{ using type = winrt::Windows::Media::Devices::IExposurePriorityVideoControl; };
@@ -782,6 +818,13 @@ namespace winrt::impl
             virtual int32_t __stdcall get_PanelBasedOptimizationControl(void**) noexcept = 0;
         };
     };
+    template <> struct abi<winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController9>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_DigitalWindowControl(void**) noexcept = 0;
+        };
+    };
     template <> struct abi<winrt::Windows::Media::Devices::IAudioDeviceController>
     {
         struct __declspec(novtable) type : inspectable_abi
@@ -874,6 +917,44 @@ namespace winrt::impl
         {
             virtual int32_t __stdcall Handled() noexcept = 0;
             virtual int32_t __stdcall get_Contact(void**) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Media::Devices::IDigitalWindowBounds>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_NormalizedOriginTop(double*) noexcept = 0;
+            virtual int32_t __stdcall put_NormalizedOriginTop(double) noexcept = 0;
+            virtual int32_t __stdcall get_NormalizedOriginLeft(double*) noexcept = 0;
+            virtual int32_t __stdcall put_NormalizedOriginLeft(double) noexcept = 0;
+            virtual int32_t __stdcall get_Scale(double*) noexcept = 0;
+            virtual int32_t __stdcall put_Scale(double) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Media::Devices::IDigitalWindowCapability>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_Width(int32_t*) noexcept = 0;
+            virtual int32_t __stdcall get_Height(int32_t*) noexcept = 0;
+            virtual int32_t __stdcall get_MinScaleValue(double*) noexcept = 0;
+            virtual int32_t __stdcall get_MaxScaleValue(double*) noexcept = 0;
+            virtual int32_t __stdcall get_MinScaleValueWithoutUpsampling(double*) noexcept = 0;
+            virtual int32_t __stdcall get_NormalizedFieldOfViewLimit(winrt::Windows::Foundation::Rect*) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Media::Devices::IDigitalWindowControl>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_IsSupported(bool*) noexcept = 0;
+            virtual int32_t __stdcall get_SupportedModes(uint32_t* __valueSize, int32_t**) noexcept = 0;
+            virtual int32_t __stdcall get_CurrentMode(int32_t*) noexcept = 0;
+            virtual int32_t __stdcall GetBounds(void**) noexcept = 0;
+            virtual int32_t __stdcall Configure(int32_t) noexcept = 0;
+            virtual int32_t __stdcall ConfigureWithBounds(int32_t, void*) noexcept = 0;
+            virtual int32_t __stdcall get_SupportedCapabilities(void**) noexcept = 0;
+            virtual int32_t __stdcall GetCapabilityForSize(int32_t, int32_t, void**) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::Media::Devices::IExposureCompensationControl>
@@ -1461,6 +1542,15 @@ namespace winrt::impl
         template <typename D> using type = consume_Windows_Media_Devices_IAdvancedVideoCaptureDeviceController8<D>;
     };
     template <typename D>
+    struct consume_Windows_Media_Devices_IAdvancedVideoCaptureDeviceController9
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Media::Devices::DigitalWindowControl) DigitalWindowControl() const;
+    };
+    template <> struct consume<winrt::Windows::Media::Devices::IAdvancedVideoCaptureDeviceController9>
+    {
+        template <typename D> using type = consume_Windows_Media_Devices_IAdvancedVideoCaptureDeviceController9<D>;
+    };
+    template <typename D>
     struct consume_Windows_Media_Devices_IAudioDeviceController
     {
         WINRT_IMPL_AUTO(void) Muted(bool value) const;
@@ -1585,6 +1675,50 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::Media::Devices::IDialRequestedEventArgs>
     {
         template <typename D> using type = consume_Windows_Media_Devices_IDialRequestedEventArgs<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Media_Devices_IDigitalWindowBounds
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(double) NormalizedOriginTop() const;
+        WINRT_IMPL_AUTO(void) NormalizedOriginTop(double value) const;
+        [[nodiscard]] WINRT_IMPL_AUTO(double) NormalizedOriginLeft() const;
+        WINRT_IMPL_AUTO(void) NormalizedOriginLeft(double value) const;
+        [[nodiscard]] WINRT_IMPL_AUTO(double) Scale() const;
+        WINRT_IMPL_AUTO(void) Scale(double value) const;
+    };
+    template <> struct consume<winrt::Windows::Media::Devices::IDigitalWindowBounds>
+    {
+        template <typename D> using type = consume_Windows_Media_Devices_IDigitalWindowBounds<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Media_Devices_IDigitalWindowCapability
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(int32_t) Width() const;
+        [[nodiscard]] WINRT_IMPL_AUTO(int32_t) Height() const;
+        [[nodiscard]] WINRT_IMPL_AUTO(double) MinScaleValue() const;
+        [[nodiscard]] WINRT_IMPL_AUTO(double) MaxScaleValue() const;
+        [[nodiscard]] WINRT_IMPL_AUTO(double) MinScaleValueWithoutUpsampling() const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Foundation::Rect) NormalizedFieldOfViewLimit() const;
+    };
+    template <> struct consume<winrt::Windows::Media::Devices::IDigitalWindowCapability>
+    {
+        template <typename D> using type = consume_Windows_Media_Devices_IDigitalWindowCapability<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Media_Devices_IDigitalWindowControl
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(bool) IsSupported() const;
+        [[nodiscard]] WINRT_IMPL_AUTO(com_array<winrt::Windows::Media::Devices::DigitalWindowMode>) SupportedModes() const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Media::Devices::DigitalWindowMode) CurrentMode() const;
+        WINRT_IMPL_AUTO(winrt::Windows::Media::Devices::DigitalWindowBounds) GetBounds() const;
+        WINRT_IMPL_AUTO(void) Configure(winrt::Windows::Media::Devices::DigitalWindowMode const& digitalWindowMode) const;
+        WINRT_IMPL_AUTO(void) Configure(winrt::Windows::Media::Devices::DigitalWindowMode const& digitalWindowMode, winrt::Windows::Media::Devices::DigitalWindowBounds const& digitalWindowBounds) const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Media::Devices::DigitalWindowCapability>) SupportedCapabilities() const;
+        WINRT_IMPL_AUTO(winrt::Windows::Media::Devices::DigitalWindowCapability) GetCapabilityForSize(int32_t width, int32_t height) const;
+    };
+    template <> struct consume<winrt::Windows::Media::Devices::IDigitalWindowControl>
+    {
+        template <typename D> using type = consume_Windows_Media_Devices_IDigitalWindowControl<D>;
     };
     template <typename D>
     struct consume_Windows_Media_Devices_IExposureCompensationControl

@@ -203,6 +203,17 @@ WINRT_EXPORT namespace winrt::Windows::UI::WindowManagement
         IFullScreenPresentationConfiguration& operator=(IFullScreenPresentationConfiguration const&) & noexcept = default;
         IFullScreenPresentationConfiguration& operator=(IFullScreenPresentationConfiguration&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IWindowServicesStatics :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IWindowServicesStatics>
+    {
+        IWindowServicesStatics(std::nullptr_t = nullptr) noexcept {}
+        IWindowServicesStatics(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IWindowServicesStatics(IWindowServicesStatics const&) noexcept = default;
+        IWindowServicesStatics(IWindowServicesStatics&&) noexcept = default;
+        IWindowServicesStatics& operator=(IWindowServicesStatics const&) & noexcept = default;
+        IWindowServicesStatics& operator=(IWindowServicesStatics&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IWindowingEnvironment :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IWindowingEnvironment>

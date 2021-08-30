@@ -65,6 +65,12 @@ namespace winrt::impl
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::ApplicationModel::Resources::IResourceLoaderStatics3)->GetForUIContext(*(void**)(&context), &result));
         return winrt::Windows::ApplicationModel::Resources::ResourceLoader{ result, take_ownership_from_abi };
     }
+    template <typename D> WINRT_IMPL_AUTO(hstring) consume_Windows_ApplicationModel_Resources_IResourceLoaderStatics4<D>::GetDefaultPriPath(param::hstring const& packageFullName) const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::ApplicationModel::Resources::IResourceLoaderStatics4)->GetDefaultPriPath(*(void**)(&packageFullName), &value));
+        return hstring{ value, take_ownership_from_abi };
+    }
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
     struct produce<D, winrt::Windows::ApplicationModel::Resources::IResourceLoader> : produce_base<D, winrt::Windows::ApplicationModel::Resources::IResourceLoader>
@@ -173,6 +179,20 @@ namespace winrt::impl
         catch (...) { return to_hresult(); }
     };
 #endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::ApplicationModel::Resources::IResourceLoaderStatics4> : produce_base<D, winrt::Windows::ApplicationModel::Resources::IResourceLoaderStatics4>
+    {
+        int32_t __stdcall GetDefaultPriPath(void* packageFullName, void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<hstring>(this->shim().GetDefaultPriPath(*reinterpret_cast<hstring const*>(&packageFullName)));
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
 }
 WINRT_EXPORT namespace winrt::Windows::ApplicationModel::Resources
 {
@@ -208,6 +228,10 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel::Resources
     {
         return impl::call_factory<ResourceLoader, IResourceLoaderStatics3>([&](IResourceLoaderStatics3 const& f) { return f.GetForUIContext(context); });
     }
+    inline auto ResourceLoader::GetDefaultPriPath(param::hstring const& packageFullName)
+    {
+        return impl::call_factory<ResourceLoader, IResourceLoaderStatics4>([&](IResourceLoaderStatics4 const& f) { return f.GetDefaultPriPath(packageFullName); });
+    }
 }
 namespace std
 {
@@ -218,6 +242,7 @@ namespace std
     template<> struct hash<winrt::Windows::ApplicationModel::Resources::IResourceLoaderStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::Resources::IResourceLoaderStatics2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::Resources::IResourceLoaderStatics3> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::ApplicationModel::Resources::IResourceLoaderStatics4> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::Resources::ResourceLoader> : winrt::impl::hash_base {};
 #endif
 }

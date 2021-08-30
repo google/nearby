@@ -2942,6 +2942,28 @@ WINRT_EXPORT namespace winrt::Windows::UI::Xaml::Controls
         IHandwritingView& operator=(IHandwritingView const&) & noexcept = default;
         IHandwritingView& operator=(IHandwritingView&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IHandwritingView2 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IHandwritingView2>
+    {
+        IHandwritingView2(std::nullptr_t = nullptr) noexcept {}
+        IHandwritingView2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IHandwritingView2(IHandwritingView2 const&) noexcept = default;
+        IHandwritingView2(IHandwritingView2&&) noexcept = default;
+        IHandwritingView2& operator=(IHandwritingView2 const&) & noexcept = default;
+        IHandwritingView2& operator=(IHandwritingView2&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IHandwritingViewCandidatesChangedEventArgs :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IHandwritingViewCandidatesChangedEventArgs>
+    {
+        IHandwritingViewCandidatesChangedEventArgs(std::nullptr_t = nullptr) noexcept {}
+        IHandwritingViewCandidatesChangedEventArgs(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IHandwritingViewCandidatesChangedEventArgs(IHandwritingViewCandidatesChangedEventArgs const&) noexcept = default;
+        IHandwritingViewCandidatesChangedEventArgs(IHandwritingViewCandidatesChangedEventArgs&&) noexcept = default;
+        IHandwritingViewCandidatesChangedEventArgs& operator=(IHandwritingViewCandidatesChangedEventArgs const&) & noexcept = default;
+        IHandwritingViewCandidatesChangedEventArgs& operator=(IHandwritingViewCandidatesChangedEventArgs&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IHandwritingViewFactory :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IHandwritingViewFactory>
@@ -2963,6 +2985,28 @@ WINRT_EXPORT namespace winrt::Windows::UI::Xaml::Controls
         IHandwritingViewStatics(IHandwritingViewStatics&&) noexcept = default;
         IHandwritingViewStatics& operator=(IHandwritingViewStatics const&) & noexcept = default;
         IHandwritingViewStatics& operator=(IHandwritingViewStatics&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IHandwritingViewStatics2 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IHandwritingViewStatics2>
+    {
+        IHandwritingViewStatics2(std::nullptr_t = nullptr) noexcept {}
+        IHandwritingViewStatics2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IHandwritingViewStatics2(IHandwritingViewStatics2 const&) noexcept = default;
+        IHandwritingViewStatics2(IHandwritingViewStatics2&&) noexcept = default;
+        IHandwritingViewStatics2& operator=(IHandwritingViewStatics2 const&) & noexcept = default;
+        IHandwritingViewStatics2& operator=(IHandwritingViewStatics2&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IHandwritingViewTextSubmittedEventArgs :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IHandwritingViewTextSubmittedEventArgs>
+    {
+        IHandwritingViewTextSubmittedEventArgs(std::nullptr_t = nullptr) noexcept {}
+        IHandwritingViewTextSubmittedEventArgs(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IHandwritingViewTextSubmittedEventArgs(IHandwritingViewTextSubmittedEventArgs const&) noexcept = default;
+        IHandwritingViewTextSubmittedEventArgs(IHandwritingViewTextSubmittedEventArgs&&) noexcept = default;
+        IHandwritingViewTextSubmittedEventArgs& operator=(IHandwritingViewTextSubmittedEventArgs const&) & noexcept = default;
+        IHandwritingViewTextSubmittedEventArgs& operator=(IHandwritingViewTextSubmittedEventArgs&&) & noexcept = default;
     };
     struct __declspec(empty_bases) IHub :
         winrt::Windows::Foundation::IInspectable,

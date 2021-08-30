@@ -990,6 +990,17 @@ WINRT_EXPORT namespace winrt::Windows::Media::Core
         ITimedMetadataTrackProvider& operator=(ITimedMetadataTrackProvider const&) & noexcept = default;
         ITimedMetadataTrackProvider& operator=(ITimedMetadataTrackProvider&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) ITimedTextBouten :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<ITimedTextBouten>
+    {
+        ITimedTextBouten(std::nullptr_t = nullptr) noexcept {}
+        ITimedTextBouten(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        ITimedTextBouten(ITimedTextBouten const&) noexcept = default;
+        ITimedTextBouten(ITimedTextBouten&&) noexcept = default;
+        ITimedTextBouten& operator=(ITimedTextBouten const&) & noexcept = default;
+        ITimedTextBouten& operator=(ITimedTextBouten&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) ITimedTextCue :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<ITimedTextCue>,
@@ -1023,6 +1034,17 @@ WINRT_EXPORT namespace winrt::Windows::Media::Core
         ITimedTextRegion(ITimedTextRegion&&) noexcept = default;
         ITimedTextRegion& operator=(ITimedTextRegion const&) & noexcept = default;
         ITimedTextRegion& operator=(ITimedTextRegion&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) ITimedTextRuby :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<ITimedTextRuby>
+    {
+        ITimedTextRuby(std::nullptr_t = nullptr) noexcept {}
+        ITimedTextRuby(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        ITimedTextRuby(ITimedTextRuby const&) noexcept = default;
+        ITimedTextRuby(ITimedTextRuby&&) noexcept = default;
+        ITimedTextRuby& operator=(ITimedTextRuby const&) & noexcept = default;
+        ITimedTextRuby& operator=(ITimedTextRuby&&) & noexcept = default;
     };
     struct __declspec(empty_bases) ITimedTextSource :
         winrt::Windows::Foundation::IInspectable,
@@ -1089,6 +1111,17 @@ WINRT_EXPORT namespace winrt::Windows::Media::Core
         ITimedTextStyle2(ITimedTextStyle2&&) noexcept = default;
         ITimedTextStyle2& operator=(ITimedTextStyle2 const&) & noexcept = default;
         ITimedTextStyle2& operator=(ITimedTextStyle2&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) ITimedTextStyle3 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<ITimedTextStyle3>
+    {
+        ITimedTextStyle3(std::nullptr_t = nullptr) noexcept {}
+        ITimedTextStyle3(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        ITimedTextStyle3(ITimedTextStyle3 const&) noexcept = default;
+        ITimedTextStyle3(ITimedTextStyle3&&) noexcept = default;
+        ITimedTextStyle3& operator=(ITimedTextStyle3 const&) & noexcept = default;
+        ITimedTextStyle3& operator=(ITimedTextStyle3&&) & noexcept = default;
     };
     struct __declspec(empty_bases) ITimedTextSubformat :
         winrt::Windows::Foundation::IInspectable,

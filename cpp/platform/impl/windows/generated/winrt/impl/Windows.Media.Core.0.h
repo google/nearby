@@ -225,6 +225,23 @@ WINRT_EXPORT namespace winrt::Windows::Media::Core
         NetworkError = 2,
         InternalError = 3,
     };
+    enum class TimedTextBoutenPosition : int32_t
+    {
+        Before = 0,
+        After = 1,
+        Outside = 2,
+    };
+    enum class TimedTextBoutenType : int32_t
+    {
+        None = 0,
+        Auto = 1,
+        FilledCircle = 2,
+        OpenCircle = 3,
+        FilledDot = 4,
+        OpenDot = 5,
+        FilledSesame = 6,
+        OpenSesame = 7,
+    };
     enum class TimedTextDisplayAlignment : int32_t
     {
         Before = 0,
@@ -247,6 +264,29 @@ WINRT_EXPORT namespace winrt::Windows::Media::Core
         Start = 0,
         End = 1,
         Center = 2,
+    };
+    enum class TimedTextRubyAlign : int32_t
+    {
+        Center = 0,
+        Start = 1,
+        End = 2,
+        SpaceAround = 3,
+        SpaceBetween = 4,
+        WithBase = 5,
+    };
+    enum class TimedTextRubyPosition : int32_t
+    {
+        Before = 0,
+        After = 1,
+        Outside = 2,
+    };
+    enum class TimedTextRubyReserve : int32_t
+    {
+        None = 0,
+        Before = 1,
+        After = 2,
+        Both = 3,
+        Outside = 4,
     };
     enum class TimedTextScrollMode : int32_t
     {
@@ -371,15 +411,18 @@ WINRT_EXPORT namespace winrt::Windows::Media::Core
     struct ITimedMetadataTrackFactory;
     struct ITimedMetadataTrackFailedEventArgs;
     struct ITimedMetadataTrackProvider;
+    struct ITimedTextBouten;
     struct ITimedTextCue;
     struct ITimedTextLine;
     struct ITimedTextRegion;
+    struct ITimedTextRuby;
     struct ITimedTextSource;
     struct ITimedTextSourceResolveResultEventArgs;
     struct ITimedTextSourceStatics;
     struct ITimedTextSourceStatics2;
     struct ITimedTextStyle;
     struct ITimedTextStyle2;
+    struct ITimedTextStyle3;
     struct ITimedTextSubformat;
     struct IVideoStabilizationEffect;
     struct IVideoStabilizationEffectEnabledChangedEventArgs;
@@ -444,9 +487,11 @@ WINRT_EXPORT namespace winrt::Windows::Media::Core
     struct TimedMetadataTrack;
     struct TimedMetadataTrackError;
     struct TimedMetadataTrackFailedEventArgs;
+    struct TimedTextBouten;
     struct TimedTextCue;
     struct TimedTextLine;
     struct TimedTextRegion;
+    struct TimedTextRuby;
     struct TimedTextSource;
     struct TimedTextSourceResolveResultEventArgs;
     struct TimedTextStyle;
@@ -553,15 +598,18 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Media::Core::ITimedMetadataTrackFactory>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::ITimedMetadataTrackFailedEventArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::ITimedMetadataTrackProvider>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Media::Core::ITimedTextBouten>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::ITimedTextCue>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::ITimedTextLine>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::ITimedTextRegion>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Media::Core::ITimedTextRuby>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::ITimedTextSource>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::ITimedTextSourceResolveResultEventArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::ITimedTextSourceStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::ITimedTextSourceStatics2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::ITimedTextStyle>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::ITimedTextStyle2>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Media::Core::ITimedTextStyle3>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::ITimedTextSubformat>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::IVideoStabilizationEffect>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::IVideoStabilizationEffectEnabledChangedEventArgs>{ using type = interface_category; };
@@ -626,9 +674,11 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Media::Core::TimedMetadataTrack>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedMetadataTrackError>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedMetadataTrackFailedEventArgs>{ using type = class_category; };
+    template <> struct category<winrt::Windows::Media::Core::TimedTextBouten>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedTextCue>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedTextLine>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedTextRegion>{ using type = class_category; };
+    template <> struct category<winrt::Windows::Media::Core::TimedTextRuby>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedTextSource>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedTextSourceResolveResultEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedTextStyle>{ using type = class_category; };
@@ -657,10 +707,15 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Media::Core::SceneAnalysisRecommendation>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedMetadataKind>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedMetadataTrackErrorCode>{ using type = enum_category; };
+    template <> struct category<winrt::Windows::Media::Core::TimedTextBoutenPosition>{ using type = enum_category; };
+    template <> struct category<winrt::Windows::Media::Core::TimedTextBoutenType>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedTextDisplayAlignment>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedTextFlowDirection>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedTextFontStyle>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedTextLineAlignment>{ using type = enum_category; };
+    template <> struct category<winrt::Windows::Media::Core::TimedTextRubyAlign>{ using type = enum_category; };
+    template <> struct category<winrt::Windows::Media::Core::TimedTextRubyPosition>{ using type = enum_category; };
+    template <> struct category<winrt::Windows::Media::Core::TimedTextRubyReserve>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedTextScrollMode>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedTextUnit>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::Core::TimedTextWeight>{ using type = enum_category; };
@@ -727,9 +782,11 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedMetadataTrack> = L"Windows.Media.Core.TimedMetadataTrack";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedMetadataTrackError> = L"Windows.Media.Core.TimedMetadataTrackError";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedMetadataTrackFailedEventArgs> = L"Windows.Media.Core.TimedMetadataTrackFailedEventArgs";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextBouten> = L"Windows.Media.Core.TimedTextBouten";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextCue> = L"Windows.Media.Core.TimedTextCue";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextLine> = L"Windows.Media.Core.TimedTextLine";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextRegion> = L"Windows.Media.Core.TimedTextRegion";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextRuby> = L"Windows.Media.Core.TimedTextRuby";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextSource> = L"Windows.Media.Core.TimedTextSource";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextSourceResolveResultEventArgs> = L"Windows.Media.Core.TimedTextSourceResolveResultEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextStyle> = L"Windows.Media.Core.TimedTextStyle";
@@ -758,10 +815,15 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::SceneAnalysisRecommendation> = L"Windows.Media.Core.SceneAnalysisRecommendation";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedMetadataKind> = L"Windows.Media.Core.TimedMetadataKind";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedMetadataTrackErrorCode> = L"Windows.Media.Core.TimedMetadataTrackErrorCode";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextBoutenPosition> = L"Windows.Media.Core.TimedTextBoutenPosition";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextBoutenType> = L"Windows.Media.Core.TimedTextBoutenType";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextDisplayAlignment> = L"Windows.Media.Core.TimedTextDisplayAlignment";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextFlowDirection> = L"Windows.Media.Core.TimedTextFlowDirection";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextFontStyle> = L"Windows.Media.Core.TimedTextFontStyle";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextLineAlignment> = L"Windows.Media.Core.TimedTextLineAlignment";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextRubyAlign> = L"Windows.Media.Core.TimedTextRubyAlign";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextRubyPosition> = L"Windows.Media.Core.TimedTextRubyPosition";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextRubyReserve> = L"Windows.Media.Core.TimedTextRubyReserve";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextScrollMode> = L"Windows.Media.Core.TimedTextScrollMode";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextUnit> = L"Windows.Media.Core.TimedTextUnit";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::TimedTextWeight> = L"Windows.Media.Core.TimedTextWeight";
@@ -860,15 +922,18 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedMetadataTrackFactory> = L"Windows.Media.Core.ITimedMetadataTrackFactory";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedMetadataTrackFailedEventArgs> = L"Windows.Media.Core.ITimedMetadataTrackFailedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedMetadataTrackProvider> = L"Windows.Media.Core.ITimedMetadataTrackProvider";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedTextBouten> = L"Windows.Media.Core.ITimedTextBouten";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedTextCue> = L"Windows.Media.Core.ITimedTextCue";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedTextLine> = L"Windows.Media.Core.ITimedTextLine";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedTextRegion> = L"Windows.Media.Core.ITimedTextRegion";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedTextRuby> = L"Windows.Media.Core.ITimedTextRuby";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedTextSource> = L"Windows.Media.Core.ITimedTextSource";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedTextSourceResolveResultEventArgs> = L"Windows.Media.Core.ITimedTextSourceResolveResultEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedTextSourceStatics> = L"Windows.Media.Core.ITimedTextSourceStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedTextSourceStatics2> = L"Windows.Media.Core.ITimedTextSourceStatics2";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedTextStyle> = L"Windows.Media.Core.ITimedTextStyle";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedTextStyle2> = L"Windows.Media.Core.ITimedTextStyle2";
+    template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedTextStyle3> = L"Windows.Media.Core.ITimedTextStyle3";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ITimedTextSubformat> = L"Windows.Media.Core.ITimedTextSubformat";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::IVideoStabilizationEffect> = L"Windows.Media.Core.IVideoStabilizationEffect";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::IVideoStabilizationEffectEnabledChangedEventArgs> = L"Windows.Media.Core.IVideoStabilizationEffectEnabledChangedEventArgs";
@@ -965,15 +1030,18 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedMetadataTrackFactory>{ 0x8DD57611,0x97B3,0x4E1F,{ 0x85,0x2C,0x0F,0x48,0x2C,0x81,0xAD,0x26 } }; // 8DD57611-97B3-4E1F-852C-0F482C81AD26
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedMetadataTrackFailedEventArgs>{ 0xA57FC9D1,0x6789,0x4D4D,{ 0xB0,0x7F,0x84,0xB4,0xF3,0x1A,0xCB,0x70 } }; // A57FC9D1-6789-4D4D-B07F-84B4F31ACB70
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedMetadataTrackProvider>{ 0x3B7F2024,0xF74E,0x4ADE,{ 0x93,0xC5,0x21,0x9D,0xA0,0x5B,0x68,0x56 } }; // 3B7F2024-F74E-4ADE-93C5-219DA05B6856
+    template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedTextBouten>{ 0xD9062783,0x5597,0x5092,{ 0x82,0x0C,0x8F,0x73,0x8E,0x0F,0x77,0x4A } }; // D9062783-5597-5092-820C-8F738E0F774A
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedTextCue>{ 0x51C79E51,0x3B86,0x494D,{ 0xB3,0x59,0xBB,0x2E,0xA7,0xAC,0xA9,0xA9 } }; // 51C79E51-3B86-494D-B359-BB2EA7ACA9A9
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedTextLine>{ 0x978D7CE2,0x7308,0x4C66,{ 0xBE,0x50,0x65,0x77,0x72,0x89,0xF5,0xDF } }; // 978D7CE2-7308-4C66-BE50-65777289F5DF
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedTextRegion>{ 0x1ED0881F,0x8A06,0x4222,{ 0x9F,0x59,0xB2,0x1B,0xF4,0x01,0x24,0xB4 } }; // 1ED0881F-8A06-4222-9F59-B21BF40124B4
+    template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedTextRuby>{ 0x10335C29,0x5B3C,0x5693,{ 0x99,0x59,0xD0,0x5A,0x0B,0xD2,0x46,0x28 } }; // 10335C29-5B3C-5693-9959-D05A0BD24628
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedTextSource>{ 0xC4ED9BA6,0x101F,0x404D,{ 0xA9,0x49,0x82,0xF3,0x3F,0xCD,0x93,0xB7 } }; // C4ED9BA6-101F-404D-A949-82F33FCD93B7
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedTextSourceResolveResultEventArgs>{ 0x48907C9C,0xDCD8,0x4C33,{ 0x9A,0xD3,0x6C,0xDC,0xE7,0xB1,0xC5,0x66 } }; // 48907C9C-DCD8-4C33-9AD3-6CDCE7B1C566
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedTextSourceStatics>{ 0x7E311853,0x9ABA,0x4AC4,{ 0xBB,0x98,0x2F,0xB1,0x76,0xC3,0xBF,0xDD } }; // 7E311853-9ABA-4AC4-BB98-2FB176C3BFDD
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedTextSourceStatics2>{ 0xB66B7602,0x923E,0x43FA,{ 0x96,0x33,0x58,0x70,0x75,0x81,0x2D,0xB5 } }; // B66B7602-923E-43FA-9633-587075812DB5
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedTextStyle>{ 0x1BB2384D,0xA825,0x40C2,{ 0xA7,0xF5,0x28,0x1E,0xAE,0xDF,0x3B,0x55 } }; // 1BB2384D-A825-40C2-A7F5-281EAEDF3B55
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedTextStyle2>{ 0x655F492D,0x6111,0x4787,{ 0x89,0xCC,0x68,0x6F,0xEC,0xE5,0x7E,0x14 } }; // 655F492D-6111-4787-89CC-686FECE57E14
+    template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedTextStyle3>{ 0xF803F93B,0x3E99,0x595E,{ 0xBB,0xB7,0x78,0xA2,0xFA,0x13,0xC2,0x70 } }; // F803F93B-3E99-595E-BBB7-78A2FA13C270
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ITimedTextSubformat>{ 0xD713502F,0x3261,0x4722,{ 0xA0,0xC2,0xB9,0x37,0xB2,0x39,0x0F,0x14 } }; // D713502F-3261-4722-A0C2-B937B2390F14
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::IVideoStabilizationEffect>{ 0x0808A650,0x9698,0x4E57,{ 0x87,0x7B,0xBD,0x7C,0xB2,0xEE,0x0F,0x8A } }; // 0808A650-9698-4E57-877B-BD7CB2EE0F8A
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::IVideoStabilizationEffectEnabledChangedEventArgs>{ 0x187EFF28,0x67BB,0x4713,{ 0xB9,0x00,0x41,0x68,0xDA,0x16,0x45,0x29 } }; // 187EFF28-67BB-4713-B900-4168DA164529
@@ -1036,9 +1104,11 @@ namespace winrt::impl
     template <> struct default_interface<winrt::Windows::Media::Core::TimedMetadataTrack>{ using type = winrt::Windows::Media::Core::ITimedMetadataTrack; };
     template <> struct default_interface<winrt::Windows::Media::Core::TimedMetadataTrackError>{ using type = winrt::Windows::Media::Core::ITimedMetadataTrackError; };
     template <> struct default_interface<winrt::Windows::Media::Core::TimedMetadataTrackFailedEventArgs>{ using type = winrt::Windows::Media::Core::ITimedMetadataTrackFailedEventArgs; };
+    template <> struct default_interface<winrt::Windows::Media::Core::TimedTextBouten>{ using type = winrt::Windows::Media::Core::ITimedTextBouten; };
     template <> struct default_interface<winrt::Windows::Media::Core::TimedTextCue>{ using type = winrt::Windows::Media::Core::ITimedTextCue; };
     template <> struct default_interface<winrt::Windows::Media::Core::TimedTextLine>{ using type = winrt::Windows::Media::Core::ITimedTextLine; };
     template <> struct default_interface<winrt::Windows::Media::Core::TimedTextRegion>{ using type = winrt::Windows::Media::Core::ITimedTextRegion; };
+    template <> struct default_interface<winrt::Windows::Media::Core::TimedTextRuby>{ using type = winrt::Windows::Media::Core::ITimedTextRuby; };
     template <> struct default_interface<winrt::Windows::Media::Core::TimedTextSource>{ using type = winrt::Windows::Media::Core::ITimedTextSource; };
     template <> struct default_interface<winrt::Windows::Media::Core::TimedTextSourceResolveResultEventArgs>{ using type = winrt::Windows::Media::Core::ITimedTextSourceResolveResultEventArgs; };
     template <> struct default_interface<winrt::Windows::Media::Core::TimedTextStyle>{ using type = winrt::Windows::Media::Core::ITimedTextStyle; };
@@ -1917,6 +1987,18 @@ namespace winrt::impl
             virtual int32_t __stdcall get_TimedMetadataTracks(void**) noexcept = 0;
         };
     };
+    template <> struct abi<winrt::Windows::Media::Core::ITimedTextBouten>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_Type(int32_t*) noexcept = 0;
+            virtual int32_t __stdcall put_Type(int32_t) noexcept = 0;
+            virtual int32_t __stdcall get_Color(struct struct_Windows_UI_Color*) noexcept = 0;
+            virtual int32_t __stdcall put_Color(struct struct_Windows_UI_Color) noexcept = 0;
+            virtual int32_t __stdcall get_Position(int32_t*) noexcept = 0;
+            virtual int32_t __stdcall put_Position(int32_t) noexcept = 0;
+        };
+    };
     template <> struct abi<winrt::Windows::Media::Core::ITimedTextCue>
     {
         struct __declspec(novtable) type : inspectable_abi
@@ -1965,6 +2047,20 @@ namespace winrt::impl
             virtual int32_t __stdcall put_ZIndex(int32_t) noexcept = 0;
             virtual int32_t __stdcall get_ScrollMode(int32_t*) noexcept = 0;
             virtual int32_t __stdcall put_ScrollMode(int32_t) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Media::Core::ITimedTextRuby>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_Text(void**) noexcept = 0;
+            virtual int32_t __stdcall put_Text(void*) noexcept = 0;
+            virtual int32_t __stdcall get_Position(int32_t*) noexcept = 0;
+            virtual int32_t __stdcall put_Position(int32_t) noexcept = 0;
+            virtual int32_t __stdcall get_Align(int32_t*) noexcept = 0;
+            virtual int32_t __stdcall put_Align(int32_t) noexcept = 0;
+            virtual int32_t __stdcall get_Reserve(int32_t*) noexcept = 0;
+            virtual int32_t __stdcall put_Reserve(int32_t) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::Media::Core::ITimedTextSource>
@@ -2045,6 +2141,18 @@ namespace winrt::impl
             virtual int32_t __stdcall put_IsLineThroughEnabled(bool) noexcept = 0;
             virtual int32_t __stdcall get_IsOverlineEnabled(bool*) noexcept = 0;
             virtual int32_t __stdcall put_IsOverlineEnabled(bool) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Media::Core::ITimedTextStyle3>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_Ruby(void**) noexcept = 0;
+            virtual int32_t __stdcall get_Bouten(void**) noexcept = 0;
+            virtual int32_t __stdcall get_IsTextCombined(bool*) noexcept = 0;
+            virtual int32_t __stdcall put_IsTextCombined(bool) noexcept = 0;
+            virtual int32_t __stdcall get_FontAngleInDegrees(double*) noexcept = 0;
+            virtual int32_t __stdcall put_FontAngleInDegrees(double) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::Media::Core::ITimedTextSubformat>
@@ -3225,6 +3333,20 @@ namespace winrt::impl
         template <typename D> using type = consume_Windows_Media_Core_ITimedMetadataTrackProvider<D>;
     };
     template <typename D>
+    struct consume_Windows_Media_Core_ITimedTextBouten
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextBoutenType) Type() const;
+        WINRT_IMPL_AUTO(void) Type(winrt::Windows::Media::Core::TimedTextBoutenType const& value) const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::UI::Color) Color() const;
+        WINRT_IMPL_AUTO(void) Color(winrt::Windows::UI::Color const& value) const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextBoutenPosition) Position() const;
+        WINRT_IMPL_AUTO(void) Position(winrt::Windows::Media::Core::TimedTextBoutenPosition const& value) const;
+    };
+    template <> struct consume<winrt::Windows::Media::Core::ITimedTextBouten>
+    {
+        template <typename D> using type = consume_Windows_Media_Core_ITimedTextBouten<D>;
+    };
+    template <typename D>
     struct consume_Windows_Media_Core_ITimedTextCue
     {
         [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextRegion) CueRegion() const;
@@ -3279,6 +3401,22 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::Media::Core::ITimedTextRegion>
     {
         template <typename D> using type = consume_Windows_Media_Core_ITimedTextRegion<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Media_Core_ITimedTextRuby
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(hstring) Text() const;
+        WINRT_IMPL_AUTO(void) Text(param::hstring const& value) const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextRubyPosition) Position() const;
+        WINRT_IMPL_AUTO(void) Position(winrt::Windows::Media::Core::TimedTextRubyPosition const& value) const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextRubyAlign) Align() const;
+        WINRT_IMPL_AUTO(void) Align(winrt::Windows::Media::Core::TimedTextRubyAlign const& value) const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextRubyReserve) Reserve() const;
+        WINRT_IMPL_AUTO(void) Reserve(winrt::Windows::Media::Core::TimedTextRubyReserve const& value) const;
+    };
+    template <> struct consume<winrt::Windows::Media::Core::ITimedTextRuby>
+    {
+        template <typename D> using type = consume_Windows_Media_Core_ITimedTextRuby<D>;
     };
     template <typename D>
     struct consume_Windows_Media_Core_ITimedTextSource
@@ -3373,6 +3511,20 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::Media::Core::ITimedTextStyle2>
     {
         template <typename D> using type = consume_Windows_Media_Core_ITimedTextStyle2<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Media_Core_ITimedTextStyle3
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextRuby) Ruby() const;
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Media::Core::TimedTextBouten) Bouten() const;
+        [[nodiscard]] WINRT_IMPL_AUTO(bool) IsTextCombined() const;
+        WINRT_IMPL_AUTO(void) IsTextCombined(bool value) const;
+        [[nodiscard]] WINRT_IMPL_AUTO(double) FontAngleInDegrees() const;
+        WINRT_IMPL_AUTO(void) FontAngleInDegrees(double value) const;
+    };
+    template <> struct consume<winrt::Windows::Media::Core::ITimedTextStyle3>
+    {
+        template <typename D> using type = consume_Windows_Media_Core_ITimedTextStyle3<D>;
     };
     template <typename D>
     struct consume_Windows_Media_Core_ITimedTextSubformat

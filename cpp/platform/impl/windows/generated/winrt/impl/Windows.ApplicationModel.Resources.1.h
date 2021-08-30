@@ -71,5 +71,16 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel::Resources
         IResourceLoaderStatics3& operator=(IResourceLoaderStatics3 const&) & noexcept = default;
         IResourceLoaderStatics3& operator=(IResourceLoaderStatics3&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IResourceLoaderStatics4 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IResourceLoaderStatics4>
+    {
+        IResourceLoaderStatics4(std::nullptr_t = nullptr) noexcept {}
+        IResourceLoaderStatics4(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IResourceLoaderStatics4(IResourceLoaderStatics4 const&) noexcept = default;
+        IResourceLoaderStatics4(IResourceLoaderStatics4&&) noexcept = default;
+        IResourceLoaderStatics4& operator=(IResourceLoaderStatics4 const&) & noexcept = default;
+        IResourceLoaderStatics4& operator=(IResourceLoaderStatics4&&) & noexcept = default;
+    };
 }
 #endif

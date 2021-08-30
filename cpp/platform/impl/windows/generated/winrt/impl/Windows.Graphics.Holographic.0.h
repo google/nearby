@@ -45,6 +45,11 @@ WINRT_EXPORT namespace winrt::Windows::UI::Core
 }
 WINRT_EXPORT namespace winrt::Windows::Graphics::Holographic
 {
+    enum class HolographicDepthReprojectionMethod : int32_t
+    {
+        DepthReprojection = 0,
+        AutoPlanar = 1,
+    };
     enum class HolographicFramePresentResult : int32_t
     {
         Success = 0,
@@ -83,6 +88,7 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Holographic
     struct IHolographicCameraRenderingParameters;
     struct IHolographicCameraRenderingParameters2;
     struct IHolographicCameraRenderingParameters3;
+    struct IHolographicCameraRenderingParameters4;
     struct IHolographicCameraViewportParameters;
     struct IHolographicDisplay;
     struct IHolographicDisplay2;
@@ -110,6 +116,7 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Holographic
     struct IHolographicSpaceStatics2;
     struct IHolographicSpaceStatics3;
     struct IHolographicViewConfiguration;
+    struct IHolographicViewConfiguration2;
     struct HolographicCamera;
     struct HolographicCameraPose;
     struct HolographicCameraRenderingParameters;
@@ -145,6 +152,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters3>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters4>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Graphics::Holographic::IHolographicCameraViewportParameters>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Graphics::Holographic::IHolographicDisplay>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Graphics::Holographic::IHolographicDisplay2>{ using type = interface_category; };
@@ -172,6 +180,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Graphics::Holographic::IHolographicSpaceStatics2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Graphics::Holographic::IHolographicSpaceStatics3>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Graphics::Holographic::HolographicCamera>{ using type = class_category; };
     template <> struct category<winrt::Windows::Graphics::Holographic::HolographicCameraPose>{ using type = class_category; };
     template <> struct category<winrt::Windows::Graphics::Holographic::HolographicCameraRenderingParameters>{ using type = class_category; };
@@ -190,6 +199,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Graphics::Holographic::HolographicSpaceCameraAddedEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::Graphics::Holographic::HolographicSpaceCameraRemovedEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::Graphics::Holographic::HolographicViewConfiguration>{ using type = class_category; };
+    template <> struct category<winrt::Windows::Graphics::Holographic::HolographicDepthReprojectionMethod>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Graphics::Holographic::HolographicFramePresentResult>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Graphics::Holographic::HolographicFramePresentWaitBehavior>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Graphics::Holographic::HolographicReprojectionMode>{ using type = enum_category; };
@@ -216,6 +226,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::HolographicSpaceCameraAddedEventArgs> = L"Windows.Graphics.Holographic.HolographicSpaceCameraAddedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::HolographicSpaceCameraRemovedEventArgs> = L"Windows.Graphics.Holographic.HolographicSpaceCameraRemovedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::HolographicViewConfiguration> = L"Windows.Graphics.Holographic.HolographicViewConfiguration";
+    template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::HolographicDepthReprojectionMethod> = L"Windows.Graphics.Holographic.HolographicDepthReprojectionMethod";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::HolographicFramePresentResult> = L"Windows.Graphics.Holographic.HolographicFramePresentResult";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::HolographicFramePresentWaitBehavior> = L"Windows.Graphics.Holographic.HolographicFramePresentWaitBehavior";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::HolographicReprojectionMode> = L"Windows.Graphics.Holographic.HolographicReprojectionMode";
@@ -235,6 +246,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters> = L"Windows.Graphics.Holographic.IHolographicCameraRenderingParameters";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters2> = L"Windows.Graphics.Holographic.IHolographicCameraRenderingParameters2";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters3> = L"Windows.Graphics.Holographic.IHolographicCameraRenderingParameters3";
+    template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters4> = L"Windows.Graphics.Holographic.IHolographicCameraRenderingParameters4";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::IHolographicCameraViewportParameters> = L"Windows.Graphics.Holographic.IHolographicCameraViewportParameters";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::IHolographicDisplay> = L"Windows.Graphics.Holographic.IHolographicDisplay";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::IHolographicDisplay2> = L"Windows.Graphics.Holographic.IHolographicDisplay2";
@@ -262,6 +274,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::IHolographicSpaceStatics2> = L"Windows.Graphics.Holographic.IHolographicSpaceStatics2";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::IHolographicSpaceStatics3> = L"Windows.Graphics.Holographic.IHolographicSpaceStatics3";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration> = L"Windows.Graphics.Holographic.IHolographicViewConfiguration";
+    template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration2> = L"Windows.Graphics.Holographic.IHolographicViewConfiguration2";
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Holographic::IHolographicCamera>{ 0xE4E98445,0x9BED,0x4980,{ 0x9B,0xA0,0xE8,0x76,0x80,0xD1,0xCB,0x74 } }; // E4E98445-9BED-4980-9BA0-E87680D1CB74
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Holographic::IHolographicCamera2>{ 0xB55B9F1A,0xBA8C,0x4F84,{ 0xAD,0x79,0x2E,0x7E,0x1E,0x24,0x50,0xF3 } }; // B55B9F1A-BA8C-4F84-AD79-2E7E1E2450F3
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Holographic::IHolographicCamera3>{ 0x45AA4FB3,0x7B59,0x524E,{ 0x4A,0x3F,0x4A,0x6A,0xD6,0x65,0x04,0x77 } }; // 45AA4FB3-7B59-524E-4A3F-4A6AD6650477
@@ -273,6 +286,7 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters>{ 0x8EAC2ED1,0x5BF4,0x4E16,{ 0x82,0x36,0xAE,0x08,0x00,0xC1,0x1D,0x0D } }; // 8EAC2ED1-5BF4-4E16-8236-AE0800C11D0D
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters2>{ 0x261270E3,0xB696,0x4634,{ 0x94,0xD6,0xBE,0x06,0x81,0x64,0x35,0x99 } }; // 261270E3-B696-4634-94D6-BE0681643599
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters3>{ 0xB1AA513F,0x136D,0x4B06,{ 0xB9,0xD4,0xE4,0xB9,0x14,0xCD,0x06,0x83 } }; // B1AA513F-136D-4B06-B9D4-E4B914CD0683
+    template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters4>{ 0x0878FA4C,0xE163,0x57DC,{ 0x82,0xB7,0xC4,0x06,0xAB,0x3E,0x05,0x37 } }; // 0878FA4C-E163-57DC-82B7-C406AB3E0537
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Holographic::IHolographicCameraViewportParameters>{ 0x80CDF3F7,0x842A,0x41E1,{ 0x93,0xED,0x56,0x92,0xAB,0x1F,0xBB,0x10 } }; // 80CDF3F7-842A-41E1-93ED-5692AB1FBB10
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Holographic::IHolographicDisplay>{ 0x9ACEA414,0x1D9F,0x4090,{ 0xA3,0x88,0x90,0xC0,0x6F,0x6E,0xAE,0x9C } }; // 9ACEA414-1D9F-4090-A388-90C06F6EAE9C
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Holographic::IHolographicDisplay2>{ 0x75AC3F82,0xE755,0x436C,{ 0x8D,0x96,0x4D,0x32,0xD1,0x31,0x47,0x3E } }; // 75AC3F82-E755-436C-8D96-4D32D131473E
@@ -300,6 +314,7 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Holographic::IHolographicSpaceStatics2>{ 0x0E777088,0x75FC,0x48AF,{ 0x87,0x58,0x06,0x52,0xF6,0xF0,0x7C,0x59 } }; // 0E777088-75FC-48AF-8758-0652F6F07C59
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Holographic::IHolographicSpaceStatics3>{ 0x3B00DE3D,0xB1A3,0x4DFE,{ 0x8E,0x79,0xFE,0xC5,0x90,0x9E,0x6D,0xF8 } }; // 3B00DE3D-B1A3-4DFE-8E79-FEC5909E6DF8
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration>{ 0x5C1DE6E6,0x67E9,0x5004,{ 0xB0,0x2C,0x67,0xA3,0xA1,0x22,0xB5,0x76 } }; // 5C1DE6E6-67E9-5004-B02C-67A3A122B576
+    template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration2>{ 0xE241756E,0xE0D0,0x5019,{ 0x9A,0xF5,0x1B,0x16,0x5B,0xC2,0xF5,0x4E } }; // E241756E-E0D0-5019-9AF5-1B165BC2F54E
     template <> struct default_interface<winrt::Windows::Graphics::Holographic::HolographicCamera>{ using type = winrt::Windows::Graphics::Holographic::IHolographicCamera; };
     template <> struct default_interface<winrt::Windows::Graphics::Holographic::HolographicCameraPose>{ using type = winrt::Windows::Graphics::Holographic::IHolographicCameraPose; };
     template <> struct default_interface<winrt::Windows::Graphics::Holographic::HolographicCameraRenderingParameters>{ using type = winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters; };
@@ -422,6 +437,14 @@ namespace winrt::impl
         {
             virtual int32_t __stdcall get_IsContentProtectionEnabled(bool*) noexcept = 0;
             virtual int32_t __stdcall put_IsContentProtectionEnabled(bool) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters4>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_DepthReprojectionMethod(int32_t*) noexcept = 0;
+            virtual int32_t __stdcall put_DepthReprojectionMethod(int32_t) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::Graphics::Holographic::IHolographicCameraViewportParameters>
@@ -674,6 +697,13 @@ namespace winrt::impl
             virtual int32_t __stdcall put_IsEnabled(bool) noexcept = 0;
         };
     };
+    template <> struct abi<winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration2>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall get_SupportedDepthReprojectionMethods(void**) noexcept = 0;
+        };
+    };
     template <typename D>
     struct consume_Windows_Graphics_Holographic_IHolographicCamera
     {
@@ -801,6 +831,16 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters3>
     {
         template <typename D> using type = consume_Windows_Graphics_Holographic_IHolographicCameraRenderingParameters3<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Graphics_Holographic_IHolographicCameraRenderingParameters4
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Graphics::Holographic::HolographicDepthReprojectionMethod) DepthReprojectionMethod() const;
+        WINRT_IMPL_AUTO(void) DepthReprojectionMethod(winrt::Windows::Graphics::Holographic::HolographicDepthReprojectionMethod const& value) const;
+    };
+    template <> struct consume<winrt::Windows::Graphics::Holographic::IHolographicCameraRenderingParameters4>
+    {
+        template <typename D> using type = consume_Windows_Graphics_Holographic_IHolographicCameraRenderingParameters4<D>;
     };
     template <typename D>
     struct consume_Windows_Graphics_Holographic_IHolographicCameraViewportParameters
@@ -1113,6 +1153,15 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration>
     {
         template <typename D> using type = consume_Windows_Graphics_Holographic_IHolographicViewConfiguration<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Graphics_Holographic_IHolographicViewConfiguration2
+    {
+        [[nodiscard]] WINRT_IMPL_AUTO(winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::Graphics::Holographic::HolographicDepthReprojectionMethod>) SupportedDepthReprojectionMethods() const;
+    };
+    template <> struct consume<winrt::Windows::Graphics::Holographic::IHolographicViewConfiguration2>
+    {
+        template <typename D> using type = consume_Windows_Graphics_Holographic_IHolographicViewConfiguration2<D>;
     };
     struct struct_Windows_Graphics_Holographic_HolographicAdapterId
     {

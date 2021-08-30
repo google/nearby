@@ -43,6 +43,12 @@ namespace winrt::impl
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::System::Profile::IAnalyticsVersionInfo)->get_DeviceFamilyVersion(&value));
         return hstring{ value, take_ownership_from_abi };
     }
+    template <typename D> WINRT_IMPL_AUTO(hstring) consume_Windows_System_Profile_IAnalyticsVersionInfo2<D>::ProductName() const
+    {
+        void* value{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::System::Profile::IAnalyticsVersionInfo2)->get_ProductName(&value));
+        return hstring{ value, take_ownership_from_abi };
+    }
     template <typename D> WINRT_IMPL_AUTO(winrt::Windows::Foundation::Collections::IVectorView<winrt::Windows::System::Profile::UnsupportedAppRequirement>) consume_Windows_System_Profile_IAppApplicabilityStatics<D>::GetUnsupportedAppRequirements(param::iterable<hstring> const& capabilities) const
     {
         void* result{};
@@ -408,6 +414,20 @@ namespace winrt::impl
             clear_abi(value);
             typename D::abi_guard guard(this->shim());
             *value = detach_from<hstring>(this->shim().DeviceFamilyVersion());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::System::Profile::IAnalyticsVersionInfo2> : produce_base<D, winrt::Windows::System::Profile::IAnalyticsVersionInfo2>
+    {
+        int32_t __stdcall get_ProductName(void** value) noexcept final try
+        {
+            clear_abi(value);
+            typename D::abi_guard guard(this->shim());
+            *value = detach_from<hstring>(this->shim().ProductName());
             return 0;
         }
         catch (...) { return to_hresult(); }
@@ -1130,6 +1150,7 @@ namespace std
     template<> struct hash<winrt::Windows::System::Profile::IAnalyticsInfoStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::System::Profile::IAnalyticsInfoStatics2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::System::Profile::IAnalyticsVersionInfo> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::System::Profile::IAnalyticsVersionInfo2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::System::Profile::IAppApplicabilityStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::System::Profile::IEducationSettingsStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::System::Profile::IHardwareIdentificationStatics> : winrt::impl::hash_base {};

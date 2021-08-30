@@ -433,6 +433,7 @@ WINRT_EXPORT namespace winrt::Windows::System
         static auto FindAllAsync(winrt::Windows::System::UserType const& type);
         static auto FindAllAsync(winrt::Windows::System::UserType const& type, winrt::Windows::System::UserAuthenticationStatus const& status);
         static auto GetFromId(param::hstring const& nonRoamableId);
+        static auto GetDefault();
     };
     struct __declspec(empty_bases) UserAuthenticationStatusChangeDeferral : winrt::Windows::System::IUserAuthenticationStatusChangeDeferral
     {

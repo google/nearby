@@ -2,6 +2,7 @@
 
 #ifndef WINRT_Windows_Storage_Provider_2_H
 #define WINRT_Windows_Storage_Provider_2_H
+#include "winrt/impl/Windows.Foundation.1.h"
 #include "winrt/impl/Windows.Foundation.Collections.1.h"
 #include "winrt/impl/Windows.Storage.1.h"
 #include "winrt/impl/Windows.Storage.Provider.1.h"
@@ -49,6 +50,26 @@ WINRT_EXPORT namespace winrt::Windows::Storage::Provider
         FileUpdateRequestedEventArgs(FileUpdateRequestedEventArgs&&) noexcept = default;
         FileUpdateRequestedEventArgs& operator=(FileUpdateRequestedEventArgs const&) & noexcept = default;
         FileUpdateRequestedEventArgs& operator=(FileUpdateRequestedEventArgs&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) StorageProviderError : winrt::Windows::Storage::Provider::IStorageProviderError
+    {
+        StorageProviderError(std::nullptr_t) noexcept {}
+        StorageProviderError(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Storage::Provider::IStorageProviderError(ptr, take_ownership_from_abi) {}
+        StorageProviderError(param::hstring const& id, param::hstring const& title, param::hstring const& message);
+        StorageProviderError(StorageProviderError const&) noexcept = default;
+        StorageProviderError(StorageProviderError&&) noexcept = default;
+        StorageProviderError& operator=(StorageProviderError const&) & noexcept = default;
+        StorageProviderError& operator=(StorageProviderError&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) StorageProviderErrorCommand : winrt::Windows::Storage::Provider::IStorageProviderErrorCommand
+    {
+        StorageProviderErrorCommand(std::nullptr_t) noexcept {}
+        StorageProviderErrorCommand(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Storage::Provider::IStorageProviderErrorCommand(ptr, take_ownership_from_abi) {}
+        StorageProviderErrorCommand(param::hstring const& label, winrt::Windows::Foundation::Uri const& actionUri);
+        StorageProviderErrorCommand(StorageProviderErrorCommand const&) noexcept = default;
+        StorageProviderErrorCommand(StorageProviderErrorCommand&&) noexcept = default;
+        StorageProviderErrorCommand& operator=(StorageProviderErrorCommand const&) & noexcept = default;
+        StorageProviderErrorCommand& operator=(StorageProviderErrorCommand&&) & noexcept = default;
     };
     struct __declspec(empty_bases) StorageProviderFileTypeInfo : winrt::Windows::Storage::Provider::IStorageProviderFileTypeInfo
     {
@@ -104,6 +125,17 @@ WINRT_EXPORT namespace winrt::Windows::Storage::Provider
         StorageProviderItemPropertyDefinition(StorageProviderItemPropertyDefinition&&) noexcept = default;
         StorageProviderItemPropertyDefinition& operator=(StorageProviderItemPropertyDefinition const&) & noexcept = default;
         StorageProviderItemPropertyDefinition& operator=(StorageProviderItemPropertyDefinition&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) StorageProviderStatus : winrt::Windows::Storage::Provider::IStorageProviderStatus
+    {
+        StorageProviderStatus(std::nullptr_t) noexcept {}
+        StorageProviderStatus(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Storage::Provider::IStorageProviderStatus(ptr, take_ownership_from_abi) {}
+        StorageProviderStatus(winrt::Windows::Storage::Provider::StorageProviderState const& state, param::hstring const& message);
+        StorageProviderStatus(winrt::Windows::Storage::Provider::StorageProviderState const& state, param::hstring const& message, param::iterable<winrt::Windows::Storage::Provider::StorageProviderError> const& errorMessages);
+        StorageProviderStatus(StorageProviderStatus const&) noexcept = default;
+        StorageProviderStatus(StorageProviderStatus&&) noexcept = default;
+        StorageProviderStatus& operator=(StorageProviderStatus const&) & noexcept = default;
+        StorageProviderStatus& operator=(StorageProviderStatus&&) & noexcept = default;
     };
     struct __declspec(empty_bases) StorageProviderSyncRootInfo : winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo,
         impl::require<StorageProviderSyncRootInfo, winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo2, winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo3>

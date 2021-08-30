@@ -199,6 +199,7 @@ WINRT_EXPORT namespace winrt::Windows::System
         RemoteUser = 1,
         LocalGuest = 2,
         RemoteGuest = 3,
+        SystemManaged = 4,
     };
     enum class UserWatcherStatus : int32_t
     {
@@ -469,6 +470,7 @@ WINRT_EXPORT namespace winrt::Windows::System
     struct IUserPicker;
     struct IUserPickerStatics;
     struct IUserStatics;
+    struct IUserStatics2;
     struct IUserWatcher;
     struct AppActivationResult;
     struct AppDiagnosticInfo;
@@ -592,6 +594,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::System::IUserPicker>{ using type = interface_category; };
     template <> struct category<winrt::Windows::System::IUserPickerStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::System::IUserStatics>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::System::IUserStatics2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::System::IUserWatcher>{ using type = interface_category; };
     template <> struct category<winrt::Windows::System::AppActivationResult>{ using type = class_category; };
     template <> struct category<winrt::Windows::System::AppDiagnosticInfo>{ using type = class_category; };
@@ -804,6 +807,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::System::IUserPicker> = L"Windows.System.IUserPicker";
     template <> inline constexpr auto& name_v<winrt::Windows::System::IUserPickerStatics> = L"Windows.System.IUserPickerStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::System::IUserStatics> = L"Windows.System.IUserStatics";
+    template <> inline constexpr auto& name_v<winrt::Windows::System::IUserStatics2> = L"Windows.System.IUserStatics2";
     template <> inline constexpr auto& name_v<winrt::Windows::System::IUserWatcher> = L"Windows.System.IUserWatcher";
     template <> inline constexpr auto& name_v<winrt::Windows::System::DispatcherQueueHandler> = L"Windows.System.DispatcherQueueHandler";
     template <> inline constexpr guid guid_v<winrt::Windows::System::IAppActivationResult>{ 0x6B528900,0xF46E,0x4EB0,{ 0xAA,0x6C,0x38,0xAF,0x55,0x7C,0xF9,0xED } }; // 6B528900-F46E-4EB0-AA6C-38AF557CF9ED
@@ -878,6 +882,7 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::System::IUserPicker>{ 0x7D548008,0xF1E3,0x4A6C,{ 0x8D,0xDC,0xA9,0xBB,0x0F,0x48,0x8A,0xED } }; // 7D548008-F1E3-4A6C-8DDC-A9BB0F488AED
     template <> inline constexpr guid guid_v<winrt::Windows::System::IUserPickerStatics>{ 0xDE3290DC,0x7E73,0x4DF6,{ 0xA1,0xAE,0x4D,0x7E,0xCA,0x82,0xB4,0x0D } }; // DE3290DC-7E73-4DF6-A1AE-4D7ECA82B40D
     template <> inline constexpr guid guid_v<winrt::Windows::System::IUserStatics>{ 0x155EB23B,0x242A,0x45E0,{ 0xA2,0xE9,0x31,0x71,0xFC,0x6A,0x7F,0xDD } }; // 155EB23B-242A-45E0-A2E9-3171FC6A7FDD
+    template <> inline constexpr guid guid_v<winrt::Windows::System::IUserStatics2>{ 0x74A37E11,0x2EB5,0x4487,{ 0xB0,0xD5,0x2C,0x67,0x90,0xE0,0x13,0xE9 } }; // 74A37E11-2EB5-4487-B0D5-2C6790E013E9
     template <> inline constexpr guid guid_v<winrt::Windows::System::IUserWatcher>{ 0x155EB23B,0x242A,0x45E0,{ 0xA2,0xE9,0x31,0x71,0xFC,0x6A,0x7F,0xBB } }; // 155EB23B-242A-45E0-A2E9-3171FC6A7FBB
     template <> inline constexpr guid guid_v<winrt::Windows::System::DispatcherQueueHandler>{ 0xDFA2DC9C,0x1A2D,0x4917,{ 0x98,0xF2,0x93,0x9A,0xF1,0xD6,0xE0,0xC8 } }; // DFA2DC9C-1A2D-4917-98F2-939AF1D6E0C8
     template <> struct default_interface<winrt::Windows::System::AppActivationResult>{ using type = winrt::Windows::System::IAppActivationResult; };
@@ -1591,6 +1596,13 @@ namespace winrt::impl
             virtual int32_t __stdcall FindAllAsyncByType(int32_t, void**) noexcept = 0;
             virtual int32_t __stdcall FindAllAsyncByTypeAndStatus(int32_t, int32_t, void**) noexcept = 0;
             virtual int32_t __stdcall GetFromId(void*, void**) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::System::IUserStatics2>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall GetDefault(void**) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::System::IUserWatcher>
@@ -2474,6 +2486,15 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::System::IUserStatics>
     {
         template <typename D> using type = consume_Windows_System_IUserStatics<D>;
+    };
+    template <typename D>
+    struct consume_Windows_System_IUserStatics2
+    {
+        WINRT_IMPL_AUTO(winrt::Windows::System::User) GetDefault() const;
+    };
+    template <> struct consume<winrt::Windows::System::IUserStatics2>
+    {
+        template <typename D> using type = consume_Windows_System_IUserStatics2<D>;
     };
     template <typename D>
     struct consume_Windows_System_IUserWatcher

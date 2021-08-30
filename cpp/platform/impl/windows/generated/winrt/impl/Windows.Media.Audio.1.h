@@ -736,5 +736,16 @@ WINRT_EXPORT namespace winrt::Windows::Media::Audio
         ISpatialAudioFormatSubtypeStatics& operator=(ISpatialAudioFormatSubtypeStatics const&) & noexcept = default;
         ISpatialAudioFormatSubtypeStatics& operator=(ISpatialAudioFormatSubtypeStatics&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) ISpatialAudioFormatSubtypeStatics2 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<ISpatialAudioFormatSubtypeStatics2>
+    {
+        ISpatialAudioFormatSubtypeStatics2(std::nullptr_t = nullptr) noexcept {}
+        ISpatialAudioFormatSubtypeStatics2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        ISpatialAudioFormatSubtypeStatics2(ISpatialAudioFormatSubtypeStatics2 const&) noexcept = default;
+        ISpatialAudioFormatSubtypeStatics2(ISpatialAudioFormatSubtypeStatics2&&) noexcept = default;
+        ISpatialAudioFormatSubtypeStatics2& operator=(ISpatialAudioFormatSubtypeStatics2 const&) & noexcept = default;
+        ISpatialAudioFormatSubtypeStatics2& operator=(ISpatialAudioFormatSubtypeStatics2&&) & noexcept = default;
+    };
 }
 #endif

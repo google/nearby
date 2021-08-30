@@ -97,6 +97,7 @@ WINRT_EXPORT namespace winrt::Windows::Media::Capture::Frames
         Depth = 3,
         Audio = 4,
         Image = 5,
+        Metadata = 6,
     };
     enum class MediaFrameSourceSetPropertyStatus : int32_t
     {

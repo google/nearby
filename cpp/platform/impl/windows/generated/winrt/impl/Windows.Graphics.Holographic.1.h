@@ -131,6 +131,17 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Holographic
         IHolographicCameraRenderingParameters3& operator=(IHolographicCameraRenderingParameters3 const&) & noexcept = default;
         IHolographicCameraRenderingParameters3& operator=(IHolographicCameraRenderingParameters3&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IHolographicCameraRenderingParameters4 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IHolographicCameraRenderingParameters4>
+    {
+        IHolographicCameraRenderingParameters4(std::nullptr_t = nullptr) noexcept {}
+        IHolographicCameraRenderingParameters4(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IHolographicCameraRenderingParameters4(IHolographicCameraRenderingParameters4 const&) noexcept = default;
+        IHolographicCameraRenderingParameters4(IHolographicCameraRenderingParameters4&&) noexcept = default;
+        IHolographicCameraRenderingParameters4& operator=(IHolographicCameraRenderingParameters4 const&) & noexcept = default;
+        IHolographicCameraRenderingParameters4& operator=(IHolographicCameraRenderingParameters4&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) IHolographicCameraViewportParameters :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IHolographicCameraViewportParameters>
@@ -430,6 +441,17 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Holographic
         IHolographicViewConfiguration(IHolographicViewConfiguration&&) noexcept = default;
         IHolographicViewConfiguration& operator=(IHolographicViewConfiguration const&) & noexcept = default;
         IHolographicViewConfiguration& operator=(IHolographicViewConfiguration&&) & noexcept = default;
+    };
+    struct __declspec(empty_bases) IHolographicViewConfiguration2 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IHolographicViewConfiguration2>
+    {
+        IHolographicViewConfiguration2(std::nullptr_t = nullptr) noexcept {}
+        IHolographicViewConfiguration2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IHolographicViewConfiguration2(IHolographicViewConfiguration2 const&) noexcept = default;
+        IHolographicViewConfiguration2(IHolographicViewConfiguration2&&) noexcept = default;
+        IHolographicViewConfiguration2& operator=(IHolographicViewConfiguration2 const&) & noexcept = default;
+        IHolographicViewConfiguration2& operator=(IHolographicViewConfiguration2&&) & noexcept = default;
     };
 }
 #endif

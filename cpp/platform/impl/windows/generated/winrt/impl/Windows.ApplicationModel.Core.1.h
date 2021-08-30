@@ -38,6 +38,17 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel::Core
         IAppListEntry3& operator=(IAppListEntry3 const&) & noexcept = default;
         IAppListEntry3& operator=(IAppListEntry3&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) IAppListEntry4 :
+        winrt::Windows::Foundation::IInspectable,
+        impl::consume_t<IAppListEntry4>
+    {
+        IAppListEntry4(std::nullptr_t = nullptr) noexcept {}
+        IAppListEntry4(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+        IAppListEntry4(IAppListEntry4 const&) noexcept = default;
+        IAppListEntry4(IAppListEntry4&&) noexcept = default;
+        IAppListEntry4& operator=(IAppListEntry4 const&) & noexcept = default;
+        IAppListEntry4& operator=(IAppListEntry4&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) ICoreApplication :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<ICoreApplication>

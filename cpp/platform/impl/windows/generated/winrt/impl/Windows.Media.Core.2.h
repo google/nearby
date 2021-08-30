@@ -671,6 +671,15 @@ WINRT_EXPORT namespace winrt::Windows::Media::Core
         TimedMetadataTrackFailedEventArgs& operator=(TimedMetadataTrackFailedEventArgs const&) & noexcept = default;
         TimedMetadataTrackFailedEventArgs& operator=(TimedMetadataTrackFailedEventArgs&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) TimedTextBouten : winrt::Windows::Media::Core::ITimedTextBouten
+    {
+        TimedTextBouten(std::nullptr_t) noexcept {}
+        TimedTextBouten(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Media::Core::ITimedTextBouten(ptr, take_ownership_from_abi) {}
+        TimedTextBouten(TimedTextBouten const&) noexcept = default;
+        TimedTextBouten(TimedTextBouten&&) noexcept = default;
+        TimedTextBouten& operator=(TimedTextBouten const&) & noexcept = default;
+        TimedTextBouten& operator=(TimedTextBouten&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) TimedTextCue : winrt::Windows::Media::Core::ITimedTextCue
     {
         TimedTextCue(std::nullptr_t) noexcept {}
@@ -701,6 +710,15 @@ WINRT_EXPORT namespace winrt::Windows::Media::Core
         TimedTextRegion& operator=(TimedTextRegion const&) & noexcept = default;
         TimedTextRegion& operator=(TimedTextRegion&&) & noexcept = default;
     };
+    struct __declspec(empty_bases) TimedTextRuby : winrt::Windows::Media::Core::ITimedTextRuby
+    {
+        TimedTextRuby(std::nullptr_t) noexcept {}
+        TimedTextRuby(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Media::Core::ITimedTextRuby(ptr, take_ownership_from_abi) {}
+        TimedTextRuby(TimedTextRuby const&) noexcept = default;
+        TimedTextRuby(TimedTextRuby&&) noexcept = default;
+        TimedTextRuby& operator=(TimedTextRuby const&) & noexcept = default;
+        TimedTextRuby& operator=(TimedTextRuby&&) & noexcept = default;
+    };
     struct __declspec(empty_bases) TimedTextSource : winrt::Windows::Media::Core::ITimedTextSource
     {
         TimedTextSource(std::nullptr_t) noexcept {}
@@ -728,7 +746,7 @@ WINRT_EXPORT namespace winrt::Windows::Media::Core
         TimedTextSourceResolveResultEventArgs& operator=(TimedTextSourceResolveResultEventArgs&&) & noexcept = default;
     };
     struct __declspec(empty_bases) TimedTextStyle : winrt::Windows::Media::Core::ITimedTextStyle,
-        impl::require<TimedTextStyle, winrt::Windows::Media::Core::ITimedTextStyle2>
+        impl::require<TimedTextStyle, winrt::Windows::Media::Core::ITimedTextStyle2, winrt::Windows::Media::Core::ITimedTextStyle3>
     {
         TimedTextStyle(std::nullptr_t) noexcept {}
         TimedTextStyle(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Media::Core::ITimedTextStyle(ptr, take_ownership_from_abi) {}

@@ -1438,6 +1438,12 @@ namespace winrt::impl
         check_hresult(WINRT_IMPL_SHIM(winrt::Windows::System::IUserStatics)->GetFromId(*(void**)(&nonRoamableId), &result));
         return winrt::Windows::System::User{ result, take_ownership_from_abi };
     }
+    template <typename D> WINRT_IMPL_AUTO(winrt::Windows::System::User) consume_Windows_System_IUserStatics2<D>::GetDefault() const
+    {
+        void* result{};
+        check_hresult(WINRT_IMPL_SHIM(winrt::Windows::System::IUserStatics2)->GetDefault(&result));
+        return winrt::Windows::System::User{ result, take_ownership_from_abi };
+    }
     template <typename D> WINRT_IMPL_AUTO(winrt::Windows::System::UserWatcherStatus) consume_Windows_System_IUserWatcher<D>::Status() const
     {
         winrt::Windows::System::UserWatcherStatus value{};
@@ -3829,6 +3835,20 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
+    struct produce<D, winrt::Windows::System::IUserStatics2> : produce_base<D, winrt::Windows::System::IUserStatics2>
+    {
+        int32_t __stdcall GetDefault(void** result) noexcept final try
+        {
+            clear_abi(result);
+            typename D::abi_guard guard(this->shim());
+            *result = detach_from<winrt::Windows::System::User>(this->shim().GetDefault());
+            return 0;
+        }
+        catch (...) { return to_hresult(); }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
     struct produce<D, winrt::Windows::System::IUserWatcher> : produce_base<D, winrt::Windows::System::IUserWatcher>
     {
         int32_t __stdcall get_Status(int32_t* value) noexcept final try
@@ -4349,6 +4369,10 @@ WINRT_EXPORT namespace winrt::Windows::System
     {
         return impl::call_factory<User, IUserStatics>([&](IUserStatics const& f) { return f.GetFromId(nonRoamableId); });
     }
+    inline auto User::GetDefault()
+    {
+        return impl::call_factory_cast<winrt::Windows::System::User(*)(IUserStatics2 const&), User, IUserStatics2>([](IUserStatics2 const& f) { return f.GetDefault(); });
+    }
     inline auto UserDeviceAssociation::FindUserFromDeviceId(param::hstring const& deviceId)
     {
         return impl::call_factory<UserDeviceAssociation, IUserDeviceAssociationStatics>([&](IUserDeviceAssociationStatics const& f) { return f.FindUserFromDeviceId(deviceId); });
@@ -4474,6 +4498,7 @@ namespace std
     template<> struct hash<winrt::Windows::System::IUserPicker> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::System::IUserPickerStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::System::IUserStatics> : winrt::impl::hash_base {};
+    template<> struct hash<winrt::Windows::System::IUserStatics2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::System::IUserWatcher> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::System::AppActivationResult> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::System::AppDiagnosticInfo> : winrt::impl::hash_base {};

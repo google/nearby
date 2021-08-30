@@ -94,6 +94,7 @@ WINRT_EXPORT namespace winrt::Windows::AI::MachineLearning
     struct ILearningModelSessionFactory2;
     struct ILearningModelSessionOptions;
     struct ILearningModelSessionOptions2;
+    struct ILearningModelSessionOptions3;
     struct ILearningModelStatics;
     struct IMapFeatureDescriptor;
     struct ISequenceFeatureDescriptor;
@@ -183,6 +184,7 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::AI::MachineLearning::ILearningModelSessionFactory2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions>{ using type = interface_category; };
     template <> struct category<winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions2>{ using type = interface_category; };
+    template <> struct category<winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions3>{ using type = interface_category; };
     template <> struct category<winrt::Windows::AI::MachineLearning::ILearningModelStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::AI::MachineLearning::IMapFeatureDescriptor>{ using type = interface_category; };
     template <> struct category<winrt::Windows::AI::MachineLearning::ISequenceFeatureDescriptor>{ using type = interface_category; };
@@ -299,6 +301,7 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::AI::MachineLearning::ILearningModelSessionFactory2> = L"Windows.AI.MachineLearning.ILearningModelSessionFactory2";
     template <> inline constexpr auto& name_v<winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions> = L"Windows.AI.MachineLearning.ILearningModelSessionOptions";
     template <> inline constexpr auto& name_v<winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions2> = L"Windows.AI.MachineLearning.ILearningModelSessionOptions2";
+    template <> inline constexpr auto& name_v<winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions3> = L"Windows.AI.MachineLearning.ILearningModelSessionOptions3";
     template <> inline constexpr auto& name_v<winrt::Windows::AI::MachineLearning::ILearningModelStatics> = L"Windows.AI.MachineLearning.ILearningModelStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::AI::MachineLearning::IMapFeatureDescriptor> = L"Windows.AI.MachineLearning.IMapFeatureDescriptor";
     template <> inline constexpr auto& name_v<winrt::Windows::AI::MachineLearning::ISequenceFeatureDescriptor> = L"Windows.AI.MachineLearning.ISequenceFeatureDescriptor";
@@ -361,6 +364,7 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::AI::MachineLearning::ILearningModelSessionFactory2>{ 0x4E5C88BF,0x0A1F,0x5FEC,{ 0xAD,0xE0,0x2F,0xD9,0x1E,0x4E,0xF2,0x9B } }; // 4E5C88BF-0A1F-5FEC-ADE0-2FD91E4EF29B
     template <> inline constexpr guid guid_v<winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions>{ 0xB8F63FA1,0x134D,0x5133,{ 0x8C,0xFF,0x3A,0x5C,0x3C,0x26,0x3B,0xEB } }; // B8F63FA1-134D-5133-8CFF-3A5C3C263BEB
     template <> inline constexpr guid guid_v<winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions2>{ 0x6FCD1DC4,0x175F,0x5BD2,{ 0x8D,0xE5,0x2F,0x20,0x06,0xA2,0x5A,0xDF } }; // 6FCD1DC4-175F-5BD2-8DE5-2F2006A25ADF
+    template <> inline constexpr guid guid_v<winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions3>{ 0x58E15CEE,0xD8C2,0x56FC,{ 0x92,0xE8,0x76,0xD7,0x51,0x08,0x10,0x86 } }; // 58E15CEE-D8C2-56FC-92E8-76D751081086
     template <> inline constexpr guid guid_v<winrt::Windows::AI::MachineLearning::ILearningModelStatics>{ 0xE3B977E8,0x6952,0x4E47,{ 0x8E,0xF4,0x1F,0x7F,0x07,0x89,0x7C,0x6D } }; // E3B977E8-6952-4E47-8EF4-1F7F07897C6D
     template <> inline constexpr guid guid_v<winrt::Windows::AI::MachineLearning::IMapFeatureDescriptor>{ 0x530424BD,0xA257,0x436D,{ 0x9E,0x60,0xC2,0x98,0x1F,0x7C,0xC5,0xC4 } }; // 530424BD-A257-436D-9E60-C2981F7CC5C4
     template <> inline constexpr guid guid_v<winrt::Windows::AI::MachineLearning::ISequenceFeatureDescriptor>{ 0x84F6945A,0x562B,0x4D62,{ 0xA8,0x51,0x73,0x9A,0xCE,0xD9,0x66,0x68 } }; // 84F6945A-562B-4D62-A851-739ACED96668
@@ -580,6 +584,13 @@ namespace winrt::impl
         {
             virtual int32_t __stdcall get_CloseModelOnSessionCreation(bool*) noexcept = 0;
             virtual int32_t __stdcall put_CloseModelOnSessionCreation(bool) noexcept = 0;
+        };
+    };
+    template <> struct abi<winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions3>
+    {
+        struct __declspec(novtable) type : inspectable_abi
+        {
+            virtual int32_t __stdcall OverrideNamedDimension(void*, uint32_t) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::AI::MachineLearning::ILearningModelStatics>
@@ -1139,6 +1150,15 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions2>
     {
         template <typename D> using type = consume_Windows_AI_MachineLearning_ILearningModelSessionOptions2<D>;
+    };
+    template <typename D>
+    struct consume_Windows_AI_MachineLearning_ILearningModelSessionOptions3
+    {
+        WINRT_IMPL_AUTO(void) OverrideNamedDimension(param::hstring const& name, uint32_t dimension) const;
+    };
+    template <> struct consume<winrt::Windows::AI::MachineLearning::ILearningModelSessionOptions3>
+    {
+        template <typename D> using type = consume_Windows_AI_MachineLearning_ILearningModelSessionOptions3<D>;
     };
     template <typename D>
     struct consume_Windows_AI_MachineLearning_ILearningModelStatics
