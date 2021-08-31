@@ -334,12 +334,13 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
   }
 
   BasePcpHandler::PendingConnectionInfo& connection_info = it->second;
+  Medium medium = connection_info.channel->GetMedium();
 
   if (!ukey2) {
     // Fail early, if there is no crypto context.
     ProcessPreConnectionInitiationFailure(
-        connection_info.client, connection_info.channel->GetMedium(),
-        endpoint_id, connection_info.channel.get(), connection_info.is_incoming,
+        connection_info.client, medium, endpoint_id,
+        connection_info.channel.get(), connection_info.is_incoming,
         connection_info.start_time, {Status::kEndpointIoError},
         connection_info.result.lock().get());
     return;
@@ -392,14 +393,12 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
 
   if (connection_info.is_incoming) {
     connection_info.client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
-        proto::connections::INITIAL, connection_info.channel->GetMedium(),
-        proto::connections::RESULT_SUCCESS,
+        proto::connections::INITIAL, medium, proto::connections::RESULT_SUCCESS,
         SystemClock::ElapsedRealtime() - connection_info.start_time,
         connection_info.connection_token);
   } else {
     connection_info.client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
-        endpoint_id, proto::connections::INITIAL,
-        connection_info.channel->GetMedium(),
+        endpoint_id, proto::connections::INITIAL, medium,
         proto::connections::RESULT_SUCCESS,
         SystemClock::ElapsedRealtime() - connection_info.start_time,
         connection_info.connection_token);

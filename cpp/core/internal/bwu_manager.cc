@@ -559,7 +559,7 @@ void BwuManager::ProcessBwuPathAvailableEvent(
   }
 
   client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
-      endpoint_id, proto::connections::UPGRADE, channel->GetMedium(),
+      endpoint_id, proto::connections::UPGRADE, medium_,
       connection_attempt_result,
       SystemClock::ElapsedRealtime() - connection_attempt_start_time,
       client->GetConnectionToken(endpoint_id));
