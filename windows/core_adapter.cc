@@ -31,7 +31,6 @@ void CloseCore(Core* pCore) {
              std::function<void(location::nearby::connections::Status)>{
                  [](location::nearby::connections::Status) {}}});
     delete pCore;
-    pCore = nullptr;
   }
 }
 
@@ -136,6 +135,17 @@ const char* GetLocalEndpointId(Core* pCore) {
   }
   return "Null-Core";
 }
+
+ServiceControllerRouter* InitServiceControllerRouter() {
+  return new ServiceControllerRouter();
+}
+
+void CloseServiceControllerRouter(ServiceControllerRouter* pRouter) {
+  if (pRouter) {
+    delete pRouter;
+  }
+}
+
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
