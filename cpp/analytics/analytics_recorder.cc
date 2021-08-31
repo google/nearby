@@ -284,7 +284,7 @@ void AnalyticsRecorder::OnOutgoingConnectionAttempt(
       std::unique_ptr<ConnectionRequest> &connection_request = pair.mapped();
       connection_request->set_local_response(NOT_SENT);
       connection_request->set_remote_response(NOT_SENT);
-      UpdateDiscovererConnectionRequestLocked(connection_request.release());
+      UpdateDiscovererConnectionRequestLocked(connection_request.get());
     }
   }
 }
@@ -453,8 +453,7 @@ bool AnalyticsRecorder::UpdateAdvertiserConnectionRequestLocked(
     request->set_duration_millis(
         absl::ToUnixMillis(SystemClock::ElapsedRealtime()) -
         request->duration_millis());
-    *current_advertising_phase_->add_received_connection_request() =
-        *std::move(request);
+    *current_advertising_phase_->add_received_connection_request() = *request;
     return true;
   }
   return false;
@@ -472,8 +471,7 @@ bool AnalyticsRecorder::UpdateDiscovererConnectionRequestLocked(
     request->set_duration_millis(
         absl::ToUnixMillis(SystemClock::ElapsedRealtime()) -
         request->duration_millis());
-    *current_discovery_phase_->add_sent_connection_request() =
-        *std::move(request);
+    *current_discovery_phase_->add_sent_connection_request() = *request;
     return true;
   }
   return false;
