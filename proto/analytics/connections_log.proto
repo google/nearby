@@ -83,6 +83,11 @@ message ConnectionsLog {
 
     // Attempts to upgrade a connection from one medium to another.
     repeated BandwidthUpgradeAttempt upgrade_attempt = 9;
+
+    // The build version of the user's device (Same value as the Build number in
+    // Settings -> about phone).
+    optional string build_version = 10
+        [(datapol.semantic_type) = ST_SOFTWARE_ID];
   }
 
   // Encapsulates activity during a period of discovery.
@@ -181,6 +186,9 @@ message ConnectionsLog {
 
     // The ReceivingEvent flow id.
     optional int64 client_flow_id = 4 [(datapol.semantic_type) = ST_SESSION_ID];
+
+    // Encapsulates additional advertising information.
+    optional AdvertisingMetadata advertising_metadata = 5;
   }
 
   // A request to connect, corresponding to the API's concept of
@@ -235,6 +243,9 @@ message ConnectionsLog {
     // The token used to identify this connection pair.
     optional string connection_token = 7
         [(datapol.semantic_type) = ST_SESSION_ID];
+
+    // Encapsulates additional connection information.
+    optional ConnectionAttemptMetadata connection_attempt_metadata = 8;
   }
 
   // A successfully-established connection over a particular medium.
@@ -352,6 +363,55 @@ message ConnectionsLog {
     // The token use to identify this established connection.
     optional string connection_token = 16
         [(datapol.semantic_type) = ST_SESSION_ID];
+  }
+
+  // Some additional information to keep with the advertising phase.
+  message AdvertisingMetadata {
+    // The bluetooth low energy extended advertisement support status.
+    optional bool supports_extended_ble_advertisements = 1;
+  }
+
+  // Some additional information to keep with the connection attempt.
+  message ConnectionAttemptMetadata {
+    // The technology used by the mediums.
+    optional location.nearby.proto.connections.ConnectionTechnology technology =
+        1;
+
+    // The wifi band used by the wifi mediums.
+    optional location.nearby.proto.connections.ConnectionBand band = 2;
+
+    // The frequency used by the wifi mediums.
+    optional int32 frequency = 3;
+
+    // The MCC (Mobile country code) MNC (Mobile network code) of the network
+    // operator.
+    optional string network_operator = 4
+        [(datapol.semantic_type) = ST_LOCATION];
+
+    // The upper-case ISO 3166-1 alpha-2 country code of the current registered
+    // operator's MCC (Mobile Country Code), or the country code of the default
+    // Locale if not available.
+    optional string country_code = 5 [(datapol.semantic_type) = ST_LOCATION];
+
+    // The TDLS status used by the wifi lan medium,
+    // TDLS, shortened from Tunneled Direct Link Setup, is "a seamless way to
+    // stream media and other data faster between devices already on the same
+    // Wi-Fi network." Devices using it communicate directly with one another,
+    // without involving the wireless network's router.
+    optional bool is_tdls_used = 6;
+
+    // The try times for this hosted group or connection operation.
+    optional int32 try_counts = 7;
+
+    // The enabled status of the wifi hotspot(tethering) when doing this
+    // connection attempt.
+    optional bool wifi_hotspot_status = 8;
+
+    // The MAX supported TX link speed (Mbps).
+    optional int32 max_tx_speed = 9;
+
+    // The MAX supported RX link speed (Mbps).
+    optional int32 max_rx_speed = 10;
   }
 }
 // LINT.ThenChange()

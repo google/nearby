@@ -47,6 +47,7 @@ cc_library(
         "//core:__subpackages__",
         "//platform:__subpackages__",
         "//platform/api:__subpackages__",
+        "//proto/analytics:__subpackages__",
     ],
     deps = [
         "//absl/container:flat_hash_map",

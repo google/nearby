@@ -109,6 +109,7 @@ cc_library(
         "//third_party/nearby_connections/cpp/analytics:__subpackages__",
         "//core:__subpackages__",
         "//platform:__subpackages__",
+        "//proto/analytics:__subpackages__",
     ],
     deps = [
         ":comm",

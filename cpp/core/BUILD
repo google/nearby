@@ -78,7 +78,7 @@ cc_library(
         "//third_party/nearby_connections/cpp/analytics:__subpackages__",
     ],
     deps = [
-        "//third_party/nearby_connections/proto/analytics:connections_log_cc_proto",
+        "//proto/analytics:connections_log_cc_proto",
     ],
 )
 

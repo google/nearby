@@ -24,6 +24,7 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//core:__subpackages__",
+        "//proto/analytics:__subpackages__",
     ],
     deps = [
         "//absl/container:btree",
@@ -34,7 +35,7 @@ cc_library(
         "//platform/public:logging",
         "//platform/public:types",
         "//proto:connections_enums_portable_proto",
-        "//third_party/nearby_connections/proto/analytics:connections_log_cc_proto",
+        "//proto/analytics:connections_log_cc_proto",
     ],
 )
 
@@ -53,6 +54,6 @@ cc_test(
         "//platform/public:logging",
         "//platform/public:types",
         "//proto:connections_enums_portable_proto",
-        "//third_party/nearby_connections/proto/analytics:connections_log_cc_proto",
+        "//proto/analytics:connections_log_cc_proto",
     ],
 )
