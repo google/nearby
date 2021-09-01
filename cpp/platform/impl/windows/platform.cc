@@ -66,13 +66,13 @@ std::unique_ptr<CountDownLatch> ImplementationPlatform::CreateCountDownLatch(
 
 // TODO(b/184975123): replace with real implementation.
 std::unique_ptr<Mutex> ImplementationPlatform::CreateMutex(Mutex::Mode mode) {
-  return absl::make_unique<windows::Mutex>();
+  return absl::make_unique<windows::Mutex>(mode);
 }
 
 // TODO(b/184975123): replace with real implementation.
 std::unique_ptr<ConditionVariable>
 ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
-  return std::unique_ptr<ConditionVariable>(new windows::ConditionVariable());
+  return absl::make_unique<location::nearby::windows::ConditionVariable>(mutex);
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(

@@ -15,7 +15,14 @@
 #ifndef PLATFORM_IMPL_WINDOWS_CONDITION_VARIABLE_H_
 #define PLATFORM_IMPL_WINDOWS_CONDITION_VARIABLE_H_
 
+#include <windows.h>
+#include <stdio.h>
+#include <synchapi.h>
+
+#include <mutex>  //  NOLINT
+
 #include "platform/api/condition_variable.h"
+#include "platform/impl/windows/mutex.h"
 
 namespace location {
 namespace nearby {
@@ -27,24 +34,31 @@ namespace windows {
 // ConditionVariable.
 class ConditionVariable : public api::ConditionVariable {
  public:
-  // TODO(b/184975123): replace with real implementation.
+  ConditionVariable(api::Mutex* mutex);
+
   ~ConditionVariable() override = default;
 
   // Notifies all the waiters that condition state has changed.
-  // TODO(b/184975123): replace with real implementation.
-  void Notify() override {}
+  void Notify() override;
 
   // Waits indefinitely for Notify to be called.
   // May return prematurely in case of interrupt, if supported by platform.
   // Returns kSuccess, or kInterrupted on interrupt.
-  // TODO(b/184975123): replace with real implementation.
-  Exception Wait() override { return Exception{}; }
+  Exception Wait() override;
 
   // Waits while timeout has not expired for Notify to be called.
   // May return prematurely in case of interrupt, if supported by platform.
   // Returns kSuccess, or kInterrupted on interrupt.
-  // TODO(b/184975123): replace with real implementation.
-  Exception Wait(absl::Duration timeout) override { return Exception{}; }
+  Exception Wait(absl::Duration timeout) override;
+
+ private:
+  location::nearby::windows::Mutex& mutex_;
+
+  std::condition_variable condition_variable_actual_;
+  std::condition_variable& condition_variable_ = condition_variable_actual_;
+
+  std::unique_lock<std::mutex> lock;
+  CRITICAL_SECTION critical_section_;
 };
 
 }  // namespace windows

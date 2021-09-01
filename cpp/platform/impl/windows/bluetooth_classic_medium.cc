@@ -14,8 +14,12 @@
 
 #include "platform/impl/windows/bluetooth_classic_medium.h"
 
+#include <Windows.h>
+#include <stdio.h>
+
 #include <codecvt>
 #include <locale>
+#include <regex>  // NOLINT
 #include <string>
 
 #include "platform/base/cancellation_flag.h"
@@ -116,11 +120,21 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     return nullptr;
   }
 
-  if (cancellation_flag == nullptr) {
+  const std::regex pattern(
+      "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]"
+      "{12}$");
+
+  // Must check for valid pattern as the guid constructor will throw on an
+  // invalid format
+  if (!regex_match(service_uuid, pattern)) {
     return nullptr;
   }
 
   winrt::guid service(service_uuid);
+
+  if (cancellation_flag == nullptr) {
+    return nullptr;
+  }
 
   BluetoothDevice* currentDevice =
       dynamic_cast<BluetoothDevice*>(&remote_device);

@@ -15,9 +15,6 @@
 #ifndef PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_MEDIUM_H_
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_MEDIUM_H_
 
-#include <Windows.h>
-#include <stdio.h>
-
 #include "platform/api/bluetooth_classic.h"
 #include "platform/impl/windows/bluetooth_classic_device.h"
 #include "platform/impl/windows/bluetooth_classic_server_socket.h"

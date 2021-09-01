@@ -1,0 +1,109 @@
+// Copyright 2021 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "platform/impl/windows/mutex.h"
+
+#include <future> // NOLINT
+
+#include "gtest/gtest.h"
+
+class MutexTests : public testing::Test {
+ public:
+  class MutexTest {
+   public:
+    MutexTest(location::nearby::windows::Mutex& mutex) : mutex_(mutex) {}
+
+    std::future<bool> WaitForLock() { // NOLINT
+      return std::async(
+          std::launch::async,
+          // for this lambda you need C++14
+          [this]() mutable {
+            std::unique_lock<std::mutex> lck(mutex_.GetWindowsMutex());
+            return true;
+          });
+    }
+
+    void PostEvent() {
+      std::lock_guard<std::mutex> guard(mutex_.GetWindowsMutex());
+      mutex_.Unlock();
+    }
+
+   private:
+    location::nearby::windows::Mutex& mutex_;
+  };
+};
+
+TEST_F(MutexTests, SuccessfulRecursiveCreation) {
+  // Arrange
+  location::nearby::windows::Mutex mutex = location::nearby::windows::Mutex(
+      location::nearby::windows::Mutex::Mode::kRecursive);
+
+  // Act
+  std::recursive_mutex& actual = mutex.GetWindowsRecursiveMutex();
+
+  // Assert
+  ASSERT_TRUE(actual.native_handle() != nullptr);
+}
+
+TEST_F(MutexTests, SuccessfulCreation) {
+  // Arrange
+  location::nearby::windows::Mutex mutex(
+      location::nearby::windows::Mutex::Mode::kRegular);
+
+  // Act
+  std::mutex& actual = mutex.GetWindowsMutex();
+
+  // Assert
+  ASSERT_TRUE(actual.native_handle() != nullptr);
+}
+
+TEST_F(MutexTests, SuccessfulSignal) {
+  // Arrange
+  location::nearby::windows::Mutex mutex(
+      location::nearby::windows::Mutex::Mode::kRegular);
+
+  location::nearby::windows::Mutex& mutexRef = mutex;
+  MutexTest mutexTest(mutexRef);
+
+  mutex.Lock();
+
+  // Act
+  auto result = mutexTest.WaitForLock();
+  mutex.Unlock();
+
+  // Assert
+  ASSERT_TRUE(result.get());
+}
+
+TEST_F(MutexTests, SuccessfulRecursiveSignal) {
+  // Arrange
+  location::nearby::windows::Mutex mutex(
+      location::nearby::windows::Mutex::Mode::kRecursive);
+
+  location::nearby::windows::Mutex& mutexRef = mutex;
+  MutexTest mutexTest(mutexRef);
+
+  mutex.Lock();
+  mutex.Lock();
+  mutex.Lock();
+
+  // Act
+  auto result = mutexTest.WaitForLock();
+  mutex.Unlock();
+  mutex.Unlock();
+  mutex.Unlock();
+
+  // Assert
+  ASSERT_TRUE(result.get());
+}

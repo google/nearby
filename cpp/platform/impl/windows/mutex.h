@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,14 @@
 #ifndef PLATFORM_IMPL_WINDOWS_MUTEX_H_
 #define PLATFORM_IMPL_WINDOWS_MUTEX_H_
 
+#include <windows.h>
+#include <stdio.h>
+#include <synchapi.h>
+
+#include <memory>
+#include <mutex>  //  NOLINT
+
+#include "absl/memory/memory.h"
 #include "platform/api/mutex.h"
 
 namespace location {
@@ -27,13 +35,28 @@ namespace windows {
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Lock.html
 class Mutex : public api::Mutex {
  public:
-  // TODO(b/184975123): replace with real implementation.
+  Mutex(Mutex::Mode mode);
+
   ~Mutex() override = default;
 
-  // TODO(b/184975123): replace with real implementation.
-  void Lock() override {}
-  // TODO(b/184975123): replace with real implementation.
-  void Unlock() override {}
+  void Lock() override;
+
+  void Unlock() override;
+
+  std::mutex& GetWindowsMutex();
+
+  std::recursive_mutex& GetWindowsRecursiveMutex();
+
+ private:
+  Mutex::Mode mode_;
+  bool locked_ = false;
+
+  std::mutex mutex_actual_;
+  std::mutex& mutex_ = mutex_actual_;
+  std::recursive_mutex recursive_mutex_actual_;
+  std::recursive_mutex& recursive_mutex_ = recursive_mutex_actual_;
+  std::thread::id owning_thread_;
+  CRITICAL_SECTION critical_section_;
 };
 
 }  // namespace windows
