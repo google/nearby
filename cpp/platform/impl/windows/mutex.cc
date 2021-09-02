@@ -22,27 +22,21 @@ namespace windows {
 // threads.
 //
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Lock.html
-Mutex::Mutex(Mutex::Mode mode)
-    : mode_(mode) {
-}
+Mutex::Mutex(Mutex::Mode mode) : mode_(mode) {}
 
 void Mutex::Lock() {
   if (mode_ == Mutex::Mode::kRegular || mode_ == Mutex::Mode::kRegularNoCheck) {
     mutex_impl_.lock();
-  } else {
-    if (mode_ == Mutex::Mode::kRecursive) {
-      recursive_mutex_impl_.lock();
-    }
+  } else if (mode_ == Mutex::Mode::kRecursive) {
+    recursive_mutex_impl_.lock();
   }
 }
 
 void Mutex::Unlock() {
   if (mode_ == Mutex::Mode::kRegular || mode_ == Mutex::Mode::kRegularNoCheck) {
     mutex_impl_.unlock();
-  } else {
-    if (mode_ == Mutex::Mode::kRecursive) {
-      recursive_mutex_impl_.unlock();
-    }
+  } else if (mode_ == Mutex::Mode::kRecursive) {
+    recursive_mutex_impl_.unlock();
   }
 }
 
