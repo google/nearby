@@ -23,60 +23,27 @@ namespace windows {
 //
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Lock.html
 Mutex::Mutex(Mutex::Mode mode)
-    : mode_(mode), owning_thread_(std::this_thread::get_id()) {
-  InitializeCriticalSection(&critical_section_);
+    : mode_(mode) {
 }
 
 void Mutex::Lock() {
-  EnterCriticalSection(&critical_section_);
-
-  std::thread::id currentThread = std::this_thread::get_id();
-
-  if ((mode_ == Mutex::Mode::kRegular ||
-       mode_ == Mutex::Mode::kRegularNoCheck) &&
-      !locked_) {
-    mutex_actual_.lock();
-    owning_thread_ = currentThread;
-    locked_ = true;
-  }
-
-  if (mode_ == Mutex::Mode::kRecursive) {
-    if (!locked_) {
-      owning_thread_ = currentThread;
-    }
-    if (owning_thread_ == currentThread) {
-      try {
-        recursive_mutex_actual_.lock();
-      } catch ([[maybe_unused]] const std::system_error& e) {
-      // Eat the exception and fail silently, argument left for debug
-      }
-      locked_ = true;
+  if (mode_ == Mutex::Mode::kRegular || mode_ == Mutex::Mode::kRegularNoCheck) {
+    mutex_impl_.lock();
+  } else {
+    if (mode_ == Mutex::Mode::kRecursive) {
+      recursive_mutex_impl_.lock();
     }
   }
-
-  LeaveCriticalSection(&critical_section_);
 }
 
 void Mutex::Unlock() {
-  EnterCriticalSection(&critical_section_);
-
-  std::thread::id currentThread = std::this_thread::get_id();
-
   if (mode_ == Mutex::Mode::kRegular || mode_ == Mutex::Mode::kRegularNoCheck) {
-    if (currentThread == owning_thread_) {
-      mutex_actual_.unlock();
-      locked_ = false;
+    mutex_impl_.unlock();
+  } else {
+    if (mode_ == Mutex::Mode::kRecursive) {
+      recursive_mutex_impl_.unlock();
     }
   }
-
-  if (mode_ == Mutex::Mode::kRecursive) {
-    if (currentThread == owning_thread_) {
-      recursive_mutex_actual_.unlock();
-      locked_ = false;
-    }
-  }
-
-  LeaveCriticalSection(&critical_section_);
 }
 
 std::mutex& Mutex::GetWindowsMutex() { return mutex_; }

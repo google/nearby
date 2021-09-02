@@ -46,13 +46,11 @@ std::string GetPayloadPath(PayloadId payload_id) {
 }
 }  // namespace
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(
     bool initial_value) {
   return absl::make_unique<windows::AtomicBoolean>();
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<AtomicUint32> ImplementationPlatform::CreateAtomicUint32(
     std::uint32_t value) {
   return absl::make_unique<windows::AtomicUint32>();
@@ -61,15 +59,13 @@ std::unique_ptr<AtomicUint32> ImplementationPlatform::CreateAtomicUint32(
 // TODO(b/184975123): replace with real implementation.
 std::unique_ptr<CountDownLatch> ImplementationPlatform::CreateCountDownLatch(
     std::int32_t count) {
-  return absl::make_unique<windows::CountDownLatch>();
+  return absl::make_unique<windows::CountDownLatch>(count);
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<Mutex> ImplementationPlatform::CreateMutex(Mutex::Mode mode) {
   return absl::make_unique<windows::Mutex>(mode);
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<ConditionVariable>
 ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
   return absl::make_unique<location::nearby::windows::ConditionVariable>(mutex);

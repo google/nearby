@@ -15,6 +15,9 @@
 #ifndef PLATFORM_IMPL_WINDOWS_COUNT_DOWN_LATCH_H_
 #define PLATFORM_IMPL_WINDOWS_COUNT_DOWN_LATCH_H_
 
+#include <windows.h>
+#include <synchapi.h>
+
 #include "platform/api/count_down_latch.h"
 
 namespace location {
@@ -27,17 +30,24 @@ namespace windows {
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CountDownLatch.html
 class CountDownLatch : public api::CountDownLatch {
  public:
-  // TODO(b/184975123): replace with real implementation.
-  ~CountDownLatch() override = default;
+  CountDownLatch(int count);
 
-  // TODO(b/184975123): replace with real implementation.
-  Exception Await() override { return Exception{}; }
-  // TODO(b/184975123): replace with real implementation.
-  ExceptionOr<bool> Await(absl::Duration timeout) override {
-    return Exception{};
+  ~CountDownLatch() override {
+    if (h_count_down_latch_event_ != NULL) {
+      CloseHandle(h_count_down_latch_event_);
+      h_count_down_latch_event_ = NULL;
+    }
   }
-  // TODO(b/184975123): replace with real implementation.
-  void CountDown() override{};
+
+  Exception Await() override;
+
+  ExceptionOr<bool> Await(absl::Duration timeout) override;
+
+  void CountDown() override;
+
+ private:
+  HANDLE h_count_down_latch_event_ = NULL;
+  uint32_t count_;
 };
 
 }  // namespace windows

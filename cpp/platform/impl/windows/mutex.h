@@ -49,14 +49,16 @@ class Mutex : public api::Mutex {
 
  private:
   Mutex::Mode mode_;
-  bool locked_ = false;
 
-  std::mutex mutex_actual_;
-  std::mutex& mutex_ = mutex_actual_;
-  std::recursive_mutex recursive_mutex_actual_;
-  std::recursive_mutex& recursive_mutex_ = recursive_mutex_actual_;
-  std::thread::id owning_thread_;
-  CRITICAL_SECTION critical_section_;
+  std::mutex mutex_impl_;  //  The actual mutex allocation
+  std::mutex& mutex_ =
+      mutex_impl_;  //  This is passed to other windows functions, must be by
+                    //  reference to avoid ownership problems
+  std::recursive_mutex recursive_mutex_impl_;  //  The actual mutex allocation
+  std::recursive_mutex& recursive_mutex_ =
+      recursive_mutex_impl_;  //  This is passed to other windows functions,
+                              //  must be by reference to avoid ownership
+                              //  problems
 };
 
 }  // namespace windows

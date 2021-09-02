@@ -18,6 +18,7 @@ cc_library(
     hdrs = [
         "atomic_boolean.h",
         "atomic_reference.h",
+        "bluetooth_adapter.h",
         "cancelable.h",
         "condition_variable.h",
         "count_down_latch.h",

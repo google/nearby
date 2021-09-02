@@ -15,7 +15,7 @@
 #ifndef PLATFORM_IMPL_WINDOWS_UTILS_H_
 #define PLATFORM_IMPL_WINDOWS_UTILS_H_
 
-#include <Windows.h>
+#include <windows.h>
 #include <stdio.h>
 
 #include <string>
