@@ -45,20 +45,6 @@ using ::testing::Contains;
 using ::testing::EqualsProto;
 using ::testing::proto::Partially;
 
-using ::location::nearby::analytics::proto::ConnectionsLog;
-using ClientSession =
-    ::location::nearby::analytics::proto::ConnectionsLog::ClientSession;
-using StrategySession =
-    ::location::nearby::analytics::proto::ConnectionsLog::StrategySession;
-using AdvertisingPhase =
-    ::location::nearby::analytics::proto::ConnectionsLog::AdvertisingPhase;
-using DiscoveryPhase =
-    ::location::nearby::analytics::proto::ConnectionsLog::DiscoveryPhase;
-using DiscoveredEndpoint =
-    ::location::nearby::analytics::proto::ConnectionsLog::DiscoveredEndpoint;
-using ConnectionRequest =
-    ::location::nearby::analytics::proto::ConnectionsLog::ConnectionRequest;
-
 constexpr absl::Duration kDefaultTimeout = absl::Milliseconds(1000);
 
 class FakeEventLogger : public EventLogger {
@@ -66,7 +52,7 @@ class FakeEventLogger : public EventLogger {
   explicit FakeEventLogger(CountDownLatch& client_session_done_latch)
       : client_session_done_latch_(client_session_done_latch) {}
 
-  void Log(const ConnectionsLog& connections_log) override {
+  void Log(const proto::ConnectionsLog& connections_log) override {
     EventType event_type = connections_log.event_type();
     logged_event_types_.push_back(event_type);
     if (event_type == CLIENT_SESSION) {
@@ -82,7 +68,7 @@ class FakeEventLogger : public EventLogger {
     return logged_client_session_count_;
   }
 
-  const ClientSession& GetLoggedClientSession() {
+  const proto::ConnectionsLog::ClientSession& GetLoggedClientSession() {
     return logged_client_session_;
   }
 
@@ -91,7 +77,7 @@ class FakeEventLogger : public EventLogger {
  private:
   int logged_client_session_count_ = 0;
   CountDownLatch& client_session_done_latch_;
-  ClientSession logged_client_session_;
+  proto::ConnectionsLog::ClientSession logged_client_session_;
   std::vector<EventType> logged_event_types_;
 };
 
@@ -125,18 +111,13 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedAdvertisingCalls) {
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
-  constexpr char kExpected[] =
-      R"pb(
-    strategy_session <
-      strategy: P2P_STAR
-      role: ADVERTISER
-      advertising_phase < medium: BLE medium: BLUETOOTH >
-      advertising_phase < medium: BLUETOOTH >
-    >)pb";
-
-  const ClientSession& client_session = event_logger.GetLoggedClientSession();
-
-  EXPECT_THAT(client_session, Partially(EqualsProto(kExpected)));
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase < medium: BLE medium: BLUETOOTH >
+                  advertising_phase < medium: BLUETOOTH >
+                >)pb")));
 }
 
 TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
@@ -476,7 +457,7 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder{&event_logger};
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   analytics_recorder.OnStartDiscovery(strategy, mediums);
   analytics_recorder.OnConnectionRequestSent(endpoint_id);
