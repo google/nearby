@@ -372,10 +372,23 @@ enum ActivityName {
   CONSENTS_ACTIVITY = 6;
 }
 
+// The type of consent page user launches.
 enum ConsentType {
   CONSENT_TYPE_UNKNOWN = 0;
 
+  // launch Constellation consent page.
   CONSENT_TYPE_C11N = 1;
+  // launch device contact consent page.
+  CONSENT_TYPE_DEVICE_CONTACT = 2;
+}
+
+enum ConsentAcceptanceStatus {
+  CONSENT_UNKNOWN_ACCEPT_STATUS = 0;
+
+  CONSENT_ACCEPTED = 1;
+  CONSENT_DECLINED = 2;
+  // unable to enable consent.
+  CONSENT_UNABLE_TO_ENABLE = 3;
 }
 
 enum ApkSource {
