@@ -179,6 +179,9 @@ enum EventType {
 
   // users dropped off opt-in page.
   DECLINE_AGREEMENTS = 46;
+
+  // Request setting permissions (Wifi/BT/location/airplane mode).
+  REQUEST_SETTING_PERMISSIONS = 47;
 }
 
 // Event category to differentiate whether this comes from sender or receiver,
@@ -420,4 +423,21 @@ enum ShowNotificationStatus {
 
   SHOW = 1;
   NOT_SHOW = 2;
+}
+
+enum PermissionRequestResult {
+  PERMISSION_UNKNOWN_REQUEST_RESULT = 0;
+
+  PERMISSION_GRANTED = 1;
+  PERMISSION_REJECTED = 2;
+  PERMISSION_UNABLE_TO_GRANT = 3;
+}
+
+enum PermissionRequestType {
+  PERMISSION_UNKNOWN_TYPE = 0;
+
+  PERMISSION_AIRPLANE_MODE_OFF = 1;
+  PERMISSION_WIFI = 2;
+  PERMISSION_BLUETOOTH = 3;
+  PERMISSION_LOCATION = 4;
 }
