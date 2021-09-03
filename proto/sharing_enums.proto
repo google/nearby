@@ -176,6 +176,9 @@ enum EventType {
 
   // Set device name
   SET_DEVICE_NAME = 45;
+
+  // users dropped off opt-in page.
+  DECLINE_AGREEMENTS = 46;
 }
 
 // Event category to differentiate whether this comes from sender or receiver,
