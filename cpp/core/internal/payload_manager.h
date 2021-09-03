@@ -286,6 +286,22 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       ABSL_LOCKS_EXCLUDED(mutex_);
   void CancelAllPayloads() ABSL_LOCKS_EXCLUDED(mutex_);
 
+  void RecordPayloadStartedAnalytics(ClientProxy* client,
+                                     const EndpointIds& endpoint_ids,
+                                     std::int64_t payload_id,
+                                     Payload::Type payload_type,
+                                     std::int64_t offset,
+                                     std::int64_t total_size);
+  void RecordInvalidPayloadAnalytics(ClientProxy* client,
+                                     const EndpointIds& endpoint_ids,
+                                     std::int64_t payload_id,
+                                     Payload::Type payload_type,
+                                     std::int64_t offset,
+                                     std::int64_t total_size);
+
+  Payload::Type FramePayloadTypeToPayloadType(
+      PayloadTransferFrame::PayloadHeader::PayloadType type);
+
   mutable Mutex mutex_;
   AtomicBoolean shutdown_{false};
   std::unique_ptr<CountDownLatch> shutdown_barrier_;

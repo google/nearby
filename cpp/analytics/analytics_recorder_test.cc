@@ -36,12 +36,14 @@ using ::location::nearby::proto::connections::BLUETOOTH;
 using ::location::nearby::proto::connections::CLIENT_SESSION;
 using ::location::nearby::proto::connections::EventType;
 using ::location::nearby::proto::connections::INITIAL;
+using ::location::nearby::proto::connections::LOCAL_DISCONNECTION;
 using ::location::nearby::proto::connections::Medium;
 using ::location::nearby::proto::connections::RESULT_ERROR;
 using ::location::nearby::proto::connections::RESULT_SUCCESS;
 using ::location::nearby::proto::connections::START_STRATEGY_SESSION;
 using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
 using ::location::nearby::proto::connections::STOP_STRATEGY_SESSION;
+using ::location::nearby::proto::connections::SUCCESS;
 using ::location::nearby::proto::connections::UPGRADED;
 using ::location::nearby::proto::connections::WIFI_LAN;
 using ::testing::Contains;
@@ -526,6 +528,69 @@ TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
                   established_connection <
                     medium: WIFI_LAN
                     disconnection_reason: UNFINISHED
+                    connection_token: "connection_token"
+                  >
+                >)pb")));
+}
+
+TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+  std::vector<Medium> mediums = {BLE, BLUETOOTH};
+  std::string endpoint_id("endpoint_id");
+  std::int64_t payload_id(123456789);
+  std::string connection_token("connection_token");
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder(&event_logger);
+
+  analytics_recorder.OnStartAdvertising(strategy, mediums);
+  analytics_recorder.OnConnectionEstablished(endpoint_id, BLUETOOTH,
+                                             connection_token);
+  analytics_recorder.OnOutgoingPayloadStarted(
+      {endpoint_id}, payload_id, connections::Payload::Type::kFile, 50);
+  analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
+  analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
+  analytics_recorder.OnConnectionClosed(endpoint_id, BLUETOOTH, UPGRADED);
+  analytics_recorder.OnConnectionEstablished(endpoint_id, WIFI_LAN,
+                                             connection_token);
+  analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
+  analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
+  analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
+  analytics_recorder.OnOutgoingPayloadDone(endpoint_id, payload_id, SUCCESS);
+  analytics_recorder.OnConnectionClosed(endpoint_id, WIFI_LAN,
+                                        LOCAL_DISCONNECTION);
+
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase < medium: BLE medium: BLUETOOTH >
+                  established_connection <
+                    medium: BLUETOOTH
+                    sent_payload <
+                      type: FILE
+                      total_size_bytes: 50
+                      num_bytes_transferred: 20
+                      num_chunks: 2
+                      status: MOVED_TO_NEW_MEDIUM
+                    >
+                    disconnection_reason: UPGRADED
+                    connection_token: "connection_token"
+                  >
+                  established_connection <
+                    medium: WIFI_LAN
+                    sent_payload <
+                      type: FILE
+                      total_size_bytes: 50
+                      num_bytes_transferred: 30
+                      num_chunks: 3
+                      status: SUCCESS
+                    >
+                    disconnection_reason: LOCAL_DISCONNECTION
                     connection_token: "connection_token"
                   >
                 >)pb")));

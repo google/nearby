@@ -94,6 +94,34 @@ class AnalyticsRecorder {
       location::nearby::proto::connections ::DisconnectionReason reason)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Payload
+  void OnIncomingPayloadStarted(const std::string &endpoint_id,
+                                std::int64_t payload_id,
+                                connections::Payload::Type type,
+                                std::int64_t total_size_bytes)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void OnPayloadChunkReceived(const std::string &endpoint_id,
+                              std::int64_t payload_id,
+                              std::int64_t chunk_size_bytes)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void OnIncomingPayloadDone(
+      const std::string &endpoint_id, std::int64_t payload_id,
+      ::location::nearby::proto::connections::PayloadStatus status)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void OnOutgoingPayloadStarted(const std::vector<std::string> &endpoint_ids,
+                                std::int64_t payload_id,
+                                connections::Payload::Type type,
+                                std::int64_t total_size_bytes)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void OnPayloadChunkSent(const std::string &endpoint_id,
+                          std::int64_t payload_id,
+                          std::int64_t chunk_size_bytes)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void OnOutgoingPayloadDone(
+      const std::string &endpoint_id, std::int64_t payload_id,
+      ::location::nearby::proto::connections::PayloadStatus status)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Invokes event_logger_.Log() at the end of life of client. Log action is
   // called in a separate thread to allow synchronous potentially lengthy
   // execution.
@@ -240,6 +268,8 @@ class AnalyticsRecorder {
 
   location::nearby::proto::connections::ConnectionsStrategy
   StrategyToConnectionStrategy(connections::Strategy strategy);
+  ::location::nearby::proto::connections::PayloadType
+  PayloadTypeToProtoPayloadType(connections::Payload::Type type);
 
   // Not owned by AnalyticsRecorder. Pointer must refer to a valid object
   // that outlives the one constructed.

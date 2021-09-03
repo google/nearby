@@ -31,6 +31,7 @@ namespace analytics {
 using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::proto::connections::ACCEPTED;
 using ::location::nearby::proto::connections::ADVERTISER;
+using ::location::nearby::proto::connections::BYTES;
 using ::location::nearby::proto::connections::CLIENT_SESSION;
 using ::location::nearby::proto::connections::CONNECTION_CLOSED;
 using ::location::nearby::proto::connections::ConnectionAttemptResult;
@@ -40,6 +41,7 @@ using ::location::nearby::proto::connections::ConnectionsStrategy;
 using ::location::nearby::proto::connections::DisconnectionReason;
 using ::location::nearby::proto::connections::DISCOVERER;
 using ::location::nearby::proto::connections::EventType;
+using ::location::nearby::proto::connections::FILE;
 using ::location::nearby::proto::connections::IGNORED;
 using ::location::nearby::proto::connections::INCOMING;
 using ::location::nearby::proto::connections::INITIAL;
@@ -59,8 +61,10 @@ using ::location::nearby::proto::connections::START_CLIENT_SESSION;
 using ::location::nearby::proto::connections::START_STRATEGY_SESSION;
 using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
 using ::location::nearby::proto::connections::STOP_STRATEGY_SESSION;
+using ::location::nearby::proto::connections::STREAM;
 using ::location::nearby::proto::connections::UNFINISHED;
 using ::location::nearby::proto::connections::UNKNOWN_MEDIUM;
+using ::location::nearby::proto::connections::UNKNOWN_PAYLOAD_TYPE;
 using ::location::nearby::proto::connections::UNKNOWN_STRATEGY;
 using ::location::nearby::proto::connections::UPGRADED;
 
@@ -333,6 +337,99 @@ void AnalyticsRecorder::OnConnectionClosed(const std::string &endpoint_id,
             current_strategy_session_->mutable_established_connection()));
   }
 }
+void AnalyticsRecorder::OnIncomingPayloadStarted(
+    const std::string &endpoint_id, std::int64_t payload_id,
+    connections::Payload::Type type, std::int64_t total_size_bytes) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnIncomingPayloadStarted")) {
+    return;
+  }
+  auto it = active_connections_.find(endpoint_id);
+  if (it == active_connections_.end()) {
+    return;
+  }
+  std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+  logical_connection->IncomingPayloadStarted(
+      payload_id, PayloadTypeToProtoPayloadType(type), total_size_bytes);
+}
+
+void AnalyticsRecorder::OnPayloadChunkReceived(const std::string &endpoint_id,
+                                               std::int64_t payload_id,
+                                               std::int64_t chunk_size_bytes) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnPayloadChunkReceived")) {
+    return;
+  }
+  auto it = active_connections_.find(endpoint_id);
+  if (it == active_connections_.end()) {
+    return;
+  }
+  std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+  logical_connection->ChunkReceived(payload_id, chunk_size_bytes);
+}
+
+void AnalyticsRecorder::OnIncomingPayloadDone(const std::string &endpoint_id,
+                                              std::int64_t payload_id,
+                                              PayloadStatus status) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnIncomingPayloadDone")) {
+    return;
+  }
+  auto it = active_connections_.find(endpoint_id);
+  if (it == active_connections_.end()) {
+    return;
+  }
+  std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+  logical_connection->IncomingPayloadDone(payload_id, status);
+}
+
+void AnalyticsRecorder::OnOutgoingPayloadStarted(
+    const std::vector<std::string> &endpoint_ids, std::int64_t payload_id,
+    connections::Payload::Type type, std::int64_t total_size_bytes) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnOutgoingPayloadStarted")) {
+    return;
+  }
+  for (const auto &endpoint_id : endpoint_ids) {
+    auto it = active_connections_.find(endpoint_id);
+    if (it == active_connections_.end()) {
+      continue;
+    }
+    std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+    logical_connection->OutgoingPayloadStarted(
+        payload_id, PayloadTypeToProtoPayloadType(type), total_size_bytes);
+  }
+}
+
+void AnalyticsRecorder::OnPayloadChunkSent(const std::string &endpoint_id,
+                                           std::int64_t payload_id,
+                                           std::int64_t chunk_size_bytes) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnPayloadChunkSent")) {
+    return;
+  }
+  auto it = active_connections_.find(endpoint_id);
+  if (it == active_connections_.end()) {
+    return;
+  }
+  std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+  logical_connection->ChunkSent(payload_id, chunk_size_bytes);
+}
+
+void AnalyticsRecorder::OnOutgoingPayloadDone(const std::string &endpoint_id,
+                                              std::int64_t payload_id,
+                                              PayloadStatus status) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnOutgoingPayloadDone")) {
+    return;
+  }
+  auto it = active_connections_.find(endpoint_id);
+  if (it == active_connections_.end()) {
+    return;
+  }
+  std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+  logical_connection->OutgoingPayloadDone(payload_id, status);
+}
 
 void AnalyticsRecorder::LogSession() {
   MutexLock lock(&mutex_);
@@ -368,17 +465,19 @@ bool AnalyticsRecorder::CanRecordAnalyticsLocked(
 }
 
 void AnalyticsRecorder::LogClientSession() {
-  serial_executor_.Execute("analytics-recorder", [this]() {
-    ConnectionsLog connections_log;
-    connections_log.set_event_type(CLIENT_SESSION);
-    connections_log.set_allocated_client_session(client_session_.release());
-    connections_log.set_version(kVersion);
+  serial_executor_.Execute(
+      "analytics-recorder", [this]() {
+        ConnectionsLog connections_log;
+        connections_log.set_event_type(CLIENT_SESSION);
+        connections_log.set_allocated_client_session(client_session_.release());
+        connections_log.set_version(kVersion);
 
-    NEARBY_LOGS(INFO) << "AnalyticsRecorder LogClientSession connections_log="
-                      << connections_log.DebugString();
+        NEARBY_LOGS(VERBOSE)
+            << "AnalyticsRecorder LogClientSession connections_log="
+            << connections_log.DebugString();
 
-    event_logger_->Log(connections_log);
-  });
+        event_logger_->Log(connections_log);
+      });
 }
 
 void AnalyticsRecorder::LogEvent(EventType event_type) {
@@ -613,6 +712,20 @@ ConnectionsStrategy AnalyticsRecorder::StrategyToConnectionStrategy(
     return P2P_POINT_TO_POINT;
   }
   return UNKNOWN_STRATEGY;
+}
+
+PayloadType AnalyticsRecorder::PayloadTypeToProtoPayloadType(
+    connections::Payload::Type type) {
+  switch (type) {
+    case connections::Payload::Type::kBytes:
+      return BYTES;
+    case connections::Payload::Type::kFile:
+      return FILE;
+    case connections::Payload::Type::kStream:
+      return STREAM;
+    default:
+      return UNKNOWN_PAYLOAD_TYPE;
+  }
 }
 
 void AnalyticsRecorder::PendingPayload::AddChunk(
