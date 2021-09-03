@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "logs/proto/location/nearby/nearby_client_log.proto.h"
+
 #include "google/protobuf/descriptor.h"
 #include "gtest/gtest.h"
 #include "platform/public/logging.h"
@@ -26,7 +26,7 @@ namespace proto {
 
 namespace {
 
-using G3ConnectionsLog = ::location::nearby::logs::ConnectionsLog;
+using G3ConnectionsLog = ::location::nearby::analytics::proto::ConnectionsLog;
 using P3ConnectionsLog = ::location::nearby::analytics::proto::ConnectionsLog;
 
 using ::proto2::Descriptor;

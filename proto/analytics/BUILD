@@ -46,3 +46,22 @@ java_lite_proto_library(
     name = "connections_log_java_proto_lite",
     deps = [":connections_log_proto"],
 )
+
+cc_test(
+    name = "proto_analytics_test",
+    size = "small",
+    srcs = [
+        "connections_log_test.cc",
+    ],
+    shard_count = 16,
+    deps = [
+        ":connections_log_cc_proto",
+        
+        "//net/proto2/public",
+        "//testing/base/public:gunit_main",
+        "//platform/base",
+        "//platform/impl/g3",  # build_cleaner: keep
+        "//platform/public:logging",
+        "//proto:connections_enums_portable_proto",
+    ],
+)
