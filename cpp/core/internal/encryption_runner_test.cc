@@ -61,6 +61,8 @@ class FakeEndpointChannel : public EndpointChannel {
   void Pause() override {}
   void Resume() override {}
   absl::Time GetLastReadTimestamp() const override { return read_timestamp_; }
+  void SetAnalyticsRecorder(analytics::AnalyticsRecorder* analytics_recorder,
+                            const std::string& endpoint_id) override {}
 
  private:
   InputStream* in_ = nullptr;

@@ -866,6 +866,11 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
       << " EndpointChannel to conclude upgrade protocol for endpoint "
       << endpoint_id;
 
+  // Now the upgrade protocol has completed, record analytics for this new
+  // upgraded bandwidth connection...
+  client->GetAnalyticsRecorder().OnConnectionEstablished(
+      endpoint_id, medium_, client->GetConnectionToken(endpoint_id));
+
   // Now that the old channel has been drained, we can unpause the new channel
   std::shared_ptr<EndpointChannel> channel =
       channel_manager_->GetChannelForEndpoint(endpoint_id);

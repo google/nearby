@@ -81,6 +81,7 @@ AnalyticsRecorder::~AnalyticsRecorder() {
   MutexLock lock(&mutex_);
   incoming_connection_requests_.clear();
   outgoing_connection_requests_.clear();
+  active_connections_.clear();
   serial_executor_.Shutdown();
 }
 
@@ -101,7 +102,7 @@ void AnalyticsRecorder::OnStartAdvertising(connections::Strategy strategy,
   // Initialize and set a AdvertisingPhase.
   started_advertising_phase_time_ = SystemClock::ElapsedRealtime();
   current_advertising_phase_ =
-      absl::make_unique<proto::ConnectionsLog::AdvertisingPhase>();
+      absl::make_unique<ConnectionsLog::AdvertisingPhase>();
   absl::c_copy(mediums, RepeatedFieldBackInserter(
                             current_advertising_phase_->mutable_medium()));
 }
@@ -133,9 +134,8 @@ void AnalyticsRecorder::OnStartDiscovery(connections::Strategy strategy,
   started_discovery_phase_time_ = SystemClock::ElapsedRealtime();
   current_discovery_phase_ =
       absl::make_unique<ConnectionsLog::DiscoveryPhase>();
-  for (auto medium : mediums) {
-    current_discovery_phase_->add_medium(medium);
-  }
+  absl::c_copy(mediums, RepeatedFieldBackInserter(
+                            current_discovery_phase_->mutable_medium()));
 }
 
 void AnalyticsRecorder::OnStopDiscovery() {
@@ -287,6 +287,50 @@ void AnalyticsRecorder::OnOutgoingConnectionAttempt(
       connection_request->set_remote_response(NOT_SENT);
       UpdateDiscovererConnectionRequestLocked(connection_request.get());
     }
+  }
+}
+
+void AnalyticsRecorder::OnConnectionEstablished(
+    const std::string &endpoint_id, Medium medium,
+    const std::string &connection_token) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnConnectionEstablished")) {
+    return;
+  }
+  auto it = active_connections_.find(endpoint_id);
+  if (it != active_connections_.end()) {
+    std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+    logical_connection->PhysicalConnectionEstablished(medium, connection_token);
+  } else {
+    active_connections_.insert(
+        {endpoint_id,
+         absl::make_unique<LogicalConnection>(medium, connection_token)});
+  }
+}
+
+void AnalyticsRecorder::OnConnectionClosed(const std::string &endpoint_id,
+                                           Medium medium,
+                                           DisconnectionReason reason) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnConnectionClosed")) {
+    return;
+  }
+  auto it = active_connections_.find(endpoint_id);
+  if (it == active_connections_.end()) {
+    return;
+  }
+  std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+  logical_connection->PhysicalConnectionClosed(medium, reason);
+  if (reason != UPGRADED) {
+    // Unless this is an upgraded connection, remove this from our active
+    // connections. Any future communication with an endpoint will need to be
+    // re-established with a new ConnectionRequest.
+    auto pair = active_connections_.extract(it);
+    std::unique_ptr<LogicalConnection> &logical_connection = pair.mapped();
+    absl::c_copy(
+        logical_connection->GetEstablisedConnections(),
+        RepeatedFieldBackInserter(
+            current_strategy_session_->mutable_established_connection()));
   }
 }
 
@@ -537,6 +581,17 @@ void AnalyticsRecorder::FinishStrategySessionLocked() {
     FinishAdvertisingPhaseLocked();
     FinishDiscoveryPhaseLocked();
 
+    // Finish any unfinished LogicalConnections.
+    for (const auto &item : active_connections_) {
+      auto &logical_connection = item.second;
+      logical_connection->CloseAllPhysicalConnections();
+      absl::c_copy(
+          logical_connection->GetEstablisedConnections(),
+          RepeatedFieldBackInserter(
+              current_strategy_session_->mutable_established_connection()));
+    }
+    active_connections_.clear();
+
     // Add the StrategySession in ClientSession
     current_strategy_session_->set_duration_millis(absl::ToInt64Milliseconds(
         started_strategy_session_time_ - SystemClock::ElapsedRealtime()));
@@ -621,7 +676,8 @@ void AnalyticsRecorder::LogicalConnection::PhysicalConnectionClosed(
            " opened.";
     return;
   }
-  auto *established_connection = it->second.get();
+  ConnectionsLog::EstablishedConnection *established_connection =
+      it->second.get();
   if (established_connection->has_disconnection_reason()) {
     NEARBY_LOGS(WARNING)
         << "Unexpected call to physicalConnectionClosed() for medium "
@@ -677,7 +733,7 @@ void AnalyticsRecorder::LogicalConnection::ChunkReceived(
   if (it == incoming_payloads_.end()) {
     return;
   }
-  auto *pending_payload = it->second.get();
+  PendingPayload *pending_payload = it->second.get();
   pending_payload->AddChunk(size_bytes);
 }
 
@@ -690,7 +746,8 @@ void AnalyticsRecorder::LogicalConnection::IncomingPayloadDone(
   }
   auto it = physical_connections_.find(current_medium_);
   if (it != physical_connections_.end()) {
-    const auto &established_connection = it->second;
+    const std::unique_ptr<ConnectionsLog::EstablishedConnection>
+        &established_connection = it->second;
     auto it = incoming_payloads_.find(payload_id);
     if (it != incoming_payloads_.end()) {
       *established_connection->add_received_payload() =
@@ -712,7 +769,7 @@ void AnalyticsRecorder::LogicalConnection::ChunkSent(std::int64_t payload_id,
   if (it == outgoing_payloads_.end()) {
     return;
   }
-  auto *payload = it->second.get();
+  PendingPayload *payload = it->second.get();
   payload->AddChunk(size_bytes);
 }
 
@@ -725,7 +782,8 @@ void AnalyticsRecorder::LogicalConnection::OutgoingPayloadDone(
   }
   auto it = physical_connections_.find(current_medium_);
   if (it != physical_connections_.end()) {
-    const auto &established_connection = it->second;
+    const std::unique_ptr<ConnectionsLog::EstablishedConnection>
+        &established_connection = it->second;
     auto it = outgoing_payloads_.find(payload_id);
     if (it != outgoing_payloads_.end()) {
       *established_connection->add_sent_payload() =

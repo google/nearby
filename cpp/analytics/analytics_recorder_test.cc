@@ -30,6 +30,7 @@ namespace nearby {
 namespace analytics {
 namespace {
 
+using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::proto::connections::BLE;
 using ::location::nearby::proto::connections::BLUETOOTH;
 using ::location::nearby::proto::connections::CLIENT_SESSION;
@@ -41,6 +42,8 @@ using ::location::nearby::proto::connections::RESULT_SUCCESS;
 using ::location::nearby::proto::connections::START_STRATEGY_SESSION;
 using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
 using ::location::nearby::proto::connections::STOP_STRATEGY_SESSION;
+using ::location::nearby::proto::connections::UPGRADED;
+using ::location::nearby::proto::connections::WIFI_LAN;
 using ::testing::Contains;
 using ::testing::EqualsProto;
 using ::testing::proto::Partially;
@@ -52,7 +55,7 @@ class FakeEventLogger : public EventLogger {
   explicit FakeEventLogger(CountDownLatch& client_session_done_latch)
       : client_session_done_latch_(client_session_done_latch) {}
 
-  void Log(const proto::ConnectionsLog& connections_log) override {
+  void Log(const ConnectionsLog& connections_log) override {
     EventType event_type = connections_log.event_type();
     logged_event_types_.push_back(event_type);
     if (event_type == CLIENT_SESSION) {
@@ -68,7 +71,7 @@ class FakeEventLogger : public EventLogger {
     return logged_client_session_count_;
   }
 
-  const proto::ConnectionsLog::ClientSession& GetLoggedClientSession() {
+  const ConnectionsLog::ClientSession& GetLoggedClientSession() {
     return logged_client_session_;
   }
 
@@ -77,7 +80,7 @@ class FakeEventLogger : public EventLogger {
  private:
   int logged_client_session_count_ = 0;
   CountDownLatch& client_session_done_latch_;
-  proto::ConnectionsLog::ClientSession logged_client_session_;
+  ConnectionsLog::ClientSession logged_client_session_;
   std::vector<EventType> logged_event_types_;
 };
 
@@ -197,10 +200,10 @@ TEST(AnalyticsRecorderTest,
 TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
   connections::Strategy strategy = connections::Strategy::kP2pStar;
   std::vector<Medium> mediums = {BLE, BLUETOOTH};
-  std::string endpoint_id_0("endpoint_id_0");
-  std::string endpoint_id_1("endpoint_id_1");
-  std::string endpoint_id_2("endpoint_id_2");
-  std::string endpoint_id_3("endpoint_id_3");
+  std::string endpoint_id_0 = "endpoint_id_0";
+  std::string endpoint_id_1 = "endpoint_id_1";
+  std::string endpoint_id_2 = "endpoint_id_2";
+  std::string endpoint_id_3 = "endpoint_id_3";
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
@@ -257,10 +260,10 @@ TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
 TEST(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
   connections::Strategy strategy = connections::Strategy::kP2pStar;
   std::vector<Medium> mediums = {BLE, BLUETOOTH};
-  std::string endpoint_id_0("endpoint_id_0");
-  std::string endpoint_id_1("endpoint_id_1");
-  std::string endpoint_id_2("endpoint_id_2");
-  std::string endpoint_id_3("endpoint_id_3");
+  std::string endpoint_id_0 = "endpoint_id_0";
+  std::string endpoint_id_1 = "endpoint_id_1";
+  std::string endpoint_id_2 = "endpoint_id_2";
+  std::string endpoint_id_3 = "endpoint_id_3";
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
@@ -318,9 +321,9 @@ TEST(AnalyticsRecorderTest,
      AdvertiserUnfinishedConnectionRequestsIncludedAsIgnored) {
   connections::Strategy strategy = connections::Strategy::kP2pStar;
   std::vector<Medium> mediums = {BLE, BLUETOOTH};
-  std::string endpoint_id_0("endpoint_id_0");
-  std::string endpoint_id_1("endpoint_id_1");
-  std::string endpoint_id_2("endpoint_id_2");
+  std::string endpoint_id_0 = "endpoint_id_0";
+  std::string endpoint_id_1 = "endpoint_id_1";
+  std::string endpoint_id_2 = "endpoint_id_2";
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
@@ -368,9 +371,9 @@ TEST(AnalyticsRecorderTest,
      DiscovererUnfinishedConnectionRequestsIncludedAsIgnored) {
   connections::Strategy strategy = connections::Strategy::kP2pStar;
   std::vector<Medium> mediums = {BLE, BLUETOOTH};
-  std::string endpoint_id_0("endpoint_id_0");
-  std::string endpoint_id_1("endpoint_id_1");
-  std::string endpoint_id_2("endpoint_id_2");
+  std::string endpoint_id_0 = "endpoint_id_0";
+  std::string endpoint_id_1 = "endpoint_id_1";
+  std::string endpoint_id_2 = "endpoint_id_2";
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
@@ -418,8 +421,8 @@ TEST(AnalyticsRecorderTest,
 TEST(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
   connections::Strategy strategy = connections::Strategy::kP2pStar;
   std::vector<Medium> mediums = {BLE, BLUETOOTH};
-  std::string endpoint_id("endpoint_id");
-  std::string connection_token("");
+  std::string endpoint_id = "endpoint_id";
+  std::string connection_token = "";
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
@@ -452,8 +455,8 @@ TEST(AnalyticsRecorderTest,
      FailedConnectionAttemptUpdatesConnectionRequestNotSent) {
   connections::Strategy strategy = connections::Strategy::kP2pStar;
   std::vector<Medium> mediums = {BLE, BLUETOOTH};
-  std::string endpoint_id("endpoint_id");
-  std::string connection_token("");
+  std::string endpoint_id = "endpoint_id";
+  std::string connection_token = "";
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
@@ -486,6 +489,44 @@ TEST(AnalyticsRecorderTest,
                     medium: BLUETOOTH
                     attempt_result: RESULT_ERROR
                     connection_token: ""
+                  >
+                >)pb")));
+}
+
+TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+  std::vector<Medium> mediums = {BLE, BLUETOOTH};
+  std::string endpoint_id = "endpoint_id";
+  std::string connection_token = "connection_token";
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder(&event_logger);
+
+  analytics_recorder.OnStartAdvertising(strategy, mediums);
+  analytics_recorder.OnConnectionEstablished(endpoint_id, BLUETOOTH,
+                                             connection_token);
+  analytics_recorder.OnConnectionClosed(endpoint_id, BLUETOOTH, UPGRADED);
+  analytics_recorder.OnConnectionEstablished(endpoint_id, WIFI_LAN,
+                                             connection_token);
+
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase < medium: BLE medium: BLUETOOTH >
+                  established_connection <
+                    medium: BLUETOOTH
+                    disconnection_reason: UPGRADED
+                    connection_token: "connection_token"
+                  >
+                  established_connection <
+                    medium: WIFI_LAN
+                    disconnection_reason: UNFINISHED
+                    connection_token: "connection_token"
                   >
                 >)pb")));
 }

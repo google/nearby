@@ -64,6 +64,8 @@ class MockEndpointChannel : public EndpointChannel {
   MOCK_METHOD(void, Pause, (), (override));
   MOCK_METHOD(void, Resume, (), (override));
   MOCK_METHOD(absl::Time, GetLastReadTimestamp, (), (const override));
+  MOCK_METHOD(void, SetAnalyticsRecorder,
+              (analytics::AnalyticsRecorder*, const std::string&), (override));
 
   bool IsClosed() const {
     absl::MutexLock lock(&mutex_);

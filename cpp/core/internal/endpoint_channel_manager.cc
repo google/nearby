@@ -98,6 +98,7 @@ void EndpointChannelManager::SetActiveEndpointChannel(
     std::unique_ptr<EndpointChannel> channel) {
   // Update the channel first, then encrypt this new channel, if
   // crypto context is present.
+  channel->SetAnalyticsRecorder(&client->GetAnalyticsRecorder(), endpoint_id);
   channel_state_.UpdateChannelForEndpoint(endpoint_id, std::move(channel));
 
   auto* endpoint = channel_state_.LookupEndpointData(endpoint_id);

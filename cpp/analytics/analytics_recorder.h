@@ -83,6 +83,17 @@ class AnalyticsRecorder {
       absl::Duration duration, const std::string &connection_token)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Connection established
+  void OnConnectionEstablished(
+      const std::string &endpoint_id,
+      location::nearby::proto::connections::Medium medium,
+      const std::string &connection_token) ABSL_LOCKS_EXCLUDED(mutex_);
+  void OnConnectionClosed(
+      const std::string &endpoint_id,
+      location::nearby::proto::connections::Medium medium,
+      location::nearby::proto::connections ::DisconnectionReason reason)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Invokes event_logger_.Log() at the end of life of client. Log action is
   // called in a separate thread to allow synchronous potentially lengthy
   // execution.
@@ -130,9 +141,9 @@ class AnalyticsRecorder {
     LogicalConnection(const LogicalConnection &) = delete;
     LogicalConnection(LogicalConnection &&other)
         : current_medium_(std::move(other.current_medium_)),
-          physical_connections_{std::move(other.physical_connections_)},
-          incoming_payloads_{std::move(other.incoming_payloads_)},
-          outgoing_payloads_{std::move(other.outgoing_payloads_)} {}
+          physical_connections_(std::move(other.physical_connections_)),
+          incoming_payloads_(std::move(other.incoming_payloads_)),
+          outgoing_payloads_(std::move(other.outgoing_payloads_)) {}
     LogicalConnection &operator=(const LogicalConnection &) = delete;
     LogicalConnection &&operator=(LogicalConnection &&) = delete;
     ~LogicalConnection() = default;
@@ -267,6 +278,8 @@ class AnalyticsRecorder {
   absl::btree_map<std::string,
                   std::unique_ptr<proto::ConnectionsLog::ConnectionRequest>>
       outgoing_connection_requests_ ABSL_GUARDED_BY(mutex_);
+  absl::btree_map<std::string, std::unique_ptr<LogicalConnection>>
+      active_connections_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace analytics

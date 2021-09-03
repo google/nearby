@@ -1377,6 +1377,11 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
 
     channel_manager_->EncryptChannelForEndpoint(endpoint_id,
                                                 std::move(context));
+
+    client->GetAnalyticsRecorder().OnConnectionEstablished(
+        endpoint_id,
+        channel_manager_->GetChannelForEndpoint(endpoint_id)->GetMedium(),
+        connection_info.connection_token);
   } else {
     NEARBY_LOGS(INFO) << "Pending connection rejected; endpoint_id="
                       << endpoint_id;

@@ -256,11 +256,22 @@ void BaseEndpointChannel::CloseIo() {
   }
 }
 
+void BaseEndpointChannel::SetAnalyticsRecorder(
+    analytics::AnalyticsRecorder* analytics_recorder,
+    const std::string& endpoint_id) {
+  analytics_recorder_ = analytics_recorder;
+  endpoint_id_ = endpoint_id;
+}
+
 void BaseEndpointChannel::Close(
     proto::connections::DisconnectionReason reason) {
   NEARBY_LOGS(INFO) << __func__
                     << ": Closing endpoint channel, reason: " << reason;
   Close();
+
+  if (analytics_recorder_ != nullptr && !endpoint_id_.empty()) {
+    analytics_recorder_->OnConnectionClosed(endpoint_id_, GetMedium(), reason);
+  }
 }
 
 std::string BaseEndpointChannel::GetType() const {

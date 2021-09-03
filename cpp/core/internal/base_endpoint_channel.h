@@ -21,6 +21,7 @@
 
 #include "securegcm/d2d_connection_context_v1.h"
 #include "absl/base/thread_annotations.h"
+#include "third_party/nearby_connections/cpp/analytics/analytics_recorder.h"
 #include "core/internal/endpoint_channel.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/input_stream.h"
@@ -88,6 +89,9 @@ class BaseEndpointChannel : public EndpointChannel {
   absl::Time GetLastReadTimestamp() const
       ABSL_LOCKS_EXCLUDED(last_read_mutex_) override;
 
+  void SetAnalyticsRecorder(analytics::AnalyticsRecorder* analytics_recorder,
+                            const std::string& endpoint_id) override;
+
  protected:
   virtual void CloseImpl() = 0;
 
@@ -128,6 +132,9 @@ class BaseEndpointChannel : public EndpointChannel {
   ConditionVariable is_paused_cond_{&is_paused_mutex_};
   // If true, writes should block until this has been set to false.
   bool is_paused_ ABSL_GUARDED_BY(is_paused_mutex_) = false;
+
+  analytics::AnalyticsRecorder* analytics_recorder_ = nullptr;
+  std::string endpoint_id_ = "";
 };
 
 }  // namespace connections
