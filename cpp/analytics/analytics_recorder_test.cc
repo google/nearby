@@ -35,6 +35,7 @@ using ::location::nearby::proto::connections::BLE;
 using ::location::nearby::proto::connections::BLUETOOTH;
 using ::location::nearby::proto::connections::CLIENT_SESSION;
 using ::location::nearby::proto::connections::EventType;
+using ::location::nearby::proto::connections::INCOMING;
 using ::location::nearby::proto::connections::INITIAL;
 using ::location::nearby::proto::connections::LOCAL_DISCONNECTION;
 using ::location::nearby::proto::connections::Medium;
@@ -46,6 +47,9 @@ using ::location::nearby::proto::connections::STOP_STRATEGY_SESSION;
 using ::location::nearby::proto::connections::SUCCESS;
 using ::location::nearby::proto::connections::UPGRADED;
 using ::location::nearby::proto::connections::WIFI_LAN;
+using ::location::nearby::proto::connections::WIFI_LAN_MEDIUM_ERROR;
+using ::location::nearby::proto::connections::WIFI_LAN_SOCKET_CREATION;
+
 using ::testing::Contains;
 using ::testing::EqualsProto;
 using ::testing::proto::Partially;
@@ -239,7 +243,6 @@ TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
                     medium: BLE
                     medium: BLUETOOTH
                     received_connection_request <
-                      request_delay_millis: 0
                       local_response: ACCEPTED
                       remote_response: ACCEPTED
                     >
@@ -536,9 +539,9 @@ TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
 TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
   connections::Strategy strategy = connections::Strategy::kP2pStar;
   std::vector<Medium> mediums = {BLE, BLUETOOTH};
-  std::string endpoint_id("endpoint_id");
-  std::int64_t payload_id(123456789);
-  std::string connection_token("connection_token");
+  std::string endpoint_id = "endpoint_id";
+  std::int64_t payload_id = 123456789;
+  std::string connection_token = "connection_token";
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
@@ -593,6 +596,69 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
                     disconnection_reason: LOCAL_DISCONNECTION
                     connection_token: "connection_token"
                   >
+                >)pb")));
+}
+
+TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+  std::vector<Medium> mediums = {BLE, BLUETOOTH};
+  std::string endpoint_id = "endpoint_id";
+  std::string endpoint_id_1 = "endpoint_id_1";
+  std::string endpoint_id_2 = "endpoint_id_2";
+  std::string connection_token = "connection_token";
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder(&event_logger);
+
+  analytics_recorder.OnStartAdvertising(strategy, mediums);
+
+  analytics_recorder.OnBandwidthUpgradeStarted(endpoint_id, BLE, WIFI_LAN,
+                                               INCOMING, connection_token);
+
+  analytics_recorder.OnBandwidthUpgradeStarted(
+      endpoint_id_1, BLUETOOTH, WIFI_LAN, INCOMING, connection_token);
+  // Error to upgrade.
+  analytics_recorder.OnBandwidthUpgradeError(endpoint_id, WIFI_LAN_MEDIUM_ERROR,
+                                             WIFI_LAN_SOCKET_CREATION);
+  // Success to upgrade.
+  analytics_recorder.OnBandwidthUpgradeSuccess(endpoint_id_1);
+  // Upgrade is unfinished.
+  analytics_recorder.OnBandwidthUpgradeStarted(
+      endpoint_id_2, BLUETOOTH, WIFI_LAN, INCOMING, connection_token);
+
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase < medium: BLE medium: BLUETOOTH >
+                  upgrade_attempt <
+                    direction: INCOMING
+                    from_medium: BLE
+                    to_medium: WIFI_LAN
+                    upgrade_result: WIFI_LAN_MEDIUM_ERROR
+                    error_stage: WIFI_LAN_SOCKET_CREATION
+                    connection_token: "connection_token"
+                  >
+                  upgrade_attempt <
+                    direction: INCOMING
+                    from_medium: BLUETOOTH
+                    to_medium: WIFI_LAN
+                    upgrade_result: UPGRADE_RESULT_SUCCESS
+                    error_stage: UPGRADE_SUCCESS
+                    connection_token: "connection_token"
+                  >
+                  upgrade_attempt {
+                    direction: INCOMING
+                    from_medium: BLUETOOTH
+                    to_medium: WIFI_LAN
+                    upgrade_result: UNFINISHED_ERROR
+                    error_stage: UPGRADE_UNFINISHED
+                    connection_token: "connection_token"
+                  }
                 >)pb")));
 }
 

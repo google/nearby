@@ -106,7 +106,7 @@ class AnalyticsRecorder {
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnIncomingPayloadDone(
       const std::string &endpoint_id, std::int64_t payload_id,
-      ::location::nearby::proto::connections::PayloadStatus status)
+      location::nearby::proto::connections::PayloadStatus status)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnOutgoingPayloadStarted(const std::vector<std::string> &endpoint_ids,
                                 std::int64_t payload_id,
@@ -119,7 +119,23 @@ class AnalyticsRecorder {
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnOutgoingPayloadDone(
       const std::string &endpoint_id, std::int64_t payload_id,
-      ::location::nearby::proto::connections::PayloadStatus status)
+      location::nearby::proto::connections::PayloadStatus status)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // BandwidthUpgrade
+  void OnBandwidthUpgradeStarted(
+      const std::string &endpoint_id,
+      location::nearby::proto::connections::Medium from_medium,
+      location::nearby::proto::connections::Medium to_medium,
+      location::nearby::proto::connections::ConnectionAttemptDirection
+          direction,
+      const std::string &connection_token) ABSL_LOCKS_EXCLUDED(mutex_);
+  void OnBandwidthUpgradeError(
+      const std::string &endpoint_id,
+      location::nearby::proto::connections::BandwidthUpgradeResult result,
+      location::nearby::proto::connections::BandwidthUpgradeErrorStage
+          error_stage) ABSL_LOCKS_EXCLUDED(mutex_);
+  void OnBandwidthUpgradeSuccess(const std::string &endpoint_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Invokes event_logger_.Log() at the end of life of client. Log action is
@@ -264,11 +280,17 @@ class AnalyticsRecorder {
   void MarkConnectionRequestIgnoredLocked(
       proto::ConnectionsLog::ConnectionRequest *request)
       ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+  void FinishUpgradeAttemptLocked(
+      const std::string &endpoint_id,
+      location::nearby::proto::connections::BandwidthUpgradeResult result,
+      location::nearby::proto::connections::BandwidthUpgradeErrorStage
+          error_stage,
+      bool erase_item = true) ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void FinishStrategySessionLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   location::nearby::proto::connections::ConnectionsStrategy
   StrategyToConnectionStrategy(connections::Strategy strategy);
-  ::location::nearby::proto::connections::PayloadType
+  location::nearby::proto::connections::PayloadType
   PayloadTypeToProtoPayloadType(connections::Payload::Type type);
 
   // Not owned by AnalyticsRecorder. Pointer must refer to a valid object
@@ -310,6 +332,10 @@ class AnalyticsRecorder {
       outgoing_connection_requests_ ABSL_GUARDED_BY(mutex_);
   absl::btree_map<std::string, std::unique_ptr<LogicalConnection>>
       active_connections_ ABSL_GUARDED_BY(mutex_);
+  absl::btree_map<
+      std::string,
+      std::unique_ptr<proto::ConnectionsLog::BandwidthUpgradeAttempt>>
+      bandwidth_upgrade_attempts_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace analytics

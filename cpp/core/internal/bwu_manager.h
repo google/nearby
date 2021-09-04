@@ -160,6 +160,9 @@ class BwuManager : public EndpointManager::FrameProcessor {
   absl::Duration CalculateNextRetryDelay(const std::string& endpoint_id);
   void RetryUpgradesAfterDelay(ClientProxy* client,
                                const std::string& endpoint_id);
+  void AttemptToRecordBandwidthUpgradeErrorForUnknownEndpoint(
+      proto::connections::BandwidthUpgradeResult result,
+      proto::connections::BandwidthUpgradeErrorStage error_stage);
 
   Config config_;
 

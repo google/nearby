@@ -31,9 +31,12 @@ namespace analytics {
 using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::proto::connections::ACCEPTED;
 using ::location::nearby::proto::connections::ADVERTISER;
+using ::location::nearby::proto::connections::BandwidthUpgradeErrorStage;
+using ::location::nearby::proto::connections::BandwidthUpgradeResult;
 using ::location::nearby::proto::connections::BYTES;
 using ::location::nearby::proto::connections::CLIENT_SESSION;
 using ::location::nearby::proto::connections::CONNECTION_CLOSED;
+using ::location::nearby::proto::connections::ConnectionAttemptDirection;
 using ::location::nearby::proto::connections::ConnectionAttemptResult;
 using ::location::nearby::proto::connections::ConnectionAttemptType;
 using ::location::nearby::proto::connections::ConnectionRequestResponse;
@@ -63,9 +66,13 @@ using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
 using ::location::nearby::proto::connections::STOP_STRATEGY_SESSION;
 using ::location::nearby::proto::connections::STREAM;
 using ::location::nearby::proto::connections::UNFINISHED;
+using ::location::nearby::proto::connections::UNFINISHED_ERROR;
 using ::location::nearby::proto::connections::UNKNOWN_MEDIUM;
 using ::location::nearby::proto::connections::UNKNOWN_PAYLOAD_TYPE;
 using ::location::nearby::proto::connections::UNKNOWN_STRATEGY;
+using ::location::nearby::proto::connections::UPGRADE_RESULT_SUCCESS;
+using ::location::nearby::proto::connections::UPGRADE_SUCCESS;
+using ::location::nearby::proto::connections::UPGRADE_UNFINISHED;
 using ::location::nearby::proto::connections::UPGRADED;
 
 // These definitions are necessary before C++17.
@@ -86,6 +93,7 @@ AnalyticsRecorder::~AnalyticsRecorder() {
   incoming_connection_requests_.clear();
   outgoing_connection_requests_.clear();
   active_connections_.clear();
+  bandwidth_upgrade_attempts_.clear();
   serial_executor_.Shutdown();
 }
 
@@ -174,8 +182,8 @@ void AnalyticsRecorder::OnConnectionRequestReceived(
     return;
   }
   absl::Time current_time = SystemClock::ElapsedRealtime();
-  auto connection_request(
-      absl::make_unique<ConnectionsLog::ConnectionRequest>());
+  auto connection_request =
+      absl::make_unique<ConnectionsLog::ConnectionRequest>();
   connection_request->set_duration_millis(absl::ToUnixMillis(current_time));
   connection_request->set_request_delay_millis(absl::ToInt64Milliseconds(
       current_time - started_advertising_phase_time_));
@@ -190,8 +198,8 @@ void AnalyticsRecorder::OnConnectionRequestSent(
     return;
   }
   absl::Time current_time = SystemClock::ElapsedRealtime();
-  auto connection_request(
-      absl::make_unique<ConnectionsLog::ConnectionRequest>());
+  auto connection_request =
+      absl::make_unique<ConnectionsLog::ConnectionRequest>();
   connection_request->set_duration_millis(absl::ToUnixMillis(current_time));
   connection_request->set_request_delay_millis(
       absl::ToInt64Milliseconds(current_time - started_discovery_phase_time_));
@@ -303,7 +311,7 @@ void AnalyticsRecorder::OnConnectionEstablished(
   }
   auto it = active_connections_.find(endpoint_id);
   if (it != active_connections_.end()) {
-    std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+    const std::unique_ptr<LogicalConnection> &logical_connection = it->second;
     logical_connection->PhysicalConnectionEstablished(medium, connection_token);
   } else {
     active_connections_.insert(
@@ -323,7 +331,7 @@ void AnalyticsRecorder::OnConnectionClosed(const std::string &endpoint_id,
   if (it == active_connections_.end()) {
     return;
   }
-  std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+  const std::unique_ptr<LogicalConnection> &logical_connection = it->second;
   logical_connection->PhysicalConnectionClosed(medium, reason);
   if (reason != UPGRADED) {
     // Unless this is an upgraded connection, remove this from our active
@@ -348,7 +356,7 @@ void AnalyticsRecorder::OnIncomingPayloadStarted(
   if (it == active_connections_.end()) {
     return;
   }
-  std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+  const std::unique_ptr<LogicalConnection> &logical_connection = it->second;
   logical_connection->IncomingPayloadStarted(
       payload_id, PayloadTypeToProtoPayloadType(type), total_size_bytes);
 }
@@ -364,7 +372,7 @@ void AnalyticsRecorder::OnPayloadChunkReceived(const std::string &endpoint_id,
   if (it == active_connections_.end()) {
     return;
   }
-  std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+  const std::unique_ptr<LogicalConnection> &logical_connection = it->second;
   logical_connection->ChunkReceived(payload_id, chunk_size_bytes);
 }
 
@@ -379,7 +387,7 @@ void AnalyticsRecorder::OnIncomingPayloadDone(const std::string &endpoint_id,
   if (it == active_connections_.end()) {
     return;
   }
-  std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+  const std::unique_ptr<LogicalConnection> &logical_connection = it->second;
   logical_connection->IncomingPayloadDone(payload_id, status);
 }
 
@@ -395,7 +403,7 @@ void AnalyticsRecorder::OnOutgoingPayloadStarted(
     if (it == active_connections_.end()) {
       continue;
     }
-    std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+    const std::unique_ptr<LogicalConnection> &logical_connection = it->second;
     logical_connection->OutgoingPayloadStarted(
         payload_id, PayloadTypeToProtoPayloadType(type), total_size_bytes);
   }
@@ -412,7 +420,7 @@ void AnalyticsRecorder::OnPayloadChunkSent(const std::string &endpoint_id,
   if (it == active_connections_.end()) {
     return;
   }
-  std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+  const std::unique_ptr<LogicalConnection> &logical_connection = it->second;
   logical_connection->ChunkSent(payload_id, chunk_size_bytes);
 }
 
@@ -427,8 +435,47 @@ void AnalyticsRecorder::OnOutgoingPayloadDone(const std::string &endpoint_id,
   if (it == active_connections_.end()) {
     return;
   }
-  std::unique_ptr<LogicalConnection> &logical_connection = it->second;
+  const std::unique_ptr<LogicalConnection> &logical_connection = it->second;
   logical_connection->OutgoingPayloadDone(payload_id, status);
+}
+
+void AnalyticsRecorder::OnBandwidthUpgradeStarted(
+    const std::string &endpoint_id, Medium from_medium, Medium to_medium,
+    ConnectionAttemptDirection direction, const std::string &connection_token) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnBandwidthUpgradeStarted")) {
+    return;
+  }
+  auto bandwidth_upgrade_attempt =
+      absl::make_unique<ConnectionsLog::BandwidthUpgradeAttempt>();
+  bandwidth_upgrade_attempt->set_duration_millis(
+      absl::ToUnixMillis(SystemClock::ElapsedRealtime()));
+  bandwidth_upgrade_attempt->set_from_medium(from_medium);
+  bandwidth_upgrade_attempt->set_to_medium(to_medium);
+  bandwidth_upgrade_attempt->set_direction(direction);
+  bandwidth_upgrade_attempt->set_connection_token(connection_token);
+  bandwidth_upgrade_attempts_.insert(
+      {endpoint_id, std::move(bandwidth_upgrade_attempt)});
+}
+
+void AnalyticsRecorder::OnBandwidthUpgradeError(
+    const std::string &endpoint_id, BandwidthUpgradeResult result,
+    BandwidthUpgradeErrorStage error_stage) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnBandwidthUpgradeError")) {
+    return;
+  }
+  FinishUpgradeAttemptLocked(endpoint_id, result, error_stage);
+}
+
+void AnalyticsRecorder::OnBandwidthUpgradeSuccess(
+    const std::string &endpoint_id) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnBandwidthUpgradeSuccess")) {
+    return;
+  }
+  FinishUpgradeAttemptLocked(endpoint_id, UPGRADE_RESULT_SUCCESS,
+                             UPGRADE_SUCCESS);
 }
 
 void AnalyticsRecorder::LogSession() {
@@ -545,7 +592,8 @@ void AnalyticsRecorder::FinishAdvertisingPhaseLocked() {
     for (const auto &item : incoming_connection_requests_) {
       // ConnectionRequests still pending have been ignored by the local or
       // remote (or both) endpoints.
-      const auto &connection_request = item.second;
+      const std::unique_ptr<ConnectionsLog::ConnectionRequest>
+          &connection_request = item.second;
       MarkConnectionRequestIgnoredLocked(connection_request.get());
       UpdateAdvertiserConnectionRequestLocked(connection_request.get());
     }
@@ -573,7 +621,8 @@ void AnalyticsRecorder::FinishDiscoveryPhaseLocked() {
     for (const auto &item : outgoing_connection_requests_) {
       // ConnectionRequests still pending have been ignored by the local or
       // remote (or both) endpoints.
-      const auto &connection_request = item.second;
+      const std::unique_ptr<ConnectionsLog::ConnectionRequest>
+          &connection_request = item.second;
       MarkConnectionRequestIgnoredLocked(connection_request.get());
       UpdateDiscovererConnectionRequestLocked(connection_request.get());
     }
@@ -675,6 +724,30 @@ void AnalyticsRecorder::MarkConnectionRequestIgnoredLocked(
   }
 }
 
+void AnalyticsRecorder::FinishUpgradeAttemptLocked(
+    const std::string &endpoint_id, BandwidthUpgradeResult result,
+    BandwidthUpgradeErrorStage error_stage, bool erase_item) {
+  if (current_strategy_session_ == nullptr) {
+    NEARBY_LOGS(INFO) << "Unable to record upgrade attempt due to null "
+                         "current_strategy_session_";
+    return;
+  }
+  // Add the BandwidthUpgradeAttempt in the current StrategySession.
+  auto it = bandwidth_upgrade_attempts_.find(endpoint_id);
+  if (it != bandwidth_upgrade_attempts_.end()) {
+    ConnectionsLog::BandwidthUpgradeAttempt *attempt = it->second.get();
+    attempt->set_duration_millis(
+        absl::ToUnixMillis(SystemClock::ElapsedRealtime()) -
+        attempt->duration_millis());
+    attempt->set_error_stage(error_stage);
+    attempt->set_upgrade_result(result);
+    *current_strategy_session_->add_upgrade_attempt() = *attempt;
+    if (erase_item) {
+      bandwidth_upgrade_attempts_.erase(it);
+    }
+  }
+}
+
 void AnalyticsRecorder::FinishStrategySessionLocked() {
   if (current_strategy_session_ != nullptr) {
     FinishAdvertisingPhaseLocked();
@@ -682,7 +755,8 @@ void AnalyticsRecorder::FinishStrategySessionLocked() {
 
     // Finish any unfinished LogicalConnections.
     for (const auto &item : active_connections_) {
-      auto &logical_connection = item.second;
+      const std::unique_ptr<LogicalConnection> &logical_connection =
+          item.second;
       logical_connection->CloseAllPhysicalConnections();
       absl::c_copy(
           logical_connection->GetEstablisedConnections(),
@@ -690,6 +764,13 @@ void AnalyticsRecorder::FinishStrategySessionLocked() {
               current_strategy_session_->mutable_established_connection()));
     }
     active_connections_.clear();
+
+    // Finish any pending upgrade attempts.
+    for (const auto &item : bandwidth_upgrade_attempts_) {
+      FinishUpgradeAttemptLocked(item.first, UNFINISHED_ERROR,
+                                 UPGRADE_UNFINISHED, /*erase_item=*/false);
+    }
+    bandwidth_upgrade_attempts_.clear();
 
     // Add the StrategySession in ClientSession
     current_strategy_session_->set_duration_millis(absl::ToInt64Milliseconds(
@@ -810,7 +891,8 @@ void AnalyticsRecorder::LogicalConnection::PhysicalConnectionClosed(
 
 void AnalyticsRecorder::LogicalConnection::CloseAllPhysicalConnections() {
   for (const auto &physical_connection : physical_connections_) {
-    auto *established_connection = physical_connection.second.get();
+    ConnectionsLog::EstablishedConnection *established_connection =
+        physical_connection.second.get();
     if (!established_connection->has_disconnection_reason()) {
       FinishPhysicalConnection(established_connection, UNFINISHED);
     }
@@ -938,7 +1020,7 @@ AnalyticsRecorder::LogicalConnection::ResolvePendingPayloads(
   PayloadStatus status =
       reason == UPGRADED ? MOVED_TO_NEW_MEDIUM : CONNECTION_CLOSED;
   for (const auto &item : pending_payloads) {
-    const auto &pending_payload = item.second;
+    const std::unique_ptr<PendingPayload> &pending_payload = item.second;
     ConnectionsLog::Payload proto_payload =
         pending_payload->GetProtoPayload(status);
     completed_payloads.push_back(proto_payload);
