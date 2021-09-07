@@ -129,6 +129,28 @@ cc_library(
 )
 
 cc_library(
+    name = "error_code_recorder",
+    srcs = [
+        "error_code_recorder.cc",
+    ],
+    hdrs = [
+        "error_code_params.h",
+        "error_code_recorder.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [
+        "//third_party/nearby_connections/cpp/analytics:__subpackages__",
+        "//core/internal:__subpackages__",
+        "//platform/impl:__subpackages__",
+    ],
+    deps = [
+        ":logging",
+        "//proto:connections_enums_portable_proto",
+        "//third_party/nearby_connections/proto/errorcode:error_code_enums_portable_proto",
+    ],
+)
+
+cc_library(
     name = "test_util",
     testonly = True,
     srcs = [
@@ -188,6 +210,19 @@ cc_test(
     deps = [
         ":base",
         ":cancellation_flag",
+        ":test_util",
+        "//testing/base/public:gunit_main",
+        "//platform/impl/g3",  # build_cleaner: keep
+    ],
+)
+
+cc_test(
+    name = "error_code_recorder_test",
+    srcs = [
+        "error_code_recorder_test.cc",
+    ],
+    deps = [
+        ":error_code_recorder",
         ":test_util",
         "//testing/base/public:gunit_main",
         "//platform/impl/g3",  # build_cleaner: keep
