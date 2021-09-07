@@ -360,3 +360,7 @@ message LocationStandard {
     ISO_3166_1_ALPHA_2 = 2;
   }
 }
+
+message UnhandledPayloadFileInfos {
+  map<int64, string> unhandled_payload_file_info = 1;
+}
