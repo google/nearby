@@ -16,6 +16,7 @@
 #define PLATFORM_IMPL_WINDOWS_SUBMITTABLE_EXECUTOR_H_
 
 #include "platform/api/submittable_executor.h"
+#include "platform/impl/windows/executor.h"
 
 namespace location {
 namespace nearby {
@@ -27,22 +28,24 @@ namespace windows {
 // Platform must override bool submit(std::function<void()>) method.
 class SubmittableExecutor : public api::SubmittableExecutor {
  public:
-  // TODO(b/184975123): replace with real implementation.
+  SubmittableExecutor();
+  SubmittableExecutor(int32_t maxConcurrancy);
   ~SubmittableExecutor() override = default;
 
   // Submit a callable (with no delay).
   // Returns true, if callable was submitted, false otherwise.
   // Callable is not submitted if shutdown is in progress.
-  // TODO(b/184975123): replace with real implementation.
-  bool DoSubmit(Runnable&& wrapped_callable) override { return false; }
+  bool DoSubmit(Runnable&& wrapped_callable) override;
 
   // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html#execute-java.lang.Runnable-
-  // TODO(b/184975123): replace with real implementation.
-  void Execute(Runnable&& runnable) override {}
+  void Execute(Runnable&& runnable) override;
 
   // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html#shutdown--
-  // TODO(b/184975123): replace with real implementation.
-  void Shutdown() override {}
+  void Shutdown() override;
+
+ private:
+  std::unique_ptr<nearby::windows::Executor> executor_;
+  std::atomic_bool shut_down_;
 };
 
 }  // namespace windows
