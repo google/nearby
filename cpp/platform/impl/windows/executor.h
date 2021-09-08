@@ -15,27 +15,42 @@
 #ifndef PLATFORM_IMPL_WINDOWS_EXECUTOR_H_
 #define PLATFORM_IMPL_WINDOWS_EXECUTOR_H_
 
+#include <atomic>
+
 #include "platform/api/executor.h"
+#include "platform/impl/windows/thread_pool.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
+enum class ExecutorState {
+  Ready,    // has been created and initialized
+  NotReady  // Executor has not been initialized
+};
 
 // This abstract class is the superclass of all classes representing an
 // Executor.
 class Executor : public api::Executor {
  public:
+  Executor();
+  Executor(int32_t maxConcurrency);
+
   // Before returning from destructor, executor must wait for all pending
   // jobs to finish.
-  // TODO(b/184975123): replace with real implementation.
-  ~Executor() override = default;
+  ~Executor() override {}
   // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html#execute-java.lang.Runnable-
-  // TODO(b/184975123): replace with real implementation.
-  void Execute(Runnable&& runnable) override {}
+  void Execute(Runnable&& runnable) override;
 
   // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html#shutdown--
-  // TODO(b/184975123): replace with real implementation.
-  void Shutdown() override {}
+  void Shutdown() override;
+
+ private:
+  bool InitializeThreadPool();
+  std::unique_ptr<ThreadPool> thread_pool_;
+
+  std::atomic<bool> shut_down_;
+  ExecutorState executor_state_;
+  int32_t max_concurrency_;
 };
 
 }  // namespace windows
