@@ -15,11 +15,16 @@
 #ifndef PLATFORM_IMPL_WINDOWS_SCHEDULED_EXECUTOR_H_
 #define PLATFORM_IMPL_WINDOWS_SCHEDULED_EXECUTOR_H_
 
+#include <windows.h>
+
 #include "platform/api/scheduled_executor.h"
+#include "platform/impl/windows/executor.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
+
+#define TIMER_NAME_BUFFER_SIZE 64
 
 // An Executor that can schedule commands to run after a given delay, or to
 // execute periodically.
@@ -27,26 +32,30 @@ namespace windows {
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ScheduledExecutorService.html
 class ScheduledExecutor : public api::ScheduledExecutor {
  public:
-  // TODO(b/184975123): replace with real implementation.
+  ScheduledExecutor();
+
   ~ScheduledExecutor() override = default;
 
   // Cancelable is kept both in the executor context, and in the caller context.
   // We want Cancelable to live until both caller and executor are done with it.
   // Exclusive ownership model does not work for this case;
   // using std:shared_ptr<> instead if std::unique_ptr<>.
-  // TODO(b/184975123): replace with real implementation.
   std::shared_ptr<api::Cancelable> Schedule(Runnable&& runnable,
-                                            absl::Duration duration) override {
-    return nullptr;
-  }
+                                            absl::Duration duration) override;
 
   // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html#execute-java.lang.Runnable-
-  // TODO(b/184975123): replace with real implementation.
-  void Execute(Runnable&& runnable) override {}
+  void Execute(Runnable&& runnable) override;
 
   // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html#shutdown--
-  // TODO(b/184975123): replace with real implementation.
-  void Shutdown() override {}
+  void Shutdown() override;
+
+ private:
+  static void WINAPI _TimerProc(LPVOID lpArgToCompletionRoutine,
+                                DWORD dwTimerLowValue, DWORD dwTimerHighValue);
+
+  std::unique_ptr<nearby::windows::Executor> executor_;
+  std::vector<HANDLE> waitable_timers_;
+  std::atomic_bool shut_down_;
 };
 
 }  // namespace windows
