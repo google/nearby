@@ -44,6 +44,7 @@ using ::location::nearby::proto::connections::ConnectionsStrategy;
 using ::location::nearby::proto::connections::DisconnectionReason;
 using ::location::nearby::proto::connections::DISCOVERER;
 using ::location::nearby::proto::connections::EventType;
+using ::location::nearby::proto::connections::ERROR_CODE;
 using ::location::nearby::proto::connections::FILE;
 using ::location::nearby::proto::connections::IGNORED;
 using ::location::nearby::proto::connections::INCOMING;
@@ -476,6 +477,69 @@ void AnalyticsRecorder::OnBandwidthUpgradeSuccess(
   }
   FinishUpgradeAttemptLocked(endpoint_id, UPGRADE_RESULT_SUCCESS,
                              UPGRADE_SUCCESS);
+}
+
+void AnalyticsRecorder::OnErrorCode(const ErrorCodeParams& params) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnErrorCode")) {
+    return;
+  }
+  auto error_code = absl::make_unique<ConnectionsLog::ErrorCode>();
+  error_code->set_medium(params.medium);
+  error_code->set_event(params.event);
+  error_code->set_connection_token(params.connection_token);
+  error_code->set_description(params.description);
+
+  if (params.is_common_error) {
+    error_code->set_common_error(params.common_error);
+  } else {
+    switch (params.event) {
+      case errorcode::proto::START_ADVERTISING:
+        error_code->set_start_advertising_error(params.start_advertising_error);
+        break;
+      case errorcode::proto::STOP_ADVERTISING:
+        error_code->set_stop_advertising_error(params.stop_advertising_error);
+        break;
+      case errorcode::proto::START_LISTENING_INCOMING_CONNECTION:
+        error_code->set_start_listening_incoming_connection_error(
+            params.start_listening_incoming_connection_error);
+        break;
+      case errorcode::proto::STOP_LISTENING_INCOMING_CONNECTION:
+        error_code->set_stop_listening_incoming_connection_error(
+            params.stop_listening_incoming_connection_error);
+        break;
+      case errorcode::proto::START_DISCOVERING:
+        error_code->set_start_discovering_error(params.start_discovering_error);
+        break;
+      case errorcode::proto::STOP_DISCOVERING:
+        error_code->set_stop_discovering_error(params.stop_discovering_error);
+        break;
+      case errorcode::proto::CONNECT:
+        error_code->set_connect_error(params.connect_error);
+        break;
+      case errorcode::proto::DISCONNECT:
+        error_code->set_disconnect_error(params.disconnect_error);
+        break;
+      case errorcode::proto::UNKNOWN_EVENT:
+      default:
+        error_code->set_common_error(params.common_error);
+        break;
+    }
+  }
+
+  serial_executor_.Execute(
+      "analytics-recorder", [this, error_code = error_code.release()]() {
+        ConnectionsLog connections_log;
+        connections_log.set_event_type(ERROR_CODE);
+        connections_log.set_version(kVersion);
+        connections_log.set_allocated_error_code(error_code);
+
+        NEARBY_LOGS(VERBOSE)
+            << "AnalyticsRecorder LogErrorCode connections_log="
+            << connections_log.DebugString();
+
+        event_logger_->Log(connections_log);
+      });
 }
 
 void AnalyticsRecorder::LogSession() {

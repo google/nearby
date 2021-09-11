@@ -107,6 +107,7 @@ cc_library(
         "//platform/api:comm",
         "//platform/base",
         "//platform/base:cancellation_flag",
+        "//platform/base:error_code_recorder",
         "//platform/base:util",
         "//platform/public:comm",
         "//platform/public:logging",

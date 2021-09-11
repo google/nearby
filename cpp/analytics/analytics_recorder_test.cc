@@ -20,6 +20,8 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
+#include "platform/base/error_code_params.h"
+#include "platform/base/error_code_recorder.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
 #include "proto/analytics/connections_log.proto.h"
@@ -31,9 +33,18 @@ namespace analytics {
 namespace {
 
 using ::location::nearby::analytics::proto::ConnectionsLog;
+using ::location::nearby::errorcode::proto::DISCONNECT;
+using ::location::nearby::errorcode::proto::DISCONNECT_NETWORK_FAILED;
+using ::location::nearby::errorcode::proto::INVALID_PARAMETER;
+using ::location::nearby::errorcode::proto::NULL_BLUETOOTH_DEVICE_NAME;
+using ::location::nearby::errorcode::proto::START_DISCOVERING;
+using ::location::nearby::errorcode::proto::START_EXTENDED_DISCOVERING_FAILED;
+using ::location::nearby::errorcode::proto::
+    TACHYON_SEND_MESSAGE_STATUS_EXCEPTION;
 using ::location::nearby::proto::connections::BLE;
 using ::location::nearby::proto::connections::BLUETOOTH;
 using ::location::nearby::proto::connections::CLIENT_SESSION;
+using ::location::nearby::proto::connections::ERROR_CODE;
 using ::location::nearby::proto::connections::EventType;
 using ::location::nearby::proto::connections::INCOMING;
 using ::location::nearby::proto::connections::INITIAL;
@@ -46,6 +57,7 @@ using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
 using ::location::nearby::proto::connections::STOP_STRATEGY_SESSION;
 using ::location::nearby::proto::connections::SUCCESS;
 using ::location::nearby::proto::connections::UPGRADED;
+using ::location::nearby::proto::connections::WEB_RTC;
 using ::location::nearby::proto::connections::WIFI_LAN;
 using ::location::nearby::proto::connections::WIFI_LAN_MEDIUM_ERROR;
 using ::location::nearby::proto::connections::WIFI_LAN_SOCKET_CREATION;
@@ -68,6 +80,9 @@ class FakeEventLogger : public EventLogger {
       logged_client_session_count_++;
       logged_client_session_ = connections_log.client_session();
     }
+    if (event_type == ERROR_CODE) {
+      error_code_ = connections_log.error_code();
+    }
     if (event_type == STOP_CLIENT_SESSION) {
       client_session_done_latch_.CountDown();
     }
@@ -81,12 +96,15 @@ class FakeEventLogger : public EventLogger {
     return logged_client_session_;
   }
 
+  const ConnectionsLog::ErrorCode& GetErrorCode() { return error_code_; }
+
   std::vector<EventType> GetLoggedEventTypes() { return logged_event_types_; }
 
  private:
   int logged_client_session_count_ = 0;
   CountDownLatch& client_session_done_latch_;
   ConnectionsLog::ClientSession logged_client_session_;
+  ConnectionsLog::ErrorCode error_code_;
   std::vector<EventType> logged_event_types_;
 };
 
@@ -660,6 +678,90 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
                     connection_token: "connection_token"
                   }
                 >)pb")));
+}
+
+TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectly) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+  std::vector<Medium> mediums = {WEB_RTC};
+  std::string connection_token = "connection_token";
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder(&event_logger);
+  analytics_recorder.OnStartDiscovery(strategy, mediums);
+
+  ErrorCodeParams error_code_params = ErrorCodeRecorder::BuildErrorCodeParams(
+      WEB_RTC, DISCONNECT, DISCONNECT_NETWORK_FAILED,
+      TACHYON_SEND_MESSAGE_STATUS_EXCEPTION, "", connection_token);
+  analytics_recorder.OnErrorCode(error_code_params);
+
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetErrorCode(), Partially(EqualsProto(R"pb(
+                medium: WEB_RTC
+                event: DISCONNECT
+                description: TACHYON_SEND_MESSAGE_STATUS_EXCEPTION
+                disconnect_error: DISCONNECT_NETWORK_FAILED
+                connection_token: "connection_token"
+              )pb")));
+}
+
+TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForUnknownDescription) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+  std::vector<Medium> mediums = {BLUETOOTH};
+  std::string connection_token = "connection_token";
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder(&event_logger);
+  analytics_recorder.OnStartDiscovery(strategy, mediums);
+
+  ErrorCodeParams error_code_params;
+  // Skip setting error_code_params.description
+  error_code_params.medium = BLUETOOTH;
+  error_code_params.event = START_DISCOVERING;
+  error_code_params.start_discovering_error = START_EXTENDED_DISCOVERING_FAILED;
+  error_code_params.connection_token = connection_token;
+  analytics_recorder.OnErrorCode(error_code_params);
+
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetErrorCode(), Partially(EqualsProto(R"pb(
+                medium: BLUETOOTH
+                event: START_DISCOVERING
+                description: UNKNOWN
+                start_discovering_error: START_EXTENDED_DISCOVERING_FAILED
+                connection_token: "connection_token"
+              )pb")));
+}
+
+TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForCommonError) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+  std::vector<Medium> mediums = {BLUETOOTH};
+  std::string connection_token = "connection_token";
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder(&event_logger);
+  analytics_recorder.OnStartDiscovery(strategy, mediums);
+
+  ErrorCodeParams error_code_params = ErrorCodeRecorder::BuildErrorCodeParams(
+      BLUETOOTH, START_DISCOVERING, INVALID_PARAMETER,
+      NULL_BLUETOOTH_DEVICE_NAME, "", connection_token);
+  analytics_recorder.OnErrorCode(error_code_params);
+
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetErrorCode(), Partially(EqualsProto(R"pb(
+                medium: BLUETOOTH
+                event: START_DISCOVERING
+                description: NULL_BLUETOOTH_DEVICE_NAME
+                common_error: INVALID_PARAMETER
+                connection_token: "connection_token"
+              )pb")));
 }
 
 }  // namespace

@@ -24,6 +24,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
+#include "platform/base/error_code_recorder.h"
 #include "platform/base/feature_flags.h"
 #include "platform/base/prng.h"
 #include "platform/public/logging.h"
@@ -48,6 +49,10 @@ ClientProxy::ClientProxy(analytics::EventLogger* event_logger)
   NEARBY_LOGS(INFO) << "ClientProxy ctor event_logger=" << event_logger;
   analytics_recorder_ =
       std::make_unique<analytics::AnalyticsRecorder>(event_logger);
+  error_code_recorder_ = std::make_unique<ErrorCodeRecorder>(
+      [this](const ErrorCodeParams& params) {
+        analytics_recorder_->OnErrorCode(params);
+      });
 }
 
 ClientProxy::~ClientProxy() { Reset(); }

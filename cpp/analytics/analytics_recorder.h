@@ -22,6 +22,7 @@
 #include "core/event_logger.h"
 #include "core/payload.h"
 #include "core/strategy.h"
+#include "platform/base/error_code_params.h"
 #include "platform/public/mutex.h"
 #include "platform/public/single_thread_executor.h"
 #include "proto/analytics/connections_log.proto.h"
@@ -137,6 +138,9 @@ class AnalyticsRecorder {
           error_stage) ABSL_LOCKS_EXCLUDED(mutex_);
   void OnBandwidthUpgradeSuccess(const std::string &endpoint_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Error Code
+  void OnErrorCode(const ErrorCodeParams &params);
 
   // Invokes event_logger_.Log() at the end of life of client. Log action is
   // called in a separate thread to allow synchronous potentially lengthy
@@ -303,7 +307,7 @@ class AnalyticsRecorder {
 
   // ClientSession
   std::unique_ptr<proto::ConnectionsLog::ClientSession> client_session_ =
-      std::make_unique<proto::ConnectionsLog::ClientSession>();
+      absl::make_unique<proto::ConnectionsLog::ClientSession>();
   absl::Time started_client_session_time_;
   bool session_was_logged_ ABSL_GUARDED_BY(mutex_) = false;
 

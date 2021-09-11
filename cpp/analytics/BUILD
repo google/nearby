@@ -32,10 +32,12 @@ cc_library(
         "//core:core_types",
         "//core:event_logger",
         "//platform/base",
+        "//platform/base:error_code_recorder",
         "//platform/public:logging",
         "//platform/public:types",
         "//proto:connections_enums_portable_proto",
         "//proto/analytics:connections_log_cc_proto",
+        "//third_party/nearby_connections/proto/errorcode:error_code_enums_portable_proto",
     ],
 )
 
@@ -50,6 +52,7 @@ cc_test(
         ":analytics",
         "//testing/base/public:gunit_main",
         "//absl/time",
+        "//platform/base:error_code_recorder",
         "//platform/impl/g3",  # build_cleaner: keep
         "//platform/public:logging",
         "//platform/public:types",

@@ -64,7 +64,6 @@ class ErrorCodeRecorder {
       location::nearby::errorcode::proto::Description description,
       const std::string& pii_message, const std::string& connection_token);
 
- private:
   // An auxiliary funciton for LogError() to assemble the ErrorCodeParams
   // struct.
   //
@@ -75,6 +74,7 @@ class ErrorCodeRecorder {
       location::nearby::errorcode::proto::Description description,
       const std::string& pii_message, const std::string& connection_token);
 
+ private:
   // A listener to call back to AnlayticsRecorder.OnErrorCode() by building
   // error_code_params.
   static ErrorCodeListener listener_;

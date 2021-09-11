@@ -27,6 +27,7 @@
 #include "core/strategy.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/cancellation_flag.h"
+#include "platform/base/error_code_recorder.h"
 #include "platform/base/prng.h"
 #include "platform/public/cancelable_alarm.h"
 #include "platform/public/mutex.h"
@@ -312,6 +313,7 @@ class ClientProxy final {
   // An analytics logger with |EventLogger| provided by client, which is default
   // nullptr as no-op.
   std::unique_ptr<analytics::AnalyticsRecorder> analytics_recorder_;
+  std::unique_ptr<ErrorCodeRecorder> error_code_recorder_;
 };
 
 }  // namespace connections
