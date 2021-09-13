@@ -17,7 +17,6 @@ cc_library(
     name = "types",
     srcs = [
         "log_message.cc",
-        "system_clock.cc",
     ],
     hdrs = [
         "atomic_boolean.h",
@@ -108,6 +107,7 @@ cc_library(
         "platform.cc",
         "scheduled_executor.cc",
         "submittable_executor.cc",
+        "system_clock.cc",
         "thread_pool.cc",
         "utils.cc",
     ],

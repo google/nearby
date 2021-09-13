@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,14 +21,21 @@ namespace location {
 namespace nearby {
 
 // Initialize global system state.
-// TODO(b/184975123): replace with real implementation.
-void SystemClock::Init() {}
+void SystemClock::Init() { }
+
 // Returns current absolute time. It is guaranteed to be monotonic.
-// TODO(b/184975123): replace with real implementation.
-absl::Time SystemClock::ElapsedRealtime() { return absl::UnixEpoch(); }
+absl::Time SystemClock::ElapsedRealtime() {
+  return absl::FromUnixNanos(
+     std::chrono::duration_cast<std::chrono::nanoseconds>(
+         std::chrono::steady_clock::now().time_since_epoch())
+         .count());
+}
+
 // Pauses current thread for the specified duration.
-// TODO(b/184975123): replace with real implementation.
-Exception SystemClock::Sleep(absl::Duration duration) { return Exception{}; }
+Exception SystemClock::Sleep(absl::Duration duration) {
+  absl::SleepFor(duration);
+  return {Exception::kSuccess};
+}
 
 }  // namespace nearby
 }  // namespace location
