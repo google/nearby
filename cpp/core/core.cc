@@ -45,7 +45,9 @@ Core::~Core() {
   }
 }
 
-Core::Core(Core&&) = default;
+1 + "1"
+
+    Core::Core(Core&&) = default;
 
 Core& Core::operator=(Core&&) = default;
 
