@@ -14,7 +14,7 @@
 
 #include "platform/impl/windows/bluetooth_classic_medium.h"
 
-#include <Windows.h>
+#include <windows.h>
 #include <stdio.h>
 
 #include <codecvt>
@@ -42,15 +42,26 @@ namespace nearby {
 namespace windows {
 
 BluetoothClassicMedium::BluetoothClassicMedium(
-    const api::BluetoothAdapter& bluetoothAdapter)
-    : bluetooth_adapter_(
-          dynamic_cast<const BluetoothAdapter&>(bluetoothAdapter)) {
+    api::BluetoothAdapter& bluetoothAdapter)
+    : bluetooth_adapter_(dynamic_cast<BluetoothAdapter&>(bluetoothAdapter)) {
   InitializeCriticalSection(&critical_section_);
 
   InitializeDeviceWatcher();
+
+  bluetooth_adapter_.SetOnScanModeChanged(std::bind(
+      &BluetoothClassicMedium::OnScanModeChanged, this, std::placeholders::_1));
 }
 
 BluetoothClassicMedium::~BluetoothClassicMedium() {}
+
+void BluetoothClassicMedium::OnScanModeChanged(
+    BluetoothAdapter::ScanMode scanMode) {
+  scan_mode_ = scanMode;
+  bool radioDiscoverable = bluetooth_adapter_.GetScanMode() ==
+                           BluetoothAdapter::ScanMode::kConnectableDiscoverable;
+
+  bluetooth_server_socket_->SetScanMode(radioDiscoverable);
+}
 
 bool BluetoothClassicMedium::StartDiscovery(
     BluetoothClassicMedium::DiscoveryCallback discovery_callback) {
@@ -117,6 +128,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     api::BluetoothDevice& remote_device, const std::string& service_uuid,
     CancellationFlag* cancellation_flag) {
   if (service_uuid.empty()) {
+    NEARBY_LOGS(ERROR) << __func__ << ": service_uuid not specified.";
     return nullptr;
   }
 
@@ -127,12 +139,15 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   // Must check for valid pattern as the guid constructor will throw on an
   // invalid format
   if (!regex_match(service_uuid, pattern)) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": invalid service_uuid: " << service_uuid;
     return nullptr;
   }
 
   winrt::guid service(service_uuid);
 
   if (cancellation_flag == nullptr) {
+    NEARBY_LOGS(ERROR) << __func__ << ": cancellation_flag not specified.";
     return nullptr;
   }
 
@@ -140,12 +155,15 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
       dynamic_cast<BluetoothDevice*>(&remote_device);
 
   if (currentDevice == nullptr) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Failed to get current device.";
     return nullptr;
   }
 
   winrt::hstring deviceId = winrt::to_hstring(currentDevice->GetId());
 
   if (!HaveAccess(deviceId)) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Failed to gain access to device: "
+                       << winrt::to_string(deviceId);
     return nullptr;
   }
 
@@ -153,6 +171,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
       GetRequestedService(currentDevice, service));
 
   if (!CheckSdp(requestedService)) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Invalid SDP.";
     return nullptr;
   }
 
@@ -221,6 +240,7 @@ RfcommDeviceService BluetoothClassicMedium::GetRequestedService(
   if (rfcommServices.get().Services().Size() > 0) {
     requestedService = rfcommServices.get().Services().GetAt(0);
   } else {
+    NEARBY_LOGS(ERROR) << __func__ << ": No services found.";
     return nullptr;
   }
 
@@ -233,6 +253,7 @@ bool BluetoothClassicMedium::CheckSdp(RfcommDeviceService requestedService) {
   // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommdeviceservice.getsdprawattributesasync?view=winrt-20348
   auto attributes = /*await*/ requestedService.GetSdpRawAttributesAsync();
   if (!attributes.get().HasKey(Constants::SdpServiceNameAttributeId)) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Missing SdpServiceNameAttributeId.";
     return false;
   }
 
@@ -242,6 +263,7 @@ bool BluetoothClassicMedium::CheckSdp(RfcommDeviceService requestedService) {
   auto attributeType = attributeReader.ReadByte();
 
   if (attributeType != Constants::SdpServiceNameAttributeType) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Missing SdpServiceNameAttributeType.";
     return false;
   }
 
@@ -256,27 +278,37 @@ bool BluetoothClassicMedium::CheckSdp(RfcommDeviceService requestedService) {
 // UUID.
 //
 //  Returns nullptr error.
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<api::BluetoothServerSocket>
 BluetoothClassicMedium::ListenForService(const std::string& service_name,
                                          const std::string& service_uuid) {
   if (service_uuid.empty()) {
+    NEARBY_LOGS(ERROR) << __func__ << ": service_uuid was empty.";
     return nullptr;
   }
 
   if (service_name.empty()) {
+    NEARBY_LOGS(ERROR) << __func__ << ": service_name was empty.";
     return nullptr;
   }
 
   auto bluetooth_server_socket =
-      std::make_unique<location::nearby::windows::BluetoothServerSocket>();
+      std::make_unique<location::nearby::windows::BluetoothServerSocket>(
+          service_name, service_uuid);
 
-  bool radioDiscoverable =
-      bluetooth_adapter_.GetScanMode() ==
-              BluetoothAdapter::ScanMode::kConnectableDiscoverable;
+  if (bluetooth_server_socket == nullptr) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Failed to create the server socket.";
+    return nullptr;
+  }
 
-  bluetooth_server_socket->StartListening(service_name, service_uuid,
-                                          radioDiscoverable);
+  bool radioDiscoverable = bluetooth_adapter_.GetScanMode() ==
+                           BluetoothAdapter::ScanMode::kConnectableDiscoverable;
+
+  Exception result = bluetooth_server_socket->StartListening(radioDiscoverable);
+
+  if (result.value != Exception::kSuccess) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Failed to start listening.";
+    return nullptr;
+  }
 
   return std::move(bluetooth_server_socket);
 }
@@ -301,6 +333,9 @@ bool BluetoothClassicMedium::StartScanning() {
     }
   }
 
+  NEARBY_LOGS(ERROR)
+      << __func__
+      << ": Attempted to start scanning when watcher already started.";
   return false;
 }
 
@@ -309,7 +344,9 @@ bool BluetoothClassicMedium::StopScanning() {
     device_watcher_.Stop();
     return true;
   }
-
+  NEARBY_LOGS(ERROR)
+      << __func__
+      << ": Attempted to stop scanning when watcher already stopped.";
   return false;
 }
 

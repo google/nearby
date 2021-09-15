@@ -14,8 +14,8 @@
 
 #include "platform/impl/windows/bluetooth_classic_medium.h"
 
-#include <windows.h>
 #include <synchapi.h>
+#include <windows.h>
 
 #include <string>
 
@@ -31,8 +31,8 @@
 // TODO(jfcarroll): Find a way to mock winrt components in order to properly
 // unit test this. Once that's done, unit tests can be written, in a later C/L.
 //
-// CAUTION: THIS IS NOT A REAL TEST, THIS EXERCISES THE SCANNER, IT DOES NOT
-// STOP AND IS INTENDED SOLELY FOR DEBUG AND DEMONSTRATION PURPOSES. DO NOT
+// CAUTION: THIS IS NOT A REAL TEST, THIS EXERCISES THE SCANNER, IT MAY NOT
+// STOP/HANG AND IS INTENDED SOLELY FOR DEBUG AND DEMONSTRATION PURPOSES. DO NOT
 // ATTEMPT TO BUILD AND RUN THIS TEST ON GOOGLE3 YOU HAVE BEEN WARNED
 
 using location::nearby::windows::BluetoothDevice;
@@ -87,6 +87,11 @@ TEST_F(BluetoothClassicMediumTests, ManualTest) {
   std::unique_ptr<location::nearby::windows::BluetoothClassicMedium> bcm =
       std::make_unique<location::nearby::windows::BluetoothClassicMedium>(
           bluetoothAdapter);
+
+  bluetoothAdapter.SetScanMode(location::nearby::windows::BluetoothAdapter::
+                                   ScanMode::kConnectableDiscoverable);
+
+  auto mode = bluetoothAdapter.GetScanMode();
 
   bcm->StartDiscovery(
       location::nearby::api::BluetoothClassicMedium::DiscoveryCallback{

@@ -67,9 +67,9 @@ using winrt::Windows::Storage::Streams::UnicodeEncoding;
 // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html.
 class BluetoothServerSocket : public api::BluetoothServerSocket {
  public:
-  BluetoothServerSocket();
+  BluetoothServerSocket(const std::string service_name,
+                        const std::string service_uuid);
 
-  // TODO(b/184975123): replace with real implementation.
   ~BluetoothServerSocket() override;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html#accept()
@@ -87,13 +87,20 @@ class BluetoothServerSocket : public api::BluetoothServerSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override;
 
-  Exception StartListening(const std::string& service_name,
-                           const std::string& service_uuid,
-                           bool radioDiscoverable);
+  Exception StartListening(bool radioDiscoverable);
+
+  void SetScanMode(bool radioDiscoverable) {
+    radio_discoverable_ = radioDiscoverable;
+    StopAdvertising();
+    StartAdvertising();
+  }
 
  private:
   void InitializeServiceSdpAttributes(RfcommServiceProvider rfcommProvider,
                                       std::string service_name);
+
+  Exception StartAdvertising();
+  void StopAdvertising();
 
   // This is used to store sockets in case Accept hasn't been called. Once
   // Accept has been called the socket is popped from the queue and returned to
@@ -101,9 +108,13 @@ class BluetoothServerSocket : public api::BluetoothServerSocket {
   std::queue<std::unique_ptr<BluetoothSocket>> bluetooth_sockets_;
 
   StreamSocketListener stream_socket_listener_;
-
+  winrt::event_token listener_token_;
   CRITICAL_SECTION critical_section_;
   bool closed_ = false;
+  bool radio_discoverable_;
+
+  const std::string service_name_;
+  const std::string service_uuid_;
 
   RfcommServiceProvider* rfcomm_provider_;
 };

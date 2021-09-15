@@ -56,7 +56,6 @@ std::unique_ptr<AtomicUint32> ImplementationPlatform::CreateAtomicUint32(
   return absl::make_unique<windows::AtomicUint32>();
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<CountDownLatch> ImplementationPlatform::CreateCountDownLatch(
     std::int32_t count) {
   return absl::make_unique<windows::CountDownLatch>(count);
@@ -89,35 +88,30 @@ std::unique_ptr<LogMessage> ImplementationPlatform::CreateLogMessage(
   return absl::make_unique<windows::LogMessage>(file, line, severity);
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<SubmittableExecutor>
 ImplementationPlatform::CreateSingleThreadExecutor() {
   return absl::make_unique<windows::SubmittableExecutor>();
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<SubmittableExecutor>
 ImplementationPlatform::CreateMultiThreadExecutor(
     std::int32_t max_concurrency) {
-  return absl::make_unique<windows::SubmittableExecutor>();
+  return absl::make_unique<windows::SubmittableExecutor>(max_concurrency);
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<ScheduledExecutor>
 ImplementationPlatform::CreateScheduledExecutor() {
   return absl::make_unique<windows::ScheduledExecutor>();
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<BluetoothAdapter>
 ImplementationPlatform::CreateBluetoothAdapter() {
   return absl::make_unique<windows::BluetoothAdapter>();
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<BluetoothClassicMedium>
 ImplementationPlatform::CreateBluetoothClassicMedium(
-    BluetoothAdapter& adapter) {
+    nearby::api::BluetoothAdapter& adapter) {
   return absl::make_unique<location::nearby::windows::BluetoothClassicMedium>(
       adapter);
 }

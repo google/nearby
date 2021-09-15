@@ -26,7 +26,12 @@
 namespace location {
 namespace nearby {
 namespace windows {
-BluetoothServerSocket::BluetoothServerSocket() : rfcomm_provider_(nullptr) {
+BluetoothServerSocket::BluetoothServerSocket(const std::string service_name,
+                                             const std::string service_uuid)
+    : radio_discoverable_(false),
+      service_name_(service_name),
+      service_uuid_(service_uuid),
+      rfcomm_provider_(nullptr) {
   InitializeCriticalSection(&critical_section_);
 }
 
@@ -61,12 +66,10 @@ std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
   return nullptr;
 }
 
-Exception BluetoothServerSocket::StartListening(const std::string& service_name,
-                                                const std::string& service_uuid,
-                                                bool radioDiscoverable) {
+Exception BluetoothServerSocket::StartListening(bool radioDiscoverable) {
   EnterCriticalSection(&critical_section_);
 
-  winrt::guid service(service_uuid);
+  radio_discoverable_ = radioDiscoverable;
 
   // Create the StreamSocketListener
   stream_socket_listener_ = StreamSocketListener();
@@ -97,18 +100,19 @@ Exception BluetoothServerSocket::StartListening(const std::string& service_name,
 
   try {
     auto rfcommProviderRef =
-        RfcommServiceProvider::CreateAsync(RfcommServiceId::FromUuid(service))
+        RfcommServiceProvider::CreateAsync(
+            RfcommServiceId::FromUuid(winrt::guid(service_uuid_)))
             .get();
 
     rfcomm_provider_ = &rfcommProviderRef;
 
     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
     stream_socket_listener_
-        .BindServiceNameAsync(winrt::to_hstring(service_name.c_str()))
+        .BindServiceNameAsync(winrt::to_hstring(service_name_.c_str()))
         .get();
 
     // Set the SDP attributes and start Bluetooth advertising
-    InitializeServiceSdpAttributes(*rfcomm_provider_, service_name);
+    InitializeServiceSdpAttributes(*rfcomm_provider_, service_name_);
   } catch (std::exception exception) {
     // We will log and eat the exception since the caller
     // expects nullptr if it fails
@@ -120,9 +124,18 @@ Exception BluetoothServerSocket::StartListening(const std::string& service_name,
     return {Exception::kFailed};
   }
 
+  StartAdvertising();
+
+  LeaveCriticalSection(&critical_section_);
+
+  return {Exception::kSuccess};
+}
+
+Exception BluetoothServerSocket::StartAdvertising() {
   try {
     rfcomm_provider_->StartAdvertising(
-        stream_socket_listener_.as<StreamSocketListener>(), radioDiscoverable);
+        stream_socket_listener_.as<StreamSocketListener>(),
+        radio_discoverable_);
   } catch (std::exception exception) {
     // We will log and eat the exception since the caller
     // expects nullptr if it fails
@@ -134,9 +147,11 @@ Exception BluetoothServerSocket::StartListening(const std::string& service_name,
     return {Exception::kFailed};
   }
 
-  LeaveCriticalSection(&critical_section_);
-
   return {Exception::kSuccess};
+}
+
+void BluetoothServerSocket::StopAdvertising() {
+  rfcomm_provider_->StopAdvertising();
 }
 
 void BluetoothServerSocket::InitializeServiceSdpAttributes(

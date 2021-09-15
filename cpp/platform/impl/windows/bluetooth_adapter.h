@@ -25,60 +25,68 @@ namespace location {
 namespace nearby {
 namespace windows {
 
-  // Represents a Bluetooth adapter.
-  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter?view=winrt-20348
-  using winrt::Windows::Devices::Bluetooth::IBluetoothAdapter;
+// Represents a Bluetooth adapter.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter?view=winrt-20348
+using winrt::Windows::Devices::Bluetooth::IBluetoothAdapter;
 
-  // Represents a radio device on the system.
-  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.radios.radio?view=winrt-20348
-  using winrt::Windows::Devices::Radios::IRadio;
+// Represents a radio device on the system.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.radios.radio?view=winrt-20348
+using winrt::Windows::Devices::Radios::IRadio;
 
-  // Enumeration that describes possible radio states.
-  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.radios.radiostate?view=winrt-20348
-  using winrt::Windows::Devices::Radios::RadioState;
+// Enumeration that describes possible radio states.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.radios.radiostate?view=winrt-20348
+using winrt::Windows::Devices::Radios::RadioState;
 
-  // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html
+// https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html
 class BluetoothAdapter : public api::BluetoothAdapter {
  public:
   BluetoothAdapter();
 
-  // TODO(b/184975123): replace with real implementation.
   ~BluetoothAdapter() override = default;
+
+  typedef std::function<void(api::BluetoothAdapter::ScanMode)> ScanModeCallback;
 
   // Synchronously sets the status of the BluetoothAdapter to 'status', and
   // returns true if the operation was a success.
   bool SetStatus(Status status) override;
+
   // Returns true if the BluetoothAdapter's current status is
   // Status::Value::kEnabled.
   bool IsEnabled() const override;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getScanMode()
-  //
   // Returns ScanMode::kUnknown on error.
   ScanMode GetScanMode() const override;
+
   // Synchronously sets the scan mode of the adapter, and returns true if the
   // operation was a success.
   bool SetScanMode(ScanMode scan_mode) override;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getName()
   // Returns an empty string on error
-  // TODO(b/184975123): replace with real implementation.
   std::string GetName() const override;
+
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
   bool SetName(absl::string_view name) override;
 
   // Returns BT MAC address assigned to this adapter.
   std::string GetMacAddress() const override;
 
+  void SetOnScanModeChanged(ScanModeCallback callback) {
+    if (scan_mode_changed_ == nullptr) {
+      scan_mode_changed_ = callback;
+    }
+  }
+
  private:
-  IBluetoothAdapter
-      windows_bluetooth_adapter_;
+  IBluetoothAdapter windows_bluetooth_adapter_;
 
   IRadio windows_bluetooth_radio_;
   char *GetGenericBluetoothAdapterInstanceID(void) const;
   void find_and_replace(char *source, const char *strFind,
                         const char *strReplace) const;
   ScanMode scan_mode_ = ScanMode::kNone;
+  ScanModeCallback scan_mode_changed_ = nullptr;
 };
 
 }  // namespace windows

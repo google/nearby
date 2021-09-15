@@ -70,7 +70,6 @@ class BluetoothSocket : public api::BluetoothSocket {
       winrt::Windows::Networking::Sockets::StreamSocket streamSocket)
       : windows_socket_(streamSocket) {}
 
-  // TODO(b/184975123): replace with real implementation.
   ~BluetoothSocket() override;
 
   // NOTE:
@@ -88,7 +87,6 @@ class BluetoothSocket : public api::BluetoothSocket {
   // Closes both input and output streams, marks Socket as closed.
   // After this call object should be treated as not connected.
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  // TODO(b/184975123): replace with real implementation.
   Exception Close() override;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html#getRemoteDevice()

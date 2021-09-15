@@ -16,10 +16,10 @@
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_MEDIUM_H_
 
 #include "platform/api/bluetooth_classic.h"
+#include "platform/impl/windows/bluetooth_adapter.h"
 #include "platform/impl/windows/bluetooth_classic_device.h"
 #include "platform/impl/windows/bluetooth_classic_server_socket.h"
 #include "platform/impl/windows/bluetooth_classic_socket.h"
-#include "platform/impl/windows/bluetooth_adapter.h"
 #include "platform/impl/windows/generated/winrt/Windows.Devices.Enumeration.h"
 #include "platform/impl/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "platform/impl/windows/generated/winrt/base.h"
@@ -84,8 +84,7 @@ using winrt::Windows::Storage::Streams::DataWriter;
 // medium.
 class BluetoothClassicMedium : public api::BluetoothClassicMedium {
  public:
-  BluetoothClassicMedium() = default;
-  BluetoothClassicMedium(const api::BluetoothAdapter& bluetoothAdapter);
+  BluetoothClassicMedium(api::BluetoothAdapter& bluetoothAdapter);
 
   ~BluetoothClassicMedium() override;
 
@@ -129,7 +128,6 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
       const std::string& service_name,
       const std::string& service_uuid) override;
 
-  // TODO(b/184975123): replace with real implementation.
   api::BluetoothDevice* GetRemoteDevice(
       const std::string& mac_address) override;
 
@@ -139,6 +137,7 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   bool IsWatcherStarted();
   bool IsWatcherRunning();
   void InitializeDeviceWatcher();
+  void OnScanModeChanged(BluetoothAdapter::ScanMode scanMode);
 
   // This is for a coroutine whose return type is winrt::fire_and_forget, which
   // handles async operations which don't have any dependencies.
@@ -167,6 +166,10 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   DeviceWatcher device_watcher_ = nullptr;
 
   std::unique_ptr<BluetoothSocket> bluetooth_socket_;
+  std::unique_ptr<BluetoothServerSocket> bluetooth_server_socket_;
+
+  std::string service_name_;
+  std::string service_uuid_;
 
   // hstring is the only type of string winrt understands.
   // https://docs.microsoft.com/en-us/uwp/cpp-ref-for-winrt/hstring
@@ -176,7 +179,9 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   // https://docs.microsoft.com/en-us/windows/win32/sync/critical-section-objects
   CRITICAL_SECTION critical_section_;
 
-  BluetoothAdapter bluetooth_adapter_;
+  BluetoothAdapter& bluetooth_adapter_;
+
+  BluetoothAdapter::ScanMode scan_mode_;
 };
 
 }  // namespace windows

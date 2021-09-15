@@ -90,16 +90,18 @@ BluetoothAdapter::ScanMode BluetoothAdapter::GetScanMode() const {
 
 // Synchronously sets the scan mode of the adapter, and returns true if the
 // operation was a success.
-// TODO(jcarroll): Setup an event for this and hook the bluetooth medium into
-// the event to allow for updates.
 bool BluetoothAdapter::SetScanMode(ScanMode scan_mode) {
   scan_mode_ = scan_mode;
+
+  if (scan_mode_changed_ != nullptr) {
+    scan_mode_changed_(scan_mode);
+  }
+
   return true;
 }
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getName()
 // Returns an empty string on error
-// TODO(b/184975123): replace with real implementation.
 std::string BluetoothAdapter::GetName() const {
   char *instanceID = GetGenericBluetoothAdapterInstanceID();
 
