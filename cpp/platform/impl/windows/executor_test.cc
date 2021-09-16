@@ -14,6 +14,7 @@
 
 #include "platform/impl/windows/executor.h"
 
+#include <algorithm>
 #include <utility>
 
 #include "gtest/gtest.h"
@@ -293,4 +294,78 @@ TEST(ExecutorTests, MultiThreadedExecutorNegativeThreadsThrows) {
         }
       },
       std::invalid_argument);
+}
+
+TEST(ExecutorTests, MultiThreadedExecutorTooManyThreadsThrows) {
+  //  Arrange
+  //  Act
+  //  Assert
+  EXPECT_THROW(
+      {
+        try {
+          auto result =
+              std::make_unique<location::nearby::windows::Executor>(65);
+        } catch (const location::nearby::windows::ThreadPoolException& e) {
+          // and this tests that it has the correct message
+          EXPECT_STREQ("Thread pool max size exceeded.", e.what());
+          throw;
+        }
+      },
+      location::nearby::windows::ThreadPoolException);
+}
+
+TEST(ExecutorTests,
+     MultiThreadedExecutorMultipleTasksLargeNumberOfThreadsSucceeds) {
+  //  Arrange
+  std::unique_ptr<location::nearby::windows::Executor> executor =
+      std::make_unique<location::nearby::windows::Executor>(
+          MAXIMUM_WAIT_OBJECTS - 1);
+
+  //  Container to note threads that ran
+  std::vector<DWORD> threadIds = std::vector<DWORD>();
+
+  std::shared_ptr<std::string> output = std::make_shared<std::string>();
+
+  threadIds.push_back(GetCurrentThreadId());
+
+  CRITICAL_SECTION testCriticalSection;
+  InitializeCriticalSection(&testCriticalSection);
+
+  //  Act
+  for (int index = 0; index < 250; index++) {
+    executor->Execute(
+        [output, &threadIds, index, &testCriticalSection]() mutable {
+          DWORD id = GetCurrentThreadId();
+
+          EnterCriticalSection(&testCriticalSection);
+
+          threadIds.push_back(id);
+          output->append("runnable ");
+          output->append(std::to_string(index));
+          output->append(", ");
+
+          LeaveCriticalSection(&testCriticalSection);
+          // Using rand since this is in a critical section
+          // and windows doesn't have a rand_r anyway
+          auto sleepTime = (std::rand() % 101) + 1;  //  NOLINT
+
+          Sleep(sleepTime);
+        });
+  }
+
+  executor->Shutdown();
+  DeleteCriticalSection(&testCriticalSection);
+
+  //  Assert
+  //  We should still be on the main thread
+  ASSERT_EQ(GetCurrentThreadId(), threadIds.at(0));
+
+  std::sort(threadIds.begin(), threadIds.end());
+  int64_t uniqueIds =
+      std::unique(threadIds.begin(), threadIds.end()) - threadIds.begin();
+
+  ASSERT_EQ(uniqueIds, 64);
+  //  We should've run 1 time on the main thread, and 200 times on the
+  //  workerThreads
+  ASSERT_EQ(threadIds.size(), 251);
 }

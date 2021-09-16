@@ -79,8 +79,7 @@ loop_here:
 
   goto loop_here;
 
-  NEARBY_LOGS(VERBOSE) << "Info: " << __func__
-                       << ": Thread shutdown occurred.";
+  NEARBY_LOGS(VERBOSE) << "Info: " << __func__ << ": Thread shutdown occurred.";
 
   return 0;
 }
@@ -91,6 +90,13 @@ ThreadPool::ThreadPool(int nPoolSize, bool bCreateNow)
       thread_handles_(nullptr),
       wait_for_threads_to_die_ms_(500),
       notify_shutdown_(nullptr) {
+  // The MAXIMUM_WAIT_OBJECTS is the limiting factor, currently
+  // windows has a max of 64. This means we can only wait on up
+  // to 64 threads, anything more gives undesirable results.
+  if (nPoolSize > 63) {
+    throw ThreadPoolException("Thread pool max size exceeded.");
+  }
+
   pool_state_ = State::Destroyed;
   pool_size_ = nPoolSize;
 
@@ -98,7 +104,7 @@ ThreadPool::ThreadPool(int nPoolSize, bool bCreateNow)
 
   if (bCreateNow) {
     if (!Create()) {
-      throw ThreadPoolException("ThreadPool creation failed");
+      throw ThreadPoolException("Thread pool creation failed");
     }
   }
 }
@@ -116,15 +122,10 @@ bool ThreadPool::Create() {
                                            // since there's no access to the
                                            // instance_ var except through the
                                            // interlocked functions
-
   pool_name_ = std::string(buffer);
 
-  HANDLE thread;
-  DWORD threadId;
-  ThreadData threadData;
-  std::string eventName;
-
   // create the event which will signal the threads to stop
+  std::string eventName;
   notify_shutdown_ = CreateEvent(NULL, TRUE, FALSE, NULL);
   _ASSERT(notify_shutdown_ != NULL);
   if (!notify_shutdown_) {
@@ -134,53 +135,25 @@ bool ThreadPool::Create() {
     return false;
   }
 
+  SYSTEM_INFO sysinfo;
+  GetSystemInfo(&sysinfo);
+  int numCPU = sysinfo.dwNumberOfProcessors;
+
+  int threadsToCreate = 0;
+
+  // We are going to initially allocate the first n
+  // threads based on the number of logical cores
+  if (pool_size_ > numCPU) {
+    threadsToCreate = STARTUP_THREAD_COUNT;
+  } else {
+    threadsToCreate = pool_size_;
+  }
+
   thread_handles_ = new HANDLE[pool_size_];
 
   // create the threads
-  for (int nIndex = 0; nIndex < pool_size_; nIndex++) {
-    char buffer[EVENT_NAME_BUFFER_SIZE];
-
-    snprintf(buffer, EVENT_NAME_BUFFER_SIZE, "PID:%ld IID:%d TDX:%d",
-             GetCurrentProcessId(),
-             (uint32_t)(InterlockedAdd(&ThreadPool::instance_, 0)), nIndex);
-
-    thread = CreateThread(NULL, 0, ThreadPool::_ThreadProc, this,
-                          CREATE_SUSPENDED, &threadId);
-
-    _ASSERT(NULL != thread);
-
-    if (NULL == thread) {
-      NEARBY_LOGS(ERROR) << "Error: " << __func__
-                         << ": Failed to create thread.";
-      return false;
-    }
-
-    if (thread) {
-//      EnterCriticalSection(&critical_section_);
-      // add the entry to the map of threads
-      threadData.free = true;
-      threadData.wait_handle =
-          CreateEventA(NULL, TRUE, FALSE, eventName.c_str());
-
-      threadData.thread_handle = thread;
-      threadData.thread_id = threadId;
-
-      EnterCriticalSection(&critical_section_);
-
-      thread_map_->insert(ThreadMap::value_type(threadId, threadData));
-
-      LeaveCriticalSection(&critical_section_);
-
-      ResumeThread(thread);
-
-      NEARBY_LOGS(VERBOSE) << "Info: " << __func__
-                           << ": Thread created, handle: " << thread
-                           << ", id: " << threadId;
-    } else {
-      NEARBY_LOGS(ERROR) << "Error: " << __func__
-                         << ": Failed to create thread.";
-      return false;
-    }
+  for (int index = 0; index < threadsToCreate; index++) {
+    CreateThreadPoolThread(&thread_handles_[index]);
   }
 
   pool_state_ = State::Ready;
@@ -193,6 +166,55 @@ ThreadPool::~ThreadPool() {
   DeleteCriticalSection(&critical_section_);
 }
 
+DWORD ThreadPool::CreateThreadPoolThread(HANDLE* handles) {
+  HANDLE thread;
+  DWORD threadId;
+  std::unique_ptr<ThreadData> threadData = std::make_unique<ThreadData>();
+
+  char buffer[EVENT_NAME_BUFFER_SIZE];
+
+  snprintf(buffer, EVENT_NAME_BUFFER_SIZE, "PID:%ld IID:%d TDX:%d",
+           GetCurrentProcessId(),
+           (uint32_t)(InterlockedAdd(&ThreadPool::instance_, 0)),
+           (int)thread_map_->size());
+
+  thread = CreateThread(NULL, 0, ThreadPool::_ThreadProc, this,
+                        CREATE_SUSPENDED, &threadId);
+
+  _ASSERT(NULL != thread);
+
+  if (NULL == thread) {
+    NEARBY_LOGS(ERROR) << "Error: " << __func__ << ": Failed to create thread.";
+    return NULL;
+  }
+
+  if (thread) {
+    // add the entry to the map of threads
+    EnterCriticalSection(&critical_section_);
+
+    threadData->free = true;
+    threadData->wait_handle = CreateEventA(NULL, TRUE, FALSE, buffer);
+
+    threadData->thread_handle = thread;
+    threadData->thread_id = threadId;
+
+    thread_map_->insert(ThreadMap::value_type(threadId, std::move(threadData)));
+    *handles = thread;
+    LeaveCriticalSection(&critical_section_);
+
+    ResumeThread(thread);
+
+    NEARBY_LOGS(VERBOSE) << "Info: " << __func__
+                         << ": Thread created, handle: " << thread
+                         << ", id: " << threadId;
+
+    return threadId;
+  } else {
+    NEARBY_LOGS(ERROR) << "Error: " << __func__ << ": Failed to create thread.";
+    return NULL;
+  }
+}
+
 void ThreadPool::ReleaseMemory() {
   // empty all collections
   EnterCriticalSection(&critical_section_);
@@ -202,8 +224,7 @@ void ThreadPool::ReleaseMemory() {
 
   function_list_->clear();
 
-  NEARBY_LOGS(VERBOSE) << "Info: " << __func__
-                       << ": Clearing the thread map.";
+  NEARBY_LOGS(VERBOSE) << "Info: " << __func__ << ": Clearing the thread map.";
 
   thread_map_->clear();
 
@@ -218,6 +239,15 @@ void ThreadPool::Destroy() {
 
   pool_state_ = State::Destroying;
 
+  bool notDone = true;
+
+  while (notDone) {
+    EnterCriticalSection(&critical_section_);
+    notDone = function_list_->size() > 0;
+    LeaveCriticalSection(&critical_section_);
+    Sleep(100);
+  }
+
   EnterCriticalSection(&critical_section_);
 
   ThreadMap::iterator iter = thread_map_->begin();
@@ -225,7 +255,7 @@ void ThreadPool::Destroy() {
 
   // Build an array of handles
   while (iter != thread_map_->end()) {
-    thread_handles_[index] = iter->second.thread_handle;
+    thread_handles_[index] = iter->second->thread_handle;
     index++;
     iter++;
   }
@@ -240,13 +270,28 @@ void ThreadPool::Destroy() {
                        << ": Setting waits for the threads to exit.";
 
   if (pool_size_ == 1) {
-    auto wait = WaitForSingleObject(thread_handles_[0], INFINITE);
+    // Waits until the specified object is in the signaled state or the time-out
+    // interval elapses.
+    // https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject
+    auto wait = WaitForSingleObject(
+        thread_handles_[0],  //  A handle to the object
+        INFINITE             //  The time-out interval, in milliseconds.
+    );
   } else {
-    auto wait = WaitForMultipleObjects(index, thread_handles_, true, INFINITE);
+    auto wait =
+        // Waits until one or all of the specified objects are in the signaled
+        // state or the time-out interval elapses.
+        //  https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects
+        WaitForMultipleObjects(
+            index,            //  The number of object handles in the array.
+            thread_handles_,  //  An array of object handles.
+            true,  //  If this parameter is TRUE, the function returns when the
+                   //  state of all objects in the handles array are signaled.
+            INFINITE  //  The time-out interval, in milliseconds.
+        );
   }
 
-  NEARBY_LOGS(VERBOSE) << "Info: " << __func__
-                       << ": All threads have exited.";
+  NEARBY_LOGS(VERBOSE) << "Info: " << __func__ << ": All threads have exited.";
 
   delete[] thread_handles_;
 
@@ -262,14 +307,14 @@ void ThreadPool::Destroy() {
   for (threadMapIterator = thread_map_->begin();
        threadMapIterator != thread_map_->end(); threadMapIterator++) {
     NEARBY_LOGS(VERBOSE) << "Info: " << __func__ << ": Closing thread handle: "
-                         << threadMapIterator->second.thread_handle
+                         << threadMapIterator->second->thread_handle
                          << " thread id: "
-                         << threadMapIterator->second.thread_id
+                         << threadMapIterator->second->thread_id
                          << " wait_handle: "
-                         << threadMapIterator->second.wait_handle;
+                         << threadMapIterator->second->wait_handle;
 
-    CloseHandle(threadMapIterator->second.wait_handle);
-    CloseHandle(threadMapIterator->second.thread_handle);
+    CloseHandle(threadMapIterator->second->wait_handle);
+    CloseHandle(threadMapIterator->second->thread_handle);
   }
 
   LeaveCriticalSection(&critical_section_);
@@ -318,8 +363,8 @@ bool ThreadPool::GetThreadProc(DWORD threadId,
 
     haveAnotherRunner = true;
   } else {
-    thread_map_->at(threadId).free = true;
-    ResetEvent(thread_map_->at(threadId).wait_handle);
+    thread_map_->at(threadId)->free = true;
+    ResetEvent(thread_map_->at(threadId)->wait_handle);
   }
 
   LeaveCriticalSection(&critical_section_);
@@ -338,15 +383,15 @@ void ThreadPool::FinishNotify(DWORD threadId) {
   {
     _ASSERT(!"No matching thread found.");
   } else {
-    thread_map_->at(threadId).free = true;
+    thread_map_->at(threadId)->free = true;
 
     if (!function_list_->empty()) {
       // there are some more functions that need servicing, lets do that.
       // By not doing anything here we are letting the thread go back and
       // check the function list and pick up a function and execute it.
-      thread_map_->at(threadId).free = false;
+      thread_map_->at(threadId)->free = false;
     } else {
-      ResetEvent(thread_map_->at(threadId).wait_handle);
+      ResetEvent(thread_map_->at(threadId)->wait_handle);
     }
   }
 
@@ -364,7 +409,7 @@ void ThreadPool::BusyNotify(DWORD threadId) {
   {
     _ASSERT(!"No matching thread found.");
   } else {
-    thread_map_->at(threadId).free = false;
+    thread_map_->at(threadId)->free = false;
   }
 
   LeaveCriticalSection(&critical_section_);
@@ -380,22 +425,31 @@ bool ThreadPool::Run(std::unique_ptr<Runner> runner) {
 
   // See if any threads are free
   ThreadMap::iterator iterator;
-  ThreadData ThreadData;
+  std::unique_ptr<ThreadData> threadData;
+
+  bool freeThreadFound = false;
 
   EnterCriticalSection(&critical_section_);
 
   for (iterator = thread_map_->begin(); iterator != thread_map_->end();
        iterator++) {
-    ThreadData = (*iterator).second;
-
-    if (ThreadData.free) {
+    if (iterator->second->free) {
       // here is a free thread, put it to work
-      iterator->second.free = false;
-      SetEvent(ThreadData.wait_handle);
+      iterator->second->free = false;
+      SetEvent(iterator->second->wait_handle);
       // this thread will now call GetThreadProc() and pick up the next
       // function in the list.
+      freeThreadFound = true;
       break;
     }
+  }
+
+  if (!freeThreadFound && thread_map_->size() < pool_size_) {
+    // We haven't used up all of our threads, go ahead and spin up another one
+    DWORD threadId =
+        CreateThreadPoolThread(&thread_handles_[thread_map_->size()]);
+    thread_map_->at(threadId)->free = false;
+    SetEvent(thread_map_->at(threadId)->wait_handle);
   }
 
   LeaveCriticalSection(&critical_section_);
@@ -427,7 +481,7 @@ HANDLE ThreadPool::GetWaitHandle(DWORD dwThreadId) {
 
   if (iter != thread_map_->end())  // if search found no elements
   {
-    hWait = thread_map_->at(dwThreadId).wait_handle;
+    hWait = thread_map_->at(dwThreadId)->wait_handle;
   }
 
   LeaveCriticalSection(&critical_section_);
@@ -448,20 +502,17 @@ bool ThreadPool::CheckThreadStop() {
 
 int ThreadPool::GetWorkingThreadCount() {
   ThreadMap::iterator iter;
-  ThreadData threadData;
 
   int nCount = 0;
 
   EnterCriticalSection(&critical_section_);
 
   for (iter = thread_map_->begin(); iter != thread_map_->end(); iter++) {
-    threadData = (*iter).second;
-
     if (function_list_->empty()) {
-      threadData.free = true;
+      iter->second->free = true;
     }
 
-    if (!threadData.free) {
+    if (!iter->second->free) {
       nCount++;
     }
   }

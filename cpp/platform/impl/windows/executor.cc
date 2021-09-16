@@ -55,13 +55,13 @@ bool Executor::InitializeThreadPool() {
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html#execute-java.lang.Runnable-
 void Executor::Execute(Runnable&& runnable) {
   if (shut_down_) {
-    NEARBY_LOGS(ERROR) << "Error: " << __func__
+    NEARBY_LOGS(VERBOSE) << "Warning: " << __func__
                        << ": Attempt to execute on a shut down pool.";
     return;
   }
 
   if (runnable == nullptr) {
-    NEARBY_LOGS(ERROR) << "Error: " << __func__ << "Runnable was null.";
+    NEARBY_LOGS(VERBOSE) << "Error: " << __func__ << "Runnable was null.";
     return;
   }
 

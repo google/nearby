@@ -37,7 +37,7 @@ TEST(ScheduledExecutorTests, ExecuteSucceeds) {
     output.append("runnable 1");
   });
 
-  Sleep(1);  //  Yield the thread
+  submittableExecutor->Shutdown();
 
   //  Assert
   //  We should've run 1 time on the main thread, and 1 times on the
@@ -47,8 +47,6 @@ TEST(ScheduledExecutorTests, ExecuteSucceeds) {
   ASSERT_EQ(GetCurrentThreadId(), threadIds->at(0));
   //  We should've run all runnables on the worker thread
   ASSERT_EQ(output, expected);
-
-  submittableExecutor->Shutdown();
 }
 
 TEST(ScheduledExecutorTests, ScheduleSucceeds) {
@@ -125,6 +123,8 @@ TEST(ScheduledExecutorTests, CancelSucceeds) {
 
   auto actual = cancelable->Cancel();
 
+  submittableExecutor->Shutdown();
+
   // Assert
   ASSERT_TRUE(actual);
   ASSERT_EQ(threadIds->size(), 1);
@@ -132,8 +132,6 @@ TEST(ScheduledExecutorTests, CancelSucceeds) {
   ASSERT_EQ(GetCurrentThreadId(), threadIds->at(0));
   //  We should've run all runnables on the worker thread
   ASSERT_EQ(output, expected);
-
-  submittableExecutor->Shutdown();
 }
 
 TEST(ScheduledExecutorTests, CancelAfterStartedFails) {

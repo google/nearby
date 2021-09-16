@@ -25,14 +25,22 @@ namespace location {
 namespace nearby {
 namespace windows {
 
+// This is the number of threads that will be started initially if the pool
+// size is greater than 4, or if the pool size is greater than the number
+// of cores present, including virtual cores
+#define STARTUP_THREAD_COUNT 4
+
 class ThreadPoolException : public std::runtime_error {
  public:
   ThreadPoolException() : std::runtime_error("") {}
   ThreadPoolException(const std::string& message)
-      : std::runtime_error(message) {}
+      : std::runtime_error(message), message_(message) {}
   virtual const char* what() const throw() {
-    return "ThreadPool creation failed";
+    return message_.c_str();
   }
+
+ private:
+  const std::string message_;
 };
 
 // all functions passed in by clients will be initially stored in this list.
@@ -45,8 +53,7 @@ typedef struct tagThreadData {
   DWORD thread_id;
 } ThreadData;
 // info about all threads belonging to this pool will be stored in this map
-typedef std::map<DWORD, ThreadData, std::less<DWORD>,
-                 std::allocator<std::pair<const DWORD, ThreadData>>>
+typedef std::map<DWORD, std::unique_ptr<ThreadData>>
     ThreadMap;
 enum class State {
   Ready,       // has been created
@@ -90,7 +97,9 @@ class ThreadPool {
   HANDLE GetWaitHandle(DWORD dwThreadId);
   HANDLE GetShutdownHandle();
   void AddRunner(std::unique_ptr<Runner> runner);
+  DWORD CreateThreadPoolThread(HANDLE* handles);
 };
+
 }  // namespace windows
 }  // namespace nearby
 }  // namespace location

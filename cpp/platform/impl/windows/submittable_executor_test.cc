@@ -37,7 +37,7 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteSucceeds) {
     output.append("runnable 1");
   });
 
-  Sleep(1);  //  Yield the thread
+  submittableExecutor->Shutdown();
 
   //  Assert
   //  We should've run 1 time on the main thread, and 1 times on the
@@ -47,8 +47,6 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteSucceeds) {
   ASSERT_EQ(GetCurrentThreadId(), threadIds->at(0));
   //  We should've run all runnables on the worker thread
   ASSERT_EQ(output, expected);
-
-  submittableExecutor->Shutdown();
 }
 
 TEST(SubmittableExecutorTests, SingleThreadedExecuteAfterShutdownFails) {
@@ -105,7 +103,7 @@ TEST(SubmittableExecutorTests, SingleThreadedDoSubmitSucceeds) {
     output.append("runnable 1");
   });
 
-  Sleep(1);  //  Yield the thread
+  submittableExecutor->Shutdown();
 
   //  Assert
   //  We should've said we were going to run this one
@@ -117,8 +115,6 @@ TEST(SubmittableExecutorTests, SingleThreadedDoSubmitSucceeds) {
   ASSERT_EQ(GetCurrentThreadId(), threadIds->at(0));
   //  We should've run all runnables on the worker thread
   ASSERT_EQ(output, expected);
-
-  submittableExecutor->Shutdown();
 }
 
 TEST(SubmittableExecutorTests,
@@ -143,8 +139,6 @@ TEST(SubmittableExecutorTests,
     threadIds->push_back(GetCurrentThreadId());
     output->append("runnable 1");
   });
-
-  Sleep(1);  //  Yield the thread
 
   //  Assert
   //  We should've said we were going to run this one
@@ -195,7 +189,7 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteMultipleTasksSucceeds) {
     output->append("runnable 5");
   });
 
-  Sleep(1);  //  Yield the thread
+  submittableExecutor->Shutdown();
 
   //  Assert
   //  We should've run 1 time on the main thread, and 5 times on the
@@ -211,8 +205,6 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteMultipleTasksSucceeds) {
 
   //  We should of run them in the order submitted
   ASSERT_EQ(*output.get(), expected);
-
-  submittableExecutor->Shutdown();
 }
 
 TEST(SubmittableExecutorTests, SingleThreadedDoSubmitMultipleTasksSucceeds) {
@@ -252,7 +244,7 @@ TEST(SubmittableExecutorTests, SingleThreadedDoSubmitMultipleTasksSucceeds) {
     output->append("runnable 5");
   });
 
-  Sleep(1);  //  Yield the thread
+  submittableExecutor->Shutdown();
 
   //  Assert
   //  All of these should have submitted
@@ -270,6 +262,4 @@ TEST(SubmittableExecutorTests, SingleThreadedDoSubmitMultipleTasksSucceeds) {
 
   //  We should of run them in the order submitted
   ASSERT_EQ(*output.get(), expected);
-
-  submittableExecutor->Shutdown();
 }
