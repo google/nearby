@@ -56,7 +56,7 @@ bool Executor::InitializeThreadPool() {
 void Executor::Execute(Runnable&& runnable) {
   if (shut_down_) {
     NEARBY_LOGS(ERROR) << "Error: " << __func__
-                       << "Attempt to execute on a shut down pool.";
+                       << ": Attempt to execute on a shut down pool.";
     return;
   }
 

@@ -37,7 +37,7 @@ TEST(ExecutorTests, SingleThreadedExecutorSucceeds) {
     output.append("runnable 1");
   });
 
-  Sleep(1);  //  Yield the thread
+  executor->Shutdown();
 
   //  Assert
   //  We should've run 1 time on the main thread, and 5 times on the
@@ -47,8 +47,6 @@ TEST(ExecutorTests, SingleThreadedExecutorSucceeds) {
   ASSERT_EQ(GetCurrentThreadId(), threadIds->at(0));
   //  We should've run all runnables on the worker thread
   ASSERT_EQ(output, expected);
-
-  executor->Shutdown();
 }
 
 TEST(ExecutorTests, SingleThreadedExecutorAfterShutdownFails) {
@@ -70,8 +68,6 @@ TEST(ExecutorTests, SingleThreadedExecutorAfterShutdownFails) {
     threadIds->push_back(GetCurrentThreadId());
     output->append("runnable 1");
   });
-
-  Sleep(1);  //  Yield the thread
 
   //  Assert
   //  We should've run 1 time on the main thread, and 5 times on the
@@ -104,7 +100,7 @@ TEST(ExecutorTests, SingleThreadedExecutorExecuteNullSucceeds) {
   });
   executor->Execute(nullptr);
 
-  Sleep(1);  //  Yield the thread
+  executor->Shutdown();
 
   //  Assert
   //  We should've run 1 time on the main thread, and 5 times on the
@@ -114,8 +110,6 @@ TEST(ExecutorTests, SingleThreadedExecutorExecuteNullSucceeds) {
   ASSERT_EQ(GetCurrentThreadId(), threadIds->at(0));
   //  We should've run all runnables on the worker thread
   ASSERT_EQ(output, expected);
-
-  executor->Shutdown();
 }
 
 TEST(ExecutorTests, SingleThreadedExecutorMultipleTasksSucceeds) {
@@ -154,7 +148,7 @@ TEST(ExecutorTests, SingleThreadedExecutorMultipleTasksSucceeds) {
     output.append("runnable 5");
   });
 
-  Sleep(1);  //  Yield the thread
+  executor->Shutdown();
 
   //  Assert
   //  We should've run 1 time on the main thread, and 5 times on the
@@ -170,8 +164,6 @@ TEST(ExecutorTests, SingleThreadedExecutorMultipleTasksSucceeds) {
 
   //  We should of run them in the order submitted
   ASSERT_EQ(output, expected);
-
-  executor->Shutdown();
 }
 
 TEST(ExecutorTests, MultiThreadedExecutorSingleTaskSucceeds) {
@@ -195,7 +187,7 @@ TEST(ExecutorTests, MultiThreadedExecutorSingleTaskSucceeds) {
     output->append("runnable 1");
   });
 
-  Sleep(1);  //  Yield the processor
+  executor->Shutdown();
 
   //  Assert
   //  We should've run 1 time on the main thread, and 5 times on the
@@ -205,8 +197,6 @@ TEST(ExecutorTests, MultiThreadedExecutorSingleTaskSucceeds) {
   ASSERT_EQ(GetCurrentThreadId(), threadIds->at(0));
   //  We should've run the task
   ASSERT_EQ(*output.get(), expected);
-
-  executor->Shutdown();
 }
 
 TEST(ExecutorTests, MultiThreadedExecutorMultipleTasksSucceeds) {
@@ -244,7 +234,7 @@ TEST(ExecutorTests, MultiThreadedExecutorMultipleTasksSucceeds) {
     output->append("runnable 5");
   });
 
-  Sleep(1);  //  Yield the processor
+  executor->Shutdown();
 
   //  Assert
   //  We should've run 1 time on the main thread, and 5 times on the
@@ -252,8 +242,6 @@ TEST(ExecutorTests, MultiThreadedExecutorMultipleTasksSucceeds) {
   ASSERT_EQ(threadIds->size(), 6);
   //  We should still be on the main thread
   ASSERT_EQ(GetCurrentThreadId(), threadIds->at(0));
-
-  executor->Shutdown();
 }
 
 TEST(ExecutorTests, MultiThreadedExecutorSingleTaskAfterShutdownFails) {
@@ -278,8 +266,6 @@ TEST(ExecutorTests, MultiThreadedExecutorSingleTaskAfterShutdownFails) {
     threadIds->push_back(GetCurrentThreadId());
     output->append("runnable 1");
   });
-
-  Sleep(1);  //  Yield the processor
 
   //  Assert
   //  We should've run 1 time on the main thread, and 5 times on the
