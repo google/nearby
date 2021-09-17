@@ -24,10 +24,7 @@ proto_library(
     name = "connections_enums_proto",
     srcs = ["connections_enums.proto"],
     cc_api_version = 2,
-    compatible_with = [
-        "//buildenv/target:non_prod",
-        "//buildenv/target:appengine",
-    ],
+    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         "//logs/proto/logs_annotations",
     ],
@@ -81,10 +78,7 @@ proto_library(
     name = "sharing_enums_proto",
     srcs = ["sharing_enums.proto"],
     cc_api_version = 2,
-    compatible_with = [
-        "//buildenv/target:non_prod",
-        "//buildenv/target:appengine",
-    ],
+    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         "//logs/proto/logs_annotations",
     ],
