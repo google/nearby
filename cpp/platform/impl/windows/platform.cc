@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -67,18 +67,18 @@ std::unique_ptr<Mutex> ImplementationPlatform::CreateMutex(Mutex::Mode mode) {
 
 std::unique_ptr<ConditionVariable>
 ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
-  return absl::make_unique<location::nearby::windows::ConditionVariable>(mutex);
+  return absl::make_unique<windows::ConditionVariable>(mutex);
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     PayloadId payload_id, std::int64_t total_size) {
-  return absl::make_unique<location::nearby::shared::InputFile>(
+  return absl::make_unique<shared::InputFile>(
       GetPayloadPath(payload_id), total_size);
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     PayloadId payload_id) {
-  return absl::make_unique<location::nearby::shared::OutputFile>(
+  return absl::make_unique<shared::OutputFile>(
       GetPayloadPath(payload_id));
 }
 
@@ -112,7 +112,7 @@ ImplementationPlatform::CreateBluetoothAdapter() {
 std::unique_ptr<BluetoothClassicMedium>
 ImplementationPlatform::CreateBluetoothClassicMedium(
     nearby::api::BluetoothAdapter& adapter) {
-  return absl::make_unique<location::nearby::windows::BluetoothClassicMedium>(
+  return absl::make_unique<windows::BluetoothClassicMedium>(
       adapter);
 }
 
