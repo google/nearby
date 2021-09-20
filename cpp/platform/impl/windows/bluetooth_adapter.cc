@@ -310,21 +310,30 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
     return false;
   }
 
-  // Sets the data and type of a specified value under a registry key.
-  // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regsetvalueexa
-  ret = RegSetValueExA(
-      hKey,                               // A handle to an open registry key
-      BLUETOOTH_RADIO_REGISTRY_NAME_KEY,  // The name of the value to be set.
-      0,           // This parameter is reserved and must be zero.
-      REG_BINARY,  // The type of data pointed to by the lpData parameter.
-      (LPBYTE)std::string(name).c_str(),  // The data to be stored.
-      strlen(
-          std::string(name).c_str()));  // The size of the information pointed
-                                        // to by the lpData parameter, in bytes.
+  if (name != "") {
+    // Sets the data and type of a specified value under a registry key.
+    // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regsetvalueexa
+    ret = RegSetValueExA(
+        hKey,                               // A handle to an open registry key
+        BLUETOOTH_RADIO_REGISTRY_NAME_KEY,  // The name of the value to be set.
+        0,           // This parameter is reserved and must be zero.
+        REG_BINARY,  // The type of data pointed to by the lpData parameter.
+        (LPBYTE)std::string(name).c_str(),  // The data to be stored.
+        strlen(std::string(name)
+                   .c_str()));  // The size of the information pointed
+                                // to by the lpData parameter, in bytes.
+  } else {
+    // If we are told to set the key to "", we treat this as a reset
+    // If we delete the key value the OS will default to the system
+    // name. If we just set it to blank, it will show as blank in all
+    // system dialogs, this is likely undesireable
+    ret = RegDeleteValueA(hKey, BLUETOOTH_RADIO_REGISTRY_NAME_KEY);
+  }
 
   if (ret != ERROR_SUCCESS) {
     NEARBY_LOGS(ERROR) << __func__
-                       << ": Failed to set registry key. Error code: " << ret;
+                       << ": Failed to set/delete registry key. Error code: "
+                       << ret;
     return false;
   }
 
