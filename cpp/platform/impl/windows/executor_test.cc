@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,11 +17,13 @@
 #include <algorithm>
 #include <utility>
 
+#include "platform/impl/windows/test_data.h"
+
 #include "gtest/gtest.h"
 
 TEST(ExecutorTests, SingleThreadedExecutorSucceeds) {
   // Arrange
-  std::string expected("runnable 1");
+  std::string expected(RUNNABLE_0_TEXT.c_str());
 
   std::unique_ptr<location::nearby::windows::Executor> executor =
       std::make_unique<location::nearby::windows::Executor>();
@@ -35,7 +37,7 @@ TEST(ExecutorTests, SingleThreadedExecutorSucceeds) {
   // Act
   executor->Execute([&output, &threadIds]() {
     threadIds->push_back(GetCurrentThreadId());
-    output.append("runnable 1");
+    output.append(RUNNABLE_0_TEXT.c_str());
   });
 
   executor->Shutdown();
@@ -67,7 +69,7 @@ TEST(ExecutorTests, SingleThreadedExecutorAfterShutdownFails) {
   // Act
   executor->Execute([&output, &threadIds]() {
     threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 1");
+    output->append(RUNNABLE_0_TEXT.c_str());
   });
 
   //  Assert
@@ -82,7 +84,7 @@ TEST(ExecutorTests, SingleThreadedExecutorAfterShutdownFails) {
 
 TEST(ExecutorTests, SingleThreadedExecutorExecuteNullSucceeds) {
   // Arrange
-  std::string expected("runnable 1");
+  std::string expected(RUNNABLE_0_TEXT.c_str());
 
   std::unique_ptr<location::nearby::windows::Executor> executor =
       std::make_unique<location::nearby::windows::Executor>();
@@ -97,7 +99,7 @@ TEST(ExecutorTests, SingleThreadedExecutorExecuteNullSucceeds) {
   executor->Execute(nullptr);
   executor->Execute([&output, &threadIds]() {
     threadIds->push_back(GetCurrentThreadId());
-    output.append("runnable 1");
+    output.append(RUNNABLE_0_TEXT.c_str());
   });
   executor->Execute(nullptr);
 
@@ -115,8 +117,7 @@ TEST(ExecutorTests, SingleThreadedExecutorExecuteNullSucceeds) {
 
 TEST(ExecutorTests, SingleThreadedExecutorMultipleTasksSucceeds) {
   // Arrange
-  std::string expected(
-      "runnable 1, runnable 2, runnable 3, runnable 4, runnable 5");
+  std::string expected(RUNNABLE_ALL_TEXT.c_str());
 
   std::unique_ptr<location::nearby::windows::Executor> executor =
       std::make_unique<location::nearby::windows::Executor>();
@@ -128,26 +129,14 @@ TEST(ExecutorTests, SingleThreadedExecutorMultipleTasksSucceeds) {
   threadIds->push_back(GetCurrentThreadId());
 
   // Act
-  executor->Execute([&output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output.append("runnable 1, ");
-  });
-  executor->Execute([&output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output.append("runnable 2, ");
-  });
-  executor->Execute([&output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output.append("runnable 3, ");
-  });
-  executor->Execute([&output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output.append("runnable 4, ");
-  });
-  executor->Execute([&output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output.append("runnable 5");
-  });
+  for (int index = 0; index < 5; index++) {
+    executor->Execute([&output, &threadIds, index]() {
+      threadIds->push_back(GetCurrentThreadId());
+      char buffer[128];
+      snprintf(buffer, sizeof(buffer), "%s%d, ", RUNNABLE_TEXT.c_str(), index);
+      output.append(std::string(buffer));
+    });
+  }
 
   executor->Shutdown();
 
@@ -169,7 +158,7 @@ TEST(ExecutorTests, SingleThreadedExecutorMultipleTasksSucceeds) {
 
 TEST(ExecutorTests, MultiThreadedExecutorSingleTaskSucceeds) {
   //  Arrange
-  std::string expected("runnable 1");
+  std::string expected(RUNNABLE_0_TEXT.c_str());
 
   std::unique_ptr<location::nearby::windows::Executor> executor =
       std::make_unique<location::nearby::windows::Executor>(2);
@@ -185,7 +174,7 @@ TEST(ExecutorTests, MultiThreadedExecutorSingleTaskSucceeds) {
   //  Act
   executor->Execute([output, &threadIds]() {
     threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 1");
+    output->append(RUNNABLE_0_TEXT.c_str());
   });
 
   executor->Shutdown();
@@ -214,26 +203,14 @@ TEST(ExecutorTests, MultiThreadedExecutorMultipleTasksSucceeds) {
   threadIds->push_back(GetCurrentThreadId());
 
   //  Act
-  executor->Execute([output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 1, ");
-  });
-  executor->Execute([output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 2, ");
-  });
-  executor->Execute([output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 3, ");
-  });
-  executor->Execute([output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 4, ");
-  });
-  executor->Execute([output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 5");
-  });
+  for (int index = 0; index < 5; index++) {
+    executor->Execute([&output, &threadIds, index]() {
+      threadIds->push_back(GetCurrentThreadId());
+      char buffer[128];
+      snprintf(buffer, sizeof(buffer), "%s %d, ", RUNNABLE_TEXT.c_str(), index);
+      output->append(std::string(buffer));
+    });
+  }
 
   executor->Shutdown();
 
@@ -265,7 +242,7 @@ TEST(ExecutorTests, MultiThreadedExecutorSingleTaskAfterShutdownFails) {
   //  Act
   executor->Execute([output, &threadIds]() {
     threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 1");
+    output->append(RUNNABLE_0_TEXT.c_str());
   });
 
   //  Assert
@@ -289,7 +266,7 @@ TEST(ExecutorTests, MultiThreadedExecutorNegativeThreadsThrows) {
               std::make_unique<location::nearby::windows::Executor>(-1);
         } catch (const std::invalid_argument::exception& e) {
           // and this tests that it has the correct message
-          EXPECT_STREQ("max_concurrency", e.what());
+          EXPECT_STREQ(INVALID_ARGUMENT_TEXT, e.what());
           throw;
         }
       },
@@ -307,7 +284,7 @@ TEST(ExecutorTests, MultiThreadedExecutorTooManyThreadsThrows) {
               std::make_unique<location::nearby::windows::Executor>(65);
         } catch (const location::nearby::windows::ThreadPoolException& e) {
           // and this tests that it has the correct message
-          EXPECT_STREQ("Thread pool max size exceeded.", e.what());
+          EXPECT_STREQ(THREADPOOL_MAX_SIZE_TEXT, e.what());
           throw;
         }
       },
@@ -340,9 +317,9 @@ TEST(ExecutorTests,
           EnterCriticalSection(&testCriticalSection);
 
           threadIds.push_back(id);
-          output->append("runnable ");
+          output->append(RUNNABLE_TEXT);
           output->append(std::to_string(index));
-          output->append(", ");
+          output->append(RUNNABLE_SEPARATOR_TEXT);
 
           LeaveCriticalSection(&testCriticalSection);
           // Using rand since this is in a critical section

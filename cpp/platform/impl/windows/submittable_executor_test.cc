@@ -15,11 +15,13 @@
 
 #include <utility>
 
+#include "platform/impl/windows/test_data.h"
+
 #include "gtest/gtest.h"
 
 TEST(SubmittableExecutorTests, SingleThreadedExecuteSucceeds) {
   // Arrange
-  std::string expected("runnable 1");
+  std::string expected(RUNNABLE_0_TEXT.c_str());
 
   std::unique_ptr<location::nearby::windows::SubmittableExecutor>
       submittableExecutor =
@@ -34,7 +36,7 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteSucceeds) {
   // Act
   submittableExecutor->Execute([&output, &threadIds]() {
     threadIds->push_back(GetCurrentThreadId());
-    output.append("runnable 1");
+    output.append(RUNNABLE_0_TEXT.c_str());
   });
 
   submittableExecutor->Shutdown();
@@ -68,10 +70,8 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteAfterShutdownFails) {
   // Act
   submittableExecutor->Execute([&output, &threadIds]() {
     threadIds->push_back(GetCurrentThreadId());
-    output.append("runnable 1");
+    output.append(RUNNABLE_0_TEXT.c_str());
   });
-
-  Sleep(1);  //  Yield the thread
 
   //  Assert
   //  We should've run 1 time on the main thread, and 0 times on the
@@ -85,7 +85,7 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteAfterShutdownFails) {
 
 TEST(SubmittableExecutorTests, SingleThreadedDoSubmitSucceeds) {
   // Arrange
-  std::string expected("runnable 1");
+  std::string expected(RUNNABLE_0_TEXT.c_str());
 
   std::unique_ptr<location::nearby::windows::SubmittableExecutor>
       submittableExecutor =
@@ -100,7 +100,7 @@ TEST(SubmittableExecutorTests, SingleThreadedDoSubmitSucceeds) {
   // Act
   auto result = submittableExecutor->DoSubmit([&output, &threadIds]() {
     threadIds->push_back(GetCurrentThreadId());
-    output.append("runnable 1");
+    output.append(RUNNABLE_0_TEXT.c_str());
   });
 
   submittableExecutor->Shutdown();
@@ -137,7 +137,7 @@ TEST(SubmittableExecutorTests,
   // Act
   auto result = submittableExecutor->DoSubmit([&output, &threadIds]() {
     threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 1");
+    output->append(RUNNABLE_0_TEXT.c_str());
   });
 
   //  Assert
@@ -154,8 +154,7 @@ TEST(SubmittableExecutorTests,
 
 TEST(SubmittableExecutorTests, SingleThreadedExecuteMultipleTasksSucceeds) {
   // Arrange
-  std::string expected(
-      "runnable 1, runnable 2, runnable 3, runnable 4, runnable 5");
+  std::string expected(RUNNABLE_ALL_TEXT.c_str());
 
   std::unique_ptr<location::nearby::windows::SubmittableExecutor>
       submittableExecutor =
@@ -168,26 +167,14 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteMultipleTasksSucceeds) {
   threadIds->push_back(GetCurrentThreadId());
 
   // Act
-  submittableExecutor->Execute([&output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 1, ");
-  });
-  submittableExecutor->Execute([&output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 2, ");
-  });
-  submittableExecutor->Execute([&output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 3, ");
-  });
-  submittableExecutor->Execute([&output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 4, ");
-  });
-  submittableExecutor->Execute([&output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 5");
-  });
+  for (int index = 0; index < 5; index++) {
+    submittableExecutor->Execute([&output, &threadIds, index]() {
+      threadIds->push_back(GetCurrentThreadId());
+      char buffer[128];
+      snprintf(buffer, sizeof(buffer), "%s%d, ", RUNNABLE_TEXT.c_str(), index);
+      output->append(std::string(buffer));
+    });
+  }
 
   submittableExecutor->Shutdown();
 
@@ -209,8 +196,7 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteMultipleTasksSucceeds) {
 
 TEST(SubmittableExecutorTests, SingleThreadedDoSubmitMultipleTasksSucceeds) {
   // Arrange
-  std::string expected(
-      "runnable 1, runnable 2, runnable 3, runnable 4, runnable 5");
+  std::string expected(RUNNABLE_ALL_TEXT.c_str());
 
   std::unique_ptr<location::nearby::windows::SubmittableExecutor>
       submittableExecutor =
@@ -223,26 +209,15 @@ TEST(SubmittableExecutorTests, SingleThreadedDoSubmitMultipleTasksSucceeds) {
   threadIds->push_back(GetCurrentThreadId());
 
   // Act
-  auto result = submittableExecutor->DoSubmit([&output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 1, ");
-  });
-  result |= submittableExecutor->DoSubmit([&output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 2, ");
-  });
-  result |= submittableExecutor->DoSubmit([&output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 3, ");
-  });
-  result |= submittableExecutor->DoSubmit([&output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 4, ");
-  });
-  result |= submittableExecutor->DoSubmit([&output, &threadIds]() {
-    threadIds->push_back(GetCurrentThreadId());
-    output->append("runnable 5");
-  });
+  bool result = true;
+  for (int index = 0; index < 5; index++) {
+    result &= submittableExecutor->DoSubmit([&output, &threadIds, index]() {
+      threadIds->push_back(GetCurrentThreadId());
+      char buffer[128];
+      snprintf(buffer, sizeof(buffer), "%s%d, ", RUNNABLE_TEXT.c_str(), index);
+      output->append(std::string(buffer));
+    });
+  }
 
   submittableExecutor->Shutdown();
 

@@ -58,7 +58,7 @@ void WINAPI ScheduledExecutor::_TimerProc(LPVOID argToCompletionRoutine,
   _ASSERT(argToCompletionRoutine != NULL);
   if (NULL == argToCompletionRoutine) {
     NEARBY_LOGS(ERROR)
-        << "Error: " << __func__
+        << __func__
         << ": TimerProc argument argToCompletionRoutine was null.";
 
     return;
@@ -84,6 +84,10 @@ ScheduledExecutor::ScheduledExecutor()
 std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
     Runnable&& runnable, absl::Duration duration) {
   if (shut_down_) {
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << ": Attempt to Schedule on a shut down executor.";
+
     return nullptr;
   }
 
@@ -122,6 +126,8 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html#execute-java.lang.Runnable-
 void ScheduledExecutor::Execute(Runnable&& runnable) {
   if (shut_down_) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Attempt to Execute on a shut down executor.";
     return;
   }
 
@@ -133,7 +139,10 @@ void ScheduledExecutor::Shutdown() {
   if (!shut_down_) {
     shut_down_ = true;
     executor_->Shutdown();
+    return;
   }
+  NEARBY_LOGS(ERROR) << __func__
+                     << ": Attempt to Shutdown on a shut down executor.";
 }
 }  // namespace windows
 }  // namespace nearby

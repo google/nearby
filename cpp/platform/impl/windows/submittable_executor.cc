@@ -33,6 +33,9 @@ bool SubmittableExecutor::DoSubmit(Runnable&& wrapped_callable) {
     return true;
   }
 
+  NEARBY_LOGS(ERROR) << "Error: " << __func__
+                     << ": Attempt to DoSubmit on a shutdown executor.";
+
   return false;
 }
 
@@ -52,6 +55,9 @@ void SubmittableExecutor::Shutdown() {
     executor_->Shutdown();
     shut_down_ = true;
   }
+
+  NEARBY_LOGS(ERROR) << "Error: " << __func__
+                     << ": Attempt to Shutdown on a shutdown executor.";
 }
 
 }  // namespace windows

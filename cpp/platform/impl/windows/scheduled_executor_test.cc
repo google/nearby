@@ -15,11 +15,13 @@
 
 #include <utility>
 
+#include "platform/impl/windows/test_data.h"
+
 #include "gtest/gtest.h"
 
 TEST(ScheduledExecutorTests, ExecuteSucceeds) {
   // Arrange
-  std::string expected("runnable 1");
+  std::string expected(RUNNABLE_0_TEXT.c_str());
 
   std::unique_ptr<location::nearby::windows::ScheduledExecutor>
       submittableExecutor =
@@ -34,7 +36,7 @@ TEST(ScheduledExecutorTests, ExecuteSucceeds) {
   // Act
   submittableExecutor->Execute([&output, &threadIds]() {
     threadIds->push_back(GetCurrentThreadId());
-    output.append("runnable 1");
+    output.append(RUNNABLE_0_TEXT.c_str());
   });
 
   submittableExecutor->Shutdown();
@@ -51,7 +53,7 @@ TEST(ScheduledExecutorTests, ExecuteSucceeds) {
 
 TEST(ScheduledExecutorTests, ScheduleSucceeds) {
   // Arrange
-  std::string expected("runnable 1");
+  std::string expected(RUNNABLE_0_TEXT.c_str());
 
   std::unique_ptr<location::nearby::windows::ScheduledExecutor>
       submittableExecutor =
@@ -72,7 +74,7 @@ TEST(ScheduledExecutorTests, ScheduleSucceeds) {
       [&output, &threadIds, &timeExecuted]() {
         timeExecuted = std::chrono::system_clock::now();
         threadIds->push_back(GetCurrentThreadId());
-        output.append("runnable 1");
+        output.append(RUNNABLE_0_TEXT.c_str());
       },
       absl::Milliseconds(50));
 
@@ -115,7 +117,7 @@ TEST(ScheduledExecutorTests, CancelSucceeds) {
   auto cancelable = submittableExecutor->Schedule(
       [&output, &threadIds]() {
         threadIds->push_back(GetCurrentThreadId());
-        output.append("runnable 1");
+        output.append(RUNNABLE_0_TEXT.c_str());
       },
       absl::Milliseconds(1000));
 
@@ -136,7 +138,7 @@ TEST(ScheduledExecutorTests, CancelSucceeds) {
 
 TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
   // Arrange
-  std::string expected("runnable 1");
+  std::string expected(RUNNABLE_0_TEXT.c_str());
 
   std::unique_ptr<location::nearby::windows::ScheduledExecutor>
       submittableExecutor =
@@ -152,7 +154,7 @@ TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
   auto cancelable = submittableExecutor->Schedule(
       [&output, &threadIds]() {
         threadIds->push_back(GetCurrentThreadId());
-        output.append("runnable 1");
+        output.append(RUNNABLE_0_TEXT.c_str());
       },
       absl::Milliseconds(100));
 

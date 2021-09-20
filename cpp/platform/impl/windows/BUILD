@@ -150,6 +150,7 @@ cc_library(
         "test_utils.cc",
     ],
     hdrs = [
+        "test_data.h",
         "test_utils.h",
     ],
     visibility = [

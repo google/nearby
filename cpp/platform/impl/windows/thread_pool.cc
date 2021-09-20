@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ DWORD WINAPI ThreadPool::_ThreadProc(LPVOID pParam) {
 
   _ASSERT(pParam != NULL);
   if (NULL == pParam) {
+    NEARBY_LOGS(ERROR) << __func__ << ": pParam must not be null.";
     return -1;
   }
 
@@ -94,6 +95,7 @@ ThreadPool::ThreadPool(int nPoolSize, bool bCreateNow)
   // windows has a max of 64. This means we can only wait on up
   // to 64 threads, anything more gives undesirable results.
   if (nPoolSize > 63) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Thread pool max size exceeded.";
     throw ThreadPoolException("Thread pool max size exceeded.");
   }
 
@@ -104,14 +106,18 @@ ThreadPool::ThreadPool(int nPoolSize, bool bCreateNow)
 
   if (bCreateNow) {
     if (!Create()) {
-      throw ThreadPoolException("Thread pool creation failed");
+      NEARBY_LOGS(ERROR) << __func__ << ": Thread pool creation failed.";
+      throw ThreadPoolException("Thread pool creation failed.");
     }
   }
 }
 
 bool ThreadPool::Create() {
   if (pool_state_ != State::Destroyed) {
-    // To create a new pool, destory the existing one first
+    // To create a new pool, destroy the existing one first
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Attempt to create a new thread pool before "
+                          "destroying the old one.";
     return false;
   }
 
@@ -241,13 +247,6 @@ void ThreadPool::Destroy() {
 
   bool notDone = true;
 
-  while (notDone) {
-    EnterCriticalSection(&critical_section_);
-    notDone = function_list_->size() > 0;
-    LeaveCriticalSection(&critical_section_);
-    Sleep(100);
-  }
-
   EnterCriticalSection(&critical_section_);
 
   ThreadMap::iterator iter = thread_map_->begin();
@@ -335,6 +334,8 @@ void ThreadPool::SetPoolSize(int nSize) {
   _ASSERT(nSize > 0);
 
   if (nSize <= 0) {
+    NEARBY_LOGS(ERROR)
+        << __func__ << ": 0 or negative value is not a valid thread pool size.";
     return;
   }
 
@@ -382,6 +383,7 @@ void ThreadPool::FinishNotify(DWORD threadId) {
   if (threadMapIterator == thread_map_->end())  // if search found no elements
   {
     _ASSERT(!"No matching thread found.");
+    NEARBY_LOGS(ERROR) << __func__ << ": No matching thread found.";
   } else {
     thread_map_->at(threadId)->free = true;
 
