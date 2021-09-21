@@ -159,6 +159,44 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "public_windows_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = [
+        #"atomic_boolean_test.cc",
+        "atomic_reference_test.cc",
+        #"ble_test.cc",
+        #"bluetooth_adapter_test.cc",
+        #"bluetooth_classic_test.cc",
+        #"cancelable_alarm_test.cc",
+        "condition_variable_test.cc",
+        "count_down_latch_test.cc",
+        "crypto_test.cc",
+        "future_test.cc",
+        "logging_test.cc",
+        "mutex_test.cc",
+        #"pipe_test.cc",
+        #"scheduled_executor_test.cc",
+        #"single_thread_executor_test.cc",
+        #"multi_thread_executor_test.cc",
+        #"wifi_lan_test.cc",
+    ],
+    shard_count = 16,
+    deps = [
+        ":comm",
+        ":logging",
+        ":types",
+        "//testing/base/public:gunit_main",
+        "//absl/strings",
+        "//absl/synchronization",
+        "//absl/time",
+        "//platform/base",
+        "//platform/base:test_util",
+        "//platform/impl/windows",  # build_cleaner: keep
+    ],
+)
+
 cc_fake_binary(
     name = "thread_check_nocompile",
     srcs = ["thread_check_nocompile.cc"],

@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,50 +15,52 @@
 #ifndef PLATFORM_IMPL_WINDOWS_MUTEX_H_
 #define PLATFORM_IMPL_WINDOWS_MUTEX_H_
 
-#include <windows.h>
-#include <stdio.h>
-#include <synchapi.h>
-
-#include <memory>
 #include <mutex>  //  NOLINT
 
-#include "absl/memory/memory.h"
+#include "absl/synchronization/mutex.h"
 #include "platform/api/mutex.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
 
-// A lock is a tool for controlling access to a shared resource by multiple
-// threads.
-//
-// https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Lock.html
-class Mutex : public api::Mutex {
+class ABSL_LOCKABLE Mutex : public api::Mutex {
  public:
-  Mutex(Mutex::Mode mode);
-
+  explicit Mutex(bool check) : check_(check) {}
   ~Mutex() override = default;
+  Mutex(Mutex&&) = delete;
+  Mutex& operator=(Mutex&&) = delete;
+  Mutex(const Mutex&) = delete;
+  Mutex& operator=(const Mutex&) = delete;
 
-  void Lock() override;
-
-  void Unlock() override;
-
-  std::mutex& GetWindowsMutex();
-
-  std::recursive_mutex& GetWindowsRecursiveMutex();
+  void Lock() ABSL_EXCLUSIVE_LOCK_FUNCTION() override {
+    mutex_.Lock();
+    if (!check_) mutex_.ForgetDeadlockInfo();
+  }
+  void Unlock() ABSL_UNLOCK_FUNCTION() override { mutex_.Unlock(); }
 
  private:
-  Mutex::Mode mode_;
+  friend class ConditionVariable;
+  absl::Mutex mutex_;
+  bool check_;
+};
 
-  std::mutex mutex_impl_;  //  The actual mutex allocation
-  std::mutex& mutex_ =
-      mutex_impl_;  //  This is passed to other windows functions, must be by
-                    //  reference to avoid ownership problems
-  std::recursive_mutex recursive_mutex_impl_;  //  The actual mutex allocation
-  std::recursive_mutex& recursive_mutex_ =
-      recursive_mutex_impl_;  //  This is passed to other windows functions,
-                              //  must be by reference to avoid ownership
-                              //  problems
+class ABSL_LOCKABLE RecursiveMutex : public api::Mutex {
+ public:
+  ~RecursiveMutex() override = default;
+  RecursiveMutex() = default;
+  RecursiveMutex(RecursiveMutex&&) = delete;
+  RecursiveMutex& operator=(RecursiveMutex&&) = delete;
+  RecursiveMutex(const RecursiveMutex&) = delete;
+  RecursiveMutex& operator=(const RecursiveMutex&) = delete;
+
+  void Lock() ABSL_EXCLUSIVE_LOCK_FUNCTION() override { mutex_.lock(); }
+
+  void Unlock() ABSL_UNLOCK_FUNCTION() override { mutex_.unlock(); }
+
+ private:
+  friend class ConditionVariable;
+  std::recursive_mutex mutex_;
 };
 
 }  // namespace windows

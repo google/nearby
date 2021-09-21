@@ -100,10 +100,7 @@ cc_library(
         "bluetooth_classic_medium.cc",
         "bluetooth_classic_server_socket.cc",
         "bluetooth_classic_socket.cc",
-        "condition_variable.cc",
-        "count_down_latch.cc",
         "executor.cc",
-        "mutex.cc",
         "platform.cc",
         "scheduled_executor.cc",
         "submittable_executor.cc",
@@ -129,7 +126,10 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-Ithird_party/nearby_connections/cpp/platform/impl/windows/generated"],
     visibility = [
-        "//third_party/nearby_connections/windows:__subpackages__",
+        "//third_party/nearby_connections/cpp/analytics:__subpackages__",
+        "//core:__subpackages__",
+        "//platform:__subpackages__",
+        "//proto/analytics:__subpackages__",
     ],
     deps = [
         ":comm",
@@ -158,36 +158,5 @@ cc_library(
     ],
     deps = [
         "//platform/base",
-    ],
-)
-
-cc_test(
-    name = "impl_test",
-    size = "small",
-    srcs = [
-        "atomic_boolean_test.cc",
-        "atomic_reference_test.cc",
-        "condition_variable_test.cc",
-        "count_down_latch_test.cc",
-        "crypto_test.cc",
-        "executor_test.cc",
-        "input_file_test.cc",
-        "mutex_test.cc",
-        "output_file_test.cc",
-        "scheduled_executor_test.cc",
-        "submittable_executor_test.cc",
-    ],
-    copts = ["-Iplatform/impl/windows/generated"],
-    deps = [
-        ":comm",
-        ":crypto",
-        ":test_utils",
-        ":types",
-        "//testing/base/public:gunit_main",
-        "//platform/api:platform",
-        "//platform/base",
-        "//platform/impl/windows",
-        "//platform/impl/windows/generated:types",
-        "//platform/public:logging",
     ],
 )

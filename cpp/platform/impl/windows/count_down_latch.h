@@ -15,41 +15,52 @@
 #ifndef PLATFORM_IMPL_WINDOWS_COUNT_DOWN_LATCH_H_
 #define PLATFORM_IMPL_WINDOWS_COUNT_DOWN_LATCH_H_
 
-#include <windows.h>
-#include <synchapi.h>
-
+#include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
+#include "absl/time/clock.h"
 #include "platform/api/count_down_latch.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
 
-// A synchronization aid that allows one or more threads to wait until a set of
-// operations being performed in other threads completes.
-//
-// https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CountDownLatch.html
-class CountDownLatch : public api::CountDownLatch {
+class CountDownLatch final : public api::CountDownLatch {
  public:
-  CountDownLatch(int count);
-
-  ~CountDownLatch() override {
-    if (h_count_down_latch_event_ != NULL) {
-      CloseHandle(h_count_down_latch_event_);
-      h_count_down_latch_event_ = NULL;
+  explicit CountDownLatch(int count) : count_(count) {}
+  CountDownLatch(const CountDownLatch&) = delete;
+  CountDownLatch& operator=(const CountDownLatch&) = delete;
+  CountDownLatch(CountDownLatch&&) = delete;
+  CountDownLatch& operator=(CountDownLatch&&) = delete;
+  ExceptionOr<bool> Await(absl::Duration timeout) override {
+    absl::MutexLock lock(&mutex_);
+    absl::Time deadline = absl::Now() + timeout;
+    while (count_ > 0) {
+      if (cond_.WaitWithDeadline(&mutex_, deadline)) {
+        return ExceptionOr<bool>(false);
+      }
+    }
+    return ExceptionOr<bool>(true);
+  }
+  Exception Await() override {
+    absl::MutexLock lock(&mutex_);
+    while (count_ > 0) {
+      cond_.Wait(&mutex_);
+    }
+    return {Exception::kSuccess};
+  }
+  void CountDown() override {
+    absl::MutexLock lock(&mutex_);
+    if (count_ > 0 && --count_ == 0) {
+      cond_.SignalAll();
     }
   }
 
-  Exception Await() override;
-
-  ExceptionOr<bool> Await(absl::Duration timeout) override;
-
-  void CountDown() override;
-
  private:
-  HANDLE h_count_down_latch_event_ = NULL;
-  uint32_t count_;
+  absl::Mutex mutex_;   // Mutex to be used with cond_.Wait...() method family.
+  absl::CondVar cond_;  // Condition to synchronize up to N waiting threads.
+  int count_
+      ABSL_GUARDED_BY(mutex_);  // When zero, latch should release all waiters.
 };
-
 }  // namespace windows
 }  // namespace nearby
 }  // namespace location

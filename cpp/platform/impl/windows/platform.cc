@@ -62,24 +62,27 @@ std::unique_ptr<CountDownLatch> ImplementationPlatform::CreateCountDownLatch(
 }
 
 std::unique_ptr<Mutex> ImplementationPlatform::CreateMutex(Mutex::Mode mode) {
-  return absl::make_unique<windows::Mutex>(mode);
+  if (mode == Mutex::Mode::kRecursive)
+    return absl::make_unique<windows::RecursiveMutex>();
+  else
+    return absl::make_unique<windows::Mutex>(mode == Mutex::Mode::kRegular);
 }
 
 std::unique_ptr<ConditionVariable>
 ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
-  return absl::make_unique<windows::ConditionVariable>(mutex);
+  return std::unique_ptr<ConditionVariable>(
+      new windows::ConditionVariable(static_cast<windows::Mutex*>(mutex)));
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     PayloadId payload_id, std::int64_t total_size) {
-  return absl::make_unique<shared::InputFile>(
-      GetPayloadPath(payload_id), total_size);
+  return absl::make_unique<shared::InputFile>(GetPayloadPath(payload_id),
+                                              total_size);
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     PayloadId payload_id) {
-  return absl::make_unique<shared::OutputFile>(
-      GetPayloadPath(payload_id));
+  return absl::make_unique<shared::OutputFile>(GetPayloadPath(payload_id));
 }
 
 // TODO(b/184975123): replace with real implementation.
@@ -112,8 +115,7 @@ ImplementationPlatform::CreateBluetoothAdapter() {
 std::unique_ptr<BluetoothClassicMedium>
 ImplementationPlatform::CreateBluetoothClassicMedium(
     nearby::api::BluetoothAdapter& adapter) {
-  return absl::make_unique<windows::BluetoothClassicMedium>(
-      adapter);
+  return absl::make_unique<windows::BluetoothClassicMedium>(adapter);
 }
 
 // TODO(b/184975123): replace with real implementation.
