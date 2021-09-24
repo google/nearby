@@ -182,6 +182,9 @@ enum EventType {
 
   // Request setting permissions (Wifi/BT/location/airplane mode).
   REQUEST_SETTING_PERMISSIONS = 47;
+
+  // Set up a connection with the remote device.
+  ESTABLISH_CONNECTION = 48;
 }
 
 // Event category to differentiate whether this comes from sender or receiver,
@@ -216,6 +219,15 @@ enum DataUsage {
   ONLINE = 1;
   WIFI_ONLY = 2;
   OFFLINE = 3;
+}
+
+// The status of establishing a connection. Used by ESTABLISH_CONNECTION.
+enum EstablishConnectionStatus {
+  CONNECTION_STATUS_UNKNOWN = 0;
+
+  CONNECTION_STATUS_SUCCESS = 1;
+  CONNECTION_STATUS_FAILURE = 2;
+  CONNECTION_STATUS_CANCELLATION = 3;
 }
 
 // The status of sending and receiving attachments. Used by SEND_ATTACHMENTS.
