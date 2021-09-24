@@ -19,7 +19,7 @@
 
 #include "absl/time/clock.h"
 #include "platform/api/submittable_executor.h"
-#include "platform/impl/g3/count_down_latch.h"
+#include "platform/impl/shared/count_down_latch.h"
 #include "thread/threadpool.h"
 
 namespace location {

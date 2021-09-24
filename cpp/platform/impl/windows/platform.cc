@@ -22,7 +22,7 @@
 #include "platform/impl/windows/bluetooth_classic_medium.h"
 #include "platform/impl/windows/cancelable.h"
 #include "platform/impl/windows/condition_variable.h"
-#include "platform/impl/windows/count_down_latch.h"
+#include "platform/impl/shared/count_down_latch.h"
 #include "platform/impl/windows/executor.h"
 #include "platform/impl/windows/future.h"
 #include "platform/impl/windows/listenable_future.h"
@@ -58,7 +58,7 @@ std::unique_ptr<AtomicUint32> ImplementationPlatform::CreateAtomicUint32(
 
 std::unique_ptr<CountDownLatch> ImplementationPlatform::CreateCountDownLatch(
     std::int32_t count) {
-  return absl::make_unique<windows::CountDownLatch>(count);
+  return absl::make_unique<shared::CountDownLatch>(count);
 }
 
 std::unique_ptr<Mutex> ImplementationPlatform::CreateMutex(Mutex::Mode mode) {

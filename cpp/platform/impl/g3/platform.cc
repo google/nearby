@@ -27,7 +27,7 @@
 #include "platform/api/bluetooth_adapter.h"
 #include "platform/api/bluetooth_classic.h"
 #include "platform/api/condition_variable.h"
-#include "platform/api/count_down_latch.h"
+#include "platform/impl/shared/count_down_latch.h"
 #include "platform/api/log_message.h"
 #include "platform/api/mutex.h"
 #include "platform/api/scheduled_executor.h"
@@ -42,7 +42,6 @@
 #include "platform/impl/g3/bluetooth_adapter.h"
 #include "platform/impl/g3/bluetooth_classic.h"
 #include "platform/impl/g3/condition_variable.h"
-#include "platform/impl/g3/count_down_latch.h"
 #include "platform/impl/g3/log_message.h"
 #include "platform/impl/g3/multi_thread_executor.h"
 #include "platform/impl/g3/mutex.h"
@@ -94,7 +93,7 @@ ImplementationPlatform::CreateBluetoothAdapter() {
 
 std::unique_ptr<CountDownLatch> ImplementationPlatform::CreateCountDownLatch(
     std::int32_t count) {
-  return absl::make_unique<g3::CountDownLatch>(count);
+  return absl::make_unique<shared::CountDownLatch>(count);
 }
 
 std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(

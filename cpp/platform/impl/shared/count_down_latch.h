@@ -12,46 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_WINDOWS_COUNT_DOWN_LATCH_H_
-#define PLATFORM_IMPL_WINDOWS_COUNT_DOWN_LATCH_H_
+#ifndef PLATFORM_IMPL_SHARED_COUNT_DOWN_LATCH_H_
+#define PLATFORM_IMPL_SHARED_COUNT_DOWN_LATCH_H_
 
-#include <windows.h>
-#include <synchapi.h>
-
+#include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
+#include "absl/time/clock.h"
 #include "platform/api/count_down_latch.h"
 
 namespace location {
 namespace nearby {
-namespace windows {
+namespace shared {
 
 // A synchronization aid that allows one or more threads to wait until a set of
 // operations being performed in other threads completes.
 //
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CountDownLatch.html
-class CountDownLatch : public api::CountDownLatch {
+class CountDownLatch final : public api::CountDownLatch {
  public:
-  CountDownLatch(int count);
-
-  ~CountDownLatch() override {
-    if (h_count_down_latch_event_ != NULL) {
-      CloseHandle(h_count_down_latch_event_);
-      h_count_down_latch_event_ = NULL;
-    }
-  }
-
-  Exception Await() override;
-
+  explicit CountDownLatch(int count);
+  CountDownLatch(const CountDownLatch&) = delete;
+  CountDownLatch& operator=(const CountDownLatch&) = delete;
+  CountDownLatch(CountDownLatch&&) = delete;
+  CountDownLatch& operator=(CountDownLatch&&) = delete;
   ExceptionOr<bool> Await(absl::Duration timeout) override;
-
+  Exception Await() override;
   void CountDown() override;
 
  private:
-  HANDLE h_count_down_latch_event_ = NULL;
-  uint32_t count_;
+  absl::Mutex mutex_;   // Mutex to be used with cond_.Wait...() method family.
+  absl::CondVar cond_;  // Condition to synchronize up to N waiting threads.
+  int count_
+      ABSL_GUARDED_BY(mutex_);  // When zero, latch should release all waiters.
 };
 
-}  // namespace windows
+}  // namespace shared
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_WINDOWS_COUNT_DOWN_LATCH_H_
+#endif  // PLATFORM_IMPL_G3_COUNT_DOWN_LATCH_H_

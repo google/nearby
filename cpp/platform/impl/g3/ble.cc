@@ -23,6 +23,7 @@
 #include "platform/base/cancellation_flag_listener.h"
 #include "platform/base/logging.h"
 #include "platform/base/medium_environment.h"
+#include "platform/impl/shared/count_down_latch.h"
 
 namespace location {
 namespace nearby {
@@ -188,7 +189,7 @@ BleMedium::~BleMedium() {
   // If acceptance thread is still running, wait to finish.
   if (acceptance_thread_running_) {
     while (acceptance_thread_running_) {
-      CountDownLatch latch(1);
+      shared::CountDownLatch latch(1);
       close_accept_loops_runner_.Execute([&latch]() { latch.CountDown(); });
       latch.Await();
     }

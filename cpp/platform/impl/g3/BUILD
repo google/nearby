@@ -25,7 +25,6 @@ cc_library(
         "atomic_boolean.h",
         "atomic_reference.h",
         "condition_variable.h",
-        "count_down_latch.h",
         "log_message.h",
         "multi_thread_executor.h",
         "mutex.h",
@@ -43,6 +42,7 @@ cc_library(
         "//platform/api:types",
         "//platform/base",
         "//platform/base:util",
+        "//platform/impl/shared:count_down_latch",
         "//platform/impl/shared:posix_mutex",
         "//thread",
     ],
@@ -78,6 +78,7 @@ cc_library(
         "//platform/base:cancellation_flag",
         "//platform/base:logging",
         "//platform/base:test_util",
+        "//platform/impl/shared:count_down_latch",
         "//webrtc/api:create_peerconnection_factory",  #buildcleaner: keep
         "//webrtc/api:libjingle_peerconnection_api",
         "//webrtc/api/task_queue:default_task_queue_factory",
@@ -123,6 +124,7 @@ cc_library(
         "//platform/api:platform",
         "//platform/api:types",
         "//platform/base:test_util",
+        "//platform/impl/shared:count_down_latch",
         "//platform/impl/shared:file",
     ],
 )
