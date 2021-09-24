@@ -43,7 +43,7 @@ void ConditionVariable::Notify() {
 // Returns kSuccess, or kInterrupted on interrupt.
 Exception ConditionVariable::Wait() {
   std::unique_lock<std::mutex> lock =
-      std::unique_lock<std::mutex>(mutex_.GetWindowsMutex());
+      std::unique_lock<std::mutex>(mutex_.GetWindowsMutex(), std::defer_lock);
   condition_variable_actual_.wait(lock);
 
   return Exception{Exception::kSuccess};
@@ -55,7 +55,7 @@ Exception ConditionVariable::Wait() {
 Exception ConditionVariable::Wait(absl::Duration timeout) {
   auto now = std::chrono::system_clock::now();
   std::unique_lock<std::mutex> lock =
-      std::unique_lock<std::mutex>(mutex_.GetWindowsMutex());
+      std::unique_lock<std::mutex>(mutex_.GetWindowsMutex(), std::defer_lock);
   if (condition_variable_actual_.wait_until(
           lock, now + absl::ToChronoMilliseconds(timeout)) ==
       std::cv_status::timeout) {
