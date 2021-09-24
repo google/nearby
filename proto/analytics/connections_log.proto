@@ -111,6 +111,9 @@ message ConnectionsLog {
 
     // The SendingEvent flow id.
     optional int64 client_flow_id = 6 [(datapol.semantic_type) = ST_SESSION_ID];
+
+    // Encapsulates additional discovery information.
+    optional DiscoveryMetadata discovery_metadata = 7;
   }
 
   // An endpoint discovered on a particular medium during discovery.
@@ -369,6 +372,18 @@ message ConnectionsLog {
   message AdvertisingMetadata {
     // The bluetooth low energy extended advertisement support status.
     optional bool supports_extended_ble_advertisements = 1;
+
+    // The frequency of the connected WiFi AP.
+    optional int32 connected_ap_frequency = 2;
+  }
+
+  // Some additional information to keep with the discovery phase.
+  message DiscoveryMetadata {
+    // The bluetooth low energy extended advertisement support status.
+    optional bool supports_extended_ble_advertisements = 1;
+
+    // The frequency of the connected WiFi AP.
+    optional int32 connected_ap_frequency = 2;
   }
 
   // Some additional information to keep with the connection attempt.
@@ -412,6 +427,9 @@ message ConnectionsLog {
 
     // The MAX supported RX link speed (Mbps).
     optional int32 max_rx_speed = 10;
+
+    // The connected wifi channel width.
+    optional int32 wifi_channel_width = 11;
   }
 }
 // LINT.ThenChange()
