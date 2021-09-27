@@ -530,7 +530,7 @@ TEST_F(ClientProxyTest,
 
   // Wait to expire and then advertise.
   absl::SleepFor(ClientProxy::kHighPowerAdvertisementEndpointIdCacheTimeout +
-                 absl::Milliseconds(10));
+                 absl::Milliseconds(100));
   Endpoint advertising_endpoint_2 = StartAdvertising(
       &client1_, advertising_connection_listener_, advertising_options);
 
