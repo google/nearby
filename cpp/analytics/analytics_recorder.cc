@@ -21,8 +21,8 @@
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
 #include "platform/public/system_clock.h"
-#include "proto/analytics/connections_log.proto.h"
-#include "proto/connections_enums.proto.h"
+#include "proto/analytics/connections_log.pb.h"
+#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

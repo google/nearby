@@ -24,8 +24,8 @@
 #include "platform/base/error_code_recorder.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
-#include "proto/analytics/connections_log.proto.h"
-#include "proto/connections_enums.proto.h"
+#include "proto/analytics/connections_log.pb.h"
+#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

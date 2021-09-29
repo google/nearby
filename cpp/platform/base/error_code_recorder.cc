@@ -15,7 +15,7 @@
 #include "platform/base/error_code_recorder.h"
 
 #include "platform/base/logging.h"
-#include "proto/errorcode/error_code_enums.proto.h"
+#include "proto/errorcode/error_code_enums.pb.h"
 
 namespace location {
 namespace nearby {

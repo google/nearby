@@ -27,7 +27,7 @@
 #include "platform/base/byte_array.h"
 #include "platform/base/feature_flags.h"
 #include "platform/public/count_down_latch.h"
-#include "proto/connections_enums.proto.h"
+#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {
