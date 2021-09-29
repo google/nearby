@@ -61,6 +61,7 @@ cc_library(
         "webrtc.h",
         "wifi.h",
         "wifi_lan.h",
+        "wifi_lan_v2.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
