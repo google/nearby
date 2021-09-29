@@ -64,6 +64,7 @@ class MockEndpointChannel : public EndpointChannel {
   MOCK_METHOD(void, Pause, (), (override));
   MOCK_METHOD(void, Resume, (), (override));
   MOCK_METHOD(absl::Time, GetLastReadTimestamp, (), (const override));
+  MOCK_METHOD(absl::Time, GetLastWriteTimestamp, (), (const override));
   MOCK_METHOD(void, SetAnalyticsRecorder,
               (analytics::AnalyticsRecorder*, const std::string&), (override));
 
@@ -107,6 +108,8 @@ class EndpointManagerTest : public ::testing::Test {
     }
     EXPECT_CALL(*channel, GetMedium()).WillRepeatedly(Return(Medium::BLE));
     EXPECT_CALL(*channel, GetLastReadTimestamp())
+        .WillRepeatedly(Return(start_time_));
+    EXPECT_CALL(*channel, GetLastWriteTimestamp())
         .WillRepeatedly(Return(start_time_));
     EXPECT_CALL(mock_listener_.initiated_cb, Call).Times(1);
     em_.RegisterEndpoint(&client_, endpoint_id_, info_, options_,

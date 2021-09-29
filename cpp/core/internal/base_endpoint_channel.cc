@@ -219,6 +219,10 @@ Exception BaseEndpointChannel::Write(const ByteArray& data) {
     }
   }
 
+  {
+    MutexLock lock(&last_write_mutex_);
+    last_write_timestamp_ = SystemClock::ElapsedRealtime();
+  }
   return {Exception::kSuccess};
 }
 
@@ -324,6 +328,11 @@ void BaseEndpointChannel::Resume() {
 absl::Time BaseEndpointChannel::GetLastReadTimestamp() const {
   MutexLock lock(&last_read_mutex_);
   return last_read_timestamp_;
+}
+
+absl::Time BaseEndpointChannel::GetLastWriteTimestamp() const {
+  MutexLock lock(&last_write_mutex_);
+  return last_write_timestamp_;
 }
 
 bool BaseEndpointChannel::IsEncryptionEnabledLocked() const {

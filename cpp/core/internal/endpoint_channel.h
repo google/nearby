@@ -81,6 +81,10 @@ class EndpointChannel {
   // reads have occurred.
   virtual absl::Time GetLastReadTimestamp() const = 0;
 
+  // Returns the timestamp of the last write to this endpoint, or -1 if no
+  // writes have occurred.
+  virtual absl::Time GetLastWriteTimestamp() const = 0;
+
   // Sets the AnalyticsRecorder instance for analytics.
   virtual void SetAnalyticsRecorder(
       analytics::AnalyticsRecorder* analytics_recorder,

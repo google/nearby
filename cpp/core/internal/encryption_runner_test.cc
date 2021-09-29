@@ -42,6 +42,7 @@ class FakeEndpointChannel : public EndpointChannel {
                : ExceptionOr<ByteArray>{Exception::kIo};
   }
   Exception Write(const ByteArray& data) override {
+    write_timestamp_ = SystemClock::ElapsedRealtime();
     return out_ ? out_->Write(data) : Exception{Exception::kIo};
   }
   void Close() override {
@@ -61,6 +62,7 @@ class FakeEndpointChannel : public EndpointChannel {
   void Pause() override {}
   void Resume() override {}
   absl::Time GetLastReadTimestamp() const override { return read_timestamp_; }
+  absl::Time GetLastWriteTimestamp() const override { return write_timestamp_; }
   void SetAnalyticsRecorder(analytics::AnalyticsRecorder* analytics_recorder,
                             const std::string& endpoint_id) override {}
 
@@ -68,6 +70,7 @@ class FakeEndpointChannel : public EndpointChannel {
   InputStream* in_ = nullptr;
   OutputStream* out_ = nullptr;
   absl::Time read_timestamp_ = absl::InfinitePast();
+  absl::Time write_timestamp_ = absl::InfinitePast();
 };
 
 struct User {

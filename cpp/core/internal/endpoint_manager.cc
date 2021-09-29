@@ -214,32 +214,45 @@ ExceptionOr<bool> EndpointManager::HandleData(
 
 ExceptionOr<bool> EndpointManager::HandleKeepAlive(
     EndpointChannel* endpoint_channel, absl::Duration keep_alive_interval,
-    absl::Duration keep_alive_timeout) {
-  // Check if it has been too long since we received a frame from our
-  // endpoint.
-  auto last_read_time = endpoint_channel->GetLastReadTimestamp();
-  if (last_read_time != kInvalidTimestamp &&
-      SystemClock::ElapsedRealtime() > (last_read_time + keep_alive_timeout)) {
-    NEARBY_LOG(INFO, "Receive timeout expired; aborting KeepAlive worker.");
+    absl::Duration keep_alive_timeout, Mutex* keep_alive_waiter_mutex,
+    ConditionVariable* keep_alive_waiter) {
+  // Check if it has been too long since we received a frame from our endpoint.
+  absl::Time last_read_time = endpoint_channel->GetLastReadTimestamp();
+  absl::Duration duration_until_timeout =
+      last_read_time == kInvalidTimestamp
+          ? keep_alive_timeout
+          : last_read_time + keep_alive_timeout -
+                SystemClock::ElapsedRealtime();
+  if (duration_until_timeout <= absl::ZeroDuration()) {
     return ExceptionOr<bool>(false);
   }
 
-  // Attempt to send the KeepAlive frame over the endpoint channel - if the
-  // write fails, our super class will loop back around and try our luck again
-  // in case there's been a replacement for this endpoint.
-  Exception write_exception = endpoint_channel->Write(parser::ForKeepAlive());
-  if (!write_exception.Ok()) {
-    return ExceptionOr<bool>(write_exception);
+  // If we haven't written anything to the endpoint for a while, attempt to send
+  // the KeepAlive frame over the endpoint channel. If the write fails, our
+  // super class will loop back around and try our luck again in case there's
+  // been a replacement for this endpoint.
+  absl::Time last_write_time = endpoint_channel->GetLastWriteTimestamp();
+  absl::Duration duration_until_write_keep_alive =
+      last_write_time == kInvalidTimestamp
+          ? keep_alive_interval
+          : last_write_time + keep_alive_interval -
+                SystemClock::ElapsedRealtime();
+  if (duration_until_write_keep_alive <= absl::ZeroDuration()) {
+    Exception write_exception = endpoint_channel->Write(parser::ForKeepAlive());
+    if (!write_exception.Ok()) {
+      return ExceptionOr<bool>(write_exception);
+    }
+    duration_until_write_keep_alive = keep_alive_interval;
   }
 
-  // We sleep as the very last step because we want to minimize the caching of
-  // the EndpointChannel. If we do hold on to the EndpointChannel, and it's
-  // switched out from under us in BandwidthUpgradeManager, our write will
-  // trigger an erroneous write to the encryption context that will cascade
-  // into all our remote endpoint's future reads failing.
-  Exception sleep_exception = SystemClock::Sleep(keep_alive_interval);
-  if (!sleep_exception.Ok()) {
-    return ExceptionOr<bool>(sleep_exception);
+  absl::Duration wait_for =
+      std::min(duration_until_timeout, duration_until_write_keep_alive);
+  {
+    MutexLock lock(keep_alive_waiter_mutex);
+    Exception wait_exception = keep_alive_waiter->Wait(wait_for);
+    if (!wait_exception.Ok()) {
+      return ExceptionOr<bool>(wait_exception);
+    }
   }
 
   return ExceptionOr<bool>(true);
@@ -414,11 +427,11 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
           });
     });
 
-    // For every endpoint, there's only one KeepAliveManager instance
-    // running on a dedicated thread. This instance will
-    // periodically send out a ping* to the endpoint while listening for an
-    // incoming pong**. If it fails to send the ping, or if no pong is heard
-    // within keep_alive_interval_, it initiates a disconnection.
+    // For every endpoint, there's only one KeepAliveManager instance running on
+    // a dedicated thread. This instance will periodically send out a ping* to
+    // the endpoint while listening for an incoming pong**. If it fails to send
+    // the ping, or if no pong is heard within keep_alive_timeout, it initiates
+    // a disconnection.
     //
     // (*) Bluetooth requires a constant outgoing stream of messages. If
     // there's silence, Android will break the socket. This is why we ping.
@@ -428,13 +441,17 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
     NEARBY_LOGS(VERBOSE) << "EndpointManager enabling KeepAlive for endpoint "
                          << endpoint_id;
     endpoint_state.StartEndpointKeepAliveManager(
-        [this, client, endpoint_id, keep_alive_interval, keep_alive_timeout]() {
+        [this, client, endpoint_id, keep_alive_interval, keep_alive_timeout](
+            Mutex* keep_alive_waiter_mutex,
+            ConditionVariable* keep_alive_waiter) {
           EndpointChannelLoopRunnable(
               "KeepAliveManager", client, endpoint_id,
-              [this, keep_alive_interval,
-               keep_alive_timeout](EndpointChannel* channel) {
-                return HandleKeepAlive(channel, keep_alive_interval,
-                                       keep_alive_timeout);
+              [this, keep_alive_interval, keep_alive_timeout,
+               keep_alive_waiter_mutex,
+               keep_alive_waiter](EndpointChannel* channel) {
+                return HandleKeepAlive(
+                    channel, keep_alive_interval, keep_alive_timeout,
+                    keep_alive_waiter_mutex, keep_alive_waiter);
               });
         });
     NEARBY_LOGS(INFO) << "Registering endpoint " << endpoint_id
@@ -456,7 +473,7 @@ void EndpointManager::UnregisterEndpoint(ClientProxy* client,
   RunOnEndpointManagerThread(
       "unregister-endpoint", [this, client, endpoint_id, &latch]() {
         RemoveEndpoint(client, endpoint_id,
-                       client->IsConnectedToEndpoint(endpoint_id));
+                       /*notify=*/client->IsConnectedToEndpoint(endpoint_id));
         latch.CountDown();
       });
   latch.Await();
@@ -494,8 +511,7 @@ void EndpointManager::DiscardEndpoint(ClientProxy* client,
   NEARBY_LOGS(VERBOSE) << "DiscardEndpoint for endpoint " << endpoint_id;
   RunOnEndpointManagerThread("discard-endpoint", [this, client, endpoint_id]() {
     RemoveEndpoint(client, endpoint_id,
-                   /*notify=*/
-                   client->IsConnectedToEndpoint(endpoint_id));
+                   /*notify=*/client->IsConnectedToEndpoint(endpoint_id));
   });
 }
 
@@ -619,14 +635,19 @@ std::vector<std::string> EndpointManager::SendTransferFrameBytes(
 }
 
 EndpointManager::EndpointState::~EndpointState() {
-  // We must unregister the endpoint first to signal the runnables
-  // that they should exit their loops. SingleThreadExecutor destructors will
-  // wait for the workers to finish.
-  // |channel_manager_| is null when we moved from this object (in move
-  // constructor) which prevents unregistering the channel prematurely.
-  if (channel_manager_ != nullptr) {
+  // We must unregister the endpoint first to signal the runnables that they
+  // should exit their loops. SingleThreadExecutor destructors will wait for the
+  // workers to finish. |channel_manager_| is null after moved from this object
+  // (in move constructor) which prevents unregistering the channel prematurely.
+  if (channel_manager_) {
     NEARBY_LOG(VERBOSE, "EndpointState destructor %s", endpoint_id_.c_str());
     channel_manager_->UnregisterChannelForEndpoint(endpoint_id_);
+  }
+
+  // Make sure the KeepAlive thread isn't blocking shutdown.
+  if (keep_alive_waiter_mutex_ && keep_alive_waiter_) {
+    MutexLock lock(keep_alive_waiter_mutex_.get());
+    keep_alive_waiter_->Notify();
   }
 }
 
@@ -635,8 +656,13 @@ void EndpointManager::EndpointState::StartEndpointReader(Runnable&& runnable) {
 }
 
 void EndpointManager::EndpointState::StartEndpointKeepAliveManager(
-    Runnable&& runnable) {
-  keep_alive_thread_.Execute("keep-alive", std::move(runnable));
+    std::function<void(Mutex*, ConditionVariable*)> runnable) {
+  keep_alive_thread_.Execute(
+      "keep-alive",
+      [runnable, keep_alive_waiter_mutex = keep_alive_waiter_mutex_.get(),
+       keep_alive_waiter = keep_alive_waiter_.get()]() {
+        runnable(keep_alive_waiter_mutex, keep_alive_waiter);
+      });
 }
 
 void EndpointManager::RunOnEndpointManagerThread(const std::string& name,

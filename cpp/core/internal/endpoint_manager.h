@@ -28,6 +28,7 @@
 #include "core/listeners.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/runnable.h"
+#include "platform/public/condition_variable.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/multi_thread_executor.h"
 #include "platform/public/single_thread_executor.h"
@@ -145,25 +146,44 @@ class EndpointManager {
    public:
     EndpointState(const std::string& endpoint_id,
                   EndpointChannelManager* channel_manager)
-        : endpoint_id_{endpoint_id}, channel_manager_{channel_manager} {}
+        : endpoint_id_{endpoint_id},
+          channel_manager_{channel_manager},
+          keep_alive_waiter_mutex_{std::make_unique<Mutex>()},
+          keep_alive_waiter_{std::make_unique<ConditionVariable>(
+              keep_alive_waiter_mutex_.get())} {}
+
     EndpointState(const EndpointState&) = delete;
-    // default move constructor would not reset |channel_manager_|
+    // The default move constructor would not reset |channel_manager_|, for
+    // example. This needs to be nullified so the destructor shutdown logic is
+    // bypassed when objects are moved.
     EndpointState(EndpointState&& other)
         : endpoint_id_{std::move(other.endpoint_id_)},
           channel_manager_{std::exchange(other.channel_manager_, nullptr)},
           reader_thread_{std::move(other.reader_thread_)},
+          keep_alive_waiter_mutex_{
+              std::exchange(other.keep_alive_waiter_mutex_, nullptr)},
+          keep_alive_waiter_{std::exchange(other.keep_alive_waiter_, nullptr)},
           keep_alive_thread_{std::move(other.keep_alive_thread_)} {}
     EndpointState& operator=(const EndpointState&) = delete;
     EndpointState&& operator=(EndpointState&&) = delete;
     ~EndpointState();
 
     void StartEndpointReader(Runnable&& runnable);
-    void StartEndpointKeepAliveManager(Runnable&& runnable);
+    void StartEndpointKeepAliveManager(
+        std::function<void(Mutex*, ConditionVariable*)> runnable);
 
    private:
     const std::string endpoint_id_;
     EndpointChannelManager* channel_manager_;
     SingleThreadExecutor reader_thread_;
+
+    // Use a condition variable so we can wait on the thread but still be able
+    // to wake it up before shutting down. We don't want to just sleep and risk
+    // blocking shutdown. Note: Create the mutex/condition variable on the heap
+    // so raw pointers sent to HandleKeepAlive() aren't invalidated during
+    // std::move operations.
+    mutable std::unique_ptr<Mutex> keep_alive_waiter_mutex_;
+    std::unique_ptr<ConditionVariable> keep_alive_waiter_;
     SingleThreadExecutor keep_alive_thread_;
   };
 
@@ -191,7 +211,9 @@ class EndpointManager {
 
   ExceptionOr<bool> HandleKeepAlive(EndpointChannel* endpoint_channel,
                                     absl::Duration keep_alive_interval,
-                                    absl::Duration keep_alive_timeout);
+                                    absl::Duration keep_alive_timeout,
+                                    Mutex* keep_alive_waiter_mutex,
+                                    ConditionVariable* keep_alive_waiter);
 
   // Waits for a given endpoint EndpointChannelLoopRunnable() workers to
   // terminate.
