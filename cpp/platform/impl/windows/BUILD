@@ -107,6 +107,9 @@ cc_library(
         "system_clock.cc",
         "thread_pool.cc",
         "utils.cc",
+        "wifi_lan_medium.cc",
+        "wifi_lan_nsd.cc",
+        "wifi_lan_socket.cc",
     ],
     hdrs = [
         "bluetooth_classic.h",
@@ -121,9 +124,12 @@ cc_library(
         "scheduled_executor.h",
         "submittable_executor.h",
         "thread_pool.h",
+        "wifi_lan.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
-    copts = ["-Ithird_party/nearby_connections/cpp/platform/impl/windows/generated"],
+    copts = [
+        "-Ithird_party/nearby_connections/cpp/platform/impl/windows/generated",
+    ],
     visibility = [
         "//third_party/nearby_connections/windows:__subpackages__",
     ],
