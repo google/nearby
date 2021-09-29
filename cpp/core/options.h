@@ -11,10 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #ifndef CORE_OPTIONS_H_
 #define CORE_OPTIONS_H_
-
 #include <string>
 
 #include "core/strategy.h"
@@ -25,7 +23,7 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-using Medium = ::location::nearby::proto::connections::Medium;
+using Medium = location::nearby::proto::connections::Medium;
 
 // Generic type: allows definition of a feature T for every Medium.
 template <typename T>
@@ -34,21 +32,17 @@ struct MediumSelector {
   T ble;
   T web_rtc;
   T wifi_lan;
-
   constexpr MediumSelector() = default;
   constexpr MediumSelector(const MediumSelector&) = default;
   constexpr MediumSelector& operator=(const MediumSelector&) = default;
-
   constexpr bool Any(T value) const {
     return bluetooth == value || ble == value || web_rtc == value ||
            wifi_lan == value;
   }
-
   constexpr bool All(T value) const {
     return bluetooth == value && ble == value && web_rtc == value &&
            wifi_lan == value;
   }
-
   constexpr int Count(T value) const {
     int count = 0;
     if (bluetooth == value) count++;
@@ -57,7 +51,6 @@ struct MediumSelector {
     if (web_rtc == value) count++;
     return count;
   }
-
   constexpr MediumSelector& SetAll(T value) {
     bluetooth = value;
     ble = value;
@@ -65,7 +58,6 @@ struct MediumSelector {
     wifi_lan = value;
     return *this;
   }
-
   std::vector<Medium> GetMediums(T value) const {
     std::vector<Medium> mediums;
     // Mediums are sorted in order of decreasing preference.
@@ -79,9 +71,9 @@ struct MediumSelector {
 
 // Feature On/Off switch for mediums.
 using BooleanMediumSelector = MediumSelector<bool>;
-
 // Represents the various power levels that can be used, on mediums that support
 // it.
+
 enum class PowerLevel {
   kHighPower = 0,
   kLowPower = 1,
@@ -89,7 +81,7 @@ enum class PowerLevel {
 
 // Connection Options: used for both Advertising and Discovery.
 // All fields are mutable, to make the type copy-assignable.
-struct ConnectionOptions {
+struct DLL_API ConnectionOptions {
   Strategy strategy;
   BooleanMediumSelector allowed{BooleanMediumSelector().SetAll(true)};
   bool auto_upgrade_bandwidth;
@@ -97,16 +89,20 @@ struct ConnectionOptions {
   bool low_power;
   bool enable_bluetooth_listening;
   bool enable_webrtc_listening;
+
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;
   ByteArray remote_bluetooth_mac_address;
   std::string fast_advertisement_service_uuid;
   int keep_alive_interval_millis = 0;
   int keep_alive_timeout_millis = 0;
+
   // Verify if  ConnectionOptions is in a not-initialized (Empty) state.
   bool Empty() const { return strategy.IsNone(); }
+
   // Bring  ConnectionOptions to a not-initialized (Empty) state.
   void Clear() { strategy.Clear(); }
+
   // Returns a copy and normalizes allowed mediums:
   // (1) If is_out_of_band_connection is true, verifies that there is only one
   //     medium allowed, defaulting to only Bluetooth if unspecified.
@@ -125,7 +121,6 @@ struct ConnectionOptions {
         result.allowed.SetAll(false);
         result.allowed.bluetooth = true;
       }
-
       return result;
     }
 
@@ -134,7 +129,19 @@ struct ConnectionOptions {
     if (!allowed.Any(true)) result.allowed.SetAll(true);
     return result;
   }
+
   std::vector<Medium> GetMediums() const { return allowed.GetMediums(true); }
+
+  void GetMediums(location::nearby::proto::connections::Medium* mediums,
+                  uint32_t* mediumsSize) {
+    if (mediums == nullptr) {
+      *mediumsSize = GetMediums().size();
+      return;
+    }
+    for (uint32_t i = 0; i < *mediumsSize; i++) {
+      mediums[i] = GetMediums().at(i);
+    }
+  }
 };
 
 // Metadata injected to facilitate out-of-band connections. The medium field is
@@ -165,5 +172,4 @@ struct OutOfBandConnectionMetadata {
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
 #endif  // CORE_OPTIONS_H_

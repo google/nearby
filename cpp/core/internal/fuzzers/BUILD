@@ -19,6 +19,7 @@ cc_fuzz_target(
     name = "offline_frames_fuzzer",
     srcs = ["offline_frames_fuzzer.cc"],
     componentid = 148515,
+    copts = ["-DCORE_ADAPTER_DLL"],
     deps = [
         "//security/fuzzing/blaze:default_init_google_for_cc_fuzz_target",
         "//core/internal",

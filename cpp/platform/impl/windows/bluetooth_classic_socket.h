@@ -68,7 +68,12 @@ class BluetoothSocket : public api::BluetoothSocket {
 
   BluetoothSocket(
       winrt::Windows::Networking::Sockets::StreamSocket streamSocket)
-      : windows_socket_(streamSocket) {}
+      : windows_socket_(streamSocket) {
+    input_stream_ =
+        std::make_unique<BluetoothInputStream>(streamSocket.InputStream());
+    output_stream_ =
+        std::make_unique<BluetoothOutputStream>(streamSocket.OutputStream());
+  }
 
   ~BluetoothSocket() override;
 
