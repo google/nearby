@@ -16,8 +16,8 @@
 #define PLATFORM_IMPL_WINDOWS_WIFI_LAN_H_
 
 // Windows headers
-#include <windows.h> // NOLINT
-#include <win32/windns.h> // NOLINT
+#include <windows.h>       // NOLINT
+#include <win32/windns.h>  // NOLINT
 
 // Standard C/C++ headers
 #include <exception>
@@ -108,8 +108,13 @@ class WifiLanService : public api::WifiLanService {
 // remote WiFi LAN service, also will return a WifiLanSocket to caller.
 class WifiLanSocket : public api::WifiLanSocket {
  public:
-  WifiLanSocket(StreamSocket socket);
+  explicit WifiLanSocket(api::WifiLanService* wifi_lan_service,
+                         StreamSocket socket);
+  WifiLanSocket(WifiLanSocket&) = default;
+  WifiLanSocket(WifiLanSocket&&) = default;
   ~WifiLanSocket() override;
+  WifiLanSocket& operator=(const WifiLanSocket&) = default;
+  WifiLanSocket& operator=(WifiLanSocket&&) = default;
 
   // Returns the InputStream of the WifiLanSocket.
   // On error, returned stream will report Exception::kIo on any operation.
@@ -131,10 +136,6 @@ class WifiLanSocket : public api::WifiLanSocket {
   // Returns valid WifiLanService pointer if there is a connection, and
   // nullptr otherwise.
   api::WifiLanService* GetRemoteWifiLanService() override;
-
-  // When connect to remove WiFi LAN servie, need to save remove WiFi LAN
-  // information, so that can return it based on ip address and port query
-  void SetRemoteWifiLanService(api::WifiLanService* wifi_lan_service);
 
   // Sets service id binding to the socket
   void SetServiceId(std::string service_id);
@@ -174,13 +175,13 @@ class WifiLanSocket : public api::WifiLanSocket {
     Exception Close() override;
 
    private:
-    IOutputStream output_stream_;
+    IOutputStream output_stream_{nullptr};
   };
 
   // Internal properties
   StreamSocket stream_soket_{nullptr};
-  std::unique_ptr<SocketInputStream> input_stream_{nullptr};
-  std::unique_ptr<SocketOutputStream> output_stream_{nullptr};
+  SocketInputStream input_stream_{nullptr};
+  SocketOutputStream output_stream_{nullptr};
 
   api::WifiLanService* remote_wifi_lan_service_ = nullptr;
   WifiLanMedium* medium_ = nullptr;
@@ -306,7 +307,7 @@ class WifiLanNsd {
   WifiLanMedium* medium_ = nullptr;
   WifiLanService wifi_lan_service_{};
   absl::flat_hash_map<std::string, std::unique_ptr<WifiLanService>>
-      remote_wifi_lan_services_{};
+      remote_wifi_lan_services_ ABSL_GUARDED_BY(mutex_);
 
   // NSD Status
   int nsd_status_ = NSD_STATUS_IDLE;

@@ -188,11 +188,11 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::Connect(
     try {
       socket.ConnectAsync(host_name, service_name).get();
       // connected need to keep connection
+
       std::unique_ptr<WifiLanSocket> wifi_lan_socket =
-          std::make_unique<WifiLanSocket>(std::move(socket));
+          std::make_unique<WifiLanSocket>(&wifi_lan_service, socket);
       wifi_lan_socket->SetServiceId(service_id);
       wifi_lan_socket->SetMedium(this);
-      wifi_lan_socket->SetRemoteWifiLanService(&wifi_lan_service);
       {
         MutexLock lock(&mutex_);
         wifi_lan_sockets_.insert(wifi_lan_socket.get());

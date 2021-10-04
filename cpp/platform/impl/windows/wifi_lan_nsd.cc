@@ -340,10 +340,12 @@ fire_and_forget WifiLanNsd::Listener_ConnectionReceived(
   StreamSocket stream_socket = args.Socket();
 
   // Send to callback
-  WifiLanSocket socket{stream_socket};
-  socket.SetMedium(medium_);
-  socket.SetServiceId(service_id_);
-  accepted_connection_callback_.accepted_cb(socket, service_id_);
+  std::unique_ptr<windows::WifiLanSocket> socket =
+      std::make_unique<windows::WifiLanSocket>(&wifi_lan_service_,
+                                               stream_socket);
+  socket->SetMedium(medium_);
+  socket->SetServiceId(service_id_);
+  accepted_connection_callback_.accepted_cb(*socket.get(), service_id_);
   return fire_and_forget{};
 }
 

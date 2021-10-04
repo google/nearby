@@ -19,10 +19,12 @@ namespace location {
 namespace nearby {
 namespace windows {
 
-WifiLanSocket::WifiLanSocket(StreamSocket socket) {
+WifiLanSocket::WifiLanSocket(api::WifiLanService* wifi_lan_service,
+                             StreamSocket socket) {
+  remote_wifi_lan_service_ = wifi_lan_service;
   stream_soket_ = socket;
-  input_stream_ = std::make_unique<SocketInputStream>(socket.InputStream());
-  output_stream_ = std::make_unique<SocketOutputStream>(socket.OutputStream());
+  input_stream_ = SocketInputStream(socket.InputStream());
+  output_stream_ = SocketOutputStream(socket.OutputStream());
 }
 
 WifiLanSocket::~WifiLanSocket() {
@@ -35,17 +37,14 @@ WifiLanSocket::~WifiLanSocket() {
   }
 }
 
-InputStream& WifiLanSocket::GetInputStream() { return *input_stream_.get(); }
+InputStream& WifiLanSocket::GetInputStream() { return input_stream_; }
 
-OutputStream& WifiLanSocket::GetOutputStream() { return *output_stream_.get(); }
+OutputStream& WifiLanSocket::GetOutputStream() { return output_stream_; }
 
 Exception WifiLanSocket::Close() {
   try {
     if (stream_soket_ != nullptr) {
       stream_soket_.Close();
-      stream_soket_ = nullptr;
-      input_stream_ = nullptr;
-      output_stream_ = nullptr;
       medium_->CloseConnection(*this);
     }
     return {Exception::kSuccess};
@@ -56,11 +55,6 @@ Exception WifiLanSocket::Close() {
 
 api::WifiLanService* WifiLanSocket::GetRemoteWifiLanService() {
   return remote_wifi_lan_service_;
-}
-
-void WifiLanSocket::SetRemoteWifiLanService(
-    api::WifiLanService* wifi_lan_service) {
-  remote_wifi_lan_service_ = wifi_lan_service;
 }
 
 void WifiLanSocket::SetServiceId(std::string service_id) {
@@ -98,7 +92,13 @@ ExceptionOr<ByteArray> WifiLanSocket::SocketInputStream::Read(
 
     auto ibuffer =
         input_stream_.ReadAsync(buffer, size, InputStreamOptions::None).get();
+
+    if (ibuffer.Length() != size) {
+      NEARBY_LOGS(WARNING) << "Only got part of data of needed.";
+    }
+
     ByteArray data((char*)ibuffer.data(), ibuffer.Length());
+
     return ExceptionOr(data);
   } catch (...) {
     return Exception{Exception::kIo};
@@ -120,7 +120,7 @@ ExceptionOr<size_t> WifiLanSocket::SocketInputStream::Skip(size_t offset) {
 Exception WifiLanSocket::SocketInputStream::Close() {
   try {
     input_stream_.Close();
-  } catch (std::exception exception) {
+  } catch (...) {
     return {Exception::kIo};
   }
 
@@ -136,10 +136,11 @@ WifiLanSocket::SocketOutputStream::SocketOutputStream(
 Exception WifiLanSocket::SocketOutputStream::Write(const ByteArray& data) {
   Buffer buffer = Buffer(data.size());
   std::memcpy(buffer.data(), data.data(), data.size());
+  buffer.Length(data.size());
 
   try {
-    output_stream_.WriteAsync(buffer);
-  } catch (std::exception exception) {
+    output_stream_.WriteAsync(buffer).get();
+  } catch (...) {
     return {Exception::kIo};
   }
 
@@ -149,7 +150,7 @@ Exception WifiLanSocket::SocketOutputStream::Write(const ByteArray& data) {
 Exception WifiLanSocket::SocketOutputStream::Flush() {
   try {
     output_stream_.FlushAsync().get();
-  } catch (std::exception exception) {
+  } catch (...) {
     return {Exception::kIo};
   }
 
@@ -159,7 +160,7 @@ Exception WifiLanSocket::SocketOutputStream::Flush() {
 Exception WifiLanSocket::SocketOutputStream::Close() {
   try {
     output_stream_.Close();
-  } catch (std::exception exception) {
+  } catch (...) {
     return {Exception::kIo};
   }
 
