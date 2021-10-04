@@ -14,7 +14,9 @@
 
 #include "platform/impl/windows/bluetooth_classic_socket.h"
 
+#include "platform/impl/windows/bluetooth_classic_device.h"
 #include "platform/impl/windows/generated/winrt/Windows.Networking.Sockets.h"
+#include "platform/impl/windows/generated/winrt/Windows.Security.Cryptography.h"
 
 namespace location {
 namespace nearby {
@@ -60,7 +62,14 @@ Exception BluetoothSocket::Close() {
 // Returns valid BluetoothDevice pointer if there is a connection, and
 // nullptr otherwise.
 // TODO(b/184975123): replace with real implementation.
-api::BluetoothDevice* BluetoothSocket::GetRemoteDevice() { return nullptr; }
+api::BluetoothDevice* BluetoothSocket::GetRemoteDevice() {
+  winrt::Windows::Devices::Bluetooth::BluetoothDevice remoteDevice =
+      winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
+          windows_socket_.Information().RemoteHostName())
+          .get();
+
+  return new location::nearby::windows::BluetoothDevice(remoteDevice);
+}
 
 // Starts an asynchronous operation on a StreamSocket object to connect to a
 // remote network destination specified by a remote hostname and a remote
@@ -81,7 +90,7 @@ ExceptionOr<ByteArray> BluetoothSocket::BluetoothInputStream::Read(
     std::int64_t size) {
   Buffer buffer = Buffer(size);
 
-  winrt_stream_.ReadAsync(buffer, size, InputStreamOptions::None);
+  winrt_stream_.ReadAsync(buffer, size, InputStreamOptions::None).get();
 
   DataReader dataReader = DataReader::FromBuffer(buffer);
 
@@ -112,12 +121,16 @@ BluetoothSocket::BluetoothOutputStream::BluetoothOutputStream(
 }
 
 Exception BluetoothSocket::BluetoothOutputStream::Write(const ByteArray& data) {
-  Buffer buffer = Buffer(data.size());
+  winrt::array_view<const uint8_t>();
 
-  std::memcpy(buffer.data(), data.data(), data.size());
+  Buffer buffer = Buffer(data.size());
+  auto bufferData = buffer.data();
+  auto byteArrayData = data.data();
+
+  std::memcpy(bufferData, byteArrayData, data.size());
 
   try {
-    winrt_stream_.WriteAsync(buffer);
+    winrt_stream_.WriteAsync(buffer).get();
   } catch (std::exception exception) {
     return {Exception::kFailed};
   }

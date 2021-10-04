@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 load("//third_party/msvc:build_windows.bzl", "cc_windows_dll")
 
 licenses(["notice"])
@@ -21,7 +20,7 @@ cc_windows_dll(
     name = "core_adapter",
     srcs = ["core_adapter.cc"],
     hdrs = ["core_adapter.h"],
-    copts = ["-DCORE_ADAPTER_BUILD_DLL"],
+    copts = ["-DCORE_ADAPTER_BUILD_DLL -DCOMPILING_CORE"],
     defines = ["CORE_ADAPTER_DLL"],
     tags = ["windows-dll"],
     deps = [
