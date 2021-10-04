@@ -366,6 +366,7 @@ void PayloadManager::SendPayload(ClientProxy* client,
       payload_total_size = -1;
       break;
   }
+
   auto executor = GetOutgoingPayloadExecutor(payload.GetType());
   // The |executor| will be null if the payload is of a type we cannot work
   // with. This should never be reached since the ServiceControllerRouter has
@@ -1170,10 +1171,11 @@ PayloadManager::PendingPayload::PendingPayload(
   // failures. Any of these situations will cause endpoint to be marked as
   // unavailable.
   for (const auto& id : endpoint_ids) {
-    endpoints_.emplace(id, EndpointInfo{
-                               .id = id,
-                               .status{EndpointInfo::Status::kAvailable},
-                           });
+    EndpointInfo endpoint_info{};
+    endpoint_info.id = id;
+    endpoint_info.status.Set(EndpointInfo::Status::kAvailable);
+
+    endpoints_.emplace(id, std::move(endpoint_info));
   }
 }
 
