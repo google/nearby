@@ -30,6 +30,7 @@ cc_library(
         "discovered_peripheral_callback.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
+    copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//core/internal:__subpackages__",
     ],

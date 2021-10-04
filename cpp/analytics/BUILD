@@ -22,6 +22,7 @@ cc_library(
         "analytics_recorder.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
+    copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//core:__subpackages__",
         "//proto/analytics:__subpackages__",
