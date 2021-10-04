@@ -11,58 +11,56 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #ifndef PLATFORM_IMPL_WINDOWS_MUTEX_H_
 #define PLATFORM_IMPL_WINDOWS_MUTEX_H_
-
-#include <windows.h>
 #include <stdio.h>
 #include <synchapi.h>
+#include <windows.h>
 
 #include <memory>
 #include <mutex>  //  NOLINT
 
 #include "absl/memory/memory.h"
+#include "absl/synchronization/mutex.h"
 #include "platform/api/mutex.h"
-
 namespace location {
 namespace nearby {
 namespace windows {
-
 // A lock is a tool for controlling access to a shared resource by multiple
 // threads.
 //
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Lock.html
-class Mutex : public api::Mutex {
+class ABSL_LOCKABLE Mutex : public api::Mutex {
  public:
-  Mutex(Mutex::Mode mode);
-
+  explicit Mutex(Mode mode) : mode_(mode) {}
   ~Mutex() override = default;
-
-  void Lock() override;
-
-  void Unlock() override;
-
-  std::mutex& GetWindowsMutex();
-
-  std::recursive_mutex& GetWindowsRecursiveMutex();
+  Mutex(Mutex&&) = delete;
+  Mutex& operator=(Mutex&&) = delete;
+  Mutex(const Mutex&) = delete;
+  Mutex& operator=(const Mutex&) = delete;
+  void Lock() ABSL_EXCLUSIVE_LOCK_FUNCTION() override {
+    if (mode_ == Mode::kRegularNoCheck) mutex_.ForgetDeadlockInfo();
+    if (mode_ == Mode::kRegular || mode_ == Mode::kRegularNoCheck) {
+      mutex_.Lock();
+    } else {
+      recursive_mutex_.lock();
+    }
+  }
+  void Unlock() ABSL_UNLOCK_FUNCTION() override {
+    if (mode_ == Mode::kRegular || mode_ == Mode::kRegularNoCheck) {
+      mutex_.Unlock();
+    } else {
+      recursive_mutex_.unlock();
+    }
+  }
 
  private:
-  Mutex::Mode mode_;
-
-  std::mutex mutex_impl_;  //  The actual mutex allocation
-  std::mutex& mutex_ =
-      mutex_impl_;  //  This is passed to other windows functions, must be by
-                    //  reference to avoid ownership problems
-  std::recursive_mutex recursive_mutex_impl_;  //  The actual mutex allocation
-  std::recursive_mutex& recursive_mutex_ =
-      recursive_mutex_impl_;  //  This is passed to other windows functions,
-                              //  must be by reference to avoid ownership
-                              //  problems
+  friend class ConditionVariable;
+  absl::Mutex mutex_;
+  std::recursive_mutex recursive_mutex_;  //  The actual mutex allocation
+  Mode mode_;
 };
-
 }  // namespace windows
 }  // namespace nearby
 }  // namespace location
-
 #endif  // PLATFORM_IMPL_WINDOWS_MUTEX_H_

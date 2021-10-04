@@ -11,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #include "platform/impl/windows/bluetooth_classic_server_socket.h"
 
 #include <codecvt>
@@ -22,7 +21,6 @@
 #include "platform/impl/windows/generated/winrt/Windows.Foundation.Collections.h"
 #include "platform/impl/windows/utils.h"
 #include "platform/public/logging.h"
-
 namespace location {
 namespace nearby {
 namespace windows {
@@ -34,9 +32,7 @@ BluetoothServerSocket::BluetoothServerSocket(const std::string service_name,
       rfcomm_provider_(nullptr) {
   InitializeCriticalSection(&critical_section_);
 }
-
 BluetoothServerSocket::~BluetoothServerSocket() {}
-
 // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html#accept()
 //
 // Blocks until either:
@@ -49,37 +45,28 @@ std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
   while (bluetooth_sockets_.empty() && !closed_) {
     Sleep(1000);
   }
-
   EnterCriticalSection(&critical_section_);
   if (!closed_) {
     std::unique_ptr<BluetoothSocket> bluetoothSocket =
         std::move(bluetooth_sockets_.front());
     bluetooth_sockets_.pop();
     LeaveCriticalSection(&critical_section_);
-
     return std::move(bluetoothSocket);
   } else {
     bluetooth_sockets_ = {};
     LeaveCriticalSection(&critical_section_);
   }
-
   return nullptr;
 }
-
 Exception BluetoothServerSocket::StartListening(bool radioDiscoverable) {
   EnterCriticalSection(&critical_section_);
-
   radio_discoverable_ = radioDiscoverable;
-
   // Create the StreamSocketListener
   stream_socket_listener_ = StreamSocketListener();
-
   // Configure control property
   stream_socket_listener_.Control().QualityOfService(
       SocketQualityOfService::LowLatency);
-
   stream_socket_listener_.Control().KeepAlive(true);
-
   // Note From the perspective of a StreamSocket, a Parallel Patterns Library
   // (PPL) completion handler is done executing (and the socket is eligible for
   // disposal) before the continuation body runs. So, to keep your socket from
@@ -97,82 +84,65 @@ Exception BluetoothServerSocket::StartListening(bool radioDiscoverable) {
         }
         LeaveCriticalSection(&critical_section_);
       });
-
+  rfcomm_provider_ =
+      RfcommServiceProvider::CreateAsync(
+          winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId::FromUuid(
+              winrt::guid(service_uuid_)))
+          .get();
   try {
-    auto rfcommProviderRef =
-        RfcommServiceProvider::CreateAsync(
-            RfcommServiceId::FromUuid(winrt::guid(service_uuid_)))
-            .get();
-
-    rfcomm_provider_ = &rfcommProviderRef;
-
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
     stream_socket_listener_
-        .BindServiceNameAsync(winrt::to_hstring(service_name_.c_str()))
+        .BindServiceNameAsync(
+            rfcomm_provider_.ServiceId().AsString(),
+            winrt::Windows::Networking::Sockets::SocketProtectionLevel::
+                BluetoothEncryptionAllowNullAuthentication)
         .get();
-
     // Set the SDP attributes and start Bluetooth advertising
-    InitializeServiceSdpAttributes(*rfcomm_provider_, service_name_);
+    InitializeServiceSdpAttributes(service_name_);
   } catch (std::exception exception) {
     // We will log and eat the exception since the caller
     // expects nullptr if it fails
     NEARBY_LOGS(ERROR) << __func__ << ": Exception setting up for listen: "
                        << exception.what();
-
     LeaveCriticalSection(&critical_section_);
-
     return {Exception::kFailed};
   }
 
   StartAdvertising();
 
   LeaveCriticalSection(&critical_section_);
-
   return {Exception::kSuccess};
 }
-
 Exception BluetoothServerSocket::StartAdvertising() {
   try {
-    rfcomm_provider_->StartAdvertising(
-        stream_socket_listener_.as<StreamSocketListener>(),
-        radio_discoverable_);
-  } catch (std::exception exception) {
+    rfcomm_provider_.StartAdvertising(stream_socket_listener_,
+                                      radio_discoverable_);
+  } catch (winrt::hresult_error exception) {
     // We will log and eat the exception since the caller
     // expects nullptr if it fails
     NEARBY_LOGS(ERROR) << __func__ << ": Exception calling StartAdvertising: "
-                       << exception.what();
-
+                       << winrt::to_string(exception.message());
     LeaveCriticalSection(&critical_section_);
-
     return {Exception::kFailed};
   }
-
   return {Exception::kSuccess};
 }
-
 void BluetoothServerSocket::StopAdvertising() {
-  rfcomm_provider_->StopAdvertising();
+  rfcomm_provider_.StopAdvertising();
 }
-
 void BluetoothServerSocket::InitializeServiceSdpAttributes(
-    RfcommServiceProvider rfcommProvider, std::string service_name) {
+    std::string service_name) {
   auto sdpWriter = DataWriter();
-
   // Write the Service Name Attribute.
   sdpWriter.WriteByte(Constants::SdpServiceNameAttributeType);
-
   // The length of the UTF-8 encoded Service Name SDP Attribute.
   sdpWriter.WriteByte(service_name.size());
-
   // The UTF-8 encoded Service Name value.
   sdpWriter.UnicodeEncoding(UnicodeEncoding::Utf8);
   sdpWriter.WriteString(winrt::to_hstring(service_name));
-
   // Set the SDP Attribute on the RFCOMM Service Provider.
-  rfcommProvider.SdpRawAttributes().Insert(Constants::SdpServiceNameAttributeId,
-                                           sdpWriter.DetachBuffer());
+  rfcomm_provider_.SdpRawAttributes().Insert(
+      Constants::SdpServiceNameAttributeId, sdpWriter.DetachBuffer());
 }
-
 // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html#close()
 //
 // Returns Exception::kIo on error, Exception::kSuccess otherwise.
@@ -180,9 +150,8 @@ Exception BluetoothServerSocket::Close() {
   EnterCriticalSection(&critical_section_);
   closed_ = true;
   bluetooth_sockets_ = {};
-  rfcomm_provider_->StopAdvertising();
+  rfcomm_provider_.StopAdvertising();
   LeaveCriticalSection(&critical_section_);
-
   return {Exception::kSuccess};
 }
 }  // namespace windows
