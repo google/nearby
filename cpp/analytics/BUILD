@@ -37,7 +37,7 @@ cc_library(
         "//platform/public:types",
         "//proto:connections_enums_portable_proto",
         "//proto/analytics:connections_log_cc_proto",
-        "//third_party/nearby_connections/proto/errorcode:error_code_enums_portable_proto",
+        "//proto/errorcode:error_code_enums_portable_proto",
     ],
 )
 

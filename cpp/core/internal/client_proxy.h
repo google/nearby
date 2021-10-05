@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-#include "third_party/nearby_connections/cpp/analytics/analytics_recorder.h"
+#include "analytics/analytics_recorder.h"
 #include "core/listeners.h"
 #include "core/options.h"
 #include "core/status.h"

@@ -43,7 +43,7 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//third_party/nearby_connections/cpp/analytics:__subpackages__",
+        "//analytics:__subpackages__",
         "//third_party/nearby_connections/cpp/cal:__subpackages__",
         "//core:__subpackages__",
         "//platform:__subpackages__",
@@ -139,14 +139,14 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
-        "//third_party/nearby_connections/cpp/analytics:__subpackages__",
+        "//analytics:__subpackages__",
         "//core/internal:__subpackages__",
         "//platform/impl:__subpackages__",
     ],
     deps = [
         ":logging",
         "//proto:connections_enums_portable_proto",
-        "//third_party/nearby_connections/proto/errorcode:error_code_enums_portable_proto",
+        "//proto/errorcode:error_code_enums_portable_proto",
     ],
 )
 

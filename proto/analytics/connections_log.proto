@@ -16,9 +16,9 @@ syntax = "proto2";
 
 package location.nearby.analytics.proto;
 
-import "storage/datapol/annotations/proto/semantic_annotations.proto";
-import "third_party/nearby_connections/proto/connections_enums.proto";
-import "third_party/nearby_connections/proto/errorcode/error_code_enums.proto";
+
+import "proto/connections_enums.proto";
+import "proto/errorcode/error_code_enums.proto";
 
 option optimize_for = LITE_RUNTIME;
 option java_package = "com.google.location.nearby.analytics.proto";
@@ -37,7 +37,7 @@ message ConnectionsLog {
   optional ClientSession client_session = 2;
 
   // The version of Nearby Connections. E.g. "v1.0.4".
-  optional string version = 3 [(datapol.semantic_type) = ST_SOFTWARE_ID];
+  optional string version = 3 ;
 
   // for EventType.ERROR_CODE
   optional ErrorCode error_code = 4;
@@ -87,7 +87,7 @@ message ConnectionsLog {
     // The build version of the user's device (Same value as the Build number in
     // Settings -> about phone).
     optional string build_version = 10
-        [(datapol.semantic_type) = ST_SOFTWARE_ID];
+        ;
   }
 
   // Encapsulates activity during a period of discovery.
@@ -110,7 +110,7 @@ message ConnectionsLog {
     repeated UwbRangingProcess uwb_ranging = 5;
 
     // The SendingEvent flow id.
-    optional int64 client_flow_id = 6 [(datapol.semantic_type) = ST_SESSION_ID];
+    optional int64 client_flow_id = 6 ;
 
     // Encapsulates additional discovery information.
     optional DiscoveryMetadata discovery_metadata = 7;
@@ -188,7 +188,7 @@ message ConnectionsLog {
     repeated ConnectionRequest received_connection_request = 3;
 
     // The ReceivingEvent flow id.
-    optional int64 client_flow_id = 4 [(datapol.semantic_type) = ST_SESSION_ID];
+    optional int64 client_flow_id = 4 ;
 
     // Encapsulates additional advertising information.
     optional AdvertisingMetadata advertising_metadata = 5;
@@ -217,7 +217,7 @@ message ConnectionsLog {
         remote_response = 4;
 
     // The SendingEvent flow id.
-    optional int64 client_flow_id = 5 [(datapol.semantic_type) = ST_SESSION_ID];
+    optional int64 client_flow_id = 5 ;
   }
 
   // An attempt to connect to an endpoint over a particular medium.
@@ -241,11 +241,11 @@ message ConnectionsLog {
         attempt_result = 5;
 
     // The ReceivingEvent flow id.
-    optional int64 client_flow_id = 6 [(datapol.semantic_type) = ST_SESSION_ID];
+    optional int64 client_flow_id = 6 ;
 
     // The token used to identify this connection pair.
     optional string connection_token = 7
-        [(datapol.semantic_type) = ST_SESSION_ID];
+        ;
 
     // Encapsulates additional connection information.
     optional ConnectionAttemptMetadata connection_attempt_metadata = 8;
@@ -270,11 +270,11 @@ message ConnectionsLog {
         disconnection_reason = 5;
 
     // The SendingEvent flow id.
-    optional int64 client_flow_id = 6 [(datapol.semantic_type) = ST_SESSION_ID];
+    optional int64 client_flow_id = 6 ;
 
     // The token use to identify this established connection.
     optional string connection_token = 7
-        [(datapol.semantic_type) = ST_SESSION_ID];
+        ;
   }
 
   // A Payload transferred (or attempted to be transferred) between devices.
@@ -322,11 +322,11 @@ message ConnectionsLog {
         error_stage = 6;
 
     // The SendingEvent flow id.
-    optional int64 client_flow_id = 7 [(datapol.semantic_type) = ST_SESSION_ID];
+    optional int64 client_flow_id = 7 ;
 
     // The token used to identify this upgrade pair.
     optional string connection_token = 8
-        [(datapol.semantic_type) = ST_SESSION_ID];
+        ;
   }
 
   // Next Id: 17
@@ -342,7 +342,7 @@ message ConnectionsLog {
     // The error description.
     optional location.nearby.errorcode.proto.Description description = 5;
     // The flow id which the error occurs on.
-    optional int64 flow_id = 6 [(datapol.semantic_type) = ST_SESSION_ID];
+    optional int64 flow_id = 6 ;
 
     // Error code value
     oneof ErrorCodeDetail {
@@ -365,7 +365,7 @@ message ConnectionsLog {
 
     // The token use to identify this established connection.
     optional string connection_token = 16
-        [(datapol.semantic_type) = ST_SESSION_ID];
+        ;
   }
 
   // Some additional information to keep with the advertising phase.
@@ -401,12 +401,12 @@ message ConnectionsLog {
     // The MCC (Mobile country code) MNC (Mobile network code) of the network
     // operator.
     optional string network_operator = 4
-        [(datapol.semantic_type) = ST_LOCATION];
+        ;
 
     // The upper-case ISO 3166-1 alpha-2 country code of the current registered
     // operator's MCC (Mobile Country Code), or the country code of the default
     // Locale if not available.
-    optional string country_code = 5 [(datapol.semantic_type) = ST_LOCATION];
+    optional string country_code = 5 ;
 
     // The TDLS status used by the wifi lan medium,
     // TDLS, shortened from Tunneled Direct Link Setup, is "a seamless way to

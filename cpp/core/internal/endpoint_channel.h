@@ -20,7 +20,7 @@
 
 #include "securegcm/d2d_connection_context_v1.h"
 #include "absl/time/clock.h"
-#include "third_party/nearby_connections/cpp/analytics/analytics_recorder.h"
+#include "analytics/analytics_recorder.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
 #include "platform/public/mutex.h"
