@@ -84,6 +84,7 @@ cc_library(
         "wifi_lan_service_info.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
+    copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//core:__pkg__",
         "//core/internal/fuzzers:__pkg__",

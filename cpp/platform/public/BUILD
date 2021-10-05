@@ -85,6 +85,7 @@ cc_library(
         "wifi_lan.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
+    copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//core:__subpackages__",
@@ -110,6 +111,7 @@ cc_library(
         "logging.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
+    copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//analytics:__subpackages__",
         "//core:__subpackages__",
@@ -144,6 +146,7 @@ cc_test(
         "single_thread_executor_test.cc",
         "wifi_lan_test.cc",
     ],
+    copts = ["-DCORE_ADAPTER_DLL"],
     shard_count = 16,
     deps = [
         ":comm",

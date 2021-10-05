@@ -41,6 +41,7 @@ cc_library(
         "types.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
+    copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//analytics:__subpackages__",

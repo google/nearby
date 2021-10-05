@@ -22,6 +22,7 @@ cc_library(
         "core.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
+    copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//third_party/nearby_connections/windows:__subpackages__",
@@ -53,6 +54,7 @@ cc_library(
         "strategy.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
+    copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//analytics:__subpackages__",
