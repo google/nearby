@@ -11,10 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #ifndef CORE_OPTIONS_H_
 #define CORE_OPTIONS_H_
-
 #include <string>
 
 #include "core/strategy.h"
@@ -25,7 +23,7 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-using Medium = ::location::nearby::proto::connections::Medium;
+using Medium = location::nearby::proto::connections::Medium;
 
 // Generic type: allows definition of a feature T for every Medium.
 template <typename T>
@@ -38,7 +36,6 @@ struct MediumSelector {
   constexpr MediumSelector() = default;
   constexpr MediumSelector(const MediumSelector&) = default;
   constexpr MediumSelector& operator=(const MediumSelector&) = default;
-
   constexpr bool Any(T value) const {
     return bluetooth == value || ble == value || web_rtc == value ||
            wifi_lan == value;
@@ -89,7 +86,7 @@ enum class PowerLevel {
 
 // Connection Options: used for both Advertising and Discovery.
 // All fields are mutable, to make the type copy-assignable.
-struct ConnectionOptions {
+struct DLL_API ConnectionOptions {
   Strategy strategy;
   BooleanMediumSelector allowed{BooleanMediumSelector().SetAll(true)};
   bool auto_upgrade_bandwidth;
@@ -97,16 +94,20 @@ struct ConnectionOptions {
   bool low_power;
   bool enable_bluetooth_listening;
   bool enable_webrtc_listening;
+
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;
   ByteArray remote_bluetooth_mac_address;
   std::string fast_advertisement_service_uuid;
   int keep_alive_interval_millis = 0;
   int keep_alive_timeout_millis = 0;
+
   // Verify if  ConnectionOptions is in a not-initialized (Empty) state.
   bool Empty() const { return strategy.IsNone(); }
+
   // Bring  ConnectionOptions to a not-initialized (Empty) state.
   void Clear() { strategy.Clear(); }
+
   // Returns a copy and normalizes allowed mediums:
   // (1) If is_out_of_band_connection is true, verifies that there is only one
   //     medium allowed, defaulting to only Bluetooth if unspecified.
@@ -125,7 +126,6 @@ struct ConnectionOptions {
         result.allowed.SetAll(false);
         result.allowed.bluetooth = true;
       }
-
       return result;
     }
 
@@ -134,7 +134,34 @@ struct ConnectionOptions {
     if (!allowed.Any(true)) result.allowed.SetAll(true);
     return result;
   }
+
   std::vector<Medium> GetMediums() const { return allowed.GetMediums(true); }
+
+  // This call follows the standard Microsoft calling pattern of calling first
+  // to get the size of the array. Caller then allocates memory for the array,
+  // and makes this call again to copy the array into the provided location.
+  void GetMediums(location::nearby::proto::connections::Medium* mediums,
+                  uint32_t* mediumsSize) {
+    auto size = GetMediums().size();
+
+    // Caller is seeking the size of mediums
+    if (mediums == nullptr) {
+      *mediumsSize = size;
+      return;
+    }
+
+    // Caller has not specified enough memory
+    if (*mediumsSize < size) {
+      mediums = nullptr;    // ensure nullptr return
+      *mediumsSize = size;  // update the size to indicate the correct size
+      return;
+    }
+
+    for (uint32_t i = 0; i < size; i++) {
+      // Construct an array at the given location
+      mediums[i] = GetMediums().at(i);
+    }
+  }
 };
 
 // Metadata injected to facilitate out-of-band connections. The medium field is

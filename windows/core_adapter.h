@@ -11,12 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #ifndef LOCATION_NEARBY_CONNECTIONS_WINDOWS_CORE_ADAPTER_H_
 #define LOCATION_NEARBY_CONNECTIONS_WINDOWS_CORE_ADAPTER_H_
 
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+
 #include "core/core.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/offline_service_controller.h"
@@ -26,7 +26,6 @@
 #include "core/options.h"
 #include "core/params.h"
 
-#define DLL_API extern "C" __declspec(dllexport)
 namespace location {
 namespace nearby {
 namespace connections {
@@ -65,8 +64,7 @@ DLL_API void __stdcall CloseCore(Core* pCore);
 //     Status::STATUS_ALREADY_ADVERTISING if the app is already advertising.
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
-DLL_API void __stdcall StartAdvertising(Core* pCore,
-                                        absl::string_view service_id,
+DLL_API void __stdcall StartAdvertising(Core* pCore, const char* service_id,
                                         ConnectionOptions options,
                                         ConnectionRequestInfo info,
                                         ResultCallback callback);
@@ -94,7 +92,7 @@ DLL_API void __stdcall StopAdvertising(Core* pCore, ResultCallback callback);
 //         discovering the specified service.
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
-DLL_API void __stdcall StartDiscovery(Core* pCore, absl::string_view service_id,
+DLL_API void __stdcall StartDiscovery(Core* pCore, const char* service_id,
                                       ConnectionOptions options,
                                       DiscoveryListener listener,
                                       ResultCallback callback);
@@ -124,7 +122,7 @@ DLL_API void __stdcall StopDiscovery(Core* pCore, ResultCallback callback);
 //     Status::kError if endpoint_id, endpoint_info, or
 //         remote_bluetooth_mac_address are malformed.
 //     Status::kOutOfOrderApiCall if the app is not discovering.
-DLL_API void __stdcall InjectEndpoint(Core* pCore, absl::string_view service_id,
+DLL_API void __stdcall InjectEndpoint(Core* pCore, char* service_id,
                                       OutOfBandConnectionMetadata metadata,
                                       ResultCallback callback);
 
@@ -147,8 +145,7 @@ DLL_API void __stdcall InjectEndpoint(Core* pCore, absl::string_view service_id,
 //     Status::STATUS_RADIO_ERROR if we failed to connect because of an
 //         issue with Bluetooth/WiFi.
 //     Status::STATUS_ERROR if we failed to connect for any other reason.
-DLL_API void __stdcall RequestConnection(Core* pCore,
-                                         absl::string_view endpoint_id,
+DLL_API void __stdcall RequestConnection(Core* pCore, char* endpoint_id,
                                          ConnectionRequestInfo info,
                                          ConnectionOptions options,
                                          ResultCallback callback);
@@ -165,8 +162,7 @@ DLL_API void __stdcall RequestConnection(Core* pCore,
 //     Status::STATUS_OK if the connection request was accepted.
 //     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT if the app already.
 //         has a connection to the specified endpoint.
-DLL_API void __stdcall AcceptConnection(Core* pCore,
-                                        absl::string_view endpoint_id,
+DLL_API void __stdcall AcceptConnection(Core* pCore, char* endpoint_id,
                                         PayloadListener listener,
                                         ResultCallback callback);
 
@@ -180,8 +176,7 @@ DLL_API void __stdcall AcceptConnection(Core* pCore,
 //     Status::STATUS_OK} if the connection request was rejected.
 //     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT} if the app already
 //         has a connection to the specified endpoint.
-DLL_API void __stdcall RejectConnection(Core* pCore,
-                                        absl::string_view endpoint_id,
+DLL_API void __stdcall RejectConnection(Core* pCore, char* endpoint_id,
                                         ResultCallback callback);
 
 // Sends a Payload to a remote endpoint. Payloads can only be sent to remote
@@ -213,7 +208,7 @@ DLL_API void __stdcall SendPayload(Core* pCore,
 // result_cb  - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK if none of the above errors occurred.
-DLL_API void __stdcall CancelPayload(Core* pCore, std::int64_t payload_id,
+DLL_API void __stdcall CancelPayload(Core* pCore, int64_t payload_id,
                                      ResultCallback callback);
 
 // Disconnects from a remote endpoint. {@link Payload}s can no longer be sent
@@ -223,8 +218,7 @@ DLL_API void __stdcall CancelPayload(Core* pCore, std::int64_t payload_id,
 // result_cb   - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK - finished successfully.
-DLL_API void __stdcall DisconnectFromEndpoint(Core* pCore,
-                                              absl::string_view endpoint_id,
+DLL_API void __stdcall DisconnectFromEndpoint(Core* pCore, char* endpoint_id,
                                               ResultCallback callback);
 
 // Disconnects from, and removes all traces of, all connected and/or
@@ -247,8 +241,7 @@ DLL_API void __stdcall StopAllEndpoints(Core* pCore, ResultCallback callback);
 // result_cb   - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK - finished successfully.
-DLL_API void __stdcall InitiateBandwidthUpgrade(Core* pCore,
-                                                absl::string_view endpoint_id,
+DLL_API void __stdcall InitiateBandwidthUpgrade(Core* pCore, char* endpoint_id,
                                                 ResultCallback callback);
 
 // Gets the local endpoint generated by Nearby Connections.
@@ -262,8 +255,8 @@ DLL_API ServiceControllerRouter* __stdcall InitServiceControllerRouter();
 // Close a ServiceControllerRouter instance.
 DLL_API void __stdcall CloseServiceControllerRouter(
     ServiceControllerRouter* pRouter);
+
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
 #endif  // LOCATION_NEARBY_CONNECTIONS_WINDOWS_CORE_ADAPTER_H_
