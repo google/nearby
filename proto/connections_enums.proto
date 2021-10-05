@@ -204,6 +204,17 @@ enum PayloadStatus {
   ENDPOINT_UNENCRYPTED = 9;
 }
 
+// The bandwidth of the mediums.
+enum Bandwidth {
+  BANDWIDTH_UNKNOWN = 0;
+  /** 2.4 GHz band */
+  BANDWIDTH_24_GHZ = 1;
+  /** 5 GHz band */
+  BANDWIDTH_5_GHZ = 2;
+  /** 6 GHz band */
+  BANDWIDTH_6_GHZ = 3;
+}
+
 // next_id: 19
 // Result of an upgrade attempt.
 enum BandwidthUpgradeResult {
