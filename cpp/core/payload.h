@@ -20,6 +20,7 @@
 #include <memory>
 #include <utility>
 
+#include "core/core_config.h"
 #include "absl/types/variant.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/input_stream.h"
@@ -35,7 +36,7 @@ namespace connections {
 // Payload is default-constructible, and moveable, but not copyable container
 // that holds at most one instance of one of:
 // ByteArray, InputStream, or InputFile.
-class Payload {
+class DLL_API Payload {
  public:
   using Id = PayloadId;
   // Order of types in variant, and values in Type enum is important.

@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include "core/core_config.h"
 #include "core/listeners.h"
 #include "platform/base/byte_array.h"
 
@@ -26,7 +27,7 @@ namespace connections {
 
 // Used by Discovery in Core::RequestConnection().
 // Used by Advertising in Core::StartAdvertising().
-struct ConnectionRequestInfo {
+struct DLL_API ConnectionRequestInfo {
   // endpoint_info - Identifing information about this endpoint (eg. name,
   //                 device type).
   // listener      - A set of callbacks notified when remote endpoints request a
