@@ -119,8 +119,8 @@ BluetoothSocket::BluetoothOutputStream::BluetoothOutputStream(
 
 Exception BluetoothSocket::BluetoothOutputStream::Write(const ByteArray& data) {
   Buffer buffer = Buffer(data.size());
-
   std::memcpy(buffer.data(), data.data(), data.size());
+  buffer.Length(data.size());
 
   try {
     winrt_stream_.WriteAsync(buffer).get();
