@@ -34,8 +34,6 @@ namespace analytics {
 
 class AnalyticsRecorder {
  public:
-  static constexpr absl::string_view kVersion = "v1.0.0";
-
   explicit AnalyticsRecorder(EventLogger *event_logger);
   virtual ~AnalyticsRecorder();
 

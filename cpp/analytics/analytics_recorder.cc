@@ -28,6 +28,10 @@ namespace location {
 namespace nearby {
 namespace analytics {
 
+namespace {
+const char kVersion[] = "v1.0.0";
+}  // namespace
+
 using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::proto::connections::ACCEPTED;
 using ::location::nearby::proto::connections::ADVERTISER;
@@ -75,9 +79,6 @@ using ::location::nearby::proto::connections::UPGRADE_RESULT_SUCCESS;
 using ::location::nearby::proto::connections::UPGRADE_SUCCESS;
 using ::location::nearby::proto::connections::UPGRADE_UNFINISHED;
 using ::location::nearby::proto::connections::UPGRADED;
-
-// These definitions are necessary before C++17.
-constexpr absl::string_view AnalyticsRecorder::kVersion;
 
 AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger)
     : event_logger_(event_logger) {
