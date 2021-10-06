@@ -26,6 +26,7 @@
 namespace location {
 namespace nearby {
 namespace windows {
+
 BluetoothServerSocket::BluetoothServerSocket(const std::string service_name,
                                              const std::string service_uuid)
     : radio_discoverable_(false),
@@ -104,15 +105,16 @@ Exception BluetoothServerSocket::StartListening(bool radioDiscoverable) {
             RfcommServiceId::FromUuid(winrt::guid(service_uuid_)))
             .get();
 
-    rfcomm_provider_ = &rfcommProviderRef;
+    rfcomm_provider_ = rfcommProviderRef;
 
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
     stream_socket_listener_
-        .BindServiceNameAsync(winrt::to_hstring(service_name_.c_str()))
+        .BindServiceNameAsync(
+            winrt::to_hstring(rfcomm_provider_.ServiceId().AsString()),
+            SocketProtectionLevel::PlainSocket)
         .get();
 
     // Set the SDP attributes and start Bluetooth advertising
-    InitializeServiceSdpAttributes(*rfcomm_provider_, service_name_);
+    InitializeServiceSdpAttributes(rfcomm_provider_, service_name_);
   } catch (std::exception exception) {
     // We will log and eat the exception since the caller
     // expects nullptr if it fails
@@ -133,9 +135,8 @@ Exception BluetoothServerSocket::StartListening(bool radioDiscoverable) {
 
 Exception BluetoothServerSocket::StartAdvertising() {
   try {
-    rfcomm_provider_->StartAdvertising(
-        stream_socket_listener_.as<StreamSocketListener>(),
-        radio_discoverable_);
+    rfcomm_provider_.StartAdvertising(stream_socket_listener_,
+                                      radio_discoverable_);
   } catch (std::exception exception) {
     // We will log and eat the exception since the caller
     // expects nullptr if it fails
@@ -151,7 +152,7 @@ Exception BluetoothServerSocket::StartAdvertising() {
 }
 
 void BluetoothServerSocket::StopAdvertising() {
-  rfcomm_provider_->StopAdvertising();
+  rfcomm_provider_.StopAdvertising();
 }
 
 void BluetoothServerSocket::InitializeServiceSdpAttributes(
@@ -180,7 +181,7 @@ Exception BluetoothServerSocket::Close() {
   EnterCriticalSection(&critical_section_);
   closed_ = true;
   bluetooth_sockets_ = {};
-  rfcomm_provider_->StopAdvertising();
+  rfcomm_provider_.StopAdvertising();
   LeaveCriticalSection(&critical_section_);
 
   return {Exception::kSuccess};
