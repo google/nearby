@@ -113,7 +113,10 @@ cc_test(
         "webrtc_test.cc",
     ],
     shard_count = 16,
-    tags = ["notsan"],  # NOTE(b/139734036): known data race in usrsctplib.
+    tags = [
+        "notsan",  # NOTE(b/139734036): known data race in usrsctplib.
+        "requires-net:external",
+    ],
     deps = [
         ":mediums",
         "//testing/base/public:gunit_main",
