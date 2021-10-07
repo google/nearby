@@ -19,6 +19,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "platform/base/byte_array.h"
@@ -55,9 +56,10 @@ TEST(OfflineFramesTest, CanParseMessageFromBytes) {
     auto* sub_frame = v1_frame->mutable_connection_request();
 
     v1_frame->set_type(V1Frame::CONNECTION_REQUEST);
-    sub_frame->set_endpoint_id(kEndpointId);
-    sub_frame->set_endpoint_name(kEndpointName);
-    sub_frame->set_endpoint_info(kEndpointName);
+    // OSS matchers don't like implicitly comparing string_views to strings.
+    sub_frame->set_endpoint_id(std::string(kEndpointId));
+    sub_frame->set_endpoint_name(std::string(kEndpointName));
+    sub_frame->set_endpoint_info(std::string(kEndpointName));
     sub_frame->set_nonce(kNonce);
     sub_frame->set_keep_alive_interval_millis(kKeepAliveIntervalMillis);
     sub_frame->set_keep_alive_timeout_millis(kKeepAliveTimeoutMillis);

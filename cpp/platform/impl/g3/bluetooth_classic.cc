@@ -126,8 +126,8 @@ bool BluetoothServerSocket::Connect(BluetoothSocket& socket) {
   absl::MutexLock lock(&mutex_);
   if (closed_) return false;
   if (socket.IsConnected()) {
-    NEARBY_LOG(ERROR,
-               "Failed to connect to BT server socket: already connected");
+    NEARBY_LOGS(ERROR)
+        << "Failed to connect to BT server socket: already connected";
     return true;  // already connected.
   }
   // add client socket to the pending list
@@ -201,9 +201,9 @@ bool BluetoothClassicMedium::StopDiscovery() {
 std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     api::BluetoothDevice& remote_device, const std::string& service_uuid,
     CancellationFlag* cancellation_flag) {
-  NEARBY_LOG(INFO,
-             "G3 ConnectToService [self]: medium=%p, adapter=%p, device=%p",
-             this, &GetAdapter(), &GetAdapter().GetDevice());
+  NEARBY_LOGS(INFO) << "G3 ConnectToService [self]: medium=" << this
+                    << ", adapter=" << &GetAdapter()
+                    << ", device=" << &GetAdapter().GetDevice();
   // First, find an instance of remote medium, that exposed this device.
   auto& adapter = static_cast<BluetoothDevice&>(remote_device).GetAdapter();
   auto* medium =
@@ -212,18 +212,17 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   if (!medium) return {};  // Adapter is not bound to medium. Bail out.
 
   BluetoothServerSocket* server_socket = nullptr;
-  NEARBY_LOG(
-      INFO,
-      "G3 ConnectToService [peer]: medium=%p, adapter=%p, device=%p, uuid=%s",
-      medium, &adapter, &remote_device, service_uuid.c_str());
+  NEARBY_LOGS(INFO) << "G3 ConnectToService [peer]: medium=" << medium
+                    << ", adapter=" << &adapter << ", device=" << &remote_device
+                    << ", uuid=" << service_uuid.c_str();
   // Then, find our server socket context in this medium.
   {
     absl::MutexLock medium_lock(&medium->mutex_);
     auto item = medium->sockets_.find(service_uuid);
     server_socket = item != sockets_.end() ? item->second : nullptr;
     if (server_socket == nullptr) {
-      NEARBY_LOG(ERROR, "Failed to find BT Server socket: uuid=%s",
-                 service_uuid.c_str());
+      NEARBY_LOGS(ERROR) << "Failed to find BT Server socket: uuid="
+                         << service_uuid;
       return {};
     }
   }
@@ -243,12 +242,13 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   auto socket = std::make_unique<BluetoothSocket>(&GetAdapter());
   // Finally, Request to connect to this socket.
   if (!server_socket->Connect(*socket)) {
-    NEARBY_LOG(ERROR, "Failed to connect to existing BT Server socket: uuid=%s",
-               service_uuid.c_str());
+    NEARBY_LOGS(ERROR)
+        << "Failed to connect to existing BT Server socket: uuid="
+        << service_uuid;
     return {};
   }
-
-  NEARBY_LOG(INFO, "G3 ConnectToService: connected: socket=%p", socket.get());
+  NEARBY_LOGS(INFO) << "G3 ConnectToService: connected: socket="
+                    << socket.get();
   return socket;
 }
 
@@ -260,8 +260,8 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
     absl::MutexLock lock(&mutex_);
     sockets_.erase(uuid);
   });
-  NEARBY_LOG(INFO, "Adding service: medium=%p, uuid=%s", this,
-             service_uuid.c_str());
+  NEARBY_LOGS(INFO) << "Adding service: medium=" << this
+                    << ", uuid=" << service_uuid;
   absl::MutexLock lock(&mutex_);
   sockets_.emplace(service_uuid, socket.get());
   return socket;

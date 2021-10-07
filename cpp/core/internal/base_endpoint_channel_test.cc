@@ -59,11 +59,11 @@ std::function<void()> MakeDataPump(
     std::string label, InputStream* input, OutputStream* output,
     std::function<void(const ByteArray&)> monitor = nullptr) {
   return [label, input, output, monitor]() {
-    NEARBY_LOG(INFO, "streaming data thorough '%s'", label.c_str());
+    NEARBY_LOGS(INFO) << "streaming data through '" << label << "'";
     while (true) {
       auto read_response = input->Read(Pipe::kChunkSize);
       if (!read_response.ok()) {
-        NEARBY_LOG(INFO, "Peer reader closed on '%s'", label.c_str());
+        NEARBY_LOGS(INFO) << "Peer reader closed on '" << label << "'";
         output->Close();
         break;
       }
@@ -72,12 +72,12 @@ std::function<void()> MakeDataPump(
       }
       auto write_response = output->Write(read_response.result());
       if (write_response.Raised()) {
-        NEARBY_LOG(INFO, "Peer writer closed on '%s'", label.c_str());
+        NEARBY_LOGS(INFO) << "Peer writer closed on '" << label << "'";
         input->Close();
         break;
       }
     }
-    NEARBY_LOG(INFO, "streaming terminated on '%s'", label.c_str());
+    NEARBY_LOGS(INFO) << "streaming terminated on '" << label << "'";
   };
 }
 
@@ -90,7 +90,8 @@ std::function<void(const ByteArray&)> MakeDataMonitor(const std::string& label,
       absl::MutexLock lock(mutex);
       *capture += s;
     }
-    NEARBY_LOG(INFO, "source='%s'; message='%s'", label.c_str(), s.c_str());
+    NEARBY_LOGS(INFO) << "source='" << label << "'"
+                      << "; message='" << s << "'";
   };
 }
 
@@ -114,7 +115,7 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
                   std::unique_ptr<securegcm::UKey2Handshake> ukey2,
                   const std::string& auth_token,
                   const ByteArray& raw_auth_token) {
-                NEARBY_LOG(INFO, "client-A side key negotiation done");
+                NEARBY_LOGS(INFO) << "client-A side key negotiation done";
                 EXPECT_TRUE(ukey2->VerifyHandshake());
                 auto context = ukey2->ToConnectionContext();
                 EXPECT_NE(context, nullptr);
@@ -124,7 +125,7 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
           .on_failure_cb =
               [&latch](const std::string& endpoint_id,
                        EndpointChannel* channel) {
-                NEARBY_LOG(INFO, "client-A side key negotiation failed");
+                NEARBY_LOGS(INFO) << "client-A side key negotiation failed";
                 latch.CountDown();
               },
       });
@@ -137,7 +138,7 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
                   std::unique_ptr<securegcm::UKey2Handshake> ukey2,
                   const std::string& auth_token,
                   const ByteArray& raw_auth_token) {
-                NEARBY_LOG(INFO, "client-B side key negotiation done");
+                NEARBY_LOGS(INFO) << "client-B side key negotiation done";
                 EXPECT_TRUE(ukey2->VerifyHandshake());
                 auto context = ukey2->ToConnectionContext();
                 EXPECT_NE(context, nullptr);
@@ -147,7 +148,7 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
           .on_failure_cb =
               [&latch](const std::string& endpoint_id,
                        EndpointChannel* channel) {
-                NEARBY_LOG(INFO, "client-B side key negotiation failed");
+                NEARBY_LOGS(INFO) << "client-B side key negotiation failed";
                 latch.CountDown();
               },
       });
