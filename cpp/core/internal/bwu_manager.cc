@@ -171,9 +171,11 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
     CancelRetryUpgradeAlarm(endpoint_id);
 
     auto channel = channel_manager_->GetChannelForEndpoint(endpoint_id);
+    Medium channel_medium =
+        channel ? channel->GetMedium() : Medium::UNKNOWN_MEDIUM;
     client->GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
-        endpoint_id, channel->GetMedium(), medium_,
-        proto::connections::INCOMING, client->GetConnectionToken(endpoint_id));
+        endpoint_id, channel_medium, medium_, proto::connections::INCOMING,
+        client->GetConnectionToken(endpoint_id));
     if (channel == nullptr) {
       NEARBY_LOGS(INFO)
           << "BwuManager couldn't complete the upgrade for endpoint "

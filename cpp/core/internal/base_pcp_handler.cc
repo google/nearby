@@ -518,11 +518,13 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
           }
         }
 
+        Medium channel_medium =
+            channel ? channel->GetMedium() : Medium::UNKNOWN_MEDIUM;
         if (channel == nullptr) {
           NEARBY_LOGS(INFO)
               << "Endpoint channel not available: endpoint_id=" << endpoint_id;
           ProcessPreConnectionInitiationFailure(
-              client, channel->GetMedium(), endpoint_id, channel.get(),
+              client, channel_medium, endpoint_id, channel.get(),
               /* is_incoming = */ false, start_time, connect_impl_result.status,
               result.get());
           return;
@@ -546,7 +548,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
           NEARBY_LOGS(INFO) << "Failed to send connection request: endpoint_id="
                             << endpoint_id;
           ProcessPreConnectionInitiationFailure(
-              client, channel->GetMedium(), endpoint_id, channel.get(),
+              client, channel_medium, endpoint_id, channel.get(),
               /* is_incoming = */ false, start_time, {Status::kEndpointIoError},
               result.get());
           return;
