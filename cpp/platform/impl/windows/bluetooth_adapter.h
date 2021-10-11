@@ -15,9 +15,12 @@
 #ifndef PLATFORM_IMPL_WINDOWS_BLUETOOTH_ADAPTER_H_
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_ADAPTER_H_
 
+#include <guiddef.h>
+
 #include <string>
 
 #include "platform/api/bluetooth_adapter.h"
+#include "platform/impl/windows/generated/winrt/base.h"
 #include "platform/impl/windows/generated/winrt/Windows.Devices.Bluetooth.h"
 #include "platform/impl/windows/generated/winrt/Windows.Devices.Radios.h"
 
