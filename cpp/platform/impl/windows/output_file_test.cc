@@ -75,7 +75,7 @@ TEST_F(OutputFileTests, SuccessfulClose) {
 
 TEST_F(OutputFileTests, SuccessfulWrite) {
   location::nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
-  location::nearby::ByteArray data(std::string(TEST_STRING));
+  location::nearby::ByteArray data(TEST_STRING);
   std::unique_ptr<location::nearby::api::OutputFile> outputFile = nullptr;
 
   EXPECT_NO_THROW(

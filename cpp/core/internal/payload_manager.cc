@@ -631,7 +631,7 @@ PayloadTransferFrame::PayloadChunk PayloadManager::CreatePayloadChunk(
   payload_chunk.set_offset(payload_chunk_offset);
   payload_chunk.set_flags(0);
   if (!payload_chunk_body.Empty()) {
-    payload_chunk.set_body(std::string(std::move(payload_chunk_body)));
+    payload_chunk.set_body(std::string(payload_chunk_body.data()));
   } else {
     payload_chunk.set_flags(payload_chunk.flags() |
                             PayloadTransferFrame::PayloadChunk::LAST_CHUNK);
@@ -1014,7 +1014,8 @@ void PayloadManager::ProcessDataPacket(
   // Save size of packet before we move it.
   std::int64_t payload_body_size = payload_chunk.body().size();
   if (pending_payload->GetInternalPayload()
-          ->AttachNextChunk(ByteArray(std::move(*payload_chunk.mutable_body())))
+          ->AttachNextChunk(
+              ByteArray(std::move(*payload_chunk.mutable_body()->c_str())))
           .Raised()) {
     NEARBY_LOGS(ERROR) << "ProcessDataPacket: [data: error] endpoint_id="
                        << from_endpoint_id

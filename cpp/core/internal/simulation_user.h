@@ -62,7 +62,7 @@ class SimulationUser {
                     .GetFlags()
                     .keep_alive_timeout_millis,
         },
-        info_{ByteArray{device_name}},
+        info_{ByteArray{device_name.c_str()}},
         options_{
             .strategy = Strategy::kP2pCluster,
             .allowed = allowed,

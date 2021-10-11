@@ -23,10 +23,10 @@
 #include "platform/api/output_file.h"
 #include "platform/api/platform.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/core_config.h"
 #include "platform/base/exception.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/output_stream.h"
-#include "platform/public/core_config.h"
 
 namespace location {
 namespace nearby {

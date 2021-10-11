@@ -61,10 +61,10 @@ BlePacket::operator ByteArray() const {
     return ByteArray();
   }
 
-  std::string out =
-      absl::StrCat(std::string(service_id_hash_), std::string(data_));
+  std::string out = absl::StrCat(std::string(service_id_hash_.data()),
+                                 std::string(data_.data()));
 
-  return ByteArray(std::move(out));
+  return ByteArray(std::move(out.c_str()));
 }
 
 }  // namespace mediums

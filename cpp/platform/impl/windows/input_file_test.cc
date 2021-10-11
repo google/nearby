@@ -127,7 +127,7 @@ TEST_F(InputFileTests, SuccessfulRead) {
   EXPECT_EQ(inputFile->Close(),
             location::nearby::Exception{location::nearby::Exception::kSuccess});
 
-  EXPECT_STREQ(std::string(dataRead.result()).c_str(), TEST_STRING);
+  EXPECT_STREQ(std::string(dataRead.result().data()).c_str(), TEST_STRING);
 }
 
 TEST_F(InputFileTests, FailedRead) {
@@ -144,7 +144,7 @@ TEST_F(InputFileTests, FailedRead) {
   EXPECT_TRUE(dataRead.ok());
 
   dataRead = inputFile->Read(fileSize);
-  std::string data = std::string(dataRead.result());
+  std::string data = std::string(dataRead.result().data());
 
   inputFile->Close();
 

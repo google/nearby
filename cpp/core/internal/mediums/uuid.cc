@@ -32,7 +32,7 @@ std::ostream& write_hex(std::ostream& os, absl::string_view data) {
 }
 }  // namespace
 
-Uuid::Uuid(absl::string_view data) : data_(Crypto::Md5(data)) {
+Uuid::Uuid(absl::string_view data) : data_(Crypto::Md5(data).data()) {
   // Based on the Java counterpart at
   // http://androidxref.com/8.0.0_r4/xref/libcore/ojluni/src/main/java/java/util/UUID.java#162.
   data_[6] &= 0x0f;  // Clear version.

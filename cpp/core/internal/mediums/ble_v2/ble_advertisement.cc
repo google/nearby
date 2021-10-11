@@ -175,16 +175,16 @@ BleAdvertisement::operator ByteArray() const {
 
   // clang-format on
   if (fast_advertisement_) {
-    std::string out =
-        absl::StrCat(std::string(1, version_byte), std::string(data_size_bytes),
-                     std::string(data_), std::string(device_token_));
-    return ByteArray{std::move(out)};
+    std::string out = absl::StrCat(
+        std::string(1, version_byte), std::string(data_size_bytes.data()),
+        std::string(data_.data()), std::string(device_token_.data()));
+    return ByteArray{std::move(out.c_str())};
   } else {
     std::string out = absl::StrCat(
-        std::string(1, version_byte), std::string(service_id_hash_),
-        std::string(data_size_bytes), std::string(data_),
-        std::string(device_token_));
-    return ByteArray{std::move(out)};
+        std::string(1, version_byte), std::string(service_id_hash_.data()),
+        std::string(data_size_bytes.data()), std::string(data_.data()),
+        std::string(device_token_.data()));
+    return ByteArray{std::move(out.c_str())};
   }
   // clang-format on
 }

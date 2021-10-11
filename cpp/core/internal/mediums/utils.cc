@@ -45,11 +45,11 @@ ByteArray Utils::GenerateRandomBytes(size_t length) {
     }
   }
 
-  return ByteArray(data);
+  return ByteArray(data.c_str());
 }
 
 ByteArray Utils::Sha256Hash(const ByteArray& source, size_t length) {
-  return Utils::Sha256Hash(std::string(source), length);
+  return Utils::Sha256Hash(std::string(source.data()), length);
 }
 
 ByteArray Utils::Sha256Hash(const std::string& source, size_t length) {

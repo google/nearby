@@ -319,7 +319,7 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
   switch (frame.payload_header().type()) {
     case PayloadTransferFrame::PayloadHeader::BYTES: {
       return absl::make_unique<BytesInternalPayload>(
-          Payload(payload_id, ByteArray(frame.payload_chunk().body())));
+          Payload(payload_id, ByteArray(frame.payload_chunk().body().c_str())));
     }
 
     case PayloadTransferFrame::PayloadHeader::STREAM: {

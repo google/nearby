@@ -104,11 +104,11 @@ BleAdvertisementHeader::operator std::string() const {
 
   // clang-format off
   std::string out = absl::StrCat(std::string(1, version_and_num_slots_byte),
-                                 std::string(service_id_bloom_filter_),
-                                 std::string(advertisement_hash_));
+                                 std::string(service_id_bloom_filter_.data()),
+                                 std::string(advertisement_hash_.data()));
   // clang-format on
 
-  return Base64Utils::Encode(ByteArray(std::move(out)));
+  return Base64Utils::Encode(ByteArray(std::move(out.c_str())));
 }
 
 bool BleAdvertisementHeader::operator<(

@@ -57,7 +57,7 @@ bool HandleEncryptionSuccess(const std::string& endpoint_id,
     return false;
   }
 
-  ByteArray raw_authentication_token(*verification_string);
+  ByteArray raw_authentication_token(*verification_string->c_str());
 
   listener.on_success_cb(endpoint_id, std::move(ukey2),
                          ToHumanReadableString(raw_authentication_token),
@@ -110,7 +110,7 @@ class ServerRunnable final {
     }
 
     securegcm::UKey2Handshake::ParseResult parse_result =
-        server->ParseHandshakeMessage(std::string(client_init.result()));
+        server->ParseHandshakeMessage(std::string(client_init.result().data()));
 
     // Java code throws a HandshakeException / AlertException.
     if (!parse_result.success) {
@@ -138,7 +138,7 @@ class ServerRunnable final {
     }
 
     Exception write_exception =
-        channel_->Write(ByteArray(std::move(*server_init)));
+        channel_->Write(ByteArray(std::move(*server_init->c_str())));
     if (!write_exception.Ok()) {
       LogException();
       HandleHandshakeOrIoException(&timeout_alarm);
@@ -158,8 +158,8 @@ class ServerRunnable final {
       return;
     }
 
-    parse_result =
-        server->ParseHandshakeMessage(std::string(client_finish.result()));
+    parse_result = server->ParseHandshakeMessage(
+        std::string(client_finish.result().data()));
 
     // Java code throws an AlertException or a HandshakeException.
     if (!parse_result.success) {
@@ -198,7 +198,7 @@ class ServerRunnable final {
   void HandleAlertException(
       const securegcm::UKey2Handshake::ParseResult& parse_result) const {
     Exception write_exception =
-        channel_->Write(ByteArray(*parse_result.alert_to_send));
+        channel_->Write(ByteArray(*parse_result.alert_to_send->c_str()));
     if (!write_exception.Ok()) {
       NEARBY_LOGS(WARNING)
           << "In StartServer(), client " << client_->GetClientId()
@@ -252,7 +252,8 @@ class ClientRunnable final {
       return;
     }
 
-    Exception write_init_exception = channel_->Write(ByteArray(*client_init));
+    Exception write_init_exception =
+        channel_->Write(ByteArray(*client_init->c_str()));
     if (!write_init_exception.Ok()) {
       LogException();
       HandleHandshakeOrIoException(&timeout_alarm);
@@ -273,7 +274,7 @@ class ClientRunnable final {
     }
 
     securegcm::UKey2Handshake::ParseResult parse_result =
-        crypto->ParseHandshakeMessage(std::string(server_init.result()));
+        crypto->ParseHandshakeMessage(std::string(server_init.result().data()));
 
     // Java code throws an AlertException or a HandshakeException.
     if (!parse_result.success) {
@@ -301,7 +302,7 @@ class ClientRunnable final {
     }
 
     Exception write_finish_exception =
-        channel_->Write(ByteArray(*client_finish));
+        channel_->Write(ByteArray(*client_finish->c_str()));
     if (!write_finish_exception.Ok()) {
       LogException();
       HandleHandshakeOrIoException(&timeout_alarm);
@@ -335,7 +336,7 @@ class ClientRunnable final {
   void HandleAlertException(
       const securegcm::UKey2Handshake::ParseResult& parse_result) const {
     Exception write_exception =
-        channel_->Write(ByteArray(*parse_result.alert_to_send));
+        channel_->Write(ByteArray(*parse_result.alert_to_send->c_str()));
     if (!write_exception.Ok()) {
       NEARBY_LOGS(WARNING)
           << "In StartClient(), client " << client_->GetClientId()

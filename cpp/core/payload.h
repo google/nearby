@@ -22,10 +22,10 @@
 
 #include "absl/types/variant.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/core_config.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/payload_id.h"
 #include "platform/base/prng.h"
-#include "platform/public/core_config.h"
 #include "platform/public/file.h"
 #include "platform/public/logging.h"
 
@@ -45,69 +45,53 @@ class DLL_API Payload {
                                 std::function<InputStream&()>, InputFile>;
   enum class Type { kUnknown = 0, kBytes = 1, kStream = 2, kFile = 3 };
 
-  Payload(Payload&& other) = default;
-  ~Payload() = default;
-  Payload& operator=(Payload&& other) = default;
+  Payload(Payload&& other);
+  ~Payload();
+  Payload& operator=(Payload&& other);
 
   // Default (invalid) payload.
-  Payload() : content_(absl::monostate()) {}
+  Payload();
 
   // Constructors for outgoing payloads.
-  explicit Payload(ByteArray&& bytes) : content_(std::move(bytes)) {}
-  explicit Payload(const ByteArray& bytes) : content_(bytes) {}
-  explicit Payload(std::function<InputStream&()> stream)
-      : content_(std::move(stream)) {}
+  explicit Payload(ByteArray&& bytes);
+  explicit Payload(const ByteArray& bytes);
+  explicit Payload(std::function<InputStream&()> stream);
 
   // Constructors for incoming payloads.
-  Payload(Id id, ByteArray&& bytes) : content_(std::move(bytes)), id_(id) {}
-  Payload(Id id, const ByteArray& bytes) : content_(bytes), id_(id) {}
-  Payload(Id id, std::function<InputStream&()> stream)
-      : content_(std::move(stream)), id_(id) {}
+  Payload(Id id, ByteArray&& bytes);
+  Payload(Id id, const ByteArray& bytes);
+  Payload(Id id, std::function<InputStream&()> stream);
 
   // Constructor for incoming and outgoing file payloads.
-  Payload(Id id, InputFile file) : content_(std::move(file)), id_(id) {}
+  Payload(Id id, InputFile file);
 
   // Returns ByteArray payload, if it has been defined, or empty ByteArray.
-  const ByteArray& AsBytes() const& {
-    static const ByteArray empty;  // NOLINT: function-level static is OK.
-    auto* result = absl::get_if<ByteArray>(&content_);
-    return result ? *result : empty;
-  }
-  ByteArray&& AsBytes() && {
-    auto* result = absl::get_if<ByteArray>(&content_);
-    return result ? std::move(*result) : std::move(ByteArray());
-  }
+  const ByteArray& AsBytes() const&;
+
+  ByteArray&& AsBytes() &&;
+
   // Returns InputStream* payload, if it has been defined, or nullptr.
-  InputStream* AsStream() {
-    auto* result = absl::get_if<std::function<InputStream&()>>(&content_);
-    return result ? &(*result)() : nullptr;
-  }
+  InputStream* AsStream();
+
   // Returns InputFile* payload, if it has been defined, or nullptr.
-  InputFile* AsFile() { return absl::get_if<InputFile>(&content_); }
+  InputFile* AsFile();
 
   // Returns Payload unique ID.
-  Id GetId() const { return id_; }
+  Id GetId() const;
 
   // Returns Payload type.
-  Type GetType() const { return type_; }
+  Type GetType() const;
 
   // Sets the payload offset in bytes
-  void SetOffset(size_t offset) {
-    CHECK(type_ == Type::kFile || type_ == Type::kStream);
-    InputFile* file = AsFile();
-    if (file != nullptr) {
-      CHECK(file->GetTotalSize() > 0 && offset < (size_t)file->GetTotalSize());
-    }
-    offset_ = offset;
-  }
+  void SetOffset(size_t offset);
 
-  size_t GetOffset() { return offset_; }
+  size_t GetOffset();
 
   // Generate Payload Id; to be passed to outgoing file constructor.
-  static Id GenerateId() { return Prng().NextInt64(); }
+  static Id GenerateId();
 
  private:
-  Type FindType() const { return static_cast<Type>(content_.index()); }
+  Type FindType() const;
 
   Content content_;
   Id id_{GenerateId()};

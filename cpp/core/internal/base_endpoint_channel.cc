@@ -123,11 +123,11 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
     MutexLock crypto_lock(&crypto_mutex_);
     if (IsEncryptionEnabledLocked()) {
       // If encryption is enabled, decode the message.
-      std::string input(std::move(result));
+      std::string input(result.data());
       std::unique_ptr<std::string> decrypted_data =
           crypto_context_->DecodeMessageFromPeer(input);
       if (decrypted_data) {
-        result = ByteArray(std::move(*decrypted_data));
+        result = ByteArray(std::move(*decrypted_data->c_str()));
       } else {
         // It could be a protocol race, where remote party sends a KEEP_ALIVE
         // before encryption is setup on their side, and we receive it after
@@ -136,13 +136,13 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
         // and let it through if it is, otherwise message is erased.
         // TODO(apolyudov): verify this happens at most once per session.
         result = {};
-        auto parsed = parser::FromBytes(ByteArray(input));
+        auto parsed = parser::FromBytes(ByteArray(input.c_str()));
         if (parsed.ok()) {
           if (parser::GetFrameType(parsed.result()) == V1Frame::KEEP_ALIVE) {
             NEARBY_LOGS(INFO)
                 << __func__
                 << ": Read unencrypted KEEP_ALIVE on encrypted channel.";
-            result = ByteArray(input);
+            result = ByteArray(input.c_str());
           } else {
             NEARBY_LOGS(WARNING)
                 << __func__ << ": Read unexpected unencrypted frame of type "
@@ -188,12 +188,12 @@ Exception BaseEndpointChannel::Write(const ByteArray& data) {
       if (IsEncryptionEnabledLocked()) {
         // If encryption is enabled, encode the message.
         std::unique_ptr<std::string> encrypted =
-            crypto_context_->EncodeMessageToPeer(std::string(data));
+            crypto_context_->EncodeMessageToPeer(std::string(data.data()));
         if (!encrypted) {
           NEARBY_LOGS(WARNING) << __func__ << ": Failed to encrypt data.";
           return {Exception::kIo};
         }
-        encrypted_data = ByteArray(std::move(*encrypted));
+        encrypted_data = ByteArray(std::move(*encrypted->c_str()));
         data_to_write = &encrypted_data;
       }
     }

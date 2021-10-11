@@ -43,7 +43,7 @@ ByteArray ToBytes(OfflineFrame&& frame) {
 ExceptionOrOfflineFrame FromBytes(const ByteArray& bytes) {
   OfflineFrame frame;
 
-  if (frame.ParseFromString(std::string(bytes))) {
+  if (frame.ParseFromString(std::string(bytes.data()))) {
     Exception validation_exception = EnsureValidOfflineFrame(frame);
     if (validation_exception.Raised()) {
       return ExceptionOrOfflineFrame(validation_exception);
@@ -77,8 +77,8 @@ ByteArray ForConnectionRequest(const std::string& endpoint_id,
   auto* connection_request = v1_frame->mutable_connection_request();
   if (!endpoint_id.empty()) connection_request->set_endpoint_id(endpoint_id);
   if (!endpoint_info.Empty()) {
-    connection_request->set_endpoint_name(std::string(endpoint_info));
-    connection_request->set_endpoint_info(std::string(endpoint_info));
+    connection_request->set_endpoint_name(std::string(endpoint_info.data()));
+    connection_request->set_endpoint_info(std::string(endpoint_info.data()));
   }
   connection_request->set_nonce(nonce);
   auto* medium_metadata = connection_request->mutable_medium_metadata();

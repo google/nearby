@@ -23,7 +23,7 @@ namespace nearby {
 std::string Base64Utils::Encode(const ByteArray& bytes) {
   std::string base64_string;
 
-  absl::WebSafeBase64Escape(std::string(bytes), &base64_string);
+  absl::WebSafeBase64Escape(std::string(bytes.data()), &base64_string);
 
   return base64_string;
 }

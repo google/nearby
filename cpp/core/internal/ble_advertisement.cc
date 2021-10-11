@@ -142,7 +142,8 @@ BleAdvertisement::BleAdvertisement(bool fast_advertisement,
     service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
 
   // The next 4 bytes are supposed to be the endpoint_id.
-  endpoint_id_ = std::string{base_input_stream.ReadBytes(kEndpointIdLength)};
+  endpoint_id_ =
+      std::string{base_input_stream.ReadBytes(kEndpointIdLength).data()};
 
   // The next 1 byte is supposed to be the length of the endpoint_info.
   std::uint32_t expected_endpoint_info_length = base_input_stream.ReadUint8();
@@ -226,15 +227,15 @@ BleAdvertisement::operator ByteArray() const {
     out = absl::StrCat(std::string(1, version_and_pcp_byte),
                        endpoint_id_,
                        std::string(1, endpoint_info_.size()),
-                       std::string(endpoint_info_));
+                       std::string(endpoint_info_.data()));
     // clang-format on
   } else {
     // clang-format off
     out = absl::StrCat(std::string(1, version_and_pcp_byte),
-                       std::string(service_id_hash_),
+                       std::string(service_id_hash_.data()),
                        endpoint_id_,
                        std::string(1, endpoint_info_.size()),
-                       std::string(endpoint_info_));
+                       std::string(endpoint_info_.data()));
     // clang-format on
 
     // The next 6 bytes are the bluetooth mac address. If bluetooth_mac_address
@@ -242,19 +243,19 @@ BleAdvertisement::operator ByteArray() const {
     auto bluetooth_mac_address_bytes{
         BluetoothUtils::FromString(bluetooth_mac_address_)};
     if (!bluetooth_mac_address_bytes.Empty()) {
-      absl::StrAppend(&out, std::string(bluetooth_mac_address_bytes));
+      absl::StrAppend(&out, std::string(bluetooth_mac_address_bytes.data()));
     } else {
       // If bluetooth MAC address is invalid, then reserve the bytes.
       auto fake_bt_mac_address_bytes =
           ByteArray(BluetoothUtils::kBluetoothMacAddressLength);
-      absl::StrAppend(&out, std::string(fake_bt_mac_address_bytes));
+      absl::StrAppend(&out, std::string(fake_bt_mac_address_bytes.data()));
     }
   }
 
   // The next bytes are UWB address field.
   if (!uwb_address_.Empty()) {
     absl::StrAppend(&out, std::string(1, uwb_address_.size()));
-    absl::StrAppend(&out, std::string(uwb_address_));
+    absl::StrAppend(&out, std::string(uwb_address_.data()));
   } else if (!fast_advertisement_) {
     // Write UWB address with length 0 to be able to read the next field when
     // decode.
@@ -270,7 +271,7 @@ BleAdvertisement::operator ByteArray() const {
     absl::StrAppend(&out, std::string(1, extra_field_byte));
   }
 
-  return ByteArray(std::move(out));
+  return ByteArray(std::move(out.c_str()));
 }
 
 }  // namespace connections

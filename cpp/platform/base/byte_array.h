@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,94 +19,72 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
 
+#include "platform/base/core_config.h"
+
 namespace location {
 namespace nearby {
 
-class ByteArray {
+class ByteArrayImpl;
+
+class DLL_API ByteArray {
  public:
   // Create an empty ByteArray
-  ByteArray() = default;
+  ByteArray();
   template <size_t N>
-  explicit ByteArray(const std::array<char, N>& data) {
-    SetData(data.data(), data.size());
-  }
-  ByteArray(const ByteArray&) = default;
-  ByteArray& operator=(const ByteArray&) = default;
-  ByteArray(ByteArray&&) = default;
-  ByteArray& operator=(ByteArray&&) = default;
+  explicit ByteArray(const std::array<char, N>& data);
+  ByteArray(const ByteArray&);
+  ByteArray& operator=(const ByteArray&);
+  ByteArray(ByteArray&&) noexcept;
+  ByteArray& operator=(ByteArray&&) noexcept;
+  ~ByteArray();
 
   // Moves string out of temporary, allowing for a zero-copy constructions.
   // This is an optimization for very large strings.
-  explicit ByteArray(std::string&& source) : data_(std::move(source)) {}
+  ByteArray(char* source);
 
   // Create ByteArray by copy of a std::string. This can't be a string_view,
   // because it will conflict with std::string&& version of constructor.
-  explicit ByteArray(const std::string& source) {
-    SetData(source.data(), source.size());
-  }
+  explicit ByteArray(const char* source);
 
   // Create default-initialized ByteArray of a given size.
-  explicit ByteArray(size_t size) { SetData(size); }
+  explicit ByteArray(size_t size);
 
   // Create value-initialized ByteArray of a given size.
-  ByteArray(const char* data, size_t size) { SetData(data, size); }
+  ByteArray(const char* data, size_t size);
 
   // Assign a new value to this ByteArray, as a copy of data, with a given size.
-  void SetData(const char* data, size_t size) {
-    if (data == nullptr) {
-      size = 0;
-    }
-    data_.assign(data, size);
-  }
+  void SetData(const char* data, size_t size);
 
   // Assign a new value of a given size to this ByteArray
   // (as a repeated char value).
-  void SetData(size_t size, char value = 0) { data_.assign(size, value); }
+  void SetData(size_t size, char value = 0);
 
   // Returns true, if changes were performed to container, false otherwise.
-  bool CopyAt(size_t offset, const ByteArray& from, size_t source_offset = 0) {
-    if (offset >= size()) return false;
-    if (source_offset >= from.size()) return false;
-    memcpy(data() + offset, from.data() + source_offset,
-           std::min(size() - offset, from.size() - source_offset));
-    return true;
-  }
+  bool CopyAt(size_t offset, const ByteArray& from, size_t source_offset = 0);
 
-  char* data() { return &data_[0]; }
-  const char* data() const { return data_.data(); }
-  size_t size() const { return data_.size(); }
-  bool Empty() const { return data_.empty(); }
+  char* data();
+  const char* data() const;
+  size_t size() const;
+  bool Empty() const;
 
   friend bool operator==(const ByteArray& lhs, const ByteArray& rhs);
   friend bool operator!=(const ByteArray& lhs, const ByteArray& rhs);
   friend bool operator<(const ByteArray& lhs, const ByteArray& rhs);
 
-  // Returns a copy of internal representation as std::string.
-  explicit operator std::string() const& { return data_; }
-
-  // Moves string out of temporary ByteArray, allowing for a zero-copy
-  // operation.
-  explicit operator std::string() && { return std::move(data_); }
-
  private:
-  std::string data_;
+  ByteArrayImpl* byte_array_impl_;
 };
 
-inline bool operator==(const ByteArray& lhs, const ByteArray& rhs) {
-  return lhs.data_ == rhs.data_;
-}
+bool operator==(const ByteArray& lhs, const ByteArray& rhs);
 
-inline bool operator!=(const ByteArray& lhs, const ByteArray& rhs) {
-  return !(lhs == rhs);
-}
+bool operator!=(const ByteArray& lhs, const ByteArray& rhs);
 
-inline bool operator<(const ByteArray& lhs, const ByteArray& rhs) {
-  return lhs.data_ < rhs.data_;
-}
+bool operator<(const ByteArray& lhs, const ByteArray& rhs);
 
 }  // namespace nearby
 }  // namespace location

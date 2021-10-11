@@ -663,8 +663,8 @@ mediums::PeerId BasePcpHandler::CreatePeerIdFromAdvertisement(
     const std::string& service_id, const std::string& endpoint_id,
     const ByteArray& endpoint_info) {
   std::string seed =
-      absl::StrCat(service_id, endpoint_id, std::string(endpoint_info));
-  return mediums::PeerId::FromSeed(ByteArray(std::move(seed)));
+      absl::StrCat(service_id, endpoint_id, std::string(endpoint_info.data()));
+  return mediums::PeerId::FromSeed(ByteArray(std::move(seed.c_str())));
 }
 
 bool BasePcpHandler::HasOutgoingConnections(ClientProxy* client) const {
@@ -1079,10 +1079,9 @@ Exception BasePcpHandler::OnIncomingConnection(
           << "Failed to parse incoming connection request; client="
           << client->GetClientId()
           << "; device=" << absl::BytesToHexString(remote_endpoint_info.data());
-      ProcessPreConnectionInitiationFailure(client, medium, "", channel.get(),
-                                            /* is_incoming= */ false,
-                                            start_time, {Status::kError},
-                                            nullptr);
+      ProcessPreConnectionInitiationFailure(
+          client, medium, "", channel.get(),
+          /* is_incoming= */ false, start_time, {Status::kError}, nullptr);
       return {Exception::kSuccess};
     }
     return wrapped_frame.GetException();
@@ -1124,9 +1123,10 @@ Exception BasePcpHandler::OnIncomingConnection(
   // EndpointInfo. The legacy field stores it as a string while the newer field
   // stores it as a byte array. We'll attempt to grab from the newer field, but
   // will accept the older string if it's all that exists.
-  const ByteArray endpoint_info{connection_request.has_endpoint_info()
-                                    ? connection_request.endpoint_info()
-                                    : connection_request.endpoint_name()};
+  const ByteArray endpoint_info{
+      connection_request.has_endpoint_info()
+          ? connection_request.endpoint_info().c_str()
+          : connection_request.endpoint_name().c_str()};
 
   // Retrieve the keep-alive frame interval and timeout fields. If the frame
   // doesn't have those fields, we need to get them as default from feature
@@ -1460,7 +1460,7 @@ ExceptionOr<OfflineFrame> BasePcpHandler::ReadConnectionRequestFrame(
 
 std::string BasePcpHandler::GetHashedConnectionToken(
     const ByteArray& token_bytes) {
-  auto token = std::string(token_bytes);
+  auto token = std::string(token_bytes.data());
   return location::nearby::Base64Utils::Encode(
              Utils::Sha256Hash(token, token.size()))
       .substr(0, kConnectionTokenLength);

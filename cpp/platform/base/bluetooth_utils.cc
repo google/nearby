@@ -29,7 +29,7 @@ std::string BluetoothUtils::ToString(const ByteArray& bluetooth_mac_address) {
   if (IsBluetoothMacAddressUnset(bluetooth_mac_address))
     return colon_delimited_string;
 
-  for (auto byte : std::string(bluetooth_mac_address)) {
+  for (auto byte : std::string(bluetooth_mac_address.data())) {
     if (!colon_delimited_string.empty())
       absl::StrAppend(&colon_delimited_string, ":");
     absl::StrAppend(&colon_delimited_string, absl::StrFormat("%02X", byte));

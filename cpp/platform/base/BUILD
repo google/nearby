@@ -20,6 +20,8 @@ cc_library(
     srcs = [
         "base64_utils.cc",
         "bluetooth_utils.cc",
+        "byte_array.cc",
+        "byte_array_impl.cc",
         "input_stream.cc",
         "prng.cc",
     ],
@@ -27,7 +29,9 @@ cc_library(
         "base64_utils.h",
         "bluetooth_utils.h",
         "byte_array.h",
+        "byte_array_impl.h",
         "callable.h",
+        "core_config.h",
         "exception.h",
         "feature_flags.h",
         "input_stream.h",

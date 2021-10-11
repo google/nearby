@@ -121,7 +121,8 @@ WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
   }
 
   // The next 4 bytes are supposed to be the endpoint_id.
-  endpoint_id_ = std::string{base_input_stream.ReadBytes(kEndpointIdLength)};
+  endpoint_id_ =
+      std::string{base_input_stream.ReadBytes(kEndpointIdLength).data()};
 
   // The next 3 bytes are supposed to be the service_id_hash.
   service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
@@ -169,13 +170,14 @@ WifiLanServiceInfo::operator NsdServiceInfo() const {
   version_and_pcp_byte |=
       static_cast<char>(static_cast<uint32_t>(pcp_) & kPcpBitmask);
 
-  std::string out = absl::StrCat(std::string(1, version_and_pcp_byte),
-                                 endpoint_id_, std::string(service_id_hash_));
+  std::string out =
+      absl::StrCat(std::string(1, version_and_pcp_byte), endpoint_id_,
+                   std::string(service_id_hash_.data()));
 
   // The next bytes are UWB address field.
   if (!uwb_address_.Empty()) {
     absl::StrAppend(&out, std::string(1, uwb_address_.size()));
-    absl::StrAppend(&out, std::string(uwb_address_));
+    absl::StrAppend(&out, std::string(uwb_address_.data()));
   } else {
     // Write UWB address with length 0 to be able to read the next field, which
     // needs to be appended.
@@ -194,7 +196,7 @@ WifiLanServiceInfo::operator NsdServiceInfo() const {
 
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceInfoName(
-      Base64Utils::Encode(ByteArray{std::move(out)}));
+      Base64Utils::Encode(ByteArray{std::move(out.c_str())}));
   nsd_service_info.SetTxtRecord(std::string(kKeyEndpointInfo),
                                 Base64Utils::Encode(endpoint_info_));
   return nsd_service_info;

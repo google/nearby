@@ -855,7 +855,8 @@ proto::connections::Medium P2pClusterPcpHandler::StartBluetoothAdvertising(
                         auto channel =
                             absl::make_unique<BluetoothEndpointChannel>(
                                 remote_device_name, socket);
-                        ByteArray remote_device_info{remote_device_name};
+                        ByteArray remote_device_info{
+                            remote_device_name.c_str()};
 
                         OnIncomingConnection(
                             client, remote_device_info, std::move(channel),
@@ -1066,7 +1067,8 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
                           auto channel =
                               absl::make_unique<BluetoothEndpointChannel>(
                                   remote_device_name, socket);
-                          ByteArray remote_device_info{remote_device_name};
+                          ByteArray remote_device_info{
+                              remote_device_name.c_str()};
 
                           OnIncomingConnection(
                               client, remote_device_info, std::move(channel),
@@ -1238,7 +1240,8 @@ proto::connections::Medium P2pClusterPcpHandler::StartWifiLanAdvertising(
                         auto channel =
                             absl::make_unique<WifiLanEndpointChannel>(
                                 remote_service_info_name, socket);
-                        ByteArray remote_service_info{remote_service_info_name};
+                        ByteArray remote_service_info{
+                            remote_service_info_name.c_str()};
 
                         OnIncomingConnection(
                             client, remote_service_info, std::move(channel),
@@ -1390,7 +1393,8 @@ P2pClusterPcpHandler::StartListeningForWebRtcConnections(
                         std::string remote_device_name = "WebRtcSocket";
                         auto channel = absl::make_unique<WebRtcEndpointChannel>(
                             remote_device_name, socket);
-                        ByteArray remote_device_info{remote_device_name};
+                        ByteArray remote_device_info{
+                            remote_device_name.c_str()};
 
                         OnIncomingConnection(client, remote_device_info,
                                              std::move(channel),

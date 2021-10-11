@@ -412,7 +412,7 @@ void WebRtc::ProcessTachyonInboxMessage(const std::string& service_id,
 
   // Attempt to parse the incoming message as a WebRtcSignalingFrame.
   location::nearby::mediums::WebRtcSignalingFrame frame;
-  if (!frame.ParseFromString(std::string(message))) {
+  if (!frame.ParseFromString(std::string(message.data()))) {
     NEARBY_LOG(WARNING, "Failed to parse signaling message.");
     return;
   }

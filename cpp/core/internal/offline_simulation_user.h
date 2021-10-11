@@ -58,7 +58,7 @@ class OfflineSimulationUser {
                                              .GetFlags()
                                              .keep_alive_timeout_millis,
         },
-        info_{ByteArray{std::string(device_name)}},
+        info_{ByteArray{std::string(device_name).c_str()}},
         options_{
             .strategy = Strategy::kP2pCluster,
             .allowed = allowed,

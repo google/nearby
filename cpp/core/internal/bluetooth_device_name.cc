@@ -102,7 +102,8 @@ BluetoothDeviceName::BluetoothDeviceName(
   }
 
   // The next 4 bytes are supposed to be the endpoint_id.
-  endpoint_id_ = std::string{base_input_stream.ReadBytes(kEndpointIdLength)};
+  endpoint_id_ =
+      std::string{base_input_stream.ReadBytes(kEndpointIdLength).data()};
 
   // The next 3 bytes are supposed to be the service_id_hash.
   service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
@@ -191,20 +192,20 @@ BluetoothDeviceName::operator std::string() const {
   // clang-format off
   std::string out = absl::StrCat(std::string(1, version_and_pcp_byte),
                                  endpoint_id_,
-                                 std::string(service_id_hash_),
+                                 std::string(service_id_hash_.data()),
                                  std::string(1, field_byte),
-                                 std::string(reserved_bytes),
+                                 std::string(reserved_bytes.data()),
                                  std::string(1, usable_endpoint_info.size()),
-                                 std::string(usable_endpoint_info));
+                                 std::string(usable_endpoint_info.data()));
   // clang-format on
 
   // If UWB address is available, attach it at the end.
   if (!uwb_address_.Empty()) {
     absl::StrAppend(&out, std::string(1, uwb_address_.size()));
-    absl::StrAppend(&out, std::string(uwb_address_));
+    absl::StrAppend(&out, std::string(uwb_address_.data()));
   }
 
-  return Base64Utils::Encode(ByteArray{std::move(out)});
+  return Base64Utils::Encode(ByteArray{std::move(out.c_str())});
 }
 
 }  // namespace connections
