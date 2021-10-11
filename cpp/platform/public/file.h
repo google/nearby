@@ -26,35 +26,35 @@
 #include "platform/base/exception.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/output_stream.h"
+#include "platform/public/core_config.h"
 
 namespace location {
 namespace nearby {
 
-class InputFile final {
+class DLL_API InputFile final {
  public:
   using Platform = api::ImplementationPlatform;
-  InputFile(PayloadId payload_id, std::int64_t size)
-      : impl_(Platform::CreateInputFile(payload_id, size)), id_(payload_id) {}
-  ~InputFile() = default;
-  InputFile(InputFile&&) = default;
-  InputFile& operator=(InputFile&&) = default;
+  InputFile(PayloadId payload_id, std::int64_t size);
+  ~InputFile();
+  InputFile(InputFile&&) noexcept;
+  InputFile& operator=(InputFile&&) noexcept;
 
   // Reads up to size bytes and returns as a ByteArray object wrapped by
   // ExceptionOr.
   // Returns Exception::kIo on error, or end of file.
-  ExceptionOr<ByteArray> Read(std::int64_t size) { return impl_->Read(size); }
+  ExceptionOr<ByteArray> Read(std::int64_t size);
 
   // Returns a string that uniqely identifies this file.
-  std::string GetFilePath() const { return impl_->GetFilePath(); }
+  std::string GetFilePath() const;
 
   // Returns total size of this file in bytes.
-  std::int64_t GetTotalSize() const { return impl_->GetTotalSize(); }
+  std::int64_t GetTotalSize() const;
 
-  ExceptionOr<size_t> Skip(size_t offset) { return impl_->Skip(offset); }
+  ExceptionOr<size_t> Skip(size_t offset);
 
   // Disallows further reads from the file and frees system resources,
   // associated with it.
-  Exception Close() { return impl_->Close(); }
+  Exception Close();
 
   // Returns a handle to the underlying input stream.
   //
@@ -63,36 +63,35 @@ class InputFile final {
   // Side effects of any non-const operation invoked for InputFile (such as
   // Read, or Close will be observable through InputStream& handle, and vice
   // versa.
-  InputStream& GetInputStream() { return *impl_; }
+  InputStream& GetInputStream();
 
   // Returns payload id of this file. The closest "file" equivalent is inode.
-  PayloadId GetPayloadId() const { return id_; }
+  PayloadId GetPayloadId() const;
 
  private:
   std::unique_ptr<api::InputFile> impl_;
   PayloadId id_;
 };
 
-class OutputFile final {
+class DLL_API OutputFile final {
  public:
   using Platform = api::ImplementationPlatform;
-  explicit OutputFile(PayloadId payload_id)
-      : impl_(Platform::CreateOutputFile(payload_id)), id_(payload_id) {}
-  ~OutputFile() = default;
-  OutputFile(OutputFile&&) = default;
-  OutputFile& operator=(OutputFile&&) = default;
+  explicit OutputFile(PayloadId payload_id);
+  ~OutputFile();
+  OutputFile(OutputFile&&) noexcept;
+  OutputFile& operator=(OutputFile&&) noexcept;
 
   // Writes all data from ByteArray object to the underlying stream.
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Write(const ByteArray& data) { return impl_->Write(data); }
+  Exception Write(const ByteArray& data);
 
   // Ensures that all data written by previous calls to Write() is passed
   // down to the applicable transport layer.
-  Exception Flush() { return impl_->Flush(); }
+  Exception Flush();
 
   // Disallows further writes to the file and frees system resources,
   // associated with it.
-  Exception Close() { return impl_->Close(); }
+  Exception Close();
 
   // Returns a handle to the underlying  output stream.
   //
@@ -101,10 +100,10 @@ class OutputFile final {
   // Side effects of any non-const operation invoked for OutputFile (such as
   // Write, or Close will be observable through OutputStream& handle, and vice
   // versa.
-  OutputStream& GetOutputStream() { return *impl_; }
+  OutputStream& GetOutputStream();
 
   // Returns payload id of this file. The closest "file" equivalent is inode.
-  PayloadId GetPayloadId() const { return id_; }
+  PayloadId GetPayloadId() const;
 
  private:
   std::unique_ptr<api::OutputFile> impl_;

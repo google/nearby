@@ -14,6 +14,7 @@
 
 #include "platform/impl/windows/bluetooth_classic_socket.h"
 
+#include "platform/base/logging.h"
 #include "platform/impl/windows/generated/winrt/Windows.Networking.Sockets.h"
 
 namespace location {
@@ -123,8 +124,11 @@ Exception BluetoothSocket::BluetoothOutputStream::Write(const ByteArray& data) {
   buffer.Length(data.size());
 
   try {
-    winrt_stream_.WriteAsync(buffer).get();
-  } catch (std::exception exception) {
+    auto hresult = winrt_stream_.WriteAsync(buffer).get();
+  } catch (winrt::hresult_error const& ex) {
+    NEARBY_LOGS(ERROR) << __func__ << ": winrt exception: " << ex.code() << ": "
+                       << winrt::to_string(ex.message());
+
     return {Exception::kFailed};
   }
 

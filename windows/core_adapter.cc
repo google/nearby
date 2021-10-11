@@ -14,6 +14,7 @@
 #include "third_party/nearby_connections/windows/core_adapter.h"
 
 #include "absl/strings/str_format.h"
+#include "core/core.h"
 
 namespace location {
 namespace nearby {
@@ -71,7 +72,7 @@ DLL_API void InjectEndpoint(Core* pCore, char* service_id,
   }
 }
 
-DLL_API void RequestConnection(Core* pCore, char* endpoint_id,
+DLL_API void RequestConnection(Core* pCore, const char* endpoint_id,
                                ConnectionRequestInfo info,
                                ConnectionOptions options,
                                ResultCallback callback) {
@@ -80,7 +81,7 @@ DLL_API void RequestConnection(Core* pCore, char* endpoint_id,
   }
 }
 
-DLL_API void AcceptConnection(Core* pCore, char* endpoint_id,
+DLL_API void AcceptConnection(Core* pCore, const char* endpoint_id,
                               PayloadListener listener,
                               ResultCallback callback) {
   if (pCore) {
@@ -88,7 +89,7 @@ DLL_API void AcceptConnection(Core* pCore, char* endpoint_id,
   }
 }
 
-DLL_API void RejectConnection(Core* pCore, char* endpoint_id,
+DLL_API void RejectConnection(Core* pCore, const char* endpoint_id,
                               ResultCallback callback) {
   if (pCore) {
     pCore->RejectConnection(endpoint_id, callback);

@@ -17,18 +17,15 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 
-#include "core/core.h"
-#include "core/internal/client_proxy.h"
+// todo(jfcarroll) This cannot remain. It exposes stuff the client doesn't need.
 #include "core/internal/offline_service_controller.h"
-#include "core/internal/service_controller.h"
-#include "core/internal/service_controller_router.h"
-#include "core/listeners.h"
-#include "core/options.h"
-#include "core/params.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
+
+class Core;
+class ServiceControllerRouter;
 
 // Initizlizes a Core instance, providing the ServiceController factory from
 // app side. If no factory is provided, it will initialize a new
@@ -145,7 +142,7 @@ DLL_API void __stdcall InjectEndpoint(Core* pCore, char* service_id,
 //     Status::STATUS_RADIO_ERROR if we failed to connect because of an
 //         issue with Bluetooth/WiFi.
 //     Status::STATUS_ERROR if we failed to connect for any other reason.
-DLL_API void __stdcall RequestConnection(Core* pCore, char* endpoint_id,
+DLL_API void __stdcall RequestConnection(Core* pCore, const char* endpoint_id,
                                          ConnectionRequestInfo info,
                                          ConnectionOptions options,
                                          ResultCallback callback);
@@ -162,7 +159,7 @@ DLL_API void __stdcall RequestConnection(Core* pCore, char* endpoint_id,
 //     Status::STATUS_OK if the connection request was accepted.
 //     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT if the app already.
 //         has a connection to the specified endpoint.
-DLL_API void __stdcall AcceptConnection(Core* pCore, char* endpoint_id,
+DLL_API void __stdcall AcceptConnection(Core* pCore, const char* endpoint_id,
                                         PayloadListener listener,
                                         ResultCallback callback);
 
@@ -176,7 +173,7 @@ DLL_API void __stdcall AcceptConnection(Core* pCore, char* endpoint_id,
 //     Status::STATUS_OK} if the connection request was rejected.
 //     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT} if the app already
 //         has a connection to the specified endpoint.
-DLL_API void __stdcall RejectConnection(Core* pCore, char* endpoint_id,
+DLL_API void __stdcall RejectConnection(Core* pCore, const char* endpoint_id,
                                         ResultCallback callback);
 
 // Sends a Payload to a remote endpoint. Payloads can only be sent to remote

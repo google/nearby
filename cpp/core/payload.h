@@ -25,6 +25,7 @@
 #include "platform/base/input_stream.h"
 #include "platform/base/payload_id.h"
 #include "platform/base/prng.h"
+#include "platform/public/core_config.h"
 #include "platform/public/file.h"
 #include "platform/public/logging.h"
 
@@ -35,7 +36,7 @@ namespace connections {
 // Payload is default-constructible, and moveable, but not copyable container
 // that holds at most one instance of one of:
 // ByteArray, InputStream, or InputFile.
-class Payload {
+class DLL_API Payload {
  public:
   using Id = PayloadId;
   // Order of types in variant, and values in Type enum is important.
