@@ -33,6 +33,8 @@ BluetoothSocket::BluetoothSocket(StreamSocket streamSocket)
       std::make_unique<BluetoothOutputStream>(windows_socket_.OutputStream());
 }
 
+BluetoothSocket::BluetoothSocket() {}
+
 BluetoothSocket::~BluetoothSocket() {}
 
 // NOTE:
@@ -72,11 +74,25 @@ api::BluetoothDevice* BluetoothSocket::GetRemoteDevice() {
 // Starts an asynchronous operation on a StreamSocket object to connect to a
 // remote network destination specified by a remote hostname and a remote
 // service name.
-winrt::Windows::Foundation::IAsyncAction BluetoothSocket::ConnectAsync(
+void BluetoothSocket::Connect(
     HostName connectionHostName, winrt::hstring connectionServiceName) {
+  windows_socket_ = winrt::Windows::Networking::Sockets::StreamSocket();
+
   // https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocket.connectasync?view=winrt-20348
-  return windows_socket_.ConnectAsync(connectionHostName,
-                                      connectionServiceName);
+  windows_socket_.ConnectAsync(connectionHostName, connectionServiceName).get();
+
+  auto info = windows_socket_.Information();
+  auto hostName = info.RemoteHostName();
+
+  bluetooth_device_ = std::make_unique<BluetoothDevice>(
+      winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
+          windows_socket_.Information().RemoteHostName())
+          .get());
+
+  input_stream_ =
+      std::make_unique<BluetoothInputStream>(windows_socket_.InputStream());
+  output_stream_ =
+      std::make_unique<BluetoothOutputStream>(windows_socket_.OutputStream());
 }
 
 BluetoothSocket::BluetoothInputStream::BluetoothInputStream(

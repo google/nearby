@@ -182,17 +182,15 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   EnterCriticalSection(&critical_section_);
 
   std::unique_ptr<BluetoothSocket> rfcommSocket =
-      std::make_unique<BluetoothSocket>(nullptr);
+      std::make_unique<BluetoothSocket>();
 
   location::nearby::CancellationFlagListener cancellationFlagListener(
       cancellation_flag,
       [&rfcommSocket]() { rfcommSocket.get()->CancelIOAsync().get(); });
 
   try {
-    rfcommSocket
-        ->ConnectAsync(requestedService.ConnectionHostName(),
-                       requestedService.ConnectionServiceName())
-        .get();  //  .get forces synchonicity so we know if it fails immediately
+    rfcommSocket->Connect(requestedService.ConnectionHostName(),
+                               requestedService.ConnectionServiceName());
   } catch (std::exception exception) {
     // We will log and eat the exception since the caller
     // expects nullptr if it fails
