@@ -41,9 +41,7 @@
 #include "platform/public/webrtc.h"
 #include "proto/connections/offline_wire_formats.pb.h"
 #include "proto/mediums/web_rtc_signaling_frames.pb.h"
-#include "webrtc/api/data_channel_interface.h"
 #include "webrtc/api/jsep.h"
-#include "webrtc/api/scoped_refptr.h"
 
 namespace location {
 namespace nearby {

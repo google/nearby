@@ -188,14 +188,6 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   BasePcpHandler::ConnectImplResult WifiLanConnectImpl(
       ClientProxy* client, WifiLanEndpoint* endpoint);
 
-  // WebRtc
-  proto::connections::Medium StartListeningForWebRtcConnections(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& local_endpoint_id,
-      const ByteArray& local_endpoint_info);
-  BasePcpHandler::ConnectImplResult WebRtcConnectImpl(
-      ClientProxy* client, WebRtcEndpoint* webrtc_endpoint);
-
   BluetoothRadio& bluetooth_radio_;
   BluetoothClassic& bluetooth_medium_;
   Ble& ble_medium_;
