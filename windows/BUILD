@@ -25,6 +25,31 @@ cc_windows_dll(
     tags = ["windows-dll"],
     deps = [
         "//absl/strings",
+        "//third_party/dart_lang/v2:dart_api_dl",
+        "//core",
+        "//platform/impl/windows",
+        "//webrtc/api:create_peerconnection_factory",
+    ],
+)
+
+# Build with --config=lexan
+# TODO(b/203019344) Move this configuration under dart folder and create a BUILD there.
+cc_windows_dll(
+    name = "core_adapter_dart",
+    srcs = [
+        "core_adapter.cc",
+        "dart/core_adapter_dart.cc",
+    ],
+    hdrs = [
+        "core_adapter.h",
+        "dart/core_adapter_dart.h",
+    ],
+    copts = ["-DCORE_ADAPTER_DART_BUILD_DLL -DCORE_ADAPTER_DLL -DCOMPILING_CORE"],
+    defines = ["CORE_ADAPTER_DART_DLL"],
+    tags = ["windows-dll"],
+    deps = [
+        "//absl/strings",
+        "//third_party/dart_lang/v2:dart_api_dl",
         "//core",
         "//platform/impl/windows",
         "//webrtc/api:create_peerconnection_factory",

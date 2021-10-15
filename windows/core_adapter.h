@@ -20,6 +20,7 @@
 // todo(jfcarroll) This cannot remain. It exposes stuff the client doesn't need.
 #include "core/internal/offline_service_controller.h"
 
+#define DLL_API extern "C" __declspec(dllexport)
 namespace location {
 namespace nearby {
 namespace connections {
