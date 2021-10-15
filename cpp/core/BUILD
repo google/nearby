@@ -43,6 +43,7 @@ cc_library(
 cc_library(
     name = "core_types",
     srcs = [
+        "options.cc",
         "strategy.cc",
     ],
     hdrs = [
