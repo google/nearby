@@ -20,11 +20,11 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-DLL_API Core* InitCore(ServiceControllerRouter* router) {
+Core* InitCore(ServiceControllerRouter* router) {
   return new Core(router);
 }
 
-DLL_API void CloseCore(Core* pCore) {
+void CloseCore(Core* pCore) {
   if (pCore) {
     pCore->StopAllEndpoints(
         {.result_cb =
@@ -34,7 +34,7 @@ DLL_API void CloseCore(Core* pCore) {
   }
 }
 
-DLL_API void StartAdvertising(Core* pCore, const char* service_id,
+void StartAdvertising(Core* pCore, const char* service_id,
                               ConnectionOptions options,
                               ConnectionRequestInfo info,
                               ResultCallback callback) {
@@ -43,13 +43,13 @@ DLL_API void StartAdvertising(Core* pCore, const char* service_id,
   }
 }
 
-DLL_API void StopAdvertising(Core* pCore, ResultCallback callback) {
+void StopAdvertising(Core* pCore, ResultCallback callback) {
   if (pCore) {
     pCore->StopAdvertising(callback);
   }
 }
 
-DLL_API void StartDiscovery(Core* pCore, const char* service_id,
+void StartDiscovery(Core* pCore, const char* service_id,
                             ConnectionOptions options,
                             DiscoveryListener listener,
                             ResultCallback callback) {
@@ -58,13 +58,13 @@ DLL_API void StartDiscovery(Core* pCore, const char* service_id,
   }
 }
 
-DLL_API void StopDiscovery(Core* pCore, ResultCallback callback) {
+void StopDiscovery(Core* pCore, ResultCallback callback) {
   if (pCore) {
     pCore->StopDiscovery(callback);
   }
 }
 
-DLL_API void InjectEndpoint(Core* pCore, char* service_id,
+void InjectEndpoint(Core* pCore, char* service_id,
                             OutOfBandConnectionMetadata metadata,
                             ResultCallback callback) {
   if (pCore) {
@@ -72,7 +72,7 @@ DLL_API void InjectEndpoint(Core* pCore, char* service_id,
   }
 }
 
-DLL_API void RequestConnection(Core* pCore, const char* endpoint_id,
+void RequestConnection(Core* pCore, const char* endpoint_id,
                                ConnectionRequestInfo info,
                                ConnectionOptions options,
                                ResultCallback callback) {
@@ -81,7 +81,7 @@ DLL_API void RequestConnection(Core* pCore, const char* endpoint_id,
   }
 }
 
-DLL_API void AcceptConnection(Core* pCore, const char* endpoint_id,
+void AcceptConnection(Core* pCore, const char* endpoint_id,
                               PayloadListener listener,
                               ResultCallback callback) {
   if (pCore) {
@@ -89,14 +89,14 @@ DLL_API void AcceptConnection(Core* pCore, const char* endpoint_id,
   }
 }
 
-DLL_API void RejectConnection(Core* pCore, const char* endpoint_id,
+void RejectConnection(Core* pCore, const char* endpoint_id,
                               ResultCallback callback) {
   if (pCore) {
     pCore->RejectConnection(endpoint_id, callback);
   }
 }
 
-DLL_API void SendPayload(Core* pCore,
+void SendPayload(Core* pCore,
                          // todo(jfcarroll) this is being exported, needs to be
                          // refactored to return a plain old c type
                          absl::Span<const std::string> endpoint_ids,
@@ -106,34 +106,34 @@ DLL_API void SendPayload(Core* pCore,
   }
 }
 
-DLL_API void CancelPayload(Core* pCore, std::int64_t payload_id,
+void CancelPayload(Core* pCore, std::int64_t payload_id,
                            ResultCallback callback) {
   if (pCore) {
     pCore->CancelPayload(payload_id, callback);
   }
 }
 
-DLL_API void DisconnectFromEndpoint(Core* pCore, char* endpoint_id,
+void DisconnectFromEndpoint(Core* pCore, char* endpoint_id,
                                     ResultCallback callback) {
   if (pCore) {
     pCore->DisconnectFromEndpoint(endpoint_id, callback);
   }
 }
 
-DLL_API void StopAllEndpoints(Core* pCore, ResultCallback callback) {
+void StopAllEndpoints(Core* pCore, ResultCallback callback) {
   if (pCore) {
     pCore->StopAllEndpoints(callback);
   }
 }
 
-DLL_API void InitiateBandwidthUpgrade(Core* pCore, char* endpoint_id,
+void InitiateBandwidthUpgrade(Core* pCore, char* endpoint_id,
                                       ResultCallback callback) {
   if (pCore) {
     pCore->InitiateBandwidthUpgrade(endpoint_id, callback);
   }
 }
 
-DLL_API const char* GetLocalEndpointId(Core* pCore) {
+const char* GetLocalEndpointId(Core* pCore) {
   if (pCore) {
     std::string endpoint_id = pCore->GetLocalEndpointId();
     char* result = new char[endpoint_id.length() + 1];
@@ -143,11 +143,11 @@ DLL_API const char* GetLocalEndpointId(Core* pCore) {
   return "Null-Core";
 }
 
-DLL_API ServiceControllerRouter* InitServiceControllerRouter() {
+ServiceControllerRouter* InitServiceControllerRouter() {
   return new ServiceControllerRouter();
 }
 
-DLL_API void CloseServiceControllerRouter(ServiceControllerRouter* pRouter) {
+void CloseServiceControllerRouter(ServiceControllerRouter* pRouter) {
   if (pRouter) {
     delete pRouter;
   }
