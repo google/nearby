@@ -42,7 +42,7 @@ class WifiLan {
   // then enables WifiLan advertising.
   // Returns true, if name is successfully set, and false otherwise.
   bool StartAdvertising(const std::string& service_id,
-                        const NsdServiceInfo& nsd_service_info)
+                        NsdServiceInfo& nsd_service_info)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables WifiLan advertising, and restores service info name to
@@ -89,7 +89,7 @@ class WifiLan {
   WifiLanService GetRemoteWifiLanService(const std::string& ip_address,
                                          int port) ABSL_LOCKS_EXCLUDED(mutex_);
 
-  std::pair<std::string, int> GetServiceAddress(const std::string& service_id)
+  std::pair<std::string, int> GetCredentials(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
@@ -149,6 +149,9 @@ class WifiLan {
   // Same as IsAcceptingConnections(), but must be called with mutex_ held.
   bool IsAcceptingConnectionsLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Generates mDNS type.
+  std::string GenerateServiceType(const std::string& service_id);
 
   mutable Mutex mutex_;
   WifiLanMedium medium_ ABSL_GUARDED_BY(mutex_);

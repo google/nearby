@@ -73,17 +73,16 @@ TEST_P(WifiLanMediumTest, CanStartAcceptingConnectionsAndConnect) {
           .service_discovered_cb =
               [&found_latch, &discovered_service](
                   WifiLanService& service, const std::string& service_id) {
-                NEARBY_LOG(
-                    INFO, "Service discovered: %s, %p",
-                    service.GetServiceInfo().GetServiceInfoName().c_str(),
-                    &service);
+                NEARBY_LOG(INFO, "Service discovered: %s, %p",
+                           service.GetServiceInfo().GetServiceName().c_str(),
+                           &service);
                 discovered_service = &service;
                 found_latch.CountDown();
               },
       });
 
   NsdServiceInfo nsd_service_info;
-  nsd_service_info.SetServiceInfoName(service_info_name);
+  nsd_service_info.SetServiceName(service_info_name);
   nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
                                 endpoint_info_name);
   wifi_b.StartAdvertising(service_id, nsd_service_info);
@@ -135,17 +134,16 @@ TEST_P(WifiLanMediumTest, CanCancelConnect) {
           .service_discovered_cb =
               [&found_latch, &discovered_service](
                   WifiLanService& service, const std::string& service_id) {
-                NEARBY_LOG(
-                    INFO, "Service discovered: %s, %p",
-                    service.GetServiceInfo().GetServiceInfoName().c_str(),
-                    &service);
+                NEARBY_LOG(INFO, "Service discovered: %s, %p",
+                           service.GetServiceInfo().GetServiceName().c_str(),
+                           &service);
                 discovered_service = &service;
                 found_latch.CountDown();
               },
       });
 
   NsdServiceInfo nsd_service_info;
-  nsd_service_info.SetServiceInfoName(service_info_name);
+  nsd_service_info.SetServiceName(service_info_name);
   nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
                                 endpoint_info_name);
   wifi_b.StartAdvertising(service_id, nsd_service_info);
@@ -212,7 +210,7 @@ TEST_F(WifiLanMediumTest, CanStartAdvertising) {
   CountDownLatch found_latch(1);
 
   NsdServiceInfo nsd_service_info;
-  nsd_service_info.SetServiceInfoName(service_info_name);
+  nsd_service_info.SetServiceName(service_info_name);
   nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
                                 endpoint_info_name);
   wifi_a.StartAdvertising(service_id, nsd_service_info);
@@ -256,7 +254,7 @@ TEST_F(WifiLanMediumTest, CanStartDiscovery) {
                         });
 
   NsdServiceInfo nsd_service_info;
-  nsd_service_info.SetServiceInfoName(service_info_name);
+  nsd_service_info.SetServiceName(service_info_name);
   nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
                                 endpoint_info_name);
   EXPECT_TRUE(wifi_b.StartAdvertising(service_id, nsd_service_info));
@@ -292,7 +290,7 @@ TEST_F(WifiLanMediumTest, CanStopDiscovery) {
                         });
 
   NsdServiceInfo nsd_service_info;
-  nsd_service_info.SetServiceInfoName(service_info_name);
+  nsd_service_info.SetServiceName(service_info_name);
   nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
                                 endpoint_info_name);
 

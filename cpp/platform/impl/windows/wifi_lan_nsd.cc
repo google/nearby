@@ -43,7 +43,7 @@ bool WifiLanNsd::StartAcceptingConnections(
 
   if (ip_addresses_.empty()) {
     NEARBY_LOGS(WARNING) << "failed to start accepting connection without IP "
-                            "addreses configured on computer.";
+                            "addresses configured on computer.";
     return false;
   }
 
@@ -121,7 +121,7 @@ bool WifiLanNsd::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
     return false;
   }
 
-  if (nsd_service_info.GetServiceInfoName().empty()) {
+  if (nsd_service_info.GetServiceName().empty()) {
     NEARBY_LOGS(ERROR) << "cannot start advertising without service name.";
     return false;
   }
@@ -131,13 +131,14 @@ bool WifiLanNsd::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
       std::stoi(stream_socket_listener_.Information().LocalPort().c_str());
   NsdServiceInfo new_nsd_servcie_info = nsd_service_info;
   // TODO: need feature enhancement to support multiple network interfaces
-  new_nsd_servcie_info.SetServiceAddress(ip_addresses_[0], port);
+  new_nsd_servcie_info.SetIPAddress(ip_addresses_[0]);
+  new_nsd_servcie_info.SetPort(port);
   wifi_lan_service_ = WifiLanService(new_nsd_servcie_info);
   wifi_lan_service_.SetMedium(medium_);
 
   std::string instance_name = absl::StrFormat(
       MDNS_INSTANCE_NAME_FORMAT.data(),
-      wifi_lan_service_.GetServiceInfo().GetServiceInfoName(), service_type_);
+      wifi_lan_service_.GetServiceInfo().GetServiceName(), service_type_);
 
   NEARBY_LOGS(INFO) << "mDNS instance name is " << instance_name;
 
@@ -212,8 +213,8 @@ bool WifiLanNsd::StopAdvertising() {
   // Init DNS service instance
   std::string instance_name = absl::StrFormat(
       MDNS_INSTANCE_NAME_FORMAT.data(),
-      wifi_lan_service_.GetServiceInfo().GetServiceInfoName(), service_type_);
-  int port = wifi_lan_service_.GetServiceInfo().GetServiceAddress().second;
+      wifi_lan_service_.GetServiceInfo().GetServiceName(), service_type_);
+  int port = wifi_lan_service_.GetServiceInfo().GetPort();
   dns_service_instance_name_ =
       std::make_unique<std::wstring>(string_to_wstring(instance_name));
 
@@ -311,14 +312,15 @@ bool WifiLanNsd::StopDiscovery() {
   return true;
 }
 
-std::pair<std::string, int> WifiLanNsd::GetServiceAddress() {
+std::pair<std::string, int> WifiLanNsd::GetCredentials() {
   if (!IsAdvertising()) {
     // no advertising is running
     NEARBY_LOGS(WARNING) << "no advertising for service id " << service_id_;
     return std::pair<std::string, int>{"", 0};
   }
 
-  return wifi_lan_service_.GetServiceInfo().GetServiceAddress();
+  return std::make_pair(wifi_lan_service_.GetServiceInfo().GetIPAddress(),
+                        wifi_lan_service_.GetServiceInfo().GetPort());
 }
 
 std::vector<std::string> WifiLanNsd::GetIpAddresses() {
@@ -361,7 +363,7 @@ NsdServiceInfo WifiLanNsd::GetNsdServiceInformation(
         << "no service name information in device information.";
     return nsd_service_info;
   }
-  nsd_service_info.SetServiceInfoName(
+  nsd_service_info.SetServiceName(
       InspectableReader::ReadString(inspectable));
 
   // IP Address information
@@ -387,7 +389,8 @@ NsdServiceInfo WifiLanNsd::GetNsdServiceInformation(
   }
 
   int port = InspectableReader::ReadUint16(inspectable);
-  nsd_service_info.SetServiceAddress(ip_address, port);
+  nsd_service_info.SetIPAddress(ip_address);
+  nsd_service_info.SetPort(port);
 
   // read text record
   inspectable = properties.TryLookup(L"System.Devices.Dnssd.TextAttributes");
@@ -418,7 +421,7 @@ fire_and_forget WifiLanNsd::Watcher_DeviceAdded(DeviceWatcher sender,
                                                 DeviceInformation deviceInfo) {
   NEARBY_LOGS(INFO) << "device added for service " << service_id_;
 
-  // need to read IP address and port informaiton from deviceInfo
+  // need to read IP address and port information from deviceInfo
   NsdServiceInfo nsd_service_info =
       GetNsdServiceInformation(deviceInfo.Properties());
 
@@ -447,7 +450,7 @@ fire_and_forget WifiLanNsd::Watcher_DeviceUpdated(
 fire_and_forget WifiLanNsd::Watcher_DeviceRemoved(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
   NEARBY_LOGS(INFO) << "device removed for service " << service_id_;
-  // need to read IP address and port informaiton from deviceInfo
+  // need to read IP address and port information from deviceInfo
   NsdServiceInfo nsd_service_info =
       GetNsdServiceInformation(deviceInfoUpdate.Properties());
 

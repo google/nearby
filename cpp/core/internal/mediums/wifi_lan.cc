@@ -18,6 +18,8 @@
 #include <string>
 #include <utility>
 
+#include "absl/strings/str_format.h"
+#include "core/internal/mediums/utils.h"
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
 
@@ -34,7 +36,7 @@ bool WifiLan::IsAvailable() const {
 bool WifiLan::IsAvailableLocked() const { return medium_.IsValid(); }
 
 bool WifiLan::StartAdvertising(const std::string& service_id,
-                               const NsdServiceInfo& nsd_service_info) {
+                               NsdServiceInfo& nsd_service_info) {
   MutexLock lock(&mutex_);
 
   if (!nsd_service_info.IsValid()) {
@@ -56,18 +58,19 @@ bool WifiLan::StartAdvertising(const std::string& service_id,
     return false;
   }
 
+  nsd_service_info.SetServiceType(GenerateServiceType(service_id));
   if (!medium_.StartAdvertising(service_id, nsd_service_info)) {
     NEARBY_LOGS(INFO)
         << "Failed to turn on WifiLan advertising with wifi_lan_service="
         << &nsd_service_info
-        << ", service_info_name=" << nsd_service_info.GetServiceInfoName()
+        << ", service_info_name=" << nsd_service_info.GetServiceName()
         << ", service_id=" << service_id;
     return false;
   }
 
   NEARBY_LOGS(INFO) << "Turned on WifiLan advertising with wifi_lan_service="
                     << &nsd_service_info << ", service_info_name="
-                    << nsd_service_info.GetServiceInfoName()
+                    << nsd_service_info.GetServiceName()
                     << ", service_id=" << service_id;
   advertising_info_.Add(service_id);
   return true;
@@ -234,7 +237,7 @@ WifiLanSocket WifiLan::Connect(WifiLanService& wifi_lan_service,
   MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "WifiLan::Connect: wifi_lan_service="
                     << &wifi_lan_service << ", service_info_name="
-                    << wifi_lan_service.GetServiceInfo().GetServiceInfoName()
+                    << wifi_lan_service.GetServiceInfo().GetServiceName()
                     << ", service_id=" << service_id;
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   WifiLanSocket socket;
@@ -273,10 +276,23 @@ WifiLanService WifiLan::GetRemoteWifiLanService(const std::string& ip_address,
   return medium_.GetRemoteService(ip_address, port);
 }
 
-std::pair<std::string, int> WifiLan::GetServiceAddress(
+std::pair<std::string, int> WifiLan::GetCredentials(
     const std::string& service_id) {
   MutexLock lock(&mutex_);
-  return medium_.GetServiceAddress(service_id);
+  return medium_.GetCredentials(service_id);
+}
+
+std::string WifiLan::GenerateServiceType(const std::string& service_id) {
+  std::string service_id_hash_string;
+
+  const ByteArray service_id_hash = Utils::Sha256Hash(
+      service_id, NsdServiceInfo::kTypeFromServiceIdHashLength);
+  for (auto byte : std::string(service_id_hash)) {
+    absl::StrAppend(&service_id_hash_string, absl::StrFormat("%02X", byte));
+  }
+
+  return absl::StrFormat(NsdServiceInfo::kNsdTypeFormat,
+                         service_id_hash_string);
 }
 
 }  // namespace connections

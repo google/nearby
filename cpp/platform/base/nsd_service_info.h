@@ -25,6 +25,9 @@ namespace nearby {
 // https://developer.android.com/reference/android/net/nsd/NsdServiceInfo.html.
 class NsdServiceInfo {
  public:
+  static constexpr int kTypeFromServiceIdHashLength = 6;
+  static constexpr absl::string_view kNsdTypeFormat{"_%s._tcp."};
+
   NsdServiceInfo() = default;
   NsdServiceInfo(const NsdServiceInfo&) = default;
   NsdServiceInfo& operator=(const NsdServiceInfo&) = default;
@@ -32,12 +35,12 @@ class NsdServiceInfo {
   NsdServiceInfo& operator=(NsdServiceInfo&&) = default;
   ~NsdServiceInfo() = default;
 
-  // Returns the packed string of |WifiLanServiceInfo|.
-  std::string GetServiceInfoName() const { return service_info_name_; }
+  // Gets the service name.
+  std::string GetServiceName() const { return service_name_; }
 
-  // Sets the packed string of |WifiLanServiceInfo|.
-  void SetServiceInfoName(std::string service_info_name) {
-    service_info_name_ = std::move(service_info_name);
+  // Sets the service name.
+  void SetServiceName(std::string service_name) {
+    service_name_ = std::move(service_name);
   }
 
   // Gets the TXTRecord value of the specified TXTRecord key assigned.
@@ -54,25 +57,45 @@ class NsdServiceInfo {
     txt_records_.emplace(txt_record_key, txt_record_value);
   }
 
-  // Returns the advertising device's <IP address, port> as a pair.
-  // IP address is in byte sequence, in network order.
-  std::pair<std::string, int> GetServiceAddress() const {
-    return std::make_pair(ip_address_, port_);
+  // Gets all TXTRecord.
+  absl::flat_hash_map<std::string, std::string> GetTxtRecords() const {
+    return txt_records_;
   }
 
-  // Sets the ip address and port of the local device.
-  void SetServiceAddress(const std::string& ip_address, int port) {
-    ip_address_ = ip_address;
-    port_ = port;
+  // Sets all TXTRecord.
+  void SetTxtRecords(
+      absl::flat_hash_map<std::string, std::string>& txt_records) {
+    txt_records_ = txt_records;
   }
 
-  bool IsValid() const { return !service_info_name_.empty(); }
+  // Gets IP Address, which is in byte sequence, in network order.
+  std::string GetIPAddress() const { return ip_address_; }
+
+  // Sets IP Address.
+  void SetIPAddress(const std::string& ip_address) { ip_address_ = ip_address; }
+
+  // Gets the port number
+  int GetPort() const { return port_; }
+
+  // Sets the port number.
+  void SetPort(int port) { port_ = port; }
+
+  // Gets the service type.
+  std::string GetServiceType() const { return service_type_; }
+
+  // Sets the service type.
+  void SetServiceType(const std::string& service_type) {
+    service_type_ = service_type;
+  }
+
+  bool IsValid() const { return !service_name_.empty(); }
 
  private:
-  std::string service_info_name_;
+  std::string service_name_;
   absl::flat_hash_map<std::string, std::string> txt_records_;
   std::string ip_address_;
   int port_;
+  std::string service_type_;
 };
 
 }  // namespace nearby

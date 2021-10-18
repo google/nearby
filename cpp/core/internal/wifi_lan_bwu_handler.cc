@@ -70,9 +70,9 @@ ByteArray WifiLanBwuHandler::InitializeUpgradedMediumForEndpoint(
   // cache service ID to revert
   active_service_ids_.emplace(upgrade_service_id);
 
-  auto service_address = wifi_lan_medium_.GetServiceAddress(upgrade_service_id);
-  auto ip_address = service_address.first;
-  auto port = service_address.second;
+  auto credential = wifi_lan_medium_.GetCredentials(upgrade_service_id);
+  auto ip_address = credential.first;
+  auto port = credential.second;
   if (ip_address.empty()) {
     NEARBY_LOGS(INFO)
         << "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
