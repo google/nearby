@@ -65,7 +65,6 @@ DLL_API void __stdcall StartAdvertisingDart(Core* pCore,
                                       Dart_Port disconnected_cb,
                                       Dart_Port bandwidth_changed_cb,
                                       Dart_Port result_cb);
-
 // Stops advertising a local endpoint. Should be called after calling
 // StartAdvertising, as soon as the application no longer needs to advertise
 // itself or goes inactive. Payloads can still be sent to connected

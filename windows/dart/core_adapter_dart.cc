@@ -162,7 +162,6 @@ void StartAdvertisingDart(Core* pCore,
                                    "Posting message to port failed.");
                       }
                     };
-
     ResultCallback callback;
     callback.result_cb = [result_cb](Status status) {
       NEARBY_LOG(INFO, "Result callback called. %d.", status.value);
