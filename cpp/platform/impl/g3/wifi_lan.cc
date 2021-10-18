@@ -17,6 +17,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/synchronization/mutex.h"
 #include "platform/api/wifi_lan.h"
@@ -203,7 +204,7 @@ bool WifiLanMedium::StartAdvertising(const std::string& service_id,
              "G3 WifiLan StartAdvertising: service_id=%s, nsd_service_info=%p, "
              "service_info_name=%s",
              service_id.c_str(), &nsd_service_info,
-             nsd_service_info.GetServiceInfoName().c_str());
+             nsd_service_info.GetServiceName().c_str());
   auto& env = MediumEnvironment::Instance();
   NsdServiceInfo local_nsd_service_info{nsd_service_info};
   SetWifiLanService(nsd_service_info);
@@ -320,13 +321,12 @@ bool WifiLanMedium::StopAcceptingConnections(const std::string& service_id) {
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::Connect(
     api::WifiLanService& remote_wifi_lan_service, const std::string& service_id,
     CancellationFlag* cancellation_flag) {
-  NEARBY_LOG(
-      INFO,
-      "G3 WifiLan Connect: medium=%p, wifi_lan_service=%p, "
-      "service_info_name=%s, service_id=%s",
-      this, &wifi_lan_service_,
-      remote_wifi_lan_service.GetServiceInfo().GetServiceInfoName().c_str(),
-      service_id.c_str());
+  NEARBY_LOG(INFO,
+             "G3 WifiLan Connect: medium=%p, wifi_lan_service=%p, "
+             "service_info_name=%s, service_id=%s",
+             this, &wifi_lan_service_,
+             remote_wifi_lan_service.GetServiceInfo().GetServiceName().c_str(),
+             service_id.c_str());
   // First, find an instance of remote medium, that exposed this service.
   auto* remote_medium =
       static_cast<WifiLanService&>(remote_wifi_lan_service).GetMedium();
@@ -334,13 +334,12 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::Connect(
   if (!remote_medium) return {};  // Can't find medium. Bail out.
 
   WifiLanServerSocket* remote_server_socket = nullptr;
-  NEARBY_LOG(
-      INFO,
-      "G3 WifiLan Connect [peer]: remote_wifi_lan_service=%p, "
-      "remote_service_info_name=%s, service_id=%s",
-      &remote_wifi_lan_service,
-      remote_wifi_lan_service.GetServiceInfo().GetServiceInfoName().c_str(),
-      service_id.c_str());
+  NEARBY_LOG(INFO,
+             "G3 WifiLan Connect [peer]: remote_wifi_lan_service=%p, "
+             "remote_service_info_name=%s, service_id=%s",
+             &remote_wifi_lan_service,
+             remote_wifi_lan_service.GetServiceInfo().GetServiceName().c_str(),
+             service_id.c_str());
   // Then, find our server socket context in this medium.
   {
     absl::MutexLock medium_lock(&remote_medium->mutex_);
@@ -389,22 +388,22 @@ api::WifiLanService* WifiLanMedium::GetRemoteService(
   return env.GetWifiLanService(ip_address, port);
 }
 
-std::pair<std::string, int> WifiLanMedium::GetServiceAddress(
+std::pair<std::string, int> WifiLanMedium::GetCredentials(
     const std::string& service_id) {
-  NEARBY_LOGS(INFO) << "G3 WifiLan GetServiceAddress: service_id="
-                    << service_id;
-  return wifi_lan_service_.GetServiceInfo().GetServiceAddress();
+  NEARBY_LOGS(INFO) << "G3 WifiLan GetCredential: service_id=" << service_id;
+  return std::make_pair(wifi_lan_service_.GetServiceInfo().GetIPAddress(),
+                        wifi_lan_service_.GetServiceInfo().GetPort());
 }
 
 void WifiLanMedium::SetWifiLanService(const NsdServiceInfo& nsd_service_info) {
   NsdServiceInfo local_nsd_service_info{nsd_service_info};
-  auto service_address = GetFakeServiceAddress();
-  local_nsd_service_info.SetServiceAddress(service_address.first,
-                                           service_address.second);
+  auto credential = GetFakeCredentials();
+  local_nsd_service_info.SetIPAddress(credential.first);
+  local_nsd_service_info.SetPort(credential.second);
   wifi_lan_service_.SetServiceInfo(local_nsd_service_info);
 }
 
-std::pair<std::string, int> WifiLanMedium::GetFakeServiceAddress() const {
+std::pair<std::string, int> WifiLanMedium::GetFakeCredentials() const {
   std::string ip_address;
   ip_address.resize(4);
   uint32_t raw_ip_addr = Prng().NextUint32();

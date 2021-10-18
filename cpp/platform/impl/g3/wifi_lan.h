@@ -210,7 +210,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   api::WifiLanService* GetRemoteService(const std::string& ip_address,
                                         int port) override;
 
-  std::pair<std::string, int> GetServiceAddress(
+  std::pair<std::string, int> GetCredentials(
       const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
@@ -231,7 +231,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   };
 
   void SetWifiLanService(const NsdServiceInfo& nsd_service_info);
-  std::pair<std::string, int> GetFakeServiceAddress() const;
+  std::pair<std::string, int> GetFakeCredentials() const;
 
   absl::Mutex mutex_;
   WifiLanService wifi_lan_service_;

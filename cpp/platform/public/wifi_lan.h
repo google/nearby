@@ -161,7 +161,7 @@ class WifiLanMedium final {
 
   WifiLanService GetRemoteService(const std::string& ip_address, int port);
 
-  std::pair<std::string, int> GetServiceAddress(const std::string& service_id);
+  std::pair<std::string, int> GetCredentials(const std::string& service_id);
 
  private:
   Mutex mutex_;

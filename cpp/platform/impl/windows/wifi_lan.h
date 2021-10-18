@@ -220,7 +220,7 @@ class WifiLanNsd {
 
   // A pair of IP Address and Port. A remote device can use this information
   // to connect to us. This is non-null while IsAccepting is true.
-  std::pair<std::string, int> GetServiceAddress();
+  std::pair<std::string, int> GetCredentials();
 
   // DnsServiceDeRegister is a async process, after operation finish, callback
   // will call this method to notify the waiting method StopAdvertising to
@@ -263,9 +263,9 @@ class WifiLanNsd {
   // Private methods
   //
 
-  // Generates prefered listening port. If cannot bind to this port,
+  // Generates preferred listening port. If cannot bind to this port,
   // NSD will assign a random port for the service.
-  // TODO: Windows firewall may break the solution, need to futher solution to
+  // TODO: Windows firewall may break the solution, need to further solution to
   // resolve the potential issue
   uint16 GenerateSocketPort(const std::string& service_id);
 
@@ -384,7 +384,7 @@ class WifiLanMedium : public api::WifiLanMedium {
                                         int port) override;
 
   // returns advertising service address
-  std::pair<std::string, int> GetServiceAddress(
+  std::pair<std::string, int> GetCredentials(
       const std::string& service_id) override;
 
   // for internal to clean closed connection.

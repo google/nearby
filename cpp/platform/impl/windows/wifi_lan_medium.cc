@@ -160,14 +160,15 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::Connect(
     api::WifiLanService& wifi_lan_service, const std::string& service_id,
     CancellationFlag* cancellation_flag) {
   try {
-    auto address = wifi_lan_service.GetServiceInfo().GetServiceAddress();
-    if (address.first.empty() || address.second == 0) {
+    std::string ip_address = wifi_lan_service.GetServiceInfo().GetIPAddress();
+    int port = wifi_lan_service.GetServiceInfo().GetPort();
+    if (ip_address.empty() || port == 0) {
       NEARBY_LOGS(ERROR) << "no valid service address and port to connect.";
       return nullptr;
     }
 
-    HostName host_name{string_to_wstring(address.first)};
-    winrt::hstring service_name{winrt::to_hstring(address.second)};
+    HostName host_name{string_to_wstring(ip_address)};
+    winrt::hstring service_name{winrt::to_hstring(port)};
 
     StreamSocket socket{};
 
@@ -232,7 +233,7 @@ api::WifiLanService* WifiLanMedium::GetRemoteService(
   }
 }
 
-std::pair<std::string, int> WifiLanMedium::GetServiceAddress(
+std::pair<std::string, int> WifiLanMedium::GetCredentials(
     const std::string& service_id) {
   try {
     WifiLanNsd* nsd = GetNsd(service_id, true);
@@ -242,7 +243,7 @@ std::pair<std::string, int> WifiLanMedium::GetServiceAddress(
       return std::pair<std::string, int>{"", 0};
     }
 
-    return nsd->GetServiceAddress();
+    return nsd->GetCredentials();
   } catch (...) {
     NEARBY_LOGS(ERROR) << "failed to get service address due to "
                        << GetErrorMessage(std::current_exception());

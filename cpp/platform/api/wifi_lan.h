@@ -120,7 +120,11 @@ class WifiLanMedium {
   virtual WifiLanService* GetRemoteService(const std::string& ip_address,
                                            int port) = 0;
 
-  virtual std::pair<std::string, int> GetServiceAddress(
+  // Gets ip address + port for remote services on the network to identify and
+  // connect to this service.
+  //
+  // Credential is for the currently-hosted Wifi ServerSocket (if any).
+  virtual std::pair<std::string, int> GetCredentials(
       const std::string& service_id) = 0;
 };
 

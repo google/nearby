@@ -77,7 +77,7 @@ WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
     }
   }
 
-  auto service_info_name = nsd_service_info.GetServiceInfoName();
+  auto service_info_name = nsd_service_info.GetServiceName();
   ByteArray service_info_bytes = Base64Utils::Decode(service_info_name);
   if (service_info_bytes.Empty()) {
     NEARBY_LOG(
@@ -193,7 +193,7 @@ WifiLanServiceInfo::operator NsdServiceInfo() const {
   }
 
   NsdServiceInfo nsd_service_info;
-  nsd_service_info.SetServiceInfoName(
+  nsd_service_info.SetServiceName(
       Base64Utils::Encode(ByteArray{std::move(out)}));
   nsd_service_info.SetTxtRecord(std::string(kKeyEndpointInfo),
                                 Base64Utils::Encode(endpoint_info_));

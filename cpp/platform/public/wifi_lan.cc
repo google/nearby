@@ -53,7 +53,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
                              "service_info_name=%s",
                              &context.wifi_lan_service, &wifi_lan_service,
                              wifi_lan_service.GetServiceInfo()
-                                 .GetServiceInfoName()
+                                 .GetServiceName()
                                  .c_str());
                   return;
                 } else {
@@ -63,7 +63,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
                       "Discovering wifi_lan_service=%p, service_info_name=%s",
                       &wifi_lan_service,
                       wifi_lan_service.GetServiceInfo()
-                          .GetServiceInfoName()
+                          .GetServiceName()
                           .c_str());
                 }
                 discovered_service_callback_.service_discovered_cb(
@@ -143,7 +143,7 @@ WifiLanSocket WifiLanMedium::Connect(WifiLanService& wifi_lan_service,
       INFO,
       "WifiLanMedium::Connect: service=%p [impl=%p, service_info_name=%s]",
       &wifi_lan_service, &wifi_lan_service.GetImpl(),
-      wifi_lan_service.GetServiceInfo().GetServiceInfoName().c_str());
+      wifi_lan_service.GetServiceInfo().GetServiceName().c_str());
   return WifiLanSocket(impl_->Connect(wifi_lan_service.GetImpl(), service_id,
                                       cancellation_flag));
 }
@@ -153,9 +153,9 @@ WifiLanService WifiLanMedium::GetRemoteService(const std::string& ip_address,
   return WifiLanService(impl_->GetRemoteService(ip_address, port));
 }
 
-std::pair<std::string, int> WifiLanMedium::GetServiceAddress(
+std::pair<std::string, int> WifiLanMedium::GetCredentials(
     const std::string& service_id) {
-  return impl_->GetServiceAddress(service_id);
+  return impl_->GetCredentials(service_id);
 }
 
 }  // namespace nearby

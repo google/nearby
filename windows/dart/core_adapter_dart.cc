@@ -12,20 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "absl/strings/string_view.h"
-#include "absl/types/span.h"
-#include "core/core.h"
-#include "core/internal/client_proxy.h"
-#include "core/internal/offline_service_controller.h"
-#include "core/internal/service_controller.h"
-#include "core/internal/service_controller_router.h"
-#include "core/listeners.h"
-#include "core/options.h"
-#include "core/params.h"
 #include "third_party/dart_lang/v2/runtime/include/dart_api_dl.h"
-#include "third_party/nearby_connections/windows/core_adapter.h"
 #include "third_party/nearby_connections/windows/dart/core_adapter_dart.h"
-#include "absl/strings/str_format.h"
 
 namespace location {
 namespace nearby {
@@ -195,7 +183,18 @@ void StartAdvertisingDart(Core* pCore,
 void StopAdvertisingDart(Core* pCore, Dart_Port result_cb) {
   if (pCore) {
     ResultCallback callback;
-    pCore->StopAdvertising(callback);
+    callback.result_cb = [result_cb](Status status) {
+      NEARBY_LOG(INFO, "Result callback called. %d.", status.value);
+      Dart_CObject dart_object_result_callback;
+      dart_object_result_callback.type = Dart_CObject_kInt64;
+      dart_object_result_callback.value.as_int64 = status.value;
+      const bool result = Dart_PostCObject_DL(result_cb,
+                                            &dart_object_result_callback);
+      if (!result) {
+        NEARBY_LOG(INFO, "Posting message to port failed.");
+      }
+    };
+    StopAdvertising(pCore, callback);
   }
 }
 
@@ -306,6 +305,17 @@ void StartDiscoveryDart(Core* pCore,
 void StopDiscoveryDart(Core* pCore, Dart_Port result_cb) {
   if (pCore) {
     ResultCallback callback;
+    callback.result_cb = [result_cb](Status status) {
+      NEARBY_LOG(INFO, "Result callback called. %d.", status.value);
+      Dart_CObject dart_object_result_callback;
+      dart_object_result_callback.type = Dart_CObject_kInt64;
+      dart_object_result_callback.value.as_int64 = status.value;
+      const bool result = Dart_PostCObject_DL(result_cb,
+                                            &dart_object_result_callback);
+      if (!result) {
+        NEARBY_LOG(INFO, "Posting message to port failed.");
+      }
+    };
     StopDiscovery(pCore, callback);
   }
 }

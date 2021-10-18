@@ -47,6 +47,7 @@ cc_library(
         "//absl/functional:bind_front",
         "//absl/numeric:int128",
         "//absl/strings",
+        "//absl/strings:str_format",
         "//absl/time",
         "//core:core_types",
         "//core/internal/mediums/ble_v2",

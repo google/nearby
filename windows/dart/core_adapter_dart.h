@@ -15,7 +15,8 @@
 #ifndef LOCATION_NEARBY_CONNECTIONS_WINDOWS_DART_CORE_ADAPTER_DART_H_
 #define LOCATION_NEARBY_CONNECTIONS_WINDOWS_DART_CORE_ADAPTER_DART_H_
 
-#define DLL_API extern "C" __declspec(dllexport)
+#include "third_party/nearby_connections/windows/core_adapter.h"
+
 namespace location {
 namespace nearby {
 namespace connections {
@@ -24,22 +25,6 @@ enum StrategyDart {
   P2P_CLUSTER = 0,
   P2P_STAR,
   P2P_POINT_TO_POINT,
-};
-
-// TODO(b/203093770) Replace below with the one that defined in common
-struct DartConnectionOptions {
-  std::string strategy;
-  bool auto_upgrade_bandwidth;
-  bool enforce_topology_constraints;
-  bool low_power;
-  bool enable_bluetooth_listening;
-  bool enable_webrtc_listening;
-  // Whether this is intended to be used in conjunction with InjectEndpoint().
-  bool is_out_of_band_connection = false;
-  ByteArray remote_bluetooth_mac_address;
-  std::string fast_advertisement_service_uuid;
-  int keep_alive_interval_millis = 0;
-  int keep_alive_timeout_millis = 0;
 };
 
 // Starts advertising an endpoint for a local app.
@@ -89,7 +74,7 @@ DLL_API void __stdcall StartAdvertisingDart(Core* pCore,
 // result_cb - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK if none of the above errors occurred.
-DLL_API void __stdcall StopAdvertisingDart(Core* pCore,
+DLL_EXPORT void __stdcall StopAdvertisingDart(Core* pCore,
                                            Dart_Port result_cb);
 
 // Starts discovery for remote endpoints with the specified service ID.
@@ -105,7 +90,7 @@ DLL_API void __stdcall StopAdvertisingDart(Core* pCore,
 //         discovering the specified service.
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
-DLL_API void __stdcall StartDiscoveryDart(Core* pCore,
+DLL_EXPORT void __stdcall StartDiscoveryDart(Core* pCore,
                                     const char* service_id,
                                     StrategyDart strategy,
                                     int forward_unrecognized_bluetooth_devices,
@@ -129,7 +114,7 @@ DLL_API void __stdcall StartDiscoveryDart(Core* pCore,
 // result_cb - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK if none of the above errors occurred.
-DLL_API void __stdcall StopDiscoveryDart(Core* pCore,
+DLL_EXPORT void __stdcall StopDiscoveryDart(Core* pCore,
                                          Dart_Port result_cb);
 }  // namespace connections
 }  // namespace nearby

@@ -146,7 +146,7 @@ TEST(WifiLanServiceInfoTest, ConstructionFailsWithShortServiceNameLength) {
   ByteArray wifi_lan_service_info_bytes{wifi_lan_service_info_name};
 
   NsdServiceInfo nsd_service_info;
-  nsd_service_info.SetServiceInfoName(
+  nsd_service_info.SetServiceName(
       Base64Utils::Encode(wifi_lan_service_info_bytes));
 
   WifiLanServiceInfo wifi_lan_service_info{nsd_service_info};
