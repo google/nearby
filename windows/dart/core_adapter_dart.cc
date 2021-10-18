@@ -43,7 +43,7 @@ ByteArray ConvertBluetoothMacAddress(absl::string_view address) {
 void StartAdvertisingDart(Core* pCore,
                           const char* service_id,
                           StrategyDart strategy,
-                          ByteArray endpoint_info,
+                          const char* endpoint_info,
                           int auto_upgrade_bandwidth,
                           int enforce_topology_constraints,
                           int enable_bluetooth,
@@ -81,7 +81,87 @@ void StartAdvertisingDart(Core* pCore,
     options.allowed.web_rtc = enable_web_rtc;
 
     ConnectionRequestInfo info;
-    info.endpoint_info = endpoint_info;
+    info.endpoint_info = ByteArray(endpoint_info);
+    info.listener.initiated_cb = [initiated_cb](const std::string& endpoint_id,
+                          const ConnectionResponseInfo& connection_info) {
+                          NEARBY_LOG(INFO, "Advertising initiated: id=%s",
+                                     endpoint_id.c_str());
+                          Dart_CObject dart_object_initiated;
+                          dart_object_initiated.type = Dart_CObject_kString;
+                          dart_object_initiated.value.as_string =
+                            (char *)connection_info.remote_endpoint_info.data();
+                          const bool result =
+                              Dart_PostCObject_DL(initiated_cb,
+                                                  &dart_object_initiated);
+                          if (!result) {
+                            NEARBY_LOG(INFO,
+                                       "Posting message to port failed.");
+                          }
+                        };
+    info.listener.accepted_cb = [accepted_cb](const std::string& endpoint_id) {
+                          NEARBY_LOG(INFO, "Advertising accepted: id=%s",
+                                     endpoint_id.c_str());
+                          Dart_CObject dart_object_accepted;
+                          dart_object_accepted.type = Dart_CObject_kString;
+                          dart_object_accepted.value.as_string =
+                            (char *)endpoint_id.c_str();
+                          const bool result =
+                              Dart_PostCObject_DL(accepted_cb,
+                                                  &dart_object_accepted);
+                          if (!result) {
+                            NEARBY_LOG(INFO,
+                                       "Posting message to port failed.");
+                          }
+                        };
+    info.listener.rejected_cb = [rejected_cb](const std::string& endpoint_id,
+                                              Status status) {
+                          NEARBY_LOG(INFO, "Advertising rejected: id=%s",
+                                     endpoint_id.c_str());
+                          Dart_CObject dart_object_rejected;
+                          dart_object_rejected.type = Dart_CObject_kString;
+                          dart_object_rejected.value.as_string =
+                            (char *)endpoint_id.c_str();
+                          const bool result =
+                              Dart_PostCObject_DL(rejected_cb,
+                                                  &dart_object_rejected);
+                          if (!result) {
+                            NEARBY_LOG(INFO,
+                                       "Posting message to port failed.");
+                          }
+                        };
+    info.listener.disconnected_cb = [disconnected_cb](
+        const std::string& endpoint_id) {
+                          NEARBY_LOG(INFO, "Advertising disconnected: id=%s",
+                                     endpoint_id.c_str());
+                          Dart_CObject dart_object_disconnected;
+                          dart_object_disconnected.type = Dart_CObject_kString;
+                          dart_object_disconnected.value.as_string =
+                            (char *)endpoint_id.c_str();
+                          const bool result =
+                              Dart_PostCObject_DL(disconnected_cb,
+                                                  &dart_object_disconnected);
+                          if (!result) {
+                            NEARBY_LOG(INFO,
+                                       "Posting message to port failed.");
+                          }
+                        };
+    info.listener.bandwidth_changed_cb = [bandwidth_changed_cb](
+        const std::string& endpoint_id, Medium medium) {
+                      NEARBY_LOG(INFO, "Advertising bandwidth changed: id=%s",
+                                 endpoint_id.c_str());
+                      Dart_CObject dart_object_bandwidth_changed;
+
+                      dart_object_bandwidth_changed.type = Dart_CObject_kString;
+                      dart_object_bandwidth_changed.value.as_string =
+                        (char *)endpoint_id.c_str();
+                      const bool result =
+                          Dart_PostCObject_DL(bandwidth_changed_cb,
+                                              &dart_object_bandwidth_changed);
+                      if (!result) {
+                        NEARBY_LOG(INFO,
+                                   "Posting message to port failed.");
+                      }
+                    };
 
     ResultCallback callback;
     callback.result_cb = [result_cb](Status status) {

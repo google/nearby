@@ -22,6 +22,7 @@
 "third_party/nearby_connections/cpp/core/internal/offline_service_controller.h"
 
 #define DLL_EXPORT extern "C" __declspec(dllexport)
+
 namespace location {
 namespace nearby {
 namespace connections {

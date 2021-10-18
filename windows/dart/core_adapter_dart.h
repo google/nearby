@@ -44,10 +44,10 @@ enum StrategyDart {
 //     Status::STATUS_ALREADY_ADVERTISING if the app is already advertising.
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
-DLL_EXPORT void __stdcall StartAdvertisingDart(Core* pCore,
+DLL_API void __stdcall StartAdvertisingDart(Core* pCore,
                                       const char* service_id,
                                       StrategyDart strategy,
-                                      ByteArray endpoint_info,
+                                      const char* endpoint_info,
                                       int auto_upgrade_bandwidth,
                                       int enforce_topology_constraints,
                                       int enable_bluetooth,
