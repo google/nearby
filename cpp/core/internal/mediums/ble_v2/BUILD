@@ -62,5 +62,6 @@ cc_test(
         "//absl/time",
         "//platform/base",
         "//platform/impl/g3",  # buildcleaner: keep
+        "//platform/public:comm",
     ],
 )

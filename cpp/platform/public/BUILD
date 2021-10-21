@@ -90,6 +90,7 @@ cc_library(
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//analytics:__subpackages__",
         "//core:__subpackages__",
         "//platform/public:__pkg__",
     ],
