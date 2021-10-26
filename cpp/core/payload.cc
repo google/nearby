@@ -33,6 +33,11 @@ Payload::Payload(ByteArray&& bytes) : content_(std::move(bytes)) {}
 
 Payload::Payload(const ByteArray& bytes) : content_(bytes) {}
 
+Payload::Payload(InputFile file)
+    : content_(std::move(file)),
+      id_(std::hash<std::string>()(file.GetFilePath())) {}
+
+// TODO(jfcarroll): Convert std::function to function pointer
 Payload::Payload(std::function<InputStream&()> stream)
     : content_(std::move(stream)) {}
 
@@ -42,11 +47,11 @@ Payload::Payload(Id id, ByteArray&& bytes)
 
 Payload::Payload(Id id, const ByteArray& bytes) : content_(bytes), id_(id) {}
 
+Payload::Payload(Id id, InputFile file) : content_(std::move(file)), id_(id) {}
+
+// TODO(jfcarroll): Convert std::function to function pointer
 Payload::Payload(Id id, std::function<InputStream&()> stream)
     : content_(std::move(stream)), id_(id) {}
-
-// Constructor for incoming and outgoing file payloads.
-Payload::Payload(Id id, InputFile file) : content_(std::move(file)), id_(id) {}
 
 // Returns ByteArray payload, if it has been defined, or empty ByteArray.
 const ByteArray& Payload::AsBytes() const& {

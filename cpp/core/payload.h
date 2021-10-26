@@ -56,15 +56,15 @@ class DLL_API Payload {
   explicit Payload(ByteArray&& bytes);
 
   explicit Payload(const ByteArray& bytes);
+  explicit Payload(InputFile file);
   explicit Payload(std::function<InputStream&()> stream);
 
   // Constructors for incoming payloads.
   Payload(Id id, ByteArray&& bytes);
   Payload(Id id, const ByteArray& bytes);
+  Payload(Id id, InputFile file);
   Payload(Id id, std::function<InputStream&()> stream);
 
-  // Constructor for incoming and outgoing file payloads.
-  Payload(Id id, InputFile file);
 
   // Returns ByteArray payload, if it has been defined, or empty ByteArray.
   const ByteArray& AsBytes() const&;
