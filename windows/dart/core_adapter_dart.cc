@@ -71,13 +71,10 @@ void StartAdvertisingDart(Core* pCore,
         enforce_topology_constraints;
     options.allowed.bluetooth = enable_bluetooth;
     options.allowed.ble = enable_ble;
-    // options.nearby_notificatios_beacon ??
     options.low_power = use_low_power_mode;
     options.fast_advertisement_service_uuid =
      discover_fast_advertisements ? "0000FE2C-0000-1000-8000-00805F9B34FB" : "";
     options.allowed.wifi_lan = enable_wifi_lan;
-    // options.allowed.nfc  > no nfc
-    // options.allowed.wifi_aware = enable_wifi_aware;
     options.allowed.web_rtc = enable_web_rtc;
 
     ConnectionRequestInfo info;
@@ -318,7 +315,6 @@ void StopDiscoveryDart(Core* pCore, Dart_Port result_cb) {
     StopDiscovery(pCore, callback);
   }
 }
-
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
