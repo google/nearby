@@ -24,6 +24,7 @@ cc_library(
         "uuid.cc",
         "webrtc.cc",
         "wifi_lan.cc",
+        "wifi_lan_v2.cc",
     ],
     hdrs = [
         "ble.h",
@@ -35,6 +36,7 @@ cc_library(
         "uuid.h",
         "webrtc.h",
         "wifi_lan.h",
+        "wifi_lan_v2.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [

@@ -27,19 +27,6 @@ namespace location {
 namespace nearby {
 namespace api {
 
-// Opaque wrapper over a WifiLan service which contains |NsdServiceInfo|.
-class WifiLanServiceV2 {
- public:
-  virtual ~WifiLanServiceV2() = default;
-
-  // Returns the |NsdServiceInfo| which contains the packed string of
-  // |WifiLanServiceInfo| and the endpoint info with named key in a TXTRecord
-  // map.
-  // The details refer to
-  // https://developer.android.com/reference/android/net/nsd/NsdServiceInfo.html.
-  virtual NsdServiceInfo GetServiceInfo() const = 0;
-};
-
 class WifiLanSocketV2 {
  public:
   virtual ~WifiLanSocketV2() = default;
@@ -60,15 +47,11 @@ class WifiLanSocketV2 {
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   virtual Exception Close() = 0;
-
-  // Returns valid WifiLanService pointer if there is a connection, and
-  // nullptr otherwise.
-  virtual WifiLanServiceV2* GetRemoteService() = 0;
 };
 
-class WifiLanServerSocket {
+class WifiLanServerSocketV2 {
  public:
-  virtual ~WifiLanServerSocket() = default;
+  virtual ~WifiLanServerSocketV2() = default;
 
   // Returns ip address.
   virtual std::string GetIpAddress() = 0;
@@ -114,35 +97,45 @@ class WifiLanMediumV2 {
 
   // Callback that is invoked when a discovered service is found or lost.
   struct DiscoveredServiceCallback {
-    std::function<void(WifiLanServiceV2& service)> service_discovered_cb =
-        DefaultCallback<WifiLanServiceV2&>();
-    std::function<void(WifiLanServiceV2& service)> service_lost_cb =
-        DefaultCallback<WifiLanServiceV2&>();
+    std::function<void(NsdServiceInfo service_info,
+                       const std::string& service_type)>
+        service_discovered_cb =
+            DefaultCallback<NsdServiceInfo, const std::string&>();
+    std::function<void(NsdServiceInfo service_info,
+                       const std::string& service_type)>
+        service_lost_cb = DefaultCallback<NsdServiceInfo, const std::string&>();
   };
 
   // Starts the discovery of nearby WifiLan services.
   //
-  // Returns uuid once the WifiLan discovery has been initiated. The uuid
-  // returned is corresponding to callback, if pass the same callback without
-  // StopDiscovery in advance, then there will be two different uuids correspond
-  // to the same callback instance, which might cause unexpected behavior.
-  // Returns uuid if discovery started successfully.
-  // Returns 0 if discovery started unsuccessfully.
-  virtual int StartDiscovery(DiscoveredServiceCallback callback) = 0;
+  // service_type - mDNS service type.
+  // callback     - the instance of DiscoveredServiceCallback.
+  // Returns true once the WifiLan discovery has been initiated. The
+  // service_type is associated with callback.
+  virtual bool StartDiscovery(const std::string& service_type,
+                              DiscoveredServiceCallback callback) = 0;
 
   // Stops the discovery of nearby WifiLan services.
   //
-  // uuid - The one returned from StartDiscovery.
-  // On success if uuid is matched to the callback and will be removed from the
-  //            list. If list is empty then stops the WifiLan discovery service.
-  // On error if the uuid is not existed, then return immediately.
-  virtual bool StopDiscovery(int uuid) = 0;
+  // service_type - The one assigned in StartDiscovery.
+  // On success if the service_type is matched to the callback and will be
+  //            removed from the list. If list is empty then stops the WifiLan
+  //            discovery service.
+  // On error if the service_type is not existed, then return immediately.
+  virtual bool StopDiscovery(const std::string& service_type) = 0;
 
   // Connects to a WifiLan service.
   // On success, returns a new WifiLanSocket.
   // On error, returns nullptr.
   virtual std::unique_ptr<WifiLanSocketV2> ConnectToService(
-      WifiLanServiceV2& remote_service,
+      NsdServiceInfo& remote_service_info,
+      CancellationFlag* cancellation_flag) = 0;
+
+  // Connects to a WifiLan service by ip address and port.
+  // On success, returns a new WifiLanSocket.
+  // On error, returns nullptr.
+  virtual std::unique_ptr<WifiLanSocketV2> ConnectToService(
+      const std::string& ip_address, int port,
       CancellationFlag* cancellation_flag) = 0;
 
   // Listens for incoming connection.
@@ -152,11 +145,8 @@ class WifiLanMediumV2 {
   //   1~65536 : open a server socket on that exact port.
   // On success, returns a new WifiLanServerSocket.
   // On error, returns nullptr.
-  virtual std::unique_ptr<WifiLanServerSocket> ListenForService(
+  virtual std::unique_ptr<WifiLanServerSocketV2> ListenForService(
       int port = 0) = 0;
-
-  virtual WifiLanServiceV2* GetRemoteService(const std::string& ip_address,
-                                             int port) = 0;
 };
 
 }  // namespace api

@@ -44,6 +44,7 @@ cc_library(
         "webrtc_endpoint_channel.cc",
         "wifi_lan_bwu_handler.cc",
         "wifi_lan_endpoint_channel.cc",
+        "wifi_lan_endpoint_channel_v2.cc",
         "wifi_lan_service_info.cc",
     ],
     hdrs = [
@@ -81,6 +82,7 @@ cc_library(
         "webrtc_endpoint_channel.h",
         "wifi_lan_bwu_handler.h",
         "wifi_lan_endpoint_channel.h",
+        "wifi_lan_endpoint_channel_v2.h",
         "wifi_lan_service_info.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],

@@ -12,24 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "core/internal/mediums/mediums.h"
+#ifndef CORE_INTERNAL_WIFI_LAN_ENDPOINT_CHANNEL_V2_H_
+#define CORE_INTERNAL_WIFI_LAN_ENDPOINT_CHANNEL_V2_H_
+
+#include "core/internal/base_endpoint_channel.h"
+#include "platform/public/wifi_lan_v2.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-BluetoothRadio& Mediums::GetBluetoothRadio() { return bluetooth_radio_; }
+class WifiLanEndpointChannelV2 final : public BaseEndpointChannel {
+ public:
+  // Creates both outgoing and incoming WifiLan channels.
+  WifiLanEndpointChannelV2(const std::string& channel_name,
+                           WifiLanSocketV2 socket);
 
-BluetoothClassic& Mediums::GetBluetoothClassic() { return bluetooth_classic_; }
+  proto::connections::Medium GetMedium() const override;
 
-Ble& Mediums::GetBle() { return ble_; }
+ private:
+  void CloseImpl() override;
 
-WifiLan& Mediums::GetWifiLan() { return wifi_lan_; }
-
-WifiLanV2& Mediums::GetWifiLanV2() { return wifi_lan_v2_; }
-
-mediums::WebRtc& Mediums::GetWebRtc() { return webrtc_; }
+  WifiLanSocketV2 socket_;
+};
 
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
+
+#endif  // CORE_INTERNAL_WIFI_LAN_ENDPOINT_CHANNEL_V2_H_

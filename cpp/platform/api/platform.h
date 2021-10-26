@@ -41,6 +41,7 @@
 #include "platform/api/webrtc.h"
 #include "platform/api/wifi.h"
 #include "platform/api/wifi_lan.h"
+#include "platform/api/wifi_lan_v2.h"
 #include "platform/base/payload_id.h"
 
 namespace location {
@@ -101,6 +102,7 @@ class ImplementationPlatform {
   static std::unique_ptr<ServerSyncMedium> CreateServerSyncMedium();
   static std::unique_ptr<WifiMedium> CreateWifiMedium();
   static std::unique_ptr<WifiLanMedium> CreateWifiLanMedium();
+  static std::unique_ptr<WifiLanMediumV2> CreateWifiLanMediumV2();
   static std::unique_ptr<WebRtcMedium> CreateWebRtcMedium();
 };
 

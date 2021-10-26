@@ -49,6 +49,7 @@
 #include "platform/impl/g3/single_thread_executor.h"
 #include "platform/impl/g3/webrtc.h"
 #include "platform/impl/g3/wifi_lan.h"
+#include "platform/impl/g3/wifi_lan_v2.h"
 #include "platform/impl/shared/file.h"
 
 namespace location {
@@ -144,6 +145,11 @@ std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() {
 
 std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
   return absl::make_unique<g3::WifiLanMedium>();
+}
+
+std::unique_ptr<WifiLanMediumV2>
+ImplementationPlatform::CreateWifiLanMediumV2() {
+  return absl::make_unique<g3::WifiLanMediumV2>();
 }
 
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
