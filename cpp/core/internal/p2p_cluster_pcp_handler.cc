@@ -25,6 +25,7 @@
 #include "core/internal/mediums/webrtc/webrtc_socket_wrapper.h"
 #include "core/internal/webrtc_endpoint_channel.h"
 #include "core/internal/wifi_lan_endpoint_channel.h"
+#include "core/internal/wifi_lan_endpoint_channel_v2.h"
 #include "platform/base/nsd_service_info.h"
 #include "platform/base/types.h"
 #include "platform/public/crypto.h"
@@ -59,6 +60,7 @@ P2pClusterPcpHandler::P2pClusterPcpHandler(
       bluetooth_medium_(mediums->GetBluetoothClassic()),
       ble_medium_(mediums->GetBle()),
       wifi_lan_medium_(mediums->GetWifiLan()),
+      wifi_lan_medium_v2_(mediums->GetWifiLanV2()),
       webrtc_medium_(mediums->GetWebRtc()),
       injected_bluetooth_device_store_(injected_bluetooth_device_store) {}
 
@@ -68,6 +70,9 @@ P2pClusterPcpHandler::P2pClusterPcpHandler(
 std::vector<proto::connections::Medium>
 P2pClusterPcpHandler::GetConnectionMediumsByPriority() {
   std::vector<proto::connections::Medium> mediums;
+  if (wifi_lan_medium_v2_.IsAvailable()) {
+    mediums.push_back(proto::connections::WIFI_LAN);
+  }
   if (wifi_lan_medium_.IsAvailable()) {
     mediums.push_back(proto::connections::WIFI_LAN);
   }
@@ -96,11 +101,20 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
   WebRtcState web_rtc_state{WebRtcState::kUnconnectable};
 
   if (options.allowed.wifi_lan) {
-    const ByteArray wifi_lan_hash =
-        GenerateHash(service_id, WifiLanServiceInfo::kServiceIdHashLength);
-    proto::connections::Medium wifi_lan_medium = StartWifiLanAdvertising(
-        client, service_id, wifi_lan_hash, local_endpoint_id,
-        local_endpoint_info, web_rtc_state);
+    proto::connections::Medium wifi_lan_medium =
+        StartWifiLanV2Advertising(client, service_id, local_endpoint_id,
+                                  local_endpoint_info, web_rtc_state);
+    if (wifi_lan_medium != proto::connections::UNKNOWN_MEDIUM) {
+      NEARBY_LOGS(INFO)
+          << "P2pClusterPcpHandler::StartAdvertisingImpl: WifiLan added";
+      mediums_started_successfully.push_back(wifi_lan_medium);
+    }
+  }
+
+  if (options.allowed.wifi_lan) {
+    proto::connections::Medium wifi_lan_medium =
+        StartWifiLanAdvertising(client, service_id, local_endpoint_id,
+                                local_endpoint_info, web_rtc_state);
     if (wifi_lan_medium != proto::connections::UNKNOWN_MEDIUM) {
       NEARBY_LOG(INFO,
                  "P2pClusterPcpHandler::StartAdvertisingImpl: WifiLan added");
@@ -169,6 +183,10 @@ Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
 
   wifi_lan_medium_.StopAdvertising(client->GetAdvertisingServiceId());
   wifi_lan_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
+
+  wifi_lan_medium_v2_.StopAdvertising(client->GetAdvertisingServiceId());
+  wifi_lan_medium_v2_.StopAcceptingConnections(
+      client->GetAdvertisingServiceId());
 
   return {Status::kSuccess};
 }
@@ -903,8 +921,8 @@ proto::connections::Medium P2pClusterPcpHandler::StartBluetoothAdvertising(
   NEARBY_LOGS(INFO) << "In StartBluetoothAdvertising("
                     << absl::BytesToHexString(local_endpoint_info.data())
                     << "), client=" << client->GetClientId()
-                    << " generated BluetoothDeviceName %s with service_id="
-                    << service_id;
+                    << " generated BluetoothDeviceName " << device_name
+                    << " with service_id=" << service_id;
 
   // Become Bluetooth discoverable.
   if (!bluetooth_medium_.TurnOnDiscoverability(device_name)) {
@@ -1206,8 +1224,8 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
 
 proto::connections::Medium P2pClusterPcpHandler::StartWifiLanAdvertising(
     ClientProxy* client, const std::string& service_id,
-    const ByteArray& service_id_hash, const std::string& local_endpoint_id,
-    const ByteArray& local_endpoint_info, WebRtcState web_rtc_state) {
+    const std::string& local_endpoint_id, const ByteArray& local_endpoint_info,
+    WebRtcState web_rtc_state) {
   // Start listening for connections before advertising in case a connection
   // request comes in very quickly.
   NEARBY_LOG(INFO,
@@ -1254,13 +1272,17 @@ proto::connections::Medium P2pClusterPcpHandler::StartWifiLanAdvertising(
       return proto::connections::UNKNOWN_MEDIUM;
     }
     NEARBY_LOGS(INFO)
-        << "In StartWifiLanAdvertising(%s), client=" << client->GetClientId()
+        << "In StartWifiLanAdvertising("
+        << absl::BytesToHexString(local_endpoint_info.data())
+        << "), client=" << client->GetClientId()
         << " started listening for incoming WifiLan connections to service_id="
         << service_id;
   }
 
   // Generate a WifiLanServiceInfo with which to become WifiLan discoverable.
   // TODO(b/169550050): Implement UWBAddress.
+  const ByteArray service_id_hash =
+      GenerateHash(service_id, WifiLanServiceInfo::kServiceIdHashLength);
   WifiLanServiceInfo service_info{kWifiLanServiceInfoVersion,
                                   GetPcp(),
                                   local_endpoint_id,
@@ -1285,8 +1307,10 @@ proto::connections::Medium P2pClusterPcpHandler::StartWifiLanAdvertising(
     wifi_lan_medium_.StopAcceptingConnections(service_id);
     return proto::connections::UNKNOWN_MEDIUM;
   }
-  NEARBY_LOGS(INFO) << "In StartWifiLanAdvertising(%s), client="
-                    << client->GetClientId() << " generated WifiLanServiceInfo "
+  NEARBY_LOGS(INFO) << "In StartWifiLanAdvertising("
+                    << absl::BytesToHexString(local_endpoint_info.data())
+                    << "), client=" << client->GetClientId()
+                    << " generated WifiLanServiceInfo "
                     << nsd_service_info.GetServiceName()
                     << " with service_id=" << service_id;
 
@@ -1355,6 +1379,109 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiLanConnectImpl(
       .status = {Status::kSuccess},
       .endpoint_channel = std::move(channel),
   };
+}
+
+proto::connections::Medium P2pClusterPcpHandler::StartWifiLanV2Advertising(
+    ClientProxy* client, const std::string& service_id,
+    const std::string& local_endpoint_id, const ByteArray& local_endpoint_info,
+    WebRtcState web_rtc_state) {
+  // Start listening for connections before advertising in case a connection
+  // request comes in very quickly.
+  NEARBY_LOGS(INFO) << "P2pClusterPcpHandler::StartWifiLanAdvertising: service="
+                    << service_id << ": start";
+  if (!wifi_lan_medium_v2_.IsAcceptingConnections(service_id)) {
+    if (!wifi_lan_medium_v2_.StartAcceptingConnections(
+            service_id, {.accepted_cb = [this, client, local_endpoint_info](
+                                            WifiLanSocketV2 socket) {
+              if (!socket.IsValid()) {
+                NEARBY_LOGS(WARNING)
+                    << "Invalid socket in accept callback("
+                    << absl::BytesToHexString(local_endpoint_info.data())
+                    << "), client=" << client->GetClientId();
+                return;
+              }
+              RunOnPcpHandlerThread(
+                  "p2p-wifi-on-incoming-connection",
+                  [this, client, local_endpoint_info,
+                   socket = std::move(
+                       socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+                    std::string remote_service_info_name;
+                    auto channel = absl::make_unique<WifiLanEndpointChannelV2>(
+                        remote_service_info_name, socket);
+                    ByteArray remote_service_info{remote_service_info_name};
+
+                    OnIncomingConnection(client, remote_service_info,
+                                         std::move(channel),
+                                         proto::connections::Medium::WIFI_LAN);
+                  });
+            }})) {
+      NEARBY_LOGS(WARNING)
+          << "In StartWifiLanAdvertising("
+          << absl::BytesToHexString(local_endpoint_info.data())
+          << "), client=" << client->GetClientId()
+          << " failed to start listening for incoming WifiLan connections "
+             "to service_id="
+          << service_id;
+      return proto::connections::UNKNOWN_MEDIUM;
+    }
+    NEARBY_LOGS(INFO) << "In StartWifiLanAdvertising("
+                      << absl::BytesToHexString(local_endpoint_info.data())
+                      << "), client=" << client->GetClientId()
+                      << " started listening for incoming WifiLan connections "
+                         "to service_id = "
+                      << service_id;
+  }
+
+  // Generate a WifiLanServiceInfo with which to become WifiLan discoverable.
+  // TODO(b/169550050): Implement UWBAddress.
+  const ByteArray service_id_hash =
+      GenerateHash(service_id, WifiLanServiceInfo::kServiceIdHashLength);
+  WifiLanServiceInfo service_info{kWifiLanServiceInfoVersion,
+                                  GetPcp(),
+                                  local_endpoint_id,
+                                  service_id_hash,
+                                  local_endpoint_info,
+                                  ByteArray{},
+                                  web_rtc_state};
+  NsdServiceInfo nsd_service_info(service_info);
+  if (!nsd_service_info.IsValid()) {
+    NEARBY_LOGS(WARNING) << "In StartWifiLanAdvertising("
+                         << absl::BytesToHexString(local_endpoint_info.data())
+                         << "), client=" << client->GetClientId()
+                         << " failed to generate WifiLanServiceInfo {version="
+                         << static_cast<int>(kWifiLanServiceInfoVersion)
+                         << ", pcp=" << PcpToStrategy(GetPcp()).GetName()
+                         << ", endpoint_id=" << local_endpoint_id
+                         << ", service_id_hash="
+                         << absl::BytesToHexString(service_id_hash.data())
+                         << ", endpoint_info="
+                         << absl::BytesToHexString(local_endpoint_info.data())
+                         << "}.";
+    wifi_lan_medium_v2_.StopAcceptingConnections(service_id);
+    return proto::connections::UNKNOWN_MEDIUM;
+  }
+  NEARBY_LOGS(INFO) << "In StartWifiLanAdvertising("
+                    << absl::BytesToHexString(local_endpoint_info.data())
+                    << "), client=" << client->GetClientId()
+                    << " generated WifiLanServiceInfo "
+                    << nsd_service_info.GetServiceName()
+                    << " with service_id=" << service_id;
+
+  if (!wifi_lan_medium_v2_.StartAdvertising(service_id, nsd_service_info)) {
+    NEARBY_LOGS(INFO) << "In StartWifiLanAdvertising("
+                      << absl::BytesToHexString(local_endpoint_info.data())
+                      << "), client=" << client->GetClientId()
+                      << " couldn't advertise with WifiLanServiceInfo "
+                      << nsd_service_info.GetServiceName();
+    wifi_lan_medium_v2_.StopAcceptingConnections(service_id);
+    return proto::connections::UNKNOWN_MEDIUM;
+  }
+  NEARBY_LOGS(INFO) << "In StartWifiLanAdvertising("
+                    << absl::BytesToHexString(local_endpoint_info.data())
+                    << "), client=" << client->GetClientId()
+                    << " advertised with WifiLanServiceInfo "
+                    << nsd_service_info.GetServiceName();
+  return proto::connections::WIFI_LAN;
 }
 
 }  // namespace connections

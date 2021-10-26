@@ -36,6 +36,7 @@ WifiLanV2::~WifiLanV2() {
 
 bool WifiLanV2::IsAvailable() const {
   MutexLock lock(&mutex_);
+
   return IsAvailableLocked();
 }
 
@@ -43,13 +44,67 @@ bool WifiLanV2::IsAvailableLocked() const { return medium_.IsValid(); }
 
 bool WifiLanV2::StartAdvertising(const std::string& service_id,
                                  NsdServiceInfo& nsd_service_info) {
-  return false;
+  MutexLock lock(&mutex_);
+
+  if (!nsd_service_info.IsValid()) {
+    NEARBY_LOGS(INFO)
+        << "Refusing to turn on WifiLan advertising. nsd_service_info is not "
+           "valid.";
+    return false;
+  }
+
+  if (IsAdvertisingLocked(service_id)) {
+    NEARBY_LOGS(INFO)
+        << "Failed to WifiLan advertise because we're already advertising.";
+    return false;
+  }
+
+  if (!IsAvailableLocked()) {
+    NEARBY_LOGS(INFO)
+        << "Can't turn on WifiLan advertising. WifiLan is not available.";
+    return false;
+  }
+
+  nsd_service_info.SetServiceType(GenerateServiceType(service_id));
+  if (!medium_.StartAdvertising(nsd_service_info)) {
+    NEARBY_LOGS(INFO)
+        << "Failed to turn on WifiLan advertising with nsd_service_info="
+        << &nsd_service_info
+        << ", service_name=" << nsd_service_info.GetServiceName()
+        << ", service_id=" << service_id;
+    return false;
+  }
+
+  NEARBY_LOGS(INFO) << "Turned on WifiLan advertising with nsd_service_info="
+                    << &nsd_service_info
+                    << ", service_name=" << nsd_service_info.GetServiceName()
+                    << ", service_id=" << service_id;
+  advertising_info_.Add(service_id, std::move(nsd_service_info));
+  return true;
 }
 
-bool WifiLanV2::StopAdvertising(const std::string& service_id) { return false; }
+bool WifiLanV2::StopAdvertising(const std::string& service_id) {
+  MutexLock lock(&mutex_);
+
+  if (!IsAdvertisingLocked(service_id)) {
+    NEARBY_LOGS(INFO)
+        << "Can't turn off WifiLan advertising; it is already off";
+    return false;
+  }
+
+  NEARBY_LOGS(INFO) << "Turned off WifiLan advertising with service_id="
+                    << service_id;
+  bool ret =
+      medium_.StopAdvertising(*advertising_info_.GetServiceInfo(service_id));
+  // Reset our bundle of advertising state to mark that we're no longer
+  // advertising for specific service_id.
+  advertising_info_.Remove(service_id);
+  return ret;
+}
 
 bool WifiLanV2::IsAdvertising(const std::string& service_id) {
   MutexLock lock(&mutex_);
+
   return IsAdvertisingLocked(service_id);
 }
 

@@ -16,6 +16,7 @@
 #define PLATFORM_BASE_MEDIUM_ENVIRONMENT_H_
 
 #include <atomic>
+#include <memory>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
@@ -243,6 +244,20 @@ class MediumEnvironment {
   api::WifiLanService* GetWifiLanService(const std::string& ip_address,
                                          int port);
 
+  // Adds medium-related info to allow for discovery/advertising to work.
+  // This provides acccess to this medium from other mediums, when protocol
+  // expects they should communicate.
+  void RegisterWifiLanMediumV2(api::WifiLanMediumV2& medium);
+
+  // Updates advertising info to indicate the current medium is exposing
+  // advertising event.
+  void UpdateWifiLanMediumV2ForAdvertising(
+      api::WifiLanMediumV2& medium, const NsdServiceInfo& nsd_service_info,
+      bool enabled);
+
+  // Removes medium-related info. This should correspond to device power off.
+  void UnregisterWifiLanMediumV2(api::WifiLanMediumV2& medium);
+
   void SetFeatureFlags(const FeatureFlags::Flags& flags);
 
  private:
@@ -270,6 +285,11 @@ class MediumEnvironment {
   struct WifiLanMediumContext {
     api::WifiLanService* wifi_lan_service = nullptr;
     absl::flat_hash_map<std::string, WifiLanServiceIdContext> services;
+  };
+
+  struct WifiLanMediumV2Context {
+    // advertising service type vs NsdServiceInfo map.
+    absl::flat_hash_map<std::string, NsdServiceInfo> advertising_services;
   };
 
   // This is a singleton object, for which destructor will never be called.
@@ -322,6 +342,9 @@ class MediumEnvironment {
 
   absl::flat_hash_map<api::WifiLanMedium*, WifiLanMediumContext>
       wifi_lan_mediums_;
+
+  absl::flat_hash_map<api::WifiLanMediumV2*, WifiLanMediumV2Context>
+      wifi_lan_mediums_v2_;
 
   bool use_valid_peer_connection_ = true;
   absl::Duration peer_connection_latency_ = absl::ZeroDuration();

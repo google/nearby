@@ -95,6 +95,7 @@ cc_test(
         "lost_entity_tracker_test.cc",
         "uuid_test.cc",
         "wifi_lan_test.cc",
+        "wifi_lan_test_v2.cc",
     ],
     shard_count = 16,
     deps = [

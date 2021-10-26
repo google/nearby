@@ -208,26 +208,26 @@ class WifiLanMediumV2 : public api::WifiLanMediumV2 {
       int port = 0) override;
 
  private:
-  static constexpr int kMaxConcurrentAcceptLoops = 5;
-
   struct AdvertisingInfo {
-    bool Empty() const { return service_id.empty(); }
-    void Clear() { service_id.clear(); }
+    bool Empty() const { return service_types.empty(); }
+    void Clear() { service_types.clear(); }
+    void Add(const std::string& service_type) {
+      service_types.insert(service_type);
+    }
+    void Remove(const std::string& service_type) {
+      service_types.erase(service_type);
+    }
+    bool Existed(const std::string& service_type) const {
+      return service_types.contains(service_type);
+    }
 
-    std::string service_id;
+    absl::flat_hash_set<std::string> service_types;
   };
 
-  struct DiscoveringInfo {
-    bool Empty() const { return service_id.empty(); }
-    void Clear() { service_id.clear(); }
-
-    std::string service_id;
-  };
-
-  void SetWifiLanService(const NsdServiceInfo& nsd_service_info);
   std::pair<std::string, int> GetFakeCredentials() const;
 
   absl::Mutex mutex_;
+  AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace g3

@@ -134,15 +134,62 @@ Exception WifiLanServerSocketV2::Close() {
 
 Exception WifiLanServerSocketV2::DoClose() { return {Exception::kSuccess}; }
 
-WifiLanMediumV2::WifiLanMediumV2() {}
+WifiLanMediumV2::WifiLanMediumV2() {
+  auto& env = MediumEnvironment::Instance();
+  env.RegisterWifiLanMediumV2(*this);
+}
 
-WifiLanMediumV2::~WifiLanMediumV2() {}
+WifiLanMediumV2::~WifiLanMediumV2() {
+  auto& env = MediumEnvironment::Instance();
+  env.UnregisterWifiLanMediumV2(*this);
+}
 
 bool WifiLanMediumV2::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
+  std::string service_type = nsd_service_info.GetServiceType();
+  NEARBY_LOGS(INFO) << "G3 WifiLan StartAdvertising: nsd_service_info="
+                    << &nsd_service_info
+                    << ", service_name=" << nsd_service_info.GetServiceName()
+                    << ", service_type=" << service_type;
+  {
+    absl::MutexLock lock(&mutex_);
+    if (advertising_info_.Existed(service_type)) {
+      NEARBY_LOGS(INFO)
+          << "G3 WifiLan StartAdvertising: Can't start advertising because "
+             "service_type="
+          << service_type << ", has started already.";
+      return false;
+    }
+  }
+  auto& env = MediumEnvironment::Instance();
+  env.UpdateWifiLanMediumV2ForAdvertising(*this, nsd_service_info,
+                                          /*enabled=*/true);
+  {
+    absl::MutexLock lock(&mutex_);
+    advertising_info_.Add(service_type);
+  }
   return true;
 }
 
 bool WifiLanMediumV2::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
+  std::string service_type = nsd_service_info.GetServiceType();
+  NEARBY_LOGS(INFO) << "G3 WifiLan StopAdvertising: nsd_service_info="
+                    << &nsd_service_info
+                    << ", service_name=" << nsd_service_info.GetServiceName()
+                    << ", service_type=" << service_type;
+  {
+    absl::MutexLock lock(&mutex_);
+    if (!advertising_info_.Existed(service_type)) {
+      NEARBY_LOGS(INFO)
+          << "G3 WifiLan StopAdvertising: Can't stop advertising because "
+             "we never started advertising for service_type="
+          << service_type;
+      return false;
+    }
+    advertising_info_.Remove(service_type);
+  }
+  auto& env = MediumEnvironment::Instance();
+  env.UpdateWifiLanMediumV2ForAdvertising(*this, nsd_service_info,
+                                          /*enabled=*/false);
   return true;
 }
 
@@ -169,6 +216,19 @@ std::unique_ptr<api::WifiLanSocketV2> WifiLanMediumV2::ConnectToService(
 std::unique_ptr<api::WifiLanServerSocketV2> WifiLanMediumV2::ListenForService(
     int port) {
   return {};
+}
+
+std::pair<std::string, int> WifiLanMediumV2::GetFakeCredentials() const {
+  std::string ip_address;
+  ip_address.resize(4);
+  uint32_t raw_ip_addr = Prng().NextUint32();
+  uint16_t port = Prng().NextUint32();
+  ip_address[0] = static_cast<char>(raw_ip_addr >> 24);
+  ip_address[1] = static_cast<char>(raw_ip_addr >> 16);
+  ip_address[2] = static_cast<char>(raw_ip_addr >> 8);
+  ip_address[3] = static_cast<char>(raw_ip_addr >> 0);
+
+  return std::make_pair(ip_address, port);
 }
 
 }  // namespace g3

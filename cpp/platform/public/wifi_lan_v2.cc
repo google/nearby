@@ -20,11 +20,11 @@ namespace location {
 namespace nearby {
 
 bool WifiLanMediumV2::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
-  return false;
+  return impl_->StartAdvertising(nsd_service_info);
 }
 
 bool WifiLanMediumV2::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
-  return false;
+  return impl_->StopAdvertising(nsd_service_info);
 }
 
 bool WifiLanMediumV2::StartDiscovery(const std::string& service_type,

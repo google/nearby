@@ -26,8 +26,10 @@
 #include "platform/api/bluetooth_adapter.h"
 #include "platform/api/bluetooth_classic.h"
 #include "platform/api/wifi_lan.h"
+#include "platform/api/wifi_lan_v2.h"
 #include "platform/base/feature_flags.h"
 #include "platform/base/logging.h"
+#include "platform/base/nsd_service_info.h"
 #include "platform/public/count_down_latch.h"
 
 namespace location {
@@ -65,6 +67,7 @@ void MediumEnvironment::Reset() {
     webrtc_signaling_message_callback_.clear();
     webrtc_signaling_complete_callback_.clear();
     wifi_lan_mediums_.clear();
+    wifi_lan_mediums_v2_.clear();
     use_valid_peer_connection_ = true;
     peer_connection_latency_ = absl::ZeroDuration();
   });
@@ -703,6 +706,53 @@ api::WifiLanService* MediumEnvironment::GetWifiLanService(
       });
   latch.Await();
   return remote_wifi_lan_service;
+}
+
+void MediumEnvironment::RegisterWifiLanMediumV2(api::WifiLanMediumV2& medium) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium]() {
+    wifi_lan_mediums_v2_.insert({&medium, WifiLanMediumV2Context{}});
+    NEARBY_LOG(INFO, "Registered: medium=%p", &medium);
+  });
+}
+
+void MediumEnvironment::UpdateWifiLanMediumV2ForAdvertising(
+    api::WifiLanMediumV2& medium, const NsdServiceInfo& service_info,
+    bool enabled) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium, service_info = service_info,
+                                enabled]() {
+    std::string service_type = service_info.GetServiceType();
+    NEARBY_LOGS(INFO) << "Update WifiLan medium for advertising: this=" << this
+                      << "; medium=" << &medium
+                      << "; service_name=" << service_info.GetServiceName()
+                      << "; service_type=" << service_type
+                      << ", enabled=" << enabled;
+    for (auto& medium_info : wifi_lan_mediums_v2_) {
+      auto& local_medium = medium_info.first;
+      auto& info = medium_info.second;
+      // Do not send notification to the same medium but update
+      // service info map.
+      if (local_medium == &medium) {
+        if (enabled) {
+          info.advertising_services.insert({service_type, service_info});
+        } else {
+          info.advertising_services.erase(service_type);
+        }
+        continue;
+      }
+    }
+  });
+}
+
+void MediumEnvironment::UnregisterWifiLanMediumV2(
+    api::WifiLanMediumV2& medium) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium]() {
+    auto item = wifi_lan_mediums_v2_.extract(&medium);
+    if (item.empty()) return;
+    NEARBY_LOG(INFO, "Unregistered WifiLan medium");
+  });
 }
 
 void MediumEnvironment::SetFeatureFlags(const FeatureFlags::Flags& flags) {

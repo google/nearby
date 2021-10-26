@@ -150,6 +150,7 @@ cc_test(
         "scheduled_executor_test.cc",
         "single_thread_executor_test.cc",
         "wifi_lan_test.cc",
+        "wifi_lan_test_v2.cc",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     shard_count = 16,
