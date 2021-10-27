@@ -659,12 +659,12 @@ BasePcpHandler::GetDiscoveredEndpoints(
   return result;
 }
 
-mediums::PeerId BasePcpHandler::CreatePeerIdFromAdvertisement(
+mediums::WebrtcPeerId BasePcpHandler::CreatePeerIdFromAdvertisement(
     const std::string& service_id, const std::string& endpoint_id,
     const ByteArray& endpoint_info) {
   std::string seed =
       absl::StrCat(service_id, endpoint_id, std::string(endpoint_info));
-  return mediums::PeerId::FromSeed(ByteArray(std::move(seed)));
+  return mediums::WebrtcPeerId::FromSeed(ByteArray(std::move(seed)));
 }
 
 bool BasePcpHandler::HasOutgoingConnections(ClientProxy* client) const {

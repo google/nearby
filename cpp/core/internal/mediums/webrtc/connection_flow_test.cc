@@ -21,7 +21,7 @@
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "core/internal/mediums/webrtc/session_description_wrapper.h"
-#include "core/internal/mediums/webrtc/webrtc_socket_wrapper.h"
+#include "core/internal/mediums/webrtc_socket_wrapper.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/medium_environment.h"
 #include "platform/public/count_down_latch.h"

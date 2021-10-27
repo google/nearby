@@ -29,7 +29,7 @@ ByteArray FrameToByteArray(const WebRtcSignalingFrame& signaling_frame) {
   return ByteArray(message.c_str(), message.size());
 }
 
-void SetSenderId(const PeerId& sender_id, WebRtcSignalingFrame& frame) {
+void SetSenderId(const WebrtcPeerId& sender_id, WebRtcSignalingFrame& frame) {
   frame.mutable_sender_id()->set_id(sender_id.GetId());
 }
 
@@ -44,7 +44,7 @@ std::unique_ptr<webrtc::IceCandidateInterface> DecodeIceCandidate(
 
 }  // namespace
 
-ByteArray EncodeReadyForSignalingPoke(const PeerId& sender_id) {
+ByteArray EncodeReadyForSignalingPoke(const WebrtcPeerId& sender_id) {
   WebRtcSignalingFrame signaling_frame;
   signaling_frame.set_type(WebRtcSignalingFrame::READY_FOR_SIGNALING_POKE_TYPE);
   SetSenderId(sender_id, signaling_frame);
@@ -53,7 +53,7 @@ ByteArray EncodeReadyForSignalingPoke(const PeerId& sender_id) {
   return FrameToByteArray(std::move(signaling_frame));
 }
 
-ByteArray EncodeOffer(const PeerId& sender_id,
+ByteArray EncodeOffer(const WebrtcPeerId& sender_id,
                       const webrtc::SessionDescriptionInterface& offer) {
   WebRtcSignalingFrame signaling_frame;
   signaling_frame.set_type(WebRtcSignalingFrame::OFFER_TYPE);
@@ -66,7 +66,7 @@ ByteArray EncodeOffer(const PeerId& sender_id,
   return FrameToByteArray(std::move(signaling_frame));
 }
 
-ByteArray EncodeAnswer(const PeerId& sender_id,
+ByteArray EncodeAnswer(const WebrtcPeerId& sender_id,
                        const webrtc::SessionDescriptionInterface& answer) {
   WebRtcSignalingFrame signaling_frame;
   signaling_frame.set_type(WebRtcSignalingFrame::ANSWER_TYPE);
@@ -80,7 +80,7 @@ ByteArray EncodeAnswer(const PeerId& sender_id,
 }
 
 ByteArray EncodeIceCandidates(
-    const PeerId& sender_id,
+    const WebrtcPeerId& sender_id,
     const std::vector<location::nearby::mediums::IceCandidate>&
         ice_candidates) {
   WebRtcSignalingFrame signaling_frame;

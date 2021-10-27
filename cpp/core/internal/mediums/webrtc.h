@@ -25,9 +25,9 @@
 #include "core/internal/mediums/webrtc/connection_flow.h"
 #include "core/internal/mediums/webrtc/data_channel_listener.h"
 #include "core/internal/mediums/webrtc/local_ice_candidate_listener.h"
-#include "core/internal/mediums/webrtc/peer_id.h"
 #include "core/internal/mediums/webrtc/webrtc_socket.h"
-#include "core/internal/mediums/webrtc/webrtc_socket_wrapper.h"
+#include "core/internal/mediums/webrtc_peer_id.h"
+#include "core/internal/mediums/webrtc_socket_wrapper.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/cancellation_flag.h"
 #include "platform/base/listeners.h"
@@ -77,7 +77,7 @@ class WebRtc {
   // boolean value indicating if the device has started accepting connections.
   // Runs on @MainThread.
   bool StartAcceptingConnections(const std::string& service_id,
-                                 const PeerId& self_peer_id,
+                                 const WebrtcPeerId& self_peer_id,
                                  const LocationHint& location_hint,
                                  AcceptedConnectionCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -91,7 +91,7 @@ class WebRtc {
   // with internal retry for maximum attempts of kConnectAttemptsLimit.
   // Runs on @MainThread.
   WebRtcSocketWrapper Connect(const std::string& service_id,
-                              const PeerId& peer_id,
+                              const WebrtcPeerId& peer_id,
                               const LocationHint& location_hint,
                               CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -109,7 +109,7 @@ class WebRtc {
   struct AcceptingConnectionsInfo {
     // The self_peer_id is generated from the BT/WiFi advertisements and allows
     // the scanner to message us over Tachyon.
-    PeerId self_peer_id;
+    WebrtcPeerId self_peer_id;
 
     // The registered callback. When there's an incoming connection, this
     // callback is notified.
@@ -133,7 +133,7 @@ class WebRtc {
   struct ConnectionRequestInfo {
     // The self_peer_id is randomly generated and allows the advertiser to
     // message us over Tachyon.
-    PeerId self_peer_id;
+    WebrtcPeerId self_peer_id;
 
     // Allows us to communicate with the Tachyon web server.
     std::unique_ptr<WebRtcSignalingMessenger> signaling_messenger;
@@ -147,7 +147,7 @@ class WebRtc {
   // |peer_id|.
   // Runs on @MainThread.
   WebRtcSocketWrapper AttemptToConnect(const std::string& service_id,
-                                       const PeerId& peer_id,
+                                       const WebrtcPeerId& peer_id,
                                        const LocationHint& location_hint,
                                        CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -170,55 +170,56 @@ class WebRtc {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Runs on |single_thread_executor_|.
-  void SendOffer(const std::string& service_id, const PeerId& remote_peer_id)
+  void SendOffer(const std::string& service_id,
+                 const WebrtcPeerId& remote_peer_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on |single_thread_executor_|.
-  void ReceiveOffer(const PeerId& remote_peer_id,
+  void ReceiveOffer(const WebrtcPeerId& remote_peer_id,
                     SessionDescriptionWrapper offer)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on |single_thread_executor_|.
-  void SendAnswer(const PeerId& remote_peer_id)
+  void SendAnswer(const WebrtcPeerId& remote_peer_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on |single_thread_executor_|.
-  void ReceiveAnswer(const PeerId& remote_peer_id,
+  void ReceiveAnswer(const WebrtcPeerId& remote_peer_id,
                      SessionDescriptionWrapper answer)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on |single_thread_executor_|.
   void ReceiveIceCandidates(
-      const PeerId& remote_peer_id,
+      const WebrtcPeerId& remote_peer_id,
       std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
           ice_candidates) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on |single_thread_executor_|.
   std::unique_ptr<ConnectionFlow> CreateConnectionFlow(
-      const std::string& service_id, const PeerId& remote_peer_id)
+      const std::string& service_id, const WebrtcPeerId& remote_peer_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on |single_thread_executor_|.
   std::unique_ptr<ConnectionFlow> GetConnectionFlow(
-      const PeerId& remote_peer_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      const WebrtcPeerId& remote_peer_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on |single_thread_executor_|.
-  void RemoveConnectionFlow(const PeerId& remote_peer_id)
+  void RemoveConnectionFlow(const WebrtcPeerId& remote_peer_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on |single_thread_executor_|.
   void ProcessDataChannelOpen(const std::string& service_id,
-                              const PeerId& remote_peer_id,
+                              const WebrtcPeerId& remote_peer_id,
                               WebRtcSocketWrapper socket_wrapper)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Runs on |single_thread_executor_|.
-  void ProcessDataChannelClosed(const PeerId& remote_peer_id)
+  void ProcessDataChannelClosed(const WebrtcPeerId& remote_peer_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Runs on |single_thread_executor_|.
   void ProcessLocalIceCandidate(
-      const std::string& service_id, const PeerId& remote_peer_id,
+      const std::string& service_id, const WebrtcPeerId& remote_peer_id,
       const ::location::nearby::mediums::IceCandidate ice_candidate)
       ABSL_LOCKS_EXCLUDED(mutex_);
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "core/internal/mediums/webrtc/peer_id.h"
+#include "core/internal/mediums/webrtc_peer_id.h"
 
 #include <sstream>
 
@@ -36,17 +36,17 @@ std::string BytesToStringUppercase(const ByteArray& bytes) {
 }
 }  // namespace
 
-PeerId PeerId::FromRandom() {
+WebrtcPeerId WebrtcPeerId::FromRandom() {
   return FromSeed(Utils::GenerateRandomBytes(kPeerIdLength));
 }
 
-PeerId PeerId::FromSeed(const ByteArray& seed) {
+WebrtcPeerId WebrtcPeerId::FromSeed(const ByteArray& seed) {
   ByteArray full_hash(Utils::Sha256Hash(seed, kPeerIdLength));
   ByteArray hashed_seed(full_hash.data(), kPeerIdLength / 2);
-  return PeerId(BytesToStringUppercase(hashed_seed));
+  return WebrtcPeerId(BytesToStringUppercase(hashed_seed));
 }
 
-bool PeerId::IsValid() const { return !id_.empty(); }
+bool WebrtcPeerId::IsValid() const { return !id_.empty(); }
 
 }  // namespace mediums
 }  // namespace connections

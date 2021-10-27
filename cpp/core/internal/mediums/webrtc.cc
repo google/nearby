@@ -22,7 +22,7 @@
 #include "absl/time/time.h"
 #include "core/internal/mediums/webrtc/session_description_wrapper.h"
 #include "core/internal/mediums/webrtc/signaling_frames.h"
-#include "core/internal/mediums/webrtc/webrtc_socket_wrapper.h"
+#include "core/internal/mediums/webrtc_socket_wrapper.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/listeners.h"
 #include "platform/public/cancelable_alarm.h"
@@ -80,7 +80,7 @@ bool WebRtc::IsAcceptingConnectionsLocked(const std::string& service_id) {
 }
 
 bool WebRtc::StartAcceptingConnections(const std::string& service_id,
-                                       const PeerId& self_peer_id,
+                                       const WebrtcPeerId& self_peer_id,
                                        const LocationHint& location_hint,
                                        AcceptedConnectionCallback callback) {
   MutexLock lock(&mutex_);
@@ -193,7 +193,7 @@ void WebRtc::StopAcceptingConnections(const std::string& service_id) {
 }
 
 WebRtcSocketWrapper WebRtc::Connect(const std::string& service_id,
-                                    const PeerId& remote_peer_id,
+                                    const WebrtcPeerId& remote_peer_id,
                                     const LocationHint& location_hint,
                                     CancellationFlag* cancellation_flag) {
   for (int attempts_count = 0; attempts_count < kConnectAttemptsLimit;
@@ -208,10 +208,10 @@ WebRtcSocketWrapper WebRtc::Connect(const std::string& service_id,
 }
 
 WebRtcSocketWrapper WebRtc::AttemptToConnect(
-    const std::string& service_id, const PeerId& remote_peer_id,
+    const std::string& service_id, const WebrtcPeerId& remote_peer_id,
     const LocationHint& location_hint, CancellationFlag* cancellation_flag) {
   ConnectionRequestInfo info = ConnectionRequestInfo();
-  info.self_peer_id = PeerId::FromRandom();
+  info.self_peer_id = WebrtcPeerId::FromRandom();
   Future<WebRtcSocketWrapper> socket_future = info.socket_future;
 
   {
@@ -324,7 +324,7 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
 }
 
 void WebRtc::ProcessLocalIceCandidate(
-    const std::string& service_id, const PeerId& remote_peer_id,
+    const std::string& service_id, const WebrtcPeerId& remote_peer_id,
     const ::location::nearby::mediums::IceCandidate ice_candidate) {
   MutexLock lock(&mutex_);
 
@@ -422,7 +422,7 @@ void WebRtc::ProcessTachyonInboxMessage(const std::string& service_id,
     NEARBY_LOG(WARNING, "Invalid WebRTC frame: Sender ID is missing.");
     return;
   }
-  PeerId remote_peer_id = PeerId(frame.sender_id().id());
+  WebrtcPeerId remote_peer_id = WebrtcPeerId(frame.sender_id().id());
 
   // Depending on the message type, we'll respond as appropriate.
   if (requesting_connections_info_.contains(remote_peer_id.GetId())) {
@@ -462,7 +462,7 @@ void WebRtc::ProcessTachyonInboxMessage(const std::string& service_id,
 }
 
 void WebRtc::SendOffer(const std::string& service_id,
-                       const PeerId& remote_peer_id) {
+                       const WebrtcPeerId& remote_peer_id) {
   std::unique_ptr<ConnectionFlow> connection_flow =
       CreateConnectionFlow(service_id, remote_peer_id);
   if (!connection_flow) {
@@ -507,7 +507,7 @@ void WebRtc::SendOffer(const std::string& service_id,
   NEARBY_LOG(INFO, "Sent offer to %s.", remote_peer_id.GetId().c_str());
 }
 
-void WebRtc::ReceiveOffer(const PeerId& remote_peer_id,
+void WebRtc::ReceiveOffer(const WebrtcPeerId& remote_peer_id,
                           SessionDescriptionWrapper offer) {
   const auto& entry = connection_flows_.find(remote_peer_id.GetId());
   if (entry == connection_flows_.end()) {
@@ -522,7 +522,7 @@ void WebRtc::ReceiveOffer(const PeerId& remote_peer_id,
   }
 }
 
-void WebRtc::SendAnswer(const PeerId& remote_peer_id) {
+void WebRtc::SendAnswer(const WebrtcPeerId& remote_peer_id) {
   const auto& entry = connection_flows_.find(remote_peer_id.GetId());
   if (entry == connection_flows_.end()) {
     NEARBY_LOG(INFO,
@@ -574,7 +574,7 @@ void WebRtc::SendAnswer(const PeerId& remote_peer_id) {
   NEARBY_LOG(INFO, "Sent answer to %s.", remote_peer_id.GetId().c_str());
 }
 
-void WebRtc::ReceiveAnswer(const PeerId& remote_peer_id,
+void WebRtc::ReceiveAnswer(const WebrtcPeerId& remote_peer_id,
                            SessionDescriptionWrapper answer) {
   const auto& entry = connection_flows_.find(remote_peer_id.GetId());
   if (entry == connection_flows_.end()) {
@@ -590,7 +590,7 @@ void WebRtc::ReceiveAnswer(const PeerId& remote_peer_id,
 }
 
 void WebRtc::ReceiveIceCandidates(
-    const PeerId& remote_peer_id,
+    const WebrtcPeerId& remote_peer_id,
     std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
         ice_candidates) {
   const auto& entry = connection_flows_.find(remote_peer_id.GetId());
@@ -643,7 +643,7 @@ void WebRtc::RestartTachyonReceiveMessages(const std::string& service_id) {
 }
 
 void WebRtc::ProcessDataChannelOpen(const std::string& service_id,
-                                    const PeerId& remote_peer_id,
+                                    const WebrtcPeerId& remote_peer_id,
                                     WebRtcSocketWrapper socket_wrapper) {
   MutexLock lock(&mutex_);
 
@@ -671,7 +671,7 @@ void WebRtc::ProcessDataChannelOpen(const std::string& service_id,
              service_id.c_str());
 }
 
-void WebRtc::ProcessDataChannelClosed(const PeerId& remote_peer_id) {
+void WebRtc::ProcessDataChannelClosed(const WebrtcPeerId& remote_peer_id) {
   MutexLock lock(&mutex_);
   NEARBY_LOG(INFO,
              "Data channel has closed, removing connection flow for peer %s.",
@@ -681,7 +681,7 @@ void WebRtc::ProcessDataChannelClosed(const PeerId& remote_peer_id) {
 }
 
 std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
-    const std::string& service_id, const PeerId& remote_peer_id) {
+    const std::string& service_id, const WebrtcPeerId& remote_peer_id) {
   RemoveConnectionFlow(remote_peer_id);
 
   return ConnectionFlow::Create(
@@ -719,7 +719,7 @@ std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
       medium_);
 }
 
-void WebRtc::RemoveConnectionFlow(const PeerId& remote_peer_id) {
+void WebRtc::RemoveConnectionFlow(const WebrtcPeerId& remote_peer_id) {
   if (!connection_flows_.erase(remote_peer_id.GetId())) {
     return;
   }

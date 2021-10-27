@@ -16,7 +16,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "core/internal/mediums/webrtc/webrtc_socket_wrapper.h"
+#include "core/internal/mediums/webrtc_socket_wrapper.h"
 #include "platform/base/listeners.h"
 #include "platform/base/medium_environment.h"
 #include "platform/public/mutex_lock.h"
@@ -57,7 +57,7 @@ TEST_P(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
   env_.SetFeatureFlags(feature_flags);
   WebRtc receiver, sender;
   WebRtcSocketWrapper receiver_socket, sender_socket;
-  const PeerId self_id("self_id");
+  const WebrtcPeerId self_id("self_id");
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
   Future<bool> connected;
@@ -95,7 +95,7 @@ TEST_P(WebRtcTest, CanCancelConnect) {
   env_.SetFeatureFlags(feature_flags);
   WebRtc receiver, sender;
   WebRtcSocketWrapper receiver_socket, sender_socket;
-  const PeerId self_id("self_id");
+  const WebrtcPeerId self_id("self_id");
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
   Future<bool> connected;
@@ -149,7 +149,7 @@ TEST_F(WebRtcTest, StartAcceptingConnectionTwice) {
   env_.Start({.webrtc_enabled = true});
   testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
   WebRtc webrtc;
-  PeerId self_id("peer_id");
+  WebrtcPeerId self_id("peer_id");
   const std::string service_id("NearbySharing");
   LocationHint location_hint{};
 
@@ -170,7 +170,7 @@ TEST_F(WebRtcTest, StartAcceptingConnectionTwice) {
 TEST_F(WebRtcTest, Connect_NoPeer) {
   env_.Start({.webrtc_enabled = true});
   WebRtc webrtc;
-  PeerId peer_id("peer_id");
+  WebrtcPeerId peer_id("peer_id");
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
 
@@ -191,7 +191,7 @@ TEST_F(WebRtcTest, StartAcceptingConnection_ThenConnect) {
   env_.Start({.webrtc_enabled = true});
   testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
   WebRtc webrtc;
-  PeerId self_id("peer_id");
+  WebrtcPeerId self_id("peer_id");
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
 
@@ -201,7 +201,7 @@ TEST_F(WebRtcTest, StartAcceptingConnection_ThenConnect) {
       {mock_accepted_callback_.AsStdFunction()}));
   CancellationFlag flag;
   WebRtcSocketWrapper wrapper = webrtc.Connect(
-      service_id, PeerId("random_peer_id"), location_hint, &flag);
+      service_id, WebrtcPeerId("random_peer_id"), location_hint, &flag);
   EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
   EXPECT_FALSE(wrapper.IsValid());
   EXPECT_FALSE(webrtc.StartAcceptingConnections(
@@ -216,7 +216,7 @@ TEST_F(WebRtcTest, StartAndStopAcceptingConnections) {
   env_.Start({.webrtc_enabled = true});
   testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
   WebRtc webrtc;
-  PeerId self_id("peer_id");
+  WebrtcPeerId self_id("peer_id");
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
 
@@ -236,7 +236,7 @@ TEST_F(WebRtcTest, ConnectTwice) {
   env_.Start({.webrtc_enabled = true});
   WebRtc receiver, sender, device_c;
   WebRtcSocketWrapper receiver_socket, sender_socket;
-  const PeerId self_id("self_id"), other_id("other_id");
+  const WebrtcPeerId self_id("self_id"), other_id("other_id");
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
   Future<bool> connected;
@@ -284,7 +284,7 @@ TEST_F(WebRtcTest, ConnectBothDevicesAndAbort) {
   env_.Start({.webrtc_enabled = true});
   WebRtc receiver, sender;
   WebRtcSocketWrapper receiver_socket, sender_socket;
-  const PeerId self_id("self_id");
+  const WebrtcPeerId self_id("self_id");
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
   Future<bool> connected;
@@ -315,7 +315,7 @@ TEST_F(WebRtcTest, ConnectBothDevicesAndSendData) {
   env_.Start({.webrtc_enabled = true});
   WebRtc receiver, sender;
   WebRtcSocketWrapper receiver_socket, sender_socket;
-  const PeerId self_id("self_id");
+  const WebrtcPeerId self_id("self_id");
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
   Future<bool> connected;
@@ -354,13 +354,13 @@ TEST_F(WebRtcTest, Connect_NullPeerConnection) {
 
   WebRtc webrtc;
   const std::string service_id("NearbySharing");
-  PeerId self_id("peer_id");
+  WebrtcPeerId self_id("peer_id");
   LocationHint location_hint;
 
   ASSERT_TRUE(webrtc.IsAvailable());
   CancellationFlag flag;
   WebRtcSocketWrapper wrapper = webrtc.Connect(
-      service_id, PeerId("random_peer_id"), location_hint, &flag);
+      service_id, WebrtcPeerId("random_peer_id"), location_hint, &flag);
   EXPECT_FALSE(wrapper.IsValid());
   env_.Stop();
 }
@@ -371,7 +371,7 @@ TEST_F(WebRtcTest, ContinueAcceptingConnectionsOnComplete) {
   env_.Start({.webrtc_enabled = true});
   testing::StrictMock<MockAcceptedCallback> mock_accepted_callback_;
   WebRtc webrtc;
-  PeerId self_id("peer_id");
+  WebrtcPeerId self_id("peer_id");
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
 

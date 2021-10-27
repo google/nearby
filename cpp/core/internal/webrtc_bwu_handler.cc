@@ -19,7 +19,7 @@
 #include "absl/functional/bind_front.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/mediums/utils.h"
-#include "core/internal/mediums/webrtc/peer_id.h"
+#include "core/internal/mediums/webrtc_peer_id.h"
 #include "core/internal/offline_frames.h"
 #include "core/internal/webrtc_endpoint_channel.h"
 
@@ -74,7 +74,7 @@ ByteArray WebrtcBwuHandler::InitializeUpgradedMediumForEndpoint(
   LocationHint location_hint =
       Utils::BuildLocationHint(webrtc_.GetDefaultCountryCode());
 
-  mediums::PeerId self_id{mediums::PeerId::FromRandom()};
+  mediums::WebrtcPeerId self_id{mediums::WebrtcPeerId::FromRandom()};
   if (!webrtc_.IsAcceptingConnections(service_id)) {
     if (!webrtc_.StartAcceptingConnections(
             upgrade_service_id, self_id, location_hint,
@@ -110,7 +110,7 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
   const UpgradePathInfo::WebRtcCredentials& web_rtc_credentials =
       upgrade_path_info.web_rtc_credentials();
-  mediums::PeerId peer_id(web_rtc_credentials.peer_id());
+  mediums::WebrtcPeerId peer_id(web_rtc_credentials.peer_id());
 
   LocationHint location_hint;
   location_hint.set_format(LocationStandard::UNKNOWN);

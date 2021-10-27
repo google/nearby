@@ -19,7 +19,7 @@
 #include "google/protobuf/text_format.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "core/internal/mediums/webrtc/peer_id.h"
+#include "core/internal/mediums/webrtc_peer_id.h"
 
 namespace location {
 namespace nearby {
@@ -80,7 +80,7 @@ const char kIceCandidatesProto[] = R"(
 }  // namespace
 
 TEST(SignalingFramesTest, SignalingPoke) {
-  PeerId sender_id("abc");
+  WebrtcPeerId sender_id("abc");
   ByteArray encoded_poke = EncodeReadyForSignalingPoke(sender_id);
 
   location::nearby::mediums::WebRtcSignalingFrame frame;
@@ -94,7 +94,7 @@ TEST(SignalingFramesTest, SignalingPoke) {
 }
 
 TEST(SignalingFramesTest, EncodeValidOffer) {
-  PeerId sender_id("abc");
+  WebrtcPeerId sender_id("abc");
   std::unique_ptr<webrtc::SessionDescriptionInterface> offer =
       webrtc::CreateSessionDescription(webrtc::SdpType::kOffer, kSampleSdp);
   ByteArray encoded_offer = EncodeOffer(sender_id, *offer);
@@ -119,7 +119,7 @@ TEST(SignaingFramesTest, DecodeValidOffer) {
 }
 
 TEST(SignalingFramesTest, EncodeValidAnswer) {
-  PeerId sender_id("abc");
+  WebrtcPeerId sender_id("abc");
   std::unique_ptr<webrtc::SessionDescriptionInterface> answer(
       webrtc::CreateSessionDescription(webrtc::SdpType::kAnswer, kSampleSdp));
   ByteArray encoded_answer = EncodeAnswer(sender_id, *answer);
@@ -144,7 +144,7 @@ TEST(SignalingFramesTest, DecodeValidAnswer) {
 }
 
 TEST(SignalingFramesTest, EncodeValidIceCandidates) {
-  PeerId sender_id("abc");
+  WebrtcPeerId sender_id("abc");
   webrtc::SdpParseError error;
 
   std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> ice_candidates;

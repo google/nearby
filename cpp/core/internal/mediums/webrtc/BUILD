@@ -17,19 +17,14 @@ cc_library(
     name = "webrtc",
     srcs = [
         "connection_flow.cc",
-        "peer_id.cc",
         "signaling_frames.cc",
-        "webrtc_socket.cc",
     ],
     hdrs = [
         "connection_flow.h",
         "data_channel_listener.h",
         "local_ice_candidate_listener.h",
-        "peer_id.h",
         "session_description_wrapper.h",
         "signaling_frames.h",
-        "webrtc_socket.h",
-        "webrtc_socket_wrapper.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
@@ -37,8 +32,8 @@ cc_library(
         "//core/internal:__subpackages__",
     ],
     deps = [
+        ":data_types",
         "//absl/memory",
-        "//absl/strings",
         "//absl/time",
         "//core:core_types",
         "//core/internal/mediums:utils",
@@ -52,12 +47,32 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "data_types",
+    srcs = [
+        "webrtc_socket.cc",
+    ],
+    hdrs = [
+        "webrtc_socket.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    copts = ["-DCORE_ADAPTER_DLL"],
+    visibility = [
+        "//core/internal:__subpackages__",
+    ],
+    deps = [
+        "//core:core_types",
+        "//platform/base",
+        "//platform/public:types",
+        "//webrtc/api:libjingle_peerconnection_api",
+    ],
+)
+
 cc_test(
     name = "webrtc_test",
     timeout = "short",
     srcs = [
         "connection_flow_test.cc",
-        "peer_id_test.cc",
         "signaling_frames_test.cc",
         "webrtc_socket_test.cc",
     ],
@@ -66,10 +81,12 @@ cc_test(
         "requires-net:external",
     ],
     deps = [
+        ":data_types",
         ":webrtc",
         "//net/proto2/compat/public:proto2",
         "//testing/base/public:gunit_main",
         "//absl/time",
+        "//core/internal/mediums:utils",
         "//platform/base",
         "//platform/base:test_util",
         "//platform/impl/g3",  # buildcleaner: keep

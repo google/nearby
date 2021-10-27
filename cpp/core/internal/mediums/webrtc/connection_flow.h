@@ -20,7 +20,7 @@
 #include "core/internal/mediums/webrtc/data_channel_listener.h"
 #include "core/internal/mediums/webrtc/local_ice_candidate_listener.h"
 #include "core/internal/mediums/webrtc/session_description_wrapper.h"
-#include "core/internal/mediums/webrtc/webrtc_socket_wrapper.h"
+#include "core/internal/mediums/webrtc_socket_wrapper.h"
 #include "platform/base/runnable.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/single_thread_executor.h"

@@ -54,6 +54,7 @@ cc_library(
         "//core:core_types",
         "//core/internal/mediums/ble_v2",
         "//core/internal/mediums/webrtc",
+        "//core/internal/mediums/webrtc:data_types",
         "//platform/base",
         "//platform/base:cancellation_flag",
         "//platform/public:comm",
@@ -63,14 +64,20 @@ cc_library(
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
         "//smhasher:libmurmur3",
         "//webrtc/api:libjingle_peerconnection_api",
-        "//webrtc/api:scoped_refptr",
     ],
 )
 
 cc_library(
     name = "utils",
-    srcs = ["utils.cc"],
-    hdrs = ["utils.h"],
+    srcs = [
+        "utils.cc",
+        "webrtc_peer_id.cc",
+    ],
+    hdrs = [
+        "utils.h",
+        "webrtc_peer_id.h",
+        "webrtc_socket_wrapper.h",
+    ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//core/internal:__pkg__",
@@ -78,6 +85,8 @@ cc_library(
         "//core/internal/mediums/webrtc:__pkg__",
     ],
     deps = [
+        "//absl/strings",
+        "//core/internal/mediums/webrtc:data_types",
         "//platform/base",
         "//platform/public:types",
         "//proto/connections:offline_wire_formats_portable_proto",
@@ -100,6 +109,7 @@ cc_test(
     shard_count = 16,
     deps = [
         ":mediums",
+        ":utils",
         "//testing/base/public:gunit_main",
         "//absl/strings",
         "//absl/time",
@@ -115,6 +125,7 @@ cc_test(
     name = "core_internal_mediums_webrtc_test",
     size = "small",
     srcs = [
+        "webrtc_peer_id_test.cc",
         "webrtc_test.cc",
     ],
     shard_count = 16,
@@ -124,9 +135,8 @@ cc_test(
     ],
     deps = [
         ":mediums",
+        ":utils",
         "//testing/base/public:gunit_main",
-        "//absl/strings",
-        "//core/internal/mediums/webrtc",
         "//platform/base",
         "//platform/base:test_util",
         "//platform/impl/g3",  # build_cleaner: keep

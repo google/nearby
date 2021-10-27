@@ -215,11 +215,11 @@ class BasePcpHandler : public PcpHandler,
   };
 
   struct WebRtcEndpoint : public DiscoveredEndpoint {
-    WebRtcEndpoint(DiscoveredEndpoint endpoint, mediums::PeerId peer_id)
+    WebRtcEndpoint(DiscoveredEndpoint endpoint, mediums::WebrtcPeerId peer_id)
         : DiscoveredEndpoint(std::move(endpoint)),
           peer_id(std::move(peer_id)) {}
 
-    mediums::PeerId peer_id;
+    mediums::WebrtcPeerId peer_id;
   };
 
   struct ConnectImplResult {
@@ -296,9 +296,9 @@ class BasePcpHandler : public PcpHandler,
   std::vector<BasePcpHandler::DiscoveredEndpoint*> GetDiscoveredEndpoints(
       const proto::connections::Medium medium);
 
-  mediums::PeerId CreatePeerIdFromAdvertisement(const string& service_id,
-                                                const string& endpoint_id,
-                                                const ByteArray& endpoint_info);
+  mediums::WebrtcPeerId CreatePeerIdFromAdvertisement(
+      const string& service_id, const string& endpoint_id,
+      const ByteArray& endpoint_info);
 
   SingleThreadExecutor* GetPcpHandlerThread()
       ABSL_LOCK_RETURNED(serial_executor_) {

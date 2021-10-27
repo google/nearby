@@ -29,7 +29,6 @@
 #include "core/internal/mediums/bluetooth_classic.h"
 #include "core/internal/mediums/mediums.h"
 #include "core/internal/mediums/webrtc.h"
-#include "core/internal/mediums/webrtc/peer_id.h"
 #include "core/internal/pcp.h"
 #include "core/internal/wifi_lan_service_info.h"
 #include "core/options.h"
