@@ -14,6 +14,9 @@
 
 #include "core/payload.h"
 
+#include "platform/base/prng.h"
+#include "platform/public/logging.h"
+
 namespace location {
 namespace nearby {
 namespace connections {

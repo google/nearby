@@ -24,10 +24,8 @@
 #include "platform/base/byte_array.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/payload_id.h"
-#include "platform/base/prng.h"
 #include "platform/public/core_config.h"
 #include "platform/public/file.h"
-#include "platform/public/logging.h"
 
 namespace location {
 namespace nearby {

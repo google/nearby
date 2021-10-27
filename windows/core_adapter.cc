@@ -15,6 +15,7 @@
 
 #include "absl/strings/str_format.h"
 #include "core/core.h"
+#include "third_party/nearby_connections/windows/listeners.h"
 
 namespace location {
 namespace nearby {
@@ -50,11 +51,12 @@ void StopAdvertising(Core* pCore, ResultCallback callback) {
 }
 
 void StartDiscovery(Core* pCore, const char* service_id,
-                            ConnectionOptions options,
-                            DiscoveryListener listener,
-                            ResultCallback callback) {
+                    ConnectionOptions options,
+                    windows::DiscoveryListenerFP listener,
+                    ResultCallback callback) {
   if (pCore) {
-    pCore->StartDiscovery(service_id, options, listener, callback);
+    pCore->StartDiscovery(service_id, options,
+                          connections::DiscoveryListener(listener), callback);
   }
 }
 
@@ -82,10 +84,11 @@ void RequestConnection(Core* pCore, const char* endpoint_id,
 }
 
 void AcceptConnection(Core* pCore, const char* endpoint_id,
-                              PayloadListener listener,
-                              ResultCallback callback) {
+                      windows::PayloadListenerFP listener,
+                      ResultCallback callback) {
   if (pCore) {
-    pCore->AcceptConnection(endpoint_id, listener, callback);
+    pCore->AcceptConnection(endpoint_id, connections::PayloadListener(listener),
+                            callback);
   }
 }
 

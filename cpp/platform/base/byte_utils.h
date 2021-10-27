@@ -20,9 +20,13 @@
 namespace location {
 namespace nearby {
 
+#define FOUR_DIGIT_STRING_SIZE 5
+
 class ByteUtils {
  public:
   static std::string ToFourDigitString(ByteArray& bytes);
+  static void ToFourDigitCharString(ByteArray& bytes,
+                                    char output[FOUR_DIGIT_STRING_SIZE]);
 
  private:
   // The biggest prime number under 10000, used as a mod base to trim integers

@@ -20,6 +20,7 @@
 // todo(jfcarroll) This cannot remain. It exposes stuff the client doesn't need.
 #include \
 "third_party/nearby_connections/cpp/core/internal/offline_service_controller.h"
+#include "third_party/nearby_connections/windows/listeners.h"
 
 #define DLL_EXPORT extern "C" __declspec(dllexport)
 
@@ -93,9 +94,9 @@ DLL_EXPORT void __stdcall StopAdvertising(Core* pCore, ResultCallback callback);
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
 DLL_EXPORT void __stdcall StartDiscovery(Core* pCore, const char* service_id,
-                                      ConnectionOptions options,
-                                      DiscoveryListener listener,
-                                      ResultCallback callback);
+                                         ConnectionOptions options,
+                                         windows::DiscoveryListenerFP listener,
+                                         ResultCallback callback);
 
 // Stops discovery for remote endpoints, after a previous call to
 // StartDiscovery, when the client no longer needs to discover endpoints or
@@ -163,9 +164,8 @@ DLL_EXPORT void __stdcall RequestConnection(Core* pCore,
 //     Status::STATUS_OK if the connection request was accepted.
 //     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT if the app already.
 //         has a connection to the specified endpoint.
-DLL_EXPORT void __stdcall AcceptConnection(Core* pCore,
-                                           const char* endpoint_id,
-                                           PayloadListener listener,
+DLL_EXPORT void __stdcall AcceptConnection(Core* pCore, const char* endpoint_id,
+                                           windows::PayloadListenerFP listener,
                                            ResultCallback callback);
 
 // Rejects a connection to a remote endpoint.

@@ -35,5 +35,20 @@ std::string ByteUtils::ToFourDigitString(ByteArray& bytes) {
   return absl::StrFormat("%04d", abs(hashCode));
 }
 
+void ByteUtils::ToFourDigitCharString(ByteArray& bytes,
+                                      char output[FOUR_DIGIT_STRING_SIZE]) {
+  int multiplier = 1;
+  int hashCode = 0;
+
+  BaseInputStream base_input_stream{bytes};
+  while (base_input_stream.IsAvailable(1)) {
+    auto byte = static_cast<int>(base_input_stream.ReadUint8());
+    hashCode = (hashCode + byte * multiplier) % kHashBasePrime;
+    multiplier = multiplier * kHashBaseMultiplier % kHashBasePrime;
+  }
+
+  memcpy(output, absl::StrFormat("%04d", abs(hashCode)).c_str(), 5);
+}
+
 }  // namespace nearby
 }  // namespace location
