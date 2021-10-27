@@ -207,6 +207,8 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   proto::connections::Medium StartWifiLanV2Discovery(
       WifiLanV2DiscoveredServiceCallback callback, ClientProxy* client,
       const std::string& service_id);
+  BasePcpHandler::ConnectImplResult WifiLanV2ConnectImpl(
+      ClientProxy* client, WifiLanV2Endpoint* endpoint);
 
   BluetoothRadio& bluetooth_radio_;
   BluetoothClassic& bluetooth_medium_;

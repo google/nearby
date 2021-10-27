@@ -268,10 +268,8 @@ void MediumEnvironment::OnWifiLanServiceV2StateChanged(
                       << "; notify=" << enable_notifications_.load();
     if (enabled) {
       // Find advertising service with matched service_type. Report it as
-      // discovered by assigning the fake ip address and port.
+      // discovered.
       NsdServiceInfo discovered_service_info(service_info);
-      discovered_service_info.SetIPAddress(GetFakeIPAddress());
-      discovered_service_info.SetPort(GetFakePort());
       info.discovered_services.insert({service_type, discovered_service_info});
       if (enable_notifications_) {
         RunOnMediumEnvironmentThread(
@@ -860,6 +858,22 @@ void MediumEnvironment::UnregisterWifiLanMediumV2(
     if (item.empty()) return;
     NEARBY_LOGS(INFO) << "Unregistered WifiLan medium";
   });
+}
+
+api::WifiLanMediumV2* MediumEnvironment::GetWifiLanV2Medium(
+    const std::string& ip_address, int port) {
+  for (auto& medium_info : wifi_lan_mediums_v2_) {
+    auto* medium_found = medium_info.first;
+    auto& info = medium_info.second;
+    for (auto& advertising_service : info.advertising_services) {
+      auto& service_info = advertising_service.second;
+      if (ip_address == service_info.GetIPAddress() &&
+          port == service_info.GetPort()) {
+        return medium_found;
+      }
+    }
+  }
+  return nullptr;
 }
 
 void MediumEnvironment::SetFeatureFlags(const FeatureFlags::Flags& flags) {

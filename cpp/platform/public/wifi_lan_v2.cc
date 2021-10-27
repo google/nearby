@@ -125,14 +125,21 @@ bool WifiLanMediumV2::StopDiscovery(const std::string& service_type) {
 }
 
 WifiLanSocketV2 WifiLanMediumV2::ConnectToService(
-    NsdServiceInfo remote_service_info, CancellationFlag* cancellation_flag) {
-  return {};
+    const NsdServiceInfo& remote_service_info,
+    CancellationFlag* cancellation_flag) {
+  NEARBY_LOGS(INFO) << "WifiLanMedium::ConnectToService: remote_service_name="
+                    << remote_service_info.GetServiceName();
+  return WifiLanSocketV2(
+      impl_->ConnectToService(remote_service_info, cancellation_flag));
 }
 
 WifiLanSocketV2 WifiLanMediumV2::ConnectToService(
     const std::string& ip_address, int port,
     CancellationFlag* cancellation_flag) {
-  return {};
+  NEARBY_LOGS(INFO) << "WifiLanMedium::ConnectToService: ip address="
+                    << ip_address << ", port=" << port;
+  return WifiLanSocketV2(
+      impl_->ConnectToService(ip_address, port, cancellation_flag));
 }
 
 }  // namespace nearby

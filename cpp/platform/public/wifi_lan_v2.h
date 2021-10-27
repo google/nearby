@@ -88,7 +88,7 @@ class WifiLanServerSocketV2 final {
       : impl_(std::move(socket)) {}
 
   // Returns ip address.
-  std::string GetIpAddress() { return impl_->GetIpAddress(); }
+  std::string GetIPAddress() { return impl_->GetIPAddress(); }
 
   // Returns port.
   int GetPort() { return impl_->GetPort(); }
@@ -174,7 +174,7 @@ class WifiLanMediumV2 {
 
   // Returns a new WifiLanSocket.
   // On Success, WifiLanSocket::IsValid() returns true.
-  WifiLanSocketV2 ConnectToService(NsdServiceInfo remote_service_info,
+  WifiLanSocketV2 ConnectToService(const NsdServiceInfo& remote_service_info,
                                    CancellationFlag* cancellation_flag);
 
   // Returns a new WifiLanSocket by ip address and port.
@@ -184,7 +184,7 @@ class WifiLanMediumV2 {
 
   // Returns a new WifiLanServerSocket.
   // On Success, WifiLanServerSocket::IsValid() returns true.
-  WifiLanServerSocketV2 ListenForService(int port) {
+  WifiLanServerSocketV2 ListenForService(int port = 0) {
     return WifiLanServerSocketV2(impl_->ListenForService(port));
   }
 

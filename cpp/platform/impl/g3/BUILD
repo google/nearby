@@ -74,6 +74,7 @@ cc_library(
         "//absl/container:flat_hash_map",
         "//absl/container:flat_hash_set",
         "//absl/strings",
+        "//absl/strings:str_format",
         "//absl/synchronization",
         "//platform/api:comm",
         "//platform/base",

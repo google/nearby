@@ -278,6 +278,10 @@ class MediumEnvironment {
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterWifiLanMediumV2(api::WifiLanMediumV2& medium);
 
+  // Returns WiFi LAN service matching IP address and port, or nullptr.
+  api::WifiLanMediumV2* GetWifiLanV2Medium(const std::string& ip_address,
+                                           int port);
+
   void SetFeatureFlags(const FeatureFlags::Flags& flags);
 
  private:

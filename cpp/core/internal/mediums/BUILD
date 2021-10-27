@@ -103,6 +103,7 @@ cc_test(
         "//testing/base/public:gunit_main",
         "//absl/strings",
         "//absl/time",
+        "//platform/base",
         "//platform/base:test_util",
         "//platform/impl/g3",  # build_cleaner: keep
         "//platform/public:comm",

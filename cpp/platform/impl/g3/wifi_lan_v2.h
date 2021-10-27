@@ -92,13 +92,33 @@ class WifiLanSocketV2 : public api::WifiLanSocketV2 {
 
 class WifiLanServerSocketV2 : public api::WifiLanServerSocketV2 {
  public:
+  static std::string GetName(const std::string& ip_address, int port);
+
   ~WifiLanServerSocketV2() override;
 
-  // Returns ip address.
-  std::string GetIpAddress() override ABSL_LOCKS_EXCLUDED(mutex_);
+  // Gets ip address.
+  std::string GetIPAddress() const override ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock lock(&mutex_);
+    return ip_address_;
+  }
 
-  // Returns port.
-  int GetPort() override ABSL_LOCKS_EXCLUDED(mutex_);
+  // Sets the ip address.
+  void SetIPAddress(const std::string& ip_address) ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock lock(&mutex_);
+    ip_address_ = ip_address;
+  }
+
+  // Gets the port.
+  int GetPort() const override ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock lock(&mutex_);
+    return port_;
+  }
+
+  // Sets the port.
+  void SetPort(int port) ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock lock(&mutex_);
+    port_ = port;
+  }
 
   // Blocks until either:
   // - at least one incoming connection request is available, or
@@ -135,7 +155,14 @@ class WifiLanServerSocketV2 : public api::WifiLanServerSocketV2 {
  private:
   Exception DoClose() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  absl::Mutex mutex_;
+  mutable absl::Mutex mutex_;
+  std::string ip_address_ ABSL_GUARDED_BY(mutex_);
+  int port_ ABSL_GUARDED_BY(mutex_);
+  absl::CondVar cond_;
+  absl::flat_hash_set<WifiLanSocketV2*> pending_sockets_
+      ABSL_GUARDED_BY(mutex_);
+  std::function<void()> close_notifier_ ABSL_GUARDED_BY(mutex_);
+  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };
 
 // Container of operations that can be performed over the WifiLan medium.
@@ -187,7 +214,7 @@ class WifiLanMediumV2 : public api::WifiLanMediumV2 {
   // On success, returns a new WifiLanSocket.
   // On error, returns nullptr.
   std::unique_ptr<api::WifiLanSocketV2> ConnectToService(
-      NsdServiceInfo& remote_service_info,
+      const NsdServiceInfo& remote_service_info,
       CancellationFlag* cancellation_flag) override;
 
   // Connects to a WifiLan service by ip address and port.
@@ -242,6 +269,8 @@ class WifiLanMediumV2 : public api::WifiLanMediumV2 {
   absl::Mutex mutex_;
   AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
   DiscoveringInfo discovering_info_ ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_map<std::string, WifiLanServerSocketV2*> server_sockets_
+      ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace g3

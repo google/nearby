@@ -28,6 +28,17 @@ namespace nearby {
 namespace connections {
 
 WifiLanV2::~WifiLanV2() {
+  // Destructor is not taking locks, but methods it is calling are.
+  while (!discovering_info_.service_ids.empty()) {
+    StopDiscovery(*discovering_info_.service_ids.begin());
+  }
+  while (!server_sockets_.empty()) {
+    StopAcceptingConnections(server_sockets_.begin()->first);
+  }
+  while (!advertising_info_.nsd_service_infos.empty()) {
+    StopAdvertising(advertising_info_.nsd_service_infos.begin()->first);
+  }
+
   // All the AcceptLoopRunnable objects in here should already have gotten an
   // opportunity to shut themselves down cleanly in the calls to
   // StopAcceptingConnections() above.
@@ -46,6 +57,12 @@ bool WifiLanV2::StartAdvertising(const std::string& service_id,
                                  NsdServiceInfo& nsd_service_info) {
   MutexLock lock(&mutex_);
 
+  if (!IsAvailableLocked()) {
+    NEARBY_LOGS(INFO)
+        << "Can't turn on WifiLan advertising. WifiLan is not available.";
+    return false;
+  }
+
   if (!nsd_service_info.IsValid()) {
     NEARBY_LOGS(INFO)
         << "Refusing to turn on WifiLan advertising. nsd_service_info is not "
@@ -59,13 +76,22 @@ bool WifiLanV2::StartAdvertising(const std::string& service_id,
     return false;
   }
 
-  if (!IsAvailableLocked()) {
+  if (!IsAcceptingConnectionsLocked(service_id)) {
     NEARBY_LOGS(INFO)
-        << "Can't turn on WifiLan advertising. WifiLan is not available.";
+        << "Failed to turn on WifiLan advertising with nsd_service_info="
+        << &nsd_service_info
+        << ", service_name=" << nsd_service_info.GetServiceName()
+        << ", service_id=" << service_id
+        << ". Should accept connections before advertising.";
     return false;
   }
 
   nsd_service_info.SetServiceType(GenerateServiceType(service_id));
+  const auto& it = server_sockets_.find(service_id);
+  if (it != server_sockets_.end()) {
+    nsd_service_info.SetIPAddress(it->second.GetIPAddress());
+    nsd_service_info.SetPort(it->second.GetPort());
+  }
   if (!medium_.StartAdvertising(nsd_service_info)) {
     NEARBY_LOGS(INFO)
         << "Failed to turn on WifiLan advertising with nsd_service_info="
@@ -179,12 +205,104 @@ bool WifiLanV2::IsDiscoveringLocked(const std::string& service_id) {
 bool WifiLanV2::StartAcceptingConnections(const std::string& service_id,
                                           AcceptedConnectionCallback callback) {
   MutexLock lock(&mutex_);
-  return false;
+
+  if (service_id.empty()) {
+    NEARBY_LOGS(INFO) << "Refusing to start accepting WifiLan connections; "
+                         "service_id is empty.";
+    return false;
+  }
+
+  if (!IsAvailableLocked()) {
+    NEARBY_LOGS(INFO)
+        << "Can't start accepting WifiLan connections [service_id="
+        << service_id << "]; WifiLan not available.";
+    return false;
+  }
+
+  if (IsAcceptingConnectionsLocked(service_id)) {
+    NEARBY_LOGS(INFO)
+        << "Refusing to start accepting WifiLan connections [service="
+        << service_id
+        << "]; WifiLan server is already in-progress with the same name.";
+    return false;
+  }
+
+  // We can generate an exact port here on server socket; now we just assign 0
+  // to let platform medium decide it.
+  int port = 0;
+  WifiLanServerSocketV2 server_socket = medium_.ListenForService(port);
+  if (!server_socket.IsValid()) {
+    NEARBY_LOGS(INFO)
+        << "Failed to start accepting WifiLan connections for service_id="
+        << service_id;
+    return false;
+  }
+
+  // Mark the fact that there's an in-progress WifiLan server accepting
+  // connections.
+  auto owned_server_socket =
+      server_sockets_.insert({service_id, std::move(server_socket)})
+          .first->second;
+
+  // Start the accept loop on a dedicated thread - this stays alive and
+  // listening for new incoming connections until StopAcceptingConnections() is
+  // invoked.
+  accept_loops_runner_.Execute(
+      "wifi-lan-accept",
+      [callback = std::move(callback),
+       server_socket = std::move(owned_server_socket), service_id]() mutable {
+        while (true) {
+          WifiLanSocketV2 client_socket = server_socket.Accept();
+          if (!client_socket.IsValid()) {
+            server_socket.Close();
+            break;
+          }
+          callback.accepted_cb(std::move(client_socket));
+        }
+      });
+
+  return true;
 }
 
 bool WifiLanV2::StopAcceptingConnections(const std::string& service_id) {
   MutexLock lock(&mutex_);
-  return false;
+
+  if (service_id.empty()) {
+    NEARBY_LOGS(INFO) << "Unable to stop accepting WifiLan connections because "
+                         "the service_id is empty.";
+    return false;
+  }
+
+  const auto& it = server_sockets_.find(service_id);
+  if (it == server_sockets_.end()) {
+    NEARBY_LOGS(INFO) << "Can't stop accepting WifiLan connections for "
+                      << service_id << " because it was never started.";
+    return false;
+  }
+
+  // Closing the WifiLanServerSocket will kick off the suicide of the thread
+  // in accept_loops_thread_pool_ that blocks on WifiLanServerSocket.accept().
+  // That may take some time to complete, but there's no particular reason to
+  // wait around for it.
+  auto item = server_sockets_.extract(it);
+
+  // Store a handle to the WifiLanServerSocket, so we can use it after
+  // removing the entry from server_sockets_; making it scoped
+  // is a bonus that takes care of deallocation before we leave this method.
+  WifiLanServerSocketV2& listening_socket = item.mapped();
+
+  // Regardless of whether or not we fail to close the existing
+  // WifiLanServerSocket, remove it from server_sockets_ so that it
+  // frees up this service for another round.
+
+  // Finally, close the WifiLanServerSocket.
+  if (!listening_socket.Close().Ok()) {
+    NEARBY_LOGS(INFO) << "Failed to close WifiLan server socket for service_id="
+                      << service_id;
+    return false;
+  }
+
+  return true;
 }
 
 bool WifiLanV2::IsAcceptingConnections(const std::string& service_id) {
@@ -200,8 +318,33 @@ WifiLanSocketV2 WifiLanV2::Connect(const std::string& service_id,
                                    const NsdServiceInfo& service_info,
                                    CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
+  // Socket to return. To allow for NRVO to work, it has to be a single object.
+  WifiLanSocketV2 socket;
 
-  return {};
+  if (service_id.empty()) {
+    NEARBY_LOGS(INFO) << "Refusing to create client WifiLan socket because "
+                         "service_id is empty.";
+    return socket;
+  }
+
+  if (!IsAvailableLocked()) {
+    NEARBY_LOGS(INFO) << "Can't create client WifiLan socket [service_id="
+                      << service_id << "]; WifiLan isn't available.";
+    return socket;
+  }
+
+  if (cancellation_flag->Cancelled()) {
+    NEARBY_LOGS(INFO) << "Can't create client WifiLan socket due to cancel.";
+    return socket;
+  }
+
+  socket = medium_.ConnectToService(service_info, cancellation_flag);
+  if (!socket.IsValid()) {
+    NEARBY_LOGS(INFO) << "Failed to Connect via WifiLan [service_id="
+                      << service_id << "]";
+  }
+
+  return socket;
 }
 
 WifiLanSocketV2 WifiLanV2::Connect(const std::string& service_id,
@@ -219,7 +362,7 @@ std::pair<std::string, int> WifiLanV2::GetCredentials(
   if (it == server_sockets_.end()) {
     return std::pair<std::string, int>();
   }
-  return std::pair<std::string, int>(it->second.GetIpAddress(),
+  return std::pair<std::string, int>(it->second.GetIPAddress(),
                                      it->second.GetPort());
 }
 

@@ -54,10 +54,10 @@ class WifiLanServerSocketV2 {
   virtual ~WifiLanServerSocketV2() = default;
 
   // Returns ip address.
-  virtual std::string GetIpAddress() = 0;
+  virtual std::string GetIPAddress() const = 0;
 
   // Returns port.
-  virtual int GetPort() = 0;
+  virtual int GetPort() const = 0;
 
   // Blocks until either:
   // - at least one incoming connection request is available, or
@@ -125,7 +125,7 @@ class WifiLanMediumV2 {
   // On success, returns a new WifiLanSocket.
   // On error, returns nullptr.
   virtual std::unique_ptr<WifiLanSocketV2> ConnectToService(
-      NsdServiceInfo& remote_service_info,
+      const NsdServiceInfo& remote_service_info,
       CancellationFlag* cancellation_flag) = 0;
 
   // Connects to a WifiLan service by ip address and port.
