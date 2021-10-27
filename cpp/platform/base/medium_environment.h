@@ -20,8 +20,11 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "platform/api/ble.h"
 #include "platform/api/bluetooth_adapter.h"
 #include "platform/api/bluetooth_classic.h"
+#include "platform/api/wifi_lan.h"
+#include "platform/api/wifi_lan_v2.h"
 #include "platform/api/webrtc.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/feature_flags.h"
@@ -62,6 +65,8 @@ class MediumEnvironment {
       api::WifiLanMedium::DiscoveredServiceCallback;
   using WifiLanAcceptedConnectionCallback =
       api::WifiLanMedium::AcceptedConnectionCallback;
+  using WifiLanDiscoveredServiceV2Callback =
+      api::WifiLanMediumV2::DiscoveredServiceCallback;
 
   MediumEnvironment(const MediumEnvironment&) = delete;
   MediumEnvironment& operator=(const MediumEnvironment&) = delete;
@@ -255,6 +260,21 @@ class MediumEnvironment {
       api::WifiLanMediumV2& medium, const NsdServiceInfo& nsd_service_info,
       bool enabled);
 
+  // Updates discovery callback info to allow for dispatch of discovery events.
+  //
+  // This should be called when discoverable state changes.
+  // with user-specified callback when discovery is enabled, and with default
+  // (empty) callback otherwise.
+  void UpdateWifiLanMediumV2ForDiscovery(
+      api::WifiLanMediumV2& medium, WifiLanDiscoveredServiceV2Callback callback,
+      const std::string& service_type, bool enabled);
+
+  // Gets Fake IP address for WifiLan medium.
+  std::string GetFakeIPAddress() const;
+
+  // Gets Fake port number for WifiLan medium.
+  int GetFakePort() const;
+
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterWifiLanMediumV2(api::WifiLanMediumV2& medium);
 
@@ -290,6 +310,12 @@ class MediumEnvironment {
   struct WifiLanMediumV2Context {
     // advertising service type vs NsdServiceInfo map.
     absl::flat_hash_map<std::string, NsdServiceInfo> advertising_services;
+    // discovered service type vs callback map.
+    absl::flat_hash_map<std::string, WifiLanDiscoveredServiceV2Callback>
+        discovered_callbacks;
+    // discovered service vs service type map.
+    absl::flat_hash_map<std::string, NsdServiceInfo>
+        discovered_services;
   };
 
   // This is a singleton object, for which destructor will never be called.
@@ -314,6 +340,10 @@ class MediumEnvironment {
                                     api::WifiLanService& wifi_lan_service,
                                     const std::string& service_id,
                                     bool enabled);
+
+  void OnWifiLanServiceV2StateChanged(WifiLanMediumV2Context& info,
+                                      const NsdServiceInfo& service_info,
+                                      bool enabled);
 
   void RunOnMediumEnvironmentThread(std::function<void()> runnable);
 

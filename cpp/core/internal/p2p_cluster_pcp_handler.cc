@@ -674,6 +674,128 @@ void P2pClusterPcpHandler::WifiLanServiceLostHandler(
           });
 }
 
+bool P2pClusterPcpHandler::IsRecognizedWifiLanV2Endpoint(
+    const std::string& service_id,
+    const WifiLanServiceInfo& wifi_lan_service_info) const {
+  if (!wifi_lan_service_info.IsValid()) {
+    NEARBY_LOGS(INFO)
+        << "WifiLanServiceInfo doesn't conform to the format, discarding.";
+    return false;
+  }
+
+  if (wifi_lan_service_info.GetPcp() != GetPcp()) {
+    NEARBY_LOGS(INFO)
+        << "WifiLanServiceInfo doesn't match on Pcp; expected "
+        << PcpToStrategy(GetPcp()).GetName() << ", found "
+        << PcpToStrategy(wifi_lan_service_info.GetPcp()).GetName();
+    return false;
+  }
+
+  ByteArray expected_service_id_hash =
+      GenerateHash(service_id, WifiLanServiceInfo::kServiceIdHashLength);
+
+  if (wifi_lan_service_info.GetServiceIdHash() != expected_service_id_hash) {
+    NEARBY_LOGS(INFO)
+        << "WifiLanServiceInfo doesn't match on expected service_id_hash; "
+           "expected "
+        << absl::BytesToHexString(expected_service_id_hash.data()) << ", found "
+        << absl::BytesToHexString(
+               wifi_lan_service_info.GetServiceIdHash().data());
+    return false;
+  }
+
+  return true;
+}
+
+void P2pClusterPcpHandler::WifiLanV2ServiceDiscoveredHandler(
+    ClientProxy* client, NsdServiceInfo service_info,
+    const std::string& service_id) {
+  RunOnPcpHandlerThread(
+      "p2p-wifi-service-discovered",
+      [this, client, service_id, service_info]() RUN_ON_PCP_HANDLER_THREAD() {
+        // Make sure we are still discovering before proceeding.
+        if (!client->IsDiscovering()) {
+          NEARBY_LOGS(WARNING) << "Skipping discovery of NsdServiceInfo "
+                               << service_info.GetServiceName()
+                               << " because we are no longer discovering.";
+          return;
+        }
+
+        // Parse the WifiLanServiceInfo.
+        WifiLanServiceInfo wifi_lan_service_info(service_info);
+        // Make sure the WifiLan service name points to a valid
+        // endpoint we're discovering.
+        if (!IsRecognizedWifiLanV2Endpoint(service_id, wifi_lan_service_info)) {
+          return;
+        }
+
+        // Report the discovered endpoint to the client.
+        NEARBY_LOGS(INFO) << "Found NsdServiceInfo "
+                          << service_info.GetServiceName()
+                          << " (with endpoint_id="
+                          << wifi_lan_service_info.GetEndpointId()
+                          << "and endpoint_info="
+                          << absl::BytesToHexString(
+                                 wifi_lan_service_info.GetEndpointInfo().data())
+                          << ").";
+        OnEndpointFound(client,
+                        std::make_shared<WifiLanV2Endpoint>(WifiLanV2Endpoint{
+                            {
+                                wifi_lan_service_info.GetEndpointId(),
+                                wifi_lan_service_info.GetEndpointInfo(),
+                                service_id,
+                                proto::connections::Medium::WIFI_LAN,
+                                wifi_lan_service_info.GetWebRtcState(),
+                            },
+                            service_info,
+                        }));
+      });
+}
+
+void P2pClusterPcpHandler::WifiLanV2ServiceLostHandler(
+    ClientProxy* client, NsdServiceInfo service_info,
+    const std::string& service_id) {
+  NEARBY_LOGS(INFO) << "WifiLan: [LOST, SCHED] service_info=" << &service_info
+                    << ", service_name=" << service_info.GetServiceName();
+  RunOnPcpHandlerThread(
+      "p2p-wifi-service-lost",
+      [this, client, service_id, service_info]() RUN_ON_PCP_HANDLER_THREAD() {
+        // Make sure we are still discovering before proceeding.
+        if (!client->IsDiscovering()) {
+          NEARBY_LOGS(WARNING) << "Ignoring lost NsdServiceInfo "
+                               << service_info.GetServiceName()
+                               << " because we are no longer "
+                                  "discovering.";
+          return;
+        }
+
+        // Parse the WifiLanServiceInfo.
+        WifiLanServiceInfo wifi_lan_service_info(service_info);
+
+        // Make sure the WifiLan service name points to a valid
+        // endpoint we're discovering.
+        if (!IsRecognizedWifiLanV2Endpoint(service_id, wifi_lan_service_info))
+          return;
+
+        // Report the lost endpoint to the client.
+        NEARBY_LOGS(INFO) << "Lost NsdServiceInfo "
+                          << service_info.GetServiceName()
+                          << " (with endpoint_id="
+                          << wifi_lan_service_info.GetEndpointId()
+                          << " and endpoint_info="
+                          << absl::BytesToHexString(
+                                 wifi_lan_service_info.GetEndpointInfo().data())
+                          << ").";
+        OnEndpointLost(client, DiscoveredEndpoint{
+                                   wifi_lan_service_info.GetEndpointId(),
+                                   wifi_lan_service_info.GetEndpointInfo(),
+                                   service_id,
+                                   proto::connections::Medium::WIFI_LAN,
+                                   WebRtcState::kUndefined,
+                               });
+      });
+}
+
 BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
     ClientProxy* client, const std::string& service_id,
     const ConnectionOptions& options) {
@@ -685,6 +807,24 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
   }
 
   std::vector<proto::connections::Medium> mediums_started_successfully;
+
+  if (options.allowed.wifi_lan) {
+    proto::connections::Medium wifi_lan_medium = StartWifiLanV2Discovery(
+        {
+            .service_discovered_cb = absl::bind_front(
+                &P2pClusterPcpHandler::WifiLanV2ServiceDiscoveredHandler, this,
+                client),
+            .service_lost_cb = absl::bind_front(
+                &P2pClusterPcpHandler::WifiLanV2ServiceLostHandler, this,
+                client),
+        },
+        client, service_id);
+    if (wifi_lan_medium != proto::connections::UNKNOWN_MEDIUM) {
+      NEARBY_LOGS(INFO)
+          << "P2pClusterPcpHandler::StartDiscoveryImpl: WifiLan added";
+      mediums_started_successfully.push_back(wifi_lan_medium);
+    }
+  }
 
   if (options.allowed.wifi_lan) {
     proto::connections::Medium wifi_lan_medium = StartWifiLanDiscovery(
@@ -1403,17 +1543,18 @@ proto::connections::Medium P2pClusterPcpHandler::StartWifiLanV2Advertising(
               RunOnPcpHandlerThread(
                   "p2p-wifi-on-incoming-connection",
                   [this, client, local_endpoint_info,
-                   socket = std::move(
-                       socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
-                    std::string remote_service_info_name;
-                    auto channel = absl::make_unique<WifiLanEndpointChannelV2>(
-                        remote_service_info_name, socket);
-                    ByteArray remote_service_info{remote_service_info_name};
+                   socket = std::move(socket)]()
+                      RUN_ON_PCP_HANDLER_THREAD() mutable {
+                        std::string remote_service_info_name;
+                        auto channel =
+                            absl::make_unique<WifiLanEndpointChannelV2>(
+                                remote_service_info_name, socket);
+                        ByteArray remote_service_info{remote_service_info_name};
 
-                    OnIncomingConnection(client, remote_service_info,
-                                         std::move(channel),
-                                         proto::connections::Medium::WIFI_LAN);
-                  });
+                        OnIncomingConnection(
+                            client, remote_service_info, std::move(channel),
+                            proto::connections::Medium::WIFI_LAN);
+                      });
             }})) {
       NEARBY_LOGS(WARNING)
           << "In StartWifiLanAdvertising("
@@ -1482,6 +1623,24 @@ proto::connections::Medium P2pClusterPcpHandler::StartWifiLanV2Advertising(
                     << " advertised with WifiLanServiceInfo "
                     << nsd_service_info.GetServiceName();
   return proto::connections::WIFI_LAN;
+}
+
+proto::connections::Medium P2pClusterPcpHandler::StartWifiLanV2Discovery(
+    WifiLanV2DiscoveredServiceCallback callback, ClientProxy* client,
+    const std::string& service_id) {
+  if (wifi_lan_medium_v2_.StartDiscovery(service_id, std::move(callback))) {
+    NEARBY_LOGS(INFO) << "In StartWifiLanDiscovery(), client="
+                      << client->GetClientId()
+                      << " started scanning for Wifi devices for service_id="
+                      << service_id;
+    return proto::connections::WIFI_LAN;
+  } else {
+    NEARBY_LOGS(INFO) << "In StartWifiLanDiscovery(), client="
+                      << client->GetClientId()
+                      << " couldn't start scanning on Wifi for service_id="
+                      << service_id;
+    return proto::connections::UNKNOWN_MEDIUM;
+  }
 }
 
 }  // namespace connections

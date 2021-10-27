@@ -22,14 +22,9 @@
 #include <type_traits>
 #include <utility>
 
-#include "platform/api/ble.h"
-#include "platform/api/bluetooth_adapter.h"
-#include "platform/api/bluetooth_classic.h"
-#include "platform/api/wifi_lan.h"
-#include "platform/api/wifi_lan_v2.h"
 #include "platform/base/feature_flags.h"
 #include "platform/base/logging.h"
-#include "platform/base/nsd_service_info.h"
+#include "platform/base/prng.h"
 #include "platform/public/count_down_latch.h"
 
 namespace location {
@@ -258,6 +253,66 @@ void MediumEnvironment::OnWifiLanServiceStateChanged(
               wifi_lan_service, service_id);
         }
       });
+}
+
+void MediumEnvironment::OnWifiLanServiceV2StateChanged(
+    WifiLanMediumV2Context& info, const NsdServiceInfo& service_info,
+    bool enabled) {
+  if (!enabled_) return;
+  std::string service_type = service_info.GetServiceType();
+  auto item = info.discovered_services.find(service_type);
+  if (item == info.discovered_services.end()) {
+    NEARBY_LOGS(INFO) << "G3 OnWifiLanServiceStateChanged; context=" << &info
+                      << "; service_type=" << service_type
+                      << "; enabled=" << enabled
+                      << "; notify=" << enable_notifications_.load();
+    if (enabled) {
+      // Find advertising service with matched service_type. Report it as
+      // discovered by assigning the fake ip address and port.
+      NsdServiceInfo discovered_service_info(service_info);
+      discovered_service_info.SetIPAddress(GetFakeIPAddress());
+      discovered_service_info.SetPort(GetFakePort());
+      info.discovered_services.insert({service_type, discovered_service_info});
+      if (enable_notifications_) {
+        RunOnMediumEnvironmentThread(
+            [&info, discovered_service_info, service_type]() {
+              auto item = info.discovered_callbacks.find(service_type);
+              if (item != info.discovered_callbacks.end()) {
+                item->second.service_discovered_cb(discovered_service_info);
+              }
+            });
+      }
+    }
+  } else {
+    NEARBY_LOGS(INFO)
+        << "G3 OnWifiLanServiceStateChanged: exisitng service; context="
+        << &info << "; service_type=" << service_type << "; enabled=" << enabled
+        << "; notify=" << enable_notifications_.load();
+    if (enabled) {
+      if (enable_notifications_) {
+        RunOnMediumEnvironmentThread(
+            [&info, service_info = service_info, service_type]() {
+              auto item = info.discovered_callbacks.find(service_type);
+              if (item != info.discovered_callbacks.end()) {
+                item->second.service_discovered_cb(service_info);
+              }
+            });
+      }
+    } else {
+      // Known service is off.
+      // Erase it from the map, and report as lost.
+      if (enable_notifications_) {
+        RunOnMediumEnvironmentThread(
+            [&info, service_info = service_info, service_type]() {
+              auto item = info.discovered_callbacks.find(service_type);
+              if (item != info.discovered_callbacks.end()) {
+                item->second.service_lost_cb(service_info);
+              }
+            });
+      }
+      info.discovered_services.erase(item);
+    }
+  }
 }
 
 void MediumEnvironment::RunOnMediumEnvironmentThread(
@@ -625,6 +680,24 @@ void MediumEnvironment::UpdateWifiLanMediumForDiscovery(
       });
 }
 
+std::string MediumEnvironment::GetFakeIPAddress() const {
+  std::string ip_address;
+  ip_address.resize(4);
+  uint32_t raw_ip_addr = Prng().NextUint32();
+  ip_address[0] = static_cast<char>(raw_ip_addr >> 24);
+  ip_address[1] = static_cast<char>(raw_ip_addr >> 16);
+  ip_address[2] = static_cast<char>(raw_ip_addr >> 8);
+  ip_address[3] = static_cast<char>(raw_ip_addr >> 0);
+
+  return ip_address;
+}
+
+int MediumEnvironment::GetFakePort() const {
+  uint16_t port = Prng().NextUint32();
+
+  return port;
+}
+
 void MediumEnvironment::UpdateWifiLanMediumForAcceptedConnection(
     api::WifiLanMedium& medium, const std::string& service_id,
     WifiLanAcceptedConnectionCallback callback) {
@@ -741,6 +814,40 @@ void MediumEnvironment::UpdateWifiLanMediumV2ForAdvertising(
         }
         continue;
       }
+      OnWifiLanServiceV2StateChanged(info, service_info, enabled);
+    }
+  });
+}
+
+void MediumEnvironment::UpdateWifiLanMediumV2ForDiscovery(
+    api::WifiLanMediumV2& medium, WifiLanDiscoveredServiceV2Callback callback,
+    const std::string& service_type, bool enabled) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium, callback = std::move(callback),
+                                service_type, enabled]() {
+    auto item = wifi_lan_mediums_v2_.find(&medium);
+    if (item == wifi_lan_mediums_v2_.end()) {
+      NEARBY_LOGS(INFO)
+          << "UpdateWifiLanMediumForDiscovery failed. There is no medium "
+             "registered.";
+      return;
+    }
+    auto& context = item->second;
+    context.discovered_callbacks.insert({service_type, std::move(callback)});
+    NEARBY_LOGS(INFO) << "Update WifiLan medium for discovery: this=" << this
+                      << "; medium=" << &medium
+                      << "; service_type=" << service_type
+                      << "; enabled=" << enabled;
+    for (auto& medium_info : wifi_lan_mediums_v2_) {
+      auto& local_medium = medium_info.first;
+      auto& info = medium_info.second;
+      // Do not send notification to the same medium.
+      if (local_medium == &medium) continue;
+      // Search advertising services and send notification.
+      for (auto& advertising_service : info.advertising_services) {
+        auto& service_info = advertising_service.second;
+        OnWifiLanServiceV2StateChanged(context, service_info, /*enabled=*/true);
+      }
     }
   });
 }
@@ -751,7 +858,7 @@ void MediumEnvironment::UnregisterWifiLanMediumV2(
   RunOnMediumEnvironmentThread([this, &medium]() {
     auto item = wifi_lan_mediums_v2_.extract(&medium);
     if (item.empty()) return;
-    NEARBY_LOG(INFO, "Unregistered WifiLan medium");
+    NEARBY_LOGS(INFO) << "Unregistered WifiLan medium";
   });
 }
 

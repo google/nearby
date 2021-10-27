@@ -109,6 +109,8 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       BluetoothClassic::DiscoveredDeviceCallback;
   using BleDiscoveredPeripheralCallback = Ble::DiscoveredPeripheralCallback;
   using WifiLanDiscoveredServiceCallback = WifiLan::DiscoveredServiceCallback;
+  using WifiLanV2DiscoveredServiceCallback =
+      WifiLanV2::DiscoveredServiceCallback;
 
   static constexpr BluetoothDeviceName::Version kBluetoothDeviceNameVersion =
       BluetoothDeviceName::Version::kV1;
@@ -189,10 +191,22 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       ClientProxy* client, WifiLanEndpoint* endpoint);
 
   // WifiLanV2
+  bool IsRecognizedWifiLanV2Endpoint(
+      const std::string& service_id,
+      const WifiLanServiceInfo& wifi_lan_service_info) const;
+  void WifiLanV2ServiceDiscoveredHandler(ClientProxy* client,
+                                         NsdServiceInfo service_info,
+                                         const std::string& service_id);
+  void WifiLanV2ServiceLostHandler(ClientProxy* client,
+                                   NsdServiceInfo service_info,
+                                   const std::string& service_id);
   proto::connections::Medium StartWifiLanV2Advertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info, WebRtcState web_rtc_state);
+  proto::connections::Medium StartWifiLanV2Discovery(
+      WifiLanV2DiscoveredServiceCallback callback, ClientProxy* client,
+      const std::string& service_id);
 
   BluetoothRadio& bluetooth_radio_;
   BluetoothClassic& bluetooth_medium_;

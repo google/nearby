@@ -25,7 +25,6 @@
 #include "platform/base/logging.h"
 #include "platform/base/medium_environment.h"
 #include "platform/base/nsd_service_info.h"
-#include "platform/base/prng.h"
 
 namespace location {
 namespace nearby {
@@ -195,11 +194,44 @@ bool WifiLanMediumV2::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
 
 bool WifiLanMediumV2::StartDiscovery(const std::string& service_type,
                                      DiscoveredServiceCallback callback) {
-  return false;
+  NEARBY_LOGS(INFO) << "G3 WifiLan StartDiscovery: service_type="
+                    << service_type;
+  {
+    absl::MutexLock lock(&mutex_);
+    if (discovering_info_.Existed(service_type)) {
+      NEARBY_LOGS(INFO)
+          << "G3 WifiLan StartDiscovery: Can't start discovery because "
+             "service_type="
+          << service_type << " has started already.";
+      return false;
+    }
+  }
+  auto& env = MediumEnvironment::Instance();
+  env.UpdateWifiLanMediumV2ForDiscovery(*this, std::move(callback),
+                                        service_type, true);
+  {
+    absl::MutexLock lock(&mutex_);
+    discovering_info_.Add(service_type);
+  }
+  return true;
 }
 
 bool WifiLanMediumV2::StopDiscovery(const std::string& service_type) {
-  return false;
+  NEARBY_LOGS(INFO) << "G3 WifiLan StopDiscovery: service_type="
+                    << service_type;
+  {
+    absl::MutexLock lock(&mutex_);
+    if (!discovering_info_.Existed(service_type)) {
+      NEARBY_LOGS(INFO)
+          << "G3 WifiLan StopDiscovery: Can't stop discovering because we "
+             "never started discovering.";
+      return false;
+    }
+    discovering_info_.Remove(service_type);
+  }
+  auto& env = MediumEnvironment::Instance();
+  env.UpdateWifiLanMediumV2ForDiscovery(*this, {}, service_type, false);
+  return true;
 }
 
 std::unique_ptr<api::WifiLanSocketV2> WifiLanMediumV2::ConnectToService(
@@ -216,19 +248,6 @@ std::unique_ptr<api::WifiLanSocketV2> WifiLanMediumV2::ConnectToService(
 std::unique_ptr<api::WifiLanServerSocketV2> WifiLanMediumV2::ListenForService(
     int port) {
   return {};
-}
-
-std::pair<std::string, int> WifiLanMediumV2::GetFakeCredentials() const {
-  std::string ip_address;
-  ip_address.resize(4);
-  uint32_t raw_ip_addr = Prng().NextUint32();
-  uint16_t port = Prng().NextUint32();
-  ip_address[0] = static_cast<char>(raw_ip_addr >> 24);
-  ip_address[1] = static_cast<char>(raw_ip_addr >> 16);
-  ip_address[2] = static_cast<char>(raw_ip_addr >> 8);
-  ip_address[3] = static_cast<char>(raw_ip_addr >> 0);
-
-  return std::make_pair(ip_address, port);
 }
 
 }  // namespace g3

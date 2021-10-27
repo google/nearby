@@ -206,6 +206,14 @@ class BasePcpHandler : public PcpHandler,
     WifiLanService wifi_lan_service;
   };
 
+  struct WifiLanV2Endpoint : public DiscoveredEndpoint {
+    WifiLanV2Endpoint(DiscoveredEndpoint endpoint,
+                      const NsdServiceInfo& service_info)
+        : DiscoveredEndpoint(std::move(endpoint)), service_info(service_info) {}
+
+    NsdServiceInfo service_info;
+  };
+
   struct WebRtcEndpoint : public DiscoveredEndpoint {
     WebRtcEndpoint(DiscoveredEndpoint endpoint, mediums::PeerId peer_id)
         : DiscoveredEndpoint(std::move(endpoint)),

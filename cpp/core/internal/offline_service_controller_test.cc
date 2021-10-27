@@ -38,8 +38,8 @@ constexpr absl::string_view kServiceId = "service-id";
 constexpr absl::string_view kDeviceA = "device-a";
 constexpr absl::string_view kDeviceB = "device-b";
 constexpr absl::string_view kMessage = "message";
-constexpr absl::Duration kProgressTimeout = absl::Milliseconds(1000);
-constexpr absl::Duration kDefaultTimeout = absl::Milliseconds(1000);
+constexpr absl::Duration kProgressTimeout = absl::Milliseconds(1500);
+constexpr absl::Duration kDefaultTimeout = absl::Milliseconds(1500);
 constexpr absl::Duration kDisconnectTimeout = absl::Milliseconds(15000);
 
 constexpr BooleanMediumSelector kTestCases[] = {

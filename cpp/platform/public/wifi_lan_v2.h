@@ -126,15 +126,9 @@ class WifiLanMediumV2 {
  public:
   using Platform = api::ImplementationPlatform;
 
-  // WifiLanService is a proxy object created as a result of WifiLan discovery.
-  // Its lifetime spans between calls to service_discovered_cb and
-  // service_lost_cb.
-  // It is safe to use WifiLanService in service_discovered_cb() callback
-  // and at any time afterwards, until service_lost_cb() is called.
-  // It is not safe to use WifiLanService after returning from
-  // service_lost_cb() callback.
   struct DiscoveredServiceCallback {
-    std::function<void(NsdServiceInfo, const std::string& service_type)>
+    std::function<void(NsdServiceInfo service_info,
+                       const std::string& service_type)>
         service_discovered_cb =
             DefaultCallback<NsdServiceInfo, const std::string&>();
     std::function<void(NsdServiceInfo service_info,
@@ -143,6 +137,7 @@ class WifiLanMediumV2 {
   };
 
   struct DiscoveryCallbackInfo {
+    std::string service_id;
     DiscoveredServiceCallback medium_callback;
   };
 
@@ -169,7 +164,8 @@ class WifiLanMediumV2 {
   bool StopAdvertising(const NsdServiceInfo& nsd_service_info);
 
   // Returns true once the WifiLan discovery has been initiated.
-  bool StartDiscovery(const std::string& service_type,
+  bool StartDiscovery(const std::string& service_id,
+                      const std::string& service_type,
                       DiscoveredServiceCallback callback);
 
   // Returns true once service_type is associated to existing callback. If the
@@ -201,6 +197,7 @@ class WifiLanMediumV2 {
   std::unique_ptr<api::WifiLanMediumV2> impl_;
   absl::flat_hash_map<std::string, std::unique_ptr<DiscoveryCallbackInfo>>
       discovery_callbacks_ ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_set<std::string> discovery_services_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace nearby

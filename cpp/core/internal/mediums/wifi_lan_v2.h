@@ -92,7 +92,7 @@ class WifiLanV2 {
   // Blocks until connection is established, or server-side is terminated.
   // Returns socket instance. On success, WifiLanSocket.IsValid() return true.
   WifiLanSocketV2 Connect(const std::string& service_id,
-                          NsdServiceInfo& service_info,
+                          const NsdServiceInfo& service_info,
                           CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -104,6 +104,10 @@ class WifiLanV2 {
                           CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Gets ip address + port for remote services on the network to identify and
+  // connect to this service.
+  //
+  // Credential is for the currently-hosted Wifi ServerSocket (if any).
   std::pair<std::string, int> GetCredentials(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -135,7 +139,7 @@ class WifiLanV2 {
   struct DiscoveringInfo {
     bool Empty() const { return service_ids.empty(); }
     void Clear() { service_ids.clear(); }
-    void Add(const std::string& service_id) { service_ids.emplace(service_id); }
+    void Add(const std::string& service_id) { service_ids.insert(service_id); }
     void Remove(const std::string& service_id) {
       service_ids.erase(service_id);
     }
@@ -187,4 +191,4 @@ class WifiLanV2 {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_WIFI_LAN_V2_H_
+#endif  // CORE_INTERNAL_MEDIUMS_WIFI_LAN_H_

@@ -115,12 +115,56 @@ bool WifiLanV2::IsAdvertisingLocked(const std::string& service_id) {
 bool WifiLanV2::StartDiscovery(const std::string& service_id,
                                DiscoveredServiceCallback callback) {
   MutexLock lock(&mutex_);
-  return false;
+
+  if (service_id.empty()) {
+    NEARBY_LOGS(INFO)
+        << "Refusing to start WifiLan discovering with empty service_id.";
+    return false;
+  }
+
+  if (!IsAvailableLocked()) {
+    NEARBY_LOGS(INFO)
+        << "Can't discover WifiLan services because WifiLan isn't available.";
+    return false;
+  }
+
+  if (IsDiscoveringLocked(service_id)) {
+    NEARBY_LOGS(INFO)
+        << "Refusing to start discovery of WifiLan services because another "
+           "discovery is already in-progress.";
+    return false;
+  }
+
+  std::string service_type = GenerateServiceType(service_id);
+  bool ret = medium_.StartDiscovery(service_id, service_type, callback);
+  if (!ret) {
+    NEARBY_LOGS(INFO) << "Failed to start discovery of WifiLan services.";
+    return false;
+  }
+
+  NEARBY_LOGS(INFO) << "Turned on WifiLan discovering with service_id="
+                    << service_id;
+  // Mark the fact that we're currently performing a WifiLan discovering.
+  discovering_info_.Add(service_id);
+  return true;
 }
 
 bool WifiLanV2::StopDiscovery(const std::string& service_id) {
   MutexLock lock(&mutex_);
-  return false;
+
+  if (!IsDiscoveringLocked(service_id)) {
+    NEARBY_LOGS(INFO)
+        << "Can't turn off WifiLan discovering because we never started "
+           "discovering.";
+    return false;
+  }
+
+  std::string service_type = GenerateServiceType(service_id);
+  NEARBY_LOGS(INFO) << "Turned off WifiLan discovering with service_id="
+                    << service_id << ", service_type=" << service_type;
+  bool ret = medium_.StopDiscovery(service_type);
+  discovering_info_.Remove(service_id);
+  return ret;
 }
 
 bool WifiLanV2::IsDiscovering(const std::string& service_id) {
@@ -153,7 +197,7 @@ bool WifiLanV2::IsAcceptingConnectionsLocked(const std::string& service_id) {
 }
 
 WifiLanSocketV2 WifiLanV2::Connect(const std::string& service_id,
-                                   NsdServiceInfo& service_info,
+                                   const NsdServiceInfo& service_info,
                                    CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
 
