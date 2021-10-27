@@ -245,7 +245,7 @@ class MediumEnvironment {
                                              api::WifiLanSocket& socket,
                                              const std::string& service_id);
 
-  // Returns WiFi LAN service matching IP address and port, or nullptr.
+  // Returns WifiLan service matching IP address and port, or nullptr.
   api::WifiLanService* GetWifiLanService(const std::string& ip_address,
                                          int port);
 
@@ -278,7 +278,8 @@ class MediumEnvironment {
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterWifiLanMediumV2(api::WifiLanMediumV2& medium);
 
-  // Returns WiFi LAN service matching IP address and port, or nullptr.
+  // Returns WifiLan medium whose advertising service matching IP address and
+  // port, or nullptr.
   api::WifiLanMediumV2* GetWifiLanV2Medium(const std::string& ip_address,
                                            int port);
 

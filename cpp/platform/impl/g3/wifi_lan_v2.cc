@@ -293,9 +293,9 @@ std::unique_ptr<api::WifiLanSocketV2> WifiLanMediumV2::ConnectToService(
 std::unique_ptr<api::WifiLanSocketV2> WifiLanMediumV2::ConnectToService(
     const std::string& ip_address, int port,
     CancellationFlag* cancellation_flag) {
+  std::string socket_name = WifiLanServerSocketV2::GetName(ip_address, port);
   NEARBY_LOGS(INFO) << "G3 WifiLan ConnectToService [self]: medium=" << this
-                    << ", ip address + port="
-                    << WifiLanServerSocketV2::GetName(ip_address, port);
+                    << ", ip address + port=" << socket_name;
   // First, find an instance of remote medium, that exposed this service.
   auto& env = MediumEnvironment::Instance();
   auto* remote_medium =
@@ -306,10 +306,9 @@ std::unique_ptr<api::WifiLanSocketV2> WifiLanMediumV2::ConnectToService(
 
   WifiLanServerSocketV2* server_socket = nullptr;
   NEARBY_LOGS(INFO) << "G3 WifiLan ConnectToService [peer]: medium="
-                    << remote_medium << ", remote ip address + port="
-                    << WifiLanServerSocketV2::GetName(ip_address, port);
+                    << remote_medium
+                    << ", remote ip address + port=" << socket_name;
   // Then, find our server socket context in this medium.
-  std::string socket_name = WifiLanServerSocketV2::GetName(ip_address, port);
   {
     absl::MutexLock medium_lock(&remote_medium->mutex_);
     auto item = remote_medium->server_sockets_.find(socket_name);

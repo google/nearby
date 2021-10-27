@@ -351,8 +351,33 @@ WifiLanSocketV2 WifiLanV2::Connect(const std::string& service_id,
                                    const std::string& ip_address, int port,
                                    CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
+  // Socket to return. To allow for NRVO to work, it has to be a single object.
+  WifiLanSocketV2 socket;
 
-  return {};
+  if (service_id.empty()) {
+    NEARBY_LOGS(INFO) << "Refusing to create client WifiLan socket because "
+                         "service_id is empty.";
+    return socket;
+  }
+
+  if (!IsAvailableLocked()) {
+    NEARBY_LOGS(INFO) << "Can't create client WifiLan socket [service_id="
+                      << service_id << "]; WifiLan isn't available.";
+    return socket;
+  }
+
+  if (cancellation_flag->Cancelled()) {
+    NEARBY_LOGS(INFO) << "Can't create client WifiLan socket due to cancel.";
+    return socket;
+  }
+
+  socket = medium_.ConnectToService(ip_address, port, cancellation_flag);
+  if (!socket.IsValid()) {
+    NEARBY_LOGS(INFO) << "Failed to Connect via WifiLan [service_id="
+                      << service_id << "]";
+  }
+
+  return socket;
 }
 
 std::pair<std::string, int> WifiLanV2::GetCredentials(
