@@ -38,7 +38,9 @@ constexpr FeatureFlags kTestCases[] = {
     },
 };
 
-constexpr absl::string_view kServiceID{"com.google.location.nearby.apps.test"};
+constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
+constexpr absl::string_view kServiceId{"service_id"};
+constexpr absl::string_view kServiceType{"_service.tcp_"};
 constexpr absl::string_view kServiceInfoName{"Simulated service info name"};
 constexpr absl::string_view kEndpointName{"Simulated endpoint name"};
 constexpr absl::string_view kEndpointInfoKey{"n"};
@@ -46,71 +48,81 @@ constexpr absl::string_view kEndpointInfoKey{"n"};
 class WifiLanMediumTest : public ::testing::TestWithParam<FeatureFlags> {
  protected:
   using DiscoveredServiceCallback = WifiLanMedium::DiscoveredServiceCallback;
-  using AcceptedConnectionCallback = WifiLanMedium::AcceptedConnectionCallback;
 
   WifiLanMediumTest() { env_.Stop(); }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
-TEST_P(WifiLanMediumTest, CanStartAcceptingConnectionsAndConnect) {
+TEST_P(WifiLanMediumTest, CanConnectToService) {
   FeatureFlags feature_flags = GetParam();
   env_.SetFeatureFlags(feature_flags);
   env_.Start();
-  WifiLanMedium wifi_a;
-  WifiLanMedium wifi_b;
-  std::string service_id(kServiceID);
-  std::string service_info_name{kServiceInfoName};
-  std::string endpoint_info_name{kEndpointName};
-  CountDownLatch found_latch(1);
-  CountDownLatch accepted_latch(1);
-  CancellationFlag flag;
+  WifiLanMedium wifi_lan_a;
+  WifiLanMedium wifi_lan_b;
+  std::string service_id(kServiceId);
+  std::string service_type(kServiceType);
+  std::string service_info_name(kServiceInfoName);
+  std::string endpoint_info_name(kEndpointName);
+  CountDownLatch discovered_latch(1);
+  CountDownLatch lost_latch(1);
 
-  WifiLanService* discovered_service = nullptr;
-  wifi_a.StartDiscovery(
-      service_id,
-      DiscoveredServiceCallback{
-          .service_discovered_cb =
-              [&found_latch, &discovered_service](
-                  WifiLanService& service, const std::string& service_id) {
-                NEARBY_LOG(INFO, "Service discovered: %s, %p",
-                           service.GetServiceInfo().GetServiceName().c_str(),
-                           &service);
-                discovered_service = &service;
-                found_latch.CountDown();
-              },
-      });
+  WifiLanServerSocket server_socket = wifi_lan_b.ListenForService();
+  EXPECT_TRUE(server_socket.IsValid());
 
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(service_info_name);
   nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
                                 endpoint_info_name);
-  wifi_b.StartAdvertising(service_id, nsd_service_info);
-  wifi_b.StartAcceptingConnections(
-      service_id,
-      AcceptedConnectionCallback{
-          .accepted_cb = [&accepted_latch](WifiLanSocket socket,
-                                           const std::string& service_id) {
-            NEARBY_LOG(INFO, "Connection accepted: socket=%p, service_id=%s",
-                       &socket, service_id.c_str());
-            accepted_latch.CountDown();
-          }});
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  nsd_service_info.SetServiceType(service_type);
+  nsd_service_info.SetIPAddress(server_socket.GetIPAddress());
+  nsd_service_info.SetPort(server_socket.GetPort());
+  wifi_lan_b.StartAdvertising(nsd_service_info);
 
+  NsdServiceInfo discovered_service_info;
+  wifi_lan_a.StartDiscovery(
+      service_id, service_type,
+      DiscoveredServiceCallback{
+          .service_discovered_cb =
+              [&discovered_latch, &discovered_service_info](
+                  NsdServiceInfo service_info,
+                  const std::string& service_type) {
+                discovered_service_info = service_info;
+                discovered_latch.CountDown();
+              },
+          .service_lost_cb =
+              [&lost_latch](NsdServiceInfo service_info,
+                            const std::string& service_type) {
+                lost_latch.CountDown();
+              },
+      });
+  EXPECT_TRUE(discovered_latch.Await(absl::Milliseconds(1000)).result());
   WifiLanSocket socket_a;
+  WifiLanSocket socket_b;
   EXPECT_FALSE(socket_a.IsValid());
+  EXPECT_FALSE(socket_b.IsValid());
   {
+    CancellationFlag flag;
+    SingleThreadExecutor server_executor;
     SingleThreadExecutor client_executor;
-    client_executor.Execute(
-        [&wifi_a, &socket_a, discovered_service, &service_id, &flag]() {
-          socket_a = wifi_a.Connect(*discovered_service, service_id, &flag);
-        });
+    client_executor.Execute([&wifi_lan_a, &socket_a,
+                             discovered_service_info = discovered_service_info,
+                             service_type, &server_socket, &flag]() {
+      socket_a = wifi_lan_a.ConnectToService(discovered_service_info, &flag);
+      if (!socket_a.IsValid()) {
+        server_socket.Close();
+      }
+    });
+    server_executor.Execute([&socket_b, &server_socket]() {
+      socket_b = server_socket.Accept();
+      if (!socket_b.IsValid()) {
+        server_socket.Close();
+      }
+    });
   }
-  EXPECT_TRUE(accepted_latch.Await(absl::Milliseconds(1000)).result());
   EXPECT_TRUE(socket_a.IsValid());
-  wifi_b.StopAcceptingConnections(service_id);
-  wifi_b.StopAdvertising(service_id);
-  wifi_a.StopDiscovery(service_id);
+  EXPECT_TRUE(socket_b.IsValid());
+  server_socket.Close();
   env_.Stop();
 }
 
@@ -118,68 +130,77 @@ TEST_P(WifiLanMediumTest, CanCancelConnect) {
   FeatureFlags feature_flags = GetParam();
   env_.SetFeatureFlags(feature_flags);
   env_.Start();
-  WifiLanMedium wifi_a;
-  WifiLanMedium wifi_b;
-  std::string service_id(kServiceID);
-  std::string service_info_name{kServiceInfoName};
-  std::string endpoint_info_name{kEndpointName};
-  CountDownLatch found_latch(1);
-  CountDownLatch accepted_latch(1);
-  CancellationFlag flag(true);
+  WifiLanMedium wifi_lan_a;
+  WifiLanMedium wifi_lan_b;
+  std::string service_id(kServiceId);
+  std::string service_type(kServiceType);
+  std::string service_info_name(kServiceInfoName);
+  std::string endpoint_info_name(kEndpointName);
+  CountDownLatch discovered_latch(1);
+  CountDownLatch lost_latch(1);
 
-  WifiLanService* discovered_service = nullptr;
-  wifi_a.StartDiscovery(
-      service_id,
-      DiscoveredServiceCallback{
-          .service_discovered_cb =
-              [&found_latch, &discovered_service](
-                  WifiLanService& service, const std::string& service_id) {
-                NEARBY_LOG(INFO, "Service discovered: %s, %p",
-                           service.GetServiceInfo().GetServiceName().c_str(),
-                           &service);
-                discovered_service = &service;
-                found_latch.CountDown();
-              },
-      });
+  WifiLanServerSocket server_socket = wifi_lan_b.ListenForService();
+  EXPECT_TRUE(server_socket.IsValid());
 
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(service_info_name);
   nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
                                 endpoint_info_name);
-  wifi_b.StartAdvertising(service_id, nsd_service_info);
-  wifi_b.StartAcceptingConnections(
-      service_id,
-      AcceptedConnectionCallback{
-          .accepted_cb = [&accepted_latch](WifiLanSocket socket,
-                                           const std::string& service_id) {
-            NEARBY_LOG(INFO, "Connection accepted: socket=%p, service_id=%s",
-                       &socket, service_id.c_str());
-            accepted_latch.CountDown();
-          }});
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  nsd_service_info.SetServiceType(service_type);
+  nsd_service_info.SetIPAddress(server_socket.GetIPAddress());
+  nsd_service_info.SetPort(server_socket.GetPort());
+  wifi_lan_b.StartAdvertising(nsd_service_info);
 
+  NsdServiceInfo discovered_service_info;
+  wifi_lan_a.StartDiscovery(
+      service_id, service_type,
+      DiscoveredServiceCallback{
+          .service_discovered_cb =
+              [&discovered_latch, &discovered_service_info](
+                  NsdServiceInfo service_info,
+                  const std::string& service_type) {
+                discovered_service_info = service_info;
+                discovered_latch.CountDown();
+              },
+          .service_lost_cb =
+              [&lost_latch](NsdServiceInfo service_info,
+                            const std::string& service_type) {
+                lost_latch.CountDown();
+              },
+      });
+  EXPECT_TRUE(discovered_latch.Await(absl::Milliseconds(1000)).result());
   WifiLanSocket socket_a;
+  WifiLanSocket socket_b;
   EXPECT_FALSE(socket_a.IsValid());
+  EXPECT_FALSE(socket_b.IsValid());
   {
+    CancellationFlag flag(true);
+    SingleThreadExecutor server_executor;
     SingleThreadExecutor client_executor;
-    client_executor.Execute(
-        [&wifi_a, &socket_a, discovered_service, &service_id, &flag]() {
-          socket_a = wifi_a.Connect(*discovered_service, service_id, &flag);
-        });
+    client_executor.Execute([&wifi_lan_a, &socket_a,
+                             discovered_service_info = discovered_service_info,
+                             service_type, &server_socket, &flag]() {
+      socket_a = wifi_lan_a.ConnectToService(discovered_service_info, &flag);
+      if (!socket_a.IsValid()) {
+        server_socket.Close();
+      }
+    });
+    server_executor.Execute([&socket_b, &server_socket]() {
+      socket_b = server_socket.Accept();
+      if (!socket_b.IsValid()) {
+        server_socket.Close();
+      }
+    });
   }
-
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
-    EXPECT_TRUE(accepted_latch.Await(absl::Milliseconds(1000)).result());
     EXPECT_TRUE(socket_a.IsValid());
+    EXPECT_TRUE(socket_b.IsValid());
   } else {
-    EXPECT_FALSE(accepted_latch.Await(absl::Milliseconds(1000)).result());
     EXPECT_FALSE(socket_a.IsValid());
+    EXPECT_FALSE(socket_b.IsValid());
   }
-
-  wifi_b.StopAcceptingConnections(service_id);
-  wifi_b.StopAdvertising(service_id);
-  wifi_a.StopDiscovery(service_id);
+  server_socket.Close();
   env_.Stop();
 }
 
@@ -188,117 +209,179 @@ INSTANTIATE_TEST_SUITE_P(ParametrisedWifiLanMediumTest, WifiLanMediumTest,
 
 TEST_F(WifiLanMediumTest, ConstructorDestructorWorks) {
   env_.Start();
-  WifiLanMedium wifi_a;
-  WifiLanMedium wifi_b;
+  WifiLanMedium wifi_lan_a;
+  WifiLanMedium wifi_lan_b;
 
   // Make sure we can create functional mediums.
-  ASSERT_TRUE(wifi_a.IsValid());
-  ASSERT_TRUE(wifi_b.IsValid());
+  ASSERT_TRUE(wifi_lan_a.IsValid());
+  ASSERT_TRUE(wifi_lan_b.IsValid());
 
   // Make sure we can create 2 distinct mediums.
-  EXPECT_NE(&wifi_a.GetImpl(), &wifi_b.GetImpl());
+  EXPECT_NE(&wifi_lan_a.GetImpl(), &wifi_lan_b.GetImpl());
   env_.Stop();
 }
 
 TEST_F(WifiLanMediumTest, CanStartAdvertising) {
   env_.Start();
-  WifiLanMedium wifi_a;
-  WifiLanMedium wifi_b;
-  std::string service_id(kServiceID);
-  std::string service_info_name{kServiceInfoName};
-  std::string endpoint_info_name{kEndpointName};
-  CountDownLatch found_latch(1);
+  WifiLanMedium wifi_lan_a;
+  std::string service_type(kServiceType);
+  std::string service_info_name(kServiceInfoName);
+  std::string endpoint_info_name(kEndpointName);
+
+  WifiLanServerSocket server_socket = wifi_lan_a.ListenForService();
+  EXPECT_TRUE(server_socket.IsValid());
 
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(service_info_name);
   nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
                                 endpoint_info_name);
-  wifi_a.StartAdvertising(service_id, nsd_service_info);
+  nsd_service_info.SetServiceType(service_type);
+  EXPECT_TRUE(wifi_lan_a.StartAdvertising(nsd_service_info));
+  EXPECT_TRUE(wifi_lan_a.StopAdvertising(nsd_service_info));
+  env_.Stop();
+}
 
-  EXPECT_TRUE(wifi_b.StartDiscovery(
-      service_id, DiscoveredServiceCallback{
-                      .service_discovered_cb =
-                          [&found_latch](WifiLanService& service,
-                                         const std::string& service_id) {
-                            found_latch.CountDown();
-                          },
-                  }));
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
-  EXPECT_TRUE(wifi_a.StopAdvertising(service_id));
-  EXPECT_TRUE(wifi_b.StopDiscovery(service_id));
+TEST_F(WifiLanMediumTest, CanStartMultipleAdvertising) {
+  env_.Start();
+  WifiLanMedium wifi_lan_a;
+  std::string service_type_1(kServiceType);
+  std::string service_type_2("_service_1.tcp_");
+  std::string service_info_name_1(kServiceInfoName);
+  std::string service_info_name_2(kServiceInfoName);
+  std::string endpoint_info_name(kEndpointName);
+
+  WifiLanServerSocket server_socket = wifi_lan_a.ListenForService();
+  EXPECT_TRUE(server_socket.IsValid());
+
+  NsdServiceInfo nsd_service_info_1;
+  nsd_service_info_1.SetServiceName(service_info_name_1);
+  nsd_service_info_1.SetTxtRecord(std::string(kEndpointInfoKey),
+                                  endpoint_info_name);
+  nsd_service_info_1.SetServiceType(service_type_1);
+
+  NsdServiceInfo nsd_service_info_2;
+  nsd_service_info_2.SetServiceName(service_info_name_2);
+  nsd_service_info_2.SetTxtRecord(std::string(kEndpointInfoKey),
+                                  endpoint_info_name);
+  nsd_service_info_2.SetServiceType(service_type_2);
+
+  EXPECT_TRUE(wifi_lan_a.StartAdvertising(nsd_service_info_1));
+  EXPECT_TRUE(wifi_lan_a.StartAdvertising(nsd_service_info_2));
+  EXPECT_TRUE(wifi_lan_a.StopAdvertising(nsd_service_info_1));
+  EXPECT_TRUE(wifi_lan_a.StopAdvertising(nsd_service_info_2));
   env_.Stop();
 }
 
 TEST_F(WifiLanMediumTest, CanStartDiscovery) {
   env_.Start();
-  WifiLanMedium wifi_a;
-  WifiLanMedium wifi_b;
-  std::string service_id(kServiceID);
-  std::string service_info_name{kServiceInfoName};
-  std::string endpoint_info_name{kEndpointName};
-  CountDownLatch found_latch(1);
-  CountDownLatch lost_latch(1);
+  WifiLanMedium wifi_lan_a;
+  std::string service_id(kServiceId);
+  std::string service_type(kServiceType);
 
-  wifi_a.StartDiscovery(service_id,
-                        DiscoveredServiceCallback{
-                            .service_discovered_cb =
-                                [&found_latch](WifiLanService& service,
-                                               absl::string_view service_id) {
-                                  found_latch.CountDown();
-                                },
-                            .service_lost_cb =
-                                [&lost_latch](WifiLanService& service,
-                                              absl::string_view service_id) {
-                                  lost_latch.CountDown();
-                                },
-                        });
-
-  NsdServiceInfo nsd_service_info;
-  nsd_service_info.SetServiceName(service_info_name);
-  nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
-                                endpoint_info_name);
-  EXPECT_TRUE(wifi_b.StartAdvertising(service_id, nsd_service_info));
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
-  EXPECT_TRUE(wifi_b.StopAdvertising(service_id));
-  EXPECT_TRUE(lost_latch.Await(absl::Milliseconds(1000)).result());
-  EXPECT_TRUE(wifi_a.StopDiscovery(service_id));
+  EXPECT_TRUE(wifi_lan_a.StartDiscovery(service_id, service_type,
+                                        DiscoveredServiceCallback{}));
+  EXPECT_TRUE(wifi_lan_a.StopDiscovery(service_type));
   env_.Stop();
 }
 
-TEST_F(WifiLanMediumTest, CanStopDiscovery) {
+TEST_F(WifiLanMediumTest, CanStartMultipleDiscovery) {
   env_.Start();
-  WifiLanMedium wifi_a;
-  WifiLanMedium wifi_b;
-  std::string service_id(kServiceID);
-  std::string service_info_name{kServiceInfoName};
-  std::string endpoint_info_name{kEndpointName};
-  CountDownLatch found_latch(1);
+  WifiLanMedium wifi_lan_a;
+  std::string service_id_1(kServiceId);
+  std::string service_id_2("service_id_2");
+  std::string service_type_1(kServiceType);
+  std::string service_type_2("_service_1.tcp_");
+
+  EXPECT_TRUE(wifi_lan_a.StartDiscovery(service_id_1, service_type_1,
+                                        DiscoveredServiceCallback{}));
+  EXPECT_TRUE(wifi_lan_a.StartDiscovery(service_id_2, service_type_2,
+                                        DiscoveredServiceCallback{}));
+  EXPECT_TRUE(wifi_lan_a.StopDiscovery(service_type_1));
+  EXPECT_TRUE(wifi_lan_a.StopDiscovery(service_type_2));
+  env_.Stop();
+}
+
+TEST_F(WifiLanMediumTest, CanAdvertiseThatOtherMediumDiscover) {
+  env_.Start();
+  WifiLanMedium wifi_lan_a;
+  WifiLanMedium wifi_lan_b;
+  std::string service_id(kServiceId);
+  std::string service_type(kServiceType);
+  std::string service_info_name(kServiceInfoName);
+  std::string endpoint_info_name(kEndpointName);
+  CountDownLatch discovered_latch(1);
   CountDownLatch lost_latch(1);
 
-  wifi_a.StartDiscovery(service_id,
-                        DiscoveredServiceCallback{
-                            .service_discovered_cb =
-                                [&found_latch](WifiLanService& service,
-                                               absl::string_view service_id) {
-                                  found_latch.CountDown();
-                                },
-                            .service_lost_cb =
-                                [&lost_latch](WifiLanService& service,
-                                              absl::string_view service_id) {
-                                  lost_latch.CountDown();
-                                },
-                        });
+  wifi_lan_b.StartDiscovery(
+      service_id, service_type,
+      DiscoveredServiceCallback{
+          .service_discovered_cb =
+              [&discovered_latch](NsdServiceInfo service_info,
+                                  const std::string& service_type) {
+                discovered_latch.CountDown();
+              },
+          .service_lost_cb =
+              [&lost_latch](NsdServiceInfo service_info,
+                            const std::string& service_id) {
+                lost_latch.CountDown();
+              },
+      });
+
+  WifiLanServerSocket server_socket = wifi_lan_a.ListenForService();
+  EXPECT_TRUE(server_socket.IsValid());
 
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(service_info_name);
   nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
                                 endpoint_info_name);
+  nsd_service_info.SetServiceType(service_type);
+  EXPECT_TRUE(wifi_lan_a.StartAdvertising(nsd_service_info));
+  EXPECT_TRUE(discovered_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(wifi_lan_a.StopAdvertising(nsd_service_info));
+  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(wifi_lan_b.StopDiscovery(service_type));
+  env_.Stop();
+}
 
-  EXPECT_TRUE(wifi_b.StartAdvertising(service_id, nsd_service_info));
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
-  EXPECT_TRUE(wifi_a.StopDiscovery(service_id));
-  EXPECT_TRUE(wifi_b.StopAdvertising(service_id));
-  EXPECT_FALSE(lost_latch.Await(absl::Milliseconds(1000)).result());
+TEST_F(WifiLanMediumTest, CanDiscoverThatOtherMediumAdvertise) {
+  env_.Start();
+  WifiLanMedium wifi_lan_a;
+  WifiLanMedium wifi_lan_b;
+  std::string service_id(kServiceId);
+  std::string service_type(kServiceType);
+  std::string service_info_name(kServiceInfoName);
+  std::string endpoint_info_name(kEndpointName);
+  CountDownLatch discovered_latch(1);
+  CountDownLatch lost_latch(1);
+
+  wifi_lan_a.StartDiscovery(
+      service_id, service_type,
+      DiscoveredServiceCallback{
+          .service_discovered_cb =
+              [&discovered_latch](NsdServiceInfo service_info,
+                                  const std::string& service_type) {
+                discovered_latch.CountDown();
+              },
+          .service_lost_cb =
+              [&lost_latch](NsdServiceInfo service_info,
+                            const std::string& service_type) {
+                lost_latch.CountDown();
+              },
+      });
+
+  WifiLanServerSocket server_socket = wifi_lan_a.ListenForService();
+  EXPECT_TRUE(server_socket.IsValid());
+
+  NsdServiceInfo nsd_service_info;
+  nsd_service_info.SetServiceName(service_info_name);
+  nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
+                                endpoint_info_name);
+  nsd_service_info.SetServiceType(service_type);
+  EXPECT_TRUE(wifi_lan_b.StartAdvertising(nsd_service_info));
+  EXPECT_TRUE(discovered_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(wifi_lan_b.StopAdvertising(nsd_service_info));
+  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(wifi_lan_a.StopDiscovery(service_type));
   env_.Stop();
 }
 

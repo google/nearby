@@ -24,7 +24,6 @@ cc_library(
         "uuid.cc",
         "webrtc.cc",
         "wifi_lan.cc",
-        "wifi_lan_v2.cc",
     ],
     hdrs = [
         "ble.h",
@@ -36,7 +35,6 @@ cc_library(
         "uuid.h",
         "webrtc.h",
         "wifi_lan.h",
-        "wifi_lan_v2.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
@@ -104,7 +102,6 @@ cc_test(
         "lost_entity_tracker_test.cc",
         "uuid_test.cc",
         "wifi_lan_test.cc",
-        "wifi_lan_test_v2.cc",
     ],
     shard_count = 16,
     deps = [

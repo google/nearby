@@ -108,8 +108,6 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       BluetoothClassic::DiscoveredDeviceCallback;
   using BleDiscoveredPeripheralCallback = Ble::DiscoveredPeripheralCallback;
   using WifiLanDiscoveredServiceCallback = WifiLan::DiscoveredServiceCallback;
-  using WifiLanV2DiscoveredServiceCallback =
-      WifiLanV2::DiscoveredServiceCallback;
 
   static constexpr BluetoothDeviceName::Version kBluetoothDeviceNameVersion =
       BluetoothDeviceName::Version::kV1;
@@ -173,11 +171,12 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   // WifiLan
   bool IsRecognizedWifiLanEndpoint(
       const std::string& service_id,
-      const WifiLanServiceInfo& service_info) const;
+      const WifiLanServiceInfo& wifi_lan_service_info) const;
   void WifiLanServiceDiscoveredHandler(ClientProxy* client,
-                                       WifiLanService& service,
+                                       NsdServiceInfo service_info,
                                        const std::string& service_id);
-  void WifiLanServiceLostHandler(ClientProxy* client, WifiLanService& service,
+  void WifiLanServiceLostHandler(ClientProxy* client,
+                                 NsdServiceInfo service_info,
                                  const std::string& service_id);
   proto::connections::Medium StartWifiLanAdvertising(
       ClientProxy* client, const std::string& service_id,
@@ -189,31 +188,10 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   BasePcpHandler::ConnectImplResult WifiLanConnectImpl(
       ClientProxy* client, WifiLanEndpoint* endpoint);
 
-  // WifiLanV2
-  bool IsRecognizedWifiLanV2Endpoint(
-      const std::string& service_id,
-      const WifiLanServiceInfo& wifi_lan_service_info) const;
-  void WifiLanV2ServiceDiscoveredHandler(ClientProxy* client,
-                                         NsdServiceInfo service_info,
-                                         const std::string& service_id);
-  void WifiLanV2ServiceLostHandler(ClientProxy* client,
-                                   NsdServiceInfo service_info,
-                                   const std::string& service_id);
-  proto::connections::Medium StartWifiLanV2Advertising(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& local_endpoint_id,
-      const ByteArray& local_endpoint_info, WebRtcState web_rtc_state);
-  proto::connections::Medium StartWifiLanV2Discovery(
-      WifiLanV2DiscoveredServiceCallback callback, ClientProxy* client,
-      const std::string& service_id);
-  BasePcpHandler::ConnectImplResult WifiLanV2ConnectImpl(
-      ClientProxy* client, WifiLanV2Endpoint* endpoint);
-
   BluetoothRadio& bluetooth_radio_;
   BluetoothClassic& bluetooth_medium_;
   Ble& ble_medium_;
   WifiLan& wifi_lan_medium_;
-  WifiLanV2& wifi_lan_medium_v2_;
   mediums::WebRtc& webrtc_medium_;
   InjectedBluetoothDeviceStore& injected_bluetooth_device_store_;
   std::int64_t bluetooth_classic_discoverer_client_id_{0};

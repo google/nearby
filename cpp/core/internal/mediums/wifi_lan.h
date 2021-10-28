@@ -22,6 +22,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/cancellation_flag.h"
+#include "platform/base/nsd_service_info.h"
 #include "platform/public/multi_thread_executor.h"
 #include "platform/public/mutex.h"
 #include "platform/public/wifi_lan.h"
@@ -33,33 +34,42 @@ namespace connections {
 class WifiLan {
  public:
   using DiscoveredServiceCallback = WifiLanMedium::DiscoveredServiceCallback;
-  using AcceptedConnectionCallback = WifiLanMedium::AcceptedConnectionCallback;
+
+  // Callback that is invoked when a new connection is accepted.
+  struct AcceptedConnectionCallback {
+    std::function<void(WifiLanSocket socket)> accepted_cb =
+        DefaultCallback<WifiLanSocket>();
+  };
+
+  WifiLan() = default;
+  ~WifiLan();
 
   // Returns true, if WifiLan communications are supported by a platform.
   bool IsAvailable() const ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Sets custom service info name, endpoint info name in NsdServiceInfo and
   // then enables WifiLan advertising.
-  // Returns true, if name is successfully set, and false otherwise.
+  // Returns true, if NsdServiceInfo is successfully set, and false otherwise.
   bool StartAdvertising(const std::string& service_id,
                         NsdServiceInfo& nsd_service_info)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Disables WifiLan advertising, and restores service info name to
-  // what they were before the call to StartAdvertising().
+  // Disables WifiLan advertising.
+  // Returns false if no successful call StartAdvertising() was previously
+  // made, otherwise returns true.
   bool StopAdvertising(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool IsAdvertising(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Enables WifiLan discovery mode. Will report any discoverable services in
-  // range through a callback. Returns true, if discovery mode was enabled,
-  // false otherwise.
+  // Enables WifiLan discovery. Will report any discoverable services
+  // through a callback.
+  // Returns true, if discovery was enabled, false otherwise.
   bool StartDiscovery(const std::string& service_id,
                       DiscoveredServiceCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Disables WifiLan discovery mode.
+  // Disables WifiLan discovery.
   bool StopDiscovery(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool IsDiscovering(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
@@ -81,36 +91,55 @@ class WifiLan {
   // another service with StartAcceptingConnections() using the same service_id.
   // Blocks until connection is established, or server-side is terminated.
   // Returns socket instance. On success, WifiLanSocket.IsValid() return true.
-  WifiLanSocket Connect(WifiLanService& wifi_lan_service,
-                        const std::string& service_id,
+  WifiLanSocket Connect(const std::string& service_id,
+                        const NsdServiceInfo& service_info,
                         CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  WifiLanService GetRemoteWifiLanService(const std::string& ip_address,
-                                         int port) ABSL_LOCKS_EXCLUDED(mutex_);
+  // Establishes connection to WifiLan service by ip address and port for
+  // bandwidth upgradation.
+  // Returns socket instance. On success, WifiLanSocket.IsValid() return true.
+  WifiLanSocket Connect(const std::string& service_id,
+                        const std::string& ip_address, int port,
+                        CancellationFlag* cancellation_flag)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Gets ip address + port for remote services on the network to identify and
+  // connect to this service.
+  //
+  // Credential is for the currently-hosted Wifi ServerSocket (if any).
   std::pair<std::string, int> GetCredentials(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   struct AdvertisingInfo {
-    bool Empty() const { return service_ids.empty(); }
-    void Clear() { service_ids.clear(); }
-    void Add(const std::string& service_id) { service_ids.emplace(service_id); }
+    bool Empty() const { return nsd_service_infos.empty(); }
+    void Clear() { nsd_service_infos.clear(); }
+    void Add(const std::string& service_id,
+             const NsdServiceInfo& nsd_service_info) {
+      nsd_service_infos.insert({service_id, nsd_service_info});
+    }
     void Remove(const std::string& service_id) {
-      service_ids.erase(service_id);
+      nsd_service_infos.erase(service_id);
     }
     bool Existed(const std::string& service_id) const {
-      return service_ids.contains(service_id);
+      return nsd_service_infos.contains(service_id);
+    }
+    NsdServiceInfo* GetServiceInfo(const std::string& service_id) {
+      const auto& it = nsd_service_infos.find(service_id);
+      if (it == nsd_service_infos.end()) {
+        return nullptr;
+      }
+      return &it->second;
     }
 
-    absl::flat_hash_set<std::string> service_ids;
+    absl::flat_hash_map<std::string, NsdServiceInfo> nsd_service_infos;
   };
 
   struct DiscoveringInfo {
     bool Empty() const { return service_ids.empty(); }
     void Clear() { service_ids.clear(); }
-    void Add(const std::string& service_id) { service_ids.emplace(service_id); }
+    void Add(const std::string& service_id) { service_ids.insert(service_id); }
     void Remove(const std::string& service_id) {
       service_ids.erase(service_id);
     }
@@ -121,19 +150,7 @@ class WifiLan {
     absl::flat_hash_set<std::string> service_ids;
   };
 
-  struct AcceptingConnectionsInfo {
-    bool Empty() const { return service_ids.empty(); }
-    void Clear() { service_ids.clear(); }
-    void Add(const std::string& service_id) { service_ids.emplace(service_id); }
-    void Remove(const std::string& service_id) {
-      service_ids.erase(service_id);
-    }
-    bool Existed(const std::string& service_id) const {
-      return service_ids.contains(service_id);
-    }
-
-    absl::flat_hash_set<std::string> service_ids;
-  };
+  static constexpr int kMaxConcurrentAcceptLoops = 5;
 
   // Same as IsAvailable(), but must be called with mutex_ held.
   bool IsAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
@@ -157,7 +174,17 @@ class WifiLan {
   WifiLanMedium medium_ ABSL_GUARDED_BY(mutex_);
   AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
   DiscoveringInfo discovering_info_ ABSL_GUARDED_BY(mutex_);
-  AcceptingConnectionsInfo accepting_connections_info_ ABSL_GUARDED_BY(mutex_);
+
+  // A thread pool dedicated to running all the accept loops from
+  // StartAcceptingConnections().
+  MultiThreadExecutor accept_loops_runner_{kMaxConcurrentAcceptLoops};
+
+  // A map of service_id -> ServerSocket. If map is non-empty, we
+  // are currently listening for incoming connections.
+  // WifiLanServerSocket instances are used from accept_loops_runner_,
+  // and thus require pointer stability.
+  absl::flat_hash_map<std::string, WifiLanServerSocket> server_sockets_
+      ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace connections

@@ -23,37 +23,20 @@
 #include "platform/base/input_stream.h"
 #include "platform/base/nsd_service_info.h"
 #include "platform/base/output_stream.h"
+#include "platform/public/logging.h"
 #include "platform/public/mutex.h"
 
 namespace location {
 namespace nearby {
-
-// Opaque wrapper over a WifiLan service which contains |NsdServiceInfo|.
-class WifiLanService final {
- public:
-  WifiLanService() = default;
-  WifiLanService(const WifiLanService&) = default;
-  WifiLanService& operator=(const WifiLanService&) = default;
-  explicit WifiLanService(api::WifiLanService* service) : impl_(service) {}
-  ~WifiLanService() = default;
-
-  NsdServiceInfo GetServiceInfo() const { return impl_->GetServiceInfo(); }
-  api::WifiLanService& GetImpl() { return *impl_; }
-  bool IsValid() const { return impl_ != nullptr; }
-
- private:
-  api::WifiLanService* impl_;
-};
 
 class WifiLanSocket final {
  public:
   WifiLanSocket() = default;
   WifiLanSocket(const WifiLanSocket&) = default;
   WifiLanSocket& operator=(const WifiLanSocket&) = default;
-  explicit WifiLanSocket(api::WifiLanSocket* socket) : impl_(socket) {}
-  explicit WifiLanSocket(std::unique_ptr<api::WifiLanSocket> socket)
-      : impl_(socket.release()) {}
   ~WifiLanSocket() = default;
+  explicit WifiLanSocket(std::unique_ptr<api::WifiLanSocket> socket)
+      : impl_(std::move(socket)) {}
 
   // Returns the InputStream of the WifiLanSocket.
   // On error, returned stream will report Exception::kIo on any operation.
@@ -71,10 +54,6 @@ class WifiLanSocket final {
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() { return impl_->Close(); }
-
-  WifiLanService GetRemoteWifiLanService() {
-    return WifiLanService(impl_->GetRemoteWifiLanService());
-  }
 
   // Returns true if a socket is usable. If this method returns false,
   // it is not safe to call any other method.
@@ -98,84 +77,126 @@ class WifiLanSocket final {
   std::shared_ptr<api::WifiLanSocket> impl_;
 };
 
+class WifiLanServerSocket final {
+ public:
+  WifiLanServerSocket() = default;
+  WifiLanServerSocket(const WifiLanServerSocket&) = default;
+  WifiLanServerSocket& operator=(const WifiLanServerSocket&) = default;
+  ~WifiLanServerSocket() = default;
+  explicit WifiLanServerSocket(std::unique_ptr<api::WifiLanServerSocket> socket)
+      : impl_(std::move(socket)) {}
+
+  // Returns ip address.
+  std::string GetIPAddress() { return impl_->GetIPAddress(); }
+
+  // Returns port.
+  int GetPort() { return impl_->GetPort(); }
+
+  // Blocks until either:
+  // - at least one incoming connection request is available, or
+  // - ServerSocket is closed.
+  // On success, returns connected socket, ready to exchange data.
+  // Returns nullptr on error.
+  // Once error is reported, it is permanent, and ServerSocket has to be closed.
+  WifiLanSocket Accept() {
+    std::unique_ptr<api::WifiLanSocket> socket = impl_->Accept();
+    if (!socket) {
+      NEARBY_LOGS(INFO)
+          << "WifiLanServerSocket Accept() failed on server socket: " << this;
+    }
+    return WifiLanSocket(std::move(socket));
+  }
+
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  Exception Close() {
+    NEARBY_LOGS(INFO) << "WifiLanServerSocket Closing:: " << this;
+    return impl_->Close();
+  }
+
+  bool IsValid() const { return impl_ != nullptr; }
+  api::WifiLanServerSocket& GetImpl() { return *impl_; }
+
+ private:
+  std::shared_ptr<api::WifiLanServerSocket> impl_;
+};
+
 // Container of operations that can be performed over the WifiLan medium.
-class WifiLanMedium final {
+class WifiLanMedium {
  public:
   using Platform = api::ImplementationPlatform;
 
   struct DiscoveredServiceCallback {
-    std::function<void(WifiLanService& wifi_lan_service,
-                       const std::string& service_id)>
+    std::function<void(NsdServiceInfo service_info,
+                       const std::string& service_type)>
         service_discovered_cb =
-            DefaultCallback<WifiLanService&, const std::string&>();
-    std::function<void(WifiLanService& wifi_lan_service,
-                       const std::string& service_id)>
-        service_lost_cb =
-            DefaultCallback<WifiLanService&, const std::string&>();
+            DefaultCallback<NsdServiceInfo, const std::string&>();
+    std::function<void(NsdServiceInfo service_info,
+                       const std::string& service_type)>
+        service_lost_cb = DefaultCallback<NsdServiceInfo, const std::string&>();
   };
 
-  struct ServiceDiscoveryInfo {
-    WifiLanService wifi_lan_service;
-  };
-
-  struct AcceptedConnectionCallback {
-    std::function<void(WifiLanSocket socket, const std::string& service_id)>
-        accepted_cb = DefaultCallback<WifiLanSocket, const std::string&>();
-  };
-
-  struct AcceptedConnectionInfo {
-    WifiLanSocket socket;
+  struct DiscoveryCallbackInfo {
+    std::string service_id;
+    DiscoveredServiceCallback medium_callback;
   };
 
   WifiLanMedium() : impl_(Platform::CreateWifiLanMedium()) {}
   ~WifiLanMedium() = default;
 
-  bool StartAdvertising(const std::string& service_id,
-                        const NsdServiceInfo& nsd_service_info);
-  bool StopAdvertising(const std::string& service_id);
+  // Starts WifiLan advertising.
+  //
+  // nsd_service_info - NsdServiceInfo data that's advertised through mDNS
+  //                    service.
+  // On success if the service is now advertising.
+  // On error if the service cannot start to advertise or the nsd_type in
+  // NsdServiceInfo has been passed previously which StopAdvertising is not
+  // been called.
+  bool StartAdvertising(const NsdServiceInfo& nsd_service_info);
+
+  // Stops WifiLan advertising.
+  //
+  // nsd_service_info - NsdServiceInfo data that's advertised through mDNS
+  //                    service.
+  // On success if the service stops advertising.
+  // On error if the service cannot stop advertising or the nsd_type in
+  // NsdServiceInfo cannot be found.
+  bool StopAdvertising(const NsdServiceInfo& nsd_service_info);
 
   // Returns true once the WifiLan discovery has been initiated.
   bool StartDiscovery(const std::string& service_id,
+                      const std::string& service_type,
                       DiscoveredServiceCallback callback);
 
-  // Returns true once WifiLan discovery for service_id is well and truly
-  // stopped; after this returns, there must be no more invocations of the
-  // DiscoveredServiceCallback passed in to StartDiscovery() for service_id.
-  bool StopDiscovery(const std::string& service_id);
+  // Returns true once service_type is associated to existing callback. If the
+  // callback is the last found then WifiLan discovery will be stopped.
+  bool StopDiscovery(const std::string& service_type);
 
-  // Returns true once WifiLan socket connection requests to service_id can be
-  // accepted.
-  bool StartAcceptingConnections(const std::string& service_id,
-                                 AcceptedConnectionCallback callback);
-  bool StopAcceptingConnections(const std::string& service_id);
+  // Returns a new WifiLanSocket.
+  // On Success, WifiLanSocket::IsValid() returns true.
+  WifiLanSocket ConnectToService(const NsdServiceInfo& remote_service_info,
+                                 CancellationFlag* cancellation_flag);
 
-  // Returns a new WifiLanSocket. On Success, WifiLanSocket::IsValid()
-  // returns true.
-  WifiLanSocket Connect(WifiLanService& wifi_lan_service,
-                        const std::string& service_id,
-                        CancellationFlag* cancellation_flag);
+  // Returns a new WifiLanSocket by ip address and port.
+  // On Success, WifiLanSocket::IsValid()returns true.
+  WifiLanSocket ConnectToService(const std::string& ip_address, int port,
+                                 CancellationFlag* cancellation_flag);
+
+  // Returns a new WifiLanServerSocket.
+  // On Success, WifiLanServerSocket::IsValid() returns true.
+  WifiLanServerSocket ListenForService(int port = 0) {
+    return WifiLanServerSocket(impl_->ListenForService(port));
+  }
 
   bool IsValid() const { return impl_ != nullptr; }
 
   api::WifiLanMedium& GetImpl() { return *impl_; }
 
-  WifiLanService GetRemoteService(const std::string& ip_address, int port);
-
-  std::pair<std::string, int> GetCredentials(const std::string& service_id);
-
  private:
   Mutex mutex_;
   std::unique_ptr<api::WifiLanMedium> impl_;
-  absl::flat_hash_map<api::WifiLanService*,
-                      std::unique_ptr<ServiceDiscoveryInfo>>
-      services_ ABSL_GUARDED_BY(mutex_);
-  absl::flat_hash_map<api::WifiLanSocket*,
-                      std::unique_ptr<AcceptedConnectionInfo>>
-      sockets_ ABSL_GUARDED_BY(mutex_);
-  DiscoveredServiceCallback discovered_service_callback_
-      ABSL_GUARDED_BY(mutex_);
-  AcceptedConnectionCallback accepted_connection_callback_
-      ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_map<std::string, std::unique_ptr<DiscoveryCallbackInfo>>
+      discovery_callbacks_ ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_set<std::string> discovery_services_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace nearby

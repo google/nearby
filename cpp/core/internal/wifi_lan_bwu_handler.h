@@ -49,8 +49,9 @@ class WifiLanBwuHandler : public BaseBwuHandler {
   void OnEndpointDisconnect(ClientProxy* client,
                             const std::string& endpoint_id) override {}
 
-  void OnIncomingWifiLanConnection(ClientProxy* client, WifiLanSocket socket,
-                                   const std::string& upgrade_service_id);
+  void OnIncomingWifiLanConnection(ClientProxy* client,
+                                   const std::string& service_id,
+                                   WifiLanSocket socket);
 
   class WifiLanIncomingSocket : public BwuHandler::IncomingSocket {
    public:

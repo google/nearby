@@ -46,30 +46,6 @@ ByteArray WifiLanBwuHandler::InitializeUpgradedMediumForEndpoint(
   // stop the advertising yet.
   std::string upgrade_service_id = Utils::WrapUpgradeServiceId(service_id);
 
-  if (!wifi_lan_medium_.IsAcceptingConnections(upgrade_service_id)) {
-    if (!wifi_lan_medium_.StartAcceptingConnections(
-            upgrade_service_id,
-            {
-                .accepted_cb = absl::bind_front(
-                    &WifiLanBwuHandler::OnIncomingWifiLanConnection, this,
-                    client),
-            })) {
-      NEARBY_LOG(ERROR,
-                 "WifiLanBwuHandler couldn't initiate the WifiLan upgrade for "
-                 "endpoint %s because it failed to start listening for "
-                 "incoming WifiLan connections.",
-                 endpoint_id.c_str());
-      return {};
-    }
-    NEARBY_LOGS(INFO)
-        << "WifiLanBwuHandler successfully started listening for incoming "
-           "WifiLan connections while upgrading endpoint "
-        << endpoint_id;
-  }
-
-  // cache service ID to revert
-  active_service_ids_.emplace(upgrade_service_id);
-
   auto credential = wifi_lan_medium_.GetCredentials(upgrade_service_id);
   auto ip_address = credential.first;
   auto port = credential.second;
@@ -81,6 +57,31 @@ ByteArray WifiLanBwuHandler::InitializeUpgradedMediumForEndpoint(
         << " because the wifi_lan ip address were unable to be obtained.";
     return {};
   }
+
+  if (!wifi_lan_medium_.IsAcceptingConnections(upgrade_service_id)) {
+    if (!wifi_lan_medium_.StartAcceptingConnections(
+            upgrade_service_id,
+            {
+                .accepted_cb = absl::bind_front(
+                    &WifiLanBwuHandler::OnIncomingWifiLanConnection, this,
+                    client, service_id),
+            })) {
+      NEARBY_LOGS(ERROR)
+          << "WifiLanBwuHandler couldn't initiate the WifiLan upgrade for "
+             "endpoint "
+          << endpoint_id
+          << " because it failed to start listening for "
+             "incoming WifiLan connections.";
+      return {};
+    }
+    NEARBY_LOGS(INFO)
+        << "WifiLanBwuHandler successfully started listening for incoming "
+           "WifiLan connections while upgrading endpoint "
+        << endpoint_id;
+  }
+
+  // cache service ID to revert
+  active_service_ids_.insert(upgrade_service_id);
 
   return parser::ForBwuWifiLanPathAvailable(ip_address, port);
 }
@@ -103,34 +104,45 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
   if (!upgrade_path_info.has_wifi_lan_socket()) {
     return nullptr;
   }
-  const UpgradePathInfo::WifiLanSocket& wifi_lan_socket =
+  const UpgradePathInfo::WifiLanSocket& upgrade_path_info_socket =
       upgrade_path_info.wifi_lan_socket();
-  if (!wifi_lan_socket.has_ip_address() || !wifi_lan_socket.has_wifi_port()) {
+  if (!upgrade_path_info_socket.has_ip_address() ||
+      !upgrade_path_info_socket.has_wifi_port()) {
+    NEARBY_LOG(ERROR, "WifiLanBwuHandler failed to parse UpgradePathInfo.");
     return nullptr;
   }
 
-  const std::string& ip_address = wifi_lan_socket.ip_address();
-  std::int32_t port = wifi_lan_socket.wifi_port();
+  const std::string& ip_address = upgrade_path_info_socket.ip_address();
+  std::int32_t port = upgrade_path_info_socket.wifi_port();
 
-  WifiLanService wifi_lan_service =
-      wifi_lan_medium_.GetRemoteWifiLanService(ip_address, port);
-  if (!wifi_lan_service.IsValid()) {
-    return nullptr;
-  }
+  NEARBY_LOGS(VERBOSE) << "WifiLanBwuHandler is attempting to connect to "
+                          "available WifiLan service ("
+                       << ip_address << ":" << port << ") for endpoint "
+                       << endpoint_id;
+
   WifiLanSocket socket = wifi_lan_medium_.Connect(
-      wifi_lan_service, service_id, client->GetCancellationFlag(endpoint_id));
+      service_id, ip_address, port, client->GetCancellationFlag(endpoint_id));
   if (!socket.IsValid()) {
+    NEARBY_LOGS(ERROR)
+        << "WifiLanBwuHandler failed to connect to the WifiLan service ("
+        << ip_address << ":" << port << ") for endpoint " << endpoint_id;
     return nullptr;
   }
+
+  NEARBY_LOGS(VERBOSE)
+      << "WifiLanBwuHandler successfully connected to WifiLan service ("
+      << ip_address << ":" << port << ") while upgrading endpoint "
+      << endpoint_id;
 
   // Create a new WifiLanEndpointChannel.
-  auto channel = std::make_unique<WifiLanEndpointChannel>(service_id, socket);
+  auto channel = absl::make_unique<WifiLanEndpointChannel>(service_id, socket);
   if (channel == nullptr) {
+    NEARBY_LOGS(ERROR) << "WifiLanBwuHandler failed to create WifiLan endpoint "
+                          "channel to the WifiLan service ("
+                       << ip_address << ":" << port << ") for endpoint "
+                       << endpoint_id;
     socket.Close();
-    NEARBY_LOG(ERROR,
-               "WifiLanBwuHandler failed to create new EndpointChannel for "
-               "outgoing socket %p, aborting upgrade.",
-               &socket.GetImpl());
+    return nullptr;
   }
 
   return channel;
@@ -138,16 +150,14 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
 
 // Accept Connection Callback.
 void WifiLanBwuHandler::OnIncomingWifiLanConnection(
-    ClientProxy* client, WifiLanSocket socket,
-    const std::string& upgrade_service_id) {
-  std::string service_id = Utils::UnwrapUpgradeServiceId(upgrade_service_id);
-  auto channel = std::make_unique<WifiLanEndpointChannel>(service_id, socket);
-  auto wifi_lan_socket =
-      std::make_unique<WifiLanIncomingSocket>(service_id, socket);
+    ClientProxy* client, const std::string& service_id, WifiLanSocket socket) {
+  auto channel = absl::make_unique<WifiLanEndpointChannel>(service_id, socket);
   std::unique_ptr<IncomingSocketConnection> connection(
-      new IncomingSocketConnection{std::move(wifi_lan_socket),
-                                   std::move(channel)});
-
+      new IncomingSocketConnection{
+          .socket =
+              absl::make_unique<WifiLanIncomingSocket>(service_id, socket),
+          .channel = std::move(channel),
+      });
   bwu_notifications_.incoming_connection_cb(client, std::move(connection));
 }
 

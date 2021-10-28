@@ -32,19 +32,18 @@ struct MediumSelector {
   T ble;
   T web_rtc;
   T wifi_lan;
-  T wifi_lan_v2;
 
   constexpr MediumSelector() = default;
   constexpr MediumSelector(const MediumSelector&) = default;
   constexpr MediumSelector& operator=(const MediumSelector&) = default;
   constexpr bool Any(T value) const {
     return bluetooth == value || ble == value || web_rtc == value ||
-           wifi_lan == value || wifi_lan_v2;
+           wifi_lan == value;
   }
 
   constexpr bool All(T value) const {
     return bluetooth == value && ble == value && web_rtc == value &&
-           wifi_lan == value && wifi_lan_v2 == value;
+           wifi_lan == value;
   }
 
   constexpr int Count(T value) const {
@@ -52,7 +51,6 @@ struct MediumSelector {
     if (bluetooth == value) count++;
     if (ble == value) count++;
     if (wifi_lan == value) count++;
-    if (wifi_lan_v2 == value) count++;
     if (web_rtc == value) count++;
     return count;
   }
@@ -62,14 +60,12 @@ struct MediumSelector {
     ble = value;
     web_rtc = value;
     wifi_lan = value;
-    wifi_lan_v2 = value;
     return *this;
   }
 
   std::vector<Medium> GetMediums(T value) const {
     std::vector<Medium> mediums;
     // Mediums are sorted in order of decreasing preference.
-    if (wifi_lan_v2 == value) mediums.push_back(Medium::MDNS);
     if (wifi_lan == value) mediums.push_back(Medium::WIFI_LAN);
     if (web_rtc == value) mediums.push_back(Medium::WEB_RTC);
     if (bluetooth == value) mediums.push_back(Medium::BLUETOOTH);
@@ -126,7 +122,6 @@ struct DLL_API ConnectionOptions {
   void GetMediums(location::nearby::proto::connections::Medium* mediums,
                   uint32_t* mediumsSize);
 };
-
 
 // Metadata injected to facilitate out-of-band connections. The medium field is
 // required, and the other fields are only specified for a specific medium.

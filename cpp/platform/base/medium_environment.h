@@ -23,9 +23,8 @@
 #include "platform/api/ble.h"
 #include "platform/api/bluetooth_adapter.h"
 #include "platform/api/bluetooth_classic.h"
-#include "platform/api/wifi_lan.h"
-#include "platform/api/wifi_lan_v2.h"
 #include "platform/api/webrtc.h"
+#include "platform/api/wifi_lan.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/feature_flags.h"
 #include "platform/base/listeners.h"
@@ -63,10 +62,6 @@ class MediumEnvironment {
       api::WebRtcSignalingMessenger::OnSignalingCompleteCallback;
   using WifiLanDiscoveredServiceCallback =
       api::WifiLanMedium::DiscoveredServiceCallback;
-  using WifiLanAcceptedConnectionCallback =
-      api::WifiLanMedium::AcceptedConnectionCallback;
-  using WifiLanDiscoveredServiceV2Callback =
-      api::WifiLanMediumV2::DiscoveredServiceCallback;
 
   MediumEnvironment(const MediumEnvironment&) = delete;
   MediumEnvironment& operator=(const MediumEnvironment&) = delete;
@@ -213,60 +208,16 @@ class MediumEnvironment {
   // Updates advertising info to indicate the current medium is exposing
   // advertising event.
   void UpdateWifiLanMediumForAdvertising(api::WifiLanMedium& medium,
-                                         api::WifiLanService& wifi_lan_service,
-                                         const std::string& service_id,
+                                         const NsdServiceInfo& nsd_service_info,
                                          bool enabled);
 
   // Updates discovery callback info to allow for dispatch of discovery events.
-  //
-  // Invokes callback asynchronously when any changes happen to discoverable
-  // devices, or if the defice is turned off, whether or not it is discoverable,
-  // if it was ever reported as discoverable.
   //
   // This should be called when discoverable state changes.
   // with user-specified callback when discovery is enabled, and with default
   // (empty) callback otherwise.
   void UpdateWifiLanMediumForDiscovery(
-      api::WifiLanMedium& medium, const std::string& service_id,
-      WifiLanDiscoveredServiceCallback callback, bool enabled);
-
-  // Updates Accepted connection callback info to allow for dispatch of
-  // advertising events.
-  void UpdateWifiLanMediumForAcceptedConnection(
-      api::WifiLanMedium& medium, const std::string& service_id,
-      WifiLanAcceptedConnectionCallback callback);
-
-  // Removes medium-related info. This should correspond to device power off.
-  void UnregisterWifiLanMedium(api::WifiLanMedium& medium);
-
-  // Call back when advertising has created the server socket and is ready for
-  // connect.
-  void CallWifiLanAcceptedConnectionCallback(api::WifiLanMedium& medium,
-                                             api::WifiLanSocket& socket,
-                                             const std::string& service_id);
-
-  // Returns WifiLan service matching IP address and port, or nullptr.
-  api::WifiLanService* GetWifiLanService(const std::string& ip_address,
-                                         int port);
-
-  // Adds medium-related info to allow for discovery/advertising to work.
-  // This provides acccess to this medium from other mediums, when protocol
-  // expects they should communicate.
-  void RegisterWifiLanMediumV2(api::WifiLanMediumV2& medium);
-
-  // Updates advertising info to indicate the current medium is exposing
-  // advertising event.
-  void UpdateWifiLanMediumV2ForAdvertising(
-      api::WifiLanMediumV2& medium, const NsdServiceInfo& nsd_service_info,
-      bool enabled);
-
-  // Updates discovery callback info to allow for dispatch of discovery events.
-  //
-  // This should be called when discoverable state changes.
-  // with user-specified callback when discovery is enabled, and with default
-  // (empty) callback otherwise.
-  void UpdateWifiLanMediumV2ForDiscovery(
-      api::WifiLanMediumV2& medium, WifiLanDiscoveredServiceV2Callback callback,
+      api::WifiLanMedium& medium, WifiLanDiscoveredServiceCallback callback,
       const std::string& service_type, bool enabled);
 
   // Gets Fake IP address for WifiLan medium.
@@ -276,12 +227,11 @@ class MediumEnvironment {
   int GetFakePort() const;
 
   // Removes medium-related info. This should correspond to device power off.
-  void UnregisterWifiLanMediumV2(api::WifiLanMediumV2& medium);
+  void UnregisterWifiLanMedium(api::WifiLanMedium& medium);
 
   // Returns WifiLan medium whose advertising service matching IP address and
   // port, or nullptr.
-  api::WifiLanMediumV2* GetWifiLanV2Medium(const std::string& ip_address,
-                                           int port);
+  api::WifiLanMedium* GetWifiLanMedium(const std::string& ip_address, int port);
 
   void SetFeatureFlags(const FeatureFlags::Flags& flags);
 
@@ -301,26 +251,14 @@ class MediumEnvironment {
     bool fast_advertisement = false;
   };
 
-  struct WifiLanServiceIdContext {
-    WifiLanDiscoveredServiceCallback discovery_callback;
-    WifiLanAcceptedConnectionCallback accepted_connection_callback;
-    bool advertising = false;
-  };
-
   struct WifiLanMediumContext {
-    api::WifiLanService* wifi_lan_service = nullptr;
-    absl::flat_hash_map<std::string, WifiLanServiceIdContext> services;
-  };
-
-  struct WifiLanMediumV2Context {
     // advertising service type vs NsdServiceInfo map.
     absl::flat_hash_map<std::string, NsdServiceInfo> advertising_services;
     // discovered service type vs callback map.
-    absl::flat_hash_map<std::string, WifiLanDiscoveredServiceV2Callback>
+    absl::flat_hash_map<std::string, WifiLanDiscoveredServiceCallback>
         discovered_callbacks;
     // discovered service vs service type map.
-    absl::flat_hash_map<std::string, NsdServiceInfo>
-        discovered_services;
+    absl::flat_hash_map<std::string, NsdServiceInfo> discovered_services;
   };
 
   // This is a singleton object, for which destructor will never be called.
@@ -342,13 +280,8 @@ class MediumEnvironment {
                                    bool fast_advertisement, bool enabled);
 
   void OnWifiLanServiceStateChanged(WifiLanMediumContext& info,
-                                    api::WifiLanService& wifi_lan_service,
-                                    const std::string& service_id,
+                                    const NsdServiceInfo& service_info,
                                     bool enabled);
-
-  void OnWifiLanServiceV2StateChanged(WifiLanMediumV2Context& info,
-                                      const NsdServiceInfo& service_info,
-                                      bool enabled);
 
   void RunOnMediumEnvironmentThread(std::function<void()> runnable);
 
@@ -377,9 +310,6 @@ class MediumEnvironment {
 
   absl::flat_hash_map<api::WifiLanMedium*, WifiLanMediumContext>
       wifi_lan_mediums_;
-
-  absl::flat_hash_map<api::WifiLanMediumV2*, WifiLanMediumV2Context>
-      wifi_lan_mediums_v2_;
 
   bool use_valid_peer_connection_ = true;
   absl::Duration peer_connection_latency_ = absl::ZeroDuration();

@@ -32,7 +32,7 @@ class WifiLanEndpointChannel final : public BaseEndpointChannel {
  private:
   void CloseImpl() override;
 
-  WifiLanSocket wifi_lan_socket_;
+  WifiLanSocket socket_;
 };
 
 }  // namespace connections

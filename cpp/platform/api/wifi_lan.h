@@ -17,8 +17,6 @@
 
 #include <string>
 
-#include "absl/strings/string_view.h"
-#include "platform/base/byte_array.h"
 #include "platform/base/cancellation_flag.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/listeners.h"
@@ -28,19 +26,6 @@
 namespace location {
 namespace nearby {
 namespace api {
-
-// Opaque wrapper over a WifiLan service which contains |NsdServiceInfo|.
-class WifiLanService {
- public:
-  virtual ~WifiLanService() = default;
-
-  // Returns the |NsdServiceInfo| which contains the packed string of
-  // |WifiLanServiceInfo| and the endpoint info with named key in a TXTRecord
-  // map.
-  // The details refer to
-  // https://developer.android.com/reference/android/net/nsd/NsdServiceInfo.html.
-  virtual NsdServiceInfo GetServiceInfo() const = 0;
-};
 
 class WifiLanSocket {
  public:
@@ -62,10 +47,28 @@ class WifiLanSocket {
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   virtual Exception Close() = 0;
+};
 
-  // Returns valid WifiLanService pointer if there is a connection, and
-  // nullptr otherwise.
-  virtual WifiLanService* GetRemoteWifiLanService() = 0;
+class WifiLanServerSocket {
+ public:
+  virtual ~WifiLanServerSocket() = default;
+
+  // Returns ip address.
+  virtual std::string GetIPAddress() const = 0;
+
+  // Returns port.
+  virtual int GetPort() const = 0;
+
+  // Blocks until either:
+  // - at least one incoming connection request is available, or
+  // - ServerSocket is closed.
+  // On success, returns connected socket, ready to exchange data.
+  // Returns nullptr on error.
+  // Once error is reported, it is permanent, and ServerSocket has to be closed.
+  virtual std::unique_ptr<WifiLanSocket> Accept() = 0;
+
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  virtual Exception Close() = 0;
 };
 
 // Container of operations that can be performed over the WifiLan medium.
@@ -73,59 +76,74 @@ class WifiLanMedium {
  public:
   virtual ~WifiLanMedium() = default;
 
-  virtual bool StartAdvertising(const std::string& service_id,
-                                const NsdServiceInfo& nsd_service_info) = 0;
-  virtual bool StopAdvertising(const std::string& service_id) = 0;
+  // Starts WifiLan advertising.
+  //
+  // nsd_service_info - NsdServiceInfo data that's advertised through mDNS
+  //                    service.
+  // On success if the service is now advertising.
+  // On error if the service cannot start to advertise or the service type in
+  // NsdServiceInfo has been passed previously which StopAdvertising is not
+  // been called.
+  virtual bool StartAdvertising(const NsdServiceInfo& nsd_service_info) = 0;
+
+  // Stops WifiLan advertising.
+  //
+  // nsd_service_info - NsdServiceInfo data that's advertised through mDNS
+  //                    service.
+  // On success if the service stops advertising.
+  // On error if the service cannot stop advertising or the service type in
+  // NsdServiceInfo cannot be found.
+  virtual bool StopAdvertising(const NsdServiceInfo& nsd_service_info) = 0;
 
   // Callback that is invoked when a discovered service is found or lost.
   struct DiscoveredServiceCallback {
-    std::function<void(WifiLanService& wifi_lan_service,
-                       const std::string& service_id)>
-        service_discovered_cb =
-            DefaultCallback<WifiLanService&, const std::string&>();
-    std::function<void(WifiLanService& wifi_lan_service,
-                       const std::string& service_id)>
-        service_lost_cb =
-            DefaultCallback<WifiLanService&, const std::string&>();
+    std::function<void(NsdServiceInfo service_info)> service_discovered_cb =
+        DefaultCallback<NsdServiceInfo>();
+    std::function<void(NsdServiceInfo service_info)> service_lost_cb =
+        DefaultCallback<NsdServiceInfo>();
   };
 
-  // Returns true once the WifiLan discovery has been initiated.
-  virtual bool StartDiscovery(const std::string& service_id,
+  // Starts the discovery of nearby WifiLan services.
+  //
+  // service_type - mDNS service type.
+  // callback     - the instance of DiscoveredServiceCallback.
+  // Returns true once the WifiLan discovery has been initiated. The
+  // service_type is associated with callback.
+  virtual bool StartDiscovery(const std::string& service_type,
                               DiscoveredServiceCallback callback) = 0;
 
-  // Returns true once WifiLan discovery for service_id is well and truly
-  // stopped; after this returns, there must be no more invocations of the
-  // DiscoveredServiceCallback passed in to StartDiscovery() for service_id.
-  virtual bool StopDiscovery(const std::string& service_id) = 0;
-
-  // Callback that is invoked when a new connection is accepted.
-  struct AcceptedConnectionCallback {
-    std::function<void(WifiLanSocket& socket, const std::string& service_id)>
-        accepted_cb = DefaultCallback<WifiLanSocket&, const std::string&>();
-  };
-
-  // Returns true once WifiLan socket connection requests to service_id can be
-  // accepted.
-  virtual bool StartAcceptingConnections(
-      const std::string& service_id, AcceptedConnectionCallback callback) = 0;
-  virtual bool StopAcceptingConnections(const std::string& service_id) = 0;
+  // Stops the discovery of nearby WifiLan services.
+  //
+  // service_type - The one assigned in StartDiscovery.
+  // On success if the service_type is matched to the callback and will be
+  //            removed from the list. If list is empty then stops the WifiLan
+  //            discovery service.
+  // On error if the service_type is not existed, then return immediately.
+  virtual bool StopDiscovery(const std::string& service_type) = 0;
 
   // Connects to a WifiLan service.
   // On success, returns a new WifiLanSocket.
   // On error, returns nullptr.
-  virtual std::unique_ptr<WifiLanSocket> Connect(
-      WifiLanService& wifi_lan_service, const std::string& service_id,
+  virtual std::unique_ptr<WifiLanSocket> ConnectToService(
+      const NsdServiceInfo& remote_service_info,
       CancellationFlag* cancellation_flag) = 0;
 
-  virtual WifiLanService* GetRemoteService(const std::string& ip_address,
-                                           int port) = 0;
+  // Connects to a WifiLan service by ip address and port.
+  // On success, returns a new WifiLanSocket.
+  // On error, returns nullptr.
+  virtual std::unique_ptr<WifiLanSocket> ConnectToService(
+      const std::string& ip_address, int port,
+      CancellationFlag* cancellation_flag) = 0;
 
-  // Gets ip address + port for remote services on the network to identify and
-  // connect to this service.
+  // Listens for incoming connection.
   //
-  // Credential is for the currently-hosted Wifi ServerSocket (if any).
-  virtual std::pair<std::string, int> GetCredentials(
-      const std::string& service_id) = 0;
+  // port - A port number.
+  //         0 : use a random port.
+  //   1~65536 : open a server socket on that exact port.
+  // On success, returns a new WifiLanServerSocket.
+  // On error, returns nullptr.
+  virtual std::unique_ptr<WifiLanServerSocket> ListenForService(
+      int port = 0) = 0;
 };
 
 }  // namespace api

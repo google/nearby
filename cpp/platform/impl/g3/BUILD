@@ -57,7 +57,6 @@ cc_library(
         "bluetooth_classic.cc",
         "webrtc.cc",
         "wifi_lan.cc",
-        "wifi_lan_v2.cc",
     ],
     hdrs = [
         "ble.h",
@@ -65,7 +64,6 @@ cc_library(
         "bluetooth_classic.h",
         "webrtc.h",
         "wifi_lan.h",
-        "wifi_lan_v2.h",
     ],
     visibility = ["//visibility:private"],
     deps = [

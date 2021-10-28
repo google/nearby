@@ -199,16 +199,8 @@ class BasePcpHandler : public PcpHandler,
   };
 
   struct WifiLanEndpoint : public DiscoveredEndpoint {
-    WifiLanEndpoint(DiscoveredEndpoint endpoint, WifiLanService service)
-        : DiscoveredEndpoint(std::move(endpoint)),
-          wifi_lan_service(std::move(service)) {}
-
-    WifiLanService wifi_lan_service;
-  };
-
-  struct WifiLanV2Endpoint : public DiscoveredEndpoint {
-    WifiLanV2Endpoint(DiscoveredEndpoint endpoint,
-                      const NsdServiceInfo& service_info)
+    WifiLanEndpoint(DiscoveredEndpoint endpoint,
+                    const NsdServiceInfo& service_info)
         : DiscoveredEndpoint(std::move(endpoint)), service_info(service_info) {}
 
     NsdServiceInfo service_info;

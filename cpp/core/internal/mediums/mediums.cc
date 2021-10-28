@@ -26,8 +26,6 @@ Ble& Mediums::GetBle() { return ble_; }
 
 WifiLan& Mediums::GetWifiLan() { return wifi_lan_; }
 
-WifiLanV2& Mediums::GetWifiLanV2() { return wifi_lan_v2_; }
-
 mediums::WebRtc& Mediums::GetWebRtc() { return webrtc_; }
 
 }  // namespace connections

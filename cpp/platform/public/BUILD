@@ -78,7 +78,6 @@ cc_library(
         "bluetooth_classic.cc",
         "file.cc",
         "wifi_lan.cc",
-        "wifi_lan_v2.cc",
     ],
     hdrs = [
         "ble.h",
@@ -86,7 +85,6 @@ cc_library(
         "bluetooth_classic.h",
         "webrtc.h",
         "wifi_lan.h",
-        "wifi_lan_v2.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
@@ -150,7 +148,6 @@ cc_test(
         "scheduled_executor_test.cc",
         "single_thread_executor_test.cc",
         "wifi_lan_test.cc",
-        "wifi_lan_test_v2.cc",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     shard_count = 16,

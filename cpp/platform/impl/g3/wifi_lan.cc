@@ -19,13 +19,14 @@
 #include <string>
 #include <utility>
 
+#include "absl/strings/escaping.h"
+#include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
 #include "platform/api/wifi_lan.h"
 #include "platform/base/cancellation_flag_listener.h"
 #include "platform/base/logging.h"
 #include "platform/base/medium_environment.h"
 #include "platform/base/nsd_service_info.h"
-#include "platform/base/prng.h"
 
 namespace location {
 namespace nearby {
@@ -73,20 +74,13 @@ Exception WifiLanSocket::Close() {
   return {Exception::kSuccess};
 }
 
-WifiLanService* WifiLanSocket::GetRemoteWifiLanService() {
-  absl::MutexLock lock(&mutex_);
-  return wifi_lan_service_;
-}
-
 void WifiLanSocket::DoClose() {
   if (!closed_) {
     remote_socket_ = nullptr;
     output_->GetOutputStream().Close();
     output_->GetInputStream().Close();
-    if (IsConnectedLocked()) {
-      input_->GetOutputStream().Close();
-      input_->GetInputStream().Close();
-    }
+    input_->GetOutputStream().Close();
+    input_->GetInputStream().Close();
     closed_ = true;
   }
 }
@@ -103,19 +97,32 @@ OutputStream& WifiLanSocket::GetLocalOutputStream() {
   return output_->GetOutputStream();
 }
 
-std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept(
-    WifiLanService* wifi_lan_service) {
-  absl::MutexLock lock(&mutex_);
-  if (closed_) return {};
-  while (pending_sockets_.empty()) {
-    cond_.Wait(&mutex_);
-    if (closed_) break;
+std::string WifiLanServerSocket::GetName(const std::string& ip_address,
+                                         int port) {
+  std::string dot_delimited_string;
+  if (!ip_address.empty()) {
+    for (auto byte : ip_address) {
+      if (!dot_delimited_string.empty())
+        absl::StrAppend(&dot_delimited_string, ".");
+      absl::StrAppend(&dot_delimited_string, absl::StrFormat("%d", byte));
+    }
   }
+  std::string out = absl::StrCat(dot_delimited_string, ":", port);
+  return out;
+}
+
+std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
+  absl::MutexLock lock(&mutex_);
+  while (!closed_ && pending_sockets_.empty()) {
+    cond_.Wait(&mutex_);
+  }
+  // whether or not we were running in the wait loop, return early if closed.
   if (closed_) return {};
   auto* remote_socket =
       pending_sockets_.extract(pending_sockets_.begin()).value();
   CHECK(remote_socket);
-  auto local_socket = std::make_unique<WifiLanSocket>(wifi_lan_service);
+
+  auto local_socket = std::make_unique<WifiLanSocket>();
   local_socket->Connect(*remote_socket);
   remote_socket->Connect(*local_socket);
   cond_.SignalAll();
@@ -126,12 +133,12 @@ bool WifiLanServerSocket::Connect(WifiLanSocket& socket) {
   absl::MutexLock lock(&mutex_);
   if (closed_) return false;
   if (socket.IsConnected()) {
-    NEARBY_LOG(ERROR,
-               "Failed to connect to WifiLan server socket: already connected");
+    NEARBY_LOGS(ERROR)
+        << "Failed to connect to WifiLan server socket: already connected";
     return true;  // already connected.
   }
   // add client socket to the pending list
-  pending_sockets_.emplace(&socket);
+  pending_sockets_.insert(&socket);
   cond_.SignalAll();
   while (!socket.IsConnected()) {
     cond_.Wait(&mutex_);
@@ -173,247 +180,190 @@ Exception WifiLanServerSocket::DoClose() {
 }
 
 WifiLanMedium::WifiLanMedium() {
-  wifi_lan_service_.SetMedium(this);
   auto& env = MediumEnvironment::Instance();
   env.RegisterWifiLanMedium(*this);
 }
 
 WifiLanMedium::~WifiLanMedium() {
-  wifi_lan_service_.SetMedium(nullptr);
   auto& env = MediumEnvironment::Instance();
   env.UnregisterWifiLanMedium(*this);
-
-  StopAdvertising(advertising_info_.service_id);
-  StopDiscovery(discovering_info_.service_id);
-
-  NEARBY_LOG(INFO, "WifiLanMedium dtor advertising_accept_thread_running_ = %d",
-             acceptance_thread_running_.load());
-  // If acceptance thread is still running, wait to finish.
-  if (acceptance_thread_running_) {
-    while (acceptance_thread_running_) {
-      shared::CountDownLatch latch(1);
-      close_accept_loops_runner_.Execute([&latch]() { latch.CountDown(); });
-      latch.Await();
-    }
-  }
 }
 
-bool WifiLanMedium::StartAdvertising(const std::string& service_id,
-                                     const NsdServiceInfo& nsd_service_info) {
-  NEARBY_LOG(INFO,
-             "G3 WifiLan StartAdvertising: service_id=%s, nsd_service_info=%p, "
-             "service_info_name=%s",
-             service_id.c_str(), &nsd_service_info,
-             nsd_service_info.GetServiceName().c_str());
-  auto& env = MediumEnvironment::Instance();
-  NsdServiceInfo local_nsd_service_info{nsd_service_info};
-  SetWifiLanService(nsd_service_info);
-  env.UpdateWifiLanMediumForAdvertising(*this, wifi_lan_service_, service_id,
-                                        true);
-
-  absl::MutexLock lock(&mutex_);
-  if (server_socket_ != nullptr) server_socket_.release();
-  server_socket_ = std::make_unique<WifiLanServerSocket>();
-
-  acceptance_thread_running_.exchange(true);
-  accept_loops_runner_.Execute([&env, this, service_id]() mutable {
-    if (!accept_loops_runner_.InShutdown()) {
-      while (true) {
-        auto client_socket = server_socket_->Accept(&wifi_lan_service_);
-        if (client_socket == nullptr) break;
-        env.CallWifiLanAcceptedConnectionCallback(
-            *this, *(client_socket.release()), service_id);
-      }
-    }
-    acceptance_thread_running_.exchange(false);
-  });
-  advertising_info_.service_id = service_id;
-  return true;
-}
-
-bool WifiLanMedium::StopAdvertising(const std::string& service_id) {
-  NEARBY_LOG(INFO, "G3 WifiLan StopAdvertising: service_id=%s",
-             service_id.c_str());
+bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
+  std::string service_type = nsd_service_info.GetServiceType();
+  NEARBY_LOGS(INFO) << "G3 WifiLan StartAdvertising: nsd_service_info="
+                    << &nsd_service_info
+                    << ", service_name=" << nsd_service_info.GetServiceName()
+                    << ", service_type=" << service_type;
   {
     absl::MutexLock lock(&mutex_);
-    if (advertising_info_.Empty()) {
-      NEARBY_LOG(INFO,
-                 "G3 WifiLan StopAdvertising: Can't stop advertising because "
-                 "we never started advertising.");
+    if (advertising_info_.Existed(service_type)) {
+      NEARBY_LOGS(INFO)
+          << "G3 WifiLan StartAdvertising: Can't start advertising because "
+             "service_type="
+          << service_type << ", has started already.";
       return false;
     }
-    advertising_info_.Clear();
   }
-
   auto& env = MediumEnvironment::Instance();
-  env.UpdateWifiLanMediumForAdvertising(*this, wifi_lan_service_, service_id,
-                                        false);
-  accept_loops_runner_.Shutdown();
-  if (server_socket_ == nullptr) {
-    NEARBY_LOGS(ERROR) << "G3 WifiLan StopAdvertising: failed to find WifiLan "
-                          "Server socket: service_id="
-                       << service_id;
-    // Fall through for server socket not found.
-    return true;
+  env.UpdateWifiLanMediumForAdvertising(*this, nsd_service_info,
+                                        /*enabled=*/true);
+  {
+    absl::MutexLock lock(&mutex_);
+    advertising_info_.Add(service_type);
   }
-
-  if (!server_socket_->Close().Ok()) {
-    NEARBY_LOG(INFO,
-               "G3 WifiLan StopAdvertising: Failed to close WifiLan server "
-               "socket for %s.",
-               service_id.c_str());
-    return false;
-  }
-
   return true;
 }
 
-bool WifiLanMedium::StartDiscovery(const std::string& service_id,
-                                   DiscoveredServiceCallback callback) {
-  NEARBY_LOG(INFO, "G3 WifiLan StartDiscovery: service_id=%s",
-             service_id.c_str());
+bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
+  std::string service_type = nsd_service_info.GetServiceType();
+  NEARBY_LOGS(INFO) << "G3 WifiLan StopAdvertising: nsd_service_info="
+                    << &nsd_service_info
+                    << ", service_name=" << nsd_service_info.GetServiceName()
+                    << ", service_type=" << service_type;
+  {
+    absl::MutexLock lock(&mutex_);
+    if (!advertising_info_.Existed(service_type)) {
+      NEARBY_LOGS(INFO)
+          << "G3 WifiLan StopAdvertising: Can't stop advertising because "
+             "we never started advertising for service_type="
+          << service_type;
+      return false;
+    }
+    advertising_info_.Remove(service_type);
+  }
   auto& env = MediumEnvironment::Instance();
-  env.UpdateWifiLanMediumForDiscovery(*this, service_id, std::move(callback),
+  env.UpdateWifiLanMediumForAdvertising(*this, nsd_service_info,
+                                        /*enabled=*/false);
+  return true;
+}
+
+bool WifiLanMedium::StartDiscovery(const std::string& service_type,
+                                   DiscoveredServiceCallback callback) {
+  NEARBY_LOGS(INFO) << "G3 WifiLan StartDiscovery: service_type="
+                    << service_type;
+  {
+    absl::MutexLock lock(&mutex_);
+    if (discovering_info_.Existed(service_type)) {
+      NEARBY_LOGS(INFO)
+          << "G3 WifiLan StartDiscovery: Can't start discovery because "
+             "service_type="
+          << service_type << " has started already.";
+      return false;
+    }
+  }
+  auto& env = MediumEnvironment::Instance();
+  env.UpdateWifiLanMediumForDiscovery(*this, std::move(callback), service_type,
                                       true);
   {
     absl::MutexLock lock(&mutex_);
-    discovering_info_.service_id = service_id;
+    discovering_info_.Add(service_type);
   }
   return true;
 }
 
-bool WifiLanMedium::StopDiscovery(const std::string& service_id) {
-  NEARBY_LOG(INFO, "G3 WifiLan StopDiscovery: service_id=%s",
-             service_id.c_str());
+bool WifiLanMedium::StopDiscovery(const std::string& service_type) {
+  NEARBY_LOGS(INFO) << "G3 WifiLan StopDiscovery: service_type="
+                    << service_type;
   {
     absl::MutexLock lock(&mutex_);
-    if (discovering_info_.Empty()) {
-      NEARBY_LOG(INFO,
-                 "G3 WifiLan StopDiscovery: Can't stop discovering because we "
-                 "never started discovering.");
+    if (!discovering_info_.Existed(service_type)) {
+      NEARBY_LOGS(INFO)
+          << "G3 WifiLan StopDiscovery: Can't stop discovering because we "
+             "never started discovering.";
       return false;
     }
-    discovering_info_.Clear();
+    discovering_info_.Remove(service_type);
+  }
+  auto& env = MediumEnvironment::Instance();
+  env.UpdateWifiLanMediumForDiscovery(*this, {}, service_type, false);
+  return true;
+}
+
+std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
+    const NsdServiceInfo& remote_service_info,
+    CancellationFlag* cancellation_flag) {
+  std::string service_type = remote_service_info.GetServiceType();
+  NEARBY_LOGS(INFO) << "G3 WifiLan ConnectToService [self]: medium=" << this
+                    << ", service_type=" << service_type;
+  return ConnectToService(remote_service_info.GetIPAddress(),
+                          remote_service_info.GetPort(), cancellation_flag);
+}
+
+std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
+    const std::string& ip_address, int port,
+    CancellationFlag* cancellation_flag) {
+  std::string socket_name = WifiLanServerSocket::GetName(ip_address, port);
+  NEARBY_LOGS(INFO) << "G3 WifiLan ConnectToService [self]: medium=" << this
+                    << ", ip address + port=" << socket_name;
+  // First, find an instance of remote medium, that exposed this service.
+  auto& env = MediumEnvironment::Instance();
+  auto* remote_medium =
+      static_cast<WifiLanMedium*>(env.GetWifiLanMedium(ip_address, port));
+  if (!remote_medium) {
+    return {};
   }
 
-  auto& env = MediumEnvironment::Instance();
-  env.UpdateWifiLanMediumForDiscovery(*this, service_id, {}, false);
-  return true;
-}
-
-bool WifiLanMedium::StartAcceptingConnections(
-    const std::string& service_id, AcceptedConnectionCallback callback) {
-  NEARBY_LOG(INFO, "G3 WifiLan StartAcceptingConnections: service_id=%s",
-             service_id.c_str());
-  auto& env = MediumEnvironment::Instance();
-  env.UpdateWifiLanMediumForAcceptedConnection(*this, service_id, callback);
-  return true;
-}
-
-bool WifiLanMedium::StopAcceptingConnections(const std::string& service_id) {
-  NEARBY_LOG(INFO, "G3 WifiLan StopAcceptingConnections: service_id=%s",
-             service_id.c_str());
-  auto& env = MediumEnvironment::Instance();
-  env.UpdateWifiLanMediumForAcceptedConnection(*this, service_id, {});
-  return true;
-}
-
-std::unique_ptr<api::WifiLanSocket> WifiLanMedium::Connect(
-    api::WifiLanService& remote_wifi_lan_service, const std::string& service_id,
-    CancellationFlag* cancellation_flag) {
-  NEARBY_LOG(INFO,
-             "G3 WifiLan Connect: medium=%p, wifi_lan_service=%p, "
-             "service_info_name=%s, service_id=%s",
-             this, &wifi_lan_service_,
-             remote_wifi_lan_service.GetServiceInfo().GetServiceName().c_str(),
-             service_id.c_str());
-  // First, find an instance of remote medium, that exposed this service.
-  auto* remote_medium =
-      static_cast<WifiLanService&>(remote_wifi_lan_service).GetMedium();
-
-  if (!remote_medium) return {};  // Can't find medium. Bail out.
-
-  WifiLanServerSocket* remote_server_socket = nullptr;
-  NEARBY_LOG(INFO,
-             "G3 WifiLan Connect [peer]: remote_wifi_lan_service=%p, "
-             "remote_service_info_name=%s, service_id=%s",
-             &remote_wifi_lan_service,
-             remote_wifi_lan_service.GetServiceInfo().GetServiceName().c_str(),
-             service_id.c_str());
+  WifiLanServerSocket* server_socket = nullptr;
+  NEARBY_LOGS(INFO) << "G3 WifiLan ConnectToService [peer]: medium="
+                    << remote_medium
+                    << ", remote ip address + port=" << socket_name;
   // Then, find our server socket context in this medium.
   {
     absl::MutexLock medium_lock(&remote_medium->mutex_);
-    remote_server_socket = remote_medium->server_socket_.get();
-    if (remote_server_socket == nullptr) {
+    auto item = remote_medium->server_sockets_.find(socket_name);
+    server_socket = item != server_sockets_.end() ? item->second : nullptr;
+    if (server_socket == nullptr) {
       NEARBY_LOGS(ERROR)
-          << "G3 WifiLan Connect: Failed to find remote WifiLan Server socket: "
-             "service_id="
-          << service_id;
-      // Fall through for server socket not found.
+          << "G3 WifiLan Failed to find WifiLan Server socket: socket_name="
+          << socket_name;
       return {};
     }
   }
 
   if (cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(INFO) << "G3 WifiLan Connect: Has been cancelled: "
-                         "service_id="
-                      << service_id;
+    NEARBY_LOGS(ERROR) << "G3 WifiLan Connect: Has been cancelled: socket_name="
+                       << socket_name;
     return {};
   }
 
-  CancellationFlagListener listener(cancellation_flag, [this]() {
+  CancellationFlagListener listener(cancellation_flag, [&server_socket]() {
     NEARBY_LOGS(INFO) << "G3 WifiLan Cancel Connect.";
-    if (server_socket_ != nullptr) server_socket_->Close();
+    if (server_socket != nullptr) {
+      server_socket->Close();
+    }
   });
 
-  WifiLanService wifi_lan_service =
-      static_cast<WifiLanService&>(remote_wifi_lan_service);
-  auto socket = std::make_unique<WifiLanSocket>(&wifi_lan_service);
+  auto socket = std::make_unique<WifiLanSocket>();
   // Finally, Request to connect to this socket.
-  if (!remote_server_socket->Connect(*socket)) {
-    NEARBY_LOG(ERROR,
-               "G3 WifiLan Connect: Failed to connect to existing WifiLan "
-               "Server socket: service_id=%s",
-               service_id.c_str());
+  if (!server_socket->Connect(*socket)) {
+    NEARBY_LOGS(ERROR) << "G3 WifiLan Failed to connect to existing WifiLan "
+                          "Server socket: name="
+                       << socket_name;
     return {};
   }
-
-  NEARBY_LOG(INFO, "G3 WifiLan Connect: connected: socket=%p", socket.get());
+  NEARBY_LOGS(INFO) << "G3 WifiLan ConnectToService: connected: socket="
+                    << socket.get();
   return socket;
 }
 
-api::WifiLanService* WifiLanMedium::GetRemoteService(
-    const std::string& ip_address, int port) {
+std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
+    int port) {
   auto& env = MediumEnvironment::Instance();
-  return env.GetWifiLanService(ip_address, port);
-}
-
-std::pair<std::string, int> WifiLanMedium::GetCredentials(
-    const std::string& service_id) {
-  NEARBY_LOGS(INFO) << "G3 WifiLan GetCredential: service_id=" << service_id;
-  return std::make_pair(wifi_lan_service_.GetServiceInfo().GetIPAddress(),
-                        wifi_lan_service_.GetServiceInfo().GetPort());
-}
-
-void WifiLanMedium::SetWifiLanService(const NsdServiceInfo& nsd_service_info) {
-  NsdServiceInfo local_nsd_service_info{nsd_service_info};
-  auto credential = GetFakeCredentials();
-  local_nsd_service_info.SetIPAddress(credential.first);
-  local_nsd_service_info.SetPort(credential.second);
-  wifi_lan_service_.SetServiceInfo(local_nsd_service_info);
-}
-
-std::pair<std::string, int> WifiLanMedium::GetFakeCredentials() const {
-  std::string ip_address;
-  ip_address.resize(4);
-  uint32_t raw_ip_addr = Prng().NextUint32();
-  uint16_t port = Prng().NextUint32();
-  ip_address[0] = static_cast<char>(raw_ip_addr >> 24);
-  ip_address[1] = static_cast<char>(raw_ip_addr >> 16);
-  ip_address[2] = static_cast<char>(raw_ip_addr >> 8);
-  ip_address[3] = static_cast<char>(raw_ip_addr >> 0);
-
-  return std::make_pair(ip_address, port);
+  auto server_socket = std::make_unique<WifiLanServerSocket>();
+  server_socket->SetIPAddress(env.GetFakeIPAddress());
+  server_socket->SetPort(port == 0 ? env.GetFakePort() : port);
+  std::string socket_name = WifiLanServerSocket::GetName(
+      server_socket->GetIPAddress(), server_socket->GetPort());
+  server_socket->SetCloseNotifier([this, socket_name]() {
+    absl::MutexLock lock(&mutex_);
+    server_sockets_.erase(socket_name);
+  });
+  NEARBY_LOGS(INFO) << "G3 WifiLan Adding server socket: medium=" << this
+                    << ", socket_name=" << socket_name;
+  absl::MutexLock lock(&mutex_);
+  server_sockets_.insert({socket_name, server_socket.get()});
+  return server_socket;
 }
 
 }  // namespace g3
