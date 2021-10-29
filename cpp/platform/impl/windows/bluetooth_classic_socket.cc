@@ -105,7 +105,7 @@ ExceptionOr<ByteArray> BluetoothSocket::BluetoothInputStream::Read(
 
   Buffer buffer = Buffer(size);
 
-  winrt_stream_.ReadAsync(buffer, size, InputStreamOptions::None).get();
+  winrt_stream_.ReadAsync(buffer, size, InputStreamOptions::Partial).get();
 
   DataReader dataReader = DataReader::FromBuffer(buffer);
 

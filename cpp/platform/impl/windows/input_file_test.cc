@@ -94,7 +94,7 @@ TEST_F(InputFileTests, SuccessfulGetFilePath) {
   EXPECT_EQ(inputFile->Close(),
             location::nearby::Exception{location::nearby::Exception::kSuccess});
 
-  EXPECT_EQ(fileName, TEST_PATH);
+  EXPECT_EQ(fileName, test_utils::GetPayloadPath(payloadId).c_str());
 }
 
 TEST_F(InputFileTests, SuccessfulGetTotalSize) {

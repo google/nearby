@@ -24,7 +24,6 @@
 #include "platform/base/payload_id.h"
 
 #define TEST_BUFFER_SIZE 256
-#define TEST_PATH "/tmp/64"
 #define TEST_PAYLOAD_ID 64l
 #define TEST_STRING                                                            \
   "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas "         \

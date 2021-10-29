@@ -150,8 +150,6 @@ cc_test(
         "count_down_latch_test.cc",
         "crypto_test.cc",
         "executor_test.cc",
-        "input_file_test.cc",
-        "output_file_test.cc",
         "scheduled_executor_test.cc",
         "submittable_executor_test.cc",
     ],
