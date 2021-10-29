@@ -34,7 +34,7 @@ struct Exception {
   };
   bool Ok() const { return value == kSuccess; }
   bool Raised() const { return !Ok(); }
-  bool Raised(Value value) const { return this->value == value; }
+  bool Raised(Value val) const { return value == val; }
   Value value{kFailed};
 };
 
