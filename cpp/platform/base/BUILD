@@ -21,6 +21,7 @@ cc_library(
         "base64_utils.cc",
         "bluetooth_utils.cc",
         "input_stream.cc",
+        "nsd_service_info.cc",
         "prng.cc",
     ],
     hdrs = [
