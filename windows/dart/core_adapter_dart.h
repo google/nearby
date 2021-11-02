@@ -27,16 +27,49 @@ enum StrategyDart {
   P2P_POINT_TO_POINT,
 };
 
+struct ConnectionOptionsDart {
+  StrategyDart strategy;
+  int64_t auto_upgrade_bandwidth;
+  int64_t enforce_topology_constraints;
+  int64_t enable_bluetooth;
+  int64_t enable_ble;
+  int64_t advertise_nearby_notifications_beacon;
+  int64_t use_low_power_mode;
+  int64_t discover_fast_advertisements;
+  int64_t enable_wifi_lan;
+  int64_t enable_nfc;
+  int64_t enable_wifi_aware;
+  int64_t enable_web_rtc;
+};
+
+struct ConnectionRequestInfoDart {
+  char* endpoint_info;
+  int64_t initiated_cb;
+  int64_t accepted_cb;
+  int64_t rejected_cb;
+  int64_t disconnected_cb;
+  int64_t bandwidth_changed_cb;
+};
+
+struct DiscoveryListenerDart {
+  int64_t found_cb;
+  int64_t lost_cb;
+  int64_t distance_changed_cb;
+};
+
+struct PayloadListenerDart {
+  int64_t payload_cb;
+  int64_t payload_progress_cb;
+};
+
 // Starts advertising an endpoint for a local app.
 //
 // service_id - An identifier to advertise your app to other endpoints.
 //              This can be an arbitrary string, so long as it uniquely
 //              identifies your service. A good default is to use your
 //              app's package name.
-// endpoint_info - A human readable name for this endpoint, to appear on
-//                 other devices.
-// initiated_cb, accepted_cb, rejected_cb, disconnected_cb,
-//              bandwidth_changed_cb - A callback notified when remote
+// options_dart - options for advertising
+// info_dart - Including callbacks notified when remote
 //              endpoints request a connection to this endpoint.
 // result_cb - to access the status of the operation when available.
 //   Possible status codes include:
@@ -44,27 +77,12 @@ enum StrategyDart {
 //     Status::STATUS_ALREADY_ADVERTISING if the app is already advertising.
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
-DLL_API void __stdcall StartAdvertisingDart(Core* pCore,
-                                      const char* service_id,
-                                      StrategyDart strategy,
-                                      const char* endpoint_info,
-                                      int auto_upgrade_bandwidth,
-                                      int enforce_topology_constraints,
-                                      int enable_bluetooth,
-                                      int enable_ble,
-                                      int advertise_nearby_notifications_beacon,
-                                      int use_low_power_mode,
-                                      int discover_fast_advertisements,
-                                      int enable_wifi_lan,
-                                      int enable_nfc,
-                                      int enable_wifi_aware,
-                                      int enable_web_rtc,
-                                      Dart_Port initiated_cb,
-                                      Dart_Port accepted_cb,
-                                      Dart_Port rejected_cb,
-                                      Dart_Port disconnected_cb,
-                                      Dart_Port bandwidth_changed_cb,
-                                      Dart_Port result_cb);
+DLL_EXPORT void __stdcall StartAdvertisingDart(Core* pCore,
+                                   const char* service_id,
+                                   ConnectionOptionsDart options_dart,
+                                   ConnectionRequestInfoDart info_dart,
+                                   Dart_Port result_cb);
+
 // Stops advertising a local endpoint. Should be called after calling
 // StartAdvertising, as soon as the application no longer needs to advertise
 // itself or goes inactive. Payloads can still be sent to connected
@@ -80,8 +98,8 @@ DLL_EXPORT void __stdcall StopAdvertisingDart(Core* pCore,
 //
 // service_id - The ID for the service to be discovered, as specified in
 //              the corresponding call to StartAdvertising.
-// found_cb, lost_cb, distance_changed_cb - A callback notified when a remote
-//              endpoint is discovered.
+// options    - The options for discovery.
+// listener   - Callbacks notified when a remote endpoint is discovered.
 // result_cb  - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK if discovery started successfully.
@@ -91,18 +109,8 @@ DLL_EXPORT void __stdcall StopAdvertisingDart(Core* pCore,
 //         connected to remote endpoints; call StopAllEndpoints first.
 DLL_EXPORT void __stdcall StartDiscoveryDart(Core* pCore,
                                     const char* service_id,
-                                    StrategyDart strategy,
-                                    int forward_unrecognized_bluetooth_devices,
-                                    int enable_bluetooth,
-                                    int enable_ble,
-                                    int use_low_power_mode,
-                                    int discover_fast_advertisements,
-                                    int enable_wifi_lan,
-                                    int enable_nfc,
-                                    int enable_wifi_aware,
-                                    Dart_Port found_cb,
-                                    Dart_Port lost_cb,
-                                    Dart_Port distance_changed_cb,
+                                    ConnectionOptionsDart options_dart,
+                                    DiscoveryListenerDart listener_dart,
                                     Dart_Port result_cb);
 
 // Stops discovery for remote endpoints, after a previous call to

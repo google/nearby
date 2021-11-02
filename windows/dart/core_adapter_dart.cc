@@ -19,11 +19,6 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-ConnectionOptions g_discovery_connection_options;
-ConnectionOptions g_advertising_connection_options;
-ABSL_CONST_INIT absl::Mutex callback_mutex(absl::kConstInit);
-std::queue<absl::string_view> callback_queue;
-
 Strategy GetStrategy(StrategyDart strategy) {
   switch (strategy) {
     case StrategyDart::P2P_CLUSTER:
@@ -37,49 +32,34 @@ Strategy GetStrategy(StrategyDart strategy) {
 }
 
 ByteArray ConvertBluetoothMacAddress(absl::string_view address) {
-  return ByteArray();
+  return ByteArray(address.data());
 }
 
 void StartAdvertisingDart(Core* pCore,
                           const char* service_id,
-                          StrategyDart strategy,
-                          const char* endpoint_info,
-                          int auto_upgrade_bandwidth,
-                          int enforce_topology_constraints,
-                          int enable_bluetooth,
-                          int enable_ble,
-                          int advertise_nearby_notifications_beacon,
-                          int use_low_power_mode,
-                          int discover_fast_advertisements,
-                          int enable_wifi_lan,
-                          int enable_nfc,
-                          int enable_wifi_aware,
-                          int enable_web_rtc,
-                          Dart_Port initiated_cb,
-                          Dart_Port accepted_cb,
-                          Dart_Port rejected_cb,
-                          Dart_Port disconnected_cb,
-                          Dart_Port bandwidth_changed_cb,
+                          ConnectionOptionsDart options_dart,
+                          ConnectionRequestInfoDart info_dart,
                           Dart_Port result_cb)
 {
   if (pCore) {
     ConnectionOptions options;
-    options.strategy = GetStrategy(strategy);
+    options.strategy = GetStrategy(options_dart.strategy);
     options.auto_upgrade_bandwidth =
-        auto_upgrade_bandwidth;
+        options_dart.auto_upgrade_bandwidth;
     options.enforce_topology_constraints =
-        enforce_topology_constraints;
-    options.allowed.bluetooth = enable_bluetooth;
-    options.allowed.ble = enable_ble;
-    options.low_power = use_low_power_mode;
+        options_dart.enforce_topology_constraints;
+    options.allowed.bluetooth = options_dart.enable_bluetooth;
+    options.allowed.ble = options_dart.enable_ble;
+    options.low_power = options_dart.use_low_power_mode;
     options.fast_advertisement_service_uuid =
-     discover_fast_advertisements ? "0000FE2C-0000-1000-8000-00805F9B34FB" : "";
-    options.allowed.wifi_lan = enable_wifi_lan;
-    options.allowed.web_rtc = enable_web_rtc;
+     options_dart.discover_fast_advertisements ?
+        "0000FE2C-0000-1000-8000-00805F9B34FB" : "";
+    options.allowed.wifi_lan = options_dart.enable_wifi_lan;
+    options.allowed.web_rtc = options_dart.enable_web_rtc;
 
     ConnectionRequestInfo info;
-    info.endpoint_info = ByteArray(endpoint_info);
-    info.listener.initiated_cb = [initiated_cb](const std::string& endpoint_id,
+    info.endpoint_info = ByteArray(info_dart.endpoint_info);
+    info.listener.initiated_cb = [info_dart](const std::string& endpoint_id,
                           const ConnectionResponseInfo& connection_info) {
                           NEARBY_LOG(INFO, "Advertising initiated: id=%s",
                                      endpoint_id.c_str());
@@ -88,14 +68,14 @@ void StartAdvertisingDart(Core* pCore,
                           dart_object_initiated.value.as_string =
                             (char *)connection_info.remote_endpoint_info.data();
                           const bool result =
-                              Dart_PostCObject_DL(initiated_cb,
+                              Dart_PostCObject_DL(info_dart.initiated_cb,
                                                   &dart_object_initiated);
                           if (!result) {
                             NEARBY_LOG(INFO,
                                        "Posting message to port failed.");
                           }
                         };
-    info.listener.accepted_cb = [accepted_cb](const std::string& endpoint_id) {
+    info.listener.accepted_cb = [info_dart](const std::string& endpoint_id) {
                           NEARBY_LOG(INFO, "Advertising accepted: id=%s",
                                      endpoint_id.c_str());
                           Dart_CObject dart_object_accepted;
@@ -103,14 +83,14 @@ void StartAdvertisingDart(Core* pCore,
                           dart_object_accepted.value.as_string =
                             (char *)endpoint_id.c_str();
                           const bool result =
-                              Dart_PostCObject_DL(accepted_cb,
+                              Dart_PostCObject_DL(info_dart.accepted_cb,
                                                   &dart_object_accepted);
                           if (!result) {
                             NEARBY_LOG(INFO,
                                        "Posting message to port failed.");
                           }
                         };
-    info.listener.rejected_cb = [rejected_cb](const std::string& endpoint_id,
+    info.listener.rejected_cb = [info_dart](const std::string& endpoint_id,
                                               Status status) {
                           NEARBY_LOG(INFO, "Advertising rejected: id=%s",
                                      endpoint_id.c_str());
@@ -119,14 +99,14 @@ void StartAdvertisingDart(Core* pCore,
                           dart_object_rejected.value.as_string =
                             (char *)endpoint_id.c_str();
                           const bool result =
-                              Dart_PostCObject_DL(rejected_cb,
+                              Dart_PostCObject_DL(info_dart.rejected_cb,
                                                   &dart_object_rejected);
                           if (!result) {
                             NEARBY_LOG(INFO,
                                        "Posting message to port failed.");
                           }
                         };
-    info.listener.disconnected_cb = [disconnected_cb](
+    info.listener.disconnected_cb = [info_dart](
         const std::string& endpoint_id) {
                           NEARBY_LOG(INFO, "Advertising disconnected: id=%s",
                                      endpoint_id.c_str());
@@ -135,14 +115,14 @@ void StartAdvertisingDart(Core* pCore,
                           dart_object_disconnected.value.as_string =
                             (char *)endpoint_id.c_str();
                           const bool result =
-                              Dart_PostCObject_DL(disconnected_cb,
+                              Dart_PostCObject_DL(info_dart.disconnected_cb,
                                                   &dart_object_disconnected);
                           if (!result) {
                             NEARBY_LOG(INFO,
                                        "Posting message to port failed.");
                           }
                         };
-    info.listener.bandwidth_changed_cb = [bandwidth_changed_cb](
+    info.listener.bandwidth_changed_cb = [info_dart](
         const std::string& endpoint_id, Medium medium) {
                       NEARBY_LOG(INFO, "Advertising bandwidth changed: id=%s",
                                  endpoint_id.c_str());
@@ -152,7 +132,7 @@ void StartAdvertisingDart(Core* pCore,
                       dart_object_bandwidth_changed.value.as_string =
                         (char *)endpoint_id.c_str();
                       const bool result =
-                          Dart_PostCObject_DL(bandwidth_changed_cb,
+                          Dart_PostCObject_DL(info_dart.bandwidth_changed_cb,
                                               &dart_object_bandwidth_changed);
                       if (!result) {
                         NEARBY_LOG(INFO,
@@ -190,42 +170,34 @@ void StopAdvertisingDart(Core* pCore, Dart_Port result_cb) {
         NEARBY_LOG(INFO, "Posting message to port failed.");
       }
     };
+
     StopAdvertising(pCore, callback);
   }
 }
 
 void StartDiscoveryDart(Core* pCore,
                         const char* service_id,
-                        StrategyDart strategy,
-                        int forward_unrecognized_bluetooth_devices,
-                        int enable_bluetooth,
-                        int enable_ble,
-                        int use_low_power_mode,
-                        int discover_fast_advertisements,
-                        int enable_wifi_lan,
-                        int enable_nfc,
-                        int enable_wifi_aware,
-                        Dart_Port found_cb,
-                        Dart_Port lost_cb,
-                        Dart_Port distance_changed_cb,
+                        ConnectionOptionsDart options_dart,
+                        DiscoveryListenerDart listener_dart,
                         Dart_Port result_cb) {
   if (pCore) {
     ConnectionOptions options;
-    options.strategy = GetStrategy(strategy);
-    options.allowed.bluetooth = enable_bluetooth;
-    options.allowed.ble = enable_ble;
-    options.allowed.wifi_lan = enable_wifi_lan;
+    options.strategy = GetStrategy(options_dart.strategy);
+    options.allowed.bluetooth = options_dart.enable_bluetooth;
+    options.allowed.ble = options_dart.enable_ble;
+    options.allowed.wifi_lan = options_dart.enable_wifi_lan;
     options.allowed.web_rtc = false;
-    options.low_power = use_low_power_mode;
+    options.low_power = options_dart.use_low_power_mode;
     options.enable_bluetooth_listening =
-        enable_bluetooth;
+      options_dart.enable_bluetooth;
     options.enforce_topology_constraints = true;
     options.fast_advertisement_service_uuid =
-     discover_fast_advertisements ? "0000FE2C-0000-1000-8000-00805F9B34FB" : "";
+      options_dart.discover_fast_advertisements ?
+        "0000FE2C-0000-1000-8000-00805F9B34FB" : "";
 
     DiscoveryListener listener;
     listener.endpoint_found_cb =
-                        [found_cb](const std::string& endpoint_id,
+                        [listener_dart](const std::string& endpoint_id,
                                  const ByteArray& endpoint_info,
                                  const std::string& str_service_id) {
                           NEARBY_LOG(INFO, "Device discovered: id=%s",
@@ -238,8 +210,10 @@ void StartDiscoveryDart(Core* pCore,
                           dart_object_found.type = Dart_CObject_kString;
                           dart_object_found.value.as_string =
                               (char *)endpoint_info.data();
+                          NEARBY_LOG(INFO, "Found cb is %d.",
+                                     listener_dart.found_cb);
                           const bool result =
-                              Dart_PostCObject_DL(found_cb,
+                              Dart_PostCObject_DL(listener_dart.found_cb,
                                                   &dart_object_found);
                           if (!result) {
                             NEARBY_LOG(INFO,
@@ -247,7 +221,7 @@ void StartDiscoveryDart(Core* pCore,
                           }
                         };
     listener.endpoint_lost_cb =
-                        [lost_cb](const std::string& endpoint_id) {
+                        [listener_dart](const std::string& endpoint_id) {
                           NEARBY_LOG(INFO, "Device lost: id=%s",
                                      endpoint_id.c_str());
                           Dart_CObject dart_object_lost;
@@ -255,14 +229,15 @@ void StartDiscoveryDart(Core* pCore,
                           dart_object_lost.value.as_string =
                               (char *)endpoint_id.c_str();
                           const bool result =
-                              Dart_PostCObject_DL(lost_cb, &dart_object_lost);
+                              Dart_PostCObject_DL(listener_dart.lost_cb,
+                                                  &dart_object_lost);
                           if (!result) {
                             NEARBY_LOG(INFO,
                                        "Posting message to port failed.");
                           }
                         };
     listener.endpoint_distance_changed_cb =
-                        [distance_changed_cb](const std::string& endpoint_id,
+                        [listener_dart](const std::string& endpoint_id,
                                                 DistanceInfo info) {
                           NEARBY_LOG(INFO, "Device distance changed: id=%s",
                                      endpoint_id.c_str());
@@ -272,8 +247,9 @@ void StartDiscoveryDart(Core* pCore,
                           dart_object_distance_changed.value.as_string =
                               (char *)(endpoint_id.c_str());
                           const bool result =
-                              Dart_PostCObject_DL(distance_changed_cb,
-                                              &dart_object_distance_changed);
+                              Dart_PostCObject_DL(
+                                  listener_dart.distance_changed_cb,
+                                  &dart_object_distance_changed);
                           if (!result) {
                             NEARBY_LOG(INFO,
                                        "Posting message to port failed.");
