@@ -123,6 +123,50 @@ DLL_EXPORT void __stdcall StartDiscoveryDart(Core* pCore,
 //     Status::STATUS_OK if none of the above errors occurred.
 DLL_EXPORT void __stdcall StopDiscoveryDart(Core* pCore,
                                          Dart_Port result_cb);
+
+// Sends a request to connect to a remote endpoint.
+//
+// endpoint_id - The identifier for the remote endpoint to which a
+//               connection request will be sent. Should match the value
+//               provided in a call to
+//               DiscoveryListener::endpoint_found_cb()
+// options_dart - The options for connection.
+// info_dart   - Connection parameters:
+// > name      - A human readable name for the local endpoint, to appear on
+//               the remote endpoint.
+// > listener  - Callbacks notified when the remote endpoint sends a
+//               response to the connection request.
+// result_cb   - to access the status of the operation when available.
+//   Possible status codes include:
+//     Status::STATUS_OK if the connection request was sent.
+//     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT if the app already
+//         has a connection to the specified endpoint.
+//     Status::STATUS_RADIO_ERROR if we failed to connect because of an
+//         issue with Bluetooth/WiFi.
+//     Status::STATUS_ERROR if we failed to connect for any other reason.
+DLL_EXPORT void __stdcall RequestConnectionDart(Core* pCore,
+                                            const char* endpoint_id,
+                                            ConnectionOptionsDart options_dart,
+                                            ConnectionRequestInfoDart info_dart,
+                                            Dart_Port result_cb);
+
+// Accepts a connection to a remote endpoint. This method must be called
+// before Payloads can be exchanged with the remote endpoint.
+//
+// endpoint_id - The identifier for the remote endpoint. Should match the
+//               value provided in a call to
+//               ConnectionListener::onConnectionInitiated.
+// listener_dart - A callback for payloads exchanged with the remote endpoint.
+// result_cb   - to access the status of the operation when available.
+//   Possible status codes include:
+//     Status::STATUS_OK if the connection request was accepted.
+//     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT if the app already.
+//         has a connection to the specified endpoint.
+DLL_EXPORT void __stdcall AcceptConnectionDart(Core* pCore,
+                                           const char* endpoint_id,
+                                           PayloadListenerDart listener_dart,
+                                           Dart_Port result_cb);
+
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
