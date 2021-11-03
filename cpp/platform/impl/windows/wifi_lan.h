@@ -21,6 +21,7 @@
 
 // Standard C/C++ headers
 #include <exception>
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -76,40 +77,13 @@ using winrt::Windows::Storage::Streams::IInputStream;
 using winrt::Windows::Storage::Streams::InputStreamOptions;
 using winrt::Windows::Storage::Streams::IOutputStream;
 
-class WifiLanMedium;
-
-// WifiLanService includes NSD service information and
-// related medium information.
-class WifiLanService : public api::WifiLanService {
- public:
-  WifiLanService() = default;
-  explicit WifiLanService(NsdServiceInfo nsd_service_info)
-      : nsd_service_info_(std::move(nsd_service_info)) {}
-  ~WifiLanService() override = default;
-
-  NsdServiceInfo GetServiceInfo() const override { return nsd_service_info_; }
-
-  void SetServiceInfo(NsdServiceInfo nsd_service_info) {
-    nsd_service_info_ = std::move(nsd_service_info);
-  }
-
-  WifiLanMedium* GetMedium() { return medium_; }
-
-  void SetMedium(WifiLanMedium* medium) { medium_ = medium; }
-
- private:
-  NsdServiceInfo nsd_service_info_;
-  WifiLanMedium* medium_ = nullptr;
-};
-
 // WifiLanSocket wraps the socket functions to read and write stream.
 // In WiFi LAN, A WifiLanSocket will be passed to StartAcceptingConnections's
 // call back when StreamSocketListener got connect. When call API to connect to
 // remote WiFi LAN service, also will return a WifiLanSocket to caller.
 class WifiLanSocket : public api::WifiLanSocket {
  public:
-  explicit WifiLanSocket(api::WifiLanService* wifi_lan_service,
-                         StreamSocket socket);
+  explicit WifiLanSocket(StreamSocket socket);
   WifiLanSocket(WifiLanSocket&) = default;
   WifiLanSocket(WifiLanSocket&&) = default;
   ~WifiLanSocket() override;
@@ -132,22 +106,6 @@ class WifiLanSocket : public api::WifiLanSocket {
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override;
-
-  // Returns valid WifiLanService pointer if there is a connection, and
-  // nullptr otherwise.
-  api::WifiLanService* GetRemoteWifiLanService() override;
-
-  // Sets service id binding to the socket
-  void SetServiceId(std::string service_id);
-
-  // Sets medium information
-  void SetMedium(WifiLanMedium* medium);
-
-  // Returns the socket IP address
-  std::string GetLocalAddress();
-
-  // Returns the socket port, range is between 49152 and 65535
-  int GetLocalPort();
 
  private:
   // A simple wrapper to handle input stream of socket
@@ -182,45 +140,107 @@ class WifiLanSocket : public api::WifiLanSocket {
   StreamSocket stream_soket_{nullptr};
   SocketInputStream input_stream_{nullptr};
   SocketOutputStream output_stream_{nullptr};
-
-  api::WifiLanService* remote_wifi_lan_service_ = nullptr;
-  WifiLanMedium* medium_ = nullptr;
-  std::string service_id_;
 };
 
-// WifiLanNsd implements the NSD functions for a specific service ID.
-// WifiLan Medium separates NSD functions using WifiLanNsd. WifiLanNsd
-// maintians the states of mDNS service.
-class WifiLanNsd {
+// WifiLanServerSocket provides the support to server socket, this server socket
+// accepts connection from clients.
+class WifiLanServerSocket : public api::WifiLanServerSocket {
  public:
-  explicit WifiLanNsd(WifiLanMedium* medium, const std::string service_id);
-  WifiLanNsd(WifiLanNsd&&) = default;
-  WifiLanNsd& operator=(WifiLanNsd&&) = default;
-  ~WifiLanNsd() = default;
+  explicit WifiLanServerSocket(int port = 0);
+  WifiLanServerSocket(WifiLanServerSocket&) = default;
+  WifiLanServerSocket(WifiLanServerSocket&&) = default;
+  ~WifiLanServerSocket() override;
+  WifiLanServerSocket& operator=(const WifiLanServerSocket&) = default;
+  WifiLanServerSocket& operator=(WifiLanServerSocket&&) = default;
 
-  // Implements medium functions based on service id
-  bool StartAcceptingConnections(
-      api::WifiLanMedium::AcceptedConnectionCallback callback);
-  bool StopAcceptingConnections();
-  bool StartAdvertising(const NsdServiceInfo& nsd_service_info);
-  bool StopAdvertising();
-  bool StartDiscovery(api::WifiLanMedium::DiscoveredServiceCallback callback);
-  bool StopDiscovery();
+  // Returns ip address.
+  std::string GetIPAddress() const override;
 
-  // In the class, not using ENUM to describe the mDNS states, because a little
-  // complicate to combine all states based on accepting, advertising and
-  // discovery.
-  bool IsIdle() { return nsd_status_ == 0; }
+  // Returns port.
+  int GetPort() const override;
 
-  bool IsAccepting() { return (nsd_status_ & NSD_STATUS_ACCEPTING) != 0; }
+  // Sets port
+  void SetPort(int port) { port_ = port; }
 
-  bool IsAdvertising() { return (nsd_status_ & NSD_STATUS_ADVERTISING) != 0; }
+  StreamSocketListener GetSocketListener() const {
+    return stream_socket_listener_;
+  }
 
-  bool IsDiscovering() { return (nsd_status_ & NSD_STATUS_DISCOVERING) != 0; }
+  // Blocks until either:
+  // - at least one incoming connection request is available, or
+  // - ServerSocket is closed.
+  // On success, returns connected socket, ready to exchange data.
+  // Returns nullptr on error.
+  // Once error is reported, it is permanent, and ServerSocket has to be closed.
+  std::unique_ptr<api::WifiLanSocket> Accept() override;
 
-  // A pair of IP Address and Port. A remote device can use this information
-  // to connect to us. This is non-null while IsAccepting is true.
-  std::pair<std::string, int> GetCredentials();
+  // Called by the server side of a connection before passing ownership of
+  // WifiLanServerSocker to user, to track validity of a pointer to this
+  // server socket.
+  void SetCloseNotifier(std::function<void()> notifier);
+
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  Exception Close() override;
+
+  // Binds to local port
+  bool listen();
+
+ private:
+  // The listener is accepting incoming connections
+  fire_and_forget Listener_ConnectionReceived(
+      StreamSocketListener listener,
+      StreamSocketListenerConnectionReceivedEventArgs const& args);
+
+  // Retrieves IP addresses from local machine
+  std::vector<std::string> GetIpAddresses();
+
+  mutable absl::Mutex mutex_;
+  absl::CondVar cond_;
+  std::deque<StreamSocket> pending_sockets_ ABSL_GUARDED_BY(mutex_);
+  StreamSocketListener stream_socket_listener_{nullptr};
+  winrt::event_token listener_event_token_{};
+
+  // Close notifier
+  std::function<void()> close_notifier_ = nullptr;
+
+  // IP addresses of the computer. mDNS uses them to advertise.
+  std::vector<std::string> ip_addresses_{};
+
+  // Cache socket not be picked by upper layer
+  int port_ = 0;
+  bool closed_ = false;
+};
+
+// Container of operations that can be performed over the WifiLan medium.
+class WifiLanMedium : public api::WifiLanMedium {
+ public:
+  ~WifiLanMedium() override = default;
+
+  // Starts to advertising
+  bool StartAdvertising(const NsdServiceInfo& nsd_service_info) override;
+
+  // Stops to advertising
+  bool StopAdvertising(const NsdServiceInfo& nsd_service_info) override;
+
+  // Starts to discovery
+  bool StartDiscovery(const std::string& service_type,
+                      DiscoveredServiceCallback callback) override;
+
+  // Returns true once WifiLan discovery for service_type is well and truly
+  // stopped; after this returns, there must be no more invocations of the
+  // DiscoveredServiceCallback passed in to StartDiscovery() for service_type.
+  bool StopDiscovery(const std::string& service_type) override;
+
+  std::unique_ptr<api::WifiLanSocket> ConnectToService(
+      const NsdServiceInfo& remote_service_info,
+      CancellationFlag* cancellation_flag) override;
+
+  std::unique_ptr<api::WifiLanSocket> ConnectToService(
+      const std::string& ip_address, int port,
+      CancellationFlag* cancellation_flag) override;
+
+  std::unique_ptr<api::WifiLanServerSocket> ListenForService(
+      int port = 0) override;
 
   // DnsServiceDeRegister is a async process, after operation finish, callback
   // will call this method to notify the waiting method StopAdvertising to
@@ -228,46 +248,38 @@ class WifiLanNsd {
   void NotifyDnsServiceUnregistered(DWORD status);
 
  private:
-  // Nsd status
-  static const int NSD_STATUS_IDLE = 0;
-  static const int NSD_STATUS_ACCEPTING = (1 << 0);
-  static const int NSD_STATUS_ADVERTISING = (1 << 1);
-  static const int NSD_STATUS_DISCOVERING = (1 << 2);
-
-  //
-  // Constants
-  //
-
-  // Socket listening ports
-  static const uint16 PORT_MIN = 49152;
-  static const uint16 PORT_MAX = 65535;
-  static const uint16 PORT_RANGE = PORT_MAX - PORT_MIN;
-
   // mDNS text attributes
   static constexpr std::string_view KEY_ENDPOINT_INFO = "n";
 
   // mDNS information for advertising and discovery
   static constexpr std::wstring_view MDNS_HOST_NAME = L"Windows.local";
-  static constexpr std::string_view MDNS_INSTANCE_NAME_FORMAT =
-      "%s.%s._tcp.local";
+  static constexpr std::string_view MDNS_INSTANCE_NAME_FORMAT = "%s.%slocal";
   static constexpr std::string_view MDNS_DEVICE_SELECTOR_FORMAT =
       "System.Devices.AepService.ProtocolId:=\"{4526e8c1-8aac-4153-9b16-"
       "55e86ada0e54}\" "
       "AND System.Devices.Dnssd.ServiceName:=\"%s._tcp\" AND "
       "System.Devices.Dnssd.Domain:=\"local\"";
-  static const int SERVICE_ID_HASH_LENGTH = 6;
-  static constexpr std::string_view SERVICE_ID_FORMAT =
-      "_%02X%02X%02X%02X%02X%02X";
 
-  //
-  // Private methods
-  //
+  // Nsd status
+  static const int MEDIUM_STATUS_IDLE = 0;
+  static const int MEDIUM_STATUS_ACCEPTING = (1 << 0);
+  static const int MEDIUM_STATUS_ADVERTISING = (1 << 1);
+  static const int MEDIUM_STATUS_DISCOVERING = (1 << 2);
 
-  // Generates preferred listening port. If cannot bind to this port,
-  // NSD will assign a random port for the service.
-  // TODO: Windows firewall may break the solution, need to further solution to
-  // resolve the potential issue
-  uint16 GenerateSocketPort(const std::string& service_id);
+  // In the class, not using ENUM to describe the mDNS states, because a little
+  // complicate to combine all states based on accepting, advertising and
+  // discovery.
+  bool IsIdle() { return medium_status_ == 0; }
+
+  bool IsAccepting() { return (medium_status_ & MEDIUM_STATUS_ACCEPTING) != 0; }
+
+  bool IsAdvertising() {
+    return (medium_status_ & MEDIUM_STATUS_ADVERTISING) != 0;
+  }
+
+  bool IsDiscovering() {
+    return (medium_status_ & MEDIUM_STATUS_DISCOVERING) != 0;
+  }
 
   // From mDNS device information, to build NsdServiceInfo.
   // the properties are from DeviceInformation and DeviceInformationUpdate.
@@ -277,9 +289,6 @@ class WifiLanNsd {
       IMapView<winrt::hstring, IInspectable> properties);
 
   // mDNS callbacks for advertising and discovery
-  fire_and_forget Listener_ConnectionReceived(
-      StreamSocketListener listener,
-      StreamSocketListenerConnectionReceivedEventArgs const& args);
   fire_and_forget Watcher_DeviceAdded(DeviceWatcher sender,
                                       DeviceInformation deviceInfo);
   fire_and_forget Watcher_DeviceUpdated(
@@ -289,36 +298,14 @@ class WifiLanNsd {
   static void Advertising_StopCompleted(DWORD Status, PVOID pQueryContext,
                                         PDNS_SERVICE_INSTANCE pInstance);
 
-  // Retrieves IP addresses from local machine
-  std::vector<std::string> GetIpAddresses();
-
-  std::string GetServiceIdHash();
-
-  // Manages remote connections
-  WifiLanService* GetRemoteWifiLanService(
-      std::string endpoint, std::unique_ptr<WifiLanService> wifi_lan_service);
-  void RemoveRemoteWifiLanService(std::string endpoint);
-
-  // Basic information of Nsd
-  location::nearby::Mutex mutex_{};
-  std::string service_id_{};
-  // TODO(200421848): NsdServiceInfo should support service type
-  std::string service_type_{};
-  WifiLanMedium* medium_ = nullptr;
-  WifiLanService wifi_lan_service_{};
-  absl::flat_hash_map<std::string, std::unique_ptr<WifiLanService>>
-      remote_wifi_lan_services_ ABSL_GUARDED_BY(mutex_);
-
-  // NSD Status
-  int nsd_status_ = NSD_STATUS_IDLE;
+  // Gets error message from exception pointer
+  std::string GetErrorMessage(std::exception_ptr eptr);
 
   //
   // Dns-sd related properties
   //
 
   // Advertising properties
-  winrt::event_token listener_event_token_{};
-  StreamSocketListener stream_socket_listener_{nullptr};
   DnssdServiceInstance dnssd_service_instance_{nullptr};
   DnssdRegistrationResult dnssd_regirstraion_result_{nullptr};
 
@@ -335,78 +322,17 @@ class WifiLanNsd {
   winrt::event_token device_watcher_updated_event_token;
   winrt::event_token device_watcher_removed_event_token;
 
-  // callbacks for advertising and discovery
-  api::WifiLanMedium::AcceptedConnectionCallback accepted_connection_callback_;
+  // callback for discovery
   api::WifiLanMedium::DiscoveredServiceCallback discovered_service_callback_;
 
-  // IP addresses of the computer. mDNS uses them to advertise.
-  std::vector<std::string> ip_addresses_{};
-};
+  // Protects to access some members
+  absl::Mutex mutex_;
 
-// Container of operations that can be performed over the WifiLan medium.
-class WifiLanMedium : public api::WifiLanMedium {
- public:
-  ~WifiLanMedium() override = default;
+  // Medium Status
+  int medium_status_ = MEDIUM_STATUS_IDLE;
 
-  // Starts to advertising
-  bool StartAdvertising(const std::string& service_id,
-                        const NsdServiceInfo& nsd_service_info) override;
-
-  // Stops to advertising
-  bool StopAdvertising(const std::string& service_id) override;
-
-  // Starts to discovery
-  bool StartDiscovery(const std::string& service_id,
-                      DiscoveredServiceCallback callback) override;
-
-  // Returns true once WifiLan discovery for service_id is well and truly
-  // stopped; after this returns, there must be no more invocations of the
-  // DiscoveredServiceCallback passed in to StartDiscovery() for service_id.
-  bool StopDiscovery(const std::string& service_id) override;
-
-  // Returns true once WifiLan socket connection requests to service_id can be
-  // accepted.
-  bool StartAcceptingConnections(const std::string& service_id,
-                                 AcceptedConnectionCallback callback) override;
-
-  // Stops to accept connections
-  bool StopAcceptingConnections(const std::string& service_id) override;
-
-  // Connects to a WifiLan service.
-  // On success, returns a new WifiLanSocket.
-  // On error, returns nullptr.
-  std::unique_ptr<api::WifiLanSocket> Connect(
-      api::WifiLanService& wifi_lan_service, const std::string& service_id,
-      CancellationFlag* cancellation_flag) override;
-
-  // Returns WiFi LAN service from local ip address and port information
-  api::WifiLanService* GetRemoteService(const std::string& ip_address,
-                                        int port) override;
-
-  // returns advertising service address
-  std::pair<std::string, int> GetCredentials(
-      const std::string& service_id) override;
-
-  // for internal to clean closed connection.
-  void CloseConnection(WifiLanSocket& socket);
-
- private:
-  // Accesses NSD by service id
-  WifiLanNsd* GetNsd(std::string service_id, bool create = false);
-  bool RemoveNsd(std::string service_id);
-
-  // Gets error message from exception pointer
-  std::string GetErrorMessage(std::exception_ptr eptr);
-
-  // Protects the access to NSD and connections
-  location::nearby::Mutex mutex_{};
-
-  // Tracks of active advertising or discovery
-  absl::flat_hash_map<std::string, std::unique_ptr<WifiLanNsd>>
-      service_to_nsd_map_ ABSL_GUARDED_BY(mutex_);
-
-  // Tracks of active connetions
-  absl::flat_hash_set<WifiLanSocket*> wifi_lan_sockets_ ABSL_GUARDED_BY(mutex_);
+  // Keep the server socket listener pointer
+  WifiLanServerSocket* server_socket_ptr_ ABSL_GUARDED_BY(mutex_) = nullptr;
 };
 
 }  // namespace windows

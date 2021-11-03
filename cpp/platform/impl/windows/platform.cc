@@ -36,6 +36,7 @@
 #include "platform/impl/windows/submittable_executor.h"
 #include "platform/impl/windows/webrtc.h"
 #include "platform/impl/windows/wifi.h"
+#include "platform/impl/windows/wifi_lan.h"
 
 namespace location {
 namespace nearby {
@@ -159,9 +160,8 @@ std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() {
   return std::unique_ptr<WifiMedium>();
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
-  return std::unique_ptr<WifiLanMedium>();
+  return absl::make_unique<windows::WifiLanMedium>();
 }
 
 // TODO(b/184975123): replace with real implementation.

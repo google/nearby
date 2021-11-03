@@ -19,9 +19,7 @@ namespace location {
 namespace nearby {
 namespace windows {
 
-WifiLanSocket::WifiLanSocket(api::WifiLanService* wifi_lan_service,
-                             StreamSocket socket) {
-  remote_wifi_lan_service_ = wifi_lan_service;
+WifiLanSocket::WifiLanSocket(StreamSocket socket) {
   stream_soket_ = socket;
   input_stream_ = SocketInputStream(socket.InputStream());
   output_stream_ = SocketOutputStream(socket.OutputStream());
@@ -45,39 +43,11 @@ Exception WifiLanSocket::Close() {
   try {
     if (stream_soket_ != nullptr) {
       stream_soket_.Close();
-      medium_->CloseConnection(*this);
     }
     return {Exception::kSuccess};
   } catch (...) {
     return {Exception::kIo};
   }
-}
-
-api::WifiLanService* WifiLanSocket::GetRemoteWifiLanService() {
-  return remote_wifi_lan_service_;
-}
-
-void WifiLanSocket::SetServiceId(std::string service_id) {
-  service_id_ = service_id;
-}
-
-void WifiLanSocket::SetMedium(WifiLanMedium* medium) { medium_ = medium; }
-
-std::string WifiLanSocket::GetLocalAddress() {
-  if (stream_soket_ == nullptr) {
-    return {};
-  }
-
-  return winrt::to_string(
-      stream_soket_.Information().LocalAddress().ToString());
-}
-
-int WifiLanSocket::GetLocalPort() {
-  if (stream_soket_ == nullptr) {
-    return 0;
-  }
-
-  return std::stoi(stream_soket_.Information().LocalPort().c_str());
 }
 
 // SocketInputStream

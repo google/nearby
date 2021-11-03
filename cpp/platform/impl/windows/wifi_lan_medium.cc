@@ -35,258 +35,415 @@ namespace location {
 namespace nearby {
 namespace windows {
 
-bool WifiLanMedium::StartAcceptingConnections(
-    const std::string& service_id, AcceptedConnectionCallback callback) {
-  try {
-    WifiLanNsd* nsd = GetNsd(service_id, true);
-    return nsd->StartAcceptingConnections(callback);
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << "failed to start accepting connections due to "
-                       << GetErrorMessage(std::current_exception());
+bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
+  absl::MutexLock lock(&mutex_);
+
+  if (!IsAccepting()) {
+    NEARBY_LOGS(WARNING)
+        << "cannot start advertising without accepting connetions.";
     return false;
+  }
+
+  if (IsAdvertising()) {
+    NEARBY_LOGS(WARNING)
+        << "cannot start advertising again when it is running.";
+    return false;
+  }
+
+  if (nsd_service_info.GetTxtRecord(KEY_ENDPOINT_INFO.data()).empty()) {
+    NEARBY_LOGS(ERROR) << "cannot start advertising without endpoint info.";
+    return false;
+  }
+
+  if (nsd_service_info.GetServiceName().empty()) {
+    NEARBY_LOGS(ERROR) << "cannot start advertising without service name.";
+    return false;
+  }
+
+  std::string instance_name = absl::StrFormat(
+      MDNS_INSTANCE_NAME_FORMAT.data(), nsd_service_info.GetServiceName(),
+      nsd_service_info.GetServiceType());
+
+  NEARBY_LOGS(INFO) << "mDNS instance name is " << instance_name;
+
+  dnssd_service_instance_ = DnssdServiceInstance{
+      string_to_wstring(instance_name),
+      nullptr,  // let windows use default computer's local name
+      (uint16)nsd_service_info.GetPort()};
+
+  // Add TextRecords from NsdServiceInfo
+  auto text_attributes = dnssd_service_instance_.TextAttributes();
+
+  auto text_records = nsd_service_info.GetTxtRecords();
+  auto it = text_records.begin();
+  while (it != text_records.end()) {
+    text_attributes.Insert(string_to_wstring(it->first),
+                           string_to_wstring(it->second));
+    it++;
+  }
+
+  dnssd_regirstraion_result_ = dnssd_service_instance_
+                                   .RegisterStreamSocketListenerAsync(
+                                       server_socket_ptr_->GetSocketListener())
+                                   .get();
+
+  if (dnssd_regirstraion_result_.HasInstanceNameChanged()) {
+    NEARBY_LOGS(WARNING) << "advertising instance name was changed due to have "
+                            "same name instance was running.";
+    // stop the service and return false
+    StopAdvertising(nsd_service_info);
+    return false;
+  }
+
+  if (dnssd_regirstraion_result_.Status() == DnssdRegistrationStatus::Success) {
+    NEARBY_LOGS(INFO) << "started to advertising.";
+    medium_status_ |= MEDIUM_STATUS_ADVERTISING;
+    return true;
+  }
+
+  // Clean up
+  NEARBY_LOGS(ERROR)
+      << "failed to start advertising due to registration failure.";
+  dnssd_service_instance_ = nullptr;
+  dnssd_regirstraion_result_ = nullptr;
+  return false;
+}
+
+// Win32 call only can use globel function or static method in class
+void WifiLanMedium::Advertising_StopCompleted(DWORD Status, PVOID pQueryContext,
+                                              PDNS_SERVICE_INSTANCE pInstance) {
+  NEARBY_LOGS(INFO) << "unregister with status=" << Status;
+  try {
+    WifiLanMedium* medium = static_cast<WifiLanMedium*>(pQueryContext);
+    medium->NotifyDnsServiceUnregistered(Status);
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << "failed to notify the stop of DNS service instance."
+                       << Status;
   }
 }
 
-bool WifiLanMedium::StopAcceptingConnections(const std::string& service_id) {
-  try {
-    WifiLanNsd* nsd = GetNsd(service_id);
-    if (nsd == nullptr) {
-      NEARBY_LOGS(WARNING) << "no running accepting connections.";
-      return false;
-    }
-
-    if (nsd->StopAcceptingConnections()) {
-      if (nsd->IsIdle()) {
-        this->RemoveNsd(service_id);
-      }
-      return true;
-    }
-
-    NEARBY_LOGS(ERROR) << "failed to stop accepting connections.";
-    return false;
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << "failed to stop accepting connections due to "
-                       << GetErrorMessage(std::current_exception());
-    return false;
+void WifiLanMedium::NotifyDnsServiceUnregistered(DWORD status) {
+  if (dns_service_stop_latch_.get() != nullptr) {
+    dns_service_stop_status_ = status;
+    dns_service_stop_latch_.get()->CountDown();
   }
 }
 
-bool WifiLanMedium::StartAdvertising(const std::string& service_id,
-                                     const NsdServiceInfo& nsd_service_info) {
-  try {
-    WifiLanNsd* nsd = GetNsd(service_id);
-    if (nsd == nullptr) {
-      NEARBY_LOGS(WARNING)
-          << "cannot start advertising without accepting connections.";
-      return false;
-    }
-    return nsd->StartAdvertising(nsd_service_info);
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << "failed to start advertising due to "
-                       << GetErrorMessage(std::current_exception());
+bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
+  // Need to use Win32 API to deregister the Dnssd instance
+  if (!IsAdvertising()) {
+    NEARBY_LOGS(WARNING)
+        << "Cannot stop advertising because no advertising is running.";
     return false;
   }
-}
 
-bool WifiLanMedium::StopAdvertising(const std::string& service_id) {
-  try {
-    WifiLanNsd* nsd = GetNsd(service_id);
-    if (nsd == nullptr) {
-      NEARBY_LOGS(WARNING)
-          << "cannot stop advertising without accepting connections.";
-      return false;
-    }
-    if (nsd->StopAdvertising()) {
-      if (nsd->IsIdle()) {
-        this->RemoveNsd(service_id);
-      }
-      return true;
-    }
+  // Init DNS service instance
+  std::string instance_name = absl::StrFormat(
+      MDNS_INSTANCE_NAME_FORMAT.data(), nsd_service_info.GetServiceName(),
+      nsd_service_info.GetServiceType());
+  int port = nsd_service_info.GetPort();
+  dns_service_instance_name_ =
+      std::make_unique<std::wstring>(string_to_wstring(instance_name));
 
-    NEARBY_LOGS(ERROR) << "failed to stop advertising.";
-    return false;
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << "failed to stop advertising due to "
-                       << GetErrorMessage(std::current_exception());
+  dns_service_instance_.pszInstanceName =
+      (LPWSTR)dns_service_instance_name_->c_str();
+  dns_service_instance_.pszHostName = (LPWSTR)MDNS_HOST_NAME.data();
+  dns_service_instance_.wPort = port;
+
+  // Init DNS service register request
+  dns_service_register_request_.Version = DNS_QUERY_REQUEST_VERSION1;
+  dns_service_register_request_.InterfaceIndex =
+      0;  // all interfaces will be considered
+  dns_service_register_request_.unicastEnabled = false;
+  dns_service_register_request_.hCredentials = NULL;
+  dns_service_register_request_.pServiceInstance = &dns_service_instance_;
+  dns_service_register_request_.pQueryContext = this;  // callback use it
+  dns_service_register_request_.pRegisterCompletionCallback =
+      WifiLanMedium::Advertising_StopCompleted;
+
+  dns_service_stop_latch_ = std::make_unique<CountDownLatch>(1);
+  DWORD status = DnsServiceDeRegister(&dns_service_register_request_, nullptr);
+
+  if (status != DNS_REQUEST_PENDING) {
+    NEARBY_LOGS(ERROR) << "failed to stop mDNS advertising for service type ="
+                       << nsd_service_info.GetServiceType();
     return false;
   }
+
+  // Wait for stop finish
+  dns_service_stop_latch_.get()->Await();
+  dns_service_stop_latch_ = nullptr;
+  if (dns_service_stop_status_ != 0) {
+    NEARBY_LOGS(INFO) << "failed to stop mDNS advertising for service type ="
+                      << nsd_service_info.GetServiceType();
+    return false;
+  }
+
+  NEARBY_LOGS(INFO) << "succeeded to stop mDNS advertising for service type ="
+                    << nsd_service_info.GetServiceType();
+  medium_status_ &= (~MEDIUM_STATUS_ADVERTISING);
+  return true;
 }
 
 // Returns true once the WifiLan discovery has been initiated.
-bool WifiLanMedium::StartDiscovery(const std::string& service_id,
+bool WifiLanMedium::StartDiscovery(const std::string& service_type,
                                    DiscoveredServiceCallback callback) {
-  try {
-    WifiLanNsd* nsd = GetNsd(service_id, true);
-    return nsd->StartDiscovery(callback);
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << "failed to start discovery due to "
-                       << GetErrorMessage(std::current_exception());
+  if (IsDiscovering()) {
+    NEARBY_LOGS(WARNING) << "discovery already running for service type ="
+                         << service_type;
     return false;
   }
+
+  std::string selector =
+      absl::StrFormat(MDNS_DEVICE_SELECTOR_FORMAT.data(), service_type);
+
+  std::vector<winrt::hstring> requestedProperties{
+      L"System.Devices.IpAddress",
+      L"System.Devices.Dnssd.HostName",
+      L"System.Devices.Dnssd.InstanceName",
+      L"System.Devices.Dnssd.PortNumber",
+      L"System.Devices.Dnssd.ServiceName",
+      L"System.Devices.Dnssd.TextAttributes"};
+
+  device_watcher_ = DeviceInformation::CreateWatcher(
+      string_to_wstring(selector), requestedProperties,
+      DeviceInformationKind::AssociationEndpointService);
+
+  device_watcher_added_event_token =
+      device_watcher_.Added({this, &WifiLanMedium::Watcher_DeviceAdded});
+  device_watcher_updated_event_token =
+      device_watcher_.Updated({this, &WifiLanMedium::Watcher_DeviceUpdated});
+  device_watcher_removed_event_token =
+      device_watcher_.Removed({this, &WifiLanMedium::Watcher_DeviceRemoved});
+
+  device_watcher_.Start();
+  discovered_service_callback_ = std::move(callback);
+  medium_status_ |= MEDIUM_STATUS_DISCOVERING;
+
+  NEARBY_LOGS(INFO) << "started to discovery.";
+
+  return true;
 }
 
 // Returns true once WifiLan discovery for service_id is well and truly
 // stopped; after this returns, there must be no more invocations of the
 // DiscoveredServiceCallback passed in to StartDiscovery() for service_id.
-bool WifiLanMedium::StopDiscovery(const std::string& service_id) {
-  try {
-    WifiLanNsd* nsd = GetNsd(service_id);
-    if (nsd == nullptr) {
-      NEARBY_LOGS(WARNING) << "no running discovery to stop.";
-      return false;
-    }
-
-    if (nsd->StopDiscovery()) {
-      if (nsd->IsIdle()) {
-        this->RemoveNsd(service_id);
-      }
-      return true;
-    }
-
-    NEARBY_LOGS(WARNING) << "failed to stop discovery.";
-
-    return false;
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << "failed to stop discovery due to "
-                       << GetErrorMessage(std::current_exception());
+bool WifiLanMedium::StopDiscovery(const std::string& service_type) {
+  if (!IsDiscovering()) {
+    NEARBY_LOGS(WARNING) << "no discovering service to stop.";
     return false;
   }
+  device_watcher_.Stop();
+  device_watcher_.Added(device_watcher_added_event_token);
+  device_watcher_.Updated(device_watcher_updated_event_token);
+  device_watcher_.Removed(device_watcher_removed_event_token);
+  medium_status_ &= (~MEDIUM_STATUS_DISCOVERING);
+  device_watcher_ = nullptr;
+  return true;
 }
 
-// Connects to a WifiLan service.
-// On success, returns a new WifiLanSocket.
-// On error, returns nullptr.
-std::unique_ptr<api::WifiLanSocket> WifiLanMedium::Connect(
-    api::WifiLanService& wifi_lan_service, const std::string& service_id,
+std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
+    const NsdServiceInfo& remote_service_info,
     CancellationFlag* cancellation_flag) {
-  try {
-    std::string ip_address = wifi_lan_service.GetServiceInfo().GetIPAddress();
-    int port = wifi_lan_service.GetServiceInfo().GetPort();
-    if (ip_address.empty() || port == 0) {
-      NEARBY_LOGS(ERROR) << "no valid service address and port to connect.";
+  NEARBY_LOGS(ERROR)
+      << "connect to service by NSD service info. service type is "
+      << remote_service_info.GetServiceType();
+
+  return ConnectToService(remote_service_info.GetIPAddress(),
+                          remote_service_info.GetPort(), cancellation_flag);
+}
+
+std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
+    const std::string& ip_address, int port,
+    CancellationFlag* cancellation_flag) {
+  if (ip_address.empty() || port == 0) {
+    NEARBY_LOGS(ERROR) << "no valid service address and port to connect.";
+    return nullptr;
+  }
+
+  HostName host_name{string_to_wstring(ip_address)};
+  winrt::hstring service_name{winrt::to_hstring(port)};
+
+  StreamSocket socket{};
+
+  // setup cancel listener
+  if (cancellation_flag != nullptr) {
+    if (cancellation_flag->Cancelled()) {
+      NEARBY_LOGS(INFO) << "connect has been cancelled to service "
+                        << ip_address << ":" << port;
       return nullptr;
     }
 
-    HostName host_name{string_to_wstring(ip_address)};
-    winrt::hstring service_name{winrt::to_hstring(port)};
-
-    StreamSocket socket{};
-
-    // setup cancel listener
-    if (cancellation_flag != nullptr) {
-      if (cancellation_flag->Cancelled()) {
-        NEARBY_LOGS(INFO) << "connect has been cancelled: "
-                             "service_id="
-                          << service_id;
-        return nullptr;
-      }
-
-      location::nearby::CancellationFlagListener cancellationFlagListener(
-          cancellation_flag, [socket]() { socket.CancelIOAsync().get(); });
-    }
-
-    // connection to the service
-    try {
-      socket.ConnectAsync(host_name, service_name).get();
-      // connected need to keep connection
-
-      std::unique_ptr<WifiLanSocket> wifi_lan_socket =
-          std::make_unique<WifiLanSocket>(&wifi_lan_service, socket);
-      wifi_lan_socket->SetServiceId(service_id);
-      wifi_lan_socket->SetMedium(this);
-      {
-        MutexLock lock(&mutex_);
-        wifi_lan_sockets_.insert(wifi_lan_socket.get());
-      }
-
-      NEARBY_LOGS(INFO) << "connected to remote Wifi LAN service";
-      return wifi_lan_socket;
-    } catch (...) {
-      NEARBY_LOGS(ERROR) << "failed to connect remote service.";
-    }
-
-    return nullptr;
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << "failed to connect due to "
-                       << GetErrorMessage(std::current_exception());
-    return nullptr;
+    location::nearby::CancellationFlagListener cancellationFlagListener(
+        cancellation_flag, [socket]() { socket.CancelIOAsync().get(); });
   }
-}
 
-api::WifiLanService* WifiLanMedium::GetRemoteService(
-    const std::string& ip_address, int port) {
+  // connection to the service
   try {
-    MutexLock lock(&mutex_);
+    socket.ConnectAsync(host_name, service_name).get();
+    // connected need to keep connection
 
-    for (WifiLanSocket* socket : wifi_lan_sockets_) {
-      if (socket->GetLocalAddress() == ip_address &&
-          socket->GetLocalPort() == port) {
-        return socket->GetRemoteWifiLanService();
-      }
-    }
+    std::unique_ptr<WifiLanSocket> wifi_lan_socket =
+        std::make_unique<WifiLanSocket>(socket);
 
-    return nullptr;
+    NEARBY_LOGS(INFO) << "connected to remote service " << ip_address << ":"
+                      << port;
+    return wifi_lan_socket;
   } catch (...) {
-    NEARBY_LOGS(ERROR) << "failed to get remove service due to "
-                       << GetErrorMessage(std::current_exception());
+    NEARBY_LOGS(ERROR) << "failed to connect remote service " << ip_address
+                       << ":" << port;
+  }
+
+  return nullptr;
+}
+
+std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
+    int port) {
+  absl::MutexLock lock(&mutex_);
+
+  // check current status
+  if (IsAccepting()) {
+    NEARBY_LOGS(WARNING) << "accepting connections already started on port "
+                         << server_socket_ptr_->GetPort();
     return nullptr;
   }
+
+  std::unique_ptr<WifiLanServerSocket> server_socket =
+      std::make_unique<WifiLanServerSocket>(port);
+  server_socket_ptr_ = server_socket.get();
+
+  server_socket->SetCloseNotifier([this]() {
+    absl::MutexLock lock(&mutex_);
+    NEARBY_LOGS(INFO) << "server socket was closed on port "
+                      << server_socket_ptr_->GetPort();
+    medium_status_ &= (~MEDIUM_STATUS_ACCEPTING);
+    server_socket_ptr_ = nullptr;
+  });
+
+  if (server_socket->listen()) {
+    medium_status_ |= MEDIUM_STATUS_ACCEPTING;
+    NEARBY_LOGS(INFO) << "started to listen serive on port " << port;
+    return server_socket;
+  }
+
+  NEARBY_LOGS(ERROR) << "Failed to listen service on port " << port;
+
+  return nullptr;
 }
 
-std::pair<std::string, int> WifiLanMedium::GetCredentials(
-    const std::string& service_id) {
-  try {
-    WifiLanNsd* nsd = GetNsd(service_id, true);
-    if (nsd == nullptr) {
-      // no nsd service
-      NEARBY_LOGS(WARNING) << "no service for service id " << service_id;
-      return std::pair<std::string, int>{"", 0};
+NsdServiceInfo WifiLanMedium::GetNsdServiceInformation(
+    IMapView<winrt::hstring, IInspectable> properties) {
+  NsdServiceInfo nsd_service_info{};
+
+  // Service name information
+  IInspectable inspectable =
+      properties.TryLookup(L"System.Devices.Dnssd.InstanceName");
+  if (inspectable == nullptr) {
+    NEARBY_LOGS(WARNING)
+        << "no service name information in device information.";
+    return nsd_service_info;
+  }
+  nsd_service_info.SetServiceName(InspectableReader::ReadString(inspectable));
+
+  // IP Address information
+  inspectable = properties.TryLookup(L"System.Devices.IPAddress");
+  if (inspectable == nullptr) {
+    NEARBY_LOGS(WARNING) << "no IP address information in device information.";
+    return nsd_service_info;
+  }
+
+  auto ipaddresses = InspectableReader::ReadStringArray(inspectable);
+  if (ipaddresses.size() == 0) {
+    NEARBY_LOGS(WARNING) << "no IP address information in device information.";
+    return nsd_service_info;
+  }
+
+  std::string ip_address = ipaddresses[0];
+
+  // read IP port
+  inspectable = properties.TryLookup(L"System.Devices.Dnssd.PortNumber");
+  if (inspectable == nullptr) {
+    NEARBY_LOGS(WARNING) << "no IP port information in device information.";
+    return nsd_service_info;
+  }
+
+  int port = InspectableReader::ReadUint16(inspectable);
+  nsd_service_info.SetIPAddress(ip_address);
+  nsd_service_info.SetPort(port);
+
+  // read text record
+  inspectable = properties.TryLookup(L"System.Devices.Dnssd.TextAttributes");
+  if (inspectable == nullptr) {
+    NEARBY_LOGS(WARNING)
+        << "no text attributes information in device information.";
+    return nsd_service_info;
+  }
+
+  auto text_attributes = InspectableReader::ReadStringArray(inspectable);
+  for (auto text_attribute : text_attributes) {
+    // text attribute in format key=value
+    int pos = text_attribute.find("=");
+    if (pos <= 0 || pos == text_attribute.size() - 1) {
+      NEARBY_LOGS(WARNING) << "found invalid text attribute " << text_attribute;
+      continue;
     }
 
-    return nsd->GetCredentials();
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << "failed to get service address due to "
-                       << GetErrorMessage(std::current_exception());
-    return {"", 0};
+    std::string key = text_attribute.substr(0, pos);
+    std::string value = text_attribute.substr(pos + 1);
+    nsd_service_info.SetTxtRecord(key, value);
   }
+
+  return nsd_service_info;
 }
 
-void WifiLanMedium::CloseConnection(WifiLanSocket& socket) {
-  MutexLock lock(&mutex_);
-  if (wifi_lan_sockets_.contains(&socket)) {
-    wifi_lan_sockets_.erase(&socket);
+fire_and_forget WifiLanMedium::Watcher_DeviceAdded(
+    DeviceWatcher sender, DeviceInformation deviceInfo) {
+  // need to read IP address and port information from deviceInfo
+  NsdServiceInfo nsd_service_info =
+      GetNsdServiceInformation(deviceInfo.Properties());
+
+  NEARBY_LOGS(INFO) << "device added for service name "
+                    << nsd_service_info.GetServiceName();
+
+  std::string endpoint =
+      nsd_service_info.GetTxtRecord(KEY_ENDPOINT_INFO.data());
+  if (endpoint.empty()) {
+    return fire_and_forget{};
   }
+
+  discovered_service_callback_.service_discovered_cb(nsd_service_info);
+
+  return fire_and_forget();
 }
+fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
+    DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
+  // TODO(b/200421481): discovery servcie callback needs to support device
+  // update.
+  NsdServiceInfo nsd_service_info =
+      GetNsdServiceInformation(deviceInfoUpdate.Properties());
+  NEARBY_LOGS(INFO) << "device updated for service name "
+                    << nsd_service_info.GetServiceName();
 
-WifiLanNsd* WifiLanMedium::GetNsd(std::string service_id, bool create) {
-  MutexLock lock(&mutex_);
-
-  if (!service_to_nsd_map_.contains(service_id)) {
-    if (create) {
-      // if no the service id, create a new one
-      std::unique_ptr<WifiLanNsd> nsd =
-          std::make_unique<WifiLanNsd>(this, service_id);
-      service_to_nsd_map_[service_id] = std::move(nsd);
-    }
-  }
-
-  return service_to_nsd_map_[service_id].get();
+  return fire_and_forget();
 }
+fire_and_forget WifiLanMedium::Watcher_DeviceRemoved(
+    DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
+  // need to read IP address and port information from deviceInfo
+  NsdServiceInfo nsd_service_info =
+      GetNsdServiceInformation(deviceInfoUpdate.Properties());
 
-bool WifiLanMedium::RemoveNsd(std::string service_id) {
-  MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << "device removed for service name "
+                    << nsd_service_info.GetServiceName();
 
-  if (!service_to_nsd_map_.contains(service_id)) {
-    return true;
+  std::string endpoint =
+      nsd_service_info.GetTxtRecord(KEY_ENDPOINT_INFO.data());
+  if (endpoint.empty()) {
+    return fire_and_forget{};
   }
-  auto nsd = service_to_nsd_map_.find(service_id);
-  if (nsd == service_to_nsd_map_.end() || nsd->second == nullptr ||
-      !nsd->second->IsIdle()) {
-    return false;
-  }
 
-  service_to_nsd_map_.erase(nsd);
-  return true;
+  discovered_service_callback_.service_lost_cb(nsd_service_info);
+
+  return fire_and_forget();
 }
 
 std::string WifiLanMedium::GetErrorMessage(std::exception_ptr eptr) {
