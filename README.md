@@ -38,7 +38,8 @@ for more information.
 # Checkout, build, test instructions
 ## Checkout
 pre-requisites: git
-```
+
+```shell
 git clone https://github.com/google/nearby-connections
 cd nearby-connections
 git submodule update --init --recursive
