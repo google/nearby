@@ -250,7 +250,7 @@ bool WifiLan::StartAcceptingConnections(const std::string& service_id,
   accept_loops_runner_.Execute(
       "wifi-lan-accept",
       [callback = std::move(callback),
-       server_socket = std::move(owned_server_socket), service_id]() mutable {
+       server_socket = std::move(owned_server_socket)]() mutable {
         while (true) {
           WifiLanSocket client_socket = server_socket.Accept();
           if (!client_socket.IsValid()) {
