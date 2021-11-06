@@ -26,7 +26,7 @@ proto_library(
         "//buildenv/target:non_prod",
     ],
     visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//platform/impl/ios:__subpackages__",
     ],
 )
 

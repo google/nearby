@@ -24,7 +24,7 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//platform/impl/ios:__subpackages__",
         "//third_party/nearby_connections/windows:__subpackages__",
     ],
     deps = [
@@ -58,9 +58,9 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//analytics:__subpackages__",
         "//core:__subpackages__",
+        "//platform/impl/ios:__subpackages__",
     ],
     deps = [
         "//absl/strings",

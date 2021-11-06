@@ -49,7 +49,6 @@ cc_library(
     hdrs = ["file.h"],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//platform/impl:__subpackages__",
     ],
     deps = [

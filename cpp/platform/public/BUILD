@@ -52,10 +52,10 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//analytics:__subpackages__",
         "//core:__subpackages__",
         "//platform/base:__pkg__",
+        "//platform/impl/ios:__subpackages__",
         "//platform/impl/windows:__subpackages__",
         "//platform/public:__pkg__",
     ],
