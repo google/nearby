@@ -74,7 +74,7 @@ cc_library(
     hdrs = [
         "utils.h",
         "webrtc_peer_id.h",
-        "webrtc_socket_wrapper.h",
+        "webrtc_socket.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [

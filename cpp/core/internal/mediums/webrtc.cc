@@ -22,7 +22,7 @@
 #include "absl/time/time.h"
 #include "core/internal/mediums/webrtc/session_description_wrapper.h"
 #include "core/internal/mediums/webrtc/signaling_frames.h"
-#include "core/internal/mediums/webrtc_socket_wrapper.h"
+#include "core/internal/mediums/webrtc_socket.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/listeners.h"
 #include "platform/public/cancelable_alarm.h"

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_H_
-#define CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_H_
+#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_IMPL_H_
+#define CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_IMPL_H_
 
 #include <memory>
 
@@ -120,4 +120,4 @@ class WebRtcSocket : public Socket, public webrtc::DataChannelObserver {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_H_
+#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_IMPL_H_

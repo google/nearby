@@ -19,7 +19,11 @@
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel_manager.h"
 #include "core/internal/mediums/mediums.h"
-#include "core/internal/mediums/webrtc_socket_wrapper.h"
+#ifdef NO_WEBRTC
+#include "core/internal/mediums/webrtc_socket_stub.h"
+#else
+#include "core/internal/mediums/webrtc_socket.h"
+#endif
 
 namespace location {
 namespace nearby {

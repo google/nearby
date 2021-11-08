@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "core/internal/mediums/webrtc/webrtc_socket.h"
+#include "core/internal/mediums/webrtc/webrtc_socket_impl.h"
 
 #include <memory>
 

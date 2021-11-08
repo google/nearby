@@ -144,8 +144,7 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
     socket.Close();
     NEARBY_LOG(ERROR,
                "WebRtcBwuHandler failed to create new EndpointChannel for "
-               "outgoing socket %p, aborting upgrade.",
-               &socket.GetImpl());
+               "outgoing socket, aborting upgrade.");
   }
 
   return channel;

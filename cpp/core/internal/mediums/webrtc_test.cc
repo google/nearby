@@ -16,7 +16,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "core/internal/mediums/webrtc_socket_wrapper.h"
+#include "core/internal/mediums/webrtc_socket.h"
 #include "platform/base/listeners.h"
 #include "platform/base/medium_environment.h"
 #include "platform/public/mutex_lock.h"

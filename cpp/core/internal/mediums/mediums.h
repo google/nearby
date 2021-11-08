@@ -18,7 +18,11 @@
 #include "core/internal/mediums/ble.h"
 #include "core/internal/mediums/bluetooth_classic.h"
 #include "core/internal/mediums/bluetooth_radio.h"
+#ifdef NO_WEBRTC
+#include "core/internal/mediums/webrtc_stub.h"
+#else
 #include "core/internal/mediums/webrtc.h"
+#endif
 #include "core/internal/mediums/wifi_lan.h"
 
 namespace location {

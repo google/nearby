@@ -50,10 +50,10 @@ cc_library(
 cc_library(
     name = "data_types",
     srcs = [
-        "webrtc_socket.cc",
+        "webrtc_socket_impl.cc",
     ],
     hdrs = [
-        "webrtc_socket.h",
+        "webrtc_socket_impl.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
@@ -74,7 +74,7 @@ cc_test(
     srcs = [
         "connection_flow_test.cc",
         "signaling_frames_test.cc",
-        "webrtc_socket_test.cc",
+        "webrtc_socket_impl_test.cc",
     ],
     tags = [
         "notsan",  # NOTE(b/139734036): known data race in usrsctplib.

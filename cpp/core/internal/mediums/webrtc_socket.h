@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_WRAPPER_H_
-#define CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_WRAPPER_H_
+#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_H_
+#define CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_H_
 
 #include <memory>
 
-#include "core/internal/mediums/webrtc/webrtc_socket.h"
+#include "core/internal/mediums/webrtc/webrtc_socket_impl.h"
 
 namespace location {
 namespace nearby {
@@ -52,4 +52,4 @@ class WebRtcSocketWrapper final {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_WRAPPER_H_
+#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_H_

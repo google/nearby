@@ -31,7 +31,11 @@
 #include "core/internal/endpoint_channel_manager.h"
 #include "core/internal/endpoint_manager.h"
 #include "core/internal/mediums/mediums.h"
+#ifdef NO_WEBRTC
+#include "core/internal/mediums/webrtc_stub.h"
+#else
 #include "core/internal/mediums/webrtc.h"
+#endif
 #include "core/internal/pcp.h"
 #include "core/internal/pcp_handler.h"
 #include "core/listeners.h"

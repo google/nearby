@@ -22,7 +22,6 @@
 #include "core/internal/bluetooth_endpoint_channel.h"
 #include "core/internal/bwu_manager.h"
 #include "core/internal/mediums/utils.h"
-#include "core/internal/mediums/webrtc_socket_wrapper.h"
 #include "core/internal/webrtc_endpoint_channel.h"
 #include "core/internal/wifi_lan_endpoint_channel.h"
 #include "platform/base/nsd_service_info.h"

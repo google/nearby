@@ -28,7 +28,13 @@
 #include "core/internal/injected_bluetooth_device_store.h"
 #include "core/internal/mediums/bluetooth_classic.h"
 #include "core/internal/mediums/mediums.h"
+#ifdef NO_WEBRTC
+#include "core/internal/mediums/webrtc_stub.h"
+#include "core/internal/mediums/webrtc_socket_stub.h"
+#else
 #include "core/internal/mediums/webrtc.h"
+#include "core/internal/mediums/webrtc_socket.h"
+#endif
 #include "core/internal/pcp.h"
 #include "core/internal/wifi_lan_service_info.h"
 #include "core/options.h"

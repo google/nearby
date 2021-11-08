@@ -16,7 +16,11 @@
 #define CORE_INTERNAL_WEBRTC_ENDPOINT_CHANNEL_H_
 
 #include "core/internal/base_endpoint_channel.h"
-#include "core/internal/mediums/webrtc_socket_wrapper.h"
+#ifdef NO_WEBRTC
+#include "core/internal/mediums/webrtc_socket_stub.h"
+#else
+#include "core/internal/mediums/webrtc_socket.h"
+#endif
 
 namespace location {
 namespace nearby {
