@@ -49,6 +49,7 @@ cc_library(
     ],
     hdrs = [
         "listeners.h",
+        "medium_selector.h",
         "options.h",
         "params.h",
         "payload.h",

@@ -35,9 +35,8 @@ void CloseCore(Core* pCore) {
 }
 
 void StartAdvertising(Core* pCore, const char* service_id,
-                              ConnectionOptions options,
-                              ConnectionRequestInfo info,
-                              ResultCallback callback) {
+                      StartAdvertisingOptions options,
+                      ConnectionRequestInfo info, ResultCallback callback) {
   if (pCore) {
     pCore->StartAdvertising(service_id, options, info, callback);
   }
@@ -50,9 +49,8 @@ void StopAdvertising(Core* pCore, ResultCallback callback) {
 }
 
 void StartDiscovery(Core* pCore, const char* service_id,
-                            ConnectionOptions options,
-                            DiscoveryListener listener,
-                            ResultCallback callback) {
+                    StartDiscoveryOptions options, DiscoveryListener listener,
+                    ResultCallback callback) {
   if (pCore) {
     pCore->StartDiscovery(service_id, options, listener, callback);
   }
@@ -65,56 +63,55 @@ void StopDiscovery(Core* pCore, ResultCallback callback) {
 }
 
 void InjectEndpoint(Core* pCore, char* service_id,
-                            OutOfBandConnectionMetadata metadata,
-                            ResultCallback callback) {
+                    OutOfBandConnectionMetadata metadata,
+                    ResultCallback callback) {
   if (pCore) {
     pCore->InjectEndpoint(service_id, metadata, callback);
   }
 }
 
 void RequestConnection(Core* pCore, const char* endpoint_id,
-                               ConnectionRequestInfo info,
-                               ConnectionOptions options,
-                               ResultCallback callback) {
+                       ConnectionRequestInfo info,
+                       RequestConnectionOptions options,
+                       ResultCallback callback) {
   if (pCore) {
     pCore->RequestConnection(endpoint_id, info, options, callback);
   }
 }
 
 void AcceptConnection(Core* pCore, const char* endpoint_id,
-                              PayloadListener listener,
-                              ResultCallback callback) {
+                      PayloadListener listener, ResultCallback callback) {
   if (pCore) {
     pCore->AcceptConnection(endpoint_id, listener, callback);
   }
 }
 
 void RejectConnection(Core* pCore, const char* endpoint_id,
-                              ResultCallback callback) {
+                      ResultCallback callback) {
   if (pCore) {
     pCore->RejectConnection(endpoint_id, callback);
   }
 }
 
 void SendPayload(Core* pCore,
-                         // todo(jfcarroll) this is being exported, needs to be
-                         // refactored to return a plain old c type
-                         absl::Span<const std::string> endpoint_ids,
-                         Payload payload, ResultCallback callback) {
+                 // todo(jfcarroll) this is being exported, needs to be
+                 // refactored to return a plain old c type
+                 absl::Span<const std::string> endpoint_ids, Payload payload,
+                 ResultCallback callback) {
   if (pCore) {
     pCore->SendPayload(endpoint_ids, std::move(payload), callback);
   }
 }
 
 void CancelPayload(Core* pCore, std::int64_t payload_id,
-                           ResultCallback callback) {
+                   ResultCallback callback) {
   if (pCore) {
     pCore->CancelPayload(payload_id, callback);
   }
 }
 
 void DisconnectFromEndpoint(Core* pCore, char* endpoint_id,
-                                    ResultCallback callback) {
+                            ResultCallback callback) {
   if (pCore) {
     pCore->DisconnectFromEndpoint(endpoint_id, callback);
   }
@@ -127,7 +124,7 @@ void StopAllEndpoints(Core* pCore, ResultCallback callback) {
 }
 
 void InitiateBandwidthUpgrade(Core* pCore, char* endpoint_id,
-                                      ResultCallback callback) {
+                              ResultCallback callback) {
   if (pCore) {
     pCore->InitiateBandwidthUpgrade(endpoint_id, callback);
   }

@@ -71,7 +71,7 @@ void StartAdvertisingDart(Core* pCore,
     return;
   }
 
-  ConnectionOptions options;
+  StartAdvertisingOptions options;
   options.strategy = GetStrategy(options_dart.strategy);
   options.auto_upgrade_bandwidth =
       options_dart.auto_upgrade_bandwidth;
@@ -171,7 +171,7 @@ void StartAdvertisingDart(Core* pCore,
 
   ResultCallback callback;
   SetResultCallback(callback, result_cb);
-  StartAdvertising(pCore, service_id, options, info, callback);
+  StartAdvertising(pCore, service_id, std::move(options), info, callback);
 }
 
 void StopAdvertisingDart(Core* pCore, Dart_Port result_cb) {
@@ -195,7 +195,7 @@ void StartDiscoveryDart(Core* pCore,
     return;
   }
 
-  ConnectionOptions options;
+  StartDiscoveryOptions options;
   options.strategy = GetStrategy(options_dart.strategy);
   options.allowed.bluetooth = options_dart.enable_bluetooth;
   options.allowed.ble = options_dart.enable_ble;
@@ -285,7 +285,7 @@ void StartDiscoveryDart(Core* pCore,
 
   ResultCallback callback;
   SetResultCallback(callback, result_cb);
-  StartDiscovery(pCore, service_id, options, listener, callback);
+  StartDiscovery(pCore, service_id, std::move(options), listener, callback);
 }
 
 void StopDiscoveryDart(Core* pCore, Dart_Port result_cb) {
@@ -309,7 +309,7 @@ void RequestConnectionDart(Core* pCore,
     return;
   }
 
-  ConnectionOptions options;
+  RequestConnectionOptions options;
   options.enforce_topology_constraints = false;
   options.allowed.bluetooth = options_dart.enable_bluetooth;
   options.allowed.ble = options_dart.enable_ble;
@@ -401,7 +401,7 @@ void RequestConnectionDart(Core* pCore,
 
   ResultCallback callback;
   SetResultCallback(callback, result_cb);
-  RequestConnection(pCore, endpoint_id, info, options, callback);
+  RequestConnection(pCore, endpoint_id, info, std::move(options), callback);
 }
 
 void AcceptConnectionDart(Core* pCore,

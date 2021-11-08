@@ -18,8 +18,10 @@
 #include "absl/types/span.h"
 
 // todo(jfcarroll) This cannot remain. It exposes stuff the client doesn't need.
-#include \
-"third_party/nearby_connections/cpp/core/internal/offline_service_controller.h"
+#include "core/internal/offline_service_controller.h"
+#include "third_party/nearby_connections/windows/request_connection_options.h"
+#include "third_party/nearby_connections/windows/start_advertising_options.h"
+#include "third_party/nearby_connections/windows/start_discovery_options.h"
 
 #define DLL_EXPORT extern "C" __declspec(dllexport)
 
@@ -65,9 +67,9 @@ DLL_EXPORT void __stdcall CloseCore(Core* pCore);
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
 DLL_EXPORT void __stdcall StartAdvertising(Core* pCore, const char* service_id,
-                                        ConnectionOptions options,
-                                        ConnectionRequestInfo info,
-                                        ResultCallback callback);
+                                           StartAdvertisingOptions options,
+                                           ConnectionRequestInfo info,
+                                           ResultCallback callback);
 
 // Stops advertising a local endpoint. Should be called after calling
 // StartAdvertising, as soon as the application no longer needs to advertise
@@ -93,9 +95,9 @@ DLL_EXPORT void __stdcall StopAdvertising(Core* pCore, ResultCallback callback);
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
 DLL_EXPORT void __stdcall StartDiscovery(Core* pCore, const char* service_id,
-                                      ConnectionOptions options,
-                                      DiscoveryListener listener,
-                                      ResultCallback callback);
+                                         StartDiscoveryOptions options,
+                                         DiscoveryListener listener,
+                                         ResultCallback callback);
 
 // Stops discovery for remote endpoints, after a previous call to
 // StartDiscovery, when the client no longer needs to discover endpoints or
@@ -148,7 +150,7 @@ DLL_EXPORT void __stdcall InjectEndpoint(Core* pCore, char* service_id,
 DLL_EXPORT void __stdcall RequestConnection(Core* pCore,
                                             const char* endpoint_id,
                                             ConnectionRequestInfo info,
-                                            ConnectionOptions options,
+                                            RequestConnectionOptions options,
                                             ResultCallback callback);
 
 // Accepts a connection to a remote endpoint. This method must be called

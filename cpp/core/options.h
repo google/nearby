@@ -15,6 +15,7 @@
 #define CORE_OPTIONS_H_
 #include <string>
 
+#include "core/medium_selector.h"
 #include "core/strategy.h"
 #include "platform/base/byte_array.h"
 #include "proto/connections_enums.pb.h"
@@ -22,57 +23,6 @@
 namespace location {
 namespace nearby {
 namespace connections {
-
-using Medium = location::nearby::proto::connections::Medium;
-
-// Generic type: allows definition of a feature T for every Medium.
-template <typename T>
-struct MediumSelector {
-  T bluetooth;
-  T ble;
-  T web_rtc;
-  T wifi_lan;
-
-  constexpr MediumSelector() = default;
-  constexpr MediumSelector(const MediumSelector&) = default;
-  constexpr MediumSelector& operator=(const MediumSelector&) = default;
-  constexpr bool Any(T value) const {
-    return bluetooth == value || ble == value || web_rtc == value ||
-           wifi_lan == value;
-  }
-
-  constexpr bool All(T value) const {
-    return bluetooth == value && ble == value && web_rtc == value &&
-           wifi_lan == value;
-  }
-
-  constexpr int Count(T value) const {
-    int count = 0;
-    if (bluetooth == value) count++;
-    if (ble == value) count++;
-    if (wifi_lan == value) count++;
-    if (web_rtc == value) count++;
-    return count;
-  }
-
-  constexpr MediumSelector& SetAll(T value) {
-    bluetooth = value;
-    ble = value;
-    web_rtc = value;
-    wifi_lan = value;
-    return *this;
-  }
-
-  std::vector<Medium> GetMediums(T value) const {
-    std::vector<Medium> mediums;
-    // Mediums are sorted in order of decreasing preference.
-    if (wifi_lan == value) mediums.push_back(Medium::WIFI_LAN);
-    if (web_rtc == value) mediums.push_back(Medium::WEB_RTC);
-    if (bluetooth == value) mediums.push_back(Medium::BLUETOOTH);
-    if (ble == value) mediums.push_back(Medium::BLE);
-    return mediums;
-  }
-};
 
 // Feature On/Off switch for mediums.
 using BooleanMediumSelector = MediumSelector<bool>;
@@ -86,7 +36,7 @@ enum class PowerLevel {
 
 // Connection Options: used for both Advertising and Discovery.
 // All fields are mutable, to make the type copy-assignable.
-struct DLL_API ConnectionOptions {
+struct ConnectionOptions {
   Strategy strategy;
   BooleanMediumSelector allowed{BooleanMediumSelector().SetAll(true)};
   bool auto_upgrade_bandwidth;

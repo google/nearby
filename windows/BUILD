@@ -18,8 +18,18 @@ licenses(["notice"])
 # Build with --config=lexan
 cc_windows_dll(
     name = "core_adapter",
-    srcs = ["core_adapter.cc"],
-    hdrs = ["core_adapter.h"],
+    srcs = [
+        "core_adapter.cc",
+        "request_connection_options.cc",
+        "start_advertising_options.cc",
+        "start_discovery_options.cc",
+    ],
+    hdrs = [
+        "core_adapter.h",
+        "request_connection_options.h",
+        "start_advertising_options.h",
+        "start_discovery_options.h",
+    ],
     copts = ["-DCORE_ADAPTER_BUILD_DLL -DCOMPILING_CORE"],
     defines = ["CORE_ADAPTER_DLL"],
     tags = ["windows-dll"],
@@ -39,10 +49,16 @@ cc_windows_dll(
     srcs = [
         "core_adapter.cc",
         "dart/core_adapter_dart.cc",
+        "request_connection_options.cc",
+        "start_advertising_options.cc",
+        "start_discovery_options.cc",
     ],
     hdrs = [
         "core_adapter.h",
         "dart/core_adapter_dart.h",
+        "request_connection_options.h",
+        "start_advertising_options.h",
+        "start_discovery_options.h",
     ],
     copts = ["-DCORE_ADAPTER_DART_BUILD_DLL -DCORE_ADAPTER_DLL -DCOMPILING_CORE"],
     defines = ["CORE_ADAPTER_DART_DLL"],
