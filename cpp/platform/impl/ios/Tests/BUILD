@@ -28,7 +28,6 @@ objc_library(
         "Platform/GNCSingleThreadExecutorTest.mm",
     ],
     deps = [
-        "//base",
         "//platform/impl/ios:Connections",
     ],
 )

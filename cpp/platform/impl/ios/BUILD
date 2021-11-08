@@ -40,7 +40,6 @@ objc_library(
         "Source/Internal/GNCUtils.h",
     ],
     deps = [
-        "//base",
         "//absl/functional:bind_front",
         "//core",
         "//core:core_types",
