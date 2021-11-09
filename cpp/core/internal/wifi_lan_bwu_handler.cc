@@ -46,18 +46,6 @@ ByteArray WifiLanBwuHandler::InitializeUpgradedMediumForEndpoint(
   // stop the advertising yet.
   std::string upgrade_service_id = Utils::WrapUpgradeServiceId(service_id);
 
-  auto credential = wifi_lan_medium_.GetCredentials(upgrade_service_id);
-  auto ip_address = credential.first;
-  auto port = credential.second;
-  if (ip_address.empty()) {
-    NEARBY_LOGS(INFO)
-        << "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
-           "endpoint "
-        << endpoint_id
-        << " because the wifi_lan ip address were unable to be obtained.";
-    return {};
-  }
-
   if (!wifi_lan_medium_.IsAcceptingConnections(upgrade_service_id)) {
     if (!wifi_lan_medium_.StartAcceptingConnections(
             upgrade_service_id,
@@ -82,6 +70,18 @@ ByteArray WifiLanBwuHandler::InitializeUpgradedMediumForEndpoint(
 
   // cache service ID to revert
   active_service_ids_.insert(upgrade_service_id);
+
+  auto credential = wifi_lan_medium_.GetCredentials(upgrade_service_id);
+  auto ip_address = credential.first;
+  auto port = credential.second;
+  if (ip_address.empty()) {
+    NEARBY_LOGS(INFO)
+        << "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
+           "endpoint "
+        << endpoint_id
+        << " because the wifi_lan ip address were unable to be obtained.";
+    return {};
+  }
 
   return parser::ForBwuWifiLanPathAvailable(ip_address, port);
 }
