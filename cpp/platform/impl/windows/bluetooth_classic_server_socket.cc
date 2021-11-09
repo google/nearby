@@ -179,9 +179,14 @@ void BluetoothServerSocket::InitializeServiceSdpAttributes(
 // Returns Exception::kIo on error, Exception::kSuccess otherwise.
 Exception BluetoothServerSocket::Close() {
   EnterCriticalSection(&critical_section_);
+  if (closed_) {
+    LeaveCriticalSection(&critical_section_);
+    return {Exception::kSuccess};
+  }
+
+  rfcomm_provider_.StopAdvertising();
   closed_ = true;
   bluetooth_sockets_ = {};
-  rfcomm_provider_.StopAdvertising();
   LeaveCriticalSection(&critical_section_);
 
   return {Exception::kSuccess};
