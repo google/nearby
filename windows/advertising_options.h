@@ -27,10 +27,9 @@ class ByteArray;
 namespace proto {
 namespace connections {
 enum Medium : int;
-}
+}  // namespace connections
 }  // namespace proto
 namespace connections {
-
 struct ConnectionOptions;
 class Strategy;
 template <typename>
@@ -38,31 +37,33 @@ struct MediumSelector;
 
 using BooleanMediumSelector = MediumSelector<bool>;
 
-struct DLL_API StartAdvertisingOptions {
-  StartAdvertisingOptions();
+namespace windows {
+
+struct DLL_API AdvertisingOptions {
+  AdvertisingOptions();
   operator connections::ConnectionOptions() const;
 
  private:
   std::unique_ptr<connections::ConnectionOptions,
-                  void (*)(connections::ConnectionOptions*)>
+                  void (*)(connections::ConnectionOptions *)>
       impl_;
 
  public:
-  Strategy& strategy;
-  BooleanMediumSelector& allowed;
+  connections::Strategy &strategy;
+  connections::BooleanMediumSelector &allowed;
 
-  bool& auto_upgrade_bandwidth;
-  bool& enable_bluetooth_listening;
-  bool& enable_webrtc_listening;
-  bool& low_power;
-  bool& enforce_topology_constraints;
+  bool &auto_upgrade_bandwidth;
+  bool &enable_bluetooth_listening;
+  bool &enable_webrtc_listening;
+  bool &low_power;
+  bool &enforce_topology_constraints;
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
-  bool& is_out_of_band_connection;
-  ByteArray& remote_bluetooth_mac_address;
-  const char* fast_advertisement_service_uuid;
-  int& keep_alive_interval_millis;
-  int& keep_alive_timeout_millis;
+  bool &is_out_of_band_connection;
+  ByteArray &remote_bluetooth_mac_address;
+  const char *fast_advertisement_service_uuid;
+  int &keep_alive_interval_millis;
+  int &keep_alive_timeout_millis;
 
   // Verify if  ConnectionOptions is in a not-initialized (Empty) state.
   bool Empty() const;
@@ -74,15 +75,16 @@ struct DLL_API StartAdvertisingOptions {
   // (1) If is_out_of_band_connection is true, verifies that there is only one
   //     medium allowed, defaulting to only Bluetooth if unspecified.
   // (2) If no mediums are allowed, allow all mediums.
-  ConnectionOptions CompatibleOptions() const;
+  connections::ConnectionOptions CompatibleOptions() const;
 
   // This call follows the standard Microsoft calling pattern of calling first
   // to get the size of the array. Caller then allocates memory for the array,
   // and makes this call again to copy the array into the provided location.
-  void GetMediums(location::nearby::proto::connections::Medium* mediums,
-                  uint32_t* mediumsSize);
+  void GetMediums(location::nearby::proto::connections::Medium *mediums,
+                  uint32_t *mediumsSize);
 };
 
+}  // namespace windows
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location

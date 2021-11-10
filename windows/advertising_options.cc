@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby_connections/windows/start_discovery_options.h"
+#include "third_party/nearby_connections/windows/advertising_options.h"
 
 #include "core/options.h"
 #include "core/strategy.h"
@@ -22,10 +22,11 @@
 namespace location {
 namespace nearby {
 namespace connections {
+namespace windows {
 
-StartDiscoveryOptions::StartDiscoveryOptions()
+AdvertisingOptions::AdvertisingOptions()
     : impl_(new connections::ConnectionOptions(),
-            [](connections::ConnectionOptions* impl) { delete impl; }),
+            [](connections::ConnectionOptions *impl) { delete impl; }),
       strategy(impl_->strategy),
       allowed(impl_->allowed),
       auto_upgrade_bandwidth(impl_->auto_upgrade_bandwidth),
@@ -40,33 +41,32 @@ StartDiscoveryOptions::StartDiscoveryOptions()
       keep_alive_interval_millis(impl_->keep_alive_interval_millis),
       keep_alive_timeout_millis(impl_->keep_alive_timeout_millis) {}
 
-StartDiscoveryOptions::operator connections::ConnectionOptions() const {
+AdvertisingOptions::operator connections::ConnectionOptions() const {
   return *impl_.get();
 }
 
 // Verify if  ConnectionOptions is in a not-initialized (Empty) state.
-bool StartDiscoveryOptions::Empty() const { return impl_->Empty(); }
+bool AdvertisingOptions::Empty() const { return impl_->Empty(); }
 
 // Bring  ConnectionOptions to a not-initialized (Empty) state.
-void StartDiscoveryOptions::Clear() {}
+void AdvertisingOptions::Clear() {}
 
 // Returns a copy and normalizes allowed mediums:
 // (1) If is_out_of_band_connection is true, verifies that there is only one
 //     medium allowed, defaulting to only Bluetooth if unspecified.
 // (2) If no mediums are allowed, allow all mediums.
-ConnectionOptions StartDiscoveryOptions::CompatibleOptions() const {
+connections::ConnectionOptions AdvertisingOptions::CompatibleOptions() const {
   return impl_->CompatibleOptions();
 }
-
-// std::vector<Medium> GetMediums() const;
 
 // This call follows the standard Microsoft calling pattern of calling first
 // to get the size of the array. Caller then allocates memory for the array,
 // and makes this call again to copy the array into the provided location.
-void StartDiscoveryOptions::GetMediums(
-    location::nearby::proto::connections::Medium* mediums,
-    uint32_t* mediumsSize) {}
+void AdvertisingOptions::GetMediums(
+    location::nearby::proto::connections::Medium *mediums,
+    uint32_t *mediumsSize) {}
 
+}  // namespace windows
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location

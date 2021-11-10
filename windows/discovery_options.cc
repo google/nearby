@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby_connections/windows/request_connection_options.h"
+#include "third_party/nearby_connections/windows/discovery_options.h"
 
 #include "core/options.h"
 #include "core/strategy.h"
@@ -22,10 +22,11 @@
 namespace location {
 namespace nearby {
 namespace connections {
+namespace windows {
 
-RequestConnectionOptions::RequestConnectionOptions()
+DiscoveryOptions::DiscoveryOptions()
     : impl_(new connections::ConnectionOptions(),
-            [](connections::ConnectionOptions* impl) { delete impl; }),
+            [](connections::ConnectionOptions *impl) { delete impl; }),
       strategy(impl_->strategy),
       allowed(impl_->allowed),
       auto_upgrade_bandwidth(impl_->auto_upgrade_bandwidth),
@@ -40,33 +41,32 @@ RequestConnectionOptions::RequestConnectionOptions()
       keep_alive_interval_millis(impl_->keep_alive_interval_millis),
       keep_alive_timeout_millis(impl_->keep_alive_timeout_millis) {}
 
-RequestConnectionOptions::operator connections::ConnectionOptions() const {
+DiscoveryOptions::operator connections::ConnectionOptions() const {
   return *impl_.get();
 }
 
 // Verify if  ConnectionOptions is in a not-initialized (Empty) state.
-bool RequestConnectionOptions::Empty() const { return impl_->Empty(); }
+bool DiscoveryOptions::Empty() const { return impl_->Empty(); }
 
 // Bring  ConnectionOptions to a not-initialized (Empty) state.
-void RequestConnectionOptions::Clear() {}
+void DiscoveryOptions::Clear() {}
 
 // Returns a copy and normalizes allowed mediums:
 // (1) If is_out_of_band_connection is true, verifies that there is only one
 //     medium allowed, defaulting to only Bluetooth if unspecified.
 // (2) If no mediums are allowed, allow all mediums.
-ConnectionOptions RequestConnectionOptions::CompatibleOptions() const {
+connections::ConnectionOptions DiscoveryOptions::CompatibleOptions() const {
   return impl_->CompatibleOptions();
 }
-
-// std::vector<Medium> GetMediums() const;
 
 // This call follows the standard Microsoft calling pattern of calling first
 // to get the size of the array. Caller then allocates memory for the array,
 // and makes this call again to copy the array into the provided location.
-void RequestConnectionOptions::GetMediums(
-    location::nearby::proto::connections::Medium* mediums,
-    uint32_t* mediumsSize) {}
+void DiscoveryOptions::GetMediums(
+    location::nearby::proto::connections::Medium *mediums,
+    uint32_t *mediumsSize) {}
 
+}  // namespace windows
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location

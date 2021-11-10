@@ -20,6 +20,7 @@
 namespace location {
 namespace nearby {
 namespace connections {
+namespace windows {
 
 enum StrategyDart {
   P2P_CLUSTER = 0,
@@ -43,7 +44,7 @@ struct ConnectionOptionsDart {
 };
 
 struct ConnectionRequestInfoDart {
-  char* endpoint_info;
+  char *endpoint_info;
   int64_t initiated_cb;
   int64_t accepted_cb;
   int64_t rejected_cb;
@@ -77,11 +78,9 @@ struct PayloadListenerDart {
 //     Status::STATUS_ALREADY_ADVERTISING if the app is already advertising.
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
-DLL_EXPORT void __stdcall StartAdvertisingDart(Core* pCore,
-                                   const char* service_id,
-                                   ConnectionOptionsDart options_dart,
-                                   ConnectionRequestInfoDart info_dart,
-                                   Dart_Port result_cb);
+DLL_EXPORT void __stdcall StartAdvertisingDart(
+    Core *pCore, const char *service_id, ConnectionOptionsDart options_dart,
+    ConnectionRequestInfoDart info_dart, Dart_Port result_cb);
 
 // Stops advertising a local endpoint. Should be called after calling
 // StartAdvertising, as soon as the application no longer needs to advertise
@@ -91,8 +90,7 @@ DLL_EXPORT void __stdcall StartAdvertisingDart(Core* pCore,
 // result_cb - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK if none of the above errors occurred.
-DLL_EXPORT void __stdcall StopAdvertisingDart(Core* pCore,
-                                           Dart_Port result_cb);
+DLL_EXPORT void __stdcall StopAdvertisingDart(Core *pCore, Dart_Port result_cb);
 
 // Starts discovery for remote endpoints with the specified service ID.
 //
@@ -107,11 +105,9 @@ DLL_EXPORT void __stdcall StopAdvertisingDart(Core* pCore,
 //         discovering the specified service.
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
-DLL_EXPORT void __stdcall StartDiscoveryDart(Core* pCore,
-                                    const char* service_id,
-                                    ConnectionOptionsDart options_dart,
-                                    DiscoveryListenerDart listener_dart,
-                                    Dart_Port result_cb);
+DLL_EXPORT void __stdcall StartDiscoveryDart(
+    Core *pCore, const char *service_id, ConnectionOptionsDart options_dart,
+    DiscoveryListenerDart listener_dart, Dart_Port result_cb);
 
 // Stops discovery for remote endpoints, after a previous call to
 // StartDiscovery, when the client no longer needs to discover endpoints or
@@ -121,8 +117,7 @@ DLL_EXPORT void __stdcall StartDiscoveryDart(Core* pCore,
 // result_cb - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK if none of the above errors occurred.
-DLL_EXPORT void __stdcall StopDiscoveryDart(Core* pCore,
-                                         Dart_Port result_cb);
+DLL_EXPORT void __stdcall StopDiscoveryDart(Core *pCore, Dart_Port result_cb);
 
 // Sends a request to connect to a remote endpoint.
 //
@@ -144,11 +139,9 @@ DLL_EXPORT void __stdcall StopDiscoveryDart(Core* pCore,
 //     Status::STATUS_RADIO_ERROR if we failed to connect because of an
 //         issue with Bluetooth/WiFi.
 //     Status::STATUS_ERROR if we failed to connect for any other reason.
-DLL_EXPORT void __stdcall RequestConnectionDart(Core* pCore,
-                                            const char* endpoint_id,
-                                            ConnectionOptionsDart options_dart,
-                                            ConnectionRequestInfoDart info_dart,
-                                            Dart_Port result_cb);
+DLL_EXPORT void __stdcall RequestConnectionDart(
+    Core *pCore, const char *endpoint_id, ConnectionOptionsDart options_dart,
+    ConnectionRequestInfoDart info_dart, Dart_Port result_cb);
 
 // Accepts a connection to a remote endpoint. This method must be called
 // before Payloads can be exchanged with the remote endpoint.
@@ -162,11 +155,11 @@ DLL_EXPORT void __stdcall RequestConnectionDart(Core* pCore,
 //     Status::STATUS_OK if the connection request was accepted.
 //     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT if the app already.
 //         has a connection to the specified endpoint.
-DLL_EXPORT void __stdcall AcceptConnectionDart(Core* pCore,
-                                           const char* endpoint_id,
-                                           PayloadListenerDart listener_dart,
-                                           Dart_Port result_cb);
+DLL_EXPORT void __stdcall AcceptConnectionDart(
+    Core *pCore, const char *endpoint_id, PayloadListenerDart listener_dart,
+    Dart_Port result_cb);
 
+}  // namespace windows
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
