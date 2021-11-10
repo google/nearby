@@ -25,7 +25,6 @@
 #include "platform/api/bluetooth_classic.h"
 #include "platform/impl/g3/single_thread_executor.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -137,6 +136,5 @@ class BluetoothAdapter : public api::BluetoothAdapter {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_BLUETOOTH_ADAPTER_H_

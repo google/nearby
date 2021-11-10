@@ -37,13 +37,12 @@
 #include "platform/public/single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
 
-using ::location::nearby::proto::connections::DisconnectionReason;
-using ::location::nearby::proto::connections::Medium;
+using ::nearby::proto::connections::DisconnectionReason;
+using ::nearby::proto::connections::Medium;
 using EncryptionContext = BaseEndpointChannel::EncryptionContext;
 
 class TestEndpointChannel : public BaseEndpointChannel {
@@ -406,4 +405,3 @@ TEST(BaseEndpointChannelTest, ReadUnencryptedFrameOnEncryptedChannel) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

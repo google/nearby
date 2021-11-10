@@ -17,7 +17,6 @@
 
 #include "absl/base/thread_annotations.h"
 
-namespace location {
 namespace nearby {
 
 // A resource that can be locked. This class is provided
@@ -46,6 +45,5 @@ class ABSL_SCOPED_LOCKABLE ThreadLockHolder {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_LOCKABLE_H_

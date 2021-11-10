@@ -47,7 +47,6 @@
 #include "platform/impl/windows/generated/winrt/Windows.Storage.Streams.h"
 #include "platform/impl/windows/generated/winrt/base.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -337,6 +336,5 @@ class WifiLanMedium : public api::WifiLanMedium {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_WIFI_LAN_H_

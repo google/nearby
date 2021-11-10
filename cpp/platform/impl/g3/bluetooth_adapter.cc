@@ -20,7 +20,6 @@
 #include "platform/base/prng.h"
 #include "platform/impl/g3/bluetooth_classic.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -132,4 +131,3 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location

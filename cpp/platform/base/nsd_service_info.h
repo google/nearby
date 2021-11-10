@@ -19,7 +19,6 @@
 
 #include "absl/container/flat_hash_map.h"
 
-namespace location {
 namespace nearby {
 
 // https://developer.android.com/reference/android/net/nsd/NsdServiceInfo.html.
@@ -99,6 +98,5 @@ class NsdServiceInfo {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_NSD_SERVICE_INFO_H_

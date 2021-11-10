@@ -17,7 +17,6 @@
 #include "gtest/gtest.h"
 #include "platform/base/base64_utils.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -199,4 +198,3 @@ TEST(BleAdvertisementHeaderTest, ConstructionFromShortLengthFails) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

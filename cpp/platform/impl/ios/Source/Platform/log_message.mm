@@ -18,7 +18,6 @@
 #include "third_party/nearby_connections/cpp/platform/api/log_message.h"
 #include "third_party/objective_c/google_toolbox_for_mac/Foundation/GTMLogger.h"
 
-namespace location {
 namespace nearby {
 namespace ios {
 
@@ -84,4 +83,3 @@ bool LogMessage::ShouldCreateLogMessage(Severity severity) {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location

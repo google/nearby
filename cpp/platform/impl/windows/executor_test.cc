@@ -25,8 +25,8 @@ TEST(ExecutorTests, SingleThreadedExecutorSucceeds) {
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>();
+  std::unique_ptr<nearby::windows::Executor> executor =
+      std::make_unique<nearby::windows::Executor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -56,8 +56,8 @@ TEST(ExecutorTests, SingleThreadedExecutorAfterShutdownFails) {
   // Arrange
   std::string expected("");
 
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>();
+  std::unique_ptr<nearby::windows::Executor> executor =
+      std::make_unique<nearby::windows::Executor>();
   std::unique_ptr<std::string> output = std::make_unique<std::string>();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -86,8 +86,8 @@ TEST(ExecutorTests, SingleThreadedExecutorExecuteNullSucceeds) {
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>();
+  std::unique_ptr<nearby::windows::Executor> executor =
+      std::make_unique<nearby::windows::Executor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -119,8 +119,8 @@ TEST(ExecutorTests, SingleThreadedExecutorMultipleTasksSucceeds) {
   // Arrange
   std::string expected(RUNNABLE_ALL_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>();
+  std::unique_ptr<nearby::windows::Executor> executor =
+      std::make_unique<nearby::windows::Executor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -160,8 +160,8 @@ TEST(ExecutorTests, MultiThreadedExecutorSingleTaskSucceeds) {
   //  Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>(2);
+  std::unique_ptr<nearby::windows::Executor> executor =
+      std::make_unique<nearby::windows::Executor>(2);
 
   //  Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -191,8 +191,8 @@ TEST(ExecutorTests, MultiThreadedExecutorSingleTaskSucceeds) {
 
 TEST(ExecutorTests, MultiThreadedExecutorMultipleTasksSucceeds) {
   //  Arrange
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>(2);
+  std::unique_ptr<nearby::windows::Executor> executor =
+      std::make_unique<nearby::windows::Executor>(2);
 
   //  Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -226,8 +226,8 @@ TEST(ExecutorTests, MultiThreadedExecutorSingleTaskAfterShutdownFails) {
   //  Arrange
   std::string expected("");
 
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>(2);
+  std::unique_ptr<nearby::windows::Executor> executor =
+      std::make_unique<nearby::windows::Executor>(2);
 
   //  Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -262,8 +262,7 @@ TEST(ExecutorTests, MultiThreadedExecutorNegativeThreadsThrows) {
   EXPECT_THROW(
       {
         try {
-          auto result =
-              std::make_unique<location::nearby::windows::Executor>(-1);
+          auto result = std::make_unique<nearby::windows::Executor>(-1);
         } catch (const std::invalid_argument::exception& e) {
           // and this tests that it has the correct message
           EXPECT_STREQ(INVALID_ARGUMENT_TEXT, e.what());
@@ -280,23 +279,21 @@ TEST(ExecutorTests, MultiThreadedExecutorTooManyThreadsThrows) {
   EXPECT_THROW(
       {
         try {
-          auto result =
-              std::make_unique<location::nearby::windows::Executor>(65);
-        } catch (const location::nearby::windows::ThreadPoolException& e) {
+          auto result = std::make_unique<nearby::windows::Executor>(65);
+        } catch (const nearby::windows::ThreadPoolException& e) {
           // and this tests that it has the correct message
           EXPECT_STREQ(THREADPOOL_MAX_SIZE_TEXT, e.what());
           throw;
         }
       },
-      location::nearby::windows::ThreadPoolException);
+      nearby::windows::ThreadPoolException);
 }
 
 TEST(ExecutorTests,
      MultiThreadedExecutorMultipleTasksLargeNumberOfThreadsSucceeds) {
   //  Arrange
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>(
-          MAXIMUM_WAIT_OBJECTS - 1);
+  std::unique_ptr<nearby::windows::Executor> executor =
+      std::make_unique<nearby::windows::Executor>(MAXIMUM_WAIT_OBJECTS - 1);
 
   //  Container to note threads that ran
   std::vector<DWORD> threadIds = std::vector<DWORD>();

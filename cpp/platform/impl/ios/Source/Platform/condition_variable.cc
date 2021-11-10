@@ -16,7 +16,6 @@
 
 #include "platform/impl/ios/Source/Platform/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace ios {
 
@@ -34,4 +33,3 @@ void ConditionVariable::Notify() { condition_variable_.SignalAll(); }
 
 }  // namespace ios
 }  // namespace nearby
-}  // namespace location

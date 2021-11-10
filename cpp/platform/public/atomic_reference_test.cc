@@ -16,7 +16,6 @@
 
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -86,4 +85,3 @@ TEST(AtomicReferenceTest, SupportObjects) {
 }
 
 }  // namespace nearby
-}  // namespace location

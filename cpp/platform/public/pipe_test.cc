@@ -24,7 +24,6 @@
 #include "platform/base/prng.h"
 #include "platform/base/runnable.h"
 
-namespace location {
 namespace nearby {
 
 TEST(PipeTest, ConstructorDestructorWorks) {
@@ -343,4 +342,3 @@ TEST(PipeTest, ConcurrentWriteAndRead) {
 }
 
 }  // namespace nearby
-}  // namespace location

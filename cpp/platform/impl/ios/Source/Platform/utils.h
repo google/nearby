@@ -24,7 +24,6 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-namespace location {
 namespace nearby {
 
 /// Converts an Obj-C BOOL to a C++ bool.
@@ -69,6 +68,5 @@ absl::flat_hash_map<std::string, std::string> AbslHashMapFromObjCTxtRecords(
     NSDictionary<NSString *, NSData *> *txtRecords);
 
 }  // namespace nearby
-}  // namespace location
 
 NS_ASSUME_NONNULL_END

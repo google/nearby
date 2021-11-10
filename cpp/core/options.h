@@ -20,7 +20,6 @@
 #include "platform/base/byte_array.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -69,7 +68,7 @@ struct ConnectionOptions {
   // This call follows the standard Microsoft calling pattern of calling first
   // to get the size of the array. Caller then allocates memory for the array,
   // and makes this call again to copy the array into the provided location.
-  void GetMediums(location::nearby::proto::connections::Medium* mediums,
+  void GetMediums(nearby::proto::connections::Medium* mediums,
                   uint32_t* mediumsSize);
 };
 
@@ -100,6 +99,5 @@ struct OutOfBandConnectionMetadata {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_OPTIONS_H_

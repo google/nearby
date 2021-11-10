@@ -23,7 +23,6 @@
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -387,4 +386,3 @@ TEST_F(WifiLanMediumTest, CanDiscoverThatOtherMediumAdvertise) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

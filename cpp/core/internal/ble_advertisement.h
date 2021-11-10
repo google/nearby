@@ -20,7 +20,6 @@
 #include "platform/base/bluetooth_utils.h"
 #include "platform/base/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -121,6 +120,5 @@ class BleAdvertisement {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_BLE_ADVERTISEMENT_H_

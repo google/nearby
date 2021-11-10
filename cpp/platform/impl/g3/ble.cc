@@ -25,7 +25,6 @@
 #include "platform/base/medium_environment.h"
 #include "platform/impl/shared/count_down_latch.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -375,4 +374,3 @@ std::unique_ptr<api::BleSocket> BleMedium::Connect(
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location

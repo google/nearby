@@ -24,7 +24,6 @@
 #include "proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace analytics {
 
@@ -32,53 +31,53 @@ namespace {
 const char kVersion[] = "v1.0.0";
 }  // namespace
 
-using ::location::nearby::analytics::proto::ConnectionsLog;
-using ::location::nearby::proto::connections::ACCEPTED;
-using ::location::nearby::proto::connections::ADVERTISER;
-using ::location::nearby::proto::connections::BandwidthUpgradeErrorStage;
-using ::location::nearby::proto::connections::BandwidthUpgradeResult;
-using ::location::nearby::proto::connections::BYTES;
-using ::location::nearby::proto::connections::CLIENT_SESSION;
-using ::location::nearby::proto::connections::CONNECTION_CLOSED;
-using ::location::nearby::proto::connections::ConnectionAttemptDirection;
-using ::location::nearby::proto::connections::ConnectionAttemptResult;
-using ::location::nearby::proto::connections::ConnectionAttemptType;
-using ::location::nearby::proto::connections::ConnectionRequestResponse;
-using ::location::nearby::proto::connections::ConnectionsStrategy;
-using ::location::nearby::proto::connections::DisconnectionReason;
-using ::location::nearby::proto::connections::DISCOVERER;
-using ::location::nearby::proto::connections::EventType;
-using ::location::nearby::proto::connections::ERROR_CODE;
-using ::location::nearby::proto::connections::FILE;
-using ::location::nearby::proto::connections::IGNORED;
-using ::location::nearby::proto::connections::INCOMING;
-using ::location::nearby::proto::connections::INITIAL;
-using ::location::nearby::proto::connections::Medium;
-using ::location::nearby::proto::connections::MOVED_TO_NEW_MEDIUM;
-using ::location::nearby::proto::connections::NOT_SENT;
-using ::location::nearby::proto::connections::OUTGOING;
-using ::location::nearby::proto::connections::P2P_CLUSTER;
-using ::location::nearby::proto::connections::P2P_POINT_TO_POINT;
-using ::location::nearby::proto::connections::P2P_STAR;
-using ::location::nearby::proto::connections::PayloadStatus;
-using ::location::nearby::proto::connections::PayloadType;
-using ::location::nearby::proto::connections::REJECTED;
-using ::location::nearby::proto::connections::RESULT_SUCCESS;
-using ::location::nearby::proto::connections::SessionRole;
-using ::location::nearby::proto::connections::START_CLIENT_SESSION;
-using ::location::nearby::proto::connections::START_STRATEGY_SESSION;
-using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
-using ::location::nearby::proto::connections::STOP_STRATEGY_SESSION;
-using ::location::nearby::proto::connections::STREAM;
-using ::location::nearby::proto::connections::UNFINISHED;
-using ::location::nearby::proto::connections::UNFINISHED_ERROR;
-using ::location::nearby::proto::connections::UNKNOWN_MEDIUM;
-using ::location::nearby::proto::connections::UNKNOWN_PAYLOAD_TYPE;
-using ::location::nearby::proto::connections::UNKNOWN_STRATEGY;
-using ::location::nearby::proto::connections::UPGRADE_RESULT_SUCCESS;
-using ::location::nearby::proto::connections::UPGRADE_SUCCESS;
-using ::location::nearby::proto::connections::UPGRADE_UNFINISHED;
-using ::location::nearby::proto::connections::UPGRADED;
+using ::nearby::analytics::proto::ConnectionsLog;
+using ::nearby::proto::connections::ACCEPTED;
+using ::nearby::proto::connections::ADVERTISER;
+using ::nearby::proto::connections::BandwidthUpgradeErrorStage;
+using ::nearby::proto::connections::BandwidthUpgradeResult;
+using ::nearby::proto::connections::BYTES;
+using ::nearby::proto::connections::CLIENT_SESSION;
+using ::nearby::proto::connections::CONNECTION_CLOSED;
+using ::nearby::proto::connections::ConnectionAttemptDirection;
+using ::nearby::proto::connections::ConnectionAttemptResult;
+using ::nearby::proto::connections::ConnectionAttemptType;
+using ::nearby::proto::connections::ConnectionRequestResponse;
+using ::nearby::proto::connections::ConnectionsStrategy;
+using ::nearby::proto::connections::DisconnectionReason;
+using ::nearby::proto::connections::DISCOVERER;
+using ::nearby::proto::connections::ERROR_CODE;
+using ::nearby::proto::connections::EventType;
+using ::nearby::proto::connections::FILE;
+using ::nearby::proto::connections::IGNORED;
+using ::nearby::proto::connections::INCOMING;
+using ::nearby::proto::connections::INITIAL;
+using ::nearby::proto::connections::Medium;
+using ::nearby::proto::connections::MOVED_TO_NEW_MEDIUM;
+using ::nearby::proto::connections::NOT_SENT;
+using ::nearby::proto::connections::OUTGOING;
+using ::nearby::proto::connections::P2P_CLUSTER;
+using ::nearby::proto::connections::P2P_POINT_TO_POINT;
+using ::nearby::proto::connections::P2P_STAR;
+using ::nearby::proto::connections::PayloadStatus;
+using ::nearby::proto::connections::PayloadType;
+using ::nearby::proto::connections::REJECTED;
+using ::nearby::proto::connections::RESULT_SUCCESS;
+using ::nearby::proto::connections::SessionRole;
+using ::nearby::proto::connections::START_CLIENT_SESSION;
+using ::nearby::proto::connections::START_STRATEGY_SESSION;
+using ::nearby::proto::connections::STOP_CLIENT_SESSION;
+using ::nearby::proto::connections::STOP_STRATEGY_SESSION;
+using ::nearby::proto::connections::STREAM;
+using ::nearby::proto::connections::UNFINISHED;
+using ::nearby::proto::connections::UNFINISHED_ERROR;
+using ::nearby::proto::connections::UNKNOWN_MEDIUM;
+using ::nearby::proto::connections::UNKNOWN_PAYLOAD_TYPE;
+using ::nearby::proto::connections::UNKNOWN_STRATEGY;
+using ::nearby::proto::connections::UPGRADE_RESULT_SUCCESS;
+using ::nearby::proto::connections::UPGRADE_SUCCESS;
+using ::nearby::proto::connections::UPGRADE_UNFINISHED;
+using ::nearby::proto::connections::UPGRADED;
 
 AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger)
     : event_logger_(event_logger) {
@@ -480,7 +479,7 @@ void AnalyticsRecorder::OnBandwidthUpgradeSuccess(
                              UPGRADE_SUCCESS);
 }
 
-void AnalyticsRecorder::OnErrorCode(const ErrorCodeParams& params) {
+void AnalyticsRecorder::OnErrorCode(const ErrorCodeParams &params) {
   MutexLock lock(&mutex_);
   if (!CanRecordAnalyticsLocked("OnErrorCode")) {
     return;
@@ -1110,4 +1109,3 @@ AnalyticsRecorder::LogicalConnection::ResolvePendingPayloads(
 
 }  // namespace analytics
 }  // namespace nearby
-}  // namespace location

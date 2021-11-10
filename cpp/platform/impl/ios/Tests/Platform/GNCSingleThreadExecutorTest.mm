@@ -21,9 +21,9 @@
 #include "third_party/nearby_connections/cpp/platform/api/submittable_executor.h"
 #include "third_party/nearby_connections/cpp/platform/base/runnable.h"
 
-using location::nearby::Runnable;
-using location::nearby::api::ImplementationPlatform;
-using SingleThreadExecutor = location::nearby::api::SubmittableExecutor;
+using nearby::Runnable;
+using nearby::api::ImplementationPlatform;
+using SingleThreadExecutor = nearby::api::SubmittableExecutor;
 
 @interface GNCSingleThreadExecutorTest : XCTestCase
 @property(atomic) int counter;

@@ -27,7 +27,6 @@
 #include "core/internal/offline_frames.h"
 #include "platform/public/system_clock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -107,4 +106,3 @@ TEST(BwuManagerTest, InitiateBwu_UpgradeFails_NoCrash) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

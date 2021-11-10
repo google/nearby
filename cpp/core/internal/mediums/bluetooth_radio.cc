@@ -18,7 +18,6 @@
 #include "platform/public/logging.h"
 #include "platform/public/system_clock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -117,4 +116,3 @@ bool BluetoothRadio::SaveOriginalState() {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

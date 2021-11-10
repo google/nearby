@@ -23,7 +23,6 @@
 #include "platform/impl/windows/mutex.h"
 #include "platform/public/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -51,5 +50,5 @@ class ConditionVariable : public api::ConditionVariable {
 };
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
+
 #endif  // PLATFORM_IMPL_WINDOWS_CONDITION_VARIABLE_H_

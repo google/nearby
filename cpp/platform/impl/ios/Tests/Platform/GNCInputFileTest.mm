@@ -18,9 +18,9 @@
 #import "third_party/nearby_connections/cpp/platform/base/exception.h"
 #import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/input_file.h"
 
-using ::location::nearby::ios::InputFile;
-using ::location::nearby::ByteArray;
-using ::location::nearby::ExceptionOr;
+using ::nearby::ios::InputFile;
+using ::nearby::ByteArray;
+using ::nearby::ExceptionOr;
 
 @interface GNCInputFileTest : XCTestCase
 @end

@@ -22,7 +22,6 @@
 #include "platform/base/feature_flags.h"
 #include "platform/base/medium_environment.h"
 
-namespace location {
 namespace nearby {
 
 class CancellationFlagPeer {
@@ -152,10 +151,9 @@ INSTANTIATE_TEST_SUITE_P(ParametrisedCancellationFlagTest, CancellationFlagTest,
 
 TEST(CancellationFlagTest,
      CancelMultiplesIfMultiplePointersToTheSameFunctionRegistered) {
-  location::nearby::FeatureFlags::Flags feature_flags_ =
-      location::nearby::FeatureFlags::Flags{
-          .enable_cancellation_flag = true,
-      };
+  nearby::FeatureFlags::Flags feature_flags_ = nearby::FeatureFlags::Flags{
+      .enable_cancellation_flag = true,
+  };
   MediumEnvironment::Instance().SetFeatureFlags(feature_flags_);
 
   StrictMock<MockFunction<void()>> mock_cancel_callback;
@@ -184,10 +182,9 @@ TEST(CancellationFlagTest,
 }
 
 TEST(CancellationFlagTest, RegisteredMultuipleTimesOnlyCancelOnce) {
-  location::nearby::FeatureFlags::Flags feature_flags_ =
-      location::nearby::FeatureFlags::Flags{
-          .enable_cancellation_flag = true,
-      };
+  nearby::FeatureFlags::Flags feature_flags_ = nearby::FeatureFlags::Flags{
+      .enable_cancellation_flag = true,
+  };
   MediumEnvironment::Instance().SetFeatureFlags(feature_flags_);
 
   StrictMock<MockFunction<void()>> mock_cancel_callback;
@@ -209,4 +206,3 @@ TEST(CancellationFlagTest, RegisteredMultuipleTimesOnlyCancelOnce) {
 }
 
 }  // namespace nearby
-}  // namespace location

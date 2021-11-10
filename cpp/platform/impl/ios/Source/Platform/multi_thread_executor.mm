@@ -17,7 +17,6 @@
 #include "third_party/nearby_connections/cpp/platform/base/runnable.h"
 #import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/scheduled_executor.h"
 
-namespace location {
 namespace nearby {
 namespace ios {
 
@@ -37,4 +36,3 @@ bool MultiThreadExecutor::DoSubmit(Runnable&& runnable) {
 
 }  // namespace ios
 }  // namespace nearby
-}  // namespace location

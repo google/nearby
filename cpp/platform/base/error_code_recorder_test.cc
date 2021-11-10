@@ -17,7 +17,6 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 
 using ::testing::Field;
@@ -133,4 +132,3 @@ TEST(ErrorCodeRecorderTest, TestBuildErrorCodeParamsWorkForUnknownEvent) {
 }
 
 }  // namespace nearby
-}  // namespace location

@@ -33,7 +33,6 @@
 #include "core/payload.h"
 #include "core/status.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -94,6 +93,5 @@ class OfflineServiceController : public ServiceController {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_OFFLINE_SERVICE_CONTROLLER_H_

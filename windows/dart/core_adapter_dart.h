@@ -17,7 +17,6 @@
 
 #include "third_party/nearby_connections/windows/core_adapter.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace windows {
@@ -162,6 +161,5 @@ DLL_EXPORT void __stdcall AcceptConnectionDart(
 }  // namespace windows
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // LOCATION_NEARBY_CONNECTIONS_WINDOWS_CORE_ADAPTER_DART_H_

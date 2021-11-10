@@ -19,7 +19,6 @@
 #import "third_party/nearby_connections/cpp/platform/base/exception.h"
 #import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/utils.h"
 
-namespace location {
 namespace nearby {
 namespace ios {
 
@@ -66,4 +65,3 @@ Exception InputFile::Close() {
 
 }  // namespace ios
 }  // namespace nearby
-}  // namespace location

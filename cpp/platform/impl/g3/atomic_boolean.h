@@ -19,7 +19,6 @@
 
 #include "platform/api/atomic_boolean.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -39,6 +38,5 @@ class AtomicBoolean : public api::AtomicBoolean {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_ATOMIC_BOOLEAN_H_

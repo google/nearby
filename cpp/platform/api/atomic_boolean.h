@@ -15,7 +15,6 @@
 #ifndef PLATFORM_API_ATOMIC_BOOLEAN_H_
 #define PLATFORM_API_ATOMIC_BOOLEAN_H_
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -33,6 +32,5 @@ class AtomicBoolean {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_ATOMIC_BOOLEAN_H_

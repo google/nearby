@@ -29,7 +29,6 @@
 #include "platform/public/crypto.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -1360,4 +1359,3 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiLanConnectImpl(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

@@ -33,7 +33,6 @@
 #include "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/wifi_lan.h"
 #include "third_party/nearby_connections/cpp/platform/impl/shared/file.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -148,4 +147,3 @@ std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() { ret
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location

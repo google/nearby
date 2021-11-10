@@ -18,7 +18,6 @@
 
 #include "absl/strings/str_join.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -138,4 +137,3 @@ void OfflineServiceController::DisconnectFromEndpoint(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

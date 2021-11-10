@@ -20,7 +20,6 @@
 #include "platform/base/input_stream.h"
 #include "platform/base/output_stream.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -150,6 +149,5 @@ class BleMedium : public api::BleMedium {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_BLE_H_

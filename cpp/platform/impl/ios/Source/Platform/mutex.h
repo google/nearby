@@ -18,7 +18,6 @@
 #include "absl/synchronization/mutex.h"
 #include "platform/api/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace ios {
 
@@ -79,6 +78,5 @@ class ABSL_LOCKABLE RecursiveMutex : public api::Mutex {
 
 }  // namespace ios
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_IOS_MUTEX_H_

@@ -16,7 +16,6 @@
 
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -44,4 +43,3 @@ TEST(BlePeripheralTest, ConstructionEmptyFails) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

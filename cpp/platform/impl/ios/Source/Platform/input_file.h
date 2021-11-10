@@ -19,7 +19,6 @@
 
 #include "platform/api/input_file.h"
 
-namespace location {
 namespace nearby {
 namespace ios {
 
@@ -43,6 +42,5 @@ class InputFile : public api::InputFile {
 
 }  // namespace ios
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_IOS_INPUT_FILE_H_

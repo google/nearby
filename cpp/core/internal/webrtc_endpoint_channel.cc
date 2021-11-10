@@ -14,7 +14,6 @@
 
 #include "core/internal/webrtc_endpoint_channel.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -32,4 +31,3 @@ void WebRtcEndpointChannel::CloseImpl() { webrtc_socket_.Close(); }
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

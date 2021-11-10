@@ -23,7 +23,6 @@
 #include "core/internal/offline_frames.h"
 #include "core/internal/webrtc_endpoint_channel.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -163,4 +162,3 @@ std::string WebrtcBwuHandler::WebrtcIncomingSocket::ToString() { return name_; }
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

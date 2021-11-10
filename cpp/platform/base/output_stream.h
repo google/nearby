@@ -18,7 +18,6 @@
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
 
-namespace location {
 namespace nearby {
 
 // An OutputStream represents an output stream of bytes.
@@ -34,6 +33,5 @@ class OutputStream {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_OUTPUT_STREAM_H_

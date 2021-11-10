@@ -24,17 +24,17 @@
 // dispatch block below, and deleted when the block is released.
 @interface GNCRunnableWrapper : NSObject {
  @public
-  location::nearby::Runnable _runnable;
-  std::unique_ptr<location::nearby::ios::AtomicBoolean> _canceled;
+  nearby::Runnable _runnable;
+  std::unique_ptr<nearby::ios::AtomicBoolean> _canceled;
 }
 @end
 
 @implementation GNCRunnableWrapper
 
-+ (instancetype)wrapperWithRunnable:(location::nearby::Runnable)runnable {
++ (instancetype)wrapperWithRunnable:(nearby::Runnable)runnable {
   GNCRunnableWrapper *wrapper = [[GNCRunnableWrapper alloc] init];
   wrapper->_runnable = runnable;
-  wrapper->_canceled = std::make_unique<location::nearby::ios::AtomicBoolean>(false);
+  wrapper->_canceled = std::make_unique<nearby::ios::AtomicBoolean>(false);
   return wrapper;
 }
 
@@ -51,7 +51,6 @@
 
 @end
 
-namespace location {
 namespace nearby {
 namespace ios {
 
@@ -141,4 +140,3 @@ void ScheduledExecutor::Shutdown(std::int64_t timeout_millis) {
 
 }  // namespace ios
 }  // namespace nearby
-}  // namespace location

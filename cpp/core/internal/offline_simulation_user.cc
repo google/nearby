@@ -20,7 +20,6 @@
 #include "platform/public/count_down_latch.h"
 #include "platform/public/system_clock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -199,4 +198,3 @@ void OfflineSimulationUser::Disconnect() {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

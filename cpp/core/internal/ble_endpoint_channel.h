@@ -18,7 +18,6 @@
 #include "core/internal/base_endpoint_channel.h"
 #include "platform/public/ble.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -41,6 +40,5 @@ class BleEndpointChannel final : public BaseEndpointChannel {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_BLE_ENDPOINT_CHANNEL_H_

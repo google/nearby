@@ -16,7 +16,6 @@
 #include "platform/impl/windows/wifi_lan.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -177,4 +176,3 @@ std::vector<std::string> WifiLanServerSocket::GetIpAddresses() {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

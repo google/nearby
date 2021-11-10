@@ -22,7 +22,6 @@
 #include "platform/impl/g3/single_thread_executor.h"
 #include "webrtc/api/peer_connection_interface.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -76,6 +75,5 @@ class WebRtcMedium : public api::WebRtcMedium {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_WEBRTC_H_

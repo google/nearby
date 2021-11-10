@@ -21,7 +21,6 @@
 
 #include "platform/public/core_config.h"
 
-namespace location {
 namespace nearby {
 class ByteArray;
 namespace proto {
@@ -38,6 +37,7 @@ struct MediumSelector;
 using BooleanMediumSelector = MediumSelector<bool>;
 
 namespace windows {
+
 struct DLL_API ConnectionOptions {
   ConnectionOptions();
   operator connections::ConnectionOptions() const;
@@ -79,13 +79,12 @@ struct DLL_API ConnectionOptions {
   // This call follows the standard Microsoft calling pattern of calling first
   // to get the size of the array. Caller then allocates memory for the array,
   // and makes this call again to copy the array into the provided location.
-  void GetMediums(location::nearby::proto::connections::Medium *mediums,
+  void GetMediums(nearby::proto::connections::Medium *mediums,
                   uint32_t *mediumsSize);
 };
 
 }  // namespace windows
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  //  WINDOWS_REQUEST_CONNECTION_OPTIONS_H_

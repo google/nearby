@@ -17,31 +17,28 @@
 #include "platform/base/logging.h"
 #include "proto/errorcode/error_code_enums.pb.h"
 
-namespace location {
 namespace nearby {
 
-using ::location::nearby::errorcode::proto::CommonError;
-using ::location::nearby::errorcode::proto::CONNECT;
-using ::location::nearby::errorcode::proto::ConnectError;
-using ::location::nearby::errorcode::proto::Description;
-using ::location::nearby::errorcode::proto::DISCONNECT;
-using ::location::nearby::errorcode::proto::DisconnectError;
-using ::location::nearby::errorcode::proto::Event;
-using ::location::nearby::errorcode::proto::START_ADVERTISING;
-using ::location::nearby::errorcode::proto::START_DISCOVERING;
-using ::location::nearby::errorcode::proto::START_LISTENING_INCOMING_CONNECTION;
-using ::location::nearby::errorcode::proto::StartAdvertisingError;
-using ::location::nearby::errorcode::proto::StartDiscoveringError;
-using ::location::nearby::errorcode::proto::
-    StartListeningIncomingConnectionError;
-using ::location::nearby::errorcode::proto::STOP_ADVERTISING;
-using ::location::nearby::errorcode::proto::STOP_DISCOVERING;
-using ::location::nearby::errorcode::proto::STOP_LISTENING_INCOMING_CONNECTION;
-using ::location::nearby::errorcode::proto::StopAdvertisingError;
-using ::location::nearby::errorcode::proto::StopDiscoveringError;
-using ::location::nearby::errorcode::proto::
-    StopListeningIncomingConnectionError;
-using ::location::nearby::proto::connections::Medium;
+using ::nearby::errorcode::proto::CommonError;
+using ::nearby::errorcode::proto::CONNECT;
+using ::nearby::errorcode::proto::ConnectError;
+using ::nearby::errorcode::proto::Description;
+using ::nearby::errorcode::proto::DISCONNECT;
+using ::nearby::errorcode::proto::DisconnectError;
+using ::nearby::errorcode::proto::Event;
+using ::nearby::errorcode::proto::START_ADVERTISING;
+using ::nearby::errorcode::proto::START_DISCOVERING;
+using ::nearby::errorcode::proto::START_LISTENING_INCOMING_CONNECTION;
+using ::nearby::errorcode::proto::StartAdvertisingError;
+using ::nearby::errorcode::proto::StartDiscoveringError;
+using ::nearby::errorcode::proto::StartListeningIncomingConnectionError;
+using ::nearby::errorcode::proto::STOP_ADVERTISING;
+using ::nearby::errorcode::proto::STOP_DISCOVERING;
+using ::nearby::errorcode::proto::STOP_LISTENING_INCOMING_CONNECTION;
+using ::nearby::errorcode::proto::StopAdvertisingError;
+using ::nearby::errorcode::proto::StopDiscoveringError;
+using ::nearby::errorcode::proto::StopListeningIncomingConnectionError;
+using ::nearby::proto::connections::Medium;
 
 // Default static no-op listener
 ErrorCodeRecorder::ErrorCodeListener ErrorCodeRecorder::listener_ =
@@ -113,4 +110,3 @@ ErrorCodeParams ErrorCodeRecorder::BuildErrorCodeParams(
 }
 
 }  // namespace nearby
-}  // namespace location

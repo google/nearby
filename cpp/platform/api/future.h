@@ -18,7 +18,6 @@
 #include "absl/time/clock.h"
 #include "platform/base/exception.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -41,6 +40,5 @@ class Future {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_FUTURE_H_

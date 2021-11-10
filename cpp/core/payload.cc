@@ -14,7 +14,6 @@
 
 #include "core/payload.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -98,4 +97,3 @@ Payload::Type Payload::FindType() const {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

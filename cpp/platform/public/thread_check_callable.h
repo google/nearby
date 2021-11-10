@@ -19,7 +19,6 @@
 #include "platform/base/callable.h"
 #include "platform/public/lockable.h"
 
-namespace location {
 namespace nearby {
 
 // A callable that acquires a lockable resource while running.
@@ -41,6 +40,5 @@ class ThreadCheckCallable {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_THREAD_CHECK_CALLABLE_H_

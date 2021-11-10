@@ -24,7 +24,6 @@
 #include "platform/public/pipe.h"
 #include "proto/connections/offline_wire_formats.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -179,4 +178,3 @@ TEST(InternalPayloadFActoryTest,
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

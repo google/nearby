@@ -26,15 +26,14 @@
 #import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/utils.h"
 #include "third_party/nearby_connections/cpp/platform/public/file.h"
 
-using ::location::nearby::ByteArrayFromNSData;
-using ::location::nearby::CppStringFromObjCString;
-using ::location::nearby::InputFile;
-using ::location::nearby::InputStream;
-using ::location::nearby::connections::Payload;
-using ::location::nearby::PayloadId;
-using ResultListener = ::location::nearby::connections::ResultCallback;
+using ::nearby::ByteArrayFromNSData;
+using ::nearby::CppStringFromObjCString;
+using ::nearby::InputFile;
+using ::nearby::InputStream;
+using ::nearby::connections::Payload;
+using ::nearby::PayloadId;
+using ResultListener = ::nearby::connections::ResultCallback;
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -81,7 +80,6 @@ class GNCInputStreamFromNSStream : public InputStream {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 @implementation GNCPayloadInfo
 
@@ -140,8 +138,8 @@ class GNCInputStreamFromNSStream : public InputStream {
 
   PayloadId payloadId = Payload::GenerateId();
   Payload corePayload(payloadId, [payload]() -> InputStream & {
-    location::nearby::connections::GNCInputStreamFromNSStream *stream =
-        new location::nearby::connections::GNCInputStreamFromNSStream(payload.stream);
+    nearby::connections::GNCInputStreamFromNSStream *stream =
+        new nearby::connections::GNCInputStreamFromNSStream(payload.stream);
     return *stream;
   });
   return [self sendPayload:std::move(corePayload) size:-1 progress:progress completion:completion];

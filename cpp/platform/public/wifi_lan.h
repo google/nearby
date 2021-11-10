@@ -26,7 +26,6 @@
 #include "platform/public/logging.h"
 #include "platform/public/mutex.h"
 
-namespace location {
 namespace nearby {
 
 class WifiLanSocket final {
@@ -200,6 +199,5 @@ class WifiLanMedium {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_WIFI_LAN_H_

@@ -19,7 +19,6 @@
 #include "platform/public/ble.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -62,4 +61,3 @@ void BleEndpointChannel::CloseImpl() {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

@@ -16,7 +16,6 @@
 
 #include "platform/public/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
@@ -143,4 +142,3 @@ WifiLanSocket WifiLanMedium::ConnectToService(
 }
 
 }  // namespace nearby
-}  // namespace location

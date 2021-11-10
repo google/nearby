@@ -25,7 +25,6 @@
 #include "platform/public/logging.h"
 #include "platform/public/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -167,6 +166,5 @@ class EndpointChannelManager final {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_ENDPOINT_CHANNEL_MANAGER_H_

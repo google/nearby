@@ -17,7 +17,6 @@
 
 #include <type_traits>
 
-namespace location {
 namespace nearby {
 
 // Similar to static_cast, but will assert that Derived is a derived type of
@@ -39,6 +38,5 @@ inline Derived down_cast(Base* value) {
 }
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_TYPES_H_

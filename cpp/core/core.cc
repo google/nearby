@@ -25,7 +25,6 @@
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -153,4 +152,3 @@ void Core::StopAllEndpoints(ResultCallback callback) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

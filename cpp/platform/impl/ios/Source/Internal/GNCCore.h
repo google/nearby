@@ -25,9 +25,8 @@ NS_ASSUME_NONNULL_BEGIN
 /** This class contains the C++ Core object. */
 @interface GNCCore : NSObject {
  @public
-  std::unique_ptr<::location::nearby::connections::Core> _core;
-  std::unique_ptr<::location::nearby::connections::ServiceControllerRouter>
-      _service_controller_router;
+  std::unique_ptr<::nearby::connections::Core> _core;
+  std::unique_ptr<::nearby::connections::ServiceControllerRouter> _service_controller_router;
 }
 
 /**
@@ -37,13 +36,13 @@ NS_ASSUME_NONNULL_BEGIN
  * Inserts the URL to the map, keyed by payloadID. The element will not be inserted if there
  * already is an element with the key in the map.
  */
-- (void)insertURLToMapWithPayloadID:(::location::nearby::PayloadId)payloadId urlToSend:(NSURL *)url;
+- (void)insertURLToMapWithPayloadID:(::nearby::PayloadId)payloadId urlToSend:(NSURL *)url;
 
 /**
  * Returns the URL with the payloadID and removes the entry from the map. Returns nil if
  * payloadID is not found.
  */
-- (nullable NSURL *)extractURLWithPayloadID:(::location::nearby::PayloadId)payloadId;
+- (nullable NSURL *)extractURLWithPayloadID:(::nearby::PayloadId)payloadId;
 
 - (void)clearSendingURLMaps;
 

@@ -18,7 +18,6 @@
 #include "core/internal/internal_payload.h"
 #include "core/payload.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -32,6 +31,5 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_INTERNAL_PAYLOAD_FACTORY_H_

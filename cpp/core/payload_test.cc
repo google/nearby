@@ -24,7 +24,6 @@
 #include "platform/public/file.h"
 #include "platform/public/pipe.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -104,4 +103,3 @@ TEST(PayloadTest, PayloadIsNotCopyable) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

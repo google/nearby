@@ -18,7 +18,6 @@
 #import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/utils.h"
 #import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Shared/GNCUtils.h"
 
-namespace location {
 namespace nearby {
 
 void Crypto::Init() {}
@@ -36,4 +35,3 @@ ByteArray Crypto::Sha256(absl::string_view input) {
 }
 
 }  // namespace nearby
-}  // namespace location

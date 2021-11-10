@@ -17,7 +17,6 @@
 #include "platform/impl/windows/cancelable.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -146,4 +145,3 @@ void ScheduledExecutor::Shutdown() {
 }
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

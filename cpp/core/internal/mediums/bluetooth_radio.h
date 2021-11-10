@@ -21,7 +21,6 @@
 #include "platform/public/atomic_boolean.h"
 #include "platform/public/bluetooth_adapter.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -85,6 +84,5 @@ class BluetoothRadio {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_BLUETOOTH_RADIO_H_

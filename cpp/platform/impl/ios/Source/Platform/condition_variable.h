@@ -19,7 +19,6 @@
 #include "platform/api/condition_variable.h"
 #include "platform/impl/ios/Source/Platform/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace ios {
 
@@ -43,6 +42,5 @@ class ConditionVariable : public api::ConditionVariable {
 
 }  // namespace ios
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_IOS_CONDITION_VARIABLE_H_

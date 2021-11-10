@@ -17,7 +17,6 @@
 #include "platform/public/logging.h"
 #include "platform/public/pending_job_registry.h"
 
-namespace location {
 namespace nearby {
 
 namespace {
@@ -56,4 +55,3 @@ void MonitoredRunnable::operator()() const {
 }
 
 }  // namespace nearby
-}  // namespace location

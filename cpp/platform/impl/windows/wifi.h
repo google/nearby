@@ -17,7 +17,6 @@
 
 #include "platform/api/wifi.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -93,6 +92,5 @@ class WifiMedium : public api::WifiMedium {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_WIFI_H_

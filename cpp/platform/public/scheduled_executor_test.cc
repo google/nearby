@@ -24,7 +24,6 @@
 #include "platform/base/exception.h"
 #include "platform/public/count_down_latch.h"
 
-namespace location {
 namespace nearby {
 
 // kShortDelay must be significant enough to guarantee that OS under heavy load
@@ -203,4 +202,3 @@ TEST(ScheduledExecutorTest, ThreadCheck_Schedule) {
 }
 
 }  // namespace nearby
-}  // namespace location

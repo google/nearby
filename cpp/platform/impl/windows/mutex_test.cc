@@ -22,7 +22,7 @@ class MutexTests : public testing::Test {
  public:
   class MutexTest {
    public:
-    MutexTest(location::nearby::windows::Mutex& mutex) : mutex_(mutex) {}
+    MutexTest(nearby::windows::Mutex& mutex) : mutex_(mutex) {}
 
     std::future<bool> WaitForLock() { // NOLINT
       return std::async(
@@ -40,14 +40,14 @@ class MutexTests : public testing::Test {
     }
 
    private:
-    location::nearby::windows::Mutex& mutex_;
+    nearby::windows::Mutex& mutex_;
   };
 };
 
 TEST_F(MutexTests, SuccessfulRecursiveCreation) {
   // Arrange
-  location::nearby::windows::Mutex mutex = location::nearby::windows::Mutex(
-      location::nearby::windows::Mutex::Mode::kRecursive);
+  nearby::windows::Mutex mutex =
+      nearby::windows::Mutex(nearby::windows::Mutex::Mode::kRecursive);
 
   // Act
   std::recursive_mutex& actual = mutex.GetWindowsRecursiveMutex();
@@ -58,8 +58,7 @@ TEST_F(MutexTests, SuccessfulRecursiveCreation) {
 
 TEST_F(MutexTests, SuccessfulCreation) {
   // Arrange
-  location::nearby::windows::Mutex mutex(
-      location::nearby::windows::Mutex::Mode::kRegular);
+  nearby::windows::Mutex mutex(nearby::windows::Mutex::Mode::kRegular);
 
   // Act
   std::mutex& actual = mutex.GetWindowsMutex();
@@ -70,10 +69,9 @@ TEST_F(MutexTests, SuccessfulCreation) {
 
 TEST_F(MutexTests, SuccessfulSignal) {
   // Arrange
-  location::nearby::windows::Mutex mutex(
-      location::nearby::windows::Mutex::Mode::kRegular);
+  nearby::windows::Mutex mutex(nearby::windows::Mutex::Mode::kRegular);
 
-  location::nearby::windows::Mutex& mutexRef = mutex;
+  nearby::windows::Mutex& mutexRef = mutex;
   MutexTest mutexTest(mutexRef);
 
   mutex.Lock();
@@ -88,10 +86,9 @@ TEST_F(MutexTests, SuccessfulSignal) {
 
 TEST_F(MutexTests, SuccessfulRecursiveSignal) {
   // Arrange
-  location::nearby::windows::Mutex mutex(
-      location::nearby::windows::Mutex::Mode::kRecursive);
+  nearby::windows::Mutex mutex(nearby::windows::Mutex::Mode::kRecursive);
 
-  location::nearby::windows::Mutex& mutexRef = mutex;
+  nearby::windows::Mutex& mutexRef = mutex;
   MutexTest mutexTest(mutexRef);
 
   mutex.Lock();

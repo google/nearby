@@ -23,7 +23,6 @@
 #include "platform/base/byte_array.h"
 #include "platform/base/nsd_service_info.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -92,6 +91,5 @@ class WifiLanServiceInfo {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_WIFI_LAN_SERVICE_INFO_H_

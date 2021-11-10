@@ -14,12 +14,11 @@
 
 #include "core/internal/mediums/webrtc/signaling_frames.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
 namespace webrtc_frames {
-using WebRtcSignalingFrame = location::nearby::mediums::WebRtcSignalingFrame;
+using WebRtcSignalingFrame = nearby::mediums::WebRtcSignalingFrame;
 
 namespace {
 
@@ -34,7 +33,7 @@ void SetSenderId(const WebrtcPeerId& sender_id, WebRtcSignalingFrame& frame) {
 }
 
 std::unique_ptr<webrtc::IceCandidateInterface> DecodeIceCandidate(
-    location::nearby::mediums::IceCandidate ice_candidate_proto) {
+    nearby::mediums::IceCandidate ice_candidate_proto) {
   webrtc::SdpParseError error;
   return std::unique_ptr<webrtc::IceCandidateInterface>(
       webrtc::CreateIceCandidate(ice_candidate_proto.sdp_mid(),
@@ -49,7 +48,7 @@ ByteArray EncodeReadyForSignalingPoke(const WebrtcPeerId& sender_id) {
   signaling_frame.set_type(WebRtcSignalingFrame::READY_FOR_SIGNALING_POKE_TYPE);
   SetSenderId(sender_id, signaling_frame);
   signaling_frame.set_allocated_ready_for_signaling_poke(
-      new location::nearby::mediums::ReadyForSignalingPoke());
+      new nearby::mediums::ReadyForSignalingPoke());
   return FrameToByteArray(std::move(signaling_frame));
 }
 
@@ -81,8 +80,7 @@ ByteArray EncodeAnswer(const WebrtcPeerId& sender_id,
 
 ByteArray EncodeIceCandidates(
     const WebrtcPeerId& sender_id,
-    const std::vector<location::nearby::mediums::IceCandidate>&
-        ice_candidates) {
+    const std::vector<nearby::mediums::IceCandidate>& ice_candidates) {
   WebRtcSignalingFrame signaling_frame;
   signaling_frame.set_type(WebRtcSignalingFrame::ICE_CANDIDATES_TYPE);
   SetSenderId(sender_id, signaling_frame);
@@ -116,11 +114,11 @@ std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> DecodeIceCandidates(
   return ice_candidates;
 }
 
-location::nearby::mediums::IceCandidate EncodeIceCandidate(
+nearby::mediums::IceCandidate EncodeIceCandidate(
     const webrtc::IceCandidateInterface& ice_candidate) {
   std::string sdp;
   ice_candidate.ToString(&sdp);
-  location::nearby::mediums::IceCandidate ice_candidate_proto;
+  nearby::mediums::IceCandidate ice_candidate_proto;
   ice_candidate_proto.set_sdp(sdp);
   ice_candidate_proto.set_sdp_mid(ice_candidate.sdp_mid());
   ice_candidate_proto.set_sdp_m_line_index(ice_candidate.sdp_mline_index());
@@ -131,4 +129,3 @@ location::nearby::mediums::IceCandidate EncodeIceCandidate(
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

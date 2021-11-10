@@ -51,7 +51,6 @@
 #include "platform/impl/g3/wifi_lan.h"
 #include "platform/impl/shared/file.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -169,4 +168,3 @@ ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location

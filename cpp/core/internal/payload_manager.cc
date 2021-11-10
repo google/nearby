@@ -29,7 +29,6 @@
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/system_clock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -1315,4 +1314,3 @@ std::vector<Payload::Id> PayloadManager::PendingPayloads::GetAllPayloads() {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

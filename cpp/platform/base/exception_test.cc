@@ -20,7 +20,7 @@
 #include "gtest/gtest.h"
 #include "platform/base/exception_test.nc.h"
 
-namespace location::nearby {
+namespace nearby {
 
 TEST(ExceptionOr, Result_Copy_NonConst) {
   ExceptionOr<std::vector<int>> exception_or_vector({1, 2, 3});
@@ -117,4 +117,4 @@ TEST(ExceptionOr, ExplicitConversionFailsToCompile) {
   EXPECT_NON_COMPILE("no matching constructor", { ExceptionOr<B> b(a); });
 }
 
-}  // namespace location::nearby
+}  // namespace nearby

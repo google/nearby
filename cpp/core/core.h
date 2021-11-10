@@ -28,7 +28,6 @@
 #include "core/options.h"
 #include "core/params.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -242,6 +241,5 @@ class Core {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_CORE_H_

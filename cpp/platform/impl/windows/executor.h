@@ -20,9 +20,9 @@
 #include "platform/api/executor.h"
 #include "platform/impl/windows/thread_pool.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
+
 enum class ExecutorState {
   Ready,    // has been created and initialized
   NotReady  // Executor has not been initialized
@@ -55,6 +55,5 @@ class Executor : public api::Executor {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_EXECUTOR_H_

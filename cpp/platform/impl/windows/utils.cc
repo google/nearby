@@ -29,7 +29,6 @@
 // Nearby connections headers
 #include "platform/api/crypto.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -54,7 +53,7 @@ std::string wstring_to_string(std::wstring wstr) {
 }
 
 ByteArray Sha256(absl::string_view input, size_t size) {
-  ByteArray hash = location::nearby::Crypto::Sha256(input);
+  ByteArray hash = nearby::Crypto::Sha256(input);
   return ByteArray{hash.data(), size};
 }
 
@@ -124,4 +123,3 @@ std::vector<std::string> InspectableReader::ReadStringArray(
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

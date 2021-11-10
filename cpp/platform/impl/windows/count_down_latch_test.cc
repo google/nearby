@@ -23,7 +23,7 @@ class CountDownLatchTests : public testing::Test {
  public:
   class TestData {
    public:
-    std::unique_ptr<location::nearby::api::CountDownLatch>& countDownLatch;
+    std::unique_ptr<nearby::api::CountDownLatch>& countDownLatch;
     LONG volatile& count;
   };
 
@@ -58,8 +58,8 @@ TEST_F(CountDownLatchTests, CountDownLatchAwaitSucceeds) {
   // Arrange
   LONG volatile count = 0;
 
-  std::unique_ptr<location::nearby::api::CountDownLatch> countDownLatch =
-      location::nearby::api::ImplementationPlatform::CreateCountDownLatch(3);
+  std::unique_ptr<nearby::api::CountDownLatch> countDownLatch =
+      nearby::api::ImplementationPlatform::CreateCountDownLatch(3);
 
   HANDLE hThreads[3];
   DWORD dwThreadID;
@@ -83,11 +83,11 @@ TEST_F(CountDownLatchTests, CountDownLatchAwaitSucceeds) {
   }
 
   // Act
-  location::nearby::Exception result = countDownLatch->Await();
+  nearby::Exception result = countDownLatch->Await();
 
   //
   // Assert
-  EXPECT_EQ(result.value, location::nearby::Exception::kSuccess);
+  EXPECT_EQ(result.value, nearby::Exception::kSuccess);
   EXPECT_EQ(count, 3);
 }
 
@@ -95,11 +95,11 @@ TEST_F(CountDownLatchTests, CountDownLatchAwaitTimeoutTimesOut) {
   // Arrange
   LONG volatile count = 0;
 
-  std::unique_ptr<location::nearby::api::CountDownLatch> countDownLatch =
-      location::nearby::api::ImplementationPlatform::CreateCountDownLatch(3);
+  std::unique_ptr<nearby::api::CountDownLatch> countDownLatch =
+      nearby::api::ImplementationPlatform::CreateCountDownLatch(3);
 
   // Act
-  location::nearby::ExceptionOr<bool> result =
+  nearby::ExceptionOr<bool> result =
       countDownLatch->Await(absl::Milliseconds(5));
 
   Sleep(40);
@@ -109,15 +109,15 @@ TEST_F(CountDownLatchTests, CountDownLatchAwaitTimeoutTimesOut) {
   // TODO(jfcarroll)I think there's a bug in the shared version of this, it's
   // not returning a timeout exception, need to look at it some more.
   // EXPECT_EQ(result.GetException().value,
-  // location::nearby::Exception::kTimeout);
+  // nearby::Exception::kTimeout);
 }
 
 TEST_F(CountDownLatchTests, CountDownLatchAwaitNoTimeoutSucceeds) {
   // Arrange
   LONG volatile count = 0;
 
-  std::unique_ptr<location::nearby::api::CountDownLatch> countDownLatch =
-      location::nearby::api::ImplementationPlatform::CreateCountDownLatch(3);
+  std::unique_ptr<nearby::api::CountDownLatch> countDownLatch =
+      nearby::api::ImplementationPlatform::CreateCountDownLatch(3);
 
   TestData testData{countDownLatch, count};
 
@@ -142,20 +142,20 @@ TEST_F(CountDownLatchTests, CountDownLatchAwaitNoTimeoutSucceeds) {
 
   WaitForMultipleObjects(3, hThreads, true, INFINITE);
   // Act
-  location::nearby::ExceptionOr<bool> result =
+  nearby::ExceptionOr<bool> result =
       countDownLatch->Await(absl::Milliseconds(100));
 
   // Assert
   EXPECT_TRUE(result.GetResult());
-  EXPECT_EQ(result.GetException().value, location::nearby::Exception::kSuccess);
+  EXPECT_EQ(result.GetException().value, nearby::Exception::kSuccess);
   EXPECT_EQ(count, 3);
 }
 
 TEST_F(CountDownLatchTests, CountDownLatchCountDownBeforeAwaitSucceeds) {
   // Arrange
   LONG volatile count = 0;
-  std::unique_ptr<location::nearby::api::CountDownLatch> countDownLatch =
-      location::nearby::api::ImplementationPlatform::CreateCountDownLatch(1);
+  std::unique_ptr<nearby::api::CountDownLatch> countDownLatch =
+      nearby::api::ImplementationPlatform::CreateCountDownLatch(1);
 
   HANDLE hThread;
   DWORD dwThreadID;

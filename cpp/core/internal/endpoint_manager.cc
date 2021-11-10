@@ -25,11 +25,10 @@
 #include "platform/public/mutex_lock.h"
 #include "proto/connections/offline_wire_formats.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
-using ::location::nearby::proto::connections::Medium;
+using ::nearby::proto::connections::Medium;
 
 constexpr absl::Duration EndpointManager::kProcessEndpointDisconnectionTimeout;
 constexpr absl::Time EndpointManager::kInvalidTimestamp;
@@ -672,4 +671,3 @@ void EndpointManager::RunOnEndpointManagerThread(const std::string& name,
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

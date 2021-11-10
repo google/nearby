@@ -25,7 +25,6 @@
 #include "platform/impl/g3/single_thread_executor.h"
 #include "thread/threadpool.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -49,6 +48,5 @@ class ScheduledExecutor final : public api::ScheduledExecutor {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_SCHEDULED_EXECUTOR_H_

@@ -23,9 +23,8 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteSucceeds) {
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::SubmittableExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::SubmittableExecutor>();
+  std::unique_ptr<nearby::windows::SubmittableExecutor> submittableExecutor =
+      std::make_unique<nearby::windows::SubmittableExecutor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -55,9 +54,8 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteAfterShutdownFails) {
   // Arrange
   std::string expected("");
 
-  std::unique_ptr<location::nearby::windows::SubmittableExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::SubmittableExecutor>();
+  std::unique_ptr<nearby::windows::SubmittableExecutor> submittableExecutor =
+      std::make_unique<nearby::windows::SubmittableExecutor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -87,9 +85,8 @@ TEST(SubmittableExecutorTests, SingleThreadedDoSubmitSucceeds) {
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::SubmittableExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::SubmittableExecutor>();
+  std::unique_ptr<nearby::windows::SubmittableExecutor> submittableExecutor =
+      std::make_unique<nearby::windows::SubmittableExecutor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -122,9 +119,8 @@ TEST(SubmittableExecutorTests,
   // Arrange
   std::string expected("");
 
-  std::unique_ptr<location::nearby::windows::SubmittableExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::SubmittableExecutor>();
+  std::unique_ptr<nearby::windows::SubmittableExecutor> submittableExecutor =
+      std::make_unique<nearby::windows::SubmittableExecutor>();
   std::unique_ptr<std::string> output = std::make_unique<std::string>();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -156,9 +152,8 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteMultipleTasksSucceeds) {
   // Arrange
   std::string expected(RUNNABLE_ALL_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::SubmittableExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::SubmittableExecutor>();
+  std::unique_ptr<nearby::windows::SubmittableExecutor> submittableExecutor =
+      std::make_unique<nearby::windows::SubmittableExecutor>();
   std::unique_ptr<std::string> output = std::make_unique<std::string>();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -198,9 +193,8 @@ TEST(SubmittableExecutorTests, SingleThreadedDoSubmitMultipleTasksSucceeds) {
   // Arrange
   std::string expected(RUNNABLE_ALL_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::SubmittableExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::SubmittableExecutor>();
+  std::unique_ptr<nearby::windows::SubmittableExecutor> submittableExecutor =
+      std::make_unique<nearby::windows::SubmittableExecutor>();
   std::unique_ptr<std::string> output = std::make_unique<std::string>();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =

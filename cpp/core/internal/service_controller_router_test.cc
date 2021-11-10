@@ -36,7 +36,6 @@
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -418,4 +417,3 @@ TEST_F(ServiceControllerRouterTest, DisconnectFromEndpointCalled) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

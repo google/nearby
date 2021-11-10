@@ -35,13 +35,12 @@
 #include "platform/public/pipe.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
 
-using ::location::nearby::proto::connections::DisconnectionReason;
-using ::location::nearby::proto::connections::Medium;
+using ::nearby::proto::connections::DisconnectionReason;
+using ::nearby::proto::connections::Medium;
 using ::testing::_;
 using ::testing::MockFunction;
 using ::testing::Return;
@@ -279,4 +278,3 @@ TEST_F(EndpointManagerTest, SingleReadOnInvalidPayload) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

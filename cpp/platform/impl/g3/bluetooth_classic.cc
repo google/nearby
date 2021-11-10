@@ -24,7 +24,6 @@
 #include "platform/base/medium_environment.h"
 #include "platform/impl/g3/bluetooth_adapter.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -275,4 +274,3 @@ api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location

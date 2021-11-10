@@ -29,11 +29,10 @@
 #include "platform/public/count_down_latch.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
-using ::location::nearby::proto::connections::DisconnectionReason;
+using ::nearby::proto::connections::DisconnectionReason;
 
 // Required for C++ 14 support in Chrome
 constexpr absl::Duration BwuManager::kReadClientIntroductionFrameTimeout;
@@ -1199,4 +1198,3 @@ Medium BwuManager::GetEndpointMedium(const std::string& endpoint_id) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

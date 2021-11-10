@@ -26,7 +26,6 @@
 #include "platform/public/mutex.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -102,6 +101,5 @@ inline bool operator!=(const EndpointChannel& lhs, const EndpointChannel& rhs) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_ENDPOINT_CHANNEL_H_

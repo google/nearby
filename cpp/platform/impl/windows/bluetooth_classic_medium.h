@@ -24,7 +24,6 @@
 #include "platform/impl/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "platform/impl/windows/generated/winrt/base.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -186,6 +185,5 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_MEDIUM_H_

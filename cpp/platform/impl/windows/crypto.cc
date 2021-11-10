@@ -26,7 +26,6 @@
 #endif
 
 // Function implementations for platform/api/crypto.h.
-namespace location {
 namespace nearby {
 
 // Initialize global crypto state.
@@ -55,4 +54,3 @@ ByteArray Crypto::Sha256(absl::string_view input) {
 }
 
 }  // namespace nearby
-}  // namespace location

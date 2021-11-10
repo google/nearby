@@ -18,7 +18,6 @@
 #include "platform/api/submittable_executor.h"
 #include "platform/impl/windows/executor.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -50,6 +49,5 @@ class SubmittableExecutor : public api::SubmittableExecutor {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_SUBMITTABLE_EXECUTOR_H_

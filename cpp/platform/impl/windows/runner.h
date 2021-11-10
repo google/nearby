@@ -17,7 +17,6 @@
 
 #include "platform/base/runnable.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -37,6 +36,5 @@ class Runner {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_RUNNER_H_

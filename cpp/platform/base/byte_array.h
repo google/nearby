@@ -23,7 +23,6 @@
 #include <type_traits>
 #include <utility>
 
-namespace location {
 namespace nearby {
 
 class ByteArray {
@@ -109,6 +108,5 @@ inline bool operator<(const ByteArray& lhs, const ByteArray& rhs) {
 }
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_BYTE_ARRAY_H_

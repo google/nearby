@@ -21,7 +21,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @class GNCPayloadInfo;
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -50,6 +49,5 @@ class GNCPayloadListener : public PayloadListener {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 NS_ASSUME_NONNULL_END

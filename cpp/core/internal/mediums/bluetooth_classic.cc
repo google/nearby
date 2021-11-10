@@ -22,7 +22,6 @@
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -431,4 +430,3 @@ std::string BluetoothClassic::GenerateUuidFromString(const std::string& data) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

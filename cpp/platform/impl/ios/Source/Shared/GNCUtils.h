@@ -44,7 +44,7 @@ NSString *GNCBase64Encode(NSData *data);
 NSData *GNCBase64Decode(NSString *string);
 
 #ifdef __cplusplus
-} // extern "C"
+}  // extern "C"
 #endif
 
 NS_ASSUME_NONNULL_END

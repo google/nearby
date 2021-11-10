@@ -16,7 +16,7 @@
 
 #include "gtest/gtest.h"
 
-using location::nearby::windows::uint64_to_mac_address_string;
+using nearby::windows::uint64_to_mac_address_string;
 
 TEST(UtilsTests, MacAddressToString) {
   // Arrange

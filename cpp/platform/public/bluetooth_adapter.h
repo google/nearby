@@ -22,7 +22,6 @@
 #include "platform/api/bluetooth_classic.h"
 #include "platform/api/platform.h"
 
-namespace location {
 namespace nearby {
 
 // Opaque wrapper over a BLE peripheral. Must contain enough data about a
@@ -121,6 +120,5 @@ class BluetoothAdapter final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_BLUETOOTH_ADAPTER_H_

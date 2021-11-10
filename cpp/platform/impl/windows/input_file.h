@@ -19,7 +19,6 @@
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -45,6 +44,5 @@ class InputFile : public api::InputFile {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_INPUT_FILE_H_

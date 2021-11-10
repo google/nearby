@@ -31,7 +31,6 @@
 #include "platform/public/logging.h"
 #include "platform/public/mutex.h"
 
-namespace location {
 namespace nearby {
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html.
@@ -230,6 +229,5 @@ class BluetoothClassicMedium final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_BLUETOOTH_CLASSIC_H_

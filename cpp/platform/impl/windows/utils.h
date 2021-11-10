@@ -25,7 +25,6 @@
 #include "platform/impl/windows/generated/winrt/Windows.Foundation.h"
 #include "platform/impl/windows/generated/winrt/base.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -60,6 +59,5 @@ class InspectableReader {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  //  PLATFORM_IMPL_WINDOWS_UTILS_H_

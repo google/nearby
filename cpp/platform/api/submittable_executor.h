@@ -22,7 +22,6 @@
 #include "platform/api/future.h"
 #include "platform/base/runnable.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -42,6 +41,5 @@ class SubmittableExecutor : public Executor {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_SUBMITTABLE_EXECUTOR_H_

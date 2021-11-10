@@ -14,11 +14,11 @@
 
 syntax = "proto2";
 
-package location.nearby.connections;
+package nearby.connections;
 
 option optimize_for = LITE_RUNTIME;
 option java_outer_classname = "OfflineWireFormatsProto";
-option java_package = "com.google.location.nearby.connections.proto";
+option java_package = "com.google.nearby.connections.proto";
 option objc_class_prefix = "GNCP";
 
 message OfflineFrame {
@@ -57,7 +57,7 @@ message V1Frame {
 }
 
 message ConnectionRequestFrame {
-  // Should always match cs/symbol:location.nearby.proto.connections.Medium
+  // Should always match cs/symbol:nearby.proto.connections.Medium
   // LINT.IfChange
   enum Medium {
     UNKNOWN_MEDIUM = 0;
@@ -178,7 +178,7 @@ message BandwidthUpgradeNegotiationFrame {
 
   // Accompanies UPGRADE_PATH_AVAILABLE and UPGRADE_FAILURE events.
   message UpgradePathInfo {
-    // Should always match cs/symbol:location.nearby.proto.connections.Medium
+    // Should always match cs/symbol:nearby.proto.connections.Medium
     enum Medium {
       UNKNOWN_MEDIUM = 0;
       MDNS = 1 [deprecated = true];

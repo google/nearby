@@ -24,7 +24,6 @@
 #include "core/internal/pcp.h"
 #include "core/strategy.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -54,6 +53,5 @@ class P2pStarPcpHandler : public P2pClusterPcpHandler {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_P2P_STAR_PCP_HANDLER_H_

@@ -46,7 +46,6 @@ typedef std::basic_string<TCHAR> tstring;
 
 #define BLUETOOTH_RADIO_REGISTRY_NAME_KEY "Local Name"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -449,4 +448,3 @@ std::string BluetoothAdapter::GetMacAddress() const {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

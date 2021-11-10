@@ -43,7 +43,6 @@
 #include "platform/api/wifi_lan.h"
 #include "platform/base/payload_id.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -106,6 +105,5 @@ class ImplementationPlatform {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_PLATFORM_H_

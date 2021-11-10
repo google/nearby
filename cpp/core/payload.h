@@ -29,7 +29,6 @@
 #include "platform/public/file.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -99,6 +98,5 @@ class DLL_API Payload {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_PAYLOAD_H_

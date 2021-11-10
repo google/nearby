@@ -19,7 +19,6 @@
 
 #include "platform/base/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -134,6 +133,5 @@ class BleAdvertisement {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_ADVERTISEMENT_H_

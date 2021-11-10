@@ -27,7 +27,6 @@
 #include "platform/impl/windows/generated/winrt/Windows.Devices.Enumeration.h"
 #include "platform/impl/windows/generated/winrt/base.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -88,6 +87,5 @@ class BluetoothDevice : public api::BluetoothDevice {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_DEVICE_H_

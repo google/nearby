@@ -19,7 +19,6 @@
 #import "third_party/nearby_connections/cpp/platform/base/runnable.h"
 #import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/scheduled_executor.h"
 
-namespace location {
 namespace nearby {
 namespace ios {
 
@@ -42,6 +41,5 @@ class MultiThreadExecutor : public api::SubmittableExecutor {
 
 }  // namespace ios
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_IOS_MULTI_THREAD_EXECUTOR_H_

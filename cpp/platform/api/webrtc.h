@@ -24,7 +24,6 @@
 #include "proto/connections/offline_wire_formats.pb.h"
 #include "webrtc/api/peer_connection_interface.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -68,6 +67,5 @@ class WebRtcMedium {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_WEBRTC_H_

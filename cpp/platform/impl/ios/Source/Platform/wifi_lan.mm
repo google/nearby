@@ -35,7 +35,6 @@
 #include "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/utils.h"
 #import "third_party/objective_c/google_toolbox_for_mac/Foundation/GTMLogger.h"
 
-namespace location {
 namespace nearby {
 namespace ios {
 
@@ -494,4 +493,3 @@ int WifiLanMedium::GetFakePort() const {
 
 }  // namespace ios
 }  // namespace nearby
-}  // namespace location

@@ -31,7 +31,6 @@
 #include "platform/public/mutex_lock.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -771,4 +770,3 @@ std::string ClientProxy::ToString(PayloadProgressInfo::Status status) const {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

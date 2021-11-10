@@ -14,7 +14,6 @@
 
 #include "platform/public/file.h"
 
-namespace location {
 namespace nearby {
 
 InputFile::InputFile(PayloadId payload_id, std::int64_t size)
@@ -89,4 +88,3 @@ OutputStream& OutputFile::GetOutputStream() { return *impl_; }
 PayloadId OutputFile::GetPayloadId() const { return id_; }
 
 }  // namespace nearby
-}  // namespace location

@@ -23,9 +23,8 @@ TEST(ScheduledExecutorTests, ExecuteSucceeds) {
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::ScheduledExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::ScheduledExecutor>();
+  std::unique_ptr<nearby::windows::ScheduledExecutor> submittableExecutor =
+      std::make_unique<nearby::windows::ScheduledExecutor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -55,9 +54,8 @@ TEST(ScheduledExecutorTests, ScheduleSucceeds) {
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::ScheduledExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::ScheduledExecutor>();
+  std::unique_ptr<nearby::windows::ScheduledExecutor> submittableExecutor =
+      std::make_unique<nearby::windows::ScheduledExecutor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -103,9 +101,8 @@ TEST(ScheduledExecutorTests, CancelSucceeds) {
   // Arrange
   std::string expected("");
 
-  std::unique_ptr<location::nearby::windows::ScheduledExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::ScheduledExecutor>();
+  std::unique_ptr<nearby::windows::ScheduledExecutor> submittableExecutor =
+      std::make_unique<nearby::windows::ScheduledExecutor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -140,9 +137,8 @@ TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::ScheduledExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::ScheduledExecutor>();
+  std::unique_ptr<nearby::windows::ScheduledExecutor> submittableExecutor =
+      std::make_unique<nearby::windows::ScheduledExecutor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =

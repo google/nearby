@@ -34,11 +34,10 @@
 #include "platform/public/logging.h"
 #include "platform/public/system_clock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
-using ::location::nearby::proto::connections::Medium;
+using ::nearby::proto::connections::Medium;
 using ::securegcm::UKey2Handshake;
 
 constexpr absl::Duration BasePcpHandler::kConnectionRequestReadTimeout;
@@ -172,7 +171,7 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
         their_mediums.end()) {
       // We use advertising options as a proxy to whether or not the local
       // client does want to enable a WebRTC upgrade.
-      if (my_medium == location::nearby::proto::connections::Medium::WEB_RTC) {
+      if (my_medium == nearby::proto::connections::Medium::WEB_RTC) {
         ConnectionOptions advertising_options =
             connection_info.client->GetAdvertisingOptions();
 
@@ -1461,8 +1460,7 @@ ExceptionOr<OfflineFrame> BasePcpHandler::ReadConnectionRequestFrame(
 std::string BasePcpHandler::GetHashedConnectionToken(
     const ByteArray& token_bytes) {
   auto token = std::string(token_bytes);
-  return location::nearby::Base64Utils::Encode(
-             Utils::Sha256Hash(token, token.size()))
+  return nearby::Base64Utils::Encode(Utils::Sha256Hash(token, token.size()))
       .substr(0, kConnectionTokenLength);
 }
 
@@ -1530,4 +1528,3 @@ void BasePcpHandler::PendingConnectionInfo::LocalEndpointRejectedConnection(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

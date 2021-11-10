@@ -22,7 +22,6 @@
 #include "platform/public/pipe.h"
 #include "platform/public/system_clock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -370,4 +369,3 @@ INSTANTIATE_TEST_SUITE_P(ParametrisedPayloadManagerTest, PayloadManagerTest,
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

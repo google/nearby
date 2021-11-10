@@ -19,7 +19,6 @@
 #include "platform/base/byte_array.h"
 #include "platform/public/core_config.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace windows {
@@ -62,11 +61,9 @@ connections::ConnectionOptions DiscoveryOptions::CompatibleOptions() const {
 // This call follows the standard Microsoft calling pattern of calling first
 // to get the size of the array. Caller then allocates memory for the array,
 // and makes this call again to copy the array into the provided location.
-void DiscoveryOptions::GetMediums(
-    location::nearby::proto::connections::Medium *mediums,
-    uint32_t *mediumsSize) {}
+void DiscoveryOptions::GetMediums(nearby::proto::connections::Medium *mediums,
+                                  uint32_t *mediumsSize) {}
 
 }  // namespace windows
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

@@ -17,7 +17,6 @@
 
 #include <cstdint>
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -35,6 +34,5 @@ class AtomicUint32 {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_ATOMIC_REFERENCE_H_

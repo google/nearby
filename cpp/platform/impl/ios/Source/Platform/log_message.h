@@ -18,7 +18,6 @@
 #include "base/check.h"
 #include "platform/api/log_message.h"
 
-namespace location {
 namespace nearby {
 namespace ios {
 
@@ -42,6 +41,5 @@ class LogMessage : public api::LogMessage {
 
 }  // namespace ios
 }  // namespace nearby
-}  // namespace location
 
 #endif  // IPHONE_SHARED_NEARBY_CONNECTIONS_SOURCE_PLATFORM_LOG_MESSAGE_H_

@@ -19,7 +19,6 @@
 
 #include "platform/api/atomic_boolean.h"
 
-namespace location {
 namespace nearby {
 namespace ios {
 
@@ -41,6 +40,5 @@ class AtomicBoolean : public api::AtomicBoolean {
 
 }  // namespace ios
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_IOS_ATOMIC_BOOLEAN_H_

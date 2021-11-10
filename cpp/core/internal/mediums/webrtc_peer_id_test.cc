@@ -21,7 +21,6 @@
 #include "platform/base/byte_array.h"
 #include "platform/public/crypto.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -53,4 +52,3 @@ TEST(WebrtcPeerIdTest, GetId) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

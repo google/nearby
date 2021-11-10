@@ -20,7 +20,6 @@
 #include "platform/base/exception.h"
 #include "platform/impl/g3/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -46,6 +45,5 @@ class ConditionVariable : public api::ConditionVariable {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_CONDITION_VARIABLE_H_

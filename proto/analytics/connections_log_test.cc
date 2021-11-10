@@ -19,15 +19,14 @@
 #include "proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace analytics {
 namespace proto {
 
 namespace {
 
-using G3ConnectionsLog = ::location::nearby::analytics::proto::ConnectionsLog;
-using P3ConnectionsLog = ::location::nearby::analytics::proto::ConnectionsLog;
+using G3ConnectionsLog = ::nearby::logs::ConnectionsLog;
+using P3ConnectionsLog = ::nearby::analytics::proto::ConnectionsLog;
 
 using ::proto2::Descriptor;
 using ::proto2::FieldDescriptor;
@@ -123,4 +122,3 @@ TEST(ConnectionsLogTest, TwoMessagesAreIdentical) {
 }  // namespace proto
 }  // namespace analytics
 }  // namespace nearby
-}  // namespace location

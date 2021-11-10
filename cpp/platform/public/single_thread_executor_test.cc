@@ -23,7 +23,6 @@
 #include "absl/time/clock.h"
 #include "platform/base/exception.h"
 
-namespace location {
 namespace nearby {
 
 TEST(SingleThreadExecutorTest, ConsructorDestructorWorks) {
@@ -136,4 +135,3 @@ TEST(SingleThreadExecutorTest, ThreadCheck_SubmitCallable) {
 }
 
 }  // namespace nearby
-}  // namespace location

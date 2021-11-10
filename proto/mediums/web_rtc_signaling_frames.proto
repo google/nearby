@@ -14,11 +14,11 @@
 
 syntax = "proto2";
 
-package location.nearby.mediums;
+package nearby.mediums;
 
 option optimize_for = LITE_RUNTIME;
 option java_outer_classname = "WebRtcSignalingFramesProto";
-option java_package = "com.google.location.nearby.mediums.proto";
+option java_package = "com.google.nearby.mediums.proto";
 
 message WebRtcSignalingFrame {
   enum FrameType {

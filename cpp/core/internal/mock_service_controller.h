@@ -18,7 +18,6 @@
 #include "gmock/gmock.h"
 #include "core/internal/service_controller.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -87,6 +86,5 @@ class MockServiceController : public ServiceController {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MOCK_SERVICE_CONTROLLER_H_

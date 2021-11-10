@@ -23,7 +23,6 @@
 #include "platform/api/output_file.h"
 #include "platform/base/exception.h"
 
-namespace location {
 namespace nearby {
 namespace shared {
 
@@ -62,6 +61,5 @@ class OutputFile final : public api::OutputFile {
 
 }  // namespace shared
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_SHARED_FILE_H_

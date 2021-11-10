@@ -37,12 +37,11 @@
 #include "proto/connections/offline_wire_formats.pb.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
 
-using ::location::nearby::proto::connections::Medium;
+using ::nearby::proto::connections::Medium;
 using ::testing::_;
 using ::testing::AtLeast;
 using ::testing::Invoke;
@@ -782,4 +781,3 @@ TEST_F(BasePcpHandlerTest, InjectEndpoint) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

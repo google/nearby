@@ -25,7 +25,6 @@
 #endif
 #include "core/internal/mediums/wifi_lan.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -68,6 +67,5 @@ class Mediums {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_MEDIUMS_H_

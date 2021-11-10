@@ -37,7 +37,6 @@
 #include "platform/impl/windows/utils.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -184,7 +183,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   std::unique_ptr<BluetoothSocket> rfcommSocket =
       std::make_unique<BluetoothSocket>();
 
-  location::nearby::CancellationFlagListener cancellationFlagListener(
+  nearby::CancellationFlagListener cancellationFlagListener(
       cancellation_flag,
       [&rfcommSocket]() { rfcommSocket.get()->CancelIOAsync().get(); });
 
@@ -292,8 +291,8 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
   }
 
   auto bluetooth_server_socket =
-      std::make_unique<location::nearby::windows::BluetoothServerSocket>(
-          service_name, service_uuid);
+      std::make_unique<nearby::windows::BluetoothServerSocket>(service_name,
+                                                               service_uuid);
 
   if (bluetooth_server_socket == nullptr) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to create the server socket.";
@@ -440,4 +439,3 @@ bool BluetoothClassicMedium::IsWatcherRunning() {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

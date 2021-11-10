@@ -19,7 +19,6 @@
 #include "platform/base/medium_environment.h"
 #include "webrtc/api/task_queue/default_task_queue_factory.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -93,4 +92,3 @@ WebRtcMedium::GetSignalingMessenger(
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location

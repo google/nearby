@@ -20,7 +20,6 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-namespace location {
 namespace nearby {
 
 bool CppBoolFromObjCBool(BOOL b) { return b ? true : false; }
@@ -99,6 +98,5 @@ absl::flat_hash_map<std::string, std::string> AbslHashMapFromObjCTxtRecords(
 }
 
 }  // namespace nearby
-}  // namespace location
 
 NS_ASSUME_NONNULL_END

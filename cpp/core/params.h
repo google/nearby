@@ -21,7 +21,6 @@
 #include "platform/base/byte_array.h"
 #include "platform/public/core_config.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -38,6 +37,5 @@ struct DLL_API ConnectionRequestInfo {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_PARAMS_H_

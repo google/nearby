@@ -18,7 +18,6 @@
 #include "platform/api/mutex.h"
 #include "platform/api/platform.h"
 
-namespace location {
 namespace nearby {
 
 namespace {
@@ -32,4 +31,3 @@ Pipe::Pipe() {
 }
 
 }  // namespace nearby
-}  // namespace location

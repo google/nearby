@@ -19,7 +19,6 @@
 #include "platform/public/bluetooth_classic.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -62,4 +61,3 @@ void BluetoothEndpointChannel::CloseImpl() {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

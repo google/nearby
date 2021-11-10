@@ -38,7 +38,6 @@
 #include "platform/impl/windows/wifi.h"
 #include "platform/impl/windows/wifi_lan.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 namespace {
@@ -171,4 +170,3 @@ std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location

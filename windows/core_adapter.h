@@ -25,10 +25,10 @@
 
 #define DLL_EXPORT extern "C" __declspec(dllexport)
 
-namespace location {
 namespace nearby {
 namespace connections {
 class Core;
+class ServiceController;
 class ServiceControllerRouter;
 
 namespace windows {
@@ -39,7 +39,7 @@ namespace windows {
 // Returns the instance handle to c# client.
 DLL_EXPORT connections::Core *__stdcall InitCoreWithServiceControllerFactory(
     std::function<connections::ServiceController *()> factory = []() {
-      return new connections::OfflineServiceController;
+      return new ::nearby::connections::OfflineServiceController;
     });
 
 // Initializes a default Core instance.
@@ -107,8 +107,7 @@ DLL_EXPORT void __stdcall StartDiscovery(Core *pCore, const char *service_id,
 // result_cb - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK if none of the above errors occurred.
-DLL_EXPORT void __stdcall StopDiscovery(connections::Core *pCore,
-                                        connections::ResultCallback callback);
+DLL_EXPORT void __stdcall StopDiscovery(Core *pCore, ResultCallback callback);
 
 // Invokes the discovery callback from a previous call to StartDiscovery()
 // with the given endpoint info. The previous call to StartDiscovery() must
@@ -264,6 +263,5 @@ DLL_EXPORT void __stdcall CloseServiceControllerRouter(
 }  // namespace windows
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // LOCATION_NEARBY_CONNECTIONS_WINDOWS_CORE_ADAPTER_H_

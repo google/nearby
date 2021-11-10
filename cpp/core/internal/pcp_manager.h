@@ -31,7 +31,6 @@
 #include "core/strategy.h"
 #include "platform/public/atomic_boolean.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -83,6 +82,5 @@ class PcpManager {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_PCP_MANAGER_H_

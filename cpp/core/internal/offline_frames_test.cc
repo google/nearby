@@ -25,7 +25,6 @@
 #include "platform/base/byte_array.h"
 #include "proto/connections/offline_wire_formats.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace parser {
@@ -390,4 +389,3 @@ TEST(OfflineFramesTest, CanGenerateKeepAlive) {
 }  // namespace parser
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

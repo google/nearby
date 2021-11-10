@@ -28,7 +28,6 @@
 #include "proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace analytics {
 
@@ -40,17 +39,17 @@ class AnalyticsRecorder {
   // Advertising phase
   void OnStartAdvertising(
       connections::Strategy strategy,
-      const std::vector<location::nearby::proto::connections::Medium> &mediums)
+      const std::vector<nearby::proto::connections::Medium> &mediums)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnStopAdvertising() ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Discovery phase
   void OnStartDiscovery(
       connections::Strategy strategy,
-      const std::vector<location::nearby::proto::connections::Medium> &mediums)
+      const std::vector<nearby::proto::connections::Medium> &mediums)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnStopDiscovery() ABSL_LOCKS_EXCLUDED(mutex_);
-  void OnEndpointFound(location::nearby::proto::connections::Medium medium)
+  void OnEndpointFound(nearby::proto::connections::Medium medium)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Connection request
@@ -69,28 +68,27 @@ class AnalyticsRecorder {
 
   // Connection attempt
   void OnIncomingConnectionAttempt(
-      location::nearby::proto::connections::ConnectionAttemptType type,
-      location::nearby::proto::connections::Medium medium,
-      location::nearby::proto::connections::ConnectionAttemptResult result,
+      nearby::proto::connections::ConnectionAttemptType type,
+      nearby::proto::connections::Medium medium,
+      nearby::proto::connections::ConnectionAttemptResult result,
       absl::Duration duration, const std::string &connection_token)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnOutgoingConnectionAttempt(
       const std::string &remote_endpoint_id,
-      location::nearby::proto::connections::ConnectionAttemptType type,
-      location::nearby::proto::connections::Medium medium,
-      location::nearby::proto::connections::ConnectionAttemptResult result,
+      nearby::proto::connections::ConnectionAttemptType type,
+      nearby::proto::connections::Medium medium,
+      nearby::proto::connections::ConnectionAttemptResult result,
       absl::Duration duration, const std::string &connection_token)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Connection established
-  void OnConnectionEstablished(
-      const std::string &endpoint_id,
-      location::nearby::proto::connections::Medium medium,
-      const std::string &connection_token) ABSL_LOCKS_EXCLUDED(mutex_);
+  void OnConnectionEstablished(const std::string &endpoint_id,
+                               nearby::proto::connections::Medium medium,
+                               const std::string &connection_token)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   void OnConnectionClosed(
-      const std::string &endpoint_id,
-      location::nearby::proto::connections::Medium medium,
-      location::nearby::proto::connections ::DisconnectionReason reason)
+      const std::string &endpoint_id, nearby::proto::connections::Medium medium,
+      nearby::proto::connections ::DisconnectionReason reason)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Payload
@@ -103,9 +101,9 @@ class AnalyticsRecorder {
                               std::int64_t payload_id,
                               std::int64_t chunk_size_bytes)
       ABSL_LOCKS_EXCLUDED(mutex_);
-  void OnIncomingPayloadDone(
-      const std::string &endpoint_id, std::int64_t payload_id,
-      location::nearby::proto::connections::PayloadStatus status)
+  void OnIncomingPayloadDone(const std::string &endpoint_id,
+                             std::int64_t payload_id,
+                             nearby::proto::connections::PayloadStatus status)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnOutgoingPayloadStarted(const std::vector<std::string> &endpoint_ids,
                                 std::int64_t payload_id,
@@ -116,24 +114,23 @@ class AnalyticsRecorder {
                           std::int64_t payload_id,
                           std::int64_t chunk_size_bytes)
       ABSL_LOCKS_EXCLUDED(mutex_);
-  void OnOutgoingPayloadDone(
-      const std::string &endpoint_id, std::int64_t payload_id,
-      location::nearby::proto::connections::PayloadStatus status)
+  void OnOutgoingPayloadDone(const std::string &endpoint_id,
+                             std::int64_t payload_id,
+                             nearby::proto::connections::PayloadStatus status)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // BandwidthUpgrade
   void OnBandwidthUpgradeStarted(
       const std::string &endpoint_id,
-      location::nearby::proto::connections::Medium from_medium,
-      location::nearby::proto::connections::Medium to_medium,
-      location::nearby::proto::connections::ConnectionAttemptDirection
-          direction,
+      nearby::proto::connections::Medium from_medium,
+      nearby::proto::connections::Medium to_medium,
+      nearby::proto::connections::ConnectionAttemptDirection direction,
       const std::string &connection_token) ABSL_LOCKS_EXCLUDED(mutex_);
   void OnBandwidthUpgradeError(
       const std::string &endpoint_id,
-      location::nearby::proto::connections::BandwidthUpgradeResult result,
-      location::nearby::proto::connections::BandwidthUpgradeErrorStage
-          error_stage) ABSL_LOCKS_EXCLUDED(mutex_);
+      nearby::proto::connections::BandwidthUpgradeResult result,
+      nearby::proto::connections::BandwidthUpgradeErrorStage error_stage)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   void OnBandwidthUpgradeSuccess(const std::string &endpoint_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -149,7 +146,7 @@ class AnalyticsRecorder {
   // Tracks the chunks and duration of a Payload on a particular medium.
   class PendingPayload {
    public:
-    PendingPayload(location::nearby::proto::connections::PayloadType type,
+    PendingPayload(nearby::proto::connections::PayloadType type,
                    std::int64_t total_size_bytes)
         : start_time_(SystemClock::ElapsedRealtime()),
           type_(type),
@@ -161,17 +158,15 @@ class AnalyticsRecorder {
     void AddChunk(std::int64_t chunk_size_bytes);
 
     proto::ConnectionsLog::Payload GetProtoPayload(
-        location::nearby::proto::connections::PayloadStatus status);
+        nearby::proto::connections::PayloadStatus status);
 
-    location::nearby::proto::connections::PayloadType type() const {
-      return type_;
-    }
+    nearby::proto::connections::PayloadType type() const { return type_; }
 
     std::int64_t total_size_bytes() const { return total_size_bytes_; }
 
    private:
     absl::Time start_time_;
-    location::nearby::proto::connections::PayloadType type_;
+    nearby::proto::connections::PayloadType type_;
     std::int64_t total_size_bytes_;
     std::int64_t num_bytes_transferred_;
     int num_chunks_;
@@ -179,9 +174,8 @@ class AnalyticsRecorder {
 
   class LogicalConnection {
    public:
-    LogicalConnection(
-        location::nearby::proto::connections::Medium initial_medium,
-        const std::string &connection_token) {
+    LogicalConnection(nearby::proto::connections::Medium initial_medium,
+                      const std::string &connection_token) {
       PhysicalConnectionEstablished(initial_medium, connection_token);
     }
     LogicalConnection(const LogicalConnection &) = delete;
@@ -195,29 +189,25 @@ class AnalyticsRecorder {
     ~LogicalConnection() = default;
 
     void PhysicalConnectionEstablished(
-        location::nearby::proto::connections::Medium medium,
+        nearby::proto::connections::Medium medium,
         const std::string &connection_token);
     void PhysicalConnectionClosed(
-        location::nearby::proto::connections::Medium medium,
-        location::nearby::proto::connections::DisconnectionReason reason);
+        nearby::proto::connections::Medium medium,
+        nearby::proto::connections::DisconnectionReason reason);
     void CloseAllPhysicalConnections();
 
-    void IncomingPayloadStarted(
-        std::int64_t payload_id,
-        location::nearby::proto::connections::PayloadType type,
-        std::int64_t total_size_bytes);
+    void IncomingPayloadStarted(std::int64_t payload_id,
+                                nearby::proto::connections::PayloadType type,
+                                std::int64_t total_size_bytes);
     void ChunkReceived(std::int64_t payload_id, std::int64_t size_bytes);
-    void IncomingPayloadDone(
-        std::int64_t payload_id,
-        location::nearby::proto::connections::PayloadStatus status);
-    void OutgoingPayloadStarted(
-        std::int64_t payload_id,
-        location::nearby::proto::connections::PayloadType type,
-        std::int64_t total_size_bytes);
+    void IncomingPayloadDone(std::int64_t payload_id,
+                             nearby::proto::connections::PayloadStatus status);
+    void OutgoingPayloadStarted(std::int64_t payload_id,
+                                nearby::proto::connections::PayloadType type,
+                                std::int64_t total_size_bytes);
     void ChunkSent(std::int64_t payload_id, std::int64_t size_bytes);
-    void OutgoingPayloadDone(
-        std::int64_t payload_id,
-        location::nearby::proto::connections::PayloadStatus status);
+    void OutgoingPayloadDone(std::int64_t payload_id,
+                             nearby::proto::connections::PayloadStatus status);
 
     std::vector<proto::ConnectionsLog::EstablishedConnection>
     GetEstablisedConnections();
@@ -225,16 +215,16 @@ class AnalyticsRecorder {
    private:
     void FinishPhysicalConnection(
         proto::ConnectionsLog::EstablishedConnection *established_connection,
-        location::nearby::proto::connections::DisconnectionReason reason);
+        nearby::proto::connections::DisconnectionReason reason);
     std::vector<proto::ConnectionsLog::Payload> ResolvePendingPayloads(
         absl::btree_map<std::int64_t, std::unique_ptr<PendingPayload>>
             &pending_payloads,
-        location::nearby::proto::connections::DisconnectionReason reason);
+        nearby::proto::connections::DisconnectionReason reason);
 
-    location::nearby::proto::connections::Medium current_medium_ =
-        location::nearby::proto::connections::UNKNOWN_MEDIUM;
+    nearby::proto::connections::Medium current_medium_ =
+        nearby::proto::connections::UNKNOWN_MEDIUM;
     absl::btree_map<
-        location::nearby::proto::connections::Medium,
+        nearby::proto::connections::Medium,
         std::unique_ptr<proto::ConnectionsLog::EstablishedConnection>>
         physical_connections_;
     absl::btree_map<std::int64_t, std::unique_ptr<PendingPayload>>
@@ -250,11 +240,10 @@ class AnalyticsRecorder {
   // ClientSession sub-proto.
   void LogClientSession();
   // Callbacks the ConnectionsLog proto byte array data to the EventLogger.
-  void LogEvent(location::nearby::proto::connections::EventType event_type);
+  void LogEvent(nearby::proto::connections::EventType event_type);
 
-  void UpdateStrategySessionLocked(
-      connections::Strategy strategy,
-      location::nearby::proto::connections::SessionRole role)
+  void UpdateStrategySessionLocked(connections::Strategy strategy,
+                                   nearby::proto::connections::SessionRole role)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   void RecordAdvertisingPhaseDurationLocked() const
       ABSL_SHARED_LOCKS_REQUIRED(mutex_);
@@ -273,27 +262,26 @@ class AnalyticsRecorder {
       ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void LocalEndpointRespondedLocked(
       const std::string &remote_endpoint_id,
-      location::nearby::proto::connections::ConnectionRequestResponse response)
+      nearby::proto::connections::ConnectionRequestResponse response)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   void RemoteEndpointRespondedLocked(
       const std::string &remote_endpoint_id,
-      location::nearby::proto::connections::ConnectionRequestResponse response)
+      nearby::proto::connections::ConnectionRequestResponse response)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   void MarkConnectionRequestIgnoredLocked(
       proto::ConnectionsLog::ConnectionRequest *request)
       ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void FinishUpgradeAttemptLocked(
       const std::string &endpoint_id,
-      location::nearby::proto::connections::BandwidthUpgradeResult result,
-      location::nearby::proto::connections::BandwidthUpgradeErrorStage
-          error_stage,
+      nearby::proto::connections::BandwidthUpgradeResult result,
+      nearby::proto::connections::BandwidthUpgradeErrorStage error_stage,
       bool erase_item = true) ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void FinishStrategySessionLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  location::nearby::proto::connections::ConnectionsStrategy
-  StrategyToConnectionStrategy(connections::Strategy strategy);
-  location::nearby::proto::connections::PayloadType
-  PayloadTypeToProtoPayloadType(connections::Payload::Type type);
+  nearby::proto::connections::ConnectionsStrategy StrategyToConnectionStrategy(
+      connections::Strategy strategy);
+  nearby::proto::connections::PayloadType PayloadTypeToProtoPayloadType(
+      connections::Payload::Type type);
 
   // Not owned by AnalyticsRecorder. Pointer must refer to a valid object
   // that outlives the one constructed.
@@ -342,6 +330,5 @@ class AnalyticsRecorder {
 
 }  // namespace analytics
 }  // namespace nearby
-}  // namespace location
 
 #endif  // ANALYTICS_ANALYTICS_RECORDER_H_

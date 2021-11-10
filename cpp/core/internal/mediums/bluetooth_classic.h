@@ -28,7 +28,6 @@
 #include "platform/public/multi_thread_executor.h"
 #include "platform/public/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -205,6 +204,5 @@ class BluetoothClassic {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_BLUETOOTH_CLASSIC_H_

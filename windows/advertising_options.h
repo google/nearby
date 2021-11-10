@@ -21,7 +21,6 @@
 
 #include "platform/public/core_config.h"
 
-namespace location {
 namespace nearby {
 class ByteArray;
 namespace proto {
@@ -80,13 +79,12 @@ struct DLL_API AdvertisingOptions {
   // This call follows the standard Microsoft calling pattern of calling first
   // to get the size of the array. Caller then allocates memory for the array,
   // and makes this call again to copy the array into the provided location.
-  void GetMediums(location::nearby::proto::connections::Medium *mediums,
+  void GetMediums(nearby::proto::connections::Medium *mediums,
                   uint32_t *mediumsSize);
 };
 
 }  // namespace windows
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // WINDOWS_START_ADVERTISING_OPTIONS_H_

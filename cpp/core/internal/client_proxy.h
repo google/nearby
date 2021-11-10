@@ -37,7 +37,6 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/types/span.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -318,6 +317,5 @@ class ClientProxy final {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_CLIENT_PROXY_H_

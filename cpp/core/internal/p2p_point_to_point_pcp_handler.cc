@@ -14,7 +14,6 @@
 
 #include "core/internal/p2p_point_to_point_pcp_handler.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -61,4 +60,3 @@ bool P2pPointToPointPcpHandler::CanReceiveIncomingConnection(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

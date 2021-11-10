@@ -21,7 +21,6 @@
 #include "platform/base/medium_environment.h"
 #include "platform/public/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -402,4 +401,3 @@ TEST_F(WebRtcTest, ContinueAcceptingConnectionsOnComplete) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

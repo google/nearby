@@ -29,7 +29,6 @@
 #include "platform/public/scheduled_executor.h"
 #include "platform/public/single_thread_executor.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -53,6 +52,5 @@ class BaseBwuHandler : public BwuHandler {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_BASE_BWU_HANDLER_H_

@@ -19,7 +19,6 @@
 #include "platform/public/logging.h"
 #include "platform/public/wifi_lan.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -44,4 +43,3 @@ void WifiLanEndpointChannel::CloseImpl() {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

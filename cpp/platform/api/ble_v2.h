@@ -27,7 +27,6 @@
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 namespace ble_v2 {
@@ -401,6 +400,5 @@ class BleMedium {
 }  // namespace ble_v2
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_BLE_V2_H_

@@ -61,8 +61,7 @@ class BleMedium final {
 
   struct AcceptedConnectionCallback {
     std::function<void(BleSocket& socket, const std::string& service_id)>
-        accepted_cb =
-            location::nearby::DefaultCallback<BleSocket&, const std::string&>();
+        accepted_cb = nearby::DefaultCallback<BleSocket&, const std::string&>();
   };
 
   struct AcceptedConnectionInfo {

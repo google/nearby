@@ -33,17 +33,17 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-using ::location::nearby::ByteArrayFromNSData;
-using ::location::nearby::CppStringFromObjCString;
-using ::location::nearby::ObjCStringFromCppString;
-using ::location::nearby::connections::ConnectionListener;
-using ::location::nearby::connections::ConnectionOptions;
-using ::location::nearby::connections::ConnectionRequestInfo;
-using ::location::nearby::connections::ConnectionResponseInfo;
-using ::location::nearby::connections::GNCStrategyToStrategy;
-using ::location::nearby::connections::Medium;
-using ResultListener = ::location::nearby::connections::ResultCallback;
-using ::location::nearby::connections::Status;
+using ::nearby::ByteArrayFromNSData;
+using ::nearby::CppStringFromObjCString;
+using ::nearby::ObjCStringFromCppString;
+using ::nearby::connections::ConnectionListener;
+using ::nearby::connections::ConnectionOptions;
+using ::nearby::connections::ConnectionRequestInfo;
+using ::nearby::connections::ConnectionResponseInfo;
+using ::nearby::connections::GNCStrategyToStrategy;
+using ::nearby::connections::Medium;
+using ResultListener = ::nearby::connections::ResultCallback;
+using ::nearby::connections::Status;
 
 /** This is a GNCAdvertiserConnectionInfo that provides storage for its properties. */
 @interface GNCAdvertiserConnectionInfo : NSObject
@@ -97,7 +97,6 @@ using ::location::nearby::connections::Status;
 @end
 
 /** C++ classes passed to the core library by GNCAdvertiser. */
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -255,9 +254,8 @@ class GNCAdvertiserConnectionListener {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
-using ::location::nearby::connections::GNCAdvertiserConnectionListener;
+using ::nearby::connections::GNCAdvertiserConnectionListener;
 
 @interface GNCAdvertiser () {
   std::unique_ptr<GNCAdvertiserConnectionListener> advertiserListener;

@@ -17,7 +17,6 @@
 #include "platform/base/logging.h"
 #include "platform/impl/windows/generated/winrt/Windows.Networking.Sockets.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -191,4 +190,3 @@ Exception BluetoothSocket::BluetoothOutputStream::Close() {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

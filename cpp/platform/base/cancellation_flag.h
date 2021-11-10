@@ -20,7 +20,6 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/synchronization/mutex.h"
 
-namespace location {
 namespace nearby {
 
 // A cancellation flag to mark an operation has been cancelled and should be
@@ -75,6 +74,5 @@ class CancellationFlag {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_CANCELLATION_FLAG_H_

@@ -17,7 +17,6 @@
 
 #include "proto/analytics/connections_log.pb.h"
 
-namespace location {
 namespace nearby {
 namespace analytics {
 
@@ -34,6 +33,5 @@ class EventLogger {
 
 }  // namespace analytics
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_EVENT_LOGGER_H_

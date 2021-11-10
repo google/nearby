@@ -22,7 +22,6 @@
 #include "platform/impl/windows/runner.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -528,4 +527,3 @@ State ThreadPool::GetState() { return pool_state_; }
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

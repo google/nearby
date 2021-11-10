@@ -25,7 +25,6 @@
 #include "platform/public/bluetooth_adapter.h"
 #include "platform/public/mutex.h"
 
-namespace location {
 namespace nearby {
 
 class BleSocket final {
@@ -161,6 +160,5 @@ class BleMedium final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_BLE_H_

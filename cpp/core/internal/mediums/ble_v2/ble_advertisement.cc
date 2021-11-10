@@ -20,7 +20,6 @@
 #include "platform/base/base_input_stream.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -242,4 +241,3 @@ void BleAdvertisement::SerializeDataSize(bool fast_advertisement,
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

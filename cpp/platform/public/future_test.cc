@@ -19,7 +19,6 @@
 #include "absl/time/time.h"
 #include "platform/public/single_thread_executor.h"
 
-namespace location {
 namespace nearby {
 
 namespace {
@@ -113,4 +112,3 @@ TEST(FutureTest, GetBlocksWhenNotReady) {
 }
 
 }  // namespace nearby
-}  // namespace location

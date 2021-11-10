@@ -18,7 +18,6 @@
 
 #include "base/stringprintf.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -71,4 +70,3 @@ bool LogMessage::ShouldCreateLogMessage(Severity severity) {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location

@@ -18,7 +18,6 @@
 
 #include "absl/time/clock.h"
 
-namespace location {
 namespace nearby {
 
 #define UNSIGNED_INT_BITMASK (std::numeric_limits<unsigned int>::max())
@@ -56,4 +55,3 @@ std::int64_t Prng::NextInt64() {
 }
 
 }  // namespace nearby
-}  // namespace location

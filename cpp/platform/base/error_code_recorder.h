@@ -19,7 +19,6 @@
 
 #include "platform/base/error_code_params.h"
 
-namespace location {
 namespace nearby {
 
 // Deploys the error code of the platform medium to the analytics recorder.
@@ -58,20 +57,20 @@ class ErrorCodeRecorder {
   // pii_message      - A pii info defiend in errorcode::proto::pii_message. An
   //                    empty string won't be recorded.
   // connection_token - connection token string.
-  static void LogErrorCode(
-      location::nearby::proto::connections::Medium medium,
-      location::nearby::errorcode::proto::Event event, int error,
-      location::nearby::errorcode::proto::Description description,
-      const std::string& pii_message, const std::string& connection_token);
+  static void LogErrorCode(nearby::proto::connections::Medium medium,
+                           nearby::errorcode::proto::Event event, int error,
+                           nearby::errorcode::proto::Description description,
+                           const std::string& pii_message,
+                           const std::string& connection_token);
 
   // An auxiliary funciton for LogError() to assemble the ErrorCodeParams
   // struct.
   //
   // See `LogErrorCode` for reference on the parameters.
   static ErrorCodeParams BuildErrorCodeParams(
-      location::nearby::proto::connections::Medium medium,
-      location::nearby::errorcode::proto::Event event, int error,
-      location::nearby::errorcode::proto::Description description,
+      nearby::proto::connections::Medium medium,
+      nearby::errorcode::proto::Event event, int error,
+      nearby::errorcode::proto::Description description,
       const std::string& pii_message, const std::string& connection_token);
 
  private:
@@ -81,6 +80,5 @@ class ErrorCodeRecorder {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_ERROR_CODE_RECORDER_H_

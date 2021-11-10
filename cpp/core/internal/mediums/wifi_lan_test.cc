@@ -25,7 +25,6 @@
 #include "platform/public/logging.h"
 #include "platform/public/wifi_lan.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -344,4 +343,3 @@ TEST_F(WifiLanTest, CanDiscoverThatOtherMediumAdvertise) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

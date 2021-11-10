@@ -20,7 +20,6 @@
 #include "core/internal/mock_service_controller_router.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -49,4 +48,3 @@ TEST(CoreTest, DestructorReportsFatalFailure) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

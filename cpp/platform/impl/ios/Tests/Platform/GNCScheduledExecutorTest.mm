@@ -21,9 +21,9 @@
 #include "third_party/nearby_connections/cpp/platform/api/scheduled_executor.h"
 #include "third_party/nearby_connections/cpp/platform/base/runnable.h"
 
-using location::nearby::Runnable;
-using location::nearby::api::ImplementationPlatform;
-using location::nearby::api::ScheduledExecutor;
+using nearby::Runnable;
+using nearby::api::ImplementationPlatform;
+using nearby::api::ScheduledExecutor;
 
 @interface GNCScheduledExecutorTest : XCTestCase
 @property(atomic) int counter;

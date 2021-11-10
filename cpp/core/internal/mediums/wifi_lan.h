@@ -27,7 +27,6 @@
 #include "platform/public/mutex.h"
 #include "platform/public/wifi_lan.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -189,6 +188,5 @@ class WifiLan {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_WIFI_LAN_H_

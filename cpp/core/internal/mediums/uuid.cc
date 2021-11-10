@@ -19,7 +19,6 @@
 
 #include "platform/public/crypto.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -84,4 +83,3 @@ Uuid::operator std::string() const {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

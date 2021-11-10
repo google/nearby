@@ -25,7 +25,6 @@
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -358,4 +357,3 @@ ByteArray Ble::UnwrapAdvertisementBytes(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

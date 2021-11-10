@@ -43,7 +43,6 @@
 #include "platform/public/bluetooth_classic.h"
 #include "platform/public/wifi_lan.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -206,6 +205,5 @@ class P2pClusterPcpHandler : public BasePcpHandler {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_P2P_CLUSTER_PCP_HANDLER_H_

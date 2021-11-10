@@ -20,7 +20,6 @@
 
 #include "platform/base/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -96,6 +95,5 @@ class BloomFilter final : public BloomFilterBase {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_BLOOM_FILTER_H_

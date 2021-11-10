@@ -29,7 +29,6 @@
 #include "platform/base/feature_flags.h"
 #include "platform/base/medium_environment.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -619,4 +618,3 @@ TEST_F(ClientProxyTest, EndpointIdRotateWhenLowVizAdvertisementWithLowPower) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

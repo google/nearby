@@ -21,7 +21,7 @@
 #include <stdexcept>
 
 #include "platform/impl/windows/runner.h"
-namespace location {
+
 namespace nearby {
 namespace windows {
 
@@ -102,5 +102,5 @@ class ThreadPool {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
+
 #endif  //  PLATFORM_IMPL_WINDOWS_THREAD_POOL_H_

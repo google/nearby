@@ -20,7 +20,6 @@
 #include "platform/base/prng.h"
 #include "platform/public/crypto.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -91,4 +90,3 @@ LocationHint Utils::BuildLocationHint(const std::string& location) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

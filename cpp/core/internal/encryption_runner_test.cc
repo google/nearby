@@ -25,12 +25,11 @@
 #include "platform/public/system_clock.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
 
-using ::location::nearby::proto::connections::Medium;
+using ::nearby::proto::connections::Medium;
 
 class FakeEndpointChannel : public EndpointChannel {
  public:
@@ -147,4 +146,3 @@ TEST(EncryptionRunnerTest, ReadWrite) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

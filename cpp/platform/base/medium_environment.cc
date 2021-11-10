@@ -27,7 +27,6 @@
 #include "platform/base/prng.h"
 #include "platform/public/count_down_latch.h"
 
-namespace location {
 namespace nearby {
 
 MediumEnvironment& MediumEnvironment::Instance() {
@@ -673,4 +672,3 @@ void MediumEnvironment::SetFeatureFlags(const FeatureFlags::Flags& flags) {
 }
 
 }  // namespace nearby
-}  // namespace location

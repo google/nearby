@@ -21,7 +21,6 @@
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -101,6 +100,5 @@ class InternalPayload {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_INTERNAL_PAYLOAD_H_

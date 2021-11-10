@@ -17,7 +17,6 @@
 
 #include "platform/api/webrtc.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -73,6 +72,5 @@ class WebRtcMedium : public api::WebRtcMedium {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_WEBRTC_H_

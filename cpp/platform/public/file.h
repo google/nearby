@@ -28,7 +28,6 @@
 #include "platform/base/output_stream.h"
 #include "platform/public/core_config.h"
 
-namespace location {
 namespace nearby {
 
 class DLL_API InputFile final {
@@ -111,6 +110,5 @@ class DLL_API OutputFile final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_FILE_H_

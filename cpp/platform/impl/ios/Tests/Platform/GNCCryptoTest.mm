@@ -33,7 +33,7 @@
         0x1d, 0xe7, 0x5b, 0xcf, 0xda, 0xb5, 0x62, 0xd3,
         0xde, 0xba, 0x14, 0x49, 0xbd, 0xf5, 0x95, 0x04,
         0x1f, 0x1d, 0x99, 0x84, 0x87, 0xc3, 0xcb, 0x8a, };
-    location::nearby::ByteArray sha256Hash = location::nearby::Crypto::Sha256(string);
+    nearby::ByteArray sha256Hash = nearby::Crypto::Sha256(string);
     XCTAssert(sha256Hash.size() == sizeof(sha256ExpectedHash) &&
               memcmp(sha256Hash.data(), sha256ExpectedHash, sizeof(sha256ExpectedHash)) == 0);
   }
@@ -43,7 +43,7 @@
     const uint8_t md5ExpectedHash[] = {
         0x97, 0x78, 0x1d, 0x3d, 0xee, 0xd7, 0xdc, 0x5a,
         0x6e, 0xee, 0x50, 0x08, 0xce, 0xd1, 0xb2, 0xe8 };
-    location::nearby::ByteArray md5Hash = location::nearby::Crypto::Md5(string);
+    nearby::ByteArray md5Hash = nearby::Crypto::Md5(string);
     XCTAssert(md5Hash.size() == sizeof(md5ExpectedHash) &&
               memcmp(md5Hash.data(), md5ExpectedHash, sizeof(md5ExpectedHash)) == 0);
   }

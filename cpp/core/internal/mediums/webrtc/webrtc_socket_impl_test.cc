@@ -21,7 +21,6 @@
 #include "platform/base/byte_array.h"
 #include "webrtc/api/data_channel_interface.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -231,4 +230,3 @@ TEST(WebRtcSocketTest, CloseStateTriggersCallback) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

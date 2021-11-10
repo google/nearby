@@ -18,7 +18,6 @@
 
 #include "platform/public/core_config.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -68,5 +67,5 @@ class DLL_API Strategy {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
+
 #endif  // CORE_STRATEGY_H_

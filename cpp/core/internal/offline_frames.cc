@@ -22,7 +22,6 @@
 #include "core/status.h"
 #include "platform/base/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace parser {
@@ -499,4 +498,3 @@ std::vector<Medium> ConnectionRequestMediumsToMediums(
 }  // namespace parser
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

@@ -24,7 +24,6 @@
 
 #include "platform/impl/windows/utils.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -62,4 +61,3 @@ BluetoothDevice::GetRfcommServicesForIdAsync(const RfcommServiceId serviceId) {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

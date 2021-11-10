@@ -31,7 +31,6 @@
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -274,7 +273,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
       return nullptr;
     }
 
-    location::nearby::CancellationFlagListener cancellationFlagListener(
+    nearby::CancellationFlagListener cancellationFlagListener(
         cancellation_flag, [socket]() { socket.CancelIOAsync().get(); });
   }
 
@@ -460,4 +459,3 @@ std::string WifiLanMedium::GetErrorMessage(std::exception_ptr eptr) {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

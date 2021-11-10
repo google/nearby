@@ -20,7 +20,6 @@
 #include "core/internal/offline_frames.h"
 #include "proto/connections/offline_wire_formats.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace parser {
@@ -35,7 +34,7 @@ using WifiAwareCredentials = UpgradePathInfo::WifiAwareCredentials;
 using WifiDirectCredentials = UpgradePathInfo::WifiDirectCredentials;
 using BluetoothCredentials = UpgradePathInfo::BluetoothCredentials;
 using WebRtcCredentials = UpgradePathInfo::WebRtcCredentials;
-using Medium = location::nearby::connections::Medium;
+using Medium = nearby::connections::Medium;
 
 constexpr absl::string_view kIpv4PatternString{
     "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
@@ -378,4 +377,3 @@ Exception EnsureValidOfflineFrame(const OfflineFrame& offline_frame) {
 }  // namespace parser
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

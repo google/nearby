@@ -25,7 +25,6 @@
 #include "platform/public/logging.h"
 #include "platform/public/single_thread_executor.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -290,4 +289,3 @@ TEST_F(BluetoothClassicMediumTest, FailIfDiscovering) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

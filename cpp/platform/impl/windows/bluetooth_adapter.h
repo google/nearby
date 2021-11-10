@@ -24,7 +24,6 @@
 #include "platform/impl/windows/generated/winrt/Windows.Devices.Bluetooth.h"
 #include "platform/impl/windows/generated/winrt/Windows.Devices.Radios.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -94,6 +93,5 @@ class BluetoothAdapter : public api::BluetoothAdapter {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_BLUETOOTH_ADAPTER_H_

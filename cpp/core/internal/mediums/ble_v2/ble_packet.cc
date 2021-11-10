@@ -18,7 +18,6 @@
 #include "platform/base/base_input_stream.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -70,4 +69,3 @@ BlePacket::operator ByteArray() const {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

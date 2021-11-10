@@ -20,7 +20,6 @@
 #include "platform/public/atomic_boolean.h"
 #include "platform/public/scheduled_executor.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -65,4 +64,3 @@ TEST(CancelableAlarmTest, CancelExpiredAlarmFails) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

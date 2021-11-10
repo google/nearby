@@ -18,7 +18,6 @@
 #include "absl/time/clock.h"
 #include "platform/base/exception.h"
 
-namespace location {
 namespace nearby {
 
 class SystemClock final {
@@ -32,6 +31,5 @@ class SystemClock final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_SYSTEM_CLOCK_H_

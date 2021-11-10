@@ -17,7 +17,6 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -55,4 +54,3 @@ TEST(StatusTest, CopyInitEquals) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

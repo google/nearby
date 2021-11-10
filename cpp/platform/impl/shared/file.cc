@@ -20,7 +20,6 @@
 #include "absl/strings/string_view.h"
 #include "platform/base/exception.h"
 
-namespace location {
 namespace nearby {
 namespace shared {
 
@@ -93,4 +92,3 @@ Exception OutputFile::Close() {
 
 }  // namespace shared
 }  // namespace nearby
-}  // namespace location

@@ -18,7 +18,7 @@
 
 TEST(atomic_reference, SuccessfulCreation) {
   // Arrange
-  location::nearby::windows::AtomicUint32 atomicUint32;
+  nearby::windows::AtomicUint32 atomicUint32;
   uint32_t result = UINT32_MAX;
   const uint32_t expected = 0;
 
@@ -31,7 +31,7 @@ TEST(atomic_reference, SuccessfulCreation) {
 
 TEST(atomic_reference, SuccessfulMaxSet) {
   // Arrange
-  location::nearby::windows::AtomicUint32 atomicUint32;
+  nearby::windows::AtomicUint32 atomicUint32;
   uint32_t result = 0;
   const uint32_t expected = UINT32_MAX;
 
@@ -45,7 +45,7 @@ TEST(atomic_reference, SuccessfulMaxSet) {
 
 TEST(atomic_reference, SuccessfulMinSet) {
   // Arrange
-  location::nearby::windows::AtomicUint32 atomicUint32;
+  nearby::windows::AtomicUint32 atomicUint32;
   uint32_t result = UINT32_MAX;
   const uint32_t expected = 0;
 
@@ -59,7 +59,7 @@ TEST(atomic_reference, SuccessfulMinSet) {
 
 TEST(atomic_reference, SetNegativeOneReturnsMAXUINT) {
   // Arrange
-  location::nearby::windows::AtomicUint32 atomicUint32;
+  nearby::windows::AtomicUint32 atomicUint32;
   uint32_t result = 0;
   const uint32_t expected = UINT32_MAX;
 

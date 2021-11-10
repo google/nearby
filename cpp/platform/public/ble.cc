@@ -17,7 +17,6 @@
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 
 bool BleMedium::StartAdvertising(
@@ -135,4 +134,3 @@ BleSocket BleMedium::Connect(BlePeripheral& peripheral,
 }
 
 }  // namespace nearby
-}  // namespace location

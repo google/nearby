@@ -22,7 +22,6 @@
 #include "platform/public/mutex_lock.h"
 #include "platform/public/system_clock.h"
 
-namespace location {
 namespace nearby {
 
 template <typename T>
@@ -123,6 +122,5 @@ class SettableFuture : public api::SettableFuture<T> {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_SETTABLE_FUTURE_H_

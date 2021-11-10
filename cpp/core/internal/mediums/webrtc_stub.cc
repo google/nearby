@@ -22,7 +22,6 @@
 #include "platform/public/cancelable_alarm.h"
 #include "platform/public/future.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -58,4 +57,3 @@ WebRtcSocketWrapper WebRtc::Connect(const std::string& service_id,
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

@@ -32,7 +32,6 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -213,6 +212,5 @@ void GNCPayloadListener::OnPayloadProgress(const std::string &endpoint_id,
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 NS_ASSUME_NONNULL_END

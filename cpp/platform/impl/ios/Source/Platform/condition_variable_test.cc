@@ -19,7 +19,6 @@
 #include "platform/impl/ios/Source/Platform/mutex.h"
 #include "thread/fiber/fiber.h"
 
-namespace location {
 namespace nearby {
 namespace ios {
 namespace {
@@ -81,4 +80,3 @@ TEST(ConditionVariableTest, WaitTerminatesOnTimeoutWithoutNotify) {
 }  // namespace
 }  // namespace ios
 }  // namespace nearby
-}  // namespace location

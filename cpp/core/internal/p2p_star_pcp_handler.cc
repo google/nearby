@@ -16,7 +16,6 @@
 
 #include <vector>
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -66,4 +65,3 @@ bool P2pStarPcpHandler::CanReceiveIncomingConnection(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

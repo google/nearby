@@ -23,9 +23,9 @@
 #include "third_party/nearby_connections/cpp/platform/base/payload_id.h"
 #import "third_party/objective_c/google_toolbox_for_mac/Foundation/GTMLogger.h"
 
-using ::location::nearby::connections::Core;
-using ::location::nearby::PayloadId;
-using ::location::nearby::connections::ServiceControllerRouter;
+using ::nearby::connections::Core;
+using ::nearby::PayloadId;
+using ::nearby::connections::ServiceControllerRouter;
 
 @implementation GNCCore {
   // A map to store the NSURL object with PayloadId for sendFilePayload in GNCConnection.

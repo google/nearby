@@ -17,7 +17,6 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -28,4 +27,3 @@ TEST(EndpointChannelManagerTest, ConstructorDestructorWorks) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

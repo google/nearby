@@ -21,7 +21,6 @@
 #include "platform/base/runnable.h"
 #include "platform/public/system_clock.h"
 
-namespace location {
 namespace nearby {
 
 // A runnable with extra logging
@@ -43,6 +42,5 @@ class MonitoredRunnable {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_MONITORED_RUNNABLE_H_

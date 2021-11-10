@@ -14,7 +14,6 @@
 #ifndef CORE_CONFIG_H_
 #define CORE_CONFIG_H_
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -33,6 +32,5 @@ namespace connections {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_CONFIG_H_

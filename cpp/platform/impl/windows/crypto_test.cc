@@ -16,7 +16,6 @@
 
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -47,4 +46,3 @@ TEST(CryptoTest, Sha256HashOnEmptyInput) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

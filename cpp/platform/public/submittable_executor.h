@@ -33,7 +33,6 @@
 #include "platform/public/thread_check_callable.h"
 #include "platform/public/thread_check_runnable.h"
 
-namespace location {
 namespace nearby {
 
 inline int GetCurrentTid() { return api::GetCurrentTid(); }
@@ -125,6 +124,5 @@ class ABSL_LOCKABLE SubmittableExecutor : public api::SubmittableExecutor,
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_SUBMITTABLE_EXECUTOR_H_

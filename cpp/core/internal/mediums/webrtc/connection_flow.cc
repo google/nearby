@@ -28,7 +28,6 @@
 #include "webrtc/api/data_channel_interface.h"
 #include "webrtc/api/jsep.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -553,4 +552,3 @@ ConnectionFlow::GetAndResetPeerConnection() {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

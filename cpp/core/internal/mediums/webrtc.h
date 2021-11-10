@@ -43,7 +43,6 @@
 #include "proto/mediums/web_rtc_signaling_frames.pb.h"
 #include "webrtc/api/jsep.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -220,7 +219,7 @@ class WebRtc {
   // Runs on |single_thread_executor_|.
   void ProcessLocalIceCandidate(
       const std::string& service_id, const WebrtcPeerId& remote_peer_id,
-      const ::location::nearby::mediums::IceCandidate ice_candidate)
+      const ::nearby::mediums::IceCandidate ice_candidate)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Runs on |single_thread_executor_|.
@@ -260,6 +259,5 @@ class WebRtc {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_H_

@@ -27,40 +27,38 @@
 #include "proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace analytics {
 namespace {
 
-using ::location::nearby::analytics::proto::ConnectionsLog;
-using ::location::nearby::errorcode::proto::DISCONNECT;
-using ::location::nearby::errorcode::proto::DISCONNECT_NETWORK_FAILED;
-using ::location::nearby::errorcode::proto::INVALID_PARAMETER;
-using ::location::nearby::errorcode::proto::NULL_BLUETOOTH_DEVICE_NAME;
-using ::location::nearby::errorcode::proto::START_DISCOVERING;
-using ::location::nearby::errorcode::proto::START_EXTENDED_DISCOVERING_FAILED;
-using ::location::nearby::errorcode::proto::
-    TACHYON_SEND_MESSAGE_STATUS_EXCEPTION;
-using ::location::nearby::proto::connections::BLE;
-using ::location::nearby::proto::connections::BLUETOOTH;
-using ::location::nearby::proto::connections::CLIENT_SESSION;
-using ::location::nearby::proto::connections::ERROR_CODE;
-using ::location::nearby::proto::connections::EventType;
-using ::location::nearby::proto::connections::INCOMING;
-using ::location::nearby::proto::connections::INITIAL;
-using ::location::nearby::proto::connections::LOCAL_DISCONNECTION;
-using ::location::nearby::proto::connections::Medium;
-using ::location::nearby::proto::connections::RESULT_ERROR;
-using ::location::nearby::proto::connections::RESULT_SUCCESS;
-using ::location::nearby::proto::connections::START_STRATEGY_SESSION;
-using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
-using ::location::nearby::proto::connections::STOP_STRATEGY_SESSION;
-using ::location::nearby::proto::connections::SUCCESS;
-using ::location::nearby::proto::connections::UPGRADED;
-using ::location::nearby::proto::connections::WEB_RTC;
-using ::location::nearby::proto::connections::WIFI_LAN;
-using ::location::nearby::proto::connections::WIFI_LAN_MEDIUM_ERROR;
-using ::location::nearby::proto::connections::WIFI_LAN_SOCKET_CREATION;
+using ::nearby::analytics::proto::ConnectionsLog;
+using ::nearby::errorcode::proto::DISCONNECT;
+using ::nearby::errorcode::proto::DISCONNECT_NETWORK_FAILED;
+using ::nearby::errorcode::proto::INVALID_PARAMETER;
+using ::nearby::errorcode::proto::NULL_BLUETOOTH_DEVICE_NAME;
+using ::nearby::errorcode::proto::START_DISCOVERING;
+using ::nearby::errorcode::proto::START_EXTENDED_DISCOVERING_FAILED;
+using ::nearby::errorcode::proto::TACHYON_SEND_MESSAGE_STATUS_EXCEPTION;
+using ::nearby::proto::connections::BLE;
+using ::nearby::proto::connections::BLUETOOTH;
+using ::nearby::proto::connections::CLIENT_SESSION;
+using ::nearby::proto::connections::ERROR_CODE;
+using ::nearby::proto::connections::EventType;
+using ::nearby::proto::connections::INCOMING;
+using ::nearby::proto::connections::INITIAL;
+using ::nearby::proto::connections::LOCAL_DISCONNECTION;
+using ::nearby::proto::connections::Medium;
+using ::nearby::proto::connections::RESULT_ERROR;
+using ::nearby::proto::connections::RESULT_SUCCESS;
+using ::nearby::proto::connections::START_STRATEGY_SESSION;
+using ::nearby::proto::connections::STOP_CLIENT_SESSION;
+using ::nearby::proto::connections::STOP_STRATEGY_SESSION;
+using ::nearby::proto::connections::SUCCESS;
+using ::nearby::proto::connections::UPGRADED;
+using ::nearby::proto::connections::WEB_RTC;
+using ::nearby::proto::connections::WIFI_LAN;
+using ::nearby::proto::connections::WIFI_LAN_MEDIUM_ERROR;
+using ::nearby::proto::connections::WIFI_LAN_SOCKET_CREATION;
 
 using ::testing::Contains;
 using ::testing::EqualsProto;
@@ -767,4 +765,3 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForCommonError) {
 }  // namespace
 }  // namespace analytics
 }  // namespace nearby
-}  // namespace location

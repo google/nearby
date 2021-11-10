@@ -23,7 +23,6 @@
 #include "platform/impl/windows/utils.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -193,4 +192,3 @@ Exception BluetoothServerSocket::Close() {
 }
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

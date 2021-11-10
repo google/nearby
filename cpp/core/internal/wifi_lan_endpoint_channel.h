@@ -18,7 +18,6 @@
 #include "core/internal/base_endpoint_channel.h"
 #include "platform/public/wifi_lan.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -37,6 +36,5 @@ class WifiLanEndpointChannel final : public BaseEndpointChannel {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_WIFI_LAN_ENDPOINT_CHANNEL_H_

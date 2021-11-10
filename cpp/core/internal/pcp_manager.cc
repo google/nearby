@@ -19,7 +19,6 @@
 #include "core/internal/p2p_star_pcp_handler.h"
 #include "core/internal/pcp_handler.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -143,4 +142,3 @@ PcpHandler* PcpManager::GetPcpHandler(Pcp pcp) const {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

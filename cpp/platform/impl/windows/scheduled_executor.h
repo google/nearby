@@ -20,7 +20,6 @@
 #include "platform/api/scheduled_executor.h"
 #include "platform/impl/windows/executor.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -60,6 +59,5 @@ class ScheduledExecutor : public api::ScheduledExecutor {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_SCHEDULED_EXECUTOR_H_

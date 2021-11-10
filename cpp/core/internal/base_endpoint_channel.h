@@ -31,7 +31,6 @@
 #include "platform/public/mutex.h"
 #include "platform/public/system_clock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -151,6 +150,5 @@ class BaseEndpointChannel : public EndpointChannel {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_BASE_ENDPOINT_CHANNEL_H_

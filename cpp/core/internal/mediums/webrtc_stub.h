@@ -26,7 +26,6 @@
 #include "platform/base/listeners.h"
 #include "proto/connections/offline_wire_formats.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -77,6 +76,5 @@ class WebRtc {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_STUB_H_

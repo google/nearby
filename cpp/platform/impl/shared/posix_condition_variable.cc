@@ -14,7 +14,6 @@
 
 #include "platform/impl/shared/posix_condition_variable.h"
 
-namespace location {
 namespace nearby {
 namespace posix {
 
@@ -41,4 +40,3 @@ Exception ConditionVariable::Wait() {
 
 }  // namespace posix
 }  // namespace nearby
-}  // namespace location

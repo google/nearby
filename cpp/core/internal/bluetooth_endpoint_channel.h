@@ -20,7 +20,6 @@
 #include "core/internal/base_endpoint_channel.h"
 #include "platform/public/bluetooth_classic.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -44,6 +43,5 @@ class BluetoothEndpointChannel final : public BaseEndpointChannel {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_BLUETOOTH_ENDPOINT_CHANNEL_H_

@@ -27,7 +27,6 @@
 #include "platform/public/system_clock.h"
 #include "proto/connections/offline_wire_formats.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -184,4 +183,3 @@ bool EndpointChannelManager::UnregisterChannelForEndpoint(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

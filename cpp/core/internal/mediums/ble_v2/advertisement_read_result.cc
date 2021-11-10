@@ -21,7 +21,6 @@
 #include "absl/time/clock.h"
 #include "platform/public/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -136,4 +135,3 @@ absl::Duration AdvertisementReadResult::GetDurationSinceReadLocked() const {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

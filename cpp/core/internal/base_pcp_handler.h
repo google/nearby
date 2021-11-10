@@ -52,7 +52,6 @@
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/system_clock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -523,6 +522,5 @@ class BasePcpHandler : public PcpHandler,
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_BASE_PCP_HANDLER_H_

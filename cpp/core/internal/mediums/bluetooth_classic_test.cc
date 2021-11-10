@@ -26,7 +26,6 @@
 #include "platform/public/logging.h"
 #include "platform/public/system_clock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -287,4 +286,3 @@ TEST_F(BluetoothClassicTest, CanStartAcceptingConnections) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

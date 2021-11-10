@@ -19,7 +19,6 @@
 #include "platform/base/bluetooth_utils.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -65,4 +64,3 @@ TEST(BluetoothAdapterTest, CanGetMacAddress) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

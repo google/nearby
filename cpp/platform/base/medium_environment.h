@@ -31,7 +31,6 @@
 #include "platform/base/nsd_service_info.h"
 #include "platform/public/single_thread_executor.h"
 
-namespace location {
 namespace nearby {
 
 // Environment config that can control availability of certain mediums for
@@ -316,6 +315,5 @@ class MediumEnvironment {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_MEDIUM_ENVIRONMENT_H_

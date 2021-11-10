@@ -21,7 +21,6 @@
 #include "platform/impl/g3/condition_variable.h"
 #include "platform/impl/g3/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -39,6 +38,5 @@ class Pipe : public BasePipe {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_PIPE_H_

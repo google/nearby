@@ -16,7 +16,6 @@
 
 #include <string>
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -60,9 +59,8 @@ std::vector<Medium> ConnectionOptions::GetMediums() const {
 // This call follows the standard Microsoft calling pattern of calling first
 // to get the size of the array. Caller then allocates memory for the array,
 // and makes this call again to copy the array into the provided location.
-void ConnectionOptions::GetMediums(
-    location::nearby::proto::connections::Medium* mediums,
-    uint32_t* mediumsSize) {
+void ConnectionOptions::GetMediums(nearby::proto::connections::Medium* mediums,
+                                   uint32_t* mediumsSize) {
   auto size = GetMediums().size();
 
   // Caller is seeking the size of mediums
@@ -86,4 +84,3 @@ void ConnectionOptions::GetMediums(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

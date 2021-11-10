@@ -26,7 +26,6 @@
 #include "platform/public/mutex_lock.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -361,4 +360,3 @@ void BaseEndpointChannel::UnblockPausedWriter() {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

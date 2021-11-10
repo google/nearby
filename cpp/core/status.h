@@ -15,7 +15,6 @@
 #ifndef CORE_STATUS_H_
 #define CORE_STATUS_H_
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -54,6 +53,5 @@ inline bool operator!=(const Status& a, const Status& b) { return !(a == b); }
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_STATUS_H_

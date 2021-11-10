@@ -20,7 +20,6 @@
 
 #include "platform/api/atomic_reference.h"
 
-namespace location {
 namespace nearby {
 namespace ios {
 
@@ -42,6 +41,5 @@ class AtomicUint32 : public api::AtomicUint32 {
 
 }  // namespace ios
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_IOS_ATOMIC_UINT32_H_

@@ -26,7 +26,6 @@
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -256,4 +255,3 @@ INSTANTIATE_TEST_SUITE_P(ParametrisedPcpHandlerTest, P2pClusterPcpHandlerTest,
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

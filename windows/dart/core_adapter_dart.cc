@@ -16,7 +16,6 @@
 #include "third_party/dart_lang/v2/runtime/include/dart_native_api.h"
 #include "third_party/nearby_connections/windows/dart/core_adapter_dart.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace windows {
@@ -393,4 +392,3 @@ void AcceptConnectionDart(Core *pCore, const char *endpoint_id,
 }  // namespace windows
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

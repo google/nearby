@@ -18,47 +18,41 @@
 #include "proto/connections_enums.pb.h"
 #include "proto/errorcode/error_code_enums.pb.h"
 
-namespace location {
 namespace nearby {
 
 // A struct to consturct error code parameters for the analytics recorder.
 struct ErrorCodeParams {
-  location::nearby::proto::connections::Medium medium =
-      location::nearby::proto::connections::UNKNOWN_MEDIUM;
-  location::nearby::errorcode::proto::Event event =
-      location::nearby::errorcode::proto::UNKNOWN_EVENT;
-  location::nearby::errorcode::proto::Description description =
-      location::nearby::errorcode::proto::UNKNOWN;
+  nearby::proto::connections::Medium medium =
+      nearby::proto::connections::UNKNOWN_MEDIUM;
+  nearby::errorcode::proto::Event event =
+      nearby::errorcode::proto::UNKNOWN_EVENT;
+  nearby::errorcode::proto::Description description =
+      nearby::errorcode::proto::UNKNOWN;
   std::string pii_message = {};
   bool is_common_error = false;
-  location::nearby::errorcode::proto::CommonError common_error =
-      location::nearby::errorcode::proto::UNKNOWN_ERROR;
-  location::nearby::errorcode::proto::ConnectError connect_error =
-      location::nearby::errorcode::proto::UNKNOWN_CONNECT_ERROR;
-  location::nearby::errorcode::proto::DisconnectError disconnect_error =
-      location::nearby::errorcode::proto::UNKNOWN_DISCONNECT_ERROR;
-  location::nearby::errorcode::proto::StartAdvertisingError
-      start_advertising_error =
-          location::nearby::errorcode::proto::UNKNOWN_START_ADVERTISING_ERROR;
-  location::nearby::errorcode::proto::StopAdvertisingError
-      stop_advertising_error =
-          location::nearby::errorcode::proto::UNKNOWN_STOP_ADVERTISING_ERROR;
-  location::nearby::errorcode::proto::StartDiscoveringError
-      start_discovering_error =
-          location::nearby::errorcode::proto::UNKNOWN_START_DISCOVERING_ERROR;
-  location::nearby::errorcode::proto::StopDiscoveringError
-      stop_discovering_error =
-          location::nearby::errorcode::proto::UNKNOWN_STOP_DISCOVERING_ERROR;
-  location::nearby::errorcode::proto::StartListeningIncomingConnectionError
-      start_listening_incoming_connection_error = location::nearby::errorcode::
-          proto::UNKNOWN_START_LISTENING_INCOMING_CONNECTION_ERROR;
-  location::nearby::errorcode::proto::StopListeningIncomingConnectionError
-      stop_listening_incoming_connection_error = location::nearby::errorcode::
-          proto::UNKNOWN_STOP_LISTENING_INCOMING_CONNECTION_ERROR;
+  nearby::errorcode::proto::CommonError common_error =
+      nearby::errorcode::proto::UNKNOWN_ERROR;
+  nearby::errorcode::proto::ConnectError connect_error =
+      nearby::errorcode::proto::UNKNOWN_CONNECT_ERROR;
+  nearby::errorcode::proto::DisconnectError disconnect_error =
+      nearby::errorcode::proto::UNKNOWN_DISCONNECT_ERROR;
+  nearby::errorcode::proto::StartAdvertisingError start_advertising_error =
+      nearby::errorcode::proto::UNKNOWN_START_ADVERTISING_ERROR;
+  nearby::errorcode::proto::StopAdvertisingError stop_advertising_error =
+      nearby::errorcode::proto::UNKNOWN_STOP_ADVERTISING_ERROR;
+  nearby::errorcode::proto::StartDiscoveringError start_discovering_error =
+      nearby::errorcode::proto::UNKNOWN_START_DISCOVERING_ERROR;
+  nearby::errorcode::proto::StopDiscoveringError stop_discovering_error =
+      nearby::errorcode::proto::UNKNOWN_STOP_DISCOVERING_ERROR;
+  nearby::errorcode::proto::StartListeningIncomingConnectionError
+      start_listening_incoming_connection_error = nearby::errorcode::proto::
+          UNKNOWN_START_LISTENING_INCOMING_CONNECTION_ERROR;
+  nearby::errorcode::proto::StopListeningIncomingConnectionError
+      stop_listening_incoming_connection_error = nearby::errorcode::proto::
+          UNKNOWN_STOP_LISTENING_INCOMING_CONNECTION_ERROR;
   std::string connection_token = {};
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_ERROR_CORE_PARAMS_H_

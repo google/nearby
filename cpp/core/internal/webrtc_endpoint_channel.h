@@ -22,7 +22,6 @@
 #include "core/internal/mediums/webrtc_socket.h"
 #endif
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -41,6 +40,5 @@ class WebRtcEndpointChannel final : public BaseEndpointChannel {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_WEBRTC_ENDPOINT_CHANNEL_H_

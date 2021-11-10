@@ -17,7 +17,6 @@
 
 #include "absl/base/thread_annotations.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -50,6 +49,5 @@ class ABSL_LOCKABLE Mutex {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_MUTEX_H_

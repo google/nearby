@@ -21,7 +21,6 @@
 #include "platform/api/webrtc.h"
 #include "webrtc/api/peer_connection_interface.h"
 
-namespace location {
 namespace nearby {
 
 class WebRtcSignalingMessenger final {
@@ -94,6 +93,5 @@ class WebRtcMedium final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_WEBRTC_H_

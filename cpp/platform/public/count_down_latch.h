@@ -22,7 +22,6 @@
 #include "platform/api/platform.h"
 #include "platform/base/exception.h"
 
-namespace location {
 namespace nearby {
 
 // A synchronization aid that allows one or more threads to wait until a set of
@@ -49,6 +48,5 @@ class CountDownLatch final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_COUNT_DOWN_LATCH_H_

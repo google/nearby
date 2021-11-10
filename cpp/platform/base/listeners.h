@@ -17,7 +17,6 @@
 
 #include <functional>
 
-namespace location {
 namespace nearby {
 
 // Provides default-initialization with a valid empty method,
@@ -29,6 +28,5 @@ constexpr std::function<void(Args...)> DefaultCallback() {
 }
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_LISTENERS_H_

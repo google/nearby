@@ -26,10 +26,10 @@
 namespace nearby {
 namespace cal {
 
-using ByteArray = location::nearby::ByteArray;
-using Exception = location::nearby::Exception;
-using InputStream = location::nearby::InputStream;
-using OutputStream = location::nearby::OutputStream;
+using ByteArray = nearby::ByteArray;
+using Exception = nearby::Exception;
+using InputStream = nearby::InputStream;
+using OutputStream = nearby::OutputStream;
 
 enum class AdvertiseMode {
   kUnknown = 0,

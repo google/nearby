@@ -30,7 +30,6 @@
 #include "platform/base/byte_array.h"
 #include "platform/public/scheduled_executor.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -198,6 +197,5 @@ class BwuManager : public EndpointManager::FrameProcessor {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_BWU_MANAGER_H_

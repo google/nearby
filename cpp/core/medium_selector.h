@@ -16,11 +16,10 @@
 
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
-using Medium = location::nearby::proto::connections::Medium;
+using Medium = nearby::proto::connections::Medium;
 
 // Generic type: allows definition of a feature T for every Medium.
 template <typename T>
@@ -73,6 +72,5 @@ struct MediumSelector {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_MEDIUM_SELECTOR_H_

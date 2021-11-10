@@ -33,7 +33,6 @@
 #include "platform/public/count_down_latch.h"
 #include "platform/public/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -317,6 +316,5 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_PAYLOAD_MANAGER_H_

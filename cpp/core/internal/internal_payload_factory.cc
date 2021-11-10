@@ -27,7 +27,6 @@
 #include "platform/public/mutex.h"
 #include "platform/public/pipe.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -347,4 +346,3 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

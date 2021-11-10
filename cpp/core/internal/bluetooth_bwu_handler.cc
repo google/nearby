@@ -22,7 +22,6 @@
 // Manages the Bluetooth-specific methods needed to upgrade an {@link
 // EndpointChannel}.
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -162,4 +161,3 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

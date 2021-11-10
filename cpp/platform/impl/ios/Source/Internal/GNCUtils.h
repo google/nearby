@@ -23,7 +23,6 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -32,7 +31,6 @@ const Strategy& GNCStrategyToStrategy(GNCStrategy strategy);
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 /** Internal-only properties of the connection result handlers class. */
 @interface GNCConnectionResultHandlers ()

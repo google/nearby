@@ -19,7 +19,6 @@
 #include "platform/public/crypto.h"
 #include "platform/public/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -67,4 +66,3 @@ TEST(UuidTest, CreateFromBinary) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

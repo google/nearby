@@ -35,7 +35,6 @@
 #include "platform/base/listeners.h"
 #include "platform/public/core_config.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -83,6 +82,7 @@ enum class DLL_API DistanceInfo {
 };
 
 struct DLL_API ConnectionListener {
+  ~ConnectionListener() = default;
   // A basic encrypted channel has been created between you and the endpoint.
   // Both sides are now asked if they wish to accept or reject the connection
   // before any data can be sent over this channel.
@@ -137,6 +137,7 @@ struct DLL_API ConnectionListener {
 };
 
 struct DLL_API DiscoveryListener {
+  ~DiscoveryListener() = default;
   // Called when a remote endpoint is discovered.
   //
   // endpoint_id   - The ID of the remote endpoint that was discovered.
@@ -167,6 +168,7 @@ struct DLL_API DiscoveryListener {
 };
 
 struct DLL_API PayloadListener {
+  ~PayloadListener() = default;
   // Called when a Payload is received from a remote endpoint. Depending
   // on the type of the Payload, all of the data may or may not have been
   // received at the time of this call. Use OnPayloadProgress() to
@@ -193,6 +195,5 @@ struct DLL_API PayloadListener {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_LISTENERS_H_

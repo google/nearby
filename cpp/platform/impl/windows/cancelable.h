@@ -19,7 +19,6 @@
 
 #include "platform/api/cancelable.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -45,6 +44,5 @@ class Cancelable : public api::Cancelable {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_CANCELABLE_H_

@@ -16,7 +16,9 @@
 #include "absl/strings/str_format.h"
 #include "core/core.h"
 
-namespace location {
+using Core = nearby::connections::Core;
+using Payload = nearby::connections::Payload;
+
 namespace nearby {
 namespace connections {
 namespace windows {
@@ -149,4 +151,3 @@ void CloseServiceControllerRouter(ServiceControllerRouter *pRouter) {
 }  // namespace windows
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

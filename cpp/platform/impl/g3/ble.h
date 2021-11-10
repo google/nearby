@@ -31,7 +31,6 @@
 #include "platform/impl/g3/multi_thread_executor.h"
 #include "platform/impl/g3/pipe.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -223,6 +222,5 @@ class BleMedium : public api::BleMedium {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_BLE_H_
