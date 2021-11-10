@@ -69,6 +69,7 @@ BwuManager::BwuManager(
   }
   if (config_.allow_upgrade_to.All(false)) {
     config_.allow_upgrade_to.web_rtc = true;
+    config_.allow_upgrade_to.wifi_lan = true;
   }
   if (!handlers.empty()) {
     handlers_ = std::move(handlers);
