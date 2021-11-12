@@ -1,29 +1,10 @@
-# Nearby Connections Library
+# Nearby C++ Library
 
-This is not an officially supported Google product.
+The repository contains the Nearby project C++ library code. This is not an officially supported Google product.
 
-**Coathored by:**
-*  (Java/C++) Varun Kapoor “reznor”
-*  (Java) Maria-Ines Carrera “marianines”
-*  (Java) Will Harmon “xlythe”
-*  (Java/C++/ObjC) Alex Kang “alexanderkang”
-*  (Java/C++) Amanda Lee “ahlee”
-*  (C++) Tracy Zhou “tracyzhou”
-*  (ObjC) Dan Webb “dwebb”
-*  (C++) John Kaczor “johngk”
-*  (C++/ObjC) Edwin Wu “edwinwu”
-*  (C++) Alexey Polyudov “apolyudov”
+# About the Nearby Project
 
-**Status:** Implemented in C++
-
-**Design reviewers:** TODO
-
-**Implementation reviewer**: TODO
-
-**Last Updated:** TODO
-
-# Overview
-
+## Near Connection
 Nearby Connections is a high level protocol on top of Bluetooth/WiFi that acts
 as a medium-agnostic socket. Devices are able to advertise, scan, and connect
 with one another over any shared medium (eg. BT <-> BT).
@@ -35,9 +16,7 @@ recombined on the receiving device.
 See [Nearby Connections Overview](https://developers.google.com/nearby/connections/overview)
 for more information.
 
-# Checkout, build, test instructions
-## Checkout
-pre-requisites: git
+# Checkout the source tree
 
 ```shell
 git clone https://github.com/google/nearby-connections
@@ -45,14 +24,10 @@ cd nearby-connections
 git submodule update --init --recursive
 ```
 
-this is a "source root" directory of the project
+# Building Nearby, Unit Testing and Sample Apps
+We support multiple platforms including Linux, iOS & Windows. The ultimate goal is to build from source. The offical build system we support is [bazel] (https://bazel.build). Before that is accomplished, we provide precompiled libraries as stop-gap solutions. See the following pages for platform specific instructions.
 
-## Build
-pre-requisites:
-openssl, cmake, c++ toolchain (c++17-capable)
+* [iOS](https://github.com/google/nearby/blob/master/docs/ios_build.md)
 
-TODO
 
-## Running unit tests
-
-TODO
+**Last Updated:** November 2021
