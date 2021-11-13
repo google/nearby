@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
 
 #import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Mediums/GNCMConnection.h"
 

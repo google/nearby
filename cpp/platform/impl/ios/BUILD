@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+load("//tools/build_defs/apple:ios.bzl", "ios_static_framework")
+
 licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
@@ -47,5 +49,24 @@ objc_library(
         "//platform/impl/ios/Source/Platform",
         "//platform/impl/ios/Source/Shared",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
+    ],
+)
+
+MIN_IOS_VERSION = "12.0"
+
+HDRS_POD = [
+    "Source/GNCAdvertiser.h",
+    "Source/GNCConnection.h",
+    "Source/GNCDiscoverer.h",
+    "Source/GNCPayload.h",
+]
+
+ios_static_framework(
+    name = "NearbyConnections_framework",
+    hdrs = HDRS_POD,
+    bundle_name = "NearbyConnections",
+    minimum_os_version = MIN_IOS_VERSION,
+    deps = [
+        ":Connections",
     ],
 )
