@@ -375,6 +375,9 @@ message ConnectionsLog {
 
     // The frequency of the connected WiFi AP.
     optional int32 connected_ap_frequency = 2;
+
+    // The NFC (Near Field Communication) support status
+    optional bool supports_nfc_technology = 3;
   }
 
   // Some additional information to keep with the discovery phase.
@@ -384,6 +387,9 @@ message ConnectionsLog {
 
     // The frequency of the connected WiFi AP.
     optional int32 connected_ap_frequency = 2;
+
+    // The NFC (Near Field Communication) support status
+    optional bool supports_nfc_technology = 3;
   }
 
   // Some additional information to keep with the connection attempt.
