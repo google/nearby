@@ -193,7 +193,7 @@ DLL_EXPORT void __stdcall RejectConnection(Core *pCore, const char *endpoint_id,
 // result_cb    - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the device has not first
-//         performed advertisement or discovery (to set the Strategy.
+//         performed advertisement or discovery (to set the Strategy.)
 //     Status::STATUS_ENDPOINT_UNKNOWN if there's no active (or pending)
 //         connection to the remote endpoint.
 //     Status::STATUS_OK if none of the above errors occurred. Note that this

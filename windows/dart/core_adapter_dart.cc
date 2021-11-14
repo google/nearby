@@ -14,6 +14,7 @@
 
 #include "third_party/dart_lang/v2/runtime/include/dart_api_dl.h"
 #include "third_party/dart_lang/v2/runtime/include/dart_native_api.h"
+#include "core/core.h"
 #include "third_party/nearby_connections/windows/dart/core_adapter_dart.h"
 
 namespace location {
@@ -69,7 +70,7 @@ void StartAdvertisingDart(Core *pCore, const char *service_id,
     return;
   }
 
-  windows::AdvertisingOptions options;
+  AdvertisingOptions options;
   options.strategy = GetStrategy(options_dart.strategy);
   options.auto_upgrade_bandwidth = options_dart.auto_upgrade_bandwidth;
   options.enforce_topology_constraints =
@@ -163,7 +164,7 @@ void StopAdvertisingDart(Core *pCore, Dart_Port result_cb) {
 
   ResultCallback callback;
   SetResultCallback(callback, result_cb);
-  windows::StopAdvertising(pCore, callback);
+  StopAdvertising(pCore, callback);
 }
 
 void StartDiscoveryDart(Core *pCore, const char *service_id,
@@ -175,7 +176,7 @@ void StartDiscoveryDart(Core *pCore, const char *service_id,
     return;
   }
 
-  windows::DiscoveryOptions options;
+  DiscoveryOptions options;
   options.strategy = GetStrategy(options_dart.strategy);
   options.allowed.bluetooth = options_dart.enable_bluetooth;
   options.allowed.ble = options_dart.enable_ble;
@@ -260,7 +261,7 @@ void StopDiscoveryDart(Core *pCore, Dart_Port result_cb) {
 
   ResultCallback callback;
   SetResultCallback(callback, result_cb);
-  windows::StopDiscovery(pCore, callback);
+  StopDiscovery(pCore, callback);
 }
 
 void RequestConnectionDart(Core *pCore, const char *endpoint_id,
@@ -272,7 +273,7 @@ void RequestConnectionDart(Core *pCore, const char *endpoint_id,
     return;
   }
 
-  windows::ConnectionOptions options;
+  ConnectionOptions options;
   options.enforce_topology_constraints = false;
   options.allowed.bluetooth = options_dart.enable_bluetooth;
   options.allowed.ble = options_dart.enable_ble;
@@ -350,7 +351,8 @@ void RequestConnectionDart(Core *pCore, const char *endpoint_id,
   RequestConnection(pCore, endpoint_id, info, std::move(options), callback);
 }
 
-void AcceptConnectionDart(Core *pCore, const char *endpoint_id,
+void AcceptConnectionDart(Core *pCore,
+                          const char *endpoint_id,
                           PayloadListenerDart listener_dart,
                           Dart_Port result_cb) {
   if (!pCore) {
@@ -360,36 +362,120 @@ void AcceptConnectionDart(Core *pCore, const char *endpoint_id,
 
   PayloadListener listener;
   listener.payload_cb = [listener_dart](const std::string &endpoint_id,
-                                        Payload payload) {
-    // TODO: pass payload in callback
-    Dart_CObject dart_object_payload;
-    dart_object_payload.type = Dart_CObject_kString;
-    dart_object_payload.value.as_string = (char *)endpoint_id.data();
-    const bool result =
-        Dart_PostCObject_DL(listener_dart.payload_cb, &dart_object_payload);
-    if (!result) {
-      NEARBY_LOG(INFO, "Posting message to port failed.");
+    Payload payload) {
+      NEARBY_LOG(INFO, "Payload callback called. id: %s, "
+                 "payload_id: %d, type: %d, offset: %d",
+                 endpoint_id.c_str(),
+                 payload.GetId(),
+                 payload.GetType(),
+                 payload.GetOffset());
+
+      Dart_CObject dart_object_endpoint_id;
+      dart_object_endpoint_id.type = Dart_CObject_kString;
+      dart_object_endpoint_id.value.as_string =
+          (char *)endpoint_id.data();
+
+      Dart_CObject dart_object_payload_id;
+      dart_object_payload_id.type = Dart_CObject_kInt64;
+      dart_object_payload_id.value.as_int64 = payload.GetId();
+
+      Dart_CObject dart_object_payload_type;
+      dart_object_payload_type.type = Dart_CObject_kInt64;
+      dart_object_payload_type.value.as_int64 = (int)payload.GetType();
+
+      Dart_CObject dart_object_offset;
+      dart_object_offset.type = Dart_CObject_kInt64;
+      dart_object_offset.value.as_int64 = payload.GetOffset();
+
+      Dart_CObject* elements[4];
+      elements[0] = &dart_object_endpoint_id;
+      elements[1] = &dart_object_payload_id;
+      elements[2] = &dart_object_payload_type;
+      elements[3] = &dart_object_offset;
+
+      Dart_CObject dart_object_payload;
+      dart_object_payload.type = Dart_CObject_kArray;
+      dart_object_payload.value.as_array.length = 4;
+      dart_object_payload.value.as_array.values = elements;
+
+      const bool result = Dart_PostCObject_DL(listener_dart.payload_cb,
+                            &dart_object_payload);
+      if (!result) {
+        NEARBY_LOG(INFO, "Posting message to port failed.");
     }
   };
   listener.payload_progress_cb = [listener_dart](
-                                     const std::string &endpoint_id,
-                                     const PayloadProgressInfo &info) {
-    // TODO: pass payload progress info in callback
-    Dart_CObject dart_object_payload;
-    dart_object_payload.type = Dart_CObject_kString;
-    dart_object_payload.value.as_string = (char *)endpoint_id.data();
-    const bool result =
-        Dart_PostCObject_DL(listener_dart.payload_cb, &dart_object_payload);
-    if (!result) {
-      NEARBY_LOG(INFO, "Posting message to port failed.");
-    }
-  };
+    const std::string &endpoint_id,
+    const PayloadProgressInfo& info) {
+      NEARBY_LOG(INFO, "Payload progress callback called. id: %s, "
+               "payload_id: %d, bytes transferred: %d, total: %d, status: %d",
+               endpoint_id.c_str(),
+               info.payload_id,
+               info.bytes_transferred,
+               info.total_bytes,
+               info.status);
+      Dart_CObject dart_object_endpoint_id;
+      dart_object_endpoint_id.type = Dart_CObject_kString;
+      dart_object_endpoint_id.value.as_string =
+          (char *)endpoint_id.data();
+
+      Dart_CObject dart_object_payload_id;
+      dart_object_payload_id.type = Dart_CObject_kInt64;
+      dart_object_payload_id.value.as_int64 = info.payload_id;
+
+      Dart_CObject dart_object_bytes_transferred;
+      dart_object_bytes_transferred.type = Dart_CObject_kInt64;
+      dart_object_bytes_transferred.value.as_int64 = info.bytes_transferred;
+
+      Dart_CObject dart_object_total_bytes;
+      dart_object_total_bytes.type = Dart_CObject_kInt64;
+      dart_object_total_bytes.value.as_int64 = info.total_bytes;
+
+      Dart_CObject dart_object_status;
+      dart_object_status.type = Dart_CObject_kInt64;
+      dart_object_status.value.as_int64 = (int64_t)info.status;
+
+      Dart_CObject* elements[5];
+      elements[0] = &dart_object_endpoint_id;
+      elements[1] = &dart_object_payload_id;
+      elements[2] = &dart_object_bytes_transferred;
+      elements[3] = &dart_object_total_bytes;
+      elements[4] = &dart_object_status;
+
+      Dart_CObject dart_object_payload_progress;
+      dart_object_payload_progress.type = Dart_CObject_kArray;
+      dart_object_payload_progress.value.as_array.length = 5;
+      dart_object_payload_progress.value.as_array.values = elements;
+
+      const bool result =
+          Dart_PostCObject_DL(listener_dart.payload_progress_cb,
+                              &dart_object_payload_progress);
+      if (!result) {
+        NEARBY_LOG(INFO,
+                   "Posting message to port failed.");
+      }
+    };
 
   ResultCallback callback;
   SetResultCallback(callback, result_cb);
-  windows::AcceptConnection(pCore, endpoint_id, listener, callback);
+  AcceptConnection(pCore, endpoint_id, listener, callback);
 }
 
+void SendPayloadDart(Core *pCore, const char *endpoint_id,
+                     PayloadDart payload_dart, Dart_Port result_cb) {
+  if (!pCore) {
+    PostResult(result_cb, Status::Value::kError);
+    return;
+  }
+
+  ResultCallback callback;
+  std::vector<string> endpoint_ids = {string(endpoint_id)};
+
+  Payload payload(Payload::GenerateId(), ByteArray(payload_dart.data));
+  SetResultCallback(callback, result_cb);
+  SendPayload(pCore, absl::Span<const std::string>(endpoint_ids),
+              std::move(payload), callback);
+}
 }  // namespace windows
 }  // namespace connections
 }  // namespace nearby

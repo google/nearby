@@ -28,6 +28,13 @@ enum StrategyDart {
   P2P_POINT_TO_POINT,
 };
 
+enum PayloadType {
+  UNKNOWN = 0,
+  BYTE,
+  STREAM,
+  FILE,
+};
+
 struct ConnectionOptionsDart {
   StrategyDart strategy;
   int64_t auto_upgrade_bandwidth;
@@ -61,6 +68,13 @@ struct DiscoveryListenerDart {
 struct PayloadListenerDart {
   int64_t payload_cb;
   int64_t payload_progress_cb;
+};
+
+struct PayloadDart {
+  int64_t id;
+  PayloadType type;
+  int64_t size;
+  char* data;
 };
 
 // Starts advertising an endpoint for a local app.
@@ -158,6 +172,29 @@ DLL_EXPORT void __stdcall RequestConnectionDart(
 DLL_EXPORT void __stdcall AcceptConnectionDart(
     Core *pCore, const char *endpoint_id, PayloadListenerDart listener_dart,
     Dart_Port result_cb);
+// Sends a Payload to a remote endpoint. Payloads can only be sent to remote
+// endpoints once a notice of connection acceptance has been delivered via
+// ConnectionListener::onConnectionResult().
+//
+// endpoint_id - Remote endpoint identifier for the  to which the
+//                payload should be sent.
+// payload      - The Payload to be sent.
+// result_cb    - to access the status of the operation when available.
+//   Possible status codes include:
+//     Status::STATUS_OUT_OF_ORDER_API_CALL if the device has not first
+//         performed advertisement or discovery (to set the Strategy.)
+//     Status::STATUS_ENDPOINT_UNKNOWN if there's no active (or pending)
+//         connection to the remote endpoint.
+//     Status::STATUS_OK if none of the above errors occurred. Note that this
+//         indicates that Nearby Connections will attempt to send the Payload,
+//         but not that the send has successfully completed yet. Errors might
+//         still occur during transmission (and at different times for
+//         different endpoints), and will be delivered via
+//         PayloadCallback#onPayloadTransferUpdate.
+DLL_EXPORT void __stdcall SendPayloadDart(Core* pCore,
+                                           const char* endpoint_id,
+                                           PayloadDart payload_dart,
+                                           Dart_Port result_cb);
 
 }  // namespace windows
 }  // namespace connections
