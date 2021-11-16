@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby_connections/cpp/platform/api/crypto.h"
+#include "third_party/nearby/cpp/platform/api/crypto.h"
 
 #import "third_party/absl/strings/string_view.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/utils.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Shared/GNCUtils.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/utils.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Shared/GNCUtils.h"
 
 namespace location {
 namespace nearby {

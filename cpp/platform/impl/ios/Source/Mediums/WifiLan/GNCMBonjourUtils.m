@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourUtils.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourUtils.h"
 
 NSString *const GNCMBonjourDomain = @"local";

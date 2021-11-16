@@ -25,11 +25,11 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//third_party/nearby_connections/cpp:__subpackages__",
+        "//third_party/nearby/cpp:__subpackages__",
     ],
     deps = [
-        "//third_party/nearby_connections/cpp/cal/api:ble",
-        "//third_party/nearby_connections/cpp/cal/base:types",
+        "//third_party/nearby/cpp/cal/api:ble",
+        "//third_party/nearby/cpp/cal/base:types",
     ],
 )
 
@@ -44,7 +44,7 @@ cc_test(
         ":ble",
         "//testing/base/public:gunit",
         "//testing/base/public:gunit_main",
-        "//third_party/nearby_connections/cpp/cal/api:ble",
-        "//third_party/nearby_connections/cpp/cal/base:types",
+        "//third_party/nearby/cpp/cal/api:ble",
+        "//third_party/nearby/cpp/cal/base:types",
     ],
 )

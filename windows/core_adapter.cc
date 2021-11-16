@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include "third_party/nearby_connections/windows/core_adapter.h"
+#include "third_party/nearby/windows/core_adapter.h"
 
 #include "absl/strings/str_format.h"
 #include "core/core.h"

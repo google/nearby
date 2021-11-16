@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby_connections/windows/discovery_options.h"
+#include "third_party/nearby/windows/discovery_options.h"
 
 #include "core/options.h"
 #include "core/strategy.h"

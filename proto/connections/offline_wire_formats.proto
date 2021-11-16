@@ -72,7 +72,7 @@ message ConnectionRequestFrame {
     WEB_RTC = 9;
     BLE_L2CAP = 10;
   }
-  // LINT.ThenChange(//depot/google3/third_party/nearby_connections/proto/connections_enums.proto)
+  // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
 
   optional string endpoint_id = 1;
   optional string endpoint_name = 2;

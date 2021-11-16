@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/input_file.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/input_file.h"
 
 #include <string>
 
-#import "third_party/nearby_connections/cpp/platform/base/exception.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/utils.h"
+#import "third_party/nearby/cpp/platform/base/exception.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/utils.h"
 
 namespace location {
 namespace nearby {

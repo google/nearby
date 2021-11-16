@@ -86,7 +86,7 @@ enum Medium {
 // LINT.ThenChange(
 //     //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/Medium.java,
 //     //depot/google3/java/com/google/android/gms/nearby/internal/connection/api.proto,
-//     //depot/google3/third_party/nearby_connections/proto/connections/offline_wire_formats.proto
+//     //depot/google3/third_party/nearby/proto/connections/offline_wire_formats.proto
 // )
 
 // The medium technologies used during the sharing.

@@ -45,7 +45,7 @@ cc_library(
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//analytics:__subpackages__",
-        "//third_party/nearby_connections/cpp/cal:__subpackages__",
+        "//third_party/nearby/cpp/cal:__subpackages__",
         "//core:__subpackages__",
         "//platform:__subpackages__",
         "//platform/api:__subpackages__",
