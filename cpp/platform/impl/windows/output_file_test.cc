@@ -12,29 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "platform/impl/windows/output_file.h"
-
 #include "gtest/gtest.h"
 #include "platform/api/platform.h"
 #include "platform/base/exception.h"
-#include "platform/base/payload_id.h"
 #include "platform/impl/windows/test_utils.h"
 
 class OutputFileTests : public testing::Test {
  protected:
   // You can define per-test set-up logic as usual.
   void SetUp() override {
-    location::nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
-    if (FileExists(test_utils::GetPayloadPath(payloadId).c_str())) {
-      DeleteFileA(test_utils::GetPayloadPath(payloadId).c_str());
+    if (FileExists(TEST_FILE_PATH.c_str())) {
+      DeleteFileA(TEST_FILE_PATH.c_str());
     }
   }
 
   // You can define per-test tear-down logic as usual.
   void TearDown() override {
-    location::nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
-    if (FileExists(test_utils::GetPayloadPath(payloadId).c_str())) {
-      DeleteFileA(test_utils::GetPayloadPath(payloadId).c_str());
+    if (FileExists(TEST_FILE_PATH.c_str())) {
+      DeleteFileA(TEST_FILE_PATH.c_str());
     }
   }
 
@@ -47,44 +42,41 @@ class OutputFileTests : public testing::Test {
 };
 
 TEST_F(OutputFileTests, SuccessfulCreation) {
-  location::nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
   std::unique_ptr<location::nearby::api::OutputFile> outputFile = nullptr;
 
   EXPECT_NO_THROW(
       outputFile =
           location::nearby::api::ImplementationPlatform::CreateOutputFile(
-              payloadId));
+              TEST_FILE_PATH.c_str()));
 
   EXPECT_NE(outputFile, nullptr);
   EXPECT_NO_THROW(outputFile->Close());
 }
 
 TEST_F(OutputFileTests, SuccessfulClose) {
-  location::nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
   std::unique_ptr<location::nearby::api::OutputFile> outputFile = nullptr;
 
   EXPECT_NO_THROW(
       outputFile =
           location::nearby::api::ImplementationPlatform::CreateOutputFile(
-              payloadId));
+              TEST_FILE_PATH.c_str()));
 
   EXPECT_NO_THROW(outputFile->Close());
 
-  DeleteFileA(test_utils::GetPayloadPath(payloadId).c_str());
+  DeleteFileA(TEST_FILE_PATH.c_str());
 }
 
 TEST_F(OutputFileTests, SuccessfulWrite) {
-  location::nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
   location::nearby::ByteArray data(std::string(TEST_STRING));
   std::unique_ptr<location::nearby::api::OutputFile> outputFile = nullptr;
 
   EXPECT_NO_THROW(
       outputFile =
           location::nearby::api::ImplementationPlatform::CreateOutputFile(
-              payloadId));
+              TEST_FILE_PATH.c_str()));
 
   EXPECT_NO_THROW(outputFile->Write(data));
   EXPECT_NO_THROW(outputFile->Close());
 
-  DeleteFileA(test_utils::GetPayloadPath(payloadId).c_str());
+  DeleteFileA(TEST_FILE_PATH.c_str());
 }

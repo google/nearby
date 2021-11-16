@@ -94,14 +94,13 @@ ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
-    PayloadId payload_id, std::int64_t total_size) {
-  return absl::make_unique<shared::InputFile>(GetPayloadPath(payload_id),
-                                              total_size);
+    const char* file_path) {
+  return absl::make_unique<shared::InputFile>(file_path);
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
-    PayloadId payload_id) {
-  return absl::make_unique<shared::OutputFile>(GetPayloadPath(payload_id));
+    const char* file_path) {
+  return absl::make_unique<shared::OutputFile>(file_path);
 }
 
 // TODO(b/184975123): replace with real implementation.

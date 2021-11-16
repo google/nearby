@@ -79,9 +79,8 @@ class ImplementationPlatform {
   static std::unique_ptr<Mutex> CreateMutex(Mutex::Mode mode);
   static std::unique_ptr<ConditionVariable> CreateConditionVariable(
       Mutex* mutex);
-  static std::unique_ptr<InputFile> CreateInputFile(PayloadId payload_id,
-                                                    std::int64_t total_size);
-  static std::unique_ptr<OutputFile> CreateOutputFile(PayloadId payload_id);
+  static std::unique_ptr<InputFile> CreateInputFile(const char* file_path);
+  static std::unique_ptr<OutputFile> CreateOutputFile(const char* file_path);
   static std::unique_ptr<LogMessage> CreateLogMessage(
       const char* file, int line, LogMessage::Severity severity);
 

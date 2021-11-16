@@ -259,6 +259,7 @@ Payload::Id PayloadManager::CreateOutgoingPayload(
   Payload::Id payload_id = internal_payload->GetId();
   NEARBY_LOGS(INFO) << "CreateOutgoingPayload: payload_id=" << payload_id;
   MutexLock lock(&mutex_);
+
   pending_payloads_.StartTrackingPayload(
       payload_id, absl::make_unique<PendingPayload>(std::move(internal_payload),
                                                     endpoint_ids,
@@ -354,6 +355,7 @@ void PayloadManager::SendPayload(ClientProxy* client,
   // Before transfer to internal payload, retrieves the Payload size for
   // analytics.
   std::int64_t payload_total_size;
+
   switch (payload.GetType()) {
     case connections::Payload::Type::kBytes:
       payload_total_size = payload.AsBytes().size();
@@ -392,11 +394,15 @@ void PayloadManager::SendPayload(ClientProxy* client,
           ? payload.GetOffset()
           : 0;
 
+  auto file_name = payload.GetFileName();
+  auto parent_folder = payload.GetParentFolder();
+
   Payload::Id payload_id =
       CreateOutgoingPayload(std::move(payload), endpoint_ids);
   executor->Execute(
-      "send-payload", [this, client, endpoint_ids, payload_id, payload_type,
-                       resume_offset, payload_total_size]() {
+      "send-payload",
+      [this, client, endpoint_ids, payload_id, payload_type, resume_offset,
+       payload_total_size, file_name, parent_folder]() {
         if (shutdown_.Get()) return;
         PendingPayload* pending_payload = GetPayload(payload_id);
         if (!pending_payload) {
@@ -417,8 +423,8 @@ void PayloadManager::SendPayload(ClientProxy* client,
                                       payload_type, resume_offset,
                                       internal_payload->GetTotalSize());
 
-        PayloadTransferFrame::PayloadHeader payload_header{
-            CreatePayloadHeader(*internal_payload, resume_offset)};
+        PayloadTransferFrame::PayloadHeader payload_header{CreatePayloadHeader(
+            *internal_payload, resume_offset, parent_folder, file_name)};
         bool should_continue = true;
         std::int64_t next_chunk_offset = 0;
         while (should_continue && !shutdown_.Get()) {
@@ -610,12 +616,15 @@ int PayloadManager::GetOptimalChunkSize(EndpointIds endpoint_ids) {
 }
 
 PayloadTransferFrame::PayloadHeader PayloadManager::CreatePayloadHeader(
-    const InternalPayload& internal_payload, size_t offset) {
+    const InternalPayload& internal_payload, size_t offset,
+    std::string parent_folder, std::string file_name) {
   PayloadTransferFrame::PayloadHeader payload_header;
   size_t payload_size = internal_payload.GetTotalSize();
 
   payload_header.set_id(internal_payload.GetId());
   payload_header.set_type(internal_payload.GetType());
+  payload_header.set_file_name(file_name);
+  payload_header.set_parent_folder(parent_folder);
   payload_header.set_total_size(payload_size ==
                                         InternalPayload::kIndeterminateSize
                                     ? InternalPayload::kIndeterminateSize
@@ -1170,6 +1179,7 @@ PayloadManager::PendingPayload::PendingPayload(
   // Later on some may become canceled, some may experience data transfer
   // failures. Any of these situations will cause endpoint to be marked as
   // unavailable.
+
   for (const auto& id : endpoint_ids) {
     EndpointInfo endpoint_info{};
     endpoint_info.id = id;

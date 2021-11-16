@@ -15,13 +15,7 @@
 #ifndef PLATFORM_IMPL_WINDOWS_TEST_UTILS_H_
 #define PLATFORM_IMPL_WINDOWS_TEST_UTILS_H_
 
-#include <Windows.h>
-#include <stdio.h>
-
-#include <string>
 #include <xstring>
-
-#include "platform/base/payload_id.h"
 
 #define TEST_BUFFER_SIZE 256
 #define TEST_PAYLOAD_ID 64l
@@ -39,9 +33,10 @@
   "eu tellus. Cras feugiat ornare vestibulum. Nullam at ipsum vestibulum "     \
   "sapien luctus dictum ac vel ligula."
 
+#define TEST_FILE_PATH std::string("testfilename.txt")
+
 namespace test_utils {
 std::wstring StringToWideString(const std::string& s);
-std::string GetPayloadPath(location::nearby::PayloadId payload_id);
 }  // namespace test_utils
 
 #endif  // PLATFORM_IMPL_WINDOWS_TEST_UTILS_H_

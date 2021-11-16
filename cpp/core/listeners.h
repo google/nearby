@@ -32,8 +32,8 @@
 #include "core/status.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/byte_utils.h"
+#include "platform/base/core_config.h"
 #include "platform/base/listeners.h"
-#include "platform/public/core_config.h"
 
 namespace location {
 namespace nearby {

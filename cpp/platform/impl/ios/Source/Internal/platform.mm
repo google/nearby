@@ -78,11 +78,12 @@ std::unique_ptr<ConditionVariable> ImplementationPlatform::CreateConditionVariab
   return std::make_unique<ios::ConditionVariable>(static_cast<ios::Mutex*>(mutex));
 }
 
-std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(PayloadId payload_id,
-                                                                   std::int64_t total_size) {
-  // Extract the NSURL object with payload_id from |GNCCore| which stores the maps. If the retrieved
-  // NSURL object is not nil, we create InputFile by ios::InputFile. The difference is
-  // that ios::InputFile implements to read bytes from local real file for sending.
+std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(const char* file_path) {
+// Extract the NSURL object with payload_id from |GNCCore| which stores the maps. If the retrieved
+// NSURL object is not nil, we create InputFile by ios::InputFile. The difference is
+// that ios::InputFile implements to read bytes from local real file for sending.
+// TODO(jfcarroll): Need someone familiar with iOS to fix this
+#if 0
   GNCCore* core = GNCGetCore();
   NSURL* url = [core extractURLWithPayloadID:payload_id];
   if (url != nil) {
@@ -90,10 +91,13 @@ std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(PayloadId pay
   } else {
     return absl::make_unique<shared::InputFile>(GetPayloadPath(payload_id), total_size);
   }
+#endif
+  return nullptr;
 }
 
-std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(PayloadId payload_id) {
-  return absl::make_unique<shared::OutputFile>(GetPayloadPath(payload_id));
+std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(const char* file_path) {
+  return absl::make_unique<shared::OutputFile>(file_path);
+  return nullptr;
 }
 
 std::unique_ptr<LogMessage> ImplementationPlatform::CreateLogMessage(

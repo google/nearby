@@ -14,6 +14,8 @@
 
 #include "core/internal/internal_payload_factory.h"
 
+#include <filesystem>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -30,6 +32,9 @@ namespace connections {
 namespace {
 
 constexpr char kText[] = "data chunk";
+#define TEST_FILE_NAME std::string("testfilename.txt")
+#define TEST_FILE_PARENT_FOLDER std::string("")
+#define TEST_FILE_PATH TEST_FILE_NAME
 
 TEST(InternalPayloadFActoryTest, CanCreateIternalPayloadFromBytePayload) {
   ByteArray data(kText);
@@ -56,17 +61,18 @@ TEST(InternalPayloadFActoryTest, CanCreateIternalPayloadFromStreamPayload) {
 }
 
 TEST(InternalPayloadFActoryTest, CanCreateIternalPayloadFromFilePayload) {
-  Payload::Id payload_id = Payload::GenerateId();
   std::unique_ptr<InternalPayload> internal_payload =
-      CreateOutgoingInternalPayload(
-          Payload{payload_id, InputFile(payload_id, 512)});
+      CreateOutgoingInternalPayload(Payload{TEST_FILE_PARENT_FOLDER.c_str(),
+                                            TEST_FILE_NAME.c_str(),
+                                            InputFile(TEST_FILE_PATH.c_str())});
   EXPECT_NE(internal_payload, nullptr);
   Payload payload = internal_payload->ReleasePayload();
   EXPECT_NE(payload.AsFile(), nullptr);
   EXPECT_EQ(payload.AsStream(), nullptr);
   EXPECT_EQ(payload.AsBytes(), ByteArray());
-  EXPECT_EQ(payload.GetId(), payload_id);
-  EXPECT_EQ(payload.AsFile()->GetPayloadId(), payload_id);
+  EXPECT_EQ(payload.AsFile()->GetFilePath(), TEST_FILE_PATH);
+  payload.AsFile()->Close();
+  std::filesystem::remove(TEST_FILE_PATH);
 }
 
 TEST(InternalPayloadFActoryTest, CanCreateIternalPayloadFromByteMessage) {
@@ -124,11 +130,10 @@ TEST(InternalPayloadFActoryTest, CanCreateIternalPayloadFromFileMessage) {
   EXPECT_EQ(payload.AsStream(), nullptr);
   EXPECT_EQ(payload.AsBytes(), ByteArray());
   EXPECT_EQ(payload.GetType(), Payload::Type::kFile);
-  EXPECT_EQ(payload.GetId(), payload.AsFile()->GetPayloadId());
 }
 
-void CreateFileWithContents(Payload::Id payload_id, const ByteArray& contents) {
-  OutputFile file(payload_id);
+void CreateFileWithContents(const char* file_path, const ByteArray& contents) {
+  OutputFile file(file_path);
   EXPECT_TRUE(file.Write(contents).Ok());
   EXPECT_TRUE(file.Close().Ok());
 }
@@ -138,11 +143,19 @@ TEST(InternalPayloadFActoryTest,
   ByteArray contents("0123456789");
   constexpr size_t kOffset = 4;
   size_t size_after_skip = contents.size() - kOffset;
+  NEARBY_LOGS(INFO)
+      << "SkipToOffset_FilePayloadValidOffset_SkipsOffset: file path = "
+      << TEST_FILE_PATH.c_str() << "\n";
+  NEARBY_LOGS(INFO)
+      << "SkipToOffset_FilePayloadValidOffset_SkipsOffset: contents = "
+      << contents.data() << "\n";
+
+  CreateFileWithContents(TEST_FILE_PATH.c_str(), contents);
   Payload::Id payload_id = Payload::GenerateId();
-  CreateFileWithContents(payload_id, contents);
+  std::unique_ptr<InputFile> inputFile =
+      std::make_unique<InputFile>(TEST_FILE_PATH.c_str());
   std::unique_ptr<InternalPayload> internal_payload =
-      CreateOutgoingInternalPayload(
-          Payload{payload_id, InputFile(payload_id, contents.size())});
+      CreateOutgoingInternalPayload(Payload{payload_id, std::move(*inputFile)});
   EXPECT_NE(internal_payload, nullptr);
 
   ExceptionOr<size_t> result = internal_payload->SkipToOffset(kOffset);
@@ -153,6 +166,8 @@ TEST(InternalPayloadFActoryTest,
   ByteArray contents_after_skip =
       internal_payload->DetachNextChunk(size_after_skip);
   EXPECT_EQ(contents_after_skip, ByteArray("456789"));
+  internal_payload = nullptr;
+  std::filesystem::remove(TEST_FILE_PATH);
 }
 
 TEST(InternalPayloadFActoryTest,
