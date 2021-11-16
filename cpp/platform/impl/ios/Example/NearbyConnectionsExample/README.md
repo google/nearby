@@ -9,7 +9,7 @@ sends "pong" payload back to the advertiser. The connection is then closed.
 
 ## Setup
 
-1.Get the NearbyConnections_framework.zip from https://github.com/google/nearby/tree/master/releases/new/, unzip it,
+1.Get the NearbyConnections_framework.zip from https://github.com/google/nearby/releases/tag/v0.0.1-ios, unzip it,
 and put your unzipped folder under your project folder. The directory structure
 looks like:
 
