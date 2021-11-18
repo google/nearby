@@ -14,8 +14,8 @@
 
 #import <Foundation/Foundation.h>
 
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/GNCConnection.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Internal/GNCCore.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/GNCConnection.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCCore.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

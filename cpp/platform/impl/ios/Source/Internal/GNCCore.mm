@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Internal/GNCCore.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCCore.h"
 
 #include <utility>
 
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/container/internal/common.h"
-#include "third_party/nearby_connections/cpp/core/core.h"
-#include "third_party/nearby_connections/cpp/core/internal/service_controller_router.h"
-#include "third_party/nearby_connections/cpp/platform/base/payload_id.h"
+#include "third_party/nearby/cpp/core/core.h"
+#include "third_party/nearby/cpp/core/internal/service_controller_router.h"
+#include "third_party/nearby/cpp/platform/base/payload_id.h"
 #import "third_party/objective_c/google_toolbox_for_mac/Foundation/GTMLogger.h"
 
 using ::location::nearby::connections::Core;

@@ -17,8 +17,8 @@
 
 #include <memory>
 
-#include "third_party/nearby_connections/cpp/cal/api/ble.h"
-#include "third_party/nearby_connections/cpp/cal/base/ble_types.h"
+#include "third_party/nearby/cpp/cal/api/ble.h"
+#include "third_party/nearby/cpp/cal/base/ble_types.h"
 
 namespace nearby {
 namespace cal {

@@ -22,7 +22,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "platform/api/wifi_lan.h"
 #include "platform/base/nsd_service_info.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Mediums/GNCMConnection.h"  // IWYU pragma: export
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Mediums/GNCMConnection.h"  // IWYU pragma: export
 
 @class GNCMBonjourBrowser;
 @class GNCMBonjourService;

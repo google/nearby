@@ -17,30 +17,22 @@ licenses(["notice"])
 
 # Build with --config=lexan
 cc_windows_dll(
-    name = "core_adapter",
+    name = "core_adapter_dart",
     srcs = [
-        "advertising_options.cc",
-        "connection_options.cc",
-        "core_adapter.cc",
-        "discovery_options.cc",
+        "core_adapter_dart.cc",
     ],
     hdrs = [
-        "advertising_options.h",
-        "connection_options.h",
-        "core_adapter.h",
-        "discovery_options.h",
+        "core_adapter_dart.h",
     ],
-    copts = ["-DCORE_ADAPTER_BUILD_DLL -DCOMPILING_CORE"],
-    defines = ["CORE_ADAPTER_DLL"],
+    copts = ["-DCORE_ADAPTER_DART_BUILD_DLL -DCORE_ADAPTER_DLL -DCOMPILING_CORE"],
+    defines = ["CORE_ADAPTER_DART_DLL"],
     tags = ["windows-dll"],
-    visibility = [
-        "//third_party/nearby/windows/dart:__subpackages__",
-    ],
     deps = [
         "//absl/strings",
         "//third_party/dart_lang/v2:dart_api_dl",
         "//core",
         "//platform/impl/windows",
+        "//third_party/nearby/windows:core_adapter",
         "//webrtc/api:create_peerconnection_factory",
     ],
 )

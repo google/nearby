@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourService.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourService.h"
 
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Mediums/GNCMConnection.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourConnection.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourUtils.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Mediums/GNCMConnection.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourConnection.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourUtils.h"
 #import "third_party/objective_c/google_toolbox_for_mac/Foundation/GTMLogger.h"
 
 @interface GNCMBonjourService () <NSNetServiceDelegate>

@@ -12,19 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Internal/GNCCoreConnection.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCCoreConnection.h"
 
-#include "third_party/nearby_connections/cpp/core/core.h"
-#include "third_party/nearby_connections/cpp/core/payload.h"
-#include "third_party/nearby_connections/cpp/platform/api/input_file.h"
-#import "third_party/nearby_connections/cpp/platform/base/exception.h"
-#include "third_party/nearby_connections/cpp/platform/base/input_stream.h"
-#import "third_party/nearby_connections/cpp/platform/base/payload_id.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/GNCConnection.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/GNCPayload.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Internal/GNCCore.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/utils.h"
-#include "third_party/nearby_connections/cpp/platform/public/file.h"
+#include "third_party/nearby/cpp/core/core.h"
+#include "third_party/nearby/cpp/core/payload.h"
+#include "third_party/nearby/cpp/platform/api/input_file.h"
+#import "third_party/nearby/cpp/platform/base/exception.h"
+#include "third_party/nearby/cpp/platform/base/input_stream.h"
+#import "third_party/nearby/cpp/platform/base/payload_id.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/GNCConnection.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/GNCPayload.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCCore.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/utils.h"
+#include "third_party/nearby/cpp/platform/public/file.h"
 
 using ::location::nearby::ByteArrayFromNSData;
 using ::location::nearby::CppStringFromObjCString;

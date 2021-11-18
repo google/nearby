@@ -48,7 +48,7 @@ portable_proto_library(
         ":error_code_enums_proto",
     ],
     visibility = [
-        "//third_party/nearby_connections:__subpackages__",
+        "//third_party/nearby:__subpackages__",
     ],
 )
 

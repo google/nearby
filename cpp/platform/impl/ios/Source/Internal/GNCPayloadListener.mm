@@ -12,23 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Internal/GNCPayloadListener.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCPayloadListener.h"
 
 #include <string>
 
-#include "third_party/nearby_connections/cpp/core/core.h"
-#include "third_party/nearby_connections/cpp/core/listeners.h"
-#include "third_party/nearby_connections/cpp/core/payload.h"
-#include "third_party/nearby_connections/cpp/platform/base/byte_array.h"
-#include "third_party/nearby_connections/cpp/platform/base/exception.h"
-#include "third_party/nearby_connections/cpp/platform/base/input_stream.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/GNCConnection.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/GNCPayload.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Internal/GNCCore.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Internal/GNCCoreConnection.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Internal/GNCPayload+Internal.h"
-#include "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/utils.h"
-#include "third_party/nearby_connections/cpp/platform/public/file.h"
+#include "third_party/nearby/cpp/core/core.h"
+#include "third_party/nearby/cpp/core/listeners.h"
+#include "third_party/nearby/cpp/core/payload.h"
+#include "third_party/nearby/cpp/platform/base/byte_array.h"
+#include "third_party/nearby/cpp/platform/base/exception.h"
+#include "third_party/nearby/cpp/platform/base/input_stream.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/GNCConnection.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/GNCPayload.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCCore.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCCoreConnection.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCPayload+Internal.h"
+#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/utils.h"
+#include "third_party/nearby/cpp/platform/public/file.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

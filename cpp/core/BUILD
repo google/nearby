@@ -25,7 +25,7 @@ cc_library(
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//platform/impl/ios:__subpackages__",
-        "//third_party/nearby_connections/windows:__subpackages__",
+        "//third_party/nearby/windows:__subpackages__",
     ],
     deps = [
         ":core_types",

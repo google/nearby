@@ -15,7 +15,7 @@
 #ifndef LOCATION_NEARBY_CONNECTIONS_WINDOWS_DART_CORE_ADAPTER_DART_H_
 #define LOCATION_NEARBY_CONNECTIONS_WINDOWS_DART_CORE_ADAPTER_DART_H_
 
-#include "third_party/nearby_connections/windows/core_adapter.h"
+#include "third_party/nearby/windows/core_adapter.h"
 
 namespace location {
 namespace nearby {
