@@ -15,7 +15,7 @@
 #include "third_party/dart_lang/v2/runtime/include/dart_api_dl.h"
 #include "third_party/dart_lang/v2/runtime/include/dart_native_api.h"
 #include "core/core.h"
-#include "third_party/nearby_connections/windows/dart/core_adapter_dart.h"
+#include "third_party/nearby/windows/dart/core_adapter_dart.h"
 
 namespace location {
 namespace nearby {

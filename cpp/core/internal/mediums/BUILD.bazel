@@ -39,7 +39,7 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     defines = ["NO_WEBRTC"],
     visibility = [
-        "//third_party/nearby_connections/cpp/core/internal:__subpackages__",
+        "//third_party/nearby/cpp/core/internal:__subpackages__",
     ],
     deps = [
         ":utils",
@@ -50,15 +50,15 @@ cc_library(
         "//third_party/absl/strings",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/time",
-        "//third_party/nearby_connections/cpp/core:core_types",
-        "//third_party/nearby_connections/cpp/core/internal/mediums/ble_v2",
-        "//third_party/nearby_connections/cpp/platform/base",
-        "//third_party/nearby_connections/cpp/platform/base:cancellation_flag",
-        "//third_party/nearby_connections/cpp/platform/public:comm",
-        "//third_party/nearby_connections/cpp/platform/public:logging",
-        "//third_party/nearby_connections/cpp/platform/public:types",
-        "//third_party/nearby_connections/proto/connections:offline_wire_formats_portable_proto",
-        "//third_party/nearby_connections/proto/mediums:web_rtc_signaling_frames_cc_proto",
+        "//third_party/nearby/cpp/core:core_types",
+        "//third_party/nearby/cpp/core/internal/mediums/ble_v2",
+        "//third_party/nearby/cpp/platform/base",
+        "//third_party/nearby/cpp/platform/base:cancellation_flag",
+        "//third_party/nearby/cpp/platform/public:comm",
+        "//third_party/nearby/cpp/platform/public:logging",
+        "//third_party/nearby/cpp/platform/public:types",
+        "//third_party/nearby/proto/connections:offline_wire_formats_portable_proto",
+        "//third_party/nearby/proto/mediums:web_rtc_signaling_frames_cc_proto",
         "//third_party/smhasher:libmurmur3",
     ],
 )
@@ -77,14 +77,14 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     defines = ["NO_WEBRTC"],
     visibility = [
-        "//third_party/nearby_connections/cpp/core/internal:__pkg__",
-        "//third_party/nearby_connections/cpp/core/internal/mediums:__pkg__",
+        "//third_party/nearby/cpp/core/internal:__pkg__",
+        "//third_party/nearby/cpp/core/internal/mediums:__pkg__",
     ],
     deps = [
         "//third_party/absl/strings",
-        "//third_party/nearby_connections/cpp/platform/base",
-        "//third_party/nearby_connections/cpp/platform/public:types",
-        "//third_party/nearby_connections/proto/connections:offline_wire_formats_portable_proto",
+        "//third_party/nearby/cpp/platform/base",
+        "//third_party/nearby/cpp/platform/public:types",
+        "//third_party/nearby/proto/connections:offline_wire_formats_portable_proto",
     ],
 )
 
@@ -109,10 +109,10 @@ cc_test(
         "//testing/base/public:gunit_main",
         "//third_party/absl/strings",
         "//third_party/absl/time",
-        "//third_party/nearby_connections/cpp/platform/base",
-        "//third_party/nearby_connections/cpp/platform/base:test_util",
-        "//third_party/nearby_connections/cpp/platform/impl/g3",  # build_cleaner: keep
-        "//third_party/nearby_connections/cpp/platform/public:comm",
-        "//third_party/nearby_connections/cpp/platform/public:types",
+        "//third_party/nearby/cpp/platform/base",
+        "//third_party/nearby/cpp/platform/base:test_util",
+        "//third_party/nearby/cpp/platform/impl/g3",  # build_cleaner: keep
+        "//third_party/nearby/cpp/platform/public:comm",
+        "//third_party/nearby/cpp/platform/public:types",
     ],
 )

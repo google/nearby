@@ -12,26 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby_connections/cpp/platform/api/platform.h"
+#include "third_party/nearby/cpp/platform/api/platform.h"
 
 #include <string>
 
-#include "third_party/nearby_connections/cpp/platform/api/mutex.h"
-#include "third_party/nearby_connections/cpp/platform/base/payload_id.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Internal/GNCCore.h"
-#include "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/atomic_boolean.h"
-#include "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/atomic_uint32.h"
-#include "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/condition_variable.h"
-#include "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/count_down_latch.h"
-#include "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/input_file.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/log_message.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/multi_thread_executor.h"
-#include "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/mutex.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/scheduled_executor.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/single_thread_executor.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/utils.h"
-#include "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/wifi_lan.h"
-#include "third_party/nearby_connections/cpp/platform/impl/shared/file.h"
+#include "third_party/nearby/cpp/platform/api/mutex.h"
+#include "third_party/nearby/cpp/platform/base/payload_id.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCCore.h"
+#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/atomic_boolean.h"
+#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/atomic_uint32.h"
+#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/condition_variable.h"
+#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/count_down_latch.h"
+#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/input_file.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/log_message.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/multi_thread_executor.h"
+#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/mutex.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/scheduled_executor.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/single_thread_executor.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/utils.h"
+#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/wifi_lan.h"
+#include "third_party/nearby/cpp/platform/impl/shared/file.h"
 
 namespace location {
 namespace nearby {

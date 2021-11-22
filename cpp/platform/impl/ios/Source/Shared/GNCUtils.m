@@ -1,4 +1,4 @@
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Shared/GNCUtils.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Shared/GNCUtils.h"
 
 #import <CommonCrypto/CommonDigest.h>
 

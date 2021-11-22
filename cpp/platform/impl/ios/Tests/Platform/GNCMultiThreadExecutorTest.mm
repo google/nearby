@@ -15,11 +15,11 @@
 #import <XCTest/XCTest.h>
 
 #include "third_party/absl/time/time.h"
-#include "third_party/nearby_connections/cpp/platform/api/cancelable.h"
-#include "third_party/nearby_connections/cpp/platform/api/executor.h"
-#include "third_party/nearby_connections/cpp/platform/api/platform.h"
-#include "third_party/nearby_connections/cpp/platform/api/submittable_executor.h"
-#include "third_party/nearby_connections/cpp/platform/base/runnable.h"
+#include "third_party/nearby/cpp/platform/api/cancelable.h"
+#include "third_party/nearby/cpp/platform/api/executor.h"
+#include "third_party/nearby/cpp/platform/api/platform.h"
+#include "third_party/nearby/cpp/platform/api/submittable_executor.h"
+#include "third_party/nearby/cpp/platform/base/runnable.h"
 
 using location::nearby::Runnable;
 using location::nearby::api::ImplementationPlatform;

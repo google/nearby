@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/log_message.h"
+#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/log_message.h"
 
 #include "base/logging.h"
-#include "third_party/nearby_connections/cpp/platform/api/log_message.h"
+#include "third_party/nearby/cpp/platform/api/log_message.h"
 #include "third_party/objective_c/google_toolbox_for_mac/Foundation/GTMLogger.h"
 
 namespace location {

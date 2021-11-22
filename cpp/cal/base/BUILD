@@ -22,7 +22,7 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//third_party/nearby_connections/cpp:__subpackages__",
+        "//third_party/nearby/cpp:__subpackages__",
     ],
     deps = [
         "//platform/base",

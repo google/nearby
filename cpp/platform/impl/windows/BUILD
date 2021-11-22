@@ -110,9 +110,9 @@ cc_library(
         "wifi_lan_socket.cc",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
-    copts = ["-Ithird_party/nearby_connections/cpp/platform/impl/windows/generated"],
+    copts = ["-Ithird_party/nearby/cpp/platform/impl/windows/generated"],
     visibility = [
-        "//third_party/nearby_connections/windows:__subpackages__",
+        "//third_party/nearby/windows:__subpackages__",
     ],
     deps = [
         ":comm",
@@ -138,7 +138,7 @@ cc_library(
         "test_utils.h",
     ],
     visibility = [
-        "//third_party/nearby_connections/windows:__subpackages__",
+        "//third_party/nearby/windows:__subpackages__",
     ],
     deps = [
         "//platform/base",

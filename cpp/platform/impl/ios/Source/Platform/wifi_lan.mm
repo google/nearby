@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/wifi_lan.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/wifi_lan.h"
 
 #include <memory>
 #include <string>
@@ -24,15 +24,15 @@
 #include "third_party/absl/strings/str_cat.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/synchronization/mutex.h"
-#include "third_party/nearby_connections/cpp/platform/api/wifi_lan.h"
-#include "third_party/nearby_connections/cpp/platform/base/cancellation_flag.h"
-#include "third_party/nearby_connections/cpp/platform/base/exception.h"
-#include "third_party/nearby_connections/cpp/platform/base/nsd_service_info.h"
-#include "third_party/nearby_connections/cpp/platform/base/prng.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Mediums/GNCMConnection.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourBrowser.h"
-#import "third_party/nearby_connections/cpp/platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourService.h"
-#include "third_party/nearby_connections/cpp/platform/impl/ios/Source/Platform/utils.h"
+#include "third_party/nearby/cpp/platform/api/wifi_lan.h"
+#include "third_party/nearby/cpp/platform/base/cancellation_flag.h"
+#include "third_party/nearby/cpp/platform/base/exception.h"
+#include "third_party/nearby/cpp/platform/base/nsd_service_info.h"
+#include "third_party/nearby/cpp/platform/base/prng.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Mediums/GNCMConnection.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourBrowser.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourService.h"
+#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/utils.h"
 #import "third_party/objective_c/google_toolbox_for_mac/Foundation/GTMLogger.h"
 
 namespace location {

@@ -22,7 +22,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
-#include "third_party/nearby_connections/cpp/cal/base/ble_types.h"
+#include "third_party/nearby/cpp/cal/base/ble_types.h"
 namespace nearby {
 namespace cal {
 namespace api {

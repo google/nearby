@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby_connections/cpp/cal/public/ble.h"
+#include "third_party/nearby/cpp/cal/public/ble.h"
 
 #include <memory>
 
-#include "third_party/nearby_connections/cpp/cal/api/ble.h"
-#include "third_party/nearby_connections/cpp/cal/base/ble_types.h"
+#include "third_party/nearby/cpp/cal/api/ble.h"
+#include "third_party/nearby/cpp/cal/base/ble_types.h"
 
 namespace nearby {
 namespace cal {
