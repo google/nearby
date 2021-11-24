@@ -42,6 +42,7 @@ Core::~Core() {
                 });
   if (!latch.Await(kWaitForDisconnect).result()) {
     NEARBY_LOG(FATAL, "Unable to shutdown");
+    NEARBY_LOG(FATAL, "Unable to shutdown");
   }
 }
 
