@@ -236,10 +236,11 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
       WideCharToMultiByte(CP_UTF8, 0, guidOleStr, oleBufferLen, guidStr,
                           bufferLen, NULL, &defaultCharUsed);
 
-  if (conversionResult != 0) {
+  if (conversionResult == 0) {
     const char *errorResult = {};
+    int errorMessageID = GetLastError();
 
-    switch (conversionResult) {
+    switch (errorMessageID) {
       case ERROR_INSUFFICIENT_BUFFER:
         errorResult =
             "A supplied buffer size was not large enough, or it was "
@@ -254,10 +255,13 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
       case ERROR_NO_UNICODE_TRANSLATION:
         errorResult = "Invalid Unicode was found in a string.";
         break;
+      default:
+        errorResult = "Unknown error.";
+        break;
     }
 
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to convert guid to string "
-                       << errorResult;
+                       << errorResult << " Error code:" << errorMessageID;
   }
 
   absl::SNPrintF(fileName, sizeof(fileName), "\\\\.\\%s%s#%s", fileName,
