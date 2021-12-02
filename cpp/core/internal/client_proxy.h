@@ -41,7 +41,7 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-// CLientProxy is tracking state of client's connection, and serves as
+// ClientProxy is tracking state of client's connection, and serves as
 // a proxy for notifications sent to this client.
 class ClientProxy final {
  public:

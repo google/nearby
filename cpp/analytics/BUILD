@@ -20,6 +20,7 @@ cc_library(
     ],
     hdrs = [
         "analytics_recorder.h",
+        "connection_attempt_metadata_params.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],

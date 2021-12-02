@@ -19,6 +19,7 @@
 
 #include "absl/container/btree_map.h"
 #include "absl/time/time.h"
+#include "analytics/connection_attempt_metadata_params.h"
 #include "core/event_logger.h"
 #include "core/payload.h"
 #include "core/strategy.h"
@@ -72,15 +73,28 @@ class AnalyticsRecorder {
       location::nearby::proto::connections::ConnectionAttemptType type,
       location::nearby::proto::connections::Medium medium,
       location::nearby::proto::connections::ConnectionAttemptResult result,
-      absl::Duration duration, const std::string &connection_token)
+      absl::Duration duration, const std::string &connection_token,
+      ConnectionAttemptMetadataParams *connection_attempt_metadata_params)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnOutgoingConnectionAttempt(
       const std::string &remote_endpoint_id,
       location::nearby::proto::connections::ConnectionAttemptType type,
       location::nearby::proto::connections::Medium medium,
       location::nearby::proto::connections::ConnectionAttemptResult result,
-      absl::Duration duration, const std::string &connection_token)
+      absl::Duration duration, const std::string &connection_token,
+      ConnectionAttemptMetadataParams *connection_attempt_metadata_params)
       ABSL_LOCKS_EXCLUDED(mutex_);
+  // TODO(edwinwu): Implement network operator, country code, tdls, wifi hotspot
+  //, max wifi tx/rx speed and channel width. Set as default values for
+  // analytics recorder.
+  static std::unique_ptr<ConnectionAttemptMetadataParams>
+  BuildConnectionAttemptMetadataParams(
+      location::nearby::proto::connections::ConnectionTechnology technology,
+      location::nearby::proto::connections::ConnectionBand band, int frequency,
+      int try_count, const std::string &network_operator = {},
+      const std::string &country_code = {}, bool is_tdls_used = false,
+      bool wifi_hotspot_enabled = false, int max_wifi_tx_speed = 0,
+      int max_wifi_rx_speed = 0, int channel_width = -1);
 
   // Connection established
   void OnConnectionEstablished(

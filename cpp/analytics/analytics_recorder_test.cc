@@ -20,12 +20,14 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
+#include "analytics/connection_attempt_metadata_params.h"
 #include "platform/base/error_code_params.h"
 #include "platform/base/error_code_recorder.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
 #include "proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
+#include "proto/connections_enums.proto.h"
 
 namespace location {
 namespace nearby {
@@ -453,7 +455,8 @@ TEST(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
 
   analytics_recorder.OnStartAdvertising(strategy, mediums);
   analytics_recorder.OnIncomingConnectionAttempt(
-      INITIAL, BLUETOOTH, RESULT_SUCCESS, absl::Duration{}, connection_token);
+      INITIAL, BLUETOOTH, RESULT_SUCCESS, absl::Duration{}, connection_token,
+      nullptr);
   analytics_recorder.OnStopAdvertising();
 
   analytics_recorder.LogSession();
@@ -470,6 +473,19 @@ TEST(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
                     medium: BLUETOOTH
                     attempt_result: RESULT_SUCCESS
                     connection_token: ""
+                    connection_attempt_metadata <
+                      technology: CONNECTION_TECHNOLOGY_UNKNOWN_TECHNOLOGY
+                      band: CONNECTION_BAND_UNKNOWN_BAND
+                      frequency: -1
+                      network_operator: ""
+                      country_code: ""
+                      is_tdls_used: false
+                      try_counts: 0
+                      wifi_hotspot_status: false
+                      max_tx_speed: 0
+                      max_rx_speed: 0
+                      wifi_channel_width: -1
+                    >
                   >
                 >)pb")));
 }
@@ -485,11 +501,21 @@ TEST(AnalyticsRecorderTest,
   FakeEventLogger event_logger(client_session_done_latch);
   AnalyticsRecorder analytics_recorder(&event_logger);
 
+  auto connections_attempt_metadata_params =
+      analytics_recorder.BuildConnectionAttemptMetadataParams(
+          ::location::nearby::proto::connections::
+              CONNECTION_TECHNOLOGY_HOTSPOT_LOCALONLY,
+          ::location::nearby::proto::connections::
+              CONNECTION_BAND_WIFI_BAND_6GHZ,
+          /*frequency*/ 2400, /*try_count*/ 0, /*network_operator*/ {},
+          /*country_code*/ {}, /*is_tdls_used*/ false,
+          /*wifi_hotspot_enabled*/ false, /*max_wifi_tx_speed*/ 0,
+          /*max_wifi_rx_speed*/ 0, /*channel_width*/ 0);
   analytics_recorder.OnStartDiscovery(strategy, mediums);
   analytics_recorder.OnConnectionRequestSent(endpoint_id);
   analytics_recorder.OnOutgoingConnectionAttempt(
       endpoint_id, INITIAL, BLUETOOTH, RESULT_ERROR, absl::Duration{},
-      connection_token);
+      connection_token, connections_attempt_metadata_params.get());
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
@@ -512,6 +538,19 @@ TEST(AnalyticsRecorderTest,
                     medium: BLUETOOTH
                     attempt_result: RESULT_ERROR
                     connection_token: ""
+                    connection_attempt_metadata <
+                      technology: CONNECTION_TECHNOLOGY_HOTSPOT_LOCALONLY
+                      band: CONNECTION_BAND_WIFI_BAND_6GHZ
+                      frequency: 2400
+                      network_operator: ""
+                      country_code: ""
+                      is_tdls_used: false
+                      try_counts: 0
+                      wifi_hotspot_status: false
+                      max_tx_speed: 0
+                      max_rx_speed: 0
+                      wifi_channel_width: 0
+                    >
                   >
                 >)pb")));
 }

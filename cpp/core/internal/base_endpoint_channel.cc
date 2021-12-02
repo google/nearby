@@ -25,6 +25,7 @@
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
 #include "proto/connections_enums.pb.h"
+#include "proto/connections_enums.proto.h"
 
 namespace location {
 namespace nearby {
@@ -94,7 +95,29 @@ Exception WriteInt(OutputStream* writer, std::int32_t value) {
 BaseEndpointChannel::BaseEndpointChannel(const std::string& channel_name,
                                          InputStream* reader,
                                          OutputStream* writer)
-    : channel_name_(channel_name), reader_(reader), writer_(writer) {}
+    : BaseEndpointChannel(
+          channel_name, reader, writer,
+          // TODO(edwinwu): Below values should be retrieved from a base socket,
+          // the #MediumSocket in Android counterpart, from which all the
+          // derived medium sockets should dervied, and implement the supported
+          // values and leave the default values in base #MediumSocket.
+          /*ConnectionTechnology*/
+          proto::connections::CONNECTION_TECHNOLOGY_UNKNOWN_TECHNOLOGY,
+          /*ConnectionBand*/ proto::connections::CONNECTION_BAND_UNKNOWN_BAND,
+          /*frequency*/ -1,
+          /*try_count*/ 0) {}
+
+BaseEndpointChannel::BaseEndpointChannel(
+    const std::string& channel_name, InputStream* reader, OutputStream* writer,
+    proto::connections::ConnectionTechnology technology,
+    proto::connections::ConnectionBand band, int frequency, int try_count)
+    : channel_name_(channel_name),
+      reader_(reader),
+      writer_(writer),
+      technology_(technology),
+      band_(band),
+      frequency_(frequency),
+      try_count_(try_count) {}
 
 ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
   ByteArray result;
@@ -334,6 +357,22 @@ absl::Time BaseEndpointChannel::GetLastWriteTimestamp() const {
   MutexLock lock(&last_write_mutex_);
   return last_write_timestamp_;
 }
+
+proto::connections::ConnectionTechnology BaseEndpointChannel::GetTechnology()
+    const {
+  return technology_;
+}
+
+// Returns the used wifi band of this EndpointChannel.
+proto::connections::ConnectionBand BaseEndpointChannel::GetBand() const {
+  return band_;
+}
+
+//  Returns the used wifi frequency of this EndpointChannel.
+int BaseEndpointChannel::GetFrequency() const { return frequency_; }
+
+// Returns the try count of this EndpointChannel.
+int BaseEndpointChannel::GetTryCount() const { return try_count_; }
 
 bool BaseEndpointChannel::IsEncryptionEnabledLocked() const {
   return crypto_context_ != nullptr;

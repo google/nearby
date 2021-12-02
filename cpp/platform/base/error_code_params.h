@@ -21,7 +21,7 @@
 namespace location {
 namespace nearby {
 
-// A struct to consturct error code parameters for the analytics recorder.
+// A struct to construct error code parameters for the analytics recorder.
 struct ErrorCodeParams {
   location::nearby::proto::connections::Medium medium =
       location::nearby::proto::connections::UNKNOWN_MEDIUM;

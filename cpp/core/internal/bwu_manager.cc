@@ -439,11 +439,21 @@ void BwuManager::OnIncomingConnection(
         CHECK(client == mapped_client);
 
         // The ConnectionAttempt has now succeeded, so record it as such.
+        std::unique_ptr<ConnectionAttemptMetadataParams>
+            connections_attempt_metadata_params;
+        if (channel != nullptr) {
+          connections_attempt_metadata_params =
+              client->GetAnalyticsRecorder()
+                  .BuildConnectionAttemptMetadataParams(
+                      channel->GetTechnology(), channel->GetBand(),
+                      channel->GetFrequency(), channel->GetTryCount());
+        }
         client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
             proto::connections::UPGRADE, channel->GetMedium(),
             proto::connections::RESULT_SUCCESS,
             SystemClock::ElapsedRealtime() - connection_attempt_start_time,
-            client->GetConnectionToken(endpoint_id));
+            client->GetConnectionToken(endpoint_id),
+            connections_attempt_metadata_params.get());
 
         // Use the introductory client information sent over to run the upgrade
         // protocol.
@@ -585,11 +595,20 @@ void BwuManager::ProcessBwuPathAvailableEvent(
     connection_attempt_result = proto::connections::RESULT_ERROR;
   }
 
+  std::unique_ptr<ConnectionAttemptMetadataParams>
+      connections_attempt_metadata_params;
+  if (channel != nullptr) {
+    connections_attempt_metadata_params =
+        client->GetAnalyticsRecorder().BuildConnectionAttemptMetadataParams(
+            channel->GetTechnology(), channel->GetBand(),
+            channel->GetFrequency(), channel->GetTryCount());
+  }
   client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
       endpoint_id, proto::connections::UPGRADE, medium_,
       connection_attempt_result,
       SystemClock::ElapsedRealtime() - connection_attempt_start_time,
-      client->GetConnectionToken(endpoint_id));
+      client->GetConnectionToken(endpoint_id),
+      connections_attempt_metadata_params.get());
 
   if (channel == nullptr) {
     NEARBY_LOGS(INFO) << "Failed to get new channel.";

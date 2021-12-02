@@ -30,6 +30,7 @@
 #include "platform/public/condition_variable.h"
 #include "platform/public/mutex.h"
 #include "platform/public/system_clock.h"
+#include "proto/connections_enums.proto.h"
 
 namespace location {
 namespace nearby {
@@ -39,6 +40,11 @@ class BaseEndpointChannel : public EndpointChannel {
  public:
   BaseEndpointChannel(const std::string& channel_name, InputStream* reader,
                       OutputStream* writer);
+  BaseEndpointChannel(const std::string& channel_name, InputStream* reader,
+                      OutputStream* writer,
+                      proto::connections::ConnectionTechnology,
+                      proto::connections::ConnectionBand band, int frequency,
+                      int try_count);
   ~BaseEndpointChannel() override = default;
 
   ExceptionOr<ByteArray> Read()
@@ -94,6 +100,18 @@ class BaseEndpointChannel : public EndpointChannel {
   absl::Time GetLastWriteTimestamp() const
       ABSL_LOCKS_EXCLUDED(last_write_mutex_) override;
 
+  // Returns the used technology of this EndpointChannel.
+  proto::connections::ConnectionTechnology GetTechnology() const override;
+
+  // Returns the used wifi band of this EndpointChannel.
+  proto::connections::ConnectionBand GetBand() const override;
+
+  // Returns the used wifi frequency of this EndpointChannel.
+  int GetFrequency() const override;
+
+  // Returns the try count of this EndpointChannel.
+  int GetTryCount() const override;
+
   void SetAnalyticsRecorder(analytics::AnalyticsRecorder* analytics_recorder,
                             const std::string& endpoint_id) override;
 
@@ -144,6 +162,12 @@ class BaseEndpointChannel : public EndpointChannel {
   ConditionVariable is_paused_cond_{&is_paused_mutex_};
   // If true, writes should block until this has been set to false.
   bool is_paused_ ABSL_GUARDED_BY(is_paused_mutex_) = false;
+
+  // The medium technology information of this endpoint channel.
+  proto::connections::ConnectionTechnology technology_;
+  proto::connections::ConnectionBand band_;
+  int frequency_;
+  int try_count_;
 
   analytics::AnalyticsRecorder* analytics_recorder_ = nullptr;
   std::string endpoint_id_ = "";

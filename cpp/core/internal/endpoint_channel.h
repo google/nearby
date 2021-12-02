@@ -57,6 +57,18 @@ class EndpointChannel {
   // Returns the analytics enum representing the medium of this EndpointChannel.
   virtual proto::connections::Medium GetMedium() const = 0;
 
+  // Returns the used BLE or WiFi technology of this EndpointChannel.
+  virtual proto::connections::ConnectionTechnology GetTechnology() const = 0;
+
+  // Returns the used wifi band of this EndpointChannel.
+  virtual proto::connections::ConnectionBand GetBand() const = 0;
+
+  // Returns the used wifi frequency of this EndpointChannel.
+  virtual int GetFrequency() const = 0;
+
+  // Returns the try counts of this EndpointChannel.
+  virtual int GetTryCount() const = 0;
+
   // Returns the maximum supported transmit packet size(MTU) for the underlying
   // transport.
   virtual int GetMaxTransmitPacketSize() const = 0;
