@@ -16,6 +16,7 @@
 #define PLATFORM_API_OUTPUT_FILE_H_
 
 #include "platform/base/byte_array.h"
+#include "platform/base/core_config.h"
 #include "platform/base/exception.h"
 #include "platform/base/output_stream.h"
 
@@ -24,7 +25,7 @@ namespace nearby {
 namespace api {
 
 // An OutputFile represents a writable file on the system.
-class OutputFile : public OutputStream {
+class DLL_API OutputFile : public OutputStream {
  public:
   ~OutputFile() override = default;
 };

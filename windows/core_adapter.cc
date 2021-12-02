@@ -63,7 +63,7 @@ void InjectEndpoint(Core *pCore, char *service_id,
                     OutOfBandConnectionMetadata metadata,
                     ResultCallback callback) {
   if (pCore) {
-    pCore->InjectEndpoint(service_id, metadata, callback);
+    pCore->InjectEndpoint(service_id, std::move(metadata), callback);
   }
 }
 

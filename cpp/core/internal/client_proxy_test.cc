@@ -85,13 +85,13 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags> {
     std::string id;
   };
 
-  bool ShouldEnterHighVisibilityMode(const ConnectionOptions& options) {
+  bool ShouldEnterHighVisibilityMode(const AdvertisingOptions& options) {
     return !options.low_power && options.allowed.bluetooth;
   }
 
   Endpoint StartAdvertising(
       ClientProxy* client, ConnectionListener listener,
-      ConnectionOptions advertising_options = ConnectionOptions{}) {
+      AdvertisingOptions advertising_options = AdvertisingOptions{}) {
     if (ShouldEnterHighVisibilityMode(advertising_options)) {
       client->EnterHighVisibilityMode();
     }
@@ -495,12 +495,12 @@ TEST_F(ClientProxyTest, OnPayloadProgressChangesState) {
 
 TEST_F(ClientProxyTest,
        EndpointIdCacheWhenHighVizAdvertisementAgainImmediately) {
-  ConnectionOptions advertising_options{.strategy = strategy_,
-                                        .allowed =
-                                            {
-                                                .bluetooth = true,
-                                            },
-                                        .low_power = false};
+  AdvertisingOptions advertising_options{.strategy = strategy_,
+                                         .allowed =
+                                             {
+                                                 .bluetooth = true,
+                                             },
+                                         .low_power = false};
 
   Endpoint advertising_endpoint_1 = StartAdvertising(
       &client1_, advertising_connection_listener_, advertising_options);
@@ -516,12 +516,12 @@ TEST_F(ClientProxyTest,
 
 TEST_F(ClientProxyTest,
        EndpointIdRotateWhenHighVizAdvertisementAgainForAWhile) {
-  ConnectionOptions advertising_options{.strategy = strategy_,
-                                        .allowed =
-                                            {
-                                                .bluetooth = true,
-                                            },
-                                        .low_power = false};
+  AdvertisingOptions advertising_options{.strategy = strategy_,
+                                         .allowed =
+                                             {
+                                                 .bluetooth = true,
+                                             },
+                                         .low_power = false};
 
   Endpoint advertising_endpoint_1 = StartAdvertising(
       &client1_, advertising_connection_listener_, advertising_options);
@@ -539,20 +539,20 @@ TEST_F(ClientProxyTest,
 
 TEST_F(ClientProxyTest,
        EndpointIdRotateWhenLowVizAdvertisementAfterHighVizAdvertisement) {
-  ConnectionOptions high_viz_advertising_options{.strategy = strategy_,
-                                                 .allowed =
-                                                     {
-                                                         .bluetooth = true,
-                                                     },
-                                                 .low_power = false};
+  AdvertisingOptions high_viz_advertising_options{.strategy = strategy_,
+                                                  .allowed =
+                                                      {
+                                                          .bluetooth = true,
+                                                      },
+                                                  .low_power = false};
   Endpoint advertising_endpoint_1 =
       StartAdvertising(&client1_, advertising_connection_listener_,
                        high_viz_advertising_options);
 
   StopAdvertising(&client1_);
 
-  ConnectionOptions low_viz_advertising_options{.strategy = strategy_,
-                                                .low_power = true};
+  AdvertisingOptions low_viz_advertising_options{.strategy = strategy_,
+                                                 .low_power = true};
 
   Endpoint advertising_endpoint_2 = StartAdvertising(
       &client1_, advertising_connection_listener_, low_viz_advertising_options);
@@ -562,12 +562,12 @@ TEST_F(ClientProxyTest,
 
 // Tests endpoint_id rotates when discover.
 TEST_F(ClientProxyTest, EndpointIdRotateWhenStartDiscovery) {
-  ConnectionOptions advertising_options{.strategy = strategy_,
-                                        .allowed =
-                                            {
-                                                .bluetooth = true,
-                                            },
-                                        .low_power = false};
+  AdvertisingOptions advertising_options{.strategy = strategy_,
+                                         .allowed =
+                                             {
+                                                 .bluetooth = true,
+                                             },
+                                         .low_power = false};
 
   Endpoint advertising_endpoint_1 = StartAdvertising(
       &client1_, advertising_connection_listener_, advertising_options);
@@ -584,10 +584,10 @@ TEST_F(ClientProxyTest, EndpointIdRotateWhenStartDiscovery) {
 // Tests the low visibility mode with bluetooth disabled advertisment.
 TEST_F(ClientProxyTest,
        EndpointIdRotateWhenLowVizAdvertisementWithBluetoothDisabled) {
-  ConnectionOptions advertising_options{.strategy = strategy_,
-                                        .allowed = {
-                                            .bluetooth = false,
-                                        }};
+  AdvertisingOptions advertising_options{.strategy = strategy_,
+                                         .allowed = {
+                                             .bluetooth = false,
+                                         }};
 
   Endpoint advertising_endpoint_1 = StartAdvertising(
       &client1_, advertising_connection_listener_, advertising_options);
@@ -602,8 +602,8 @@ TEST_F(ClientProxyTest,
 
 // Tests the low visibility mode with low power advertisment.
 TEST_F(ClientProxyTest, EndpointIdRotateWhenLowVizAdvertisementWithLowPower) {
-  ConnectionOptions advertising_options{.strategy = strategy_,
-                                        .low_power = true};
+  AdvertisingOptions advertising_options{.strategy = strategy_,
+                                         .low_power = true};
 
   Endpoint advertising_endpoint_1 = StartAdvertising(
       &client1_, advertising_connection_listener_, advertising_options);

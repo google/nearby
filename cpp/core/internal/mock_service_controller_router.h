@@ -26,7 +26,7 @@ class MockServiceControllerRouter : public ServiceControllerRouter {
  public:
   MOCK_METHOD(void, StartAdvertising,
               (ClientProxy * client, absl::string_view service_id,
-               const ConnectionOptions& options,
+               const AdvertisingOptions& options,
                const ConnectionRequestInfo& info,
                const ResultCallback& callback),
               (override));
@@ -37,7 +37,7 @@ class MockServiceControllerRouter : public ServiceControllerRouter {
 
   MOCK_METHOD(void, StartDiscovery,
               (ClientProxy * client, absl::string_view service_id,
-               const ConnectionOptions& options,
+               const DiscoveryOptions& options,
                const DiscoveryListener& listener,
                const ResultCallback& callback),
               (override));

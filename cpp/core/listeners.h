@@ -45,6 +45,10 @@ namespace connections {
 // which may have many states, and multiple async jobs, and be still ongoing.
 // Progress on the overall process is reported by the associated listener.
 struct DLL_API ResultCallback {
+  // TODO(jfcarroll): This needs to be fixed. There was a design, C/L405784459,
+  // that addressed this issue, by using function pointers rather than
+  // std::function, but it required c++20 features that aren't available on g3,
+  // so a new design must be found.
   // Callback to access the status of the operation when available.
   // status - result of job execution;
   //   Status::kSuccess, if successful; anything else indicates failure.

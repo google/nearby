@@ -37,7 +37,7 @@ using ::location::nearby::ByteArrayFromNSData;
 using ::location::nearby::CppStringFromObjCString;
 using ::location::nearby::ObjCStringFromCppString;
 using ::location::nearby::connections::ConnectionListener;
-using ::location::nearby::connections::ConnectionOptions;
+using ::location::nearby::connections::AdvertisingOptions;
 using ::location::nearby::connections::ConnectionRequestInfo;
 using ::location::nearby::connections::ConnectionResponseInfo;
 using ::location::nearby::connections::GNCStrategyToStrategy;
@@ -290,7 +290,7 @@ using ::location::nearby::connections::GNCAdvertiserConnectionListener;
   };
 
   advertiser.core->_core->StartAdvertising(CppStringFromObjCString(serviceId),
-                                           ConnectionOptions{
+                                           AdvertisingOptions{
                                                .strategy = GNCStrategyToStrategy(strategy),
                                                .auto_upgrade_bandwidth = true,
                                                .enforce_topology_constraints = true,

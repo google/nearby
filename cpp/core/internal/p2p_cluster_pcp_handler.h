@@ -73,7 +73,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info,
-      const ConnectionOptions& options) override;
+      const AdvertisingOptions& options) override;
 
   // @PCPHandlerThread
   Status StopAdvertisingImpl(ClientProxy* client) override;
@@ -81,7 +81,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   // @PCPHandlerThread
   BasePcpHandler::StartOperationResult StartDiscoveryImpl(
       ClientProxy* client, const std::string& service_id,
-      const ConnectionOptions& options) override;
+      const DiscoveryOptions& options) override;
 
   // @PCPHandlerThread
   Status StopDiscoveryImpl(ClientProxy* client) override;
@@ -125,7 +125,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   static ByteArray GenerateHash(const std::string& source, size_t size);
   static bool ShouldAdvertiseBluetoothMacOverBle(PowerLevel power_level);
   static bool ShouldAcceptBluetoothConnections(
-      const ConnectionOptions& options);
+      const AdvertisingOptions& options);
 
   // Bluetooth
   bool IsRecognizedBluetoothEndpoint(const std::string& name_string,
@@ -165,7 +165,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   proto::connections::Medium StartBleAdvertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
-      const ByteArray& local_endpoint_info, const ConnectionOptions& options,
+      const ByteArray& local_endpoint_info, const AdvertisingOptions& options,
       WebRtcState web_rtc_state);
   proto::connections::Medium StartBleScanning(
       BleDiscoveredPeripheralCallback callback, ClientProxy* client,

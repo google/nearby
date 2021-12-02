@@ -43,14 +43,20 @@ cc_library(
 cc_library(
     name = "core_types",
     srcs = [
-        "options.cc",
+        "advertising_options.cc",
+        "connection_options.cc",
+        "discovery_options.cc",
         "payload.cc",
         "strategy.cc",
     ],
     hdrs = [
+        "advertising_options.h",
+        "connection_options.h",
+        "discovery_options.h",
         "listeners.h",
         "medium_selector.h",
         "options.h",
+        "out_of_band_connection_metadata.h",
         "params.h",
         "payload.h",
         "status.h",

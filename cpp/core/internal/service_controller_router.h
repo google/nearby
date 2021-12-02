@@ -63,14 +63,14 @@ class ServiceControllerRouter {
 
   virtual void StartAdvertising(ClientProxy* client,
                                 absl::string_view service_id,
-                                const ConnectionOptions& options,
+                                const AdvertisingOptions& options,
                                 const ConnectionRequestInfo& info,
                                 const ResultCallback& callback);
   virtual void StopAdvertising(ClientProxy* client,
                                const ResultCallback& callback);
 
   virtual void StartDiscovery(ClientProxy* client, absl::string_view service_id,
-                              const ConnectionOptions& options,
+                              const DiscoveryOptions& options,
                               const DiscoveryListener& listener,
                               const ResultCallback& callback);
   virtual void StopDiscovery(ClientProxy* client,

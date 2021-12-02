@@ -24,6 +24,7 @@
 #include "core/internal/mediums/utils.h"
 #include "core/internal/webrtc_endpoint_channel.h"
 #include "core/internal/wifi_lan_endpoint_channel.h"
+#include "core/out_of_band_connection_metadata.h"
 #include "platform/base/nsd_service_info.h"
 #include "platform/base/types.h"
 #include "platform/public/crypto.h"
@@ -44,7 +45,7 @@ bool P2pClusterPcpHandler::ShouldAdvertiseBluetoothMacOverBle(
 }
 
 bool P2pClusterPcpHandler::ShouldAcceptBluetoothConnections(
-    const ConnectionOptions& options) {
+    const AdvertisingOptions& options) {
   return options.enable_bluetooth_listening;
 }
 
@@ -89,7 +90,7 @@ proto::connections::Medium P2pClusterPcpHandler::GetDefaultUpgradeMedium() {
 BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
     ClientProxy* client, const std::string& service_id,
     const std::string& local_endpoint_id, const ByteArray& local_endpoint_info,
-    const ConnectionOptions& options) {
+    const AdvertisingOptions& options) {
   std::vector<proto::connections::Medium> mediums_started_successfully;
 
   WebRtcState web_rtc_state{WebRtcState::kUnconnectable};
@@ -657,7 +658,7 @@ void P2pClusterPcpHandler::WifiLanServiceLostHandler(
 
 BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
     ClientProxy* client, const std::string& service_id,
-    const ConnectionOptions& options) {
+    const DiscoveryOptions& options) {
   // If this is an out-of-band connection, do not start actual discovery, since
   // this connection is intended to be completed via InjectEndpointImpl().
   if (options.is_out_of_band_connection) {
@@ -766,8 +767,8 @@ Status P2pClusterPcpHandler::InjectEndpointImpl(
 
   BluetoothDevice remote_bluetooth_device =
       injected_bluetooth_device_store_.CreateInjectedBluetoothDevice(
-          metadata.remote_bluetooth_mac_address, metadata.endpoint_id,
-          metadata.endpoint_info,
+          ByteArray(metadata.remote_bluetooth_mac_address),
+          metadata.endpoint_id, ByteArray(metadata.endpoint_info),
           GenerateHash(service_id, BluetoothDeviceName::kServiceIdHashLength),
           GetPcp());
 
@@ -979,8 +980,9 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
 proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
     ClientProxy* client, const std::string& service_id,
     const std::string& local_endpoint_id, const ByteArray& local_endpoint_info,
-    const ConnectionOptions& options, WebRtcState web_rtc_state) {
-  bool fast_advertisement = !options.fast_advertisement_service_uuid.empty();
+    const AdvertisingOptions& options, WebRtcState web_rtc_state) {
+  bool fast_advertisement =
+      !std::string(options.fast_advertisement_service_uuid).empty();
   PowerLevel power_level =
       options.low_power ? PowerLevel::kLowPower : PowerLevel::kHighPower;
 

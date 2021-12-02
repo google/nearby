@@ -129,6 +129,7 @@ bool BluetoothClassic::ModifyDeviceName(const std::string& device_name) {
     original_device_name_ = adapter_.GetName();
   }
 
+  adapter_.SetScanMode(ScanMode::kConnectableDiscoverable);
   return adapter_.SetName(device_name);
 }
 

@@ -43,12 +43,12 @@ class OfflineServiceController : public ServiceController {
   ~OfflineServiceController() override;
 
   Status StartAdvertising(ClientProxy* client, const std::string& service_id,
-                          const ConnectionOptions& options,
+                          const AdvertisingOptions& options,
                           const ConnectionRequestInfo& info) override;
   void StopAdvertising(ClientProxy* client) override;
 
   Status StartDiscovery(ClientProxy* client, const std::string& service_id,
-                        const ConnectionOptions& options,
+                        const DiscoveryOptions& options,
                         const DiscoveryListener& listener) override;
   void StopDiscovery(ClientProxy* client) override;
 

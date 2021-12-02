@@ -34,7 +34,7 @@ void OfflineServiceController::Stop() {
 
 Status OfflineServiceController::StartAdvertising(
     ClientProxy* client, const std::string& service_id,
-    const ConnectionOptions& options, const ConnectionRequestInfo& info) {
+    const AdvertisingOptions& options, const ConnectionRequestInfo& info) {
   if (stop_) return {Status::kOutOfOrderApiCall};
   NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
                     << " requested advertising to start.";
@@ -50,7 +50,7 @@ void OfflineServiceController::StopAdvertising(ClientProxy* client) {
 
 Status OfflineServiceController::StartDiscovery(
     ClientProxy* client, const std::string& service_id,
-    const ConnectionOptions& options, const DiscoveryListener& listener) {
+    const DiscoveryOptions& options, const DiscoveryListener& listener) {
   if (stop_) return {Status::kOutOfOrderApiCall};
   NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
                     << " requested discovery to start.";

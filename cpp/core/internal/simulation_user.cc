@@ -109,7 +109,7 @@ void SimulationUser::StartAdvertising(const std::string& service_id,
       .rejected_cb =
           absl::bind_front(&SimulationUser::OnConnectionRejected, this),
   };
-  EXPECT_TRUE(mgr_.StartAdvertising(&client_, service_id_, options_,
+  EXPECT_TRUE(mgr_.StartAdvertising(&client_, service_id_, advertising_options_,
                                     {
                                         .endpoint_info = info_,
                                         .listener = std::move(listener),
@@ -121,7 +121,7 @@ void SimulationUser::StartDiscovery(const std::string& service_id,
                                     CountDownLatch* latch) {
   found_latch_ = latch;
   EXPECT_TRUE(
-      mgr_.StartDiscovery(&client_, service_id, options_,
+      mgr_.StartDiscovery(&client_, service_id, discovery_options_,
                           {
                               .endpoint_found_cb = absl::bind_front(
                                   &SimulationUser::OnEndpointFound, this),

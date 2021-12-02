@@ -54,7 +54,13 @@ class SimulationUser {
   explicit SimulationUser(
       const std::string& device_name,
       BooleanMediumSelector allowed = BooleanMediumSelector())
-      : connection_options_{
+      : advertising_options_{
+            .strategy = Strategy::kP2pCluster,
+            .allowed = allowed,
+        },
+        connection_options_{
+            .strategy = Strategy::kP2pCluster,
+            .allowed = allowed,
             .keep_alive_interval_millis = FeatureFlags::GetInstance()
                     .GetFlags()
                     .keep_alive_interval_millis,
@@ -62,11 +68,10 @@ class SimulationUser {
                     .GetFlags()
                     .keep_alive_timeout_millis,
         },
-        info_{ByteArray{device_name}},
-        options_{
+        discovery_options_{
             .strategy = Strategy::kP2pCluster,
-            .allowed = allowed,
-        } {}
+            .allowed = allowed},
+          info_{ByteArray{device_name}} {}
   virtual ~SimulationUser() { Stop(); }
   void Stop() {
     pm_.DisconnectFromEndpointManager();
@@ -140,7 +145,9 @@ class SimulationUser {
 
   std::string service_id_;
   DiscoveredInfo discovered_;
+  AdvertisingOptions advertising_options_;
   ConnectionOptions connection_options_;
+  DiscoveryOptions discovery_options_;
   Mutex progress_mutex_;
   ConditionVariable progress_sync_{&progress_mutex_};
   PayloadProgressInfo progress_info_;
@@ -155,7 +162,6 @@ class SimulationUser {
   std::function<bool(const PayloadProgressInfo&)> predicate_;
   ByteArray info_;
   Mediums mediums_;
-  ConnectionOptions options_;
   ClientProxy client_;
   EndpointChannelManager ecm_;
   EndpointManager em_{&ecm_};

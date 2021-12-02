@@ -16,6 +16,7 @@
 #define PLATFORM_BASE_OUTPUT_STREAM_H_
 
 #include "platform/base/byte_array.h"
+#include "platform/base/core_config.h"
 #include "platform/base/exception.h"
 
 namespace location {
@@ -24,7 +25,7 @@ namespace nearby {
 // An OutputStream represents an output stream of bytes.
 //
 // https://docs.oracle.com/javase/8/docs/api/java/io/OutputStream.html
-class OutputStream {
+class DLL_API OutputStream {
  public:
   virtual ~OutputStream() = default;
 

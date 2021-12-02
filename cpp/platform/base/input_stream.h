@@ -18,6 +18,7 @@
 #include <cstdint>
 
 #include "platform/base/byte_array.h"
+#include "platform/base/core_config.h"
 #include "platform/base/exception.h"
 
 namespace location {
@@ -26,7 +27,7 @@ namespace nearby {
 // An InputStream represents an input stream of bytes.
 //
 // https://docs.oracle.com/javase/8/docs/api/java/io/InputStream.html
-class InputStream {
+class DLL_API InputStream {
  public:
   virtual ~InputStream() = default;
 

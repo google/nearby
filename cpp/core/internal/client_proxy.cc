@@ -109,7 +109,7 @@ void ClientProxy::StartedAdvertising(
     const std::string& service_id, Strategy strategy,
     const ConnectionListener& listener,
     absl::Span<proto::connections::Medium> mediums,
-    const ConnectionOptions& advertising_options) {
+    const AdvertisingOptions& advertising_options) {
   MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "ClientProxy [StartedAdvertising]: client="
                     << GetClientId();
@@ -168,7 +168,7 @@ void ClientProxy::StartedDiscovery(
     const std::string& service_id, Strategy strategy,
     const DiscoveryListener& listener,
     absl::Span<proto::connections::Medium> mediums,
-    const ConnectionOptions& discovery_options) {
+    const DiscoveryOptions& discovery_options) {
   MutexLock lock(&mutex_);
   discovery_info_ = DiscoveryInfo{service_id, listener};
   discovery_options_ = discovery_options;
@@ -691,11 +691,11 @@ void ClientProxy::AppendConnectionStatus(const std::string& endpoint_id,
   }
 }
 
-ConnectionOptions ClientProxy::GetAdvertisingOptions() const {
+AdvertisingOptions ClientProxy::GetAdvertisingOptions() const {
   return advertising_options_;
 }
 
-ConnectionOptions ClientProxy::GetDiscoveryOptions() const {
+DiscoveryOptions ClientProxy::GetDiscoveryOptions() const {
   return discovery_options_;
 }
 

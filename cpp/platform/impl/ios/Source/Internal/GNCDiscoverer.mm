@@ -36,6 +36,7 @@ NS_ASSUME_NONNULL_BEGIN
 using ::location::nearby::ByteArray;
 using ::location::nearby::CppStringFromObjCString;
 using ::location::nearby::connections::ConnectionOptions;
+using ::location::nearby::connections::DiscoveryOptions;
 using ::location::nearby::connections::DiscoveryListener;
 using ::location::nearby::connections::DistanceInfo;
 using ::location::nearby::connections::GNCStrategyToStrategy;
@@ -381,7 +382,7 @@ using ::location::nearby::connections::GNCDiscoveryListener;
   };
 
   discoverer.core->_core->StartDiscovery(CppStringFromObjCString(serviceId),
-                                         ConnectionOptions{
+                                         DiscoveryOptions{
                                              .strategy = GNCStrategyToStrategy(strategy),
                                          },
                                          std::move(listener), ResultListener{});

@@ -18,6 +18,7 @@
 #include <cstdint>
 
 #include "platform/base/byte_array.h"
+#include "platform/base/core_config.h"
 #include "platform/base/exception.h"
 #include "platform/base/input_stream.h"
 
@@ -26,7 +27,7 @@ namespace nearby {
 namespace api {
 
 // An InputFile represents a readable file on the system.
-class InputFile : public InputStream {
+class DLL_API InputFile : public InputStream {
  public:
   ~InputFile() override = default;
   virtual std::string GetFilePath() const = 0;

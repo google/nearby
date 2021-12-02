@@ -51,7 +51,7 @@ Core::Core(Core&&) = default;
 Core& Core::operator=(Core&&) = default;
 
 void Core::StartAdvertising(absl::string_view service_id,
-                            ConnectionOptions options,
+                            AdvertisingOptions options,
                             ConnectionRequestInfo info,
                             ResultCallback callback) {
   assert(!service_id.empty());
@@ -65,7 +65,7 @@ void Core::StopAdvertising(const ResultCallback callback) {
 }
 
 void Core::StartDiscovery(absl::string_view service_id,
-                          ConnectionOptions options, DiscoveryListener listener,
+                          DiscoveryOptions options, DiscoveryListener listener,
                           ResultCallback callback) {
   assert(!service_id.empty());
   assert(options.strategy.IsValid());

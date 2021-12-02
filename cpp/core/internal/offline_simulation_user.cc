@@ -120,7 +120,7 @@ Status OfflineSimulationUser::StartAdvertising(const std::string& service_id,
       .disconnected_cb =
           absl::bind_front(&OfflineSimulationUser::OnEndpointDisconnect, this),
   };
-  return ctrl_.StartAdvertising(&client_, service_id_, options_,
+  return ctrl_.StartAdvertising(&client_, service_id_, advertising_options_,
                                 {
                                     .endpoint_info = info_,
                                     .listener = std::move(listener),
@@ -142,7 +142,7 @@ Status OfflineSimulationUser::StartDiscovery(const std::string& service_id,
       .endpoint_lost_cb =
           absl::bind_front(&OfflineSimulationUser::OnEndpointLost, this),
   };
-  return ctrl_.StartDiscovery(&client_, service_id, options_,
+  return ctrl_.StartDiscovery(&client_, service_id, discovery_options_,
                               std::move(listener));
 }
 

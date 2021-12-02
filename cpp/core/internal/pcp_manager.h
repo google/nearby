@@ -50,12 +50,12 @@ class PcpManager {
   ~PcpManager();
 
   Status StartAdvertising(ClientProxy* client, const string& service_id,
-                          const ConnectionOptions& options,
+                          const AdvertisingOptions& options,
                           const ConnectionRequestInfo& info);
   void StopAdvertising(ClientProxy* client);
 
   Status StartDiscovery(ClientProxy* client, const string& service_id,
-                        const ConnectionOptions& options,
+                        const DiscoveryOptions& options,
                         DiscoveryListener listener);
   void StopDiscovery(ClientProxy* client);
 

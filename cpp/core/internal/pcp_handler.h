@@ -21,6 +21,7 @@
 #include "core/internal/pcp.h"
 #include "core/listeners.h"
 #include "core/options.h"
+#include "core/out_of_band_connection_metadata.h"
 #include "core/params.h"
 #include "core/status.h"
 #include "core/strategy.h"
@@ -69,7 +70,7 @@ class PcpHandler {
   // cpp/core/listeners.h
   virtual Status StartAdvertising(ClientProxy* client,
                                   const std::string& service_id,
-                                  const ConnectionOptions& options,
+                                  const AdvertisingOptions& options,
                                   const ConnectionRequestInfo& info) = 0;
 
   // If Advertising is active, stop it, and change CLientProxy state,
@@ -81,7 +82,7 @@ class PcpHandler {
   // DiscoveryListener will get called in case of any event.
   virtual Status StartDiscovery(ClientProxy* client,
                                 const std::string& service_id,
-                                const ConnectionOptions& options,
+                                const DiscoveryOptions& options,
                                 const DiscoveryListener& listener) = 0;
 
   // If Discovery is active, stop it, and change CLientProxy state,

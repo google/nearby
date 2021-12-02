@@ -323,7 +323,7 @@ void MediumEnvironment::UpdateBluetoothMedium(
         auto item = bluetooth_mediums_.find(&medium);
         if (item == bluetooth_mediums_.end()) return;
         auto& context = item->second;
-        context.callback = std::move(callback);
+        context.callback = callback;
         auto* owned_adapter = context.adapter;
         NEARBY_LOGS(INFO) << "Updated: this=" << this << "; medium=" << &medium
                           << "; adapter=" << owned_adapter
@@ -407,7 +407,7 @@ void MediumEnvironment::UpdateBleMediumForScanning(
           return;
         }
         auto& context = item->second;
-        context.discovery_callback = std::move(callback);
+        context.discovery_callback = callback;
         NEARBY_LOGS(INFO) << "Update Ble medium for scanning: this=" << this
                           << "; medium=" << &medium
                           << "; service_id=" << service_id
@@ -442,7 +442,7 @@ void MediumEnvironment::UpdateBleMediumForAcceptedConnection(
           return;
         }
         auto& context = item->second;
-        context.accepted_connection_callback = std::move(callback);
+        context.accepted_connection_callback = callback;
         NEARBY_LOGS(INFO) << "Update Ble medium for accepted callback: this="
                           << this << "; medium=" << &medium
                           << "; service_id=" << service_id;
@@ -480,15 +480,15 @@ void MediumEnvironment::RegisterWebRtcSignalingMessenger(
     absl::string_view self_id, OnSignalingMessageCallback message_callback,
     OnSignalingCompleteCallback complete_callback) {
   if (!enabled_) return;
-  RunOnMediumEnvironmentThread([this, self_id{std::string(self_id)},
-                                message_callback{std::move(message_callback)},
-                                complete_callback{
-                                    std::move(complete_callback)}]() {
-    webrtc_signaling_message_callback_[self_id] = std::move(message_callback);
-    webrtc_signaling_complete_callback_[self_id] = std::move(complete_callback);
-    NEARBY_LOGS(INFO) << "Registered signaling message callback for id = "
-                      << self_id;
-  });
+  RunOnMediumEnvironmentThread(
+      [this, self_id{std::string(self_id)},
+       message_callback{std::move(message_callback)},
+       complete_callback{std::move(complete_callback)}]() {
+        webrtc_signaling_message_callback_[self_id] = message_callback;
+        webrtc_signaling_complete_callback_[self_id] = complete_callback;
+        NEARBY_LOGS(INFO) << "Registered signaling message callback for id = "
+                          << self_id;
+      });
 }
 
 void MediumEnvironment::UnregisterWebRtcSignalingMessenger(
@@ -624,7 +624,7 @@ void MediumEnvironment::UpdateWifiLanMediumForDiscovery(
       return;
     }
     auto& context = item->second;
-    context.discovered_callbacks.insert({service_type, std::move(callback)});
+    context.discovered_callbacks.insert({service_type, callback});
     NEARBY_LOGS(INFO) << "Update WifiLan medium for discovery: this=" << this
                       << "; medium=" << &medium
                       << "; service_type=" << service_type

@@ -91,7 +91,7 @@ class BasePcpHandler : public PcpHandler,
   // See
   // cpp/core/listeners.h
   Status StartAdvertising(ClientProxy* client, const std::string& service_id,
-                          const ConnectionOptions& options,
+                          const AdvertisingOptions& options,
                           const ConnectionRequestInfo& info) override;
 
   // Stops Advertising is active, and changes CLientProxy state,
@@ -102,7 +102,7 @@ class BasePcpHandler : public PcpHandler,
   // Updates ClientProxy state once discovery started.
   // DiscoveryListener will get called in case of any event.
   Status StartDiscovery(ClientProxy* client, const std::string& service_id,
-                        const ConnectionOptions& options,
+                        const DiscoveryOptions& options,
                         const DiscoveryListener& listener) override;
 
   // Stops Discovery if it is active, and changes CLientProxy state,
@@ -230,9 +230,6 @@ class BasePcpHandler : public PcpHandler,
   BluetoothDevice GetRemoteBluetoothDevice(
       const std::string& remote_bluetooth_mac_address);
 
-  ConnectionOptions GetConnectionOptions() const;
-  ConnectionOptions GetDiscoveryOptions() const;
-
   void OnEndpointFound(ClientProxy* client,
                        std::shared_ptr<DiscoveredEndpoint> endpoint)
       RUN_ON_PCP_HANDLER_THREAD();
@@ -254,7 +251,7 @@ class BasePcpHandler : public PcpHandler,
   virtual StartOperationResult StartAdvertisingImpl(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
-      const ByteArray& local_endpoint_info, const ConnectionOptions& options)
+      const ByteArray& local_endpoint_info, const AdvertisingOptions& options)
       RUN_ON_PCP_HANDLER_THREAD() = 0;
 
   virtual Status StopAdvertisingImpl(ClientProxy* client)
@@ -262,7 +259,7 @@ class BasePcpHandler : public PcpHandler,
 
   virtual StartOperationResult StartDiscoveryImpl(
       ClientProxy* client, const std::string& service_id,
-      const ConnectionOptions& options) RUN_ON_PCP_HANDLER_THREAD() = 0;
+      const DiscoveryOptions& options) RUN_ON_PCP_HANDLER_THREAD() = 0;
 
   virtual Status StopDiscoveryImpl(ClientProxy* client)
       RUN_ON_PCP_HANDLER_THREAD() = 0;
@@ -400,12 +397,12 @@ class BasePcpHandler : public PcpHandler,
 
   // Returns true, if connection party should respect the specified topology.
   bool ShouldEnforceTopologyConstraints(
-      const ConnectionOptions& local_advertising_options) const;
+      const AdvertisingOptions& local_advertising_options) const;
 
   // Returns true, if connection party should attempt to upgrade itself to
   // use a higher bandwidth medium, if it is available.
   bool AutoUpgradeBandwidth(
-      const ConnectionOptions& local_advertising_options) const;
+      const AdvertisingOptions& local_advertising_options) const;
 
   // Returns true if the incoming connection should be killed. This only
   // happens when an incoming connection arrives while we have an outgoing
@@ -424,12 +421,12 @@ class BasePcpHandler : public PcpHandler,
   bool AppendRemoteBluetoothMacAddressEndpoint(
       const std::string& endpoint_id,
       const std::string& remote_bluetooth_mac_address,
-      const ConnectionOptions& local_discovery_options);
+      const DiscoveryOptions& local_discovery_options);
 
   // Returns true if the webrtc endpoint is created and appended into
   // discovered_endpoints_ with key endpoint_id.
   bool AppendWebRTCEndpoint(const std::string& endpoint_id,
-                            const ConnectionOptions& local_discovery_options);
+                            const DiscoveryOptions& local_discovery_options);
 
   void ProcessPreConnectionInitiationFailure(
       ClientProxy* client, Medium medium, const std::string& endpoint_id,
@@ -483,12 +480,16 @@ class BasePcpHandler : public PcpHandler,
       const ConnectionOptions& local_option);
   std::string GetStringValueOfSupportedMediums(
       const ConnectionOptions& options) const;
+  std::string GetStringValueOfSupportedMediums(
+      const AdvertisingOptions& options) const;
+  std::string GetStringValueOfSupportedMediums(
+      const DiscoveryOptions& options) const;
 
   // The endpoint id in high visibility mode is stable for 30 seconds, while in
   // low visibility mode it always rotates. We assume a client is trying to
   // rotate endpoint id when the options is "low power" (3P) or "disable
   // Bluetooth classic" (1P).
-  bool ShouldEnterHighVisibilityMode(const ConnectionOptions& options);
+  bool ShouldEnterHighVisibilityMode(const AdvertisingOptions& options);
 
   // Returns the intersection of supported mediums based on the mediums reported
   // by the remote client and the local client's advertising options.

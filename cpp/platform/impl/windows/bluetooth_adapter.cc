@@ -232,9 +232,8 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
   // Maps a UTF-16 (wide character) string to a new character string. The new
   // character string is not necessarily from a multibyte character set.
   // https://docs.microsoft.com/en-us/windows/win32/api/stringapiset/nf-stringapiset-widechartomultibyte
-  conversionResult =
-      WideCharToMultiByte(CP_UTF8, 0, guidOleStr, oleBufferLen, guidStr,
-                          bufferLen, NULL, &defaultCharUsed);
+  conversionResult = WideCharToMultiByte(CP_UTF8, 0, guidOleStr, -1, guidStr,
+                                         bufferLen, NULL, &defaultCharUsed);
 
   if (conversionResult == 0) {
     const char *errorResult = {};

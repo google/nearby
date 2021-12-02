@@ -50,7 +50,11 @@ class OfflineSimulationUser {
   explicit OfflineSimulationUser(
       absl::string_view device_name,
       BooleanMediumSelector allowed = BooleanMediumSelector())
-      : connection_options_{
+      : advertising_options_{
+            .strategy = Strategy::kP2pCluster,
+            .allowed = allowed,
+        },
+        connection_options_{
             .keep_alive_interval_millis = FeatureFlags::GetInstance()
                                               .GetFlags()
                                               .keep_alive_interval_millis,
@@ -58,11 +62,11 @@ class OfflineSimulationUser {
                                              .GetFlags()
                                              .keep_alive_timeout_millis,
         },
-        info_{ByteArray{std::string(device_name)}},
-        options_{
+        discovery_options_{
             .strategy = Strategy::kP2pCluster,
             .allowed = allowed,
-        } {}
+        },
+        info_{ByteArray{std::string(device_name)}} {}
   virtual ~OfflineSimulationUser() = default;
 
   // Calls PcpManager::StartAdvertising().
@@ -173,7 +177,6 @@ class OfflineSimulationUser {
 
   std::string service_id_;
   DiscoveredInfo discovered_;
-  ConnectionOptions connection_options_;
 
   Mutex progress_mutex_;
   ConditionVariable progress_sync_{&progress_mutex_};
@@ -189,8 +192,10 @@ class OfflineSimulationUser {
   CountDownLatch* disconnect_latch_ = nullptr;
   Future<bool>* future_ = nullptr;
   std::function<bool(const PayloadProgressInfo&)> predicate_;
+  AdvertisingOptions advertising_options_;
+  ConnectionOptions connection_options_;
+  DiscoveryOptions discovery_options_;
   ByteArray info_;
-  ConnectionOptions options_;
   ClientProxy client_;
   OfflineServiceController ctrl_;
 };

@@ -35,7 +35,7 @@ namespace windows {
 
 std::string uint64_to_mac_address_string(uint64_t bluetoothAddress) {
   std::string buffer = absl::StrFormat(
-      "%2llx:%2llx:%2llx:%2llx:%2llx:%2llx", bluetoothAddress >> 40,
+      "%02llx:%02llx:%02llx:%02llx:%02llx:%02llx", bluetoothAddress >> 40,
       (bluetoothAddress >> 32) & 0xff, (bluetoothAddress >> 24) & 0xff,
       (bluetoothAddress >> 16) & 0xff, (bluetoothAddress >> 8) & 0xff,
       bluetoothAddress & 0xff);

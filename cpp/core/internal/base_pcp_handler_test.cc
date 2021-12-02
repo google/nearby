@@ -107,7 +107,7 @@ class MockPcpHandler : public BasePcpHandler {
 
   // Expose protected inner types of a base type for mocking.
   using BasePcpHandler::ConnectImplResult;
-  using BasePcpHandler::DiscoveredEndpoint;
+  // using BasePcpHandler::DiscoveredEndpoint;
   using BasePcpHandler::StartOperationResult;
 
   MOCK_METHOD(Strategy, GetStrategy, (), (const override));
@@ -127,12 +127,12 @@ class MockPcpHandler : public BasePcpHandler {
               (ClientProxy * client, const std::string& service_id,
                const std::string& local_endpoint_id,
                const ByteArray& local_endpoint_info,
-               const ConnectionOptions& options),
+               const AdvertisingOptions& options),
               (override));
   MOCK_METHOD(Status, StopAdvertisingImpl, (ClientProxy * client), (override));
   MOCK_METHOD(StartOperationResult, StartDiscoveryImpl,
               (ClientProxy * client, const std::string& service_id,
-               const ConnectionOptions& options),
+               const DiscoveryOptions& options),
               (override));
   MOCK_METHOD(Status, StopDiscoveryImpl, (ClientProxy * client), (override));
   MOCK_METHOD(Status, InjectEndpointImpl,
@@ -236,7 +236,7 @@ class BasePcpHandlerTest
   void StartAdvertising(ClientProxy* client, MockPcpHandler* pcp_handler,
                         BooleanMediumSelector allowed = GetParam()) {
     std::string service_id{"service"};
-    ConnectionOptions options{
+    AdvertisingOptions options{
         .strategy = Strategy::kP2pCluster,
         .allowed = allowed,
         .auto_upgrade_bandwidth = true,
@@ -260,13 +260,9 @@ class BasePcpHandlerTest
   void StartDiscovery(ClientProxy* client, MockPcpHandler* pcp_handler,
                       BooleanMediumSelector allowed = GetParam()) {
     std::string service_id{"service"};
-    ConnectionOptions options{
+    DiscoveryOptions options{
         .strategy = Strategy::kP2pCluster,
         .allowed = allowed,
-        .auto_upgrade_bandwidth = true,
-        .enforce_topology_constraints = true,
-        .keep_alive_interval_millis = 5000,
-        .keep_alive_timeout_millis = 3000,
     };
     EXPECT_CALL(*pcp_handler, StartDiscoveryImpl(client, service_id, _))
         .WillOnce(Return(MockPcpHandler::StartOperationResult{
@@ -328,9 +324,10 @@ class BasePcpHandlerTest
         .endpoint_info = ByteArray{"ABCD"},
         .listener = connection_listener_,
     };
+    auto remoteBluetoothMacAddress =
+        ByteArray{std::string("\x12\x34\x56\x78\x9a\xbc")};
     ConnectionOptions options{
-        .remote_bluetooth_mac_address =
-            ByteArray{std::string("\x12\x34\x56\x78\x9a\xbc")},
+        .remote_bluetooth_mac_address = &remoteBluetoothMacAddress,
         .keep_alive_interval_millis =
             FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis,
         .keep_alive_timeout_millis =
@@ -736,7 +733,7 @@ TEST_F(BasePcpHandlerTest, InjectEndpoint) {
   BooleanMediumSelector allowed{
       .bluetooth = true,
   };
-  ConnectionOptions options{
+  DiscoveryOptions options{
       .allowed = allowed,
       .is_out_of_band_connection = true,
   };

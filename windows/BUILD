@@ -19,16 +19,10 @@ licenses(["notice"])
 cc_windows_dll(
     name = "core_adapter",
     srcs = [
-        "advertising_options.cc",
-        "connection_options.cc",
         "core_adapter.cc",
-        "discovery_options.cc",
     ],
     hdrs = [
-        "advertising_options.h",
-        "connection_options.h",
         "core_adapter.h",
-        "discovery_options.h",
     ],
     copts = ["-DCORE_ADAPTER_BUILD_DLL -DCOMPILING_CORE"],
     defines = ["CORE_ADAPTER_DLL"],
@@ -47,18 +41,12 @@ cc_windows_dll(
 cc_windows_dll(
     name = "core_adapter_dart",
     srcs = [
-        "advertising_options.cc",
-        "connection_options.cc",
         "core_adapter.cc",
         "dart/core_adapter_dart.cc",
-        "discovery_options.cc",
     ],
     hdrs = [
-        "advertising_options.h",
-        "connection_options.h",
         "core_adapter.h",
         "dart/core_adapter_dart.h",
-        "discovery_options.h",
     ],
     copts = ["-DCORE_ADAPTER_DART_BUILD_DLL -DCORE_ADAPTER_DLL -DCOMPILING_CORE"],
     defines = ["CORE_ADAPTER_DART_DLL"],

@@ -162,11 +162,12 @@ TEST_F(PcpManagerTest, InjectEndpoint) {
   env_.Start();
   SimulationUser user_a(kDeviceA, BooleanMediumSelector{.bluetooth = true});
   user_a.StartDiscovery(kServiceId, /*latch=*/nullptr);
-  user_a.InjectEndpoint(kServiceId, OutOfBandConnectionMetadata{
-                                        .medium = Medium::BLUETOOTH,
-                                        .remote_bluetooth_mac_address =
-                                            ByteArray(kFakeMacAddress),
-                                    });
+  auto fakeMacAddress = std::make_unique<ByteArray>(kFakeMacAddress);
+  auto metadata = std::make_unique<OutOfBandConnectionMetadata>();
+  metadata->medium = Medium::BLUETOOTH;
+  metadata->remote_bluetooth_mac_address = *fakeMacAddress;
+
+  user_a.InjectEndpoint(kServiceId, *metadata);
   user_a.Stop();
   env_.Stop();
 }

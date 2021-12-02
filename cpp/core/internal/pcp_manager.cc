@@ -55,7 +55,7 @@ PcpManager::~PcpManager() {
 
 Status PcpManager::StartAdvertising(ClientProxy* client,
                                     const string& service_id,
-                                    const ConnectionOptions& options,
+                                    const AdvertisingOptions& options,
                                     const ConnectionRequestInfo& info) {
   if (!SetCurrentPcpHandler(options.strategy)) {
     return {Status::kError};
@@ -71,7 +71,7 @@ void PcpManager::StopAdvertising(ClientProxy* client) {
 }
 
 Status PcpManager::StartDiscovery(ClientProxy* client, const string& service_id,
-                                  const ConnectionOptions& options,
+                                  const DiscoveryOptions& options,
                                   DiscoveryListener listener) {
   if (!SetCurrentPcpHandler(options.strategy)) {
     return {Status::kError};

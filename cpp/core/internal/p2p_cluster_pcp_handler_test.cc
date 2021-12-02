@@ -50,13 +50,13 @@ class P2pClusterPcpHandlerTest
   void SetUp() override {
     NEARBY_LOG(INFO, "SetUp: begin");
     env_.Stop();
-    if (options_.allowed.bluetooth) {
+    if (connection_options_.allowed.bluetooth) {
       NEARBY_LOG(INFO, "SetUp: BT enabled");
     }
-    if (options_.allowed.wifi_lan) {
+    if (connection_options_.allowed.wifi_lan) {
       NEARBY_LOG(INFO, "SetUp: WifiLan enabled");
     }
-    if (options_.allowed.web_rtc) {
+    if (connection_options_.allowed.web_rtc) {
       NEARBY_LOG(INFO, "SetUp: WebRTC enabled");
     }
     NEARBY_LOG(INFO, "SetUp: end");
@@ -65,10 +65,19 @@ class P2pClusterPcpHandlerTest
   ClientProxy client_a_;
   ClientProxy client_b_;
   std::string service_id_{"service"};
-  ConnectionOptions options_{
+  ConnectionOptions connection_options_{
       .strategy = Strategy::kP2pCluster,
       .allowed = GetParam(),
   };
+  AdvertisingOptions advertising_options_{
+      .strategy = Strategy::kP2pCluster,
+      .allowed = GetParam(),
+  };
+  DiscoveryOptions discovery_options_{
+      .strategy = Strategy::kP2pCluster,
+      .allowed = GetParam(),
+  };
+
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
@@ -110,7 +119,7 @@ TEST_P(P2pClusterPcpHandlerTest, CanAdvertise) {
   InjectedBluetoothDeviceStore ibds_a;
   P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
   EXPECT_EQ(
-      handler_a.StartAdvertising(&client_a_, service_id_, options_,
+      handler_a.StartAdvertising(&client_a_, service_id_, advertising_options_,
                                  {.endpoint_info = ByteArray{endpoint_name}}),
       Status{Status::kSuccess});
   env_.Stop();
@@ -133,11 +142,11 @@ TEST_P(P2pClusterPcpHandlerTest, CanDiscover) {
   P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
   CountDownLatch latch(1);
   EXPECT_EQ(
-      handler_a.StartAdvertising(&client_a_, service_id_, options_,
+      handler_a.StartAdvertising(&client_a_, service_id_, advertising_options_,
                                  {.endpoint_info = ByteArray{endpoint_name}}),
       Status{Status::kSuccess});
   EXPECT_EQ(handler_b.StartDiscovery(
-                &client_b_, service_id_, options_,
+                &client_b_, service_id_, discovery_options_,
                 {
                     .endpoint_found_cb =
                         [&latch](const std::string& endpoint_id,
@@ -186,7 +195,7 @@ TEST_P(P2pClusterPcpHandlerTest, CanConnect) {
   } discovered;
   EXPECT_EQ(
       handler_a.StartAdvertising(
-          &client_a_, service_id_, options_,
+          &client_a_, service_id_, advertising_options_,
           {
               .endpoint_info = ByteArray{endpoint_name_a},
               .listener =
@@ -202,7 +211,7 @@ TEST_P(P2pClusterPcpHandlerTest, CanConnect) {
           }),
       Status{Status::kSuccess});
   EXPECT_EQ(handler_b.StartDiscovery(
-                &client_b_, service_id_, options_,
+                &client_b_, service_id_, discovery_options_,
                 {
                     .endpoint_found_cb =
                         [&discover_latch, &discovered](
@@ -243,7 +252,7 @@ TEST_P(P2pClusterPcpHandlerTest, CanConnect) {
                       },
               },
       },
-      options_);
+      connection_options_);
   EXPECT_TRUE(connect_latch.Await(absl::Milliseconds(1000)).result());
   bwu_a.Shutdown();
   bwu_b.Shutdown();

@@ -34,7 +34,7 @@ class MockServiceController : public ServiceController {
   MOCK_METHOD(void, Stop, (), (override));
   MOCK_METHOD(Status, StartAdvertising,
               (ClientProxy * client, const std::string& service_id,
-               const ConnectionOptions& options,
+               const AdvertisingOptions& options,
                const ConnectionRequestInfo& info),
               (override));
 
@@ -42,7 +42,7 @@ class MockServiceController : public ServiceController {
 
   MOCK_METHOD(Status, StartDiscovery,
               (ClientProxy * client, const std::string& service_id,
-               const ConnectionOptions& options,
+               const DiscoveryOptions& options,
                const DiscoveryListener& listener),
               (override));
 

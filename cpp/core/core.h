@@ -61,8 +61,9 @@ class Core {
   //     Status::STATUS_ALREADY_ADVERTISING if the app is already advertising.
   //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
   //         connected to remote endpoints; call StopAllEndpoints first.
-  void StartAdvertising(absl::string_view service_id, ConnectionOptions options,
-                        ConnectionRequestInfo info, ResultCallback callback);
+  void StartAdvertising(absl::string_view service_id,
+                        AdvertisingOptions options, ConnectionRequestInfo info,
+                        ResultCallback callback);
 
   // Stops advertising a local endpoint. Should be called after calling
   // StartAdvertising, as soon as the application no longer needs to advertise
@@ -87,7 +88,7 @@ class Core {
   //         discovering the specified service.
   //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
   //         connected to remote endpoints; call StopAllEndpoints first.
-  void StartDiscovery(absl::string_view service_id, ConnectionOptions options,
+  void StartDiscovery(absl::string_view service_id, DiscoveryOptions options,
                       DiscoveryListener listener, ResultCallback callback);
 
   // Stops discovery for remote endpoints, after a previous call to

@@ -18,10 +18,10 @@
 #include "absl/types/span.h"
 
 // todo(jfcarroll) This cannot remain. It exposes stuff the client doesn't need.
+#include "core/advertising_options.h"
+#include "core/connection_options.h"
+#include "core/discovery_options.h"
 #include "core/internal/offline_service_controller.h"
-#include "third_party/nearby/windows/advertising_options.h"
-#include "third_party/nearby/windows/connection_options.h"
-#include "third_party/nearby/windows/discovery_options.h"
 
 #define DLL_EXPORT extern "C" __declspec(dllexport)
 

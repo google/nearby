@@ -182,9 +182,6 @@ void StartDiscoveryDart(Core *pCore, const char *service_id,
   options.allowed.ble = options_dart.enable_ble;
   options.allowed.wifi_lan = options_dart.enable_wifi_lan;
   options.allowed.web_rtc = false;
-  options.low_power = options_dart.use_low_power_mode;
-  options.enable_bluetooth_listening = options_dart.enable_bluetooth;
-  options.enforce_topology_constraints = true;
   options.fast_advertisement_service_uuid =
       options_dart.discover_fast_advertisements
           ? "0000FE2C-0000-1000-8000-00805F9B34FB"
@@ -274,7 +271,6 @@ void RequestConnectionDart(Core *pCore, const char *endpoint_id,
   }
 
   ConnectionOptions options;
-  options.enforce_topology_constraints = false;
   options.allowed.bluetooth = options_dart.enable_bluetooth;
   options.allowed.ble = options_dart.enable_ble;
   options.allowed.wifi_lan = options_dart.enable_wifi_lan;

@@ -72,7 +72,7 @@ ServiceControllerRouter::~ServiceControllerRouter() {
 
 void ServiceControllerRouter::StartAdvertising(
     ClientProxy* client, absl::string_view service_id,
-    const ConnectionOptions& options, const ConnectionRequestInfo& info,
+    const AdvertisingOptions& options, const ConnectionRequestInfo& info,
     const ResultCallback& callback) {
   RouteToServiceController(
       "scr-start-advertising",
@@ -100,7 +100,7 @@ void ServiceControllerRouter::StopAdvertising(ClientProxy* client,
 
 void ServiceControllerRouter::StartDiscovery(ClientProxy* client,
                                              absl::string_view service_id,
-                                             const ConnectionOptions& options,
+                                             const DiscoveryOptions& options,
                                              const DiscoveryListener& listener,
                                              const ResultCallback& callback) {
   RouteToServiceController(
@@ -133,7 +133,7 @@ void ServiceControllerRouter::InjectEndpoint(
     const ResultCallback& callback) {
   RouteToServiceController(
       "scr-inject-endpoint",
-      [this, client, service_id = std::string(service_id), metadata,
+      [this, client, service_id = std::string(service_id), &metadata,
        callback]() {
         // Currently, Bluetooth is the only supported medium for endpoint
         // injection.
@@ -148,7 +148,7 @@ void ServiceControllerRouter::InjectEndpoint(
           return;
         }
 
-        if (metadata.endpoint_info.Empty() ||
+        if (metadata.endpoint_info.size() == 0 ||
             metadata.endpoint_info.size() > kMaxEndpointInfoLength) {
           callback.result_cb({Status::kError});
           return;

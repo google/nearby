@@ -66,7 +66,9 @@ class DLL_API InputFile final {
   const InputStream& GetInputStream() const;
 
  private:
+#pragma warning(disable : 4251)  // This member is inaccessable, safe to disable
   std::unique_ptr<api::InputFile> impl_;
+#pragma warning(default : 4251)
 };
 
 class DLL_API OutputFile final {
@@ -99,7 +101,9 @@ class DLL_API OutputFile final {
   OutputStream& GetOutputStream();
 
  private:
+#pragma warning(disable : 4251)  // This member is inaccessable, safe to disable
   std::unique_ptr<api::OutputFile> impl_;
+#pragma warning(default : 4251)
 };
 
 }  // namespace nearby
