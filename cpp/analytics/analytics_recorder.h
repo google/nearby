@@ -38,17 +38,25 @@ class AnalyticsRecorder {
   explicit AnalyticsRecorder(EventLogger *event_logger);
   virtual ~AnalyticsRecorder();
 
+  // TODO(edwinwu): Implement to pass real values for AdvertisingMetadata and
+  // DiscoveryMetaData: is_extended_advertisement_supported,
+  // connected_ap_frequency, and is_nfc_available. Set as default values for
+  // analytics recorder.
   // Advertising phase
   void OnStartAdvertising(
       connections::Strategy strategy,
-      const std::vector<location::nearby::proto::connections::Medium> &mediums)
+      const std::vector<location::nearby::proto::connections::Medium> &mediums,
+      bool is_extended_advertisement_supported = false,
+      int connected_ap_frequency = 0, bool is_nfc_available = false)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnStopAdvertising() ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Discovery phase
   void OnStartDiscovery(
       connections::Strategy strategy,
-      const std::vector<location::nearby::proto::connections::Medium> &mediums)
+      const std::vector<location::nearby::proto::connections::Medium> &mediums,
+      bool is_extended_advertisement_supported = false,
+      int connected_ap_frequency = 0, bool is_nfc_available = false)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnStopDiscovery() ABSL_LOCKS_EXCLUDED(mutex_);
   void OnEndpointFound(location::nearby::proto::connections::Medium medium)

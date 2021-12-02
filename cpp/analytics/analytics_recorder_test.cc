@@ -144,8 +144,23 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedAdvertisingCalls) {
                 strategy_session <
                   strategy: P2P_STAR
                   role: ADVERTISER
-                  advertising_phase < medium: BLE medium: BLUETOOTH >
-                  advertising_phase < medium: BLUETOOTH >
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                  advertising_phase <
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
                 >)pb")));
 }
 
@@ -157,11 +172,11 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
   FakeEventLogger event_logger(client_session_done_latch);
   AnalyticsRecorder analytics_recorder(&event_logger);
 
-  analytics_recorder.OnStartDiscovery(strategy, mediums);
+  analytics_recorder.OnStartDiscovery(strategy, mediums, true, 1, false);
   analytics_recorder.OnStopDiscovery();
   analytics_recorder.OnEndpointFound(BLUETOOTH);
   analytics_recorder.OnEndpointFound(BLE);
-  analytics_recorder.OnStartDiscovery(strategy, {BLUETOOTH});
+  analytics_recorder.OnStartDiscovery(strategy, {BLUETOOTH}, true, 1, false);
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
@@ -175,8 +190,20 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
                     medium: BLUETOOTH
                     discovered_endpoint < medium: BLUETOOTH >
                     discovered_endpoint < medium: BLE >
+                    discovery_metadata <
+                      supports_extended_ble_advertisements: true
+                      connected_ap_frequency: 1
+                      supports_nfc_technology: false
+                    >
                   >
-                  discovery_phase < medium: BLUETOOTH >
+                  discovery_phase <
+                    medium: BLUETOOTH
+                    discovery_metadata <
+                      supports_extended_ble_advertisements: true
+                      connected_ap_frequency: 1
+                      supports_nfc_technology: false
+                    >
+                  >
                 >)pb")));
 }
 
@@ -214,12 +241,60 @@ TEST(AnalyticsRecorderTest,
                   strategy: P2P_STAR
                   role: ADVERTISER
                   role: DISCOVERER
-                  discovery_phase < medium: BLE medium: BLUETOOTH >
-                  discovery_phase < medium: BLE medium: BLUETOOTH >
-                  discovery_phase < medium: BLE medium: BLUETOOTH >
-                  advertising_phase < medium: BLE medium: BLUETOOTH >
-                  advertising_phase < medium: BLE medium: BLUETOOTH >
-                  advertising_phase < medium: BLE medium: BLUETOOTH >
+                  discovery_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    discovery_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                  discovery_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    discovery_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                  discovery_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    discovery_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
                 >)pb")));
 }
 
@@ -262,6 +337,11 @@ TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
                   advertising_phase <
                     medium: BLE
                     medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
                     received_connection_request <
                       local_response: ACCEPTED
                       remote_response: ACCEPTED
@@ -322,6 +402,11 @@ TEST(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
                   discovery_phase <
                     medium: BLE
                     medium: BLUETOOTH
+                    discovery_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
                     sent_connection_request <
                       local_response: ACCEPTED
                       remote_response: ACCEPTED
@@ -376,6 +461,11 @@ TEST(AnalyticsRecorderTest,
                   advertising_phase <
                     medium: BLE
                     medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
                     received_connection_request <
                       local_response: IGNORED
                       remote_response: ACCEPTED
@@ -427,6 +517,11 @@ TEST(AnalyticsRecorderTest,
                   discovery_phase <
                     medium: BLE
                     medium: BLUETOOTH
+                    discovery_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
                     sent_connection_request <
                       local_response: IGNORED
                       remote_response: ACCEPTED
@@ -466,7 +561,15 @@ TEST(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
                 strategy_session <
                   strategy: P2P_STAR
                   role: ADVERTISER
-                  advertising_phase < medium: BLE medium: BLUETOOTH >
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
                   connection_attempt <
                     type: INITIAL
                     direction: INCOMING
@@ -527,6 +630,11 @@ TEST(AnalyticsRecorderTest,
                   discovery_phase <
                     medium: BLE
                     medium: BLUETOOTH
+                    discovery_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
                     sent_connection_request <
                       local_response: NOT_SENT
                       remote_response: NOT_SENT
@@ -579,7 +687,15 @@ TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
                 strategy_session <
                   strategy: P2P_STAR
                   role: ADVERTISER
-                  advertising_phase < medium: BLE medium: BLUETOOTH >
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
                   established_connection <
                     medium: BLUETOOTH
                     disconnection_reason: UPGRADED
@@ -628,7 +744,15 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
                 strategy_session <
                   strategy: P2P_STAR
                   role: ADVERTISER
-                  advertising_phase < medium: BLE medium: BLUETOOTH >
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
                   established_connection <
                     medium: BLUETOOTH
                     sent_payload <
@@ -691,7 +815,15 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
                 strategy_session <
                   strategy: P2P_STAR
                   role: ADVERTISER
-                  advertising_phase < medium: BLE medium: BLUETOOTH >
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
                   upgrade_attempt <
                     direction: INCOMING
                     from_medium: BLE
