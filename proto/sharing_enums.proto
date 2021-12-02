@@ -185,6 +185,9 @@ enum EventType {
 
   // Set up a connection with the remote device.
   ESTABLISH_CONNECTION = 48;
+
+  // Track device states in Nearby Share setting.
+  DEVICE_SETTINGS = 49;
 }
 
 // Event category to differentiate whether this comes from sender or receiver,
