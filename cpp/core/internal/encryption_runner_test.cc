@@ -52,6 +52,19 @@ class FakeEndpointChannel : public EndpointChannel {
   void Close(proto::connections::DisconnectionReason reason) override {
     Close();
   }
+  // TODO(jfcarroll): This needs to be fixed properly
+  proto::connections::ConnectionTechnology GetTechnology() const override {
+    return proto::connections::ConnectionTechnology::
+        CONNECTION_TECHNOLOGY_BLE_GATT;
+  }
+  // TODO(jfcarroll): This needs to be fixed properly
+  proto::connections::ConnectionBand GetBand() const override {
+    return proto::connections::ConnectionBand::CONNECTION_BAND_CELLULAR_BAND_2G;
+  }
+  // TODO(jfcarroll): This needs to be fixed properly
+  int GetFrequency() const override { return 0; }
+  // TODO(jfcarroll): This needs to be fixed properly
+  int GetTryCount() const override { return 0; }
   std::string GetType() const override { return "fake-channel-type"; }
   std::string GetName() const override { return "fake-channel"; }
   Medium GetMedium() const override { return Medium::BLE; }
