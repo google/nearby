@@ -19,8 +19,8 @@ for more information.
 # Checkout the source tree
 
 ```shell
-git clone https://github.com/google/nearby-connections
-cd nearby-connections
+git clone https://github.com/google/nearby
+cd nearby
 git submodule update --init --recursive
 ```
 
