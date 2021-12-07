@@ -9,7 +9,7 @@
 [submodule "third_party/gtest"]
 	path = third_party/gtest
 	url = https://github.com/google/googletest
-	branch = master
+	branch = main
 [submodule "third_party/absl"]
 	path = third_party/absl
 	url = https://github.com/abseil/abseil-cpp
@@ -21,4 +21,4 @@
 [submodule "third_party/depot_tools"]
 	path = third_party/depot_tools
 	url = https://chromium.googlesource.com/chromium/tools/depot_tools.git
-	branch = master
+	branch = main
