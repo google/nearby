@@ -33,6 +33,7 @@
 #include "platform/base/bluetooth_utils.h"
 #include "platform/public/logging.h"
 #include "platform/public/system_clock.h"
+#include "proto/connections_enums.proto.h"
 
 namespace location {
 namespace nearby {
@@ -357,6 +358,7 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
 
   // Now we register our endpoint so that we can listen for both sides to
   // accept.
+  LogConnectionAttemptSuccess(endpoint_id, connection_info);
   endpoint_manager_->RegisterEndpoint(
       connection_info.client, endpoint_id,
       {
@@ -390,8 +392,6 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
       },
       std::move(connection_info.channel), connection_info.listener,
       connection_info.connection_token);
-
-  LogConnectionAttemptSuccess(endpoint_id, connection_info);
 
   if (auto future_status = connection_info.result.lock()) {
     NEARBY_LOGS(INFO) << "Connection established; Finalising future OK.";
@@ -1491,6 +1491,11 @@ void BasePcpHandler::LogConnectionAttemptSuccess(
                 connection_info.channel->GetBand(),
                 connection_info.channel->GetFrequency(),
                 connection_info.channel->GetTryCount());
+  } else {
+    NEARBY_LOG(ERROR,
+               "PendingConnectionInfo channel is null for "
+               "LogConnectionAttemptSuccess. Bail out.");
+    return;
   }
   if (connection_info.is_incoming) {
     connection_info.client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(

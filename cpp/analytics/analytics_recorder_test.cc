@@ -27,7 +27,6 @@
 #include "platform/public/logging.h"
 #include "proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
-#include "proto/connections_enums.proto.h"
 
 namespace location {
 namespace nearby {

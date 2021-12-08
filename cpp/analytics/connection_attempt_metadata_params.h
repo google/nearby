@@ -16,7 +16,6 @@
 #define ANALYTICS_CONNECTION_ATTEMPT_METADATA_PARAMS_H_
 
 #include "proto/connections_enums.pb.h"
-#include "proto/connections_enums.proto.h"
 
 namespace location {
 namespace nearby {

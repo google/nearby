@@ -30,7 +30,6 @@
 #include "platform/public/condition_variable.h"
 #include "platform/public/mutex.h"
 #include "platform/public/system_clock.h"
-#include "proto/connections_enums.proto.h"
 
 namespace location {
 namespace nearby {
