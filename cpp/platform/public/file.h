@@ -23,10 +23,10 @@
 #include "platform/api/output_file.h"
 #include "platform/api/platform.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/core_config.h"
 #include "platform/base/exception.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/output_stream.h"
-#include "platform/public/core_config.h"
 
 namespace location {
 namespace nearby {
@@ -34,7 +34,7 @@ namespace nearby {
 class DLL_API InputFile final {
  public:
   using Platform = api::ImplementationPlatform;
-  InputFile(PayloadId payload_id, std::int64_t size);
+  InputFile(const char* file_path);
   ~InputFile();
   InputFile(InputFile&&) noexcept;
   InputFile& operator=(InputFile&&) noexcept;
@@ -42,7 +42,7 @@ class DLL_API InputFile final {
   // Reads up to size bytes and returns as a ByteArray object wrapped by
   // ExceptionOr.
   // Returns Exception::kIo on error, or end of file.
-  ExceptionOr<ByteArray> Read(std::int64_t size);
+  ExceptionOr<ByteArray> Read(std::int64_t size) const;
 
   // Returns a string that uniqely identifies this file.
   std::string GetFilePath() const;
@@ -50,11 +50,11 @@ class DLL_API InputFile final {
   // Returns total size of this file in bytes.
   std::int64_t GetTotalSize() const;
 
-  ExceptionOr<size_t> Skip(size_t offset);
+  ExceptionOr<size_t> Skip(size_t offset) const;
 
   // Disallows further reads from the file and frees system resources,
   // associated with it.
-  Exception Close();
+  Exception Close() const;
 
   // Returns a handle to the underlying input stream.
   //
@@ -63,20 +63,16 @@ class DLL_API InputFile final {
   // Side effects of any non-const operation invoked for InputFile (such as
   // Read, or Close will be observable through InputStream& handle, and vice
   // versa.
-  InputStream& GetInputStream();
-
-  // Returns payload id of this file. The closest "file" equivalent is inode.
-  PayloadId GetPayloadId() const;
+  const InputStream& GetInputStream() const;
 
  private:
   std::unique_ptr<api::InputFile> impl_;
-  PayloadId id_;
 };
 
 class DLL_API OutputFile final {
  public:
   using Platform = api::ImplementationPlatform;
-  explicit OutputFile(PayloadId payload_id);
+  explicit OutputFile(const char* file_path);
   ~OutputFile();
   OutputFile(OutputFile&&) noexcept;
   OutputFile& operator=(OutputFile&&) noexcept;
@@ -102,12 +98,8 @@ class DLL_API OutputFile final {
   // versa.
   OutputStream& GetOutputStream();
 
-  // Returns payload id of this file. The closest "file" equivalent is inode.
-  PayloadId GetPayloadId() const;
-
  private:
   std::unique_ptr<api::OutputFile> impl_;
-  PayloadId id_;
 };
 
 }  // namespace nearby

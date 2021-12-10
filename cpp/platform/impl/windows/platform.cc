@@ -41,9 +41,9 @@
 namespace location {
 namespace nearby {
 namespace api {
-namespace {
 
-std::string GetPayloadPath(PayloadId payload_id) {
+std::unique_ptr<std::string> ImplementationPlatform::GetDownloadPath(
+    std::unique_ptr<std::string> path) {
   PWSTR basePath;
 
   // Retrieves the full path of a known folder identified by the folder's
@@ -61,13 +61,12 @@ std::string GetPayloadPath(PayloadId payload_id) {
                    // is no longer needed by calling CoTaskMemFree, whether
                    // SHGetKnownFolderPath succeeds or not.
 
-  char* fullpathUTF8 = new char((wcslen(basePath) + 1) * sizeof(char));
-  wcstombs(fullpathUTF8, basePath, (wcslen(basePath) + 1) * sizeof(char));
-  std::string fullPath = std::string(fullpathUTF8);
-  auto retval = absl::StrCat(fullPath += "/", payload_id);
-  return retval;
+  auto basePathLength = (wcslen(basePath) + 1) * sizeof(char);
+  char* fullpathUTF8 = new char(basePathLength);
+  wcstombs(fullpathUTF8, basePath, basePathLength);
+  return std::make_unique<std::string>(std::string(fullpathUTF8) +=
+                                       "/" + *path);
 }
-}  // namespace
 
 std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(
     bool initial_value) {
@@ -94,14 +93,13 @@ ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
-    PayloadId payload_id, std::int64_t total_size) {
-  return absl::make_unique<shared::InputFile>(GetPayloadPath(payload_id),
-                                              total_size);
+    const char* file_path) {
+  return absl::make_unique<shared::InputFile>(file_path);
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
-    PayloadId payload_id) {
-  return absl::make_unique<shared::OutputFile>(GetPayloadPath(payload_id));
+    const char* file_path) {
+  return absl::make_unique<shared::OutputFile>(file_path);
 }
 
 // TODO(b/184975123): replace with real implementation.

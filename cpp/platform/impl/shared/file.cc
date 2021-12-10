@@ -25,9 +25,21 @@ namespace nearby {
 namespace shared {
 
 // InputFile
+InputFile::InputFile(const char* file_path) : file_path_(file_path) {
+  // Open the file with the current location at eof (std::ios::ate)
+  // std::ios::binary - specifies binary access mode
+  // std::ios::in - allows input (read operations) from a stream
+  // std::ios::ate - sets the stream's position indicator to the
+  //                 end of the stream on opening.
+  file_.open(std::string(file_path),
+             std::ios::binary | std::ios::in | std::ios::ate);
 
-InputFile::InputFile(const std::string& path, std::int64_t size)
-    : file_(path, std::ios::binary), path_(path), total_size_(size) {}
+  // Read the current position in the file and use that for total size.
+  total_size_ = file_.tellg();
+
+  // Reset to the beginning of the file.
+  file_.seekg(0);
+}
 
 ExceptionOr<ByteArray> InputFile::Read(std::int64_t size) {
   if (!file_.is_open()) {
@@ -62,8 +74,15 @@ Exception InputFile::Close() {
 
 // OutputFile
 
-OutputFile::OutputFile(absl::string_view path)
-    : file_(std::string(path), std::ios::binary) {}
+OutputFile::OutputFile(const char* file_path) {
+  // std::ios::binary - specifies binary access mode
+  // std::ios::out - allows output (read operations) from
+  //                 a stream
+  // std::ios::trunc - when the file is opened, the old
+  //                   contents are immediately removed.
+  file_ = std::ofstream(file_path,
+                        std::ios::binary | std::ios::out | std::ios::trunc);
+}
 
 Exception OutputFile::Write(const ByteArray& data) {
   if (!file_.is_open()) {

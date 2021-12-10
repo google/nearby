@@ -24,6 +24,13 @@ namespace location {
 namespace nearby {
 namespace connections {
 namespace parser {
+bool Validate(std::string toBeValidated,
+              std::vector<std::string> illegalPatterns) {
+  return !std::any_of(illegalPatterns.begin(), illegalPatterns.end(),
+                      [&toBeValidated](const auto& s) {
+                        return toBeValidated.find(s) != std::string::npos;
+                      });
+}
 namespace {
 
 using PayloadChunk = PayloadTransferFrame::PayloadChunk;
@@ -120,6 +127,25 @@ Exception EnsureValidPayloadTransferFrame(const PayloadTransferFrame& frame) {
        frame.payload_header().total_size() !=
            InternalPayload::kIndeterminateSize))
     return {Exception::kInvalidProtocolBuffer};
+
+  if (frame.payload_header().has_type() &&
+      frame.payload_header().type() ==
+          PayloadTransferFrame::PayloadHeader::FILE) {
+    if (frame.payload_header().has_file_name()) {
+      if (!Validate(frame.payload_header().file_name(),
+                    ILLEGAL_FILENAME_PATTERNS)) {
+        return {Exception::kFailed};
+      }
+    }
+
+    if (frame.payload_header().has_parent_folder()) {
+      if (!Validate(frame.payload_header().file_name(),
+                    ILLEGAL_PARENT_FOLDER_PATTERNS)) {
+        return {Exception::kFailed};
+      }
+    }
+  }
+
   if (!frame.has_packet_type()) return {Exception::kInvalidProtocolBuffer};
 
   switch (frame.packet_type()) {

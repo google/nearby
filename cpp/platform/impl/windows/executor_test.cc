@@ -125,20 +125,25 @@ TEST(ExecutorTests, SingleThreadedExecutorMultipleTasksSucceeds) {
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
       std::make_unique<std::vector<DWORD>>();
+  CRITICAL_SECTION crit_sec;
+  InitializeCriticalSection(&crit_sec);
 
   threadIds->push_back(GetCurrentThreadId());
 
   // Act
   for (int index = 0; index < 5; index++) {
-    executor->Execute([&output, &threadIds, index]() {
+    executor->Execute([&output, &threadIds, &crit_sec, index]() {
+      EnterCriticalSection(&crit_sec);
       threadIds->push_back(GetCurrentThreadId());
       char buffer[128];
       snprintf(buffer, sizeof(buffer), "%s%d, ", RUNNABLE_TEXT.c_str(), index);
       output.append(std::string(buffer));
+      LeaveCriticalSection(&crit_sec);
     });
   }
 
   executor->Shutdown();
+  DeleteCriticalSection(&crit_sec);
 
   //  Assert
   //  We should've run 1 time on the main thread, and 5 times on the
@@ -200,19 +205,25 @@ TEST(ExecutorTests, MultiThreadedExecutorMultipleTasksSucceeds) {
 
   std::shared_ptr<std::string> output = std::make_shared<std::string>();
 
+  CRITICAL_SECTION crit_sec;
+  InitializeCriticalSection(&crit_sec);
+
   threadIds->push_back(GetCurrentThreadId());
 
   //  Act
   for (int index = 0; index < 5; index++) {
-    executor->Execute([&output, &threadIds, index]() {
+    executor->Execute([&output, &threadIds, &crit_sec, index]() {
+      EnterCriticalSection(&crit_sec);
       threadIds->push_back(GetCurrentThreadId());
       char buffer[128];
       snprintf(buffer, sizeof(buffer), "%s %d, ", RUNNABLE_TEXT.c_str(), index);
       output->append(std::string(buffer));
+      LeaveCriticalSection(&crit_sec);
     });
   }
 
   executor->Shutdown();
+  DeleteCriticalSection(&crit_sec);
 
   //  Assert
   //  We should've run 1 time on the main thread, and 5 times on the

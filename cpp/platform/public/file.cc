@@ -17,16 +17,19 @@
 namespace location {
 namespace nearby {
 
-InputFile::InputFile(PayloadId payload_id, std::int64_t size)
-    : impl_(Platform::CreateInputFile(payload_id, size)), id_(payload_id) {}
+InputFile::InputFile(const char* file_path)
+    : impl_(Platform::CreateInputFile(file_path)) {}
+
 InputFile::~InputFile() = default;
-InputFile::InputFile(InputFile&&) noexcept = default;
+InputFile::InputFile(InputFile&& other) noexcept {
+  impl_ = std::move(other.impl_);
+}
 InputFile& InputFile::operator=(InputFile&&) noexcept = default;
 
 // Reads up to size bytes and returns as a ByteArray object wrapped by
 // ExceptionOr.
 // Returns Exception::kIo on error, or end of file.
-ExceptionOr<ByteArray> InputFile::Read(std::int64_t size) {
+ExceptionOr<ByteArray> InputFile::Read(std::int64_t size) const {
   return impl_->Read(size);
 }
 
@@ -36,13 +39,13 @@ std::string InputFile::GetFilePath() const { return impl_->GetFilePath(); }
 // Returns total size of this file in bytes.
 std::int64_t InputFile::GetTotalSize() const { return impl_->GetTotalSize(); }
 
-ExceptionOr<size_t> InputFile::Skip(size_t offset) {
+ExceptionOr<size_t> InputFile::Skip(size_t offset) const {
   return impl_->Skip(offset);
 }
 
 // Disallows further reads from the file and frees system resources,
 // associated with it.
-Exception InputFile::Close() { return impl_->Close(); }
+Exception InputFile::Close() const { return impl_->Close(); }
 
 // Returns a handle to the underlying input stream.
 //
@@ -51,13 +54,10 @@ Exception InputFile::Close() { return impl_->Close(); }
 // Side effects of any non-const operation invoked for InputFile (such as
 // Read, or Close will be observable through InputStream& handle, and vice
 // versa.
-InputStream& InputFile::GetInputStream() { return *impl_; }
+const InputStream& InputFile::GetInputStream() const { return *impl_; }
 
-// Returns payload id of this file. The closest "file" equivalent is inode.
-PayloadId InputFile::GetPayloadId() const { return id_; }
-
-OutputFile::OutputFile(PayloadId payload_id)
-    : impl_(Platform::CreateOutputFile(payload_id)), id_(payload_id) {}
+OutputFile::OutputFile(const char* file_path)
+    : impl_(Platform::CreateOutputFile(file_path)) {}
 OutputFile::~OutputFile() = default;
 OutputFile::OutputFile(OutputFile&&) noexcept = default;
 OutputFile& OutputFile::operator=(OutputFile&&) noexcept = default;
@@ -84,9 +84,6 @@ Exception OutputFile::Close() { return impl_->Close(); }
 // Write, or Close will be observable through OutputStream& handle, and vice
 // versa.
 OutputStream& OutputFile::GetOutputStream() { return *impl_; }
-
-// Returns payload id of this file. The closest "file" equivalent is inode.
-PayloadId OutputFile::GetPayloadId() const { return id_; }
 
 }  // namespace nearby
 }  // namespace location

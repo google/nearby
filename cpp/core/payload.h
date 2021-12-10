@@ -22,10 +22,10 @@
 
 #include "absl/types/variant.h"
 #include "platform/base/byte_array.h"
+#include "platform/base/core_config.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/payload_id.h"
 #include "platform/base/prng.h"
-#include "platform/public/core_config.h"
 #include "platform/public/file.h"
 #include "platform/public/logging.h"
 
@@ -56,13 +56,14 @@ class DLL_API Payload {
   explicit Payload(ByteArray&& bytes);
 
   explicit Payload(const ByteArray& bytes);
-  explicit Payload(InputFile file);
+  explicit Payload(const char* parent_folder, const char* file_name,
+                   InputFile&& file);
   explicit Payload(std::function<InputStream&()> stream);
 
   // Constructors for incoming payloads.
   Payload(Id id, ByteArray&& bytes);
   Payload(Id id, const ByteArray& bytes);
-  Payload(Id id, InputFile file);
+  Payload(Id id, InputFile&& file);
   Payload(Id id, std::function<InputStream&()> stream);
 
 
@@ -72,7 +73,7 @@ class DLL_API Payload {
   // Returns InputStream* payload, if it has been defined, or nullptr.
   InputStream* AsStream();
   // Returns InputFile* payload, if it has been defined, or nullptr.
-  InputFile* AsFile();
+  const InputFile* AsFile() const;
 
   // Returns Payload unique ID.
   Id GetId() const;
@@ -88,6 +89,9 @@ class DLL_API Payload {
   // Generate Payload Id; to be passed to outgoing file constructor.
   static Id GenerateId();
 
+  const std::string GetFileName() const;
+  const std::string GetParentFolder() const;
+
  private:
   Type FindType() const;
 
@@ -95,6 +99,8 @@ class DLL_API Payload {
   Id id_{GenerateId()};
   Type type_{FindType()};
   size_t offset_{0};
+  const char* parent_folder_;
+  const char* file_name_;
 };
 
 }  // namespace connections

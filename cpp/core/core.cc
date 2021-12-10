@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "absl/time/clock.h"
+#include "core/internal/offline_frames_validator.h"
 #include "core/options.h"
 #include "platform/base/feature_flags.h"
 #include "platform/public/count_down_latch.h"
@@ -130,6 +131,12 @@ void Core::SendPayload(absl::Span<const std::string> endpoint_ids,
                        Payload payload, ResultCallback callback) {
   assert(payload.GetType() != Payload::Type::kUnknown);
   assert(!endpoint_ids.empty());
+  if (payload.GetType() == Payload::Type::kFile) {
+    assert(parser::Validate(payload.GetFileName(),
+                            parser::ILLEGAL_FILENAME_PATTERNS));
+    assert(parser::Validate(payload.GetParentFolder(),
+                            parser::ILLEGAL_PARENT_FOLDER_PATTERNS));
+  }
 
   router_->SendPayload(&client_, endpoint_ids, std::move(payload), callback);
 }

@@ -61,6 +61,9 @@ class ImplementationPlatform {
   // - file I/O
   // - Logging
 
+  static std::unique_ptr<std::string> GetDownloadPath(
+      std::unique_ptr<std::string> path);
+
   // Atomics:
   // =======
 
@@ -78,12 +81,11 @@ class ImplementationPlatform {
       std::int32_t count);
   static std::unique_ptr<Mutex> CreateMutex(Mutex::Mode mode);
   static std::unique_ptr<ConditionVariable> CreateConditionVariable(
-      Mutex* mutex);
-  static std::unique_ptr<InputFile> CreateInputFile(PayloadId payload_id,
-                                                    std::int64_t total_size);
-  static std::unique_ptr<OutputFile> CreateOutputFile(PayloadId payload_id);
+      Mutex *mutex);
+  static std::unique_ptr<InputFile> CreateInputFile(const char *file_path);
+  static std::unique_ptr<OutputFile> CreateOutputFile(const char *file_path);
   static std::unique_ptr<LogMessage> CreateLogMessage(
-      const char* file, int line, LogMessage::Severity severity);
+      const char *file, int line, LogMessage::Severity severity);
 
   // Java-like Executors
   static std::unique_ptr<SubmittableExecutor> CreateSingleThreadExecutor();
@@ -94,10 +96,10 @@ class ImplementationPlatform {
   // Protocol implementations, domain-specific support
   static std::unique_ptr<BluetoothAdapter> CreateBluetoothAdapter();
   static std::unique_ptr<BluetoothClassicMedium> CreateBluetoothClassicMedium(
-      BluetoothAdapter&);
-  static std::unique_ptr<BleMedium> CreateBleMedium(BluetoothAdapter&);
+      BluetoothAdapter &);
+  static std::unique_ptr<BleMedium> CreateBleMedium(BluetoothAdapter &);
   static std::unique_ptr<ble_v2::BleMedium> CreateBleV2Medium(
-      BluetoothAdapter&);
+      BluetoothAdapter &);
   static std::unique_ptr<ServerSyncMedium> CreateServerSyncMedium();
   static std::unique_ptr<WifiMedium> CreateWifiMedium();
   static std::unique_ptr<WifiLanMedium> CreateWifiLanMedium();

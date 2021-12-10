@@ -14,7 +14,9 @@
 
 #include "platform/impl/shared/file.h"
 
+#include <codecvt>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <memory>
 #include <ostream>
@@ -24,6 +26,10 @@
 #include "absl/strings/string_view.h"
 #include "platform/base/byte_array.h"
 
+#define TEST_FILE_NAME std::string("testfilename.txt")
+#define TEST_INVALID_PARENT_FOLDER \
+  std::string("fake/path/that/has/not/been/created/")
+
 namespace location {
 namespace nearby {
 namespace shared {
@@ -32,7 +38,7 @@ class FileTest : public ::testing::Test {
  protected:
   void SetUp() override {
     temp_path_ = std::make_unique<TempPath>(TempPath::Local);
-    path_ = temp_path_->path() + "/file.txt";
+    path_ = temp_path_->path() + "/" + TEST_FILE_NAME;
     std::ofstream output_file(path_);
     file_ = std::fstream(path_, std::fstream::in | std::fstream::out);
   }
@@ -65,39 +71,39 @@ class FileTest : public ::testing::Test {
 };
 
 TEST_F(FileTest, InputFile_NonExistentPath) {
-  InputFile input_file("/not/a/valid/path.txt", GetSize());
+  InputFile input_file((TEST_INVALID_PARENT_FOLDER + TEST_FILE_NAME).c_str());
   ExceptionOr<ByteArray> read_result = input_file.Read(kMaxSize);
   EXPECT_FALSE(read_result.ok());
   EXPECT_TRUE(read_result.GetException().Raised(Exception::kIo));
 }
 
 TEST_F(FileTest, InputFile_GetFilePath) {
-  InputFile input_file(path_, GetSize());
+  InputFile input_file(path_.c_str());
   EXPECT_EQ(input_file.GetFilePath(), path_);
 }
 
 TEST_F(FileTest, InputFile_EmptyFileEOF) {
-  InputFile input_file(path_, GetSize());
+  InputFile input_file(path_.c_str());
   AssertEmpty(input_file.Read(kMaxSize));
 }
 
 TEST_F(FileTest, InputFile_ReadWorks) {
   WriteToFile("abc");
-  InputFile input_file(path_, GetSize());
+  InputFile input_file(path_.c_str());
   input_file.Read(kMaxSize);
   SUCCEED();
 }
 
 TEST_F(FileTest, InputFile_ReadUntilEOF) {
   WriteToFile("abc");
-  InputFile input_file(path_, GetSize());
+  InputFile input_file(path_.c_str());
   AssertEquals(input_file.Read(kMaxSize), "abc");
   AssertEmpty(input_file.Read(kMaxSize));
 }
 
 TEST_F(FileTest, InputFile_ReadWithSize) {
   WriteToFile("abc");
-  InputFile input_file(path_, GetSize());
+  InputFile input_file(path_.c_str());
   AssertEquals(input_file.Read(2), "ab");
   AssertEquals(input_file.Read(1), "c");
   AssertEmpty(input_file.Read(kMaxSize));
@@ -105,7 +111,7 @@ TEST_F(FileTest, InputFile_ReadWithSize) {
 
 TEST_F(FileTest, InputFile_GetTotalSize) {
   WriteToFile("abc");
-  InputFile input_file(path_, GetSize());
+  InputFile input_file(path_.c_str());
   EXPECT_EQ(input_file.GetTotalSize(), 3);
   AssertEquals(input_file.Read(1), "a");
   EXPECT_EQ(input_file.GetTotalSize(), 3);
@@ -113,7 +119,7 @@ TEST_F(FileTest, InputFile_GetTotalSize) {
 
 TEST_F(FileTest, InputFile_Close) {
   WriteToFile("abc");
-  InputFile input_file(path_, GetSize());
+  InputFile input_file(path_.c_str());
   input_file.Close();
   ExceptionOr<ByteArray> read_result = input_file.Read(kMaxSize);
   EXPECT_FALSE(read_result.ok());
@@ -121,23 +127,23 @@ TEST_F(FileTest, InputFile_Close) {
 }
 
 TEST_F(FileTest, OutputFile_NonExistentPath) {
-  OutputFile output_file("/not/a/valid/path.txt");
+  OutputFile output_file((TEST_INVALID_PARENT_FOLDER + TEST_FILE_NAME).c_str());
   ByteArray bytes("a", 1);
   EXPECT_TRUE(output_file.Write(bytes).Raised(Exception::kIo));
 }
 
 TEST_F(FileTest, OutputFile_Write) {
-  OutputFile output_file(path_);
+  OutputFile output_file(path_.c_str());
   ByteArray bytes1("a");
   ByteArray bytes2("bc");
   EXPECT_EQ(output_file.Write(bytes1), Exception{Exception::kSuccess});
   EXPECT_EQ(output_file.Write(bytes2), Exception{Exception::kSuccess});
-  InputFile input_file(path_, GetSize());
+  InputFile input_file(path_.c_str());
   AssertEquals(input_file.Read(kMaxSize), "abc");
 }
 
 TEST_F(FileTest, OutputFile_Close) {
-  OutputFile output_file(path_);
+  OutputFile output_file(path_.c_str());
   output_file.Close();
   ByteArray bytes("a");
   EXPECT_EQ(output_file.Write(bytes), Exception{Exception::kIo});

@@ -55,11 +55,11 @@ namespace location {
 namespace nearby {
 namespace api {
 
-namespace {
-std::string GetPayloadPath(PayloadId payload_id) {
-  return absl::StrCat("/tmp/", payload_id);
+std::unique_ptr<std::string> ImplementationPlatform::GetDownloadPath(
+    std::unique_ptr<std::string> path) {
+  std::string basePath("/tmp/");
+  return std::make_unique<std::string>(basePath += *path);
 }
-}  // namespace
 
 int GetCurrentTid() {
   const LiveThread* my = Thread_GetMyLiveThread();
@@ -102,14 +102,13 @@ std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
-    PayloadId payload_id, std::int64_t total_size) {
-  return absl::make_unique<shared::InputFile>(GetPayloadPath(payload_id),
-                                              total_size);
+    const char* file_path) {
+  return absl::make_unique<shared::InputFile>(file_path);
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
-    PayloadId payload_id) {
-  return absl::make_unique<shared::OutputFile>(GetPayloadPath(payload_id));
+    const char* file_path) {
+  return absl::make_unique<shared::OutputFile>(file_path);
 }
 
 std::unique_ptr<LogMessage> ImplementationPlatform::CreateLogMessage(

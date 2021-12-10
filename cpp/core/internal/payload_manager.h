@@ -211,7 +211,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   int GetOptimalChunkSize(EndpointIds endpoint_ids);
 
   PayloadTransferFrame::PayloadHeader CreatePayloadHeader(
-      const InternalPayload& payload, size_t offset);
+      const InternalPayload& payload, size_t offset, std::string parent_folder,
+      std::string file_name);
   PayloadTransferFrame::PayloadChunk CreatePayloadChunk(std::int64_t offset,
                                                         ByteArray body);
 

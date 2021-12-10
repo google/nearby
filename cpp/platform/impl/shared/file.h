@@ -29,25 +29,25 @@ namespace shared {
 
 class InputFile final : public api::InputFile {
  public:
-  explicit InputFile(const std::string& path, std::int64_t size);
+  explicit InputFile(const char* file_path);
   ~InputFile() override = default;
   InputFile(InputFile&&) = default;
   InputFile& operator=(InputFile&&) = default;
 
-  ExceptionOr<ByteArray> Read(std::int64_t size) override;
-  std::string GetFilePath() const override { return path_; }
-  std::int64_t GetTotalSize() const override { return total_size_; }
+  ExceptionOr<ByteArray> Read(int64_t size) override;
+  std::string GetFilePath() const override { return file_path_; }
+  int64_t GetTotalSize() const override { return total_size_; }
   Exception Close() override;
 
  private:
   std::ifstream file_;
-  std::string path_;
-  std::int64_t total_size_;
+  std::string file_path_;
+  int64_t total_size_;
 };
 
 class OutputFile final : public api::OutputFile {
  public:
-  explicit OutputFile(absl::string_view path);
+  explicit OutputFile(const char* file_path);
   ~OutputFile() override = default;
   OutputFile(OutputFile&&) = default;
   OutputFile& operator=(OutputFile&&) = default;

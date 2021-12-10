@@ -164,19 +164,25 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteMultipleTasksSucceeds) {
   std::unique_ptr<std::vector<DWORD>> threadIds =
       std::make_unique<std::vector<DWORD>>();
 
+  CRITICAL_SECTION crit_sec;
+  InitializeCriticalSection(&crit_sec);
+
   threadIds->push_back(GetCurrentThreadId());
 
   // Act
   for (int index = 0; index < 5; index++) {
-    submittableExecutor->Execute([&output, &threadIds, index]() {
+    submittableExecutor->Execute([&output, &threadIds, &crit_sec, index]() {
+      EnterCriticalSection(&crit_sec);
       threadIds->push_back(GetCurrentThreadId());
       char buffer[128];
       snprintf(buffer, sizeof(buffer), "%s%d, ", RUNNABLE_TEXT.c_str(), index);
       output->append(std::string(buffer));
+      LeaveCriticalSection(&crit_sec);
     });
   }
 
   submittableExecutor->Shutdown();
+  DeleteCriticalSection(&crit_sec);
 
   //  Assert
   //  We should've run 1 time on the main thread, and 5 times on the
@@ -206,20 +212,27 @@ TEST(SubmittableExecutorTests, SingleThreadedDoSubmitMultipleTasksSucceeds) {
   std::unique_ptr<std::vector<DWORD>> threadIds =
       std::make_unique<std::vector<DWORD>>();
 
+  CRITICAL_SECTION crit_sec;
+  InitializeCriticalSection(&crit_sec);
+
   threadIds->push_back(GetCurrentThreadId());
 
   // Act
   bool result = true;
   for (int index = 0; index < 5; index++) {
-    result &= submittableExecutor->DoSubmit([&output, &threadIds, index]() {
+    result &= submittableExecutor->DoSubmit([&output, &threadIds, &crit_sec,
+                                             index]() {
+      EnterCriticalSection(&crit_sec);
       threadIds->push_back(GetCurrentThreadId());
       char buffer[128];
       snprintf(buffer, sizeof(buffer), "%s%d, ", RUNNABLE_TEXT.c_str(), index);
       output->append(std::string(buffer));
+      LeaveCriticalSection(&crit_sec);
     });
   }
 
   submittableExecutor->Shutdown();
+  DeleteCriticalSection(&crit_sec);
 
   //  Assert
   //  All of these should have submitted

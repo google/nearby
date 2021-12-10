@@ -37,18 +37,11 @@ namespace location {
 namespace nearby {
 namespace api {
 
-namespace {
-std::string GetPayloadPath(PayloadId payload_id) {
-  // This is to get a file path, e.g. /tmp/[payload_id], for the storage of payload file.
-  // NOTE: Per
-  // https://developer.apple.com/library/content/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemOverview/FileSystemOverview.html
-  // Files saved in the /tmp directory will be deleted by the system. Callers should be responsible
-  // for copying the files to the permanent storage.
-  NSString *payloadIdString = ObjCStringFromCppString(std::to_string(payload_id));
-  return CppStringFromObjCString(
-      [NSTemporaryDirectory() stringByAppendingPathComponent:payloadIdString]);
+std::unique_ptr<std::string> ImplementationPlatform::GetDownloadPath(
+    std::unique_ptr<std::string> path) {
+  // TODO(jfcarroll): Fixme, we need to modulate the path the the system download path
+  return path;
 }
-}  // namespace
 
 // Atomics:
 std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(bool initial_value) {
@@ -78,22 +71,25 @@ std::unique_ptr<ConditionVariable> ImplementationPlatform::CreateConditionVariab
   return std::make_unique<ios::ConditionVariable>(static_cast<ios::Mutex*>(mutex));
 }
 
-std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(PayloadId payload_id,
-                                                                   std::int64_t total_size) {
-  // Extract the NSURL object with payload_id from |GNCCore| which stores the maps. If the retrieved
-  // NSURL object is not nil, we create InputFile by ios::InputFile. The difference is
-  // that ios::InputFile implements to read bytes from local real file for sending.
+std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(const char* file_path) {
+// Extract the NSURL object with payload_id from |GNCCore| which stores the maps. If the retrieved
+// NSURL object is not nil, we create InputFile by ios::InputFile. The difference is
+// that ios::InputFile implements to read bytes from local real file for sending.
+// TODO(jfcarroll): Need someone familiar with iOS to fix this
+#if 0
   GNCCore* core = GNCGetCore();
   NSURL* url = [core extractURLWithPayloadID:payload_id];
   if (url != nil) {
     return absl::make_unique<ios::InputFile>(url);
   } else {
-    return absl::make_unique<shared::InputFile>(GetPayloadPath(payload_id), total_size);
+    return absl::make_unique<shared::InputFile>(GetDownloadPath(payload_id), total_size);
   }
+#endif
+  return nullptr;
 }
 
-std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(PayloadId payload_id) {
-  return absl::make_unique<shared::OutputFile>(GetPayloadPath(payload_id));
+std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(const char* file_path) {
+  return absl::make_unique<shared::OutputFile>(file_path);
 }
 
 std::unique_ptr<LogMessage> ImplementationPlatform::CreateLogMessage(

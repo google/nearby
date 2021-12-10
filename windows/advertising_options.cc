@@ -17,7 +17,7 @@
 #include "core/options.h"
 #include "core/strategy.h"
 #include "platform/base/byte_array.h"
-#include "platform/public/core_config.h"
+#include "platform/base/core_config.h"
 
 namespace location {
 namespace nearby {
