@@ -20,7 +20,6 @@
 #include <string>
 #include <vector>
 
-#include "third_party/nearby/cpp/analytics/analytics_recorder.h"
 #include "core/listeners.h"
 #include "core/options.h"
 #include "core/status.h"
@@ -31,6 +30,7 @@
 #include "platform/base/prng.h"
 #include "platform/public/cancelable_alarm.h"
 #include "platform/public/mutex.h"
+#include "analytics/analytics_recorder.h"
 // Prefer using absl:: versions of a set and a map; they tend to be more
 // efficient: implementation is using open-addressing hash tables.
 #include "absl/container/flat_hash_map.h"
