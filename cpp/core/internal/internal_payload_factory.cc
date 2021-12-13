@@ -318,7 +318,7 @@ std::string make_path(std::string parent_folder, int64_t id) {
     parent_folder.append("/");
   }
 
-  return parent_folder.append(std::to_string(id));
+  return parent_folder.append(".nearby/" + std::to_string(id));
 }
 
 std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
