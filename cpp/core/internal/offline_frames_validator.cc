@@ -24,12 +24,12 @@ namespace location {
 namespace nearby {
 namespace connections {
 namespace parser {
-bool Validate(std::string toBeValidated,
-              std::vector<std::string> illegalPatterns) {
-  return !std::any_of(illegalPatterns.begin(), illegalPatterns.end(),
-                      [&toBeValidated](const auto& s) {
-                        return toBeValidated.find(s) != std::string::npos;
-                      });
+bool HasIllegalCharacters(std::string toBeValidated,
+                          std::vector<std::string> illegalPatterns) {
+  return std::any_of(illegalPatterns.begin(), illegalPatterns.end(),
+                     [&toBeValidated](const auto& s) {
+                       return toBeValidated.find(s) != std::string::npos;
+                     });
 }
 namespace {
 
@@ -132,15 +132,15 @@ Exception EnsureValidPayloadTransferFrame(const PayloadTransferFrame& frame) {
       frame.payload_header().type() ==
           PayloadTransferFrame::PayloadHeader::FILE) {
     if (frame.payload_header().has_file_name()) {
-      if (!Validate(frame.payload_header().file_name(),
-                    ILLEGAL_FILENAME_PATTERNS)) {
+      if (HasIllegalCharacters(frame.payload_header().file_name(),
+                               ILLEGAL_FILENAME_PATTERNS)) {
         return {Exception::kFailed};
       }
     }
 
     if (frame.payload_header().has_parent_folder()) {
-      if (!Validate(frame.payload_header().file_name(),
-                    ILLEGAL_PARENT_FOLDER_PATTERNS)) {
+      if (HasIllegalCharacters(frame.payload_header().file_name(),
+                               ILLEGAL_PARENT_FOLDER_PATTERNS)) {
         return {Exception::kFailed};
       }
     }

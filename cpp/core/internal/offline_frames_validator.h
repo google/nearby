@@ -33,8 +33,8 @@ const std::vector<std::string> ILLEGAL_PARENT_FOLDER_PATTERNS{
 
 Exception EnsureValidOfflineFrame(const OfflineFrame& offline_frame);
 
-bool Validate(std::string toBeValidated,
-              std::vector<std::string> illegalPatterns);
+bool HasIllegalCharacters(std::string toBeValidated,
+                          std::vector<std::string> illegalPatterns);
 
 }  // namespace parser
 }  // namespace connections
