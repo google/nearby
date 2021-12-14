@@ -48,10 +48,12 @@ typedef void (^GNCConnectionRequester)(
     NSString *name, GNCDiscovererConnectionInitializationHandler connectionAuthorizationHandler,
     GNCConnectionFailureHandler failureHandler);
 
-/** This contains info about a discovered advertiser endpoint. */
+/** Information about an endpoint when it's discovered. */
 @protocol GNCDiscoveredEndpointInfo <NSObject>
-/** This is a human readable name of the advertiser. */
-@property(nonatomic, readonly, copy) NSString *name;
+/** The human readable name of the remote endpoint. */
+@property(nonatomic, readonly, copy) NSString *endpointName;
+/** Information advertised by the remote endpoint. */
+@property(nonatomic, readonly, copy) NSData *endpointInfo;
 /** Call this block to request a connection with the advertiser. */
 @property(nonatomic, readonly) GNCConnectionRequester requestConnection;
 @end

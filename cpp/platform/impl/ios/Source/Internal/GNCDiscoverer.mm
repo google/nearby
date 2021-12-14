@@ -62,17 +62,20 @@ using ::location::nearby::connections::Status;
 
 /** This is a GNCDiscoveredEndpointInfo that provides storage for its properties. */
 @interface GNCDiscoveredEndpointInfo : NSObject <GNCDiscoveredEndpointInfo>
-@property(nonatomic, copy) NSString *name;
+@property(nonatomic, copy) NSString *endpointName;
+@property(nonatomic, copy) NSData *endpointInfo;
 @end
 
 @implementation GNCDiscoveredEndpointInfo
 
 @synthesize requestConnection = _requestConnection;
 
-+ (instancetype)infoWithName:(NSString *)name
++ (instancetype)infoWithName:(NSString *)endpointName
+                endpointInfo:(NSData *)endpointInfo
            requestConnection:(GNCConnectionRequester)requestConnection {
   GNCDiscoveredEndpointInfo *info = [[GNCDiscoveredEndpointInfo alloc] init];
-  info.name = name;
+  info.endpointName = endpointName;
+  info.endpointInfo = endpointInfo;
   info->_requestConnection = requestConnection;
   return info;
 }
@@ -271,10 +274,12 @@ class GNCDiscoveryListener {
       // TODO(b/169292092): endpointInfo is an advertisement byte array. Need to implement to
       // extract the endpoint name not just force to cast string.
       NSString *name = ObjCStringFromCppString(std::string(endpoint_info));
+      NSData *info = NSDataFromByteArray(endpoint_info);
       GNCCore *core = discoverer.core;  // don't capture |this| or |discoverer|
       NSMapTable<GNCEndpointId, GNCDiscovererEndpointInfo *> *endpoints = discoverer.endpoints;
       GNCDiscoveredEndpointInfo *discEndpointInfo = [GNCDiscoveredEndpointInfo
                infoWithName:name
+               endpointInfo:info
           requestConnection:^(NSString *name,
                               GNCDiscovererConnectionInitializationHandler connInitHandler,
                               GNCConnectionFailureHandler connFailureHandler) {
