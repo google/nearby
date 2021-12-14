@@ -33,7 +33,6 @@
 #include "platform/base/bluetooth_utils.h"
 #include "platform/public/logging.h"
 #include "platform/public/system_clock.h"
-#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {
@@ -1478,7 +1477,6 @@ void BasePcpHandler::LogConnectionAttemptFailure(
   }
 }
 
-// TODO(jfcarroll): FIXME!!!!
 void BasePcpHandler::LogConnectionAttemptSuccess(
     const std::string& endpoint_id,
     const PendingConnectionInfo& connection_info) {
@@ -1498,26 +1496,22 @@ void BasePcpHandler::LogConnectionAttemptSuccess(
                "LogConnectionAttemptSuccess. Bail out.");
     return;
   }
-  // TODO(jfcarroll): Something in the below code is coming up null
-  // causing a crash. I can't debug this locally, and as a TVC I'm
-  // not able to debug using ciderd.
-  // if (connection_info.is_incoming) {
-  //  connection_info.client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
-  //      proto::connections::INITIAL,
-  //      connection_info.channel->GetMedium(),
-  //      proto::connections::RESULT_SUCCESS,
-  //      SystemClock::ElapsedRealtime() - connection_info.start_time,
-  //      connection_info.connection_token,
-  //      connections_attempt_metadata_params.get());
-  //} else {
-  //  connection_info.client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
-  //      endpoint_id, proto::connections::INITIAL,
-  //      connection_info.channel->GetMedium(),
-  //      proto::connections::RESULT_SUCCESS,
-  //      SystemClock::ElapsedRealtime() - connection_info.start_time,
-  //      connection_info.connection_token,
-  //      connections_attempt_metadata_params.get());
-  //}
+  if (connection_info.is_incoming) {
+    connection_info.client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
+        proto::connections::INITIAL, connection_info.channel->GetMedium(),
+        proto::connections::RESULT_SUCCESS,
+        SystemClock::ElapsedRealtime() - connection_info.start_time,
+        connection_info.connection_token,
+        connections_attempt_metadata_params.get());
+  } else {
+    connection_info.client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
+        endpoint_id, proto::connections::INITIAL,
+        connection_info.channel->GetMedium(),
+        proto::connections::RESULT_SUCCESS,
+        SystemClock::ElapsedRealtime() - connection_info.start_time,
+        connection_info.connection_token,
+        connections_attempt_metadata_params.get());
+  }
 }
 
 bool BasePcpHandler::Cancelled(ClientProxy* client,
