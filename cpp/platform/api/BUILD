@@ -37,6 +37,7 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
+        "//third_party/nearby:__subpackages__",
         "//platform/base:__pkg__",
         "//platform/impl:__subpackages__",
         "//platform/public:__pkg__",
@@ -63,6 +64,7 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
+        "//third_party/nearby:__subpackages__",
         "//core/internal:__subpackages__",
         "//platform/base:__pkg__",
         "//platform/impl:__subpackages__",
@@ -86,6 +88,7 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//third_party/nearby:__subpackages__",
         "//platform/base:__pkg__",
         "//platform/impl:__subpackages__",
         "//platform/public:__pkg__",

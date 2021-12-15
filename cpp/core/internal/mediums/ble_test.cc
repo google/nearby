@@ -20,7 +20,7 @@
 #include "gtest/gtest.h"
 #include "core/internal/mediums/bluetooth_radio.h"
 #include "platform/base/medium_environment.h"
-#include "platform/public/ble.h"
+#include "internal/platform/ble.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
 

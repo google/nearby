@@ -110,6 +110,7 @@ cc_library(
         "//platform/base:cancellation_flag",
         "//platform/base:error_code_recorder",
         "//platform/base:util",
+        "//third_party/nearby/internal/platform:comm",
         "//platform/public:comm",
         "//platform/public:logging",
         "//platform/public:types",
@@ -206,6 +207,7 @@ cc_test(
         "//platform/base:test_util",
         "//platform/impl/g3",  # build_cleaner: keep
         "//platform/public:comm",
+        "//third_party/nearby/internal/platform:comm",
         "//platform/public:logging",
         "//platform/public:types",
         "//proto:connections_enums_portable_proto",

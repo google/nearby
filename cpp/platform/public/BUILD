@@ -51,6 +51,7 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
+        "//third_party/nearby:__subpackages__",
         "//analytics:__subpackages__",
         "//core:__subpackages__",
         "//platform/base:__pkg__",
@@ -73,13 +74,11 @@ cc_library(
 cc_library(
     name = "comm",
     srcs = [
-        "ble.cc",
         "bluetooth_classic.cc",
         "file.cc",
         "wifi_lan.cc",
     ],
     hdrs = [
-        "ble.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
         "webrtc.h",
@@ -88,6 +87,7 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
+        "//third_party/nearby:__subpackages__",
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//analytics:__subpackages__",
         "//core:__subpackages__",
@@ -115,6 +115,7 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
+        "//third_party/nearby:__subpackages__",
         "//analytics:__subpackages__",
         "//core:__subpackages__",
         "//platform:__subpackages__",

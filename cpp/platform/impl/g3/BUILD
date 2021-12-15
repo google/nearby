@@ -108,6 +108,7 @@ cc_library(
         "platform.cc",
     ],
     visibility = [
+        "//third_party/nearby:__subpackages__",
         "//analytics:__subpackages__",
         "//core:__subpackages__",
         "//platform:__subpackages__",

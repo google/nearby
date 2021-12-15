@@ -45,6 +45,7 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
+        "//third_party/nearby:__subpackages__",
         "//analytics:__subpackages__",
         "//third_party/nearby/cpp/cal:__subpackages__",
         "//core:__subpackages__",
@@ -77,6 +78,7 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
+        "//third_party/nearby:__subpackages__",
         "//core:__subpackages__",
         "//platform/impl:__subpackages__",
         "//platform/public:__pkg__",
@@ -97,6 +99,7 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
+        "//third_party/nearby:__subpackages__",
         "//platform:__subpackages__",
     ],
     deps = [
@@ -117,6 +120,7 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
+        "//third_party/nearby:__subpackages__",
         "//core/internal:__subpackages__",
         "//platform/api:__subpackages__",
         "//platform/impl:__subpackages__",
@@ -141,6 +145,7 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
+        "//third_party/nearby:__subpackages__",
         "//analytics:__subpackages__",
         "//core/internal:__subpackages__",
         "//platform/impl:__subpackages__",
@@ -162,6 +167,7 @@ cc_library(
         "medium_environment.h",
     ],
     visibility = [
+        "//third_party/nearby:__subpackages__",
         "//core:__subpackages__",
         "//platform/impl:__subpackages__",
         "//platform/public:__pkg__",

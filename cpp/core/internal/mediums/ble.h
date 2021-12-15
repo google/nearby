@@ -24,7 +24,7 @@
 #include "core/listeners.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/cancellation_flag.h"
-#include "platform/public/ble.h"
+#include "internal/platform/ble.h"
 #include "platform/public/multi_thread_executor.h"
 #include "platform/public/mutex.h"
 

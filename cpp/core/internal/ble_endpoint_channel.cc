@@ -16,7 +16,7 @@
 
 #include <string>
 
-#include "platform/public/ble.h"
+#include "internal/platform/ble.h"
 #include "platform/public/logging.h"
 
 namespace location {

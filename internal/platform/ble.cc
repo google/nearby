@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "platform/public/ble.h"
+#include "internal/platform/ble.h"
 
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"

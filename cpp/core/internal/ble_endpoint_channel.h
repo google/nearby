@@ -16,7 +16,7 @@
 #define CORE_INTERNAL_BLE_ENDPOINT_CHANNEL_H_
 
 #include "core/internal/base_endpoint_channel.h"
-#include "platform/public/ble.h"
+#include "internal/platform/ble.h"
 
 namespace location {
 namespace nearby {

@@ -58,6 +58,7 @@ cc_library(
         "//platform/public:comm",
         "//platform/public:logging",
         "//platform/public:types",
+        "//third_party/nearby/internal/platform:comm",
         "//proto/connections:offline_wire_formats_portable_proto",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
         "//smhasher:libmurmur3",
@@ -115,6 +116,7 @@ cc_test(
         "//platform/impl/g3",  # build_cleaner: keep
         "//platform/public:comm",
         "//platform/public:types",
+        "//third_party/nearby/internal/platform:comm",
     ],
 )
 
