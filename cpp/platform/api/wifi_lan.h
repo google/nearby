@@ -144,6 +144,10 @@ class WifiLanMedium {
   // On error, returns nullptr.
   virtual std::unique_ptr<WifiLanServerSocket> ListenForService(
       int port = 0) = 0;
+
+  // Returns the port range as a pair of min and max port.
+  virtual absl::optional<std::pair<std::int32_t, std::int32_t>>
+  GetDynamicPortRange() = 0;
 };
 
 }  // namespace api

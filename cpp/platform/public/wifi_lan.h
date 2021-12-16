@@ -187,6 +187,11 @@ class WifiLanMedium {
     return WifiLanServerSocket(impl_->ListenForService(port));
   }
 
+  // Returns the port range as a pair of min and max port.
+  absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() {
+    return impl_->GetDynamicPortRange();
+  }
+
   bool IsValid() const { return impl_ != nullptr; }
 
   api::WifiLanMedium& GetImpl() { return *impl_; }
