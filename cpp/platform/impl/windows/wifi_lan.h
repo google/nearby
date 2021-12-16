@@ -30,6 +30,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/types/optional.h"
 #include "platform/api/wifi_lan.h"
 #include "platform/base/exception.h"
 #include "platform/base/input_stream.h"
@@ -246,6 +247,11 @@ class WifiLanMedium : public api::WifiLanMedium {
   // will call this method to notify the waiting method StopAdvertising to
   // continue.
   void NotifyDnsServiceUnregistered(DWORD status);
+
+  absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange()
+      override {
+    return absl::nullopt;
+  }
 
  private:
   // mDNS text attributes

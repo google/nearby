@@ -227,9 +227,16 @@ bool WifiLan::StartAcceptingConnections(const std::string& service_id,
     return false;
   }
 
-  // We can generate an exact port here on server socket; now we just assign 0
-  // to let platform medium decide it.
+  auto port_range = medium_.GetDynamicPortRange();
+  // Generate an exact port here on server socket; if platform doesn't provide
+  // range of port then assign 0 to let platform decide it.
   int port = 0;
+  if (port_range.has_value() &&
+      (port_range->first > 0 && port_range->first <= 65535 &&
+       port_range->second > 0 && port_range->second <= 65535 &&
+       port_range->first <= port_range->second)) {
+    port = GeneratePort(service_id, port_range.value());
+  }
   WifiLanServerSocket server_socket = medium_.ListenForService(port);
   if (!server_socket.IsValid()) {
     NEARBY_LOGS(INFO)
@@ -402,6 +409,19 @@ std::string WifiLan::GenerateServiceType(const std::string& service_id) {
 
   return absl::StrFormat(NsdServiceInfo::kNsdTypeFormat,
                          service_id_hash_string);
+}
+
+int WifiLan::GeneratePort(const std::string& service_id,
+                          std::pair<std::int32_t, std::int32_t> port_range) {
+  const std::string service_id_hash =
+      std::string(Utils::Sha256Hash(service_id, 4));
+
+  std::uint32_t uint_of_service_id_hash =
+      service_id_hash[0] << 24 | service_id_hash[1] << 16 |
+      service_id_hash[2] << 8 | service_id_hash[3];
+
+  return port_range.first +
+         (uint_of_service_id_hash % (port_range.second - port_range.first));
 }
 
 }  // namespace connections

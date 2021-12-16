@@ -170,6 +170,10 @@ class WifiLan {
   // Generates mDNS type.
   std::string GenerateServiceType(const std::string& service_id);
 
+  // Generates port number based on port_range_.
+  int GeneratePort(const std::string& service_id,
+                   std::pair<std::int32_t, std::int32_t> port_range);
+
   mutable Mutex mutex_;
   WifiLanMedium medium_ ABSL_GUARDED_BY(mutex_);
   AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);

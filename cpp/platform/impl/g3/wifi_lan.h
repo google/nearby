@@ -233,6 +233,12 @@ class WifiLanMedium : public api::WifiLanMedium {
   std::unique_ptr<api::WifiLanServerSocket> ListenForService(int port) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Returns the port range as a pair of min and max port.
+  absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange()
+      override {
+    return std::make_pair(49152, 65535);
+  }
+
  private:
   struct AdvertisingInfo {
     bool Empty() const { return service_types.empty(); }

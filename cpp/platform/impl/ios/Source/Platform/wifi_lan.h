@@ -155,6 +155,10 @@ class WifiLanMedium : public api::WifiLanMedium {
   std::unique_ptr<api::WifiLanServerSocket> ListenForService(int port) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() override {
+    return absl::nullopt;
+  }
+
  private:
   struct AdvertisingInfo {
     bool Empty() const { return services.empty(); }
