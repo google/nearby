@@ -16,15 +16,22 @@
 
 #include <utility>
 
+#include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/container/internal/common.h"
 #include "third_party/nearby/cpp/core/core.h"
 #include "third_party/nearby/cpp/core/internal/service_controller_router.h"
+#include "third_party/nearby/cpp/platform/base/payload_id.h"
 #import "third_party/objective_c/google_toolbox_for_mac/Foundation/GTMLogger.h"
 
 using ::location::nearby::connections::Core;
 using ::location::nearby::PayloadId;
 using ::location::nearby::connections::ServiceControllerRouter;
 
-@implementation GNCCore
+@implementation GNCCore {
+  // A map to store the NSURL object with PayloadId for sendFilePayload in GNCConnection.
+  // This is the place to store the NSURL for InputFile creation in ImplementationPlatform.
+  absl::flat_hash_map<PayloadId, NSURL *> _sending_urls;
+}
 
 - (instancetype)init {
   GTMLoggerInfo(@"GNCCore created");
@@ -40,6 +47,24 @@ using ::location::nearby::connections::ServiceControllerRouter;
   _core.reset();
   _service_controller_router.reset();
   GTMLoggerInfo(@"GNCCore deallocated");
+}
+
+- (void)insertURLToMapWithPayloadID:(PayloadId)payloadId urlToSend:(NSURL *)url {
+  _sending_urls.emplace(payloadId, url);
+}
+
+- (nullable NSURL *)extractURLWithPayloadID:(PayloadId)payloadId {
+  NSURL *url;
+  auto it = _sending_urls.find(payloadId);
+  if (it != _sending_urls.end()) {
+    auto pair = _sending_urls.extract(it);
+    url = pair.mapped();
+  }
+  return url;
+}
+
+- (void)clearSendingURLMaps {
+  _sending_urls.clear();
 }
 
 @end

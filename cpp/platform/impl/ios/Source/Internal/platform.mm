@@ -17,6 +17,8 @@
 #include <string>
 
 #include "third_party/nearby/cpp/platform/api/mutex.h"
+#include "third_party/nearby/cpp/platform/base/payload_id.h"
+#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCCore.h"
 #include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/atomic_boolean.h"
 #include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/atomic_uint32.h"
 #include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/condition_variable.h"
@@ -37,15 +39,8 @@ namespace api {
 
 std::unique_ptr<std::string> ImplementationPlatform::GetDownloadPath(
     std::unique_ptr<std::string> path) {
-  // This is to get a file path, e.g. /tmp/[path], for the storage of payload file.
-  // NOTE: Per
-  // https://developer.apple.com/library/content/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemOverview/FileSystemOverview.html
-  // Files saved in the /tmp directory will be deleted by the system. Callers should be responsible
-  // for copying the files to the permanent storage.
-  NSString* pathString = ObjCStringFromCppString(*path);
-  std::string wholePathString =
-      CppStringFromObjCString([NSTemporaryDirectory() stringByAppendingPathComponent:pathString]);
-  return std::make_unique<std::string>(wholePathString);
+  // TODO(jfcarroll): Fixme, we need to modulate the path the the system download path
+  return path;
 }
 
 // Atomics:
@@ -77,11 +72,20 @@ std::unique_ptr<ConditionVariable> ImplementationPlatform::CreateConditionVariab
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(const char* file_path) {
-  NSURL* url = [NSURL fileURLWithFileSystemRepresentation:file_path
-                                              isDirectory:NO
-                                            relativeToURL:nil];
-
-  return absl::make_unique<ios::InputFile>(url);
+// Extract the NSURL object with payload_id from |GNCCore| which stores the maps. If the retrieved
+// NSURL object is not nil, we create InputFile by ios::InputFile. The difference is
+// that ios::InputFile implements to read bytes from local real file for sending.
+// TODO(jfcarroll): Need someone familiar with iOS to fix this
+#if 0
+  GNCCore* core = GNCGetCore();
+  NSURL* url = [core extractURLWithPayloadID:payload_id];
+  if (url != nil) {
+    return absl::make_unique<ios::InputFile>(url);
+  } else {
+    return absl::make_unique<shared::InputFile>(GetDownloadPath(payload_id), total_size);
+  }
+#endif
+  return nullptr;
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(const char* file_path) {

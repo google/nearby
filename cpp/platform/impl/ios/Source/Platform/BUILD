@@ -18,16 +18,6 @@ package(default_visibility = ["//platform/impl/ios:__subpackages__"])
 objc_library(
     name = "Platform",
     srcs = [
-        "platform.mm",
-    ],
-    deps = [
-        ":Platform_objc",
-    ],
-)
-
-objc_library(
-    name = "Platform_objc",
-    srcs = [
         "crypto.mm",
         "input_file.mm",
         "log_message.mm",
