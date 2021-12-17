@@ -30,4 +30,4 @@ We support multiple platforms including Linux, iOS & Windows. The ultimate goal 
 * [iOS](https://github.com/google/nearby/blob/master/docs/ios_build.md)
 
 
-**Last Updated:** November 2021
+**Last Updated:** Dec 2021
