@@ -61,6 +61,7 @@ void WebRtcMedium::CreatePeerConnection(
   }
 
   webrtc::PeerConnectionInterface::RTCConfiguration rtc_config;
+  rtc_config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
   webrtc::PeerConnectionDependencies dependencies(observer);
 
   std::unique_ptr<rtc::Thread> signaling_thread = rtc::Thread::Create();
