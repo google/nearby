@@ -39,8 +39,11 @@ message ConnectionsLog {
   // The version of Nearby Connections. E.g. "v1.0.4".
   optional string version = 3 ;
 
-  // for EventType.ERROR_CODE
+  // For EventType.ERROR_CODE
   optional ErrorCode error_code = 4;
+
+  // Indicates the source of the log.
+  optional location.nearby.proto.connections.LogSource log_source = 5;
 
   // Encapsulates one session of a client connected to Nearby Connections API.
   message ClientSession {
