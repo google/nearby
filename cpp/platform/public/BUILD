@@ -29,6 +29,7 @@ cc_library(
         "cancelable_alarm.h",
         "cancellable_task.h",
         "condition_variable.h",
+        "core_config.h",
         "count_down_latch.h",
         "crypto.h",
         "file.h",
