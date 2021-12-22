@@ -1,6 +1,7 @@
 # Nearby C++ Library
 
-The repository contains the Nearby project C++ library code. This is not an officially supported Google product.
+The repository contains the Nearby project C++ library code. This is not an
+officially supported Google product.
 
 # About the Nearby Project
 
@@ -25,7 +26,11 @@ git submodule update --init --recursive
 ```
 
 # Building Nearby, Unit Testing and Sample Apps
-We support multiple platforms including Linux, iOS & Windows. The ultimate goal is to build from source. The offical build system we support is [bazel] (https://bazel.build). Before that is accomplished, we provide precompiled libraries as stop-gap solutions. See the following pages for platform specific instructions.
+We support multiple platforms including Linux, iOS & Windows. The ultimate goal
+is to build from source. The offical build system we support is
+[bazel] (https://bazel.build). Before that is accomplished, we provide
+precompiled libraries as stop-gap solutions. See the following pages for
+platform specific instructions.
 
 * [iOS](https://github.com/google/nearby/blob/master/docs/ios_build.md)
 
