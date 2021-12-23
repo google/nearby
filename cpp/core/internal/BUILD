@@ -190,7 +190,6 @@ cc_test(
     deps = [
         ":internal",
         ":internal_test",
-        "//file/util:temp_path",
         "//testing/base/public:gunit",
         "//testing/base/public:gunit_main",
         "//absl/container:flat_hash_set",

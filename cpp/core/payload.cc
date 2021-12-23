@@ -21,24 +21,9 @@ namespace connections {
 // Payload is default-constructible, and moveable, but not copyable container
 // that holds at most one instance of one of:
 // ByteArray, InputStream, or InputFile.
-Payload::Payload(Payload&& other) noexcept {
-  file_name_ = other.file_name_;
-  parent_folder_ = other.parent_folder_;
-  content_ = std::move(other.content_);
-  id_ = other.id_;
-  offset_ = other.offset_;
-  type_ = other.type_;
-}
+Payload::Payload(Payload&& other) noexcept = default;
 Payload::~Payload() = default;
-Payload& Payload::operator=(Payload&& other) noexcept {
-  file_name_ = other.file_name_;
-  parent_folder_ = other.parent_folder_;
-  content_ = std::move(other.content_);
-  id_ = other.id_;
-  offset_ = other.offset_;
-  type_ = other.type_;
-  return *this;
-}
+Payload& Payload::operator=(Payload&& other) noexcept = default;
 
 // Default (invalid) payload.
 Payload::Payload() : content_(absl::monostate()) {}
@@ -48,11 +33,9 @@ Payload::Payload(ByteArray&& bytes) : content_(std::move(bytes)) {}
 
 Payload::Payload(const ByteArray& bytes) : content_(bytes) {}
 
-Payload::Payload(const char* parent_folder, const char* file_name,
-                 InputFile&& file)
+Payload::Payload(InputFile file)
     : content_(std::move(file)),
-      parent_folder_(parent_folder),
-      file_name_(file_name) {}
+      id_(std::hash<std::string>()(file.GetFilePath())) {}
 
 // TODO(jfcarroll): Convert std::function to function pointer
 Payload::Payload(std::function<InputStream&()> stream)
@@ -64,14 +47,7 @@ Payload::Payload(Id id, ByteArray&& bytes)
 
 Payload::Payload(Id id, const ByteArray& bytes) : content_(bytes), id_(id) {}
 
-Payload::Payload(Id id, InputFile&& file)
-    : content_(std::move(file)), id_(id), parent_folder_("") {
-  auto fileName = std::to_string(id);
-  file_name_ = fileName.c_str();
-
-  NEARBY_LOGS(INFO) << "Payload(Id,InputFile): parent folder ="
-                    << parent_folder_ << " file name = " << file_name_ << "\n";
-}
+Payload::Payload(Id id, InputFile file) : content_(std::move(file)), id_(id) {}
 
 // TODO(jfcarroll): Convert std::function to function pointer
 Payload::Payload(Id id, std::function<InputStream&()> stream)
@@ -93,9 +69,7 @@ InputStream* Payload::AsStream() {
   return result ? &(*result)() : nullptr;
 }
 // Returns InputFile* payload, if it has been defined, or nullptr.
-const InputFile* Payload::AsFile() const {
-  return absl::get_if<InputFile>(&content_);
-}
+InputFile* Payload::AsFile() { return absl::get_if<InputFile>(&content_); }
 
 // Returns Payload unique ID.
 Payload::Id Payload::GetId() const { return id_; }
@@ -106,10 +80,8 @@ Payload::Type Payload::GetType() const { return type_; }
 // Sets the payload offset in bytes
 void Payload::SetOffset(size_t offset) {
   CHECK(type_ == Type::kFile || type_ == Type::kStream);
-  const InputFile* file = AsFile();
+  InputFile* file = AsFile();
   if (file != nullptr) {
-    NEARBY_LOGS(INFO) << "Payload::SetOffset: offset: " << offset
-                      << " file total size : " << file->GetTotalSize() << "\n";
     CHECK(file->GetTotalSize() > 0 && offset < (size_t)file->GetTotalSize());
   }
   offset_ = offset;
@@ -122,14 +94,6 @@ Payload::Id Payload::GenerateId() { return Prng().NextInt64(); }
 
 Payload::Type Payload::FindType() const {
   return static_cast<Type>(content_.index());
-}
-
-const std::string Payload::GetParentFolder() const {
-  return std::string(parent_folder_);
-}
-
-const std::string Payload::GetFileName() const {
-  return std::string(file_name_);
 }
 
 }  // namespace connections
