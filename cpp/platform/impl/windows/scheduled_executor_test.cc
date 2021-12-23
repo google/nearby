@@ -31,21 +31,15 @@ TEST(ScheduledExecutorTests, ExecuteSucceeds) {
   std::unique_ptr<std::vector<DWORD>> threadIds =
       std::make_unique<std::vector<DWORD>>();
 
-  CRITICAL_SECTION crit_sec;
-  InitializeCriticalSection(&crit_sec);
-
   threadIds->push_back(GetCurrentThreadId());
 
   // Act
-  submittableExecutor->Execute([&output, &threadIds, &crit_sec]() {
-    EnterCriticalSection(&crit_sec);
+  submittableExecutor->Execute([&output, &threadIds]() {
     threadIds->push_back(GetCurrentThreadId());
     output.append(RUNNABLE_0_TEXT.c_str());
-    LeaveCriticalSection(&crit_sec);
   });
 
   submittableExecutor->Shutdown();
-  DeleteCriticalSection(&crit_sec);
 
   //  Assert
   //  We should've run 1 time on the main thread, and 1 times on the
@@ -69,9 +63,6 @@ TEST(ScheduledExecutorTests, ScheduleSucceeds) {
   std::unique_ptr<std::vector<DWORD>> threadIds =
       std::make_unique<std::vector<DWORD>>();
 
-  CRITICAL_SECTION crit_sec;
-  InitializeCriticalSection(&crit_sec);
-
   threadIds->push_back(GetCurrentThreadId());
 
   std::chrono::system_clock::time_point timeNow =
@@ -80,19 +71,16 @@ TEST(ScheduledExecutorTests, ScheduleSucceeds) {
 
   // Act
   submittableExecutor->Schedule(
-      [&output, &threadIds, &timeExecuted, &crit_sec]() {
-        EnterCriticalSection(&crit_sec);
+      [&output, &threadIds, &timeExecuted]() {
         timeExecuted = std::chrono::system_clock::now();
         threadIds->push_back(GetCurrentThreadId());
         output.append(RUNNABLE_0_TEXT.c_str());
-        LeaveCriticalSection(&crit_sec);
       },
       absl::Milliseconds(50));
 
   SleepEx(100, true);  //  Yield the thread
 
   submittableExecutor->Shutdown();
-  DeleteCriticalSection(&crit_sec);
 
   auto difference = std::chrono::duration_cast<std::chrono::milliseconds>(
                         timeExecuted - timeNow)
@@ -160,18 +148,13 @@ TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
   std::unique_ptr<std::vector<DWORD>> threadIds =
       std::make_unique<std::vector<DWORD>>();
 
-  CRITICAL_SECTION crit_sec;
-  InitializeCriticalSection(&crit_sec);
-
   threadIds->push_back(GetCurrentThreadId());
 
   // Act
   auto cancelable = submittableExecutor->Schedule(
-      [&output, &threadIds, &crit_sec]() {
-        EnterCriticalSection(&crit_sec);
+      [&output, &threadIds]() {
         threadIds->push_back(GetCurrentThreadId());
         output.append(RUNNABLE_0_TEXT.c_str());
-        LeaveCriticalSection(&crit_sec);
       },
       absl::Milliseconds(100));
 
@@ -180,7 +163,6 @@ TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
   auto actual = cancelable->Cancel();
 
   submittableExecutor->Shutdown();
-  DeleteCriticalSection(&crit_sec);
 
   // Assert
   ASSERT_FALSE(actual);

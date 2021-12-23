@@ -161,10 +161,7 @@ class GNCInputStreamFromNSStream : public InputStream {
   PayloadId payloadId = Payload::GenerateId();
   // Add the pair of payloadId and fileURL to the map in the GNCCore.
   [_core insertURLToMapWithPayloadID:payloadId urlToSend:fileURL];
-
-  // TODO(edwinwu): Need someone familiar with iOS to fix this
-  std::string path("FIXME, WE NEED A PATH HERE");
-  Payload corePayload(payloadId, InputFile(path.c_str()));
+  Payload corePayload(payloadId, InputFile(payloadId, fileSize));
   progress.totalUnitCount = fileSize;
   return [self sendPayload:std::move(corePayload)
                       size:fileSize

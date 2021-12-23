@@ -258,7 +258,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   PayloadSimulationUser user_a(kDeviceA, GetParam());
   PayloadSimulationUser user_b(kDeviceB, GetParam());
   ASSERT_TRUE(SetupConnection(user_a, user_b));
-  NEARBY_LOG(INFO, "User a and user b have been setup. JFC");
+
   auto pipe = std::make_shared<Pipe>();
   OutputStream& tx = pipe->GetOutputStream();
 
@@ -266,7 +266,6 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   const ByteArray message{std::string(kMessage)};
   tx.Write(message);
 
-  NEARBY_LOG(INFO, "Sending payload from user_b. JFC");
   user_b.SendPayload(Payload([pipe]() -> InputStream& {
     return pipe->GetInputStream();  // NOLINT
   }));

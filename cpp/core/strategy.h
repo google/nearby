@@ -16,7 +16,7 @@
 
 #include <string>
 
-#include "platform/base/core_config.h"
+#include "platform/public/core_config.h"
 
 namespace location {
 namespace nearby {
