@@ -101,7 +101,6 @@ cc_test(
     deps = [
         ":core",
         ":core_types",
-        "//file/util:temp_path",
         "//testing/base/public:gunit_main",
         "//absl/strings",
         "//absl/time",

@@ -189,7 +189,7 @@ class OutgoingFileInternalPayload : public InternalPayload {
   std::int64_t GetTotalSize() const override { return total_size_; }
 
   ByteArray DetachNextChunk(int chunk_size) override {
-    const InputFile* file = payload_.AsFile();
+    InputFile* file = payload_.AsFile();
     if (!file) return {};
 
     ExceptionOr<ByteArray> bytes_read = file->Read(chunk_size);
@@ -215,7 +215,7 @@ class OutgoingFileInternalPayload : public InternalPayload {
 
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
     NEARBY_LOGS(INFO) << "SkipToOffset " << offset;
-    const InputFile* file = payload_.AsFile();
+    InputFile* file = payload_.AsFile();
     if (!file) {
       return {Exception::kIo};
     }
@@ -236,7 +236,7 @@ class OutgoingFileInternalPayload : public InternalPayload {
   }
 
   void Close() override {
-    const InputFile* file = payload_.AsFile();
+    InputFile* file = payload_.AsFile();
     if (file) file->Close();
   }
 
@@ -292,6 +292,10 @@ std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(
       return absl::make_unique<BytesInternalPayload>(std::move(payload));
 
     case Payload::Type::kFile: {
+      InputFile* file = payload.AsFile();
+      const PayloadId file_payload_id = file ? file->GetPayloadId() : 0;
+      const PayloadId payload_id = payload.GetId();
+      CHECK(payload_id == file_payload_id);
       return absl::make_unique<OutgoingFileInternalPayload>(std::move(payload));
     }
 
@@ -303,22 +307,6 @@ std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(
       DCHECK(false);  // This should never happen.
       return {};
   }
-}
-
-std::string make_path(std::string parent_folder, std::string file_name) {
-  if (parent_folder.find_last_of('/') == std::string::npos) {
-    parent_folder.append("/");
-  }
-
-  return parent_folder.append(file_name);
-}
-
-std::string make_path(std::string parent_folder, int64_t id) {
-  if (parent_folder.find_last_of('/') == std::string::npos) {
-    parent_folder.append("/");
-  }
-
-  return parent_folder.append(".nearby/" + std::to_string(id));
 }
 
 std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
@@ -346,39 +334,11 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
     }
 
     case PayloadTransferFrame::PayloadHeader::FILE: {
-      std::string file_path;
-      int64_t total_size;
-
-      if (frame.payload_header().has_parent_folder()) {
-        file_path = frame.payload_header().parent_folder();
-      }
-
-      if (!frame.payload_header().has_file_name()) {
-        file_path = make_path(file_path, frame.payload_header().id());
-      } else {
-        file_path = make_path(file_path, frame.payload_header().file_name());
-      }
-
-      if (frame.payload_header().has_total_size()) {
-        total_size = frame.payload_header().total_size();
-      }
-
-      // These are ordered, the output file must be created first otherwise
-      // there will be no input file to open.
-      OutputFile outputFile(
-          location::nearby::api::ImplementationPlatform::GetDownloadPath(
-              std::make_unique<std::string>(file_path))
-              ->c_str());
-      InputFile inputFile(
-          location::nearby::api::ImplementationPlatform::GetDownloadPath(
-              std::make_unique<std::string>(file_path))
-              ->c_str());
-
+      std::int64_t total_size = frame.payload_header().total_size();
       return absl::make_unique<IncomingFileInternalPayload>(
-          Payload(payload_id, std::move(inputFile)), std::move(outputFile),
-          frame.payload_header().total_size());
+          Payload(payload_id, InputFile(payload_id, total_size)),
+          OutputFile(payload_id), total_size);
     }
-
     default:
       DCHECK(false);  // This should never happen.
       return {};

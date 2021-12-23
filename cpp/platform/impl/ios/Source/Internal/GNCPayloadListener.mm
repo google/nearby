@@ -146,7 +146,7 @@ void GNCPayloadListener::OnPayload(const std::string &endpoint_id, Payload paylo
 
     case Payload::Type::kFile:
       if (handlers.filePayloadHandler) {
-        const InputFile *payloadInputFile = payload.AsFile();
+        InputFile *payloadInputFile = payload.AsFile();
         NSURL *fileURL =
             [NSURL URLWithString:ObjCStringFromCppString(payloadInputFile->GetFilePath())];
         int64_t fileSize = payloadInputFile->GetTotalSize();

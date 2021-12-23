@@ -17,6 +17,8 @@
 
 #include <xstring>
 
+#include "platform/base/payload_id.h"
+
 #define TEST_BUFFER_SIZE 256
 #define TEST_PAYLOAD_ID 64l
 #define TEST_STRING                                                            \
@@ -33,21 +35,9 @@
   "eu tellus. Cras feugiat ornare vestibulum. Nullam at ipsum vestibulum "     \
   "sapien luctus dictum ac vel ligula."
 
-#define TEST_FILE_PATH std::string("testfilename.txt")
-
 namespace test_utils {
 std::wstring StringToWideString(const std::string& s);
-
-class TempPath {
- public:
-  enum Location {
-    Local,    // Some local directory, works for unittest and on borglets.
-    CNSTest,  // Creates a directory on the cns test cell.
-  };
-  TempPath(Location location) : location_(location) {}
-  Location location_;
-  const std::string path() { return ""; }
-};
+std::string GetPayloadPath(location::nearby::PayloadId payload_id);
 }  // namespace test_utils
 
 #endif  // PLATFORM_IMPL_WINDOWS_TEST_UTILS_H_

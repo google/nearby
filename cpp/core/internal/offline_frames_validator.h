@@ -23,18 +23,7 @@ namespace nearby {
 namespace connections {
 namespace parser {
 
-const std::vector<std::string> ILLEGAL_FILENAME_PATTERNS{
-    "/", "\\", "?", "*",  "\"", "<",  ">",  "|",  "[", "]",
-    ":", ",",  ";", "..", "\0", "\n", "\r", "\t", "\f"};
-
-const std::vector<std::string> ILLEGAL_PARENT_FOLDER_PATTERNS{
-    "\\", "?", "*", "\"", "<",  ">",  "|",  "[",  "]",
-    ":",  ",", ";", "..", "\0", "\n", "\r", "\t", "\f"};
-
 Exception EnsureValidOfflineFrame(const OfflineFrame& offline_frame);
-
-bool HasIllegalCharacters(std::string toBeValidated,
-                          std::vector<std::string> illegalPatterns);
 
 }  // namespace parser
 }  // namespace connections
