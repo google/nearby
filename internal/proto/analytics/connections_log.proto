@@ -20,7 +20,7 @@ package location.nearby.analytics.proto;
 import "proto/connections_enums.proto";
 import "proto/errorcode/error_code_enums.proto";
 
-option optimize_for = LITE_RUNTIME;
+option optimize_for = SPEED;
 option java_package = "com.google.location.nearby.analytics.proto";
 option java_outer_classname = "ConnectionsLogProto";
 option objc_class_prefix = "GNCP";

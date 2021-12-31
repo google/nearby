@@ -15,7 +15,7 @@
 
 #include "google/protobuf/descriptor.h"
 #include "gtest/gtest.h"
-#include "platform/public/logging.h"
+#include "internal/platform/logging.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 

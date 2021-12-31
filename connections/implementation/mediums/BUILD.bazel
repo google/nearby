@@ -1,0 +1,113 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+licenses(["notice"])
+
+cc_library(
+    name = "mediums",
+    srcs = [
+        "ble.cc",
+        "bluetooth_classic.cc",
+        "bluetooth_radio.cc",
+        "mediums.cc",
+        "uuid.cc",
+        "webrtc_stub.cc",
+        "wifi_lan.cc",
+    ],
+    hdrs = [
+        "ble.h",
+        "bluetooth_classic.h",
+        "bluetooth_radio.h",
+        "lost_entity_tracker.h",
+        "mediums.h",
+        "uuid.h",
+        "webrtc_stub.h",
+        "wifi_lan.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    defines = ["NO_WEBRTC"],
+    visibility = [
+        "//third_party/nearby/connections/implementation:__subpackages__",
+    ],
+    deps = [
+        ":utils",
+        "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/container:flat_hash_set",
+        "//third_party/absl/functional:bind_front",
+        "//third_party/absl/strings",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/time",
+        "//third_party/nearby/connections/implementation/proto:offline_wire_formats_portable_proto",
+        "//third_party/nearby/connections:core_types",
+        "//third_party/nearby/connections/implementation/mediums/ble_v2",
+        "//third_party/nearby/internal/platform:base",
+        "//third_party/nearby/internal/platform:cancellation_flag",
+        "//third_party/nearby/internal/platform:comm",
+        "//third_party/nearby/internal/platform:logging",
+        "//third_party/nearby/internal/platform:types",
+        "//third_party/nearby/proto/mediums:web_rtc_signaling_frames_cc_proto",
+    ],
+)
+
+cc_library(
+    name = "utils",
+    srcs = [
+        "utils.cc",
+        "webrtc_peer_id.cc",
+    ],
+    hdrs = [
+        "utils.h",
+        "webrtc_peer_id.h",
+        "webrtc_socket_stub.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    defines = ["NO_WEBRTC"],
+    visibility = [
+        "//third_party/nearby/connections/implementation:__pkg__",
+        "//third_party/nearby/connections/implementation/mediums:__pkg__",
+    ],
+    deps = [
+        "//third_party/absl/strings",
+        "//third_party/nearby/connections/implementation/proto:offline_wire_formats_portable_proto",
+        "//third_party/nearby/internal/platform:base",
+        "//third_party/nearby/internal/platform:types",
+    ],
+)
+
+cc_test(
+    name = "core_internal_mediums_test",
+    size = "small",
+    srcs = [
+        "ble_test.cc",
+        "bluetooth_classic_test.cc",
+        "bluetooth_radio_test.cc",
+        "lost_entity_tracker_test.cc",
+        "uuid_test.cc",
+        "webrtc_peer_id_test.cc",
+        "wifi_lan_test.cc",
+    ],
+    defines = ["NO_WEBRTC"],
+    shard_count = 16,
+    deps = [
+        ":mediums",
+        ":utils",
+        "//testing/base/public:gunit_main",
+        "//third_party/absl/strings",
+        "//third_party/absl/time",
+        "//third_party/nearby/internal/platform:base",
+        "//third_party/nearby/internal/platform:test_util",
+        "//third_party/nearby/internal/platform/implementation/g3",  # build_cleaner: keep
+        "//third_party/nearby/internal/platform:comm",
+        "//third_party/nearby/internal/platform:types",
+    ],
+)
