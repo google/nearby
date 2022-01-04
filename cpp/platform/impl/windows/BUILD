@@ -111,6 +111,7 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-Ithird_party/nearby/cpp/platform/impl/windows/generated"],
+    defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     visibility = [
         "//third_party/nearby/windows:__subpackages__",
     ],
