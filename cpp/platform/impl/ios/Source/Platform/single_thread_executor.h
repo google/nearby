@@ -15,7 +15,7 @@
 #ifndef PLATFORM_IMPL_IOS_SINGLE_THREAD_EXECUTOR_H_
 #define PLATFORM_IMPL_IOS_SINGLE_THREAD_EXECUTOR_H_
 
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/multi_thread_executor.h"
+#import "platform/impl/ios/Source/Platform/multi_thread_executor.h"
 
 namespace location {
 namespace nearby {

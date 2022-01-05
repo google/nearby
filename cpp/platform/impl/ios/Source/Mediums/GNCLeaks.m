@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Mediums/GNCLeaks.h"
+#import "platform/impl/ios/Source/Mediums/GNCLeaks.h"
 
 void GNCVerifyDealloc(id object, NSTimeInterval timeInterval) {
 #if DEBUG

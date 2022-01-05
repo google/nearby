@@ -12,28 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/wifi_lan.h"
+#import "platform/impl/ios/Source/Platform/wifi_lan.h"
 
 #include <memory>
 #include <string>
 #include <utility>
 
-#include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/container/internal/common.h"
-#include "third_party/absl/memory/memory.h"
-#include "third_party/absl/strings/str_cat.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/synchronization/mutex.h"
-#include "third_party/nearby/cpp/platform/api/wifi_lan.h"
-#include "third_party/nearby/cpp/platform/base/cancellation_flag.h"
-#include "third_party/nearby/cpp/platform/base/exception.h"
-#include "third_party/nearby/cpp/platform/base/nsd_service_info.h"
-#include "third_party/nearby/cpp/platform/base/prng.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Mediums/GNCMConnection.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourBrowser.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourService.h"
-#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/utils.h"
-#import "third_party/objective_c/google_toolbox_for_mac/Foundation/GTMLogger.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/internal/common.h"
+#include "absl/memory/memory.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
+#include "absl/synchronization/mutex.h"
+#include "platform/api/wifi_lan.h"
+#include "platform/base/cancellation_flag.h"
+#include "platform/base/exception.h"
+#include "platform/base/nsd_service_info.h"
+#include "platform/base/prng.h"
+#import "platform/impl/ios/Source/Mediums/GNCMConnection.h"
+#import "platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourBrowser.h"
+#import "platform/impl/ios/Source/Mediums/WifiLan/GNCMBonjourService.h"
+#include "platform/impl/ios/Source/Platform/utils.h"
+#import "GoogleToolboxForMac/GTMLogger.h"
 
 namespace location {
 namespace nearby {

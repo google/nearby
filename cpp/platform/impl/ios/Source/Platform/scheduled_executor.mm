@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/scheduled_executor.h"
+#import "platform/impl/ios/Source/Platform/scheduled_executor.h"
 
 #import <Foundation/Foundation.h>
 
-#include "third_party/absl/time/time.h"
-#include "third_party/nearby/cpp/platform/base/runnable.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/atomic_boolean.h"
+#include "absl/time/time.h"
+#include "platform/base/runnable.h"
+#import "platform/impl/ios/Source/Platform/atomic_boolean.h"
 
 // This wraps the C++ Runnable in an Obj-C object for memory management. It is retained by the
 // dispatch block below, and deleted when the block is released.

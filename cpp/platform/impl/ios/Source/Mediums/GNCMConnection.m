@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Mediums/GNCMConnection.h"
+#import "platform/impl/ios/Source/Mediums/GNCMConnection.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

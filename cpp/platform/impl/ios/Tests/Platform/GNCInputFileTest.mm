@@ -14,9 +14,9 @@
 
 #import <XCTest/XCTest.h>
 
-#import "third_party/nearby/cpp/platform/base/byte_array.h"
-#import "third_party/nearby/cpp/platform/base/exception.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/input_file.h"
+#import "platform/base/byte_array.h"
+#import "platform/base/exception.h"
+#import "platform/impl/ios/Source/Platform/input_file.h"
 
 using ::location::nearby::ios::InputFile;
 using ::location::nearby::ByteArray;

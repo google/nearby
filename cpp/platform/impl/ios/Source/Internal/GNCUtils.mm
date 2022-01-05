@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCUtils.h"
+#import "platform/impl/ios/Source/Internal/GNCUtils.h"
 
-#include "third_party/nearby/cpp/core/strategy.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/GNCAdvertiser.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/GNCConnection.h"
+#include "core/strategy.h"
+#import "platform/impl/ios/Source/GNCAdvertiser.h"
+#import "platform/impl/ios/Source/GNCConnection.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

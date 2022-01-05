@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/utils.h"
+#import "platform/impl/ios/Source/Platform/utils.h"
 
-#import "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/strings/string_view.h"
-#include "third_party/nearby/cpp/platform/base/byte_array.h"
+#import "absl/container/flat_hash_map.h"
+#include "absl/strings/string_view.h"
+#include "platform/base/byte_array.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

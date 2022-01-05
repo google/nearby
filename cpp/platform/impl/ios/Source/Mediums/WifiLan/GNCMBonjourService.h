@@ -14,7 +14,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Mediums/GNCMConnection.h"
+#import "platform/impl/ios/Source/Mediums/GNCMConnection.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

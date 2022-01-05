@@ -12,26 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/cpp/platform/api/platform.h"
+#include "platform/api/platform.h"
 
 #include <string>
 
-#include "third_party/nearby/cpp/platform/api/mutex.h"
-#include "third_party/nearby/cpp/platform/base/payload_id.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCCore.h"
-#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/atomic_boolean.h"
-#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/atomic_uint32.h"
-#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/condition_variable.h"
-#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/count_down_latch.h"
-#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/input_file.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/log_message.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/multi_thread_executor.h"
-#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/mutex.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/scheduled_executor.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/single_thread_executor.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/utils.h"
-#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/wifi_lan.h"
-#include "third_party/nearby/cpp/platform/impl/shared/file.h"
+#include "platform/api/mutex.h"
+#include "platform/base/payload_id.h"
+#import "platform/impl/ios/Source/Internal/GNCCore.h"
+#include "platform/impl/ios/Source/Platform/atomic_boolean.h"
+#include "platform/impl/ios/Source/Platform/atomic_uint32.h"
+#include "platform/impl/ios/Source/Platform/condition_variable.h"
+#include "platform/impl/ios/Source/Platform/count_down_latch.h"
+#include "platform/impl/ios/Source/Platform/input_file.h"
+#import "platform/impl/ios/Source/Platform/log_message.h"
+#import "platform/impl/ios/Source/Platform/multi_thread_executor.h"
+#include "platform/impl/ios/Source/Platform/mutex.h"
+#import "platform/impl/ios/Source/Platform/scheduled_executor.h"
+#import "platform/impl/ios/Source/Platform/single_thread_executor.h"
+#import "platform/impl/ios/Source/Platform/utils.h"
+#include "platform/impl/ios/Source/Platform/wifi_lan.h"
+#include "platform/impl/shared/file.h"
 
 namespace location {
 namespace nearby {

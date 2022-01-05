@@ -18,8 +18,8 @@
 
 #include "core/listeners.h"
 #include "core/options.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/GNCAdvertiser.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/GNCConnection.h"
+#import "platform/impl/ios/Source/GNCAdvertiser.h"
+#import "platform/impl/ios/Source/GNCConnection.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

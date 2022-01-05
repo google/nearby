@@ -16,8 +16,8 @@
 #define PLATFORM_IMPL_IOS_MULTI_THREAD_EXECUTOR_H_
 
 #include "platform/api/submittable_executor.h"
-#import "third_party/nearby/cpp/platform/base/runnable.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/scheduled_executor.h"
+#import "platform/base/runnable.h"
+#import "platform/impl/ios/Source/Platform/scheduled_executor.h"
 
 namespace location {
 namespace nearby {

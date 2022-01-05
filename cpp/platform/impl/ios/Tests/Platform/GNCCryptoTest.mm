@@ -14,8 +14,8 @@
 
 #import <XCTest/XCTest.h>
 
-#include "third_party/nearby/cpp/platform/api/crypto.h"
-#include "third_party/nearby/cpp/platform/base/byte_array.h"
+#include "platform/api/crypto.h"
+#include "platform/base/byte_array.h"
 
 @interface GNCCryptoTest : XCTestCase
 @end

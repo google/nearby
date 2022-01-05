@@ -12,24 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "third_party/nearby/cpp/platform/impl/ios/Source/GNCAdvertiser.h"
+#import "platform/impl/ios/Source/GNCAdvertiser.h"
 
 #include <string>
 
-#include "third_party/absl/functional/bind_front.h"
-#include "third_party/nearby/cpp/core/core.h"
-#include "third_party/nearby/cpp/core/listeners.h"
-#include "third_party/nearby/cpp/core/options.h"
-#include "third_party/nearby/cpp/core/params.h"
-#include "third_party/nearby/cpp/core/status.h"
-#include "third_party/nearby/cpp/platform/base/byte_array.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/GNCConnection.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCCore.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCCoreConnection.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCPayloadListener.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Internal/GNCUtils.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/utils.h"
-#import "third_party/objective_c/google_toolbox_for_mac/Foundation/GTMLogger.h"
+#include "absl/functional/bind_front.h"
+#include "core/core.h"
+#include "core/listeners.h"
+#include "core/options.h"
+#include "core/params.h"
+#include "core/status.h"
+#include "platform/base/byte_array.h"
+#import "platform/impl/ios/Source/GNCConnection.h"
+#import "platform/impl/ios/Source/Internal/GNCCore.h"
+#import "platform/impl/ios/Source/Internal/GNCCoreConnection.h"
+#import "platform/impl/ios/Source/Internal/GNCPayloadListener.h"
+#import "platform/impl/ios/Source/Internal/GNCUtils.h"
+#import "platform/impl/ios/Source/Platform/utils.h"
+#import "GoogleToolboxForMac/GTMLogger.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

@@ -1,8 +1,3 @@
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Shared/GNCUtils.h"
-
-#import <CommonCrypto/CommonDigest.h>
-
-#import "third_party/objective_c/google_toolbox_for_mac/Foundation/GTMStringEncoding.h"
 // Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#import "platform/impl/ios/Source/Shared/GNCUtils.h"
+
+#import <CommonCrypto/CommonDigest.h>
+
+#import "GoogleToolboxForMac/GTMStringEncoding.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

@@ -14,8 +14,8 @@
 
 #import <XCTest/XCTest.h>
 
-#include "third_party/nearby/cpp/platform/base/byte_array.h"
-#include "third_party/nearby/cpp/platform/impl/ios/Source/Platform/utils.h"
+#include "platform/base/byte_array.h"
+#include "platform/impl/ios/Source/Platform/utils.h"
 
 using location::nearby::ByteArray;
 using location::nearby::ByteArrayFromNSData;

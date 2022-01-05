@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/multi_thread_executor.h"
+#import "platform/impl/ios/Source/Platform/multi_thread_executor.h"
 
-#include "third_party/nearby/cpp/platform/base/runnable.h"
-#import "third_party/nearby/cpp/platform/impl/ios/Source/Platform/scheduled_executor.h"
+#include "platform/base/runnable.h"
+#import "platform/impl/ios/Source/Platform/scheduled_executor.h"
 
 namespace location {
 namespace nearby {
