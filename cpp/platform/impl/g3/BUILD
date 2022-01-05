@@ -35,6 +35,7 @@ cc_library(
     visibility = ["//visibility:private"],
     deps = [
         "//base",
+        "//base:stringprintf",
         "//absl/base:core_headers",
         "//absl/synchronization",
         "//absl/time",

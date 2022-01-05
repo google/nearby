@@ -39,6 +39,7 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         "//base",
+        "//base:stringprintf",
         "//platform/api:types",
         "//platform/base",
     ],
