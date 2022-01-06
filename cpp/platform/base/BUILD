@@ -44,11 +44,11 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
-        "//third_party/nearby/cpp/analytics:__subpackages__",
         "//third_party/nearby/cpp/cal:__subpackages__",
         "//core:__subpackages__",
         "//platform:__subpackages__",
         "//platform/api:__subpackages__",
+        "//analytics:__subpackages__",
         "//proto/analytics:__subpackages__",
     ],
     deps = [
@@ -140,9 +140,9 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
-        "//third_party/nearby/cpp/analytics:__subpackages__",
         "//core/internal:__subpackages__",
         "//platform/impl:__subpackages__",
+        "//analytics:__subpackages__",
     ],
     deps = [
         ":logging",
