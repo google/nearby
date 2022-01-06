@@ -19,13 +19,13 @@
 
 #include "absl/container/btree_map.h"
 #include "absl/time/time.h"
-#include "third_party/nearby/cpp/analytics/connection_attempt_metadata_params.h"
 #include "core/event_logger.h"
 #include "core/payload.h"
 #include "core/strategy.h"
 #include "platform/base/error_code_params.h"
 #include "platform/public/mutex.h"
 #include "platform/public/single_thread_executor.h"
+#include "analytics/connection_attempt_metadata_params.h"
 #include "proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
