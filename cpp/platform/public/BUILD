@@ -52,7 +52,7 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
-        "//analytics:__subpackages__",
+        "//third_party/nearby/cpp/analytics:__subpackages__",
         "//core:__subpackages__",
         "//platform/base:__pkg__",
         "//platform/impl/ios:__subpackages__",
@@ -90,7 +90,7 @@ cc_library(
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//analytics:__subpackages__",
+        "//third_party/nearby/cpp/analytics:__subpackages__",
         "//core:__subpackages__",
         "//platform/public:__pkg__",
     ],
@@ -116,7 +116,7 @@ cc_library(
     compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
-        "//analytics:__subpackages__",
+        "//third_party/nearby/cpp/analytics:__subpackages__",
         "//core:__subpackages__",
         "//platform:__subpackages__",
         "//proto/analytics:__subpackages__",

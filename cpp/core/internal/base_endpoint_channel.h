@@ -21,7 +21,7 @@
 
 #include "securegcm/d2d_connection_context_v1.h"
 #include "absl/base/thread_annotations.h"
-#include "analytics/analytics_recorder.h"
+#include "third_party/nearby/cpp/analytics/analytics_recorder.h"
 #include "core/internal/endpoint_channel.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/input_stream.h"

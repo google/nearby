@@ -19,7 +19,7 @@
 
 #include "absl/container/btree_map.h"
 #include "absl/time/time.h"
-#include "analytics/connection_attempt_metadata_params.h"
+#include "third_party/nearby/cpp/analytics/connection_attempt_metadata_params.h"
 #include "core/event_logger.h"
 #include "core/payload.h"
 #include "core/strategy.h"
