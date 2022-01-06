@@ -36,7 +36,7 @@ cc_proto_library(
     name = "connections_log_cc_proto",
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
-        "//analytics:__subpackages__",
+        "//third_party/nearby/cpp/analytics:__subpackages__",
         "//core:__subpackages__",
     ],
     deps = [":connections_log_proto"],
