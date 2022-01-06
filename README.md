@@ -35,4 +35,4 @@ platform specific instructions.
 * [iOS](https://github.com/google/nearby/blob/master/docs/ios_build.md)
 
 
-**Last Updated:** Dec 2021
+**Last Updated:** Jan 2022
