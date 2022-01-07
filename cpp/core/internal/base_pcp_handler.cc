@@ -33,7 +33,6 @@
 #include "platform/base/bluetooth_utils.h"
 #include "platform/public/logging.h"
 #include "platform/public/system_clock.h"
-#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

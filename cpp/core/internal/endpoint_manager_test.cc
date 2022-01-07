@@ -53,15 +53,11 @@ class MockEndpointChannel : public EndpointChannel {
   MOCK_METHOD(Exception, Write, (const ByteArray& data), (override));
   MOCK_METHOD(void, Close, (), (override));
   MOCK_METHOD(void, Close, (DisconnectionReason reason), (override));
-  // TODO(jfcarroll): This needs to be fixed properly
   MOCK_METHOD(proto::connections::ConnectionTechnology, GetTechnology, (),
               (const override));
-  // TODO(jfcarroll): This needs to be fixed properly
   MOCK_METHOD(proto::connections::ConnectionBand, GetBand, (),
               (const override));
-  // TODO(jfcarroll): This needs to be fixed properly
   MOCK_METHOD(int, GetFrequency, (), (const override));
-  // TODO(jfcarroll): This needs to be fixed properly
   MOCK_METHOD(int, GetTryCount, (), (const override));
   MOCK_METHOD(std::string, GetType, (), (const override));
   MOCK_METHOD(std::string, GetName, (), (const override));

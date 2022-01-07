@@ -24,7 +24,6 @@
 #include "platform/public/logging.h"
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
-#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {
