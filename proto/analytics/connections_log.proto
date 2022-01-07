@@ -412,9 +412,10 @@ message ConnectionsLog {
     optional string network_operator = 4
         ;
 
-    // The upper-case ISO 3166-1 alpha-2 country code of the current registered
-    // operator's MCC (Mobile Country Code), or the country code of the default
-    // Locale if not available.
+    // The upper-case ISO 3166-1 alpha-2 country code of:
+    // 1. the current connected WiFi network
+    // 2. or the current registered operator's MCC (Mobile Country Code)
+    // 3. or empty string.
     optional string country_code = 5 ;
 
     // The TDLS status used by the wifi lan medium,
