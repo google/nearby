@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "analytics/analytics_recorder.h"
+#include "internal/analytics/analytics_recorder.h"
 
 #include <string>
 #include <utility>
@@ -24,7 +24,7 @@
 #include "platform/base/error_code_recorder.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
-#include "analytics/connection_attempt_metadata_params.h"
+#include "internal/analytics/connection_attempt_metadata_params.h"
 #include "proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 

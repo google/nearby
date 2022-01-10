@@ -23,7 +23,7 @@
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
 #include "platform/public/mutex.h"
-#include "analytics/analytics_recorder.h"
+#include "internal/analytics/analytics_recorder.h"
 #include "proto/connections_enums.pb.h"
 
 namespace location {
