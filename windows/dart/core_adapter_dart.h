@@ -15,6 +15,8 @@
 #ifndef LOCATION_NEARBY_CONNECTIONS_WINDOWS_DART_CORE_ADAPTER_DART_H_
 #define LOCATION_NEARBY_CONNECTIONS_WINDOWS_DART_CORE_ADAPTER_DART_H_
 
+#include "third_party/dart_lang/v2/runtime/include/dart_api_dl.h"
+#include "third_party/dart_lang/v2/runtime/include/dart_native_api.h"
 #include "third_party/nearby/windows/core_adapter.h"
 
 namespace location {
@@ -74,7 +76,7 @@ struct PayloadDart {
   int64_t id;
   PayloadType type;
   int64_t size;
-  char* data;
+  char *data;
 };
 
 // Starts advertising an endpoint for a local app.
@@ -191,10 +193,9 @@ DLL_EXPORT void __stdcall AcceptConnectionDart(
 //         still occur during transmission (and at different times for
 //         different endpoints), and will be delivered via
 //         PayloadCallback#onPayloadTransferUpdate.
-DLL_EXPORT void __stdcall SendPayloadDart(Core* pCore,
-                                           const char* endpoint_id,
-                                           PayloadDart payload_dart,
-                                           Dart_Port result_cb);
+DLL_EXPORT void __stdcall SendPayloadDart(Core *pCore, const char *endpoint_id,
+                                          PayloadDart payload_dart,
+                                          Dart_Port result_cb);
 
 }  // namespace windows
 }  // namespace connections
