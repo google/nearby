@@ -17,6 +17,7 @@ cc_library(
     name = "mediums",
     srcs = [
         "ble.cc",
+        "ble_v2.cc",
         "bloom_filter.cc",
         "bluetooth_classic.cc",
         "bluetooth_radio.cc",
@@ -27,6 +28,7 @@ cc_library(
     ],
     hdrs = [
         "ble.h",
+        "ble_v2.h",
         "bloom_filter.h",
         "bluetooth_classic.h",
         "bluetooth_radio.h",
