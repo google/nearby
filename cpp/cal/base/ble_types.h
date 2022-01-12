@@ -14,6 +14,7 @@
 
 #ifndef CAL_BASE_TYPES_H_
 #define CAL_BASE_TYPES_H_
+
 // TODO(hais) relocate base def class accordingly.
 #include <map>
 
@@ -48,16 +49,20 @@ enum class PowerMode {
 
 struct AdvertiseSettings {
   AdvertiseMode advertise_mode;
-  PowerMode poser_mode;
+  PowerMode power_mode;
   int timeout;
   bool is_connectable;
-  std::string local_name;
 };
 
 struct BleAdvertisementData {
   AdvertiseSettings advertise_settings;
-  // service UUID to advertise bytes map
-  std::map<std::string, ByteArray> service_data_map;
+  // service UUID to advertise bytes map:16-bit service UUID - service Data
+  //
+  // Data type value : 0x16
+  // if platform can't advertise data from this key (reaonly in iOS), then (iOS)
+  // should advertise data via LocalName data type. It means the service_uuid
+  // here is useless for iOS platform.
+  std::map<std::string, location::nearby::ByteArray> service_data_map;
 };
 
 enum class ScanMode {
@@ -75,4 +80,5 @@ struct ScanSettings {
 
 }  // namespace cal
 }  // namespace nearby
+
 #endif  // CAL_BASE_TYPES_H_
