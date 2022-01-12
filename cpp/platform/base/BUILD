@@ -48,8 +48,8 @@ cc_library(
         "//core:__subpackages__",
         "//platform:__subpackages__",
         "//platform/api:__subpackages__",
-        "//analytics:__subpackages__",
-        "//proto/analytics:__subpackages__",
+        "//internal/analytics:__subpackages__",
+        "//internal/proto/analytics:__subpackages__",
     ],
     deps = [
         "//absl/container:flat_hash_map",
@@ -142,7 +142,7 @@ cc_library(
     visibility = [
         "//core/internal:__subpackages__",
         "//platform/impl:__subpackages__",
-        "//analytics:__subpackages__",
+        "//internal/analytics:__subpackages__",
     ],
     deps = [
         ":logging",

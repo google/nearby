@@ -37,7 +37,7 @@ cc_proto_library(
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//core:__subpackages__",
-        "//analytics:__subpackages__",
+        "//internal/analytics:__subpackages__",
     ],
     deps = [":connections_log_proto"],
 )
@@ -59,7 +59,6 @@ cc_test(
         
         "//net/proto2/public",
         "//testing/base/public:gunit_main",
-        "//platform/base",
         "//platform/impl/g3",  # build_cleaner: keep
         "//platform/public:logging",
         "//proto:connections_enums_portable_proto",

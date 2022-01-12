@@ -26,7 +26,7 @@ cc_library(
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//core:__subpackages__",
-        "//proto/analytics:__subpackages__",
+        "//internal/proto/analytics:__subpackages__",
     ],
     deps = [
         "//absl/container:btree",
@@ -37,8 +37,8 @@ cc_library(
         "//platform/base:error_code_recorder",
         "//platform/public:logging",
         "//platform/public:types",
+        "//internal/proto/analytics:connections_log_cc_proto",
         "//proto:connections_enums_portable_proto",
-        "//proto/analytics:connections_log_cc_proto",
         "//proto/errorcode:error_code_enums_portable_proto",
     ],
 )
@@ -59,7 +59,7 @@ cc_test(
         "//platform/public:comm",
         "//platform/public:logging",
         "//platform/public:types",
+        "//internal/proto/analytics:connections_log_cc_proto",
         "//proto:connections_enums_portable_proto",
-        "//proto/analytics:connections_log_cc_proto",
     ],
 )

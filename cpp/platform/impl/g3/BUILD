@@ -111,8 +111,8 @@ cc_library(
     visibility = [
         "//core:__subpackages__",
         "//platform:__subpackages__",
-        "//analytics:__subpackages__",
-        "//proto/analytics:__subpackages__",
+        "//internal/analytics:__subpackages__",
+        "//internal/proto/analytics:__subpackages__",
     ],
     deps = [
         ":comm",

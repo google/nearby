@@ -61,7 +61,7 @@ cc_library(
     visibility = [
         "//core:__subpackages__",
         "//platform/impl/ios:__subpackages__",
-        "//analytics:__subpackages__",
+        "//internal/analytics:__subpackages__",
     ],
     deps = [
         "//absl/strings",
@@ -80,10 +80,10 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
-        "//analytics:__subpackages__",
+        "//internal/analytics:__subpackages__",
     ],
     deps = [
-        "//proto/analytics:connections_log_cc_proto",
+        "//internal/proto/analytics:connections_log_cc_proto",
     ],
 )
 

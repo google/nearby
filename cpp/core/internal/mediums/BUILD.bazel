@@ -50,6 +50,7 @@ cc_library(
         "//third_party/absl/strings",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/time",
+        "//third_party/nearby/connections/implementation/proto:offline_wire_formats_portable_proto",
         "//third_party/nearby/cpp/core:core_types",
         "//third_party/nearby/cpp/core/internal/mediums/ble_v2",
         "//third_party/nearby/cpp/platform/base",
@@ -57,7 +58,6 @@ cc_library(
         "//third_party/nearby/cpp/platform/public:comm",
         "//third_party/nearby/cpp/platform/public:logging",
         "//third_party/nearby/cpp/platform/public:types",
-        "//third_party/nearby/proto/connections:offline_wire_formats_portable_proto",
         "//third_party/nearby/proto/mediums:web_rtc_signaling_frames_cc_proto",
         "//third_party/smhasher:libmurmur3",
     ],
@@ -82,9 +82,9 @@ cc_library(
     ],
     deps = [
         "//third_party/absl/strings",
+        "//third_party/nearby/connections/implementation/proto:offline_wire_formats_portable_proto",
         "//third_party/nearby/cpp/platform/base",
         "//third_party/nearby/cpp/platform/public:types",
-        "//third_party/nearby/proto/connections:offline_wire_formats_portable_proto",
     ],
 )
 

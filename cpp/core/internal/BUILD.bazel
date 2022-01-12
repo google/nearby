@@ -101,6 +101,7 @@ cc_library(
         "//third_party/absl/strings",
         "//third_party/absl/time",
         "//third_party/absl/types:span",
+        "//third_party/nearby/connections/implementation/proto:offline_wire_formats_portable_proto",
         "//third_party/nearby/cpp/core:core_types",
         "//third_party/nearby/cpp/core/internal/mediums",
         "//third_party/nearby/cpp/core/internal/mediums:utils",
@@ -114,7 +115,6 @@ cc_library(
         "//third_party/nearby/cpp/platform/public:types",
         "//third_party/nearby/internal/analytics",
         "//third_party/nearby/proto:connections_enums_portable_proto",
-        "//third_party/nearby/proto/connections:offline_wire_formats_portable_proto",
         "//third_party/ukey2",
     ],
 )
@@ -199,6 +199,7 @@ cc_test(
         "//third_party/absl/synchronization",
         "//third_party/absl/time",
         "//third_party/absl/types:span",
+        "//third_party/nearby/connections/implementation/proto:offline_wire_formats_portable_proto",
         "//third_party/nearby/cpp/core:core_types",
         "//third_party/nearby/cpp/core/internal/mediums",
         "//third_party/nearby/cpp/core/internal/mediums:utils",
@@ -210,7 +211,6 @@ cc_test(
         "//third_party/nearby/cpp/platform/public:types",
         "//third_party/nearby/internal/analytics",
         "//third_party/nearby/proto:connections_enums_portable_proto",
-        "//third_party/nearby/proto/connections:offline_wire_formats_portable_proto",
         "//third_party/ukey2",
     ],
 )

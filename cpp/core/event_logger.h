@@ -15,7 +15,7 @@
 #ifndef CORE_EVENT_LOGGER_H_
 #define CORE_EVENT_LOGGER_H_
 
-#include "proto/analytics/connections_log.pb.h"
+#include "internal/proto/analytics/connections_log.pb.h"
 
 namespace location {
 namespace nearby {

@@ -51,6 +51,6 @@ objc_proto_library(
 proto_library(
     name = "Protos",
     deps = [
-        "//proto/connections:offline_wire_formats_proto",
+        "//connections/implementation/proto:offline_wire_formats_proto",
     ],
 )

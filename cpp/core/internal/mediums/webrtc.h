@@ -22,6 +22,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "core/internal/mediums/webrtc/connection_flow.h"
 #include "core/internal/mediums/webrtc/data_channel_listener.h"
 #include "core/internal/mediums/webrtc/local_ice_candidate_listener.h"
@@ -39,7 +40,6 @@
 #include "platform/public/scheduled_executor.h"
 #include "platform/public/single_thread_executor.h"
 #include "platform/public/webrtc.h"
-#include "proto/connections/offline_wire_formats.pb.h"
 #include "proto/mediums/web_rtc_signaling_frames.pb.h"
 #include "webrtc/api/jsep.h"
 

@@ -49,6 +49,7 @@ cc_library(
         "//absl/strings",
         "//absl/strings:str_format",
         "//absl/time",
+        "//connections/implementation/proto:offline_wire_formats_portable_proto",
         "//core:core_types",
         "//core/internal/mediums/ble_v2",
         "//core/internal/mediums/webrtc",
@@ -58,7 +59,6 @@ cc_library(
         "//platform/public:comm",
         "//platform/public:logging",
         "//platform/public:types",
-        "//proto/connections:offline_wire_formats_portable_proto",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
         "//smhasher:libmurmur3",
         "//webrtc/api:libjingle_peerconnection_api",
@@ -84,10 +84,10 @@ cc_library(
     ],
     deps = [
         "//absl/strings",
+        "//connections/implementation/proto:offline_wire_formats_portable_proto",
         "//core/internal/mediums/webrtc:data_types",
         "//platform/base",
         "//platform/public:types",
-        "//proto/connections:offline_wire_formats_portable_proto",
     ],
 )
 

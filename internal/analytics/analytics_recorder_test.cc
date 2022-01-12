@@ -25,7 +25,7 @@
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
 #include "internal/analytics/connection_attempt_metadata_params.h"
-#include "proto/analytics/connections_log.pb.h"
+#include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
 namespace location {
