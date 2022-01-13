@@ -26,7 +26,7 @@
 #include "platform/public/mutex.h"
 #include "platform/public/single_thread_executor.h"
 #include "internal/analytics/connection_attempt_metadata_params.h"
-#include "proto/analytics/connections_log.pb.h"
+#include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
 namespace location {

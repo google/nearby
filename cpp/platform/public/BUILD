@@ -57,7 +57,7 @@ cc_library(
         "//platform/impl/ios:__subpackages__",
         "//platform/impl/windows:__subpackages__",
         "//platform/public:__pkg__",
-        "//analytics:__subpackages__",
+        "//internal/analytics:__subpackages__",
     ],
     deps = [
         ":logging",
@@ -92,7 +92,7 @@ cc_library(
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//core:__subpackages__",
         "//platform/public:__pkg__",
-        "//analytics:__subpackages__",
+        "//internal/analytics:__subpackages__",
     ],
     deps = [
         ":logging",
@@ -103,7 +103,6 @@ cc_library(
         "//platform/api:platform",
         "//platform/base",
         "//platform/base:cancellation_flag",
-        "//proto/connections:offline_wire_formats_portable_proto",
         "//webrtc/api:libjingle_peerconnection_api",
     ],
 )
@@ -118,8 +117,8 @@ cc_library(
     visibility = [
         "//core:__subpackages__",
         "//platform:__subpackages__",
-        "//analytics:__subpackages__",
-        "//proto/analytics:__subpackages__",
+        "//internal/analytics:__subpackages__",
+        "//internal/proto/analytics:__subpackages__",
     ],
     deps = [
         "//platform/base:logging",

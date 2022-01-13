@@ -19,13 +19,13 @@
 #include <utility>
 
 #include "absl/time/time.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "core/internal/offline_frames.h"
 #include "platform/base/feature_flags.h"
 #include "platform/public/logging.h"
 #include "platform/public/mutex.h"
 #include "platform/public/mutex_lock.h"
 #include "platform/public/system_clock.h"
-#include "proto/connections/offline_wire_formats.pb.h"
 
 namespace location {
 namespace nearby {

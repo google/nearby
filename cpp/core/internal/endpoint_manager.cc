@@ -17,13 +17,13 @@
 #include <memory>
 #include <utility>
 
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "core/internal/endpoint_channel.h"
 #include "core/internal/offline_frames.h"
 #include "platform/base/exception.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
 #include "platform/public/mutex_lock.h"
-#include "proto/connections/offline_wire_formats.pb.h"
 
 namespace location {
 namespace nearby {

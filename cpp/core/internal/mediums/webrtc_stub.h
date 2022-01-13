@@ -20,11 +20,11 @@
 #include <memory>
 #include <string>
 
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "core/internal/mediums/webrtc_peer_id.h"
 #include "core/internal/mediums/webrtc_socket_stub.h"
 #include "platform/base/cancellation_flag.h"
 #include "platform/base/listeners.h"
-#include "proto/connections/offline_wire_formats.pb.h"
 
 namespace location {
 namespace nearby {

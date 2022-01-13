@@ -18,10 +18,10 @@
 #include <cstdint>
 #include <vector>
 
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "core/options.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
-#include "proto/connections/offline_wire_formats.pb.h"
 
 namespace location {
 namespace nearby {

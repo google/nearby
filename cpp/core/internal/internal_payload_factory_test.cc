@@ -19,10 +19,10 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "core/internal/offline_frames.h"
 #include "platform/base/byte_array.h"
 #include "platform/public/pipe.h"
-#include "proto/connections/offline_wire_formats.pb.h"
 
 namespace location {
 namespace nearby {
