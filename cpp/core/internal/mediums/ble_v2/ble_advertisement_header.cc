@@ -27,8 +27,9 @@ namespace connections {
 namespace mediums {
 
 BleAdvertisementHeader::BleAdvertisementHeader(
-    Version version, int num_slots, const ByteArray &service_id_bloom_filter,
-    const ByteArray &advertisement_hash) {
+    Version version, bool extended_advertisement, int num_slots,
+    const ByteArray &service_id_bloom_filter,
+    const ByteArray &advertisement_hash, int psm) {
   if (version != Version::kV2 || num_slots <= 0 ||
       service_id_bloom_filter.size() != kServiceIdBloomFilterLength ||
       advertisement_hash.size() != kAdvertisementHashLength) {
@@ -36,16 +37,15 @@ BleAdvertisementHeader::BleAdvertisementHeader(
   }
 
   version_ = version;
+  extended_advertisement_ = extended_advertisement;
   num_slots_ = num_slots;
   service_id_bloom_filter_ = service_id_bloom_filter;
   advertisement_hash_ = advertisement_hash;
+  psm_ = psm;
 }
 
 BleAdvertisementHeader::BleAdvertisementHeader(
-    const std::string &ble_advertisement_header_string) {
-  ByteArray ble_advertisement_header_bytes =
-      Base64Utils::Decode(ble_advertisement_header_string);
-
+    const ByteArray &ble_advertisement_header_bytes) {
   if (ble_advertisement_header_bytes.Empty()) {
     NEARBY_LOG(
         ERROR,
@@ -62,12 +62,14 @@ BleAdvertisementHeader::BleAdvertisementHeader(
     return;
   }
 
-  BaseInputStream base_input_stream{ble_advertisement_header_bytes};
+  ByteArray advertisement_header_bytes{ble_advertisement_header_bytes};
+  BaseInputStream base_input_stream{advertisement_header_bytes};
   // The first 1 byte is supposed to be the version and number of slots.
-  auto version_and_pcp_byte = static_cast<char>(base_input_stream.ReadUint8());
+  auto version_and_num_slots_byte =
+      static_cast<char>(base_input_stream.ReadUint8());
   // The upper 3 bits are supposed to be the version.
   version_ =
-      static_cast<Version>((version_and_pcp_byte & kVersionBitmask) >> 5);
+      static_cast<Version>((version_and_num_slots_byte & kVersionBitmask) >> 5);
   if (version_ != Version::kV2) {
     NEARBY_LOG(
         ERROR,
@@ -75,8 +77,11 @@ BleAdvertisementHeader::BleAdvertisementHeader(
         version_);
     return;
   }
-  // The lower 5 bits are supposed to be the number of slots.
-  num_slots_ = static_cast<int>(version_and_pcp_byte & kNumSlotsBitmask);
+  // The next 1 bit is supposed to be the extended advertisement flag.
+  extended_advertisement_ =
+      ((version_and_num_slots_byte & kExtendedAdvertismentBitMask) >> 4) == 1;
+  // The lower 4 bits are supposed to be the number of slots.
+  num_slots_ = static_cast<int>(version_and_num_slots_byte & kNumSlotsBitmask);
   if (num_slots_ <= 0) {
     version_ = Version::kUndefined;
     return;
@@ -88,41 +93,43 @@ BleAdvertisementHeader::BleAdvertisementHeader(
 
   // The next 4 bytes are supposed to be the advertisement_hash.
   advertisement_hash_ = base_input_stream.ReadBytes(kAdvertisementHashLength);
+
+  // The next 2 bytes are PSM value.
+  if (base_input_stream.IsAvailable(sizeof(std::uint16_t))) {
+    psm_ = static_cast<int>(base_input_stream.ReadUint16());
+  }
 }
 
-BleAdvertisementHeader::operator std::string() const {
+BleAdvertisementHeader::operator ByteArray() const {
   if (!IsValid()) {
-    return "";
+    return ByteArray();
   }
 
   // The first 3 bits are the Version.
   char version_and_num_slots_byte =
       (static_cast<char>(version_) << 5) & kVersionBitmask;
+  // The next 1 bit is extended advertisement flag.
+  version_and_num_slots_byte |=
+      (static_cast<char>(extended_advertisement_) << 4) &
+      kExtendedAdvertismentBitMask;
   // The next 5 bits are the number of slots.
   version_and_num_slots_byte |=
       static_cast<char>(num_slots_) & kNumSlotsBitmask;
 
+  // Convert psm_ value to 2-bytes.
+  ByteArray psm_byte{sizeof(std::uint16_t)};
+  char *data = psm_byte.data();
+  data[0] = psm_ & 0xFF00;
+  data[1] = psm_ & 0x00FF;
+
   // clang-format off
   std::string out = absl::StrCat(std::string(1, version_and_num_slots_byte),
                                  std::string(service_id_bloom_filter_),
-                                 std::string(advertisement_hash_));
+                                 std::string(advertisement_hash_),
+                                 std::string(psm_byte));
   // clang-format on
 
-  return Base64Utils::Encode(ByteArray(std::move(out)));
-}
-
-bool BleAdvertisementHeader::operator<(
-    const BleAdvertisementHeader &rhs) const {
-  if (this->GetVersion() != rhs.GetVersion()) {
-    return this->GetVersion() < rhs.GetVersion();
-  }
-  if (this->GetNumSlots() != rhs.GetNumSlots()) {
-    return this->GetNumSlots() < rhs.GetNumSlots();
-  }
-  if (this->GetServiceIdBloomFilter() != rhs.GetServiceIdBloomFilter()) {
-    return this->GetServiceIdBloomFilter() < rhs.GetServiceIdBloomFilter();
-  }
-  return this->GetAdvertisementHash() < rhs.GetAdvertisementHash();
+  return ByteArray(std::move(out));
 }
 
 }  // namespace mediums
