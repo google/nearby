@@ -174,6 +174,17 @@ DLL_EXPORT void __stdcall RequestConnectionDart(
 DLL_EXPORT void __stdcall AcceptConnectionDart(
     Core *pCore, const char *endpoint_id, PayloadListenerDart listener_dart,
     Dart_Port result_cb);
+
+// Disconnects from a remote endpoint. {@link Payload}s can no longer be sent
+// to or received from the endpoint after this method is called.
+// endpoint_id - The identifier for the remote endpoint to disconnect from.
+// result_cb   - to access the status of the operation when available.
+//   Possible status codes include:
+//     Status::STATUS_OK - finished successfully.
+DLL_EXPORT void __stdcall DisconnectFromEndpointDart(Core *pCore,
+                                                     char *endpoint_id,
+                                                     Dart_Port result_cb);
+
 // Sends a Payload to a remote endpoint. Payloads can only be sent to remote
 // endpoints once a notice of connection acceptance has been delivered via
 // ConnectionListener::onConnectionResult().
