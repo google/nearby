@@ -457,6 +457,18 @@ void AcceptConnectionDart(Core *pCore, const char *endpoint_id,
   AcceptConnection(pCore, endpoint_id, listener, callback);
 }
 
+void DisconnectFromEndpointDart(Core *pCore, char *endpoint_id,
+                                Dart_Port result_cb) {
+  if (!pCore) {
+    PostResult(result_cb, Status::Value::kError);
+    return;
+  }
+
+  ResultCallback callback;
+  SetResultCallback(callback, result_cb);
+  DisconnectFromEndpoint(pCore, endpoint_id, callback);
+}
+
 std::string GetPayloadPath(location::nearby::PayloadId payload_id) {
   PWSTR basePath;
 
