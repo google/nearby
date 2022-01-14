@@ -27,7 +27,7 @@ namespace mediums {
 // Represents the format of the Mediums BLE Advertisement Header used in
 // Advertising + Discovery.
 //
-// [VERSION][NUM_SLOTS][SERVICE_ID_BLOOM_FILTER][ADVERTISEMENT_HASH]
+// [VERSION][NUM_SLOTS][SERVICE_ID_BLOOM_FILTER][ADVERTISEMENT_HASH][L2_CAP_PSM]
 //
 // See go/nearby-ble-design for more information.
 //
@@ -52,41 +52,45 @@ class BleAdvertisementHeader {
   };
 
   BleAdvertisementHeader() = default;
-  BleAdvertisementHeader(Version version, int num_slots,
+  BleAdvertisementHeader(Version version, bool extended_advertisement,
+                         int num_slots,
                          const ByteArray &service_id_bloom_filter,
-                         const ByteArray &advertisement_hash);
+                         const ByteArray &advertisement_hash, int psm);
   explicit BleAdvertisementHeader(
-      const std::string &ble_advertisement_header_string);
+      const ByteArray &ble_advertisement_header_bytes);
   BleAdvertisementHeader(const BleAdvertisementHeader &) = default;
   BleAdvertisementHeader &operator=(const BleAdvertisementHeader &) = default;
   BleAdvertisementHeader(BleAdvertisementHeader &&) = default;
   BleAdvertisementHeader &operator=(BleAdvertisementHeader &&) = default;
   ~BleAdvertisementHeader() = default;
 
-  // Produces an encoded binary string which can be decoded by the explicit
-  // constructor. The returned string is empty if BleAdvertisementHeader is not
-  // valid - false on IsValid().
-  explicit operator std::string() const;
-  bool operator<(const BleAdvertisementHeader &rhs) const;
+  explicit operator ByteArray() const;
 
   bool IsValid() const { return version_ == Version::kV2; }
   Version GetVersion() const { return version_; }
+  bool IsExtendedAdvertisement() const { return extended_advertisement_; }
   int GetNumSlots() const { return num_slots_; }
   ByteArray GetServiceIdBloomFilter() const { return service_id_bloom_filter_; }
   ByteArray GetAdvertisementHash() const { return advertisement_hash_; }
+  int GetPsmValue() const { return psm_; }
 
  private:
+  static constexpr int kVersionAndNumSlotsLength = 1;
   static constexpr int kServiceIdBloomFilterLength = 10;
   static constexpr int kAdvertisementHashLength = 4;
   static constexpr int kMinAdvertisementHeaderLength =
-      1 + kServiceIdBloomFilterLength + kAdvertisementHashLength;
+      kVersionAndNumSlotsLength + kServiceIdBloomFilterLength +
+      kAdvertisementHashLength;
   static constexpr int kVersionBitmask = 0x0E0;
-  static constexpr int kNumSlotsBitmask = 0x01F;
+  static constexpr int kExtendedAdvertismentBitMask = 0x010;
+  static constexpr int kNumSlotsBitmask = 0x00F;
 
   Version version_ = Version::kUndefined;
-  int num_slots_;
+  bool extended_advertisement_ = false;
+  int num_slots_ = 0;
   ByteArray service_id_bloom_filter_;
   ByteArray advertisement_hash_;
+  int psm_ = 0;
 };
 
 }  // namespace mediums

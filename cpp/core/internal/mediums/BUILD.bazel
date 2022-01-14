@@ -17,7 +17,6 @@ cc_library(
     name = "mediums",
     srcs = [
         "ble.cc",
-        "bloom_filter.cc",
         "bluetooth_classic.cc",
         "bluetooth_radio.cc",
         "mediums.cc",
@@ -27,7 +26,6 @@ cc_library(
     ],
     hdrs = [
         "ble.h",
-        "bloom_filter.h",
         "bluetooth_classic.h",
         "bluetooth_radio.h",
         "lost_entity_tracker.h",
@@ -46,7 +44,6 @@ cc_library(
         "//third_party/absl/container:flat_hash_map",
         "//third_party/absl/container:flat_hash_set",
         "//third_party/absl/functional:bind_front",
-        "//third_party/absl/numeric:int128",
         "//third_party/absl/strings",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/time",
@@ -59,7 +56,6 @@ cc_library(
         "//third_party/nearby/cpp/platform/public:logging",
         "//third_party/nearby/cpp/platform/public:types",
         "//third_party/nearby/proto/mediums:web_rtc_signaling_frames_cc_proto",
-        "//third_party/smhasher:libmurmur3",
     ],
 )
 
@@ -93,7 +89,6 @@ cc_test(
     size = "small",
     srcs = [
         "ble_test.cc",
-        "bloom_filter_test.cc",
         "bluetooth_classic_test.cc",
         "bluetooth_radio_test.cc",
         "lost_entity_tracker_test.cc",

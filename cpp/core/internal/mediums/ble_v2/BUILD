@@ -20,6 +20,7 @@ cc_library(
         "ble_advertisement.cc",
         "ble_advertisement_header.cc",
         "ble_packet.cc",
+        "bloom_filter.cc",
     ],
     hdrs = [
         "advertisement_read_result.h",
@@ -27,6 +28,7 @@ cc_library(
         "ble_advertisement_header.h",
         "ble_packet.h",
         "ble_peripheral.h",
+        "bloom_filter.h",
         "discovered_peripheral_callback.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
@@ -37,6 +39,7 @@ cc_library(
     deps = [
         "//absl/container:flat_hash_map",
         "//absl/container:flat_hash_set",
+        "//absl/numeric:int128",
         "//absl/strings",
         "//absl/time",
         "//core:core_types",
@@ -44,6 +47,7 @@ cc_library(
         "//platform/base:util",
         "//platform/public:logging",
         "//platform/public:types",
+        "//smhasher:libmurmur3",
     ],
 )
 
@@ -55,6 +59,7 @@ cc_test(
         "ble_advertisement_test.cc",
         "ble_packet_test.cc",
         "ble_peripheral_test.cc",
+        "bloom_filter_test.cc",
     ],
     deps = [
         ":ble_v2",

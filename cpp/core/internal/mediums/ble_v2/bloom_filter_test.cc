@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "core/internal/mediums/bloom_filter.h"
+#include "core/internal/mediums/ble_v2/bloom_filter.h"
 
 #include <algorithm>
 
