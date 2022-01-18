@@ -40,12 +40,13 @@ typedef GNCConnectionHandler _Nonnull (^GNCDiscovererConnectionInitializationHan
 /**
  * This handler should be called to request a connection with an advertiser.
  *
- * @param name A human readable name of this endpoint, to be displayed on the other endpoint.
+ * @param endpointInfo A data for endpoint info which contains readable name of this endpoint,
+ *                     to be displayed on other endpoints.
  * @param authorizationHandler This handler is called to establish authorization.
  * @param failureHandler This handler is called if there was an error making the connection.
  */
 typedef void (^GNCConnectionRequester)(
-    NSString *name, GNCDiscovererConnectionInitializationHandler connectionAuthorizationHandler,
+    NSData *endpointInfo, GNCDiscovererConnectionInitializationHandler connectionAuthorizationHandler,
     GNCConnectionFailureHandler failureHandler);
 
 /** Information about an endpoint when it's discovered. */
