@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ class MockServiceControllerRouter : public ServiceControllerRouter {
  public:
   MOCK_METHOD(void, StartAdvertising,
               (ClientProxy * client, absl::string_view service_id,
-               const ConnectionOptions& options,
+               const AdvertisingOptions& advertising_options,
                const ConnectionRequestInfo& info,
                const ResultCallback& callback),
               (override));
@@ -37,7 +37,7 @@ class MockServiceControllerRouter : public ServiceControllerRouter {
 
   MOCK_METHOD(void, StartDiscovery,
               (ClientProxy * client, absl::string_view service_id,
-               const ConnectionOptions& options,
+               const DiscoveryOptions& discovery_options,
                const DiscoveryListener& listener,
                const ResultCallback& callback),
               (override));
@@ -55,7 +55,7 @@ class MockServiceControllerRouter : public ServiceControllerRouter {
   MOCK_METHOD(void, RequestConnection,
               (ClientProxy * client, absl::string_view endpoint_id,
                const ConnectionRequestInfo& info,
-               const ConnectionOptions& options,
+               const ConnectionOptions& connection_options,
                const ResultCallback& callback),
               (override));
 

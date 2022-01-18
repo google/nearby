@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,8 +20,9 @@
 #include <string>
 #include <vector>
 
+#include "core/advertising_options.h"
+#include "core/discovery_options.h"
 #include "core/listeners.h"
-#include "core/options.h"
 #include "core/status.h"
 #include "core/strategy.h"
 #include "platform/base/byte_array.h"
@@ -72,7 +73,7 @@ class ClientProxy final {
       const std::string& service_id, Strategy strategy,
       const ConnectionListener& connection_lifecycle_listener,
       absl::Span<proto::connections::Medium> mediums,
-      const ConnectionOptions& advertising_options = ConnectionOptions{});
+      const AdvertisingOptions& advertising_options = AdvertisingOptions{});
   // Marks this client as not advertising.
   void StoppedAdvertising();
   bool IsAdvertising() const;
@@ -87,7 +88,7 @@ class ClientProxy final {
       const std::string& service_id, Strategy strategy,
       const DiscoveryListener& discovery_listener,
       absl::Span<proto::connections::Medium> mediums,
-      const ConnectionOptions& discovery_options = ConnectionOptions{});
+      const DiscoveryOptions& discovery_options = DiscoveryOptions{});
   // Marks this client as not discovering at all.
   void StoppedDiscovery();
   bool IsDiscoveringServiceId(const std::string& service_id) const;
@@ -106,7 +107,7 @@ class ClientProxy final {
   // Proxies to the client's ConnectionListener::OnInitiated() callback.
   void OnConnectionInitiated(const std::string& endpoint_id,
                              const ConnectionResponseInfo& info,
-                             const ConnectionOptions& options,
+                             const ConnectionOptions& connection_options,
                              const ConnectionListener& listener,
                              const std::string& connection_token);
 
@@ -177,8 +178,8 @@ class ClientProxy final {
   void CancelEndpoint(const std::string& endpoint_id);
   // Cancels all CancellationFlags.
   void CancelAllEndpoints();
-  ConnectionOptions GetAdvertisingOptions() const;
-  ConnectionOptions GetDiscoveryOptions() const;
+  AdvertisingOptions GetAdvertisingOptions() const;
+  DiscoveryOptions GetDiscoveryOptions() const;
 
   // The endpoint id will be stable for 30 seconds after high visibility mode
   // (high power and Bluetooth Classic) advertisement stops.
@@ -215,6 +216,8 @@ class ClientProxy final {
     ConnectionListener connection_listener;
     PayloadListener payload_listener;
     ConnectionOptions connection_options;
+    DiscoveryOptions discovery_options;
+    AdvertisingOptions advertising_options;
     std::string connection_token;
   };
 
@@ -285,13 +288,13 @@ class ClientProxy final {
   // Note: this is not cleared when the client stops advertising because it
   // might still be useful downstream of advertising (eg: establishing
   // connections, performing bandwidth upgrades, etc.)
-  ConnectionOptions advertising_options_;
+  AdvertisingOptions advertising_options_;
 
   // The active ClientProxy's discovery constraints. Null if the client
   // hasn't started discovering. Note: this is not cleared when the client
   // stops discovering because it might still be useful downstream of
   // discovery (eg: connection speed, etc.)
-  ConnectionOptions discovery_options_;
+  DiscoveryOptions discovery_options_;
 
   // Maps endpoint_id to endpoint connection state.
   absl::flat_hash_map<std::string, Connection> connections_;

@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@
 #include "core/internal/pcp_manager.h"
 #include "core/internal/service_controller.h"
 #include "core/listeners.h"
-#include "core/options.h"
 #include "core/payload.h"
 #include "core/status.h"
 
@@ -43,21 +42,23 @@ class OfflineServiceController : public ServiceController {
   ~OfflineServiceController() override;
 
   Status StartAdvertising(ClientProxy* client, const std::string& service_id,
-                          const ConnectionOptions& options,
+                          const AdvertisingOptions& advertising_options,
                           const ConnectionRequestInfo& info) override;
+
   void StopAdvertising(ClientProxy* client) override;
 
   Status StartDiscovery(ClientProxy* client, const std::string& service_id,
-                        const ConnectionOptions& options,
+                        const DiscoveryOptions& discovery_options,
                         const DiscoveryListener& listener) override;
   void StopDiscovery(ClientProxy* client) override;
 
   void InjectEndpoint(ClientProxy* client, const std::string& service_id,
                       const OutOfBandConnectionMetadata& metadata) override;
 
-  Status RequestConnection(ClientProxy* client, const std::string& endpoint_id,
-                           const ConnectionRequestInfo& info,
-                           const ConnectionOptions& options) override;
+  Status RequestConnection(
+      ClientProxy* client, const std::string& endpoint_id,
+      const ConnectionRequestInfo& info,
+      const ConnectionOptions& connection_options) override;
   Status AcceptConnection(ClientProxy* client, const std::string& endpoint_id,
                           const PayloadListener& listener) override;
   Status RejectConnection(ClientProxy* client,

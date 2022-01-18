@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -109,7 +109,7 @@ void ClientProxy::StartedAdvertising(
     const std::string& service_id, Strategy strategy,
     const ConnectionListener& listener,
     absl::Span<proto::connections::Medium> mediums,
-    const ConnectionOptions& advertising_options) {
+    const AdvertisingOptions& advertising_options) {
   MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "ClientProxy [StartedAdvertising]: client="
                     << GetClientId();
@@ -168,7 +168,7 @@ void ClientProxy::StartedDiscovery(
     const std::string& service_id, Strategy strategy,
     const DiscoveryListener& listener,
     absl::Span<proto::connections::Medium> mediums,
-    const ConnectionOptions& discovery_options) {
+    const DiscoveryOptions& discovery_options) {
   MutexLock lock(&mutex_);
   discovery_info_ = DiscoveryInfo{service_id, listener};
   discovery_options_ = discovery_options;
@@ -263,11 +263,10 @@ void ClientProxy::OnEndpointLost(const std::string& service_id,
   discovery_info_.listener.endpoint_lost_cb(endpoint_id);
 }
 
-void ClientProxy::OnConnectionInitiated(const std::string& endpoint_id,
-                                        const ConnectionResponseInfo& info,
-                                        const ConnectionOptions& options,
-                                        const ConnectionListener& listener,
-                                        const std::string& connection_token) {
+void ClientProxy::OnConnectionInitiated(
+    const std::string& endpoint_id, const ConnectionResponseInfo& info,
+    const ConnectionOptions& connection_options,
+    const ConnectionListener& listener, const std::string& connection_token) {
   MutexLock lock(&mutex_);
 
   // Whether this is incoming or outgoing, the local and remote endpoints both
@@ -277,7 +276,7 @@ void ClientProxy::OnConnectionInitiated(const std::string& endpoint_id,
       endpoint_id, Connection{
                        .is_incoming = info.is_incoming_connection,
                        .connection_listener = listener,
-                       .connection_options = options,
+                       .connection_options = connection_options,
                        .connection_token = connection_token,
                    });
   // Instead of using structured binding which is nice, but banned
@@ -691,11 +690,11 @@ void ClientProxy::AppendConnectionStatus(const std::string& endpoint_id,
   }
 }
 
-ConnectionOptions ClientProxy::GetAdvertisingOptions() const {
+AdvertisingOptions ClientProxy::GetAdvertisingOptions() const {
   return advertising_options_;
 }
 
-ConnectionOptions ClientProxy::GetDiscoveryOptions() const {
+DiscoveryOptions ClientProxy::GetDiscoveryOptions() const {
   return discovery_options_;
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,11 +34,13 @@ void OfflineServiceController::Stop() {
 
 Status OfflineServiceController::StartAdvertising(
     ClientProxy* client, const std::string& service_id,
-    const ConnectionOptions& options, const ConnectionRequestInfo& info) {
+    const AdvertisingOptions& advertising_options,
+    const ConnectionRequestInfo& info) {
   if (stop_) return {Status::kOutOfOrderApiCall};
   NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
                     << " requested advertising to start.";
-  return pcp_manager_.StartAdvertising(client, service_id, options, info);
+  return pcp_manager_.StartAdvertising(client, service_id, advertising_options,
+                                       info);
 }
 
 void OfflineServiceController::StopAdvertising(ClientProxy* client) {
@@ -50,11 +52,13 @@ void OfflineServiceController::StopAdvertising(ClientProxy* client) {
 
 Status OfflineServiceController::StartDiscovery(
     ClientProxy* client, const std::string& service_id,
-    const ConnectionOptions& options, const DiscoveryListener& listener) {
+    const DiscoveryOptions& discovery_options,
+    const DiscoveryListener& listener) {
   if (stop_) return {Status::kOutOfOrderApiCall};
   NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
                     << " requested discovery to start.";
-  return pcp_manager_.StartDiscovery(client, service_id, options, listener);
+  return pcp_manager_.StartDiscovery(client, service_id, discovery_options,
+                                     listener);
 }
 
 void OfflineServiceController::StopDiscovery(ClientProxy* client) {
@@ -73,11 +77,13 @@ void OfflineServiceController::InjectEndpoint(
 
 Status OfflineServiceController::RequestConnection(
     ClientProxy* client, const std::string& endpoint_id,
-    const ConnectionRequestInfo& info, const ConnectionOptions& options) {
+    const ConnectionRequestInfo& info,
+    const ConnectionOptions& connection_options) {
   if (stop_) return {Status::kOutOfOrderApiCall};
   NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
                     << " requested a connection to endpoint_id=" << endpoint_id;
-  return pcp_manager_.RequestConnection(client, endpoint_id, info, options);
+  return pcp_manager_.RequestConnection(client, endpoint_id, info,
+                                        connection_options);
 }
 
 Status OfflineServiceController::AcceptConnection(

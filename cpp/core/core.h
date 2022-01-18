@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@
 #include "core/internal/service_controller.h"
 #include "core/internal/service_controller_router.h"
 #include "core/listeners.h"
-#include "core/options.h"
 #include "core/params.h"
 
 namespace location {
@@ -49,7 +48,7 @@ class Core {
   //              This can be an arbitrary string, so long as it uniquely
   //              identifies your service. A good default is to use your
   //              app's package name.
-  // options    - The options for advertising.
+  // advertising_options - The options for advertising.
   // info       - Connection parameters:
   // > name     - A human readable name for this endpoint, to appear on
   //              other devices.
@@ -61,7 +60,8 @@ class Core {
   //     Status::STATUS_ALREADY_ADVERTISING if the app is already advertising.
   //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
   //         connected to remote endpoints; call StopAllEndpoints first.
-  void StartAdvertising(absl::string_view service_id, ConnectionOptions options,
+  void StartAdvertising(absl::string_view service_id,
+                        AdvertisingOptions advertising_options,
                         ConnectionRequestInfo info, ResultCallback callback);
 
   // Stops advertising a local endpoint. Should be called after calling
@@ -79,7 +79,7 @@ class Core {
   // service_id - The ID for the service to be discovered, as specified in
   //              the corresponding call to StartAdvertising.
   // listener   - A callback notified when a remote endpoint is discovered.
-  // options    - The options for discovery.
+  // discovery_options    - The options for discovery.
   // result_cb  - to access the status of the operation when available.
   //   Possible status codes include:
   //     Status::STATUS_OK if discovery started successfully.
@@ -87,7 +87,8 @@ class Core {
   //         discovering the specified service.
   //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
   //         connected to remote endpoints; call StopAllEndpoints first.
-  void StartDiscovery(absl::string_view service_id, ConnectionOptions options,
+  void StartDiscovery(absl::string_view service_id,
+                      DiscoveryOptions discovery_options,
                       DiscoveryListener listener, ResultCallback callback);
 
   // Stops discovery for remote endpoints, after a previous call to
@@ -139,7 +140,8 @@ class Core {
   //         issue with Bluetooth/WiFi.
   //     Status::STATUS_ERROR if we failed to connect for any other reason.
   void RequestConnection(absl::string_view endpoint_id,
-                         ConnectionRequestInfo info, ConnectionOptions options,
+                         ConnectionRequestInfo info,
+                         ConnectionOptions connection_options,
                          ResultCallback callback);
 
   // Accepts a connection to a remote endpoint. This method must be called

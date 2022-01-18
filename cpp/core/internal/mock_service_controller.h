@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ class MockServiceController : public ServiceController {
   MOCK_METHOD(void, Stop, (), (override));
   MOCK_METHOD(Status, StartAdvertising,
               (ClientProxy * client, const std::string& service_id,
-               const ConnectionOptions& options,
+               const AdvertisingOptions& advertising_options,
                const ConnectionRequestInfo& info),
               (override));
 
@@ -42,7 +42,7 @@ class MockServiceController : public ServiceController {
 
   MOCK_METHOD(Status, StartDiscovery,
               (ClientProxy * client, const std::string& service_id,
-               const ConnectionOptions& options,
+               const DiscoveryOptions& discovery_options,
                const DiscoveryListener& listener),
               (override));
 
@@ -56,7 +56,7 @@ class MockServiceController : public ServiceController {
   MOCK_METHOD(Status, RequestConnection,
               (ClientProxy * client, const std::string& endpoint_id,
                const ConnectionRequestInfo& info,
-               const ConnectionOptions& options),
+               const ConnectionOptions& connection_options),
               (override));
 
   MOCK_METHOD(Status, AcceptConnection,

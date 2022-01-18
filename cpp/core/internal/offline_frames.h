@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
-#include "core/options.h"
+#include "core/connection_options.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
 

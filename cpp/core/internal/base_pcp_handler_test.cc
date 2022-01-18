@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@
 #include "core/internal/encryption_runner.h"
 #include "core/internal/offline_frames.h"
 #include "core/listeners.h"
-#include "core/options.h"
 #include "core/params.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
@@ -127,12 +126,12 @@ class MockPcpHandler : public BasePcpHandler {
               (ClientProxy * client, const std::string& service_id,
                const std::string& local_endpoint_id,
                const ByteArray& local_endpoint_info,
-               const ConnectionOptions& options),
+               const AdvertisingOptions& advertising_options),
               (override));
   MOCK_METHOD(Status, StopAdvertisingImpl, (ClientProxy * client), (override));
   MOCK_METHOD(StartOperationResult, StartDiscoveryImpl,
               (ClientProxy * client, const std::string& service_id,
-               const ConnectionOptions& options),
+               const DiscoveryOptions& discovery_options),
               (override));
   MOCK_METHOD(Status, StopDiscoveryImpl, (ClientProxy * client), (override));
   MOCK_METHOD(Status, InjectEndpointImpl,
@@ -236,11 +235,13 @@ class BasePcpHandlerTest
   void StartAdvertising(ClientProxy* client, MockPcpHandler* pcp_handler,
                         BooleanMediumSelector allowed = GetParam()) {
     std::string service_id{"service"};
-    ConnectionOptions options{
-        .strategy = Strategy::kP2pCluster,
-        .allowed = allowed,
-        .auto_upgrade_bandwidth = true,
-        .enforce_topology_constraints = true,
+    AdvertisingOptions advertising_options{
+        {
+            Strategy::kP2pCluster,
+            allowed,
+        },
+        true,  // auto_upgrade_bandwidth
+        true,  // enforce_topology_constraints
     };
     ConnectionRequestInfo info{
         .endpoint_info = ByteArray{"remote_endpoint_name"},
@@ -252,7 +253,8 @@ class BasePcpHandlerTest
             .status = {Status::kSuccess},
             .mediums = pcp_handler->GetMediumsFromSelector(allowed),
         }));
-    EXPECT_EQ(pcp_handler->StartAdvertising(client, service_id, options, info),
+    EXPECT_EQ(pcp_handler->StartAdvertising(client, service_id,
+                                            advertising_options, info),
               Status{Status::kSuccess});
     EXPECT_TRUE(client->IsAdvertising());
   }
@@ -260,20 +262,22 @@ class BasePcpHandlerTest
   void StartDiscovery(ClientProxy* client, MockPcpHandler* pcp_handler,
                       BooleanMediumSelector allowed = GetParam()) {
     std::string service_id{"service"};
-    ConnectionOptions options{
-        .strategy = Strategy::kP2pCluster,
-        .allowed = allowed,
-        .auto_upgrade_bandwidth = true,
-        .enforce_topology_constraints = true,
-        .keep_alive_interval_millis = 5000,
-        .keep_alive_timeout_millis = 3000,
+    DiscoveryOptions discovery_options{
+        {
+            Strategy::kP2pCluster,
+            allowed,
+        },
+        true,  // auto_upgrade_bandwidth
+        true,  // enforce_topology_constraints
+        5000,  // keep_alive_interval_millis
+        3000,  // keep_alive_timeout_millis
     };
     EXPECT_CALL(*pcp_handler, StartDiscoveryImpl(client, service_id, _))
         .WillOnce(Return(MockPcpHandler::StartOperationResult{
             .status = {Status::kSuccess},
             .mediums = pcp_handler->GetMediumsFromSelector(allowed),
         }));
-    EXPECT_EQ(pcp_handler->StartDiscovery(client, service_id, options,
+    EXPECT_EQ(pcp_handler->StartDiscovery(client, service_id, discovery_options,
                                           discovery_listener_),
               Status{Status::kSuccess});
     EXPECT_TRUE(client->IsDiscovering());
@@ -328,7 +332,7 @@ class BasePcpHandlerTest
         .endpoint_info = ByteArray{"ABCD"},
         .listener = connection_listener_,
     };
-    ConnectionOptions options{
+    ConnectionOptions connection_options{
         .remote_bluetooth_mac_address =
             ByteArray{std::string("\x12\x34\x56\x78\x9a\xbc")},
         .keep_alive_interval_millis =
@@ -381,9 +385,9 @@ class BasePcpHandlerTest
       encryption_runner->StartServer(other_client.get(), endpoint_id, channel_b,
                                      {});
     }
-    EXPECT_EQ(
-        pcp_handler->RequestConnection(client, endpoint_id, info, options),
-        expected_result);
+    EXPECT_EQ(pcp_handler->RequestConnection(client, endpoint_id, info,
+                                             connection_options),
+              expected_result);
     NEARBY_LOG(INFO, "Stopping Encryption Runner");
   }
 
@@ -736,9 +740,15 @@ TEST_F(BasePcpHandlerTest, InjectEndpoint) {
   BooleanMediumSelector allowed{
       .bluetooth = true,
   };
-  ConnectionOptions options{
-      .allowed = allowed,
-      .is_out_of_band_connection = true,
+  DiscoveryOptions discovery_options{
+      {
+          Strategy::kP2pPointToPoint,
+          allowed,
+      },
+      false,  // auto_upgrade_bandwidth;
+      false,  // enforce_topology_constraints;
+      0,      // keep_alive_interval_millis;
+      0,      // keep_alive_timeout_millis;
   };
   EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
   EXPECT_CALL(pcp_handler, StartDiscoveryImpl(&client, service_id, _))
@@ -746,7 +756,7 @@ TEST_F(BasePcpHandlerTest, InjectEndpoint) {
           .status = {Status::kSuccess},
           .mediums = allowed.GetMediums(true),
       }));
-  EXPECT_EQ(pcp_handler.StartDiscovery(&client, service_id, options,
+  EXPECT_EQ(pcp_handler.StartDiscovery(&client, service_id, discovery_options,
                                        discovery_listener_),
             Status{Status::kSuccess});
   EXPECT_TRUE(client.IsDiscovering());

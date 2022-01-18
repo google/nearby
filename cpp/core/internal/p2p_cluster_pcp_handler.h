@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,7 +37,6 @@
 #endif
 #include "core/internal/pcp.h"
 #include "core/internal/wifi_lan_service_info.h"
-#include "core/options.h"
 #include "core/strategy.h"
 #include "platform/base/byte_array.h"
 #include "platform/public/bluetooth_classic.h"
@@ -73,7 +72,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info,
-      const ConnectionOptions& options) override;
+      const AdvertisingOptions& advertising_options) override;
 
   // @PCPHandlerThread
   Status StopAdvertisingImpl(ClientProxy* client) override;
@@ -81,7 +80,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   // @PCPHandlerThread
   BasePcpHandler::StartOperationResult StartDiscoveryImpl(
       ClientProxy* client, const std::string& service_id,
-      const ConnectionOptions& options) override;
+      const DiscoveryOptions& discovery_options) override;
 
   // @PCPHandlerThread
   Status StopDiscoveryImpl(ClientProxy* client) override;
@@ -125,7 +124,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   static ByteArray GenerateHash(const std::string& source, size_t size);
   static bool ShouldAdvertiseBluetoothMacOverBle(PowerLevel power_level);
   static bool ShouldAcceptBluetoothConnections(
-      const ConnectionOptions& options);
+      const AdvertisingOptions& advertising_options);
 
   // Bluetooth
   bool IsRecognizedBluetoothEndpoint(const std::string& name_string,
@@ -165,8 +164,8 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   proto::connections::Medium StartBleAdvertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
-      const ByteArray& local_endpoint_info, const ConnectionOptions& options,
-      WebRtcState web_rtc_state);
+      const ByteArray& local_endpoint_info,
+      const AdvertisingOptions& advertising_options, WebRtcState web_rtc_state);
   proto::connections::Medium StartBleScanning(
       BleDiscoveredPeripheralCallback callback, ClientProxy* client,
       const std::string& service_id,
