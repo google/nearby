@@ -57,6 +57,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (instancetype)payloadWithFileURL:(NSURL *)fileURL;
 
++ (instancetype)payloadWithFileURL:(NSURL *)fileURL identifier:(int64_t)identifier;
+
 @end
 
 NS_ASSUME_NONNULL_END
