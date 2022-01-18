@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@
 #include "core/internal/mediums/utils.h"
 #include "core/internal/offline_frames.h"
 #include "core/internal/pcp_handler.h"
-#include "core/options.h"
 #include "platform/base/base64_utils.h"
 #include "platform/base/bluetooth_utils.h"
 #include "platform/public/logging.h"
@@ -76,45 +75,49 @@ void BasePcpHandler::DisconnectFromEndpointManager() {
                                               this);
 }
 
-Status BasePcpHandler::StartAdvertising(ClientProxy* client,
-                                        const std::string& service_id,
-                                        const ConnectionOptions& options,
-                                        const ConnectionRequestInfo& info) {
+Status BasePcpHandler::StartAdvertising(
+    ClientProxy* client, const std::string& service_id,
+    const AdvertisingOptions& advertising_options,
+    const ConnectionRequestInfo& info) {
   Future<Status> response;
+
   NEARBY_LOGS(INFO) << "StartAdvertising with supported mediums: "
-                    << GetStringValueOfSupportedMediums(options);
-  ConnectionOptions advertising_options = options.CompatibleOptions();
+                    << GetStringValueOfSupportedMediums(advertising_options);
+
+  AdvertisingOptions compatible_advertising_options =
+      advertising_options.CompatibleOptions();
+
   RunOnPcpHandlerThread(
       "start-advertising",
-      [this, client, &service_id, &info, &advertising_options, &response]()
-          RUN_ON_PCP_HANDLER_THREAD() {
-            // The endpoint id inside of the advertisement is different to high
-            // visibility and low visibility mode. In order to decide if client
-            // should grab the high visibility or low visibility id, it needs to
-            // tell client which one right now, before
-            // client#StartedAdvertising.
-            if (ShouldEnterHighVisibilityMode(advertising_options)) {
-              client->EnterHighVisibilityMode();
-            }
+      [this, client, &service_id, &info, &compatible_advertising_options,
+       &response]() RUN_ON_PCP_HANDLER_THREAD() {
+        // The endpoint id inside of the advertisement is different to high
+        // visibility and low visibility mode. In order to decide if client
+        // should grab the high visibility or low visibility id, it needs to
+        // tell client which one right now, before
+        // client#StartedAdvertising.
+        if (ShouldEnterHighVisibilityMode(compatible_advertising_options)) {
+          client->EnterHighVisibilityMode();
+        }
 
-            auto result = StartAdvertisingImpl(
-                client, service_id, client->GetLocalEndpointId(),
-                info.endpoint_info, advertising_options);
-            if (!result.status.Ok()) {
-              client->ExitHighVisibilityMode();
-              response.Set(result.status);
-              return;
-            }
+        auto result = StartAdvertisingImpl(
+            client, service_id, client->GetLocalEndpointId(),
+            info.endpoint_info, compatible_advertising_options);
+        if (!result.status.Ok()) {
+          client->ExitHighVisibilityMode();
+          response.Set(result.status);
+          return;
+        }
 
-            // Now that we've succeeded, mark the client as advertising.
-            // Save the advertising options for local reference in later process
-            // like upgrading bandwidth.
-            advertising_listener_ = info.listener;
-            client->StartedAdvertising(service_id, GetStrategy(), info.listener,
-                                       absl::MakeSpan(result.mediums),
-                                       advertising_options);
-            response.Set({Status::kSuccess});
-          });
+        // Now that we've succeeded, mark the client as advertising.
+        // Save the advertising options for local reference in later process
+        // like upgrading bandwidth.
+        advertising_listener_ = info.listener;
+        client->StartedAdvertising(service_id, GetStrategy(), info.listener,
+                                   absl::MakeSpan(result.mediums),
+                                   compatible_advertising_options);
+        response.Set({Status::kSuccess});
+      });
   return WaitForResult(absl::StrCat("StartAdvertising(", service_id, ")"),
                        client->GetClientId(), &response);
 }
@@ -133,28 +136,48 @@ void BasePcpHandler::StopAdvertising(ClientProxy* client) {
 }
 
 std::string BasePcpHandler::GetStringValueOfSupportedMediums(
-    const ConnectionOptions& options) const {
+    const ConnectionOptions& connection_options) const {
   std::ostringstream result;
-  result << "{ ";
-  if (options.allowed.bluetooth) {
-    result << proto::connections::Medium_Name(Medium::BLUETOOTH) << " ";
-  }
-  if (options.allowed.ble) {
-    result << proto::connections::Medium_Name(Medium::BLE) << " ";
-  }
-  if (options.allowed.web_rtc) {
-    result << proto::connections::Medium_Name(Medium::WEB_RTC) << " ";
-  }
-  if (options.allowed.wifi_lan) {
-    result << proto::connections::Medium_Name(Medium::WIFI_LAN) << " ";
-  }
-  result << "}";
+  OptionsAllowed(connection_options.allowed, result);
   return result.str();
 }
 
+std::string BasePcpHandler::GetStringValueOfSupportedMediums(
+    const AdvertisingOptions& advertising_options) const {
+  std::ostringstream result;
+  OptionsAllowed(advertising_options.allowed, result);
+  return result.str();
+}
+
+std::string BasePcpHandler::GetStringValueOfSupportedMediums(
+    const DiscoveryOptions& discovery_options) const {
+  std::ostringstream result;
+  OptionsAllowed(discovery_options.allowed, result);
+  return result.str();
+}
+
+void BasePcpHandler::OptionsAllowed(const BooleanMediumSelector& allowed,
+                                    std::ostringstream& result) const {
+  result << "{ ";
+  if (allowed.bluetooth) {
+    result << proto::connections::Medium_Name(Medium::BLUETOOTH) << " ";
+  }
+  if (allowed.ble) {
+    result << proto::connections::Medium_Name(Medium::BLE) << " ";
+  }
+  if (allowed.web_rtc) {
+    result << proto::connections::Medium_Name(Medium::WEB_RTC) << " ";
+  }
+  if (allowed.wifi_lan) {
+    result << proto::connections::Medium_Name(Medium::WIFI_LAN) << " ";
+  }
+  result << "}";
+}
+
 bool BasePcpHandler::ShouldEnterHighVisibilityMode(
-    const ConnectionOptions& options) {
-  return !options.low_power && options.allowed.bluetooth;
+    const AdvertisingOptions& advertising_options) {
+  return !advertising_options.low_power &&
+         advertising_options.allowed.bluetooth;
 }
 
 BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
@@ -173,7 +196,7 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
       // We use advertising options as a proxy to whether or not the local
       // client does want to enable a WebRTC upgrade.
       if (my_medium == location::nearby::proto::connections::Medium::WEB_RTC) {
-        ConnectionOptions advertising_options =
+        AdvertisingOptions advertising_options =
             connection_info.client->GetAdvertisingOptions();
 
         if (!advertising_options.enable_webrtc_listening &&
@@ -200,13 +223,12 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
 
 Status BasePcpHandler::StartDiscovery(ClientProxy* client,
                                       const std::string& service_id,
-                                      const ConnectionOptions& options,
+                                      const DiscoveryOptions& discovery_options,
                                       const DiscoveryListener& listener) {
   Future<Status> response;
-  ConnectionOptions discovery_options = options.CompatibleOptions();
 
   NEARBY_LOGS(INFO) << "StartDiscovery with supported mediums:"
-                    << GetStringValueOfSupportedMediums(options);
+                    << GetStringValueOfSupportedMediums(discovery_options);
   RunOnPcpHandlerThread(
       "start-discovery", [this, client, service_id, discovery_options,
                           &listener, &response]() RUN_ON_PCP_HANDLER_THREAD() {
@@ -367,27 +389,20 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
           .is_incoming_connection = connection_info.is_incoming,
       },
       {
-          .strategy = connection_info.options.strategy,
-          .allowed = ComputeIntersectionOfSupportedMediums(connection_info),
-          .auto_upgrade_bandwidth =
-              connection_info.options.auto_upgrade_bandwidth,
-          .enforce_topology_constraints =
-              connection_info.options.enforce_topology_constraints,
-          .low_power = connection_info.options.low_power,
-          .enable_bluetooth_listening =
-              connection_info.options.enable_bluetooth_listening,
-          .enable_webrtc_listening =
-              connection_info.options.enable_webrtc_listening,
-          .is_out_of_band_connection =
-              connection_info.options.is_out_of_band_connection,
-          .remote_bluetooth_mac_address =
-              connection_info.options.remote_bluetooth_mac_address,
-          .fast_advertisement_service_uuid =
-              connection_info.options.fast_advertisement_service_uuid,
-          .keep_alive_interval_millis =
-              connection_info.options.keep_alive_interval_millis,
-          .keep_alive_timeout_millis =
-              connection_info.options.keep_alive_timeout_millis,
+          {
+              connection_info.connection_options.strategy,
+              ComputeIntersectionOfSupportedMediums(connection_info),
+          },
+          connection_info.connection_options.auto_upgrade_bandwidth,
+          connection_info.connection_options.enforce_topology_constraints,
+          connection_info.connection_options.low_power,
+          connection_info.connection_options.enable_bluetooth_listening,
+          connection_info.connection_options.enable_webrtc_listening,
+          connection_info.connection_options.is_out_of_band_connection,
+          connection_info.connection_options.remote_bluetooth_mac_address,
+          connection_info.connection_options.fast_advertisement_service_uuid,
+          connection_info.connection_options.keep_alive_interval_millis,
+          connection_info.connection_options.keep_alive_timeout_millis,
       },
       std::move(connection_info.channel), connection_info.listener,
       connection_info.connection_token);
@@ -430,14 +445,15 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
       info.result.lock().get());
 }
 
-Status BasePcpHandler::RequestConnection(ClientProxy* client,
-                                         const std::string& endpoint_id,
-                                         const ConnectionRequestInfo& info,
-                                         const ConnectionOptions& options) {
+Status BasePcpHandler::RequestConnection(
+    ClientProxy* client, const std::string& endpoint_id,
+    const ConnectionRequestInfo& info,
+    const ConnectionOptions& connection_options) {
   auto result = std::make_shared<Future<Status>>();
   RunOnPcpHandlerThread(
-      "request-connection", [this, client, &info, options, endpoint_id,
-                             result]() RUN_ON_PCP_HANDLER_THREAD() {
+      "request-connection",
+      [this, client, &info, connection_options, endpoint_id,
+       result]() RUN_ON_PCP_HANDLER_THREAD() {
         absl::Time start_time = SystemClock::ElapsedRealtime();
 
         // If we already have a pending connection, then we shouldn't allow any
@@ -472,8 +488,8 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
           return;
         }
 
-        auto remote_bluetooth_mac_address =
-            BluetoothUtils::ToString(options.remote_bluetooth_mac_address);
+        auto remote_bluetooth_mac_address = BluetoothUtils::ToString(
+            connection_options.remote_bluetooth_mac_address);
         if (!remote_bluetooth_mac_address.empty()) {
           if (AppendRemoteBluetoothMacAddressEndpoint(
                   endpoint_id, remote_bluetooth_mac_address,
@@ -492,7 +508,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
 
         for (auto connect_endpoint : discovered_endpoints) {
           if (!MediumSupportedByClientOptions(connect_endpoint->medium,
-                                              options))
+                                              connection_options))
             continue;
           connect_impl_result = ConnectImpl(client, connect_endpoint);
           if (connect_impl_result.status.Ok()) {
@@ -524,9 +540,9 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
         // endpoint about ourselves.
         Exception write_exception = WriteConnectionRequestFrame(
             channel.get(), client->GetLocalEndpointId(), info.endpoint_info,
-            nonce, GetSupportedConnectionMediumsByPriority(options),
-            options.keep_alive_interval_millis,
-            options.keep_alive_timeout_millis);
+            nonce, GetSupportedConnectionMediumsByPriority(connection_options),
+            connection_options.keep_alive_interval_millis,
+            connection_options.keep_alive_timeout_millis);
         if (!write_exception.Ok()) {
           NEARBY_LOGS(INFO) << "Failed to send connection request: endpoint_id="
                             << endpoint_id;
@@ -554,7 +570,7 @@ Status BasePcpHandler::RequestConnection(ClientProxy* client,
         pendingConnectionInfo.is_incoming = false;
         pendingConnectionInfo.start_time = start_time;
         pendingConnectionInfo.listener = info.listener;
-        pendingConnectionInfo.options = options;
+        pendingConnectionInfo.connection_options = connection_options;
         pendingConnectionInfo.result = result;
         pendingConnectionInfo.channel = std::move(channel);
 
@@ -595,10 +611,11 @@ bool BasePcpHandler::MediumSupportedByClientOptions(
 // option.
 std::vector<proto::connections::Medium>
 BasePcpHandler::GetSupportedConnectionMediumsByPriority(
-    const ConnectionOptions& local_option) {
+    const ConnectionOptions& local_connection_option) {
   std::vector<proto::connections::Medium> supported_mediums_by_priority;
   for (auto medium_by_priority : GetConnectionMediumsByPriority()) {
-    if (MediumSupportedByClientOptions(medium_by_priority, local_option)) {
+    if (MediumSupportedByClientOptions(medium_by_priority,
+                                       local_connection_option)) {
       supported_mediums_by_priority.push_back(medium_by_priority);
     }
   }
@@ -719,7 +736,7 @@ void BasePcpHandler::ProcessPreConnectionResultFailure(
 }
 
 bool BasePcpHandler::ShouldEnforceTopologyConstraints(
-    const ConnectionOptions& local_advertising_options) const {
+    const AdvertisingOptions& local_advertising_options) const {
   // Topology constraints only matter for the advertiser.
   // For discoverers, we'll always enforce them.
   if (local_advertising_options.strategy.IsNone()) {
@@ -730,7 +747,7 @@ bool BasePcpHandler::ShouldEnforceTopologyConstraints(
 }
 
 bool BasePcpHandler::AutoUpgradeBandwidth(
-    const ConnectionOptions& local_advertising_options) const {
+    const AdvertisingOptions& local_advertising_options) const {
   if (local_advertising_options.strategy.IsNone()) {
     return true;
   }
@@ -1114,26 +1131,27 @@ Exception BasePcpHandler::OnIncomingConnection(
   // Retrieve the keep-alive frame interval and timeout fields. If the frame
   // doesn't have those fields, we need to get them as default from feature
   // flags to prevent 0-values causing thread ill.
-  ConnectionOptions options = {.keep_alive_interval_millis = 0,
-                               .keep_alive_timeout_millis = 0};
+  ConnectionOptions connection_options = {.keep_alive_interval_millis = 0,
+                                          .keep_alive_timeout_millis = 0};
   if (connection_request.has_keep_alive_interval_millis() &&
       connection_request.has_keep_alive_timeout_millis()) {
-    options.keep_alive_interval_millis =
+    connection_options.keep_alive_interval_millis =
         connection_request.keep_alive_interval_millis();
-    options.keep_alive_timeout_millis =
+    connection_options.keep_alive_timeout_millis =
         connection_request.keep_alive_timeout_millis();
   }
-  if (options.keep_alive_interval_millis == 0 ||
-      options.keep_alive_timeout_millis == 0 ||
-      options.keep_alive_interval_millis >= options.keep_alive_timeout_millis) {
+  if (connection_options.keep_alive_interval_millis == 0 ||
+      connection_options.keep_alive_timeout_millis == 0 ||
+      connection_options.keep_alive_interval_millis >=
+          connection_options.keep_alive_timeout_millis) {
     NEARBY_LOGS(WARNING)
         << "Incoming connection has wrong keep-alive frame interval="
-        << options.keep_alive_interval_millis
-        << ", timeout=" << options.keep_alive_timeout_millis
+        << connection_options.keep_alive_interval_millis
+        << ", timeout=" << connection_options.keep_alive_timeout_millis
         << " values; correct them as default.",
-        options.keep_alive_interval_millis =
+        connection_options.keep_alive_interval_millis =
             FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis;
-    options.keep_alive_timeout_millis =
+    connection_options.keep_alive_timeout_millis =
         FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis;
   }
 
@@ -1150,7 +1168,7 @@ Exception BasePcpHandler::OnIncomingConnection(
   pendingConnectionInfo.is_incoming = true;
   pendingConnectionInfo.start_time = start_time;
   pendingConnectionInfo.listener = advertising_listener_;
-  pendingConnectionInfo.options = options;
+  pendingConnectionInfo.connection_options = connection_options;
   pendingConnectionInfo.supported_mediums =
       parser::ConnectionRequestMediumsToMediums(connection_request);
   pendingConnectionInfo.channel = std::move(channel);
@@ -1240,7 +1258,7 @@ void BasePcpHandler::ProcessTieBreakLoss(
 bool BasePcpHandler::AppendRemoteBluetoothMacAddressEndpoint(
     const std::string& endpoint_id,
     const std::string& remote_bluetooth_mac_address,
-    const ConnectionOptions& local_discovery_options) {
+    const DiscoveryOptions& local_discovery_options) {
   if (!local_discovery_options.allowed.bluetooth) {
     return false;
   }
@@ -1283,7 +1301,7 @@ bool BasePcpHandler::AppendRemoteBluetoothMacAddressEndpoint(
 
 bool BasePcpHandler::AppendWebRTCEndpoint(
     const std::string& endpoint_id,
-    const ConnectionOptions& local_discovery_options) {
+    const DiscoveryOptions& local_discovery_options) {
   if (!local_discovery_options.allowed.web_rtc) {
     return false;
   }

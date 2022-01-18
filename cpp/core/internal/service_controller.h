@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,9 +19,10 @@
 #include <string>
 #include <vector>
 
+#include "core/advertising_options.h"
 #include "core/internal/client_proxy.h"
 #include "core/listeners.h"
-#include "core/options.h"
+#include "core/out_of_band_connection_metadata.h"
 #include "core/params.h"
 #include "core/payload.h"
 #include "core/status.h"
@@ -58,13 +59,14 @@ class ServiceController {
   // Starts advertising an endpoint for a local app.
   virtual Status StartAdvertising(ClientProxy* client,
                                   const std::string& service_id,
-                                  const ConnectionOptions& options,
+                                  const AdvertisingOptions& advertising_options,
                                   const ConnectionRequestInfo& info) = 0;
+
   virtual void StopAdvertising(ClientProxy* client) = 0;
 
   virtual Status StartDiscovery(ClientProxy* client,
                                 const std::string& service_id,
-                                const ConnectionOptions& options,
+                                const DiscoveryOptions& discovery_options,
                                 const DiscoveryListener& listener) = 0;
   virtual void StopDiscovery(ClientProxy* client) = 0;
 
@@ -72,10 +74,10 @@ class ServiceController {
                               const std::string& service_id,
                               const OutOfBandConnectionMetadata& metadata) = 0;
 
-  virtual Status RequestConnection(ClientProxy* client,
-                                   const std::string& endpoint_id,
-                                   const ConnectionRequestInfo& info,
-                                   const ConnectionOptions& options) = 0;
+  virtual Status RequestConnection(
+      ClientProxy* client, const std::string& endpoint_id,
+      const ConnectionRequestInfo& info,
+      const ConnectionOptions& connection_options) = 0;
   virtual Status AcceptConnection(ClientProxy* client,
                                   const std::string& endpoint_id,
                                   const PayloadListener& listener) = 0;

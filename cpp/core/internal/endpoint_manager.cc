@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -361,13 +361,12 @@ void EndpointManager::RemoveEndpointState(const std::string& endpoint_id) {
   }
 }
 
-void EndpointManager::RegisterEndpoint(ClientProxy* client,
-                                       const std::string& endpoint_id,
-                                       const ConnectionResponseInfo& info,
-                                       const ConnectionOptions& options,
-                                       std::unique_ptr<EndpointChannel> channel,
-                                       const ConnectionListener& listener,
-                                       const std::string& connection_token) {
+void EndpointManager::RegisterEndpoint(
+    ClientProxy* client, const std::string& endpoint_id,
+    const ConnectionResponseInfo& info,
+    const ConnectionOptions& connection_options,
+    std::unique_ptr<EndpointChannel> channel,
+    const ConnectionListener& listener, const std::string& connection_token) {
   CountDownLatch latch(1);
 
   // NOTE (unique_ptr<> capture):
@@ -379,8 +378,8 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
   RunOnEndpointManagerThread("register-endpoint", [this, client,
                                                    channel = channel.release(),
                                                    &endpoint_id, &info,
-                                                   &options, &listener,
-                                                   &connection_token,
+                                                   &connection_options,
+                                                   &listener, &connection_token,
                                                    &latch]() {
     if (endpoints_.contains(endpoint_id)) {
       NEARBY_LOGS(WARNING) << "Registering duplicate endpoint " << endpoint_id;
@@ -390,9 +389,9 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
     }
 
     absl::Duration keep_alive_interval =
-        absl::Milliseconds(options.keep_alive_interval_millis);
+        absl::Milliseconds(connection_options.keep_alive_interval_millis);
     absl::Duration keep_alive_timeout =
-        absl::Milliseconds(options.keep_alive_timeout_millis);
+        absl::Milliseconds(connection_options.keep_alive_timeout_millis);
     NEARBY_LOGS(INFO) << "Registering endpoint " << endpoint_id
                       << " for client " << client->GetClientId()
                       << " with keep-alive frame as interval="
@@ -459,8 +458,8 @@ void EndpointManager::RegisterEndpoint(ClientProxy* client,
 
     // It's now time to let the client know of this new connection so that
     // they can accept or reject it.
-    client->OnConnectionInitiated(endpoint_id, info, options, listener,
-                                  connection_token);
+    client->OnConnectionInitiated(endpoint_id, info, connection_options,
+                                  listener, connection_token);
     latch.CountDown();
   });
   latch.Await();

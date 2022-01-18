@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,10 +18,10 @@
 #include "absl/types/span.h"
 
 // todo(jfcarroll) This cannot remain. It exposes stuff the client doesn't need.
+#include "core/advertising_options.h"
+#include "core/connection_options.h"
+#include "core/discovery_options.h"
 #include "core/internal/offline_service_controller.h"
-#include "third_party/nearby/windows/advertising_options.h"
-#include "third_party/nearby/windows/connection_options.h"
-#include "third_party/nearby/windows/discovery_options.h"
 
 #define DLL_EXPORT extern "C" __declspec(dllexport)
 
@@ -55,7 +55,7 @@ DLL_EXPORT void __stdcall CloseCore(Core *pCore);
 //              This can be an arbitrary string, so long as it uniquely
 //              identifies your service. A good default is to use your
 //              app's package name.
-// options    - The options for advertising.
+// advertising_options - The options for advertising.
 // info       - Connection parameters:
 // > name     - A human readable name for this endpoint, to appear on
 //              other devices.
@@ -68,7 +68,7 @@ DLL_EXPORT void __stdcall CloseCore(Core *pCore);
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
 DLL_EXPORT void __stdcall StartAdvertising(
-    Core *pCore, const char *service_id, AdvertisingOptions options,
+    Core *pCore, const char *service_id, AdvertisingOptions advertising_options,
     connections::ConnectionRequestInfo info, ResultCallback callback);
 
 // Stops advertising a local endpoint. Should be called after calling
@@ -86,7 +86,7 @@ DLL_EXPORT void __stdcall StopAdvertising(Core *pCore, ResultCallback callback);
 // service_id - The ID for the service to be discovered, as specified in
 //              the corresponding call to StartAdvertising.
 // listener   - A callback notified when a remote endpoint is discovered.
-// options    - The options for discovery.
+// discovery_options - The options for discovery.
 // result_cb  - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK if discovery started successfully.
@@ -95,7 +95,7 @@ DLL_EXPORT void __stdcall StopAdvertising(Core *pCore, ResultCallback callback);
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
 DLL_EXPORT void __stdcall StartDiscovery(Core *pCore, const char *service_id,
-                                         DiscoveryOptions options,
+                                         DiscoveryOptions discovery_options,
                                          DiscoveryListener listener,
                                          ResultCallback callback);
 
@@ -148,11 +148,9 @@ DLL_EXPORT void __stdcall InjectEndpoint(Core *pCore, char *service_id,
 //     Status::STATUS_RADIO_ERROR if we failed to connect because of an
 //         issue with Bluetooth/WiFi.
 //     Status::STATUS_ERROR if we failed to connect for any other reason.
-DLL_EXPORT void __stdcall RequestConnection(Core *pCore,
-                                            const char *endpoint_id,
-                                            ConnectionRequestInfo info,
-                                            ConnectionOptions options,
-                                            ResultCallback callback);
+DLL_EXPORT void __stdcall RequestConnection(
+    Core *pCore, const char *endpoint_id, ConnectionRequestInfo info,
+    ConnectionOptions connection_options, ResultCallback callback);
 
 // Accepts a connection to a remote endpoint. This method must be called
 // before Payloads can be exchanged with the remote endpoint.

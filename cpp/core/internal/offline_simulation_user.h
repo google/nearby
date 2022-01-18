@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@
 #include "absl/strings/string_view.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/offline_service_controller.h"
-#include "core/options.h"
 #include "platform/public/atomic_boolean.h"
 #include "platform/public/condition_variable.h"
 #include "platform/public/count_down_latch.h"
@@ -50,7 +49,14 @@ class OfflineSimulationUser {
   explicit OfflineSimulationUser(
       absl::string_view device_name,
       BooleanMediumSelector allowed = BooleanMediumSelector())
-      : connection_options_{
+      : info_{ByteArray{std::string(device_name)}},
+        advertising_options_{
+            {
+                Strategy::kP2pCluster,
+                allowed,
+            },
+        },
+        connection_options_{
             .keep_alive_interval_millis = FeatureFlags::GetInstance()
                                               .GetFlags()
                                               .keep_alive_interval_millis,
@@ -58,11 +64,10 @@ class OfflineSimulationUser {
                                              .GetFlags()
                                              .keep_alive_timeout_millis,
         },
-        info_{ByteArray{std::string(device_name)}},
-        options_{
-            .strategy = Strategy::kP2pCluster,
-            .allowed = allowed,
-        } {}
+        discovery_options_{{
+            Strategy::kP2pCluster,
+            allowed,
+        }} {}
   virtual ~OfflineSimulationUser() = default;
 
   // Calls PcpManager::StartAdvertising().
@@ -173,8 +178,10 @@ class OfflineSimulationUser {
 
   std::string service_id_;
   DiscoveredInfo discovered_;
+  ByteArray info_;
+  AdvertisingOptions advertising_options_;
   ConnectionOptions connection_options_;
-
+  DiscoveryOptions discovery_options_;
   Mutex progress_mutex_;
   ConditionVariable progress_sync_{&progress_mutex_};
   PayloadProgressInfo progress_info_;
@@ -189,8 +196,6 @@ class OfflineSimulationUser {
   CountDownLatch* disconnect_latch_ = nullptr;
   Future<bool>* future_ = nullptr;
   std::function<bool(const PayloadProgressInfo&)> predicate_;
-  ByteArray info_;
-  ConnectionOptions options_;
   ClientProxy client_;
   OfflineServiceController ctrl_;
 };

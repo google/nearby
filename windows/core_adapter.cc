@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,10 +32,10 @@ void CloseCore(Core *pCore) {
 }
 
 void StartAdvertising(Core *pCore, const char *service_id,
-                      AdvertisingOptions options, ConnectionRequestInfo info,
-                      ResultCallback callback) {
+                      AdvertisingOptions advertising_options,
+                      ConnectionRequestInfo info, ResultCallback callback) {
   if (pCore) {
-    pCore->StartAdvertising(service_id, options, info, callback);
+    pCore->StartAdvertising(service_id, advertising_options, info, callback);
   }
 }
 
@@ -46,10 +46,10 @@ void StopAdvertising(Core *pCore, ResultCallback callback) {
 }
 
 void StartDiscovery(Core *pCore, const char *service_id,
-                    DiscoveryOptions options, DiscoveryListener listener,
-                    ResultCallback callback) {
+                    DiscoveryOptions discovery_options,
+                    DiscoveryListener listener, ResultCallback callback) {
   if (pCore) {
-    pCore->StartDiscovery(service_id, options, listener, callback);
+    pCore->StartDiscovery(service_id, discovery_options, listener, callback);
   }
 }
 
@@ -68,10 +68,11 @@ void InjectEndpoint(Core *pCore, char *service_id,
 }
 
 void RequestConnection(Core *pCore, const char *endpoint_id,
-                       ConnectionRequestInfo info, ConnectionOptions options,
+                       ConnectionRequestInfo info,
+                       ConnectionOptions connection_options,
                        ResultCallback callback) {
   if (pCore) {
-    pCore->RequestConnection(endpoint_id, info, options, callback);
+    pCore->RequestConnection(endpoint_id, info, connection_options, callback);
   }
 }
 

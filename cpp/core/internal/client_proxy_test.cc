@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "core/listeners.h"
-#include "core/options.h"
 #include "core/strategy.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/feature_flags.h"
@@ -34,20 +33,19 @@ namespace nearby {
 namespace connections {
 namespace {
 
-using FeatureFlags = FeatureFlags::Flags;
 using ::testing::MockFunction;
 using ::testing::StrictMock;
 
-constexpr FeatureFlags kTestCases[] = {
-    FeatureFlags{
+constexpr FeatureFlags::Flags kTestCases[] = {
+    FeatureFlags::Flags{
         .enable_cancellation_flag = true,
     },
-    FeatureFlags{
+    FeatureFlags::Flags{
         .enable_cancellation_flag = false,
     },
 };
 
-class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags> {
+class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
  protected:
   struct MockDiscoveryListener {
     StrictMock<MockFunction<void(const std::string& endpoint_id,
@@ -85,13 +83,15 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags> {
     std::string id;
   };
 
-  bool ShouldEnterHighVisibilityMode(const ConnectionOptions& options) {
-    return !options.low_power && options.allowed.bluetooth;
+  bool ShouldEnterHighVisibilityMode(
+      const AdvertisingOptions& advertising_options) {
+    return !advertising_options.low_power &&
+           advertising_options.allowed.bluetooth;
   }
 
   Endpoint StartAdvertising(
       ClientProxy* client, ConnectionListener listener,
-      ConnectionOptions advertising_options = ConnectionOptions{}) {
+      AdvertisingOptions advertising_options = AdvertisingOptions{}) {
     if (ShouldEnterHighVisibilityMode(advertising_options)) {
       client->EnterHighVisibilityMode();
     }
@@ -251,10 +251,12 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags> {
           mock_discovery_payload_.payload_progress_cb.AsStdFunction(),
   };
   ConnectionOptions connection_options_;
+  AdvertisingOptions advertising_options_;
+  DiscoveryOptions discovery_options_;
 };
 
 TEST_P(ClientProxyTest, CanCancelEndpoint) {
-  FeatureFlags feature_flags = GetParam();
+  FeatureFlags::Flags feature_flags = GetParam();
   MediumEnvironment::Instance().SetFeatureFlags(feature_flags);
 
   Endpoint advertising_endpoint =
@@ -280,7 +282,7 @@ TEST_P(ClientProxyTest, CanCancelEndpoint) {
 }
 
 TEST_P(ClientProxyTest, CanCancelAllEndpoints) {
-  FeatureFlags feature_flags = GetParam();
+  FeatureFlags::Flags feature_flags = GetParam();
   MediumEnvironment::Instance().SetFeatureFlags(feature_flags);
 
   Endpoint advertising_endpoint =
@@ -306,7 +308,7 @@ TEST_P(ClientProxyTest, CanCancelAllEndpoints) {
 }
 
 TEST_P(ClientProxyTest, CanCancelAllEndpointsWithDifferentEndpoint) {
-  FeatureFlags feature_flags = GetParam();
+  FeatureFlags::Flags feature_flags = GetParam();
   MediumEnvironment::Instance().SetFeatureFlags(feature_flags);
 
   ConnectionListener advertising_connection_listener_2;
@@ -495,12 +497,18 @@ TEST_F(ClientProxyTest, OnPayloadProgressChangesState) {
 
 TEST_F(ClientProxyTest,
        EndpointIdCacheWhenHighVizAdvertisementAgainImmediately) {
-  ConnectionOptions advertising_options{.strategy = strategy_,
-                                        .allowed =
-                                            {
-                                                .bluetooth = true,
-                                            },
-                                        .low_power = false};
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // low_power
+  };
 
   Endpoint advertising_endpoint_1 = StartAdvertising(
       &client1_, advertising_connection_listener_, advertising_options);
@@ -516,12 +524,18 @@ TEST_F(ClientProxyTest,
 
 TEST_F(ClientProxyTest,
        EndpointIdRotateWhenHighVizAdvertisementAgainForAWhile) {
-  ConnectionOptions advertising_options{.strategy = strategy_,
-                                        .allowed =
-                                            {
-                                                .bluetooth = true,
-                                            },
-                                        .low_power = false};
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // low_power
+  };
 
   Endpoint advertising_endpoint_1 = StartAdvertising(
       &client1_, advertising_connection_listener_, advertising_options);
@@ -539,20 +553,33 @@ TEST_F(ClientProxyTest,
 
 TEST_F(ClientProxyTest,
        EndpointIdRotateWhenLowVizAdvertisementAfterHighVizAdvertisement) {
-  ConnectionOptions high_viz_advertising_options{.strategy = strategy_,
-                                                 .allowed =
-                                                     {
-                                                         .bluetooth = true,
-                                                     },
-                                                 .low_power = false};
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions high_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // low_power
+  };
   Endpoint advertising_endpoint_1 =
       StartAdvertising(&client1_, advertising_connection_listener_,
                        high_viz_advertising_options);
 
   StopAdvertising(&client1_);
 
-  ConnectionOptions low_viz_advertising_options{.strategy = strategy_,
-                                                .low_power = true};
+  AdvertisingOptions low_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+  };
 
   Endpoint advertising_endpoint_2 = StartAdvertising(
       &client1_, advertising_connection_listener_, low_viz_advertising_options);
@@ -562,12 +589,18 @@ TEST_F(ClientProxyTest,
 
 // Tests endpoint_id rotates when discover.
 TEST_F(ClientProxyTest, EndpointIdRotateWhenStartDiscovery) {
-  ConnectionOptions advertising_options{.strategy = strategy_,
-                                        .allowed =
-                                            {
-                                                .bluetooth = true,
-                                            },
-                                        .low_power = false};
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // low_power
+  };
 
   Endpoint advertising_endpoint_1 = StartAdvertising(
       &client1_, advertising_connection_listener_, advertising_options);
@@ -584,10 +617,18 @@ TEST_F(ClientProxyTest, EndpointIdRotateWhenStartDiscovery) {
 // Tests the low visibility mode with bluetooth disabled advertisment.
 TEST_F(ClientProxyTest,
        EndpointIdRotateWhenLowVizAdvertisementWithBluetoothDisabled) {
-  ConnectionOptions advertising_options{.strategy = strategy_,
-                                        .allowed = {
-                                            .bluetooth = false,
-                                        }};
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = false;
+
+  AdvertisingOptions advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // low_power
+  };
 
   Endpoint advertising_endpoint_1 = StartAdvertising(
       &client1_, advertising_connection_listener_, advertising_options);
@@ -602,9 +643,18 @@ TEST_F(ClientProxyTest,
 
 // Tests the low visibility mode with low power advertisment.
 TEST_F(ClientProxyTest, EndpointIdRotateWhenLowVizAdvertisementWithLowPower) {
-  ConnectionOptions advertising_options{.strategy = strategy_,
-                                        .low_power = true};
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = false;
 
+  AdvertisingOptions advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+  };
   Endpoint advertising_endpoint_1 = StartAdvertising(
       &client1_, advertising_connection_listener_, advertising_options);
 

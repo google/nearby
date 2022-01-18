@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,9 +18,10 @@
 #include <utility>
 
 #include "absl/functional/bind_front.h"
+#include "core/connection_options.h"
 #include "core/core.h"
+#include "core/discovery_options.h"
 #include "core/listeners.h"
-#include "core/options.h"
 #include "core/status.h"
 #include "platform/base/byte_array.h"
 #import "platform/impl/ios/Source/GNCConnection.h"
@@ -35,6 +36,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 using ::location::nearby::ByteArray;
 using ::location::nearby::CppStringFromObjCString;
+using ::location::nearby::connections::DiscoveryOptions;
 using ::location::nearby::connections::ConnectionOptions;
 using ::location::nearby::connections::DiscoveryListener;
 using ::location::nearby::connections::DistanceInfo;
@@ -379,8 +381,10 @@ using ::location::nearby::connections::GNCDiscoveryListener;
   };
 
   discoverer.core->_core->StartDiscovery(CppStringFromObjCString(serviceId),
-                                         ConnectionOptions{
-                                             .strategy = GNCStrategyToStrategy(strategy),
+                                         DiscoveryOptions{
+                                             {
+                                                 GNCStrategyToStrategy(strategy),
+                                             },
                                          },
                                          std::move(listener), ResultListener{});
 

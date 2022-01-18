@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -102,7 +102,7 @@ class EndpointManager {
   // Blocks until registration is complete.
   void RegisterEndpoint(ClientProxy* client, const std::string& endpoint_id,
                         const ConnectionResponseInfo& info,
-                        const ConnectionOptions& options,
+                        const ConnectionOptions& connection_options,
                         std::unique_ptr<EndpointChannel> channel,
                         const ConnectionListener& listener,
                         const std::string& connection_token);

@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,10 +24,10 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "core/connection_options.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/endpoint_channel_manager.h"
 #include "core/internal/offline_frames.h"
-#include "core/options.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/exception.h"
 #include "platform/public/count_down_latch.h"
@@ -118,7 +118,7 @@ class EndpointManagerTest : public ::testing::Test {
     EXPECT_CALL(*channel, GetLastWriteTimestamp())
         .WillRepeatedly(Return(start_time_));
     EXPECT_CALL(mock_listener_.initiated_cb, Call).Times(1);
-    em_.RegisterEndpoint(&client_, endpoint_id_, info_, options_,
+    em_.RegisterEndpoint(&client_, endpoint_id_, info_, connection_options_,
                          std::move(channel), listener_, connection_token);
     if (should_close) {
       EXPECT_TRUE(done.Await(absl::Milliseconds(1000)).result());
@@ -126,7 +126,7 @@ class EndpointManagerTest : public ::testing::Test {
   }
 
   ClientProxy client_;
-  ConnectionOptions options_{
+  ConnectionOptions connection_options_{
       .keep_alive_interval_millis = 5000,
       .keep_alive_timeout_millis = 30000,
   };

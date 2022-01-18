@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 #include "core/internal/client_proxy.h"
 #include "core/internal/pcp.h"
 #include "core/listeners.h"
-#include "core/options.h"
+#include "core/out_of_band_connection_metadata.h"
 #include "core/params.h"
 #include "core/status.h"
 #include "core/strategy.h"
@@ -69,7 +69,7 @@ class PcpHandler {
   // cpp/core/listeners.h
   virtual Status StartAdvertising(ClientProxy* client,
                                   const std::string& service_id,
-                                  const ConnectionOptions& options,
+                                  const AdvertisingOptions& advertising_options,
                                   const ConnectionRequestInfo& info) = 0;
 
   // If Advertising is active, stop it, and change CLientProxy state,
@@ -81,7 +81,7 @@ class PcpHandler {
   // DiscoveryListener will get called in case of any event.
   virtual Status StartDiscovery(ClientProxy* client,
                                 const std::string& service_id,
-                                const ConnectionOptions& options,
+                                const DiscoveryOptions& discovery_options,
                                 const DiscoveryListener& listener) = 0;
 
   // If Discovery is active, stop it, and change CLientProxy state,
@@ -96,10 +96,10 @@ class PcpHandler {
 
   // If remote endpoint has been successfully discovered, request it to form a
   // connection, update state on ClientProxy.
-  virtual Status RequestConnection(ClientProxy* client,
-                                   const std::string& endpoint_id,
-                                   const ConnectionRequestInfo& info,
-                                   const ConnectionOptions& options) = 0;
+  virtual Status RequestConnection(
+      ClientProxy* client, const std::string& endpoint_id,
+      const ConnectionRequestInfo& info,
+      const ConnectionOptions& connection_options) = 0;
 
   // Either party may call this to accept connection on their part.
   // Until both parties call it, connection will not reach a data phase.

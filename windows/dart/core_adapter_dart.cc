@@ -77,20 +77,21 @@ void StartAdvertisingDart(Core *pCore, const char *service_id,
     return;
   }
 
-  AdvertisingOptions options;
-  options.strategy = GetStrategy(options_dart.strategy);
-  options.auto_upgrade_bandwidth = options_dart.auto_upgrade_bandwidth;
-  options.enforce_topology_constraints =
+  AdvertisingOptions advertising_options;
+  advertising_options.strategy = GetStrategy(options_dart.strategy);
+  advertising_options.auto_upgrade_bandwidth =
+      options_dart.auto_upgrade_bandwidth;
+  advertising_options.enforce_topology_constraints =
       options_dart.enforce_topology_constraints;
-  options.allowed.bluetooth = options_dart.enable_bluetooth;
-  options.allowed.ble = options_dart.enable_ble;
-  options.low_power = options_dart.use_low_power_mode;
-  options.fast_advertisement_service_uuid =
+  advertising_options.allowed.bluetooth = options_dart.enable_bluetooth;
+  advertising_options.allowed.ble = options_dart.enable_ble;
+  advertising_options.low_power = options_dart.use_low_power_mode;
+  advertising_options.fast_advertisement_service_uuid =
       options_dart.discover_fast_advertisements
           ? "0000FE2C-0000-1000-8000-00805F9B34FB"
           : "";
-  options.allowed.wifi_lan = options_dart.enable_wifi_lan;
-  options.allowed.web_rtc = options_dart.enable_web_rtc;
+  advertising_options.allowed.wifi_lan = options_dart.enable_wifi_lan;
+  advertising_options.allowed.web_rtc = options_dart.enable_web_rtc;
 
   ConnectionRequestInfo info;
   info.endpoint_info = ByteArray(info_dart.endpoint_info);
@@ -160,7 +161,8 @@ void StartAdvertisingDart(Core *pCore, const char *service_id,
 
   ResultCallback callback;
   SetResultCallback(callback, result_cb);
-  StartAdvertising(pCore, service_id, std::move(options), info, callback);
+  StartAdvertising(pCore, service_id, std::move(advertising_options), info,
+                   callback);
 }
 
 void StopAdvertisingDart(Core *pCore, Dart_Port result_cb) {
@@ -183,16 +185,14 @@ void StartDiscoveryDart(Core *pCore, const char *service_id,
     return;
   }
 
-  DiscoveryOptions options;
-  options.strategy = GetStrategy(options_dart.strategy);
-  options.allowed.bluetooth = options_dart.enable_bluetooth;
-  options.allowed.ble = options_dart.enable_ble;
-  options.allowed.wifi_lan = options_dart.enable_wifi_lan;
-  options.allowed.web_rtc = false;
-  options.low_power = options_dart.use_low_power_mode;
-  options.enable_bluetooth_listening = options_dart.enable_bluetooth;
-  options.enforce_topology_constraints = true;
-  options.fast_advertisement_service_uuid =
+  DiscoveryOptions discovery_options;
+  discovery_options.strategy = GetStrategy(options_dart.strategy);
+  discovery_options.allowed.bluetooth = options_dart.enable_bluetooth;
+  discovery_options.allowed.ble = options_dart.enable_ble;
+  discovery_options.allowed.wifi_lan = options_dart.enable_wifi_lan;
+  discovery_options.allowed.web_rtc = false;
+  discovery_options.enforce_topology_constraints = true;
+  discovery_options.fast_advertisement_service_uuid =
       options_dart.discover_fast_advertisements
           ? "0000FE2C-0000-1000-8000-00805F9B34FB"
           : "";
@@ -257,7 +257,8 @@ void StartDiscoveryDart(Core *pCore, const char *service_id,
 
   ResultCallback callback;
   SetResultCallback(callback, result_cb);
-  StartDiscovery(pCore, service_id, std::move(options), listener, callback);
+  StartDiscovery(pCore, service_id, std::move(discovery_options), listener,
+                 callback);
 }
 
 void StopDiscoveryDart(Core *pCore, Dart_Port result_cb) {
@@ -280,12 +281,12 @@ void RequestConnectionDart(Core *pCore, const char *endpoint_id,
     return;
   }
 
-  ConnectionOptions options;
-  options.enforce_topology_constraints = false;
-  options.allowed.bluetooth = options_dart.enable_bluetooth;
-  options.allowed.ble = options_dart.enable_ble;
-  options.allowed.wifi_lan = options_dart.enable_wifi_lan;
-  options.allowed.web_rtc = options_dart.enable_web_rtc;
+  ConnectionOptions connection_options;
+  connection_options.enforce_topology_constraints = false;
+  connection_options.allowed.bluetooth = options_dart.enable_bluetooth;
+  connection_options.allowed.ble = options_dart.enable_ble;
+  connection_options.allowed.wifi_lan = options_dart.enable_wifi_lan;
+  connection_options.allowed.web_rtc = options_dart.enable_web_rtc;
 
   ConnectionRequestInfo info;
   info.endpoint_info = ByteArray(info_dart.endpoint_info);
@@ -355,7 +356,8 @@ void RequestConnectionDart(Core *pCore, const char *endpoint_id,
 
   ResultCallback callback;
   SetResultCallback(callback, result_cb);
-  RequestConnection(pCore, endpoint_id, info, std::move(options), callback);
+  RequestConnection(pCore, endpoint_id, info, std::move(connection_options),
+                    callback);
 }
 
 void AcceptConnectionDart(Core *pCore, const char *endpoint_id,

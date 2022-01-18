@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -53,15 +53,16 @@ PcpManager::~PcpManager() {
   NEARBY_LOGS(INFO) << "PcpManager has shut down.";
 }
 
-Status PcpManager::StartAdvertising(ClientProxy* client,
-                                    const string& service_id,
-                                    const ConnectionOptions& options,
-                                    const ConnectionRequestInfo& info) {
-  if (!SetCurrentPcpHandler(options.strategy)) {
+Status PcpManager::StartAdvertising(
+    ClientProxy* client, const string& service_id,
+    const AdvertisingOptions& advertising_options,
+    const ConnectionRequestInfo& info) {
+  if (!SetCurrentPcpHandler(advertising_options.strategy)) {
     return {Status::kError};
   }
 
-  return current_->StartAdvertising(client, service_id, options, info);
+  return current_->StartAdvertising(client, service_id, advertising_options,
+                                    info);
 }
 
 void PcpManager::StopAdvertising(ClientProxy* client) {
@@ -71,13 +72,13 @@ void PcpManager::StopAdvertising(ClientProxy* client) {
 }
 
 Status PcpManager::StartDiscovery(ClientProxy* client, const string& service_id,
-                                  const ConnectionOptions& options,
+                                  const DiscoveryOptions& discovery_options,
                                   DiscoveryListener listener) {
-  if (!SetCurrentPcpHandler(options.strategy)) {
+  if (!SetCurrentPcpHandler(discovery_options.strategy)) {
     return {Status::kError};
   }
 
-  return current_->StartDiscovery(client, service_id, options,
+  return current_->StartDiscovery(client, service_id, discovery_options,
                                   std::move(listener));
 }
 
@@ -95,15 +96,16 @@ void PcpManager::InjectEndpoint(ClientProxy* client,
   }
 }
 
-Status PcpManager::RequestConnection(ClientProxy* client,
-                                     const string& endpoint_id,
-                                     const ConnectionRequestInfo& info,
-                                     const ConnectionOptions& options) {
+Status PcpManager::RequestConnection(
+    ClientProxy* client, const string& endpoint_id,
+    const ConnectionRequestInfo& info,
+    const ConnectionOptions& connection_options) {
   if (!current_) {
     return {Status::kOutOfOrderApiCall};
   }
 
-  return current_->RequestConnection(client, endpoint_id, info, options);
+  return current_->RequestConnection(client, endpoint_id, info,
+                                     connection_options);
 }
 
 Status PcpManager::AcceptConnection(ClientProxy* client,

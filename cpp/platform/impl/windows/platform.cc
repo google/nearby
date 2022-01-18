@@ -60,11 +60,14 @@ std::string GetPayloadPath(PayloadId payload_id) {
                    // process is responsible for freeing this resource once it
                    // is no longer needed by calling CoTaskMemFree, whether
                    // SHGetKnownFolderPath succeeds or not.
-
-  char* fullpathUTF8 = new char((wcslen(basePath) + 1) * sizeof(char));
-  wcstombs(fullpathUTF8, basePath, (wcslen(basePath) + 1) * sizeof(char));
+  size_t bufferSize;
+  wcstombs_s(&bufferSize, NULL, 0, basePath, 0);
+  char* fullpathUTF8 = new char[bufferSize + 1];
+  memset(fullpathUTF8, 0, bufferSize);
+  wcstombs_s(&bufferSize, fullpathUTF8, bufferSize, basePath, bufferSize - 1);
   std::string fullPath = std::string(fullpathUTF8);
-  auto retval = absl::StrCat(fullPath += "/", payload_id);
+  auto retval = absl::StrCat(fullPath += "\\", payload_id);
+  delete[] fullpathUTF8;
   return retval;
 }
 }  // namespace

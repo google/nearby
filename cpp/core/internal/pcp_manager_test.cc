@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@
 #include "absl/time/time.h"
 #include "core/internal/endpoint_channel_manager.h"
 #include "core/internal/simulation_user.h"
-#include "core/options.h"
 #include "platform/base/medium_environment.h"
 #include "platform/public/count_down_latch.h"
 

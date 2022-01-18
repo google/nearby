@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@
 #include "core/internal/mock_service_controller.h"
 #include "core/internal/service_controller.h"
 #include "core/listeners.h"
-#include "core/options.h"
 #include "core/params.h"
 #include "platform/base/byte_array.h"
 #include "platform/public/condition_variable.h"
@@ -39,6 +38,9 @@
 namespace location {
 namespace nearby {
 namespace connections {
+
+// Feature On/Off switch for mediums.
+using BooleanMediumSelector = MediumSelector<bool>;
 
 namespace {
 using ::testing::Return;
@@ -58,19 +60,20 @@ class ServiceControllerRouterTest : public testing::Test {
   }
 
   void StartAdvertising(ClientProxy* client, std::string service_id,
-                        ConnectionOptions options, ConnectionRequestInfo info,
-                        ResultCallback callback) {
+                        AdvertisingOptions advertising_options,
+                        ConnectionRequestInfo info, ResultCallback callback) {
     EXPECT_CALL(*mock_, StartAdvertising)
         .WillOnce(Return(Status{Status::kSuccess}));
     {
       MutexLock lock(&mutex_);
       complete_ = false;
-      router_.StartAdvertising(client, service_id, options, info, callback);
+      router_.StartAdvertising(client, service_id, advertising_options, info,
+                               callback);
       while (!complete_) cond_.Wait();
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
-    client->StartedAdvertising(kServiceId, options.strategy, info.listener,
-                               absl::MakeSpan(mediums_));
+    client->StartedAdvertising(kServiceId, advertising_options.strategy,
+                               info.listener, absl::MakeSpan(mediums_));
     EXPECT_TRUE(client->IsAdvertising());
   }
 
@@ -87,7 +90,7 @@ class ServiceControllerRouterTest : public testing::Test {
   }
 
   void StartDiscovery(ClientProxy* client, std::string service_id,
-                      ConnectionOptions options,
+                      DiscoveryOptions discovery_options,
                       const DiscoveryListener& listener,
                       const ResultCallback& callback) {
     EXPECT_CALL(*mock_, StartDiscovery)
@@ -95,11 +98,12 @@ class ServiceControllerRouterTest : public testing::Test {
     {
       MutexLock lock(&mutex_);
       complete_ = false;
-      router_.StartDiscovery(client, kServiceId, options, listener, callback);
+      router_.StartDiscovery(client, kServiceId, discovery_options, listener,
+                             callback);
       while (!complete_) cond_.Wait();
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
-    client->StartedDiscovery(service_id, options.strategy, listener,
+    client->StartedDiscovery(service_id, discovery_options.strategy, listener,
                              absl::MakeSpan(mediums_));
     EXPECT_TRUE(client->IsDiscovering());
   }
@@ -133,12 +137,12 @@ class ServiceControllerRouterTest : public testing::Test {
                          ResultCallback callback) {
     EXPECT_CALL(*mock_, RequestConnection)
         .WillOnce(Return(Status{Status::kSuccess}));
-    ConnectionOptions options;
+    ConnectionOptions connection_options;
     {
       MutexLock lock(&mutex_);
       complete_ = false;
-      router_.RequestConnection(client, endpoint_id, request_info, options,
-                                callback);
+      router_.RequestConnection(client, endpoint_id, request_info,
+                                connection_options, callback);
       while (!complete_) cond_.Wait();
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
@@ -149,8 +153,9 @@ class ServiceControllerRouterTest : public testing::Test {
         .is_incoming_connection = true,
     };
     std::string connection_token{"conntokn"};
-    client->OnConnectionInitiated(endpoint_id, response_info, options,
-                                  request_info.listener, connection_token);
+    client->OnConnectionInitiated(endpoint_id, response_info,
+                                  connection_options, request_info.listener,
+                                  connection_token);
     EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint_id));
   }
 
@@ -269,10 +274,33 @@ class ServiceControllerRouterTest : public testing::Test {
   const std::string kRemoteEndpointId = "remote endpoint id";
   const std::int64_t kPayloadId = UINT64_C(0x123456789ABCDEF0);
   const ConnectionOptions kConnectionOptions{
-      .strategy = Strategy::kP2pPointToPoint,
-      .auto_upgrade_bandwidth = true,
-      .enforce_topology_constraints = true,
+      {
+          Strategy::kP2pPointToPoint,
+          BooleanMediumSelector(),
+      },
+      true,
+      true,
   };
+  const AdvertisingOptions kAdvertisingOptions{
+      {
+          Strategy::kP2pPointToPoint,
+          BooleanMediumSelector(),
+      },
+      true,   // auto_upgrade_bandwidth
+      true,   // enforce_topology_constraints
+      false,  // low_power
+      false,  // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+  };
+  const DiscoveryOptions kDiscoveryOptions{
+      {
+          Strategy::kP2pPointToPoint,
+          BooleanMediumSelector(),
+      },
+      true,
+      true,
+  };
+
   const OutOfBandConnectionMetadata kOutOfBandConnectionMetadata{
       .medium = Medium::BLUETOOTH,
       .endpoint_id = kFakeInejctedEndpointId,
@@ -302,29 +330,29 @@ class ServiceControllerRouterTest : public testing::Test {
 
 namespace {
 TEST_F(ServiceControllerRouterTest, StartAdvertisingCalled) {
-  StartAdvertising(&client_, kServiceId, kConnectionOptions,
+  StartAdvertising(&client_, kServiceId, kAdvertisingOptions,
                    kConnectionRequestInfo, kCallback);
 }
 
 TEST_F(ServiceControllerRouterTest, StopAdvertisingCalled) {
-  StartAdvertising(&client_, kServiceId, kConnectionOptions,
+  StartAdvertising(&client_, kServiceId, kAdvertisingOptions,
                    kConnectionRequestInfo, kCallback);
   StopAdvertising(&client_, kCallback);
 }
 
 TEST_F(ServiceControllerRouterTest, StartDiscoveryCalled) {
-  StartDiscovery(&client_, kServiceId, kConnectionOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
                  kCallback);
 }
 
 TEST_F(ServiceControllerRouterTest, StopDiscoveryCalled) {
-  StartDiscovery(&client_, kServiceId, kConnectionOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
                  kCallback);
   StopDiscovery(&client_, kCallback);
 }
 
 TEST_F(ServiceControllerRouterTest, InjectEndpointCalled) {
-  StartDiscovery(&client_, kServiceId, kConnectionOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
                  kCallback);
   InjectEndpoint(&client_, kServiceId, kOutOfBandConnectionMetadata, kCallback);
   StopDiscovery(&client_, kCallback);
@@ -332,7 +360,7 @@ TEST_F(ServiceControllerRouterTest, InjectEndpointCalled) {
 
 TEST_F(ServiceControllerRouterTest, RequestConnectionCalled) {
   // Either Advertising, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kConnectionOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
                  kCallback);
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
                     kCallback);
@@ -340,7 +368,7 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionCalled) {
 
 TEST_F(ServiceControllerRouterTest, AcceptConnectionCalled) {
   // Either Adviertisng, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kConnectionOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
                  kCallback);
   // Establish connection.
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
@@ -351,7 +379,7 @@ TEST_F(ServiceControllerRouterTest, AcceptConnectionCalled) {
 
 TEST_F(ServiceControllerRouterTest, RejectConnectionCalled) {
   // Either Adviertisng, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kConnectionOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
                  kCallback);
   // Establish connection.
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
@@ -362,7 +390,7 @@ TEST_F(ServiceControllerRouterTest, RejectConnectionCalled) {
 
 TEST_F(ServiceControllerRouterTest, InitiateBandwidthUpgradeCalled) {
   // Either Adviertisng, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kConnectionOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
                  kCallback);
   // Establish connection.
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
@@ -375,7 +403,7 @@ TEST_F(ServiceControllerRouterTest, InitiateBandwidthUpgradeCalled) {
 
 TEST_F(ServiceControllerRouterTest, SendPayloadCalled) {
   // Either Adviertisng, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kConnectionOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
                  kCallback);
   // Establish connection.
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
@@ -389,7 +417,7 @@ TEST_F(ServiceControllerRouterTest, SendPayloadCalled) {
 
 TEST_F(ServiceControllerRouterTest, CancelPayloadCalled) {
   // Either Adviertisng, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kConnectionOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
                  kCallback);
   // Establish connection.
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
@@ -404,7 +432,7 @@ TEST_F(ServiceControllerRouterTest, CancelPayloadCalled) {
 
 TEST_F(ServiceControllerRouterTest, DisconnectFromEndpointCalled) {
   // Either Adviertisng, or Discovery should be ongoing.
-  StartDiscovery(&client_, kServiceId, kConnectionOptions, discovery_listener_,
+  StartDiscovery(&client_, kServiceId, kDiscoveryOptions, discovery_listener_,
                  kCallback);
   // Establish connection.
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,

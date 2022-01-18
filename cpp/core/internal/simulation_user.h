@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@
 #include "core/internal/injected_bluetooth_device_store.h"
 #include "core/internal/payload_manager.h"
 #include "core/internal/pcp_manager.h"
-#include "core/options.h"
 #include "platform/base/medium_environment.h"
 #include "platform/public/condition_variable.h"
 #include "platform/public/count_down_latch.h"
@@ -54,18 +53,26 @@ class SimulationUser {
   explicit SimulationUser(
       const std::string& device_name,
       BooleanMediumSelector allowed = BooleanMediumSelector())
-      : connection_options_{
-            .keep_alive_interval_millis = FeatureFlags::GetInstance()
-                    .GetFlags()
-                    .keep_alive_interval_millis,
-            .keep_alive_timeout_millis = FeatureFlags::GetInstance()
-                    .GetFlags()
-                    .keep_alive_timeout_millis,
+      : info_{ByteArray{device_name}},
+        advertising_options_{
+            {
+                Strategy::kP2pCluster,
+                allowed,
+            },
         },
-        info_{ByteArray{device_name}},
-        options_{
-            .strategy = Strategy::kP2pCluster,
-            .allowed = allowed,
+        connection_options_{
+            .keep_alive_interval_millis = FeatureFlags::GetInstance()
+                                              .GetFlags()
+                                              .keep_alive_interval_millis,
+            .keep_alive_timeout_millis = FeatureFlags::GetInstance()
+                                             .GetFlags()
+                                             .keep_alive_timeout_millis,
+        },
+        discovery_options_{
+            {
+                Strategy::kP2pCluster,
+                allowed,
+            },
         } {}
   virtual ~SimulationUser() { Stop(); }
   void Stop() {
@@ -140,7 +147,6 @@ class SimulationUser {
 
   std::string service_id_;
   DiscoveredInfo discovered_;
-  ConnectionOptions connection_options_;
   Mutex progress_mutex_;
   ConditionVariable progress_sync_{&progress_mutex_};
   PayloadProgressInfo progress_info_;
@@ -155,7 +161,9 @@ class SimulationUser {
   std::function<bool(const PayloadProgressInfo&)> predicate_;
   ByteArray info_;
   Mediums mediums_;
-  ConnectionOptions options_;
+  AdvertisingOptions advertising_options_;
+  ConnectionOptions connection_options_;
+  DiscoveryOptions discovery_options_;
   ClientProxy client_;
   EndpointChannelManager ecm_;
   EndpointManager em_{&ecm_};

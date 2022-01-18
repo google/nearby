@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
 #include <string>
 
 #include "absl/functional/bind_front.h"
+#include "core/advertising_options.h"
 #include "core/core.h"
 #include "core/listeners.h"
-#include "core/options.h"
 #include "core/params.h"
 #include "core/status.h"
 #include "platform/base/byte_array.h"
@@ -37,7 +37,7 @@ using ::location::nearby::ByteArrayFromNSData;
 using ::location::nearby::CppStringFromObjCString;
 using ::location::nearby::ObjCStringFromCppString;
 using ::location::nearby::connections::ConnectionListener;
-using ::location::nearby::connections::ConnectionOptions;
+using ::location::nearby::connections::AdvertisingOptions;
 using ::location::nearby::connections::ConnectionRequestInfo;
 using ::location::nearby::connections::ConnectionResponseInfo;
 using ::location::nearby::connections::GNCStrategyToStrategy;
@@ -289,17 +289,21 @@ using ::location::nearby::connections::GNCAdvertiserConnectionListener;
                                           advertiser->advertiserListener.get()),
   };
 
-  advertiser.core->_core->StartAdvertising(CppStringFromObjCString(serviceId),
-                                           ConnectionOptions{
-                                               .strategy = GNCStrategyToStrategy(strategy),
-                                               .auto_upgrade_bandwidth = true,
-                                               .enforce_topology_constraints = true,
-                                           },
-                                           ConnectionRequestInfo{
-                                               .endpoint_info = ByteArrayFromNSData(endpointInfo),
-                                               .listener = std::move(listener),
-                                           },
-                                           ResultListener{});
+  advertiser.core->_core->StartAdvertising(
+      CppStringFromObjCString(serviceId),
+      AdvertisingOptions{
+          {
+              GNCStrategyToStrategy(strategy),                         // .strategy
+              location::nearby::connections::BooleanMediumSelector(),  // .allowed
+          },
+          true,  // .auto_upgrade_bandwidth
+          true,  // .enforce_topology_constraints
+      },
+      ConnectionRequestInfo{
+          .endpoint_info = ByteArrayFromNSData(endpointInfo),
+          .listener = std::move(listener),
+      },
+      ResultListener{});
   return advertiser;
 }
 

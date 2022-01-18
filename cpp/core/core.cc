@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "absl/time/clock.h"
-#include "core/options.h"
 #include "platform/base/feature_flags.h"
 #include "platform/public/count_down_latch.h"
 #include "platform/public/logging.h"
@@ -50,13 +49,14 @@ Core::Core(Core&&) = default;
 Core& Core::operator=(Core&&) = default;
 
 void Core::StartAdvertising(absl::string_view service_id,
-                            ConnectionOptions options,
+                            AdvertisingOptions advertising_options,
                             ConnectionRequestInfo info,
                             ResultCallback callback) {
   assert(!service_id.empty());
-  assert(options.strategy.IsValid());
+  assert(advertising_options.strategy.IsValid());
 
-  router_->StartAdvertising(&client_, service_id, options, info, callback);
+  router_->StartAdvertising(&client_, service_id, advertising_options, info,
+                            callback);
 }
 
 void Core::StopAdvertising(const ResultCallback callback) {
@@ -64,12 +64,13 @@ void Core::StopAdvertising(const ResultCallback callback) {
 }
 
 void Core::StartDiscovery(absl::string_view service_id,
-                          ConnectionOptions options, DiscoveryListener listener,
-                          ResultCallback callback) {
+                          DiscoveryOptions discovery_options,
+                          DiscoveryListener listener, ResultCallback callback) {
   assert(!service_id.empty());
-  assert(options.strategy.IsValid());
+  assert(discovery_options.strategy.IsValid());
 
-  router_->StartDiscovery(&client_, service_id, options, listener, callback);
+  router_->StartDiscovery(&client_, service_id, discovery_options, listener,
+                          callback);
 }
 
 void Core::InjectEndpoint(absl::string_view service_id,
@@ -84,27 +85,30 @@ void Core::StopDiscovery(ResultCallback callback) {
 
 void Core::RequestConnection(absl::string_view endpoint_id,
                              ConnectionRequestInfo info,
-                             ConnectionOptions options,
+                             ConnectionOptions connection_options,
                              ResultCallback callback) {
   assert(!endpoint_id.empty());
 
   // Assign the default from feature flags for the keep-alive frame interval and
   // timeout values if client don't mind them or has the unexpected ones.
-  if (options.keep_alive_interval_millis == 0 ||
-      options.keep_alive_timeout_millis == 0 ||
-      options.keep_alive_interval_millis >= options.keep_alive_timeout_millis) {
+  if (connection_options.keep_alive_interval_millis == 0 ||
+      connection_options.keep_alive_timeout_millis == 0 ||
+      connection_options.keep_alive_interval_millis >=
+          connection_options.keep_alive_timeout_millis) {
     NEARBY_LOG(
         WARNING,
         "Client request connection with keep-alive frame as interval=%d, "
         "timeout=%d, which is un-expected. Change to default.",
-        options.keep_alive_interval_millis, options.keep_alive_timeout_millis);
-    options.keep_alive_interval_millis =
+        connection_options.keep_alive_interval_millis,
+        connection_options.keep_alive_timeout_millis);
+    connection_options.keep_alive_interval_millis =
         FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis;
-    options.keep_alive_timeout_millis =
+    connection_options.keep_alive_timeout_millis =
         FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis;
   }
 
-  router_->RequestConnection(&client_, endpoint_id, info, options, callback);
+  router_->RequestConnection(&client_, endpoint_id, info, connection_options,
+                             callback);
 }
 
 void Core::AcceptConnection(absl::string_view endpoint_id,

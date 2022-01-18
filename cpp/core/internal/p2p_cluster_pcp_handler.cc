@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,8 +44,8 @@ bool P2pClusterPcpHandler::ShouldAdvertiseBluetoothMacOverBle(
 }
 
 bool P2pClusterPcpHandler::ShouldAcceptBluetoothConnections(
-    const ConnectionOptions& options) {
-  return options.enable_bluetooth_listening;
+    const AdvertisingOptions& advertising_options) {
+  return advertising_options.enable_bluetooth_listening;
 }
 
 P2pClusterPcpHandler::P2pClusterPcpHandler(
@@ -89,12 +89,12 @@ proto::connections::Medium P2pClusterPcpHandler::GetDefaultUpgradeMedium() {
 BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
     ClientProxy* client, const std::string& service_id,
     const std::string& local_endpoint_id, const ByteArray& local_endpoint_info,
-    const ConnectionOptions& options) {
+    const AdvertisingOptions& advertising_options) {
   std::vector<proto::connections::Medium> mediums_started_successfully;
 
   WebRtcState web_rtc_state{WebRtcState::kUnconnectable};
 
-  if (options.allowed.wifi_lan) {
+  if (advertising_options.allowed.wifi_lan) {
     proto::connections::Medium wifi_lan_medium =
         StartWifiLanAdvertising(client, service_id, local_endpoint_id,
                                 local_endpoint_info, web_rtc_state);
@@ -105,7 +105,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
     }
   }
 
-  if (options.allowed.bluetooth) {
+  if (advertising_options.allowed.bluetooth) {
     const ByteArray bluetooth_hash =
         GenerateHash(service_id, BluetoothDeviceName::kServiceIdHashLength);
     proto::connections::Medium bluetooth_medium = StartBluetoothAdvertising(
@@ -118,10 +118,10 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
     }
   }
 
-  if (options.allowed.ble) {
-    proto::connections::Medium ble_medium =
-        StartBleAdvertising(client, service_id, local_endpoint_id,
-                            local_endpoint_info, options, web_rtc_state);
+  if (advertising_options.allowed.ble) {
+    proto::connections::Medium ble_medium = StartBleAdvertising(
+        client, service_id, local_endpoint_id, local_endpoint_info,
+        advertising_options, web_rtc_state);
     if (ble_medium != proto::connections::UNKNOWN_MEDIUM) {
       NEARBY_LOGS(INFO)
           << "P2pClusterPcpHandler::StartAdvertisingImpl: Ble added";
@@ -657,17 +657,17 @@ void P2pClusterPcpHandler::WifiLanServiceLostHandler(
 
 BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
     ClientProxy* client, const std::string& service_id,
-    const ConnectionOptions& options) {
+    const DiscoveryOptions& discovery_options) {
   // If this is an out-of-band connection, do not start actual discovery, since
   // this connection is intended to be completed via InjectEndpointImpl().
-  if (options.is_out_of_band_connection) {
+  if (discovery_options.is_out_of_band_connection) {
     return {.status = {Status::kSuccess},
-            .mediums = options.allowed.GetMediums(true)};
+            .mediums = discovery_options.allowed.GetMediums(true)};
   }
 
   std::vector<proto::connections::Medium> mediums_started_successfully;
 
-  if (options.allowed.wifi_lan) {
+  if (discovery_options.allowed.wifi_lan) {
     proto::connections::Medium wifi_lan_medium = StartWifiLanDiscovery(
         {
             .service_discovered_cb = absl::bind_front(
@@ -684,7 +684,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
     }
   }
 
-  if (options.allowed.bluetooth) {
+  if (discovery_options.allowed.bluetooth) {
     proto::connections::Medium bluetooth_medium = StartBluetoothDiscovery(
         {
             .device_discovered_cb = absl::bind_front(
@@ -705,7 +705,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
     }
   }
 
-  if (options.allowed.ble) {
+  if (discovery_options.allowed.ble) {
     proto::connections::Medium ble_medium = StartBleScanning(
         {
             .peripheral_discovered_cb = absl::bind_front(
@@ -714,7 +714,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
             .peripheral_lost_cb = absl::bind_front(
                 &P2pClusterPcpHandler::BlePeripheralLostHandler, this, client),
         },
-        client, service_id, options.fast_advertisement_service_uuid);
+        client, service_id, discovery_options.fast_advertisement_service_uuid);
     if (ble_medium != proto::connections::UNKNOWN_MEDIUM) {
       NEARBY_LOG(INFO, "P2pClusterPcpHandler::StartDiscoveryImpl: Ble added");
       mediums_started_successfully.push_back(ble_medium);
@@ -979,10 +979,12 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
 proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
     ClientProxy* client, const std::string& service_id,
     const std::string& local_endpoint_id, const ByteArray& local_endpoint_info,
-    const ConnectionOptions& options, WebRtcState web_rtc_state) {
-  bool fast_advertisement = !options.fast_advertisement_service_uuid.empty();
-  PowerLevel power_level =
-      options.low_power ? PowerLevel::kLowPower : PowerLevel::kHighPower;
+    const AdvertisingOptions& advertising_options, WebRtcState web_rtc_state) {
+  bool fast_advertisement =
+      !advertising_options.fast_advertisement_service_uuid.empty();
+  PowerLevel power_level = advertising_options.low_power
+                               ? PowerLevel::kLowPower
+                               : PowerLevel::kHighPower;
 
   // Start listening for connections before advertising in case a connection
   // request comes in very quickly. BLE allows connecting over BLE itself, as
@@ -1039,7 +1041,7 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
   }
 
   if (ShouldAdvertiseBluetoothMacOverBle(power_level) ||
-      ShouldAcceptBluetoothConnections(options)) {
+      ShouldAcceptBluetoothConnections(advertising_options)) {
     if (bluetooth_medium_.IsAvailable() &&
         !bluetooth_medium_.IsAcceptingConnections(service_id)) {
       if (!bluetooth_radio_.Enable() ||
@@ -1132,8 +1134,9 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
                     << " generated BleAdvertisement with service_id="
                     << service_id;
 
-  if (!ble_medium_.StartAdvertising(service_id, advertisement_bytes,
-                                    options.fast_advertisement_service_uuid)) {
+  if (!ble_medium_.StartAdvertising(
+          service_id, advertisement_bytes,
+          advertising_options.fast_advertisement_service_uuid)) {
     NEARBY_LOGS(WARNING)
         << "In StartBleAdvertising("
         << absl::BytesToHexString(local_endpoint_info.data())

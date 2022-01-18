@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@
 #include "core/internal/client_proxy.h"
 #include "core/internal/offline_service_controller.h"
 #include "core/listeners.h"
-#include "core/options.h"
 #include "core/params.h"
 #include "core/payload.h"
 #include "platform/public/logging.h"
@@ -72,19 +71,19 @@ ServiceControllerRouter::~ServiceControllerRouter() {
 
 void ServiceControllerRouter::StartAdvertising(
     ClientProxy* client, absl::string_view service_id,
-    const ConnectionOptions& options, const ConnectionRequestInfo& info,
-    const ResultCallback& callback) {
+    const AdvertisingOptions& advertising_options,
+    const ConnectionRequestInfo& info, const ResultCallback& callback) {
   RouteToServiceController(
       "scr-start-advertising",
-      [this, client, service_id = std::string(service_id), options, info,
-       callback]() {
+      [this, client, service_id = std::string(service_id), advertising_options,
+       info, callback]() {
         if (client->IsAdvertising()) {
           callback.result_cb({Status::kAlreadyAdvertising});
           return;
         }
 
         callback.result_cb(GetServiceController()->StartAdvertising(
-            client, service_id, options, info));
+            client, service_id, advertising_options, info));
       });
 }
 
@@ -98,22 +97,21 @@ void ServiceControllerRouter::StopAdvertising(ClientProxy* client,
   });
 }
 
-void ServiceControllerRouter::StartDiscovery(ClientProxy* client,
-                                             absl::string_view service_id,
-                                             const ConnectionOptions& options,
-                                             const DiscoveryListener& listener,
-                                             const ResultCallback& callback) {
+void ServiceControllerRouter::StartDiscovery(
+    ClientProxy* client, absl::string_view service_id,
+    const DiscoveryOptions& discovery_options,
+    const DiscoveryListener& listener, const ResultCallback& callback) {
   RouteToServiceController(
       "scr-start-discovery",
-      [this, client, service_id = std::string(service_id), options, listener,
-       callback]() {
+      [this, client, service_id = std::string(service_id), discovery_options,
+       listener, callback]() {
         if (client->IsDiscovering()) {
           callback.result_cb({Status::kAlreadyDiscovering});
           return;
         }
 
         callback.result_cb(GetServiceController()->StartDiscovery(
-            client, service_id, options, listener));
+            client, service_id, discovery_options, listener));
       });
 }
 
@@ -166,7 +164,8 @@ void ServiceControllerRouter::InjectEndpoint(
 
 void ServiceControllerRouter::RequestConnection(
     ClientProxy* client, absl::string_view endpoint_id,
-    const ConnectionRequestInfo& info, const ConnectionOptions& options,
+    const ConnectionRequestInfo& info,
+    const ConnectionOptions& connection_options,
     const ResultCallback& callback) {
   // Cancellations can be fired from clients anytime, need to add the
   // CancellationListener as soon as possible.
@@ -174,8 +173,8 @@ void ServiceControllerRouter::RequestConnection(
 
   RouteToServiceController(
       "scr-request-connection",
-      [this, client, endpoint_id = std::string(endpoint_id), info, options,
-       callback]() {
+      [this, client, endpoint_id = std::string(endpoint_id), info,
+       connection_options, callback]() {
         if (client->HasPendingConnectionToEndpoint(endpoint_id) ||
             client->IsConnectedToEndpoint(endpoint_id)) {
           callback.result_cb({Status::kAlreadyConnectedToEndpoint});
@@ -183,7 +182,7 @@ void ServiceControllerRouter::RequestConnection(
         }
 
         Status status = GetServiceController()->RequestConnection(
-            client, endpoint_id, info, options);
+            client, endpoint_id, info, connection_options);
         if (!status.Ok()) {
           client->CancelEndpoint(endpoint_id);
         }

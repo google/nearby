@@ -24,7 +24,6 @@
 #include "absl/types/span.h"
 #include "core/internal/client_proxy.h"
 #include "core/internal/service_controller.h"
-#include "core/options.h"
 #include "core/params.h"
 #include "platform/base/runnable.h"
 #include "platform/public/single_thread_executor.h"
@@ -63,14 +62,14 @@ class ServiceControllerRouter {
 
   virtual void StartAdvertising(ClientProxy* client,
                                 absl::string_view service_id,
-                                const ConnectionOptions& options,
+                                const AdvertisingOptions& advertising_options,
                                 const ConnectionRequestInfo& info,
                                 const ResultCallback& callback);
   virtual void StopAdvertising(ClientProxy* client,
                                const ResultCallback& callback);
 
   virtual void StartDiscovery(ClientProxy* client, absl::string_view service_id,
-                              const ConnectionOptions& options,
+                              const DiscoveryOptions& discovery_options,
                               const DiscoveryListener& listener,
                               const ResultCallback& callback);
   virtual void StopDiscovery(ClientProxy* client,
@@ -83,7 +82,7 @@ class ServiceControllerRouter {
   virtual void RequestConnection(ClientProxy* client,
                                  absl::string_view endpoint_id,
                                  const ConnectionRequestInfo& info,
-                                 const ConnectionOptions& options,
+                                 const ConnectionOptions& connection_options,
                                  const ResultCallback& callback);
   virtual void AcceptConnection(ClientProxy* client,
                                 absl::string_view endpoint_id,

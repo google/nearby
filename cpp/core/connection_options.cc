@@ -12,31 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import <Foundation/Foundation.h>
+#include "core/connection_options.h"
 
 #include <string>
-
-#include "core/listeners.h"
-#import "platform/impl/ios/Source/GNCAdvertiser.h"
-#import "platform/impl/ios/Source/GNCConnection.h"
-
-NS_ASSUME_NONNULL_BEGIN
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-/** Converts GNCStrategy to Strategy. */
-const Strategy& GNCStrategyToStrategy(GNCStrategy strategy);
+std::vector<Medium> ConnectionOptions::GetMediums() const {
+  return allowed.GetMediums(true);
+}
 
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
-
-/** Internal-only properties of the connection result handlers class. */
-@interface GNCConnectionResultHandlers ()
-@property(nonatomic) GNCConnectionHandler successHandler;
-@property(nonatomic) GNCConnectionFailureHandler failureHandler;
-@end
-
-NS_ASSUME_NONNULL_END

@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@
 #include "core/internal/injected_bluetooth_device_store.h"
 #include "core/internal/mediums/mediums.h"
 #include "core/listeners.h"
-#include "core/options.h"
 #include "core/status.h"
 #include "core/strategy.h"
 #include "platform/public/atomic_boolean.h"
@@ -50,12 +49,12 @@ class PcpManager {
   ~PcpManager();
 
   Status StartAdvertising(ClientProxy* client, const string& service_id,
-                          const ConnectionOptions& options,
+                          const AdvertisingOptions& advertising_options,
                           const ConnectionRequestInfo& info);
   void StopAdvertising(ClientProxy* client);
 
   Status StartDiscovery(ClientProxy* client, const string& service_id,
-                        const ConnectionOptions& options,
+                        const DiscoveryOptions& discovery_options,
                         DiscoveryListener listener);
   void StopDiscovery(ClientProxy* client);
 
@@ -64,7 +63,7 @@ class PcpManager {
 
   Status RequestConnection(ClientProxy* client, const string& endpoint_id,
                            const ConnectionRequestInfo& info,
-                           const ConnectionOptions& options);
+                           const ConnectionOptions& connection_options);
   Status AcceptConnection(ClientProxy* client, const string& endpoint_id,
                           const PayloadListener& payload_listener);
   Status RejectConnection(ClientProxy* client, const string& endpoint_id);
