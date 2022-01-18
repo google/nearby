@@ -271,8 +271,6 @@ class GNCDiscoveryListener {
       GNCDiscovererEndpointInfo *endpointInfo = [[GNCDiscovererEndpointInfo alloc] init];
       [discoverer.endpoints setObject:endpointInfo forKey:endpointId];
 
-      // TODO(b/169292092): endpointInfo is an advertisement byte array. Need to implement to
-      // extract the endpoint name not just force to cast string.
       NSString *name = ObjCStringFromCppString(std::string(endpoint_info));
       NSData *info = NSDataFromByteArray(endpoint_info);
       GNCCore *core = discoverer.core;  // don't capture |this| or |discoverer|
@@ -280,7 +278,7 @@ class GNCDiscoveryListener {
       GNCDiscoveredEndpointInfo *discEndpointInfo = [GNCDiscoveredEndpointInfo
                infoWithName:name
                endpointInfo:info
-          requestConnection:^(NSString *name,
+          requestConnection:^(NSData *info,
                               GNCDiscovererConnectionInitializationHandler connInitHandler,
                               GNCConnectionFailureHandler connFailureHandler) {
             endpointInfo.connInitHandler = connInitHandler;
@@ -304,7 +302,7 @@ class GNCDiscoveryListener {
 
             core->_core->RequestConnection(
                 CppStringFromObjCString(endpointId),
-                ConnectionRequestInfo{.endpoint_info = std::move(endpoint_info),
+                ConnectionRequestInfo{.endpoint_info = ByteArrayFromNSData(info),
                                       .listener = std::move(listener)},
                 ConnectionOptions{},
                 ResultListener{.result_cb = [&connFailureHandler](Status status) {

@@ -138,7 +138,7 @@ class GNCInputStreamFromNSStream : public InputStream {
                        completion:(GNCPayloadResultHandler)completion {
   NSProgress *progress = [NSProgress progressWithTotalUnitCount:-1];
 
-  PayloadId payloadId = Payload::GenerateId();
+  PayloadId payloadId = payload.identifier;
   Payload corePayload(payloadId, [payload]() -> InputStream & {
     location::nearby::connections::GNCInputStreamFromNSStream *stream =
         new location::nearby::connections::GNCInputStreamFromNSStream(payload.stream);
@@ -158,7 +158,7 @@ class GNCInputStreamFromNSStream : public InputStream {
   if (result == YES) {
     fileSize = fileSizeValue.longValue;
   }
-  PayloadId payloadId = Payload::GenerateId();
+  PayloadId payloadId = payload.identifier;
   // Add the pair of payloadId and fileURL to the map in the GNCCore.
   [_core insertURLToMapWithPayloadID:payloadId urlToSend:fileURL];
   Payload corePayload(payloadId, InputFile(payloadId, fileSize));

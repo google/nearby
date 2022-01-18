@@ -14,12 +14,18 @@
 
 #import "platform/impl/ios/Source/GNCPayload.h"
 
+#include "core/payload.h"
+#include "platform/base/payload_id.h"
+
 #include <stdlib.h>
+
+using ::location::nearby::connections::Payload;
+using ::location::nearby::PayloadId;
 
 NS_ASSUME_NONNULL_BEGIN
 
-uint64_t GNCRandom64() {
-  return ((uint64_t)arc4random() << 32) + arc4random();
+PayloadId GenerateId() {
+  return Payload::GenerateId();
 }
 
 @implementation GNCBytesPayload
@@ -34,7 +40,7 @@ uint64_t GNCRandom64() {
 }
 
 + (instancetype)payloadWithBytes:(NSData *)bytes {
-  return [[self alloc] initWithBytes:bytes identifier:GNCRandom64()];
+  return [[self alloc] initWithBytes:bytes identifier:GenerateId()];
 }
 
 + (instancetype)payloadWithBytes:(NSData *)bytes identifier:(int64_t)identifier {
@@ -55,7 +61,7 @@ uint64_t GNCRandom64() {
 }
 
 + (instancetype)payloadWithStream:(NSInputStream *)stream {
-  return [[self alloc] initWithStream:stream identifier:GNCRandom64()];
+  return [[self alloc] initWithStream:stream identifier:GenerateId()];
 }
 
 + (instancetype)payloadWithStream:(NSInputStream *)stream identifier:(int64_t)identifier {
@@ -76,7 +82,7 @@ uint64_t GNCRandom64() {
 }
 
 + (instancetype)payloadWithFileURL:(NSURL *)fileURL {
-  return [[self alloc] initWithFileURL:fileURL identifier:GNCRandom64()];
+  return [[self alloc] initWithFileURL:fileURL identifier:GenerateId()];
 }
 
 + (instancetype)payloadWithFileURL:(NSURL *)fileURL identifier:(int64_t)identifier {

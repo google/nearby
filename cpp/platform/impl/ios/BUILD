@@ -24,7 +24,7 @@ objc_library(
         "Source/Internal/GNCCore.mm",
         "Source/Internal/GNCCoreConnection.mm",
         "Source/Internal/GNCDiscoverer.mm",
-        "Source/Internal/GNCPayload.m",
+        "Source/Internal/GNCPayload.mm",
         "Source/Internal/GNCPayloadListener.mm",
         "Source/Internal/GNCUtils.mm",
         "Source/Internal/platform.mm",
