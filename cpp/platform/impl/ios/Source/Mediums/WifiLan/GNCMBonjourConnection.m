@@ -28,6 +28,9 @@ enum { kMaxPacketSize = 32 * 1024 };
 @property(nonatomic) NSInteger numberOfBytesLeftToWrite;
 @property(nonatomic, copy, nullable) GNCMProgressHandler progressHandler;
 @property(nonatomic, copy, nullable) GNCMPayloadResultHandler completion;
+
+@property(nonatomic) BOOL inputStreamOpen;
+@property(nonatomic) BOOL outputStreamOpen;
 @end
 
 @implementation GNCMBonjourConnection
@@ -37,6 +40,9 @@ enum { kMaxPacketSize = 32 * 1024 };
                               queue:(nullable dispatch_queue_t)queue {
   self = [super init];
   if (self) {
+    _inputStreamOpen = NO;
+    _outputStreamOpen = NO;
+
     _inputStream = inputStream;
     _inputStream.delegate = self;
     [_inputStream scheduleInRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
@@ -124,6 +130,17 @@ enum { kMaxPacketSize = 32 * 1024 };
     }
 
     case NSStreamEventOpenCompleted:
+      if (stream == _inputStream) {
+        _inputStreamOpen = YES;
+      }
+      if (stream == _outputStream) {
+        _outputStreamOpen = YES;
+      }
+      // Schedule this in a future runloop cycle because -writeChunk, which can cause this event
+      // to be received synchronously, is not reentrant.
+      [self performSelector:@selector(writeChunk) withObject:nil afterDelay:0.0];
+      break;
+
     case NSStreamEventNone:
     default:
       break;
@@ -166,7 +183,7 @@ enum { kMaxPacketSize = 32 * 1024 };
   };
 
   @synchronized(_outputStream) {
-    if (_numberOfBytesLeftToWrite) {
+    if (_inputStreamOpen && _outputStreamOpen && _numberOfBytesLeftToWrite) {
       NSUInteger dataLength = (UInt32)_dataBeingWritten.length;
       if (_numberOfBytesLeftToWrite == dataLength) {
         GTMLoggerInfo(@"Starting a write operation of length %lu", (u_long)dataLength);
