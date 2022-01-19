@@ -88,6 +88,8 @@ bool BluetoothClassicMedium::StopDiscovery() {
 
   if (IsWatcherStarted()) {
     result = StopScanning();
+  } else {
+    result = true;
   }
 
   LeaveCriticalSection(&critical_section_);
@@ -101,6 +103,8 @@ void BluetoothClassicMedium::InitializeDeviceWatcher() {
       BLUETOOTH_SELECTOR,                           // aqsFilter
       nullptr,                                      // additionalProperties
       DeviceInformationKind::AssociationEndpoint);  // kind
+  DeviceWatcherStatus status = device_watcher_.Status();
+  NEARBY_LOG(INFO, "%s DeviceWatcherStatus=%d", __func__, status);
 
   //  An app must subscribe to all of the added, removed, and updated events to
   //  be notified when there are device additions, removals or updates. If an
@@ -178,6 +182,8 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   }
 
   device_watcher_.Stop();
+  DeviceWatcherStatus status = device_watcher_.Status();
+  NEARBY_LOG(INFO, "%s DeviceWatcherStatus=%d", __func__, status);
 
   EnterCriticalSection(&critical_section_);
 
@@ -328,6 +334,8 @@ bool BluetoothClassicMedium::StartScanning() {
         status == DeviceWatcherStatus::Stopped ||
         status == DeviceWatcherStatus::Aborted) {
       device_watcher_.Start();
+      status = device_watcher_.Status();
+      NEARBY_LOG(INFO, "%s DeviceWatcherStatus=%d", __func__, status);
 
       return true;
     }
@@ -342,6 +350,8 @@ bool BluetoothClassicMedium::StartScanning() {
 bool BluetoothClassicMedium::StopScanning() {
   if (IsWatcherRunning()) {
     device_watcher_.Stop();
+  DeviceWatcherStatus status = device_watcher_.Status();
+  NEARBY_LOG(INFO, "%s DeviceWatcherStatus=%d", __func__, status);
     return true;
   }
   NEARBY_LOGS(ERROR)
@@ -423,6 +433,7 @@ bool BluetoothClassicMedium::IsWatcherStarted() {
   }
 
   DeviceWatcherStatus status = device_watcher_.Status();
+  NEARBY_LOG(INFO, "%s DeviceWatcherStatus=%d", __func__, status);
   return (status == DeviceWatcherStatus::Started) ||
          (status == DeviceWatcherStatus::EnumerationCompleted);
 }
@@ -433,6 +444,7 @@ bool BluetoothClassicMedium::IsWatcherRunning() {
   }
 
   DeviceWatcherStatus status = device_watcher_.Status();
+  NEARBY_LOG(INFO, "%s DeviceWatcherStatus=%d", __func__, status);
   return (status == DeviceWatcherStatus::Started) ||
          (status == DeviceWatcherStatus::EnumerationCompleted) ||
          (status == DeviceWatcherStatus::Stopping);
