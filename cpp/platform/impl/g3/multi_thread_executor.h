@@ -20,7 +20,7 @@
 #include "absl/time/clock.h"
 #include "platform/api/submittable_executor.h"
 #include "platform/impl/shared/count_down_latch.h"
-#include "thread/threadpool.h"
+#include "nisaba/port/thread_pool.h"
 
 namespace location {
 namespace nearby {

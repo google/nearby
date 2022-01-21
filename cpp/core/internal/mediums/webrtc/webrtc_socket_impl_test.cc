@@ -17,6 +17,7 @@
 #include <memory>
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "platform/base/byte_array.h"
 #include "webrtc/api/data_channel_interface.h"

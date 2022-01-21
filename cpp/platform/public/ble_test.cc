@@ -17,6 +17,7 @@
 #include <memory>
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "platform/base/medium_environment.h"
 #include "platform/public/count_down_latch.h"

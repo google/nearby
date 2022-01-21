@@ -17,6 +17,7 @@
 #include <string>
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "core/internal/client_proxy.h"

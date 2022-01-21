@@ -15,6 +15,7 @@
 #include "platform/public/cancelable_alarm.h"
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "platform/public/atomic_boolean.h"

@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
@@ -32,7 +33,7 @@ namespace parser {
 namespace {
 
 using Medium = proto::connections::Medium;
-using ::testing::EqualsProto;
+using ::protobuf_matchers::EqualsProto;
 
 constexpr absl::string_view kEndpointId{"ABC"};
 constexpr absl::string_view kEndpointName{"XYZ"};

@@ -15,6 +15,7 @@
 #include "core/internal/mediums/webrtc.h"
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "core/internal/mediums/webrtc_socket.h"
 #include "platform/base/listeners.h"

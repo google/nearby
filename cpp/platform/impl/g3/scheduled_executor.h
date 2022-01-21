@@ -23,7 +23,7 @@
 #include "platform/api/scheduled_executor.h"
 #include "platform/base/runnable.h"
 #include "platform/impl/g3/single_thread_executor.h"
-#include "thread/threadpool.h"
+#include "nisaba/port/thread_pool.h"
 
 namespace location {
 namespace nearby {

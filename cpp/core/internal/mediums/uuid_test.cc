@@ -15,6 +15,7 @@
 #include "core/internal/mediums/uuid.h"
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "platform/public/crypto.h"
 #include "platform/public/logging.h"

@@ -17,6 +17,7 @@
 #include <array>
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "core/internal/offline_simulation_user.h"
 #include "platform/base/medium_environment.h"
