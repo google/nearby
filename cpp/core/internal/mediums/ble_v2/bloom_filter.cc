@@ -16,7 +16,7 @@
 
 #include "absl/numeric/int128.h"
 #include "absl/strings/numbers.h"
-#include "smhasher/src/MurmurHash3.h"
+#include "src/MurmurHash3.h"
 
 namespace location {
 namespace nearby {

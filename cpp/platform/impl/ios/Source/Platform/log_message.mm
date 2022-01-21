@@ -14,7 +14,7 @@
 
 #include "platform/impl/ios/Source/Platform/log_message.h"
 
-#include "base/check.h"
+#include "glog/logging.h"
 #include "platform/api/log_message.h"
 #include "GoogleToolboxForMac/GTMLogger.h"
 

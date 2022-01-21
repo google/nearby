@@ -15,7 +15,7 @@
 #ifndef PLATFORM_IMPL_IOS_LOG_MESSAGE_H_
 #define PLATFORM_IMPL_IOS_LOG_MESSAGE_H_
 
-#include "base/check.h"
+#include "glog/logging.h"
 #include "platform/api/log_message.h"
 
 namespace location {
