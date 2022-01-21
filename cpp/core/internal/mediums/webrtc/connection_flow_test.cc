@@ -306,7 +306,7 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
 
   CountDownLatch latch(1);
   auto pc = answerer->GetPeerConnection();
-  pc->signaling_thread()->PostTask(RTC_FROM_HERE, [pc, latch]() mutable {
+  pc->signaling_thread()->PostTask([pc, latch]() mutable {
     pc->Close();
     latch.CountDown();
   });
@@ -387,7 +387,7 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
 
   CountDownLatch latch(1);
   auto pc = offerer->GetPeerConnection();
-  pc->signaling_thread()->PostTask(RTC_FROM_HERE, [pc, latch]() mutable {
+  pc->signaling_thread()->PostTask([pc, latch]() mutable {
     pc->Close();
     latch.CountDown();
   });

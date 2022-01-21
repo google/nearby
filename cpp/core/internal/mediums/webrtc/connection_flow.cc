@@ -298,8 +298,8 @@ bool ConnectionFlow::OnRemoteIceCandidatesReceived(
     return false;
   }
   pc->signaling_thread()->PostTask(
-      RTC_FROM_HERE, [this, can_run_tasks = std::weak_ptr<void>(can_run_tasks_),
-                      candidates = std::move(ice_candidates)]() mutable {
+      [this, can_run_tasks = std::weak_ptr<void>(can_run_tasks_),
+       candidates = std::move(ice_candidates)]() mutable {
         // don't run the task if the weak_ptr is no longer valid.
         if (!can_run_tasks.lock()) {
           return;
@@ -515,8 +515,8 @@ bool ConnectionFlow::RunOnSignalingThread(Runnable&& runnable) {
   // We are off signaling thread, so we can't use peer connection's methods
   // but we can access the signaling thread handle.
   pc->signaling_thread()->PostTask(
-      RTC_FROM_HERE, [can_run_tasks = std::weak_ptr<void>(can_run_tasks_),
-                      task = std::move(runnable)] {
+      [can_run_tasks = std::weak_ptr<void>(can_run_tasks_),
+       task = std::move(runnable)] {
         // don't run the task if the weak_ptr is no longer valid.
         // shared_ptr |can_run_tasks_| is destroyed on the same thread
         // (signaling thread). This guarantees that if the weak_ptr is valid
