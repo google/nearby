@@ -99,10 +99,25 @@ void StartAdvertisingDart(Core *pCore, const char *service_id,
       [info_dart](const std::string &endpoint_id,
                   const ConnectionResponseInfo &connection_info) {
         NEARBY_LOG(INFO, "Advertising initiated: id=%s", endpoint_id.c_str());
-        Dart_CObject dart_object_initiated;
-        dart_object_initiated.type = Dart_CObject_kString;
-        dart_object_initiated.value.as_string =
+
+        Dart_CObject dart_object_endpoint_id;
+        dart_object_endpoint_id.type = Dart_CObject_kString;
+        dart_object_endpoint_id.value.as_string = (char *)endpoint_id.data();
+
+        Dart_CObject dart_object_endpoint_info;
+        dart_object_endpoint_info.type = Dart_CObject_kString;
+        dart_object_endpoint_info.value.as_string =
             (char *)connection_info.remote_endpoint_info.data();
+
+        Dart_CObject *elements[2];
+        elements[0] = &dart_object_endpoint_id;
+        elements[1] = &dart_object_endpoint_info;
+
+        Dart_CObject dart_object_initiated;
+        dart_object_initiated.type = Dart_CObject_kArray;
+        dart_object_initiated.value.as_array.length = 2;
+        dart_object_initiated.value.as_array.values = elements;
+
         const bool result =
             Dart_PostCObject_DL(info_dart.initiated_cb, &dart_object_initiated);
         if (!result) {
@@ -293,11 +308,27 @@ void RequestConnectionDart(Core *pCore, const char *endpoint_id,
   info.listener.initiated_cb =
       [info_dart](const std::string &endpoint_id,
                   const ConnectionResponseInfo &connection_info) {
-        NEARBY_LOG(INFO, "Advertising initiated: id=%s", endpoint_id.c_str());
-        Dart_CObject dart_object_initiated;
-        dart_object_initiated.type = Dart_CObject_kString;
-        dart_object_initiated.value.as_string =
+        NEARBY_LOG(INFO, "Connection request initiated: id=%s",
+                   endpoint_id.c_str());
+
+        Dart_CObject dart_object_endpoint_id;
+        dart_object_endpoint_id.type = Dart_CObject_kString;
+        dart_object_endpoint_id.value.as_string = (char *)endpoint_id.data();
+
+        Dart_CObject dart_object_endpoint_info;
+        dart_object_endpoint_info.type = Dart_CObject_kString;
+        dart_object_endpoint_info.value.as_string =
             (char *)connection_info.remote_endpoint_info.data();
+
+        Dart_CObject *elements[2];
+        elements[0] = &dart_object_endpoint_id;
+        elements[1] = &dart_object_endpoint_info;
+
+        Dart_CObject dart_object_initiated;
+        dart_object_initiated.type = Dart_CObject_kArray;
+        dart_object_initiated.value.as_array.length = 2;
+        dart_object_initiated.value.as_array.values = elements;
+
         const bool result =
             Dart_PostCObject_DL(info_dart.initiated_cb, &dart_object_initiated);
         if (!result) {
