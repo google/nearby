@@ -17,7 +17,7 @@
 namespace location {
 namespace nearby {
 
-ExceptionOr<ByteArray> BaseInputStream::Read(std::int64_t size) {
+ExceptionOr<ByteArray> BaseInputStream::Read(size_t size) {
   if (!IsAvailable(size)) {
     return ExceptionOr<ByteArray>{Exception::kIo};
   }

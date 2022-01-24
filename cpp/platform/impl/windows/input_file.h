@@ -31,11 +31,11 @@ class InputFile : public api::InputFile {
   // TODO(b/184975123): replace with real implementation.
   std::string GetFilePath() const override { return "Un-implemented"; }
   // TODO(b/184975123): replace with real implementation.
-  std::int64_t GetTotalSize() const override { return 0; }
+  size_t GetTotalSize() const override { return 0; }
 
   // throws Exception::kIo
   // TODO(b/184975123): replace with real implementation.
-  ExceptionOr<ByteArray> Read(std::int64_t size) override {
+  ExceptionOr<ByteArray> Read(size_t size) override {
     return ExceptionOr<ByteArray>(Exception::kFailed);
   }
   // throws Exception::kIo

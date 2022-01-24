@@ -602,8 +602,7 @@ CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
 
 std::vector<std::string> EndpointManager::SendTransferFrameBytes(
     const std::vector<std::string>& endpoint_ids, const ByteArray& bytes,
-    std::int64_t payload_id, std::int64_t offset,
-    const std::string& packet_type) {
+    std::int64_t payload_id, size_t offset, const std::string& packet_type) {
   std::vector<std::string> failed_endpoint_ids;
   for (const std::string& endpoint_id : endpoint_ids) {
     std::shared_ptr<EndpointChannel> channel =

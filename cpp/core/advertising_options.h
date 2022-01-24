@@ -15,12 +15,7 @@
 #define CORE_ADVERTISING_OPTIONS_H_
 #include <string>
 
-#include "core/medium_selector.h"
 #include "core/options_base.h"
-#include "core/power_level.h"
-#include "core/strategy.h"
-#include "platform/base/byte_array.h"
-#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {

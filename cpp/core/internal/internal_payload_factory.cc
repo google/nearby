@@ -44,7 +44,7 @@ class BytesInternalPayload : public InternalPayload {
     return PayloadTransferFrame::PayloadHeader::BYTES;
   }
 
-  std::int64_t GetTotalSize() const override { return total_size_; }
+  size_t GetTotalSize() const override { return total_size_; }
 
   // Relinquishes ownership of the payload_; retrieves and returns the stored
   // ByteArray.
@@ -71,7 +71,7 @@ class BytesInternalPayload : public InternalPayload {
   // We're caching the total size here because the backing payload will be
   // moved to another owner during the lifetime of an incoming
   // InternalPayload.
-  const std::int64_t total_size_;
+  const size_t total_size_;
   bool detached_only_chunk_;
 };
 
@@ -84,7 +84,7 @@ class OutgoingStreamInternalPayload : public InternalPayload {
     return PayloadTransferFrame::PayloadHeader::STREAM;
   }
 
-  std::int64_t GetTotalSize() const override { return -1; }
+  size_t GetTotalSize() const override { return -1; }
 
   ByteArray DetachNextChunk(int chunk_size) override {
     InputStream* input_stream = payload_.AsStream();
@@ -149,7 +149,7 @@ class IncomingStreamInternalPayload : public InternalPayload {
     return PayloadTransferFrame::PayloadHeader::STREAM;
   }
 
-  std::int64_t GetTotalSize() const override { return -1; }
+  size_t GetTotalSize() const override { return -1; }
 
   ByteArray DetachNextChunk(int chunk_size) override { return {}; }
 
@@ -186,7 +186,7 @@ class OutgoingFileInternalPayload : public InternalPayload {
     return PayloadTransferFrame::PayloadHeader::FILE;
   }
 
-  std::int64_t GetTotalSize() const override { return total_size_; }
+  size_t GetTotalSize() const override { return total_size_; }
 
   ByteArray DetachNextChunk(int chunk_size) override {
     InputFile* file = payload_.AsFile();
@@ -241,13 +241,13 @@ class OutgoingFileInternalPayload : public InternalPayload {
   }
 
  private:
-  std::int64_t total_size_;
+  size_t total_size_;
 };
 
 class IncomingFileInternalPayload : public InternalPayload {
  public:
   IncomingFileInternalPayload(Payload payload, OutputFile output_file,
-                              std::int64_t total_size)
+                              size_t total_size)
       : InternalPayload(std::move(payload)),
         output_file_(std::move(output_file)),
         total_size_(total_size) {}
@@ -256,7 +256,7 @@ class IncomingFileInternalPayload : public InternalPayload {
     return PayloadTransferFrame::PayloadHeader::FILE;
   }
 
-  std::int64_t GetTotalSize() const override { return total_size_; }
+  size_t GetTotalSize() const override { return total_size_; }
 
   ByteArray DetachNextChunk(int chunk_size) override { return {}; }
 
@@ -280,7 +280,7 @@ class IncomingFileInternalPayload : public InternalPayload {
 
  private:
   OutputFile output_file_;
-  const std::int64_t total_size_;
+  const size_t total_size_;
 };
 
 }  // namespace
@@ -288,10 +288,10 @@ class IncomingFileInternalPayload : public InternalPayload {
 std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(
     Payload payload) {
   switch (payload.GetType()) {
-    case Payload::Type::kBytes:
+    case PayloadType::kBytes:
       return absl::make_unique<BytesInternalPayload>(std::move(payload));
 
-    case Payload::Type::kFile: {
+    case PayloadType::kFile: {
       InputFile* file = payload.AsFile();
       const PayloadId file_payload_id = file ? file->GetPayloadId() : 0;
       const PayloadId payload_id = payload.GetId();
@@ -299,7 +299,7 @@ std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(
       return absl::make_unique<OutgoingFileInternalPayload>(std::move(payload));
     }
 
-    case Payload::Type::kStream:
+    case PayloadType::kStream:
       return absl::make_unique<OutgoingStreamInternalPayload>(
           std::move(payload));
 

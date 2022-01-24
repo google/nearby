@@ -46,7 +46,7 @@ void GNCPayloadListener::OnPayload(const std::string &endpoint_id, Payload paylo
   NSMutableDictionary<NSNumber *, GNCPayloadInfo *> *payloads = payloads_provider_();
 
   switch (payload.GetType()) {
-    case Payload::Type::kBytes: {
+    case PayloadType::kBytes: {
       NSData *data = NSDataFromByteArray(payload.AsBytes());  // don't capture C++ object
 
       // Wait for the payload transfer update to arrive before calling the Bytes payload handler.
@@ -66,7 +66,7 @@ void GNCPayloadListener::OnPayload(const std::string &endpoint_id, Payload paylo
       break;
     }
 
-    case Payload::Type::kStream:
+    case PayloadType::kStream:
       if (handlers.streamPayloadHandler) {
         // Make a pair of bound streams so data pumped into the output stream becomes
         // available for reading from the input stream.
@@ -144,7 +144,7 @@ void GNCPayloadListener::OnPayload(const std::string &endpoint_id, Payload paylo
       }
       break;
 
-    case Payload::Type::kFile:
+    case PayloadType::kFile:
       if (handlers.filePayloadHandler) {
         InputFile *payloadInputFile = payload.AsFile();
         NSURL *fileURL =

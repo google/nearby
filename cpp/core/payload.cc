@@ -75,11 +75,11 @@ InputFile* Payload::AsFile() { return absl::get_if<InputFile>(&content_); }
 Payload::Id Payload::GetId() const { return id_; }
 
 // Returns Payload type.
-Payload::Type Payload::GetType() const { return type_; }
+PayloadType Payload::GetType() const { return type_; }
 
 // Sets the payload offset in bytes
 void Payload::SetOffset(size_t offset) {
-  CHECK(type_ == Type::kFile || type_ == Type::kStream);
+  CHECK(type_ == PayloadType::kFile || type_ == PayloadType::kStream);
   InputFile* file = AsFile();
   if (file != nullptr) {
     CHECK(file->GetTotalSize() > 0 && offset < (size_t)file->GetTotalSize());
@@ -92,8 +92,8 @@ size_t Payload::GetOffset() { return offset_; }
 // Generate Payload Id; to be passed to outgoing file constructor.
 Payload::Id Payload::GenerateId() { return Prng().NextInt64(); }
 
-Payload::Type Payload::FindType() const {
-  return static_cast<Type>(content_.index());
+PayloadType Payload::FindType() const {
+  return static_cast<PayloadType>(content_.index());
 }
 
 }  // namespace connections

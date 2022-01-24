@@ -18,10 +18,11 @@
 
 namespace location {
 namespace nearby {
-namespace connections {
 namespace windows {
 
-Core *InitCore(ServiceControllerRouter *router) { return new Core(router); }
+Core *InitCore(connections::ServiceControllerRouter *router) {
+  return new nearby::connections::Core(router);
+}
 
 void CloseCore(Core *pCore) {
   if (pCore) {
@@ -33,101 +34,124 @@ void CloseCore(Core *pCore) {
 
 void StartAdvertising(Core *pCore, const char *service_id,
                       AdvertisingOptions advertising_options,
-                      ConnectionRequestInfo info, ResultCallback callback) {
+                      windows::ConnectionRequestInfoW info,
+                      connections::ResultCallback callback) {
   if (pCore) {
-    pCore->StartAdvertising(service_id, advertising_options, info, callback);
+    connections::ConnectionRequestInfo crInfo =
+        connections::ConnectionRequestInfo();
+
+    crInfo.endpoint_info = ByteArray(info.endpoint_info);
+    crInfo.listener = std::move(*(info.listener.GetpImpl()));
+    pCore->StartAdvertising(service_id, advertising_options, crInfo, callback);
   }
 }
 
-void StopAdvertising(Core *pCore, ResultCallback callback) {
+void StopAdvertising(connections::Core *pCore,
+                     connections::ResultCallback callback) {
   if (pCore) {
     pCore->StopAdvertising(callback);
   }
 }
 
-void StartDiscovery(Core *pCore, const char *service_id,
-                    DiscoveryOptions discovery_options,
-                    DiscoveryListener listener, ResultCallback callback) {
+void StartDiscovery(connections::Core *pCore, const char *service_id,
+                    connections::DiscoveryOptions discovery_options,
+                    windows::DiscoveryListenerW listener,
+                    connections::ResultCallback callback) {
   if (pCore) {
-    pCore->StartDiscovery(service_id, discovery_options, listener, callback);
+    connections::DiscoveryListener discoveryListener = *listener.GetpImpl();
+    pCore->StartDiscovery(service_id, discovery_options, discoveryListener,
+                          callback);
   }
 }
 
-void StopDiscovery(Core *pCore, ResultCallback callback) {
+void StopDiscovery(connections::Core *pCore,
+                   connections::ResultCallback callback) {
   if (pCore) {
     pCore->StopDiscovery(callback);
   }
 }
 
-void InjectEndpoint(Core *pCore, char *service_id,
-                    OutOfBandConnectionMetadata metadata,
-                    ResultCallback callback) {
+void InjectEndpoint(connections::Core *pCore, char *service_id,
+                    connections::OutOfBandConnectionMetadata metadata,
+                    connections::ResultCallback callback) {
   if (pCore) {
     pCore->InjectEndpoint(service_id, metadata, callback);
   }
 }
 
-void RequestConnection(Core *pCore, const char *endpoint_id,
-                       ConnectionRequestInfo info,
-                       ConnectionOptions connection_options,
-                       ResultCallback callback) {
+void RequestConnection(connections::Core *pCore, const char *endpoint_id,
+                       windows::ConnectionRequestInfoW info,
+                       connections::ConnectionOptions connection_options,
+                       connections::ResultCallback callback) {
   if (pCore) {
-    pCore->RequestConnection(endpoint_id, info, connection_options, callback);
+    connections::ConnectionRequestInfo connectionRequestInfo =
+        connections::ConnectionRequestInfo();
+    connectionRequestInfo.endpoint_info = ByteArray(info.endpoint_info);
+    connectionRequestInfo.listener = std::move(*info.listener.GetpImpl());
+    pCore->RequestConnection(endpoint_id, connectionRequestInfo,
+                             connection_options, callback);
   }
 }
 
-void AcceptConnection(Core *pCore, const char *endpoint_id,
-                      PayloadListener listener, ResultCallback callback) {
+void AcceptConnection(connections::Core *pCore, const char *endpoint_id,
+                      windows::PayloadListenerW listener,
+                      connections::ResultCallback callback) {
   if (pCore) {
-    pCore->AcceptConnection(endpoint_id, listener, callback);
+    connections::PayloadListener payload_listener =
+        std::move(*listener.GetpImpl());
+    pCore->AcceptConnection(endpoint_id, payload_listener, callback);
   }
 }
 
-void RejectConnection(Core *pCore, const char *endpoint_id,
-                      ResultCallback callback) {
+void RejectConnection(connections::Core *pCore, const char *endpoint_id,
+                      connections::ResultCallback callback) {
   if (pCore) {
     pCore->RejectConnection(endpoint_id, callback);
   }
 }
 
-void SendPayload(Core *pCore,
+void SendPayload(connections::Core *pCore,
                  // todo(jfcarroll) this is being exported, needs to be
                  // refactored to return a plain old c type
-                 absl::Span<const std::string> endpoint_ids, Payload payload,
-                 ResultCallback callback) {
+                 const char *endpoint_ids, windows::PayloadW payloadw,
+                 connections::ResultCallback callback) {
   if (pCore) {
-    pCore->SendPayload(endpoint_ids, std::move(payload), callback);
+    auto payload = payloadw.GetpImpl();
+    std::string payloadData = std::string(endpoint_ids);
+    absl::Span<const std::string> span{&payloadData, 1};
+    pCore->SendPayload(span, std::move(*payload), callback);
   }
 }
 
-void CancelPayload(Core *pCore, std::int64_t payload_id,
-                   ResultCallback callback) {
+void CancelPayload(connections::Core *pCore, std::int64_t payload_id,
+                   connections::ResultCallback callback) {
   if (pCore) {
     pCore->CancelPayload(payload_id, callback);
   }
 }
 
-void DisconnectFromEndpoint(Core *pCore, char *endpoint_id,
-                            ResultCallback callback) {
+void DisconnectFromEndpoint(connections::Core *pCore, char *endpoint_id,
+                            connections::ResultCallback callback) {
   if (pCore) {
     pCore->DisconnectFromEndpoint(endpoint_id, callback);
   }
 }
 
-void StopAllEndpoints(Core *pCore, ResultCallback callback) {
+void StopAllEndpoints(connections::Core *pCore,
+                      connections::ResultCallback callback) {
   if (pCore) {
     pCore->StopAllEndpoints(callback);
   }
 }
 
-void InitiateBandwidthUpgrade(Core *pCore, char *endpoint_id,
-                              ResultCallback callback) {
+void InitiateBandwidthUpgrade(connections::Core *pCore, char *endpoint_id,
+                              connections::ResultCallback callback) {
   if (pCore) {
     pCore->InitiateBandwidthUpgrade(endpoint_id, callback);
   }
 }
 
-const char *GetLocalEndpointId(Core *pCore) {
+const char *GetLocalEndpointId(connections::Core *pCore) {
   if (pCore) {
     std::string endpoint_id = pCore->GetLocalEndpointId();
     char *result = new char[endpoint_id.length() + 1];
@@ -137,17 +161,17 @@ const char *GetLocalEndpointId(Core *pCore) {
   return "Null-Core";
 }
 
-ServiceControllerRouter *InitServiceControllerRouter() {
-  return new ServiceControllerRouter();
+connections::ServiceControllerRouter *InitServiceControllerRouter() {
+  return new connections::ServiceControllerRouter();
 }
 
-void CloseServiceControllerRouter(ServiceControllerRouter *pRouter) {
+void CloseServiceControllerRouter(
+    connections::ServiceControllerRouter *pRouter) {
   if (pRouter) {
     delete pRouter;
   }
 }
 
 }  // namespace windows
-}  // namespace connections
 }  // namespace nearby
 }  // namespace location

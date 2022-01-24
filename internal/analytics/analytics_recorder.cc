@@ -434,7 +434,7 @@ void AnalyticsRecorder::OnConnectionClosed(const std::string &endpoint_id,
 }
 void AnalyticsRecorder::OnIncomingPayloadStarted(
     const std::string &endpoint_id, std::int64_t payload_id,
-    connections::Payload::Type type, std::int64_t total_size_bytes) {
+    connections::PayloadType type, std::int64_t total_size_bytes) {
   MutexLock lock(&mutex_);
   if (!CanRecordAnalyticsLocked("OnIncomingPayloadStarted")) {
     return;
@@ -480,7 +480,7 @@ void AnalyticsRecorder::OnIncomingPayloadDone(const std::string &endpoint_id,
 
 void AnalyticsRecorder::OnOutgoingPayloadStarted(
     const std::vector<std::string> &endpoint_ids, std::int64_t payload_id,
-    connections::Payload::Type type, std::int64_t total_size_bytes) {
+    connections::PayloadType type, std::int64_t total_size_bytes) {
   MutexLock lock(&mutex_);
   if (!CanRecordAnalyticsLocked("OnOutgoingPayloadStarted")) {
     return;
@@ -968,13 +968,13 @@ ConnectionsStrategy AnalyticsRecorder::StrategyToConnectionStrategy(
 }
 
 PayloadType AnalyticsRecorder::PayloadTypeToProtoPayloadType(
-    connections::Payload::Type type) {
+    connections::PayloadType type) {
   switch (type) {
-    case connections::Payload::Type::kBytes:
+    case connections::PayloadType::kBytes:
       return BYTES;
-    case connections::Payload::Type::kFile:
+    case connections::PayloadType::kFile:
       return FILE;
-    case connections::Payload::Type::kStream:
+    case connections::PayloadType::kStream:
       return STREAM;
     default:
       return UNKNOWN_PAYLOAD_TYPE;

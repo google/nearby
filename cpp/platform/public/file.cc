@@ -17,7 +17,7 @@
 namespace location {
 namespace nearby {
 
-InputFile::InputFile(PayloadId payload_id, std::int64_t size)
+InputFile::InputFile(PayloadId payload_id, size_t size)
     : impl_(Platform::CreateInputFile(payload_id, size)), id_(payload_id) {}
 InputFile::~InputFile() = default;
 InputFile::InputFile(InputFile&&) noexcept = default;
@@ -26,7 +26,7 @@ InputFile& InputFile::operator=(InputFile&&) noexcept = default;
 // Reads up to size bytes and returns as a ByteArray object wrapped by
 // ExceptionOr.
 // Returns Exception::kIo on error, or end of file.
-ExceptionOr<ByteArray> InputFile::Read(std::int64_t size) {
+ExceptionOr<ByteArray> InputFile::Read(size_t size) {
   return impl_->Read(size);
 }
 
@@ -34,7 +34,7 @@ ExceptionOr<ByteArray> InputFile::Read(std::int64_t size) {
 std::string InputFile::GetFilePath() const { return impl_->GetFilePath(); }
 
 // Returns total size of this file in bytes.
-std::int64_t InputFile::GetTotalSize() const { return impl_->GetTotalSize(); }
+size_t InputFile::GetTotalSize() const { return impl_->GetTotalSize(); }
 
 ExceptionOr<size_t> InputFile::Skip(size_t offset) {
   return impl_->Skip(offset);

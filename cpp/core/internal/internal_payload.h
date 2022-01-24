@@ -54,7 +54,7 @@ class InternalPayload {
   //
   // @return The total size, or -1 if it cannot be deduced (for example, when
   // dealing with streaming data).
-  virtual std::int64_t GetTotalSize() const = 0;
+  virtual size_t GetTotalSize() const = 0;
 
   // Breaks off the next chunk from the Payload to which this object is bound.
   //

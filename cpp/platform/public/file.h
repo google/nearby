@@ -34,7 +34,7 @@ namespace nearby {
 class DLL_API InputFile final {
  public:
   using Platform = api::ImplementationPlatform;
-  InputFile(PayloadId payload_id, std::int64_t size);
+  InputFile(PayloadId payload_id, size_t size);
   ~InputFile();
   InputFile(InputFile&&) noexcept;
   InputFile& operator=(InputFile&&) noexcept;
@@ -42,13 +42,13 @@ class DLL_API InputFile final {
   // Reads up to size bytes and returns as a ByteArray object wrapped by
   // ExceptionOr.
   // Returns Exception::kIo on error, or end of file.
-  ExceptionOr<ByteArray> Read(std::int64_t size);
+  ExceptionOr<ByteArray> Read(size_t size);
 
   // Returns a string that uniqely identifies this file.
   std::string GetFilePath() const;
 
   // Returns total size of this file in bytes.
-  std::int64_t GetTotalSize() const;
+  size_t GetTotalSize() const;
 
   ExceptionOr<size_t> Skip(size_t offset);
 

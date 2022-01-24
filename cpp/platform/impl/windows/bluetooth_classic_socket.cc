@@ -23,6 +23,11 @@ namespace windows {
 
 BluetoothSocket::BluetoothSocket(StreamSocket streamSocket)
     : windows_socket_(streamSocket) {
+  bluetooth_device_ = std::make_unique<BluetoothDevice>(
+      winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
+          windows_socket_.Information().RemoteHostName())
+          .get());
+
   input_stream_ =
       std::make_unique<BluetoothInputStream>(windows_socket_.InputStream());
   output_stream_ =
@@ -94,7 +99,7 @@ BluetoothSocket::BluetoothInputStream::BluetoothInputStream(
 }
 
 ExceptionOr<ByteArray> BluetoothSocket::BluetoothInputStream::Read(
-    std::int64_t size) {
+    size_t size) {
   if (winrt_stream_ == nullptr) {
     return {Exception::kFailed};
   }

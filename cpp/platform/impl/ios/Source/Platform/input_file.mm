@@ -30,7 +30,7 @@ InputFile::InputFile(NSURL *nsURL) : nsURL_(nsURL) {
   [nsStream_ open];
 }
 
-ExceptionOr<ByteArray> InputFile::Read(std::int64_t size) {
+ExceptionOr<ByteArray> InputFile::Read(size_t size) {
   uint8_t *bytes_read = new uint8_t[size];
   NSUInteger numberOfBytesToRead = [[NSNumber numberWithLongLong:size] unsignedIntegerValue];
   NSInteger numberOfBytesRead = [nsStream_ read:bytes_read maxLength:numberOfBytesToRead];
@@ -49,7 +49,7 @@ std::string InputFile::GetFilePath() const {
   return CppStringFromObjCString([nsURL_ absoluteString]);
 }
 
-std::int64_t InputFile::GetTotalSize() const {
+size_t InputFile::GetTotalSize() const {
   NSNumber *fileSizeValue = nil;
   BOOL result = [nsURL_ getResourceValue:&fileSizeValue forKey:NSURLFileSizeKey error:nil];
   if (result) {

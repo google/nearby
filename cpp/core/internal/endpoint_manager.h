@@ -48,7 +48,7 @@ namespace connections {
 // PayloadManager::SendPayload() before control is transferred over to
 // EndpointManager::SendPayloadChunk(). This work happens on one of three
 // dedicated writer threads belonging to the PayloadManager. The writer thread
-// that is used depends on the Payload::Type.
+// that is used depends on the PayloadType.
 //
 // The EndpointManager has one dedicated reader thread for each registered
 // endpoint, and the receiving of every incoming payload (and its subsequent
@@ -254,7 +254,7 @@ class EndpointManager {
   std::vector<std::string> SendTransferFrameBytes(
       const std::vector<std::string>& endpoint_ids,
       const ByteArray& payload_transfer_frame_bytes, std::int64_t payload_id,
-      std::int64_t offset, const std::string& packet_type);
+      size_t offset, const std::string& packet_type);
 
   // Executes all jobs sequentially, on a serial_executor_.
   void RunOnEndpointManagerThread(const std::string& name, Runnable runnable);

@@ -21,11 +21,11 @@
 #include <utility>
 
 #include "absl/types/variant.h"
+#include "core/payload_type.h"
 #include "platform/base/byte_array.h"
 #include "platform/base/input_stream.h"
 #include "platform/base/payload_id.h"
 #include "platform/base/prng.h"
-#include "platform/public/core_config.h"
 #include "platform/public/file.h"
 #include "platform/public/logging.h"
 
@@ -36,14 +36,13 @@ namespace connections {
 // Payload is default-constructible, and moveable, but not copyable container
 // that holds at most one instance of one of:
 // ByteArray, InputStream, or InputFile.
-class DLL_API Payload {
+class Payload {
  public:
   using Id = PayloadId;
   // Order of types in variant, and values in Type enum is important.
   // Enum values must match respective variant types.
   using Content = absl::variant<absl::monostate, ByteArray,
                                 std::function<InputStream&()>, InputFile>;
-  enum class Type { kUnknown = 0, kBytes = 1, kStream = 2, kFile = 3 };
 
   Payload(Payload&& other) noexcept;
   ~Payload();
@@ -60,11 +59,10 @@ class DLL_API Payload {
   explicit Payload(std::function<InputStream&()> stream);
 
   // Constructors for incoming payloads.
-  Payload(Id id, ByteArray&& bytes);
-  Payload(Id id, const ByteArray& bytes);
-  Payload(Id id, InputFile file);
-  Payload(Id id, std::function<InputStream&()> stream);
-
+  explicit Payload(Id id, ByteArray&& bytes);
+  explicit Payload(Id id, const ByteArray& bytes);
+  explicit Payload(Id id, InputFile file);
+  explicit Payload(Id id, std::function<InputStream&()> stream);
 
   // Returns ByteArray payload, if it has been defined, or empty ByteArray.
   const ByteArray& AsBytes() const&;
@@ -78,7 +76,7 @@ class DLL_API Payload {
   Id GetId() const;
 
   // Returns Payload type.
-  Type GetType() const;
+  PayloadType GetType() const;
 
   // Sets the payload offset in bytes
   void SetOffset(size_t offset);
@@ -89,11 +87,11 @@ class DLL_API Payload {
   static Id GenerateId();
 
  private:
-  Type FindType() const;
+  PayloadType FindType() const;
 
   Content content_;
   Id id_{GenerateId()};
-  Type type_{FindType()};
+  PayloadType type_{FindType()};
   size_t offset_{0};
 };
 

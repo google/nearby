@@ -31,13 +31,13 @@ namespace connections {
 
 TEST(PayloadTest, DefaultPayloadHasUnknownType) {
   Payload payload;
-  EXPECT_EQ(payload.GetType(), Payload::Type::kUnknown);
+  EXPECT_EQ(payload.GetType(), PayloadType::kUnknown);
 }
 
 TEST(PayloadTest, SupportsByteArrayType) {
   const ByteArray bytes("bytes");
   Payload payload(bytes);
-  EXPECT_EQ(payload.GetType(), Payload::Type::kBytes);
+  EXPECT_EQ(payload.GetType(), PayloadType::kBytes);
   EXPECT_EQ(payload.AsStream(), nullptr);
   EXPECT_EQ(payload.AsFile(), nullptr);
   EXPECT_EQ(payload.AsBytes(), bytes);
@@ -52,7 +52,7 @@ TEST(PayloadTest, SupportsFileType) {
   Payload payload(payload_id, std::move(file));
   payload.SetOffset(kOffset);
 
-  EXPECT_EQ(payload.GetType(), Payload::Type::kFile);
+  EXPECT_EQ(payload.GetType(), PayloadType::kFile);
   EXPECT_EQ(payload.AsStream(), nullptr);
   EXPECT_EQ(&payload.AsFile()->GetInputStream(), &stream);
   EXPECT_EQ(payload.AsBytes(), ByteArray{});
@@ -72,7 +72,7 @@ TEST(PayloadTest, SupportsStreamType) {
   });
   payload.SetOffset(kOffset);
 
-  EXPECT_EQ(payload.GetType(), Payload::Type::kStream);
+  EXPECT_EQ(payload.GetType(), PayloadType::kStream);
   EXPECT_EQ(payload.AsStream(), &pipe->GetInputStream());
   EXPECT_EQ(payload.AsFile(), nullptr);
   EXPECT_EQ(payload.AsBytes(), ByteArray{});
@@ -84,10 +84,10 @@ TEST(PayloadTest, PayloadIsMoveable) {
   Payload payload2(ByteArray("bytes"));
   auto id = payload2.GetId();
   ByteArray bytes = payload2.AsBytes();
-  EXPECT_EQ(payload1.GetType(), Payload::Type::kUnknown);
-  EXPECT_EQ(payload2.GetType(), Payload::Type::kBytes);
+  EXPECT_EQ(payload1.GetType(), PayloadType::kUnknown);
+  EXPECT_EQ(payload2.GetType(), PayloadType::kBytes);
   payload1 = std::move(payload2);
-  EXPECT_EQ(payload1.GetType(), Payload::Type::kBytes);
+  EXPECT_EQ(payload1.GetType(), PayloadType::kBytes);
   EXPECT_EQ(payload1.AsBytes(), bytes);
   EXPECT_EQ(payload1.GetId(), id);
 }

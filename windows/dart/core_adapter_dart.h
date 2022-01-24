@@ -21,7 +21,6 @@
 
 namespace location {
 namespace nearby {
-namespace connections {
 namespace windows {
 
 enum StrategyDart {
@@ -209,7 +208,6 @@ DLL_EXPORT void __stdcall SendPayloadDart(Core *pCore, const char *endpoint_id,
                                           Dart_Port result_cb);
 
 }  // namespace windows
-}  // namespace connections
 }  // namespace nearby
 }  // namespace location
 

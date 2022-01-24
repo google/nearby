@@ -40,7 +40,7 @@ constexpr const absl::Duration PayloadManager::kWaitCloseTimeout;
 bool PayloadManager::SendPayloadLoop(
     ClientProxy* client, PendingPayload& pending_payload,
     PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t& next_chunk_offset, size_t resume_offset) {
+    size_t& next_chunk_offset, size_t resume_offset) {
   // in lieu of structured binding:
   auto pair = GetAvailableAndUnavailableEndpoints(pending_payload);
   const EndpointIds& available_endpoint_ids =
@@ -226,15 +226,15 @@ std::string PayloadManager::ToString(const EndpointIds& endpoint_ids) {
   return endpoints_string;
 }
 
-std::string PayloadManager::ToString(Payload::Type type) {
+std::string PayloadManager::ToString(PayloadType type) {
   switch (type) {
-    case Payload::Type::kBytes:
+    case PayloadType::kBytes:
       return std::string("Bytes");
-    case Payload::Type::kStream:
+    case PayloadType::kStream:
       return std::string("Stream");
-    case Payload::Type::kFile:
+    case PayloadType::kFile:
       return std::string("File");
-    case Payload::Type::kUnknown:
+    case PayloadType::kUnknown:
       return std::string("Unknown");
   }
 }
@@ -355,14 +355,14 @@ void PayloadManager::SendPayload(ClientProxy* client,
   // analytics.
   std::int64_t payload_total_size;
   switch (payload.GetType()) {
-    case connections::Payload::Type::kBytes:
+    case connections::PayloadType::kBytes:
       payload_total_size = payload.AsBytes().size();
       break;
-    case connections::Payload::Type::kFile:
+    case connections::PayloadType::kFile:
       payload_total_size = payload.AsFile()->GetTotalSize();
       break;
-    case connections::Payload::Type::kStream:
-    case connections::Payload::Type::kUnknown:
+    case connections::PayloadType::kStream:
+    case connections::PayloadType::kUnknown:
       payload_total_size = -1;
       break;
   }
@@ -386,7 +386,7 @@ void PayloadManager::SendPayload(ClientProxy* client,
   // other payload of the same type from even starting until this one is
   // completely done with. If we ever want to provide isolation across
   // ClientProxy objects this will need to be significantly re-architected.
-  Payload::Type payload_type = payload.GetType();
+  PayloadType payload_type = payload.GetType();
   size_t resume_offset =
       FeatureFlags::GetInstance().GetFlags().enable_send_payload_offset
           ? payload.GetOffset()
@@ -420,7 +420,7 @@ void PayloadManager::SendPayload(ClientProxy* client,
         PayloadTransferFrame::PayloadHeader payload_header{
             CreatePayloadHeader(*internal_payload, resume_offset)};
         bool should_continue = true;
-        std::int64_t next_chunk_offset = 0;
+        size_t next_chunk_offset = 0;
         while (should_continue && !shutdown_.Get()) {
           should_continue =
               SendPayloadLoop(client, *pending_payload, payload_header,
@@ -507,13 +507,13 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
               if (!pending_payload) continue;
               auto endpoint_info = pending_payload->GetEndpoint(endpoint_id);
               if (!endpoint_info) continue;
-              std::int64_t endpoint_offset = endpoint_info->offset;
+              size_t endpoint_offset = endpoint_info->offset;
               // Stop tracking the endpoint for this payload.
               pending_payload->RemoveEndpoints({endpoint_id});
               // |endpoint_info| is longer valid after calling RemoveEndpoints.
               endpoint_info = nullptr;
 
-              std::int64_t payload_total_size =
+              size_t payload_total_size =
                   pending_payload->GetInternalPayload()->GetTotalSize();
 
               // If no endpoints are left for this payload, close it.
@@ -587,13 +587,13 @@ PayloadProgressInfo::Status PayloadManager::PayloadStatusToTransferUpdateStatus(
 }
 
 SingleThreadExecutor* PayloadManager::GetOutgoingPayloadExecutor(
-    Payload::Type payload_type) {
+    PayloadType payload_type) {
   switch (payload_type) {
-    case Payload::Type::kBytes:
+    case PayloadType::kBytes:
       return &bytes_payload_executor_;
-    case Payload::Type::kFile:
+    case PayloadType::kFile:
       return &file_payload_executor_;
-    case Payload::Type::kStream:
+    case PayloadType::kStream:
       return &stream_payload_executor_;
     default:
       return nullptr;
@@ -625,7 +625,7 @@ PayloadTransferFrame::PayloadHeader PayloadManager::CreatePayloadHeader(
 }
 
 PayloadTransferFrame::PayloadChunk PayloadManager::CreatePayloadChunk(
-    std::int64_t payload_chunk_offset, ByteArray payload_chunk_body) {
+    size_t payload_chunk_offset, ByteArray payload_chunk_body) {
   PayloadTransferFrame::PayloadChunk payload_chunk;
 
   payload_chunk.set_offset(payload_chunk_offset);
@@ -661,7 +661,7 @@ PayloadManager::PendingPayload* PayloadManager::CreateIncomingPayload(
 void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
     ClientProxy* client, const EndpointIds& finished_endpoint_ids,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t num_bytes_successfully_transferred,
+    size_t num_bytes_successfully_transferred,
     proto::connections::PayloadStatus status) {
   RunOnStatusUpdateThread(
       "outgoing-payload-callbacks",
@@ -706,7 +706,7 @@ void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
 void PayloadManager::SendClientCallbacksForFinishedIncomingPayload(
     ClientProxy* client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t offset_bytes, proto::connections::PayloadStatus status) {
+    size_t offset_bytes, proto::connections::PayloadStatus status) {
   RunOnStatusUpdateThread(
       "incoming-payload-callbacks",
       [this, client, endpoint_id, payload_header, offset_bytes,
@@ -735,7 +735,7 @@ void PayloadManager::SendClientCallbacksForFinishedIncomingPayload(
 void PayloadManager::SendControlMessage(
     const EndpointIds& endpoint_ids,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t num_bytes_successfully_transferred,
+    size_t num_bytes_successfully_transferred,
     PayloadTransferFrame::ControlMessage::EventType event_type) {
   PayloadTransferFrame::ControlMessage control_message;
   control_message.set_event(event_type);
@@ -748,7 +748,7 @@ void PayloadManager::SendControlMessage(
 void PayloadManager::HandleFinishedOutgoingPayload(
     ClientProxy* client, const EndpointIds& finished_endpoint_ids,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t num_bytes_successfully_transferred,
+    size_t num_bytes_successfully_transferred,
     proto::connections::PayloadStatus status) {
   // This call will destroy a pending payload.
   SendClientCallbacksForFinishedOutgoingPayload(
@@ -793,7 +793,7 @@ void PayloadManager::HandleFinishedOutgoingPayload(
 void PayloadManager::HandleFinishedIncomingPayload(
     ClientProxy* client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t offset_bytes, proto::connections::PayloadStatus status) {
+    size_t offset_bytes, proto::connections::PayloadStatus status) {
   SendClientCallbacksForFinishedIncomingPayload(
       client, endpoint_id, payload_header, offset_bytes, status);
 
@@ -818,8 +818,8 @@ void PayloadManager::HandleFinishedIncomingPayload(
 void PayloadManager::HandleSuccessfulOutgoingChunk(
     ClientProxy* client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
-    std::int64_t payload_chunk_body_size) {
+    std::int32_t payload_chunk_flags, size_t payload_chunk_offset,
+    size_t payload_chunk_body_size) {
   RunOnStatusUpdateThread(
       "outgoing-chunk-success",
       [this, client, endpoint_id, payload_header, payload_chunk_flags,
@@ -889,8 +889,8 @@ void PayloadManager::DestroyPendingPayload(Payload::Id payload_id) {
 void PayloadManager::HandleSuccessfulIncomingChunk(
     ClientProxy* client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
-    std::int64_t payload_chunk_body_size) {
+    std::int32_t payload_chunk_flags, size_t payload_chunk_offset,
+    size_t payload_chunk_body_size) {
   RunOnStatusUpdateThread(
       "incoming-chunk-success",
       [this, client, endpoint_id, payload_header, payload_chunk_flags,
@@ -1099,8 +1099,8 @@ void PayloadManager::NotifyClientOfIncomingPayloadProgressInfo(
 
 void PayloadManager::RecordPayloadStartedAnalytics(
     ClientProxy* client, const EndpointIds& endpoint_ids,
-    std::int64_t payload_id, Payload::Type payload_type, std::int64_t offset,
-    std::int64_t total_size) {
+    std::int64_t payload_id, PayloadType payload_type, size_t offset,
+    size_t total_size) {
   client->GetAnalyticsRecorder().OnOutgoingPayloadStarted(
       endpoint_ids, payload_id, payload_type,
       total_size == -1 ? -1 : total_size - offset);
@@ -1108,8 +1108,8 @@ void PayloadManager::RecordPayloadStartedAnalytics(
 
 void PayloadManager::RecordInvalidPayloadAnalytics(
     ClientProxy* client, const EndpointIds& endpoint_ids,
-    std::int64_t payload_id, Payload::Type payload_type, std::int64_t offset,
-    std::int64_t total_size) {
+    std::int64_t payload_id, PayloadType payload_type, size_t offset,
+    size_t total_size) {
   RecordPayloadStartedAnalytics(client, endpoint_ids, payload_id, payload_type,
                                 offset, total_size);
 
@@ -1119,17 +1119,17 @@ void PayloadManager::RecordInvalidPayloadAnalytics(
   }
 }
 
-Payload::Type PayloadManager::FramePayloadTypeToPayloadType(
+PayloadType PayloadManager::FramePayloadTypeToPayloadType(
     PayloadTransferFrame::PayloadHeader::PayloadType type) {
   switch (type) {
     case PayloadTransferFrame_PayloadHeader_PayloadType_BYTES:
-      return connections::Payload::Type::kBytes;
+      return connections::PayloadType::kBytes;
     case PayloadTransferFrame_PayloadHeader_PayloadType_FILE:
-      return connections::Payload::Type::kFile;
+      return connections::PayloadType::kFile;
     case PayloadTransferFrame_PayloadHeader_PayloadType_STREAM:
-      return connections::Payload::Type::kStream;
+      return connections::PayloadType::kStream;
     default:
-      return connections::Payload::Type::kUnknown;
+      return connections::PayloadType::kUnknown;
   }
 }
 
@@ -1241,7 +1241,7 @@ void PayloadManager::PendingPayload::SetEndpointStatusFromControlMessage(
 }
 
 void PayloadManager::PendingPayload::SetOffsetForEndpoint(
-    const std::string& endpoint_id, std::int64_t offset) {
+    const std::string& endpoint_id, size_t offset) {
   MutexLock lock(&mutex_);
 
   auto item = endpoints_.find(endpoint_id);

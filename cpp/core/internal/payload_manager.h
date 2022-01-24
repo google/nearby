@@ -127,8 +127,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
         ABSL_LOCKS_EXCLUDED(mutex_);
 
     // Sets the offset for a particular endpoint.
-    void SetOffsetForEndpoint(const std::string& endpoint_id,
-                              std::int64_t offset) ABSL_LOCKS_EXCLUDED(mutex_);
+    void SetOffsetForEndpoint(const std::string& endpoint_id, size_t offset)
+        ABSL_LOCKS_EXCLUDED(mutex_);
 
     // Closes internal_payload_ and triggers close_event_.
     // Close is called when a pending peyload does not have associated
@@ -174,7 +174,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   using Endpoints = std::vector<const EndpointInfo*>;
   static std::string ToString(const EndpointIds& endpoint_ids);
   static std::string ToString(const Endpoints& endpoints);
-  static std::string ToString(Payload::Type type);
+  static std::string ToString(PayloadType type);
   static std::string ToString(EndpointInfo::Status status);
 
   // Splits the endpoints for this payload by availability.
@@ -189,7 +189,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
   bool SendPayloadLoop(ClientProxy* client, PendingPayload& pending_payload,
                        PayloadTransferFrame::PayloadHeader& payload_header,
-                       std::int64_t& next_chunk_offset, size_t resume_offset);
+                       size_t& next_chunk_offset, size_t resume_offset);
   void SendClientCallbacksForFinishedIncomingPayloadRunnable(
       ClientProxy* client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
@@ -212,7 +212,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
   PayloadTransferFrame::PayloadHeader CreatePayloadHeader(
       const InternalPayload& payload, size_t offset);
-  PayloadTransferFrame::PayloadChunk CreatePayloadChunk(std::int64_t offset,
+  PayloadTransferFrame::PayloadChunk CreatePayloadChunk(size_t offset,
                                                         ByteArray body);
 
   PendingPayload* CreateIncomingPayload(const PayloadTransferFrame& frame,
@@ -226,17 +226,17 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   void SendClientCallbacksForFinishedOutgoingPayload(
       ClientProxy* client, const EndpointIds& finished_endpoint_ids,
       const PayloadTransferFrame::PayloadHeader& payload_header,
-      std::int64_t num_bytes_successfully_transferred,
+      size_t num_bytes_successfully_transferred,
       proto::connections::PayloadStatus status);
   void SendClientCallbacksForFinishedIncomingPayload(
       ClientProxy* client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
-      std::int64_t offset_bytes, proto::connections::PayloadStatus status);
+      size_t offset_bytes, proto::connections::PayloadStatus status);
 
   void SendControlMessage(
       const EndpointIds& endpoint_ids,
       const PayloadTransferFrame::PayloadHeader& payload_header,
-      std::int64_t num_bytes_successfully_transferred,
+      size_t num_bytes_successfully_transferred,
       PayloadTransferFrame::ControlMessage::EventType event_type);
 
   // Handles a finished outgoing payload for the given endpointIds. All statuses
@@ -244,24 +244,24 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   void HandleFinishedOutgoingPayload(
       ClientProxy* client, const EndpointIds& finished_endpoint_ids,
       const PayloadTransferFrame::PayloadHeader& payload_header,
-      std::int64_t num_bytes_successfully_transferred,
+      size_t num_bytes_successfully_transferred,
       proto::connections::PayloadStatus status =
           proto::connections::PayloadStatus::UNKNOWN_PAYLOAD_STATUS);
   void HandleFinishedIncomingPayload(
       ClientProxy* client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
-      std::int64_t offset_bytes, proto::connections::PayloadStatus status);
+      size_t offset_bytes, proto::connections::PayloadStatus status);
 
   void HandleSuccessfulOutgoingChunk(
       ClientProxy* client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
-      std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
-      std::int64_t payload_chunk_body_size);
+      std::int32_t payload_chunk_flags, size_t payload_chunk_offset,
+      size_t payload_chunk_body_size);
   void HandleSuccessfulIncomingChunk(
       ClientProxy* client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
-      std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
-      std::int64_t payload_chunk_body_size);
+      std::int32_t payload_chunk_flags, size_t payload_chunk_offset,
+      size_t payload_chunk_body_size);
 
   void ProcessDataPacket(ClientProxy* to_client,
                          const std::string& from_endpoint_id,
@@ -275,7 +275,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       const PayloadProgressInfo& payload_transfer_update)
       RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD();
 
-  SingleThreadExecutor* GetOutgoingPayloadExecutor(Payload::Type payload_type);
+  SingleThreadExecutor* GetOutgoingPayloadExecutor(PayloadType payload_type);
 
   void RunOnStatusUpdateThread(const std::string& name,
                                std::function<void()> runnable);
@@ -289,17 +289,15 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   void RecordPayloadStartedAnalytics(ClientProxy* client,
                                      const EndpointIds& endpoint_ids,
                                      std::int64_t payload_id,
-                                     Payload::Type payload_type,
-                                     std::int64_t offset,
-                                     std::int64_t total_size);
+                                     PayloadType payload_type, size_t offset,
+                                     size_t total_size);
   void RecordInvalidPayloadAnalytics(ClientProxy* client,
                                      const EndpointIds& endpoint_ids,
                                      std::int64_t payload_id,
-                                     Payload::Type payload_type,
-                                     std::int64_t offset,
-                                     std::int64_t total_size);
+                                     PayloadType payload_type, size_t offset,
+                                     size_t total_size);
 
-  Payload::Type FramePayloadTypeToPayloadType(
+  PayloadType FramePayloadTypeToPayloadType(
       PayloadTransferFrame::PayloadHeader::PayloadType type);
 
   mutable Mutex mutex_;

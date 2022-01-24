@@ -221,7 +221,7 @@ class BasePcpHandler : public PcpHandler,
   struct ConnectImplResult {
     proto::connections::Medium medium =
         proto::connections::Medium::UNKNOWN_MEDIUM;
-    Status status = {Status::kError};
+    Status status = {Status::Value::kError};
     std::unique_ptr<EndpointChannel> endpoint_channel;
   };
 

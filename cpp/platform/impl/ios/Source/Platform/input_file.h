@@ -31,9 +31,9 @@ class InputFile : public api::InputFile {
   InputFile(InputFile &&) = default;
   InputFile &operator=(InputFile &&) = default;
 
-  ExceptionOr<ByteArray> Read(std::int64_t size) override;
+  ExceptionOr<ByteArray> Read(size_t size) override;
   std::string GetFilePath() const override;
-  std::int64_t GetTotalSize() const override;
+  size_t GetTotalSize() const override;
   Exception Close() override;
 
  private:

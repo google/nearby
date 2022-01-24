@@ -25,11 +25,25 @@ namespace nearby {
 namespace shared {
 
 // InputFile
+std::unique_ptr<IOFile> IOFile::CreateInputFile(const std::string &path,
+                                                size_t size) {
+  return std::unique_ptr<IOFile>(new IOFile(path, size));
+}
 
-InputFile::InputFile(const std::string& path, std::int64_t size)
-    : file_(path, std::ios::binary), path_(path), total_size_(size) {}
+IOFile::IOFile(const std::string &path, size_t size)
+    : file_(path, std::ios::binary | std::ios::in),
+      path_(path),
+      total_size_(size) {}
 
-ExceptionOr<ByteArray> InputFile::Read(std::int64_t size) {
+std::unique_ptr<IOFile> IOFile::CreateOutputFile(const std::string &path) {
+  return std::unique_ptr<IOFile>(new IOFile(path));
+}
+
+IOFile::IOFile(const std::string &path)
+    : file_(path, std::ios::binary | std::ios::out | std::ios::trunc),
+      total_size_(0) {}
+
+ExceptionOr<ByteArray> IOFile::Read(size_t size) {
   if (!file_.is_open()) {
     return ExceptionOr<ByteArray>{Exception::kIo};
   }
@@ -53,19 +67,14 @@ ExceptionOr<ByteArray> InputFile::Read(std::int64_t size) {
   return ExceptionOr<ByteArray>(ByteArray(read_bytes.get(), num_bytes_read));
 }
 
-Exception InputFile::Close() {
+Exception IOFile::Close() {
   if (file_.is_open()) {
     file_.close();
   }
   return {Exception::kSuccess};
 }
 
-// OutputFile
-
-OutputFile::OutputFile(absl::string_view path)
-    : file_(std::string(path), std::ios::binary) {}
-
-Exception OutputFile::Write(const ByteArray& data) {
+Exception IOFile::Write(const ByteArray &data) {
   if (!file_.is_open()) {
     return {Exception::kIo};
   }
@@ -79,16 +88,9 @@ Exception OutputFile::Write(const ByteArray& data) {
   return {file_.good() ? Exception::kSuccess : Exception::kIo};
 }
 
-Exception OutputFile::Flush() {
+Exception IOFile::Flush() {
   file_.flush();
   return {file_.good() ? Exception::kSuccess : Exception::kIo};
-}
-
-Exception OutputFile::Close() {
-  if (file_.is_open()) {
-    file_.close();
-  }
-  return {Exception::kSuccess};
 }
 
 }  // namespace shared

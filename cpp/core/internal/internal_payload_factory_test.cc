@@ -107,7 +107,7 @@ TEST(InternalPayloadFActoryTest, CanCreateIternalPayloadFromStreamMessage) {
   EXPECT_EQ(payload.AsFile(), nullptr);
   EXPECT_NE(payload.AsStream(), nullptr);
   EXPECT_EQ(payload.AsBytes(), ByteArray());
-  EXPECT_EQ(payload.GetType(), Payload::Type::kStream);
+  EXPECT_EQ(payload.GetType(), PayloadType::kStream);
 }
 
 TEST(InternalPayloadFActoryTest, CanCreateIternalPayloadFromFileMessage) {
@@ -124,7 +124,7 @@ TEST(InternalPayloadFActoryTest, CanCreateIternalPayloadFromFileMessage) {
   EXPECT_NE(payload.AsFile(), nullptr);
   EXPECT_EQ(payload.AsStream(), nullptr);
   EXPECT_EQ(payload.AsBytes(), ByteArray());
-  EXPECT_EQ(payload.GetType(), Payload::Type::kFile);
+  EXPECT_EQ(payload.GetType(), PayloadType::kFile);
   EXPECT_EQ(payload.GetId(), payload.AsFile()->GetPayloadId());
 }
 

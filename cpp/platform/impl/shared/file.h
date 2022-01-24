@@ -27,37 +27,26 @@ namespace location {
 namespace nearby {
 namespace shared {
 
-class InputFile final : public api::InputFile {
+class IOFile final : public api::InputFile, public api::OutputFile {
  public:
-  explicit InputFile(const std::string& path, std::int64_t size);
-  ~InputFile() override = default;
-  InputFile(InputFile&&) = default;
-  InputFile& operator=(InputFile&&) = default;
+  static std::unique_ptr<IOFile> CreateInputFile(const std::string& path,
+                                                 size_t size);
+  static std::unique_ptr<IOFile> CreateOutputFile(const std::string& path);
 
-  ExceptionOr<ByteArray> Read(std::int64_t size) override;
+  ExceptionOr<ByteArray> Read(size_t size) override;
   std::string GetFilePath() const override { return path_; }
-  std::int64_t GetTotalSize() const override { return total_size_; }
+  size_t GetTotalSize() const override { return total_size_; }
   Exception Close() override;
-
- private:
-  std::ifstream file_;
-  std::string path_;
-  std::int64_t total_size_;
-};
-
-class OutputFile final : public api::OutputFile {
- public:
-  explicit OutputFile(absl::string_view path);
-  ~OutputFile() override = default;
-  OutputFile(OutputFile&&) = default;
-  OutputFile& operator=(OutputFile&&) = default;
 
   Exception Write(const ByteArray& data) override;
   Exception Flush() override;
-  Exception Close() override;
 
  private:
-  std::ofstream file_;
+  explicit IOFile(const std::string& path, size_t size);
+  explicit IOFile(const std::string& path);
+  std::fstream file_;
+  std::string path_;
+  std::int64_t total_size_;
 };
 
 }  // namespace shared

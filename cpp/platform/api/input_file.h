@@ -30,7 +30,7 @@ class InputFile : public InputStream {
  public:
   ~InputFile() override = default;
   virtual std::string GetFilePath() const = 0;
-  virtual std::int64_t GetTotalSize() const = 0;
+  virtual size_t GetTotalSize() const = 0;
 };
 
 }  // namespace api
