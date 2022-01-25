@@ -60,7 +60,7 @@ class MockDataChannel
 
 TEST(WebRtcSocketTest, ReadFromSocket) {
   const char* message = "message";
-  rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
+  rtc::scoped_refptr<MockDataChannel> mock_data_channel(new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
   webrtc_socket.OnMessage(webrtc::DataBuffer{message});
@@ -70,7 +70,7 @@ TEST(WebRtcSocketTest, ReadFromSocket) {
 }
 
 TEST(WebRtcSocketTest, ReadMultipleMessages) {
-  rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
+  rtc::scoped_refptr<MockDataChannel> mock_data_channel(new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
   webrtc_socket.OnMessage(webrtc::DataBuffer{"Me"});
@@ -95,7 +95,7 @@ TEST(WebRtcSocketTest, ReadMultipleMessages) {
 
 TEST(WebRtcSocketTest, WriteToSocket) {
   const ByteArray kMessage{"Message"};
-  rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
+  rtc::scoped_refptr<MockDataChannel> mock_data_channel(new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
   EXPECT_CALL(*mock_data_channel, Send(testing::_))
@@ -105,7 +105,7 @@ TEST(WebRtcSocketTest, WriteToSocket) {
 
 TEST(WebRtcSocketTest, SendDataBiggerThanMax) {
   const ByteArray kMessage{kMaxDataSize + 1};
-  rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
+  rtc::scoped_refptr<MockDataChannel> mock_data_channel(new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
   EXPECT_CALL(*mock_data_channel, Send(testing::_)).Times(0);
@@ -115,7 +115,7 @@ TEST(WebRtcSocketTest, SendDataBiggerThanMax) {
 
 TEST(WebRtcSocketTest, WriteToDataChannelFails) {
   ByteArray kMessage{"Message"};
-  rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
+  rtc::scoped_refptr<MockDataChannel> mock_data_channel(new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
   ON_CALL(*mock_data_channel, Send(testing::_))
@@ -125,7 +125,7 @@ TEST(WebRtcSocketTest, WriteToDataChannelFails) {
 }
 
 TEST(WebRtcSocketTest, Close) {
-  rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
+  rtc::scoped_refptr<MockDataChannel> mock_data_channel(new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
   EXPECT_CALL(*mock_data_channel, Close());
@@ -150,7 +150,7 @@ TEST(WebRtcSocketTest, Close) {
 
 TEST(WebRtcSocketTest, WriteOnClosedChannel) {
   ByteArray kMessage{"Message"};
-  rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
+  rtc::scoped_refptr<MockDataChannel> mock_data_channel(new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
   webrtc_socket.Close();
 
@@ -161,7 +161,7 @@ TEST(WebRtcSocketTest, WriteOnClosedChannel) {
 
 TEST(WebRtcSocketTest, ReadFromClosedChannel) {
   ByteArray kMessage{"Message"};
-  rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
+  rtc::scoped_refptr<MockDataChannel> mock_data_channel(new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
   ON_CALL(*mock_data_channel, Send(testing::_))
       .WillByDefault(testing::Return(true));
@@ -173,7 +173,7 @@ TEST(WebRtcSocketTest, ReadFromClosedChannel) {
 }
 
 TEST(WebRtcSocketTest, DataChannelCloseEventCleansUp) {
-  rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
+  rtc::scoped_refptr<MockDataChannel> mock_data_channel(new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
   ON_CALL(*mock_data_channel, state())
@@ -190,7 +190,7 @@ TEST(WebRtcSocketTest, DataChannelCloseEventCleansUp) {
 }
 
 TEST(WebRtcSocketTest, OpenStateTriggersCallback) {
-  rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
+  rtc::scoped_refptr<MockDataChannel> mock_data_channel(new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
   int socket_ready_cb_called = 0;
@@ -210,7 +210,7 @@ TEST(WebRtcSocketTest, OpenStateTriggersCallback) {
 }
 
 TEST(WebRtcSocketTest, CloseStateTriggersCallback) {
-  rtc::scoped_refptr<MockDataChannel> mock_data_channel = new MockDataChannel();
+  rtc::scoped_refptr<MockDataChannel> mock_data_channel(new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
 
   int socket_closed_cb_called = 0;

@@ -171,10 +171,10 @@ void ConnectionFlow::CreateOfferOnSignalingThread(
       pc->CreateDataChannel(kDataChannelName, &data_channel_init));
 
   webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
-  rtc::scoped_refptr<CreateSessionDescriptionObserverImpl> observer =
+  rtc::scoped_refptr<CreateSessionDescriptionObserverImpl> observer(
       new rtc::RefCountedObject<CreateSessionDescriptionObserverImpl>(
           this, success_future, State::kCreatingOffer,
-          State::kWaitingForAnswer);
+          State::kWaitingForAnswer));
   pc->CreateOffer(observer, options);
 }
 
@@ -202,10 +202,10 @@ void ConnectionFlow::CreateAnswerOnSignalingThread(
     return;
   }
   webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
-  rtc::scoped_refptr<CreateSessionDescriptionObserverImpl> observer =
+  rtc::scoped_refptr<CreateSessionDescriptionObserverImpl> observer(
       new rtc::RefCountedObject<CreateSessionDescriptionObserverImpl>(
           this, success_future, State::kCreatingAnswer,
-          State::kWaitingToConnect);
+          State::kWaitingToConnect));
   auto pc = GetPeerConnection();
   pc->CreateAnswer(observer, options);
 }
@@ -214,8 +214,8 @@ bool ConnectionFlow::SetLocalSessionDescription(SessionDescriptionWrapper sdp) {
   CHECK(!IsRunningOnSignalingThread());
   if (!sdp.IsValid()) return false;
 
-  rtc::scoped_refptr<SetLocalDescriptionObserver> observer =
-      new rtc::RefCountedObject<SetLocalDescriptionObserver>();
+  rtc::scoped_refptr<SetLocalDescriptionObserver> observer(
+      new rtc::RefCountedObject<SetLocalDescriptionObserver>());
 
   if (!RunOnSignalingThread([this, observer, sdp = std::move(sdp)]() mutable {
         if (state_ == State::kEnded) {
@@ -246,8 +246,8 @@ bool ConnectionFlow::SetRemoteSessionDescription(SessionDescriptionWrapper sdp,
                                                  State exit_state) {
   if (!sdp.IsValid()) return false;
 
-  rtc::scoped_refptr<SetRemoteDescriptionObserver> observer =
-      new rtc::RefCountedObject<SetRemoteDescriptionObserver>();
+  rtc::scoped_refptr<SetRemoteDescriptionObserver> observer(
+      new rtc::RefCountedObject<SetRemoteDescriptionObserver>());
 
   if (!RunOnSignalingThread([this, observer, sdp = std::move(sdp),
                              expected_entry_state, exit_state]() mutable {
