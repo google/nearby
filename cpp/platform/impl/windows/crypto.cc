@@ -20,7 +20,7 @@
 #include "absl/strings/string_view.h"
 #include "platform/base/byte_array.h"
 #if defined NEARBY_WINDOWS_DLL
-#include "openssl/boringssl/src/include/openssl/digest.h"
+#include "third_party/openssl/boringssl/src/include/openssl/digest.h"
 #else
 #include "src/include/openssl/digest.h"
 #endif

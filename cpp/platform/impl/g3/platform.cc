@@ -15,9 +15,9 @@
 #include "platform/api/platform.h"
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 
-#include "absl/base/integral_types.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
 #include "absl/time/time.h"
@@ -27,7 +27,6 @@
 #include "platform/api/bluetooth_adapter.h"
 #include "platform/api/bluetooth_classic.h"
 #include "platform/api/condition_variable.h"
-#include "platform/impl/shared/count_down_latch.h"
 #include "platform/api/log_message.h"
 #include "platform/api/mutex.h"
 #include "platform/api/scheduled_executor.h"
@@ -49,6 +48,7 @@
 #include "platform/impl/g3/single_thread_executor.h"
 #include "platform/impl/g3/webrtc.h"
 #include "platform/impl/g3/wifi_lan.h"
+#include "platform/impl/shared/count_down_latch.h"
 #include "platform/impl/shared/file.h"
 
 namespace location {
