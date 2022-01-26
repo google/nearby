@@ -17,6 +17,7 @@
 #include <string>
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "core/internal/mediums/bluetooth_radio.h"
 #include "platform/base/medium_environment.h"

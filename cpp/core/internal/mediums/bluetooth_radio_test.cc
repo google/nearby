@@ -15,6 +15,7 @@
 #include "core/internal/mediums/bluetooth_radio.h"
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 
 namespace location {

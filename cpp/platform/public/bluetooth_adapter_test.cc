@@ -15,6 +15,7 @@
 #include "platform/public/bluetooth_adapter.h"
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "platform/base/bluetooth_utils.h"
 #include "platform/public/logging.h"

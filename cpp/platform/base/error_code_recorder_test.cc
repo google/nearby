@@ -15,6 +15,7 @@
 #include "platform/base/error_code_recorder.h"
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 
 namespace location {

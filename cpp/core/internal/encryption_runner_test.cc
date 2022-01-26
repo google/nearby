@@ -15,6 +15,7 @@
 #include "core/internal/encryption_runner.h"
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "core/internal/client_proxy.h"

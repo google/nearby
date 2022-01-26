@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "platform/base/error_code_params.h"
@@ -64,7 +65,7 @@ using ::location::nearby::proto::connections::WIFI_LAN_MEDIUM_ERROR;
 using ::location::nearby::proto::connections::WIFI_LAN_SOCKET_CREATION;
 
 using ::testing::Contains;
-using ::testing::EqualsProto;
+using ::protobuf_matchers::EqualsProto;
 using ::testing::proto::Partially;
 
 constexpr absl::Duration kDefaultTimeout = absl::Milliseconds(1000);

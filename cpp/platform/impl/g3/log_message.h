@@ -34,7 +34,7 @@ class LogMessage : public api::LogMessage {
   std::ostream& Stream() override;
 
  private:
-  absl::LogStreamer log_streamer_;
+  google::LogMessage log_streamer_;
 };
 
 }  // namespace g3

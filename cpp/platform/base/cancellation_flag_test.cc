@@ -17,6 +17,7 @@
 #include <memory>
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "platform/base/cancellation_flag_listener.h"
 #include "platform/base/feature_flags.h"

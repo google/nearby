@@ -15,6 +15,7 @@
 #include "core/core.h"
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "core/internal/mock_service_controller_router.h"

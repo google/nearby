@@ -17,6 +17,7 @@
 #include <memory>
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "core/internal/bwu_manager.h"

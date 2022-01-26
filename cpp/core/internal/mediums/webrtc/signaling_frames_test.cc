@@ -18,6 +18,7 @@
 
 #include "google/protobuf/text_format.h"
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "core/internal/mediums/webrtc_peer_id.h"
 
@@ -86,7 +87,7 @@ TEST(SignalingFramesTest, SignalingPoke) {
   location::nearby::mediums::WebRtcSignalingFrame frame;
   frame.ParseFromString(std::string(encoded_poke.data(), encoded_poke.size()));
 
-  EXPECT_THAT(frame, testing::EqualsProto(R"pb(
+  EXPECT_THAT(frame, protobuf_matchers::EqualsProto(R"pb(
                 sender_id { id: "abc" }
                 type: READY_FOR_SIGNALING_POKE_TYPE
                 ready_for_signaling_poke {}
@@ -103,7 +104,7 @@ TEST(SignalingFramesTest, EncodeValidOffer) {
   frame.ParseFromString(
       std::string(encoded_offer.data(), encoded_offer.size()));
 
-  EXPECT_THAT(frame, testing::EqualsProto(kOfferProto));
+  EXPECT_THAT(frame, protobuf_matchers::EqualsProto(kOfferProto));
 }
 
 TEST(SignaingFramesTest, DecodeValidOffer) {
@@ -128,7 +129,7 @@ TEST(SignalingFramesTest, EncodeValidAnswer) {
   frame.ParseFromString(
       std::string(encoded_answer.data(), encoded_answer.size()));
 
-  EXPECT_THAT(frame, testing::EqualsProto(kAnswerProto));
+  EXPECT_THAT(frame, protobuf_matchers::EqualsProto(kAnswerProto));
 }
 
 TEST(SignalingFramesTest, DecodeValidAnswer) {
@@ -163,7 +164,7 @@ TEST(SignalingFramesTest, EncodeValidIceCandidates) {
   frame.ParseFromString(
       std::string(encoded_candidates.data(), encoded_candidates.size()));
 
-  EXPECT_THAT(frame, testing::EqualsProto(kIceCandidatesProto));
+  EXPECT_THAT(frame, protobuf_matchers::EqualsProto(kIceCandidatesProto));
 }
 
 TEST(SignalingFramesTest, DecodeValidIceCandidates) {

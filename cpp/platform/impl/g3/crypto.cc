@@ -19,7 +19,7 @@
 
 #include "absl/strings/string_view.h"
 #include "platform/base/byte_array.h"
-#include "openssl/digest.h"
+#include "src/include/openssl/digest.h"
 
 namespace location {
 namespace nearby {

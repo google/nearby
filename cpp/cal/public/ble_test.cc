@@ -15,6 +15,7 @@
 #include <memory>
 
 #include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "third_party/nearby/cpp/cal/api/ble.h"
 #include "third_party/nearby/cpp/cal/base/ble_types.h"
