@@ -84,11 +84,10 @@ TEST_F(BleV2Test, CanStartAdvertising) {
   BleV2 ble{radio};
   radio.Enable();
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
-  std::string no_fast_advertisement_service_uuid = {};
 
   EXPECT_TRUE(ble.StartAdvertising(std::string(kServiceIDA),
                                    advertisement_bytes, PowerLevel::kHighPower,
-                                   no_fast_advertisement_service_uuid));
+                                   ""));
   EXPECT_TRUE(ble.StopAdvertising(std::string(kServiceIDA)));
   env_.Stop();
 }
