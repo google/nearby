@@ -13,8 +13,8 @@
 # limitations under the License.
 
 # Proto for Nearby products
-
 load("//net/proto2/contrib/portable/cc:portable_proto_build_defs.bzl", "portable_proto_library")
+load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
 licenses(["notice"])
 
@@ -43,6 +43,13 @@ go_proto_library(
 java_proto_library(
     name = "connections_enums_java_proto",
     deps = [":connections_enums_proto"],
+)
+
+cc_proto_library(
+    name = "connections_enums_cc_proto",
+    deps = [
+        ":connections_enums_proto",
+    ],
 )
 
 portable_proto_library(
