@@ -173,7 +173,8 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
 
   // hstring is the only type of string winrt understands.
   // https://docs.microsoft.com/en-us/uwp/cpp-ref-for-winrt/hstring
-  std::map<winrt::hstring, std::unique_ptr<BluetoothDevice>> devices_by_id_;
+  std::map<winrt::hstring, std::unique_ptr<BluetoothDevice>>
+      discovered_devices_by_id_;
 
   // CRITICAL_SECTION is a lightweight synchronization mechanism
   // https://docs.microsoft.com/en-us/windows/win32/sync/critical-section-objects

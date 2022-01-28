@@ -97,9 +97,13 @@ bool BluetoothClassicMedium::StopDiscovery() {
 
 void BluetoothClassicMedium::InitializeDeviceWatcher() {
   // create watcher
+  const winrt::param::iterable<winrt::hstring> RequestedProperties =
+      winrt::single_threaded_vector<winrt::hstring>(
+          {winrt::to_hstring("System.Devices.Aep.IsPresent")});
+
   device_watcher_ = DeviceInformation::CreateWatcher(
       BLUETOOTH_SELECTOR,                           // aqsFilter
-      nullptr,                                      // additionalProperties
+      RequestedProperties,                          // additionalProperties
       DeviceInformationKind::AssociationEndpoint);  // kind
 
   //  An app must subscribe to all of the added, removed, and updated events to
@@ -177,8 +181,6 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     return nullptr;
   }
 
-  device_watcher_.Stop();
-
   EnterCriticalSection(&critical_section_);
 
   std::unique_ptr<BluetoothSocket> rfcommSocket =
@@ -190,7 +192,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
 
   try {
     rfcommSocket->Connect(requestedService.ConnectionHostName(),
-                               requestedService.ConnectionServiceName());
+                          requestedService.ConnectionServiceName());
   } catch (std::exception exception) {
     // We will log and eat the exception since the caller
     // expects nullptr if it fails
@@ -320,6 +322,8 @@ api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
 
 bool BluetoothClassicMedium::StartScanning() {
   if (!IsWatcherStarted()) {
+    discovered_devices_by_id_.clear();
+
     // The Start method can only be called when the DeviceWatcher is in the
     // Created, Stopped or Aborted state.
     auto status = device_watcher_.Status();
@@ -360,32 +364,37 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
 
     // Create an iterator for the internal list
     std::map<winrt::hstring, std::unique_ptr<BluetoothDevice>>::const_iterator
-        it = devices_by_id_.find(deviceInfo.Id());
+        it = discovered_devices_by_id_.find(deviceInfo.Id());
 
     // Add to our internal list if necessary
-    if (it == devices_by_id_.end()) {
-      // Create a bluetooth device out of this id
-      winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromIdAsync(
-          deviceInfo.Id())
-          .Completed(
-              [this, deviceInfo, wbd = std::move(windowsBluetoothDevice)](
-                  auto&& async,
-                  winrt::Windows::Foundation::AsyncStatus status) {
-                EnterCriticalSection(&critical_section_);
-
-                std::unique_ptr<BluetoothDevice> bluetoothDevice =
-                    std::make_unique<BluetoothDevice>(async.get());
-
-                devices_by_id_[deviceInfo.Id()] = std::move(bluetoothDevice);
-
-                if (discovery_callback_.device_discovered_cb != nullptr) {
-                  discovery_callback_.device_discovered_cb(
-                      *devices_by_id_[deviceInfo.Id()]);
-                }
-
-                LeaveCriticalSection(&critical_section_);
-              });
+    if (it != discovered_devices_by_id_.end()) {
+      // We're already tracking this one
+      return winrt::fire_and_forget();
     }
+
+    // Create a bluetooth device out of this id
+    winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromIdAsync(
+        deviceInfo.Id())
+        .Completed([this, deviceInfo](
+                       winrt::Windows::Foundation::IAsyncOperation<
+                           winrt::Windows::Devices::Bluetooth::BluetoothDevice>
+                           bluetoothDevice,
+                       winrt::Windows::Foundation::AsyncStatus status) {
+          EnterCriticalSection(&critical_section_);
+
+          std::unique_ptr<BluetoothDevice> bluetoothDeviceP =
+              std::make_unique<BluetoothDevice>(bluetoothDevice.get());
+
+          discovered_devices_by_id_[deviceInfo.Id()] =
+              std::move(bluetoothDeviceP);
+
+          if (discovery_callback_.device_discovered_cb != nullptr) {
+            discovery_callback_.device_discovered_cb(
+                *discovered_devices_by_id_[deviceInfo.Id()]);
+          }
+
+          LeaveCriticalSection(&critical_section_);
+        });
   }
 
   return winrt::fire_and_forget();
@@ -393,9 +402,29 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
 
 winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
-  if (IsWatcherStarted()) {
-    // TODO(jfcarroll): Check for device name change
+  EnterCriticalSection(&critical_section_);
+
+  if (!IsWatcherStarted()) {
+    // Spurious call, watcher has stopped or wasn't started
+    LeaveCriticalSection(&critical_section_);
+    return winrt::fire_and_forget();
   }
+
+  auto it = discovered_devices_by_id_.find(deviceInfoUpdate.Id());
+
+  if (it == discovered_devices_by_id_.end()) {
+    LeaveCriticalSection(&critical_section_);
+    // Not tracking this device
+    return winrt::fire_and_forget();
+  }
+
+  if (deviceInfoUpdate.Properties().HasKey(
+          winrt::to_hstring("System.ItemNameDisplay"))) {
+    discovery_callback_.device_name_changed_cb(
+        *discovered_devices_by_id_[deviceInfoUpdate.Id()]);
+  }
+
+  LeaveCriticalSection(&critical_section_);
 
   return winrt::fire_and_forget();
 }
@@ -404,13 +433,16 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Removed(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfo) {
   EnterCriticalSection(&critical_section_);
 
-  if (IsWatcherStarted()) {
-    if (discovery_callback_.device_lost_cb != nullptr) {
-      discovery_callback_.device_lost_cb(*devices_by_id_[deviceInfo.Id()]);
-    }
-
-    devices_by_id_.erase(deviceInfo.Id());
+  if (!IsWatcherStarted()) {
+    return winrt::fire_and_forget();
   }
+
+  if (discovery_callback_.device_lost_cb != nullptr) {
+    discovery_callback_.device_lost_cb(
+        *discovered_devices_by_id_[deviceInfo.Id()]);
+  }
+
+  discovered_devices_by_id_.erase(deviceInfo.Id());
 
   LeaveCriticalSection(&critical_section_);
 

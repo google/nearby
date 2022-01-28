@@ -23,10 +23,6 @@ namespace windows {
 
 BluetoothSocket::BluetoothSocket(StreamSocket streamSocket)
     : windows_socket_(streamSocket) {
-  bluetooth_device_ = std::make_unique<BluetoothDevice>(
-      winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
-          windows_socket_.Information().RemoteHostName())
-          .get());
   input_stream_ =
       std::make_unique<BluetoothInputStream>(windows_socket_.InputStream());
   output_stream_ =
