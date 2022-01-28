@@ -13,8 +13,8 @@
 # limitations under the License.
 
 # Proto for Nearby products
-
 load("//net/proto2/contrib/portable/cc:portable_proto_build_defs.bzl", "portable_proto_library")
+load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
 licenses(["notice"])
 
@@ -32,6 +32,11 @@ proto_library(
 
 java_lite_proto_library(
     name = "error_code_enums_java_proto_lite",
+    deps = [":error_code_enums_proto"],
+)
+
+cc_proto_library(
+    name = "error_code_enums_cc_proto",
     deps = [":error_code_enums_proto"],
 )
 

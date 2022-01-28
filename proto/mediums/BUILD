@@ -51,23 +51,6 @@ java_lite_proto_library(
 )
 
 proto_library(
-    name = "ble_frames_proto",
-    srcs = [
-        "ble_frames.proto",
-    ],
-    cc_api_version = 2,
-)
-
-java_lite_proto_library(
-    name = "ble_frames_java_proto_lite",
-    visibility = [
-        "//java/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/mediums:__subpackages__",
-        "//javatests/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/mediums:__subpackages__",
-    ],
-    deps = [":ble_frames_proto"],
-)
-
-proto_library(
     name = "web_rtc_signaling_frames_proto",
     srcs = [
         "web_rtc_signaling_frames.proto",
@@ -97,6 +80,30 @@ java_lite_proto_library(
         "//javatests/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/mediums:__subpackages__",
     ],
     deps = [":web_rtc_signaling_frames_proto"],
+)
+
+proto_library(
+    name = "ble_frames_proto",
+    srcs = [
+        "ble_frames.proto",
+    ],
+    cc_api_version = 2,
+)
+
+java_lite_proto_library(
+    name = "ble_frames_java_proto_lite",
+    visibility = [
+        "//java/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/mediums:__subpackages__",
+        "//javatests/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/mediums:__subpackages__",
+    ],
+    deps = [":ble_frames_proto"],
+)
+
+cc_proto_library(
+    name = "ble_frames_cc_proto",
+    deps = [
+        ":ble_frames_proto",
+    ],
 )
 
 portable_proto_library(
