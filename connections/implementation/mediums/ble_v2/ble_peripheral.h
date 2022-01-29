@@ -25,7 +25,8 @@ namespace mediums {
 class BlePeripheral {
  public:
   BlePeripheral() = default;
-  explicit BlePeripheral(const ByteArray& id) : id_(id) {}
+  explicit BlePeripheral(const ByteArray& id) : BlePeripheral(id, 0) {}
+  BlePeripheral(const ByteArray& id, int psm) : id_(id), psm_(psm) {}
   BlePeripheral(const BlePeripheral&) = default;
   BlePeripheral& operator=(const BlePeripheral&) = default;
   BlePeripheral(BlePeripheral&&) = default;
@@ -34,11 +35,13 @@ class BlePeripheral {
 
   bool IsValid() const { return !id_.Empty(); }
   ByteArray GetId() const { return id_; }
+  int GetPsm() const { return psm_; }
 
  private:
-  // A unique identifier for this peripheral. It can be the BLE advertisement it
-  // was found on, or even simply the BLE MAC address.
+  // A unique identifier for this peripheral. It can be the BLE advertisement
+  // it was found on, or even simply the BLE MAC address.
   ByteArray id_;
+  int psm_;
 };
 
 }  // namespace mediums

@@ -130,9 +130,10 @@ std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
   return absl::make_unique<g3::BleMedium>(adapter);
 }
 
-std::unique_ptr<ble_v2::BleMedium> ImplementationPlatform::CreateBleV2Medium(
-    api::BluetoothAdapter& adapter) {
-  return std::unique_ptr<ble_v2::BleMedium>();
+std::unique_ptr<::nearby::cal::api::BleMedium>
+ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter& adapter) {
+  // TODO(edwinwu): Implement g3 BLE v2.
+  return nullptr;
 }
 
 std::unique_ptr<ServerSyncMedium>

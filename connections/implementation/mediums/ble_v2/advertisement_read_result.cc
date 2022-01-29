@@ -32,36 +32,28 @@ const AdvertisementReadResult::Config AdvertisementReadResult::kDefaultConfig{
     .max_backoff_duration = absl::Minutes(5),
 };
 
-// Adds a successfully read advertisement for the specified slot to this read
-// result. This is fundamentally different from  RecordLastReadStatus() because
-// we can report a read failure, but still manage to read some advertisements.
-void AdvertisementReadResult::AddAdvertisement(std::int32_t slot,
+void AdvertisementReadResult::AddAdvertisement(int slot,
                                                const ByteArray& advertisement) {
   MutexLock lock(&mutex_);
 
-  // Blindly remove from the advertisements map to make sure any existing
-  // key-value pair is destroyed.
-  advertisements_.emplace(slot, advertisement);
+  // Replace if existed.
+  advertisements_.insert_or_assign(slot, advertisement);
 }
 
-// Determines whether or not an advertisement was successfully read at the
-// specified slot.
-bool AdvertisementReadResult::HasAdvertisement(std::int32_t slot) const {
+bool AdvertisementReadResult::HasAdvertisement(int slot) const {
   MutexLock lock(&mutex_);
 
   return advertisements_.contains(slot);
 }
 
-// Retrieves all raw advertisements that were successfully read.
 std::vector<const ByteArray*> AdvertisementReadResult::GetAdvertisements()
     const {
   MutexLock lock(&mutex_);
 
   std::vector<const ByteArray*> all_advertisements;
-  all_advertisements.reserve(advertisements_.size());
-  for (const auto& item : advertisements_) {
-    all_advertisements.emplace_back(&item.second);
-  }
+  std::transform(advertisements_.begin(), advertisements_.end(),
+                 std::back_inserter(all_advertisements),
+                 [](auto& kv) { return &kv.second; });
 
   return all_advertisements;
 }
@@ -73,7 +65,7 @@ AdvertisementReadResult::EvaluateRetryStatus() const {
   MutexLock lock(&mutex_);
 
   // Check if we have already succeeded reading this advertisement.
-  if (status_ == Status::kSuccess) {
+  if (result_ == Result::kSuccess) {
     return RetryStatus::kPreviouslySucceeded;
   }
 
@@ -85,9 +77,6 @@ AdvertisementReadResult::EvaluateRetryStatus() const {
   return RetryStatus::kRetry;
 }
 
-// Records the status of the latest read, and updates the next backoff
-// duration for subsequent reads. Be sure to also call
-// AddAdvertisement() if any advertisements were read.
 void AdvertisementReadResult::RecordLastReadStatus(bool is_success) {
   MutexLock lock(&mutex_);
 
@@ -101,7 +90,7 @@ void AdvertisementReadResult::RecordLastReadStatus(bool is_success) {
   } else {
     // Determine whether or not we were already failing before. If we were, we
     // should increase the backoff duration.
-    if (status_ == Status::kFailure) {
+    if (result_ == Result::kFailure) {
       // Use exponential backoff to determine the next backoff duration. This
       // simply involves multiplying our current backoff duration by some
       // multiplier.
@@ -119,11 +108,9 @@ void AdvertisementReadResult::RecordLastReadStatus(bool is_success) {
   }
 
   // Update the internal result.
-  status_ = is_success ? Status::kSuccess : Status::kFailure;
+  result_ = is_success ? Result::kSuccess : Result::kFailure;
 }
 
-// Returns how much time has passed since we last tried reading from an
-// advertisement GATT server.
 absl::Duration AdvertisementReadResult::GetDurationSinceRead() const {
   MutexLock lock(&mutex_);
   return GetDurationSinceReadLocked();

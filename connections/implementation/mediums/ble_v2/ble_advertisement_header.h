@@ -51,6 +51,18 @@ class BleAdvertisementHeader {
     // characteristic so the two are not compatible.
   };
 
+  static constexpr int kAdvertisementHashLength = 4;
+  static constexpr int kServiceIdBloomFilterLength = 10;
+
+  // Hashable
+  bool operator==(const BleAdvertisementHeader &rhs) const;
+  template <typename H>
+  friend H AbslHashValue(H h, const BleAdvertisementHeader &b) {
+    return H::combine(std::move(h), b.version_, b.extended_advertisement_,
+                      b.num_slots_, b.service_id_bloom_filter_,
+                      b.advertisement_hash_, b.psm_);
+  }
+
   BleAdvertisementHeader() = default;
   BleAdvertisementHeader(Version version, bool extended_advertisement,
                          int num_slots,
@@ -76,8 +88,6 @@ class BleAdvertisementHeader {
 
  private:
   static constexpr int kVersionAndNumSlotsLength = 1;
-  static constexpr int kServiceIdBloomFilterLength = 10;
-  static constexpr int kAdvertisementHashLength = 4;
   static constexpr int kMinAdvertisementHeaderLength =
       kVersionAndNumSlotsLength + kServiceIdBloomFilterLength +
       kAdvertisementHashLength;

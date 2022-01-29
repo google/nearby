@@ -23,14 +23,27 @@ namespace mediums {
 namespace {
 
 constexpr absl::string_view kId{"AB12"};
+constexpr int kDefaultPsm = 0;
 
 TEST(BlePeripheralTest, ConstructionWorks) {
   ByteArray id{std::string(kId)};
 
-  BlePeripheral ble_peripheral{id};
+  BlePeripheral ble_peripheral(id);
 
   EXPECT_TRUE(ble_peripheral.IsValid());
   EXPECT_EQ(id, ble_peripheral.GetId());
+  EXPECT_EQ(kDefaultPsm, ble_peripheral.GetPsm());
+}
+
+TEST(BlePeripheralTest, ConstructionWorksWithPsm) {
+  ByteArray id{std::string(kId)};
+  int psm = 1;
+
+  BlePeripheral ble_peripheral(id, psm);
+
+  EXPECT_TRUE(ble_peripheral.IsValid());
+  EXPECT_EQ(id, ble_peripheral.GetId());
+  EXPECT_EQ(psm, ble_peripheral.GetPsm());
 }
 
 TEST(BlePeripheralTest, ConstructionEmptyFails) {

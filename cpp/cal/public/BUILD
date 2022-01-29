@@ -23,28 +23,10 @@ cc_library(
         "ble.h",
     ],
     visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//third_party/nearby:__subpackages__",
     ],
     deps = [
         "//third_party/nearby/cpp/cal/api:ble",
         "//cpp/cal/base:types",
-    ],
-)
-
-cc_test(
-    name = "cal_test",
-    size = "small",
-    timeout = "moderate",
-    srcs = [
-        "ble_test.cc",
-    ],
-    deps = [
-        ":ble",
-        "//third_party/nearby/cpp/cal/api:ble",
-        "//cpp/cal/base:types",
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_googletest//:gtest",
-        "@com_google_googletest//:gtest_main",
     ],
 )

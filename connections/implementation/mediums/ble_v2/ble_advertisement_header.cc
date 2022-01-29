@@ -26,6 +26,10 @@ namespace nearby {
 namespace connections {
 namespace mediums {
 
+// These definitions are necessary before C++17.
+constexpr int BleAdvertisementHeader::kAdvertisementHashLength;
+constexpr int BleAdvertisementHeader::kServiceIdBloomFilterLength;
+
 BleAdvertisementHeader::BleAdvertisementHeader(
     Version version, bool extended_advertisement, int num_slots,
     const ByteArray &service_id_bloom_filter,
@@ -130,6 +134,16 @@ BleAdvertisementHeader::operator ByteArray() const {
   // clang-format on
 
   return ByteArray(std::move(out));
+}
+
+bool BleAdvertisementHeader::operator==(
+    const BleAdvertisementHeader &rhs) const {
+  return this->GetVersion() == rhs.GetVersion() &&
+         this->IsExtendedAdvertisement() == rhs.IsExtendedAdvertisement() &&
+         this->GetNumSlots() == rhs.GetNumSlots() &&
+         this->GetServiceIdBloomFilter() == rhs.GetServiceIdBloomFilter() &&
+         this->GetAdvertisementHash() == rhs.GetAdvertisementHash() &&
+         this->GetPsmValue() == rhs.GetPsmValue();
 }
 
 }  // namespace mediums

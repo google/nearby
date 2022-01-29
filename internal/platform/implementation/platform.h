@@ -20,6 +20,7 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
+#include "third_party/nearby/cpp/cal/api/ble.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/ble.h"
@@ -98,7 +99,7 @@ class ImplementationPlatform {
   static std::unique_ptr<BluetoothClassicMedium> CreateBluetoothClassicMedium(
       BluetoothAdapter&);
   static std::unique_ptr<BleMedium> CreateBleMedium(BluetoothAdapter&);
-  static std::unique_ptr<ble_v2::BleMedium> CreateBleV2Medium(
+  static std::unique_ptr<::nearby::cal::api::BleMedium> CreateBleV2Medium(
       BluetoothAdapter&);
   static std::unique_ptr<ServerSyncMedium> CreateServerSyncMedium();
   static std::unique_ptr<WifiMedium> CreateWifiMedium();

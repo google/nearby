@@ -147,8 +147,8 @@ std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
 }
 
 // TODO(b/184975123): replace with real implementation.
-std::unique_ptr<ble_v2::BleMedium> ImplementationPlatform::CreateBleV2Medium(
-    BluetoothAdapter&) {
+std::unique_ptr<::nearby::cal::api::BleMedium>
+ImplementationPlatform::CreateBleV2Medium(BluetoothAdapter&) {
   return nullptr;
 }
 

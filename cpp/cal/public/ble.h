@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,7 +27,8 @@ class BlePeripheral final {
   explicit BlePeripheral(api::BlePeripheral* peripheral);
   std::string GetName() const;
   std::string GetAddress() const;
-  ByteArray GetAdvertisementBytes(const std::string& service_id) const;
+  location::nearby::ByteArray GetAdvertisementBytes(
+      absl::string_view service_id) const;
   api::BlePeripheral& GetImpl();
   bool IsValid() const;
 
@@ -36,9 +37,9 @@ class BlePeripheral final {
 };
 
 class BleSocket final {
-  InputStream& GetInputStream();
-  OutputStream& GetOutputStream();
-  Exception Close();
+  location::nearby::InputStream& GetInputStream();
+  location::nearby::OutputStream& GetOutputStream();
+  location::nearby::Exception Close();
   api::BlePeripheral& GetRemotePeripheral();
   bool IsValid() const;
   api::BleSocket& GetImpl();
@@ -52,7 +53,7 @@ class BleMedium final {
   struct DiscoveredPeripheralCallback {
     std::function<void(const api::ScanResult& scan_result,
                        const std::string& service_id,
-                       const ByteArray& advertisement_bytes)>
+                       const location::nearby::ByteArray& advertisement_bytes)>
         peripheral_discovered_cb;
     std::function<void(BlePeripheral& peripheral,
                        const std::string& service_id)>
@@ -70,11 +71,12 @@ class BleMedium final {
   };
 
   explicit BleMedium(std::unique_ptr<api::BleMedium> impl);
-  bool StartAdvertising(const std::string& service_id,
-                        const AdvertiseSettings& settings,
-                        const ByteArray& advertisement_bytes,
-                        const std::string& fast_advertisement_service_uuid);
-  bool StopAdvertising(const std::string& service_id);
+
+  bool StartAdvertising(const BleAdvertisementData& advertising_data,
+                        const BleAdvertisementData& scan_response_data,
+                        PowerMode power_mode);
+  bool StopAdvertising();
+
   bool StartScanning(const std::string& service_id,
                      const ScanSettings& settings,
                      const std::string& fast_advertisement_service_uuid,
@@ -86,7 +88,7 @@ class BleMedium final {
   std::unique_ptr<api::ClientGattConnection> ConnectGatt(
       api::BlePeripheral& peripheral,
       const api::GattCharacteristic& characteristic,
-      const api::ClientGattConnectionLifeCycleCallback& callback);
+      api::ClientGattConnectionCallback callback);
   void DisconnectGatt(api::BlePeripheral& peripheral,
                       const api::GattCharacteristic& characteristic);
   bool IsValid() const;

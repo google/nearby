@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,25 +11,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 licenses(["notice"])
-
-cc_library(
-    name = "ble",
-    hdrs = [
-        "ble.h",
-    ],
-    visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//connections:__subpackages__",
-        "//third_party/nearby/cpp/cal:__subpackages__",
-        "//internal/platform:__subpackages__",
-    ],
-    deps = [
-        "//cpp/cal/base:types",
-        "//internal/platform:base",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:optional",
-    ],
-)

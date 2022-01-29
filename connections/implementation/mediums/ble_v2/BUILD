@@ -21,6 +21,7 @@ cc_library(
         "ble_advertisement_header.cc",
         "ble_packet.cc",
         "bloom_filter.cc",
+        "discovered_peripheral_tracker.cc",
     ],
     hdrs = [
         "advertisement_read_result.h",
@@ -28,8 +29,10 @@ cc_library(
         "ble_advertisement_header.h",
         "ble_packet.h",
         "ble_peripheral.h",
+        "ble_utils.h",
         "bloom_filter.h",
         "discovered_peripheral_callback.h",
+        "discovered_peripheral_tracker.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
@@ -37,7 +40,10 @@ cc_library(
     ],
     deps = [
         "//connections:core_types",
+        "//connections/implementation/mediums:utils",
+        "//cpp/cal/base:types",
         "//internal/platform:base",
+        "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform:util",

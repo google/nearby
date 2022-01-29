@@ -302,12 +302,14 @@ cc_library(
     name = "comm",
     srcs = [
         "ble.cc",
+        "ble_v2.cc",
         "bluetooth_classic.cc",
         "file.cc",
         "wifi_lan.cc",
     ],
     hdrs = [
         "ble.h",
+        "ble_v2.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
         "wifi_lan.h",
@@ -323,10 +325,12 @@ cc_library(
     deps = [
         ":logging",
         ":types",
+        "//cpp/cal/base:types",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
+        "//third_party/nearby/cpp/cal/api:ble",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/strings",
     ],

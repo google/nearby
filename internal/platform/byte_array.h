@@ -92,6 +92,12 @@ class ByteArray {
   // operation.
   explicit operator std::string() && { return std::move(data_); }
 
+  // Hashable
+  template <typename H>
+  friend H AbslHashValue(H h, const ByteArray& m) {
+    return H::combine(std::move(h), m.data_);
+  }
+
  private:
   std::string data_;
 };

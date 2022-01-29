@@ -89,6 +89,7 @@ cc_library(
         ":comm",
         ":types",
         "//internal/platform:base",
+        "//third_party/nearby/cpp/cal/api:ble",
         "@com_google_absl//absl/strings",
     ],
 )

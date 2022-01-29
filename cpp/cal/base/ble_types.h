@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 #define CAL_BASE_TYPES_H_
 
 // TODO(hais) relocate base def class accordingly.
-#include <map>
-
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
@@ -27,11 +27,6 @@
 namespace nearby {
 namespace cal {
 
-using ByteArray = location::nearby::ByteArray;
-using Exception = location::nearby::Exception;
-using InputStream = location::nearby::InputStream;
-using OutputStream = location::nearby::OutputStream;
-
 enum class AdvertiseMode {
   kUnknown = 0,
   kLowPower = 1,
@@ -39,6 +34,7 @@ enum class AdvertiseMode {
   kLowLatency = 3,
 };
 
+// Coarse representation of power settings throughout all BLE operations.
 enum class PowerMode {
   kUnknown = 0,
   kUltraLow = 1,
@@ -54,15 +50,37 @@ struct AdvertiseSettings {
   bool is_connectable;
 };
 
+// https://developer.android.com/reference/android/bluetooth/le/AdvertiseData
+//
+// Bundle of data found in a BLE advertisement.
+//
+// All service UUIDs will conform to the 16-bit Bluetooth base UUID,
+// 0000xxxx-0000-1000-8000-00805F9B34FB. This makes it possible to store two
+// byte service UUIDs in the advertisement.
 struct BleAdvertisementData {
-  AdvertiseSettings advertise_settings;
-  // service UUID to advertise bytes map:16-bit service UUID - service Data
+  using TxPowerLevel = std::int8_t;
+
+  static constexpr TxPowerLevel kUnspecifiedTxPowerLevel =
+      std::numeric_limits<TxPowerLevel>::min();
+
+  bool is_connectable;
+
+  // If tx_power_level is not set to kUnspecifiedTxPowerLevel, platform
+  // implementer needs to set the TxPowerLevel.
+  TxPowerLevel tx_power_level;
+
+  // If the set is not empty, the platform implementer needs to add the
+  // service_uuids in the advertisement data.
+  absl::flat_hash_set<std::string> service_uuids;
+
+  // Maps service UUIDs to their service data.
   //
-  // Data type value : 0x16
-  // if platform can't advertise data from this key (reaonly in iOS), then (iOS)
-  // should advertise data via LocalName data type. It means the service_uuid
-  // here is useless for iOS platform.
-  std::map<std::string, location::nearby::ByteArray> service_data_map;
+  // Note if platform can't advertise data from Data type (0x16)
+  // (reaonly in iOS), then (iOS) should advertise data via LocalName data type
+  // (0x08).
+  // It means the iOS should take the first index of service_data as the data
+  // for LocalName type.
+  absl::flat_hash_map<std::string, location::nearby::ByteArray> service_data;
 };
 
 enum class ScanMode {

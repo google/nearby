@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,11 @@
 namespace nearby {
 namespace cal {
 
+using ::location::nearby::ByteArray;
+using ::location::nearby::Exception;
+using ::location::nearby::InputStream;
+using ::location::nearby::OutputStream;
+
 InputStream& BleSocket::GetInputStream() { return impl_->GetInputStream(); }
 OutputStream& BleSocket::GetOutputStream() { return impl_->GetOutputStream(); }
 Exception BleSocket::Close() { return impl_->Close(); }
@@ -37,7 +42,7 @@ BlePeripheral::BlePeripheral(api::BlePeripheral* peripheral) {
 std::string BlePeripheral::GetName() const { return impl_->GetName(); }
 std::string BlePeripheral::GetAddress() const { return impl_->GetAddress(); }
 ByteArray BlePeripheral::GetAdvertisementBytes(
-    const std::string& service_id) const {
+    absl::string_view service_id) const {
   return impl_->GetAdvertisementBytes();
 }
 api::BlePeripheral& BlePeripheral::GetImpl() { return *impl_; }
@@ -47,20 +52,18 @@ BleMedium::BleMedium(std::unique_ptr<api::BleMedium> impl) {
   impl_ = std::move(impl);
 }
 
-bool BleMedium::StartAdvertising(const std::string& service_id,
-                                 const AdvertiseSettings& settings,
-                                 const ByteArray& advertisement_bytes,
-                                 const std::string& service_uuid) {
-  return impl_->StartAdvertising(
-      BleAdvertisementData{.advertise_settings = settings,
-                           .service_data_map = std::map<std::string, ByteArray>(
-                               {{service_uuid, advertisement_bytes}})});
+bool BleMedium::StartAdvertising(const BleAdvertisementData& advertising_data,
+                                 const BleAdvertisementData& scan_response_data,
+                                 PowerMode power_mode) {
+  return impl_->StartAdvertising(advertising_data, scan_response_data,
+                                 power_mode);
 }
-bool BleMedium::StopAdvertising(const std::string& service_id) {
+
+bool BleMedium::StopAdvertising() {
   // TODO(hais): real impl b/196132654.
-  impl_->StopAdvertising(service_id);
-  return true;
+  return impl_->StopAdvertising();
 }
+
 bool BleMedium::StartScanning(
     const std::string& service_id, const ScanSettings& settings,
     const std::string& fast_advertisement_service_uuid,
@@ -86,10 +89,10 @@ bool cal::BleMedium::StopAcceptingConnections(const std::string& service_id) {
 std::unique_ptr<api::ClientGattConnection> cal::BleMedium::ConnectGatt(
     nearby::cal::api::BlePeripheral& peripheral,
     const api::GattCharacteristic& characteristic,
-    const api::ClientGattConnectionLifeCycleCallback& callback) {
+    api::ClientGattConnectionCallback callback) {
   // TODO(hais): real impl b/196132654.
-  return impl_->ConnectToGattServer(&peripheral, -1, PowerMode::kUnknown,
-                                    callback);
+  return impl_->ConnectToGattServer(peripheral, -1, PowerMode::kUnknown,
+                                    std::move(callback));
 }
 void cal::BleMedium::DisconnectGatt(
     api::BlePeripheral& peripheral,

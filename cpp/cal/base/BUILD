@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,9 +21,13 @@ cc_library(
     ],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//third_party/nearby/cpp:__subpackages__",
+        "//connections:__subpackages__",
+        "//third_party/nearby/cpp/cal:__subpackages__",
+        "//internal/platform:__subpackages__",
     ],
     deps = [
         "//internal/platform:base",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
     ],
 )
