@@ -36,12 +36,11 @@ cc_library(
         "submittable_executor.h",
         "utils.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         "//base",
         "//base:stringprintf",
-        "//platform/api:types",
-        "//platform/base",
+        "//cpp/platform/api:types",
+        "//cpp/platform/base",
     ],
 )
 
@@ -67,12 +66,11 @@ cc_library(
         "wifi.h",
         "wifi_lan.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:private"],
     deps = [
-        "//platform/api:comm",
-        "//platform/base",
-        "//platform/impl/windows/generated:types",
+        "//cpp/platform/api:comm",
+        "//cpp/platform/base",
+        "//cpp/platform/impl/windows/generated:types",
     ],
 )
 
@@ -81,13 +79,12 @@ cc_library(
     srcs = [
         "crypto.cc",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:private"],
     deps = [
-        "//absl/strings",
-        "//platform/api:types",
-        "//platform/base",
-        "//openssl:crypto",
+        "//cpp/platform/api:types",
+        "//cpp/platform/base",
+        "@com_google_absl//absl/strings",
+        "@boringssl//:crypto",
     ],
 )
 
@@ -110,7 +107,6 @@ cc_library(
         "wifi_lan_server_socket.cc",
         "wifi_lan_socket.cc",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-Ithird_party/nearby/cpp/platform/impl/windows/generated"],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     visibility = [
@@ -120,13 +116,13 @@ cc_library(
         ":comm",
         ":crypto",  # build_cleaner: keep
         ":types",
-        "//platform/api:comm",
-        "//platform/api:platform",
-        "//platform/api:types",
-        "//platform/impl/shared:count_down_latch",
-        "//platform/impl/shared:file",
-        "//platform/impl/windows/generated:types",
-        "//platform/public:types",
+        "//cpp/platform/api:comm",
+        "//cpp/platform/api:platform",
+        "//cpp/platform/api:types",
+        "//cpp/platform/impl/shared:count_down_latch",
+        "//cpp/platform/impl/shared:file",
+        "//cpp/platform/impl/windows/generated:types",
+        "//cpp/platform/public:types",
     ],
 )
 
@@ -143,7 +139,7 @@ cc_library(
         "//third_party/nearby/windows:__subpackages__",
     ],
     deps = [
-        "//platform/base",
+        "//cpp/platform/base",
     ],
 )
 
@@ -165,11 +161,11 @@ cc_test(
         ":crypto",
         ":test_utils",
         ":types",
-        "//testing/base/public:gunit_main",
-        "//platform/api:platform",
-        "//platform/base",
-        "//platform/impl/windows",
-        "//platform/impl/windows/generated:types",
-        "//platform/public:logging",
+        "//cpp/platform/api:platform",
+        "//cpp/platform/base",
+        "//cpp/platform/impl/windows",
+        "//cpp/platform/impl/windows/generated:types",
+        "//cpp/platform/public:logging",
+        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
     ],
 )

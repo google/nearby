@@ -21,22 +21,21 @@ cc_library(
     hdrs = [
         "core.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
-        "//platform/impl/ios:__subpackages__",
+        "//cpp/platform/impl/ios:__subpackages__",
         "//third_party/nearby/windows:__subpackages__",
     ],
     deps = [
         ":core_types",
         ":event_logger",
-        "//absl/strings",
-        "//absl/time",
-        "//absl/types:span",
-        "//core/internal",
-        "//platform/base",
-        "//platform/public:logging",
-        "//platform/public:types",
+        "//cpp/core/internal",
+        "//cpp/platform/base",
+        "//cpp/platform/public:logging",
+        "//cpp/platform/public:types",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
     ],
 )
 
@@ -63,20 +62,19 @@ cc_library(
         "status.h",
         "strategy.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
-        "//core:__subpackages__",
-        "//platform/impl/ios:__subpackages__",
+        "//cpp/core:__subpackages__",
+        "//cpp/platform/impl/ios:__subpackages__",
         "//internal/analytics:__subpackages__",
     ],
     deps = [
-        "//absl/strings",
-        "//absl/types:variant",
-        "//platform/base",
-        "//platform/base:util",
-        "//platform/public:types",
+        "//cpp/platform/base",
+        "//cpp/platform/base:util",
+        "//cpp/platform/public:types",
         "//proto:connections_enums_portable_proto",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:variant",
     ],
 )
 
@@ -85,7 +83,6 @@ cc_library(
     hdrs = [
         "event_logger.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//internal/analytics:__subpackages__",
     ],
@@ -108,15 +105,15 @@ cc_test(
     deps = [
         ":core",
         ":core_types",
-        "//testing/base/public:gunit_main",
-        "//absl/strings",
-        "//absl/time",
-        "//absl/types:variant",
-        "//core/internal",
-        "//core/internal:internal_test",
-        "//platform/base",
-        "//platform/impl/g3",  # build_cleaner: keep
-        "//platform/public:logging",
-        "//platform/public:types",
+        "//cpp/core/internal",
+        "//cpp/core/internal:internal_test",
+        "//cpp/platform/base",
+        "//cpp/platform/impl/g3",  # build_cleaner: keep
+        "//cpp/platform/public:logging",
+        "//cpp/platform/public:types",
+        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:variant",
     ],
 )

@@ -15,7 +15,7 @@ load("//tools/build_defs/apple:objc.bzl", "objc_proto_library")
 # limitations under the License.
 licenses(["notice"])
 
-package(default_visibility = ["//platform/impl/ios:__subpackages__"])
+package(default_visibility = ["//cpp/platform/impl/ios:__subpackages__"])
 
 objc_library(
     name = "Mediums",
@@ -37,8 +37,8 @@ objc_library(
     ],
     deps = [
         ":ObjCProtos",
-        "//absl/numeric:int128",
-        "//platform/impl/ios/Source/Shared",
+        "//cpp/platform/impl/ios/Source/Shared",
+        "@com_google_absl//absl/numeric:int128",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ],
 )

@@ -42,12 +42,12 @@ objc_library(
         "Source/Internal/GNCUtils.h",
     ],
     deps = [
-        "//absl/functional:bind_front",
-        "//core",
-        "//core:core_types",
-        "//platform/impl/ios/Source/Mediums",
-        "//platform/impl/ios/Source/Platform",
-        "//platform/impl/ios/Source/Shared",
+        "//cpp/core",
+        "//cpp/core:core_types",
+        "//cpp/platform/impl/ios/Source/Mediums",
+        "//cpp/platform/impl/ios/Source/Platform",
+        "//cpp/platform/impl/ios/Source/Shared",
+        "@com_google_absl//absl/functional:bind_front",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ],
 )

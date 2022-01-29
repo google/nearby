@@ -23,10 +23,7 @@ proto_library(
     srcs = [
         "connections_log.proto",
     ],
-    cc_api_version = 2,
-    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
-        
         "//proto:connections_enums_proto",
         "//proto/errorcode:error_code_enums_proto",
     ],
@@ -34,9 +31,8 @@ proto_library(
 
 cc_proto_library(
     name = "connections_log_cc_proto",
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
-        "//core:__subpackages__",
+        "//cpp/core:__subpackages__",
         "//internal/analytics:__subpackages__",
     ],
     deps = [":connections_log_proto"],
@@ -56,11 +52,10 @@ cc_test(
     shard_count = 16,
     deps = [
         ":connections_log_cc_proto",
-        
+        "//cpp/platform/impl/g3",  # build_cleaner: keep
+        "//cpp/platform/public:logging",
         "//net/proto2/public",
-        "//testing/base/public:gunit_main",
-        "//platform/impl/g3",  # build_cleaner: keep
-        "//platform/public:logging",
         "//proto:connections_enums_portable_proto",
+        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
     ],
 )

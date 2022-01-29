@@ -21,11 +21,10 @@ cc_library(
     hdrs = [
         "posix_mutex.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
-        "//platform/impl:__subpackages__",
+        "//cpp/platform/impl:__subpackages__",
     ],
-    deps = ["//platform/api:types"],
+    deps = ["//cpp/platform/api:types"],
 )
 
 cc_library(
@@ -36,10 +35,9 @@ cc_library(
     hdrs = [
         "posix_condition_variable.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         ":posix_mutex",
-        "//platform/api:types",
+        "//cpp/platform/api:types",
     ],
 )
 
@@ -47,14 +45,13 @@ cc_library(
     name = "file",
     srcs = ["file.cc"],
     hdrs = ["file.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
-        "//platform/impl:__subpackages__",
+        "//cpp/platform/impl:__subpackages__",
     ],
     deps = [
-        "//absl/strings",
-        "//platform/api:types",
-        "//platform/base",
+        "//cpp/platform/api:types",
+        "//cpp/platform/base",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -62,17 +59,16 @@ cc_library(
     name = "count_down_latch",
     srcs = ["count_down_latch.cc"],
     hdrs = ["count_down_latch.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
+        "//cpp/platform/impl:__subpackages__",
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//platform/impl:__subpackages__",
     ],
     deps = [
-        "//absl/base:core_headers",
-        "//absl/strings",
-        "//absl/synchronization",
-        "//absl/time",
-        "//platform/api:types",
+        "//cpp/platform/api:types",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
     ],
 )
 
@@ -81,9 +77,9 @@ cc_test(
     srcs = ["file_test.cc"],
     deps = [
         ":file",
+        "//cpp/platform/base",
         "//file/util:temp_path",
-        "//testing/base/public:gunit_main",
-        "//absl/strings",
-        "//platform/base",
+        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_google_absl//absl/strings",
     ],
 )

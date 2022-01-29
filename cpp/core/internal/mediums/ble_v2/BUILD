@@ -31,23 +31,22 @@ cc_library(
         "bloom_filter.h",
         "discovered_peripheral_callback.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
-        "//core/internal:__subpackages__",
+        "//cpp/core/internal:__subpackages__",
     ],
     deps = [
-        "//absl/container:flat_hash_map",
-        "//absl/container:flat_hash_set",
-        "//absl/numeric:int128",
-        "//absl/strings",
-        "//absl/time",
-        "//core:core_types",
-        "//platform/base",
-        "//platform/base:util",
-        "//platform/public:logging",
-        "//platform/public:types",
-        "//smhasher:libmurmur3",
+        "//cpp/core:core_types",
+        "//cpp/platform/base",
+        "//cpp/platform/base:util",
+        "//cpp/platform/public:logging",
+        "//cpp/platform/public:types",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/numeric:int128",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+        "@aappleby_smhasher//:libmurmur3",
     ],
 )
 
@@ -63,10 +62,10 @@ cc_test(
     ],
     deps = [
         ":ble_v2",
-        "//testing/base/public:gunit_main",
-        "//absl/time",
-        "//platform/base",
-        "//platform/impl/g3",  # buildcleaner: keep
-        "//platform/public:comm",
+        "//cpp/platform/base",
+        "//cpp/platform/impl/g3",  # buildcleaner: keep
+        "//cpp/platform/public:comm",
+        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_google_absl//absl/time",
     ],
 )

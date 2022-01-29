@@ -23,11 +23,6 @@ package(default_visibility = ["//visibility:public"])
 proto_library(
     name = "connections_enums_proto",
     srcs = ["connections_enums.proto"],
-    cc_api_version = 2,
-    compatible_with = ["//buildenv/target:non_prod"],
-    deps = [
-        "//logs/proto/logs_annotations",
-    ],
 )
 
 java_lite_proto_library(
@@ -54,9 +49,6 @@ cc_proto_library(
 
 portable_proto_library(
     name = "connections_enums_portable_proto",
-    compatible_with = [
-        "//buildenv/target:non_prod",
-    ],
     config = ":connections_enums_proto_config",
     copts = [
         "-DGOOGLE_PROTOBUF_NO_RTTI=1",
@@ -76,19 +68,11 @@ portable_proto_library(
 filegroup(
     name = "connections_enums_proto_config",
     srcs = ["connections_enums_proto_config.asciipb"],
-    compatible_with = [
-        "//buildenv/target:non_prod",
-    ],
 )
 
 proto_library(
     name = "sharing_enums_proto",
     srcs = ["sharing_enums.proto"],
-    cc_api_version = 2,
-    compatible_with = ["//buildenv/target:non_prod"],
-    deps = [
-        "//logs/proto/logs_annotations",
-    ],
 )
 
 java_lite_proto_library(

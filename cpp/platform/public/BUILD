@@ -50,24 +50,23 @@ cc_library(
         "thread_check_callable.h",
         "thread_check_runnable.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
-        "//core:__subpackages__",
-        "//platform/base:__pkg__",
-        "//platform/impl/ios:__subpackages__",
-        "//platform/impl/windows:__subpackages__",
-        "//platform/public:__pkg__",
+        "//cpp/core:__subpackages__",
+        "//cpp/platform/base:__pkg__",
+        "//cpp/platform/impl/ios:__subpackages__",
+        "//cpp/platform/impl/windows:__subpackages__",
+        "//cpp/platform/public:__pkg__",
         "//internal/analytics:__subpackages__",
     ],
     deps = [
         ":logging",
-        "//absl/base:core_headers",
-        "//absl/time",
-        "//platform/api:platform",
-        "//platform/api:types",
-        "//platform/base",
-        "//platform/base:logging",
-        "//platform/base:util",
+        "//cpp/platform/api:platform",
+        "//cpp/platform/api:types",
+        "//cpp/platform/base",
+        "//cpp/platform/base:logging",
+        "//cpp/platform/base:util",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/time",
     ],
 )
 
@@ -86,23 +85,22 @@ cc_library(
         "webrtc.h",
         "wifi_lan.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
+        "//cpp/core:__subpackages__",
+        "//cpp/platform/public:__pkg__",
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//core:__subpackages__",
-        "//platform/public:__pkg__",
         "//internal/analytics:__subpackages__",
     ],
     deps = [
         ":logging",
         ":types",
-        "//absl/container:flat_hash_map",
-        "//absl/strings",
-        "//platform/api:comm",
-        "//platform/api:platform",
-        "//platform/base",
-        "//platform/base:cancellation_flag",
+        "//cpp/platform/api:comm",
+        "//cpp/platform/api:platform",
+        "//cpp/platform/base",
+        "//cpp/platform/base:cancellation_flag",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/strings",
         "//webrtc/api:libjingle_peerconnection_api",
     ],
 )
@@ -112,16 +110,15 @@ cc_library(
     hdrs = [
         "logging.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
-        "//core:__subpackages__",
-        "//platform:__subpackages__",
+        "//cpp/core:__subpackages__",
+        "//cpp/platform:__subpackages__",
         "//internal/analytics:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
     ],
     deps = [
-        "//platform/base:logging",
+        "//cpp/platform/base:logging",
     ],
 )
 
@@ -154,13 +151,13 @@ cc_test(
         ":comm",
         ":logging",
         ":types",
-        "//testing/base/public:gunit_main",
-        "//absl/strings",
-        "//absl/synchronization",
-        "//absl/time",
-        "//platform/base",
-        "//platform/base:test_util",
-        "//platform/impl/g3",  # build_cleaner: keep
+        "//cpp/platform/base",
+        "//cpp/platform/base:test_util",
+        "//cpp/platform/impl/g3",  # build_cleaner: keep
+        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
     ],
 )
 
@@ -169,7 +166,7 @@ cc_fake_binary(
     srcs = ["thread_check_nocompile.cc"],
     deps = [
         ":types",
-        "//absl/time",
+        "@com_google_absl//absl/time",
     ],
 )
 

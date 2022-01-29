@@ -28,10 +28,10 @@ cc_windows_dll(
     defines = ["CORE_ADAPTER_DLL"],
     tags = ["windows-dll"],
     deps = [
-        "//absl/strings",
+        "//cpp/core",
+        "//cpp/platform/impl/windows",
+        "@com_google_absl//absl/strings",
         "//third_party/dart_lang/v2:dart_api_dl",
-        "//core",
-        "//platform/impl/windows",
         "//webrtc/api:create_peerconnection_factory",
     ],
 )
@@ -52,10 +52,10 @@ cc_windows_dll(
     defines = ["CORE_ADAPTER_DART_DLL"],
     tags = ["windows-dll"],
     deps = [
-        "//absl/strings",
+        "//cpp/core",
+        "//cpp/platform/impl/windows",
+        "@com_google_absl//absl/strings",
         "//third_party/dart_lang/v2:dart_api_dl",
-        "//core",
-        "//platform/impl/windows",
         "//webrtc/api:create_peerconnection_factory",
     ],
 )

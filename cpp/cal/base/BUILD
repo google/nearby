@@ -19,12 +19,11 @@ cc_library(
     hdrs = [
         "ble_types.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//third_party/nearby/cpp:__subpackages__",
     ],
     deps = [
-        "//platform/base",
+        "//cpp/platform/base",
     ],
 )

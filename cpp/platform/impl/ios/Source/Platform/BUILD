@@ -13,7 +13,7 @@
 # limitations under the License.
 licenses(["notice"])
 
-package(default_visibility = ["//platform/impl/ios:__subpackages__"])
+package(default_visibility = ["//cpp/platform/impl/ios:__subpackages__"])
 
 objc_library(
     name = "Platform",
@@ -41,11 +41,11 @@ objc_library(
     ],
     deps = [
         ":Platform_cc",
-        "//platform/api:platform",
-        "//platform/api:types",
-        "//platform/impl/ios/Source/Mediums",
-        "//platform/impl/ios/Source/Shared",
-        "//platform/impl/shared:file",
+        "//cpp/platform/api:platform",
+        "//cpp/platform/api:types",
+        "//cpp/platform/impl/ios/Source/Mediums",
+        "//cpp/platform/impl/ios/Source/Shared",
+        "//cpp/platform/impl/shared:file",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ],
 )
@@ -65,11 +65,11 @@ cc_library(
         "mutex.h",
     ],
     deps = [
-        "//absl/strings:str_format",
-        "//absl/synchronization",
-        "//absl/time",
-        "//platform/api:platform",
-        "//platform/api:types",
+        "//cpp/platform/api:platform",
+        "//cpp/platform/api:types",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
     ],
 )
 
@@ -85,9 +85,9 @@ cc_test(
     shard_count = 16,
     deps = [
         ":Platform_cc",
-        "//testing/base/public:gunit_main",
-        "//absl/synchronization",
-        "//absl/time",
-        "//thread/fiber",
+        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_nisaba//nisaba/port:thread_pool/fiber",
     ],
 )

@@ -28,7 +28,7 @@ objc_library(
         "Platform/GNCSingleThreadExecutorTest.mm",
     ],
     deps = [
-        "//platform/impl/ios:Connections",
+        "//cpp/platform/impl/ios:Connections",
     ],
 )
 
@@ -48,8 +48,8 @@ objc_library(
         "Shared/GNCUtilsTest.mm",
     ],
     deps = [
-        "//platform/impl/ios/Source/Platform",
-        "//platform/impl/ios/Source/Shared",
+        "//cpp/platform/impl/ios/Source/Platform",
+        "//cpp/platform/impl/ios/Source/Shared",
     ],
 )
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 licenses(["notice"])
 
-package(default_visibility = ["//platform/impl/ios:__subpackages__"])
+package(default_visibility = ["//cpp/platform/impl/ios:__subpackages__"])
 
 objc_library(
     name = "Shared",
@@ -25,6 +25,6 @@ objc_library(
     ],
     deps = [
         "//third_party/objective_c/google_toolbox_for_mac:GTM_StringEncoding",
-        "//smhasher:libmurmur3",
+        "@aappleby_smhasher//:libmurmur3",
     ],
 )

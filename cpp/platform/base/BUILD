@@ -41,23 +41,22 @@ cc_library(
         "socket.h",
         "types.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
-        "//third_party/nearby/cpp/cal:__subpackages__",
-        "//core:__subpackages__",
-        "//platform:__subpackages__",
-        "//platform/api:__subpackages__",
+        "//cpp/core:__subpackages__",
+        "//cpp/platform:__subpackages__",
+        "//cpp/platform/api:__subpackages__",
         "//internal/analytics:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
+        "//third_party/nearby/cpp/cal:__subpackages__",
     ],
     deps = [
-        "//absl/container:flat_hash_map",
-        "//absl/meta:type_traits",
-        "//absl/strings",
-        "//absl/strings:str_format",
-        "//absl/synchronization",
-        "//absl/time",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/meta:type_traits",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
     ],
 )
 
@@ -74,17 +73,16 @@ cc_library(
         "base_pipe.h",
         "byte_utils.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
-        "//core:__subpackages__",
-        "//platform/impl:__subpackages__",
-        "//platform/public:__pkg__",
+        "//cpp/core:__subpackages__",
+        "//cpp/platform/impl:__subpackages__",
+        "//cpp/platform/public:__pkg__",
     ],
     deps = [
         ":base",
-        "//absl/base:core_headers",
-        "//absl/strings:str_format",
-        "//platform/api:types",
+        "//cpp/platform/api:types",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/strings:str_format",
     ],
 )
 
@@ -93,15 +91,14 @@ cc_library(
     hdrs = [
         "logging.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
+        "//cpp/platform:__subpackages__",
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//platform:__subpackages__",
     ],
     deps = [
-        "//base:logging",
-        "//platform/api:platform",
-        "//platform/api:types",
+        "@com_google_glog//:glog",
+        "//cpp/platform/api:platform",
+        "//cpp/platform/api:types",
     ],
 )
 
@@ -114,18 +111,17 @@ cc_library(
         "cancellation_flag.h",
         "cancellation_flag_listener.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
-        "//core/internal:__subpackages__",
-        "//platform/api:__subpackages__",
-        "//platform/impl:__subpackages__",
-        "//platform/public:__pkg__",
+        "//cpp/core/internal:__subpackages__",
+        "//cpp/platform/api:__subpackages__",
+        "//cpp/platform/impl:__subpackages__",
+        "//cpp/platform/public:__pkg__",
     ],
     deps = [
         ":base",
         ":util",
-        "//absl/container:flat_hash_set",
-        "//absl/synchronization",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/synchronization",
     ],
 )
 
@@ -138,10 +134,9 @@ cc_library(
         "error_code_params.h",
         "error_code_recorder.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
-        "//core/internal:__subpackages__",
-        "//platform/impl:__subpackages__",
+        "//cpp/core/internal:__subpackages__",
+        "//cpp/platform/impl:__subpackages__",
         "//internal/analytics:__subpackages__",
     ],
     deps = [
@@ -161,17 +156,17 @@ cc_library(
         "medium_environment.h",
     ],
     visibility = [
-        "//core:__subpackages__",
-        "//platform/impl:__subpackages__",
-        "//platform/public:__pkg__",
+        "//cpp/core:__subpackages__",
+        "//cpp/platform/impl:__subpackages__",
+        "//cpp/platform/public:__pkg__",
     ],
     deps = [
         ":base",
         ":logging",
-        "//absl/container:flat_hash_map",
-        "//absl/strings",
-        "//platform/api:comm",
-        "//platform/public:types",
+        "//cpp/platform/api:comm",
+        "//cpp/platform/public:types",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -186,8 +181,8 @@ cc_test(
     deps = [
         ":base",
         ":test_util",
-        "//testing/base/public:gunit_main",
-        "//platform/impl/g3",  # build_cleaner: keep
+        "//cpp/platform/impl/g3",  # build_cleaner: keep
+        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
     ],
 )
 
@@ -199,7 +194,7 @@ cc_test(
     deps = [
         ":base",
         ":util",
-        "//testing/base/public:gunit_main",
+        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
     ],
 )
 
@@ -212,8 +207,8 @@ cc_test(
         ":base",
         ":cancellation_flag",
         ":test_util",
-        "//testing/base/public:gunit_main",
-        "//platform/impl/g3",  # build_cleaner: keep
+        "//cpp/platform/impl/g3",  # build_cleaner: keep
+        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
     ],
 )
 
@@ -225,8 +220,8 @@ cc_test(
     deps = [
         ":error_code_recorder",
         ":test_util",
-        "//testing/base/public:gunit_main",
-        "//platform/impl/g3",  # build_cleaner: keep
+        "//cpp/platform/impl/g3",  # build_cleaner: keep
+        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
     ],
 )
 
@@ -237,6 +232,6 @@ cc_with_non_compile_test(
     ],
     deps = [
         ":base",
-        "//testing/base/public:gunit_main",
+        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
     ],
 )
