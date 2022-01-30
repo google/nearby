@@ -99,6 +99,12 @@ class ByteArray {
     return absl::string_view(data(), size());
   }
 
+  // Hashable
+  template <typename H>
+  friend H AbslHashValue(H h, const ByteArray& m) {
+    return H::combine(std::move(h), m.data_);
+  }
+
  private:
   std::string data_;
 };
