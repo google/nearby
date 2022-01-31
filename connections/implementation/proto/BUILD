@@ -22,7 +22,7 @@ proto_library(
         "offline_wire_formats.proto",
     ],
     visibility = [
-        "//cpp/platform/impl/ios:__subpackages__",
+        "//internal/platform/implementation/ios:__subpackages__",
     ],
 )
 

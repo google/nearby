@@ -24,7 +24,7 @@ cc_library(
     ],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//third_party/nearby/cpp:__subpackages__",
+        "//third_party/nearby:__subpackages__",
     ],
     deps = [
         "//third_party/nearby/cpp/cal/api:ble",

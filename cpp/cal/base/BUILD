@@ -24,6 +24,6 @@ cc_library(
         "//third_party/nearby/cpp:__subpackages__",
     ],
     deps = [
-        "//cpp/platform/base",
+        "//internal/platform:base",
     ],
 )
