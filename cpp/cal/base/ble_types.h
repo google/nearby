@@ -18,11 +18,11 @@
 // TODO(hais) relocate base def class accordingly.
 #include <map>
 
-#include "platform/base/byte_array.h"
-#include "platform/base/exception.h"
-#include "platform/base/input_stream.h"
-#include "platform/base/listeners.h"
-#include "platform/base/output_stream.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/input_stream.h"
+#include "internal/platform/listeners.h"
+#include "internal/platform/output_stream.h"
 
 namespace nearby {
 namespace cal {

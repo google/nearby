@@ -18,9 +18,9 @@
 #include <utility>
 
 #include "absl/time/time.h"
-#include "platform/public/logging.h"
-#include "platform/public/mutex_lock.h"
-#include "platform/public/system_clock.h"
+#include "internal/platform/logging.h"
+#include "internal/platform/mutex_lock.h"
+#include "internal/platform/system_clock.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 

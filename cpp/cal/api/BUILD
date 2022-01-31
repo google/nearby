@@ -19,14 +19,15 @@ cc_library(
     hdrs = [
         "ble.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//third_party/nearby/cpp:__subpackages__",
     ],
     deps = [
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:optional",
+        "//absl/strings",
+        "//absl/time",
+        "//absl/types:optional",
         "//third_party/nearby/cpp/cal/base:types",
     ],
 )
