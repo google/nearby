@@ -21,12 +21,8 @@ proto_library(
     srcs = [
         "offline_wire_formats.proto",
     ],
-    cc_api_version = 2,
-    compatible_with = [
-        "//buildenv/target:non_prod",
-    ],
     visibility = [
-        "//platform/impl/ios:__subpackages__",
+        "//internal/platform/implementation/ios:__subpackages__",
     ],
 )
 
@@ -41,9 +37,6 @@ java_lite_proto_library(
 
 portable_proto_library(
     name = "offline_wire_formats_portable_proto",
-    compatible_with = [
-        "//buildenv/target:non_prod",
-    ],
     config = ":offline_wire_formats_proto_config",
     copts = [
         "-DGOOGLE_PROTOBUF_NO_RTTI=1",
@@ -62,7 +55,4 @@ portable_proto_library(
 filegroup(
     name = "offline_wire_formats_proto_config",
     srcs = ["offline_wire_formats_proto_config.asciipb"],
-    compatible_with = [
-        "//buildenv/target:non_prod",
-    ],
 )
