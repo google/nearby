@@ -263,7 +263,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   static constexpr std::string_view MDNS_DEVICE_SELECTOR_FORMAT =
       "System.Devices.AepService.ProtocolId:=\"{4526e8c1-8aac-4153-9b16-"
       "55e86ada0e54}\" "
-      "AND System.Devices.Dnssd.ServiceName:=\"%s._tcp\" AND "
+      "AND System.Devices.Dnssd.ServiceName:=\"%s\" AND "
       "System.Devices.Dnssd.Domain:=\"local\"";
 
   // Nsd status

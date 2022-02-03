@@ -194,8 +194,17 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
     return false;
   }
 
+  // In WifiLan::StartDiscovery(), service_type is appended with "._tcp." for
+  // ios and android platform. For windows, this has to be removed because
+  // "._tcp" will be appended in following "selector"
+  std::string service_type_trim = service_type;
+  if (service_type.size() > 5 &&
+      (service_type.rfind("_tcp.") == service_type.size() - 5)) {
+    service_type_trim.resize(service_type_trim.size() - 1);
+  }
+
   std::string selector =
-      absl::StrFormat(MDNS_DEVICE_SELECTOR_FORMAT.data(), service_type);
+      absl::StrFormat(MDNS_DEVICE_SELECTOR_FORMAT.data(), service_type_trim);
 
   std::vector<winrt::hstring> requestedProperties{
       L"System.Devices.IpAddress",
@@ -344,6 +353,21 @@ NsdServiceInfo WifiLanMedium::GetNsdServiceInformation(
     return nsd_service_info;
   }
   nsd_service_info.SetServiceName(InspectableReader::ReadString(inspectable));
+
+  // Service type information
+  inspectable = properties.TryLookup(L"System.Devices.Dnssd.ServiceName");
+  if (inspectable == nullptr) {
+    NEARBY_LOGS(WARNING)
+        << "no service type information in device information.";
+    return nsd_service_info;
+  }
+
+  // In WifiLan::StartDiscovery(), service_type is appended with "._tcp." for
+  // ios and android platform. For windows, we only have "._tcp" as appendix.
+  // Here "." is added back to match the upper layer service_type, because
+  // service_type is used to get the corresponding call back function.
+  nsd_service_info.SetServiceType(
+      (InspectableReader::ReadString(inspectable)).append("."));
 
   // IP Address information
   inspectable = properties.TryLookup(L"System.Devices.IPAddress");
