@@ -69,6 +69,7 @@ cc_library(
         "//internal/platform/implementation/ios:__subpackages__",
     ],
     deps = [
+        "//base",
         "//internal/platform:base",
         "//internal/platform:types",
         "//internal/platform:util",

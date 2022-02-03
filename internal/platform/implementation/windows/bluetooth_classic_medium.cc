@@ -382,8 +382,8 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
                        winrt::Windows::Foundation::AsyncStatus status) {
           EnterCriticalSection(&critical_section_);
 
-          std::unique_ptr<BluetoothDevice> bluetoothDeviceP =
-              std::make_unique<BluetoothDevice>(bluetoothDevice.get());
+          auto bluetoothDeviceP =
+              absl::WrapUnique(new BluetoothDevice(bluetoothDevice.get()));
 
           discovered_devices_by_id_[deviceInfo.Id()] =
               std::move(bluetoothDeviceP);

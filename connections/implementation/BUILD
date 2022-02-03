@@ -90,6 +90,7 @@ cc_library(
     ],
     deps = [
         ":message_lite",
+        "//base",
         "//connections:core_types",
         "//connections/implementation/mediums",
         "//connections/implementation/mediums:utils",

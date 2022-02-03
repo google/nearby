@@ -14,7 +14,7 @@
 
 #include "internal/platform/implementation/windows/mutex.h"
 
-#include <future> // NOLINT
+#include <future>  // NOLINT
 
 #include "gtest/gtest.h"
 
@@ -24,18 +24,17 @@ class MutexTests : public testing::Test {
    public:
     MutexTest(location::nearby::windows::Mutex& mutex) : mutex_(mutex) {}
 
-    std::future<bool> WaitForLock() { // NOLINT
-      return std::async(
-          std::launch::async,
-          // for this lambda you need C++14
-          [this]() mutable {
-            std::unique_lock<std::mutex> lck(mutex_.GetWindowsMutex());
-            return true;
-          });
+    std::future<bool> WaitForLock() {  // NOLINT
+      return std::async(std::launch::async,
+                        // for this lambda you need C++14
+                        [this]() mutable {
+                          absl::MutexLock::MutexLock(&mutex_.GetMutex());
+                          return true;
+                        });
     }
 
     void PostEvent() {
-      std::lock_guard<std::mutex> guard(mutex_.GetWindowsMutex());
+      absl::MutexLock::MutexLock(&mutex_.GetMutex());
       mutex_.Unlock();
     }
 
@@ -50,7 +49,7 @@ TEST_F(MutexTests, SuccessfulRecursiveCreation) {
       location::nearby::windows::Mutex::Mode::kRecursive);
 
   // Act
-  std::recursive_mutex& actual = mutex.GetWindowsRecursiveMutex();
+  std::recursive_mutex& actual = mutex.GetRecursiveMutex();
 
   // Assert
   ASSERT_TRUE(actual.native_handle() != nullptr);
@@ -62,10 +61,10 @@ TEST_F(MutexTests, SuccessfulCreation) {
       location::nearby::windows::Mutex::Mode::kRegular);
 
   // Act
-  std::mutex& actual = mutex.GetWindowsMutex();
+  absl::Mutex& actual = mutex.GetMutex();
 
   // Assert
-  ASSERT_TRUE(actual.native_handle() != nullptr);
+  ASSERT_TRUE(&actual != nullptr);
 }
 
 TEST_F(MutexTests, SuccessfulSignal) {

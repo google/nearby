@@ -88,12 +88,12 @@ std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(PayloadId pay
   if (url != nil) {
     return absl::make_unique<ios::InputFile>(url);
   } else {
-    return absl::make_unique<shared::InputFile>(GetPayloadPath(payload_id), total_size);
+    return shared::IOFile::CreateInputFile(GetPayloadPath(payload_id), total_size);
   }
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(PayloadId payload_id) {
-  return absl::make_unique<shared::OutputFile>(GetPayloadPath(payload_id));
+  return shared::IOFile::CreateOutputFile(GetPayloadPath(payload_id));
 }
 
 std::unique_ptr<LogMessage> ImplementationPlatform::CreateLogMessage(

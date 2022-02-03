@@ -56,6 +56,9 @@ class ABSL_LOCKABLE Mutex : public api::Mutex {
     }
   }
 
+  absl::Mutex& GetMutex() { return mutex_; }
+  std::recursive_mutex& GetRecursiveMutex() { return recursive_mutex_; }
+
  private:
   friend class ConditionVariable;
   absl::Mutex mutex_;

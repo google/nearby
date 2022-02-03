@@ -50,7 +50,7 @@ class ConditionVariableTests : public testing::Test {
     }
 
     void PostEvent() {
-      std::lock_guard<std::mutex> guard(mutex_actual_.GetWindowsMutex());
+      absl::MutexLock::MutexLock(&mutex_actual_.GetMutex());
       condition_variable_actual_.Notify();
     }
 

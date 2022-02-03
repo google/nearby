@@ -64,83 +64,84 @@ class FileTest : public ::testing::Test {
   size_t size_ = 0;
 };
 
-TEST_F(FileTest, InputFile_NonExistentPath) {
-  InputFile input_file("/not/a/valid/path.txt", GetSize());
-  ExceptionOr<ByteArray> read_result = input_file.Read(kMaxSize);
+TEST_F(FileTest, IOFile_NonExistentPathInput) {
+  auto io_file =
+      shared::IOFile::CreateInputFile("/not/a/valid/path.txt", GetSize());
+  ExceptionOr<ByteArray> read_result = io_file->Read(kMaxSize);
   EXPECT_FALSE(read_result.ok());
   EXPECT_TRUE(read_result.GetException().Raised(Exception::kIo));
 }
 
-TEST_F(FileTest, InputFile_GetFilePath) {
-  InputFile input_file(path_, GetSize());
-  EXPECT_EQ(input_file.GetFilePath(), path_);
+TEST_F(FileTest, IOFile_GetFilePath) {
+  auto io_file = shared::IOFile::CreateInputFile(path_, GetSize());
+  EXPECT_EQ(io_file->GetFilePath(), path_);
 }
 
-TEST_F(FileTest, InputFile_EmptyFileEOF) {
-  InputFile input_file(path_, GetSize());
-  AssertEmpty(input_file.Read(kMaxSize));
+TEST_F(FileTest, IOFile_EmptyFileEOF) {
+  auto io_file = shared::IOFile::CreateInputFile(path_, GetSize());
+  AssertEmpty(io_file->Read(kMaxSize));
 }
 
-TEST_F(FileTest, InputFile_ReadWorks) {
+TEST_F(FileTest, IOFile_ReadWorks) {
   WriteToFile("abc");
-  InputFile input_file(path_, GetSize());
-  input_file.Read(kMaxSize);
+  auto io_file = shared::IOFile::CreateInputFile(path_, GetSize());
+  io_file->Read(kMaxSize);
   SUCCEED();
 }
 
-TEST_F(FileTest, InputFile_ReadUntilEOF) {
+TEST_F(FileTest, IOFile_ReadUntilEOF) {
   WriteToFile("abc");
-  InputFile input_file(path_, GetSize());
-  AssertEquals(input_file.Read(kMaxSize), "abc");
-  AssertEmpty(input_file.Read(kMaxSize));
+  auto io_file = shared::IOFile::CreateInputFile(path_, GetSize());
+  AssertEquals(io_file->Read(kMaxSize), "abc");
+  AssertEmpty(io_file->Read(kMaxSize));
 }
 
-TEST_F(FileTest, InputFile_ReadWithSize) {
+TEST_F(FileTest, IOFile_ReadWithSize) {
   WriteToFile("abc");
-  InputFile input_file(path_, GetSize());
-  AssertEquals(input_file.Read(2), "ab");
-  AssertEquals(input_file.Read(1), "c");
-  AssertEmpty(input_file.Read(kMaxSize));
+  auto io_file = shared::IOFile::CreateInputFile(path_, GetSize());
+  AssertEquals(io_file->Read(2), "ab");
+  AssertEquals(io_file->Read(1), "c");
+  AssertEmpty(io_file->Read(kMaxSize));
 }
 
-TEST_F(FileTest, InputFile_GetTotalSize) {
+TEST_F(FileTest, IOFile_GetTotalSize) {
   WriteToFile("abc");
-  InputFile input_file(path_, GetSize());
-  EXPECT_EQ(input_file.GetTotalSize(), 3);
-  AssertEquals(input_file.Read(1), "a");
-  EXPECT_EQ(input_file.GetTotalSize(), 3);
+  auto io_file = shared::IOFile::CreateInputFile(path_, GetSize());
+  EXPECT_EQ(io_file->GetTotalSize(), 3);
+  AssertEquals(io_file->Read(1), "a");
+  EXPECT_EQ(io_file->GetTotalSize(), 3);
 }
 
-TEST_F(FileTest, InputFile_Close) {
+TEST_F(FileTest, IOFile_CloseInput) {
   WriteToFile("abc");
-  InputFile input_file(path_, GetSize());
-  input_file.Close();
-  ExceptionOr<ByteArray> read_result = input_file.Read(kMaxSize);
+  auto io_file = shared::IOFile::CreateInputFile(path_, GetSize());
+  io_file->Close();
+  ExceptionOr<ByteArray> read_result = io_file->Read(kMaxSize);
   EXPECT_FALSE(read_result.ok());
   EXPECT_TRUE(read_result.GetException().Raised(Exception::kIo));
 }
 
-TEST_F(FileTest, OutputFile_NonExistentPath) {
-  OutputFile output_file("/not/a/valid/path.txt");
+TEST_F(FileTest, IOFile_NonExistentPathOutput) {
+  auto io_file = shared::IOFile::CreateOutputFile("/not/a/valid/path.txt");
   ByteArray bytes("a", 1);
-  EXPECT_TRUE(output_file.Write(bytes).Raised(Exception::kIo));
+  EXPECT_TRUE(io_file->Write(bytes).Raised(Exception::kIo));
 }
 
-TEST_F(FileTest, OutputFile_Write) {
-  OutputFile output_file(path_);
+TEST_F(FileTest, IOFile_Write) {
+  auto io_file_output = shared::IOFile::CreateOutputFile(path_);
   ByteArray bytes1("a");
   ByteArray bytes2("bc");
-  EXPECT_EQ(output_file.Write(bytes1), Exception{Exception::kSuccess});
-  EXPECT_EQ(output_file.Write(bytes2), Exception{Exception::kSuccess});
-  InputFile input_file(path_, GetSize());
-  AssertEquals(input_file.Read(kMaxSize), "abc");
+  EXPECT_EQ(io_file_output->Write(bytes1), Exception{Exception::kSuccess});
+  EXPECT_EQ(io_file_output->Write(bytes2), Exception{Exception::kSuccess});
+  auto io_file_input = shared::IOFile::CreateInputFile(path_, GetSize());
+  AssertEquals(io_file_input->Read(kMaxSize), "abc");
 }
 
-TEST_F(FileTest, OutputFile_Close) {
-  OutputFile output_file(path_);
-  output_file.Close();
+TEST_F(FileTest, IOFile_CloseOutput) {
+  auto io_file = shared::IOFile::CreateOutputFile(path_);
+  io_file->Close();
   ByteArray bytes("a");
-  EXPECT_EQ(output_file.Write(bytes), Exception{Exception::kIo});
+  EXPECT_EQ(io_file->Write(bytes), Exception{Exception::kIo});
 }
 
 }  // namespace shared

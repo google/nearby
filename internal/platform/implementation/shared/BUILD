@@ -51,6 +51,7 @@ cc_library(
     deps = [
         "//internal/platform:base",
         "//internal/platform/implementation:types",
+        "@com_google_absl//absl/memory",
         "@com_google_absl//absl/strings",
     ],
 )
