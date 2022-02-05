@@ -16,7 +16,6 @@
 #define CORE_INTERNAL_MOCK_SERVICE_CONTROLLER_ROUTER_H_
 
 #include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "connections/implementation/service_controller_router.h"
 
 namespace location {
