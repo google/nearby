@@ -49,6 +49,7 @@ void StartDiscovery(Core *pCore, const char *service_id,
                     DiscoveryOptions discovery_options,
                     DiscoveryListener listener, ResultCallback callback) {
   if (pCore) {
+    NEARBY_LOGS(WARNING) << "StartDiscovery called.";
     pCore->StartDiscovery(service_id, discovery_options, listener, callback);
   }
 }
