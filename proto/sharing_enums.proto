@@ -214,6 +214,7 @@ enum Visibility {
   EVERYONE = 2;
   SELECTED_CONTACTS_ONLY = 3;
   HIDDEN = 4;
+  SELF_SHARE = 5;
 }
 
 enum DataUsage {
