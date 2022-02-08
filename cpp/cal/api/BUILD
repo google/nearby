@@ -24,9 +24,9 @@ cc_library(
         "//third_party/nearby/cpp:__subpackages__",
     ],
     deps = [
+        "//cpp/cal/base:types",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
-        "//third_party/nearby/cpp/cal/base:types",
     ],
 )

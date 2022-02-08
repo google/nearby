@@ -21,8 +21,8 @@ cc_fuzz_target(
     componentid = 148515,
     copts = ["-DCORE_ADAPTER_DLL"],
     deps = [
+        "//security/fuzzing/blaze:default_init_google_for_cc_fuzz_target",
         "//connections/implementation:internal",
         "//internal/platform:base",
-        "//security/fuzzing/blaze:default_init_google_for_cc_fuzz_target",
     ],
 )

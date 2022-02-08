@@ -80,7 +80,8 @@ cc_test(
         ":file",
         "//file/util:temp_path",
         "//internal/platform:base",
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
     ],
 )

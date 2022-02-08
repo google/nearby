@@ -21,7 +21,7 @@ cc_library(
         "bluetooth_radio.cc",
         "mediums.cc",
         "uuid.cc",
-        "webrtc.cc",
+        "webrtc_stub.cc",
         "wifi_lan.cc",
     ],
     hdrs = [
@@ -31,9 +31,10 @@ cc_library(
         "lost_entity_tracker.h",
         "mediums.h",
         "uuid.h",
-        "webrtc.h",
+        "webrtc_stub.h",
         "wifi_lan.h",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
     ],
@@ -41,9 +42,7 @@ cc_library(
         ":utils",
         "//connections:core_types",
         "//connections/implementation/mediums/ble_v2",
-        "//connections/implementation/mediums/webrtc",
-        "//connections/implementation/mediums/webrtc:data_types",
-        "//connections/implementation/proto:offline_wire_formats_portable_proto",
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
@@ -56,7 +55,6 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
-        "//webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
@@ -69,16 +67,16 @@ cc_library(
     hdrs = [
         "utils.h",
         "webrtc_peer_id.h",
-        "webrtc_socket.h",
+        "webrtc_socket_stub.h",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums:__pkg__",
         "//connections/implementation/mediums/webrtc:__pkg__",
     ],
     deps = [
-        "//connections/implementation/mediums/webrtc:data_types",
-        "//connections/implementation/proto:offline_wire_formats_portable_proto",
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
         "//internal/platform:types",
         "@com_google_absl//absl/strings",
@@ -96,6 +94,7 @@ cc_test(
         "uuid_test.cc",
         "wifi_lan_test.cc",
     ],
+    defines = ["NO_WEBRTC"],
     shard_count = 16,
     deps = [
         ":mediums",
@@ -105,31 +104,9 @@ cc_test(
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
-    ],
-)
-
-cc_test(
-    name = "core_internal_mediums_webrtc_test",
-    size = "small",
-    srcs = [
-        "webrtc_peer_id_test.cc",
-        "webrtc_test.cc",
-    ],
-    shard_count = 16,
-    tags = [
-        "notsan",  # NOTE(b/139734036): known data race in usrsctplib.
-        "requires-net:external",
-    ],
-    deps = [
-        ":mediums",
-        ":utils",
-        "//internal/platform:base",
-        "//internal/platform:test_util",
-        "//internal/platform:types",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )

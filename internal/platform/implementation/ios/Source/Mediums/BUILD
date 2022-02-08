@@ -38,8 +38,8 @@ objc_library(
     deps = [
         ":ObjCProtos",
         "//internal/platform/implementation/ios/Source/Shared",
-        "@com_google_absl//absl/numeric:int128",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
+        "@com_google_absl//absl/numeric:int128",
     ],
 )
 

@@ -73,7 +73,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:types",
         "//internal/platform:util",
-        "//proto:connections_enums_portable_proto",
+        "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:variant",
     ],
@@ -112,9 +112,10 @@ cc_test(
         "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:variant",
+        "@com_google_googletest//:gtest_main",
     ],
 )

@@ -39,10 +39,10 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform:types",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//third_party/webrtc/files/stable/webrtc/pc:peerconnection",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/time",
-        "//webrtc/api:libjingle_peerconnection_api",
-        "//third_party/webrtc/files/stable/webrtc/pc:peerconnection",
     ],
 )
 
@@ -62,7 +62,7 @@ cc_library(
         "//connections:core_types",
         "//internal/platform:base",
         "//internal/platform:types",
-        "//webrtc/api:libjingle_peerconnection_api",
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
@@ -87,11 +87,12 @@ cc_test(
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # buildcleaner: keep
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//third_party/webrtc/files/stable/webrtc/api:rtc_error",
+        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/time",
-        "//webrtc/api:libjingle_peerconnection_api",
-        "//webrtc/api:rtc_error",
-        "//webrtc/api:scoped_refptr",
+        "@com_google_googletest//:gtest_main",
         "@com_google_protobuf//:protobuf",
     ],
 )

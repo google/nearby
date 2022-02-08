@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-load("//ads/util/non_compile:non_compile.bzl", "cc_with_non_compile_test")
+
 load("//tools/build_defs/cc:cc_fake_binary.bzl", "cc_fake_binary")
 
 licenses(["notice"])
@@ -43,6 +43,7 @@ cc_library(
         "types.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
         "//internal/analytics:__subpackages__",
@@ -74,6 +75,7 @@ cc_library(
         "base_pipe.h",
         "byte_utils.h",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
         "//internal/platform:__pkg__",
@@ -93,6 +95,7 @@ cc_library(
         "logging.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
@@ -101,9 +104,9 @@ cc_library(
         "//internal/proto/analytics:__subpackages__",
     ],
     deps = [
-        "@com_google_glog//:glog",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
+        "@com_google_glog//:glog",
     ],
 )
 
@@ -116,6 +119,7 @@ cc_library(
         "cancellation_flag.h",
         "cancellation_flag_listener.h",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
         "//internal/platform:__pkg__",
@@ -138,6 +142,7 @@ cc_library(
         "error_code_params.h",
         "error_code_recorder.h",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
         "//internal/analytics:__subpackages__",
@@ -145,8 +150,8 @@ cc_library(
     ],
     deps = [
         ":logging",
-        "//proto:connections_enums_portable_proto",
-        "//proto/errorcode:error_code_enums_portable_proto",
+        "//proto:connections_enums_cc_proto",
+        "//proto/errorcode:error_code_enums_cc_proto",
     ],
 )
 
@@ -159,6 +164,7 @@ cc_library(
     hdrs = [
         "medium_environment.h",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
         "//internal/platform:__pkg__",
@@ -182,11 +188,13 @@ cc_test(
         "feature_flags_test.cc",
         "prng_test.cc",
     ],
+    defines = ["NO_WEBRTC"],
     deps = [
         ":base",
         ":test_util",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -195,10 +203,12 @@ cc_test(
     srcs = [
         "byte_utils_test.cc",
     ],
+    defines = ["NO_WEBRTC"],
     deps = [
         ":base",
         ":util",
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -207,12 +217,14 @@ cc_test(
     srcs = [
         "cancellation_flag_test.cc",
     ],
+    defines = ["NO_WEBRTC"],
     deps = [
         ":base",
         ":cancellation_flag",
         ":test_util",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -221,22 +233,13 @@ cc_test(
     srcs = [
         "error_code_recorder_test.cc",
     ],
+    defines = ["NO_WEBRTC"],
     deps = [
         ":error_code_recorder",
         ":test_util",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
-    ],
-)
-
-cc_with_non_compile_test(
-    name = "exception_test",
-    srcs = [
-        "exception_test.cc",
-    ],
-    deps = [
-        ":base",
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -275,6 +278,7 @@ cc_library(
         "thread_check_callable.h",
         "thread_check_runnable.h",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
         "//internal/analytics:__subpackages__",
@@ -305,10 +309,10 @@ cc_library(
         "ble.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
-        "webrtc.h",
         "wifi_lan.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
@@ -324,7 +328,6 @@ cc_library(
         "//internal/platform/implementation:platform",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/strings",
-        "//webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
@@ -352,6 +355,7 @@ cc_test(
         "wifi_lan_test.cc",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
+    defines = ["NO_WEBRTC"],
     shard_count = 16,
     deps = [
         ":comm",
@@ -360,10 +364,11 @@ cc_test(
         "//internal/platform:base",
         "//internal/platform:test_util",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 

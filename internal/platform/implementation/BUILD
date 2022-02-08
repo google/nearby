@@ -35,6 +35,7 @@ cc_library(
         "submittable_executor.h",
         "system_clock.h",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
@@ -55,22 +56,21 @@ cc_library(
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
         "server_sync.h",
-        "webrtc.h",
         "wifi.h",
         "wifi_lan.h",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
     ],
     deps = [
-        "//connections/implementation/proto:offline_wire_formats_portable_proto",
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:optional",
-        "//webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
@@ -79,6 +79,7 @@ cc_library(
     hdrs = [
         "platform.h",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//internal/platform:__pkg__",

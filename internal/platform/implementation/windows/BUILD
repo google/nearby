@@ -83,8 +83,8 @@ cc_library(
     deps = [
         "//internal/platform:base",
         "//internal/platform/implementation:types",
-        "@com_google_absl//absl/strings",
         "@boringssl//:crypto",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -166,6 +166,7 @@ cc_test(
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation/windows",
         "//internal/platform/implementation/windows/generated:types",
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )

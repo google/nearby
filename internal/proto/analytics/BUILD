@@ -54,8 +54,9 @@ cc_test(
         ":connections_log_cc_proto",
         "//internal/platform:logging",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//net/proto2/public",
-        "//proto:connections_enums_portable_proto",
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "//proto:connections_enums_cc_proto",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_protobuf//:protobuf",
     ],
 )

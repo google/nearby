@@ -35,30 +35,9 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/proto/analytics:connections_log_cc_proto",
-        "//proto:connections_enums_portable_proto",
-        "//proto/errorcode:error_code_enums_portable_proto",
+        "//proto:connections_enums_cc_proto",
+        "//proto/errorcode:error_code_enums_cc_proto",
         "@com_google_absl//absl/container:btree",
-        "@com_google_absl//absl/time",
-    ],
-)
-
-cc_test(
-    name = "analytics_test",
-    size = "small",
-    srcs = [
-        "analytics_recorder_test.cc",
-    ],
-    shard_count = 16,
-    deps = [
-        ":analytics",
-        "//internal/platform:comm",
-        "//internal/platform:error_code_recorder",
-        "//internal/platform:logging",
-        "//internal/platform:types",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//internal/proto/analytics:connections_log_cc_proto",
-        "//proto:connections_enums_portable_proto",
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
         "@com_google_absl//absl/time",
     ],
 )

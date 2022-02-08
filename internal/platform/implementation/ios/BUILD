@@ -47,8 +47,8 @@ objc_library(
         "//internal/platform/implementation/ios/Source/Mediums",
         "//internal/platform/implementation/ios/Source/Platform",
         "//internal/platform/implementation/ios/Source/Shared",
-        "@com_google_absl//absl/functional:bind_front",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
+        "@com_google_absl//absl/functional:bind_front",
     ],
 )
 

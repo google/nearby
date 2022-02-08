@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//net/proto2/contrib/portable/cc:portable_proto_build_defs.bzl", "portable_proto_library")
 load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
 licenses(["notice"])
@@ -92,20 +91,6 @@ java_lite_proto_library(
 cc_proto_library(
     name = "ble_frames_cc_proto",
     deps = [
-        ":ble_frames_proto",
-    ],
-)
-
-portable_proto_library(
-    name = "ble_frames_portable_proto",
-    config = ":ble_frames_portable_proto_config",
-    copts = [
-        "-DGOOGLE_PROTOBUF_NO_RTTI=1",
-    ],
-    header_outs = [
-        "ble_frames.pb.h",
-    ],
-    proto_deps = [
         ":ble_frames_proto",
     ],
 )

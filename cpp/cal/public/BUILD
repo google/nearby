@@ -28,7 +28,7 @@ cc_library(
     ],
     deps = [
         "//third_party/nearby/cpp/cal/api:ble",
-        "//third_party/nearby/cpp/cal/base:types",
+        "//cpp/cal/base:types",
     ],
 )
 
@@ -41,9 +41,10 @@ cc_test(
     ],
     deps = [
         ":ble",
-        "@com_google_googletest//:gtest",
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
         "//third_party/nearby/cpp/cal/api:ble",
-        "//third_party/nearby/cpp/cal/base:types",
+        "//cpp/cal/base:types",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
     ],
 )

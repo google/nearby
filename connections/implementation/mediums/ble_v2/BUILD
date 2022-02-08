@@ -41,12 +41,12 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform:util",
+        "@aappleby_smhasher//:libmurmur3",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/numeric:int128",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
-        "@aappleby_smhasher//:libmurmur3",
     ],
 )
 
@@ -65,7 +65,8 @@ cc_test(
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform/implementation/g3",  # buildcleaner: keep
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
     ],
 )

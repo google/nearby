@@ -32,6 +32,7 @@ cc_library(
         "scheduled_executor.h",
         "single_thread_executor.h",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = ["//visibility:private"],
     deps = [
         "//base",
@@ -56,16 +57,15 @@ cc_library(
         "ble.cc",
         "bluetooth_adapter.cc",
         "bluetooth_classic.cc",
-        "webrtc.cc",
         "wifi_lan.cc",
     ],
     hdrs = [
         "ble.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
-        "webrtc.h",
         "wifi_lan.h",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = ["//visibility:private"],
     deps = [
         ":types",
@@ -81,9 +81,6 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
-        "//webrtc/api:create_peerconnection_factory",  #buildcleaner: keep
-        "//webrtc/api:libjingle_peerconnection_api",
-        "//webrtc/api/task_queue:default_task_queue_factory",
     ],
 )
 
@@ -93,12 +90,13 @@ cc_library(
     srcs = [
         "crypto.cc",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = ["//visibility:private"],
     deps = [
         "//internal/platform:base",
         "//internal/platform/implementation:types",
-        "@com_google_absl//absl/strings",
         "@boringssl//:crypto",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -108,6 +106,7 @@ cc_library(
     srcs = [
         "platform.cc",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
         "//internal/analytics:__subpackages__",

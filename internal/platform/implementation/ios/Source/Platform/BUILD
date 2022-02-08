@@ -85,9 +85,10 @@ cc_test(
     shard_count = 16,
     deps = [
         ":Platform_cc",
-        "@com_google_googletest//:gtest_main","@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
         "@com_google_nisaba//nisaba/port:thread_pool/fiber",
     ],
 )

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Proto for Nearby products
-load("//net/proto2/contrib/portable/cc:portable_proto_build_defs.bzl", "portable_proto_library")
+
 load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
 licenses(["notice"])
@@ -44,24 +44,6 @@ cc_proto_library(
     name = "connections_enums_cc_proto",
     deps = [
         ":connections_enums_proto",
-    ],
-)
-
-portable_proto_library(
-    name = "connections_enums_portable_proto",
-    config = ":connections_enums_proto_config",
-    copts = [
-        "-DGOOGLE_PROTOBUF_NO_RTTI=1",
-    ],
-    header_outs = [
-        "connections_enums.pb.h",
-    ],
-    proto_deps = [
-        ":connections_enums_proto",
-    ],
-    visibility = [
-        "//location/nearby/connections:__subpackages__",
-        "//third_party/nearby:__subpackages__",
     ],
 )
 
