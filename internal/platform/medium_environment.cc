@@ -59,8 +59,10 @@ void MediumEnvironment::Reset() {
     bluetooth_adapters_.clear();
     bluetooth_mediums_.clear();
     ble_mediums_.clear();
+#ifndef NO_WEBRTC
     webrtc_signaling_message_callback_.clear();
     webrtc_signaling_complete_callback_.clear();
+#endif
     wifi_lan_mediums_.clear();
     use_valid_peer_connection_ = true;
     peer_connection_latency_ = absl::ZeroDuration();
@@ -475,7 +477,7 @@ void MediumEnvironment::CallBleAcceptedConnectionCallback(
         info.accepted_connection_callback.accepted_cb(socket, service_id);
       });
 }
-
+#ifndef NO_WEBRTC
 void MediumEnvironment::RegisterWebRtcSignalingMessenger(
     absl::string_view self_id, OnSignalingMessageCallback message_callback,
     OnSignalingCompleteCallback complete_callback) {
@@ -535,7 +537,7 @@ void MediumEnvironment::SendWebRtcSignalingComplete(absl::string_view peer_id,
         item->second(success);
       });
 }
-
+#endif
 void MediumEnvironment::SetUseValidPeerConnection(
     bool use_valid_peer_connection) {
   use_valid_peer_connection_ = use_valid_peer_connection;

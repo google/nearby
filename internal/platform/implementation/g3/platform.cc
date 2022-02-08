@@ -33,9 +33,10 @@
 #include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/implementation/server_sync.h"
 #include "internal/platform/implementation/submittable_executor.h"
+#ifndef NO_WEBRTC
+#include "internal/platform/implementation/g3/webrtc.h"
 #include "internal/platform/implementation/webrtc.h"
-#include "internal/platform/implementation/wifi.h"
-#include "internal/platform/medium_environment.h"
+#endif
 #include "internal/platform/implementation/g3/atomic_boolean.h"
 #include "internal/platform/implementation/g3/atomic_reference.h"
 #include "internal/platform/implementation/g3/ble.h"
@@ -47,9 +48,10 @@
 #include "internal/platform/implementation/g3/mutex.h"
 #include "internal/platform/implementation/g3/scheduled_executor.h"
 #include "internal/platform/implementation/g3/single_thread_executor.h"
-#include "internal/platform/implementation/g3/webrtc.h"
 #include "internal/platform/implementation/g3/wifi_lan.h"
 #include "internal/platform/implementation/shared/file.h"
+#include "internal/platform/implementation/wifi.h"
+#include "internal/platform/medium_environment.h"
 
 namespace location {
 namespace nearby {
@@ -146,6 +148,7 @@ std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
   return absl::make_unique<g3::WifiLanMedium>();
 }
 
+#ifndef NO_WEBRTC
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
   if (MediumEnvironment::Instance().GetEnvironmentConfig().webrtc_enabled) {
     return absl::make_unique<g3::WebRtcMedium>();
@@ -153,6 +156,7 @@ std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
     return nullptr;
   }
 }
+#endif
 
 std::unique_ptr<Mutex> ImplementationPlatform::CreateMutex(Mutex::Mode mode) {
   if (mode == Mutex::Mode::kRecursive)

@@ -38,7 +38,9 @@
 #include "internal/platform/implementation/settable_future.h"
 #include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/system_clock.h"
+#ifndef NO_WEBRTC
 #include "internal/platform/implementation/webrtc.h"
+#endif
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/payload_id.h"
@@ -101,7 +103,9 @@ class ImplementationPlatform {
   static std::unique_ptr<ServerSyncMedium> CreateServerSyncMedium();
   static std::unique_ptr<WifiMedium> CreateWifiMedium();
   static std::unique_ptr<WifiLanMedium> CreateWifiLanMedium();
+#ifndef NO_WEBRTC
   static std::unique_ptr<WebRtcMedium> CreateWebRtcMedium();
+#endif
 };
 
 }  // namespace api
