@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
+
 licenses(["notice"])
 
 proto_library(
@@ -31,6 +33,13 @@ java_lite_proto_library(
         "//javatests/com/google/android/gmscore/integ/modules/nearby:__subpackages__",
     ],
     deps = [":offline_wire_formats_proto"],
+)
+
+cc_proto_library(
+    name = "offline_wire_formats_cc_proto",
+    deps = [
+        ":offline_wire_formats_proto",
+    ],
 )
 
 filegroup(
