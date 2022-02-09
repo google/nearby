@@ -35,17 +35,14 @@ cc_library(
     defines = ["NO_WEBRTC"],
     visibility = ["//visibility:private"],
     deps = [
-        "//base",
-        "//base:stringprintf",
         "//internal/platform:base",
         "//internal/platform:util",
-        "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/shared:count_down_latch",
         "//internal/platform/implementation/shared:posix_mutex",
-        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
+        "@com_google_glog//:glog",
         "@com_google_nisaba//nisaba/port:thread_pool",
     ],
 )

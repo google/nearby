@@ -14,6 +14,8 @@
 
 #include "connections/payload.h"
 
+#include "glog/logging.h"
+
 namespace location {
 namespace nearby {
 namespace connections {

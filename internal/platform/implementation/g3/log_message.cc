@@ -15,12 +15,24 @@
 #include "internal/platform/implementation/g3/log_message.h"
 
 #include <algorithm>
-
-#include "base/stringprintf.h"
+#include <cstdio>
 
 namespace location {
 namespace nearby {
 namespace g3 {
+
+namespace {
+
+// This is a partial copy of base::StringAppendV for OSS compilation.
+void NearbyStringAppendV(std::string* dst, const char* format, va_list ap) {
+  // Fixed size buffer 1024 should be big enough.
+  static const int kSpaceLength = 1024;
+  char space[kSpaceLength];
+  int result = vsnprintf(space, kSpaceLength, format, ap);
+  va_end(ap);
+  dst->append(space, result);
+}
+}  // namespace
 
 api::LogMessage::Severity g_min_log_severity = api::LogMessage::Severity::kInfo;
 
@@ -50,7 +62,7 @@ void LogMessage::Print(const char* format, ...) {
   va_list ap;
   va_start(ap, format);
   std::string result;
-  StringAppendV(&result, format, ap);
+  NearbyStringAppendV(&result, format, ap);
   log_streamer_.stream() << result;
   va_end(ap);
 }

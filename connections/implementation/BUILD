@@ -92,7 +92,6 @@ cc_library(
     deps = [
         ":message_lite",
         ":ukey2",
-        "//base",
         "//connections:core_types",
         "//connections/implementation/mediums",
         "//connections/implementation/mediums:utils",

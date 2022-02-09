@@ -15,7 +15,8 @@
 #include "internal/platform/implementation/windows/log_message.h"
 
 #include <algorithm>
-
+// TODO(b/217211016): may need get rid of this dependency since there is
+// no "base" in OSS.
 #include "base/stringprintf.h"
 
 namespace location {
