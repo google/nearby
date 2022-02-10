@@ -15,12 +15,12 @@
 #ifndef PLATFORM_BASE_LOGGING_H_
 #define PLATFORM_BASE_LOGGING_H_
 
-// logging.h is only included to allow logging clients to include CHECK's.
+// base/logging.h is only included to allow logging clients to include CHECK's.
 // In Chrome this is base/check.h. See crbug/1212611.
 #ifdef NEARBY_CHROMIUM
 #include "base/check.h"
 #else
-#include "logging.h"
+#include "glog/logging.h"
 #endif
 #include "internal/platform/implementation/log_message.h"
 #include "internal/platform/implementation/platform.h"

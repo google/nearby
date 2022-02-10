@@ -17,6 +17,7 @@
 
 #include <cstdint>
 
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/payload.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
