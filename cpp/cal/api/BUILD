@@ -21,10 +21,12 @@ cc_library(
     ],
     visibility = [
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//third_party/nearby/cpp:__subpackages__",
+        "//connections:__subpackages__",
+        "//third_party/nearby/cpp/cal:__subpackages__",
     ],
     deps = [
         "//cpp/cal/base:types",
+        "//internal/platform:base",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
