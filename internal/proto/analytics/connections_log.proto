@@ -381,6 +381,9 @@ message ConnectionsLog {
 
     // The NFC (Near Field Communication) support status
     optional bool supports_nfc_technology = 3;
+
+    // The Bluetooth multiple advertisement support status.
+    optional bool multiple_advertisement_supported = 4;
   }
 
   // Some additional information to keep with the discovery phase.
@@ -440,6 +443,12 @@ message ConnectionsLog {
 
     // The connected wifi channel width.
     optional int32 wifi_channel_width = 11;
+
+    // The send buffer size of the created socket
+    optional int32 send_buffer_size = 12;
+
+    // The receive buffer size of the created socket
+    optional int32 receive_buffer_size = 13;
   }
 }
 // LINT.ThenChange()
