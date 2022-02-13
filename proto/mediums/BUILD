@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
-
 licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])

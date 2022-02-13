@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//tools/build_defs/cc:cc_fake_binary.bzl", "cc_fake_binary")
+
 
 licenses(["notice"])
 
@@ -370,28 +370,5 @@ cc_test(
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_fake_binary(
-    name = "thread_check_nocompile",
-    srcs = ["thread_check_nocompile.cc"],
-    deps = [
-        ":types",
-        "@com_google_absl//absl/time",
-    ],
-)
-
-py_test(
-    name = "thread_check_nocompile_test",
-    size = "large",
-    srcs = ["thread_check_nocompile_test.py"],
-    data = ["thread_check_nocompile"],
-    python_version = "PY3",
-    srcs_version = "PY3",
-    tags = ["non_compile_test"],
-    deps = [
-        "//testing/pybase",
-        "//testing/pybase:fake_target_util",
     ],
 )

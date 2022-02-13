@@ -14,8 +14,6 @@
 
 # Proto for Nearby products
 
-load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
-
 licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])

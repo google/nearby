@@ -26,11 +26,26 @@ git submodule update --init --recursive
 ```
 
 # Building Nearby, Unit Testing and Sample Apps
-We support multiple platforms including Linux, iOS & Windows. The ultimate goal
-is to build from source (coming soon!). The offical build system we support is
-[bazel] (https://bazel.build). Before that is accomplished, we provide
-precompiled libraries as stop-gap solutions. See the following pages for
-platform specific instructions.
+We support multiple platforms including Linux, iOS & Windows.
+## Building for Linux
+Currently we support building from source using [bazel] (https://bazel.build). Other BUILD system such as cmake may be added later.
+
+Prerequisites:
+
+1. Bazel
+2. clang with support for c++ 17+
+3. Openssl libcrypto.so (-lssl;-lcrypto).
+
+
+To build the Nearby Connection Core library:
+
+```shell
+cd src
+CC=clang CXX=clang++ bazel build -s --check_visibility=false //connections:core  --spawn_strategy=standalone --verbose_failures
+```
+
+## iOS
+Currently we provide precompiled libraries. See the following page for instructions.
 
 * [iOS](https://github.com/google/nearby/blob/master/docs/ios_build.md)
 

@@ -14,8 +14,6 @@
 
 # Proto for Nearby products
 
-load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
-
 licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
@@ -27,11 +25,6 @@ proto_library(
 
 java_lite_proto_library(
     name = "connections_enums_java_proto_lite",
-    deps = [":connections_enums_proto"],
-)
-
-go_proto_library(
-    name = "connections_enums_go_proto",
     deps = [":connections_enums_proto"],
 )
 

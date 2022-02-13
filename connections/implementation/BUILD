@@ -1,3 +1,5 @@
+load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
+
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +14,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 licenses(["notice"])
+
+cmake(
+    name = "ukey2",
+    env = {
+        "CC": "clang",
+        "CXX": "clang++",
+    },
+    generate_args = [
+        "-DBYPASS_TESTING=ON",  # Set the flags in CMakeLists.txt (ukey2 & its dependencies) here.
+        "-Dukey2_USE_LOCAL_ABSL=ON",
+        "-Dukey2_USE_LOCAL_PROTOBUF=ON",  # Add -DCMAKE_BUILD_TYPE=Debug for debugger & Valgrind
+    ],
+    lib_source = "@com_google_ukey2//:all_srcs",
+    out_static_libs = [
+        "libproto_device_to_device_messages_cc_proto.a",
+        "libproto_securegcm_cc_proto.a",
+        "libproto_securemessage_cc_proto.a",
+        "libproto_ukey_cc_proto.a",
+        "libsecuremessage.a",
+        "libukey2.a",
+    ],
+)
 
 cc_library(
     name = "internal",
