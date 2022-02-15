@@ -286,6 +286,7 @@ cc_library(
         "//internal/platform:__pkg__",
         "//internal/platform/implementation/ios:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
+        "//location/nearby/cpp/sharing:__subpackages__",
     ],
     deps = [
         ":base",
