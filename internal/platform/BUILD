@@ -50,6 +50,7 @@ cc_library(
         "//internal/platform:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
+        "//location/nearby/cpp/sharing:__subpackages__",
         "//third_party/nearby/cpp/cal:__subpackages__",
     ],
     deps = [

@@ -23,6 +23,7 @@ cc_library(
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
+        "//location/nearby/cpp/sharing:__subpackages__",
         "//connections/clients:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
     ],
@@ -64,6 +65,7 @@ cc_library(
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
+        "//location/nearby/cpp/sharing:__subpackages__",
         "//connections:__subpackages__",
         "//internal/analytics:__subpackages__",
         "//internal/platform/implementation/ios:__subpackages__",
