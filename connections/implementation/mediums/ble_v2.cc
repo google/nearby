@@ -22,14 +22,14 @@
 #include "absl/strings/str_cat.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
+#include "connections/implementation/mediums/ble_v2/ble_utils.h"
 #include "connections/implementation/mediums/ble_v2/bloom_filter.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/utils.h"
-#include "connections/implementation/mediums/uuid.h"
+#include "connections/power_level.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
-#include "internal/platform/prng.h"
 
 namespace location {
 namespace nearby {
@@ -43,33 +43,6 @@ using ::location::nearby::api::ble_v2::PowerMode;
 
 constexpr int kMaxAdvertisementLength = 512;
 constexpr int kDummyServiceIdLength = 128;
-constexpr absl::string_view kCopresenceServiceUuid =
-    "0000FEF3-0000-1000-8000-00805F9B34FB";
-
-// These two values make up the base UUID we use when advertising a slot.
-// The base is an all zero Version-3 name-based UUID. To turn this into an
-// advertisement slot UUID, we simply OR the least significant bits with the
-// slot number.
-//
-// More info about the format can be found here:
-// https://en.wikipedia.org/wiki/Universally_unique_identifier#Versions_3_and_5_(namespace_name-based)
-constexpr std::int64_t kAdvertisementUuidMsb = 0x0000000000003000;
-constexpr std::int64_t kAdvertisementUuidLsb = 0x8000000000000000;
-
-ByteArray GenerateAdvertisementHash(const ByteArray& advertisement_bytes) {
-  return Utils::Sha256Hash(
-      advertisement_bytes,
-      mediums::BleAdvertisementHeader::kAdvertisementHashLength);
-}
-
-ByteArray GenerateHash(const std::string& source, size_t size) {
-  return Utils::Sha256Hash(source, size);
-}
-
-ByteArray GenerateDeviceToken() {
-  return Utils::Sha256Hash(std::to_string(Prng().NextUint32()),
-                           mediums::BleAdvertisement::kDeviceTokenLength);
-}
 
 }  // namespace
 
@@ -122,14 +95,14 @@ bool BleV2::StartAdvertising(
 
   // Wrap the connections advertisement to the medium advertisement.
   const bool is_fast_advertisement = !fast_advertisement_service_uuid.empty();
-  ByteArray service_id_hash{GenerateHash(
-      service_id, mediums::BleAdvertisement::kServiceIdHashLength)};
+  ByteArray service_id_hash = mediums::bleutils::GenerateHash(
+      service_id, mediums::BleAdvertisement::kServiceIdHashLength);
   ByteArray medium_advertisement_bytes{mediums::BleAdvertisement{
       mediums::BleAdvertisement::Version::kV2,
       mediums::BleAdvertisement::SocketVersion::kV2,
-      /* service_id_hash= */
-      is_fast_advertisement ? ByteArray{} : service_id_hash,
-      advertisement_bytes, GenerateDeviceToken()}};
+      /*service_id_hash=*/is_fast_advertisement ? ByteArray{} : service_id_hash,
+      advertisement_bytes, mediums::bleutils::GenerateDeviceToken(),
+      mediums::BleAdvertisementHeader::kDefaultPsmValue}};
   if (medium_advertisement_bytes.Empty()) {
     NEARBY_LOGS(INFO) << "Failed to BLE advertise because we could not wrap a "
                          "connection advertisement to medium advertisement.";
@@ -202,9 +175,10 @@ bool BleV2::StartAdvertising(
     scan_response_data.tx_power_level =
         BleAdvertisementData::kUnspecifiedTxPowerLevel;
     scan_response_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
+        std::string(mediums::bleutils::kCopresenceServiceUuid));
     scan_response_data.service_data.insert(
-        {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
+        {std::string(mediums::bleutils::kCopresenceServiceUuid),
+         advertisement_header_bytes});
   }
 
   if (!medium_.StartAdvertising(advertising_data, scan_response_data,
@@ -212,8 +186,10 @@ bool BleV2::StartAdvertising(
     NEARBY_LOGS(ERROR)
         << "Failed to turn on BLE advertising with advertisement bytes="
         << absl::BytesToHexString(advertisement_bytes.data())
+        << ", is_fast_advertisement=" << is_fast_advertisement
         << ", fast advertisement service uuid="
-        << fast_advertisement_service_uuid;
+        << (is_fast_advertisement ? fast_advertisement_service_uuid
+                                  : "[empty]");
 
     // If BLE advertising was not successful, stop the advertisement GATT
     // server.
@@ -243,10 +219,10 @@ bool BleV2::StopAdvertising(const std::string& service_id) {
   // TODO(b/213835576): Check the BLE Connections is off. We set the fake
   // value for the time being till connections is implemented.
   bool no_incoming_ble_sockets = true;
-  // Restart the BLE advertisement if there is still an advertiser.
-  if (!subscribed_gatt_characteristics_.empty()) {
+  // Set the value of characteristic to empty if there is still an advertiser.
+  if (!hosted_gatt_characteristics_.empty()) {
     ByteArray empty_value = {};
-    for (const auto& characteristic : subscribed_gatt_characteristics_) {
+    for (const auto& characteristic : hosted_gatt_characteristics_) {
       if (!gatt_server_->UpdateCharacteristic(characteristic, empty_value)) {
         NEARBY_LOGS(ERROR)
             << "Failed to clear characteristic uuid=" << characteristic.uuid
@@ -254,7 +230,7 @@ bool BleV2::StopAdvertising(const std::string& service_id) {
             << service_id;
       }
     }
-    subscribed_gatt_characteristics_.clear();
+    hosted_gatt_characteristics_.clear();
   } else if (no_incoming_ble_sockets) {
     // Otherwise, if we aren't restarting the BLE advertisement, then shutdown
     // the gatt server if it's not in use.
@@ -304,7 +280,9 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
     return false;
   }
 
-  // TODO(edwinwu): Start discovered peripheral tracking.
+  // Start to track the advertisement found for specific `service_id`.
+  discovered_peripheral_tracker_.StartTracking(service_id, std::move(callback),
+                                               fast_advertisement_service_uuid);
 
   // Check if scan has been activated, if yes, no need to notify client
   // to scan again.
@@ -318,19 +296,25 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
   scanned_service_ids_.insert(service_id);
   // TODO(b/213835576): We should re-start scanning once the power level is
   // changed.
-  std::vector<std::string> service_uuids{std::string(kCopresenceServiceUuid)};
+  std::vector<std::string> service_uuids{
+      std::string(mediums::bleutils::kCopresenceServiceUuid)};
   if (!medium_.StartScanning(
           service_uuids, PowerLevelToPowerMode(power_level),
           {
               .advertisement_found_cb =
-                  [](BleV2Peripheral peripheral,
-                     const BleAdvertisementData& advertisement_data) {
-                    // TODO(b/213835576): Move (or Copy at fallback) the
-                    // BleV2Peripheral.
-                    // TODO(b/216629800): Track the found advertisement.
+                  [this](BleV2Peripheral peripheral,
+                         const BleAdvertisementData& advertisement_data) {
+                    RunOnBleThread([this, &peripheral, &advertisement_data]() {
+                      MutexLock lock(&mutex_);
+                      discovered_peripheral_tracker_
+                          .ProcessFoundBleAdvertisement(
+                              std::move(peripheral), advertisement_data,
+                              GetAdvertisementFetcher());
+                    });
                   },
           })) {
-    NEARBY_LOGS(INFO) << "Failed to start client scan of BLE services.";
+    NEARBY_LOGS(INFO) << "Failed to start scan of BLE services.";
+    discovered_peripheral_tracker_.StopTracking(service_id);
     // Erase the service id that is just added.
     scanned_service_ids_.erase(service_id);
     return false;
@@ -349,8 +333,9 @@ bool BleV2::StopScanning(const std::string& service_id) {
     return false;
   }
 
-  // TODO(b/213835576): Cancel lost alarm and Stop tracking.
+  // TODO(b/217036114): Cancel lost alarm
 
+  discovered_peripheral_tracker_.StopTracking(service_id);
   scanned_service_ids_.erase(service_id);
   NEARBY_LOGS(INFO) << "Turned off BLE scanning with service id=" << service_id;
 
@@ -393,20 +378,14 @@ bool BleV2::StartAdvertisementGattServerLocked(
 
   std::unique_ptr<GattServer> gatt_server = medium_.StartGattServer({
       .characteristic_subscription_cb =
-          [this](const ServerGattConnection& connection,
-                 const GattCharacteristic& characteristic) {
-            MutexLock lock(&mutex_);
-            subscribed_gatt_characteristics_.insert(characteristic);
+          [](const ServerGattConnection& connection,
+             const GattCharacteristic& characteristic) {
+            // TODO(b/213835576): Impl or remove.
           },
       .characteristic_unsubscription_cb =
-          [this](const ServerGattConnection& connection,
-                 const GattCharacteristic& characteristic) {
-            MutexLock lock(&mutex_);
-            const auto char_it =
-                subscribed_gatt_characteristics_.find(characteristic);
-            if (char_it != subscribed_gatt_characteristics_.end()) {
-              subscribed_gatt_characteristics_.erase(char_it);
-            }
+          [](const ServerGattConnection& connection,
+             const GattCharacteristic& characteristic) {
+            // TODO(b/213835576): Impl or remove.
           },
   });
   if (!gatt_server || !gatt_server->IsValid()) {
@@ -436,23 +415,67 @@ bool BleV2::GenerateAdvertisementCharacteristic(
       GattCharacteristic::Property::kRead};
 
   absl::optional<GattCharacteristic> gatt_characteristic =
-      gatt_server.CreateCharacteristic(std::string(kCopresenceServiceUuid),
-                                       GenerateAdvertisementUuid(slot),
-                                       permissions, properties);
-
+      gatt_server.CreateCharacteristic(
+          std::string(mediums::bleutils::kCopresenceServiceUuid),
+          mediums::bleutils::GenerateAdvertisementUuid(slot), permissions,
+          properties);
   if (!gatt_characteristic.has_value()) {
     NEARBY_LOGS(INFO) << "Unable to create and add a characterstic to the gatt "
                          "server for the advertisement.";
     return false;
   }
-
-  if (!gatt_server.UpdateCharacteristic(*gatt_characteristic,
+  if (!gatt_server.UpdateCharacteristic(gatt_characteristic.value(),
                                         gatt_advertisement)) {
     NEARBY_LOGS(INFO) << "Unable to write a value to the GATT characteristic.";
     return false;
   }
+  hosted_gatt_characteristics_.insert(gatt_characteristic.value());
 
   return true;
+}
+
+std::unique_ptr<mediums::AdvertisementReadResult>
+BleV2::ProcessFetchGattAdvertisementsRequest(
+    BleV2Peripheral& peripheral, int num_slots,
+    mediums::AdvertisementReadResult* advertisement_read_result, int psm,
+    const std::vector<std::string>& interesting_service_ids) {
+  MutexLock lock(&mutex_);
+
+  auto arr = std::make_unique<mediums::AdvertisementReadResult>();
+
+  if (advertisement_read_result != nullptr) {
+    arr.reset(advertisement_read_result);
+  }
+
+  if (!peripheral.IsValid()) {
+    NEARBY_LOGS(INFO) << "Can't read from an advertisement GATT server because "
+                         "ble peripheral is null.";
+    return arr;
+  }
+
+  if (!radio_.IsEnabled()) {
+    NEARBY_LOGS(INFO) << "Can't read from an advertisement GATT server because "
+                         "Bluetooth was never turned on.";
+    return arr;
+  }
+
+  if (!IsAvailableLocked()) {
+    NEARBY_LOGS(INFO) << "Can't read from an advertisement GATT server because "
+                         "BLE is not available.";
+    return arr;
+  }
+
+  return InternalReadAdvertisementFromGattServerLocked(
+      peripheral, num_slots, std::move(arr), psm, interesting_service_ids);
+}
+
+std::unique_ptr<mediums::AdvertisementReadResult>
+BleV2::InternalReadAdvertisementFromGattServerLocked(
+    BleV2Peripheral& peripheral, int num_slots,
+    std::unique_ptr<mediums::AdvertisementReadResult> advertisement_read_result,
+    int psm, const std::vector<std::string>& interesting_service_ids) {
+  // TODO(edwinwu): Attempt to connect and read some GATT characteristics.
+  return nullptr;
 }
 
 bool BleV2::StopAdvertisementGattServerLocked() {
@@ -474,11 +497,11 @@ ByteArray BleV2::CreateAdvertisementHeader() {
 
   mediums::BloomFilter bloom_filter(
       std::make_unique<mediums::BitSetImpl<
-          mediums::BleAdvertisementHeader::kServiceIdBloomFilterLength>>());
+          mediums::BleAdvertisementHeader::kServiceIdBloomFilterByteLength>>());
   bloom_filter.Add(dummy_service_id);
 
   ByteArray advertisement_hash =
-      GenerateAdvertisementHash(dummy_service_id_bytes);
+      mediums::bleutils::GenerateAdvertisementHash(dummy_service_id_bytes);
   for (const auto& item : gatt_advertisements_) {
     const std::string& service_id = item.second.first;
     const ByteArray& gatt_advertisement = item.second.second;
@@ -489,8 +512,8 @@ ByteArray BleV2::CreateAdvertisementHeader() {
     std::string advertisement_bodies = absl::StrCat(
         advertisement_hash.AsStringView(), gatt_advertisement.AsStringView());
 
-    advertisement_hash =
-        GenerateAdvertisementHash(ByteArray(std::move(advertisement_bodies)));
+    advertisement_hash = mediums::bleutils::GenerateAdvertisementHash(
+        ByteArray(std::move(advertisement_bodies)));
   }
 
   return ByteArray(mediums::BleAdvertisementHeader(
@@ -498,10 +521,6 @@ ByteArray BleV2::CreateAdvertisementHeader() {
       /*extended_advertisement=*/false,
       /*num_slots=*/gatt_advertisements_.size(), ByteArray(bloom_filter),
       advertisement_hash, /*psm=*/0));
-}
-
-std::string BleV2::GenerateAdvertisementUuid(int slot) {
-  return std::string(Uuid(kAdvertisementUuidMsb, kAdvertisementUuidLsb | slot));
 }
 
 PowerMode BleV2::PowerLevelToPowerMode(PowerLevel power_level) {
@@ -515,6 +534,26 @@ PowerMode BleV2::PowerLevelToPowerMode(PowerLevel power_level) {
     default:
       return PowerMode::kUnknown;
   }
+}
+
+void BleV2::RunOnBleThread(Runnable runnable) {
+  serial_executor_.Execute(std::move(runnable));
+}
+
+mediums::DiscoveredPeripheralTracker::AdvertisementFetcher
+BleV2::GetAdvertisementFetcher() {
+  return {
+      .fetch_advertisements =
+          [this](BleV2Peripheral& peripheral, int num_slots,
+                 mediums::AdvertisementReadResult* advertisement_read_result,
+                 int psm,
+                 const std::vector<std::string>& interesting_service_ids)
+          -> std::unique_ptr<mediums::AdvertisementReadResult> {
+        return ProcessFetchGattAdvertisementsRequest(
+            peripheral, num_slots, advertisement_read_result, psm,
+            interesting_service_ids);
+      },
+  };
 }
 
 }  // namespace connections
