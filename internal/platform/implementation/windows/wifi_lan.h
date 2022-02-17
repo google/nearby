@@ -16,8 +16,8 @@
 #define PLATFORM_IMPL_WINDOWS_WIFI_LAN_H_
 
 // Windows headers
-#include <windows.h>       // NOLINT
-#include <win32/windns.h>  // NOLINT
+#include <windows.h>  // NOLINT
+#include <windns.h>   // NOLINT
 
 // Standard C/C++ headers
 #include <exception>
@@ -31,12 +31,12 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/types/optional.h"
-#include "internal/platform/implementation/wifi_lan.h"
-#include "internal/platform/exception.h"
-#include "internal/platform/input_stream.h"
-#include "internal/platform/output_stream.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/implementation/wifi_lan.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/output_stream.h"
 
 // WinRT headers
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
