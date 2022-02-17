@@ -40,7 +40,6 @@ Prerequisites:
 To build the Nearby Connection Core library:
 
 ```shell
-cd src
 CC=clang CXX=clang++ bazel build -s --check_visibility=false //connections:core  --spawn_strategy=standalone --verbose_failures
 ```
 
