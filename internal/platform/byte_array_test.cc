@@ -87,4 +87,12 @@ TEST(ByteArrayTest, CreateFromNonNullTerminatedStdArray) {
   EXPECT_EQ(std::string(bytes), std::string(data.data(), data.size()));
 }
 
+TEST(ByteArrayTest, CreateFromAbslStringReturnsTheSame) {
+  const absl::string_view kTestString = "Test String";
+  ByteArray bytes{std::string(kTestString)};
+
+  EXPECT_EQ(bytes.size(), kTestString.size());
+  EXPECT_EQ(bytes.AsStringView(), kTestString);
+}
+
 }  // namespace

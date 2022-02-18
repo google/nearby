@@ -17,7 +17,7 @@
 
 #include <string>
 
-#include "internal/platform/byte_array.h"
+#include "third_party/nearby/cpp/platform/base/byte_array.h"
 
 namespace location {
 namespace nearby {

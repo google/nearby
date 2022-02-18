@@ -23,6 +23,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "absl/strings/str_cat.h"
+
 namespace location {
 namespace nearby {
 
@@ -91,6 +93,11 @@ class ByteArray {
   // Moves string out of temporary ByteArray, allowing for a zero-copy
   // operation.
   explicit operator std::string() && { return std::move(data_); }
+
+  // Returns the representation of the underlying data as a string view.
+  absl::string_view AsStringView() const {
+    return absl::string_view(data(), size());
+  }
 
  private:
   std::string data_;

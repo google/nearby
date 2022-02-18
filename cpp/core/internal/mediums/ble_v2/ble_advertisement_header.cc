@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
+#include "third_party/nearby/cpp/core/internal/mediums/ble_v2/ble_advertisement_header.h"
 
 #include <inttypes.h>
 
 #include "absl/strings/str_cat.h"
-#include "internal/platform/base64_utils.h"
-#include "internal/platform/base_input_stream.h"
-#include "internal/platform/logging.h"
+#include "third_party/nearby/cpp/platform/base/base64_utils.h"
+#include "third_party/nearby/cpp/platform/base/base_input_stream.h"
+#include "third_party/nearby/cpp/platform/public/logging.h"
 
 namespace location {
 namespace nearby {
