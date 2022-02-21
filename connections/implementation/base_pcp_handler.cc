@@ -1027,17 +1027,20 @@ bool BasePcpHandler::IsPreferred(
     const BasePcpHandler::DiscoveredEndpoint& old_endpoint) {
   std::vector<proto::connections::Medium> mediums =
       GetConnectionMediumsByPriority();
-  // As we iterate through the list of mediums, we see if we run into the new
-  // endpoint's medium or the old endpoint's medium first.
-  for (const auto& medium : mediums) {
-    if (medium == new_endpoint.medium) {
-      // The new endpoint's medium came first. It's preferred!
-      return true;
-    }
+  // Make sure the comparator is irreflexive, so we have a strict weak ordering.
+  if (new_endpoint.medium != old_endpoint.medium) {
+    // As we iterate through the list of mediums, we see if we run into the new
+    // endpoint's medium or the old endpoint's medium first.
+    for (const auto& medium : mediums) {
+      if (medium == new_endpoint.medium) {
+        // The new endpoint's medium came first. It's preferred!
+        return true;
+      }
 
-    if (medium == old_endpoint.medium) {
-      // The old endpoint's medium came first. Stick with the old endpoint!
-      return false;
+      if (medium == old_endpoint.medium) {
+        // The old endpoint's medium came first. Stick with the old endpoint!
+        return false;
+      }
     }
   }
   std::string medium_string;
