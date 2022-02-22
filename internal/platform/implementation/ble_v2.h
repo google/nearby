@@ -22,15 +22,29 @@
 #include <set>
 #include <string>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/input_stream.h"
+#include "internal/platform/listeners.h"
+#include "internal/platform/output_stream.h"
 
 namespace location {
 namespace nearby {
 namespace api {
 namespace ble_v2 {
+
+// Coarse representation of power settings throughout all BLE operations.
+enum class PowerMode {
+  kUnknown = 0,
+  kUltraLow = 1,
+  kLow = 2,
+  kMedium = 3,
+  kHigh = 4,
+};
 
 // https://developer.android.com/reference/android/bluetooth/le/AdvertiseData
 //
@@ -40,30 +54,37 @@ namespace ble_v2 {
 // 0000xxxx-0000-1000-8000-00805F9B34FB. This makes it possible to store two
 // byte service UUIDs in the advertisement.
 struct BleAdvertisementData {
-  using TxPowerLevel = int8_t;
+  using TxPowerLevel = std::int8_t;
 
-  static const TxPowerLevel kUnspecifiedTxPowerLevel =
+  static constexpr TxPowerLevel kUnspecifiedTxPowerLevel =
       std::numeric_limits<TxPowerLevel>::min();
 
   bool is_connectable;
-  // When set to kUnspecifiedTxPowerLevel, TX power should not be included in
-  // the advertisement data.
+
+  // If tx_power_level is not set to kUnspecifiedTxPowerLevel, platform
+  // implementer needs to set the TxPowerLevel.
   TxPowerLevel tx_power_level;
-  // When set to an empty string, local name should not be included in the
-  // advertisement data.
-  std::string local_name;
-  // When set to an empty vector, the set of 16-bit service class UUIDs should
-  // not be included in the advertisement data.
-  std::set<std::string> service_uuids;
+
+  // If the set is not empty, the platform implementer needs to add the
+  // service_uuids in the advertisement data.
+  absl::flat_hash_set<std::string> service_uuids;
+
   // Maps service UUIDs to their service data.
-  std::map<std::string, ByteArray> service_data;
+  //
+  // Note if platform can't advertise data from Data type (0x16)
+  // (reaonly in iOS), then (iOS) should advertise data via LocalName data
+  // type (0x08). It means the iOS should take the first index of service_data
+  // as the data for LocalName type.
+  absl::flat_hash_map<std::string, location::nearby::ByteArray> service_data;
 };
 
-// Opaque wrapper over a BLE peripheral. Must be able to uniquely identify a
-// peripheral so that we can connect to its GATT server.
+// TODO(b/213835576): Refactor BlePeripheral. The one in BluetoothAdapter
+// should be considered, too. Opaque wrapper over a BLE peripheral. Must be
+// able to uniquely identify a peripheral so that we can connect to its GATT
+// server.
 class BlePeripheral {
  public:
-  virtual ~BlePeripheral() {}
+  virtual ~BlePeripheral() = default;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice#getAddress()
   //
@@ -75,11 +96,7 @@ class BlePeripheral {
 // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic
 //
 // Representation of a GATT characteristic.
-class GattCharacteristic {
- public:
-  virtual ~GattCharacteristic() {}
-
-  // Possible permissions of a GATT characteristic.
+struct GattCharacteristic {
   enum class Permission {
     kUnknown = 0,
     kRead = 1,
@@ -87,7 +104,6 @@ class GattCharacteristic {
     kLast,
   };
 
-  // Possible properties of a GATT characteristic.
   enum class Property {
     kUnknown = 0,
     kRead = 1,
@@ -96,11 +112,17 @@ class GattCharacteristic {
     kLast,
   };
 
-  // Returns the UUID of this characteristic.
-  virtual std::string GetUuid() = 0;
+  std::string uuid;
+  std::string servie_uuid;
 
-  // Returns the UUID of the containing GATT service.
-  virtual std::string GetServiceUuid() = 0;
+  // Hashable
+  template <typename H>
+  friend H AbslHashValue(H h, const GattCharacteristic& s) {
+    return H::combine(std::move(h), s.uuid, s.servie_uuid);
+  }
+  bool operator==(const GattCharacteristic& rhs) const {
+    return this->uuid == rhs.uuid && this->servie_uuid == rhs.servie_uuid;
+  }
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothGatt
@@ -108,11 +130,9 @@ class GattCharacteristic {
 // Representation of a client GATT connection to a remote GATT server.
 class ClientGattConnection {
  public:
-  virtual ~ClientGattConnection() {}
+  virtual ~ClientGattConnection() = default;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#getDevice()
-  //
-  // Retrieves the BLE peripheral that this connection is tied to.
   virtual BlePeripheral& GetPeripheral() = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#discoverServices()
@@ -139,8 +159,6 @@ class ClientGattConnection {
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#readCharacteristic(android.bluetooth.BluetoothGattCharacteristic)
   // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic.html#getValue()
-  //
-  // Reads a GATT characteristic. No value is returned upon error.
   virtual absl::optional<ByteArray> ReadCharacteristic(
       const GattCharacteristic& characteristic) = 0;
 
@@ -153,8 +171,6 @@ class ClientGattConnection {
                                    const ByteArray& value) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#disconnect()
-  //
-  // Disconnects a GATT connection.
   virtual void Disconnect() = 0;
 };
 
@@ -163,13 +179,14 @@ class ClientGattConnection {
 // Representation of a server GATT connection to a remote GATT client.
 class ServerGattConnection {
  public:
-  virtual ~ServerGattConnection() {}
+  virtual ~ServerGattConnection() = default;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic.html#setValue(byte[])
   // https://developer.android.com/reference/android/bluetooth/BluetoothGattServer.html#notifyCharacteristicChanged(android.bluetooth.BluetoothDevice,%20android.bluetooth.BluetoothGattCharacteristic,%20boolean)
   //
   // Sends a notification (via indication) to the client that a characteristic
-  // has changed with the given value. Returns whether or not it was successful.
+  // has changed with the given value. Returns whether or not it was
+  // successful.
   //
   // The value sent does not have to reflect the locally stored characteristic
   // value. To update the local value, call GattServer::UpdateCharacteristic.
@@ -178,30 +195,26 @@ class ServerGattConnection {
 };
 
 // Callback for asynchronous events on the client side of a GATT connection.
-class ClientGattConnectionLifeCycleCallback {
+struct ClientGattConnectionCallback {
  public:
-  virtual ~ClientGattConnectionLifeCycleCallback() {}
-
   // Called when the client is disconnected from the GATT server.
-  virtual void OnDisconnected(ClientGattConnection* connection) = 0;
+  std::function<void(ClientGattConnection& connection)> disconnected_cb =
+      DefaultCallback<ClientGattConnection&>();
 };
 
 // Callback for asynchronous events on the server side of a GATT connection.
-class ServerGattConnectionLifeCycleCallback {
- public:
-  virtual ~ServerGattConnectionLifeCycleCallback() {}
-
+struct ServerGattConnectionCallback {
   // Called when a remote peripheral connected to us and subscribed to one of
   // our characteristics.
-  virtual void OnCharacteristicSubscription(
-      ServerGattConnection* connection,
-      const GattCharacteristic& characteristic) = 0;
+  std::function<void(ServerGattConnection& connection,
+                     const GattCharacteristic& characteristic)>
+      characteristic_subscription_cb;
 
   // Called when a remote peripheral unsubscribed from one of our
   // characteristics.
-  virtual void OnCharacteristicUnsubscription(
-      ServerGattConnection* connection,
-      const GattCharacteristic& characteristic) = 0;
+  std::function<void(ServerGattConnection& connection,
+                     const GattCharacteristic& characteristic)>
+      characteristic_unsubscription_cb;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothGattServer
@@ -209,7 +222,7 @@ class ServerGattConnectionLifeCycleCallback {
 // Representation of a BLE GATT server.
 class GattServer {
  public:
-  virtual ~GattServer() {}
+  virtual ~GattServer() = default;
 
   // Creates a characteristic and adds it to the GATT server under the given
   // characteristic and service UUIDs. Returns no value upon error.
@@ -217,31 +230,29 @@ class GattServer {
   // Characteristics of the same service UUID should be put under one
   // service rather than many services with the same UUID.
   //
-  // If the INDICATE property is included, the characteristic should include the
-  // official Bluetooth Client Characteristic Configuration descriptor with UUID
-  // 0x2902 and a WRITE permission. This allows remote clients to write to this
-  // descriptor and subscribe for characteristic changes. For more information
-  // about this descriptor, please go to:
+  // If the INDICATE property is included, the characteristic should include
+  // the official Bluetooth Client Characteristic Configuration descriptor
+  // with UUID 0x2902 and a WRITE permission. This allows remote clients to
+  // write to this descriptor and subscribe for characteristic changes. For
+  // more information about this descriptor, please go to:
   // https://www.bluetooth.com/specifications/Gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.Gatt.client_characteristic_configuration.xml
   virtual absl::optional<GattCharacteristic> CreateCharacteristic(
       absl::string_view service_uuid, absl::string_view characteristic_uuid,
-      const std::set<GattCharacteristic::Permission>& permissions,
-      const std::set<GattCharacteristic::Property>& properties) = 0;
+      const std::vector<GattCharacteristic::Permission>& permissions,
+      const std::vector<GattCharacteristic::Property>& properties) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic.html#setValue(byte[])
   //
-  // Locally updates the value of a characteristic and returns whether or not it
-  // was successful.
-  // Takes ownership of (and is responsible for destroying) the passed-in
-  // 'value'.
-  virtual bool UpdateCharacteristic(const GattCharacteristic& characteristic,
-                                    const ByteArray& value) = 0;
+  // Locally updates the value of a characteristic and returns whether or not
+  // it was successful.
+  virtual bool UpdateCharacteristic(
+      const GattCharacteristic& characteristic,
+      const location::nearby::ByteArray& value) = 0;
 
   // Stops a GATT server.
   virtual void Stop() = 0;
 };
 
-// A BLE socket representation.
 class BleSocket {
  public:
   virtual ~BleSocket() {}
@@ -256,12 +267,14 @@ class BleSocket {
   // Closes the socket and blocks until finished. Returns Exception::kIo upon
   // error, and Exception::kSuccess otherwise.
   virtual Exception Close() = 0;
+  virtual InputStream& GetInputStream() = 0;
+  virtual OutputStream& GetOutputStream() = 0;
 };
 
 // Callback for asynchronous events on a BleSocket object.
 class BleSocketLifeCycleCallback {
  public:
-  virtual ~BleSocketLifeCycleCallback() {}
+  virtual ~BleSocketLifeCycleCallback() = default;
 
   // Called when a message arrives on a socket.
   virtual void OnMessageReceived(BleSocket* socket,
@@ -280,21 +293,13 @@ class ServerBleSocketLifeCycleCallback : public BleSocketLifeCycleCallback {
   virtual void OnSocketEstablished(BleSocket* socket) = 0;
 };
 
-// The main BLE medium used inside of Nearby. This serves as the entry point for
-// all BLE and GATT related operations.
+// The main BLE medium used inside of Nearby. This serves as the entry point
+// for all BLE and GATT related operations.
 class BleMedium {
  public:
   using Mtu = uint32_t;
 
-  virtual ~BleMedium() {}
-
-  // Coarse representation of power settings throughout all BLE operations.
-  enum class PowerMode {
-    kUnknown = 0,
-    kLow = 1,
-    kHigh = 2,
-    kLast,
-  };
+  virtual ~BleMedium() = default;
 
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeAdvertiser.html#startAdvertising(android.bluetooth.le.AdvertiseSettings,%20android.bluetooth.le.AdvertiseData,%20android.bluetooth.le.AdvertiseData,%20android.bluetooth.le.AdvertiseCallback)
   //
@@ -302,42 +307,33 @@ class BleMedium {
   //
   // Power mode should be interpreted in the following way:
   //   LOW:
-  //     - Advertising interval = ~1000ms
-  //     - TX power = low
+  //     - TX power = medium
   //   HIGH:
-  //     - Advertising interval = ~100ms
   //     - TX power = high
-  virtual bool StartAdvertising(const BleAdvertisementData& advertisement_data,
-                                const BleAdvertisementData& scan_response,
+  virtual bool StartAdvertising(const BleAdvertisementData& advertising_data,
+                                const BleAdvertisementData& scan_response_data,
                                 PowerMode power_mode) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeAdvertiser.html#stopAdvertising(android.bluetooth.le.AdvertiseCallback)
   //
   // Stops advertising.
-  virtual void StopAdvertising() = 0;
+  virtual bool StopAdvertising() = 0;
 
   // https://developer.android.com/reference/android/bluetooth/le/ScanCallback
   //
   // Callback for BLE scan results.
-  class ScanCallback {
-   public:
-    virtual ~ScanCallback() {}
-
-    // https://developer.android.com/reference/android/bluetooth/le/ScanCallback.html#onScanResult(int,%20android.bluetooth.le.ScanResult)
-    //
-    // Called when a BLE advertisement is discovered.
-    //
-    // The passed in advertisement_data is the merged combination of both
-    // advertisement data and scan response.
-    //
-    // Every discovery of an advertisement should be reported, even if the
-    // advertisement was discovered before.
-    //
-    // Ownership of the BleAdvertisementData transfers to the caller at this
-    // point.
-    virtual void OnAdvertisementFound(
-        BlePeripheral* peripheral,
-        const BleAdvertisementData& advertisement_data) = 0;
+  //
+  // The passed in advertisement_data is the merged combination of both
+  // advertisement data and scan response.
+  //
+  // Every discovery of an advertisement should be reported, even if the
+  // advertisement was discovered before.
+  //
+  // Ownership of the BleAdvertisementData transfers to the caller at this
+  // point.
+  struct ScanCallback {
+    std::function<void(const BleAdvertisementData& advertisement_data)>
+        advertisement_found_cb = DefaultCallback<const BleAdvertisementData&>();
   };
 
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeScanner.html#startScan(java.util.List%3Candroid.bluetooth.le.ScanFilter%3E,%20android.bluetooth.le.ScanSettings,%20android.bluetooth.le.ScanCallback)
@@ -351,20 +347,19 @@ class BleMedium {
   //   HIGH:
   //     - Scan window = ~4096ms
   //     - Scan interval = ~4096ms
-  virtual bool StartScanning(const std::set<std::string>& service_uuids,
-                             PowerMode power_mode,
-                             const ScanCallback& scan_callback) = 0;
+  virtual bool StartScanning(const std::vector<std::string>& service_uuids,
+                             PowerMode power_mode, ScanCallback callback) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeScanner.html#stopScan(android.bluetooth.le.ScanCallback)
   //
   // Stops scanning.
-  virtual void StopScanning() = 0;
+  virtual bool StopScanning() = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothManager#openGattServer(android.content.Context,%20android.bluetooth.BluetoothGattServerCallback)
   //
   // Starts a GATT server. Returns a nullptr upon error.
   virtual std::unique_ptr<GattServer> StartGattServer(
-      const ServerGattConnectionLifeCycleCallback& callback) = 0;
+      ServerGattConnectionCallback callback) = 0;
 
   // Starts listening for incoming BLE sockets and returns false upon error.
   virtual bool StartListeningForIncomingBleSockets(
@@ -380,16 +375,17 @@ class BleMedium {
   // Connects to a GATT server and negotiates the specified connection
   // parameters. Returns nullptr upon error.
   //
-  // Both connection interval and MTU can be negotiated on a best-effort basis.
+  // Both connection interval and MTU can be negotiated on a best-effort
+  // basis.
   //
   // Power mode should be interpreted in the following way:
-  //   LOW:
-  //     - Connection interval = ~11.25ms - 15ms
   //   HIGH:
+  //     - Connection interval = ~11.25ms - 15ms
+  //   LOW:
   //     - Connection interval = ~100ms - 125ms
   virtual std::unique_ptr<ClientGattConnection> ConnectToGattServer(
-      BlePeripheral* peripheral, Mtu mtu, PowerMode power_mode,
-      const ClientGattConnectionLifeCycleCallback& callback) = 0;
+      BlePeripheral& peripheral, Mtu mtu, PowerMode power_mode,
+      ClientGattConnectionCallback callback) = 0;
 
   // Establishes a BLE socket to the specified remote peripheral. Returns
   // nullptr on error.
