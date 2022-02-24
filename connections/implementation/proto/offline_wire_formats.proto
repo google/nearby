@@ -89,6 +89,10 @@ message ConnectionRequestFrame {
   optional MediumMetadata medium_metadata = 7;
   optional int32 keep_alive_interval_millis = 8;
   optional int32 keep_alive_timeout_millis = 9;
+  // The type of {@link Device} object.
+  optional int32 device_type = 10 [default = 0];
+  // The bytes of serialized {@link Device} object.
+  optional bytes device_info = 11;
 }
 
 message ConnectionResponseFrame {
