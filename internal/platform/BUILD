@@ -311,6 +311,7 @@ cc_library(
     ],
     hdrs = [
         "ble.h",
+        "ble_peripheral_v2.h",
         "ble_v2.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
@@ -343,6 +344,7 @@ cc_test(
     srcs = [
         "atomic_boolean_test.cc",
         "atomic_reference_test.cc",
+        "ble_peripheral_v2_test.cc",
         "ble_test.cc",
         "ble_v2_test.cc",
         "bluetooth_adapter_test.cc",
@@ -369,6 +371,7 @@ cc_test(
         ":types",
         "//internal/platform:base",
         "//internal/platform:test_util",
+        "//internal/platform/implementation:comm",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",

@@ -27,7 +27,6 @@ cc_library(
         "ble_advertisement.h",
         "ble_advertisement_header.h",
         "ble_packet.h",
-        "ble_peripheral.h",
         "bloom_filter.h",
         "discovered_peripheral_callback.h",
     ],
@@ -38,6 +37,7 @@ cc_library(
     deps = [
         "//connections:core_types",
         "//internal/platform:base",
+        "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform:util",
@@ -57,7 +57,6 @@ cc_test(
         "ble_advertisement_header_test.cc",
         "ble_advertisement_test.cc",
         "ble_packet_test.cc",
-        "ble_peripheral_test.cc",
         "bloom_filter_test.cc",
     ],
     deps = [
