@@ -49,4 +49,4 @@ Currently we provide precompiled libraries. See the following page for instructi
 * [iOS](https://github.com/google/nearby/blob/master/docs/ios_build.md)
 
 
-**Last Updated:** Feb 2022
+**Last Updated:** Febrary 2022
