@@ -143,7 +143,9 @@ message PayloadTransferFrame {
 
   // Accompanies DATA packets.
   message PayloadChunk {
-    enum Flags { LAST_CHUNK = 0x1; }
+    enum Flags {
+      LAST_CHUNK = 0x1;
+    }
     optional int32 flags = 1;
     optional int64 offset = 2;
     optional bytes body = 3;
