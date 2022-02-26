@@ -16,7 +16,6 @@ syntax = "proto2";
 
 package location.nearby.analytics.proto;
 
-
 import "proto/connections_enums.proto";
 import "proto/errorcode/error_code_enums.proto";
 
@@ -37,7 +36,7 @@ message ConnectionsLog {
   optional ClientSession client_session = 2;
 
   // The version of Nearby Connections. E.g. "v1.0.4".
-  optional string version = 3 ;
+  optional string version = 3;
 
   // For EventType.ERROR_CODE
   optional ErrorCode error_code = 4;
@@ -89,8 +88,7 @@ message ConnectionsLog {
 
     // The build version of the user's device (Same value as the Build number in
     // Settings -> about phone).
-    optional string build_version = 10
-        ;
+    optional string build_version = 10;
   }
 
   // Encapsulates activity during a period of discovery.
@@ -113,7 +111,7 @@ message ConnectionsLog {
     repeated UwbRangingProcess uwb_ranging = 5;
 
     // The SendingEvent flow id.
-    optional int64 client_flow_id = 6 ;
+    optional int64 client_flow_id = 6;
 
     // Encapsulates additional discovery information.
     optional DiscoveryMetadata discovery_metadata = 7;
@@ -191,7 +189,7 @@ message ConnectionsLog {
     repeated ConnectionRequest received_connection_request = 3;
 
     // The ReceivingEvent flow id.
-    optional int64 client_flow_id = 4 ;
+    optional int64 client_flow_id = 4;
 
     // Encapsulates additional advertising information.
     optional AdvertisingMetadata advertising_metadata = 5;
@@ -220,7 +218,7 @@ message ConnectionsLog {
         remote_response = 4;
 
     // The SendingEvent flow id.
-    optional int64 client_flow_id = 5 ;
+    optional int64 client_flow_id = 5;
   }
 
   // An attempt to connect to an endpoint over a particular medium.
@@ -244,11 +242,10 @@ message ConnectionsLog {
         attempt_result = 5;
 
     // The ReceivingEvent flow id.
-    optional int64 client_flow_id = 6 ;
+    optional int64 client_flow_id = 6;
 
     // The token used to identify this connection pair.
-    optional string connection_token = 7
-        ;
+    optional string connection_token = 7;
 
     // Encapsulates additional connection information.
     optional ConnectionAttemptMetadata connection_attempt_metadata = 8;
@@ -273,11 +270,10 @@ message ConnectionsLog {
         disconnection_reason = 5;
 
     // The SendingEvent flow id.
-    optional int64 client_flow_id = 6 ;
+    optional int64 client_flow_id = 6;
 
     // The token use to identify this established connection.
-    optional string connection_token = 7
-        ;
+    optional string connection_token = 7;
   }
 
   // A Payload transferred (or attempted to be transferred) between devices.
@@ -325,11 +321,10 @@ message ConnectionsLog {
         error_stage = 6;
 
     // The SendingEvent flow id.
-    optional int64 client_flow_id = 7 ;
+    optional int64 client_flow_id = 7;
 
     // The token used to identify this upgrade pair.
-    optional string connection_token = 8
-        ;
+    optional string connection_token = 8;
   }
 
   // Next Id: 17
@@ -345,7 +340,7 @@ message ConnectionsLog {
     // The error description.
     optional location.nearby.errorcode.proto.Description description = 5;
     // The flow id which the error occurs on.
-    optional int64 flow_id = 6 ;
+    optional int64 flow_id = 6;
 
     // Error code value
     oneof ErrorCodeDetail {
@@ -367,8 +362,7 @@ message ConnectionsLog {
     }
 
     // The token use to identify this established connection.
-    optional string connection_token = 16
-        ;
+    optional string connection_token = 16;
   }
 
   // Some additional information to keep with the advertising phase.
@@ -412,14 +406,13 @@ message ConnectionsLog {
 
     // The MCC (Mobile country code) MNC (Mobile network code) of the network
     // operator.
-    optional string network_operator = 4
-        ;
+    optional string network_operator = 4;
 
     // The upper-case ISO 3166-1 alpha-2 country code of:
     // 1. the current connected WiFi network
     // 2. or the current registered operator's MCC (Mobile Country Code)
     // 3. or empty string.
-    optional string country_code = 5 ;
+    optional string country_code = 5;
 
     // The TDLS status used by the wifi lan medium,
     // TDLS, shortened from Tunneled Direct Link Setup, is "a seamless way to

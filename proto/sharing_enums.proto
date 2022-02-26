@@ -16,9 +16,6 @@ syntax = "proto2";
 
 package location.nearby.proto.sharing;
 
-
-
-
 option optimize_for = LITE_RUNTIME;
 option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "SharingEnums";
