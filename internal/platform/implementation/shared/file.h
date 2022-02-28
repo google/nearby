@@ -17,7 +17,7 @@
 
 #include <cstdint>
 #include <fstream>
-
+#include <memory>
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/output_file.h"
