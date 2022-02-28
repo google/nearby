@@ -23,9 +23,7 @@ cc_library(
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
-        "//location/nearby/cpp/sharing:__subpackages__",
-        "//connections/clients:__subpackages__",
-        "//internal/platform/implementation:__subpackages__",
+        "//visibility:public"
     ],
     deps = [
         ":core_types",
