@@ -19,6 +19,7 @@
 
 // Standard C/C++ headers
 #include <codecvt>
+#include <cstdint>
 #include <locale>
 #include <string>
 
@@ -265,12 +266,24 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const std::string& ip_address, int port,
     CancellationFlag* cancellation_flag) {
-  if (ip_address.empty() || port == 0) {
+  if (ip_address.empty() || ip_address.length() != 4 || port == 0) {
     NEARBY_LOGS(ERROR) << "no valid service address and port to connect.";
     return nullptr;
   }
 
-  HostName host_name{string_to_wstring(ip_address)};
+  // Converts ip address to x.x.x.x format
+  in_addr address;
+  address.S_un.S_un_b.s_b1 = ip_address[0];
+  address.S_un.S_un_b.s_b2 = ip_address[1];
+  address.S_un.S_un_b.s_b3 = ip_address[2];
+  address.S_un.S_un_b.s_b4 = ip_address[3];
+  char* ipv4_address = inet_ntoa(address);
+  if (ipv4_address == nullptr) {
+    NEARBY_LOGS(ERROR) << "Invalid IP address parameter.";
+    return nullptr;
+  }
+
+  HostName host_name{string_to_wstring(std::string(ipv4_address))};
   winrt::hstring service_name{winrt::to_hstring(port)};
 
   StreamSocket socket{};
@@ -382,7 +395,23 @@ NsdServiceInfo WifiLanMedium::GetNsdServiceInformation(
     return nsd_service_info;
   }
 
-  std::string ip_address = ipaddresses[0];
+  std::string ip_address;
+  ip_address.resize(4);
+  // Gets 4 bytes string
+  for (std::string& address : ipaddresses) {
+    uint32_t addr = inet_addr(address.data());
+    if (addr == INADDR_NONE) {
+      continue;
+    }
+
+    in_addr ipv4_addr;
+    ipv4_addr.S_un.S_addr = addr;
+    ip_address[0] = static_cast<char>(ipv4_addr.S_un.S_un_b.s_b1);
+    ip_address[1] = static_cast<char>(ipv4_addr.S_un.S_un_b.s_b2);
+    ip_address[2] = static_cast<char>(ipv4_addr.S_un.S_un_b.s_b3);
+    ip_address[3] = static_cast<char>(ipv4_addr.S_un.S_un_b.s_b4);
+    break;
+  }
 
   // read IP port
   inspectable = properties.TryLookup(L"System.Devices.Dnssd.PortNumber");
