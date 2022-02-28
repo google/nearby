@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_G3_MULTI_THREAD_EXECUTOR_H_
-#define PLATFORM_IMPL_G3_MULTI_THREAD_EXECUTOR_H_
+#ifndef PLATFORM_IMPL_LINUX_MULTI_THREAD_EXECUTOR_H_
+#define PLATFORM_IMPL_LINUX_MULTI_THREAD_EXECUTOR_H_
 
 #include <atomic>
 
 #include "absl/time/clock.h"
-#include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/shared/count_down_latch.h"
-#include "nisaba/port/thread_pool.h"
-
+#include "internal/platform/implementation/submittable_executor.h"
+#include <boost/asio.hpp>
 namespace location {
 namespace nearby {
 namespace linux {
@@ -29,38 +28,43 @@ namespace linux {
 // An Executor that reuses a fixed number of threads operating off a shared
 // unbounded queue.
 class MultiThreadExecutor : public api::SubmittableExecutor {
- public:
+public:
   explicit MultiThreadExecutor(int max_parallelism)
-      : thread_pool_(max_parallelism) {
-    thread_pool_.StartWorkers();
-  }
-  void Execute(Runnable&& runnable) override {
+      : thread_pool_(max_parallelism) {}
+  void Execute(Runnable &&runnable) override {
     if (!shutdown_) {
-      thread_pool_.Schedule(std::move(runnable));
+      boost::asio::post(thread_pool_, std::move(runnable));
     }
   }
-  bool DoSubmit(Runnable&& runnable) override {
-    if (shutdown_) return false;
-    thread_pool_.Schedule(std::move(runnable));
+  bool DoSubmit(Runnable &&runnable) override {
+    if (shutdown_)
+      return false;
+    boost::asio::post(std::move(runnable));
     return true;
   }
   void Shutdown() override { DoShutdown(); }
   ~MultiThreadExecutor() override { DoShutdown(); }
 
-  void ScheduleAfter(absl::Duration delay, Runnable&& runnable) {
-    if (shutdown_) return;
-    thread_pool_.ScheduleAt(absl::Now() + delay, std::move(runnable));
+  void ScheduleAfter(absl::Duration delay, Runnable &&runnable) {
+    if (shutdown_)
+      return;
+    // Time delay is absl::Now() + delay but IDK how to do delay
+    // TODO: fix delay
+    boost::asio::post(thread_pool_, std::move(runnable));
   }
   bool InShutdown() const { return shutdown_; }
 
- private:
-  void DoShutdown() { shutdown_ = true; }
+private:
+  void DoShutdown() {
+    shutdown_ = true;
+    thread_pool_.join();
+  }
   std::atomic_bool shutdown_ = false;
-  ThreadPool thread_pool_;
+  boost::asio::thread_pool thread_pool_;
 };
 
-}  // namespace linux
-}  // namespace nearby
-}  // namespace location
+} // namespace linux
+} // namespace nearby
+} // namespace location
 
-#endif  // PLATFORM_IMPL_G3_MULTI_THREAD_EXECUTOR_H_
+#endif // PLATFORM_IMPL_LINUX_MULTI_THREAD_EXECUTOR_H_
