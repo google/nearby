@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_G3_LOG_MESSAGE_H_
-#define PLATFORM_IMPL_G3_LOG_MESSAGE_H_
+#ifndef PLATFORM_IMPL_LINUX_LOG_MESSAGE_H_
+#define PLATFORM_IMPL_LINUX_LOG_MESSAGE_H_
 
 #include "glog/logging.h"
 #include "internal/platform/implementation/log_message.h"
-
 namespace location {
 namespace nearby {
 namespace linux {
@@ -25,20 +24,20 @@ namespace linux {
 // See documentation in
 // cpp/platform/api/log_message.h
 class LogMessage : public api::LogMessage {
- public:
-  LogMessage(const char* file, int line, Severity severity);
+public:
+  LogMessage(const char *file, int line, Severity severity);
   ~LogMessage() override;
 
-  void Print(const char* format, ...) override;
+  void Print(const char *format, ...) override;
 
-  std::ostream& Stream() override;
+  std::ostream &Stream() override;
 
- private:
+private:
   google::LogMessage log_streamer_;
 };
 
-}  // namespace linux
-}  // namespace nearby
-}  // namespace location
+} // namespace linux
+} // namespace nearby
+} // namespace location
 
-#endif  // PLATFORM_IMPL_G3_LOG_MESSAGE_H_
+#endif // PLATFORM_IMPL_LINUX_LOG_MESSAGE_H_
