@@ -177,7 +177,6 @@ Exception BluetoothServerSocket::DoClose() {
 BluetoothClassicMedium::BluetoothClassicMedium(api::BluetoothAdapter &adapter)
     // TODO(apolyudov): implement and use downcast<> with static assertions.
     : adapter_(static_cast<BluetoothAdapter *>(&adapter)) {
-  env.RegisterBluetoothMedium(*this, GetAdapter());
 }
 
 BluetoothClassicMedium::~BluetoothClassicMedium() {

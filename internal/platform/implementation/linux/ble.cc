@@ -214,18 +214,6 @@ bool BleMedium::StartAdvertising(
   server_socket_ = std::make_unique<BleServerSocket>();
 
   acceptance_thread_running_.exchange(true);
-  accept_loops_runner_.Execute([&env, this, service_id]() mutable {
-    if (!accept_loops_runner_.InShutdown()) {
-      while (true) {
-        auto client_socket =
-            server_socket_->Accept(&(this->adapter_->GetPeripheral()));
-        if (client_socket == nullptr)
-          break;
-      }
-    }
-    acceptance_thread_running_.exchange(false);
-  });
-  advertising_info_.service_id = service_id;
   return true;
 }
 
@@ -241,10 +229,6 @@ bool BleMedium::StopAdvertising(const std::string &service_id) {
     advertising_info_.Clear();
   }
 
-  auto &env = MediumEnvironment::Instance();
-  env.UpdateBleMediumForAdvertising(*this, adapter_->GetPeripheral(),
-                                    service_id, /*fast_advertisement=*/false,
-                                    /*enabled=*/false);
   accept_loops_runner_.Shutdown();
   if (server_socket_ == nullptr) {
     NEARBY_LOGS(ERROR) << "G3 Ble StopAdvertising: Failed to find Ble Server "
@@ -268,10 +252,6 @@ bool BleMedium::StartScanning(
     const std::string &fast_advertisement_service_uuid,
     DiscoveredPeripheralCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Ble StartScanning: service_id=" << service_id;
-  auto &env = MediumEnvironment::Instance();
-  env.UpdateBleMediumForScanning(*this, service_id,
-                                 fast_advertisement_service_uuid,
-                                 std::move(callback), true);
   {
     absl::MutexLock lock(&mutex_);
     scanning_info_.service_id = service_id;
@@ -291,8 +271,6 @@ bool BleMedium::StopScanning(const std::string &service_id) {
     scanning_info_.Clear();
   }
 
-  auto &env = MediumEnvironment::Instance();
-  env.UpdateBleMediumForScanning(*this, service_id, {}, {}, false);
   return true;
 }
 
@@ -300,16 +278,12 @@ bool BleMedium::StartAcceptingConnections(const std::string &service_id,
                                           AcceptedConnectionCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Ble StartAcceptingConnections: service_id="
                     << service_id;
-  auto &env = MediumEnvironment::Instance();
-  env.UpdateBleMediumForAcceptedConnection(*this, service_id, callback);
   return true;
 }
 
 bool BleMedium::StopAcceptingConnections(const std::string &service_id) {
   NEARBY_LOGS(INFO) << "G3 Ble StopAcceptingConnections: service_id="
                     << service_id;
-  auto &env = MediumEnvironment::Instance();
-  env.UpdateBleMediumForAcceptedConnection(*this, service_id, {});
   return true;
 }
 

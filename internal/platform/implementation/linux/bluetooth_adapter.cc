@@ -93,14 +93,6 @@ BluetoothAdapter::ScanMode BluetoothAdapter::GetScanMode() const {
 }
 
 bool BluetoothAdapter::SetScanMode(BluetoothAdapter::ScanMode mode) {
-  bool enabled;
-  std::string name;
-  {
-    absl::MutexLock lock(&mutex_);
-    mode_ = mode;
-    name = name;
-    enabled = enabled_;
-  }
   return true;
 }
 
@@ -108,13 +100,6 @@ std::string BluetoothAdapter::GetName() const { return ""; }
 
 bool BluetoothAdapter::SetName(absl::string_view name) {
   BluetoothAdapter::ScanMode mode;
-  bool enabled;
-  {
-    absl::MutexLock lock(&mutex_);
-    name_ = name;
-    enabled = enabled_;
-    mode = mode_;
-  }
   return true;
 }
 
