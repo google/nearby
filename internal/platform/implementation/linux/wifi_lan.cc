@@ -25,7 +25,6 @@
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/medium_environment.h"
 #include "internal/platform/nsd_service_info.h"
 
 namespace location {

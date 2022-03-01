@@ -27,11 +27,11 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/condition_variable.h"
-#include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/implementation/log_message.h"
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/implementation/server_sync.h"
+#include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/implementation/submittable_executor.h"
 #ifndef NO_WEBRTC
 #include "internal/platform/implementation/linux/webrtc.h"
@@ -51,7 +51,6 @@
 #include "internal/platform/implementation/linux/wifi_lan.h"
 #include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/implementation/wifi.h"
-#include "internal/platform/medium_environment.h"
 
 namespace location {
 namespace nearby {
@@ -61,10 +60,10 @@ namespace {
 std::string GetPayloadPath(PayloadId payload_id) {
   return absl::StrCat("/tmp/", payload_id);
 }
-}  // namespace
+} // namespace
 
 int GetCurrentTid() {
-  const LiveThread* my = Thread_GetMyLiveThread();
+  const LiveThread *my = Thread_GetMyLiveThread();
   return LiveThread_Pthread_TID(my);
 }
 
@@ -83,8 +82,8 @@ ImplementationPlatform::CreateScheduledExecutor() {
   return absl::make_unique<linux::ScheduledExecutor>();
 }
 
-std::unique_ptr<AtomicUint32> ImplementationPlatform::CreateAtomicUint32(
-    std::uint32_t value) {
+std::unique_ptr<AtomicUint32>
+ImplementationPlatform::CreateAtomicUint32(std::uint32_t value) {
   return absl::make_unique<linux::AtomicUint32>(value);
 }
 
@@ -93,45 +92,47 @@ ImplementationPlatform::CreateBluetoothAdapter() {
   return absl::make_unique<linux::BluetoothAdapter>();
 }
 
-std::unique_ptr<CountDownLatch> ImplementationPlatform::CreateCountDownLatch(
-    std::int32_t count) {
+std::unique_ptr<CountDownLatch>
+ImplementationPlatform::CreateCountDownLatch(std::int32_t count) {
   return absl::make_unique<shared::CountDownLatch>(count);
 }
 
-std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(
-    bool initial_value) {
+std::unique_ptr<AtomicBoolean>
+ImplementationPlatform::CreateAtomicBoolean(bool initial_value) {
   return absl::make_unique<linux::AtomicBoolean>(initial_value);
 }
 
-std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
-    PayloadId payload_id, std::int64_t total_size) {
+std::unique_ptr<InputFile>
+ImplementationPlatform::CreateInputFile(PayloadId payload_id,
+                                        std::int64_t total_size) {
   return shared::IOFile::CreateInputFile(GetPayloadPath(payload_id),
                                          total_size);
 }
 
-std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
-    PayloadId payload_id) {
+std::unique_ptr<OutputFile>
+ImplementationPlatform::CreateOutputFile(PayloadId payload_id) {
   return shared::IOFile::CreateOutputFile(GetPayloadPath(payload_id));
 }
 
-std::unique_ptr<LogMessage> ImplementationPlatform::CreateLogMessage(
-    const char* file, int line, LogMessage::Severity severity) {
+std::unique_ptr<LogMessage>
+ImplementationPlatform::CreateLogMessage(const char *file, int line,
+                                         LogMessage::Severity severity) {
   return absl::make_unique<linux::LogMessage>(file, line, severity);
 }
 
 std::unique_ptr<BluetoothClassicMedium>
 ImplementationPlatform::CreateBluetoothClassicMedium(
-    api::BluetoothAdapter& adapter) {
+    api::BluetoothAdapter &adapter) {
   return absl::make_unique<linux::BluetoothClassicMedium>(adapter);
 }
 
-std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
-    api::BluetoothAdapter& adapter) {
+std::unique_ptr<BleMedium>
+ImplementationPlatform::CreateBleMedium(api::BluetoothAdapter &adapter) {
   return absl::make_unique<linux::BleMedium>(adapter);
 }
 
-std::unique_ptr<ble_v2::BleMedium> ImplementationPlatform::CreateBleV2Medium(
-    api::BluetoothAdapter& adapter) {
+std::unique_ptr<ble_v2::BleMedium>
+ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter &adapter) {
   return std::unique_ptr<ble_v2::BleMedium>();
 }
 
@@ -166,11 +167,11 @@ std::unique_ptr<Mutex> ImplementationPlatform::CreateMutex(Mutex::Mode mode) {
 }
 
 std::unique_ptr<ConditionVariable>
-ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
+ImplementationPlatform::CreateConditionVariable(Mutex *mutex) {
   return std::unique_ptr<ConditionVariable>(
-      new linux::ConditionVariable(static_cast<linux::Mutex*>(mutex)));
+      new linux::ConditionVariable(static_cast<linux::Mutex *>(mutex)));
 }
 
-}  // namespace api
-}  // namespace nearby
-}  // namespace location
+} // namespace api
+} // namespace nearby
+} // namespace location

@@ -58,7 +58,11 @@ http_archive(
     strip_prefix = "glog-0.4.0",
     urls = ["https://github.com/google/glog/archive/v0.4.0.tar.gz"],
 )
-
+new_local_repository(
+    name = "gattlib",
+    path = "./third_party/gattlib",
+    build_file_content = _ALL_CONTENT,
+)
 new_local_repository(
     name = "com_google_ukey2",
     path = "./third_party/ukey2",

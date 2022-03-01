@@ -16,29 +16,28 @@
 
 #include <string>
 
-#include "internal/platform/medium_environment.h"
-#include "internal/platform/prng.h"
+#include "gattlib.h"
 #include "internal/platform/implementation/linux/bluetooth_classic.h"
-
+#include "internal/platform/prng.h"
 namespace location {
 namespace nearby {
 namespace linux {
 
-BlePeripheral::BlePeripheral(BluetoothAdapter* adapter) : adapter_(*adapter) {}
+BlePeripheral::BlePeripheral(BluetoothAdapter *adapter) : adapter_(*adapter) {}
 
 std::string BlePeripheral::GetName() const { return adapter_.GetName(); }
 
-ByteArray BlePeripheral::GetAdvertisementBytes(
-    const std::string& service_id) const {
+ByteArray
+BlePeripheral::GetAdvertisementBytes(const std::string &service_id) const {
   return advertisement_bytes_;
 }
 
 void BlePeripheral::SetAdvertisementBytes(
-    const std::string& service_id, const ByteArray& advertisement_bytes) {
+    const std::string &service_id, const ByteArray &advertisement_bytes) {
   advertisement_bytes_ = advertisement_bytes;
 }
 
-BluetoothDevice::BluetoothDevice(BluetoothAdapter* adapter)
+BluetoothDevice::BluetoothDevice(BluetoothAdapter *adapter)
     : adapter_(*adapter) {}
 
 std::string BluetoothDevice::GetName() const { return adapter_.GetName(); }
@@ -62,11 +61,11 @@ BluetoothAdapter::BluetoothAdapter() {
 BluetoothAdapter::~BluetoothAdapter() { SetStatus(Status::kDisabled); }
 
 void BluetoothAdapter::SetBluetoothClassicMedium(
-    api::BluetoothClassicMedium* medium) {
+    api::BluetoothClassicMedium *medium) {
   bluetooth_classic_medium_ = medium;
 }
 
-void BluetoothAdapter::SetBleMedium(api::BleMedium* medium) {
+void BluetoothAdapter::SetBleMedium(api::BleMedium *medium) {
   ble_medium_ = medium;
 }
 
@@ -77,11 +76,9 @@ bool BluetoothAdapter::SetStatus(Status status) {
   {
     absl::MutexLock lock(&mutex_);
     enabled_ = enabled;
-    name = name_;
+    name = name;
     mode = mode_;
   }
-  auto& env = MediumEnvironment::Instance();
-  env.OnBluetoothAdapterChangedState(*this, device_, name, enabled, mode);
   return true;
 }
 
@@ -101,19 +98,13 @@ bool BluetoothAdapter::SetScanMode(BluetoothAdapter::ScanMode mode) {
   {
     absl::MutexLock lock(&mutex_);
     mode_ = mode;
-    name = name_;
+    name = name;
     enabled = enabled_;
   }
-  auto& env = MediumEnvironment::Instance();
-  env.OnBluetoothAdapterChangedState(*this, device_, std::move(name), enabled,
-                                     mode);
   return true;
 }
 
-std::string BluetoothAdapter::GetName() const {
-  absl::MutexLock lock(&mutex_);
-  return name_;
-}
+std::string BluetoothAdapter::GetName() const { return ""; }
 
 bool BluetoothAdapter::SetName(absl::string_view name) {
   BluetoothAdapter::ScanMode mode;
@@ -124,12 +115,9 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
     enabled = enabled_;
     mode = mode_;
   }
-  auto& env = MediumEnvironment::Instance();
-  env.OnBluetoothAdapterChangedState(*this, device_, std::string(name), enabled,
-                                     mode);
   return true;
 }
 
-}  // namespace linux
-}  // namespace nearby
-}  // namespace location
+} // namespace linux
+} // namespace nearby
+} // namespace location

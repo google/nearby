@@ -1,3 +1,5 @@
+load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
+
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 licenses(["notice"])
-
+cmake(
+  name = "gattlib",
+  generate_args = ["-DGATTLIB_BUILD_DOCS=OFF","-DGATTLIB_SHARED_LIB=OFF", "-DGATTLIB_PYTHON_INTERFACE=OFF","-DGATTLIB_BUILD_EXAMPLES=OFF"],
+  lib_source = "@gattlib//:all_srcs",
+  out_static_libs = ["libgattlib.a"]
+)
 cc_library(
     name = "types",
     srcs = [
@@ -75,6 +82,7 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
+        ":gattlib"
     ],
 )
 

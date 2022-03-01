@@ -19,11 +19,10 @@
 #include <string>
 
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/implementation/ble.h"
 #include "internal/platform/cancellation_flag_listener.h"
-#include "internal/platform/logging.h"
-#include "internal/platform/medium_environment.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/shared/count_down_latch.h"
+#include "internal/platform/logging.h"
 
 namespace location {
 namespace nearby {
@@ -34,21 +33,21 @@ BleSocket::~BleSocket() {
   DoClose();
 }
 
-void BleSocket::Connect(BleSocket& other) {
+void BleSocket::Connect(BleSocket &other) {
   absl::MutexLock lock(&mutex_);
   remote_socket_ = &other;
   input_ = other.output_;
 }
 
-InputStream& BleSocket::GetInputStream() {
-  auto* remote_socket = GetRemoteSocket();
+InputStream &BleSocket::GetInputStream() {
+  auto *remote_socket = GetRemoteSocket();
   CHECK(remote_socket != nullptr);
   return remote_socket->GetLocalInputStream();
 }
 
-OutputStream& BleSocket::GetOutputStream() { return GetLocalOutputStream(); }
+OutputStream &BleSocket::GetOutputStream() { return GetLocalOutputStream(); }
 
-BleSocket* BleSocket::GetRemoteSocket() {
+BleSocket *BleSocket::GetRemoteSocket() {
   absl::MutexLock lock(&mutex_);
   return remote_socket_;
 }
@@ -69,7 +68,7 @@ Exception BleSocket::Close() {
   return {Exception::kSuccess};
 }
 
-BlePeripheral* BleSocket::GetRemotePeripheral() {
+BlePeripheral *BleSocket::GetRemotePeripheral() {
   absl::MutexLock lock(&mutex_);
   return peripheral_;
 }
@@ -89,26 +88,29 @@ void BleSocket::DoClose() {
 
 bool BleSocket::IsConnectedLocked() const { return input_ != nullptr; }
 
-InputStream& BleSocket::GetLocalInputStream() {
+InputStream &BleSocket::GetLocalInputStream() {
   absl::MutexLock lock(&mutex_);
   return output_->GetInputStream();
 }
 
-OutputStream& BleSocket::GetLocalOutputStream() {
+OutputStream &BleSocket::GetLocalOutputStream() {
   absl::MutexLock lock(&mutex_);
   return output_->GetOutputStream();
 }
 
-std::unique_ptr<api::BleSocket> BleServerSocket::Accept(
-    BlePeripheral* peripheral) {
+std::unique_ptr<api::BleSocket>
+BleServerSocket::Accept(BlePeripheral *peripheral) {
   absl::MutexLock lock(&mutex_);
-  if (closed_) return {};
+  if (closed_)
+    return {};
   while (pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
-    if (closed_) break;
+    if (closed_)
+      break;
   }
-  if (closed_) return {};
-  auto* remote_socket =
+  if (closed_)
+    return {};
+  auto *remote_socket =
       pending_sockets_.extract(pending_sockets_.begin()).value();
   CHECK(remote_socket);
   auto local_socket = std::make_unique<BleSocket>(peripheral);
@@ -118,20 +120,22 @@ std::unique_ptr<api::BleSocket> BleServerSocket::Accept(
   return local_socket;
 }
 
-bool BleServerSocket::Connect(BleSocket& socket) {
+bool BleServerSocket::Connect(BleSocket &socket) {
   absl::MutexLock lock(&mutex_);
-  if (closed_) return false;
+  if (closed_)
+    return false;
   if (socket.IsConnected()) {
     NEARBY_LOG(ERROR,
                "Failed to connect to Ble server socket: already connected");
-    return true;  // already connected.
+    return true; // already connected.
   }
   // add client socket to the pending list
   pending_sockets_.emplace(&socket);
   cond_.SignalAll();
   while (!socket.IsConnected()) {
     cond_.Wait(&mutex_);
-    if (closed_) return false;
+    if (closed_)
+      return false;
   }
   return true;
 }
@@ -168,17 +172,13 @@ Exception BleServerSocket::DoClose() {
   return {Exception::kSuccess};
 }
 
-BleMedium::BleMedium(api::BluetoothAdapter& adapter)
-    : adapter_(static_cast<BluetoothAdapter*>(&adapter)) {
+BleMedium::BleMedium(api::BluetoothAdapter &adapter)
+    : adapter_(static_cast<BluetoothAdapter *>(&adapter)) {
   adapter_->SetBleMedium(this);
-  auto& env = MediumEnvironment::Instance();
-  env.RegisterBleMedium(*this);
 }
 
 BleMedium::~BleMedium() {
   adapter_->SetBleMedium(nullptr);
-  auto& env = MediumEnvironment::Instance();
-  env.UnregisterBleMedium(*this);
 
   StopAdvertising(advertising_info_.service_id);
   StopScanning(scanning_info_.service_id);
@@ -197,22 +197,20 @@ BleMedium::~BleMedium() {
 }
 
 bool BleMedium::StartAdvertising(
-    const std::string& service_id, const ByteArray& advertisement_bytes,
-    const std::string& fast_advertisement_service_uuid) {
+    const std::string &service_id, const ByteArray &advertisement_bytes,
+    const std::string &fast_advertisement_service_uuid) {
   NEARBY_LOGS(INFO) << "G3 Ble StartAdvertising: service_id=" << service_id
                     << ", advertisement bytes=" << advertisement_bytes.data()
                     << "(" << advertisement_bytes.size() << "),"
                     << " fast advertisement service uuid="
                     << fast_advertisement_service_uuid;
-  auto& env = MediumEnvironment::Instance();
-  auto& peripheral = adapter_->GetPeripheral();
+  auto &peripheral = adapter_->GetPeripheral();
   peripheral.SetAdvertisementBytes(service_id, advertisement_bytes);
   bool fast_advertisement = !fast_advertisement_service_uuid.empty();
-  env.UpdateBleMediumForAdvertising(*this, peripheral, service_id,
-                                    fast_advertisement, true);
 
   absl::MutexLock lock(&mutex_);
-  if (server_socket_ != nullptr) server_socket_.release();
+  if (server_socket_ != nullptr)
+    server_socket_.release();
   server_socket_ = std::make_unique<BleServerSocket>();
 
   acceptance_thread_running_.exchange(true);
@@ -221,9 +219,8 @@ bool BleMedium::StartAdvertising(
       while (true) {
         auto client_socket =
             server_socket_->Accept(&(this->adapter_->GetPeripheral()));
-        if (client_socket == nullptr) break;
-        env.CallBleAcceptedConnectionCallback(*this, *(client_socket.release()),
-                                              service_id);
+        if (client_socket == nullptr)
+          break;
       }
     }
     acceptance_thread_running_.exchange(false);
@@ -232,7 +229,7 @@ bool BleMedium::StartAdvertising(
   return true;
 }
 
-bool BleMedium::StopAdvertising(const std::string& service_id) {
+bool BleMedium::StopAdvertising(const std::string &service_id) {
   NEARBY_LOGS(INFO) << "G3 Ble StopAdvertising: service_id=" << service_id;
   {
     absl::MutexLock lock(&mutex_);
@@ -244,7 +241,7 @@ bool BleMedium::StopAdvertising(const std::string& service_id) {
     advertising_info_.Clear();
   }
 
-  auto& env = MediumEnvironment::Instance();
+  auto &env = MediumEnvironment::Instance();
   env.UpdateBleMediumForAdvertising(*this, adapter_->GetPeripheral(),
                                     service_id, /*fast_advertisement=*/false,
                                     /*enabled=*/false);
@@ -267,11 +264,11 @@ bool BleMedium::StopAdvertising(const std::string& service_id) {
 }
 
 bool BleMedium::StartScanning(
-    const std::string& service_id,
-    const std::string& fast_advertisement_service_uuid,
+    const std::string &service_id,
+    const std::string &fast_advertisement_service_uuid,
     DiscoveredPeripheralCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Ble StartScanning: service_id=" << service_id;
-  auto& env = MediumEnvironment::Instance();
+  auto &env = MediumEnvironment::Instance();
   env.UpdateBleMediumForScanning(*this, service_id,
                                  fast_advertisement_service_uuid,
                                  std::move(callback), true);
@@ -282,7 +279,7 @@ bool BleMedium::StartScanning(
   return true;
 }
 
-bool BleMedium::StopScanning(const std::string& service_id) {
+bool BleMedium::StopScanning(const std::string &service_id) {
   NEARBY_LOGS(INFO) << "G3 Ble StopScanning: service_id=" << service_id;
   {
     absl::MutexLock lock(&mutex_);
@@ -294,43 +291,45 @@ bool BleMedium::StopScanning(const std::string& service_id) {
     scanning_info_.Clear();
   }
 
-  auto& env = MediumEnvironment::Instance();
+  auto &env = MediumEnvironment::Instance();
   env.UpdateBleMediumForScanning(*this, service_id, {}, {}, false);
   return true;
 }
 
-bool BleMedium::StartAcceptingConnections(const std::string& service_id,
+bool BleMedium::StartAcceptingConnections(const std::string &service_id,
                                           AcceptedConnectionCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Ble StartAcceptingConnections: service_id="
                     << service_id;
-  auto& env = MediumEnvironment::Instance();
+  auto &env = MediumEnvironment::Instance();
   env.UpdateBleMediumForAcceptedConnection(*this, service_id, callback);
   return true;
 }
 
-bool BleMedium::StopAcceptingConnections(const std::string& service_id) {
+bool BleMedium::StopAcceptingConnections(const std::string &service_id) {
   NEARBY_LOGS(INFO) << "G3 Ble StopAcceptingConnections: service_id="
                     << service_id;
-  auto& env = MediumEnvironment::Instance();
+  auto &env = MediumEnvironment::Instance();
   env.UpdateBleMediumForAcceptedConnection(*this, service_id, {});
   return true;
 }
 
-std::unique_ptr<api::BleSocket> BleMedium::Connect(
-    api::BlePeripheral& remote_peripheral, const std::string& service_id,
-    CancellationFlag* cancellation_flag) {
+std::unique_ptr<api::BleSocket>
+BleMedium::Connect(api::BlePeripheral &remote_peripheral,
+                   const std::string &service_id,
+                   CancellationFlag *cancellation_flag) {
   NEARBY_LOG(INFO,
              "G3 Ble Connect [self]: medium=%p, adapter=%p, peripheral=%p, "
              "service_id=%s",
              this, &GetAdapter(), &GetAdapter().GetPeripheral(),
              service_id.c_str());
   // First, find an instance of remote medium, that exposed this peripheral.
-  auto& adapter = static_cast<BlePeripheral&>(remote_peripheral).GetAdapter();
-  auto* medium = static_cast<BleMedium*>(adapter.GetBleMedium());
+  auto &adapter = static_cast<BlePeripheral &>(remote_peripheral).GetAdapter();
+  auto *medium = static_cast<BleMedium *>(adapter.GetBleMedium());
 
-  if (!medium) return {};  // Can't find medium. Bail out.
+  if (!medium)
+    return {}; // Can't find medium. Bail out.
 
-  BleServerSocket* remote_server_socket = nullptr;
+  BleServerSocket *remote_server_socket = nullptr;
   NEARBY_LOG(INFO,
              "G3 Ble Connect [peer]: medium=%p, adapter=%p, peripheral=%p, "
              "service_id=%s",
@@ -356,10 +355,11 @@ std::unique_ptr<api::BleSocket> BleMedium::Connect(
 
   CancellationFlagListener listener(cancellation_flag, [this]() {
     NEARBY_LOGS(INFO) << "G3 BLE Cancel Connect.";
-    if (server_socket_ != nullptr) server_socket_->Close();
+    if (server_socket_ != nullptr)
+      server_socket_->Close();
   });
 
-  BlePeripheral peripheral = static_cast<BlePeripheral&>(remote_peripheral);
+  BlePeripheral peripheral = static_cast<BlePeripheral &>(remote_peripheral);
   auto socket = std::make_unique<BleSocket>(&peripheral);
   // Finally, Request to connect to this socket.
   if (!remote_server_socket->Connect(*socket)) {
@@ -373,6 +373,6 @@ std::unique_ptr<api::BleSocket> BleMedium::Connect(
   return socket;
 }
 
-}  // namespace linux
-}  // namespace nearby
-}  // namespace location
+} // namespace linux
+} // namespace nearby
+} // namespace location
