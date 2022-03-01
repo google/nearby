@@ -22,9 +22,6 @@
 	path = third_party/depot_tools
 	url = https://chromium.googlesource.com/chromium/tools/depot_tools.git
 	branch = main
-[submodule "internal/platform/implementation/linux/third_party/gattlib"]
-	path = internal/platform/implementation/linux/third_party/gattlib
-	url = https://github.com/labapart/gattlib.git
 [submodule "third_party/gattlib"]
 	path = third_party/gattlib
 	url = https://github.com/labapart/gattlib.git
