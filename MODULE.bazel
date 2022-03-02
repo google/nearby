@@ -2,8 +2,9 @@ module(
   name = "nearby",
   version = "0.2",
 )
-bazel_dep(name = "rules_cc", version = "0.0.1")
-bazel_dep(name = "protobuf", version = "3.19.0", repo_name="com_google_protobuf_cc")
+# bazel_dep(name = "rules_cc", version = "0.0.1") 
+bazel_dep(name = "protobuf", version = "3.19.0", repo_name="com_google_protobuf")
 bazel_dep(name = "abseil-cpp", version = "20210324.2", repo_name = "com_google_absl")
+bazel_dep(name = "googletest", version = "1.11.0")
 bazel_dep(name = "glog", version = "0.5.0", repo_name = "com_google_glog")
 bazel_dep(name = "boringssl", version = "0.0.0-20211025-d4f1ab9")
