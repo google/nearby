@@ -16,6 +16,7 @@
 #include <absl/base/log_severity.h>
 #include <algorithm>
 #include <cstdio>
+#include <stdarg.h>
 namespace location {
 namespace nearby {
 namespace linux {
