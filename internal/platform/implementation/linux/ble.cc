@@ -199,7 +199,7 @@ BleMedium::~BleMedium() {
 bool BleMedium::StartAdvertising(
     const std::string &service_id, const ByteArray &advertisement_bytes,
     const std::string &fast_advertisement_service_uuid) {
-  NEARBY_LOGS(INFO) << "G3 Ble StartAdvertising: service_id=" << service_id
+  NEARBY_LOGS(INFO) << "LINUX Ble StartAdvertising: service_id=" << service_id
                     << ", advertisement bytes=" << advertisement_bytes.data()
                     << "(" << advertisement_bytes.size() << "),"
                     << " fast advertisement service uuid="
@@ -218,11 +218,11 @@ bool BleMedium::StartAdvertising(
 }
 
 bool BleMedium::StopAdvertising(const std::string &service_id) {
-  NEARBY_LOGS(INFO) << "G3 Ble StopAdvertising: service_id=" << service_id;
+  NEARBY_LOGS(INFO) << "LINUX Ble StopAdvertising: service_id=" << service_id;
   {
     absl::MutexLock lock(&mutex_);
     if (advertising_info_.Empty()) {
-      NEARBY_LOGS(INFO) << "G3 Ble StopAdvertising: Can't stop advertising "
+      NEARBY_LOGS(INFO) << "LINUX Ble StopAdvertising: Can't stop advertising "
                            "because we never started advertising.";
       return false;
     }
@@ -231,7 +231,7 @@ bool BleMedium::StopAdvertising(const std::string &service_id) {
 
   accept_loops_runner_.Shutdown();
   if (server_socket_ == nullptr) {
-    NEARBY_LOGS(ERROR) << "G3 Ble StopAdvertising: Failed to find Ble Server "
+    NEARBY_LOGS(ERROR) << "LINUX Ble StopAdvertising: Failed to find Ble Server "
                           "socket: service_id="
                        << service_id;
     // Fall through for server socket not found.
@@ -240,7 +240,7 @@ bool BleMedium::StopAdvertising(const std::string &service_id) {
 
   if (!server_socket_->Close().Ok()) {
     NEARBY_LOGS(INFO)
-        << "G3 Ble StopAdvertising: Failed to close Ble server socket for "
+        << "LINUX Ble StopAdvertising: Failed to close Ble server socket for "
         << service_id;
     return false;
   }
@@ -251,7 +251,7 @@ bool BleMedium::StartScanning(
     const std::string &service_id,
     const std::string &fast_advertisement_service_uuid,
     DiscoveredPeripheralCallback callback) {
-  NEARBY_LOGS(INFO) << "G3 Ble StartScanning: service_id=" << service_id;
+  NEARBY_LOGS(INFO) << "LINUX Ble StartScanning: service_id=" << service_id;
   {
     absl::MutexLock lock(&mutex_);
     scanning_info_.service_id = service_id;
@@ -260,11 +260,11 @@ bool BleMedium::StartScanning(
 }
 
 bool BleMedium::StopScanning(const std::string &service_id) {
-  NEARBY_LOGS(INFO) << "G3 Ble StopScanning: service_id=" << service_id;
+  NEARBY_LOGS(INFO) << "LINUX Ble StopScanning: service_id=" << service_id;
   {
     absl::MutexLock lock(&mutex_);
     if (scanning_info_.Empty()) {
-      NEARBY_LOGS(INFO) << "G3 Ble StopDiscovery: Can't stop scanning because "
+      NEARBY_LOGS(INFO) << "LINUX Ble StopDiscovery: Can't stop scanning because "
                            "we never started scanning.";
       return false;
     }
@@ -276,13 +276,13 @@ bool BleMedium::StopScanning(const std::string &service_id) {
 
 bool BleMedium::StartAcceptingConnections(const std::string &service_id,
                                           AcceptedConnectionCallback callback) {
-  NEARBY_LOGS(INFO) << "G3 Ble StartAcceptingConnections: service_id="
+  NEARBY_LOGS(INFO) << "LINUX Ble StartAcceptingConnections: service_id="
                     << service_id;
   return true;
 }
 
 bool BleMedium::StopAcceptingConnections(const std::string &service_id) {
-  NEARBY_LOGS(INFO) << "G3 Ble StopAcceptingConnections: service_id="
+  NEARBY_LOGS(INFO) << "LINUX Ble StopAcceptingConnections: service_id="
                     << service_id;
   return true;
 }
@@ -292,7 +292,7 @@ BleMedium::Connect(api::BlePeripheral &remote_peripheral,
                    const std::string &service_id,
                    CancellationFlag *cancellation_flag) {
   NEARBY_LOG(INFO,
-             "G3 Ble Connect [self]: medium=%p, adapter=%p, peripheral=%p, "
+             "LINUX Ble Connect [self]: medium=%p, adapter=%p, peripheral=%p, "
              "service_id=%s",
              this, &GetAdapter(), &GetAdapter().GetPeripheral(),
              service_id.c_str());
@@ -305,7 +305,7 @@ BleMedium::Connect(api::BlePeripheral &remote_peripheral,
 
   BleServerSocket *remote_server_socket = nullptr;
   NEARBY_LOG(INFO,
-             "G3 Ble Connect [peer]: medium=%p, adapter=%p, peripheral=%p, "
+             "LINUX Ble Connect [peer]: medium=%p, adapter=%p, peripheral=%p, "
              "service_id=%s",
              medium, &adapter, &remote_peripheral, service_id.c_str());
   // Then, find our server socket context in this medium.
@@ -314,21 +314,21 @@ BleMedium::Connect(api::BlePeripheral &remote_peripheral,
     remote_server_socket = medium->server_socket_.get();
     if (remote_server_socket == nullptr) {
       NEARBY_LOGS(ERROR)
-          << "G3 Ble Connect: Failed to find Ble Server socket: service_id="
+          << "LINUX Ble Connect: Failed to find Ble Server socket: service_id="
           << service_id;
       return {};
     }
   }
 
   if (cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(ERROR) << "G3 BLE Connect: Has been cancelled: "
+    NEARBY_LOGS(ERROR) << "LINUX BLE Connect: Has been cancelled: "
                           "service_id="
                        << service_id;
     return {};
   }
 
   CancellationFlagListener listener(cancellation_flag, [this]() {
-    NEARBY_LOGS(INFO) << "G3 BLE Cancel Connect.";
+    NEARBY_LOGS(INFO) << "LINUX BLE Cancel Connect.";
     if (server_socket_ != nullptr)
       server_socket_->Close();
   });
@@ -337,13 +337,13 @@ BleMedium::Connect(api::BlePeripheral &remote_peripheral,
   auto socket = std::make_unique<BleSocket>(&peripheral);
   // Finally, Request to connect to this socket.
   if (!remote_server_socket->Connect(*socket)) {
-    NEARBY_LOGS(ERROR) << "G3 Ble Connect: Failed to connect to existing Ble "
+    NEARBY_LOGS(ERROR) << "LINUX Ble Connect: Failed to connect to existing Ble "
                           "Server socket: service_id="
                        << service_id;
     return {};
   }
 
-  NEARBY_LOG(INFO, "G3 Ble Connect: connected: socket=%p", socket.get());
+  NEARBY_LOG(INFO, "LINUX Ble Connect: connected: socket=%p", socket.get());
   return socket;
 }
 

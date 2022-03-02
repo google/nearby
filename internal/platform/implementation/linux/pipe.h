@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_G3_PIPE_H_
-#define PLATFORM_IMPL_G3_PIPE_H_
+#ifndef PLATFORM_IMPL_LINUX_PIPE_H_
+#define PLATFORM_IMPL_LINUX_PIPE_H_
 
 #include <memory>
 
@@ -41,4 +41,4 @@ class Pipe : public BasePipe {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_G3_PIPE_H_
+#endif  // PLATFORM_IMPL_LINUX_PIPE_H_

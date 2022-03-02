@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_G3_CONDITION_VARIABLE_H_
-#define PLATFORM_IMPL_G3_CONDITION_VARIABLE_H_
+#ifndef PLATFORM_IMPL_LINUX_CONDITION_VARIABLE_H_
+#define PLATFORM_IMPL_LINUX_CONDITION_VARIABLE_H_
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/condition_variable.h"
@@ -48,4 +48,4 @@ class ConditionVariable : public api::ConditionVariable {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_G3_CONDITION_VARIABLE_H_
+#endif  // PLATFORM_IMPL_LINUX_CONDITION_VARIABLE_H_

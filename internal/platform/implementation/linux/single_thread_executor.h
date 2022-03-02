@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_G3_SINGLE_THREAD_EXECUTOR_H_
-#define PLATFORM_IMPL_G3_SINGLE_THREAD_EXECUTOR_H_
+#ifndef PLATFORM_IMPL_LINUX_SINGLE_THREAD_EXECUTOR_H_
+#define PLATFORM_IMPL_LINUX_SINGLE_THREAD_EXECUTOR_H_
 
 #include "internal/platform/implementation/linux/multi_thread_executor.h"
 
@@ -33,4 +33,4 @@ class SingleThreadExecutor final : public MultiThreadExecutor {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_G3_SINGLE_THREAD_EXECUTOR_H_
+#endif  // PLATFORM_IMPL_LINUX_SINGLE_THREAD_EXECUTOR_H_

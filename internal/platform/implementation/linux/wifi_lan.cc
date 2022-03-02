@@ -22,11 +22,11 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
+#include "boost/asio.hpp"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
-
 namespace location {
 namespace nearby {
 namespace linux {
@@ -187,7 +187,7 @@ WifiLanMedium::~WifiLanMedium() {}
 
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo &nsd_service_info) {
   std::string service_type = nsd_service_info.GetServiceType();
-  NEARBY_LOGS(INFO) << "G3 WifiLan StartAdvertising: nsd_service_info="
+  NEARBY_LOGS(INFO) << "LINUX WifiLan StartAdvertising: nsd_service_info="
                     << &nsd_service_info
                     << ", service_name=" << nsd_service_info.GetServiceName()
                     << ", service_type=" << service_type;
@@ -210,7 +210,7 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo &nsd_service_info) {
 
 bool WifiLanMedium::StopAdvertising(const NsdServiceInfo &nsd_service_info) {
   std::string service_type = nsd_service_info.GetServiceType();
-  NEARBY_LOGS(INFO) << "G3 WifiLan StopAdvertising: nsd_service_info="
+  NEARBY_LOGS(INFO) << "LINUX WifiLan StopAdvertising: nsd_service_info="
                     << &nsd_service_info
                     << ", service_name=" << nsd_service_info.GetServiceName()
                     << ", service_type=" << service_type;
@@ -279,18 +279,12 @@ std::unique_ptr<api::WifiLanSocket>
 WifiLanMedium::ConnectToService(const std::string &ip_address, int port,
                                 CancellationFlag *cancellation_flag) {
   std::string socket_name = WifiLanServerSocket::GetName(ip_address, port);
-  NEARBY_LOGS(INFO) << "G3 WifiLan ConnectToService [self]: medium=" << this
+  NEARBY_LOGS(INFO) << "LINUX WifiLan ConnectToService [self]: medium=" << this
                     << ", ip address + port=" << socket_name;
-  // First, find an instance of remote medium, that exposed this service.
-  auto *remote_medium = nullptr;
-  if (!remote_medium) {
-    return {};
-  }
 
   WifiLanServerSocket *server_socket = nullptr;
-  NEARBY_LOGS(INFO) << "G3 WifiLan ConnectToService [peer]: medium="
-                    << remote_medium
-                    << ", remote ip address + port=" << socket_name;
+  NEARBY_LOGS(INFO) << "LINUX WifiLan ConnectToService [peer]:"
+                    << "remote ip address + port=" << socket_name;
   // Then, find our server socket context in this medium.
   {
     absl::MutexLock medium_lock(&remote_medium->mutex_);
@@ -298,7 +292,7 @@ WifiLanMedium::ConnectToService(const std::string &ip_address, int port,
     server_socket = item != server_sockets_.end() ? item->second : nullptr;
     if (server_socket == nullptr) {
       NEARBY_LOGS(ERROR)
-          << "G3 WifiLan Failed to find WifiLan Server socket: socket_name="
+          << "LINUX WifiLan Failed to find WifiLan Server socket: socket_name="
           << socket_name;
       return {};
     }

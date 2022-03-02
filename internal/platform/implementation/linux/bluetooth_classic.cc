@@ -193,7 +193,7 @@ std::unique_ptr<api::BluetoothSocket>
 BluetoothClassicMedium::ConnectToService(api::BluetoothDevice &remote_device,
                                          const std::string &service_uuid,
                                          CancellationFlag *cancellation_flag) {
-  NEARBY_LOGS(INFO) << "G3 ConnectToService [self]: medium=" << this
+  NEARBY_LOGS(INFO) << "LINUX ConnectToService [self]: medium=" << this
                     << ", adapter=" << &GetAdapter()
                     << ", device=" << &GetAdapter().GetDevice();
   // First, find an instance of remote medium, that exposed this device.
@@ -205,7 +205,7 @@ BluetoothClassicMedium::ConnectToService(api::BluetoothDevice &remote_device,
     return {}; // Adapter is not bound to medium. Bail out.
 
   BluetoothServerSocket *server_socket = nullptr;
-  NEARBY_LOGS(INFO) << "G3 ConnectToService [peer]: medium=" << medium
+  NEARBY_LOGS(INFO) << "LINUX ConnectToService [peer]: medium=" << medium
                     << ", adapter=" << &adapter << ", device=" << &remote_device
                     << ", uuid=" << service_uuid.c_str();
   // Then, find our server socket context in this medium.
@@ -221,14 +221,14 @@ BluetoothClassicMedium::ConnectToService(api::BluetoothDevice &remote_device,
   }
 
   if (cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(ERROR) << "G3 Bluetooth Connect: Has been cancelled: "
+    NEARBY_LOGS(ERROR) << "LINUX Bluetooth Connect: Has been cancelled: "
                           "service_uuid="
                        << service_uuid;
     return {};
   }
 
   CancellationFlagListener listener(cancellation_flag, [&server_socket]() {
-    NEARBY_LOGS(INFO) << "G3 Bluetooth Cancel Connect.";
+    NEARBY_LOGS(INFO) << "LINUX Bluetooth Cancel Connect.";
     if (server_socket != nullptr)
       server_socket->Close();
   });
@@ -241,7 +241,7 @@ BluetoothClassicMedium::ConnectToService(api::BluetoothDevice &remote_device,
         << service_uuid;
     return {};
   }
-  NEARBY_LOGS(INFO) << "G3 ConnectToService: connected: socket="
+  NEARBY_LOGS(INFO) << "LINUX ConnectToService: connected: socket="
                     << socket.get();
   return socket;
 }

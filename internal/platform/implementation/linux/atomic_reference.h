@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_G3_ATOMIC_REFERENCE_H_
-#define PLATFORM_IMPL_G3_ATOMIC_REFERENCE_H_
+#ifndef PLATFORM_IMPL_LINUX_ATOMIC_REFERENCE_H_
+#define PLATFORM_IMPL_LINUX_ATOMIC_REFERENCE_H_
 
 #include <atomic>
 #include <cstdint>
@@ -40,4 +40,4 @@ class AtomicUint32 : public api::AtomicUint32 {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_G3_ATOMIC_REFERENCE_H_
+#endif  // PLATFORM_IMPL_LINUX_ATOMIC_REFERENCE_H_

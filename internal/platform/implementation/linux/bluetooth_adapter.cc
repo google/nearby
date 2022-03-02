@@ -28,7 +28,7 @@ BlePeripheral::BlePeripheral(BluetoothAdapter *adapter) : adapter_(*adapter) {}
 std::string BlePeripheral::GetName() const { return adapter_.GetName(); }
 
 ByteArray
-BlePeripheral::GetAdvertisementBytes(const std::string &service_id) const {
+BlePeripheral::GetAdvertisementBytes(const std::string &service_id) const { 
   return advertisement_bytes_;
 }
 

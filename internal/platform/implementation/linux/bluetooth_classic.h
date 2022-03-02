@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_G3_BLUETOOTH_CLASSIC_H_
-#define PLATFORM_IMPL_G3_BLUETOOTH_CLASSIC_H_
+#ifndef PLATFORM_IMPL_LINUX_BLUETOOTH_CLASSIC_H_
+#define PLATFORM_IMPL_LINUX_BLUETOOTH_CLASSIC_H_
 
 #include <memory>
 #include <string>
@@ -235,4 +235,4 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // PLATFORM_IMPL_G3_BLUETOOTH_CLASSIC_H_
+#endif  // PLATFORM_IMPL_LINUX_BLUETOOTH_CLASSIC_H_
