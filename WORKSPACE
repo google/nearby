@@ -27,7 +27,7 @@ http_archive(
     urls = ["https://github.com/abseil/abseil-cpp/archive/master.zip"],
 )
 
-# Using a protobuf javalite version that contains @com_google_protobuf_javalite//:javalite_toolchain
+#Using a protobuf javalite version that contains @com_google_protobuf_javalite//:javalite_toolchain
 http_archive(
     name = "com_google_protobuf_javalite",
     strip_prefix = "protobuf-javalite",
@@ -52,12 +52,12 @@ http_archive(
     urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.17.0.tar.gz"],
 )
 
-http_archive(
-    name = "com_google_glog",
-    sha256 = "f28359aeba12f30d73d9e4711ef356dc842886968112162bc73002645139c39c",
-    strip_prefix = "glog-0.4.0",
-    urls = ["https://github.com/google/glog/archive/v0.4.0.tar.gz"],
-)
+# http_archive(
+#     name = "com_google_glog",
+#     sha256 = "f28359aeba12f30d73d9e4711ef356dc842886968112162bc73002645139c39c",
+#     strip_prefix = "glog-0.4.0",
+#     urls = ["https://github.com/google/glog/archive/v0.4.0.tar.gz"],
+# )
 new_local_repository(
     name = "gattlib",
     path = "./third_party/gattlib",
@@ -129,16 +129,16 @@ load("@com_google_nisaba//bazel:workspace.bzl", "nisaba_public_repositories")
 
 nisaba_public_repositories()
 
-http_archive(
-    name = "boringssl",  # Must match upstream workspace name.
-    # Gitiles creates gzip files with an embedded timestamp, so we cannot use
-    # sha256 to validate the archives.  We must rely on the commit hash and
-    # https. Commits must come from the master-with-bazel branch.
-    urls = ["https://codeload.github.com/google/boringssl/zip/master-with-bazel"],
-    strip_prefix = "boringssl-master-with-bazel",
-    type = "zip",
-)
-
+# http_archive(
+#     name = "boringssl",  # Must match upstream workspace name.
+#     # Gitiles creates gzip files with an embedded timestamp, so we cannot use
+#     # sha256 to validate the archives.  We must rely on the commit hash and
+#     # https. Commits must come from the master-with-bazel branch.
+#     urls = ["https://codeload.github.com/google/boringssl/zip/master-with-bazel"],
+#     strip_prefix = "boringssl-master-with-bazel",
+#     type = "zip",
+# )
+#
 # -------------------------------------------------------------------------
 # Protocol buffer matches (should be part of gmock and gtest, but not yet):
 #   https://github.com/inazarenko/protobuf-matchers
