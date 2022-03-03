@@ -30,15 +30,14 @@ std::string WifiLanServerSocket::GetIPAddress() const {
     return {};
   }
 
-  auto host_names = NetworkInformation::GetHostNames();
-  for (auto host_name : host_names) {
-    if (host_name.IPInformation() != nullptr &&
-        host_name.IPInformation().NetworkAdapter() != nullptr) {
-      return wstring_to_string(host_name.ToString().c_str());
+  if (ip_addresses_.empty()) {
+    auto ip_addr = GetIpAddresses();
+    if (ip_addr.empty()) {
+      return {};
     }
+    return ip_addr.front();
   }
-
-  return {};
+  return ip_addresses_.front();
 }
 
 // Returns port.
@@ -163,13 +162,26 @@ fire_and_forget WifiLanServerSocket::Listener_ConnectionReceived(
 }
 
 // Retrieves IP addresses from local machine
-std::vector<std::string> WifiLanServerSocket::GetIpAddresses() {
+std::vector<std::string> WifiLanServerSocket::GetIpAddresses() const {
   std::vector<std::string> result{};
   auto host_names = NetworkInformation::GetHostNames();
   for (auto host_name : host_names) {
     if (host_name.IPInformation() != nullptr &&
-        host_name.IPInformation().NetworkAdapter() != nullptr) {
-      result.push_back(wstring_to_string(host_name.ToString().c_str()));
+        host_name.IPInformation().NetworkAdapter() != nullptr &&
+        host_name.Type() == HostNameType::Ipv4) {
+      std::string ipv4_s = winrt::to_string(host_name.ToString());
+      // Converts ip address from x.x.x.x to 4 bytes format
+      in_addr address;
+      address.S_un.S_addr = inet_addr(ipv4_s.c_str());
+      char ipv4_b[5];
+      ipv4_b[0] = address.S_un.S_un_b.s_b1;
+      ipv4_b[1] = address.S_un.S_un_b.s_b2;
+      ipv4_b[2] = address.S_un.S_un_b.s_b3;
+      ipv4_b[3] = address.S_un.S_un_b.s_b4;
+      ipv4_b[4] = 0;
+      std::string ipv4_b_s = std::string(ipv4_b, 4);
+
+      result.push_back(ipv4_b_s);
     }
   }
   return result;

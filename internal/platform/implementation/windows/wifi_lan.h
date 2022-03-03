@@ -60,6 +60,7 @@ using winrt::Windows::Devices::Enumeration::DeviceWatcher;
 using winrt::Windows::Foundation::IInspectable;
 using winrt::Windows::Foundation::Collections::IMapView;
 using winrt::Windows::Networking::HostName;
+using winrt::Windows::Networking::HostNameType;
 using winrt::Windows::Networking::Connectivity::NetworkInformation;
 using winrt::Windows::Networking::ServiceDiscovery::Dnssd::
     DnssdRegistrationResult;
@@ -193,7 +194,7 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
       StreamSocketListenerConnectionReceivedEventArgs const& args);
 
   // Retrieves IP addresses from local machine
-  std::vector<std::string> GetIpAddresses();
+  std::vector<std::string> GetIpAddresses() const;
 
   mutable absl::Mutex mutex_;
   absl::CondVar cond_;

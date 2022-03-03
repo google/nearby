@@ -74,6 +74,7 @@ ByteArray WifiLanBwuHandler::InitializeUpgradedMediumForEndpoint(
   auto credential = wifi_lan_medium_.GetCredentials(upgrade_service_id);
   auto ip_address = credential.first;
   auto port = credential.second;
+
   if (ip_address.empty()) {
     NEARBY_LOGS(INFO)
         << "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
@@ -82,6 +83,10 @@ ByteArray WifiLanBwuHandler::InitializeUpgradedMediumForEndpoint(
         << " because the wifi_lan ip address were unable to be obtained.";
     return {};
   }
+  NEARBY_LOGS(INFO)
+      << "WifiLanBwuHandler retrieved WIFI_LAN credential. IP addr: "
+      << ip_address[0] << "." << ip_address[1] << "." << ip_address[2] << "."
+      << ip_address[3] << ",  Port: " << port;
 
   return parser::ForBwuWifiLanPathAvailable(ip_address, port);
 }

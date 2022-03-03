@@ -292,7 +292,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   if (cancellation_flag != nullptr) {
     if (cancellation_flag->Cancelled()) {
       NEARBY_LOGS(INFO) << "connect has been cancelled to service "
-                        << ip_address << ":" << port;
+                        << ipv4_address << ":" << port;
       return nullptr;
     }
 
@@ -308,11 +308,11 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     std::unique_ptr<WifiLanSocket> wifi_lan_socket =
         std::make_unique<WifiLanSocket>(socket);
 
-    NEARBY_LOGS(INFO) << "connected to remote service " << ip_address << ":"
+    NEARBY_LOGS(INFO) << "connected to remote service " << ipv4_address << ":"
                       << port;
     return wifi_lan_socket;
   } catch (...) {
-    NEARBY_LOGS(ERROR) << "failed to connect remote service " << ip_address
+    NEARBY_LOGS(ERROR) << "failed to connect remote service " << ipv4_address
                        << ":" << port;
   }
 
