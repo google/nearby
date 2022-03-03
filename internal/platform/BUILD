@@ -304,12 +304,14 @@ cc_library(
     name = "comm",
     srcs = [
         "ble.cc",
+        "ble_v2.cc",
         "bluetooth_classic.cc",
         "file.cc",
         "wifi_lan.cc",
     ],
     hdrs = [
         "ble.h",
+        "ble_v2.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
         "wifi_lan.h",
@@ -342,6 +344,7 @@ cc_test(
         "atomic_boolean_test.cc",
         "atomic_reference_test.cc",
         "ble_test.cc",
+        "ble_v2_test.cc",
         "bluetooth_adapter_test.cc",
         "bluetooth_classic_test.cc",
         "cancelable_alarm_test.cc",

@@ -90,6 +90,7 @@ cc_test(
     size = "small",
     srcs = [
         "ble_test.cc",
+        "ble_v2_test.cc",
         "bluetooth_classic_test.cc",
         "bluetooth_radio_test.cc",
         "lost_entity_tracker_test.cc",

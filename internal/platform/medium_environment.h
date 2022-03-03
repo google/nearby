@@ -21,6 +21,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/ble.h"
+#include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #ifndef NO_WEBRTC
@@ -204,6 +205,21 @@ class MediumEnvironment {
                                          api::BleSocket& socket,
                                          const std::string& service_id);
 
+  // Adds medium-related info to allow for scanning/advertising to work.
+  // This provides acccess to this medium from other mediums, when protocol
+  // expects they should communicate.
+  void RegisterBleV2Medium(api::ble_v2::BleMedium& medium);
+
+  // Updates advertising info to indicate the current medium is exposing
+  // advertising event.
+  void UpdateBleV2MediumForAdvertising(api::ble_v2::BleMedium& medium,
+                                       api::ble_v2::BlePeripheral& peripheral,
+                                       const std::string& service_id,
+                                       bool fast_advertisement, bool enabled);
+
+  // Removes medium-related info. This should correspond to device power off.
+  void UnregisterBleV2Medium(api::ble_v2::BleMedium& mediumum);
+
   // Adds medium-related info to allow for discovery/advertising to work.
   // This provides acccess to this medium from other mediums, when protocol
   // expects they should communicate.
@@ -255,6 +271,9 @@ class MediumEnvironment {
     bool fast_advertisement = false;
   };
 
+  struct BleV2MediumContext {
+  };
+
   struct WifiLanMediumContext {
     // advertising service type vs NsdServiceInfo map.
     absl::flat_hash_map<std::string, NsdServiceInfo> advertising_services;
@@ -303,6 +322,10 @@ class MediumEnvironment {
       bluetooth_mediums_;
 
   absl::flat_hash_map<api::BleMedium*, BleMediumContext> ble_mediums_;
+
+  absl::flat_hash_map<api::ble_v2::BleMedium*, BleV2MediumContext>
+      ble_v2_mediums_;
+
 #ifndef NO_WEBRTC
   // Maps peer id to callback for receiving signaling messages.
   absl::flat_hash_map<std::string, OnSignalingMessageCallback>
@@ -312,6 +335,7 @@ class MediumEnvironment {
   absl::flat_hash_map<std::string, OnSignalingCompleteCallback>
       webrtc_signaling_complete_callback_;
 #endif
+
   absl::flat_hash_map<api::WifiLanMedium*, WifiLanMediumContext>
       wifi_lan_mediums_;
 

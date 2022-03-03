@@ -59,6 +59,7 @@ void MediumEnvironment::Reset() {
     bluetooth_adapters_.clear();
     bluetooth_mediums_.clear();
     ble_mediums_.clear();
+    ble_v2_mediums_.clear();
 #ifndef NO_WEBRTC
     webrtc_signaling_message_callback_.clear();
     webrtc_signaling_complete_callback_.clear();
@@ -477,6 +478,31 @@ void MediumEnvironment::CallBleAcceptedConnectionCallback(
         info.accepted_connection_callback.accepted_cb(socket, service_id);
       });
 }
+
+void MediumEnvironment::RegisterBleV2Medium(api::ble_v2::BleMedium& medium) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium]() {
+    ble_v2_mediums_.insert({&medium, BleV2MediumContext{}});
+    NEARBY_LOGS(INFO) << "Registered: medium:" << &medium;
+  });
+}
+
+// TODO(b/213691253): Add g3 BleV2 medium tests after more functions are ready.
+void MediumEnvironment::UpdateBleV2MediumForAdvertising(
+    api::ble_v2::BleMedium& medium, api::ble_v2::BlePeripheral& peripheral,
+    const std::string& service_id, bool fast_advertisement, bool enabled) {
+  if (!enabled_) return;
+}
+
+void MediumEnvironment::UnregisterBleV2Medium(api::ble_v2::BleMedium& medium) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium]() {
+    auto item = ble_v2_mediums_.extract(&medium);
+    if (item.empty()) return;
+    NEARBY_LOGS(INFO) << "Unregistered Ble medium";
+  });
+}
+
 #ifndef NO_WEBRTC
 void MediumEnvironment::RegisterWebRtcSignalingMessenger(
     absl::string_view self_id, OnSignalingMessageCallback message_callback,

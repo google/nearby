@@ -129,8 +129,8 @@ std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(api::Bluetoot
   return nullptr;
 }
 
-std::unique_ptr<ble_v2::BleMedium> ImplementationPlatform::CreateBleV2Medium(
-    api::BluetoothAdapter& adapter) {
+std::unique_ptr<ble_v2::BleMedium>
+ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter& adapter) {
   return nullptr;
 }
 
