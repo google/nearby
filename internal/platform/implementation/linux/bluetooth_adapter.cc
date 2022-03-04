@@ -1,16 +1,9 @@
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// TODO: License this code.
+// The code is based off Apache code written by google and GPLv2 code written
+// from Gattlib. While gattlib itself is released under the BSD 3-clause with
+// the exception of two files, the examples are GPL licensed and this code
+// builds on them. This means that the Linux backend will be GPLv2 licensed to
+// comply with said licenses or be rewritten around other libraries.
 
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
 
@@ -28,8 +21,8 @@ BlePeripheral::BlePeripheral(BluetoothAdapter *adapter) : adapter_(*adapter) {}
 std::string BlePeripheral::GetName() const { return adapter_.GetName(); }
 
 ByteArray
-BlePeripheral::GetAdvertisementBytes(const std::string &service_id) const { 
-  return advertisement_bytes_;
+BlePeripheral::GetAdvertisementBytes(const std::string &service_id) const {
+  return;
 }
 
 void BlePeripheral::SetAdvertisementBytes(
@@ -46,6 +39,10 @@ std::string BluetoothDevice::GetMacAddress() const {
 }
 
 BluetoothAdapter::BluetoothAdapter() {
+  // Taken from         
+  const char *adapter_name = NULL;
+  void *adapter;
+
   std::string mac_address;
   mac_address.resize(6);
   int64_t raw_mac_addr = Prng().NextInt64();

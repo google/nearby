@@ -16,9 +16,9 @@ load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
 licenses(["notice"])
 cmake(
   name = "gattlib",
-  generate_args = ["-DGATTLIB_BUILD_DOCS=OFF","-DGATTLIB_SHARED_LIB=OFF", "-DGATTLIB_PYTHON_INTERFACE=OFF","-DGATTLIB_BUILD_EXAMPLES=OFF"],
+  generate_args = ["-DGATTLIB_BUILD_DOCS=OFF", "-DGATTLIB_PYTHON_INTERFACE=OFF","-DGATTLIB_BUILD_EXAMPLES=OFF"],
   lib_source = "@gattlib//:all_srcs",
-  out_static_libs = ["libgattlib.a"]
+  out_shared_libs = ["libgattlib.so"]
 )
 cc_library(
     name = "types",

@@ -23,8 +23,8 @@ cmake(
     },
     generate_args = [
         "-DBYPASS_TESTING=ON",  # Set the flags in CMakeLists.txt (ukey2 & its dependencies) here.
-        "-Dukey2_USE_LOCAL_ABSL=ON",
-        "-Dukey2_USE_LOCAL_PROTOBUF=ON",  # Add -DCMAKE_BUILD_TYPE=Debug for debugger & Valgrind
+        "-Dukey2_USE_LOCAL_ABSL=OFF",
+        "-Dukey2_USE_LOCAL_PROTOBUF=OFF",  # Add -DCMAKE_BUILD_TYPE=Debug for debugger & Valgrind
     ],
     lib_source = "@com_google_ukey2//:all_srcs",
     out_static_libs = [
@@ -35,6 +35,7 @@ cmake(
         "libsecuremessage.a",
         "libukey2.a",
     ],
+    build_data = ["@com_google_protobuf//:protobuf"]
 )
 
 cc_library(

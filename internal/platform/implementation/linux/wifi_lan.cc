@@ -27,6 +27,7 @@
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
+#include <avahi-client/client.h>
 namespace location {
 namespace nearby {
 namespace linux {
@@ -185,29 +186,6 @@ WifiLanMedium::WifiLanMedium() {}
 
 WifiLanMedium::~WifiLanMedium() {}
 
-bool WifiLanMedium::StartAdvertising(const NsdServiceInfo &nsd_service_info) {
-  std::string service_type = nsd_service_info.GetServiceType();
-  NEARBY_LOGS(INFO) << "LINUX WifiLan StartAdvertising: nsd_service_info="
-                    << &nsd_service_info
-                    << ", service_name=" << nsd_service_info.GetServiceName()
-                    << ", service_type=" << service_type;
-  {
-    absl::MutexLock lock(&mutex_);
-    if (advertising_info_.Existed(service_type)) {
-      NEARBY_LOGS(INFO)
-          << "G3 WifiLan StartAdvertising: Can't start advertising because "
-             "service_type="
-          << service_type << ", has started already.";
-      return false;
-    }
-  }
-  {
-    absl::MutexLock lock(&mutex_);
-    advertising_info_.Add(service_type);
-  }
-  return true;
-}
-
 bool WifiLanMedium::StopAdvertising(const NsdServiceInfo &nsd_service_info) {
   std::string service_type = nsd_service_info.GetServiceType();
   NEARBY_LOGS(INFO) << "LINUX WifiLan StopAdvertising: nsd_service_info="
@@ -286,17 +264,18 @@ WifiLanMedium::ConnectToService(const std::string &ip_address, int port,
   NEARBY_LOGS(INFO) << "LINUX WifiLan ConnectToService [peer]:"
                     << "remote ip address + port=" << socket_name;
   // Then, find our server socket context in this medium.
-  {
-    absl::MutexLock medium_lock(&remote_medium->mutex_);
-    auto item = remote_medium->server_sockets_.find(socket_name);
-    server_socket = item != server_sockets_.end() ? item->second : nullptr;
-    if (server_socket == nullptr) {
-      NEARBY_LOGS(ERROR)
-          << "LINUX WifiLan Failed to find WifiLan Server socket: socket_name="
-          << socket_name;
-      return {};
-    }
-  }
+  // {
+  //   absl::MutexLock medium_lock(&remote_medium->mutex_);
+  //   auto item = remote_medium->server_sockets_.find(socket_name);
+  //   server_socket = item != server_sockets_.end() ? item->second : nullptr;
+  //   if (server_socket == nullptr) {
+  //     NEARBY_LOGS(ERROR)
+  //         << "LINUX WifiLan Failed to find WifiLan Server socket:
+  //         socket_name="
+  //         << socket_name;
+  //     return {};
+  //   }
+  // }
 
   if (cancellation_flag->Cancelled()) {
     NEARBY_LOGS(ERROR) << "G3 WifiLan Connect: Has been cancelled: socket_name="
@@ -327,8 +306,8 @@ WifiLanMedium::ConnectToService(const std::string &ip_address, int port,
 std::unique_ptr<api::WifiLanServerSocket>
 WifiLanMedium::ListenForService(int port) {
   auto server_socket = std::make_unique<WifiLanServerSocket>();
-  server_socket->SetIPAddress(env.GetFakeIPAddress());
-  server_socket->SetPort(port == 0 ? env.GetFakePort() : port);
+  // server_socket->SetIPAddress(env.GetFakeIPAddress());
+  // server_socket->SetPort(port == 0 ? env.GetFakePort() : port);
   std::string socket_name = WifiLanServerSocket::GetName(
       server_socket->GetIPAddress(), server_socket->GetPort());
   server_socket->SetCloseNotifier([this, socket_name]() {

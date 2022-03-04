@@ -25,14 +25,15 @@ namespace connections {
 // Defines a copyable, comparable connection strategy type.
 // It is one of: kP2pCluster, kP2pStar, kP2pPointToPoint.
 class DLL_API Strategy {
- public:
+public:
+
   static const Strategy kNone;
   static const Strategy kP2pCluster;
   static const Strategy kP2pStar;
   static const Strategy kP2pPointToPoint;
   constexpr Strategy() : Strategy(kNone) {}
-  constexpr Strategy(const Strategy&) = default;
-  constexpr Strategy& operator=(const Strategy&) = default;
+  constexpr Strategy(const Strategy &) = default;
+  constexpr Strategy &operator=(const Strategy &) = default;
 
   // Returns true, if strategy is kNone, false otherwise.
   bool IsNone() const;
@@ -46,10 +47,10 @@ class DLL_API Strategy {
 
   // Undefine strategy.
   void Clear() { *this = kNone; }
-  friend bool operator==(const Strategy& lhs, const Strategy& rhs);
-  friend bool operator!=(const Strategy& lhs, const Strategy& rhs);
+  friend bool operator==(const Strategy &lhs, const Strategy &rhs);
+  friend bool operator!=(const Strategy &lhs, const Strategy &rhs);
 
- private:
+private:
   enum class ConnectionType {
     kNone = 0,
     kPointToPoint = 1,
@@ -66,7 +67,7 @@ class DLL_API Strategy {
   TopologyType topology_type_;
 };
 
-}  // namespace connections
-}  // namespace nearby
-}  // namespace location
-#endif  // CORE_STRATEGY_H_
+} // namespace connections
+} // namespace nearby
+} // namespace location
+#endif // CORE_STRATEGY_H_

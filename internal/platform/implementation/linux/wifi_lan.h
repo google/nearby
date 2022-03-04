@@ -22,13 +22,14 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/linux/multi_thread_executor.h"
+#include "internal/platform/implementation/linux/pipe.h"
+#include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
-#include "internal/platform/implementation/linux/multi_thread_executor.h"
-#include "internal/platform/implementation/linux/pipe.h"
+#include <avahi-common/watch.h>
 
 namespace location {
 namespace nearby {
@@ -37,23 +38,23 @@ namespace linux {
 class WifiLanMedium;
 
 class WifiLanSocket : public api::WifiLanSocket {
- public:
+public:
   WifiLanSocket() = default;
   ~WifiLanSocket() override;
 
   // Connect to another WifiLanSocket, to form a functional low-level channel.
   // from this point on, and until Close is called, connection exists.
-  void Connect(WifiLanSocket& other) ABSL_LOCKS_EXCLUDED(mutex_);
+  void Connect(WifiLanSocket &other) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns the InputStream of this connected WifiLanSocket.
-  InputStream& GetInputStream() override ABSL_LOCKS_EXCLUDED(mutex_);
+  InputStream &GetInputStream() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns the OutputStream of this connected WifiLanSocket.
   // This stream is for local side to write.
-  OutputStream& GetOutputStream() override ABSL_LOCKS_EXCLUDED(mutex_);
+  OutputStream &GetOutputStream() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns address of a remote WifiLanSocket or nullptr.
-  WifiLanSocket* GetRemoteSocket() ABSL_LOCKS_EXCLUDED(mutex_);
+  WifiLanSocket *GetRemoteSocket() ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns true if connection exists to the (possibly closed) remote socket.
   bool IsConnected() const ABSL_LOCKS_EXCLUDED(mutex_);
@@ -64,7 +65,7 @@ class WifiLanSocket : public api::WifiLanSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
 
- private:
+private:
   void DoClose() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Returns true if connection exists to the (possibly closed) remote socket.
@@ -73,12 +74,12 @@ class WifiLanSocket : public api::WifiLanSocket {
   // Returns InputStream of our side of a connection.
   // This is what the remote side is supposed to read from.
   // This is a helper for GetInputStream() method.
-  InputStream& GetLocalInputStream() ABSL_LOCKS_EXCLUDED(mutex_);
+  InputStream &GetLocalInputStream() ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns OutputStream of our side of a connection.
   // This is what the local size is supposed to write to.
   // This is a helper for GetOutputStream() method.
-  OutputStream& GetLocalOutputStream() ABSL_LOCKS_EXCLUDED(mutex_);
+  OutputStream &GetLocalOutputStream() ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Output pipe is initialized by constructor, it remains always valid, until
   // it is closed. it represents output part of a local socket. Input part of a
@@ -86,13 +87,13 @@ class WifiLanSocket : public api::WifiLanSocket {
   std::shared_ptr<Pipe> output_{new Pipe};
   std::shared_ptr<Pipe> input_;
   mutable absl::Mutex mutex_;
-  WifiLanSocket* remote_socket_ ABSL_GUARDED_BY(mutex_) = nullptr;
+  WifiLanSocket *remote_socket_ ABSL_GUARDED_BY(mutex_) = nullptr;
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };
 
 class WifiLanServerSocket : public api::WifiLanServerSocket {
- public:
-  static std::string GetName(const std::string& ip_address, int port);
+public:
+  static std::string GetName(const std::string &ip_address, int port);
 
   ~WifiLanServerSocket() override;
 
@@ -103,7 +104,7 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
   }
 
   // Sets the ip address.
-  void SetIPAddress(const std::string& ip_address) ABSL_LOCKS_EXCLUDED(mutex_) {
+  void SetIPAddress(const std::string &ip_address) ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(&mutex_);
     ip_address_ = ip_address;
   }
@@ -140,7 +141,7 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
   //
   // Called by the client side of a connection.
   // Returns true, if socket is successfully connected.
-  bool Connect(WifiLanSocket& socket) ABSL_LOCKS_EXCLUDED(mutex_);
+  bool Connect(WifiLanSocket &socket) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Called by the server side of a connection before passing ownership of
   // WifiLanServerSocker to user, to track validity of a pointer to this
@@ -152,21 +153,21 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
   // Calls close_notifier if it was previously set, and marks socket as closed.
   Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
 
- private:
+private:
   Exception DoClose() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   mutable absl::Mutex mutex_;
   std::string ip_address_ ABSL_GUARDED_BY(mutex_);
   int port_ ABSL_GUARDED_BY(mutex_);
   absl::CondVar cond_;
-  absl::flat_hash_set<WifiLanSocket*> pending_sockets_ ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_set<WifiLanSocket *> pending_sockets_ ABSL_GUARDED_BY(mutex_);
   std::function<void()> close_notifier_ ABSL_GUARDED_BY(mutex_);
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };
 
 // Container of operations that can be performed over the WifiLan medium.
 class WifiLanMedium : public api::WifiLanMedium {
- public:
+public:
   WifiLanMedium();
   ~WifiLanMedium() override;
 
@@ -178,7 +179,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   // On error if the service cannot start to advertise or the service type in
   // NsdServiceInfo has been passed previously which StopAdvertising is not
   // been called.
-  bool StartAdvertising(const NsdServiceInfo& nsd_service_info) override
+  bool StartAdvertising(const NsdServiceInfo &nsd_service_info) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Stops WifiLan advertising.
@@ -188,14 +189,14 @@ class WifiLanMedium : public api::WifiLanMedium {
   // On success if the service stops advertising.
   // On error if the service cannot stop advertising or the service type in
   // NsdServiceInfo cannot be found.
-  bool StopAdvertising(const NsdServiceInfo& nsd_service_info) override
+  bool StopAdvertising(const NsdServiceInfo &nsd_service_info) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Starts the discovery of nearby WifiLan services.
   //
   // Returns true once the WifiLan discovery has been initiated. The
   // service_type is associated with callback.
-  bool StartDiscovery(const std::string& service_type,
+  bool StartDiscovery(const std::string &service_type,
                       DiscoveredServiceCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -206,22 +207,24 @@ class WifiLanMedium : public api::WifiLanMedium {
   //            from the list. If list is empty then stops the WifiLan discovery
   //            service.
   // On error if the service_type is not existed, then return immediately.
-  bool StopDiscovery(const std::string& service_type) override
+  bool StopDiscovery(const std::string &service_type) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Connects to a WifiLan service.
   // On success, returns a new WifiLanSocket.
   // On error, returns nullptr.
-  std::unique_ptr<api::WifiLanSocket> ConnectToService(
-      const NsdServiceInfo& remote_service_info,
-      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
+  std::unique_ptr<api::WifiLanSocket>
+  ConnectToService(const NsdServiceInfo &remote_service_info,
+                   CancellationFlag *cancellation_flag) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Connects to a WifiLan service by ip address and port.
   // On success, returns a new WifiLanSocket.
   // On error, returns nullptr.
-  std::unique_ptr<api::WifiLanSocket> ConnectToService(
-      const std::string& ip_address, int port,
-      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
+  std::unique_ptr<api::WifiLanSocket>
+  ConnectToService(const std::string &ip_address, int port,
+                   CancellationFlag *cancellation_flag) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Listens for incoming connection.
   //
@@ -234,22 +237,22 @@ class WifiLanMedium : public api::WifiLanMedium {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns the port range as a pair of min and max port.
-  absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange()
-      override {
+  absl::optional<std::pair<std::int32_t, std::int32_t>>
+  GetDynamicPortRange() override {
     return std::make_pair(49152, 65535);
   }
 
- private:
+private:
   struct AdvertisingInfo {
     bool Empty() const { return service_types.empty(); }
     void Clear() { service_types.clear(); }
-    void Add(const std::string& service_type) {
+    void Add(const std::string &service_type) {
       service_types.insert(service_type);
     }
-    void Remove(const std::string& service_type) {
+    void Remove(const std::string &service_type) {
       service_types.erase(service_type);
     }
-    bool Existed(const std::string& service_type) const {
+    bool Existed(const std::string &service_type) const {
       return service_types.contains(service_type);
     }
 
@@ -258,13 +261,13 @@ class WifiLanMedium : public api::WifiLanMedium {
   struct DiscoveringInfo {
     bool Empty() const { return service_types.empty(); }
     void Clear() { service_types.clear(); }
-    void Add(const std::string& service_type) {
+    void Add(const std::string &service_type) {
       service_types.insert(service_type);
     }
-    void Remove(const std::string& service_type) {
+    void Remove(const std::string &service_type) {
       service_types.erase(service_type);
     }
-    bool Existed(const std::string& service_type) const {
+    bool Existed(const std::string &service_type) const {
       return service_types.contains(service_type);
     }
 
@@ -274,12 +277,13 @@ class WifiLanMedium : public api::WifiLanMedium {
   absl::Mutex mutex_;
   AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
   DiscoveringInfo discovering_info_ ABSL_GUARDED_BY(mutex_);
-  absl::flat_hash_map<std::string, WifiLanServerSocket*> server_sockets_
-      ABSL_GUARDED_BY(mutex_);
+  AvahiPoll *simple_poll = NULL;
+  absl::flat_hash_map<std::string, WifiLanServerSocket *>
+      server_sockets_ ABSL_GUARDED_BY(mutex_);
 };
 
-}  // namespace linux
-}  // namespace nearby
-}  // namespace location
+} // namespace linux
+} // namespace nearby
+} // namespace location
 
-#endif  // PLATFORM_IMPL_G3_WIFI_LAN_H_
+#endif // PLATFORM_IMPL_G3_WIFI_LAN_H_

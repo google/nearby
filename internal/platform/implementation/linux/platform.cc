@@ -62,10 +62,10 @@ std::string GetPayloadPath(PayloadId payload_id) {
 }
 } // namespace
 
-int GetCurrentTid() {
-  const LiveThread *my = Thread_GetMyLiveThread();
-  return LiveThread_Pthread_TID(my);
-}
+// int GetCurrentTid() {
+//   const LiveThread *my = Thread_GetMyLiveThread();
+//   return LiveThread_Pthread_TID(my);
+// }
 
 std::unique_ptr<SubmittableExecutor>
 ImplementationPlatform::CreateSingleThreadExecutor() {
