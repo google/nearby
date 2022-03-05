@@ -32,7 +32,7 @@ namespace {
 
 constexpr absl::string_view kServiceID{"com.google.location.nearby.apps.test"};
 constexpr absl::string_view kAdvertisementString{"\x0a\x0b\x0c\x0d"};
-constexpr absl::string_view kFastAdvertisementServiceUuid{"\xf3\xfe"};
+constexpr absl::string_view kFastAdvertisementServiceUuid{"FAST"};
 
 class BleV2Test : public testing::Test {
  protected:
@@ -56,7 +56,7 @@ TEST_F(BleV2Test, CanConstructValidObject) {
   env_.Stop();
 }
 
-TEST_F(BleV2Test, CanStartAdvertising) {
+TEST_F(BleV2Test, CanStartFastAdvertising) {
   env_.Start();
   BluetoothRadio radio;
   BleV2 ble{radio};
@@ -68,6 +68,26 @@ TEST_F(BleV2Test, CanStartAdvertising) {
 
   EXPECT_TRUE(ble.StartAdvertising(service_id, advertisement_bytes, power_level,
                                    fast_advertisement_service_uuid));
+  // Can't advertise twice for the same service_id.
+  EXPECT_FALSE(ble.StartAdvertising(service_id, advertisement_bytes,
+                                    power_level,
+                                    fast_advertisement_service_uuid));
+  EXPECT_TRUE(ble.StopAdvertising(service_id));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, CanStartAdvertising) {
+  env_.Start();
+  BluetoothRadio radio;
+  BleV2 ble{radio};
+  radio.Enable();
+  std::string service_id(kServiceID);
+  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  std::string no_fast_advertisement_service_uuid = {};
+  PowerLevel power_level = PowerLevel::kHighPower;
+
+  EXPECT_TRUE(ble.StartAdvertising(service_id, advertisement_bytes, power_level,
+                                   no_fast_advertisement_service_uuid));
   EXPECT_TRUE(ble.StopAdvertising(service_id));
   env_.Stop();
 }

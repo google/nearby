@@ -19,6 +19,7 @@
 #include <string>
 
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -27,12 +28,31 @@ namespace location {
 namespace nearby {
 namespace g3 {
 
+namespace {
+
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
 using ::location::nearby::api::ble_v2::BleSocket;
 using ::location::nearby::api::ble_v2::BleSocketLifeCycleCallback;
 using ::location::nearby::api::ble_v2::ClientGattConnection;
 using ::location::nearby::api::ble_v2::PowerMode;
 using ::location::nearby::api::ble_v2::ServerGattConnectionCallback;
+
+std::string PowerModeToName(PowerMode power_mode) {
+  switch (power_mode) {
+    case PowerMode::kUltraLow:
+      return "UltraLow";
+    case PowerMode::kLow:
+      return "Low";
+    case PowerMode::kMedium:
+      return "Medium";
+    case PowerMode::kHigh:
+      return "High";
+    case PowerMode::kUnknown:
+      return "Unknown";
+  }
+}
+
+}  // namespace
 
 BleV2Medium::BleV2Medium(api::BluetoothAdapter& adapter)
     : adapter_(static_cast<BluetoothAdapter*>(&adapter)) {
@@ -48,11 +68,41 @@ BleV2Medium::~BleV2Medium() {
 bool BleV2Medium::StartAdvertising(
     const BleAdvertisementData& advertising_data,
     const BleAdvertisementData& scan_response_data, PowerMode power_mode) {
+  NEARBY_LOGS(INFO)
+      << "G3 Ble StartAdvertising:, advertising_data.service_uuids size="
+      << advertising_data.service_uuids.size()
+      << ", scan_response_data.service_data size="
+      << scan_response_data.service_data.size()
+      << ", power_mode=" << PowerModeToName(power_mode);
+
+  absl::MutexLock lock(&mutex_);
+  auto& env = MediumEnvironment::Instance();
+  // If `advertising_data.service_uuids` is empty, then it is fast
+  // advertisement. In real case, this should be the CopresenceServiceUuid or
+  // the fastAdvertisementUuid.
+  bool is_fast_advertisement = !advertising_data.service_uuids.empty();
+  for (const auto& service_data : scan_response_data.service_data) {
+    // Interested item found in the first index.
+    advertisement_byte_ = service_data.second;
+    if (!advertisement_byte_.Empty()) {
+      break;
+    }
+  }
+  if (advertisement_byte_.Empty()) return false;
+  env.UpdateBleV2MediumForAdvertising(is_fast_advertisement, true, *this,
+                                      &advertisement_byte_);
   return true;
 }
 
 bool BleV2Medium::StopAdvertising() {
   NEARBY_LOGS(INFO) << "G3 Ble StopAdvertising";
+  absl::MutexLock lock(&mutex_);
+  advertisement_byte_ = {};
+
+  auto& env = MediumEnvironment::Instance();
+  env.UpdateBleV2MediumForAdvertising(
+      /*is_fast_advertisement=*/false,
+      /*enabled=*/false, *this, &advertisement_byte_);
   return true;
 }
 
@@ -66,7 +116,7 @@ bool BleV2Medium::StopScanning() { return false; }
 
 std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
     ServerGattConnectionCallback callback) {
-  return nullptr;
+  return std::make_unique<GattServer>();
 }
 
 bool BleV2Medium::StartListeningForIncomingBleSockets(

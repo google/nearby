@@ -212,10 +212,9 @@ class MediumEnvironment {
 
   // Updates advertising info to indicate the current medium is exposing
   // advertising event.
-  void UpdateBleV2MediumForAdvertising(api::ble_v2::BleMedium& medium,
-                                       api::ble_v2::BlePeripheral& peripheral,
-                                       const std::string& service_id,
-                                       bool fast_advertisement, bool enabled);
+  void UpdateBleV2MediumForAdvertising(bool is_fast_advertisement, bool enabled,
+                                       api::ble_v2::BleMedium& medium,
+                                       ByteArray* advertisement_byte);
 
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterBleV2Medium(api::ble_v2::BleMedium& mediumum);
@@ -272,6 +271,8 @@ class MediumEnvironment {
   };
 
   struct BleV2MediumContext {
+    ByteArray* advertisement_byte;
+    bool is_fast_advertisement = false;
   };
 
   struct WifiLanMediumContext {
@@ -302,6 +303,9 @@ class MediumEnvironment {
                                    const std::string& service_id,
                                    bool fast_advertisement, bool enabled);
 
+  void OnBleV2PeripheralStateChanged(bool is_fast_advertisement, bool enabled,
+                                     BleV2MediumContext& info);
+
   void OnWifiLanServiceStateChanged(WifiLanMediumContext& info,
                                     const NsdServiceInfo& service_info,
                                     bool enabled);
@@ -322,7 +326,6 @@ class MediumEnvironment {
       bluetooth_mediums_;
 
   absl::flat_hash_map<api::BleMedium*, BleMediumContext> ble_mediums_;
-
   absl::flat_hash_map<api::ble_v2::BleMedium*, BleV2MediumContext>
       ble_v2_mediums_;
 

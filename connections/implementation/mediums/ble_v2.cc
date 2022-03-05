@@ -14,8 +14,9 @@
 
 #include "connections/implementation/mediums/ble_v2.h"
 
+#include <memory>
 #include <string>
-#include <string_view>
+#include <utility>
 
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
@@ -24,6 +25,8 @@
 #include "connections/implementation/mediums/ble_v2/bloom_filter.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/utils.h"
+#include "connections/implementation/mediums/uuid.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/prng.h"
@@ -35,12 +38,23 @@ namespace connections {
 namespace {
 
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
+using ::location::nearby::api::ble_v2::GattCharacteristic;
 using ::location::nearby::api::ble_v2::PowerMode;
 
 constexpr int kMaxAdvertisementLength = 512;
 constexpr int kDummyServiceIdLength = 128;
 constexpr absl::string_view kCopresenceServiceUuid =
     "0000FEF3-0000-1000-8000-00805F9B34FB";
+
+// These two values make up the base UUID we use when advertising a slot.
+// The base is an all zero Version-3 name-based UUID. To turn this into an
+// advertisement slot UUID, we simply OR the least significant bits with the
+// slot number.
+//
+// More info about the format can be found here:
+// https://en.wikipedia.org/wiki/Universally_unique_identifier#Versions_3_and_5_(namespace_name-based)
+constexpr std::int64_t kAdvertisementUuidMsb = 0x0000000000003000;
+constexpr std::int64_t kAdvertisementUuidLsb = 0x8000000000000000;
 
 ByteArray GenerateAdvertisementHash(const ByteArray& advertisement_bytes) {
   return Utils::Sha256Hash(
@@ -122,26 +136,52 @@ bool BleV2::StartAdvertising(
     return false;
   }
 
-  // Stop any existing advertisement GATT servers. We don't stop it in
-  // StopAdvertising() to avoid GATT issues with BLE sockets.
-  if (IsAdvertisementGattServerRunning()) {
-    StopAdvertisementGattServer();
-  }
-
   // Assemble AdvertisingData and ScanResponseData.
   BleAdvertisementData advertising_data;
   BleAdvertisementData scan_response_data;
   if (is_fast_advertisement) {
-    advertising_data.service_data.insert(
+    advertising_data.is_connectable = true;
+    advertising_data.tx_power_level =
+        BleAdvertisementData::kUnspecifiedTxPowerLevel;
+    advertising_data.service_uuids.insert(fast_advertisement_service_uuid);
+
+    scan_response_data.is_connectable = true;
+    scan_response_data.tx_power_level =
+        BleAdvertisementData::kUnspecifiedTxPowerLevel;
+    scan_response_data.service_data.insert(
         {fast_advertisement_service_uuid, medium_advertisement_bytes});
-    scan_response_data.service_uuids.insert(fast_advertisement_service_uuid);
   } else {
+    // Stop the current advertisement GATT server if there are no incoming
+    // sockets connected to this device.
+    //
+    // The reason for aggressively restarting a GATT server is to make sure this
+    // class is not using a stale server object that may not be actually running
+    // anymore (possibly due to Bluetooth being turned off).
+    //
+    // Changing one's GATT server while a remote device is connected to it leads
+    // to a loss of GATT callbacks for that remote device. The only time a
+    // remote device is indefinitely connected to this device's GATT server is
+    // when it has a BLE socket connection.
+    // TODO(b/213835576): Check the BLE Connections is off. We set the fake
+    // value for the time being till connections is implemented.
+    bool no_incoming_ble_sockets = true;
+    if (no_incoming_ble_sockets) {
+      NEARBY_LOGS(VERBOSE)
+          << "Aggressively stopping any pre-existing advertisement GATT "
+             "servers because no incoming BLE sockets are connected";
+      StopAdvertisementGattServerLocked();
+    }
+
     // Start a GATT server to deliver the full advertisement data. If fail to
     // advertise the header, we must shut this down before the method returns.
-    if (!StartAdvertisementGattServer(service_id, medium_advertisement_bytes)) {
-      NEARBY_LOGS(INFO) << "Failed to BLE advertise because the "
-                           "advertisement GATT server failed to start.";
-      return false;
+    if (!IsAdvertisementGattServerRunningLocked()) {
+      if (!StartAdvertisementGattServerLocked(service_id,
+                                              medium_advertisement_bytes)) {
+        NEARBY_LOGS(ERROR)
+            << "Failed to start BLE advertising for service_id=" << service_id
+            << " because the advertisement GATT server failed to start.";
+        return false;
+      }
     }
 
     ByteArray advertisement_header_bytes(CreateAdvertisementHeader());
@@ -150,7 +190,7 @@ bool BleV2::StartAdvertising(
                            "create an advertisement header.";
       // Failed to start BLE advertising, so stop the advertisement GATT
       // server.
-      StopAdvertisementGattServer();
+      StopAdvertisementGattServerLocked();
       return false;
     }
 
@@ -187,13 +227,12 @@ bool BleV2::StartAdvertising(
     NEARBY_LOGS(ERROR)
         << "Failed to turn on BLE advertising with advertisement bytes="
         << absl::BytesToHexString(advertisement_bytes.data())
-        << ", size=" << advertisement_bytes.size()
         << ", fast advertisement service uuid="
         << fast_advertisement_service_uuid;
 
     // If BLE advertising was not successful, stop the advertisement GATT
     // server.
-    StopAdvertisementGattServer();
+    StopAdvertisementGattServerLocked();
     return false;
   }
 
@@ -208,17 +247,42 @@ bool BleV2::StopAdvertising(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
   if (!IsAdvertisingLocked(service_id)) {
-    NEARBY_LOGS(INFO) << "Can't turn off BLE advertising; it is already off";
+    NEARBY_LOGS(INFO) << "Cannot stop BLE advertising for service_id="
+                      << service_id << " because it never started.";
     return false;
   }
 
-  NEARBY_LOGS(INFO) << "Turned off BLE advertising with service id="
+  // Remove the GATT advertisements.
+  gatt_advertisements_.clear();
+
+  // TODO(b/213835576): Check the BLE Connections is off. We set the fake
+  // value for the time being till connections is implemented.
+  bool no_incoming_ble_sockets = true;
+  // Restart the BLE advertisement if there is still an advertiser.
+  if (!subscribed_gatt_characteristics_.empty()) {
+    ByteArray empty_value = {};
+    for (const auto& characteristic : subscribed_gatt_characteristics_) {
+      if (!gatt_server_->UpdateCharacteristic(characteristic, empty_value)) {
+        NEARBY_LOGS(ERROR)
+            << "Failed to clear characteristic uuid=" << characteristic.uuid
+            << " after stopping BLE advertisement for service_id="
+            << service_id;
+      }
+    }
+    subscribed_gatt_characteristics_.clear();
+  } else if (no_incoming_ble_sockets) {
+    // Otherwise, if we aren't restarting the BLE advertisement, then shutdown
+    // the gatt server if it's not in use.
+    NEARBY_LOGS(VERBOSE)
+        << "Aggressively stopping any pre-existing advertisement GATT servers "
+           "because no incoming BLE sockets are connected.";
+    StopAdvertisementGattServerLocked();
+  }
+
+  NEARBY_LOGS(INFO) << "Turned off BLE advertising with service_id="
                     << service_id;
-  bool can_stop = medium_.StopAdvertising();
-  // Reset our bundle of advertising state to mark that we're no longer
-  // advertising.
   advertising_info_.Remove(service_id);
-  return can_stop;
+  return medium_.StopAdvertising();
 }
 
 bool BleV2::IsAdvertising(const std::string& service_id) const {
@@ -233,15 +297,92 @@ bool BleV2::IsAdvertisingLocked(const std::string& service_id) const {
   return advertising_info_.Existed(service_id);
 }
 
-// TODO(b/213835576): Implement GattServer
-bool BleV2::IsAdvertisementGattServerRunning() { return false; }
-
-bool BleV2::StartAdvertisementGattServer(const std::string& service_id,
-                                         const ByteArray& advertisement) {
-  return false;
+bool BleV2::IsAdvertisementGattServerRunningLocked() {
+  return gatt_server_ && gatt_server_->IsValid();
 }
 
-bool BleV2::StopAdvertisementGattServer() { return false; }
+bool BleV2::StartAdvertisementGattServerLocked(
+    const std::string& service_id, const ByteArray& gatt_advertisement) {
+  if (IsAdvertisementGattServerRunningLocked()) {
+    NEARBY_LOGS(INFO) << "Advertisement GATT server is not started because one "
+                         "is already running.";
+    return false;
+  }
+
+  std::unique_ptr<GattServer> gatt_server = medium_.StartGattServer({
+      .characteristic_subscription_cb =
+          [this](const ServerGattConnection& connection,
+                 const GattCharacteristic& characteristic) {
+            MutexLock lock(&mutex_);
+            subscribed_gatt_characteristics_.insert(characteristic);
+          },
+      .characteristic_unsubscription_cb =
+          [this](const ServerGattConnection& connection,
+                 const GattCharacteristic& characteristic) {
+            MutexLock lock(&mutex_);
+            const auto char_it =
+                subscribed_gatt_characteristics_.find(characteristic);
+            if (char_it != subscribed_gatt_characteristics_.end()) {
+              subscribed_gatt_characteristics_.erase(char_it);
+            }
+          },
+  });
+  if (!gatt_server || !gatt_server->IsValid()) {
+    NEARBY_LOGS(INFO) << "Unable to start an advertisement GATT server.";
+    return false;
+  }
+
+  if (!GenerateAdvertisementCharacteristic(
+          /*slot=*/0, gatt_advertisement, *gatt_server)) {
+    gatt_server->Stop();
+    return false;
+  }
+
+  // Insert the advertisements into their open advertisement slots.
+  gatt_advertisements_.insert(
+      {/*slot=*/0, std::make_pair(service_id, gatt_advertisement)});
+
+  gatt_server_ = std::move(gatt_server);
+  return true;
+}
+
+bool BleV2::GenerateAdvertisementCharacteristic(
+    int slot, const ByteArray& gatt_advertisement, GattServer& gatt_server) {
+  std::vector<GattCharacteristic::Permission> permissions{
+      GattCharacteristic::Permission::kRead};
+  std::vector<GattCharacteristic::Property> properties{
+      GattCharacteristic::Property::kRead};
+
+  absl::optional<GattCharacteristic> gatt_characteristic =
+      gatt_server.CreateCharacteristic(std::string(kCopresenceServiceUuid),
+                                       GenerateAdvertisementUuid(slot),
+                                       permissions, properties);
+
+  if (!gatt_characteristic.has_value()) {
+    NEARBY_LOGS(INFO) << "Unable to create and add a characterstic to the gatt "
+                         "server for the advertisement.";
+    return false;
+  }
+
+  if (!gatt_server.UpdateCharacteristic(*gatt_characteristic,
+                                        gatt_advertisement)) {
+    NEARBY_LOGS(INFO) << "Unable to write a value to the GATT characteristic.";
+    return false;
+  }
+
+  return true;
+}
+
+bool BleV2::StopAdvertisementGattServerLocked() {
+  if (!IsAdvertisementGattServerRunningLocked()) {
+    NEARBY_LOGS(INFO) << "Unable to stop the advertisement GATT server because "
+                         "it's not running.";
+    return false;
+  }
+
+  gatt_server_.reset();
+  return true;
+}
 
 ByteArray BleV2::CreateAdvertisementHeader() {
   // Create a randomized dummy service id to anonymize the header with.
@@ -275,6 +416,10 @@ ByteArray BleV2::CreateAdvertisementHeader() {
       /*extended_advertisement=*/false,
       /*num_slots=*/gatt_advertisements_.size(), ByteArray(bloom_filter),
       advertisement_hash, /*psm=*/0));
+}
+
+std::string BleV2::GenerateAdvertisementUuid(int slot) {
+  return std::string(Uuid(kAdvertisementUuidMsb, kAdvertisementUuidLsb | slot));
 }
 
 }  // namespace connections

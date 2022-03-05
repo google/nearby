@@ -75,16 +75,35 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   BluetoothAdapter& GetAdapter() { return *adapter_; }
 
  private:
-  struct AdvertisingInfo {
-    bool Empty() const { return service_id.empty(); }
-    void Clear() { service_id.clear(); }
+  class GattServer : public api::ble_v2::GattServer {
+   public:
+    absl::optional<api::ble_v2::GattCharacteristic> CreateCharacteristic(
+        absl::string_view service_uuid, absl::string_view characteristic_uuid,
+        const std::vector<api::ble_v2::GattCharacteristic::Permission>&
+            permissions,
+        const std::vector<api::ble_v2::GattCharacteristic::Property>&
+            properties) override {
+      api::ble_v2::GattCharacteristic characteristic = {
+          .uuid = std::string(characteristic_uuid),
+          .servie_uuid = std::string(service_uuid)};
+      return characteristic;
+    }
 
-    std::string service_id;
+    bool UpdateCharacteristic(
+        const api::ble_v2::GattCharacteristic& characteristic,
+        const location::nearby::ByteArray& value) override {
+      // No action for now.
+      return true;
+    }
+
+    void Stop() override {
+      // No action for now.
+    }
   };
 
   absl::Mutex mutex_;
   BluetoothAdapter* adapter_;  // Our device adapter; read-only.
-  AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
+  ByteArray advertisement_byte_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace g3

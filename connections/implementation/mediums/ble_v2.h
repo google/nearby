@@ -16,10 +16,12 @@
 #define CORE_INTERNAL_MEDIUMS_BLE_V2_H_
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
 #include "connections/advertising_options.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
@@ -84,20 +86,31 @@ class BleV2 final {
   bool IsAdvertisingLocked(const std::string& service_id) const
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  bool IsAdvertisementGattServerRunning();
-  bool StartAdvertisementGattServer(const std::string& service_id,
-                                    const ByteArray& advertisement);
-  bool StopAdvertisementGattServer();
+  bool IsAdvertisementGattServerRunningLocked()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StartAdvertisementGattServerLocked(const std::string& service_id,
+                                          const ByteArray& gatt_advertisement)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool GenerateAdvertisementCharacteristic(int slot,
+                                           const ByteArray& gatt_advertisement,
+                                           GattServer& gatt_server)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StopAdvertisementGattServerLocked()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   ByteArray CreateAdvertisementHeader() ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+  std::string GenerateAdvertisementUuid(int slot);
 
   mutable Mutex mutex_;
   BluetoothRadio& radio_ ABSL_GUARDED_BY(mutex_);
   BluetoothAdapter& adapter_ ABSL_GUARDED_BY(mutex_);
   BleV2Medium medium_ ABSL_GUARDED_BY(mutex_){adapter_};
   AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
+  std::unique_ptr<GattServer> gatt_server_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<int, std::pair<std::string, ByteArray>>
       gatt_advertisements_ ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_set<api::ble_v2::GattCharacteristic>
+      subscribed_gatt_characteristics_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace connections

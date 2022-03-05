@@ -14,6 +14,9 @@
 
 #include "internal/platform/ble_v2.h"
 
+#include <memory>
+
+#include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 
@@ -21,6 +24,7 @@ namespace location {
 namespace nearby {
 
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
+using ::location::nearby::api::ble_v2::GattCharacteristic;
 using ::location::nearby::api::ble_v2::PowerMode;
 
 bool BleV2Medium::StartAdvertising(
@@ -31,6 +35,36 @@ bool BleV2Medium::StartAdvertising(
 }
 
 bool BleV2Medium::StopAdvertising() { return impl_->StopAdvertising(); }
+
+std::unique_ptr<GattServer> BleV2Medium::StartGattServer(
+    ServerGattConnectionCallback callback) {
+  {
+    MutexLock lock(&mutex_);
+    server_gatt_connection_callback_ = std::move(callback);
+  }
+
+  std::unique_ptr<api::ble_v2::GattServer> api_gatt_server =
+      impl_->StartGattServer({
+          .characteristic_subscription_cb =
+              [this](api::ble_v2::ServerGattConnection& connection,
+                     const GattCharacteristic& characteristic) {
+                MutexLock lock(&mutex_);
+                ServerGattConnection server_gatt_connection(&connection);
+                server_gatt_connection_callback_.characteristic_subscription_cb(
+                    server_gatt_connection, characteristic);
+              },
+          .characteristic_unsubscription_cb =
+              [this](api::ble_v2::ServerGattConnection& connection,
+                     const GattCharacteristic& characteristic) {
+                MutexLock lock(&mutex_);
+                ServerGattConnection server_gatt_connection(&connection);
+                server_gatt_connection_callback_
+                    .characteristic_unsubscription_cb(server_gatt_connection,
+                                                      characteristic);
+              },
+      });
+  return std::make_unique<GattServer>(std::move(api_gatt_server));
+}
 
 }  // namespace nearby
 }  // namespace location
