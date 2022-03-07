@@ -76,9 +76,7 @@ cc_library(
         "//internal/platform:types",
         "//internal/platform:util",
         "//proto:connections_enums_cc_proto",
-        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:variant",
-        "@com_google_glog//:glog",
     ],
 )
 

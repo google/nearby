@@ -12,24 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/mediums.h"
+
+#ifndef CORE_INTERNAL_WIFI_HOTSPOT_ENDPOINT_CHANNEL_H_
+#define CORE_INTERNAL_WIFI_HOTSPOT_ENDPOINT_CHANNEL_H_
+
+#include "connections/implementation/base_endpoint_channel.h"
+#include "internal/platform/wifi_hotspot.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-BluetoothRadio& Mediums::GetBluetoothRadio() { return bluetooth_radio_; }
+class WifiHotspotEndpointChannel final : public BaseEndpointChannel {
+ public:
+  // Creates both outgoing and incoming WifiHotspot channels.
+  WifiHotspotEndpointChannel(const std::string& channel_name,
+                             WifiHotspotSocket socket);
 
-BluetoothClassic& Mediums::GetBluetoothClassic() { return bluetooth_classic_; }
+  proto::connections::Medium GetMedium() const override;
 
-Ble& Mediums::GetBle() { return ble_; }
+ private:
+  void CloseImpl() override;
 
-WifiLan& Mediums::GetWifiLan() { return wifi_lan_; }
-
-WifiHotspot& Mediums::GetWifiHotspot() { return wifi_hotspot_; }
-
-mediums::WebRtc& Mediums::GetWebRtc() { return webrtc_; }
+  WifiHotspotSocket socket_;
+};
 
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
+
+#endif  // CORE_INTERNAL_WIFI_HOTSPOT_ENDPOINT_CHANNEL_H_

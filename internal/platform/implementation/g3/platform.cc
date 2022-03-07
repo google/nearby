@@ -210,6 +210,11 @@ std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
   return std::make_unique<g3::WifiLanMedium>();
 }
 
+std::unique_ptr<WifiHotspotMedium>
+ImplementationPlatform::CreateWifiHotspotMedium() {
+  return nullptr;
+}
+
 #ifndef NO_WEBRTC
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
   if (MediumEnvironment::Instance().GetEnvironmentConfig().webrtc_enabled) {

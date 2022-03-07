@@ -16,6 +16,8 @@
 
 #include <vector>
 
+#include "internal/platform/logging.h"
+
 namespace location {
 namespace nearby {
 namespace connections {
@@ -31,6 +33,9 @@ P2pStarPcpHandler::P2pStarPcpHandler(
 std::vector<proto::connections::Medium>
 P2pStarPcpHandler::GetConnectionMediumsByPriority() {
   std::vector<proto::connections::Medium> mediums;
+  if (mediums_->GetWifiHotspot().IsAvailable()) {
+    mediums.push_back(proto::connections::WIFI_HOTSPOT);
+  }
   if (mediums_->GetWifiLan().IsAvailable()) {
     mediums.push_back(proto::connections::WIFI_LAN);
   }

@@ -171,6 +171,9 @@ void BasePcpHandler::OptionsAllowed(const BooleanMediumSelector& allowed,
   if (allowed.wifi_lan) {
     result << proto::connections::Medium_Name(Medium::WIFI_LAN) << " ";
   }
+  if (allowed.wifi_hotspot) {
+    result << proto::connections::Medium_Name(Medium::WIFI_HOTSPOT) << " ";
+  }
   result << "}";
 }
 
@@ -218,6 +221,7 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
   mediumSelector.ble = intersection.contains(Medium::BLE);
   mediumSelector.web_rtc = intersection.contains(Medium::WEB_RTC);
   mediumSelector.wifi_lan = intersection.contains(Medium::WIFI_LAN);
+  mediumSelector.wifi_hotspot = intersection.contains(Medium::WIFI_HOTSPOT);
   return mediumSelector;
 }
 

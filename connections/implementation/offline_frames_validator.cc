@@ -160,7 +160,9 @@ Exception EnsureValidBandwidthUpgradeWifiHotspotPathAvailableFrame(
   const std::regex ip4_pattern(std::string(kIpv4PatternString).c_str());
   const std::regex ip6_pattern(std::string(kIpv6PatternString).c_str());
   if (!(std::regex_match(wifi_hotspot_credentials.gateway(), ip4_pattern) ||
-        std::regex_match(wifi_hotspot_credentials.gateway(), ip6_pattern)))
+        std::regex_match(wifi_hotspot_credentials.gateway(), ip6_pattern) ||
+        // ip address could be 4 byte format instead of x.x.x.x format
+        wifi_hotspot_credentials.gateway().length() == 4))
     return {Exception::kInvalidProtocolBuffer};
 
   // For backwards compatibility reasons, no other fields should be null-checked

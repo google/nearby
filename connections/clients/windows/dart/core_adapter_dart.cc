@@ -21,8 +21,8 @@
 
 #include "connections/core.h"
 #include "connections/payload.h"
-#include "internal/platform/logging.h"
 #include "internal/platform/file.h"
+#include "internal/platform/logging.h"
 
 namespace location {
 namespace nearby {
@@ -91,6 +91,7 @@ void StartAdvertisingDart(Core *pCore, const char *service_id,
           ? "0000FE2C-0000-1000-8000-00805F9B34FB"
           : "";
   advertising_options.allowed.wifi_lan = options_dart.enable_wifi_lan;
+  advertising_options.allowed.wifi_hotspot = options_dart.enable_wifi_hotspot;
   advertising_options.allowed.web_rtc = options_dart.enable_web_rtc;
 
   ConnectionRequestInfo info;
@@ -301,6 +302,7 @@ void RequestConnectionDart(Core *pCore, const char *endpoint_id,
   connection_options.allowed.bluetooth = options_dart.enable_bluetooth;
   connection_options.allowed.ble = options_dart.enable_ble;
   connection_options.allowed.wifi_lan = options_dart.enable_wifi_lan;
+  connection_options.allowed.wifi_hotspot = options_dart.enable_wifi_hotspot;
   connection_options.allowed.web_rtc = options_dart.enable_web_rtc;
 
   ConnectionRequestInfo info;
@@ -564,7 +566,7 @@ void SendPayloadDart(Core *pCore, const char *endpoint_id,
       Payload::Id id = std::hash<std::string>()(file_name_str);
       std::string download_path = GetPayloadPath(id);
       CopyFileA((LPSTR)payload_dart.data, (LPSTR)download_path.c_str(),
-                /*FailIfFileAlreadyExists=*/ false);
+                /*FailIfFileAlreadyExists=*/false);
       NEARBY_LOGS(INFO) << "Copy File to " << download_path;
 
       InputFile input_file(std::to_string(id), payload_dart.size);
