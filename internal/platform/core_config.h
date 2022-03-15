@@ -18,18 +18,9 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-#ifdef _WIN32  // These storage class specifiers only matter to win32 dll
-               // builds.
-#ifdef CORE_ADAPTER_DLL
-#define DLL_API \
-  __declspec(dllexport)  // If we're building the core, we're exporting.
-#else                    // !CORE_ADAPTER_DLL
-#define DLL_API \
-  __declspec(dllimport)  // If we're not building the core, we're importing.
-#endif                   // CORE_ADAPTER_DLL
-#else                    // !_WIN32
-#define DLL_API  // We're not building a win32 dll, leave the source unchanged.
-#endif           // _WIN32
+// TODO(b/224783653): Update DLL_API to check if we can add dllimport back.
+#define DLL_API  // Define DLL_API as blank since we don't import/export
+                 // anything internally.
 
 }  // namespace connections
 }  // namespace nearby
