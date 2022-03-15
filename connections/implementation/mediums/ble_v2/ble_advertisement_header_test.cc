@@ -63,8 +63,21 @@ TEST(BleAdvertisementHeaderTest, ConstructionFailsWithBadVersion) {
   EXPECT_FALSE(ble_advertisement_header.IsValid());
 }
 
-TEST(BleAdvertisementHeaderTest, ConstructionFailsWitZeroNumSlot) {
+TEST(BleAdvertisementHeaderTest, ConstructionSucceedsWithZeroNumSlot) {
   int num_slot = 0;
+
+  ByteArray service_id_bloom_filter{std::string(kServiceIDBloomFilter)};
+  ByteArray advertisement_hash{std::string(kAdvertisementHash)};
+
+  BleAdvertisementHeader ble_advertisement_header{
+      kVersion,           false,    num_slot, service_id_bloom_filter,
+      advertisement_hash, kPsmValue};
+
+  EXPECT_TRUE(ble_advertisement_header.IsValid());
+}
+
+TEST(BleAdvertisementHeaderTest, ConstructionFailsWithNegativeNumSlot) {
+  int num_slot = -1;
 
   ByteArray service_id_bloom_filter{std::string(kServiceIDBloomFilter)};
   ByteArray advertisement_hash{std::string(kAdvertisementHash)};

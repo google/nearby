@@ -34,7 +34,7 @@ BleAdvertisementHeader::BleAdvertisementHeader(
     Version version, bool extended_advertisement, int num_slots,
     const ByteArray &service_id_bloom_filter,
     const ByteArray &advertisement_hash, int psm) {
-  if (version != Version::kV2 || num_slots <= 0 ||
+  if (version != Version::kV2 || num_slots < 0 ||
       service_id_bloom_filter.size() != kServiceIdBloomFilterLength ||
       advertisement_hash.size() != kAdvertisementHashLength) {
     return;
@@ -86,7 +86,7 @@ BleAdvertisementHeader::BleAdvertisementHeader(
       ((version_and_num_slots_byte & kExtendedAdvertismentBitMask) >> 4) == 1;
   // The lower 4 bits are supposed to be the number of slots.
   num_slots_ = static_cast<int>(version_and_num_slots_byte & kNumSlotsBitmask);
-  if (num_slots_ <= 0) {
+  if (num_slots_ < 0) {
     version_ = Version::kUndefined;
     return;
   }
