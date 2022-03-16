@@ -14,8 +14,12 @@
 
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
 
-#include "internal/platform/logging.h"
+#include <exception>
+#include <utility>
+
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
+#include "internal/platform/implementation/windows/generated/winrt/base.h"
+#include "internal/platform/logging.h"
 
 namespace location {
 namespace nearby {
@@ -57,8 +61,16 @@ Exception BluetoothSocket::Close() {
   // The Close method aborts any pending operations and releases all unmanaged
   // resources associated with the StreamSocket object, including the Input and
   // Output streams
-  windows_socket_.Close();
-  return {Exception::kSuccess};
+  try {
+    if (windows_socket_ != nullptr) {
+      windows_socket_.Close();
+      windows_socket_ = nullptr;
+    }
+    return {Exception::kSuccess};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << "Failed to close Bluetooth socket.";
+    return {Exception::kIo};
+  }
 }
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html#getRemoteDevice()
@@ -99,19 +111,20 @@ BluetoothSocket::BluetoothInputStream::BluetoothInputStream(
 
 ExceptionOr<ByteArray> BluetoothSocket::BluetoothInputStream::Read(
     std::int64_t size) {
-  if (winrt_stream_ == nullptr) {
-    return {Exception::kFailed};
+  try {
+    if (winrt_stream_ == nullptr) {
+      return {Exception::kIo};
+    }
+
+    Buffer buffer = Buffer(size);
+    winrt_stream_.ReadAsync(buffer, size, InputStreamOptions::Partial).get();
+    DataReader dataReader = DataReader::FromBuffer(buffer);
+    ByteArray data((char*)buffer.data(), buffer.Length());
+    return ExceptionOr(data);
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << "Failed to read daat from input stream.";
+    return {Exception::kIo};
   }
-
-  Buffer buffer = Buffer(size);
-
-  winrt_stream_.ReadAsync(buffer, size, InputStreamOptions::Partial).get();
-
-  DataReader dataReader = DataReader::FromBuffer(buffer);
-
-  ByteArray data((char*)buffer.data(), buffer.Length());
-
-  return ExceptionOr(data);
 }
 
 IAsyncAction BluetoothSocket::CancelIOAsync() {
@@ -121,18 +134,18 @@ IAsyncAction BluetoothSocket::CancelIOAsync() {
 }
 
 Exception BluetoothSocket::BluetoothInputStream::Close() {
-  if (winrt_stream_ == nullptr) {
-    return {Exception::kSuccess};  // Already closed, don't error out
-  }
-
   try {
+    if (winrt_stream_ == nullptr) {
+      return {Exception::kSuccess};  // Already closed, don't error out
+    }
+
     winrt_stream_.Close();
     winrt_stream_ = nullptr;
-  } catch (std::exception exception) {
-    return {Exception::kFailed};
+    return {Exception::kSuccess};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << "Failed to close input stream.";
+    return {Exception::kIo};
   }
-
-  return {Exception::kSuccess};
 }
 
 BluetoothSocket::BluetoothOutputStream::BluetoothOutputStream(
@@ -141,52 +154,52 @@ BluetoothSocket::BluetoothOutputStream::BluetoothOutputStream(
 }
 
 Exception BluetoothSocket::BluetoothOutputStream::Write(const ByteArray& data) {
-  Buffer buffer = Buffer(data.size());
-  std::memcpy(buffer.data(), data.data(), data.size());
-  buffer.Length(data.size());
-  if (winrt_stream_ == nullptr) {
-    return {Exception::kFailed};
-  }
-
   try {
-    auto hresult = winrt_stream_.WriteAsync(buffer).get();
+    if (winrt_stream_ == nullptr) {
+      return {Exception::kIo};
+    }
+
+    Buffer buffer = Buffer(data.size());
+    std::memcpy(buffer.data(), data.data(), data.size());
+    buffer.Length(data.size());
+
+    winrt::hresult hresult = winrt_stream_.WriteAsync(buffer).get();
+    return {Exception::kSuccess};
   } catch (winrt::hresult_error const& ex) {
     NEARBY_LOGS(ERROR) << __func__ << ": winrt exception: " << ex.code() << ": "
                        << winrt::to_string(ex.message());
 
-    return {Exception::kFailed};
+    return {Exception::kIo};
   }
-
-  return {Exception::kSuccess};
 }
 
 Exception BluetoothSocket::BluetoothOutputStream::Flush() {
-  if (winrt_stream_ == nullptr) {
-    return {Exception::kFailed};
-  }
-
   try {
-    winrt_stream_.FlushAsync().get();
-  } catch (std::exception exception) {
-    return {Exception::kFailed};
-  }
+    if (winrt_stream_ == nullptr) {
+      return {Exception::kSuccess};
+    }
 
-  return {Exception::kSuccess};
+    winrt_stream_.FlushAsync().get();
+    return {Exception::kSuccess};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << "Failed to flush data.";
+    return {Exception::kIo};
+  }
 }
 
 Exception BluetoothSocket::BluetoothOutputStream::Close() {
-  if (winrt_stream_ == nullptr) {
-    return {Exception::kSuccess};  // Already closed, don't error out
-  }
-
   try {
+    if (winrt_stream_ == nullptr) {
+      return {Exception::kSuccess};  // Already closed, don't error out
+    }
+
     winrt_stream_.Close();
     winrt_stream_ = nullptr;
-  } catch (std::exception exception) {
-    return {Exception::kFailed};
+    return {Exception::kSuccess};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << "Failed to close output stream.";
+    return {Exception::kIo};
   }
-
-  return {Exception::kSuccess};
 }
 
 }  // namespace windows

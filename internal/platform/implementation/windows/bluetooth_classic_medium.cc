@@ -14,8 +14,8 @@
 
 #include "internal/platform/implementation/windows/bluetooth_classic_medium.h"
 
-#include <windows.h>
 #include <stdio.h>
+#include <windows.h>
 
 #include <codecvt>
 #include <locale>
@@ -253,23 +253,33 @@ bool BluetoothClassicMedium::CheckSdp(RfcommDeviceService requestedService) {
   // Do various checks of the SDP record to make sure you are talking to a
   // device that actually supports the Bluetooth Rfcomm Service
   // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommdeviceservice.getsdprawattributesasync?view=winrt-20348
-  auto attributes = requestedService.GetSdpRawAttributesAsync().get();
-  if (!attributes.HasKey(Constants::SdpServiceNameAttributeId)) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Missing SdpServiceNameAttributeId.";
+  try {
+    if (requestedService == nullptr) {
+      return false;
+    }
+
+    auto attributes = requestedService.GetSdpRawAttributesAsync().get();
+    if (!attributes.HasKey(Constants::SdpServiceNameAttributeId)) {
+      NEARBY_LOGS(ERROR) << __func__ << ": Missing SdpServiceNameAttributeId.";
+      return false;
+    }
+
+    auto attributeReader = DataReader::FromBuffer(
+        attributes.Lookup(Constants::SdpServiceNameAttributeId));
+
+    auto attributeType = attributeReader.ReadByte();
+
+    if (attributeType != Constants::SdpServiceNameAttributeType) {
+      NEARBY_LOGS(ERROR) << __func__
+                         << ": Missing SdpServiceNameAttributeType.";
+      return false;
+    }
+
+    return true;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << "Failed to get SDP information.";
     return false;
   }
-
-  auto attributeReader = DataReader::FromBuffer(
-      attributes.Lookup(Constants::SdpServiceNameAttributeId));
-
-  auto attributeType = attributeReader.ReadByte();
-
-  if (attributeType != Constants::SdpServiceNameAttributeType) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Missing SdpServiceNameAttributeType.";
-    return false;
-  }
-
-  return true;
 }
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#listenUsingInsecureRfcommWithServiceRecord
 //
