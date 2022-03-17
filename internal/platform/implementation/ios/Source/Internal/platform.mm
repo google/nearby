@@ -37,18 +37,21 @@ namespace location {
 namespace nearby {
 namespace api {
 
-namespace {
-std::string GetPayloadPath(PayloadId payload_id) {
+std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
+                                                    std::string& file_name) {
   // This is to get a file path, e.g. /tmp/[payload_id], for the storage of payload file.
   // NOTE: Per
   // https://developer.apple.com/library/content/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemOverview/FileSystemOverview.html
   // Files saved in the /tmp directory will be deleted by the system. Callers should be responsible
   // for copying the files to the permanent storage.
-  NSString* payloadIdString = ObjCStringFromCppString(std::to_string(payload_id));
+  // TODO(jfcarroll): This needs to be done correctly, we now have a file name and parent folder,
+  // they should be combined with the default download path
+  NSString* payloadIdString = ObjCStringFromCppString(file_name);
   return CppStringFromObjCString(
       [NSTemporaryDirectory() stringByAppendingPathComponent:payloadIdString]);
 }
-}  // namespace
+
+OSName ImplementationPlatform::GetCurrentOS() { return OSName::kiOS; }
 
 // Atomics:
 std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(bool initial_value) {
@@ -78,6 +81,7 @@ std::unique_ptr<ConditionVariable> ImplementationPlatform::CreateConditionVariab
   return std::make_unique<ios::ConditionVariable>(static_cast<ios::Mutex*>(mutex));
 }
 
+ABSL_DEPRECATED("This interface will be deleted in the near future.")
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(PayloadId payload_id,
                                                                    std::int64_t total_size) {
   // Extract the NSURL object with payload_id from |GNCCore| which stores the maps. If the retrieved
@@ -86,14 +90,28 @@ std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(PayloadId pay
   GNCCore* core = GNCGetCore();
   NSURL* url = [core extractURLWithPayloadID:payload_id];
   if (url != nil) {
-    return absl::make_unique<ios::InputFile>(url);
+    return std::make_unique<ios::InputFile>(url);
   } else {
-    return shared::IOFile::CreateInputFile(GetPayloadPath(payload_id), total_size);
+    std::string parent_folder("");
+    std::string file_name(std::to_string(payload_id));
+    return shared::IOFile::CreateInputFile(GetDownloadPath(parent_folder, file_name), total_size);
   }
 }
 
+std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(absl::string_view file_path,
+                                                                   size_t size) {
+  return shared::IOFile::CreateInputFile(file_path, size);
+}
+
+ABSL_DEPRECATED("This interface will be deleted in the near future.")
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(PayloadId payload_id) {
-  return shared::IOFile::CreateOutputFile(GetPayloadPath(payload_id));
+  std::string parent_folder("");
+  std::string file_name(std::to_string(payload_id));
+  return shared::IOFile::CreateOutputFile(GetDownloadPath(parent_folder, file_name));
+}
+
+std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(absl::string_view file_path) {
+  return shared::IOFile::CreateOutputFile(file_path);
 }
 
 std::unique_ptr<LogMessage> ImplementationPlatform::CreateLogMessage(

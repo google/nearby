@@ -26,24 +26,25 @@ namespace nearby {
 namespace shared {
 
 // InputFile
-std::unique_ptr<IOFile> IOFile::CreateInputFile(const absl::string_view path,
-                                                size_t size) {
-  return absl::WrapUnique(new IOFile(path, size));
+std::unique_ptr<IOFile> IOFile::CreateInputFile(
+    const absl::string_view file_path, size_t size) {
+  return absl::WrapUnique(new IOFile(file_path, size));
 }
 
-IOFile::IOFile(const absl::string_view path, size_t size)
-    : file_(std::string(path.data(), path.size()),
+IOFile::IOFile(const absl::string_view file_path, size_t size)
+    : file_(std::string(file_path.data(), file_path.size()),
             std::ios::binary | std::ios::in),
-      path_(path),
+      path_(file_path),
       total_size_(size) {}
 
 std::unique_ptr<IOFile> IOFile::CreateOutputFile(const absl::string_view path) {
   return std::unique_ptr<IOFile>(new IOFile(path));
 }
 
-IOFile::IOFile(const absl::string_view path)
-    : file_(std::string(path.data(), path.size()),
+IOFile::IOFile(const absl::string_view file_path)
+    : file_(std::string(file_path.data(), file_path.size()),
             std::ios::binary | std::ios::out | std::ios::trunc),
+      path_({file_path.data(), file_path.size()}),
       total_size_(0) {}
 
 ExceptionOr<ByteArray> IOFile::Read(std::int64_t size) {

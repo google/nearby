@@ -22,12 +22,12 @@
 
 #include "absl/types/variant.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/input_stream.h"
-#include "internal/platform/payload_id.h"
-#include "internal/platform/prng.h"
 #include "internal/platform/core_config.h"
 #include "internal/platform/file.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/payload_id.h"
+#include "internal/platform/prng.h"
 
 namespace location {
 namespace nearby {
@@ -56,7 +56,23 @@ class DLL_API Payload {
   explicit Payload(ByteArray&& bytes);
 
   explicit Payload(const ByteArray& bytes);
-  explicit Payload(InputFile file);
+  explicit Payload(InputFile input_file);
+
+  // InputFile is just "a pointer to a file on your disc", a wrapper around a
+  // file name or file descriptor. It has no understanding that Nearby is going
+  // to create a copy of it on the remote device.
+  //
+  // FileName and ParentFolder are what Nearby is saying the remote device
+  // should save this incoming payload as.
+  //
+  // Notably, FileName does not have to be respected (you could ask to save it
+  // as "photo.png" but instead the recipient saves it as "photo (1).png").
+  //
+  // ParentFolder must be a relative path, not a full path.
+
+  explicit Payload(std::string parent_folder, std::string file_name,
+                   InputFile file);
+
   explicit Payload(std::function<InputStream&()> stream);
 
   // Constructors for incoming payloads.
@@ -64,7 +80,6 @@ class DLL_API Payload {
   Payload(Id id, const ByteArray& bytes);
   Payload(Id id, InputFile file);
   Payload(Id id, std::function<InputStream&()> stream);
-
 
   // Returns ByteArray payload, if it has been defined, or empty ByteArray.
   const ByteArray& AsBytes() const&;
@@ -88,6 +103,9 @@ class DLL_API Payload {
   // Generate Payload Id; to be passed to outgoing file constructor.
   static Id GenerateId();
 
+  const std::string& GetFileName() const;
+  const std::string& GetParentFolder() const;
+
  private:
   Type FindType() const;
 
@@ -95,6 +113,9 @@ class DLL_API Payload {
   Id id_{GenerateId()};
   Type type_{FindType()};
   size_t offset_{0};
+
+  std::string parent_folder_;
+  std::string file_name_;
 };
 
 }  // namespace connections

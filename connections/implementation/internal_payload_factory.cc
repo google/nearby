@@ -18,13 +18,18 @@
 #include <memory>
 
 #include "absl/memory/memory.h"
+#include "connections/implementation/offline_frames_validator.h"
 #include "connections/payload.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/exception.h"
 #include "internal/platform/condition_variable.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/file.h"
+#include "internal/platform/implementation/platform.h"
+#include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/os_name.h"
 #include "internal/platform/pipe.h"
 
 namespace location {
@@ -285,6 +290,9 @@ class IncomingFileInternalPayload : public InternalPayload {
 
 }  // namespace
 
+using location::nearby::api::ImplementationPlatform;
+using location::nearby::api::OSName;
+
 std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(
     Payload payload) {
   switch (payload.GetType()) {
@@ -292,10 +300,6 @@ std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(
       return absl::make_unique<BytesInternalPayload>(std::move(payload));
 
     case Payload::Type::kFile: {
-      InputFile* file = payload.AsFile();
-      const PayloadId file_payload_id = file ? file->GetPayloadId() : 0;
-      const PayloadId payload_id = payload.GetId();
-      CHECK(payload_id == file_payload_id);
       return absl::make_unique<OutgoingFileInternalPayload>(std::move(payload));
     }
 
@@ -307,6 +311,15 @@ std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(
       DCHECK(false);  // This should never happen.
       return {};
   }
+}
+
+std::string make_path(std::string& parent_folder, std::string& file_name) {
+  return api::ImplementationPlatform::GetDownloadPath(parent_folder, file_name);
+}
+
+std::string make_path(std::string& parent_folder, int64_t id) {
+  std::string file_name(std::to_string(id));
+  return api::ImplementationPlatform::GetDownloadPath(parent_folder, file_name);
 }
 
 std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
@@ -334,10 +347,34 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
     }
 
     case PayloadTransferFrame::PayloadHeader::FILE: {
-      std::int64_t total_size = frame.payload_header().total_size();
-      return absl::make_unique<IncomingFileInternalPayload>(
-          Payload(payload_id, InputFile(payload_id, total_size)),
-          OutputFile(payload_id), total_size);
+      std::string file_path("");
+      int64_t total_size = 0;
+
+      if (frame.payload_header().has_parent_folder()) {
+        file_path = frame.payload_header().parent_folder();
+      }
+
+      if (frame.payload_header().has_file_name()) {
+        std::string file_name(frame.payload_header().file_name());
+        file_path = make_path(file_path, file_name);
+      }
+
+      if (frame.payload_header().has_total_size()) {
+        total_size = frame.payload_header().total_size();
+      }
+
+      // These are ordered, the output file must be created first otherwise
+      // there will be no input file to open.
+      // On Chrome the file path should be empty, so use the payload id.
+      if (ImplementationPlatform::GetCurrentOS() == OSName::kChromeOS) {
+        return absl::make_unique<IncomingFileInternalPayload>(
+            Payload(payload_id, InputFile(payload_id, total_size)),
+            OutputFile(payload_id), total_size);
+      } else {
+        return absl::make_unique<IncomingFileInternalPayload>(
+            Payload(payload_id, InputFile(file_path, total_size)),
+            OutputFile(file_path), total_size);
+      }
     }
     default:
       DCHECK(false);  // This should never happen.

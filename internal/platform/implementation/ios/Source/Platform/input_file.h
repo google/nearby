@@ -17,6 +17,7 @@
 
 #import <Foundation/Foundation.h>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/implementation/input_file.h"
 
 namespace location {
@@ -27,6 +28,8 @@ namespace ios {
 class InputFile : public api::InputFile {
  public:
   explicit InputFile(NSURL *nsURL);
+  explicit InputFile(absl::string_view file_path, std::int64_t size);
+
   ~InputFile() override = default;
   InputFile(InputFile &&) = default;
   InputFile &operator=(InputFile &&) = default;
@@ -39,6 +42,9 @@ class InputFile : public api::InputFile {
  private:
   NSURL *nsURL_;
   NSInputStream *nsStream_;
+
+  std::string path_;
+  size_t total_size_;
 };
 
 }  // namespace ios

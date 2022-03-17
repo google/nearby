@@ -567,12 +567,11 @@ void SendPayloadDart(Core *pCore, const char *endpoint_id,
                 /*FailIfFileAlreadyExists=*/ false);
       NEARBY_LOGS(INFO) << "Copy File to " << download_path;
 
-      InputFile input_file{id, payload_dart.size};
-      {
-        Payload payload{id, std::move(input_file)};
-        SendPayload(pCore, absl::Span<const std::string>(endpoint_ids),
-                    std::move(payload), callback);
-      }
+      InputFile input_file(std::to_string(id), payload_dart.size);
+      Payload payload = Payload(id, std::move(input_file));
+      SendPayload(pCore, absl::Span<const std::string>(endpoint_ids),
+                  std::move(payload), callback);
+
       SetResultCallback(callback, result_cb);
 
       break;

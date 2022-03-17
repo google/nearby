@@ -35,6 +35,7 @@ cc_library(
         "input_stream.h",
         "listeners.h",
         "nsd_service_info.h",
+        "os_name.h",
         "output_stream.h",
         "payload_id.h",
         "prng.h",

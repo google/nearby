@@ -15,10 +15,7 @@
 #define CORE_CONNECTION_OPTIONS_H_
 #include <string>
 
-#include "connections/medium_selector.h"
 #include "connections/options_base.h"
-#include "connections/power_level.h"
-#include "connections/strategy.h"
 #include "internal/platform/byte_array.h"
 #include "proto/connections_enums.pb.h"
 

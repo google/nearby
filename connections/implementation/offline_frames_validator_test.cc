@@ -213,6 +213,131 @@ TEST(OfflineFramesValidatorTest, ValidatesAsOkWithValidPayloadTransferFrame) {
   ASSERT_TRUE(ret_value.Ok());
 }
 
+TEST(OfflineFramesValidatorTest,
+     ValidatesAsOkTypeFileWithEmptyFilePathAndParent) {
+  PayloadTransferFrame::PayloadHeader header;
+  PayloadTransferFrame::PayloadChunk chunk;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  // Sending files larger than 2gb was previously broken (see cl/372382338).
+  // This tests a file larger than int max.
+  header.set_total_size(3e10);
+  header.set_file_name(std::string());
+  header.set_parent_folder(std::string());
+  chunk.set_body("payload data");
+  chunk.set_offset(150);
+  chunk.set_flags(1);
+
+  OfflineFrame offline_frame;
+
+  ByteArray bytes = ForDataPayloadTransfer(header, chunk);
+  offline_frame.ParseFromString(std::string(bytes));
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  ASSERT_TRUE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest, ValidatesAsOkTypeFileWithLegalFilePath) {
+  PayloadTransferFrame::PayloadHeader header;
+  PayloadTransferFrame::PayloadChunk chunk;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  // Sending files larger than 2gb was previously broken (see cl/372382338).
+  // This tests a file larger than int max.
+  header.set_total_size(3e10);
+  header.set_file_name(
+      std::string("earth_85MB_test (1) (3) (4) (8) (1) (2) (2) (1).jpg"));
+  header.set_parent_folder(std::string());
+  chunk.set_body("payload data");
+  chunk.set_offset(150);
+  chunk.set_flags(1);
+
+  OfflineFrame offline_frame;
+
+  ByteArray bytes = ForDataPayloadTransfer(header, chunk);
+  offline_frame.ParseFromString(std::string(bytes));
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  ASSERT_TRUE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest, ValidatesAsFailedTypeFileWithIllegalFilePath) {
+  PayloadTransferFrame::PayloadHeader header;
+  PayloadTransferFrame::PayloadChunk chunk;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  // Sending files larger than 2gb was previously broken (see cl/372382338).
+  // This tests a file larger than int max.
+  header.set_total_size(3e10);
+  header.set_file_name(
+      std::string("earth_85MB_test (1): (3) (4) (8) (1) (2) (2) (1).jpg"));
+  header.set_parent_folder(std::string());
+  chunk.set_body("payload data");
+  chunk.set_offset(150);
+  chunk.set_flags(1);
+
+  OfflineFrame offline_frame;
+
+  ByteArray bytes = ForDataPayloadTransfer(header, chunk);
+  offline_frame.ParseFromString(std::string(bytes));
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  ASSERT_TRUE(ret_value.value == Exception::kIllegalCharacters);
+}
+
+TEST(OfflineFramesValidatorTest, ValidatesAsOkTypeFileWithLegalParentFolder) {
+  PayloadTransferFrame::PayloadHeader header;
+  PayloadTransferFrame::PayloadChunk chunk;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  // Sending files larger than 2gb was previously broken (see cl/372382338).
+  // This tests a file larger than int max.
+  header.set_total_size(3e10);
+  header.set_file_name("");
+  header.set_parent_folder(std::string(
+      std::string("earth_85MB_test (1) (3) (4) (8) (1) (2) (2) (1).jpg")));
+  chunk.set_body("payload data");
+  chunk.set_offset(150);
+  chunk.set_flags(1);
+
+  OfflineFrame offline_frame;
+
+  ByteArray bytes = ForDataPayloadTransfer(header, chunk);
+  offline_frame.ParseFromString(std::string(bytes));
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  ASSERT_TRUE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidatesAsFailedTypeFileWithIllegalParentFolder) {
+  PayloadTransferFrame::PayloadHeader header;
+  PayloadTransferFrame::PayloadChunk chunk;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  // Sending files larger than 2gb was previously broken (see cl/372382338).
+  // This tests a file larger than int max.
+  header.set_total_size(3e10);
+  header.set_file_name("");
+  header.set_parent_folder(std::string(
+      std::string("earth_85MB_test (1): (3) (4) (8) (1) (2) (2) (1).jpg")));
+  chunk.set_body("payload data");
+  chunk.set_offset(150);
+  chunk.set_flags(1);
+
+  OfflineFrame offline_frame;
+
+  ByteArray bytes = ForDataPayloadTransfer(header, chunk);
+  offline_frame.ParseFromString(std::string(bytes));
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  ASSERT_TRUE(ret_value.value == Exception::kIllegalCharacters);
+}
 TEST(OfflineFramesValidatorTest, ValidatesAsFailWithNullPayloadTransferFrame) {
   PayloadTransferFrame::PayloadHeader header;
   PayloadTransferFrame::PayloadChunk chunk;

@@ -161,7 +161,8 @@ class GNCInputStreamFromNSStream : public InputStream {
   PayloadId payloadId = payload.identifier;
   // Add the pair of payloadId and fileURL to the map in the GNCCore.
   [_core insertURLToMapWithPayloadID:payloadId urlToSend:fileURL];
-  Payload corePayload(payloadId, InputFile(payloadId, fileSize));
+  InputFile inputFile(payloadId, fileSize);
+  Payload corePayload(payloadId, std::move(inputFile));
   progress.totalUnitCount = fileSize;
   return [self sendPayload:std::move(corePayload)
                       size:fileSize

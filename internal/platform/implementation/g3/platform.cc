@@ -57,11 +57,55 @@ namespace location {
 namespace nearby {
 namespace api {
 
-namespace {
-std::string GetPayloadPath(PayloadId payload_id) {
-  return absl::StrCat("/tmp/", payload_id);
+std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
+                                                    std::string& file_name) {
+  std::string fullPath("/tmp/");
+
+  // If parent_folder starts with a \\ or /, then strip it
+  while (!parent_folder.empty() &&
+         (*parent_folder.begin() == '\\' || *parent_folder.begin() == '/')) {
+    parent_folder.erase(0, 1);
+  }
+
+  // If parent_folder ends with a \\ or /, then strip it
+  while (!parent_folder.empty() &&
+         (*parent_folder.rbegin() == '\\' || *parent_folder.rbegin() == '/')) {
+    parent_folder.erase(parent_folder.size() - 1);
+  }
+
+  // If file_name starts with a \\, then strip it
+  while (!file_name.empty() &&
+         (*file_name.begin() == '\\' || *file_name.begin() == '/')) {
+    file_name.erase(0, 1);
+  }
+
+  // If file_name ends with a \\, then strip it
+  while (!file_name.empty() &&
+         (*file_name.rbegin() == '\\' || *file_name.rbegin() == '/')) {
+    file_name.erase(file_name.size() - 1);
+  }
+
+  std::stringstream path;
+
+  if (parent_folder.empty() && file_name.empty()) {
+    path << fullPath.c_str();
+    return path.str();
+  }
+  if (parent_folder.empty()) {
+    path << fullPath.c_str() << "\\" << file_name.c_str();
+    return path.str();
+  }
+  if (file_name.empty()) {
+    path << fullPath.c_str() << "\\" << parent_folder.c_str();
+    return path.str();
+  }
+
+  path << fullPath.c_str() << "\\" << parent_folder.c_str() << "\\"
+       << file_name.c_str();
+  return path.str();
 }
-}  // namespace
+
+OSName ImplementationPlatform::GetCurrentOS() { return OSName::kLinux; }
 
 int GetCurrentTid() {
   const LiveThread* my = Thread_GetMyLiveThread();
@@ -103,15 +147,33 @@ std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(
   return std::make_unique<g3::AtomicBoolean>(initial_value);
 }
 
+ABSL_DEPRECATED("This interface will be deleted in the near future.")
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     PayloadId payload_id, std::int64_t total_size) {
-  return shared::IOFile::CreateInputFile(GetPayloadPath(payload_id),
-                                         total_size);
+  std::string parent_folder("");
+  std::string file_name(std::to_string(payload_id));
+  return shared::IOFile::CreateInputFile(
+      GetDownloadPath(parent_folder, file_name), total_size);
+}
+
+std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
+    absl::string_view file_path, size_t size) {
+  return shared::IOFile::CreateInputFile(file_path, size);
+}
+
+ABSL_DEPRECATED("This interface will be deleted in the near future.")
+std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
+    PayloadId payload_id) {
+  std::string parent_folder("");
+  std::string file_name(std::to_string(payload_id));
+
+  return shared::IOFile::CreateOutputFile(
+      GetDownloadPath(parent_folder, file_name));
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
-    PayloadId payload_id) {
-  return shared::IOFile::CreateOutputFile(GetPayloadPath(payload_id));
+    absl::string_view file_path) {
+  return shared::IOFile::CreateOutputFile(file_path);
 }
 
 std::unique_ptr<LogMessage> ImplementationPlatform::CreateLogMessage(

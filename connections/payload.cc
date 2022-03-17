@@ -33,11 +33,19 @@ Payload::Payload(ByteArray&& bytes) : content_(std::move(bytes)) {}
 
 Payload::Payload(const ByteArray& bytes) : content_(bytes) {}
 
-Payload::Payload(InputFile file)
-    : content_(std::move(file)),
-      id_(std::hash<std::string>()(file.GetFilePath())) {}
+Payload::Payload(InputFile input_file)
+    : content_(std::move(input_file)),
+      id_(std::hash<std::string>()(input_file.GetFilePath())) {}
 
-// TODO(jfcarroll): Convert std::function to function pointer
+Payload::Payload(Id id, InputFile input_file)
+    : content_(std::move(input_file)), id_(id) {}
+
+Payload::Payload(std::string parent_folder, std::string file_name,
+                 InputFile input_file)
+    : content_(std::move(input_file)),
+      parent_folder_(parent_folder),
+      file_name_(file_name) {}
+
 Payload::Payload(std::function<InputStream&()> stream)
     : content_(std::move(stream)) {}
 
@@ -47,9 +55,6 @@ Payload::Payload(Id id, ByteArray&& bytes)
 
 Payload::Payload(Id id, const ByteArray& bytes) : content_(bytes), id_(id) {}
 
-Payload::Payload(Id id, InputFile file) : content_(std::move(file)), id_(id) {}
-
-// TODO(jfcarroll): Convert std::function to function pointer
 Payload::Payload(Id id, std::function<InputStream&()> stream)
     : content_(std::move(stream)), id_(id) {}
 
@@ -95,6 +100,10 @@ Payload::Id Payload::GenerateId() { return Prng().NextInt64(); }
 Payload::Type Payload::FindType() const {
   return static_cast<Type>(content_.index());
 }
+
+const std::string& Payload::GetParentFolder() const { return parent_folder_; }
+
+const std::string& Payload::GetFileName() const { return file_name_; }
 
 }  // namespace connections
 }  // namespace nearby

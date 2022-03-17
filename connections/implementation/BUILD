@@ -129,6 +129,8 @@ cc_library(
         "//internal/platform:types",
         "//internal/platform:util",
         "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:platform",
+        "//internal/platform/implementation/shared:file",
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:btree",

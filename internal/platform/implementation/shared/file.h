@@ -19,9 +19,9 @@
 #include <fstream>
 
 #include "absl/strings/string_view.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/output_file.h"
-#include "internal/platform/exception.h"
 
 namespace location {
 namespace nearby {
@@ -29,8 +29,9 @@ namespace shared {
 
 class IOFile final : public api::InputFile, public api::OutputFile {
  public:
-  static std::unique_ptr<IOFile> CreateInputFile(const absl::string_view path,
-                                                 size_t size);
+  static std::unique_ptr<IOFile> CreateInputFile(
+      const absl::string_view file_path, size_t size);
+
   static std::unique_ptr<IOFile> CreateOutputFile(const absl::string_view path);
 
   ExceptionOr<ByteArray> Read(std::int64_t size) override;
@@ -44,10 +45,11 @@ class IOFile final : public api::InputFile, public api::OutputFile {
   Exception Flush() override;
 
  private:
-  explicit IOFile(const absl::string_view path, size_t size);
-  explicit IOFile(const absl::string_view path);
+  explicit IOFile(const absl::string_view file_path, size_t size);
+  explicit IOFile(const absl::string_view file_path);
+
   std::fstream file_;
-  absl::string_view path_;
+  std::string path_;
   std::int64_t total_size_;
 };
 

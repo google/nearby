@@ -30,6 +30,11 @@ InputFile::InputFile(NSURL *nsURL) : nsURL_(nsURL) {
   [nsStream_ open];
 }
 
+InputFile::InputFile(absl::string_view file_path, std::int64_t size)
+    : path_(file_path), total_size_(size) {
+  // TODO(jfcarroll): This is not implemented for iOS yet.
+}
+
 ExceptionOr<ByteArray> InputFile::Read(std::int64_t size) {
   uint8_t *bytes_read = new uint8_t[size];
   NSUInteger numberOfBytesToRead = [[NSNumber numberWithLongLong:size] unsignedIntegerValue];

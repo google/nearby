@@ -17,11 +17,13 @@
 namespace location {
 namespace nearby {
 
-InputFile::InputFile(PayloadId payload_id, std::int64_t size)
-    : impl_(Platform::CreateInputFile(payload_id, size)), id_(payload_id) {}
+InputFile::InputFile(PayloadId id, std::int64_t size)
+    : impl_(Platform::CreateInputFile(id, size)) {}
+InputFile::InputFile(std::string file_path, std::int64_t size)
+    : impl_(Platform::CreateInputFile(file_path, size)) {}
 InputFile::~InputFile() = default;
-InputFile::InputFile(InputFile&&) noexcept = default;
-InputFile& InputFile::operator=(InputFile&&) noexcept = default;
+InputFile::InputFile(InputFile&& other) noexcept = default;
+InputFile& InputFile::operator=(InputFile&& other) = default;
 
 // Reads up to size bytes and returns as a ByteArray object wrapped by
 // ExceptionOr.
@@ -53,14 +55,12 @@ Exception InputFile::Close() { return impl_->Close(); }
 // versa.
 InputStream& InputFile::GetInputStream() { return *impl_; }
 
-// Returns payload id of this file. The closest "file" equivalent is inode.
-PayloadId InputFile::GetPayloadId() const { return id_; }
-
-OutputFile::OutputFile(PayloadId payload_id)
-    : impl_(Platform::CreateOutputFile(payload_id)), id_(payload_id) {}
+OutputFile::OutputFile(std::string file_path)
+    : impl_(Platform::CreateOutputFile(file_path)) {}
+OutputFile::OutputFile(PayloadId id) : impl_(Platform::CreateOutputFile(id)) {}
 OutputFile::~OutputFile() = default;
 OutputFile::OutputFile(OutputFile&&) noexcept = default;
-OutputFile& OutputFile::operator=(OutputFile&&) noexcept = default;
+OutputFile& OutputFile::operator=(OutputFile&&) = default;
 
 // Writes all data from ByteArray object to the underlying stream.
 // Returns Exception::kIo on error, Exception::kSuccess otherwise.
@@ -84,9 +84,6 @@ Exception OutputFile::Close() { return impl_->Close(); }
 // Write, or Close will be observable through OutputStream& handle, and vice
 // versa.
 OutputStream& OutputFile::GetOutputStream() { return *impl_; }
-
-// Returns payload id of this file. The closest "file" equivalent is inode.
-PayloadId OutputFile::GetPayloadId() const { return id_; }
 
 }  // namespace nearby
 }  // namespace location

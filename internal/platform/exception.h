@@ -30,7 +30,9 @@ struct Exception {
     kInterrupted = 2,  // Operation was interrupted.
     kInvalidProtocolBuffer = 3,  // Couldn't parse.
     kExecution = 4,              // Couldn't execute.
-    kTimeout = 5,  // Operarion did not finish within specified time.
+    kTimeout = 5,            // Operarion did not finish within specified time.
+    kIllegalCharacters = 6,  // File name or parent path contained
+                             // illegal chars
   };
   bool Ok() const { return value == kSuccess; }
   bool Raised() const { return !Ok(); }

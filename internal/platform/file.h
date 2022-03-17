@@ -19,14 +19,14 @@
 #include <memory>
 #include <string>
 
+#include "internal/platform/byte_array.h"
+#include "internal/platform/core_config.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/output_file.h"
 #include "internal/platform/implementation/platform.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
-#include "internal/platform/core_config.h"
 
 namespace location {
 namespace nearby {
@@ -35,9 +35,10 @@ class DLL_API InputFile final {
  public:
   using Platform = api::ImplementationPlatform;
   InputFile(PayloadId payload_id, std::int64_t size);
+  InputFile(std::string file_path, std::int64_t size);
   ~InputFile();
   InputFile(InputFile&&) noexcept;
-  InputFile& operator=(InputFile&&) noexcept;
+  InputFile& operator=(InputFile&&);
 
   // Reads up to size bytes and returns as a ByteArray object wrapped by
   // ExceptionOr.
@@ -65,21 +66,18 @@ class DLL_API InputFile final {
   // versa.
   InputStream& GetInputStream();
 
-  // Returns payload id of this file. The closest "file" equivalent is inode.
-  PayloadId GetPayloadId() const;
-
  private:
   std::unique_ptr<api::InputFile> impl_;
-  PayloadId id_;
 };
 
 class DLL_API OutputFile final {
  public:
   using Platform = api::ImplementationPlatform;
   explicit OutputFile(PayloadId payload_id);
+  explicit OutputFile(std::string file_path);
   ~OutputFile();
   OutputFile(OutputFile&&) noexcept;
-  OutputFile& operator=(OutputFile&&) noexcept;
+  OutputFile& operator=(OutputFile&&);
 
   // Writes all data from ByteArray object to the underlying stream.
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
@@ -102,12 +100,8 @@ class DLL_API OutputFile final {
   // versa.
   OutputStream& GetOutputStream();
 
-  // Returns payload id of this file. The closest "file" equivalent is inode.
-  PayloadId GetPayloadId() const;
-
  private:
   std::unique_ptr<api::OutputFile> impl_;
-  PayloadId id_;
 };
 
 }  // namespace nearby

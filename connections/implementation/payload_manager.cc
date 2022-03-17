@@ -418,7 +418,10 @@ void PayloadManager::SendPayload(ClientProxy* client,
                                       internal_payload->GetTotalSize());
 
         PayloadTransferFrame::PayloadHeader payload_header{
-            CreatePayloadHeader(*internal_payload, resume_offset)};
+            CreatePayloadHeader(*internal_payload, resume_offset,
+                                internal_payload->GetParentFolder(),
+                                internal_payload->GetFileName())};
+
         bool should_continue = true;
         std::int64_t next_chunk_offset = 0;
         while (should_continue && !shutdown_.Get()) {
@@ -610,12 +613,19 @@ int PayloadManager::GetOptimalChunkSize(EndpointIds endpoint_ids) {
 }
 
 PayloadTransferFrame::PayloadHeader PayloadManager::CreatePayloadHeader(
-    const InternalPayload& internal_payload, size_t offset) {
+    const InternalPayload& internal_payload, size_t offset,
+    const std::string& parent_folder, const std::string& file_name) {
   PayloadTransferFrame::PayloadHeader payload_header;
   size_t payload_size = internal_payload.GetTotalSize();
 
   payload_header.set_id(internal_payload.GetId());
   payload_header.set_type(internal_payload.GetType());
+  if (internal_payload.GetType() ==
+      location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+          PayloadType::PayloadTransferFrame_PayloadHeader_PayloadType_FILE) {
+    payload_header.set_file_name(file_name);
+    payload_header.set_parent_folder(parent_folder);
+  }
   payload_header.set_total_size(payload_size ==
                                         InternalPayload::kIndeterminateSize
                                     ? InternalPayload::kIndeterminateSize

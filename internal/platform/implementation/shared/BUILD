@@ -46,6 +46,7 @@ cc_library(
     srcs = ["file.cc"],
     hdrs = ["file.h"],
     visibility = [
+        "//connections/implementation:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
     ],
     deps = [

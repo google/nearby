@@ -43,6 +43,7 @@
 #endif
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/implementation/wifi_lan.h"
+#include "internal/platform/os_name.h"
 #include "internal/platform/payload_id.h"
 
 namespace location {
@@ -62,6 +63,10 @@ class ImplementationPlatform {
   //   - CountDownLatch : to ensure at least N threads are waiting.
   // - file I/O
   // - Logging
+  static std::string GetDownloadPath(std::string& parent_folder,
+                                     std::string& file_name);
+
+  static OSName GetCurrentOS();
 
   // Atomics:
   // =======
@@ -81,9 +86,15 @@ class ImplementationPlatform {
   static std::unique_ptr<Mutex> CreateMutex(Mutex::Mode mode);
   static std::unique_ptr<ConditionVariable> CreateConditionVariable(
       Mutex* mutex);
-  static std::unique_ptr<InputFile> CreateInputFile(PayloadId payload_id,
-                                                    std::int64_t total_size);
-  static std::unique_ptr<OutputFile> CreateOutputFile(PayloadId payload_id);
+
+  static std::unique_ptr<InputFile> CreateInputFile(PayloadId, std::int64_t);
+
+  static std::unique_ptr<InputFile> CreateInputFile(absl::string_view, size_t);
+
+  static std::unique_ptr<OutputFile> CreateOutputFile(PayloadId);
+
+  static std::unique_ptr<OutputFile> CreateOutputFile(absl::string_view);
+
   static std::unique_ptr<LogMessage> CreateLogMessage(
       const char* file, int line, LogMessage::Severity severity);
 
