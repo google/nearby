@@ -26,37 +26,43 @@ Payload::~Payload() = default;
 Payload& Payload::operator=(Payload&& other) noexcept = default;
 
 // Default (invalid) payload.
-Payload::Payload() : content_(absl::monostate()) {}
+Payload::Payload() : type_(Type::kUnknown), content_(absl::monostate()) {}
 
 // Constructors for outgoing payloads.
-Payload::Payload(ByteArray&& bytes) : content_(std::move(bytes)) {}
+Payload::Payload(ByteArray&& bytes)
+    : type_(Type::kBytes), content_(std::move(bytes)) {}
 
-Payload::Payload(const ByteArray& bytes) : content_(bytes) {}
+Payload::Payload(const ByteArray& bytes)
+    : type_(Type::kBytes), content_(bytes) {}
 
 Payload::Payload(InputFile input_file)
-    : content_(std::move(input_file)),
-      id_(std::hash<std::string>()(input_file.GetFilePath())) {}
+    : id_(std::hash<std::string>()(input_file.GetFilePath())),
+      type_(Type::kFile),
+      content_(std::move(input_file)) {}
 
 Payload::Payload(Id id, InputFile input_file)
-    : content_(std::move(input_file)), id_(id) {}
+    : id_(id), type_(Type::kFile), content_(std::move(input_file)) {}
 
 Payload::Payload(std::string parent_folder, std::string file_name,
                  InputFile input_file)
-    : content_(std::move(input_file)),
+    : id_(std::hash<std::string>()(input_file.GetFilePath())),
       parent_folder_(parent_folder),
-      file_name_(file_name) {}
+      file_name_(file_name),
+      type_(Type::kFile),
+      content_(std::move(input_file)) {}
 
 Payload::Payload(std::function<InputStream&()> stream)
-    : content_(std::move(stream)) {}
+    : type_(Type::kStream), content_(std::move(stream)) {}
 
 // Constructors for incoming payloads.
 Payload::Payload(Id id, ByteArray&& bytes)
-    : content_(std::move(bytes)), id_(id) {}
+    : id_(id), type_(Type::kBytes), content_(std::move(bytes)) {}
 
-Payload::Payload(Id id, const ByteArray& bytes) : content_(bytes), id_(id) {}
+Payload::Payload(Id id, const ByteArray& bytes)
+    : id_(id), type_(Type::kBytes), content_(bytes) {}
 
 Payload::Payload(Id id, std::function<InputStream&()> stream)
-    : content_(std::move(stream)), id_(id) {}
+    : id_(id), type_(Type::kStream), content_(std::move(stream)) {}
 
 // Returns ByteArray payload, if it has been defined, or empty ByteArray.
 const ByteArray& Payload::AsBytes() const& {

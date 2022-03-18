@@ -109,13 +109,14 @@ class DLL_API Payload {
  private:
   Type FindType() const;
 
-  Content content_;
   Id id_{GenerateId()};
-  Type type_{FindType()};
   size_t offset_{0};
 
   std::string parent_folder_;
   std::string file_name_;
+
+  Type type_{FindType()};
+  Content content_;
 };
 
 }  // namespace connections
