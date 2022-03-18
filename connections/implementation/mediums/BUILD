@@ -21,7 +21,6 @@ cc_library(
         "bluetooth_classic.cc",
         "bluetooth_radio.cc",
         "mediums.cc",
-        "uuid.cc",
         "webrtc_stub.cc",
         "wifi_lan.cc",
     ],
@@ -30,9 +29,7 @@ cc_library(
         "ble_v2.h",
         "bluetooth_classic.h",
         "bluetooth_radio.h",
-        "lost_entity_tracker.h",
         "mediums.h",
-        "uuid.h",
         "webrtc_stub.h",
         "wifi_lan.h",
     ],
@@ -64,10 +61,13 @@ cc_library(
     name = "utils",
     srcs = [
         "utils.cc",
+        "uuid.cc",
         "webrtc_peer_id.cc",
     ],
     hdrs = [
+        "lost_entity_tracker.h",
         "utils.h",
+        "uuid.h",
         "webrtc_peer_id.h",
         "webrtc_socket_stub.h",
     ],
@@ -75,12 +75,14 @@ cc_library(
     visibility = [
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums:__pkg__",
+        "//connections/implementation/mediums/ble_v2:__subpackages__",
         "//connections/implementation/mediums/webrtc:__pkg__",
     ],
     deps = [
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
         "//internal/platform:types",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/strings",
     ],
 )
