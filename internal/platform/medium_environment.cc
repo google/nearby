@@ -532,7 +532,7 @@ void MediumEnvironment::UpdateBleV2MediumForAdvertising(
                           << ", enabled=" << enabled;
         for (auto& medium_info : ble_v2_mediums_) {
           const api::ble_v2::BleMedium* remote_medium = medium_info.first;
-          const BleV2MediumContext& remote_context = medium_info.second;
+          BleV2MediumContext& remote_context = medium_info.second;
           // Do not send notification to the same medium.
           if (remote_medium == &medium) continue;
           NEARBY_LOGS(INFO)
@@ -540,7 +540,7 @@ void MediumEnvironment::UpdateBleV2MediumForAdvertising(
               << remote_medium << ", remote_medium_context=" << &remote_context
               << ", remote_context.peripheral=" << remote_context.ble_peripheral
               << ". Ready to call OnBleV2PeripheralStateChanged.";
-          OnBleV2PeripheralStateChanged(enabled, context,
+          OnBleV2PeripheralStateChanged(enabled, remote_context,
                                         context.advertisement_data,
                                         *context.ble_peripheral);
         }
