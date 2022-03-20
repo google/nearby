@@ -78,8 +78,7 @@ struct BleAdvertisementData {
   absl::flat_hash_map<std::string, location::nearby::ByteArray> service_data;
 };
 
-// TODO(b/213835576): Refactor BlePeripheral. The one in BluetoothAdapter
-// should be considered, too. Opaque wrapper over a BLE peripheral. Must be
+// Opaque wrapper over a BLE peripheral. Must be
 // able to uniquely identify a peripheral so that we can connect to its GATT
 // server.
 class BlePeripheral {
@@ -90,7 +89,7 @@ class BlePeripheral {
   //
   // This should be the MAC address when possible. If the implementation is
   // unable to retrieve that, any unique identifier should suffice.
-  virtual std::string GetId() const = 0;
+  virtual std::string GetAddress() const = 0;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic

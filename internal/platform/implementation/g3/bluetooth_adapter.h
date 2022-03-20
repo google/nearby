@@ -58,7 +58,7 @@ class BlePeripheral : public api::BlePeripheral {
 // BlePeripheral implementation.
 class BleV2Peripheral : public api::ble_v2::BlePeripheral {
  public:
-  std::string GetId() const override;
+  std::string GetAddress() const override;
   BluetoothAdapter& GetAdapter() { return adapter_; }
 
  private:

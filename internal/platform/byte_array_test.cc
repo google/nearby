@@ -17,6 +17,7 @@
 #include <cstring>
 
 #include "gtest/gtest.h"
+#include "absl/hash/hash_testing.h"
 
 namespace {
 
@@ -93,6 +94,15 @@ TEST(ByteArrayTest, CreateFromAbslStringReturnsTheSame) {
 
   EXPECT_EQ(bytes.size(), kTestString.size());
   EXPECT_EQ(bytes.AsStringView(), kTestString);
+}
+
+TEST(ByteArrayTest, Hash) {
+  EXPECT_TRUE(absl::VerifyTypeImplementsAbslHashCorrectly({
+      ByteArray(),
+      ByteArray("12345"),
+      ByteArray("ABCDE"),
+      ByteArray("A1B2Z"),
+  }));
 }
 
 }  // namespace
