@@ -27,7 +27,7 @@ namespace {
 constexpr size_t kByteArrayLength = 100;
 
 TEST(BloomFilterTest, EmptyFilterReturnsEmptyArray) {
-  BloomFilter<kByteArrayLength> bloom_filter;
+  BloomFilter bloom_filter(std::make_unique<BitSetImpl<kByteArrayLength>>());
 
   ByteArray bloom_filter_bytes(bloom_filter);
   std::string empty_string(kByteArrayLength, '\0');
@@ -36,7 +36,7 @@ TEST(BloomFilterTest, EmptyFilterReturnsEmptyArray) {
 }
 
 TEST(BloomFilterTest, EmptyFilterNeverContains) {
-  BloomFilter<kByteArrayLength> bloom_filter;
+  BloomFilter bloom_filter(std::make_unique<BitSetImpl<kByteArrayLength>>());
 
   EXPECT_FALSE(bloom_filter.PossiblyContains("ELEMENT_1"));
   EXPECT_FALSE(bloom_filter.PossiblyContains("ELEMENT_2"));
@@ -44,7 +44,7 @@ TEST(BloomFilterTest, EmptyFilterNeverContains) {
 }
 
 TEST(BloomFilterTest, AddSuccess) {
-  BloomFilter<kByteArrayLength> bloom_filter;
+  BloomFilter bloom_filter(std::make_unique<BitSetImpl<kByteArrayLength>>());
 
   EXPECT_FALSE(bloom_filter.PossiblyContains("ELEMENT_1"));
 
@@ -54,7 +54,7 @@ TEST(BloomFilterTest, AddSuccess) {
 }
 
 TEST(BloomFilterTest, AddOnlyGivenArg) {
-  BloomFilter<kByteArrayLength> bloom_filter;
+  BloomFilter bloom_filter(std::make_unique<BitSetImpl<kByteArrayLength>>());
 
   bloom_filter.Add("ELEMENT_1");
 
@@ -64,7 +64,7 @@ TEST(BloomFilterTest, AddOnlyGivenArg) {
 }
 
 TEST(BloomFilterTest, AddMultipleArgs) {
-  BloomFilter<kByteArrayLength> bloom_filter;
+  BloomFilter bloom_filter(std::make_unique<BitSetImpl<kByteArrayLength>>());
 
   bloom_filter.Add("ELEMENT_1");
   bloom_filter.Add("ELEMENT_2");
@@ -75,7 +75,7 @@ TEST(BloomFilterTest, AddMultipleArgs) {
 }
 
 TEST(BloomFilterTest, AddMultipleArgsReturnsNonemptyArray) {
-  BloomFilter<10> bloom_filter;
+  BloomFilter bloom_filter(std::make_unique<BitSetImpl<10>>());
 
   bloom_filter.Add("ELEMENT_1");
   bloom_filter.Add("ELEMENT_2");
@@ -87,37 +87,22 @@ TEST(BloomFilterTest, AddMultipleArgsReturnsNonemptyArray) {
   EXPECT_NE(std::string(bloom_filter_bytes), empty_string);
 }
 
-TEST(BloomFilterTest, CopyConstructorAndAssignmentSuccess) {
-  BloomFilter<kByteArrayLength> bloom_filter;
-
-  EXPECT_FALSE(bloom_filter.PossiblyContains("ELEMENT_1"));
-
-  bloom_filter.Add("ELEMENT_1");
-
-  BloomFilter<kByteArrayLength> bloom_filter_copy_1{bloom_filter};
-  BloomFilter<kByteArrayLength> bloom_filter_copy_2 = bloom_filter;
-
-  EXPECT_TRUE(bloom_filter.PossiblyContains("ELEMENT_1"));
-  EXPECT_TRUE(bloom_filter_copy_1.PossiblyContains("ELEMENT_1"));
-  EXPECT_TRUE(bloom_filter_copy_2.PossiblyContains("ELEMENT_1"));
-}
-
 TEST(BloomFilterTest, MoveConstructorSuccess) {
-  BloomFilter<kByteArrayLength> bloom_filter;
+  BloomFilter bloom_filter(std::make_unique<BitSetImpl<kByteArrayLength>>());
 
   bloom_filter.Add("ELEMENT_1");
 
-  BloomFilter<kByteArrayLength> bloom_filter_move{std::move(bloom_filter)};
+  BloomFilter bloom_filter_move{std::move(bloom_filter)};
 
   EXPECT_TRUE(bloom_filter_move.PossiblyContains("ELEMENT_1"));
 }
 
 TEST(BloomFilterTest, MoveAssignmentSuccess) {
-  BloomFilter<kByteArrayLength> bloom_filter;
+  BloomFilter bloom_filter(std::make_unique<BitSetImpl<kByteArrayLength>>());
 
   bloom_filter.Add("ELEMENT_1");
 
-  BloomFilter<kByteArrayLength> bloom_filter_move = std::move(bloom_filter);
+  BloomFilter bloom_filter_move = std::move(bloom_filter);
 
   EXPECT_TRUE(bloom_filter_move.PossiblyContains("ELEMENT_1"));
 }
@@ -134,7 +119,7 @@ TEST(BloomFilterTest, MoveAssignmentSuccess) {
  * something like [ 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, ..., 1, 0].
  */
 TEST(BloomFilterTest, RandomnessNoEndBias) {
-  BloomFilter<kByteArrayLength> bloom_filter;
+  BloomFilter bloom_filter(std::make_unique<BitSetImpl<kByteArrayLength>>());
 
   // Add one element to our BloomFilter.
   bloom_filter.Add("ELEMENT_1");
@@ -178,7 +163,7 @@ TEST(BloomFilterTest, RandomnessNoEndBias) {
 }
 
 TEST(BloomFilterTest, RandomnessFalsePositiveRate) {
-  BloomFilter<10> bloom_filter;
+  BloomFilter bloom_filter(std::make_unique<BitSetImpl<kByteArrayLength>>());
 
   // Add 5 distinct elements to the BloomFilter.
   bloom_filter.Add("ELEMENT_1");
@@ -198,6 +183,34 @@ TEST(BloomFilterTest, RandomnessFalsePositiveRate) {
   // filter. Thus, we give a little leeway and verify that the false positive
   // rate is no more than 5%.
   EXPECT_LE(false_positives, 5);
+}
+
+TEST(BloomFilterTest, ConstructWithNonEmptyByteArrayWorks) {
+  BloomFilter bloom_filter(std::make_unique<BitSetImpl<kByteArrayLength>>());
+
+  bloom_filter.Add("ELEMENT_1");
+  ByteArray original_bloom_filter_bytes(bloom_filter);
+
+  BloomFilter bloom_filter_inherited(
+      std::make_unique<BitSetImpl<kByteArrayLength>>(),
+      original_bloom_filter_bytes);
+
+  EXPECT_TRUE(bloom_filter_inherited.PossiblyContains("ELEMENT_1"));
+}
+
+TEST(BloomFilterTest, ConstructLongByteArrayFails) {
+  // Make 1 more byte in original BloomFilter.
+  BloomFilter bloom_filter(
+      std::make_unique<BitSetImpl<kByteArrayLength + 1>>());
+
+  bloom_filter.Add("ELEMENT_1");
+  ByteArray original_bloom_filter_bytes(bloom_filter);
+
+  BloomFilter bloom_filter_inherited(
+      std::make_unique<BitSetImpl<kByteArrayLength>>(),
+      original_bloom_filter_bytes);
+
+  EXPECT_FALSE(bloom_filter_inherited.PossiblyContains("ELEMENT_1"));
 }
 
 }  // namespace

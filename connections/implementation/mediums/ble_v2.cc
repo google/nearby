@@ -390,9 +390,9 @@ ByteArray BleV2::CreateAdvertisementHeader() {
       Utils::GenerateRandomBytes(kDummyServiceIdLength);
   std::string dummy_service_id{dummy_service_id_bytes};
 
-  mediums::BloomFilter<
-      mediums::BleAdvertisementHeader::kServiceIdBloomFilterLength>
-      bloom_filter;
+  mediums::BloomFilter bloom_filter(
+      std::make_unique<mediums::BitSetImpl<
+          mediums::BleAdvertisementHeader::kServiceIdBloomFilterLength>>());
   bloom_filter.Add(dummy_service_id);
 
   ByteArray advertisement_hash =
