@@ -153,9 +153,10 @@ bool PayloadManager::SendPayloadLoop(
             payload_chunk.offset(), payload_chunk.body().size());
       }
     }
-    NEARBY_LOGS(VERBOSE) << "PayloadManager done sending chunk at offset "
-                         << next_chunk_offset << " of payload_id="
-                         << pending_payload.GetInternalPayload()->GetId();
+    NEARBY_LOGS(ERROR)
+        << "DEBUGNOHLE PayloadManager done sending chunk at offset "
+        << next_chunk_offset
+        << " of payload_id=" << pending_payload.GetInternalPayload()->GetId();
     next_chunk_offset += next_chunk_size;
 
     if (!next_chunk_size) {
