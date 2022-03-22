@@ -17,6 +17,7 @@
 #include <inttypes.h>
 
 #include "absl/strings/str_cat.h"
+#include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "internal/platform/base_input_stream.h"
 #include "internal/platform/logging.h"
 
@@ -29,16 +30,16 @@ BleAdvertisement::BleAdvertisement(Version version,
                                    SocketVersion socket_version,
                                    const ByteArray &service_id_hash,
                                    const ByteArray &data,
-                                   const ByteArray &device_token) {
+                                   const ByteArray &device_token, int psm) {
   DoInitialize(/*fast_advertisement=*/service_id_hash.Empty(), version,
-               socket_version, service_id_hash, data, device_token);
+               socket_version, service_id_hash, data, device_token, psm);
 }
 
 void BleAdvertisement::DoInitialize(bool fast_advertisement, Version version,
                                     SocketVersion socket_version,
                                     const ByteArray &service_id_hash,
                                     const ByteArray &data,
-                                    const ByteArray &device_token) {
+                                    const ByteArray &device_token, int psm) {
   // Check that the given input is valid.
   fast_advertisement_ = fast_advertisement;
   if (!fast_advertisement_) {
@@ -64,6 +65,7 @@ void BleAdvertisement::DoInitialize(bool fast_advertisement, Version version,
   if (!fast_advertisement_) service_id_hash_ = service_id_hash;
   data_ = data;
   device_token_ = device_token;
+  psm_ = psm;
 }
 
 BleAdvertisement::BleAdvertisement(const ByteArray &ble_advertisement_bytes) {
@@ -149,6 +151,19 @@ BleAdvertisement::BleAdvertisement(const ByteArray &ble_advertisement_bytes) {
   // then read it.
   if (base_input_stream.IsAvailable(kDeviceTokenLength)) {
     device_token_ = base_input_stream.ReadBytes(kDeviceTokenLength);
+  } else {
+    // No device token no more optional field.
+    return;
+  }
+
+  // Extra fields, for backward compatible reason, put this field in the end of
+  // this advertisement. That means it must support device token if there's any
+  // extra field. E.g. If iOS or other platform wants to use extra fields, need
+  // to put a random or empty device token in the advertisement.
+  // TODO(b/219939733): Implement BleExtraField to read the PSM value. We fake
+  // this extra field as uint16, 2 bytes.
+  if (base_input_stream.IsAvailable(BleAdvertisementHeader::kPsmValueLength)) {
+    psm_ = static_cast<int>(base_input_stream.ReadUint16());
   }
 }
 
@@ -173,6 +188,10 @@ BleAdvertisement::operator ByteArray() const {
   SerializeDataSize(fast_advertisement_, data_size_bytes_write_ptr,
                     data_.size());
 
+  // For Extra fields, there's no space for legacy fast advertisement, use
+  // ByteArrayWithExtraField() to get the new advertisement bytes for extended
+  // advertising.
+
   // clang-format on
   if (fast_advertisement_) {
     std::string out =
@@ -189,28 +208,27 @@ BleAdvertisement::operator ByteArray() const {
   // clang-format on
 }
 
+ByteArray BleAdvertisement::ByteArrayWithExtraField() const {
+  ByteArray advertisement_bytes = ByteArray(*this);
+  // TODO(b/219939733): Implement BleExtraField for PSM value.
+  ByteArray psm_byte{BleAdvertisementHeader::kPsmValueLength};
+  char *data = psm_byte.data();
+  data[0] = psm_ & 0xFF00;
+  data[1] = psm_ & 0x00FF;
+  std::string advertisement_with_extra_bytes =
+      absl::StrCat(std::string(advertisement_bytes), std::string(psm_byte));
+
+  return ByteArray(std::move(advertisement_with_extra_bytes));
+}
+
 bool BleAdvertisement::operator==(const BleAdvertisement &rhs) const {
   return this->GetVersion() == rhs.GetVersion() &&
          this->GetSocketVersion() == rhs.GetSocketVersion() &&
+         this->IsFastAdvertisement() == rhs.IsFastAdvertisement() &&
          this->GetServiceIdHash() == rhs.GetServiceIdHash() &&
          this->GetData() == rhs.GetData() &&
-         this->GetDeviceToken() == rhs.GetDeviceToken();
-}
-
-bool BleAdvertisement::operator<(const BleAdvertisement &rhs) const {
-  if (this->GetVersion() != rhs.GetVersion()) {
-    return this->GetVersion() < rhs.GetVersion();
-  }
-  if (this->GetSocketVersion() != rhs.GetSocketVersion()) {
-    return this->GetSocketVersion() < rhs.GetSocketVersion();
-  }
-  if (this->GetServiceIdHash() != rhs.GetServiceIdHash()) {
-    return this->GetServiceIdHash() < rhs.GetServiceIdHash();
-  }
-  if (this->GetDeviceToken() != rhs.GetDeviceToken()) {
-    return this->GetDeviceToken() < rhs.GetDeviceToken();
-  }
-  return this->GetData() < rhs.GetData();
+         this->GetDeviceToken() == rhs.GetDeviceToken() &&
+         this->GetPsm() == rhs.GetPsm();
 }
 
 bool BleAdvertisement::IsSupportedVersion(Version version) const {

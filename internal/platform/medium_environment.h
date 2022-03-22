@@ -27,9 +27,9 @@
 #ifndef NO_WEBRTC
 #include "internal/platform/implementation/webrtc.h"
 #endif
-#include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/single_thread_executor.h"
@@ -59,6 +59,7 @@ class MediumEnvironment {
       api::BleMedium::DiscoveredPeripheralCallback;
   using BleAcceptedConnectionCallback =
       api::BleMedium::AcceptedConnectionCallback;
+  using BleScanCallback = api::ble_v2::BleMedium::ScanCallback;
 #ifndef NO_WEBRTC
   using OnSignalingMessageCallback =
       api::WebRtcSignalingMessenger::OnSignalingMessageCallback;
@@ -212,9 +213,22 @@ class MediumEnvironment {
 
   // Updates advertising info to indicate the current medium is exposing
   // advertising event.
-  void UpdateBleV2MediumForAdvertising(bool is_fast_advertisement, bool enabled,
-                                       api::ble_v2::BleMedium& medium,
-                                       ByteArray* advertisement_byte);
+  void UpdateBleV2MediumForAdvertising(
+      bool enabled, api::ble_v2::BleMedium& medium,
+      api::ble_v2::BlePeripheral& peripheral,
+      api::ble_v2::BleAdvertisementData advertisement_data);
+
+  // Updates discovery callback info to allow for dispatch of discovery events.
+  //
+  // Invokes callback asynchronously when any changes happen to discoverable
+  // devices, or if the defice is turned off, whether or not it is discoverable,
+  // if it was ever reported as discoverable.
+  //
+  // This should be called when discoverable state changes.
+  // with user-specified callback when discovery is enabled, and with default
+  // (empty) callback otherwise.
+  void UpdateBleV2MediumForScanning(bool enabled, BleScanCallback callback,
+                                    api::ble_v2::BleMedium& medium);
 
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterBleV2Medium(api::ble_v2::BleMedium& mediumum);
@@ -271,8 +285,10 @@ class MediumEnvironment {
   };
 
   struct BleV2MediumContext {
-    ByteArray* advertisement_byte;
-    bool is_fast_advertisement = false;
+    BleScanCallback scan_callback;
+    api::ble_v2::BlePeripheral* ble_peripheral = nullptr;
+    api::ble_v2::BleAdvertisementData* advertisement_data;
+    bool advertising = false;
   };
 
   struct WifiLanMediumContext {
@@ -303,8 +319,10 @@ class MediumEnvironment {
                                    const std::string& service_id,
                                    bool fast_advertisement, bool enabled);
 
-  void OnBleV2PeripheralStateChanged(bool is_fast_advertisement, bool enabled,
-                                     BleV2MediumContext& info);
+  void OnBleV2PeripheralStateChanged(
+      bool enabled, BleV2MediumContext& info,
+      const api::ble_v2::BleAdvertisementData& ble_advertisement_data,
+      api::ble_v2::BlePeripheral& mutable_peripheral);
 
   void OnWifiLanServiceStateChanged(WifiLanMediumContext& info,
                                     const NsdServiceInfo& service_info,

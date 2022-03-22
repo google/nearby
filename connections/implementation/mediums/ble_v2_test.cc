@@ -19,6 +19,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "connections/implementation/mediums/ble_v2/discovered_peripheral_callback.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/count_down_latch.h"
@@ -61,18 +62,18 @@ TEST_F(BleV2Test, CanStartFastAdvertising) {
   BluetoothRadio radio;
   BleV2 ble{radio};
   radio.Enable();
-  std::string service_id(kServiceID);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
-  std::string fast_advertisement_service_uuid(kFastAdvertisementServiceUuid);
   PowerLevel power_level = PowerLevel::kHighPower;
+  std::string fast_advertisement_service_uuid(kFastAdvertisementServiceUuid);
 
-  EXPECT_TRUE(ble.StartAdvertising(service_id, advertisement_bytes, power_level,
+  EXPECT_TRUE(ble.StartAdvertising(std::string(kServiceID), advertisement_bytes,
+                                   power_level,
                                    fast_advertisement_service_uuid));
   // Can't advertise twice for the same service_id.
-  EXPECT_FALSE(ble.StartAdvertising(service_id, advertisement_bytes,
-                                    power_level,
+  EXPECT_FALSE(ble.StartAdvertising(std::string(kServiceID),
+                                    advertisement_bytes, power_level,
                                     fast_advertisement_service_uuid));
-  EXPECT_TRUE(ble.StopAdvertising(service_id));
+  EXPECT_TRUE(ble.StopAdvertising(std::string(kServiceID)));
   env_.Stop();
 }
 
@@ -81,14 +82,37 @@ TEST_F(BleV2Test, CanStartAdvertising) {
   BluetoothRadio radio;
   BleV2 ble{radio};
   radio.Enable();
-  std::string service_id(kServiceID);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
-  std::string no_fast_advertisement_service_uuid = {};
-  PowerLevel power_level = PowerLevel::kHighPower;
 
-  EXPECT_TRUE(ble.StartAdvertising(service_id, advertisement_bytes, power_level,
-                                   no_fast_advertisement_service_uuid));
-  EXPECT_TRUE(ble.StopAdvertising(service_id));
+  EXPECT_TRUE(ble.StartAdvertising(std::string(kServiceID), advertisement_bytes,
+                                   PowerLevel::kHighPower, ""));
+  EXPECT_TRUE(ble.StopAdvertising(std::string(kServiceID)));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, CanStartDiscovery) {
+  env_.Start();
+  BluetoothRadio radio;
+  BleV2 ble{radio};
+  radio.Enable();
+  std::string fast_advertisement_service_uuid(kFastAdvertisementServiceUuid);
+
+  EXPECT_TRUE(ble.StartScanning(
+      std::string(kServiceID), PowerLevel::kHighPower,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [](BleV2Peripheral& peripheral, const std::string& service_id,
+                 const ByteArray& advertisement_bytes,
+                 bool fast_advertisement) {
+                // nothing to do for now
+              },
+          .peripheral_lost_cb =
+              [](BleV2Peripheral& peripheral, const std::string& service_id) {
+                // nothing to do for now
+              },
+      },
+      fast_advertisement_service_uuid));
+  EXPECT_TRUE(ble.StopScanning(std::string(kServiceID)));
   env_.Stop();
 }
 

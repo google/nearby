@@ -29,6 +29,8 @@ namespace mediums {
 // These definitions are necessary before C++17.
 constexpr int BleAdvertisementHeader::kAdvertisementHashLength;
 constexpr int BleAdvertisementHeader::kServiceIdBloomFilterLength;
+constexpr int BleAdvertisementHeader::kDefaultPsmValue;
+constexpr int BleAdvertisementHeader::kPsmValueLength;
 
 BleAdvertisementHeader::BleAdvertisementHeader(
     Version version, bool extended_advertisement, int num_slots,
@@ -99,7 +101,7 @@ BleAdvertisementHeader::BleAdvertisementHeader(
   advertisement_hash_ = base_input_stream.ReadBytes(kAdvertisementHashLength);
 
   // The next 2 bytes are PSM value.
-  if (base_input_stream.IsAvailable(sizeof(std::uint16_t))) {
+  if (base_input_stream.IsAvailable(kPsmValueLength)) {
     psm_ = static_cast<int>(base_input_stream.ReadUint16());
   }
 }
@@ -121,7 +123,7 @@ BleAdvertisementHeader::operator ByteArray() const {
       static_cast<char>(num_slots_) & kNumSlotsBitmask;
 
   // Convert psm_ value to 2-bytes.
-  ByteArray psm_byte{sizeof(std::uint16_t)};
+  ByteArray psm_byte{kPsmValueLength};
   char *data = psm_byte.data();
   data[0] = psm_ & 0xFF00;
   data[1] = psm_ & 0x00FF;
@@ -134,6 +136,16 @@ BleAdvertisementHeader::operator ByteArray() const {
   // clang-format on
 
   return ByteArray(std::move(out));
+}
+
+bool BleAdvertisementHeader::operator==(
+    const BleAdvertisementHeader &rhs) const {
+  return this->GetVersion() == rhs.GetVersion() &&
+         this->IsExtendedAdvertisement() == rhs.IsExtendedAdvertisement() &&
+         this->GetNumSlots() == rhs.GetNumSlots() &&
+         this->GetServiceIdBloomFilter() == rhs.GetServiceIdBloomFilter() &&
+         this->GetAdvertisementHash() == rhs.GetAdvertisementHash() &&
+         this->GetPsm() == rhs.GetPsm();
 }
 
 }  // namespace mediums

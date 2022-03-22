@@ -32,7 +32,6 @@ namespace {
 
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
 using ::location::nearby::api::ble_v2::BleSocket;
-using ::location::nearby::api::ble_v2::BleSocketLifeCycleCallback;
 using ::location::nearby::api::ble_v2::ClientGattConnection;
 using ::location::nearby::api::ble_v2::PowerMode;
 using ::location::nearby::api::ble_v2::ServerGattConnectionCallback;
@@ -77,20 +76,8 @@ bool BleV2Medium::StartAdvertising(
 
   absl::MutexLock lock(&mutex_);
   auto& env = MediumEnvironment::Instance();
-  // If `advertising_data.service_uuids` is empty, then it is fast
-  // advertisement. In real case, this should be the CopresenceServiceUuid or
-  // the fastAdvertisementUuid.
-  bool is_fast_advertisement = !advertising_data.service_uuids.empty();
-  for (const auto& service_data : scan_response_data.service_data) {
-    // Interested item found in the first index.
-    advertisement_byte_ = service_data.second;
-    if (!advertisement_byte_.Empty()) {
-      break;
-    }
-  }
-  if (advertisement_byte_.Empty()) return false;
-  env.UpdateBleV2MediumForAdvertising(is_fast_advertisement, true, *this,
-                                      &advertisement_byte_);
+  env.UpdateBleV2MediumForAdvertising(
+      /*enabled=*/true, *this, adapter_->GetPeripheralV2(), scan_response_data);
   return true;
 }
 
@@ -99,32 +86,34 @@ bool BleV2Medium::StopAdvertising() {
   absl::MutexLock lock(&mutex_);
   advertisement_byte_ = {};
 
-  auto& env = MediumEnvironment::Instance();
-  env.UpdateBleV2MediumForAdvertising(
-      /*is_fast_advertisement=*/false,
-      /*enabled=*/false, *this, &advertisement_byte_);
+  BleAdvertisementData empty_advertisement_data = {};
+  MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
+      /*enabled=*/false, *this, adapter_->GetPeripheralV2(),
+      empty_advertisement_data);
   return true;
 }
 
 bool BleV2Medium::StartScanning(const std::vector<std::string>& service_uuids,
-                                PowerMode power_mode,
-                                ScanCallback scan_callback) {
-  return false;
+                                PowerMode power_mode, ScanCallback callback) {
+  NEARBY_LOGS(INFO) << "G3 Ble StartScanning";
+
+  MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
+      true, std::move(callback), *this);
+  return true;
 }
 
-bool BleV2Medium::StopScanning() { return false; }
+bool BleV2Medium::StopScanning() {
+  NEARBY_LOGS(INFO) << "G3 Ble StopScanning";
+
+  auto& env = MediumEnvironment::Instance();
+  env.UpdateBleV2MediumForScanning(false, {}, *this);
+  return true;
+}
 
 std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
     ServerGattConnectionCallback callback) {
   return std::make_unique<GattServer>();
 }
-
-bool BleV2Medium::StartListeningForIncomingBleSockets(
-    const api::ble_v2::ServerBleSocketLifeCycleCallback& callback) {
-  return false;
-}
-
-void BleV2Medium::StopListeningForIncomingBleSockets() {}
 
 std::unique_ptr<ClientGattConnection> BleV2Medium::ConnectToGattServer(
     api::ble_v2::BlePeripheral& peripheral, Mtu mtu, PowerMode power_mode,
@@ -132,9 +121,15 @@ std::unique_ptr<ClientGattConnection> BleV2Medium::ConnectToGattServer(
   return nullptr;
 }
 
-std::unique_ptr<BleSocket> BleV2Medium::EstablishBleSocket(
-    api::ble_v2::BlePeripheral* peripheral,
-    const BleSocketLifeCycleCallback& callback) {
+std::unique_ptr<api::ble_v2::BleServerSocket> BleV2Medium::OpenServerSocket(
+    const std::string& service_id) {
+  return nullptr;
+}
+
+std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
+    const std::string& service_id, api::ble_v2::PowerMode power_mode,
+    api::ble_v2::BlePeripheral& peripheral,
+    CancellationFlag* cancellation_flag) {
   return nullptr;
 }
 

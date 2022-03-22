@@ -41,7 +41,7 @@ TEST(AdvertisementReadResultTest, AdvertisementExists) {
   AdvertisementReadResult advertisement_read_result(test_config);
   advertisement_read_result.RecordLastReadStatus(/* is_success= */ true);
 
-  std::int32_t slot = 6;
+  int slot = 6;
   advertisement_read_result.AddAdvertisement(slot,
                                              ByteArray(kAdvertisementBytes));
 
@@ -52,7 +52,7 @@ TEST(AdvertisementReadResultTest, AdvertisementNonExistent) {
   AdvertisementReadResult advertisement_read_result(test_config);
   advertisement_read_result.RecordLastReadStatus(/* is_success= */ true);
 
-  std::int32_t slot = 6;
+  int slot = 6;
 
   EXPECT_FALSE(advertisement_read_result.HasAdvertisement(slot));
 }
@@ -114,7 +114,7 @@ TEST(AdvertisementReadResultTest, ReportStatusExponentialBackoffMax) {
   advertisement_read_result.RecordLastReadStatus(/* is_success= */ false);
 
   // Record an absurd amount of failures so we hit the maximum backoff duration.
-  for (std::int32_t i = 0; i < 1000; i++) {
+  for (int i = 0; i < 1000; i++) {
     advertisement_read_result.RecordLastReadStatus(/* is_success= */ false);
   }
 
