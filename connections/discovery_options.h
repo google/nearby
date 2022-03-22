@@ -40,6 +40,7 @@ struct DiscoveryOptions : OptionsBase {
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;
   std::string fast_advertisement_service_uuid;
+  bool low_power = false;
 
   // Returns a copy and normalizes allowed mediums:
   // (1) If is_out_of_band_connection is true, verifies that there is only one

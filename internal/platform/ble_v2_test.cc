@@ -144,6 +144,25 @@ TEST_F(BleV2MediumTest, CanStartGattServer) {
   env_.Stop();
 }
 
+TEST_F(BleV2MediumTest, CanStartScanning) {
+  env_.Start();
+  BluetoothAdapter adapter_;
+  BleV2Medium ble{adapter_};
+  std::vector<std::string> service_uuids{std::string(kCoprsenseServiceUuid)};
+
+  EXPECT_TRUE(ble.StartScanning(
+      service_uuids, kPowerMode,
+      {
+          .advertisement_found_cb =
+              [](BleV2Peripheral& peripheral,
+                 const BleAdvertisementData& advertisement_data) {
+                // nothing to do for now
+              },
+      }));
+  EXPECT_TRUE(ble.StopScanning());
+  env_.Stop();
+}
+
 }  // namespace
 }  // namespace nearby
 }  // namespace location

@@ -22,10 +22,11 @@
 #include <type_traits>
 #include <utility>
 
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/prng.h"
-#include "internal/platform/count_down_latch.h"
 
 namespace location {
 namespace nearby {
@@ -230,12 +231,24 @@ void MediumEnvironment::OnBlePeripheralStateChanged(
 }
 
 void MediumEnvironment::OnBleV2PeripheralStateChanged(
-    bool is_fast_advertisement, bool enabled, BleV2MediumContext& info) {
+    bool enabled, BleV2MediumContext& info,
+    const api::ble_v2::BleAdvertisementData& ble_advertisement_data,
+    api::ble_v2::BlePeripheral& mutable_peripheral) {
   if (!enabled_) return;
-  NEARBY_LOGS(INFO) << "G3 OnBleServiceStateChanged, context=" << &info
-                    << ", notify=" << enable_notifications_.load();
+  NEARBY_LOGS(INFO) << "G3 OnBleServiceStateChanged [peripheral impl="
+                    << &mutable_peripheral << "]; context=" << &info
+                    << "; notify=" << enable_notifications_.load();
   if (!enable_notifications_) return;
-  // TODO(edwinwu): Report Advertisement found
+  RunOnMediumEnvironmentThread([&info, enabled, &mutable_peripheral,
+                                &ble_advertisement_data]() {
+    NEARBY_LOGS(INFO) << "G3 [Run] OnBleServiceStateChanged [peripheral impl="
+                      << &mutable_peripheral << "]; context=" << &info
+                      << "; notify=" << enabled;
+    if (enabled) {
+      info.scan_callback.advertisement_found_cb(mutable_peripheral,
+                                                ble_advertisement_data);
+    }
+  });
 }
 
 void MediumEnvironment::OnWifiLanServiceStateChanged(
@@ -498,11 +511,12 @@ void MediumEnvironment::RegisterBleV2Medium(api::ble_v2::BleMedium& medium) {
 
 // TODO(b/213691253): Add g3 BleV2 medium tests after more functions are ready.
 void MediumEnvironment::UpdateBleV2MediumForAdvertising(
-    bool is_fast_advertisement, bool enabled, api::ble_v2::BleMedium& medium,
-    ByteArray* advertisement_byte) {
+    bool enabled, api::ble_v2::BleMedium& medium,
+    api::ble_v2::BlePeripheral& peripheral,
+    api::ble_v2::BleAdvertisementData advertisement_data) {
   if (!enabled_) return;
-  RunOnMediumEnvironmentThread([this, &medium, advertisement_byte,
-                                is_fast_advertisement, enabled]() {
+  RunOnMediumEnvironmentThread([this, &medium, &peripheral, &advertisement_data,
+                                enabled]() {
     auto it = ble_v2_mediums_.find(&medium);
     if (it == ble_v2_mediums_.end()) {
       NEARBY_LOGS(INFO) << "UpdateBleMediumForAdvertising failed. There is no "
@@ -510,20 +524,51 @@ void MediumEnvironment::UpdateBleV2MediumForAdvertising(
       return;
     }
     auto& context = it->second;
-    context.advertisement_byte = advertisement_byte;
-    context.is_fast_advertisement = is_fast_advertisement;
+    context.ble_peripheral = &peripheral;
+    context.advertising = enabled;
+    context.advertisement_data = &advertisement_data;
     NEARBY_LOGS(INFO) << "Update Ble medium for advertising: this=" << this
-                      << ", medium=" << &medium
-                      << ", is_fast_advertisement=" << is_fast_advertisement
-                      << ", enabled=" << enabled;
+                      << ", medium=" << &medium << ", enabled=" << enabled;
     for (auto& medium_info : ble_v2_mediums_) {
       auto& local_medium = medium_info.first;
       auto& info = medium_info.second;
       // Do not send notification to the same medium.
       if (local_medium == &medium) continue;
-      OnBleV2PeripheralStateChanged(is_fast_advertisement, enabled, info);
+      OnBleV2PeripheralStateChanged(enabled, info, advertisement_data,
+                                    peripheral);
     }
   });
+}
+
+void MediumEnvironment::UpdateBleV2MediumForScanning(
+    bool enabled, BleScanCallback callback, api::ble_v2::BleMedium& medium) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread(
+      [this, &medium, callback = std::move(callback), enabled]() {
+        auto it = ble_v2_mediums_.find(&medium);
+        if (it == ble_v2_mediums_.end()) {
+          NEARBY_LOGS(INFO)
+              << "UpdateBleMediumFoScanning failed. There is no medium "
+                 "registered.";
+          return;
+        }
+        auto& context = it->second;
+        context.scan_callback = std::move(callback);
+        NEARBY_LOGS(INFO) << "Update Ble medium for scanning: this=" << this
+                          << ", medium=" << &medium << ", enabled=" << enabled;
+        for (auto& medium_info : ble_v2_mediums_) {
+          auto& local_medium = medium_info.first;
+          auto& info = medium_info.second;
+          // Do not send notification to the same medium.
+          if (local_medium == &medium) continue;
+          // Search advertising mediums and send notification.
+          if (info.advertising && enabled) {
+            OnBleV2PeripheralStateChanged(enabled, context,
+                                          *(info.advertisement_data),
+                                          *(info.ble_peripheral));
+          }
+        }
+      });
 }
 
 void MediumEnvironment::UnregisterBleV2Medium(api::ble_v2::BleMedium& medium) {

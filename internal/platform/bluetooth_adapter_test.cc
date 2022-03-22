@@ -24,6 +24,105 @@ namespace location {
 namespace nearby {
 namespace {
 
+constexpr absl::string_view kMacAddress = "4C:8B:1D:CE:BA:D1";
+constexpr absl::string_view kId{"AB12"};
+
+class BlePeripheralStub : public api::ble_v2::BlePeripheral {
+ public:
+  explicit BlePeripheralStub(absl::string_view mac_address) {
+    mac_address_ = mac_address;
+  }
+
+  std::string GetAddress() const override { return mac_address_; }
+
+ private:
+  std::string mac_address_;
+};
+
+TEST(BleV2PeripheralTest, ConstructionWorks) {
+  auto api_peripheral = std::make_unique<BlePeripheralStub>(kMacAddress);
+
+  BleV2Peripheral peripheral(api_peripheral.get());
+
+  EXPECT_TRUE(peripheral.IsValid());
+  EXPECT_EQ(peripheral.GetAddress(), kMacAddress);
+}
+
+TEST(BleV2PeripheralTest, SetIdAndPsmWorks) {
+  auto api_peripheral = std::make_unique<BlePeripheralStub>(kMacAddress);
+  ByteArray id{std::string(kId)};
+  int psm = 2;
+
+  BleV2Peripheral peripheral(api_peripheral.get());
+  peripheral.SetId(id);
+  peripheral.SetPsm(psm);
+
+  EXPECT_TRUE(peripheral.IsValid());
+  EXPECT_EQ(id, peripheral.GetId());
+  EXPECT_EQ(2, peripheral.GetPsm());
+}
+
+TEST(BleV2PeripheralTest, CopyConstructorAndAssignmentSuccess) {
+  auto api_peripheral = std::make_unique<BlePeripheralStub>(kMacAddress);
+  ByteArray id{std::string(kId)};
+  int psm = 2;
+
+  BleV2Peripheral peripheral(api_peripheral.get());
+  peripheral.SetId(id);
+  peripheral.SetPsm(psm);
+  EXPECT_TRUE(peripheral.IsValid());
+
+  BleV2Peripheral copy_peripheral_1(peripheral);
+
+  EXPECT_TRUE(copy_peripheral_1.IsValid());
+  EXPECT_EQ(kMacAddress, copy_peripheral_1.GetAddress());
+  EXPECT_EQ(id, copy_peripheral_1.GetId());
+  EXPECT_EQ(2, copy_peripheral_1.GetPsm());
+
+  BleV2Peripheral copy_periphera1_2 = peripheral;
+
+  EXPECT_TRUE(copy_periphera1_2.IsValid());
+  EXPECT_EQ(kMacAddress, copy_periphera1_2.GetAddress());
+  EXPECT_EQ(id, copy_periphera1_2.GetId());
+  EXPECT_EQ(2, copy_periphera1_2.GetPsm());
+}
+
+TEST(BleV2PeripheralTest, MoveConstructorSuccess) {
+  auto api_peripheral = std::make_unique<BlePeripheralStub>(kMacAddress);
+  ByteArray id{std::string(kId)};
+  int psm = 2;
+
+  BleV2Peripheral peripheral(api_peripheral.get());
+  peripheral.SetId(id);
+  peripheral.SetPsm(psm);
+  EXPECT_TRUE(peripheral.IsValid());
+
+  BleV2Peripheral move_peripheral(std::move(peripheral));
+
+  EXPECT_TRUE(move_peripheral.IsValid());
+  EXPECT_EQ(kMacAddress, move_peripheral.GetAddress());
+  EXPECT_EQ(id, move_peripheral.GetId());
+  EXPECT_EQ(2, move_peripheral.GetPsm());
+}
+
+TEST(BleV2PeripheralTest, MoveAssignmentSuccess) {
+  auto api_peripheral = std::make_unique<BlePeripheralStub>(kMacAddress);
+  ByteArray id{std::string(kId)};
+  int psm = 2;
+
+  BleV2Peripheral peripheral(api_peripheral.get());
+  peripheral.SetId(id);
+  peripheral.SetPsm(psm);
+  EXPECT_TRUE(peripheral.IsValid());
+
+  BleV2Peripheral move_peripheral = std::move(peripheral);
+
+  EXPECT_TRUE(move_peripheral.IsValid());
+  EXPECT_EQ(kMacAddress, move_peripheral.GetAddress());
+  EXPECT_EQ(id, move_peripheral.GetId());
+  EXPECT_EQ(2, move_peripheral.GetPsm());
+}
+
 TEST(BluetoothAdapterTest, ConstructorDestructorWorks) {
   BluetoothAdapter adapter;
   EXPECT_TRUE(adapter.IsValid());

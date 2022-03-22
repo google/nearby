@@ -448,6 +448,49 @@ TEST(BleAdvertisementTest,
   EXPECT_FALSE(corrupted_ble_advertisement.IsValid());
 }
 
+TEST(BleAdvertisementTest, ConstructionWorksWithPsmValue) {
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray data{std::string(kData)};
+  ByteArray device_token{std::string(kDeviceToken)};
+  int psm = 128;
+
+  BleAdvertisement ble_advertisement(kVersion, kSocketVersion, service_id_hash,
+                                     data, device_token, psm);
+
+  EXPECT_TRUE(ble_advertisement.IsValid());
+  EXPECT_FALSE(ble_advertisement.IsFastAdvertisement());
+  EXPECT_EQ(kVersion, ble_advertisement.GetVersion());
+  EXPECT_EQ(kSocketVersion, ble_advertisement.GetSocketVersion());
+  EXPECT_EQ(service_id_hash, ble_advertisement.GetServiceIdHash());
+  EXPECT_EQ(data.size(), ble_advertisement.GetData().size());
+  EXPECT_EQ(data, ble_advertisement.GetData());
+  EXPECT_EQ(device_token, ble_advertisement.GetDeviceToken());
+  EXPECT_EQ(psm, ble_advertisement.GetPsm());
+}
+
+TEST(BleAdvertisementTest, ConstructionFromSerializedBytesWithPsmValueWorks) {
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray data{std::string(kData)};
+  ByteArray device_token{std::string(kDeviceToken)};
+  int psm = 128;
+
+  BleAdvertisement org_ble_advertisement(
+      kVersion, kSocketVersion, service_id_hash, data, device_token, psm);
+  ByteArray ble_advertisement_bytes =
+      org_ble_advertisement.ByteArrayWithExtraField();
+  BleAdvertisement ble_advertisement(ble_advertisement_bytes);
+
+  EXPECT_TRUE(ble_advertisement.IsValid());
+  EXPECT_FALSE(ble_advertisement.IsFastAdvertisement());
+  EXPECT_EQ(kVersion, ble_advertisement.GetVersion());
+  EXPECT_EQ(kSocketVersion, ble_advertisement.GetSocketVersion());
+  EXPECT_EQ(service_id_hash, ble_advertisement.GetServiceIdHash());
+  EXPECT_EQ(data.size(), ble_advertisement.GetData().size());
+  EXPECT_EQ(data, ble_advertisement.GetData());
+  EXPECT_EQ(device_token, ble_advertisement.GetDeviceToken());
+  EXPECT_EQ(psm, ble_advertisement.GetPsm());
+}
+
 }  // namespace
 }  // namespace mediums
 }  // namespace connections

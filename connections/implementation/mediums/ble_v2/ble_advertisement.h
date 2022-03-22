@@ -17,6 +17,7 @@
 
 #include <utility>
 
+#include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "internal/platform/byte_array.h"
 
 namespace location {
@@ -27,11 +28,13 @@ namespace mediums {
 // Represents the format of the Mediums BLE Advertisement used in Advertising +
 // Discovery.
 //
-// [VERSION][SOCKET_VERSION][FAST_ADVERTISEMENT_FLAG][1_RESERVED_BIT][SERVICE_ID_HASH][DATA_SIZE][DATA][DEVICE_TOKEN]
+// [VERSION][SOCKET_VERSION][FAST_ADVERTISEMENT_FLAG][1_RESERVED_BIT][SERVICE_ID_HASH]
+// [DATA_SIZE][DATA][DEVICE_TOKEN][EXTRA_FIELD]
 //
 // For fast advertisement, we remove SERVICE_ID_HASH since we already have one
 // copy in Nearby Connections(b/138447288)
-// [VERSION][SOCKET_VERSION][FAST_ADVERTISEMENT_FLAG][1_RESERVED_BIT][DATA_SIZE][DATA][DEVICE_TOKEN]
+// [VERSION][SOCKET_VERSION][FAST_ADVERTISEMENT_FLAG][1_RESERVED_BIT][DATA_SIZE]
+// [DATA][DEVICE_TOKEN][EXTRA_FIELD]
 //
 // See go/nearby-ble-design for more information.
 class BleAdvertisement {
@@ -57,10 +60,20 @@ class BleAdvertisement {
   static constexpr int kServiceIdHashLength = 3;
   static constexpr int kDeviceTokenLength = 2;
 
+  // Hashable
+  bool operator==(const BleAdvertisement &rhs) const;
+  template <typename H>
+  friend H AbslHashValue(H h, const BleAdvertisement &b) {
+    return H::combine(std::move(h), b.version_, b.socket_version_,
+                      b.fast_advertisement_, b.service_id_hash_, b.data_,
+                      b.device_token_, b.psm_);
+  }
+
   BleAdvertisement() = default;
   BleAdvertisement(Version version, SocketVersion socket_version,
                    const ByteArray &service_id_hash, const ByteArray &data,
-                   const ByteArray &device_token);
+                   const ByteArray &device_token,
+                   int psm = BleAdvertisementHeader::kDefaultPsmValue);
   explicit BleAdvertisement(const ByteArray &ble_advertisement_bytes);
   BleAdvertisement(const BleAdvertisement &) = default;
   BleAdvertisement &operator=(const BleAdvertisement &) = default;
@@ -68,10 +81,11 @@ class BleAdvertisement {
   BleAdvertisement &operator=(BleAdvertisement &&) = default;
   ~BleAdvertisement() = default;
 
+  // Returns ByteArray for legacy advertisement.
   explicit operator ByteArray() const;
-  // Operator overloads when comparing BleAdvertisement.
-  bool operator==(const BleAdvertisement &rhs) const;
-  bool operator<(const BleAdvertisement &rhs) const;
+
+  // Returns ByteArray for extended advertisement, which included extra field.
+  ByteArray ByteArrayWithExtraField() const;
 
   bool IsValid() const { return IsSupportedVersion(version_); }
   Version GetVersion() const { return version_; }
@@ -83,12 +97,13 @@ class BleAdvertisement {
   ByteArray &&GetData() && { return std::move(data_); }
   const ByteArray &&GetData() const && { return std::move(data_); }
   ByteArray GetDeviceToken() const { return device_token_; }
+  int GetPsm() const { return psm_; }
 
  private:
   void DoInitialize(bool fast_advertisement, Version version,
                     SocketVersion socket_version,
                     const ByteArray &service_id_hash, const ByteArray &data,
-                    const ByteArray &device_token);
+                    const ByteArray &device_token, int psm);
   bool IsSupportedVersion(Version version) const;
   bool IsSupportedSocketVersion(SocketVersion socket_version) const;
   void SerializeDataSize(bool fast_advertisement,
@@ -129,6 +144,7 @@ class BleAdvertisement {
   ByteArray service_id_hash_;
   ByteArray data_;
   ByteArray device_token_;
+  int psm_ = BleAdvertisementHeader::kDefaultPsmValue;
 };
 
 }  // namespace mediums

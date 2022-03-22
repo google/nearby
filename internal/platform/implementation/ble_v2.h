@@ -31,6 +31,7 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/cancellation_flag.h"
 
 namespace location {
 namespace nearby {
@@ -78,8 +79,7 @@ struct BleAdvertisementData {
   absl::flat_hash_map<std::string, location::nearby::ByteArray> service_data;
 };
 
-// TODO(b/213835576): Refactor BlePeripheral. The one in BluetoothAdapter
-// should be considered, too. Opaque wrapper over a BLE peripheral. Must be
+// Opaque wrapper over a BLE peripheral. Must be
 // able to uniquely identify a peripheral so that we can connect to its GATT
 // server.
 class BlePeripheral {
@@ -90,7 +90,7 @@ class BlePeripheral {
   //
   // This should be the MAC address when possible. If the implementation is
   // unable to retrieve that, any unique identifier should suffice.
-  virtual std::string GetId() const = 0;
+  virtual std::string GetAddress() const = 0;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic
@@ -271,26 +271,20 @@ class BleSocket {
   virtual OutputStream& GetOutputStream() = 0;
 };
 
-// Callback for asynchronous events on a BleSocket object.
-class BleSocketLifeCycleCallback {
+class BleServerSocket {
  public:
-  virtual ~BleSocketLifeCycleCallback() = default;
+  virtual ~BleServerSocket() = default;
 
-  // Called when a message arrives on a socket.
-  virtual void OnMessageReceived(BleSocket* socket,
-                                 const ByteArray& message) = 0;
+  // Blocks until either:
+  // - at least one incoming connection request is available, or
+  // - ServerSocket is closed.
+  // On success, returns connected socket, ready to exchange data.
+  // Returns nullptr on error.
+  // Once error is reported, it is permanent, and ServerSocket has to be closed.
+  virtual std::unique_ptr<BleSocket> Accept() = 0;
 
-  // Called when a socket gets disconnected.
-  virtual void OnDisconnected(BleSocket* socket) = 0;
-};
-
-// Callback for asynchronous events on the server side of a BleSocket object.
-class ServerBleSocketLifeCycleCallback : public BleSocketLifeCycleCallback {
- public:
-  ~ServerBleSocketLifeCycleCallback() override {}
-
-  // Called when a new incoming socket has been established.
-  virtual void OnSocketEstablished(BleSocket* socket) = 0;
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  virtual Exception Close() = 0;
 };
 
 // The main BLE medium used inside of Nearby. This serves as the entry point
@@ -332,8 +326,10 @@ class BleMedium {
   // Ownership of the BleAdvertisementData transfers to the caller at this
   // point.
   struct ScanCallback {
-    std::function<void(const BleAdvertisementData& advertisement_data)>
-        advertisement_found_cb = DefaultCallback<const BleAdvertisementData&>();
+    std::function<void(BlePeripheral& peripheral,
+                       const BleAdvertisementData& advertisement_data)>
+        advertisement_found_cb =
+            DefaultCallback<BlePeripheral&, const BleAdvertisementData&>();
   };
 
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeScanner.html#startScan(java.util.List%3Candroid.bluetooth.le.ScanFilter%3E,%20android.bluetooth.le.ScanSettings,%20android.bluetooth.le.ScanCallback)
@@ -361,13 +357,6 @@ class BleMedium {
   virtual std::unique_ptr<GattServer> StartGattServer(
       ServerGattConnectionCallback callback) = 0;
 
-  // Starts listening for incoming BLE sockets and returns false upon error.
-  virtual bool StartListeningForIncomingBleSockets(
-      const ServerBleSocketLifeCycleCallback& callback) = 0;
-
-  // Stops listening for incoming BLE sockets.
-  virtual void StopListeningForIncomingBleSockets() = 0;
-
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#connectGatt(android.content.Context,%20boolean,%20android.bluetooth.BluetoothGattCallback)
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#requestConnectionPriority(int)
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#requestMtu(int)
@@ -387,11 +376,20 @@ class BleMedium {
       BlePeripheral& peripheral, Mtu mtu, PowerMode power_mode,
       ClientGattConnectionCallback callback) = 0;
 
-  // Establishes a BLE socket to the specified remote peripheral. Returns
-  // nullptr on error.
-  virtual std::unique_ptr<BleSocket> EstablishBleSocket(
-      BlePeripheral* peripheral,
-      const BleSocketLifeCycleCallback& callback) = 0;
+  // Opens a BLE server socket based on service ID.
+  //
+  // On success, returns a new BleServerSocket.
+  // On error, returns nullptr.
+  virtual std::unique_ptr<BleServerSocket> OpenServerSocket(
+      const std::string& service_id) = 0;
+
+  // Connects to a BLE peripheral.
+  //
+  // On success, returns a new BleSocket.
+  // On error, returns nullptr.
+  virtual std::unique_ptr<BleSocket> Connect(
+      const std::string& service_id, PowerMode power_mode,
+      BlePeripheral& peripheral, CancellationFlag* cancellation_flag) = 0;
 };
 
 }  // namespace ble_v2

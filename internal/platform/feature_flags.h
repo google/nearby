@@ -42,6 +42,8 @@ class FeatureFlags {
     absl::Duration bwu_retry_exp_backoff_maximum_delay = absl::Seconds(300);
     // Support sending file and stream payloads starting from a non-zero offset.
     bool enable_send_payload_offset = true;
+    // Ble v2/v1 switch flag; the flag will be removed once v2 refactor is done.
+    bool support_ble_v2 = false;
   };
 
   static const FeatureFlags& GetInstance() {
