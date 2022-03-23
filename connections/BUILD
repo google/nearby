@@ -59,6 +59,7 @@ cc_library(
         "out_of_band_connection_metadata.h",
         "params.h",
         "payload.h",
+        "payload_type.h",
         "power_level.h",
         "status.h",
         "strategy.h",

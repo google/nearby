@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "absl/types/variant.h"
+#include "connections/payload_type.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/core_config.h"
 #include "internal/platform/file.h"
@@ -43,7 +44,6 @@ class DLL_API Payload {
   // Enum values must match respective variant types.
   using Content = absl::variant<absl::monostate, ByteArray,
                                 std::function<InputStream&()>, InputFile>;
-  enum class Type { kUnknown = 0, kBytes = 1, kStream = 2, kFile = 3 };
 
   Payload(Payload&& other) noexcept;
   ~Payload();
@@ -93,7 +93,7 @@ class DLL_API Payload {
   Id GetId() const;
 
   // Returns Payload type.
-  Type GetType() const;
+  PayloadType GetType() const;
 
   // Sets the payload offset in bytes
   void SetOffset(size_t offset);
@@ -107,7 +107,7 @@ class DLL_API Payload {
   const std::string& GetParentFolder() const;
 
  private:
-  Type FindType() const;
+  PayloadType FindType() const;
 
   Id id_{GenerateId()};
   size_t offset_{0};
@@ -115,7 +115,7 @@ class DLL_API Payload {
   std::string parent_folder_;
   std::string file_name_;
 
-  Type type_{FindType()};
+  PayloadType type_{FindType()};
   Content content_;
 };
 

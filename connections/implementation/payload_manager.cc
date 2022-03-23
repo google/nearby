@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -226,15 +226,15 @@ std::string PayloadManager::ToString(const EndpointIds& endpoint_ids) {
   return endpoints_string;
 }
 
-std::string PayloadManager::ToString(Payload::Type type) {
+std::string PayloadManager::ToString(PayloadType type) {
   switch (type) {
-    case Payload::Type::kBytes:
+    case PayloadType::kBytes:
       return std::string("Bytes");
-    case Payload::Type::kStream:
+    case PayloadType::kStream:
       return std::string("Stream");
-    case Payload::Type::kFile:
+    case PayloadType::kFile:
       return std::string("File");
-    case Payload::Type::kUnknown:
+    case PayloadType::kUnknown:
       return std::string("Unknown");
   }
 }
@@ -355,14 +355,14 @@ void PayloadManager::SendPayload(ClientProxy* client,
   // analytics.
   std::int64_t payload_total_size;
   switch (payload.GetType()) {
-    case connections::Payload::Type::kBytes:
+    case connections::PayloadType::kBytes:
       payload_total_size = payload.AsBytes().size();
       break;
-    case connections::Payload::Type::kFile:
+    case connections::PayloadType::kFile:
       payload_total_size = payload.AsFile()->GetTotalSize();
       break;
-    case connections::Payload::Type::kStream:
-    case connections::Payload::Type::kUnknown:
+    case connections::PayloadType::kStream:
+    case connections::PayloadType::kUnknown:
       payload_total_size = -1;
       break;
   }
@@ -386,7 +386,7 @@ void PayloadManager::SendPayload(ClientProxy* client,
   // other payload of the same type from even starting until this one is
   // completely done with. If we ever want to provide isolation across
   // ClientProxy objects this will need to be significantly re-architected.
-  Payload::Type payload_type = payload.GetType();
+  PayloadType payload_type = payload.GetType();
   size_t resume_offset =
       FeatureFlags::GetInstance().GetFlags().enable_send_payload_offset
           ? payload.GetOffset()
@@ -590,13 +590,13 @@ PayloadProgressInfo::Status PayloadManager::PayloadStatusToTransferUpdateStatus(
 }
 
 SingleThreadExecutor* PayloadManager::GetOutgoingPayloadExecutor(
-    Payload::Type payload_type) {
+    PayloadType payload_type) {
   switch (payload_type) {
-    case Payload::Type::kBytes:
+    case PayloadType::kBytes:
       return &bytes_payload_executor_;
-    case Payload::Type::kFile:
+    case PayloadType::kFile:
       return &file_payload_executor_;
-    case Payload::Type::kStream:
+    case PayloadType::kStream:
       return &stream_payload_executor_;
     default:
       return nullptr;
@@ -1109,7 +1109,7 @@ void PayloadManager::NotifyClientOfIncomingPayloadProgressInfo(
 
 void PayloadManager::RecordPayloadStartedAnalytics(
     ClientProxy* client, const EndpointIds& endpoint_ids,
-    std::int64_t payload_id, Payload::Type payload_type, std::int64_t offset,
+    std::int64_t payload_id, PayloadType payload_type, std::int64_t offset,
     std::int64_t total_size) {
   client->GetAnalyticsRecorder().OnOutgoingPayloadStarted(
       endpoint_ids, payload_id, payload_type,
@@ -1118,7 +1118,7 @@ void PayloadManager::RecordPayloadStartedAnalytics(
 
 void PayloadManager::RecordInvalidPayloadAnalytics(
     ClientProxy* client, const EndpointIds& endpoint_ids,
-    std::int64_t payload_id, Payload::Type payload_type, std::int64_t offset,
+    std::int64_t payload_id, PayloadType payload_type, std::int64_t offset,
     std::int64_t total_size) {
   RecordPayloadStartedAnalytics(client, endpoint_ids, payload_id, payload_type,
                                 offset, total_size);
@@ -1129,17 +1129,17 @@ void PayloadManager::RecordInvalidPayloadAnalytics(
   }
 }
 
-Payload::Type PayloadManager::FramePayloadTypeToPayloadType(
+PayloadType PayloadManager::FramePayloadTypeToPayloadType(
     PayloadTransferFrame::PayloadHeader::PayloadType type) {
   switch (type) {
     case PayloadTransferFrame_PayloadHeader_PayloadType_BYTES:
-      return connections::Payload::Type::kBytes;
+      return connections::PayloadType::kBytes;
     case PayloadTransferFrame_PayloadHeader_PayloadType_FILE:
-      return connections::Payload::Type::kFile;
+      return connections::PayloadType::kFile;
     case PayloadTransferFrame_PayloadHeader_PayloadType_STREAM:
-      return connections::Payload::Type::kStream;
+      return connections::PayloadType::kStream;
     default:
-      return connections::Payload::Type::kUnknown;
+      return connections::PayloadType::kUnknown;
   }
 }
 

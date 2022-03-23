@@ -49,7 +49,7 @@ namespace connections {
 // PayloadManager::SendPayload() before control is transferred over to
 // EndpointManager::SendPayloadChunk(). This work happens on one of three
 // dedicated writer threads belonging to the PayloadManager. The writer thread
-// that is used depends on the Payload::Type.
+// that is used depends on the PayloadType.
 //
 // The EndpointManager has one dedicated reader thread for each registered
 // endpoint, and the receiving of every incoming payload (and its subsequent

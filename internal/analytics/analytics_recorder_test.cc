@@ -724,7 +724,7 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
   analytics_recorder.OnConnectionEstablished(endpoint_id, BLUETOOTH,
                                              connection_token);
   analytics_recorder.OnOutgoingPayloadStarted(
-      {endpoint_id}, payload_id, connections::Payload::Type::kFile, 50);
+      {endpoint_id}, payload_id, connections::PayloadType::kFile, 50);
   analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
   analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
   analytics_recorder.OnConnectionClosed(endpoint_id, BLUETOOTH, UPGRADED);

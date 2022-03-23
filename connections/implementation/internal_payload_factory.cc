@@ -296,14 +296,14 @@ using location::nearby::api::OSName;
 std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(
     Payload payload) {
   switch (payload.GetType()) {
-    case Payload::Type::kBytes:
+    case PayloadType::kBytes:
       return absl::make_unique<BytesInternalPayload>(std::move(payload));
 
-    case Payload::Type::kFile: {
+    case PayloadType::kFile: {
       return absl::make_unique<OutgoingFileInternalPayload>(std::move(payload));
     }
 
-    case Payload::Type::kStream:
+    case PayloadType::kStream:
       return absl::make_unique<OutgoingStreamInternalPayload>(
           std::move(payload));
 

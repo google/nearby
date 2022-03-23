@@ -132,7 +132,7 @@ void Core::InitiateBandwidthUpgrade(absl::string_view endpoint_id,
 
 void Core::SendPayload(absl::Span<const std::string> endpoint_ids,
                        Payload payload, ResultCallback callback) {
-  assert(payload.GetType() != Payload::Type::kUnknown);
+  assert(payload.GetType() != PayloadType::kUnknown);
   assert(!endpoint_ids.empty());
 
   router_->SendPayload(&client_, endpoint_ids, std::move(payload), callback);

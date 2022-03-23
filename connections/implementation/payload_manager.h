@@ -174,7 +174,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   using Endpoints = std::vector<const EndpointInfo*>;
   static std::string ToString(const EndpointIds& endpoint_ids);
   static std::string ToString(const Endpoints& endpoints);
-  static std::string ToString(Payload::Type type);
+  static std::string ToString(PayloadType type);
   static std::string ToString(EndpointInfo::Status status);
 
   // Splits the endpoints for this payload by availability.
@@ -277,7 +277,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       const PayloadProgressInfo& payload_transfer_update)
       RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD();
 
-  SingleThreadExecutor* GetOutgoingPayloadExecutor(Payload::Type payload_type);
+  SingleThreadExecutor* GetOutgoingPayloadExecutor(PayloadType payload_type);
 
   void RunOnStatusUpdateThread(const std::string& name,
                                std::function<void()> runnable);
@@ -291,17 +291,17 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   void RecordPayloadStartedAnalytics(ClientProxy* client,
                                      const EndpointIds& endpoint_ids,
                                      std::int64_t payload_id,
-                                     Payload::Type payload_type,
+                                     PayloadType payload_type,
                                      std::int64_t offset,
                                      std::int64_t total_size);
   void RecordInvalidPayloadAnalytics(ClientProxy* client,
                                      const EndpointIds& endpoint_ids,
                                      std::int64_t payload_id,
-                                     Payload::Type payload_type,
+                                     PayloadType payload_type,
                                      std::int64_t offset,
                                      std::int64_t total_size);
 
-  Payload::Type FramePayloadTypeToPayloadType(
+  PayloadType FramePayloadTypeToPayloadType(
       PayloadTransferFrame::PayloadHeader::PayloadType type);
 
   mutable Mutex mutex_;
