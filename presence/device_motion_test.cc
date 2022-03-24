@@ -20,11 +20,11 @@
 
 namespace nearby {
 namespace presence {
-
-static constexpr DeviceMotion::MotionType kDefaultMotionType =
+namespace {
+static const DeviceMotion::MotionType kDefaultMotionType =
     DeviceMotion::MotionType::kPointAndHold;
-static constexpr float kDefaultConfidence = 0;
-static constexpr float kConfidenceForTest = 0.1;
+static const float kDefaultConfidence = 0;
+static const float kConfidenceForTest = 0.1;
 TEST(DeviceMotionTest, DefaultConstructorWorks) {
   DeviceMotion motion;
   EXPECT_EQ(motion.GetMotionType(), kDefaultMotionType);
@@ -56,5 +56,6 @@ TEST(DeviceMotionTest, CopyInitEquals) {
   EXPECT_EQ(motion1, motion2);
 }
 
+}  // namespace
 }  // namespace presence
 }  // namespace nearby

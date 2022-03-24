@@ -20,9 +20,10 @@
 
 namespace nearby {
 namespace presence {
-static constexpr PresenceIdentity::IdentityType kDefaultIdentityType =
+namespace {
+constexpr PresenceIdentity::IdentityType kDefaultIdentityType =
     PresenceIdentity::IdentityType::kPrivate;
-static constexpr PresenceIdentity::IdentityType kTestIdentityType =
+constexpr PresenceIdentity::IdentityType kTestIdentityType =
     PresenceIdentity::IdentityType::kTrusted;
 
 TEST(PresenceIdentityTest, DefaultIsError) {
@@ -55,5 +56,6 @@ TEST(PresenceIdentityTest, CopyInitEquals) {
   EXPECT_EQ(identity1, identity2);
 }
 
+}  // namespace
 }  // namespace presence
 }  // namespace nearby

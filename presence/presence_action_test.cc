@@ -20,8 +20,9 @@
 
 namespace nearby {
 namespace presence {
-static constexpr int kDefaultActionIdentifier = 1;
-static constexpr int kTestActionIdentifier = 2;
+namespace {
+constexpr int kDefaultActionIdentifier = 1;
+constexpr int kTestActionIdentifier = 2;
 TEST(PresenceActionTest, DefaultConstructorWorks) {
   PresenceAction action;
   EXPECT_EQ(action.GetActionIdentifier(), kDefaultActionIdentifier);
@@ -53,5 +54,6 @@ TEST(PresenceActionTest, CopyInitEquals) {
   EXPECT_EQ(action1, action2);
 }
 
+}  // namespace
 }  // namespace presence
 }  // namespace nearby

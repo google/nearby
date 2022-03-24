@@ -12,32 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_IDENTITY_H_
-#define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_IDENTITY_H_
+#include "third_party/nearby/presence/discovery_filter.h"
 
 namespace nearby {
 namespace presence {
-class PresenceIdentity {
- public:
-  enum class IdentityType {
-    kPrivate = 0,
-    kTrusted,
-  };
-  PresenceIdentity(IdentityType type = IdentityType::kPrivate) noexcept;
-  IdentityType GetIdentityType() const;
 
- private:
-  const IdentityType identity_type_;
-};
-
-inline bool operator==(const PresenceIdentity& i1, const PresenceIdentity& i2) {
-  return i1.GetIdentityType() == i2.GetIdentityType();
+DiscoveryFilter::DiscoveryFilter(
+    const std::vector<PresenceAction>& actions,
+    const std::vector<PresenceIdentity>& identities,
+    const std::vector<PresenceZone>& zones) noexcept
+    : actions_(actions), identities_(identities), zones_(zones) {}
+std::vector<PresenceAction> DiscoveryFilter::GetActions() const {
+  return actions_;
 }
-
-inline bool operator!=(const PresenceIdentity& i1, const PresenceIdentity& i2) {
-  return !(i1 == i2);
+std::vector<PresenceIdentity> DiscoveryFilter::GetIdentities() const {
+  return identities_;
 }
+std::vector<PresenceZone> DiscoveryFilter::GetZones() const { return zones_; }
+
 }  // namespace presence
 }  // namespace nearby
-
-#endif  // THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_IDENTITY_H_

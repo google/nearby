@@ -20,7 +20,6 @@ namespace presence {
 class PresenceAction {
  public:
   PresenceAction(int action_identifier = 1);
-  ~PresenceAction() noexcept = default;
   int GetActionIdentifier() const;
 
  private:

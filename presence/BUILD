@@ -17,13 +17,18 @@ cc_library(
     name = "types",
     srcs = [
         "device_motion.cc",
+        "discovery_filter.cc",
         "presence_action.cc",
         "presence_identity.cc",
+        "presence_zone.cc",
     ],
     hdrs = [
         "device_motion.h",
+        "discovery_filter.h",
+        "discovery_options.h",
         "presence_action.h",
         "presence_identity.h",
+        "presence_zone.h",
     ],
     visibility = [
         "//third_party/nearby/presence:__subpackages__",
@@ -40,8 +45,11 @@ cc_test(
     size = "small",
     srcs = [
         "device_motion_test.cc",
+        "discovery_filter_test.cc",
+        "discovery_options_test.cc",
         "presence_action_test.cc",
         "presence_identity_test.cc",
+        "presence_zone_test.cc",
     ],
     shard_count = 6,
     deps = [

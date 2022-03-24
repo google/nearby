@@ -12,32 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_IDENTITY_H_
-#define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_IDENTITY_H_
+#ifndef THIRD_PARTY_NEARBY_PRESENCE_DISCOVERY_OPTIONS_H_
+#define THIRD_PARTY_NEARBY_PRESENCE_DISCOVERY_OPTIONS_H_
 
 namespace nearby {
 namespace presence {
-class PresenceIdentity {
- public:
-  enum class IdentityType {
-    kPrivate = 0,
-    kTrusted,
-  };
-  PresenceIdentity(IdentityType type = IdentityType::kPrivate) noexcept;
-  IdentityType GetIdentityType() const;
-
- private:
-  const IdentityType identity_type_;
+struct DiscoveryOptions {
+  const bool local_wifi_only_;
 };
 
-inline bool operator==(const PresenceIdentity& i1, const PresenceIdentity& i2) {
-  return i1.GetIdentityType() == i2.GetIdentityType();
+inline bool operator==(const DiscoveryOptions& o1, const DiscoveryOptions& o2) {
+  return o1.local_wifi_only_ == o2.local_wifi_only_;
 }
 
-inline bool operator!=(const PresenceIdentity& i1, const PresenceIdentity& i2) {
-  return !(i1 == i2);
+inline bool operator!=(const DiscoveryOptions& o1, const DiscoveryOptions& o2) {
+  return !(o1 == o2);
 }
+
 }  // namespace presence
 }  // namespace nearby
-
-#endif  // THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_IDENTITY_H_
+#endif  // THIRD_PARTY_NEARBY_PRESENCE_DISCOVERY_OPTIONS_H_

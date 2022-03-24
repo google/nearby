@@ -24,7 +24,6 @@ class DeviceMotion {
   };
   DeviceMotion(MotionType motion_type = MotionType::kPointAndHold,
                float confidence = 0) noexcept;
-  ~DeviceMotion() noexcept = default;
   MotionType GetMotionType() const;
   float GetConfidence() const;
 
