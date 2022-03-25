@@ -57,6 +57,7 @@ cc_library(
         "bluetooth_classic.h",
         "server_sync.h",
         "wifi.h",
+        "wifi_hotspot.h",
         "wifi_lan.h",
     ],
     defines = ["NO_WEBRTC"],
