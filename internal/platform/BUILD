@@ -53,6 +53,7 @@ cc_library(
         "//internal/proto/analytics:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//third_party/nearby/cpp/cal:__subpackages__",
+        "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
         "@com_google_absl//absl/container:flat_hash_map",

@@ -36,8 +36,9 @@ class PresenceZone {
       kWithinTap,  // Distance is within tap range to the peer device, typically
                    // within ~0.127 meters.
     };
-    DistanceBoundary(float = 0, float = 0,
-                     RangeType = RangeType::kRangeUnknown) noexcept;
+    DistanceBoundary(float min_distance_meters = 0,
+                     float max_distance_meters = 0,
+                     RangeType range_type = RangeType::kRangeUnknown) noexcept;
     float GetMinDistanceMeters() const;
     float GetMaxDistanceMeters() const;
     RangeType GetRangeType() const;
@@ -50,7 +51,8 @@ class PresenceZone {
 
   class AngleOfArrivalBoundary {
    public:
-    AngleOfArrivalBoundary(float = 0, float = 0) noexcept;
+    AngleOfArrivalBoundary(float min_angle_degrees = 0,
+                           float max_angle_degrees = 0) noexcept;
     float GetMinAngleDegrees() const;
     float GetMaxAngleDegrees() const;
 
