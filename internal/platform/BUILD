@@ -42,6 +42,7 @@ cc_library(
         "runnable.h",
         "socket.h",
         "types.h",
+        "wifi_hotspot_credential.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     defines = ["NO_WEBRTC"],
@@ -56,6 +57,7 @@ cc_library(
         "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
+        "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/meta:type_traits",
         "@com_google_absl//absl/strings",
@@ -309,6 +311,7 @@ cc_library(
         "ble_v2.cc",
         "bluetooth_classic.cc",
         "file.cc",
+        "wifi_hotspot.cc",
         "wifi_lan.cc",
     ],
     hdrs = [
@@ -316,6 +319,7 @@ cc_library(
         "ble_v2.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
+        "wifi_hotspot.h",
         "wifi_lan.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],

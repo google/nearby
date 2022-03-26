@@ -18,7 +18,6 @@
 #include <shlobj.h>
 #include <windows.h>
 
-#include <xstring>
 #include <sstream>
 
 #include "internal/platform/implementation/shared/count_down_latch.h"
@@ -230,6 +229,12 @@ std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() {
 
 std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
   return absl::make_unique<windows::WifiLanMedium>();
+}
+
+std::unique_ptr<WifiHotspotMedium>
+ImplementationPlatform::CreateWifiHotspotMedium() {
+  return nullptr;
+// Todo:  return absl::make_unique<windows::WifiHotspotMedium>();
 }
 
 // TODO(b/184975123): replace with real implementation.
