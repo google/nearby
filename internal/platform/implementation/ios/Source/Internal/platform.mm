@@ -162,7 +162,9 @@ std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
   return std::make_unique<ios::WifiLanMedium>();
 }
 
+#ifndef NO_WEBRTC
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() { return nullptr; }
+#endif
 
 }  // namespace api
 }  // namespace nearby
