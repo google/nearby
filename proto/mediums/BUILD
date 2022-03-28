@@ -21,6 +21,7 @@ proto_library(
     srcs = [
         "nfc_frames.proto",
     ],
+    deps = ["//storage/datapol/annotations/proto:datapol_annotations"],  # copybara:strip(datapol)
 )
 
 java_lite_proto_library(

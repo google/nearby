@@ -16,6 +16,9 @@ syntax = "proto2";
 
 package location.nearby.mediums;
 
+import "storage/datapol/annotations/proto/semantic_annotations.proto"; // copybara:strip(datapol)
+
+option (datapol.file_vetting_status) = "latest";  // copybara:strip(datapol)
 option optimize_for = LITE_RUNTIME;
 option java_outer_classname = "NfcFramesProto";
 option java_package = "com.google.location.nearby.mediums.proto";
@@ -27,7 +30,8 @@ message AdvertisementData {
   optional bytes tag = 1;
 
   // A public key associated with the advertisement.
-  optional bytes public_key = 2;
+  optional bytes public_key = 2 /* copybara:strip_begin */
+      [(datapol.semantic_type) = ST_SECURITY_KEY] /* copybara:strip_end */;
 }
 
 // The data to be sent to advertisers from scanning device during discovery.
@@ -39,5 +43,6 @@ message AdvertisementRequest {
   optional string endpoint_id = 2;
 
   // Public key from the scanning device.
-  optional bytes public_key = 3;
+  optional bytes public_key = 3 /* copybara:strip_begin */
+      [(datapol.semantic_type) = ST_SECURITY_KEY] /* copybara:strip_end */;
 }
