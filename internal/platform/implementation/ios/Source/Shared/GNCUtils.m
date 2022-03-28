@@ -16,8 +16,6 @@
 
 #import <CommonCrypto/CommonDigest.h>
 
-#import "GoogleToolboxForMac/GTMStringEncoding.h"
-
 NS_ASSUME_NONNULL_BEGIN
 
 const int GNCSocketVersion = 2;
@@ -41,25 +39,6 @@ NSData *GNCMd5Data(NSData *data) {
 
 NSData *GNCMd5String(NSString *string) {
   return GNCMd5Data([string dataUsingEncoding:NSUTF8StringEncoding]);
-}
-
-static GTMStringEncoding *GNCBase64WebSafeEncodingNoPadding() {
-  static dispatch_once_t onceToken;
-  static GTMStringEncoding *encoding;
-  dispatch_once(&onceToken, ^{
-    encoding = [GTMStringEncoding stringEncodingWithString:
-        @"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"];
-    [encoding setDoPad:NO];
-  });
-  return encoding;
-}
-
-NSString *GNCBase64Encode(NSData *data) {
-  return [GNCBase64WebSafeEncodingNoPadding() encode:data error:nil];
-}
-
-NSData *GNCBase64Decode(NSString *string) {
-  return [GNCBase64WebSafeEncodingNoPadding() decode:string error:nil];
 }
 
 NS_ASSUME_NONNULL_END

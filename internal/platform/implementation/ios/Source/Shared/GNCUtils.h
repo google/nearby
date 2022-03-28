@@ -36,13 +36,6 @@ NSData *_Nullable GNCMd5Data(NSData *data);
 /// Generates an MD5 hash (16 bytes) from a string.
 NSData *_Nullable GNCMd5String(NSString *string);
 
-
-/// Base64-encode.
-NSString *GNCBase64Encode(NSData *data);
-
-/// Base64-decode.
-NSData *GNCBase64Decode(NSString *string);
-
 #ifdef __cplusplus
 } // extern "C"
 #endif
