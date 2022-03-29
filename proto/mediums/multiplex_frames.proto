@@ -1,0 +1,86 @@
+// Copyright 2022 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package location.nearby.mediums;
+
+option optimize_for = LITE_RUNTIME;
+option java_outer_classname = "MultiplexFramesProto";
+option java_package = "com.google.location.nearby.mediums.proto";
+option objc_class_prefix = "GNCM";
+
+// The frame used to transmit any type of frame on a virtual socket.
+message MultiplexFrame {
+  enum MultiplexFrameType {
+    UNKNOWN_FRAME_TYPE = 0;
+    CONTROL_FRAME = 1;
+    DATA_FRAME = 2;
+  }
+
+  optional MultiplexFrameType frame_type = 1;
+  oneof Frame {
+    MultiplexControlFrame control_frame = 2;
+    MultiplexDataFrame data_frame = 3;
+  }
+}
+
+// The control frame to establish, accept, reject or disconnect the virtual
+// socket.
+message MultiplexControlFrame {
+  enum MultiplexControlFrameType {
+    UNKNOWN_CONTROL_FRAME_TYPE = 0;
+    CONNECTION_REQUEST = 1;
+    CONNECTION_RESPONSE = 2;
+    DISCONNECTION = 3;
+  }
+
+  optional MultiplexControlFrameType control_frame_type = 1;
+
+  // Exactly one of the following fields will be set.
+  oneof Frame {
+    ConnectionRequestFrame connection_request_frame = 2;
+    ConnectionResponseFrame connection_response_frame = 3;
+    DisconnectFrame disconnect_frame = 4;
+  }
+}
+
+// The frame to request a virtual socket for the service ID.
+message ConnectionRequestFrame {
+  optional bytes service_id_hash = 1;
+}
+
+// The frame to accept or reject the CONNECTION_REQUEST.
+message ConnectionResponseFrame {
+  enum ConnectionResponseCode {
+    UNKNOWN_RESPONSE_CODE = 0;
+    CONNECTION_ACCEPTED = 1;
+    NEVER_LISTEN = 2;
+    MULTIPLEX_SOCKET_DISABLED = 3;
+  }
+
+  optional bytes service_id_hash = 1;
+  optional ConnectionResponseCode connection_response_code = 2;
+}
+
+// The frame to disconnect the virtual socket.
+message DisconnectFrame {
+  optional bytes service_id_hash = 1;
+}
+
+// The data frame used to transmit the data type bytes on a virtual socket.
+message MultiplexDataFrame {
+  optional bytes service_id_hash = 1;
+  optional bytes data = 2;
+}

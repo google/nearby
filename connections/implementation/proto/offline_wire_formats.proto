@@ -117,6 +117,9 @@ message ConnectionResponseFrame {
     REJECT = 2;
   }
   optional ResponseStatus response = 3;
+  // A bitmask value to indicate which medium supports Multiplex transmission
+  // feature.
+  optional int32 multiplex_socket_bitmask = 4;
 }
 
 message PayloadTransferFrame {

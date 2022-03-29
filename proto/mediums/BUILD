@@ -17,6 +17,22 @@ licenses(["notice"])
 package(default_visibility = ["//visibility:public"])
 
 proto_library(
+    name = "multiplex_frames_proto",
+    srcs = [
+        "multiplex_frames.proto",
+    ],
+)
+
+java_lite_proto_library(
+    name = "multiplex_frames_java_proto_lite",
+    visibility = [
+        "//java/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/mediums:__subpackages__",
+        "//javatests/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/mediums:__subpackages__",
+    ],
+    deps = [":multiplex_frames_proto"],
+)
+
+proto_library(
     name = "nfc_frames_proto",
     srcs = [
         "nfc_frames.proto",
