@@ -21,6 +21,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble.h"
+#include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/g3/single_thread_executor.h"
@@ -52,6 +53,21 @@ class BlePeripheral : public api::BlePeripheral {
 
   BluetoothAdapter& adapter_;
   ByteArray advertisement_bytes_;
+};
+
+// BlePeripheral implementation.
+class BleV2Peripheral : public api::ble_v2::BlePeripheral {
+ public:
+  std::string GetId() const override;
+  BluetoothAdapter& GetAdapter() { return adapter_; }
+
+ private:
+  // Only BluetoothAdapter may instantiate BlePeripheral.
+  friend class BluetoothAdapter;
+
+  explicit BleV2Peripheral(BluetoothAdapter* adapter);
+
+  BluetoothAdapter& adapter_;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
@@ -117,6 +133,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   }
 
   BlePeripheral& GetPeripheral() { return peripheral_; }
+  BleV2Peripheral& GetPeripheralV2() { return peripheral_v2_; }
 
   void SetBleMedium(api::BleMedium* medium);
   api::BleMedium* GetBleMedium() { return ble_medium_; }
@@ -127,6 +144,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   mutable absl::Mutex mutex_;
   BluetoothDevice device_{this};
   BlePeripheral peripheral_{this};
+  BleV2Peripheral peripheral_v2_{this};
   api::BluetoothClassicMedium* bluetooth_classic_medium_ = nullptr;
   api::BleMedium* ble_medium_ = nullptr;
   std::string mac_address_;

@@ -30,7 +30,7 @@ using ::location::nearby::api::ble_v2::GattCharacteristic;
 using ::location::nearby::api::ble_v2::PowerMode;
 
 constexpr absl::string_view kAdvertisementString{"\x0a\x0b\x0c\x0d"};
-constexpr absl::string_view kCoprsenseServiceUuid{"F3FE"};
+constexpr absl::string_view kCopresenceServiceUuid{"F3FE"};
 constexpr absl::string_view kFastAdvertisementServiceUuid{"FAST"};
 constexpr PowerMode kPowerMode(PowerMode::kHigh);
 
@@ -128,7 +128,7 @@ TEST_F(BleV2MediumTest, CanStartGattServer) {
   std::vector<GattCharacteristic::Property> properties{
       GattCharacteristic::Property::kRead};
   absl::optional<GattCharacteristic> gatt_characteristic =
-      gatt_server->CreateCharacteristic(std::string(kCoprsenseServiceUuid),
+      gatt_server->CreateCharacteristic(std::string(kCopresenceServiceUuid),
                                         characteristic_uuid, permissions,
                                         properties);
 
@@ -141,6 +141,24 @@ TEST_F(BleV2MediumTest, CanStartGattServer) {
 
   gatt_server->Stop();
 
+  env_.Stop();
+}
+
+TEST_F(BleV2MediumTest, CanStartScanning) {
+  env_.Start();
+  BluetoothAdapter adapter_;
+  BleV2Medium ble{adapter_};
+
+  EXPECT_TRUE(ble.StartScanning(
+      {std::string(kCopresenceServiceUuid)}, kPowerMode,
+      {
+          .advertisement_found_cb =
+              [](BleV2Peripheral peripheral,
+                 const BleAdvertisementData& advertisement_data) {
+                // nothing to do for now
+              },
+      }));
+  EXPECT_TRUE(ble.StopScanning());
   env_.Stop();
 }
 

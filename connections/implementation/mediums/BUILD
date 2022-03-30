@@ -102,6 +102,7 @@ cc_test(
     deps = [
         ":mediums",
         ":utils",
+        "//connections/implementation/mediums/ble_v2",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:test_util",

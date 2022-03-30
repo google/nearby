@@ -16,9 +16,9 @@
 
 #include <string>
 
+#include "internal/platform/implementation/g3/bluetooth_classic.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/prng.h"
-#include "internal/platform/implementation/g3/bluetooth_classic.h"
 
 namespace location {
 namespace nearby {
@@ -38,10 +38,16 @@ void BlePeripheral::SetAdvertisementBytes(
   advertisement_bytes_ = advertisement_bytes;
 }
 
+BleV2Peripheral::BleV2Peripheral(BluetoothAdapter* adapter)
+    : adapter_(*adapter) {}
+
+std::string BleV2Peripheral::GetId() const { return adapter_.GetMacAddress(); }
+
 BluetoothDevice::BluetoothDevice(BluetoothAdapter* adapter)
     : adapter_(*adapter) {}
 
 std::string BluetoothDevice::GetName() const { return adapter_.GetName(); }
+
 std::string BluetoothDevice::GetMacAddress() const {
   return adapter_.GetMacAddress();
 }

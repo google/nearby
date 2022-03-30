@@ -48,6 +48,26 @@ class BlePeripheral final {
   api::BlePeripheral* impl_;
 };
 
+// Opaque wrapper over a BLE peripheral.
+class BleV2Peripheral final {
+ public:
+  BleV2Peripheral() = default;
+  BleV2Peripheral(const BleV2Peripheral&) = default;
+  BleV2Peripheral& operator=(const BleV2Peripheral&) = default;
+  explicit BleV2Peripheral(api::ble_v2::BlePeripheral* peripheral)
+      : impl_(peripheral) {}
+
+  std::string GetId() const { return impl_->GetId(); }
+
+  // Returns reference to platform implementation.
+  // This is used to communicate with platform code, and for debugging purposes.
+  api::ble_v2::BlePeripheral& GetImpl() { return *impl_; }
+  bool IsValid() const { return impl_ != nullptr; }
+
+ private:
+  api::ble_v2::BlePeripheral* impl_;
+};
+
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
 class BluetoothDevice final {
  public:

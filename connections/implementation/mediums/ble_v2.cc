@@ -207,23 +207,8 @@ bool BleV2::StartAdvertising(
         {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
   }
 
-  // Convert power_mode from power_level.
-  PowerMode power_mode = PowerMode::kUnknown;
-  switch (power_level) {
-    case PowerLevel::kHighPower:
-      power_mode = PowerMode::kHigh;
-      break;
-    case PowerLevel::kLowPower:
-      // Medium power is about the size of a conference room. Any lower power
-      // it won't be visible at a distance.
-      power_mode = PowerMode::kMedium;
-      break;
-    default:
-      power_mode = PowerMode::kUnknown;
-  }
-
   if (!medium_.StartAdvertising(advertising_data, scan_response_data,
-                                power_mode)) {
+                                PowerLevelToPowerMode(power_level))) {
     NEARBY_LOGS(ERROR)
         << "Failed to turn on BLE advertising with advertisement bytes="
         << absl::BytesToHexString(advertisement_bytes.data())
@@ -239,7 +224,7 @@ bool BleV2::StartAdvertising(
   NEARBY_LOGS(INFO) << "Started BLE advertising with advertisement bytes="
                     << absl::BytesToHexString(advertisement_bytes.data())
                     << " for service_id=" << service_id;
-  advertising_info_.Add(service_id);
+  advertising_service_ids_.insert(service_id);
   return true;
 }
 
@@ -281,7 +266,7 @@ bool BleV2::StopAdvertising(const std::string& service_id) {
 
   NEARBY_LOGS(INFO) << "Turned off BLE advertising with service_id="
                     << service_id;
-  advertising_info_.Remove(service_id);
+  advertising_service_ids_.erase(service_id);
   return medium_.StopAdvertising();
 }
 
@@ -291,10 +276,107 @@ bool BleV2::IsAdvertising(const std::string& service_id) const {
   return IsAdvertisingLocked(service_id);
 }
 
+bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
+                          DiscoveredPeripheralCallback callback,
+                          const std::string& fast_advertisement_service_uuid) {
+  MutexLock lock(&mutex_);
+
+  if (service_id.empty()) {
+    NEARBY_LOGS(INFO) << "Can not start BLE scanning with empty service id.";
+    return false;
+  }
+
+  if (IsScanningLocked(service_id)) {
+    NEARBY_LOGS(INFO) << "Cannot start scan of BLE peripherals because "
+                         "scanning is already in-progress.";
+    return false;
+  }
+
+  if (!radio_.IsEnabled()) {
+    NEARBY_LOGS(INFO)
+        << "Can't start BLE scanning because Bluetooth is disabled";
+    return false;
+  }
+
+  if (!IsAvailableLocked()) {
+    NEARBY_LOGS(INFO)
+        << "Can't scan BLE peripherals because BLE isn't available.";
+    return false;
+  }
+
+  // TODO(edwinwu): Start discovered peripheral tracking.
+
+  // Check if scan has been activated, if yes, no need to notify client
+  // to scan again.
+  if (!scanned_service_ids_.empty()) {
+    scanned_service_ids_.insert(service_id);
+    NEARBY_LOGS(INFO) << "Turned on BLE scanning with service id=" << service_id
+                      << " without start client scanning";
+    return true;
+  }
+
+  scanned_service_ids_.insert(service_id);
+  // TODO(b/213835576): We should re-start scanning once the power level is
+  // changed.
+  std::vector<std::string> service_uuids{std::string(kCopresenceServiceUuid)};
+  if (!medium_.StartScanning(
+          service_uuids, PowerLevelToPowerMode(power_level),
+          {
+              .advertisement_found_cb =
+                  [](BleV2Peripheral peripheral,
+                     const BleAdvertisementData& advertisement_data) {
+                    // TODO(b/213835576): Move (or Copy at fallback) the
+                    // BleV2Peripheral.
+                    // TODO(b/216629800): Track the found advertisement.
+                  },
+          })) {
+    NEARBY_LOGS(INFO) << "Failed to start client scan of BLE services.";
+    // Erase the service id that is just added.
+    scanned_service_ids_.erase(service_id);
+    return false;
+  }
+
+  NEARBY_LOGS(INFO) << "Turned on BLE scanning with service id=" << service_id;
+  return true;
+}
+
+bool BleV2::StopScanning(const std::string& service_id) {
+  MutexLock lock(&mutex_);
+
+  if (!IsScanningLocked(service_id)) {
+    NEARBY_LOGS(INFO) << "Can't turn off BLE scanning because we never "
+                         "started scanning.";
+    return false;
+  }
+
+  // TODO(b/213835576): Cancel lost alarm and Stop tracking.
+
+  scanned_service_ids_.erase(service_id);
+  NEARBY_LOGS(INFO) << "Turned off BLE scanning with service id=" << service_id;
+
+  // If still has scanner, don't stop the client scanning.
+  if (!scanned_service_ids_.empty()) {
+    return true;
+  }
+
+  NEARBY_LOGS(INFO) << "Turned off BLE client scanning";
+  return medium_.StopScanning();
+}
+
+bool BleV2::IsScanning(const std::string& service_id) const {
+  MutexLock lock(&mutex_);
+
+  return IsScanningLocked(service_id);
+}
+
 bool BleV2::IsAvailableLocked() const { return medium_.IsValid(); }
 
 bool BleV2::IsAdvertisingLocked(const std::string& service_id) const {
-  return advertising_info_.Existed(service_id);
+  return advertising_service_ids_.contains(service_id);
+}
+
+bool BleV2::IsScanningLocked(const std::string& service_id) const {
+  return scanned_service_ids_.contains(service_id);
 }
 
 bool BleV2::IsAdvertisementGattServerRunningLocked() {
@@ -420,6 +502,19 @@ ByteArray BleV2::CreateAdvertisementHeader() {
 
 std::string BleV2::GenerateAdvertisementUuid(int slot) {
   return std::string(Uuid(kAdvertisementUuidMsb, kAdvertisementUuidLsb | slot));
+}
+
+PowerMode BleV2::PowerLevelToPowerMode(PowerLevel power_level) {
+  switch (power_level) {
+    case PowerLevel::kHighPower:
+      return PowerMode::kHigh;
+    case PowerLevel::kLowPower:
+      // Medium power is about the size of a conference room.
+      // Any lower and we won't be visible at a distance.
+      return PowerMode::kMedium;
+    default:
+      return PowerMode::kUnknown;
+  }
 }
 
 }  // namespace connections

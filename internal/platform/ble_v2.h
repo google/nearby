@@ -16,6 +16,7 @@
 #define PLATFORM_PUBLIC_BLE_V2_H_
 
 #include <memory>
+
 #include "absl/container/flat_hash_map.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
@@ -94,6 +95,22 @@ class GattServer final {
 // Container of operations that can be performed over the BLE medium.
 class BleV2Medium final {
  public:
+  // A wrapper callback for BLE scan results.
+  //
+  // The peripheral is a wrapper object which stores the real impl of
+  // api::BlePeripheral.
+  // The reference will remain valid while api::BlePeripheral object is
+  // itself valid. Typically peripheral lifetime matches duration of the
+  // connection, and is controlled by primitive client, since they hold the
+  // instance.
+  struct ScanCallback {
+    std::function<void(
+        BleV2Peripheral peripheral,
+        const api::ble_v2::BleAdvertisementData& advertisement_data)>
+        advertisement_found_cb = location::nearby::DefaultCallback<
+            BleV2Peripheral, const api::ble_v2::BleAdvertisementData&>();
+  };
+
   struct ServerGattConnectionCallback {
     std::function<void(ServerGattConnection& connection,
                        const api::ble_v2::GattCharacteristic& characteristic)>
@@ -117,6 +134,11 @@ class BleV2Medium final {
       api::ble_v2::PowerMode power_mode);
   bool StopAdvertising();
 
+  // Returns true once the BLE scan has been initiated.
+  bool StartScanning(const std::vector<std::string>& service_uuids,
+                     api::ble_v2::PowerMode power_mode, ScanCallback callback);
+  bool StopScanning();
+
   std::unique_ptr<GattServer> StartGattServer(
       ServerGattConnectionCallback callback);
 
@@ -130,6 +152,10 @@ class BleV2Medium final {
   BluetoothAdapter& adapter_;
   ServerGattConnectionCallback server_gatt_connection_callback_
       ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_set<api::ble_v2::BlePeripheral*> peripherals_
+      ABSL_GUARDED_BY(mutex_);
+  ScanCallback scan_callback_ ABSL_GUARDED_BY(mutex_);
+  bool scanning_enabled_ ABSL_GUARDED_BY(mutex_) = false;
 };
 
 }  // namespace nearby
