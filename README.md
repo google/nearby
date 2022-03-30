@@ -1,6 +1,6 @@
 # Nearby C++ Library
 
-The repository contains the Nearby project C++ library code. This is not an
+The repository contains the Nearby project C++ library source code. This is not an
 officially supported Google product.
 
 # About the Nearby Project
