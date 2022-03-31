@@ -19,10 +19,10 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/file.h"
 #include "internal/platform/implementation/input_file.h"
-#import "internal/platform/implementation/ios/Source/GNCConnection.h"
-#import "internal/platform/implementation/ios/Source/GNCPayload.h"
 #import "internal/platform/implementation/ios/Source/Internal/GNCCore.h"
 #import "internal/platform/implementation/ios/Source/Platform/utils.h"
+#import "internal/platform/implementation/ios/Source/Public/NearbyConnections/GNCConnection.h"
+#import "internal/platform/implementation/ios/Source/Public/NearbyConnections/GNCPayload.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/payload_id.h"
 

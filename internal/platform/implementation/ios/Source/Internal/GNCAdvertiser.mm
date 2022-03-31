@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/ios/Source/GNCAdvertiser.h"
+#import "internal/platform/implementation/ios/Source/Public/NearbyConnections/GNCAdvertiser.h"
 
 #include <string>
 
@@ -23,12 +23,12 @@
 #include "connections/params.h"
 #include "connections/status.h"
 #include "internal/platform/byte_array.h"
-#import "internal/platform/implementation/ios/Source/GNCConnection.h"
 #import "internal/platform/implementation/ios/Source/Internal/GNCCore.h"
 #import "internal/platform/implementation/ios/Source/Internal/GNCCoreConnection.h"
 #import "internal/platform/implementation/ios/Source/Internal/GNCPayloadListener.h"
 #import "internal/platform/implementation/ios/Source/Internal/GNCUtils.h"
 #import "internal/platform/implementation/ios/Source/Platform/utils.h"
+#import "internal/platform/implementation/ios/Source/Public/NearbyConnections/GNCConnection.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 NS_ASSUME_NONNULL_BEGIN

@@ -17,8 +17,8 @@
 #include <string>
 
 #include "connections/listeners.h"
-#import "internal/platform/implementation/ios/Source/GNCAdvertiser.h"
-#import "internal/platform/implementation/ios/Source/GNCConnection.h"
+#import "internal/platform/implementation/ios/Source/Public/NearbyConnections/GNCAdvertiser.h"
+#import "internal/platform/implementation/ios/Source/Public/NearbyConnections/GNCConnection.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

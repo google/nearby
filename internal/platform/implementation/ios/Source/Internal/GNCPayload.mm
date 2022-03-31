@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/ios/Source/GNCPayload.h"
+#import "internal/platform/implementation/ios/Source/Public/NearbyConnections/GNCPayload.h"
 
 #include "connections/payload.h"
 #include "internal/platform/payload_id.h"

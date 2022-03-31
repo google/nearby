@@ -30,16 +30,16 @@ objc_library(
         "Source/Internal/platform.mm",
     ],
     hdrs = [
-        "Source/GNCAdvertiser.h",
-        "Source/GNCConnection.h",
-        "Source/GNCConnections.h",
-        "Source/GNCDiscoverer.h",
-        "Source/GNCPayload.h",
         "Source/Internal/GNCCore.h",
         "Source/Internal/GNCCoreConnection.h",
         "Source/Internal/GNCPayload+Internal.h",
         "Source/Internal/GNCPayloadListener.h",
         "Source/Internal/GNCUtils.h",
+        "Source/Public/NearbyConnections/GNCAdvertiser.h",
+        "Source/Public/NearbyConnections/GNCConnection.h",
+        "Source/Public/NearbyConnections/GNCConnections.h",
+        "Source/Public/NearbyConnections/GNCDiscoverer.h",
+        "Source/Public/NearbyConnections/GNCPayload.h",
     ],
     deps = [
         "//connections:core",
@@ -55,10 +55,10 @@ objc_library(
 MIN_IOS_VERSION = "12.0"
 
 HDRS_POD = [
-    "Source/GNCAdvertiser.h",
-    "Source/GNCConnection.h",
-    "Source/GNCDiscoverer.h",
-    "Source/GNCPayload.h",
+    "Source/Public/NearbyConnections/GNCAdvertiser.h",
+    "Source/Public/NearbyConnections/GNCConnection.h",
+    "Source/Public/NearbyConnections/GNCDiscoverer.h",
+    "Source/Public/NearbyConnections/GNCPayload.h",
 ]
 
 ios_static_framework(
