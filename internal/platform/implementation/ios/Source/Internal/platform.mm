@@ -39,16 +39,17 @@ namespace api {
 
 std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
                                                     std::string& file_name) {
-  // This is to get a file path, e.g. /tmp/[payload_id], for the storage of payload file.
-  // NOTE: Per
-  // https://developer.apple.com/library/content/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemOverview/FileSystemOverview.html
-  // Files saved in the /tmp directory will be deleted by the system. Callers should be responsible
-  // for copying the files to the permanent storage.
   // TODO(jfcarroll): This needs to be done correctly, we now have a file name and parent folder,
   // they should be combined with the default download path
-  NSString* payloadIdString = ObjCStringFromCppString(file_name);
-  return CppStringFromObjCString(
-      [NSTemporaryDirectory() stringByAppendingPathComponent:payloadIdString]);
+  NSString* fileName = ObjCStringFromCppString(file_name);
+  NSURL* downloadsURL = [[NSFileManager defaultManager] URLForDirectory:NSDownloadsDirectory
+                                                               inDomain:NSUserDomainMask
+                                                      appropriateForURL:nil
+                                                                 create:YES
+                                                                  error:nil];
+  // TODO(b/227535777): If file name matches an existing file, it will be overwritten. Append a number until
+  // a unique file name is reached 'foobar (2).png'.
+  return CppStringFromObjCString([downloadsURL URLByAppendingPathComponent:fileName].path);
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kiOS; }
