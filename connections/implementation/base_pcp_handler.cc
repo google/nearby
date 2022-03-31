@@ -377,6 +377,30 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
   // Set ourselves up so that we receive all acceptance/rejection messages
   endpoint_manager_->RegisterFrameProcessor(V1Frame::CONNECTION_RESPONSE, this);
 
+  ConnectionOptions connection_options;
+  connection_options.strategy = connection_info.connection_options.strategy;
+  connection_options.allowed =
+      ComputeIntersectionOfSupportedMediums(connection_info);
+  connection_options.auto_upgrade_bandwidth =
+      connection_info.connection_options.auto_upgrade_bandwidth;
+  connection_options.enforce_topology_constraints =
+      connection_info.connection_options.enforce_topology_constraints;
+  connection_options.low_power = connection_info.connection_options.low_power;
+  connection_options.enable_bluetooth_listening =
+      connection_info.connection_options.enable_bluetooth_listening;
+  connection_options.enable_webrtc_listening =
+      connection_info.connection_options.enable_webrtc_listening;
+  connection_options.is_out_of_band_connection =
+      connection_info.connection_options.is_out_of_band_connection;
+  connection_options.remote_bluetooth_mac_address =
+      connection_info.connection_options.remote_bluetooth_mac_address;
+  connection_options.fast_advertisement_service_uuid =
+      connection_info.connection_options.fast_advertisement_service_uuid;
+  connection_options.keep_alive_interval_millis =
+      connection_info.connection_options.keep_alive_interval_millis;
+  connection_options.keep_alive_timeout_millis =
+      connection_info.connection_options.keep_alive_timeout_millis;
+
   // Now we register our endpoint so that we can listen for both sides to
   // accept.
   LogConnectionAttemptSuccess(endpoint_id, connection_info);
@@ -388,24 +412,8 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
           .raw_authentication_token = raw_auth_token,
           .is_incoming_connection = connection_info.is_incoming,
       },
-      {
-          {
-              connection_info.connection_options.strategy,
-              ComputeIntersectionOfSupportedMediums(connection_info),
-          },
-          connection_info.connection_options.auto_upgrade_bandwidth,
-          connection_info.connection_options.enforce_topology_constraints,
-          connection_info.connection_options.low_power,
-          connection_info.connection_options.enable_bluetooth_listening,
-          connection_info.connection_options.enable_webrtc_listening,
-          connection_info.connection_options.is_out_of_band_connection,
-          connection_info.connection_options.remote_bluetooth_mac_address,
-          connection_info.connection_options.fast_advertisement_service_uuid,
-          connection_info.connection_options.keep_alive_interval_millis,
-          connection_info.connection_options.keep_alive_timeout_millis,
-      },
-      std::move(connection_info.channel), connection_info.listener,
-      connection_info.connection_token);
+      connection_options, std::move(connection_info.channel),
+      connection_info.listener, connection_info.connection_token);
 
   if (auto future_status = connection_info.result.lock()) {
     NEARBY_LOGS(INFO) << "Connection established; Finalising future OK.";
@@ -1134,8 +1142,9 @@ Exception BasePcpHandler::OnIncomingConnection(
   // Retrieve the keep-alive frame interval and timeout fields. If the frame
   // doesn't have those fields, we need to get them as default from feature
   // flags to prevent 0-values causing thread ill.
-  ConnectionOptions connection_options = {.keep_alive_interval_millis = 0,
-                                          .keep_alive_timeout_millis = 0};
+  ConnectionOptions connection_options;
+  connection_options.keep_alive_interval_millis = 0;
+  connection_options.keep_alive_timeout_millis = 0;
   if (connection_request.has_keep_alive_interval_millis() &&
       connection_request.has_keep_alive_timeout_millis()) {
     connection_options.keep_alive_interval_millis =

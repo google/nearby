@@ -289,21 +289,18 @@ using ::location::nearby::connections::GNCAdvertiserConnectionListener;
                                           advertiser->advertiserListener.get()),
   };
 
-  advertiser.core->_core->StartAdvertising(
-      CppStringFromObjCString(serviceId),
-      AdvertisingOptions{
-          {
-              GNCStrategyToStrategy(strategy),                         // .strategy
-              location::nearby::connections::BooleanMediumSelector(),  // .allowed
-          },
-          true,  // .auto_upgrade_bandwidth
-          true,  // .enforce_topology_constraints
-      },
-      ConnectionRequestInfo{
-          .endpoint_info = ByteArrayFromNSData(endpointInfo),
-          .listener = std::move(listener),
-      },
-      ResultListener{});
+  AdvertisingOptions advertising_options;
+  advertising_options.strategy = GNCStrategyToStrategy(strategy);
+  advertising_options.allowed = location::nearby::connections::BooleanMediumSelector();
+  advertising_options.auto_upgrade_bandwidth = true;
+  advertising_options.enforce_topology_constraints = true;
+
+  advertiser.core->_core->StartAdvertising(CppStringFromObjCString(serviceId), advertising_options,
+                                           ConnectionRequestInfo{
+                                               .endpoint_info = ByteArrayFromNSData(endpointInfo),
+                                               .listener = std::move(listener),
+                                           },
+                                           ResultListener{});
   return advertiser;
 }
 

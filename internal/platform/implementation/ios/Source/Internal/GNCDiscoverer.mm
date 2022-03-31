@@ -380,12 +380,10 @@ using ::location::nearby::connections::GNCDiscoveryListener;
                                            discoverer->discoveryListener.get()),
   };
 
-  discoverer.core->_core->StartDiscovery(CppStringFromObjCString(serviceId),
-                                         DiscoveryOptions{
-                                             {
-                                                 GNCStrategyToStrategy(strategy),
-                                             },
-                                         },
+  DiscoveryOptions discovery_options;
+  discovery_options.strategy = GNCStrategyToStrategy(strategy);
+
+  discoverer.core->_core->StartDiscovery(CppStringFromObjCString(serviceId), discovery_options,
                                          std::move(listener), ResultListener{});
 
   return discoverer;
