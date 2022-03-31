@@ -516,6 +516,7 @@ let package = Package(
       cSettings: [
         .headerSearchPath("./"),
         .define("NO_WEBRTC"),
+        .define("NEARBY_SWIFTPM"),
       ],
       linkerSettings: [
         .linkedLibrary("c++"),
