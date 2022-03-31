@@ -19,6 +19,14 @@
 // In Chrome this is base/check.h. See crbug/1212611.
 #ifdef NEARBY_CHROMIUM
 #include "base/check.h"
+// base/logging.h is available externally as "glog". However, this repo contains
+// template files that can't be built by Swift Package Manager. To build with
+// SPM we only need CHECK and DCHECK defined.
+#elif defined(NEARBY_SWIFTPM)
+#include <sstream>
+#define CHECK(condition) static_cast<void>(0), condition ? (void) 0 : abort()
+#define DCHECK(condition) static_cast<void>(0), (void) 0
+#define CHECK_GT(a, b) static_cast<void>(0), a > b ? (void) 0 : abort()
 #else
 #include "glog/logging.h"
 #endif

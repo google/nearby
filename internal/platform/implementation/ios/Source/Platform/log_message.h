@@ -15,7 +15,11 @@
 #ifndef PLATFORM_IMPL_IOS_LOG_MESSAGE_H_
 #define PLATFORM_IMPL_IOS_LOG_MESSAGE_H_
 
+#ifdef NEARBY_SWIFTPM
+#include <sstream>
+#else
 #include "glog/logging.h"
+#endif
 #include "internal/platform/implementation/log_message.h"
 
 namespace location {
@@ -36,7 +40,11 @@ class LogMessage : public api::LogMessage {
   std::ostream& Stream() override;
 
  private:
+#ifdef NEARBY_SWIFTPM
+  std::stringstream log_streamer_;
+#else
   google::LogMessage log_streamer_;
+#endif
   api::LogMessage::Severity severity_;
 };
 

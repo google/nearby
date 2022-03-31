@@ -14,7 +14,9 @@
 
 #include "internal/platform/implementation/ios/Source/Platform/log_message.h"
 
+#ifndef NEARBY_SWIFTPM
 #include "glog/logging.h"
+#endif
 #include "internal/platform/implementation/log_message.h"
 #include "GoogleToolboxForMac/GTMLogger.h"
 
@@ -40,7 +42,11 @@ GTMLoggerLevel ConvertSeverity(api::LogMessage::Severity severity) {
 }
 
 LogMessage::LogMessage(const char* file, int line, Severity severity)
+#ifdef NEARBY_SWIFTPM
+    : log_streamer_() {}
+#else
     : log_streamer_(ConvertSeverity(severity), file, line), severity_(severity) {}
+#endif
 
 void LogMessage::Print(const char* format, ...) {
   va_list ap;
@@ -66,7 +72,11 @@ void LogMessage::Print(const char* format, ...) {
 
 // TODO(b/169292092): GTMLogger doesn't support stream. Temporarily use absl LogStreamer to make
 // build pass.
+#ifdef NEARBY_SWIFTPM
+std::ostream& LogMessage::Stream() { return log_streamer_; }
+#else
 std::ostream& LogMessage::Stream() { return log_streamer_.stream(); }
+#endif
 
 }  // namespace ios
 
