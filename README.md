@@ -56,11 +56,11 @@ Currently we support building with [Swift Package Manager](https://www.swift.org
 ###Limitation
 The only Medium supported is Wifi LAN.
 
-To build the Nearby Connection library, just type:
+To build the Nearby Connection library:
 
 ```shell
 swift build
 ```
 
 
-**Last Updated:** April 2022
+**Last Updated:** April 1, 2022
