@@ -126,7 +126,7 @@ TEST(ExecutorTests, SingleThreadedExecutorMultipleTasksSucceeds) {
   std::unique_ptr<std::vector<DWORD>> threadIds =
       std::make_unique<std::vector<DWORD>>();
 
-  threadIds->push_back(GetCurrentThreadId());
+  auto parent_thread = GetCurrentThreadId();
 
   // Act
   for (int index = 0; index < 5; index++) {
@@ -143,12 +143,12 @@ TEST(ExecutorTests, SingleThreadedExecutorMultipleTasksSucceeds) {
   //  Assert
   //  We should've run 1 time on the main thread, and 5 times on the
   //  workerThread
-  ASSERT_EQ(threadIds->size(), 6);
+  ASSERT_EQ(threadIds->size(), 5);
   //  We should still be on the main thread
-  ASSERT_EQ(GetCurrentThreadId(), threadIds->at(0));
+  ASSERT_EQ(GetCurrentThreadId(), parent_thread);
   //  We should've run all runnables on the worker thread
-  auto workerThreadId = threadIds->at(1);
-  for (int index = 1; index < threadIds->size(); index++) {
+  auto workerThreadId = threadIds->at(0);
+  for (int index = 0; index < threadIds->size(); index++) {
     ASSERT_EQ(threadIds->at(index), workerThreadId);
   }
 
