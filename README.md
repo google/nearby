@@ -53,14 +53,17 @@ Currently we support building with [Swift Package Manager](https://www.swift.org
 1. Xcode. Available from Apple Store.
 2. Google Protobuf Compiler (protoc). If you have [homebrew](https://brew.sh/) installed, you can do `brew install protobuf`.
 
-###Limitation
-The only Medium supported is Wifi LAN.
-
 To build the Nearby Connection library:
 
 ```shell
 swift build
 ```
 
+We also provide a iOS [sample app using the Nearby Connections library]
+(https://github.com/google/nearby/blob/master/internal/platform/implementation/ios/Example/NearbyConnectionsExample/README.md).
 
-**Last Updated:** April 1, 2022
+
+###Limitation
+The only Medium supported is Wifi LAN.
+
+**Last Updated:** April 2, 2022
