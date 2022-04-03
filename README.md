@@ -66,4 +66,4 @@ We also provide a iOS [sample app using the Nearby Connections library]
 ###Limitation
 The only Medium supported is Wifi LAN.
 
-**Last Updated:** April 2, 2022
+**Last Updated:** April 2022

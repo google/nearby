@@ -61,7 +61,7 @@ http_archive(
 
 new_local_repository(
     name = "com_google_ukey2",
-    path = "./third_party/ukey2",
+    path = "./third_party/ukey2/ukey2",
     build_file_content = _ALL_CONTENT,
 )
 
