@@ -192,25 +192,10 @@ BleAdvertisement::operator ByteArray() const {
 bool BleAdvertisement::operator==(const BleAdvertisement &rhs) const {
   return this->GetVersion() == rhs.GetVersion() &&
          this->GetSocketVersion() == rhs.GetSocketVersion() &&
+         this->IsFastAdvertisement() == rhs.IsFastAdvertisement() &&
          this->GetServiceIdHash() == rhs.GetServiceIdHash() &&
          this->GetData() == rhs.GetData() &&
          this->GetDeviceToken() == rhs.GetDeviceToken();
-}
-
-bool BleAdvertisement::operator<(const BleAdvertisement &rhs) const {
-  if (this->GetVersion() != rhs.GetVersion()) {
-    return this->GetVersion() < rhs.GetVersion();
-  }
-  if (this->GetSocketVersion() != rhs.GetSocketVersion()) {
-    return this->GetSocketVersion() < rhs.GetSocketVersion();
-  }
-  if (this->GetServiceIdHash() != rhs.GetServiceIdHash()) {
-    return this->GetServiceIdHash() < rhs.GetServiceIdHash();
-  }
-  if (this->GetDeviceToken() != rhs.GetDeviceToken()) {
-    return this->GetDeviceToken() < rhs.GetDeviceToken();
-  }
-  return this->GetData() < rhs.GetData();
 }
 
 bool BleAdvertisement::IsSupportedVersion(Version version) const {

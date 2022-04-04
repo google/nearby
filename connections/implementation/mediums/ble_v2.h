@@ -124,7 +124,7 @@ class BleV2 final {
   absl::flat_hash_map<int, std::pair<std::string, ByteArray>>
       gatt_advertisements_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_set<api::ble_v2::GattCharacteristic>
-      subscribed_gatt_characteristics_ ABSL_GUARDED_BY(mutex_);
+      hosted_gatt_characteristics_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_set<std::string> scanned_service_ids_ ABSL_GUARDED_BY(mutex_);
 };
 

@@ -57,6 +57,15 @@ class BleAdvertisement {
   static constexpr int kServiceIdHashLength = 3;
   static constexpr int kDeviceTokenLength = 2;
 
+  // Hashable
+  bool operator==(const BleAdvertisement &rhs) const;
+  template <typename H>
+  friend H AbslHashValue(H h, const BleAdvertisement &b) {
+    return H::combine(std::move(h), b.version_, b.socket_version_,
+                      b.fast_advertisement_, b.service_id_hash_, b.data_,
+                      b.device_token_);
+  }
+
   BleAdvertisement() = default;
   BleAdvertisement(Version version, SocketVersion socket_version,
                    const ByteArray &service_id_hash, const ByteArray &data,
@@ -69,9 +78,6 @@ class BleAdvertisement {
   ~BleAdvertisement() = default;
 
   explicit operator ByteArray() const;
-  // Operator overloads when comparing BleAdvertisement.
-  bool operator==(const BleAdvertisement &rhs) const;
-  bool operator<(const BleAdvertisement &rhs) const;
 
   bool IsValid() const { return IsSupportedVersion(version_); }
   Version GetVersion() const { return version_; }

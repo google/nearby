@@ -17,6 +17,7 @@
 #include <algorithm>
 
 #include "gtest/gtest.h"
+#include "absl/hash/hash_testing.h"
 
 namespace location {
 namespace nearby {
@@ -446,6 +447,21 @@ TEST(BleAdvertisementTest,
       corrupted_ble_advertisement_bytes};
 
   EXPECT_FALSE(corrupted_ble_advertisement.IsValid());
+}
+
+TEST(BleAdvertisementTest, Hash) {
+  EXPECT_TRUE(absl::VerifyTypeImplementsAbslHashCorrectly({
+      BleAdvertisement(),
+      BleAdvertisement(kVersion, kSocketVersion, ByteArray{},
+                       ByteArray(std::string(kFastData)),
+                       ByteArray(std::string(kDeviceToken))),
+      BleAdvertisement(
+          kVersion, kSocketVersion, ByteArray(std::string(kServiceIDHashBytes)),
+          ByteArray(std::string(kData)), ByteArray(std::string(kDeviceToken))),
+      BleAdvertisement(kVersion, BleAdvertisement::SocketVersion::kV1,
+                       ByteArray{}, ByteArray(std::string(kFastData)),
+                       ByteArray(std::string(kDeviceToken))),
+  }));
 }
 
 }  // namespace

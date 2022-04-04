@@ -20,6 +20,7 @@ cc_library(
         "ble_advertisement.cc",
         "ble_advertisement_header.cc",
         "ble_packet.cc",
+        "ble_utils.cc",
         "bloom_filter.cc",
     ],
     hdrs = [
@@ -28,6 +29,7 @@ cc_library(
         "ble_advertisement_header.h",
         "ble_packet.h",
         "ble_peripheral.h",
+        "ble_utils.h",
         "bloom_filter.h",
         "discovered_peripheral_callback.h",
     ],
@@ -37,6 +39,7 @@ cc_library(
     ],
     deps = [
         "//connections:core_types",
+        "//connections/implementation/mediums:utils",
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform:types",
@@ -58,6 +61,7 @@ cc_test(
         "ble_advertisement_test.cc",
         "ble_packet_test.cc",
         "ble_peripheral_test.cc",
+        "ble_utils_test.cc",
         "bloom_filter_test.cc",
     ],
     deps = [
@@ -66,6 +70,7 @@ cc_test(
         "//internal/platform:comm",
         "//internal/platform/implementation/g3",  # buildcleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/hash:hash_testing",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
