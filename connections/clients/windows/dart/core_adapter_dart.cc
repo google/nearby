@@ -502,34 +502,6 @@ void DisconnectFromEndpointDart(Core *pCore, char *endpoint_id,
   DisconnectFromEndpoint(pCore, endpoint_id, callback);
 }
 
-std::string GetPayloadPath(location::nearby::PayloadId payload_id) {
-  PWSTR basePath;
-
-  // Retrieves the full path of a known folder identified by the folder's
-  // KNOWNFOLDERID.
-  // https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
-  SHGetKnownFolderPath(
-      FOLDERID_Downloads,  //  rfid: A reference to the KNOWNFOLDERID that
-                           //  identifies the folder.
-      0,           // dwFlags: Flags that specify special retrieval options.
-      NULL,        // hToken: An access token that represents a particular user.
-      &basePath);  // ppszPath: When this method returns, contains the address
-                   // of a pointer to a null-terminated Unicode string that
-                   // specifies the path of the known folder. The calling
-                   // process is responsible for freeing this resource once it
-                   // is no longer needed by calling CoTaskMemFree, whether
-                   // SHGetKnownFolderPath succeeds or not.
-  size_t bufferSize;
-  wcstombs_s(&bufferSize, NULL, 0, basePath, 0);
-  char *fullpathUTF8 = new char[bufferSize + 1];
-  memset(fullpathUTF8, 0, bufferSize);
-  wcstombs_s(&bufferSize, fullpathUTF8, bufferSize, basePath, bufferSize - 1);
-  std::string fullPath = std::string(fullpathUTF8);
-  auto retval = absl::StrCat(fullPath, "\\", payload_id);
-  delete[] fullpathUTF8;
-  return retval;
-}
-
 void SendPayloadDart(Core *pCore, const char *endpoint_id,
                      PayloadDart payload_dart, Dart_Port result_cb) {
   if (!pCore) {
@@ -558,20 +530,10 @@ void SendPayloadDart(Core *pCore, const char *endpoint_id,
       NEARBY_LOG(INFO, "File name: %s, size %d", payload_dart.data,
                  payload_dart.size);
       std::string file_name_str(payload_dart.data);
-
-      // TODO(yanfangliu) Clean this up when John's file payload change rolls
-      // out
-      Payload::Id id = std::hash<std::string>()(file_name_str);
-      std::string download_path = GetPayloadPath(id);
-      CopyFileA((LPSTR)payload_dart.data, (LPSTR)download_path.c_str(),
-                /*FailIfFileAlreadyExists=*/ false);
-      NEARBY_LOGS(INFO) << "Copy File to " << download_path;
-
-      InputFile input_file(std::to_string(id), payload_dart.size);
-      Payload payload = Payload(id, std::move(input_file));
+      InputFile input_file(file_name_str, payload_dart.size);
+      Payload payload(std::move(input_file));
       SendPayload(pCore, absl::Span<const std::string>(endpoint_ids),
                   std::move(payload), callback);
-
       SetResultCallback(callback, result_cb);
 
       break;
