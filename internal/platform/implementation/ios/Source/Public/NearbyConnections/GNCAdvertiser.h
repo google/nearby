@@ -20,8 +20,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 /** This contains info about a discoverer endpoint intitiating a connection with an advertiser. */
 @protocol GNCAdvertiserConnectionInfo <NSObject>
-/** This is a human readable name of the discoverer. */
-@property(nonatomic, readonly, copy) NSString *name;
+/** Information advertised by the remote endpoint. */
+@property(nonatomic, readonly, copy) NSData *endpointInfo;
 /** This token can be used to verify the identity of the discoverer. */
 @property(nonatomic, readonly, copy) NSString *authToken;
 @end

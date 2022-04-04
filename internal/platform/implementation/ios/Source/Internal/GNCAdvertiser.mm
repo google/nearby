@@ -48,19 +48,30 @@ using ::location::nearby::connections::Status;
 /** This is a GNCAdvertiserConnectionInfo that provides storage for its properties. */
 @interface GNCAdvertiserConnectionInfo : NSObject
 
-@property(nonatomic, readonly) NSString *name;
-@property(nonatomic, readonly) NSString *authToken;
+/** Information advertised by the remote endpoint. */
+@property(nonatomic, readonly, nonnull) NSData *endpointInfo;
 
-- (instancetype)initWithName:(NSString *)name authToken:(NSString *)authToken;
+/** This token can be used to verify the identity of the discoverer. */
+@property(nonatomic, readonly, nonnull) NSString *authToken;
+
+/**
+ * Initializes and returns a GNCAdvertiserConnectionInfo object from endpoint info and auth token.
+ *
+ * @param endpointInfo An arbitrary byte array of information advertised by the remote endpoint.
+ * @param authToken A string token that can be used to verify the identity of the discoverer.
+ */
+- (nonnull instancetype)initWithEndpointInfo:(nonnull NSData *)endpointInfo authToken:(nonnull NSString *)authToken NS_DESIGNATED_INITIALIZER;
+
+- (nullable instancetype)init NS_UNAVAILABLE;
 
 @end
 
 @implementation GNCAdvertiserConnectionInfo
 
-- (instancetype)initWithName:(NSString *)name authToken:(NSString *)authToken {
+- (instancetype)initWithEndpointInfo:(NSData *)endpointInfo authToken:(NSString *)authToken {
   self = [super init];
   if (self) {
-    _name = [name copy];
+    _endpointInfo = [endpointInfo copy];
     _authToken = [authToken copy];
   }
   return self;
@@ -115,12 +126,14 @@ class GNCAdvertiserConnectionListener {
     if (endpointInfo) {
       GTMLoggerError(@"Connection already initiated for endpoint: %@", endpointId);
     } else {
-      // TODO(b/169292092): endpointInfo is an advertisement byte array. Need to implement to
-      // extract the endpoint name not just force to cast string.
-      NSString *name = ObjCStringFromCppString(std::string(info.remote_endpoint_info));
+      NSData *data = NSDataFromByteArray(info.remote_endpoint_info);
+      if (!data) {
+        GTMLoggerError(@"Endpoint info is missing for endpoint: %@", endpointId);
+        return;
+      }
       NSString *authToken = ObjCStringFromCppString(info.authentication_token);
       GNCAdvertiserConnectionInfo *connInfo =
-          [[GNCAdvertiserConnectionInfo alloc] initWithName:name authToken:authToken];
+          [[GNCAdvertiserConnectionInfo alloc] initWithEndpointInfo:data authToken:authToken];
       endpointInfo = [GNCAdvertiserEndpointInfo infoWithEndpointConnectionInfo:connInfo];
 
       // Call the connection initiation handler. Synchronous because it returns the connection
