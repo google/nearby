@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021-2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@
 
 #include "connections/core.h"
 #include "connections/payload.h"
-#include "internal/platform/logging.h"
 #include "internal/platform/file.h"
+#include "internal/platform/logging.h"
 
 namespace location {
 namespace nearby {
@@ -424,15 +424,31 @@ void AcceptConnectionDart(Core *pCore, const char *endpoint_id,
     dart_object_offset.type = Dart_CObject_kInt64;
     dart_object_offset.value.as_int64 = payload.GetOffset();
 
-    Dart_CObject *elements[4];
+    Dart_CObject dart_object_payload_data;
+    dart_object_offset.type = Dart_CObject_kString;
+    switch (payload.GetType()) {
+      case location::nearby::connections::PayloadType::kBytes:
+        dart_object_offset.value.as_string =
+            const_cast<char *>(payload.AsBytes().data());
+        break;
+      case location::nearby::connections::PayloadType::kFile:
+        dart_object_offset.value.as_string =
+            const_cast<char *>(payload.AsFile()->GetFilePath().data());
+        break;
+      default:
+        dart_object_offset.value.as_string = const_cast<char *>("");
+    }
+
+    Dart_CObject *elements[5];
     elements[0] = &dart_object_endpoint_id;
     elements[1] = &dart_object_payload_id;
     elements[2] = &dart_object_payload_type;
     elements[3] = &dart_object_offset;
+    elements[4] = &dart_object_payload_data;
 
     Dart_CObject dart_object_payload;
     dart_object_payload.type = Dart_CObject_kArray;
-    dart_object_payload.value.as_array.length = 4;
+    dart_object_payload.value.as_array.length = 5;
     dart_object_payload.value.as_array.values = elements;
 
     if (!Dart_PostCObject_DL(listener_dart.payload_cb, &dart_object_payload)) {
