@@ -35,6 +35,7 @@ objc_library(
         "utils.h",
         "wifi_lan.h",
     ],
+    features = ["-layering_check"],
     sdk_frameworks = [
         "CoreBluetooth",
         "CoreFoundation",

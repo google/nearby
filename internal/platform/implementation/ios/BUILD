@@ -41,6 +41,7 @@ objc_library(
         "Source/Public/NearbyConnections/GNCDiscoverer.h",
         "Source/Public/NearbyConnections/GNCPayload.h",
     ],
+    features = ["-layering_check"],
     deps = [
         "//connections:core",
         "//connections:core_types",
