@@ -26,6 +26,7 @@ cc_windows_dll(
     ],
     copts = ["-DCORE_ADAPTER_BUILD_DLL -DCOMPILING_CORE"],
     defines = ["CORE_ADAPTER_DLL"],
+    hdrs_deps = ["//connections:core"],
     tags = ["windows-dll"],
     deps = [
         "//third_party/dart_lang/v2:dart_api_dl",
