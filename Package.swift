@@ -375,7 +375,6 @@ let package = Package(
         "internal/platform/implementation/ios/Example",
         "internal/platform/implementation/ios/Tests",
         "internal/platform/implementation/windows",
-        "Tests",
         "third_party",
         "CONTRIBUTING.md",
         "LICENSE",
@@ -425,6 +424,7 @@ let package = Package(
         "connections/implementation/mediums/ble_v2/ble_advertisement_test.cc",
         "connections/implementation/mediums/ble_v2/advertisement_read_result_test.cc",
         "connections/implementation/mediums/ble_v2/ble_advertisement_header_test.cc",
+        "connections/implementation/mediums/ble_v2/ble_utils_test.cc",
         "connections/implementation/mediums/webrtc_peer_id_test.cc",
         "connections/implementation/mediums/wifi_lan_test.cc",
         "connections/implementation/mediums/bluetooth_classic_test.cc",
@@ -515,6 +515,7 @@ let package = Package(
       publicHeadersPath: "internal/platform/implementation/ios/Source/Public",
       cSettings: [
         .headerSearchPath("./"),
+        .headerSearchPath("compiled_proto/"),
         .define("NO_WEBRTC"),
         .define("NEARBY_SWIFTPM"),
       ],
