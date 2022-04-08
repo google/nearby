@@ -232,6 +232,11 @@ std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
   return absl::make_unique<windows::WifiLanMedium>();
 }
 
+std::unique_ptr<WifiHotspotMedium>
+ImplementationPlatform::CreateWifiHotspotMedium() {
+  return nullptr;
+}
+
 // TODO(b/184975123): replace with real implementation.
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
   return absl::make_unique<windows::WebRtcMedium>();

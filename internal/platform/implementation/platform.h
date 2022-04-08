@@ -42,6 +42,7 @@
 #include "internal/platform/implementation/webrtc.h"
 #endif
 #include "internal/platform/implementation/wifi.h"
+#include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/payload_id.h"
@@ -114,6 +115,7 @@ class ImplementationPlatform {
   static std::unique_ptr<ServerSyncMedium> CreateServerSyncMedium();
   static std::unique_ptr<WifiMedium> CreateWifiMedium();
   static std::unique_ptr<WifiLanMedium> CreateWifiLanMedium();
+  static std::unique_ptr<WifiHotspotMedium> CreateWifiHotspotMedium();
 #ifndef NO_WEBRTC
   static std::unique_ptr<WebRtcMedium> CreateWebRtcMedium();
 #endif
