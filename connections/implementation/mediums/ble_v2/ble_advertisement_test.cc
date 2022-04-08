@@ -15,6 +15,7 @@
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 
 #include <algorithm>
+#include <string>
 
 #include "gtest/gtest.h"
 #include "absl/hash/hash_testing.h"
@@ -220,10 +221,10 @@ TEST(BleAdvertisementTest, ConstructionFromSerializedBytesWorks) {
   ByteArray data{std::string(kData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion,
-                                         service_id_hash, data, device_token};
+  BleAdvertisement original_ble_advertisement{
+      kVersion, kSocketVersion, service_id_hash, data, device_token};
 
-  ByteArray ble_advertisement_bytes{org_ble_advertisement};
+  ByteArray ble_advertisement_bytes{original_ble_advertisement};
   BleAdvertisement ble_advertisement{ble_advertisement_bytes};
 
   EXPECT_TRUE(ble_advertisement.IsValid());
@@ -241,10 +242,10 @@ TEST(BleAdvertisementTest,
   ByteArray fast_data{std::string(kFastData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion, ByteArray{},
-                                         fast_data, device_token};
+  BleAdvertisement original_ble_advertisement{
+      kVersion, kSocketVersion, ByteArray{}, fast_data, device_token};
 
-  ByteArray ble_advertisement_bytes{org_ble_advertisement};
+  ByteArray ble_advertisement_bytes{original_ble_advertisement};
   BleAdvertisement ble_advertisement{ble_advertisement_bytes};
 
   EXPECT_TRUE(ble_advertisement.IsValid());
@@ -260,9 +261,9 @@ TEST(BleAdvertisementTest, ConstructionFromSerializedBytesWithEmptyDataWorks) {
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{
+  BleAdvertisement original_ble_advertisement{
       kVersion, kSocketVersion, service_id_hash, ByteArray(), device_token};
-  ByteArray ble_advertisement_bytes{org_ble_advertisement};
+  ByteArray ble_advertisement_bytes{original_ble_advertisement};
   BleAdvertisement ble_advertisement{ble_advertisement_bytes};
 
   EXPECT_TRUE(ble_advertisement.IsValid());
@@ -278,9 +279,9 @@ TEST(BleAdvertisementTest,
      ConstructionFromSerializedBytesWithEmptyDataWorksForFastAdvertisement) {
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion, ByteArray{},
-                                         ByteArray(), device_token};
-  ByteArray ble_advertisement_bytes{org_ble_advertisement};
+  BleAdvertisement original_ble_advertisement{
+      kVersion, kSocketVersion, ByteArray{}, ByteArray(), device_token};
+  ByteArray ble_advertisement_bytes{original_ble_advertisement};
   BleAdvertisement ble_advertisement{ble_advertisement_bytes};
 
   EXPECT_TRUE(ble_advertisement.IsValid());
@@ -296,16 +297,16 @@ TEST(BleAdvertisementTest, ConstructionFromExtraSerializedBytesWorks) {
   ByteArray data{std::string(kData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion,
-                                         service_id_hash, data, device_token};
-  ByteArray org_ble_advertisement_bytes{org_ble_advertisement};
+  BleAdvertisement original_ble_advertisement{
+      kVersion, kSocketVersion, service_id_hash, data, device_token};
+  ByteArray original_ble_advertisement_bytes{original_ble_advertisement};
 
   // Copy the bytes into a new array with extra bytes. We must explicitly
   // define how long our array is because we can't use variable length arrays.
   char raw_ble_advertisement_bytes[kLongAdvertisementLength]{};
-  memcpy(raw_ble_advertisement_bytes, org_ble_advertisement_bytes.data(),
+  memcpy(raw_ble_advertisement_bytes, original_ble_advertisement_bytes.data(),
          std::min(sizeof(raw_ble_advertisement_bytes),
-                  org_ble_advertisement_bytes.size()));
+                  original_ble_advertisement_bytes.size()));
 
   // Re-parse the Ble advertisement using our extra long advertisement bytes.
   ByteArray long_ble_advertisement_bytes{raw_ble_advertisement_bytes,
@@ -327,16 +328,16 @@ TEST(BleAdvertisementTest,
   ByteArray fast_data{std::string(kFastData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion, ByteArray{},
-                                         fast_data, device_token};
-  ByteArray org_ble_advertisement_bytes{org_ble_advertisement};
+  BleAdvertisement original_ble_advertisement{
+      kVersion, kSocketVersion, ByteArray{}, fast_data, device_token};
+  ByteArray original_ble_advertisement_bytes{original_ble_advertisement};
 
   // Copy the bytes into a new array with extra bytes. We must explicitly
   // define how long our array is because we can't use variable length arrays.
   char raw_ble_advertisement_bytes[kLongAdvertisementLength]{};
-  memcpy(raw_ble_advertisement_bytes, org_ble_advertisement_bytes.data(),
+  memcpy(raw_ble_advertisement_bytes, original_ble_advertisement_bytes.data(),
          std::min(sizeof(raw_ble_advertisement_bytes),
-                  org_ble_advertisement_bytes.size()));
+                  original_ble_advertisement_bytes.size()));
 
   // Re-parse the Ble advertisement using our extra long advertisement bytes.
   ByteArray long_ble_advertisement_bytes{raw_ble_advertisement_bytes,
@@ -363,13 +364,13 @@ TEST(BleAdvertisementTest, ConstructionFromShortLengthSerializedBytesFails) {
   ByteArray data{std::string(kData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion,
-                                         service_id_hash, data, device_token};
-  ByteArray org_ble_advertisement_bytes{org_ble_advertisement};
+  BleAdvertisement original_ble_advertisement{
+      kVersion, kSocketVersion, service_id_hash, data, device_token};
+  ByteArray original_ble_advertisement_bytes{original_ble_advertisement};
 
   // Cut off the advertisement so that it's too short.
-  ByteArray short_ble_advertisement_bytes{org_ble_advertisement_bytes.data(),
-                                          7};
+  ByteArray short_ble_advertisement_bytes{
+      original_ble_advertisement_bytes.data(), 7};
   BleAdvertisement short_ble_advertisement{short_ble_advertisement_bytes};
 
   EXPECT_FALSE(short_ble_advertisement.IsValid());
@@ -380,13 +381,13 @@ TEST(BleAdvertisementTest,
   ByteArray fast_data{std::string(kFastData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion, ByteArray{},
-                                         fast_data, device_token};
-  ByteArray org_ble_advertisement_bytes{org_ble_advertisement};
+  BleAdvertisement original_ble_advertisement{
+      kVersion, kSocketVersion, ByteArray{}, fast_data, device_token};
+  ByteArray original_ble_advertisement_bytes{original_ble_advertisement};
 
   // Cut off the advertisement so that it's too short.
-  ByteArray short_ble_advertisement_bytes{org_ble_advertisement_bytes.data(),
-                                          2};
+  ByteArray short_ble_advertisement_bytes{
+      original_ble_advertisement_bytes.data(), 2};
   BleAdvertisement short_ble_advertisement{short_ble_advertisement_bytes};
 
   EXPECT_FALSE(short_ble_advertisement.IsValid());
@@ -398,15 +399,15 @@ TEST(BleAdvertisementTest,
   ByteArray data{std::string(kData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion,
-                                         service_id_hash, data, device_token};
-  ByteArray org_ble_advertisement_bytes{org_ble_advertisement};
+  BleAdvertisement original_ble_advertisement{
+      kVersion, kSocketVersion, service_id_hash, data, device_token};
+  ByteArray original_ble_advertisement_bytes{original_ble_advertisement};
 
   // Corrupt the DATA_SIZE bits. Start by making a raw copy of the Ble
   // advertisement bytes so we can modify it. We must explicitly define how
   // long our array is because we can't use variable length arrays.
   char raw_ble_advertisement_bytes[kAdvertisementLength];
-  memcpy(raw_ble_advertisement_bytes, org_ble_advertisement_bytes.data(),
+  memcpy(raw_ble_advertisement_bytes, original_ble_advertisement_bytes.data(),
          kAdvertisementLength);
 
   // The data size field lives in indices 4-7. Corrupt it.
@@ -426,15 +427,15 @@ TEST(BleAdvertisementTest,
   ByteArray fast_data{std::string(kFastData)};
   ByteArray device_token{std::string(kDeviceToken)};
 
-  BleAdvertisement org_ble_advertisement{kVersion, kSocketVersion, ByteArray{},
-                                         fast_data, device_token};
-  ByteArray org_ble_advertisement_bytes{org_ble_advertisement};
+  BleAdvertisement original_ble_advertisement{
+      kVersion, kSocketVersion, ByteArray{}, fast_data, device_token};
+  ByteArray original_ble_advertisement_bytes{original_ble_advertisement};
 
   // Corrupt the DATA_SIZE bits. Start by making a raw copy of the Ble
   // advertisement bytes so we can modify it. We must explicitly define how
   // long our array is because we can't use variable length arrays.
   char raw_ble_advertisement_bytes[kFastAdvertisementLength];
-  memcpy(raw_ble_advertisement_bytes, org_ble_advertisement_bytes.data(),
+  memcpy(raw_ble_advertisement_bytes, original_ble_advertisement_bytes.data(),
          kFastAdvertisementLength);
 
   // The data size field lives in index 1. Corrupt it.
@@ -447,6 +448,49 @@ TEST(BleAdvertisementTest,
       corrupted_ble_advertisement_bytes};
 
   EXPECT_FALSE(corrupted_ble_advertisement.IsValid());
+}
+
+TEST(BleAdvertisementTest, ConstructionWorksWithPsmValue) {
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray data{std::string(kData)};
+  ByteArray device_token{std::string(kDeviceToken)};
+  int psm = 127;
+
+  BleAdvertisement ble_advertisement(kVersion, kSocketVersion, service_id_hash,
+                                     data, device_token, psm);
+
+  ASSERT_TRUE(ble_advertisement.IsValid());
+  EXPECT_FALSE(ble_advertisement.IsFastAdvertisement());
+  EXPECT_EQ(kVersion, ble_advertisement.GetVersion());
+  EXPECT_EQ(kSocketVersion, ble_advertisement.GetSocketVersion());
+  EXPECT_EQ(service_id_hash, ble_advertisement.GetServiceIdHash());
+  EXPECT_EQ(data.size(), ble_advertisement.GetData().size());
+  EXPECT_EQ(data, ble_advertisement.GetData());
+  EXPECT_EQ(device_token, ble_advertisement.GetDeviceToken());
+  EXPECT_EQ(psm, ble_advertisement.GetPsm());
+}
+
+TEST(BleAdvertisementTest, ConstructionFromSerializedBytesWithPsmValueWorks) {
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray data{std::string(kData)};
+  ByteArray device_token{std::string(kDeviceToken)};
+  int psm = 127;
+
+  BleAdvertisement original_ble_advertisement(
+      kVersion, kSocketVersion, service_id_hash, data, device_token, psm);
+  ByteArray ble_advertisement_bytes =
+      original_ble_advertisement.ByteArrayWithExtraField();
+  BleAdvertisement ble_advertisement(ble_advertisement_bytes);
+
+  ASSERT_TRUE(ble_advertisement.IsValid());
+  EXPECT_FALSE(ble_advertisement.IsFastAdvertisement());
+  EXPECT_EQ(kVersion, ble_advertisement.GetVersion());
+  EXPECT_EQ(kSocketVersion, ble_advertisement.GetSocketVersion());
+  EXPECT_EQ(service_id_hash, ble_advertisement.GetServiceIdHash());
+  EXPECT_EQ(data.size(), ble_advertisement.GetData().size());
+  EXPECT_EQ(data, ble_advertisement.GetData());
+  EXPECT_EQ(device_token, ble_advertisement.GetDeviceToken());
+  EXPECT_EQ(psm, ble_advertisement.GetPsm());
 }
 
 TEST(BleAdvertisementTest, Hash) {

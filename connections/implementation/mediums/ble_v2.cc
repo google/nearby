@@ -100,9 +100,9 @@ bool BleV2::StartAdvertising(
   ByteArray medium_advertisement_bytes{mediums::BleAdvertisement{
       mediums::BleAdvertisement::Version::kV2,
       mediums::BleAdvertisement::SocketVersion::kV2,
-      /* service_id_hash= */
-      is_fast_advertisement ? ByteArray{} : service_id_hash,
-      advertisement_bytes, mediums::bleutils::GenerateDeviceToken()}};
+      /*service_id_hash=*/is_fast_advertisement ? ByteArray{} : service_id_hash,
+      advertisement_bytes, mediums::bleutils::GenerateDeviceToken(),
+      mediums::BleAdvertisementHeader::kDefaultPsmValue}};
   if (medium_advertisement_bytes.Empty()) {
     NEARBY_LOGS(INFO) << "Failed to BLE advertise because we could not wrap a "
                          "connection advertisement to medium advertisement.";
@@ -443,7 +443,7 @@ ByteArray BleV2::CreateAdvertisementHeader() {
 
   mediums::BloomFilter bloom_filter(
       std::make_unique<mediums::BitSetImpl<
-          mediums::BleAdvertisementHeader::kServiceIdBloomFilterLength>>());
+          mediums::BleAdvertisementHeader::kServiceIdBloomFilterByteLength>>());
   bloom_filter.Add(dummy_service_id);
 
   ByteArray advertisement_hash =

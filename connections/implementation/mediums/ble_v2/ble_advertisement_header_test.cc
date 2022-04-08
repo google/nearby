@@ -14,6 +14,8 @@
 
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 
+#include <string>
+
 #include "gtest/gtest.h"
 #include "absl/hash/hash_testing.h"
 #include "internal/platform/base64_utils.h"
@@ -27,7 +29,7 @@ namespace {
 constexpr BleAdvertisementHeader::Version kVersion =
     BleAdvertisementHeader::Version::kV2;
 constexpr int kNumSlots = 2;
-constexpr std::int16_t kPsmValue = 1;
+constexpr int kPsmValue = 127;
 constexpr absl::string_view kServiceIDBloomFilter{
     "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"};
 constexpr absl::string_view kAdvertisementHash{"\x0a\x0b\x0c\x0d"};
@@ -48,7 +50,7 @@ TEST(BleAdvertisementHeaderTest, ConstructionWorks) {
             ble_advertisement_header.GetServiceIdBloomFilter());
   EXPECT_EQ(advertisement_hash,
             ble_advertisement_header.GetAdvertisementHash());
-  EXPECT_EQ(kPsmValue, ble_advertisement_header.GetPsmValue());
+  EXPECT_EQ(kPsmValue, ble_advertisement_header.GetPsm());
 }
 
 TEST(BleAdvertisementHeaderTest, ConstructionFailsWithBadVersion) {
@@ -165,7 +167,7 @@ TEST(BleAdvertisementHeaderTest, ConstructionFromSerializedStringWorks) {
             ble_advertisement_header.GetServiceIdBloomFilter());
   EXPECT_EQ(advertisement_hash,
             ble_advertisement_header.GetAdvertisementHash());
-  EXPECT_EQ(kPsmValue, ble_advertisement_header.GetPsmValue());
+  EXPECT_EQ(kPsmValue, ble_advertisement_header.GetPsm());
 }
 
 TEST(BleAdvertisementHeaderTest, ConstructionFromExtraBytesWorks) {
@@ -192,7 +194,7 @@ TEST(BleAdvertisementHeaderTest, ConstructionFromExtraBytesWorks) {
             long_ble_advertisement_header.GetServiceIdBloomFilter());
   EXPECT_EQ(advertisement_hash,
             long_ble_advertisement_header.GetAdvertisementHash());
-  EXPECT_EQ(kPsmValue, long_ble_advertisement_header.GetPsmValue());
+  EXPECT_EQ(kPsmValue, long_ble_advertisement_header.GetPsm());
 }
 
 TEST(BleAdvertisementHeaderTest, ConstructionFromShortLengthFails) {

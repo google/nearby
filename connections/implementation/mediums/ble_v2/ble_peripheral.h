@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_PERIPHERAL_H_
 #define CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_PERIPHERAL_H_
 
+#include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "internal/platform/byte_array.h"
 
 namespace location {
@@ -30,7 +31,8 @@ namespace mediums {
 class BlePeripheral {
  public:
   BlePeripheral() = default;
-  explicit BlePeripheral(const ByteArray& id) : BlePeripheral(id, 0) {}
+  explicit BlePeripheral(const ByteArray& id)
+      : BlePeripheral(id, BleAdvertisementHeader::kDefaultPsmValue) {}
   BlePeripheral(const ByteArray& id, int psm) : id_(id), psm_(psm) {}
   BlePeripheral(const BlePeripheral&) = default;
   BlePeripheral& operator=(const BlePeripheral&) = default;

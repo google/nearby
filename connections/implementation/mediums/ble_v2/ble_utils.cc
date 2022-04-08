@@ -53,8 +53,9 @@ ByteArray GenerateDeviceToken() {
 }
 
 ByteArray GenerateAdvertisementHash(const ByteArray& advertisement_bytes) {
-  return Utils::Sha256Hash(advertisement_bytes,
-                           BleAdvertisementHeader::kAdvertisementHashLength);
+  return Utils::Sha256Hash(
+      advertisement_bytes,
+      BleAdvertisementHeader::kAdvertisementHashByteLength);
 }
 
 std::string GenerateAdvertisementUuid(int slot) {
