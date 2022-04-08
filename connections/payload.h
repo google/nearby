@@ -79,6 +79,8 @@ class DLL_API Payload {
   Payload(Id id, ByteArray&& bytes);
   Payload(Id id, const ByteArray& bytes);
   Payload(Id id, InputFile file);
+  Payload(Id id, std::string parent_folder, std::string file_name,
+          InputFile input_file);
   Payload(Id id, std::function<InputStream&()> stream);
 
   // Returns ByteArray payload, if it has been defined, or empty ByteArray.

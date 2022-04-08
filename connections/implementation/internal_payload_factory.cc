@@ -347,16 +347,30 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
     }
 
     case PayloadTransferFrame::PayloadHeader::FILE: {
+      std::string parent_folder("");
+      std::string file_name("");
       std::string file_path("");
+
       int64_t total_size = 0;
 
       if (frame.payload_header().has_parent_folder()) {
-        file_path = frame.payload_header().parent_folder();
+        parent_folder = frame.payload_header().parent_folder();
       }
 
       if (frame.payload_header().has_file_name()) {
-        std::string file_name(frame.payload_header().file_name());
-        file_path = make_path(file_path, file_name);
+        file_name = frame.payload_header().file_name();
+        file_path = make_path(parent_folder, file_name);
+      } else {
+        if (frame.payload_header().has_id()) {
+          file_name = std::to_string(frame.payload_header().id());
+          file_path = make_path(parent_folder, file_name);
+        } else {
+          // This is an error condition, we don't have any way to generate a
+          // file name for the output file.
+          NEARBY_LOGS(ERROR) << "File name not found in incoming file Payload, "
+                                "and the Id wasn't found.";
+          return {};
+        }
       }
 
       if (frame.payload_header().has_total_size()) {
@@ -372,7 +386,8 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
             OutputFile(payload_id), total_size);
       } else {
         return absl::make_unique<IncomingFileInternalPayload>(
-            Payload(payload_id, InputFile(file_path, total_size)),
+            Payload(payload_id, parent_folder, file_name,
+                    InputFile(file_path, total_size)),
             OutputFile(file_path), total_size);
       }
     }

@@ -62,6 +62,14 @@ Payload::Payload(Id id, ByteArray&& bytes)
 Payload::Payload(Id id, const ByteArray& bytes)
     : id_(id), type_(PayloadType::kBytes), content_(bytes) {}
 
+Payload::Payload(Id id, std::string parent_folder, std::string file_name,
+                 InputFile input_file)
+    : id_(id),
+      parent_folder_(parent_folder),
+      file_name_(file_name),
+      type_(PayloadType::kFile),
+      content_(std::move(input_file)) {}
+
 Payload::Payload(Id id, std::function<InputStream&()> stream)
     : id_(id), type_(PayloadType::kStream), content_(std::move(stream)) {}
 
