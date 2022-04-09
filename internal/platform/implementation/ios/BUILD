@@ -27,7 +27,6 @@ objc_library(
         "Source/Internal/GNCPayload.mm",
         "Source/Internal/GNCPayloadListener.mm",
         "Source/Internal/GNCUtils.mm",
-        "Source/Internal/platform.mm",
     ],
     hdrs = [
         "Source/Internal/GNCCore.h",

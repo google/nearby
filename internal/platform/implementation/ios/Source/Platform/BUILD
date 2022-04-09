@@ -19,15 +19,14 @@ objc_library(
     name = "Platform",
     srcs = [
         "crypto.mm",
-        "input_file.mm",
         "log_message.mm",
         "multi_thread_executor.mm",
+        "platform.mm",
         "scheduled_executor.mm",
         "utils.mm",
         "wifi_lan.mm",
     ],
     hdrs = [
-        "input_file.h",
         "log_message.h",
         "multi_thread_executor.h",
         "scheduled_executor.h",

@@ -16,12 +16,10 @@
 
 #include <string>
 
-#import "internal/platform/implementation/ios/Source/Internal/GNCCore.h"
 #include "internal/platform/implementation/ios/Source/Platform/atomic_boolean.h"
 #include "internal/platform/implementation/ios/Source/Platform/atomic_uint32.h"
 #include "internal/platform/implementation/ios/Source/Platform/condition_variable.h"
 #include "internal/platform/implementation/ios/Source/Platform/count_down_latch.h"
-#include "internal/platform/implementation/ios/Source/Platform/input_file.h"
 #import "internal/platform/implementation/ios/Source/Platform/log_message.h"
 #import "internal/platform/implementation/ios/Source/Platform/multi_thread_executor.h"
 #include "internal/platform/implementation/ios/Source/Platform/mutex.h"
@@ -42,11 +40,12 @@ std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
   // TODO(jfcarroll): This needs to be done correctly, we now have a file name and parent folder,
   // they should be combined with the default download path
   NSString* fileName = ObjCStringFromCppString(file_name);
+  NSError* error = nil;
   NSURL* downloadsURL = [[NSFileManager defaultManager] URLForDirectory:NSDownloadsDirectory
                                                                inDomain:NSUserDomainMask
                                                       appropriateForURL:nil
                                                                  create:YES
-                                                                  error:nil];
+                                                                  error:&error];
   // TODO(b/227535777): If file name matches an existing file, it will be overwritten. Append a number until
   // a unique file name is reached 'foobar (2).png'.
   return CppStringFromObjCString([downloadsURL URLByAppendingPathComponent:fileName].path);
@@ -85,18 +84,9 @@ std::unique_ptr<ConditionVariable> ImplementationPlatform::CreateConditionVariab
 ABSL_DEPRECATED("This interface will be deleted in the near future.")
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(PayloadId payload_id,
                                                                    std::int64_t total_size) {
-  // Extract the NSURL object with payload_id from |GNCCore| which stores the maps. If the retrieved
-  // NSURL object is not nil, we create InputFile by ios::InputFile. The difference is
-  // that ios::InputFile implements to read bytes from local real file for sending.
-  GNCCore* core = GNCGetCore();
-  NSURL* url = [core extractURLWithPayloadID:payload_id];
-  if (url != nil) {
-    return std::make_unique<ios::InputFile>(url);
-  } else {
-    std::string parent_folder("");
-    std::string file_name(std::to_string(payload_id));
-    return shared::IOFile::CreateInputFile(GetDownloadPath(parent_folder, file_name), total_size);
-  }
+  std::string parent_folder("");
+  std::string file_name(std::to_string(payload_id));
+  return shared::IOFile::CreateInputFile(GetDownloadPath(parent_folder, file_name), total_size);
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(absl::string_view file_path,

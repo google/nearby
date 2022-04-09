@@ -22,7 +22,6 @@ objc_library(
     testonly = 1,
     srcs = [
         "Platform/GNCCryptoTest.mm",
-        "Platform/GNCInputFileTest.mm",
         "Platform/GNCMultiThreadExecutorTest.mm",
         "Platform/GNCScheduledExecutorTest.mm",
         "Platform/GNCSingleThreadExecutorTest.mm",

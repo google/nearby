@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <utility>
+
 #import "internal/platform/implementation/ios/Source/Internal/GNCCoreConnection.h"
 
 #include "connections/core.h"
@@ -19,7 +21,6 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/file.h"
 #include "internal/platform/implementation/input_file.h"
-#import "internal/platform/implementation/ios/Source/Internal/GNCCore.h"
 #import "internal/platform/implementation/ios/Source/Platform/utils.h"
 #import "internal/platform/implementation/ios/Source/Public/NearbyConnections/GNCConnection.h"
 #import "internal/platform/implementation/ios/Source/Public/NearbyConnections/GNCPayload.h"
@@ -159,9 +160,7 @@ class GNCInputStreamFromNSStream : public InputStream {
     fileSize = fileSizeValue.longValue;
   }
   PayloadId payloadId = payload.identifier;
-  // Add the pair of payloadId and fileURL to the map in the GNCCore.
-  [_core insertURLToMapWithPayloadID:payloadId urlToSend:fileURL];
-  InputFile inputFile(payloadId, fileSize);
+  InputFile inputFile(CppStringFromObjCString(fileURL.path), fileSize);
   Payload corePayload(payloadId, std::move(inputFile));
   progress.totalUnitCount = fileSize;
   return [self sendPayload:std::move(corePayload)
