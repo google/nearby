@@ -22,6 +22,7 @@ cc_library(
         "bluetooth_radio.cc",
         "mediums.cc",
         "webrtc_stub.cc",
+        "wifi_hotspot.cc",
         "wifi_lan.cc",
     ],
     hdrs = [
@@ -31,6 +32,7 @@ cc_library(
         "bluetooth_radio.h",
         "mediums.h",
         "webrtc_stub.h",
+        "wifi_hotspot.h",
         "wifi_lan.h",
     ],
     defines = ["NO_WEBRTC"],
@@ -97,6 +99,7 @@ cc_test(
         "bluetooth_radio_test.cc",
         "lost_entity_tracker_test.cc",
         "uuid_test.cc",
+        "wifi_hotspot_test.cc",
         "wifi_lan_test.cc",
     ],
     defines = ["NO_WEBRTC"],

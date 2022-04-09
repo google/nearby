@@ -23,6 +23,7 @@
 #else
 #include "connections/implementation/mediums/webrtc.h"
 #endif
+#include "connections/implementation/mediums/wifi_hotspot.h"
 #include "connections/implementation/mediums/wifi_lan.h"
 
 namespace location {
@@ -47,6 +48,9 @@ class Mediums {
   // Returns a handle to the Wifi-Lan medium.
   WifiLan& GetWifiLan();
 
+  // Returns a handle to the Wifi-Hotspot medium.
+  WifiHotspot& GetWifiHotspot();
+
   // Returns a handle to the WebRtc medium.
   mediums::WebRtc& GetWebRtc();
 
@@ -63,6 +67,7 @@ class Mediums {
   BluetoothClassic bluetooth_classic_{bluetooth_radio_};
   Ble ble_{bluetooth_radio_};
   WifiLan wifi_lan_;
+  WifiHotspot wifi_hotspot_;
   mediums::WebRtc webrtc_;
 };
 
