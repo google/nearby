@@ -456,6 +456,7 @@ let package = Package(
         "internal/platform/count_down_latch_test.cc",
         "internal/platform/pipe_test.cc",
         "internal/platform/wifi_hotspot_test.cc",
+        "internal/platform/wifi_lan_test.cc",
         "internal/platform/condition_variable_test.cc",
         "internal/platform/thread_check_nocompile_test.py",
         "internal/platform/bluetooth_classic_test.cc",
