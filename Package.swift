@@ -424,7 +424,7 @@ let package = Package(
         "connections/implementation/mediums/ble_v2/ble_advertisement_header_test.cc",
         "connections/implementation/mediums/ble_v2/ble_utils_test.cc",
         "connections/implementation/mediums/webrtc_peer_id_test.cc",
-        "connections/implementation/mediums/wifi_lan_test.cc",
+        "connections/implementation/mediums/wifi_hotspot_test.cc",
         "connections/implementation/mediums/bluetooth_classic_test.cc",
         "connections/implementation/mediums/ble_test.cc",
         "connections/implementation/mediums/webrtc_test.cc",
