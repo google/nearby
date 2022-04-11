@@ -16,6 +16,8 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
+#include <utility>
 
 #include "absl/memory/memory.h"
 #include "connections/implementation/offline_frames_validator.h"

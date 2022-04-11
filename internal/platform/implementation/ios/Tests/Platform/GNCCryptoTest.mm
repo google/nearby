@@ -14,6 +14,8 @@
 
 #import <XCTest/XCTest.h>
 
+#include <string>
+
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/byte_array.h"
 

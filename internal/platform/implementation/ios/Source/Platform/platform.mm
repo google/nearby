@@ -40,15 +40,11 @@ std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
   // TODO(jfcarroll): This needs to be done correctly, we now have a file name and parent folder,
   // they should be combined with the default download path
   NSString* fileName = ObjCStringFromCppString(file_name);
-  NSError* error = nil;
-  NSURL* downloadsURL = [[NSFileManager defaultManager] URLForDirectory:NSDownloadsDirectory
-                                                               inDomain:NSUserDomainMask
-                                                      appropriateForURL:nil
-                                                                 create:YES
-                                                                  error:&error];
-  // TODO(b/227535777): If file name matches an existing file, it will be overwritten. Append a number until
-  // a unique file name is reached 'foobar (2).png'.
-  return CppStringFromObjCString([downloadsURL URLByAppendingPathComponent:fileName].path);
+
+  // TODO(b/227535777): If file name matches an existing file, it will be overwritten. Append a
+  // number until a unique file name is reached 'foobar (2).png'.
+
+  return CppStringFromObjCString([NSTemporaryDirectory() stringByAppendingPathComponent:fileName]);
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kiOS; }
@@ -71,9 +67,9 @@ std::unique_ptr<Mutex> ImplementationPlatform::CreateMutex(Mutex::Mode mode) {
   // iOS does not support unchecked Mutex in debug mode, therefore
   // ios::Mutex is used for both kRegular and kRegularNoCheck.
   if (mode == Mutex::Mode::kRecursive) {
-    return absl::make_unique<ios::RecursiveMutex>();
+    return std::make_unique<ios::RecursiveMutex>();
   } else {
-    return absl::make_unique<ios::Mutex>();
+    return std::make_unique<ios::Mutex>();
   }
 }
 
@@ -84,9 +80,7 @@ std::unique_ptr<ConditionVariable> ImplementationPlatform::CreateConditionVariab
 ABSL_DEPRECATED("This interface will be deleted in the near future.")
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(PayloadId payload_id,
                                                                    std::int64_t total_size) {
-  std::string parent_folder("");
-  std::string file_name(std::to_string(payload_id));
-  return shared::IOFile::CreateInputFile(GetDownloadPath(parent_folder, file_name), total_size);
+  return nullptr;
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(absl::string_view file_path,
@@ -96,9 +90,7 @@ std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(absl::string_
 
 ABSL_DEPRECATED("This interface will be deleted in the near future.")
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(PayloadId payload_id) {
-  std::string parent_folder("");
-  std::string file_name(std::to_string(payload_id));
-  return shared::IOFile::CreateOutputFile(GetDownloadPath(parent_folder, file_name));
+  return nullptr;
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(absl::string_view file_path) {
@@ -107,7 +99,7 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(absl::strin
 
 std::unique_ptr<LogMessage> ImplementationPlatform::CreateLogMessage(
     const char* file, int line, LogMessage::Severity severity) {
-  return absl::make_unique<ios::LogMessage>(file, line, severity);
+  return std::make_unique<ios::LogMessage>(file, line, severity);
 }
 
 // Java-like Executors
