@@ -21,14 +21,16 @@ objc_library(
     name = "PlatformTestslib",
     testonly = 1,
     srcs = [
-        "Platform/GNCCryptoTest.mm",
-        "Platform/GNCMultiThreadExecutorTest.mm",
-        "Platform/GNCScheduledExecutorTest.mm",
-        "Platform/GNCSingleThreadExecutorTest.mm",
+        "GNCCryptoTest.mm",
+        "GNCMultiThreadExecutorTest.mm",
+        "GNCScheduledExecutorTest.mm",
+        "GNCSingleThreadExecutorTest.mm",
+        "GNCUtilsTest.mm",
     ],
     features = ["-layering_check"],
     deps = [
-        "//internal/platform/implementation/ios:Connections",
+        "//internal/platform/implementation/ios:Platform",
+        "//internal/platform/implementation/ios:Shared",
     ],
 )
 
@@ -38,27 +40,5 @@ ios_unit_test(
     runner = "//testing/utp/ios:IOS_12",
     deps = [
         ":PlatformTestslib",
-    ],
-)
-
-objc_library(
-    name = "SharedTestslib",
-    testonly = 1,
-    srcs = [
-        "Shared/GNCUtilsTest.mm",
-    ],
-    features = ["-layering_check"],
-    deps = [
-        "//internal/platform/implementation/ios/Source/Platform",
-        "//internal/platform/implementation/ios/Source/Shared",
-    ],
-)
-
-ios_unit_test(
-    name = "SharedTests",
-    minimum_os_version = "12.0",
-    runner = "//testing/utp/ios:IOS_12",
-    deps = [
-        ":SharedTestslib",
     ],
 )
