@@ -14,8 +14,8 @@
 
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 
-#include <windows.h>
-#include <winioctl.h>
+#include <windows.h>   // These two headers must be defined
+#include <winioctl.h>  // first and in this order
 #include <bthdef.h>
 #include <bthioctl.h>
 #include <cfgmgr32.h>
@@ -37,9 +37,6 @@ typedef std::basic_string<TCHAR> tstring;
 
 // IOCTL to get local radio information
 #define BTH_GET_DEVICE_INFO_IOCTL 0x411008
-
-#define BUFFER_SIZE 64
-#define FILE_NAME_SIZE 1024
 
 #define REGISTRY_QUERY_FORMAT \
   "SYSTEM\\ControlSet001\\Enum\\%s\\Device Parameters"
@@ -103,174 +100,234 @@ bool BluetoothAdapter::SetScanMode(ScanMode scan_mode) {
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getName()
 // Returns an empty string on error
 std::string BluetoothAdapter::GetName() const {
-  char *instanceID = GetGenericBluetoothAdapterInstanceID();
+  std::string instance_id(GetGenericBluetoothAdapterInstanceID());
 
-  if (instanceID == NULL) {
+  if (instance_id.empty()) {
     NEARBY_LOGS(ERROR)
         << __func__ << ": Failed to get Generic Bluetooth Adapter InstanceID";
     return std::string();
   }
-  // Add 1 to length to get size (including null)
-  // Modify the InstanceID to the format that the Registry expects
-  char *instanceIDModified = new char[(strlen(instanceID) + 1) * sizeof(char)];
-  absl::SNPrintF(instanceIDModified,
-                 size_t((strlen(instanceID) + 1) * sizeof(char)), "%s",
-                 instanceID);
-  find_and_replace(instanceIDModified, "\\", "#");
-
   // Change radio module local name in registry
   HKEY hKey;
-  char rmLocalNameKey[FILE_NAME_SIZE] = {0};
-  LSTATUS ret;
 
-  absl::SNPrintF(rmLocalNameKey, sizeof(rmLocalNameKey), REGISTRY_QUERY_FORMAT,
-                 instanceID);
+  // Retrieve the size required
+  size_t registry_query_size = absl::SNPrintF(nullptr,                // output
+                                              0,                      // size
+                                              REGISTRY_QUERY_FORMAT,  // format
+                                              instance_id.c_str());   // args
+
+  std::string local_name_key;
+  local_name_key.reserve(registry_query_size + 1);
+
+  absl::SNPrintF(local_name_key.data(),    // output
+                 registry_query_size + 1,  // size
+                 REGISTRY_QUERY_FORMAT,    // format
+                 instance_id.c_str());     // args
+
+  LSTATUS status;
 
   // Opens the specified registry key.
   // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regopenkeyexa
-  ret = RegOpenKeyExA(
-      HKEY_LOCAL_MACHINE,  // A handle to an open registry key, using
-                           // predefined key for local machine
-      rmLocalNameKey,      // The name of the registry subkey to be opened.
+  status = RegOpenKeyExA(
+      HKEY_LOCAL_MACHINE,      // A handle to an open registry key, using
+                               // predefined key for local machine
+      local_name_key.c_str(),  // The name of the registry subkey to be opened.
       0L,               // Specifies the option to apply when opening the key.
       KEY_QUERY_VALUE,  // A mask that specifies the desired access rights to
                         // the key to be opened.
       &hKey);  // A pointer to a variable that receives a handle to the opened
                // key
 
-  if (ret == ERROR_SUCCESS) {
-    BYTE rmLocalName[FILE_NAME_SIZE] = {0};
-    DWORD rmLocalNameSize = FILE_NAME_SIZE;
-    DWORD valueType;
+  if (status == ERROR_SUCCESS) {
+    DWORD local_name_size;
+    DWORD value_type;
 
-    LSTATUS status =
-        // Retrieves the type and data for the specified value name associated
-        // with an open registry key.
-        // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regqueryvalueexa
-        RegQueryValueExA(
-            hKey,  // A handle to an open registry key.
-            BLUETOOTH_RADIO_REGISTRY_NAME_KEY,  // The name of the registry
-                                                // value.
-            nullptr,            // This parameter is reserved and must be NULL.
-            &valueType,         // A pointer to a variable that receives a code
-                                // indicating the type of data stored in the
-                                // specified value.
-            &rmLocalName[0],    // A pointer to a buffer that receives the
-                                // value's data.
-            &rmLocalNameSize);  // A pointer to a variable that specifies the
-                                // size of the buffer pointed to by the lpData
-                                // parameter, in bytes.
+    // Retrieves the size of the data for the specified value name associated
+    // with an open registry key.
+    // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regqueryvalueexa
+    LSTATUS status = RegQueryValueExA(
+        hKey,                               // A handle to an open registry key.
+        BLUETOOTH_RADIO_REGISTRY_NAME_KEY,  // The name of the registry
+                                            // value.
+        nullptr,      // This parameter is reserved and must be NULL.
+        &value_type,  // A pointer to a variable that receives a code
+                      // indicating the type of data stored in the
+                      // specified value.
+        nullptr,      // null tells the function to just get the buffer size.
+                      // value's data.
+        &local_name_size);  // A pointer to a variable that specifies the
+                            // size of the buffer pointed to by the lpData
+                            // parameter, in bytes.
+    if (status != ERROR_SUCCESS) {
+      NEARBY_LOGS(ERROR)
+          << __func__
+          << ": Failed to get the required size of the local name buffer";
+      return {};
+    }
+    unsigned char *local_name = new unsigned char[local_name_size];
+    memset(local_name, '\0', local_name_size);
+
+    status = RegQueryValueExA(
+        hKey,                               // A handle to an open registry key.
+        BLUETOOTH_RADIO_REGISTRY_NAME_KEY,  // The name of the registry
+                                            // value.
+        nullptr,            // This parameter is reserved and must be NULL.
+        &value_type,        // A pointer to a variable that receives a code
+                            // indicating the type of data stored in the
+                            // specified value.
+        local_name,         // A pointer to a buffer that
+                            // receives the value's data.
+        &local_name_size);  // A pointer to a variable that specifies the
+                            // size of the buffer pointed to by the lpData
+                            // parameter, in bytes.
 
     // Closes a handle to the specified registry key.
     // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regclosekey
     RegCloseKey(hKey);
 
     if (status == ERROR_SUCCESS) {
-      char str[FILE_NAME_SIZE]{0};
-      memcpy(str, rmLocalName, rmLocalNameSize);
-      return std::string(str);
+      std::string local_name_return = std::string(
+          local_name, local_name + local_name_size / sizeof local_name[0]);
+
+      delete[] local_name;
+
+      return local_name_return;
     }
+    delete[] local_name;
   }
 
   // The local name is not in the registry, return the machine name
-  char localName[FILE_NAME_SIZE];
-  DWORD nameSize = FILE_NAME_SIZE;
+  std::string local_name;
+  DWORD name_size = 0;
+
+  if (GetComputerNameA(nullptr, &name_size)) {
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << ": Failed to get the required size of the local name buffer";
+    return {};
+  }
+
+  local_name.reserve(name_size);
 
   // Retrieves the NetBIOS name of the local computer.
   // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getcomputernamea
-  if (GetComputerNameA(localName, &nameSize)) {
-    return std::string(localName);
+  if (GetComputerNameA(local_name.data(), &name_size)) {
+    return local_name;
   }
 
   // If we're here, we couldn't get a local name, this should never happen
   NEARBY_LOGS(ERROR) << __func__ << ": Failed to get any radio name";
-  return std::string();
+  return {};
 }
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
 bool BluetoothAdapter::SetName(absl::string_view name) {
-  char *instanceID = GetGenericBluetoothAdapterInstanceID();
+  std::string instance_id(GetGenericBluetoothAdapterInstanceID());
 
-  if (instanceID == NULL) {
+  if (instance_id.empty()) {
     NEARBY_LOGS(ERROR)
         << __func__ << ": Failed to get Generic Bluetooth Adapter InstanceID";
     return false;
   }
-
-  // Add 1 to length to get size (including null)
-  char *instanceIDModified = new char[(strlen(instanceID) + 1) * sizeof(char)];
-
-  absl::SNPrintF(instanceIDModified,
-                 size_t((strlen(instanceID) + 1) * sizeof(char)), "%s",
-                 instanceID);
-
-  find_and_replace(instanceIDModified, "\\", "#");
-
-  HANDLE hDevice;
-  char fileName[FILE_NAME_SIZE] = {0};
-
   // defined in usbiodef.h
   const GUID guid = GUID_DEVINTERFACE_USB_DEVICE;
 
-  OLECHAR guidOleStr[BUFFER_SIZE];
-  int oleBufferLen = BUFFER_SIZE;
-
-  char guidStr[BUFFER_SIZE];
-  int bufferLen = BUFFER_SIZE;
-  BOOL defaultCharUsed;
+// Conversion of a 16 byte guid to a format of
+// "{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}" results in
+// a required buffer of
+// (32 digits + 4 '-'s + 2 braces + 1 '\0') * sizeof(OLECHAR) for
+// a total of 39 OLECHARs.
+#define OLE_GUID_STRING_BUFFER_SIZE 39
+  OLECHAR guid_ole_str[OLE_GUID_STRING_BUFFER_SIZE];
+  size_t guid_ole_str_size = OLE_GUID_STRING_BUFFER_SIZE;
 
   // Converts a globally unique identifier (GUID) into a string of printable
   // characters.
   // https://docs.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-stringfromguid2
-  auto conversionResult = StringFromGUID2(guid, guidOleStr, bufferLen);
+  auto conversionResult =
+      StringFromGUID2(guid, guid_ole_str, guid_ole_str_size);
 
   if (conversionResult == 0) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to convert guid to string";
     return false;
   }
+  std::string guid_str;
+  int guid_str_size = 0;
+  BOOL defaultCharUsed;
+
+  guid_str_size = WideCharToMultiByte(
+      CP_UTF8,            // Code page to use in performing the conversion.
+      0,                  // Flags indicating the conversion type.
+      guid_ole_str,       // Pointer to the Unicode string to convert.
+      guid_ole_str_size,  // Size, in characters, of the string indicated by
+                          // lpWideCharStr.
+      nullptr,  // Pointer to a buffer that receives the converted string.
+      0,        // Size, in bytes, of the buffer indicated by lpMultiByteStr.
+      NULL,     // Pointer to the character to use if a character cannot be
+                // represented in the specified code page.
+      &defaultCharUsed);  // Pointer to a flag that indicates if the function
+                          // has used a default character in the conversion.
+
+  if (guid_str_size == 0) {
+    process_error();
+    return false;
+  }
+
+  guid_str.reserve(guid_str_size);
 
   // Maps a UTF-16 (wide character) string to a new character string. The new
   // character string is not necessarily from a multibyte character set.
   // https://docs.microsoft.com/en-us/windows/win32/api/stringapiset/nf-stringapiset-widechartomultibyte
-  conversionResult =
-      WideCharToMultiByte(CP_UTF8, 0, guidOleStr, oleBufferLen, guidStr,
-                          bufferLen, NULL, &defaultCharUsed);
+  conversionResult = WideCharToMultiByte(
+      CP_UTF8,            // Code page to use in performing the conversion.
+      0,                  // Flags indicating the conversion type.
+      guid_ole_str,       // Pointer to the Unicode string to convert.
+      guid_ole_str_size,  // Size, in characters, of the string indicated by
+      // lpWideCharStr.
+      guid_str
+          .data(),    // Pointer to a buffer that receives the converted string.
+      guid_str_size,  // Size, in bytes, of the buffer indicated by
+                      // lpMultiByteStr.
+      NULL,  // // Pointer to the character to use if a character cannot be
+             // represented in the specified code page.
+      &defaultCharUsed);  // // Pointer to a flag that indicates if the function
+                          // has used a default character in the conversion.
 
   if (conversionResult == 0) {
-    const char *errorResult = {};
-    int errorMessageID = GetLastError();
-
-    switch (errorMessageID) {
-      case ERROR_INSUFFICIENT_BUFFER:
-        errorResult =
-            "A supplied buffer size was not large enough, or it was "
-            "incorrectly set to NULL.";
-        break;
-      case ERROR_INVALID_FLAGS:
-        errorResult = "The values supplied for flags were not valid.";
-        break;
-      case ERROR_INVALID_PARAMETER:
-        errorResult = "Any of the parameter values was invalid.";
-        break;
-      case ERROR_NO_UNICODE_TRANSLATION:
-        errorResult = "Invalid Unicode was found in a string.";
-        break;
-      default:
-        errorResult = "Unknown error.";
-        break;
-    }
-
-    NEARBY_LOGS(ERROR) << __func__ << ": Failed to convert guid to string "
-                       << errorResult << " Error code:" << errorMessageID;
+    process_error();
+    return false;
   }
 
-  absl::SNPrintF(fileName, sizeof(fileName), "\\\\.\\%s%s#%s", fileName,
-                 instanceIDModified, guidStr);
+  // Add 1 to length to get size (including null)
+  std::string instance_id_modified;
+  instance_id_modified.reserve((instance_id.size() + 1) * sizeof(char));
+
+  absl::SNPrintF(instance_id_modified.data(),
+                 size_t((instance_id.size() + 1) * sizeof(char)), "%s",
+                 instance_id.c_str());
+
+  // Convert the P&P instance id, to one that CreateFileA expects
+  find_and_replace(instance_id_modified.data(), "\\", "#");
+
+  size_t file_name_size =
+      absl::SNPrintF(nullptr, 0, "\\\\.\\%s#%s", instance_id_modified.c_str(),
+                     guid_str.c_str());
+
+  std::string file_name;
+  file_name.reserve(file_name_size + 1);
+
+  // Add the guid to the P&P instance id forming the complete symbolic
+  // path to the device.
+  absl::SNPrintF(file_name.data(), file_name_size + 1, "\\\\.\\%s#%s",
+                 instance_id_modified.c_str(), guid_str.c_str());
+
+  HANDLE hDevice;
 
   // Creates or opens a file or I/O device.
   // https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea
   hDevice = CreateFileA(
-      fileName,       // The name of the file or device to be created or opened.
+      file_name
+          .c_str(),   // The name of the file or device to be created or opened.
       GENERIC_WRITE,  // The requested access to the file or device.
       0,              // The requested sharing mode of the file or device.
       NULL,           // A pointer to a SECURITY_ATTRIBUTES structure.
@@ -280,8 +337,6 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
       NULL);  // A valid handle to a template file with the GENERIC_READ access
               // right. This parameter can be NULL.
 
-  delete[] instanceIDModified;
-
   if (hDevice == INVALID_HANDLE_VALUE) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to open device. Error code: "
                        << GetLastError();
@@ -290,34 +345,39 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
 
   // Change radio module local name in registry
   HKEY hKey;
-  char rmLocalNameKey[FILE_NAME_SIZE] = {0};
-  LSTATUS ret;
+  size_t buffer_size =
+      absl::SNPrintF(nullptr, 0, REGISTRY_QUERY_FORMAT, instance_id);
 
-  absl::SNPrintF(rmLocalNameKey, sizeof(rmLocalNameKey), REGISTRY_QUERY_FORMAT,
-                 instanceID);
+  std::string local_name_key;
+  local_name_key.reserve(buffer_size + 1);
 
+  absl::SNPrintF(local_name_key.data(), buffer_size + 1, REGISTRY_QUERY_FORMAT,
+                 instance_id.c_str());
+
+  LSTATUS status;
   // Opens the specified registry key. Note that key names are not case
   // sensitive.
   // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regopenkeyexa
-  ret = RegOpenKeyExA(
-      HKEY_LOCAL_MACHINE,  // A handle to an open registry key.
-      rmLocalNameKey,      // The name of the registry subkey to be opened.
+  status = RegOpenKeyExA(
+      HKEY_LOCAL_MACHINE,      // A handle to an open registry key.
+      local_name_key.c_str(),  // The name of the registry subkey to be opened.
       0L,             // Specifies the option to apply when opening the key.
       KEY_SET_VALUE,  // A mask that specifies the desired access rights to the
                       // key to be opened.
       &hKey);  // A pointer to a variable that receives a handle to the opened
                // key.
 
-  if (ret != ERROR_SUCCESS) {
+  if (status != ERROR_SUCCESS) {
     NEARBY_LOGS(ERROR) << __func__
-                       << ": Failed to open registry key. Error code: " << ret;
+                       << ": Failed to open registry key. Error code: "
+                       << status;
     return false;
   }
 
   if (name != "") {
     // Sets the data and type of a specified value under a registry key.
     // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regsetvalueexa
-    ret = RegSetValueExA(
+    status = RegSetValueExA(
         hKey,                               // A handle to an open registry key
         BLUETOOTH_RADIO_REGISTRY_NAME_KEY,  // The name of the value to be set.
         0,           // This parameter is reserved and must be zero.
@@ -331,13 +391,13 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
     // If we delete the key value the OS will default to the system
     // name. If we just set it to blank, it will show as blank in all
     // system dialogs, this is likely undesireable
-    ret = RegDeleteValueA(hKey, BLUETOOTH_RADIO_REGISTRY_NAME_KEY);
+    status = RegDeleteValueA(hKey, BLUETOOTH_RADIO_REGISTRY_NAME_KEY);
   }
 
-  if (ret != ERROR_SUCCESS) {
+  if (status != ERROR_SUCCESS) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Failed to set/delete registry key. Error code: "
-                       << ret;
+                       << status;
     return false;
   }
 
@@ -376,6 +436,34 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
   }
 
   return true;
+}
+
+void BluetoothAdapter::process_error() {
+  const char *errorResult = {};
+  int errorMessageID = GetLastError();
+
+  switch (errorMessageID) {
+    case ERROR_INSUFFICIENT_BUFFER:
+      errorResult =
+          "A supplied buffer size was not large enough, or it was "
+          "incorrectly set to NULL.";
+      break;
+    case ERROR_INVALID_FLAGS:
+      errorResult = "The values supplied for flags were not valid.";
+      break;
+    case ERROR_INVALID_PARAMETER:
+      errorResult = "Any of the parameter values was invalid.";
+      break;
+    case ERROR_NO_UNICODE_TRANSLATION:
+      errorResult = "Invalid Unicode was found in a string.";
+      break;
+    default:
+      errorResult = "Unknown error.";
+      break;
+  }
+
+  NEARBY_LOGS(ERROR) << __func__ << ": Failed to convert guid to string "
+                     << errorResult << " Error code:" << errorMessageID;
 }
 
 void BluetoothAdapter::find_and_replace(char *source, const char *strFind,

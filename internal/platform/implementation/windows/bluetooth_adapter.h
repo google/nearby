@@ -20,9 +20,9 @@
 #include <string>
 
 #include "internal/platform/implementation/bluetooth_adapter.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Radios.h"
+#include "internal/platform/implementation/windows/generated/winrt/base.h"
 
 namespace location {
 namespace nearby {
@@ -82,6 +82,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   }
 
  private:
+  void process_error();
   IBluetoothAdapter windows_bluetooth_adapter_;
 
   IRadio windows_bluetooth_radio_;
