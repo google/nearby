@@ -391,6 +391,7 @@ enum ActivityName {
   CONSENTS_ACTIVITY = 6;
   SET_DEVICE_NAME_DIALOG = 7;
   SET_DATA_USAGE_DIALOG = 8;
+  QUICK_SETTINGS_ACTIVITY = 9;
 }
 
 // The type of consent page user launches.
