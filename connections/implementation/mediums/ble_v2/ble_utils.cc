@@ -34,6 +34,20 @@ namespace {
 constexpr std::int64_t kAdvertisementUuidMsb = 0x0000000000003000;
 constexpr std::int64_t kAdvertisementUuidLsb = 0x8000000000000000;
 
+// Creates a string as a space separated listing of hex bytes with [] at the
+// beginning and the end.
+//
+// This is the legacy input for hash in version (kV1). It is for testing only.
+std::string StringToPrintableHexString(const std::string& source) {
+  // Print out the byte array as a space separated listing of hex bytes.
+  std::string out = "[ ";
+  for (const char& c : source) {
+    absl::StrAppend(&out, absl::StrFormat("%#04x ", c));
+  }
+  absl::StrAppend(&out, "]");
+  return out;
+}
+
 }  // namespace
 
 const absl::string_view kCopresenceServiceUuid =
@@ -43,8 +57,21 @@ ByteArray GenerateHash(const std::string& source, size_t size) {
   return Utils::Sha256Hash(source, size);
 }
 
-ByteArray GenerateServiceIdHash(const std::string& service_id) {
-  return Utils::Sha256Hash(service_id, BlePacket::kServiceIdHashLength);
+ByteArray GenerateServiceIdHash(const std::string& service_id,
+                                BleAdvertisement::Version version) {
+  switch (version) {
+      // legacy hash for testing only.
+    case BleAdvertisement::Version::kV1:
+      return Utils::Sha256Hash(StringToPrintableHexString(service_id),
+                               BlePacket::kServiceIdHashLength);
+    case BleAdvertisement::Version::kV2:
+      [[fallthrough]];
+    case BleAdvertisement::Version::kUndefined:
+      [[fallthrough]];
+    default:
+      // Use the latest known hashing scheme.
+      return Utils::Sha256Hash(service_id, BlePacket::kServiceIdHashLength);
+  }
 }
 
 ByteArray GenerateDeviceToken() {
