@@ -155,8 +155,9 @@ cc_test(
         "platform_test.cc",
         "scheduled_executor_test.cc",
         "submittable_executor_test.cc",
+        "utils_test.cc",
     ],
-    copts = ["-Iplatform/implementation/windows/generated -DCORE_ADAPTER_DLL"],
+    copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated -DCORE_ADAPTER_DLL"],
     deps = [
         ":comm",
         ":crypto",
