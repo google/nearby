@@ -436,6 +436,7 @@ let package = Package(
         "connections/implementation/mediums/webrtc/webrtc_socket_impl_test.cc",
         "connections/implementation/mediums/webrtc/signaling_frames_test.cc",
         "connections/implementation/mediums/bluetooth_radio_test.cc",
+        "connections/implementation/mediums/wifi_hotspot_test.cc",
         "connections/implementation/endpoint_channel_manager_test.cc",
         "connections/implementation/bwu_manager_test.cc",
         "connections/implementation/endpoint_manager_test.cc",
