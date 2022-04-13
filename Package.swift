@@ -370,9 +370,11 @@ let package = Package(
       path: ".",
       exclude: [
         "connections/clients/windows",
+        "connections/clients/ios",
+        "connections/samples/ios",
         "docs",
         "internal/platform/implementation/g3",
-        "internal/platform/implementation/ios/Tests",
+        "internal/platform/implementation/ios",
         "internal/platform/implementation/windows",
         "third_party",
         "CONTRIBUTING.md",
