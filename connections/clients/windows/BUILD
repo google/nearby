@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-load("//third_party/msvc:build_windows.bzl", "cc_windows_dll")
+load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
 
 licenses(["notice"])
 
 # Build with --config=lexan
-cc_windows_dll(
+lexan.cc_windows_dll(
     name = "core_adapter",
     srcs = [
         "core_adapter.cc",
@@ -40,7 +40,7 @@ cc_windows_dll(
 
 # Build with --config=lexan
 # TODO(b/203019344) Move this configuration under dart folder and create a BUILD there.
-cc_windows_dll(
+lexan.cc_windows_dll(
     name = "core_adapter_dart",
     srcs = [
         "core_adapter.cc",
