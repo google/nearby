@@ -30,6 +30,3 @@
 	path = third_party/google-toolbox-for-mac/google-toolbox-for-mac
 	url = https://github.com/google/google-toolbox-for-mac.git
 	branch = main
-[submodule "third_party/googletest"]
-	path = third_party/googletest
-	url = git@github.com:google/googletest.git
