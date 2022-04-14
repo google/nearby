@@ -15,7 +15,9 @@
 #include "internal/platform/implementation/windows/utils.h"
 
 // Windows headers
+#include <inaddr.h>
 #include <strsafe.h>
+#include <winsock.h>
 
 // Standard C/C++ headers
 #include <codecvt>
@@ -41,6 +43,34 @@ std::string uint64_to_mac_address_string(uint64_t bluetoothAddress) {
       bluetoothAddress & 0xff);
 
   return absl::AsciiStrToUpper(buffer);
+}
+
+std::string ipaddr_4bytes_to_dotdecimal_string(
+    absl::string_view ipaddr_4bytes) {
+  in_addr address;
+  address.S_un.S_un_b.s_b1 = ipaddr_4bytes[0];
+  address.S_un.S_un_b.s_b2 = ipaddr_4bytes[1];
+  address.S_un.S_un_b.s_b3 = ipaddr_4bytes[2];
+  address.S_un.S_un_b.s_b4 = ipaddr_4bytes[3];
+  char* ipv4_address = inet_ntoa(address);
+  if (ipv4_address == nullptr) {
+    return {};
+  }
+
+  return std::string(ipv4_address);
+}
+
+std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s) {
+  in_addr address;
+  address.S_un.S_addr = inet_addr(ipv4_s.c_str());
+  char ipv4_b[5];
+  ipv4_b[0] = address.S_un.S_un_b.s_b1;
+  ipv4_b[1] = address.S_un.S_un_b.s_b2;
+  ipv4_b[2] = address.S_un.S_un_b.s_b3;
+  ipv4_b[3] = address.S_un.S_un_b.s_b4;
+  ipv4_b[4] = 0;
+
+  return std::string(ipv4_b, 4);
 }
 
 std::wstring string_to_wstring(std::string str) {

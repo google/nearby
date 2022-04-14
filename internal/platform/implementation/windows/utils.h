@@ -33,6 +33,9 @@ using winrt::Windows::Foundation::IInspectable;
 
 std::string uint64_to_mac_address_string(uint64_t bluetoothAddress);
 
+std::string ipaddr_4bytes_to_dotdecimal_string(absl::string_view ipaddr_4bytes);
+std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s);
+
 // Helpers to windows platform
 std::wstring string_to_wstring(std::string str);
 std::string wstring_to_string(std::wstring wstr);

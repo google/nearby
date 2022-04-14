@@ -14,9 +14,15 @@
 
 #include "internal/platform/implementation/windows/utils.h"
 
+#include <windows.h>
+#include <string>
+
 #include "gtest/gtest.h"
 
-using location::nearby::windows::uint64_to_mac_address_string;
+// using location::nearby::windows::uint64_to_mac_address_string;
+namespace location {
+namespace nearby {
+namespace windows {
 
 TEST(UtilsTests, MacAddressToString) {
   // Arrange
@@ -29,3 +35,24 @@ TEST(UtilsTests, MacAddressToString) {
   // Assert
   EXPECT_EQ(result, expected);
 }
+
+constexpr absl::string_view kIpDotdecimal{"192.168.1.37"};
+constexpr char kIp4Bytes[] = {192, 168, 1, 37};
+
+TEST(UtilsTests, Ip4BytesToDotdecimal) {
+  std::string result =
+      ipaddr_4bytes_to_dotdecimal_string(absl::string_view(kIp4Bytes));
+
+  EXPECT_EQ(result, kIpDotdecimal);
+}
+
+TEST(UtilsTests, IpDotdecimalTo4Bytes) {
+  std::string result =
+      ipaddr_dotdecimal_to_4bytes_string(std::string(kIpDotdecimal));
+
+  EXPECT_EQ(result, std::string(kIp4Bytes));
+}
+
+}  // namespace windows
+}  // namespace nearby
+}  // namespace location

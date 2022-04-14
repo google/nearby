@@ -19,6 +19,7 @@
 #include <windows.h>
 
 #include <xstring>
+#include <string>
 #include <sstream>
 
 #include "internal/platform/implementation/shared/count_down_latch.h"
@@ -42,6 +43,7 @@
 #include "internal/platform/implementation/windows/webrtc.h"
 #include "internal/platform/implementation/windows/wifi.h"
 #include "internal/platform/implementation/windows/wifi_lan.h"
+#include "internal/platform/implementation/windows/wifi_hotspot.h"
 
 namespace location {
 namespace nearby {
@@ -234,7 +236,7 @@ std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
 
 std::unique_ptr<WifiHotspotMedium>
 ImplementationPlatform::CreateWifiHotspotMedium() {
-  return nullptr;
+  return std::make_unique<windows::WifiHotspotMedium>();
 }
 
 // TODO(b/184975123): replace with real implementation.

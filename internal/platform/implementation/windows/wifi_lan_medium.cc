@@ -344,7 +344,8 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
 
   if (server_socket->listen()) {
     medium_status_ |= MEDIUM_STATUS_ACCEPTING;
-    NEARBY_LOGS(INFO) << "started to listen serive on port " << port;
+    NEARBY_LOGS(INFO) << "started to listen serive on port "
+                      << server_socket_ptr_->GetPort();
     return server_socket;
   }
 
