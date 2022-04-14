@@ -124,6 +124,14 @@ Exception BluetoothServerSocket::StartListening(bool radioDiscoverable) {
     LeaveCriticalSection(&critical_section_);
 
     return {Exception::kFailed};
+  } catch (const winrt::hresult_error& ex) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Exception setting up for listen: " << ex.code()
+                       << ": " << winrt::to_string(ex.message());
+
+    LeaveCriticalSection(&critical_section_);
+
+    return {Exception::kFailed};
   }
 
   StartAdvertising();
@@ -142,6 +150,14 @@ Exception BluetoothServerSocket::StartAdvertising() {
     // expects nullptr if it fails
     NEARBY_LOGS(ERROR) << __func__ << ": Exception calling StartAdvertising: "
                        << exception.what();
+
+    LeaveCriticalSection(&critical_section_);
+
+    return {Exception::kFailed};
+  } catch (const winrt::hresult_error& ex) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Exception calling StartAdvertising: " << ex.code()
+                       << ": " << winrt::to_string(ex.message());
 
     LeaveCriticalSection(&critical_section_);
 
