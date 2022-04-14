@@ -16,6 +16,7 @@
 
 #include <inttypes.h>
 
+#include <cstdint>
 #include <string>
 #include <utility>
 
@@ -28,6 +29,16 @@ namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
+
+namespace {
+
+constexpr uint8_t kPsmBitmask = 0x01;
+
+bool HasField(uint8_t field_mask, uint8_t psm_bit) {
+  return (field_mask & psm_bit) > 0;
+}
+
+}  // namespace
 
 BleAdvertisement::BleAdvertisement(Version version,
                                    SocketVersion socket_version,
@@ -163,11 +174,12 @@ BleAdvertisement::BleAdvertisement(const ByteArray &ble_advertisement_bytes) {
   // this advertisement. That means it must support device token if there's any
   // extra field. E.g. If iOS or other platform wants to use extra fields, need
   // to put a random or empty device token in the advertisement.
-  // TODO(b/219939733): Implement BleExtraField to read the PSM value. We fake
-  // this extra field as uint16, 2 bytes.
-  if (base_input_stream.IsAvailable(
-          BleAdvertisementHeader::kPsmValueByteLength)) {
-    psm_ = static_cast<int>(base_input_stream.ReadUint16());
+  int extra_fields_byte_number =
+      kExtraFieldsMaskLength + BleAdvertisementHeader::kPsmValueByteLength;
+  if (base_input_stream.IsAvailable(extra_fields_byte_number)) {
+    BleExtraFields extra_fields{
+        base_input_stream.ReadBytes(extra_fields_byte_number)};
+    psm_ = extra_fields.GetPsm();
   }
 }
 
@@ -214,15 +226,12 @@ BleAdvertisement::operator ByteArray() const {
 
 ByteArray BleAdvertisement::ByteArrayWithExtraField() const {
   ByteArray advertisement_bytes = ByteArray(*this);
-  // TODO(b/219939733): Implement BleExtraField for PSM value.
-  ByteArray psm_byte{BleAdvertisementHeader::kPsmValueByteLength};
-  char *data = psm_byte.data();
-  data[0] = psm_ & 0xFF00;
-  data[1] = psm_ & 0x00FF;
-  std::string advertisement_with_extra_bytes =
-      absl::StrCat(std::string(advertisement_bytes), std::string(psm_byte));
+  ByteArray extra_fields_bytes = ByteArray(BleExtraFields(psm_));
 
-  return ByteArray(std::move(advertisement_with_extra_bytes));
+  std::string advertisement_with_extra_fields_bytes = absl::StrCat(
+      std::string(advertisement_bytes), std::string(extra_fields_bytes));
+
+  return ByteArray(std::move(advertisement_with_extra_fields_bytes));
 }
 
 bool BleAdvertisement::operator==(const BleAdvertisement &rhs) const {
@@ -259,6 +268,45 @@ void BleAdvertisement::SerializeDataSize(bool fast_advertisement,
   for (int i = 0; i < data_size_length; ++i) {
     data_size_bytes_write_ptr[i] = data_size_bytes[data_size_length - i - 1];
   }
+}
+
+BleAdvertisement::BleExtraFields::BleExtraFields(int psm) : psm_(psm) {}
+
+BleAdvertisement::BleExtraFields::BleExtraFields(
+    const ByteArray &ble_extra_fields_bytes) {
+  if (ble_extra_fields_bytes.Empty()) {
+    return;
+  }
+
+  ByteArray mutated_extra_fields_bytes = {ble_extra_fields_bytes};
+  BaseInputStream base_input_stream{mutated_extra_fields_bytes};
+  // The first 1 byte is field mask.
+  auto mask_byte = static_cast<uint8_t>(base_input_stream.ReadUint8());
+  if (!mask_byte) {
+    return;
+  }
+
+  // The next 2 bytes are supposed to be the psm value.
+  if (HasField(mask_byte, kPsmBitmask) &&
+      base_input_stream.IsAvailable(
+          BleAdvertisementHeader::kPsmValueByteLength)) {
+    psm_ = static_cast<int>(base_input_stream.ReadUint16());
+  }
+}
+
+BleAdvertisement::BleExtraFields::operator ByteArray() const {
+  if (psm_ == BleAdvertisementHeader::kDefaultPsmValue) {
+    return ByteArray{};
+  }
+
+  ByteArray psm_byte{BleAdvertisementHeader::kPsmValueByteLength};
+  char *data = psm_byte.data();
+  data[0] = psm_ & 0xFF00;
+  data[1] = psm_ & 0x00FF;
+
+  std::string out =
+      absl::StrCat(std::string(1, kPsmBitmask), std::string(psm_byte));
+  return ByteArray{std::move(out)};
 }
 
 }  // namespace mediums
