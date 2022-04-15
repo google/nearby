@@ -58,6 +58,10 @@ class FeatureFlags {
     return flags_;
   }
 
+  static Flags& GetMutableFlagsForTesting() {
+    return const_cast<FeatureFlags&>(GetInstance()).flags_;
+  }
+
  private:
   FeatureFlags() = default;
 

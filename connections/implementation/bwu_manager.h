@@ -97,6 +97,17 @@ class BwuManager : public EndpointManager::FrameProcessor {
 
   void Shutdown();
 
+  // After this is called, all tasks intended for the serial executor are
+  // invoked immediately on the calling thread.
+  void MakeSingleThreadedForTesting();
+
+  // OnIncomingConnection is passed to the handlers during handler creation in
+  // InitBwuHandlers. When explicitly passing handlers into the BwuManager
+  // constructor, we need a way to invoke OnIncomingConnection.
+  void InvokeOnIncomingConnectionForTesting(
+      ClientProxy* client,
+      std::unique_ptr<BwuHandler::IncomingSocketConnection> mutable_connection);
+
  private:
   static constexpr absl::Duration kReadClientIntroductionFrameTimeout =
       absl::Seconds(5);
@@ -174,6 +185,8 @@ class BwuManager : public EndpointManager::FrameProcessor {
   void AttemptToRecordBandwidthUpgradeErrorForUnknownEndpoint(
       proto::connections::BandwidthUpgradeResult result,
       proto::connections::BandwidthUpgradeErrorStage error_stage);
+
+  bool is_single_threaded_for_testing_ = false;
 
   Config config_;
 

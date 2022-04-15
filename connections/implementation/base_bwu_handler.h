@@ -19,6 +19,7 @@
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/strings/string_view.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 
@@ -43,15 +44,13 @@ class BaseBwuHandler : public BwuHandler {
  protected:
   // Invoked by InitializeUpgradedMediumForEndpoint and RevertInitiatorState,
   // respectively, to handle medium-specific logic.
+  // HandleRevertInitiatorStateForService is only invoked after the last
+  // endpoint for the service is reverted.
   virtual ByteArray HandleInitializeUpgradedMediumForEndpoint(
       ClientProxy* client, const std::string& upgrade_service_id,
       const std::string& endpoint_id) = 0;
   virtual void HandleRevertInitiatorStateForService(
       const std::string& upgrade_service_id) = 0;
-
-  // Represents the incoming Socket the Initiator has gotten after initializing
-  // its upgraded bandwidth medium.
-  EndpointChannelManager* GetEndpointChannelManager();
 
   BwuNotifications bwu_notifications_;
 
