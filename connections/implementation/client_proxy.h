@@ -79,10 +79,6 @@ class ClientProxy final {
   bool IsAdvertising() const;
   std::string GetAdvertisingServiceId() const;
 
-  // Get service ID of a surrently active link (either advertising, or
-  // discovering).
-  std::string GetServiceId() const;
-
   // Marks this client as discovering with the given callback.
   void StartedDiscovery(
       const std::string& service_id, Strategy strategy,

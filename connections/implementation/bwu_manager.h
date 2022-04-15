@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_BWU_MANAGER_H_
 #define CORE_INTERNAL_BWU_MANAGER_H_
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -73,15 +74,14 @@ class BwuManager : public EndpointManager::FrameProcessor {
 
   ~BwuManager() override;
 
-  // This is the point on the outbound BWU protocol where the handler_ is set.
-  // Function initiates the bandwidth upgrade and sends an
-  // UPGRADE_PATH_AVAILABLE OfflineFrame.
+  // Initiates the bandwidth upgrade and sends an UPGRADE_PATH_AVAILABLE
+  // frame to the remote device (Responder). If |new_medium| is not provided,
+  // the best available medium is chosen.
   void InitiateBwuForEndpoint(ClientProxy* client_proxy,
                               const std::string& endpoint_id,
                               Medium new_medium = Medium::UNKNOWN_MEDIUM);
 
   // == EndpointManager::FrameProcessor interface ==.
-  // This is the point on the inbound BWU protocol where the handler_ is set.
   // This is also an entry point for handling messages for both outbound and
   // inbound BWU protocol.
   // @EndpointManagerReaderThread
@@ -94,31 +94,43 @@ class BwuManager : public EndpointManager::FrameProcessor {
                             const std::string& service_id,
                             const std::string& endpoint_id,
                             CountDownLatch barrier) override;
+
   void Shutdown();
 
  private:
   static constexpr absl::Duration kReadClientIntroductionFrameTimeout =
       absl::Seconds(5);
-  BwuHandler* SetCurrentBwuHandler(Medium medium);
+
   void InitBwuHandlers();
   void RunOnBwuManagerThread(const std::string& name,
                              std::function<void()> runnable);
   std::vector<Medium> StripOutUnavailableMediums(
-      const std::vector<Medium>& mediums);
-  Medium ChooseBestUpgradeMedium(const std::vector<Medium>& mediums);
+      const std::vector<Medium>& mediums) const;
+  Medium ChooseBestUpgradeMedium(const std::string& endpoint_id,
+                                 const std::vector<Medium>& mediums) const;
 
   // BaseBwuHandler
   using ClientIntroduction = BwuNegotiationFrame::ClientIntroduction;
 
-  // Processes the BwuNegotiationFrames that come over the
-  // EndpointChannel on both initiator and responder side of the upgrade.
+  // Processes the BwuNegotiationFrames that come over the EndpointChannel on
+  // both initiator and responder side of the upgrade.
   void OnBwuNegotiationFrame(ClientProxy* client,
                              const BwuNegotiationFrame frame,
                              const string& endpoint_id);
 
-  // Called to revert any state changed by the Initiator or Responder in the
-  // course of setting up the upgraded medium for an endpoint.
-  void Revert();
+  // Called to revert any state changed by the INITIATOR in the course of
+  // setting up the upgraded medium for an endpoint. If |upgrade_service_id|
+  // isn't of the INITIATOR-upgrade format, this is a no-op.
+  void RevertInitiatedBwuMediumForEndpointIfNecessary(
+      const std::string& upgrade_service_id, const std::string& endpoint_id);
+
+  // Get/Set the currently selected upgrade medium for this endpoint, or
+  // UNKNOWN_MEDIUM if nothing is selected. This is the medium we are attempting
+  // to upgrade to, not necessarily the endpoint's current connection medium.
+  Medium GetBwuMediumForEndpoint(const std::string& endpoint_id) const;
+  void SetBwuMediumForEndpoint(const std::string& endpoint_id, Medium medium);
+
+  BwuHandler* GetHandlerForMedium(Medium medium);
 
   // Common functionality to take an incoming connection and go through the
   // upgrade process. This is a callback, invoked by concrete handlers, once
@@ -156,7 +168,6 @@ class BwuManager : public EndpointManager::FrameProcessor {
   void CancelAllRetryUpgradeAlarms();
   void RetryUpgradeMediums(ClientProxy* client, const std::string& endpoint_id,
                            std::vector<Medium> upgrade_mediums);
-  Medium GetEndpointMedium(const std::string& endpoint_id);
   absl::Duration CalculateNextRetryDelay(const std::string& endpoint_id);
   void RetryUpgradesAfterDelay(ClientProxy* client,
                                const std::string& endpoint_id);
@@ -166,8 +177,14 @@ class BwuManager : public EndpointManager::FrameProcessor {
 
   Config config_;
 
+  // The current bandwidth upgrade medium.
+  // Only used if feature flag support_multiple_bwu_mediums is DISABLED.
   Medium medium_ = Medium::UNKNOWN_MEDIUM;
-  BwuHandler* handler_ = nullptr;
+  // Map from endpoint ID to the bandwidth upgrade medium it is trying to
+  // upgrade to or is currently using until reverted. Only used if feature flag
+  // support_multiple_bwu_mediums is ENABLED.
+  absl::flat_hash_map<std::string, Medium> endpoint_id_to_bwu_medium_;
+
   Mediums* mediums_;
   absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers_;
 

@@ -27,8 +27,7 @@ namespace nearby {
 namespace connections {
 
 // Manages the bookkeeping common to all medium handlers. Notably, it tracks all
-// of the service IDs (TODO: and endpoint IDs) that initiated a bandwidth
-// upgrade.
+// of the service IDs and endpoint IDs that initiated a bandwidth upgrade.
 class BaseBwuHandler : public BwuHandler {
  public:
   explicit BaseBwuHandler(BwuNotifications bwu_notifications);
@@ -38,6 +37,8 @@ class BaseBwuHandler : public BwuHandler {
       ClientProxy* client, const std::string& service_id,
       const std::string& endpoint_id) final;
   void RevertInitiatorState() final;
+  void RevertInitiatorState(const std::string& upgrade_service_id,
+                            const std::string& endpoint_id) final;
 
  protected:
   // Invoked by InitializeUpgradedMediumForEndpoint and RevertInitiatorState,
@@ -55,11 +56,11 @@ class BaseBwuHandler : public BwuHandler {
   BwuNotifications bwu_notifications_;
 
  private:
-  // The set of service IDs that are initiating a bandwidth upgrade. Not used
-  // for service IDs that respond to bandwidth upgrade requests from another
-  // device; only tracked by the initiator.
-  // TODO(nohle): track endpoint IDs as well.
-  absl::flat_hash_set<std::string> active_service_ids_;
+  // Map from the (wrapped) service ID to endpoint IDs that are initiating a
+  // bandwidth upgrade. Not used for endpoints that respond to bandwidth upgrade
+  // requests from another device.
+  absl::flat_hash_map<std::string, absl::flat_hash_set<std::string>>
+      upgrade_service_id_to_active_endpoint_ids_;
 };
 
 }  // namespace connections

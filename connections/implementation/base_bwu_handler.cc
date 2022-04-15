@@ -37,17 +37,42 @@ ByteArray BaseBwuHandler::InitializeUpgradedMediumForEndpoint(
       HandleInitializeUpgradedMediumForEndpoint(client, upgrade_service_id,
                                                 endpoint_id);
   if (!upgrade_path_available_frame.Empty()) {
-    active_service_ids_.insert(upgrade_service_id);
+    upgrade_service_id_to_active_endpoint_ids_[upgrade_service_id].insert(
+        endpoint_id);
   }
 
   return upgrade_path_available_frame;
 }
 
 void BaseBwuHandler::RevertInitiatorState() {
-  for (const auto& service_id : active_service_ids_) {
-    HandleRevertInitiatorStateForService(service_id);
+  for (const auto& pair : upgrade_service_id_to_active_endpoint_ids_) {
+    HandleRevertInitiatorStateForService(pair.first);
   }
-  active_service_ids_.clear();
+  upgrade_service_id_to_active_endpoint_ids_.clear();
+}
+
+void BaseBwuHandler::RevertInitiatorState(const std::string& upgrade_service_id,
+                                          const std::string& endpoint_id) {
+  if (!IsInitiatorUpgradeServiceId(upgrade_service_id)) {
+    NEARBY_LOGS(ERROR)
+        << "BaseBwuHandler::RevertInitiatorState: input service ID "
+        << upgrade_service_id << " is not an BWU initiator ID; ignoring.";
+    return;
+  }
+
+  auto it = upgrade_service_id_to_active_endpoint_ids_.find(upgrade_service_id);
+  if (it == upgrade_service_id_to_active_endpoint_ids_.end() ||
+      it->second.empty()) {
+    return;
+  }
+
+  // If the last endpoint for the service has been reverted, alert the specific
+  // medium handler (child class) to perform any clean-up .
+  it->second.erase(endpoint_id);
+  if (it->second.empty()) {
+    upgrade_service_id_to_active_endpoint_ids_.erase(it);
+    HandleRevertInitiatorStateForService(upgrade_service_id);
+  }
 }
 
 }  // namespace connections
