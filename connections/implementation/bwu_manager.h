@@ -91,6 +91,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // Cleans up in-progress upgrades after endpoint disconnection.
   // @EndpointManagerReaderThread
   void OnEndpointDisconnect(ClientProxy* client_proxy,
+                            const std::string& service_id,
                             const std::string& endpoint_id,
                             CountDownLatch barrier) override;
   void Shutdown();

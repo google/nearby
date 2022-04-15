@@ -138,7 +138,8 @@ class BasePcpHandler : public PcpHandler,
   // Called when an endpoint disconnects while we're waiting for both sides to
   // approve/reject the connection.
   // @EndpointManagerThread
-  void OnEndpointDisconnect(ClientProxy* client, const std::string& endpoint_id,
+  void OnEndpointDisconnect(ClientProxy* client, const std::string& service_id,
+                            const std::string& endpoint_id,
                             CountDownLatch barrier) override;
 
   Pcp GetPcp() const override { return pcp_; }

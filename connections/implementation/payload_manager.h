@@ -62,7 +62,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
                        proto::connections::Medium current_medium) override;
 
   // @EndpointManagerThread
-  void OnEndpointDisconnect(ClientProxy* client, const std::string& endpoint_id,
+  void OnEndpointDisconnect(ClientProxy* client, const std::string& service_id,
+                            const std::string& endpoint_id,
                             CountDownLatch barrier) override;
 
   void DisconnectFromEndpointManager();

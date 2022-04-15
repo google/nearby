@@ -38,8 +38,10 @@ InputStream* GetInputStreamOrNull(BluetoothSocket& socket) {
 }  // namespace
 
 BluetoothEndpointChannel::BluetoothEndpointChannel(
-    const std::string& channel_name, BluetoothSocket socket)
-    : BaseEndpointChannel(channel_name, GetInputStreamOrNull(socket),
+    const std::string& service_id, const std::string& channel_name,
+    BluetoothSocket socket)
+    : BaseEndpointChannel(service_id, channel_name,
+                          GetInputStreamOrNull(socket),
                           GetOutputStreamOrNull(socket)),
       bluetooth_socket_(std::move(socket)) {}
 

@@ -63,6 +63,7 @@ class FakeEndpointChannel : public EndpointChannel {
   int GetFrequency() const override { return 0; }
   int GetTryCount() const override { return 0; }
   std::string GetType() const override { return "fake-channel-type"; }
+  std::string GetServiceId() const override { return "fake-service-id"; }
   std::string GetName() const override { return "fake-channel"; }
   Medium GetMedium() const override { return Medium::BLE; }
   int GetMaxTransmitPacketSize() const override { return 512; }

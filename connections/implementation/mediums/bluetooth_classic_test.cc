@@ -122,7 +122,8 @@ TEST_P(BluetoothClassicTest, CanConnect) {
       std::string(kServiceName),
       {
           .accepted_cb =
-              [&socket_for_server, &accept_latch](BluetoothSocket socket) {
+              [&socket_for_server, &accept_latch](const std::string& service_id,
+                                                  BluetoothSocket socket) {
                 socket_for_server = std::move(socket);
                 accept_latch.CountDown();
               },
@@ -176,7 +177,8 @@ TEST_P(BluetoothClassicTest, CanCancelConnect) {
       std::string(kServiceName),
       {
           .accepted_cb =
-              [&socket_for_server, &accept_latch](BluetoothSocket socket) {
+              [&socket_for_server, &accept_latch](const std::string& service_id,
+                                                  BluetoothSocket socket) {
                 socket_for_server = std::move(socket);
                 accept_latch.CountDown();
               },

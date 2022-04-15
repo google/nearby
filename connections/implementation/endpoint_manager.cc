@@ -14,22 +14,24 @@
 
 #include "connections/implementation/endpoint_manager.h"
 
+#include <algorithm>
+#include <functional>
 #include <memory>
+#include <string>
 #include <utility>
 
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
-#include "internal/platform/exception.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "connections/implementation/service_id_constants.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
-
-using ::location::nearby::proto::connections::Medium;
 
 constexpr absl::Duration EndpointManager::kProcessEndpointDisconnectionTimeout;
 constexpr absl::Time EndpointManager::kInvalidTimestamp;
@@ -532,6 +534,13 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
                                      const std::string& endpoint_id,
                                      bool notify) {
   NEARBY_LOGS(INFO) << "RemoveEndpoint for endpoint " << endpoint_id;
+
+  // Grab the service ID before we destroy the channel.
+  EndpointChannel* channel =
+      channel_manager_->GetChannelForEndpoint(endpoint_id).get();
+  std::string service_id =
+      channel ? channel->GetServiceId() : std::string(kUnknownServiceId);
+
   // Unregistering from channel_manager_ will also serve to terminate
   // the dedicated handler and KeepAlive threads we started when we registered
   // this endpoint.
@@ -541,7 +550,7 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
     // up, we can remove the endpoint from ClientProxy after which there
     // should be no further interactions with the endpoint.
     // (See b/37352254 for history)
-    WaitForEndpointDisconnectionProcessing(client, endpoint_id);
+    WaitForEndpointDisconnectionProcessing(client, service_id, endpoint_id);
 
     client->OnDisconnected(endpoint_id, notify);
     NEARBY_LOGS(INFO) << "Removed endpoint for endpoint " << endpoint_id;
@@ -551,11 +560,13 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
 
 // @EndpointManagerThread
 void EndpointManager::WaitForEndpointDisconnectionProcessing(
-    ClientProxy* client, const std::string& endpoint_id) {
+    ClientProxy* client, const std::string& service_id,
+    const std::string& endpoint_id) {
   NEARBY_LOGS(INFO) << "Wait: client=" << client
+                    << "; service_id=" << service_id
                     << "; endpoint_id=" << endpoint_id;
-  CountDownLatch barrier =
-      NotifyFrameProcessorsOnEndpointDisconnect(client, endpoint_id);
+  CountDownLatch barrier = NotifyFrameProcessorsOnEndpointDisconnect(
+      client, service_id, endpoint_id);
 
   NEARBY_LOGS(INFO)
       << "Waiting for frame processors to disconnect from endpoint "
@@ -571,9 +582,11 @@ void EndpointManager::WaitForEndpointDisconnectionProcessing(
 }
 
 CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
-    ClientProxy* client, const std::string& endpoint_id) {
+    ClientProxy* client, const std::string& service_id,
+    const std::string& endpoint_id) {
   NEARBY_LOGS(INFO) << "NotifyFrameProcessorsOnEndpointDisconnect: client="
-                    << client << "; endpoint_id=" << endpoint_id;
+                    << client << "; service_id=" << service_id
+                    << "; endpoint_id=" << endpoint_id;
   MutexLock lock(&frame_processors_lock_);
   auto total_size = frame_processors_.size();
   NEARBY_LOGS(INFO) << "Total frame processors: " << total_size;
@@ -586,7 +599,7 @@ CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
                       << "; frame type=" << V1Frame::FrameType_Name(item.first);
     if (processor) {
       valid++;
-      processor->OnEndpointDisconnect(client, endpoint_id, barrier);
+      processor->OnEndpointDisconnect(client, service_id, endpoint_id, barrier);
     } else {
       barrier.CountDown();
     }

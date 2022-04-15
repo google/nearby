@@ -16,7 +16,10 @@
 #define CORE_INTERNAL_ENDPOINT_MANAGER_H_
 
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <utility>
+#include <string>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
@@ -82,6 +85,7 @@ class EndpointManager {
     //
     // @EndpointManagerThread
     virtual void OnEndpointDisconnect(ClientProxy* client,
+                                      const std::string& service_id,
                                       const std::string& endpoint_id,
                                       CountDownLatch barrier) = 0;
   };
@@ -247,10 +251,12 @@ class EndpointManager {
                       bool notify);
 
   void WaitForEndpointDisconnectionProcessing(ClientProxy* client,
+                                              const std::string& service_id,
                                               const std::string& endpoint_id);
 
   CountDownLatch NotifyFrameProcessorsOnEndpointDisconnect(
-      ClientProxy* client, const std::string& endpoint_id);
+      ClientProxy* client, const std::string& service_id,
+      const std::string& endpoint_id);
 
   std::vector<std::string> SendTransferFrameBytes(
       const std::vector<std::string>& endpoint_ids,

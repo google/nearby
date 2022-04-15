@@ -257,14 +257,14 @@ bool WifiLan::StartAcceptingConnections(const std::string& service_id,
   accept_loops_runner_.Execute(
       "wifi-lan-accept",
       [callback = std::move(callback),
-       server_socket = std::move(owned_server_socket)]() mutable {
+       server_socket = std::move(owned_server_socket), service_id]() mutable {
         while (true) {
           WifiLanSocket client_socket = server_socket.Accept();
           if (!client_socket.IsValid()) {
             server_socket.Close();
             break;
           }
-          callback.accepted_cb(std::move(client_socket));
+          callback.accepted_cb(service_id, std::move(client_socket));
         }
       });
 

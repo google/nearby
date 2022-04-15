@@ -69,7 +69,7 @@ constexpr BooleanMediumSelector kTestCases[] = {
 class MockEndpointChannel : public BaseEndpointChannel {
  public:
   explicit MockEndpointChannel(Pipe* reader, Pipe* writer)
-      : BaseEndpointChannel("channel", &reader->GetInputStream(),
+      : BaseEndpointChannel("service_id", "channel", &reader->GetInputStream(),
                             &writer->GetOutputStream()) {}
 
   ExceptionOr<ByteArray> DoRead() { return BaseEndpointChannel::Read(); }

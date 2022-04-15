@@ -659,7 +659,7 @@ void WebRtc::ProcessDataChannelOpen(const std::string& service_id,
       accepting_connections_info_.find(service_id);
   if (accepting_connection_entry != accepting_connections_info_.end()) {
     accepting_connection_entry->second.accepted_connection_callback.accepted_cb(
-        socket_wrapper);
+        service_id, socket_wrapper);
     return;
   }
 

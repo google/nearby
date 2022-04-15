@@ -272,6 +272,7 @@ void BwuManager::OnIncomingFrame(OfflineFrame& frame,
 }
 
 void BwuManager::OnEndpointDisconnect(ClientProxy* client,
+                                      const std::string& service_id,
                                       const std::string& endpoint_id,
                                       CountDownLatch barrier) {
   NEARBY_LOGS(INFO)

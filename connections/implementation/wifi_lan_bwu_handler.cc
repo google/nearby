@@ -52,7 +52,7 @@ ByteArray WifiLanBwuHandler::InitializeUpgradedMediumForEndpoint(
             {
                 .accepted_cb = absl::bind_front(
                     &WifiLanBwuHandler::OnIncomingWifiLanConnection, this,
-                    client, service_id),
+                    client),
             })) {
       NEARBY_LOGS(ERROR)
           << "WifiLanBwuHandler couldn't initiate the WifiLan upgrade for "
@@ -140,7 +140,8 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
       << endpoint_id;
 
   // Create a new WifiLanEndpointChannel.
-  auto channel = absl::make_unique<WifiLanEndpointChannel>(service_id, socket);
+  auto channel = absl::make_unique<WifiLanEndpointChannel>(
+      service_id, /*channel_name=*/service_id, socket);
   if (channel == nullptr) {
     NEARBY_LOGS(ERROR) << "WifiLanBwuHandler failed to create WifiLan endpoint "
                           "channel to the WifiLan service ("
@@ -156,7 +157,8 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
 // Accept Connection Callback.
 void WifiLanBwuHandler::OnIncomingWifiLanConnection(
     ClientProxy* client, const std::string& service_id, WifiLanSocket socket) {
-  auto channel = absl::make_unique<WifiLanEndpointChannel>(service_id, socket);
+  auto channel = absl::make_unique<WifiLanEndpointChannel>(
+      service_id, /*channel_name=*/service_id, socket);
   std::unique_ptr<IncomingSocketConnection> connection(
       new IncomingSocketConnection{
           .socket =

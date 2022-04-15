@@ -61,6 +61,7 @@ class MockEndpointChannel : public EndpointChannel {
   MOCK_METHOD(int, GetFrequency, (), (const override));
   MOCK_METHOD(int, GetTryCount, (), (const override));
   MOCK_METHOD(std::string, GetType, (), (const override));
+  MOCK_METHOD(std::string, GetServiceId, (), (const override));
   MOCK_METHOD(std::string, GetName, (), (const override));
   MOCK_METHOD(Medium, GetMedium, (), (const override));
   MOCK_METHOD(int, GetMaxTransmitPacketSize, (), (const override));
@@ -98,8 +99,8 @@ class MockFrameProcessor : public EndpointManager::FrameProcessor {
               (override));
 
   MOCK_METHOD(void, OnEndpointDisconnect,
-              (ClientProxy * client, const std::string& endpoint_id,
-               CountDownLatch barrier),
+              (ClientProxy * client, const std::string& service_id,
+               const std::string& endpoint_id, CountDownLatch barrier),
               (override));
 };
 

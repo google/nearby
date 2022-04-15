@@ -50,8 +50,8 @@ namespace mediums {
 
 // Callback that is invoked when a new connection is accepted.
 struct AcceptedConnectionCallback {
-  std::function<void(WebRtcSocketWrapper socket)> accepted_cb =
-      DefaultCallback<WebRtcSocketWrapper>();
+  std::function<void(const std::string& service_id, WebRtcSocketWrapper socket)>
+      accepted_cb = DefaultCallback<const std::string&, WebRtcSocketWrapper>();
 };
 
 // Entry point for connecting a data channel between two devices via WebRtc.

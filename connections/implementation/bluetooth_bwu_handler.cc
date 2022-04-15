@@ -47,8 +47,8 @@ void BluetoothBwuHandler::Revert() {
 void BluetoothBwuHandler::OnIncomingBluetoothConnection(
     ClientProxy* client, const std::string& service_id,
     BluetoothSocket socket) {
-  auto channel =
-      absl::make_unique<BluetoothEndpointChannel>(service_id, socket);
+  auto channel = absl::make_unique<BluetoothEndpointChannel>(
+      service_id, /*channel_name=*/service_id, socket);
   std::unique_ptr<IncomingSocketConnection> connection{
       new IncomingSocketConnection{
           .socket =
@@ -77,7 +77,7 @@ ByteArray BluetoothBwuHandler::InitializeUpgradedMediumForEndpoint(
             {
                 .accepted_cb = absl::bind_front(
                     &BluetoothBwuHandler::OnIncomingBluetoothConnection, this,
-                    client, service_id),
+                    client),
             })) {
       NEARBY_LOGS(ERROR) << "BluetoothBwuHandler couldn't initiate the "
                             "BLUETOOTH upgrade for endpoint "
@@ -145,8 +145,8 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
       << service_name << ", " << mac_address << ") while upgrading endpoint "
       << endpoint_id;
 
-  auto channel =
-      std::make_unique<BluetoothEndpointChannel>(service_name, socket);
+  auto channel = std::make_unique<BluetoothEndpointChannel>(
+      service_id, /*channel_name=*/service_name, socket);
   if (channel == nullptr) {
     NEARBY_LOGS(ERROR)
         << "BluetoothBwuHandler failed to create Bluetooth endpoint "

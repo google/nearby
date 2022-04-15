@@ -15,6 +15,8 @@
 #ifndef CORE_INTERNAL_WEBRTC_ENDPOINT_CHANNEL_H_
 #define CORE_INTERNAL_WEBRTC_ENDPOINT_CHANNEL_H_
 
+#include <string>
+
 #include "connections/implementation/base_endpoint_channel.h"
 #ifdef NO_WEBRTC
 #include "connections/implementation/mediums/webrtc_socket_stub.h"
@@ -28,7 +30,8 @@ namespace connections {
 
 class WebRtcEndpointChannel final : public BaseEndpointChannel {
  public:
-  WebRtcEndpointChannel(const std::string& channel_name,
+  WebRtcEndpointChannel(const std::string& service_id,
+                        const std::string& channel_name,
                         mediums::WebRtcSocketWrapper webrtc_socket);
 
   proto::connections::Medium GetMedium() const override;

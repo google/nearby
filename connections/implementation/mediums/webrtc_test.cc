@@ -14,6 +14,8 @@
 
 #include "connections/implementation/mediums/webrtc.h"
 
+#include <string>
+
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
@@ -42,8 +44,8 @@ constexpr FeatureFlags kTestCases[] = {
 
 class WebRtcTest : public ::testing::TestWithParam<FeatureFlags> {
  protected:
-  using MockAcceptedCallback =
-      testing::MockFunction<void(WebRtcSocketWrapper socket)>;
+  using MockAcceptedCallback = testing::MockFunction<void(
+      const std::string& service_id, WebRtcSocketWrapper socket)>;
 
   WebRtcTest() { env_.Stop(); }
 
@@ -66,7 +68,8 @@ TEST_P(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
 
   receiver.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
+      {[&receiver_socket, connected](const std::string& service_id,
+                                     WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
       }});
@@ -104,7 +107,8 @@ TEST_P(WebRtcTest, CanCancelConnect) {
 
   receiver.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
+      {[&receiver_socket, connected](const std::string& service_id,
+                                     WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
       }});
@@ -245,13 +249,15 @@ TEST_F(WebRtcTest, ConnectTwice) {
 
   receiver.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
+      {[&receiver_socket, connected](const std::string& service_id,
+                                     WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
       }});
 
-  device_c.StartAcceptingConnections(service_id, other_id, location_hint,
-                                     {[](WebRtcSocketWrapper wrapper) {}});
+  device_c.StartAcceptingConnections(
+      service_id, other_id, location_hint,
+      {[](const std::string& service_id, WebRtcSocketWrapper wrapper) {}});
 
   CancellationFlag flag;
   sender_socket = sender.Connect(service_id, self_id, location_hint, &flag);
@@ -293,7 +299,8 @@ TEST_F(WebRtcTest, ConnectBothDevicesAndAbort) {
 
   receiver.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
+      {[&receiver_socket, connected](const std::string& service_id,
+                                     WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
       }});
@@ -324,7 +331,8 @@ TEST_F(WebRtcTest, ConnectBothDevicesAndSendData) {
 
   receiver.StartAcceptingConnections(
       service_id, self_id, location_hint,
-      {[&receiver_socket, connected](WebRtcSocketWrapper wrapper) mutable {
+      {[&receiver_socket, connected](const std::string& service_id,
+                                     WebRtcSocketWrapper wrapper) mutable {
         receiver_socket = wrapper;
         connected.Set(receiver_socket.IsValid());
       }});

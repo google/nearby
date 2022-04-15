@@ -835,6 +835,7 @@ proto::connections::Medium P2pClusterPcpHandler::StartBluetoothAdvertising(
     if (!bluetooth_radio_.Enable() ||
         !bluetooth_medium_.StartAcceptingConnections(
             service_id, {.accepted_cb = [this, client, local_endpoint_info](
+                                            const std::string& service_id,
                                             BluetoothSocket socket) {
               if (!socket.IsValid()) {
                 NEARBY_LOGS(WARNING)
@@ -845,14 +846,15 @@ proto::connections::Medium P2pClusterPcpHandler::StartBluetoothAdvertising(
               }
               RunOnPcpHandlerThread(
                   "p2p-bt-on-incoming-connection",
-                  [this, client, local_endpoint_info,
+                  [this, client, local_endpoint_info, service_id,
                    socket = std::move(socket)]()
                       RUN_ON_PCP_HANDLER_THREAD() mutable {
                         std::string remote_device_name =
                             socket.GetRemoteDevice().GetName();
                         auto channel =
                             absl::make_unique<BluetoothEndpointChannel>(
-                                remote_device_name, socket);
+                                service_id, /*channel_name=*/remote_device_name,
+                                socket);
                         ByteArray remote_device_info{remote_device_name};
 
                         OnIncomingConnection(
@@ -965,7 +967,8 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
   }
 
   auto channel = absl::make_unique<BluetoothEndpointChannel>(
-      endpoint->endpoint_id, bluetooth_socket);
+      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
+      bluetooth_socket);
   NEARBY_LOGS(VERBOSE) << "Client" << client->GetClientId()
                        << " created Bluetooth endpoint channel to endpoint(id="
                        << endpoint->endpoint_id << ").";
@@ -1013,7 +1016,8 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
                         std::string remote_peripheral_name =
                             socket.GetRemotePeripheral().GetName();
                         auto channel = absl::make_unique<BleEndpointChannel>(
-                            remote_peripheral_name, socket);
+                            service_id,
+                            /*channel_name=*/remote_peripheral_name, socket);
                         ByteArray remote_peripheral_info =
                             socket.GetRemotePeripheral().GetAdvertisementBytes(
                                 service_id);
@@ -1047,6 +1051,7 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
       if (!bluetooth_radio_.Enable() ||
           !bluetooth_medium_.StartAcceptingConnections(
               service_id, {.accepted_cb = [this, client, local_endpoint_info](
+                                              const std::string& service_id,
                                               BluetoothSocket socket) {
                 if (!socket.IsValid()) {
                   NEARBY_LOGS(WARNING)
@@ -1058,14 +1063,15 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleAdvertising(
                 }
                 RunOnPcpHandlerThread(
                     "p2p-bt-on-incoming-connection",
-                    [this, client, local_endpoint_info,
+                    [this, client, local_endpoint_info, service_id,
                      socket = std::move(socket)]()
                         RUN_ON_PCP_HANDLER_THREAD() mutable {
                           std::string remote_device_name =
                               socket.GetRemoteDevice().GetName();
                           auto channel =
                               absl::make_unique<BluetoothEndpointChannel>(
-                                  remote_device_name, socket);
+                                  service_id,
+                                  /*channel_name=*/remote_device_name, socket);
                           ByteArray remote_device_info{remote_device_name};
 
                           OnIncomingConnection(
@@ -1196,8 +1202,8 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
     };
   }
 
-  auto channel =
-      absl::make_unique<BleEndpointChannel>(endpoint->endpoint_id, ble_socket);
+  auto channel = absl::make_unique<BleEndpointChannel>(
+      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id, ble_socket);
 
   return BasePcpHandler::ConnectImplResult{
       .medium = proto::connections::Medium::BLE,
@@ -1218,7 +1224,8 @@ proto::connections::Medium P2pClusterPcpHandler::StartWifiLanAdvertising(
     if (!wifi_lan_medium_.StartAcceptingConnections(
             service_id,
             {.accepted_cb = [this, client, local_endpoint_info,
-                             local_endpoint_id](WifiLanSocket socket) {
+                             local_endpoint_id](const std::string& service_id,
+                                                WifiLanSocket socket) {
               if (!socket.IsValid()) {
                 NEARBY_LOGS(WARNING)
                     << "Invalid socket in accept callback("
@@ -1229,11 +1236,13 @@ proto::connections::Medium P2pClusterPcpHandler::StartWifiLanAdvertising(
               RunOnPcpHandlerThread(
                   "p2p-wifi-on-incoming-connection",
                   [this, client, local_endpoint_id, local_endpoint_info,
+                   service_id,
                    socket = std::move(
                        socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
                     std::string remote_service_name = local_endpoint_id;
                     auto channel = absl::make_unique<WifiLanEndpointChannel>(
-                        remote_service_name, socket);
+                        service_id, /*channel_name=*/remote_service_name,
+                        socket);
                     ByteArray remote_service_name_byte{remote_service_name};
 
                     OnIncomingConnection(client, remote_service_name_byte,
@@ -1349,8 +1358,8 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiLanConnectImpl(
     };
   }
 
-  auto channel =
-      absl::make_unique<WifiLanEndpointChannel>(endpoint->endpoint_id, socket);
+  auto channel = absl::make_unique<WifiLanEndpointChannel>(
+      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id, socket);
   NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
                     << " created WifiLan endpoint channel to endpoint(id="
                     << endpoint->endpoint_id << ").";

@@ -23,9 +23,10 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-WifiLanEndpointChannel::WifiLanEndpointChannel(const std::string& channel_name,
+WifiLanEndpointChannel::WifiLanEndpointChannel(const std::string& service_id,
+                                               const std::string& channel_name,
                                                WifiLanSocket socket)
-    : BaseEndpointChannel(channel_name, &socket.GetInputStream(),
+    : BaseEndpointChannel(service_id, channel_name, &socket.GetInputStream(),
                           &socket.GetOutputStream()),
       socket_(std::move(socket)) {}
 

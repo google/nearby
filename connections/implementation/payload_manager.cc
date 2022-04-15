@@ -492,6 +492,7 @@ void PayloadManager::OnIncomingFrame(
 }
 
 void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
+                                          const std::string& service_id,
                                           const std::string& endpoint_id,
                                           CountDownLatch barrier) {
   if (shutdown_.Get()) {

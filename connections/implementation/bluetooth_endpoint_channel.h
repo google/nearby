@@ -27,7 +27,8 @@ namespace connections {
 class BluetoothEndpointChannel final : public BaseEndpointChannel {
  public:
   // Creates both outgoing and incoming BT channels.
-  BluetoothEndpointChannel(const std::string& channel_name,
+  BluetoothEndpointChannel(const std::string& service_id,
+                           const std::string& channel_name,
                            BluetoothSocket bluetooth_socket);
 
   proto::connections::Medium GetMedium() const override;

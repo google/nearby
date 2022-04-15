@@ -37,9 +37,11 @@ InputStream* GetInputStreamOrNull(BleSocket& socket) {
 
 }  // namespace
 
-BleEndpointChannel::BleEndpointChannel(const std::string& channel_name,
+BleEndpointChannel::BleEndpointChannel(const std::string& service_id,
+                                       const std::string& channel_name,
                                        BleSocket socket)
-    : BaseEndpointChannel(channel_name, GetInputStreamOrNull(socket),
+    : BaseEndpointChannel(service_id, channel_name,
+                          GetInputStreamOrNull(socket),
                           GetOutputStreamOrNull(socket)),
       ble_socket_(std::move(socket)) {}
 

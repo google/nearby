@@ -74,7 +74,8 @@ TEST_P(WifiLanTest, CanConnect) {
       service_id,
       {
           .accepted_cb =
-              [&socket_for_server, &accept_latch](WifiLanSocket socket) {
+              [&socket_for_server, &accept_latch](const std::string& service_id,
+                                                  WifiLanSocket socket) {
                 socket_for_server = std::move(socket);
                 accept_latch.CountDown();
               },
@@ -130,7 +131,8 @@ TEST_P(WifiLanTest, CanCancelConnect) {
       service_id,
       {
           .accepted_cb =
-              [&socket_for_server, &accept_latch](WifiLanSocket socket) {
+              [&socket_for_server, &accept_latch](const std::string& service_id,
+                                                  WifiLanSocket socket) {
                 socket_for_server = std::move(socket);
                 accept_latch.CountDown();
               },

@@ -15,6 +15,7 @@
 #include "connections/implementation/base_endpoint_channel.h"
 
 #include <cassert>
+#include <string>
 
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
@@ -90,11 +91,12 @@ Exception WriteInt(OutputStream* writer, std::int32_t value) {
 
 }  // namespace
 
-BaseEndpointChannel::BaseEndpointChannel(const std::string& channel_name,
+BaseEndpointChannel::BaseEndpointChannel(const std::string& service_id,
+                                         const std::string& channel_name,
                                          InputStream* reader,
                                          OutputStream* writer)
     : BaseEndpointChannel(
-          channel_name, reader, writer,
+          service_id, channel_name, reader, writer,
           // TODO(edwinwu): Below values should be retrieved from a base socket,
           // the #MediumSocket in Android counterpart, from which all the
           // derived medium sockets should dervied, and implement the supported
@@ -106,10 +108,12 @@ BaseEndpointChannel::BaseEndpointChannel(const std::string& channel_name,
           /*try_count*/ 0) {}
 
 BaseEndpointChannel::BaseEndpointChannel(
-    const std::string& channel_name, InputStream* reader, OutputStream* writer,
+    const std::string& service_id, const std::string& channel_name,
+    InputStream* reader, OutputStream* writer,
     proto::connections::ConnectionTechnology technology,
     proto::connections::ConnectionBand band, int frequency, int try_count)
-    : channel_name_(channel_name),
+    : service_id_(service_id),
+      channel_name_(channel_name),
       reader_(reader),
       writer_(writer),
       technology_(technology),
@@ -311,6 +315,8 @@ std::string BaseEndpointChannel::GetType() const {
   }
   return medium;
 }
+
+std::string BaseEndpointChannel::GetServiceId() const { return service_id_; }
 
 std::string BaseEndpointChannel::GetName() const { return channel_name_; }
 

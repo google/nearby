@@ -49,7 +49,8 @@ void WebrtcBwuHandler::OnIncomingWebrtcConnection(
     ClientProxy* client, const std::string& upgrade_service_id,
     mediums::WebRtcSocketWrapper socket) {
   std::string service_id = Utils::UnwrapUpgradeServiceId(upgrade_service_id);
-  auto channel = std::make_unique<WebRtcEndpointChannel>(service_id, socket);
+  auto channel = std::make_unique<WebRtcEndpointChannel>(
+      upgrade_service_id, /*channel_name=*/service_id, socket);
   auto webrtc_socket =
       std::make_unique<WebrtcIncomingSocket>(service_id, socket);
   std::unique_ptr<IncomingSocketConnection> connection(
@@ -80,8 +81,8 @@ ByteArray WebrtcBwuHandler::InitializeUpgradedMediumForEndpoint(
             upgrade_service_id, self_id, location_hint,
             {
                 .accepted_cb = absl::bind_front(
-                    &WebrtcBwuHandler::OnIncomingWebrtcConnection, this, client,
-                    upgrade_service_id),
+                    &WebrtcBwuHandler::OnIncomingWebrtcConnection, this,
+                    client),
             })) {
       NEARBY_LOG(ERROR,
                  "WebRtcBwuHandler couldn't initiate the WEB_RTC upgrade for "
@@ -139,7 +140,8 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
              peer_id.GetId().c_str(), endpoint_id.c_str());
 
   // Create a new WebRtcEndpointChannel.
-  auto channel = std::make_unique<WebRtcEndpointChannel>(service_id, socket);
+  auto channel = std::make_unique<WebRtcEndpointChannel>(
+      service_id, /*channel_name=*/service_id, socket);
   if (channel == nullptr) {
     socket.Close();
     NEARBY_LOG(ERROR,
