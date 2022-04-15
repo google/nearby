@@ -15,6 +15,8 @@
 #ifndef CORE_INTERNAL_WEBRTC_BWU_HANDLER_H_
 #define CORE_INTERNAL_WEBRTC_BWU_HANDLER_H_
 
+#include <string>
+
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel_manager.h"
@@ -29,55 +31,17 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-using BwuNegotiationFrame = BandwidthUpgradeNegotiationFrame;
-
 // Defines the set of methods that need to be implemented to handle the
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
 class WebrtcBwuHandler : public BaseBwuHandler {
  public:
-  WebrtcBwuHandler(Mediums& mediums, EndpointChannelManager& channel_manager,
-                   BwuNotifications notifications);
-  ~WebrtcBwuHandler() override = default;
+  explicit WebrtcBwuHandler(Mediums& mediums, BwuNotifications notifications);
 
  private:
-  // Called by the Initiator to setup the upgraded medium for this endpoint (if
-  // that hasn't already been done), and returns a serialized UpgradePathInfo
-  // that can be sent to the Responder.
-  // @BwuHandlerThread
-  ByteArray InitializeUpgradedMediumForEndpoint(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id) override;
-  // Called to revert any state changed by the Initiator to setup the upgraded
-  // medium for an endpoint.
-  // @BwuHandlerThread
-  void Revert() override;
-
-  // Called by the Responder to setup the upgraded medium for this endpoint (if
-  // that hasn't already been done) using the UpgradePathInfo sent by the
-  // Initiator, and returns a new EndpointChannel for the upgraded medium.
-  // @BwuHandlerThread
-  std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info) override;
-  // Returns the upgrade medium of the BwuHandler.
-  // @BwuHandlerThread
-  Medium GetUpgradeMedium() const override { return Medium::WEB_RTC; }
-
-  void OnIncomingWebrtcConnection(ClientProxy* client,
-                                  const std::string& service_id,
-                                  mediums::WebRtcSocketWrapper socket);
-
-  void OnEndpointDisconnect(ClientProxy* client,
-                            const std::string& endpoint_id) override;
-
-  std::string GetCountryCode();
-
   class WebrtcIncomingSocket : public BwuHandler::IncomingSocket {
    public:
     explicit WebrtcIncomingSocket(const std::string& name,
                                   mediums::WebRtcSocketWrapper socket);
-    ~WebrtcIncomingSocket() override = default;
 
     std::string ToString() override;
     void Close() override;
@@ -87,9 +51,28 @@ class WebrtcBwuHandler : public BaseBwuHandler {
     mediums::WebRtcSocketWrapper socket_;
   };
 
+  // BwuHandler implementation:
+  std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
+      ClientProxy* client, const std::string& service_id,
+      const std::string& endpoint_id,
+      const UpgradePathInfo& upgrade_path_info) final;
+  Medium GetUpgradeMedium() const final { return Medium::WEB_RTC; }
+  void OnEndpointDisconnect(ClientProxy* client,
+                            const std::string& endpoint_id) final {}
+
+  // BaseBwuHandler implementation:
+  ByteArray HandleInitializeUpgradedMediumForEndpoint(
+      ClientProxy* client, const std::string& upgrade_service_id,
+      const std::string& endpoint_id) final;
+  void HandleRevertInitiatorStateForService(
+      const std::string& upgrade_service_id) final;
+
+  void OnIncomingWebrtcConnection(ClientProxy* client,
+                                  const std::string& upgrade_service_id,
+                                  mediums::WebRtcSocketWrapper socket);
+
   Mediums& mediums_;
   mediums::WebRtc& webrtc_{mediums_.GetWebRtc()};
-  absl::flat_hash_set<std::string> active_service_ids_;
 };
 
 }  // namespace connections

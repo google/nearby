@@ -45,7 +45,7 @@ class BwuHandler {
   // Called to revert any state changed by the Initiator to setup the upgraded
   // medium for an endpoint.
   // @BwuHandlerThread
-  virtual void Revert() = 0;
+  virtual void RevertInitiatorState() = 0;
 
   // Called by the Responder to setup the upgraded medium for this endpoint (if
   // that hasn't already been done) using the UpgradePathInfo sent by the

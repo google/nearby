@@ -40,6 +40,7 @@ cmake(
 cc_library(
     name = "internal",
     srcs = [
+        "base_bwu_handler.cc",
         "base_endpoint_channel.cc",
         "base_pcp_handler.cc",
         "ble_advertisement.cc",

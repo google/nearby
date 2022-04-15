@@ -94,19 +94,16 @@ void BwuManager::InitBwuHandlers() {
           absl::bind_front(&BwuManager::OnIncomingConnection, this),
   };
   if (config_.allow_upgrade_to.wifi_lan) {
-    handlers_.emplace(Medium::WIFI_LAN,
-                      std::make_unique<WifiLanBwuHandler>(
-                          *mediums_, *channel_manager_, notifications));
+    handlers_.emplace(Medium::WIFI_LAN, std::make_unique<WifiLanBwuHandler>(
+                                            *mediums_, notifications));
   }
   if (config_.allow_upgrade_to.web_rtc) {
-    handlers_.emplace(Medium::WEB_RTC,
-                      std::make_unique<WebrtcBwuHandler>(
-                          *mediums_, *channel_manager_, notifications));
+    handlers_.emplace(Medium::WEB_RTC, std::make_unique<WebrtcBwuHandler>(
+                                           *mediums_, notifications));
   }
   if (config_.allow_upgrade_to.bluetooth) {
-    handlers_.emplace(Medium::BLUETOOTH,
-                      std::make_unique<BluetoothBwuHandler>(
-                          *mediums_, *channel_manager_, notifications));
+    handlers_.emplace(Medium::BLUETOOTH, std::make_unique<BluetoothBwuHandler>(
+                                             *mediums_, notifications));
   }
 }
 
@@ -132,7 +129,7 @@ void BwuManager::Shutdown() {
   medium_ = Medium::UNKNOWN_MEDIUM;
   for (auto& item : handlers_) {
     BwuHandler& handler = *item.second;
-    handler.Revert();
+    handler.RevertInitiatorState();
   }
   handlers_.clear();
 
@@ -337,7 +334,7 @@ void BwuManager::Revert() {
   NEARBY_LOGS(INFO) << "Revert reseting medium "
                     << proto::connections::Medium_Name(medium_);
   if (handler_) {
-    handler_->Revert();
+    handler_->RevertInitiatorState();
     handler_ = nullptr;
   }
   medium_ = Medium::UNKNOWN_MEDIUM;

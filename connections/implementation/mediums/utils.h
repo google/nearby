@@ -30,8 +30,6 @@ class Utils {
   static ByteArray GenerateRandomBytes(size_t length);
   static ByteArray Sha256Hash(const ByteArray& source, size_t length);
   static ByteArray Sha256Hash(const std::string& source, size_t length);
-  static std::string WrapUpgradeServiceId(const std::string& service_id);
-  static std::string UnwrapUpgradeServiceId(const std::string& service_id);
   static LocationHint BuildLocationHint(const std::string& location);
 };
 

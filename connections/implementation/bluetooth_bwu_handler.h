@@ -32,32 +32,16 @@ namespace connections {
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
 class BluetoothBwuHandler : public BaseBwuHandler {
  public:
-  BluetoothBwuHandler(Mediums& mediums, EndpointChannelManager& channel_manager,
-                      BwuNotifications notifications);
-  ~BluetoothBwuHandler() override = default;
+  explicit BluetoothBwuHandler(Mediums& mediums,
+                               BwuNotifications notifications);
 
  private:
-  constexpr static const int kServiceIdLength = 10;
-
-  // Implements BaseBwuHandler:
-  // Reverts any changes made to the device in the process of upgrading
-  // endpoints.
-  void Revert() override;
-
-  // Cleans up in-progress upgrades after endpoint disconnection.
-  void OnEndpointDisconnect(ClientProxy* client,
-                            const std::string& endpoint_id) override {}
-
-  void OnIncomingBluetoothConnection(ClientProxy* client,
-                                     const std::string& service_id,
-                                     BluetoothSocket socket);
-
   class BluetoothIncomingSocket : public IncomingSocket {
    public:
     explicit BluetoothIncomingSocket(const std::string& name,
                                      BluetoothSocket socket)
         : name_(name), socket_(socket) {}
-    ~BluetoothIncomingSocket() override = default;
+
     std::string ToString() override { return name_; }
     void Close() override { socket_.Close(); }
 
@@ -66,24 +50,27 @@ class BluetoothBwuHandler : public BaseBwuHandler {
     BluetoothSocket socket_;
   };
 
-  // First part of InitiateBwuForEndpoint implementation;
-  // returns a BWU request to remote party as byte array.
-  ByteArray InitializeUpgradedMediumForEndpoint(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id) override;
-
-  // Invoked from OnBwuNegotiationFrame.
+  // BwuHandler implementation:
   std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
       ClientProxy* client, const std::string& service_id,
       const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info) override;
+      const UpgradePathInfo& upgrade_path_info) final;
+  Medium GetUpgradeMedium() const final { return Medium::BLUETOOTH; }
+  void OnEndpointDisconnect(ClientProxy* client,
+                            const std::string& endpoint_id) final {}
 
-  // Returns the upgrade medium of the BwuHandler.
-  // @BwuHandlerThread
-  Medium GetUpgradeMedium() const override { return Medium::BLUETOOTH; }
+  // BaseBwuHandler implementation:
+  ByteArray HandleInitializeUpgradedMediumForEndpoint(
+      ClientProxy* client, const std::string& upgrade_service_id,
+      const std::string& endpoint_id) final;
+  void HandleRevertInitiatorStateForService(
+      const std::string& upgrade_service_id) final;
+
+  void OnIncomingBluetoothConnection(ClientProxy* client,
+                                     const std::string& upgrade_service_id,
+                                     BluetoothSocket socket);
 
   Mediums& mediums_;
-  absl::flat_hash_set<std::string> active_service_ids_;
   BluetoothRadio& bluetooth_radio_{mediums_.GetBluetoothRadio()};
   BluetoothClassic& bluetooth_medium_{mediums_.GetBluetoothClassic()};
 };

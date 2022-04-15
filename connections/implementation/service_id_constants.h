@@ -15,6 +15,8 @@
 #ifndef CORE_INTERNAL_SERVICE_ID_CONSTANTS_H_
 #define CORE_INTERNAL_SERVICE_ID_CONSTANTS_H_
 
+#include <string>
+
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 
@@ -33,6 +35,17 @@ constexpr absl::string_view kInitiatorUpgradeServiceIdPostfix = "_UPGRADE";
 inline bool IsInitiatorUpgradeServiceId(absl::string_view service_id) {
   return !service_id.empty() &&
          absl::EndsWith(service_id, kInitiatorUpgradeServiceIdPostfix);
+}
+
+// Appends the kInitiatorUpgradeServiceIdPostfix to |service_id| if necessary.
+inline std::string WrapInitiatorUpgradeServiceId(absl::string_view service_id) {
+  // If |service_id| is empty or already has the upgrade postfix, do nothing.
+  if (service_id.empty() || IsInitiatorUpgradeServiceId(service_id)) {
+    return std::string(service_id);
+  }
+
+  return std::string(service_id) +
+         std::string(kInitiatorUpgradeServiceIdPostfix);
 }
 
 }  // namespace connections
