@@ -129,11 +129,10 @@ class BwuManager : public EndpointManager::FrameProcessor {
                              const BwuNegotiationFrame frame,
                              const string& endpoint_id);
 
-  // Called to revert any state changed by the INITIATOR in the course of
-  // setting up the upgraded medium for an endpoint. If |upgrade_service_id|
-  // isn't of the INITIATOR-upgrade format, this is a no-op.
-  void RevertInitiatedBwuMediumForEndpointIfNecessary(
-      const std::string& upgrade_service_id, const std::string& endpoint_id);
+  // Called to revert any state changed in the course of setting up the upgraded
+  // medium for an endpoint.
+  void RevertBwuMediumForEndpoint(const std::string& service_id,
+                                  const std::string& endpoint_id);
 
   // Get/Set the currently selected upgrade medium for this endpoint, or
   // UNKNOWN_MEDIUM if nothing is selected. This is the medium we are attempting

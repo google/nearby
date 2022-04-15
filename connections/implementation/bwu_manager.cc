@@ -323,14 +323,14 @@ void BwuManager::OnEndpointDisconnect(ClientProxy* client,
     // "== 0". Luckily, we will enable the flag by default, and it won't matter.
     if (FeatureFlags::GetInstance().GetFlags().support_multiple_bwu_mediums ||
         channel_manager_->GetConnectedEndpointsCount() <= 1) {
-      RevertInitiatedBwuMediumForEndpointIfNecessary(service_id, endpoint_id);
+      RevertBwuMediumForEndpoint(service_id, endpoint_id);
     }
     barrier.CountDown();
   });
 }
 
-void BwuManager::RevertInitiatedBwuMediumForEndpointIfNecessary(
-    const std::string& upgrade_service_id, const std::string& endpoint_id) {
+void BwuManager::RevertBwuMediumForEndpoint(const std::string& service_id,
+                                            const std::string& endpoint_id) {
   Medium medium = GetBwuMediumForEndpoint(endpoint_id);
 
   // If |support_multiple_bwu_mediums| is disabled, we take a less fine-grained
@@ -338,8 +338,7 @@ void BwuManager::RevertInitiatedBwuMediumForEndpointIfNecessary(
   if (!FeatureFlags::GetInstance().GetFlags().support_multiple_bwu_mediums) {
     NEARBY_LOGS(INFO) << "Reverting medium "
                       << proto::connections::Medium_Name(medium)
-                      << " for all endpoints for service "
-                      << upgrade_service_id;
+                      << " for all endpoints for service " << service_id;
     medium_ = Medium::UNKNOWN_MEDIUM;
     BwuHandler* handler = GetHandlerForMedium(medium);
     if (!handler) return;
@@ -348,19 +347,20 @@ void BwuManager::RevertInitiatedBwuMediumForEndpointIfNecessary(
     return;
   }
 
-  // If |upgrade_service_id| isn't of the INITIATOR-upgrade format, this is a
-  // no-op, for example, if this is called by the RESPONDER.
-  if (!IsInitiatorUpgradeServiceId(upgrade_service_id)) return;
-
   NEARBY_LOGS(INFO) << "Reverting medium "
                     << proto::connections::Medium_Name(medium)
-                    << " for service ID " << upgrade_service_id
-                    << " and endpoint " << endpoint_id;
+                    << " for service ID " << service_id << " and endpoint "
+                    << endpoint_id;
   endpoint_id_to_bwu_medium_.erase(endpoint_id);
+
+  // If |service_id| isn't of the INITIATOR-upgrade format--for example, if this
+  // is called by the RESPONDER--there is no need to call RevertInitiatorState.
+  if (!IsInitiatorUpgradeServiceId(service_id)) return;
+
   BwuHandler* handler = GetHandlerForMedium(medium);
   if (!handler) return;
 
-  handler->RevertInitiatorState(upgrade_service_id, endpoint_id);
+  handler->RevertInitiatorState(service_id, endpoint_id);
 }
 
 Medium BwuManager::GetBwuMediumForEndpoint(
@@ -822,8 +822,7 @@ void BwuManager::RunUpgradeFailedProtocol(
 
   // And lastly, clean up our medium since we failed to utilize it anyways.
   if (GetBwuMediumForEndpoint(endpoint_id) != Medium::UNKNOWN_MEDIUM) {
-    RevertInitiatedBwuMediumForEndpointIfNecessary(channel->GetServiceId(),
-                                                   endpoint_id);
+    RevertBwuMediumForEndpoint(channel->GetServiceId(), endpoint_id);
   }
   in_progress_upgrades_.erase(endpoint_id);
   NEARBY_LOGS(INFO) << "BwuManager has informed endpoint " << endpoint_id
@@ -1090,7 +1089,7 @@ void BwuManager::ProcessUpgradeFailureEvent(
       channel ? channel->GetServiceId() : std::string(kUnknownServiceId);
   // Revert the existing upgrade medium for now.
   if (GetBwuMediumForEndpoint(endpoint_id) != Medium::UNKNOWN_MEDIUM) {
-    RevertInitiatedBwuMediumForEndpointIfNecessary(service_id, endpoint_id);
+    RevertBwuMediumForEndpoint(service_id, endpoint_id);
   }
 
   // Loop through the ordered list of upgrade mediums. One by one, remove the
