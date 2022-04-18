@@ -668,9 +668,6 @@ bool AnalyticsRecorder::CanRecordAnalyticsLocked(
   NEARBY_LOGS(VERBOSE) << "AnalyticsRecorder LogEvent " << method_name
                        << " is calling.";
   if (event_logger_ == nullptr) {
-    NEARBY_LOGS(WARNING)
-        << "AnalyticsRecorder CanRecordAnalytics Unexpected call "
-        << method_name << " due to event_logger is null.";
     return false;
   }
 
