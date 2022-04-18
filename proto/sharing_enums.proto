@@ -31,6 +31,8 @@ pair of events (start and end of a session).
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
+  // LINT.IfChange(EventType)
+
   // When new users accept agreements (like grant permission to contacts for
   // CONTACT_ONLY visibility) and are enrolled into Nearby Sharing. This event
   // is used to count number of new users.
@@ -185,6 +187,8 @@ enum EventType {
 
   // Track device states in Nearby Share setting.
   DEVICE_SETTINGS = 49;
+
+  // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
 
 // Event category to differentiate whether this comes from sender or receiver,
