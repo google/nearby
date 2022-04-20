@@ -71,6 +71,8 @@ struct MediumSelector {
   }
 };
 
+using BooleanMediumSelector = MediumSelector<bool>;
+
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location

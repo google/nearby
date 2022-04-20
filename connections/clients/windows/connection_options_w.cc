@@ -11,26 +11,29 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#ifndef CORE_OPTIONS_BASE_H_
-#define CORE_OPTIONS_BASE_H_
-#include <string>
 
-#include "connections/medium_selector.h"
-#include "connections/strategy.h"
+#include "connections/clients/windows/connection_options_w.h"
+
+#include <string>
 
 namespace location {
 namespace nearby {
-namespace connections {
+namespace windows {
 
-// Connection Options: used for both Advertising and Discovery.
-// All fields are mutable, to make the type copy-assignable.
-struct OptionsBase {
-  Strategy strategy;
-  BooleanMediumSelector allowed{BooleanMediumSelector().SetAll(true)};
-};
+void ConnectionOptionsW::GetMediums(const MediumW* mediums,
+                                    size_t mediums_size) const {
+  // Create a collection of enabled mediums
+  auto allowedMediums = allowed.GetMediums(true);
+  auto iter = allowedMediums.begin();
+  int index = 0;
+  // There is a fixed buffer of 5 for these, fill it up and leave.
+  while (iter != allowedMediums.end() && index < MAX_MEDIUMS) {
+    *mediums_[index++] = iter[index];
+  }
+  mediums_size = allowed.GetMediums(true).size();
+  return;
+}
 
-}  // namespace connections
+}  // namespace windows
 }  // namespace nearby
 }  // namespace location
-
-#endif  // CORE_OPTIONS_BASE_H_

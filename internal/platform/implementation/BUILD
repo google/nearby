@@ -41,6 +41,7 @@ cc_library(
         "//internal/platform/implementation:__subpackages__",
     ],
     deps = [
+        "//connections/clients/windows:types",
         "//internal/platform:base",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/strings",
@@ -67,6 +68,7 @@ cc_library(
         "//internal/platform/implementation:__subpackages__",
     ],
     deps = [
+        "//connections/clients/windows:types",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",

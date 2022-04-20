@@ -18,8 +18,6 @@
 
 #include <sstream>
 
-#include "absl/strings/str_cat.h"
-
 namespace test_utils {
 std::wstring StringToWideString(const std::string& s) {
   int len;

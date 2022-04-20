@@ -33,7 +33,6 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/byte_utils.h"
 #include "internal/platform/listeners.h"
-#include "internal/platform/core_config.h"
 
 namespace location {
 namespace nearby {
@@ -44,14 +43,14 @@ namespace connections {
 // This is not the same as completion of the associated process,
 // which may have many states, and multiple async jobs, and be still ongoing.
 // Progress on the overall process is reported by the associated listener.
-struct DLL_API ResultCallback {
+struct ResultCallback {
   // Callback to access the status of the operation when available.
   // status - result of job execution;
   //   Status::kSuccess, if successful; anything else indicates failure.
   std::function<void(Status)> result_cb = DefaultCallback<Status>();
 };
 
-struct DLL_API ConnectionResponseInfo {
+struct ConnectionResponseInfo {
   std::string GetAuthenticationDigits() {
     return ByteUtils::ToFourDigitString(raw_authentication_token);
   }
@@ -63,7 +62,7 @@ struct DLL_API ConnectionResponseInfo {
   bool is_connection_verified = false;
 };
 
-struct DLL_API PayloadProgressInfo {
+struct PayloadProgressInfo {
   std::int64_t payload_id = 0;
   enum class Status {
     kSuccess,
@@ -75,14 +74,14 @@ struct DLL_API PayloadProgressInfo {
   std::int64_t bytes_transferred = 0;
 };
 
-enum class DLL_API DistanceInfo {
+enum class DistanceInfo {
   kUnknown = 1,
   kVeryClose = 2,
   kClose = 3,
   kFar = 4,
 };
 
-struct DLL_API ConnectionListener {
+struct ConnectionListener {
   // A basic encrypted channel has been created between you and the endpoint.
   // Both sides are now asked if they wish to accept or reject the connection
   // before any data can be sent over this channel.
@@ -136,7 +135,7 @@ struct DLL_API ConnectionListener {
       bandwidth_changed_cb = DefaultCallback<const std::string&, Medium>();
 };
 
-struct DLL_API DiscoveryListener {
+struct DiscoveryListener {
   // Called when a remote endpoint is discovered.
   //
   // endpoint_id   - The ID of the remote endpoint that was discovered.
@@ -166,7 +165,7 @@ struct DLL_API DiscoveryListener {
           DefaultCallback<const std::string&, DistanceInfo>();
 };
 
-struct DLL_API PayloadListener {
+struct PayloadListener {
   // Called when a Payload is received from a remote endpoint. Depending
   // on the type of the Payload, all of the data may or may not have been
   // received at the time of this call. Use OnPayloadProgress() to

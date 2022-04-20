@@ -213,7 +213,7 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
 
   // Not using designated initializers here since the VS C++ compiler errors
   // out indicating that MediumSelector<bool> is not an aggregate
-  MediumSelector<bool> mediumSelector{};
+  BooleanMediumSelector mediumSelector{};
   mediumSelector.bluetooth = intersection.contains(Medium::BLUETOOTH);
   mediumSelector.ble = intersection.contains(Medium::BLE);
   mediumSelector.web_rtc = intersection.contains(Medium::WEB_RTC);

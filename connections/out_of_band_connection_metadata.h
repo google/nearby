@@ -25,9 +25,6 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-// Feature On/Off switch for mediums.
-using BooleanMediumSelector = MediumSelector<bool>;
-
 // Metadata injected to facilitate out-of-band connections. The medium field is
 // required, and the other fields are only specified for a specific medium.
 // Currently, Bluetooth is the only supported medium for out-of-band

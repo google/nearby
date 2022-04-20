@@ -15,14 +15,49 @@ load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
 
 licenses(["notice"])
 
+cc_library(
+    name = "types",
+    hdrs = [
+        "dll_config.h",
+    ],
+    visibility = [
+        "//location/nearby/cpp/sharing/implementation:__subpackages__",
+        "//connections:__subpackages__",
+        "//connections/clients/windows:__subpackages__",
+        "//internal/platform:__pkg__",
+        "//internal/platform/implementation:__subpackages__",
+    ],
+    deps = [
+        "//proto:connections_enums_cc_proto",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 # Build with --config=lexan
 lexan.cc_windows_dll(
     name = "core_adapter",
     srcs = [
+        "advertising_options_w.cc",
+        "connection_options_w.cc",
         "core_adapter.cc",
+        "discovery_options_w.cc",
+        "listeners_w.cc",
+        "payload_w.cc",
+        "strategy_w.cc",
     ],
     hdrs = [
+        "advertising_options_w.h",
+        "connection_options_w.h",
         "core_adapter.h",
+        "discovery_options_w.h",
+        "dll_config.h",
+        "listeners_w.h",
+        "medium_selector_w.h",
+        "options_base_w.h",
+        "out_of_band_connection_metadata_w.h",
+        "params_w.h",
+        "payload_w.h",
+        "strategy_w.h",
     ],
     copts = ["-DCORE_ADAPTER_BUILD_DLL -DCOMPILING_CORE"],
     defines = ["CORE_ADAPTER_DLL"],
@@ -31,6 +66,8 @@ lexan.cc_windows_dll(
     deps = [
         "//third_party/dart_lang/v2:dart_api_dl",
         "//connections:core",
+        "//connections:core_types",
+        "//connections/clients/windows:types",
         "//internal/platform:base",
         "//internal/platform/implementation/windows",
         "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",
@@ -43,12 +80,28 @@ lexan.cc_windows_dll(
 lexan.cc_windows_dll(
     name = "core_adapter_dart",
     srcs = [
+        "advertising_options_w.cc",
+        "connection_options_w.cc",
         "core_adapter.cc",
         "dart/core_adapter_dart.cc",
+        "discovery_options_w.cc",
+        "listeners_w.cc",
+        "payload_w.cc",
+        "strategy_w.cc",
     ],
     hdrs = [
+        "advertising_options_w.h",
+        "connection_options_w.h",
         "core_adapter.h",
         "dart/core_adapter_dart.h",
+        "discovery_options_w.h",
+        "listeners_w.h",
+        "medium_selector_w.h",
+        "options_base_w.h",
+        "out_of_band_connection_metadata_w.h",
+        "params_w.h",
+        "payload_w.h",
+        "strategy_w.h",
     ],
     copts = ["-DCORE_ADAPTER_DART_BUILD_DLL -DCORE_ADAPTER_DLL -DCOMPILING_CORE"],
     defines = ["CORE_ADAPTER_DART_DLL"],
@@ -56,6 +109,7 @@ lexan.cc_windows_dll(
     deps = [
         "//third_party/dart_lang/v2:dart_api_dl",
         "//connections:core",
+        "//connections:core_types",
         "//internal/platform:base",
         "//internal/platform/implementation/windows",
         "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",

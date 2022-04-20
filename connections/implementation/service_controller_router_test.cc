@@ -40,9 +40,6 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-// Feature On/Off switch for mediums.
-using BooleanMediumSelector = MediumSelector<bool>;
-
 namespace {
 using ::testing::Return;
 constexpr std::array<char, 6> kFakeMacAddress = {'a', 'b', 'c', 'd', 'e', 'f'};
