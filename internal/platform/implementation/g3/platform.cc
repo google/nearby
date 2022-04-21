@@ -49,6 +49,7 @@
 #include "internal/platform/implementation/g3/scheduled_executor.h"
 #include "internal/platform/implementation/g3/single_thread_executor.h"
 #include "internal/platform/implementation/g3/wifi_lan.h"
+#include "internal/platform/implementation/g3/wifi_hotspot.h"
 #include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/medium_environment.h"
@@ -212,7 +213,7 @@ std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
 
 std::unique_ptr<WifiHotspotMedium>
 ImplementationPlatform::CreateWifiHotspotMedium() {
-  return nullptr;
+  return std::make_unique<g3::WifiHotspotMedium>();
 }
 
 #ifndef NO_WEBRTC

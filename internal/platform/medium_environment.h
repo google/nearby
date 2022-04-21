@@ -16,7 +16,9 @@
 #define PLATFORM_BASE_MEDIUM_ENVIRONMENT_H_
 
 #include <atomic>
+#include <functional>
 #include <memory>
+#include <string>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
@@ -30,6 +32,8 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/wifi_lan.h"
+#include "internal/platform/wifi_hotspot_credential.h"
+#include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/single_thread_executor.h"
@@ -265,6 +269,29 @@ class MediumEnvironment {
   // port, or nullptr.
   api::WifiLanMedium* GetWifiLanMedium(const std::string& ip_address, int port);
 
+  // Adds medium-related info to allow for start/connect Hotspot to work.
+  // This provides acccess to this medium from other mediums, when protocol
+  // expects they should communicate.
+  void RegisterWifiHotspotMedium(api::WifiHotspotMedium& medium);
+
+  // Returns WifiSpot medium that matches ssid or IP address with the role of
+  // the Medium, or return nullptr.
+  api::WifiHotspotMedium* GetWifiHotspotMedium(absl::string_view ssid,
+                                               absl::string_view ip_address);
+
+  // Updates credential and Medium role(AP or STA) to indicate the current
+  // medium is exposing Start Hotspot event.
+  void UpdateWifiHotspotMediumForStartOrConnect(
+      api::WifiHotspotMedium& medium, HotspotCredentials* hotspot_credentials,
+      bool is_ap, bool enabled);
+
+  // Check if wifi_hotspot_mediums_ map is empty or not.
+  bool IsWifiHotspotMediumsEmpty();
+
+  // Removes medium-related info. This should correspond to device stopped or
+  // disconnected.
+  void UnregisterWifiHotspotMedium(api::WifiHotspotMedium& medium);
+
   void SetFeatureFlags(const FeatureFlags::Flags& flags);
 
  private:
@@ -298,6 +325,14 @@ class MediumEnvironment {
         discovered_callbacks;
     // discovered service vs service type map.
     absl::flat_hash_map<std::string, NsdServiceInfo> discovered_services;
+  };
+
+  struct WifiHotspotMediumContext {
+    // Set to "true" for Medium act as SoftAP role; "false" for STA role
+    bool is_ap = true;
+    // Set "true" when SoftAP is started or STA is connected
+    bool is_active = false;
+    HotspotCredentials* hotspot_credentials;
   };
 
   // This is a singleton object, for which destructor will never be called.
@@ -358,6 +393,9 @@ class MediumEnvironment {
 
   absl::flat_hash_map<api::WifiLanMedium*, WifiLanMediumContext>
       wifi_lan_mediums_;
+
+  absl::flat_hash_map<api::WifiHotspotMedium*, WifiHotspotMediumContext>
+      wifi_hotspot_mediums_;
 
   bool use_valid_peer_connection_ = true;
   absl::Duration peer_connection_latency_ = absl::ZeroDuration();

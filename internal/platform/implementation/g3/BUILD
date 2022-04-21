@@ -55,6 +55,7 @@ cc_library(
         "ble_v2.cc",
         "bluetooth_adapter.cc",
         "bluetooth_classic.cc",
+        "wifi_hotspot.cc",
         "wifi_lan.cc",
     ],
     hdrs = [
@@ -62,6 +63,7 @@ cc_library(
         "ble_v2.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
+        "wifi_hotspot.h",
         "wifi_lan.h",
     ],
     defines = ["NO_WEBRTC"],
