@@ -407,6 +407,7 @@ let package = Package(
         // tests
         "connections/listeners_test.cc",
         "connections/strategy_test.cc",
+        "connections/clients/ios/BuildTests",
         "connections/implementation/offline_frames_test.cc",
         "connections/implementation/offline_service_controller_test.cc",
         "connections/implementation/encryption_runner_test.cc",
