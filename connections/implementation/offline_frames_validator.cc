@@ -14,7 +14,9 @@
 
 #include "connections/implementation/offline_frames_validator.h"
 
+#include <algorithm>
 #include <regex>  //NOLINT
+#include <string>
 
 #include "connections/implementation/internal_payload.h"
 #include "connections/implementation/offline_frames.h"

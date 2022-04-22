@@ -345,6 +345,7 @@ void StartAdvertisingDart(Core *pCore, const char *service_id,
           ? "0000FE2C-0000-1000-8000-00805F9B34FB"
           : "";
   advertising_options.allowed.wifi_lan = options_dart.enable_wifi_lan;
+  advertising_options.allowed.wifi_hotspot = options_dart.enable_wifi_hotspot;
   advertising_options.allowed.web_rtc = options_dart.enable_web_rtc;
 
   ConnectionListenerW listener;
@@ -435,6 +436,7 @@ void RequestConnectionDart(Core *pCore, const char *endpoint_id,
   connection_options.allowed.bluetooth = options_dart.enable_bluetooth;
   connection_options.allowed.ble = options_dart.enable_ble;
   connection_options.allowed.wifi_lan = options_dart.enable_wifi_lan;
+  connection_options.allowed.wifi_hotspot = options_dart.enable_wifi_hotspot;
   connection_options.allowed.web_rtc = options_dart.enable_web_rtc;
 
   ConnectionListenerW listener;

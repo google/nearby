@@ -46,6 +46,7 @@ struct ConnectionOptionsDart {
   int64_t use_low_power_mode;
   int64_t discover_fast_advertisements;
   int64_t enable_wifi_lan;
+  int64_t enable_wifi_hotspot;
   int64_t enable_nfc;
   int64_t enable_wifi_aware;
   int64_t enable_web_rtc;

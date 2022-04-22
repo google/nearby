@@ -20,6 +20,10 @@ namespace location {
 namespace nearby {
 namespace windows {
 
+namespace {
+  constexpr int kMaxRetries = 3;
+}  // namespace
+
 WifiHotspotServerSocket::WifiHotspotServerSocket(int port) : port_(port) {}
 
 WifiHotspotServerSocket::~WifiHotspotServerSocket() { Close(); }
@@ -176,7 +180,7 @@ std::vector<std::string> WifiHotspotServerSocket::GetIpAddresses() const {
       std::string ipv4_s = winrt::to_string(host_name.ToString());
 
       if (HasEnding(ipv4_s, ".1")) {
-        // std::string ipv4_b_s = ipaddr_dotdecimal_to_4bytes_string(ipv4_s);
+        NEARBY_LOGS(INFO) << "Found Hotspot IP: " << ipv4_s;
         result.push_back(ipv4_s);
       }
     }
@@ -185,17 +189,19 @@ std::vector<std::string> WifiHotspotServerSocket::GetIpAddresses() const {
 }
 
 std::string WifiHotspotServerSocket::GetHotspotIpAddresses() const {
-  auto host_names = NetworkInformation::GetHostNames();
-  for (auto host_name : host_names) {
-    if (host_name.IPInformation() != nullptr &&
-        host_name.IPInformation().NetworkAdapter() != nullptr &&
-        host_name.Type() == HostNameType::Ipv4) {
-      std::string ipv4_s = winrt::to_string(host_name.ToString());
-      if (HasEnding(ipv4_s, ".1")) {
-        // TODO(b/228541380): replace when we find a better way to identifying
-        // the hotspot address
-        NEARBY_LOGS(INFO) << "Found Hotspot IP: " << ipv4_s;
-        return ipv4_s;
+  for (int i = 0; i < kMaxRetries; i++) {
+    auto host_names = NetworkInformation::GetHostNames();
+    for (auto host_name : host_names) {
+      if (host_name.IPInformation() != nullptr &&
+          host_name.IPInformation().NetworkAdapter() != nullptr &&
+          host_name.Type() == HostNameType::Ipv4) {
+        std::string ipv4_s = winrt::to_string(host_name.ToString());
+        if (HasEnding(ipv4_s, ".1")) {
+          // TODO(b/228541380): replace when we find a better way to identifying
+          // the hotspot address
+          NEARBY_LOGS(INFO) << "Found Hotspot IP: " << ipv4_s;
+          return ipv4_s;
+        }
       }
     }
   }

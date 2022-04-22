@@ -24,9 +24,9 @@
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/webrtc_endpoint_channel.h"
 #include "connections/implementation/wifi_lan_endpoint_channel.h"
+#include "internal/platform/crypto.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/types.h"
-#include "internal/platform/crypto.h"
 #include "proto/connections_enums.pb.h"
 
 namespace location {
@@ -58,6 +58,7 @@ P2pClusterPcpHandler::P2pClusterPcpHandler(
       bluetooth_medium_(mediums->GetBluetoothClassic()),
       ble_medium_(mediums->GetBle()),
       wifi_lan_medium_(mediums->GetWifiLan()),
+      wifi_hotspot_medium_(mediums->GetWifiHotspot()),
       webrtc_medium_(mediums->GetWebRtc()),
       injected_bluetooth_device_store_(injected_bluetooth_device_store) {}
 

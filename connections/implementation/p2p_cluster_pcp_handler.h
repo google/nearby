@@ -16,6 +16,7 @@
 #define CORE_INTERNAL_P2P_CLUSTER_PCP_HANDLER_H_
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "connections/implementation/base_pcp_handler.h"
@@ -29,8 +30,8 @@
 #include "connections/implementation/mediums/bluetooth_classic.h"
 #include "connections/implementation/mediums/mediums.h"
 #ifdef NO_WEBRTC
-#include "connections/implementation/mediums/webrtc_stub.h"
 #include "connections/implementation/mediums/webrtc_socket_stub.h"
+#include "connections/implementation/mediums/webrtc_stub.h"
 #else
 #include "connections/implementation/mediums/webrtc.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
@@ -38,8 +39,8 @@
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/wifi_lan_service_info.h"
 #include "connections/strategy.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/wifi_lan.h"
 
 namespace location {
@@ -197,6 +198,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   BluetoothClassic& bluetooth_medium_;
   Ble& ble_medium_;
   WifiLan& wifi_lan_medium_;
+  WifiHotspot& wifi_hotspot_medium_;
   mediums::WebRtc& webrtc_medium_;
   InjectedBluetoothDeviceStore& injected_bluetooth_device_store_;
   std::int64_t bluetooth_classic_discoverer_client_id_{0};
