@@ -530,6 +530,11 @@ let package = Package(
         .linkedFramework("CoreFoundation"),
       ]
     ),
+    .testTarget(
+      name: "BuildTests",
+      dependencies: ["NearbyConnections"],
+      path: "connections/clients/ios/BuildTests"
+    ),
   ],
   cLanguageStandard: .c99,
   cxxLanguageStandard: CXXLanguageStandard.gnucxx14
