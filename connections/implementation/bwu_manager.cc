@@ -25,7 +25,11 @@
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
+#ifdef NO_WEBRTC
+#include "connections/implementation/webrtc_bwu_handler_stub.h"
+#else
 #include "connections/implementation/webrtc_bwu_handler.h"
+#endif
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
 #include "connections/implementation/wifi_lan_bwu_handler.h"
 #include "internal/platform/byte_array.h"
