@@ -24,6 +24,8 @@
 #include "connections/clients/windows/params_w.h"
 #include "connections/clients/windows/payload_w.h"
 
+#define DLL_EXPORT extern "C" __declspec(dllexport)
+
 namespace location {
 namespace nearby {
 namespace connections {
@@ -51,10 +53,10 @@ using ServiceControllerRouter = connections::ServiceControllerRouter;
 
 // Initializes a default Core instance.
 // Returns the instance handle to c# client.
-DLL_API Core *__stdcall InitCore(ServiceControllerRouter *);
+DLL_EXPORT Core *__stdcall InitCore(ServiceControllerRouter *);
 
 // Closes the core with stopping all endpoints, then free the memory.
-DLL_API void __stdcall CloseCore(Core *);
+DLL_EXPORT void __stdcall CloseCore(Core *);
 
 // Starts advertising an endpoint for a local app.
 //
@@ -74,10 +76,10 @@ DLL_API void __stdcall CloseCore(Core *);
 //     Status::STATUS_ALREADY_ADVERTISING if the app is already advertising.
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
-DLL_API void __stdcall StartAdvertising(Core *, const char *,
-                                        AdvertisingOptionsW,
-                                        ConnectionRequestInfoW,
-                                        ResultCallbackW);
+DLL_EXPORT void __stdcall StartAdvertising(Core *, const char *,
+                                           AdvertisingOptionsW,
+                                           ConnectionRequestInfoW,
+                                           ResultCallbackW);
 
 // Stops advertising a local endpoint. Should be called after calling
 // StartAdvertising, as soon as the application no longer needs to advertise
@@ -87,7 +89,7 @@ DLL_API void __stdcall StartAdvertising(Core *, const char *,
 // result_cb - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK if none of the above errors occurred.
-DLL_API void __stdcall StopAdvertising(Core *, ResultCallbackW);
+DLL_EXPORT void __stdcall StopAdvertising(Core *, ResultCallbackW);
 
 // Starts discovery for remote endpoints with the specified service ID.
 //
@@ -102,8 +104,9 @@ DLL_API void __stdcall StopAdvertising(Core *, ResultCallbackW);
 //         discovering the specified service.
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
-DLL_API void __stdcall StartDiscovery(Core *, const char *, DiscoveryOptionsW,
-                                      DiscoveryListenerW, ResultCallbackW);
+DLL_EXPORT void __stdcall StartDiscovery(Core *, const char *,
+                                         DiscoveryOptionsW, DiscoveryListenerW,
+                                         ResultCallbackW);
 
 // Stops discovery for remote endpoints, after a previous call to
 // StartDiscovery, when the client no longer needs to discover endpoints or
@@ -113,7 +116,7 @@ DLL_API void __stdcall StartDiscovery(Core *, const char *, DiscoveryOptionsW,
 // result_cb - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK if none of the above errors occurred.
-DLL_API void __stdcall StopDiscovery(Core *, ResultCallbackW);
+DLL_EXPORT void __stdcall StopDiscovery(Core *, ResultCallbackW);
 
 // Invokes the discovery callback from a previous call to StartDiscovery()
 // with the given endpoint info. The previous call to StartDiscovery() must
@@ -130,9 +133,9 @@ DLL_API void __stdcall StopDiscovery(Core *, ResultCallbackW);
 //     Status::kError if endpoint_id, endpoint_info, or
 //         remote_bluetooth_mac_address are malformed.
 //     Status::kOutOfOrderApiCall if the app is not discovering.
-DLL_API void __stdcall InjectEndpoint(Core *, char *,
-                                      OutOfBandConnectionMetadataW,
-                                      ResultCallbackW);
+DLL_EXPORT void __stdcall InjectEndpoint(Core *, char *,
+                                         OutOfBandConnectionMetadataW,
+                                         ResultCallbackW);
 
 // Sends a request to connect to a remote endpoint.
 //
@@ -153,9 +156,10 @@ DLL_API void __stdcall InjectEndpoint(Core *, char *,
 //     Status::STATUS_RADIO_ERROR if we failed to connect because of an
 //         issue with Bluetooth/WiFi.
 //     Status::STATUS_ERROR if we failed to connect for any other reason.
-DLL_API void __stdcall RequestConnection(Core *, const char *,
-                                         ConnectionRequestInfoW,
-                                         ConnectionOptionsW, ResultCallbackW);
+DLL_EXPORT void __stdcall RequestConnection(Core *, const char *,
+                                            ConnectionRequestInfoW,
+                                            ConnectionOptionsW,
+                                            ResultCallbackW);
 
 // Accepts a connection to a remote endpoint. This method must be called
 // before Payloads can be exchanged with the remote endpoint.
@@ -169,8 +173,8 @@ DLL_API void __stdcall RequestConnection(Core *, const char *,
 //     Status::STATUS_OK if the connection request was accepted.
 //     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT if the app already.
 //         has a connection to the specified endpoint.
-DLL_API void __stdcall AcceptConnection(Core *, const char *, PayloadListenerW,
-                                        ResultCallbackW);
+DLL_EXPORT void __stdcall AcceptConnection(Core *, const char *,
+                                           PayloadListenerW, ResultCallbackW);
 
 // Rejects a connection to a remote endpoint.
 //
@@ -182,7 +186,8 @@ DLL_API void __stdcall AcceptConnection(Core *, const char *, PayloadListenerW,
 //     Status::STATUS_OK} if the connection request was rejected.
 //     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT} if the app already
 //         has a connection to the specified endpoint.
-DLL_API void __stdcall RejectConnection(Core *, const char *, ResultCallbackW);
+DLL_EXPORT void __stdcall RejectConnection(Core *, const char *,
+                                           ResultCallbackW);
 
 // Sends a Payload to a remote endpoint. Payloads can only be sent to remote
 // endpoints once a notice of connection acceptance has been delivered via
@@ -203,8 +208,8 @@ DLL_API void __stdcall RejectConnection(Core *, const char *, ResultCallbackW);
 //         still occur during transmission (and at different times for
 //         different endpoints), and will be delivered via
 //         PayloadCallback#onPayloadTransferUpdate.
-DLL_API void __stdcall SendPayload(Core *, char **, size_t, PayloadW,
-                                   ResultCallbackW);
+DLL_EXPORT void __stdcall SendPayload(Core *, char **, size_t, PayloadW,
+                                      ResultCallbackW);
 
 // Cancels a Payload currently in-flight to or from remote endpoint(s).
 //
@@ -212,7 +217,7 @@ DLL_API void __stdcall SendPayload(Core *, char **, size_t, PayloadW,
 // result_cb  - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK if none of the above errors occurred.
-DLL_API void __stdcall CancelPayload(Core *, int64_t, ResultCallbackW);
+DLL_EXPORT void __stdcall CancelPayload(Core *, int64_t, ResultCallbackW);
 
 // Disconnects from a remote endpoint. {@link Payload}s can no longer be sent
 // to or received from the endpoint after this method is called.
@@ -221,7 +226,8 @@ DLL_API void __stdcall CancelPayload(Core *, int64_t, ResultCallbackW);
 // result_cb   - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK - finished successfully.
-DLL_API void __stdcall DisconnectFromEndpoint(Core *, char *, ResultCallbackW);
+DLL_EXPORT void __stdcall DisconnectFromEndpoint(Core *, char *,
+                                                 ResultCallbackW);
 
 // Disconnects from, and removes all traces of, all connected and/or
 // discovered endpoints. This call is expected to be preceded by a call to
@@ -232,7 +238,7 @@ DLL_API void __stdcall DisconnectFromEndpoint(Core *, char *, ResultCallbackW);
 // result_cb - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK - finished successfully.
-DLL_API void __stdcall StopAllEndpoints(Core *, ResultCallbackW);
+DLL_EXPORT void __stdcall StopAllEndpoints(Core *, ResultCallbackW);
 
 // Sends a request to initiate connection bandwidth upgrade.
 //
@@ -243,18 +249,19 @@ DLL_API void __stdcall StopAllEndpoints(Core *, ResultCallbackW);
 // result_cb   - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK - finished successfully.
-DLL_API void __stdcall InitiateBandwidthUpgrade(Core *, char *,
-                                                ResultCallbackW);
+DLL_EXPORT void __stdcall InitiateBandwidthUpgrade(Core *, char *,
+                                                   ResultCallbackW);
 
 // Gets the local endpoint generated by Nearby Connections.
-DLL_API const char *__stdcall GetLocalEndpointId(Core *);
+DLL_EXPORT const char *__stdcall GetLocalEndpointId(Core *);
 
 // Initializes a default ServiceControllerRouter instance.
 // Returns the instance handle to c# client.
-DLL_API ServiceControllerRouter *__stdcall InitServiceControllerRouter();
+DLL_EXPORT ServiceControllerRouter *__stdcall InitServiceControllerRouter();
 
 // Close a ServiceControllerRouter instance.
-DLL_API void __stdcall CloseServiceControllerRouter(ServiceControllerRouter *);
+DLL_EXPORT void __stdcall CloseServiceControllerRouter(
+    ServiceControllerRouter *);
 
 }  // namespace windows
 }  // namespace nearby
