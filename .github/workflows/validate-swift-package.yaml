@@ -1,0 +1,23 @@
+name: Validate Swift Package
+
+on: [push, pull_request]
+
+env:
+  FORCE_COLOR: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build
+      run: swift build
+
+  test:
+    name: Test
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Test
+      run: swift test
