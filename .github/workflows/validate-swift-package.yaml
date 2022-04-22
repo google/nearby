@@ -10,7 +10,9 @@ jobs:
     name: Build
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
     - name: Build
       run: swift build
 
@@ -18,6 +20,8 @@ jobs:
     name: Test
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
     - name: Test
       run: swift test
