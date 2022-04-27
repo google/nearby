@@ -285,9 +285,6 @@ class MediumEnvironment {
       api::WifiHotspotMedium& medium, HotspotCredentials* hotspot_credentials,
       bool is_ap, bool enabled);
 
-  // Check if wifi_hotspot_mediums_ map is empty or not.
-  bool IsWifiHotspotMediumsEmpty();
-
   // Removes medium-related info. This should correspond to device stopped or
   // disconnected.
   void UnregisterWifiHotspotMedium(api::WifiHotspotMedium& medium);

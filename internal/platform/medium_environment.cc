@@ -856,10 +856,6 @@ void MediumEnvironment::UpdateWifiHotspotMediumForStartOrConnect(
   });
 }
 
-bool MediumEnvironment::IsWifiHotspotMediumsEmpty() {
-  return wifi_hotspot_mediums_.empty();
-}
-
 void MediumEnvironment::UnregisterWifiHotspotMedium(
     api::WifiHotspotMedium& medium) {
   if (!enabled_) return;

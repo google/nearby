@@ -64,25 +64,24 @@ TEST(HotspotCredentialsTest, SetGetPassword) {
   EXPECT_EQ(hotspot_credentials.GetPassword(), kPassword);
 }
 
-class WifiHotspotMediumTest : public ::testing::TestWithParam<FeatureFlags> {
+class WifiHotspotMediumTest : public testing::TestWithParam<FeatureFlags> {
  protected:
   WifiHotspotMediumTest() {
     env_.Stop();
     env_.Start();
   }
   ~WifiHotspotMediumTest() override{
-    absl::SleepFor(kWaitDuration);
-    EXPECT_TRUE(env_.IsWifiHotspotMediumsEmpty());
     env_.Stop();
   }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
-INSTANTIATE_TEST_SUITE_P(ParametrisedWifiLanMediumTest, WifiHotspotMediumTest,
-                         ::testing::ValuesIn(kTestCases));
+INSTANTIATE_TEST_SUITE_P(ParametrisedWifiHotspotMediumTest,
+                         WifiHotspotMediumTest,
+                         testing::ValuesIn(kTestCases));
 
-TEST_P(WifiHotspotMediumTest, ConstructorDestructorWorks) {
+TEST_F(WifiHotspotMediumTest, ConstructorDestructorWorks) {
   auto wifi_hotspot_a = std::make_unique<WifiHotspotMedium>();
   auto wifi_hotspot_b = std::make_unique<WifiHotspotMedium>();
 
@@ -123,7 +122,9 @@ TEST_F(WifiHotspotMediumTest, CanConnectDisconnectHotspot) {
   wifi_hotspot_a.reset();
 }
 
-TEST_F(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
+TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
   auto wifi_hotspot_a = std::make_unique<WifiHotspotMedium>();
   auto wifi_hotspot_b = std::make_unique<WifiHotspotMedium>();
 
@@ -139,7 +140,7 @@ TEST_F(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
   wifi_hotspot_a->GetCredential()->SetIPAddress(server_socket.GetIPAddress());
 
   WifiHotspotSocket socket_a;
-  WifiHotspotSocket  socket_b;
+  WifiHotspotSocket socket_b;
   EXPECT_FALSE(socket_a.IsValid());
   EXPECT_FALSE(socket_b.IsValid());
 
@@ -182,6 +183,72 @@ TEST_F(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
   EXPECT_FALSE(out_stream.Write(ByteArray(data)).Ok());
   read_data = in_stream.Read(kChunkSize);
   EXPECT_FALSE(read_data.ok());
+
+  server_socket.Close();
+  absl::SleepFor(kWaitDuration);
+  EXPECT_TRUE(wifi_hotspot_b->DisconnectWifiHotspot());
+  EXPECT_TRUE(wifi_hotspot_a->StopWifiHotspot());
+  absl::SleepFor(kWaitDuration);
+  wifi_hotspot_a.reset();
+  wifi_hotspot_b.reset();
+}
+
+TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherCanCancelConnect) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+  auto wifi_hotspot_a = std::make_unique<WifiHotspotMedium>();
+  auto wifi_hotspot_b = std::make_unique<WifiHotspotMedium>();
+
+  EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
+  HotspotCredentials* hotspot_credentials = wifi_hotspot_a->GetCredential();
+  absl::SleepFor(kWaitDuration);
+  EXPECT_TRUE(wifi_hotspot_b->ConnectWifiHotspot(
+      hotspot_credentials->GetSSID(), hotspot_credentials->GetPassword()));
+  absl::SleepFor(kWaitDuration);
+
+  WifiHotspotServerSocket server_socket = wifi_hotspot_a->ListenForService();
+  EXPECT_TRUE(server_socket.IsValid());
+  wifi_hotspot_a->GetCredential()->SetIPAddress(server_socket.GetIPAddress());
+
+  WifiHotspotSocket socket_a;
+  WifiHotspotSocket socket_b;
+  EXPECT_FALSE(socket_a.IsValid());
+  EXPECT_FALSE(socket_b.IsValid());
+
+  {
+    CancellationFlag flag(true);
+    SingleThreadExecutor server_executor;
+    SingleThreadExecutor client_executor;
+    client_executor.Execute(
+        [&wifi_hotspot_b, &socket_b, &server_socket, &flag]() {
+          socket_b = wifi_hotspot_b->ConnectToService(kIp, kPort, &flag);
+          EXPECT_FALSE(socket_b.IsValid());
+          socket_b = wifi_hotspot_b->ConnectToService(
+              server_socket.GetIPAddress(), server_socket.GetPort(), &flag);
+          if (!socket_b.IsValid()) {
+            server_socket.Close();
+          }
+        });
+    server_executor.Execute([&socket_a, &server_socket]() {
+      socket_a = server_socket.Accept();
+      if (!socket_a.IsValid()) {
+        server_socket.Close();
+      }
+    });
+  }
+  absl::SleepFor(kWaitDuration);
+
+  if (!feature_flags.enable_cancellation_flag) {
+    EXPECT_TRUE(socket_a.IsValid());
+    EXPECT_TRUE(socket_b.IsValid());
+  } else {
+    EXPECT_FALSE(socket_a.IsValid());
+    EXPECT_FALSE(socket_b.IsValid());
+  }
+
+  // absl::SleepFor(kWaitDuration);
+  // socket_a.Close();
+  // socket_b.Close();
 
   server_socket.Close();
   absl::SleepFor(kWaitDuration);
