@@ -122,7 +122,7 @@ cc_library(
     copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated"],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     visibility = [
-        "//location/nearby/cpp/sharing:__subpackages__",
+        "//location/nearby:__subpackages__",
         "//connections/clients/windows:__subpackages__",
     ],
     deps = [
