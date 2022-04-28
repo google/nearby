@@ -175,7 +175,7 @@ void ConnectionFlow::CreateOfferOnSignalingThread(
       new rtc::RefCountedObject<CreateSessionDescriptionObserverImpl>(
           this, success_future, State::kCreatingOffer,
           State::kWaitingForAnswer));
-  pc->CreateOffer(observer, options);
+  pc->CreateOffer(observer.get(), options);
 }
 
 SessionDescriptionWrapper ConnectionFlow::CreateAnswer() {
@@ -207,7 +207,7 @@ void ConnectionFlow::CreateAnswerOnSignalingThread(
           this, success_future, State::kCreatingAnswer,
           State::kWaitingToConnect));
   auto pc = GetPeerConnection();
-  pc->CreateAnswer(observer, options);
+  pc->CreateAnswer(observer.get(), options);
 }
 
 bool ConnectionFlow::SetLocalSessionDescription(SessionDescriptionWrapper sdp) {
