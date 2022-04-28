@@ -26,6 +26,7 @@
 // - a subset of listener callbacks may be overridden, while others may remain
 //   default-initialized.
 // - callbacks may be initialized with lambdas; lambda definitions are concize.
+
 #include "connections/clients/windows/medium_selector_w.h"
 #include "connections/clients/windows/payload_w.h"
 #include "connections/status.h"
@@ -73,6 +74,7 @@ void DefaultConstructor(T t, C c) {}
 template <class T, class C, class D>
 void DefaultConstructor(T t, C c, size_t size, D d) {}
 
+extern "C" {
 // Common callback for asynchronously invoked methods.
 // Called after a job scheduled for execution is completed.
 // This is not the same as completion of the associated process,
@@ -84,8 +86,8 @@ struct DLL_API ResultCallbackW {
   //   Status::kSuccess, if successful; anything else indicates failure.
   ResultCallbackW();
   ~ResultCallbackW();
-  ResultCallbackW(ResultCallbackW &other);
-  ResultCallbackW(ResultCallbackW &&other) noexcept;
+  ResultCallbackW(ResultCallbackW& other);
+  ResultCallbackW(ResultCallbackW&& other) noexcept;
 
   void (*result_cb)(Status status) = DefaultConstructor;
 
@@ -102,10 +104,10 @@ struct DLL_API ResultCallbackW {
 };
 
 struct DLL_API ConnectionResponseInfoW {
-  const char *remote_endpoint_info;
+  const char* remote_endpoint_info;
   size_t remote_endpoint_info_size;
-  const char *authentication_token;
-  const char *raw_authentication_token;
+  const char* authentication_token;
+  const char* raw_authentication_token;
   size_t raw_authentication_token_size;
   bool is_incoming_connection = false;
   bool is_connection_verified = false;
@@ -132,8 +134,8 @@ enum class DLL_API DistanceInfoW {
 
 struct DLL_API ConnectionListenerW {
   ConnectionListenerW();
-  ConnectionListenerW(ConnectionListenerW &other);
-  ConnectionListenerW(ConnectionListenerW &&other) noexcept;
+  ConnectionListenerW(ConnectionListenerW& other);
+  ConnectionListenerW(ConnectionListenerW&& other) noexcept;
 
   // A basic encrypted channel has been created between you and the endpoint.
   // Both sides are now asked if they wish to accept or reject the connection
@@ -152,8 +154,8 @@ struct DLL_API ConnectionListenerW {
   //
   // endpoint_id - The identifier for the remote endpoint.
   // info -  Other relevant information about the connection.
-  void (*initiated_cb)(const char *endpoint_id,
-                       const ConnectionResponseInfoW &info) =
+  void (*initiated_cb)(const char* endpoint_id,
+                       const ConnectionResponseInfoW& info) =
       DefaultConstructor;
 
   // Called after both sides have accepted the connection.
@@ -161,27 +163,27 @@ struct DLL_API ConnectionListenerW {
   // Call Core::SendPayload() or wait for incoming PayloadListener::OnPayload().
   //
   // endpoint_id - The identifier for the remote endpoint.
-  void (*accepted_cb)(const char *endpoint_id) = DefaultConstructor;
+  void (*accepted_cb)(const char* endpoint_id) = DefaultConstructor;
 
   // Called when either side rejected the connection.
   // Payloads can not be exchaged. Call Core::DisconnectFromEndpoint()
   // to terminate connection.
   //
   // endpoint_id - The identifier for the remote endpoint.
-  void (*rejected_cb)(const char *endpoint_id,
+  void (*rejected_cb)(const char* endpoint_id,
                       Status status) = DefaultConstructor;
 
   // Called when a remote endpoint is disconnected or has become unreachable.
   // At this point service (re-)discovery may start again.
   //
   // endpoint_id - The identifier for the remote endpoint.
-  void (*disconnected_cb)(const char *endpoint_id) = DefaultConstructor;
+  void (*disconnected_cb)(const char* endpoint_id) = DefaultConstructor;
 
   // Called when the connection's available bandwidth has changed.
   //
   // endpoint_id - The identifier for the remote endpoint.
   // medium      - Medium we upgraded to.
-  void (*bandwidth_changed_cb)(const char *endpoint_id,
+  void (*bandwidth_changed_cb)(const char* endpoint_id,
                                MediumW medium) = DefaultConstructor;
 
   std::unique_ptr<connections::ConnectionListener,
@@ -198,31 +200,31 @@ struct DLL_API ConnectionListenerW {
 
 struct DLL_API DiscoveryListenerW {
   DiscoveryListenerW();
-  DiscoveryListenerW(DiscoveryListenerW &other);
-  DiscoveryListenerW(DiscoveryListenerW &&other) noexcept;
+  DiscoveryListenerW(DiscoveryListenerW& other);
+  DiscoveryListenerW(DiscoveryListenerW&& other) noexcept;
 
   // Called when a remote endpoint is discovered.
   //
   // endpoint_id   - The ID of the remote endpoint that was discovered.
   // endpoint_info - The info of the remote endpoint representd by ByteArray.
   // service_id    - The ID of the service advertised by the remote endpoint.
-  void (*endpoint_found_cb)(const char *endpoint_id, const char *endpoint_info,
+  void (*endpoint_found_cb)(const char* endpoint_id, const char* endpoint_info,
                             size_t endpoint_info_size,
-                            const char *service_id) = DefaultConstructor;
+                            const char* service_id) = DefaultConstructor;
 
   // Called when a remote endpoint is no longer discoverable; only called for
   // endpoints that previously had been passed to {@link
   // #onEndpointFound(String, DiscoveredEndpointInfo)}.
   //
   // endpoint_id - The ID of the remote endpoint that was lost.
-  void (*endpoint_lost_cb)(const char *endpoint_id) = DefaultConstructor;
+  void (*endpoint_lost_cb)(const char* endpoint_id) = DefaultConstructor;
 
   // Called when a remote endpoint is found with an updated distance.
   //
   // arguments:
   //   endpoint_id - The ID of the remote endpoint that was lost.
   //   info        - The distance info, encoded as enum value.
-  void (*endpoint_distance_changed_cb)(const char *endpoint_id,
+  void (*endpoint_distance_changed_cb)(const char* endpoint_id,
                                        DistanceInfoW info) = DefaultConstructor;
 
   std::unique_ptr<connections::DiscoveryListener,
@@ -240,8 +242,8 @@ struct DLL_API DiscoveryListenerW {
 class DLL_API PayloadListenerW {
  public:
   PayloadListenerW();
-  PayloadListenerW(PayloadListenerW &other);
-  PayloadListenerW(PayloadListenerW &&other) noexcept;
+  PayloadListenerW(PayloadListenerW& other);
+  PayloadListenerW(PayloadListenerW&& other) noexcept;
 
   // Called when a Payload is received from a remote endpoint. Depending
   // on the type of the Payload, all of the data may or may not have been
@@ -251,8 +253,8 @@ class DLL_API PayloadListenerW {
   // endpoint_id - The identifier for the remote endpoint that sent the
   //               payload.
   // payload     - The Payload object received.
-  void (*payload_cb)(const char *endpoint_id,
-                     PayloadW payload) = DefaultConstructor;
+  void (*payload_cb)(const char* endpoint_id,
+                     PayloadW& payload) = DefaultConstructor;
 
   // Called with progress information about an active Payload transfer, either
   // incoming or outgoing.
@@ -261,8 +263,8 @@ class DLL_API PayloadListenerW {
   //               receiving this payload.
   // info -  The PayloadProgressInfo structure describing the status of
   //         the transfer.
-  void (*payload_progress_cb)(const char *endpoint_id,
-                              const PayloadProgressInfoW &info) =
+  void (*payload_progress_cb)(const char* endpoint_id,
+                              const PayloadProgressInfoW& info) =
       DefaultConstructor;
 
   std::unique_ptr<connections::PayloadListener,
@@ -276,7 +278,7 @@ class DLL_API PayloadListenerW {
                   connections::PayloadListenerDeleter>
       impl_;
 };
-
+}
 }  // namespace windows
 }  // namespace location::nearby
 

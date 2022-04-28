@@ -21,6 +21,7 @@
 #include "internal/platform/byte_array.h"
 #include "proto/connections_enums.pb.h"
 
+extern "C" {
 namespace location::nearby::windows {
 
 // Metadata injected to facilitate out-of-band connections. The medium field is
@@ -51,5 +52,6 @@ struct DLL_API OutOfBandConnectionMetadataW {
 };
 
 }  // namespace location::nearby::windows
+}
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_OUT_OF_BAND_CONNECTION_METADATA_H_

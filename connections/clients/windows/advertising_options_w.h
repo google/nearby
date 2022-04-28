@@ -16,6 +16,7 @@
 
 #include "connections/clients/windows/options_base_w.h"
 
+extern "C" {
 namespace location::nearby::windows {
 
 // Connection Options: used for both Advertising and Discovery.
@@ -37,6 +38,8 @@ struct DLL_API AdvertisingOptionsW : public OptionsBaseW {
   // (2) If no mediums are allowed, allow all mediums.
   AdvertisingOptionsW CompatibleOptions() const;
 };
+
+}  // namespace location::nearby::windows
 
 }  // namespace location::nearby::windows
 

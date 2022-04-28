@@ -196,7 +196,7 @@ void ListenerEndpointDistanceChangedCB(const char *endpoint_id,
   }
 }
 
-void ListenerPayloadCB(const char *endpoint_id, PayloadW payload) {
+void ListenerPayloadCB(const char *endpoint_id, PayloadW &payload) {
   NEARBY_LOG(INFO,
              "Payload callback called. id: %s, "
              "payload_id: %d, type: %d, offset: %d",

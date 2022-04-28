@@ -24,6 +24,7 @@
 #include "connections/payload_type.h"
 #include "internal/platform/payload_id.h"
 
+extern "C" {
 namespace location::nearby {
 // Forward declarations
 namespace connections {
@@ -96,5 +97,6 @@ class DLL_API PayloadW {
 
 }  // namespace windows
 }  // namespace location::nearby
+}
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_PAYLOAD_W_H_

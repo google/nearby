@@ -17,6 +17,7 @@
 #include "connections/clients/windows/medium_selector_w.h"
 #include "connections/clients/windows/strategy_w.h"
 
+extern "C" {
 namespace location::nearby::windows {
 
 // Connection Options: used for both Advertising and Discovery.
@@ -27,5 +28,6 @@ struct OptionsBaseW {
 };
 
 }  // namespace location::nearby::windows
+}
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_OPTIONS_BASE_W_H_

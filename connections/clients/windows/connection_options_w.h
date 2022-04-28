@@ -18,6 +18,7 @@
 #include "connections/clients/windows/medium_selector_w.h"
 #include "connections/clients/windows/options_base_w.h"
 
+extern "C" {
 namespace location::nearby::windows {
 
 #define MAX_MEDIUMS 5
@@ -47,6 +48,8 @@ struct DLL_API ConnectionOptionsW : public OptionsBaseW {
   MediumW* mediums_[MAX_MEDIUMS];
   size_t mediums_size;
 };
+
+}  // namespace location::nearby::windows
 
 }  // namespace location::nearby::windows
 

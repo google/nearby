@@ -201,7 +201,7 @@ PayloadListenerW::PayloadListenerW()
         break;
       }
     }
-    payload_cb(endpoint_id.c_str(), std::move(payloadW));
+    payload_cb(endpoint_id.c_str(), payloadW);
   };
   impl_->payload_progress_cb =
       [this](const std::string &endpoint_id,

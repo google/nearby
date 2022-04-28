@@ -19,6 +19,7 @@
 
 #include "connections/clients/windows/listeners_w.h"
 
+extern "C" {
 namespace location::nearby::windows {
 
 // Used by Discovery in Core::RequestConnection().
@@ -35,5 +36,6 @@ struct DLL_API ConnectionRequestInfoW {
 };
 
 }  // namespace location::nearby::windows
+}
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_PARAMS_W_H_
