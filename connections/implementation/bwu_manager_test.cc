@@ -40,6 +40,7 @@ constexpr absl::string_view kServiceIdB = "ServiceB";
 constexpr absl::string_view kEndpointId1 = "Endpoint1";
 constexpr absl::string_view kEndpointId2 = "Endpoint2";
 constexpr absl::string_view kEndpointId3 = "Endpoint3";
+constexpr absl::string_view kEndpointId4 = "Endpoint4";
 
 class BwuManagerTest : public ::testing::Test {
  protected:
@@ -49,14 +50,18 @@ class BwuManagerTest : public ::testing::Test {
     auto fake_web_rtc = std::make_unique<FakeBwuHandler>(Medium::WEB_RTC);
     auto fake_wifi_lan =
         std::make_unique<FakeBwuHandler>(Medium::WIFI_LAN);
+    auto fake_wifi_hotspot =
+        std::make_unique<FakeBwuHandler>(Medium::WIFI_HOTSPOT);
     fake_web_rtc_bwu_handler_ = fake_web_rtc.get();
     fake_wifi_lan_bwu_handler_ = fake_wifi_lan.get();
+    fake_wifi_hotspot_bwu_handler_ = fake_wifi_hotspot.get();
     handlers.emplace(Medium::WEB_RTC, std::move(fake_web_rtc));
     handlers.emplace(Medium::WIFI_LAN, std::move(fake_wifi_lan));
+    handlers.emplace(Medium::WIFI_HOTSPOT, std::move(fake_wifi_hotspot));
 
     BwuManager::Config config;
-    config.allow_upgrade_to =
-        BooleanMediumSelector{.web_rtc = true, .wifi_lan = true};
+    config.allow_upgrade_to = BooleanMediumSelector{
+        .web_rtc = true, .wifi_lan = true, .wifi_hotspot = true};
 
     bwu_manager_ = std::make_unique<BwuManager>(mediums_, em_, ecm_,
                                                 std::move(handlers), config);
@@ -95,6 +100,9 @@ class BwuManagerTest : public ::testing::Test {
       case Medium::WIFI_LAN:
         handler = fake_wifi_lan_bwu_handler_;
         break;
+      case Medium::WIFI_HOTSPOT:
+        handler = fake_wifi_hotspot_bwu_handler_;
+        break;
       default:
         return nullptr;
     }
@@ -129,6 +137,7 @@ class BwuManagerTest : public ::testing::Test {
   Mediums mediums_;
   FakeBwuHandler* fake_web_rtc_bwu_handler_ = nullptr;
   FakeBwuHandler* fake_wifi_lan_bwu_handler_ = nullptr;
+  FakeBwuHandler* fake_wifi_hotspot_bwu_handler_ = nullptr;
   std::unique_ptr<BwuManager> bwu_manager_;
 };
 
@@ -154,6 +163,8 @@ TEST_P(BwuManagerTestParam, InitiateBwu_Success) {
   // The appropriate upgrade medium handler is informed of the BWU initiation.
   ASSERT_EQ(1u, fake_web_rtc_bwu_handler_->handle_initialize_calls().size());
   EXPECT_TRUE(fake_wifi_lan_bwu_handler_->handle_initialize_calls().empty());
+  EXPECT_TRUE(
+      fake_wifi_hotspot_bwu_handler_->handle_initialize_calls().empty());
   EXPECT_EQ(WrapInitiatorUpgradeServiceId(kServiceIdA),
             fake_web_rtc_bwu_handler_->handle_initialize_calls()[0].service_id);
   EXPECT_EQ(
@@ -222,6 +233,8 @@ TEST_P(BwuManagerTestParam, InitiateBwu_Error_NoMediumHandler) {
   // Make sure none of the other medium handlers are called.
   EXPECT_TRUE(fake_web_rtc_bwu_handler_->handle_initialize_calls().empty());
   EXPECT_TRUE(fake_wifi_lan_bwu_handler_->handle_initialize_calls().empty());
+  EXPECT_TRUE(
+      fake_wifi_hotspot_bwu_handler_->handle_initialize_calls().empty());
 }
 
 TEST_P(BwuManagerTestParam, InitiateBwu_Error_UpgradeAlreadyInProgress) {
@@ -237,6 +250,8 @@ TEST_P(BwuManagerTestParam, InitiateBwu_Error_UpgradeAlreadyInProgress) {
                                        Medium::WIFI_LAN);
   EXPECT_EQ(1u, fake_web_rtc_bwu_handler_->handle_initialize_calls().size());
   EXPECT_TRUE(fake_wifi_lan_bwu_handler_->handle_initialize_calls().empty());
+  EXPECT_TRUE(
+      fake_wifi_hotspot_bwu_handler_->handle_initialize_calls().empty());
 }
 
 TEST_P(BwuManagerTestParam,
@@ -475,12 +490,15 @@ TEST_F(
   CreateInitialEndpoint(kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
   CreateInitialEndpoint(kServiceIdA, kEndpointId2, Medium::BLUETOOTH);
   CreateInitialEndpoint(kServiceIdB, kEndpointId3, Medium::BLUETOOTH);
+  CreateInitialEndpoint(kServiceIdB, kEndpointId4, Medium::BLUETOOTH);
   FullyUpgradeEndpoint(kEndpointId1, /*initial_medium=*/Medium::BLUETOOTH,
                        /*upgrade_medium=*/Medium::WEB_RTC);
   FullyUpgradeEndpoint(kEndpointId2, /*initial_medium=*/Medium::BLUETOOTH,
                        /*upgrade_medium=*/Medium::WIFI_LAN);
   FullyUpgradeEndpoint(kEndpointId3, /*initial_medium=*/Medium::BLUETOOTH,
                        /*upgrade_medium=*/Medium::WIFI_LAN);
+  FullyUpgradeEndpoint(kEndpointId4, /*initial_medium=*/Medium::BLUETOOTH,
+                       /*upgrade_medium=*/Medium::WIFI_HOTSPOT);
 
   std::string upgrade_service_id_A = WrapInitiatorUpgradeServiceId(kServiceIdA);
   std::string upgrade_service_id_B = WrapInitiatorUpgradeServiceId(kServiceIdB);
@@ -490,8 +508,10 @@ TEST_F(
   // endpoint of that medium for the service is disconnected.
   EXPECT_TRUE(fake_web_rtc_bwu_handler_->disconnect_calls().empty());
   EXPECT_TRUE(fake_wifi_lan_bwu_handler_->disconnect_calls().empty());
+  EXPECT_TRUE(fake_wifi_hotspot_bwu_handler_->disconnect_calls().empty());
   EXPECT_TRUE(fake_web_rtc_bwu_handler_->handle_revert_calls().empty());
   EXPECT_TRUE(fake_wifi_lan_bwu_handler_->handle_revert_calls().empty());
+  EXPECT_TRUE(fake_wifi_hotspot_bwu_handler_->handle_revert_calls().empty());
   {
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(std::string(kEndpointId1));
@@ -509,6 +529,8 @@ TEST_F(
     // We reverted a WebRTC channel; no WLAN calls expected.
     EXPECT_TRUE(fake_wifi_lan_bwu_handler_->disconnect_calls().empty());
     EXPECT_TRUE(fake_wifi_lan_bwu_handler_->handle_revert_calls().empty());
+    EXPECT_TRUE(fake_wifi_hotspot_bwu_handler_->disconnect_calls().empty());
+    EXPECT_TRUE(fake_wifi_hotspot_bwu_handler_->handle_revert_calls().empty());
   }
   {
     CountDownLatch latch(1);
@@ -545,6 +567,26 @@ TEST_F(
     ASSERT_EQ(2u, fake_wifi_lan_bwu_handler_->handle_revert_calls().size());
     EXPECT_EQ(upgrade_service_id_B,
               fake_wifi_lan_bwu_handler_->handle_revert_calls()[1].service_id);
+  }
+  {
+    CountDownLatch latch(1);
+    ecm_.UnregisterChannelForEndpoint(std::string(kEndpointId4));
+    bwu_manager_->OnEndpointDisconnect(&client_, upgrade_service_id_B,
+                                       std::string(kEndpointId4), latch);
+
+    // We reverted a Hotspot channel; no additional WebRTC calls expected.
+    EXPECT_EQ(1u, fake_web_rtc_bwu_handler_->disconnect_calls().size());
+    EXPECT_EQ(1u, fake_web_rtc_bwu_handler_->handle_revert_calls().size());
+
+    // No more Hotspot channels for service B; expect revert call.
+    ASSERT_EQ(1u, fake_wifi_hotspot_bwu_handler_->disconnect_calls().size());
+    EXPECT_EQ(
+        kEndpointId4,
+        fake_wifi_hotspot_bwu_handler_->disconnect_calls()[0].endpoint_id);
+    ASSERT_EQ(1u, fake_wifi_hotspot_bwu_handler_->handle_revert_calls().size());
+    EXPECT_EQ(
+        upgrade_service_id_B,
+        fake_wifi_hotspot_bwu_handler_->handle_revert_calls()[0].service_id);
   }
 }
 

@@ -42,7 +42,7 @@ constexpr FeatureFlags kTestCases[] = {
 
 constexpr absl::string_view kSsid = "Direct-357a2d8c";
 constexpr absl::string_view kPassword = "b592f7d3";
-constexpr absl::string_view kIp = "123.234.23.2";
+constexpr absl::string_view kIp = "123.234.23.1";
 constexpr const size_t kPort = 20;
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(100);
 constexpr absl::string_view kData = "ABCD";

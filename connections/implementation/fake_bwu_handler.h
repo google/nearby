@@ -139,6 +139,9 @@ class FakeBwuHandler : public BaseBwuHandler {
       case proto::connections::UNKNOWN_MEDIUM:
       case proto::connections::MDNS:
       case proto::connections::WIFI_HOTSPOT:
+        return parser::ForBwuWifiHotspotPathAvailable(
+            /*ssid=*/"Direct-357a2d8c", /*password=*/"b592f7d3",
+            /*port=*/1234, /*gateway=*/"123.234.23.1", false);
       case proto::connections::BLE:
       case proto::connections::WIFI_AWARE:
       case proto::connections::NFC:
