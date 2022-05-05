@@ -110,8 +110,8 @@ class ImplementationPlatform {
   static std::unique_ptr<BluetoothClassicMedium> CreateBluetoothClassicMedium(
       BluetoothAdapter&);
   static std::unique_ptr<BleMedium> CreateBleMedium(BluetoothAdapter&);
-  static std::unique_ptr<ble_v2::BleMedium> CreateBleV2Medium(
-      BluetoothAdapter&);
+  static std::unique_ptr<api::ble_v2::BleMedium> CreateBleV2Medium(
+      api::BluetoothAdapter&);
   static std::unique_ptr<ServerSyncMedium> CreateServerSyncMedium();
   static std::unique_ptr<WifiMedium> CreateWifiMedium();
   static std::unique_ptr<WifiLanMedium> CreateWifiLanMedium();
