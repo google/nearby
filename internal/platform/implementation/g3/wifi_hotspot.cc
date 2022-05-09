@@ -21,14 +21,12 @@
 #include <string>
 #include <utility>
 
-#include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/nsd_service_info.h"
 
 namespace location {
 namespace nearby {
