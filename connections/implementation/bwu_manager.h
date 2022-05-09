@@ -27,7 +27,6 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/mediums/mediums.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/scheduled_executor.h"
 
 namespace location {
@@ -216,7 +215,8 @@ class BwuManager : public EndpointManager::FrameProcessor {
   absl::flat_hash_map<std::string, ClientProxy*> in_progress_upgrades_;
   // Maps endpointId -> timestamp of when the SAFE_TO_CLOSE message was written.
   absl::flat_hash_map<std::string, absl::Time> safe_to_close_write_timestamps_;
-  absl::flat_hash_map<std::string, std::pair<CancelableAlarm, absl::Duration>>
+  absl::flat_hash_map<
+      std::string, std::pair<std::unique_ptr<CancelableAlarm>, absl::Duration>>
       retry_upgrade_alarms_;
   // Maps endpointId -> duration of delay before bwu retry.
   // When bwu failed, retry_upgrade_alarms_ will clear the entry before the

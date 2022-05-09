@@ -46,14 +46,18 @@ class DiscoveredPeripheralTracker {
   struct AdvertisementFetcher {
     // Fetches relevant GATT advertisements for the peripheral found in {@link
     // DiscoveredPeripheralTracker#ProcessFoundBleAdvertisement(}.
-    std::function<std::unique_ptr<AdvertisementReadResult>(
+    //
+    // `advertisement_read_result` is in/out mutable reference that the caller
+    // should take of its life cycle and pass a valid reference.
+    std::function<void(
         int num_slots, int psm,
         const std::vector<std::string>& interesting_service_ids,
-        AdvertisementReadResult* advertisement_read_result,
+        mediums::AdvertisementReadResult& advertisement_read_result,
         BleV2Peripheral& peripheral)>
-        fetch_advertisements = [](int, int, const std::vector<std::string>&,
-                                  AdvertisementReadResult*, BleV2Peripheral&)
-        -> std::unique_ptr<AdvertisementReadResult> { return nullptr; };
+        fetch_advertisements =
+            DefaultCallback<int, int, const std::vector<std::string>&,
+                            mediums::AdvertisementReadResult&,
+                            BleV2Peripheral&>();
   };
 
   // Starts tracking discoveries for a particular service Id.
@@ -85,7 +89,7 @@ class DiscoveredPeripheralTracker {
   //                         processed.
   void ProcessFoundBleAdvertisement(
       BleV2Peripheral peripheral,
-      const api::ble_v2::BleAdvertisementData& advertisement_data,
+      api::ble_v2::BleAdvertisementData advertisement_data,
       AdvertisementFetcher advertisement_fetcher) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Processes the set of lost GATT advertisements and notifies the client of

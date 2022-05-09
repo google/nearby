@@ -15,6 +15,7 @@
 #include "internal/platform/ble_v2.h"
 
 #include <memory>
+#include <utility>
 
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -49,7 +50,7 @@ bool BleV2Medium::StartScanning(const std::vector<std::string>& service_uuids,
       {
           .advertisement_found_cb =
               [this](api::ble_v2::BlePeripheral& peripheral,
-                     const BleAdvertisementData& advertisement_data) {
+                     BleAdvertisementData advertisement_data) {
                 MutexLock lock(&mutex_);
                 if (peripherals_.contains(&peripheral)) {
                   NEARBY_LOGS(INFO)

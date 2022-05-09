@@ -14,11 +14,14 @@
 
 #include "connections/implementation/base_pcp_handler.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cinttypes>
 #include <cstdlib>
 #include <limits>
 #include <memory>
+#include <utility>
+#include <string>
 
 #include "securegcm/d2d_connection_context_v1.h"
 #include "securegcm/ukey2_handshake.h"
@@ -27,17 +30,14 @@
 #include "absl/types/span.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/offline_frames.h"
-#include "connections/implementation/pcp_handler.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/system_clock.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
-using ::location::nearby::proto::connections::Medium;
 using ::securegcm::UKey2Handshake;
 
 constexpr absl::Duration BasePcpHandler::kConnectionRequestReadTimeout;
@@ -610,8 +610,8 @@ Status BasePcpHandler::RequestConnection(
 
 bool BasePcpHandler::MediumSupportedByClientOptions(
     const proto::connections::Medium& medium,
-    const ConnectionOptions& client_options) const {
-  for (auto supported_medium : client_options.GetMediums()) {
+    const ConnectionOptions& connection_options) const {
+  for (auto supported_medium : connection_options.GetMediums()) {
     if (medium == supported_medium) {
       return true;
     }
@@ -946,7 +946,7 @@ void BasePcpHandler::OnEndpointDisconnect(ClientProxy* client,
                               auto item = pending_alarms_.find(endpoint_id);
                               if (item != pending_alarms_.end()) {
                                 auto& alarm = item->second;
-                                alarm.Cancel();
+                                alarm->Cancel();
                                 pending_alarms_.erase(item);
                               }
                               ProcessPreConnectionResultFailure(client,
@@ -1423,7 +1423,7 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
     } else {
       pending_alarms_.emplace(
           endpoint_id,
-          CancelableAlarm(
+          std::make_unique<CancelableAlarm>(
               "BasePcpHandler.evaluateConnectionResult() delayed close",
               [this, client, endpoint_id]() {
                 endpoint_manager_->DiscardEndpoint(client, endpoint_id);

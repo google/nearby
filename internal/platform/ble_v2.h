@@ -15,17 +15,14 @@
 #ifndef PLATFORM_PUBLIC_BLE_V2_H_
 #define PLATFORM_PUBLIC_BLE_V2_H_
 
-#include <memory>
+#include <functional>
+#include <string>
+#include <utility>
 
-#include "absl/container/flat_hash_map.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/ble_v2.h"
-#include "internal/platform/implementation/platform.h"
-#include "internal/platform/input_stream.h"
 #include "internal/platform/mutex.h"
-#include "internal/platform/output_stream.h"
 
 namespace location {
 namespace nearby {

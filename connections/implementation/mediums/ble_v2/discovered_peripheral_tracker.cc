@@ -42,7 +42,7 @@ void DiscoveredPeripheralTracker::StartTracking(
       .discovered_peripheral_callback =
           std::move(discovered_peripheral_callback),
       .lost_entity_tracker =
-          absl::make_unique<LostEntityTracker<BleAdvertisement>>(),
+          std::make_unique<LostEntityTracker<BleAdvertisement>>(),
       .fast_advertisement_service_uuid = fast_advertisement_service_uuid};
 
   // Replace if key exists.
@@ -66,8 +66,7 @@ void DiscoveredPeripheralTracker::StopTracking(const std::string& service_id) {
 
 void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
     BleV2Peripheral peripheral,
-    const ::location::nearby::api::ble_v2::BleAdvertisementData&
-        advertisement_data,
+    ::location::nearby::api::ble_v2::BleAdvertisementData advertisement_data,
     AdvertisementFetcher advertisement_fetcher) {
   MutexLock lock(&mutex_);
 
@@ -195,7 +194,7 @@ void DiscoveredPeripheralTracker::HandleAdvertisement(
   // Process the fast advertisement like we would a GATT advertisement and
   // insert a placeholder AdvertisementReadResult.
   advertisement_read_results_.insert(
-      {advertisement_header, absl::make_unique<AdvertisementReadResult>()});
+      {advertisement_header, std::make_unique<AdvertisementReadResult>()});
 
   BleAdvertisementHeader new_advertisement_header = HandleRawGattAdvertisements(
       advertisement_header, {&advertisement_bytes}, service_uuid);
@@ -560,34 +559,22 @@ DiscoveredPeripheralTracker::FetchRawAdvertisements(
     const BleAdvertisementHeader& advertisement_header,
     BleV2Peripheral& peripheral, AdvertisementFetcher advertisement_fetcher) {
   // Fetch the raw GATT advertisements and store the results.
-  AdvertisementReadResult* advertisement_read_result = nullptr;
-  const auto it = advertisement_read_results_.find(advertisement_header);
-  if (it != advertisement_read_results_.end()) {
-    advertisement_read_result = it->second.get();
+  auto& result = advertisement_read_results_[advertisement_header];
+  if (result == nullptr) {
+    result = std::make_unique<mediums::AdvertisementReadResult>();
   }
 
   std::vector<std::string> service_ids;
   std::transform(service_id_infos_.begin(), service_id_infos_.end(),
                  std::back_inserter(service_ids),
                  [](auto& kv) { return kv.first; });
-  std::unique_ptr<AdvertisementReadResult> read_result =
-      advertisement_fetcher.fetch_advertisements(
-          advertisement_header.GetNumSlots(), advertisement_header.GetPsm(),
-          service_ids, advertisement_read_result,
-          /*mutated=*/peripheral);
-  if (!read_result) {
-    return {};
-  }
+  advertisement_fetcher.fetch_advertisements(
+      advertisement_header.GetNumSlots(), advertisement_header.GetPsm(),
+      service_ids, *result, /*mutated=*/peripheral);
 
-  auto iterator_and_result_pair = advertisement_read_results_.insert_or_assign(
-      advertisement_header, std::move(read_result));
-  // Take those results and return all the advertisements we were able to read.
-  std::vector<const ByteArray*> advertisement_bytes_list;
-  if (iterator_and_result_pair.second) {
-    advertisement_bytes_list =
-        iterator_and_result_pair.first->second->GetAdvertisements();
-  }
-  return advertisement_bytes_list;
+  // Take those results and return all the advertisements we were able to
+  // read.
+  return result->GetAdvertisements();
 }
 
 void DiscoveredPeripheralTracker::UpdateCommonStateForFoundBleAdvertisement(

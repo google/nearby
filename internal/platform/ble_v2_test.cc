@@ -15,9 +15,8 @@
 #include "internal/platform/ble_v2.h"
 
 #include <memory>
+#include <string>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/medium_environment.h"
 
@@ -154,7 +153,7 @@ TEST_F(BleV2MediumTest, CanStartScanning) {
       {
           .advertisement_found_cb =
               [](BleV2Peripheral peripheral,
-                 const BleAdvertisementData& advertisement_data) {
+                 BleAdvertisementData advertisement_data) {
                 // nothing to do for now
               },
       }));

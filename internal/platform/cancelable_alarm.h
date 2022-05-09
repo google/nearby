@@ -19,6 +19,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "internal/platform/cancelable.h"
 #include "internal/platform/mutex.h"
@@ -37,32 +38,45 @@ class CancelableAlarm {
  public:
   CancelableAlarm() = default;
   CancelableAlarm(absl::string_view name, std::function<void()>&& runnable,
-                  absl::Duration delay, ScheduledExecutor* scheduled_executor)
-      : name_(name),
-        cancelable_(scheduled_executor->Schedule(std::move(runnable), delay)) {}
-  ~CancelableAlarm() = default;
-  CancelableAlarm(CancelableAlarm&& other) { *this = std::move(other); }
-  CancelableAlarm& operator=(CancelableAlarm&& other) {
-    MutexLock lock(&mutex_);
-    {
-      MutexLock other_lock(&other.mutex_);
-      name_ = std::move(other.name_);
-      cancelable_ = std::move(other.cancelable_);
+                  absl::Duration delay, ScheduledExecutor* scheduled_executor,
+                  bool is_recurring = false)
+      : name_(name), scheduled_executor_(scheduled_executor), delay_(delay) {
+    if (is_recurring) {
+      runnable_ = std::move(runnable);
+      Schedule();
+    } else {
+      cancelable_ = scheduled_executor_->Schedule(std::move(runnable), delay_);
     }
-    return *this;
   }
+  ~CancelableAlarm() = default;
 
   bool Cancel() {
     MutexLock lock(&mutex_);
     return cancelable_.Cancel();
   }
 
-  bool IsValid() { return cancelable_.IsValid(); }
+  bool IsValid() {
+    MutexLock lock(&mutex_);
+    return cancelable_.IsValid();
+  }
 
  private:
+  void Schedule() {
+    MutexLock lock(&mutex_);
+    cancelable_ = scheduled_executor_->Schedule(
+        [this]() {
+          runnable_();
+          Schedule();
+        },
+        delay_);
+  }
+
   Mutex mutex_;
   std::string name_;
   Cancelable cancelable_;
+  ScheduledExecutor* scheduled_executor_;
+  absl::Duration delay_;
+  std::function<void()> runnable_;
 };
 
 }  // namespace nearby

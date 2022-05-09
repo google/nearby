@@ -36,7 +36,6 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
-#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {
@@ -1261,7 +1260,7 @@ void BwuManager::RetryUpgradesAfterDelay(ClientProxy* client,
                                          const std::string& endpoint_id) {
   absl::Duration delay = CalculateNextRetryDelay(endpoint_id);
   CancelRetryUpgradeAlarm(endpoint_id);
-  CancelableAlarm alarm(
+  auto alarm = std::make_unique<CancelableAlarm>(
       "BWU alarm",
       [this, client, endpoint_id]() {
         RunOnBwuManagerThread(
@@ -1338,16 +1337,16 @@ void BwuManager::CancelRetryUpgradeAlarm(const std::string& endpoint_id) {
   auto item = retry_upgrade_alarms_.extract(endpoint_id);
   if (item.empty()) return;
   auto& pair = item.mapped();
-  pair.first.Cancel();
+  pair.first->Cancel();
 }
 
 void BwuManager::CancelAllRetryUpgradeAlarms() {
   NEARBY_LOGS(INFO) << "CancelAllRetryUpgradeAlarms invoked";
   for (auto& item : retry_upgrade_alarms_) {
     const std::string& endpoint_id = item.first;
-    CancelableAlarm& cancellable_alarm = item.second.first;
+    CancelableAlarm* cancellable_alarm = item.second.first.get();
     NEARBY_LOGS(INFO) << "CancelRetryUpgradeAlarm for endpoint " << endpoint_id;
-    cancellable_alarm.Cancel();
+    cancellable_alarm->Cancel();
   }
   retry_upgrade_alarms_.clear();
   retry_delays_.clear();

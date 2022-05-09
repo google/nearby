@@ -168,21 +168,19 @@ class DiscoveredPeripheralTrackerTest : public testing::Test {
             [this, &fetch_latch, &advertisement_bytes_list](
                 int num_slots, int psm,
                 const std::vector<std::string>& interesting_service_ids,
-                AdvertisementReadResult* arr, BleV2Peripheral& peripheral)
-            -> std::unique_ptr<AdvertisementReadResult> {
-          MutexLock lock(&mutex_);
-          fetch_count_++;
-          auto advertisement_read_result =
-              std::make_unique<AdvertisementReadResult>();
-          int slot = 0;
-          for (const auto& advertisement_bytes : advertisement_bytes_list) {
-            advertisement_read_result->AddAdvertisement(slot++,
-                                                        advertisement_bytes);
-          }
-          advertisement_read_result->RecordLastReadStatus(/*isSuccess=*/true);
-          fetch_latch.CountDown();
-          return advertisement_read_result;
-        },
+                mediums::AdvertisementReadResult& advertisement_read_result,
+                BleV2Peripheral& peripheral) {
+              MutexLock lock(&mutex_);
+              fetch_count_++;
+              int slot = 0;
+              for (const auto& advertisement_bytes : advertisement_bytes_list) {
+                advertisement_read_result.AddAdvertisement(slot++,
+                                                           advertisement_bytes);
+              }
+              advertisement_read_result.RecordLastReadStatus(
+                  /*is_success=*/true);
+              fetch_latch.CountDown();
+            },
     };
   }
 

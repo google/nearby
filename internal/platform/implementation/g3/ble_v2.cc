@@ -17,6 +17,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -76,8 +77,19 @@ bool BleV2Medium::StartAdvertising(
       << ", power_mode=" << PowerModeToName(power_mode);
 
   absl::MutexLock lock(&mutex_);
+
+  // Reassemble advertisement data from advertising and scan response
+  // data.
+  api::ble_v2::BleAdvertisementData advertisement_data;
+  if (!advertising_data.service_uuids.empty()) {
+    advertisement_data.service_uuids = advertising_data.service_uuids;
+  } else {
+    advertisement_data.service_uuids = scan_response_data.service_uuids;
+  }
+  advertisement_data.service_data = scan_response_data.service_data;
+
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
-      /*enabled=*/true, *this, adapter_->GetPeripheralV2(), scan_response_data);
+      /*enabled=*/true, *this, adapter_->GetPeripheralV2(), advertisement_data);
   return true;
 }
 

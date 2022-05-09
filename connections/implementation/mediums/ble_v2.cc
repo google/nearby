@@ -26,8 +26,9 @@
 #include "connections/implementation/mediums/ble_v2/bloom_filter.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/utils.h"
-#include "connections/implementation/mediums/uuid.h"
+#include "connections/power_level.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 
@@ -44,10 +45,30 @@ using ::location::nearby::api::ble_v2::PowerMode;
 constexpr int kMaxAdvertisementLength = 512;
 constexpr int kDummyServiceIdLength = 128;
 
+// Tell the thread annotation static analysis that `m` is already exclusively
+// locked. Used because the analysis is not interprocedural.
+void AssumeHeld(Mutex& m) ABSL_ASSERT_EXCLUSIVE_LOCK(m) {}
+
 }  // namespace
+
+// These definitions are necessary before C++17.
+constexpr absl::Duration BleV2::kPeripheralLostTimeout;
 
 BleV2::BleV2(BluetoothRadio& radio)
     : radio_(radio), adapter_(radio_.GetBluetoothAdapter()) {}
+
+BleV2::~BleV2() {
+  // Destructor is not taking locks, but methods it is calling are.
+  while (!scanned_service_ids_.empty()) {
+    StopScanning(*scanned_service_ids_.begin());
+  }
+  while (!advertising_service_ids_.empty()) {
+    StopAdvertising(*advertising_service_ids_.begin());
+  }
+
+  serial_executor_.Shutdown();
+  alarm_executor_.Shutdown();
+}
 
 bool BleV2::IsAvailable() const {
   MutexLock lock(&mutex_);
@@ -186,8 +207,10 @@ bool BleV2::StartAdvertising(
     NEARBY_LOGS(ERROR)
         << "Failed to turn on BLE advertising with advertisement bytes="
         << absl::BytesToHexString(advertisement_bytes.data())
+        << ", is_fast_advertisement=" << is_fast_advertisement
         << ", fast advertisement service uuid="
-        << fast_advertisement_service_uuid;
+        << (is_fast_advertisement ? fast_advertisement_service_uuid
+                                  : "[empty]");
 
     // If BLE advertising was not successful, stop the advertisement GATT
     // server.
@@ -278,7 +301,9 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
     return false;
   }
 
-  // TODO(edwinwu): Start discovered peripheral tracking.
+  // Start to track the advertisement found for specific `service_id`.
+  discovered_peripheral_tracker_.StartTracking(service_id, std::move(callback),
+                                               fast_advertisement_service_uuid);
 
   // Check if scan has been activated, if yes, no need to notify client
   // to scan again.
@@ -298,18 +323,53 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
           service_uuids, PowerLevelToPowerMode(power_level),
           {
               .advertisement_found_cb =
-                  [](BleV2Peripheral peripheral,
-                     const BleAdvertisementData& advertisement_data) {
-                    // TODO(b/213835576): Move (or Copy at fallback) the
-                    // BleV2Peripheral.
-                    // TODO(b/216629800): Track the found advertisement.
+                  [this](BleV2Peripheral peripheral,
+                         BleAdvertisementData advertisement_data) {
+                    RunOnBleThread([this, peripheral = std::move(peripheral),
+                                    advertisement_data]() {
+                      MutexLock lock(&mutex_);
+                      discovered_peripheral_tracker_
+                          .ProcessFoundBleAdvertisement(
+                              std::move(peripheral), advertisement_data,
+                              {
+                                  .fetch_advertisements =
+                                      [&](int num_slots, int psm,
+                                          const std::vector<std::string>&
+                                              interesting_service_ids,
+                                          mediums::AdvertisementReadResult&
+                                              advertisement_read_result,
+                                          BleV2Peripheral& peripheral) {
+                                        // Th`mutex_` is already held here. Use
+                                        // `AssumeHeld` tell the thread
+                                        // annotation static analysis that
+                                        // `mutex_` is already exclusively
+                                        // locked.
+                                        AssumeHeld(mutex_);
+                                        ProcessFetchGattAdvertisementsRequest(
+                                            num_slots, psm,
+                                            interesting_service_ids,
+                                            advertisement_read_result,
+                                            peripheral);
+                                      },
+                              });
+                    });
                   },
           })) {
-    NEARBY_LOGS(INFO) << "Failed to start client scan of BLE services.";
+    NEARBY_LOGS(INFO) << "Failed to start scan of BLE services.";
+    discovered_peripheral_tracker_.StopTracking(service_id);
     // Erase the service id that is just added.
     scanned_service_ids_.erase(service_id);
     return false;
   }
+
+  // Set up lost alarm.
+  lost_alarm_ = std::make_unique<CancelableAlarm>(
+      "BLE.StartScanning() onLost",
+      [this]() {
+        MutexLock lock(&mutex_);
+        discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
+      },
+      kPeripheralLostTimeout, &alarm_executor_, /*is_recurring=*/true);
 
   NEARBY_LOGS(INFO) << "Turned on BLE scanning with service id=" << service_id;
   return true;
@@ -324,17 +384,20 @@ bool BleV2::StopScanning(const std::string& service_id) {
     return false;
   }
 
-  // TODO(b/213835576): Cancel lost alarm and Stop tracking.
-
-  scanned_service_ids_.erase(service_id);
+  discovered_peripheral_tracker_.StopTracking(service_id);
   NEARBY_LOGS(INFO) << "Turned off BLE scanning with service id=" << service_id;
+  scanned_service_ids_.erase(service_id);
 
   // If still has scanner, don't stop the client scanning.
   if (!scanned_service_ids_.empty()) {
     return true;
   }
 
+  // If no more scanning activities, then stop client scanning.
   NEARBY_LOGS(INFO) << "Turned off BLE client scanning";
+  if (lost_alarm_->IsValid()) {
+    lost_alarm_->Cancel();
+  }
   return medium_.StopScanning();
 }
 
@@ -424,6 +487,32 @@ bool BleV2::GenerateAdvertisementCharacteristic(
   return true;
 }
 
+void BleV2::ProcessFetchGattAdvertisementsRequest(
+    int num_slots, int psm,
+    const std::vector<std::string>& interesting_service_ids,
+    mediums::AdvertisementReadResult& advertisement_read_result,
+    BleV2Peripheral& peripheral) {
+  if (!peripheral.IsValid()) {
+    NEARBY_LOGS(INFO) << "Can't read from an advertisement GATT server because "
+                         "ble peripheral is null.";
+    return;
+  }
+
+  if (!radio_.IsEnabled()) {
+    NEARBY_LOGS(INFO) << "Can't read from an advertisement GATT server because "
+                         "Bluetooth was never turned on.";
+    return;
+  }
+
+  if (!IsAvailableLocked()) {
+    NEARBY_LOGS(INFO) << "Can't read from an advertisement GATT server because "
+                         "BLE is not available.";
+    return;
+  }
+
+  // TODO(edwinwu): Attempt to connect and read some GATT characteristics.
+}
+
 bool BleV2::StopAdvertisementGattServerLocked() {
   if (!IsAdvertisementGattServerRunningLocked()) {
     NEARBY_LOGS(INFO) << "Unable to stop the advertisement GATT server because "
@@ -480,6 +569,10 @@ PowerMode BleV2::PowerLevelToPowerMode(PowerLevel power_level) {
     default:
       return PowerMode::kUnknown;
   }
+}
+
+void BleV2::RunOnBleThread(Runnable runnable) {
+  serial_executor_.Execute(std::move(runnable));
 }
 
 }  // namespace connections
