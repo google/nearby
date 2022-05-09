@@ -44,7 +44,6 @@ constexpr absl::string_view kSsid = "Direct-357a2d8c";
 constexpr absl::string_view kPassword = "b592f7d3";
 constexpr absl::string_view kIp = "123.234.23.1";
 constexpr const size_t kPort = 20;
-constexpr absl::Duration kWaitDuration = absl::Milliseconds(100);
 constexpr absl::string_view kData = "ABCD";
 constexpr const size_t kChunkSize = 10;
 
@@ -99,15 +98,11 @@ TEST_F(WifiHotspotMediumTest, CanStartStopHotspot) {
   auto wifi_hotspot_a = std::make_unique<WifiHotspotMedium>();
 
   EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
-  absl::SleepFor(kWaitDuration);
   EXPECT_EQ(wifi_hotspot_a->GetDynamicPortRange(), std::nullopt);
   WifiHotspotServerSocket server_socket = wifi_hotspot_a->ListenForService();
   EXPECT_TRUE(server_socket.IsValid());
-  absl::SleepFor(kWaitDuration);
   server_socket.Close();
-  absl::SleepFor(kWaitDuration);
   EXPECT_TRUE(wifi_hotspot_a->StopWifiHotspot());
-  absl::SleepFor(kWaitDuration);
   wifi_hotspot_a.reset();
 }
 
@@ -118,7 +113,6 @@ TEST_F(WifiHotspotMediumTest, CanConnectDisconnectHotspot) {
 
   EXPECT_FALSE(wifi_hotspot_a->ConnectWifiHotspot(ssid, password));
   EXPECT_TRUE(wifi_hotspot_a->DisconnectWifiHotspot());
-  absl::SleepFor(kWaitDuration);
   wifi_hotspot_a.reset();
 }
 
@@ -130,10 +124,8 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
 
   EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
   HotspotCredentials* hotspot_credentials = wifi_hotspot_a->GetCredential();
-  absl::SleepFor(kWaitDuration);
   EXPECT_TRUE(wifi_hotspot_b->ConnectWifiHotspot(
       hotspot_credentials->GetSSID(), hotspot_credentials->GetPassword()));
-  absl::SleepFor(kWaitDuration);
 
   WifiHotspotServerSocket server_socket = wifi_hotspot_a->ListenForService();
   EXPECT_TRUE(server_socket.IsValid());
@@ -165,7 +157,6 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
       }
     });
   }
-  absl::SleepFor(kWaitDuration);
   EXPECT_TRUE(socket_a.IsValid());
   EXPECT_TRUE(socket_b.IsValid());
   InputStream& in_stream = socket_a.GetInputStream();
@@ -176,19 +167,15 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
   EXPECT_TRUE(read_data.ok());
   EXPECT_EQ(std::string(read_data.result()), data);
 
-  absl::SleepFor(kWaitDuration);
   socket_a.Close();
   socket_b.Close();
-  absl::SleepFor(kWaitDuration);
   EXPECT_FALSE(out_stream.Write(ByteArray(data)).Ok());
   read_data = in_stream.Read(kChunkSize);
   EXPECT_FALSE(read_data.ok());
 
   server_socket.Close();
-  absl::SleepFor(kWaitDuration);
   EXPECT_TRUE(wifi_hotspot_b->DisconnectWifiHotspot());
   EXPECT_TRUE(wifi_hotspot_a->StopWifiHotspot());
-  absl::SleepFor(kWaitDuration);
   wifi_hotspot_a.reset();
   wifi_hotspot_b.reset();
 }
@@ -201,10 +188,8 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherCanCancelConnect) {
 
   EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
   HotspotCredentials* hotspot_credentials = wifi_hotspot_a->GetCredential();
-  absl::SleepFor(kWaitDuration);
   EXPECT_TRUE(wifi_hotspot_b->ConnectWifiHotspot(
       hotspot_credentials->GetSSID(), hotspot_credentials->GetPassword()));
-  absl::SleepFor(kWaitDuration);
 
   WifiHotspotServerSocket server_socket = wifi_hotspot_a->ListenForService();
   EXPECT_TRUE(server_socket.IsValid());
@@ -236,7 +221,6 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherCanCancelConnect) {
       }
     });
   }
-  absl::SleepFor(kWaitDuration);
 
   if (!feature_flags.enable_cancellation_flag) {
     EXPECT_TRUE(socket_a.IsValid());
@@ -246,15 +230,10 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherCanCancelConnect) {
     EXPECT_FALSE(socket_b.IsValid());
   }
 
-  // absl::SleepFor(kWaitDuration);
-  // socket_a.Close();
-  // socket_b.Close();
 
   server_socket.Close();
-  absl::SleepFor(kWaitDuration);
   EXPECT_TRUE(wifi_hotspot_b->DisconnectWifiHotspot());
   EXPECT_TRUE(wifi_hotspot_a->StopWifiHotspot());
-  absl::SleepFor(kWaitDuration);
   wifi_hotspot_a.reset();
   wifi_hotspot_b.reset();
 }
@@ -264,7 +243,6 @@ TEST_F(WifiHotspotMediumTest, CanStartHotspotTheOtherFailConnect) {
   auto wifi_hotspot_b = std::make_unique<WifiHotspotMedium>();
 
   EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
-  absl::SleepFor(kWaitDuration);
 
   std::string ssid(kSsid);
   std::string password(kPassword);
@@ -273,7 +251,6 @@ TEST_F(WifiHotspotMediumTest, CanStartHotspotTheOtherFailConnect) {
   EXPECT_TRUE(wifi_hotspot_b->DisconnectWifiHotspot());
 
   EXPECT_TRUE(wifi_hotspot_a->StopWifiHotspot());
-  absl::SleepFor(kWaitDuration);
   wifi_hotspot_a.reset();
   wifi_hotspot_b.reset();
 }

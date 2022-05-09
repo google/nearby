@@ -17,12 +17,9 @@
 
 #include <string>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/system_clock.h"
 #include "internal/platform/wifi_hotspot.h"
 #include "internal/platform/wifi_hotspot_credential.h"
 
@@ -47,7 +44,6 @@ constexpr absl::string_view kSsid{"Direct-357a2d8c"};
 constexpr absl::string_view kPassword{"12345678"};
 constexpr absl::string_view kIp = "123.234.23.1";
 constexpr const size_t kPort = 20;
-constexpr absl::Duration kWaitDuration = absl::Milliseconds(100);
 
 class WifiHotspotTest : public testing::TestWithParam<FeatureFlags> {
  protected:
@@ -71,9 +67,6 @@ TEST_F(WifiHotspotTest, ConstructorDestructorWorks) {
 
   EXPECT_TRUE(wifi_hotspot_a->IsAvailable());
   EXPECT_TRUE(wifi_hotspot_b->IsAvailable());
-
-  wifi_hotspot_a.reset();
-  wifi_hotspot_b.reset();
 }
 
 TEST_F(WifiHotspotTest, CanStartStopHotspot) {
@@ -82,9 +75,7 @@ TEST_F(WifiHotspotTest, CanStartStopHotspot) {
 
   EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
   EXPECT_TRUE(wifi_hotspot_a->StartAcceptingConnections(service_id, {}));
-  absl::SleepFor(kWaitDuration);
   EXPECT_TRUE(wifi_hotspot_a->StopWifiHotspot());
-  wifi_hotspot_a.reset();
 }
 
 TEST_F(WifiHotspotTest, CanConnectDisconnectHotspot) {
@@ -94,7 +85,6 @@ TEST_F(WifiHotspotTest, CanConnectDisconnectHotspot) {
 
   EXPECT_FALSE(wifi_hotspot_a->ConnectWifiHotspot(ssid, password));
   EXPECT_TRUE(wifi_hotspot_a->DisconnectWifiHotspot());
-  wifi_hotspot_a.reset();
 }
 
 TEST_P(WifiHotspotTest, CanStartHotspotThatOtherConnect) {
@@ -107,7 +97,6 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherConnect) {
   auto wifi_hotspot_b = std::make_unique<WifiHotspot>();
 
   EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
-  absl::SleepFor(kWaitDuration);
   if (!wifi_hotspot_a->IsAcceptingConnections(service_id)) {
     EXPECT_TRUE(wifi_hotspot_a->StartAcceptingConnections(service_id, {}));
   }
@@ -132,8 +121,6 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherConnect) {
 
   EXPECT_TRUE(wifi_hotspot_b->DisconnectWifiHotspot());
   EXPECT_TRUE(wifi_hotspot_a->StopWifiHotspot());
-  wifi_hotspot_a.reset();
-  wifi_hotspot_b.reset();
 }
 
 TEST_P(WifiHotspotTest, CanStartHotspotThatOtherCanCancelConnect) {
@@ -146,7 +133,6 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherCanCancelConnect) {
   auto wifi_hotspot_b = std::make_unique<WifiHotspot>();
 
   EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
-  absl::SleepFor(kWaitDuration);
   if (!wifi_hotspot_a->IsAcceptingConnections(service_id)) {
     EXPECT_TRUE(wifi_hotspot_a->StartAcceptingConnections(service_id, {}));
   }
@@ -175,10 +161,7 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherCanCancelConnect) {
     EXPECT_TRUE(wifi_hotspot_b->DisconnectWifiHotspot());
     EXPECT_TRUE(wifi_hotspot_a->StopWifiHotspot());
   }
-  wifi_hotspot_a.reset();
-  wifi_hotspot_b.reset();
 }
-
 
 TEST_F(WifiHotspotTest, CanStartHotspotTheOtherFailConnect) {
   auto wifi_hotspot_a = std::make_unique<WifiHotspot>();
@@ -193,8 +176,6 @@ TEST_F(WifiHotspotTest, CanStartHotspotTheOtherFailConnect) {
   EXPECT_TRUE(wifi_hotspot_b->DisconnectWifiHotspot());
 
   EXPECT_TRUE(wifi_hotspot_a->StopWifiHotspot());
-  wifi_hotspot_a.reset();
-  wifi_hotspot_b.reset();
 }
 
 }  // namespace

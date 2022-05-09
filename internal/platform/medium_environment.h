@@ -34,9 +34,9 @@
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/wifi_hotspot_credential.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
-#include "internal/platform/listeners.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/platform/mutex.h"
 
 namespace location {
 namespace nearby {
@@ -391,8 +391,9 @@ class MediumEnvironment {
   absl::flat_hash_map<api::WifiLanMedium*, WifiLanMediumContext>
       wifi_lan_mediums_;
 
+  Mutex mutex_;
   absl::flat_hash_map<api::WifiHotspotMedium*, WifiHotspotMediumContext>
-      wifi_hotspot_mediums_;
+      wifi_hotspot_mediums_ ABSL_GUARDED_BY(mutex_);
 
   bool use_valid_peer_connection_ = true;
   absl::Duration peer_connection_latency_ = absl::ZeroDuration();

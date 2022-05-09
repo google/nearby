@@ -66,7 +66,10 @@ void MediumEnvironment::Reset() {
     webrtc_signaling_complete_callback_.clear();
 #endif
     wifi_lan_mediums_.clear();
-    wifi_hotspot_mediums_.clear();
+    {
+      MutexLock lock(&mutex_);
+      wifi_hotspot_mediums_.clear();
+    }
     use_valid_peer_connection_ = true;
     peer_connection_latency_ = absl::ZeroDuration();
   });
@@ -793,6 +796,7 @@ void MediumEnvironment::RegisterWifiHotspotMedium(
     api::WifiHotspotMedium& medium) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium]() {
+    MutexLock lock(&mutex_);
     wifi_hotspot_mediums_.insert({&medium, WifiHotspotMediumContext{}});
     NEARBY_LOG(INFO, "Registered: medium=%p", &medium);
   });
@@ -800,6 +804,7 @@ void MediumEnvironment::RegisterWifiHotspotMedium(
 
 api::WifiHotspotMedium* MediumEnvironment::GetWifiHotspotMedium(
     absl::string_view ssid, absl::string_view ip_address) {
+  MutexLock lock(&mutex_);
   for (auto& medium_info : wifi_hotspot_mediums_) {
     auto* medium_found = medium_info.first;
     auto& info = medium_info.second;
@@ -820,9 +825,11 @@ void MediumEnvironment::UpdateWifiHotspotMediumForStartOrConnect(
       api::WifiHotspotMedium& medium, HotspotCredentials* hotspot_credentials,
       bool is_ap, bool enabled) {
   if (!enabled_) return;
+
+  CountDownLatch latch(1);
   RunOnMediumEnvironmentThread([this, &medium,
                                 hotspot_credentials = hotspot_credentials,
-                                is_ap, enabled]() {
+                                is_ap, enabled, &latch]() {
     std::string role_status =
         absl::StrFormat("; %s is %s", is_ap ? "SoftAP" : "STA",
                         is_ap ? (enabled ? "Started" : "Stopped")
@@ -838,6 +845,7 @@ void MediumEnvironment::UpdateWifiHotspotMediumForStartOrConnect(
                         << this << "; medium=" << &medium << role_status;
     }
 
+    MutexLock lock(&mutex_);
     for (auto& medium_info : wifi_hotspot_mediums_) {
       auto& local_medium = medium_info.first;
       auto& info = medium_info.second;
@@ -853,13 +861,16 @@ void MediumEnvironment::UpdateWifiHotspotMediumForStartOrConnect(
         continue;
       }
     }
+    latch.CountDown();
   });
+  latch.Await();
 }
 
 void MediumEnvironment::UnregisterWifiHotspotMedium(
     api::WifiHotspotMedium& medium) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium]() {
+    MutexLock lock(&mutex_);
     auto item = wifi_hotspot_mediums_.extract(&medium);
     if (item.empty()) return;
     NEARBY_LOGS(INFO) << "Unregistered WifiHotspot medium";
