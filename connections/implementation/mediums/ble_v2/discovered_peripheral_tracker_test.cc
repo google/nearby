@@ -17,8 +17,6 @@
 #include <memory>
 #include <string>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
 #include "connections/implementation/mediums/ble_v2/bloom_filter.h"
@@ -114,7 +112,7 @@ class BlePeripheralStub : public api::ble_v2::BlePeripheral {
     mac_address_ = mac_address;
   }
 
-  std::string GetId() const override { return mac_address_; }
+  std::string GetAddress() const override { return mac_address_; }
 
  private:
   std::string mac_address_;
@@ -166,10 +164,9 @@ class DiscoveredPeripheralTrackerTest : public testing::Test {
     return {
         .fetch_advertisements =
             [this, &fetch_latch, &advertisement_bytes_list](
-                int num_slots, int psm,
+                BleV2Peripheral peripheral, int num_slots, int psm,
                 const std::vector<std::string>& interesting_service_ids,
-                mediums::AdvertisementReadResult& advertisement_read_result,
-                BleV2Peripheral& peripheral) {
+                mediums::AdvertisementReadResult& advertisement_read_result) {
               MutexLock lock(&mutex_);
               fetch_count_++;
               int slot = 0;
@@ -201,7 +198,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -242,7 +239,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       {
           .peripheral_discovered_cb =
               [&callback_times, &found_latch](
-                  BlePeripheral& peripheral, const std::string& service_id,
+                  BleV2Peripheral peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
                 callback_times++;
@@ -288,7 +285,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -333,7 +330,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch_a](BlePeripheral& peripheral,
+              [&found_latch_a](BleV2Peripheral peripheral,
                                const std::string& service_id,
                                const ByteArray& advertisement_bytes,
                                bool fast_advertisement) {
@@ -347,7 +344,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdB),
       {
           .peripheral_discovered_cb =
-              [&found_latch_b](BlePeripheral& peripheral,
+              [&found_latch_b](BleV2Peripheral peripheral,
                                const std::string& service_id,
                                const ByteArray& advertisement_bytes,
                                bool fast_advertisement) {
@@ -396,7 +393,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -439,7 +436,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       {
           .peripheral_discovered_cb =
               [&found_latch](
-                  BlePeripheral& peripheral, const std::string& service_id,
+                  BleV2Peripheral peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) { found_latch.CountDown(); },
       },
@@ -482,7 +479,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       {
           .peripheral_discovered_cb =
               [&callback_times, &found_latch](
-                  BlePeripheral& peripheral, const std::string& service_id,
+                  BleV2Peripheral peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
                 callback_times++;
@@ -530,7 +527,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       {
           .peripheral_discovered_cb =
               [&callback_times, &found_latch](
-                  BlePeripheral& peripheral, const std::string& service_id,
+                  BleV2Peripheral peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
                 callback_times++;
@@ -580,7 +577,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       {
           .peripheral_discovered_cb =
               [&found_latch](
-                  BlePeripheral& peripheral, const std::string& service_id,
+                  BleV2Peripheral peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) { found_latch.CountDown(); },
       },
@@ -618,7 +615,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -628,7 +625,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
               },
           .peripheral_lost_cb =
               [&lost_latch, &lost_callback_times](
-                  BlePeripheral& peripheral, const std::string& service_id) {
+                  BleV2Peripheral peripheral, const std::string& service_id) {
                 lost_callback_times++;
                 lost_latch.CountDown();
               },
@@ -683,7 +680,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -692,7 +689,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch](BlePeripheral& peripheral,
+              [&lost_latch](BleV2Peripheral peripheral,
                             const std::string& service_id) {
                 lost_latch.CountDown();
               },
@@ -744,7 +741,7 @@ TEST_F(DiscoveredPeripheralTrackerTest, LostPeripheralForAdvertisementLost) {
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -753,7 +750,7 @@ TEST_F(DiscoveredPeripheralTrackerTest, LostPeripheralForAdvertisementLost) {
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch](BlePeripheral& peripheral,
+              [&lost_latch](BleV2Peripheral peripheral,
                             const std::string& service_id) {
                 lost_latch.CountDown();
               },
@@ -805,7 +802,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch_a](BlePeripheral& peripheral,
+              [&found_latch_a](BleV2Peripheral peripheral,
                                const std::string& service_id,
                                const ByteArray& advertisement_bytes,
                                bool fast_advertisement) {
@@ -814,7 +811,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch_a.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch_a](BlePeripheral& peripheral,
+              [&lost_latch_a](BleV2Peripheral peripheral,
                               const std::string& service_id) {
                 lost_latch_a.CountDown();
               },
@@ -824,7 +821,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdB),
       {
           .peripheral_discovered_cb =
-              [&found_latch_b](BlePeripheral& peripheral,
+              [&found_latch_b](BleV2Peripheral peripheral,
                                const std::string& service_id,
                                const ByteArray& advertisement_bytes,
                                bool fast_advertisement) {
@@ -833,7 +830,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch_b.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch_b](BlePeripheral& peripheral,
+              [&lost_latch_b](BleV2Peripheral peripheral,
                               const std::string& service_id) {
                 lost_latch_b.CountDown();
               },
@@ -890,7 +887,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -899,7 +896,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch](BlePeripheral& peripheral,
+              [&lost_latch](BleV2Peripheral peripheral,
                             const std::string& service_id) {
                 lost_latch.CountDown();
               },

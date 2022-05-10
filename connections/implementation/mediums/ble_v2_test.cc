@@ -82,23 +82,21 @@ TEST_F(BleV2Test, CanStartScanning) {
   BleV2 ble{radio};
   radio.Enable();
 
-  EXPECT_TRUE(ble.StartScanning(std::string(kServiceIDA),
-                                PowerLevel::kHighPower,
-                                mediums::DiscoveredPeripheralCallback{
-                                    .peripheral_discovered_cb =
-                                        [](mediums::BlePeripheral& peripheral,
-                                           const std::string& service_id,
-                                           const ByteArray& advertisement_bytes,
-                                           bool fast_advertisement) {
-                                          // nothing to do for now
-                                        },
-                                    .peripheral_lost_cb =
-                                        [](mediums::BlePeripheral& peripheral,
-                                           const std::string& service_id) {
-                                          // nothing to do for now
-                                        },
-                                },
-                                /*fast_advertisement_service_uuid=*/""));
+  EXPECT_TRUE(ble.StartScanning(
+      std::string(kServiceIDA), PowerLevel::kHighPower,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [](BleV2Peripheral peripheral, const std::string& service_id,
+                 const ByteArray& advertisement_bytes,
+                 bool fast_advertisement) {
+                // nothing to do for now
+              },
+          .peripheral_lost_cb =
+              [](BleV2Peripheral peripheral, const std::string& service_id) {
+                // nothing to do for now
+              },
+      },
+      /*fast_advertisement_service_uuid=*/""));
   EXPECT_TRUE(ble.StopScanning(std::string(kServiceIDA)));
   env_.Stop();
 }
@@ -118,7 +116,7 @@ TEST_F(BleV2Test, CanStartFastAdvertising) {
       std::string(kServiceIDA), PowerLevel::kHighPower,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
-              [&found_latch](mediums::BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -126,8 +124,7 @@ TEST_F(BleV2Test, CanStartFastAdvertising) {
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [](mediums::BlePeripheral& peripheral,
-                 const std::string& service_id) {
+              [](BleV2Peripheral peripheral, const std::string& service_id) {
                 // nothing to do for now
               },
       },
@@ -161,7 +158,7 @@ TEST_F(BleV2Test, CanStartFastScanning) {
       std::string(kServiceIDA), PowerLevel::kHighPower,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
-              [&found_latch](mediums::BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -169,8 +166,7 @@ TEST_F(BleV2Test, CanStartFastScanning) {
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [](mediums::BlePeripheral& peripheral,
-                 const std::string& service_id) {
+              [](BleV2Peripheral peripheral, const std::string& service_id) {
                 // nothing to do for now
               },
       },
@@ -258,7 +254,7 @@ TEST_F(BleV2Test, StartScanningDiscoverAndLostPeripheral) {
       std::string(kServiceIDA), PowerLevel::kHighPower,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
-              [&found_latch](mediums::BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -266,7 +262,7 @@ TEST_F(BleV2Test, StartScanningDiscoverAndLostPeripheral) {
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch](mediums::BlePeripheral& peripheral,
+              [&lost_latch](BleV2Peripheral peripheral,
                             const std::string& service_id) {
                 lost_latch.CountDown();
               },
@@ -307,7 +303,7 @@ TEST_F(BleV2Test, StartScanningDiscoverButNoPeripheralLostAfterStopScanning) {
       std::string(kServiceIDA), PowerLevel::kHighPower,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
-              [&found_latch](mediums::BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -315,7 +311,7 @@ TEST_F(BleV2Test, StartScanningDiscoverButNoPeripheralLostAfterStopScanning) {
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch](mediums::BlePeripheral& peripheral,
+              [&lost_latch](BleV2Peripheral peripheral,
                             const std::string& service_id) {
                 lost_latch.CountDown();
               },

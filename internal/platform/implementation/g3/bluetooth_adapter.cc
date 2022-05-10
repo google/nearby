@@ -41,7 +41,9 @@ void BlePeripheral::SetAdvertisementBytes(
 BleV2Peripheral::BleV2Peripheral(BluetoothAdapter* adapter)
     : adapter_(*adapter) {}
 
-std::string BleV2Peripheral::GetId() const { return adapter_.GetMacAddress(); }
+std::string BleV2Peripheral::GetAddress() const {
+  return adapter_.GetMacAddress();
+}
 
 BluetoothDevice::BluetoothDevice(BluetoothAdapter* adapter)
     : adapter_(*adapter) {}

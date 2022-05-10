@@ -37,7 +37,7 @@ namespace windows {
 
 class BleV2Peripheral : public api::ble_v2::BlePeripheral {
  public:
-  std::string GetId() const override;
+  std::string GetAddress() const override;
 };
 
 // Container of operations that can be performed over the BLE medium.

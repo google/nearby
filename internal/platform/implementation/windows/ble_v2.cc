@@ -83,7 +83,7 @@ std::string PowerModeToName(PowerMode power_mode) {
 
 }  // namespace
 
-std::string BleV2Peripheral::GetId() const { return ""; }
+std::string BleV2Peripheral::GetAddress() const { return ""; }
 
 BleV2Medium::BleV2Medium(api::BluetoothAdapter& adapter)
     : adapter_(dynamic_cast<BluetoothAdapter*>(&adapter)) {}

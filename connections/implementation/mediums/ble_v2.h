@@ -131,10 +131,10 @@ class BleV2 final {
                                            GattServer& gatt_server)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   void ProcessFetchGattAdvertisementsRequest(
-      int num_slots, int psm,
+      BleV2Peripheral peripheral, int num_slots, int psm,
       const std::vector<std::string>& interesting_service_ids,
-      mediums::AdvertisementReadResult& advertisement_read_result,
-      BleV2Peripheral& peripheral) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      mediums::AdvertisementReadResult& advertisement_read_result)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool StopAdvertisementGattServerLocked()
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 

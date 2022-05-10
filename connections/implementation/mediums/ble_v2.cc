@@ -333,12 +333,12 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
                               std::move(peripheral), advertisement_data,
                               {
                                   .fetch_advertisements =
-                                      [&](int num_slots, int psm,
+                                      [&](BleV2Peripheral peripheral,
+                                          int num_slots, int psm,
                                           const std::vector<std::string>&
                                               interesting_service_ids,
                                           mediums::AdvertisementReadResult&
-                                              advertisement_read_result,
-                                          BleV2Peripheral& peripheral) {
+                                              advertisement_read_result) {
                                         // Th`mutex_` is already held here. Use
                                         // `AssumeHeld` tell the thread
                                         // annotation static analysis that
@@ -346,10 +346,9 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
                                         // locked.
                                         AssumeHeld(mutex_);
                                         ProcessFetchGattAdvertisementsRequest(
-                                            num_slots, psm,
-                                            interesting_service_ids,
-                                            advertisement_read_result,
-                                            peripheral);
+                                            std::move(peripheral), num_slots,
+                                            psm, interesting_service_ids,
+                                            advertisement_read_result);
                                       },
                               });
                     });
@@ -488,10 +487,9 @@ bool BleV2::GenerateAdvertisementCharacteristic(
 }
 
 void BleV2::ProcessFetchGattAdvertisementsRequest(
-    int num_slots, int psm,
+    BleV2Peripheral peripheral, int num_slots, int psm,
     const std::vector<std::string>& interesting_service_ids,
-    mediums::AdvertisementReadResult& advertisement_read_result,
-    BleV2Peripheral& peripheral) {
+    mediums::AdvertisementReadResult& advertisement_read_result) {
   if (!peripheral.IsValid()) {
     NEARBY_LOGS(INFO) << "Can't read from an advertisement GATT server because "
                          "ble peripheral is null.";

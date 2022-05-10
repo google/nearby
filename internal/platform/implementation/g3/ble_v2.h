@@ -16,20 +16,13 @@
 #define PLATFORM_IMPL_G3_BLE_V2_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/strings/escaping.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
-#include "internal/platform/implementation/g3/bluetooth_classic.h"
-#include "internal/platform/implementation/g3/multi_thread_executor.h"
-#include "internal/platform/implementation/g3/pipe.h"
-#include "internal/platform/input_stream.h"
-#include "internal/platform/output_stream.h"
 
 namespace location {
 namespace nearby {
@@ -77,7 +70,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
  private:
   class GattServer : public api::ble_v2::GattServer {
    public:
-    absl::optional<api::ble_v2::GattCharacteristic> CreateCharacteristic(
+    std::optional<api::ble_v2::GattCharacteristic> CreateCharacteristic(
         absl::string_view service_uuid, absl::string_view characteristic_uuid,
         const std::vector<api::ble_v2::GattCharacteristic::Permission>&
             permissions,
