@@ -188,6 +188,9 @@ enum EventType {
   // Track device states in Nearby Share setting.
   DEVICE_SETTINGS = 49;
 
+  // Receiver auto dismisses a fast initialization notification.
+  AUTO_DISMISS_FAST_INITIALIZATION = 50;
+
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
 
