@@ -1395,28 +1395,28 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
     CHECK(context);  // there is no way how this can fail, if Verify succeeded.
     // If it did, it's a UKEY2 protocol bug.
 
-    channel_manager_->EncryptChannelForEndpoint(endpoint_id,
-                                                std::move(context));
+    if (!channel_manager_->EncryptChannelForEndpoint(endpoint_id,
+                                                     std::move(context))) {
+      response_code = {Status::kEndpointUnknown};
+    }
 
-    client->GetAnalyticsRecorder().OnConnectionEstablished(
-        endpoint_id,
-        channel_manager_->GetChannelForEndpoint(endpoint_id)->GetMedium(),
-        connection_info.connection_token);
+    std::shared_ptr<EndpointChannel> endpoint_channel =
+        channel_manager_->GetChannelForEndpoint(endpoint_id);
+    if (endpoint_channel) {
+      client->GetAnalyticsRecorder().OnConnectionEstablished(
+          endpoint_id, endpoint_channel->GetMedium(),
+          connection_info.connection_token);
+    }
   } else {
     NEARBY_LOGS(INFO) << "Pending connection rejected; endpoint_id="
                       << endpoint_id;
     response_code = {Status::kConnectionRejected};
   }
 
-  // Invoke the client callback to let it know of the connection result.
-  if (response_code.Ok()) {
-    client->OnConnectionAccepted(endpoint_id);
-  } else {
-    client->OnConnectionRejected(endpoint_id, response_code);
-  }
-
   // If the connection failed, clean everything up and short circuit.
-  if (!is_connection_accepted) {
+  if (!response_code.Ok()) {
+    client->OnConnectionRejected(endpoint_id, response_code);
+
     // Clean up the channel in EndpointManager if it's no longer required.
     if (can_close_immediately) {
       endpoint_manager_->DiscardEndpoint(client, endpoint_id);
@@ -1433,6 +1433,9 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
 
     return;
   }
+
+  // Invoke the client callback to let it know of the connection result.
+  client->OnConnectionAccepted(endpoint_id);
 
   // Kick off the bandwidth upgrade for incoming connections.
   if (connection_info.is_incoming &&
