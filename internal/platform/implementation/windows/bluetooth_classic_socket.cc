@@ -122,7 +122,7 @@ ExceptionOr<ByteArray> BluetoothSocket::BluetoothInputStream::Read(
     ByteArray data((char*)buffer.data(), buffer.Length());
     return ExceptionOr(data);
   } catch (...) {
-    NEARBY_LOGS(ERROR) << "Failed to read daat from input stream.";
+    NEARBY_LOGS(ERROR) << "Failed to read data from input stream.";
     return {Exception::kIo};
   }
 }
