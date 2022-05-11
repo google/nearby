@@ -153,9 +153,7 @@ cc_library(
         "test_data.h",
         "test_utils.h",
     ],
-    visibility = [
-        "//connections/clients/windows:__subpackages__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         "//internal/platform:base",
     ],
