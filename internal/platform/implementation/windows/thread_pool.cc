@@ -53,29 +53,36 @@ DWORD WINAPI ThreadPool::_ThreadProc(LPVOID pParam) {
   waits[1] = pool->GetShutdownHandle();
 
 loop_here:
-  wait = WaitForMultipleObjects(2, waits, FALSE, INFINITE);
-  if (wait == 1) {
-    if (pool->CheckThreadStop()) {
-      if (pool->GetWorkingThreadCount() < 1) {
-        NEARBY_LOGS(VERBOSE) << "Info: " << __func__
-                             << ": Pool is being destroyed, and working thread "
-                                "count is 0, thread exiting.";
-
-        return 0;
-      }
-    }
-  }
-
-  // a new function was added, go and get it
-  runner = nullptr;
-
-  NEARBY_LOGS(VERBOSE) << "Info: " << __func__ << ": On thread id: " << threadId
-                       << ", checking for work.";
-
   if (pool->GetThreadProc(threadId, std::move(runner))) {
     pool->BusyNotify(threadId);
     runner->Run();
     pool->FinishNotify(threadId);  // tell the pool, i am now free
+  } else {
+    wait = WaitForMultipleObjects(2, waits, FALSE, INFINITE);
+    if (wait == 1) {
+      if (pool->CheckThreadStop()) {
+        if (pool->GetWorkingThreadCount() < 1) {
+          NEARBY_LOGS(VERBOSE)
+              << "Info: " << __func__ << ": Pool is being destroyed, "
+              << "and working thread count is 0, thread exiting.";
+
+          return 0;
+        }
+      }
+    }
+
+    // a new function was added, go and get it
+    runner = nullptr;
+
+    NEARBY_LOGS(VERBOSE) << "Info: " << __func__
+                         << ": On thread id: " << threadId << ", "
+                         << "checking for work.";
+
+    if (pool->GetThreadProc(threadId, std::move(runner))) {
+      pool->BusyNotify(threadId);
+      runner->Run();
+      pool->FinishNotify(threadId);  // tell the pool, i am now free
+    }
   }
 
   goto loop_here;
