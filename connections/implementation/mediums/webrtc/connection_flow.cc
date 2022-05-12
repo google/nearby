@@ -167,8 +167,13 @@ void ConnectionFlow::CreateOfferOnSignalingThread(
   webrtc::DataChannelInit data_channel_init;
   data_channel_init.reliable = true;
   auto pc = GetPeerConnection();
-  CreateSocketFromDataChannel(
-      pc->CreateDataChannel(kDataChannelName, &data_channel_init));
+  auto result =
+      pc->CreateDataChannelOrError(kDataChannelName, &data_channel_init);
+  if (!result.ok()) {
+    success_future.SetException({Exception::kFailed});
+    return;
+  }
+  CreateSocketFromDataChannel(result.MoveValue());
 
   webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
   rtc::scoped_refptr<CreateSessionDescriptionObserverImpl> observer(
