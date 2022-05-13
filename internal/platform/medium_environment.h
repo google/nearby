@@ -230,8 +230,30 @@ class MediumEnvironment {
   // This should be called when discoverable state changes.
   // The `callback` argument should be non-empty if `enabled` is true or empty
   // if `enabled` is false.
-  void UpdateBleV2MediumForScanning(bool enabled, BleScanCallback callback,
+  void UpdateBleV2MediumForScanning(bool enabled,
+                                    const std::string& scanning_service_uuid,
+                                    BleScanCallback callback,
                                     api::ble_v2::BleMedium& medium);
+
+  // Inserts the BLE GATT characteristic and its value BleAdvertisement byte
+  // array.
+  void InsertBleV2MediumGattCharacteristics(
+      const api::ble_v2::GattCharacteristic& characteristic,
+      const ByteArray& gatt_advertisement_byte);
+
+  // Check if `service_uuid` and `characteristic_uuid` exists in the map.
+  //
+  // `characteristic_uuid` can be empty and to check `service_uuid` only.
+  bool ContainsBleV2MediumGattCharacteristics(
+      absl::string_view service_uuid, absl::string_view characteristic_uuid);
+
+  // Reads the BLE GATT characteristic value. If the GATT characteristic is not
+  // existed, return empty byte array.
+  ByteArray ReadBleV2MediumGattCharacteristics(
+      const api::ble_v2::GattCharacteristic& characteristic);
+
+  // Clears the map `gatt_advertisement_bytes_`.
+  void ClearBleV2MediumGattCharacteristics();
 
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterBleV2Medium(api::ble_v2::BleMedium& mediumum);
@@ -311,6 +333,7 @@ class MediumEnvironment {
     BleScanCallback scan_callback = {};
     api::ble_v2::BlePeripheral* ble_peripheral = nullptr;
     api::ble_v2::BleAdvertisementData advertisement_data;
+    std::string scanning_service_uuid = {};
     bool advertising = false;
   };
 
@@ -377,6 +400,9 @@ class MediumEnvironment {
   absl::flat_hash_map<api::BleMedium*, BleMediumContext> ble_mediums_;
   absl::flat_hash_map<api::ble_v2::BleMedium*, BleV2MediumContext>
       ble_v2_mediums_;
+  absl::flat_hash_map<api::ble_v2::GattCharacteristic,
+                      location::nearby::ByteArray>
+      gatt_advertisement_bytes_;
 
 #ifndef NO_WEBRTC
   // Maps peer id to callback for receiving signaling messages.

@@ -42,8 +42,6 @@ namespace connections {
 // (BLE) medium.
 class BleV2 final {
  public:
-  using ServerGattConnectionCallback =
-      BleV2Medium::ServerGattConnectionCallback;
   using DiscoveredPeripheralCallback = mediums::DiscoveredPeripheralCallback;
 
   static constexpr absl::Duration kPeripheralLostTimeout = absl::Seconds(3);

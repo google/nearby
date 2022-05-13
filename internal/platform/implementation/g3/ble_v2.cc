@@ -16,12 +16,13 @@
 
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
+#include "absl/strings/escaping.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble_v2.h"
-#include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 
@@ -34,9 +35,7 @@ namespace {
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
 using ::location::nearby::api::ble_v2::BleSocket;
 using ::location::nearby::api::ble_v2::BleSocketLifeCycleCallback;
-using ::location::nearby::api::ble_v2::ClientGattConnection;
 using ::location::nearby::api::ble_v2::PowerMode;
-using ::location::nearby::api::ble_v2::ServerGattConnectionCallback;
 
 std::string PowerModeToName(PowerMode power_mode) {
   switch (power_mode) {
@@ -96,7 +95,6 @@ bool BleV2Medium::StartAdvertising(
 bool BleV2Medium::StopAdvertising() {
   NEARBY_LOGS(INFO) << "G3 Ble StopAdvertising";
   absl::MutexLock lock(&mutex_);
-  advertisement_byte_ = {};
 
   BleAdvertisementData empty_advertisement_data = {};
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
@@ -111,7 +109,7 @@ bool BleV2Medium::StartScanning(const std::vector<std::string>& service_uuids,
   absl::MutexLock lock(&mutex_);
 
   MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
-      true, std::move(callback), *this);
+      /*enabled=*/true, service_uuids.front(), std::move(callback), *this);
   return true;
 }
 
@@ -119,12 +117,14 @@ bool BleV2Medium::StopScanning() {
   NEARBY_LOGS(INFO) << "G3 Ble StopScanning";
   absl::MutexLock lock(&mutex_);
 
-  MediumEnvironment::Instance().UpdateBleV2MediumForScanning(false, {}, *this);
+  MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
+      /*enabled=*/false,
+      /*service_uuid=*/{}, /*callback=*/{}, *this);
   return true;
 }
 
 std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
-    ServerGattConnectionCallback callback) {
+    api::ble_v2::ServerGattConnectionCallback callback) {
   return std::make_unique<GattServer>();
 }
 
@@ -135,16 +135,112 @@ bool BleV2Medium::StartListeningForIncomingBleSockets(
 
 void BleV2Medium::StopListeningForIncomingBleSockets() {}
 
-std::unique_ptr<ClientGattConnection> BleV2Medium::ConnectToGattServer(
-    api::ble_v2::BlePeripheral& peripheral, Mtu mtu, PowerMode power_mode,
+std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
+    api::ble_v2::BlePeripheral& peripheral, PowerMode power_mode,
     api::ble_v2::ClientGattConnectionCallback callback) {
-  return nullptr;
+  return std::make_unique<GattClient>();
 }
 
 std::unique_ptr<BleSocket> BleV2Medium::EstablishBleSocket(
     api::ble_v2::BlePeripheral* peripheral,
     const BleSocketLifeCycleCallback& callback) {
   return nullptr;
+}
+
+std::optional<api::ble_v2::GattCharacteristic>
+BleV2Medium::GattServer::CreateCharacteristic(
+    absl::string_view service_uuid, absl::string_view characteristic_uuid,
+    const std::vector<api::ble_v2::GattCharacteristic::Permission>& permissions,
+    const std::vector<api::ble_v2::GattCharacteristic::Property>& properties) {
+  api::ble_v2::GattCharacteristic characteristic = {
+      .uuid = std::string(characteristic_uuid),
+      .service_uuid = std::string(service_uuid)};
+  return characteristic;
+}
+
+bool BleV2Medium::GattServer::UpdateCharacteristic(
+    const api::ble_v2::GattCharacteristic& characteristic,
+    const location::nearby::ByteArray& value) {
+  NEARBY_LOGS(INFO)
+      << "G3 Ble GattServer UpdateCharacteristic, characteristic=("
+      << characteristic.service_uuid << "," << characteristic.uuid
+      << "), value = " << absl::BytesToHexString(value.data());
+  MediumEnvironment::Instance().InsertBleV2MediumGattCharacteristics(
+      characteristic, value);
+  return true;
+}
+
+void BleV2Medium::GattServer::Stop() {
+  NEARBY_LOGS(INFO) << "G3 Ble GattServer Stop";
+  MediumEnvironment::Instance().ClearBleV2MediumGattCharacteristics();
+}
+
+bool BleV2Medium::GattClient::DiscoverService(const std::string& service_uuid) {
+  absl::MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << "G3 Ble GattClient DiscoverService, service_uuid"
+                    << service_uuid;
+  if (!is_connection_alive_) {
+    return false;
+  }
+
+  // Search if the service exists.
+  return MediumEnvironment::Instance().ContainsBleV2MediumGattCharacteristics(
+      service_uuid, "");
+}
+
+std::optional<api::ble_v2::GattCharacteristic>
+BleV2Medium::GattClient::GetCharacteristic(
+    absl::string_view service_uuid, absl::string_view characteristic_uuid) {
+  absl::MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << "G3 Ble GattClient GetCharacteristic, service_uuid="
+                    << service_uuid
+                    << ", characteristic_uuid=" << characteristic_uuid;
+  if (!is_connection_alive_) {
+    return std::nullopt;
+  }
+
+  // Search gatt_characteristic by uuid and if found return the
+  // gatt_characteristic.
+  api::ble_v2::GattCharacteristic characteristic = {};
+  if (MediumEnvironment::Instance().ContainsBleV2MediumGattCharacteristics(
+          service_uuid, characteristic_uuid)) {
+    characteristic = {.uuid = std::string(characteristic_uuid),
+                      .service_uuid = std::string(service_uuid)};
+  }
+  NEARBY_LOGS(INFO)
+      << "G3 Ble GattClient GetCharacteristic, found characteristic=("
+      << characteristic.service_uuid << "," << characteristic.uuid << ")";
+
+  return characteristic;
+}
+
+std::optional<ByteArray> BleV2Medium::GattClient::ReadCharacteristic(
+    const api::ble_v2::GattCharacteristic& characteristic) {
+  absl::MutexLock lock(&mutex_);
+  if (!is_connection_alive_) {
+    return std::nullopt;
+  }
+
+  ByteArray value =
+      MediumEnvironment::Instance().ReadBleV2MediumGattCharacteristics(
+          characteristic);
+  NEARBY_LOGS(INFO) << "G3 Ble ReadCharacteristic, characteristic=("
+                    << characteristic.service_uuid << "," << characteristic.uuid
+                    << "), value = " << absl::BytesToHexString(value.data());
+  return std::move(value);
+}
+
+bool BleV2Medium::GattClient::WriteCharacteristic(
+    const api::ble_v2::GattCharacteristic& characteristic,
+    const ByteArray& value) {
+  // No op.
+  return false;
+}
+
+void BleV2Medium::GattClient::Disconnect() {
+  absl::MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << "G3 Ble GattClient Disconnect";
+  is_connection_alive_ = false;
 }
 
 }  // namespace g3

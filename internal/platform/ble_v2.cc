@@ -15,6 +15,7 @@
 #include "internal/platform/ble_v2.h"
 
 #include <memory>
+#include <string>
 #include <utility>
 
 #include "internal/platform/bluetooth_adapter.h"
@@ -102,24 +103,40 @@ std::unique_ptr<GattServer> BleV2Medium::StartGattServer(
   std::unique_ptr<api::ble_v2::GattServer> api_gatt_server =
       impl_->StartGattServer({
           .characteristic_subscription_cb =
-              [this](api::ble_v2::ServerGattConnection& connection,
-                     const GattCharacteristic& characteristic) {
+              [this](const GattCharacteristic& characteristic) {
                 MutexLock lock(&mutex_);
-                ServerGattConnection server_gatt_connection(&connection);
                 server_gatt_connection_callback_.characteristic_subscription_cb(
-                    server_gatt_connection, characteristic);
+                    characteristic);
               },
           .characteristic_unsubscription_cb =
-              [this](api::ble_v2::ServerGattConnection& connection,
-                     const GattCharacteristic& characteristic) {
+              [this](const GattCharacteristic& characteristic) {
                 MutexLock lock(&mutex_);
-                ServerGattConnection server_gatt_connection(&connection);
                 server_gatt_connection_callback_
-                    .characteristic_unsubscription_cb(server_gatt_connection,
-                                                      characteristic);
+                    .characteristic_unsubscription_cb(characteristic);
               },
       });
   return std::make_unique<GattServer>(std::move(api_gatt_server));
+}
+
+std::unique_ptr<GattClient> BleV2Medium::ConnectToGattServer(
+    BleV2Peripheral peripheral, PowerMode power_mode,
+    ClientGattConnectionCallback callback) {
+  {
+    MutexLock lock(&mutex_);
+    client_gatt_connection_callback_ = std::move(callback);
+  }
+
+  std::unique_ptr<api::ble_v2::GattClient> api_gatt_client =
+      impl_->ConnectToGattServer(
+          peripheral.GetImpl(), power_mode,
+          {
+              .disconnected_cb =
+                  [this]() {
+                    MutexLock lock(&mutex_);
+                    client_gatt_connection_callback_.disconnected_cb();
+                  },
+          });
+  return std::make_unique<GattClient>(std::move(api_gatt_client));
 }
 
 }  // namespace nearby

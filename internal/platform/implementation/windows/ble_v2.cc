@@ -35,7 +35,7 @@ namespace {
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
 using ::location::nearby::api::ble_v2::BleSocket;
 using ::location::nearby::api::ble_v2::BleSocketLifeCycleCallback;
-using ::location::nearby::api::ble_v2::ClientGattConnection;
+using ::location::nearby::api::ble_v2::GattClient;
 using ::location::nearby::api::ble_v2::PowerMode;
 using ::location::nearby::api::ble_v2::ServerGattConnectionCallback;
 using ::winrt::Windows::Devices::Bluetooth::BluetoothError;
@@ -289,8 +289,8 @@ bool BleV2Medium::StartListeningForIncomingBleSockets(
 
 void BleV2Medium::StopListeningForIncomingBleSockets() {}
 
-std::unique_ptr<ClientGattConnection> BleV2Medium::ConnectToGattServer(
-    api::ble_v2::BlePeripheral& peripheral, Mtu mtu, PowerMode power_mode,
+std::unique_ptr<GattClient> BleV2Medium::ConnectToGattServer(
+    api::ble_v2::BlePeripheral& peripheral, PowerMode power_mode,
     api::ble_v2::ClientGattConnectionCallback callback) {
   return nullptr;
 }

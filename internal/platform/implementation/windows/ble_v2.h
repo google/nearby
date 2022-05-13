@@ -66,9 +66,8 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       ABSL_LOCKS_EXCLUDED(mutex_);
   void StopListeningForIncomingBleSockets() override
       ABSL_LOCKS_EXCLUDED(mutex_);
-  std::unique_ptr<api::ble_v2::ClientGattConnection> ConnectToGattServer(
-      api::ble_v2::BlePeripheral& peripheral, Mtu mtu,
-      api::ble_v2::PowerMode power_mode,
+  std::unique_ptr<api::ble_v2::GattClient> ConnectToGattServer(
+      api::ble_v2::BlePeripheral& peripheral, api::ble_v2::PowerMode power_mode,
       api::ble_v2::ClientGattConnectionCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<api::ble_v2::BleSocket> EstablishBleSocket(
