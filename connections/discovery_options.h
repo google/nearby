@@ -36,6 +36,7 @@ struct DiscoveryOptions : OptionsBase {
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;
+  // TODO(b/229927044): Replaces it as bool once Ble v1 is deprecated.
   std::string fast_advertisement_service_uuid;
 
   // Returns a copy and normalizes allowed mediums:

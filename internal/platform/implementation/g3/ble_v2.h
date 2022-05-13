@@ -42,7 +42,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       api::ble_v2::PowerMode power_mode) override ABSL_LOCKS_EXCLUDED(mutex_);
   bool StopAdvertising() override ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool StartScanning(const std::vector<std::string>& service_uuids,
+  bool StartScanning(const std::string& service_uuid,
                      api::ble_v2::PowerMode power_mode,
                      ScanCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);

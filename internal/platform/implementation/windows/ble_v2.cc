@@ -216,7 +216,7 @@ bool BleV2Medium::StopAdvertising() {
   return true;
 }
 
-bool BleV2Medium::StartScanning(const std::vector<std::string>& service_uuids,
+bool BleV2Medium::StartScanning(const std::string& service_uuid,
                                 PowerMode power_mode, ScanCallback callback) {
   NEARBY_LOGS(INFO) << "Windows Ble StartScanning";
   absl::MutexLock lock(&mutex_);

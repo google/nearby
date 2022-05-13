@@ -103,13 +103,13 @@ bool BleV2Medium::StopAdvertising() {
   return true;
 }
 
-bool BleV2Medium::StartScanning(const std::vector<std::string>& service_uuids,
+bool BleV2Medium::StartScanning(const std::string& service_uuid,
                                 PowerMode power_mode, ScanCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Ble StartScanning";
   absl::MutexLock lock(&mutex_);
 
   MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
-      /*enabled=*/true, service_uuids.front(), std::move(callback), *this);
+      /*enabled=*/true, service_uuid, std::move(callback), *this);
   return true;
 }
 

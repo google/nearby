@@ -36,7 +36,6 @@ using ::testing::Optional;
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 constexpr absl::string_view kAdvertisementString = "\x0a\x0b\x0c\x0d";
 constexpr absl::string_view kCopresenceServiceUuid = "F3FE";
-constexpr absl::string_view kFastAdvertisementServiceUuid = "FE2C";
 constexpr PowerMode kPowerMode(PowerMode::kHigh);
 
 // A stub BlePeripheral implementation.
@@ -84,7 +83,7 @@ TEST_F(BleV2MediumTest, CanStartFastScanningAndFastAdvertising) {
   CountDownLatch found_latch(1);
 
   EXPECT_TRUE(ble_a.StartScanning(
-      {std::string(kFastAdvertisementServiceUuid)}, kPowerMode,
+      std::string(kCopresenceServiceUuid), kPowerMode,
       {
           .advertisement_found_cb =
               [&found_latch](BleV2Peripheral peripheral,
@@ -95,11 +94,10 @@ TEST_F(BleV2MediumTest, CanStartFastScanningAndFastAdvertising) {
 
   // Assemble fast advertising and scan response data.
   BleAdvertisementData advertising_data;
-  advertising_data.service_uuids.insert(
-      std::string(kFastAdvertisementServiceUuid));
+  advertising_data.service_uuids.insert(std::string(kCopresenceServiceUuid));
   BleAdvertisementData scan_response_data;
   scan_response_data.service_data.insert(
-      {std::string(kFastAdvertisementServiceUuid),
+      {std::string(kCopresenceServiceUuid),
        ByteArray(std::string(kAdvertisementString))});
 
   EXPECT_TRUE(
@@ -119,7 +117,7 @@ TEST_F(BleV2MediumTest, CanStartScanningAndAdvertising) {
   CountDownLatch found_latch(1);
 
   EXPECT_TRUE(ble_a.StartScanning(
-      {std::string(kCopresenceServiceUuid)}, kPowerMode,
+      std::string(kCopresenceServiceUuid), kPowerMode,
       {
           .advertisement_found_cb =
               [&found_latch](BleV2Peripheral peripheral,
@@ -139,79 +137,6 @@ TEST_F(BleV2MediumTest, CanStartScanningAndAdvertising) {
   EXPECT_TRUE(
       ble_b.StartAdvertising(advertising_data, scan_response_data, kPowerMode));
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
-  EXPECT_TRUE(ble_a.StopScanning());
-  EXPECT_TRUE(ble_b.StopAdvertising());
-  env_.Stop();
-}
-
-TEST_F(BleV2MediumTest,
-       CanStartFastAdvertisingButRegularScanningFailToFoundAdvertisement) {
-  env_.Start();
-  BluetoothAdapter adapter_a;
-  BluetoothAdapter adapter_b;
-  BleV2Medium ble_a(adapter_a);
-  BleV2Medium ble_b(adapter_b);
-  CountDownLatch found_latch(1);
-
-  EXPECT_TRUE(ble_a.StartScanning(
-      {std::string(kCopresenceServiceUuid)}, kPowerMode,
-      {
-          .advertisement_found_cb =
-              [&found_latch](BleV2Peripheral peripheral,
-                             const BleAdvertisementData& advertisement_data) {
-                found_latch.CountDown();
-              },
-      }));
-
-  // Assemble fast advertising and scan response data.
-  BleAdvertisementData advertising_data;
-  advertising_data.service_uuids.insert(
-      std::string(kFastAdvertisementServiceUuid));
-  BleAdvertisementData scan_response_data;
-  scan_response_data.service_data.insert(
-      {std::string(kFastAdvertisementServiceUuid),
-       ByteArray(std::string(kAdvertisementString))});
-
-  EXPECT_TRUE(
-      ble_b.StartAdvertising(advertising_data, scan_response_data, kPowerMode));
-  // Fail to found the advertiement.
-  EXPECT_FALSE(found_latch.Await(kWaitDuration).result());
-  EXPECT_TRUE(ble_a.StopScanning());
-  EXPECT_TRUE(ble_b.StopAdvertising());
-  env_.Stop();
-}
-
-TEST_F(BleV2MediumTest,
-       CanStartAdvertisingButFastScanningFailToFoundAdvertisement) {
-  env_.Start();
-  BluetoothAdapter adapter_a;
-  BluetoothAdapter adapter_b;
-  BleV2Medium ble_a(adapter_a);
-  BleV2Medium ble_b(adapter_b);
-  CountDownLatch found_latch(1);
-
-  EXPECT_TRUE(ble_a.StartScanning(
-      {std::string(kFastAdvertisementServiceUuid)}, kPowerMode,
-      {
-          .advertisement_found_cb =
-              [&found_latch](BleV2Peripheral peripheral,
-                             const BleAdvertisementData& advertisement_data) {
-                found_latch.CountDown();
-              },
-      }));
-
-  // Assemble regular advertising and scan response data.
-  BleAdvertisementData advertising_data = {};
-  BleAdvertisementData scan_response_data;
-  scan_response_data.service_uuids.insert(std::string(kCopresenceServiceUuid));
-  scan_response_data.service_data.insert(
-      {std::string(kCopresenceServiceUuid),
-       ByteArray(std::string(kAdvertisementString))});
-
-  EXPECT_TRUE(
-      ble_b.StartAdvertising(advertising_data, scan_response_data, kPowerMode));
-  // Fail to found the advertiement.
-  EXPECT_FALSE(found_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_a.StopScanning());
   EXPECT_TRUE(ble_b.StopAdvertising());
   env_.Stop();

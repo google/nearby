@@ -77,12 +77,10 @@ bool BleV2::IsAvailable() const {
 }
 
 // TODO(edwinwu): Break down the function.
-// TODO(b/229927044): Use bool: is_fast_advertisement, not
-// fast_advertisement_service_uuid.
-bool BleV2::StartAdvertising(
-    const std::string& service_id, const ByteArray& advertisement_bytes,
-    PowerLevel power_level,
-    const std::string& fast_advertisement_service_uuid) {
+bool BleV2::StartAdvertising(const std::string& service_id,
+                             const ByteArray& advertisement_bytes,
+                             PowerLevel power_level,
+                             bool is_fast_advertisement) {
   MutexLock lock(&mutex_);
 
   if (advertisement_bytes.Empty()) {
@@ -117,7 +115,6 @@ bool BleV2::StartAdvertising(
   }
 
   // Wrap the connections advertisement to the medium advertisement.
-  const bool is_fast_advertisement = !fast_advertisement_service_uuid.empty();
   ByteArray service_id_hash = mediums::bleutils::GenerateHash(
       service_id, mediums::BleAdvertisement::kServiceIdHashLength);
   ByteArray medium_advertisement_bytes{mediums::BleAdvertisement{
@@ -139,13 +136,15 @@ bool BleV2::StartAdvertising(
     advertising_data.is_connectable = true;
     advertising_data.tx_power_level =
         BleAdvertisementData::kUnspecifiedTxPowerLevel;
-    advertising_data.service_uuids.insert(fast_advertisement_service_uuid);
+    advertising_data.service_uuids.insert(
+        std::string(mediums::bleutils::kCopresenceServiceUuid));
 
     scan_response_data.is_connectable = true;
     scan_response_data.tx_power_level =
         BleAdvertisementData::kUnspecifiedTxPowerLevel;
     scan_response_data.service_data.insert(
-        {fast_advertisement_service_uuid, medium_advertisement_bytes});
+        {std::string(mediums::bleutils::kCopresenceServiceUuid),
+         medium_advertisement_bytes});
   } else {
     // Stop the current advertisement GATT server if there are no incoming
     // sockets connected to this device.
@@ -209,10 +208,7 @@ bool BleV2::StartAdvertising(
     NEARBY_LOGS(ERROR)
         << "Failed to turn on BLE advertising with advertisement bytes="
         << absl::BytesToHexString(advertisement_bytes.data())
-        << ", is_fast_advertisement=" << is_fast_advertisement
-        << ", fast advertisement service uuid="
-        << (is_fast_advertisement ? fast_advertisement_service_uuid
-                                  : "[empty]");
+        << ", is_fast_advertisement=" << is_fast_advertisement;
 
     // If BLE advertising was not successful, stop the advertisement GATT
     // server.
@@ -275,10 +271,8 @@ bool BleV2::IsAdvertising(const std::string& service_id) const {
   return IsAdvertisingLocked(service_id);
 }
 
-// TODO(b/229927044): Remove param: fast_advertisement_service_uuid.
 bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
-                          DiscoveredPeripheralCallback callback,
-                          const std::string& fast_advertisement_service_uuid) {
+                          DiscoveredPeripheralCallback callback) {
   MutexLock lock(&mutex_);
 
   if (service_id.empty()) {
@@ -305,17 +299,9 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
   }
 
   // Start to track the advertisement found for specific `service_id`.
-  discovered_peripheral_tracker_.StartTracking(service_id, std::move(callback),
-                                               fast_advertisement_service_uuid);
-
-  // Check if scan has been activated, if yes, no need to notify client
-  // to scan again.
-  if (!scanned_service_ids_.empty()) {
-    scanned_service_ids_.insert(service_id);
-    NEARBY_LOGS(INFO) << "Turned on BLE scanning with service id=" << service_id
-                      << " without start client scanning";
-    return true;
-  }
+  discovered_peripheral_tracker_.StartTracking(
+      service_id, std::move(callback),
+      std::string(mediums::bleutils::kCopresenceServiceUuid));
 
   // Check if scan has been activated, if yes, no need to notify client
   // to scan again.
@@ -329,15 +315,9 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
   scanned_service_ids_.insert(service_id);
   // TODO(b/213835576): We should re-start scanning once the power level is
   // changed.
-  std::vector<std::string> scanning_service_uuids;
-  if (!fast_advertisement_service_uuid.empty()) {
-    scanning_service_uuids.push_back(fast_advertisement_service_uuid);
-  } else {
-    scanning_service_uuids.push_back(
-        std::string(mediums::bleutils::kCopresenceServiceUuid));
-  }
   if (!medium_.StartScanning(
-          scanning_service_uuids, PowerLevelToPowerMode(power_level),
+          std::string(mediums::bleutils::kCopresenceServiceUuid),
+          PowerLevelToPowerMode(power_level),
           {
               .advertisement_found_cb =
                   [this](BleV2Peripheral peripheral,

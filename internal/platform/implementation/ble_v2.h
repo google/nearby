@@ -319,7 +319,7 @@ class BleMedium {
   //   HIGH:
   //     - Scan window = ~4096ms
   //     - Scan interval = ~4096ms
-  virtual bool StartScanning(const std::vector<std::string>& service_uuids,
+  virtual bool StartScanning(const std::string& service_uuid,
                              PowerMode power_mode, ScanCallback callback) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeScanner.html#stopScan(android.bluetooth.le.ScanCallback)

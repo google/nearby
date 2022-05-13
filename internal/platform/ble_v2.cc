@@ -39,7 +39,7 @@ bool BleV2Medium::StartAdvertising(
 
 bool BleV2Medium::StopAdvertising() { return impl_->StopAdvertising(); }
 
-bool BleV2Medium::StartScanning(const std::vector<std::string>& service_uuids,
+bool BleV2Medium::StartScanning(const std::string& service_uuid,
                                 PowerMode power_mode, ScanCallback callback) {
   MutexLock lock(&mutex_);
   if (scanning_enabled_) {
@@ -47,7 +47,7 @@ bool BleV2Medium::StartScanning(const std::vector<std::string>& service_uuids,
     return false;
   }
   bool success = impl_->StartScanning(
-      service_uuids, power_mode,
+      service_uuid, power_mode,
       {
           .advertisement_found_cb =
               [this](api::ble_v2::BlePeripheral& peripheral,

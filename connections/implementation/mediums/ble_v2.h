@@ -55,19 +55,16 @@ class BleV2 final {
   // Starts BLE advertising, delivering additional information if the platform
   // supports it.
   //
-  // service_id           - The service ID to track.
-  // advertisement_bytes  - The connections BLE Advertisement used in
-  //                        advertising.
-  // power_level          - The power level to use for the advertisement.
-  // fast_advertisement_service_uuid - The service UUID to look for fast
-  //                                   advertisements on.
-  // Note: fast_advertisement_service_uuid can be an empty string to indicate
-  // that `fast_advertisement_service_uuid` will be ignored for regular
-  // advertisement.
+  // service_id            - The service ID to track.
+  // advertisement_bytes   - The connections BLE Advertisement used in
+  //                         advertising.
+  // power_level           - The power level to use for the advertisement.
+  // is_fast_advertisement - True to use fast advertisements, which are smaller
+  //                         but much more efficient to discover.
   bool StartAdvertising(const std::string& service_id,
                         const ByteArray& advertisement_bytes,
                         PowerLevel power_level,
-                        const std::string& fast_advertisement_service_uuid)
+                        bool is_fast_advertisement)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables BLE advertising.
@@ -85,12 +82,8 @@ class BleV2 final {
   // power_level - The power level to use for the discovery.
   // discovered_peripheral_callback - The callback to invoke for discovery
   //                                  events.
-  // Note: fast_advertisement_service_uuid can be emptry string to indicate that
-  // `fast_advertisement_service_uuid` will be ignored for regular
-  // advertisement.
   bool StartScanning(const std::string& service_id, PowerLevel power_level,
-                     DiscoveredPeripheralCallback callback,
-                     const std::string& fast_advertisement_service_uuid)
+                     DiscoveredPeripheralCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables BLE scanning for a service ID.

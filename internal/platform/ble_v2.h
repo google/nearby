@@ -158,7 +158,7 @@ class BleV2Medium final {
   bool StopAdvertising();
 
   // Returns true once the BLE scan has been initiated.
-  bool StartScanning(const std::vector<std::string>& service_uuids,
+  bool StartScanning(const std::string& service_uuid,
                      api::ble_v2::PowerMode power_mode, ScanCallback callback);
   bool StopScanning();
 
