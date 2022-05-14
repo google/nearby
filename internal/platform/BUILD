@@ -51,7 +51,6 @@ cc_library(
         "//internal/analytics:__subpackages__",
         "//internal/platform:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
-        "//internal/proto/analytics:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//third_party/nearby/cpp/cal:__subpackages__",
         "//third_party/nearby/presence:__subpackages__",
@@ -83,7 +82,6 @@ cc_library(
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
-        "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
     ],
     deps = [
@@ -103,7 +101,6 @@ cc_library(
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//internal/analytics:__subpackages__",
         "//internal/platform:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
@@ -127,7 +124,6 @@ cc_library(
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
-        "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
     ],
     deps = [
@@ -151,7 +147,6 @@ cc_library(
     visibility = [
         "//connections/implementation:__subpackages__",
         "//internal/analytics:__subpackages__",
-        "//internal/platform/implementation:__subpackages__",
     ],
     deps = [
         ":logging",
@@ -172,7 +167,6 @@ cc_library(
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
-        "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
     ],
     deps = [
@@ -287,8 +281,6 @@ cc_library(
     visibility = [
         "//connections:__subpackages__",
         "//internal/analytics:__subpackages__",
-        "//internal/platform:__pkg__",
-        "//internal/platform/implementation/ios:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
     ],
@@ -327,9 +319,7 @@ cc_library(
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//internal/analytics:__subpackages__",
-        "//internal/platform:__pkg__",
     ],
     deps = [
         ":logging",
