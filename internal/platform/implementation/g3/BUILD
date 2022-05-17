@@ -15,7 +15,6 @@ licenses(["notice"])
 
 cc_library(
     name = "types",
-    testonly = True,
     srcs = [
         "log_message.cc",
         "scheduled_executor.cc",
@@ -33,7 +32,8 @@ cc_library(
         "single_thread_executor.h",
     ],
     defines = ["NO_WEBRTC"],
-    visibility = ["//visibility:private"],
+    visibility = ["//visibility:public"],
+    # visibility = ["//internal/platform:__subpackages__"],
     deps = [
         "//internal/platform:base",
         "//internal/platform:util",

@@ -74,6 +74,7 @@ cc_library(
     deps = [
         "//connections/clients/windows:types",
         "//internal/platform:base",
+        "//internal/platform:comm",
         "//internal/platform:types",
         "//internal/platform:util",
         "//proto:connections_enums_cc_proto",
