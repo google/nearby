@@ -175,6 +175,7 @@ class BleV2Medium final {
   bool IsValid() const { return impl_ != nullptr; }
 
   api::ble_v2::BleMedium* GetImpl() const { return impl_.get(); }
+  BluetoothAdapter& GetAdapter() { return adapter_; }
 
  private:
   Mutex mutex_;

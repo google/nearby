@@ -109,7 +109,9 @@ void DiscoveredPeripheralTracker::ProcessLostGattAdvertisements() {
         if (lost_peripheral.IsValid()) {
           lost_peripheral.SetId(ByteArray(gatt_advertisement));
           discovered_peripheral_callback.peripheral_lost_cb(
-              std::move(lost_peripheral), service_id);
+              std::move(lost_peripheral), service_id,
+              gatt_advertisement.GetData(),
+              gatt_advertisement.IsFastAdvertisement());
         }
       }
       ClearGattAdvertisement(gatt_advertisement);

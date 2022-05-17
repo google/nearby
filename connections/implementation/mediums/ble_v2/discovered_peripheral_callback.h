@@ -27,17 +27,19 @@ namespace nearby {
 namespace connections {
 namespace mediums {
 
-/** Callback that is invoked when a {@link BlePeripheral} is discovered. */
+// Callback that is invoked when a {@link BlePeripheral} is discovered.
 struct DiscoveredPeripheralCallback {
   std::function<void(BleV2Peripheral peripheral, const std::string& service_id,
-                     const ByteArray& advertisement_byts,
+                     const ByteArray& advertisement_bytes,
                      bool fast_advertisement)>
       peripheral_discovered_cb =
           DefaultCallback<BleV2Peripheral, const std::string&, const ByteArray&,
                           bool>();
-  std::function<void(BleV2Peripheral peripheral, const std::string& service_id)>
-      peripheral_lost_cb =
-          DefaultCallback<BleV2Peripheral, const std::string&>();
+  std::function<void(BleV2Peripheral peripheral, const std::string& service_id,
+                     const ByteArray& advertisement_bytes,
+                     bool fast_advertisement)>
+      peripheral_lost_cb = DefaultCallback<BleV2Peripheral, const std::string&,
+                                           const ByteArray&, bool>();
 };
 
 }  // namespace mediums

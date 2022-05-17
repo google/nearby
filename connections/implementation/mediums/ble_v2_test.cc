@@ -269,10 +269,10 @@ TEST_F(BleV2Test, StartFastScanningDiscoverAndLostPeripheral) {
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch](BleV2Peripheral peripheral,
-                            const std::string& service_id) {
-                lost_latch.CountDown();
-              },
+              [&lost_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch.CountDown(); },
       });
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
@@ -318,10 +318,10 @@ TEST_F(BleV2Test,
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch](BleV2Peripheral peripheral,
-                            const std::string& service_id) {
-                lost_latch.CountDown();
-              },
+              [&lost_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch.CountDown(); },
       });
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
@@ -364,10 +364,10 @@ TEST_F(BleV2Test, StartScanningDiscoverAndLostPeripheral) {
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch](BleV2Peripheral peripheral,
-                            const std::string& service_id) {
-                lost_latch.CountDown();
-              },
+              [&lost_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch.CountDown(); },
       });
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
@@ -412,10 +412,10 @@ TEST_F(BleV2Test, StartScanningDiscoverButNoPeripheralLostAfterStopScanning) {
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch](BleV2Peripheral peripheral,
-                            const std::string& service_id) {
-                lost_latch.CountDown();
-              },
+              [&lost_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch.CountDown(); },
       });
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());

@@ -110,9 +110,16 @@ class P2pClusterPcpHandler : public BasePcpHandler {
     ByteArray endpoint_info;
   };
 
+  struct BleV2EndpointState {
+    bool ble = false;
+    bool l2cap = false;
+    bool bt = false;
+  };
+
   using BluetoothDiscoveredDeviceCallback =
       BluetoothClassic::DiscoveredDeviceCallback;
   using BleDiscoveredPeripheralCallback = Ble::DiscoveredPeripheralCallback;
+  using BleV2DiscoveredPeripheralCallback = BleV2::DiscoveredPeripheralCallback;
   using WifiLanDiscoveredServiceCallback = WifiLan::DiscoveredServiceCallback;
 
   static constexpr BluetoothDeviceName::Version kBluetoothDeviceNameVersion =
@@ -151,8 +158,6 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       ClientProxy* client, BluetoothEndpoint* endpoint);
 
   // Ble
-  // Maps a BlePeripheral to its corresponding BleEndpointState.
-  absl::flat_hash_map<std::string, BleEndpointState> found_ble_endpoints_;
   bool IsRecognizedBleEndpoint(const std::string& service_id,
                                const BleAdvertisement& advertisement) const;
   void BlePeripheralDiscoveredHandler(ClientProxy* client,
@@ -173,6 +178,30 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       const std::string& fast_advertisement_service_uuid);
   BasePcpHandler::ConnectImplResult BleConnectImpl(ClientProxy* client,
                                                    BleEndpoint* endpoint);
+
+  // BleV2
+  bool IsRecognizedBleV2Endpoint(absl::string_view service_id,
+                                 const BleAdvertisement& advertisement) const;
+  void BleV2PeripheralDiscoveredHandler(ClientProxy* client,
+                                        BleV2Peripheral peripheral,
+                                        const std::string& service_id,
+                                        const ByteArray& advertisement_bytes,
+                                        bool fast_advertisement);
+  void BleV2PeripheralLostHandler(ClientProxy* client,
+                                  BleV2Peripheral peripheral,
+                                  const std::string& service_id,
+                                  const ByteArray& advertisement_bytes,
+                                  bool fast_advertisement);
+  proto::connections::Medium StartBleV2Advertising(
+      ClientProxy* client, const std::string& service_id,
+      const std::string& local_endpoint_id,
+      const ByteArray& local_endpoint_info,
+      const AdvertisingOptions& advertising_options, WebRtcState web_rtc_state);
+  proto::connections::Medium StartBleV2Scanning(
+      BleV2DiscoveredPeripheralCallback callback, ClientProxy* client,
+      const std::string& service_id, const DiscoveryOptions& discovery_options);
+  BasePcpHandler::ConnectImplResult BleV2ConnectImpl(ClientProxy* client,
+                                                     BleV2Endpoint* endpoint);
 
   // WifiLan
   bool IsRecognizedWifiLanEndpoint(
@@ -197,12 +226,20 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   BluetoothRadio& bluetooth_radio_;
   BluetoothClassic& bluetooth_medium_;
   Ble& ble_medium_;
+  BleV2& ble_v2_medium_;
   WifiLan& wifi_lan_medium_;
   WifiHotspot& wifi_hotspot_medium_;
   mediums::WebRtc& webrtc_medium_;
   InjectedBluetoothDeviceStore& injected_bluetooth_device_store_;
   std::int64_t bluetooth_classic_discoverer_client_id_{0};
   std::int64_t bluetooth_classic_advertiser_client_id_{0};
+
+  // Maps a BlePeripheral to its corresponding BleEndpointState.
+  absl::flat_hash_map<std::string, BleEndpointState> found_ble_endpoints_;
+
+  // Maps a BlePeripheral.Id_ to its corresponding BleEndpointState.
+  absl::flat_hash_map<ByteArray, BleV2EndpointState>
+      found_endpoints_in_ble_discover_cb_;
 };
 
 }  // namespace connections

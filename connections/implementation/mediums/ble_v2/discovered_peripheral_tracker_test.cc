@@ -625,7 +625,9 @@ TEST_F(DiscoveredPeripheralTrackerTest,
               },
           .peripheral_lost_cb =
               [&lost_latch, &lost_callback_times](
-                  BleV2Peripheral peripheral, const std::string& service_id) {
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) {
                 lost_callback_times++;
                 lost_latch.CountDown();
               },
@@ -689,10 +691,10 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch](BleV2Peripheral peripheral,
-                            const std::string& service_id) {
-                lost_latch.CountDown();
-              },
+              [&lost_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch.CountDown(); },
       },
       std::string(kFastAdvertisementServiceUuid));
 
@@ -750,10 +752,10 @@ TEST_F(DiscoveredPeripheralTrackerTest, LostPeripheralForAdvertisementLost) {
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch](BleV2Peripheral peripheral,
-                            const std::string& service_id) {
-                lost_latch.CountDown();
-              },
+              [&lost_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch.CountDown(); },
       },
       "");
 
@@ -811,10 +813,10 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch_a.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch_a](BleV2Peripheral peripheral,
-                              const std::string& service_id) {
-                lost_latch_a.CountDown();
-              },
+              [&lost_latch_a](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch_a.CountDown(); },
       },
       std::string(kFastAdvertisementServiceUuid));
   discovered_peripheral_tracker_.StartTracking(
@@ -830,10 +832,10 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch_b.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch_b](BleV2Peripheral peripheral,
-                              const std::string& service_id) {
-                lost_latch_b.CountDown();
-              },
+              [&lost_latch_b](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch_b.CountDown(); },
       },
       "");
 
@@ -896,10 +898,10 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch](BleV2Peripheral peripheral,
-                            const std::string& service_id) {
-                lost_latch.CountDown();
-              },
+              [&lost_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch.CountDown(); },
       },
       "");
 

@@ -46,6 +46,8 @@ class FeatureFlags {
     // necessary to properly support multiple BWU mediums, multiple service, and
     // multiple endpionts.
     bool support_multiple_bwu_mediums = true;
+    // Ble v2/v1 switch flag: the flag will be removed once v2 refactor is done.
+    bool support_ble_v2 = false;
   };
 
   static const FeatureFlags& GetInstance() {
