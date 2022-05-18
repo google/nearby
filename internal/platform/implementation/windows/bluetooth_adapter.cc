@@ -47,18 +47,28 @@ namespace location {
 namespace nearby {
 namespace windows {
 
-BluetoothAdapter::BluetoothAdapter()
-    : windows_bluetooth_adapter_(winrt::Windows::Devices::Bluetooth::
-                                     BluetoothAdapter::GetDefaultAsync()
-                                         .get()) {
-  // Gets the radio represented by this Bluetooth adapter.
-  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter.getradioasync?view=winrt-20348
-  windows_bluetooth_radio_ = windows_bluetooth_adapter_.GetRadioAsync().get();
+BluetoothAdapter::BluetoothAdapter() {
+  windows_bluetooth_adapter_ =
+      winrt::Windows::Devices::Bluetooth::BluetoothAdapter::GetDefaultAsync()
+          .get();
+  if (windows_bluetooth_adapter_ == nullptr) {
+    NEARBY_LOGS(ERROR)
+        << __func__ << ": No Bluetooth adapter on this device.";
+  } else {
+    // Gets the radio represented by this Bluetooth adapter.
+    // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter.getradioasync?view=winrt-20348
+    windows_bluetooth_radio_ = windows_bluetooth_adapter_.GetRadioAsync().get();
+  }
 }
 
 // Synchronously sets the status of the BluetoothAdapter to 'status', and
 // returns true if the operation was a success.
 bool BluetoothAdapter::SetStatus(Status status) {
+  if (windows_bluetooth_radio_ == nullptr) {
+    NEARBY_LOGS(ERROR)
+        << __func__ << ": No Bluetooth radio on this device.";
+    return false;
+  }
   if (status == Status::kDisabled) {
     // An asynchronous operation that attempts to set the state of the radio
     // represented by this object.
@@ -73,6 +83,11 @@ bool BluetoothAdapter::SetStatus(Status status) {
 // Returns true if the BluetoothAdapter's current status is
 // Status::Value::kEnabled.
 bool BluetoothAdapter::IsEnabled() const {
+  if (windows_bluetooth_radio_ == nullptr) {
+    NEARBY_LOGS(ERROR)
+        << __func__ << ": No Bluetooth radio on this device.";
+    return false;
+  }
   // Gets the current state of the radio represented by this object.
   // https://docs.microsoft.com/en-us/uwp/api/windows.devices.radios.radio.state?view=winrt-20348
   return windows_bluetooth_radio_.State() == RadioState::On;
@@ -535,6 +550,11 @@ char *BluetoothAdapter::GetGenericBluetoothAdapterInstanceID(void) const {
 
 // Returns BT MAC address assigned to this adapter.
 std::string BluetoothAdapter::GetMacAddress() const {
+  if (windows_bluetooth_adapter_ == nullptr) {
+    NEARBY_LOGS(ERROR)
+        << __func__ << ": No Bluetooth adapter on this device.";
+    return "";
+  }
   return uint64_to_mac_address_string(
       windows_bluetooth_adapter_.BluetoothAddress());
 }
