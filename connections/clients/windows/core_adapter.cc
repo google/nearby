@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021-2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,9 +17,7 @@
 #include "absl/strings/str_format.h"
 #include "connections/core.h"
 
-namespace location {
-namespace nearby {
-namespace windows {
+namespace location::nearby::windows {
 
 Core *InitCore(connections::ServiceControllerRouter *router) {
   return new nearby::connections::Core(router);
@@ -47,17 +45,17 @@ void StartAdvertising(Core *pCore, const char *service_id,
 
   connections::AdvertisingOptions advertising_options;
 
-  advertising_options.allowed.ble = advertising_options_w.allowed.ble;
   advertising_options.allowed.bluetooth =
       advertising_options_w.allowed.bluetooth;
-  advertising_options.allowed.web_rtc = advertising_options_w.allowed.web_rtc;
+  advertising_options.allowed.ble = advertising_options_w.allowed.ble;
   advertising_options.allowed.wifi_lan = advertising_options_w.allowed.wifi_lan;
+  advertising_options.allowed.web_rtc = advertising_options_w.allowed.web_rtc;
+  advertising_options.allowed.wifi_hotspot =
+      advertising_options_w.allowed.wifi_hotspot;
+  advertising_options.enable_bluetooth_listening = false;
+  advertising_options.enable_webrtc_listening = false;
   advertising_options.auto_upgrade_bandwidth =
       advertising_options_w.auto_upgrade_bandwidth;
-  advertising_options.enable_bluetooth_listening =
-      advertising_options_w.enable_bluetooth_listening;
-  advertising_options.enable_webrtc_listening =
-      advertising_options_w.enable_webrtc_listening;
   advertising_options.enforce_topology_constraints =
       advertising_options_w.enforce_topology_constraints;
   if (advertising_options_w.fast_advertisement_service_uuid != nullptr) {
@@ -98,24 +96,6 @@ void StartDiscovery(connections::Core *pCore, const char *service_id,
 
   connections::DiscoveryOptions discovery_options;
 
-  discovery_options.allowed.ble = discovery_options_w.allowed.ble;
-  discovery_options.allowed.bluetooth = discovery_options_w.allowed.bluetooth;
-  discovery_options.allowed.web_rtc = discovery_options_w.allowed.web_rtc;
-  discovery_options.allowed.wifi_lan = discovery_options_w.allowed.wifi_lan;
-  discovery_options.auto_upgrade_bandwidth =
-      discovery_options_w.auto_upgrade_bandwidth;
-  discovery_options.enforce_topology_constraints =
-      discovery_options_w.enforce_topology_constraints;
-  if (discovery_options_w.fast_advertisement_service_uuid) {
-    discovery_options.fast_advertisement_service_uuid =
-        std::string(discovery_options_w.fast_advertisement_service_uuid);
-  }
-  discovery_options.is_out_of_band_connection =
-      discovery_options_w.is_out_of_band_connection;
-  discovery_options.keep_alive_interval_millis =
-      discovery_options_w.keep_alive_interval_millis;
-  discovery_options.keep_alive_timeout_millis =
-      discovery_options_w.keep_alive_timeout_millis;
   if (discovery_options_w.strategy == StrategyW::kNone)
     discovery_options.strategy = connections::Strategy::kNone;
   if (discovery_options_w.strategy == StrategyW::kP2pCluster)
@@ -124,6 +104,26 @@ void StartDiscovery(connections::Core *pCore, const char *service_id,
     discovery_options.strategy = connections::Strategy::kP2pPointToPoint;
   if (discovery_options_w.strategy == StrategyW::kP2pStar)
     discovery_options.strategy = connections::Strategy::kP2pStar;
+  discovery_options.auto_upgrade_bandwidth =
+      discovery_options_w.auto_upgrade_bandwidth;
+  discovery_options.enforce_topology_constraints =
+      discovery_options_w.enforce_topology_constraints;
+  discovery_options.keep_alive_interval_millis =
+      discovery_options_w.keep_alive_interval_millis;
+  discovery_options.keep_alive_timeout_millis =
+      discovery_options_w.keep_alive_timeout_millis;
+  discovery_options.is_out_of_band_connection =
+      discovery_options_w.is_out_of_band_connection;
+  if (discovery_options_w.fast_advertisement_service_uuid) {
+    discovery_options.fast_advertisement_service_uuid =
+        std::string(discovery_options_w.fast_advertisement_service_uuid);
+  }
+  discovery_options.allowed.bluetooth = discovery_options_w.allowed.bluetooth;
+  discovery_options.allowed.ble = discovery_options_w.allowed.ble;
+  discovery_options.allowed.wifi_lan = discovery_options_w.allowed.wifi_lan;
+  discovery_options.allowed.wifi_hotspot =
+      discovery_options_w.allowed.wifi_hotspot;
+  discovery_options.allowed.web_rtc = discovery_options_w.allowed.web_rtc;
 
   pCore->StartDiscovery(service_id, discovery_options, discoveryListener,
                         std::move(*callback.GetImpl()));
@@ -174,10 +174,6 @@ void RequestConnection(connections::Core *pCore, const char *endpoint_id,
   connection_options.allowed.wifi_lan = connection_options_w.allowed.wifi_lan;
   connection_options.auto_upgrade_bandwidth =
       connection_options_w.auto_upgrade_bandwidth;
-  connection_options.enable_bluetooth_listening =
-      connection_options_w.enable_bluetooth_listening;
-  connection_options.enable_webrtc_listening =
-      connection_options_w.enable_webrtc_listening;
   connection_options.enforce_topology_constraints =
       connection_options_w.enforce_topology_constraints;
   if (connection_options_w.fast_advertisement_service_uuid) {
@@ -235,10 +231,9 @@ void SendPayload(connections::Core *pCore,
   if (pCore == nullptr) {
     return;
   }
-  auto payload = payloadw.GetImpl();
   std::string payloadData = std::string(*endpoint_ids);
   absl::Span<const std::string> span{&payloadData, 1};
-  pCore->SendPayload(span, std::move(*payload), *callback.GetImpl());
+  pCore->SendPayload(span, std::move(*payloadw.GetImpl()), *callback.GetImpl());
 }
 
 void CancelPayload(connections::Core *pCore, std::int64_t payload_id,
@@ -293,6 +288,4 @@ void CloseServiceControllerRouter(
   }
 }
 
-}  // namespace windows
-}  // namespace nearby
-}  // namespace location
+}  // namespace location::nearby::windows

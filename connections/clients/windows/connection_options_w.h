@@ -20,6 +20,8 @@
 
 namespace location::nearby::windows {
 
+extern "C" {
+
 #define MAX_MEDIUMS 5
 
 // Feature On/Off switch for mediums.
@@ -28,11 +30,10 @@ using BooleanMediumSelector = MediumSelectorW<bool>;
 // Connection Options: used for both Advertising and Discovery.
 // All fields are mutable, to make the type copy-assignable.
 struct DLL_API ConnectionOptionsW : public OptionsBaseW {
+  StrategyW strategy;
   bool auto_upgrade_bandwidth;
   bool enforce_topology_constraints;
   bool low_power;
-  bool enable_bluetooth_listening;
-  bool enable_webrtc_listening;
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;
@@ -48,6 +49,7 @@ struct DLL_API ConnectionOptionsW : public OptionsBaseW {
   size_t mediums_size;
 };
 
+}  // extern "C"
 }  // namespace location::nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_CONNECTION_OPTIONS_W_H_

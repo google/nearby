@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,9 +14,7 @@
 
 #include "connections/clients/windows/strategy_w.h"
 
-namespace location {
-namespace nearby {
-namespace windows {
+namespace location::nearby::windows {
 
 const StrategyW StrategyW::kNone = {StrategyW::ConnectionType::kNone,
                                     StrategyW::TopologyType::kUnknown};
@@ -56,6 +54,4 @@ bool operator!=(const StrategyW& lhs, const StrategyW& rhs) {
   return !(lhs == rhs);
 }
 
-}  // namespace windows
-}  // namespace nearby
-}  // namespace location
+}  // namespace location::nearby::windows

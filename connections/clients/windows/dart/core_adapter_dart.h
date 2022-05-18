@@ -19,64 +19,125 @@
 #include "third_party/dart_lang/v2/runtime/include/dart_native_api.h"
 #include "connections/clients/windows/core_adapter.h"
 
-namespace location {
-namespace nearby {
-namespace windows {
+namespace location::nearby::windows {
 
-enum StrategyDart {
+enum class StrategyDart {
   P2P_CLUSTER = 0,
   P2P_STAR,
   P2P_POINT_TO_POINT,
 };
 
 enum PayloadType {
+  // LINT.IfChange
   UNKNOWN = 0,
   BYTE,
   STREAM,
   FILE,
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/payload.dart)
 };
 
-struct ConnectionOptionsDart {
+struct Mediums {
+  // LINT.IfChange
+  int64_t bluetooth;
+  int64_t ble;
+  int64_t wifi_lan;
+  int64_t wifi_hotspot;
+  int64_t web_rtc;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/mediums.dart)
+};
+
+extern "C" {
+
+struct AdvertisingOptionsDart {
+  // LINT.IfChange
   StrategyDart strategy;
   int64_t auto_upgrade_bandwidth;
   int64_t enforce_topology_constraints;
-  int64_t enable_bluetooth;
-  int64_t enable_ble;
-  int64_t advertise_nearby_notifications_beacon;
-  int64_t use_low_power_mode;
-  int64_t discover_fast_advertisements;
-  int64_t enable_wifi_lan;
-  int64_t enable_wifi_hotspot;
-  int64_t enable_nfc;
-  int64_t enable_wifi_aware;
-  int64_t enable_web_rtc;
+  int64_t low_power;
+
+  // Whether this is intended to be used in conjunction with InjectEndpoint().
+  int64_t is_out_of_band_connection = false;
+  const char *fast_advertisement_service_uuid;
+  Mediums mediums;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/advertising_options.dart)
 };
 
-struct ConnectionRequestInfoDart {
-  char *endpoint_info;
-  int64_t initiated_cb;
-  int64_t accepted_cb;
-  int64_t rejected_cb;
-  int64_t disconnected_cb;
-  int64_t bandwidth_changed_cb;
+struct ConnectionOptionsDart {
+  // LINT.IfChange
+  StrategyDart strategy;
+
+  // Whether this is intended to be used in conjunction with InjectEndpoint().
+  int64_t auto_upgrade_bandwidth;
+  int64_t enforce_topology_constraints;
+  int64_t low_power;
+
+  // Whether this is intended to be used in conjunction with InjectEndpoint().
+  int64_t is_out_of_band_connection = false;
+  char *remote_bluetooth_mac_address;
+  char *fast_advertisement_service_uuid;
+  int64_t keep_alive_interval_millis;
+  int64_t keep_alive_timeout_millis;
+
+  Mediums mediums;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/connection_options.dart)
+};
+
+struct DiscoveryOptionsDart {
+  // LINT.IfChange
+  StrategyDart strategy;
+  int64_t auto_upgrade_bandwidth;
+  int64_t enforce_topology_constraints;
+  int64_t keep_alive_interval_millis = 0;
+  int64_t keep_alive_timeout_millis = 0;
+
+  // Whether this is intended to be used in conjunction with InjectEndpoint().
+  int64_t is_out_of_band_connection = false;
+  const char *fast_advertisement_service_uuid;
+  const char *remote_bluetooth_mac_address;
+
+  Mediums mediums;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/discovery_options.dart)
 };
 
 struct DiscoveryListenerDart {
-  int64_t found_cb;
-  int64_t lost_cb;
-  int64_t distance_changed_cb;
+  // LINT.IfChange
+  int64_t found_dart_port;
+  int64_t lost_dart_port;
+  int64_t distance_changed_dart_port;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/discovery_listener.dart)
 };
 
 struct PayloadListenerDart {
-  int64_t payload_cb;
-  int64_t payload_progress_cb;
+  // LINT.IfChange
+  int64_t payload_dart_port;
+  int64_t payload_progress_dart_port;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/payload_listener.dart)
+};
+
+struct ConnectionListenerDart {
+  // LINT.IfChange
+  int64_t initiated_dart_port;
+  int64_t accepted_dart_port;
+  int64_t rejected_dart_port;
+  int64_t disconnected_dart_port;
+  int64_t bandwidth_changed_dart_port;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/connection_listener.dart)
+};
+
+struct ConnectionRequestInfoDart {
+  // LINT.IfChange
+  char *endpoint_info;
+  ConnectionListenerDart connection_listener;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/connection_request_info.dart)
 };
 
 struct PayloadDart {
+  // LINT.IfChange
   int64_t id;
   PayloadType type;
   int64_t size;
   char *data;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/payload.dart)
 };
 
 static void ResultCB(Status status);
@@ -115,7 +176,7 @@ static void ListenerPayloadProgressCB(const char *endpoint_id,
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
 DLL_API void __stdcall StartAdvertisingDart(Core *pCore, const char *service_id,
-                                            ConnectionOptionsDart options_dart,
+                                            AdvertisingOptionsDart options_dart,
                                             ConnectionRequestInfoDart info_dart,
                                             Dart_Port result_cb);
 
@@ -143,7 +204,7 @@ DLL_API void __stdcall StopAdvertisingDart(Core *pCore, Dart_Port result_cb);
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
 DLL_API void __stdcall StartDiscoveryDart(Core *pCore, const char *service_id,
-                                          ConnectionOptionsDart options_dart,
+                                          DiscoveryOptionsDart options_dart,
                                           DiscoveryListenerDart listener_dart,
                                           Dart_Port result_cb);
 
@@ -230,9 +291,7 @@ DLL_API void __stdcall DisconnectFromEndpointDart(Core *pCore,
 DLL_API void __stdcall SendPayloadDart(Core *pCore, const char *endpoint_id,
                                        PayloadDart payload_dart,
                                        Dart_Port result_cb);
-
-}  // namespace windows
-}  // namespace nearby
-}  // namespace location
+}  // extern "C"
+}  // namespace location::nearby::windows
 
 #endif  // LOCATION_NEARBY_CONNECTIONS_WINDOWS_CORE_ADAPTER_DART_H_

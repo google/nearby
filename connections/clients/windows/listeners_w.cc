@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,8 +16,7 @@
 
 #include "connections/listeners.h"
 
-namespace location {
-namespace nearby {
+namespace location::nearby {
 // Must implement Deleters, since the connections classes weren't
 // fully defined in the header
 namespace connections {
@@ -59,17 +58,24 @@ ResultCallbackW::ResultCallbackW(ResultCallbackW &&other) noexcept {
   impl_ = std::move(other.impl_);
 }
 
-ConnectionListenerW::ConnectionListenerW()
-    : impl_(std::unique_ptr<connections::ConnectionListener,
+ConnectionListenerW::ConnectionListenerW(InitiatedCB initiatedCB,
+                                         AcceptedCB acceptedCB,
+                                         RejectedCB rejectedCB,
+                                         DisconnectedCB disconnectedCB,
+                                         BandwidthChangedCB bandwidthChangedCB)
+    : initiated_cb(initiatedCB),
+      accepted_cb(acceptedCB),
+      rejected_cb(rejectedCB),
+      disconnected_cb(disconnectedCB),
+      bandwidth_changed_cb(bandwidthChangedCB),
+      impl_(std::unique_ptr<connections::ConnectionListener,
                             connections::ConnectionListenerDeleter>(
           new connections::ConnectionListener())) {
+  CHECK(initiated_cb != nullptr);
+  auto i = initiated_cb;
   impl_->initiated_cb =
-      [this](
-          const std::string &endpoint_id,
+      [i](const std::string &endpoint_id,
           const connections::ConnectionResponseInfo connection_response_info) {
-        if (this->initiated_cb == nullptr) {
-          return;
-        }
         ConnectionResponseInfoW connection_response_info_w{
             connection_response_info.remote_endpoint_info.data(),
             connection_response_info.remote_endpoint_info.size(),
@@ -78,28 +84,32 @@ ConnectionListenerW::ConnectionListenerW()
             connection_response_info.raw_authentication_token.size(),
             connection_response_info.is_incoming_connection,
             connection_response_info.is_connection_verified};
-        this->initiated_cb(endpoint_id.c_str(), connection_response_info_w);
+        i(endpoint_id.c_str(), connection_response_info_w);
       };
-  impl_->accepted_cb = [this](const std::string &endpoint_id) {
-    if (this->accepted_cb != nullptr) {
-      this->accepted_cb(endpoint_id.c_str());
-    }
+
+  CHECK(accepted_cb != nullptr);
+  auto a = accepted_cb;
+  impl_->accepted_cb = [a](const std::string &endpoint_id) {
+    a(endpoint_id.c_str());
   };
-  impl_->rejected_cb = [this](const std::string &endpoint_id, Status status) {
-    if (this->rejected_cb != nullptr) {
-      this->rejected_cb(endpoint_id.c_str(), status);
-    }
+
+  CHECK(rejected_cb != nullptr);
+  auto r = rejected_cb;
+  impl_->rejected_cb = [r](const std::string &endpoint_id, Status status) {
+    r(endpoint_id.c_str(), status);
   };
-  impl_->disconnected_cb = [this](const std::string &endpoint_id) {
-    if (this->disconnected_cb != nullptr) {
-      this->disconnected_cb(endpoint_id.c_str());
-    }
+
+  CHECK(disconnected_cb != nullptr);
+  auto d = disconnected_cb;
+  impl_->disconnected_cb = [d](const std::string &endpoint_id) {
+    d(endpoint_id.c_str());
   };
-  impl_->bandwidth_changed_cb = [this](const std::string &endpoint_id,
-                                       connections::Medium medium) {
-    if (this->bandwidth_changed_cb != nullptr) {
-      this->bandwidth_changed_cb(endpoint_id.c_str(), medium);
-    }
+
+  CHECK(bandwidth_changed_cb != nullptr);
+  auto bwc = bandwidth_changed_cb;
+  impl_->bandwidth_changed_cb = [bwc](const std::string &endpoint_id,
+                                      connections::Medium medium) {
+    bwc(endpoint_id.c_str(), medium);
   };
 }
 
@@ -115,14 +125,18 @@ ConnectionListenerW::ConnectionListenerW(ConnectionListenerW &other) {
 ConnectionListenerW::ConnectionListenerW(ConnectionListenerW &&other) noexcept =
     default;
 
-DiscoveryListenerW::DiscoveryListenerW()
-    : impl_(new connections::DiscoveryListener()) {
+DiscoveryListenerW::DiscoveryListenerW(
+    EndpointFoundCB endpointFoundCB, EndpointLostCB endpointLostCB,
+    EndpointDistanceChangedCB endpointDistanceChangedCB)
+    : endpoint_found_cb(endpointFoundCB),
+      endpoint_lost_cb(endpointLostCB),
+      endpoint_distance_changed_cb(endpointDistanceChangedCB),
+      impl_(new connections::DiscoveryListener()) {
+  CHECK(endpoint_distance_changed_cb != nullptr);
+  auto epdc = endpoint_distance_changed_cb;
   impl_->endpoint_distance_changed_cb =
-      [this](const std::string &endpoint_id,
+      [epdc](const std::string &endpoint_id,
              connections::DistanceInfo distance_info) {
-        if (this->endpoint_distance_changed_cb == nullptr) {
-          return;
-        }
         DistanceInfoW distanceInfoW = DistanceInfoW::kUnknown;
         switch (distance_info) {
           case connections::DistanceInfo::kFar:
@@ -137,20 +151,22 @@ DiscoveryListenerW::DiscoveryListenerW()
           case connections::DistanceInfo::kUnknown:
             break;
         }
-        endpoint_distance_changed_cb(endpoint_id.c_str(), distanceInfoW);
+        epdc(endpoint_id.c_str(), distanceInfoW);
       };
-  impl_->endpoint_found_cb = [this](const std::string &endpoint_id,
-                                    ByteArray endpoint_info,
-                                    const std::string &service_id) {
-    if (endpoint_found_cb != nullptr) {
-      endpoint_found_cb(endpoint_id.c_str(), endpoint_info.data(),
-                        endpoint_info.size(), service_id.c_str());
-    }
+
+  CHECK(endpoint_found_cb != nullptr);
+  auto epf = endpoint_found_cb;
+  impl_->endpoint_found_cb = [epf](const std::string &endpoint_id,
+                                   ByteArray endpoint_info,
+                                   const std::string &service_id) {
+    epf(endpoint_id.c_str(), endpoint_info.data(), endpoint_info.size(),
+        service_id.c_str());
   };
-  impl_->endpoint_lost_cb = [this](const std::string &endpoint_id) {
-    if (this->endpoint_lost_cb != nullptr) {
-      this->endpoint_lost_cb(endpoint_id.c_str());
-    }
+
+  CHECK(endpoint_lost_cb != nullptr);
+  auto epl = endpoint_lost_cb;
+  impl_->endpoint_lost_cb = [epl](const std::string &endpoint_id) {
+    epl(endpoint_id.c_str());
   };
 }
 
@@ -168,17 +184,19 @@ DiscoveryListenerW::DiscoveryListenerW(DiscoveryListenerW &&other) noexcept {
   impl_ = std::move(other.impl_);
 }
 
-PayloadListenerW::PayloadListenerW()
-    : impl_(std::unique_ptr<connections::PayloadListener,
+PayloadListenerW::PayloadListenerW(PayloadCB payloadCB,
+                                   PayloadProgressCB payloadProgressCB)
+    : payload_cb(payloadCB),
+      payload_progress_cb(payloadProgressCB),
+      impl_(std::unique_ptr<connections::PayloadListener,
                             connections::PayloadListenerDeleter>(
           new connections::PayloadListener())) {
-  impl_->payload_cb = [this](const std::string &endpoint_id,
-                             connections::Payload payload) {
+  CHECK(payload_cb != nullptr);
+  auto pcb = payload_cb;
+  impl_->payload_cb = [pcb](const std::string &endpoint_id,
+                            connections::Payload payload) {
     PayloadW payloadW;
 
-    if (payload_cb == nullptr) {
-      return;
-    }
     switch (payload.GetType()) {
       case connections::PayloadType::kBytes: {
         payloadW = PayloadW(payload.AsBytes().data(), payload.AsBytes().size());
@@ -188,6 +206,7 @@ PayloadListenerW::PayloadListenerW()
         InputFile file(std::move(*payload.AsFile()));
         payloadW = PayloadW(file);
       } break;
+
       // TODO(jfcarroll): Figure out how to capture type kStream.
       // case connections::PayloadType::kStream: {
       //  payloadW = PayloadW(payload.AsStream());
@@ -201,14 +220,14 @@ PayloadListenerW::PayloadListenerW()
         break;
       }
     }
-    payload_cb(endpoint_id.c_str(), std::move(payloadW));
+    pcb(endpoint_id.c_str(), payloadW);
   };
+
+  CHECK(payload_progress_cb != nullptr);
+  auto ppcb = payload_progress_cb;
   impl_->payload_progress_cb =
-      [this](const std::string &endpoint_id,
+      [ppcb](const std::string &endpoint_id,
              connections::PayloadProgressInfo payload_progress_info) {
-        if (payload_progress_cb == nullptr) {
-          return;
-        }
         PayloadProgressInfoW payload_progress_info_w;
         payload_progress_info_w.payload_id = payload_progress_info.payload_id;
         payload_progress_info_w.total_bytes = payload_progress_info.total_bytes;
@@ -234,7 +253,7 @@ PayloadListenerW::PayloadListenerW()
             break;
         }
 
-        payload_progress_cb(endpoint_id.c_str(), payload_progress_info_w);
+        ppcb(endpoint_id.c_str(), payload_progress_info_w);
       };
 }
 
@@ -247,5 +266,4 @@ PayloadListenerW::PayloadListenerW(PayloadListenerW &&other) noexcept {
 }
 
 }  // namespace windows
-}  // namespace nearby
-}  // namespace location
+}  // namespace location::nearby

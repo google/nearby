@@ -1,4 +1,4 @@
-// Copyright 2021-2022 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@
 #include "proto/connections_enums.pb.h"
 
 namespace location::nearby::windows {
+
+extern "C" {
 
 // Metadata injected to facilitate out-of-band connections. The medium field is
 // required, and the other fields are only specified for a specific medium.
@@ -50,6 +52,7 @@ struct DLL_API OutOfBandConnectionMetadataW {
   size_t remote_bluetooth_mac_address_size;
 };
 
+}  // extern "C"
 }  // namespace location::nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_OUT_OF_BAND_CONNECTION_METADATA_H_

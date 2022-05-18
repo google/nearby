@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,8 +17,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/payload_id.h"
 
-namespace location {
-namespace nearby {
+namespace location::nearby {
 // Must implement Deleter since Payload wasn't fully defined in
 // the header
 namespace connections {
@@ -129,5 +128,4 @@ PayloadW::GetImpl() {
 }
 
 }  // namespace windows
-}  // namespace nearby
-}  // namespace location
+}  // namespace location::nearby

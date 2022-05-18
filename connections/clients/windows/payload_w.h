@@ -36,6 +36,8 @@ class InputFile;
 class InputStream;
 namespace windows {
 
+extern "C" {
+
 // Payload is default-constructible, and moveable, but not copyable container
 // that holds at most one instance of one of:
 // ByteArray, InputStream, or InputFile.
@@ -94,6 +96,7 @@ class DLL_API PayloadW {
   std::unique_ptr<connections::Payload, connections::PayloadDeleter> impl_;
 };
 
+}  // extern "C"
 }  // namespace windows
 }  // namespace location::nearby
 

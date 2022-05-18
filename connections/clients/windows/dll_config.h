@@ -1,4 +1,4 @@
-// Copyright 2020-2022 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,9 +14,7 @@
 #ifndef THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_CONFIG_H_
 #define THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_CONFIG_H_
 
-namespace location {
-namespace nearby {
-namespace windows {
+namespace location::nearby::windows {
 
 #ifdef _WIN32  // These storage class specifiers only matter to win32 dll
                // builds.
@@ -31,8 +29,6 @@ namespace windows {
 #define DLL_API  // We're not building a win32 dll, leave the source unchanged.
 #endif           // _WIN32
 
-}  // namespace windows
-}  // namespace nearby
-}  // namespace location
+}  // namespace location::nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_CONFIG_H_

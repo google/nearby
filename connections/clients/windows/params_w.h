@@ -21,6 +21,8 @@
 
 namespace location::nearby::windows {
 
+extern "C" {
+
 // Used by Discovery in Core::RequestConnection().
 // Used by Advertising in Core::StartAdvertising().
 struct DLL_API ConnectionRequestInfoW {
@@ -34,6 +36,7 @@ struct DLL_API ConnectionRequestInfoW {
   ConnectionListenerW& listener;
 };
 
+}  // extern "C"
 }  // namespace location::nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_PARAMS_W_H_

@@ -14,9 +14,56 @@
 
 #include "connections/payload.h"
 
+#include <string>
+
 namespace location {
 namespace nearby {
 namespace connections {
+
+namespace {
+std::string SepFinder(std::string s, size_t index) {
+  std::string filename = s.substr(index + 1, s.length() - index);
+  size_t lastindex = filename.find_last_of('.');
+  std::string rawname = filename.substr(0, lastindex);
+  return rawname;
+}
+
+std::string getFileName(const std::string& s) {
+  char forwardSep = '/';
+  char backwardSep = '\\';
+
+  size_t lastForwardSepIndex = s.rfind(forwardSep, s.length());
+  size_t lastBackwardSepIndex = s.rfind(backwardSep, s.length());
+
+  if (lastForwardSepIndex == std::string::npos &&
+      lastBackwardSepIndex == std::string::npos) {
+    // no file name found
+    return ("");
+  }
+
+  // If we have a forward sep
+  if (lastForwardSepIndex != std::string::npos) {
+    // and if backward sep doesn't exist
+    if (lastBackwardSepIndex == std::string::npos) {
+      // Construct filename from forward sep
+      std::string rawname = SepFinder(s, lastForwardSepIndex);
+      return (rawname);
+    }
+    // backward sep also exists
+    if (lastForwardSepIndex > lastBackwardSepIndex) {
+      // the forward sep is the last
+      std::string rawname = SepFinder(s, lastForwardSepIndex);
+      return (rawname);
+    }
+    // The backward sep is the last
+    std::string rawname = SepFinder(s, lastBackwardSepIndex);
+    return (rawname);
+  }
+  std::string rawname = SepFinder(s, lastBackwardSepIndex);
+  return (rawname);
+}
+
+}  // namespace
 
 // Payload is default-constructible, and moveable, but not copyable container
 // that holds at most one instance of one of:
@@ -38,11 +85,15 @@ Payload::Payload(const ByteArray& bytes)
 
 Payload::Payload(InputFile input_file)
     : id_(std::hash<std::string>()(input_file.GetFilePath())),
+      file_name_(getFileName(input_file.GetFilePath())),
       type_(PayloadType::kFile),
       content_(std::move(input_file)) {}
 
 Payload::Payload(Id id, InputFile input_file)
-    : id_(id), type_(PayloadType::kFile), content_(std::move(input_file)) {}
+    : id_(id),
+      file_name_(getFileName(input_file.GetFilePath())),
+      type_(PayloadType::kFile),
+      content_(std::move(input_file)) {}
 
 Payload::Payload(std::string parent_folder, std::string file_name,
                  InputFile input_file)

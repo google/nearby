@@ -1,4 +1,4 @@
-// Copyright 2021-2022 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,14 +18,15 @@
 
 namespace location::nearby::windows {
 
-// Connection Options: used for both Advertising and Discovery.
+extern "C" {
+
+// Advertising Options: used for Advertising.
 // All fields are mutable, to make the type copy-assignable.
 struct DLL_API AdvertisingOptionsW : public OptionsBaseW {
+  StrategyW strategy;
   bool auto_upgrade_bandwidth;
   bool enforce_topology_constraints;
   bool low_power;
-  bool enable_bluetooth_listening;
-  bool enable_webrtc_listening;
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;
@@ -38,6 +39,7 @@ struct DLL_API AdvertisingOptionsW : public OptionsBaseW {
   AdvertisingOptionsW CompatibleOptions() const;
 };
 
+}  // extern "C"
 }  // namespace location::nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_ADVERTISING_OPTIONS_W_H_

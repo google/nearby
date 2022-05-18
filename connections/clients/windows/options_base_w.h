@@ -1,4 +1,4 @@
-// Copyright 2021-2022 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@
 
 namespace location::nearby::windows {
 
+extern "C" {
+
 // Connection Options: used for both Advertising and Discovery.
 // All fields are mutable, to make the type copy-assignable.
 struct OptionsBaseW {
@@ -26,6 +28,7 @@ struct OptionsBaseW {
   BooleanMediumSelectorW allowed{BooleanMediumSelectorW().SetAll(true)};
 };
 
+}  // extern "C"
 }  // namespace location::nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_OPTIONS_BASE_W_H_
