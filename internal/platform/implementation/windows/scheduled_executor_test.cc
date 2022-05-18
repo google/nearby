@@ -11,15 +11,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 
 #include <utility>
 
+#include "gtest/gtest.h"
+#include "absl/synchronization/notification.h"
 #include "internal/platform/implementation/windows/test_data.h"
 
-#include "gtest/gtest.h"
-
 TEST(ScheduledExecutorTests, ExecuteSucceeds) {
+  absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
@@ -34,11 +36,14 @@ TEST(ScheduledExecutorTests, ExecuteSucceeds) {
   threadIds->push_back(GetCurrentThreadId());
 
   // Act
-  submittableExecutor->Execute([&output, &threadIds]() {
+  submittableExecutor->Execute([&]() {
     threadIds->push_back(GetCurrentThreadId());
     output.append(RUNNABLE_0_TEXT.c_str());
+    notification.Notify();
   });
 
+  ASSERT_TRUE(
+      notification.WaitForNotificationWithTimeout(absl::Milliseconds(200)));
   submittableExecutor->Shutdown();
 
   //  Assert
@@ -52,6 +57,7 @@ TEST(ScheduledExecutorTests, ExecuteSucceeds) {
 }
 
 TEST(ScheduledExecutorTests, ScheduleSucceeds) {
+  absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
@@ -71,15 +77,17 @@ TEST(ScheduledExecutorTests, ScheduleSucceeds) {
 
   // Act
   submittableExecutor->Schedule(
-      [&output, &threadIds, &timeExecuted]() {
+      [&]() {
         timeExecuted = std::chrono::system_clock::now();
         threadIds->push_back(GetCurrentThreadId());
         output.append(RUNNABLE_0_TEXT.c_str());
+        notification.Notify();
       },
       absl::Milliseconds(50));
 
   SleepEx(100, true);  //  Yield the thread
-
+  ASSERT_TRUE(
+      notification.WaitForNotificationWithTimeout(absl::Milliseconds(200)));
   submittableExecutor->Shutdown();
 
   auto difference = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -100,6 +108,7 @@ TEST(ScheduledExecutorTests, ScheduleSucceeds) {
 }
 
 TEST(ScheduledExecutorTests, CancelSucceeds) {
+  absl::Notification notification;
   // Arrange
   std::string expected("");
 
@@ -115,9 +124,10 @@ TEST(ScheduledExecutorTests, CancelSucceeds) {
 
   // Act
   auto cancelable = submittableExecutor->Schedule(
-      [&output, &threadIds]() {
+      [&]() {
         threadIds->push_back(GetCurrentThreadId());
         output.append(RUNNABLE_0_TEXT.c_str());
+        notification.Notify();
       },
       absl::Milliseconds(1000));
 
@@ -125,6 +135,8 @@ TEST(ScheduledExecutorTests, CancelSucceeds) {
 
   auto actual = cancelable->Cancel();
 
+  EXPECT_FALSE(
+      notification.WaitForNotificationWithTimeout(absl::Milliseconds(2000)));
   submittableExecutor->Shutdown();
 
   // Assert
@@ -137,6 +149,7 @@ TEST(ScheduledExecutorTests, CancelSucceeds) {
 }
 
 TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
+  absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
@@ -152,9 +165,10 @@ TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
 
   // Act
   auto cancelable = submittableExecutor->Schedule(
-      [&output, &threadIds]() {
+      [&]() {
         threadIds->push_back(GetCurrentThreadId());
         output.append(RUNNABLE_0_TEXT.c_str());
+        notification.Notify();
       },
       absl::Milliseconds(100));
 
@@ -162,6 +176,8 @@ TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
 
   auto actual = cancelable->Cancel();
 
+  ASSERT_TRUE(
+      notification.WaitForNotificationWithTimeout(absl::Milliseconds(2000)));
   submittableExecutor->Shutdown();
 
   // Assert

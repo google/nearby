@@ -23,33 +23,24 @@
 namespace location {
 namespace nearby {
 namespace windows {
-enum class ExecutorState {
-  Ready,    // has been created and initialized
-  NotReady  // Executor has not been initialized
-};
 
 // This abstract class is the superclass of all classes representing an
 // Executor.
 class Executor : public api::Executor {
  public:
   Executor();
-  Executor(int32_t maxConcurrency);
+  explicit Executor(int max_concurrency);
 
   // Before returning from destructor, executor must wait for all pending
   // jobs to finish.
   ~Executor() override {}
-  // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html#execute-java.lang.Runnable-
-  void Execute(Runnable&& runnable) override;
 
-  // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html#shutdown--
+  void Execute(Runnable&& runnable) override;
   void Shutdown() override;
 
  private:
-  bool InitializeThreadPool();
-  std::unique_ptr<ThreadPool> thread_pool_;
-
+  std::unique_ptr<ThreadPool> thread_pool_ = nullptr;
   std::atomic<bool> shut_down_;
-  ExecutorState executor_state_;
   int32_t max_concurrency_;
 };
 
