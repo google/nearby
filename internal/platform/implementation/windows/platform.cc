@@ -208,10 +208,9 @@ ImplementationPlatform::CreateBluetoothClassicMedium(
   return absl::make_unique<windows::BluetoothClassicMedium>(adapter);
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
     BluetoothAdapter& adapter) {
-  return absl::make_unique<windows::BleMedium>();
+  return absl::make_unique<windows::BleMedium>(adapter);
 }
 
 // TODO(b/184975123): replace with real implementation.

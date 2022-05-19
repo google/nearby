@@ -48,6 +48,9 @@ cc_library(
     name = "comm",
     hdrs = [
         "ble.h",
+        "ble_medium.h",
+        "ble_peripheral.h",
+        "ble_socket.h",
         "ble_v2.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
@@ -100,6 +103,8 @@ cc_library(
 cc_library(
     name = "windows",
     srcs = [
+        "ble_medium.cc",
+        "ble_socket.cc",
         "ble_v2.cc",
         "bluetooth_adapter.cc",
         "bluetooth_classic_device.cc",
@@ -166,6 +171,7 @@ cc_test(
     srcs = [
         "atomic_boolean_test.cc",
         "atomic_reference_test.cc",
+        "ble_medium_test.cc",
         "ble_v2_test.cc",
         "count_down_latch_test.cc",
         "crypto_test.cc",
