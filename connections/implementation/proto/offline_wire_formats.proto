@@ -298,16 +298,17 @@ message PairedKeyEncryptionFrame {
 message MediumMetadata {
   // True if local device supports 5GHz.
   optional bool supports_5_ghz = 1;
-  // WiFi LAN BSSID
+  // WiFi LAN BSSID, in the form of a six-byte MAC address: XX:XX:XX:XX:XX:XX
   optional string bssid = 2;
-  // IP address
+  // IP address, in network byte order: the highest order byte of the address is
+  // in byte[0].
   optional bytes ip_address = 3;
   // True if local device supports 6GHz.
   optional bool supports_6_ghz = 4;
   // True if local device has mobile radio.
   optional bool mobile_radio = 5;
-  // The frequency of the WiFi LAN AP (or -1 is not associated to an AP over
-  // WiFi).
+  // The frequency of the WiFi LAN AP(in MHz, or -1 is not associated with an AP
+  // over WiFi).
   optional int32 ap_frequency = 6 [default = -1];
   // Available channels on the local device.
   optional AvailableChannels available_channels = 7;
