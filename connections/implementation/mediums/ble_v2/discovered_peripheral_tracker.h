@@ -59,6 +59,11 @@ class DiscoveredPeripheralTracker {
                             mediums::AdvertisementReadResult&>();
   };
 
+  explicit DiscoveredPeripheralTracker(
+      bool is_extended_advertisement_available = false)
+      : is_extended_advertisement_available_(
+            is_extended_advertisement_available) {}
+
   // Starts tracking discoveries for a particular service Id.
   //
   // service_id                      - The service ID to track.
@@ -136,6 +141,13 @@ class DiscoveredPeripheralTracker {
 
   // Clears stale data from any previous sessions.
   void ClearDataForServiceId(const std::string& service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Returns true if `advertisement_data` is AdvertisementHeader and is marked
+  // as exented_advertisement. This is to avoid reading advertisement from GATT
+  // connection, which has been advertised by extended advertisement.
+  bool IsSkippableGattAdvertisement(
+      const api::ble_v2::BleAdvertisementData& advertisement_data)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Clears out all data related to the provided GATT advertisement. This
@@ -237,6 +249,7 @@ class DiscoveredPeripheralTracker {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Mutex mutex_;
+  bool is_extended_advertisement_available_;
 
   // ------------ SERVICE ID MAPS ------------
   // Entries in these maps all follow the same lifecycle. Entries are added in

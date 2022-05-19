@@ -19,7 +19,6 @@
 #include <utility>
 
 #include "absl/strings/escaping.h"
-#include "absl/strings/str_cat.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
@@ -40,7 +39,7 @@ namespace {
 
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
 using ::location::nearby::api::ble_v2::GattCharacteristic;
-using ::location::nearby::api::ble_v2::PowerMode;
+using ::location::nearby::api::ble_v2::TxPowerLevel;
 
 constexpr int kMaxAdvertisementLength = 512;
 constexpr int kDummyServiceIdLength = 128;
@@ -62,8 +61,8 @@ BleV2::~BleV2() {
   while (!scanned_service_ids_.empty()) {
     StopScanning(*scanned_service_ids_.begin());
   }
-  while (!advertising_service_ids_.empty()) {
-    StopAdvertising(*advertising_service_ids_.begin());
+  while (!advertising_infos_.empty()) {
+    StopAdvertising(advertising_infos_.begin()->first);
   }
 
   serial_executor_.Shutdown();
@@ -76,7 +75,6 @@ bool BleV2::IsAvailable() const {
   return IsAvailableLocked();
 }
 
-// TODO(edwinwu): Break down the function.
 bool BleV2::StartAdvertising(const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              PowerLevel power_level,
@@ -117,152 +115,99 @@ bool BleV2::StartAdvertising(const std::string& service_id,
   // Wrap the connections advertisement to the medium advertisement.
   ByteArray service_id_hash = mediums::bleutils::GenerateHash(
       service_id, mediums::BleAdvertisement::kServiceIdHashLength);
-  ByteArray medium_advertisement_bytes{mediums::BleAdvertisement{
+  // Get psm value from L2CAP server if L2CAP is supported. Now just use the
+  // default value.
+  int psm = mediums::BleAdvertisementHeader::kDefaultPsmValue;
+  mediums::BleAdvertisement medium_advertisement = {
       mediums::BleAdvertisement::Version::kV2,
       mediums::BleAdvertisement::SocketVersion::kV2,
       /*service_id_hash=*/is_fast_advertisement ? ByteArray{} : service_id_hash,
-      advertisement_bytes, mediums::bleutils::GenerateDeviceToken(),
-      mediums::BleAdvertisementHeader::kDefaultPsmValue}};
-  if (medium_advertisement_bytes.Empty()) {
+      advertisement_bytes,
+      mediums::bleutils::GenerateDeviceToken(),
+      psm};
+  if (!medium_advertisement.IsValid()) {
     NEARBY_LOGS(INFO) << "Failed to BLE advertise because we could not wrap a "
                          "connection advertisement to medium advertisement.";
     return false;
   }
 
-  // Assemble AdvertisingData and ScanResponseData.
-  BleAdvertisementData advertising_data;
-  BleAdvertisementData scan_response_data;
-  if (is_fast_advertisement) {
-    advertising_data.is_connectable = true;
-    advertising_data.tx_power_level =
-        BleAdvertisementData::kUnspecifiedTxPowerLevel;
-    advertising_data.service_uuids.insert(
-        std::string(mediums::bleutils::kCopresenceServiceUuid));
+  advertising_infos_.insert(
+      {service_id,
+       AdvertisingInfo{.medium_advertisement = medium_advertisement,
+                       .power_level = power_level,
+                       .is_fast_advertisement = is_fast_advertisement}});
 
-    scan_response_data.is_connectable = true;
-    scan_response_data.tx_power_level =
-        BleAdvertisementData::kUnspecifiedTxPowerLevel;
-    scan_response_data.service_data.insert(
-        {std::string(mediums::bleutils::kCopresenceServiceUuid),
-         medium_advertisement_bytes});
-  } else {
-    // Stop the current advertisement GATT server if there are no incoming
-    // sockets connected to this device.
-    //
-    // The reason for aggressively restarting a GATT server is to make sure this
-    // class is not using a stale server object that may not be actually running
-    // anymore (possibly due to Bluetooth being turned off).
-    //
-    // Changing one's GATT server while a remote device is connected to it leads
-    // to a loss of GATT callbacks for that remote device. The only time a
-    // remote device is indefinitely connected to this device's GATT server is
-    // when it has a BLE socket connection.
-    // TODO(b/213835576): Check the BLE Connections is off. We set the fake
-    // value for the time being till connections is implemented.
-    bool no_incoming_ble_sockets = true;
-    if (no_incoming_ble_sockets) {
-      NEARBY_LOGS(VERBOSE)
-          << "Aggressively stopping any pre-existing advertisement GATT "
-             "servers because no incoming BLE sockets are connected";
-      StopAdvertisementGattServerLocked();
-    }
+  // Stop the pre-existing BLE advertisement if there is one.
+  medium_.StopAdvertising();
 
-    // Start a GATT server to deliver the full advertisement data. If fail to
-    // advertise the header, we must shut this down before the method returns.
-    if (!IsAdvertisementGattServerRunningLocked()) {
-      if (!StartAdvertisementGattServerLocked(service_id,
-                                              medium_advertisement_bytes)) {
-        NEARBY_LOGS(ERROR)
-            << "Failed to start BLE advertising for service_id=" << service_id
-            << " because the advertisement GATT server failed to start.";
-        return false;
-      }
-    }
-
-    ByteArray advertisement_header_bytes(CreateAdvertisementHeader());
-    if (advertisement_header_bytes.Empty()) {
-      NEARBY_LOGS(INFO) << "Failed to BLE advertise because we could not "
-                           "create an advertisement header.";
-      // Failed to start BLE advertising, so stop the advertisement GATT
-      // server.
-      StopAdvertisementGattServerLocked();
-      return false;
-    }
-
-    advertising_data.is_connectable = true;
-    advertising_data.tx_power_level =
-        BleAdvertisementData::kUnspecifiedTxPowerLevel;
-
-    scan_response_data.is_connectable = true;
-    scan_response_data.tx_power_level =
-        BleAdvertisementData::kUnspecifiedTxPowerLevel;
-    scan_response_data.service_uuids.insert(
-        std::string(mediums::bleutils::kCopresenceServiceUuid));
-    scan_response_data.service_data.insert(
-        {std::string(mediums::bleutils::kCopresenceServiceUuid),
-         advertisement_header_bytes});
-  }
-
-  if (!medium_.StartAdvertising(advertising_data, scan_response_data,
-                                PowerLevelToPowerMode(power_level))) {
-    NEARBY_LOGS(ERROR)
-        << "Failed to turn on BLE advertising with advertisement bytes="
-        << absl::BytesToHexString(advertisement_bytes.data())
-        << ", is_fast_advertisement=" << is_fast_advertisement;
-
-    // If BLE advertising was not successful, stop the advertisement GATT
-    // server.
-    StopAdvertisementGattServerLocked();
+  if (!StartAdvertisingLocked(service_id)) {
+    advertising_infos_.erase(service_id);
     return false;
   }
-
-  NEARBY_LOGS(INFO) << "Started BLE advertising with advertisement bytes="
-                    << absl::BytesToHexString(advertisement_bytes.data())
-                    << " for service_id=" << service_id;
-  advertising_service_ids_.insert(service_id);
   return true;
 }
 
 bool BleV2::StopAdvertising(const std::string& service_id) {
   MutexLock lock(&mutex_);
-
   if (!IsAdvertisingLocked(service_id)) {
     NEARBY_LOGS(INFO) << "Cannot stop BLE advertising for service_id="
                       << service_id << " because it never started.";
     return false;
   }
 
+  // Stop the BLE advertisement. We will restart it later if necessary.
+  NEARBY_LOGS(INFO) << "Turned off BLE advertising with service_id="
+                    << service_id;
+  advertising_infos_.erase(service_id);
+  medium_.StopAdvertising();
+
   // Remove the GATT advertisements.
   gatt_advertisements_.clear();
 
+  // Restart the BLE advertisement if there is still an advertiser.
   // TODO(b/213835576): Check the BLE Connections is off. We set the fake
   // value for the time being till connections is implemented.
   bool no_incoming_ble_sockets = true;
-  // Set the value of characteristic to empty if there is still an advertiser.
-  if (!hosted_gatt_characteristics_.empty()) {
-    ByteArray empty_value = {};
-    for (const auto& characteristic : hosted_gatt_characteristics_) {
-      if (!gatt_server_->UpdateCharacteristic(characteristic, empty_value)) {
-        NEARBY_LOGS(ERROR)
-            << "Failed to clear characteristic uuid=" << characteristic.uuid
-            << " after stopping BLE advertisement for service_id="
-            << service_id;
+  if (advertising_infos_.empty() && !no_incoming_ble_sockets) {
+    return true;
+  }
+  if (!advertising_infos_.empty()) {
+    if (!hosted_gatt_characteristics_.empty()) {
+      // Set the value of characteristic to empty if there is still an
+      // advertiser.
+      ByteArray empty_value = {};
+      for (const auto& characteristic : hosted_gatt_characteristics_) {
+        if (!gatt_server_->UpdateCharacteristic(characteristic, empty_value)) {
+          NEARBY_LOGS(ERROR)
+              << "Failed to clear characteristic uuid=" << characteristic.uuid
+              << " after stopping BLE advertisement for service_id="
+              << service_id;
+        }
       }
+      hosted_gatt_characteristics_.clear();
     }
-    hosted_gatt_characteristics_.clear();
-  } else if (no_incoming_ble_sockets) {
-    // Otherwise, if we aren't restarting the BLE advertisement, then shutdown
-    // the gatt server if it's not in use.
-    NEARBY_LOGS(VERBOSE)
-        << "Aggressively stopping any pre-existing advertisement GATT servers "
-           "because no incoming BLE sockets are connected.";
-    StopAdvertisementGattServerLocked();
+    // Get the next service_id to restart BLE advertisement.
+    const std::string& service_id = advertising_infos_.begin()->first;
+    if (!StartAdvertisingLocked(service_id)) {
+      NEARBY_LOGS(ERROR)
+          << "Failed to restart BLE advertisement after stopping "
+             "BLE advertisement for service_id="
+          << service_id;
+      advertising_infos_.erase(service_id);
+      return false;
+    }
+    NEARBY_LOGS(INFO) << "Restart BLE advertising with service_id="
+                      << service_id;
+    return true;
   }
 
-  NEARBY_LOGS(INFO) << "Turned off BLE advertising with service_id="
-                    << service_id;
-  advertising_service_ids_.erase(service_id);
-  return medium_.StopAdvertising();
+  // If we aren't restarting the BLE advertisement, then shutdown
+  // the gatt server if it's not in use.
+  NEARBY_LOGS(VERBOSE) << "Aggressively stopping any pre-existing "
+                          "advertisement GATT servers "
+                          "because no incoming BLE sockets are connected.";
+  StopAdvertisementGattServerLocked();
+  return true;
 }
 
 bool BleV2::IsAdvertising(const std::string& service_id) const {
@@ -317,7 +262,7 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
   // changed.
   if (!medium_.StartScanning(
           std::string(mediums::bleutils::kCopresenceServiceUuid),
-          PowerLevelToPowerMode(power_level),
+          PowerLevelToTxPowerLevel(power_level),
           {
               .advertisement_found_cb =
                   [this](BleV2Peripheral peripheral,
@@ -406,7 +351,7 @@ bool BleV2::IsScanning(const std::string& service_id) const {
 bool BleV2::IsAvailableLocked() const { return medium_.IsValid(); }
 
 bool BleV2::IsAdvertisingLocked(const std::string& service_id) const {
-  return advertising_service_ids_.contains(service_id);
+  return advertising_infos_.contains(service_id);
 }
 
 bool BleV2::IsScanningLocked(const std::string& service_id) const {
@@ -499,7 +444,7 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
   // from the GATT server.
   bool read_success = true;
   std::unique_ptr<GattClient> gatt_client = medium_.ConnectToGattServer(
-      std::move(peripheral), PowerLevelToPowerMode(PowerLevel::kHighPower),
+      std::move(peripheral), PowerLevelToTxPowerLevel(PowerLevel::kHighPower),
       /*ClientGattConnectionCallback=*/{});
   if (!gatt_client || !gatt_client->IsValid()) {
     advertisement_read_result.RecordLastReadStatus(false);
@@ -565,7 +510,8 @@ bool BleV2::StopAdvertisementGattServerLocked() {
   return true;
 }
 
-ByteArray BleV2::CreateAdvertisementHeader() {
+ByteArray BleV2::CreateAdvertisementHeader(
+    int psm, bool extended_advertisement_advertised) {
   // Create a randomized dummy service id to anonymize the header with.
   ByteArray dummy_service_id_bytes =
       Utils::GenerateRandomBytes(kDummyServiceIdLength);
@@ -583,8 +529,7 @@ ByteArray BleV2::CreateAdvertisementHeader() {
     const ByteArray& gatt_advertisement = item.second.second;
     bloom_filter.Add(service_id);
 
-    // Compute the next hash according to the algorithm in
-    // https://source.corp.google.com/piper///depot/google3/java/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/mediums/bluetooth/BluetoothLowEnergy.java;rcl=428397891;l=1043
+    // Compute the next hash.
     std::string advertisement_bodies = absl::StrCat(
         advertisement_hash.AsStringView(), gatt_advertisement.AsStringView());
 
@@ -594,21 +539,183 @@ ByteArray BleV2::CreateAdvertisementHeader() {
 
   return ByteArray(mediums::BleAdvertisementHeader(
       mediums::BleAdvertisementHeader::Version::kV2,
-      /*extended_advertisement=*/false,
+      extended_advertisement_advertised,
       /*num_slots=*/gatt_advertisements_.size(), ByteArray(bloom_filter),
-      advertisement_hash, /*psm=*/0));
+      advertisement_hash, psm));
 }
 
-PowerMode BleV2::PowerLevelToPowerMode(PowerLevel power_level) {
+bool BleV2::StartAdvertisingLocked(const std::string& service_id) {
+  const auto it = advertising_infos_.find(service_id);
+  if (it == advertising_infos_.end()) {
+    NEARBY_LOGS(WARNING) << "Failed to BLE advertise with service_id="
+                         << service_id;
+    return false;
+  }
+
+  const AdvertisingInfo& info = it->second;
+  if (info.is_fast_advertisement) {
+    return StartFastAdvertisingLocked(info.power_level,
+                                      info.medium_advertisement);
+  } else {
+    return StartRegularAdvertisingLocked(service_id, info.power_level,
+                                         info.medium_advertisement);
+  }
+}
+
+bool BleV2::StartFastAdvertisingLocked(
+    PowerLevel power_level,
+    const mediums::BleAdvertisement& medium_advertisement) {
+  // Begin building the fast BLE advertisement.
+  BleAdvertisementData advertising_data;
+  ByteArray medium_advertisement_bytes = ByteArray(medium_advertisement);
+  advertising_data.is_extended_advertisement = false;
+  advertising_data.service_data.insert(
+      {std::string(mediums::bleutils::kCopresenceServiceUuid),
+       medium_advertisement_bytes});
+
+  // Finally, start the fast advertising operation.
+  if (!medium_.StartAdvertising(
+          advertising_data,
+          {.tx_power_level = PowerLevelToTxPowerLevel(power_level),
+           .is_connectable = true})) {
+    NEARBY_LOGS(ERROR) << "Failed to turn on BLE fast advertising with "
+                          "advertisement bytes="
+                       << absl::BytesToHexString(
+                              medium_advertisement_bytes.data());
+    return false;
+  }
+  return true;
+}
+
+bool BleV2::StartRegularAdvertisingLocked(
+    const std::string& service_id, PowerLevel power_level,
+    const mediums::BleAdvertisement& medium_advertisement) {
+  // Begin building the regular BLE advertisement.
+  BleAdvertisementData advertising_data;
+  ByteArray medium_advertisement_bytes =
+      medium_.IsExtendedAdvertisementsAvailable()
+          ? medium_advertisement.ByteArrayWithExtraField()
+          : ByteArray(medium_advertisement);
+
+  // Start extended advertisement first if available.
+  bool extended_regular_advertisement_success = false;
+  if (medium_.IsExtendedAdvertisementsAvailable()) {
+    advertising_data.is_extended_advertisement = true;
+    advertising_data.service_data.insert(
+        {std::string(mediums::bleutils::kCopresenceServiceUuid),
+         medium_advertisement_bytes});
+
+    // Start the extended regular advertising operation.
+    extended_regular_advertisement_success = medium_.StartAdvertising(
+        advertising_data,
+        {.tx_power_level = PowerLevelToTxPowerLevel(power_level),
+         .is_connectable = true});
+    if (!extended_regular_advertisement_success) {
+      NEARBY_LOGS(ERROR)
+          << "Failed to turn on BLE extended regular advertising with "
+             "advertisement bytes="
+          << absl::BytesToHexString(medium_advertisement_bytes.data());
+    }
+  }
+
+  // Start GATT advertisement no matter extended advertisment succeeded or not.
+  // This is to ensure that legacy devices which don't support extended
+  // advertisement can get the advertisement via GATT connection.
+  bool gatt_advertisement_success = StartGattAdvertisingLocked(
+      service_id, power_level, medium_advertisement.GetPsm(),
+      medium_advertisement_bytes, extended_regular_advertisement_success);
+
+  return extended_regular_advertisement_success || gatt_advertisement_success;
+}
+
+bool BleV2::StartGattAdvertisingLocked(
+    const std::string& service_id, PowerLevel power_level, int psm,
+    const ByteArray& medium_advertisement_bytes,
+    bool extended_advertisement_advertised) {
+  // Begin building the GATT BLE advertisement header.
+  BleAdvertisementData advertising_data;
+  advertising_data.is_extended_advertisement = false;
+
+  // Stop the current advertisement GATT server if there are no incoming
+  // sockets connected to this device.
+  //
+  // The reason for aggressively restarting a GATT server is to make sure this
+  // class is not using a stale server object that may not be actually running
+  // anymore (possibly due to Bluetooth being turned off).
+  //
+  // Changing one's GATT server while a remote device is connected to it leads
+  // to a loss of GATT callbacks for that remote device. The only time a
+  // remote device is indefinitely connected to this device's GATT server is
+  // when it has a BLE socket connection.
+  // TODO(b/213835576): Check the BLE Connections is off. We set the fake
+  // value for the time being till connections is implemented.
+  bool no_incoming_ble_sockets = true;
+  if (no_incoming_ble_sockets) {
+    NEARBY_LOGS(VERBOSE)
+        << "Aggressively stopping any pre-existing advertisement GATT "
+           "servers because no incoming BLE sockets are connected";
+    StopAdvertisementGattServerLocked();
+  }
+
+  // Start a GATT server to deliver the full advertisement data. If fail to
+  // advertise the header, we must shut this down before the method returns.
+  if (!IsAdvertisementGattServerRunningLocked()) {
+    if (!StartAdvertisementGattServerLocked(service_id,
+                                            medium_advertisement_bytes)) {
+      NEARBY_LOGS(ERROR)
+          << "Failed to turn on BLE GATT advertising for service_id="
+          << service_id
+          << " because the advertisement GATT server failed to start.";
+      return false;
+    }
+  }
+
+  // Begin building the regular BLE advertisement (backed by a GATT server).
+  // Add the advertisement header.
+  ByteArray advertisement_header_bytes =
+      CreateAdvertisementHeader(psm, extended_advertisement_advertised);
+  if (advertisement_header_bytes.Empty()) {
+    NEARBY_LOGS(ERROR)
+        << "Failed to turn on BLE GATT advertising because we could not "
+           "create an advertisement header.";
+    // Failed to create an advertisement header, so stop the advertisement
+    // GATT server.
+    StopAdvertisementGattServerLocked();
+    return false;
+  }
+
+  advertising_data.service_data.insert(
+      {std::string(mediums::bleutils::kCopresenceServiceUuid),
+       advertisement_header_bytes});
+
+  // Finally, start the regular advertising operation.
+  if (!medium_.StartAdvertising(
+          advertising_data,
+          {.tx_power_level = PowerLevelToTxPowerLevel(power_level),
+           .is_connectable = true})) {
+    NEARBY_LOGS(ERROR) << "Failed to turn on BLE GATT advertising with "
+                          "advertisement bytes="
+                       << absl::BytesToHexString(
+                              medium_advertisement_bytes.data());
+    // If BLE advertising was not successful, stop the advertisement GATT
+    // server.
+    StopAdvertisementGattServerLocked();
+    return false;
+  }
+
+  return true;
+}
+
+TxPowerLevel BleV2::PowerLevelToTxPowerLevel(PowerLevel power_level) {
   switch (power_level) {
     case PowerLevel::kHighPower:
-      return PowerMode::kHigh;
+      return TxPowerLevel::kHigh;
     case PowerLevel::kLowPower:
       // Medium power is about the size of a conference room.
       // Any lower and we won't be visible at a distance.
-      return PowerMode::kMedium;
+      return TxPowerLevel::kMedium;
     default:
-      return PowerMode::kUnknown;
+      return TxPowerLevel::kUnknown;
   }
 }
 

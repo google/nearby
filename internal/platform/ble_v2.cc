@@ -28,26 +28,26 @@ namespace nearby {
 
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
 using ::location::nearby::api::ble_v2::GattCharacteristic;
-using ::location::nearby::api::ble_v2::PowerMode;
+using ::location::nearby::api::ble_v2::TxPowerLevel;
 
 bool BleV2Medium::StartAdvertising(
     const BleAdvertisementData& advertising_data,
-    const BleAdvertisementData& scan_response_data, PowerMode power_mode) {
-  return impl_->StartAdvertising(advertising_data, scan_response_data,
-                                 power_mode);
+    api::ble_v2::AdvertiseParameters advertise_parameters) {
+  return impl_->StartAdvertising(advertising_data, advertise_parameters);
 }
 
 bool BleV2Medium::StopAdvertising() { return impl_->StopAdvertising(); }
 
 bool BleV2Medium::StartScanning(const std::string& service_uuid,
-                                PowerMode power_mode, ScanCallback callback) {
+                                TxPowerLevel tx_power_level,
+                                ScanCallback callback) {
   MutexLock lock(&mutex_);
   if (scanning_enabled_) {
     NEARBY_LOGS(INFO) << "Ble Scanning already enabled; impl=" << GetImpl();
     return false;
   }
   bool success = impl_->StartScanning(
-      service_uuid, power_mode,
+      service_uuid, tx_power_level,
       {
           .advertisement_found_cb =
               [this](api::ble_v2::BlePeripheral& peripheral,
@@ -119,7 +119,7 @@ std::unique_ptr<GattServer> BleV2Medium::StartGattServer(
 }
 
 std::unique_ptr<GattClient> BleV2Medium::ConnectToGattServer(
-    BleV2Peripheral peripheral, PowerMode power_mode,
+    BleV2Peripheral peripheral, TxPowerLevel tx_power_level,
     ClientGattConnectionCallback callback) {
   {
     MutexLock lock(&mutex_);
@@ -128,7 +128,7 @@ std::unique_ptr<GattClient> BleV2Medium::ConnectToGattServer(
 
   std::unique_ptr<api::ble_v2::GattClient> api_gatt_client =
       impl_->ConnectToGattServer(
-          peripheral.GetImpl(), power_mode,
+          peripheral.GetImpl(), tx_power_level,
           {
               .disconnected_cb =
                   [this]() {
@@ -137,6 +137,10 @@ std::unique_ptr<GattClient> BleV2Medium::ConnectToGattServer(
                   },
           });
   return std::make_unique<GattClient>(std::move(api_gatt_client));
+}
+
+bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
+  return impl_->IsExtendedAdvertisementsAvailable();
 }
 
 }  // namespace nearby

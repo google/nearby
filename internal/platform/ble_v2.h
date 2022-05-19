@@ -24,6 +24,7 @@
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/platform.h"
 #include "internal/platform/mutex.h"
 
 namespace location {
@@ -153,13 +154,13 @@ class BleV2Medium final {
   // Returns true once the BLE advertising has been initiated.
   bool StartAdvertising(
       const api::ble_v2::BleAdvertisementData& advertising_data,
-      const api::ble_v2::BleAdvertisementData& scan_response_data,
-      api::ble_v2::PowerMode power_mode);
+      api::ble_v2::AdvertiseParameters advertise_parameters);
   bool StopAdvertising();
 
   // Returns true once the BLE scan has been initiated.
   bool StartScanning(const std::string& service_uuid,
-                     api::ble_v2::PowerMode power_mode, ScanCallback callback);
+                     api::ble_v2::TxPowerLevel tx_power_level,
+                     ScanCallback callback);
   bool StopScanning();
 
   // Starts Gatt Server for waiting to client connection.
@@ -169,8 +170,10 @@ class BleV2Medium final {
   // Returns a new GattClient connection to a gatt server.
   // There is only one instance of GattServer can run at a time.
   std::unique_ptr<GattClient> ConnectToGattServer(
-      BleV2Peripheral peripheral, api::ble_v2::PowerMode power_mode,
+      BleV2Peripheral peripheral, api::ble_v2::TxPowerLevel tx_power_level,
       ClientGattConnectionCallback callback);
+
+  bool IsExtendedAdvertisementsAvailable();
 
   bool IsValid() const { return impl_ != nullptr; }
 

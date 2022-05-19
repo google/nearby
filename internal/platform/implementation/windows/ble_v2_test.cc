@@ -34,7 +34,8 @@ TEST(BleV2Medium, DISABLED_StartAdvertising) {
   api::ble_v2::BleAdvertisementData scan_response_data;
 
   EXPECT_TRUE(blev2_medium.StartAdvertising(
-      advertising_data, scan_response_data, api::ble_v2::PowerMode::kHigh));
+      advertising_data, {.tx_power_level = api::ble_v2::TxPowerLevel::kHigh,
+                         .is_connectable = true}));
 }
 
 TEST(BleV2Medium, DISABLED_StopAdvertising) {
@@ -42,10 +43,10 @@ TEST(BleV2Medium, DISABLED_StopAdvertising) {
   BleV2Medium blev2_medium(bluetoothAdapter);
 
   api::ble_v2::BleAdvertisementData advertising_data;
-  api::ble_v2::BleAdvertisementData scan_response_data;
 
   EXPECT_TRUE(blev2_medium.StartAdvertising(
-      advertising_data, scan_response_data, api::ble_v2::PowerMode::kHigh));
+      advertising_data, {.tx_power_level = api::ble_v2::TxPowerLevel::kHigh,
+                         .is_connectable = true}));
   EXPECT_TRUE(blev2_medium.StopAdvertising());
 }
 
@@ -67,7 +68,7 @@ TEST(BleV2Medium, DISABLED_StartScanning) {
       };
 
   EXPECT_TRUE(blev2_medium.StartScanning(
-      service_uuid, api::ble_v2::PowerMode::kHigh, callback));
+      service_uuid, api::ble_v2::TxPowerLevel::kHigh, callback));
 
   EXPECT_TRUE(scan_response_notification.WaitForNotificationWithTimeout(
       absl::Seconds(5)));
@@ -85,7 +86,7 @@ TEST(BleV2Medium, DISABLED_StopScanning) {
          const api::ble_v2::BleAdvertisementData& advertisement_data) {};
 
   EXPECT_TRUE(blev2_medium.StartScanning(
-      service_uuid, api::ble_v2::PowerMode::kHigh, callback));
+      service_uuid, api::ble_v2::TxPowerLevel::kHigh, callback));
 
   EXPECT_TRUE(blev2_medium.StopScanning());
 }

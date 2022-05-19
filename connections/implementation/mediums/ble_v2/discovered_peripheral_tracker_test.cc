@@ -211,8 +211,6 @@ TEST_F(DiscoveredPeripheralTrackerTest,
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!fast_advertisement_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kFastAdvertisementServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
   }
@@ -252,8 +250,6 @@ TEST_F(DiscoveredPeripheralTrackerTest,
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!fast_advertisement_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kFastAdvertisementServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
   }
@@ -298,8 +294,6 @@ TEST_F(DiscoveredPeripheralTrackerTest,
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!fast_advertisement_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kFastAdvertisementServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
   }
@@ -357,14 +351,10 @@ TEST_F(DiscoveredPeripheralTrackerTest,
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
   }
   if (!fast_advertisement_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kFastAdvertisementServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
   }
@@ -406,8 +396,6 @@ TEST_F(DiscoveredPeripheralTrackerTest,
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
   }
@@ -444,8 +432,6 @@ TEST_F(DiscoveredPeripheralTrackerTest,
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
   }
@@ -492,8 +478,6 @@ TEST_F(DiscoveredPeripheralTrackerTest,
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
   }
@@ -540,8 +524,6 @@ TEST_F(DiscoveredPeripheralTrackerTest,
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
   }
@@ -585,8 +567,6 @@ TEST_F(DiscoveredPeripheralTrackerTest,
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
   }
@@ -636,14 +616,10 @@ TEST_F(DiscoveredPeripheralTrackerTest,
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
   }
   if (!fast_advertisement_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kFastAdvertisementServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
   }
@@ -700,14 +676,10 @@ TEST_F(DiscoveredPeripheralTrackerTest,
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
   }
   if (!fast_advertisement_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kFastAdvertisementServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
   }
@@ -761,8 +733,6 @@ TEST_F(DiscoveredPeripheralTrackerTest, LostPeripheralForAdvertisementLost) {
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
   }
@@ -841,14 +811,10 @@ TEST_F(DiscoveredPeripheralTrackerTest,
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
   }
   if (!fast_advertisement_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kFastAdvertisementServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
   }
@@ -907,8 +873,6 @@ TEST_F(DiscoveredPeripheralTrackerTest,
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
         {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
   }

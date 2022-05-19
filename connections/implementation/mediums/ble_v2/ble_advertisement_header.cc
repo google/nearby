@@ -20,7 +20,6 @@
 #include <utility>
 
 #include "absl/strings/str_cat.h"
-#include "internal/platform/base64_utils.h"
 #include "internal/platform/base_input_stream.h"
 #include "internal/platform/logging.h"
 
@@ -36,7 +35,7 @@ constexpr int BleAdvertisementHeader::kDefaultPsmValue;
 constexpr int BleAdvertisementHeader::kPsmValueByteLength;
 
 BleAdvertisementHeader::BleAdvertisementHeader(
-    Version version, bool extended_advertisement, int num_slots,
+    Version version, bool support_extended_advertisement, int num_slots,
     const ByteArray &service_id_bloom_filter,
     const ByteArray &advertisement_hash, int psm) {
   if (version != Version::kV2 || num_slots < 0 ||
@@ -46,7 +45,7 @@ BleAdvertisementHeader::BleAdvertisementHeader(
   }
 
   version_ = version;
-  extended_advertisement_ = extended_advertisement;
+  support_extended_advertisement_ = support_extended_advertisement;
   num_slots_ = num_slots;
   service_id_bloom_filter_ = service_id_bloom_filter;
   advertisement_hash_ = advertisement_hash;
@@ -87,7 +86,7 @@ BleAdvertisementHeader::BleAdvertisementHeader(
     return;
   }
   // The next 1 bit is supposed to be the extended advertisement flag.
-  extended_advertisement_ =
+  support_extended_advertisement_ =
       ((version_and_num_slots_byte & kExtendedAdvertismentBitMask) >> 4) == 1;
   // The lower 4 bits are supposed to be the number of slots.
   num_slots_ = static_cast<int>(version_and_num_slots_byte & kNumSlotsBitmask);
@@ -120,7 +119,7 @@ BleAdvertisementHeader::operator ByteArray() const {
       (static_cast<char>(version_) << 5) & kVersionBitmask;
   // The next 1 bit is extended advertisement flag.
   version_and_num_slots_byte |=
-      (static_cast<char>(extended_advertisement_) << 4) &
+      (static_cast<char>(support_extended_advertisement_) << 4) &
       kExtendedAdvertismentBitMask;
   // The next 5 bits are the number of slots.
   version_and_num_slots_byte |=
@@ -145,7 +144,8 @@ BleAdvertisementHeader::operator ByteArray() const {
 bool BleAdvertisementHeader::operator==(
     const BleAdvertisementHeader &rhs) const {
   return GetVersion() == rhs.GetVersion() &&
-         IsExtendedAdvertisement() == rhs.IsExtendedAdvertisement() &&
+         IsSupportExtendedAdvertisement() ==
+             rhs.IsSupportExtendedAdvertisement() &&
          GetNumSlots() == rhs.GetNumSlots() &&
          GetServiceIdBloomFilter() == rhs.GetServiceIdBloomFilter() &&
          GetAdvertisementHash() == rhs.GetAdvertisementHash() &&

@@ -38,12 +38,12 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   // Returns true once the Ble advertising has been initiated.
   bool StartAdvertising(
       const api::ble_v2::BleAdvertisementData& advertising_data,
-      const api::ble_v2::BleAdvertisementData& scan_response_data,
-      api::ble_v2::PowerMode power_mode) override ABSL_LOCKS_EXCLUDED(mutex_);
+      api::ble_v2::AdvertiseParameters advertise_parameters) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
   bool StopAdvertising() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool StartScanning(const std::string& service_uuid,
-                     api::ble_v2::PowerMode power_mode,
+                     api::ble_v2::TxPowerLevel tx_power_level,
                      ScanCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
   bool StopScanning() override ABSL_LOCKS_EXCLUDED(mutex_);
@@ -56,13 +56,16 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   void StopListeningForIncomingBleSockets() override
       ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<api::ble_v2::GattClient> ConnectToGattServer(
-      api::ble_v2::BlePeripheral& peripheral, api::ble_v2::PowerMode power_mode,
+      api::ble_v2::BlePeripheral& peripheral,
+      api::ble_v2::TxPowerLevel tx_power_level,
       api::ble_v2::ClientGattConnectionCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<api::ble_v2::BleSocket> EstablishBleSocket(
       api::ble_v2::BlePeripheral* peripheral,
       const api::ble_v2::BleSocketLifeCycleCallback& callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
+
+  bool IsExtendedAdvertisementsAvailable() override;
 
   BluetoothAdapter& GetAdapter() { return *adapter_; }
 
@@ -113,6 +116,8 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   absl::Mutex mutex_;
   BluetoothAdapter* adapter_;  // Our device adapter; read-only.
+  // TODO(edwinwu): Adds extended advertisement for testing.
+  bool is_support_extended_advertisement_ = false;
 };
 
 }  // namespace g3

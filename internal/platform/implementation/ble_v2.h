@@ -24,7 +24,6 @@
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -38,12 +37,22 @@ namespace api {
 namespace ble_v2 {
 
 // Coarse representation of power settings throughout all BLE operations.
-enum class PowerMode {
+enum class TxPowerLevel {
   kUnknown = 0,
   kUltraLow = 1,
   kLow = 2,
   kMedium = 3,
   kHigh = 4,
+};
+
+// https://developer.android.com/reference/android/bluetooth/le/AdvertisingSetParameters.Builder
+//
+// The preferences for Advertising.
+struct AdvertiseParameters {
+  // The transmission power level for the advertising.
+  TxPowerLevel tx_power_level;
+  // Whether the advertisement type should be connectable or non-connectable.
+  bool is_connectable;
 };
 
 // https://developer.android.com/reference/android/bluetooth/le/AdvertiseData
@@ -54,27 +63,17 @@ enum class PowerMode {
 // 0000xxxx-0000-1000-8000-00805F9B34FB. This makes it possible to store two
 // byte service UUIDs in the advertisement.
 struct BleAdvertisementData {
-  using TxPowerLevel = std::int8_t;
-
-  static constexpr TxPowerLevel kUnspecifiedTxPowerLevel =
-      std::numeric_limits<TxPowerLevel>::min();
-
-  bool is_connectable;
-
-  // If tx_power_level is not set to kUnspecifiedTxPowerLevel, platform
-  // implementer needs to set the TxPowerLevel.
-  TxPowerLevel tx_power_level;
-
-  // If the set is not empty, the platform implementer needs to add the
-  // service_uuids in the advertisement data.
-  absl::flat_hash_set<std::string> service_uuids;
+  // Broadcasts a BLE extended advertisement if it is true.
+  bool is_extended_advertisement;
 
   // Maps service UUIDs to their service data.
   //
-  // Note if platform can't advertise data from Data type (0x16)
-  // (reaonly in iOS), then (iOS) should advertise data via LocalName data
-  // type (0x08). It means the iOS should take the first index of service_data
-  // as the data for LocalName type.
+  // For each platform should follow to set the service UUID(key) and service
+  // data(value):
+  //
+  // iOS    : 16 bit service UUID (type=0x03) + LocalName data (type=0x08)
+  // Windows: Service data (type=0x16)
+  // Android: 16 bit service UUID (type=0x03) + Service data (type=0x16)
   absl::flat_hash_map<std::string, location::nearby::ByteArray> service_data;
 };
 
@@ -274,15 +273,9 @@ class BleMedium {
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeAdvertiser.html#startAdvertising(android.bluetooth.le.AdvertiseSettings,%20android.bluetooth.le.AdvertiseData,%20android.bluetooth.le.AdvertiseData,%20android.bluetooth.le.AdvertiseCallback)
   //
   // Starts BLE advertising and returns whether or not it was successful.
-  //
-  // Power mode should be interpreted in the following way:
-  //   LOW:
-  //     - TX power = medium
-  //   HIGH:
-  //     - TX power = high
-  virtual bool StartAdvertising(const BleAdvertisementData& advertising_data,
-                                const BleAdvertisementData& scan_response_data,
-                                PowerMode power_mode) = 0;
+  virtual bool StartAdvertising(
+      const BleAdvertisementData& advertising_data,
+      AdvertiseParameters advertise_set_parameters) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeAdvertiser.html#stopAdvertising(android.bluetooth.le.AdvertiseCallback)
   //
@@ -312,7 +305,7 @@ class BleMedium {
   //
   // Starts scanning and returns whether or not it was successful.
   //
-  // Power mode should be interpreted in the following way:
+  // TX Power level should be interpreted in the following way:
   //   LOW:
   //     - Scan window = ~512ms
   //     - Scan interval = ~5120ms
@@ -320,7 +313,8 @@ class BleMedium {
   //     - Scan window = ~4096ms
   //     - Scan interval = ~4096ms
   virtual bool StartScanning(const std::string& service_uuid,
-                             PowerMode power_mode, ScanCallback callback) = 0;
+                             TxPowerLevel tx_power_level,
+                             ScanCallback callback) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeScanner.html#stopScan(android.bluetooth.le.ScanCallback)
   //
@@ -347,13 +341,13 @@ class BleMedium {
   // Connects to a GATT server and negotiates the specified connection
   // parameters. Returns nullptr upon error.
   //
-  // Power mode should be interpreted in the following way:
+  // TX Power level should be interpreted in the following way:
   //   HIGH:
   //     - Connection interval = ~11.25ms - 15ms
   //   LOW:
   //     - Connection interval = ~100ms - 125ms
   virtual std::unique_ptr<GattClient> ConnectToGattServer(
-      BlePeripheral& peripheral, PowerMode power_mode,
+      BlePeripheral& peripheral, TxPowerLevel tx_power_level,
       ClientGattConnectionCallback callback) = 0;
 
   // Establishes a BLE socket to the specified remote peripheral. Returns
@@ -361,6 +355,9 @@ class BleMedium {
   virtual std::unique_ptr<BleSocket> EstablishBleSocket(
       BlePeripheral* peripheral,
       const BleSocketLifeCycleCallback& callback) = 0;
+
+  // Requests if support extended advertisement.
+  virtual bool IsExtendedAdvertisementsAvailable() = 0;
 };
 
 }  // namespace ble_v2

@@ -18,7 +18,6 @@
 
 #include "gtest/gtest.h"
 #include "absl/hash/hash_testing.h"
-#include "internal/platform/base64_utils.h"
 
 namespace location {
 namespace nearby {
@@ -44,7 +43,7 @@ TEST(BleAdvertisementHeaderTest, ConstructionWorks) {
 
   EXPECT_TRUE(ble_advertisement_header.IsValid());
   EXPECT_EQ(kVersion, ble_advertisement_header.GetVersion());
-  EXPECT_FALSE(ble_advertisement_header.IsExtendedAdvertisement());
+  EXPECT_FALSE(ble_advertisement_header.IsSupportExtendedAdvertisement());
   EXPECT_EQ(kNumSlots, ble_advertisement_header.GetNumSlots());
   EXPECT_EQ(service_id_bloom_filter,
             ble_advertisement_header.GetServiceIdBloomFilter());
@@ -161,7 +160,7 @@ TEST(BleAdvertisementHeaderTest, ConstructionFromSerializedStringWorks) {
 
   EXPECT_TRUE(ble_advertisement_header.IsValid());
   EXPECT_EQ(kVersion, ble_advertisement_header.GetVersion());
-  EXPECT_FALSE(ble_advertisement_header.IsExtendedAdvertisement());
+  EXPECT_FALSE(ble_advertisement_header.IsSupportExtendedAdvertisement());
   EXPECT_EQ(kNumSlots, ble_advertisement_header.GetNumSlots());
   EXPECT_EQ(service_id_bloom_filter,
             ble_advertisement_header.GetServiceIdBloomFilter());
@@ -188,7 +187,7 @@ TEST(BleAdvertisementHeaderTest, ConstructionFromExtraBytesWorks) {
 
   EXPECT_TRUE(long_ble_advertisement_header.IsValid());
   EXPECT_EQ(kVersion, long_ble_advertisement_header.GetVersion());
-  EXPECT_FALSE(ble_advertisement_header.IsExtendedAdvertisement());
+  EXPECT_FALSE(ble_advertisement_header.IsSupportExtendedAdvertisement());
   EXPECT_EQ(kNumSlots, long_ble_advertisement_header.GetNumSlots());
   EXPECT_EQ(service_id_bloom_filter,
             long_ble_advertisement_header.GetServiceIdBloomFilter());

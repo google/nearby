@@ -20,9 +20,11 @@
 #include <string>
 #include <utility>
 
+#include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
+#include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/power_level.h"
@@ -63,8 +65,7 @@ class BleV2 final {
   //                         but much more efficient to discover.
   bool StartAdvertising(const std::string& service_id,
                         const ByteArray& advertisement_bytes,
-                        PowerLevel power_level,
-                        bool is_fast_advertisement)
+                        PowerLevel power_level, bool is_fast_advertisement)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables BLE advertising.
@@ -101,6 +102,12 @@ class BleV2 final {
   }
 
  private:
+  struct AdvertisingInfo {
+    mediums::BleAdvertisement medium_advertisement;
+    PowerLevel power_level;
+    bool is_fast_advertisement;
+  };
+
   // Same as IsAvailable(), but must be called with `mutex_` held.
   bool IsAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -129,9 +136,26 @@ class BleV2 final {
   bool StopAdvertisementGattServerLocked()
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  ByteArray CreateAdvertisementHeader() ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+  ByteArray CreateAdvertisementHeader(int psm,
+                                      bool extended_advertisement_advertised)
+      ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+  bool StartAdvertisingLocked(const std::string& service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StartFastAdvertisingLocked(
+      PowerLevel power_level,
+      const mediums::BleAdvertisement& medium_advertisement)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StartRegularAdvertisingLocked(
+      const std::string& service_id, PowerLevel power_level,
+      const mediums::BleAdvertisement& medium_advertisement)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StartGattAdvertisingLocked(const std::string& service_id,
+                                  PowerLevel power_level, int psm,
+                                  const ByteArray& medium_advertisement_bytes,
+                                  bool extended_advertisement_advertised)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  api::ble_v2::PowerMode PowerLevelToPowerMode(PowerLevel power_level);
+  api::ble_v2::TxPowerLevel PowerLevelToTxPowerLevel(PowerLevel power_level);
 
   void RunOnBleThread(Runnable runnable);
 
@@ -142,7 +166,7 @@ class BleV2 final {
   BluetoothRadio& radio_ ABSL_GUARDED_BY(mutex_);
   BluetoothAdapter& adapter_ ABSL_GUARDED_BY(mutex_);
   BleV2Medium medium_ ABSL_GUARDED_BY(mutex_){adapter_};
-  absl::flat_hash_set<std::string> advertising_service_ids_
+  absl::btree_map<std::string, AdvertisingInfo> advertising_infos_
       ABSL_GUARDED_BY(mutex_);
   std::unique_ptr<GattServer> gatt_server_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<int, std::pair<std::string, ByteArray>>

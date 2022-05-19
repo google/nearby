@@ -15,6 +15,7 @@
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker.h"
 
 #include <algorithm>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <utility>
@@ -84,6 +85,12 @@ void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
     return;
   }
 
+  if (IsSkippableGattAdvertisement(advertisement_data)) {
+    NEARBY_LOGS(INFO)
+        << "Ignore GATT advertisement and wait for extended advertisement.";
+    return;
+  }
+
   HandleAdvertisement(peripheral, advertisement_data);
   HandleAdvertisementHeader(peripheral, advertisement_data,
                             std::move(advertisement_fetcher));
@@ -127,6 +134,21 @@ void DiscoveredPeripheralTracker::ClearDataForServiceId(
     }
     ClearGattAdvertisement(it.first);
   }
+}
+
+bool DiscoveredPeripheralTracker::IsSkippableGattAdvertisement(
+    const api::ble_v2::BleAdvertisementData& advertisement_data) {
+  if (!is_extended_advertisement_available_) {
+    // Don't skip any advertisement if the scanner doesn't support extended
+    // advertisement.
+    return false;
+  }
+
+  BleAdvertisementHeader advertisement_header(
+      ExtractAdvertisementHeaderBytes(advertisement_data));
+
+  return advertisement_header.IsValid() &&
+         advertisement_header.IsSupportExtendedAdvertisement();
 }
 
 void DiscoveredPeripheralTracker::ClearGattAdvertisement(
@@ -176,18 +198,17 @@ void DiscoveredPeripheralTracker::HandleAdvertisement(
   // First filter out kCopresenceServiceUuid and see if any Caller UUID
   // existed; if not then just take the kCopresenceServiceUuid as
   // |service_uuid|.
-  std::vector<std::string> extracted_uuids;
+  absl::flat_hash_map<std::string, location::nearby::ByteArray> extracted_uuids;
   // Filter out kCoprsence service uuid.
-  std::remove_copy_if(advertisement_data.service_uuids.begin(),
-                      advertisement_data.service_uuids.end(),
-                      std::back_inserter(extracted_uuids),
-                      [](const std::string& advertisement_data_service_uuid) {
-                        return advertisement_data_service_uuid ==
-                               bleutils::kCopresenceServiceUuid;
-                      });
+  std::remove_copy_if(
+      advertisement_data.service_data.begin(),
+      advertisement_data.service_data.end(),
+      std::inserter(extracted_uuids, extracted_uuids.end()),
+      [](const std::pair<const std::string, location::nearby::ByteArray>&
+             pair) { return pair.first == bleutils::kCopresenceServiceUuid; });
   std::string service_uuid;
   if (!extracted_uuids.empty()) {
-    service_uuid = extracted_uuids.front();
+    service_uuid = extracted_uuids.begin()->first;
   } else {
     service_uuid = std::string(bleutils::kCopresenceServiceUuid);
   }
@@ -214,9 +235,9 @@ ByteArray DiscoveredPeripheralTracker::ExtractInterestingAdvertisementBytes(
   // advertisements are contained within this BLE advertisement.
   for (const auto& item : service_id_infos_) {
     const ServiceIdInfo& service_id_info = item.second;
-    // Check if there's service data for this fast advertisement
-    // service UUID. If so, we can short-circuit since all BLE
-    // advertisements can contain at most ONE fast advertisement.
+    // Check if there's service data for this fast advertisement service UUID.
+    // If so, we can short-circuit since all BLE advertisements can contain at
+    // most ONE fast advertisement.
     const auto sd_it = advertisement_data.service_data.find(
         service_id_info.fast_advertisement_service_uuid);
     if (sd_it != advertisement_data.service_data.end()) {
@@ -410,10 +431,7 @@ bool DiscoveredPeripheralTracker::ShouldRemoveHeader(
   // remove the physical header for the new incoming regular extended
   // advertisement. Otherwise, it make the device to fetch advertisement when
   // received a physical header again.
-  // TODO(b/213835576) : Implement API to fetch the support for extended
-  // advertisement from platform impl.
-  bool is_extended_advertisement_available = false;
-  if (is_extended_advertisement_available) {
+  if (is_extended_advertisement_available_) {
     if (!IsDummyAdvertisementHeader(old_advertisement_header) &&
         IsDummyAdvertisementHeader(new_advertisement_header)) {
       return false;

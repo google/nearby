@@ -50,6 +50,7 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform:types",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
+        "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/functional:bind_front",

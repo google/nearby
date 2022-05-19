@@ -20,7 +20,6 @@
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble_v2.h"
-#include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
 #include "winrt/Windows.Devices.Bluetooth.h"
@@ -32,12 +31,13 @@ namespace windows {
 
 namespace {
 
+using ::location::nearby::api::ble_v2::AdvertiseParameters;
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
 using ::location::nearby::api::ble_v2::BleSocket;
 using ::location::nearby::api::ble_v2::BleSocketLifeCycleCallback;
 using ::location::nearby::api::ble_v2::GattClient;
-using ::location::nearby::api::ble_v2::PowerMode;
 using ::location::nearby::api::ble_v2::ServerGattConnectionCallback;
+using ::location::nearby::api::ble_v2::TxPowerLevel;
 using ::winrt::Windows::Devices::Bluetooth::BluetoothError;
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEAdvertisement;
@@ -61,22 +61,23 @@ using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEAdvertisementWatcherStoppedEventArgs;
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEScanningMode;
+using ::winrt::Windows::Storage::Streams::Buffer;
 using ::winrt::Windows::Storage::Streams::DataWriter;
 
 template <typename T>
 using IVector = winrt::Windows::Foundation::Collections::IVector<T>;
 
-std::string PowerModeToName(PowerMode power_mode) {
-  switch (power_mode) {
-    case PowerMode::kUltraLow:
+std::string TxPowerLevelToName(TxPowerLevel tx_power_level) {
+  switch (tx_power_level) {
+    case TxPowerLevel::kUltraLow:
       return "UltraLow";
-    case PowerMode::kLow:
+    case TxPowerLevel::kLow:
       return "Low";
-    case PowerMode::kMedium:
+    case TxPowerLevel::kMedium:
       return "Medium";
-    case PowerMode::kHigh:
+    case TxPowerLevel::kHigh:
       return "High";
-    case PowerMode::kUnknown:
+    case TxPowerLevel::kUnknown:
       return "Unknown";
   }
 }
@@ -90,66 +91,33 @@ BleV2Medium::BleV2Medium(api::BluetoothAdapter& adapter)
 
 BleV2Medium::~BleV2Medium() {}
 
-// TODO(edwinwu): Modify advertising abstraction APIs and fit all data into one
 // advertisement packet and populate accordingly
-bool BleV2Medium::StartAdvertising(
-    const BleAdvertisementData& advertising_data,
-    const BleAdvertisementData& scan_response_data, PowerMode power_mode) {
+bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
+                                   AdvertiseParameters advertising_parameters) {
   NEARBY_LOGS(INFO)
-      << "Windows Ble StartAdvertising:, advertising_data.service_uuids size="
-      << advertising_data.service_uuids.size()
-      << ", scan_response_data.service_data size="
-      << scan_response_data.service_data.size()
-      << ", power_mode=" << PowerModeToName(power_mode);
+      << "Windows Ble StartAdvertising:, advertising_data.service_data size="
+      << advertising_data.service_data.size() << ", tx_power_level="
+      << TxPowerLevelToName(advertising_parameters.tx_power_level);
+
+  if (advertising_data.service_data.empty()) return false;
 
   absl::MutexLock lock(&mutex_);
 
   // (AD type 0x16) Service Data
-  constexpr uint8_t kCopresenceServiceUuid[] = {0xf3, 0xfe};
   DataWriter data_writer;
+  auto it = advertising_data.service_data.begin();
+  const std::string& service_uuid = it->first;
+  const ByteArray& service_bytes = it->second;
 
-  // (2 bytes) 16-bit Service UUID 0xf3fe
-  data_writer.WriteByte(kCopresenceServiceUuid[1]);  // 0xfe
-  data_writer.WriteByte(kCopresenceServiceUuid[0]);  // 0xf3
-
-  // (1 byte) version [3-bits] + socket_version [3-bits] +
-  // fast_advertisement_flag [1-bit] + reserved [1-bit]
-  data_writer.WriteByte(0x00);
-
-  // (1 byte) body_length
-  data_writer.WriteByte(0x00);
-
-  // (1 byte) Nearby Connection version [3-bits] + pcp [5-bits]
-  data_writer.WriteByte(0x00);
-
-  // (4 bytes) endpoint_id
-  for (int i = 0; i < 4; ++i) {
-    data_writer.WriteByte(0x00);
+  if (service_uuid.size() < 2) {
+    return false;
   }
+  data_writer.WriteByte(service_uuid[0]);
+  data_writer.WriteByte(service_uuid[1]);
 
-  // (1 byte) endpoint_info_size
-  data_writer.WriteByte(0x11);  // always 17-bytes for Fast Advertisement
-
-  // =========endpoint_info [17-bytes]============
-  // (1 byte) Nearby Share version [3-bits] + visibility [1-bit] + reserved
-  // [4-bits]
-  data_writer.WriteByte(0x00);
-
-  // (2 bytes) salt
-  for (int i = 0; i < 2; ++i) {
-    data_writer.WriteByte(0x00);
-  }
-
-  // (14 bytes) encrypted_metadata_key
-  for (int i = 0; i < 14; ++i) {
-    data_writer.WriteByte(0x00);
-  }
-  // =========endpoint_info [17-bytes]============
-
-  // (2 bytes) device_token
-  for (int i = 0; i < 2; ++i) {
-    data_writer.WriteByte(0x00);
-  }
+  Buffer buffer(service_bytes.size());
+  std::memcpy(buffer.data(), service_bytes.data(), service_bytes.size());
+  data_writer.WriteBuffer(buffer);
 
   BluetoothLEAdvertisementDataSection service_data =
       BluetoothLEAdvertisementDataSection(0x16, data_writer.DetachBuffer());
@@ -217,7 +185,8 @@ bool BleV2Medium::StopAdvertising() {
 }
 
 bool BleV2Medium::StartScanning(const std::string& service_uuid,
-                                PowerMode power_mode, ScanCallback callback) {
+                                TxPowerLevel tx_power_level,
+                                ScanCallback callback) {
   NEARBY_LOGS(INFO) << "Windows Ble StartScanning";
   absl::MutexLock lock(&mutex_);
   watcher_started_callback_ = [this]() {
@@ -290,7 +259,7 @@ bool BleV2Medium::StartListeningForIncomingBleSockets(
 void BleV2Medium::StopListeningForIncomingBleSockets() {}
 
 std::unique_ptr<GattClient> BleV2Medium::ConnectToGattServer(
-    api::ble_v2::BlePeripheral& peripheral, PowerMode power_mode,
+    api::ble_v2::BlePeripheral& peripheral, TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
   return nullptr;
 }

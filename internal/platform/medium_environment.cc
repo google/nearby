@@ -539,9 +539,9 @@ void MediumEnvironment::UpdateBleV2MediumForAdvertising(
           BleV2MediumContext& remote_context = medium_info.second;
           // Do not send notification to the same medium.
           if (remote_medium == &medium) continue;
-          if (!context.advertisement_data.service_uuids.contains(
-                  remote_context.scanning_service_uuid))
-            continue;
+          auto const it = context.advertisement_data.service_data.find(
+              remote_context.scanning_service_uuid);
+          if (it == context.advertisement_data.service_data.end()) continue;
           NEARBY_LOGS(INFO)
               << "G3 UpdateBleV2MediumForAdvertising, found other medium="
               << remote_medium << ", remote_medium_context=" << &remote_context
@@ -583,8 +583,9 @@ void MediumEnvironment::UpdateBleV2MediumForScanning(
             // medium.
             if (remote_medium == &medium || !remote_context.advertising)
               continue;
-            if (!remote_context.advertisement_data.service_uuids.contains(
-                    context.scanning_service_uuid))
+            auto const it = remote_context.advertisement_data.service_data.find(
+                context.scanning_service_uuid);
+            if (it == remote_context.advertisement_data.service_data.end())
               continue;
             NEARBY_LOGS(INFO)
                 << "G3 UpdateBleV2MediumForScanning, found other medium="
@@ -894,8 +895,8 @@ api::WifiHotspotMedium* MediumEnvironment::GetWifiHotspotMedium(
 }
 
 void MediumEnvironment::UpdateWifiHotspotMediumForStartOrConnect(
-      api::WifiHotspotMedium& medium, HotspotCredentials* hotspot_credentials,
-      bool is_ap, bool enabled) {
+    api::WifiHotspotMedium& medium, HotspotCredentials* hotspot_credentials,
+    bool is_ap, bool enabled) {
   if (!enabled_) return;
 
   CountDownLatch latch(1);
@@ -913,8 +914,8 @@ void MediumEnvironment::UpdateWifiHotspotMediumForStartOrConnect(
                         << "; ssid=" << hotspot_credentials->GetSSID()
                         << "; password=" << hotspot_credentials->GetPassword();
     } else {
-      NEARBY_LOGS(INFO) << "Reset WifiHotspot medium for Hotspot: this="
-                        << this << "; medium=" << &medium << role_status;
+      NEARBY_LOGS(INFO) << "Reset WifiHotspot medium for Hotspot: this=" << this
+                        << "; medium=" << &medium << role_status;
     }
 
     MutexLock lock(&mutex_);

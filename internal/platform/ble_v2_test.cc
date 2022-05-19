@@ -30,13 +30,14 @@ namespace {
 
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
 using ::location::nearby::api::ble_v2::GattCharacteristic;
-using ::location::nearby::api::ble_v2::PowerMode;
+using ::location::nearby::api::ble_v2::TxPowerLevel;
 using ::testing::Optional;
 
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 constexpr absl::string_view kAdvertisementString = "\x0a\x0b\x0c\x0d";
+constexpr absl::string_view kAdvertisementHeaderString = "\x0x\x0y\x0z";
 constexpr absl::string_view kCopresenceServiceUuid = "F3FE";
-constexpr PowerMode kPowerMode(PowerMode::kHigh);
+constexpr TxPowerLevel kTxPowerLevel(TxPowerLevel::kHigh);
 
 // A stub BlePeripheral implementation.
 class BlePeripheralStub : public api::ble_v2::BlePeripheral {
@@ -80,10 +81,11 @@ TEST_F(BleV2MediumTest, CanStartFastScanningAndFastAdvertising) {
   BluetoothAdapter adapter_b;
   BleV2Medium ble_a(adapter_a);
   BleV2Medium ble_b(adapter_b);
+  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
   CountDownLatch found_latch(1);
 
   EXPECT_TRUE(ble_a.StartScanning(
-      std::string(kCopresenceServiceUuid), kPowerMode,
+      {std::string(kCopresenceServiceUuid)}, kTxPowerLevel,
       {
           .advertisement_found_cb =
               [&found_latch](BleV2Peripheral peripheral,
@@ -92,16 +94,23 @@ TEST_F(BleV2MediumTest, CanStartFastScanningAndFastAdvertising) {
               },
       }));
 
-  // Assemble fast advertising and scan response data.
+  // Fail to start extended advertisement due to g3 Ble medium does not support.
   BleAdvertisementData advertising_data;
-  advertising_data.service_uuids.insert(std::string(kCopresenceServiceUuid));
-  BleAdvertisementData scan_response_data;
-  scan_response_data.service_data.insert(
-      {std::string(kCopresenceServiceUuid),
-       ByteArray(std::string(kAdvertisementString))});
+  advertising_data.is_extended_advertisement = true;
+  advertising_data.service_data.insert(
+      {std::string(kCopresenceServiceUuid), advertisement_bytes});
+  EXPECT_FALSE(ble_b.StartAdvertising(
+      advertising_data,
+      {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
 
-  EXPECT_TRUE(
-      ble_b.StartAdvertising(advertising_data, scan_response_data, kPowerMode));
+  // Succeed to start regular advertisement.
+  advertising_data.is_extended_advertisement = false;
+  advertising_data.service_data = {
+      {std::string(kCopresenceServiceUuid), advertisement_bytes}};
+  EXPECT_TRUE(ble_b.StartAdvertising(
+      advertising_data,
+      {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
+
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_a.StopScanning());
   EXPECT_TRUE(ble_b.StopAdvertising());
@@ -114,10 +123,12 @@ TEST_F(BleV2MediumTest, CanStartScanningAndAdvertising) {
   BluetoothAdapter adapter_b;
   BleV2Medium ble_a(adapter_a);
   BleV2Medium ble_b(adapter_b);
+  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  ByteArray advertisement_header_bytes{std::string(kAdvertisementHeaderString)};
   CountDownLatch found_latch(1);
 
   EXPECT_TRUE(ble_a.StartScanning(
-      std::string(kCopresenceServiceUuid), kPowerMode,
+      {std::string(kCopresenceServiceUuid)}, kTxPowerLevel,
       {
           .advertisement_found_cb =
               [&found_latch](BleV2Peripheral peripheral,
@@ -126,16 +137,23 @@ TEST_F(BleV2MediumTest, CanStartScanningAndAdvertising) {
               },
       }));
 
-  // Assemble regular advertising and scan response data.
-  BleAdvertisementData advertising_data = {};
-  BleAdvertisementData scan_response_data;
-  scan_response_data.service_uuids.insert(std::string(kCopresenceServiceUuid));
-  scan_response_data.service_data.insert(
-      {std::string(kCopresenceServiceUuid),
-       ByteArray(std::string(kAdvertisementString))});
+  // Fail to start extended advertisement due to g3 Ble medium does not support.
+  BleAdvertisementData advertising_data;
+  advertising_data.is_extended_advertisement = true;
+  advertising_data.service_data.insert(
+      {std::string(kCopresenceServiceUuid), advertisement_bytes});
+  EXPECT_FALSE(ble_b.StartAdvertising(
+      advertising_data,
+      {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
 
-  EXPECT_TRUE(
-      ble_b.StartAdvertising(advertising_data, scan_response_data, kPowerMode));
+  // Succeed to start regular advertisement.
+  advertising_data.is_extended_advertisement = false;
+  advertising_data.service_data = {
+      {std::string(kCopresenceServiceUuid), advertisement_header_bytes}};
+  EXPECT_TRUE(ble_b.StartAdvertising(
+      advertising_data,
+      {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
+
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_a.StopScanning());
   EXPECT_TRUE(ble_b.StopAdvertising());
@@ -145,7 +163,7 @@ TEST_F(BleV2MediumTest, CanStartScanningAndAdvertising) {
 TEST_F(BleV2MediumTest, CanStartGattServer) {
   env_.Start();
   BluetoothAdapter adapter;
-  BleV2Medium ble{adapter};
+  BleV2Medium ble(adapter);
   std::string characteristic_uuid = "characteristic_uuid";
 
   std::unique_ptr<GattServer> gatt_server =
@@ -157,6 +175,7 @@ TEST_F(BleV2MediumTest, CanStartGattServer) {
       GattCharacteristic::Permission::kRead};
   std::vector<GattCharacteristic::Property> properties = {
       GattCharacteristic::Property::kRead};
+  // NOLINTNEXTLINE(google3-legacy-absl-backports)
   absl::optional<GattCharacteristic> gatt_characteristic =
       gatt_server->CreateCharacteristic(std::string(kCopresenceServiceUuid),
                                         characteristic_uuid, permissions,
@@ -207,7 +226,7 @@ TEST_F(BleV2MediumTest, GattClientConnectToGattServerWorks) {
   auto ble_peripheral =
       std::make_unique<BlePeripheralStub>(/*mac_address=*/"ABCD");
   std::unique_ptr<GattClient> gatt_client = ble_b.ConnectToGattServer(
-      BleV2Peripheral(ble_peripheral.get()), kPowerMode,
+      BleV2Peripheral(ble_peripheral.get()), kTxPowerLevel,
       /*ClientGattConnectionCallback=*/{});
 
   ASSERT_NE(gatt_client, nullptr);

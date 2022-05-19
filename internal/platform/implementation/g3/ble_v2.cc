@@ -35,19 +35,19 @@ namespace {
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
 using ::location::nearby::api::ble_v2::BleSocket;
 using ::location::nearby::api::ble_v2::BleSocketLifeCycleCallback;
-using ::location::nearby::api::ble_v2::PowerMode;
+using ::location::nearby::api::ble_v2::TxPowerLevel;
 
-std::string PowerModeToName(PowerMode power_mode) {
+std::string TxPowerLevelToName(TxPowerLevel power_mode) {
   switch (power_mode) {
-    case PowerMode::kUltraLow:
+    case TxPowerLevel::kUltraLow:
       return "UltraLow";
-    case PowerMode::kLow:
+    case TxPowerLevel::kLow:
       return "Low";
-    case PowerMode::kMedium:
+    case TxPowerLevel::kMedium:
       return "Medium";
-    case PowerMode::kHigh:
+    case TxPowerLevel::kHigh:
       return "High";
-    case PowerMode::kUnknown:
+    case TxPowerLevel::kUnknown:
       return "Unknown";
   }
 }
@@ -67,28 +67,24 @@ BleV2Medium::~BleV2Medium() {
 
 bool BleV2Medium::StartAdvertising(
     const BleAdvertisementData& advertising_data,
-    const BleAdvertisementData& scan_response_data, PowerMode power_mode) {
+    api::ble_v2::AdvertiseParameters advertise_parameters) {
   NEARBY_LOGS(INFO)
-      << "G3 Ble StartAdvertising:, advertising_data.service_uuids size="
-      << advertising_data.service_uuids.size()
-      << ", scan_response_data.service_data size="
-      << scan_response_data.service_data.size()
-      << ", power_mode=" << PowerModeToName(power_mode);
+      << "G3 Ble StartAdvertising: advertising_data.is_extended_advertisement="
+      << advertising_data.is_extended_advertisement
+      << ", advertising_data.service_data size="
+      << advertising_data.service_data.size() << ", tx_power_level="
+      << TxPowerLevelToName(advertise_parameters.tx_power_level)
+      << ", is_connectable=" << advertise_parameters.is_connectable;
+  if (advertising_data.is_extended_advertisement &&
+      !is_support_extended_advertisement_) {
+    NEARBY_LOGS(INFO)
+        << "G3 Ble StartAdvertising does not support extended advertisement";
+    return false;
+  }
 
   absl::MutexLock lock(&mutex_);
-
-  // Reassemble advertisement data from advertising and scan response
-  // data.
-  api::ble_v2::BleAdvertisementData advertisement_data;
-  if (!advertising_data.service_uuids.empty()) {
-    advertisement_data.service_uuids = advertising_data.service_uuids;
-  } else {
-    advertisement_data.service_uuids = scan_response_data.service_uuids;
-  }
-  advertisement_data.service_data = scan_response_data.service_data;
-
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
-      /*enabled=*/true, *this, adapter_->GetPeripheralV2(), advertisement_data);
+      /*enabled=*/true, *this, adapter_->GetPeripheralV2(), advertising_data);
   return true;
 }
 
@@ -104,7 +100,8 @@ bool BleV2Medium::StopAdvertising() {
 }
 
 bool BleV2Medium::StartScanning(const std::string& service_uuid,
-                                PowerMode power_mode, ScanCallback callback) {
+                                TxPowerLevel tx_power_level,
+                                ScanCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Ble StartScanning";
   absl::MutexLock lock(&mutex_);
 
@@ -136,7 +133,7 @@ bool BleV2Medium::StartListeningForIncomingBleSockets(
 void BleV2Medium::StopListeningForIncomingBleSockets() {}
 
 std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
-    api::ble_v2::BlePeripheral& peripheral, PowerMode power_mode,
+    api::ble_v2::BlePeripheral& peripheral, TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
   return std::make_unique<GattClient>();
 }
@@ -145,6 +142,10 @@ std::unique_ptr<BleSocket> BleV2Medium::EstablishBleSocket(
     api::ble_v2::BlePeripheral* peripheral,
     const BleSocketLifeCycleCallback& callback) {
   return nullptr;
+}
+
+bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
+  return is_support_extended_advertisement_;
 }
 
 std::optional<api::ble_v2::GattCharacteristic>
