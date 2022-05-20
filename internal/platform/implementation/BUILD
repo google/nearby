@@ -39,6 +39,7 @@ cc_library(
     visibility = [
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
+        "//location/nearby/analytics/cpp:__subpackages__",
     ],
     deps = [
         "//connections/clients/windows:types",
@@ -91,6 +92,7 @@ cc_library(
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
+        "//location/nearby/analytics/cpp:__subpackages__",
     ],
     deps = [
         ":comm",
