@@ -55,6 +55,9 @@ using ::winrt::Windows::Storage::Streams::DataWriter;
 
 template <typename T>
 using IVector = winrt::Windows::Foundation::Collections::IVector<T>;
+
+// Copresence Service UUID 0xfef3 (little-endian)
+constexpr uint16_t kCopresenceServiceUuid = 0xf3fe;
 }  // namespace
 
 BleMedium::BleMedium(api::BluetoothAdapter& adapter)
@@ -72,6 +75,9 @@ bool BleMedium::StartAdvertising(
                     << fast_advertisement_service_uuid;
 
   DataWriter data_writer;
+
+  // Copresence Service UUID 0xfef3 (little-endian)
+  data_writer.WriteUInt16(kCopresenceServiceUuid);
 
   for (int i = 0; i < advertisement_bytes.size(); ++i) {
     data_writer.WriteByte(

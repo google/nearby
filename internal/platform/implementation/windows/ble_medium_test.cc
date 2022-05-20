@@ -30,7 +30,6 @@ namespace nearby {
 namespace windows {
 namespace {
 
-constexpr uint8_t kCopresenceServiceUuid[] = {0xfe, 0xf3};
 constexpr uint8_t kVersionBitmask = 0xE0;
 constexpr uint8_t kSocketVersionBitmask = 0x1C;
 constexpr uint8_t kFastAdvertisementFlagBitmask = 0x02;
@@ -41,13 +40,7 @@ TEST(BleMedium, DISABLED_StartAdvertising) {
   BluetoothAdapter bluetoothAdapter;
   BleMedium ble_medium(bluetoothAdapter);
 
-  std::array<char, 29> advertising_data_byte_array;
-
-  // (2 bytes) 16-bit Service UUID 0xf3fe
-  advertising_data_byte_array.at(0) =
-      static_cast<unsigned char>(kCopresenceServiceUuid[1]);
-  advertising_data_byte_array.at(1) =
-      static_cast<unsigned char>(kCopresenceServiceUuid[0]);
+  std::array<char, 27> advertising_data_byte_array;
 
   // (1 byte) version [3-bits] + socket_version [3-bits] +
   // fast_advertisement_flag [1-bit] + reserved [1-bit]
@@ -63,11 +56,11 @@ TEST(BleMedium, DISABLED_StartAdvertising) {
   ble_medium_advertisement_metadata_byte |=
       ((fast_advertisement ? 1 : 0) << 1) & kFastAdvertisementFlagBitmask;
 
-  advertising_data_byte_array.at(2) =
+  advertising_data_byte_array.at(0) =
       static_cast<unsigned char>(ble_medium_advertisement_metadata_byte);
 
   // (1 byte) body_length
-  advertising_data_byte_array.at(3) = static_cast<unsigned char>(
+  advertising_data_byte_array.at(1) = static_cast<unsigned char>(
       0x19);  // always 25 bytes for Fast Advertisement
 
   // (1 byte) Nearby Connection version [3-bits] + pcp [5-bits]
@@ -78,16 +71,16 @@ TEST(BleMedium, DISABLED_StartAdvertising) {
   uint8_t ble_connections_advertisement_metadata_byte =
       (ble_connections_version << 5) & kVersionBitmask;
   ble_connections_advertisement_metadata_byte |= pcp & kPcpBitmask;
-  advertising_data_byte_array.at(4) =
+  advertising_data_byte_array.at(2) =
       static_cast<unsigned char>(ble_connections_advertisement_metadata_byte);
 
   // (4 bytes) endpoint_id
   for (int i = 0; i < 4; ++i) {
-    advertising_data_byte_array.at(5 + i) = static_cast<unsigned char>(0x00);
+    advertising_data_byte_array.at(3 + i) = static_cast<unsigned char>(0x00);
   }
 
   // (1 byte) endpoint_info_size
-  advertising_data_byte_array.at(9) = static_cast<unsigned char>(
+  advertising_data_byte_array.at(7) = static_cast<unsigned char>(
       0x11);  // always 17-bytes for Fast Advertisement
 
   // =========endpoint_info [17-bytes]============
@@ -100,22 +93,22 @@ TEST(BleMedium, DISABLED_StartAdvertising) {
       (nearby_share_version << 5) & kVersionBitmask;
   nearby_share_metadata_byte |= ((visibility & kVisibilityBitmask) << 4);
 
-  advertising_data_byte_array.at(10) = static_cast<unsigned char>(0x00);
+  advertising_data_byte_array.at(8) = static_cast<unsigned char>(0x00);
 
   // (2 bytes) salt
   for (int i = 0; i < 2; ++i) {
-    advertising_data_byte_array.at(11 + i) = static_cast<unsigned char>(0x00);
+    advertising_data_byte_array.at(9 + i) = static_cast<unsigned char>(0x00);
   }
 
   // (14 bytes) encrypted_metadata_key
   for (int i = 0; i < 14; ++i) {
-    advertising_data_byte_array.at(13 + i) = static_cast<unsigned char>(0x00);
+    advertising_data_byte_array.at(11 + i) = static_cast<unsigned char>(0x00);
   }
   // =========endpoint_info [17-bytes]============
 
   // (2 bytes) device_token
   for (int i = 0; i < 2; ++i) {
-    advertising_data_byte_array.at(27 + i) = static_cast<unsigned char>(0x00);
+    advertising_data_byte_array.at(25 + i) = static_cast<unsigned char>(0x00);
   }
 
   ByteArray advertising_data(advertising_data_byte_array);
@@ -131,10 +124,8 @@ TEST(BleMedium, DISABLED_StopAdvertising) {
   std::array<char, 2> advertising_data_byte_array;
 
   // (2 bytes) 16-bit Service UUID 0xf3fe
-  advertising_data_byte_array.at(0) =
-      static_cast<unsigned char>(kCopresenceServiceUuid[1]);
-  advertising_data_byte_array.at(1) =
-      static_cast<unsigned char>(kCopresenceServiceUuid[0]);
+  advertising_data_byte_array.at(0) = static_cast<unsigned char>(0xf3);
+  advertising_data_byte_array.at(1) = static_cast<unsigned char>(0xfe);
 
   ByteArray advertising_data(advertising_data_byte_array);
 
