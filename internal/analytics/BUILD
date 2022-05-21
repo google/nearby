@@ -23,10 +23,7 @@ cc_library(
         "connection_attempt_metadata_params.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
-    visibility = [
-        "//connections:__subpackages__",
-        "//internal/proto/analytics:__subpackages__",
-    ],
+    visibility = ["//connections:__subpackages__"],
     deps = [
         "//connections:core_types",
         "//connections:event_logger",
