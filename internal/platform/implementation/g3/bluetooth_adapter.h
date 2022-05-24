@@ -138,6 +138,9 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   void SetBleMedium(api::BleMedium* medium);
   api::BleMedium* GetBleMedium() { return ble_medium_; }
 
+  void SetBleV2Medium(api::ble_v2::BleMedium* medium);
+  api::ble_v2::BleMedium* GetBleV2Medium() { return ble_v2_medium_; }
+
   void SetMacAddress(std::string& mac_address) { mac_address_ = mac_address; }
 
  private:
@@ -147,6 +150,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   BleV2Peripheral peripheral_v2_{this};
   api::BluetoothClassicMedium* bluetooth_classic_medium_ = nullptr;
   api::BleMedium* ble_medium_ = nullptr;
+  api::ble_v2::BleMedium* ble_v2_medium_ = nullptr;
   std::string mac_address_;
   ScanMode mode_ ABSL_GUARDED_BY(mutex_) = ScanMode::kNone;
   std::string name_ ABSL_GUARDED_BY(mutex_) = "unknown G3 BT device";

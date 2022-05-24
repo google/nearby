@@ -64,9 +64,13 @@ BleV2::~BleV2() {
   while (!advertising_infos_.empty()) {
     StopAdvertising(advertising_infos_.begin()->first);
   }
+  while (!server_sockets_.empty()) {
+    StopAcceptingConnections(server_sockets_.begin()->first);
+  }
 
   serial_executor_.Shutdown();
   alarm_executor_.Shutdown();
+  accept_loops_runner_.Shutdown();
 }
 
 bool BleV2::IsAvailable() const {
@@ -165,12 +169,6 @@ bool BleV2::StopAdvertising(const std::string& service_id) {
   gatt_advertisements_.clear();
 
   // Restart the BLE advertisement if there is still an advertiser.
-  // TODO(b/213835576): Check the BLE Connections is off. We set the fake
-  // value for the time being till connections is implemented.
-  bool no_incoming_ble_sockets = true;
-  if (advertising_infos_.empty() && !no_incoming_ble_sockets) {
-    return true;
-  }
   if (!advertising_infos_.empty()) {
     if (!hosted_gatt_characteristics_.empty()) {
       // Set the value of characteristic to empty if there is still an
@@ -186,27 +184,26 @@ bool BleV2::StopAdvertising(const std::string& service_id) {
       }
       hosted_gatt_characteristics_.clear();
     }
-    // Get the next service_id to restart BLE advertisement.
-    const std::string& service_id = advertising_infos_.begin()->first;
-    if (!StartAdvertisingLocked(service_id)) {
+    const std::string& new_service_id = advertising_infos_.begin()->first;
+    if (!StartAdvertisingLocked(new_service_id)) {
       NEARBY_LOGS(ERROR)
           << "Failed to restart BLE advertisement after stopping "
-             "BLE advertisement for service_id="
-          << service_id;
-      advertising_infos_.erase(service_id);
+             "BLE advertisement for new service_id="
+          << new_service_id;
+      advertising_infos_.erase(new_service_id);
       return false;
     }
-    NEARBY_LOGS(INFO) << "Restart BLE advertising with service_id="
-                      << service_id;
-    return true;
+    NEARBY_LOGS(INFO) << "Restart BLE advertising with new service_id="
+                      << new_service_id;
+  } else if (incoming_sockets_.empty()) {
+    // Otherwise, if we aren't restarting the BLE advertisement, then shutdown
+    // the gatt server if it's not in use.
+    NEARBY_LOGS(VERBOSE) << "Aggressively stopping any pre-existing "
+                            "advertisement GATT servers "
+                            "because no incoming BLE sockets are connected.";
+    StopAdvertisementGattServerLocked();
   }
 
-  // If we aren't restarting the BLE advertisement, then shutdown
-  // the gatt server if it's not in use.
-  NEARBY_LOGS(VERBOSE) << "Aggressively stopping any pre-existing "
-                          "advertisement GATT servers "
-                          "because no incoming BLE sockets are connected.";
-  StopAdvertisementGattServerLocked();
   return true;
 }
 
@@ -348,6 +345,152 @@ bool BleV2::IsScanning(const std::string& service_id) const {
   return IsScanningLocked(service_id);
 }
 
+bool BleV2::StartAcceptingConnections(const std::string& service_id,
+                                      AcceptedConnectionCallback callback) {
+  MutexLock lock(&mutex_);
+
+  if (service_id.empty()) {
+    NEARBY_LOGS(INFO)
+        << "Refusing to start accepting BLE connections with empty service id.";
+    return false;
+  }
+
+  if (IsAcceptingConnectionsLocked(service_id)) {
+    NEARBY_LOGS(INFO)
+        << "Refusing to start accepting BLE connections for " << service_id
+        << " because another BLE peripheral socket is already in-progress.";
+    return false;
+  }
+
+  if (!radio_.IsEnabled()) {
+    NEARBY_LOGS(INFO) << "Can't start accepting BLE connections for "
+                      << service_id << " because Bluetooth isn't enabled.";
+    return false;
+  }
+
+  if (!IsAvailableLocked()) {
+    NEARBY_LOGS(INFO) << "Can't start accepting BLE connections for "
+                      << service_id << " because BLE isn't available.";
+    return false;
+  }
+
+  BleV2ServerSocket server_socket = medium_.OpenServerSocket(service_id);
+  if (!server_socket.IsValid()) {
+    NEARBY_LOGS(INFO)
+        << "Failed to start accepting Ble connections for service_id="
+        << service_id;
+    return false;
+  }
+
+  // Mark the fact that there's an in-progress Ble server accepting
+  // connections.
+  auto owned_server_socket =
+      server_sockets_.insert({service_id, std::move(server_socket)})
+          .first->second;
+
+  // Start the accept loop on a dedicated thread - this stays alive and
+  // listening for new incoming connections until StopAcceptingConnections() is
+  // invoked.
+  accept_loops_runner_.Execute(
+      "ble-accept", [this, &service_id, callback = std::move(callback),
+                     server_socket = std::move(owned_server_socket)]() mutable {
+        while (true) {
+          BleV2Socket client_socket = server_socket.Accept();
+          if (!client_socket.IsValid()) {
+            NEARBY_LOGS(WARNING) << "The client socket to accept is invalid.";
+            server_socket.Close();
+            break;
+          }
+          {
+            MutexLock lock(&mutex_);
+            client_socket.SetCloseNotifier([this, service_id]() {
+              MutexLock lock(&mutex_);
+              incoming_sockets_.erase(service_id);
+            });
+            incoming_sockets_.insert({service_id, client_socket});
+          }
+          callback.accepted_cb(std::move(client_socket), service_id);
+        }
+      });
+
+  return true;
+}
+
+bool BleV2::StopAcceptingConnections(const std::string& service_id) {
+  MutexLock lock(&mutex_);
+
+  const auto it = server_sockets_.find(service_id);
+  if (it == server_sockets_.end()) {
+    NEARBY_LOGS(INFO)
+        << "Can't stop accepting BLE connections because it was never started.";
+    return false;
+  }
+
+  // Closing the BleServerSocket will kick off the suicide of the thread
+  // in accept_loops_thread_pool_ that blocks on BleServerSocket.accept().
+  // That may take some time to complete, but there's no particular reason to
+  // wait around for it.
+  auto item = server_sockets_.extract(it);
+
+  // Store a handle to the BleServerSocket, so we can use it after
+  // removing the entry from server_sockets_; making it scoped
+  // is a bonus that takes care of deallocation before we leave this method.
+  BleV2ServerSocket& listening_socket = item.mapped();
+
+  // Regardless of whether or not we fail to close the existing
+  // BleServerSocket, remove it from server_sockets_ so that it
+  // frees up this service for another round.
+
+  // Finally, close the BleServerSocket.
+  if (!listening_socket.Close().Ok()) {
+    NEARBY_LOGS(INFO) << "Failed to close Ble server socket for service_id="
+                      << service_id;
+    return false;
+  }
+
+  return true;
+}
+
+bool BleV2::IsAcceptingConnections(const std::string& service_id) {
+  MutexLock lock(&mutex_);
+  return IsAcceptingConnectionsLocked(service_id);
+}
+
+BleV2Socket BleV2::Connect(const std::string& service_id,
+                           const BleV2Peripheral& peripheral,
+                           CancellationFlag* cancellation_flag) {
+  MutexLock lock(&mutex_);
+  // Socket to return. To allow for NRVO to work, it has to be a single object.
+  BleV2Socket socket;
+
+  if (service_id.empty()) {
+    NEARBY_LOGS(INFO) << "Refusing to create client Ble socket because "
+                         "service_id is empty.";
+    return socket;
+  }
+
+  if (!IsAvailableLocked()) {
+    NEARBY_LOGS(INFO) << "Can't create client Ble socket [service_id="
+                      << service_id << "]; Ble isn't available.";
+    return socket;
+  }
+
+  if (cancellation_flag->Cancelled()) {
+    NEARBY_LOGS(INFO) << "Can't create client Ble socket due to cancel.";
+    return socket;
+  }
+
+  socket = medium_.Connect(service_id,
+                           PowerLevelToTxPowerLevel(PowerLevel::kHighPower),
+                           peripheral, cancellation_flag);
+  if (!socket.IsValid()) {
+    NEARBY_LOGS(INFO) << "Failed to Connect via Ble [service_id=" << service_id
+                      << "]";
+  }
+
+  return socket;
+}
+
 bool BleV2::IsAvailableLocked() const { return medium_.IsValid(); }
 
 bool BleV2::IsAdvertisingLocked(const std::string& service_id) const {
@@ -356,6 +499,10 @@ bool BleV2::IsAdvertisingLocked(const std::string& service_id) const {
 
 bool BleV2::IsScanningLocked(const std::string& service_id) const {
   return scanned_service_ids_.contains(service_id);
+}
+
+bool BleV2::IsAcceptingConnectionsLocked(const std::string& service_id) {
+  return server_sockets_.contains(service_id);
 }
 
 bool BleV2::IsAdvertisementGattServerRunningLocked() {
@@ -398,6 +545,7 @@ bool BleV2::GenerateAdvertisementCharacteristic(
   std::vector<GattCharacteristic::Property> properties{
       GattCharacteristic::Property::kRead};
 
+  // NOLINTNEXTLINE(google3-legacy-absl-backports)
   absl::optional<GattCharacteristic> gatt_characteristic =
       gatt_server.CreateCharacteristic(
           std::string(mediums::bleutils::kCopresenceServiceUuid),
@@ -647,10 +795,7 @@ bool BleV2::StartGattAdvertisingLocked(
   // to a loss of GATT callbacks for that remote device. The only time a
   // remote device is indefinitely connected to this device's GATT server is
   // when it has a BLE socket connection.
-  // TODO(b/213835576): Check the BLE Connections is off. We set the fake
-  // value for the time being till connections is implemented.
-  bool no_incoming_ble_sockets = true;
-  if (no_incoming_ble_sockets) {
+  if (incoming_sockets_.empty()) {
     NEARBY_LOGS(VERBOSE)
         << "Aggressively stopping any pre-existing advertisement GATT "
            "servers because no incoming BLE sockets are connected";

@@ -15,6 +15,7 @@
 #include "connections/implementation/p2p_cluster_pcp_handler.h"
 
 #include <memory>
+#include <string>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -22,9 +23,9 @@
 #include "absl/time/time.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/injected_bluetooth_device_store.h"
-#include "internal/platform/medium_environment.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/medium_environment.h"
 
 namespace location {
 namespace nearby {
@@ -33,6 +34,9 @@ namespace {
 
 constexpr BooleanMediumSelector kTestCases[] = {
     BooleanMediumSelector{
+        .ble = true,
+    },
+    BooleanMediumSelector{
         .bluetooth = true,
     },
     BooleanMediumSelector{
@@ -40,16 +44,36 @@ constexpr BooleanMediumSelector kTestCases[] = {
     },
     BooleanMediumSelector{
         .bluetooth = true,
+        .ble = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .wifi_lan = true,
+    },
+    BooleanMediumSelector{
+        .ble = true,
+        .wifi_lan = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .ble = true,
         .wifi_lan = true,
     },
 };
 
+// Combines the bool `support_ble_v2` as param testing but should revert it back
+// if ble_v2 is done and ble will be replaced by ble_v2.
 class P2pClusterPcpHandlerTest
-    : public ::testing::TestWithParam<BooleanMediumSelector> {
+    : public testing::TestWithParam<std::tuple<BooleanMediumSelector, bool>> {
  protected:
   void SetUp() override {
     NEARBY_LOG(INFO, "SetUp: begin");
     env_.Stop();
+    FeatureFlags::GetMutableFlagsForTesting().support_ble_v2 =
+        std::get<1>(GetParam());
+    if (advertising_options_.allowed.ble) {
+      NEARBY_LOG(INFO, "SetUp: BLE enabled");
+    }
     if (advertising_options_.allowed.bluetooth) {
       NEARBY_LOG(INFO, "SetUp: BT enabled");
     }
@@ -68,19 +92,19 @@ class P2pClusterPcpHandlerTest
   ConnectionOptions connection_options_{
       {
           Strategy::kP2pCluster,
-          GetParam(),
+          std::get<0>(GetParam()),
       },
   };
   AdvertisingOptions advertising_options_{
       {
           Strategy::kP2pCluster,
-          GetParam(),
+          std::get<0>(GetParam()),
       },
   };
   DiscoveryOptions discovery_options_{
       {
           Strategy::kP2pCluster,
-          GetParam(),
+          std::get<0>(GetParam()),
       },
   };
   MediumEnvironment& env_{MediumEnvironment::Instance()};
@@ -265,7 +289,8 @@ TEST_P(P2pClusterPcpHandlerTest, CanConnect) {
 }
 
 INSTANTIATE_TEST_SUITE_P(ParametrisedPcpHandlerTest, P2pClusterPcpHandlerTest,
-                         ::testing::ValuesIn(kTestCases));
+                         ::testing::Combine(::testing::ValuesIn(kTestCases),
+                                            ::testing::Bool()));
 
 }  // namespace
 }  // namespace connections

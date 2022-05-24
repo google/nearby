@@ -139,6 +139,19 @@ std::unique_ptr<GattClient> BleV2Medium::ConnectToGattServer(
   return std::make_unique<GattClient>(std::move(api_gatt_client));
 }
 
+BleV2ServerSocket BleV2Medium::OpenServerSocket(const std::string& service_id) {
+  return BleV2ServerSocket(impl_->OpenServerSocket(service_id));
+}
+
+BleV2Socket BleV2Medium::Connect(const std::string& service_id,
+                                 TxPowerLevel tx_power_level,
+                                 const BleV2Peripheral& peripheral,
+                                 CancellationFlag* cancellation_flag) {
+  return BleV2Socket(impl_->Connect(service_id, tx_power_level,
+                                    /*mutated=*/peripheral.GetImpl(),
+                                    cancellation_flag));
+}
+
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
   return impl_->IsExtendedAdvertisementsAvailable();
 }

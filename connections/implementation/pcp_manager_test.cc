@@ -38,6 +38,9 @@ constexpr char kDeviceB[] = "device-B";
 
 constexpr BooleanMediumSelector kTestCases[] = {
     BooleanMediumSelector{
+        .ble = true,
+    },
+    BooleanMediumSelector{
         .bluetooth = true,
     },
     BooleanMediumSelector{
@@ -45,6 +48,19 @@ constexpr BooleanMediumSelector kTestCases[] = {
     },
     BooleanMediumSelector{
         .bluetooth = true,
+        .ble = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .wifi_lan = true,
+    },
+    BooleanMediumSelector{
+        .ble = true,
+        .wifi_lan = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .ble = true,
         .wifi_lan = true,
     },
 };

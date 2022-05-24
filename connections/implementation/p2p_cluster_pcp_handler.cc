@@ -23,6 +23,7 @@
 #include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/ble_advertisement.h"
 #include "connections/implementation/ble_endpoint_channel.h"
+#include "connections/implementation/ble_v2_endpoint_channel.h"
 #include "connections/implementation/bluetooth_endpoint_channel.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/mediums/utils.h"
@@ -187,7 +188,7 @@ Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
 
   if (FeatureFlags::GetInstance().GetFlags().support_ble_v2) {
     ble_v2_medium_.StopAdvertising(client->GetAdvertisingServiceId());
-    // TODO(b/213689498): Implements Stop accept connenction.
+    ble_v2_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
   } else {
     ble_medium_.StopAdvertising(client->GetAdvertisingServiceId());
     ble_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
@@ -1485,7 +1486,53 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleV2Advertising(
   // Bluetooth Classic.
   NEARBY_LOGS(INFO) << "P2pClusterPcpHandler::StartBleAdvertising: service_id="
                     << service_id << " : start";
-  // TODO(b/213689498): Implements accept connenction.
+  // TODO(edwinwu): Move the lambda to a named function.
+  if (!ble_v2_medium_.IsAcceptingConnections(service_id)) {
+    if (!bluetooth_radio_.Enable() ||
+        !ble_v2_medium_.StartAcceptingConnections(
+            service_id, {.accepted_cb = [this, client, local_endpoint_info](
+                                            BleV2Socket socket,
+                                            const std::string& service_id) {
+              if (!socket.IsValid()) {
+                NEARBY_LOGS(WARNING)
+                    << "Invalid socket in accept callback("
+                    << absl::BytesToHexString(local_endpoint_info.data())
+                    << "), client=" << client->GetClientId();
+                return;
+              }
+              RunOnPcpHandlerThread(
+                  "p2p-ble-on-incoming-connection",
+                  [this, client, local_endpoint_info, service_id,
+                   socket = std::move(socket)]()
+                      RUN_ON_PCP_HANDLER_THREAD() mutable {
+                        ByteArray remote_peripheral_info =
+                            socket.GetRemotePeripheral().GetId();
+                        auto channel = std::make_unique<BleV2EndpointChannel>(
+                            service_id, std::string(remote_peripheral_info),
+                            socket);
+
+                        OnIncomingConnection(client, remote_peripheral_info,
+                                             std::move(channel),
+                                             proto::connections::Medium::BLE);
+                      });
+            }})) {
+      NEARBY_LOGS(WARNING)
+          << "In StartBleAdvertising("
+          << absl::BytesToHexString(local_endpoint_info.data())
+          << "), client=" << client->GetClientId()
+          << " failed to start accepting for incoming BLE connections to "
+             "service_id="
+          << service_id;
+      return proto::connections::UNKNOWN_MEDIUM;
+    }
+    NEARBY_LOGS(INFO)
+        << "In StartBleAdvertising("
+        << absl::BytesToHexString(local_endpoint_info.data())
+        << "), client=" << client->GetClientId()
+        << " started accepting for incoming BLE connections to service_id="
+        << service_id;
+  }
+
   PowerLevel power_level = advertising_options.low_power
                                ? PowerLevel::kLowPower
                                : PowerLevel::kHighPower;
@@ -1530,7 +1577,7 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleV2Advertising(
             << " failed to start accepting for incoming BLE connections to "
                "service_id="
             << service_id;
-        // TODO(b/213689498): Implements stop accepting connenction.
+        ble_v2_medium_.StopAcceptingConnections(service_id);
         return proto::connections::UNKNOWN_MEDIUM;
       }
       NEARBY_LOGS(INFO)
@@ -1575,7 +1622,7 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleV2Advertising(
                          << absl::BytesToHexString(local_endpoint_info.data())
                          << "), client=" << client->GetClientId()
                          << " failed to create an advertisement.";
-    // TODO(b/213689498): Implements stop accepting connenction.
+    ble_v2_medium_.StopAcceptingConnections(service_id);
     return proto::connections::UNKNOWN_MEDIUM;
   }
 
@@ -1594,7 +1641,7 @@ proto::connections::Medium P2pClusterPcpHandler::StartBleV2Advertising(
         << "), client=" << client->GetClientId()
         << " couldn't start BLE Advertising with BleAdvertisement "
         << absl::BytesToHexString(advertisement_bytes.data());
-    // TODO(b/213689498): Implements stop accepting connenction.
+    ble_v2_medium_.StopAcceptingConnections(service_id);
     return proto::connections::UNKNOWN_MEDIUM;
   }
   NEARBY_LOGS(INFO) << "In startBleAdvertising("
@@ -1632,11 +1679,28 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleV2ConnectImpl(
                        << " is attempting to connect to endpoint(id="
                        << endpoint->endpoint_id << ") over BLE.";
 
-  // TODO(b/213689498): Implements connection.
+  BleV2Peripheral& peripheral = endpoint->ble_peripheral;
+
+  BleV2Socket ble_socket = ble_v2_medium_.Connect(
+      endpoint->service_id, peripheral,
+      client->GetCancellationFlag(endpoint->endpoint_id));
+  if (!ble_socket.IsValid()) {
+    NEARBY_LOGS(ERROR)
+        << "In BleConnectImpl(), failed to connect to BLE device "
+        << absl::BytesToHexString(peripheral.GetId().data())
+        << " for endpoint(id=" << endpoint->endpoint_id << ").";
+    return BasePcpHandler::ConnectImplResult{
+        .status = {Status::kBleError},
+    };
+  }
+
+  auto channel = std::make_unique<BleV2EndpointChannel>(
+      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id, ble_socket);
+
   return BasePcpHandler::ConnectImplResult{
       .medium = proto::connections::Medium::BLE,
-      .status = {Status::kBleError},
-      .endpoint_channel = nullptr,
+      .status = {Status::kSuccess},
+      .endpoint_channel = std::move(channel),
   };
 }
 

@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -28,6 +29,17 @@ namespace location {
 namespace nearby {
 namespace {
 
+using FeatureFlags = FeatureFlags::Flags;
+
+constexpr FeatureFlags kTestCases[] = {
+    FeatureFlags{
+        .enable_cancellation_flag = true,
+    },
+    FeatureFlags{
+        .enable_cancellation_flag = false,
+    },
+};
+
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
 using ::location::nearby::api::ble_v2::GattCharacteristic;
 using ::location::nearby::api::ble_v2::TxPowerLevel;
@@ -38,6 +50,8 @@ constexpr absl::string_view kAdvertisementString = "\x0a\x0b\x0c\x0d";
 constexpr absl::string_view kAdvertisementHeaderString = "\x0x\x0y\x0z";
 constexpr absl::string_view kCopresenceServiceUuid = "F3FE";
 constexpr TxPowerLevel kTxPowerLevel(TxPowerLevel::kHigh);
+constexpr absl::string_view kServiceIDA{
+    "com.google.location.nearby.apps.test.a"};
 
 // A stub BlePeripheral implementation.
 class BlePeripheralStub : public api::ble_v2::BlePeripheral {
@@ -52,12 +66,157 @@ class BlePeripheralStub : public api::ble_v2::BlePeripheral {
   std::string mac_address_;
 };
 
-class BleV2MediumTest : public testing::Test {
+class BleV2MediumTest : public ::testing::TestWithParam<FeatureFlags> {
  protected:
   BleV2MediumTest() { env_.Stop(); }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
+
+TEST_P(BleV2MediumTest, CanConnectToService) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+  env_.Start();
+  BluetoothAdapter adapter_a_;
+  BluetoothAdapter adapter_b_;
+  BleV2Medium ble_a(adapter_a_);
+  BleV2Medium ble_b(adapter_b_);
+  std::string service_id(kServiceIDA);
+  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  CountDownLatch found_latch(1);
+  CountDownLatch lost_latch(1);
+
+  BleV2ServerSocket server_socket = ble_b.OpenServerSocket(service_id);
+  EXPECT_TRUE(server_socket.IsValid());
+
+  // Assemble regular advertisement data
+  BleAdvertisementData advertising_data;
+  advertising_data.is_extended_advertisement = false;
+  advertising_data.service_data = {
+      {std::string(kCopresenceServiceUuid), advertisement_bytes}};
+  (ble_b.StartAdvertising(advertising_data, {.tx_power_level = kTxPowerLevel,
+                                             .is_connectable = true}));
+
+  BleV2Peripheral discovered_peripheral;
+  ble_a.StartScanning(
+      {std::string(kCopresenceServiceUuid)}, kTxPowerLevel,
+      {
+          .advertisement_found_cb =
+              [&found_latch, &discovered_peripheral](
+                  BleV2Peripheral peripheral,
+                  const BleAdvertisementData& advertisement_data) {
+                discovered_peripheral = std::move(peripheral);
+                found_latch.CountDown();
+              },
+      });
+  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  BleV2Socket socket_a;
+  BleV2Socket socket_b;
+  EXPECT_FALSE(socket_a.IsValid());
+  EXPECT_FALSE(socket_b.IsValid());
+  {
+    CancellationFlag flag;
+    SingleThreadExecutor server_executor;
+    SingleThreadExecutor client_executor;
+    client_executor.Execute(
+        [&ble_a, &socket_a, &service_id,
+         discovered_peripheral = std::move(discovered_peripheral),
+         &server_socket, &flag]() {
+          socket_a = ble_a.Connect(service_id, kTxPowerLevel,
+                                   discovered_peripheral, &flag);
+          if (!socket_a.IsValid()) {
+            server_socket.Close();
+          }
+        });
+    server_executor.Execute([&socket_b, &server_socket]() {
+      socket_b = server_socket.Accept();
+      if (!socket_b.IsValid()) {
+        server_socket.Close();
+      }
+    });
+  }
+  EXPECT_TRUE(socket_a.IsValid());
+  EXPECT_TRUE(socket_b.IsValid());
+  server_socket.Close();
+  env_.Stop();
+}
+
+TEST_P(BleV2MediumTest, CanCancelConnect) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+  env_.Start();
+  BluetoothAdapter adapter_a_;
+  BluetoothAdapter adapter_b_;
+  BleV2Medium ble_a{adapter_a_};
+  BleV2Medium ble_b{adapter_b_};
+  std::string service_id(kServiceIDA);
+  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  CountDownLatch found_latch(1);
+  CountDownLatch lost_latch(1);
+
+  BleV2ServerSocket server_socket = ble_b.OpenServerSocket(service_id);
+  EXPECT_TRUE(server_socket.IsValid());
+
+  // Assemble regular advertisement data.
+  BleAdvertisementData advertising_data;
+  advertising_data.is_extended_advertisement = false;
+  advertising_data.service_data = {
+      {std::string(kCopresenceServiceUuid), advertisement_bytes}};
+  (ble_b.StartAdvertising(advertising_data, {.tx_power_level = kTxPowerLevel,
+                                             .is_connectable = true}));
+
+  BleV2Peripheral discovered_peripheral;
+  ble_a.StartScanning(
+      {std::string(kCopresenceServiceUuid)}, kTxPowerLevel,
+      {
+          .advertisement_found_cb =
+              [&found_latch, &discovered_peripheral](
+                  BleV2Peripheral peripheral,
+                  const BleAdvertisementData& advertisement_data) {
+                discovered_peripheral = std::move(peripheral);
+                found_latch.CountDown();
+              },
+      });
+  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  BleV2Socket socket_a;
+  BleV2Socket socket_b;
+  EXPECT_FALSE(socket_a.IsValid());
+  EXPECT_FALSE(socket_b.IsValid());
+  {
+    CancellationFlag flag(true);
+    SingleThreadExecutor server_executor;
+    SingleThreadExecutor client_executor;
+    client_executor.Execute(
+        [&ble_a, &socket_a, &service_id,
+         discovered_peripheral = std::move(discovered_peripheral),
+         &server_socket, &flag]() {
+          socket_a = ble_a.Connect(service_id, kTxPowerLevel,
+                                   discovered_peripheral, &flag);
+          if (!socket_a.IsValid()) {
+            server_socket.Close();
+          }
+        });
+    server_executor.Execute([&socket_b, &server_socket]() {
+      socket_b = server_socket.Accept();
+      if (!socket_b.IsValid()) {
+        server_socket.Close();
+      }
+    });
+  }
+  // If FeatureFlag is disabled, Cancelled is false as no-op.
+  if (!feature_flags.enable_cancellation_flag) {
+    EXPECT_TRUE(socket_a.IsValid());
+    EXPECT_TRUE(socket_b.IsValid());
+  } else {
+    EXPECT_FALSE(socket_a.IsValid());
+    EXPECT_FALSE(socket_b.IsValid());
+  }
+  server_socket.Close();
+  env_.Stop();
+}
+
+INSTANTIATE_TEST_SUITE_P(ParametrisedBleMediumTest, BleV2MediumTest,
+                         ::testing::ValuesIn(kTestCases));
 
 TEST_F(BleV2MediumTest, ConstructorDestructorWorks) {
   env_.Start();

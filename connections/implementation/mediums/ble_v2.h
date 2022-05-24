@@ -16,6 +16,7 @@
 #define CORE_INTERNAL_MEDIUMS_BLE_V2_H_
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -29,8 +30,10 @@
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/power_level.h"
 #include "internal/platform/ble_v2.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/scheduled_executor.h"
@@ -45,6 +48,12 @@ namespace connections {
 class BleV2 final {
  public:
   using DiscoveredPeripheralCallback = mediums::DiscoveredPeripheralCallback;
+
+  // Callback that is invoked when a new connection is accepted.
+  struct AcceptedConnectionCallback {
+    std::function<void(BleV2Socket socket, const std::string& service_id)>
+        accepted_cb = DefaultCallback<BleV2Socket, const std::string&>();
+  };
 
   static constexpr absl::Duration kPeripheralLostTimeout = absl::Seconds(3);
 
@@ -95,6 +104,26 @@ class BleV2 final {
   bool IsScanning(const std::string& service_id) const
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Starts a worker thread, creates a Ble socket, associates it with a
+  // service id.
+  bool StartAcceptingConnections(const std::string& service_id,
+                                 AcceptedConnectionCallback callback)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Closes socket corresponding to a service id.
+  bool StopAcceptingConnections(const std::string& service_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  bool IsAcceptingConnections(const std::string& service_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Establishes connection to Ble peripheral.
+  // Returns socket instance. On success, BleSocket.IsValid() return true.
+  BleV2Socket Connect(const std::string& service_id,
+                      const BleV2Peripheral& peripheral,
+                      CancellationFlag* cancellation_flag)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Returns true if this object owns a valid platform implementation.
   bool IsMediumValid() const ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);
@@ -117,6 +146,11 @@ class BleV2 final {
 
   // Same as IsScanning(), but must be called with `mutex_` held.
   bool IsScanningLocked(const std::string& service_id) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Same as IsListeningForIncomingConnections(), but must be called with
+  // `mutex_` held.
+  bool IsAcceptingConnectionsLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   bool IsAdvertisementGattServerRunningLocked()
@@ -159,6 +193,8 @@ class BleV2 final {
 
   void RunOnBleThread(Runnable runnable);
 
+  static constexpr int kMaxConcurrentAcceptLoops = 5;
+
   SingleThreadExecutor serial_executor_;
   ScheduledExecutor alarm_executor_;
 
@@ -176,6 +212,20 @@ class BleV2 final {
   absl::flat_hash_set<std::string> scanned_service_ids_ ABSL_GUARDED_BY(mutex_);
   std::unique_ptr<CancelableAlarm> lost_alarm_;
   mediums::DiscoveredPeripheralTracker discovered_peripheral_tracker_
+      ABSL_GUARDED_BY(mutex_);
+
+  // A thread pool dedicated to running all the accept loops from
+  // StartAcceptingConnections().
+  MultiThreadExecutor accept_loops_runner_{kMaxConcurrentAcceptLoops};
+
+  // A map of service_id -> ServerSocket. If map is non-empty, we
+  // are currently listening for incoming connections.
+  absl::flat_hash_map<std::string, BleV2ServerSocket> server_sockets_
+      ABSL_GUARDED_BY(mutex_);
+
+  // Tracks currently connected incoming sockets. This lets the device know when
+  // it's okay to restart GATT server related operations.
+  absl::flat_hash_map<std::string, BleV2Socket> incoming_sockets_
       ABSL_GUARDED_BY(mutex_);
 };
 

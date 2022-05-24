@@ -58,20 +58,17 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   std::unique_ptr<api::ble_v2::GattServer> StartGattServer(
       api::ble_v2::ServerGattConnectionCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
-  bool StartListeningForIncomingBleSockets(
-      const api::ble_v2::ServerBleSocketLifeCycleCallback& callback) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
-  void StopListeningForIncomingBleSockets() override
-      ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<api::ble_v2::GattClient> ConnectToGattServer(
       api::ble_v2::BlePeripheral& peripheral,
       api::ble_v2::TxPowerLevel tx_power_level,
       api::ble_v2::ClientGattConnectionCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
-  std::unique_ptr<api::ble_v2::BleSocket> EstablishBleSocket(
-      api::ble_v2::BlePeripheral* peripheral,
-      const api::ble_v2::BleSocketLifeCycleCallback& callback) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  std::unique_ptr<api::ble_v2::BleServerSocket> OpenServerSocket(
+      const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
+  std::unique_ptr<api::ble_v2::BleSocket> Connect(
+      const std::string& service_id, api::ble_v2::TxPowerLevel tx_power_level,
+      api::ble_v2::BlePeripheral& remote_peripheral,
+      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
   bool IsExtendedAdvertisementsAvailable() override { return false; }
 
   BluetoothAdapter& GetAdapter() { return *adapter_; }

@@ -55,6 +55,9 @@ constexpr std::array<char, 6> kFakeMacAddress = {'a', 'b', 'c', 'd', 'e', 'f'};
 constexpr BooleanMediumSelector kTestCases[] = {
     BooleanMediumSelector{},
     BooleanMediumSelector{
+        .ble = true,
+    },
+    BooleanMediumSelector{
         .bluetooth = true,
     },
     BooleanMediumSelector{
@@ -62,6 +65,19 @@ constexpr BooleanMediumSelector kTestCases[] = {
     },
     BooleanMediumSelector{
         .bluetooth = true,
+        .ble = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .wifi_lan = true,
+    },
+    BooleanMediumSelector{
+        .ble = true,
+        .wifi_lan = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .ble = true,
         .wifi_lan = true,
     },
 };

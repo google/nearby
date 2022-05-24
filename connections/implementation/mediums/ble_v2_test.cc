@@ -27,6 +27,17 @@ namespace nearby {
 namespace connections {
 namespace {
 
+using FeatureFlags = FeatureFlags::Flags;
+
+constexpr FeatureFlags kTestCases[] = {
+    FeatureFlags{
+        .enable_cancellation_flag = true,
+    },
+    FeatureFlags{
+        .enable_cancellation_flag = false,
+    },
+};
+
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 constexpr absl::string_view kServiceIDA =
     "com.google.location.nearby.apps.test.a";
@@ -34,12 +45,150 @@ constexpr absl::string_view kServiceIDB =
     "com.google.location.nearby.apps.test.b";
 constexpr absl::string_view kAdvertisementString = "\x0a\x0b\x0c\x0d";
 
-class BleV2Test : public testing::Test {
+class BleV2Test : public testing::TestWithParam<FeatureFlags> {
  protected:
   BleV2Test() { env_.Stop(); }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
+
+TEST_P(BleV2Test, CanConnect) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+  env_.Start();
+  BluetoothRadio radio_client;
+  BluetoothRadio radio_server;
+  BleV2 ble_client{radio_client};
+  BleV2 ble_server{radio_server};
+  radio_client.Enable();
+  radio_server.Enable();
+  std::string service_id(kServiceIDA);
+  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  CountDownLatch discovered_latch(1);
+  CountDownLatch accept_latch(1);
+
+  BleV2Socket socket_for_server;
+  EXPECT_TRUE(ble_server.StartAcceptingConnections(
+      service_id, {
+                      .accepted_cb =
+                          [&socket_for_server, &accept_latch](
+                              BleV2Socket socket, const std::string&) {
+                            socket_for_server = std::move(socket);
+                            accept_latch.CountDown();
+                          },
+                  }));
+
+  ble_server.StartAdvertising(service_id, advertisement_bytes,
+                              PowerLevel::kHighPower,
+                              /*is_fast_advertisement=*/true);
+
+  BleV2Peripheral discovered_peripheral;
+  ble_client.StartScanning(
+      service_id, PowerLevel::kHighPower,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&discovered_latch, &discovered_peripheral](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) {
+                discovered_peripheral = peripheral;
+                NEARBY_LOG(
+                    INFO,
+                    "Discovered peripheral=%p [impl=%p], fast advertisement=%d",
+                    &peripheral, &peripheral.GetImpl(), fast_advertisement);
+                discovered_latch.CountDown();
+              },
+      });
+  discovered_latch.Await(kWaitDuration).result();
+  ASSERT_TRUE(discovered_peripheral.IsValid());
+
+  CancellationFlag flag;
+  BleV2Socket socket_for_client =
+      ble_client.Connect(service_id, discovered_peripheral, &flag);
+  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));
+  EXPECT_TRUE(ble_server.StopAdvertising(service_id));
+  EXPECT_TRUE(socket_for_server.IsValid());
+  EXPECT_TRUE(socket_for_client.IsValid());
+  EXPECT_TRUE(socket_for_server.GetRemotePeripheral().IsValid());
+  EXPECT_TRUE(socket_for_client.GetRemotePeripheral().IsValid());
+  env_.Stop();
+}
+
+TEST_P(BleV2Test, CanCancelConnect) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+  env_.Start();
+  BluetoothRadio radio_client;
+  BluetoothRadio radio_server;
+  BleV2 ble_client{radio_client};
+  BleV2 ble_server{radio_server};
+  radio_client.Enable();
+  radio_server.Enable();
+  std::string service_id(kServiceIDA);
+  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  CountDownLatch discovered_latch(1);
+  CountDownLatch accept_latch(1);
+
+  BleV2Socket socket_for_server;
+  EXPECT_TRUE(ble_server.StartAcceptingConnections(
+      service_id, {
+                      .accepted_cb =
+                          [&socket_for_server, &accept_latch](
+                              BleV2Socket socket, const std::string&) {
+                            socket_for_server = std::move(socket);
+                            accept_latch.CountDown();
+                          },
+                  }));
+
+  ble_server.StartAdvertising(service_id, advertisement_bytes,
+                              PowerLevel::kHighPower,
+                              /*is_fast_advertisement=*/true);
+
+  BleV2Peripheral discovered_peripheral;
+  ble_client.StartScanning(
+      service_id, PowerLevel::kHighPower,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&discovered_latch, &discovered_peripheral](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) {
+                discovered_peripheral = peripheral;
+                NEARBY_LOG(
+                    INFO,
+                    "Discovered peripheral=%p [impl=%p], fast advertisement=%d",
+                    &peripheral, &peripheral.GetImpl(), fast_advertisement);
+                discovered_latch.CountDown();
+              },
+      });
+  EXPECT_TRUE(discovered_latch.Await(kWaitDuration).result());
+  ASSERT_TRUE(discovered_peripheral.IsValid());
+
+  CancellationFlag flag(true);
+  BleV2Socket socket_for_client =
+      ble_client.Connect(service_id, discovered_peripheral, &flag);
+  // If FeatureFlag is disabled, Cancelled is false as no-op.
+  if (!feature_flags.enable_cancellation_flag) {
+    EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+    EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));
+    EXPECT_TRUE(ble_server.StopAdvertising(service_id));
+    EXPECT_TRUE(socket_for_server.IsValid());
+    EXPECT_TRUE(socket_for_client.IsValid());
+    EXPECT_TRUE(socket_for_server.GetRemotePeripheral().IsValid());
+    EXPECT_TRUE(socket_for_client.GetRemotePeripheral().IsValid());
+  } else {
+    EXPECT_FALSE(accept_latch.Await(kWaitDuration).result());
+    EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));
+    EXPECT_TRUE(ble_server.StopAdvertising(service_id));
+    EXPECT_FALSE(socket_for_server.IsValid());
+    EXPECT_FALSE(socket_for_client.IsValid());
+  }
+  env_.Stop();
+}
+
+INSTANTIATE_TEST_SUITE_P(ParametrisedBleTest, BleV2Test,
+                         ::testing::ValuesIn(kTestCases));
 
 TEST_F(BleV2Test, CanConstructValidObject) {
   env_.Start();

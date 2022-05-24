@@ -15,6 +15,7 @@
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 
 #include <string>
+#include <utility>
 
 #include "internal/platform/implementation/g3/bluetooth_classic.h"
 #include "internal/platform/medium_environment.h"
@@ -76,6 +77,10 @@ void BluetoothAdapter::SetBluetoothClassicMedium(
 
 void BluetoothAdapter::SetBleMedium(api::BleMedium* medium) {
   ble_medium_ = medium;
+}
+
+void BluetoothAdapter::SetBleV2Medium(api::ble_v2::BleMedium* medium) {
+  ble_v2_medium_ = medium;
 }
 
 bool BluetoothAdapter::SetStatus(Status status) {

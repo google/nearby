@@ -33,8 +33,8 @@ namespace {
 
 using ::location::nearby::api::ble_v2::AdvertiseParameters;
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
+using ::location::nearby::api::ble_v2::BleServerSocket;
 using ::location::nearby::api::ble_v2::BleSocket;
-using ::location::nearby::api::ble_v2::BleSocketLifeCycleCallback;
 using ::location::nearby::api::ble_v2::GattClient;
 using ::location::nearby::api::ble_v2::ServerGattConnectionCallback;
 using ::location::nearby::api::ble_v2::TxPowerLevel;
@@ -251,22 +251,21 @@ std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
   return nullptr;
 }
 
-bool BleV2Medium::StartListeningForIncomingBleSockets(
-    const api::ble_v2::ServerBleSocketLifeCycleCallback& callback) {
-  return false;
-}
-
-void BleV2Medium::StopListeningForIncomingBleSockets() {}
-
 std::unique_ptr<GattClient> BleV2Medium::ConnectToGattServer(
     api::ble_v2::BlePeripheral& peripheral, TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
   return nullptr;
 }
 
-std::unique_ptr<BleSocket> BleV2Medium::EstablishBleSocket(
-    api::ble_v2::BlePeripheral* peripheral,
-    const BleSocketLifeCycleCallback& callback) {
+std::unique_ptr<api::ble_v2::BleServerSocket> BleV2Medium::OpenServerSocket(
+    const std::string& service_id) {
+  return nullptr;
+}
+
+std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
+    const std::string& service_id, TxPowerLevel tx_power_level,
+    api::ble_v2::BlePeripheral& remote_peripheral,
+    CancellationFlag* cancellation_flag) {
   return nullptr;
 }
 

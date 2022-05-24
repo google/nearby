@@ -52,6 +52,7 @@ class BlePeripheral final {
 // particular BLE peripheral to connect to its GATT server.
 class BleV2Peripheral final {
  public:
+  BleV2Peripheral() = default;
   explicit BleV2Peripheral(api::ble_v2::BlePeripheral* peripheral)
       : impl_(peripheral) {}
   BleV2Peripheral(const BleV2Peripheral&) = default;
@@ -87,7 +88,7 @@ class BleV2Peripheral final {
 
   // Returns reference to platform implementation.
   // This is used to communicate with platform code, and for debugging purposes.
-  api::ble_v2::BlePeripheral& GetImpl() { return *impl_; }
+  api::ble_v2::BlePeripheral& GetImpl() const { return *impl_; }
   bool IsValid() const { return impl_ != nullptr; }
 
  private:
