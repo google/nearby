@@ -31,9 +31,6 @@ struct MediumSelector {
   T wifi_lan;
   T wifi_hotspot;
 
-  constexpr MediumSelector() = default;
-  constexpr MediumSelector(const MediumSelector&) = default;
-  constexpr MediumSelector& operator=(const MediumSelector&) = default;
   constexpr bool Any(T value) const {
     return bluetooth == value || ble == value || web_rtc == value ||
            wifi_lan == value || wifi_hotspot == value;
