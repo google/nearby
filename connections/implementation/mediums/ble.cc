@@ -46,7 +46,9 @@ bool Ble::IsAvailable() const {
   return IsAvailableLocked();
 }
 
-bool Ble::IsAvailableLocked() const { return medium_.IsValid(); }
+bool Ble::IsAvailableLocked() const {
+  return medium_.IsValid() && adapter_.IsValid() && adapter_.IsEnabled();
+}
 
 bool Ble::StartAdvertising(const std::string& service_id,
                            const ByteArray& advertisement_bytes,

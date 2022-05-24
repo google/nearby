@@ -64,7 +64,7 @@ bool BluetoothClassic::IsAvailable() const {
 }
 
 bool BluetoothClassic::IsAvailableLocked() const {
-  return medium_.IsValid() && adapter_.IsValid();
+  return medium_.IsValid() && adapter_.IsValid() && adapter_.IsEnabled();
 }
 
 bool BluetoothClassic::TurnOnDiscoverability(const std::string& device_name) {
