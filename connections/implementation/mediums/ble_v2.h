@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_MEDIUMS_BLE_V2_H_
 #define CORE_INTERNAL_MEDIUMS_BLE_V2_H_
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -37,6 +38,7 @@
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/prng.h"
 #include "internal/platform/scheduled_executor.h"
 #include "internal/platform/single_thread_executor.h"
 
@@ -138,6 +140,117 @@ class BleV2 final {
     bool is_fast_advertisement;
   };
 
+  // An auto stop mechanism to register advertisement id over a life cycle of
+  // platform adverting state in `AdvertisingClientState`.
+  class AdvertisementKey {
+   public:
+    explicit AdvertisementKey(BleV2* ble) : ble_(ble) {
+      advertisement_ids_.clear();
+    }
+
+    void AddAdvertisementId(int advertisement_id) {
+      advertisement_ids_.push_back(advertisement_id);
+    }
+
+    ~AdvertisementKey() {
+      for (const auto& advertisement_id : advertisement_ids_) {
+        bool stop_advertising = ble_->medium_.StopAdvertising(advertisement_id);
+        NEARBY_LOGS(INFO)
+            << "Stop platform BLE advertising with advertisement_id="
+            << advertisement_id << " succeed=" << stop_advertising;
+      }
+      advertisement_ids_.clear();
+    }
+
+   private:
+    BleV2* ble_;  // Not owned.
+    std::vector<int> advertisement_ids_;
+  };
+
+  // A store to track the state of multiple service ids (clients).
+  class AdvertisingClientState {
+   public:
+    // Initializes the state for platform advertising.
+    void StartAdvertising(const std::string& service_id, BleV2* ble) {
+      acting_advertisement_key_ = std::make_unique<AdvertisementKey>(ble);
+      acting_service_id_ = service_id;
+    }
+
+    // Updates the state of advertisement id by each succeeded case of
+    // platform StartAdvertising.
+    void AddAdvertisementId(int advertisement_id) {
+      if (acting_advertisement_key_ == nullptr) return;
+      acting_advertisement_key_->AddAdvertisementId(advertisement_id);
+    }
+
+    // Resets the platform advertising state. It will destroy the
+    // `acting_advertisement_key` in which runs stopping platform advertising.
+    void StopAdvertising() {
+      acting_advertisement_key_.reset();
+      acting_service_id_.clear();
+    }
+
+    // Gets current acting service id.
+    std::string GetActingServiceId() const { return acting_service_id_; }
+
+    // Checks if the service id is in tracking store and acting one.
+    bool IsDeactivated(const std::string& service_id) {
+      return advertising_infos_.contains(service_id) &&
+             (service_id != acting_service_id_);
+    }
+
+    // This is to get the next available service id to do re-start advertising
+    // by the last time advertising.
+    std::string GetNextAvailableServiceId() { return service_ids_.back(); }
+    AdvertisingInfo* GetAdvertisingInfo(const std::string& service_id) {
+      const auto& it = advertising_infos_.find(service_id);
+      if (it == advertising_infos_.end()) {
+        return nullptr;
+      }
+      return &it->second;
+    }
+
+    // Gets all the service_id in store.
+    std::vector<std::string> GetServiceIds() const { return service_ids_; }
+
+    bool Empty() const { return advertising_infos_.empty(); }
+    void Clear() {
+      advertising_infos_.clear();
+      service_ids_.clear();
+      acting_service_id_.clear();
+      acting_advertisement_key_.reset();
+    }
+    void Insert(const std::string& service_id,
+                const AdvertisingInfo& advertising_info) {
+      advertising_infos_.insert({service_id, advertising_info});
+      service_ids_.push_back(service_id);
+    }
+    void Erase(const std::string& service_id) {
+      advertising_infos_.erase(service_id);
+      const auto it =
+          std::find(service_ids_.begin(), service_ids_.end(), service_id);
+      if (it != service_ids_.end()) {
+        service_ids_.erase(it);
+      }
+    }
+    // We check `advertising_infos_` only even `service_ids_` is co-existed.
+    bool Contains(const std::string& service_id) const {
+      return advertising_infos_.contains(service_id);
+    }
+
+   private:
+    // A map service_id to AdvertisingInfo.
+    absl::flat_hash_map<std::string, AdvertisingInfo> advertising_infos_;
+    // Acts as a stack for advertising service ids. The last service_id inserted
+    // for advertising will be popped up firstly to re-start the advertising.
+    // It is co-existed with advertising_infos.
+    std::vector<std::string> service_ids_;
+    // Current acting service_id for advertising.
+    std::string acting_service_id_;
+    // Current acting advertisement_key for advertising.
+    std::unique_ptr<AdvertisementKey> acting_advertisement_key_;
+  };
+
   // Same as IsAvailable(), but must be called with `mutex_` held.
   bool IsAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -177,7 +290,7 @@ class BleV2 final {
   bool StartAdvertisingLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool StartFastAdvertisingLocked(
-      PowerLevel power_level,
+      const std::string& service_id, PowerLevel power_level,
       const mediums::BleAdvertisement& medium_advertisement)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool StartRegularAdvertisingLocked(
@@ -191,6 +304,7 @@ class BleV2 final {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   api::ble_v2::TxPowerLevel PowerLevelToTxPowerLevel(PowerLevel power_level);
+  int GenerateAdvertismentId() { return Prng().NextInt32(); }
 
   void RunOnBleThread(Runnable runnable);
 
@@ -203,8 +317,7 @@ class BleV2 final {
   BluetoothRadio& radio_ ABSL_GUARDED_BY(mutex_);
   BluetoothAdapter& adapter_ ABSL_GUARDED_BY(mutex_);
   BleV2Medium medium_ ABSL_GUARDED_BY(mutex_){adapter_};
-  absl::btree_map<std::string, AdvertisingInfo> advertising_infos_
-      ABSL_GUARDED_BY(mutex_);
+  AdvertisingClientState advertising_client_state_ ABSL_GUARDED_BY(mutex_);
   std::unique_ptr<GattServer> gatt_server_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<int, std::pair<std::string, ByteArray>>
       gatt_advertisements_ ABSL_GUARDED_BY(mutex_);

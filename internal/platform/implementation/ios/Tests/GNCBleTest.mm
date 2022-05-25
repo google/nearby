@@ -53,6 +53,7 @@ static const TxPowerLevel kTxPowerLevel = TxPowerLevel::kHigh;
 
 - (void)testStartandStopAdvertising {
   Uuid service_uuid(1234, 5678);
+  int advertiement_id = 1;
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
 
   // Assemble regular advertisement data.
@@ -60,12 +61,12 @@ static const TxPowerLevel kTxPowerLevel = TxPowerLevel::kHigh;
   advertising_data.is_extended_advertisement = false;
   advertising_data.service_data = {{service_uuid, advertisement_bytes}};
 
-  XCTAssertTrue(_ble->StartAdvertising(advertising_data,
+  XCTAssertTrue(_ble->StartAdvertising(advertiement_id, advertising_data,
                                        {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
 
   [NSThread sleepForTimeInterval:0.1];
 
-  XCTAssertTrue(_ble->StopAdvertising());
+  XCTAssertTrue(_ble->StopAdvertising(advertiement_id));
 }
 
 - (void)testStartandStopScanning {

@@ -265,9 +265,10 @@ class BleV2Medium final {
 
   // Returns true once the BLE advertising has been initiated.
   bool StartAdvertising(
+      int advertisement_id,
       const api::ble_v2::BleAdvertisementData& advertising_data,
       api::ble_v2::AdvertiseParameters advertise_parameters);
-  bool StopAdvertising();
+  bool StopAdvertising(int advertisement_id);
 
   // Returns true once the BLE scan has been initiated.
   bool StartScanning(const Uuid& service_uuid,

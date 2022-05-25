@@ -82,6 +82,7 @@ TEST_P(BleV2MediumTest, CanConnectToService) {
   BleV2Medium ble_b(adapter_b_);
   Uuid service_uuid(1234, 5678);
   std::string service_id(kServiceIDA);
+  int advertisement_id = 1;
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
   CountDownLatch found_latch(1);
   CountDownLatch lost_latch(1);
@@ -93,8 +94,9 @@ TEST_P(BleV2MediumTest, CanConnectToService) {
   BleAdvertisementData advertising_data;
   advertising_data.is_extended_advertisement = false;
   advertising_data.service_data = {{service_uuid, advertisement_bytes}};
-  (ble_b.StartAdvertising(advertising_data, {.tx_power_level = kTxPowerLevel,
-                                             .is_connectable = true}));
+  (ble_b.StartAdvertising(
+      advertisement_id, advertising_data,
+      {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
 
   BleV2Peripheral discovered_peripheral;
   ble_a.StartScanning(
@@ -150,6 +152,7 @@ TEST_P(BleV2MediumTest, CanCancelConnect) {
   BleV2Medium ble_b(adapter_b_);
   Uuid service_uuid(1234, 5678);
   std::string service_id(kServiceIDA);
+  int advertisement_id = 1;
   ByteArray advertisement_bytes((std::string(kAdvertisementString)));
   CountDownLatch found_latch(1);
   CountDownLatch lost_latch(1);
@@ -161,8 +164,9 @@ TEST_P(BleV2MediumTest, CanCancelConnect) {
   BleAdvertisementData advertising_data;
   advertising_data.is_extended_advertisement = false;
   advertising_data.service_data = {{service_uuid, advertisement_bytes}};
-  (ble_b.StartAdvertising(advertising_data, {.tx_power_level = kTxPowerLevel,
-                                             .is_connectable = true}));
+  (ble_b.StartAdvertising(
+      advertisement_id, advertising_data,
+      {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
 
   BleV2Peripheral discovered_peripheral;
   ble_a.StartScanning(
@@ -239,6 +243,8 @@ TEST_F(BleV2MediumTest, CanStartFastScanningAndFastAdvertising) {
   BluetoothAdapter adapter_b;
   BleV2Medium ble_a(adapter_a);
   BleV2Medium ble_b(adapter_b);
+  int advertisement_id_1 = 1;
+  int advertisement_id_2 = 2;
   Uuid service_uuid(1234, 5678);
   ByteArray advertisement_bytes((std::string(kAdvertisementString)));
   CountDownLatch found_latch(1);
@@ -258,19 +264,19 @@ TEST_F(BleV2MediumTest, CanStartFastScanningAndFastAdvertising) {
   advertising_data.is_extended_advertisement = true;
   advertising_data.service_data.insert({service_uuid, advertisement_bytes});
   EXPECT_FALSE(ble_b.StartAdvertising(
-      advertising_data,
+      advertisement_id_1, advertising_data,
       {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
 
   // Succeed to start regular advertisement.
   advertising_data.is_extended_advertisement = false;
   advertising_data.service_data = {{service_uuid, advertisement_bytes}};
   EXPECT_TRUE(ble_b.StartAdvertising(
-      advertising_data,
+      advertisement_id_2, advertising_data,
       {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_a.StopScanning());
-  EXPECT_TRUE(ble_b.StopAdvertising());
+  EXPECT_TRUE(ble_b.StopAdvertising(advertisement_id_2));
   env_.Stop();
 }
 
@@ -280,6 +286,8 @@ TEST_F(BleV2MediumTest, CanStartScanningAndAdvertising) {
   BluetoothAdapter adapter_b;
   BleV2Medium ble_a(adapter_a);
   BleV2Medium ble_b(adapter_b);
+  int advertisement_id_1 = 1;
+  int advertisement_id_2 = 2;
   Uuid service_uuid(1234, 5678);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
   ByteArray advertisement_header_bytes{std::string(kAdvertisementHeaderString)};
@@ -300,19 +308,19 @@ TEST_F(BleV2MediumTest, CanStartScanningAndAdvertising) {
   advertising_data.is_extended_advertisement = true;
   advertising_data.service_data.insert({service_uuid, advertisement_bytes});
   EXPECT_FALSE(ble_b.StartAdvertising(
-      advertising_data,
+      advertisement_id_1, advertising_data,
       {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
 
   // Succeed to start regular advertisement.
   advertising_data.is_extended_advertisement = false;
   advertising_data.service_data = {{service_uuid, advertisement_header_bytes}};
   EXPECT_TRUE(ble_b.StartAdvertising(
-      advertising_data,
+      advertisement_id_2, advertising_data,
       {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_a.StopScanning());
-  EXPECT_TRUE(ble_b.StopAdvertising());
+  EXPECT_TRUE(ble_b.StopAdvertising(advertisement_id_2));
   env_.Stop();
 }
 

@@ -45,10 +45,12 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   // Returns true once the Ble advertising has been initiated.
   bool StartAdvertising(
+      int advertisement_id,
       const api::ble_v2::BleAdvertisementData& advertising_data,
       api::ble_v2::AdvertiseParameters advertising_parameters) override
       ABSL_LOCKS_EXCLUDED(mutex_);
-  bool StopAdvertising() override ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StopAdvertising(int advertisement_id) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool StartScanning(const Uuid& service_uuid,
                      api::ble_v2::TxPowerLevel tx_power_level,
