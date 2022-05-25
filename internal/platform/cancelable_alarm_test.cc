@@ -70,9 +70,9 @@ TEST(CancelableAlarmTest, CanCreateRecurringAlarm) {
   AtomicReference<int> count(0);
   CancelableAlarm alarm(
       "test_alarm", [&count]() { count.Set(count.Get() + 1); },
-      absl::Milliseconds(100), &alarm_executor, /*is_recurring=*/true);
-  // Wait for 2 rounds (>100ms * 2) and expect the `count` = 2.
-  SystemClock::Sleep(absl::Milliseconds(290));
+      absl::Milliseconds(1000), &alarm_executor, /*is_recurring=*/true);
+  // Wait for 2 rounds (>1000ms * 2) and expect the `count` = 2.
+  SystemClock::Sleep(absl::Milliseconds(2800));
   alarm.Cancel();
   EXPECT_EQ(count.Get(), 2);
 }
