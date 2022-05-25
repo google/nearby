@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,28 +12,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/mediums/wifi.h"
+
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
+#include "gtest/gtest.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
+namespace {
 
-BluetoothRadio& Mediums::GetBluetoothRadio() { return bluetooth_radio_; }
+TEST(WifiTest, ConstructorDestructorWorks) {
+  Wifi wifi_a;
+  Wifi wifi_b;
 
-BluetoothClassic& Mediums::GetBluetoothClassic() { return bluetooth_classic_; }
+  if (wifi_a.IsAvailable() && wifi_b.IsAvailable()) {
+    // Make sure we can create 2 distinct mediums.
+    EXPECT_NE(&wifi_a, &wifi_b);
+  }
+  // TODO(b/233324423): Add test coverage for wifi.h
+}
 
-Ble& Mediums::GetBle() { return ble_; }
+TEST(WifiTest, CanGetCapability) {
+  // TODO(b/233324423): Add test coverage for wifi.h
+}
 
-BleV2& Mediums::GetBleV2() { return ble_v2_; }
+TEST(WifiTest, CanInformation) {
+  // TODO(b/233324423): Add test coverage for wifi.h
+}
 
-Wifi& Mediums::GetWifi() { return wifi_; }
 
-WifiLan& Mediums::GetWifiLan() { return wifi_lan_; }
-
-WifiHotspot& Mediums::GetWifiHotspot() { return wifi_hotspot_; }
-
-mediums::WebRtc& Mediums::GetWebRtc() { return webrtc_; }
-
+}  // namespace
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location

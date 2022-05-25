@@ -437,6 +437,7 @@ let package = Package(
         "connections/implementation/mediums/lost_entity_tracker_test.cc",
         "connections/implementation/mediums/bluetooth_radio_test.cc",
         "connections/implementation/mediums/wifi_hotspot_test.cc",
+        "connections/implementation/mediums/wifi_test.cc",
         "connections/implementation/endpoint_channel_manager_test.cc",
         "connections/implementation/bwu_manager_test.cc",
         "connections/implementation/base_bwu_handler_test.cc",
@@ -485,6 +486,8 @@ let package = Package(
         "internal/platform/cancellation_flag_test.cc",
         "internal/platform/bluetooth_adapter_test.cc",
         "internal/platform/byte_utils_test.cc",
+        "internal/platform/wifi_test.cc",
+        "internal/platform/wifi_utils_test.cc",
         "internal/analytics/analytics_recorder_test.cc",
         // simulation
         "connections/implementation/offline_simulation_user.cc",

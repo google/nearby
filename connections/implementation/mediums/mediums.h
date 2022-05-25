@@ -24,6 +24,7 @@
 #else
 #include "connections/implementation/mediums/webrtc.h"
 #endif
+#include "connections/implementation/mediums/wifi.h"
 #include "connections/implementation/mediums/wifi_hotspot.h"
 #include "connections/implementation/mediums/wifi_lan.h"
 
@@ -49,6 +50,9 @@ class Mediums {
   // Returns a handle to the Ble medium.
   BleV2& GetBleV2();
 
+  // Returns a handle to the Wifi medium.
+  Wifi& GetWifi();
+
   // Returns a handle to the Wifi-Lan medium.
   WifiLan& GetWifiLan();
 
@@ -71,6 +75,7 @@ class Mediums {
   BluetoothClassic bluetooth_classic_{bluetooth_radio_};
   Ble ble_{bluetooth_radio_};
   BleV2 ble_v2_{bluetooth_radio_};
+  Wifi wifi_;
   WifiLan wifi_lan_;
   WifiHotspot wifi_hotspot_;
   mediums::WebRtc webrtc_;

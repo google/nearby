@@ -35,6 +35,8 @@ constexpr absl::string_view kEndpointName{"XYZ"};
 constexpr int kNonce = 1234;
 constexpr bool kSupports5ghz = true;
 constexpr absl::string_view kBssid{"FF:FF:FF:FF:FF:FF"};
+constexpr int kApFrequency = 2412;
+constexpr absl::string_view kIp4Bytes = {"8xqT"};
 constexpr int kStatusAccepted = 0;
 constexpr absl::string_view kSsid = "ssid";
 constexpr absl::string_view kPassword = "password";
@@ -57,9 +59,10 @@ TEST(OfflineFramesValidatorTest, ValidatesAsOkWithValidConnectionRequestFrame) {
 
   ByteArray bytes = ForConnectionRequest(
       std::string(kEndpointId), ByteArray{std::string(kEndpointName)}, kNonce,
-      kSupports5ghz, std::string(kBssid),
-      std::vector(kMediums.begin(), kMediums.end()), kKeepAliveIntervalMillis,
-      kKeepAliveTimeoutMillis);
+      kSupports5ghz, std::string(kBssid), kApFrequency, std::string(kIp4Bytes),
+      std::vector<Medium, std::allocator<Medium>>(kMediums.begin(),
+                                                  kMediums.end()),
+      kKeepAliveIntervalMillis, kKeepAliveTimeoutMillis);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -73,9 +76,10 @@ TEST(OfflineFramesValidatorTest,
 
   ByteArray bytes = ForConnectionRequest(
       std::string(kEndpointId), ByteArray{std::string(kEndpointName)}, kNonce,
-      kSupports5ghz, std::string(kBssid),
-      std::vector(kMediums.begin(), kMediums.end()), kKeepAliveIntervalMillis,
-      kKeepAliveTimeoutMillis);
+      kSupports5ghz, std::string(kBssid), kApFrequency, std::string(kIp4Bytes),
+      std::vector<Medium, std::allocator<Medium>>(kMediums.begin(),
+                                                  kMediums.end()),
+      kKeepAliveIntervalMillis, kKeepAliveTimeoutMillis);
   offline_frame.ParseFromString(std::string(bytes));
   auto* v1_frame = offline_frame.mutable_v1();
 
@@ -93,9 +97,10 @@ TEST(OfflineFramesValidatorTest,
   std::string empty_enpoint_id;
   ByteArray bytes = ForConnectionRequest(
       empty_enpoint_id, ByteArray{std::string(kEndpointName)}, kNonce,
-      kSupports5ghz, std::string(kBssid),
-      std::vector(kMediums.begin(), kMediums.end()), kKeepAliveIntervalMillis,
-      kKeepAliveTimeoutMillis);
+      kSupports5ghz, std::string(kBssid), kApFrequency, std::string(kIp4Bytes),
+      std::vector<Medium, std::allocator<Medium>>(kMediums.begin(),
+                                                  kMediums.end()),
+      kKeepAliveIntervalMillis, kKeepAliveTimeoutMillis);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -110,7 +115,9 @@ TEST(OfflineFramesValidatorTest,
   ByteArray empty_endpoint_info;
   ByteArray bytes = ForConnectionRequest(
       std::string(kEndpointId), empty_endpoint_info, kNonce, kSupports5ghz,
-      std::string(kBssid), std::vector(kMediums.begin(), kMediums.end()),
+      std::string(kBssid), kApFrequency, std::string(kIp4Bytes),
+      std::vector<Medium, std::allocator<Medium>>(kMediums.begin(),
+                                                  kMediums.end()),
       kKeepAliveIntervalMillis, kKeepAliveTimeoutMillis);
   offline_frame.ParseFromString(std::string(bytes));
 
@@ -126,7 +133,9 @@ TEST(OfflineFramesValidatorTest,
   std::string empty_bssid;
   ByteArray bytes = ForConnectionRequest(
       std::string(kEndpointId), ByteArray{std::string(kEndpointName)}, kNonce,
-      kSupports5ghz, empty_bssid, std::vector(kMediums.begin(), kMediums.end()),
+      kSupports5ghz, empty_bssid, kApFrequency, std::string(kIp4Bytes),
+      std::vector<Medium, std::allocator<Medium>>(kMediums.begin(),
+                                                  kMediums.end()),
       kKeepAliveIntervalMillis, kKeepAliveTimeoutMillis);
   offline_frame.ParseFromString(std::string(bytes));
 
@@ -142,8 +151,8 @@ TEST(OfflineFramesValidatorTest,
   std::vector<Medium> empty_mediums;
   ByteArray bytes = ForConnectionRequest(
       std::string(kEndpointId), ByteArray{std::string(kEndpointName)}, kNonce,
-      kSupports5ghz, std::string(kBssid), empty_mediums,
-      kKeepAliveIntervalMillis, kKeepAliveTimeoutMillis);
+      kSupports5ghz, std::string(kBssid), kApFrequency, std::string(kIp4Bytes),
+      empty_mediums, kKeepAliveIntervalMillis, kKeepAliveTimeoutMillis);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
