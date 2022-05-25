@@ -46,6 +46,7 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform:util",
+        "//internal/platform:uuid",
         "@aappleby_smhasher//:libmurmur3",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -53,6 +54,7 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:optional",
     ],
 )
 

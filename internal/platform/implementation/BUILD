@@ -72,6 +72,7 @@ cc_library(
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
+        "//internal/platform:uuid",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/strings",

@@ -18,9 +18,9 @@
 #include <string>
 #include <utility>
 
-#include "connections/implementation/mediums/uuid.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/uuid.h"
 
 namespace location {
 namespace nearby {

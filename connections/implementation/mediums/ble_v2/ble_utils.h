@@ -18,12 +18,13 @@
 #include <string>
 
 #include "absl/strings/str_format.h"
+#include "absl/types/optional.h"
 #include "connections/implementation/mediums/ble_v2//ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/ble_v2/ble_packet.h"
 #include "connections/implementation/mediums/utils.h"
-#include "connections/implementation/mediums/uuid.h"
 #include "internal/platform/prng.h"
+#include "internal/platform/uuid.h"
 
 namespace location {
 namespace nearby {
@@ -31,7 +32,7 @@ namespace connections {
 namespace mediums {
 namespace bleutils {
 
-ABSL_CONST_INIT extern const absl::string_view kCopresenceServiceUuid;
+ABSL_CONST_INIT extern const Uuid kCopresenceServiceUuid;
 
 // Return SHA256 hash.
 //
@@ -61,7 +62,8 @@ ByteArray GenerateAdvertisementHash(const ByteArray& advertisement_bytes);
 // Generates a BLE characteristic UUID for an advertisement at the given slot.
 //
 // slot - the advertisement slot to generate a UUID for.
-std::string GenerateAdvertisementUuid(int slot);
+// NOLINTNEXTLINE(google3-legacy-absl-backports)
+absl::optional<Uuid> GenerateAdvertisementUuid(int slot);
 
 }  // namespace bleutils
 }  // namespace mediums

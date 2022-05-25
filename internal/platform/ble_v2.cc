@@ -38,7 +38,7 @@ bool BleV2Medium::StartAdvertising(
 
 bool BleV2Medium::StopAdvertising() { return impl_->StopAdvertising(); }
 
-bool BleV2Medium::StartScanning(const std::string& service_uuid,
+bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                                 TxPowerLevel tx_power_level,
                                 ScanCallback callback) {
   MutexLock lock(&mutex_);

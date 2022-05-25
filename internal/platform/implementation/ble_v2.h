@@ -25,6 +25,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/uuid.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
@@ -75,7 +76,7 @@ struct BleAdvertisementData {
   // iOS    : 16 bit service UUID (type=0x03) + LocalName data (type=0x08)
   // Windows: Service data (type=0x16)
   // Android: 16 bit service UUID (type=0x03) + Service data (type=0x16)
-  absl::flat_hash_map<std::string, location::nearby::ByteArray> service_data;
+  absl::flat_hash_map<Uuid, location::nearby::ByteArray> service_data;
 };
 
 // Opaque wrapper over a BLE peripheral. Must be able to uniquely identify a
@@ -110,8 +111,8 @@ struct GattCharacteristic {
     kLast,
   };
 
-  std::string uuid;
-  std::string service_uuid;
+  Uuid uuid;
+  Uuid service_uuid;
 
   // Hashable
   template <typename H>
@@ -136,7 +137,7 @@ class GattClient {
   // Returns whether or not discovery finished successfully.
   //
   // This function should block until discovery has finished.
-  virtual bool DiscoverService(const std::string& service_uuid) = 0;
+  virtual bool DiscoverService(const Uuid& service_uuid) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#getService(java.util.UUID)
   // https://developer.android.com/reference/android/bluetooth/BluetoothGattService.html#getCharacteristic(java.util.UUID)
@@ -148,12 +149,13 @@ class GattClient {
   //
   // It is okay for duplicate services to exist, as long as the specified
   // characteristic UUID is unique among all services of the same UUID.
+  // NOLINTNEXTLINE(google3-legacy-absl-backports)
   virtual absl::optional<GattCharacteristic> GetCharacteristic(
-      absl::string_view service_uuid,
-      absl::string_view characteristic_uuid) = 0;
+      const Uuid& service_uuid, const Uuid& characteristic_uuid) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#readCharacteristic(android.bluetooth.BluetoothGattCharacteristic)
   // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic.html#getValue()
+  // NOLINTNEXTLINE(google3-legacy-absl-backports)
   virtual absl::optional<ByteArray> ReadCharacteristic(
       const GattCharacteristic& characteristic) = 0;
 
@@ -188,8 +190,9 @@ class GattServer {
   // write to this descriptor and subscribe for characteristic changes. For
   // more information about this descriptor, please go to:
   // https://www.bluetooth.com/specifications/Gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.Gatt.client_characteristic_configuration.xml
+  // NOLINTNEXTLINE(google3-legacy-absl-backports)
   virtual absl::optional<GattCharacteristic> CreateCharacteristic(
-      absl::string_view service_uuid, absl::string_view characteristic_uuid,
+      const Uuid& service_uuid, const Uuid& characteristic_uuid,
       const std::vector<GattCharacteristic::Permission>& permissions,
       const std::vector<GattCharacteristic::Property>& properties) = 0;
 
@@ -317,7 +320,7 @@ class BleMedium {
   //   HIGH:
   //     - Scan window = ~4096ms
   //     - Scan interval = ~4096ms
-  virtual bool StartScanning(const std::string& service_uuid,
+  virtual bool StartScanning(const Uuid& service_uuid,
                              TxPowerLevel tx_power_level,
                              ScanCallback callback) = 0;
 

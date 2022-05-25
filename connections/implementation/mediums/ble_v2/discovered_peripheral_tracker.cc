@@ -20,6 +20,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/strings/ascii.h"
 #include "absl/strings/escaping.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
@@ -37,7 +38,7 @@ namespace mediums {
 void DiscoveredPeripheralTracker::StartTracking(
     const std::string& service_id,
     const DiscoveredPeripheralCallback& discovered_peripheral_callback,
-    const std::string& fast_advertisement_service_uuid) {
+    const Uuid& fast_advertisement_service_uuid) {
   MutexLock lock(&mutex_);
 
   ServiceIdInfo service_id_info = {
@@ -198,19 +199,20 @@ void DiscoveredPeripheralTracker::HandleAdvertisement(
   // First filter out kCopresenceServiceUuid and see if any Caller UUID
   // existed; if not then just take the kCopresenceServiceUuid as
   // |service_uuid|.
-  absl::flat_hash_map<std::string, location::nearby::ByteArray> extracted_uuids;
+  absl::flat_hash_map<Uuid, location::nearby::ByteArray> extracted_uuids;
   // Filter out kCoprsence service uuid.
   std::remove_copy_if(
       advertisement_data.service_data.begin(),
       advertisement_data.service_data.end(),
       std::inserter(extracted_uuids, extracted_uuids.end()),
-      [](const std::pair<const std::string, location::nearby::ByteArray>&
-             pair) { return pair.first == bleutils::kCopresenceServiceUuid; });
-  std::string service_uuid;
+      [](const std::pair<const Uuid, location::nearby::ByteArray>& pair) {
+        return pair.first == bleutils::kCopresenceServiceUuid;
+      });
+  Uuid service_uuid;
   if (!extracted_uuids.empty()) {
     service_uuid = extracted_uuids.begin()->first;
   } else {
-    service_uuid = std::string(bleutils::kCopresenceServiceUuid);
+    service_uuid = bleutils::kCopresenceServiceUuid;
   }
 
   // Create a header tied to this fast advertisement. This helps us track the
@@ -266,7 +268,7 @@ BleAdvertisementHeader DiscoveredPeripheralTracker::HandleRawGattAdvertisements(
     BleV2Peripheral peripheral,
     const BleAdvertisementHeader& advertisement_header,
     const std::vector<const ByteArray*>& gatt_advertisement_bytes_list,
-    const std::string& service_uuid) {
+    const Uuid& service_uuid) {
   absl::flat_hash_map<std::string, BleAdvertisement>
       parsed_gatt_advertisements = ParseRawGattAdvertisements(
           gatt_advertisement_bytes_list, service_uuid);
@@ -353,7 +355,7 @@ BleAdvertisementHeader DiscoveredPeripheralTracker::HandleRawGattAdvertisements(
 absl::flat_hash_map<std::string, BleAdvertisement>
 DiscoveredPeripheralTracker::ParseRawGattAdvertisements(
     const std::vector<const ByteArray*>& gatt_advertisement_bytes_list,
-    const std::string& service_uuid) {
+    const Uuid& service_uuid) {
   absl::flat_hash_map<std::string, BleAdvertisement>
       parsed_gatt_advertisements = {};
 
@@ -382,14 +384,15 @@ DiscoveredPeripheralTracker::ParseRawGattAdvertisements(
 
       // service_id_hash is null here (mediums advertisement) because we already
       // have a UUID in the fast advertisement.
-      if (gatt_advertisement.IsFastAdvertisement() && !service_uuid.empty()) {
+      if (gatt_advertisement.IsFastAdvertisement() && !service_uuid.IsEmpty()) {
         const auto sii_it = service_id_infos_.find(service_id);
         if (sii_it != service_id_infos_.end()) {
           if (sii_it->second.fast_advertisement_service_uuid == service_uuid) {
             NEARBY_LOGS(INFO)
                 << "This GATT advertisement:"
                 << absl::BytesToHexString(gatt_advertisement_bytes->data())
-                << " is a fast advertisement and matched UUID=" << service_uuid
+                << " is a fast advertisement and matched UUID="
+                << service_uuid.Get16BitAsString()
                 << " in a map with service_id=" << service_id;
             parsed_gatt_advertisements.insert({service_id, gatt_advertisement});
           }
@@ -490,7 +493,7 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
     if (!gatt_advertisement_bytes_list.empty()) {
       HandleRawGattAdvertisements(peripheral, advertisement_header,
                                   gatt_advertisement_bytes_list,
-                                  /*service_uuid=*/"");
+                                  /*service_uuid=*/{});
     }
   }
 

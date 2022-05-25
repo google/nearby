@@ -49,6 +49,7 @@ cc_library(
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
+        "//internal/platform:uuid",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
         "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -57,6 +58,7 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:optional",
     ],
 )
 
@@ -64,13 +66,11 @@ cc_library(
     name = "utils",
     srcs = [
         "utils.cc",
-        "uuid.cc",
         "webrtc_peer_id.cc",
     ],
     hdrs = [
         "lost_entity_tracker.h",
         "utils.h",
-        "uuid.h",
         "webrtc_peer_id.h",
         "webrtc_socket_stub.h",
     ],
@@ -99,7 +99,6 @@ cc_test(
         "bluetooth_classic_test.cc",
         "bluetooth_radio_test.cc",
         "lost_entity_tracker_test.cc",
-        "uuid_test.cc",
         "wifi_hotspot_test.cc",
         "wifi_lan_test.cc",
     ],

@@ -71,13 +71,13 @@ class DiscoveredPeripheralTracker {
   //                                   events.
   // fast_advertisement_service_uuid - The service UUID to look for fast
   //                                   advertisements on.
-  // Note: fast_advertisement_service_uuid can be empty string to indicate
+  // Note: fast_advertisement_service_uuid can be empty UUID to indicate
   // that `fast_advertisement_service_uuid` will be ignored for regular
   // advertisement.
   void StartTracking(
       const std::string& service_id,
       const DiscoveredPeripheralCallback& discovered_peripheral_callback,
-      const std::string& fast_advertisement_service_uuid)
+      const Uuid& fast_advertisement_service_uuid)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Stops tracking discoveries for a particular service Id.
@@ -115,7 +115,7 @@ class DiscoveredPeripheralTracker {
 
     // Used to check for fast advertisements delivered through BLE advertisement
     // service data, under the given UUID.
-    std::string fast_advertisement_service_uuid;
+    Uuid fast_advertisement_service_uuid;
   };
 
   // A container to hold the related informations for a GATT advertisement.
@@ -185,13 +185,13 @@ class DiscoveredPeripheralTracker {
       BleV2Peripheral peripheral,
       const BleAdvertisementHeader& advertisement_header,
       const std::vector<const ByteArray*>& gatt_advertisement_bytes_list,
-      const std::string& service_uuid) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      const Uuid& service_uuid) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Returns a map of service IDs to GATT advertisements who belong to a tracked
   // service ID.
   absl::flat_hash_map<std::string, BleAdvertisement> ParseRawGattAdvertisements(
       const std::vector<const ByteArray*>& gatt_advertisement_bytes_list,
-      const std::string& service_uuid) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      const Uuid& service_uuid) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Returns true if `new_psm` is not default value and different with
   // `old_psm`.

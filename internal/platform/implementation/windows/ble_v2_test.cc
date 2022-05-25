@@ -56,7 +56,7 @@ TEST(BleV2Medium, DISABLED_StartScanning) {
 
   BluetoothAdapter bluetoothAdapter;
   BleV2Medium blev2_medium(bluetoothAdapter);
-  std::string service_uuid;
+  Uuid service_uuid;
 
   api::ble_v2::BleMedium::ScanCallback callback;
   callback.advertisement_found_cb =
@@ -78,7 +78,7 @@ TEST(BleV2Medium, DISABLED_StartScanning) {
 TEST(BleV2Medium, DISABLED_StopScanning) {
   BluetoothAdapter bluetoothAdapter;
   BleV2Medium blev2_medium(bluetoothAdapter);
-  std::string service_uuid;
+  Uuid service_uuid;
 
   api::ble_v2::BleMedium::ScanCallback callback;
   callback.advertisement_found_cb =

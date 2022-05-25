@@ -231,7 +231,7 @@ class MediumEnvironment {
   // The `callback` argument should be non-empty if `enabled` is true or empty
   // if `enabled` is false.
   void UpdateBleV2MediumForScanning(bool enabled,
-                                    const std::string& scanning_service_uuid,
+                                    const Uuid& scanning_service_uuid,
                                     BleScanCallback callback,
                                     api::ble_v2::BleMedium& medium);
 
@@ -244,8 +244,8 @@ class MediumEnvironment {
   // Check if `service_uuid` and `characteristic_uuid` exists in the map.
   //
   // `characteristic_uuid` can be empty and to check `service_uuid` only.
-  bool ContainsBleV2MediumGattCharacteristics(
-      absl::string_view service_uuid, absl::string_view characteristic_uuid);
+  bool ContainsBleV2MediumGattCharacteristics(const Uuid& service_uuid,
+                                              const Uuid& characteristic_uuid);
 
   // Reads the BLE GATT characteristic value. If the GATT characteristic is not
   // existed, return empty byte array.
@@ -333,7 +333,7 @@ class MediumEnvironment {
     BleScanCallback scan_callback = {};
     api::ble_v2::BlePeripheral* ble_peripheral = nullptr;
     api::ble_v2::BleAdvertisementData advertisement_data;
-    std::string scanning_service_uuid = {};
+    Uuid scanning_service_uuid;
     bool advertising = false;
   };
 

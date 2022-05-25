@@ -161,6 +161,26 @@ cc_library(
 )
 
 cc_library(
+    name = "uuid",
+    srcs = [
+        "uuid.cc",
+    ],
+    hdrs = [
+        "uuid.h",
+    ],
+    defines = ["NO_WEBRTC"],
+    visibility = [
+        "//connections/implementation:__subpackages__",
+        "//internal/platform:__pkg__",
+        "//internal/platform/implementation:__subpackages__",
+    ],
+    deps = [
+        "//internal/platform/implementation:types",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
     name = "test_util",
     testonly = True,
     srcs = [
@@ -334,6 +354,7 @@ cc_library(
     deps = [
         ":logging",
         ":types",
+        ":uuid",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform/implementation:comm",
@@ -366,6 +387,7 @@ cc_test(
         "pipe_test.cc",
         "scheduled_executor_test.cc",
         "single_thread_executor_test.cc",
+        "uuid_test.cc",
         "wifi_hotspot_test.cc",
         "wifi_lan_test.cc",
     ],
@@ -376,6 +398,7 @@ cc_test(
         ":comm",
         ":logging",
         ":types",
+        ":uuid",
         "//internal/platform:base",
         "//internal/platform:test_util",
         "//internal/platform/implementation/g3",  # build_cleaner: keep

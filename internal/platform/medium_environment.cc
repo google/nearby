@@ -555,8 +555,8 @@ void MediumEnvironment::UpdateBleV2MediumForAdvertising(
 }
 
 void MediumEnvironment::UpdateBleV2MediumForScanning(
-    bool enabled, const std::string& scanning_service_uuid,
-    BleScanCallback callback, api::ble_v2::BleMedium& medium) {
+    bool enabled, const Uuid& scanning_service_uuid, BleScanCallback callback,
+    api::ble_v2::BleMedium& medium) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread(
       [this, &medium, scanning_service_uuid = scanning_service_uuid,
@@ -591,7 +591,8 @@ void MediumEnvironment::UpdateBleV2MediumForScanning(
                 << "G3 UpdateBleV2MediumForScanning, found other medium="
                 << remote_medium
                 << ", remote_medium_context=" << &remote_context
-                << ", scanning_service_uuid=" << scanning_service_uuid
+                << ", scanning_service_uuid="
+                << scanning_service_uuid.Get16BitAsString()
                 << ". Ready to call OnBleV2PeripheralStateChanged.";
             OnBleV2PeripheralStateChanged(enabled, context,
                                           remote_context.advertisement_data,
@@ -615,21 +616,21 @@ void MediumEnvironment::InsertBleV2MediumGattCharacteristics(
 }
 
 bool MediumEnvironment::ContainsBleV2MediumGattCharacteristics(
-    absl::string_view service_uuid, absl::string_view characteristic_uuid) {
+    const Uuid& service_uuid, const Uuid& characteristic_uuid) {
   if (!enabled_) return false;
   bool found_characteristic = false;
   CountDownLatch latch(1);
   RunOnMediumEnvironmentThread([this, &latch, &service_uuid,
                                 &characteristic_uuid, &found_characteristic]() {
     for (const auto& item : gatt_advertisement_bytes_) {
-      if (service_uuid == item.first.service_uuid) {
-        if (characteristic_uuid.empty()) {
+      if (item.first.service_uuid == service_uuid) {
+        if (characteristic_uuid.IsEmpty()) {
           // Found the service uuid and no need to search characteristic
           // uuid.
           found_characteristic = true;
           break;
         }
-        if (characteristic_uuid == item.first.uuid) {
+        if (item.first.uuid == characteristic_uuid) {
           found_characteristic = true;
           break;
         }

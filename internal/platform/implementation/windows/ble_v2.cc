@@ -106,7 +106,7 @@ bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
   // (AD type 0x16) Service Data
   DataWriter data_writer;
   auto it = advertising_data.service_data.begin();
-  const std::string& service_uuid = it->first;
+  const std::string& service_uuid = it->first.Get16BitAsString();
   const ByteArray& service_bytes = it->second;
 
   if (service_uuid.size() < 2) {
@@ -184,7 +184,7 @@ bool BleV2Medium::StopAdvertising() {
   return true;
 }
 
-bool BleV2Medium::StartScanning(const std::string& service_uuid,
+bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                                 TxPowerLevel tx_power_level,
                                 ScanCallback callback) {
   NEARBY_LOGS(INFO) << "Windows Ble StartScanning";

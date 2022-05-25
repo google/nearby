@@ -74,6 +74,7 @@ cc_library(
         "//internal/platform:cancellation_flag",
         "//internal/platform:logging",
         "//internal/platform:test_util",
+        "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/shared:count_down_latch",
         "@com_google_absl//absl/base:core_headers",

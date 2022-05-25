@@ -24,6 +24,7 @@
 #include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/types/optional.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker.h"
