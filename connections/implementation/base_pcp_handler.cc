@@ -548,11 +548,31 @@ Status BasePcpHandler::RequestConnection(
         // Generate the nonce to use for this connection.
         std::int32_t nonce = prng_.NextInt32();
 
+        bool is_supports_5_ghz = false;
+        std::string bssid = "";
+        std::int32_t ap_frequency = -1;
+        std::string ip_address = "";
+        if (mediums_->GetWifi().IsAvailable()) {
+          is_supports_5_ghz =
+              mediums_->GetWifi().GetCapability().supports_5_ghz;
+
+          api::WifiInformation& wifi_info =
+              mediums_->GetWifi().GetInformation();
+          bssid = wifi_info.bssid;
+          ap_frequency = wifi_info.ap_frequency;
+          ip_address = wifi_info.ip_address_4_bytes;
+          NEARBY_LOGS(INFO) << "Query for WIFI information: is_supports_5_ghz="
+                            << is_supports_5_ghz << "; bssid=" << bssid
+                            << "; ap_frequency=" << ap_frequency
+                            << "Mhz; ip_address in bytes format=" << ip_address;
+        }
+
         // The first message we have to send, after connecting, is to tell the
         // endpoint about ourselves.
         Exception write_exception = WriteConnectionRequestFrame(
             channel.get(), client->GetLocalEndpointId(), info.endpoint_info,
-            nonce, GetSupportedConnectionMediumsByPriority(connection_options),
+            nonce, is_supports_5_ghz, bssid, ap_frequency, ip_address,
+            GetSupportedConnectionMediumsByPriority(connection_options),
             connection_options.keep_alive_interval_millis,
             connection_options.keep_alive_timeout_millis);
         if (!write_exception.Ok()) {
@@ -710,12 +730,14 @@ bool BasePcpHandler::CanReceiveIncomingConnection(ClientProxy* client) const {
 Exception BasePcpHandler::WriteConnectionRequestFrame(
     EndpointChannel* endpoint_channel, const std::string& local_endpoint_id,
     const ByteArray& local_endpoint_info, std::int32_t nonce,
+    bool supports_5_ghz, const std::string& bssid, std::int32_t ap_frequency,
+    const std::string& ip_address,
     const std::vector<proto::connections::Medium>& supported_mediums,
     std::int32_t keep_alive_interval_millis,
     std::int32_t keep_alive_timeout_millis) {
   return endpoint_channel->Write(parser::ForConnectionRequest(
-      local_endpoint_id, local_endpoint_info, nonce, /*supports_5_ghz =*/false,
-      /*bssid=*/std::string{}, supported_mediums, keep_alive_interval_millis,
+      local_endpoint_id, local_endpoint_info, nonce, supports_5_ghz, bssid,
+      ap_frequency, ip_address, supported_mediums, keep_alive_interval_millis,
       keep_alive_timeout_millis));
 }
 

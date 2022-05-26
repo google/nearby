@@ -66,6 +66,8 @@ ByteArray ForConnectionRequest(const std::string& endpoint_id,
                                const ByteArray& endpoint_info,
                                std::int32_t nonce, bool supports_5_ghz,
                                const std::string& bssid,
+                               std::int32_t ap_frequency,
+                               const std::string& ip_address,
                                const std::vector<Medium>& mediums,
                                std::int32_t keep_alive_interval_millis,
                                std::int32_t keep_alive_timeout_millis) {
@@ -84,6 +86,8 @@ ByteArray ForConnectionRequest(const std::string& endpoint_id,
   auto* medium_metadata = connection_request->mutable_medium_metadata();
   medium_metadata->set_supports_5_ghz(supports_5_ghz);
   if (!bssid.empty()) medium_metadata->set_bssid(bssid);
+  medium_metadata->set_ap_frequency(ap_frequency);
+  if (!ip_address.empty()) medium_metadata->set_ip_address(ip_address);
   if (!mediums.empty()) {
     for (const auto& medium : mediums) {
       connection_request->add_mediums(MediumToConnectionRequestMedium(medium));

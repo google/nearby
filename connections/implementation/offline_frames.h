@@ -46,6 +46,8 @@ ByteArray ForConnectionRequest(const std::string& endpoint_id,
                                const ByteArray& endpoint_info,
                                std::int32_t nonce, bool supports_5_ghz,
                                const std::string& bssid,
+                               std::int32_t ap_frequency,
+                               const std::string& ip_address,
                                const std::vector<Medium>& mediums,
                                std::int32_t keep_alive_interval_millis,
                                std::int32_t keep_alive_timeout_millis);

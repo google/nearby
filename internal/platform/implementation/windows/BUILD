@@ -73,6 +73,7 @@ cc_library(
     visibility = ["//visibility:private"],
     deps = [
         "//internal/platform:base",
+        "//internal/platform:comm",
         "//internal/platform:types",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
@@ -124,6 +125,7 @@ cc_library(
         "wifi_lan_medium.cc",
         "wifi_lan_server_socket.cc",
         "wifi_lan_socket.cc",
+        "wifi_medium.cc",
     ],
     copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated"],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
