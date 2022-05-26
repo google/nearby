@@ -284,6 +284,9 @@ message ConnectionsLog {
 
     // The token use to identify this established connection.
     optional string connection_token = 7;
+
+    // The type of established connection.
+    optional location.nearby.proto.connections.ConnectionAttemptType type = 8;
   }
 
   // A Payload transferred (or attempted to be transferred) between devices.
