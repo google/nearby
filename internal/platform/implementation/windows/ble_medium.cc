@@ -14,6 +14,7 @@
 
 #include "internal/platform/implementation/windows/ble_medium.h"
 
+#include <future>  // NOLINT
 #include <string>
 
 #include "absl/synchronization/mutex.h"
@@ -97,6 +98,8 @@ bool BleMedium::StartAdvertising(
   publisher_token_ =
       publisher_.StatusChanged({this, &BleMedium::PublisherHandler});
 
+  publisher_started_promise_ = std::promise<PublisherState>();
+
   std::future<PublisherState> publisher_state_future =
       publisher_started_promise_.get_future();
 
@@ -109,6 +112,8 @@ bool BleMedium::StopAdvertising(const std::string& service_id) {
   absl::MutexLock lock(&mutex_);
 
   NEARBY_LOGS(INFO) << "Windows Ble StopAdvertising: service_id=" << service_id;
+
+  publisher_stopped_promise_ = std::promise<PublisherState>();
 
   std::future<PublisherState> publisher_state_future =
       publisher_stopped_promise_.get_future();
@@ -132,6 +137,8 @@ bool BleMedium::StartScanning(
   advertisement_received_token_ =
       watcher_.Received({this, &BleMedium::AdvertisementReceivedHandler});
 
+  watcher_started_promise_ = std::promise<WatcherState>();
+
   std::future<WatcherState> watcher_state_future =
       watcher_started_promise_.get_future();
 
@@ -153,6 +160,8 @@ bool BleMedium::StopScanning(const std::string& service_id) {
   absl::MutexLock lock(&mutex_);
 
   NEARBY_LOGS(INFO) << "Windows Ble StopScanning: service_id=" << service_id;
+
+  watcher_stopped_promise_ = std::promise<WatcherState>();
 
   std::future<WatcherState> watcher_state_future =
       watcher_stopped_promise_.get_future();
