@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,12 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/analytics/analytics_recorder.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 
+#include <algorithm>
+#include <memory>
 #include <string>
 #include <utility>
 
 #include "absl/time/time.h"
+#include "internal/analytics/event_logger.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/system_clock.h"
@@ -81,6 +84,7 @@ using ::location::nearby::proto::connections::UPGRADE_RESULT_SUCCESS;
 using ::location::nearby::proto::connections::UPGRADE_SUCCESS;
 using ::location::nearby::proto::connections::UPGRADE_UNFINISHED;
 using ::location::nearby::proto::connections::UPGRADED;
+using ::nearby::analytics::EventLogger;
 
 AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger)
     : event_logger_(event_logger) {
@@ -120,7 +124,7 @@ void AnalyticsRecorder::OnStartAdvertising(
   // Initialize and set a AdvertisingPhase.
   started_advertising_phase_time_ = SystemClock::ElapsedRealtime();
   current_advertising_phase_ =
-      absl::make_unique<ConnectionsLog::AdvertisingPhase>();
+      std::make_unique<ConnectionsLog::AdvertisingPhase>();
   absl::c_copy(mediums, RepeatedFieldBackInserter(
                             current_advertising_phase_->mutable_medium()));
   // Set a AdvertisingMetadata.
@@ -160,7 +164,7 @@ void AnalyticsRecorder::OnStartDiscovery(
   // Initialize and set a DiscoveryPhase.
   started_discovery_phase_time_ = SystemClock::ElapsedRealtime();
   current_discovery_phase_ =
-      absl::make_unique<ConnectionsLog::DiscoveryPhase>();
+      std::make_unique<ConnectionsLog::DiscoveryPhase>();
   absl::c_copy(mediums, RepeatedFieldBackInserter(
                             current_discovery_phase_->mutable_medium()));
   // Set a DiscoveryMetadata.
@@ -205,7 +209,7 @@ void AnalyticsRecorder::OnConnectionRequestReceived(
   }
   absl::Time current_time = SystemClock::ElapsedRealtime();
   auto connection_request =
-      absl::make_unique<ConnectionsLog::ConnectionRequest>();
+      std::make_unique<ConnectionsLog::ConnectionRequest>();
   connection_request->set_duration_millis(absl::ToUnixMillis(current_time));
   connection_request->set_request_delay_millis(absl::ToInt64Milliseconds(
       current_time - started_advertising_phase_time_));
@@ -221,7 +225,7 @@ void AnalyticsRecorder::OnConnectionRequestSent(
   }
   absl::Time current_time = SystemClock::ElapsedRealtime();
   auto connection_request =
-      absl::make_unique<ConnectionsLog::ConnectionRequest>();
+      std::make_unique<ConnectionsLog::ConnectionRequest>();
   connection_request->set_duration_millis(absl::ToUnixMillis(current_time));
   connection_request->set_request_delay_millis(
       absl::ToInt64Milliseconds(current_time - started_discovery_phase_time_));
@@ -403,7 +407,7 @@ void AnalyticsRecorder::OnConnectionEstablished(
   } else {
     active_connections_.insert(
         {endpoint_id,
-         absl::make_unique<LogicalConnection>(medium, connection_token)});
+         std::make_unique<LogicalConnection>(medium, connection_token)});
   }
 }
 
@@ -534,7 +538,7 @@ void AnalyticsRecorder::OnBandwidthUpgradeStarted(
     return;
   }
   auto bandwidth_upgrade_attempt =
-      absl::make_unique<ConnectionsLog::BandwidthUpgradeAttempt>();
+      std::make_unique<ConnectionsLog::BandwidthUpgradeAttempt>();
   bandwidth_upgrade_attempt->set_duration_millis(
       absl::ToUnixMillis(SystemClock::ElapsedRealtime()));
   bandwidth_upgrade_attempt->set_from_medium(from_medium);
@@ -570,7 +574,7 @@ void AnalyticsRecorder::OnErrorCode(const ErrorCodeParams &params) {
   if (!CanRecordAnalyticsLocked("OnErrorCode")) {
     return;
   }
-  auto error_code = absl::make_unique<ConnectionsLog::ErrorCode>();
+  auto error_code = std::make_unique<ConnectionsLog::ErrorCode>();
   error_code->set_medium(params.medium);
   error_code->set_event(params.event);
   error_code->set_connection_token(params.connection_token);
@@ -648,7 +652,7 @@ AnalyticsRecorder::BuildConnectionAttemptMetadataParams(
     const std::string &country_code, bool is_tdls_used,
     bool wifi_hotspot_enabled, int max_wifi_tx_speed, int max_wifi_rx_speed,
     int channel_width) {
-  auto params = absl::make_unique<ConnectionAttemptMetadataParams>();
+  auto params = std::make_unique<ConnectionAttemptMetadataParams>();
   params->technology = technology;
   params->band = band;
   params->frequency = frequency;
@@ -736,7 +740,7 @@ void AnalyticsRecorder::UpdateStrategySessionLocked(
     FinishStrategySessionLocked();
     LogEvent(START_STRATEGY_SESSION);
     current_strategy_session_ =
-        absl::make_unique<ConnectionsLog::StrategySession>();
+        std::make_unique<ConnectionsLog::StrategySession>();
     started_strategy_session_time_ = SystemClock::ElapsedRealtime();
     current_strategy_session_->set_strategy(
         StrategyToConnectionStrategy(strategy));
@@ -1007,7 +1011,7 @@ void AnalyticsRecorder::LogicalConnection::PhysicalConnectionEstablished(
   }
 
   auto established_connection =
-      absl::make_unique<ConnectionsLog::EstablishedConnection>();
+      std::make_unique<ConnectionsLog::EstablishedConnection>();
   established_connection->set_medium(medium);
   established_connection->set_duration_millis(
       absl::ToUnixMillis(SystemClock::ElapsedRealtime()));
@@ -1088,7 +1092,7 @@ AnalyticsRecorder::LogicalConnection::GetEstablisedConnections() {
 void AnalyticsRecorder::LogicalConnection::IncomingPayloadStarted(
     std::int64_t payload_id, PayloadType type, std::int64_t total_size_bytes) {
   incoming_payloads_.insert(
-      {payload_id, absl::make_unique<PendingPayload>(type, total_size_bytes)});
+      {payload_id, std::make_unique<PendingPayload>(type, total_size_bytes)});
 }
 
 void AnalyticsRecorder::LogicalConnection::ChunkReceived(
@@ -1124,7 +1128,7 @@ void AnalyticsRecorder::LogicalConnection::IncomingPayloadDone(
 void AnalyticsRecorder::LogicalConnection::OutgoingPayloadStarted(
     std::int64_t payload_id, PayloadType type, std::int64_t total_size_bytes) {
   outgoing_payloads_.insert(
-      {payload_id, absl::make_unique<PendingPayload>(type, total_size_bytes)});
+      {payload_id, std::make_unique<PendingPayload>(type, total_size_bytes)});
 }
 
 void AnalyticsRecorder::LogicalConnection::ChunkSent(std::int64_t payload_id,
@@ -1196,7 +1200,7 @@ AnalyticsRecorder::LogicalConnection::ResolvePendingPayloads(
     if (reason == UPGRADED) {
       upgraded_payloads.insert(
           {item.first,
-           absl::make_unique<PendingPayload>(
+           std::make_unique<PendingPayload>(
                pending_payload->type(), pending_payload->total_size_bytes())});
     }
   }

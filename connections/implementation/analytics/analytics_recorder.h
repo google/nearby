@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,17 +15,19 @@
 #ifndef ANALYTICS_ANALYTICS_RECORDER_H_
 #define ANALYTICS_ANALYTICS_RECORDER_H_
 
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/container/btree_map.h"
 #include "absl/time/time.h"
-#include "connections/event_logger.h"
+#include "connections/implementation/analytics/connection_attempt_metadata_params.h"
 #include "connections/payload.h"
 #include "connections/strategy.h"
+#include "internal/analytics/event_logger.h"
 #include "internal/platform/error_code_params.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/analytics/connection_attempt_metadata_params.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
@@ -35,7 +37,7 @@ namespace analytics {
 
 class AnalyticsRecorder {
  public:
-  explicit AnalyticsRecorder(EventLogger *event_logger);
+  explicit AnalyticsRecorder(::nearby::analytics::EventLogger *event_logger);
   virtual ~AnalyticsRecorder();
 
   // TODO(edwinwu): Implement to pass real values for AdvertisingMetadata and
@@ -319,7 +321,7 @@ class AnalyticsRecorder {
 
   // Not owned by AnalyticsRecorder. Pointer must refer to a valid object
   // that outlives the one constructed.
-  EventLogger *event_logger_;
+  ::nearby::analytics::EventLogger *event_logger_;
 
   SingleThreadExecutor serial_executor_;
   // Protects all sub-protos reading and writing in ConnectionLog.
@@ -327,7 +329,7 @@ class AnalyticsRecorder {
 
   // ClientSession
   std::unique_ptr<proto::ConnectionsLog::ClientSession> client_session_ =
-      absl::make_unique<proto::ConnectionsLog::ClientSession>();
+      std::make_unique<proto::ConnectionsLog::ClientSession>();
   absl::Time started_client_session_time_;
   bool session_was_logged_ ABSL_GUARDED_BY(mutex_) = false;
 

@@ -20,10 +20,10 @@
 
 #include "securegcm/d2d_connection_context_v1.h"
 #include "absl/time/clock.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/mutex.h"
-#include "internal/analytics/analytics_recorder.h"
 #include "proto/connections_enums.pb.h"
 
 namespace location {

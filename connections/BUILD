@@ -29,8 +29,8 @@ cc_library(
     ],
     deps = [
         ":core_types",
-        ":event_logger",
         "//connections/implementation:internal",
+        "//internal/analytics:event_logger",
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform:types",
@@ -80,19 +80,6 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:variant",
         "@com_google_glog//:glog",
-    ],
-)
-
-cc_library(
-    name = "event_logger",
-    hdrs = [
-        "event_logger.h",
-    ],
-    visibility = [
-        "//internal/analytics:__subpackages__",
-    ],
-    deps = [
-        "//internal/proto/analytics:connections_log_cc_proto",
     ],
 )
 

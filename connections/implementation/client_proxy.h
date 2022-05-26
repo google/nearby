@@ -22,16 +22,17 @@
 
 #include "connections/advertising_options.h"
 #include "connections/discovery_options.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/listeners.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
+#include "internal/analytics/event_logger.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/error_code_recorder.h"
-#include "internal/platform/prng.h"
-#include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/mutex.h"
-#include "internal/analytics/analytics_recorder.h"
+#include "internal/platform/prng.h"
 // Prefer using absl:: versions of a set and a map; they tend to be more
 // efficient: implementation is using open-addressing hash tables.
 #include "absl/container/flat_hash_map.h"
@@ -50,7 +51,8 @@ class ClientProxy final {
   static constexpr absl::Duration
       kHighPowerAdvertisementEndpointIdCacheTimeout = absl::Seconds(30);
 
-  explicit ClientProxy(analytics::EventLogger* event_logger = nullptr);
+  explicit ClientProxy(
+      ::nearby::analytics::EventLogger* event_logger = nullptr);
   ~ClientProxy();
   ClientProxy(ClientProxy&&) = default;
   ClientProxy& operator=(ClientProxy&&) = default;

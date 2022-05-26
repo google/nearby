@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,20 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/analytics/analytics_recorder.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 
 #include <string>
 #include <utility>
 
+#include "google/protobuf/message_lite.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
+#include "connections/implementation/analytics/connection_attempt_metadata_params.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/error_code_params.h"
 #include "internal/platform/error_code_recorder.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
-#include "internal/analytics/connection_attempt_metadata_params.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
@@ -63,7 +64,7 @@ using ::location::nearby::proto::connections::WEB_RTC;
 using ::location::nearby::proto::connections::WIFI_LAN;
 using ::location::nearby::proto::connections::WIFI_LAN_MEDIUM_ERROR;
 using ::location::nearby::proto::connections::WIFI_LAN_SOCKET_CREATION;
-
+using ::nearby::analytics::EventLogger;
 using ::testing::Contains;
 using ::protobuf_matchers::EqualsProto;
 using ::testing::proto::Partially;
@@ -75,15 +76,20 @@ class FakeEventLogger : public EventLogger {
   explicit FakeEventLogger(CountDownLatch& client_session_done_latch)
       : client_session_done_latch_(client_session_done_latch) {}
 
-  void Log(const ConnectionsLog& connections_log) override {
-    EventType event_type = connections_log.event_type();
+  void Log(const ::google::protobuf::MessageLite& message) override {
+    auto connections_log = dynamic_cast<const proto::ConnectionsLog*>(&message);
+    if (connections_log == nullptr) {
+      return;
+    }
+
+    EventType event_type = connections_log->event_type();
     logged_event_types_.push_back(event_type);
     if (event_type == CLIENT_SESSION) {
       logged_client_session_count_++;
-      logged_client_session_ = connections_log.client_session();
+      logged_client_session_ = connections_log->client_session();
     }
     if (event_type == ERROR_CODE) {
-      error_code_ = connections_log.error_code();
+      error_code_ = connections_log->error_code();
     }
     if (event_type == STOP_CLIENT_SESSION) {
       client_session_done_latch_.CountDown();

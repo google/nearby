@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@
 
 #ifndef ANALYTICS_CONNECTION_ATTEMPT_METADATA_PARAMS_H_
 #define ANALYTICS_CONNECTION_ATTEMPT_METADATA_PARAMS_H_
+
+#include <string>
 
 #include "proto/connections_enums.pb.h"
 

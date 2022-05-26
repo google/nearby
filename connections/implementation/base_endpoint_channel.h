@@ -21,15 +21,15 @@
 
 #include "securegcm/d2d_connection_context_v1.h"
 #include "absl/base/thread_annotations.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/input_stream.h"
-#include "internal/platform/output_stream.h"
 #include "internal/platform/atomic_reference.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/output_stream.h"
 #include "internal/platform/system_clock.h"
-#include "internal/analytics/analytics_recorder.h"
 
 namespace location {
 namespace nearby {

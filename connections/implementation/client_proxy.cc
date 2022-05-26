@@ -26,9 +26,9 @@
 #include "absl/strings/str_cat.h"
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/feature_flags.h"
-#include "internal/platform/prng.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/prng.h"
 #include "proto/connections_enums.pb.h"
 
 namespace location {
@@ -44,7 +44,7 @@ constexpr char kEndpointIdChars[] = {
     'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
     'Y', 'Z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'};
 
-ClientProxy::ClientProxy(analytics::EventLogger* event_logger)
+ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
     : client_id_(Prng().NextInt64()) {
   NEARBY_LOGS(INFO) << "ClientProxy ctor event_logger=" << event_logger;
   analytics_recorder_ =

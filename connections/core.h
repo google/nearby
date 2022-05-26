@@ -20,12 +20,12 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "connections/event_logger.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/service_controller.h"
 #include "connections/implementation/service_controller_router.h"
 #include "connections/listeners.h"
 #include "connections/params.h"
+#include "internal/analytics/event_logger.h"
 
 namespace location {
 namespace nearby {
@@ -36,7 +36,8 @@ class Core {
  public:
   explicit Core(ServiceControllerRouter* router);
   // Client needs to call this constructor if analytics logger is needed.
-  Core(analytics::EventLogger* event_logger, ServiceControllerRouter* router)
+  Core(::nearby::analytics::EventLogger* event_logger,
+       ServiceControllerRouter* router)
       : client_(event_logger), router_(router) {}
   ~Core();
   Core(Core&&);

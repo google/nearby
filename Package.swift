@@ -385,6 +385,7 @@ let package = Package(
         "WORKSPACE",
         // build files
         "connections/clients/ios/BUILD",
+        "connections/implementation/analytics/BUILD",
         "connections/implementation/proto/BUILD",
         "connections/implementation/proto/CMakeLists.txt",
         "connections/implementation/mediums/ble_v2/BUILD",
@@ -420,6 +421,7 @@ let package = Package(
         "connections/implementation/offline_frames_validator_test.cc",
         "connections/implementation/service_controller_router_test.cc",
         "connections/implementation/wifi_hotspot_test.cc",
+        "connections/implementation/analytics/analytics_recorder_test.cc",
         "connections/implementation/mediums/ble_v2_test.cc",
         "connections/implementation/mediums/ble_v2/bloom_filter_test.cc",
         "connections/implementation/mediums/ble_v2/ble_peripheral_test.cc",
@@ -488,7 +490,6 @@ let package = Package(
         "internal/platform/cancellation_flag_test.cc",
         "internal/platform/bluetooth_adapter_test.cc",
         "internal/platform/byte_utils_test.cc",
-        "internal/analytics/analytics_recorder_test.cc",
         // simulation
         "connections/implementation/offline_simulation_user.cc",
         "connections/implementation/simulation_user.cc",

@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,28 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_EVENT_LOGGER_H_
-#define CORE_EVENT_LOGGER_H_
+#ifndef NEARBY_ANALYTICS_EVENT_LOGGER_H_
+#define NEARBY_ANALYTICS_EVENT_LOGGER_H_
 
-#include "internal/proto/analytics/connections_log.pb.h"
+#include "google/protobuf/message_lite.h"
 
-namespace location {
 namespace nearby {
 namespace analytics {
 
-// Allows callers to log |ConnectionsLog| collected at Nearby Connections
-// library. Callers need to implement the API if they want to collect this log.
+// Allows callers to log the proto collected at the client (e.g. Nearby
+// Connections, Nearby Sharing, etc). Callers need to implement the API
+// if they want to collect this log.
 class EventLogger {
  public:
   virtual ~EventLogger() = default;
 
-  // Logs |ConnectionsLog| details. Might block to do I/O, e.g. upload
+  // Logs the proto details. Might block to do I/O, e.g. upload
   // synchronously to some metrics server.
-  virtual void Log(const proto::ConnectionsLog& connections_log) = 0;
+  virtual void Log(const ::google::protobuf::MessageLite& message) = 0;
 };
 
 }  // namespace analytics
 }  // namespace nearby
-}  // namespace location
 
-#endif  // CORE_EVENT_LOGGER_H_
+#endif  // NEARBY_ANALYTICS_EVENT_LOGGER_H_
