@@ -68,6 +68,7 @@ void BluetoothClassicMedium::OnScanModeChanged(
 bool BluetoothClassicMedium::StartDiscovery(
     BluetoothClassicMedium::DiscoveryCallback discovery_callback) {
   EnterCriticalSection(&critical_section_);
+  NEARBY_LOGS(INFO) << "StartDisovery entered critical section.";
 
   bool result = false;
   discovery_callback_ = discovery_callback;
@@ -77,13 +78,14 @@ bool BluetoothClassicMedium::StartDiscovery(
   }
 
   LeaveCriticalSection(&critical_section_);
+  NEARBY_LOGS(INFO) << "StartDisovery left critical section.";
 
   return result;
 }
 
 bool BluetoothClassicMedium::StopDiscovery() {
   EnterCriticalSection(&critical_section_);
-
+  NEARBY_LOGS(INFO) << "StopDiscovery entered critical section.";
   bool result = false;
 
   if (IsWatcherStarted()) {
@@ -91,6 +93,7 @@ bool BluetoothClassicMedium::StopDiscovery() {
   }
 
   LeaveCriticalSection(&critical_section_);
+  NEARBY_LOGS(INFO) << "StopDiscovery left critical section.";
 
   return result;
 }
@@ -182,6 +185,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   }
 
   EnterCriticalSection(&critical_section_);
+  NEARBY_LOGS(INFO) << "ConnectToService entered critical section.";
 
   std::unique_ptr<BluetoothSocket> rfcommSocket =
       std::make_unique<BluetoothSocket>();
@@ -200,11 +204,13 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
                        << exception.what();
 
     LeaveCriticalSection(&critical_section_);
+    NEARBY_LOGS(INFO) << "ConnectToService left critical section.";
 
     return nullptr;
   }
 
   LeaveCriticalSection(&critical_section_);
+  NEARBY_LOGS(INFO) << "ConnectToService left critical section.";
 
   return rfcommSocket;
 }
@@ -366,6 +372,9 @@ bool BluetoothClassicMedium::StopScanning() {
 
 winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
     DeviceWatcher sender, DeviceInformation deviceInfo) {
+  EnterCriticalSection(&critical_section_);
+  NEARBY_LOGS(INFO) << "DeviceWatcher_Added entered critical section.";
+  NEARBY_LOGS(INFO) << "Device added " << winrt::to_string(deviceInfo.Id());
   if (IsWatcherStarted()) {
     // Represents a Bluetooth device.
     // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothdevice?view=winrt-20348
@@ -378,34 +387,34 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
 
     // Add to our internal list if necessary
     if (it != discovered_devices_by_id_.end()) {
-      // We're already tracking this one
+      // We're already tracking this one  NEARBY_LOGS(INFO) <<
+      // "DeviceWatcher_Added entered critical section.";
+
+      LeaveCriticalSection(&critical_section_);
+      NEARBY_LOGS(INFO) << "DeviceWatcher_Added left critical section.";
+
       return winrt::fire_and_forget();
     }
 
     // Create a bluetooth device out of this id
-    winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromIdAsync(
-        deviceInfo.Id())
-        .Completed([this, deviceInfo](
-                       winrt::Windows::Foundation::IAsyncOperation<
-                           winrt::Windows::Devices::Bluetooth::BluetoothDevice>
-                           bluetoothDevice,
-                       winrt::Windows::Foundation::AsyncStatus status) {
-          EnterCriticalSection(&critical_section_);
+    auto bluetoothDevice =
+        winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromIdAsync(
+            deviceInfo.Id())
+            .get();
 
-          auto bluetoothDeviceP =
-              absl::WrapUnique(new BluetoothDevice(bluetoothDevice.get()));
+    auto bluetoothDeviceP =
+        absl::WrapUnique(new BluetoothDevice(bluetoothDevice));
 
-          discovered_devices_by_id_[deviceInfo.Id()] =
-              std::move(bluetoothDeviceP);
+    discovered_devices_by_id_[deviceInfo.Id()] = std::move(bluetoothDeviceP);
 
-          if (discovery_callback_.device_discovered_cb != nullptr) {
-            discovery_callback_.device_discovered_cb(
-                *discovered_devices_by_id_[deviceInfo.Id()]);
-          }
-
-          LeaveCriticalSection(&critical_section_);
-        });
+    if (discovery_callback_.device_discovered_cb != nullptr) {
+      discovery_callback_.device_discovered_cb(
+          *discovered_devices_by_id_[deviceInfo.Id()]);
+    }
   }
+
+  LeaveCriticalSection(&critical_section_);
+  NEARBY_LOGS(INFO) << "DeviceWatcher_Added left critical section.";
 
   return winrt::fire_and_forget();
 }
@@ -413,10 +422,17 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
 winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
   EnterCriticalSection(&critical_section_);
+  NEARBY_LOGS(INFO) << "DeviceWatcher_Updated entered critical section.";
+
+  NEARBY_LOGS(INFO)
+      << "Device updated "
+      << discovered_devices_by_id_[deviceInfoUpdate.Id()]->GetName() << " ("
+      << winrt::to_string(deviceInfoUpdate.Id()) << ")";
 
   if (!IsWatcherStarted()) {
     // Spurious call, watcher has stopped or wasn't started
     LeaveCriticalSection(&critical_section_);
+    NEARBY_LOGS(INFO) << "DeviceWatcher_Updated left critical section.";
     return winrt::fire_and_forget();
   }
 
@@ -424,6 +440,7 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
 
   if (it == discovered_devices_by_id_.end()) {
     LeaveCriticalSection(&critical_section_);
+    NEARBY_LOGS(INFO) << "DeviceWatcher_Updated left critical section.";
     // Not tracking this device
     return winrt::fire_and_forget();
   }
@@ -435,6 +452,7 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
   }
 
   LeaveCriticalSection(&critical_section_);
+  NEARBY_LOGS(INFO) << "DeviceWatcher_Updated left critical section.";
 
   return winrt::fire_and_forget();
 }
@@ -442,8 +460,15 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
 winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Removed(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfo) {
   EnterCriticalSection(&critical_section_);
+  NEARBY_LOGS(INFO) << "DeviceWatcher_Removed entered critical section.";
+  NEARBY_LOGS(INFO) << "Device removed "
+                    << discovered_devices_by_id_[deviceInfo.Id()]->GetName()
+                    << " (" << winrt::to_string(deviceInfo.Id()) << ")";
 
   if (!IsWatcherStarted()) {
+    LeaveCriticalSection(&critical_section_);
+    NEARBY_LOGS(INFO) << "DeviceWatcher_Removed left critical section.";
+
     return winrt::fire_and_forget();
   }
 
@@ -455,6 +480,7 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Removed(
   discovered_devices_by_id_.erase(deviceInfo.Id());
 
   LeaveCriticalSection(&critical_section_);
+  NEARBY_LOGS(INFO) << "DeviceWatcher_Removed left critical section.";
 
   return winrt::fire_and_forget();
 }
