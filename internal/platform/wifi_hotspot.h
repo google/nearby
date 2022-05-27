@@ -194,6 +194,11 @@ class WifiHotspotMedium {
     return &hotspot_credentials_;
   }
 
+  bool IsInterfaceValid() const {
+    CHECK(impl_);
+    return impl_->IsInterfaceValid();
+  }
+
   bool IsValid() const { return impl_ != nullptr; }
 
   // since impl_ could be nullptr if platform hasn't implemented this Medium,

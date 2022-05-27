@@ -15,6 +15,10 @@
 #ifndef PLATFORM_IMPL_WINDOWS_WIFI_HOTSPOT_H_
 #define PLATFORM_IMPL_WINDOWS_WIFI_HOTSPOT_H_
 
+// Standard C/C++ headers
+#include <functional>
+#include <string>
+
 // Nearby connections headers
 #include "internal/platform/implementation/wifi_hotspot.h"
 
@@ -209,7 +213,11 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
 // Container of operations that can be performed over the WifiHotspot medium.
 class WifiHotspotMedium : public api::WifiHotspotMedium {
  public:
+  WifiHotspotMedium();
   ~WifiHotspotMedium() override;
+
+  // If the WIFI Adaptor supports to start a Hotspot interface.
+  bool IsInterfaceValid() const override;
 
   // Discoverer connects to server socket
   std::unique_ptr<api::WifiHotspotSocket> ConnectToService(
@@ -270,6 +278,9 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
 
   // Protects to access some members
   absl::Mutex mutex_;
+
+  // If the WiFi Adaptor supports to start a Hotspot interface.
+  bool hotspot_interface_valid_;
 
   // Medium Status
   int medium_status_ = kMediumStatusIdle;

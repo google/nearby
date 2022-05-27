@@ -1180,7 +1180,7 @@ std::vector<Medium> BwuManager::StripOutUnavailableMediums(
     bool available = false;
     switch (m) {
       case Medium::WIFI_HOTSPOT:
-        available = mediums_->GetWifiHotspot().IsAvailable();
+        available = mediums_->GetWifiHotspot().IsAPAvailable();
         break;
       case Medium::WIFI_LAN:
         available = mediums_->GetWifiLan().IsAvailable();

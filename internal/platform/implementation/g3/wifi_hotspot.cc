@@ -187,6 +187,9 @@ bool WifiHotspotMedium::StartWifiHotspot(
     HotspotCredentials* hotspot_credentials) {
   absl::MutexLock lock(&mutex_);
 
+  if (!IsInterfaceValid())
+    return false;
+
   std::string ssid = absl::StrCat("DIRECT-", Prng().NextUint32());
   hotspot_credentials->SetSSID(ssid);
   std::string password = absl::StrFormat("%08x", Prng().NextUint32());
@@ -205,6 +208,9 @@ bool WifiHotspotMedium::StartWifiHotspot(
 bool WifiHotspotMedium::StopWifiHotspot() {
   absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "G3 StopWifiHotspot";
+
+  if (!IsInterfaceValid())
+    return false;
 
   auto& env = MediumEnvironment::Instance();
   env.UpdateWifiHotspotMediumForStartOrConnect(*this, /*credentials*/nullptr,

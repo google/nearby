@@ -85,8 +85,8 @@ TEST_F(WifiHotspotMediumTest, ConstructorDestructorWorks) {
   auto wifi_hotspot_b = std::make_unique<WifiHotspotMedium>();
 
   // Make sure we can create functional mediums.
-  ASSERT_TRUE(wifi_hotspot_a->IsValid());
-  ASSERT_TRUE(wifi_hotspot_b->IsValid());
+  ASSERT_TRUE(wifi_hotspot_a->IsInterfaceValid());
+  ASSERT_TRUE(wifi_hotspot_b->IsInterfaceValid());
 
   // Make sure we can create 2 distinct mediums.
   EXPECT_NE(&wifi_hotspot_a->GetImpl(), &wifi_hotspot_b->GetImpl());
@@ -97,6 +97,7 @@ TEST_F(WifiHotspotMediumTest, ConstructorDestructorWorks) {
 TEST_F(WifiHotspotMediumTest, CanStartStopHotspot) {
   auto wifi_hotspot_a = std::make_unique<WifiHotspotMedium>();
 
+  ASSERT_TRUE(wifi_hotspot_a->IsInterfaceValid());
   EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
   EXPECT_EQ(wifi_hotspot_a->GetDynamicPortRange(), std::nullopt);
   WifiHotspotServerSocket server_socket = wifi_hotspot_a->ListenForService();
@@ -111,6 +112,7 @@ TEST_F(WifiHotspotMediumTest, CanConnectDisconnectHotspot) {
   std::string ssid(kSsid);
   std::string password(kPassword);
 
+  ASSERT_TRUE(wifi_hotspot_a->IsInterfaceValid());
   EXPECT_FALSE(wifi_hotspot_a->ConnectWifiHotspot(ssid, password));
   EXPECT_TRUE(wifi_hotspot_a->DisconnectWifiHotspot());
   wifi_hotspot_a.reset();
@@ -122,6 +124,8 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
   auto wifi_hotspot_a = std::make_unique<WifiHotspotMedium>();
   auto wifi_hotspot_b = std::make_unique<WifiHotspotMedium>();
 
+  ASSERT_TRUE(wifi_hotspot_a->IsInterfaceValid());
+  ASSERT_TRUE(wifi_hotspot_b->IsInterfaceValid());
   EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
   HotspotCredentials* hotspot_credentials = wifi_hotspot_a->GetCredential();
   EXPECT_TRUE(wifi_hotspot_b->ConnectWifiHotspot(
@@ -186,6 +190,8 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherCanCancelConnect) {
   auto wifi_hotspot_a = std::make_unique<WifiHotspotMedium>();
   auto wifi_hotspot_b = std::make_unique<WifiHotspotMedium>();
 
+  ASSERT_TRUE(wifi_hotspot_a->IsInterfaceValid());
+  ASSERT_TRUE(wifi_hotspot_b->IsInterfaceValid());
   EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
   HotspotCredentials* hotspot_credentials = wifi_hotspot_a->GetCredential();
   EXPECT_TRUE(wifi_hotspot_b->ConnectWifiHotspot(
@@ -242,6 +248,8 @@ TEST_F(WifiHotspotMediumTest, CanStartHotspotTheOtherFailConnect) {
   auto wifi_hotspot_a = std::make_unique<WifiHotspotMedium>();
   auto wifi_hotspot_b = std::make_unique<WifiHotspotMedium>();
 
+  ASSERT_TRUE(wifi_hotspot_a->IsInterfaceValid());
+  ASSERT_TRUE(wifi_hotspot_b->IsInterfaceValid());
   EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
 
   std::string ssid(kSsid);

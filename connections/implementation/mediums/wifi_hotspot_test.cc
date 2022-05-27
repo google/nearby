@@ -65,17 +65,21 @@ TEST_F(WifiHotspotTest, ConstructorDestructorWorks) {
   auto wifi_hotspot_a = std::make_unique<WifiHotspot>();
   auto wifi_hotspot_b = std::make_unique<WifiHotspot>();
 
-  EXPECT_TRUE(wifi_hotspot_a->IsAvailable());
-  EXPECT_TRUE(wifi_hotspot_b->IsAvailable());
+  EXPECT_TRUE(wifi_hotspot_a->IsClientAvailable());
+  EXPECT_TRUE(wifi_hotspot_b->IsClientAvailable());
 }
 
 TEST_F(WifiHotspotTest, CanStartStopHotspot) {
   std::string service_id(kServiceID);
   auto wifi_hotspot_a = std::make_unique<WifiHotspot>();
 
-  EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
-  EXPECT_TRUE(wifi_hotspot_a->StartAcceptingConnections(service_id, {}));
-  EXPECT_TRUE(wifi_hotspot_a->StopWifiHotspot());
+  if (wifi_hotspot_a->IsAPAvailable()) {
+    EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
+    EXPECT_TRUE(wifi_hotspot_a->StartAcceptingConnections(service_id, {}));
+    EXPECT_TRUE(wifi_hotspot_a->StopWifiHotspot());
+  } else {
+    EXPECT_FALSE(wifi_hotspot_a->StartWifiHotspot());
+  }
 }
 
 TEST_F(WifiHotspotTest, CanConnectDisconnectHotspot) {

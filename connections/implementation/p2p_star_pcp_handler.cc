@@ -33,7 +33,8 @@ P2pStarPcpHandler::P2pStarPcpHandler(
 std::vector<proto::connections::Medium>
 P2pStarPcpHandler::GetConnectionMediumsByPriority() {
   std::vector<proto::connections::Medium> mediums;
-  if (mediums_->GetWifiHotspot().IsAvailable()) {
+  if (mediums_->GetWifi().IsAvailable() &&
+      mediums_->GetWifiHotspot().IsClientAvailable()) {
     mediums.push_back(proto::connections::WIFI_HOTSPOT);
   }
   if (mediums_->GetWifiLan().IsAvailable()) {

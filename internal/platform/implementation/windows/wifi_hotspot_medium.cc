@@ -29,10 +29,22 @@ namespace {
   constexpr int kMaxScans = 3;
 }  // namespace
 
+WifiHotspotMedium::WifiHotspotMedium() {
+  HotspotCredentials hotspot_credentials_;
+  hotspot_interface_valid_ = StartWifiHotspot(&hotspot_credentials_);
+  if (hotspot_interface_valid_)
+    StopWifiHotspot();
+}
+
 WifiHotspotMedium::~WifiHotspotMedium() {
   StopWifiHotspot();
   DisconnectWifiHotspot();
 }
+
+bool WifiHotspotMedium::IsInterfaceValid() const {
+  return hotspot_interface_valid_;
+}
+
 
 std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
     absl::string_view ip_address, int port,
