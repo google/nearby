@@ -114,7 +114,7 @@ class WifiMedium : public api::WifiMedium {
   std::string GetIpAddress() override;
 
  private:
-  // Since the WIFI interface capability won't change in the connection session,
+  // Since the WiFi interface capability won't change in the connection session,
   // we only need to querry it once at the beginning
   void InitCapability();
 

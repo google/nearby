@@ -131,7 +131,7 @@ api::WifiInformation& WifiMedium::GetInformation() {
   for (int i = 0; i < (int)p_intf_list->dwNumberOfItems; i++) {
     p_intf_info = (WLAN_INTERFACE_INFO*)&p_intf_list->InterfaceInfo[i];
     if (p_intf_info->isState == wlan_interface_state_connected) {
-      NEARBY_LOGS(INFO) << "Found connected WIFI interface No: " << i;
+      NEARBY_LOGS(INFO) << "Found connected WiFi interface No: " << i;
       wifi_information_.is_connected = true;
 
       DWORD channel_size;
@@ -213,7 +213,7 @@ std::string WifiMedium::GetIpAddress() {
         if ( wifi_information_.ssid == winrt::to_string(
                    profile.WlanConnectionProfileDetails().GetConnectedSsid())) {
           NEARBY_LOGS(INFO)
-              << "SSID of this IP matches with this WIFI interface's SSID:"
+              << "SSID of this IP matches with this WiFi interface's SSID:"
               << wifi_information_.ssid << ", return this IP";
           return ipv4_s;
         }

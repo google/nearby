@@ -184,7 +184,7 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   WifiHotspotMedium& operator=(const WifiHotspotMedium&) = delete;
   WifiHotspotMedium& operator=(WifiHotspotMedium&&) = delete;
 
-  // If the WIFI Adaptor supports to start a Hotspot interface.
+  // If the WiFi Adaptor supports to start a Hotspot interface.
   bool IsInterfaceValid() const override { return true;}
 
   // Discoverer connects to server socket
@@ -196,9 +196,9 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   std::unique_ptr<api::WifiHotspotServerSocket> ListenForService(
       int port) override;
 
-  // Advertiser start WIFI Hotspot with specific Crendentials
+  // Advertiser start WiFi Hotspot with specific Crendentials
   bool StartWifiHotspot(HotspotCredentials* hotspot_credentials) override;
-  // Advertiser stop the current WIFI Hotspot
+  // Advertiser stop the current WiFi Hotspot
   bool StopWifiHotspot() override;
   // Discoverer connects to the Hotspot
   bool ConnectWifiHotspot(HotspotCredentials* hotspot_credentials) override;

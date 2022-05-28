@@ -180,14 +180,14 @@ bool WifiHotspotMedium::StartWifiHotspot(
 
   publisher_.Start();
   if (publisher_.Status() == WiFiDirectAdvertisementPublisherStatus::Started) {
-    NEARBY_LOGS(INFO) << "Windows WIFI Hotspot started";
+    NEARBY_LOGS(INFO) << "Windows WiFi Hotspot started";
     medium_status_ |= kMediumStatusBeaconing;
 
     return true;
   }
 
   // Clean up when fail
-  NEARBY_LOGS(ERROR) << "Windows WIFI Hotspot fails to start";
+  NEARBY_LOGS(ERROR) << "Windows WiFi Hotspot fails to start";
   listener_ = nullptr;
   publisher_ = nullptr;
   return false;
@@ -206,7 +206,7 @@ bool WifiHotspotMedium::StopWifiHotspot() {
     publisher_.Stop();
     publisher_.StatusChanged(publisher_status_changed_token_);
     listener_.ConnectionRequested(connection_requested_token_);
-    NEARBY_LOGS(INFO) << "succeeded to stop WIFI Hotspot";
+    NEARBY_LOGS(INFO) << "succeeded to stop WiFi Hotspot";
   }
   medium_status_ &= (~kMediumStatusBeaconing);
   return true;
@@ -218,10 +218,10 @@ fire_and_forget WifiHotspotMedium::OnStatusChanged(
   if (event.Status() == WiFiDirectAdvertisementPublisherStatus::Started) {
     if (sender.Advertisement().LegacySettings().IsEnabled()) {
       NEARBY_LOGS(INFO)
-          << "WIFI SoftAP SSID: "
+          << "WiFi SoftAP SSID: "
           << winrt::to_string(
                  publisher_.Advertisement().LegacySettings().Ssid());
-      NEARBY_LOGS(INFO) << "WIFI SoftAP PW: "
+      NEARBY_LOGS(INFO) << "WiFi SoftAP PW: "
                         << winrt::to_string(publisher_.Advertisement()
                                                 .LegacySettings()
                                                 .Passphrase()
@@ -229,7 +229,7 @@ fire_and_forget WifiHotspotMedium::OnStatusChanged(
     }
   }
   if (event.Status() == WiFiDirectAdvertisementPublisherStatus::Stopped) {
-    NEARBY_LOGS(INFO) << "Receive WIFI direct/SoftAP stop event";
+    NEARBY_LOGS(INFO) << "Receive WiFi direct/SoftAP stop event";
   }
   return winrt::fire_and_forget();
 }
@@ -270,7 +270,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
 
   auto adaptors = WiFiAdapter::FindAllAdaptersAsync().get();
   if (adaptors.Size() < 1) {
-    NEARBY_LOGS(WARNING) << "No WIFI Adaptor found.";
+    NEARBY_LOGS(WARNING) << "No WiFi Adaptor found.";
     return false;
   }
   wifi_adapter_ = adaptors.GetAt(0);

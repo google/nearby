@@ -74,7 +74,7 @@ class WifiHotspotMedium {
  public:
   virtual ~WifiHotspotMedium() = default;
 
-  // If the WIFI Adaptor supports to start a Hotspot interface.
+  // If the WiFi Adaptor supports to start a Hotspot interface.
   virtual bool IsInterfaceValid() const = 0;
 
   // Connects to a WifiHotspot service by ip address and port.

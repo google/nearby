@@ -46,7 +46,7 @@ enum class WifiConnectionStatus {
   kAuthFailure = 3,
 };
 
-// WIFI Band type.
+// WiFi Band type.
 enum class WifiBandType {
   kUnknown = 0,
   kBand24Ghz = 1,
@@ -55,15 +55,15 @@ enum class WifiBandType {
   kBand60Ghz = 4,
 };
 
-// Native WIFI's capablity parameters
+// Native WiFi's capablity parameters
 struct WifiCapability {
   bool supports_5_ghz = false;
   bool supports_6_ghz = false;
 };
 
-// Native WIFI's information parameters
+// Native WiFi's information parameters
 struct WifiInformation {
-  // Is this WIFI interface connected to AP or not
+  // Is this WiFi interface connected to AP or not
   bool is_connected;
   // AP's SSID if connected
   std::string ssid;
