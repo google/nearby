@@ -63,6 +63,7 @@ lexan.cc_windows_dll(
     defines = ["CORE_ADAPTER_DLL"],
     hdrs_deps = ["//connections:core"],
     tags = ["windows-dll"],
+    visibility = ["//location/nearby/testing:__subpackages__"],
     deps = [
         "//third_party/dart_lang/v2:dart_api_dl",
         "//connections:core",
