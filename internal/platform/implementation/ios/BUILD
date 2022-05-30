@@ -21,6 +21,8 @@ package(default_visibility = [
 objc_library(
     name = "Platform",
     srcs = [
+        "ble.mm",
+        "bluetooth_adapter.mm",
         "crypto.mm",
         "log_message.mm",
         "multi_thread_executor.mm",
@@ -30,6 +32,8 @@ objc_library(
         "wifi_lan.mm",
     ],
     hdrs = [
+        "ble.h",
+        "bluetooth_adapter.h",
         "log_message.h",
         "multi_thread_executor.h",
         "scheduled_executor.h",

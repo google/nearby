@@ -18,6 +18,7 @@
 
 #include "internal/platform/implementation/ios/atomic_boolean.h"
 #include "internal/platform/implementation/ios/atomic_uint32.h"
+#include "internal/platform/implementation/ios/ble.h"
 #include "internal/platform/implementation/ios/condition_variable.h"
 #include "internal/platform/implementation/ios/count_down_latch.h"
 #import "internal/platform/implementation/ios/log_message.h"
@@ -118,7 +119,7 @@ std::unique_ptr<ScheduledExecutor> ImplementationPlatform::CreateScheduledExecut
 
 // Mediums
 std::unique_ptr<BluetoothAdapter> ImplementationPlatform::CreateBluetoothAdapter() {
-  return nullptr;
+  return std::make_unique<ios::BluetoothAdapter>();
 }
 
 std::unique_ptr<BluetoothClassicMedium> ImplementationPlatform::CreateBluetoothClassicMedium(
@@ -132,7 +133,7 @@ std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(api::Bluetoot
 
 std::unique_ptr<ble_v2::BleMedium>
 ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter& adapter) {
-  return nullptr;
+  return std::make_unique<ios::BleMedium>(adapter);
 }
 
 std::unique_ptr<ServerSyncMedium> ImplementationPlatform::CreateServerSyncMedium() {

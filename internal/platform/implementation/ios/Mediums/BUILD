@@ -20,6 +20,8 @@ package(default_visibility = ["//internal/platform/implementation/ios:__subpacka
 objc_library(
     name = "Mediums",
     srcs = [
+        "Ble/GNCMBleCentral.m",
+        "Ble/GNCMBlePeripheral.m",
         "GNCLeaks.m",
         "GNCMConnection.m",
         "WifiLan/GNCMBonjourBrowser.m",
@@ -28,6 +30,8 @@ objc_library(
         "WifiLan/GNCMBonjourUtils.m",
     ],
     hdrs = [
+        "Ble/GNCMBleCentral.h",
+        "Ble/GNCMBlePeripheral.h",
         "GNCLeaks.h",
         "GNCMConnection.h",
         "WifiLan/GNCMBonjourBrowser.h",
