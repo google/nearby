@@ -26,7 +26,7 @@ extern "C" {
 // Used by Discovery in Core::RequestConnection().
 // Used by Advertising in Core::StartAdvertising().
 struct DLL_API ConnectionRequestInfoW {
-  // endpoint_info - Identifing information about this endpoint (eg. name,
+  // endpoint_info - Identifying information about this endpoint (eg. name,
   //                 device type).
   // listener      - A set of callbacks notified when remote endpoints request a
   //                 connection to this endpoint.
