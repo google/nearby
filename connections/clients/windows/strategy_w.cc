@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <string>
+
 #include "connections/clients/windows/strategy_w.h"
 
 namespace location::nearby::windows {
@@ -25,6 +27,8 @@ const StrategyW StrategyW::kP2pStar{StrategyW::ConnectionType::kPointToPoint,
 const StrategyW StrategyW::kP2pPointToPoint{
     StrategyW::ConnectionType::kPointToPoint,
     StrategyW::TopologyType::kOneToOne};
+
+constexpr StrategyW::StrategyW() : StrategyW(kNone) {}
 
 bool StrategyW::IsNone() const { return *this == kNone; }
 
@@ -44,6 +48,8 @@ std::string StrategyW::GetName() const {
   }
   return "UNKNOWN";
 }
+
+void StrategyW::Clear() { *this = kNone; }
 
 bool operator==(const StrategyW& lhs, const StrategyW& rhs) {
   return lhs.connection_type_ == rhs.connection_type_ &&

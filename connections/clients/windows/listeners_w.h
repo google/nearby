@@ -36,17 +36,17 @@ namespace location::nearby {
 // Forward declarations
 namespace connections {
 struct ConnectionListener;
-struct ConnectionListenerDeleter {
+struct DLL_API ConnectionListenerDeleter {
   void operator()(connections::ConnectionListener* p);
 };
 
 struct DiscoveryListener;
-struct DiscoveryListenerDeleter {
+struct DLL_API DiscoveryListenerDeleter {
   void operator()(connections::DiscoveryListener* p);
 };
 
 struct PayloadListener;
-struct PayloadListenerDeleter {
+struct DLL_API PayloadListenerDeleter {
   void operator()(connections::PayloadListener* p);
 };
 
