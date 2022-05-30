@@ -20,6 +20,7 @@ proto_library(
         "offline_wire_formats.proto",
     ],
     visibility = [
+      "//internal/platform/implementation:__subpackages__",
         "//internal/platform/implementation/ios:__subpackages__",
     ],
 )
@@ -38,6 +39,11 @@ cc_proto_library(
     deps = [
         ":offline_wire_formats_proto",
     ],
+    visibility = [
+      "//internal/platform/implementation:__subpackages__",
+      "//connections/implementation/mediums:__subpackages__",
+      "//connections/implementation:__subpackages__"
+    ]
 )
 
 filegroup(
