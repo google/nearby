@@ -175,7 +175,7 @@ struct DLL_API ConnectionListenerW {
   AcceptedCB accepted_cb = DefaultConstructor;
 
   // Called when either side rejected the connection.
-  // Payloads can not be exchaged. Call Core::DisconnectFromEndpoint()
+  // Payloads can not be exchanged. Call Core::DisconnectFromEndpoint()
   // to terminate connection.
   //
   // endpoint_id - The identifier for the remote endpoint.
