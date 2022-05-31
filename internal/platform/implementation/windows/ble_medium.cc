@@ -77,6 +77,11 @@ bool BleMedium::StartAdvertising(
 
   DataWriter data_writer;
 
+  // TODO(b/234229562): Add parsing logic for fast_advertisement_service_uuid
+  // and insert into the 0x16 Service Data field in the BLE advertisement when
+  // Fast Advertisement is enabled. For Extended Advertising, use the same
+  // hardcoded Copresence service uuid 0xFEF3.
+
   // Copresence Service UUID 0xfef3 (little-endian)
   data_writer.WriteUInt16(kCopresenceServiceUuid);
 
@@ -93,19 +98,48 @@ bool BleMedium::StartAdvertising(
   data_sections.Append(service_data);
   advertisement_.DataSections() = data_sections;
 
-  publisher_ = BluetoothLEAdvertisementPublisher(advertisement_);
+  // Use Extended Advertising if Fast Advertisement Service Uuid is empty string
+  // because the long format advertisement will be used
+  if (fast_advertisement_service_uuid.empty()) {
+    publisher_ = BluetoothLEAdvertisementPublisher(advertisement_);
+    publisher_.UseExtendedAdvertisement(true);
 
-  publisher_token_ =
-      publisher_.StatusChanged({this, &BleMedium::PublisherHandler});
+    publisher_token_ =
+        publisher_.StatusChanged({this, &BleMedium::PublisherHandler});
 
-  publisher_started_promise_ = std::promise<PublisherState>();
+    publisher_started_promise_ = std::promise<PublisherState>();
 
-  std::future<PublisherState> publisher_state_future =
-      publisher_started_promise_.get_future();
+    std::future<PublisherState> publisher_state_future =
+        publisher_started_promise_.get_future();
 
-  publisher_.Start();
+    publisher_.Start();
 
-  return publisher_state_future.get() == PublisherState::kStarted;
+    return publisher_state_future.get() == PublisherState::kStarted;
+  } else {
+    // Extended Advertisement not supported, must make sure advertisement_bytes
+    // is less than 27 bytes
+    if (advertisement_bytes.size() <= 27) {
+      publisher_ = BluetoothLEAdvertisementPublisher(advertisement_);
+      publisher_.UseExtendedAdvertisement(false);
+
+      publisher_token_ =
+          publisher_.StatusChanged({this, &BleMedium::PublisherHandler});
+
+      publisher_started_promise_ = std::promise<PublisherState>();
+
+      std::future<PublisherState> publisher_state_future =
+          publisher_started_promise_.get_future();
+
+      publisher_.Start();
+
+      return publisher_state_future.get() == PublisherState::kStarted;
+    } else {
+      // otherwise no-op
+      NEARBY_LOGS(INFO) << "Everyone Mode unavailable for hardware that does "
+                           "not support Extended Advertising.";
+      return false;
+    }
+  }
 }
 
 bool BleMedium::StopAdvertising(const std::string& service_id) {
@@ -123,6 +157,7 @@ bool BleMedium::StopAdvertising(const std::string& service_id) {
   return publisher_state_future.get() == PublisherState::kStopped;
 }
 
+// TODO(b/234229557): Add BlePeripheral discovery logic
 bool BleMedium::StartScanning(
     const std::string& service_id,
     const std::string& fast_advertisement_service_uuid,
@@ -158,7 +193,6 @@ bool BleMedium::StartScanning(
 
 bool BleMedium::StopScanning(const std::string& service_id) {
   absl::MutexLock lock(&mutex_);
-
   NEARBY_LOGS(INFO) << "Windows Ble StopScanning: service_id=" << service_id;
 
   watcher_stopped_promise_ = std::promise<WatcherState>();

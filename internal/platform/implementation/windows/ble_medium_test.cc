@@ -36,7 +36,7 @@ constexpr uint8_t kFastAdvertisementFlagBitmask = 0x02;
 constexpr uint8_t kPcpBitmask = 0x1F;
 constexpr uint8_t kVisibilityBitmask = 0x01;
 
-TEST(BleMedium, DISABLED_StartAdvertising) {
+TEST(BleMedium, DISABLED_StartAdvertising_FastAdvertisement) {
   BluetoothAdapter bluetoothAdapter;
   BleMedium ble_medium(bluetoothAdapter);
 
@@ -61,7 +61,7 @@ TEST(BleMedium, DISABLED_StartAdvertising) {
 
   // (1 byte) body_length
   advertising_data_byte_array.at(1) = static_cast<unsigned char>(
-      0x19);  // always 25 bytes for Fast Advertisement
+      0x17);  // always 23 bytes for Fast Advertisement
 
   // (1 byte) Nearby Connection version [3-bits] + pcp [5-bits]
   uint8_t ble_connections_version =
@@ -115,6 +115,123 @@ TEST(BleMedium, DISABLED_StartAdvertising) {
 
   EXPECT_TRUE(
       ble_medium.StartAdvertising("NearbyShare", advertising_data, "\xfe\xf3"));
+}
+
+TEST(BleMedium, DISABLED_StartAdvertising_ExtendedAdvertising) {
+  BluetoothAdapter bluetoothAdapter;
+  BleMedium ble_medium(bluetoothAdapter);
+
+  std::array<char, 167> advertising_data_byte_array;
+
+  // (1 byte) version [3-bits] + socket_version [3-bits] +
+  // fast_advertisement_flag [1-bit] + reserved [1-bit]
+  uint8_t ble_medium_version = 0x02;  // mediums::BleAdvertisement::Version::kV2
+  uint8_t socket_version =
+      0x02;  // mediums::BleAdvertisement::SocketVersion::kV2
+  bool fast_advertisement = false;  // Is Fast Advertisement
+
+  uint8_t ble_medium_advertisement_metadata_byte =
+      (ble_medium_version << 5) & kVersionBitmask;
+  ble_medium_advertisement_metadata_byte |=
+      (socket_version << 2) & kSocketVersionBitmask;
+  ble_medium_advertisement_metadata_byte |=
+      ((fast_advertisement ? 1 : 0) << 1) & kFastAdvertisementFlagBitmask;
+
+  advertising_data_byte_array.at(0) =
+      static_cast<unsigned char>(ble_medium_advertisement_metadata_byte);
+
+  // (3 bytes) service_id_hash
+  for (int i = 0; i < 3; ++i) {
+    advertising_data_byte_array.at(1 + i) = static_cast<unsigned char>(0x00);
+  }
+
+  // (4 bytes) body_length
+  advertising_data_byte_array.at(7) = static_cast<unsigned char>(
+      0x9C);  // max 156 bytes for Extended Advertising
+
+  // (1 byte) Nearby Connection version [3-bits] + pcp [5-bits]
+  uint8_t ble_connections_version =
+      0x01;            // connections::BleAdvertisement::Version::kV1
+  uint8_t pcp = 0x02;  // connections::Pcp::kP2pCluster
+
+  uint8_t ble_connections_advertisement_metadata_byte =
+      (ble_connections_version << 5) & kVersionBitmask;
+  ble_connections_advertisement_metadata_byte |= pcp & kPcpBitmask;
+  advertising_data_byte_array.at(8) =
+      static_cast<unsigned char>(ble_connections_advertisement_metadata_byte);
+
+  // (3 bytes) service_id_hash
+  for (int i = 0; i < 3; ++i) {
+    advertising_data_byte_array.at(9 + i) = static_cast<unsigned char>(0x00);
+  }
+
+  // (4 bytes) endpoint_id
+  for (int i = 0; i < 4; ++i) {
+    advertising_data_byte_array.at(12 + i) = static_cast<unsigned char>(0x00);
+  }
+
+  // (1 byte) endpoint_info_size
+  advertising_data_byte_array.at(16) = static_cast<unsigned char>(
+      0x83);  // max 131-bytes for Extended Advertising
+
+  // =========endpoint_info [Max 131-bytes]============
+  // (1 byte) Nearby Share version [3-bits] + visibility [1-bit] + reserved
+  // [4-bits]
+  uint8_t nearby_share_version = 0x00;  // nearby share v1
+  uint8_t visibility = 0x00;  // [placeholder] sharing::Visibility::kAllContacts
+
+  uint8_t nearby_share_metadata_byte =
+      (nearby_share_version << 5) & kVersionBitmask;
+  nearby_share_metadata_byte |= ((visibility & kVisibilityBitmask) << 4);
+
+  advertising_data_byte_array.at(17) = static_cast<unsigned char>(0x00);
+
+  // (2 bytes) salt
+  for (int i = 0; i < 2; ++i) {
+    advertising_data_byte_array.at(18 + i) = static_cast<unsigned char>(0x00);
+  }
+
+  // (14 bytes) encrypted_metadata_key
+  for (int i = 0; i < 14; ++i) {
+    advertising_data_byte_array.at(20 + i) = static_cast<unsigned char>(0x00);
+  }
+
+  // [optional]
+  // (1 byte) human_readable_name_size
+  advertising_data_byte_array.at(34) = static_cast<unsigned char>(0x72);
+
+  // [optional]
+  // (max 114 bytes) human_readable_name
+  for (int i = 0; i < 114; ++i) {
+    advertising_data_byte_array.at(35 + i) = static_cast<unsigned char>(0x00);
+  }
+  // =========endpoint_info [131-bytes]============
+
+  // (6 bytes) bluetooth_mac_address
+  for (int i = 0; i < 6; ++i) {
+    advertising_data_byte_array.at(149 + i) = static_cast<unsigned char>(0x00);
+  }
+
+  // (1 byte) uwb_address_size
+  advertising_data_byte_array.at(155) = static_cast<unsigned char>(0x72);
+
+  // (8 bytes) uwb_address
+  for (int i = 0; i < 6; ++i) {
+    advertising_data_byte_array.at(156 + i) = static_cast<unsigned char>(0x00);
+  }
+
+  // (1 byte) extra_field [web_rtc_connectable]
+  advertising_data_byte_array.at(164) = static_cast<unsigned char>(0x72);
+
+  // (2 bytes) device_token
+  for (int i = 0; i < 2; ++i) {
+    advertising_data_byte_array.at(165 + i) = static_cast<unsigned char>(0x00);
+  }
+
+  ByteArray advertising_data(advertising_data_byte_array);
+
+  EXPECT_TRUE(
+      ble_medium.StartAdvertising("NearbyShare", advertising_data, ""));
 }
 
 TEST(BleMedium, DISABLED_StopAdvertising) {
