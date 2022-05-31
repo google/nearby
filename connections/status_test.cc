@@ -14,6 +14,9 @@
 
 #include "connections/status.h"
 
+#include <string>
+#include <vector>
+
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
@@ -53,6 +56,43 @@ TEST(StatusTest, CopyInitEquals) {
 
   EXPECT_EQ(status1, status2);
 }
+
+struct StatusToStringData {
+  Status status;
+  std::string expected_string_result;
+};
+
+std::vector<StatusToStringData> GetTestData() {
+  return {
+      {Status{.value = Status::kSuccess}, "kSuccess"},
+      {Status{.value = Status::kError}, "kError"},
+      {Status{.value = Status::kOutOfOrderApiCall}, "kOutOfOrderApiCall"},
+      {Status{.value = Status::kAlreadyHaveActiveStrategy},
+       "kAlreadyHaveActiveStrategy"},
+      {Status{.value = Status::kAlreadyAdvertising}, "kAlreadyAdvertising"},
+      {Status{.value = Status::kAlreadyDiscovering}, "kAlreadyDiscovering"},
+      {Status{.value = Status::kEndpointIoError}, "kEndpointIoError"},
+      {Status{.value = Status::kEndpointUnknown}, "kEndpointUnknown"},
+      {Status{.value = Status::kConnectionRejected}, "kConnectionRejected"},
+      {Status{.value = Status::kAlreadyConnectedToEndpoint},
+       "kAlreadyConnectedToEndpoint"},
+      {Status{.value = Status::kNotConnectedToEndpoint},
+       "kNotConnectedToEndpoint"},
+      {Status{.value = Status::kBluetoothError}, "kBluetoothError"},
+      {Status{.value = Status::kBleError}, "kBleError"},
+      {Status{.value = Status::kWifiLanError}, "kWifiLanError"},
+      {Status{.value = Status::kPayloadUnknown}, "kPayloadUnknown"},
+  };
+}
+
+using StatusToString = testing::TestWithParam<StatusToStringData>;
+
+TEST_P(StatusToString, ToStringResultMatches) {
+  EXPECT_EQ(GetParam().expected_string_result, GetParam().status.ToString());
+}
+
+INSTANTIATE_TEST_CASE_P(StatusToString, StatusToString,
+                        testing::ValuesIn(GetTestData()));
 
 }  // namespace connections
 }  // namespace nearby

@@ -48,6 +48,7 @@ cc_library(
         "connection_options.cc",
         "discovery_options.cc",
         "payload.cc",
+        "status.cc",
         "strategy.cc",
     ],
     hdrs = [
