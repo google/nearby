@@ -14,7 +14,10 @@
 
 syntax = "proto2";
 
+// LINT.IfChange
 package location.nearby.analytics.proto;
+
+// LINT.ThenChange(//depot/google3/location/nearby/analytics/cpp/proto/nearby_client_log.proto)
 
 import "proto/connections_enums.proto";
 import "proto/errorcode/error_code_enums.proto";
