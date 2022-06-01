@@ -220,7 +220,8 @@ DLL_API void __stdcall CancelPayload(Core*, int64_t, ResultCallbackW);
 // result_cb   - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK - finished successfully.
-DLL_API void __stdcall DisconnectFromEndpoint(Core*, char*, ResultCallbackW);
+DLL_API void __stdcall DisconnectFromEndpoint(Core*, const char*,
+                                              ResultCallbackW);
 
 // Disconnects from, and removes all traces of, all connected and/or
 // discovered endpoints. This call is expected to be preceded by a call to
