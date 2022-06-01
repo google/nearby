@@ -25,6 +25,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/ble.h"
@@ -125,12 +126,13 @@ class BleMedium : public api::BleMedium {
                           BluetoothLEAdvertisementWatcherStoppedEventArgs args);
 
   ::winrt::event_token publisher_token_;
-  std::promise<PublisherState> publisher_started_promise_;
-  std::promise<PublisherState> publisher_stopped_promise_;
+  CountDownLatch* publisher_started_latch_;
+  CountDownLatch* publisher_stopped_latch_;
 
   ::winrt::event_token watcher_token_;
-  std::promise<WatcherState> watcher_started_promise_;
-  std::promise<WatcherState> watcher_stopped_promise_;
+  CountDownLatch* watcher_started_latch_;
+  CountDownLatch* watcher_stopped_latch_;
+
   bool is_watcher_started_ = false;
   bool is_watcher_stopped_ = false;
 

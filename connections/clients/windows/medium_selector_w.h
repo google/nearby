@@ -27,6 +27,9 @@ struct MediumSelectorW {
   T ble;
   T web_rtc;
   T wifi_lan;
+  T nfc;
+  T wifi_aware;
+  T wifi_direct;
   T wifi_hotspot;
 
   constexpr MediumSelectorW() = default;
@@ -34,12 +37,14 @@ struct MediumSelectorW {
   constexpr MediumSelectorW& operator=(const MediumSelectorW&) = default;
   constexpr bool Any(const T& value) const {
     return bluetooth == value || ble == value || web_rtc == value ||
-           wifi_lan == value || wifi_hotspot == value;
+           wifi_lan == value || wifi_hotspot == value || nfc == value ||
+           wifi_aware == value || wifi_direct == value;
   }
 
   constexpr bool All(const T& value) const {
     return bluetooth == value && ble == value && web_rtc == value &&
-           wifi_lan == value && wifi_hotspot == value;
+           wifi_lan == value && wifi_hotspot == value && nfc == value &&
+           wifi_aware == value && wifi_direct == value;
   }
 
   constexpr int Count(const T& value) const {
@@ -48,6 +53,9 @@ struct MediumSelectorW {
     if (ble == value) ++count;
     if (wifi_lan == value) ++count;
     if (wifi_hotspot == value) ++count;
+    if (nfc == value) ++count;
+    if (wifi_aware == value) ++count;
+    if (wifi_direct == value) ++count;
     if (web_rtc == value) ++count;
     return count;
   }
@@ -55,9 +63,12 @@ struct MediumSelectorW {
   constexpr MediumSelectorW& SetAll(const T& value) {
     bluetooth = value;
     ble = value;
-    web_rtc = value;
     wifi_lan = value;
     wifi_hotspot = value;
+    nfc = value;
+    wifi_aware = value;
+    wifi_direct = value;
+    web_rtc = value;
     return *this;
   }
 
@@ -69,6 +80,9 @@ struct MediumSelectorW {
     if (web_rtc == value) mediums.push_back(MediumW::WEB_RTC);
     if (bluetooth == value) mediums.push_back(MediumW::BLUETOOTH);
     if (ble == value) mediums.push_back(MediumW::BLE);
+    if (nfc == value) mediums.push_back(MediumW::NFC);
+    if (wifi_aware == value) mediums.push_back(MediumW::WIFI_AWARE);
+    if (wifi_direct == value) mediums.push_back(MediumW::WIFI_DIRECT);
     return mediums;
   }
 };

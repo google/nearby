@@ -57,8 +57,8 @@ std::string StringToPrintableHexString(const std::string& source) {
 
 }  // namespace
 
-const Uuid kCopresenceServiceUuid(kCopresenceServiceUuidMsb,
-                                  kCopresenceServiceUuidLsb);
+ABSL_CONST_INIT const Uuid kCopresenceServiceUuid(kCopresenceServiceUuidMsb,
+                                                  kCopresenceServiceUuidLsb);
 
 ByteArray GenerateHash(const std::string& source, size_t size) {
   return Utils::Sha256Hash(source, size);

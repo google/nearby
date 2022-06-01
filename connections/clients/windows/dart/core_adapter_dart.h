@@ -42,6 +42,9 @@ struct Mediums {
   int64_t ble;
   int64_t wifi_lan;
   int64_t wifi_hotspot;
+  int64_t nfc;
+  int64_t wifi_aware;
+  int64_t wifi_direct;
   int64_t web_rtc;
   // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/mediums.dart)
 };
@@ -53,11 +56,14 @@ struct AdvertisingOptionsDart {
   StrategyDart strategy;
   int64_t auto_upgrade_bandwidth;
   int64_t enforce_topology_constraints;
+  int64_t use_fast_advertisements;
   int64_t low_power;
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   int64_t is_out_of_band_connection = false;
+
   const char *fast_advertisement_service_uuid;
+
   Mediums mediums;
   // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/advertising_options.dart)
 };
@@ -73,10 +79,12 @@ struct ConnectionOptionsDart {
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   int64_t is_out_of_band_connection = false;
-  char *remote_bluetooth_mac_address;
-  char *fast_advertisement_service_uuid;
+
   int64_t keep_alive_interval_millis;
   int64_t keep_alive_timeout_millis;
+
+  char *remote_bluetooth_mac_address;
+  char *fast_advertisement_service_uuid;
 
   Mediums mediums;
   // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/connection_options.dart)
@@ -87,12 +95,16 @@ struct DiscoveryOptionsDart {
   StrategyDart strategy;
   int64_t auto_upgrade_bandwidth;
   int64_t enforce_topology_constraints;
-  int64_t keep_alive_interval_millis = 0;
-  int64_t keep_alive_timeout_millis = 0;
+  int64_t discover_fast_advertisements;
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   int64_t is_out_of_band_connection = false;
+
+  int64_t keep_alive_interval_millis = 0;
+  int64_t keep_alive_timeout_millis = 0;
+
   const char *fast_advertisement_service_uuid;
+
   const char *remote_bluetooth_mac_address;
 
   Mediums mediums;

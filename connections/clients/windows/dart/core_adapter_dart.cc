@@ -364,6 +364,11 @@ void StartAdvertisingDart(
       connection_options_dart.mediums.wifi_lan;
   advertising_options.allowed.wifi_hotspot =
       connection_options_dart.mediums.wifi_hotspot;
+  advertising_options.allowed.nfc = connection_options_dart.mediums.nfc;
+  advertising_options.allowed.wifi_aware =
+      connection_options_dart.mediums.wifi_aware;
+  advertising_options.allowed.wifi_direct =
+      connection_options_dart.mediums.wifi_direct;
   advertising_options.allowed.web_rtc = connection_options_dart.mediums.web_rtc;
 
   ConnectionListenerW listener(ListenerInitiatedCB, ListenerAcceptedCB,
@@ -417,8 +422,11 @@ void StartDiscoveryDart(Core *pCore, const char *service_id,
 
   DiscoveryOptionsW discovery_options;
   discovery_options.strategy = GetStrategy(discovery_options_dart.strategy);
-  discovery_options.allowed.web_rtc = false;
-  discovery_options.enforce_topology_constraints = true;
+  discovery_options.auto_upgrade_bandwidth =
+      discovery_options_dart.auto_upgrade_bandwidth;
+  discovery_options.enforce_topology_constraints =
+      discovery_options_dart.enforce_topology_constraints;
+
   // This needs to be passed in by the UI. If it's null, then no
   // fast_advertisement_service. Otherwise this interface will always
   // and forever be locked into 0000FE2C-0000-1000-8000-00805F9B34FB
@@ -432,6 +440,11 @@ void StartDiscoveryDart(Core *pCore, const char *service_id,
   discovery_options.allowed.wifi_lan = discovery_options_dart.mediums.wifi_lan;
   discovery_options.allowed.wifi_hotspot =
       discovery_options_dart.mediums.wifi_hotspot;
+  discovery_options.allowed.nfc = discovery_options_dart.mediums.nfc;
+  discovery_options.allowed.wifi_aware =
+      discovery_options_dart.mediums.wifi_aware;
+  discovery_options.allowed.wifi_direct =
+      discovery_options_dart.mediums.wifi_direct;
   discovery_options.allowed.web_rtc = discovery_options_dart.mediums.web_rtc;
 
   DiscoveryListenerW listener(ListenerEndpointFoundCB, ListenerEndpointLostCB,
@@ -482,15 +495,21 @@ void RequestConnectionDart(
       connection_request_info_dart.connection_listener;
 
   ConnectionOptionsW connection_options;
+  connection_options.auto_upgrade_bandwidth =
+      connection_options_dart.auto_upgrade_bandwidth;
   connection_options.enforce_topology_constraints = false;
+  connection_options.low_power = connection_options_dart.low_power;
+
   connection_options.remote_bluetooth_mac_address =
       connection_options_dart.remote_bluetooth_mac_address;
   connection_options.fast_advertisement_service_uuid =
       connection_options_dart.fast_advertisement_service_uuid;
+
   connection_options.keep_alive_interval_millis =
       connection_options_dart.keep_alive_interval_millis;
   connection_options.keep_alive_timeout_millis =
       connection_options_dart.keep_alive_timeout_millis;
+
   connection_options.allowed.bluetooth =
       connection_options_dart.mediums.bluetooth;
   connection_options.allowed.ble = connection_options_dart.mediums.ble;
@@ -498,6 +517,11 @@ void RequestConnectionDart(
       connection_options_dart.mediums.wifi_lan;
   connection_options.allowed.wifi_hotspot =
       connection_options_dart.mediums.wifi_hotspot;
+  connection_options.allowed.nfc = connection_options_dart.mediums.nfc;
+  connection_options.allowed.wifi_aware =
+      connection_options_dart.mediums.wifi_aware;
+  connection_options.allowed.wifi_direct =
+      connection_options_dart.mediums.wifi_direct;
   connection_options.allowed.web_rtc = connection_options_dart.mediums.web_rtc;
 
   ConnectionListenerW listener(ListenerInitiatedCB, ListenerAcceptedCB,
