@@ -29,7 +29,7 @@ namespace api {
 class InputFile : public InputStream {
  public:
   ~InputFile() override = default;
-  virtual std::string GetFilePath() const = 0;
+  virtual std::string_view GetFilePath() const = 0;
   virtual std::int64_t GetTotalSize() const = 0;
 };
 
