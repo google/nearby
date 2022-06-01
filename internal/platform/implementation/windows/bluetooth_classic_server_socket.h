@@ -96,9 +96,7 @@ class BluetoothServerSocket : public api::BluetoothServerSocket {
   void SetScanMode(bool radioDiscoverable) {
     StopAdvertising();
     radio_discoverable_ = radioDiscoverable;
-    if (radio_discoverable_) {
-      StartAdvertising();
-    }
+    StartAdvertising();
   }
 
  private:

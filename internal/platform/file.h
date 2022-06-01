@@ -50,7 +50,7 @@ class InputFile final {
   ExceptionOr<ByteArray> Read(std::int64_t size);
 
   // Returns a string that uniqely identifies this file.
-  std::string_view GetFilePath() const;
+  std::string GetFilePath() const;
 
   // Returns total size of this file in bytes.
   std::int64_t GetTotalSize() const;

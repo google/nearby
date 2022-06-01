@@ -33,7 +33,7 @@ ExceptionOr<ByteArray> InputFile::Read(std::int64_t size) {
 }
 
 // Returns a string that uniqely identifies this file.
-std::string_view InputFile::GetFilePath() const { return impl_->GetFilePath(); }
+std::string InputFile::GetFilePath() const { return impl_->GetFilePath(); }
 
 // Returns total size of this file in bytes.
 std::int64_t InputFile::GetTotalSize() const { return impl_->GetTotalSize(); }

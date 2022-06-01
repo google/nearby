@@ -29,7 +29,7 @@ class InputFile : public api::InputFile {
   // TODO(b/184975123): replace with real implementation.
   ~InputFile() override = default;
   // TODO(b/184975123): replace with real implementation.
-  std::string_view GetFilePath() const override { return "Un-implemented"; }
+  std::string GetFilePath() const override { return "Un-implemented"; }
   // TODO(b/184975123): replace with real implementation.
   std::int64_t GetTotalSize() const override { return 0; }
 
