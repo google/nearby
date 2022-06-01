@@ -32,6 +32,12 @@ class DLL_API StrategyW {
   constexpr StrategyW(const StrategyW&) = default;
   constexpr StrategyW& operator=(const StrategyW&) = default;
 
+  // Helper functions for exe to access static member variables in the dll.
+  static const StrategyW& GetStrategyNone();
+  static const StrategyW& GetStrategyP2pCluster();
+  static const StrategyW& GetStrategyP2pStar();
+  static const StrategyW& GetStrategyPointToPoint();
+
   // Returns true, if strategy is kNone, false otherwise.
   bool IsNone() const;
 
@@ -42,7 +48,7 @@ class DLL_API StrategyW {
   // Returns a string representing given strategy, for every valid strategy.
   std::string GetName() const;
 
-  // Undefine strategy.
+  // Undefined strategy.
   void Clear();
   friend bool operator==(const StrategyW& lhs, const StrategyW& rhs);
   friend bool operator!=(const StrategyW& lhs, const StrategyW& rhs);

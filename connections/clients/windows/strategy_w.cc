@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <string>
-
 #include "connections/clients/windows/strategy_w.h"
+
+#include <string>
 
 namespace location::nearby::windows {
 
@@ -27,6 +27,22 @@ const StrategyW StrategyW::kP2pStar{StrategyW::ConnectionType::kPointToPoint,
 const StrategyW StrategyW::kP2pPointToPoint{
     StrategyW::ConnectionType::kPointToPoint,
     StrategyW::TopologyType::kOneToOne};
+
+// static
+const StrategyW& StrategyW::GetStrategyNone() { return StrategyW::kNone; }
+
+// static
+const StrategyW& StrategyW::GetStrategyP2pCluster() {
+  return StrategyW::kP2pCluster;
+}
+
+// static
+const StrategyW& StrategyW::GetStrategyP2pStar() { return StrategyW::kP2pStar; }
+
+// static
+const StrategyW& StrategyW::GetStrategyPointToPoint() {
+  return StrategyW::kP2pPointToPoint;
+}
 
 constexpr StrategyW::StrategyW() : StrategyW(kNone) {}
 
