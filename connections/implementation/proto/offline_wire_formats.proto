@@ -320,6 +320,9 @@ message MediumMetadata {
   optional WifiAwareUsableChannels wifi_aware_usable_channels = 10;
   // Usable WiFi Hotspot STA channels on the local device.
   optional WifiHotspotStaUsableChannels wifi_hotspot_sta_usable_channels = 11;
+  // Represents the transport type of active network.
+  // https://developer.android.com/reference/android/net/NetworkCapabilities#hasTransport(int)
+  optional int32 transport_type = 12;
 }
 
 // Available channels on the local device.
