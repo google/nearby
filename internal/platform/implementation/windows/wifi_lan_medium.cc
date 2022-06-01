@@ -36,6 +36,14 @@ namespace location {
 namespace nearby {
 namespace windows {
 
+bool WifiLanMedium::IsNetworkConnected() const {
+  // connection_profile will be null when there's no network adapter or
+  // connection to a network. For example, WiFi isn't connected to an AP/hotspot
+  // and ethernet isn't connected to a router/hub/switch.
+  auto connection_profile = NetworkInformation::GetInternetConnectionProfile();
+  return connection_profile != nullptr;
+}
+
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   absl::MutexLock lock(&mutex_);
 

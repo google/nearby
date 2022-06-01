@@ -139,6 +139,9 @@ class WifiLanMedium : public api::WifiLanMedium {
   WifiLanMedium(const WifiLanMedium&) = delete;
   WifiLanMedium& operator=(const WifiLanMedium&) = delete;
 
+  // Check if a network connection to a primary router exist.
+  bool IsNetworkConnected() const override { return true; }
+
   // api::WifiLanMedium:
   bool StartAdvertising(const NsdServiceInfo& nsd_service_info) override
       ABSL_LOCKS_EXCLUDED(mutex_);

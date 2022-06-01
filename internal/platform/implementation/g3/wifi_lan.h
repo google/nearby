@@ -170,6 +170,9 @@ class WifiLanMedium : public api::WifiLanMedium {
   WifiLanMedium();
   ~WifiLanMedium() override;
 
+  // Check if a network connection to a primary router exist.
+  bool IsNetworkConnected() const override { return true; }
+
   // Starts WifiLan advertising.
   //
   // nsd_service_info - NsdServiceInfo data that's advertised through mDNS

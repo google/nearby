@@ -192,7 +192,15 @@ class WifiLanMedium {
     return impl_->GetDynamicPortRange();
   }
 
-  bool IsValid() const { return impl_ != nullptr; }
+  // Both SW and HW support WifiLan Medium
+  bool IsValid() const {
+    // When impl_ is not nullptr, it means platform layer SW is implemented for
+    // this Medium
+    if (impl_ == nullptr) return false;
+    // A network connection to a primary router exist, also implied that HW is
+    // exist and enabled
+    return impl_->IsNetworkConnected();
+  }
 
   api::WifiLanMedium& GetImpl() { return *impl_; }
 

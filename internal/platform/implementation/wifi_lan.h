@@ -76,6 +76,9 @@ class WifiLanMedium {
  public:
   virtual ~WifiLanMedium() = default;
 
+  // Check if a network connection to a primary router exist.
+  virtual bool IsNetworkConnected() const = 0;
+
   // Starts WifiLan advertising.
   //
   // nsd_service_info - NsdServiceInfo data that's advertised through mDNS
