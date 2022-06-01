@@ -244,7 +244,7 @@ void CancelPayload(connections::Core *pCore, std::int64_t payload_id,
   pCore->CancelPayload(payload_id, *callback.GetImpl());
 }
 
-void DisconnectFromEndpoint(connections::Core *pCore, char *endpoint_id,
+void DisconnectFromEndpoint(connections::Core *pCore, const char *endpoint_id,
                             ResultCallbackW callback) {
   if (pCore == nullptr) {
     return;
