@@ -64,6 +64,35 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "encryption",
+    srcs = ["encryption.cc"],
+    hdrs = ["encryption.h"],
+    deps = [
+        "//internal/platform:logging",
+        "//third_party/tink/cc/subtle",
+        "//util/random:ssl_bit_gen",
+        "@boringssl//:crypto",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+    ],
+)
+
+cc_test(
+    name = "encryption_test",
+    size = "small",
+    srcs = ["encryption_test.cc"],
+    deps = [
+        ":encryption",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "types_test",
     size = "small",
