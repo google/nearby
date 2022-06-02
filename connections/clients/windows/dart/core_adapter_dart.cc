@@ -585,7 +585,7 @@ void SendPayloadDart(Core *pCore, const char *endpoint_id,
       PayloadW payload(PayloadW::GenerateId(), payload_dart.data,
                        payload_dart.size);
 
-      std::vector<char *> c_string_array;
+      std::vector<const char *> c_string_array;
 
       std::transform(endpoint_ids.begin(), endpoint_ids.end(),
                      std::back_inserter(c_string_array),
@@ -612,7 +612,7 @@ void SendPayloadDart(Core *pCore, const char *endpoint_id,
       InputFile input_file(file_name_str, payload_dart.size);
       PayloadW payload(input_file);
 
-      std::vector<char *> c_string_array;
+      std::vector<const char *> c_string_array;
 
       std::transform(endpoint_ids.begin(), endpoint_ids.end(),
                      std::back_inserter(c_string_array),

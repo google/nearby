@@ -202,7 +202,7 @@ DLL_API void __stdcall RejectConnection(Core*, const char*, ResultCallbackW);
 //         still occur during transmission (and at different times for
 //         different endpoints), and will be delivered via
 //         PayloadCallback#onPayloadTransferUpdate.
-DLL_API void __stdcall SendPayload(Core*, char**, size_t, PayloadW,
+DLL_API void __stdcall SendPayload(Core*, const char**, size_t, PayloadW,
                                    ResultCallbackW);
 
 // Cancels a Payload currently in-flight to or from remote endpoint(s).

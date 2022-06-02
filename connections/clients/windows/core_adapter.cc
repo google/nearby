@@ -226,7 +226,7 @@ void RejectConnection(connections::Core *pCore, const char *endpoint_id,
 void SendPayload(connections::Core *pCore,
                  // todo(jfcarroll) this is being exported, needs to be
                  // refactored to return a plain old c type
-                 char **endpoint_ids, size_t endpoint_ids_size,
+                 const char **endpoint_ids, size_t endpoint_ids_size,
                  PayloadW payloadw, ResultCallbackW callback) {
   if (pCore == nullptr) {
     return;
