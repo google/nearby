@@ -30,7 +30,6 @@ using BooleanMediumSelector = MediumSelectorW<bool>;
 // Connection Options: used for both Advertising and Discovery.
 // All fields are mutable, to make the type copy-assignable.
 struct DLL_API ConnectionOptionsW : public OptionsBaseW {
-  StrategyW strategy;
   bool auto_upgrade_bandwidth;
   bool enforce_topology_constraints;
   bool low_power;
