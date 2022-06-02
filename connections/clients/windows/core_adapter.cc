@@ -16,6 +16,7 @@
 
 #include "absl/strings/str_format.h"
 #include "connections/core.h"
+#include "internal/platform/bluetooth_utils.h"
 
 namespace location::nearby::windows {
 
@@ -189,8 +190,8 @@ void RequestConnection(connections::Core *pCore, const char *endpoint_id,
   connection_options.low_power = connection_options_w.low_power;
   if (connection_options_w.remote_bluetooth_mac_address) {
     connection_options.remote_bluetooth_mac_address =
-        ByteArray(connection_options_w.remote_bluetooth_mac_address,
-                  strlen(connection_options_w.remote_bluetooth_mac_address));
+        BluetoothUtils::FromString(
+            connection_options_w.remote_bluetooth_mac_address);
   }
   if (connection_options_w.strategy == StrategyW::kNone)
     connection_options.strategy = connections::Strategy::kNone;
