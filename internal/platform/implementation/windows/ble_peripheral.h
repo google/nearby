@@ -35,12 +35,24 @@ class BlePeripheral : public api::BlePeripheral {
  public:
   ~BlePeripheral() override = default;
 
-  std::string GetName() const override { return ""; }
+  std::string GetName() const override { return name_; }
 
   ByteArray GetAdvertisementBytes(
       const std::string& service_id) const override {
-    return ByteArray{};
+    return advertisement_data_;
   }
+
+  void SetName(const std::string& name) {
+    name_ = name;
+  }
+
+  void SetAdvertisementBytes(ByteArray advertisement_bytes) {
+    advertisement_data_ = advertisement_bytes;
+  }
+
+ private:
+  std::string name_;
+  ByteArray advertisement_data_;
 };
 
 }  // namespace windows

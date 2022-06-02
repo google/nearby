@@ -15,10 +15,13 @@
 #include "internal/platform/implementation/windows/ble_medium.h"
 
 #include <future>  // NOLINT
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble.h"
+#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
 #include "winrt/Windows.Devices.Bluetooth.h"
@@ -29,29 +32,80 @@ namespace location {
 namespace nearby {
 namespace windows {
 namespace {
+
+// Specifies common Bluetooth error cases.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetootherror?view=winrt-22621
 using ::winrt::Windows::Devices::Bluetooth::BluetoothError;
+
+// Represents a Bluetooth LE advertisement payload.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.advertisement.bluetoothleadvertisement?view=winrt-22621
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEAdvertisement;
+
+// Represents a Bluetooth LE advertisement section. A Bluetooth LE advertisement
+// packet can contain multiple instances of these
+// BluetoothLEAdvertisementDataSection objects.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.advertisement.bluetoothleadvertisementdatasection?view=winrt-22621
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEAdvertisementDataSection;
+
+// Represents the Bluetooth LE advertisement types defined in the Generic Access
+// Profile (GAP) by the Bluetooth Special Interest Group (SIG).
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.advertisement.bluetoothleadvertisementdatatypes?view=winrt-22621
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEAdvertisementDataTypes;
+
+// Represents an object to send Bluetooth Low Energy (LE) advertisements.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.advertisement.bluetoothleadvertisementpublisher?view=winrt-22621
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEAdvertisementPublisher;
+
+// Represents the possible states of the BluetoothLEAdvertisementPublisher.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.advertisement.bluetoothleadvertisementpublisherstatus?view=winrt-22621
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEAdvertisementPublisherStatus;
+
+// Provides data for a StatusChanged event on a
+// BluetoothLEAdvertisementPublisher.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.advertisement.bluetoothleadvertisementpublisherstatuschangedeventargs?view=winrt-22621
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEAdvertisementPublisherStatusChangedEventArgs;
+
+// Provides data for a Received event on a BluetoothLEAdvertisementWatcher. A
+// BluetoothLEAdvertisementReceivedEventArgs instance is created when the
+// Received event occurs on a BluetoothLEAdvertisementWatcher object.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.advertisement.bluetoothleadvertisementreceivedeventargs?view=winrt-22621
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEAdvertisementReceivedEventArgs;
+
+// Represents an object to receive Bluetooth Low Energy (LE) advertisements.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.advertisement.bluetoothleadvertisementwatcher?view=winrt-22621
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEAdvertisementWatcher;
+
+// Represents the possible states of the BluetoothLEAdvertisementWatcher.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.advertisement.bluetoothleadvertisementwatcherstatus?view=winrt-22621
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEAdvertisementWatcherStatus;
+
+// Provides data for a Stopped event on a BluetoothLEAdvertisementWatcher. A
+// BluetoothLEAdvertisementWatcherStoppedEventArgs instance is created when the
+// Stopped event occurs on a BluetoothLEAdvertisementWatcher object.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.advertisement.bluetoothleadvertisementwatcherstoppedeventargs?view=winrt-22621
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEAdvertisementWatcherStoppedEventArgs;
+
+// Defines constants that specify a Bluetooth LE scanning mode.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.advertisement.bluetoothlescanningmode?view=winrt-22621
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEScanningMode;
+
+// Reads data from an input stream.
+// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.datareader?view=winrt-22621
+using ::winrt::Windows::Storage::Streams::DataReader;
+
+// Writes data to an output stream.
+// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.datawriter?view=winrt-22621
 using ::winrt::Windows::Storage::Streams::DataWriter;
 
 template <typename T>
@@ -157,7 +211,6 @@ bool BleMedium::StopAdvertising(const std::string& service_id) {
   return publisher_state_future.get() == PublisherState::kStopped;
 }
 
-// TODO(b/234229557): Add BlePeripheral discovery logic
 bool BleMedium::StartScanning(
     const std::string& service_id,
     const std::string& fast_advertisement_service_uuid,
@@ -166,6 +219,7 @@ bool BleMedium::StartScanning(
 
   NEARBY_LOGS(INFO) << "Windows Ble StartScanning: service_id=" << service_id;
 
+  service_id_ = service_id;
   advertisement_received_callback_ = std::move(callback);
 
   watcher_token_ = watcher_.Stopped({this, &BleMedium::WatcherHandler});
@@ -373,28 +427,42 @@ void BleMedium::AdvertisementReceivedHandler(
     BluetoothLEAdvertisementWatcher watcher,
     BluetoothLEAdvertisementReceivedEventArgs args) {
   // Handle all BLE advertisements and determine whether the BLE Medium
-  // Advertisement Scan Response packet (containing Copresence UUID 0xFEF3) has
-  // been received in the handler
-  std::array<uint8_t, 8> bluetooth_base_array = {
-      static_cast<uint8_t>(0x80), static_cast<uint8_t>(0x00),
-      static_cast<uint8_t>(0x00), static_cast<uint8_t>(0x80),
-      static_cast<uint8_t>(0x5F), static_cast<uint8_t>(0x9B),
-      static_cast<uint8_t>(0x34), static_cast<uint8_t>(0xFB)};
-  winrt::guid kCopresenceServiceUuid128bit(
-      static_cast<uint32_t>(0x0000FEF3), static_cast<uint16_t>(0x0000),
-      static_cast<uint16_t>(0x1000), bluetooth_base_array);
+  // Advertisement Scan Response packet (containing Copresence UUID 0xFEF3 in
+  // 0x16 Service Data) has been received in the handler
 
-  IVector<winrt::guid> guids = args.Advertisement().ServiceUuids();
-  bool is_advertisement_found = false;
-  for (const winrt::guid& uuid : guids) {
-    if (uuid == kCopresenceServiceUuid128bit) {
-      is_advertisement_found = true;
+  BluetoothLEAdvertisement advertisement = args.Advertisement();
+
+  for (BluetoothLEAdvertisementDataSection service_data :
+       advertisement.GetSectionsByType(0x16)) {
+    // Parse Advertisement Data for Section 0x16 (Service Data)
+    DataReader data_reader = DataReader::FromBuffer(service_data.Data());
+
+    // Discard the first 2 bytes of Service Uuid in Service Data
+    uint8_t first_byte = data_reader.ReadByte();   // 0xf3
+    uint8_t second_byte = data_reader.ReadByte();  // 0xfe
+
+    if (first_byte == 0xf3 && second_byte == 0xfe) {
+      std::string data;
+
+      uint8_t unconsumed_buffer_length = data_reader.UnconsumedBufferLength();
+      for (int i = 0; i < unconsumed_buffer_length; i++) {
+        data.append(1, static_cast<unsigned char>(data_reader.ReadByte()));
+      }
+
+      ByteArray advertisement_data(data);
+
+      std::string peripheral_name =
+          uint64_to_mac_address_string(args.BluetoothAddress());
+      std::unique_ptr<BlePeripheral> peripheral =
+          std::make_unique<BlePeripheral>();
+      peripheral->SetName(peripheral_name);
+      peripheral->SetAdvertisementBytes(advertisement_data);
+
+      NEARBY_LOGS(INFO) << "Sending Fast Advertisement packet for processing.";
+      advertisement_received_callback_.peripheral_discovered_cb(
+          /*ble_peripheral*/ *(peripheral.get()), /*service_id*/ service_id_,
+          /*is_fast_advertisement*/ true);
     }
-  }
-  if (is_advertisement_found == true) {
-    BlePeripheral peripheral;
-    advertisement_received_callback_.peripheral_discovered_cb(peripheral,
-                                                              "\xfe\xf3", true);
   }
 }
 

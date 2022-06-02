@@ -87,6 +87,7 @@ class BleMedium : public api::BleMedium {
   absl::Mutex mutex_;
   api::BluetoothAdapter* adapter_;
   ByteArray advertisement_byte_ ABSL_GUARDED_BY(mutex_);
+  std::string service_id_;
 
   DiscoveredPeripheralCallback advertisement_received_callback_;
 
