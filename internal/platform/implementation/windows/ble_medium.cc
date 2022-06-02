@@ -19,6 +19,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/strings/escaping.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/windows/utils.h"
@@ -124,10 +125,11 @@ bool BleMedium::StartAdvertising(
   absl::MutexLock lock(&mutex_);
 
   NEARBY_LOGS(INFO) << "Windows Ble StartAdvertising: service_id=" << service_id
-                    << ", advertisement bytes=" << advertisement_bytes.data()
-                    << "(" << advertisement_bytes.size() << "),"
-                    << " fast advertisement service uuid="
-                    << fast_advertisement_service_uuid;
+                    << ", advertisement bytes= 0x"
+                    << absl::BytesToHexString(advertisement_bytes.data()) << "("
+                    << advertisement_bytes.size() << "),"
+                    << " fast advertisement service uuid= 0x"
+                    << absl::BytesToHexString(fast_advertisement_service_uuid);
 
   DataWriter data_writer;
 
@@ -450,6 +452,11 @@ void BleMedium::AdvertisementReceivedHandler(
       }
 
       ByteArray advertisement_data(data);
+
+      NEARBY_LOGS(INFO) << "Nearby BLE Medium 0xFEF3 Advertisement discovered. "
+                           "0x16 Service data: advertisement bytes= 0x"
+                        << absl::BytesToHexString(advertisement_data.data())
+                        << "(" << advertisement_data.size() << ")";
 
       std::string peripheral_name =
           uint64_to_mac_address_string(args.BluetoothAddress());
