@@ -429,7 +429,7 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
   RegCloseKey(hKey);
 
   // tells the control function to reset or reload or similar...
-  int32 reload = 4;
+  int32_t reload = 4;
   // merely a placeholder
   DWORD bytes = 0;
 

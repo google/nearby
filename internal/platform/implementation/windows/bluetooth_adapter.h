@@ -17,6 +17,7 @@
 
 #include <guiddef.h>
 
+#include <functional>
 #include <string>
 
 #include "internal/platform/implementation/bluetooth_adapter.h"
