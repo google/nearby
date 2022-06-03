@@ -19,6 +19,7 @@
 
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
@@ -52,8 +53,7 @@ using winrt::Windows::Devices::Bluetooth::BluetoothCacheMode;
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
 class BluetoothDevice : public api::BluetoothDevice {
  public:
-  BluetoothDevice(std::string mac_address)
-      : windows_bluetooth_device_(nullptr), mac_address_(mac_address) {}
+  BluetoothDevice(absl::string_view mac_address);
   BluetoothDevice(const winrt::Windows::Devices::Bluetooth::BluetoothDevice&
                       bluetoothDevice);
 

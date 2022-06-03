@@ -36,6 +36,18 @@ TEST(UtilsTests, MacAddressToString) {
   EXPECT_EQ(result, expected);
 }
 
+TEST(UtilsTests, StringToMacAddress) {
+  // Arrange
+  std::string input = "34:36:3B:C7:8C:71";
+  const uint64_t  expected = 0x000034363bc78c71;
+
+  // Act
+  uint64_t result = mac_address_string_to_uint64(input);
+
+  // Assert
+  EXPECT_EQ(result, expected);
+}
+
 constexpr absl::string_view kIpDotdecimal{"192.168.1.37"};
 constexpr char kIp4Bytes[] = {192, 168, 1, 37};
 

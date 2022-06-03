@@ -16,11 +16,13 @@
 
 // Windows headers
 #include <inaddr.h>
+#include <stdlib.h>
 #include <strsafe.h>
 #include <winsock.h>
 
 // Standard C/C++ headers
 #include <codecvt>
+#include <cstdint>
 #include <exception>
 #include <string>
 
@@ -29,6 +31,9 @@
 #include "absl/strings/str_format.h"
 
 // Nearby connections headers
+#include "absl/strings/string_view.h"
+#include "internal/platform/bluetooth_utils.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/crypto.h"
 
 namespace location {
@@ -43,6 +48,17 @@ std::string uint64_to_mac_address_string(uint64_t bluetoothAddress) {
       bluetoothAddress & 0xff);
 
   return absl::AsciiStrToUpper(buffer);
+}
+
+uint64_t mac_address_string_to_uint64(absl::string_view mac_address) {
+  ByteArray mac_address_array = BluetoothUtils::FromString(mac_address);
+  uint64_t mac_address_uint64 = 0;
+  for (int i = 0; i < mac_address_array.size(); i++) {
+    mac_address_uint64 <<= 8;
+    mac_address_uint64 |= static_cast<uint8_t>(
+        static_cast<unsigned char>(*(mac_address_array.data() + i)));
+  }
+  return mac_address_uint64;
 }
 
 std::string ipaddr_4bytes_to_dotdecimal_string(

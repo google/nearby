@@ -20,8 +20,8 @@
 #include <locale>
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
-
 #include "internal/platform/implementation/windows/utils.h"
 
 namespace location {
@@ -29,6 +29,18 @@ namespace nearby {
 namespace windows {
 
 BluetoothDevice::~BluetoothDevice() {}
+
+BluetoothDevice::BluetoothDevice(absl::string_view mac_address)
+    : windows_bluetooth_device_(nullptr) {
+  mac_address_ = std::string(mac_address);
+  windows_bluetooth_device_ =
+      winrt::Windows::Devices::Bluetooth::BluetoothDevice::
+          FromBluetoothAddressAsync(mac_address_string_to_uint64(mac_address))
+              .get();
+  if (windows_bluetooth_device_ != nullptr) {
+      id_ = winrt::to_string(windows_bluetooth_device_.DeviceId());
+  }
+}
 
 BluetoothDevice::BluetoothDevice(
     const winrt::Windows::Devices::Bluetooth::BluetoothDevice& bluetoothDevice)

@@ -19,6 +19,7 @@
 
 #include <codecvt>
 #include <locale>
+#include <memory>
 #include <regex>  // NOLINT
 #include <string>
 
@@ -99,7 +100,8 @@ void BluetoothClassicMedium::InitializeDeviceWatcher() {
   // create watcher
   const winrt::param::iterable<winrt::hstring> RequestedProperties =
       winrt::single_threaded_vector<winrt::hstring>(
-          {winrt::to_hstring("System.Devices.Aep.IsPresent")});
+          {winrt::to_hstring("System.Devices.Aep.IsPresent"),
+           winrt::to_hstring("System.Devices.Aep.DeviceAddress")});
 
   device_watcher_ = DeviceInformation::CreateWatcher(
       BLUETOOTH_SELECTOR,                           // aqsFilter
@@ -157,8 +159,39 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     return nullptr;
   }
 
-  BluetoothDevice* currentDevice =
-      dynamic_cast<BluetoothDevice*>(&remote_device);
+  BluetoothDevice* currentDevice = nullptr;
+
+  remote_device_to_connect_ =
+      std::make_unique<BluetoothDevice>(remote_device.GetMacAddress());
+
+  // First try, check if the remote device that we want to request connection to
+  // has already been discovered by the Bluetooth Classic Device Watcher
+  // beforehand inside the discovered_devices_by_id_ map
+  std::map<winrt::hstring, std::unique_ptr<BluetoothDevice>>::const_iterator
+      it = discovered_devices_by_id_.find(
+          winrt::to_hstring(remote_device_to_connect_->GetId()));
+
+  if (it != discovered_devices_by_id_.end()) {
+    currentDevice = it->second.get();
+  } else {
+    // The remote device was not discovered by the Bluetooth Classic Device
+    // Watcher beforehand.
+    // Second try, request Windows to scan for nearby
+    // bluetooth devices that has this static mac address again in this instance
+    auto remote_bluetooth_device_from_mac_address =
+        winrt::Windows::Devices::Bluetooth::BluetoothDevice::
+            FromBluetoothAddressAsync(
+                mac_address_string_to_uint64(remote_device.GetMacAddress()))
+                .get();
+    if (remote_bluetooth_device_from_mac_address == nullptr) {
+      NEARBY_LOGS(ERROR) << __func__
+                         << ": Windows failed to get remote bluetooth device "
+                            "from static mac address.";
+      return nullptr;
+    }
+    BluetoothDevice device{remote_bluetooth_device_from_mac_address};
+    currentDevice = &device;
+  }
 
   if (currentDevice == nullptr) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to get current device.";
@@ -216,8 +249,8 @@ bool BluetoothClassicMedium::HaveAccess(winrt::hstring deviceId) {
   if (accessStatus == DeviceAccessStatus::DeniedByUser ||
       // This status is most likely caused by app permissions (did not declare
       // the device in the app's package.appxmanifest)
-      // This status does not cover the case where the device is already opened
-      // by another app.
+      // This status does not cover the case where the device is already
+      // opened by another app.
       accessStatus == DeviceAccessStatus::DeniedBySystem ||
       // Most likely the device is opened by another app, but cannot be sure
       accessStatus == DeviceAccessStatus::Unspecified) {

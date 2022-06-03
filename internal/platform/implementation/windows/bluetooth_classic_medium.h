@@ -183,6 +183,7 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   BluetoothAdapter& bluetooth_adapter_;
 
   BluetoothAdapter::ScanMode scan_mode_;
+  std::unique_ptr<BluetoothDevice> remote_device_to_connect_;
 };
 
 }  // namespace windows

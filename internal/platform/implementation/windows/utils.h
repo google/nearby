@@ -18,6 +18,7 @@
 #include <Windows.h>
 #include <stdio.h>
 
+#include <cstdint>
 #include <string>
 
 #include "absl/strings/string_view.h"
@@ -32,6 +33,7 @@ namespace windows {
 using winrt::Windows::Foundation::IInspectable;
 
 std::string uint64_to_mac_address_string(uint64_t bluetoothAddress);
+uint64_t mac_address_string_to_uint64(absl::string_view mac_address);
 
 std::string ipaddr_4bytes_to_dotdecimal_string(absl::string_view ipaddr_4bytes);
 std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s);
