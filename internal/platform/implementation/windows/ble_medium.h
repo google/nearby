@@ -25,6 +25,7 @@
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/ble.h"
+#include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
 
 namespace location {
@@ -85,7 +86,7 @@ class BleMedium : public api::BleMedium {
   enum class WatcherState { kStarted = 0, kStopped, kError };
 
   absl::Mutex mutex_;
-  api::BluetoothAdapter* adapter_;
+  BluetoothAdapter* adapter_;
   ByteArray advertisement_byte_ ABSL_GUARDED_BY(mutex_);
   std::string service_id_;
 

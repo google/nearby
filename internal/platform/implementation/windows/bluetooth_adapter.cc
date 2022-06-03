@@ -47,7 +47,7 @@ namespace location {
 namespace nearby {
 namespace windows {
 
-BluetoothAdapter::BluetoothAdapter() {
+BluetoothAdapter::BluetoothAdapter() : windows_bluetooth_adapter_(nullptr) {
   windows_bluetooth_adapter_ =
       winrt::Windows::Devices::Bluetooth::BluetoothAdapter::GetDefaultAsync()
           .get();
@@ -88,6 +88,18 @@ bool BluetoothAdapter::IsEnabled() const {
   // Gets the current state of the radio represented by this object.
   // https://docs.microsoft.com/en-us/uwp/api/windows.devices.radios.radio.state?view=winrt-20348
   return windows_bluetooth_radio_.State() == RadioState::On;
+}
+
+// Returns true if the Bluetooth hardware supports Bluetooth 5.0 Extended
+// Advertising
+bool BluetoothAdapter::IsExtendedAdvertisingSupported() const {
+  if (windows_bluetooth_adapter_ == nullptr) {
+    NEARBY_LOGS(ERROR) << __func__ << ": No Bluetooth adapter on this device.";
+    return false;
+  }
+  // Indicates whether the adapter supports the 5.0 Extended Advertising format.
+  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter.isextendedadvertisingsupported?view=winrt-22621
+  return windows_bluetooth_adapter_.IsExtendedAdvertisingSupported();
 }
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getScanMode()

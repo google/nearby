@@ -30,7 +30,8 @@ namespace windows {
 
 // Represents a Bluetooth adapter.
 // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter?view=winrt-20348
-using winrt::Windows::Devices::Bluetooth::IBluetoothAdapter;
+using WindowsBluetoothAdapter =
+    winrt::Windows::Devices::Bluetooth::BluetoothAdapter;
 
 // Represents a radio device on the system.
 // https://docs.microsoft.com/en-us/uwp/api/windows.devices.radios.radio?view=winrt-20348
@@ -81,9 +82,13 @@ class BluetoothAdapter : public api::BluetoothAdapter {
     }
   }
 
+  // Returns true if the Bluetooth hardware supports Bluetooth 5.0 Extended
+  // Advertising
+  bool IsExtendedAdvertisingSupported() const;
+
  private:
   void process_error();
-  IBluetoothAdapter windows_bluetooth_adapter_;
+  WindowsBluetoothAdapter windows_bluetooth_adapter_;
 
   IRadio windows_bluetooth_radio_;
   char *GetGenericBluetoothAdapterInstanceID(void) const;
