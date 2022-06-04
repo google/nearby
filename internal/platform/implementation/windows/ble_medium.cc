@@ -21,6 +21,7 @@
 
 #include "absl/strings/escaping.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/implementation/windows/ble_peripheral.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
@@ -434,7 +435,7 @@ void BleMedium::AdvertisementReceivedHandler(
   // Handle all BLE advertisements and determine whether the BLE Medium
   // Advertisement Scan Response packet (containing Copresence UUID 0xFEF3 in
   // 0x16 Service Data) has been received in the handler
-
+  absl::MutexLock lock(&peripheral_map_mutex_);
   BluetoothLEAdvertisement advertisement = args.Advertisement();
 
   for (BluetoothLEAdvertisementDataSection service_data :
@@ -463,24 +464,35 @@ void BleMedium::AdvertisementReceivedHandler(
 
       std::string peripheral_name =
           uint64_to_mac_address_string(args.BluetoothAddress());
+
       std::unique_ptr<BlePeripheral> peripheral =
           std::make_unique<BlePeripheral>();
       peripheral->SetName(peripheral_name);
       peripheral->SetAdvertisementBytes(advertisement_data);
+      if (peripheral_map_.contains(peripheral_name)) {
+        if (peripheral_map_[peripheral_name]->GetAdvertisementBytes(
+                service_id_) == advertisement_data) {
+          return;
+        }
+      }
+
+      BlePeripheral* peripheral_ptr = peripheral.get();
+
+      peripheral_map_.emplace(peripheral_name, std::move(peripheral));
 
       // Received Fast Advertisement packet
       if (unconsumed_buffer_length <= 27) {
         NEARBY_LOGS(INFO)
             << "Sending Fast Advertisement packet for processing.";
         advertisement_received_callback_.peripheral_discovered_cb(
-            /*ble_peripheral*/ *(peripheral.get()), /*service_id*/ service_id_,
+            /*ble_peripheral*/ *peripheral_ptr, /*service_id*/ service_id_,
             /*is_fast_advertisement*/ true);
       } else {
         // Received Extended Advertising packet
         NEARBY_LOGS(INFO)
             << "Sending Extended Advertising packet for processing.";
         advertisement_received_callback_.peripheral_discovered_cb(
-            /*ble_peripheral*/ *(peripheral.get()), /*service_id*/ service_id_,
+            /*ble_peripheral*/ *peripheral_ptr, /*service_id*/ service_id_,
             /*is_fast_advertisement*/ false);
       }
     }

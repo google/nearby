@@ -102,6 +102,10 @@ void BluetoothSocket::Connect(HostName connectionHostName,
       std::make_unique<BluetoothInputStream>(windows_socket_.InputStream());
   output_stream_ =
       std::make_unique<BluetoothOutputStream>(windows_socket_.OutputStream());
+
+  NEARBY_LOGS(INFO) << __func__
+                    << ": Bluetooth socket successfully connected to "
+                    << bluetooth_device_->GetName();
 }
 
 BluetoothSocket::BluetoothInputStream::BluetoothInputStream(

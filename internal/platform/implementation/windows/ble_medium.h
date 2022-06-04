@@ -19,8 +19,11 @@
 
 #include <functional>
 #include <future>  //  NOLINT
+#include <memory>
 #include <string>
+#include <utility>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -91,6 +94,12 @@ class BleMedium : public api::BleMedium {
   std::string service_id_;
 
   DiscoveredPeripheralCallback advertisement_received_callback_;
+
+  // Map to protect the pointer for BlePeripheral because
+  // DiscoveredPeripheralCallback only keeps the pointer to the object
+  absl::Mutex peripheral_map_mutex_;
+  absl::flat_hash_map<std::string, std::unique_ptr<BlePeripheral>>
+      peripheral_map_ ABSL_GUARDED_BY(peripheral_map_mutex_);
 
   // WinRT objects
   ::winrt::Windows::Devices::Bluetooth::Advertisement::
