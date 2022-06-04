@@ -107,6 +107,7 @@ cc_library(
         "//internal/analytics:__subpackages__",
         "//internal/platform:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
+        "//location/nearby/analytics/cpp:__subpackages__",
         "//third_party/nearby/presence:__pkg__",
     ],
     deps = [
