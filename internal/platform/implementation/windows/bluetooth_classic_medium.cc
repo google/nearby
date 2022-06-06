@@ -22,6 +22,7 @@
 #include <memory>
 #include <regex>  // NOLINT
 #include <string>
+#include <utility>
 
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
@@ -159,8 +160,6 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     return nullptr;
   }
 
-  BluetoothDevice* currentDevice = nullptr;
-
   remote_device_to_connect_ =
       std::make_unique<BluetoothDevice>(remote_device.GetMacAddress());
 
@@ -171,8 +170,11 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
       it = discovered_devices_by_id_.find(
           winrt::to_hstring(remote_device_to_connect_->GetId()));
 
+  std::unique_ptr<BluetoothDevice> device = nullptr;
+  BluetoothDevice* current_device = nullptr;
+
   if (it != discovered_devices_by_id_.end()) {
-    currentDevice = it->second.get();
+    current_device = it->second.get();
   } else {
     // The remote device was not discovered by the Bluetooth Classic Device
     // Watcher beforehand.
@@ -189,43 +191,54 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
                             "from static mac address.";
       return nullptr;
     }
-    BluetoothDevice device{remote_bluetooth_device_from_mac_address};
-    currentDevice = &device;
+    device = std::make_unique<BluetoothDevice>(
+        remote_bluetooth_device_from_mac_address);
+    current_device = device.get();
   }
 
-  if (currentDevice == nullptr) {
+  if (current_device == nullptr) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to get current device.";
     return nullptr;
   }
 
-  winrt::hstring deviceId = winrt::to_hstring(currentDevice->GetId());
+  winrt::hstring device_id = winrt::to_hstring(current_device->GetId());
 
-  if (!HaveAccess(deviceId)) {
+  if (!HaveAccess(device_id)) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to gain access to device: "
-                       << winrt::to_string(deviceId);
+                       << winrt::to_string(device_id);
     return nullptr;
   }
 
-  RfcommDeviceService requestedService(
-      GetRequestedService(currentDevice, service));
+  RfcommDeviceService requested_service(
+      GetRequestedService(current_device, service));
 
-  if (!CheckSdp(requestedService)) {
+  if (!CheckSdp(requested_service)) {
     NEARBY_LOGS(ERROR) << __func__ << ": Invalid SDP.";
     return nullptr;
   }
 
   EnterCriticalSection(&critical_section_);
 
-  std::unique_ptr<BluetoothSocket> rfcommSocket =
+  std::unique_ptr<BluetoothSocket> rfcomm_socket =
       std::make_unique<BluetoothSocket>();
 
-  location::nearby::CancellationFlagListener cancellationFlagListener(
-      cancellation_flag,
-      [&rfcommSocket]() { rfcommSocket.get()->CancelIOAsync().get(); });
+  if (cancellation_flag->Cancelled()) {
+    NEARBY_LOGS(INFO)
+        << __func__
+        << ": Bluetooth Classic socket connection cancelled for device: "
+        << winrt::to_string(device_id) << ", service: " << service_uuid;
+    LeaveCriticalSection(&critical_section_);
+    return nullptr;
+  }
+  location::nearby::CancellationFlagListener cancellation_flag_listener(
+      cancellation_flag, [&rfcomm_socket]() {
+        rfcomm_socket->CancelIOAsync().get();
+        rfcomm_socket->Close();
+      });
 
   try {
-    rfcommSocket->Connect(requestedService.ConnectionHostName(),
-                          requestedService.ConnectionServiceName());
+    rfcomm_socket->Connect(requested_service.ConnectionHostName(),
+                           requested_service.ConnectionServiceName());
   } catch (std::exception exception) {
     // We will log and eat the exception since the caller
     // expects nullptr if it fails
@@ -239,21 +252,31 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
 
   LeaveCriticalSection(&critical_section_);
 
-  return rfcommSocket;
+  return std::move(rfcomm_socket);
 }
 
-bool BluetoothClassicMedium::HaveAccess(winrt::hstring deviceId) {
-  DeviceAccessStatus accessStatus =
-      DeviceAccessInformation::CreateFromId(deviceId).CurrentStatus();
+bool BluetoothClassicMedium::HaveAccess(winrt::hstring device_id) {
+  if (device_id.empty()) {
+    return false;
+  }
 
-  if (accessStatus == DeviceAccessStatus::DeniedByUser ||
+  DeviceAccessInformation access_information =
+      DeviceAccessInformation::CreateFromId(device_id);
+
+  if (access_information == nullptr) {
+    return false;
+  }
+
+  DeviceAccessStatus access_status = access_information.CurrentStatus();
+
+  if (access_status == DeviceAccessStatus::DeniedByUser ||
       // This status is most likely caused by app permissions (did not declare
       // the device in the app's package.appxmanifest)
       // This status does not cover the case where the device is already
       // opened by another app.
-      accessStatus == DeviceAccessStatus::DeniedBySystem ||
+      access_status == DeviceAccessStatus::DeniedBySystem ||
       // Most likely the device is opened by another app, but cannot be sure
-      accessStatus == DeviceAccessStatus::Unspecified) {
+      access_status == DeviceAccessStatus::Unspecified) {
     return false;
   }
 
