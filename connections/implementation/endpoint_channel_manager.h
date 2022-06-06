@@ -96,6 +96,9 @@ class EndpointChannelManager final {
 
   int GetConnectedEndpointsCount() const ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Check if any endpoint uses WLAN Medium
+  bool isWifiLanConnected() const ABSL_LOCKS_EXCLUDED(mutex_);
+
  private:
   // Tracks channel state for all endpoints. This includes what EndpointChannel
   // the endpoint is currently using and whether or not the EndpointChannel has
@@ -149,6 +152,7 @@ class EndpointChannelManager final {
 
     bool EncryptChannel(EndpointData* endpoint);
     int GetConnectedEndpointsCount() const { return endpoints_.size(); }
+    bool isWifiLanConnected() const;
 
    private:
     // Endpoint ID -> EndpointData. Contains everything we know about the

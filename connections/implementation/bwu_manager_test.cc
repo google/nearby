@@ -224,6 +224,17 @@ TEST_P(BwuManagerTestParam,
   EXPECT_EQ(1u, fake_web_rtc_bwu_handler_->handle_initialize_calls().size());
 }
 
+TEST_P(BwuManagerTestParam,
+       InitiateBwu_Error_DontUpgradeFromWIFI_LANToWIFI_HOTSPOT) {
+  CreateInitialEndpoint(kServiceIdA, kEndpointId1, Medium::WIFI_LAN);
+
+  // Ignore request to upgrade to WebRTC if we're already connected.
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1),
+                                       Medium::WIFI_HOTSPOT);
+  EXPECT_TRUE(
+      fake_wifi_hotspot_bwu_handler_->handle_initialize_calls().empty());
+}
+
 TEST_P(BwuManagerTestParam, InitiateBwu_Error_NoMediumHandler) {
   // Try to upgrade to a medium without a handler (WIFI_HOTSPOT is not support
   // in these tests). Should just early return with no action.
@@ -493,12 +504,12 @@ TEST_F(
   CreateInitialEndpoint(kServiceIdB, kEndpointId4, Medium::BLUETOOTH);
   FullyUpgradeEndpoint(kEndpointId1, /*initial_medium=*/Medium::BLUETOOTH,
                        /*upgrade_medium=*/Medium::WEB_RTC);
+  FullyUpgradeEndpoint(kEndpointId4, /*initial_medium=*/Medium::BLUETOOTH,
+                       /*upgrade_medium=*/Medium::WIFI_HOTSPOT);
   FullyUpgradeEndpoint(kEndpointId2, /*initial_medium=*/Medium::BLUETOOTH,
                        /*upgrade_medium=*/Medium::WIFI_LAN);
   FullyUpgradeEndpoint(kEndpointId3, /*initial_medium=*/Medium::BLUETOOTH,
                        /*upgrade_medium=*/Medium::WIFI_LAN);
-  FullyUpgradeEndpoint(kEndpointId4, /*initial_medium=*/Medium::BLUETOOTH,
-                       /*upgrade_medium=*/Medium::WIFI_HOTSPOT);
 
   std::string upgrade_service_id_A = WrapInitiatorUpgradeServiceId(kServiceIdA);
   std::string upgrade_service_id_B = WrapInitiatorUpgradeServiceId(kServiceIdB);
@@ -656,6 +667,14 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnUpgradeFailure_FlagDisabled) {
   // endpoints for _any_ service. We don't have service-level bookkeeping; we
   // only know that there is some active WebRTC endpoint.
   EXPECT_TRUE(fake_web_rtc_bwu_handler_->handle_revert_calls().empty());
+}
+
+TEST_F(BwuManagerTest, OnReceiveBwuEvent) {
+  // TODO(b/235109434): Add more unit tests coverage for BWU module
+}
+
+TEST_F(BwuManagerTest, OnProcessBwuEvent) {
+  // TODO(b/235109434): Add more unit tests coverage for BWU module
 }
 
 INSTANTIATE_TEST_SUITE_P(BwuManagerTestParam, BwuManagerTestParam,

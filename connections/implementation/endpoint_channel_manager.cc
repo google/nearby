@@ -109,6 +109,11 @@ int EndpointChannelManager::GetConnectedEndpointsCount() const {
   return channel_state_.GetConnectedEndpointsCount();
 }
 
+bool EndpointChannelManager::isWifiLanConnected() const {
+  MutexLock lock(&mutex_);
+  return channel_state_.isWifiLanConnected();
+}
+
 ///////////////////////////////// ChannelState /////////////////////////////////
 
 // endpoint - channel endpoint to encrypt
@@ -162,6 +167,21 @@ bool EndpointChannelManager::ChannelState::RemoveEndpoint(
   }
   endpoints_.erase(item);
   return true;
+}
+
+bool EndpointChannelManager::ChannelState::isWifiLanConnected() const {
+  for (auto& endpoint : endpoints_) {
+    auto channel = endpoint.second.channel;
+    if (channel) {
+      if (channel->GetMedium() == Medium::WIFI_LAN) {
+        NEARBY_LOGS(INFO) << "Found WIFI_LAN Medium for endpoint:"
+                          << endpoint.first;
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 bool EndpointChannelManager::UnregisterChannelForEndpoint(
