@@ -237,8 +237,13 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
       });
 
   try {
-    rfcomm_socket->Connect(requested_service.ConnectionHostName(),
-                           requested_service.ConnectionServiceName());
+    bool success =
+        rfcomm_socket->Connect(requested_service.ConnectionHostName(),
+                               requested_service.ConnectionServiceName());
+    if (!success) {
+      LeaveCriticalSection(&critical_section_);
+      return nullptr;
+    }
   } catch (std::exception exception) {
     // We will log and eat the exception since the caller
     // expects nullptr if it fails

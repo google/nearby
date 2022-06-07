@@ -93,8 +93,9 @@ class BluetoothSocket : public api::BluetoothSocket {
   api::BluetoothDevice* GetRemoteDevice() override;
 
   // Connect asynchronously to the target remote device
-  void Connect(HostName connectionHostName,
-                            winrt::hstring connectionServiceName);
+  // Returns true if successful, false otherwise
+  bool Connect(HostName connectionHostName,
+               winrt::hstring connectionServiceName);
 
   IAsyncAction CancelIOAsync();
 
