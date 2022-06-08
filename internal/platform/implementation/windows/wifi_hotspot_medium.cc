@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 
 // Nearby connections headers
@@ -26,7 +27,7 @@ namespace windows {
 namespace {
   constexpr int kMaxRetries = 3;
   constexpr int kRetryIntervalMilliSeconds = 300;
-  constexpr int kMaxScans = 3;
+  constexpr int kMaxScans = 2;
 }  // namespace
 
 WifiHotspotMedium::WifiHotspotMedium() {
@@ -280,8 +281,8 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
   NEARBY_LOGS(INFO) << "Scanning for Nearby Hotspot SSID: "
                     << hotspot_credentials_->GetSSID();
 
-  // First time scan may not find our target hotspot, try 3 times can almost
-  // guarantee to find the Hotspot
+  // First time scan may not find our target hotspot, try 2 more times can
+  // almost guarantee to find the Hotspot
   for (int i = 0; i < kMaxScans; i++) {
     for (const auto& network :
          wifi_adapter_.NetworkReport().AvailableNetworks()) {
@@ -307,7 +308,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
 
   auto connect_result =
       wifi_adapter_
-          .ConnectAsync(nearby_softap, WiFiReconnectionKind::Automatic, creds)
+          .ConnectAsync(nearby_softap, WiFiReconnectionKind::Manual, creds)
           .get();
 
   if (connect_result.ConnectionStatus() != WiFiConnectionStatus::Success) {
@@ -316,13 +317,38 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
     return false;
   }
 
-  NEARBY_LOGS(INFO) << "Connected to: " << hotspot_credentials_->GetSSID();
+  std::string last_ssid = hotspot_credentials_->GetSSID();
+  NEARBY_LOGS(INFO) << "Connected to: " << last_ssid;
   medium_status_ |= kMediumStatusConnected;
+
+  Sleep(50);
+  auto profile =
+      wifi_adapter_.NetworkAdapter().GetConnectedProfileAsync().get();
+  if (profile.IsWlanConnectionProfile()) {
+    if (winrt::to_string(
+            profile.WlanConnectionProfileDetails().GetConnectedSsid()) ==
+        last_ssid) {
+      hotspot_profiles_.push_back(profile);
+      NEARBY_LOGS(INFO) << "Save WiFi profile with SSID: " << last_ssid;
+    }
+  }
+
   return true;
 }
 
 bool WifiHotspotMedium::DisconnectWifiHotspot() {
   absl::MutexLock lock(&mutex_);
+
+  if (!hotspot_profiles_.empty()) {
+    for (auto profile : hotspot_profiles_) {
+      NEARBY_LOGS(INFO)
+          << "Delete WiFi profile with SSID: "
+          << winrt::to_string(
+                 profile.WlanConnectionProfileDetails().GetConnectedSsid())
+          << ", result: " << static_cast<int>(profile.TryDeleteAsync().get());
+    }
+    hotspot_profiles_.clear();
+  }
 
   if (!IsConnected()) {
     NEARBY_LOGS(WARNING)

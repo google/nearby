@@ -72,6 +72,7 @@ using ::winrt::Windows::Security::Cryptography::CryptographicBuffer;
 using ::winrt::Windows::Networking::HostName;
 using ::winrt::Windows::Networking::HostNameType;
 using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
+using ::winrt::Windows::Networking::Connectivity::ConnectionProfile;
 using ::winrt::Windows::Networking::Sockets::StreamSocket;
 using ::winrt::Windows::Networking::Sockets::StreamSocketListener;
 using ::winrt::Windows::Networking::Sockets::
@@ -284,6 +285,9 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
 
   // Medium Status
   int medium_status_ = kMediumStatusIdle;
+
+  // Hotspot profiles that Discoverer has connected in the whole session;
+  std::vector<ConnectionProfile> hotspot_profiles_ ABSL_GUARDED_BY(mutex_);
 
   // Keep the server socket listener pointer
   WifiHotspotServerSocket* server_socket_ptr_ ABSL_GUARDED_BY(mutex_) = nullptr;
