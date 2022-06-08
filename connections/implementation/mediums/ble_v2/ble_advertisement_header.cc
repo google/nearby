@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "absl/strings/str_cat.h"
+#include "internal/platform/base64_utils.h"
 #include "internal/platform/base_input_stream.h"
 #include "internal/platform/logging.h"
 
@@ -54,24 +55,25 @@ BleAdvertisementHeader::BleAdvertisementHeader(
 
 BleAdvertisementHeader::BleAdvertisementHeader(
     const ByteArray &ble_advertisement_header_bytes) {
-  if (ble_advertisement_header_bytes.Empty()) {
+  ByteArray advertisement_header_bytes =
+      Base64Utils::Decode(ble_advertisement_header_bytes.AsStringView());
+  if (advertisement_header_bytes.Empty()) {
     NEARBY_LOG(
         ERROR,
         "Cannot deserialize BLEAdvertisementHeader: failed Base64 decoding");
     return;
   }
 
-  if (ble_advertisement_header_bytes.size() < kMinAdvertisementHeaderLength) {
+  if (advertisement_header_bytes.size() < kMinAdvertisementHeaderLength) {
     NEARBY_LOG(ERROR,
                "Cannot deserialize BleAdvertisementHeader: expecting min %u "
                "raw bytes, got %" PRIu64 " instead",
                kMinAdvertisementHeaderLength,
-               ble_advertisement_header_bytes.size());
+               advertisement_header_bytes.size());
     return;
   }
 
-  ByteArray advertisement_header_bytes{ble_advertisement_header_bytes};
-  BaseInputStream base_input_stream{advertisement_header_bytes};
+  BaseInputStream base_input_stream(advertisement_header_bytes);
   // The first 1 byte is supposed to be the version and number of slots.
   auto version_and_num_slots_byte =
       static_cast<char>(base_input_stream.ReadUint8());
@@ -138,7 +140,7 @@ BleAdvertisementHeader::operator ByteArray() const {
                                  std::string(psm_bytes));
   // clang-format on
 
-  return ByteArray(std::move(out));
+  return ByteArray(Base64Utils::Encode(ByteArray(std::move(out))));
 }
 
 bool BleAdvertisementHeader::operator==(
