@@ -33,7 +33,9 @@ cc_library(
         "single_thread_executor.h",
     ],
     defines = ["NO_WEBRTC"],
-    visibility = ["//visibility:private"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         "//internal/platform:base",
         "//internal/platform:util",
@@ -93,7 +95,7 @@ cc_library(
         "crypto.cc",
     ],
     defines = ["NO_WEBRTC"],
-    visibility = ["//visibility:private"],
+    visibility = ["//visibility:public"],
     deps = [
         "//internal/platform:base",
         "//internal/platform/implementation:types",
