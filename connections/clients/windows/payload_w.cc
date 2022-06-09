@@ -103,7 +103,7 @@ InputStream *PayloadW::AsStream() { return impl_->AsStream(); }
 const InputFile *PayloadW::AsFile() const { return impl_->AsFile(); }
 
 // Returns Payload unique ID.
-uint64_t PayloadW::GetId() const { return impl_->GetId(); }
+int64_t PayloadW::GetId() const { return impl_->GetId(); }
 
 // Returns Payload type.
 const connections::PayloadType PayloadW::GetType() const {

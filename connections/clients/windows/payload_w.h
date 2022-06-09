@@ -74,7 +74,7 @@ class DLL_API PayloadW {
   const InputFile* AsFile() const;
 
   // Returns Payload unique ID.
-  uint64_t GetId() const;
+  int64_t GetId() const;
 
   // Returns Payload type.
   const connections::PayloadType GetType() const;
