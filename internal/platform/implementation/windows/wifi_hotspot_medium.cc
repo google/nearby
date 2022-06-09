@@ -312,7 +312,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
           .get();
 
   if (connect_result.ConnectionStatus() != WiFiConnectionStatus::Success) {
-    NEARBY_LOGS(INFO) << "Connectiong failed with reason: "
+    NEARBY_LOGS(INFO) << "Connecting failed with reason: "
                       << static_cast<int>(connect_result.ConnectionStatus());
     return false;
   }
