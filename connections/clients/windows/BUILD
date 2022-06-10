@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# TODO(b/240046236): Refactor this into a new `cpp` package.
+
 load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
 load(
     "expand_version_template.bzl",
