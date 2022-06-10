@@ -57,7 +57,10 @@ static const TxPowerLevel kTxPowerLevel = TxPowerLevel::kHigh;
   advertising_data.service_data = {{service_uuid, advertisement_bytes}};
 
   XCTAssertTrue(_ble->StartAdvertising(advertising_data,
-                                      {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
+                                       {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
+
+  [NSThread sleepForTimeInterval:0.1];
+
   XCTAssertTrue(_ble->StopAdvertising());
 }
 
@@ -65,6 +68,8 @@ static const TxPowerLevel kTxPowerLevel = TxPowerLevel::kHigh;
   Uuid service_uuid(1234, 5678);
 
   XCTAssertTrue(_ble->StartScanning(service_uuid, kTxPowerLevel, {}));
+
+  [NSThread sleepForTimeInterval:0.1];
 
   XCTAssertTrue(_ble->StopScanning());
 }

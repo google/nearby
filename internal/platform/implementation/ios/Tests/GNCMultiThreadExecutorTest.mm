@@ -51,11 +51,11 @@ using MultiThreadExecutor = location::nearby::api::SubmittableExecutor;
   Runnable incrementer = [self]() { self.counter++; };
   for (int i = 0; i < kIncrements; i++) {
     executor->Execute(std::move(incrementer));
+    [NSThread sleepForTimeInterval:0.01];
   }
 
   // Check that the counter has the expected value after giving the runnables time to run.
-  [NSThread sleepForTimeInterval:0.01];
-  XCTAssertLessThan(abs(self.counter - kIncrements), 3);
+  XCTAssertLessThanOrEqual(abs(self.counter - kIncrements), 0);
 }
 
 // Tests that the executor submits runnables as expected.
@@ -67,11 +67,11 @@ using MultiThreadExecutor = location::nearby::api::SubmittableExecutor;
   Runnable incrementer = [self]() { self.counter++; };
   for (int i = 0; i < kIncrements; i++) {
     executor->DoSubmit(std::move(incrementer));
+    [NSThread sleepForTimeInterval:0.01];
   }
 
   // Check that the counter has the expected value after giving the runnables time to run.
-  [NSThread sleepForTimeInterval:0.01];
-  XCTAssertLessThan(abs(self.counter - kIncrements), 3);
+  XCTAssertLessThanOrEqual(abs(self.counter - kIncrements), 0);
 }
 
 // Tests that fails to submit when the executor is shut down.
