@@ -147,7 +147,8 @@ void GNCPayloadListener::OnPayload(const std::string &endpoint_id, Payload paylo
     case PayloadType::kFile:
       if (handlers.filePayloadHandler) {
         InputFile *payloadInputFile = payload.AsFile();
-        NSString *fileString = ObjCStringFromCppString(payloadInputFile->GetFilePath());
+        NSString *fileString =
+            ObjCStringFromCppString(payloadInputFile->GetFilePath());
         NSURL *fileURL = [NSURL fileURLWithPath:fileString];
         int64_t fileSize = payloadInputFile->GetTotalSize();
         NSProgress *progress = [NSProgress progressWithTotalUnitCount:fileSize];
