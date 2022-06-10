@@ -115,6 +115,8 @@ using IVector = winrt::Windows::Foundation::Collections::IVector<T>;
 
 // Copresence Service UUID 0xfef3 (little-endian)
 constexpr uint16_t kCopresenceServiceUuid = 0xf3fe;
+constexpr absl::Duration kLatchTimeout(absl::Milliseconds(100));
+
 }  // namespace
 
 BleMedium::BleMedium(api::BluetoothAdapter& adapter)
@@ -164,14 +166,18 @@ bool BleMedium::StartAdvertising(
     publisher_token_ =
         publisher_.StatusChanged({this, &BleMedium::PublisherHandler});
 
-    publisher_started_promise_ = std::promise<PublisherState>();
-
-    std::future<PublisherState> publisher_state_future =
-        publisher_started_promise_.get_future();
+    CountDownLatch publisher_started_latch(1);
+    publisher_started_latch_ = &publisher_started_latch;
 
     publisher_.Start();
 
-    return publisher_state_future.get() == PublisherState::kStarted;
+    ExceptionOr<bool> result = publisher_started_latch.Await(kLatchTimeout);
+
+    if (result.ok() && publisher_.Status() ==
+                           BluetoothLEAdvertisementPublisherStatus::Started) {
+      return true;
+    }
+    return false;
   } else {
     // Extended Advertisement not supported, must make sure advertisement_bytes
     // is less than 27 bytes
@@ -182,14 +188,18 @@ bool BleMedium::StartAdvertising(
       publisher_token_ =
           publisher_.StatusChanged({this, &BleMedium::PublisherHandler});
 
-      publisher_started_promise_ = std::promise<PublisherState>();
-
-      std::future<PublisherState> publisher_state_future =
-          publisher_started_promise_.get_future();
+      CountDownLatch publisher_started_latch(1);
+      publisher_started_latch_ = &publisher_started_latch;
 
       publisher_.Start();
 
-      return publisher_state_future.get() == PublisherState::kStarted;
+      ExceptionOr<bool> result = publisher_started_latch.Await(kLatchTimeout);
+
+      if (result.ok() && publisher_.Status() ==
+                             BluetoothLEAdvertisementPublisherStatus::Started) {
+        return true;
+      }
+      return false;
     } else {
       // otherwise no-op
       NEARBY_LOGS(INFO) << "Everyone Mode unavailable for hardware that does "
@@ -204,14 +214,18 @@ bool BleMedium::StopAdvertising(const std::string& service_id) {
 
   NEARBY_LOGS(INFO) << "Windows Ble StopAdvertising: service_id=" << service_id;
 
-  publisher_stopped_promise_ = std::promise<PublisherState>();
-
-  std::future<PublisherState> publisher_state_future =
-      publisher_stopped_promise_.get_future();
+  CountDownLatch publisher_stopped_latch(1);
+  publisher_stopped_latch_ = &publisher_stopped_latch;
 
   publisher_.Stop();
 
-  return publisher_state_future.get() == PublisherState::kStopped;
+  ExceptionOr<bool> result = publisher_stopped_latch.Await(kLatchTimeout);
+
+  if (result.ok() &&
+      publisher_.Status() == BluetoothLEAdvertisementPublisherStatus::Stopped) {
+    return true;
+  }
+  return false;
 }
 
 bool BleMedium::StartScanning(
@@ -229,10 +243,8 @@ bool BleMedium::StartScanning(
   advertisement_received_token_ =
       watcher_.Received({this, &BleMedium::AdvertisementReceivedHandler});
 
-  watcher_started_promise_ = std::promise<WatcherState>();
-
-  std::future<WatcherState> watcher_state_future =
-      watcher_started_promise_.get_future();
+  CountDownLatch watcher_started_latch(1);
+  watcher_started_latch_ = &watcher_started_latch;
 
   if (adapter_->IsExtendedAdvertisingSupported()) {
     watcher_.AllowExtendedAdvertisements(true);
@@ -242,35 +254,37 @@ bool BleMedium::StartScanning(
   watcher_.ScanningMode(BluetoothLEScanningMode::Active);
   watcher_.Start();
 
-  while (!is_watcher_started_) {
-    if (watcher_.Status() == BluetoothLEAdvertisementWatcherStatus::Created) {
-      watcher_started_promise_.set_value(WatcherState::kStarted);
-      return true;
-    }
+  ExceptionOr<bool> result = watcher_started_latch.Await(kLatchTimeout);
+
+  if (result.ok() &&
+      watcher_.Status() == BluetoothLEAdvertisementWatcherStatus::Started) {
+    return true;
   }
-  return true;
+
+  return false;
 }
 
 bool BleMedium::StopScanning(const std::string& service_id) {
   absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "Windows Ble StopScanning: service_id=" << service_id;
 
-  watcher_stopped_promise_ = std::promise<WatcherState>();
-
-  std::future<WatcherState> watcher_state_future =
-      watcher_stopped_promise_.get_future();
+  CountDownLatch watcher_stopped_latch(1);
+  watcher_stopped_latch_ = &watcher_stopped_latch;
 
   watcher_.Stop();
 
-  while (!is_watcher_stopped_) {
-    if (watcher_.Status() == BluetoothLEAdvertisementWatcherStatus::Stopped) {
-      watcher_stopped_promise_.set_value(WatcherState::kStopped);
-      watcher_.Stopped(watcher_token_);
-      watcher_.Received(advertisement_received_token_);
-      return true;
-    }
+  ExceptionOr<bool> result = watcher_stopped_latch.Await(kLatchTimeout);
+  watcher_.Stopped(watcher_token_);
+  watcher_.Received(advertisement_received_token_);
+
+  if (result.ok() &&
+      watcher_.Status() == BluetoothLEAdvertisementWatcherStatus::Stopped) {
+    absl::MutexLock lock(&peripheral_map_mutex_);
+
+    peripheral_map_.clear();
+    return true;
   }
-  return true;
+  return false;
 }
 
 bool BleMedium::StartAcceptingConnections(const std::string& service_id,
@@ -307,10 +321,10 @@ void BleMedium::PublisherHandler(
     BluetoothLEAdvertisementPublisherStatusChangedEventArgs args) {
   switch (args.Status()) {
     case BluetoothLEAdvertisementPublisherStatus::Started:
-      publisher_started_promise_.set_value(PublisherState::kStarted);
+      publisher_started_latch_->CountDown();
       break;
     case BluetoothLEAdvertisementPublisherStatus::Stopped:
-      publisher_stopped_promise_.set_value(PublisherState::kStopped);
+      publisher_stopped_latch_->CountDown();
       publisher_.StatusChanged(publisher_token_);
       break;
     case BluetoothLEAdvertisementPublisherStatus::Aborted:
@@ -349,8 +363,8 @@ void BleMedium::PublisherHandler(
               << "Nearby BLE Medium advertising failed due to unknown errors.";
           break;
       }
-      publisher_started_promise_.set_value(PublisherState::kError);
-      publisher_stopped_promise_.set_value(PublisherState::kError);
+      publisher_started_latch_->CountDown();
+      publisher_stopped_latch_->CountDown();
       break;
     default:
       break;
@@ -364,66 +378,66 @@ void BleMedium::WatcherHandler(
     case BluetoothError::RadioNotAvailable:
       NEARBY_LOGS(ERROR)
           << "Nearby BLE Medium scanning failed due to radio not available.";
-      watcher_started_promise_.set_value(WatcherState::kError);
-      watcher_stopped_promise_.set_value(WatcherState::kError);
+      watcher_started_latch_->CountDown();
+      watcher_stopped_latch_->CountDown();
       break;
     case BluetoothError::ResourceInUse:
       NEARBY_LOGS(ERROR)
           << "Nearby BLE Medium scanning failed due to resource in use.";
-      watcher_started_promise_.set_value(WatcherState::kError);
-      watcher_stopped_promise_.set_value(WatcherState::kError);
+      watcher_started_latch_->CountDown();
+      watcher_stopped_latch_->CountDown();
       break;
     case BluetoothError::DisabledByPolicy:
       NEARBY_LOGS(ERROR)
           << "Nearby BLE Medium scanning failed due to disabled by policy.";
-      watcher_started_promise_.set_value(WatcherState::kError);
-      watcher_stopped_promise_.set_value(WatcherState::kError);
+      watcher_started_latch_->CountDown();
+      watcher_stopped_latch_->CountDown();
       break;
     case BluetoothError::DisabledByUser:
       NEARBY_LOGS(ERROR)
           << "Nearby BLE Medium scanning failed due to disabled by user.";
-      watcher_started_promise_.set_value(WatcherState::kError);
-      watcher_stopped_promise_.set_value(WatcherState::kError);
+      watcher_started_latch_->CountDown();
+      watcher_stopped_latch_->CountDown();
       break;
     case BluetoothError::NotSupported:
       NEARBY_LOGS(ERROR)
           << "Nearby BLE Medium scanning failed due to hardware not supported.";
-      watcher_started_promise_.set_value(WatcherState::kError);
-      watcher_stopped_promise_.set_value(WatcherState::kError);
+      watcher_started_latch_->CountDown();
+      watcher_stopped_latch_->CountDown();
       break;
     case BluetoothError::TransportNotSupported:
       NEARBY_LOGS(ERROR) << "Nearby BLE Medium scanning failed due to "
                             "transport not supported.";
-      watcher_started_promise_.set_value(WatcherState::kError);
-      watcher_stopped_promise_.set_value(WatcherState::kError);
+      watcher_started_latch_->CountDown();
+      watcher_stopped_latch_->CountDown();
       break;
     case BluetoothError::ConsentRequired:
       NEARBY_LOGS(ERROR)
           << "Nearby BLE Medium scanning failed due to consent required.";
-      watcher_started_promise_.set_value(WatcherState::kError);
-      watcher_stopped_promise_.set_value(WatcherState::kError);
+      watcher_started_latch_->CountDown();
+      watcher_stopped_latch_->CountDown();
       break;
     case BluetoothError::OtherError:
       NEARBY_LOGS(ERROR)
           << "Nearby BLE Medium scanning failed due to unknown errors.";
-      watcher_started_promise_.set_value(WatcherState::kError);
-      watcher_stopped_promise_.set_value(WatcherState::kError);
+      watcher_started_latch_->CountDown();
+      watcher_stopped_latch_->CountDown();
       break;
     default:
       if (watcher_.Status() == BluetoothLEAdvertisementWatcherStatus::Started) {
-        watcher_started_promise_.set_value(WatcherState::kStarted);
+        watcher_started_latch_->CountDown();
         is_watcher_started_ = true;
       }
       if (watcher_.Status() == BluetoothLEAdvertisementWatcherStatus::Stopped) {
-        watcher_stopped_promise_.set_value(WatcherState::kStopped);
+        watcher_stopped_latch_->CountDown();
         watcher_.Stopped(watcher_token_);
         watcher_.Received(advertisement_received_token_);
         is_watcher_stopped_ = true;
       } else {
         NEARBY_LOGS(ERROR)
             << "Nearby BLE Medium scanning failed due to unknown errors.";
-        watcher_started_promise_.set_value(WatcherState::kError);
-        watcher_stopped_promise_.set_value(WatcherState::kError);
+        watcher_started_latch_->CountDown();
+        watcher_stopped_latch_->CountDown();
       }
       break;
   }
@@ -444,10 +458,10 @@ void BleMedium::AdvertisementReceivedHandler(
     DataReader data_reader = DataReader::FromBuffer(service_data.Data());
 
     // Discard the first 2 bytes of Service Uuid in Service Data
-    uint8_t first_byte = data_reader.ReadByte();   // 0xf3
-    uint8_t second_byte = data_reader.ReadByte();  // 0xfe
+    auto service_id = data_reader.ReadUInt16();
+    NEARBY_LOGS(INFO) << "Found service_id: " << service_id;
 
-    if (first_byte == 0xf3 && second_byte == 0xfe) {
+    if (service_id == kCopresenceServiceUuid) {
       std::string data;
 
       uint8_t unconsumed_buffer_length = data_reader.UnconsumedBufferLength();
