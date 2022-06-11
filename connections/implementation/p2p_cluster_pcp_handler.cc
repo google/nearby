@@ -447,7 +447,7 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
       [this, client, &peripheral, service_id, advertisement_bytes,
        fast_advertisement]() RUN_ON_PCP_HANDLER_THREAD() {
         // Make sure we are still discovering before proceeding.
-        if (!client->IsDiscovering()) {
+        if (!client->IsDiscovering() || stop_.Get()) {
           NEARBY_LOGS(WARNING)
               << "Skipping discovery of BleAdvertisement header "
               << absl::BytesToHexString(advertisement_bytes.data())
@@ -531,10 +531,9 @@ void P2pClusterPcpHandler::BlePeripheralLostHandler(
       "p2p-ble-device-lost",
       [this, client, service_id, &peripheral]() RUN_ON_PCP_HANDLER_THREAD() {
         // Make sure we are still discovering before proceeding.
-        if (!client->IsDiscovering()) {
-          NEARBY_LOGS(WARNING)
-              << "Ignoring lost BlePeripheral " << peripheral.GetName()
-              << " because we are no longer discovering.";
+        if (!client->IsDiscovering() || stop_.Get()) {
+          NEARBY_LOGS(WARNING) << "Ignoring lost BlePeripheral  because we are "
+                                  "no longer discovering.";
           return;
         }
 
@@ -616,7 +615,7 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
       [this, client, peripheral = std::move(peripheral), service_id,
        advertisement_bytes, fast_advertisement]() RUN_ON_PCP_HANDLER_THREAD() {
         // Make sure we are still discovering before proceeding.
-        if (!client->IsDiscovering()) {
+        if (!client->IsDiscovering() || stop_.Get()) {
           NEARBY_LOGS(WARNING)
               << "Skipping discovery of BleAdvertisement header "
               << absl::BytesToHexString(advertisement_bytes.data())
@@ -693,6 +692,7 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
       });
 }
 
+// TODO(b/222392304): More test coverage.
 void P2pClusterPcpHandler::BleV2PeripheralLostHandler(
     ClientProxy* client, BleV2Peripheral peripheral,
     const std::string& service_id, const ByteArray& advertisement_bytes,
@@ -702,7 +702,7 @@ void P2pClusterPcpHandler::BleV2PeripheralLostHandler(
       [this, client, service_id, peripheral = std::move(peripheral),
        advertisement_bytes, fast_advertisement]() RUN_ON_PCP_HANDLER_THREAD() {
         // Make sure we are still discovering before proceeding.
-        if (!client->IsDiscovering()) {
+        if (!client->IsDiscovering() || stop_.Get()) {
           NEARBY_LOGS(WARNING)
               << "Ignoring lost BlePeripheral "
               << absl::BytesToHexString(peripheral.GetId().data())

@@ -15,36 +15,31 @@
 #include <utility>
 
 #include "gtest/gtest.h"
-#include "absl/time/clock.h"
-#include "internal/platform/medium_environment.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
+#include "internal/platform/medium_environment.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
 
 namespace {
-constexpr absl::Duration kWaitDuration = absl::Milliseconds(300);
+constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 }  // namespace
 
-class WifiHotspotTest : public testing::Test  {
+class WifiHotspotTest : public testing::Test {
  protected:
   WifiHotspotTest() {
     env_.Stop();
     env_.Start();
   }
-  ~WifiHotspotTest() override {
-    env_.Stop();
-  }
+  ~WifiHotspotTest() override { env_.Stop(); }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
 TEST_F(WifiHotspotTest, CanCreateBwuHandler) {
-  BwuHandler::BwuNotifications notifications{
-      .incoming_connection_cb = {}
-  };
+  BwuHandler::BwuNotifications notifications{.incoming_connection_cb = {}};
   ClientProxy client;
   Mediums mediums;
 
@@ -52,7 +47,7 @@ TEST_F(WifiHotspotTest, CanCreateBwuHandler) {
       std::make_unique<WifiHotspotBwuHandler>(mediums, notifications);
 
   handler->InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"B",
-                                              /*endpoint_id=*/"2");
+                                               /*endpoint_id=*/"2");
   handler->RevertInitiatorState();
   SUCCEED();
   handler.reset();
@@ -65,17 +60,16 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
 
   BwuHandler::BwuNotifications notifications_1{
       .incoming_connection_cb =
-          [&accept_latch, &end_latch](ClientProxy* client,
-             std::unique_ptr<BwuHandler::IncomingSocketConnection>
-                 mutable_connection) {
+          [&accept_latch, &end_latch](
+              ClientProxy* client,
+              std::unique_ptr<BwuHandler::IncomingSocketConnection>
+                  mutable_connection) {
             NEARBY_LOGS(WARNING) << "Server socket connection accept call back";
             accept_latch.CountDown();
             EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
           },
   };
-  BwuHandler::BwuNotifications notifications_2{
-      .incoming_connection_cb = {}
-  };
+  BwuHandler::BwuNotifications notifications_2{.incoming_connection_cb = {}};
   ClientProxy client_1, client_2;
   Mediums mediums_1, mediums_2;
   ExceptionOr<OfflineFrame> upgrade_frame;
@@ -85,19 +79,17 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
 
   // client_1 works as Hotspot SoftAP
   SingleThreadExecutor server_executor;
-  server_executor.Execute([&handler_1, &client_1, &upgrade_frame,
-                           &start_latch]() {
-    ByteArray upgrade_path_available_frame =
-        handler_1->InitializeUpgradedMediumForEndpoint(
-            &client_1,
-            /*service_id=*/"A",
-            /*endpoint_id=*/"1");
-    EXPECT_FALSE(upgrade_path_available_frame.Empty());
+  server_executor.Execute(
+      [&handler_1, &client_1, &upgrade_frame, &start_latch]() {
+        ByteArray upgrade_path_available_frame =
+            handler_1->InitializeUpgradedMediumForEndpoint(&client_1,
+                                                           /*service_id=*/"A",
+                                                           /*endpoint_id=*/"1");
+        EXPECT_FALSE(upgrade_path_available_frame.Empty());
 
-    upgrade_frame = parser::FromBytes(upgrade_path_available_frame);
-    start_latch.CountDown();
-  });
-
+        upgrade_frame = parser::FromBytes(upgrade_path_available_frame);
+        start_latch.CountDown();
+      });
 
   // client_2 works as Hotspot STA which will connect to client_1
   SingleThreadExecutor client_executor;

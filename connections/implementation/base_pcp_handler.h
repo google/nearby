@@ -310,6 +310,7 @@ class BasePcpHandler : public PcpHandler,
   Mediums* mediums_;
   EndpointManager* endpoint_manager_;
   EndpointChannelManager* channel_manager_;
+  AtomicBoolean stop_{false};
 
  private:
   struct PendingConnectionInfo {
@@ -533,7 +534,6 @@ class BasePcpHandler : public PcpHandler,
   // advertising.
   ConnectionListener advertising_listener_;
 
-  AtomicBoolean stop_{false};
   Pcp pcp_;
   Strategy strategy_{PcpToStrategy(pcp_)};
   Prng prng_;
