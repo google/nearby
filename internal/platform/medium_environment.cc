@@ -14,6 +14,7 @@
 
 #include "internal/platform/medium_environment.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cinttypes>
 #include <functional>
@@ -615,31 +616,34 @@ void MediumEnvironment::InsertBleV2MediumGattCharacteristics(
   latch.Await();
 }
 
-bool MediumEnvironment::ContainsBleV2MediumGattCharacteristics(
-    const Uuid& service_uuid, const Uuid& characteristic_uuid) {
+void MediumEnvironment::ClearBleV2MediumGattCharacteristics() {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this]() { gatt_advertisement_bytes_.clear(); });
+}
+
+bool MediumEnvironment::DiscoverBleV2MediumGattCharacteristics(
+    const Uuid& service_uuid, const std::vector<Uuid>& characteristic_uuids) {
   if (!enabled_) return false;
-  bool found_characteristic = false;
   CountDownLatch latch(1);
-  RunOnMediumEnvironmentThread([this, &latch, &service_uuid,
-                                &characteristic_uuid, &found_characteristic]() {
-    for (const auto& item : gatt_advertisement_bytes_) {
-      if (item.first.service_uuid == service_uuid) {
-        if (characteristic_uuid.IsEmpty()) {
-          // Found the service uuid and no need to search characteristic
-          // uuid.
-          found_characteristic = true;
-          break;
+  RunOnMediumEnvironmentThread(
+      [this, &latch, &service_uuid, &characteristic_uuids]() {
+        for (const auto& item : gatt_advertisement_bytes_) {
+          if (item.first.service_uuid == service_uuid) {
+            Uuid char_uuid_key = item.first.uuid;
+            auto it = std::find_if(characteristic_uuids.rbegin(),
+                                   characteristic_uuids.rend(),
+                                   [char_uuid_key](const auto& char_uuid) {
+                                     return char_uuid == char_uuid_key;
+                                   });
+            if (it != characteristic_uuids.rend()) {
+              discovered_gatt_advertisement_bytes_[item.first] = item.second;
+            }
+          }
         }
-        if (item.first.uuid == characteristic_uuid) {
-          found_characteristic = true;
-          break;
-        }
-      }
-    }
-    latch.CountDown();
-  });
+        latch.CountDown();
+      });
   latch.Await();
-  return found_characteristic;
+  return true;
 }
 
 ByteArray MediumEnvironment::ReadBleV2MediumGattCharacteristics(
@@ -649,8 +653,8 @@ ByteArray MediumEnvironment::ReadBleV2MediumGattCharacteristics(
   CountDownLatch latch(1);
   RunOnMediumEnvironmentThread(
       [this, &latch, &characteristic, &gatt_advertisement_byte]() {
-        auto it = gatt_advertisement_bytes_.find(characteristic);
-        if (it != gatt_advertisement_bytes_.end()) {
+        auto it = discovered_gatt_advertisement_bytes_.find(characteristic);
+        if (it != discovered_gatt_advertisement_bytes_.end()) {
           gatt_advertisement_byte = it->second;
         }
         latch.CountDown();
@@ -659,9 +663,10 @@ ByteArray MediumEnvironment::ReadBleV2MediumGattCharacteristics(
   return gatt_advertisement_byte;
 }
 
-void MediumEnvironment::ClearBleV2MediumGattCharacteristics() {
+void MediumEnvironment::ClearBleV2MediumGattCharacteristicsForDiscovery() {
   if (!enabled_) return;
-  RunOnMediumEnvironmentThread([this]() { gatt_advertisement_bytes_.clear(); });
+  RunOnMediumEnvironmentThread(
+      [this]() { discovered_gatt_advertisement_bytes_.clear(); });
 }
 
 void MediumEnvironment::UnregisterBleV2Medium(api::ble_v2::BleMedium& medium) {

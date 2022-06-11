@@ -216,7 +216,9 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   // A concrete implemenation for GattClient.
   class GattClient : public api::ble_v2::GattClient {
    public:
-    bool DiscoverService(const Uuid& service_uuid) override;
+    bool DiscoverServiceAndCharacteristics(
+        const Uuid& service_uuid,
+        const std::vector<Uuid>& characteristic_uuids) override;
 
     std::optional<api::ble_v2::GattCharacteristic> GetCharacteristic(
         const Uuid& service_uuid, const Uuid& characteristic_uuid) override;

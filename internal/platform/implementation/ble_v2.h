@@ -137,15 +137,17 @@ class GattClient {
   // Returns whether or not discovery finished successfully.
   //
   // This function should block until discovery has finished.
-  virtual bool DiscoverService(const Uuid& service_uuid) = 0;
+  virtual bool DiscoverServiceAndCharacteristics(
+      const Uuid& service_uuid,
+      const std::vector<Uuid>& characteristic_uuids) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#getService(java.util.UUID)
   // https://developer.android.com/reference/android/bluetooth/BluetoothGattService.html#getCharacteristic(java.util.UUID)
   //
   // Retrieves a GATT characteristic. On error, does not return a value.
   //
-  // DiscoverServices() should be called before this method to fetch all
-  // available services and characteristics first.
+  // DiscoverServiceAndCharacteristics() should be called before this method to
+  // fetch all available services and characteristics first.
   //
   // It is okay for duplicate services to exist, as long as the specified
   // characteristic UUID is unique among all services of the same UUID.

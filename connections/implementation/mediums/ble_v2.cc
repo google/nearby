@@ -14,6 +14,7 @@
 
 #include "connections/implementation/mediums/ble_v2.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -607,15 +608,8 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
     return;
   }
 
-  // Always use kCopresenceServiceUuid for service uuid.
-  if (!gatt_client->DiscoverService(
-          mediums::bleutils::kCopresenceServiceUuid)) {
-    NEARBY_LOGS(WARNING) << "GATT client can't discover service.";
-    advertisement_read_result.RecordLastReadStatus(false);
-    return;
-  }
-
-  // Read all advertisements from all slots that we haven't read from yet.
+  // Collect service_uuid and its associated characteristic_uuids.
+  absl::flat_hash_map<int, Uuid> slot_characteristic_uuids = {};
   for (int slot = 0; slot < num_slots; ++slot) {
     // Make sure we haven't already read this advertisement before.
     if (advertisement_read_result.HasAdvertisement(slot)) {
@@ -632,8 +626,36 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
     if (!advertiement_uuid.has_value()) {
       continue;
     }
+    slot_characteristic_uuids.insert({slot, *advertiement_uuid});
+  }
+  if (slot_characteristic_uuids.empty()) {
+    // TODO(b/222392304): More test coverage.
+    NEARBY_LOGS(WARNING) << "Edwin GATT client doesn't have characteristics.";
+    advertisement_read_result.RecordLastReadStatus(false);
+    return;
+  }
+
+  // Discover service and characteristics.
+  std::vector<Uuid> characteristic_uuids;
+  std::transform(slot_characteristic_uuids.begin(),
+                 slot_characteristic_uuids.end(),
+                 std::back_inserter(characteristic_uuids),
+                 [](auto& kv) { return kv.second; });
+  if (!gatt_client->DiscoverServiceAndCharacteristics(
+          mediums::bleutils::kCopresenceServiceUuid, characteristic_uuids)) {
+    // TODO(b/222392304): More test coverage.
+    NEARBY_LOGS(WARNING) << "Edwin GATT client doesn't have characteristics.";
+    advertisement_read_result.RecordLastReadStatus(false);
+    return;
+  }
+
+  // Read all advertisements from all characteristics that we haven't read from
+  // yet.
+  for (const auto& it : slot_characteristic_uuids) {
+    int slot = it.first;
+    Uuid characteristic_uuid = it.second;
     auto gatt_characteristic = gatt_client->GetCharacteristic(
-        mediums::bleutils::kCopresenceServiceUuid, *advertiement_uuid);
+        mediums::bleutils::kCopresenceServiceUuid, characteristic_uuid);
     if (!gatt_characteristic.has_value()) {
       continue;
     }

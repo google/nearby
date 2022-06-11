@@ -387,10 +387,10 @@ TEST_F(BleV2MediumTest, GattClientConnectToGattServerWorks) {
 
   ASSERT_NE(gatt_client, nullptr);
 
-  // Discover service.
-  EXPECT_TRUE(gatt_client->DiscoverService(service_uuid));
+  // Discover service and characteristics.
+  EXPECT_TRUE(gatt_client->DiscoverServiceAndCharacteristics(
+      service_uuid, {characteristic_uuid}));
 
-  // Discover characteristic.
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
   absl::optional<GattCharacteristic> client_characteristic =
       gatt_client->GetCharacteristic(service_uuid, characteristic_uuid);

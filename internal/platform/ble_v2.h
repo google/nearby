@@ -192,8 +192,11 @@ class GattClient final {
       std::unique_ptr<api::ble_v2::GattClient> client_gatt_connection)
       : impl_(std::move(client_gatt_connection)) {}
 
-  bool DiscoverService(const Uuid& service_uuid) {
-    return impl_->DiscoverService(service_uuid);
+  bool DiscoverServiceAndCharacteristics(
+      const Uuid& service_uuid,
+      const std::vector<Uuid>& characteristic_uuids) {
+    return impl_->DiscoverServiceAndCharacteristics(service_uuid,
+                                                    characteristic_uuids);
   }
 
   // NOLINTNEXTLINE(google3-legacy-absl-backports)

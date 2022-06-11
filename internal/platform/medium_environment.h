@@ -31,12 +31,12 @@
 #endif
 #include "internal/platform/byte_array.h"
 #include "internal/platform/feature_flags.h"
-#include "internal/platform/implementation/wifi_lan.h"
-#include "internal/platform/wifi_hotspot_credential.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
+#include "internal/platform/implementation/wifi_lan.h"
+#include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/platform/mutex.h"
+#include "internal/platform/wifi_hotspot_credential.h"
 
 namespace location {
 namespace nearby {
@@ -241,19 +241,22 @@ class MediumEnvironment {
       const api::ble_v2::GattCharacteristic& characteristic,
       const ByteArray& gatt_advertisement_byte);
 
-  // Check if `service_uuid` and `characteristic_uuid` exists in the map.
-  //
-  // `characteristic_uuid` can be empty and to check `service_uuid` only.
-  bool ContainsBleV2MediumGattCharacteristics(const Uuid& service_uuid,
-                                              const Uuid& characteristic_uuid);
+  // Clears the map `gatt_advertisement_bytes_`.
+  void ClearBleV2MediumGattCharacteristics();
+
+  // Discover `service_uuid` and `characteristic_uuids`. This is to save the
+  // matched `gatt_advertisement_bytes_` to the
+  // `discovered_gatt_advertisement_bytes_`.
+  bool DiscoverBleV2MediumGattCharacteristics(
+      const Uuid& service_uuid, const std::vector<Uuid>& characteristic_uuids);
 
   // Reads the BLE GATT characteristic value. If the GATT characteristic is not
   // existed, return empty byte array.
   ByteArray ReadBleV2MediumGattCharacteristics(
       const api::ble_v2::GattCharacteristic& characteristic);
 
-  // Clears the map `gatt_advertisement_bytes_`.
-  void ClearBleV2MediumGattCharacteristics();
+  // Clears the map `discovered_gatt_advertisement_bytes_`.
+  void ClearBleV2MediumGattCharacteristicsForDiscovery();
 
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterBleV2Medium(api::ble_v2::BleMedium& mediumum);
@@ -403,6 +406,9 @@ class MediumEnvironment {
   absl::flat_hash_map<api::ble_v2::GattCharacteristic,
                       location::nearby::ByteArray>
       gatt_advertisement_bytes_;
+  absl::flat_hash_map<api::ble_v2::GattCharacteristic,
+                      location::nearby::ByteArray>
+      discovered_gatt_advertisement_bytes_;
 
 #ifndef NO_WEBRTC
   // Maps peer id to callback for receiving signaling messages.

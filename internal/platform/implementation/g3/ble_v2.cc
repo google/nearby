@@ -306,17 +306,18 @@ void BleV2Medium::GattServer::Stop() {
   MediumEnvironment::Instance().ClearBleV2MediumGattCharacteristics();
 }
 
-bool BleV2Medium::GattClient::DiscoverService(const Uuid& service_uuid) {
+bool BleV2Medium::GattClient::DiscoverServiceAndCharacteristics(
+    const Uuid& service_uuid, const std::vector<Uuid>& characteristic_uuids) {
   absl::MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << "G3 Ble GattClient DiscoverService, service_uuid="
-                    << service_uuid.Get16BitAsString();
+  NEARBY_LOGS(INFO)
+      << "G3 Ble GattClient DiscoverServiceAndCharacteristics, service_uuid="
+      << service_uuid.Get16BitAsString();
   if (!is_connection_alive_) {
     return false;
   }
 
-  // Search if the service exists.
-  return MediumEnvironment::Instance().ContainsBleV2MediumGattCharacteristics(
-      service_uuid, /*characteristic_uuid=*/{});
+  return MediumEnvironment::Instance().DiscoverBleV2MediumGattCharacteristics(
+      service_uuid, characteristic_uuids);
 }
 
 std::optional<api::ble_v2::GattCharacteristic>
@@ -331,13 +332,20 @@ BleV2Medium::GattClient::GetCharacteristic(const Uuid& service_uuid,
     return std::nullopt;
   }
 
-  // Search gatt_characteristic by uuid and if found return the
-  // gatt_characteristic.
-  api::ble_v2::GattCharacteristic characteristic;
-  if (MediumEnvironment::Instance().ContainsBleV2MediumGattCharacteristics(
-          service_uuid, characteristic_uuid)) {
-    characteristic = {.uuid = characteristic_uuid,
-                      .service_uuid = service_uuid};
+  // clang-format off
+  api::ble_v2::GattCharacteristic characteristic = {
+      .uuid = characteristic_uuid,
+      .service_uuid = service_uuid};
+  // clang-format on
+  ByteArray value =
+      MediumEnvironment::Instance().ReadBleV2MediumGattCharacteristics(
+          characteristic);
+  if (value.Empty()) {
+    NEARBY_LOGS(WARNING)
+        << "G3 Ble GattClient GetCharacteristic, can't find characteristic=("
+        << characteristic.service_uuid.Get16BitAsString() << ","
+        << std::string(characteristic.uuid) << ")";
+    return std::nullopt;
   }
   NEARBY_LOGS(INFO)
       << "G3 Ble GattClient GetCharacteristic, found characteristic=("
@@ -375,6 +383,8 @@ void BleV2Medium::GattClient::Disconnect() {
   absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "G3 Ble GattClient Disconnect";
   is_connection_alive_ = false;
+  MediumEnvironment::Instance()
+      .ClearBleV2MediumGattCharacteristicsForDiscovery();
 }
 
 std::unique_ptr<api::ble_v2::BleServerSocket> BleV2Medium::OpenServerSocket(
