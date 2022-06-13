@@ -42,15 +42,7 @@ ExceptionOr<OfflineFrame> FromBytes(const ByteArray& offline_frame_bytes);
 V1Frame::FrameType GetFrameType(const OfflineFrame& offline_frame);
 
 // Builds Connection Request / Response messages.
-ByteArray ForConnectionRequest(const std::string& endpoint_id,
-                               const ByteArray& endpoint_info,
-                               std::int32_t nonce, bool supports_5_ghz,
-                               const std::string& bssid,
-                               std::int32_t ap_frequency,
-                               const std::string& ip_address,
-                               const std::vector<Medium>& mediums,
-                               std::int32_t keep_alive_interval_millis,
-                               std::int32_t keep_alive_timeout_millis);
+ByteArray ForConnectionRequest(const ConnectionInfo& conection_info);
 ByteArray ForConnectionResponse(std::int32_t status);
 
 // Builds Payload transfer messages.

@@ -20,8 +20,8 @@
 #include <cstdlib>
 #include <limits>
 #include <memory>
-#include <utility>
 #include <string>
+#include <utility>
 
 #include "securegcm/d2d_connection_context_v1.h"
 #include "securegcm/ukey2_handshake.h"
@@ -457,6 +457,37 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
       info.result.lock().get());
 }
 
+ConnectionInfo BasePcpHandler::FillConnectionInfo(
+    ClientProxy* client, const ConnectionRequestInfo& info,
+    const ConnectionOptions& connection_options) {
+  ConnectionInfo connection_info;
+  connection_info.local_endpoint_id = client->GetLocalEndpointId();
+  connection_info.local_endpoint_info = info.endpoint_info;
+  connection_info.nonce = prng_.NextInt32();
+  if (mediums_->GetWifi().IsAvailable()) {
+    connection_info.supports_5_ghz =
+        mediums_->GetWifi().GetCapability().supports_5_ghz;
+
+    api::WifiInformation& wifi_info = mediums_->GetWifi().GetInformation();
+    connection_info.bssid = wifi_info.bssid;
+    connection_info.ap_frequency = wifi_info.ap_frequency;
+    connection_info.ip_address = wifi_info.ip_address_4_bytes;
+    NEARBY_LOGS(INFO) << "Query for WIFI information: is_supports_5_ghz="
+                      << connection_info.supports_5_ghz
+                      << "; bssid=" << connection_info.bssid
+                      << "; ap_frequency=" << connection_info.ap_frequency
+                      << "Mhz; ip_address in bytes format="
+                      << connection_info.ip_address;
+  }
+  connection_info.supported_mediums =
+      GetSupportedConnectionMediumsByPriority(connection_options);
+  connection_info.keep_alive_interval_millis =
+      connection_options.keep_alive_interval_millis;
+  connection_info.keep_alive_timeout_millis =
+      connection_options.keep_alive_timeout_millis;
+  return connection_info;
+}
+
 Status BasePcpHandler::RequestConnection(
     ClientProxy* client, const std::string& endpoint_id,
     const ConnectionRequestInfo& info,
@@ -545,36 +576,13 @@ Status BasePcpHandler::RequestConnection(
             << "In requestConnection(), wrote ConnectionRequestFrame "
                "to endpoint_id="
             << endpoint_id;
-        // Generate the nonce to use for this connection.
-        std::int32_t nonce = prng_.NextInt32();
 
-        bool is_supports_5_ghz = false;
-        std::string bssid = "";
-        std::int32_t ap_frequency = -1;
-        std::string ip_address = "";
-        if (mediums_->GetWifi().IsAvailable()) {
-          is_supports_5_ghz =
-              mediums_->GetWifi().GetCapability().supports_5_ghz;
+        ConnectionInfo connection_info =
+            FillConnectionInfo(client, info, connection_options);
 
-          api::WifiInformation& wifi_info =
-              mediums_->GetWifi().GetInformation();
-          bssid = wifi_info.bssid;
-          ap_frequency = wifi_info.ap_frequency;
-          ip_address = wifi_info.ip_address_4_bytes;
-          NEARBY_LOGS(INFO) << "Query for WIFI information: is_supports_5_ghz="
-                            << is_supports_5_ghz << "; bssid=" << bssid
-                            << "; ap_frequency=" << ap_frequency
-                            << "Mhz; ip_address in bytes format=" << ip_address;
-        }
+        Exception write_exception =
+            WriteConnectionRequestFrame(connection_info, channel.get());
 
-        // The first message we have to send, after connecting, is to tell the
-        // endpoint about ourselves.
-        Exception write_exception = WriteConnectionRequestFrame(
-            channel.get(), client->GetLocalEndpointId(), info.endpoint_info,
-            nonce, is_supports_5_ghz, bssid, ap_frequency, ip_address,
-            GetSupportedConnectionMediumsByPriority(connection_options),
-            connection_options.keep_alive_interval_millis,
-            connection_options.keep_alive_timeout_millis);
         if (!write_exception.Ok()) {
           NEARBY_LOGS(INFO) << "Failed to send connection request: endpoint_id="
                             << endpoint_id;
@@ -598,7 +606,7 @@ Status BasePcpHandler::RequestConnection(
         PendingConnectionInfo pendingConnectionInfo{};
         pendingConnectionInfo.client = client;
         pendingConnectionInfo.remote_endpoint_info = endpoint->endpoint_info;
-        pendingConnectionInfo.nonce = nonce;
+        pendingConnectionInfo.nonce = connection_info.nonce;
         pendingConnectionInfo.is_incoming = false;
         pendingConnectionInfo.start_time = start_time;
         pendingConnectionInfo.listener = info.listener;
@@ -728,17 +736,8 @@ bool BasePcpHandler::CanReceiveIncomingConnection(ClientProxy* client) const {
 }
 
 Exception BasePcpHandler::WriteConnectionRequestFrame(
-    EndpointChannel* endpoint_channel, const std::string& local_endpoint_id,
-    const ByteArray& local_endpoint_info, std::int32_t nonce,
-    bool supports_5_ghz, const std::string& bssid, std::int32_t ap_frequency,
-    const std::string& ip_address,
-    const std::vector<proto::connections::Medium>& supported_mediums,
-    std::int32_t keep_alive_interval_millis,
-    std::int32_t keep_alive_timeout_millis) {
-  return endpoint_channel->Write(parser::ForConnectionRequest(
-      local_endpoint_id, local_endpoint_info, nonce, supports_5_ghz, bssid,
-      ap_frequency, ip_address, supported_mediums, keep_alive_interval_millis,
-      keep_alive_timeout_millis));
+    const ConnectionInfo& conection_info, EndpointChannel* endpoint_channel) {
+  return endpoint_channel->Write(parser::ForConnectionRequest(conection_info));
 }
 
 void BasePcpHandler::ProcessPreConnectionInitiationFailure(

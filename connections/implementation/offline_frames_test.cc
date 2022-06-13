@@ -111,12 +111,19 @@ TEST(OfflineFramesTest, CanGenerateConnectionRequest) {
         keep_alive_timeout_millis: 5000
       >
     >)pb";
-  ByteArray bytes = ForConnectionRequest(
-      std::string(kEndpointId), ByteArray{std::string(kEndpointName)}, kNonce,
-      kSupports5ghz, std::string(kBssid), kApFrequency, std::string(kIp4Bytes),
-      std::vector<Medium, std::allocator<Medium>>(kMediums.begin(),
-                                                  kMediums.end()),
-      kKeepAliveIntervalMillis, kKeepAliveTimeoutMillis);
+
+  ConnectionInfo connection_info{std::string(kEndpointId),
+                                 ByteArray{std::string(kEndpointName)},
+                                 kNonce,
+                                 kSupports5ghz,
+                                 std::string(kBssid),
+                                 kApFrequency,
+                                 std::string(kIp4Bytes),
+                                 std::vector<Medium, std::allocator<Medium>>(
+                                     kMediums.begin(), kMediums.end()),
+                                 kKeepAliveIntervalMillis,
+                                 kKeepAliveTimeoutMillis};
+  ByteArray bytes = ForConnectionRequest(connection_info);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = FromBytes(bytes).result();

@@ -42,6 +42,19 @@ struct ConnectionOptions : public OptionsBase {
   std::vector<Medium> GetMediums() const;
 };
 
+struct ConnectionInfo {
+  std::string local_endpoint_id;
+  ByteArray local_endpoint_info;
+  std::int32_t nonce;
+  bool supports_5_ghz = false;
+  std::string bssid;
+  std::int32_t ap_frequency = -1;
+  std::string ip_address;
+  std::vector<proto::connections::Medium> supported_mediums;
+  std::int32_t keep_alive_interval_millis;
+  std::int32_t keep_alive_timeout_millis;
+};
+
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location

@@ -195,10 +195,19 @@ TEST_F(EndpointManagerTest, RegisterFrameProcessorWorks) {
   auto endpoint_channel = std::make_unique<MockEndpointChannel>();
   auto connect_request = std::make_unique<MockFrameProcessor>();
   ByteArray endpoint_info{"endpoint_name"};
-  auto read_data = parser::ForConnectionRequest(
-      "endpoint_id", endpoint_info, 1234, false, "", 2412, "8xqT",
-      std::vector<Medium>{Medium::BLE}, 0,
-      0);
+  ConnectionInfo connection_info{
+      "endpoint_id",
+      endpoint_info,
+      1234 /*nonce*/,
+      false /*supports_5_ghz*/,
+      "" /*bssid*/,
+      2412 /*ap_frequency*/,
+      "8xqT" /*ip_address in 4 bytes format*/,
+      std::vector<Medium>{Medium::BLE} /*supported_mediums*/,
+      0 /*keep_alive_interval_millis*/,
+      0 /*keep_alive_timeout_millis*/};
+
+  auto read_data = parser::ForConnectionRequest(connection_info);
   EXPECT_CALL(*connect_request, OnIncomingFrame);
   EXPECT_CALL(*connect_request, OnEndpointDisconnect);
   EXPECT_CALL(*endpoint_channel, Read())

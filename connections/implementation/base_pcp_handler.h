@@ -39,12 +39,12 @@
 #include "connections/implementation/pcp_handler.h"
 #include "connections/listeners.h"
 #include "connections/status.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/prng.h"
 #include "internal/platform/atomic_boolean.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/future.h"
+#include "internal/platform/prng.h"
 #include "internal/platform/scheduled_executor.h"
 #include "internal/platform/single_thread_executor.h"
 
@@ -107,6 +107,10 @@ class BasePcpHandler : public PcpHandler,
 
   void InjectEndpoint(ClientProxy* client, const std::string& service_id,
                       const OutOfBandConnectionMetadata& metadata) override;
+
+  ConnectionInfo FillConnectionInfo(
+      ClientProxy* client, const ConnectionRequestInfo& info,
+      const ConnectionOptions& connection_options);
 
   // Requests a newly discovered remote endpoint it to form a connection.
   // Updates state on ClientProxy.
@@ -386,14 +390,7 @@ class BasePcpHandler : public PcpHandler,
                                    EndpointChannel* endpoint_channel);
 
   static Exception WriteConnectionRequestFrame(
-      EndpointChannel* endpoint_channel, const std::string& local_endpoint_id,
-      const ByteArray& local_endpoint_info, std::int32_t nonce,
-      bool supports_5_ghz, const std::string& bssid, std::int32_t ap_frequency,
-      const std::string& ip_address,
-      const std::vector<proto::connections::Medium>& supported_mediums,
-      std::int32_t keep_alive_interval_millis,
-      std::int32_t keep_alive_timeout_millis);
-
+      const ConnectionInfo& conection_info, EndpointChannel* endpoint_channel);
   static constexpr absl::Duration kConnectionRequestReadTimeout =
       absl::Seconds(2);
   static constexpr absl::Duration kRejectedConnectionCloseDelay =
