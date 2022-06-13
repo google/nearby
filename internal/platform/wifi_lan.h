@@ -198,7 +198,7 @@ class WifiLanMedium {
     // this Medium
     if (impl_ == nullptr) return false;
     // A network connection to a primary router exist, also implied that HW is
-    // exist and enabled
+    // existed and enabled.
     return impl_->IsNetworkConnected();
   }
 

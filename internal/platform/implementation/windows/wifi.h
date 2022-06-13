@@ -115,7 +115,7 @@ class WifiMedium : public api::WifiMedium {
 
  private:
   // Since the WiFi interface capability won't change in the connection session,
-  // we only need to querry it once at the beginning
+  // we only need to query it once at the beginning
   void InitCapability();
 
   bool wifi_interface_valid_;

@@ -96,7 +96,7 @@ class WifiHotspotSocket final {
   std::shared_ptr<api::WifiHotspotSocket> impl_;
 };
 
-// Server socket class for SoftAP when it listen to connection request
+// Server socket class for SoftAP when it listens to connection request.
 class WifiHotspotServerSocket final {
  public:
   WifiHotspotServerSocket() = default;

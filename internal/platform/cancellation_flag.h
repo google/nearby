@@ -51,7 +51,7 @@ class CancellationFlag {
   // The registration inserts the pointer of caller's listener callback into
   // `listeners_`, a flat hash set which support the pointer type for hashing
   // function. It conducts that 2 different pointers might point to the same
-  // callback function which is unusal and should avoid. Hence we make it as
+  // callback function which is unusual and should avoid. Hence we make it as
   // private and use `CancellationFlagListener` as a RAII to wrap the function.
   // The caller should register listener as lambda or std::function
   // via `CancellationFlagListener`.

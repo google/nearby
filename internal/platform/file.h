@@ -49,7 +49,7 @@ class InputFile final {
   // Returns Exception::kIo on error, or end of file.
   ExceptionOr<ByteArray> Read(std::int64_t size);
 
-  // Returns a string that uniqely identifies this file.
+  // Returns a string that uniquely identifies this file.
   std::string GetFilePath() const;
 
   // Returns total size of this file in bytes.

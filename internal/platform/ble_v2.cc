@@ -74,7 +74,7 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
     // Clear the `peripherals_` after succeeded in StartScanning and before the
     // advertisement_found callback has been reached. This prevents deleting the
     // existing `peripherals_` if the scanning is not started successfully. If
-    // sanning is started successfully, we need to clear `peripherals_` to
+    // scanning is started successfully, we need to clear `peripherals_` to
     // prevent the stale data in cache.
     peripherals_.clear();
     scanning_enabled_ = true;

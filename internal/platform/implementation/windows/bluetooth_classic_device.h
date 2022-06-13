@@ -36,7 +36,7 @@ namespace windows {
 // https://docs.microsoft.com/en-us/uwp/api/windows.foundation.iasyncoperation-1?view=winrt-20348
 using winrt::Windows::Foundation::IAsyncOperation;
 
-// The result of an Rfcomm device service request.
+// The result of a Rfcomm device service request.
 // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommdeviceservicesresult?view=winrt-20348
 using winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommDeviceServicesResult;
 

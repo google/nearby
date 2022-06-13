@@ -229,7 +229,7 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   std::unique_ptr<api::WifiHotspotServerSocket> ListenForService(
       int port) override;
 
-  // Advertiser start WiFi Hotspot with specific Crendentials
+  // Advertiser start WiFi Hotspot with specific Credentials.
   bool StartWifiHotspot(HotspotCredentials* hotspot_credentials_) override;
   // Advertiser stop the current WiFi Hotspot
   bool StopWifiHotspot() override;

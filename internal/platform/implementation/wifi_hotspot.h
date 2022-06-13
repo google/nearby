@@ -95,7 +95,7 @@ class WifiHotspotMedium {
       int port) = 0;
 
   // Start a softAP as Hotspot with platform dependent APIs and set the
-  // SSID/password pair back to the credentials. BWU module will retieve these
+  // SSID/password pair back to the credentials. BWU module will retrieve these
   // credentials and send to the client device through established channel and
   // then client may connect to this Hotspot with these credentials.
   virtual bool StartWifiHotspot(HotspotCredentials* hotspot_credentials) = 0;

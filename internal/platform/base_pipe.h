@@ -30,7 +30,7 @@
 namespace location {
 namespace nearby {
 
-// Common Pipe implenentation.
+// Common Pipe implementation.
 // It does not depend on platform implementation, and this allows it to
 // be used in the platform implementation itself.
 // Concrete class must be derived from it, as follows:

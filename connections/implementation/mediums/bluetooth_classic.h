@@ -145,13 +145,13 @@ class BluetoothClassic {
   // Returns true, if discoverability is enabled with TurnOnDiscoverability().
   bool IsDiscoverable() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  // Assignes a different name to BT adapter.
+  // Assigns a different name to BT adapter.
   // Returns true if successful. Stores original device name.
   bool ModifyDeviceName(const std::string& device_name)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Changes current scan mode. This is an implementation of
-  // Turn<On/Off>Discoveradility() method. Stores original scan mode.
+  // Turn<On/Off>Discoverability() method. Stores original scan mode.
   bool ModifyScanMode(ScanMode scan_mode) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Restores original device name (the one before the very first call to

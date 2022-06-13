@@ -67,7 +67,7 @@ class FeatureFlags {
  private:
   FeatureFlags() = default;
 
-  // MediumEnvironment is testing uitl class. Use friend class here to enable
+  // MediumEnvironment is testing util class. Use friend class here to enable
   // SetFlags for feature controlling need in test environment.
   friend class MediumEnvironment;
   void SetFlags(const Flags& flags) ABSL_LOCKS_EXCLUDED(mutex_) {

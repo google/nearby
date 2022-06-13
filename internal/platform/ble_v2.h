@@ -57,7 +57,7 @@ class BleV2Socket final {
   // the BleSocket object is destroyed.
   OutputStream& GetOutputStream() { return impl_->GetOutputStream(); }
 
-  // Sets the close notifier by cient side.
+  // Sets the close notifier by client side.
   void SetCloseNotifier(std::function<void()> notifier) {
     close_notifier_ = std::move(notifier);
   }

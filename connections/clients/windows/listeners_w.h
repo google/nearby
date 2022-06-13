@@ -223,7 +223,7 @@ struct DLL_API DiscoveryListenerW {
   // Called when a remote endpoint is discovered.
   //
   // endpoint_id   - The ID of the remote endpoint that was discovered.
-  // endpoint_info - The info of the remote endpoint representd by ByteArray.
+  // endpoint_info - The info of the remote endpoint represented by ByteArray.
   // service_id    - The ID of the service advertised by the remote endpoint.
   EndpointFoundCB endpoint_found_cb = DefaultConstructor;
 

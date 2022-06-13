@@ -104,7 +104,7 @@ class MediumEnvironment {
   // If enabled_notifications is false, future event notifications will not be
   // sent to registered instances. This is useful for protocol shutdown,
   // where we no longer care about notifications, and where notifications may
-  // otherwise be delivered after the notification source or target lifeteme has
+  // otherwise be delivered after the notification source or target lifetime has
   // ended, and cause undefined behavior.
   void Sync(bool enable_notifications = true);
 
@@ -116,7 +116,7 @@ class MediumEnvironment {
                                       api::BluetoothAdapter::ScanMode mode);
 
   // Adds medium-related info to allow for adapter discovery to work.
-  // This provides acccess to this medium from other mediums, when protocol
+  // This provides access to this medium from other mediums, when protocol
   // expects they should communicate.
   void RegisterBluetoothMedium(api::BluetoothClassicMedium& medium,
                                api::BluetoothAdapter& medium_adapter);
@@ -169,7 +169,7 @@ class MediumEnvironment {
   absl::Duration GetPeerConnectionLatency();
 
   // Adds medium-related info to allow for scanning/advertising to work.
-  // This provides acccess to this medium from other mediums, when protocol
+  // This provides access to this medium from other mediums, when protocol
   // expects they should communicate.
   void RegisterBleMedium(api::BleMedium& medium);
 
@@ -209,7 +209,7 @@ class MediumEnvironment {
                                          const std::string& service_id);
 
   // Adds medium-related info to allow for scanning/advertising to work.
-  // This provides acccess to this medium from other mediums, when protocol
+  // This provides access to this medium from other mediums, when protocol
   // expects they should communicate.
   // The registered `medium` must refer to a valid instance that outlives this
   // object.
@@ -262,7 +262,7 @@ class MediumEnvironment {
   void UnregisterBleV2Medium(api::ble_v2::BleMedium& mediumum);
 
   // Adds medium-related info to allow for discovery/advertising to work.
-  // This provides acccess to this medium from other mediums, when protocol
+  // This provides access to this medium from other mediums, when protocol
   // expects they should communicate.
   void RegisterWifiLanMedium(api::WifiLanMedium& medium);
 
@@ -295,7 +295,7 @@ class MediumEnvironment {
   api::WifiLanMedium* GetWifiLanMedium(const std::string& ip_address, int port);
 
   // Adds medium-related info to allow for start/connect Hotspot to work.
-  // This provides acccess to this medium from other mediums, when protocol
+  // This provides access to this medium from other mediums, when protocol
   // expects they should communicate.
   void RegisterWifiHotspotMedium(api::WifiHotspotMedium& medium);
 

@@ -223,7 +223,7 @@ bool Ble::StopScanning(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
   if (!IsScanningLocked(service_id)) {
-    NEARBY_LOGS(INFO) << "Can't turn off BLE sacanning because we never "
+    NEARBY_LOGS(INFO) << "Can't turn off BLE scanning because we never "
                          "started scanning.";
     return false;
   }

@@ -203,7 +203,7 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
   advertisement_received_token_ =
       watcher_.Received({this, &BleV2Medium::AdvertisementReceivedHandler});
 
-  // Active mode indicates that scan request packes will be sent to query for
+  // Active mode indicates that scan request packets will be sent to query for
   // Scan Response
   watcher_.ScanningMode(BluetoothLEScanningMode::Active);
   watcher_.Start();
