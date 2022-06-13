@@ -224,9 +224,8 @@ DLL_API void __stdcall DisconnectFromEndpoint(Core*, const char*,
                                               ResultCallbackW);
 
 // Disconnects from, and removes all traces of, all connected and/or
-// discovered endpoints. This call is expected to be preceded by a call to
-// StopAdvertising or StartDiscovery as needed. After calling
-// StopAllEndpoints, no further operations with remote endpoints will be
+// discovered endpoints. This call also stops advertising and discovery. After
+// calling StopAllEndpoints, no further operations with remote endpoints will be
 // possible until a new call to one of StartAdvertising() or StartDiscovery().
 //
 // result_cb - to access the status of the operation when available.
