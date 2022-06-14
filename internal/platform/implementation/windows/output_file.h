@@ -38,6 +38,8 @@ class OutputFile : public api::OutputFile {
   // throws Exception::kIo
   // TODO(b/184975123): replace with real implementation.
   Exception Close() override { return Exception{}; }
+
+  std::string GetFilePath() const override { return "Un-implemented"; }
 };
 
 }  // namespace windows

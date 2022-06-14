@@ -60,7 +60,7 @@ namespace api {
 
 std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
                                                     std::string& file_name) {
-  std::string fullPath("/tmp/");
+  std::string fullPath("/tmp");
 
   // If parent_folder starts with a \\ or /, then strip it
   while (!parent_folder.empty() &&
@@ -93,15 +93,15 @@ std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
     return path.str();
   }
   if (parent_folder.empty()) {
-    path << fullPath.c_str() << "\\" << file_name.c_str();
+    path << fullPath.c_str() << "/" << file_name.c_str();
     return path.str();
   }
   if (file_name.empty()) {
-    path << fullPath.c_str() << "\\" << parent_folder.c_str();
+    path << fullPath.c_str() << "/" << parent_folder.c_str();
     return path.str();
   }
 
-  path << fullPath.c_str() << "\\" << parent_folder.c_str() << "\\"
+  path << fullPath.c_str() << "/" << parent_folder.c_str() << "/"
        << file_name.c_str();
   return path.str();
 }

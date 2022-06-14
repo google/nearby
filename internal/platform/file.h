@@ -108,6 +108,9 @@ class OutputFile final {
   // versa.
   OutputStream& GetOutputStream();
 
+  // Returns a string that uniquely identifies this file.
+  std::string GetFilePath() const;
+
  private:
   std::unique_ptr<api::OutputFile> impl_;
 };

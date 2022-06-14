@@ -18,6 +18,7 @@
 #include <fstream>
 #include <memory>
 #include <ostream>
+#include <string>
 
 #include "file/util/temp_path.h"
 #include "gtest/gtest.h"
@@ -27,6 +28,17 @@
 namespace location {
 namespace nearby {
 namespace shared {
+
+namespace {
+constexpr char kFileName[] = "/increment_file_test.txt";
+constexpr char kOneIterationFileName[] = "/increment_file_test (1).txt";
+constexpr char kSecondIterationFileName[] = "/increment_file_test (2).txt";
+constexpr char kNoDotsFileName[] = "/incrementfiletesttxt";
+constexpr char kOneIterationNoDotsFileName[] = "/incrementfiletesttxt (1)";
+constexpr char kMultipleDotsFileName[] = "/increment.file.test.txt";
+constexpr char kOneIterationMultipleDotsFileName[] =
+    "/increment (1).file.test.txt";
+}  // namespace
 
 class FileTest : public ::testing::Test {
  protected:
@@ -133,7 +145,8 @@ TEST_F(FileTest, IOFile_Write) {
   ByteArray bytes2("bc");
   EXPECT_EQ(io_file_output->Write(bytes1), Exception{Exception::kSuccess});
   EXPECT_EQ(io_file_output->Write(bytes2), Exception{Exception::kSuccess});
-  auto io_file_input = shared::IOFile::CreateInputFile(path_, GetSize());
+  auto io_file_input =
+      shared::IOFile::CreateInputFile(io_file_output->GetFilePath(), GetSize());
   AssertEquals(io_file_input->Read(kMaxSize), "abc");
 }
 
@@ -144,6 +157,280 @@ TEST_F(FileTest, IOFile_CloseOutput) {
   EXPECT_EQ(io_file->Write(bytes), Exception{Exception::kIo});
 }
 
+TEST_F(FileTest, IOFile_FileDoesntExistCreatesFileWithPassedName) {
+  // Arrange
+  std::ifstream inputFile;
+
+  std::string incrementFileName(temp_path_->path() + kFileName);
+
+  inputFile.open(incrementFileName, std::ifstream::binary | std::ifstream::in);
+
+  EXPECT_FALSE(inputFile.rdstate() == std::ifstream::goodbit);
+
+  // Act
+  auto io_file = shared::IOFile::CreateOutputFile(incrementFileName);
+  io_file->Close();
+
+  // Assert
+  inputFile.clear();
+  inputFile.open(incrementFileName, std::ifstream::binary | std::ifstream::in);
+
+  EXPECT_TRUE(inputFile.rdstate() == std::ifstream::goodbit);
+  inputFile.close();
+
+  // Remove the file and check that it is removed
+  std::remove(incrementFileName.c_str());
+  inputFile.clear();
+  inputFile.open(incrementFileName, std::ifstream::binary | std::ifstream::in);
+
+  EXPECT_FALSE(inputFile.rdstate() == std::ifstream::goodbit);
+}
+
+TEST_F(FileTest, IOFile_FileExistsCreatesFileWithIncrementedName) {
+  // Arrange
+  std::ifstream inputFile;
+
+  std::string incrementFileName(temp_path_->path() + kFileName);
+
+  inputFile.open(incrementFileName, std::ifstream::binary | std::ifstream::in);
+  EXPECT_FALSE(inputFile.rdstate() == std::ifstream::goodbit);
+
+  inputFile.clear();
+  inputFile.open(incrementFileName, std::ifstream::binary | std::ifstream::in);
+  EXPECT_FALSE(inputFile.rdstate() == std::ifstream::goodbit);
+
+  // Act
+  auto io_file1 = shared::IOFile::CreateOutputFile(incrementFileName);
+  io_file1->Close();
+  EXPECT_EQ(io_file1->GetFilePath(), temp_path_->path() + kFileName);
+
+  auto io_file2 = shared::IOFile::CreateOutputFile(incrementFileName);
+  io_file2->Close();
+  EXPECT_EQ(io_file2->GetFilePath(),
+            temp_path_->path() + kOneIterationFileName);
+
+  // Assert
+  // File 1
+  inputFile.clear();
+  inputFile.open(io_file1->GetFilePath(),
+                 std::ifstream::binary | std::ifstream::in);
+
+  EXPECT_TRUE(inputFile.rdstate() == std::ifstream::goodbit);
+  inputFile.close();
+
+  // File 2
+  inputFile.clear();
+  inputFile.open(io_file2->GetFilePath(),
+                 std::ifstream::binary | std::ifstream::in);
+
+  EXPECT_TRUE(inputFile.rdstate() == std::ifstream::goodbit);
+  inputFile.close();
+
+  // Remove the file and check that it is removed
+  // File 1
+  std::remove(io_file1->GetFilePath().c_str());
+  inputFile.clear();
+  inputFile.open(io_file1->GetFilePath(), std::ios::binary | std::ios::in);
+
+  EXPECT_FALSE(inputFile.rdstate() == std::ifstream::goodbit);
+
+  // File 2
+  std::remove(io_file2->GetFilePath().c_str());
+  inputFile.clear();
+  inputFile.open(incrementFileName, std::ios::binary | std::ios::in);
+
+  EXPECT_FALSE(inputFile.rdstate() == std::ifstream::goodbit);
+}
+TEST_F(FileTest, IOFile_MultipleFilesExistCreateNextIncrementedFileName) {
+  std::ifstream inputFile;
+
+  std::string incrementFileName(temp_path_->path() + kFileName);
+
+  inputFile.open(incrementFileName, std::fstream::binary | std::fstream::in);
+  EXPECT_FALSE(inputFile.rdstate() == std::fstream::goodbit);
+
+  inputFile.clear();
+  inputFile.open(incrementFileName, std::fstream::binary | std::fstream::in);
+  EXPECT_FALSE(inputFile.rdstate() == std::fstream::goodbit);
+
+  inputFile.clear();
+  inputFile.open(incrementFileName, std::fstream::binary | std::fstream::in);
+  EXPECT_FALSE(inputFile.rdstate() == std::fstream::goodbit);
+
+  // Act
+  auto io_file1 = shared::IOFile::CreateOutputFile(incrementFileName);
+  io_file1->Close();
+  EXPECT_EQ(io_file1->GetFilePath(), temp_path_->path() + kFileName);
+
+  auto io_file2 = shared::IOFile::CreateOutputFile(incrementFileName);
+  io_file2->Close();
+  EXPECT_EQ(io_file2->GetFilePath(),
+            temp_path_->path() + kOneIterationFileName);
+
+  auto io_file3 = shared::IOFile::CreateOutputFile(incrementFileName);
+  io_file3->Close();
+  EXPECT_EQ(io_file3->GetFilePath(),
+            temp_path_->path() + kSecondIterationFileName);
+
+  // Assert
+  // File 1
+  inputFile.clear();
+  inputFile.open(io_file1->GetFilePath(),
+                 std::fstream::binary | std::fstream::in);
+
+  EXPECT_TRUE(inputFile.rdstate() == std::ifstream::goodbit);
+  inputFile.close();
+
+  // File 2
+  inputFile.clear();
+  inputFile.open(io_file2->GetFilePath(),
+                 std::fstream::binary | std::fstream::in);
+
+  EXPECT_TRUE(inputFile.rdstate() == std::fstream::goodbit);
+  inputFile.close();
+
+  // File 3
+  inputFile.clear();
+  inputFile.open(io_file3->GetFilePath(),
+                 std::fstream::binary | std::fstream::in);
+
+  EXPECT_TRUE(inputFile.rdstate() == std::fstream::goodbit);
+  inputFile.close();
+
+  // Remove the file and check that it is removed
+  // File 1
+  std::remove(io_file1->GetFilePath().c_str());
+  inputFile.clear();
+  inputFile.open(io_file1->GetFilePath(),
+                 std::fstream::binary | std::fstream::in);
+
+  EXPECT_FALSE(inputFile.rdstate() == std::ifstream::goodbit);
+
+  // File 2
+  std::remove(io_file2->GetFilePath().c_str());
+  inputFile.clear();
+  inputFile.open(incrementFileName, std::fstream::binary | std::fstream::in);
+
+  EXPECT_FALSE(inputFile.rdstate() == std::ifstream::goodbit);
+
+  // File 3
+  std::remove(io_file3->GetFilePath().c_str());
+  inputFile.clear();
+  inputFile.open(incrementFileName, std::fstream::binary | std::fstream::in);
+
+  EXPECT_FALSE(inputFile.rdstate() == std::ifstream::goodbit);
+}
+TEST_F(FileTest, IOFile_FileNameContainsMultipleDots) {  // Arrange
+  std::ifstream inputFile;
+
+  std::string incrementFileName(temp_path_->path() + kMultipleDotsFileName);
+
+  inputFile.open(incrementFileName, std::fstream::binary | std::fstream::in);
+  EXPECT_FALSE(inputFile.rdstate() == std::fstream::goodbit);
+
+  inputFile.clear();
+  inputFile.open(incrementFileName, std::fstream::binary | std::fstream::in);
+  EXPECT_FALSE(inputFile.rdstate() == std::fstream::goodbit);
+
+  // Act
+  auto io_file1 = shared::IOFile::CreateOutputFile(incrementFileName);
+  io_file1->Close();
+  EXPECT_EQ(io_file1->GetFilePath(),
+            temp_path_->path() + kMultipleDotsFileName);
+
+  auto io_file2 = shared::IOFile::CreateOutputFile(incrementFileName);
+  io_file2->Close();
+  EXPECT_EQ(io_file2->GetFilePath(),
+            temp_path_->path() + kOneIterationMultipleDotsFileName);
+
+  // Assert
+  // File 1
+  inputFile.clear();
+  inputFile.open(io_file1->GetFilePath(),
+                 std::fstream::binary | std::fstream::in);
+
+  EXPECT_TRUE(inputFile.rdstate() == std::fstream::goodbit);
+  inputFile.close();
+
+  // File 2
+  inputFile.clear();
+  inputFile.open(io_file2->GetFilePath(),
+                 std::fstream::binary | std::fstream::in);
+
+  EXPECT_TRUE(inputFile.rdstate() == std::fstream::goodbit);
+  inputFile.close();
+
+  // Remove the file and check that it is removed
+  // File 1
+  std::remove(io_file1->GetFilePath().c_str());
+  inputFile.clear();
+  inputFile.open(io_file1->GetFilePath(),
+                 std::fstream::binary | std::fstream::in);
+
+  EXPECT_FALSE(inputFile.rdstate() == std::ifstream::goodbit);
+
+  // File 2
+  std::remove(io_file2->GetFilePath().c_str());
+  inputFile.clear();
+  inputFile.open(incrementFileName, std::fstream::binary | std::fstream::in);
+
+  EXPECT_FALSE(inputFile.rdstate() == std::ifstream::goodbit);
+}
+TEST_F(FileTest, IOFile_FileNameContainsNoDots) {
+  std::ifstream inputFile;
+
+  std::string incrementFileName(temp_path_->path() + kNoDotsFileName);
+
+  inputFile.open(incrementFileName, std::fstream::binary | std::fstream::in);
+  EXPECT_FALSE(inputFile.rdstate() == std::fstream::goodbit);
+
+  inputFile.clear();
+  inputFile.open(incrementFileName, std::fstream::binary | std::fstream::in);
+  EXPECT_FALSE(inputFile.rdstate() == std::fstream::goodbit);
+
+  // Act
+  auto io_file1 = shared::IOFile::CreateOutputFile(incrementFileName);
+  io_file1->Close();
+  EXPECT_EQ(io_file1->GetFilePath(), temp_path_->path() + kNoDotsFileName);
+
+  auto io_file2 = shared::IOFile::CreateOutputFile(incrementFileName);
+  io_file2->Close();
+  EXPECT_EQ(io_file2->GetFilePath(),
+            temp_path_->path() + kOneIterationNoDotsFileName);
+
+  // Assert
+  // File 1
+  inputFile.clear();
+  inputFile.open(io_file1->GetFilePath(),
+                 std::fstream::binary | std::fstream::in);
+
+  EXPECT_TRUE(inputFile.rdstate() == std::fstream::goodbit);
+  inputFile.close();
+
+  // File 2
+  inputFile.clear();
+  inputFile.open(io_file2->GetFilePath(),
+                 std::fstream::binary | std::fstream::in);
+
+  EXPECT_TRUE(inputFile.rdstate() == std::fstream::goodbit);
+  inputFile.close();
+
+  // Remove the file and check that it is removed
+  // File 1
+  std::remove(io_file1->GetFilePath().c_str());
+  inputFile.clear();
+  inputFile.open(io_file1->GetFilePath(),
+                 std::fstream::binary | std::fstream::in);
+
+  EXPECT_FALSE(inputFile.rdstate() == std::ifstream::goodbit);
+
+  // File 2
+  std::remove(io_file2->GetFilePath().c_str());
+  inputFile.clear();
+  inputFile.open(incrementFileName, std::fstream::binary | std::fstream::in);
+
+  EXPECT_FALSE(inputFile.rdstate() == std::ifstream::goodbit);
+}
 }  // namespace shared
 }  // namespace nearby
 }  // namespace location

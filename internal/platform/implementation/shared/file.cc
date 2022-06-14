@@ -14,8 +14,12 @@
 
 #include "internal/platform/implementation/shared/file.h"
 
+#include <sys/stat.h>
+
+#include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <string>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
@@ -41,11 +45,48 @@ std::unique_ptr<IOFile> IOFile::CreateOutputFile(const absl::string_view path) {
   return std::unique_ptr<IOFile>(new IOFile(path));
 }
 
-IOFile::IOFile(const absl::string_view file_path)
-    : file_(std::string(file_path.data(), file_path.size()),
-            std::ios::binary | std::ios::out | std::ios::trunc),
-      path_({file_path.data(), file_path.size()}),
-      total_size_(0) {}
+std::fstream& IOFile::CreateOutputFileWithRename(absl::string_view path) {
+  std::string full_path(path);
+  std::replace(full_path.begin(), full_path.end(), '\\', '/');
+  std::string folder(full_path.substr(0, full_path.find_last_of('/')));
+  std::string file_name(full_path.substr(full_path.find_last_of('/')));
+  std::string increment_string;
+
+  int count = 0;
+
+  auto first = file_name.find_first_of('.', 0);
+
+  if (first == std::string::npos) {
+    first = file_name.size();
+  }
+
+  auto file_name1 = file_name.substr(0, first);
+  auto file_name2 = file_name.substr(first);
+
+  std::string target = absl::StrCat(folder, file_name1, file_name2);
+  file_.open(target, std::ios::binary | std::ios::in);
+
+  while (!(file_.rdstate() & std::ifstream::failbit)) {
+    file_.close();
+    increment_string = absl::StrCat(" (", ++count, ")");
+    target = absl::StrCat(folder, file_name1, increment_string, file_name2);
+    file_.clear();
+    file_.open(target, std::ios::binary | std::ios::in);
+  }
+
+  file_.close();
+
+  path_.append(target);
+
+  file_.clear();
+  file_.open(path_, std::ios::binary | std::ios::out);
+
+  return file_;
+}
+
+IOFile::IOFile(const absl::string_view file_path) : file_(), total_size_(0) {
+  CreateOutputFileWithRename(file_path);
+}
 
 ExceptionOr<ByteArray> IOFile::Read(std::int64_t size) {
   if (!file_.is_open()) {

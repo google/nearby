@@ -103,7 +103,7 @@ class BleMedium : public api::BleMedium {
 
   // WinRT objects
   ::winrt::Windows::Devices::Bluetooth::Advertisement::
-      BluetoothLEAdvertisementPublisher publisher_;
+      BluetoothLEAdvertisementPublisher publisher_ = nullptr;
   ::winrt::Windows::Devices::Bluetooth::Advertisement::
       BluetoothLEAdvertisementWatcher watcher_;
   ::winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisement
@@ -133,6 +133,11 @@ class BleMedium : public api::BleMedium {
   std::promise<WatcherState> watcher_stopped_promise_;
   bool is_watcher_started_ = false;
   bool is_watcher_stopped_ = false;
+
+  absl::Mutex advertisement_service_map_mutex_;
+  absl::flat_hash_map<std::string, std::unique_ptr<BlePeripheral>>
+      advertisement_service_map_
+          ABSL_GUARDED_BY(advertisement_service_map_mutex_);
 
   ::winrt::event_token advertisement_received_token_;
 };

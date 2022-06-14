@@ -15,6 +15,8 @@
 #ifndef PLATFORM_API_OUTPUT_FILE_H_
 #define PLATFORM_API_OUTPUT_FILE_H_
 
+#include <string>
+
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/output_stream.h"
@@ -27,6 +29,7 @@ namespace api {
 class OutputFile : public OutputStream {
  public:
   ~OutputFile() override = default;
+  virtual std::string GetFilePath() const = 0;
 };
 
 }  // namespace api

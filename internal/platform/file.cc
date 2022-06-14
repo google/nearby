@@ -85,5 +85,8 @@ Exception OutputFile::Close() { return impl_->Close(); }
 // versa.
 OutputStream& OutputFile::GetOutputStream() { return *impl_; }
 
+// Returns a string that uniqely identifies this file.
+std::string OutputFile::GetFilePath() const { return impl_->GetFilePath(); }
+
 }  // namespace nearby
 }  // namespace location
