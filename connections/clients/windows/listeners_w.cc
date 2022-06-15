@@ -213,7 +213,7 @@ PayloadListenerW::PayloadListenerW(PayloadCB payloadCB,
       //}
       case connections::PayloadType::kStream: {
         InputFile file(std::move(*payload.AsFile()));
-        payloadW = PayloadW(file);
+        payloadW = PayloadW(payload.GetId(), std::move(file));
       } break;
       case connections::PayloadType::kUnknown: {
         // Throw exception here?
