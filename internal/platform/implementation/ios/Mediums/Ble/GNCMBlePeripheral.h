@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <CoreBluetooth/CoreBluetooth.h>
+#import <Foundation/Foundation.h>
+
+@class CBCharacteristic;
+@class CBUUID;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -26,16 +29,43 @@ NS_ASSUME_NONNULL_BEGIN
  */
 @interface GNCMBlePeripheral : NSObject
 
-- (instancetype)init NS_UNAVAILABLE;
+- (instancetype)init NS_DESIGNATED_INITIALIZER;
 
 /**
- * Initializes an `GNCMBlePeripheral` object.
+ * Adds GATT CBService.
+ *
+ * @param serviceUUID A GATT service ID to advertise for.
+ */
+- (void)addCBServiceWithUUID:(CBUUID *)serviceUUID;
+
+/**
+ * Adds GATT CBCharacteristic.
+ *
+ * @param characteristic A characteristic CBUUID.
+ */
+- (void)addCharacteristic:(CBCharacteristic *)characteristic;
+
+/**
+ * Updates GATT CBCharacteristic with value.
+ *
+ * @param value The NSData to advertise.
+ * @param characteristicUUID A characteristic CBUUID.
+ */
+- (void)updateValue:(NSData *)value forCharacteristic:(CBUUID *)characteristicUUID;
+
+/**
+ * Stops GATT server service.
+ */
+- (void)stopGATTService;
+
+/**
+ * Starts advertising with service UUID and advertisement data.
  *
  * @param serviceUUID A string that uniquely identifies the advertised service to search for.
  * @param advertisementData The data to advertise.
  */
-- (instancetype)initWithServiceUUID:(NSString *)serviceUUID
-                  advertisementData:(NSData *)advertisementData NS_DESIGNATED_INITIALIZER;
+- (BOOL)startAdvertisingWithServiceUUID:(NSString *)serviceUUID
+                      advertisementData:(NSData *)advertisementData;
 
 @end
 

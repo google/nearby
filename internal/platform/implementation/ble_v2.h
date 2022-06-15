@@ -15,6 +15,7 @@
 #ifndef PLATFORM_API_BLE_V2_H_
 #define PLATFORM_API_BLE_V2_H_
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <limits>
@@ -113,14 +114,24 @@ struct GattCharacteristic {
 
   Uuid uuid;
   Uuid service_uuid;
+  std::vector<Permission> permissions;
+  std::vector<Property> properties;
 
   // Hashable
   template <typename H>
   friend H AbslHashValue(H h, const GattCharacteristic& s) {
-    return H::combine(std::move(h), s.uuid, s.service_uuid);
+    return H::combine(std::move(h), s.uuid, s.service_uuid, s.permissions,
+                      s.properties);
   }
   bool operator==(const GattCharacteristic& rhs) const {
-    return this->uuid == rhs.uuid && this->service_uuid == rhs.service_uuid;
+    bool has_equal_permissions =
+        std::is_permutation(this->permissions.begin(), this->permissions.end(),
+                            rhs.permissions.begin(), rhs.permissions.end());
+    bool has_equal_properties =
+        std::is_permutation(this->properties.begin(), this->properties.end(),
+                            rhs.properties.begin(), rhs.properties.end());
+    return this->uuid == rhs.uuid && this->service_uuid == rhs.service_uuid &&
+           has_equal_permissions && has_equal_properties;
   }
 };
 

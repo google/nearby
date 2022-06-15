@@ -66,7 +66,6 @@ objc_library(
         "GNCUtils.h",
     ],
     deps = [
-        "//third_party/objective_c/google_toolbox_for_mac:GTM_StringEncoding",
         "@aappleby_smhasher//:libmurmur3",
     ],
 )

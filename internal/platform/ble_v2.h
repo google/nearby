@@ -168,7 +168,7 @@ class GattServer final {
     return impl_->UpdateCharacteristic(characteristic, value);
   }
 
-  void Stop() { return impl_->Stop(); }
+  void Stop() { if (impl_) return impl_->Stop(); }
 
   // Returns true if a gatt_server is usable. If this method returns false,
   // it is not safe to call any other method.

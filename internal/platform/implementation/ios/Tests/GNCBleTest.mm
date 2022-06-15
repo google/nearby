@@ -28,6 +28,7 @@ using ::location::nearby::api::BluetoothAdapter;
 using ::location::nearby::api::ImplementationPlatform;
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
 using ::location::nearby::api::ble_v2::BleMedium;
+using ::location::nearby::api::ble_v2::GattCharacteristic;
 using ::location::nearby::api::ble_v2::TxPowerLevel;
 
 static const char *const kAdvertisementString = "\x0a\x0b\x0c\x0d";
@@ -72,6 +73,32 @@ static const TxPowerLevel kTxPowerLevel = TxPowerLevel::kHigh;
   [NSThread sleepForTimeInterval:0.1];
 
   XCTAssertTrue(_ble->StopScanning());
+}
+
+- (void)testGattServerWorking {
+  // Test creating gatt_server.
+  auto gatt_server = _ble->StartGattServer(/*ServerGattConnectionCallback=*/{});
+  XCTAssert(gatt_server != nullptr);
+
+  // Test creating characteristic.
+  Uuid service_uuid(1234, 5678);
+  Uuid characteristic_uuid(5678, 1234);
+  std::vector<GattCharacteristic::Permission> permissions = {
+      GattCharacteristic::Permission::kRead};
+  std::vector<GattCharacteristic::Property> properties = {
+      GattCharacteristic::Property::kRead};
+
+  // NOLINTNEXTLINE
+  absl::optional<GattCharacteristic> gatt_characteristic =
+      gatt_server->CreateCharacteristic(service_uuid, characteristic_uuid, permissions, properties);
+  XCTAssertTrue(gatt_characteristic.has_value());
+
+  // Test updating characteristic.
+  ByteArray any_byte("any");
+  XCTAssertTrue(
+      gatt_server->UpdateCharacteristic(gatt_characteristic.value(), any_byte));
+
+  gatt_server->Stop();
 }
 
 @end

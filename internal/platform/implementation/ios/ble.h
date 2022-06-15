@@ -15,10 +15,12 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_IOS_BLE_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_IOS_BLE_H_
 
+#import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
 #include <string>
 
+#include "absl/types/optional.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -56,6 +58,25 @@ class BleMedium : public api::ble_v2::BleMedium {
   bool IsExtendedAdvertisementsAvailable() override;
 
  private:
+  // A concrete implemenation for GattServer.
+  class GattServer : public api::ble_v2::GattServer {
+   public:
+    GattServer() = default;
+    explicit GattServer(GNCMBlePeripheral* peripheral) : peripheral_(peripheral) {}
+
+    absl::optional<api::ble_v2::GattCharacteristic> CreateCharacteristic(
+        const Uuid& service_uuid, const Uuid& characteristic_uuid,
+        const std::vector<api::ble_v2::GattCharacteristic::Permission>& permissions,
+        const std::vector<api::ble_v2::GattCharacteristic::Property>& properties) override;
+
+    bool UpdateCharacteristic(const api::ble_v2::GattCharacteristic& characteristic,
+                              const location::nearby::ByteArray& value) override;
+    void Stop() override;
+
+   private:
+    GNCMBlePeripheral* peripheral_;
+  };
+
   BluetoothAdapter* adapter_;
   GNCMBlePeripheral* peripheral_;
   GNCMBleCentral* central_;
