@@ -344,6 +344,8 @@ enum LogSource {
   OEM_DEVICES = 4;
   // Represents the device for debugging.
   DEBUG_DEVICES = 5;
+  // Represents the device for Nearby Module Food.
+  NEARBY_MODULE_FOOD_DEVICES = 6;
 }
 
 // The Fast Share server action name.
