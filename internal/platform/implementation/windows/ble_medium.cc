@@ -229,6 +229,8 @@ bool BleMedium::StartScanning(
   advertisement_received_token_ =
       watcher_.Received({this, &BleMedium::AdvertisementReceivedHandler});
 
+  is_watcher_started_ = false;
+
   watcher_started_promise_ = std::promise<WatcherState>();
 
   std::future<WatcherState> watcher_state_future =
@@ -254,6 +256,8 @@ bool BleMedium::StartScanning(
 bool BleMedium::StopScanning(const std::string& service_id) {
   absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "Windows Ble StopScanning: service_id=" << service_id;
+
+  is_watcher_stopped_ = false;
 
   watcher_stopped_promise_ = std::promise<WatcherState>();
 
@@ -315,42 +319,84 @@ void BleMedium::PublisherHandler(
       break;
     case BluetoothLEAdvertisementPublisherStatus::Aborted:
       switch (args.Error()) {
+        case BluetoothError::Success:
+          if (publisher_.Status() ==
+              BluetoothLEAdvertisementPublisherStatus::Started) {
+            NEARBY_LOGS(ERROR)
+                << "Nearby BLE Medium start advertising operation was "
+                   "successfully completed or serviced.";
+            publisher_started_promise_.set_value(PublisherState::kStarted);
+          }
+          if (publisher_.Status() ==
+              BluetoothLEAdvertisementPublisherStatus::Stopped) {
+            NEARBY_LOGS(ERROR)
+                << "Nearby BLE Medium stop advertising operation was "
+                   "successfully completed or serviced.";
+            publisher_stopped_promise_.set_value(PublisherState::kStopped);
+            publisher_.StatusChanged(publisher_token_);
+          } else {
+            NEARBY_LOGS(ERROR) << "Nearby BLE Medium advertising failed due to "
+                                  "unknown errors.";
+            publisher_started_promise_.set_value(PublisherState::kError);
+            publisher_stopped_promise_.set_value(PublisherState::kError);
+          }
+          break;
         case BluetoothError::RadioNotAvailable:
           NEARBY_LOGS(ERROR) << "Nearby BLE Medium advertising failed due to "
                                 "radio not available.";
+          publisher_started_promise_.set_value(PublisherState::kError);
+          publisher_stopped_promise_.set_value(PublisherState::kError);
           break;
         case BluetoothError::ResourceInUse:
           NEARBY_LOGS(ERROR)
               << "Nearby BLE Medium advertising failed due to resource in use.";
+          publisher_started_promise_.set_value(PublisherState::kError);
+          publisher_stopped_promise_.set_value(PublisherState::kError);
+          break;
+        case BluetoothError::DeviceNotConnected:
+          NEARBY_LOGS(ERROR) << "Nearby BLE Medium advertising failed due to "
+                                "remote device is not connected.";
+          publisher_started_promise_.set_value(PublisherState::kError);
+          publisher_stopped_promise_.set_value(PublisherState::kError);
           break;
         case BluetoothError::DisabledByPolicy:
           NEARBY_LOGS(ERROR) << "Nearby BLE Medium advertising failed due to "
                                 "disabled by policy.";
+          publisher_started_promise_.set_value(PublisherState::kError);
+          publisher_stopped_promise_.set_value(PublisherState::kError);
           break;
         case BluetoothError::DisabledByUser:
           NEARBY_LOGS(ERROR) << "Nearby BLE Medium advertising failed due to "
                                 "disabled by user.";
+          publisher_started_promise_.set_value(PublisherState::kError);
+          publisher_stopped_promise_.set_value(PublisherState::kError);
           break;
         case BluetoothError::NotSupported:
           NEARBY_LOGS(ERROR) << "Nearby BLE Medium advertising failed due to "
                                 "hardware not supported.";
+          publisher_started_promise_.set_value(PublisherState::kError);
+          publisher_stopped_promise_.set_value(PublisherState::kError);
           break;
         case BluetoothError::TransportNotSupported:
           NEARBY_LOGS(ERROR) << "Nearby BLE Medium advertising failed due to "
                                 "transport not supported.";
+          publisher_started_promise_.set_value(PublisherState::kError);
+          publisher_stopped_promise_.set_value(PublisherState::kError);
           break;
         case BluetoothError::ConsentRequired:
           NEARBY_LOGS(ERROR) << "Nearby BLE Medium advertising failed due to "
                                 "consent required.";
+          publisher_started_promise_.set_value(PublisherState::kError);
+          publisher_stopped_promise_.set_value(PublisherState::kError);
           break;
         case BluetoothError::OtherError:
         default:
           NEARBY_LOGS(ERROR)
               << "Nearby BLE Medium advertising failed due to unknown errors.";
+          publisher_started_promise_.set_value(PublisherState::kError);
+          publisher_stopped_promise_.set_value(PublisherState::kError);
           break;
       }
-      publisher_started_promise_.set_value(PublisherState::kError);
-      publisher_stopped_promise_.set_value(PublisherState::kError);
       break;
     default:
       break;
@@ -361,6 +407,27 @@ void BleMedium::WatcherHandler(
     BluetoothLEAdvertisementWatcher watcher,
     BluetoothLEAdvertisementWatcherStoppedEventArgs args) {
   switch (args.Error()) {
+    case BluetoothError::Success:
+      if (watcher_.Status() == BluetoothLEAdvertisementWatcherStatus::Started) {
+        NEARBY_LOGS(ERROR) << "Nearby BLE Medium start scanning operation was "
+                              "successfully completed or serviced.";
+        watcher_started_promise_.set_value(WatcherState::kStarted);
+        is_watcher_started_ = true;
+      }
+      if (watcher_.Status() == BluetoothLEAdvertisementWatcherStatus::Stopped) {
+        NEARBY_LOGS(ERROR) << "Nearby BLE Medium stop scanning operation was "
+                              "successfully completed or serviced.";
+        watcher_stopped_promise_.set_value(WatcherState::kStopped);
+        watcher_.Stopped(watcher_token_);
+        watcher_.Received(advertisement_received_token_);
+        is_watcher_stopped_ = true;
+      } else {
+        NEARBY_LOGS(ERROR)
+            << "Nearby BLE Medium scanning failed due to unknown errors.";
+        watcher_started_promise_.set_value(WatcherState::kError);
+        watcher_stopped_promise_.set_value(WatcherState::kError);
+      }
+      break;
     case BluetoothError::RadioNotAvailable:
       NEARBY_LOGS(ERROR)
           << "Nearby BLE Medium scanning failed due to radio not available.";
@@ -370,6 +437,12 @@ void BleMedium::WatcherHandler(
     case BluetoothError::ResourceInUse:
       NEARBY_LOGS(ERROR)
           << "Nearby BLE Medium scanning failed due to resource in use.";
+      watcher_started_promise_.set_value(WatcherState::kError);
+      watcher_stopped_promise_.set_value(WatcherState::kError);
+      break;
+    case BluetoothError::DeviceNotConnected:
+      NEARBY_LOGS(ERROR) << "Nearby BLE Medium scanning failed due to "
+                            "remote device is not connected.";
       watcher_started_promise_.set_value(WatcherState::kError);
       watcher_stopped_promise_.set_value(WatcherState::kError);
       break;
