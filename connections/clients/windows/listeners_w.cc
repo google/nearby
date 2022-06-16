@@ -199,12 +199,13 @@ PayloadListenerW::PayloadListenerW(PayloadCB payloadCB,
 
     switch (payload.GetType()) {
       case connections::PayloadType::kBytes: {
-        payloadW = PayloadW(payload.AsBytes().data(), payload.AsBytes().size());
+        payloadW = PayloadW(payload.GetId(), payload.AsBytes().data(),
+                            payload.AsBytes().size());
         break;
       }
       case connections::PayloadType::kFile: {
         InputFile file(std::move(*payload.AsFile()));
-        payloadW = PayloadW(file);
+        payloadW = PayloadW(payload.GetId(), std::move(file));
       } break;
 
       // TODO(jfcarroll): Figure out how to capture type kStream.
