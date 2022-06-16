@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #import <XCTest/XCTest.h>
+#include "internal/platform/implementation/ios/bluetooth_adapter.h"
 
 #include <string>
 #include <utility>
@@ -30,6 +31,7 @@ using ::location::nearby::api::ble_v2::BleAdvertisementData;
 using ::location::nearby::api::ble_v2::BleMedium;
 using ::location::nearby::api::ble_v2::GattCharacteristic;
 using ::location::nearby::api::ble_v2::TxPowerLevel;
+using IOSBluetoothAdapter = ::location::nearby::ios::BluetoothAdapter;
 
 static const char *const kAdvertisementString = "\x0a\x0b\x0c\x0d";
 static const TxPowerLevel kTxPowerLevel = TxPowerLevel::kHigh;
@@ -37,6 +39,7 @@ static const TxPowerLevel kTxPowerLevel = TxPowerLevel::kHigh;
 @interface GNCBleTest : XCTestCase
 @end
 
+// TODO(b/222392304): More tests on GNCBleTest.
 @implementation GNCBleTest {
   std::unique_ptr<BluetoothAdapter> _adapter;
   std::unique_ptr<BleMedium> _ble;
@@ -83,10 +86,8 @@ static const TxPowerLevel kTxPowerLevel = TxPowerLevel::kHigh;
   // Test creating characteristic.
   Uuid service_uuid(1234, 5678);
   Uuid characteristic_uuid(5678, 1234);
-  std::vector<GattCharacteristic::Permission> permissions = {
-      GattCharacteristic::Permission::kRead};
-  std::vector<GattCharacteristic::Property> properties = {
-      GattCharacteristic::Property::kRead};
+  std::vector<GattCharacteristic::Permission> permissions = {GattCharacteristic::Permission::kRead};
+  std::vector<GattCharacteristic::Property> properties = {GattCharacteristic::Property::kRead};
 
   // NOLINTNEXTLINE
   absl::optional<GattCharacteristic> gatt_characteristic =
@@ -95,10 +96,16 @@ static const TxPowerLevel kTxPowerLevel = TxPowerLevel::kHigh;
 
   // Test updating characteristic.
   ByteArray any_byte("any");
-  XCTAssertTrue(
-      gatt_server->UpdateCharacteristic(gatt_characteristic.value(), any_byte));
+  XCTAssertTrue(gatt_server->UpdateCharacteristic(gatt_characteristic.value(), any_byte));
 
   gatt_server->Stop();
+}
+
+- (void)testCreateGattClient {
+  IOSBluetoothAdapter *adapter = static_cast<IOSBluetoothAdapter *>(_adapter.get());
+  auto gatt_client = _ble->ConnectToGattServer(adapter->GetPeripheral(), kTxPowerLevel, {});
+
+  XCTAssert(gatt_client != nullptr);
 }
 
 @end

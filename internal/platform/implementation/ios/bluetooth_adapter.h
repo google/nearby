@@ -31,6 +31,11 @@ class BlePeripheral : public api::ble_v2::BlePeripheral {
  public:
   std::string GetAddress() const override;
 
+  std::string GetPeripheralId() const { return peripheral_id_; }
+  void SetPeripheralId(const std::string& peripheral_id) {
+    peripheral_id_ = peripheral_id;
+  }
+
  private:
   // Only BluetoothAdapter may instantiate BlePeripheral.
   friend class BluetoothAdapter;
@@ -38,6 +43,7 @@ class BlePeripheral : public api::ble_v2::BlePeripheral {
   explicit BlePeripheral(BluetoothAdapter* adapter) : adapter_(*adapter) {}
 
   BluetoothAdapter& adapter_;
+  std::string peripheral_id_;
 };
 
 // Concrete BluetoothAdapter implementation.

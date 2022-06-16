@@ -77,10 +77,38 @@ class BleMedium : public api::ble_v2::BleMedium {
     GNCMBlePeripheral* peripheral_;
   };
 
+  // A concrete implemenation for GattClient.
+  class GattClient : public api::ble_v2::GattClient {
+   public:
+    GattClient() = default;
+    explicit GattClient(GNCMBleCentral* central, const std::string& peripheral_id)
+        : central_(central), peripheral_id_(peripheral_id) {}
+
+    bool DiscoverServiceAndCharacteristics(const Uuid& service_uuid,
+                                           const std::vector<Uuid>& characteristic_uuids) override;
+
+    // NOLINTNEXTLINE
+    absl::optional<api::ble_v2::GattCharacteristic> GetCharacteristic(
+        const Uuid& service_uuid, const Uuid& characteristic_uuid) override;
+
+    // NOLINTNEXTLINE
+    absl::optional<ByteArray> ReadCharacteristic(
+        const api::ble_v2::GattCharacteristic& characteristic) override;
+
+    bool WriteCharacteristic(const api::ble_v2::GattCharacteristic& characteristic,
+                             const ByteArray& value) override;
+
+    void Disconnect() override;
+
+   private:
+    GNCMBleCentral* central_;
+    std::string peripheral_id_;
+    absl::flat_hash_map<api::ble_v2::GattCharacteristic, ByteArray> gatt_characteristic_values_;
+  };
+
   BluetoothAdapter* adapter_;
   GNCMBlePeripheral* peripheral_;
   GNCMBleCentral* central_;
-  dispatch_queue_t callback_queue_;
 };
 
 }  // namespace ios

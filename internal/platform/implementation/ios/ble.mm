@@ -104,11 +104,19 @@ bool BleMedium::StopAdvertising() {
 
 bool BleMedium::StartScanning(const Uuid& service_uuid, TxPowerLevel tx_power_level,
                               ScanCallback scan_callback) {
-  central_ = [[GNCMBleCentral alloc]
-      initWithServiceUUID:ObjCStringFromCppString(service_uuid.Get16BitAsString())
-        scanResultHandler:^(NSString* serviceUUID, NSData* serviceData){
-            // TODO(b/228751356): Add scan callback implementation.
-        }];
+  if (!central_) {
+    central_ = [[GNCMBleCentral alloc] init];
+  }
+
+  [central_ startScanningWithServiceUUID:ObjCStringFromCppString(service_uuid.Get16BitAsString())
+                       scanResultHandler:^(NSString* peripheralID, NSData* serviceData) {
+                         BleAdvertisementData advertisement_data;
+                         advertisement_data.service_data = {
+                             {service_uuid, ByteArrayFromNSData(serviceData)}};
+                         BlePeripheral& peripheral = adapter_->GetPeripheral();
+                         peripheral.SetPeripheralId(CppStringFromObjCString(peripheralID));
+                         scan_callback.advertisement_found_cb(peripheral, advertisement_data);
+                       }];
 
   return true;
 }
@@ -129,7 +137,21 @@ std::unique_ptr<api::ble_v2::GattServer> BleMedium::StartGattServer(
 std::unique_ptr<api::ble_v2::GattClient> BleMedium::ConnectToGattServer(
     api::ble_v2::BlePeripheral& peripheral, TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
-  return nullptr;
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  __block NSError* connectedError;
+  BlePeripheral iosPeripheral = static_cast<BlePeripheral&>(peripheral);
+  std::string peripheral_id = iosPeripheral.GetPeripheralId();
+  [central_ connectGattServerWithPeripheralID:ObjCStringFromCppString(peripheral_id)
+                  gattConnectionResultHandler:^(NSError* _Nullable error) {
+                    connectedError = error;
+                    dispatch_semaphore_signal(semaphore);
+                  }];
+  dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 30 * NSEC_PER_SEC));
+
+  if (connectedError) {
+    return nullptr;
+  }
+  return std::make_unique<GattClient>(central_, peripheral_id);
 }
 
 std::unique_ptr<api::ble_v2::BleServerSocket> BleMedium::OpenServerSocket(
@@ -178,8 +200,84 @@ bool BleMedium::GattServer::UpdateCharacteristic(
   return true;
 }
 
-void BleMedium::GattServer::Stop() {
-  [peripheral_ stopGATTService];
+void BleMedium::GattServer::Stop() { [peripheral_ stopGATTService]; }
+
+bool BleMedium::GattClient::DiscoverServiceAndCharacteristics(
+    const Uuid& service_uuid, const std::vector<Uuid>& characteristic_uuids) {
+  // Discover all characteristics that may contain the advertisement.
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  gatt_characteristic_values_.clear();
+  CBUUID* serviceUUID = [CBUUID UUIDWithString:ObjCStringFromCppString(std::string(service_uuid))];
+
+  absl::flat_hash_map<std::string, Uuid> gatt_characteristics;
+  NSMutableArray<CBUUID*>* characteristicUUIDs =
+      [NSMutableArray arrayWithCapacity:characteristic_uuids.size()];
+  for (const auto& characteristic_uuid : characteristic_uuids) {
+    [characteristicUUIDs addObject:[CBUUID UUIDWithString:ObjCStringFromCppString(
+                                                              std::string(characteristic_uuid))]];
+    gatt_characteristics.insert({std::string(characteristic_uuid), characteristic_uuid});
+  }
+
+  [central_ discoverGattService:serviceUUID
+            gattCharacteristics:characteristicUUIDs
+                   peripheralID:ObjCStringFromCppString(peripheral_id_)
+      gattDiscoverResultHandler:^(NSDictionary<CBUUID*, NSData*>* _Nullable characteristicValues) {
+        if (characteristicValues != nil) {
+          for (CBUUID* charUuid in characteristicValues) {
+            Uuid characteristic_uuid;
+            auto const& it =
+                gatt_characteristics.find(CppStringFromObjCString(charUuid.UUIDString));
+            if (it == gatt_characteristics.end()) continue;
+
+            api::ble_v2::GattCharacteristic characteristic = {.uuid = it->second,
+                                                              .service_uuid = service_uuid};
+            gatt_characteristic_values_.insert(
+                {characteristic,
+                 ByteArrayFromNSData([characteristicValues objectForKey:charUuid])});
+          }
+        }
+
+        dispatch_semaphore_signal(semaphore);
+      }];
+
+  dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 30 * NSEC_PER_SEC));
+
+  if (gatt_characteristic_values_.empty()) {
+    return false;
+  }
+  return true;
+}
+
+// NOLINTNEXTLINE
+absl::optional<api::ble_v2::GattCharacteristic> BleMedium::GattClient::GetCharacteristic(
+    const Uuid& service_uuid, const Uuid& characteristic_uuid) {
+  api::ble_v2::GattCharacteristic characteristic = {.uuid = characteristic_uuid,
+                                                    .service_uuid = service_uuid};
+  auto const it = gatt_characteristic_values_.find(characteristic);
+  if (it == gatt_characteristic_values_.end()) {
+    return absl::nullopt;  // NOLINT
+  }
+  return it->first;
+}
+
+// NOLINTNEXTLINE
+absl::optional<ByteArray> BleMedium::GattClient::ReadCharacteristic(
+    const api::ble_v2::GattCharacteristic& characteristic) {
+  auto const it = gatt_characteristic_values_.find(characteristic);
+  if (it == gatt_characteristic_values_.end()) {
+    return absl::nullopt;  // NOLINT
+  }
+  return it->second;
+}
+
+bool BleMedium::GattClient::WriteCharacteristic(
+    const api::ble_v2::GattCharacteristic& characteristic, const ByteArray& value) {
+  // No op.
+  return false;
+}
+
+void BleMedium::GattClient::Disconnect() {
+  [central_ disconnectGattServiceWithPeripheralID:ObjCStringFromCppString(peripheral_id_)];
 }
 
 }  // namespace ios
