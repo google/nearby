@@ -307,8 +307,8 @@ message MediumMetadata {
   optional bool supports_6_ghz = 4;
   // True if local device has mobile radio.
   optional bool mobile_radio = 5;
-  // The frequency of the WiFi LAN AP(in MHz, or -1 is not associated with an AP
-  // over WiFi).
+  // The frequency of the WiFi LAN AP(in MHz). Or -1 is not associated with an
+  // AP over WiFi, -2 represents the active network uses an Ethernet transport.
   optional int32 ap_frequency = 6 [default = -1];
   // Available channels on the local device.
   optional AvailableChannels available_channels = 7;
