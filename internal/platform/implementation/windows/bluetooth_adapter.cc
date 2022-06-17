@@ -246,10 +246,10 @@ std::string BluetoothAdapter::GetName() const {
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
 bool BluetoothAdapter::SetName(absl::string_view name) {
-  if (name.size() > 70 * sizeof(char)) {
+  if (name.size() > 248 * sizeof(char)) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Failed to set name for bluetooth adapter because "
-                          "the name exceeded the 70 bytes limit for Windows.";
+                          "the name exceeded the 248 bytes limit for Windows.";
     return false;
   }
 

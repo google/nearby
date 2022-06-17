@@ -175,6 +175,7 @@ cc_test(
         "atomic_reference_test.cc",
         "ble_medium_test.cc",
         "ble_v2_test.cc",
+        "bluetooth_adapter_test.cc",
         "count_down_latch_test.cc",
         "crypto_test.cc",
         "executor_test.cc",
