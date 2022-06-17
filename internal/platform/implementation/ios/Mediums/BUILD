@@ -21,7 +21,9 @@ objc_library(
     name = "Mediums",
     srcs = [
         "Ble/GNCMBleCentral.m",
+        "Ble/GNCMBleConnection.m",
         "Ble/GNCMBlePeripheral.m",
+        "Ble/GNCMBleUtils.m",
         "GNCLeaks.m",
         "GNCMConnection.m",
         "WifiLan/GNCMBonjourBrowser.m",
@@ -31,7 +33,9 @@ objc_library(
     ],
     hdrs = [
         "Ble/GNCMBleCentral.h",
+        "Ble/GNCMBleConnection.h",
         "Ble/GNCMBlePeripheral.h",
+        "Ble/GNCMBleUtils.h",
         "GNCLeaks.h",
         "GNCMConnection.h",
         "WifiLan/GNCMBonjourBrowser.h",
@@ -42,6 +46,9 @@ objc_library(
     deps = [
         ":ObjCProtos",
         "//internal/platform/implementation/ios:Shared",
+        "//internal/platform/implementation/ios/Mediums/Ble/Sockets:Central",
+        "//internal/platform/implementation/ios/Mediums/Ble/Sockets:Peripheral",
+        "//internal/platform/implementation/ios/Mediums/Ble/Sockets:Shared",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
         "@com_google_absl//absl/numeric:int128",
     ],
