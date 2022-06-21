@@ -117,7 +117,7 @@ struct DLL_API ConnectionResponseInfoW {
 struct DLL_API PayloadProgressInfoW {
   PayloadId payload_id = 0;
   enum class Status {
-    kSuccess,
+    kSuccess = 1,
     kFailure,
     kInProgress,
     kCanceled,
