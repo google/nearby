@@ -65,6 +65,19 @@ cc_library(
 )
 
 cc_library(
+    name = "broadcast_request",
+    srcs = ["broadcast_request.cc"],
+    hdrs = ["broadcast_request.h"],
+    deps = [
+        ":encryption",
+        ":types",
+        "//internal/platform:logging",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:variant",
+    ],
+)
+
+cc_library(
     name = "encryption",
     srcs = ["encryption.cc"],
     hdrs = ["encryption.h"],
@@ -77,6 +90,19 @@ cc_library(
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
+    ],
+)
+
+cc_test(
+    name = "broadcast_request_test",
+    size = "small",
+    srcs = ["broadcast_request_test.cc"],
+    deps = [
+        ":broadcast_request",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/types:variant",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
