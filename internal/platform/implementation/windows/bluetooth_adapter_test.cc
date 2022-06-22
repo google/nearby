@@ -124,6 +124,11 @@ TEST(BluetoothAdapter, DISABLED_IsExtendedAdvertisingSupported) {
   EXPECT_TRUE(bluetooth_adapter.IsExtendedAdvertisingSupported());
 }
 
+TEST(BluetoothAdapter, DISABLED_GetNameFromComputerName) {
+  BluetoothAdapter bluetooth_adapter;
+  EXPECT_TRUE(!bluetooth_adapter.GetNameFromComputerName().empty());
+}
+
 }  // namespace
 }  // namespace windows
 }  // namespace nearby

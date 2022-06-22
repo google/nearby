@@ -16,6 +16,7 @@
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_ADAPTER_H_
 
 #include <guiddef.h>
+#include <windows.h>
 
 #include <functional>
 #include <string>
@@ -76,6 +77,12 @@ class BluetoothAdapter : public api::BluetoothAdapter {
 
   // Returns BT MAC address assigned to this adapter.
   std::string GetMacAddress() const override;
+
+  // Returns bluetooth device name from registry
+  std::string GetNameFromRegistry(PHKEY hKey) const;
+
+  // Returns computer name
+  std::string GetNameFromComputerName() const;
 
   void SetOnScanModeChanged(ScanModeCallback callback) {
     if (scan_mode_changed_ == nullptr) {
