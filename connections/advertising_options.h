@@ -29,7 +29,7 @@ namespace connections {
 // Connection Options: used for both Advertising and Discovery.
 // All fields are mutable, to make the type copy-assignable.
 struct AdvertisingOptions : public OptionsBase {
-  bool auto_upgrade_bandwidth;
+  bool auto_upgrade_bandwidth = true;
   bool enforce_topology_constraints;
   bool low_power;
   bool enable_bluetooth_listening;

@@ -35,7 +35,7 @@ struct DiscoveryOptions : OptionsBase {
   // (2) If no mediums are allowed, allow all mediums.
   DiscoveryOptions CompatibleOptions() const;
 
-  bool auto_upgrade_bandwidth;
+  bool auto_upgrade_bandwidth = true;
   bool enforce_topology_constraints;
   int keep_alive_interval_millis = 0;
   int keep_alive_timeout_millis = 0;

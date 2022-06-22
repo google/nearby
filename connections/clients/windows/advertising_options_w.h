@@ -23,7 +23,7 @@ extern "C" {
 // Advertising Options: used for Advertising.
 // All fields are mutable, to make the type copy-assignable.
 struct DLL_API AdvertisingOptionsW : public OptionsBaseW {
-  bool auto_upgrade_bandwidth;
+  bool auto_upgrade_bandwidth = true;
   bool enforce_topology_constraints;
   bool low_power;
 
