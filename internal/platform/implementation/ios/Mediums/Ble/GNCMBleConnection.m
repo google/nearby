@@ -25,21 +25,25 @@ NS_ASSUME_NONNULL_BEGIN
 @interface GNCMBleConnection () <GNSSocketDelegate>
 @property(nonatomic) dispatch_queue_t selfQueue;
 @property(nonatomic) GNSSocket *socket;
-@property(nonatomic) NSData *serviceIdHash;
+@property(nonatomic) NSData *serviceIDHash;
 @property(nonatomic) dispatch_queue_t callbackQueue;
+@property(nonatomic) BOOL expectedIntroPacket;
+@property(nonatomic) BOOL receivedIntroPacket;
 @end
 
 @implementation GNCMBleConnection
 
 + (instancetype)connectionWithSocket:(GNSSocket *)socket
-                           serviceId:(NSString *)serviceId
+                           serviceID:(nullable NSString *)serviceID
+                 expectedIntroPacket:(BOOL)expectedIntroPacket
                        callbackQueue:(dispatch_queue_t)callbackQueue {
   GNCMBleConnection *connection = [[GNCMBleConnection alloc] init];
   connection.socket = socket;
   socket.delegate = connection;
-  connection.serviceIdHash = GNCMServiceIdHash(serviceId);
+  connection.serviceIDHash = serviceID ? GNCMServiceIDHash(serviceID) : nil;
   connection.callbackQueue = callbackQueue;
   connection.selfQueue = dispatch_queue_create("GNCMBleConnectionQueue", DISPATCH_QUEUE_SERIAL);
+  connection.expectedIntroPacket = expectedIntroPacket;
   return connection;
 }
 
@@ -49,16 +53,26 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 #pragma mark GNCMConnection
-
 - (void)sendData:(NSData *)data
     progressHandler:(GNCMProgressHandler)progressHandler
          completion:(GNCMPayloadResultHandler)completion {
   dispatch_async(_selfQueue, ^{
-    [_socket sendData:data
+    NSMutableData *packet;
+    if (data.length == 0) {
+      // Get the Control introduction packet if data length is 0.
+      NSData *introData = GNCMGenerateBLEFramesIntroductionPacket(_serviceIDHash);
+      packet = [NSMutableData dataWithData:introData];
+    } else {
+      // Prefix the service ID hash.
+      packet = [NSMutableData dataWithData:_serviceIDHash];
+      [packet appendData:data];
+    }
+
+    [_socket sendData:packet
         progressHandler:^(float progress) {
           // Convert normalized progress value to number of bytes.
           dispatch_async(_callbackQueue, ^{
-            progressHandler((size_t)(progress * data.length));
+            progressHandler((size_t)(progress * packet.length));
           });
         }
         completion:^(NSError *error) {
@@ -86,10 +100,43 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (void)socket:(GNSSocket *)socket didReceiveData:(NSData *)data {
+  // Extract the service ID prefix from each data packet.
+  NSMutableData *packet;
+  NSUInteger prefixLength = _serviceIDHash.length;
+  if (_expectedIntroPacket && !_receivedIntroPacket) {
+    // Check if the first packet is intro packet.
+    if (!_serviceIDHash) {
+      // If _serviceIdHash is nil, then we need to parse the first incoming packet if it conforms to
+      // introducion packet and extract the serviceIdHash for coming packets.
+      NSData *serviceIDHash = GNCMParseBLEFramesIntroductionPacket(data);
+      if (serviceIDHash) {
+        _serviceIDHash = serviceIDHash;
+        _receivedIntroPacket = YES;
+      } else {
+        GTMLoggerInfo(@"[NEARBY] Input stream: Received wrong intro packet and discarded");
+      }
+    } else {
+      NSData *introData = GNCMGenerateBLEFramesIntroductionPacket(_serviceIDHash);
+      if ([data isEqual:introData]) {
+        _receivedIntroPacket = YES;
+      } else {
+        GTMLoggerInfo(@"[NEARBY] Input stream: Received wrong intro packet and discarded");
+      }
+    }
+    return;
+  }
+
+  if (![[data subdataWithRange:NSMakeRange(0, prefixLength)] isEqual:_serviceIDHash]) {
+    GTMLoggerInfo(@"[NEARBY] Input stream: Received wrong data packet and discarded");
+    return;
+  }
+  packet = [NSMutableData
+      dataWithData:[data subdataWithRange:NSMakeRange(prefixLength, data.length - prefixLength)]];
+
   dispatch_async(_selfQueue, ^{
     if (_connectionHandlers.payloadHandler) {
       dispatch_async(_callbackQueue, ^{
-        _connectionHandlers.payloadHandler(data);
+        _connectionHandlers.payloadHandler(packet);
       });
     }
   });

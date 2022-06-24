@@ -395,8 +395,9 @@ bool BleV2::StartAcceptingConnections(const std::string& service_id,
   // listening for new incoming connections until StopAcceptingConnections() is
   // invoked.
   accept_loops_runner_.Execute(
-      "ble-accept", [this, &service_id, callback = std::move(callback),
-                     server_socket = std::move(owned_server_socket)]() mutable {
+      "ble-accept",
+      [this, service_id = service_id, callback = std::move(callback),
+       server_socket = std::move(owned_server_socket)]() mutable {
         while (true) {
           BleV2Socket client_socket = server_socket.Accept();
           if (!client_socket.IsValid()) {

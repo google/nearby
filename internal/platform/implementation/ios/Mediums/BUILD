@@ -1,5 +1,3 @@
-load("//tools/build_defs/apple:objc.bzl", "objc_proto_library")
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +21,7 @@ objc_library(
         "Ble/GNCMBleCentral.m",
         "Ble/GNCMBleConnection.m",
         "Ble/GNCMBlePeripheral.m",
-        "Ble/GNCMBleUtils.m",
+        "Ble/GNCMBleUtils.mm",
         "GNCLeaks.m",
         "GNCMConnection.m",
         "WifiLan/GNCMBonjourBrowser.m",
@@ -44,24 +42,12 @@ objc_library(
         "WifiLan/GNCMBonjourUtils.h",
     ],
     deps = [
-        ":ObjCProtos",
         "//internal/platform/implementation/ios:Shared",
         "//internal/platform/implementation/ios/Mediums/Ble/Sockets:Central",
         "//internal/platform/implementation/ios/Mediums/Ble/Sockets:Peripheral",
         "//internal/platform/implementation/ios/Mediums/Ble/Sockets:Shared",
+        "//proto/mediums:ble_frames_cc_proto",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
         "@com_google_absl//absl/numeric:int128",
-    ],
-)
-
-objc_proto_library(
-    name = "ObjCProtos",
-    deps = [":Protos"],
-)
-
-proto_library(
-    name = "Protos",
-    deps = [
-        "//connections/implementation/proto:offline_wire_formats_proto",
     ],
 )

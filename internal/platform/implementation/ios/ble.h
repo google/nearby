@@ -70,14 +70,13 @@ class BleOutputStream : public OutputStream {
 /** Concrete BleSocket implementation. */
 class BleSocket : public api::ble_v2::BleSocket {
  public:
-  BleSocket() = default;
-  explicit BleSocket(id<GNCMConnection> connection);
+  BleSocket(id<GNCMConnection> connection, BlePeripheral *peripheral);
   ~BleSocket() override;
 
   InputStream &GetInputStream() override { return *input_stream_; }
   OutputStream &GetOutputStream() override { return *output_stream_; }
   Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
-  BlePeripheral *GetRemotePeripheral() override { return nullptr; }
+  BlePeripheral *GetRemotePeripheral() override { return peripheral_; }
 
   bool IsClosed() const ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -88,6 +87,7 @@ class BleSocket : public api::ble_v2::BleSocket {
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
   std::unique_ptr<BleInputStream> input_stream_;
   std::unique_ptr<BleOutputStream> output_stream_;
+  BlePeripheral *peripheral_;
 };
 
 /** Concrete BleServerSocket implementation. */
@@ -192,6 +192,7 @@ class BleMedium : public api::ble_v2::BleMedium {
   absl::flat_hash_map<std::string, BleServerSocket *> server_sockets_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<std::string, GNCMConnectionRequester> connection_requesters_
       ABSL_GUARDED_BY(mutex_);
+  dispatch_queue_t callback_queue_;
 };
 
 }  // namespace ios

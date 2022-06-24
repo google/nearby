@@ -14,6 +14,8 @@
 
 #import <Foundation/Foundation.h>
 
+#import "internal/platform/implementation/ios/Mediums/GNCMConnection.h"
+
 @class CBCharacteristic;
 @class CBUUID;
 
@@ -63,9 +65,14 @@ NS_ASSUME_NONNULL_BEGIN
  *
  * @param serviceUUID A string that uniquely identifies the advertised service to search for.
  * @param advertisementData The data to advertise.
+ * @param endpointconnectedHandler The handler that is called when a discoverer connects.
+ * @param callbackQueue The queue on which all callbacks are made. If |callbackQueue| is not
+ *                      provided, then the main queue is used in the function.
  */
 - (BOOL)startAdvertisingWithServiceUUID:(NSString *)serviceUUID
-                      advertisementData:(NSData *)advertisementData;
+                      advertisementData:(NSData *)advertisementData
+               endpointConnectedHandler:(GNCMConnectionHandler)endpointConnectedHandler
+                          callbackQueue:(nullable dispatch_queue_t)callbackQueue;
 
 @end
 

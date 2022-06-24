@@ -17,6 +17,11 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 
 #import "internal/platform/implementation/ios/GNCUtils.h"
+#import "internal/platform/implementation/ios/Mediums/Ble/GNCMBleConnection.h"
+#import "internal/platform/implementation/ios/Mediums/Ble/GNCMBleUtils.h"
+#import "internal/platform/implementation/ios/Mediums/Ble/Sockets/Source/Peripheral/GNSPeripheralManager.h"
+#import "internal/platform/implementation/ios/Mediums/Ble/Sockets/Source/Peripheral/GNSPeripheralServiceManager.h"
+#import "internal/platform/implementation/ios/Mediums/GNCMConnection.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -45,6 +50,16 @@ typedef NS_ENUM(NSUInteger, GNCMPeripheralState) {
   dispatch_queue_t _selfQueue;
   /** Peripheral state for stop or advertising. */
   GNCMPeripheralState _state;
+  /** Peripheral manager used for socket connection based on weave protocol. */
+  GNSPeripheralManager *_socketPeripheralManager;
+  /** Peripheral service manager used to manage one BLE service. */
+  GNSPeripheralServiceManager *_socketPeripheralServiceManager;
+  /** Client callback queue. If client doesn't assign it, then use main queue. */
+  dispatch_queue_t _clientCallbackQueue;
+  /** Internal async priority queue. */
+  dispatch_queue_t _internalCallbackQueue;
+  /** Flag to disable callback for dealloc. */
+  BOOL _callbacksEnabled;
 }
 
 - (instancetype)init {
@@ -53,11 +68,6 @@ typedef NS_ENUM(NSUInteger, GNCMPeripheralState) {
     // Bluetooth also use this queue.
     _selfQueue = dispatch_queue_create("GNCPeripheralManagerQueue", DISPATCH_QUEUE_SERIAL);
 
-    // Set up the peripheral manager for the advertisement data.
-    _peripheralManager = [[CBPeripheralManager alloc]
-        initWithDelegate:self
-                   queue:_selfQueue
-                 options:@{CBPeripheralManagerOptionShowPowerAlertKey : @NO}];
     _state = GNCMPeripheralStateStopped;
   }
   return self;
@@ -69,6 +79,8 @@ typedef NS_ENUM(NSUInteger, GNCMPeripheralState) {
   // must never be captured by any escaping block used in this class.
   dispatch_sync(_selfQueue, ^{
     [self stopAdvertisingInternal];
+
+    _callbacksEnabled = NO;
   });
 }
 
@@ -104,11 +116,54 @@ typedef NS_ENUM(NSUInteger, GNCMPeripheralState) {
 }
 
 - (BOOL)startAdvertisingWithServiceUUID:(NSString *)serviceUUID
-                      advertisementData:(NSData *)advertisementData {
+                      advertisementData:(NSData *)advertisementData
+               endpointConnectedHandler:(GNCMConnectionHandler)endpointConnectedHandler
+                          callbackQueue:(nullable dispatch_queue_t)callbackQueue {
   NSLog(@"[NEARBY] Client rquests startAdvertising");
+  // The client may be using the callback queue for other purposes, so wrap it with a private
+  // queue to know with certainty when all callbacks are done.
+  _clientCallbackQueue = callbackQueue ?: dispatch_get_main_queue();
+  _internalCallbackQueue =
+      dispatch_queue_create("GNCMBlePeripheralCallbackQueue", DISPATCH_QUEUE_PRIORITY_DEFAULT);
+  _callbacksEnabled = YES;
+
   _advertisementService = [[CBMutableService alloc] initWithType:[CBUUID UUIDWithString:serviceUUID]
                                                          primary:YES];
   _advertisementData = [advertisementData copy];
+
+  // To make this class thread-safe, use a serial queue for all state changes, and have Core
+  // Bluetooth also use this queue.
+  _selfQueue = dispatch_queue_create("GNCPeripheralManagerQueue", DISPATCH_QUEUE_SERIAL);
+  __weak __typeof__(self) weakSelf = self;
+  // Set up the peripheral manager for the socket. This must be done before creating the
+  // peripheral manager for the advertisement data because it's started/stopped in the
+  // -peripheralManagerDidUpdateState: callback.
+  _socketPeripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:_advertisementService.UUID
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        // Call the connection handler when the socket has connected or fails to connect.
+        GNCMWaitForConnection(socket, ^(BOOL didConnect) {
+          [weakSelf establishConnectionWithSocket:socket
+                                       didConnect:didConnect
+                         endpointConnectedHandler:endpointConnectedHandler];
+        });
+        return YES;
+      }
+                          queue:_selfQueue];
+  _socketPeripheralManager = [[GNSPeripheralManager alloc] initWithAdvertisedName:nil
+                                                                restoreIdentifier:nil
+                                                                            queue:_selfQueue];
+  [_socketPeripheralManager addPeripheralServiceManager:_socketPeripheralServiceManager
+                              bleServiceAddedCompletion:^(NSError *error) {
+                                NSLog(@"Failed to add service");
+                              }];
+
+  // Set up the peripheral manager for the advertisement data.
+  _peripheralManager = [[CBPeripheralManager alloc]
+      initWithDelegate:self
+                 queue:_selfQueue
+               options:@{CBPeripheralManagerOptionShowPowerAlertKey : @NO}];
 
   if (_GATTService) {
     if (_gattCharacteristics && _gattCharacteristics.count > 0) {
@@ -126,6 +181,7 @@ typedef NS_ENUM(NSUInteger, GNCMPeripheralState) {
   if (peripheral.state == CBManagerStatePoweredOn && !peripheral.isAdvertising &&
       _state == GNCMPeripheralStateAdvertising) {
     NSLog(@"[NEARBY] CBPeripheralManager powered on; starting advertising");
+    [_socketPeripheralManager start];
     [self startAdvertisingInternal];
   } else {
     NSLog(@"[NEARBY] CBPeripheralManager not powered on; stopping advertising");
@@ -149,7 +205,7 @@ typedef NS_ENUM(NSUInteger, GNCMPeripheralState) {
 
 - (void)peripheralManager:(CBPeripheralManager *)peripheral
     didReceiveReadRequest:(CBATTRequest *)request {
-     NSLog(@"[NEARBY] peripheralManager:didReceiveReadRequest");
+  NSLog(@"[NEARBY] peripheralManager:didReceiveReadRequest");
   // This is called when a central asks to read a characteristic's value.
   CBATTError error = CBATTErrorAttributeNotFound;
   NSData *value = _gattCharacteristicValues[request.characteristic.UUID];
@@ -194,6 +250,42 @@ typedef NS_ENUM(NSUInteger, GNCMPeripheralState) {
     }
     [_peripheralManager stopAdvertising];
   }
+}
+
+/**
+ * Connects with socket and callback the |GNCMBleConnection| is established or nil if it is not.
+ */
+- (void)establishConnectionWithSocket:(GNSSocket *)socket
+                           didConnect:(BOOL)didConnect
+             endpointConnectedHandler:(GNCMConnectionHandler)endpointConnectedHandler {
+  if (!_callbacksEnabled) {
+    return;
+  }
+
+  [self callbackAsync:^{
+    if (!didConnect) {
+      NSLog(@"[NEARBY] Peripheral failed to create BLE socket");
+      endpointConnectedHandler(nil);
+    } else {
+      GNCMBleConnection *connection = [GNCMBleConnection connectionWithSocket:socket
+                                                                    serviceID:nil
+                                                          expectedIntroPacket:YES
+                                                                callbackQueue:_clientCallbackQueue];
+      connection.connectionHandlers = endpointConnectedHandler(connection);
+    }
+  }];
+}
+
+/**
+ * Calls the specified block on the callback queue, preventing it from being dispatched to the
+ * client callback queue when callbacks are disabled. And without capturing |self|, since
+ * callbacks are disabled in dealloc.
+ */
+- (void)callbackAsync:(dispatch_block_t)block {
+  dispatch_queue_t clientCallbackQueue = _clientCallbackQueue;  // don't capture |self|
+  dispatch_async(_internalCallbackQueue, ^{
+    dispatch_sync(clientCallbackQueue, block);
+  });
 }
 
 @end

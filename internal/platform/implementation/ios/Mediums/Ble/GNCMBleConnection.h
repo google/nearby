@@ -25,8 +25,18 @@ NS_ASSUME_NONNULL_BEGIN
 @interface GNCMBleConnection : NSObject <GNCMConnection>
 @property(nonatomic) GNCMConnectionHandlers *connectionHandlers;
 
+/**
+ * Creates a |GNCMBleConnectiom|.
+ *
+ * @param socket A |GNSSocket| instance.
+ * @param serviceID A string that uniquely identifies the service.
+ * @param expectedIntroPacket A flag to indicate the connection is expecting the
+ *                            introduction packet.
+ * @param callbackQueue The queue on which all callbacks are made.
+ */
 + (instancetype)connectionWithSocket:(GNSSocket *)socket
-                           serviceId:(NSString *)serviceId
+                           serviceID:(nullable NSString *)serviceID
+                 expectedIntroPacket:(BOOL)expectedIntroPacket
                        callbackQueue:(dispatch_queue_t)callbackQueue;
 @end
 
