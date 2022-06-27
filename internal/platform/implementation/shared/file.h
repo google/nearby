@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <fstream>
+#include <string>
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/exception.h"
@@ -35,9 +36,9 @@ class IOFile final : public api::InputFile, public api::OutputFile {
   static std::unique_ptr<IOFile> CreateOutputFile(const absl::string_view path);
 
   ExceptionOr<ByteArray> Read(std::int64_t size) override;
-  std::string GetFilePath() const override {
-    return std::string(path_.data(), path_.size());
-  }
+
+  std::string GetFilePath() const override { return path_; }
+
   std::int64_t GetTotalSize() const override { return total_size_; }
   Exception Close() override;
 

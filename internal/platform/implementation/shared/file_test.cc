@@ -18,6 +18,7 @@
 #include <fstream>
 #include <memory>
 #include <ostream>
+#include <string>
 
 #include "file/util/temp_path.h"
 #include "gtest/gtest.h"
@@ -133,7 +134,8 @@ TEST_F(FileTest, IOFile_Write) {
   ByteArray bytes2("bc");
   EXPECT_EQ(io_file_output->Write(bytes1), Exception{Exception::kSuccess});
   EXPECT_EQ(io_file_output->Write(bytes2), Exception{Exception::kSuccess});
-  auto io_file_input = shared::IOFile::CreateInputFile(path_, GetSize());
+  auto io_file_input =
+      shared::IOFile::CreateInputFile(io_file_output->GetFilePath(), GetSize());
   AssertEquals(io_file_input->Read(kMaxSize), "abc");
 }
 

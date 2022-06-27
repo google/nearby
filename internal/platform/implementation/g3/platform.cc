@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <memory>
 
+#include "file/base/path.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
 #include "absl/time/time.h"
@@ -60,50 +61,9 @@ namespace api {
 
 std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
                                                     std::string& file_name) {
-  std::string fullPath("/tmp/");
+  std::string fullPath("/tmp");
 
-  // If parent_folder starts with a \\ or /, then strip it
-  while (!parent_folder.empty() &&
-         (*parent_folder.begin() == '\\' || *parent_folder.begin() == '/')) {
-    parent_folder.erase(0, 1);
-  }
-
-  // If parent_folder ends with a \\ or /, then strip it
-  while (!parent_folder.empty() &&
-         (*parent_folder.rbegin() == '\\' || *parent_folder.rbegin() == '/')) {
-    parent_folder.erase(parent_folder.size() - 1);
-  }
-
-  // If file_name starts with a \\, then strip it
-  while (!file_name.empty() &&
-         (*file_name.begin() == '\\' || *file_name.begin() == '/')) {
-    file_name.erase(0, 1);
-  }
-
-  // If file_name ends with a \\, then strip it
-  while (!file_name.empty() &&
-         (*file_name.rbegin() == '\\' || *file_name.rbegin() == '/')) {
-    file_name.erase(file_name.size() - 1);
-  }
-
-  std::stringstream path;
-
-  if (parent_folder.empty() && file_name.empty()) {
-    path << fullPath.c_str();
-    return path.str();
-  }
-  if (parent_folder.empty()) {
-    path << fullPath.c_str() << "\\" << file_name.c_str();
-    return path.str();
-  }
-  if (file_name.empty()) {
-    path << fullPath.c_str() << "\\" << parent_folder.c_str();
-    return path.str();
-  }
-
-  path << fullPath.c_str() << "\\" << parent_folder.c_str() << "\\"
-       << file_name.c_str();
-  return path.str();
+  return file::JoinPath("/tmp", file_name);
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kLinux; }

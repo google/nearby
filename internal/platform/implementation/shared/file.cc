@@ -14,8 +14,10 @@
 
 #include "internal/platform/implementation/shared/file.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <string>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
@@ -42,10 +44,9 @@ std::unique_ptr<IOFile> IOFile::CreateOutputFile(const absl::string_view path) {
 }
 
 IOFile::IOFile(const absl::string_view file_path)
-    : file_(std::string(file_path.data(), file_path.size()),
-            std::ios::binary | std::ios::out | std::ios::trunc),
-      path_({file_path.data(), file_path.size()}),
-      total_size_(0) {}
+    : file_(), path_(file_path), total_size_(0) {
+  file_.open(path_, std::ios::binary | std::ios::out);
+}
 
 ExceptionOr<ByteArray> IOFile::Read(std::int64_t size) {
   if (!file_.is_open()) {

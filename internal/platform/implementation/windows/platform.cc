@@ -49,8 +49,10 @@
 namespace location {
 namespace nearby {
 namespace api {
-std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
-                                                    std::string& file_name) {
+
+namespace {
+std::string GetDownloadPathInternal(std::string& parent_folder,
+                                    std::string& file_name) {
   PWSTR basePath;
 
   // Retrieves the full path of a known folder identified by the folder's
@@ -69,9 +71,10 @@ std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
                    // SHGetKnownFolderPath succeeds or not.
   size_t bufferSize;
   wcstombs_s(&bufferSize, NULL, 0, basePath, 0);
-  std::string fullpathUTF8(bufferSize, '\0');
+  std::string fullpathUTF8(bufferSize - 1, '\0');
   wcstombs_s(&bufferSize, fullpathUTF8.data(), bufferSize, basePath, _TRUNCATE);
-  std::string fullPath = fullpathUTF8;
+
+  std::replace(fullpathUTF8.begin(), fullpathUTF8.end(), '\\', '/');
 
   // If parent_folder starts with a \\ or /, then strip it
   while (!parent_folder.empty() &&
@@ -102,23 +105,72 @@ std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
   std::stringstream path("");
 
   if (parent_folder.empty() && file_name.empty()) {
-    return fullPath;
+    return fullpathUTF8;
   }
   if (parent_folder.empty()) {
-    path << fullPath.c_str() << "\\" << file_name.c_str();
+    path << fullpathUTF8.c_str() << "/" << file_name.c_str();
     std::string retVal = path.str();
     return retVal;
   }
   if (file_name.empty()) {
-    path << fullPath.c_str() << "\\" << parent_folder.c_str();
+    path << fullpathUTF8.c_str() << "/" << parent_folder.c_str();
     std::string retVal = path.str();
     return retVal;
   }
 
-  path << fullPath.c_str() << "\\" << parent_folder.c_str() << "\\"
+  path << fullpathUTF8.c_str() << "/" << parent_folder.c_str() << "/"
        << file_name.c_str();
   std::string retVal = path.str();
   return retVal;
+}
+
+// If the file already exists we add " (x)", where x is an incrementing number,
+// starting at 1, using the next non-existing number, to the file name, just
+// before the first dot, or at the end if no dot. The absolute path is returned.
+std::string CreateOutputFileWithRename(absl::string_view path) {
+  auto last_separator = path.find_last_of('/');
+  std::string folder(path.substr(0, last_separator));
+  std::string file_name(path.substr(last_separator));
+
+  int count = 0;
+
+  // Locate the first dot
+  auto first = file_name.find_first_of('.', 0);
+
+  if (first == std::string::npos) {
+    first = file_name.size();
+  }
+
+  // Break the string at the dot.
+  auto file_name1 = file_name.substr(0, first);
+  auto file_name2 = file_name.substr(first);
+
+  // Construct the target file name
+  std::string target(path);
+
+  std::fstream file;
+  file.open(target, std::fstream::binary | std::fstream::in);
+
+  // While we successfully open the file, keep incrementing the count.
+  while (!(file.rdstate() & std::ifstream::failbit)) {
+    file.close();
+    target = absl::StrCat(folder, file_name1, " (", ++count, ")", file_name2);
+    file.clear();
+    file.open(target, std::fstream::binary | std::fstream::in);
+  }
+
+  // The above leaves the file open, so close it.
+  file.close();
+
+  return target;
+}
+
+}  // namespace
+
+std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
+                                                    std::string& file_name) {
+  return CreateOutputFileWithRename(
+      GetDownloadPathInternal(parent_folder, file_name));
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kWindows; }
