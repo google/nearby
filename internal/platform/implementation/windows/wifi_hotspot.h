@@ -17,12 +17,14 @@
 
 // Standard C/C++ headers
 #include <functional>
+#include <optional>
 #include <string>
 
 // Nearby connections headers
 #include "internal/platform/implementation/wifi_hotspot.h"
 
 // WinRT headers
+#include "absl/types/optional.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.WiFi.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.WiFiDirect.h"
@@ -71,8 +73,9 @@ using ::winrt::Windows::Security::Cryptography::CryptographicBuffer;
 
 using ::winrt::Windows::Networking::HostName;
 using ::winrt::Windows::Networking::HostNameType;
-using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
 using ::winrt::Windows::Networking::Connectivity::ConnectionProfile;
+using ::winrt::Windows::Networking::Connectivity::ConnectionProfileDeleteStatus;
+using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
 using ::winrt::Windows::Networking::Sockets::StreamSocket;
 using ::winrt::Windows::Networking::Sockets::StreamSocketListener;
 using ::winrt::Windows::Networking::Sockets::
@@ -244,12 +247,15 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   }
 
  private:
-  enum Value:char {
+  enum Value : char {
     kMediumStatusIdle = 0,
     kMediumStatusAccepting = (1 << 0),
     kMediumStatusBeaconing = (1 << 1),
     kMediumStatusConnected = (1 << 2),
   };
+
+  // Implemented the disconnection to WiFi hotspot, and used to avoid deadlock.
+  bool InternalDisconnectWifiHotspot();
 
   bool IsIdle() { return medium_status_ == kMediumStatusIdle; }
   // Advertiser is accepting connection on server socket
@@ -280,14 +286,8 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   // Protects to access some members
   absl::Mutex mutex_;
 
-  // If the WiFi Adaptor supports to start a Hotspot interface.
-  bool hotspot_interface_valid_;
-
   // Medium Status
   int medium_status_ = kMediumStatusIdle;
-
-  // Hotspot profiles that Discoverer has connected in the whole session;
-  std::vector<ConnectionProfile> hotspot_profiles_ ABSL_GUARDED_BY(mutex_);
 
   // Keep the server socket listener pointer
   WifiHotspotServerSocket* server_socket_ptr_ ABSL_GUARDED_BY(mutex_) = nullptr;

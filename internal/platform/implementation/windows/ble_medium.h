@@ -84,9 +84,20 @@ class BleMedium : public api::BleMedium {
       CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
-  enum class PublisherState { kStarted = 0, kStopped, kError };
-
-  enum class WatcherState { kStarted = 0, kStopped, kError };
+  void PublisherHandler(
+      ::winrt::Windows::Devices::Bluetooth::Advertisement::
+          BluetoothLEAdvertisementPublisher publisher,
+      ::winrt::Windows::Devices::Bluetooth::Advertisement::
+          BluetoothLEAdvertisementPublisherStatusChangedEventArgs args);
+  void AdvertisementReceivedHandler(
+      ::winrt::Windows::Devices::Bluetooth::Advertisement::
+          BluetoothLEAdvertisementWatcher watcher,
+      ::winrt::Windows::Devices::Bluetooth::Advertisement::
+          BluetoothLEAdvertisementReceivedEventArgs args);
+  void WatcherHandler(::winrt::Windows::Devices::Bluetooth::Advertisement::
+                          BluetoothLEAdvertisementWatcher watcher,
+                      ::winrt::Windows::Devices::Bluetooth::Advertisement::
+                          BluetoothLEAdvertisementWatcherStoppedEventArgs args);
 
   absl::Mutex mutex_;
   BluetoothAdapter* adapter_;
@@ -103,37 +114,17 @@ class BleMedium : public api::BleMedium {
 
   // WinRT objects
   ::winrt::Windows::Devices::Bluetooth::Advertisement::
-      BluetoothLEAdvertisementPublisher publisher_;
+      BluetoothLEAdvertisementPublisher publisher_ = nullptr;
   ::winrt::Windows::Devices::Bluetooth::Advertisement::
-      BluetoothLEAdvertisementWatcher watcher_;
+      BluetoothLEAdvertisementWatcher watcher_ = nullptr;
   ::winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisement
       advertisement_;
 
-  void PublisherHandler(
-      ::winrt::Windows::Devices::Bluetooth::Advertisement::
-          BluetoothLEAdvertisementPublisher publisher,
-      ::winrt::Windows::Devices::Bluetooth::Advertisement::
-          BluetoothLEAdvertisementPublisherStatusChangedEventArgs args);
-  void AdvertisementReceivedHandler(
-      ::winrt::Windows::Devices::Bluetooth::Advertisement::
-          BluetoothLEAdvertisementWatcher watcher,
-      ::winrt::Windows::Devices::Bluetooth::Advertisement::
-          BluetoothLEAdvertisementReceivedEventArgs args);
-  void WatcherHandler(::winrt::Windows::Devices::Bluetooth::Advertisement::
-                          BluetoothLEAdvertisementWatcher watcher,
-                      ::winrt::Windows::Devices::Bluetooth::Advertisement::
-                          BluetoothLEAdvertisementWatcherStoppedEventArgs args);
+  bool is_publisher_started_ = false;
+  bool is_watcher_started_ = false;
 
   ::winrt::event_token publisher_token_;
-  std::promise<PublisherState> publisher_started_promise_;
-  std::promise<PublisherState> publisher_stopped_promise_;
-
   ::winrt::event_token watcher_token_;
-  std::promise<WatcherState> watcher_started_promise_;
-  std::promise<WatcherState> watcher_stopped_promise_;
-  bool is_watcher_started_ = false;
-  bool is_watcher_stopped_ = false;
-
   ::winrt::event_token advertisement_received_token_;
 };
 

@@ -69,6 +69,7 @@ void BluetoothClassicMedium::OnScanModeChanged(
 
 bool BluetoothClassicMedium::StartDiscovery(
     BluetoothClassicMedium::DiscoveryCallback discovery_callback) {
+  NEARBY_LOGS(INFO) << "StartDiscovery is called.";
   EnterCriticalSection(&critical_section_);
 
   bool result = false;
@@ -84,6 +85,7 @@ bool BluetoothClassicMedium::StartDiscovery(
 }
 
 bool BluetoothClassicMedium::StopDiscovery() {
+  NEARBY_LOGS(INFO) << "StopDiscovery is called.";
   EnterCriticalSection(&critical_section_);
 
   bool result = false;
@@ -136,6 +138,7 @@ void BluetoothClassicMedium::InitializeDeviceWatcher() {
 std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     api::BluetoothDevice& remote_device, const std::string& service_uuid,
     CancellationFlag* cancellation_flag) {
+  NEARBY_LOGS(INFO) << "ConnectToService is called.";
   if (service_uuid.empty()) {
     NEARBY_LOGS(ERROR) << __func__ << ": service_uuid not specified.";
     return nullptr;
@@ -354,6 +357,8 @@ bool BluetoothClassicMedium::CheckSdp(RfcommDeviceService requestedService) {
 std::unique_ptr<api::BluetoothServerSocket>
 BluetoothClassicMedium::ListenForService(const std::string& service_name,
                                          const std::string& service_uuid) {
+  NEARBY_LOGS(INFO) << "ListenForService is called with service name: "
+                    << service_name << ".";
   if (service_uuid.empty()) {
     NEARBY_LOGS(ERROR) << __func__ << ": service_uuid was empty.";
     return nullptr;
