@@ -1123,7 +1123,10 @@ void BwuManager::ProcessUpgradeFailureEvent(
       channel ? channel->GetServiceId() : std::string(kUnknownServiceId);
   // Revert the existing upgrade medium for now.
   if (GetBwuMediumForEndpoint(endpoint_id) != Medium::UNKNOWN_MEDIUM) {
-    RevertBwuMediumForEndpoint(service_id, endpoint_id);
+    // This is the BWU initiator, so append "_UPGRADE" to service_id.
+    // Otherwise the Revert logic won't call into platform medium layer code.
+    std::string upgrade_service_id = WrapInitiatorUpgradeServiceId(service_id);
+    RevertBwuMediumForEndpoint(upgrade_service_id, endpoint_id);
   }
 
   // Loop through the ordered list of upgrade mediums. One by one, remove the
