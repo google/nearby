@@ -133,6 +133,12 @@ bool BleMedium::StartAdvertising(
     const std::string& fast_advertisement_service_uuid) {
   absl::MutexLock lock(&mutex_);
 
+  if (!adapter_->IsEnabled()) {
+    NEARBY_LOGS(WARNING) << "BLE cannot start advertising because the "
+                            "bluetooth adapter is not enabled.";
+    return false;
+  }
+
   NEARBY_LOGS(INFO) << "Windows Ble StartAdvertising: service_id=" << service_id
                     << ", advertisement bytes= 0x"
                     << absl::BytesToHexString(advertisement_bytes.data()) << "("
@@ -200,6 +206,12 @@ bool BleMedium::StartAdvertising(
 
 bool BleMedium::StopAdvertising(const std::string& service_id) {
   absl::MutexLock lock(&mutex_);
+  if (!adapter_->IsEnabled()) {
+    NEARBY_LOGS(WARNING) << "BLE cannot stop advertising because the "
+                            "bluetooth adapter is not enabled.";
+    return false;
+  }
+
   NEARBY_LOGS(INFO) << "Windows Ble StopAdvertising: service_id=" << service_id;
 
   if (!is_publisher_started_) {
@@ -222,6 +234,12 @@ bool BleMedium::StartScanning(
     const std::string& fast_advertisement_service_uuid,
     DiscoveredPeripheralCallback callback) {
   absl::MutexLock lock(&mutex_);
+
+  if (!adapter_->IsEnabled()) {
+    NEARBY_LOGS(WARNING) << "BLE cannot start scanning because the "
+                            "bluetooth adapter is not enabled.";
+    return false;
+  }
 
   NEARBY_LOGS(INFO) << "Windows Ble StartScanning: service_id=" << service_id;
 
@@ -258,6 +276,13 @@ bool BleMedium::StartScanning(
 
 bool BleMedium::StopScanning(const std::string& service_id) {
   absl::MutexLock lock(&mutex_);
+
+  if (!adapter_->IsEnabled()) {
+    NEARBY_LOGS(WARNING) << "BLE cannot stop scanning because the "
+                            "bluetooth adapter is not enabled.";
+    return false;
+  }
+
   NEARBY_LOGS(INFO) << "Windows Ble StopScanning: service_id=" << service_id;
 
   if (!is_watcher_started_) {
