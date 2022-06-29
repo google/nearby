@@ -97,6 +97,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
  private:
   void process_error();
   WindowsBluetoothAdapter windows_bluetooth_adapter_;
+  std::string registry_bluetooth_adapter_name_;
 
   IRadio windows_bluetooth_radio_;
   char *GetGenericBluetoothAdapterInstanceID(void) const;

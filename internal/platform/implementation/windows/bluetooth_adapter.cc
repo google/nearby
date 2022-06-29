@@ -47,6 +47,8 @@ namespace location {
 namespace nearby {
 namespace windows {
 
+constexpr uint8_t kAndroidDiscoverableBluetoothNameMaxLength = 37;  // bytes
+
 BluetoothAdapter::BluetoothAdapter() : windows_bluetooth_adapter_(nullptr) {
   windows_bluetooth_adapter_ =
       winrt::Windows::Devices::Bluetooth::BluetoothAdapter::GetDefaultAsync()
@@ -186,6 +188,22 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
                        << ": Failed to set name for bluetooth adapter because "
                           "the name exceeded the 248 bytes limit for Windows.";
     return false;
+  }
+
+  if (name.size() > kAndroidDiscoverableBluetoothNameMaxLength * sizeof(char)) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Failed to set name for bluetooth adapter because "
+                          "Android cannot discover Windows bluetooth device "
+                          "name that exceeded the 37 bytes limit (11 "
+                          "characters in EndpointInfo).";
+    return false;
+  }
+
+  if (registry_bluetooth_adapter_name_ == name) {
+    NEARBY_LOGS(INFO)
+        << __func__
+        << ": Tried to set name for bluetooth adapter to the same name again.";
+    return true;
   }
 
   std::string instance_id(GetGenericBluetoothAdapterInstanceID());
@@ -400,6 +418,8 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
 
     return false;
   }
+
+  registry_bluetooth_adapter_name_ = std::string(name);
 
   return true;
 }
