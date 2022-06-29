@@ -14,12 +14,14 @@
 
 #include "connections/implementation/client_proxy.h"
 
+#include <cstdio>
 #include <string>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/strings/str_format.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
@@ -360,6 +362,23 @@ TEST_F(ClientProxyTest, ConstructorDestructorWorks) { SUCCEED(); }
 
 TEST_F(ClientProxyTest, ClientIdIsUnique) {
   EXPECT_NE(client1_.GetClientId(), client2_.GetClientId());
+}
+
+TEST_F(ClientProxyTest, DumpString) {
+  std::string expect = absl::StrFormat(
+      "Nearby Connections State\n"
+      "  Client ID: %d\n"
+      "  Local Endpoint ID: %s\n"
+      "  High Visibility Mode: 0\n"
+      "  Is Advertising: 0\n"
+      "  Advertising Service ID: \n"
+      "  Is Discovering: 0\n"
+      "  Discovery Service ID: \n"
+      "  Connections: \n"
+      "  Discovered endpoint IDs: \n",
+      client1_.GetClientId(), client1_.GetLocalEndpointId());
+  std::string dump = client1_.Dump();
+  EXPECT_EQ(dump, expect);
 }
 
 TEST_F(ClientProxyTest, GeneratedEndpointIdIsUnique) {

@@ -188,6 +188,8 @@ class ClientProxy final {
   // rotates.
   void ExitHighVisibilityMode();
 
+  std::string Dump();
+
  private:
   struct Connection {
     // Status: may be either:

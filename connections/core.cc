@@ -168,6 +168,10 @@ void Core::StopAllEndpoints(ResultCallback callback) {
   router_->StopAllEndpoints(&client_, callback);
 }
 
+std::string Core::Dump() {
+  return client_.Dump();
+}
+
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location

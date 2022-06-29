@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <functional>
 #include <limits>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -24,6 +25,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
@@ -762,6 +764,35 @@ std::string ClientProxy::ToString(PayloadProgressInfo::Status status) const {
   }
 }
 
+std::string ClientProxy::Dump() {
+  std::stringstream sstream;
+  sstream << "Nearby Connections State" << std::endl;
+  sstream << "  Client ID: " << GetClientId() << std::endl;
+  sstream << "  Local Endpoint ID: " << GetLocalEndpointId() << std::endl;
+  sstream << "  High Visibility Mode: " << high_vis_mode_ << std::endl;
+  sstream << "  Is Advertising: " << IsAdvertising() << std::endl;
+  sstream << "  Advertising Service ID: " << GetAdvertisingServiceId()
+          << std::endl;
+  // TODO(deling): AdvertisingOptions
+  sstream << "  Is Discovering: " << IsDiscovering() << std::endl;
+  sstream << "  Discovery Service ID: " << GetDiscoveryServiceId() << std::endl;
+  // TODO(deling): DiscoveryOptions
+
+  sstream << "  Connections: " << std::endl;
+  for (auto it = connections_.begin(); it != connections_.end(); ++it) {
+    // TODO(deling): write Connection.ToString()
+    sstream << "    " << it->first << " : " << it->second.connection_token
+            << std::endl;
+  }
+
+  sstream << "  Discovered endpoint IDs: " << std::endl;
+  for (auto it = discovered_endpoint_ids_.begin();
+       it != discovered_endpoint_ids_.end(); ++it) {
+    sstream << "    " << *it << std::endl;
+  }
+
+  return sstream.str();
+}
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
