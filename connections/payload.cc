@@ -14,6 +14,7 @@
 
 #include "connections/payload.h"
 
+#include <algorithm>
 #include <string>
 
 namespace location {
@@ -21,46 +22,16 @@ namespace nearby {
 namespace connections {
 
 namespace {
-std::string SepFinder(std::string s, size_t index) {
-  std::string filename = s.substr(index + 1, s.length() - index);
-  size_t lastindex = filename.find_last_of('.');
-  std::string rawname = filename.substr(0, lastindex);
-  return rawname;
-}
 
 std::string getFileName(const std::string& s) {
-  char forwardSep = '/';
-  char backwardSep = '\\';
+  std::string s_copy(s);
+  std::replace(s_copy.begin(), s_copy.end(), '\\',
+               '/');  // replace all '\\' to '/'
 
-  size_t lastForwardSepIndex = s.rfind(forwardSep, s.length());
-  size_t lastBackwardSepIndex = s.rfind(backwardSep, s.length());
+  size_t lastForwardSepIndex = s_copy.rfind('/', s.length());
 
-  if (lastForwardSepIndex == std::string::npos &&
-      lastBackwardSepIndex == std::string::npos) {
-    // no file name found
-    return ("");
-  }
-
-  // If we have a forward sep
-  if (lastForwardSepIndex != std::string::npos) {
-    // and if backward sep doesn't exist
-    if (lastBackwardSepIndex == std::string::npos) {
-      // Construct filename from forward sep
-      std::string rawname = SepFinder(s, lastForwardSepIndex);
-      return (rawname);
-    }
-    // backward sep also exists
-    if (lastForwardSepIndex > lastBackwardSepIndex) {
-      // the forward sep is the last
-      std::string rawname = SepFinder(s, lastForwardSepIndex);
-      return (rawname);
-    }
-    // The backward sep is the last
-    std::string rawname = SepFinder(s, lastBackwardSepIndex);
-    return (rawname);
-  }
-  std::string rawname = SepFinder(s, lastBackwardSepIndex);
-  return (rawname);
+  return s_copy.substr(lastForwardSepIndex + 1,
+                       s_copy.length() - lastForwardSepIndex);
 }
 
 }  // namespace

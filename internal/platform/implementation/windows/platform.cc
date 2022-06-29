@@ -173,6 +173,11 @@ std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
       GetDownloadPathInternal(parent_folder, file_name));
 }
 
+std::string ImplementationPlatform::GetDownloadPath(std::string& file_name) {
+  std::string fake_parent_path;
+  return GetDownloadPathInternal(fake_parent_path, file_name);
+}
+
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kWindows; }
 
 std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(
@@ -204,8 +209,8 @@ std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     PayloadId payload_id, std::int64_t total_size) {
   std::string parent_folder("");
   std::string file_name(std::to_string(payload_id));
-  return shared::IOFile::CreateInputFile(
-      GetDownloadPath(parent_folder, file_name), total_size);
+  return shared::IOFile::CreateInputFile(GetDownloadPath(file_name),
+                                         total_size);
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(

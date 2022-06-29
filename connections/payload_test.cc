@@ -52,11 +52,34 @@ TEST(PayloadTest, SupportsFileType) {
   Payload payload(payload_id, std::move(file));
   payload.SetOffset(kOffset);
 
+  EXPECT_EQ(payload.GetFileName(), std::to_string(payload_id));
   EXPECT_EQ(payload.GetType(), PayloadType::kFile);
   EXPECT_EQ(payload.AsStream(), nullptr);
   EXPECT_EQ(&payload.AsFile()->GetInputStream(), &stream);
   EXPECT_EQ(payload.AsBytes(), ByteArray{});
   EXPECT_EQ(payload.GetOffset(), kOffset);
+}
+
+TEST(PayloadTest, SupportsMultiDotNamedFileType) {
+  constexpr char expected[] = "this.is.a.multidot.file";
+  InputFile file(expected, 0);
+
+  Payload payload(std::move(file));
+
+  EXPECT_EQ(payload.GetFileName(), expected);
+}
+
+TEST(PayloadTest,
+     SupportsBackSlashFolderSeparatorsByExtractingFileNameBeforeStoring) {
+  constexpr char file_name[] =
+      "test_folder.here\\this.is.a.multidot.backslash.folder.separated.file";
+  constexpr char expected[] =
+      "this.is.a.multidot.backslash.folder.separated.file";
+  InputFile file(file_name, 0);
+
+  Payload payload(std::move(file));
+
+  EXPECT_EQ(payload.GetFileName(), expected);
 }
 
 TEST(PayloadTest, SupportsStreamType) {
