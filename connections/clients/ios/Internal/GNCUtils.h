@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifdef __cplusplus
+
 #import <Foundation/Foundation.h>
 
 #include <string>
@@ -40,3 +42,5 @@ const Strategy& GNCStrategyToStrategy(GNCStrategy strategy);
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif

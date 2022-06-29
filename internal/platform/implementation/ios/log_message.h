@@ -14,6 +14,7 @@
 
 #ifndef PLATFORM_IMPL_IOS_LOG_MESSAGE_H_
 #define PLATFORM_IMPL_IOS_LOG_MESSAGE_H_
+#ifdef __cplusplus
 
 #ifdef NEARBY_SWIFTPM
 #include <sstream>
@@ -52,4 +53,5 @@ class LogMessage : public api::LogMessage {
 }  // namespace nearby
 }  // namespace location
 
+#endif
 #endif  // IPHONE_SHARED_NEARBY_CONNECTIONS_SOURCE_PLATFORM_LOG_MESSAGE_H_

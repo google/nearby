@@ -14,6 +14,7 @@
 
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_IOS_BLUETOOTH_ADAPTER_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_IOS_BLUETOOTH_ADAPTER_H_
+#ifdef __cplusplus
 
 #include <string>
 
@@ -85,4 +86,5 @@ class BluetoothAdapter : public api::BluetoothAdapter {
 }  // namespace nearby
 }  // namespace location
 
+#endif
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_IOS_BLUETOOTH_ADAPTER_H_

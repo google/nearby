@@ -49,6 +49,8 @@ objc_library(
     deps = [
         ":Platform_cc",
         ":Shared",
+        "//third_party/apple_frameworks:CoreBluetooth",
+        "//third_party/apple_frameworks:Foundation",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/ios/Mediums",
@@ -66,6 +68,7 @@ objc_library(
         "GNCUtils.h",
     ],
     deps = [
+        "//third_party/apple_frameworks:Foundation",
         "@aappleby_smhasher//:libmurmur3",
     ],
 )

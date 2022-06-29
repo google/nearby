@@ -42,6 +42,8 @@ objc_library(
         "WifiLan/GNCMBonjourUtils.h",
     ],
     deps = [
+        "//third_party/apple_frameworks:CoreBluetooth",
+        "//third_party/apple_frameworks:Foundation",
         "//internal/platform/implementation/ios:Shared",
         "//internal/platform/implementation/ios/Mediums/Ble/Sockets:Central",
         "//internal/platform/implementation/ios/Mediums/Ble/Sockets:Peripheral",
