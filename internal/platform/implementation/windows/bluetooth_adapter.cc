@@ -65,18 +65,39 @@ BluetoothAdapter::BluetoothAdapter() : windows_bluetooth_adapter_(nullptr) {
 // Synchronously sets the status of the BluetoothAdapter to 'status', and
 // returns true if the operation was a success.
 bool BluetoothAdapter::SetStatus(Status status) {
+  NEARBY_LOGS(ERROR) << __func__ << ": Set Bluetooth radio status to "
+                     << (status == Status::kEnabled ? "On" : "Off");
   if (windows_bluetooth_radio_ == nullptr) {
     NEARBY_LOGS(ERROR) << __func__ << ": No Bluetooth radio on this device.";
     return false;
   }
-  if (status == Status::kDisabled) {
+
+  bool is_radio_state_on = windows_bluetooth_radio_.State() == RadioState::On;
+  bool is_new_radio_state_on = status == Status::kEnabled;
+  if (is_radio_state_on == is_new_radio_state_on) {
+    NEARBY_LOGS(INFO) << __func__
+                      << ": Skip to set radio status due to requested state is "
+                         "same as current.";
+    return true;
+  }
+
+  try {
     // An asynchronous operation that attempts to set the state of the radio
     // represented by this object.
     // https://docs.microsoft.com/en-us/uwp/api/windows.devices.radios.radio.setstateasync?view=winrt-20348
-    windows_bluetooth_radio_.SetStateAsync(RadioState::Off).get();
-  } else {
-    windows_bluetooth_radio_.SetStateAsync(RadioState::On).get();
+    if (status == Status::kDisabled) {
+      windows_bluetooth_radio_.SetStateAsync(RadioState::Off).get();
+    } else {
+      windows_bluetooth_radio_.SetStateAsync(RadioState::On).get();
+    }
+  } catch (const winrt::hresult_error &ex) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Failed to set Bluetooth radio state: " << ex.code()
+                       << ": " << winrt::to_string(ex.message());
+
+    return false;
   }
+
   return true;
 }
 
