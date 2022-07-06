@@ -61,9 +61,17 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
              "location hint %s",
              peer_id.GetId().c_str(), location_hint.DebugString().c_str());
 
+  auto cancellationFlagWeakPtr = client->GetCancellationFlag(endpoint_id);
+  CancellationFlag* cancellationFlag;
+  if (auto cancellationFlagSharedPtr = cancellationFlagWeakPtr.lock()) {
+    cancellationFlag = cancellationFlagSharedPtr.get();
+    cancellationFlagSharedPtr.reset();
+  } else {
+    cancellationFlag = nullptr;
+  }
   mediums::WebRtcSocketWrapper socket =
       webrtc_.Connect(service_id, peer_id, location_hint,
-                      client->GetCancellationFlag(endpoint_id));
+                      cancellationFlag);
   if (!socket.IsValid()) {
     NEARBY_LOG(ERROR,
                "WebRtcBwuHandler failed to connect to remote peer (%s) on "

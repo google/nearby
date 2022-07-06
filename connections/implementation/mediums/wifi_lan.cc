@@ -340,8 +340,12 @@ WifiLanSocket WifiLan::Connect(const std::string& service_id,
     return socket;
   }
 
-  if (cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(INFO) << "Can't create client WifiLan socket due to cancel.";
+  if (cancellation_flag && cancellation_flag->Cancelled()) {
+      NEARBY_LOGS(INFO) << "Can't create client WifiLan socket due to cancel.";
+      return socket;
+  }
+  if (!cancellation_flag) {
+    NEARBY_LOGS(INFO) << "Can't create client WifiLan socket due to destroy.";
     return socket;
   }
 
@@ -373,8 +377,12 @@ WifiLanSocket WifiLan::Connect(const std::string& service_id,
     return socket;
   }
 
-  if (cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(INFO) << "Can't create client WifiLan socket due to cancel.";
+  if (cancellation_flag && cancellation_flag->Cancelled()) {
+      NEARBY_LOGS(INFO) << "Can't create client WifiLan socket due to cancel.";
+      return socket;
+  }
+  if (!cancellation_flag) {
+    NEARBY_LOGS(INFO) << "Can't create client WifiLan socket due to destroy.";
     return socket;
   }
 

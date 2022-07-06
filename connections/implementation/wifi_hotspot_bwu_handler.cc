@@ -123,8 +123,16 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
     return nullptr;
   }
 
+  auto cancellationFlagWeakPtr = client->GetCancellationFlag(endpoint_id);
+  CancellationFlag* cancellationFlag;
+  if (auto cancellationFlagSharedPtr = cancellationFlagWeakPtr.lock()) {
+    cancellationFlag = cancellationFlagSharedPtr.get();
+    cancellationFlagSharedPtr.reset();
+  } else {
+    cancellationFlag = nullptr;
+  }
   WifiHotspotSocket socket = wifi_hotspot_medium_.Connect(
-      service_id, gateway, port, client->GetCancellationFlag(endpoint_id));
+      service_id, gateway, port, cancellationFlag);
   if (!socket.IsValid()) {
     NEARBY_LOGS(ERROR)
         << "WifiHotspotBwuHandler failed to connect to the WifiHotspot service("

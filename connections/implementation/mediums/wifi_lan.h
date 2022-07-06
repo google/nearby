@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <string>
 
 #include "absl/container/flat_hash_map.h"

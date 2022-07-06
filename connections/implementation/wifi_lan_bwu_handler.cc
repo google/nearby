@@ -56,8 +56,17 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
                        << "available WifiLan service (" << ip_address << ":"
                        << port << ") for endpoint " << endpoint_id;
 
+  auto cancellationFlagWeakPtr = client->GetCancellationFlag(endpoint_id);
+  CancellationFlag* cancellationFlag;
+  if (auto cancellationFlagSharedPtr = cancellationFlagWeakPtr.lock()) {
+    cancellationFlag = cancellationFlagSharedPtr.get();
+    cancellationFlagSharedPtr.reset();
+  } else {
+    cancellationFlag = nullptr;
+  }
+
   WifiLanSocket socket = wifi_lan_medium_.Connect(
-      service_id, ip_address, port, client->GetCancellationFlag(endpoint_id));
+      service_id, ip_address, port, cancellationFlag);
   if (!socket.IsValid()) {
     NEARBY_LOGS(ERROR)
         << "WifiLanBwuHandler failed to connect to the WifiLan service ("

@@ -66,8 +66,16 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
     return nullptr;
   }
 
+  auto cancellationFlagWeakPtr = client->GetCancellationFlag(endpoint_id);
+  CancellationFlag* cancellationFlag;
+  if (auto cancellationFlagSharedPtr = cancellationFlagWeakPtr.lock()) {
+    cancellationFlag = cancellationFlagSharedPtr.get();
+    cancellationFlagSharedPtr.reset();
+  } else {
+    cancellationFlag = nullptr;
+  }
   BluetoothSocket socket = bluetooth_medium_.Connect(
-      device, service_id, client->GetCancellationFlag(endpoint_id));
+      device, service_id, cancellationFlag);
   if (!socket.IsValid()) {
     NEARBY_LOGS(ERROR)
         << "BluetoothBwuHandler failed to connect to the Bluetooth device ("

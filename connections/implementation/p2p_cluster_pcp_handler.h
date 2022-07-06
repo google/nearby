@@ -41,6 +41,7 @@
 #include "connections/strategy.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/wifi_lan.h"
 
 namespace location {
@@ -133,6 +134,8 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   static bool ShouldAdvertiseBluetoothMacOverBle(PowerLevel power_level);
   static bool ShouldAcceptBluetoothConnections(
       const AdvertisingOptions& advertising_options);
+  static CancellationFlag* GetCancellationFlag(
+      std::weak_ptr<CancellationFlag> cancellationFlagWeakPtr);
 
   // Bluetooth
   bool IsRecognizedBluetoothEndpoint(const std::string& name_string,

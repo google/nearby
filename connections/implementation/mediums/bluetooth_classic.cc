@@ -18,6 +18,7 @@
 #include <string>
 #include <utility>
 
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/uuid.h"
@@ -391,8 +392,12 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
     return socket;
   }
 
-  if (cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(INFO) << "Can't create client BT socket due to cancel.";
+  if (cancellation_flag && cancellation_flag->Cancelled()) {
+      NEARBY_LOGS(INFO) << "Can't create client BT socket due to cancel.";
+      return socket;
+  }
+  if (!cancellation_flag) {
+    NEARBY_LOGS(INFO) << "Can't create client BT socket due to destroyed.";
     return socket;
   }
 

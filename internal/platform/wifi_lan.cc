@@ -14,6 +14,8 @@
 
 #include "internal/platform/wifi_lan.h"
 
+#include <memory>
+
 #include "internal/platform/mutex_lock.h"
 
 namespace location {

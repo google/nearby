@@ -164,7 +164,7 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
   EXPECT_TRUE(socket_a.IsValid());
   EXPECT_TRUE(socket_b.IsValid());
   InputStream& in_stream = socket_a.GetInputStream();
-  OutputStream&  out_stream = socket_b.GetOutputStream();
+  OutputStream& out_stream = socket_b.GetOutputStream();
   std::string data(kData);
   EXPECT_TRUE(out_stream.Write(ByteArray(data)).Ok());
   ExceptionOr<ByteArray> read_data = in_stream.Read(kChunkSize);
@@ -235,7 +235,6 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherCanCancelConnect) {
     EXPECT_FALSE(socket_a.IsValid());
     EXPECT_FALSE(socket_b.IsValid());
   }
-
 
   server_socket.Close();
   EXPECT_TRUE(wifi_hotspot_b->DisconnectWifiHotspot());

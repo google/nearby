@@ -308,19 +308,22 @@ TEST_P(ClientProxyTest, CanCancelEndpoint) {
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
 
-  EXPECT_FALSE(
-      client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+  EXPECT_FALSE(client2_.GetCancellationFlag(advertising_endpoint.id)
+                   .lock()
+                   ->Cancelled());
 
   client2_.CancelEndpoint(advertising_endpoint.id);
 
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
-    EXPECT_FALSE(
-        client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+    EXPECT_FALSE(client2_.GetCancellationFlag(advertising_endpoint.id)
+                     .lock()
+                     ->Cancelled());
   } else {
     // The Cancelled is always true as the default flag being returned.
-    EXPECT_TRUE(
-        client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+    EXPECT_TRUE(client2_.GetCancellationFlag(advertising_endpoint.id)
+                    .lock()
+                    ->Cancelled());
   }
 }
 
@@ -334,19 +337,22 @@ TEST_P(ClientProxyTest, CanCancelAllEndpoints) {
   OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
   OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
 
-  EXPECT_FALSE(
-      client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+  EXPECT_FALSE(client2_.GetCancellationFlag(advertising_endpoint.id)
+                   .lock()
+                   ->Cancelled());
 
   client2_.CancelAllEndpoints();
 
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
-    EXPECT_FALSE(
-        client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+    EXPECT_FALSE(client2_.GetCancellationFlag(advertising_endpoint.id)
+                     .lock()
+                     ->Cancelled());
   } else {
     // The Cancelled is always true as the default flag being returned.
-    EXPECT_TRUE(
-        client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+    EXPECT_TRUE(client2_.GetCancellationFlag(advertising_endpoint.id)
+                    .lock()
+                    ->Cancelled());
   }
 }
 
@@ -370,10 +376,12 @@ TEST_P(ClientProxyTest, CanCancelAllEndpointsWithDifferentEndpoint) {
 
   // The CancellationFlag of endpoint_2 and endpoint_3 have been added. Default
   // Cancelled is false.
-  EXPECT_FALSE(
-      client1_.GetCancellationFlag(advertising_endpoint_2.id)->Cancelled());
-  EXPECT_FALSE(
-      client1_.GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
+  EXPECT_FALSE(client1_.GetCancellationFlag(advertising_endpoint_2.id)
+                   .lock()
+                   ->Cancelled());
+  EXPECT_FALSE(client1_.GetCancellationFlag(advertising_endpoint_3.id)
+                   .lock()
+                   ->Cancelled());
 
   client1_.CancelAllEndpoints();
 
@@ -381,17 +389,21 @@ TEST_P(ClientProxyTest, CanCancelAllEndpointsWithDifferentEndpoint) {
     // The CancellationFlag of endpoint_2 and endpoint_3 will not be removed
     // since it is not added. The default flag returned as Cancelled being true,
     // but Cancelled requested is false since the FeatureFlag is off.
-    EXPECT_FALSE(
-        client1_.GetCancellationFlag(advertising_endpoint_2.id)->Cancelled());
-    EXPECT_FALSE(
-        client1_.GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
+    EXPECT_FALSE(client1_.GetCancellationFlag(advertising_endpoint_2.id)
+                     .lock()
+                     ->Cancelled());
+    EXPECT_FALSE(client1_.GetCancellationFlag(advertising_endpoint_3.id)
+                     .lock()
+                     ->Cancelled());
   } else {
     // Expect the CancellationFlag of endpoint_2 and endpoint_3 has been
     // removed. The Cancelled is always true as the default flag being returned.
-    EXPECT_TRUE(
-        client1_.GetCancellationFlag(advertising_endpoint_2.id)->Cancelled());
-    EXPECT_TRUE(
-        client1_.GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
+    EXPECT_TRUE(client1_.GetCancellationFlag(advertising_endpoint_2.id)
+                    .lock()
+                    ->Cancelled());
+    EXPECT_TRUE(client1_.GetCancellationFlag(advertising_endpoint_3.id)
+                    .lock()
+                    ->Cancelled());
   }
 }
 

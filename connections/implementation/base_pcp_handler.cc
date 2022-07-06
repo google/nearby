@@ -1576,7 +1576,10 @@ bool BasePcpHandler::Cancelled(ClientProxy* client,
     return false;
   }
 
-  return client->GetCancellationFlag(endpoint_id)->Cancelled();
+  if (auto cancellationFlag = client->GetCancellationFlag(endpoint_id).lock()) {
+    return cancellationFlag->Cancelled();
+  }
+  return true;
 }
 
 ///////////////////// BasePcpHandler::PendingConnectionInfo ///////////////////

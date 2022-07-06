@@ -53,6 +53,19 @@ bool P2pClusterPcpHandler::ShouldAcceptBluetoothConnections(
   return advertising_options.enable_bluetooth_listening;
 }
 
+CancellationFlag* P2pClusterPcpHandler::GetCancellationFlag(
+    std::weak_ptr<CancellationFlag> cancellationFlagWeakPtr) {
+  CancellationFlag* cancellationFlag;
+  if (auto cancellationFlagSharedPtr = cancellationFlagWeakPtr.lock()) {
+    cancellationFlag = cancellationFlagSharedPtr.get();
+    cancellationFlagSharedPtr.reset();
+  } else {
+    cancellationFlag = nullptr;
+  }
+
+  return cancellationFlag;
+}
+
 P2pClusterPcpHandler::P2pClusterPcpHandler(
     Mediums* mediums, EndpointManager* endpoint_manager,
     EndpointChannelManager* endpoint_channel_manager, BwuManager* bwu_manager,
@@ -1219,7 +1232,7 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
 
   BluetoothSocket bluetooth_socket = bluetooth_medium_.Connect(
       device, endpoint->service_id,
-      client->GetCancellationFlag(endpoint->endpoint_id));
+      GetCancellationFlag(client->GetCancellationFlag(endpoint->endpoint_id)));
   if (!bluetooth_socket.IsValid()) {
     NEARBY_LOGS(ERROR)
         << "In BluetoothConnectImpl(), failed to connect to Bluetooth device "
@@ -1453,9 +1466,9 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
 
   BlePeripheral& peripheral = endpoint->ble_peripheral;
 
-  BleSocket ble_socket =
-      ble_medium_.Connect(peripheral, endpoint->service_id,
-                          client->GetCancellationFlag(endpoint->endpoint_id));
+  BleSocket ble_socket = ble_medium_.Connect(
+      peripheral, endpoint->service_id,
+      GetCancellationFlag(client->GetCancellationFlag(endpoint->endpoint_id)));
   if (!ble_socket.IsValid()) {
     NEARBY_LOGS(ERROR)
         << "In BleConnectImpl(), failed to connect to BLE device "
@@ -1683,7 +1696,7 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleV2ConnectImpl(
 
   BleV2Socket ble_socket = ble_v2_medium_.Connect(
       endpoint->service_id, peripheral,
-      client->GetCancellationFlag(endpoint->endpoint_id));
+      GetCancellationFlag(client->GetCancellationFlag(endpoint->endpoint_id)));
   if (!ble_socket.IsValid()) {
     NEARBY_LOGS(ERROR)
         << "In BleConnectImpl(), failed to connect to BLE device "
@@ -1836,7 +1849,7 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiLanConnectImpl(
                     << endpoint->endpoint_id << ") over WifiLan.";
   WifiLanSocket socket = wifi_lan_medium_.Connect(
       endpoint->service_id, endpoint->service_info,
-      client->GetCancellationFlag(endpoint->endpoint_id));
+      GetCancellationFlag(client->GetCancellationFlag(endpoint->endpoint_id)));
   NEARBY_LOGS(ERROR) << "In WifiLanConnectImpl(), connect to service "
                      << " socket=" << &socket.GetImpl()
                      << " for endpoint(id=" << endpoint->endpoint_id << ").";

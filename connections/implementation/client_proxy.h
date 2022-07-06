@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -171,7 +172,8 @@ class ClientProxy final {
   // Adds a CancellationFlag for endpoint id.
   void AddCancellationFlag(const std::string& endpoint_id);
   // Returns the CancellationFlag for endpoint id,
-  CancellationFlag* GetCancellationFlag(const std::string& endpoint_id);
+  std::weak_ptr<CancellationFlag> GetCancellationFlag(
+      const std::string& endpoint_id);
   // Sets the CancellationFlag to true for endpoint id.
   void CancelEndpoint(const std::string& endpoint_id);
   // Cancels all CancellationFlags.
@@ -308,11 +310,11 @@ class ClientProxy final {
   absl::flat_hash_set<std::string> discovered_endpoint_ids_;
 
   // Maps endpoint_id to CancellationFlag.
-  absl::flat_hash_map<std::string, std::unique_ptr<CancellationFlag>>
+  absl::flat_hash_map<std::string, std::shared_ptr<CancellationFlag>>
       cancellation_flags_;
   // A default cancellation flag with isCancelled set be true.
-  std::unique_ptr<CancellationFlag> default_cancellation_flag_ =
-      std::make_unique<CancellationFlag>(true);
+  std::shared_ptr<CancellationFlag> default_cancellation_flag_ =
+      std::make_shared<CancellationFlag>(true);
 
   // An analytics logger with |EventLogger| provided by client, which is default
   // nullptr as no-op.

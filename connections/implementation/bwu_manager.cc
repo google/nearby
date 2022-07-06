@@ -686,16 +686,19 @@ void BwuManager::ProcessBwuPathAvailableEvent(
   auto channel = ProcessBwuPathAvailableEventInternal(client, endpoint_id,
                                                       upgrade_path_info);
   proto::connections::ConnectionAttemptResult connection_attempt_result;
+  auto cancellationFlag =
+                 client->GetCancellationFlag(endpoint_id).lock();
   if (channel != nullptr) {
     connection_attempt_result = proto::connections::RESULT_SUCCESS;
-  } else if (client->GetCancellationFlag(endpoint_id)->Cancelled()) {
-    connection_attempt_result = proto::connections::RESULT_CANCELLED;
-    client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
-        endpoint_id, proto::connections::RESULT_REMOTE_ERROR,
-        proto::connections::UPGRADE_CANCEL);
+  } else if (cancellationFlag && cancellationFlag->Cancelled()) {
+      connection_attempt_result = proto::connections::RESULT_CANCELLED;
+      client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+          endpoint_id, proto::connections::RESULT_REMOTE_ERROR,
+          proto::connections::UPGRADE_CANCEL);
   } else {
     connection_attempt_result = proto::connections::RESULT_ERROR;
   }
+  cancellationFlag.reset();
 
   std::unique_ptr<ConnectionAttemptMetadataParams>
       connections_attempt_metadata_params;

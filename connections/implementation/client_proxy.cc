@@ -22,12 +22,13 @@
 #include <string>
 #include <utility>
 
-#include "internal/analytics/event_logger.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "internal/analytics/event_logger.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
@@ -568,16 +569,16 @@ void ClientProxy::AddCancellationFlag(const std::string& endpoint_id) {
     return;
   }
   cancellation_flags_.emplace(endpoint_id,
-                              std::make_unique<CancellationFlag>());
+                              std::make_shared<CancellationFlag>());
 }
 
-CancellationFlag* ClientProxy::GetCancellationFlag(
+std::weak_ptr<CancellationFlag> ClientProxy::GetCancellationFlag(
     const std::string& endpoint_id) {
   const auto item = cancellation_flags_.find(endpoint_id);
   if (item == cancellation_flags_.end()) {
-    return default_cancellation_flag_.get();
+    return default_cancellation_flag_;
   }
-  return item->second.get();
+  return item->second;
 }
 
 void ClientProxy::CancelEndpoint(const std::string& endpoint_id) {

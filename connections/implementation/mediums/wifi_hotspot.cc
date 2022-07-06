@@ -14,8 +14,9 @@
 
 #include "connections/implementation/mediums/wifi_hotspot.h"
 
-#include <utility>
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
@@ -267,8 +268,14 @@ WifiHotspotSocket WifiHotspot::Connect(const std::string& service_id,
     return socket;
   }
 
-  if (cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(INFO) << "Can't create client WifiHotspot socket due to cancel";
+  if (cancellation_flag && cancellation_flag->Cancelled()) {
+      NEARBY_LOGS(INFO)
+          << "Can't create client WifiHotspot socket due to cancel";
+      return socket;
+  }
+  if (!cancellation_flag) {
+    NEARBY_LOGS(INFO)
+        << "Can't create client WifiHotspot socket due to destroy";
     return socket;
   }
 
