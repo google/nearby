@@ -223,8 +223,15 @@ Exception BaseEndpointChannel::Write(const ByteArray& data) {
       }
     }
 
+    size_t data_size = data_to_write->size();
+    if (data_size < 0 || data_size > kMaxAllowedReadBytes) {
+      NEARBY_LOGS(WARNING) << __func__ << ": Write an invalid number of bytes: "
+                           << data_size;
+      return {Exception::kIo};
+    }
+
     Exception write_exception =
-        WriteInt(writer_, static_cast<std::int32_t>(data_to_write->size()));
+        WriteInt(writer_, static_cast<std::int32_t>(data_size));
     if (write_exception.Raised()) {
       NEARBY_LOGS(WARNING) << __func__ << ": Failed to write header: "
                            << write_exception.value;
