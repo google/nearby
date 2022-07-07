@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 load("//third_party/lexan/build_defs:lexan.bzl", "lexan")
+load(
+    "expand_version_template.bzl",
+    "expand_version_template",
+)
+load("//tools/build_defs/testing:bzl_library.bzl", "bzl_library")
 
 licenses(["notice"])
 
@@ -33,9 +38,36 @@ cc_library(
     ],
 )
 
+bzl_library(
+    name = "expand_version_template_bzl",
+    srcs = ["expand_version_template.bzl"],
+    parse_tests = False,
+    visibility = ["//visibility:private"],
+)
+
+# Default version if none is provided.
+vardef("VERSION", "1.0.0.0")
+
+# When built with rapid, a version value will be passed down from the build config via blaze
+# When built manually, invoke blaze with --define=VERSION=1.2.3.4
+# If VERSION is not passed from blaze, the default value defined above will be used.
+expand_version_template(
+    name = "version_expanded",
+    out = "version.rc",
+    template = "version.rc.tpl",
+    version = varref("VERSION"),
+)
+
+lexan.resource_files(
+    name = "resources",
+    rc_files = [
+        ":version_expanded",
+    ],
+)
+
 # Build with --config=lexan
 lexan.cc_windows_dll(
-    name = "core_adapter",
+    name = "nearby_connections",
     srcs = [
         "advertising_options_w.cc",
         "connection_options_w.cc",
@@ -65,6 +97,7 @@ lexan.cc_windows_dll(
     tags = ["windows-dll"],
     visibility = ["//location/nearby/testing:__subpackages__"],
     deps = [
+        ":resources",
         "//third_party/dart_lang/v2:dart_api_dl",
         "//connections:core",
         "//connections:core_types",
@@ -79,7 +112,7 @@ lexan.cc_windows_dll(
 # Build with --config=lexan
 # TODO(b/203019344) Move this configuration under dart folder and create a BUILD there.
 lexan.cc_windows_dll(
-    name = "core_adapter_dart",
+    name = "nearby_connections_dart",
     srcs = [
         "advertising_options_w.cc",
         "connection_options_w.cc",
@@ -108,6 +141,7 @@ lexan.cc_windows_dll(
     defines = ["CORE_ADAPTER_DART_DLL"],
     tags = ["windows-dll"],
     deps = [
+        ":resources",
         "//third_party/dart_lang/v2:dart_api_dl",
         "//connections:core",
         "//connections:core_types",
