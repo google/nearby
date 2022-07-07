@@ -222,6 +222,78 @@ TEST_F(DiscoveredPeripheralTrackerTest,
 }
 
 TEST_F(DiscoveredPeripheralTrackerTest,
+       CanStartMultipleTrackingWithSameServiceId) {
+  ByteArray fast_advertisement_bytes = CreateFastBleAdvertisement(
+      ByteArray(std::string(kData)), ByteArray(std::string(kDeviceToken)));
+  CountDownLatch found_latch(3);
+  CountDownLatch fetch_latch(3);
+  int callback_times = 0;
+
+  // 1st tracking.
+  discovered_peripheral_tracker_.StartTracking(
+      std::string(kServiceIdA),
+      {
+          .peripheral_discovered_cb =
+              [&callback_times, &found_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) {
+                callback_times++;
+                EXPECT_EQ(advertisement_bytes, ByteArray(std::string(kData)));
+                EXPECT_TRUE(fast_advertisement);
+                found_latch.CountDown();
+              },
+      },
+      Uuid(kFastAdvertisementServiceUuid));
+
+  api::ble_v2::BleAdvertisementData advertisement_data;
+  if (!fast_advertisement_bytes.Empty()) {
+    advertisement_data.service_data.insert(
+        {Uuid(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
+  }
+
+  FindFastAdvertisement(advertisement_data, {}, fetch_latch);
+
+  // 2nd tracking.
+  discovered_peripheral_tracker_.StartTracking(
+      std::string(kServiceIdA),
+      {
+          .peripheral_discovered_cb =
+              [&callback_times, &found_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) {
+                callback_times++;
+                EXPECT_EQ(advertisement_bytes, ByteArray(std::string(kData)));
+                EXPECT_TRUE(fast_advertisement);
+                found_latch.CountDown();
+              },
+      },
+      Uuid(kFastAdvertisementServiceUuid));
+
+  FindFastAdvertisement(advertisement_data, {}, fetch_latch);
+
+  // 3rd tracking.
+  discovered_peripheral_tracker_.StartTracking(
+      std::string(kServiceIdA),
+      {
+          .peripheral_discovered_cb =
+              [&callback_times, &found_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) {
+                callback_times++;
+                EXPECT_EQ(advertisement_bytes, ByteArray(std::string(kData)));
+                EXPECT_TRUE(fast_advertisement);
+                found_latch.CountDown();
+              },
+      },
+      Uuid(kFastAdvertisementServiceUuid));
+
+  FindFastAdvertisement(advertisement_data, {}, fetch_latch);
+}
+
+TEST_F(DiscoveredPeripheralTrackerTest,
        FoundFastAdvertisementDuplicateAdvertisements) {
   ByteArray fast_advertisement_bytes = CreateFastBleAdvertisement(
       ByteArray(std::string(kData)), ByteArray(std::string(kDeviceToken)));

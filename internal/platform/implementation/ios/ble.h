@@ -191,8 +191,6 @@ class BleMedium : public api::ble_v2::BleMedium {
   GNCMBlePeripheral *peripheral_;
   GNCMBleCentral *central_;
   absl::flat_hash_map<std::string, BleServerSocket *> server_sockets_ ABSL_GUARDED_BY(mutex_);
-  absl::flat_hash_map<std::string, GNCMConnectionRequester> connection_requesters_
-      ABSL_GUARDED_BY(mutex_);
   dispatch_queue_t callback_queue_;
 };
 

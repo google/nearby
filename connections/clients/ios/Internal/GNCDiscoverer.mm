@@ -34,12 +34,9 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-using ::location::nearby::ByteArray;
 using ::location::nearby::CppStringFromObjCString;
 using ::location::nearby::connections::DiscoveryOptions;
-using ::location::nearby::connections::ConnectionOptions;
 using ::location::nearby::connections::DiscoveryListener;
-using ::location::nearby::connections::DistanceInfo;
 using ::location::nearby::connections::GNCStrategyToStrategy;
 using ResultListener = ::location::nearby::connections::ResultCallback;
 using ::location::nearby::connections::Status;
@@ -307,7 +304,7 @@ class GNCDiscoveryListener {
                 ConnectionRequestInfo{.endpoint_info = ByteArrayFromNSData(info),
                                       .listener = std::move(listener)},
                 ConnectionOptions{},
-                ResultListener{.result_cb = [&connFailureHandler](Status status) {
+                ResultListener{.result_cb = [connFailureHandler](Status status) {
                   if (!status.Ok()) {
                     dispatch_sync(dispatch_get_main_queue(), ^{
                       connFailureHandler(GNCConnectionFailureUnknown);

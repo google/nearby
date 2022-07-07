@@ -20,7 +20,6 @@
 #include <string>
 #include <utility>
 
-#include "absl/strings/ascii.h"
 #include "absl/strings/escaping.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
@@ -129,11 +128,15 @@ void DiscoveredPeripheralTracker::ProcessLostGattAdvertisements() {
 
 void DiscoveredPeripheralTracker::ClearDataForServiceId(
     const std::string& service_id) {
+  std::vector<BleAdvertisement> advertisement_list;
   for (const auto& it : gatt_advertisement_infos_) {
-    if (it.second.service_id != service_id) {
-      continue;
+    if (it.second.service_id == service_id) {
+      advertisement_list.push_back(it.first);
     }
-    ClearGattAdvertisement(it.first);
+  }
+
+  for (auto const& advertisement : advertisement_list) {
+    ClearGattAdvertisement(advertisement);
   }
 }
 

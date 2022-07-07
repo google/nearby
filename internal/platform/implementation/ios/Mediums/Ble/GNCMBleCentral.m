@@ -14,8 +14,10 @@
 
 #import "internal/platform/implementation/ios/Mediums/Ble/GNCMBleCentral.h"
 
-#import <CoreBluetooth/CoreBluetooth.h>
-
+#import "internal/platform/implementation/ios/Mediums/Ble/GNCMBleConnection.h"
+#import "internal/platform/implementation/ios/Mediums/Ble/GNCMBleUtils.h"
+#import "internal/platform/implementation/ios/Mediums/Ble/Sockets/Source/Central/GNSCentralManager.h"
+#import "internal/platform/implementation/ios/Mediums/Ble/Sockets/Source/Central/GNSCentralPeerManager.h"
 #import "internal/platform/implementation/ios/Mediums/GNCMConnection.h"
 
 NS_ASSUME_NONNULL_BEGIN
@@ -40,6 +42,7 @@ GNCIntHandler GNCRecursiveIntHandler(void (^block)(GNCIntHandler blockSelf, int 
 /** This represents a discovered peripheral. */
 @interface GNCMPeripheralInfo : NSObject
 @property(nonatomic) CBPeripheral *peripheral;
+@property(nonatomic, copy) NSDictionary<NSString *, id> *advertisementData;
 
 /** Called when characteristics are discovered. */
 @property(nonatomic, nullable) GNCMBleCharacteristicsHandler charsHandler;
@@ -51,10 +54,12 @@ GNCIntHandler GNCRecursiveIntHandler(void (^block)(GNCIntHandler blockSelf, int 
 
 @implementation GNCMPeripheralInfo
 
-- (instancetype)initWithPeripheral:(CBPeripheral *)peripheral {
+- (instancetype)initWithPeripheral:(CBPeripheral *)peripheral
+                 advertisementData:(NSDictionary<NSString *, id> *)advertisementData {
   self = [super init];
   if (self) {
     _peripheral = peripheral;
+    _advertisementData = [advertisementData copy];
   }
   return self;
 }
@@ -71,7 +76,9 @@ GNCIntHandler GNCRecursiveIntHandler(void (^block)(GNCIntHandler blockSelf, int 
 
 @end
 
-@interface GNCMBleCentral () <CBCentralManagerDelegate, CBPeripheralDelegate>
+@interface GNCMBleCentral () <CBCentralManagerDelegate,
+                              CBPeripheralDelegate,
+                              GNSCentralManagerDelegate>
 @end
 
 @implementation GNCMBleCentral {
@@ -84,7 +91,7 @@ GNCIntHandler GNCRecursiveIntHandler(void (^block)(GNCIntHandler blockSelf, int 
   /** Serial background queue for |centralManager|. */
   dispatch_queue_t _selfQueue;
   /** Central state for stop or scanning. */
-  GNCMCentralState _state;
+  GNCMCentralState _centralState;
   /** The dictionary keyed by CBPeripheral identifier to value GNCMPeripheralInfo. */
   NSMutableDictionary<NSUUID *, GNCMPeripheralInfo *> *_nearbyPeripheralsByID;
   /** Array of characteristic UUID used for discovering. */
@@ -94,7 +101,17 @@ GNCIntHandler GNCRecursiveIntHandler(void (^block)(GNCIntHandler blockSelf, int 
   /** GATT service and characteristic discovery result hanadler. */
   GNCMGATTDiscoverResultHandler _gattDiscoverResultHandler;
   /** The discovered characteristic values map used to callback for `_gattDiscoverResultHandler`. */
-  NSMutableDictionary<CBUUID *, NSData *> *_gattCharacteristicValues;
+  NSMutableOrderedSet<CBCharacteristic *> *_gattCharacteristicValues;
+  /** Central manager used for socket connection based on weave protocol. */
+  GNSCentralManager *_socketCentralManager;
+  /** A callback handler to reuqest connection on the discovered advertiser. */
+  GNCMBleRequestConnectionHandler _requestConnectionHandler;
+  /** Client callback queue. If client doesn't assign it, then use main queue. */
+  dispatch_queue_t _clientCallbackQueue;
+  /** Internal async priority queue. */
+  dispatch_queue_t _internalCallbackQueue;
+  /** Flag to disable callback for dealloc. */
+  BOOL _callbacksEnabled;
 }
 
 - (instancetype)init {
@@ -104,15 +121,9 @@ GNCIntHandler GNCRecursiveIntHandler(void (^block)(GNCIntHandler blockSelf, int 
     _selfQueue = dispatch_queue_create("GNCCentralManagerQueue", DISPATCH_QUEUE_SERIAL);
 
     _nearbyPeripheralsByID = [NSMutableDictionary dictionary];
-    _gattCharacteristicValues = [NSMutableDictionary dictionary];
+    _gattCharacteristicValues = [[NSMutableOrderedSet alloc] init];
 
-    // Set up the central manager for scanning.
-    _centralManager = [[CBCentralManager alloc]
-        initWithDelegate:self
-                   queue:_selfQueue
-                 options:@{CBCentralManagerOptionShowPowerAlertKey : @NO}];
-
-    _state = GNCMCentralStateStopped;
+    _centralState = GNCMCentralStateStopped;
   }
   return self;
 }
@@ -123,14 +134,41 @@ GNCIntHandler GNCRecursiveIntHandler(void (^block)(GNCIntHandler blockSelf, int 
   // must never be captured by any escaping block used in this class.
   dispatch_sync(_selfQueue, ^{
     [self stopScanningInternal];
+    [_socketCentralManager stopNoScanMode];
+
+    _callbacksEnabled = NO;
   });
 }
 
 - (BOOL)startScanningWithServiceUUID:(NSString *)serviceUUID
-                   scanResultHandler:(GNCMScanResultHandler)scanResultHandler {
+                   scanResultHandler:(GNCMScanResultHandler)scanResultHandler
+            requestConnectionHandler:(GNCMBleRequestConnectionHandler)requestConnectionHandler
+                       callbackQueue:(nullable dispatch_queue_t)callbackQueue {
+  NSLog(@"[NEARBY] Client rquests startScanning");
   _serviceUUID = [CBUUID UUIDWithString:serviceUUID];
   _scanResultHandler = scanResultHandler;
-  _state = GNCMCentralStateScanning;
+  _requestConnectionHandler = requestConnectionHandler;
+
+  // The client may be using the callback queue for other purposes, so wrap it with a private
+  // queue to know with certainty when all callbacks are done.
+  _clientCallbackQueue = callbackQueue ?: dispatch_get_main_queue();
+  _internalCallbackQueue =
+      dispatch_queue_create("GNCMBleCentralCallbackQueue", DISPATCH_QUEUE_PRIORITY_DEFAULT);
+  _callbacksEnabled = YES;
+
+  // Set up the central manager for scanning.
+  _centralManager =
+      [[CBCentralManager alloc] initWithDelegate:self
+                                           queue:_selfQueue
+                                         options:@{CBCentralManagerOptionShowPowerAlertKey : @NO}];
+
+  // Set up the central manager for the socket.
+  _socketCentralManager = [[GNSCentralManager alloc] initWithSocketServiceUUID:_serviceUUID
+                                                                         queue:_selfQueue];
+  _socketCentralManager.delegate = self;
+  [_socketCentralManager startNoScanModeWithAdvertisedServiceUUIDs:@[ _serviceUUID ]];
+
+  _centralState = GNCMCentralStateScanning;
   return YES;
 }
 
@@ -179,7 +217,7 @@ GNCIntHandler GNCRecursiveIntHandler(void (^block)(GNCIntHandler blockSelf, int 
 
 - (void)centralManagerDidUpdateState:(CBCentralManager *)central {
   if (central.state == CBManagerStatePoweredOn && !central.isScanning &&
-      _state == GNCMCentralStateScanning) {
+      _centralState == GNCMCentralStateScanning) {
     NSLog(@"[NEARBY] CBCentralManager powered on; starting scan");
     [self startScanningInternal];
   } else {
@@ -205,7 +243,8 @@ GNCIntHandler GNCRecursiveIntHandler(void (^block)(GNCIntHandler blockSelf, int 
   if (!info) {
     NSLog(@"[NEARBY] New peripheral: %@", peripheral);
     // This is a new peripheral, so create a new peripheral info object.
-    info = [[GNCMPeripheralInfo alloc] initWithPeripheral:peripheral];
+    info = [[GNCMPeripheralInfo alloc] initWithPeripheral:peripheral
+                                        advertisementData:advertisementData];
   } else {
     info.peripheral = peripheral;
   }
@@ -273,6 +312,11 @@ GNCIntHandler GNCRecursiveIntHandler(void (^block)(GNCIntHandler blockSelf, int 
       if (serviceIndex == peripheral.services.count) {
         NSLog(@"[NEARBY] Done traversing all services or no services to traverse.");
         _gattDiscoverResultHandler(_gattCharacteristicValues);
+        if (_gattCharacteristicValues.count > 0) {
+          CBCharacteristic *characteristic = [_gattCharacteristicValues objectAtIndex:0];
+          [strongSelf completeGATTReadWithData:characteristic.value
+                             forPeripheralInfo:peripheralInfo];
+        }
         return;
       }
 
@@ -305,8 +349,7 @@ GNCIntHandler GNCRecursiveIntHandler(void (^block)(GNCIntHandler blockSelf, int 
                 } else {
                   // We've found the characteristic and its non-nil value. Store it.
                   if (characteristic.value.length != 0) {
-                    [_gattCharacteristicValues setObject:characteristic.value
-                                                  forKey:characteristic.UUID];
+                    [_gattCharacteristicValues addObject:characteristic];
                   }
                   tryChar(charIndex + 1);
                 }
@@ -345,9 +388,95 @@ GNCIntHandler GNCRecursiveIntHandler(void (^block)(GNCIntHandler blockSelf, int 
   valueHandler(characteristic, error);
 }
 
+#pragma mark GNSCentralManagerDelegate
+
+- (void)centralManager:(GNSCentralManager *)centralManager
+       didDiscoverPeer:(GNSCentralPeerManager *)centralPeerManager
+     advertisementData:(nullable NSDictionary<NSString *, id> *)advertisementData {
+  if (!_callbacksEnabled) return;
+
+  // Retrieve the cached peripheral info.
+  NSUUID *peerId = centralPeerManager.identifier;
+  GNCMPeripheralInfo *peripheralInfo = _nearbyPeripheralsByID[peerId];
+  if (!peripheralInfo) return;
+
+  __weak __typeof__(self) weakSelf = self;
+  [self callbackAsync:^{
+    _requestConnectionHandler(^(NSString *serviceID, GNCMConnectionHandler connectionHandler) {
+      __strong __typeof__(self) strongSelf = weakSelf;
+      if (!strongSelf) return;
+
+      void (^callConnectionHandler)(GNSSocket *__nullable) = ^(GNSSocket *__nullable socket) {
+        __strong __typeof__(self) strongSelf = weakSelf;
+        if (!strongSelf->_callbacksEnabled) return;
+        [strongSelf callbackAsync:^{
+          if (!socket) {
+            NSLog(@"[NEARBY] Central failed to create BLE socket");
+            connectionHandler(nil);
+          } else {
+            GNCMBleConnection *connection =
+                [GNCMBleConnection connectionWithSocket:socket
+                                              serviceID:serviceID
+                                    expectedIntroPacket:NO
+                                          callbackQueue:strongSelf->_clientCallbackQueue];
+            connection.connectionHandlers = connectionHandler(connection);
+          }
+        }];
+      };
+
+      dispatch_async(strongSelf->_selfQueue, ^{
+        // A connection is being requested, so establish a BLE socket. Make sure to use the most
+        // up-to-date GNSCentralPeerManager in case the MAC address rotated. The cached
+        // peripheral info should be the single source of truth for which MAC address to use.
+        GNSCentralPeerManager *updatedCentralPeerManager =
+            [centralManager retrieveCentralPeerWithIdentifier:peripheralInfo.peripheral.identifier];
+        if (!updatedCentralPeerManager) {
+          callConnectionHandler(nil);
+        }
+
+        // Make a socket connection.
+        [updatedCentralPeerManager
+            socketWithPairingCharacteristic:NO
+                                 completion:^(GNSSocket *socket, NSError *error) {
+                                   __strong __typeof__(self) strongSelf = weakSelf;
+                                   if (!strongSelf) return;
+                                   dispatch_async(strongSelf->_selfQueue, ^{
+                                     if (!error) {
+                                       // Call the connection handler when the socket has
+                                       // connected or fails to connect.
+                                       GNCMWaitForConnection(socket, ^(BOOL didConnect) {
+                                         callConnectionHandler(didConnect ? socket : nil);
+                                       });
+                                     } else {
+                                       callConnectionHandler(nil);
+                                     }
+                                   });
+                                 }];
+      });
+    });
+  }];
+}
+
+- (void)centralManagerDidUpdateBleState:(GNSCentralManager *)centralManager {
+  // No op.
+}
+
 #pragma mark Private
 
-/** Signals the central manager to start scanning. Must be called on _selfQueue */
+/** This method assumes it's being called on selfQueue. */
+- (void)completeGATTReadWithData:(NSData *)advertisement
+               forPeripheralInfo:(GNCMPeripheralInfo *)peripheralInfo {
+  NSAssert(peripheralInfo, @"Nil peripheralInfo");
+  if (peripheralInfo) {
+    CBPeripheral *peripheral = peripheralInfo.peripheral;
+    NSUUID *peripheralID = peripheral.identifier;
+    // Store the data for the socket callback, and report the peripheral to the socket library.
+    [_socketCentralManager retrievePeripheralWithIdentifier:peripheralID
+                                          advertisementData:peripheralInfo.advertisementData];
+  }
+}
+
+/** Signals the central manager to start scanning. Must be called on _selfQueue. */
 - (void)startScanningInternal {
   if (![_centralManager isScanning]) {
     NSLog(@"[NEARBY] startScanningInternal");
@@ -362,10 +491,18 @@ GNCIntHandler GNCRecursiveIntHandler(void (^block)(GNCIntHandler blockSelf, int 
 - (void)stopScanningInternal {
   if ([_centralManager isScanning]) {
     NSLog(@"[NEARBY] stopScanningInternal");
-    _state = GNCMCentralStateStopped;
+    _centralState = GNCMCentralStateStopped;
 
     [_centralManager stopScan];
   }
+}
+
+/** Calls the specified block on the callback queue. */
+- (void)callbackAsync:(dispatch_block_t)block {
+  dispatch_queue_t clientCallbackQueue = _clientCallbackQueue;  // don't capture |self|
+  dispatch_async(_internalCallbackQueue, ^{
+    dispatch_sync(clientCallbackQueue, block);
+  });
 }
 
 @end

@@ -365,14 +365,18 @@ bool BleMedium::StartScanning(const Uuid& service_uuid, TxPowerLevel tx_power_le
   }
 
   [central_ startScanningWithServiceUUID:ObjCStringFromCppString(service_uuid.Get16BitAsString())
-                       scanResultHandler:^(NSString* peripheralID, NSData* serviceData) {
-                         BleAdvertisementData advertisement_data;
-                         advertisement_data.service_data = {
-                             {service_uuid, ByteArrayFromNSData(serviceData)}};
-                         BlePeripheral& peripheral = adapter_->GetPeripheral();
-                         peripheral.SetPeripheralId(CppStringFromObjCString(peripheralID));
-                         scan_callback.advertisement_found_cb(peripheral, advertisement_data);
-                       }];
+      scanResultHandler:^(NSString* peripheralID, NSData* serviceData) {
+        BleAdvertisementData advertisement_data;
+        advertisement_data.service_data = {{service_uuid, ByteArrayFromNSData(serviceData)}};
+        BlePeripheral& peripheral = adapter_->GetPeripheral();
+        peripheral.SetPeripheralId(CppStringFromObjCString(peripheralID));
+        scan_callback.advertisement_found_cb(peripheral, advertisement_data);
+      }
+      requestConnectionHandler:^(GNCMBleConnectionRequester connectionRequester) {
+        BlePeripheral& peripheral = adapter_->GetPeripheral();
+        peripheral.SetConnectionRequester(connectionRequester);
+      }
+      callbackQueue:callback_queue_];
 
   return true;
 }
@@ -426,41 +430,37 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(const std::string& se
                                                            TxPowerLevel tx_power_level,
                                                            api::ble_v2::BlePeripheral& peripheral,
                                                            CancellationFlag* cancellation_flag) {
-  GNCMConnectionRequester connection_requester = nil;
-  {
-    absl::MutexLock lock(&mutex_);
-    const auto& it = connection_requesters_.find(service_id);
-    if (it == connection_requesters_.end()) {
-      return {};
-    }
-    connection_requester = it->second;
-  }
+  NSString* serviceID = ObjCStringFromCppString(service_id);
+  __block std::unique_ptr<BleSocket> socket;
+  __block BlePeripheral ios_peripheral = static_cast<BlePeripheral&>(peripheral);
+  GNCMBleConnectionRequester connection_requester = ios_peripheral.GetConnectionRequester();
+  if (!connection_requester) return {};
 
   dispatch_group_t group = dispatch_group_create();
   dispatch_group_enter(group);
-  __block std::unique_ptr<BleSocket> socket;
-  __block BlePeripheral ios_peripheral = static_cast<BlePeripheral&>(peripheral);
-  if (connection_requester != nil) {
-    if (cancellation_flag->Cancelled()) {
-      NSLog(@"[NEARBY] BLE Connect: Has been cancelled: service_id=%@",
-            ObjCStringFromCppString(service_id));
-      dispatch_group_leave(group);  // unblock
-      return {};
+  if (cancellation_flag->Cancelled()) {
+    NSLog(@"[NEARBY] BLE Connect: Has been cancelled: service_id=%@", serviceID);
+    dispatch_group_leave(group);  // unblock
+    return {};
+  }
+
+  connection_requester(serviceID, ^(id<GNCMConnection> connection) {
+    // If the connection wasn't successfully established, return a NULL socket.
+    if (connection) {
+      socket = std::make_unique<BleSocket>(connection, &ios_peripheral);
     }
 
-    connection_requester(^(id<GNCMConnection> connection) {
-      // If the connection wasn't successfully established, return a NULL socket.
-      if (connection) {
-        socket = std::make_unique<BleSocket>(connection, &ios_peripheral);
-      }
-
-      dispatch_group_leave(group);  // unblock
-      return socket != nullptr
-                 ? static_cast<BleInputStream&>(socket->GetInputStream()).GetConnectionHandlers()
-                 : nullptr;
-    });
-  }
+    dispatch_group_leave(group);  // unblock
+    return socket != nullptr
+               ? static_cast<BleInputStream&>(socket->GetInputStream()).GetConnectionHandlers()
+               : nullptr;
+  });
   dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+
+  // Send the (empty) intro packet, which the BLE advertiser is expecting.
+  if (socket != nullptr) {
+    socket->GetOutputStream().Write(ByteArray());
+  }
 
   return std::move(socket);
 }
@@ -520,19 +520,18 @@ bool BleMedium::GattClient::DiscoverServiceAndCharacteristics(
   [central_ discoverGattService:serviceUUID
             gattCharacteristics:characteristicUUIDs
                    peripheralID:ObjCStringFromCppString(peripheral_id_)
-      gattDiscoverResultHandler:^(NSDictionary<CBUUID*, NSData*>* _Nullable characteristicValues) {
-        if (characteristicValues != nil) {
-          for (CBUUID* charUuid in characteristicValues) {
+      gattDiscoverResultHandler:^(NSOrderedSet<CBCharacteristic*>* _Nullable cb_characteristics) {
+        if (cb_characteristics != nil) {
+          for (CBCharacteristic* cb_characteristic in cb_characteristics) {
             Uuid characteristic_uuid;
-            auto const& it =
-                gatt_characteristics.find(CppStringFromObjCString(charUuid.UUIDString));
+            auto const& it = gatt_characteristics.find(
+                CppStringFromObjCString(cb_characteristic.UUID.UUIDString));
             if (it == gatt_characteristics.end()) continue;
 
             api::ble_v2::GattCharacteristic characteristic = {.uuid = it->second,
                                                               .service_uuid = service_uuid};
             gatt_characteristic_values_.insert(
-                {characteristic,
-                 ByteArrayFromNSData([characteristicValues objectForKey:charUuid])});
+                {characteristic, ByteArrayFromNSData(cb_characteristic.value)});
           }
         }
 
