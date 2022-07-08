@@ -151,3 +151,18 @@ lexan.cc_windows_dll(
         "@com_google_absl//absl/strings",
     ],
 )
+
+cc_test(
+    name = "connections_test",
+    size = "small",
+    srcs = [
+        "bluetooth_classic_server_socket_test.cc",
+    ],
+    deps = [
+        "//connections:core",
+        "//internal/platform:logging",
+        "//internal/platform/implementation/windows",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
