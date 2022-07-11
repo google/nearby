@@ -18,6 +18,8 @@ load(
 )
 load("//tools/build_defs/testing:bzl_library.bzl", "bzl_library")
 
+package(default_visibility = ["//location/nearby:__subpackages__"])
+
 licenses(["notice"])
 
 cc_library(
@@ -95,7 +97,6 @@ lexan.cc_windows_dll(
     defines = ["CORE_ADAPTER_DLL"],
     hdrs_deps = ["//connections:core"],
     tags = ["windows-dll"],
-    visibility = ["//location/nearby/testing:__subpackages__"],
     deps = [
         ":resources",
         "//third_party/dart_lang/v2:dart_api_dl",
