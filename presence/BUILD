@@ -20,12 +20,14 @@ cc_library(
     ],
     hdrs = [
         "presence_client.h",
+        "presence_service.h",
     ],
     visibility = [
         "//third_party/nearby:__subpackages__",
     ],
     deps = [
         ":types",
+        "//third_party/nearby/presence/implementation:internal",  # build_cleaner: keep
     ],
 )
 
@@ -146,10 +148,12 @@ cc_test(
     size = "small",
     srcs = [
         "presence_client_test.cc",
+        "presence_service_test.cc",
     ],
     shard_count = 6,
     deps = [
         ":presence",
+        "//internal/platform/implementation/g3",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

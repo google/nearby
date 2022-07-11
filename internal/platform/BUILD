@@ -30,6 +30,7 @@ cc_library(
         "bluetooth_utils.h",
         "byte_array.h",
         "callable.h",
+        "credential.h",
         "exception.h",
         "feature_flags.h",
         "input_stream.h",
@@ -343,6 +344,7 @@ cc_library(
         "ble_v2.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
+        "credential_storage.h",
         "wifi.h",
         "wifi_hotspot.h",
         "wifi_lan.h",
@@ -356,6 +358,7 @@ cc_library(
         "//internal/analytics:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
+        "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
         ":logging",

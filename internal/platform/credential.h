@@ -1,0 +1,131 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CREDENTIAL_H_
+#define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CREDENTIAL_H_
+
+#include <set>
+#include <string>
+#include <vector>
+
+namespace location {
+namespace nearby {
+
+enum class TrustType {
+  kUnspecified = 0,
+
+  // The same user itself.
+  kPrivate = 1,
+
+  // The user selects the contact from its contact list.
+  kTrusted = 2,
+
+  // For offline credentials and without dependence on Gaia account
+  kProvisioned = 3,
+
+  // For offline public identities and without dependence on Gaia account
+  kPublic = 4,
+};
+
+enum class DeviceType {
+  kUnspecified = 0,
+  kPhone = 1,
+  kTablet = 2,
+  kDisplay = 3,
+  kLaptop = 4,
+  kTV = 5,
+  kWatch = 6,
+};
+
+struct DeviceMetadata {
+  // Stable device identifier that does not rotate for a few months.
+  std::string stable_device_id;
+  // The account name which created the certificate.
+  std::string account_name;
+  // The name of the local device when the certificate is created.
+  std::string device_name;
+  // The icon url of the user whose device created the certificate.
+  std::string icon_url;
+  // The Bluetooth MAC address of the device which created the certificate.
+  std::string bluetooth_mac_address;
+  DeviceType device_type;
+};
+
+struct PrivateCredential {
+  TrustType trust_type;
+
+  // The unique id of (and hashed based on) a pair of secret
+  // key (PrivateCredential.verification_key) and X509Certificate's public
+  // key (PublicCredential.verification_key).
+  std::vector<uint8_t> secret_id;
+
+  // The aes key to encrypt personal fields in public certificates.
+  // A bytes representation of a Secret Key owned by contact, to decrypt the
+  // encrypted DeviceMetadata bytes stored within the advertisement.
+  std::vector<uint8_t> authenticity_key;
+
+  // Bytes representation of a public key of X509Certificate, used in
+  // handshake during contact verification phase.
+  std::vector<uint8_t> verification_key;
+
+  // The time in millis from epoch when this credential becomes effective.
+  int start_time;
+
+  //  The time in millis from epoch when this credential expires.
+  int end_time;
+
+  // The set of 2-byte salts already used to encrypt the metadata key.
+  std::set<std::vector<uint8_t>> consumed_salts;
+
+  // The aes key to encrypt DeviceMetadata in public credential.
+  std::vector<uint8_t> metadata_encryption_key;
+
+  DeviceMetadata device_metadata;
+};
+
+struct PublicCredential {
+  TrustType trust_type;
+
+  // The unique id of (and hashed based on) a pair of secret
+  // key (PrivateCredential.verification_key) and X509Certificate's public
+  // key (PublicCredential.verification_key).
+  std::vector<uint8_t> secret_id;
+
+  // Bytes representation of a Secret Key owned by contact, to decrypt the
+  // metadata_key stored within the advertisement.
+  std::vector<uint8_t> authenticity_key;
+
+  // Bytes representation of a public key of X509Certificate, used in
+  // handshake during contact verification phase.
+  std::vector<uint8_t> verification_key;
+
+  // The time in millis from epoch when this credential becomes effective.
+  int start_time;
+
+  //  The time in millis from epoch when this credential expires.
+  int end_time;
+
+  // The encrypted DeviceMetadata in bytes, contains personal information of the
+  // device/user who created this certificate. Needs to be decrypted into bytes,
+  // and converted back to DeviceMetadata instance to access fields.
+  std::vector<uint8_t> encrypted_metadata_bytes;
+
+  // The tag for verifying metadata_encryption_key.
+  std::vector<uint8_t> metadata_encryption_key_tag;
+};
+
+}  // namespace nearby
+}  // namespace location
+
+#endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CREDENTIAL_H_
