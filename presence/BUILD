@@ -44,6 +44,7 @@ cc_library(
     ],
     hdrs = [
         "broadcast_options.h",
+        "data_element.h",
         "device_motion.h",
         "discovery_filter.h",
         "discovery_options.h",
@@ -95,6 +96,17 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "action_factory",
+    srcs = ["action_factory.cc"],
+    hdrs = ["action_factory.h"],
+    deps = [
+        ":broadcast_request",
+        ":types",
+        "//internal/platform:logging",
+    ],
+)
+
 cc_test(
     name = "broadcast_request_test",
     size = "small",
@@ -114,6 +126,21 @@ cc_test(
     srcs = ["encryption_test.cc"],
     deps = [
         ":encryption",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "action_factory_test",
+    size = "small",
+    srcs = ["action_factory_test.cc"],
+    deps = [
+        ":action_factory",
+        ":broadcast_request",
+        ":types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
