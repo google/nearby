@@ -19,10 +19,7 @@ namespace nearby {
 namespace presence {
 class PresenceIdentity {
  public:
-  enum class IdentityType {
-    kPrivate = 0,
-    kTrusted,
-  };
+  enum class IdentityType { kPrivate = 0, kTrusted, kPublic, kProvisioned };
   PresenceIdentity(IdentityType type = IdentityType::kPrivate) noexcept;
   IdentityType GetIdentityType() const;
 
