@@ -669,6 +669,59 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnUpgradeFailure_FlagDisabled) {
   EXPECT_TRUE(fake_web_rtc_bwu_handler_->handle_revert_calls().empty());
 }
 
+TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Hotspot) {
+  FeatureFlags::GetMutableFlagsForTesting().support_multiple_bwu_mediums = true;
+
+  CreateInitialEndpoint(kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
+
+  ExceptionOr<OfflineFrame> hotspot_path_available_frame =
+      parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
+          /*ssid=*/"Direct-357a2d8c", /*password=*/"b592f7d3",
+          /*port=*/1234, /*gateway=*/"123.234.23.1", false));
+  OfflineFrame frame = hotspot_path_available_frame.result();
+  frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = frame.mutable_v1();
+  auto* sub_frame = v1_frame->mutable_bandwidth_upgrade_negotiation();
+  sub_frame->set_event_type(
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+  auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
+  upgrade_path_info->set_supports_client_introduction_ack(false);
+
+  bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+  CountDownLatch latch(1);
+  bwu_manager_->OnEndpointDisconnect(&client_, (std::string)kServiceIdA,
+                                     std::string(kEndpointId1), latch);
+
+  ASSERT_EQ(fake_wifi_hotspot_bwu_handler_->handle_revert_calls().size(), 1u);
+}
+
+TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Wlan) {
+  FeatureFlags::GetMutableFlagsForTesting().support_multiple_bwu_mediums = true;
+
+  CreateInitialEndpoint(kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
+
+  ExceptionOr<OfflineFrame> wlan_path_available_frame = parser::FromBytes(
+      parser::ForBwuWifiLanPathAvailable(/*ip_address=*/"ABCD",
+                                         /*port=*/1234));
+  OfflineFrame frame = wlan_path_available_frame.result();
+  frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = frame.mutable_v1();
+  auto* sub_frame = v1_frame->mutable_bandwidth_upgrade_negotiation();
+  sub_frame->set_event_type(
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+  auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
+  upgrade_path_info->set_supports_client_introduction_ack(false);
+
+  bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+  CountDownLatch latch(1);
+  bwu_manager_->OnEndpointDisconnect(&client_, (std::string)kServiceIdA,
+                                     std::string(kEndpointId1), latch);
+
+  ASSERT_EQ(fake_wifi_lan_bwu_handler_->handle_revert_calls().size(), 0u);
+}
+
 TEST_F(BwuManagerTest, OnReceiveBwuEvent) {
   // TODO(b/235109434): Add more unit tests coverage for BWU module
 }

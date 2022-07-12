@@ -75,6 +75,10 @@ void BaseBwuHandler::RevertInitiatorState(const std::string& upgrade_service_id,
   }
 }
 
+void BaseBwuHandler::RevertResponderState(const std::string& service_id) {
+  HandleRevertInitiatorStateForService(service_id);
+}
+
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location

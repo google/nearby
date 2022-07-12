@@ -374,12 +374,23 @@ void BwuManager::RevertBwuMediumForEndpoint(const std::string& service_id,
                     << endpoint_id;
   endpoint_id_to_bwu_medium_.erase(endpoint_id);
 
-  // If |service_id| isn't of the INITIATOR-upgrade format--for example, if this
-  // is called by the RESPONDER--there is no need to call RevertInitiatorState.
-  if (!IsInitiatorUpgradeServiceId(service_id)) return;
-
   BwuHandler* handler = GetHandlerForMedium(medium);
-  if (!handler) return;
+  if (!handler) {
+    NEARBY_LOGS(INFO) << "No BWU handler can be found for "
+                      << proto::connections::Medium_Name(medium);
+    return;
+  }
+  // If |service_id| isn't of the INITIATOR-upgrade format--for example, if this
+  // is called by the RESPONDER--there is no need to call RevertInitiatorState
+  // unless the BWU Medium is Hotspot. The client needs to disconnect from
+  // Hotspot, then it can restore the previous AP connection right away.
+  if (!IsInitiatorUpgradeServiceId(service_id)) {
+    if (medium == Medium::WIFI_HOTSPOT) {
+      handler->RevertResponderState(service_id);
+    }
+
+    return;
+  }
 
   handler->RevertInitiatorState(service_id, endpoint_id);
 }

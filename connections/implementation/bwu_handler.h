@@ -77,6 +77,8 @@ class BwuHandler {
   virtual void RevertInitiatorState(const std::string& service_id,
                                     const std::string& endpoint_id) = 0;
 
+  virtual void RevertResponderState(const std::string& service_id) = 0;
+
   // Called by the Responder to set up the upgraded medium for this endpoint (if
   // that hasn't already been done) using the UpgradePathInfo sent by the
   // Initiator, and returns a new EndpointChannel for the upgraded medium.

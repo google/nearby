@@ -40,6 +40,10 @@ class BaseBwuHandler : public BwuHandler {
   void RevertInitiatorState() final;
   void RevertInitiatorState(const std::string& upgrade_service_id,
                             const std::string& endpoint_id) final;
+  // If BWU Medium is Hotspot. The client needs to disconnect from Hotspot, then
+  // it can restore the previous AP connection right away. The following method
+  // is only for Hotspot Client
+  void RevertResponderState(const std::string& service_id) final;
 
  protected:
   // Invoked by InitializeUpgradedMediumForEndpoint and RevertInitiatorState,
