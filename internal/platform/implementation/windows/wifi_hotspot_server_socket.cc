@@ -12,6 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <windows.h>
+
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/logging.h"
@@ -19,9 +27,12 @@
 namespace location {
 namespace nearby {
 namespace windows {
-
 namespace {
-  constexpr int kMaxRetries = 3;
+
+using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
+
+constexpr int kMaxRetries = 3;
+
 }  // namespace
 
 WifiHotspotServerSocket::WifiHotspotServerSocket(int port) : port_(port) {}
@@ -53,6 +64,8 @@ int WifiHotspotServerSocket::GetPort() const {
 
 std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
   absl::MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << __func__ << ": Accept is called.";
+
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
   }
@@ -60,6 +73,8 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
 
   StreamSocket wifi_hotspot_socket = pending_sockets_.front();
   pending_sockets_.pop_front();
+
+  NEARBY_LOGS(INFO) << __func__ << ": Accepted a remote connection.";
   return std::make_unique<WifiHotspotSocket>(wifi_hotspot_socket);
 }
 
@@ -70,6 +85,8 @@ void WifiHotspotServerSocket::SetCloseNotifier(std::function<void()> notifier) {
 Exception WifiHotspotServerSocket::Close() {
   try {
     absl::MutexLock lock(&mutex_);
+    NEARBY_LOGS(INFO) << __func__ << ": Close is called.";
+
     if (closed_) {
       return {Exception::kSuccess};
     }
@@ -78,28 +95,32 @@ Exception WifiHotspotServerSocket::Close() {
       stream_socket_listener_.Close();
       stream_socket_listener_ = nullptr;
 
-      if (!pending_sockets_.empty()) {
-        auto it = pending_sockets_.begin();
-        while (it != pending_sockets_.end()) {
-          it->Close();
-        }
+      for (const auto &pending_socket : pending_sockets_) {
+        pending_socket.Close();
       }
 
-      cond_.SignalAll();
+      pending_sockets_ = {};
     }
 
     closed_ = true;
+    cond_.SignalAll();
     if (close_notifier_ != nullptr) {
       close_notifier_();
     }
+
+    NEARBY_LOGS(INFO) << __func__ << ": Close completed succesfully.";
     return {Exception::kSuccess};
   } catch (...) {
+    closed_ = true;
+    cond_.SignalAll();
+
+    NEARBY_LOGS(INFO) << __func__ << ": Failed to close server socket.";
     return {Exception::kIo};
   }
 }
 
 bool WifiHotspotServerSocket::listen() {
-  // Check IP address
+  // Get current IP addresses of the device.
   hotspot_ipaddr_ = GetHotspotIpAddresses();
 
   if (hotspot_ipaddr_.empty()) {
@@ -108,10 +129,15 @@ bool WifiHotspotServerSocket::listen() {
     return false;
   }
 
-  // Save connection callback
+  // Setup stream socket listener.
   stream_socket_listener_ = StreamSocketListener();
 
-  // Setup callback
+  stream_socket_listener_.Control().QualityOfService(
+      SocketQualityOfService::LowLatency);
+
+  stream_socket_listener_.Control().KeepAlive(true);
+
+  // Setup socket event of ConnectionReceived.
   listener_event_token_ = stream_socket_listener_.ConnectionReceived(
       {this, &WifiHotspotServerSocket::Listener_ConnectionReceived});
 
@@ -133,7 +159,7 @@ bool WifiHotspotServerSocket::listen() {
 
   try {
     stream_socket_listener_.BindServiceNameAsync({}).get();
-    // need to save the port information
+    // need to save the port information.
     port_ =
         std::stoi(stream_socket_listener_.Information().LocalPort().c_str());
     NEARBY_LOGS(INFO) << "Server Socket port: " << port_;
@@ -150,6 +176,7 @@ fire_and_forget WifiHotspotServerSocket::Listener_ConnectionReceived(
     StreamSocketListener listener,
     StreamSocketListenerConnectionReceivedEventArgs const &args) {
   absl::MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << __func__ << ": Received connection.";
 
   if (closed_) {
     return fire_and_forget{};
@@ -168,7 +195,6 @@ bool HasEnding(std::string const &full_string, std::string const &ending) {
     return false;
   }
 }
-
 
 std::vector<std::string> WifiHotspotServerSocket::GetIpAddresses() const {
   std::vector<std::string> result{};

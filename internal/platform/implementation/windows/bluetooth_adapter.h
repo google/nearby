@@ -19,6 +19,7 @@
 #include <windows.h>
 
 #include <functional>
+#include <optional>
 #include <string>
 
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -100,11 +101,15 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   std::string registry_bluetooth_adapter_name_;
 
   IRadio windows_bluetooth_radio_;
-  char *GetGenericBluetoothAdapterInstanceID(void) const;
+  char *GetGenericBluetoothAdapterInstanceID() const;
   void find_and_replace(char *source, const char *strFind,
                         const char *strReplace) const;
   ScanMode scan_mode_ = ScanMode::kNone;
   ScanModeCallback scan_mode_changed_ = nullptr;
+
+  // Used to fake the device name when the device name is longer than android
+  // limitation.
+  std::optional<std::string> device_name_;
 };
 
 }  // namespace windows

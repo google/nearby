@@ -15,31 +15,24 @@
 #include "internal/platform/implementation/windows/bluetooth_classic_server_socket.h"
 
 #include <codecvt>
+#include <functional>
 #include <locale>
+#include <memory>
 #include <string>
 
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
-#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
 
-BluetoothServerSocket::BluetoothServerSocket(const std::string service_name,
-                                             const std::string service_uuid)
-    : radio_discoverable_(false),
-      service_name_(service_name),
-      service_uuid_(service_uuid),
-      rfcomm_provider_(nullptr) {
-  InitializeCriticalSection(&critical_section_);
-}
+BluetoothServerSocket::BluetoothServerSocket(absl::string_view service_name)
+    : service_name_(service_name) {}
 
-BluetoothServerSocket::~BluetoothServerSocket() {}
+BluetoothServerSocket::~BluetoothServerSocket() { Close(); }
 
-// https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html#accept()
-//
 // Blocks until either:
 // - at least one incoming connection request is available, or
 // - ServerSocket is closed.
@@ -47,166 +40,106 @@ BluetoothServerSocket::~BluetoothServerSocket() {}
 // Returns nullptr on error.
 // Once error is reported, it is permanent, and ServerSocket has to be closed.
 std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
-  while (bluetooth_sockets_.empty() && !closed_) {
-    Sleep(1000);
+  absl::MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << __func__ << ": Accept is called.";
+
+  while (!closed_ && pending_sockets_.empty()) {
+    cond_.Wait(&mutex_);
   }
+  if (closed_) return nullptr;
 
-  EnterCriticalSection(&critical_section_);
-  if (!closed_) {
-    std::unique_ptr<BluetoothSocket> bluetoothSocket =
-        std::move(bluetooth_sockets_.front());
-    bluetooth_sockets_.pop();
-    LeaveCriticalSection(&critical_section_);
+  StreamSocket bluetooth_socket = pending_sockets_.front();
+  pending_sockets_.pop_front();
 
-    return std::move(bluetoothSocket);
-  } else {
-    bluetooth_sockets_ = {};
-    LeaveCriticalSection(&critical_section_);
-  }
-
-  return nullptr;
+  NEARBY_LOGS(INFO) << __func__ << ": Accepted a remote connection.";
+  return std::make_unique<BluetoothSocket>(bluetooth_socket);
 }
 
-Exception BluetoothServerSocket::StartListening(bool radioDiscoverable) {
-  EnterCriticalSection(&critical_section_);
+void BluetoothServerSocket::SetCloseNotifier(std::function<void()> notifier) {
+  close_notifier_ = std::move(notifier);
+}
 
-  radio_discoverable_ = radioDiscoverable;
+// Returns Exception::kIo on error, Exception::kSuccess otherwise.
+Exception BluetoothServerSocket::Close() {
+  try {
+    absl::MutexLock lock(&mutex_);
+    NEARBY_LOGS(INFO) << __func__ << ": Close is called.";
 
-  // Create the StreamSocketListener
+    if (closed_) {
+      return {Exception::kSuccess};
+    }
+
+    if (stream_socket_listener_ != nullptr) {
+      stream_socket_listener_.ConnectionReceived(listener_event_token_);
+      stream_socket_listener_.Close();
+      stream_socket_listener_ = nullptr;
+
+      for (const auto& pending_socket : pending_sockets_) {
+        pending_socket.Close();
+      }
+
+      pending_sockets_ = {};
+    }
+    closed_ = true;
+    cond_.SignalAll();
+
+    if (close_notifier_ != nullptr) {
+      close_notifier_();
+    }
+
+    NEARBY_LOGS(INFO) << __func__ << ": Close completed succesfully.";
+    return {Exception::kSuccess};
+  } catch (...) {
+    closed_ = true;
+    cond_.SignalAll();
+
+    NEARBY_LOGS(INFO) << __func__ << ": Failed to close server socket.";
+    return {Exception::kIo};
+  }
+}
+
+bool BluetoothServerSocket::listen() {
+  // Setup stream socket listener.
   stream_socket_listener_ = StreamSocketListener();
 
-  // Configure control property
   stream_socket_listener_.Control().QualityOfService(
       SocketQualityOfService::LowLatency);
 
   stream_socket_listener_.Control().KeepAlive(true);
 
-  // Note From the perspective of a StreamSocket, a Parallel Patterns Library
-  // (PPL) completion handler is done executing (and the socket is eligible for
-  // disposal) before the continuation body runs. So, to keep your socket from
-  // being disposed if you want to use it inside a continuation, you'll need to
-  // use one of the techniques described in References to StreamSockets in C++
-  // PPL continuations.
-  // Assign ConnectionReceived event to event handler on the server socket
-  stream_socket_listener_.ConnectionReceived(
-      [this](StreamSocketListener streamSocketListener,
-             StreamSocketListenerConnectionReceivedEventArgs args) {
-        EnterCriticalSection(&critical_section_);
-        if (!closed_) {
-          this->bluetooth_sockets_.push(
-              std::make_unique<BluetoothSocket>(args.Socket()));
-        }
-        LeaveCriticalSection(&critical_section_);
-      });
+  // Setup socket event of ConnectionReceived.
+  listener_event_token_ = stream_socket_listener_.ConnectionReceived(
+      {this, &BluetoothServerSocket::Listener_ConnectionReceived});
 
   try {
-    auto rfcommProviderRef =
-        RfcommServiceProvider::CreateAsync(
-            RfcommServiceId::FromUuid(winrt::guid(service_uuid_)))
-            .get();
-
-    rfcomm_provider_ = rfcommProviderRef;
-
     stream_socket_listener_
-        .BindServiceNameAsync(
-            winrt::to_hstring(rfcomm_provider_.ServiceId().AsString()),
-            SocketProtectionLevel::PlainSocket)
+        .BindServiceNameAsync(winrt::to_hstring(service_name_),
+                              SocketProtectionLevel::PlainSocket)
         .get();
 
-    // Set the SDP attributes and start Bluetooth advertising
-    InitializeServiceSdpAttributes(rfcomm_provider_, service_name_);
-  } catch (std::exception exception) {
-    // We will log and eat the exception since the caller
-    // expects nullptr if it fails
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception setting up for listen: "
-                       << exception.what();
-
-    LeaveCriticalSection(&critical_section_);
-
-    return {Exception::kFailed};
-  } catch (const winrt::hresult_error& ex) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Exception setting up for listen: " << ex.code()
-                       << ": " << winrt::to_string(ex.message());
-
-    LeaveCriticalSection(&critical_section_);
-
-    return {Exception::kFailed};
+    return true;
+  } catch (...) {
+    NEARBY_LOGS(WARNING) << "cannot accept connection on preferred port.";
   }
 
-  StartAdvertising();
-
-  LeaveCriticalSection(&critical_section_);
-
-  return {Exception::kSuccess};
+  return false;
 }
 
-Exception BluetoothServerSocket::StartAdvertising() {
-  try {
-    rfcomm_provider_.StartAdvertising(stream_socket_listener_,
-                                      radio_discoverable_);
-  } catch (std::exception exception) {
-    // We will log and eat the exception since the caller
-    // expects nullptr if it fails
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception calling StartAdvertising: "
-                       << exception.what();
+::winrt::fire_and_forget BluetoothServerSocket::Listener_ConnectionReceived(
+    StreamSocketListener listener,
+    StreamSocketListenerConnectionReceivedEventArgs const& args) {
+  absl::MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << __func__ << ": Received connection.";
 
-    LeaveCriticalSection(&critical_section_);
-
-    return {Exception::kFailed};
-  } catch (const winrt::hresult_error& ex) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Exception calling StartAdvertising: " << ex.code()
-                       << ": " << winrt::to_string(ex.message());
-
-    LeaveCriticalSection(&critical_section_);
-
-    return {Exception::kFailed};
-  }
-
-  return {Exception::kSuccess};
-}
-
-void BluetoothServerSocket::StopAdvertising() {
-  rfcomm_provider_.StopAdvertising();
-}
-
-void BluetoothServerSocket::InitializeServiceSdpAttributes(
-    RfcommServiceProvider rfcommProvider, std::string service_name) {
-  auto sdpWriter = DataWriter();
-
-  // Write the Service Name Attribute.
-  sdpWriter.WriteByte(Constants::SdpServiceNameAttributeType);
-
-  // The length of the UTF-8 encoded Service Name SDP Attribute.
-  sdpWriter.WriteByte(service_name.size());
-
-  // The UTF-8 encoded Service Name value.
-  sdpWriter.UnicodeEncoding(UnicodeEncoding::Utf8);
-  sdpWriter.WriteString(winrt::to_hstring(service_name));
-
-  // Set the SDP Attribute on the RFCOMM Service Provider.
-  rfcommProvider.SdpRawAttributes().Insert(Constants::SdpServiceNameAttributeId,
-                                           sdpWriter.DetachBuffer());
-}
-
-// https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html#close()
-//
-// Returns Exception::kIo on error, Exception::kSuccess otherwise.
-Exception BluetoothServerSocket::Close() {
-  EnterCriticalSection(&critical_section_);
   if (closed_) {
-    LeaveCriticalSection(&critical_section_);
-    return {Exception::kSuccess};
+    return ::winrt::fire_and_forget{};
   }
 
-  rfcomm_provider_.StopAdvertising();
-  closed_ = true;
-  bluetooth_sockets_ = {};
-  LeaveCriticalSection(&critical_section_);
-
-  return {Exception::kSuccess};
+  pending_sockets_.push_back(args.Socket());
+  cond_.SignalAll();
+  return ::winrt::fire_and_forget{};
 }
+
 }  // namespace windows
 }  // namespace nearby
 }  // namespace location

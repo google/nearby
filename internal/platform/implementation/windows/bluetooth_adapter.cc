@@ -147,6 +147,10 @@ bool BluetoothAdapter::SetScanMode(ScanMode scan_mode) {
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getName()
 // Returns an empty string on error
 std::string BluetoothAdapter::GetName() const {
+  if (device_name_.has_value()) {
+    return *device_name_;
+  }
+
   std::string instance_id(GetGenericBluetoothAdapterInstanceID());
 
   if (instance_id.empty()) {
@@ -217,8 +221,11 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
                           "Android cannot discover Windows bluetooth device "
                           "name that exceeded the 37 bytes limit (11 "
                           "characters in EndpointInfo).";
-    return false;
+    device_name_ = std::string(name);
+    return true;
   }
+
+  device_name_ = std::nullopt;
 
   if (registry_bluetooth_adapter_name_ == name) {
     NEARBY_LOGS(INFO)
