@@ -133,100 +133,129 @@ bool BleMedium::StartAdvertising(
     const std::string& fast_advertisement_service_uuid) {
   absl::MutexLock lock(&mutex_);
 
-  if (!adapter_->IsEnabled()) {
-    NEARBY_LOGS(WARNING) << "BLE cannot start advertising because the "
-                            "bluetooth adapter is not enabled.";
-    return false;
-  }
-
-  NEARBY_LOGS(INFO) << "Windows Ble StartAdvertising: service_id=" << service_id
-                    << ", advertisement bytes= 0x"
-                    << absl::BytesToHexString(advertisement_bytes.data()) << "("
-                    << advertisement_bytes.size() << "),"
-                    << " fast advertisement service uuid= 0x"
-                    << absl::BytesToHexString(fast_advertisement_service_uuid);
-
-  if (is_publisher_started_) {
-    NEARBY_LOGS(WARNING)
-        << "BLE cannot start to advertise again when it is running.";
-    return false;
-  }
-
-  DataWriter data_writer;
-
-  // TODO(b/234229562): Add parsing logic for fast_advertisement_service_uuid
-  // and insert into the 0x16 Service Data field in the BLE advertisement when
-  // Fast Advertisement is enabled. For Extended Advertising, use the same
-  // hardcoded Copresence service uuid 0xFEF3.
-
-  // Copresence Service UUID 0xfef3 (little-endian)
-  data_writer.WriteUInt16(kCopresenceServiceUuid);
-
-  for (int i = 0; i < advertisement_bytes.size(); ++i) {
-    data_writer.WriteByte(
-        static_cast<uint8_t>(*(advertisement_bytes.data() + i)));
-  }
-
-  BluetoothLEAdvertisementDataSection service_data =
-      BluetoothLEAdvertisementDataSection(0x16, data_writer.DetachBuffer());
-
-  IVector<BluetoothLEAdvertisementDataSection> data_sections =
-      advertisement_.DataSections();
-  data_sections.Append(service_data);
-  advertisement_.DataSections() = data_sections;
-
-  // Use Extended Advertising if Fast Advertisement Service Uuid is empty string
-  // because the long format advertisement will be used
-  if (fast_advertisement_service_uuid.empty()) {
-    publisher_ = BluetoothLEAdvertisementPublisher(advertisement_);
-    publisher_.UseExtendedAdvertisement(true);
-  } else {
-    // Extended Advertisement not supported, must make sure advertisement_bytes
-    // is less than 27 bytes
-    if (advertisement_bytes.size() <= 27) {
-      publisher_ = BluetoothLEAdvertisementPublisher(advertisement_);
-      publisher_.UseExtendedAdvertisement(false);
-    } else {
-      // otherwise no-op
-      NEARBY_LOGS(INFO) << "Everyone Mode unavailable for hardware that does "
-                           "not support Extended Advertising.";
-      publisher_ = nullptr;
+  try {
+    if (!adapter_->IsEnabled()) {
+      NEARBY_LOGS(WARNING) << "BLE cannot start advertising because the "
+                              "bluetooth adapter is not enabled.";
       return false;
     }
+
+    NEARBY_LOGS(INFO) << "Windows Ble StartAdvertising: service_id="
+                      << service_id << ", advertisement bytes= 0x"
+                      << absl::BytesToHexString(advertisement_bytes.data())
+                      << "(" << advertisement_bytes.size() << "),"
+                      << " fast advertisement service uuid= 0x"
+                      << absl::BytesToHexString(
+                             fast_advertisement_service_uuid);
+
+    if (is_publisher_started_) {
+      NEARBY_LOGS(WARNING)
+          << "BLE cannot start to advertise again when it is running.";
+      return false;
+    }
+
+    DataWriter data_writer;
+
+    // TODO(b/234229562): Add parsing logic for fast_advertisement_service_uuid
+    // and insert into the 0x16 Service Data field in the BLE advertisement when
+    // Fast Advertisement is enabled. For Extended Advertising, use the same
+    // hardcoded Copresence service uuid 0xFEF3.
+
+    // Copresence Service UUID 0xfef3 (little-endian)
+    data_writer.WriteUInt16(kCopresenceServiceUuid);
+
+    for (int i = 0; i < advertisement_bytes.size(); ++i) {
+      data_writer.WriteByte(
+          static_cast<uint8_t>(*(advertisement_bytes.data() + i)));
+    }
+
+    BluetoothLEAdvertisementDataSection service_data =
+        BluetoothLEAdvertisementDataSection(0x16, data_writer.DetachBuffer());
+
+    IVector<BluetoothLEAdvertisementDataSection> data_sections =
+        advertisement_.DataSections();
+    data_sections.Append(service_data);
+    advertisement_.DataSections() = data_sections;
+
+    // Use Extended Advertising if Fast Advertisement Service Uuid is empty
+    // string because the long format advertisement will be used
+    if (fast_advertisement_service_uuid.empty()) {
+      publisher_ = BluetoothLEAdvertisementPublisher(advertisement_);
+      publisher_.UseExtendedAdvertisement(true);
+    } else {
+      // Extended Advertisement not supported, must make sure
+      // advertisement_bytes is less than 27 bytes
+      if (advertisement_bytes.size() <= 27) {
+        publisher_ = BluetoothLEAdvertisementPublisher(advertisement_);
+        publisher_.UseExtendedAdvertisement(false);
+      } else {
+        // otherwise no-op
+        NEARBY_LOGS(INFO) << "Everyone Mode unavailable for hardware that does "
+                             "not support Extended Advertising.";
+        publisher_ = nullptr;
+        return false;
+      }
+    }
+    publisher_token_ =
+        publisher_.StatusChanged({this, &BleMedium::PublisherHandler});
+
+    publisher_.Start();
+
+    is_publisher_started_ = true;
+    NEARBY_LOGS(INFO) << "Windows Ble StartAdvertising started.";
+    return true;
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception to start BLE advertising: "
+                       << exception.what();
+
+    return false;
+  } catch (const winrt::hresult_error& ex) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Exception to start BLE advertising: " << ex.code()
+                       << ": " << winrt::to_string(ex.message());
+
+    return false;
   }
-  publisher_token_ =
-      publisher_.StatusChanged({this, &BleMedium::PublisherHandler});
-
-  publisher_.Start();
-
-  is_publisher_started_ = true;
-  NEARBY_LOGS(INFO) << "Windows Ble StartAdvertising started.";
-  return true;
 }
 
 bool BleMedium::StopAdvertising(const std::string& service_id) {
   absl::MutexLock lock(&mutex_);
-  if (!adapter_->IsEnabled()) {
-    NEARBY_LOGS(WARNING) << "BLE cannot stop advertising because the "
-                            "bluetooth adapter is not enabled.";
+
+  try {
+    if (!adapter_->IsEnabled()) {
+      NEARBY_LOGS(WARNING) << "BLE cannot stop advertising because the "
+                              "bluetooth adapter is not enabled.";
+      return false;
+    }
+
+    NEARBY_LOGS(INFO) << "Windows Ble StopAdvertising: service_id="
+                      << service_id;
+
+    if (!is_publisher_started_) {
+      NEARBY_LOGS(WARNING) << "BLE advertising is not running.";
+      return false;
+    }
+
+    publisher_.Stop();
+
+    // Don't need to wait for the status becomes to `Stopped`. If application
+    // starts to scanning immediately, the scanning still needs to wait the
+    // stopping to finish.
+    is_publisher_started_ = false;
+
+    return true;
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception to stop BLE advertising: "
+                       << exception.what();
+
+    return false;
+  } catch (const winrt::hresult_error& ex) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Exception to stop BLE advertising: " << ex.code()
+                       << ": " << winrt::to_string(ex.message());
+
     return false;
   }
-
-  NEARBY_LOGS(INFO) << "Windows Ble StopAdvertising: service_id=" << service_id;
-
-  if (!is_publisher_started_) {
-    NEARBY_LOGS(WARNING) << "BLE advertising is not running.";
-    return false;
-  }
-
-  publisher_.Stop();
-
-  // Don't need to wait for the status becomes to `Stopped`. If application
-  // starts to scanning immediately, the scanning still needs to wait the
-  // stopping to finish.
-  is_publisher_started_ = false;
-
-  return true;
 }
 
 bool BleMedium::StartScanning(
@@ -235,72 +264,98 @@ bool BleMedium::StartScanning(
     DiscoveredPeripheralCallback callback) {
   absl::MutexLock lock(&mutex_);
 
-  if (!adapter_->IsEnabled()) {
-    NEARBY_LOGS(WARNING) << "BLE cannot start scanning because the "
-                            "bluetooth adapter is not enabled.";
+  try {
+    if (!adapter_->IsEnabled()) {
+      NEARBY_LOGS(WARNING) << "BLE cannot start scanning because the "
+                              "bluetooth adapter is not enabled.";
+      return false;
+    }
+
+    NEARBY_LOGS(INFO) << "Windows Ble StartScanning: service_id=" << service_id;
+
+    if (is_watcher_started_) {
+      NEARBY_LOGS(WARNING)
+          << "BLE cannot start to scan again when it is running.";
+      return false;
+    }
+
+    service_id_ = service_id;
+    advertisement_received_callback_ = std::move(callback);
+
+    watcher_ = BluetoothLEAdvertisementWatcher();
+    watcher_token_ = watcher_.Stopped({this, &BleMedium::WatcherHandler});
+    advertisement_received_token_ =
+        watcher_.Received({this, &BleMedium::AdvertisementReceivedHandler});
+
+    if (adapter_->IsExtendedAdvertisingSupported()) {
+      watcher_.AllowExtendedAdvertisements(true);
+    }
+    // Active mode indicates that scan request packets will be sent to query for
+    // Scan Response
+    watcher_.ScanningMode(BluetoothLEScanningMode::Active);
+    ::winrt::Windows::Devices::Bluetooth::BluetoothSignalStrengthFilter filter;
+    filter.SamplingInterval(TimeSpan(std::chrono::seconds(2)));
+    watcher_.SignalStrengthFilter(filter);
+    watcher_.Start();
+
+    is_watcher_started_ = true;
+
+    NEARBY_LOGS(INFO) << "Windows Ble StartScanning started.";
+    return true;
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception to start BLE scanning: "
+                       << exception.what();
+
+    return false;
+  } catch (const winrt::hresult_error& ex) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Exception to start BLE scanning: " << ex.code()
+                       << ": " << winrt::to_string(ex.message());
+
     return false;
   }
-
-  NEARBY_LOGS(INFO) << "Windows Ble StartScanning: service_id=" << service_id;
-
-  if (is_watcher_started_) {
-    NEARBY_LOGS(WARNING)
-        << "BLE cannot start to scan again when it is running.";
-    return false;
-  }
-
-  service_id_ = service_id;
-  advertisement_received_callback_ = std::move(callback);
-
-  watcher_ = BluetoothLEAdvertisementWatcher();
-  watcher_token_ = watcher_.Stopped({this, &BleMedium::WatcherHandler});
-  advertisement_received_token_ =
-      watcher_.Received({this, &BleMedium::AdvertisementReceivedHandler});
-
-  if (adapter_->IsExtendedAdvertisingSupported()) {
-    watcher_.AllowExtendedAdvertisements(true);
-  }
-  // Active mode indicates that scan request packets will be sent to query for
-  // Scan Response
-  watcher_.ScanningMode(BluetoothLEScanningMode::Active);
-  ::winrt::Windows::Devices::Bluetooth::BluetoothSignalStrengthFilter filter;
-  filter.SamplingInterval(TimeSpan(std::chrono::seconds(2)));
-  watcher_.SignalStrengthFilter(filter);
-  watcher_.Start();
-
-  is_watcher_started_ = true;
-
-  NEARBY_LOGS(INFO) << "Windows Ble StartScanning started.";
-  return true;
 }
 
 bool BleMedium::StopScanning(const std::string& service_id) {
   absl::MutexLock lock(&mutex_);
 
-  if (!adapter_->IsEnabled()) {
-    NEARBY_LOGS(WARNING) << "BLE cannot stop scanning because the "
-                            "bluetooth adapter is not enabled.";
+  try {
+    if (!adapter_->IsEnabled()) {
+      NEARBY_LOGS(WARNING) << "BLE cannot stop scanning because the "
+                              "bluetooth adapter is not enabled.";
+      return false;
+    }
+
+    NEARBY_LOGS(INFO) << "Windows Ble StopScanning: service_id=" << service_id;
+
+    if (!is_watcher_started_) {
+      NEARBY_LOGS(WARNING) << "BLE scanning is not running.";
+      return false;
+    }
+
+    watcher_.Stop();
+
+    // Don't need to wait for the status becomes to `Stopped`. If application
+    // starts to scanning immediately, the scanning still needs to wait the
+    // stopping to finish.
+    is_watcher_started_ = false;
+
+    NEARBY_LOGS(ERROR)
+        << "Windows Ble stoped scanning successfully for service_id="
+        << service_id;
+    return true;
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception to stop BLE scanning: "
+                       << exception.what();
+
+    return false;
+  } catch (const winrt::hresult_error& ex) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Exception to stop BLE scanning: " << ex.code()
+                       << ": " << winrt::to_string(ex.message());
+
     return false;
   }
-
-  NEARBY_LOGS(INFO) << "Windows Ble StopScanning: service_id=" << service_id;
-
-  if (!is_watcher_started_) {
-    NEARBY_LOGS(WARNING) << "BLE scanning is not running.";
-    return false;
-  }
-
-  watcher_.Stop();
-
-  // Don't need to wait for the status becomes to `Stopped`. If application
-  // starts to scanning immediately, the scanning still needs to wait the
-  // stopping to finish.
-  is_watcher_started_ = false;
-
-  NEARBY_LOGS(ERROR)
-      << "Windows Ble stoped scanning successfully for service_id="
-      << service_id;
-  return true;
 }
 
 bool BleMedium::StartAcceptingConnections(const std::string& service_id,
