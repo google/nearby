@@ -71,6 +71,7 @@ message ConnectionRequestFrame {
     WIFI_DIRECT = 8;
     WEB_RTC = 9;
     BLE_L2CAP = 10;
+    USB = 11;
   }
   // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
 
@@ -196,6 +197,8 @@ message BandwidthUpgradeNegotiationFrame {
       NFC = 7;
       WIFI_DIRECT = 8;
       WEB_RTC = 9;
+      // 10 is reserved.
+      USB = 11;
     }
 
     // Accompanies Medium.WIFI_HOTSPOT.

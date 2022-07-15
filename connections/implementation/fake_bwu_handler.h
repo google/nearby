@@ -147,6 +147,7 @@ class FakeBwuHandler : public BaseBwuHandler {
       case proto::connections::NFC:
       case proto::connections::WIFI_DIRECT:
       case proto::connections::BLE_L2CAP:
+      case proto::connections::USB:
         return ByteArray{};
     }
   }

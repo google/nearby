@@ -79,6 +79,7 @@ enum Medium {
   WIFI_DIRECT = 8;
   WEB_RTC = 9;
   BLE_L2CAP = 10;
+  USB = 11;
 }
 // LINT.ThenChange(
 //     //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/Medium.java,
