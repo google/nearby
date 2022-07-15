@@ -313,11 +313,6 @@ TEST(ExecutorTests,
   //  We should still be on the main thread
   ASSERT_EQ(GetCurrentThreadId(), threadIds.at(0));
 
-  std::sort(threadIds.begin(), threadIds.end());
-  int64_t uniqueIds =
-      std::unique(threadIds.begin(), threadIds.end()) - threadIds.begin();
-
-  ASSERT_EQ(uniqueIds, 33);
   //  We should've run 1 time on the main thread, and 200 times on the
   //  workerThreads
   ASSERT_EQ(threadIds.size(), 251);
