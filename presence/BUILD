@@ -84,6 +84,9 @@ cc_library(
     name = "encryption",
     srcs = ["encryption.cc"],
     hdrs = ["encryption.h"],
+    visibility = [
+        "//third_party/nearby/presence:__subpackages__",
+    ],
     deps = [
         "//internal/platform:logging",
         "//third_party/tink/cc/subtle",
