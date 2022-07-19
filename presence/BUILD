@@ -137,6 +137,14 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "credential",
+    hdrs = ["credential.h"],
+    visibility = [
+        "//third_party/nearby:__subpackages__",
+    ],
+)
+
 cc_test(
     name = "advertisement_factory_test",
     size = "small",

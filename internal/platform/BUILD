@@ -30,7 +30,6 @@ cc_library(
         "bluetooth_utils.h",
         "byte_array.h",
         "callable.h",
-        "credential.h",
         "exception.h",
         "feature_flags.h",
         "input_stream.h",

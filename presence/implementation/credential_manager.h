@@ -19,14 +19,14 @@
 #include <string>
 #include <vector>
 
-#include "internal/platform/credential.h"
 #include "internal/platform/credential_storage.h"
+#include "third_party/nearby/presence/credential.h"
 
 namespace nearby {
 namespace presence {
 
 struct GenerateCredentialsCallback {
-  std::function<void(std::vector<location::nearby::PublicCredential>)>
+  std::function<void(std::vector<PublicCredential>)>
       credentials_generated_cb;
 };
 
@@ -52,14 +52,13 @@ class CredentialManager {
   // The user’s own public credentials won’t be saved on local credential
   // storage.
   void GenerateCredentials(
-      location::nearby::DeviceMetadata device_metadata,
-      std::vector<location::nearby::TrustType> trust_types,
+      DeviceMetadata device_metadata, std::vector<TrustType> trust_types,
       GenerateCredentialsCallback credentials_generated_cb);
 
   // Update remote public credentials.
   void UpdateRemotePublicCredentials(
       std::string account_name,
-      std::vector<location::nearby::PublicCredential> remote_public_creds,
+      std::vector<PublicCredential> remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb);
 
   // Used to fetch private creds when broadcasting.

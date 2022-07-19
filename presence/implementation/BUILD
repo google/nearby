@@ -30,6 +30,7 @@ cc_library(
     deps = [
         "//internal/platform:base",
         "//internal/platform:comm",
+        "//third_party/nearby/presence:credential",
         "//third_party/nearby/presence/implementation/mediums",
     ],
 )

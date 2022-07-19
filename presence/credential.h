@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CREDENTIAL_H_
-#define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CREDENTIAL_H_
+#ifndef THIRD_PARTY_NEARBY_PRESENCE_CREDENTIAL_H_
+#define THIRD_PARTY_NEARBY_PRESENCE_CREDENTIAL_H_
 
 #include <set>
 #include <string>
 #include <vector>
 
-namespace location {
 namespace nearby {
+namespace presence {
 
 enum class TrustType {
   kUnspecified = 0,
@@ -125,7 +125,7 @@ struct PublicCredential {
   std::vector<uint8_t> metadata_encryption_key_tag;
 };
 
+}  // namespace presence
 }  // namespace nearby
-}  // namespace location
 
-#endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CREDENTIAL_H_
+#endif  // THIRD_PARTY_NEARBY_PRESENCE_CREDENTIAL_H_
