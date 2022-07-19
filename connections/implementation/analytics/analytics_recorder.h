@@ -164,10 +164,16 @@ class AnalyticsRecorder {
   // Error Code
   void OnErrorCode(const ErrorCodeParams &params);
 
+  // Log the start client session event with start client session logging
+  // resouces setup (e.g. client_session_, started_client_session_time_)
+  void LogStartSession() ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Invokes event_logger_.Log() at the end of life of client. Log action is
   // called in a separate thread to allow synchronous potentially lengthy
   // execution.
   void LogSession() ABSL_LOCKS_EXCLUDED(mutex_);
+
+  bool IsSessionLogged();
 
  private:
   // Tracks the chunks and duration of a Payload on a particular medium.
@@ -267,7 +273,7 @@ class AnalyticsRecorder {
         outgoing_payloads_;
   };
 
-  bool CanRecordAnalyticsLocked(const std::string &method_name)
+  bool CanRecordAnalyticsLocked(absl::string_view method_name)
       ABSL_SHARED_LOCKS_REQUIRED(mutex_);
 
   // Callbacks the ConnectionsLog proto byte array data to the EventLogger with
@@ -314,6 +320,10 @@ class AnalyticsRecorder {
       bool erase_item = true) ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void FinishStrategySessionLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
+  // Reset the client cession's logging resources (e.g. current_strategy_,
+  // current_advertising_phase_, current_discovery_phase_, etc)
+  void ResetClientSessionLoggingResouces();
+
   location::nearby::proto::connections::ConnectionsStrategy
   StrategyToConnectionStrategy(connections::Strategy strategy);
   location::nearby::proto::connections::PayloadType
@@ -328,10 +338,10 @@ class AnalyticsRecorder {
   Mutex mutex_;
 
   // ClientSession
-  std::unique_ptr<proto::ConnectionsLog::ClientSession> client_session_ =
-      std::make_unique<proto::ConnectionsLog::ClientSession>();
+  std::unique_ptr<proto::ConnectionsLog::ClientSession> client_session_;
   absl::Time started_client_session_time_;
   bool session_was_logged_ ABSL_GUARDED_BY(mutex_) = false;
+  bool start_client_session_was_logged_ ABSL_GUARDED_BY(mutex_) = false;
 
   // Current StrategySession
   connections::Strategy current_strategy_ ABSL_GUARDED_BY(mutex_) =

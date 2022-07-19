@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -33,6 +34,7 @@ namespace analytics {
 
 namespace {
 const char kVersion[] = "v1.0.0";
+constexpr absl::string_view kOnStartClientSession = "OnStartClientSession";
 }  // namespace
 
 using ::location::nearby::analytics::proto::ConnectionsLog;
@@ -88,21 +90,41 @@ using ::nearby::analytics::EventLogger;
 
 AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger)
     : event_logger_(event_logger) {
-  started_client_session_time_ = SystemClock::ElapsedRealtime();
-  NEARBY_LOGS(INFO) << "AnalyticsRecorder ctor event_logger_=" << event_logger_;
-  MutexLock lock(&mutex_);
-  if (CanRecordAnalyticsLocked("OnStartClientSession")) {
-    LogEvent(START_CLIENT_SESSION);
-  }
+  NEARBY_LOGS(INFO) << "Start AnalyticsRecorder ctor event_logger_="
+                    << event_logger_;
+  LogStartSession();
 }
 
 AnalyticsRecorder::~AnalyticsRecorder() {
+  serial_executor_.Shutdown();
+  ResetClientSessionLoggingResouces();
+}
+
+bool AnalyticsRecorder::IsSessionLogged() {
   MutexLock lock(&mutex_);
+  return session_was_logged_;
+}
+
+void AnalyticsRecorder::ResetClientSessionLoggingResouces() {
+  MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << "Reset AnalyticsRecorder ctor event_logger_="
+                    << event_logger_;
+
   incoming_connection_requests_.clear();
   outgoing_connection_requests_.clear();
   active_connections_.clear();
   bandwidth_upgrade_attempts_.clear();
-  serial_executor_.Shutdown();
+
+  client_session_ = nullptr;
+  session_was_logged_ = true;
+  start_client_session_was_logged_ = false;
+  current_strategy_ =
+      connections::Strategy::kNone;  // Need to reset since the same strategy
+                                     // should be logged separately for
+                                     // different client sessions.
+  current_strategy_session_ = nullptr;
+  current_advertising_phase_ = nullptr;
+  current_discovery_phase_ = nullptr;
 }
 
 void AnalyticsRecorder::OnStartAdvertising(
@@ -163,8 +185,7 @@ void AnalyticsRecorder::OnStartDiscovery(
 
   // Initialize and set a DiscoveryPhase.
   started_discovery_phase_time_ = SystemClock::ElapsedRealtime();
-  current_discovery_phase_ =
-      std::make_unique<ConnectionsLog::DiscoveryPhase>();
+  current_discovery_phase_ = std::make_unique<ConnectionsLog::DiscoveryPhase>();
   absl::c_copy(mediums, RepeatedFieldBackInserter(
                             current_discovery_phase_->mutable_medium()));
   // Set a DiscoveryMetadata.
@@ -632,6 +653,26 @@ void AnalyticsRecorder::OnErrorCode(const ErrorCodeParams &params) {
       });
 }
 
+void AnalyticsRecorder::LogStartSession() {
+  MutexLock lock(&mutex_);
+  if (start_client_session_was_logged_) {
+    NEARBY_LOGS(WARNING)
+        << "AnalyticsRecorder CanRecordAnalytics Unexpected call "
+        << kOnStartClientSession
+        << " after start client session has already been logged.";
+    return;
+  }
+
+  session_was_logged_ = false;
+  if (CanRecordAnalyticsLocked(kOnStartClientSession)) {
+    client_session_ =
+        std::make_unique<proto::ConnectionsLog::ClientSession>();
+    started_client_session_time_ = SystemClock::ElapsedRealtime();
+    start_client_session_was_logged_ = true;
+    LogEvent(START_CLIENT_SESSION);
+  }
+}
+
 void AnalyticsRecorder::LogSession() {
   MutexLock lock(&mutex_);
   if (!CanRecordAnalyticsLocked("LogSession")) {
@@ -668,7 +709,7 @@ AnalyticsRecorder::BuildConnectionAttemptMetadataParams(
 }
 
 bool AnalyticsRecorder::CanRecordAnalyticsLocked(
-    const std::string &method_name) {
+    absl::string_view method_name) {
   NEARBY_LOGS(VERBOSE) << "AnalyticsRecorder LogEvent " << method_name
                        << " is calling.";
   if (event_logger_ == nullptr) {
@@ -681,6 +722,7 @@ bool AnalyticsRecorder::CanRecordAnalyticsLocked(
         << method_name << " after session has already been logged.";
     return false;
   }
+
   return true;
 }
 
@@ -697,6 +739,7 @@ void AnalyticsRecorder::LogClientSession() {
             << connections_log.DebugString();
 
         event_logger_->Log(connections_log);
+        ResetClientSessionLoggingResouces();
       });
 }
 
@@ -717,7 +760,7 @@ void AnalyticsRecorder::UpdateStrategySessionLocked(
     connections::Strategy strategy, SessionRole role) {
   // If we're not switching strategies, just update the current StrategySession
   // with the new role.
-  if (strategy == current_strategy_) {
+  if (strategy == current_strategy_ && current_strategy_session_ != nullptr) {
     if (absl::c_linear_search(current_strategy_session_->role(), role)) {
       // We've already acted as this role before, so make sure we've finished
       // recording the previous round.

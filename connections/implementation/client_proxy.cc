@@ -17,10 +17,12 @@
 #include <cstdlib>
 #include <functional>
 #include <limits>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
 
+#include "internal/analytics/event_logger.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
@@ -104,7 +106,6 @@ void ClientProxy::Reset() {
   StoppedDiscovery();
   RemoveAllEndpoints();
   ExitHighVisibilityMode();
-  analytics_recorder_->LogSession();
 }
 
 void ClientProxy::StartedAdvertising(
@@ -143,7 +144,7 @@ void ClientProxy::StoppedAdvertising() {
     analytics_recorder_->OnStopAdvertising();
   }
   // advertising_options_ is purposefully not cleared here.
-  ResetLocalEndpointIdIfNeeded();
+  OnSessionComplete();
 
   ExitHighVisibilityMode();
 }
@@ -182,7 +183,7 @@ void ClientProxy::StoppedDiscovery() {
     analytics_recorder_->OnStopDiscovery();
   }
   // discovery_options_ is purposefully not cleared here.
-  ResetLocalEndpointIdIfNeeded();
+  OnSessionComplete();
 }
 
 bool ClientProxy::IsDiscoveringServiceId(const std::string& service_id) const {
@@ -357,7 +358,7 @@ void ClientProxy::OnDisconnected(const std::string& endpoint_id, bool notify) {
       item->connection_listener.disconnected_cb({endpoint_id});
     }
     connections_.erase(endpoint_id);
-    ResetLocalEndpointIdIfNeeded();
+    OnSessionComplete();
   }
 
   CancelEndpoint(endpoint_id);
@@ -657,13 +658,16 @@ void ClientProxy::RemoveAllEndpoints() {
   // just remove without notifying.
   connections_.clear();
   cancellation_flags_.clear();
-  local_endpoint_id_.clear();
+  OnSessionComplete();
 }
 
-void ClientProxy::ResetLocalEndpointIdIfNeeded() {
+void ClientProxy::OnSessionComplete() {
   MutexLock lock(&mutex_);
   if (connections_.empty() && !IsAdvertising() && !IsDiscovering()) {
     local_endpoint_id_.clear();
+
+    analytics_recorder_->LogSession();
+    analytics_recorder_->LogStartSession();
   }
 }
 

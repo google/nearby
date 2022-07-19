@@ -55,6 +55,7 @@ using ::location::nearby::proto::connections::LOCAL_DISCONNECTION;
 using ::location::nearby::proto::connections::Medium;
 using ::location::nearby::proto::connections::RESULT_ERROR;
 using ::location::nearby::proto::connections::RESULT_SUCCESS;
+using ::location::nearby::proto::connections::START_CLIENT_SESSION;
 using ::location::nearby::proto::connections::START_STRATEGY_SESSION;
 using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
 using ::location::nearby::proto::connections::STOP_STRATEGY_SESSION;
@@ -67,6 +68,7 @@ using ::location::nearby::proto::connections::WIFI_LAN_SOCKET_CREATION;
 using ::nearby::analytics::EventLogger;
 using ::testing::Contains;
 using ::protobuf_matchers::EqualsProto;
+using ::testing::Not;
 using ::testing::proto::Partially;
 
 constexpr absl::Duration kDefaultTimeout = absl::Milliseconds(1000);
@@ -75,6 +77,12 @@ class FakeEventLogger : public EventLogger {
  public:
   explicit FakeEventLogger(CountDownLatch& client_session_done_latch)
       : client_session_done_latch_(client_session_done_latch) {}
+
+  FakeEventLogger(CountDownLatch& client_session_done_latch,
+                  CountDownLatch* start_client_session_done_latch_ptr)
+      : client_session_done_latch_(client_session_done_latch),
+        start_client_session_done_latch_ptr_(
+            start_client_session_done_latch_ptr) {}
 
   void Log(const ::google::protobuf::MessageLite& message) override {
     auto connections_log = dynamic_cast<const proto::ConnectionsLog*>(&message);
@@ -94,6 +102,10 @@ class FakeEventLogger : public EventLogger {
     if (event_type == STOP_CLIENT_SESSION) {
       client_session_done_latch_.CountDown();
     }
+    if (start_client_session_done_latch_ptr_ != nullptr &&
+        event_type == START_CLIENT_SESSION) {
+      start_client_session_done_latch_ptr_->CountDown();
+    }
   }
 
   int GetLoggedClientSessionCount() const {
@@ -108,14 +120,27 @@ class FakeEventLogger : public EventLogger {
 
   std::vector<EventType> GetLoggedEventTypes() { return logged_event_types_; }
 
+  void SetClientSessionDoneLatch(
+      const CountDownLatch& client_session_done_latch) {
+    client_session_done_latch_ = client_session_done_latch;
+  }
+
+  void SetStartClientSessionDoneLatchPtr(
+      CountDownLatch* start_client_session_done_latch_ptr) {
+    start_client_session_done_latch_ptr_ = start_client_session_done_latch_ptr;
+  }
+
  private:
   int logged_client_session_count_ = 0;
   CountDownLatch& client_session_done_latch_;
+  CountDownLatch* start_client_session_done_latch_ptr_ = nullptr;
   ConnectionsLog::ClientSession logged_client_session_;
   ConnectionsLog::ErrorCode error_code_;
   std::vector<EventType> logged_event_types_;
 };
 
+// Test if session_was_logged_ is reset by checking if LogSession can take
+// effect again or not.
 TEST(AnalyticsRecorderTest, SessionOnlyLoggedOnceWorks) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
@@ -939,6 +964,777 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForCommonError) {
                 common_error: INVALID_PARAMETER
                 connection_token: "connection_token"
               )pb")));
+}
+
+TEST(AnalyticsRecorderTest, CheckIfSessionWasLogged) {
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder(&event_logger);
+
+  // LogSession to count down client_session_done_latch.
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_TRUE(analytics_recorder.IsSessionLogged());
+}
+
+TEST(AnalyticsRecorderTest, ConstructAnalyticsRecorder) {
+  CountDownLatch client_session_done_latch(0);
+  CountDownLatch start_client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch,
+                               &start_client_session_done_latch);
+
+  // Call the constructor to count down the session_done_latch.
+  AnalyticsRecorder analytics_recorder(&event_logger);
+  ASSERT_TRUE(start_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  std::vector<EventType> event_types = event_logger.GetLoggedEventTypes();
+  EXPECT_EQ(event_types.size(), 1);
+  EXPECT_THAT(event_types, Contains(START_CLIENT_SESSION).Times(1));
+}
+
+TEST(AnalyticsRecorderTest,
+     StartClientSessionOnlyLoggedOnceWorksAfterAnalyticsRecorderIsConstructed) {
+  CountDownLatch client_session_done_latch(0);
+  CountDownLatch start_client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch,
+                               &start_client_session_done_latch);
+
+  // Call the constructor to count down the start_client_session_done_latch.
+  AnalyticsRecorder analytics_recorder(&event_logger);
+  ASSERT_TRUE(start_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // Log start client session once.
+  EXPECT_THAT(event_logger.GetLoggedEventTypes(),
+              Contains(START_CLIENT_SESSION).Times(1));
+
+  // Reset the start_client_session_done_latch. However, LogStartSession cannot
+  // count down the start_client_session_done_latch.
+  CountDownLatch new_start_client_session_done_latch(1);
+  event_logger.SetStartClientSessionDoneLatchPtr(
+      &new_start_client_session_done_latch);
+  analytics_recorder.LogStartSession();
+  ASSERT_FALSE(
+      new_start_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // No more start client session was logged.
+  EXPECT_THAT(event_logger.GetLoggedEventTypes(),
+              Contains(START_CLIENT_SESSION).Times(1));
+}
+
+TEST(AnalyticsRecorderTest,
+     CanLogStartClientSessionOnceAgainAfterSessionWasLogged) {
+  CountDownLatch client_session_done_latch(0);
+  CountDownLatch start_client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch,
+                               &start_client_session_done_latch);
+
+  // Call the constructor to count down the start_client_session_done_latch.
+  AnalyticsRecorder analytics_recorder(&event_logger);
+  ASSERT_TRUE(start_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // Log start client session once.
+  EXPECT_THAT(event_logger.GetLoggedEventTypes(),
+              Contains(START_CLIENT_SESSION).Times(1));
+
+  // Reset the client_session_done_latch. Call LogSession to count down the
+  // client_session_done_latch.
+  CountDownLatch new_client_session_done_latch(1);
+  event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // Reset the start_client_session_done_latch. Call LogStartSession to count
+  // down the start_client_session_done_latch.
+  CountDownLatch new_start_client_session_done_latch(1);
+  event_logger.SetStartClientSessionDoneLatchPtr(
+      &new_start_client_session_done_latch);
+  analytics_recorder.LogStartSession();
+  analytics_recorder.LogStartSession();
+  analytics_recorder.LogStartSession();
+  analytics_recorder.LogStartSession();
+  ASSERT_TRUE(
+      new_start_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // Can log start client session once again.
+  EXPECT_THAT(event_logger.GetLoggedEventTypes(),
+              Contains(START_CLIENT_SESSION).Times(2));
+}
+
+TEST(AnalyticsRecorderTest,
+     ClearcIncomingConnectionRequestsAfterSessionWasLogged) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+  std::vector<Medium> mediums = {BLE, BLUETOOTH};
+  std::string endpoint_id_0 = "endpoint_id_0";
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder(&event_logger);
+
+  analytics_recorder.OnStartAdvertising(strategy, mediums);
+  analytics_recorder.OnConnectionRequestReceived(endpoint_id_0);
+  analytics_recorder.OnLocalEndpointAccepted(endpoint_id_0);
+  analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_0);
+
+  // LogSession
+  analytics_recorder.LogSession();  // call ResetClientSessionLoggingResouces
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                    received_connection_request <
+                      local_response: ACCEPTED
+                      remote_response: ACCEPTED
+                    >
+                  >
+                >)pb")));
+
+  // LogStartSession
+  CountDownLatch new_start_client_session_done_latch(1);
+  event_logger.SetStartClientSessionDoneLatchPtr(
+      &new_start_client_session_done_latch);
+  analytics_recorder.LogStartSession();
+  ASSERT_TRUE(
+      new_start_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // LogSession again
+  CountDownLatch new_client_session_done_latch(1);
+  event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
+  std::string endpoint_id_1 = "endpoint_id_1";
+  analytics_recorder.OnConnectionRequestReceived(endpoint_id_1);
+  analytics_recorder.OnLocalEndpointAccepted(endpoint_id_1);
+  analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_1);
+
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(new_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // - if the current_strategy_session_ and current_advertising_phase_ are not
+  // reset, the duplicate advertising_phase (with the additional
+  // received_connection_request) will append to the strategy_session)
+  EXPECT_THAT(event_logger.GetLoggedClientSession(),
+              Not(Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                    received_connection_request <
+                      local_response: ACCEPTED
+                      remote_response: ACCEPTED
+                    >
+                  >
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                    received_connection_request <
+                      local_response: ACCEPTED
+                      remote_response: ACCEPTED
+                    >
+                    received_connection_request <
+                      local_response: ACCEPTED
+                      remote_response: ACCEPTED
+                    >
+                  >
+                >)pb"))));
+}
+
+TEST(AnalyticsRecorderTest,
+     ClearcOutgoingConnectionRequestsAfterSessionWasLogged) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+  std::vector<Medium> mediums = {BLE, BLUETOOTH};
+  std::string endpoint_id_0 = "endpoint_id_0";
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder(&event_logger);
+
+  analytics_recorder.OnStartDiscovery(strategy, mediums);
+
+  analytics_recorder.OnConnectionRequestSent(endpoint_id_0);
+  analytics_recorder.OnLocalEndpointAccepted(endpoint_id_0);
+  analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_0);
+
+  // LogSession
+  analytics_recorder.LogSession();  // call ResetClientSessionLoggingResouces
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: DISCOVERER
+                  discovery_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    discovery_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                    sent_connection_request <
+                      local_response: ACCEPTED
+                      remote_response: ACCEPTED
+                    >
+                  >
+                >)pb")));
+
+  // LogStartSession
+  CountDownLatch new_start_client_session_done_latch(1);
+  event_logger.SetStartClientSessionDoneLatchPtr(
+      &new_start_client_session_done_latch);
+  analytics_recorder.LogStartSession();
+  ASSERT_TRUE(
+      new_start_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // LogSession again
+  CountDownLatch new_client_session_done_latch(1);
+  event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
+  std::string endpoint_id_1 = "endpoint_id_1";
+  analytics_recorder.OnConnectionRequestSent(endpoint_id_1);
+  analytics_recorder.OnLocalEndpointAccepted(endpoint_id_1);
+  analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_1);
+
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // - if the current_strategy_session_ and current_discovery_phase_ are
+  // not reset, the duplicate discovery_phase (with the additional
+  // sent_connection_request) will append to the strategy_session)
+  EXPECT_THAT(event_logger.GetLoggedClientSession(),
+              Not(Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: DISCOVERER
+                  discovery_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    discovery_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                    sent_connection_request <
+                      local_response: ACCEPTED
+                      remote_response: ACCEPTED
+                    >
+                  >
+                  discovery_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    discovery_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                    sent_connection_request <
+                      local_response: ACCEPTED
+                      remote_response: ACCEPTED
+                    >
+                    sent_connection_request <
+                      local_response: ACCEPTED
+                      remote_response: ACCEPTED
+                    >
+                  >
+                >)pb"))));
+}
+
+TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+  std::vector<Medium> mediums = {BLE, BLUETOOTH};
+  std::string endpoint_id = "endpoint_id";
+  std::string connection_token = "connection_token";
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder(&event_logger);
+
+  analytics_recorder.OnStartAdvertising(strategy, mediums);
+
+  analytics_recorder.OnConnectionEstablished(endpoint_id, BLUETOOTH,
+                                             connection_token);
+
+  // LogSession
+  analytics_recorder.LogSession();  // call ResetClientSessionLoggingResouces
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                  established_connection <
+                    medium: BLUETOOTH
+                    disconnection_reason: UNFINISHED
+                    connection_token: "connection_token"
+                  >
+                >)pb")));
+
+  // LogStartSession
+  CountDownLatch new_start_client_session_done_latch(1);
+  event_logger.SetStartClientSessionDoneLatchPtr(
+      &new_start_client_session_done_latch);
+  analytics_recorder.LogStartSession();
+  ASSERT_TRUE(
+      new_start_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // LogSession again
+  CountDownLatch new_client_session_done_latch(1);
+  event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // - if the current_strategy_session_ and advertising_phase_ are not
+  // reset, the duplicate advertising_phase_ (with the additional
+  // will append to the strategy_session), and the active connection (i.e.
+  // established_connection) will stay there.
+  EXPECT_THAT(event_logger.GetLoggedClientSession(),
+              Not(Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                  established_connection <
+                    medium: BLUETOOTH
+                    disconnection_reason: UNFINISHED
+                    connection_token: "connection_token"
+                  >
+                >)pb"))));
+}
+
+TEST(AnalyticsRecorderTest,
+     ClearBandwidthUpgradeAttemptsAfterSessionWasLogged) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+  std::vector<Medium> mediums = {BLE, BLUETOOTH};
+  std::string endpoint_id = "endpoint_id";
+  std::string endpoint_id_1 = "endpoint_id_1";
+  std::string endpoint_id_2 = "endpoint_id_2";
+  std::string connection_token = "connection_token";
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder(&event_logger);
+
+  analytics_recorder.OnStartAdvertising(strategy, mediums);
+
+  analytics_recorder.OnBandwidthUpgradeStarted(endpoint_id, BLE, WIFI_LAN,
+                                               INCOMING, connection_token);
+
+  analytics_recorder.OnBandwidthUpgradeStarted(
+      endpoint_id_1, BLUETOOTH, WIFI_LAN, INCOMING, connection_token);
+  // - Error to upgrade.
+  analytics_recorder.OnBandwidthUpgradeError(endpoint_id, WIFI_LAN_MEDIUM_ERROR,
+                                             WIFI_LAN_SOCKET_CREATION);
+  // - Success to upgrade.
+  analytics_recorder.OnBandwidthUpgradeSuccess(endpoint_id_1);
+
+  // - Upgrade is unfinished.
+  analytics_recorder.OnBandwidthUpgradeStarted(
+      endpoint_id_2, BLUETOOTH, WIFI_LAN, INCOMING, connection_token);
+
+  // LogSession
+  analytics_recorder.LogSession();  // call ResetClientSessionLoggingResouces
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // - if the current_strategy_session_ and advertising_phase_ are not
+  // reset, the duplicate advertising_phase_, and the upgrade_attempts (i.e.
+  // bandwidth_upgrade_attempts_) will stay there.
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                  upgrade_attempt <
+                    direction: INCOMING
+                    from_medium: BLE
+                    to_medium: WIFI_LAN
+                    upgrade_result: WIFI_LAN_MEDIUM_ERROR
+                    error_stage: WIFI_LAN_SOCKET_CREATION
+                    connection_token: "connection_token"
+                  >
+                  upgrade_attempt <
+                    direction: INCOMING
+                    from_medium: BLUETOOTH
+                    to_medium: WIFI_LAN
+                    upgrade_result: UPGRADE_RESULT_SUCCESS
+                    error_stage: UPGRADE_SUCCESS
+                    connection_token: "connection_token"
+                  >
+                  upgrade_attempt {
+                    direction: INCOMING
+                    from_medium: BLUETOOTH
+                    to_medium: WIFI_LAN
+                    upgrade_result: UNFINISHED_ERROR
+                    error_stage: UPGRADE_UNFINISHED
+                    connection_token: "connection_token"
+                  }
+                >)pb")));
+
+  // LogStartSession
+  CountDownLatch new_start_client_session_done_latch(1);
+  event_logger.SetStartClientSessionDoneLatchPtr(
+      &new_start_client_session_done_latch);
+  analytics_recorder.LogStartSession();
+  ASSERT_TRUE(
+      new_start_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // LogSession again
+  CountDownLatch new_client_session_done_latch(1);
+  event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(),
+              Not(Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                  advertising_phase <
+                    medium: BLE
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                  upgrade_attempt <
+                    direction: INCOMING
+                    from_medium: BLE
+                    to_medium: WIFI_LAN
+                    upgrade_result: WIFI_LAN_MEDIUM_ERROR
+                    error_stage: WIFI_LAN_SOCKET_CREATION
+                    connection_token: "connection_token"
+                  >
+                  upgrade_attempt <
+                    direction: INCOMING
+                    from_medium: BLUETOOTH
+                    to_medium: WIFI_LAN
+                    upgrade_result: UPGRADE_RESULT_SUCCESS
+                    error_stage: UPGRADE_SUCCESS
+                    connection_token: "connection_token"
+                  >
+                  upgrade_attempt {
+                    direction: INCOMING
+                    from_medium: BLUETOOTH
+                    to_medium: WIFI_LAN
+                    upgrade_result: UNFINISHED_ERROR
+                    error_stage: UPGRADE_UNFINISHED
+                    connection_token: "connection_token"
+                  }
+                >)pb"))));
+}
+
+// Test if current_strategy_ is reset by checking if the same strategy would
+// be logged for different client sessions or not. If yes, it should be logged.
+// Otherwise, not.
+TEST(AnalyticsRecorderTest,
+     CanLogSeparateStartStrategySessionForSameStrategyAfterSessionWasLogged) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder(&event_logger);
+
+  analytics_recorder.OnStartAdvertising(strategy, {BLUETOOTH});
+  analytics_recorder.OnStopAdvertising();
+
+  // LogSession
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedEventTypes(),
+              Contains(START_STRATEGY_SESSION)
+                  .Times(1));  // the same strategy session shouldn't be logged
+                               // again with the same client sesssion.
+
+  // LogStartSession
+  CountDownLatch new_start_client_session_done_latch(1);
+  event_logger.SetStartClientSessionDoneLatchPtr(
+      &new_start_client_session_done_latch);
+  analytics_recorder.LogStartSession();
+  ASSERT_TRUE(
+      new_start_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // LogSession again
+  CountDownLatch new_client_session_done_latch(1);
+  event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
+  analytics_recorder.OnStartAdvertising(strategy, {BLUETOOTH});
+  analytics_recorder.OnStopAdvertising();
+
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(new_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedEventTypes(),
+              Contains(START_STRATEGY_SESSION).Times(2));
+}
+
+// Test if current_strategy_session_ is reset. If not, the same strategy session
+// proto will be logged.
+TEST(AnalyticsRecorderTest,
+     NotLogSameStrategySessionProtoAfterSessionWasLogged) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+  std::vector<Medium> mediums = {BLE, BLUETOOTH};
+  std::string endpoint_id = "endpoint_id";
+  std::string connection_token = "";
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder{&event_logger};
+
+  analytics_recorder.OnStartAdvertising(
+      strategy, mediums);  // via OnStartAdvertising, current_strategy_session_
+                           // is set in UpdateStrategySessionLocked.
+  analytics_recorder.OnStopAdvertising();
+
+  // LogSession
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  std::string strategy_session_proto = R"pb(
+    strategy_session <
+      strategy: P2P_STAR
+      role: ADVERTISER
+      advertising_phase <
+        medium: BLE
+        medium: BLUETOOTH
+        advertising_metadata <
+          supports_extended_ble_advertisements: false
+          connected_ap_frequency: 0
+          supports_nfc_technology: false
+        >
+      >
+    >)pb";
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(),
+              Partially(EqualsProto(strategy_session_proto)));
+
+  // LogStartSession
+  CountDownLatch new_start_client_session_done_latch(1);
+  event_logger.SetStartClientSessionDoneLatchPtr(
+      &new_start_client_session_done_latch);
+  analytics_recorder.LogStartSession();
+  ASSERT_TRUE(
+      new_start_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // LogSession again
+  // - if current_strategy_session_ is reset, the same strategy_session_proto
+  // will be logged.
+  CountDownLatch new_client_session_done_latch(1);
+  event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(new_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(),
+              Not(Partially(EqualsProto(strategy_session_proto))));
+}
+
+// Test if current_advertising_phase_ is reset.
+TEST(AnalyticsRecorderTest,
+     NotLogDuplicateAdvertisingPhaseAfterSessionWasLogged) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder(&event_logger);
+
+  analytics_recorder.OnStartAdvertising(
+      strategy, {BLUETOOTH});  // set current_advertising_phase_
+  analytics_recorder.OnStopAdvertising();
+
+  // LogSession
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase <
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                >)pb")));
+
+  // LogStartSession
+  CountDownLatch new_start_client_session_done_latch(1);
+  event_logger.SetStartClientSessionDoneLatchPtr(
+      &new_start_client_session_done_latch);
+  analytics_recorder.LogStartSession();
+  ASSERT_TRUE(
+      new_start_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // LogSession again
+  // - if the current_strategy_session_ and current_advertising_phase_ are
+  // not reset, the same strategy_session with two same advertising_phase will
+  // be logged.
+  CountDownLatch new_client_session_done_latch(1);
+  event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(),
+              Not(Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: ADVERTISER
+                  advertising_phase <
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                  advertising_phase <
+                    medium: BLUETOOTH
+                    advertising_metadata <
+                      supports_extended_ble_advertisements: false
+                      connected_ap_frequency: 0
+                      supports_nfc_technology: false
+                    >
+                  >
+                >)pb"))));
+}
+
+// Test if current_discovery_phase_ is reset.
+TEST(AnalyticsRecorderTest,
+     NotLogDuplicateDiscoveryPhaseAfterSessionWasLogged) {
+  connections::Strategy strategy = connections::Strategy::kP2pStar;
+
+  CountDownLatch client_session_done_latch(1);
+  FakeEventLogger event_logger(client_session_done_latch);
+  AnalyticsRecorder analytics_recorder(&event_logger);
+
+  analytics_recorder.OnStartDiscovery(
+      strategy, {BLUETOOTH}, /*is_extended_advertisement_supported=*/true,
+      /*connected_ap_frequency=*/1,
+      /*is_nfc_available=*/false);  // set current_discovery_phase_
+  analytics_recorder.OnStopDiscovery();
+  analytics_recorder.OnEndpointFound(BLUETOOTH);
+
+  // LogSession
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(), Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: DISCOVERER
+                  discovery_phase <
+                    medium: BLUETOOTH
+                    discovery_metadata <
+                      supports_extended_ble_advertisements: true
+                      connected_ap_frequency: 1
+                      supports_nfc_technology: false
+                    >
+                  >
+                >)pb")));
+
+  // LogStartSession
+  CountDownLatch new_start_client_session_done_latch(1);
+  event_logger.SetStartClientSessionDoneLatchPtr(
+      &new_start_client_session_done_latch);
+  analytics_recorder.LogStartSession();
+  ASSERT_TRUE(
+      new_start_client_session_done_latch.Await(kDefaultTimeout).result());
+
+  // LogSession again
+  // - if the current_strategy_session_ and current_discovery_phase_ are not
+  // reset, the same strategy_session with two same discovery_phase will be
+  // logged.
+  CountDownLatch new_client_session_done_latch(1);
+  event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
+  analytics_recorder.LogSession();
+  ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
+
+  EXPECT_THAT(event_logger.GetLoggedClientSession(),
+              Not(Partially(EqualsProto(R"pb(
+                strategy_session <
+                  strategy: P2P_STAR
+                  role: DISCOVERER
+                  discovery_phase <
+                    medium: BLUETOOTH
+                    discovery_metadata <
+                      supports_extended_ble_advertisements: true
+                      connected_ap_frequency: 1
+                      supports_nfc_technology: false
+                    >
+                  >
+                  discovery_phase <
+                    medium: BLUETOOTH
+                    discovery_metadata <
+                      supports_extended_ble_advertisements: true
+                      connected_ap_frequency: 1
+                      supports_nfc_technology: false
+                    >
+                  >
+                >)pb"))));
 }
 
 }  // namespace

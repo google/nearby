@@ -234,6 +234,7 @@ cc_test(
         "//connections:core_types",
         "//connections/implementation/mediums",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
+        "//internal/analytics:event_logger",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:logging",
