@@ -80,10 +80,10 @@ struct PrivateCredential {
   std::vector<uint8_t> verification_key;
 
   // The time in millis from epoch when this credential becomes effective.
-  int start_time;
+  int64_t start_time;
 
   //  The time in millis from epoch when this credential expires.
-  int end_time;
+  int64_t end_time;
 
   // The set of 2-byte salts already used to encrypt the metadata key.
   std::set<std::vector<uint8_t>> consumed_salts;
@@ -111,10 +111,10 @@ struct PublicCredential {
   std::vector<uint8_t> verification_key;
 
   // The time in millis from epoch when this credential becomes effective.
-  int start_time;
+  int64_t start_time;
 
   //  The time in millis from epoch when this credential expires.
-  int end_time;
+  int64_t end_time;
 
   // The encrypted DeviceMetadata in bytes, contains personal information of the
   // device/user who created this certificate. Needs to be decrypted into bytes,
