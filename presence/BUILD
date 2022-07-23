@@ -42,6 +42,7 @@ cc_library(
         "presence_zone.cc",
     ],
     hdrs = [
+        "action_bits.h",
         "broadcast_options.h",
         "data_element.h",
         "device_motion.h",
