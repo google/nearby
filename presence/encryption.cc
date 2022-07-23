@@ -22,12 +22,11 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "internal/platform/logging.h"
-#include "third_party/openssl/cipher.h" // NOLINT
+#include "third_party/openssl/cipher.h"  // NOLINT
 #include "third_party/openssl/crypto.h"
-#include "third_party/openssl/evp.h" // NOLINT
+#include "third_party/openssl/evp.h"  // NOLINT
 #include "third_party/tink/cc/subtle/hkdf.h"
 #include "third_party/tink/cc/subtle/random.h"
-#include "util/random/ssl_bit_gen.h"
 
 namespace nearby {
 namespace presence {

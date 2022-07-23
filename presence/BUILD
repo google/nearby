@@ -13,6 +13,8 @@
 # limitations under the License.
 licenses(["notice"])
 
+package(default_visibility = ["//third_party/nearby:__subpackages__"])
+
 cc_library(
     name = "presence",
     srcs = [
@@ -21,9 +23,6 @@ cc_library(
     hdrs = [
         "presence_client.h",
         "presence_service.h",
-    ],
-    visibility = [
-        "//third_party/nearby:__subpackages__",
     ],
     deps = [
         ":types",
@@ -56,9 +55,6 @@ cc_library(
         "presence_zone.h",
         "status.h",
     ],
-    visibility = [
-        "//third_party/nearby/presence:__subpackages__",
-    ],
     deps = [
         "//internal/platform:base",
         "@com_google_absl//absl/strings",
@@ -84,13 +80,9 @@ cc_library(
     name = "encryption",
     srcs = ["encryption.cc"],
     hdrs = ["encryption.h"],
-    visibility = [
-        "//third_party/nearby/presence:__subpackages__",
-    ],
     deps = [
         "//internal/platform:logging",
         "//third_party/tink/cc/subtle",
-        "//util/random:ssl_bit_gen",
         "@boringssl//:crypto",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
