@@ -19,6 +19,7 @@ cc_library(
     hdrs = [
         "broadcast_manager.h",
         "credential_manager.h",
+        "credential_manager_impl.h",
         "mock_service_controller.h",
         "scan_manager.h",
         "service_controller.h",
@@ -28,9 +29,12 @@ cc_library(
         "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
-        "//internal/platform:base",
         "//internal/platform:comm",
+        "//internal/platform/implementation:comm",
         "//third_party/nearby/presence:credential",
         "//third_party/nearby/presence/implementation/mediums",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
     ],
 )

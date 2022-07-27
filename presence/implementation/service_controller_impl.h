@@ -15,7 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SERVICE_CONTROLLER_IMPL_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SERVICE_CONTROLLER_IMPL_H_
 
-#include "third_party/nearby/presence/implementation/credential_manager.h"
+#include "third_party/nearby/presence/implementation/credential_manager_impl.h"
 #include "third_party/nearby/presence/implementation/mediums/mediums.h"
 #include "third_party/nearby/presence/implementation/service_controller.h"
 
@@ -27,13 +27,10 @@ namespace nearby {
 namespace presence {
 
 class ServiceControllerImpl : public ServiceController {
- public:
-  ServiceControllerImpl() = default;
-  ~ServiceControllerImpl() override = default;
-
  private:
   Mediums mediums_;  // NOLINT: further impl will use it.
-  CredentialManager credential_manager_;  // NOLINT: further impl will use it.
+  CredentialManagerImpl
+      credential_manager_;  // NOLINT: further impl will use it.
 };
 
 }  // namespace presence

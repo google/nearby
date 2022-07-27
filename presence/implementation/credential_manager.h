@@ -19,15 +19,16 @@
 #include <string>
 #include <vector>
 
-#include "internal/platform/credential_storage.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/implementation/credential_storage.h"
 #include "third_party/nearby/presence/credential.h"
 
 namespace nearby {
 namespace presence {
 
 struct GenerateCredentialsCallback {
-  std::function<void(std::vector<PublicCredential>)>
-      credentials_generated_cb;
+  std::function<void(std::vector<PublicCredential>)> credentials_generated_cb;
 };
 
 struct UpdateRemotePublicCredentialsCallback {
@@ -43,7 +44,7 @@ struct UpdateRemotePublicCredentialsCallback {
 class CredentialManager {
  public:
   CredentialManager() = default;
-  ~CredentialManager() = default;
+  virtual ~CredentialManager() = default;
 
   // Used to (re)generate user’s private and public credentials.
   // The generated private credentials will be saved to creds storage.
@@ -51,28 +52,32 @@ class CredentialManager {
   // credentials_generated_cb for manager app to upload to web.
   // The user’s own public credentials won’t be saved on local credential
   // storage.
-  void GenerateCredentials(
+  virtual void GenerateCredentials(
       proto::DeviceMetadata device_metadata, std::vector<TrustType> trust_types,
-      GenerateCredentialsCallback credentials_generated_cb);
+      GenerateCredentialsCallback credentials_generated_cb) = 0;
 
   // Update remote public credentials.
-  void UpdateRemotePublicCredentials(
+  virtual void UpdateRemotePublicCredentials(
       std::string account_name,
       std::vector<PublicCredential> remote_public_creds,
-      UpdateRemotePublicCredentialsCallback credentials_updated_cb);
+      UpdateRemotePublicCredentialsCallback credentials_updated_cb) = 0;
 
   // Used to fetch private creds when broadcasting.
-  void GetPrivateCredentials(
+  virtual void GetPrivateCredentials(
       location::nearby::api::CredentialSelector credential_selector,
-      location::nearby::api::GetPrivateCredentialCallback callback);
+      location::nearby::api::GetPrivateCredentialCallback callback) = 0;
 
   // Used to fetch remote public creds when scanning.
-  void GetPublicCredentials(
+  virtual void GetPublicCredentials(
       location::nearby::api::CredentialSelector credential_selector,
-      location::nearby::api::GetPublicCredentialCallback callback);
+      location::nearby::api::GetPublicCredentialCallback callback) = 0;
 
- private:
-  location::nearby::CredentialStorage* credential_storage_;
+  // Decrypts Data Elements from an NP advertisement.
+  // Returns an error if `metadata_key` is not associated with any known
+  // credentials (identity).
+  virtual absl::StatusOr<std::string> DecryptDataElements(
+      absl::string_view metadata_key, absl::string_view salt,
+      absl::string_view data_elements) = 0;
 };
 
 }  // namespace presence

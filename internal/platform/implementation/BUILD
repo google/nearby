@@ -70,6 +70,7 @@ cc_library(
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
         "//third_party/nearby/presence:__pkg__",
+        "//third_party/nearby/presence/implementation:__pkg__",
     ],
     deps = [
         "//connections/clients/windows:types",
