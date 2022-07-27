@@ -52,7 +52,7 @@ class CredentialManager {
   // The user’s own public credentials won’t be saved on local credential
   // storage.
   void GenerateCredentials(
-      DeviceMetadata device_metadata, std::vector<TrustType> trust_types,
+      proto::DeviceMetadata device_metadata, std::vector<TrustType> trust_types,
       GenerateCredentialsCallback credentials_generated_cb);
 
   // Update remote public credentials.

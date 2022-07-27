@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 
+#include "third_party/nearby/presence/proto/device_metadata.pb.h"
+
 namespace nearby {
 namespace presence {
 
@@ -36,30 +38,6 @@ enum class TrustType {
 
   // For offline public identities and without dependence on Gaia account
   kPublic = 4,
-};
-
-enum class DeviceType {
-  kUnspecified = 0,
-  kPhone = 1,
-  kTablet = 2,
-  kDisplay = 3,
-  kLaptop = 4,
-  kTV = 5,
-  kWatch = 6,
-};
-
-struct DeviceMetadata {
-  // Stable device identifier that does not rotate for a few months.
-  std::string stable_device_id;
-  // The account name which created the certificate.
-  std::string account_name;
-  // The name of the local device when the certificate is created.
-  std::string device_name;
-  // The icon url of the user whose device created the certificate.
-  std::string icon_url;
-  // The Bluetooth MAC address of the device which created the certificate.
-  std::string bluetooth_mac_address;
-  DeviceType device_type;
 };
 
 struct PrivateCredential {
@@ -91,7 +69,7 @@ struct PrivateCredential {
   // The aes key to encrypt DeviceMetadata in public credential.
   std::vector<uint8_t> metadata_encryption_key;
 
-  DeviceMetadata device_metadata;
+  proto::DeviceMetadata device_metadata;
 };
 
 struct PublicCredential {

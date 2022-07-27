@@ -135,6 +135,9 @@ cc_library(
     visibility = [
         "//third_party/nearby:__subpackages__",
     ],
+    deps = [
+        "//third_party/nearby/presence/proto:device_metadata_cc_proto",
+    ],
 )
 
 cc_test(
