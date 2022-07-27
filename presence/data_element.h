@@ -41,10 +41,31 @@ class DataElement {
   static constexpr int kFitCast = 1 << 7;
   static constexpr int kPresenceManager = 1 << 6;
 
+  // The field types listed below require special processing when generating and
+  // parsing NP advertisements.
+  static constexpr int kSaltFieldType = 0;
+  static constexpr int kPrivateIdentityFieldType = 1;
+  static constexpr int kTrustedIdentityFieldType = 2;
+  static constexpr int kPublicIdentityFieldType = 3;
+  static constexpr int kProvisionedIdentityFieldType = 4;
+  static constexpr int kTxPowerFieldType = 5;
+  static constexpr int kActionFieldType = 6;
+  // Maximum allowed Data Element's value length
+  static constexpr int kMaxDataElementLength = 15;
+  // Maximum allowed Data Element's type
+  static constexpr int kMaxDataElementType = 15;
+  // The DE header is (length << kDataElementLengthShift | type)
+  static constexpr int kDataElementLengthShift = 4;
+
  private:
   uint16_t type_;
   std::string value_;
 };
+
+inline bool operator==(const DataElement& i1, const DataElement& i2) {
+  return i1.GetType() == i2.GetType() && i1.GetValue() == i2.GetValue();
+}
+
 }  // namespace presence
 }  // namespace nearby
 

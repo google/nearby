@@ -21,34 +21,25 @@
 #include "absl/strings/str_format.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/uuid.h"
+#include "third_party/nearby/presence/data_element.h"
 
 namespace nearby {
 namespace presence {
 
 constexpr uint8_t kBaseVersion = 0;
-constexpr uint8_t kSaltFieldType = 0;
-constexpr uint8_t kPrivateIdentityFieldType = 1;
-constexpr uint8_t kTrustedIdentityFieldType = 2;
-constexpr uint8_t kPublicIdentityFieldType = 3;
-constexpr uint8_t kProvisionedIdentityFieldType = 4;
-constexpr uint8_t kTxPowerFieldType = 5;
-constexpr uint8_t kActionFieldType = 6;
-constexpr int kMaxDataElementLength = 15;
-constexpr int kMaxDataElementType = 15;
-constexpr int kDataElementLengthShift = 4;
 constexpr location::nearby::Uuid kServiceData(0xFCF1ULL << 32, 0);
 
 absl::StatusOr<uint8_t> CreateDataElementHeader(size_t length,
                                                 unsigned data_type) {
-  if (length > kMaxDataElementLength) {
+  if (length > DataElement::kMaxDataElementLength) {
     return absl::InvalidArgumentError(
         absl::StrFormat("Unsupported Data Element length: %d", length));
   }
-  if (data_type > kMaxDataElementType) {
+  if (data_type > DataElement::kMaxDataElementType) {
     return absl::InvalidArgumentError(
         absl::StrFormat("Unsupported Data Element type: %d", data_type));
   }
-  return (length << kDataElementLengthShift) | data_type;
+  return (length << DataElement::kDataElementLengthShift) | data_type;
 }
 
 absl::Status AppendDataElement(unsigned data_type,
@@ -68,14 +59,14 @@ absl::Status AppendDataElement(unsigned data_type,
 uint8_t GetIdentityFieldType(PresenceIdentity::IdentityType type) {
   switch (type) {
     case PresenceIdentity::IdentityType::kPrivate:
-      return kPrivateIdentityFieldType;
+      return DataElement::kPrivateIdentityFieldType;
     case PresenceIdentity::IdentityType::kTrusted:
-      return kTrustedIdentityFieldType;
+      return DataElement::kTrustedIdentityFieldType;
     case PresenceIdentity::IdentityType::kPublic:
-      return kPublicIdentityFieldType;
+      return DataElement::kPublicIdentityFieldType;
     case PresenceIdentity::IdentityType::kProvisioned:  // fall-through
     default:
-      return kProvisionedIdentityFieldType;
+      return DataElement::kProvisionedIdentityFieldType;
   }
 }
 
@@ -98,7 +89,8 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
   payload.push_back(kBaseVersion);
   absl::Status result;
   if (!request.salt.empty()) {
-    result = AppendDataElement(kSaltFieldType, request.salt, payload);
+    result =
+        AppendDataElement(DataElement::kSaltFieldType, request.salt, payload);
     if (!result.ok()) {
       return result;
     }
@@ -117,13 +109,15 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
 
   std::string data_elements;
   std::string tx_power = {static_cast<char>(request.tx_power)};
-  result = AppendDataElement(kTxPowerFieldType, tx_power, data_elements);
+  result = AppendDataElement(DataElement::kTxPowerFieldType, tx_power,
+                             data_elements);
   if (!result.ok()) {
     return result;
   }
   std::string action = {static_cast<char>(presence.action.action >> 8),
                         static_cast<char>(presence.action.action)};
-  result = AppendDataElement(kActionFieldType, action, data_elements);
+  result =
+      AppendDataElement(DataElement::kActionFieldType, action, data_elements);
   if (!result.ok()) {
     return result;
   }
