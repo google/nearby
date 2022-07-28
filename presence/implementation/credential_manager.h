@@ -23,9 +23,11 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/credential_storage.h"
 #include "third_party/nearby/presence/credential.h"
+#include "third_party/nearby/presence/presence_identity.h"
 
 namespace nearby {
 namespace presence {
+using ::nearby::presence::PresenceIdentity;
 
 struct GenerateCredentialsCallback {
   std::function<void(std::vector<PublicCredential>)> credentials_generated_cb;
@@ -53,7 +55,8 @@ class CredentialManager {
   // The user’s own public credentials won’t be saved on local credential
   // storage.
   virtual void GenerateCredentials(
-      proto::DeviceMetadata device_metadata, std::vector<TrustType> trust_types,
+      proto::DeviceMetadata device_metadata,
+      std::vector<PresenceIdentity::IdentityType> identity_types,
       GenerateCredentialsCallback credentials_generated_cb) = 0;
 
   // Update remote public credentials.

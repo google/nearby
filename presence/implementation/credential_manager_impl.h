@@ -24,6 +24,7 @@
 #include "internal/platform/credential_storage.h"
 #include "third_party/nearby/presence/credential.h"
 #include "third_party/nearby/presence/implementation/credential_manager.h"
+#include "third_party/nearby/presence/presence_identity.h"
 
 namespace nearby {
 namespace presence {
@@ -33,7 +34,8 @@ class CredentialManagerImpl : public CredentialManager {
   CredentialManagerImpl() = default;
 
   void GenerateCredentials(
-      proto::DeviceMetadata device_metadata, std::vector<TrustType> trust_types,
+      proto::DeviceMetadata device_metadata,
+      std::vector<PresenceIdentity::IdentityType> identity_types,
       GenerateCredentialsCallback credentials_generated_cb) override {}
 
   void UpdateRemotePublicCredentials(

@@ -19,29 +19,14 @@
 #include <string>
 #include <vector>
 
+#include "third_party/nearby/presence/presence_identity.h"
 #include "third_party/nearby/presence/proto/device_metadata.pb.h"
 
 namespace nearby {
 namespace presence {
 
-enum class TrustType {
-  kUnspecified = 0,
-
-  // The same user itself.
-  kPrivate = 1,
-
-  // The user selects the contact from its contact list.
-  kTrusted = 2,
-
-  // For offline credentials and without dependence on Gaia account
-  kProvisioned = 3,
-
-  // For offline public identities and without dependence on Gaia account
-  kPublic = 4,
-};
-
 struct PrivateCredential {
-  TrustType trust_type;
+  PresenceIdentity::IdentityType identity_type;
 
   // The unique id of (and hashed based on) a pair of secret
   // key (PrivateCredential.verification_key) and X509Certificate's public
@@ -73,7 +58,7 @@ struct PrivateCredential {
 };
 
 struct PublicCredential {
-  TrustType trust_type;
+  PresenceIdentity::IdentityType identity_type;
 
   // The unique id of (and hashed based on) a pair of secret
   // key (PrivateCredential.verification_key) and X509Certificate's public

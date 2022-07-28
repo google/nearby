@@ -38,7 +38,6 @@ cc_library(
         "presence_action.cc",
         "presence_client.cc",
         "presence_device.cc",
-        "presence_identity.cc",
         "presence_zone.cc",
     ],
     hdrs = [
@@ -52,7 +51,6 @@ cc_library(
         "presence_action.h",
         "presence_client.h",
         "presence_device.h",
-        "presence_identity.h",
         "presence_zone.h",
         "scan_request.h",
         "status.h",
@@ -70,6 +68,7 @@ cc_library(
     srcs = ["broadcast_request.cc"],
     hdrs = ["broadcast_request.h"],
     deps = [
+        ":credential",
         ":encryption",
         ":types",
         "//internal/platform:logging",
@@ -97,6 +96,7 @@ cc_library(
     name = "certificate_manager",
     hdrs = ["certificate_manager.h"],
     deps = [
+        ":credential",
         ":types",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -110,6 +110,7 @@ cc_library(
     deps = [
         ":broadcast_request",
         ":certificate_manager",
+        ":credential",
         ":types",
         "//internal/platform:logging",
         "//internal/platform:uuid",
@@ -133,7 +134,11 @@ cc_library(
 
 cc_library(
     name = "credential",
-    hdrs = ["credential.h"],
+    srcs = ["presence_identity.cc"],
+    hdrs = [
+        "credential.h",
+        "presence_identity.h",
+    ],
     visibility = [
         "//third_party/nearby:__subpackages__",
     ],
@@ -150,6 +155,7 @@ cc_test(
         ":action_factory",
         ":advertisement_factory",
         ":certificate_manager",
+        ":credential",
         ":types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
@@ -216,7 +222,22 @@ cc_test(
     ],
     shard_count = 6,
     deps = [
+        ":credential",
         ":types",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "credential_test",
+    size = "small",
+    srcs = [
+        "presence_identity_test.cc",
+    ],
+    shard_count = 6,
+    deps = [
+        ":credential",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

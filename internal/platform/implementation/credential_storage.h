@@ -22,14 +22,15 @@
 
 #include "internal/platform/exception.h"
 #include "third_party/nearby/presence/credential.h"
+#include "third_party/nearby/presence/presence_identity.h"
 
 namespace location {
 namespace nearby {
 namespace api {
 
+using ::nearby::presence::PresenceIdentity;
 using ::nearby::presence::PrivateCredential;
 using ::nearby::presence::PublicCredential;
-using ::nearby::presence::TrustType;
 
 enum class CredentialOperationStatus {
   kFailed = 0,
@@ -38,7 +39,7 @@ enum class CredentialOperationStatus {
 
 struct CredentialSelector {
   std::string account_name;
-  TrustType trust_type;
+  PresenceIdentity::IdentityType identity_type;
 };
 
 struct SaveCredentialCallback {
