@@ -18,6 +18,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
@@ -149,7 +150,8 @@ class BwuManager : public EndpointManager::FrameProcessor {
       std::unique_ptr<BwuHandler::IncomingSocketConnection> mutable_connection);
 
   void RunUpgradeProtocol(ClientProxy* client, const std::string& endpoint_id,
-                          std::unique_ptr<EndpointChannel> new_channel);
+                          std::unique_ptr<EndpointChannel> new_channel,
+                          bool enable_encryption);
   void RunUpgradeFailedProtocol(ClientProxy* client,
                                 const std::string& endpoint_id,
                                 const UpgradePathInfo& upgrade_path_info);

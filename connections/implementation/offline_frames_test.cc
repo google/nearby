@@ -16,6 +16,7 @@
 
 #include <array>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -372,10 +373,14 @@ TEST(OfflineFramesTest, CanGenerateBwuIntroduction) {
       type: BANDWIDTH_UPGRADE_NEGOTIATION
       bandwidth_upgrade_negotiation: <
         event_type: CLIENT_INTRODUCTION
-        client_introduction: < endpoint_id: "ABC" >
+        client_introduction: < 
+          endpoint_id: "ABC"
+          supports_disabling_encryption: false
+        >
       >
     >)pb";
-  ByteArray bytes = ForBwuIntroduction(std::string(kEndpointId));
+  ByteArray bytes = ForBwuIntroduction(
+      std::string(kEndpointId), false /* supports_disabling_encryption */);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = FromBytes(bytes).result();

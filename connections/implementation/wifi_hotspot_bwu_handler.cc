@@ -81,8 +81,11 @@ ByteArray WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
                     << ",  Password:" << password << ",  Port:" << port
                     << ",  Gateway:" << gateway;
 
-  return parser::ForBwuWifiHotspotPathAvailable(ssid, password, port, gateway,
-                                                false);
+  bool disabling_encryption =
+      (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint);
+  return parser::ForBwuWifiHotspotPathAvailable(
+      ssid, password, port, gateway,
+      /* supports_disabling_encryption */ disabling_encryption);
 }
 
 void WifiHotspotBwuHandler::HandleRevertInitiatorStateForService(

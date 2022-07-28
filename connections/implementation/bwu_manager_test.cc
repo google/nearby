@@ -686,7 +686,7 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Hotspot) {
       BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
   auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
   upgrade_path_info->set_supports_client_introduction_ack(false);
-
+  upgrade_path_info->set_supports_disabling_encryption(true);
   bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
                                 Medium::BLUETOOTH);
   CountDownLatch latch(1);

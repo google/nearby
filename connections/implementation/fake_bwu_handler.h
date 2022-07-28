@@ -15,8 +15,11 @@
 #ifndef NEARBY_CONNECTIONS_IMPLEMENTATION_FAKE_BWU_HANDLER_H_
 #define NEARBY_CONNECTIONS_IMPLEMENTATION_FAKE_BWU_HANDLER_H_
 
+#include <memory>
+#include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/bwu_manager.h"
@@ -40,8 +43,8 @@ class FakeBwuHandler : public BaseBwuHandler {
   // every method.
   struct InputData {
     ClientProxy* client = nullptr;
-    absl::optional<std::string> service_id;
-    absl::optional<std::string> endpoint_id;
+    std::optional<std::string> service_id;
+    std::optional<std::string> endpoint_id;
   };
 
   explicit FakeBwuHandler(Medium medium)
@@ -76,7 +79,8 @@ class FakeBwuHandler : public BaseBwuHandler {
     FakeEndpointChannel* upgraded_channel_raw = upgraded_channel.get();
     upgraded_channel->set_read_output(
         ExceptionOr<ByteArray>(parser::ForBwuIntroduction(
-            *handle_initialize_calls_[initialize_call_index].endpoint_id)));
+            *handle_initialize_calls_[initialize_call_index].endpoint_id,
+            false /* supports_disabling_encryption */)));
     auto connection = std::make_unique<IncomingSocketConnection>();
     connection->channel = std::move(upgraded_channel);
 

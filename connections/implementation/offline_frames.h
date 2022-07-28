@@ -16,6 +16,7 @@
 #define CORE_INTERNAL_OFFLINE_FRAMES_H_
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
@@ -54,7 +55,8 @@ ByteArray ForControlPayloadTransfer(
     const PayloadTransferFrame::ControlMessage& control);
 
 // Builds Bandwidth Upgrade [BWU] messages.
-ByteArray ForBwuIntroduction(const std::string& endpoint_id);
+ByteArray ForBwuIntroduction(const std::string& endpoint_id,
+                             bool supports_disabling_encryption);
 ByteArray ForBwuIntroductionAck();
 ByteArray ForBwuWifiHotspotPathAvailable(const std::string& ssid,
                                          const std::string& password,

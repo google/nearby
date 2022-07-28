@@ -22,7 +22,6 @@
 #include "absl/container/flat_hash_map.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
 
 namespace location {
@@ -62,7 +61,8 @@ class EndpointChannelManager final {
   // to the newly-provided EndpointChannel.
   void ReplaceChannelForEndpoint(ClientProxy* client,
                                  const std::string& endpoint_id,
-                                 std::unique_ptr<EndpointChannel> channel)
+                                 std::unique_ptr<EndpointChannel> channel,
+                                 bool enable_encryption)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool EncryptChannelForEndpoint(const std::string& endpoint_id,
@@ -162,7 +162,8 @@ class EndpointChannelManager final {
 
   void SetActiveEndpointChannel(ClientProxy* client,
                                 const std::string& endpoint_id,
-                                std::unique_ptr<EndpointChannel> channel)
+                                std::unique_ptr<EndpointChannel> channel,
+                                bool enable_encryption)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   mutable Mutex mutex_;

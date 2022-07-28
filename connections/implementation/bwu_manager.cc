@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/functional/bind_front.h"
 #include "absl/time/time.h"
@@ -542,7 +543,8 @@ void BwuManager::OnIncomingConnection(
         // Use the introductory client information sent over to run the upgrade
         // protocol.
         RunUpgradeProtocol(mapped_client, endpoint_id,
-                           std::move(connection->channel));
+                           std::move(connection->channel),
+                           !introduction.supports_disabling_encryption());
       });
 }
 
@@ -558,7 +560,8 @@ void BwuManager::RunOnBwuManagerThread(const std::string& name,
 
 void BwuManager::RunUpgradeProtocol(
     ClientProxy* client, const std::string& endpoint_id,
-    std::unique_ptr<EndpointChannel> new_channel) {
+    std::unique_ptr<EndpointChannel> new_channel,
+    bool enable_encryption) {
   NEARBY_LOGS(INFO) << "RunUpgradeProtocol new channel @" << new_channel.get()
                     << " name: " << new_channel->GetName() << ", medium: "
                     << proto::connections::Medium_Name(
@@ -584,8 +587,8 @@ void BwuManager::RunUpgradeProtocol(
         proto::connections::PRIOR_ENDPOINT_CHANNEL);
     return;
   }
-  channel_manager_->ReplaceChannelForEndpoint(client, endpoint_id,
-                                              std::move(new_channel));
+  channel_manager_->ReplaceChannelForEndpoint(
+      client, endpoint_id, std::move(new_channel), enable_encryption);
 
   // Next, initiate a clean shutdown for the previous EndpointChannel used for
   // this endpoint by telling the remote device that it will not receive any
@@ -633,10 +636,10 @@ void BwuManager::ProcessBwuPathAvailableEvent(
   if (channel_manager_->isWifiLanConnected() &&
       (upgrade_medium == Medium::WIFI_HOTSPOT)) {
     NEARBY_LOGS(INFO)
-          << "Some endpoint is using WIFI_LAN and proposed upgrade medium is "
-             "WIFI_HOTSPOT. Don't do the BWU because connecting to "
-             "WIFI_HOTSPOT will destroy WIFI_LAN which will lead BWU fail and "
-             "other endpoint connection fail";
+        << "Some endpoint is using WIFI_LAN and proposed upgrade medium is "
+           "WIFI_HOTSPOT. Don't do the BWU because connecting to "
+           "WIFI_HOTSPOT will destroy WIFI_LAN which will lead BWU fail and "
+           "other endpoint connection fail";
     RunUpgradeFailedProtocol(client, endpoint_id, upgrade_path_info);
     return;
   }
@@ -719,7 +722,8 @@ void BwuManager::ProcessBwuPathAvailableEvent(
   }
 
   in_progress_upgrades_.emplace(endpoint_id, client);
-  RunUpgradeProtocol(client, endpoint_id, std::move(channel));
+  RunUpgradeProtocol(client, endpoint_id, std::move(channel),
+                     !upgrade_path_info.supports_disabling_encryption());
 }
 
 std::unique_ptr<EndpointChannel>
@@ -783,7 +787,9 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
   // Write the requisite BANDWIDTH_UPGRADE_NEGOTIATION.CLIENT_INTRODUCTION as
   // the first OfflineFrame on this new EndpointChannel.
   if (!new_channel
-           ->Write(parser::ForBwuIntroduction(client->GetLocalEndpointId()))
+           ->Write(parser::ForBwuIntroduction(
+               client->GetLocalEndpointId(),
+               upgrade_path_info.supports_disabling_encryption()))
            .Ok()) {
     // This was never a fully EstablishedConnection, no need to provide a
     // closure reason.

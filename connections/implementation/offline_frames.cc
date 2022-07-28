@@ -15,9 +15,10 @@
 #include "connections/implementation/offline_frames.h"
 
 #include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
-#include "connections/implementation/message_lite.h"
 #include "connections/implementation/offline_frames_validator.h"
 #include "connections/status.h"
 #include "internal/platform/byte_array.h"
@@ -323,7 +324,8 @@ ByteArray ForBwuSafeToClose() {
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForBwuIntroduction(const std::string& endpoint_id) {
+ByteArray ForBwuIntroduction(const std::string& endpoint_id,
+                             bool supports_disabling_encryption) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -334,6 +336,8 @@ ByteArray ForBwuIntroduction(const std::string& endpoint_id) {
       BandwidthUpgradeNegotiationFrame::CLIENT_INTRODUCTION);
   auto* client_introduction = sub_frame->mutable_client_introduction();
   client_introduction->set_endpoint_id(endpoint_id);
+  client_introduction->set_supports_disabling_encryption(
+      supports_disabling_encryption);
 
   return ToBytes(std::move(frame));
 }
