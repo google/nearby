@@ -233,11 +233,14 @@ cc_test(
     name = "credential_test",
     size = "small",
     srcs = [
+        "credential_test.cc",
         "presence_identity_test.cc",
     ],
     shard_count = 6,
     deps = [
         ":credential",
+        "//internal/platform:uuid",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

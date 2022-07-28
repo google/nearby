@@ -57,6 +57,17 @@ struct PrivateCredential {
   proto::DeviceMetadata device_metadata;
 };
 
+inline bool operator==(const PrivateCredential& a, const PrivateCredential& b) {
+  return a.identity_type == b.identity_type && a.secret_id == b.secret_id &&
+         a.start_time == b.start_time && a.end_time == b.end_time &&
+         a.consumed_salts == b.consumed_salts &&
+         a.metadata_encryption_key == b.metadata_encryption_key &&
+         a.authenticity_key == b.authenticity_key &&
+         a.verification_key == b.verification_key &&
+         a.device_metadata.SerializeAsString() ==
+             b.device_metadata.SerializeAsString();
+}
+
 struct PublicCredential {
   PresenceIdentity::IdentityType identity_type;
 
@@ -88,6 +99,14 @@ struct PublicCredential {
   std::vector<uint8_t> metadata_encryption_key_tag;
 };
 
+inline bool operator==(const PublicCredential& a, const PublicCredential& b) {
+  return a.identity_type == b.identity_type && a.secret_id == b.secret_id &&
+         a.verification_key == b.verification_key &&
+         a.authenticity_key == b.authenticity_key &&
+         a.start_time == b.start_time && a.end_time == b.end_time &&
+         a.encrypted_metadata_bytes == b.encrypted_metadata_bytes &&
+         a.metadata_encryption_key_tag == b.metadata_encryption_key_tag;
+}
 }  // namespace presence
 }  // namespace nearby
 
