@@ -26,7 +26,6 @@ cc_library(
         "//location/nearby/cpp/sharing:__subpackages__",
         "//location/nearby/testing:__subpackages__",
         "//connections/clients:__subpackages__",
-        "//internal/platform/implementation:__subpackages__",
     ],
     deps = [
         ":core_types",
@@ -71,7 +70,6 @@ cc_library(
         "//location/nearby/cpp/sharing:__subpackages__",
         "//connections:__subpackages__",
         "//internal/analytics:__subpackages__",
-        "//internal/platform/implementation/ios:__subpackages__",
     ],
     deps = [
         "//connections/clients/windows:types",
