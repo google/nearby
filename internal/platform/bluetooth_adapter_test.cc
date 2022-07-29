@@ -33,7 +33,7 @@ constexpr absl::string_view kId = "AB12";
 class BlePeripheralStub : public api::ble_v2::BlePeripheral {
  public:
   explicit BlePeripheralStub(absl::string_view mac_address) {
-    mac_address_ = mac_address;
+    mac_address_ = std::string(mac_address);
   }
 
   std::string GetAddress() const override { return mac_address_; }

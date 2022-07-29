@@ -141,8 +141,8 @@ bool BluetoothClassic::ModifyDeviceName(const std::string& device_name) {
   if (original_device_name_.empty()) {
     original_device_name_ = adapter_.GetName();
   }
-
-  return adapter_.SetName(device_name);
+  return adapter_.SetName(device_name,
+                          /* persist= */ false);
 }
 
 bool BluetoothClassic::ModifyScanMode(ScanMode scan_mode) {
@@ -173,8 +173,8 @@ bool BluetoothClassic::RestoreScanMode() {
 }
 
 bool BluetoothClassic::RestoreDeviceName() {
-  if (original_device_name_.empty() ||
-      !adapter_.SetName(original_device_name_)) {
+  if (original_device_name_.empty() || !adapter_.SetName(original_device_name_,
+                                                         /* persis= */ true)) {
     NEARBY_LOGS(INFO) << "Failed to restore original Bluetooth device name to "
                       << original_device_name_;
     return false;
@@ -264,8 +264,8 @@ bool BluetoothClassic::StartAcceptingConnections(
     return false;
   }
 
-  BluetoothServerSocket socket = medium_.ListenForService(
-      service_id, GenerateUuidFromString(service_id));
+  BluetoothServerSocket socket =
+      medium_.ListenForService(service_id, GenerateUuidFromString(service_id));
   if (!socket.IsValid()) {
     NEARBY_LOGS(INFO) << "Failed to start accepting Bluetooth connections for "
                       << service_id;
@@ -309,8 +309,7 @@ bool BluetoothClassic::IsAcceptingConnectionsLocked(
   return server_sockets_.find(service_id) != server_sockets_.end();
 }
 
-bool BluetoothClassic::StopAcceptingConnections(
-    const std::string& service_id) {
+bool BluetoothClassic::StopAcceptingConnections(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
   if (service_id.empty()) {
@@ -396,9 +395,8 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
     return socket;
   }
 
-  socket = medium_.ConnectToService(bluetooth_device,
-                                    GenerateUuidFromString(service_id),
-                                    cancellation_flag);
+  socket = medium_.ConnectToService(
+      bluetooth_device, GenerateUuidFromString(service_id), cancellation_flag);
   if (!socket.IsValid()) {
     NEARBY_LOGS(INFO) << "Failed to Connect via BT [service=" << service_id
                       << "]";

@@ -120,7 +120,9 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   std::string GetName() const override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
-  bool SetName(absl::string_view name) override ABSL_LOCKS_EXCLUDED(mutex_);
+  bool SetName(absl::string_view) override ABSL_LOCKS_EXCLUDED(mutex_);
+  bool SetName(absl::string_view name, bool persist) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns BT MAC address assigned to this adapter.
   std::string GetMacAddress() const override { return mac_address_; }

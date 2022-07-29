@@ -163,7 +163,18 @@ class BluetoothAdapter final {
   std::string GetMacAddress() const { return impl_->GetMacAddress(); }
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
-  bool SetName(absl::string_view name) { return impl_->SetName(name); }
+  bool SetName(absl::string_view name) {
+    // The name always persists resulting in not saving the current bluetooth
+    // radio name.
+    return impl_->SetName(name,
+                          /* persist= */ true);
+  }
+
+  // If persist is set to true, we will not update the stored radio names.
+  // If persist is set to false, we will update the stored radio names.
+  bool SetName(absl::string_view name, bool persist) {
+    return impl_->SetName(name, persist);
+  }
 
   bool IsValid() const { return impl_ != nullptr; }
 

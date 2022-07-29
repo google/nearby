@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,27 +15,7 @@ licenses(["notice"])
 
 cc_library(
     name = "types",
-    linkopts = [
-        "advapi32.lib",
-        "comdlg32.lib",
-        "gdi32.lib",
-        "kernel32.lib",
-        "odbc32.lib",
-        "odbccp32.lib",
-        "ole32.lib",
-        "oleaut32.lib",
-        "shell32.lib",
-        "user32.lib",
-        "uuid.lib",
-        "winmm.lib",
-        "winspool.lib",
-        "comsuppwd.lib",
-        "setupapi.lib",
-        "dnsapi.lib",
-        "wlanapi.lib",
-        "shlwapi.lib",
-    ],
-    textual_hdrs = glob(["**/*.h"]),
+    textual_hdrs = glob(["**/*.hpp"]),
     visibility = [
         "//location/nearby/cpp/sharing/implementation/internal:__subpackages__",
         "//connections/windows:__subpackages__",

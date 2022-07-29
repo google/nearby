@@ -14,8 +14,6 @@
 
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 
-#include <windows.h>   // These two headers must be defined
-#include <winioctl.h>  // first and in this order
 #include <bthdef.h>
 #include <bthioctl.h>
 #include <cfgmgr32.h>
@@ -25,11 +23,14 @@
 #include <setupapi.h>
 #include <stdio.h>
 #include <usbiodef.h>
+#include <windows.h>   // These two headers must be defined
+#include <winioctl.h>  // first and in this order
 
 #include <string>
 
 #include "absl/strings/str_format.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
+#include "internal/platform/implementation/windows/json/json.hpp"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 
@@ -46,6 +47,28 @@ typedef std::basic_string<TCHAR> tstring;
 namespace location {
 namespace nearby {
 namespace windows {
+namespace {
+struct LocalSettings {
+  std::string original_radio_name;
+  std::string nearby_radio_name;
+};
+
+using json = ::nlohmann::json;
+
+constexpr absl::string_view kLocalSettingsFileName = "settings_file.json";
+constexpr char kOriginalRadioName[] = "OriginalRadioName";
+constexpr char kNearbyRadioName[] = "NearbyRadioName";
+
+void to_json(json &json_output, const LocalSettings &local_settings) {
+  json_output = json{{kOriginalRadioName, local_settings.original_radio_name},
+                     {kNearbyRadioName, local_settings.nearby_radio_name}};
+}
+
+void from_json(const json &json_input, LocalSettings &local_settings) {
+  json_input.at(kOriginalRadioName).get_to(local_settings.original_radio_name);
+  json_input.at(kNearbyRadioName).get_to(local_settings.nearby_radio_name);
+}
+}  // namespace
 
 constexpr uint8_t kAndroidDiscoverableBluetoothNameMaxLength = 37;  // bytes
 
@@ -144,6 +167,81 @@ bool BluetoothAdapter::SetScanMode(ScanMode scan_mode) {
   return true;
 }
 
+void BluetoothAdapter::RestoreRadioNameIfNecessary() {
+  std::string nearby_radio_name;
+  std::string current_radio_name = GetName();
+
+  std::string settings_path(kLocalSettingsFileName);
+
+  auto full_path =
+      location::nearby::api::ImplementationPlatform::GetAppDataPath(
+          settings_path);
+
+  auto settings_file =
+      location::nearby::api::ImplementationPlatform::CreateInputFile(full_path,
+                                                                     0);
+  if (settings_file == nullptr) {
+    return;
+  }
+
+  auto total_size = settings_file->GetTotalSize();
+  nearby::ExceptionOr<ByteArray> raw_local_settings;
+
+  raw_local_settings = settings_file->Read(total_size);
+  settings_file->Close();
+
+  if (!raw_local_settings.ok()) {
+    return;
+  }
+
+  auto local_settings =
+      json::parse(raw_local_settings.GetResult().data(), nullptr, false);
+
+  if (local_settings.is_discarded()) {
+    return;
+  }
+
+  LocalSettings settings = local_settings.get<LocalSettings>();
+
+  if (current_radio_name == settings.nearby_radio_name) {
+    SetName(settings.original_radio_name,
+            /* persist= */ true);
+  }
+}
+
+void BluetoothAdapter::StoreRadioNames(absl::string_view original_radio_name,
+                                       absl::string_view nearby_radio_name) {
+  if (original_radio_name == nullptr || original_radio_name.size() == 0) {
+    return;
+  }
+  if (nearby_radio_name == nullptr || nearby_radio_name.size() == 0) {
+    return;
+  }
+
+  std::string settings_path(kLocalSettingsFileName);
+  auto full_path =
+      location::nearby::api::ImplementationPlatform::GetAppDataPath(
+          settings_path);
+
+  auto settings_file =
+      location::nearby::api::ImplementationPlatform::CreateOutputFile(
+          full_path);
+
+  if (settings_file == nullptr) {
+    return;
+  }
+
+  LocalSettings local_settings = {std::string(original_radio_name),
+                                  std::string(nearby_radio_name)};
+
+  json encoded_local_settings = local_settings;
+
+  ByteArray data(encoded_local_settings.dump());
+
+  settings_file->Write(data);
+  settings_file->Close();
+}
+
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getName()
 // Returns an empty string on error
 std::string BluetoothAdapter::GetName() const {
@@ -208,6 +306,14 @@ std::string BluetoothAdapter::GetName() const {
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
 bool BluetoothAdapter::SetName(absl::string_view name) {
+  return SetName(name,
+                 /* persist= */ true);
+}
+
+bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
+  if (!persist) {
+    StoreRadioNames(GetName(), name);
+  }
   if (name.size() > 248 * sizeof(char)) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Failed to set name for bluetooth adapter because "
@@ -228,9 +334,9 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
   device_name_ = std::nullopt;
 
   if (registry_bluetooth_adapter_name_ == name) {
-    NEARBY_LOGS(INFO)
-        << __func__
-        << ": Tried to set name for bluetooth adapter to the same name again.";
+    NEARBY_LOGS(INFO) << __func__
+                      << ": Tried to set name for bluetooth adapter to the "
+                         "same name again.";
     return true;
   }
 
@@ -302,8 +408,9 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
                       // lpMultiByteStr.
       NULL,  // // Pointer to the character to use if a character cannot be
              // represented in the specified code page.
-      &defaultCharUsed);  // // Pointer to a flag that indicates if the function
-                          // has used a default character in the conversion.
+      &defaultCharUsed);  // // Pointer to a flag that indicates if the
+                          // function has used a default character in the
+                          // conversion.
 
   if (conversionResult == 0) {
     process_error();
@@ -338,16 +445,16 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
   // Creates or opens a file or I/O device.
   // https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea
   hDevice = CreateFileA(
-      file_name
-          .c_str(),   // The name of the file or device to be created or opened.
-      GENERIC_WRITE,  // The requested access to the file or device.
-      0,              // The requested sharing mode of the file or device.
-      NULL,           // A pointer to a SECURITY_ATTRIBUTES structure.
+      file_name.c_str(),  // The name of the file or device to be created or
+                          // opened.
+      GENERIC_WRITE,      // The requested access to the file or device.
+      0,                  // The requested sharing mode of the file or device.
+      NULL,               // A pointer to a SECURITY_ATTRIBUTES structure.
       OPEN_EXISTING,  // An action to take on a file or device that exists or
                       // does not exist.
       0,              // The file or device attributes and flags.
-      NULL);  // A valid handle to a template file with the GENERIC_READ access
-              // right. This parameter can be NULL.
+      NULL);          // A valid handle to a template file with the GENERIC_READ
+                      // access right. This parameter can be NULL.
 
   if (hDevice == INVALID_HANDLE_VALUE) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to open device. Error code: "
@@ -374,8 +481,8 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
       HKEY_LOCAL_MACHINE,      // A handle to an open registry key.
       local_name_key.c_str(),  // The name of the registry subkey to be opened.
       0L,             // Specifies the option to apply when opening the key.
-      KEY_SET_VALUE,  // A mask that specifies the desired access rights to the
-                      // key to be opened.
+      KEY_SET_VALUE,  // A mask that specifies the desired access rights to
+                      // the key to be opened.
       &hKey);  // A pointer to a variable that receives a handle to the opened
                // key.
 
@@ -391,7 +498,8 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
     // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regsetvalueexa
     status = RegSetValueExA(
         hKey,                               // A handle to an open registry key
-        BLUETOOTH_RADIO_REGISTRY_NAME_KEY,  // The name of the value to be set.
+        BLUETOOTH_RADIO_REGISTRY_NAME_KEY,  // The name of the value to be
+                                            // set.
         0,           // This parameter is reserved and must be zero.
         REG_BINARY,  // The type of data pointed to by the lpData parameter.
         (LPBYTE)std::string(name).c_str(),  // The data to be stored.
@@ -436,8 +544,8 @@ bool BluetoothAdapter::SetName(absl::string_view name) {
           NULL,    // A pointer to the output buffer that is to receive the data
                    // returned by the operation.
           0,       // The size of the output buffer, in bytes.
-          &bytes,  // A pointer to a variable that receives the size of the data
-                   // stored in the output buffer, in bytes.
+          &bytes,  // A pointer to a variable that receives the size of the
+                   // data stored in the output buffer, in bytes.
           NULL)) {  // A pointer to an OVERLAPPED structure.
     NEARBY_LOGS(ERROR)
         << __func__
@@ -520,7 +628,8 @@ char *BluetoothAdapter::GetGenericBluetoothAdapterInstanceID(void) const {
     DeviceInfoData.cbSize = sizeof(DeviceInfoData);
 
     // The SetupDiEnumDeviceInfo function returns a SP_DEVINFO_DATA structure
-    // that specifies a device information element in a device information set.
+    // that specifies a device information element in a device information
+    // set.
     // https://docs.microsoft.com/en-us/windows/win32/api/setupapi/nf-setupapi-setupdienumdeviceinfo
     if (!SetupDiEnumDeviceInfo(hDevInfo, i, &DeviceInfoData)) break;
 
@@ -532,8 +641,8 @@ char *BluetoothAdapter::GetGenericBluetoothAdapterInstanceID(void) const {
 
     if (r != CR_SUCCESS) continue;
 
-    // With Windows, a Bluetooth radio can be packaged as an external dongle or
-    // embedded inside a computer but it must be connected to one of the
+    // With Windows, a Bluetooth radio can be packaged as an external dongle
+    // or embedded inside a computer but it must be connected to one of the
     // computer's USB ports.
     // https://docs.microsoft.com/en-us/windows-hardware/drivers/bluetooth/bluetooth-host-radio-support
     if (strncmp("USB", deviceInstanceID, 3) == 0) {

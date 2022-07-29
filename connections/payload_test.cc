@@ -21,8 +21,8 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/input_stream.h"
 #include "internal/platform/file.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/pipe.h"
 
 namespace location {
@@ -46,6 +46,18 @@ TEST(PayloadTest, SupportsByteArrayType) {
 TEST(PayloadTest, SupportsFileType) {
   constexpr size_t kOffset = 99;
   const auto payload_id = Payload::GenerateId();
+
+  char test_file_data[100];
+  memcpy(test_file_data,
+         "012345678901234567890123456789012345678901234567890123456789012345678"
+         "901234567890123456789012345678\0",
+         100);
+
+  OutputFile outputFile(payload_id);
+  ByteArray test_data(test_file_data, 100);
+  outputFile.Write(test_data);
+  outputFile.Close();
+
   InputFile file(payload_id, 100);
   InputStream& stream = file.GetInputStream();
 

@@ -75,6 +75,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
   bool SetName(absl::string_view name) override;
+  bool SetName(absl::string_view name, bool persist) override;
 
   // Returns BT MAC address assigned to this adapter.
   std::string GetMacAddress() const override;
@@ -94,9 +95,13 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   // Returns true if the Bluetooth hardware supports Bluetooth 5.0 Extended
   // Advertising
   bool IsExtendedAdvertisingSupported() const;
+  void RestoreRadioNameIfNecessary();
 
  private:
   void process_error();
+  void StoreRadioNames(absl::string_view original_radio_name,
+                       absl::string_view nearby_radio_name);
+
   WindowsBluetoothAdapter windows_bluetooth_adapter_;
   std::string registry_bluetooth_adapter_name_;
 

@@ -14,9 +14,14 @@
 
 #include "internal/platform/implementation/platform.h"
 
+#include <PathCch.h>
 #include <knownfolders.h>
+#include <psapi.h>
 #include <shlobj.h>
+#include <shlwapi.h>
+#include <strsafe.h>
 #include <windows.h>
+#include <winver.h>
 
 #include <memory>
 #include <sstream>
@@ -154,6 +159,7 @@ std::string CreateOutputFileWithRename(absl::string_view path) {
   // While we successfully open the file, keep incrementing the count.
   while (!(file.rdstate() & std::ifstream::failbit)) {
     file.close();
+#undef StrCat
     target = absl::StrCat(folder, file_name1, " (", ++count, ")", file_name2);
     file.clear();
     file.open(target, std::fstream::binary | std::fstream::in);
@@ -163,6 +169,45 @@ std::string CreateOutputFileWithRename(absl::string_view path) {
   file.close();
 
   return target;
+}
+
+std::string GetApplicationName(DWORD pid) {
+  HANDLE handle =
+      OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE,
+                  pid);  // Modify pid to the pid of your application
+  if (!handle) {
+    return "";
+  }
+
+  std::string szProcessName("", MAX_PATH);
+  DWORD len = MAX_PATH;
+
+  if (NULL != handle) {
+    GetModuleFileNameExA(handle, nullptr, szProcessName.data(), len);
+  }
+
+  szProcessName.resize(szProcessName.find_first_of('\0') + 1);
+
+  auto just_the_file_name_and_ext = szProcessName.substr(
+      szProcessName.find_last_of('\\') + 1,
+      szProcessName.length() - szProcessName.find_last_of('\\') + 1);
+
+  return just_the_file_name_and_ext.substr(
+      0, just_the_file_name_and_ext.find_last_of('.'));
+}
+
+bool FolderExists(const std::string& folder_name) {
+  DWORD ftyp = GetFileAttributesA(folder_name.c_str());
+
+  if (ftyp == INVALID_FILE_ATTRIBUTES) {
+    return false;  // something is wrong with your path!
+  }
+
+  if (ftyp & FILE_ATTRIBUTE_DIRECTORY) {
+    return true;
+  }  // this is a directory!
+
+  return false;  // this is not a directory!
 }
 
 }  // namespace
@@ -176,6 +221,44 @@ std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
 std::string ImplementationPlatform::GetDownloadPath(std::string& file_name) {
   std::string fake_parent_path;
   return GetDownloadPathInternal(fake_parent_path, file_name);
+}
+
+std::string ImplementationPlatform::GetAppDataPath(
+    absl::string_view file_name) {
+  PWSTR basePath;
+
+  // Retrieves the full path of a known folder identified by the folder's
+  // KNOWNFOLDERID.
+  // https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
+  SHGetKnownFolderPath(
+      FOLDERID_ProgramData,  //  rfid: A reference to the KNOWNFOLDERID that
+                             //  identifies the folder.
+      0,           // dwFlags: Flags that specify special retrieval options.
+      NULL,        // hToken: An access token that represents a particular user.
+      &basePath);  // ppszPath: When this method returns, contains the address
+                   // of a pointer to a null-terminated Unicode string that
+                   // specifies the path of the known folder. The calling
+                   // process is responsible for freeing this resource once it
+                   // is no longer needed by calling CoTaskMemFree, whether
+                   // SHGetKnownFolderPath succeeds or not.
+  size_t bufferSize;
+  wcstombs_s(&bufferSize, NULL, 0, basePath, 0);
+  std::string fullpathUTF8(bufferSize - 1, '\0');
+  wcstombs_s(&bufferSize, fullpathUTF8.data(), bufferSize, basePath, _TRUNCATE);
+  CoTaskMemFree(basePath);
+
+  // Get the application image name
+  auto app_name = GetApplicationName(GetCurrentProcessId());
+
+  // Check if our folder exists
+  std::replace(fullpathUTF8.begin(), fullpathUTF8.end(), '\\', '/');
+
+  std::stringstream path("");
+
+  path << fullpathUTF8.c_str() << "/" << app_name.c_str() << "/"
+       << file_name.data();
+
+  return path.str();
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kWindows; }
@@ -229,6 +312,19 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     absl::string_view file_path) {
+  std::string path(file_path);
+
+  std::string folder_path = path.substr(0, path.find_last_of('/'));
+  // Verifies that a path is a valid directory.
+  // https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathisdirectorya
+  if (!PathIsDirectoryA(folder_path.data())) {
+    // This function creates a file system folder whose fully qualified path is
+    // given by pszPath. If one or more of the intermediate folders do not
+    // exist, they are created as well.
+    // https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shcreatedirectoryexa
+    int result = SHCreateDirectoryExA(0, folder_path.data(), nullptr);
+  }
+
   return shared::IOFile::CreateOutputFile(file_path);
 }
 

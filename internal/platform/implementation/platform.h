@@ -69,6 +69,8 @@ class ImplementationPlatform {
 
   static std::string GetDownloadPath(std::string& file_name);
 
+  static std::string GetAppDataPath(absl::string_view file_name);
+
   static OSName GetCurrentOS();
 
   // Atomics:

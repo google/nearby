@@ -26,6 +26,68 @@ namespace nearby {
 namespace windows {
 namespace {
 
+constexpr absl::string_view kName = "Test Radio Name";
+constexpr absl::string_view kLongName =
+    "12345678901234567890123456789012345678";
+constexpr absl::string_view kSpecialCharName = "~!@#$%^&*()_+<>:\"-}[{]";
+
+TEST(BluetoothAdapter, DISABLED_SetNameSucceeds) {
+  BluetoothAdapter bluetooth_adapter;
+  auto original_name = bluetooth_adapter.GetName();
+  bluetooth_adapter.SetName(kName,
+                            /* persist= */ false);
+
+  bluetooth_adapter.RestoreRadioNameIfNecessary();
+
+  EXPECT_EQ(bluetooth_adapter.GetName(), original_name);
+}
+
+TEST(BluetoothAdapter, DISABLED_SetNameWithTooManyChars) {
+  BluetoothAdapter bluetooth_adapter;
+  auto original_name = bluetooth_adapter.GetName();
+  bluetooth_adapter.SetName(kLongName,
+                            /* persist= */ false);
+
+  auto result = bluetooth_adapter.GetName();
+  bluetooth_adapter.RestoreRadioNameIfNecessary();
+
+  EXPECT_EQ(result, kLongName);
+  EXPECT_EQ(bluetooth_adapter.GetName(), original_name);
+}
+
+TEST(BluetoothAdapter, DISABLED_SetNameWithSpecialCharsSucceeds) {
+  BluetoothAdapter bluetooth_adapter;
+  auto original_name = bluetooth_adapter.GetName();
+  bluetooth_adapter.SetName(kSpecialCharName,
+                            /* persist= */ false);
+
+  auto result = bluetooth_adapter.GetName();
+  bluetooth_adapter.RestoreRadioNameIfNecessary();
+
+  EXPECT_EQ(result, kSpecialCharName);
+  EXPECT_EQ(bluetooth_adapter.GetName(), original_name);
+}
+
+TEST(BluetoothAdapter, DISABLED_SetNameWithEmptyStringSetsOriginalName) {
+  BluetoothAdapter bluetooth_adapter;
+  auto original_name = bluetooth_adapter.GetName();
+
+  bluetooth_adapter.SetName("",
+                            /* persist= */ false);
+
+  EXPECT_EQ(bluetooth_adapter.GetName(), original_name);
+}
+
+TEST(BluetoothAdapter, DISABLED_SetNameWithNullPtrSetsOriginalName) {
+  BluetoothAdapter bluetooth_adapter;
+  auto original_name = bluetooth_adapter.GetName();
+
+  bluetooth_adapter.SetName(nullptr,
+                            /* persist= */ false);
+
+  EXPECT_EQ(bluetooth_adapter.GetName(), original_name);
+}
+
 TEST(BluetoothAdapter, DISABLED_SetStatus) {
   BluetoothAdapter bluetooth_adapter;
   EXPECT_TRUE(

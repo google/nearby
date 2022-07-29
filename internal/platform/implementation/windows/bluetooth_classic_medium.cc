@@ -18,6 +18,7 @@
 #include <windows.h>
 
 #include <codecvt>
+#include <fstream>
 #include <locale>
 #include <memory>
 #include <regex>  // NOLINT
@@ -50,6 +51,7 @@ BluetoothClassicMedium::BluetoothClassicMedium(
     api::BluetoothAdapter& bluetoothAdapter)
     : bluetooth_adapter_(dynamic_cast<BluetoothAdapter&>(bluetoothAdapter)) {
   InitializeDeviceWatcher();
+  bluetooth_adapter_.RestoreRadioNameIfNecessary();
 
   bluetooth_adapter_.SetOnScanModeChanged(std::bind(
       &BluetoothClassicMedium::OnScanModeChanged, this, std::placeholders::_1));

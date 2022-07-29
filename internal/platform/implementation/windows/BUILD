@@ -127,7 +127,7 @@ cc_library(
         "wifi_lan_socket.cc",
         "wifi_medium.cc",
     ],
-    copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated"],
+    copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated -Ithird_party/nearby/internal/platform/implementation/windows/json"],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     visibility = [
         "//location/nearby:__subpackages__",
@@ -145,6 +145,7 @@ cc_library(
         "//internal/platform/implementation/shared:count_down_latch",
         "//internal/platform/implementation/shared:file",
         "//internal/platform/implementation/windows/generated:types",
+        "//internal/platform/implementation/windows/json:types",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
     ],
