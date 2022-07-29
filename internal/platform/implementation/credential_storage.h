@@ -42,18 +42,23 @@ struct CredentialSelector {
   PresenceIdentity::IdentityType identity_type;
 };
 
-struct SaveCredentialCallback {
+enum PublicCredentialType {
+  kLocalPublicCredential = 1,
+  kRemotePublicCredential = 2,
+};
+
+struct SaveCredentialsResultCallback {
   std::function<void(CredentialOperationStatus)> credentials_saved_cb;
 };
 
-struct GetPrivateCredentialCallback {
-  std::function<void(ExceptionOr<std::vector<PrivateCredential>>)>
-      credentials_fetched_cb;
+struct GetPrivateCredentialsResultCallback {
+  std::function<void(std::vector<PrivateCredential>)> credentials_fetched_cb;
+  std::function<void(CredentialOperationStatus)> get_credentials_failed_cb;
 };
 
-struct GetPublicCredentialCallback {
-  std::function<void(ExceptionOr<std::vector<PublicCredential>>)>
-      credentials_fetched_cb;
+struct GetPublicCredentialsResultCallback {
+  std::function<void(std::vector<PublicCredential>)> credentials_fetched_cb;
+  std::function<void(CredentialOperationStatus)> get_credentials_failed_cb;
 };
 
 /*
@@ -64,27 +69,31 @@ class CredentialStorage {
   CredentialStorage() = default;
   virtual ~CredentialStorage() = default;
   // Used for
-  // 1. Save/update private creds after (re)generate credentials invoked by
-  // manager app. (public_credentials will be empty for this case); Or
-  // 2. Update remote public creds after manager app downloaded a new batch of
-  // remote public creds and save to local storage. (private_credentials will
-  // be empty for this case).
-  // account_name will be used as the key in both options, and both would
-  // overwrite the previous credentials if there already exists credentials for
-  // that given account_name.
-  virtual void SaveCredentials(
+  // 1. Save private creds after (re)generate credentials invoked by manager app
+  // 2. Update remote public creds after manager app update the public creds.
+  // Skip the save/update if the provided vector is empty.
+  // Another way is to break this into two APIs for save and update separately.
+  virtual void SavePrivateCredentials(
       std::string account_name,
       std::vector<PrivateCredential> private_credentials,
+      SaveCredentialsResultCallback callback);
+
+  virtual void SavePublicCredentials(
+      std::string account_name,
       std::vector<PublicCredential> public_credentials,
-      SaveCredentialCallback callback);
+      PublicCredentialType public_credential_type,
+      SaveCredentialsResultCallback callback);
 
   // Used to fetch private creds when broadcasting.
-  virtual void GetPrivateCredentials(CredentialSelector credential_selector,
-                                     GetPrivateCredentialCallback callback);
+  virtual void GetPrivateCredentials(
+      CredentialSelector credential_selector,
+      GetPrivateCredentialsResultCallback callback);
 
   // Used to fetch remote public creds when scanning.
-  virtual void GetPublicCredentials(CredentialSelector credential_selector,
-                                    GetPublicCredentialCallback callback);
+  virtual void GetPublicCredentials(
+      CredentialSelector credential_selector,
+      PublicCredentialType public_credential_type,
+      GetPublicCredentialsResultCallback callback);
 };
 
 }  // namespace api

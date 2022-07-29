@@ -68,12 +68,12 @@ class CredentialManager {
   // Used to fetch private creds when broadcasting.
   virtual void GetPrivateCredentials(
       location::nearby::api::CredentialSelector credential_selector,
-      location::nearby::api::GetPrivateCredentialCallback callback) = 0;
+      location::nearby::api::GetPrivateCredentialsResultCallback callback) = 0;
 
   // Used to fetch remote public creds when scanning.
   virtual void GetPublicCredentials(
       location::nearby::api::CredentialSelector credential_selector,
-      location::nearby::api::GetPublicCredentialCallback callback) = 0;
+      location::nearby::api::GetPublicCredentialsResultCallback callback) = 0;
 
   // Decrypts Data Elements from an NP advertisement.
   // Returns an error if `metadata_key` is not associated with any known

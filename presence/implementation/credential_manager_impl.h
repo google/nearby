@@ -45,12 +45,14 @@ class CredentialManagerImpl : public CredentialManager {
 
   void GetPrivateCredentials(
       location::nearby::api::CredentialSelector credential_selector,
-      location::nearby::api::GetPrivateCredentialCallback callback) override {}
+      location::nearby::api::GetPrivateCredentialsResultCallback callback)
+      override {}
 
   // Used to fetch remote public creds when scanning.
   void GetPublicCredentials(
       location::nearby::api::CredentialSelector credential_selector,
-      location::nearby::api::GetPublicCredentialCallback callback) override {}
+      location::nearby::api::GetPublicCredentialsResultCallback callback)
+      override {}
 
   absl::StatusOr<std::string> DecryptDataElements(
       absl::string_view metadata_key, absl::string_view salt,
