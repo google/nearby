@@ -28,10 +28,6 @@ namespace location {
 namespace nearby {
 namespace api {
 
-using ::nearby::presence::PresenceIdentity;
-using ::nearby::presence::proto::PrivateCredential;
-using ::nearby::presence::proto::PublicCredential;
-
 enum class CredentialOperationStatus {
   kFailed = 0,
   kSucceeded = 1,
@@ -39,7 +35,7 @@ enum class CredentialOperationStatus {
 
 struct CredentialSelector {
   std::string account_name;
-  PresenceIdentity::IdentityType identity_type;
+  ::nearby::presence::PresenceIdentity::IdentityType identity_type;
 };
 
 enum PublicCredentialType {
@@ -52,12 +48,14 @@ struct SaveCredentialsResultCallback {
 };
 
 struct GetPrivateCredentialsResultCallback {
-  std::function<void(std::vector<PrivateCredential>)> credentials_fetched_cb;
+  std::function<void(std::vector<::nearby::presence::proto::PrivateCredential>)>
+      credentials_fetched_cb;
   std::function<void(CredentialOperationStatus)> get_credentials_failed_cb;
 };
 
 struct GetPublicCredentialsResultCallback {
-  std::function<void(std::vector<PublicCredential>)> credentials_fetched_cb;
+  std::function<void(std::vector<::nearby::presence::proto::PublicCredential>)>
+      credentials_fetched_cb;
   std::function<void(CredentialOperationStatus)> get_credentials_failed_cb;
 };
 
@@ -75,25 +73,27 @@ class CredentialStorage {
   // Another way is to break this into two APIs for save and update separately.
   virtual void SavePrivateCredentials(
       std::string account_name,
-      std::vector<PrivateCredential> private_credentials,
-      SaveCredentialsResultCallback callback);
+      std::vector<::nearby::presence::proto::PrivateCredential>&
+          private_credentials,
+      SaveCredentialsResultCallback callback) = 0;
 
   virtual void SavePublicCredentials(
       std::string account_name,
-      std::vector<PublicCredential> public_credentials,
+      std::vector<::nearby::presence::proto::PublicCredential>&
+          public_credentials,
       PublicCredentialType public_credential_type,
-      SaveCredentialsResultCallback callback);
+      SaveCredentialsResultCallback callback) = 0;
 
   // Used to fetch private creds when broadcasting.
   virtual void GetPrivateCredentials(
       CredentialSelector credential_selector,
-      GetPrivateCredentialsResultCallback callback);
+      GetPrivateCredentialsResultCallback callback) = 0;
 
   // Used to fetch remote public creds when scanning.
   virtual void GetPublicCredentials(
       CredentialSelector credential_selector,
       PublicCredentialType public_credential_type,
-      GetPublicCredentialsResultCallback callback);
+      GetPublicCredentialsResultCallback callback) = 0;
 };
 
 }  // namespace api

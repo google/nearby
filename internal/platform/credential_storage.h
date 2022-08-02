@@ -15,22 +15,49 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_CREDENTIAL_STORAGE_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_CREDENTIAL_STORAGE_H_
 
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "internal/platform/implementation/credential_storage.h"
 
 namespace location {
 namespace nearby {
+
 /*
  * The instance of CredentialStorage is owned by {@code CredentialManager}.
  * It's a wrapper on top of implementation/credential_storage.h to providing
  * credential storage operations for Nearby logic layer to invoke.
  */
-class CredentialStorage {
+class CredentialStorage final {
  public:
   CredentialStorage() = default;
   ~CredentialStorage() = default;
 
+  void SavePrivateCredentials(
+      std::string account_name,
+      std::vector<::nearby::presence::proto::PrivateCredential>&
+          private_credentials,
+      api::SaveCredentialsResultCallback callback);
+
+  void SavePublicCredentials(
+      std::string account_name,
+      std::vector<::nearby::presence::proto::PublicCredential>&
+          public_credentials,
+      api::PublicCredentialType public_credential_type,
+      api::SaveCredentialsResultCallback callback);
+
+  // Used to fetch private creds when broadcasting.
+  void GetPrivateCredentials(api::CredentialSelector credential_selector,
+                             api::GetPrivateCredentialsResultCallback callback);
+
+  // Used to fetch remote public creds when scanning.
+  void GetPublicCredentials(api::CredentialSelector credential_selector,
+                            api::PublicCredentialType public_credential_type,
+                            api::GetPublicCredentialsResultCallback callback);
+
  private:
-  api::CredentialStorage credential_storage_;
+  std::unique_ptr<api::CredentialStorage> impl_;
 };
 
 }  // namespace nearby
