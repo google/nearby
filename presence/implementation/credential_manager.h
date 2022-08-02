@@ -22,15 +22,16 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/credential_storage.h"
-#include "third_party/nearby/presence/credential.h"
 #include "third_party/nearby/presence/presence_identity.h"
+#include "third_party/nearby/presence/proto/credential.pb.h"
 
 namespace nearby {
 namespace presence {
 using ::nearby::presence::PresenceIdentity;
 
 struct GenerateCredentialsCallback {
-  std::function<void(std::vector<PublicCredential>)> credentials_generated_cb;
+  std::function<void(std::vector<proto::PublicCredential>)>
+      credentials_generated_cb;
 };
 
 struct UpdateRemotePublicCredentialsCallback {
@@ -62,7 +63,7 @@ class CredentialManager {
   // Update remote public credentials.
   virtual void UpdateRemotePublicCredentials(
       std::string account_name,
-      std::vector<PublicCredential> remote_public_creds,
+      std::vector<proto::PublicCredential> remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) = 0;
 
   // Used to fetch private creds when broadcasting.

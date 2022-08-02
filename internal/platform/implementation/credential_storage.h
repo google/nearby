@@ -21,16 +21,16 @@
 #include <vector>
 
 #include "internal/platform/exception.h"
-#include "third_party/nearby/presence/credential.h"
 #include "third_party/nearby/presence/presence_identity.h"
+#include "third_party/nearby/presence/proto/credential.pb.h"
 
 namespace location {
 namespace nearby {
 namespace api {
 
 using ::nearby::presence::PresenceIdentity;
-using ::nearby::presence::PrivateCredential;
-using ::nearby::presence::PublicCredential;
+using ::nearby::presence::proto::PrivateCredential;
+using ::nearby::presence::proto::PublicCredential;
 
 enum class CredentialOperationStatus {
   kFailed = 0,

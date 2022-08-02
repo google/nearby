@@ -22,9 +22,9 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/credential_storage.h"
-#include "third_party/nearby/presence/credential.h"
 #include "third_party/nearby/presence/implementation/credential_manager.h"
 #include "third_party/nearby/presence/presence_identity.h"
+#include "third_party/nearby/presence/proto/credential.pb.h"
 
 namespace nearby {
 namespace presence {
@@ -40,7 +40,7 @@ class CredentialManagerImpl : public CredentialManager {
 
   void UpdateRemotePublicCredentials(
       std::string account_name,
-      std::vector<PublicCredential> remote_public_creds,
+      std::vector<proto::PublicCredential> remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) override{};
 
   void GetPrivateCredentials(

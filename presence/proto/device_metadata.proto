@@ -19,7 +19,7 @@ message DeviceMetadata {
   // The Bluetooth MAC address of the device which created the certificate.
   optional string bluetooth_mac_address = 5;
 
-  /** The version of the frame. */
+  /** The types of the device. */
   enum DeviceType {
     UNSPECIFIED = 0;
     PHONE = 1;

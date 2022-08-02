@@ -73,16 +73,14 @@ cc_library(
         "//third_party/nearby/presence/implementation:__pkg__",
     ],
     deps = [
-        "//connections/clients/windows:types",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:uuid",
         "//third_party/nearby/presence:credential",
+        "//third_party/nearby/presence/proto:credential_cc_proto",
         "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/types:optional",
     ],
 )
 

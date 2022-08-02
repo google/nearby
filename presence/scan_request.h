@@ -18,10 +18,10 @@
 #include <string>
 #include <vector>
 
-#include "third_party/nearby/presence/credential.h"
 #include "third_party/nearby/presence/data_element.h"
 #include "third_party/nearby/presence/power_mode.h"
 #include "third_party/nearby/presence/presence_identity.h"
+#include "third_party/nearby/presence/proto/credential.pb.h"
 
 namespace nearby {
 namespace presence {
@@ -58,7 +58,7 @@ struct LegacyPresenceScanFilter : public ScanFilter {
 
   // Android T needs clients to provide remote public credentials in scan
   // requests.
-  std::vector<PublicCredential> remote_public_credentials;
+  std::vector<proto::PublicCredential> remote_public_credentials;
 
   // A list of presence actions for matching. Matching condition is met as
   // long as there’s one or more equal actions between Scan actions and

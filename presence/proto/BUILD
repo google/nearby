@@ -10,3 +10,17 @@ cc_proto_library(
     ],
     deps = [":device_metadata_proto"],
 )
+
+proto_library(
+    name = "credential_proto",
+    srcs = ["credential.proto"],
+    deps = [":device_metadata_proto"],
+)
+
+cc_proto_library(
+    name = "credential_cc_proto",
+    visibility = [
+        "//third_party/nearby:__subpackages__",
+    ],
+    deps = [":credential_proto"],
+)

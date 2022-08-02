@@ -58,6 +58,7 @@ cc_library(
     deps = [
         ":credential",
         "//internal/platform:base",
+        "//third_party/nearby/presence/proto:credential_cc_proto",
         "@com_google_absl//absl/strings",
         "@com_google_glog//:glog",
     ],
@@ -136,13 +137,13 @@ cc_library(
     name = "credential",
     srcs = ["presence_identity.cc"],
     hdrs = [
-        "credential.h",
         "presence_identity.h",
     ],
     visibility = [
         "//third_party/nearby:__subpackages__",
     ],
     deps = [
+        "//third_party/nearby/presence/proto:credential_cc_proto",
         "//third_party/nearby/presence/proto:device_metadata_cc_proto",
     ],
 )
@@ -241,6 +242,7 @@ cc_test(
         ":credential",
         "//internal/platform:uuid",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//third_party/nearby/presence/proto:credential_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

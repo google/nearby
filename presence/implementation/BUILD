@@ -33,6 +33,7 @@ cc_library(
         "//internal/platform/implementation:comm",
         "//third_party/nearby/presence:credential",
         "//third_party/nearby/presence/implementation/mediums",
+        "//third_party/nearby/presence/proto:credential_cc_proto",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
