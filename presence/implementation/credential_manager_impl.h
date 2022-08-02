@@ -15,7 +15,9 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_CREDENTIAL_MANAGER_IMPL_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_CREDENTIAL_MANAGER_IMPL_H_
 
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/status/status.h"
@@ -33,10 +35,16 @@ class CredentialManagerImpl : public CredentialManager {
  public:
   CredentialManagerImpl() = default;
 
+  // AES only supports key sizes of 16, 24 or 32 bytes.
+  static constexpr int kAuthenticityKeyByteSize = 16;
+
+  static const char kIV[];
+
   void GenerateCredentials(
       proto::DeviceMetadata device_metadata,
-      std::vector<PresenceIdentity::IdentityType> identity_types,
-      GenerateCredentialsCallback credentials_generated_cb) override {}
+      std::vector<proto::IdentityType> identity_types,
+      int credential_life_cycle_days, int contiguous_copy_of_credentials,
+      GenerateCredentialsCallback credentials_generated_cb);
 
   void UpdateRemotePublicCredentials(
       std::string account_name,
@@ -61,8 +69,20 @@ class CredentialManagerImpl : public CredentialManager {
   }
 
  private:
-  location::nearby::CredentialStorage*
-      credential_storage_;  // NOLINT: further impl will use it.
+  FRIEND_TEST(CredentialManagerImpl, CreateOneCredentialSuccessfully);
+
+  // location::nearby::CredentialStorage
+  //     credential_storage_;  // NOLINT: further impl will use it.
+
+  std::pair<std::unique_ptr<proto::PrivateCredential>,
+            std::unique_ptr<proto::PublicCredential>>
+  CreatePrivateCredential(proto::DeviceMetadata device_metadata,
+                          proto::IdentityType identity_type,
+                          uint64_t start_time_ms, uint64_t end_time_ms);
+
+  std::unique_ptr<proto::PublicCredential> CreatePublicCredential(
+      proto::PrivateCredential* private_credential_ptr,
+      std::vector<uint8_t>* public_key);
 };
 
 }  // namespace presence

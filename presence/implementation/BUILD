@@ -15,7 +15,10 @@ licenses(["notice"])
 
 cc_library(
     name = "internal",
-    srcs = ["advertisement_decoder.cc"],
+    srcs = [
+        "advertisement_decoder.cc",
+        "credential_manager_impl.cc",
+    ],
     hdrs = [
         "advertisement_decoder.h",
         "broadcast_manager.h",
@@ -30,11 +33,15 @@ cc_library(
         "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
+        "//internal/crypto",
+        "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:types",
         "//third_party/nearby/presence:advertisement_factory",
         "//third_party/nearby/presence:credential",
+        "//third_party/nearby/presence:encryption",
         "//third_party/nearby/presence:types",
         "//third_party/nearby/presence/implementation/mediums",
         "//third_party/nearby/presence/proto:credential_cc_proto",
@@ -55,6 +62,21 @@ cc_test(
         "//third_party/nearby/presence:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "credential_manager_impl_test",
+    size = "small",
+    srcs = ["credential_manager_impl_test.cc"],
+    deps = [
+        ":internal",
+        "//net/proto2/contrib/parse_proto:testing",
+        "//internal/crypto",
+        "//internal/platform/implementation:types",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )
