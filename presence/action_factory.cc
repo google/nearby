@@ -26,10 +26,55 @@ constexpr int kContentTimestampMask = 0x0F;
 constexpr int kContentTimestampShift = 12;
 constexpr int kEmptyMask = 0;
 
-int ActionFactory::GetMask(const DataElement& element) {
+// The values below match the bitmasks in Base NP Intent.
+constexpr int kTapToTransferMask = 1 << 11;
+constexpr int kActiveUnlockMask = 1 << 7;
+constexpr int kNearbyShareMask = 1 << 6;
+constexpr int kFastPairMask = 1 << 5;
+constexpr int kFitCastMask = 1 << 4;
+constexpr int kNoAction = -1;
+
+namespace {
+int GetActionMask(int action) {
+  switch (action) {
+    case action::kActiveUnlockAction:
+      return kActiveUnlockMask;
+    case action::kTapToTransferAction:
+      return kTapToTransferMask;
+    case action::kNearbyShareAction:
+      return kNearbyShareMask;
+    case action::kFastPairAction:
+      return kFastPairMask;
+    case action::kFitCastAction:
+      return kFitCastMask;
+  }
+  NEARBY_LOG(WARNING, "Unsupported action %d", action);
+  return kEmptyMask;
+}
+
+// The reverse of `GetActionMask()`
+// Returns kNoAction when a matching action is not found.
+int GetActionFromBitMask(int mask) {
+  switch (mask) {
+    case kTapToTransferMask:
+      return action::kTapToTransferAction;
+    case kActiveUnlockMask:
+      return action::kActiveUnlockAction;
+    case kNearbyShareMask:
+      return action::kNearbyShareAction;
+    case kFastPairMask:
+      return action::kFastPairAction;
+    case kFitCastMask:
+      return action::kFitCastAction;
+  }
+  NEARBY_LOG(WARNING, "Unsupported action for bit mask 0x%x", mask);
+  return kNoAction;
+}
+
+int GetMask(const DataElement& element) {
   int type = element.GetType();
   switch (type) {
-    case DataElement::kContextTimestamp: {
+    case DataElement::kContextTimestampFieldType: {
       auto value = element.GetValue();
       if (!value.empty()) {
         return (value[0] & kContentTimestampMask) << kContentTimestampShift;
@@ -38,20 +83,22 @@ int ActionFactory::GetMask(const DataElement& element) {
         return kEmptyMask;
       }
     }
-    case DataElement::kActiveUnlock:
-    case DataElement::kTapToTransfer:
-    case DataElement::kNearbyShare:
-    case DataElement::kFastPair:
-    case DataElement::kFitCast:
-    case DataElement::kPresenceManager:
-      return type;
+    case DataElement::kActionFieldType: {
+      if (element.GetValue().empty()) {
+        NEARBY_LOG(WARNING, "Action Data Element without value");
+        return kEmptyMask;
+      }
+      return GetActionMask(element.GetValue()[0]);
+    }
   }
   NEARBY_LOG(WARNING, "Data Element 0x%x not supported in base advertisement",
              type);
   return kEmptyMask;
 }
 
-Action ActionFactory::createAction(
+}  // namespace
+
+Action ActionFactory::CreateAction(
     const std::vector<DataElement>& data_elements) {
   Action action = {.action = 0};
   std::for_each(data_elements.begin(), data_elements.end(),
@@ -60,6 +107,26 @@ Action ActionFactory::createAction(
                   action.action |= mask;
                 });
   return action;
+}
+
+void ActionFactory::DecodeAction(const Action& action,
+                                 std::vector<DataElement>& output) {
+  uint8_t context_timestamp =
+      (action.action >> kContentTimestampShift) & kContentTimestampMask;
+  if (context_timestamp) {
+    output.emplace_back(DataElement::kContextTimestampFieldType,
+                        context_timestamp);
+  }
+  for (int i = 0; i < kContentTimestampShift; i++) {
+    int bit_mask = 1 << i;
+    if (action.action & bit_mask) {
+      int action_value = GetActionFromBitMask(bit_mask);
+      if (action_value != kNoAction) {
+        output.emplace_back(DataElement::kActionFieldType,
+                            static_cast<uint8_t>(action_value));
+      }
+    }
+  }
 }
 
 }  // namespace presence

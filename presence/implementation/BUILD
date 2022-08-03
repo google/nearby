@@ -33,6 +33,7 @@ cc_library(
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform/implementation:comm",
+        "//third_party/nearby/presence:action_factory",
         "//third_party/nearby/presence:advertisement_factory",
         "//third_party/nearby/presence:credential",
         "//third_party/nearby/presence:types",

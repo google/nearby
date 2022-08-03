@@ -14,6 +14,7 @@
 
 #include "third_party/nearby/presence/implementation/advertisement_decoder.h"
 
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -24,6 +25,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/logging.h"
+#include "third_party/nearby/presence/action_factory.h"
 #include "third_party/nearby/presence/data_element.h"
 
 namespace nearby {
@@ -63,6 +65,23 @@ absl::StatusOr<DataElement> ParseDataElement(const absl::string_view input,
 bool IsIdentity(int data_type) {
   return data_type >= DataElement::kPrivateIdentityFieldType &&
          data_type <= DataElement::kProvisionedIdentityFieldType;
+}
+
+void DecodeBaseAction(absl::string_view serialized_action,
+                      std::vector<DataElement>& output) {
+  if (serialized_action.size() != sizeof(uint16_t)) {
+    NEARBY_LOGS(WARNING) << "Base NP action \'"
+                         << absl::BytesToHexString(serialized_action)
+                         << "\' has wrong length " << serialized_action.size()
+                         << " , expected " << sizeof(uint16_t);
+    return;
+  }
+  // Two bytes in Big Endian order
+  uint8_t high = serialized_action[0];
+  uint8_t low = serialized_action[1];
+  Action action = {.action = static_cast<uint16_t>((high << 8) | low)};
+
+  ActionFactory::DecodeAction(action, output);
 }
 
 }  // namespace
@@ -114,7 +133,11 @@ AdvertisementDecoder::DecodeAdvertisement(absl::string_view advertisement) {
       advertisement = *decrypted;
       index = 0;
     }
-    result.push_back(*std::move(elem));
+    if (elem->GetType() == DataElement::kActionFieldType) {
+      DecodeBaseAction(elem->GetValue(), result);
+    } else {
+      result.push_back(*std::move(elem));
+    }
   }
   return result;
 }

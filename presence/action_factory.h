@@ -23,18 +23,21 @@
 namespace nearby {
 namespace presence {
 
-/** Defines the mapping between Data Elements and Actions in the Base NP
- * advertisement. */
+// Defines the mapping between Data Elements and Actions in the Base NP
+// advertisement.
 class ActionFactory {
  public:
-  /** Returns an Action for Base NP advertisement from a collection of Data
-   * Elements. Data Elements unsupported in the Base NP advertisement are
-   * ignored.
-   */
-  static Action createAction(const std::vector<DataElement>& data_elements);
+  // Returns an Action for Base NP advertisement from a collection of Data
+  // Elements. Data Elements unsupported in the Base NP advertisement are
+  // ignored.
+  static Action CreateAction(const std::vector<DataElement>& data_elements);
 
- private:
-  static int GetMask(const DataElement& element);
+  // Decodes a Base NP Action into a list of Data Elements. The Data Elements
+  // are appended to the `output` list.
+  //
+  // DecodeAction is effectively a reverse operation of CreateAction.
+  static void DecodeAction(const Action& action,
+                           std::vector<DataElement>& output);
 };
 }  // namespace presence
 }  // namespace nearby

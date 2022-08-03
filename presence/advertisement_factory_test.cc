@@ -50,8 +50,9 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   NiceMock<MockCertificateManager> certificate_manager;
   PresenceIdentity identity;
   std::vector<DataElement> data_elements;
-  data_elements.emplace_back(DataElement::kActiveUnlock, "");
-  Action action = ActionFactory::createAction(data_elements);
+  data_elements.emplace_back(DataElement::kActionFieldType,
+                             action::kActiveUnlockAction);
+  Action action = ActionFactory::CreateAction(data_elements);
   BroadcastRequest request =
       BroadcastRequest(BasePresenceRequestBuilder(identity)
                            .SetSalt(salt)
@@ -61,7 +62,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
       .WillOnce(Return(absl::HexStringToBytes("1011121314151617181920212223")));
   EXPECT_CALL(
       certificate_manager,
-      EncryptDataElements(identity, salt, absl::HexStringToBytes("1505260800")))
+      EncryptDataElements(identity, salt, absl::HexStringToBytes("1505260080")))
       .WillOnce(Return(absl::HexStringToBytes("5051525354")));
 
   AdvertisementFactory factory(&certificate_manager);
@@ -84,8 +85,9 @@ TEST(AdvertisementFactory,
   NiceMock<MockCertificateManager> certificate_manager;
   PresenceIdentity identity;
   std::vector<DataElement> data_elements;
-  data_elements.emplace_back(DataElement::kActiveUnlock, "");
-  Action action = ActionFactory::createAction(data_elements);
+  data_elements.emplace_back(DataElement::kActionFieldType,
+                             action::kActiveUnlockAction);
+  Action action = ActionFactory::CreateAction(data_elements);
   BroadcastRequest request =
       BroadcastRequest(BasePresenceRequestBuilder(identity)
                            .SetSalt("AB")
