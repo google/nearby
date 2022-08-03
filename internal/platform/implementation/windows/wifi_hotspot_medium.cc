@@ -198,10 +198,11 @@ bool WifiHotspotMedium::StopWifiHotspot() {
 
   if (publisher_) {
     publisher_.Stop();
-    publisher_.StatusChanged(publisher_status_changed_token_);
     listener_.ConnectionRequested(connection_requested_token_);
-    publisher_ = nullptr;
+    publisher_.StatusChanged(publisher_status_changed_token_);
+    wifi_direct_device_  = nullptr;
     listener_ = nullptr;
+    publisher_ = nullptr;
     NEARBY_LOGS(INFO) << "succeeded to stop WiFi Hotspot";
   }
 
@@ -242,8 +243,9 @@ fire_and_forget WifiHotspotMedium::OnStatusChanged(
     absl::MutexLock lock(&mutex_);
     if (publisher_ != nullptr) {
       NEARBY_LOGS(ERROR) << "Windows WiFi Hotspot cleanup.";
-      publisher_.StatusChanged(publisher_status_changed_token_);
       listener_.ConnectionRequested(connection_requested_token_);
+      publisher_.StatusChanged(publisher_status_changed_token_);
+      wifi_direct_device_  = nullptr;
       listener_ = nullptr;
       publisher_ = nullptr;
     }
@@ -260,13 +262,15 @@ fire_and_forget WifiHotspotMedium::OnConnectionRequested(
   NEARBY_LOGS(INFO) << "Receive connection request from: "
                     << winrt::to_string(device_name);
 
-  DeviceInformationPairing pairing =
-      connection_request.DeviceInformation().Pairing();
-  if (pairing.IsPaired())
-    NEARBY_LOGS(INFO) << "Paired";
-  else
-    NEARBY_LOGS(INFO) << "Not Paired";
-
+  try {
+    wifi_direct_device_  = WiFiDirectDevice::FromIdAsync(
+            connection_request.DeviceInformation().Id()).get();
+    NEARBY_LOGS(INFO) << "Registered the device in WLAN-AutoConfig";
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << "Failed to registered the device in WLAN-AutoConfig";
+    wifi_direct_device_  = nullptr;
+    connection_request.Close();
+  }
   return winrt::fire_and_forget();
 }
 

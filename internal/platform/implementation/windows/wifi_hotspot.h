@@ -53,6 +53,8 @@ using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionListener;
 using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionRequest;
 using ::winrt::Windows::Devices::WiFiDirect::
     WiFiDirectConnectionRequestedEventArgs;
+using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectDevice;
+using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionStatus;
 
 using ::winrt::Windows::Devices::WiFi::WiFiAccessStatus;
 using ::winrt::Windows::Devices::WiFi::WiFiAdapter;
@@ -80,6 +82,8 @@ using ::winrt::Windows::Networking::Sockets::StreamSocket;
 using ::winrt::Windows::Networking::Sockets::StreamSocketListener;
 using ::winrt::Windows::Networking::Sockets::
     StreamSocketListenerConnectionReceivedEventArgs;
+
+// using winrt::Windows::Foundation::IInspectable;
 
 // WifiHotspotSocket wraps the socket functions to read and write stream.
 // In WiFi HOTSPOT, A WifiHotspotSocket will be passed to
@@ -267,6 +271,7 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
 
   WiFiDirectAdvertisementPublisher publisher_{nullptr};
   WiFiDirectConnectionListener listener_{nullptr};
+  WiFiDirectDevice wifi_direct_device_ {nullptr};
 
   fire_and_forget OnStatusChanged(
       WiFiDirectAdvertisementPublisher sender,
