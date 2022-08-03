@@ -1,0 +1,77 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+#include <vector>
+
+#include "third_party/nearby/presence/scan_request.h"
+#include "third_party/nearby/presence/scan_request_builder.h"
+
+namespace nearby {
+namespace presence {
+
+ScanRequestBuilder& ScanRequestBuilder::SetAccountName(
+    absl::string_view account_name) {
+  request_.account_name = account_name;
+  return *this;
+}
+
+ScanRequestBuilder& ScanRequestBuilder::SetPowerMode(PowerMode power_mode) {
+  request_.power_mode = power_mode;
+  return *this;
+}
+
+ScanRequestBuilder& ScanRequestBuilder::SetScanType(ScanType scan_type) {
+  request_.scan_type = scan_type;
+  return *this;
+}
+
+ScanRequestBuilder& ScanRequestBuilder::AddIdentityType(
+    PresenceIdentity::IdentityType identity_type) {
+  request_.identity_types.push_back(identity_type);
+  return *this;
+}
+
+ScanRequestBuilder& ScanRequestBuilder::SetIdentityTypes(
+    std::vector<PresenceIdentity::IdentityType> types) {
+  request_.identity_types = types;
+  return *this;
+}
+
+ScanRequestBuilder& ScanRequestBuilder::AddScanFilter(ScanFilter scan_filter) {
+  request_.scan_filters.push_back(scan_filter);
+  return *this;
+}
+
+ScanRequestBuilder& ScanRequestBuilder::SetScanFilters(
+    std::vector<ScanFilter> filters) {
+  request_.scan_filters = filters;
+  return *this;
+}
+
+ScanRequestBuilder& ScanRequestBuilder::SetUseBle(bool use_ble) {
+  request_.use_ble = use_ble;
+  return *this;
+}
+
+ScanRequestBuilder& ScanRequestBuilder::SetOnlyScreenOnScan(
+    bool screen_on_only_scan) {
+  request_.scan_only_when_screen_on = screen_on_only_scan;
+  return *this;
+}
+
+ScanRequest ScanRequestBuilder::Build() {
+  return this->request_;
+}
+
+}  // namespace presence
+}  // namespace nearby

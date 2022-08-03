@@ -18,13 +18,19 @@
 #include <string>
 #include <vector>
 
+#include "net/proto2/util/public/message_differencer.h"
 #include "third_party/nearby/presence/data_element.h"
 #include "third_party/nearby/presence/power_mode.h"
 #include "third_party/nearby/presence/presence_identity.h"
 #include "third_party/nearby/presence/proto/credential.pb.h"
 
+using MD = proto2::util::MessageDifferencer;
+
 namespace nearby {
 namespace presence {
+
+constexpr char kPresenceScanFilterName[] = "PresenceScanFilter";
+constexpr char kLegacyPresenceScanFilterName[] = "LegacyPresenceScanFilter";
 
 enum class ScanType {
   kUnspecifiedScan = 0,
@@ -72,6 +78,36 @@ struct LegacyPresenceScanFilter : public ScanFilter {
   std::vector<DataElement> extended_properties;
 };
 
+inline bool operator==(const ScanFilter& a, const ScanFilter& b) {
+  if (typeid(a) != typeid(b)) return false;
+  if (strcmp(typeid(a).name(), kPresenceScanFilterName) == 0) {
+    const PresenceScanFilter a_p = static_cast<const PresenceScanFilter&>(a);
+    const PresenceScanFilter b_p = static_cast<const PresenceScanFilter&>(b);
+    if (a_p.extended_properties != b_p.extended_properties) return false;
+  } else if (strcmp(typeid(a).name(), kLegacyPresenceScanFilterName) == 0) {
+    const LegacyPresenceScanFilter a_l =
+        static_cast<const LegacyPresenceScanFilter&>(a);
+    const LegacyPresenceScanFilter b_l =
+        static_cast<const LegacyPresenceScanFilter&>(b);
+    if (a_l.path_loss_threshold != b_l.path_loss_threshold ||
+        a_l.actions != b_l.actions ||
+        a_l.remote_public_credentials.size() !=
+            b_l.remote_public_credentials.size() ||
+        a_l.extended_properties != b_l.extended_properties)
+      return false;
+    for (int i = 0; i < a_l.remote_public_credentials.size(); ++i) {
+      if (!MD::Equivalent(a_l.remote_public_credentials[i],
+                        b_l.remote_public_credentials[i]))
+        return false;
+    }
+  }
+  return a.scan_type == b.scan_type;
+}
+
+inline bool operator!=(const ScanFilter& a, const ScanFilter& b) {
+  return !(a == b);
+}
+
 /**
  * An encapsulation of various parameters for requesting nearby scans.
  */
@@ -95,6 +131,19 @@ struct ScanRequest {
   PowerMode power_mode;
   bool scan_only_when_screen_on;
 };
+
+inline bool operator==(const ScanRequest& a, const ScanRequest& b) {
+  if (a.identity_types != b.identity_types) return false;
+  if (a.scan_filters != b.scan_filters) return false;
+  return a.scan_only_when_screen_on == b.scan_only_when_screen_on &&
+         a.power_mode == b.power_mode && a.scan_type == b.scan_type &&
+         a.use_ble == b.use_ble && a.account_name == b.account_name &&
+         b.identity_types == b.identity_types;
+}
+
+inline bool operator!=(const ScanRequest& a, const ScanRequest& b) {
+  return !(a == b);
+}
 
 }  // namespace presence
 }  // namespace nearby

@@ -39,6 +39,7 @@ cc_library(
         "presence_client.cc",
         "presence_device.cc",
         "presence_zone.cc",
+        "scan_request_builder.cc",
     ],
     hdrs = [
         "broadcast_options.h",
@@ -53,10 +54,12 @@ cc_library(
         "presence_device.h",
         "presence_zone.h",
         "scan_request.h",
+        "scan_request_builder.h",
         "status.h",
     ],
     deps = [
         ":credential",
+        "//net/proto2/util/public:differencer",
         "//internal/platform:base",
         "//third_party/nearby/presence/proto:credential_cc_proto",
         "@com_google_absl//absl/strings",
@@ -219,6 +222,7 @@ cc_test(
         "presence_device_test.cc",
         "presence_identity_test.cc",
         "presence_zone_test.cc",
+        "scan_request_builder_test.cc",
         "status_test.cc",
     ],
     shard_count = 6,
