@@ -142,6 +142,10 @@ void OfflineServiceController::DisconnectFromEndpoint(
   endpoint_manager_.UnregisterEndpoint(client, endpoint_id);
 }
 
+void OfflineServiceController::ShutdownBwuManagerExecutors() {
+  bwu_manager_.ShutdownExecutors();
+}
+
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location

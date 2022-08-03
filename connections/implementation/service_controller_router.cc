@@ -368,6 +368,7 @@ void ServiceControllerRouter::FinishClientSession(ClientProxy* client) {
   // Stop any advertising and discovery that may be underway due to this client.
   GetServiceController()->StopAdvertising(client);
   GetServiceController()->StopDiscovery(client);
+  GetServiceController()->ShutdownBwuManagerExecutors();
 
   // Finally, clear all state maintained by this client.
   client->Reset();

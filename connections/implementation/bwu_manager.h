@@ -108,6 +108,11 @@ class BwuManager : public EndpointManager::FrameProcessor {
       ClientProxy* client,
       std::unique_ptr<BwuHandler::IncomingSocketConnection> mutable_connection);
 
+  // Shutdown the executors during Nearby Connections shutdown process before
+  // Core objects destruction so that no task will be run/posted after
+  // ClientProxy objects are deleted.
+  void ShutdownExecutors();
+
  private:
   static constexpr absl::Duration kReadClientIntroductionFrameTimeout =
       absl::Seconds(5);

@@ -56,6 +56,10 @@ class ServiceController {
   // controller are affected.
   virtual void Stop() = 0;
 
+  // Shuts down executors in the BwuManager. After that no tasks should be
+  // running on or posted to BwuManager.
+  virtual void ShutdownBwuManagerExecutors() = 0;
+
   // Starts advertising an endpoint for a local app.
   virtual Status StartAdvertising(ClientProxy* client,
                                   const std::string& service_id,

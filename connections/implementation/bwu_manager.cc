@@ -129,8 +129,7 @@ void BwuManager::Shutdown() {
       V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION, this);
 
   // Stop all the ongoing Runnables (as gracefully as possible).
-  alarm_executor_.Shutdown();
-  serial_executor_.Shutdown();
+  ShutdownExecutors();
 
   // After worker threads are down we became exclusive owners of data and
   // may access it from current thread.
@@ -160,6 +159,11 @@ void BwuManager::InvokeOnIncomingConnectionForTesting(
     ClientProxy* client,
     std::unique_ptr<BwuHandler::IncomingSocketConnection> mutable_connection) {
   OnIncomingConnection(client, std::move(mutable_connection));
+}
+
+void BwuManager::ShutdownExecutors() {
+  alarm_executor_.Shutdown();
+  serial_executor_.Shutdown();
 }
 
 void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
