@@ -30,18 +30,20 @@ namespace {
 
 TEST(ActionFactory, CreateActiveUnlockAction) {
   std::vector<DataElement> data_elements;
-  data_elements.emplace_back(DataElement::kActiveUnlock, "");
+  data_elements.emplace_back(DataElement::kActionFieldType,
+                             action::kActiveUnlockAction);
 
   Action action = ActionFactory::createAction(data_elements);
 
-  EXPECT_EQ(action.action, 1 << 11);
+  EXPECT_EQ(action.action, 1 << 7);
 }
 
 TEST(ActionFactory, CreateContextTimestamp) {
   const std::string kTimestamp = absl::HexStringToBytes("0B");
 
   std::vector<DataElement> data_elements;
-  data_elements.emplace_back(DataElement::kContextTimestamp, kTimestamp);
+  data_elements.emplace_back(DataElement::kContextTimestampFieldType,
+                             kTimestamp);
 
   Action action = ActionFactory::createAction(data_elements);
 
@@ -52,12 +54,14 @@ TEST(ActionFactory, CreateContextTimestampAndFastPair) {
   const std::string kTimestamp = absl::HexStringToBytes("0B");
 
   std::vector<DataElement> data_elements;
-  data_elements.emplace_back(DataElement::kContextTimestamp, kTimestamp);
-  data_elements.emplace_back(DataElement::kFastPair, "");
+  data_elements.emplace_back(DataElement::kContextTimestampFieldType,
+                             kTimestamp);
+  data_elements.emplace_back(DataElement::kActionFieldType,
+                             action::kFastPairAction);
 
   Action action = ActionFactory::createAction(data_elements);
 
-  EXPECT_EQ(action.action, (0x0B << 12) | 0x100);
+  EXPECT_EQ(action.action, (0x0B << 12) | 0x20);
 }
 
 }  // namespace

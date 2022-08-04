@@ -26,10 +26,37 @@ constexpr int kContentTimestampMask = 0x0F;
 constexpr int kContentTimestampShift = 12;
 constexpr int kEmptyMask = 0;
 
+// The values below match the bitmasks in Base NP Intent.
+constexpr int kTapToTransferMask = 1 << 11;
+constexpr int kActiveUnlockMask = 1 << 7;
+constexpr int kNearbyShareMask = 1 << 6;
+constexpr int kFastPairMask = 1 << 5;
+constexpr int kFitCastMask = 1 << 4;
+
+namespace {
+int GetActionMask(int action) {
+  switch (action) {
+    case action::kActiveUnlockAction:
+      return kActiveUnlockMask;
+    case action::kTapToTransferAction:
+      return kTapToTransferMask;
+    case action::kNearbyShareAction:
+      return kNearbyShareMask;
+    case action::kFastPairAction:
+      return kFastPairMask;
+    case action::kFitCastAction:
+      return kFitCastMask;
+  }
+  NEARBY_LOG(WARNING, "Unsupported action %d", action);
+  return kEmptyMask;
+}
+
+}  // namespace
+
 int ActionFactory::GetMask(const DataElement& element) {
   int type = element.GetType();
   switch (type) {
-    case DataElement::kContextTimestamp: {
+    case DataElement::kContextTimestampFieldType: {
       auto value = element.GetValue();
       if (!value.empty()) {
         return (value[0] & kContentTimestampMask) << kContentTimestampShift;
@@ -38,13 +65,13 @@ int ActionFactory::GetMask(const DataElement& element) {
         return kEmptyMask;
       }
     }
-    case DataElement::kActiveUnlock:
-    case DataElement::kTapToTransfer:
-    case DataElement::kNearbyShare:
-    case DataElement::kFastPair:
-    case DataElement::kFitCast:
-    case DataElement::kPresenceManager:
-      return type;
+    case DataElement::kActionFieldType: {
+      if (element.GetValue().empty()) {
+        NEARBY_LOG(WARNING, "Action Data Element without value");
+        return kEmptyMask;
+      }
+      return GetActionMask(element.GetValue()[0]);
+    }
   }
   NEARBY_LOG(WARNING, "Data Element 0x%x not supported in base advertisement",
              type);

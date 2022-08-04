@@ -23,24 +23,18 @@
 namespace nearby {
 namespace presence {
 
+// Reserved Action types when the field type is kActionFieldType
+namespace action {
+constexpr int kTapToTransferAction = 4;
+constexpr int kActiveUnlockAction = 8;
+constexpr int kNearbyShareAction = 9;
+constexpr int kFastPairAction = 10;
+constexpr int kFitCastAction = 11;
+}  // namespace action
+
 /** Describes a custom Data element in NP advertisement. */
 class DataElement {
  public:
-  DataElement(uint16_t type, absl::string_view value)
-      : type_(type), value_(value) {}
-
-  uint16_t GetType() const { return type_; }
-  absl::string_view GetValue() const { return value_; }
-
-  static constexpr int kContextTimestamp = 1 << 12;
-  // The values below match the bitmasks in Base NP Intent.
-  static constexpr int kActiveUnlock = 1 << 11;
-  static constexpr int kTapToTransfer = 1 << 10;
-  static constexpr int kNearbyShare = 1 << 9;
-  static constexpr int kFastPair = 1 << 8;
-  static constexpr int kFitCast = 1 << 7;
-  static constexpr int kPresenceManager = 1 << 6;
-
   // The field types listed below require special processing when generating and
   // parsing NP advertisements.
   static constexpr int kSaltFieldType = 0;
@@ -50,12 +44,29 @@ class DataElement {
   static constexpr int kProvisionedIdentityFieldType = 4;
   static constexpr int kTxPowerFieldType = 5;
   static constexpr int kActionFieldType = 6;
+  static constexpr int kModelIdFieldType = 7;
+  static constexpr int kEddystoneIdFieldType = 8;
+  static constexpr int kAccountKeyDataFieldType = 9;
+  static constexpr int kConnectionStatusFieldType = 10;
+  static constexpr int kBatteryFieldType = 11;
+  static constexpr int kAdvertisementSignature = 12;
+  static constexpr int kContextTimestampFieldType = 13;
   // Maximum allowed Data Element's value length
   static constexpr int kMaxDataElementLength = 15;
   // Maximum allowed Data Element's type
   static constexpr int kMaxDataElementType = 15;
   // The DE header is (length << kDataElementLengthShift | type)
   static constexpr int kDataElementLengthShift = 4;
+
+  DataElement(uint16_t type, absl::string_view value)
+      : type_(type), value_(value) {}
+
+  DataElement(uint16_t type, uint8_t value)
+      : type_(type),
+        value_(reinterpret_cast<const char*>(&value), sizeof(value)) {}
+
+  uint16_t GetType() const { return type_; }
+  absl::string_view GetValue() const { return value_; }
 
  private:
   uint16_t type_;
