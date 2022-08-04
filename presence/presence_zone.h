@@ -26,11 +26,7 @@ class PresenceZone {
    public:
     enum class RangeType {
       kRangeUnknown = 0,
-      kFar,    // Distance is very far away from the peer device.
-      kLong,   // Distance is relatively long from the peer device, typically a
-               // few meters.
-      kClose,  // Distance is close to the peer device, typically with one or
-               // two meter.
+      kFar,          // Distance is very far away from the peer device.
       kWithinReach,  // Distance is very close to the peer device, typically
                      // within one meter or less.
       kWithinTap,  // Distance is within tap range to the peer device, typically
