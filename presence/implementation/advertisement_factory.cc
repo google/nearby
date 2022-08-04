@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/presence/advertisement_factory.h"
+#include "third_party/nearby/presence/implementation/advertisement_factory.h"
 
 #include <string>
 #include <variant>
@@ -96,7 +96,7 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
     }
   }
   absl::StatusOr<std::string> identity =
-      certificate_manager_.GetBaseEncryptedMetadataKey(presence.identity);
+      credential_manager_.GetBaseEncryptedMetadataKey(presence.identity);
   if (!identity.ok()) {
     return identity.status();
   }
@@ -122,7 +122,7 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
     return result;
   }
   if (!identity->empty()) {
-    auto encrypted = certificate_manager_.EncryptDataElements(
+    auto encrypted = credential_manager_.EncryptDataElements(
         presence.identity, request.salt, data_elements);
     if (!encrypted.ok()) {
       return encrypted.status();

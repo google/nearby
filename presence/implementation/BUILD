@@ -15,9 +15,13 @@ licenses(["notice"])
 
 cc_library(
     name = "internal",
-    srcs = ["advertisement_decoder.cc"],
+    srcs = [
+        "advertisement_decoder.cc",
+        "advertisement_factory.cc",
+    ],
     hdrs = [
         "advertisement_decoder.h",
+        "advertisement_factory.h",
         "broadcast_manager.h",
         "credential_manager.h",
         "credential_manager_impl.h",
@@ -32,8 +36,10 @@ cc_library(
     deps = [
         "//internal/platform:comm",
         "//internal/platform:logging",
+        "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
-        "//third_party/nearby/presence:advertisement_factory",
+        "//third_party/nearby/presence:action_factory",
+        "//third_party/nearby/presence:broadcast_request",
         "//third_party/nearby/presence:credential",
         "//third_party/nearby/presence:types",
         "//third_party/nearby/presence/implementation/mediums",
@@ -54,6 +60,22 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//third_party/nearby/presence:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "advertisement_factory_test",
+    size = "small",
+    srcs = ["advertisement_factory_test.cc"],
+    deps = [
+        ":internal",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//third_party/nearby/presence:action_factory",
+        "//third_party/nearby/presence:types",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/presence/advertisement_factory.h"
+#include "third_party/nearby/presence/implementation/advertisement_factory.h"
 
 #include <string>
 #include <vector>
@@ -23,8 +23,8 @@
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "third_party/nearby/presence/action_factory.h"
-#include "third_party/nearby/presence/certificate_manager.h"
 #include "third_party/nearby/presence/data_element.h"
+#include "third_party/nearby/presence/implementation/credential_manager_impl.h"
 
 namespace nearby {
 namespace presence {
@@ -35,7 +35,7 @@ using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::status::StatusIs;
 
-class MockCertificateManager : public CertificateManager {
+class MockCredentialManager : public CredentialManagerImpl {
  public:
   MOCK_METHOD(absl::StatusOr<std::string>, GetBaseEncryptedMetadataKey,
               (const PresenceIdentity& identity), (override));
@@ -47,25 +47,25 @@ class MockCertificateManager : public CertificateManager {
 
 TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   std::string salt = "AB";
-  NiceMock<MockCertificateManager> certificate_manager;
+  NiceMock<MockCredentialManager> credential_manager;
   PresenceIdentity identity;
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(DataElement::kActionFieldType,
                              action::kActiveUnlockAction);
-  Action action = ActionFactory::createAction(data_elements);
+  Action action = ActionFactory::CreateAction(data_elements);
   BroadcastRequest request =
       BroadcastRequest(BasePresenceRequestBuilder(identity)
                            .SetSalt(salt)
                            .SetTxPower(5)
                            .SetAction(action));
-  EXPECT_CALL(certificate_manager, GetBaseEncryptedMetadataKey(identity))
+  EXPECT_CALL(credential_manager, GetBaseEncryptedMetadataKey(identity))
       .WillOnce(Return(absl::HexStringToBytes("1011121314151617181920212223")));
   EXPECT_CALL(
-      certificate_manager,
+      credential_manager,
       EncryptDataElements(identity, salt, absl::HexStringToBytes("1505260080")))
       .WillOnce(Return(absl::HexStringToBytes("5051525354")));
 
-  AdvertisementFactory factory(&certificate_manager);
+  AdvertisementFactory factory(&credential_manager);
   absl::StatusOr<BleAdvertisementData> result =
       factory.CreateAdvertisement(request);
 
@@ -80,24 +80,23 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   }
 }
 
-TEST(AdvertisementFactory,
-     CreateAdvertisementFailsWhenCertificateManagerFails) {
-  NiceMock<MockCertificateManager> certificate_manager;
+TEST(AdvertisementFactory, CreateAdvertisementFailsWhenCredentialManagerFails) {
+  NiceMock<MockCredentialManager> credential_manager;
   PresenceIdentity identity;
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(DataElement::kActionFieldType,
                              action::kActiveUnlockAction);
-  Action action = ActionFactory::createAction(data_elements);
+  Action action = ActionFactory::CreateAction(data_elements);
   BroadcastRequest request =
       BroadcastRequest(BasePresenceRequestBuilder(identity)
                            .SetSalt("AB")
                            .SetTxPower(5)
                            .SetAction(action));
-  EXPECT_CALL(certificate_manager, GetBaseEncryptedMetadataKey(identity))
+  EXPECT_CALL(credential_manager, GetBaseEncryptedMetadataKey(identity))
       .WillOnce(Return(absl::UnimplementedError(
           "GetBaseEncryptedMetadataKey not implemented")));
 
-  AdvertisementFactory factory(&certificate_manager);
+  AdvertisementFactory factory(&credential_manager);
   EXPECT_THAT(factory.CreateAdvertisement(request),
               StatusIs(absl::StatusCode::kUnimplemented));
 }

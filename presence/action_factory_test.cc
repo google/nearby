@@ -28,12 +28,14 @@ namespace nearby {
 namespace presence {
 namespace {
 
+using ::testing::ElementsAre;
+
 TEST(ActionFactory, CreateActiveUnlockAction) {
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(DataElement::kActionFieldType,
                              action::kActiveUnlockAction);
 
-  Action action = ActionFactory::createAction(data_elements);
+  Action action = ActionFactory::CreateAction(data_elements);
 
   EXPECT_EQ(action.action, 1 << 7);
 }
@@ -45,7 +47,7 @@ TEST(ActionFactory, CreateContextTimestamp) {
   data_elements.emplace_back(DataElement::kContextTimestampFieldType,
                              kTimestamp);
 
-  Action action = ActionFactory::createAction(data_elements);
+  Action action = ActionFactory::CreateAction(data_elements);
 
   EXPECT_EQ(action.action, 0x0B << 12);
 }
@@ -59,9 +61,33 @@ TEST(ActionFactory, CreateContextTimestampAndFastPair) {
   data_elements.emplace_back(DataElement::kActionFieldType,
                              action::kFastPairAction);
 
-  Action action = ActionFactory::createAction(data_elements);
+  Action action = ActionFactory::CreateAction(data_elements);
 
   EXPECT_EQ(action.action, (0x0B << 12) | 0x20);
+}
+
+TEST(ActionFactory, DecodeActiveUnlockAction) {
+  constexpr Action kAction = {.action = 1 << 7};
+  std::vector<DataElement> data_elements;
+
+  ActionFactory::DecodeAction(kAction, data_elements);
+
+  EXPECT_THAT(data_elements,
+              ElementsAre(DataElement(DataElement::kActionFieldType,
+                                      action::kActiveUnlockAction)));
+}
+
+TEST(ActionFactory, DecodeContextTimestampAndFastPair) {
+  constexpr Action kAction = {.action = (0x0B << 12) | 0x20};
+  std::vector<DataElement> data_elements;
+
+  ActionFactory::DecodeAction(kAction, data_elements);
+
+  EXPECT_THAT(data_elements,
+              ElementsAre(DataElement(DataElement::kContextTimestampFieldType,
+                                      absl::HexStringToBytes("0B")),
+                          DataElement(DataElement::kActionFieldType,
+                                      action::kFastPairAction)));
 }
 
 }  // namespace

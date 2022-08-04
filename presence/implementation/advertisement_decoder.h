@@ -20,8 +20,8 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "third_party/nearby/presence/advertisement_factory.h"
 #include "third_party/nearby/presence/data_element.h"
+#include "third_party/nearby/presence/implementation/advertisement_factory.h"
 #include "third_party/nearby/presence/implementation/credential_manager.h"
 #include "third_party/nearby/presence/presence_identity.h"
 

@@ -30,6 +30,7 @@ namespace presence {
 namespace {
 using ::testing::ElementsAre;
 using ::testing::Return;
+using ::testing::UnorderedElementsAre;
 using ::testing::status::StatusIs;
 
 class MockCredentialManager : public CredentialManagerImpl {
@@ -81,6 +82,27 @@ TEST(AdvertisementDecoder, DecodeBaseNpPublicAdvertisement) {
                   DataElement(DataElement::kPublicIdentityFieldType, ""),
                   DataElement(8, absl::HexStringToBytes("CD")),
                   DataElement(9, absl::HexStringToBytes("EEFF"))));
+}
+
+TEST(AdvertisementDecoder, DecodeBaseNpPWithActionField) {
+  std::string salt = "AB";
+  MockCredentialManager credential_manager;
+  AdvertisementDecoder decoder(&credential_manager);
+
+  auto result =
+      decoder.DecodeAdvertisement(absl::HexStringToBytes("002041420326B840"));
+
+  EXPECT_OK(result);
+  EXPECT_THAT(*result,
+              UnorderedElementsAre(
+                  DataElement(DataElement::kSaltFieldType, salt),
+                  DataElement(DataElement::kPublicIdentityFieldType, ""),
+                  DataElement(DataElement::kContextTimestampFieldType,
+                              absl::HexStringToBytes("0B")),
+                  DataElement(DataElement::kActionFieldType,
+                              action::kTapToTransferAction),
+                  DataElement(DataElement::kActionFieldType,
+                              action::kNearbyShareAction)));
 }
 
 TEST(AdvertisementDecoder, InvalidAdvertisementFieldTooShort) {

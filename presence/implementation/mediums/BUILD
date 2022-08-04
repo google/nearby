@@ -23,8 +23,5 @@ cc_library(
     visibility = [
         "//third_party/nearby/presence/implementation:__subpackages__",
     ],
-    deps = [
-        "//internal/platform:base",
-        "//internal/platform:comm",
-    ],
+    deps = ["//internal/platform:comm"],
 )
