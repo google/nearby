@@ -138,7 +138,7 @@ inline bool operator==(const ScanRequest& a, const ScanRequest& b) {
   return a.scan_only_when_screen_on == b.scan_only_when_screen_on &&
          a.power_mode == b.power_mode && a.scan_type == b.scan_type &&
          a.use_ble == b.use_ble && a.account_name == b.account_name &&
-         b.identity_types == b.identity_types;
+         a.identity_types == b.identity_types;
 }
 
 inline bool operator!=(const ScanRequest& a, const ScanRequest& b) {
