@@ -105,6 +105,7 @@ cc_library(
         "//connections:__subpackages__",
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//internal/analytics:__subpackages__",
+        "//internal/crypto:__subpackages__",
         "//internal/platform:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
