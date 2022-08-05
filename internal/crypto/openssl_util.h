@@ -18,7 +18,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "third_party/nearby/internal/crypto/crypto_export.h"
+#include "internal/crypto/crypto_export.h"
 #include "internal/platform/logging.h"
 
 namespace crypto {

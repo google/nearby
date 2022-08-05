@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/hmac.h"
+#include "internal/crypto/hmac.h"
 
 #include <stddef.h>
 #include <string.h>

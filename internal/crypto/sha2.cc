@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/sha2.h"
+#include "internal/crypto/sha2.h"
 
 #include <stddef.h>
 
@@ -21,8 +21,8 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "third_party/nearby/internal/crypto/secure_hash.h"
-#include "third_party/openssl/sha.h"
+#include "internal/crypto/secure_hash.h"
+#include <openssl/sha.h>
 
 namespace crypto {
 

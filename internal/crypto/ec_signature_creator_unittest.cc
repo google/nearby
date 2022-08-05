@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/ec_signature_creator.h"
+#include "internal/crypto/ec_signature_creator.h"
 
 #include <stdint.h>
 
@@ -22,9 +22,9 @@
 
 #include "gtest/gtest.h"
 #include "absl/types/span.h"
-#include "third_party/nearby/internal/crypto/ec_private_key.h"
-#include "third_party/nearby/internal/crypto/nearby_base.h"
-#include "third_party/nearby/internal/crypto/signature_verifier.h"
+#include "internal/crypto/ec_private_key.h"
+#include "internal/crypto/nearby_base.h"
+#include "internal/crypto/signature_verifier.h"
 
 TEST(ECSignatureCreatorTest, BasicTest) {
   // Do a verify round trip.

@@ -20,9 +20,9 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #if defined NEARBY_WINDOWS_DLL
-#include "third_party/openssl/boringssl/src/include/openssl/digest.h"
+#include <openssl/boringssl/src/include/openssl/digest.h>
 #else
-#include "src/include/openssl/digest.h"
+#include <openssl/digest.h>
 #endif
 
 // Function implementations for platform/api/crypto.h.

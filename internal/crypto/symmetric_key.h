@@ -20,7 +20,7 @@
 #include <memory>
 #include <string>
 
-#include "third_party/nearby/internal/crypto/crypto_export.h"
+#include "internal/crypto/crypto_export.h"
 
 namespace crypto {
 

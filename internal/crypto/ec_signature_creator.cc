@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/ec_signature_creator.h"
+#include "internal/crypto/ec_signature_creator.h"
 
 #include <memory>
 
-#include "third_party/nearby/internal/crypto/ec_signature_creator_impl.h"
+#include "internal/crypto/ec_signature_creator_impl.h"
 #include "internal/platform/logging.h"
 
 namespace crypto {

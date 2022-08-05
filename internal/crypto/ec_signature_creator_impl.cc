@@ -12,20 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/ec_signature_creator_impl.h"
+#include "internal/crypto/ec_signature_creator_impl.h"
 
 #include <stddef.h>
 #include <stdint.h>
 
 #include <vector>
 
-#include "third_party/nearby/internal/crypto/ec_private_key.h"
-#include "third_party/nearby/internal/crypto/openssl_util.h"
-#include "third_party/openssl/bn.h"
-#include "third_party/openssl/ec.h"
-#include "third_party/openssl/ecdsa.h"
-#include "third_party/openssl/evp.h"
-#include "third_party/openssl/sha.h"
+#include "internal/crypto/ec_private_key.h"
+#include "internal/crypto/openssl_util.h"
+#include <openssl/bn.h>
+#include <openssl/ec.h>
+#include <openssl/ecdsa.h>
+#include <openssl/evp.h>
+#include <openssl/sha.h>
 
 namespace crypto {
 

@@ -1,4 +1,4 @@
-#include "third_party/nearby/internal/crypto/ec_private_key.h"
+#include "internal/crypto/ec_private_key.h"
 
 // Copyright 2020 Google LLC
 //
@@ -23,15 +23,15 @@
 #include <utility>
 #include <vector>
 
-#include "third_party/nearby/internal/crypto/openssl_util.h"
+#include "internal/crypto/openssl_util.h"
 #include "internal/platform/logging.h"
-#include "third_party/openssl/bn.h"
-#include "third_party/openssl/bytestring.h"
-#include "third_party/openssl/ec.h"
-#include "third_party/openssl/ec_key.h"
-#include "third_party/openssl/evp.h"
-#include "third_party/openssl/mem.h"
-#include "third_party/openssl/pkcs8.h"
+#include <openssl/bn.h>
+#include <openssl/bytestring.h>
+#include <openssl/ec.h>
+#include <openssl/ec_key.h>
+#include <openssl/evp.h>
+#include <openssl/mem.h>
+#include <openssl/pkcs8.h>
 
 namespace crypto {
 

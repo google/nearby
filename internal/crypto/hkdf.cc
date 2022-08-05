@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/openssl/hkdf.h"
+#include <openssl/hkdf.h>
 
 #include <stddef.h>
 #include <stdint.h>
@@ -22,10 +22,10 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "third_party/nearby/internal/crypto/hkdf.h"
-#include "third_party/nearby/internal/crypto/hmac.h"
+#include "internal/crypto/hkdf.h"
+#include "internal/crypto/hmac.h"
 #include "internal/platform/logging.h"
-#include "src/include/openssl/digest.h"
+#include <openssl/digest.h>
 
 namespace crypto {
 

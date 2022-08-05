@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/aead.h"
+#include "internal/crypto/aead.h"
 
 #include <optional>
 #include <string>

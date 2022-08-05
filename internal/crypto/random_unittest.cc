@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/random.h"
+#include "internal/crypto/random.h"
 
 #include <stddef.h>
 
 #include <string>
 
 #include "gtest/gtest.h"
-#include "third_party/nearby/internal/crypto/nearby_base.h"
+#include "internal/crypto/nearby_base.h"
 
 // Basic functionality tests. Does NOT test the security of the random data.
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/rsa_private_key.h"
+#include "internal/crypto/rsa_private_key.h"
 
 #include <stdint.h>
 
@@ -21,13 +21,13 @@
 #include <vector>
 
 #include "absl/types/span.h"
-#include "third_party/nearby/internal/crypto/openssl_util.h"
+#include "internal/crypto/openssl_util.h"
 #include "internal/platform/logging.h"
-#include "third_party/openssl/bn.h"
-#include "third_party/openssl/bytestring.h"
-#include "third_party/openssl/evp.h"
-#include "third_party/openssl/mem.h"
-#include "third_party/openssl/rsa.h"
+#include <openssl/bn.h>
+#include <openssl/bytestring.h>
+#include <openssl/evp.h>
+#include <openssl/mem.h>
+#include <openssl/rsa.h>
 
 namespace crypto {
 

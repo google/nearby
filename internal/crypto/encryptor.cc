@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/encryptor.h"
+#include "internal/crypto/encryptor.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -24,12 +24,12 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "third_party/nearby/internal/crypto/nearby_base.h"
-#include "third_party/nearby/internal/crypto/openssl_util.h"
-#include "third_party/nearby/internal/crypto/symmetric_key.h"
+#include "internal/crypto/nearby_base.h"
+#include "internal/crypto/openssl_util.h"
+#include "internal/crypto/symmetric_key.h"
 #include "internal/platform/logging.h"
-#include "third_party/openssl/aes.h"
-#include "third_party/openssl/evp.h"
+#include <openssl/aes.h>
+#include <openssl/evp.h>
 
 namespace crypto {
 

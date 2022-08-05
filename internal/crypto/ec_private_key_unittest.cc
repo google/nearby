@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/ec_private_key.h"
+#include "internal/crypto/ec_private_key.h"
 
 #include <stdint.h>
 

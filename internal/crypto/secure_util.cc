@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/secure_util.h"
+#include "internal/crypto/secure_util.h"
 
-#include "third_party/openssl/mem.h"
+#include <openssl/mem.h>
 
 namespace crypto {
 

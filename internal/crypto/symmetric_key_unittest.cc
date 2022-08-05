@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/symmetric_key.h"
+#include "internal/crypto/symmetric_key.h"
 
 #include <memory>
 #include <string>
 
 #include "gtest/gtest.h"
 #include "absl/strings/ascii.h"
-#include "third_party/nearby/internal/crypto/nearby_base.h"
+#include "internal/crypto/nearby_base.h"
 
 TEST(SymmetricKeyTest, GenerateRandomKey) {
   std::unique_ptr<crypto::SymmetricKey> key(

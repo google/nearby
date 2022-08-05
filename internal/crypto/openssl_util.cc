@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/openssl_util.h"
+#include "internal/crypto/openssl_util.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -21,8 +21,8 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/logging.h"
-#include "third_party/openssl/crypto.h"
-#include "third_party/openssl/err.h"
+#include <openssl/crypto.h>
+#include <openssl/err.h>
 
 namespace crypto {
 

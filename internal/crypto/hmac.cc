@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/openssl/hmac.h"
+#include <openssl/hmac.h>
 
 #include <stddef.h>
 
 #include <algorithm>
 #include <string>
 
-#include "third_party/nearby/internal/crypto/hmac.h"
-#include "third_party/nearby/internal/crypto/nearby_base.h"
-#include "third_party/nearby/internal/crypto/openssl_util.h"
-#include "third_party/nearby/internal/crypto/secure_util.h"
-#include "third_party/nearby/internal/crypto/symmetric_key.h"
+#include "internal/crypto/hmac.h"
+#include "internal/crypto/nearby_base.h"
+#include "internal/crypto/openssl_util.h"
+#include "internal/crypto/secure_util.h"
+#include "internal/crypto/symmetric_key.h"
 #include "internal/platform/logging.h"
 
 namespace crypto {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/encryptor.h"
+#include "internal/crypto/encryptor.h"
 
 #include <stddef.h>
 
@@ -24,8 +24,8 @@
 
 #include "gtest/gtest.h"
 #include "absl/types/span.h"
-#include "third_party/nearby/internal/crypto/nearby_base.h"
-#include "third_party/nearby/internal/crypto/symmetric_key.h"
+#include "internal/crypto/nearby_base.h"
+#include "internal/crypto/symmetric_key.h"
 
 TEST(EncryptorTest, EncryptDecrypt) {
   std::unique_ptr<crypto::SymmetricKey> key(

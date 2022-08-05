@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/secure_hash.h"
+#include "internal/crypto/secure_hash.h"
 
 #include <stddef.h>
 
 #include <memory>
 
-#include "third_party/nearby/internal/crypto/openssl_util.h"
-#include "third_party/openssl/mem.h"
-#include "third_party/openssl/sha.h"
+#include "internal/crypto/openssl_util.h"
+#include <openssl/mem.h>
+#include <openssl/sha.h>
 
 namespace crypto {
 

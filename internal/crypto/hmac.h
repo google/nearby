@@ -28,8 +28,8 @@
 #include "absl/base/attributes.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "third_party/nearby/internal/crypto/crypto_export.h"
-#include "third_party/nearby/internal/crypto/nearby_base.h"
+#include "internal/crypto/crypto_export.h"
+#include "internal/crypto/nearby_base.h"
 
 namespace crypto {
 

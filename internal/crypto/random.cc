@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/random.h"
+#include "internal/crypto/random.h"
 
 #include <stddef.h>
 
-#include "third_party/openssl/rand.h"
+#include <openssl/rand.h>
 
 namespace crypto {
 

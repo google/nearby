@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/internal/crypto/secure_hash.h"
+#include "internal/crypto/secure_hash.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -21,7 +21,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
-#include "third_party/nearby/internal/crypto/sha2.h"
+#include "internal/crypto/sha2.h"
 
 TEST(SecureHashTest, TestUpdate) {
   // Example B.3 from FIPS 180-2: long message.

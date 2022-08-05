@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "absl/types/span.h"
-#include "third_party/nearby/internal/crypto/ec_signature_creator.h"
+#include "internal/crypto/ec_signature_creator.h"
 
 namespace crypto {
 
