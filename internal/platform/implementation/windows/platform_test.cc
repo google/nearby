@@ -14,9 +14,9 @@
 
 #include "internal/platform/implementation/platform.h"
 
+#include <windows.h>
 #include <knownfolders.h>
 #include <shlobj.h>
-#include <windows.h>
 
 #include <xstring>
 #include <fstream>
@@ -37,11 +37,18 @@ constexpr absl::string_view kOneIterationNoDotsFileName(
 constexpr absl::string_view kMultipleDotsFileName("/increment.file.test.txt");
 constexpr absl::string_view kOneIterationMultipleDotsFileName(
     "/increment (1).file.test.txt");
+constexpr absl::string_view kImmediateEscape("../");
+constexpr absl::string_view kLongEscapeBackSlash("..\\test\\..\\..\\test");
+constexpr absl::string_view kTwoLevelFolder("/test/test");
+constexpr absl::string_view kLongEscapeSlash("../test/../../test");
+constexpr absl::string_view kLongEscapeMixedSlash("../test\\..\\../test");
+constexpr absl::string_view kLongEscapeEndingEscape("../test/../../test/..");
+constexpr absl::string_view kLongEscapeEndingEscapeWithSlash(
+    "../test/../../test/../../../");
 }  // namespace
 
 // Can't run on google 3, I presume the SHGetKnownFolderPath
 // fails.
-#if 0
 class ImplementationPlatformTests : public testing::Test {
  protected:
   // You can define per-test set-up logic as usual.
@@ -78,8 +85,8 @@ class ImplementationPlatformTests : public testing::Test {
   std::string default_download_path_;
 };
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithEmptyStringArgumentsShouldReturnBaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithEmptyString\
+ArgumentsShouldReturnBaseDownloadPath) {
   // Arrange
   std::string parent_folder("");
   std::string file_name("");
@@ -92,9 +99,8 @@ TEST_F(ImplementationPlatformTests,
   EXPECT_EQ(result, default_download_path_);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithSlashParentFolderArgumentsShouldReturn\
-BaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithSlashParent\
+FolderArgumentsShouldReturnBaseDownloadPath) {
   // Arrange
   std::string parent_folder("/");
   std::string file_name("");
@@ -107,9 +113,8 @@ BaseDownloadPath) {
   EXPECT_EQ(result, default_download_path_);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithBackslashParentFolderArgumentsShouldReturn\
-BaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithBackslashParent\
+FolderArgumentsShouldReturnBaseDownloadPath) {
   // Arrange
   std::string parent_folder("\\");
   std::string file_name("");
@@ -122,8 +127,97 @@ BaseDownloadPath) {
   EXPECT_EQ(result, default_download_path_);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithSlashFileNameArgumentsShouldReturnBaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithAttemptToEscape\
+UsersDownloadFolderShouldReturnDownloadPathNotEscapingUsersDownloadFolder) {
+  // Arrange
+  std::string parent_folder(kImmediateEscape);
+  std::string file_name("");
+
+  // Act
+  auto result = location::nearby::api::ImplementationPlatform::GetDownloadPath(
+      parent_folder, file_name);
+
+  // Assert
+  EXPECT_EQ(result, default_download_path_);
+}
+
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithMultiple\
+AttemptsToEscapeUsersDownloadFolderWithBackslashShouldReturnDownloadPath\
+NotEscapingUsersDownloadFolder) {
+  // Arrange
+  std::string parent_folder(kLongEscapeBackSlash);
+  std::string file_name("");
+
+  // Act
+  auto result = location::nearby::api::ImplementationPlatform::GetDownloadPath(
+      parent_folder, file_name);
+
+  // Assert
+  EXPECT_EQ(result, default_download_path_ + kTwoLevelFolder.data());
+}
+
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithMultiple\
+AttemptsToEscapeUsersDownloadFolderShouldReturnDownloadPathNotEscapingUsers\
+DownloadFolder) {
+  // Arrange
+  std::string parent_folder(kLongEscapeSlash);
+  std::string file_name("");
+
+  // Act
+  auto result = location::nearby::api::ImplementationPlatform::GetDownloadPath(
+      parent_folder, file_name);
+
+  // Assert
+  EXPECT_EQ(result, default_download_path_ + kTwoLevelFolder.data());
+}
+
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithMultiple\
+AttemptsToEscapeUsersDownloadFolderWithMixedSlashShouldReturnDownloadPath\
+NotEscapingUsersDownloadFolder) {
+  // Arrange
+  std::string parent_folder(kLongEscapeMixedSlash);
+  std::string file_name("");
+
+  // Act
+  auto result = location::nearby::api::ImplementationPlatform::GetDownloadPath(
+      parent_folder, file_name);
+
+  // Assert
+  EXPECT_EQ(result, default_download_path_ + kTwoLevelFolder.data());
+}
+
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithMultiple\
+AttemptsToEscapeUsersDownloadFolderWithEndingEscapeShouldReturnDownload\
+PathNotEscapingUsersDownloadFolder) {
+  // Arrange
+  std::string parent_folder(kLongEscapeEndingEscape);
+  std::string file_name("");
+
+  // Act
+  auto result = location::nearby::api::ImplementationPlatform::GetDownloadPath(
+      parent_folder, file_name);
+
+  // Assert
+  EXPECT_EQ(result, default_download_path_ + kTwoLevelFolder.data());
+}
+
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithMultiple\
+AttemptsToEscapeUsersDownloadFolderWithEndingSlashShouldReturnDownloadPathNot\
+EscapingUsersDownloadFolder) {
+  // Arrange
+  std::string parent_folder(kLongEscapeEndingEscapeWithSlash);
+  std::string file_name("");
+
+  // Act
+  auto result = location::nearby::api::ImplementationPlatform::GetDownloadPath(
+      parent_folder, file_name);
+
+  // Assert
+  EXPECT_EQ(result, default_download_path_ + kTwoLevelFolder.data());
+}
+
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithSlashFileName\
+ArgumentsShouldReturnBaseDownloadPath) {
   // Arrange
   std::string parent_folder("");
   std::string file_name("/");
@@ -136,9 +230,8 @@ TEST_F(ImplementationPlatformTests,
   EXPECT_EQ(result, default_download_path_);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithBackslashFileNameArgumentsShouldReturn\
-BaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithBackslashFile\
+NameArgumentsShouldReturnBaseDownloadPath) {
   // Arrange
   std::string parent_folder("");
   std::string file_name("\\");
@@ -154,9 +247,8 @@ BaseDownloadPath) {
   EXPECT_EQ(result, default_download_path_);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithParentFolderShouldReturnParentFolder\
-AppendedToBaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithParentFolder\
+ShouldReturnParentFolderAppendedToBaseDownloadPath) {
   // Arrange
   std::string parent_folder("test_parent_folder");
   std::string file_name("");
@@ -175,9 +267,8 @@ AppendedToBaseDownloadPath) {
   EXPECT_EQ(result, expected);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithParentFolderStartingWithSlashArgumentsShouldReturn\
-ParentFolderAppendedToBaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithParentFolder\
+StartingWithSlashArgumentsShouldReturnParentFolderAppendedToBaseDownloadPath) {
   // Arrange
   std::string parent_folder("/test_parent_folder");
   std::string file_name("");
@@ -196,9 +287,9 @@ ParentFolderAppendedToBaseDownloadPath) {
   EXPECT_EQ(result, expected);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithParentFolderStartingWithBackslashArguments\
-ShouldReturnParentFolderAppendedToBaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithParentFolder\
+StartingWithBackslashArgumentsShouldReturnParentFolderAppendedToBase\
+DownloadPath) {
   // Arrange
   std::string parent_folder("\\test_parent_folder");
   std::string file_name("");
@@ -217,9 +308,8 @@ ShouldReturnParentFolderAppendedToBaseDownloadPath) {
   EXPECT_EQ(result, expected);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithParentFolderEndingWithSlashArgumentsShouldReturn\
-ParentFolderAppendedToBaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithParentFolder\
+EndingWithSlashArgumentsShouldReturnParentFolderAppendedToBaseDownloadPath) {
   // Arrange
   std::string parent_folder("test_parent_folder/");
   std::string file_name("");
@@ -238,9 +328,9 @@ ParentFolderAppendedToBaseDownloadPath) {
   EXPECT_EQ(result, expected);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithParentFolderEndingWithBackslashArguments\
-ShouldReturnParentFolderAppendedToBaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithParentFolder\
+EndingWithBackslashArgumentsShouldReturnParentFolderAppendedToBaseDownloadPath)
+{
   // Arrange
   std::string parent_folder("test_parent_folder\\");
   std::string file_name("");
@@ -259,9 +349,8 @@ ShouldReturnParentFolderAppendedToBaseDownloadPath) {
   EXPECT_EQ(result, expected);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithFileNameBeginningWithSlashArgumentsShouldReturn\
-FileNameAppendedToBaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithFileName\
+BeginningWithSlashArgumentsShouldReturnFileNameAppendedToBaseDownloadPath) {
   // Arrange
   std::string parent_folder("");
   std::string file_name("/test_file_name.name");
@@ -280,9 +369,8 @@ FileNameAppendedToBaseDownloadPath) {
   EXPECT_EQ(result, expected);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithFileNameBeginningWithBackslashArgumentsShouldReturn\
-FileNameAppendedToBaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithFileName\
+BeginningWithBackslashArgumentsShouldReturnFileNameAppendedToBaseDownloadPath) {
   // Arrange
   std::string parent_folder("");
   std::string file_name("\\test_file_name.name");
@@ -299,9 +387,8 @@ FileNameAppendedToBaseDownloadPath) {
   EXPECT_EQ(result, path.str().c_str());
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithFileNameEndingWithSlashArgumentsShouldReturnFileName\
-AppendedToBaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithFileNameEnding\
+WithSlashArgumentsShouldReturnFileNameAppendedToBaseDownloadPath) {
   // Arrange
   std::string parent_folder("");
   std::string file_name("test_file_name.name/");
@@ -320,9 +407,8 @@ AppendedToBaseDownloadPath) {
   EXPECT_EQ(result, expected);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithFileNameEndingWithBackslashArgumentsShouldReturn\
-FileNameAppendedToBaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithFileNameEnding\
+WithBackslashArgumentsShouldReturnFileNameAppendedToBaseDownloadPath) {
   // Arrange
   std::string parent_folder("");
   std::string file_name("test_file_name.name\\");
@@ -341,9 +427,9 @@ FileNameAppendedToBaseDownloadPath) {
   EXPECT_EQ(result, expected);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithParentFolderAndFileNameArgumentsShouldReturn\
-ParentFolderAndFileNameAppendedToBaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithParentFolderAnd\
+FileNameArgumentsShouldReturnParentFolderAndFileNameAppendedToBaseDownloadPath)
+{
   // Arrange
   std::string parent_folder("test_parent_folder");
   std::string file_name("test_file_name.name");
@@ -364,9 +450,9 @@ ParentFolderAndFileNameAppendedToBaseDownloadPath) {
   EXPECT_EQ(result, expected);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithParentFolderEndingWithBackslashAndFileNameArguments\
-ShouldReturnParentFolderAndFileNameAppendedToBaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithParentFolder\
+EndingWithBackslashAndFileNameArgumentsShouldReturnParentFolderAndFileName\
+AppendedToBaseDownloadPath) {
   // Arrange
   std::string parent_folder("test_parent_folder\\");
   std::string file_name("test_file_name.name");
@@ -387,9 +473,9 @@ ShouldReturnParentFolderAndFileNameAppendedToBaseDownloadPath) {
   EXPECT_EQ(result, expected);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPathWithFileNameStartingWithBackslashAndParentFolderArguments\
-ShouldReturnParentFolderAndFileNameAppendedToBaseDownloadPath) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPathWithFileName\
+StartingWithBackslashAndParentFolderArgumentsShouldReturnParentFolderAnd\
+FileNameAppendedToBaseDownloadPath) {
   // Arrange
   std::string parent_folder("test_parent_folder");
   std::string file_name("\\test_file_name.name");
@@ -410,8 +496,8 @@ ShouldReturnParentFolderAndFileNameAppendedToBaseDownloadPath) {
   EXPECT_EQ(result, expected);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPath_FileDoesntExistReturnsFileWithPassedName) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPath_FileDoesntExist\
+ReturnsFileWithPassedName) {
   // Arrange
   std::string file_name(kFileName);
   std::string parent_folder("");
@@ -428,8 +514,8 @@ TEST_F(ImplementationPlatformTests,
   EXPECT_EQ(actual, expected);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPath_FileExistsReturnsFileWithIncrementedName) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPath_FileExistsReturns\
+FileWithIncrementedName) {
   // Arrange
   std::string file_name(kFileName);
   std::string renamed_file_name(kFirstIterationFileName);
@@ -468,8 +554,8 @@ TEST_F(ImplementationPlatformTests,
   ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPath_MultipleFilesExistReturnsNextIncrementedFileName) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPath_MultipleFilesExist\
+ReturnsNextIncrementedFileName) {
   // Arrange
   std::ofstream output_file;
   std::ifstream input_file;
@@ -525,9 +611,8 @@ TEST_F(ImplementationPlatformTests,
   ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
 }
 
-TEST_F(
-    ImplementationPlatformTests,
-    GetDownloadPath_FileNameContainsMultipleDotsReturnsIncrementBeforeFirstDot){
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPath_FileNameContains\
+MultipleDotsReturnsIncrementBeforeFirstDot) {
   // Arrange
   std::ifstream input_file;
   std::ofstream output_file;
@@ -565,8 +650,8 @@ TEST_F(
   ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPath_FileNameContainsNoDotsReturnsWithIncrementAtEnd) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPath_FileNameContainsNo\
+DotsReturnsWithIncrementAtEnd) {
   std::ifstream input_file;
   std::ofstream output_file;
 
@@ -603,8 +688,8 @@ TEST_F(ImplementationPlatformTests,
   ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
 }
 
-TEST_F(ImplementationPlatformTests,
-       GetDownloadPath_FileNameExistsWithAHoleBetweenRenamedFiles) {
+TEST_F(ImplementationPlatformTests, DISABLED_GetDownloadPath_FileNameExistsWith\
+AHoleBetweenRenamedFiles) {
   std::ifstream input_file;
   std::ofstream output_file;
 
@@ -684,4 +769,3 @@ TEST_F(ImplementationPlatformTests,
   input_file.open(output_file3_path, std::ifstream::binary | std::ifstream::in);
   ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
 }
-#endif

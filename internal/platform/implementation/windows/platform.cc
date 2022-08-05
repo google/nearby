@@ -14,14 +14,14 @@
 
 #include "internal/platform/implementation/platform.h"
 
+#include <windows.h>
+#include <winver.h>
 #include <PathCch.h>
 #include <knownfolders.h>
 #include <psapi.h>
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <strsafe.h>
-#include <windows.h>
-#include <winver.h>
 
 #include <memory>
 #include <sstream>
@@ -56,6 +56,8 @@ namespace nearby {
 namespace api {
 
 namespace {
+constexpr absl::string_view kUpOneLevel("/..");
+
 std::string GetDownloadPathInternal(std::string& parent_folder,
                                     std::string& file_name) {
   PWSTR basePath;
@@ -129,13 +131,27 @@ std::string GetDownloadPathInternal(std::string& parent_folder,
   return retVal;
 }
 
+void SanitizePath(std::string& path) {
+  size_t pos = std::string::npos;
+  // Search for the substring in string in a loop until nothing is found
+  while ((pos = path.find(kUpOneLevel.data())) != std::string::npos) {
+    // If found then erase it from string
+    path.erase(pos, kUpOneLevel.size());
+  }
+}
+
 // If the file already exists we add " (x)", where x is an incrementing number,
 // starting at 1, using the next non-existing number, to the file name, just
 // before the first dot, or at the end if no dot. The absolute path is returned.
 std::string CreateOutputFileWithRename(absl::string_view path) {
-  auto last_separator = path.find_last_of('/');
-  std::string folder(path.substr(0, last_separator));
-  std::string file_name(path.substr(last_separator));
+  // Remove any /..
+  std::string sanitized_path(path);
+  std::replace(sanitized_path.begin(), sanitized_path.end(), '\\', '/');
+  SanitizePath(sanitized_path);
+
+  auto last_separator = sanitized_path.find_last_of('/');
+  std::string folder(sanitized_path.substr(0, last_separator));
+  std::string file_name(sanitized_path.substr(last_separator));
 
   int count = 0;
 
@@ -151,7 +167,7 @@ std::string CreateOutputFileWithRename(absl::string_view path) {
   auto file_name2 = file_name.substr(first);
 
   // Construct the target file name
-  std::string target(path);
+  std::string target(sanitized_path);
 
   std::fstream file;
   file.open(target, std::fstream::binary | std::fstream::in);
