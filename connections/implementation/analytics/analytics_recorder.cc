@@ -15,10 +15,12 @@
 #include "connections/implementation/analytics/analytics_recorder.h"
 
 #include <algorithm>
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/time/time.h"
 #include "internal/analytics/event_logger.h"
@@ -451,12 +453,17 @@ void AnalyticsRecorder::OnConnectionClosed(const std::string &endpoint_id,
     // re-established with a new ConnectionRequest.
     auto pair = active_connections_.extract(it);
     std::unique_ptr<LogicalConnection> &logical_connection = pair.mapped();
-    absl::c_copy(
-        logical_connection->GetEstablisedConnections(),
-        RepeatedFieldBackInserter(
-            current_strategy_session_->mutable_established_connection()));
+
+    std::vector<ConnectionsLog::EstablishedConnection> connections =
+        logical_connection->GetEstablisedConnections();
+    auto established_connections =
+        current_strategy_session_->mutable_established_connection();
+    for (auto &connection : connections) {
+      established_connections->Add(std::move(connection));
+    }
   }
 }
+
 void AnalyticsRecorder::OnIncomingPayloadStarted(
     const std::string &endpoint_id, std::int64_t payload_id,
     connections::PayloadType type, std::int64_t total_size_bytes) {
@@ -665,8 +672,7 @@ void AnalyticsRecorder::LogStartSession() {
 
   session_was_logged_ = false;
   if (CanRecordAnalyticsLocked(kOnStartClientSession)) {
-    client_session_ =
-        std::make_unique<proto::ConnectionsLog::ClientSession>();
+    client_session_ = std::make_unique<proto::ConnectionsLog::ClientSession>();
     started_client_session_time_ = SystemClock::ElapsedRealtime();
     start_client_session_was_logged_ = true;
     LogEvent(START_CLIENT_SESSION);
