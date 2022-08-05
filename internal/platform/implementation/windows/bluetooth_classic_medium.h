@@ -19,7 +19,6 @@
 #include <memory>
 #include <string>
 
-#include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
@@ -206,9 +205,6 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   std::unique_ptr<BluetoothServerSocket> server_socket_ = nullptr;
   BluetoothServerSocket* raw_server_socket_ = nullptr;
   bool is_radio_discoverable_ = false;
-
-  // Used to enable thread safe for APIs.
-  absl::Mutex mutex_;
 };
 
 }  // namespace windows

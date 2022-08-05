@@ -25,7 +25,6 @@
 #include <string>
 #include <utility>
 
-#include "absl/synchronization/mutex.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/exception.h"
@@ -61,8 +60,6 @@ BluetoothClassicMedium::~BluetoothClassicMedium() {}
 
 void BluetoothClassicMedium::OnScanModeChanged(
     BluetoothAdapter::ScanMode scanMode) {
-  absl::MutexLock lock(&mutex_);
-
   NEARBY_LOGS(INFO) << __func__
                     << ": OnScanModeChanged is called with scanMode: "
                     << static_cast<int>(scanMode);
@@ -113,7 +110,6 @@ void BluetoothClassicMedium::OnScanModeChanged(
 
 bool BluetoothClassicMedium::StartDiscovery(
     BluetoothClassicMedium::DiscoveryCallback discovery_callback) {
-  absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "StartDiscovery is called.";
 
   bool result = false;
@@ -127,7 +123,6 @@ bool BluetoothClassicMedium::StartDiscovery(
 }
 
 bool BluetoothClassicMedium::StopDiscovery() {
-  absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "StopDiscovery is called.";
 
   bool result = false;
@@ -178,7 +173,6 @@ void BluetoothClassicMedium::InitializeDeviceWatcher() {
 std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     api::BluetoothDevice& remote_device, const std::string& service_uuid,
     CancellationFlag* cancellation_flag) {
-  absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "ConnectToService is called.";
   if (service_uuid.empty()) {
     NEARBY_LOGS(ERROR) << __func__ << ": service_uuid not specified.";
@@ -390,7 +384,6 @@ bool BluetoothClassicMedium::CheckSdp(RfcommDeviceService requestedService) {
 std::unique_ptr<api::BluetoothServerSocket>
 BluetoothClassicMedium::ListenForService(const std::string& service_name,
                                          const std::string& service_uuid) {
-  absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "ListenForService is called with service name: "
                     << service_name << ".";
   if (service_uuid.empty()) {
@@ -464,7 +457,6 @@ bool BluetoothClassicMedium::StopScanning() {
 
 winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
     DeviceWatcher sender, DeviceInformation deviceInfo) {
-  absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "Device added " << winrt::to_string(deviceInfo.Id());
   if (IsWatcherStarted()) {
     // Represents a Bluetooth device.
@@ -506,8 +498,6 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
 
 winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
-  absl::MutexLock lock(&mutex_);
-
   NEARBY_LOGS(INFO)
       << "Device updated "
       << discovered_devices_by_id_[deviceInfoUpdate.Id()]->GetName() << " ("
@@ -536,7 +526,6 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
 
 winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Removed(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfo) {
-  absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "Device removed "
                     << discovered_devices_by_id_[deviceInfo.Id()]->GetName()
                     << " (" << winrt::to_string(deviceInfo.Id()) << ")";
@@ -618,7 +607,6 @@ bool BluetoothClassicMedium::StartAdvertising(bool radio_discoverable) {
     }
 
     server_socket_->SetCloseNotifier([&]() {
-      absl::MutexLock lock(&mutex_);
       StopAdvertising();
     });
 

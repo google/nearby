@@ -131,8 +131,6 @@ BleMedium::BleMedium(api::BluetoothAdapter& adapter)
 bool BleMedium::StartAdvertising(
     const std::string& service_id, const ByteArray& advertisement_bytes,
     const std::string& fast_advertisement_service_uuid) {
-  absl::MutexLock lock(&mutex_);
-
   try {
     if (!adapter_->IsEnabled()) {
       NEARBY_LOGS(WARNING) << "BLE cannot start advertising because the "
@@ -219,8 +217,6 @@ bool BleMedium::StartAdvertising(
 }
 
 bool BleMedium::StopAdvertising(const std::string& service_id) {
-  absl::MutexLock lock(&mutex_);
-
   try {
     if (!adapter_->IsEnabled()) {
       NEARBY_LOGS(WARNING) << "BLE cannot stop advertising because the "
@@ -262,8 +258,6 @@ bool BleMedium::StartScanning(
     const std::string& service_id,
     const std::string& fast_advertisement_service_uuid,
     DiscoveredPeripheralCallback callback) {
-  absl::MutexLock lock(&mutex_);
-
   try {
     if (!adapter_->IsEnabled()) {
       NEARBY_LOGS(WARNING) << "BLE cannot start scanning because the "
@@ -317,8 +311,6 @@ bool BleMedium::StartScanning(
 }
 
 bool BleMedium::StopScanning(const std::string& service_id) {
-  absl::MutexLock lock(&mutex_);
-
   try {
     if (!adapter_->IsEnabled()) {
       NEARBY_LOGS(WARNING) << "BLE cannot stop scanning because the "
@@ -470,15 +462,11 @@ void BleMedium::PublisherHandler(
   }
 
   // The publisher is stopped. Clean up the running publisher
-  {
-    absl::MutexLock lock(&mutex_);
-
-    if (publisher_ != nullptr) {
-      NEARBY_LOGS(ERROR) << "Nearby BLE Medium cleaned the publisher.";
-      publisher_.StatusChanged(publisher_token_);
-      publisher_ = nullptr;
-      is_publisher_started_ = false;
-    }
+  if (publisher_ != nullptr) {
+    NEARBY_LOGS(ERROR) << "Nearby BLE Medium cleaned the publisher.";
+    publisher_.StatusChanged(publisher_token_);
+    publisher_ = nullptr;
+    is_publisher_started_ = false;
   }
 }
 
@@ -535,16 +523,12 @@ void BleMedium::WatcherHandler(
 
   // No matter the reason, should clean up the watcher if it is not empty.
   // The BLE V1 interface doesn't have API to return the error to upper layer.
-  {
-    absl::MutexLock lock(&mutex_);
-
-    if (watcher_ != nullptr) {
-      NEARBY_LOGS(ERROR) << "Nearby BLE Medium cleaned the watcher.";
-      watcher_.Stopped(watcher_token_);
-      watcher_.Received(advertisement_received_token_);
-      watcher_ = nullptr;
-      is_watcher_started_ = false;
-    }
+  if (watcher_ != nullptr) {
+    NEARBY_LOGS(ERROR) << "Nearby BLE Medium cleaned the watcher.";
+    watcher_.Stopped(watcher_token_);
+    watcher_.Received(advertisement_received_token_);
+    watcher_ = nullptr;
+    is_watcher_started_ = false;
   }
 }
 
