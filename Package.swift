@@ -375,6 +375,7 @@ let package = Package(
         "connections/clients/windows",
         "connections/samples",
         "docs",
+        "internal/crypto",
         "internal/platform/implementation/g3",
         "internal/platform/implementation/ios/Tests",
         "internal/platform/implementation/ios/Mediums/Ble/Sockets/Tests",
