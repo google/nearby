@@ -40,7 +40,7 @@ void SHA256HashString(absl::string_view str, void* output, size_t len) {
 
 std::string SHA256HashString(absl::string_view str) {
   std::string output(kSHA256Length, 0);
-  SHA256HashString(str, output.data(), output.size());
+  SHA256HashString(str, &*output.begin(), output.size());
   return output;
 }
 

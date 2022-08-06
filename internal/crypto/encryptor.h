@@ -94,9 +94,9 @@ class CRYPTO_EXPORT Encryptor {
   // On success, these helper functions return the number of bytes written to
   // |output|.
   size_t MaxOutput(bool do_encrypt, size_t length);
-  std::optional<size_t> Crypt(bool do_encrypt, absl::Span<const uint8_t> input,
+  absl::optional<size_t> Crypt(bool do_encrypt, absl::Span<const uint8_t> input,
                               absl::Span<uint8_t> output);
-  std::optional<size_t> CryptCTR(bool do_encrypt,
+  absl::optional<size_t> CryptCTR(bool do_encrypt,
                                  absl::Span<const uint8_t> input,
                                  absl::Span<uint8_t> output);
 

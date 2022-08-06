@@ -97,7 +97,7 @@ bool Aead::Seal(absl::string_view plaintext, absl::string_view nonce,
   return true;
 }
 
-std::optional<std::vector<uint8_t>> Aead::Open(
+absl::optional<std::vector<uint8_t>> Aead::Open(
     absl::Span<const uint8_t> ciphertext, absl::Span<const uint8_t> nonce,
     absl::Span<const uint8_t> additional_data) const {
   const size_t max_output_length = ciphertext.size();
@@ -107,7 +107,7 @@ std::optional<std::vector<uint8_t>> Aead::Open(
   size_t output_length;
   if (!Open(ciphertext, nonce, additional_data, ret.data(), &output_length,
             max_output_length)) {
-    return std::nullopt;
+    return absl::nullopt;
   }
 
   ret.resize(output_length);

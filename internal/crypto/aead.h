@@ -64,7 +64,7 @@ class CRYPTO_EXPORT Aead {
   bool Seal(absl::string_view plaintext, absl::string_view nonce,
             absl::string_view additional_data, std::string* ciphertext) const;
 
-  std::optional<std::vector<uint8_t>> Open(
+  absl::optional<std::vector<uint8_t>> Open(
       absl::Span<const uint8_t> ciphertext, absl::Span<const uint8_t> nonce,
       absl::Span<const uint8_t> additional_data) const;
 
@@ -86,7 +86,7 @@ class CRYPTO_EXPORT Aead {
             absl::Span<const uint8_t> additional_data, uint8_t* out,
             size_t* output_length, size_t max_output_length) const;
 
-  std::optional<absl::Span<const uint8_t>> key_;
+  absl::optional<absl::Span<const uint8_t>> key_;
   const evp_aead_st* aead_;
 };
 
