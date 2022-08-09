@@ -57,7 +57,8 @@ class CredentialManager {
   // storage.
   virtual void GenerateCredentials(
       proto::DeviceMetadata device_metadata,
-      std::vector<PresenceIdentity::IdentityType> identity_types,
+      std::vector<proto::IdentityType> identity_types,
+      int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsCallback credentials_generated_cb) = 0;
 
   // Update remote public credentials.
