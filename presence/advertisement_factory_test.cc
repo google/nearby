@@ -52,7 +52,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(DataElement::kActionFieldType,
                              action::kActiveUnlockAction);
-  Action action = ActionFactory::createAction(data_elements);
+  Action action = ActionFactory::CreateAction(data_elements);
   BroadcastRequest request =
       BroadcastRequest(BasePresenceRequestBuilder(identity)
                            .SetSalt(salt)
@@ -87,7 +87,7 @@ TEST(AdvertisementFactory,
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(DataElement::kActionFieldType,
                              action::kActiveUnlockAction);
-  Action action = ActionFactory::createAction(data_elements);
+  Action action = ActionFactory::CreateAction(data_elements);
   BroadcastRequest request =
       BroadcastRequest(BasePresenceRequestBuilder(identity)
                            .SetSalt("AB")

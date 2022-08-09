@@ -17,8 +17,10 @@
 
 #include <stdint.h>
 
+#include <ostream>
 #include <string>
 
+#include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 namespace nearby {
 namespace presence {
@@ -75,6 +77,11 @@ class DataElement {
 
 inline bool operator==(const DataElement& i1, const DataElement& i2) {
   return i1.GetType() == i2.GetType() && i1.GetValue() == i2.GetValue();
+}
+
+inline std::ostream& operator<<(std::ostream& os, const DataElement& elem) {
+  return os << "DataElement(" << elem.GetType() << ", "
+            << absl::BytesToHexString(elem.GetValue()) << ")";
 }
 
 }  // namespace presence

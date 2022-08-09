@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -51,9 +52,26 @@ int GetActionMask(int action) {
   return kEmptyMask;
 }
 
-}  // namespace
+// The reverse of `GetActionMask()`
+absl::optional<uint8_t> GetActionFromBitMask(int mask) {
+  switch (mask) {
+    case kTapToTransferMask:
+      return action::kTapToTransferAction;
+    case kActiveUnlockMask:
+      return action::kActiveUnlockAction;
+    case kNearbyShareMask:
+      return action::kNearbyShareAction;
+    case kFastPairMask:
+      return action::kFastPairAction;
+    case kFitCastMask:
+      return action::kFitCastAction;
+    default:
+      NEARBY_LOG(WARNING, "Unsupported action for bit mask 0x%x", mask);
+      return absl::nullopt;
+  }
+}
 
-int ActionFactory::GetMask(const DataElement& element) {
+int GetMask(const DataElement& element) {
   int type = element.GetType();
   switch (type) {
     case DataElement::kContextTimestampFieldType: {
@@ -78,7 +96,9 @@ int ActionFactory::GetMask(const DataElement& element) {
   return kEmptyMask;
 }
 
-Action ActionFactory::createAction(
+}  // namespace
+
+Action ActionFactory::CreateAction(
     const std::vector<DataElement>& data_elements) {
   Action action = {.action = 0};
   std::for_each(data_elements.begin(), data_elements.end(),
@@ -87,6 +107,25 @@ Action ActionFactory::createAction(
                   action.action |= mask;
                 });
   return action;
+}
+
+void ActionFactory::DecodeAction(const Action& action,
+                                 std::vector<DataElement>& output) {
+  uint8_t context_timestamp =
+      (action.action >> kContentTimestampShift) & kContentTimestampMask;
+  if (context_timestamp) {
+    output.emplace_back(DataElement::kContextTimestampFieldType,
+                        context_timestamp);
+  }
+  for (int i = 0; i < kContentTimestampShift; i++) {
+    int bit_mask = 1 << i;
+    if (action.action & bit_mask) {
+      absl::optional<uint8_t> action_value = GetActionFromBitMask(bit_mask);
+      if (action_value) {
+        output.emplace_back(DataElement::kActionFieldType, *action_value);
+      }
+    }
+  }
 }
 
 }  // namespace presence

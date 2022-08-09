@@ -133,6 +133,7 @@ cc_library(
         ":broadcast_request",
         ":types",
         "//internal/platform:logging",
+        "@com_google_absl//absl/types:optional",
     ],
 )
 
