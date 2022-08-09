@@ -77,6 +77,8 @@ class OfflineServiceController : public ServiceController {
 
   void Stop() override;
 
+  void ShutdownBwuManagerExecutors() override;
+
  private:
   // Note that the order of declaration of these is crucial, because we depend
   // on the destructors running (strictly) in the reverse order; a deviation
