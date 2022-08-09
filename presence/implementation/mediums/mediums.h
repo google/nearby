@@ -15,7 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_MEDIUMS_MEDIUMS_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_MEDIUMS_MEDIUMS_H_
 
-#include "third_party/nearby/presence/implementation/mediums/ble.h"
+#include "presence/implementation/mediums/ble.h"
 
 namespace nearby {
 namespace presence {

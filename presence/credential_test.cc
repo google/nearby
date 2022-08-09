@@ -19,7 +19,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/uuid.h"
-#include "third_party/nearby/presence/proto/credential.pb.h"
+#include "presence/proto/credential.pb.h"
 
 namespace nearby {
 namespace presence {

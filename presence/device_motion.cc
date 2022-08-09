@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/presence/device_motion.h"
+#include "presence/device_motion.h"
 
 namespace nearby {
 namespace presence {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/presence/discovery_filter.h"
+#include "presence/discovery_filter.h"
 
 namespace nearby {
 namespace presence {

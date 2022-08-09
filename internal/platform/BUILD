@@ -53,8 +53,8 @@ cc_library(
         "//internal/platform/implementation:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
+        "//presence:__subpackages__",
         "//third_party/nearby/cpp/cal:__subpackages__",
-        "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
         "//proto:connections_enums_cc_proto",
@@ -109,7 +109,7 @@ cc_library(
         "//internal/platform:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
-        "//third_party/nearby/presence:__subpackages__",
+        "//presence:__subpackages__",
     ],
     deps = [
         "//internal/platform/implementation:platform",
@@ -176,7 +176,7 @@ cc_library(
         "//connections/implementation:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
-        "//third_party/nearby/presence:__pkg__",
+        "//presence:__pkg__",
     ],
     deps = [
         "//internal/platform/implementation:types",
@@ -359,7 +359,7 @@ cc_library(
         "//internal/analytics:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
-        "//third_party/nearby/presence:__subpackages__",
+        "//presence:__subpackages__",
     ],
     deps = [
         ":logging",

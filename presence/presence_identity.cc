@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/presence/presence_identity.h"
+#include "presence/presence_identity.h"
 
 namespace nearby {
 namespace presence {

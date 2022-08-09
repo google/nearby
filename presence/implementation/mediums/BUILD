@@ -21,7 +21,7 @@ cc_library(
         "mediums.h",
     ],
     visibility = [
-        "//third_party/nearby/presence/implementation:__subpackages__",
+        "//presence/implementation:__subpackages__",
     ],
     deps = [
         "//internal/platform:base",

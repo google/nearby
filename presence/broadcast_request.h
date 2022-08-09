@@ -22,7 +22,7 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/types/variant.h"
-#include "third_party/nearby/presence/presence_identity.h"
+#include "presence/presence_identity.h"
 
 namespace nearby {
 namespace presence {

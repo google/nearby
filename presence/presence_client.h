@@ -17,11 +17,11 @@
 
 #include <vector>
 
-#include "third_party/nearby/presence/broadcast_options.h"
-#include "third_party/nearby/presence/discovery_filter.h"
-#include "third_party/nearby/presence/discovery_options.h"
-#include "third_party/nearby/presence/listeners.h"
-#include "third_party/nearby/presence/presence_device.h"
+#include "presence/broadcast_options.h"
+#include "presence/discovery_filter.h"
+#include "presence/discovery_options.h"
+#include "presence/listeners.h"
+#include "presence/presence_device.h"
 
 namespace nearby {
 namespace presence {

@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/presence/scan_request_builder.h"
+#include "presence/scan_request_builder.h"
 
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "third_party/nearby/presence/power_mode.h"
-#include "third_party/nearby/presence/presence_identity.h"
-#include "third_party/nearby/presence/scan_request.h"
+#include "presence/power_mode.h"
+#include "presence/presence_identity.h"
+#include "presence/scan_request.h"
 
 namespace nearby {
 namespace presence {

@@ -15,8 +15,8 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SCAN_MANAGER_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SCAN_MANAGER_H_
 
-#include "third_party/nearby/presence/implementation/credential_manager.h"
-#include "third_party/nearby/presence/implementation/mediums/mediums.h"
+#include "presence/implementation/credential_manager.h"
+#include "presence/implementation/mediums/mediums.h"
 
 namespace nearby {
 namespace presence {

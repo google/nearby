@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/presence/implementation/advertisement_decoder.h"
+#include "presence/implementation/advertisement_decoder.h"
 
 #include <string>
 #include <vector>
@@ -21,8 +21,8 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/escaping.h"
-#include "third_party/nearby/presence/data_element.h"
-#include "third_party/nearby/presence/implementation/credential_manager_impl.h"
+#include "presence/data_element.h"
+#include "presence/implementation/credential_manager_impl.h"
 
 namespace nearby {
 namespace presence {

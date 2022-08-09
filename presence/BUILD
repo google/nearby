@@ -26,7 +26,7 @@ cc_library(
     ],
     deps = [
         ":types",
-        "//third_party/nearby/presence/implementation:internal",  # build_cleaner: keep
+        "//presence/implementation:internal",  # build_cleaner: keep
     ],
 )
 
@@ -61,7 +61,7 @@ cc_library(
         ":credential",
         "//net/proto2/util/public:differencer",
         "//internal/platform:base",
-        "//third_party/nearby/presence/proto:credential_cc_proto",
+        "//presence/proto:credential_cc_proto",
         "@com_google_absl//absl/strings",
         "@com_google_glog//:glog",
     ],
@@ -147,8 +147,8 @@ cc_library(
         "//third_party/nearby:__subpackages__",
     ],
     deps = [
-        "//third_party/nearby/presence/proto:credential_cc_proto",
-        "//third_party/nearby/presence/proto:device_metadata_cc_proto",
+        "//presence/proto:credential_cc_proto",
+        "//presence/proto:device_metadata_cc_proto",
     ],
 )
 
@@ -247,7 +247,7 @@ cc_test(
         ":credential",
         "//internal/platform:uuid",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//third_party/nearby/presence/proto:credential_cc_proto",
+        "//presence/proto:credential_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

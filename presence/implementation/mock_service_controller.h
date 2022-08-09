@@ -15,7 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_MOCK_SERVICE_CONTROLLER_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_MOCK_SERVICE_CONTROLLER_H_
 
-#include "third_party/nearby/presence/implementation/service_controller.h"
+#include "presence/implementation/service_controller.h"
 
 namespace nearby {
 namespace presence {

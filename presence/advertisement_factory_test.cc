@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/presence/advertisement_factory.h"
+#include "presence/advertisement_factory.h"
 
 #include <string>
 #include <vector>
@@ -22,9 +22,9 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
-#include "third_party/nearby/presence/action_factory.h"
-#include "third_party/nearby/presence/certificate_manager.h"
-#include "third_party/nearby/presence/data_element.h"
+#include "presence/action_factory.h"
+#include "presence/certificate_manager.h"
+#include "presence/data_element.h"
 
 namespace nearby {
 namespace presence {

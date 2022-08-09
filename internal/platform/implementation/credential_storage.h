@@ -21,8 +21,8 @@
 #include <vector>
 
 #include "internal/platform/exception.h"
-#include "third_party/nearby/presence/presence_identity.h"
-#include "third_party/nearby/presence/proto/credential.pb.h"
+#include "presence/presence_identity.h"
+#include "presence/proto/credential.pb.h"
 
 namespace location {
 namespace nearby {

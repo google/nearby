@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/presence/broadcast_request.h"
+#include "presence/broadcast_request.h"
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/logging.h"
-#include "third_party/nearby/presence/encryption.h"
-#include "third_party/nearby/presence/presence_identity.h"
+#include "presence/encryption.h"
+#include "presence/presence_identity.h"
 
 namespace nearby {
 namespace presence {

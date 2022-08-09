@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/presence/implementation/credential_manager_impl.h"
+#include "presence/implementation/credential_manager_impl.h"
 
 #include <string>
 
@@ -23,7 +23,7 @@
 #include "internal/crypto/encryptor.h"
 #include "internal/crypto/symmetric_key.h"
 #include "internal/platform/implementation/crypto.h"
-#include "third_party/nearby/presence/encryption.h"
+#include "presence/encryption.h"
 
 namespace nearby {
 namespace presence {

@@ -18,7 +18,7 @@
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "third_party/nearby/presence/presence_identity.h"
+#include "presence/presence_identity.h"
 
 namespace nearby {
 namespace presence {

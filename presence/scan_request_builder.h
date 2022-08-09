@@ -18,10 +18,10 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "third_party/nearby/presence/power_mode.h"
-#include "third_party/nearby/presence/presence_identity.h"
-#include "third_party/nearby/presence/presence_zone.h"
-#include "third_party/nearby/presence/scan_request.h"
+#include "presence/power_mode.h"
+#include "presence/presence_identity.h"
+#include "presence/presence_zone.h"
+#include "presence/scan_request.h"
 
 namespace nearby {
 namespace presence {

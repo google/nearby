@@ -22,8 +22,8 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/credential_storage.h"
-#include "third_party/nearby/presence/presence_identity.h"
-#include "third_party/nearby/presence/proto/credential.pb.h"
+#include "presence/presence_identity.h"
+#include "presence/proto/credential.pb.h"
 
 namespace nearby {
 namespace presence {

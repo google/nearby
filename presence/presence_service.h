@@ -17,7 +17,7 @@
 
 #include <memory>
 
-#include "third_party/nearby/presence/implementation/service_controller.h"
+#include "presence/implementation/service_controller.h"
 
 namespace nearby {
 namespace presence {

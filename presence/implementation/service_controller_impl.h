@@ -15,9 +15,9 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SERVICE_CONTROLLER_IMPL_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SERVICE_CONTROLLER_IMPL_H_
 
-#include "third_party/nearby/presence/implementation/credential_manager_impl.h"
-#include "third_party/nearby/presence/implementation/mediums/mediums.h"
-#include "third_party/nearby/presence/implementation/service_controller.h"
+#include "presence/implementation/credential_manager_impl.h"
+#include "presence/implementation/mediums/mediums.h"
+#include "presence/implementation/service_controller.h"
 
 /*
  * This class implements {@code ServiceController} functions. Owns mediums and

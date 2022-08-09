@@ -17,7 +17,7 @@
 
 #include <vector>
 
-#include "third_party/nearby/presence/device_motion.h"
+#include "presence/device_motion.h"
 namespace nearby {
 namespace presence {
 class PresenceZone {

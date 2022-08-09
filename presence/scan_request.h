@@ -19,10 +19,10 @@
 #include <vector>
 
 #include "net/proto2/util/public/message_differencer.h"
-#include "third_party/nearby/presence/data_element.h"
-#include "third_party/nearby/presence/power_mode.h"
-#include "third_party/nearby/presence/presence_identity.h"
-#include "third_party/nearby/presence/proto/credential.pb.h"
+#include "presence/data_element.h"
+#include "presence/power_mode.h"
+#include "presence/presence_identity.h"
+#include "presence/proto/credential.pb.h"
 
 using MD = proto2::util::MessageDifferencer;
 

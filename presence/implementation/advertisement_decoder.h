@@ -20,10 +20,10 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "third_party/nearby/presence/advertisement_factory.h"
-#include "third_party/nearby/presence/data_element.h"
-#include "third_party/nearby/presence/implementation/credential_manager.h"
-#include "third_party/nearby/presence/presence_identity.h"
+#include "presence/advertisement_factory.h"
+#include "presence/data_element.h"
+#include "presence/implementation/credential_manager.h"
+#include "presence/presence_identity.h"
 
 namespace nearby {
 namespace presence {

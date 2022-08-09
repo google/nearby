@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/presence/advertisement_factory.h"
+#include "presence/advertisement_factory.h"
 
 #include <string>
 #include <variant>
@@ -21,7 +21,7 @@
 #include "absl/strings/str_format.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/uuid.h"
-#include "third_party/nearby/presence/data_element.h"
+#include "presence/data_element.h"
 
 namespace nearby {
 namespace presence {

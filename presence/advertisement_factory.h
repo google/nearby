@@ -20,9 +20,9 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "internal/platform/implementation/ble_v2.h"
-#include "third_party/nearby/presence/broadcast_request.h"
-#include "third_party/nearby/presence/certificate_manager.h"
-#include "third_party/nearby/presence/presence_identity.h"
+#include "presence/broadcast_request.h"
+#include "presence/certificate_manager.h"
+#include "presence/presence_identity.h"
 
 namespace nearby {
 namespace presence {

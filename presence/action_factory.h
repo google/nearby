@@ -17,8 +17,8 @@
 
 #include <vector>
 
-#include "third_party/nearby/presence/broadcast_request.h"
-#include "third_party/nearby/presence/data_element.h"
+#include "presence/broadcast_request.h"
+#include "presence/data_element.h"
 
 namespace nearby {
 namespace presence {

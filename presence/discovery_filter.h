@@ -17,9 +17,9 @@
 
 #include <vector>
 
-#include "third_party/nearby/presence/presence_action.h"
-#include "third_party/nearby/presence/presence_identity.h"
-#include "third_party/nearby/presence/presence_zone.h"
+#include "presence/presence_action.h"
+#include "presence/presence_identity.h"
+#include "presence/presence_zone.h"
 namespace nearby {
 namespace presence {
 class DiscoveryFilter {

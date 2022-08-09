@@ -13,8 +13,8 @@
 // limitations under the License.
 #include <vector>
 
-#include "third_party/nearby/presence/scan_request.h"
-#include "third_party/nearby/presence/scan_request_builder.h"
+#include "presence/scan_request.h"
+#include "presence/scan_request_builder.h"
 
 namespace nearby {
 namespace presence {

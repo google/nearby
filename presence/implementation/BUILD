@@ -30,7 +30,7 @@ cc_library(
         "service_controller_impl.h",
     ],
     visibility = [
-        "//third_party/nearby/presence:__subpackages__",
+        "//presence:__subpackages__",
     ],
     deps = [
         "//internal/crypto",
@@ -39,13 +39,13 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
-        "//third_party/nearby/presence:action_factory",
-        "//third_party/nearby/presence:advertisement_factory",
-        "//third_party/nearby/presence:credential",
-        "//third_party/nearby/presence:encryption",
-        "//third_party/nearby/presence:types",
-        "//third_party/nearby/presence/implementation/mediums",
-        "//third_party/nearby/presence/proto:credential_cc_proto",
+        "//presence:action_factory",
+        "//presence:advertisement_factory",
+        "//presence:credential",
+        "//presence:encryption",
+        "//presence:types",
+        "//presence/implementation/mediums",
+        "//presence/proto:credential_cc_proto",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -60,7 +60,7 @@ cc_test(
     deps = [
         ":internal",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//third_party/nearby/presence:types",
+        "//presence:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
@@ -77,7 +77,7 @@ cc_test(
         "//internal/crypto",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//third_party/nearby/presence:encryption",
+        "//presence:encryption",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
