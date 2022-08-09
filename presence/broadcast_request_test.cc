@@ -14,8 +14,6 @@
 
 #include "presence/broadcast_request.h"
 
-#include <variant>
-
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
@@ -33,7 +31,7 @@ TEST(BroadcastRequestTest, CreateBasePresenceRequest) {
       BasePresenceRequestBuilder(identity).SetTxPower(kTxPower));
 
   EXPECT_TRUE(
-      std::holds_alternative<BroadcastRequest::BasePresence>(request.variant));
+      absl::holds_alternative<BroadcastRequest::BasePresence>(request.variant));
   EXPECT_EQ(request.salt.size(), 2);
   EXPECT_EQ(request.tx_power, kTxPower);
 }

@@ -15,10 +15,10 @@
 #include "presence/advertisement_factory.h"
 
 #include <string>
-#include <variant>
 
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
+#include "absl/types/variant.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/uuid.h"
 #include "presence/data_element.h"
@@ -73,7 +73,8 @@ uint8_t GetIdentityFieldType(PresenceIdentity::IdentityType type) {
 absl::StatusOr<BleAdvertisementData> AdvertisementFactory::CreateAdvertisement(
     const BroadcastRequest& request) const {
   BleAdvertisementData advert = {};
-  if (std::holds_alternative<BroadcastRequest::BasePresence>(request.variant)) {
+  if (absl::holds_alternative<BroadcastRequest::BasePresence>(
+          request.variant)) {
     return CreateBaseNpAdvertisement(request);
   }
   return advert;
@@ -83,7 +84,7 @@ absl::StatusOr<BleAdvertisementData>
 AdvertisementFactory::CreateBaseNpAdvertisement(
     const BroadcastRequest& request) const {
   const auto& presence =
-      std::get<BroadcastRequest::BasePresence>(request.variant);
+      absl::get<BroadcastRequest::BasePresence>(request.variant);
   BleAdvertisementData advert{};
   std::string payload;
   payload.push_back(kBaseVersion);
