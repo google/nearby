@@ -17,10 +17,12 @@ cc_library(
     name = "internal",
     srcs = [
         "advertisement_decoder.cc",
+        "advertisement_factory.cc",
         "credential_manager_impl.cc",
     ],
     hdrs = [
         "advertisement_decoder.h",
+        "advertisement_factory.h",
         "broadcast_manager.h",
         "credential_manager.h",
         "credential_manager_impl.h",
@@ -37,10 +39,11 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:logging",
+        "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
         "//presence:action_factory",
-        "//presence:advertisement_factory",
+        "//presence:broadcast_request",
         "//presence:credential",
         "//presence:encryption",
         "//presence:types",
@@ -62,6 +65,22 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//presence:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "advertisement_factory_test",
+    size = "small",
+    srcs = ["advertisement_factory_test.cc"],
+    deps = [
+        ":internal",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//presence:action_factory",
+        "//presence:types",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],

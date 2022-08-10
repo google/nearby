@@ -83,6 +83,17 @@ class CredentialManager {
   virtual absl::StatusOr<std::string> DecryptDataElements(
       absl::string_view metadata_key, absl::string_view salt,
       absl::string_view data_elements) = 0;
+
+  // Returns encrypted metadata key associated with `identity` for Base NP
+  // advertisement.
+  virtual absl::StatusOr<std::string> GetBaseEncryptedMetadataKey(
+      const PresenceIdentity& identity) = 0;
+
+  // Encrypts `data_elements` using certificate associated with `identity` and
+  // `salt`.
+  virtual absl::StatusOr<std::string> EncryptDataElements(
+      const PresenceIdentity& identity, absl::string_view salt,
+      absl::string_view data_elements) = 0;
 };
 
 }  // namespace presence

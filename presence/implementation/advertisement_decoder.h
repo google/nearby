@@ -20,8 +20,8 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "presence/advertisement_factory.h"
 #include "presence/data_element.h"
+#include "presence/implementation/advertisement_factory.h"
 #include "presence/implementation/credential_manager.h"
 #include "presence/presence_identity.h"
 

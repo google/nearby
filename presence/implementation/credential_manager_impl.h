@@ -69,6 +69,18 @@ class CredentialManagerImpl : public CredentialManager {
     return absl::UnimplementedError("DecryptDataElements unimplemented");
   }
 
+  absl::StatusOr<std::string> GetBaseEncryptedMetadataKey(
+      const PresenceIdentity& identity) override {
+    return absl::UnimplementedError(
+        "GetBaseEncryptedMetadataKey unimplemented");
+  }
+
+  absl::StatusOr<std::string> EncryptDataElements(
+      const PresenceIdentity& identity, absl::string_view salt,
+      absl::string_view data_elements) override {
+    return absl::UnimplementedError("EncryptDataElements unimplemented");
+  }
+
  private:
   FRIEND_TEST(CredentialManagerImpl, CreateOneCredentialSuccessfully);
 

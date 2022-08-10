@@ -74,7 +74,6 @@ cc_library(
     deps = [
         ":credential",
         ":encryption",
-        ":types",
         "//internal/platform:logging",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:variant",
@@ -92,35 +91,6 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
-    ],
-)
-
-cc_library(
-    name = "certificate_manager",
-    hdrs = ["certificate_manager.h"],
-    deps = [
-        ":credential",
-        ":types",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-    ],
-)
-
-cc_library(
-    name = "advertisement_factory",
-    srcs = ["advertisement_factory.cc"],
-    hdrs = ["advertisement_factory.h"],
-    deps = [
-        ":broadcast_request",
-        ":certificate_manager",
-        ":credential",
-        ":types",
-        "//internal/platform:logging",
-        "//internal/platform:uuid",
-        "//internal/platform/implementation:comm",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:str_format",
     ],
 )
@@ -145,28 +115,6 @@ cc_library(
     ],
     visibility = [
         "//third_party/nearby:__subpackages__",
-    ],
-    deps = [
-        "//presence/proto:credential_cc_proto",
-        "//presence/proto:device_metadata_cc_proto",
-    ],
-)
-
-cc_test(
-    name = "advertisement_factory_test",
-    size = "small",
-    srcs = ["advertisement_factory_test.cc"],
-    deps = [
-        ":action_factory",
-        ":advertisement_factory",
-        ":certificate_manager",
-        ":credential",
-        ":types",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -263,7 +211,7 @@ cc_test(
     shard_count = 6,
     deps = [
         ":presence",
-        "//internal/platform/implementation/g3",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
