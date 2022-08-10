@@ -67,12 +67,12 @@ cc_library(
     name = "utils",
     srcs = [
         "utils.cc",
-        "webrtc_peer_id.cc",
+        "webrtc_peer_id_stub.cc",
     ],
     hdrs = [
         "lost_entity_tracker.h",
         "utils.h",
-        "webrtc_peer_id.h",
+        "webrtc_peer_id_stub.h",
         "webrtc_socket_stub.h",
     ],
     defines = ["NO_WEBRTC"],

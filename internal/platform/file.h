@@ -19,7 +19,6 @@
 #include <memory>
 #include <string>
 
-#include "connections/clients/windows/dll_config.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/input_file.h"

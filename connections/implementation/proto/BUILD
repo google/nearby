@@ -35,6 +35,9 @@ java_lite_proto_library(
 
 cc_proto_library(
     name = "offline_wire_formats_cc_proto",
+    visibility = [
+        "//third_party/nearby:__subpackages__",
+    ],
     deps = [
         ":offline_wire_formats_proto",
     ],

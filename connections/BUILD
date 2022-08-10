@@ -74,7 +74,6 @@ cc_library(
         "//internal/platform/implementation/ios:__subpackages__",
     ],
     deps = [
-        "//connections/clients/windows:types",
         "//internal/platform:base",
         "//internal/platform:types",
         "//internal/platform:util",

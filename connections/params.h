@@ -17,7 +17,6 @@
 
 #include <string>
 
-#include "connections/clients/windows/dll_config.h"
 #include "connections/listeners.h"
 #include "internal/platform/byte_array.h"
 

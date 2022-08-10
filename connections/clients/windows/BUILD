@@ -19,7 +19,7 @@ load(
     "expand_version_template.bzl",
     "expand_version_template",
 )
-load("//tools/build_defs/testing:bzl_library.bzl", "bzl_library")
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 package(default_visibility = ["//location/nearby:__subpackages__"])
 
@@ -133,6 +133,7 @@ lexan.cc_windows_dll(
         "core_adapter.h",
         "dart/core_adapter_dart.h",
         "discovery_options_w.h",
+        "dll_config.h",
         "listeners_w.h",
         "medium_selector_w.h",
         "options_base_w.h",

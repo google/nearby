@@ -320,7 +320,6 @@ cc_library(
         ":base",
         ":logging",
         ":util",
-        "//connections/clients/windows:types",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "@com_google_absl//absl/base:core_headers",
