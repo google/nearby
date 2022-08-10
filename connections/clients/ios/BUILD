@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# TODO(b/240046236): Rename this package as `objc`.
+
 load("//tools/build_defs/apple:ios.bzl", "ios_static_framework", "ios_unit_test")
 load("//tools/build_defs/swift:swift.bzl", "swift_library")
 
