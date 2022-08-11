@@ -20,8 +20,8 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "internal/crypto/encryptor.h"
-#include "internal/crypto/symmetric_key.h"
+#include "internal/crypto/aead.h"
+#include "internal/crypto/hkdf.h"
 #include "internal/platform/implementation/crypto.h"
 #include "presence/encryption.h"
 
@@ -80,19 +80,14 @@ TEST(CredentialManagerImpl, CreateOneCredentialSuccessfully) {
   EXPECT_FALSE(public_credential->encrypted_metadata_bytes().empty());
 
   // Decrypt the device metadata
-  crypto::Encryptor encryptor;
-  auto sym_key = crypto::SymmetricKey::Import(
-      crypto::SymmetricKey::AES, private_credential->metadata_encryption_key());
-  EXPECT_TRUE(sym_key.get() != nullptr);
-  auto iv =
-      Encryption::CustomizeBytesSize(private_credential->authenticity_key(),
-                                     CredentialManagerImpl::kAesGcmIVSize);
-  encryptor.Init(sym_key.get(), crypto::Encryptor::CBC, iv);
-  std::string decrypted_metadata;
-  EXPECT_TRUE(encryptor.Decrypt(public_credential->encrypted_metadata_bytes(),
-                                &decrypted_metadata));
+
+  auto decrypted_device_metadata = credential_manager.DecryptDeviceMetadata(
+      private_credential->metadata_encryption_key(),
+      public_credential->authenticity_key(),
+      public_credential->encrypted_metadata_bytes());
+
   EXPECT_EQ(private_credential->device_metadata().SerializeAsString(),
-            decrypted_metadata);
+            decrypted_device_metadata);
 }
 }  // namespace presence
 }  // namespace nearby

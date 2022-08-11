@@ -77,6 +77,12 @@ class CredentialManager {
       location::nearby::api::CredentialSelector credential_selector,
       location::nearby::api::GetPublicCredentialsResultCallback callback) = 0;
 
+  // Decrypts the device metadata from a public credential.
+  // Returns an empty string if decryption fails.
+  virtual std::string DecryptDeviceMetadata(
+      std::string device_metadata_encryption_key, std::string authenticity_key,
+      std::string device_metadata_string) = 0;
+
   // Decrypts Data Elements from an NP advertisement.
   // Returns an error if `metadata_key` is not associated with any known
   // credentials (identity).

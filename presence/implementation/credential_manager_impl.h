@@ -38,14 +38,17 @@ class CredentialManagerImpl : public CredentialManager {
   // AES only supports key sizes of 16, 24 or 32 bytes.
   static constexpr int kAuthenticityKeyByteSize = 16;
 
+  // Length of key in bytes required by AES-GCM encryption.
+  static constexpr size_t kNearbyPresenceNumBytesAesGcmKeySize = 32;
+
   // Modify this to 12 after use real AES.
-  static constexpr int kAesGcmIVSize = 16;
+  static constexpr int kAesGcmIVSize = 12;
 
   void GenerateCredentials(
       proto::DeviceMetadata device_metadata,
       std::vector<proto::IdentityType> identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
-      GenerateCredentialsCallback credentials_generated_cb);
+      GenerateCredentialsCallback credentials_generated_cb) override;
 
   void UpdateRemotePublicCredentials(
       std::string account_name,
@@ -62,6 +65,10 @@ class CredentialManagerImpl : public CredentialManager {
       location::nearby::api::CredentialSelector credential_selector,
       location::nearby::api::GetPublicCredentialsResultCallback callback)
       override {}
+
+  std::string DecryptDeviceMetadata(
+      std::string device_metadata_encryption_key, std::string authenticity_key,
+      std::string device_metadata_string) override;
 
   absl::StatusOr<std::string> DecryptDataElements(
       absl::string_view metadata_key, absl::string_view salt,
@@ -93,6 +100,14 @@ class CredentialManagerImpl : public CredentialManager {
   std::unique_ptr<proto::PublicCredential> CreatePublicCredential(
       proto::PrivateCredential* private_credential_ptr,
       std::vector<uint8_t>* public_key);
+
+  std::string EncryptDeviceMetadata(std::string device_metadata_encryption_key,
+                                    std::string authenticity_key,
+                                    std::string device_metadata_string);
+
+  // Extend the key from 16 bytes to 32 bytes.
+  std::vector<uint8_t> ExtendMetadataEncryptionKey(
+      std::string device_metadata_encryption_key);
 };
 
 }  // namespace presence

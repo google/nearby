@@ -19,9 +19,9 @@
 #include <utility>
 #include <vector>
 
+#include "internal/crypto/aead.h"
 #include "internal/crypto/ec_private_key.h"
-#include "internal/crypto/encryptor.h"
-#include "internal/crypto/symmetric_key.h"
+#include "internal/crypto/hkdf.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
@@ -151,22 +151,75 @@ CredentialManagerImpl::CreatePublicCredential(
       metadata_encryption_key_tag.AsStringView());
 
   // Encrypt the device metadata
-  crypto::Encryptor encryptor;
-  auto sym_key = crypto::SymmetricKey::Import(
-      crypto::SymmetricKey::AES, private_credential->metadata_encryption_key());
+  auto encrypted_meta_data = EncryptDeviceMetadata(
+      private_credential->metadata_encryption_key(),
+      private_credential->authenticity_key(),
+      private_credential->device_metadata().SerializeAsString());
 
-  auto iv = Encryption::CustomizeBytesSize(
-      private_credential->authenticity_key(), kAesGcmIVSize);
-  // It is GCM in the spec. Here we use CBC instead since GCM is not supported
-  // now.
-  if (!encryptor.Init(sym_key.get(), crypto::Encryptor::CBC, iv)) {
-    NEARBY_LOG(ERROR, "Fails to initialize the encryptor");
+  if (encrypted_meta_data.empty()) {
+    NEARBY_LOG(ERROR, "Fails to encrypt the device metadata.");
     return std::unique_ptr<PublicCredential>(nullptr);
   }
 
-  encryptor.Encrypt(private_credential->device_metadata().SerializeAsString(),
-                    public_credential_ptr->mutable_encrypted_metadata_bytes());
+  public_credential_ptr->set_encrypted_metadata_bytes(encrypted_meta_data);
   return public_credential_ptr;
+}
+
+std::string CredentialManagerImpl::DecryptDeviceMetadata(
+    std::string device_metadata_encryption_key, std::string authenticity_key,
+    std::string device_metadata_string) {
+  crypto::Aead aead(crypto::Aead::AeadAlgorithm::AES_256_GCM);
+
+  std::vector<uint8_t> derived_key =
+      ExtendMetadataEncryptionKey(device_metadata_encryption_key);
+  aead.Init(derived_key);
+
+  auto iv = Encryption::CustomizeBytesSize(
+      authenticity_key, CredentialManagerImpl::kAesGcmIVSize);
+  std::vector<uint8_t> iv_bytes(iv.begin(), iv.end());
+  std::vector<uint8_t> encrypted_device_metadata_bytes(
+      device_metadata_string.begin(), device_metadata_string.end());
+
+  auto result = aead.Open(encrypted_device_metadata_bytes,
+                          /*nonce=*/
+                          iv_bytes,
+                          /*additional_data=*/absl::Span<uint8_t>());
+
+  return std::string(result.value().begin(), result.value().end());
+}
+
+std::string CredentialManagerImpl::EncryptDeviceMetadata(
+    std::string device_metadata_encryption_key, std::string authenticity_key,
+    std::string device_metadata_string) {
+  crypto::Aead aead(crypto::Aead::AeadAlgorithm::AES_256_GCM);
+
+  std::vector<uint8_t> derived_key =
+      ExtendMetadataEncryptionKey(device_metadata_encryption_key);
+
+  aead.Init(derived_key);
+
+  auto iv = Encryption::CustomizeBytesSize(authenticity_key, kAesGcmIVSize);
+  std::vector<uint8_t> iv_bytes(iv.begin(), iv.end());
+
+  std::vector<uint8_t> device_metadata_bytes(device_metadata_string.begin(),
+                                             device_metadata_string.end());
+  device_metadata_bytes.resize(device_metadata_string.size());
+
+  auto encrypted = aead.Seal(device_metadata_bytes,
+                             /*nonce=*/
+                             iv_bytes,
+                             /*additional_data=*/absl::Span<uint8_t>());
+
+  return std::string(encrypted.begin(), encrypted.end());
+}
+
+std::vector<uint8_t> CredentialManagerImpl::ExtendMetadataEncryptionKey(
+    std::string device_metadata_encryption_key) {
+  return crypto::HkdfSha256(
+      std::vector<uint8_t>(device_metadata_encryption_key.begin(),
+                           device_metadata_encryption_key.end()),
+      /*salt=*/absl::Span<uint8_t>(),
+      /*info=*/absl::Span<uint8_t>(), kNearbyPresenceNumBytesAesGcmKeySize);
 }
 
 }  // namespace presence
