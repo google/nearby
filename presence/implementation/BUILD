@@ -63,6 +63,18 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "sensor_fusion",
+    hdrs = ["sensor_fusion.h"],
+    visibility = [
+        "//presence:__subpackages__",
+    ],
+    deps = [
+        "//presence:types",
+        "@com_google_absl//absl/types:optional",
+    ],
+)
+
 cc_test(
     name = "advertisement_decoder_test",
     size = "small",

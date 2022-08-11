@@ -39,7 +39,7 @@ static const float kTestMaxAngleDegrees = 20;
 static const float kTestConfidence = 0.1;
 
 static const RangeType kDefaultRangeType = RangeType::kRangeUnknown;
-static const RangeType kTestRangeType = RangeType::kClose;
+static const RangeType kTestRangeType = RangeType::kFar;
 
 static const DistanceBoundary kDefaultDistanceBoundary;
 static const DistanceBoundary kTestDistanceBoundary = {

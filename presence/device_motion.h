@@ -21,6 +21,7 @@ class DeviceMotion {
  public:
   enum class MotionType {
     kPointAndHold = 0,
+    kStationaryAndHold = 1,
   };
   DeviceMotion(MotionType motion_type = MotionType::kPointAndHold,
                float confidence = 0) noexcept;
