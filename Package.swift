@@ -366,11 +366,11 @@ let package = Package(
     .target(
       name: "NearbyCoreAdapter",
       dependencies: [
-        "google-toolbox-for-mac",
-        "smhasher",
-        "ukey2",
-        "protobuf",
-        .product(name: "abseil", package: "abseil"),
+        // "google-toolbox-for-mac",
+        // "smhasher",
+        // "ukey2",
+        // "protobuf",
+        // .product(name: "abseil", package: "abseil"),
       ],
       path: ".",
       exclude: [
