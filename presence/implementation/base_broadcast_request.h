@@ -18,7 +18,6 @@
 #include <stdint.h>
 
 #include <string>
-#include <variant>
 
 #include "absl/strings/string_view.h"
 #include "absl/types/variant.h"
@@ -48,12 +47,12 @@ struct BaseBroadcastRequest {
       std::string account_key_data;
       std::string battery_info;
     };
-    std::variant<Discoverable, Nondiscoverable> advertisement;
+    absl::variant<Discoverable, Nondiscoverable> advertisement;
   };
   struct BaseEddystone {
     std::string ephemeral_id;
   };
-  std::variant<BasePresence, BaseFastPair, BaseEddystone> variant;
+  absl::variant<BasePresence, BaseFastPair, BaseEddystone> variant;
   std::string salt;
   int8_t tx_power;
   unsigned int interval_ms;
