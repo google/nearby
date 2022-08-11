@@ -542,6 +542,25 @@ void AcceptConnectionDart(Core *pCore, const char *endpoint_id,
   finished.Await();
 }
 
+void RejectConnectionDart(Core *pCore, const char *endpoint_id,
+                          Dart_Port dart_port) {
+  if (!pCore) {
+    PostResult(dart_port, Status::Value::kError);
+    return;
+  }
+
+  port = dart_port;
+
+  ResultCallbackW callback;
+  SetResultCallback(callback, dart_port);
+
+  CountDownLatch finished(1);
+  adapter_finished = &finished;
+
+  RejectConnection(pCore, endpoint_id, callback);
+
+  finished.Await();
+}
 void DisconnectFromEndpointDart(Core *pCore, char *endpoint_id,
                                 Dart_Port dart_port) {
   if (!pCore) {

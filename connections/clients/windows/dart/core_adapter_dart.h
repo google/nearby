@@ -259,6 +259,10 @@ DLL_API void __stdcall AcceptConnectionDart(Core *pCore,
                                             PayloadListenerDart listener_dart,
                                             Dart_Port result_cb);
 
+DLL_API void __stdcall RejectConnectionDart(Core *pCore,
+                                            const char *endpoint_id,
+                                            Dart_Port result_cb);
+
 // Disconnects from a remote endpoint. {@link Payload}s can no longer be sent
 // to or received from the endpoint after this method is called.
 // endpoint_id - The identifier for the remote endpoint to disconnect from.
