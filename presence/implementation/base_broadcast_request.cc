@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "presence/broadcast_request.h"
+#include "presence/implementation/base_broadcast_request.h"
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/logging.h"
-#include "presence/encryption.h"
+#include "presence/implementation/encryption.h"
 #include "presence/presence_identity.h"
 
 namespace nearby {
@@ -44,10 +44,10 @@ BasePresenceRequestBuilder& BasePresenceRequestBuilder::SetAction(
   return *this;
 }
 
-BasePresenceRequestBuilder::operator BroadcastRequest() const {
-  BroadcastRequest::BasePresence presence{.identity = identity_,
-                                          .action = action_};
-  BroadcastRequest broadcast_request{
+BasePresenceRequestBuilder::operator BaseBroadcastRequest() const {
+  BaseBroadcastRequest::BasePresence presence{.identity = identity_,
+                                              .action = action_};
+  BaseBroadcastRequest broadcast_request{
       .variant = presence,
       .salt = salt_.size() == kSaltSize
                   ? salt_

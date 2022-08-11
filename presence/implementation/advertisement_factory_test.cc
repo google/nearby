@@ -22,8 +22,8 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
-#include "presence/action_factory.h"
 #include "presence/data_element.h"
+#include "presence/implementation/action_factory.h"
 #include "presence/implementation/credential_manager_impl.h"
 
 namespace nearby {
@@ -53,11 +53,11 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   data_elements.emplace_back(DataElement::kActionFieldType,
                              action::kActiveUnlockAction);
   Action action = ActionFactory::CreateAction(data_elements);
-  BroadcastRequest request =
-      BroadcastRequest(BasePresenceRequestBuilder(identity)
-                           .SetSalt(salt)
-                           .SetTxPower(5)
-                           .SetAction(action));
+  BaseBroadcastRequest request =
+      BaseBroadcastRequest(BasePresenceRequestBuilder(identity)
+                               .SetSalt(salt)
+                               .SetTxPower(5)
+                               .SetAction(action));
   EXPECT_CALL(credential_manager, GetBaseEncryptedMetadataKey(identity))
       .WillOnce(Return(absl::HexStringToBytes("1011121314151617181920212223")));
   EXPECT_CALL(
@@ -87,11 +87,11 @@ TEST(AdvertisementFactory, CreateAdvertisementFailsWhenCredentialManagerFails) {
   data_elements.emplace_back(DataElement::kActionFieldType,
                              action::kActiveUnlockAction);
   Action action = ActionFactory::CreateAction(data_elements);
-  BroadcastRequest request =
-      BroadcastRequest(BasePresenceRequestBuilder(identity)
-                           .SetSalt("AB")
-                           .SetTxPower(5)
-                           .SetAction(action));
+  BaseBroadcastRequest request =
+      BaseBroadcastRequest(BasePresenceRequestBuilder(identity)
+                               .SetSalt("AB")
+                               .SetTxPower(5)
+                               .SetAction(action));
   EXPECT_CALL(credential_manager, GetBaseEncryptedMetadataKey(identity))
       .WillOnce(Return(absl::UnimplementedError(
           "GetBaseEncryptedMetadataKey not implemented")));

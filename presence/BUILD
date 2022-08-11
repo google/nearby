@@ -68,46 +68,6 @@ cc_library(
 )
 
 cc_library(
-    name = "broadcast_request",
-    srcs = ["broadcast_request.cc"],
-    hdrs = ["broadcast_request.h"],
-    deps = [
-        ":credential",
-        ":encryption",
-        "//internal/platform:logging",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/types:variant",
-    ],
-)
-
-cc_library(
-    name = "encryption",
-    srcs = ["encryption.cc"],
-    hdrs = ["encryption.h"],
-    deps = [
-        "//internal/platform:logging",
-        "//third_party/tink/cc/subtle",
-        "@boringssl//:crypto",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
-    ],
-)
-
-cc_library(
-    name = "action_factory",
-    srcs = ["action_factory.cc"],
-    hdrs = ["action_factory.h"],
-    deps = [
-        ":broadcast_request",
-        ":types",
-        "//internal/platform:logging",
-        "@com_google_absl//absl/types:optional",
-    ],
-)
-
-cc_library(
     name = "credential",
     srcs = ["presence_identity.cc"],
     hdrs = [
@@ -115,47 +75,6 @@ cc_library(
     ],
     visibility = [
         "//third_party/nearby:__subpackages__",
-    ],
-)
-
-cc_test(
-    name = "broadcast_request_test",
-    size = "small",
-    srcs = ["broadcast_request_test.cc"],
-    deps = [
-        ":broadcast_request",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/types:variant",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "encryption_test",
-    size = "small",
-    srcs = ["encryption_test.cc"],
-    deps = [
-        ":encryption",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "action_factory_test",
-    size = "small",
-    srcs = ["action_factory_test.cc"],
-    deps = [
-        ":action_factory",
-        ":broadcast_request",
-        ":types",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest_main",
     ],
 )
 

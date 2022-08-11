@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_PRESENCE_ENCRYPTION_H_
-#define THIRD_PARTY_NEARBY_PRESENCE_ENCRYPTION_H_
+#ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_ENCRYPTION_H_
+#define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_ENCRYPTION_H_
 
 #include <string>
 
@@ -71,4 +71,4 @@ class Encryption {
 }  // namespace presence
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_PRESENCE_ENCRYPTION_H_
+#endif  // THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_ENCRYPTION_H_

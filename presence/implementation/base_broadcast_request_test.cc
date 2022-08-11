@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "presence/broadcast_request.h"
+#include "presence/implementation/base_broadcast_request.h"
 
 #include <variant>
 
@@ -29,11 +29,11 @@ TEST(BroadcastRequestTest, CreateBasePresenceRequest) {
   PresenceIdentity identity;
   constexpr int8_t kTxPower = -13;
 
-  BroadcastRequest request = BroadcastRequest(
+  BaseBroadcastRequest request = BaseBroadcastRequest(
       BasePresenceRequestBuilder(identity).SetTxPower(kTxPower));
 
-  EXPECT_TRUE(
-      std::holds_alternative<BroadcastRequest::BasePresence>(request.variant));
+  EXPECT_TRUE(std::holds_alternative<BaseBroadcastRequest::BasePresence>(
+      request.variant));
   EXPECT_EQ(request.salt.size(), 2);
   EXPECT_EQ(request.tx_power, kTxPower);
 }

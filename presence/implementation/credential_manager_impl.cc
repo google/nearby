@@ -25,7 +25,7 @@
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
-#include "presence/encryption.h"
+#include "presence/implementation/encryption.h"
 
 namespace nearby {
 namespace presence {

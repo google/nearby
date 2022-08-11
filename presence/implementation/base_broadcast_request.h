@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_PRESENCE_BROADCAST_REQUEST_H_
-#define THIRD_PARTY_NEARBY_PRESENCE_BROADCAST_REQUEST_H_
+#ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_BASE_BROADCAST_REQUEST_H_
+#define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_BASE_BROADCAST_REQUEST_H_
 
 #include <stdint.h>
 
@@ -35,7 +35,7 @@ struct Action {
 };
 
 /** Defines a Nearby Presence broadcast request */
-struct BroadcastRequest {
+struct BaseBroadcastRequest {
   struct BasePresence {
     PresenceIdentity identity;
     Action action;
@@ -68,7 +68,7 @@ class BasePresenceRequestBuilder {
   BasePresenceRequestBuilder& SetTxPower(int8_t tx_power);
   BasePresenceRequestBuilder& SetAction(const Action& action);
 
-  explicit operator BroadcastRequest() const;
+  explicit operator BaseBroadcastRequest() const;
 
  private:
   PresenceIdentity identity_;
@@ -80,4 +80,4 @@ class BasePresenceRequestBuilder {
 }  // namespace presence
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_PRESENCE_BROADCAST_REQUEST_H_
+#endif  // THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_BASE_BROADCAST_REQUEST_H_

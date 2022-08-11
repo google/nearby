@@ -71,9 +71,10 @@ uint8_t GetIdentityFieldType(PresenceIdentity::IdentityType type) {
 }
 
 absl::StatusOr<BleAdvertisementData> AdvertisementFactory::CreateAdvertisement(
-    const BroadcastRequest& request) const {
+    const BaseBroadcastRequest& request) const {
   BleAdvertisementData advert = {};
-  if (std::holds_alternative<BroadcastRequest::BasePresence>(request.variant)) {
+  if (std::holds_alternative<BaseBroadcastRequest::BasePresence>(
+          request.variant)) {
     return CreateBaseNpAdvertisement(request);
   }
   return advert;
@@ -81,9 +82,9 @@ absl::StatusOr<BleAdvertisementData> AdvertisementFactory::CreateAdvertisement(
 
 absl::StatusOr<BleAdvertisementData>
 AdvertisementFactory::CreateBaseNpAdvertisement(
-    const BroadcastRequest& request) const {
+    const BaseBroadcastRequest& request) const {
   const auto& presence =
-      std::get<BroadcastRequest::BasePresence>(request.variant);
+      std::get<BaseBroadcastRequest::BasePresence>(request.variant);
   BleAdvertisementData advert{};
   std::string payload;
   payload.push_back(kBaseVersion);

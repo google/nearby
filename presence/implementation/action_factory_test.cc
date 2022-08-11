@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "presence/action_factory.h"
+#include "presence/implementation/action_factory.h"
 
 #include <string>
 #include <vector>
@@ -21,8 +21,8 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/escaping.h"
-#include "presence/broadcast_request.h"
 #include "presence/data_element.h"
+#include "presence/implementation/base_broadcast_request.h"
 
 namespace nearby {
 namespace presence {

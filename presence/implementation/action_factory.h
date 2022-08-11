@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_PRESENCE_ACTION_FACTORY_H_
-#define THIRD_PARTY_NEARBY_PRESENCE_ACTION_FACTORY_H_
+#ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_ACTION_FACTORY_H_
+#define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_ACTION_FACTORY_H_
 
 #include <vector>
 
-#include "presence/broadcast_request.h"
 #include "presence/data_element.h"
+#include "presence/implementation/base_broadcast_request.h"
 
 namespace nearby {
 namespace presence {
@@ -42,4 +42,4 @@ class ActionFactory {
 }  // namespace presence
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_PRESENCE_ACTION_FACTORY_H_
+#endif  // THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_ACTION_FACTORY_H_

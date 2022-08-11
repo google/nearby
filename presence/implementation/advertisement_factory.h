@@ -20,7 +20,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "internal/platform/implementation/ble_v2.h"
-#include "presence/broadcast_request.h"
+#include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/credential_manager.h"
 #include "presence/presence_identity.h"
 
@@ -38,11 +38,11 @@ class AdvertisementFactory {
 
   /** Returns a BLE advertisement for given `request` */
   absl::StatusOr<BleAdvertisementData> CreateAdvertisement(
-      const BroadcastRequest& request) const;
+      const BaseBroadcastRequest& request) const;
 
  private:
   absl::StatusOr<BleAdvertisementData> CreateBaseNpAdvertisement(
-      const BroadcastRequest& request) const;
+      const BaseBroadcastRequest& request) const;
 
   CredentialManager& credential_manager_;
 };
