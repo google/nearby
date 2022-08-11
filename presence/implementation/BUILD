@@ -48,6 +48,9 @@ cc_library(
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
+        "//internal/proto:credential_cc_proto",
+        "//presence:action_factory",
+        "//presence:broadcast_request",
         "//presence:credential",
         "//presence:types",
         "//presence/implementation/mediums",
@@ -150,10 +153,12 @@ cc_test(
     deps = [
         ":internal",
         "//net/proto2/contrib/parse_proto:testing",
-        "//internal/crypto",
-        "//internal/platform/implementation:types",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
+        #"//internal/crypto",
+        "//internal/platform/implementation:types",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/proto:credential_cc_proto",
+        #"//presence:encryption",
     ],
 )

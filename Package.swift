@@ -514,6 +514,7 @@ let package = Package(
         "connections/implementation/offline_simulation_user.cc",
         "connections/implementation/simulation_user.cc",
         // proto
+        "internal/proto",
         "connections/implementation/proto/offline_wire_formats.proto",
         "connections/implementation/proto/offline_wire_formats_proto_config.asciipb",
         "internal/proto/analytics/connections_log.proto",

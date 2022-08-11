@@ -21,10 +21,13 @@
 #include "absl/types/variant.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/uuid.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
 
 namespace nearby {
 namespace presence {
+
+using ::nearby::internal::IdentityType;
 
 constexpr uint8_t kBaseVersion = 0;
 constexpr location::nearby::Uuid kServiceData(0xFCF1ULL << 32, 0);
@@ -56,15 +59,15 @@ absl::Status AppendDataElement(unsigned data_type,
   return absl::OkStatus();
 }
 
-uint8_t GetIdentityFieldType(PresenceIdentity::IdentityType type) {
+uint8_t GetIdentityFieldType(IdentityType type) {
   switch (type) {
-    case PresenceIdentity::IdentityType::kPrivate:
+    case IdentityType::IDENTITY_TYPE_PRIVATE:
       return DataElement::kPrivateIdentityFieldType;
-    case PresenceIdentity::IdentityType::kTrusted:
+    case IdentityType::IDENTITY_TYPE_TRUSTED:
       return DataElement::kTrustedIdentityFieldType;
-    case PresenceIdentity::IdentityType::kPublic:
+    case IdentityType::IDENTITY_TYPE_PUBLIC:
       return DataElement::kPublicIdentityFieldType;
-    case PresenceIdentity::IdentityType::kProvisioned:  // fall-through
+    case IdentityType::IDENTITY_TYPE_PROVISIONED:  // fall-through
     default:
       return DataElement::kProvisionedIdentityFieldType;
   }
@@ -101,8 +104,7 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
   if (!identity.ok()) {
     return identity.status();
   }
-  uint8_t identity_type =
-      GetIdentityFieldType(presence.identity.GetIdentityType());
+  uint8_t identity_type = GetIdentityFieldType(presence.identity);
   result = AppendDataElement(identity_type, *identity, payload);
   if (!result.ok()) {
     return result;

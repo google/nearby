@@ -19,6 +19,8 @@
 namespace nearby {
 namespace presence {
 
+using ::nearby::internal::IdentityType;
+
 ScanRequestBuilder& ScanRequestBuilder::SetAccountName(
     absl::string_view account_name) {
   request_.account_name = account_name;
@@ -36,13 +38,13 @@ ScanRequestBuilder& ScanRequestBuilder::SetScanType(ScanType scan_type) {
 }
 
 ScanRequestBuilder& ScanRequestBuilder::AddIdentityType(
-    PresenceIdentity::IdentityType identity_type) {
+    IdentityType identity_type) {
   request_.identity_types.push_back(identity_type);
   return *this;
 }
 
 ScanRequestBuilder& ScanRequestBuilder::SetIdentityTypes(
-    std::vector<PresenceIdentity::IdentityType> types) {
+    std::vector<IdentityType> types) {
   request_.identity_types = types;
   return *this;
 }

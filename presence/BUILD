@@ -61,9 +61,50 @@ cc_library(
         ":credential",
         "//net/proto2/util/public:differencer",
         "//internal/platform:base",
-        "//presence/proto:credential_cc_proto",
+        "//internal/proto:credential_cc_proto",
         "@com_google_absl//absl/strings",
         "@com_google_glog//:glog",
+    ],
+)
+
+cc_library(
+    name = "broadcast_request",
+    srcs = ["broadcast_request.cc"],
+    hdrs = ["broadcast_request.h"],
+    deps = [
+        ":credential",
+        ":encryption",
+        "//internal/platform:logging",
+        "//internal/proto:credential_cc_proto",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:variant",
+    ],
+)
+
+cc_library(
+    name = "encryption",
+    srcs = ["encryption.cc"],
+    hdrs = ["encryption.h"],
+    deps = [
+        "//internal/platform:logging",
+        "//third_party/tink/cc/subtle",
+        "@boringssl//:crypto",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+    ],
+)
+
+cc_library(
+    name = "action_factory",
+    srcs = ["action_factory.cc"],
+    hdrs = ["action_factory.h"],
+    deps = [
+        ":broadcast_request",
+        ":types",
+        "//internal/platform:logging",
+        "@com_google_absl//absl/types:optional",
     ],
 )
 
@@ -97,6 +138,7 @@ cc_test(
     deps = [
         ":credential",
         ":types",
+        "//internal/proto:credential_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
@@ -114,7 +156,7 @@ cc_test(
         ":credential",
         "//internal/platform:uuid",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//presence/proto:credential_cc_proto",
+        "//internal/proto:credential_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

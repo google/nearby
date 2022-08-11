@@ -31,6 +31,7 @@ namespace presence {
 
 namespace {
 
+using ::nearby::internal::IdentityType;
 using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::status::StatusIs;
@@ -38,9 +39,9 @@ using ::testing::status::StatusIs;
 class MockCredentialManager : public CredentialManagerImpl {
  public:
   MOCK_METHOD(absl::StatusOr<std::string>, GetBaseEncryptedMetadataKey,
-              (const PresenceIdentity& identity), (override));
+              (const IdentityType& identity), (override));
   MOCK_METHOD(absl::StatusOr<std::string>, EncryptDataElements,
-              (const PresenceIdentity& identity, absl::string_view salt,
+              (const IdentityType& identity, absl::string_view salt,
                absl::string_view data_elements),
               (override));
 };
@@ -48,7 +49,7 @@ class MockCredentialManager : public CredentialManagerImpl {
 TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   std::string salt = "AB";
   NiceMock<MockCredentialManager> credential_manager;
-  PresenceIdentity identity;
+  IdentityType identity = IdentityType::IDENTITY_TYPE_PRIVATE;
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(DataElement::kActionFieldType,
                              action::kActiveUnlockAction);
@@ -82,7 +83,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
 
 TEST(AdvertisementFactory, CreateAdvertisementFailsWhenCredentialManagerFails) {
   NiceMock<MockCredentialManager> credential_manager;
-  PresenceIdentity identity;
+  IdentityType identity = internal::IDENTITY_TYPE_PRIVATE;
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(DataElement::kActionFieldType,
                              action::kActiveUnlockAction);

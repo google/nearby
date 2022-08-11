@@ -19,18 +19,19 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/power_mode.h"
-#include "presence/presence_identity.h"
 #include "presence/scan_request.h"
 
 namespace nearby {
 namespace presence {
 
+using ::nearby::internal::IdentityType;
+
 constexpr char kAccountName[] = "Google User";
 constexpr bool kUseBle = true;
 constexpr bool kOnlyScreenOnScan = true;
-const PresenceIdentity::IdentityType kIdentity =
-    PresenceIdentity::IdentityType::kPrivate;
+const IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PRIVATE;
 const ScanType kScanType = ScanType::kPresenceScan;
 const PowerMode kPowerMode = PowerMode::kLowLatency;
 
@@ -76,7 +77,7 @@ TEST(ScanRequestBuilderTest, TestAddIdentityType) {
 
 TEST(ScanRequestBuilderTest, TestSetIdentityTypes) {
   ScanRequestBuilder builder;
-  std::vector<PresenceIdentity::IdentityType> types = {kIdentity};
+  std::vector<IdentityType> types = {kIdentity};
   builder.SetIdentityTypes(types);
   ScanRequest sr = builder.Build();
   EXPECT_EQ(sr.identity_types.size(), 1);

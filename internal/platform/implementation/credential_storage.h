@@ -21,16 +21,16 @@
 #include <vector>
 
 #include "internal/platform/exception.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/presence_identity.h"
-#include "presence/proto/credential.pb.h"
 
 namespace location {
 namespace nearby {
 namespace api {
 
-using ::nearby::presence::PresenceIdentity;
-using ::nearby::presence::proto::PrivateCredential;
-using ::nearby::presence::proto::PublicCredential;
+using ::nearby::internal::IdentityType;
+using ::nearby::internal::PrivateCredential;
+using ::nearby::internal::PublicCredential;
 
 enum class CredentialOperationStatus {
   kFailed = 0,
@@ -39,7 +39,7 @@ enum class CredentialOperationStatus {
 
 struct CredentialSelector {
   std::string account_name;
-  PresenceIdentity::IdentityType identity_type;
+  IdentityType identity_type;
 };
 
 enum PublicCredentialType {

@@ -19,15 +19,17 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/uuid.h"
-#include "presence/proto/credential.pb.h"
+#include "internal/proto/credential.pb.h"
 
 namespace nearby {
 namespace presence {
 namespace {
-using ::nearby::presence::proto::PrivateCredential;
-using ::nearby::presence::proto::PublicCredential;
-using ::nearby::presence::proto::IdentityType::IDENTITY_TYPE_PROVISIONED;
-using ::nearby::presence::proto::IdentityType::IDENTITY_TYPE_PUBLIC;
+using ::nearby::internal::DeviceMetadata;
+using ::nearby::internal::PrivateCredential;
+using ::nearby::internal::PublicCredential;
+using ::nearby::internal::IdentityType::IDENTITY_TYPE_PROVISIONED;
+using ::nearby::internal::IdentityType::IDENTITY_TYPE_PUBLIC;
+
 using ::protobuf_matchers::EqualsProto;
 
 TEST(CredentialsTest, NoDefaultConstructor) {
@@ -61,7 +63,7 @@ TEST(CredentialsTest, CopyPrivateCredential) {
   auto salts = pc1.mutable_consumed_salts();
   salts->insert(std::pair<int32, bool>(15, true));
   pc1.mutable_device_metadata()->set_device_name("Android Phone");
-  pc1.mutable_device_metadata()->set_device_type(proto::DeviceMetadata::PHONE);
+  pc1.mutable_device_metadata()->set_device_type(DeviceMetadata::PHONE);
   PrivateCredential pc1_copy = {pc1};
   EXPECT_THAT(pc1, EqualsProto(pc1_copy));
 }

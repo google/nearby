@@ -32,8 +32,10 @@ namespace presence {
 namespace {
 using ::location::nearby::Base64Utils;
 using ::location::nearby::Crypto;
-using ::nearby::presence::proto::PrivateCredential;
-using ::nearby::presence::proto::PublicCredential;
+using ::nearby::internal::DeviceMetadata;
+using ::nearby::internal::IdentityType;
+using ::nearby::internal::PrivateCredential;
+using ::nearby::internal::PublicCredential;
 
 // Key to retrieve local device's Private/Public Key Credentials from key store.
 constexpr char kPairedKeyAliasPrefix[] = "nearby_presence_paired_key_alias_";
@@ -41,8 +43,7 @@ constexpr char kPairedKeyAliasPrefix[] = "nearby_presence_paired_key_alias_";
 }  // namespace
 
 void CredentialManagerImpl::GenerateCredentials(
-    proto::DeviceMetadata device_metadata,
-    std::vector<proto::IdentityType> identity_types,
+    DeviceMetadata device_metadata, std::vector<IdentityType> identity_types,
     int credential_life_cycle_days, int contiguous_copy_of_credentials,
     GenerateCredentialsCallback credentials_generated_cb) {
   std::vector<PublicCredential> public_credentials;
@@ -71,9 +72,10 @@ void CredentialManagerImpl::GenerateCredentials(
 }
 
 std::pair<std::unique_ptr<PrivateCredential>, std::unique_ptr<PublicCredential>>
-CredentialManagerImpl::CreatePrivateCredential(
-    proto::DeviceMetadata device_metadata, proto::IdentityType identity_type,
-    uint64_t start_time_ms, uint64_t end_time_ms) {
+CredentialManagerImpl::CreatePrivateCredential(DeviceMetadata device_metadata,
+                                               IdentityType identity_type,
+                                               uint64_t start_time_ms,
+                                               uint64_t end_time_ms) {
   auto private_credential_ptr = std::make_unique<PrivateCredential>();
   private_credential_ptr->set_start_time_millis(start_time_ms);
   private_credential_ptr->set_end_time_millis(end_time_ms);
@@ -127,10 +129,8 @@ CredentialManagerImpl::CreatePrivateCredential(
       std::move(private_credential_ptr), std::move(public_credential_ptr));
 }
 
-std::unique_ptr<proto::PublicCredential>
-CredentialManagerImpl::CreatePublicCredential(
-    proto::PrivateCredential* private_credential,
-    std::vector<uint8_t>* public_key) {
+std::unique_ptr<PublicCredential> CredentialManagerImpl::CreatePublicCredential(
+    PrivateCredential* private_credential, std::vector<uint8_t>* public_key) {
   auto public_credential_ptr = std::make_unique<PublicCredential>();
 
   public_credential_ptr->set_identity_type(private_credential->identity_type());

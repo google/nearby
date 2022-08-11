@@ -18,8 +18,8 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/power_mode.h"
-#include "presence/presence_identity.h"
 #include "presence/presence_zone.h"
 #include "presence/scan_request.h"
 
@@ -34,9 +34,9 @@ class ScanRequestBuilder {
   ScanRequestBuilder& SetPowerMode(PowerMode power_mode);
   ScanRequestBuilder& SetScanType(ScanType scan_type);
   ScanRequestBuilder& AddIdentityType(
-      PresenceIdentity::IdentityType identity_type);
+      nearby::internal::IdentityType identity_type);
   ScanRequestBuilder& SetIdentityTypes(
-      std::vector<PresenceIdentity::IdentityType> types);
+      std::vector<nearby::internal::IdentityType> types);
   ScanRequestBuilder& AddScanFilter(ScanFilter scan_filter);
   ScanRequestBuilder& SetScanFilters(std::vector<ScanFilter> filters);
   ScanRequestBuilder& SetUseBle(bool use_ble);

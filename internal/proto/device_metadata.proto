@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package nearby.presence.proto;
+package nearby.internal;
 
 // A proto to store the local device's metadata.
 message DeviceMetadata {

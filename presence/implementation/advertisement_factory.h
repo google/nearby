@@ -22,7 +22,6 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/credential_manager.h"
-#include "presence/presence_identity.h"
 
 namespace nearby {
 namespace presence {
