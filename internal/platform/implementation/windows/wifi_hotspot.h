@@ -271,7 +271,7 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
 
   WiFiDirectAdvertisementPublisher publisher_{nullptr};
   WiFiDirectConnectionListener listener_{nullptr};
-  WiFiDirectDevice wifi_direct_device_ {nullptr};
+  WiFiDirectDevice wifi_direct_device_{nullptr};
 
   fire_and_forget OnStatusChanged(
       WiFiDirectAdvertisementPublisher sender,
@@ -284,6 +284,7 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   winrt::event_token connection_requested_token_;
 
   WiFiAdapter wifi_adapter_{nullptr};
+  WiFiAvailableNetwork wifi_connected_network_{nullptr};
 
   // Gets error message from exception pointer
   std::string GetErrorMessage(std::exception_ptr eptr);

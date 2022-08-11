@@ -304,6 +304,16 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
   }
   wifi_adapter_ = adapters.GetAt(0);
 
+  // Retrieve the current connected network's profile
+  ConnectionProfile profile =
+      wifi_adapter_.NetworkAdapter().GetConnectedProfileAsync().get();
+  std::string ssid;
+
+  if (profile != nullptr && profile.IsWlanConnectionProfile()) {
+    ssid = winrt::to_string(
+        profile.WlanConnectionProfileDetails().GetConnectedSsid());
+  }
+
   // SoftAP is an abbreviation for "software enabled access point".
   WiFiAvailableNetwork nearby_softap{nullptr};
   NEARBY_LOGS(INFO) << "Scanning for Nearby Hotspot SSID: "
@@ -313,15 +323,21 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
   // almost guarantee to find the Hotspot
   wifi_adapter_.ScanAsync().get();
 
-  for (int i = 0; i < kMaxScans; i++) {
+    wifi_connected_network_ = nullptr;
+    for (int i = 0; i < kMaxScans; i++) {
     for (const auto& network :
          wifi_adapter_.NetworkReport().AvailableNetworks()) {
-      if (winrt::to_string(network.Ssid()) == hotspot_credentials_->GetSSID()) {
+      if (!wifi_connected_network_ && !ssid.empty() &&
+          (winrt::to_string(network.Ssid()) == ssid)) {
+        wifi_connected_network_ = network;
+        NEARBY_LOGS(INFO) << "Save the current connected network: " << ssid;
+      } else if (!nearby_softap && winrt::to_string(network.Ssid()) ==
+                                      hotspot_credentials_->GetSSID()) {
         NEARBY_LOGS(INFO) << "Found Nearby SSID: "
                           << winrt::to_string(network.Ssid());
         nearby_softap = network;
-        break;
       }
+      if (nearby_softap && wifi_connected_network_) break;
     }
     if (nearby_softap) break;
     NEARBY_LOGS(INFO) << "Scan ... ";
@@ -374,6 +390,25 @@ bool WifiHotspotMedium::InternalDisconnectWifiHotspot() {
 
     // Disconnect to the WiFi connection through the WiFi adapter.
     wifi_adapter_.Disconnect();
+    NEARBY_LOGS(INFO) << "Disconnected to SoftAP.";
+
+    if (wifi_connected_network_) {
+      auto connect_result = wifi_adapter_
+                                .ConnectAsync(wifi_connected_network_,
+                                              WiFiReconnectionKind::Automatic)
+                                .get();
+
+      if (connect_result == nullptr ||
+          connect_result.ConnectionStatus() != WiFiConnectionStatus::Success) {
+        NEARBY_LOGS(INFO)
+            << "Connecting to previous network failed with reason: "
+            << static_cast<int>(connect_result.ConnectionStatus());
+      } else {
+        NEARBY_LOGS(INFO) << "Restored the previous WIFI connection: "
+                          << winrt::to_string(wifi_connected_network_.Ssid());
+      }
+      wifi_connected_network_ = nullptr;
+    }
     wifi_adapter_ = nullptr;
 
     // Try to remove the WiFi profile
@@ -407,8 +442,6 @@ bool WifiHotspotMedium::InternalDisconnectWifiHotspot() {
           break;
       }
     }
-
-    NEARBY_LOGS(INFO) << "Disconnected to SoftAP.";
   }
 
   medium_status_ &= (~kMediumStatusConnected);
