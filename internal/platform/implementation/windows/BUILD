@@ -161,7 +161,7 @@ cc_library(
         "test_utils.h",
     ],
     visibility = [
-        "//connections/clients/windows:__subpackages__",
+        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
     ],
     deps = [
         "//internal/platform:base",
