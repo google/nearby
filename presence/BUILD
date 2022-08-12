@@ -61,7 +61,7 @@ cc_library(
         ":credential",
         "//net/proto2/util/public:differencer",
         "//internal/platform:base",
-        "//presence/proto:credential_cc_proto",
+        "//internal/proto:credential_cc_proto",
         "@com_google_absl//absl/strings",
         "@com_google_glog//:glog",
     ],
@@ -97,6 +97,7 @@ cc_test(
     deps = [
         ":credential",
         ":types",
+        "//internal/proto:credential_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
@@ -114,7 +115,7 @@ cc_test(
         ":credential",
         "//internal/platform:uuid",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//presence/proto:credential_cc_proto",
+        "//internal/proto:credential_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

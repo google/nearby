@@ -19,10 +19,9 @@
 #include <vector>
 
 #include "net/proto2/util/public/message_differencer.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
 #include "presence/power_mode.h"
-#include "presence/presence_identity.h"
-#include "presence/proto/credential.pb.h"
 
 using MD = proto2::util::MessageDifferencer;
 
@@ -64,7 +63,7 @@ struct LegacyPresenceScanFilter : public ScanFilter {
 
   // Android T needs clients to provide remote public credentials in scan
   // requests.
-  std::vector<proto::PublicCredential> remote_public_credentials;
+  std::vector<nearby::internal::PublicCredential> remote_public_credentials;
 
   // A list of presence actions for matching. Matching condition is met as
   // long as there’s one or more equal actions between Scan actions and
@@ -118,7 +117,7 @@ struct ScanRequest {
 
   // Used to specify which types of remote PublicCredential to use during the
   // scan. If empty, use all available types of remote PublicCredential.
-  std::vector<PresenceIdentity::IdentityType> identity_types;
+  std::vector<nearby::internal::IdentityType> identity_types;
 
   // For new Nearby SDK client (like chromeOs and Android U), use
   // PresenceScanFilter; for Android T, use LegacyPresenceScanFilter.

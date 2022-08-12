@@ -20,22 +20,24 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "internal/crypto/aead.h"
-#include "internal/crypto/hkdf.h"
 #include "internal/platform/implementation/crypto.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/implementation/encryption.h"
 
 namespace nearby {
 namespace presence {
 using ::location::nearby::Crypto;
 
-using ::nearby::presence::proto::IdentityType::IDENTITY_TYPE_PRIVATE;
+using ::nearby::internal::DeviceMetadata;
+using ::nearby::internal::PrivateCredential;
+using ::nearby::internal::PublicCredential;
+using ::nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE;
 using ::proto2::contrib::parse_proto::ParseTestProto;
 using ::protobuf_matchers::EqualsProto;
 
 // TODO(b/241926454): Make sure CredentialManager builds with Github.
 TEST(CredentialManagerImpl, CreateOneCredentialSuccessfully) {
-  proto::DeviceMetadata device_metadata = ParseTestProto(R"pb(
+  DeviceMetadata device_metadata = ParseTestProto(R"pb(
     stable_device_id: "test_device_id"
     ;
     account_name: "test_account";
@@ -50,8 +52,8 @@ TEST(CredentialManagerImpl, CreateOneCredentialSuccessfully) {
       device_metadata, IDENTITY_TYPE_PRIVATE, /* start_time_ms= */ 0,
       /* end_time_ms= */ 1000);
 
-  proto::PrivateCredential* private_credential = credentials.first.get();
-  proto::PublicCredential* public_credential = credentials.second.get();
+  PrivateCredential* private_credential = credentials.first.get();
+  PublicCredential* public_credential = credentials.second.get();
 
   // Verify the private credential.
   EXPECT_THAT(private_credential->device_metadata(),

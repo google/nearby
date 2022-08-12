@@ -24,7 +24,7 @@ namespace presence {
 namespace {
 
 TEST(BroadcastRequestTest, CreateBasePresenceRequest) {
-  PresenceIdentity identity;
+  nearby::internal::IdentityType identity;
   constexpr int8_t kTxPower = -13;
 
   BaseBroadcastRequest request = BaseBroadcastRequest(

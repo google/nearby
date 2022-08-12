@@ -21,7 +21,7 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/types/variant.h"
-#include "presence/presence_identity.h"
+#include "internal/proto/credential.pb.h"
 
 namespace nearby {
 namespace presence {
@@ -36,7 +36,7 @@ struct Action {
 /** Defines a Nearby Presence broadcast request */
 struct BaseBroadcastRequest {
   struct BasePresence {
-    PresenceIdentity identity;
+    nearby::internal::IdentityType identity;
     Action action;
   };
   struct BaseFastPair {
@@ -61,7 +61,8 @@ struct BaseBroadcastRequest {
 /** Builds a brodacast request variant with NP identity for BLE 4.2 */
 class BasePresenceRequestBuilder {
  public:
-  explicit BasePresenceRequestBuilder(const PresenceIdentity& identity)
+  explicit BasePresenceRequestBuilder(
+      const nearby::internal::IdentityType& identity)
       : identity_(identity) {}
   BasePresenceRequestBuilder& SetSalt(absl::string_view salt);
   BasePresenceRequestBuilder& SetTxPower(int8_t tx_power);
@@ -70,7 +71,7 @@ class BasePresenceRequestBuilder {
   explicit operator BaseBroadcastRequest() const;
 
  private:
-  PresenceIdentity identity_;
+  nearby::internal::IdentityType identity_;
   std::string salt_;
   int8_t tx_power_ = kUnspecifiedTxPower;
   Action action_;

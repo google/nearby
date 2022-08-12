@@ -22,15 +22,14 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/credential_storage.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/presence_identity.h"
-#include "presence/proto/credential.pb.h"
 
 namespace nearby {
 namespace presence {
-using ::nearby::presence::PresenceIdentity;
 
 struct GenerateCredentialsCallback {
-  std::function<void(std::vector<proto::PublicCredential>)>
+  std::function<void(std::vector<nearby::internal::PublicCredential>)>
       credentials_generated_cb;
 };
 
@@ -56,15 +55,15 @@ class CredentialManager {
   // The user’s own public credentials won’t be saved on local credential
   // storage.
   virtual void GenerateCredentials(
-      proto::DeviceMetadata device_metadata,
-      std::vector<proto::IdentityType> identity_types,
+      nearby::internal::DeviceMetadata device_metadata,
+      std::vector<nearby::internal::IdentityType> identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsCallback credentials_generated_cb) = 0;
 
   // Update remote public credentials.
   virtual void UpdateRemotePublicCredentials(
       std::string account_name,
-      std::vector<proto::PublicCredential> remote_public_creds,
+      std::vector<nearby::internal::PublicCredential> remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) = 0;
 
   // Used to fetch private creds when broadcasting.
@@ -93,12 +92,12 @@ class CredentialManager {
   // Returns encrypted metadata key associated with `identity` for Base NP
   // advertisement.
   virtual absl::StatusOr<std::string> GetBaseEncryptedMetadataKey(
-      const PresenceIdentity& identity) = 0;
+      const nearby::internal::IdentityType& identity) = 0;
 
   // Encrypts `data_elements` using certificate associated with `identity` and
   // `salt`.
   virtual absl::StatusOr<std::string> EncryptDataElements(
-      const PresenceIdentity& identity, absl::string_view salt,
+      const nearby::internal::IdentityType& identity, absl::string_view salt,
       absl::string_view data_elements) = 0;
 };
 

@@ -24,9 +24,9 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/credential_storage.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/implementation/credential_manager.h"
 #include "presence/presence_identity.h"
-#include "presence/proto/credential.pb.h"
 
 namespace nearby {
 namespace presence {
@@ -45,14 +45,14 @@ class CredentialManagerImpl : public CredentialManager {
   static constexpr int kAesGcmIVSize = 12;
 
   void GenerateCredentials(
-      proto::DeviceMetadata device_metadata,
-      std::vector<proto::IdentityType> identity_types,
+      nearby::internal::DeviceMetadata device_metadata,
+      std::vector<nearby::internal::IdentityType> identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsCallback credentials_generated_cb) override;
 
   void UpdateRemotePublicCredentials(
       std::string account_name,
-      std::vector<proto::PublicCredential> remote_public_creds,
+      std::vector<nearby::internal::PublicCredential> remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) override{};
 
   void GetPrivateCredentials(
@@ -77,13 +77,13 @@ class CredentialManagerImpl : public CredentialManager {
   }
 
   absl::StatusOr<std::string> GetBaseEncryptedMetadataKey(
-      const PresenceIdentity& identity) override {
+      const nearby::internal::IdentityType& identity) override {
     return absl::UnimplementedError(
         "GetBaseEncryptedMetadataKey unimplemented");
   }
 
   absl::StatusOr<std::string> EncryptDataElements(
-      const PresenceIdentity& identity, absl::string_view salt,
+      const nearby::internal::IdentityType& identity, absl::string_view salt,
       absl::string_view data_elements) override {
     return absl::UnimplementedError("EncryptDataElements unimplemented");
   }
@@ -91,14 +91,14 @@ class CredentialManagerImpl : public CredentialManager {
  private:
   FRIEND_TEST(CredentialManagerImpl, CreateOneCredentialSuccessfully);
 
-  std::pair<std::unique_ptr<proto::PrivateCredential>,
-            std::unique_ptr<proto::PublicCredential>>
-  CreatePrivateCredential(proto::DeviceMetadata device_metadata,
-                          proto::IdentityType identity_type,
+  std::pair<std::unique_ptr<nearby::internal::PrivateCredential>,
+            std::unique_ptr<nearby::internal::PublicCredential>>
+  CreatePrivateCredential(nearby::internal::DeviceMetadata device_metadata,
+                          nearby::internal::IdentityType identity_type,
                           uint64_t start_time_ms, uint64_t end_time_ms);
 
-  std::unique_ptr<proto::PublicCredential> CreatePublicCredential(
-      proto::PrivateCredential* private_credential_ptr,
+  std::unique_ptr<nearby::internal::PublicCredential> CreatePublicCredential(
+      nearby::internal::PrivateCredential* private_credential_ptr,
       std::vector<uint8_t>* public_key);
 
   std::string EncryptDeviceMetadata(std::string device_metadata_encryption_key,

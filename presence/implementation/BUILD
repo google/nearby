@@ -48,10 +48,10 @@ cc_library(
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
+        "//internal/proto:credential_cc_proto",
         "//presence:credential",
         "//presence:types",
         "//presence/implementation/mediums",
-        "//presence/proto:credential_cc_proto",
         "//third_party/tink/cc/subtle",
         "@boringssl//:crypto",
         "@com_google_absl//absl/status",
@@ -150,9 +150,9 @@ cc_test(
     deps = [
         ":internal",
         "//net/proto2/contrib/parse_proto:testing",
-        "//internal/crypto",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/proto:credential_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
