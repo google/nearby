@@ -46,12 +46,14 @@ class CredentialManagerImpl : public CredentialManager {
 
   void GenerateCredentials(
       nearby::internal::DeviceMetadata device_metadata,
+      std::string manager_app_id,
       std::vector<nearby::internal::IdentityType> identity_types,
-      int credential_life_cycle_days, int contiguous_copy_of_credentials,
+      int credential_life_cycle_days,
+      int contiguous_copy_of_credentials,
       GenerateCredentialsCallback credentials_generated_cb) override;
 
   void UpdateRemotePublicCredentials(
-      std::string account_name,
+      std::string manager_app_id, std::string account_name,
       std::vector<nearby::internal::PublicCredential> remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) override{};
 

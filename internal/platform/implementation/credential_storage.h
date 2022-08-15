@@ -39,6 +39,7 @@ enum class CredentialOperationStatus {
 };
 
 struct CredentialSelector {
+  std::string manager_app_id;
   std::string account_name;
   IdentityType identity_type;
 };
@@ -75,12 +76,12 @@ class CredentialStorage {
   // Skip the save/update if the provided vector is empty.
   // Another way is to break this into two APIs for save and update separately.
   virtual void SavePrivateCredentials(
-      std::string account_name,
+      std::string manager_app_id, std::string account_name,
       std::vector<PrivateCredential> private_credentials,
       SaveCredentialsResultCallback callback);
 
   virtual void SavePublicCredentials(
-      std::string account_name,
+      std::string manager_app_id, std::string account_name,
       std::vector<PublicCredential> public_credentials,
       PublicCredentialType public_credential_type,
       SaveCredentialsResultCallback callback);

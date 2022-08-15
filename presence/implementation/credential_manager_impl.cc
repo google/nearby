@@ -43,8 +43,9 @@ constexpr char kPairedKeyAliasPrefix[] = "nearby_presence_paired_key_alias_";
 }  // namespace
 
 void CredentialManagerImpl::GenerateCredentials(
-    DeviceMetadata device_metadata, std::vector<IdentityType> identity_types,
-    int credential_life_cycle_days, int contiguous_copy_of_credentials,
+    DeviceMetadata device_metadata, std::string manager_app_id,
+    std::vector<IdentityType> identity_types, int credential_life_cycle_days,
+    int contiguous_copy_of_credentials,
     GenerateCredentialsCallback credentials_generated_cb) {
   std::vector<PublicCredential> public_credentials;
   std::vector<PrivateCredential> private_credentials;
