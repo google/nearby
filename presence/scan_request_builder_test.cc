@@ -25,21 +25,25 @@
 
 namespace nearby {
 namespace presence {
+namespace {
 
 using ::nearby::internal::IdentityType;
 
 constexpr char kAccountName[] = "Google User";
 constexpr bool kUseBle = true;
 constexpr bool kOnlyScreenOnScan = true;
-constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PRIVATE;
-constexpr ScanType kScanType = ScanType::kPresenceScan;
-constexpr PowerMode kPowerMode = PowerMode::kLowLatency;
-
-std::vector<ScanFilter> MockFilters() {
-  const LegacyPresenceScanFilter legacyFilter{{.scan_type = kScanType}};
-  const PresenceScanFilter newFilter{{.scan_type = kScanType}};
-  std::vector<ScanFilter> filters = {legacyFilter, newFilter};
-  return filters;
+const IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PRIVATE;
+const ScanType kScanType = ScanType::kPresenceScan;
+const PowerMode powerMode = PowerMode::kLowLatency;
+DataElement CreateTestDataElement() {
+  return {DataElement::kTxPowerFieldType, "1"};
+}
+PresenceScanFilter CreateTestPresenceScanFilter() {
+  return {.scan_type = kScanType,
+          .extended_properties = {CreateTestDataElement()}};
+}
+LegacyPresenceScanFilter CreateTestLegacyPresenceScanFilter() {
+  return {.scan_type = kScanType};
 }
 
 TEST(ScanRequestBuilderTest, TestConstructor) {
@@ -55,9 +59,9 @@ TEST(ScanRequestBuilderTest, TestSetAccountName) {
 
 TEST(ScanRequestBuilderTest, TestSetPowerMode) {
   ScanRequestBuilder builder;
-  builder.SetPowerMode(kPowerMode);
+  builder.SetPowerMode(powerMode);
   ScanRequest sr = builder.Build();
-  EXPECT_EQ(sr.power_mode, kPowerMode);
+  EXPECT_EQ(sr.power_mode, powerMode);
 }
 
 TEST(ScanRequestBuilderTest, TestSetScanType) {
@@ -86,29 +90,55 @@ TEST(ScanRequestBuilderTest, TestSetIdentityTypes) {
 
 TEST(ScanRequestBuilderTest, TestAddScanFilter) {
   ScanRequestBuilder builder;
-  LegacyPresenceScanFilter legacyFilter = {};
-  legacyFilter.scan_type = kScanType;
-  builder.AddScanFilter(legacyFilter);
+  PresenceScanFilter presenceScanFilter = CreateTestPresenceScanFilter();
+  LegacyPresenceScanFilter legacyPresenceScanFilter =
+      CreateTestLegacyPresenceScanFilter();
+  builder.AddScanFilter(presenceScanFilter);
+  builder.AddScanFilter(legacyPresenceScanFilter);
   ScanRequest sr = builder.Build();
-  EXPECT_EQ(sr.scan_filters.size(), 1);
-  EXPECT_EQ(sr.scan_filters[0].scan_type, kScanType);
+  EXPECT_EQ(sr.scan_filters.size(), 2);
+  EXPECT_TRUE(absl::holds_alternative<PresenceScanFilter>(sr.scan_filters[0]));
+  EXPECT_NE(&absl::get<PresenceScanFilter>(sr.scan_filters[0]),
+            &presenceScanFilter);
+  EXPECT_EQ(absl::get<PresenceScanFilter>(sr.scan_filters[0]),
+            presenceScanFilter);
+  EXPECT_TRUE(
+      absl::holds_alternative<LegacyPresenceScanFilter>(sr.scan_filters[1]));
+  EXPECT_NE(&absl::get<LegacyPresenceScanFilter>(sr.scan_filters[1]),
+            &legacyPresenceScanFilter);
+  EXPECT_EQ(absl::get<LegacyPresenceScanFilter>(sr.scan_filters[1]),
+            legacyPresenceScanFilter);
 }
 
 TEST(ScanRequestBuilderTest, TestSetScanFilters) {
+  PresenceScanFilter presenceScanFilter = CreateTestPresenceScanFilter();
+  LegacyPresenceScanFilter legacyPresenceScanFilter =
+      CreateTestLegacyPresenceScanFilter();
+  std::vector<absl::variant<PresenceScanFilter, LegacyPresenceScanFilter>>
+      filterList = {presenceScanFilter, legacyPresenceScanFilter};
   ScanRequestBuilder builder;
-  std::vector<ScanFilter> filters = MockFilters();
-  builder.SetScanFilters(filters);
+  builder.SetScanFilters(filterList);
   ScanRequest sr = builder.Build();
   EXPECT_EQ(sr.scan_filters.size(), 2);
-  EXPECT_EQ(sr.scan_filters[0].scan_type, kScanType);
-  EXPECT_EQ(sr.scan_filters[1].scan_type, kScanType);
+  EXPECT_TRUE(absl::holds_alternative<PresenceScanFilter>(sr.scan_filters[0]));
+  EXPECT_NE(&absl::get<PresenceScanFilter>(sr.scan_filters[0]),
+            &presenceScanFilter);
+  EXPECT_EQ(absl::get<PresenceScanFilter>(sr.scan_filters[0]),
+            presenceScanFilter);
+  EXPECT_TRUE(
+      absl::holds_alternative<LegacyPresenceScanFilter>(sr.scan_filters[1]));
+  EXPECT_NE(&absl::get<LegacyPresenceScanFilter>(sr.scan_filters[1]),
+            &legacyPresenceScanFilter);
+  EXPECT_EQ(absl::get<LegacyPresenceScanFilter>(sr.scan_filters[1]),
+            legacyPresenceScanFilter);
 }
 
 TEST(ScanRequestBuilderTest, TestNotEqualScanFilter) {
-  std::vector<ScanFilter> filters = MockFilters();
   ScanRequestBuilder builderLegacy, builderModern;
-  ScanRequest legacy = builderLegacy.AddScanFilter(filters[0]).Build();
-  ScanRequest modern = builderModern.AddScanFilter(filters[1]).Build();
+  ScanRequest legacy =
+      builderLegacy.AddScanFilter(LegacyPresenceScanFilter{}).Build();
+  ScanRequest modern =
+      builderModern.AddScanFilter(PresenceScanFilter{}).Build();
   EXPECT_NE(legacy, modern);
 }
 
@@ -129,13 +159,13 @@ TEST(ScanRequestBuilderTest, TestSetOnlyScreenOnScan) {
 TEST(ScanRequestBuilderTest, TestChainCalls) {
   ScanRequestBuilder builder;
   ScanRequest sr = builder.SetAccountName(kAccountName)
-                       .SetPowerMode(kPowerMode)
+                       .SetPowerMode(powerMode)
                        .SetOnlyScreenOnScan(kOnlyScreenOnScan)
                        .SetUseBle(kUseBle)
                        .Build();
   EXPECT_EQ(sr.account_name, kAccountName);
   EXPECT_EQ(sr.scan_only_when_screen_on, kOnlyScreenOnScan);
-  EXPECT_EQ(sr.power_mode, kPowerMode);
+  EXPECT_EQ(sr.power_mode, powerMode);
   EXPECT_EQ(sr.use_ble, kUseBle);
 }
 
@@ -148,6 +178,6 @@ TEST(ScanRequestBuilderTest, TestCopy) {
   ScanRequest s2 = builder2.Build();
   EXPECT_EQ(s1, s2);
 }
-
+}  // namespace
 }  // namespace presence
 }  // namespace nearby

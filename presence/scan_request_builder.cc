@@ -11,10 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include "presence/scan_request_builder.h"
+
 #include <vector>
 
+#include "absl/types/variant.h"
+#include "presence/presence_identity.h"
 #include "presence/scan_request.h"
-#include "presence/scan_request_builder.h"
 
 namespace nearby {
 namespace presence {
@@ -49,13 +52,15 @@ ScanRequestBuilder& ScanRequestBuilder::SetIdentityTypes(
   return *this;
 }
 
-ScanRequestBuilder& ScanRequestBuilder::AddScanFilter(ScanFilter scan_filter) {
+ScanRequestBuilder& ScanRequestBuilder::AddScanFilter(
+    absl::variant<PresenceScanFilter, LegacyPresenceScanFilter> scan_filter) {
   request_.scan_filters.push_back(scan_filter);
   return *this;
 }
 
 ScanRequestBuilder& ScanRequestBuilder::SetScanFilters(
-    std::vector<ScanFilter> filters) {
+    std::vector<absl::variant<PresenceScanFilter, LegacyPresenceScanFilter>>
+        filters) {
   request_.scan_filters = filters;
   return *this;
 }
@@ -71,9 +76,7 @@ ScanRequestBuilder& ScanRequestBuilder::SetOnlyScreenOnScan(
   return *this;
 }
 
-ScanRequest ScanRequestBuilder::Build() {
-  return this->request_;
-}
+ScanRequest ScanRequestBuilder::Build() { return this->request_; }
 
 }  // namespace presence
 }  // namespace nearby

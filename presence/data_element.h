@@ -66,6 +66,7 @@ class DataElement {
   DataElement(uint16_t type, uint8_t value)
       : type_(type),
         value_(reinterpret_cast<const char*>(&value), sizeof(value)) {}
+  ~DataElement() = default;
 
   uint16_t GetType() const { return type_; }
   absl::string_view GetValue() const { return value_; }

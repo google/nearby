@@ -63,6 +63,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/proto:credential_cc_proto",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:variant",
         "@com_google_glog//:glog",
     ],
 )
@@ -99,6 +100,7 @@ cc_test(
         ":types",
         "//internal/proto:credential_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/types:variant",
         "@com_google_googletest//:gtest_main",
     ],
 )

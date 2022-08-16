@@ -37,8 +37,11 @@ class ScanRequestBuilder {
       nearby::internal::IdentityType identity_type);
   ScanRequestBuilder& SetIdentityTypes(
       std::vector<nearby::internal::IdentityType> types);
-  ScanRequestBuilder& AddScanFilter(ScanFilter scan_filter);
-  ScanRequestBuilder& SetScanFilters(std::vector<ScanFilter> filters);
+  ScanRequestBuilder& AddScanFilter(
+      absl::variant<PresenceScanFilter, LegacyPresenceScanFilter> scan_filter);
+  ScanRequestBuilder& SetScanFilters(
+      std::vector<absl::variant<PresenceScanFilter, LegacyPresenceScanFilter>>
+          scan_filters);
   ScanRequestBuilder& SetUseBle(bool use_ble);
   ScanRequestBuilder& SetOnlyScreenOnScan(bool screen_on_only_scan);
   ScanRequest Build();

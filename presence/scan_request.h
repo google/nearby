@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "net/proto2/util/public/message_differencer.h"
+#include "absl/types/variant.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
 #include "presence/power_mode.h"
@@ -39,16 +40,10 @@ enum class ScanType {
 
 /**
  * Filter for scanning a nearby presence device.
- */
-struct ScanFilter {
-  ScanType scan_type;
-};
-
-/**
- * Filter for scanning a nearby presence device.
  * Supports Android U and above.
  */
-struct PresenceScanFilter : public ScanFilter {
+struct PresenceScanFilter {
+  ScanType scan_type;
   // A bundle of extended properties for matching.
   std::vector<DataElement> extended_properties;
 };
@@ -57,7 +52,8 @@ struct PresenceScanFilter : public ScanFilter {
  * Used to support legacy Android T. Filter for scanning a nearby presence
  * device.
  */
-struct LegacyPresenceScanFilter : public ScanFilter {
+struct LegacyPresenceScanFilter {
+  ScanType scan_type;
   // Minimum path loss threshold of the received scan result.
   int path_loss_threshold;
 
@@ -77,33 +73,36 @@ struct LegacyPresenceScanFilter : public ScanFilter {
   std::vector<DataElement> extended_properties;
 };
 
-inline bool operator==(const ScanFilter& a, const ScanFilter& b) {
-  if (typeid(a) != typeid(b)) return false;
-  if (strcmp(typeid(a).name(), kPresenceScanFilterName) == 0) {
-    const PresenceScanFilter a_p = static_cast<const PresenceScanFilter&>(a);
-    const PresenceScanFilter b_p = static_cast<const PresenceScanFilter&>(b);
-    if (a_p.extended_properties != b_p.extended_properties) return false;
-  } else if (strcmp(typeid(a).name(), kLegacyPresenceScanFilterName) == 0) {
-    const LegacyPresenceScanFilter a_l =
-        static_cast<const LegacyPresenceScanFilter&>(a);
-    const LegacyPresenceScanFilter b_l =
-        static_cast<const LegacyPresenceScanFilter&>(b);
-    if (a_l.path_loss_threshold != b_l.path_loss_threshold ||
-        a_l.actions != b_l.actions ||
-        a_l.remote_public_credentials.size() !=
-            b_l.remote_public_credentials.size() ||
-        a_l.extended_properties != b_l.extended_properties)
-      return false;
-    for (int i = 0; i < a_l.remote_public_credentials.size(); ++i) {
-      if (!MD::Equivalent(a_l.remote_public_credentials[i],
-                        b_l.remote_public_credentials[i]))
-        return false;
-    }
-  }
-  return a.scan_type == b.scan_type;
+inline bool operator==(const PresenceScanFilter& a,
+                       const PresenceScanFilter& b) {
+  return a.scan_type == b.scan_type &&
+         a.extended_properties == b.extended_properties;
 }
 
-inline bool operator!=(const ScanFilter& a, const ScanFilter& b) {
+inline bool operator!=(const PresenceScanFilter& a,
+                       const PresenceScanFilter& b) {
+  return !(a == b);
+}
+
+inline bool operator==(const LegacyPresenceScanFilter& a,
+                       const LegacyPresenceScanFilter& b) {
+  if (a.scan_type != b.scan_type ||
+      a.path_loss_threshold != b.path_loss_threshold ||
+      a.actions != b.actions ||
+      a.remote_public_credentials.size() !=
+          b.remote_public_credentials.size() ||
+      a.extended_properties != b.extended_properties)
+    return false;
+  for (int i = 0; i < a.remote_public_credentials.size(); ++i) {
+    if (!MD::Equivalent(a.remote_public_credentials[i],
+                        b.remote_public_credentials[i]))
+      return false;
+  }
+  return true;
+}
+
+inline bool operator!=(const LegacyPresenceScanFilter& a,
+                       const LegacyPresenceScanFilter& b) {
   return !(a == b);
 }
 
@@ -121,7 +120,8 @@ struct ScanRequest {
 
   // For new Nearby SDK client (like chromeOs and Android U), use
   // PresenceScanFilter; for Android T, use LegacyPresenceScanFilter.
-  std::vector<ScanFilter> scan_filters;
+  std::vector<absl::variant<PresenceScanFilter, LegacyPresenceScanFilter> >
+      scan_filters;
 
   // Whether to use BLE in the scan.
   bool use_ble;
