@@ -14,28 +14,23 @@
 
 #include "internal/platform/credential_storage.h"
 
+#include <tuple>
+
 namespace location {
 namespace nearby {
 
 using ::nearby::internal::PrivateCredential;
 using ::nearby::internal::PublicCredential;
 
-void CredentialStorage::SavePrivateCredentials(
-    std::string manager_app_id, absl::string_view account_name,
+void CredentialStorage::SaveCredentials(
+    absl::string_view manager_app_id, absl::string_view account_name,
     const std::vector<PrivateCredential>& private_credentials,
-    api::SaveCredentialsResultCallback callback) {
-  return impl_->SavePrivateCredentials(manager_app_id, account_name,
-                                       private_credentials, callback);
-}
-
-void CredentialStorage::SavePublicCredentials(
-    std::string manager_app_id, absl::string_view account_name,
     const std::vector<PublicCredential>& public_credentials,
     api::PublicCredentialType public_credential_type,
     api::SaveCredentialsResultCallback callback) {
-  return impl_->SavePublicCredentials(manager_app_id, account_name,
-                                      public_credentials,
-                                      public_credential_type, callback);
+  return impl_->SaveCredentials(manager_app_id, account_name,
+                                private_credentials, public_credentials,
+                                public_credential_type, callback);
 }
 
 void CredentialStorage::GetPrivateCredentials(
@@ -50,6 +45,18 @@ void CredentialStorage::GetPublicCredentials(
     api::GetPublicCredentialsResultCallback callback) {
   return impl_->GetPublicCredentials(credential_selector,
                                      public_credential_type, callback);
+}
+
+std::vector<::nearby::internal::PrivateCredential>
+CredentialStorage::GetPrivateCredentialsForTesting(
+    const std::tuple<absl::string_view, absl::string_view>& key) {
+  return impl_->GetPrivateCredentialsForTesting(key);
+}
+std::vector<::nearby::internal::PublicCredential>
+CredentialStorage::GetPublicCredentialsForTesting(
+    const std::tuple<absl::string_view, absl::string_view,
+                     api::PublicCredentialType>& key) {
+  return impl_->GetPublicCredentialsForTesting(key);
 }
 
 }  // namespace nearby

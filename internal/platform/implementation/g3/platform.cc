@@ -44,13 +44,14 @@
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/bluetooth_classic.h"
 #include "internal/platform/implementation/g3/condition_variable.h"
+#include "internal/platform/implementation/g3/credential_storage_impl.h"
 #include "internal/platform/implementation/g3/log_message.h"
 #include "internal/platform/implementation/g3/multi_thread_executor.h"
 #include "internal/platform/implementation/g3/mutex.h"
 #include "internal/platform/implementation/g3/scheduled_executor.h"
 #include "internal/platform/implementation/g3/single_thread_executor.h"
-#include "internal/platform/implementation/g3/wifi_lan.h"
 #include "internal/platform/implementation/g3/wifi_hotspot.h"
+#include "internal/platform/implementation/g3/wifi_lan.h"
 #include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/medium_environment.h"
@@ -156,6 +157,11 @@ std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
 std::unique_ptr<api::ble_v2::BleMedium>
 ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter& adapter) {
   return std::make_unique<g3::BleV2Medium>(adapter);
+}
+
+std::unique_ptr<api::CredentialStorage>
+ImplementationPlatform::CreateCredentialStorage() {
+  return std::make_unique<g3::CredentialStorageImpl>();
 }
 
 std::unique_ptr<ServerSyncMedium>

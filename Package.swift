@@ -519,8 +519,9 @@ let package = Package(
         // This breaks the build, but seems to work fine without it?
         "internal/platform/medium_environment.cc",
         // This file breaks the build:
-        // TODO: compile the proto and upload it to github. Then remove this file from exclude list.
+        // TODO: compile the proto and upload it to github. Then remove these file from exclude list.
         "internal/platform/credential_storage.cc",
+        "internal/platform/credential_storage_test.cc",
       ],
       sources: [
         "compiled_proto",

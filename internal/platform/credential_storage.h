@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_CREDENTIAL_STORAGE_H_
-#define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_CREDENTIAL_STORAGE_H_
+#ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CREDENTIAL_STORAGE_H_
+#define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CREDENTIAL_STORAGE_H_
 
 #include <memory>
-#include <string>
+#include <tuple>
 #include <vector>
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/credential_storage.h"
+#include "internal/platform/implementation/platform.h"
 
 namespace location {
 namespace nearby {
@@ -30,27 +31,24 @@ namespace nearby {
  * It's a wrapper on top of implementation/credential_storage.h to providing
  * credential storage operations for Nearby logic layer to invoke.
  */
-class CredentialStorage final {
+class CredentialStorage {
  public:
-  CredentialStorage() = default;
+  explicit CredentialStorage()
+      : impl_(api::ImplementationPlatform::CreateCredentialStorage()) {}
   ~CredentialStorage() = default;
 
   // CredentialStorage class is movable but not copyable.
   CredentialStorage(CredentialStorage&& other) = default;
   CredentialStorage& operator=(CredentialStorage&& other) = default;
 
-  void SavePrivateCredentials(
-      std::string manager_app_id, absl::string_view account_name,
-      const std::vector<::nearby::internal::PrivateCredential>&
-          private_credentials,
-      api::SaveCredentialsResultCallback callback);
-
-  void SavePublicCredentials(
-      std::string manager_app_id, absl::string_view account_name,
-      const std::vector<::nearby::internal::PublicCredential>&
-          public_credentials,
-      api::PublicCredentialType public_credential_type,
-      api::SaveCredentialsResultCallback callback);
+  void SaveCredentials(absl::string_view manager_app_id,
+                       absl::string_view account_name,
+                       const std::vector<::nearby::internal::PrivateCredential>&
+                           private_credentials,
+                       const std::vector<::nearby::internal::PublicCredential>&
+                           public_credentials,
+                       api::PublicCredentialType public_credential_type,
+                       api::SaveCredentialsResultCallback callback);
 
   // Used to fetch private creds when broadcasting.
   void GetPrivateCredentials(const api::CredentialSelector& credential_selector,
@@ -61,6 +59,15 @@ class CredentialStorage final {
                             api::PublicCredentialType public_credential_type,
                             api::GetPublicCredentialsResultCallback callback);
 
+ protected:
+  std::vector<::nearby::internal::PrivateCredential>
+  GetPrivateCredentialsForTesting(
+      const std::tuple<absl::string_view, absl::string_view>& key);
+  std::vector<::nearby::internal::PublicCredential>
+  GetPublicCredentialsForTesting(
+      const std::tuple<absl::string_view, absl::string_view,
+                       api::PublicCredentialType>& key);
+
  private:
   std::unique_ptr<api::CredentialStorage> impl_;
 };
@@ -68,4 +75,4 @@ class CredentialStorage final {
 }  // namespace nearby
 }  // namespace location
 
-#endif  // THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_CREDENTIAL_STORAGE_H_
+#endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CREDENTIAL_STORAGE_H_
