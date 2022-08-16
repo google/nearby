@@ -17,7 +17,6 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/logging.h"
 #include "presence/implementation/encryption.h"
-#include "presence/presence_identity.h"
 
 namespace nearby {
 namespace presence {

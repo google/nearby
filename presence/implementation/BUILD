@@ -49,7 +49,6 @@ cc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
         "//internal/proto:credential_cc_proto",
-        "//presence:credential",
         "//presence:types",
         "//presence/implementation/mediums",
         "//third_party/tink/cc/subtle",

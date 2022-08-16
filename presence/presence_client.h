@@ -116,7 +116,7 @@ class PresenceClient {
    * should call {@linkStatus#startResolutionForResult} to get the users
    * consents/permissions before retrying the request.
    */
-  void StartBroadcast(const PresenceIdentity& identity,
+  void StartBroadcast(const ::nearby::internal::IdentityType& identity,
                       const std::vector<PresenceAction>& actions,
                       const BroadcastOptions& options, ResultCallback callback);
 
@@ -129,7 +129,7 @@ class PresenceClient {
    * should call {@link Status#startResolutionForResult} to get the users
    * consents/permissions before retrying the request.
    */
-  void UpdateBroadcastActions(const PresenceIdentity& identity,
+  void UpdateBroadcastActions(const ::nearby::internal::IdentityType& identity,
                               const std::vector<PresenceAction>& actions,
                               ResultCallback callback);
 
@@ -140,7 +140,8 @@ class PresenceClient {
    * <p>This should be invoked after the use case has been fulfilled and the
    * device no longer needs remote devices to know that it is nearby.
    */
-  void StopBroadcast(const PresenceIdentity& identity, ResultCallback callback);
+  void StopBroadcast(const ::nearby::internal::IdentityType& identity,
+                     ResultCallback callback);
 };
 
 }  // namespace presence

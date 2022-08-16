@@ -22,9 +22,10 @@ namespace nearby {
 namespace presence {
 namespace {
 
+using ::nearby::internal::IdentityType;
+
 const PresenceAction kTestAction = {1};
-const PresenceIdentity kTestIdentity = {
-    PresenceIdentity::IdentityType::kTrusted};
+const IdentityType kTestIdentity = {IdentityType::IDENTITY_TYPE_TRUSTED};
 
 TEST(DiscoveryFilterTest, DefaultConstructorWorks) {
   DiscoveryFilter filter;

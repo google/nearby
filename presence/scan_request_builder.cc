@@ -16,7 +16,6 @@
 #include <vector>
 
 #include "absl/types/variant.h"
-#include "presence/presence_identity.h"
 #include "presence/scan_request.h"
 
 namespace nearby {

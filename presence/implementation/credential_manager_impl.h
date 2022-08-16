@@ -26,7 +26,6 @@
 #include "internal/platform/credential_storage.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/implementation/credential_manager.h"
-#include "presence/presence_identity.h"
 
 namespace nearby {
 namespace presence {

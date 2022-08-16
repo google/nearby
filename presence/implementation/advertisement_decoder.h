@@ -23,7 +23,6 @@
 #include "presence/data_element.h"
 #include "presence/implementation/advertisement_factory.h"
 #include "presence/implementation/credential_manager.h"
-#include "presence/presence_identity.h"
 
 namespace nearby {
 namespace presence {

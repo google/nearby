@@ -19,6 +19,8 @@
 namespace nearby {
 namespace presence {
 
+using ::nearby::internal::IdentityType;
+
 void PresenceClient::StartDiscovery(const DiscoveryFilter& filter,
                                     const DiscoveryOptions& options,
                                     ResultCallback callback) {}
@@ -33,16 +35,16 @@ std::vector<PresenceDevice> PresenceClient::GetCachedDevices(
   return std::vector<PresenceDevice>{};
 }
 
-void PresenceClient::StartBroadcast(const PresenceIdentity& identity,
+void PresenceClient::StartBroadcast(const IdentityType& identity,
                                     const std::vector<PresenceAction>& actions,
                                     const BroadcastOptions& options,
                                     ResultCallback callback) {}
 
 void PresenceClient::UpdateBroadcastActions(
-    const PresenceIdentity& identity,
-    const std::vector<PresenceAction>& actions, ResultCallback callback) {}
+    const IdentityType& identity, const std::vector<PresenceAction>& actions,
+    ResultCallback callback) {}
 
-void PresenceClient::StopBroadcast(const PresenceIdentity& identity,
+void PresenceClient::StopBroadcast(const IdentityType& identity,
                                    ResultCallback callback) {}
 
 }  // namespace presence

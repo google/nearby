@@ -22,7 +22,6 @@
 
 #include "internal/platform/exception.h"
 #include "internal/proto/credential.pb.h"
-#include "presence/presence_identity.h"
 
 namespace location {
 namespace nearby {

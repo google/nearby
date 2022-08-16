@@ -58,24 +58,12 @@ cc_library(
         "status.h",
     ],
     deps = [
-        ":credential",
         "//net/proto2/util/public:differencer",
         "//internal/platform:base",
         "//internal/proto:credential_cc_proto",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:variant",
         "@com_google_glog//:glog",
-    ],
-)
-
-cc_library(
-    name = "credential",
-    srcs = ["presence_identity.cc"],
-    hdrs = [
-        "presence_identity.h",
-    ],
-    visibility = [
-        "//third_party/nearby:__subpackages__",
     ],
 )
 
@@ -96,7 +84,6 @@ cc_test(
     ],
     shard_count = 6,
     deps = [
-        ":credential",
         ":types",
         "//internal/proto:credential_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
@@ -114,7 +101,6 @@ cc_test(
     ],
     shard_count = 6,
     deps = [
-        ":credential",
         "//internal/platform:uuid",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",
