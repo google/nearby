@@ -42,8 +42,3 @@ cc_proto_library(
         ":offline_wire_formats_proto",
     ],
 )
-
-filegroup(
-    name = "offline_wire_formats_proto_config",
-    srcs = ["offline_wire_formats_proto_config.asciipb"],
-)

@@ -92,8 +92,3 @@ cc_proto_library(
         ":ble_frames_proto",
     ],
 )
-
-filegroup(
-    name = "ble_frames_portable_proto_config",
-    srcs = ["ble_frames_portable_proto_config.asciipb"],
-)

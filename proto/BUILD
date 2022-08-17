@@ -40,11 +40,6 @@ cc_proto_library(
     ],
 )
 
-filegroup(
-    name = "connections_enums_proto_config",
-    srcs = ["connections_enums_proto_config.asciipb"],
-)
-
 proto_library(
     name = "sharing_enums_proto",
     srcs = ["sharing_enums.proto"],
