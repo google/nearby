@@ -518,6 +518,9 @@ let package = Package(
         "connections/implementation/mediums/webrtc",
         // This breaks the build, but seems to work fine without it?
         "internal/platform/medium_environment.cc",
+        // This file breaks the build:
+        // TODO: compile the proto and upload it to github. Then remove this file from exclude list.
+        "internal/platform/credential_storage.cc",
       ],
       sources: [
         "compiled_proto",

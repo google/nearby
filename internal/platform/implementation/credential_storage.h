@@ -20,16 +20,13 @@
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/exception.h"
 #include "internal/proto/credential.pb.h"
 
 namespace location {
 namespace nearby {
 namespace api {
-
-using ::nearby::internal::IdentityType;
-using ::nearby::internal::PrivateCredential;
-using ::nearby::internal::PublicCredential;
 
 enum class CredentialOperationStatus {
   kUnknown = 0,
@@ -40,7 +37,7 @@ enum class CredentialOperationStatus {
 struct CredentialSelector {
   std::string manager_app_id;
   std::string account_name;
-  IdentityType identity_type;
+  ::nearby::internal::IdentityType identity_type;
 };
 
 enum PublicCredentialType {
@@ -53,12 +50,14 @@ struct SaveCredentialsResultCallback {
 };
 
 struct GetPrivateCredentialsResultCallback {
-  std::function<void(std::vector<PrivateCredential>)> credentials_fetched_cb;
+  std::function<void(std::vector<::nearby::internal::PrivateCredential>)>
+      credentials_fetched_cb;
   std::function<void(CredentialOperationStatus)> get_credentials_failed_cb;
 };
 
 struct GetPublicCredentialsResultCallback {
-  std::function<void(std::vector<PublicCredential>)> credentials_fetched_cb;
+  std::function<void(std::vector<::nearby::internal::PublicCredential>)>
+      credentials_fetched_cb;
   std::function<void(CredentialOperationStatus)> get_credentials_failed_cb;
 };
 
@@ -75,26 +74,28 @@ class CredentialStorage {
   // Skip the save/update if the provided vector is empty.
   // Another way is to break this into two APIs for save and update separately.
   virtual void SavePrivateCredentials(
-      std::string manager_app_id, std::string account_name,
-      std::vector<PrivateCredential> private_credentials,
-      SaveCredentialsResultCallback callback);
+      std::string manager_app_id, absl::string_view account_name,
+      const std::vector<::nearby::internal::PrivateCredential>&
+          private_credentials,
+      SaveCredentialsResultCallback callback) = 0;
 
   virtual void SavePublicCredentials(
-      std::string manager_app_id, std::string account_name,
-      std::vector<PublicCredential> public_credentials,
+      std::string manager_app_id, absl::string_view account_name,
+      const std::vector<::nearby::internal::PublicCredential>&
+          public_credentials,
       PublicCredentialType public_credential_type,
-      SaveCredentialsResultCallback callback);
+      SaveCredentialsResultCallback callback) = 0;
 
   // Used to fetch private creds when broadcasting.
   virtual void GetPrivateCredentials(
-      CredentialSelector credential_selector,
-      GetPrivateCredentialsResultCallback callback);
+      const CredentialSelector& credential_selector,
+      GetPrivateCredentialsResultCallback callback) = 0;
 
   // Used to fetch remote public creds when scanning.
   virtual void GetPublicCredentials(
-      CredentialSelector credential_selector,
+      const CredentialSelector& credential_selector,
       PublicCredentialType public_credential_type,
-      GetPublicCredentialsResultCallback callback);
+      GetPublicCredentialsResultCallback callback) = 0;
 };
 
 }  // namespace api
