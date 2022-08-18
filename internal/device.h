@@ -30,6 +30,8 @@ class NearbyDevice {
     kConnectionsDevice = 1,
     kPresenceDevice = 2,
   };
+  // Needed to instantiate PresenceDevice
+  NearbyDevice() = default;
   virtual ~NearbyDevice() = default;
   NearbyDevice(NearbyDevice&&) = default;
   NearbyDevice& operator=(NearbyDevice&&) = default;
@@ -37,7 +39,7 @@ class NearbyDevice {
   NearbyDevice& operator=(const NearbyDevice&) = delete;
   virtual absl::StatusOr<std::string> GetEndpointId() const = 0;
   virtual std::string GetEndpointInfo() const = 0;
-  virtual absl::Span<ConnectionInfo*> GetConnectionInfos() const = 0;
+  virtual absl::Span<ConnectionInfo*> GetConnectionInfos() = 0;
   virtual Type GetType() const { return Type::kUnknownDevice; }
 };
 

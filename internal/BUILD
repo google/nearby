@@ -11,5 +11,6 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:connection_info",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
     ],
 )

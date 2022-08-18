@@ -19,6 +19,7 @@ message DeviceMetadata {
   // The Bluetooth MAC address of the device which created the certificate.
   optional string bluetooth_mac_address = 5;
 
+  // LINT.IfChange
   /** The types of the device. */
   enum DeviceType {
     UNSPECIFIED = 0;
@@ -29,6 +30,7 @@ message DeviceMetadata {
     TV = 5;
     WATCH = 6;
   }
+  // LINT.ThenChange(//depot/google3/third_party/nearby/presence/presence_device.h)
 
   optional DeviceType device_type = 6;
 }

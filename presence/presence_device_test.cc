@@ -14,45 +14,108 @@
 
 #include "presence/presence_device.h"
 
+#include <string>
+
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 
 namespace nearby {
 namespace presence {
 namespace {
+
+using ::testing::status::StatusIs;
+
+constexpr char kDeviceName[] = "Sample Device";
+constexpr char kDeviceImageUrl[] =
+    "https://lh3.googleusercontent.com/a-/"
+    "AFdZucq1YCEyL_d7GHqPweYIfql-HdjSAwbn13tmAd32xdk=s288-p-rw-no";
 constexpr PresenceDevice::MotionType kDefaultMotionType =
     PresenceDevice::MotionType::kPointAndHold;
+constexpr absl::string_view kMacAddr = "\x4C\x8B\x1D\xCE\xBA\xD1";
 constexpr float kDefaultConfidence = 0;
 constexpr float kTestConfidence = 0.1;
-TEST(PresenceDeviceTest, DefaultConstructorWorks) {
-  PresenceDevice device;
-  EXPECT_EQ(device.GetMotionType(), kDefaultMotionType);
-  EXPECT_EQ(device.GetConfidence(), kDefaultConfidence);
+
+TEST(PresenceDeviceTest, TestNoInitCall) {
+  PresenceDevice pd(kDefaultMotionType, kTestConfidence, kDeviceName);
+  EXPECT_THAT(pd.GetEndpointId(),
+              StatusIs(absl::StatusCode::kFailedPrecondition));
 }
 
-TEST(PresenceDeviceTest, DefaultEquals) {
-  PresenceDevice device1;
-  PresenceDevice device2;
-  EXPECT_EQ(device1, device2);
+TEST(PresenceDeviceTest, TestHasPresenceId) {
+  PresenceDevice pd(kDefaultMotionType, kTestConfidence, kDeviceName);
+  // Init has not been called yet.
+  EXPECT_EQ(pd.GetPresenceId(), -1);
+  EXPECT_OK(pd.InitPresenceDevice());
+  EXPECT_NE(pd.GetPresenceId(), -1);
 }
 
-TEST(PresenceDeviceTest, ExplicitInitEquals) {
-  PresenceDevice device1 = {kDefaultMotionType, kTestConfidence};
-  PresenceDevice device2 = {kDefaultMotionType, kTestConfidence};
-  EXPECT_EQ(device1, device2);
+TEST(PresenceDeviceTest, TestHasDiscoveryTime) {
+    PresenceDevice pd(kDefaultMotionType, kTestConfidence, kDeviceName);
+  // Init has not been called yet.
+  EXPECT_EQ(pd.GetDiscoveryTimeMillis(), 0);
+  EXPECT_OK(pd.InitPresenceDevice());
+  EXPECT_NE(pd.GetDiscoveryTimeMillis(), 0);
 }
 
-TEST(PresenceDeviceTest, ExplicitInitNotEquals) {
-  PresenceDevice device1 = {kDefaultMotionType};
-  PresenceDevice device2 = {kDefaultMotionType, kTestConfidence};
-  EXPECT_NE(device1, device2);
+TEST(PresenceDeviceTest, TestRandomEndpointId) {
+  PresenceDevice pd1(kDefaultMotionType, kTestConfidence, kDeviceName),
+      pd2(kDefaultMotionType, kTestConfidence, kDeviceName);
+  EXPECT_OK(pd1.InitPresenceDevice());
+  EXPECT_OK(pd2.InitPresenceDevice());
+  EXPECT_NE(pd1.GetEndpointId().value(), pd2.GetEndpointId().value());
 }
 
-TEST(PresenceDeviceTest, CopyInitEquals) {
-  PresenceDevice device1 = {kDefaultMotionType, kTestConfidence};
-  PresenceDevice device2 = {device1};
-  EXPECT_EQ(device1, device2);
+TEST(PresenceDeviceTest, TestBadEndpointId) {
+  PresenceDevice pd(kDefaultMotionType, kTestConfidence, kDeviceName, "ABCDEFG",
+                    "", PresenceDevice::PresenceDeviceType::kDisplay,
+                    kDeviceImageUrl,
+                    1662051266736 /* September 1, 2022 at 12:54pm EST */,
+                    ByteArray(std::string(kMacAddr)));
+  EXPECT_OK(pd.InitPresenceDevice());
+  EXPECT_NE(pd.GetEndpointId().value(), "ABCDEFG");
+}
+
+TEST(PresenceDeviceTest, TestCustomDeviceName) {
+  PresenceDevice pd(kDefaultMotionType, kTestConfidence, kDeviceName);
+  EXPECT_OK(pd.InitPresenceDevice());
+  EXPECT_EQ(pd.GetDeviceName().value(), kDeviceName);
+}
+
+TEST(PresenceDeviceTest, TestSetDeviceType) {
+  PresenceDevice pd(kDefaultMotionType, kTestConfidence, kDeviceName);
+  EXPECT_OK(pd.InitPresenceDevice());
+  pd.SetPresenceDeviceType(PresenceDevice::PresenceDeviceType::kDisplay);
+  EXPECT_EQ(pd.GetPresenceDeviceType().value(),
+            PresenceDevice::PresenceDeviceType::kDisplay);
+}
+
+TEST(PresenceDeviceTest, TestDeviceImageUrl) {
+  PresenceDevice pd(kDefaultMotionType, kTestConfidence, kDeviceName);
+  EXPECT_OK(pd.InitPresenceDevice());
+  pd.SetDeviceProfileUrl(kDeviceImageUrl);
+  EXPECT_EQ(pd.GetDeviceProfileUrl(), kDeviceImageUrl);
+}
+
+TEST(PresenceDeviceTest, TestPresenceType) {
+  PresenceDevice pd(kDefaultMotionType, kTestConfidence, kDeviceName);
+  EXPECT_OK(pd.InitPresenceDevice());
+  EXPECT_EQ(pd.GetType(), NearbyDevice::Type::kPresenceDevice);
+}
+
+TEST(PresenceDeviceTest, TestFullConstructor) {
+  PresenceDevice pd(kDefaultMotionType, kTestConfidence, kDeviceName, "ABCD",
+                    "", PresenceDevice::PresenceDeviceType::kDisplay,
+                    kDeviceImageUrl,
+                    1662051266736 /* September 1, 2022 at 12:54pm EST */,
+                    ByteArray(std::string(kMacAddr)));
+  EXPECT_OK(pd.InitPresenceDevice());
+  EXPECT_EQ(pd.GetEndpointId().value().size(), kEndpointIdLength);
+  EXPECT_EQ(pd.GetEndpointId().value(), "ABCD");
+  EXPECT_EQ(pd.GetDeviceName().value(), kDeviceName);
+  EXPECT_EQ(pd.GetDeviceProfileUrl(), kDeviceImageUrl);
+  EXPECT_EQ(pd.GetConnectionInfos().size(), 1);
 }
 
 }  // namespace

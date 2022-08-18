@@ -25,9 +25,33 @@ cc_library(
         "presence_service.h",
     ],
     deps = [
+        ":presence_device",
         ":types",
+        "//internal:device",
         "//presence/implementation:internal",  # build_cleaner: keep
         "@com_google_absl//absl/functional:any_invocable",
+    ],
+)
+
+cc_library(
+    name = "presence_device",
+    srcs = [
+        "presence_device.cc",
+    ],
+    hdrs = ["presence_device.h"],
+    deps = [
+        ":types",
+        "//internal:device",
+        "//internal/platform:base",
+        "//internal/platform:connection_info",
+        "//internal/platform:logging",
+        "//internal/platform/implementation:types",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/random:distributions",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
     ],
 )
 
@@ -37,7 +61,6 @@ cc_library(
         "device_motion.cc",
         "discovery_filter.cc",
         "presence_action.cc",
-        "presence_device.cc",
         "presence_zone.cc",
         "scan_request_builder.cc",
     ],
@@ -51,7 +74,6 @@ cc_library(
         "listeners.h",
         "power_mode.h",
         "presence_action.h",
-        "presence_device.h",
         "presence_zone.h",
         "scan_request.h",
         "scan_request_builder.h",
@@ -76,7 +98,6 @@ cc_test(
         "discovery_filter_test.cc",
         "discovery_options_test.cc",
         "presence_action_test.cc",
-        "presence_device_test.cc",
         "presence_identity_test.cc",
         "presence_zone_test.cc",
         "scan_request_builder_test.cc",
@@ -122,6 +143,20 @@ cc_test(
         ":types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "presence_device_test",
+    size = "small",
+    srcs = ["presence_device_test.cc"],
+    shard_count = 6,
+    deps = [
+        ":presence_device",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest_main",
     ],
 )
