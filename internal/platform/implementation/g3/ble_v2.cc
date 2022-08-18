@@ -209,15 +209,18 @@ BleV2Medium::~BleV2Medium() {
 }
 
 bool BleV2Medium::StartAdvertising(
-    const BleAdvertisementData& advertising_data,
+    int advertisement_id, const BleAdvertisementData& advertising_data,
     api::ble_v2::AdvertiseParameters advertise_parameters) {
-  NEARBY_LOGS(INFO)
-      << "G3 Ble StartAdvertising: advertising_data.is_extended_advertisement="
-      << advertising_data.is_extended_advertisement
-      << ", advertising_data.service_data size="
-      << advertising_data.service_data.size() << ", tx_power_level="
-      << TxPowerLevelToName(advertise_parameters.tx_power_level)
-      << ", is_connectable=" << advertise_parameters.is_connectable;
+  NEARBY_LOGS(INFO) << "G3 Ble StartAdvertising: service_id="
+                    << advertisement_id
+                    << ", advertising_data.is_extended_advertisement="
+                    << advertising_data.is_extended_advertisement
+                    << ", advertising_data.service_data size="
+                    << advertising_data.service_data.size()
+                    << ", tx_power_level="
+                    << TxPowerLevelToName(advertise_parameters.tx_power_level)
+                    << ", is_connectable="
+                    << advertise_parameters.is_connectable;
   if (advertising_data.is_extended_advertisement &&
       !is_support_extended_advertisement_) {
     NEARBY_LOGS(INFO)
@@ -226,15 +229,33 @@ bool BleV2Medium::StartAdvertising(
   }
 
   absl::MutexLock lock(&mutex_);
+
+  if (advertisement_ids_.contains(advertisement_id)) {
+    NEARBY_LOGS(INFO)
+        << "G3 Ble StartAdvertising: Can't start advertising because "
+           "advertisement_id="
+        << advertisement_id << ", has started already.";
+    return false;
+  }
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
       /*enabled=*/true, *this, adapter_->GetPeripheralV2(), advertising_data);
+  advertisement_ids_.insert(advertisement_id);
   return true;
 }
 
-bool BleV2Medium::StopAdvertising() {
-  NEARBY_LOGS(INFO) << "G3 Ble StopAdvertising";
+bool BleV2Medium::StopAdvertising(int advertisement_id) {
+  NEARBY_LOGS(INFO) << "G3 Ble StopAdvertising: advertisement_id="
+                    << advertisement_id;
   absl::MutexLock lock(&mutex_);
 
+  if (!advertisement_ids_.contains(advertisement_id)) {
+    NEARBY_LOGS(INFO)
+        << "G3 Ble StopAdvertising: Can't stop advertising because "
+           "we never started advertising for advertisement_key="
+        << advertisement_id;
+    return false;
+  }
+  advertisement_ids_.erase(advertisement_id);
   BleAdvertisementData empty_advertisement_data = {};
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
       /*enabled=*/false, *this, /*mutable=*/adapter_->GetPeripheralV2(),

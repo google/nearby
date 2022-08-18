@@ -156,10 +156,12 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   // Returns true once the Ble advertising has been initiated.
   bool StartAdvertising(
+      int advertisement_id,
       const api::ble_v2::BleAdvertisementData& advertising_data,
       api::ble_v2::AdvertiseParameters advertise_parameters) override
       ABSL_LOCKS_EXCLUDED(mutex_);
-  bool StopAdvertising() override ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StopAdvertising(int advertisement_id) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool StartScanning(const Uuid& service_uuid,
                      api::ble_v2::TxPowerLevel tx_power_level,
@@ -243,6 +245,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   absl::Mutex mutex_;
   BluetoothAdapter* adapter_;  // Our device adapter; read-only.
+  absl::flat_hash_set<int> advertisement_ids_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<std::string, BleV2ServerSocket*> server_sockets_
       ABSL_GUARDED_BY(mutex_);
   // TODO(edwinwu): Adds extended advertisement for testing.

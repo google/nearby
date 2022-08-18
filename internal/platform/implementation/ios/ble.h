@@ -118,9 +118,10 @@ class BleMedium : public api::ble_v2::BleMedium {
   explicit BleMedium(api::BluetoothAdapter &adapter);
 
   // api::BleMedium:
-  bool StartAdvertising(const api::ble_v2::BleAdvertisementData &advertising_data,
+  bool StartAdvertising(int advertisement_id,
+                        const api::ble_v2::BleAdvertisementData& advertising_data,
                         api::ble_v2::AdvertiseParameters advertise_set_parameters) override;
-  bool StopAdvertising() override;
+  bool StopAdvertising(int advertisement_id) override;
   bool StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
                      api::ble_v2::BleMedium::ScanCallback scan_callback) override;
   bool StopScanning() override;

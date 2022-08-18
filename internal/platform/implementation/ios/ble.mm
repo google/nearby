@@ -315,7 +315,7 @@ BleMedium::BleMedium(::location::nearby::api::BluetoothAdapter& adapter)
     : adapter_(static_cast<BluetoothAdapter*>(&adapter)) {}
 
 bool BleMedium::StartAdvertising(
-    const BleAdvertisementData& advertising_data,
+    int advertisement_id, const BleAdvertisementData& advertising_data,
     ::location::nearby::api::ble_v2::AdvertiseParameters advertise_set_parameters) {
   if (advertising_data.service_data.empty()) {
     return false;
@@ -353,7 +353,7 @@ bool BleMedium::StartAdvertising(
   return true;
 }
 
-bool BleMedium::StopAdvertising() {
+bool BleMedium::StopAdvertising(int advertisement_id) {
   peripheral_ = nil;
   return true;
 }

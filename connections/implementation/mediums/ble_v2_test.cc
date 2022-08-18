@@ -339,6 +339,25 @@ TEST_F(BleV2Test, CanStartScanning) {
   env_.Stop();
 }
 
+TEST_F(BleV2Test, CanStartStopMultipleAdvertisingWithDifferentServiceIds) {
+  env_.Start();
+  BluetoothRadio radio;
+  BleV2 ble(radio);
+  radio.Enable();
+  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+
+  EXPECT_TRUE(ble.StartAdvertising(std::string(kServiceIDA),
+                                   advertisement_bytes, PowerLevel::kHighPower,
+                                   /*is_fast_advertisement=*/false));
+  EXPECT_TRUE(ble.StartAdvertising(std::string(kServiceIDB),
+                                   advertisement_bytes, PowerLevel::kHighPower,
+                                   /*is_fast_advertisement=*/false));
+
+  EXPECT_TRUE(ble.StopAdvertising(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble.StopAdvertising(std::string(kServiceIDB)));
+  env_.Stop();
+}
+
 TEST_F(BleV2Test, CanStartStopMultipleScanningWithDifferentServiceIds) {
   env_.Start();
   BluetoothRadio radio;

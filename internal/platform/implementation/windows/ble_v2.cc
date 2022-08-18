@@ -92,7 +92,8 @@ BleV2Medium::BleV2Medium(api::BluetoothAdapter& adapter)
 BleV2Medium::~BleV2Medium() {}
 
 // advertisement packet and populate accordingly
-bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
+bool BleV2Medium::StartAdvertising(int advertisement_id,
+                                   const BleAdvertisementData& advertising_data,
                                    AdvertiseParameters advertising_parameters) {
   NEARBY_LOGS(INFO)
       << "Windows Ble StartAdvertising:, advertising_data.service_data size="
@@ -157,7 +158,7 @@ bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
   return true;
 }
 
-bool BleV2Medium::StopAdvertising() {
+bool BleV2Medium::StopAdvertising(int advertisement_id) {
   NEARBY_LOGS(INFO) << "Windows Ble StopAdvertising";
   absl::MutexLock lock(&mutex_);
   publisher_stopped_callback_ = [this]() {

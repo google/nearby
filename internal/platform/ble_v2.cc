@@ -31,12 +31,15 @@ using ::location::nearby::api::ble_v2::GattCharacteristic;
 using ::location::nearby::api::ble_v2::TxPowerLevel;
 
 bool BleV2Medium::StartAdvertising(
-    const BleAdvertisementData& advertising_data,
+    int advertisement_id, const BleAdvertisementData& advertising_data,
     api::ble_v2::AdvertiseParameters advertise_parameters) {
-  return impl_->StartAdvertising(advertising_data, advertise_parameters);
+  return impl_->StartAdvertising(advertisement_id, advertising_data,
+                                 advertise_parameters);
 }
 
-bool BleV2Medium::StopAdvertising() { return impl_->StopAdvertising(); }
+bool BleV2Medium::StopAdvertising(int advertisement_id) {
+  return impl_->StopAdvertising(advertisement_id);
+}
 
 bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                                 TxPowerLevel tx_power_level,

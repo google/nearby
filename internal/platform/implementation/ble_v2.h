@@ -294,14 +294,20 @@ class BleMedium {
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeAdvertiser.html#startAdvertising(android.bluetooth.le.AdvertiseSettings,%20android.bluetooth.le.AdvertiseData,%20android.bluetooth.le.AdvertiseData,%20android.bluetooth.le.AdvertiseCallback)
   //
   // Starts BLE advertising and returns whether or not it was successful.
+  //
+  // advertisement_id is assigned randomly and uniquely for advertising. Clients
+  // should store it for StopAdvertising pair API.
   virtual bool StartAdvertising(
-      const BleAdvertisementData& advertising_data,
+      int advertisement_id, const BleAdvertisementData& advertising_data,
       AdvertiseParameters advertise_set_parameters) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeAdvertiser.html#stopAdvertising(android.bluetooth.le.AdvertiseCallback)
   //
   // Stops advertising.
-  virtual bool StopAdvertising() = 0;
+  //
+  // advertisement_id is dispatched to stop advertising, which is assigned in
+  // `StartAdvertising`.
+  virtual bool StopAdvertising(int advertisement_id) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/le/ScanCallback
   //

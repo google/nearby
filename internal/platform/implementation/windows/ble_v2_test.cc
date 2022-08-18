@@ -34,8 +34,9 @@ TEST(BleV2Medium, DISABLED_StartAdvertising) {
   api::ble_v2::BleAdvertisementData scan_response_data;
 
   EXPECT_TRUE(blev2_medium.StartAdvertising(
-      advertising_data, {.tx_power_level = api::ble_v2::TxPowerLevel::kHigh,
-                         .is_connectable = true}));
+      1, advertising_data,
+      {.tx_power_level = api::ble_v2::TxPowerLevel::kHigh,
+       .is_connectable = true}));
 }
 
 TEST(BleV2Medium, DISABLED_StopAdvertising) {
@@ -45,9 +46,10 @@ TEST(BleV2Medium, DISABLED_StopAdvertising) {
   api::ble_v2::BleAdvertisementData advertising_data;
 
   EXPECT_TRUE(blev2_medium.StartAdvertising(
-      advertising_data, {.tx_power_level = api::ble_v2::TxPowerLevel::kHigh,
-                         .is_connectable = true}));
-  EXPECT_TRUE(blev2_medium.StopAdvertising());
+      1, advertising_data,
+      {.tx_power_level = api::ble_v2::TxPowerLevel::kHigh,
+       .is_connectable = true}));
+  EXPECT_TRUE(blev2_medium.StopAdvertising(1));
 }
 
 TEST(BleV2Medium, DISABLED_StartScanning) {
