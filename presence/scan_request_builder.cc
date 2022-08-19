@@ -13,8 +13,10 @@
 // limitations under the License.
 #include "presence/scan_request_builder.h"
 
+#include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "absl/types/variant.h"
 #include "presence/scan_request.h"
 
@@ -25,7 +27,7 @@ using ::nearby::internal::IdentityType;
 
 ScanRequestBuilder& ScanRequestBuilder::SetAccountName(
     absl::string_view account_name) {
-  request_.account_name = account_name;
+  request_.account_name = std::string(account_name);
   return *this;
 }
 

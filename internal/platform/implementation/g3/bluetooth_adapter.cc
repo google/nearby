@@ -139,7 +139,7 @@ bool BluetoothAdapter::SetName(absl::string_view name,
   bool enabled;
   {
     absl::MutexLock lock(&mutex_);
-    name_ = name;
+    name_ = std::string(name);
     enabled = enabled_;
     mode = mode_;
   }

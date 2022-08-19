@@ -111,7 +111,7 @@ AdvertisementDecoder::DecodeAdvertisement(absl::string_view advertisement) {
       return elem.status();
     }
     if (elem->GetType() == DataElement::kSaltFieldType) {
-      salt = elem->GetValue();
+      salt = std::string(elem->GetValue());
     }
     bool need_decryption =
         IsIdentity(elem->GetType()) && !elem->GetValue().empty();

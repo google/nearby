@@ -14,6 +14,8 @@
 
 #include "presence/implementation/base_broadcast_request.h"
 
+#include <string>
+
 #include "absl/strings/string_view.h"
 #include "internal/platform/logging.h"
 #include "presence/implementation/encryption.h"
@@ -27,7 +29,7 @@ BasePresenceRequestBuilder& BasePresenceRequestBuilder::SetSalt(
   if (salt.size() != kSaltSize) {
     NEARBY_LOG(WARNING, "Unsupported salt length: %d", salt.size());
   } else {
-    salt_ = salt;
+    salt_ = std::string(salt);
   }
   return *this;
 }

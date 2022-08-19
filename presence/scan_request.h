@@ -18,13 +18,10 @@
 #include <string>
 #include <vector>
 
-#include "net/proto2/util/public/message_differencer.h"
 #include "absl/types/variant.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
 #include "presence/power_mode.h"
-
-using MD = proto2::util::MessageDifferencer;
 
 namespace nearby {
 namespace presence {
@@ -94,8 +91,8 @@ inline bool operator==(const LegacyPresenceScanFilter& a,
       a.extended_properties != b.extended_properties)
     return false;
   for (int i = 0; i < a.remote_public_credentials.size(); ++i) {
-    if (!MD::Equivalent(a.remote_public_credentials[i],
-                        b.remote_public_credentials[i]))
+    if (a.remote_public_credentials[i].SerializeAsString() !=
+                        b.remote_public_credentials[i].SerializeAsString())
       return false;
   }
   return true;
