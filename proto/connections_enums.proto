@@ -85,6 +85,7 @@ enum Medium {
 //     //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/Medium.java,
 //     //depot/google3/java/com/google/android/gms/nearby/internal/connection/api.proto,
 //     //depot/google3/third_party/nearby/connections/implementation/proto/offline_wire_formats.proto
+//     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
 // )
 
 // The medium technologies used during the sharing.
@@ -137,12 +138,16 @@ enum ConnectionAttemptResult {
   RESULT_CANCELLED = 3;
 }
 
+// LINT.IfChange
 // Whether this device is attempting an incoming or outgoing connection.
 enum ConnectionAttemptDirection {
   UNKNOWN_CONNECTION_ATTEMPT_DIRECTION = 0;
   INCOMING = 1;
   OUTGOING = 2;
 }
+// LINT.ThenChange(
+//     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
+// )
 
 // Whether this is an initial or upgrade connection attempt.
 enum ConnectionAttemptType {
@@ -213,6 +218,7 @@ enum Bandwidth {
   BANDWIDTH_6_GHZ = 3;
 }
 
+// LINT.IfChange
 // next_id: 19
 // Result of an upgrade attempt.
 enum BandwidthUpgradeResult {
@@ -266,7 +272,11 @@ enum BandwidthUpgradeResult {
   // The attempt was never made because a precondition check failed.
   ATTEMPT_SKIPPED = 18;
 }
+// LINT.ThenChange(
+//     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
+// )
 
+// LINT.IfChange
 // next_id: 35
 // The stage at which an error occurred.
 enum BandwidthUpgradeErrorStage {
@@ -355,6 +365,9 @@ enum BandwidthUpgradeErrorStage {
   // On the incoming side, listening for incoming WebRTC connections.
   WEB_RTC_LISTEN_INCOMING = 34;
 }
+// LINT.ThenChange(
+//     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
+// )
 
 // The device sources of the clearcut log.
 enum LogSource {
