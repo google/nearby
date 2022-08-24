@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "connections/clients/windows/dll_config.h"
+#include "connections/clients/windows/file_w.h"
 #include "connections/payload_type.h"
 #include "internal/platform/payload_id.h"
 
@@ -53,14 +54,14 @@ class DLL_API PayloadW {
   // Constructors for outgoing payloads.
   explicit PayloadW(const char* bytes, const size_t size);
 
-  explicit PayloadW(InputFile& file);
+  explicit PayloadW(InputFileW& file);
   explicit PayloadW(std::function<InputStream&()> stream);
 
   // Constructors for incoming payloads.
   PayloadW(PayloadId id, const char* bytes, const size_t size);
-  PayloadW(PayloadId id, InputFile file);
+  PayloadW(PayloadId id, InputFileW file);
   explicit PayloadW(const char* parent_folder, const char* file_name,
-                    InputFile file);
+                    InputFileW file);
 
   // TODO(jfcarroll): Convert std::function to function pointer
   PayloadW(PayloadId id, std::function<InputStream&()> stream);
@@ -71,7 +72,7 @@ class DLL_API PayloadW {
   // Returns InputStream* payload, if it has been defined, or nullptr.
   InputStream* AsStream();
   // Returns InputFile* payload, if it has been defined, or nullptr.
-  const InputFile* AsFile() const;
+  InputFile* AsFile() const;
 
   // Returns Payload unique ID.
   int64_t GetId() const;

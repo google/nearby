@@ -204,7 +204,7 @@ PayloadListenerW::PayloadListenerW(PayloadCB payloadCB,
         break;
       }
       case connections::PayloadType::kFile: {
-        InputFile file(std::move(*payload.AsFile()));
+        InputFileW file(std::move(payload.AsFile()));
         payloadW = PayloadW(payload.GetId(), std::move(file));
       } break;
 
@@ -213,7 +213,7 @@ PayloadListenerW::PayloadListenerW(PayloadCB payloadCB,
       //  payloadW = PayloadW(payload.AsStream());
       //}
       case connections::PayloadType::kStream: {
-        InputFile file(std::move(*payload.AsFile()));
+        InputFileW file(std::move(payload.AsFile()));
         payloadW = PayloadW(payload.GetId(), std::move(file));
       } break;
       case connections::PayloadType::kUnknown: {

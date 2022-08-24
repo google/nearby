@@ -13,6 +13,7 @@
 // limitations under the License.
 #include "connections/clients/windows/payload_w.h"
 
+#include "connections/clients/windows/file_w.h"
 #include "connections/payload.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/payload_id.h"
@@ -44,9 +45,9 @@ PayloadW::PayloadW(const char *bytes, const size_t bytes_size)
     : impl_(std::unique_ptr<connections::Payload, connections::PayloadDeleter>(
           new connections::Payload(ByteArray(bytes, bytes_size)))) {}
 
-PayloadW::PayloadW(InputFile &file)
+PayloadW::PayloadW(InputFileW &file)
     : impl_(std::unique_ptr<connections::Payload, connections::PayloadDeleter>(
-          new connections::Payload(std::move(file)))) {}
+          new connections::Payload(InputFile(std::move(*file.GetImpl()))))) {}
 
 // TODO(jfcarroll): Convert std::function to function pointer
 PayloadW::PayloadW(std::function<InputStream &()> stream)
@@ -58,15 +59,15 @@ PayloadW::PayloadW(PayloadId id, const char *bytes, const size_t bytes_size)
     : impl_(std::unique_ptr<connections::Payload, connections::PayloadDeleter>(
           new connections::Payload(id, ByteArray(bytes, bytes_size)))) {}
 
-PayloadW::PayloadW(PayloadId id, InputFile file)
+PayloadW::PayloadW(PayloadId id, InputFileW file)
     : impl_(std::unique_ptr<connections::Payload, connections::PayloadDeleter>(
-          new connections::Payload(id, std::move(file)))) {}
+          new connections::Payload(id, std::move(*file.GetImpl())))) {}
 
 PayloadW::PayloadW(const char *parent_folder, const char *file_name,
-                   InputFile file)
+                   InputFileW file)
     : impl_(std::unique_ptr<connections::Payload, connections::PayloadDeleter>(
           new connections::Payload(parent_folder, file_name,
-                                   std::move(file)))) {}
+                                   std::move(*file.GetImpl())))) {}
 
 PayloadW::PayloadW(PayloadId id, std::function<InputStream &()> stream)
     : impl_(std::unique_ptr<connections::Payload, connections::PayloadDeleter>(
@@ -100,7 +101,7 @@ bool PayloadW::AsBytes(const char *bytes, size_t &bytes_size) && {
 // Returns InputStream* payload, if it has been defined, or nullptr.
 InputStream *PayloadW::AsStream() { return impl_->AsStream(); }
 // Returns InputFile* payload, if it has been defined, or nullptr.
-const InputFile *PayloadW::AsFile() const { return impl_->AsFile(); }
+InputFile *PayloadW::AsFile() const { return impl_->AsFile(); }
 
 // Returns Payload unique ID.
 int64_t PayloadW::GetId() const { return impl_->GetId(); }

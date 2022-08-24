@@ -16,6 +16,8 @@
 
 namespace location {
 namespace nearby {
+void InputFileDeleter::operator()(nearby::InputFile* p) { delete p; }
+void OutputFileDeleter::operator()(nearby::OutputFile* p) { delete p; }
 
 InputFile::InputFile(PayloadId id, std::int64_t size)
     : impl_(Platform::CreateInputFile(id, size)) {}

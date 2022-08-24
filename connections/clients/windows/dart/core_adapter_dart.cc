@@ -22,7 +22,6 @@
 #include "connections/core.h"
 #include "connections/payload.h"
 #include "internal/platform/count_down_latch.h"
-#include "internal/platform/file.h"
 #include "internal/platform/logging.h"
 
 namespace location::nearby::windows {
@@ -609,7 +608,7 @@ void SendPayloadDart(Core *pCore, const char *endpoint_id,
       NEARBY_LOG(INFO, "File name: %s, size %d", payload_dart.data,
                  payload_dart.size);
       std::string file_name_str(payload_dart.data);
-      InputFile input_file(file_name_str, payload_dart.size);
+      InputFileW input_file(file_name_str, payload_dart.size);
       PayloadW payload(input_file);
 
       std::vector<const char *> c_string_array;
