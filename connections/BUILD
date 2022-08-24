@@ -54,6 +54,7 @@ cc_library(
     hdrs = [
         "advertising_options.h",
         "connection_options.h",
+        "device.h",
         "discovery_options.h",
         "listeners.h",
         "medium_selector.h",
@@ -80,7 +81,6 @@ cc_library(
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:variant",
-        "@com_google_glog//:glog",
     ],
 )
 

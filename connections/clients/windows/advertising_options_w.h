@@ -31,6 +31,11 @@ struct DLL_API AdvertisingOptionsW : public OptionsBaseW {
   bool is_out_of_band_connection = false;
   const char* fast_advertisement_service_uuid;
 
+  // The information about this device (eg. name, device type),
+  // to appear on the remote device.
+  // Defined by client/application.
+  const char* device_info;
+
   // Returns a copy and normalizes allowed mediums:
   // (1) If is_out_of_band_connection is true, verifies that there is only one
   //     medium allowed, defaulting to only Bluetooth if unspecified.

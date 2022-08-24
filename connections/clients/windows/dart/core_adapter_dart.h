@@ -58,6 +58,12 @@ struct AdvertisingOptionsDart {
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   int64_t is_out_of_band_connection = false;
   const char *fast_advertisement_service_uuid;
+
+  // The information about this device (eg. name, device type),
+  // to appear on the remote device.
+  // Defined by client/application.
+  const char *device_info;
+
   Mediums mediums;
   // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/advertising_options.dart)
 };

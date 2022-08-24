@@ -20,6 +20,7 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "connections/device.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/service_controller.h"
 #include "connections/implementation/service_controller_router.h"
@@ -239,6 +240,32 @@ class Core {
   std::string GetLocalEndpointId() { return client_.GetLocalEndpointId(); }
 
   std::string Dump();
+
+  //******************************* V2 *******************************
+  void RequestConnectionV2(const NearbyDevice& device,
+                           const ConnectionRequestInfo& info,
+                           ConnectionOptions& connection_options,
+                           ResultCallback callback);
+
+  void AcceptConnectionV2(const NearbyDevice& device,
+                          const PayloadListener& listener,
+                          ResultCallback callback);
+
+  void RejectConnectionV2(const NearbyDevice& device, ResultCallback callback);
+
+  // Span is being used here as we will not be modifying this block of memory.
+  // We also do not need to own this block of memory, so we can use Span.
+  // We are using NearbyDevice* so as to not lose attributes when using a
+  // vector-like structure of NearbyDevice, as object information is stripped if
+  // using NearbyDevice or NearbyDevice&.
+  void SendPayloadV2(absl::Span<const NearbyDevice*> devices,
+                     const Payload& payload, ResultCallback callback);
+
+  void DisconnectFromDeviceV2(const NearbyDevice& device,
+                              ResultCallback callback);
+
+  void InitiateBandwidthUpgradeV2(const NearbyDevice& device,
+                                  ResultCallback callback);
 
  private:
   ClientProxy client_;
