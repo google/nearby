@@ -59,6 +59,7 @@ enum class WifiBandType {
 struct WifiCapability {
   bool supports_5_ghz = false;
   bool supports_6_ghz = false;
+  bool support_wifi_direct = false;
 };
 
 // Native WiFi's information parameters

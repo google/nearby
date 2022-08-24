@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// #include <cstddef>
 #include "absl/strings/str_format.h"
 #include "internal/platform/implementation/windows/wifi.h"
 #include "internal/platform/implementation/windows/utils.h"
@@ -76,6 +77,7 @@ void WifiMedium::InitCapability() {
   }
   if (!p_intf_list) {
     NEARBY_LOGS(INFO) << "WlanEnumInterfaces failed with error: ";
+    WlanCloseHandle(client_handle, NULL);
     return;
   }
   wifi_interface_valid_ = true;
@@ -87,6 +89,7 @@ void WifiMedium::InitCapability() {
       NEARBY_LOGS(INFO) << "Get Capability failed";
       WlanFreeMemory(p_intf_list);
       p_intf_list = NULL;
+      WlanCloseHandle(client_handle, NULL);
       return;
     }
 
@@ -100,6 +103,7 @@ void WifiMedium::InitCapability() {
   p_intf_capability = NULL;
   WlanFreeMemory(p_intf_list);
   p_intf_list = NULL;
+  WlanCloseHandle(client_handle, NULL);
 }
 
 api::WifiInformation& WifiMedium::GetInformation() {
@@ -125,6 +129,7 @@ api::WifiInformation& WifiMedium::GetInformation() {
   }
   if (!p_intf_list) {
     NEARBY_LOGS(INFO) << "WlanEnumInterfaces failed with error: ";
+    WlanCloseHandle(client_handle, NULL);
     return wifi_information_;
   }
 
@@ -159,6 +164,7 @@ api::WifiInformation& WifiMedium::GetInformation() {
         NEARBY_LOGS(INFO) << "WlanQueryInterface error = " << result;
         WlanFreeMemory(p_intf_list);
         p_intf_list = NULL;
+        WlanCloseHandle(client_handle, NULL);
         return wifi_information_;
       }
 
@@ -188,6 +194,7 @@ api::WifiInformation& WifiMedium::GetInformation() {
   p_connect_info = NULL;
   WlanFreeMemory(p_intf_list);
   p_intf_list = NULL;
+  WlanCloseHandle(client_handle, NULL);
 
   wifi_information_.ip_address_dot_decimal = GetIpAddress();
   wifi_information_.ip_address_4_bytes = ipaddr_dotdecimal_to_4bytes_string(

@@ -38,10 +38,20 @@ WifiHotspotMedium::~WifiHotspotMedium() {
 }
 
 bool WifiHotspotMedium::IsInterfaceValid() const {
-  // Windows 10 starts to support WiFi direct feature, so don't need to check
-  // feature by OS due to targeting OS version is at leat Windows 10.
-  NEARBY_LOGS(ERROR) << "WiFi hotspot: valid interface found.";
-  return true;
+  HANDLE wifi_direct_handle = NULL;
+  DWORD negotiated_version = 0;
+  DWORD result = 0;
+
+  result =
+      WFDOpenHandle(WFD_API_VERSION, &negotiated_version, &wifi_direct_handle);
+  if (result == ERROR_SUCCESS) {
+    NEARBY_LOGS(INFO) << "WiFi can support Hotspot";
+    WFDCloseHandle(wifi_direct_handle);
+    return true;
+  }
+
+  NEARBY_LOGS(ERROR) << "WiFi can't support Hotspot";
+  return false;
 }
 
 std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(

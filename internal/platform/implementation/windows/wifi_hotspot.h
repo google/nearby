@@ -15,6 +15,10 @@
 #ifndef PLATFORM_IMPL_WINDOWS_WIFI_HOTSPOT_H_
 #define PLATFORM_IMPL_WINDOWS_WIFI_HOTSPOT_H_
 
+// Windows headers
+#include <windows.h>
+#include <wlanapi.h>
+
 // Standard C/C++ headers
 #include <functional>
 #include <optional>
