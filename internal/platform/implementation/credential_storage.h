@@ -16,12 +16,10 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_CREDENTIAL_STORAGE_H_
 
 #include <functional>
-#include <set>
 #include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "internal/platform/exception.h"
 #include "internal/proto/credential.pb.h"
 
 namespace location {
@@ -66,21 +64,16 @@ struct GetPublicCredentialsResultCallback {
  */
 class CredentialStorage {
  public:
-  CredentialStorage() = default;
   virtual ~CredentialStorage() = default;
   // Used for
   // 1. Save private creds after (re)generate credentials invoked by manager app
   // 2. Update remote public creds after manager app update the public creds.
   // Skip the save/update if the provided vector is empty.
   // Another way is to break this into two APIs for save and update separately.
-  virtual void SavePrivateCredentials(
-      std::string manager_app_id, absl::string_view account_name,
+  virtual void SaveCredentials(
+      absl::string_view manager_app_id, absl::string_view account_name,
       const std::vector<::nearby::internal::PrivateCredential>&
           private_credentials,
-      SaveCredentialsResultCallback callback) = 0;
-
-  virtual void SavePublicCredentials(
-      std::string manager_app_id, absl::string_view account_name,
       const std::vector<::nearby::internal::PublicCredential>&
           public_credentials,
       PublicCredentialType public_credential_type,

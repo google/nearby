@@ -471,6 +471,7 @@ let package = Package(
         "internal/platform/crypto_test.cc",
         "internal/platform/byte_array_test.cc",
         "internal/platform/bluetooth_utils_test.cc",
+        "internal/platform/credential_storage_test.cc",
         "internal/platform/single_thread_executor_test.cc",
         "internal/platform/scheduled_executor_test.cc",
         "internal/platform/count_down_latch_test.cc",
@@ -518,9 +519,6 @@ let package = Package(
         "connections/implementation/mediums/webrtc",
         // This breaks the build, but seems to work fine without it?
         "internal/platform/medium_environment.cc",
-        // This file breaks the build:
-        // TODO: compile the proto and upload it to github. Then remove this file from exclude list.
-        "internal/platform/credential_storage.cc",
       ],
       sources: [
         "compiled_proto",
