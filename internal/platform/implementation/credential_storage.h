@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "internal/proto/credential.pb.h"
+#include "internal/proto/credential.proto.h"
 
 namespace location {
 namespace nearby {

@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "internal/proto/credential.pb.h"
+#include "internal/proto/credential.proto.h"
 
 namespace location {
 namespace nearby {
