@@ -31,9 +31,7 @@ cc_library(
         "dll_config.h",
     ],
     visibility = [
-        "//location/nearby/cpp/sharing/implementation:__subpackages__",
         "//connections:__subpackages__",
-        "//connections/clients/windows:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
     ],
