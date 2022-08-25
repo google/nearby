@@ -540,6 +540,8 @@ void MediumEnvironment::UpdateBleV2MediumForAdvertising(
           BleV2MediumContext& remote_context = medium_info.second;
           // Do not send notification to the same medium.
           if (remote_medium == &medium) continue;
+          // Do not send notification to the medium that is not scannig.
+          if (!remote_context.scanning) continue;
           auto const it = context.advertisement_data.service_data.find(
               remote_context.scanning_service_uuid);
           if (it == context.advertisement_data.service_data.end()) continue;
@@ -576,6 +578,7 @@ void MediumEnvironment::UpdateBleV2MediumForScanning(
                           << ", medium=" << &medium
                           << ", medium_context=" << &context
                           << ", enabled=" << enabled;
+        context.scanning = enabled;
         if (enabled) {
           for (const auto& medium_info : ble_v2_mediums_) {
             const api::ble_v2::BleMedium* remote_medium = medium_info.first;
@@ -676,6 +679,28 @@ void MediumEnvironment::UnregisterBleV2Medium(api::ble_v2::BleMedium& medium) {
     if (item.empty()) return;
     NEARBY_LOGS(INFO) << "G3 Unregistered Ble medium";
   });
+}
+absl::optional<MediumEnvironment::BleV2MediumStatus>
+MediumEnvironment::GetBleV2MediumStatus(const api::ble_v2::BleMedium& medium) {
+  if (!enabled_) return absl::nullopt;
+
+  absl::optional<MediumEnvironment::BleV2MediumStatus> result;
+  CountDownLatch latch(1);
+
+  RunOnMediumEnvironmentThread([this, &medium, &latch, &result]() {
+    auto it = ble_v2_mediums_.find(&medium);
+    if (it == ble_v2_mediums_.end()) {
+      result = absl::nullopt;
+      latch.CountDown();
+      return;
+    }
+    BleV2MediumContext context = it->second;
+    result = BleV2MediumStatus{.is_advertising = context.advertising,
+                               .is_scanning = context.scanning};
+    latch.CountDown();
+  });
+  latch.Await();
+  return result;
 }
 
 #ifndef NO_WEBRTC

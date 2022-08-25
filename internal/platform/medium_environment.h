@@ -22,6 +22,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -72,6 +73,11 @@ class MediumEnvironment {
 #endif
   using WifiLanDiscoveredServiceCallback =
       api::WifiLanMedium::DiscoveredServiceCallback;
+
+  struct BleV2MediumStatus {
+    bool is_advertising;
+    bool is_scanning;
+  };
 
   MediumEnvironment(const MediumEnvironment&) = delete;
   MediumEnvironment& operator=(const MediumEnvironment&) = delete;
@@ -261,6 +267,11 @@ class MediumEnvironment {
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterBleV2Medium(api::ble_v2::BleMedium& mediumum);
 
+  // Collects the status for the given BleMedium. Mainly used in unit tests
+  // to verify if the BleMedum is in expected status after opeartions.
+  absl::optional<BleV2MediumStatus> GetBleV2MediumStatus(
+      const api::ble_v2::BleMedium& medium);
+
   // Adds medium-related info to allow for discovery/advertising to work.
   // This provides access to this medium from other mediums, when protocol
   // expects they should communicate.
@@ -338,6 +349,7 @@ class MediumEnvironment {
     api::ble_v2::BleAdvertisementData advertisement_data;
     Uuid scanning_service_uuid;
     bool advertising = false;
+    bool scanning = false;
   };
 
   struct WifiLanMediumContext {

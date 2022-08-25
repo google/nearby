@@ -268,9 +268,15 @@ TEST_F(BleV2MediumTest, CanStartFastScanningAndFastAdvertising) {
       advertising_data,
       {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
 
+  EXPECT_TRUE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
+  EXPECT_TRUE(
+      env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_advertising);
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_a.StopScanning());
   EXPECT_TRUE(ble_b.StopAdvertising());
+  EXPECT_FALSE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
+  EXPECT_FALSE(
+      env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_advertising);
   env_.Stop();
 }
 
@@ -310,9 +316,20 @@ TEST_F(BleV2MediumTest, CanStartScanningAndAdvertising) {
       advertising_data,
       {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
 
+  EXPECT_TRUE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
+  EXPECT_TRUE(
+      env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_advertising);
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_a.StopScanning());
   EXPECT_TRUE(ble_b.StopAdvertising());
+
+  EXPECT_FALSE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
+  EXPECT_FALSE(
+      env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_advertising);
+  env_.UnregisterBleV2Medium(*ble_a.GetImpl());
+  env_.UnregisterBleV2Medium(*ble_b.GetImpl());
+  EXPECT_EQ(env_.GetBleV2MediumStatus(*ble_a.GetImpl()), absl::nullopt);
+  EXPECT_EQ(env_.GetBleV2MediumStatus(*ble_b.GetImpl()), absl::nullopt);
   env_.Stop();
 }
 
