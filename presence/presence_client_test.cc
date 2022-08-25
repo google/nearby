@@ -14,9 +14,8 @@
 
 #include "presence/presence_client.h"
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "presence/status.h"
 
 namespace nearby {
 namespace presence {
@@ -24,7 +23,14 @@ namespace {
 
 TEST(PresenceClientTest, DefaultConstructorWorks) {
   PresenceClient presence_client;
-  presence_client.StartBroadcast({}, {}, {}, {});
+  Status result = {Status::Value::kSuccess};
+  ResultCallback callback = {
+      .result_cb = [&](Status status) { result = status; },
+  };
+
+  presence_client.StartBroadcast({}, callback);
+
+  EXPECT_FALSE(result.Ok());
 }
 
 }  // namespace

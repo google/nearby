@@ -14,12 +14,14 @@
 
 #include "presence/presence_client.h"
 
+#include <memory>
+#include <vector>
+
 #include "presence/presence_device.h"
+#include "presence/status.h"
 
 namespace nearby {
 namespace presence {
-
-using ::nearby::internal::IdentityType;
 
 void PresenceClient::StartDiscovery(const DiscoveryFilter& filter,
                                     const DiscoveryOptions& options,
@@ -35,17 +37,11 @@ std::vector<PresenceDevice> PresenceClient::GetCachedDevices(
   return std::vector<PresenceDevice>{};
 }
 
-void PresenceClient::StartBroadcast(const IdentityType& identity,
-                                    const std::vector<PresenceAction>& actions,
-                                    const BroadcastOptions& options,
-                                    ResultCallback callback) {}
-
-void PresenceClient::UpdateBroadcastActions(
-    const IdentityType& identity, const std::vector<PresenceAction>& actions,
-    ResultCallback callback) {}
-
-void PresenceClient::StopBroadcast(const IdentityType& identity,
-                                   ResultCallback callback) {}
+std::unique_ptr<BroadcastSession> PresenceClient::StartBroadcast(
+    const BroadcastRequest& request, const ResultCallback& callback) {
+  callback.result_cb({Status::Value::kError});
+  return std::make_unique<BroadcastSession>();
+}
 
 }  // namespace presence
 }  // namespace nearby

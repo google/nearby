@@ -27,6 +27,7 @@ cc_library(
     deps = [
         ":types",
         "//presence/implementation:internal",  # build_cleaner: keep
+        "@com_google_absl//absl/functional:any_invocable",
     ],
 )
 
@@ -43,6 +44,7 @@ cc_library(
     ],
     hdrs = [
         "broadcast_options.h",
+        "broadcast_request.h",
         "data_element.h",
         "device_motion.h",
         "discovery_filter.h",
@@ -58,10 +60,11 @@ cc_library(
         "status.h",
     ],
     deps = [
-        "//net/proto2/util/public:differencer",
         "//internal/platform:base",
         "//internal/proto:credential_cc_proto",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:variant",
         "@com_google_glog//:glog",
     ],
@@ -119,6 +122,7 @@ cc_test(
     shard_count = 6,
     deps = [
         ":presence",
+        ":types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",

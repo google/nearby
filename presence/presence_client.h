@@ -15,16 +15,25 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_CLIENT_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_CLIENT_H_
 
+#include <functional>
+#include <memory>
 #include <vector>
 
-#include "presence/broadcast_options.h"
+#include "absl/functional/any_invocable.h"
+#include "presence/broadcast_request.h"
 #include "presence/discovery_filter.h"
 #include "presence/discovery_options.h"
 #include "presence/listeners.h"
 #include "presence/presence_device.h"
+#include "presence/status.h"
 
 namespace nearby {
 namespace presence {
+
+// The callback of stop broadcast for client to invoke later.
+struct BroadcastSession {
+  absl::AnyInvocable<void(Status)> stop_broadcast_callback;
+};
 
 /**
  * Interface for detecting and interacting with nearby devices that are also
@@ -91,57 +100,17 @@ class PresenceClient {
    */
   std::vector<PresenceDevice> GetCachedDevices(const DiscoveryFilter& filter);
 
-  /**
-   * Advertising APIs.
-   */
+  // Advertising APIs.
 
-  /**
-   * Requests that an {@link PresenceIdentity} and associated {@link
-   * PresenceAction}s be broadcast to other devices nearby.
-   *
-   * <p>These actions can then be detected by those devices and trigger a
-   * callback to a client which as invoked {@link #startDiscovery} for the same
-   * action.
-   *
-   * <p>Clients set a {@link PresenceIdentity} to determine who should be able
-   * to resolve their advertisements.
-   *
-   * <p>One client can advertise up to one advertisement per identity. Due to
-   * hardware capabilities, Presence needs to rotate advertisement or release
-   * resources. Frequent callers might be throttled based on resource
-   * limitations.
-   *
-   * <p>The returned {@link Task} may contain the value {@link
-   * PresenceStatusCodes#RESOLUTION_REQUIRED}. If that is the case, client
-   * should call {@linkStatus#startResolutionForResult} to get the users
-   * consents/permissions before retrying the request.
-   */
-  void StartBroadcast(const ::nearby::internal::IdentityType& identity,
-                      const std::vector<PresenceAction>& actions,
-                      const BroadcastOptions& options, ResultCallback callback);
-
-  /**
-   * Updates {@link PresenceAction}s of an ongoing advertising for a
-   * {@link PresenceIdentity}.
-   *
-   * <p>The returned {@link Task} may contain the value {@link
-   * PresenceStatusCodes#RESOLUTION_REQUIRED}. If that is the case, client
-   * should call {@link Status#startResolutionForResult} to get the users
-   * consents/permissions before retrying the request.
-   */
-  void UpdateBroadcastActions(const ::nearby::internal::IdentityType& identity,
-                              const std::vector<PresenceAction>& actions,
-                              ResultCallback callback);
-
-  /**
-   * Removes an identity broadcast that was currently requested via
-   * {@link #startBroadcast}.
-   *
-   * <p>This should be invoked after the use case has been fulfilled and the
-   * device no longer needs remote devices to know that it is nearby.
-   */
-  void StopBroadcast(const ::nearby::internal::IdentityType& identity,
-                     ResultCallback callback);
+  // Starts broadcasting an advertisement with attributes defined by `request`.
+  // The advertisement is sent over BLE4.2 or BLE5.0, or both if they are
+  // supported by the platform. The `callback` is invoked when the
+  // advertisement has started.
+  //
+  // Returns a `BroadcastSession`, which can be used to stop the broadcast
+  // later.
+  std::unique_ptr<BroadcastSession> StartBroadcast(
+      const BroadcastRequest& request, const ResultCallback& callback);
 };
 
 }  // namespace presence
