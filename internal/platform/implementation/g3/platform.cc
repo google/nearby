@@ -17,6 +17,7 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <string>
 
 #include "file/base/path.h"
 #include "absl/memory/memory.h"
@@ -60,8 +61,8 @@ namespace location {
 namespace nearby {
 namespace api {
 
-std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
-                                                    std::string& file_name) {
+std::string ImplementationPlatform::GetDownloadPath(
+    absl::string_view parent_folder, absl::string_view file_name) {
   std::string fullPath("/tmp");
 
   return file::JoinPath("/tmp", file_name);
