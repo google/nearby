@@ -249,13 +249,15 @@ std::string BluetoothAdapter::GetName() const {
     return *device_name_;
   }
 
-  std::string instance_id(GetGenericBluetoothAdapterInstanceID());
-
-  if (instance_id.empty()) {
+  char *_instance_id = GetGenericBluetoothAdapterInstanceID();
+  if (_instance_id == nullptr) {
     NEARBY_LOGS(ERROR)
         << __func__ << ": Failed to get Generic Bluetooth Adapter InstanceID";
     return std::string();
   }
+
+  std::string instance_id(_instance_id);
+
   // Change radio module local name in registry
   HKEY hKey;
 
