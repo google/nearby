@@ -17,6 +17,7 @@
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace location {
@@ -110,6 +111,126 @@ TEST(FutureTest, GetBlocksWhenNotReady) {
   absl::Duration blocked_duration = absl::Now() - start;
   EXPECT_EQ(response.result(), 10);
   EXPECT_GE(blocked_duration, absl::Milliseconds(500));
+}
+
+TEST(FutureTest, CallsListenerOnSet) {
+  constexpr int kValue = 1000;
+  Future<int> future;
+  int call_count = 0;
+  {
+    SingleThreadExecutor executor;
+    future.AddListener(
+        [&]() {
+          ASSERT_TRUE(future.IsSet());
+          ASSERT_TRUE(future.Get().ok());
+          ASSERT_EQ(future.Get().GetResult(), kValue);
+          ++call_count;
+        },
+        &executor);
+
+    future.Set(kValue);
+    // `executor` leaves scope, the destructor waits for tasks to complete
+  }
+
+  EXPECT_EQ(call_count, 1);
+}
+
+TEST(FutureTest, CallsAllListenersOnSet) {
+  constexpr int kValue = 1000;
+  Future<int> future;
+  int call_count_listener_1 = 0;
+  int call_count_listener_2 = 0;
+  {
+    SingleThreadExecutor executor;
+    future.AddListener(
+        [&]() {
+          ASSERT_TRUE(future.IsSet());
+          ASSERT_TRUE(future.Get().ok());
+          ASSERT_EQ(future.Get().GetResult(), kValue);
+          ++call_count_listener_1;
+        },
+        &executor);
+    future.AddListener(
+        [&]() {
+          ASSERT_TRUE(future.IsSet());
+          ASSERT_TRUE(future.Get().ok());
+          ASSERT_EQ(future.Get().GetResult(), kValue);
+          ++call_count_listener_2;
+        },
+        &executor);
+
+    future.Set(kValue);
+    // `executor` leaves scope, the destructor waits for tasks to complete
+  }
+
+  EXPECT_EQ(call_count_listener_1, 1);
+  EXPECT_EQ(call_count_listener_2, 1);
+}
+
+TEST(FutureTest, AddListenerWhenAlreadySetCallsCallback) {
+  constexpr int kValue = 1000;
+  Future<int> future;
+  int call_count = 0;
+  future.Set(kValue);
+  {
+    SingleThreadExecutor executor;
+    future.AddListener(
+        [&]() {
+          ASSERT_TRUE(future.IsSet());
+          ASSERT_TRUE(future.Get().ok());
+          ASSERT_EQ(future.Get().GetResult(), kValue);
+          ++call_count;
+        },
+        &executor);
+    // `executor` leaves scope, the destructor waits for tasks to complete
+  }
+
+  EXPECT_EQ(call_count, 1);
+}
+
+TEST(FutureTest, CallsListenerOnSetException) {
+  constexpr Exception kException = {Exception::kFailed};
+  Future<int> future;
+  int call_count = 0;
+  {
+    SingleThreadExecutor executor;
+    future.AddListener(
+        [&]() {
+          ASSERT_TRUE(future.IsSet());
+          ASSERT_FALSE(future.Get().ok());
+          ASSERT_EQ(future.Get().GetException(), kException);
+          ++call_count;
+        },
+        &executor);
+
+    future.SetException(kException);
+    // `executor` leaves scope, the destructor waits for tasks to complete
+  }
+
+  EXPECT_EQ(call_count, 1);
+}
+
+TEST(FutureTest, AddListenerWhenAlreadySetExceptionCallsCallback) {
+  constexpr Exception kException = {Exception::kFailed};
+  Future<int> future;
+  int call_count = 0;
+  future.SetException(kException);
+  {
+    SingleThreadExecutor executor;
+
+    future.AddListener(
+        [&]() {
+          ASSERT_TRUE(future.IsSet());
+          ASSERT_FALSE(future.Get().ok());
+          ASSERT_EQ(future.Get().GetException(), kException);
+          ++call_count;
+        },
+        &executor);
+
+    // `executor` leaves scope, the destructor waits for tasks to complete
+  }
+
+  EXPECT_EQ(call_count, 1);
 }
 
 }  // namespace nearby
