@@ -36,8 +36,8 @@ namespace location {
 namespace nearby {
 namespace api {
 
-std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
-                                                    std::string& file_name) {
+std::string ImplementationPlatform::GetDownloadPath(absl::string_view parent_folder,
+                                                    absl::string_view file_name) {
   // TODO(jfcarroll): This needs to be done correctly, we now have a file name and parent folder,
   // they should be combined with the default download path
   NSString* fileName = ObjCStringFromCppString(file_name);
