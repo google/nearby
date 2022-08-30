@@ -26,9 +26,7 @@ namespace connections {
 namespace mediums {
 class FakeInputStream : public InputStream {
  public:
-  ExceptionOr<ByteArray> Read(std::int64_t size) {
-    return {Exception::kSuccess};
-  }
+  ExceptionOr<ByteArray> Read(size_t size) { return {Exception::kSuccess}; }
   Exception Close() { return {Exception::kSuccess}; }
 };
 

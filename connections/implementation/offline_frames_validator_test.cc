@@ -195,7 +195,7 @@ TEST(OfflineFramesValidatorTest, ValidatesAsOkWithValidPayloadTransferFrame) {
   header.set_type(PayloadTransferFrame::PayloadHeader::BYTES);
   // Sending files larger than 2gb was previously broken (see cl/372382338).
   // This tests a file larger than int max.
-  header.set_total_size(3e10);
+  header.set_total_size(static_cast<int64_t>(3e10));
   chunk.set_body("payload data");
   chunk.set_offset(150);
   chunk.set_flags(1);
@@ -218,7 +218,7 @@ TEST(OfflineFramesValidatorTest,
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
   // Sending files larger than 2gb was previously broken (see cl/372382338).
   // This tests a file larger than int max.
-  header.set_total_size(3e10);
+  header.set_total_size(static_cast<int64_t>(3e10));
   header.set_file_name(std::string());
   header.set_parent_folder(std::string());
   chunk.set_body("payload data");
@@ -242,7 +242,7 @@ TEST(OfflineFramesValidatorTest, ValidatesAsOkTypeFileWithLegalFilePath) {
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
   // Sending files larger than 2gb was previously broken (see cl/372382338).
   // This tests a file larger than int max.
-  header.set_total_size(3e10);
+  header.set_total_size(static_cast<int64_t>(3e10));
   header.set_file_name(
       std::string("earth_85MB_test (1) (3) (4) (8) (1) (2) (2) (1).jpg"));
   header.set_parent_folder(std::string());
@@ -267,7 +267,7 @@ TEST(OfflineFramesValidatorTest, ValidatesAsFailedTypeFileWithIllegalFilePath) {
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
   // Sending files larger than 2gb was previously broken (see cl/372382338).
   // This tests a file larger than int max.
-  header.set_total_size(3e10);
+  header.set_total_size(static_cast<int64_t>(3e10));
   header.set_file_name(
       std::string("earth_85MB_test (1): (3) (4) (8) (1) (2) (2) (1).jpg"));
   header.set_parent_folder(std::string());
@@ -292,7 +292,7 @@ TEST(OfflineFramesValidatorTest, ValidatesAsOkTypeFileWithLegalParentFolder) {
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
   // Sending files larger than 2gb was previously broken (see cl/372382338).
   // This tests a file larger than int max.
-  header.set_total_size(3e10);
+  header.set_total_size(static_cast<int64_t>(3e10));
   header.set_file_name("");
   header.set_parent_folder(std::string(
       std::string("earth_85MB_test (1) (3) (4) (8) (1) (2) (2) (1).jpg")));
@@ -318,7 +318,7 @@ TEST(OfflineFramesValidatorTest,
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
   // Sending files larger than 2gb was previously broken (see cl/372382338).
   // This tests a file larger than int max.
-  header.set_total_size(3e10);
+  header.set_total_size(static_cast<int64_t>(3e10));
   header.set_file_name("");
   header.set_parent_folder(std::string(
       std::string("earth_85MB_test (1): (3) (4) (8) (1) (2) (2) (1).jpg")));

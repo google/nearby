@@ -30,7 +30,7 @@ class BaseInputStream : public InputStream {
   BaseInputStream &operator=(const BaseInputStream &) = delete;
   ~BaseInputStream() override { Close(); }
 
-  ExceptionOr<ByteArray> Read(std::int64_t size) override;
+  ExceptionOr<ByteArray> Read(size_t size) override;
 
   ExceptionOr<size_t> Skip(size_t offset) override {
     size_t real_offset = std::min(offset, buffer_.size() - position_);

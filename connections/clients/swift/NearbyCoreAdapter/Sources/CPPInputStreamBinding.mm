@@ -34,7 +34,7 @@ class CPPInputStream : public InputStream {
 
   ~CPPInputStream() override { Close(); }
 
-  ExceptionOr<ByteArray> Read(std::int64_t size) override {
+  ExceptionOr<ByteArray> Read(size_t size) override {
     std::vector<uint8_t> buffer;
     buffer.reserve(size);
     NSInteger numberOfBytesRead = [iStream_ read:buffer.data() maxLength:size];

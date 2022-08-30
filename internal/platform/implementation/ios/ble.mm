@@ -105,7 +105,7 @@ BleInputStream::~BleInputStream() {
   NSCAssert(!newDataPackets_, @"BleInputStream not closed before destruction");
 }
 
-ExceptionOr<ByteArray> BleInputStream::Read(std::int64_t size) {
+ExceptionOr<ByteArray> BleInputStream::Read(size_t size) {
   // Block until either (a) the connection has been closed, (b) we have enough data to return.
   NSData* dataToReturn;
   [condition_ lock];

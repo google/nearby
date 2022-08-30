@@ -31,7 +31,7 @@ class InputStream {
   virtual ~InputStream() = default;
 
   // throws Exception::kIo
-  virtual ExceptionOr<ByteArray> Read(std::int64_t size) = 0;
+  virtual ExceptionOr<ByteArray> Read(size_t size) = 0;
 
   // throws Exception::kIo
   virtual ExceptionOr<size_t> Skip(size_t offset);

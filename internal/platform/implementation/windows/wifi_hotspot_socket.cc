@@ -55,8 +55,7 @@ WifiHotspotSocket::SocketInputStream::SocketInputStream(
   input_stream_ = input_stream;
 }
 
-ExceptionOr<ByteArray> WifiHotspotSocket::SocketInputStream::Read(
-    std::int64_t size) {
+ExceptionOr<ByteArray> WifiHotspotSocket::SocketInputStream::Read(size_t size) {
   try {
     Buffer buffer = Buffer(size);
 

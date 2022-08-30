@@ -29,7 +29,6 @@
 
 namespace location {
 namespace nearby {
-
 class InputFile final {
  public:
   using Platform = api::ImplementationPlatform;

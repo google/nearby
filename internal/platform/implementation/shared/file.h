@@ -35,7 +35,7 @@ class IOFile final : public api::InputFile, public api::OutputFile {
 
   static std::unique_ptr<IOFile> CreateOutputFile(const absl::string_view path);
 
-  ExceptionOr<ByteArray> Read(std::int64_t size) override;
+  ExceptionOr<ByteArray> Read(size_t size) override;
 
   std::string GetFilePath() const override { return path_; }
 

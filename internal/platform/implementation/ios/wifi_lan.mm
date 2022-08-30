@@ -66,7 +66,7 @@ WifiLanInputStream::~WifiLanInputStream() {
   NSCAssert(!newDataPackets_, @"WifiLanInputStream not closed before destruction");
 }
 
-ExceptionOr<ByteArray> WifiLanInputStream::Read(std::int64_t size) {
+ExceptionOr<ByteArray> WifiLanInputStream::Read(size_t size) {
   // Block until either (a) the connection has been closed, or (b) enough data to return.
   NSData* dataToReturn;
   [condition_ lock];

@@ -123,7 +123,7 @@ BluetoothSocket::BluetoothInputStream::BluetoothInputStream(
 }
 
 ExceptionOr<ByteArray> BluetoothSocket::BluetoothInputStream::Read(
-    std::int64_t size) {
+    size_t size) {
   try {
     if (winrt_stream_ == nullptr) {
       return {Exception::kIo};

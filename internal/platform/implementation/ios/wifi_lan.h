@@ -38,7 +38,7 @@ class WifiLanInputStream : public InputStream {
   WifiLanInputStream();
   ~WifiLanInputStream() override;
 
-  ExceptionOr<ByteArray> Read(std::int64_t size) override;
+  ExceptionOr<ByteArray> Read(size_t size) override;
   Exception Close() override;
 
   GNCMConnectionHandlers* GetConnectionHandlers() { return connectionHandlers_; }

@@ -51,7 +51,7 @@ IOFile::IOFile(const absl::string_view file_path)
   file_.open(path_, std::ios::binary | std::ios::out);
 }
 
-ExceptionOr<ByteArray> IOFile::Read(std::int64_t size) {
+ExceptionOr<ByteArray> IOFile::Read(size_t size) {
   if (!file_.is_open()) {
     return ExceptionOr<ByteArray>{Exception::kIo};
   }

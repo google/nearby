@@ -54,7 +54,7 @@ class GNCInputStreamFromNSStream : public InputStream {
 
   ExceptionOr<ByteArray> Read() { return Read(kMaxChunkSize); }
 
-  ExceptionOr<ByteArray> Read(std::int64_t size) override {
+  ExceptionOr<ByteArray> Read(size_t size) override {
     uint8_t *bytesRead = new uint8_t[size];
     NSUInteger numberOfBytesToRead = [[NSNumber numberWithLongLong:size] unsignedIntegerValue];
     NSInteger numberOfBytesRead = [nsStream_ read:bytesRead maxLength:numberOfBytesToRead];
