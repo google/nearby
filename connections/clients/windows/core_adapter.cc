@@ -17,10 +17,14 @@
 #include "absl/strings/str_format.h"
 #include "connections/core.h"
 #include "internal/platform/bluetooth_utils.h"
+#include "internal/platform/logging.h"
 
 namespace location::nearby::windows {
 
 Core *InitCore(connections::ServiceControllerRouter *router) {
+#if defined(LOG_SEVERITY_VERBOSE)
+  NEARBY_LOG_SET_SEVERITY(VERBOSE);
+#endif  // LOG_SEVERITY_VERBOSE;
   return new nearby::connections::Core(router);
 }
 
