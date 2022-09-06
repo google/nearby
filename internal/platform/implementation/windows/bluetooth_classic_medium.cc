@@ -284,6 +284,12 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     NEARBY_LOGS(ERROR) << __func__ << ": Exception connecting bluetooth async: "
                        << exception.what();
     return nullptr;
+  } catch (const winrt::hresult_error& ex) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Exception connecting bluetooth async, error code: "
+                       << ex.code()
+                       << ", error message: " << winrt::to_string(ex.message());
+    return nullptr;
   }
 
   return std::move(rfcomm_socket);
@@ -606,9 +612,7 @@ bool BluetoothClassicMedium::StartAdvertising(bool radio_discoverable) {
       return false;
     }
 
-    server_socket_->SetCloseNotifier([&]() {
-      StopAdvertising();
-    });
+    server_socket_->SetCloseNotifier([&]() { StopAdvertising(); });
 
     // Set the SDP attributes and start Bluetooth advertising
     InitializeServiceSdpAttributes(rfcomm_provider_, service_name_);
