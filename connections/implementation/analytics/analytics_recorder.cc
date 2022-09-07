@@ -438,6 +438,11 @@ void AnalyticsRecorder::OnConnectionClosed(const std::string &endpoint_id,
                                            Medium medium,
                                            DisconnectionReason reason) {
   MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << __func__
+                    << ": OnConnectionClosed is called with endpoint_id:"
+                    << endpoint_id << ", medium:" << Medium_Name(medium)
+                    << ", reason:" << DisconnectionReason_Name(reason);
+
   if (!CanRecordAnalyticsLocked("OnConnectionClosed")) {
     return;
   }
@@ -453,14 +458,24 @@ void AnalyticsRecorder::OnConnectionClosed(const std::string &endpoint_id,
     // re-established with a new ConnectionRequest.
     auto pair = active_connections_.extract(it);
     std::unique_ptr<LogicalConnection> &logical_connection = pair.mapped();
+    logical_connection->GetEstablisedConnections();
 
-    std::vector<ConnectionsLog::EstablishedConnection> connections =
-        logical_connection->GetEstablisedConnections();
-    auto established_connections =
-        current_strategy_session_->mutable_established_connection();
-    for (auto &connection : connections) {
-      established_connections->Add(std::move(connection));
-    }
+    // TODO(b/245553737): the recent change in protobuf may broken the class of
+    // RepeatedFieldPtr. Our app will crash after sending file. The app also
+    // crashes even only print the size of mutable_established_connection. we
+    // need to reccover the code when protobuf fixes the issue.
+
+    //     auto pair = active_connections_.extract(it);
+    //     std::unique_ptr<LogicalConnection> &logical_connection =
+    //     pair.mapped();
+
+    //     std::vector<ConnectionsLog::EstablishedConnection> connections =
+    //         logical_connection->GetEstablisedConnections();
+    //     auto established_connections =
+    //         current_strategy_session_->mutable_established_connection();
+    //     for (auto &connection : connections) {
+    //       established_connections->Add(std::move(connection));
+    //     }
   }
 }
 
