@@ -71,7 +71,7 @@ static const TxPowerLevel kTxPowerLevel = TxPowerLevel::kHigh;
 - (void)testStartandStopScanning {
   Uuid service_uuid(1234, 5678);
 
-  XCTAssertTrue(_ble->StartScanning(service_uuid, kTxPowerLevel, {}));
+  XCTAssertTrue(_ble->StartScanning(service_uuid, kTxPowerLevel, BleMedium::ScanCallback{}));
 
   [NSThread sleepForTimeInterval:0.1];
 

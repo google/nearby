@@ -35,6 +35,7 @@ namespace g3 {
 namespace {
 
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
+using ::location::nearby::api::ble_v2::BleOperationStatus;
 using ::location::nearby::api::ble_v2::TxPowerLevel;
 
 std::string TxPowerLevelToName(TxPowerLevel power_mode) {
@@ -242,6 +243,30 @@ bool BleV2Medium::StopAdvertising() {
   return true;
 }
 
+std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
+    const api::ble_v2::BleAdvertisementData& advertising_data,
+    api::ble_v2::AdvertiseParameters advertise_parameters,
+    BleV2Medium::AdvertisingCallback callback) {
+  NEARBY_LOGS(INFO)
+      << "G3 Ble StartAdvertising: advertising_data.is_extended_advertisement="
+      << advertising_data.is_extended_advertisement
+      << ", advertising_data.service_data size="
+      << advertising_data.service_data.size() << ", tx_power_level="
+      << TxPowerLevelToName(advertise_parameters.tx_power_level)
+      << ", is_connectable=" << advertise_parameters.is_connectable;
+  if (advertising_data.is_extended_advertisement &&
+      !is_support_extended_advertisement_) {
+    NEARBY_LOGS(INFO)
+        << "G3 Ble StartAdvertising does not support extended advertisement";
+    return nullptr;
+  }
+
+  absl::MutexLock lock(&mutex_);
+  MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
+      /*enabled=*/true, *this, adapter_->GetPeripheralV2(), advertising_data);
+  return std::make_unique<AdvertisingSession>(AdvertisingSession{});
+}
+
 bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                                 TxPowerLevel tx_power_level,
                                 ScanCallback callback) {
@@ -261,6 +286,29 @@ bool BleV2Medium::StopScanning() {
       /*enabled=*/false,
       /*service_uuid=*/{}, /*callback=*/{}, *this);
   return true;
+}
+
+std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
+    const Uuid& service_uuid, TxPowerLevel tx_power_level,
+    BleV2Medium::ScanningCallback callback) {
+  {
+    NEARBY_LOGS(INFO) << "G3 Ble StartScanning";
+    absl::MutexLock lock(&mutex_);
+
+    MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
+        /*enabled=*/true, service_uuid,
+        {.advertisement_found_cb = callback.advertisement_found_cb}, *this);
+  }
+  callback.start_scanning_result(api::ble_v2::BleOperationStatus::kSucceeded);
+  return std::make_unique<ScanningSession>(ScanningSession{
+      .stop_scanning =
+          [this]() {
+            if (StopScanning())
+              return BleOperationStatus::kSucceeded;
+            else
+              return BleOperationStatus::kFailed;
+          },
+  });
 }
 
 std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(

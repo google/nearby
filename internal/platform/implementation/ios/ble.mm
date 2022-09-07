@@ -357,7 +357,13 @@ bool BleMedium::StopAdvertising() {
   peripheral_ = nil;
   return true;
 }
-
+std::unique_ptr<BleMedium::AdvertisingSession> BleMedium::StartAdvertising(
+    const api::ble_v2::BleAdvertisementData& advertising_data,
+    api::ble_v2::AdvertiseParameters advertise_parameters,
+    BleMedium::AdvertisingCallback callback) {
+  // TODO(hais): add real impl for iOs StartAdvertising
+  return std::make_unique<AdvertisingSession>(AdvertisingSession{});
+}
 bool BleMedium::StartScanning(const Uuid& service_uuid, TxPowerLevel tx_power_level,
                               ScanCallback scan_callback) {
   if (!central_) {
@@ -384,6 +390,13 @@ bool BleMedium::StartScanning(const Uuid& service_uuid, TxPowerLevel tx_power_le
 bool BleMedium::StopScanning() {
   central_ = nil;
   return true;
+}
+
+std::unique_ptr<BleMedium::ScanningSession> BleMedium::StartScanning(
+    const Uuid& service_uuid, TxPowerLevel tx_power_level,
+    BleMedium::ScanningCallback callback) {
+  // TODO(hais): add real impl for windows StartScanning.
+  return std::make_unique<ScanningSession>(ScanningSession{});
 }
 
 std::unique_ptr<api::ble_v2::GattServer> BleMedium::StartGattServer(

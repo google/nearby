@@ -168,7 +168,9 @@ class GattServer final {
     return impl_->UpdateCharacteristic(characteristic, value);
   }
 
-  void Stop() { if (impl_) return impl_->Stop(); }
+  void Stop() {
+    if (impl_) return impl_->Stop();
+  }
 
   // Returns true if a gatt_server is usable. If this method returns false,
   // it is not safe to call any other method.
@@ -193,8 +195,7 @@ class GattClient final {
       : impl_(std::move(client_gatt_connection)) {}
 
   bool DiscoverServiceAndCharacteristics(
-      const Uuid& service_uuid,
-      const std::vector<Uuid>& characteristic_uuids) {
+      const Uuid& service_uuid, const std::vector<Uuid>& characteristic_uuids) {
     return impl_->DiscoverServiceAndCharacteristics(service_uuid,
                                                     characteristic_uuids);
   }
@@ -269,11 +270,20 @@ class BleV2Medium final {
       api::ble_v2::AdvertiseParameters advertise_parameters);
   bool StopAdvertising();
 
+  std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession> StartAdvertising(
+      const api::ble_v2::BleAdvertisementData& advertising_data,
+      api::ble_v2::AdvertiseParameters advertise_set_parameters,
+      api::ble_v2::BleMedium::AdvertisingCallback callback);
+
   // Returns true once the BLE scan has been initiated.
   bool StartScanning(const Uuid& service_uuid,
                      api::ble_v2::TxPowerLevel tx_power_level,
                      ScanCallback callback);
   bool StopScanning();
+
+  std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> StartScanning(
+      const Uuid& service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
+      api::ble_v2::BleMedium::ScanningCallback callback);
 
   // Starts Gatt Server for waiting to client connection.
   std::unique_ptr<GattServer> StartGattServer(

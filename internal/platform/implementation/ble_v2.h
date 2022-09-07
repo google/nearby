@@ -26,13 +26,13 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/uuid.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/uuid.h"
 
 namespace location {
 namespace nearby {
@@ -46,6 +46,12 @@ enum class TxPowerLevel {
   kLow = 2,
   kMedium = 3,
   kHigh = 4,
+};
+
+enum class BleOperationStatus {
+  kUnknown = 0,
+  kSucceeded = 1,
+  kFailed = 2,
 };
 
 // https://developer.android.com/reference/android/bluetooth/le/AdvertisingSetParameters.Builder
@@ -298,6 +304,23 @@ class BleMedium {
       const BleAdvertisementData& advertising_data,
       AdvertiseParameters advertise_set_parameters) = 0;
 
+  struct AdvertisingCallback {
+    std::function<void(BleOperationStatus)> start_advertising_result;
+  };
+
+  struct AdvertisingSession {
+    std::function<BleOperationStatus()> stop_advertising;
+  };
+
+  // Async interface for StartAdertising.
+  // Result status will be passed to start_advertising_result callback.
+  // To stop advertising, invoke the stop_advertising callback in
+  // AdvertisingSession.
+  virtual std::unique_ptr<AdvertisingSession> StartAdvertising(
+      const BleAdvertisementData& advertising_data,
+      AdvertiseParameters advertise_set_parameters,
+      AdvertisingCallback callback) = 0;
+
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeAdvertiser.html#stopAdvertising(android.bluetooth.le.AdvertiseCallback)
   //
   // Stops advertising.
@@ -341,6 +364,27 @@ class BleMedium {
   //
   // Stops scanning.
   virtual bool StopScanning() = 0;
+
+  struct ScanningSession {
+    std::function<BleOperationStatus()> stop_scanning;
+  };
+
+  struct ScanningCallback {
+    std::function<void(BleOperationStatus)> start_scanning_result =
+        DefaultCallback<BleOperationStatus>();
+    std::function<void(BlePeripheral& peripheral,
+                       BleAdvertisementData advertisement_data)>
+        advertisement_found_cb =
+            DefaultCallback<BlePeripheral&, BleAdvertisementData>();
+  };
+
+  // Async interface for StartScanning.
+  // Result status will be passed to start_advertising_result callback.
+  // To stop advertising, invoke the stop_advertising callback in
+  // AdvertisingSession.
+  virtual std::unique_ptr<ScanningSession> StartScanning(
+      const Uuid& service_uuid, TxPowerLevel tx_power_level,
+      ScanningCallback callback) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothManager#openGattServer(android.content.Context,%20android.bluetooth.BluetoothGattServerCallback)
   //

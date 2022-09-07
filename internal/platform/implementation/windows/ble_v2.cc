@@ -33,6 +33,7 @@ namespace {
 
 using ::location::nearby::api::ble_v2::AdvertiseParameters;
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
+using ::location::nearby::api::ble_v2::BleOperationStatus;
 using ::location::nearby::api::ble_v2::BleServerSocket;
 using ::location::nearby::api::ble_v2::BleSocket;
 using ::location::nearby::api::ble_v2::GattClient;
@@ -184,6 +185,23 @@ bool BleV2Medium::StopAdvertising() {
   return true;
 }
 
+std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
+    const api::ble_v2::BleAdvertisementData& advertising_data,
+    api::ble_v2::AdvertiseParameters advertise_parameters,
+    BleV2Medium::AdvertisingCallback callback) {
+  NEARBY_LOGS(INFO) << "Windows Ble StartAdvertising: "
+                       "advertising_data.is_extended_advertisement="
+                    << advertising_data.is_extended_advertisement
+                    << ", advertising_data.service_data size="
+                    << advertising_data.service_data.size()
+                    << ", tx_power_level="
+                    << TxPowerLevelToName(advertise_parameters.tx_power_level)
+                    << ", is_connectable="
+                    << advertise_parameters.is_connectable;
+  // TODO(hais): add real impl for windows StartAdvertising.
+  return std::make_unique<AdvertisingSession>(AdvertisingSession{});
+}
+
 bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                                 TxPowerLevel tx_power_level,
                                 ScanCallback callback) {
@@ -244,6 +262,15 @@ bool BleV2Medium::StopScanning() {
     }
   }
   return true;
+}
+
+std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
+    const Uuid& service_uuid, TxPowerLevel tx_power_level,
+    BleV2Medium::ScanningCallback callback) {
+  NEARBY_LOGS(INFO) << "Windows Ble StartScanning";
+
+  // TODO(hais): add real impl for windows StartAdvertising.
+  return std::make_unique<ScanningSession>(ScanningSession{});
 }
 
 std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(

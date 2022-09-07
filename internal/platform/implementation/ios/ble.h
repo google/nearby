@@ -121,9 +121,16 @@ class BleMedium : public api::ble_v2::BleMedium {
   bool StartAdvertising(const api::ble_v2::BleAdvertisementData &advertising_data,
                         api::ble_v2::AdvertiseParameters advertise_set_parameters) override;
   bool StopAdvertising() override;
+  std::unique_ptr<AdvertisingSession> StartAdvertising(
+      const api::ble_v2::BleAdvertisementData &advertising_data,
+      api::ble_v2::AdvertiseParameters advertise_parameters, AdvertisingCallback callback) override;
+
   bool StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
                      api::ble_v2::BleMedium::ScanCallback scan_callback) override;
   bool StopScanning() override;
+  std::unique_ptr<ScanningSession> StartScanning(const Uuid &service_uuid,
+                                                 api::ble_v2::TxPowerLevel tx_power_level,
+                                                 ScanningCallback callback) override;
   std::unique_ptr<api::ble_v2::GattServer> StartGattServer(
       api::ble_v2::ServerGattConnectionCallback callback) override;
   std::unique_ptr<api::ble_v2::GattClient> ConnectToGattServer(

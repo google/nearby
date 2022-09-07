@@ -50,11 +50,19 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       ABSL_LOCKS_EXCLUDED(mutex_);
   bool StopAdvertising() override ABSL_LOCKS_EXCLUDED(mutex_);
 
+  std::unique_ptr<AdvertisingSession> StartAdvertising(
+      const api::ble_v2::BleAdvertisementData& advertising_data,
+      api::ble_v2::AdvertiseParameters advertise_set_parameters,
+      AdvertisingCallback callback) override ABSL_LOCKS_EXCLUDED(mutex_);
+
   bool StartScanning(const Uuid& service_uuid,
                      api::ble_v2::TxPowerLevel tx_power_level,
                      ScanCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
   bool StopScanning() override ABSL_LOCKS_EXCLUDED(mutex_);
+  std::unique_ptr<ScanningSession> StartScanning(
+      const Uuid& service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
+      ScanningCallback callback) override ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<api::ble_v2::GattServer> StartGattServer(
       api::ble_v2::ServerGattConnectionCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);

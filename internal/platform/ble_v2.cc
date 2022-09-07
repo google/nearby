@@ -38,6 +38,15 @@ bool BleV2Medium::StartAdvertising(
 
 bool BleV2Medium::StopAdvertising() { return impl_->StopAdvertising(); }
 
+std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession>
+BleV2Medium::StartAdvertising(
+    const api::ble_v2::BleAdvertisementData& advertising_data,
+    api::ble_v2::AdvertiseParameters advertise_set_parameters,
+    api::ble_v2::BleMedium::AdvertisingCallback callback) {
+  return impl_->StartAdvertising(advertising_data, advertise_set_parameters,
+                                 callback);
+}
+
 bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                                 TxPowerLevel tx_power_level,
                                 ScanCallback callback) {
@@ -48,7 +57,7 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
   }
   bool success = impl_->StartScanning(
       service_uuid, tx_power_level,
-      {
+      api::ble_v2::BleMedium::ScanCallback{
           .advertisement_found_cb =
               [this](api::ble_v2::BlePeripheral& peripheral,
                      BleAdvertisementData advertisement_data) {
@@ -84,12 +93,36 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
 
 bool BleV2Medium::StopScanning() {
   MutexLock lock(&mutex_);
-  if (!scanning_enabled_) return true;
+  if (!scanning_enabled_) {
+    return true;
+  }
   scanning_enabled_ = false;
   peripherals_.clear();
   scan_callback_ = {};
   NEARBY_LOG(INFO, "Ble Scanning disabled: impl=%p", GetImpl());
   return impl_->StopScanning();
+}
+
+std::unique_ptr<api::ble_v2::BleMedium::ScanningSession>
+BleV2Medium::StartScanning(const Uuid& service_uuid,
+                           api::ble_v2::TxPowerLevel tx_power_level,
+                           api::ble_v2::BleMedium::ScanningCallback callback) {
+  NEARBY_LOG(INFO, "platform mutex: %p", &mutex_);
+  return impl_->StartScanning(
+      service_uuid, tx_power_level,
+      api::ble_v2::BleMedium::ScanningCallback{
+          .start_scanning_result =
+              [this, callback](api::ble_v2::BleOperationStatus status) {
+                {
+                  MutexLock lock(&mutex_);
+                  if (status == api::ble_v2::BleOperationStatus::kSucceeded) {
+                    scanning_enabled_ = true;
+                  }
+                }
+                callback.start_scanning_result(status);
+              },
+          .advertisement_found_cb = callback.advertisement_found_cb,
+      });
 }
 
 std::unique_ptr<GattServer> BleV2Medium::StartGattServer(
