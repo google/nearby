@@ -17,11 +17,10 @@
 
 #include <string>
 
-#include "internal/platform/byte_array.h"
+#include "absl/status/statusor.h"
 
 namespace location {
 namespace nearby {
-namespace connections {
 
 class NearbyDevice {
  public:
@@ -35,12 +34,11 @@ class NearbyDevice {
   NearbyDevice& operator=(NearbyDevice&&) = default;
   NearbyDevice(const NearbyDevice&) = delete;
   NearbyDevice& operator=(const NearbyDevice&) = delete;
-  virtual std::string GetEndpointId() const = 0;
-  virtual ByteArray GetEndpointInfo() const = 0;
+  virtual absl::StatusOr<std::string> GetEndpointId() const = 0;
+  virtual std::string GetEndpointInfo() const = 0;
   virtual Type GetType() const { return Type::kUnknownDevice; }
 };
 
-}  // namespace connections
 }  // namespace nearby
 }  // namespace location
 

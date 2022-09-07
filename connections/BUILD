@@ -31,6 +31,7 @@ cc_library(
     deps = [
         ":core_types",
         "//connections/implementation:internal",
+        "//internal:device",
         "//internal/analytics:event_logger",
         "//internal/platform:base",
         "//internal/platform:logging",
@@ -54,7 +55,6 @@ cc_library(
     hdrs = [
         "advertising_options.h",
         "connection_options.h",
-        "device.h",
         "discovery_options.h",
         "listeners.h",
         "medium_selector.h",
@@ -75,6 +75,7 @@ cc_library(
         "//internal/platform/implementation/ios:__subpackages__",
     ],
     deps = [
+        "//internal:device",
         "//internal/platform:base",
         "//internal/platform:types",
         "//internal/platform:util",

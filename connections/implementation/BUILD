@@ -129,6 +129,7 @@ cc_library(
         "//connections/implementation/mediums",
         "//connections/implementation/mediums:utils",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
+        "//internal:device",
         "//internal/analytics:event_logger",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",

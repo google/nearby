@@ -21,13 +21,13 @@
 #include <vector>
 
 #include "connections/advertising_options.h"
-#include "connections/device.h"
 #include "connections/discovery_options.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/listeners.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
 #include "internal/analytics/event_logger.h"
+#include "internal/device.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"

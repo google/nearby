@@ -399,6 +399,7 @@ let package = Package(
         "connections/implementation/BUILD",
         "connections/implementation/fuzzers",
         "connections/BUILD",
+        "internal/BUILD",
         "internal/crypto/BUILD",
         "internal/crypto/BUILD.gn",
         "internal/platform/implementation/shared/BUILD",

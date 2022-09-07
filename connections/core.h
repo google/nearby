@@ -20,13 +20,13 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "connections/device.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/service_controller.h"
 #include "connections/implementation/service_controller_router.h"
 #include "connections/listeners.h"
 #include "connections/params.h"
 #include "internal/analytics/event_logger.h"
+#include "internal/device.h"
 
 namespace location {
 namespace nearby {
