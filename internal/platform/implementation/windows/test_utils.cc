@@ -63,7 +63,8 @@ std::string GetPayloadPath(location::nearby::PayloadId payload_id) {
   std::stringstream path("");
 
   path << fullPath << "\\" << std::to_string(payload_id);
-  auto retval = path.str();
-  return retval;
+
+  return path.str();
 }
+
 }  // namespace test_utils
