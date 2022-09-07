@@ -68,13 +68,14 @@ class CredentialManagerImpl : public CredentialManager {
   void GetPrivateCredentials(
       location::nearby::api::CredentialSelector credential_selector,
       location::nearby::api::GetPrivateCredentialsResultCallback callback)
-      override {}
+      override;
 
   // Used to fetch remote public creds when scanning.
   void GetPublicCredentials(
       location::nearby::api::CredentialSelector credential_selector,
+      location::nearby::api::PublicCredentialType public_credential_type,
       location::nearby::api::GetPublicCredentialsResultCallback callback)
-      override {}
+      override;
 
   std::string DecryptDeviceMetadata(
       std::string device_metadata_encryption_key, std::string authenticity_key,

@@ -33,6 +33,9 @@ namespace {
 using ::location::nearby::Base64Utils;
 using ::location::nearby::Crypto;
 using ::location::nearby::api::CredentialOperationStatus;
+using ::location::nearby::api::CredentialSelector;
+using ::location::nearby::api::GetPrivateCredentialsResultCallback;
+using ::location::nearby::api::GetPublicCredentialsResultCallback;
 using ::location::nearby::api::PublicCredentialType;
 using ::location::nearby::api::SaveCredentialsResultCallback;
 using ::nearby::internal::DeviceMetadata;
@@ -236,6 +239,55 @@ std::vector<uint8_t> CredentialManagerImpl::ExtendMetadataEncryptionKey(
                            device_metadata_encryption_key.end()),
       /*salt=*/absl::Span<uint8_t>(),
       /*info=*/absl::Span<uint8_t>(), kNearbyPresenceNumBytesAesGcmKeySize);
+}
+
+void CredentialManagerImpl::GetPrivateCredentials(
+    CredentialSelector credential_selector,
+    GetPrivateCredentialsResultCallback callback) {
+  auto credentials_fetched_lambda =
+      [&callback](const std::vector<PrivateCredential>& private_creds) {
+        callback.credentials_fetched_cb(private_creds);
+      };
+
+  auto get_credentials_failed_lambda = [&callback](
+                                           CredentialOperationStatus status) {
+    if (status == CredentialOperationStatus::kFailed) {
+      callback.get_credentials_failed_cb(CredentialOperationStatus::kFailed);
+    }
+  };
+
+  GetPrivateCredentialsResultCallback get_private_creds_callback;
+  get_private_creds_callback.get_credentials_failed_cb =
+      get_credentials_failed_lambda;
+  get_private_creds_callback.credentials_fetched_cb =
+      credentials_fetched_lambda;
+  credential_storage_ptr_->GetPrivateCredentials(credential_selector,
+                                                 get_private_creds_callback);
+}
+
+void CredentialManagerImpl::GetPublicCredentials(
+    CredentialSelector credential_selector,
+    PublicCredentialType public_credential_type,
+    GetPublicCredentialsResultCallback callback) {
+  auto credentials_fetched_lambda =
+      [&callback](const std::vector<PublicCredential>& public_creds) {
+        callback.credentials_fetched_cb(public_creds);
+      };
+
+  auto get_credentials_failed_lambda = [&callback](
+                                           CredentialOperationStatus status) {
+    if (status == CredentialOperationStatus::kFailed) {
+      callback.get_credentials_failed_cb(CredentialOperationStatus::kFailed);
+    }
+  };
+
+  GetPublicCredentialsResultCallback get_public_creds_callback;
+  get_public_creds_callback.credentials_fetched_cb = credentials_fetched_lambda;
+  get_public_creds_callback.get_credentials_failed_cb =
+      get_credentials_failed_lambda;
+
+  credential_storage_ptr_->GetPublicCredentials(
+      credential_selector, public_credential_type, get_public_creds_callback);
 }
 
 }  // namespace presence

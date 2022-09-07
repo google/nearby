@@ -26,14 +26,20 @@
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/proto/credential.pb.h"
+#include "internal/proto/credential.proto.h"
 
 namespace nearby {
 namespace presence {
 namespace {
 using ::location::nearby::Crypto;
+using ::location::nearby::api::CredentialOperationStatus;
+using ::location::nearby::api::CredentialSelector;
+using ::location::nearby::api::GetPrivateCredentialsResultCallback;
+using ::location::nearby::api::GetPublicCredentialsResultCallback;
 using ::location::nearby::api::PublicCredentialType;
 using ::location::nearby::api::SaveCredentialsResultCallback;
 using ::nearby::internal::DeviceMetadata;
+using ::nearby::internal::IdentityType;
 using ::nearby::internal::PrivateCredential;
 using ::nearby::internal::PublicCredential;
 using ::nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE;
@@ -75,7 +81,6 @@ class CredentialManagerImplTest : public ::testing::Test {
   std::unique_ptr<MockCredentialStorage> mock_credential_storage_ptr_;
 };
 
-// TODO(b/241926454): Make sure CredentialManager builds with Github.
 TEST(CredentialManagerImpl, CreateOneCredentialSuccessfully) {
   DeviceMetadata device_metadata = CreateTestDeviceMetadata();
 
@@ -195,6 +200,120 @@ TEST(CredentialManagerImpl, GenerateCredentialsSuccessfullyButStoreFailed) {
       credentials_generated_cb);
   EXPECT_TRUE(publicCredentials.empty());
 }
+
+TEST(CredentialManagerImpl, GetPrivateCredentialsFailed) {
+  std::vector<PrivateCredential> private_credentials;
+  auto get_credentials_fetched_cb =
+      [&private_credentials](std::vector<PrivateCredential> credentials) {
+        private_credentials = credentials;
+      };
+  CredentialOperationStatus get_credentials_status =
+      CredentialOperationStatus::kSucceeded;
+  auto get_credentials_failed_cb =
+      [&get_credentials_status](CredentialOperationStatus status) {
+        get_credentials_status = status;
+      };
+
+  GetPrivateCredentialsResultCallback get_private_credentials_result_callback;
+  get_private_credentials_result_callback.get_credentials_failed_cb =
+      get_credentials_failed_cb;
+  get_private_credentials_result_callback.credentials_fetched_cb =
+      get_credentials_fetched_cb;
+
+  CredentialSelector credential_selector;
+  credential_selector.manager_app_id = "TEST_MANAGER_APP";
+  credential_selector.account_name = "test_account";
+  credential_selector.identity_type = IDENTITY_TYPE_PRIVATE;
+
+  CredentialManagerImpl credential_manager;
+  credential_manager.GetPrivateCredentials(
+      credential_selector, get_private_credentials_result_callback);
+  EXPECT_EQ(get_credentials_status, CredentialOperationStatus::kFailed);
+  EXPECT_TRUE(private_credentials.empty());
+}
+
+TEST(CredentialManagerImpl, GetPublicCredentialsFailed) {
+  std::vector<PublicCredential> public_credentials;
+  auto get_credentials_fetched_cb =
+      [&public_credentials](std::vector<PublicCredential> credentials) {
+        public_credentials = credentials;
+      };
+  CredentialOperationStatus get_credentials_status =
+      CredentialOperationStatus::kSucceeded;
+  auto get_credentials_failed_cb =
+      [&get_credentials_status](CredentialOperationStatus status) {
+        get_credentials_status = status;
+      };
+
+  GetPublicCredentialsResultCallback get_public_credentials_result_callback;
+  get_public_credentials_result_callback.get_credentials_failed_cb =
+      get_credentials_failed_cb;
+  get_public_credentials_result_callback.credentials_fetched_cb =
+      get_credentials_fetched_cb;
+
+  CredentialSelector credential_selector;
+  credential_selector.manager_app_id = "TEST_MANAGER_APP";
+  credential_selector.account_name = "test_account";
+  credential_selector.identity_type = IDENTITY_TYPE_PRIVATE;
+
+  CredentialManagerImpl credential_manager;
+  credential_manager.GetPublicCredentials(
+      credential_selector, PublicCredentialType::kLocalPublicCredential,
+      get_public_credentials_result_callback);
+  EXPECT_EQ(get_credentials_status, CredentialOperationStatus::kFailed);
+  EXPECT_TRUE(public_credentials.empty());
+}
+
+TEST(CredentialManagerImpl, GetCredentialsSuccessfully) {
+  DeviceMetadata device_metadata = CreateTestDeviceMetadata();
+
+  std::vector<nearby::internal::PublicCredential> publicCredentials;
+
+  auto create_creds_callback_lambda =
+      [&publicCredentials](
+          std::vector<nearby::internal::PublicCredential> credentials) {
+        publicCredentials = credentials;
+      };
+  GenerateCredentialsCallback generate_credentials_callback;
+  generate_credentials_callback.credentials_generated_cb =
+      create_creds_callback_lambda;
+
+  CredentialManagerImpl credential_manager;
+  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
+  credential_manager.GenerateCredentials(device_metadata, "TEST_MANAGER_APP",
+                                         identity_types, 1, 1,
+                                         generate_credentials_callback);
+  EXPECT_EQ(publicCredentials.size(), 1);
+
+  std::vector<PrivateCredential> private_credentials;
+  auto get_credentials_fetched_cb =
+      [&private_credentials](std::vector<PrivateCredential> credentials) {
+        private_credentials = credentials;
+      };
+  CredentialOperationStatus get_credentials_status =
+      CredentialOperationStatus::kSucceeded;
+  auto get_credentials_failed_cb =
+      [&get_credentials_status](CredentialOperationStatus status) {
+        get_credentials_status = status;
+      };
+
+  GetPrivateCredentialsResultCallback get_private_credentials_result_callback;
+  get_private_credentials_result_callback.get_credentials_failed_cb =
+      get_credentials_failed_cb;
+  get_private_credentials_result_callback.credentials_fetched_cb =
+      get_credentials_fetched_cb;
+
+  CredentialSelector credential_selector;
+  credential_selector.manager_app_id = "TEST_MANAGER_APP";
+  credential_selector.account_name = "test_account";
+  credential_selector.identity_type = IDENTITY_TYPE_PRIVATE;
+
+  credential_manager.GetPrivateCredentials(
+      credential_selector, get_private_credentials_result_callback);
+  EXPECT_EQ(get_credentials_status, CredentialOperationStatus::kSucceeded);
+  EXPECT_FALSE(private_credentials.empty());
+}
+
 }  // namespace
 
 }  // namespace presence
