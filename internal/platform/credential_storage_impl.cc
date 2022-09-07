@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/credential_storage.h"
+#include "internal/platform/credential_storage_impl.h"
 
 namespace location {
 namespace nearby {
@@ -20,7 +20,7 @@ namespace nearby {
 using ::nearby::internal::PrivateCredential;
 using ::nearby::internal::PublicCredential;
 
-void CredentialStorage::SaveCredentials(
+void CredentialStorageImpl::SaveCredentials(
     absl::string_view manager_app_id, absl::string_view account_name,
     const std::vector<PrivateCredential>& private_credentials,
     const std::vector<PublicCredential>& public_credentials,
@@ -31,13 +31,13 @@ void CredentialStorage::SaveCredentials(
                                 public_credential_type, callback);
 }
 
-void CredentialStorage::GetPrivateCredentials(
+void CredentialStorageImpl::GetPrivateCredentials(
     const api::CredentialSelector& credential_selector,
     api::GetPrivateCredentialsResultCallback callback) {
   return impl_->GetPrivateCredentials(credential_selector, callback);
 }
 
-void CredentialStorage::GetPublicCredentials(
+void CredentialStorageImpl::GetPublicCredentials(
     const api::CredentialSelector& credential_selector,
     api::PublicCredentialType public_credential_type,
     api::GetPublicCredentialsResultCallback callback) {

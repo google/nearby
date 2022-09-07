@@ -23,7 +23,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/credential_storage.h"
+#include "internal/platform/credential_storage_impl.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/implementation/credential_manager.h"
 
@@ -32,7 +32,16 @@ namespace presence {
 
 class CredentialManagerImpl : public CredentialManager {
  public:
-  CredentialManagerImpl() = default;
+  CredentialManagerImpl() {
+    credential_storage_ptr_ =
+        std::make_unique<location::nearby::CredentialStorageImpl>();
+  }
+
+  // Test purpose only.
+  explicit CredentialManagerImpl(
+      std::unique_ptr<location::nearby::CredentialStorageImpl>
+          credential_storage_ptr)
+      : credential_storage_ptr_(std::move(credential_storage_ptr)) {}
 
   // AES only supports key sizes of 16, 24 or 32 bytes.
   static constexpr int kAuthenticityKeyByteSize = 16;
@@ -89,9 +98,6 @@ class CredentialManagerImpl : public CredentialManager {
     return absl::UnimplementedError("EncryptDataElements unimplemented");
   }
 
- private:
-  FRIEND_TEST(CredentialManagerImpl, CreateOneCredentialSuccessfully);
-
   std::pair<std::unique_ptr<nearby::internal::PrivateCredential>,
             std::unique_ptr<nearby::internal::PublicCredential>>
   CreatePrivateCredential(nearby::internal::DeviceMetadata device_metadata,
@@ -109,6 +115,10 @@ class CredentialManagerImpl : public CredentialManager {
   // Extend the key from 16 bytes to 32 bytes.
   std::vector<uint8_t> ExtendMetadataEncryptionKey(
       std::string device_metadata_encryption_key);
+
+ private:
+  std::unique_ptr<location::nearby::CredentialStorageImpl>
+      credential_storage_ptr_;
 };
 
 }  // namespace presence

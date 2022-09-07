@@ -472,7 +472,7 @@ let package = Package(
         "internal/platform/crypto_test.cc",
         "internal/platform/byte_array_test.cc",
         "internal/platform/bluetooth_utils_test.cc",
-        "internal/platform/credential_storage_test.cc",
+        "internal/platform/credential_storage_impl_test.cc",
         "internal/platform/single_thread_executor_test.cc",
         "internal/platform/scheduled_executor_test.cc",
         "internal/platform/count_down_latch_test.cc",

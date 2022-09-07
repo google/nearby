@@ -32,37 +32,30 @@ namespace nearby {
  */
 class CredentialStorage {
  public:
-  explicit CredentialStorage()
-      : impl_(api::ImplementationPlatform::CreateCredentialStorage()) {}
-  ~CredentialStorage() = default;
+  virtual ~CredentialStorage() = default;
 
-  // CredentialStorage class is movable but not copyable.
-  CredentialStorage(CredentialStorage&& other) = default;
-  CredentialStorage& operator=(CredentialStorage&& other) = default;
-
-  void SaveCredentials(absl::string_view manager_app_id,
-                       absl::string_view account_name,
-                       const std::vector<::nearby::internal::PrivateCredential>&
-                           private_credentials,
-                       const std::vector<::nearby::internal::PublicCredential>&
-                           public_credentials,
-                       api::PublicCredentialType public_credential_type,
-                       api::SaveCredentialsResultCallback callback);
+  virtual void SaveCredentials(
+      absl::string_view manager_app_id, absl::string_view account_name,
+      const std::vector<::nearby::internal::PrivateCredential>&
+          private_credentials,
+      const std::vector<::nearby::internal::PublicCredential>&
+          public_credentials,
+      api::PublicCredentialType public_credential_type,
+      api::SaveCredentialsResultCallback callback) = 0;
 
   // Used to fetch private creds when broadcasting.
-  void GetPrivateCredentials(const api::CredentialSelector& credential_selector,
-                             api::GetPrivateCredentialsResultCallback callback);
+  virtual void GetPrivateCredentials(
+      const api::CredentialSelector& credential_selector,
+      api::GetPrivateCredentialsResultCallback callback) = 0;
 
   // Used to fetch remote public creds when scanning.
-  void GetPublicCredentials(const api::CredentialSelector& credential_selector,
-                            api::PublicCredentialType public_credential_type,
-                            api::GetPublicCredentialsResultCallback callback);
-
- private:
-  std::unique_ptr<api::CredentialStorage> impl_;
+  virtual void GetPublicCredentials(
+      const api::CredentialSelector& credential_selector,
+      api::PublicCredentialType public_credential_type,
+      api::GetPublicCredentialsResultCallback callback) = 0;
 };
 
 }  // namespace nearby
 }  // namespace location
 
-#endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CREDENTIAL_STORAGE_H_
+#endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CREDENTIAL_STORAGE_H

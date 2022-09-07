@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/credential_storage.h"
+#include "internal/platform/credential_storage_impl.h"
 
 #include <memory>
 #include <string>
@@ -29,7 +29,7 @@ namespace nearby {
 using ::nearby::internal::PrivateCredential;
 using ::nearby::internal::PublicCredential;
 
-TEST(CredentialStorageTest, CanSaveAndGetPrivateCredentials) {
+TEST(CredentialStorageImplTest, CanSaveAndGetPrivateCredentials) {
   // Define mock parameters
   std::string manager_app_id{"0192"};
   std::string account_name{"test_account"};
@@ -79,9 +79,9 @@ TEST(CredentialStorageTest, CanSaveAndGetPrivateCredentials) {
       credentials_fetched_lambda;
   get_private_creds_callback.get_credentials_failed_cb =
       get_credentials_failed_lambda;
-  // Create CredentialStorage object to test SaveCredentials &
+  // Create CredentialStorageImpl object to test SaveCredentials &
   // GetPrivateCredentials
-  CredentialStorage creds_storage;
+  CredentialStorageImpl creds_storage;
   creds_storage.GetPrivateCredentials(credential_selector,
                                       get_private_creds_callback);
   EXPECT_FALSE(get_private_cred_succeeded);
@@ -94,7 +94,7 @@ TEST(CredentialStorageTest, CanSaveAndGetPrivateCredentials) {
   EXPECT_TRUE(get_private_cred_succeeded);
 }
 
-TEST(CredentialStorageTest, CanSaveAndGetPublicCredentials) {
+TEST(CredentialStorageImplTest, CanSaveAndGetPublicCredentials) {
   // Define mock parameters
   std::string manager_app_id{"0192"};
   std::string account_name{"test_account"};
@@ -143,9 +143,9 @@ TEST(CredentialStorageTest, CanSaveAndGetPublicCredentials) {
   get_public_creds_callback.credentials_fetched_cb = credentials_fetched_lambda;
   get_public_creds_callback.get_credentials_failed_cb =
       get_credentials_failed_lambda;
-  // Create CredentialStorage object to test SaveCredentials &
+  // Create CredentialStorageImpl object to test SaveCredentials &
   // GetPublicCredentials
-  CredentialStorage creds_storage;
+  CredentialStorageImpl creds_storage;
   creds_storage.GetPublicCredentials(
       credential_selector, public_credential_type, get_public_creds_callback);
   EXPECT_FALSE(get_public_cred_succeeded);

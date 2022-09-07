@@ -149,6 +149,8 @@ cc_test(
     deps = [
         ":internal",
         "//net/proto2/contrib/parse_proto:testing",
+        "//internal/platform:comm",
+        "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",

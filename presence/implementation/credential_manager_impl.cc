@@ -32,6 +32,9 @@ namespace presence {
 namespace {
 using ::location::nearby::Base64Utils;
 using ::location::nearby::Crypto;
+using ::location::nearby::api::CredentialOperationStatus;
+using ::location::nearby::api::PublicCredentialType;
+using ::location::nearby::api::SaveCredentialsResultCallback;
 using ::nearby::internal::DeviceMetadata;
 using ::nearby::internal::IdentityType;
 using ::nearby::internal::PrivateCredential;
@@ -67,9 +70,26 @@ void CredentialManagerImpl::GenerateCredentials(
       end_time_millis += gap_millis;
     }
   }
-  // TODO(b/241488275) Store all the public and private credentials and call the
-  // callback to inform client.
-  credentials_generated_cb.credentials_generated_cb(public_credentials);
+
+  auto save_creds_lambda = [&public_credentials, &credentials_generated_cb](
+                               CredentialOperationStatus status) {
+    if (status == CredentialOperationStatus::kSucceeded) {
+      credentials_generated_cb.credentials_generated_cb(public_credentials);
+    } else {
+      NEARBY_LOGS(ERROR) << "Fails to save generated credentials";
+      credentials_generated_cb.credentials_generated_cb(
+          std::vector<PublicCredential>());
+    }
+  };
+
+  SaveCredentialsResultCallback save_creds_cb;
+  save_creds_cb.credentials_saved_cb = save_creds_lambda;
+
+  // Create credential_storage object and invoke SaveCredentials.
+  credential_storage_ptr_->SaveCredentials(
+      manager_app_id, device_metadata.account_name(), private_credentials,
+      public_credentials, PublicCredentialType::kLocalPublicCredential,
+      save_creds_cb);
 }
 
 std::pair<std::unique_ptr<PrivateCredential>, std::unique_ptr<PublicCredential>>
@@ -90,15 +110,10 @@ CredentialManagerImpl::CreatePrivateCredential(DeviceMetadata device_metadata,
   // Uses SHA-256 algorithm to generate the credential ID from the authenticity
   // key
   auto secret_id = Crypto::Sha256(secret_key);
-  if (secret_id.Empty()) {
-    NEARBY_LOG(ERROR,
-               "Failed to create private credential because it failed to "
-               "create a secret id.");
-    return std::pair<std::unique_ptr<PrivateCredential>,
-                     std::unique_ptr<PublicCredential>>(
-        std::unique_ptr<PrivateCredential>(nullptr),
-        std::unique_ptr<PublicCredential>(nullptr));
-  }
+  // Does not expect to fail here since Crypto::Sha256 should not return empty
+  // ByteArray.
+  CHECK(!secret_id.Empty()) << "Crypto::Sha256 failed!";
+
   private_credential_ptr->set_secret_id(secret_id.AsStringView());
 
   std::string alias = Base64Utils::Encode(secret_id);
@@ -158,7 +173,7 @@ std::unique_ptr<PublicCredential> CredentialManagerImpl::CreatePublicCredential(
       private_credential->device_metadata().SerializeAsString());
 
   if (encrypted_meta_data.empty()) {
-    NEARBY_LOG(ERROR, "Fails to encrypt the device metadata.");
+    NEARBY_LOGS(ERROR) << "Fails to encrypt the device metadata.";
     return std::unique_ptr<PublicCredential>(nullptr);
   }
 
