@@ -37,7 +37,6 @@ cc_library(
         "device_motion.cc",
         "discovery_filter.cc",
         "presence_action.cc",
-        "presence_client.cc",
         "presence_device.cc",
         "presence_zone.cc",
         "scan_request_builder.cc",
@@ -52,7 +51,6 @@ cc_library(
         "listeners.h",
         "power_mode.h",
         "presence_action.h",
-        "presence_client.h",
         "presence_device.h",
         "presence_zone.h",
         "scan_request.h",
@@ -62,7 +60,6 @@ cc_library(
     deps = [
         "//internal/platform:base",
         "//internal/proto:credential_cc_proto",
-        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:variant",
