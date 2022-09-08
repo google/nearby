@@ -8,7 +8,8 @@ cc_library(
         "//presence:__subpackages__",
     ],
     deps = [
-        "@com_google_absl//absl/status",
+        "//internal/platform:base",
+        "//internal/platform:connection_info",
         "@com_google_absl//absl/status:statusor",
     ],
 )

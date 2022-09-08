@@ -20,6 +20,7 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "connections/device_provider.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/service_controller.h"
 #include "connections/implementation/service_controller_router.h"
@@ -266,6 +267,8 @@ class Core {
 
   void InitiateBandwidthUpgradeV2(const NearbyDevice& device,
                                   ResultCallback callback);
+
+  void RegisterDeviceProvider(const NearbyDeviceProvider& provider);
 
  private:
   ClientProxy client_;

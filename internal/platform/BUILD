@@ -48,6 +48,7 @@ cc_library(
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
+        "//internal:__pkg__",
         "//internal/analytics:__subpackages__",
         "//internal/platform:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
@@ -138,6 +139,22 @@ cc_library(
         ":util",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_library(
+    name = "connection_info",
+    hdrs = [
+        "connection_info.h",
+    ],
+    defines = ["NO_WEBRTC"],
+    visibility = [
+        "//connections:__subpackages__",
+        "//internal:__pkg__",
+        "//internal/platform/implementation:__subpackages__",
+    ],
+    deps = [
+        "//internal/platform:base",
     ],
 )
 

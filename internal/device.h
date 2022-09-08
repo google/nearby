@@ -18,6 +18,7 @@
 #include <string>
 
 #include "absl/status/statusor.h"
+#include "internal/platform/connection_info.h"
 
 namespace location {
 namespace nearby {
@@ -36,6 +37,7 @@ class NearbyDevice {
   NearbyDevice& operator=(const NearbyDevice&) = delete;
   virtual absl::StatusOr<std::string> GetEndpointId() const = 0;
   virtual std::string GetEndpointInfo() const = 0;
+  virtual absl::Span<ConnectionInfo*> GetConnectionInfos() const = 0;
   virtual Type GetType() const { return Type::kUnknownDevice; }
 };
 

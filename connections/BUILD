@@ -55,6 +55,7 @@ cc_library(
     hdrs = [
         "advertising_options.h",
         "connection_options.h",
+        "device_provider.h",
         "discovery_options.h",
         "listeners.h",
         "medium_selector.h",
