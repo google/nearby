@@ -194,7 +194,7 @@ PayloadListenerW::PayloadListenerW(PayloadCB payloadCB,
   CHECK(payload_cb != nullptr);
   auto pcb = payload_cb;
   impl_->payload_cb = [pcb](const std::string &endpoint_id,
-                            connections::Payload payload) {
+                            connections::Payload &payload) {
     PayloadW payloadW;
 
     switch (payload.GetType()) {

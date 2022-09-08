@@ -172,7 +172,7 @@ class OfflineSimulationUser {
   void OnEndpointLost(const std::string& endpoint_id);
 
   // PayloadListener callbacks
-  void OnPayload(const std::string& endpoint_id, Payload payload);
+  void OnPayload(const std::string& endpoint_id, Payload& payload);
   void OnPayloadProgress(const std::string& endpoint_id,
                          const PayloadProgressInfo& info);
 

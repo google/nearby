@@ -607,7 +607,7 @@ void ClientProxy::OnPayload(const std::string& endpoint_id, Payload payload) {
       NEARBY_LOGS(INFO) << "ClientProxy [reporting onPayloadReceived]: client="
                         << GetClientId() << "; endpoint_id=" << endpoint_id
                         << " ; payload_id=" << payload.GetId();
-      item->payload_listener.payload_cb(endpoint_id, std::move(payload));
+      item->payload_listener.payload_cb(endpoint_id, payload);
     }
   }
 }

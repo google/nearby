@@ -74,7 +74,7 @@ void OfflineSimulationUser::OnEndpointLost(const std::string& endpoint_id) {
 }
 
 void OfflineSimulationUser::OnPayload(const std::string& endpoint_id,
-                                      Payload payload) {
+                                      Payload& payload) {
   payload_ = std::move(payload);
   if (payload_latch_) payload_latch_->CountDown();
 }
