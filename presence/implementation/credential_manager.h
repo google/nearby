@@ -74,6 +74,7 @@ class CredentialManager {
   // Used to fetch remote public creds when scanning.
   virtual void GetPublicCredentials(
       location::nearby::api::CredentialSelector credential_selector,
+      location::nearby::api::PublicCredentialType public_credential_type,
       location::nearby::api::GetPublicCredentialsResultCallback callback) = 0;
 
   // Decrypts the device metadata from a public credential.

@@ -34,7 +34,8 @@ void CredentialStorageImpl::SaveCredentials(
     const std::vector<PublicCredential>& public_credentials,
     api::PublicCredentialType public_credential_type,
     api::SaveCredentialsResultCallback callback) {
-  NEARBY_LOGS(INFO) << "G3 Save Credentials for account: " << account_name;
+  NEARBY_LOGS(INFO) << "G3 Save Credentials for account:[ " << account_name
+                    << "], Manager App ID:[" << manager_app_id << "]";
   auto save_public_creds_lambda =
       [&callback](api::CredentialOperationStatus status) {
         if (status == api::CredentialOperationStatus::kSucceeded) {
@@ -77,7 +78,8 @@ void CredentialStorageImpl::SavePrivateCredentials(
     const std::vector<PrivateCredential>& private_credentials,
     api::SaveCredentialsResultCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Save Private Credentials for account: "
-                    << account_name;
+                    << account_name << "], manager app ID:[" << manager_app_id
+                    << "]";
   auto key_value = std::make_pair(std::make_pair(manager_app_id, account_name),
                                   private_credentials);
   auto res = private_credentials_map_.insert(key_value);
@@ -96,7 +98,8 @@ void CredentialStorageImpl::SavePublicCredentials(
     api::PublicCredentialType public_credential_type,
     api::SaveCredentialsResultCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Save Public Credentials for account: "
-                    << account_name;
+                    << account_name << "], manager app ID:[" << manager_app_id
+                    << "]";
   auto key_value = std::make_pair(
       std::make_tuple(manager_app_id, account_name, public_credential_type),
       public_credentials);
@@ -114,8 +117,9 @@ void CredentialStorageImpl::SavePublicCredentials(
 void CredentialStorageImpl::GetPrivateCredentials(
     const api::CredentialSelector& credential_selector,
     api::GetPrivateCredentialsResultCallback callback) {
-  NEARBY_LOGS(INFO) << "G3 Get Private Credentials for account: "
-                    << credential_selector.account_name;
+  NEARBY_LOGS(INFO) << "G3 Get Private Credentials for account:[ "
+                    << credential_selector.account_name << "], manager app ID:["
+                    << credential_selector.manager_app_id << "]";
   auto key = std::make_pair(credential_selector.manager_app_id,
                             credential_selector.account_name);
   if (private_credentials_map_.find(key) == private_credentials_map_.end()) {
