@@ -122,6 +122,7 @@ cc_test(
     deps = [
         ":internal",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//presence:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/types:variant",
         "@com_google_googletest//:gtest_main",

@@ -16,10 +16,10 @@
 #define THIRD_PARTY_NEARBY_PRESENCE_BROADCAST_REQUEST_H_
 
 #include <string>
-#include <variant>
 #include <vector>
 
 #include "absl/types/optional.h"
+#include "absl/types/variant.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
 #include "presence/power_mode.h"
@@ -67,7 +67,7 @@ struct BroadcastRequest {
   // The broadcast frequency hint.
   PowerMode power_mode;
 
-  std::variant<PresenceBroadcast, LegacyPresenceBroadcast> variant;
+  absl::variant<PresenceBroadcast, LegacyPresenceBroadcast> variant;
 };
 
 }  // namespace presence
