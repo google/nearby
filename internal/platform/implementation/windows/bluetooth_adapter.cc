@@ -14,6 +14,8 @@
 
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 
+#include <windows.h>   // These two headers must be defined
+#include <winioctl.h>  // first and in this order
 #include <bthdef.h>
 #include <bthioctl.h>
 #include <cfgmgr32.h>
@@ -23,8 +25,6 @@
 #include <setupapi.h>
 #include <stdio.h>
 #include <usbiodef.h>
-#include <windows.h>   // These two headers must be defined
-#include <winioctl.h>  // first and in this order
 
 #include <string>
 
