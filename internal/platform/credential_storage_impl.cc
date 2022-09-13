@@ -11,8 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #include "internal/platform/credential_storage_impl.h"
+
+#include <utility>
+#include <vector>
 
 namespace location {
 namespace nearby {
@@ -28,21 +30,21 @@ void CredentialStorageImpl::SaveCredentials(
     api::SaveCredentialsResultCallback callback) {
   return impl_->SaveCredentials(manager_app_id, account_name,
                                 private_credentials, public_credentials,
-                                public_credential_type, callback);
+                                public_credential_type, std::move(callback));
 }
 
 void CredentialStorageImpl::GetPrivateCredentials(
     const api::CredentialSelector& credential_selector,
     api::GetPrivateCredentialsResultCallback callback) {
-  return impl_->GetPrivateCredentials(credential_selector, callback);
+  return impl_->GetPrivateCredentials(credential_selector, std::move(callback));
 }
 
 void CredentialStorageImpl::GetPublicCredentials(
     const api::CredentialSelector& credential_selector,
     api::PublicCredentialType public_credential_type,
     api::GetPublicCredentialsResultCallback callback) {
-  return impl_->GetPublicCredentials(credential_selector,
-                                     public_credential_type, callback);
+  return impl_->GetPublicCredentials(
+      credential_selector, public_credential_type, std::move(callback));
 }
 
 }  // namespace nearby

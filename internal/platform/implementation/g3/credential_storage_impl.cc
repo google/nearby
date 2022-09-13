@@ -34,74 +34,25 @@ void CredentialStorageImpl::SaveCredentials(
     const std::vector<PublicCredential>& public_credentials,
     api::PublicCredentialType public_credential_type,
     api::SaveCredentialsResultCallback callback) {
-  NEARBY_LOGS(INFO) << "G3 Save Credentials for account: " << account_name;
-  auto save_public_creds_lambda =
-      [&callback](api::CredentialOperationStatus status) {
-        if (status == api::CredentialOperationStatus::kSucceeded) {
-          NEARBY_LOGS(INFO) << "Saving Public Credentials succeeded!";
-        } else if (status == api::CredentialOperationStatus::kFailed) {
-          NEARBY_LOGS(WARNING) << "Saving Public Credentials failed!";
-        } else {
-          NEARBY_LOGS(WARNING) << "Saving Public Credentials status unknown!";
-        }
-        callback.credentials_saved_cb(status);
-      };
-  api::SaveCredentialsResultCallback save_public_creds_cb;
-  save_public_creds_cb.credentials_saved_cb = save_public_creds_lambda;
-  auto save_private_creds_lambda = [manager_app_id, account_name,
-                                    &public_credentials, public_credential_type,
-                                    &save_public_creds_cb, &callback, this](
-                                       api::CredentialOperationStatus status) {
-    if (status == api::CredentialOperationStatus::kSucceeded) {
-      NEARBY_LOGS(INFO) << "Saving Private Credentials succeeded!";
-      SavePublicCredentials(manager_app_id, account_name, public_credentials,
-                            public_credential_type, save_public_creds_cb);
-    } else if (status == api::CredentialOperationStatus::kFailed) {
-      NEARBY_LOGS(WARNING) << "Saving Private Credentials failed!";
-      callback.credentials_saved_cb(status);
-    } else {
-      NEARBY_LOGS(WARNING) << "Saving Private Credentials status unknown!";
-      callback.credentials_saved_cb(status);
-    }
-  };
-  api::SaveCredentialsResultCallback save_private_creds_cb;
-  save_private_creds_cb.credentials_saved_cb = save_private_creds_lambda;
-
-  // Invoke SavePrivateCredentials to kick off chain of credential storage.
-  SavePrivateCredentials(manager_app_id, account_name, private_credentials,
-                         save_private_creds_cb);
-}
-
-void CredentialStorageImpl::SavePrivateCredentials(
-    absl::string_view manager_app_id, absl::string_view account_name,
-    const std::vector<PrivateCredential>& private_credentials,
-    api::SaveCredentialsResultCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Save Private Credentials for account: "
                     << account_name;
-  auto key_value = std::make_pair(std::make_pair(manager_app_id, account_name),
-                                  private_credentials);
-  auto res = private_credentials_map_.insert(key_value);
-  if (!res.second) {
+  auto private_key_value = std::make_pair(
+      std::make_pair(manager_app_id, account_name), private_credentials);
+  auto private_res = private_credentials_map_.insert(private_key_value);
+  if (!private_res.second) {
     NEARBY_LOGS(WARNING)
         << "Credentials already saved in map. Overriding previous creds!";
     private_credentials_map_[std::make_pair(manager_app_id, account_name)] =
         private_credentials;
   }
-  callback.credentials_saved_cb(api::CredentialOperationStatus::kSucceeded);
-}
 
-void CredentialStorageImpl::SavePublicCredentials(
-    absl::string_view manager_app_id, absl::string_view account_name,
-    const std::vector<PublicCredential>& public_credentials,
-    api::PublicCredentialType public_credential_type,
-    api::SaveCredentialsResultCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Save Public Credentials for account: "
                     << account_name;
-  auto key_value = std::make_pair(
+  auto public_key_value = std::make_pair(
       std::make_tuple(manager_app_id, account_name, public_credential_type),
       public_credentials);
-  auto res = public_credentials_map_.insert(key_value);
-  if (!res.second) {
+  auto public_res = public_credentials_map_.insert(public_key_value);
+  if (!public_res.second) {
     NEARBY_LOGS(WARNING)
         << "Credentials already saved in map. Overriding previous creds!";
     public_credentials_map_[std::make_tuple(manager_app_id, account_name,

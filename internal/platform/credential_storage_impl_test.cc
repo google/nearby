@@ -49,17 +49,17 @@ TEST(CredentialStorageImplTest, CanSaveAndGetPrivateCredentials) {
   public_credentials.push_back(public_credential);
   // Define SaveCredentialsResultCallback
   bool successfull_save{false};
-  auto save_creds_lambda =
+  api::SaveCredentialsResultCallback save_creds_callback;
+  save_creds_callback.credentials_saved_cb =
       [&successfull_save](api::CredentialOperationStatus status) {
         if (status == api::CredentialOperationStatus::kSucceeded) {
           successfull_save = true;
         }
       };
-  api::SaveCredentialsResultCallback save_creds_callback;
-  save_creds_callback.credentials_saved_cb = save_creds_lambda;
   // Define GetPrivateCredentialsResultCallback
   bool get_private_cred_succeeded{false};
-  auto credentials_fetched_lambda =
+  api::GetPrivateCredentialsResultCallback get_private_creds_callback;
+  get_private_creds_callback.credentials_fetched_cb =
       [&private_credentials, &get_private_cred_succeeded](
           const std::vector<PrivateCredential> &private_creds) {
         auto private_cred = private_creds[0];
@@ -68,29 +68,24 @@ TEST(CredentialStorageImplTest, CanSaveAndGetPrivateCredentials) {
           get_private_cred_succeeded = true;
         }
       };
-  auto get_credentials_failed_lambda =
+  get_private_creds_callback.get_credentials_failed_cb =
       [&get_private_cred_succeeded](api::CredentialOperationStatus status) {
         if (status == api::CredentialOperationStatus::kFailed) {
           get_private_cred_succeeded = false;
         }
       };
-  api::GetPrivateCredentialsResultCallback get_private_creds_callback;
-  get_private_creds_callback.credentials_fetched_cb =
-      credentials_fetched_lambda;
-  get_private_creds_callback.get_credentials_failed_cb =
-      get_credentials_failed_lambda;
   // Create CredentialStorageImpl object to test SaveCredentials &
   // GetPrivateCredentials
   CredentialStorageImpl creds_storage;
   creds_storage.GetPrivateCredentials(credential_selector,
                                       get_private_creds_callback);
   EXPECT_FALSE(get_private_cred_succeeded);
-  creds_storage.SaveCredentials(manager_app_id, account_name,
-                                private_credentials, public_credentials,
-                                public_credential_type, save_creds_callback);
+  creds_storage.SaveCredentials(
+      manager_app_id, account_name, private_credentials, public_credentials,
+      public_credential_type, std::move(save_creds_callback));
   EXPECT_TRUE(successfull_save);
   creds_storage.GetPrivateCredentials(credential_selector,
-                                      get_private_creds_callback);
+                                      std::move(get_private_creds_callback));
   EXPECT_TRUE(get_private_cred_succeeded);
 }
 
@@ -114,17 +109,17 @@ TEST(CredentialStorageImplTest, CanSaveAndGetPublicCredentials) {
   public_credentials.push_back(public_credential);
   // Define SaveCredentialsResultCallback
   bool successfull_save{false};
-  auto save_creds_lambda =
+  api::SaveCredentialsResultCallback save_creds_callback;
+  save_creds_callback.credentials_saved_cb =
       [&successfull_save](api::CredentialOperationStatus status) {
         if (status == api::CredentialOperationStatus::kSucceeded) {
           successfull_save = true;
         }
       };
-  api::SaveCredentialsResultCallback save_creds_callback;
-  save_creds_callback.credentials_saved_cb = save_creds_lambda;
   // Define GetPublicCredentialsResultCallback
   bool get_public_cred_succeeded{false};
-  auto credentials_fetched_lambda =
+  api::GetPublicCredentialsResultCallback get_public_creds_callback;
+  get_public_creds_callback.credentials_fetched_cb =
       [&public_credentials, &get_public_cred_succeeded](
           const std::vector<PublicCredential> &public_creds) {
         auto public_cred = public_creds[0];
@@ -133,28 +128,25 @@ TEST(CredentialStorageImplTest, CanSaveAndGetPublicCredentials) {
           get_public_cred_succeeded = true;
         }
       };
-  auto get_credentials_failed_lambda =
+  get_public_creds_callback.get_credentials_failed_cb =
       [&get_public_cred_succeeded](api::CredentialOperationStatus status) {
         if (status == api::CredentialOperationStatus::kFailed) {
           get_public_cred_succeeded = false;
         }
       };
-  api::GetPublicCredentialsResultCallback get_public_creds_callback;
-  get_public_creds_callback.credentials_fetched_cb = credentials_fetched_lambda;
-  get_public_creds_callback.get_credentials_failed_cb =
-      get_credentials_failed_lambda;
   // Create CredentialStorageImpl object to test SaveCredentials &
   // GetPublicCredentials
   CredentialStorageImpl creds_storage;
   creds_storage.GetPublicCredentials(
       credential_selector, public_credential_type, get_public_creds_callback);
   EXPECT_FALSE(get_public_cred_succeeded);
-  creds_storage.SaveCredentials(manager_app_id, account_name,
-                                private_credentials, public_credentials,
-                                public_credential_type, save_creds_callback);
+  creds_storage.SaveCredentials(
+      manager_app_id, account_name, private_credentials, public_credentials,
+      public_credential_type, std::move(save_creds_callback));
   EXPECT_TRUE(successfull_save);
-  creds_storage.GetPublicCredentials(
-      credential_selector, public_credential_type, get_public_creds_callback);
+  creds_storage.GetPublicCredentials(credential_selector,
+                                     public_credential_type,
+                                     std::move(get_public_creds_callback));
   EXPECT_TRUE(get_public_cred_succeeded);
 }
 

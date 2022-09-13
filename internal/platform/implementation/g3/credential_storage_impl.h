@@ -39,6 +39,7 @@ class CredentialStorageImpl : public api::CredentialStorage {
   explicit CredentialStorageImpl() = default;
   ~CredentialStorageImpl() override = default;
 
+  // Used to save private and public credentials.
   void SaveCredentials(absl::string_view manager_app_id,
                        absl::string_view account_name,
                        const std::vector<::nearby::internal::PrivateCredential>&
@@ -47,19 +48,6 @@ class CredentialStorageImpl : public api::CredentialStorage {
                            public_credentials,
                        api::PublicCredentialType public_credential_type,
                        api::SaveCredentialsResultCallback callback) override;
-
-  void SavePrivateCredentials(
-      absl::string_view manager_app_id, absl::string_view account_name,
-      const std::vector<::nearby::internal::PrivateCredential>&
-          private_credentials,
-      api::SaveCredentialsResultCallback callback);
-
-  void SavePublicCredentials(
-      absl::string_view manager_app_id, absl::string_view account_name,
-      const std::vector<::nearby::internal::PublicCredential>&
-          public_credentials,
-      api::PublicCredentialType public_credential_type,
-      api::SaveCredentialsResultCallback callback);
 
   // Used to fetch private creds when broadcasting.
   void GetPrivateCredentials(
