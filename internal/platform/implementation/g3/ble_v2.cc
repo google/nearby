@@ -14,6 +14,7 @@
 
 #include "internal/platform/implementation/g3/ble_v2.h"
 
+#include <cstdint>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -271,42 +272,58 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                                 TxPowerLevel tx_power_level,
                                 ScanCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Ble StartScanning";
+  auto internal_session_id = prng_.NextUint32();
   absl::MutexLock lock(&mutex_);
-
   MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
-      /*enabled=*/true, service_uuid, std::move(callback), *this);
+      /*enabled=*/true, service_uuid, internal_session_id,
+      {.advertisement_found_cb = callback.advertisement_found_cb}, *this);
+  scanning_internal_session_ids_.insert({service_uuid, internal_session_id});
   return true;
 }
 
 bool BleV2Medium::StopScanning() {
   NEARBY_LOGS(INFO) << "G3 Ble StopScanning";
   absl::MutexLock lock(&mutex_);
-
-  MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
-      /*enabled=*/false,
-      /*service_uuid=*/{}, /*callback=*/{}, *this);
+  for (auto element : scanning_internal_session_ids_) {
+    MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
+        /*enabled=*/false,
+        /*service_uuid=*/element.first, /*internal_session_id*/ element.second,
+        /*callback=*/{}, *this);
+  }
   return true;
 }
 
 std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
     const Uuid& service_uuid, TxPowerLevel tx_power_level,
     BleV2Medium::ScanningCallback callback) {
+  NEARBY_LOGS(INFO) << "G3 Ble StartScanning";
+  auto internal_session_id = prng_.NextUint32();
+
   {
-    NEARBY_LOGS(INFO) << "G3 Ble StartScanning";
     absl::MutexLock lock(&mutex_);
 
     MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
-        /*enabled=*/true, service_uuid,
-        {.advertisement_found_cb = callback.advertisement_found_cb}, *this);
+        /*enabled=*/true, service_uuid, internal_session_id, callback, *this);
+    scanning_internal_session_ids_.insert({service_uuid, internal_session_id});
   }
   callback.start_scanning_result(api::ble_v2::BleOperationStatus::kSucceeded);
   return std::make_unique<ScanningSession>(ScanningSession{
       .stop_scanning =
-          [this]() {
-            if (StopScanning())
-              return BleOperationStatus::kSucceeded;
-            else
+          [this, service_uuid = service_uuid,
+           internal_session_id = internal_session_id]() {
+            absl::MutexLock lock(&mutex_);
+            if (scanning_internal_session_ids_.find(
+                    {service_uuid, internal_session_id}) ==
+                scanning_internal_session_ids_.end()) {
+              // can't find the provided internal session.
               return BleOperationStatus::kFailed;
+            }
+            MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
+                /*enabled=*/false, service_uuid, internal_session_id,
+                /*callback=*/{}, *this);
+            scanning_internal_session_ids_.erase(
+                {service_uuid, internal_session_id});
+            return BleOperationStatus::kSucceeded;
           },
   });
 }

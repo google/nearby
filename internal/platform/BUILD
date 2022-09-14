@@ -219,9 +219,11 @@ cc_library(
     deps = [
         ":base",
         ":logging",
+        ":uuid",
         "//internal/platform:types",
         "//internal/platform/implementation:comm",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:optional",
     ],

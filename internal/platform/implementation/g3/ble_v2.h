@@ -15,18 +15,21 @@
 #ifndef PLATFORM_IMPL_G3_BLE_V2_H_
 #define PLATFORM_IMPL_G3_BLE_V2_H_
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/pipe.h"
+#include "internal/platform/prng.h"
 #include "internal/platform/uuid.h"
-
 namespace location {
 namespace nearby {
 namespace g3 {
@@ -250,9 +253,12 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   };
 
   absl::Mutex mutex_;
+  Prng prng_;
   BluetoothAdapter* adapter_;  // Our device adapter; read-only.
   absl::flat_hash_map<std::string, BleV2ServerSocket*> server_sockets_
       ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_set<std::pair<Uuid, std::uint32_t>>
+      scanning_internal_session_ids_ ABSL_GUARDED_BY(mutex_);
   // TODO(edwinwu): Adds extended advertisement for testing.
   bool is_support_extended_advertisement_ = false;
 };

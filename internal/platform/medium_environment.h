@@ -19,14 +19,17 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/uuid.h"
 #ifndef NO_WEBRTC
 #include "internal/platform/implementation/webrtc.h"
 #endif
@@ -64,7 +67,7 @@ class MediumEnvironment {
       api::BleMedium::DiscoveredPeripheralCallback;
   using BleAcceptedConnectionCallback =
       api::BleMedium::AcceptedConnectionCallback;
-  using BleScanCallback = api::ble_v2::BleMedium::ScanCallback;
+  using BleScanCallback = api::ble_v2::BleMedium::ScanningCallback;
 #ifndef NO_WEBRTC
   using OnSignalingMessageCallback =
       api::WebRtcSignalingMessenger::OnSignalingMessageCallback;
@@ -238,6 +241,7 @@ class MediumEnvironment {
   // if `enabled` is false.
   void UpdateBleV2MediumForScanning(bool enabled,
                                     const Uuid& scanning_service_uuid,
+                                    std::uint32_t internal_session_id,
                                     BleScanCallback callback,
                                     api::ble_v2::BleMedium& medium);
 
@@ -344,10 +348,11 @@ class MediumEnvironment {
   };
 
   struct BleV2MediumContext {
-    BleScanCallback scan_callback = {};
-    api::ble_v2::BlePeripheral* ble_peripheral = nullptr;
+    absl::flat_hash_map<std::pair<Uuid, std::uint32_t>, BleScanCallback>
+        scan_callback_map;
+    // using the same ble peripheral for different advertisement.
+    api::ble_v2::BlePeripheral* ble_peripheral;
     api::ble_v2::BleAdvertisementData advertisement_data;
-    Uuid scanning_service_uuid;
     bool advertising = false;
     bool scanning = false;
   };
@@ -389,7 +394,7 @@ class MediumEnvironment {
                                    bool fast_advertisement, bool enabled);
 
   void OnBleV2PeripheralStateChanged(
-      bool enabled, BleV2MediumContext& context,
+      bool enabled, BleV2MediumContext& context, const Uuid& service_id,
       const api::ble_v2::BleAdvertisementData& ble_advertisement_data,
       api::ble_v2::BlePeripheral& peripheral);
 
