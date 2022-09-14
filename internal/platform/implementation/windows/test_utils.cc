@@ -16,7 +16,11 @@
 
 #include <shlobj.h>
 
+#include <algorithm>
 #include <sstream>
+
+#include "absl/strings/str_format.h"
+#include "absl/strings/str_replace.h"
 
 namespace test_utils {
 std::wstring StringToWideString(const std::string& s) {
@@ -60,11 +64,12 @@ std::string GetPayloadPath(location::nearby::PayloadId payload_id) {
 
   CoTaskMemFree(basePath);
 
-  std::stringstream path("");
+  std::string path =
+      absl::StrFormat("%s\\%s", fullPath, std::to_string(payload_id));
 
-  path << fullPath << "\\" << std::to_string(payload_id);
+  path = absl::StrReplaceAll(path, {{"\\", "/"}});
 
-  return path.str();
+  return path;
 }
 
 }  // namespace test_utils

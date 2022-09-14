@@ -49,7 +49,8 @@ TEST(UtilsTests, StringToMacAddress) {
 }
 
 constexpr absl::string_view kIpDotdecimal{"192.168.1.37"};
-constexpr char kIp4Bytes[] = {192, 168, 1, 37};
+
+constexpr char kIp4Bytes[] = {(char)192, (char)168, (char)1, (char)37};
 
 TEST(UtilsTests, Ip4BytesToDotdecimal) {
   std::string result =
@@ -62,7 +63,7 @@ TEST(UtilsTests, IpDotdecimalTo4Bytes) {
   std::string result =
       ipaddr_dotdecimal_to_4bytes_string(std::string(kIpDotdecimal));
 
-  EXPECT_EQ(result, std::string(kIp4Bytes));
+  EXPECT_EQ(result, std::string(kIp4Bytes, 4));
 }
 
 }  // namespace windows

@@ -64,22 +64,38 @@ TEST(UuidTest, CreateFromBinaryCanOutputString) {
   std::array<char, 16> uuid_data = uuid.data();
   std::string uuid_str(uuid);
   NEARBY_LOGS(INFO) << "UUID: " << uuid_str;
-  EXPECT_EQ(uuid_data[0], (kCopresenceServiceUuidMsb >> 56) & 0xFF);
-  EXPECT_EQ(uuid_data[1], (kCopresenceServiceUuidMsb >> 48) & 0xFF);
-  EXPECT_EQ(uuid_data[2], (kCopresenceServiceUuidMsb >> 40) & 0xFF);
-  EXPECT_EQ(uuid_data[3], (kCopresenceServiceUuidMsb >> 32) & 0xFF);
-  EXPECT_EQ(uuid_data[4], (kCopresenceServiceUuidMsb >> 24) & 0xFF);
-  EXPECT_EQ(uuid_data[5], (kCopresenceServiceUuidMsb >> 16) & 0xFF);
-  EXPECT_EQ(uuid_data[6], (kCopresenceServiceUuidMsb >> 8) & 0xFF);
-  EXPECT_EQ(uuid_data[7], (kCopresenceServiceUuidMsb >> 0) & 0xFF);
-  EXPECT_EQ(uuid_data[8], (kCopresenceServiceUuidLsb >> 56) & 0xFF);
-  EXPECT_EQ(uuid_data[9], (kCopresenceServiceUuidLsb >> 48) & 0xFF);
-  EXPECT_EQ(uuid_data[10], (kCopresenceServiceUuidLsb >> 40) & 0xFF);
-  EXPECT_EQ(uuid_data[11], (kCopresenceServiceUuidLsb >> 32) & 0xFF);
-  EXPECT_EQ(uuid_data[12], (kCopresenceServiceUuidLsb >> 24) & 0xFF);
-  EXPECT_EQ(uuid_data[13], (kCopresenceServiceUuidLsb >> 16) & 0xFF);
-  EXPECT_EQ(uuid_data[14], (kCopresenceServiceUuidLsb >> 8) & 0xFF);
-  EXPECT_EQ(uuid_data[15], (kCopresenceServiceUuidLsb >> 0) & 0xFF);
+  EXPECT_EQ(uuid_data[0],
+            static_cast<char>((kCopresenceServiceUuidMsb >> 56) & 0xFF));
+  EXPECT_EQ(uuid_data[1],
+            static_cast<char>((kCopresenceServiceUuidMsb >> 48) & 0xFF));
+  EXPECT_EQ(uuid_data[2],
+            static_cast<char>((kCopresenceServiceUuidMsb >> 40) & 0xFF));
+  EXPECT_EQ(uuid_data[3],
+            static_cast<char>((kCopresenceServiceUuidMsb >> 32) & 0xFF));
+  EXPECT_EQ(uuid_data[4],
+            static_cast<char>((kCopresenceServiceUuidMsb >> 24) & 0xFF));
+  EXPECT_EQ(uuid_data[5],
+            static_cast<char>((kCopresenceServiceUuidMsb >> 16) & 0xFF));
+  EXPECT_EQ(uuid_data[6],
+            static_cast<char>((kCopresenceServiceUuidMsb >> 8) & 0xFF));
+  EXPECT_EQ(uuid_data[7],
+            static_cast<char>((kCopresenceServiceUuidMsb >> 0) & 0xFF));
+  EXPECT_EQ(uuid_data[8],
+            static_cast<char>((kCopresenceServiceUuidLsb >> 56) & 0xFF));
+  EXPECT_EQ(uuid_data[9],
+            static_cast<char>((kCopresenceServiceUuidLsb >> 48) & 0xFF));
+  EXPECT_EQ(uuid_data[10],
+            static_cast<char>((kCopresenceServiceUuidLsb >> 40) & 0xFF));
+  EXPECT_EQ(uuid_data[11],
+            static_cast<char>((kCopresenceServiceUuidLsb >> 32) & 0xFF));
+  EXPECT_EQ(uuid_data[12],
+            static_cast<char>((kCopresenceServiceUuidLsb >> 24) & 0xFF));
+  EXPECT_EQ(uuid_data[13],
+            static_cast<char>((kCopresenceServiceUuidLsb >> 16) & 0xFF));
+  EXPECT_EQ(uuid_data[14],
+            static_cast<char>((kCopresenceServiceUuidLsb >> 8) & 0xFF));
+  EXPECT_EQ(uuid_data[15],
+            static_cast<char>((kCopresenceServiceUuidLsb >> 0) & 0xFF));
 
   EXPECT_THAT(uuid_str, StrCaseEq("0000FEF3-0000-1000-8000-00805F9B34FB"));
   EXPECT_THAT(uuid.Get16BitAsString(), StrCaseEq("FEF3"));
