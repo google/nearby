@@ -295,8 +295,8 @@ class WifiLanMedium : public api::WifiLanMedium {
   // the properties are from DeviceInformation and DeviceInformationUpdate.
   // The API gets IP addresses, service name and text attributes of mDNS
   // from these properties,
-  NsdServiceInfo GetNsdServiceInformation(
-      IMapView<winrt::hstring, IInspectable> properties);
+  ExceptionOr<NsdServiceInfo> GetNsdServiceInformation(
+      IMapView<winrt::hstring, IInspectable> properties, bool is_device_found);
 
   // mDNS callbacks for advertising and discovery
   fire_and_forget Watcher_DeviceAdded(DeviceWatcher sender,
