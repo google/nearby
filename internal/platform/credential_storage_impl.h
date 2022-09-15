@@ -19,7 +19,6 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "internal/platform/credential_storage.h"
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/platform.h"
 
@@ -31,7 +30,7 @@ namespace nearby {
  * It's a wrapper on top of implementation/credential_storage.h to providing
  * credential storage operations for Nearby logic layer to invoke.
  */
-class CredentialStorageImpl : public CredentialStorage {
+class CredentialStorageImpl : public api::CredentialStorage {
  public:
   explicit CredentialStorageImpl()
       : impl_(api::ImplementationPlatform::CreateCredentialStorage()) {}
