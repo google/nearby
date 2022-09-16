@@ -138,13 +138,13 @@ bool BleMedium::StartAdvertising(
       return false;
     }
 
-    NEARBY_LOGS(INFO) << "Windows Ble StartAdvertising: service_id="
-                      << service_id << ", advertisement bytes= 0x"
-                      << absl::BytesToHexString(advertisement_bytes.data())
-                      << "(" << advertisement_bytes.size() << "),"
-                      << " fast advertisement service uuid= 0x"
-                      << absl::BytesToHexString(
-                             fast_advertisement_service_uuid);
+    NEARBY_LOGS(INFO)
+        << "Windows Ble StartAdvertising: service_id=" << service_id
+        << ", advertisement bytes= 0x"
+        << absl::BytesToHexString(advertisement_bytes.AsStringView()) << "("
+        << advertisement_bytes.size() << "),"
+        << " fast advertisement service uuid= 0x"
+        << absl::BytesToHexString(fast_advertisement_service_uuid);
 
     if (is_publisher_started_) {
       NEARBY_LOGS(WARNING)
@@ -562,7 +562,7 @@ void BleMedium::AdvertisementReceivedHandler(
       NEARBY_LOGS(VERBOSE)
           << "Nearby BLE Medium 0xFEF3 Advertisement discovered. "
              "0x16 Service data: advertisement bytes= 0x"
-          << absl::BytesToHexString(advertisement_data.data()) << "("
+          << absl::BytesToHexString(advertisement_data.AsStringView()) << "("
           << advertisement_data.size() << ")";
 
       std::string peripheral_name =
