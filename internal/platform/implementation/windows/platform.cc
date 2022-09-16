@@ -14,20 +14,21 @@
 
 #include "internal/platform/implementation/platform.h"
 
-#include <windows.h>
-#include <winver.h>
 #include <PathCch.h>
 #include <knownfolders.h>
 #include <psapi.h>
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <strsafe.h>
+#include <windows.h>
+#include <winver.h>
 
 #include <memory>
 #include <sstream>
 #include <string>
 
 #include "internal/platform/implementation/shared/count_down_latch.h"
+#include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/implementation/windows/atomic_boolean.h"
 #include "internal/platform/implementation/windows/atomic_reference.h"
 #include "internal/platform/implementation/windows/ble.h"
@@ -156,8 +157,8 @@ std::string CreateOutputFileWithRename(absl::string_view path) {
 
   int count = 0;
 
-  // Locate the first dot
-  auto first = file_name.find_first_of('.', 0);
+  // Locate the last dot
+  auto first = file_name.find_last_of('.');
 
   if (first == std::string::npos) {
     first = file_name.size();
@@ -314,13 +315,13 @@ std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     PayloadId payload_id, std::int64_t total_size) {
   std::string parent_folder("");
   std::string file_name(std::to_string(payload_id));
-  return windows::IOFile::CreateInputFile(GetDownloadPath(file_name),
-                                          total_size);
+  return shared::IOFile::CreateInputFile(GetDownloadPath(file_name),
+                                         total_size);
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     absl::string_view file_path, size_t size) {
-  return windows::IOFile::CreateInputFile(file_path, size);
+  return shared::IOFile::CreateInputFile(file_path, size);
 }
 
 ABSL_DEPRECATED("This interface will be deleted in the near future.")
@@ -328,7 +329,7 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     PayloadId payload_id) {
   std::string parent_folder("");
   std::string file_name(std::to_string(payload_id));
-  return windows::IOFile::CreateOutputFile(
+  return shared::IOFile::CreateOutputFile(
       GetDownloadPath(parent_folder, file_name));
 }
 
@@ -347,7 +348,7 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     int result = SHCreateDirectoryExA(0, folder_path.data(), nullptr);
   }
 
-  return windows::IOFile::CreateOutputFile(file_path);
+  return shared::IOFile::CreateOutputFile(file_path);
 }
 
 // TODO(b/184975123): replace with real implementation.
