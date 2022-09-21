@@ -109,8 +109,6 @@ class BleMedium : public api::BleMedium {
       BluetoothLEAdvertisementPublisher publisher_ = nullptr;
   ::winrt::Windows::Devices::Bluetooth::Advertisement::
       BluetoothLEAdvertisementWatcher watcher_ = nullptr;
-  ::winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisement
-      advertisement_;
 
   bool is_publisher_started_ = false;
   bool is_watcher_started_ = false;

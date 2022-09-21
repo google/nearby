@@ -77,6 +77,11 @@ using ::winrt::Windows::Devices::Bluetooth::Advertisement::
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEAdvertisementPublisherStatusChangedEventArgs;
 
+// BluetoothLEAdvertisement
+// https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.advertisement.bluetoothleadvertisement?view=winrt-22621
+using ::winrt::Windows::Devices::Bluetooth::Advertisement::
+    BluetoothLEAdvertisement;
+
 // Provides data for a Received event on a BluetoothLEAdvertisementWatcher. A
 // BluetoothLEAdvertisementReceivedEventArgs instance is created when the
 // Received event occurs on a BluetoothLEAdvertisementWatcher object.
@@ -170,21 +175,24 @@ bool BleMedium::StartAdvertising(
     BluetoothLEAdvertisementDataSection service_data =
         BluetoothLEAdvertisementDataSection(0x16, data_writer.DetachBuffer());
 
+    BluetoothLEAdvertisement advertisement;
+
     IVector<BluetoothLEAdvertisementDataSection> data_sections =
-        advertisement_.DataSections();
+        advertisement.DataSections();
+
     data_sections.Append(service_data);
-    advertisement_.DataSections() = data_sections;
+    advertisement.DataSections() = data_sections;
 
     // Use Extended Advertising if Fast Advertisement Service Uuid is empty
     // string because the long format advertisement will be used
     if (fast_advertisement_service_uuid.empty()) {
-      publisher_ = BluetoothLEAdvertisementPublisher(advertisement_);
+      publisher_ = BluetoothLEAdvertisementPublisher(advertisement);
       publisher_.UseExtendedAdvertisement(true);
     } else {
       // Extended Advertisement not supported, must make sure
       // advertisement_bytes is less than 27 bytes
       if (advertisement_bytes.size() <= 27) {
-        publisher_ = BluetoothLEAdvertisementPublisher(advertisement_);
+        publisher_ = BluetoothLEAdvertisementPublisher(advertisement);
         publisher_.UseExtendedAdvertisement(false);
       } else {
         // otherwise no-op
