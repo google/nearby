@@ -45,6 +45,7 @@ cc_library(
         "@com_google_glog//:glog",
         "@com_google_nisaba//nisaba/port:thread_pool",
     ],
+    alwayslink = 1,
 )
 
 cc_library(
