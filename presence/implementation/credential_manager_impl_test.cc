@@ -23,17 +23,16 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/credential_storage_impl.h"
-#include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/proto/credential.pb.h"
+#include "internal/proto/credential.proto.h"
 
 namespace nearby {
 namespace presence {
 namespace {
 using ::location::nearby::Crypto;
-using ::location::nearby::api::PublicCredentialType;
-using ::location::nearby::api::SaveCredentialsResultCallback;
 using ::nearby::internal::DeviceMetadata;
+using ::nearby::internal::IdentityType;
 using ::nearby::internal::PrivateCredential;
 using ::nearby::internal::PublicCredential;
 using ::nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE;
@@ -63,7 +62,7 @@ class CredentialManagerImplTest : public ::testing::Test {
                  const std::vector<::nearby::internal::PublicCredential>&
                      public_credentials,
                  PublicCredentialType public_credential_type,
-                 SaveCredentialsResultCallback callback),
+                 GenerateCredentialsCallback callback),
                 (override));
   };
 
@@ -75,7 +74,6 @@ class CredentialManagerImplTest : public ::testing::Test {
   std::unique_ptr<MockCredentialStorage> mock_credential_storage_ptr_;
 };
 
-// TODO(b/241926454): Make sure CredentialManager builds with Github.
 TEST(CredentialManagerImpl, CreateOneCredentialSuccessfully) {
   DeviceMetadata device_metadata = CreateTestDeviceMetadata();
 
@@ -141,7 +139,7 @@ TEST(CredentialManagerImpl, GenerateCredentialsSuccessfully) {
 
   credentials_generated_cb.credentials_generated_cb =
       create_creds_callback_lambda;
-  std::vector<internal::IdentityType> identityTypes{IDENTITY_TYPE_PRIVATE};
+  std::vector<IdentityType> identityTypes{IDENTITY_TYPE_PRIVATE};
 
   credential_manager.GenerateCredentials(
       device_metadata,
@@ -171,23 +169,19 @@ TEST(CredentialManagerImpl, GenerateCredentialsSuccessfullyButStoreFailed) {
              const std::vector<PrivateCredential>& private_credentials,
              const std::vector<PublicCredential>& public_credentials,
              PublicCredentialType public_credential_type,
-             SaveCredentialsResultCallback callback) {
-            callback.credentials_saved_cb(
-                location::nearby::api::CredentialOperationStatus::kFailed);
+             GenerateCredentialsCallback callback) {
+            // Do nothing! Testing failed SaveCredentials call.
           }));
   CredentialManagerImpl credential_manager(std::move(credential_storage_ptr));
 
   GenerateCredentialsCallback credentials_generated_cb;
   std::vector<nearby::internal::PublicCredential> publicCredentials;
-  auto create_creds_callback_lambda =
+  credentials_generated_cb.credentials_generated_cb =
       [&publicCredentials](
           std::vector<nearby::internal::PublicCredential> credentials) {
         publicCredentials = credentials;
       };
-
-  credentials_generated_cb.credentials_generated_cb =
-      create_creds_callback_lambda;
-  std::vector<internal::IdentityType> identityTypes{IDENTITY_TYPE_PRIVATE};
+  std::vector<IdentityType> identityTypes{IDENTITY_TYPE_PRIVATE};
 
   credential_manager.GenerateCredentials(
       device_metadata,

@@ -16,9 +16,11 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CREDENTIAL_STORAGE_IMPL_H_
 
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/platform.h"
 
@@ -39,25 +41,26 @@ class CredentialStorageImpl : public api::CredentialStorage {
   CredentialStorageImpl(CredentialStorageImpl&& other) = default;
   CredentialStorageImpl& operator=(CredentialStorageImpl&& other) = default;
 
-  void SaveCredentials(absl::string_view manager_app_id,
-                       absl::string_view account_name,
-                       const std::vector<::nearby::internal::PrivateCredential>&
-                           private_credentials,
-                       const std::vector<::nearby::internal::PublicCredential>&
-                           public_credentials,
-                       api::PublicCredentialType public_credential_type,
-                       api::SaveCredentialsResultCallback callback) override;
+  void SaveCredentials(
+      absl::string_view manager_app_id, absl::string_view account_name,
+      const std::vector<::nearby::internal::PrivateCredential>&
+          private_credentials,
+      const std::vector<::nearby::internal::PublicCredential>&
+          public_credentials,
+      ::nearby::presence::PublicCredentialType public_credential_type,
+      ::nearby::presence::GenerateCredentialsCallback callback) override;
 
   // Used to fetch private creds when broadcasting.
   void GetPrivateCredentials(
-      const api::CredentialSelector& credential_selector,
-      api::GetPrivateCredentialsResultCallback callback) override;
+      const ::nearby::presence::CredentialSelector& credential_selector,
+      ::nearby::presence::GetPrivateCredentialsResultCallback callback)
+      override;
 
   // Used to fetch remote public creds when scanning.
   void GetPublicCredentials(
-      const api::CredentialSelector& credential_selector,
-      api::PublicCredentialType public_credential_type,
-      api::GetPublicCredentialsResultCallback callback) override;
+      const ::nearby::presence::CredentialSelector& credential_selector,
+      ::nearby::presence::PublicCredentialType public_credential_type,
+      ::nearby::presence::GetPublicCredentialsResultCallback callback) override;
 
  private:
   std::unique_ptr<api::CredentialStorage> impl_;

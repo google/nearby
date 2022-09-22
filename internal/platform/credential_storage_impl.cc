@@ -16,33 +16,40 @@
 #include <utility>
 #include <vector>
 
+#include "internal/platform/implementation/credential_callbacks.h"
+
 namespace location {
 namespace nearby {
 
 using ::nearby::internal::PrivateCredential;
 using ::nearby::internal::PublicCredential;
+using ::nearby::presence::CredentialSelector;
+using ::nearby::presence::GenerateCredentialsCallback;
+using ::nearby::presence::GetPrivateCredentialsResultCallback;
+using ::nearby::presence::GetPublicCredentialsResultCallback;
+using ::nearby::presence::PublicCredentialType;
 
 void CredentialStorageImpl::SaveCredentials(
     absl::string_view manager_app_id, absl::string_view account_name,
     const std::vector<PrivateCredential>& private_credentials,
     const std::vector<PublicCredential>& public_credentials,
-    api::PublicCredentialType public_credential_type,
-    api::SaveCredentialsResultCallback callback) {
+    PublicCredentialType public_credential_type,
+    GenerateCredentialsCallback callback) {
   return impl_->SaveCredentials(manager_app_id, account_name,
                                 private_credentials, public_credentials,
                                 public_credential_type, std::move(callback));
 }
 
 void CredentialStorageImpl::GetPrivateCredentials(
-    const api::CredentialSelector& credential_selector,
-    api::GetPrivateCredentialsResultCallback callback) {
+    const CredentialSelector& credential_selector,
+    GetPrivateCredentialsResultCallback callback) {
   return impl_->GetPrivateCredentials(credential_selector, std::move(callback));
 }
 
 void CredentialStorageImpl::GetPublicCredentials(
-    const api::CredentialSelector& credential_selector,
-    api::PublicCredentialType public_credential_type,
-    api::GetPublicCredentialsResultCallback callback) {
+    const CredentialSelector& credential_selector,
+    PublicCredentialType public_credential_type,
+    GetPublicCredentialsResultCallback callback) {
   return impl_->GetPublicCredentials(
       credential_selector, public_credential_type, std::move(callback));
 }

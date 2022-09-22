@@ -32,9 +32,6 @@ namespace presence {
 namespace {
 using ::location::nearby::Base64Utils;
 using ::location::nearby::Crypto;
-using ::location::nearby::api::CredentialOperationStatus;
-using ::location::nearby::api::PublicCredentialType;
-using ::location::nearby::api::SaveCredentialsResultCallback;
 using ::nearby::internal::DeviceMetadata;
 using ::nearby::internal::IdentityType;
 using ::nearby::internal::PrivateCredential;
@@ -71,25 +68,11 @@ void CredentialManagerImpl::GenerateCredentials(
     }
   }
 
-  auto save_creds_lambda = [&public_credentials, &credentials_generated_cb](
-                               CredentialOperationStatus status) {
-    if (status == CredentialOperationStatus::kSucceeded) {
-      credentials_generated_cb.credentials_generated_cb(public_credentials);
-    } else {
-      NEARBY_LOGS(ERROR) << "Fails to save generated credentials";
-      credentials_generated_cb.credentials_generated_cb(
-          std::vector<PublicCredential>());
-    }
-  };
-
-  SaveCredentialsResultCallback save_creds_cb;
-  save_creds_cb.credentials_saved_cb = save_creds_lambda;
-
   // Create credential_storage object and invoke SaveCredentials.
   credential_storage_ptr_->SaveCredentials(
       manager_app_id, device_metadata.account_name(), private_credentials,
       public_credentials, PublicCredentialType::kLocalPublicCredential,
-      save_creds_cb);
+      std::move(credentials_generated_cb));
 }
 
 std::pair<std::unique_ptr<PrivateCredential>, std::unique_ptr<PublicCredential>>

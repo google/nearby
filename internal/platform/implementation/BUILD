@@ -57,6 +57,7 @@ cc_library(
         "ble_v2.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
+        "credential_callbacks.h",
         "credential_storage.h",
         "server_sync.h",
         "wifi.h",

@@ -24,6 +24,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/credential_storage_impl.h"
+#include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/implementation/credential_manager.h"
 
@@ -66,15 +67,14 @@ class CredentialManagerImpl : public CredentialManager {
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) override{};
 
   void GetPrivateCredentials(
-      location::nearby::api::CredentialSelector credential_selector,
-      location::nearby::api::GetPrivateCredentialsResultCallback callback)
-      override {}
+      CredentialSelector credential_selector,
+      GetPrivateCredentialsResultCallback callback) override{};
 
   // Used to fetch remote public creds when scanning.
   void GetPublicCredentials(
-      location::nearby::api::CredentialSelector credential_selector,
-      location::nearby::api::GetPublicCredentialsResultCallback callback)
-      override {}
+      CredentialSelector credential_selector,
+      PublicCredentialType public_credential_type,
+      GetPublicCredentialsResultCallback callback) override{};
 
   std::string DecryptDeviceMetadata(
       std::string device_metadata_encryption_key, std::string authenticity_key,

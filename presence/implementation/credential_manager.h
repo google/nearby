@@ -21,21 +21,11 @@
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/implementation/credential_storage.h"
+#include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/proto/credential.pb.h"
 
 namespace nearby {
 namespace presence {
-
-struct GenerateCredentialsCallback {
-  std::function<void(std::vector<nearby::internal::PublicCredential>)>
-      credentials_generated_cb;
-};
-
-struct UpdateRemotePublicCredentialsCallback {
-  std::function<void(location::nearby::api::CredentialOperationStatus)>
-      credentials_updated_cb;
-};
 
 /*
  * The instance of CredentialManager is owned by {@code ServiceControllerImpl}.
@@ -68,13 +58,14 @@ class CredentialManager {
 
   // Used to fetch private creds when broadcasting.
   virtual void GetPrivateCredentials(
-      location::nearby::api::CredentialSelector credential_selector,
-      location::nearby::api::GetPrivateCredentialsResultCallback callback) = 0;
+      CredentialSelector credential_selector,
+      GetPrivateCredentialsResultCallback callback) = 0;
 
   // Used to fetch remote public creds when scanning.
   virtual void GetPublicCredentials(
-      location::nearby::api::CredentialSelector credential_selector,
-      location::nearby::api::GetPublicCredentialsResultCallback callback) = 0;
+      CredentialSelector credential_selector,
+      PublicCredentialType public_credential_type,
+      GetPublicCredentialsResultCallback callback) = 0;
 
   // Decrypts the device metadata from a public credential.
   // Returns an empty string if decryption fails.
