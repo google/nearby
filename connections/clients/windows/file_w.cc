@@ -13,9 +13,13 @@
 // limitations under the License.
 #include "connections/clients/windows/file_w.h"
 
+#include <string>
+
 #include "internal/platform/file.h"
 
 namespace location::nearby {
+void InputFileDeleter::operator()(nearby::InputFile* p) { delete p; }
+void OutputFileDeleter::operator()(nearby::OutputFile* p) { delete p; }
 
 namespace windows {
 InputFileW::InputFileW(InputFile* input_file)
@@ -24,14 +28,19 @@ InputFileW::InputFileW(InputFile* input_file)
 InputFileW::InputFileW(PayloadId payload_id, size_t size)
     : impl_(std::unique_ptr<nearby::InputFile, nearby::InputFileDeleter>(
           new nearby::InputFile(payload_id, size))) {}
-InputFileW::InputFileW(std::string file_path, size_t size)
+InputFileW::InputFileW(const char* file_path, size_t size)
     : impl_(std::unique_ptr<nearby::InputFile, nearby::InputFileDeleter>(
           new nearby::InputFile(file_path, size))) {}
 InputFileW::InputFileW(InputFileW&& other) noexcept
     : impl_(std::move(other.impl_)) {}
 
 // Returns a string that uniquely identifies this file.
-std::string InputFileW::GetFilePath() const { return impl_->GetFilePath(); }
+// Caller allocates buffer[MAX_PATH] and is responsible
+// for freeing.
+void InputFileW::GetFilePath(char* file_path) const {
+  std::string fp = impl_->GetFilePath();
+  strncpy(file_path, fp.c_str(), fp.length());
+}
 
 // Returns total size of this file in bytes.
 size_t InputFileW::GetTotalSize() const { return impl_->GetTotalSize(); }
@@ -42,7 +51,7 @@ InputFileW::GetImpl() {
 }
 
 OutputFileW::OutputFileW(PayloadId payload_id) {}
-OutputFileW::OutputFileW(std::string file_path) {}
+OutputFileW::OutputFileW(const char* file_path) {}
 OutputFileW::OutputFileW(OutputFileW&&) noexcept {}
 OutputFileW& OutputFileW::operator=(OutputFileW&& other) noexcept {
   impl_ = std::move(other.impl_);

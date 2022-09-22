@@ -18,43 +18,69 @@
 #include <string>
 
 #include "connections/clients/windows/dll_config.h"
-#include "internal/platform/file.h"
 #include "internal/platform/payload_id.h"
 
-namespace location::nearby::windows {
+namespace location {
+namespace nearby {
+class InputFile;
+struct InputFileDeleter {
+  void operator()(InputFile* p);
+};
+
+class OutputFile;
+struct OutputFileDeleter {
+  void operator()(OutputFile* p);
+};
+
+}  // namespace nearby
+}  // namespace location
+
+namespace location {
+namespace nearby {
+namespace windows {
 
 class DLL_API InputFileW {
  public:
-  InputFileW(InputFile* input_file);
-  InputFileW(PayloadId payload_id, size_t size);
-  InputFileW(std::string file_path, size_t size);
+  explicit InputFileW(location::nearby::InputFile* input_file);
+  InputFileW(location::nearby::PayloadId payload_id, size_t size);
+  InputFileW(const char* file_path, size_t size);
   InputFileW(InputFileW&&) noexcept;
 
   // Returns a string that uniquely identifies this file.
-  std::string GetFilePath() const;
+  void GetFilePath(char* file_path) const;
 
   // Returns total size of this file in bytes.
   size_t GetTotalSize() const;
 
-  std::unique_ptr<nearby::InputFile, nearby::InputFileDeleter> GetImpl();
+  std::unique_ptr<location::nearby::InputFile,
+                  location::nearby::InputFileDeleter>
+  GetImpl();
 
  private:
-  std::unique_ptr<nearby::InputFile, nearby::InputFileDeleter> impl_;
+  std::unique_ptr<location::nearby::InputFile,
+                  location::nearby::InputFileDeleter>
+      impl_;
 };
 
 class DLL_API OutputFileW {
  public:
-  explicit OutputFileW(PayloadId payload_id);
-  explicit OutputFileW(std::string file_path);
+  explicit OutputFileW(location::nearby::PayloadId payload_id);
+  explicit OutputFileW(const char* file_path);
   OutputFileW(OutputFileW&&) noexcept;
   OutputFileW& operator=(OutputFileW&&) noexcept;
 
-  std::unique_ptr<nearby::OutputFile, nearby::OutputFileDeleter> GetImpl();
+  std::unique_ptr<location::nearby::OutputFile,
+                  location::nearby::OutputFileDeleter>
+  GetImpl();
 
  private:
-  std::unique_ptr<nearby::OutputFile, nearby::OutputFileDeleter> impl_;
+  std::unique_ptr<location::nearby::OutputFile,
+                  location::nearby::OutputFileDeleter>
+      impl_;
 };
 
-}  // namespace location::nearby::windows
+}  // namespace windows
+}  // namespace nearby
+}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_FILE_W_H_

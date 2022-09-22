@@ -627,7 +627,7 @@ void SendPayloadDart(Core *pCore, const char *endpoint_id,
       NEARBY_LOG(INFO, "File name: %s, size %d", payload_dart.data,
                  payload_dart.size);
       std::string file_name_str(payload_dart.data);
-      InputFileW input_file(file_name_str, payload_dart.size);
+      InputFileW input_file(file_name_str.c_str(), payload_dart.size);
       PayloadW payload(input_file);
 
       std::vector<const char *> c_string_array;

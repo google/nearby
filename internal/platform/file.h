@@ -29,15 +29,6 @@
 
 namespace location {
 namespace nearby {
-class InputFile;
-struct InputFileDeleter {
-  void operator()(InputFile* p);
-};
-
-class OutputFile;
-struct OutputFileDeleter {
-  void operator()(nearby::OutputFile* p);
-};
 
 class InputFile final {
  public:
