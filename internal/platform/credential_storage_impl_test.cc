@@ -60,8 +60,8 @@ CredentialSelector BuildDefaultCredentialSelector() {
   constexpr absl::string_view kAppId = "0192";
   constexpr absl::string_view kAccountName = "test_account";
   CredentialSelector credential_selector;
-  credential_selector.manager_app_id = kAppId;
-  credential_selector.account_name = kAccountName;
+  credential_selector.manager_app_id = std::string(kAppId);
+  credential_selector.account_name = std::string(kAccountName);
   return credential_selector;
 }
 
