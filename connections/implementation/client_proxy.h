@@ -304,7 +304,6 @@ class ClientProxy final {
   std::string ToString(PayloadProgressInfo::Status status) const;
 
   mutable RecursiveMutex mutex_;
-  Prng prng_;
   std::int64_t client_id_;
   std::string local_endpoint_id_;
   // If currently is advertising in high visibility mode is true: high power and
