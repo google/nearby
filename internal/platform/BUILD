@@ -144,7 +144,11 @@ cc_library(
 
 cc_library(
     name = "connection_info",
+    srcs = [
+        "bluetooth_connection_info.cc",
+    ],
     hdrs = [
+        "bluetooth_connection_info.h",
         "connection_info.h",
     ],
     defines = ["NO_WEBRTC"],
@@ -155,6 +159,7 @@ cc_library(
     ],
     deps = [
         "//internal/platform:base",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -407,6 +412,7 @@ cc_test(
         "ble_v2_test.cc",
         "bluetooth_adapter_test.cc",
         "bluetooth_classic_test.cc",
+        "bluetooth_connection_info_test.cc",
         "cancelable_alarm_test.cc",
         "condition_variable_test.cc",
         "count_down_latch_test.cc",
@@ -432,6 +438,7 @@ cc_test(
     deps = [
         ":base",
         ":comm",
+        ":connection_info",
         ":logging",
         ":test_util",
         ":types",

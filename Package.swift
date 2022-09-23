@@ -485,6 +485,7 @@ let package = Package(
         "internal/platform/condition_variable_test.cc",
         "internal/platform/thread_check_nocompile_test.py",
         "internal/platform/bluetooth_classic_test.cc",
+        "internal/platform/bluetooth_connection_info_test.cc",
         "internal/platform/mutex_test.cc",
         "internal/platform/atomic_reference_test.cc",
         "internal/platform/logging_test.cc",
