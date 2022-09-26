@@ -15,7 +15,7 @@
 # TODO(b/240046236): Rename this package as `objc`.
 
 load("//tools/build_defs/apple:ios.bzl", "ios_static_framework", "ios_unit_test")
-load("//tools/build_defs/swift:swift.bzl", "swift_library")
+load("//tools/build_defs/swift:swift_library.bzl", "swift_library")
 
 licenses(["notice"])
 

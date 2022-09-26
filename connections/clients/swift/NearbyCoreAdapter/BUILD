@@ -13,7 +13,7 @@
 # limitations under the License.
 
 load("//tools/build_defs/apple:ios.bzl", "ios_unit_test")
-load("//tools/build_defs/swift:swift.bzl", "swift_library")
+load("//tools/build_defs/swift:swift_library.bzl", "swift_library")
 
 licenses(["notice"])
 
