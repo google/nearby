@@ -28,7 +28,6 @@
 #include <string>
 
 #include "internal/platform/implementation/shared/count_down_latch.h"
-#include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/implementation/windows/atomic_boolean.h"
 #include "internal/platform/implementation/windows/atomic_reference.h"
 #include "internal/platform/implementation/windows/ble.h"
@@ -38,6 +37,7 @@
 #include "internal/platform/implementation/windows/cancelable.h"
 #include "internal/platform/implementation/windows/condition_variable.h"
 #include "internal/platform/implementation/windows/executor.h"
+#include "internal/platform/implementation/windows/file.h"
 #include "internal/platform/implementation/windows/future.h"
 #include "internal/platform/implementation/windows/listenable_future.h"
 #include "internal/platform/implementation/windows/log_message.h"
@@ -46,6 +46,7 @@
 #include "internal/platform/implementation/windows/server_sync.h"
 #include "internal/platform/implementation/windows/settable_future.h"
 #include "internal/platform/implementation/windows/submittable_executor.h"
+#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/webrtc.h"
 #include "internal/platform/implementation/windows/wifi.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
@@ -170,7 +171,10 @@ std::string CreateOutputFileWithRename(absl::string_view path) {
   std::string target(sanitized_path);
 
   std::fstream file;
-  file.open(target, std::fstream::binary | std::fstream::in);
+
+  // Open file as std::wstring
+  file.open(windows::string_to_wstring(target),
+            std::fstream::binary | std::fstream::in);
 
   // While we successfully open the file, keep incrementing the count.
   while (!(file.rdstate() & std::ifstream::failbit)) {
@@ -178,7 +182,8 @@ std::string CreateOutputFileWithRename(absl::string_view path) {
 #undef StrCat
     target = absl::StrCat(folder, file_name1, " (", ++count, ")", file_name2);
     file.clear();
-    file.open(target, std::fstream::binary | std::fstream::in);
+    file.open(windows::string_to_wstring(target),
+              std::fstream::binary | std::fstream::in);
   }
 
   // The above leaves the file open, so close it.
@@ -309,13 +314,13 @@ std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     PayloadId payload_id, std::int64_t total_size) {
   std::string parent_folder("");
   std::string file_name(std::to_string(payload_id));
-  return shared::IOFile::CreateInputFile(GetDownloadPath(file_name),
-                                         total_size);
+  return windows::IOFile::CreateInputFile(GetDownloadPath(file_name),
+                                          total_size);
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     absl::string_view file_path, size_t size) {
-  return shared::IOFile::CreateInputFile(file_path, size);
+  return windows::IOFile::CreateInputFile(file_path, size);
 }
 
 ABSL_DEPRECATED("This interface will be deleted in the near future.")
@@ -323,7 +328,7 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     PayloadId payload_id) {
   std::string parent_folder("");
   std::string file_name(std::to_string(payload_id));
-  return shared::IOFile::CreateOutputFile(
+  return windows::IOFile::CreateOutputFile(
       GetDownloadPath(parent_folder, file_name));
 }
 
@@ -342,7 +347,7 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     int result = SHCreateDirectoryExA(0, folder_path.data(), nullptr);
   }
 
-  return shared::IOFile::CreateOutputFile(file_path);
+  return windows::IOFile::CreateOutputFile(file_path);
 }
 
 // TODO(b/184975123): replace with real implementation.
