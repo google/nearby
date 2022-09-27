@@ -23,12 +23,12 @@
 namespace location {
 namespace nearby {
 class InputFile;
-struct InputFileDeleter {
+struct DLL_API InputFileDeleter {
   void operator()(InputFile* p);
 };
 
 class OutputFile;
-struct OutputFileDeleter {
+struct DLL_API OutputFileDeleter {
   void operator()(OutputFile* p);
 };
 
