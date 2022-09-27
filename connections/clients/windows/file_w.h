@@ -24,12 +24,12 @@ namespace location {
 namespace nearby {
 class InputFile;
 struct InputFileDeleter {
-  void operator()(InputFile* p);
+  void operator()(InputFile* p) { delete p; }
 };
 
 class OutputFile;
 struct OutputFileDeleter {
-  void operator()(OutputFile* p);
+  void operator()(OutputFile* p) { delete p; }
 };
 
 }  // namespace nearby
