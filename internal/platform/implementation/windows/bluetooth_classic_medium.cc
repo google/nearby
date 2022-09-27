@@ -20,6 +20,7 @@
 #include <codecvt>
 #include <fstream>
 #include <locale>
+#include <map>
 #include <memory>
 #include <regex>  // NOLINT
 #include <string>
@@ -173,111 +174,114 @@ void BluetoothClassicMedium::InitializeDeviceWatcher() {
 std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     api::BluetoothDevice& remote_device, const std::string& service_uuid,
     CancellationFlag* cancellation_flag) {
-  NEARBY_LOGS(INFO) << "ConnectToService is called.";
-  if (service_uuid.empty()) {
-    NEARBY_LOGS(ERROR) << __func__ << ": service_uuid not specified.";
-    return nullptr;
-  }
-
-  const std::regex pattern(
-      "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]"
-      "{12}$");
-
-  // Must check for valid pattern as the guid constructor will throw on an
-  // invalid format
-  if (!regex_match(service_uuid, pattern)) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": invalid service_uuid: " << service_uuid;
-    return nullptr;
-  }
-
-  winrt::guid service(service_uuid);
-
-  if (cancellation_flag == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": cancellation_flag not specified.";
-    return nullptr;
-  }
-
-  remote_device_to_connect_ =
-      std::make_unique<BluetoothDevice>(remote_device.GetMacAddress());
-
-  // First try, check if the remote device that we want to request connection to
-  // has already been discovered by the Bluetooth Classic Device Watcher
-  // beforehand inside the discovered_devices_by_id_ map
-  std::map<winrt::hstring, std::unique_ptr<BluetoothDevice>>::const_iterator
-      it = discovered_devices_by_id_.find(
-          winrt::to_hstring(remote_device_to_connect_->GetId()));
-
-  std::unique_ptr<BluetoothDevice> device = nullptr;
-  BluetoothDevice* current_device = nullptr;
-
-  if (it != discovered_devices_by_id_.end()) {
-    current_device = it->second.get();
-  } else {
-    // The remote device was not discovered by the Bluetooth Classic Device
-    // Watcher beforehand.
-    // Second try, request Windows to scan for nearby
-    // bluetooth devices that has this static mac address again in this instance
-    auto remote_bluetooth_device_from_mac_address =
-        winrt::Windows::Devices::Bluetooth::BluetoothDevice::
-            FromBluetoothAddressAsync(
-                mac_address_string_to_uint64(remote_device.GetMacAddress()))
-                .get();
-    if (remote_bluetooth_device_from_mac_address == nullptr) {
-      NEARBY_LOGS(ERROR) << __func__
-                         << ": Windows failed to get remote bluetooth device "
-                            "from static mac address.";
+  try {
+    NEARBY_LOGS(INFO) << "ConnectToService is called.";
+    if (service_uuid.empty()) {
+      NEARBY_LOGS(ERROR) << __func__ << ": service_uuid not specified.";
       return nullptr;
     }
-    device = std::make_unique<BluetoothDevice>(
-        remote_bluetooth_device_from_mac_address);
-    current_device = device.get();
-  }
 
-  if (current_device == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Failed to get current device.";
-    return nullptr;
-  }
+    const std::regex pattern(
+        "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-"
+        "F]"
+        "{12}$");
 
-  winrt::hstring device_id = winrt::to_hstring(current_device->GetId());
+    // Must check for valid pattern as the guid constructor will throw on an
+    // invalid format
+    if (!std::regex_match(service_uuid, pattern)) {
+      NEARBY_LOGS(ERROR) << __func__
+                         << ": invalid service_uuid: " << service_uuid;
+      return nullptr;
+    }
 
-  if (!HaveAccess(device_id)) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Failed to gain access to device: "
-                       << winrt::to_string(device_id);
-    return nullptr;
-  }
+    winrt::guid service(service_uuid);
 
-  RfcommDeviceService requested_service(
-      GetRequestedService(current_device, service));
+    if (cancellation_flag == nullptr) {
+      NEARBY_LOGS(ERROR) << __func__ << ": cancellation_flag not specified.";
+      return nullptr;
+    }
 
-  if (!CheckSdp(requested_service)) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Invalid SDP.";
-    return nullptr;
-  }
+    remote_device_to_connect_ =
+        std::make_unique<BluetoothDevice>(remote_device.GetMacAddress());
 
-  std::unique_ptr<BluetoothSocket> rfcomm_socket =
-      std::make_unique<BluetoothSocket>();
+    // First try, check if the remote device that we want to request connection
+    // to has already been discovered by the Bluetooth Classic Device Watcher
+    // beforehand inside the discovered_devices_by_id_ map
+    std::map<winrt::hstring, std::unique_ptr<BluetoothDevice>>::const_iterator
+        it = discovered_devices_by_id_.find(
+            winrt::to_hstring(remote_device_to_connect_->GetId()));
 
-  if (cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(INFO)
-        << __func__
-        << ": Bluetooth Classic socket connection cancelled for device: "
-        << winrt::to_string(device_id) << ", service: " << service_uuid;
-    return nullptr;
-  }
-  location::nearby::CancellationFlagListener cancellation_flag_listener(
-      cancellation_flag, [&rfcomm_socket]() {
-        rfcomm_socket->CancelIOAsync().get();
-        rfcomm_socket->Close();
-      });
+    std::unique_ptr<BluetoothDevice> device = nullptr;
+    BluetoothDevice* current_device = nullptr;
 
-  try {
+    if (it != discovered_devices_by_id_.end()) {
+      current_device = it->second.get();
+    } else {
+      // The remote device was not discovered by the Bluetooth Classic Device
+      // Watcher beforehand.
+      // Second try, request Windows to scan for nearby
+      // bluetooth devices that has this static mac address again in this
+      // instance
+      auto remote_bluetooth_device_from_mac_address =
+          winrt::Windows::Devices::Bluetooth::BluetoothDevice::
+              FromBluetoothAddressAsync(
+                  mac_address_string_to_uint64(remote_device.GetMacAddress()))
+                  .get();
+      if (remote_bluetooth_device_from_mac_address == nullptr) {
+        NEARBY_LOGS(ERROR) << __func__
+                           << ": Windows failed to get remote bluetooth device "
+                              "from static mac address.";
+        return nullptr;
+      }
+      device = std::make_unique<BluetoothDevice>(
+          remote_bluetooth_device_from_mac_address);
+      current_device = device.get();
+    }
+
+    if (current_device == nullptr) {
+      NEARBY_LOGS(ERROR) << __func__ << ": Failed to get current device.";
+      return nullptr;
+    }
+
+    winrt::hstring device_id = winrt::to_hstring(current_device->GetId());
+
+    if (!HaveAccess(device_id)) {
+      NEARBY_LOGS(ERROR) << __func__ << ": Failed to gain access to device: "
+                         << winrt::to_string(device_id);
+      return nullptr;
+    }
+
+    RfcommDeviceService requested_service(
+        GetRequestedService(current_device, service));
+
+    if (!CheckSdp(requested_service)) {
+      NEARBY_LOGS(ERROR) << __func__ << ": Invalid SDP.";
+      return nullptr;
+    }
+
+    auto rfcomm_socket = std::make_unique<BluetoothSocket>();
+
+    if (cancellation_flag->Cancelled()) {
+      NEARBY_LOGS(INFO)
+          << __func__
+          << ": Bluetooth Classic socket connection cancelled for device: "
+          << winrt::to_string(device_id) << ", service: " << service_uuid;
+      return nullptr;
+    }
+    location::nearby::CancellationFlagListener cancellation_flag_listener(
+        cancellation_flag, [&rfcomm_socket]() {
+          rfcomm_socket->CancelIOAsync().get();
+          rfcomm_socket->Close();
+        });
+
     bool success =
         rfcomm_socket->Connect(requested_service.ConnectionHostName(),
                                requested_service.ConnectionServiceName());
     if (!success) {
       return nullptr;
     }
+
+    return std::move(rfcomm_socket);
   } catch (std::exception exception) {
     // We will log and eat the exception since the caller
     // expects nullptr if it fails
@@ -291,8 +295,6 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
                        << ", error message: " << winrt::to_string(ex.message());
     return nullptr;
   }
-
-  return std::move(rfcomm_socket);
 }
 
 bool BluetoothClassicMedium::HaveAccess(winrt::hstring device_id) {
@@ -325,24 +327,43 @@ bool BluetoothClassicMedium::HaveAccess(winrt::hstring device_id) {
 
 RfcommDeviceService BluetoothClassicMedium::GetRequestedService(
     BluetoothDevice* device, winrt::guid service) {
-  RfcommServiceId rfcommServiceId = RfcommServiceId::FromUuid(service);
+  try {
+    RfcommServiceId rfcommServiceId = RfcommServiceId::FromUuid(service);
 
-  // Retrieves all Rfcomm Services on the Remote Bluetooth Device matching the
-  // specified RfcommServiceId.
-  //  https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothdevice.getrfcommservicesforidasync?view=winrt-20348
-  IAsyncOperation<RfcommDeviceServicesResult> rfcommServices =
-      device->GetRfcommServicesForIdAsync(rfcommServiceId);
+    // Retrieves all Rfcomm Services on the Remote Bluetooth Device matching the
+    // specified RfcommServiceId.
+    //  https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothdevice.getrfcommservicesforidasync?view=winrt-20348
+    IAsyncOperation<RfcommDeviceServicesResult> rfcommServices =
+        device->GetRfcommServicesForIdAsync(rfcommServiceId);
 
-  RfcommDeviceService requestedService(nullptr);
+    RfcommDeviceServicesResult rfcomm_device_services = rfcommServices.get();
+    if (rfcomm_device_services == nullptr) {
+      NEARBY_LOGS(ERROR) << __func__
+                         << ": failed to access RF device services.";
+      return nullptr;
+    }
 
-  if (rfcommServices.get().Services().Size() > 0) {
-    requestedService = rfcommServices.get().Services().GetAt(0);
-  } else {
-    NEARBY_LOGS(ERROR) << __func__ << ": No services found.";
+    RfcommDeviceService requestedService(nullptr);
+
+    if (rfcomm_device_services.Services().Size() > 0) {
+      requestedService = rfcomm_device_services.Services().GetAt(0);
+    } else {
+      NEARBY_LOGS(ERROR) << __func__ << ": No services found.";
+      return nullptr;
+    }
+
+    return requestedService;
+  } catch (std::exception exception) {
+    // We will log and eat the exception since the caller
+    // expects nullptr if it fails
+    NEARBY_LOGS(ERROR) << __func__ << ": Failed to get RfcommDeviceService: "
+                       << exception.what();
+    return nullptr;
+  } catch (const winrt::hresult_error& ex) {
+    NEARBY_LOGS(ERROR) << __func__ << ": RfcommDeviceService: " << ex.code()
+                       << ", error message: " << winrt::to_string(ex.message());
     return nullptr;
   }
-
-  return requestedService;
 }
 
 bool BluetoothClassicMedium::CheckSdp(RfcommDeviceService requestedService) {
