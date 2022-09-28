@@ -14,6 +14,7 @@
 
 #include <windows.h>
 
+#include <exception>
 #include <functional>
 #include <memory>
 #include <string>
@@ -215,21 +216,32 @@ std::vector<std::string> WifiHotspotServerSocket::GetIpAddresses() const {
 }
 
 std::string WifiHotspotServerSocket::GetHotspotIpAddresses() const {
-  for (int i = 0; i < kMaxRetries; i++) {
-    auto host_names = NetworkInformation::GetHostNames();
-    for (auto host_name : host_names) {
-      if (host_name.IPInformation() != nullptr &&
-          host_name.IPInformation().NetworkAdapter() != nullptr &&
-          host_name.Type() == HostNameType::Ipv4) {
-        std::string ipv4_s = winrt::to_string(host_name.ToString());
-        if (HasEnding(ipv4_s, ".1")) {
-          // TODO(b/228541380): replace when we find a better way to identifying
-          // the hotspot address
-          NEARBY_LOGS(INFO) << "Found Hotspot IP: " << ipv4_s;
-          return ipv4_s;
+  try {
+    for (int i = 0; i < kMaxRetries; i++) {
+      auto host_names = NetworkInformation::GetHostNames();
+      for (auto host_name : host_names) {
+        if (host_name.IPInformation() != nullptr &&
+            host_name.IPInformation().NetworkAdapter() != nullptr &&
+            host_name.Type() == HostNameType::Ipv4) {
+          std::string ipv4_s = winrt::to_string(host_name.ToString());
+          if (HasEnding(ipv4_s, ".1")) {
+            // TODO(b/228541380): replace when we find a better way to
+            // identifying the hotspot address
+            NEARBY_LOGS(INFO) << "Found Hotspot IP: " << ipv4_s;
+            return ipv4_s;
+          }
         }
       }
     }
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception to GetHotspotIpAddresses: "
+                       << exception.what();
+    return {};
+  } catch (const winrt::hresult_error &ex) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Exception to GetHotspotIpAddresses: " << ex.code()
+                       << ": " << winrt::to_string(ex.message());
+    return {};
   }
   return {};
 }
