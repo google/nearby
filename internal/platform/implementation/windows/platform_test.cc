@@ -38,7 +38,7 @@ constexpr absl::string_view kOneIterationNoDotsFileName(
     "/incrementfiletesttxt (1)");
 constexpr absl::string_view kMultipleDotsFileName("/increment.file.test.txt");
 constexpr absl::string_view kOneIterationMultipleDotsFileName(
-    "/increment (1).file.test.txt");
+    "/increment.file.test (1).txt");
 constexpr absl::string_view kImmediateEscape("../");
 constexpr absl::string_view kLongEscapeBackSlash("..\\test\\..\\..\\test");
 constexpr absl::string_view kTwoLevelFolder("/test/test");

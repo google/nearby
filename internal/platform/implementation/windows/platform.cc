@@ -156,8 +156,8 @@ std::string CreateOutputFileWithRename(absl::string_view path) {
 
   int count = 0;
 
-  // Locate the first dot
-  auto first = file_name.find_first_of('.', 0);
+  // Locate the last dot
+  auto first = file_name.find_last_of('.');
 
   if (first == std::string::npos) {
     first = file_name.size();
