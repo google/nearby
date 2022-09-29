@@ -19,21 +19,20 @@
 #include <memory>
 #include <string>
 
-#include "securegcm/d2d_connection_context_v1.h"
 #include "absl/base/thread_annotations.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "internal/platform/atomic_reference.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/output_stream.h"
-#include "internal/platform/system_clock.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
+
+using analytics::PacketMetaData;
 
 class BaseEndpointChannel : public EndpointChannel {
  public:
@@ -49,10 +48,12 @@ class BaseEndpointChannel : public EndpointChannel {
   ~BaseEndpointChannel() override = default;
 
   // EndpointChannel:
-  ExceptionOr<ByteArray> Read()
+  ExceptionOr<ByteArray> Read() override;
+  ExceptionOr<ByteArray> Read(PacketMetaData& packet_meta_data)
       ABSL_LOCKS_EXCLUDED(reader_mutex_, crypto_mutex_,
                           last_read_mutex_) override;
-  Exception Write(const ByteArray& data)
+  Exception Write(const ByteArray& data) override;
+  Exception Write(const ByteArray& data, PacketMetaData& packet_meta_data)
       ABSL_LOCKS_EXCLUDED(writer_mutex_, crypto_mutex_) override;
   void Close() ABSL_LOCKS_EXCLUDED(is_paused_mutex_) override;
   void Close(proto::connections::DisconnectionReason reason) override;

@@ -905,7 +905,8 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
 void BasePcpHandler::OnIncomingFrame(OfflineFrame& frame,
                                      const std::string& endpoint_id,
                                      ClientProxy* client,
-                                     proto::connections::Medium medium) {
+                                     proto::connections::Medium medium,
+                                     PacketMetaData& packet_meta_data) {
   CountDownLatch latch(1);
   RunOnPcpHandlerThread(
       "incoming-frame",

@@ -16,8 +16,10 @@
 #define CORE_INTERNAL_PAYLOAD_MANAGER_H_
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
@@ -36,6 +38,8 @@
 namespace location {
 namespace nearby {
 namespace connections {
+
+using analytics::PacketMetaData;
 
 // Annotations for methods that need to run on PayloadStatusUpdateThread.
 // Use only in PayloadManager
@@ -59,7 +63,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   void OnIncomingFrame(OfflineFrame& offline_frame,
                        const std::string& from_endpoint_id,
                        ClientProxy* to_client,
-                       proto::connections::Medium current_medium) override;
+                       proto::connections::Medium current_medium,
+                       PacketMetaData& packet_meta_data) override;
 
   // @EndpointManagerThread
   void OnEndpointDisconnect(ClientProxy* client, const std::string& service_id,
@@ -268,7 +273,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
   void ProcessDataPacket(ClientProxy* to_client,
                          const std::string& from_endpoint_id,
-                         PayloadTransferFrame& payload_transfer_frame);
+                         PayloadTransferFrame& payload_transfer_frame,
+                         Medium medium, PacketMetaData& packet_meta_data);
   void ProcessControlPacket(ClientProxy* to_client,
                             const std::string& from_endpoint_id,
                             PayloadTransferFrame& payload_transfer_frame);

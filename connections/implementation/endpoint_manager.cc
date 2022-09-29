@@ -19,7 +19,9 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
+#include "connections/implementation/analytics/throughput_recorder.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
@@ -167,7 +169,8 @@ ExceptionOr<bool> EndpointManager::HandleData(
   // a replacement for this endpoint since we last checked with the
   // EndpointChannelManager.
   while (true) {
-    ExceptionOr<ByteArray> bytes = endpoint_channel->Read();
+    PacketMetaData packet_meta_data;
+    ExceptionOr<ByteArray> bytes = endpoint_channel->Read(packet_meta_data);
     if (!bytes.ok()) {
       NEARBY_LOG(INFO, "Stop reading on read-time exception: %d",
                  bytes.exception());
@@ -210,7 +213,8 @@ ExceptionOr<bool> EndpointManager::HandleData(
     }
 
     frame_processor->OnIncomingFrame(frame, endpoint_id, client,
-                                     endpoint_channel->GetMedium());
+                                     endpoint_channel->GetMedium(),
+                                     packet_meta_data);
   }
 }
 
@@ -279,6 +283,7 @@ EndpointManager::EndpointManager(EndpointChannelManager* manager)
 
 EndpointManager::~EndpointManager() {
   NEARBY_LOG(INFO, "Initiating shutdown of EndpointManager.");
+  analytics::ThroughputRecorderContainer::GetInstance().Shutdown();
   CountDownLatch latch(1);
   RunOnEndpointManagerThread("bring-down-endpoints", [this, &latch]() {
     NEARBY_LOG(INFO, "Bringing down endpoints");
@@ -493,7 +498,8 @@ int EndpointManager::GetMaxTransmitPacketSize(const std::string& endpoint_id) {
 std::vector<std::string> EndpointManager::SendPayloadChunk(
     const PayloadTransferFrame::PayloadHeader& payload_header,
     const PayloadTransferFrame::PayloadChunk& payload_chunk,
-    const std::vector<std::string>& endpoint_ids) {
+    const std::vector<std::string>& endpoint_ids,
+    PacketMetaData& packet_meta_data) {
   ByteArray bytes =
       parser::ForDataPayloadTransfer(payload_header, payload_chunk);
 
@@ -501,7 +507,8 @@ std::vector<std::string> EndpointManager::SendPayloadChunk(
       endpoint_ids, bytes, payload_header.id(),
       /*offset=*/payload_chunk.offset(),
       /*packet_type=*/
-      PayloadTransferFrame::PacketType_Name(PayloadTransferFrame::DATA));
+      PayloadTransferFrame::PacketType_Name(PayloadTransferFrame::DATA),
+      packet_meta_data);
 }
 
 // Designed to run asynchronously. It is called from IO thread pools, and
@@ -521,12 +528,14 @@ std::vector<std::string> EndpointManager::SendControlMessage(
     const PayloadTransferFrame::ControlMessage& control,
     const std::vector<std::string>& endpoint_ids) {
   ByteArray bytes = parser::ForControlPayloadTransfer(header, control);
+  PacketMetaData packet_meta_data;
 
   return SendTransferFrameBytes(
       endpoint_ids, bytes, header.id(),
       /*offset=*/control.offset(),
       /*packet_type=*/
-      PayloadTransferFrame::PacketType_Name(PayloadTransferFrame::CONTROL));
+      PayloadTransferFrame::PacketType_Name(PayloadTransferFrame::CONTROL),
+      packet_meta_data);
 }
 
 // @EndpointManagerThread
@@ -616,7 +625,7 @@ CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
 std::vector<std::string> EndpointManager::SendTransferFrameBytes(
     const std::vector<std::string>& endpoint_ids, const ByteArray& bytes,
     std::int64_t payload_id, std::int64_t offset,
-    const std::string& packet_type) {
+    const std::string& packet_type, PacketMetaData& packet_meta_data) {
   std::vector<std::string> failed_endpoint_ids;
   for (const std::string& endpoint_id : endpoint_ids) {
     std::shared_ptr<EndpointChannel> channel =
@@ -635,12 +644,15 @@ std::vector<std::string> EndpointManager::SendTransferFrameBytes(
       continue;
     }
 
-    Exception write_exception = channel->Write(bytes);
+    Exception write_exception = channel->Write(bytes, packet_meta_data);
     if (!write_exception.Ok()) {
       failed_endpoint_ids.push_back(endpoint_id);
       NEARBY_LOGS(INFO) << "Failed to send packet; endpoint_id=" << endpoint_id;
       continue;
     }
+    analytics::ThroughputRecorderContainer::GetInstance()
+        .GetTPRecorder(payload_id)
+        ->OnFrameSent(channel->GetMedium(), packet_meta_data);
   }
 
   return failed_endpoint_ids;

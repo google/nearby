@@ -40,7 +40,16 @@ class FakeEndpointChannel : public EndpointChannel {
     read_timestamp_ = SystemClock::ElapsedRealtime();
     return read_output_;
   }
+  ExceptionOr<ByteArray> Read(PacketMetaData& packet_meta_data) override {
+    read_timestamp_ = SystemClock::ElapsedRealtime();
+    return read_output_;
+  }
   Exception Write(const ByteArray& data) override {
+    write_timestamp_ = SystemClock::ElapsedRealtime();
+    return write_output_;
+  }
+  Exception Write(const ByteArray& data,
+                  PacketMetaData& packet_meta_data) override {
     write_timestamp_ = SystemClock::ElapsedRealtime();
     return write_output_;
   }

@@ -42,7 +42,17 @@ class FakeEndpointChannel : public EndpointChannel {
     return in_ ? in_->Read(Pipe::kChunkSize)
                : ExceptionOr<ByteArray>{Exception::kIo};
   }
+  ExceptionOr<ByteArray> Read(PacketMetaData& packet_meta_data) override {
+    read_timestamp_ = SystemClock::ElapsedRealtime();
+    return in_ ? in_->Read(Pipe::kChunkSize)
+               : ExceptionOr<ByteArray>{Exception::kIo};
+  }
   Exception Write(const ByteArray& data) override {
+    write_timestamp_ = SystemClock::ElapsedRealtime();
+    return out_ ? out_->Write(data) : Exception{Exception::kIo};
+  }
+  Exception Write(const ByteArray& data,
+                  PacketMetaData& packet_meta_data) override {
     write_timestamp_ = SystemClock::ElapsedRealtime();
     return out_ ? out_->Write(data) : Exception{Exception::kIo};
   }

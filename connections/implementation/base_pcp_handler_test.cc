@@ -627,6 +627,7 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
   EndpointManager em(&ecm);
   BwuManager bwu(m, em, ecm, {}, {});
   MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  analytics::PacketMetaData packet_meta_data;
   StartDiscovery(&client, &pcp_handler);
   auto mediums = pcp_handler.GetDiscoveryMediums(&client);
   auto connect_medium = mediums[mediums.size() - 1];
@@ -647,7 +648,7 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
   auto frame =
       parser::FromBytes(parser::ForConnectionResponse(Status::kSuccess));
   pcp_handler.OnIncomingFrame(frame.result(), endpoint_id, &client,
-                              connect_medium);
+                              connect_medium, packet_meta_data);
   NEARBY_LOGS(INFO) << "Closing connection: id=" << endpoint_id;
   channel_b->Close();
   bwu.Shutdown();

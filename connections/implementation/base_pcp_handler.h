@@ -134,7 +134,8 @@ class BasePcpHandler : public PcpHandler,
   // @EndpointManagerReaderThread
   void OnIncomingFrame(OfflineFrame& frame, const std::string& endpoint_id,
                        ClientProxy* client,
-                       proto::connections::Medium medium) override;
+                       proto::connections::Medium medium,
+                       analytics::PacketMetaData& packet_meta_data) override;
 
   // Called when an endpoint disconnects while we're waiting for both sides to
   // approve/reject the connection.

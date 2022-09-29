@@ -17,10 +17,13 @@ cc_library(
     name = "analytics",
     srcs = [
         "analytics_recorder.cc",
+        "throughput_recorder.cc",
     ],
     hdrs = [
         "analytics_recorder.h",
         "connection_attempt_metadata_params.h",
+        "packet_meta_data.h",
+        "throughput_recorder.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
@@ -38,6 +41,7 @@ cc_library(
         "//proto:connections_enums_cc_proto",
         "//proto/errorcode:error_code_enums_cc_proto",
         "@com_google_absl//absl/container:btree",
+        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/time",
     ],
 )
@@ -47,6 +51,7 @@ cc_test(
     size = "small",
     srcs = [
         "analytics_recorder_test.cc",
+        "throughput_recorder_test.cc",
     ],
     shard_count = 16,
     deps = [

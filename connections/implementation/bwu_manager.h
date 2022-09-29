@@ -86,7 +86,8 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // inbound BWU protocol.
   // @EndpointManagerReaderThread
   void OnIncomingFrame(OfflineFrame& frame, const std::string& endpoint_id,
-                       ClientProxy* client, Medium medium) override;
+                       ClientProxy* client, Medium medium,
+                       PacketMetaData& packet_meta_data) override;
 
   // Cleans up in-progress upgrades after endpoint disconnection.
   // @EndpointManagerReaderThread

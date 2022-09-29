@@ -291,7 +291,8 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
 
 void BwuManager::OnIncomingFrame(OfflineFrame& frame,
                                  const std::string& endpoint_id,
-                                 ClientProxy* client, Medium medium) {
+                                 ClientProxy* client, Medium medium,
+                                 PacketMetaData& packet_meta_data) {
   V1Frame::FrameType frame_type = parser::GetFrameType(frame);
   if (frame_type != V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION) return;
 
