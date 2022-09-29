@@ -14,6 +14,9 @@
 
 #include "internal/platform/wifi_lan.h"
 
+#include <string>
+#include <utility>
+
 #include "internal/platform/mutex_lock.h"
 
 namespace location {
@@ -43,7 +46,19 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
           [this](NsdServiceInfo service_info) {
             MutexLock lock(&mutex_);
             std::string service_type = service_info.GetServiceType();
-            auto pair = discovery_services_.insert(service_type);
+            // Check callback for the service type.
+            const auto& it = discovery_callbacks_.find(service_type);
+
+            if (it == discovery_callbacks_.end()) {
+              NEARBY_LOGS(ERROR)
+                  << "There is no callback found for service_type="
+                  << service_type;
+              return;
+            }
+
+            // Check whether service name is in cache.
+            std::string service_name = service_info.GetServiceName();
+            auto pair = discovery_services_.insert(service_name);
             if (!pair.second) {
               NEARBY_LOGS(INFO)
                   << "Discovering (again) service_info=" << &service_info
@@ -51,33 +66,27 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
                   << ", service_name=" << service_info.GetServiceName();
               return;
             }
+
             NEARBY_LOGS(INFO)
                 << "Adding service_info=" << &service_info
                 << ", service_type=" << service_type
                 << ", service_name=" << service_info.GetServiceName();
-            // Callback service found.
-            const auto& it = discovery_callbacks_.find(service_type);
-            if (it != discovery_callbacks_.end()) {
-              std::string service_id = it->second->service_id;
-              DiscoveredServiceCallback medium_callback =
-                  it->second->medium_callback;
-              medium_callback.service_discovered_cb(service_info, service_id);
-            } else {
-              NEARBY_LOGS(ERROR)
-                  << "There is no callback found for service_type="
-                  << service_type;
-            }
+
+            std::string service_id = it->second->service_id;
+            DiscoveredServiceCallback medium_callback =
+                it->second->medium_callback;
+            medium_callback.service_discovered_cb(service_info, service_id);
           },
       .service_lost_cb =
           [this](NsdServiceInfo service_info) {
             MutexLock lock(&mutex_);
             std::string service_type = service_info.GetServiceType();
-            auto item = discovery_services_.extract(service_type);
+            std::string service_name = service_info.GetServiceName();
+            auto item = discovery_services_.extract(service_name);
             if (item.empty()) return;
-            NEARBY_LOGS(INFO)
-                << "Removing service_info=" << &service_info
-                << ", service_type=" << service_type
-                << ", service_info_name=" << service_info.GetServiceName();
+            NEARBY_LOGS(INFO) << "Removing service_info=" << &service_info
+                              << ", service_type=" << service_type
+                              << ", service_info_name=" << service_name;
             // Callback service lost.
             const auto& it = discovery_callbacks_.find(service_type);
             if (it != discovery_callbacks_.end()) {

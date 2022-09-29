@@ -262,8 +262,9 @@ void MediumEnvironment::OnWifiLanServiceStateChanged(
     WifiLanMediumContext& info, const NsdServiceInfo& service_info,
     bool enabled) {
   if (!enabled_) return;
+  std::string service_name = service_info.GetServiceName();
   std::string service_type = service_info.GetServiceType();
-  auto item = info.discovered_services.find(service_type);
+  auto item = info.discovered_services.find(service_name);
   if (item == info.discovered_services.end()) {
     NEARBY_LOGS(INFO) << "G3 OnWifiLanServiceStateChanged; context=" << &info
                       << "; service_type=" << service_type
@@ -273,7 +274,7 @@ void MediumEnvironment::OnWifiLanServiceStateChanged(
       // Find advertising service with matched service_type. Report it as
       // discovered.
       NsdServiceInfo discovered_service_info(service_info);
-      info.discovered_services.insert({service_type, discovered_service_info});
+      info.discovered_services.insert({service_name, discovered_service_info});
       if (enable_notifications_) {
         RunOnMediumEnvironmentThread(
             [&info, discovered_service_info, service_type]() {
@@ -843,10 +844,11 @@ void MediumEnvironment::UpdateWifiLanMediumForAdvertising(
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium, service_info = service_info,
                                 enabled]() {
+    std::string service_name = service_info.GetServiceName();
     std::string service_type = service_info.GetServiceType();
     NEARBY_LOGS(INFO) << "Update WifiLan medium for advertising: this=" << this
                       << "; medium=" << &medium
-                      << "; service_name=" << service_info.GetServiceName()
+                      << "; service_name=" << service_name
                       << "; service_type=" << service_type
                       << ", enabled=" << enabled;
     for (auto& medium_info : wifi_lan_mediums_) {
@@ -856,9 +858,9 @@ void MediumEnvironment::UpdateWifiLanMediumForAdvertising(
       // service info map.
       if (local_medium == &medium) {
         if (enabled) {
-          info.advertising_services.insert({service_type, service_info});
+          info.advertising_services.insert({service_name, service_info});
         } else {
-          info.advertising_services.erase(service_type);
+          info.advertising_services.erase(service_name);
         }
         continue;
       }

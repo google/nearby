@@ -20,9 +20,9 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/medium_environment.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/medium_environment.h"
 
 namespace location {
 namespace nearby {
@@ -341,6 +341,67 @@ TEST_F(WifiLanMediumTest, CanAdvertiseThatOtherMediumDiscover) {
   EXPECT_TRUE(wifi_lan_a.StopAdvertising(nsd_service_info));
   EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(wifi_lan_b.StopDiscovery(service_type));
+  env_.Stop();
+}
+
+TEST_F(WifiLanMediumTest, CanDiscoverMultipleAdvertisementsOnSameService) {
+  env_.Start();
+  WifiLanMedium wifi_lan_discovery;
+  WifiLanMedium wifi_lan_advertising_1;
+  WifiLanMedium wifi_lan_advertising_2;
+  std::string service_id(kServiceId);
+  std::string service_type(kServiceType);
+
+  CountDownLatch discovered_latch(2);
+  CountDownLatch lost_latch(2);
+
+  wifi_lan_discovery.StartDiscovery(
+      service_id, service_type,
+      DiscoveredServiceCallback{
+          .service_discovered_cb =
+              [&discovered_latch](NsdServiceInfo service_info,
+                                  const std::string& service_type) {
+                discovered_latch.CountDown();
+              },
+          .service_lost_cb =
+              [&lost_latch](NsdServiceInfo service_info,
+                            const std::string& service_id) {
+                lost_latch.CountDown();
+              },
+      });
+
+  // Setup first advertising device.
+  WifiLanServerSocket server_socket_1 =
+      wifi_lan_advertising_1.ListenForService();
+  EXPECT_TRUE(server_socket_1.IsValid());
+
+  NsdServiceInfo nsd_service_info_1;
+  nsd_service_info_1.SetServiceName("service1");
+  nsd_service_info_1.SetTxtRecord(std::string(kEndpointInfoKey),
+                                "endpoint1");
+  nsd_service_info_1.SetServiceType(service_type);
+
+  // Setup second advertising device.
+  WifiLanServerSocket server_socket_2 =
+      wifi_lan_advertising_2.ListenForService();
+  EXPECT_TRUE(server_socket_2.IsValid());
+
+  NsdServiceInfo nsd_service_info_2;
+  nsd_service_info_2.SetServiceName("service2");
+  nsd_service_info_2.SetTxtRecord(std::string(kEndpointInfoKey),
+                                "endpoint2");
+  nsd_service_info_2.SetServiceType(service_type);
+
+  EXPECT_TRUE(wifi_lan_advertising_1.StartAdvertising(nsd_service_info_1));
+  EXPECT_TRUE(wifi_lan_advertising_2.StartAdvertising(nsd_service_info_2));
+  EXPECT_TRUE(discovered_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(wifi_lan_advertising_1.StopAdvertising(nsd_service_info_1));
+  EXPECT_TRUE(wifi_lan_advertising_2.StopAdvertising(nsd_service_info_2));
+  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+
+
+  // Stop to descovery
+  EXPECT_TRUE(wifi_lan_discovery.StopDiscovery(service_type));
   env_.Stop();
 }
 
