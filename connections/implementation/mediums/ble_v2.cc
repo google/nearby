@@ -131,6 +131,10 @@ bool BleV2::StartAdvertising(const std::string& service_id,
       advertisement_bytes,
       mediums::bleutils::GenerateDeviceToken(),
       psm};
+
+  BleAdvertisementData advertisement_data;
+  advertisement_data.service_data.emplace(service_id, advertisement_bytes);
+
   if (!medium_advertisement.IsValid()) {
     NEARBY_LOGS(INFO) << "Failed to BLE advertise because we could not wrap a "
                          "connection advertisement to medium advertisement.";
@@ -146,10 +150,15 @@ bool BleV2::StartAdvertising(const std::string& service_id,
   // Stop the pre-existing BLE advertisement if there is one.
   medium_.StopAdvertising();
 
-  if (!StartAdvertisingLocked(service_id)) {
-    advertising_infos_.erase(service_id);
-    return false;
-  }
+  // if (!StartAdvertisingLocked(service_id)) {
+  //   advertising_infos_.erase(service_id);
+  //   return false;
+  // }
+  api::ble_v2::AdvertiseParameters advertise_parameters;
+  advertise_parameters.tx_power_level = PowerLevelToTxPowerLevel(power_level);
+  advertise_parameters.is_connectable = true;
+
+  medium_.StartAdvertising(advertisement_data, advertise_parameters);
   return true;
 }
 
@@ -350,6 +359,10 @@ bool BleV2::IsScanning(const std::string& service_id) const {
 
 bool BleV2::StartAcceptingConnections(const std::string& service_id,
                                       AcceptedConnectionCallback callback) {
+  if (FeatureFlags::GetInstance().GetFlags().support_ble_v2) {
+    return true;
+  }
+
   MutexLock lock(&mutex_);
 
   if (service_id.empty()) {

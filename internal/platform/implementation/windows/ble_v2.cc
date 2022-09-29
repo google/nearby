@@ -14,6 +14,7 @@
 
 #include "internal/platform/implementation/windows/ble_v2.h"
 
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -161,6 +162,12 @@ bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
 bool BleV2Medium::StopAdvertising() {
   NEARBY_LOGS(INFO) << "Windows Ble StopAdvertising";
   absl::MutexLock lock(&mutex_);
+
+  if (!advertising_started_) {
+    NEARBY_LOGS(WARNING) << "BLE advertising is not running.";
+    return false;
+  }
+
   publisher_stopped_callback_ = [this]() {
     advertising_stopped_ = true;
     advertising_started_ = false;
@@ -171,17 +178,26 @@ bool BleV2Medium::StopAdvertising() {
     advertising_started_ = false;
   };
 
-  publisher_.Stop();
+  try {
+    publisher_.Stop();
 
-  while (!advertising_stopped_) {
-    if (advertising_error_) {
-      return false;
-    }
-    if (publisher_.Status() ==
-        BluetoothLEAdvertisementPublisherStatus::Stopped) {
-      return true;
-    }
+    // Don't need to wait for the status becomes to `Stopped`. If application
+    // starts to scanning immediately, the scanning still needs to wait the
+    // stopping to finish.
+    advertising_started_ = false;
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception to stop BLE advertising: "
+                       << exception.what();
+
+    return false;
+  } catch (const winrt::hresult_error& ex) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Exception to stop BLE advertising: " << ex.code()
+                       << ": " << winrt::to_string(ex.message());
+
+    return false;
   }
+
   return true;
 }
 
