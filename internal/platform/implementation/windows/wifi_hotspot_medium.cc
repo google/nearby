@@ -24,12 +24,6 @@ namespace location {
 namespace nearby {
 namespace windows {
 
-namespace {
-constexpr int kMaxRetries = 3;
-constexpr int kRetryIntervalMilliSeconds = 300;
-constexpr int kMaxScans = 2;
-}  // namespace
-
 WifiHotspotMedium::WifiHotspotMedium() {}
 
 WifiHotspotMedium::~WifiHotspotMedium() {

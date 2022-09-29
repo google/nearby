@@ -29,11 +29,7 @@ namespace location {
 namespace nearby {
 namespace windows {
 namespace {
-
 using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
-
-constexpr int kMaxRetries = 3;
-
 }  // namespace
 
 WifiHotspotServerSocket::WifiHotspotServerSocket(int port) : port_(port) {}
@@ -122,10 +118,19 @@ Exception WifiHotspotServerSocket::Close() {
 
 bool WifiHotspotServerSocket::listen() {
   // Get current IP addresses of the device.
-  hotspot_ipaddr_ = GetHotspotIpAddresses();
-
+  for (int i = 0; i < kMaxRetries; i++) {
+    hotspot_ipaddr_ = GetHotspotIpAddresses();
+    if (hotspot_ipaddr_.empty()) {
+      NEARBY_LOGS(WARNING) << "Failed to find Hotspot's IP addr for the try: "
+                           << i + 1 << ". Wait " << kRetryIntervalMilliSeconds
+                           << "ms snd try again";
+      Sleep(kRetryIntervalMilliSeconds);
+    } else {
+      break;
+    }
+  }
   if (hotspot_ipaddr_.empty()) {
-    NEARBY_LOGS(WARNING) << "failed to start accepting connection without IP "
+    NEARBY_LOGS(WARNING) << "Failed to start accepting connection without IP "
                             "addresses configured on computer.";
     return false;
   }
