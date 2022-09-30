@@ -93,8 +93,9 @@ std::string ClientProxy::GenerateLocalEndpointId() {
     }
   }
   std::string id;
+  Prng prng;
   for (int i = 0; i < kEndpointIdLength; i++) {
-    id += kEndpointIdChars[Prng().NextUint32() % sizeof(kEndpointIdChars)];
+    id += kEndpointIdChars[prng.NextUint32() % sizeof(kEndpointIdChars)];
   }
   return id;
 }

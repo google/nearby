@@ -272,7 +272,7 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                                 TxPowerLevel tx_power_level,
                                 ScanCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Ble StartScanning";
-  auto internal_session_id = prng_.NextUint32();
+  auto internal_session_id = Prng().NextUint32();
   absl::MutexLock lock(&mutex_);
   MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
       /*enabled=*/true, service_uuid, internal_session_id,
@@ -297,7 +297,7 @@ std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
     const Uuid& service_uuid, TxPowerLevel tx_power_level,
     BleV2Medium::ScanningCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Ble StartScanning";
-  auto internal_session_id = prng_.NextUint32();
+  auto internal_session_id = Prng().NextUint32();
 
   {
     absl::MutexLock lock(&mutex_);

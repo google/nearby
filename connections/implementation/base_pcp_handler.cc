@@ -463,7 +463,7 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
   ConnectionInfo connection_info;
   connection_info.local_endpoint_id = client->GetLocalEndpointId();
   connection_info.local_endpoint_info = info.endpoint_info;
-  connection_info.nonce = prng_.NextInt32();
+  connection_info.nonce = Prng().NextInt32();
   if (mediums_->GetWifi().IsAvailable()) {
     connection_info.supports_5_ghz =
         mediums_->GetWifi().GetCapability().supports_5_ghz;

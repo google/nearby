@@ -534,7 +534,6 @@ class BasePcpHandler : public PcpHandler,
 
   Pcp pcp_;
   Strategy strategy_{PcpToStrategy(pcp_)};
-  Prng prng_;
   EncryptionRunner encryption_runner_;
   BwuManager* bwu_manager_;
 };

@@ -163,14 +163,15 @@ bool WifiHotspotMedium::StartWifiHotspot(
   publisher_.Advertisement().IsAutonomousGroupOwnerEnabled(true);
 
   // Using WIFIDirect legacy mode to create a softAP. AP means "access point".
+  Prng prng;
   publisher_.Advertisement().LegacySettings().IsEnabled(true);
-  std::string password = absl::StrFormat("%08x", Prng().NextUint32());
+  std::string password = absl::StrFormat("%08x", prng.NextUint32());
   hotspot_credentials_->SetPassword(password);
   PasswordCredential creds;
   creds.Password(winrt::to_hstring(password));
   publisher_.Advertisement().LegacySettings().Passphrase(creds);
 
-  std::string ssid = "DIRECT-" + std::to_string(Prng().NextUint32());
+  std::string ssid = "DIRECT-" + std::to_string(prng.NextUint32());
   hotspot_credentials_->SetSSID(ssid);
   publisher_.Advertisement().LegacySettings().Ssid(winrt::to_hstring(ssid));
 

@@ -25,13 +25,13 @@ namespace nearby {
 namespace connections {
 
 ByteArray Utils::GenerateRandomBytes(size_t length) {
-  Prng rng;
+  Prng prng;
   std::string data;
   data.reserve(length);
 
   // Adds 4 random bytes per iteration.
   while (length > 0) {
-    std::uint32_t val = rng.NextUint32();
+    std::uint32_t val = prng.NextUint32();
     for (int i = 0; i < 4; i++) {
       data += val & 0xFF;
       val >>= 8;

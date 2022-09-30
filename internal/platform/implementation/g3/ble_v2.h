@@ -253,7 +253,6 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   };
 
   absl::Mutex mutex_;
-  Prng prng_;
   BluetoothAdapter* adapter_;  // Our device adapter; read-only.
   absl::flat_hash_map<std::string, BleV2ServerSocket*> server_sockets_
       ABSL_GUARDED_BY(mutex_);
