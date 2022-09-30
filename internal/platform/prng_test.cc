@@ -14,6 +14,11 @@
 
 #include "internal/platform/prng.h"
 
+#include <memory>
+#include <set>
+#include <thread>  // NOLINT(build/c++11)
+#include <vector>
+
 #include "gtest/gtest.h"
 
 namespace location {
@@ -32,16 +37,72 @@ TEST(PrngTest, NextInt32) {
   EXPECT_GE(i, std::numeric_limits<std::int32_t>::min());
 }
 
+TEST(PrngTest, NextInt32GeneratesDifferentValues) {
+  Prng prng;
+  std::set<int32_t> values;
+  for (int i = 0; i < 100; ++i) {
+    auto value = prng.NextInt32();
+    EXPECT_LE(value, std::numeric_limits<std::int32_t>::max());
+    EXPECT_GE(value, std::numeric_limits<std::int32_t>::min());
+    EXPECT_EQ(values.find(value), values.end());
+    values.insert(value);
+  }
+}
+
+TEST(PrngTest, NextInt32AcrossThreads) {
+  Prng prng;
+  std::set<int32_t> values;
+  auto func = [&prng, &values]() {
+    auto value = prng.NextInt32();
+    EXPECT_LE(value, std::numeric_limits<std::int32_t>::max());
+    EXPECT_GE(value, std::numeric_limits<std::int32_t>::min());
+    EXPECT_EQ(values.find(value), values.end());
+    values.insert(value);
+  };
+  std::vector<std::thread> threads;
+  for (int i = 0; i < 10; ++i) {
+    threads.push_back(std::thread(func));
+  }
+  for (auto &thread : threads) {
+    thread.join();
+  }
+  EXPECT_EQ(values.size(), 10);
+}
+
 TEST(PrngTest, NextUInt32) {
   std::uint32_t i = Prng().NextUint32();
   EXPECT_LE(i, std::numeric_limits<std::uint32_t>::max());
   EXPECT_GE(i, std::numeric_limits<std::uint32_t>::min());
 }
 
+TEST(PrngTest, NextUint32GeneratesDifferentValues) {
+  Prng prng;
+  std::set<uint32_t> values;
+  for (int i = 0; i < 100; ++i) {
+    auto value = prng.NextUint32();
+    EXPECT_LE(value, std::numeric_limits<std::uint32_t>::max());
+    EXPECT_GE(value, std::numeric_limits<std::uint32_t>::min());
+    EXPECT_EQ(values.find(value), values.end());
+    values.insert(value);
+  }
+}
+
 TEST(PrngTest, NextInt64) {
   std::int64_t i = Prng().NextInt64();
   EXPECT_LE(i, std::numeric_limits<std::int64_t>::max());
   EXPECT_GE(i, std::numeric_limits<std::int64_t>::min());
+}
+
+TEST(PrngTest, NextInt64GeneratesDifferentValues) {
+  Prng prng;
+  std::set<int64_t> values;
+  for (int i = 0; i < 100; ++i) {
+    auto value = prng.NextInt64();
+    EXPECT_LE(i, std::numeric_limits<std::int64_t>::max());
+    EXPECT_GE(i, std::numeric_limits<std::int64_t>::min());
+    EXPECT_EQ(values.find(value), values.end());
+    values.insert(value);
+  }
 }
 
 void ValidateRandom(TestMode mode) {
