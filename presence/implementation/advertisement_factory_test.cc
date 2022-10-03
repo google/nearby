@@ -39,9 +39,9 @@ using ::testing::status::StatusIs;
 class MockCredentialManager : public CredentialManagerImpl {
  public:
   MOCK_METHOD(absl::StatusOr<std::string>, GetBaseEncryptedMetadataKey,
-              (const IdentityType& identity), (override));
+              (IdentityType identity), (override));
   MOCK_METHOD(absl::StatusOr<std::string>, EncryptDataElements,
-              (const IdentityType& identity, absl::string_view salt,
+              (IdentityType identity, absl::string_view salt,
                absl::string_view data_elements),
               (override));
 };
@@ -70,9 +70,9 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   absl::StatusOr<BleAdvertisementData> result =
       factory.CreateAdvertisement(request);
 
-  EXPECT_OK(result);
+  ASSERT_OK(result);
   auto service_data = result->service_data;
-  EXPECT_EQ(service_data.size(), 1);
+  ASSERT_EQ(service_data.size(), 1);
   for (auto i : service_data) {
     EXPECT_EQ(i.first.Get16BitAsString(), "FCF1");
     auto advertisement = absl::BytesToHexString(i.second.AsStringView());
