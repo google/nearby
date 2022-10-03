@@ -29,6 +29,7 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/ble.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
+#include "internal/platform/implementation/windows/mediums_api.h"
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
 
 namespace location {
@@ -78,11 +79,6 @@ class BleMedium : public api::BleMedium {
                                           CancellationFlag* cancellation_flag);
 
  private:
-  void PublisherHandler(
-      ::winrt::Windows::Devices::Bluetooth::Advertisement::
-          BluetoothLEAdvertisementPublisher publisher,
-      ::winrt::Windows::Devices::Bluetooth::Advertisement::
-          BluetoothLEAdvertisementPublisherStatusChangedEventArgs args);
   void AdvertisementReceivedHandler(
       ::winrt::Windows::Devices::Bluetooth::Advertisement::
           BluetoothLEAdvertisementWatcher watcher,
@@ -104,16 +100,15 @@ class BleMedium : public api::BleMedium {
   absl::flat_hash_map<std::string, std::unique_ptr<BlePeripheral>>
       peripheral_map_ ABSL_GUARDED_BY(peripheral_map_mutex_);
 
+  // Uses Mediums API for advertising
+  std::unique_ptr<api::MediumsManager> mediums_manager_ = nullptr;
+
   // WinRT objects
-  ::winrt::Windows::Devices::Bluetooth::Advertisement::
-      BluetoothLEAdvertisementPublisher publisher_ = nullptr;
   ::winrt::Windows::Devices::Bluetooth::Advertisement::
       BluetoothLEAdvertisementWatcher watcher_ = nullptr;
 
-  bool is_publisher_started_ = false;
   bool is_watcher_started_ = false;
 
-  ::winrt::event_token publisher_token_;
   ::winrt::event_token watcher_token_;
   ::winrt::event_token advertisement_received_token_;
 };

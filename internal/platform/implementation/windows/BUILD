@@ -89,6 +89,16 @@ cc_library(
 )
 
 cc_library(
+    name = "mediums_api",
+    hdrs = ["mediums_api.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/platform/implementation/windows/mediums_manager:types",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
     name = "crypto",
     srcs = [
         "crypto.cc",
@@ -140,6 +150,7 @@ cc_library(
     deps = [
         ":comm",
         ":crypto",  # build_cleaner: keep
+        ":mediums_api",
         ":types",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
@@ -150,6 +161,7 @@ cc_library(
         "//internal/platform/implementation/shared:file",
         "//internal/platform/implementation/windows/generated:types",
         "//internal/platform/implementation/windows/json:types",
+        "//internal/platform/implementation/windows/mediums_manager",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
     ],
