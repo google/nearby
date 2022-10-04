@@ -93,7 +93,7 @@ class ThroughputRecorder {
   int64_t payload_id_;
   absl::Time start_timestamp_;
   PayloadType payload_type_ = PayloadType::kUnknown;
-  bool is_incoming_;
+  bool is_incoming_ = false;
   absl::flat_hash_map<Medium, Throughput> throughputs_ ABSL_GUARDED_BY(mutex_);
   bool success_ = false;
 
