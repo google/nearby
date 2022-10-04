@@ -15,7 +15,8 @@ licenses(["notice"])
 
 cc_library(
     name = "mediums",
-    srcs = [],
+    srcs = [
+    ],
     hdrs = [
         "ble.h",
         "mediums.h",
@@ -23,5 +24,34 @@ cc_library(
     visibility = [
         "//presence/implementation:__subpackages__",
     ],
-    deps = ["//internal/platform:comm"],
+    deps = [
+        "//internal/platform:comm",
+        "//internal/platform:uuid",
+        "//internal/platform/implementation:comm",
+        "//presence:types",
+    ],
+)
+
+cc_test(
+    name = "mediums_test",
+    size = "small",
+    srcs = [
+        "ble_test.cc",
+    ],
+    shard_count = 16,
+    deps = [
+        ":mediums",
+        "//internal/platform:base",
+        "//internal/platform:comm",
+        "//internal/platform:test_util",
+        "//internal/platform:types",
+        "//internal/platform:uuid",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//presence:types",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
 )

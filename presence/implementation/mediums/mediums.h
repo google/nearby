@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_MEDIUMS_MEDIUMS_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_MEDIUMS_MEDIUMS_H_
 
+#include "internal/platform/ble_v2.h"
 #include "presence/implementation/mediums/ble.h"
 
 namespace nearby {
@@ -30,10 +31,10 @@ class Mediums {
   ~Mediums() = default;
 
   // Returns a handle to the Ble medium.
-  Ble& GetBle();
+  Ble<location::nearby::BleV2Medium>& GetBle();
 
  private:
-  Ble ble_;
+  Ble<location::nearby::BleV2Medium> ble_;
 };
 
 }  // namespace presence
