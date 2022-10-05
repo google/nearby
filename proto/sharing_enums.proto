@@ -378,6 +378,9 @@ enum ServerResponseState {
 
   // For GoogleAuthException.
   SERVER_RESPONSE_GOOGLE_AUTH_FAILURE = 8;
+
+  // For Internet connect status.
+  SERVER_RESPONSE_NOT_CONNECTED_TO_INTERNET = 10;
 }
 
 // The type of Nearby Sharing scanning.
