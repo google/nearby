@@ -57,10 +57,7 @@ proto_library(
 
 cc_proto_library(
     name = "web_rtc_signaling_frames_cc_proto",
-    visibility = [
-        "//location/nearby/connections:__subpackages__",
-        "//third_party/nearby:__subpackages__",
-    ],
+    visibility = ["//third_party/nearby:__subpackages__"],
     deps = [":web_rtc_signaling_frames_proto"],
 )
 
