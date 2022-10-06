@@ -45,6 +45,7 @@ cc_library(
         "broadcast_options.h",
         "broadcast_request.h",
         "data_element.h",
+        "data_types.h",
         "device_motion.h",
         "discovery_filter.h",
         "discovery_options.h",

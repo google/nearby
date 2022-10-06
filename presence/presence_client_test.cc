@@ -15,22 +15,35 @@
 #include "presence/presence_client.h"
 
 #include "gtest/gtest.h"
+#include "presence/data_types.h"
 #include "presence/status.h"
 
 namespace nearby {
 namespace presence {
 namespace {
 
-TEST(PresenceClientTest, DefaultConstructorWorks) {
-  PresenceClient presence_client;
-  Status result = {Status::Value::kSuccess};
-  ResultCallback callback = {
-      .result_cb = [&](Status status) { result = status; },
+TEST(PresenceClientTest, StartBroadcastWithDefaultConstructor) {
+  Status broadcast_result = {Status::Value::kSuccess};
+  BroadcastCallback broadcast_callback = {
+      .start_broadcast_cb = [&](Status status) { broadcast_result = status; },
   };
 
-  presence_client.StartBroadcast({}, callback);
+  PresenceClient presence_client;
+  presence_client.StartBroadcast({}, broadcast_callback);
 
-  EXPECT_FALSE(result.Ok());
+  EXPECT_FALSE(broadcast_result.Ok());
+}
+
+TEST(PresenceClientTest, StartScanWithDefaultConstructor) {
+  Status scan_result = {Status::Value::kSuccess};
+  ScanCallback scan_callback = {
+      .start_scan_cb = [&](Status status) { scan_result = status; },
+  };
+
+  PresenceClient presence_client;
+  presence_client.StartScan({}, scan_callback);
+
+  EXPECT_FALSE(scan_result.Ok());
 }
 
 }  // namespace
