@@ -150,7 +150,7 @@ class GNCAdvertiserConnectionListener {
                 // The connection was accepted by the client.
                 if (payload_listener_ == nullptr) {
                   payload_listener_ = std::make_unique<GNCPayloadListener>(
-                      advertiser.core,
+                      strongAdvertiser.core,
                       ^{
                         return endpointInfo.connectionHandlers;
                       },
@@ -158,7 +158,7 @@ class GNCAdvertiserConnectionListener {
                         return endpointInfo.connection.payloads;
                       });
                 }
-                advertiser.core->_core->AcceptConnection(
+                strongAdvertiser.core->_core->AcceptConnection(
                     CppStringFromObjCString(endpointId),
                     PayloadListener{
                         .payload_cb = absl::bind_front(&GNCPayloadListener::OnPayload,
@@ -169,7 +169,7 @@ class GNCAdvertiserConnectionListener {
                     ResultListener{});
               } else {
                 // The connection was rejected by the client.
-                advertiser.core->_core->RejectConnection(CppStringFromObjCString(endpointId),
+                strongAdvertiser.core->_core->RejectConnection(CppStringFromObjCString(endpointId),
                                                          ResultListener{});
               }
             });
