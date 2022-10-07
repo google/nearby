@@ -25,14 +25,21 @@
 namespace nearby {
 namespace presence {
 
-// Reserved Action types when the field type is kActionFieldType
-namespace action {
-constexpr int kTapToTransferAction = 4;
-constexpr int kActiveUnlockAction = 8;
-constexpr int kNearbyShareAction = 9;
-constexpr int kFastPairAction = 10;
-constexpr int kFitCastAction = 11;
-}  // namespace action
+// Reserved Action types when the field type is kActionFieldType.
+// The values are bit numbers in BE ordering.
+enum class ActionBit {
+  kActiveUnlockAction = 8,
+  kNearbyShareAction = 9,
+  kFitCastAction = 10,
+  kPresenceManagerAction = 11,
+  kInstantTetheringAction = 12,
+  kCrossDeviceCallingAction = 13,
+  kPhoneHubAction = 14,
+  kTapToTransferAction = 15,
+  kEddystoneAction = 16,
+  kFastPairAction = 17,
+  kLastAction
+};
 
 /** Describes a custom Data element in NP advertisement. */
 class DataElement {
@@ -66,6 +73,10 @@ class DataElement {
   DataElement(uint16_t type, uint8_t value)
       : type_(type),
         value_(reinterpret_cast<const char*>(&value), sizeof(value)) {}
+
+  explicit DataElement(ActionBit action)
+      : DataElement(kActionFieldType, static_cast<uint8_t>(action)) {}
+
   ~DataElement() = default;
 
   uint16_t GetType() const { return type_; }

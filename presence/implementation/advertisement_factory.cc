@@ -23,14 +23,19 @@
 #include "internal/platform/uuid.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
+#include "presence/implementation/base_broadcast_request.h"
 
 namespace nearby {
 namespace presence {
 
 using ::nearby::internal::IdentityType;
 
+
+namespace {
+
 constexpr uint8_t kBaseVersion = 0;
 constexpr location::nearby::Uuid kServiceData(0xFCF1ULL << 32, 0);
+constexpr size_t kMaxBaseNpAdvSize = 26;
 
 absl::StatusOr<uint8_t> CreateDataElementHeader(size_t length,
                                                 unsigned data_type) {
@@ -74,6 +79,22 @@ uint8_t GetIdentityFieldType(IdentityType type) {
   }
 }
 
+std::string SerializeAction(const Action& action) {
+  std::string output;
+  uint32_t input = action.action;
+  for (int i = 3; i >= 0; --i) {
+    if (input == 0) {
+      return output;
+    }
+    int shift = 8 * i;
+    output.push_back(static_cast<char>((input >> shift) & 0xFF));
+    input &= (1 << shift) - 1;
+  }
+  return output;
+}
+
+}  // namespace
+
 absl::StatusOr<BleAdvertisementData> AdvertisementFactory::CreateAdvertisement(
     const BaseBroadcastRequest& request) const {
   BleAdvertisementData advert = {};
@@ -91,49 +112,67 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
       absl::get<BaseBroadcastRequest::BasePresence>(request.variant);
   BleAdvertisementData advert{};
   std::string payload;
+  payload.reserve(kMaxBaseNpAdvSize);
   payload.push_back(kBaseVersion);
   absl::Status result;
-  if (!request.salt.empty()) {
-    result =
-        AppendDataElement(DataElement::kSaltFieldType, request.salt, payload);
+  std::string tx_power_and_action = {static_cast<char>(request.tx_power)};
+  tx_power_and_action.append(SerializeAction(presence.action));
+  uint8_t identity_type = GetIdentityFieldType(presence.identity);
+  bool needs_encryption =
+      identity_type != DataElement::kPublicIdentityFieldType;
+  if (needs_encryption) {
+    if (request.salt.size() != kSaltSize) {
+      return absl::InvalidArgumentError(
+          absl::StrFormat("Unsupported salt size %d", request.salt.size()));
+    }
+    std::string unencrypted;
+    // In v0 OTA format, this is a combined TX and Action DE
+    result = AppendDataElement(DataElement::kActionFieldType,
+                               tx_power_and_action, unencrypted);
     if (!result.ok()) {
       return result;
     }
-  }
-  absl::StatusOr<std::string> identity =
-      credential_manager_.GetBaseEncryptedMetadataKey(presence.identity);
-  if (!identity.ok()) {
-    return identity.status();
-  }
-  uint8_t identity_type = GetIdentityFieldType(presence.identity);
-  result = AppendDataElement(identity_type, *identity, payload);
-  if (!result.ok()) {
-    return result;
-  }
-
-  std::string data_elements;
-  std::string tx_power = {static_cast<char>(request.tx_power)};
-  result = AppendDataElement(DataElement::kTxPowerFieldType, tx_power,
-                             data_elements);
-  if (!result.ok()) {
-    return result;
-  }
-  std::string action = {static_cast<char>(presence.action.action >> 8),
-                        static_cast<char>(presence.action.action)};
-  result =
-      AppendDataElement(DataElement::kActionFieldType, action, data_elements);
-  if (!result.ok()) {
-    return result;
-  }
-  if (!identity->empty()) {
-    auto encrypted = credential_manager_.EncryptDataElements(
-        presence.identity, request.salt, data_elements);
+    absl::StatusOr<std::string> encrypted =
+        credential_manager_.EncryptDataElements(presence.identity, request.salt,
+                                                unencrypted);
     if (!encrypted.ok()) {
       return encrypted.status();
     }
-    payload += *encrypted;
+    if (encrypted->size() <= kBaseMetadataSize) {
+      return absl::OutOfRangeError(
+          absl::StrFormat("Encrypted identity DE is too short - %d bytes. "
+                          "Expected more than %d",
+                          encrypted->size(), kBaseMetadataSize));
+    }
+
+    // The Identity DE header does not include the length of salt nor metadata.
+    absl::StatusOr<uint8_t> identity_header = CreateDataElementHeader(
+        encrypted->size() - kBaseMetadataSize, identity_type);
+    if (!identity_header.ok()) {
+      return identity_header.status();
+    }
+    payload.push_back(*identity_header);
+    // In the encrypted format, salt is not a DE (thus no header)
+    payload.append(request.salt);
+    payload.append(*encrypted);
   } else {
-    payload += data_elements;
+    result = AppendDataElement(identity_type, "", payload);
+    if (!result.ok()) {
+      return result;
+    }
+    if (!request.salt.empty()) {
+      result =
+          AppendDataElement(DataElement::kSaltFieldType, request.salt, payload);
+      if (!result.ok()) {
+        return result;
+      }
+    }
+    // In v0 OTA format, this is a combined TX and Action DE
+    result = AppendDataElement(DataElement::kActionFieldType,
+                               tx_power_and_action, payload);
+    if (!result.ok()) {
+      return result;
+    }
   }
   advert.service_data.insert(
       {kServiceData, location::nearby::ByteArray(payload)});

@@ -24,51 +24,24 @@ namespace nearby {
 namespace presence {
 
 constexpr int kContentTimestampMask = 0x0F;
-constexpr int kContentTimestampShift = 12;
+constexpr int kContentTimestampShift = 28;
 constexpr int kEmptyMask = 0;
-
-// The values below match the bitmasks in Base NP Intent.
-constexpr int kTapToTransferMask = 1 << 11;
-constexpr int kActiveUnlockMask = 1 << 7;
-constexpr int kNearbyShareMask = 1 << 6;
-constexpr int kFastPairMask = 1 << 5;
-constexpr int kFitCastMask = 1 << 4;
+constexpr int kActionSizeInBits = 32;
 
 namespace {
-int GetActionMask(int action) {
-  switch (action) {
-    case action::kActiveUnlockAction:
-      return kActiveUnlockMask;
-    case action::kTapToTransferAction:
-      return kTapToTransferMask;
-    case action::kNearbyShareAction:
-      return kNearbyShareMask;
-    case action::kFastPairAction:
-      return kFastPairMask;
-    case action::kFitCastAction:
-      return kFitCastMask;
+
+int GetActionMask(ActionBit action) {
+  int bit = static_cast<int>(action);
+  if (bit < 0 || bit >= kActionSizeInBits) {
+    NEARBY_LOG(WARNING, "Unsupported action %d", static_cast<int>(action));
+    return kEmptyMask;
   }
-  NEARBY_LOG(WARNING, "Unsupported action %d", action);
-  return kEmptyMask;
+  return 1 << (kActionSizeInBits - 1 - bit);
 }
 
 // The reverse of `GetActionMask()`
-absl::optional<uint8_t> GetActionFromBitMask(int mask) {
-  switch (mask) {
-    case kTapToTransferMask:
-      return action::kTapToTransferAction;
-    case kActiveUnlockMask:
-      return action::kActiveUnlockAction;
-    case kNearbyShareMask:
-      return action::kNearbyShareAction;
-    case kFastPairMask:
-      return action::kFastPairAction;
-    case kFitCastMask:
-      return action::kFitCastAction;
-    default:
-      NEARBY_LOG(WARNING, "Unsupported action for bit mask 0x%x", mask);
-      return absl::nullopt;
-  }
+ActionBit GetActionFromBit(int bit) {
+  return ActionBit(kActionSizeInBits - 1 - bit);
 }
 
 int GetMask(const DataElement& element) {
@@ -88,7 +61,7 @@ int GetMask(const DataElement& element) {
         NEARBY_LOG(WARNING, "Action Data Element without value");
         return kEmptyMask;
       }
-      return GetActionMask(element.GetValue()[0]);
+      return GetActionMask(ActionBit(element.GetValue()[0]));
     }
   }
   NEARBY_LOG(WARNING, "Data Element 0x%x not supported in base advertisement",
@@ -117,13 +90,12 @@ void ActionFactory::DecodeAction(const Action& action,
     output.emplace_back(DataElement::kContextTimestampFieldType,
                         context_timestamp);
   }
-  for (int i = 0; i < kContentTimestampShift; i++) {
+  constexpr int kFirstUsedBit =
+      kActionSizeInBits - static_cast<int>(ActionBit::kLastAction);
+  for (int i = kFirstUsedBit; i < kContentTimestampShift; i++) {
     int bit_mask = 1 << i;
     if (action.action & bit_mask) {
-      absl::optional<uint8_t> action_value = GetActionFromBitMask(bit_mask);
-      if (action_value) {
-        output.emplace_back(DataElement::kActionFieldType, *action_value);
-      }
+      output.emplace_back(DataElement(GetActionFromBit(i)));
     }
   }
 }

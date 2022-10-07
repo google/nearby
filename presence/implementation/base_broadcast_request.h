@@ -30,10 +30,13 @@ namespace nearby {
 namespace presence {
 
 constexpr int8_t kUnspecifiedTxPower = -128;
+constexpr size_t kSaltSize = 2;
+// The identity metadata size in the base advertisement
+constexpr size_t kBaseMetadataSize = 14;
 
 /** Defines the action (intended actions) of base NP advertisement */
 struct Action {
-  uint16_t action;
+  uint32_t action;
 };
 
 /** Defines a Nearby Presence broadcast request */

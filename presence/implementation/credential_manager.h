@@ -76,16 +76,10 @@ class CredentialManager {
       absl::string_view device_metadata_string) = 0;
 
   // Decrypts Data Elements from an NP advertisement.
-  // Returns an error if `metadata_key` is not associated with any known
+  // Returns an error if `data_elements` could not be deciphered with any known
   // credentials (identity).
   virtual absl::StatusOr<std::string> DecryptDataElements(
-      absl::string_view metadata_key, absl::string_view salt,
-      absl::string_view data_elements) = 0;
-
-  // Returns encrypted metadata key associated with `identity` for Base NP
-  // advertisement.
-  virtual absl::StatusOr<std::string> GetBaseEncryptedMetadataKey(
-      nearby::internal::IdentityType identity) = 0;
+      absl::string_view salt, absl::string_view data_elements) = 0;
 
   // Encrypts `data_elements` using certificate associated with `identity` and
   // `salt`.

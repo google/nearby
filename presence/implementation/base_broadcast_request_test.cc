@@ -44,11 +44,12 @@ TEST(BroadcastRequestTest, CreateBasePresenceRequest) {
 
 TEST(BroadcastRequestTest, CreateFromPresenceRequest) {
   constexpr int8_t kTxPower = 30;
-  constexpr uint16_t kExpectedAction = 128;  // encoded kActiveUnlockAction
+  constexpr uint32_t kExpectedAction =
+      (1 << 23);  // encoded kActiveUnlockAction
   PresenceBroadcast::BroadcastSection section = {
       .identity = internal::IDENTITY_TYPE_PUBLIC,
-      .extended_properties = {DataElement(DataElement::kActionFieldType,
-                                          action::kActiveUnlockAction)}};
+      .extended_properties = {
+          DataElement(DataElement(ActionBit::kActiveUnlockAction))}};
   PresenceBroadcast presence_request = {.sections = {section}};
   BroadcastRequest input = {
       .tx_power = kTxPower,

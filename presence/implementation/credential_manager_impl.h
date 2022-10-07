@@ -82,15 +82,8 @@ class CredentialManagerImpl : public CredentialManager {
       absl::string_view device_metadata_string) override;
 
   absl::StatusOr<std::string> DecryptDataElements(
-      absl::string_view metadata_key, absl::string_view salt,
-      absl::string_view data_elements) override {
+      absl::string_view salt, absl::string_view data_elements) override {
     return absl::UnimplementedError("DecryptDataElements unimplemented");
-  }
-
-  absl::StatusOr<std::string> GetBaseEncryptedMetadataKey(
-      nearby::internal::IdentityType identity) override {
-    return absl::UnimplementedError(
-        "GetBaseEncryptedMetadataKey unimplemented");
   }
 
   absl::StatusOr<std::string> EncryptDataElements(

@@ -30,14 +30,27 @@ namespace {
 
 using ::testing::ElementsAre;
 
+constexpr uint32_t kActiveUnlockBitMask = 1 << 23;
+constexpr uint32_t kFastPairBitMask = 1 << 14;
+
 TEST(ActionFactory, CreateActiveUnlockAction) {
   std::vector<DataElement> data_elements;
-  data_elements.emplace_back(DataElement::kActionFieldType,
-                             action::kActiveUnlockAction);
+  data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
 
   Action action = ActionFactory::CreateAction(data_elements);
 
-  EXPECT_EQ(action.action, 1 << 7);
+  EXPECT_EQ(action.action, kActiveUnlockBitMask);
+}
+
+TEST(ActionFactory, CreateActiveIgnoresUnsupportedActions) {
+  std::vector<DataElement> data_elements;
+  data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
+  // The action is 32 bit, so the valid range is [0-31]
+  data_elements.emplace_back(DataElement(ActionBit(-1)));
+  data_elements.emplace_back(DataElement(ActionBit(32)));
+  Action action = ActionFactory::CreateAction(data_elements);
+
+  EXPECT_EQ(action.action, kActiveUnlockBitMask);
 }
 
 TEST(ActionFactory, CreateContextTimestamp) {
@@ -49,7 +62,7 @@ TEST(ActionFactory, CreateContextTimestamp) {
 
   Action action = ActionFactory::CreateAction(data_elements);
 
-  EXPECT_EQ(action.action, 0x0B << 12);
+  EXPECT_EQ(action.action, 0x0BU << 28);
 }
 
 TEST(ActionFactory, CreateContextTimestampAndFastPair) {
@@ -58,36 +71,35 @@ TEST(ActionFactory, CreateContextTimestampAndFastPair) {
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(DataElement::kContextTimestampFieldType,
                              kTimestamp);
-  data_elements.emplace_back(DataElement::kActionFieldType,
-                             action::kFastPairAction);
+  data_elements.emplace_back(DataElement(ActionBit::kFastPairAction));
 
   Action action = ActionFactory::CreateAction(data_elements);
 
-  EXPECT_EQ(action.action, (0x0B << 12) | 0x20);
+  EXPECT_EQ(action.action, (0x0BU << 28) | kFastPairBitMask);
 }
 
 TEST(ActionFactory, DecodeActiveUnlockAction) {
-  constexpr Action kAction = {.action = 1 << 7};
+  constexpr Action kAction = {.action = kActiveUnlockBitMask};
   std::vector<DataElement> data_elements;
 
   ActionFactory::DecodeAction(kAction, data_elements);
 
-  EXPECT_THAT(data_elements,
-              ElementsAre(DataElement(DataElement::kActionFieldType,
-                                      action::kActiveUnlockAction)));
+  EXPECT_THAT(
+      data_elements,
+      ElementsAre(DataElement(DataElement(ActionBit::kActiveUnlockAction))));
 }
 
 TEST(ActionFactory, DecodeContextTimestampAndFastPair) {
-  constexpr Action kAction = {.action = (0x0B << 12) | 0x20};
+  constexpr Action kAction = {.action = (0x0BU << 28) | kFastPairBitMask};
   std::vector<DataElement> data_elements;
 
   ActionFactory::DecodeAction(kAction, data_elements);
 
-  EXPECT_THAT(data_elements,
-              ElementsAre(DataElement(DataElement::kContextTimestampFieldType,
-                                      absl::HexStringToBytes("0B")),
-                          DataElement(DataElement::kActionFieldType,
-                                      action::kFastPairAction)));
+  EXPECT_THAT(
+      data_elements,
+      ElementsAre(DataElement(DataElement::kContextTimestampFieldType,
+                              absl::HexStringToBytes("0B")),
+                  DataElement(DataElement(ActionBit::kFastPairAction))));
 }
 
 }  // namespace

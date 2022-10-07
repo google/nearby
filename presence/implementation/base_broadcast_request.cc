@@ -26,7 +26,6 @@
 
 namespace nearby {
 namespace presence {
-constexpr size_t kSaltSize = 2;
 
 BasePresenceRequestBuilder& BasePresenceRequestBuilder::SetSalt(
     absl::string_view salt) {

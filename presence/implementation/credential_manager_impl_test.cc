@@ -348,7 +348,6 @@ TEST(CredentialManagerImpl, PublicCredentialsFailEncryption) {
 
 TEST(CredentialManagerImpl, UnimplementedFunctions) {
   CredentialManagerImpl credential_manager;
-  constexpr absl::string_view metadata_key = "metadata_key";
   constexpr absl::string_view salt = "salt";
   constexpr absl::string_view data_elements = "data_elements";
   IdentityType identity = IDENTITY_TYPE_PRIVATE;
@@ -356,13 +355,9 @@ TEST(CredentialManagerImpl, UnimplementedFunctions) {
       credential_manager.EncryptDataElements(identity, salt, data_elements),
       absl::Status(absl::StatusCode::kUnimplemented,
                    "EncryptDataElements unimplemented"));
-  EXPECT_THAT(
-      credential_manager.DecryptDataElements(metadata_key, salt, data_elements),
-      absl::Status(absl::StatusCode::kUnimplemented,
-                   "DecryptDataElements unimplemented"));
-  EXPECT_THAT(credential_manager.GetBaseEncryptedMetadataKey(identity),
+  EXPECT_THAT(credential_manager.DecryptDataElements(salt, data_elements),
               absl::Status(absl::StatusCode::kUnimplemented,
-                           "GetBaseEncryptedMetadataKey unimplemented"));
+                           "DecryptDataElements unimplemented"));
 }
 
 }  // namespace

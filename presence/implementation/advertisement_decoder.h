@@ -40,6 +40,11 @@ class AdvertisementDecoder {
       absl::string_view advertisement);
 
  private:
+  // Decrypts data elements stored inside encrypted `elem` and appends them to
+  // `result`.
+  absl::Status DecryptDataElements(const DataElement& elem,
+                                   std::vector<DataElement>& result);
+
   CredentialManager& credential_manager_;
 };
 
