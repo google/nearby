@@ -31,7 +31,8 @@ namespace connections {
 
 namespace {
 
-constexpr absl::Duration kWaitForDisconnect = absl::Milliseconds(5000);
+// Timeout for ServiceControllerRouter to run StopAllEndpoints.
+constexpr absl::Duration kWaitForDisconnect = absl::Milliseconds(10000);
 
 // Verify that |service_id| is not empty and will not conflict with any internal
 // service ID formats.
