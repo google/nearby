@@ -359,6 +359,7 @@ enum ServerActionName {
   UPDATE_DEVICE_NAME = 5;
   UPLOAD_SENDER_CERTIFICATES = 6;
   DOWNLOAD_SENDER_CERTIFICATES = 7;
+  UPLOAD_CONTACTS_AND_CERTIFICATES = 8;
 }
 
 // The Fast Share server response state.
