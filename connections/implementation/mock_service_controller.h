@@ -85,6 +85,9 @@ class MockServiceController : public ServiceController {
               (override));
 
   MOCK_METHOD(void, ShutdownBwuManagerExecutors, (), (override));
+
+  MOCK_METHOD(void, SetCustomSavePath,
+              (ClientProxy * client, const std::string& path), (override));
 };
 
 }  // namespace connections

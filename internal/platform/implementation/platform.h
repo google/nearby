@@ -65,6 +65,9 @@ class ImplementationPlatform {
   //   - CountDownLatch : to ensure at least N threads are waiting.
   // - file I/O
   // - Logging
+  static std::string GetCustomSavePath(absl::string_view parent_folder,
+                                       absl::string_view file_name);
+
   static std::string GetDownloadPath(absl::string_view parent_folder,
                                      absl::string_view file_name);
 

@@ -77,6 +77,8 @@ class OfflineServiceController : public ServiceController {
 
   void Stop() override;
 
+  void SetCustomSavePath(ClientProxy* client, const std::string& path) override;
+
   void ShutdownBwuManagerExecutors() override;
 
  private:

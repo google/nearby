@@ -343,6 +343,19 @@ void ServiceControllerRouter::StopAllEndpoints(ClientProxy* client,
       });
 }
 
+void ServiceControllerRouter::SetCustomSavePath(
+    ClientProxy* client, absl::string_view path,
+    const ResultCallback& callback) {
+  RouteToServiceController(
+      "scr-set-custom-save-path", [this, client, path, callback]() {
+        NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
+                          << " has requested us to set custom save path to "
+                          << path;
+        GetServiceController()->SetCustomSavePath(client, std::string(path));
+        callback.result_cb({Status::kSuccess});
+      });
+}
+
 void ServiceControllerRouter::SetServiceControllerForTesting(
     std::unique_ptr<ServiceController> service_controller) {
   service_controller_ = std::move(service_controller);

@@ -73,6 +73,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
   void DisconnectFromEndpointManager();
 
+  void SetCustomSavePath(ClientProxy* client, const std::string& path);
+
  private:
   // Information about an endpoint for a particular payload.
   struct EndpointInfo {
@@ -312,6 +314,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       PayloadTransferFrame::PayloadHeader::PayloadType type);
 
   mutable Mutex mutex_;
+  std::string custom_save_path_;
   AtomicBoolean shutdown_{false};
   std::unique_ptr<CountDownLatch> shutdown_barrier_;
   int send_payload_count_ = 0;

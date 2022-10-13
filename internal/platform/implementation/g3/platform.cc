@@ -61,6 +61,11 @@ namespace location {
 namespace nearby {
 namespace api {
 
+std::string ImplementationPlatform::GetCustomSavePath(
+    absl::string_view parent_folder, absl::string_view file_name) {
+  return file::JoinPath(parent_folder, file_name);
+}
+
 std::string ImplementationPlatform::GetDownloadPath(
     absl::string_view parent_folder, absl::string_view file_name) {
   std::string fullPath("/tmp");

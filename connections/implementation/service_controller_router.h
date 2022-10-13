@@ -108,6 +108,9 @@ class ServiceControllerRouter {
   virtual void StopAllEndpoints(ClientProxy* client,
                                 const ResultCallback& callback);
 
+  virtual void SetCustomSavePath(ClientProxy* client, absl::string_view path,
+                                 const ResultCallback& callback);
+
   void SetServiceControllerForTesting(
       std::unique_ptr<ServiceController> service_controller);
 
