@@ -236,6 +236,7 @@ message BandwidthUpgradeNegotiationFrame {
       optional string password = 2;
       optional int32 port = 3;
       optional int32 frequency = 4;
+      optional string gateway = 5 [default = "0.0.0.0"];
     }
 
     // Accompanies Medium.WEB_RTC
