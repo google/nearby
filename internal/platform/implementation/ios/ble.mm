@@ -536,7 +536,6 @@ bool BleMedium::GattClient::DiscoverServiceAndCharacteristics(
       gattDiscoverResultHandler:^(NSOrderedSet<CBCharacteristic*>* _Nullable cb_characteristics) {
         if (cb_characteristics != nil) {
           for (CBCharacteristic* cb_characteristic in cb_characteristics) {
-            Uuid characteristic_uuid;
             auto const& it = gatt_characteristics.find(
                 CppStringFromObjCString(cb_characteristic.UUID.UUIDString));
             if (it == gatt_characteristics.end()) continue;
