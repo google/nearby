@@ -327,6 +327,17 @@ enum DisconnectError {
   // Next ID :33
 }
 
+// The error for event SEND_PAYLOAD. The range between 31 and 99.
+enum SendPayloadError {
+  // The default value for clearcut
+  UNKNOWN_SEND_PAYLOAD_ERROR = 31;
+
+  // Network error, failed to send payload.
+  SEND_PAYLOAD_FAILED = 32;
+
+  // Next ID :33
+}
+
 enum Description {
   reserved 28, 29;
 
@@ -503,4 +514,6 @@ enum Description {
   USER_RESTRICTION_DISALLOWED = 172;
   UNSUPPORTED_DEVICE_TYPE_PHONE = 173;
   UNSUPPORTED_DEVICE_TYPE_TABLET = 174;
+  BROKEN_PIPE = 175;
+  CONNECTION_ABORT = 176;
 }
