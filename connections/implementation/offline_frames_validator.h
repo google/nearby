@@ -32,12 +32,11 @@ const std::vector<std::string> kIllegalParentFolderPatterns{
     "\\", "?", "*", "\"", "<", ">", "|", ":", "..", "\n", "\r", "\t", "\f"};
 #else
 const std::vector<std::string> kIllegalFileNamePatterns{
-    "/", "\\", "?", "*", "\"", "<",  ">",  "|",  "[",
-    "]", ":",  ",", ";", "..", "\n", "\r", "\t", "\f"};
+    "/", "\\", "?",  "*",  "\"", "<",  ">",
+    "|", ":",  "..", "\n", "\r", "\t", "\f"};
 
 const std::vector<std::string> kIllegalParentFolderPatterns{
-    "\\", "?", "*", "\"", "<",  ">",  "|",  "[", "]",
-    ":",  ",", ";", "..", "\n", "\r", "\t", "\f"};
+    "\\", "?", "*", "\"", "<", ">", "|", ":", "..", "\n", "\r", "\t", "\f"};
 #endif
 
 Exception EnsureValidOfflineFrame(const OfflineFrame& offline_frame);
