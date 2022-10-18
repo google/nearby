@@ -340,7 +340,7 @@ message ConnectionsLog {
     optional string connection_token = 8;
   }
 
-  // Next Id: 18
+  // Next Id: 19
   message ErrorCode {
     // The direction (incoming vs outgoing) of this error.
     optional location.nearby.proto.connections.ConnectionAttemptDirection
@@ -373,6 +373,8 @@ message ConnectionsLog {
       location.nearby.errorcode.proto.ConnectError connect_error = 14;
       location.nearby.errorcode.proto.DisconnectError disconnect_error = 15;
       location.nearby.errorcode.proto.SendPayloadError send_payload_error = 17;
+      location.nearby.errorcode.proto.ReceivePayloadError
+          receive_payload_error = 18;
     }
 
     // The token use to identify this established connection.

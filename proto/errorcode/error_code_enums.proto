@@ -338,6 +338,17 @@ enum SendPayloadError {
   // Next ID :33
 }
 
+// The error for event SEND_PAYLOAD. The range between 31 and 99.
+enum ReceivePayloadError {
+  // The default value for clearcut
+  UNKNOWN_RECEIVE_PAYLOAD_ERROR = 31;
+
+  // Network error, failed to send payload.
+  RECEIVE_PAYLOAD_FAILED = 32;
+
+  // Next ID :33
+}
+
 enum Description {
   reserved 28, 29;
 
