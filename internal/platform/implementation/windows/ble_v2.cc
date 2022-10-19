@@ -17,6 +17,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -113,21 +114,36 @@ bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
   if (service_uuid.size() < 2) {
     return false;
   }
-  data_writer.WriteByte(service_uuid[0]);
-  data_writer.WriteByte(service_uuid[1]);
+  unsigned char uuid_byte0 =
+      (((service_uuid[0] >= 'A') ? (service_uuid[0] - 'A' + 10)
+                                 : (service_uuid[0] - '0'))
+       << 4) |
+      ((service_uuid[1] >= 'A') ? (service_uuid[1] - 'A' + 10)
+                                : (service_uuid[1] - '0'));
+  unsigned char uuid_byte1 =
+      (((service_uuid[2] >= 'A') ? (service_uuid[2] - 'A' + 10)
+                                 : (service_uuid[2] - '0'))
+       << 4) |
+      ((service_uuid[3] >= 'A') ? (service_uuid[3] - 'A' + 10)
+                                : (service_uuid[3] - '0'));
+
+  data_writer.WriteByte(uuid_byte0);
+  data_writer.WriteByte(uuid_byte1);
 
   Buffer buffer(service_bytes.size());
-  std::memcpy(buffer.data(), service_bytes.data(), service_bytes.size());
-  data_writer.WriteBuffer(buffer);
+  std::vector<unsigned char> raw_data;
+
+  for (auto index = 0; index < service_bytes.size(); ++index) {
+    raw_data.push_back(static_cast<unsigned char>(service_bytes.data()[index]));
+  }
+
+  data_writer.WriteBytes(raw_data);
+  auto test = buffer.data();
 
   BluetoothLEAdvertisementDataSection service_data =
       BluetoothLEAdvertisementDataSection(0x16, data_writer.DetachBuffer());
 
-  IVector<BluetoothLEAdvertisementDataSection> data_sections =
-      advertisement_.DataSections();
-  data_sections.Append(service_data);
-  advertisement_.DataSections() = data_sections;
-
+  advertisement_.DataSections().Append(service_data);
   publisher_ = BluetoothLEAdvertisementPublisher(advertisement_);
 
   publisher_started_callback_ = [this]() {
@@ -150,7 +166,9 @@ bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
       return false;
     }
     if (publisher_.Status() ==
-        BluetoothLEAdvertisementPublisherStatus::Started) {
+            BluetoothLEAdvertisementPublisherStatus::Started ||
+        publisher_.Status() ==
+            BluetoothLEAdvertisementPublisherStatus::Created) {
       return true;
     }
   }
@@ -178,7 +196,9 @@ bool BleV2Medium::StopAdvertising() {
       return false;
     }
     if (publisher_.Status() ==
-        BluetoothLEAdvertisementPublisherStatus::Stopped) {
+            BluetoothLEAdvertisementPublisherStatus::Stopped ||
+        publisher_.Status() ==
+            BluetoothLEAdvertisementPublisherStatus::Created) {
       return true;
     }
   }
