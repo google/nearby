@@ -18,8 +18,11 @@
 #include <memory>
 #include <string>
 
+#include "absl/strings/escaping.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/windows/ble_v2_peripheral.h"
+#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
 #include "winrt/Windows.Devices.Bluetooth.h"
@@ -85,7 +88,11 @@ std::string TxPowerLevelToName(TxPowerLevel tx_power_level) {
 
 }  // namespace
 
-std::string BleV2Peripheral::GetAddress() const { return ""; }
+const std::uint64_t kCopresenceServiceUuidMsb = 0x0000FEF300001000;
+const std::uint64_t kCopresenceServiceUuidLsb = 0x800000805F9B34FB;
+
+ABSL_CONST_INIT const Uuid kCopresenceServiceUuid(kCopresenceServiceUuidMsb,
+                                                  kCopresenceServiceUuidLsb);
 
 BleV2Medium::BleV2Medium(api::BluetoothAdapter& adapter)
     : adapter_(dynamic_cast<BluetoothAdapter*>(&adapter)) {}
@@ -113,8 +120,21 @@ bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
   if (service_uuid.size() < 2) {
     return false;
   }
-  data_writer.WriteByte(service_uuid[0]);
-  data_writer.WriteByte(service_uuid[1]);
+  unsigned char uuid_byte0 =
+      (((service_uuid[0] >= 'A') ? (service_uuid[0] - 'A' + 10)
+                                 : (service_uuid[0] - '0'))
+       << 4) |
+      ((service_uuid[1] >= 'A') ? (service_uuid[1] - 'A' + 10)
+                                : (service_uuid[1] - '0'));
+  unsigned char uuid_byte1 =
+      (((service_uuid[2] >= 'A') ? (service_uuid[2] - 'A' + 10)
+                                 : (service_uuid[2] - '0'))
+       << 4) |
+      ((service_uuid[3] >= 'A') ? (service_uuid[3] - 'A' + 10)
+                                : (service_uuid[3] - '0'));
+
+  data_writer.WriteByte(uuid_byte0);
+  data_writer.WriteByte(uuid_byte1);
 
   Buffer buffer(service_bytes.size());
   std::memcpy(buffer.data(), service_bytes.data(), service_bytes.size());
@@ -123,10 +143,9 @@ bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
   BluetoothLEAdvertisementDataSection service_data =
       BluetoothLEAdvertisementDataSection(0x16, data_writer.DetachBuffer());
 
-  IVector<BluetoothLEAdvertisementDataSection> data_sections =
-      advertisement_.DataSections();
-  data_sections.Append(service_data);
-  advertisement_.DataSections() = data_sections;
+  advertisement_.DataSections().Append(service_data);
+  // data_sections.Append(service_data);
+  // advertisement_.DataSections() = data_sections;
 
   publisher_ = BluetoothLEAdvertisementPublisher(advertisement_);
 
@@ -178,7 +197,9 @@ bool BleV2Medium::StopAdvertising() {
       return false;
     }
     if (publisher_.Status() ==
-        BluetoothLEAdvertisementPublisherStatus::Stopped) {
+            BluetoothLEAdvertisementPublisherStatus::Stopped ||
+        publisher_.Status() ==
+            BluetoothLEAdvertisementPublisherStatus::Created) {
       return true;
     }
   }
@@ -221,6 +242,9 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
   advertisement_received_token_ =
       watcher_.Received({this, &BleV2Medium::AdvertisementReceivedHandler});
 
+  service_id_ = service_uuid.Get16BitAsString();
+  // advertisement_received_callback_ = std::move(callback);
+  scan_response_received_callback_ = std::move(callback);
   // Active mode indicates that scan request packets will be sent to query for
   // Scan Response
   watcher_.ScanningMode(BluetoothLEScanningMode::Active);
@@ -409,36 +433,108 @@ void BleV2Medium::WatcherHandler(
   }
 }
 
+// void BleV2Medium::AdvertisementReceivedHandler(
+//    BluetoothLEAdvertisementWatcher watcher,
+//    BluetoothLEAdvertisementReceivedEventArgs args) {
+//  // Handle all BLE advertisements and determine whether the BLE Medium
+//  // Advertisement Scan Response packet (containing Copresence UUID 0xFEF3)
+//  has
+//  // been received in the handler
+//  std::array<uint8_t, 8> bluetooth_base_array = {
+//      static_cast<uint8_t>(0x80), static_cast<uint8_t>(0x00),
+//      static_cast<uint8_t>(0x00), static_cast<uint8_t>(0x80),
+//      static_cast<uint8_t>(0x5F), static_cast<uint8_t>(0x9B),
+//      static_cast<uint8_t>(0x34), static_cast<uint8_t>(0xFB)};
+//  winrt::guid kCopresenceServiceUuid128bit(
+//      static_cast<uint32_t>(0x0000FEF3), static_cast<uint16_t>(0x0000),
+//      static_cast<uint16_t>(0x1000), bluetooth_base_array);
+//
+//  absl::MutexLock lock(&mutex_);
+//
+//  if (args.IsScanResponse()) {
+//    IVector<winrt::guid> guids = args.Advertisement().ServiceUuids();
+//    bool scan_response_found = false;
+//    for (const winrt::guid& uuid : guids) {
+//      if (uuid == kCopresenceServiceUuid128bit) {
+//        scan_response_found = true;
+//      }
+//    }
+//    if (scan_response_found == true) {
+//      BleV2Peripheral peripheral;
+//      api::ble_v2::BleAdvertisementData advertisement_data;
+//      scan_response_received_callback_.advertisement_found_cb(
+//          peripheral, advertisement_data);
+//    }
+//  }
+// }
+
 void BleV2Medium::AdvertisementReceivedHandler(
     BluetoothLEAdvertisementWatcher watcher,
     BluetoothLEAdvertisementReceivedEventArgs args) {
   // Handle all BLE advertisements and determine whether the BLE Medium
-  // Advertisement Scan Response packet (containing Copresence UUID 0xFEF3) has
-  // been received in the handler
-  std::array<uint8_t, 8> bluetooth_base_array = {
-      static_cast<uint8_t>(0x80), static_cast<uint8_t>(0x00),
-      static_cast<uint8_t>(0x00), static_cast<uint8_t>(0x80),
-      static_cast<uint8_t>(0x5F), static_cast<uint8_t>(0x9B),
-      static_cast<uint8_t>(0x34), static_cast<uint8_t>(0xFB)};
-  winrt::guid kCopresenceServiceUuid128bit(
-      static_cast<uint32_t>(0x0000FEF3), static_cast<uint16_t>(0x0000),
-      static_cast<uint16_t>(0x1000), bluetooth_base_array);
+  // Advertisement Scan Response packet (containing Copresence UUID 0xFEF3 in
+  // 0x16 Service Data) has been received in the handler
+  BluetoothLEAdvertisement advertisement = args.Advertisement();
 
-  absl::MutexLock lock(&mutex_);
+  for (BluetoothLEAdvertisementDataSection service_data :
+       advertisement.DataSections()) {
+    // Parse Advertisement Data for Section 0x16 (Service Data)
+    DataReader data_reader = DataReader::FromBuffer(service_data.Data());
 
-  if (args.IsScanResponse()) {
-    IVector<winrt::guid> guids = args.Advertisement().ServiceUuids();
-    bool scan_response_found = false;
-    for (const winrt::guid& uuid : guids) {
-      if (uuid == kCopresenceServiceUuid128bit) {
-        scan_response_found = true;
+    // Discard the first 2 bytes of Service Uuid in Service Data
+    uint8_t first_byte = data_reader.ReadByte();   // 0xf3
+    uint8_t second_byte = data_reader.ReadByte();  // 0xfe
+
+    if (first_byte == 0xfe && second_byte == 0xf3) {
+      std::string data;
+
+      uint8_t unconsumed_buffer_length = data_reader.UnconsumedBufferLength();
+      for (int i = 0; i < unconsumed_buffer_length; i++) {
+        data.append(1, static_cast<unsigned char>(data_reader.ReadByte()));
       }
-    }
-    if (scan_response_found == true) {
-      BleV2Peripheral peripheral;
-      api::ble_v2::BleAdvertisementData advertisement_data;
-      scan_response_received_callback_.advertisement_found_cb(
-          peripheral, advertisement_data);
+
+      ByteArray advertisement_data(data);
+
+      NEARBY_LOGS(INFO) << "Nearby BLE Medium 0xFEF3 Advertisement discovered. "
+                           "0x16 Service data: advertisement bytes= 0x"
+                        << absl::BytesToHexString(
+                               advertisement_data.AsStringView())
+                        << "(" << advertisement_data.size() << ")";
+
+      std::string peripheral_name =
+          uint64_to_mac_address_string(args.BluetoothAddress());
+
+      windows::BleV2Peripheral peripheral;
+      peripheral.SetName(peripheral_name);
+      peripheral.SetAdvertisementBytes(advertisement_data);
+      // BleV2Peripheral* peripheral_ptr = peripheral.get();
+
+      // {
+      //  absl::MutexLock lock(&peripheral_map_mutex_);
+      //  peripheral_map_[peripheral_name] = std::move(peripheral);
+      // }
+
+      // Received Fast Advertisement packet
+      if (unconsumed_buffer_length <= 27) {
+        NEARBY_LOGS(INFO)
+            << "Sending Fast Advertisement packet for processing.";
+        // advertisement_received_callback_.peripheral_discovered_cb(
+        //     /*ble_peripheral*/ *peripheral_ptr, /*service_id*/ service_id_,
+        //     /*is_fast_advertisement*/ true);
+        BleAdvertisementData ble_advertisement_data;
+        ble_advertisement_data.is_extended_advertisement = false;
+        ble_advertisement_data.service_data.insert(
+            {kCopresenceServiceUuid, advertisement_data});
+        scan_response_received_callback_.advertisement_found_cb(
+            peripheral, ble_advertisement_data);
+      } else {
+        // Received Extended Advertising packet
+        NEARBY_LOGS(INFO)
+            << "Sending Extended Advertising packet for processing.";
+        advertisement_received_callback_.peripheral_discovered_cb(
+            /*ble_peripheral*/ peripheral, /*service_id*/ service_id_,
+            /*is_fast_advertisement*/ false);
+      }
     }
   }
 }

@@ -174,7 +174,7 @@ struct PayloadListener {
   // endpoint_id - The identifier for the remote endpoint that sent the
   //               payload.
   // payload     - The Payload object received.
-  std::function<void(const std::string& endpoint_id, Payload payload)>
+  std::function<void(const std::string& endpoint_id, Payload&& payload)>
       payload_cb = DefaultCallback<const std::string&, Payload>();
 
   // Called with progress information about an active Payload transfer, either

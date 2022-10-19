@@ -25,7 +25,7 @@ namespace nearby {
 // of a set of listeners.
 template <typename... Args>
 constexpr std::function<void(Args...)> DefaultCallback() {
-  return std::function<void(Args...)>{[](Args...) {}};
+  return std::function<void(Args&&...)>{[](Args&&...) {}};
 }
 
 }  // namespace nearby

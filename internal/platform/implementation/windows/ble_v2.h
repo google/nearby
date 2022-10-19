@@ -22,6 +22,7 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/windows/ble_v2_peripheral.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic.h"
 #include "internal/platform/input_stream.h"
@@ -31,11 +32,6 @@
 namespace location {
 namespace nearby {
 namespace windows {
-
-class BleV2Peripheral : public api::ble_v2::BlePeripheral {
- public:
-  std::string GetAddress() const override;
-};
 
 // Container of operations that can be performed over the BLE medium.
 class BleV2Medium : public api::ble_v2::BleMedium {
@@ -48,6 +44,19 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       const api::ble_v2::BleAdvertisementData& advertising_data,
       api::ble_v2::AdvertiseParameters advertising_parameters) override
       ABSL_LOCKS_EXCLUDED(mutex_);
+
+  struct DiscoveredPeripheralCallback {
+    std::function<void(BleV2Peripheral& peripheral,
+                       const std::string& service_id, bool fast_advertisement)>
+        peripheral_discovered_cb =
+            DefaultCallback<BleV2Peripheral&, const std::string&, bool>();
+
+    std::function<void(BleV2Peripheral& peripheral,
+                       const std::string& service_id)>
+        peripheral_lost_cb =
+            DefaultCallback<BleV2Peripheral&, const std::string&>();
+  };
+
   bool StopAdvertising() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   std::unique_ptr<AdvertisingSession> StartAdvertising(
@@ -111,6 +120,16 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   std::function<void()> publisher_started_callback_ ABSL_GUARDED_BY(mutex_);
   std::function<void()> publisher_stopped_callback_ ABSL_GUARDED_BY(mutex_);
   std::function<void()> publisher_error_callback_ ABSL_GUARDED_BY(mutex_);
+
+  // Map to protect the pointer for BlePeripheral because
+  // DiscoveredPeripheralCallback only keeps the pointer to the object
+  absl::Mutex peripheral_map_mutex_;
+  absl::flat_hash_map<std::string, std::unique_ptr<BleV2Peripheral>>
+      peripheral_map_ ABSL_GUARDED_BY(peripheral_map_mutex_);
+
+  std::string service_id_;
+
+  DiscoveredPeripheralCallback advertisement_received_callback_;
 
   winrt::event_token watcher_token_;
   void WatcherHandler(winrt::Windows::Devices::Bluetooth::Advertisement::

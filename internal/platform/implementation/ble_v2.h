@@ -97,6 +97,11 @@ class BlePeripheral {
   // This should be the MAC address when possible. If the implementation is
   // unable to retrieve that, any unique identifier should suffice.
   virtual std::string GetAddress() const = 0;
+
+  virtual std::string GetName() const = 0;
+
+  virtual ByteArray GetAdvertisementBytes(
+      const std::string& service_id) const = 0;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic

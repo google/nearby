@@ -14,14 +14,14 @@
 
 #include "internal/platform/implementation/platform.h"
 
+#include <windows.h>
+#include <winver.h>
 #include <PathCch.h>
 #include <knownfolders.h>
 #include <psapi.h>
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <strsafe.h>
-#include <windows.h>
-#include <winver.h>
 
 #include <memory>
 #include <sstream>

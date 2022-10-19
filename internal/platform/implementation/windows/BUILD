@@ -52,6 +52,7 @@ cc_library(
         "ble_peripheral.h",
         "ble_socket.h",
         "ble_v2.h",
+        "ble_v2_peripheral.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
         "bluetooth_classic_device.h",

@@ -47,7 +47,7 @@ class FeatureFlags {
     // multiple endpionts.
     bool support_multiple_bwu_mediums = true;
     // Ble v2/v1 switch flag: the flag will be removed once v2 refactor is done.
-    bool support_ble_v2 = false;
+    bool support_ble_v2 = true;
     // Allows the code to change the bluetooth radio state
     bool enable_set_radio_state = false;
   };

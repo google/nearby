@@ -239,10 +239,10 @@ class BleV2Medium final {
   // instance.
   struct ScanCallback {
     std::function<void(
-        BleV2Peripheral peripheral,
+        BleV2Peripheral&& peripheral,
         const api::ble_v2::BleAdvertisementData& advertisement_data)>
         advertisement_found_cb = location::nearby::DefaultCallback<
-            BleV2Peripheral, const api::ble_v2::BleAdvertisementData&>();
+            BleV2Peripheral&&, const api::ble_v2::BleAdvertisementData&>();
   };
   struct ServerGattConnectionCallback {
     std::function<void(const api::ble_v2::GattCharacteristic& characteristic)>

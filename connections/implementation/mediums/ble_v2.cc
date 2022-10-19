@@ -265,14 +265,14 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
           PowerLevelToTxPowerLevel(power_level),
           {
               .advertisement_found_cb =
-                  [this](BleV2Peripheral peripheral,
+                  [this](BleV2Peripheral&& peripheral,
                          BleAdvertisementData advertisement_data) {
-                    RunOnBleThread([this, peripheral = std::move(peripheral),
+                    RunOnBleThread([this, peripheral = peripheral,
                                     advertisement_data]() {
                       MutexLock lock(&mutex_);
                       discovered_peripheral_tracker_
                           .ProcessFoundBleAdvertisement(
-                              std::move(peripheral), advertisement_data,
+                              peripheral, advertisement_data,
                               {
                                   .fetch_advertisements =
                                       [&](BleV2Peripheral peripheral,
@@ -382,7 +382,7 @@ bool BleV2::StartAcceptingConnections(const std::string& service_id,
     NEARBY_LOGS(INFO)
         << "Failed to start accepting Ble connections for service_id="
         << service_id;
-    return false;
+    return true;
   }
 
   // Mark the fact that there's an in-progress Ble server accepting
