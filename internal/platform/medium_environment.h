@@ -35,6 +35,7 @@
 #endif
 #include "internal/platform/byte_array.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/mutex.h"
@@ -309,6 +310,26 @@ class MediumEnvironment {
   // port, or nullptr.
   api::WifiLanMedium* GetWifiLanMedium(const std::string& ip_address, int port);
 
+  // Adds medium-related info to allow for start/connect WifiDirect to work.
+  // This provides access to this medium from other mediums, when protocol
+  // expects they should communicate.
+  void RegisterWifiDirectMedium(api::WifiDirectMedium& medium);
+
+  // Returns WifiDirect medium that matches ssid or IP address with the role of
+  // the Medium, or return nullptr.
+  api::WifiDirectMedium* GetWifiDirectMedium(absl::string_view ssid,
+                                               absl::string_view ip_address);
+
+  // Updates credential and Medium role(GO or GC) to indicate the current
+  // medium is exposing Start WifiDirect event.
+  void UpdateWifiDirectMediumForStartOrConnect(
+      api::WifiDirectMedium& medium,
+      HotspotCredentials* wifi_direct_credentials, bool is_go, bool enabled);
+
+  // Removes medium-related info. This should correspond to device stopped or
+  // disconnected.
+  void UnregisterWifiDirectMedium(api::WifiDirectMedium& medium);
+
   // Adds medium-related info to allow for start/connect Hotspot to work.
   // This provides access to this medium from other mediums, when protocol
   // expects they should communicate.
@@ -365,6 +386,14 @@ class MediumEnvironment {
         discovered_callbacks;
     // discovered service vs service type map.
     absl::flat_hash_map<std::string, NsdServiceInfo> discovered_services;
+  };
+
+  struct WifiDirectMediumContext {
+    // Set to "true" for Medium act as WifiDirect GO role; "false" for GC role
+    bool is_go = true;
+    // Set "true" when GO is started or GC is connected
+    bool is_active = false;
+    HotspotCredentials* wifi_direct_credentials;
   };
 
   struct WifiHotspotMediumContext {
@@ -441,6 +470,9 @@ class MediumEnvironment {
       wifi_lan_mediums_;
 
   Mutex mutex_;
+  absl::flat_hash_map<api::WifiDirectMedium*, WifiDirectMediumContext>
+      wifi_direct_mediums_ ABSL_GUARDED_BY(mutex_);
+
   absl::flat_hash_map<api::WifiHotspotMedium*, WifiHotspotMediumContext>
       wifi_hotspot_mediums_ ABSL_GUARDED_BY(mutex_);
 

@@ -150,6 +150,10 @@ std::unique_ptr<WifiHotspotMedium> ImplementationPlatform::CreateWifiHotspotMedi
   return nullptr;
 }
 
+std::unique_ptr<WifiDirectMedium> ImplementationPlatform::CreateWifiDirectMedium() {
+  return nullptr;
+}
+
 #ifndef NO_WEBRTC
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() { return nullptr; }
 #endif

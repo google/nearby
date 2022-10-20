@@ -61,6 +61,7 @@ cc_library(
         "credential_storage.h",
         "server_sync.h",
         "wifi.h",
+        "wifi_direct.h",
         "wifi_hotspot.h",
         "wifi_lan.h",
     ],

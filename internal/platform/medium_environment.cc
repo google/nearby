@@ -71,6 +71,7 @@ void MediumEnvironment::Reset() {
     wifi_lan_mediums_.clear();
     {
       MutexLock lock(&mutex_);
+      wifi_direct_mediums_.clear();
       wifi_hotspot_mediums_.clear();
     }
     use_valid_peer_connection_ = true;
@@ -925,6 +926,92 @@ api::WifiLanMedium* MediumEnvironment::GetWifiLanMedium(
     }
   }
   return nullptr;
+}
+
+void MediumEnvironment::RegisterWifiDirectMedium(
+    api::WifiDirectMedium& medium) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium]() {
+    MutexLock lock(&mutex_);
+    wifi_direct_mediums_.insert({&medium, WifiDirectMediumContext{}});
+    NEARBY_LOG(INFO, "Registered: medium=%p", &medium);
+  });
+}
+
+api::WifiDirectMedium* MediumEnvironment::GetWifiDirectMedium(
+    absl::string_view ssid, absl::string_view ip_address) {
+  MutexLock lock(&mutex_);
+  for (auto& medium_info : wifi_direct_mediums_) {
+    auto* medium_found = medium_info.first;
+    auto& info = medium_info.second;
+    if (info.is_go && info.wifi_direct_credentials) {
+      if ((info.wifi_direct_credentials->GetSSID() == ssid) ||
+          (!ip_address.empty() &&
+           (info.wifi_direct_credentials->GetIPAddress() == ip_address))) {
+        NEARBY_LOGS(INFO) << "Found Remote WifiDirect medium=" << medium_found;
+        return medium_found;
+      }
+    }
+  }
+
+  return nullptr;
+}
+
+void MediumEnvironment::UpdateWifiDirectMediumForStartOrConnect(
+    api::WifiDirectMedium& medium, HotspotCredentials* wifi_direct_credentials,
+    bool is_go, bool enabled) {
+  if (!enabled_) return;
+
+  CountDownLatch latch(1);
+  RunOnMediumEnvironmentThread(
+      [this, &medium, wifi_direct_credentials = wifi_direct_credentials, is_go,
+       enabled, &latch]() {
+        std::string role_status = absl::StrFormat(
+            "; %s is %s", is_go ? "Group Owner" : "Group Client",
+            is_go ? (enabled ? "Started" : "Stopped")
+                  : (enabled ? "Connected" : "Disconneced"));
+
+        if (wifi_direct_credentials) {
+          NEARBY_LOGS(INFO)
+              << "Update WifiDirect medium for GO: this=" << this
+              << "; medium=" << &medium << role_status
+              << "; ssid=" << wifi_direct_credentials->GetSSID()
+              << "; password=" << wifi_direct_credentials->GetPassword();
+        } else {
+          NEARBY_LOGS(INFO) << "Reset WifiDirect medium for GO: this=" << this
+                            << "; medium=" << &medium << role_status;
+        }
+
+        MutexLock lock(&mutex_);
+        for (auto& medium_info : wifi_direct_mediums_) {
+          auto& local_medium = medium_info.first;
+          auto& info = medium_info.second;
+          if (local_medium == &medium) {
+            NEARBY_LOGS(INFO) << "Found WifiDirect medium=" << &medium;
+            info.is_active = enabled;
+            info.is_go = is_go;
+            if (enabled) {
+              info.wifi_direct_credentials = wifi_direct_credentials;
+            } else {
+              info.wifi_direct_credentials = nullptr;
+            }
+            continue;
+          }
+        }
+        latch.CountDown();
+      });
+  latch.Await();
+}
+
+void MediumEnvironment::UnregisterWifiDirectMedium(
+    api::WifiDirectMedium& medium) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium]() {
+    MutexLock lock(&mutex_);
+    auto item = wifi_direct_mediums_.extract(&medium);
+    if (item.empty()) return;
+    NEARBY_LOGS(INFO) << "Unregistered WifiDirect medium";
+  });
 }
 
 void MediumEnvironment::RegisterWifiHotspotMedium(
