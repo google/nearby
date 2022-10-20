@@ -14,21 +14,25 @@
 
 #include "internal/platform/implementation/platform.h"
 
+// clang-format off
+#include <windows.h>
+#include <winver.h>
 #include <PathCch.h>
 #include <knownfolders.h>
 #include <psapi.h>
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <strsafe.h>
-#include <windows.h>
-#include <winver.h>
+// clang-format on
 
+#include <algorithm>
+#include <cstddef>
+#include <fstream>
 #include <memory>
 #include <sstream>
 #include <string>
 
 #include "internal/platform/implementation/shared/count_down_latch.h"
-#include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/implementation/windows/atomic_boolean.h"
 #include "internal/platform/implementation/windows/atomic_reference.h"
 #include "internal/platform/implementation/windows/ble.h"
@@ -52,6 +56,7 @@
 #include "internal/platform/implementation/windows/wifi.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/wifi_lan.h"
+#include "internal/platform/logging.h"
 
 namespace location {
 namespace nearby {
@@ -62,75 +67,64 @@ constexpr absl::string_view kUpOneLevel("/..");
 
 std::string GetDownloadPathInternal(absl::string_view parent_folder,
                                     absl::string_view file_name) {
+  // Parent_folder and file_name are in UTF8 encoding, we should use wide char
+  // to handle path in windows to avoid encoding issues.
   PWSTR basePath;
 
-  // Retrieves the full path of a known folder identified by the folder's
-  // KNOWNFOLDERID.
-  // https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
   SHGetKnownFolderPath(
-      FOLDERID_Downloads,  //  rfid: A reference to the KNOWNFOLDERID that
-                           //  identifies the folder.
-      0,           // dwFlags: Flags that specify special retrieval options.
-      NULL,        // hToken: An access token that represents a particular user.
-      &basePath);  // ppszPath: When this method returns, contains the address
-                   // of a pointer to a null-terminated Unicode string that
-                   // specifies the path of the known folder. The calling
-                   // process is responsible for freeing this resource once it
-                   // is no longer needed by calling CoTaskMemFree, whether
-                   // SHGetKnownFolderPath succeeds or not.
-  size_t bufferSize;
-  wcstombs_s(&bufferSize, NULL, 0, basePath, 0);
-  std::string fullpathUTF8(bufferSize - 1, '\0');
-  wcstombs_s(&bufferSize, fullpathUTF8.data(), bufferSize, basePath, _TRUNCATE);
+      /*rfid=*/FOLDERID_Downloads,
+      /*dwFlags=*/0,
+      /*hToken=*/nullptr,
+      /*ppszPath=*/&basePath);
 
-  std::string parent_folder_path(parent_folder);
+  std::wstring wide_path(basePath);
+  std::wstring parent_folder_path =
+      windows::string_to_wstring(std::string(parent_folder));
 
-  std::replace(fullpathUTF8.begin(), fullpathUTF8.end(), '\\', '/');
+  std::replace(wide_path.begin(), wide_path.end(), L'\\', L'/');
 
   // If parent_folder starts with a \\ or /, then strip it
-  while (!parent_folder_path.empty() && (*parent_folder_path.begin() == '\\' ||
-                                         *parent_folder_path.begin() == '/')) {
+  while (!parent_folder_path.empty() && (*parent_folder_path.begin() == L'\\' ||
+                                         *parent_folder_path.begin() == L'/')) {
     parent_folder_path.erase(0, 1);
   }
 
   // If parent_folder ends with a \\ or /, then strip it
-  while (!parent_folder_path.empty() && (*parent_folder_path.rbegin() == '\\' ||
-                                         *parent_folder_path.rbegin() == '/')) {
+  while (!parent_folder_path.empty() &&
+         (*parent_folder_path.rbegin() == L'\\' ||
+          *parent_folder_path.rbegin() == L'/')) {
     parent_folder_path.erase(parent_folder_path.size() - 1, 1);
   }
 
-  std::string file_name_path(file_name);
+  std::wstring file_name_path =
+      windows::string_to_wstring(std::string(file_name));
 
   // If file_name starts with a \\, then strip it
-  while (!file_name_path.empty() &&
-         (*file_name_path.begin() == '\\' || *file_name_path.begin() == '/')) {
+  while (!file_name_path.empty() && (*file_name_path.begin() == L'\\' ||
+                                     *file_name_path.begin() == L'/')) {
     file_name_path.erase(0, 1);
   }
 
   // If file_name ends with a \\, then strip it
-  while (!file_name_path.empty() && (*file_name_path.rbegin() == '\\' ||
-                                     *file_name_path.rbegin() == '/')) {
+  while (!file_name_path.empty() && (*file_name_path.rbegin() == L'\\' ||
+                                     *file_name_path.rbegin() == L'/')) {
     file_name_path.erase(file_name_path.size() - 1, 1);
   }
 
   CoTaskMemFree(basePath);
 
-  std::string path("");
+  std::wstring path;
 
-  if (parent_folder_path.empty() && file_name_path.empty()) {
-    return fullpathUTF8;
-  }
   if (parent_folder_path.empty()) {
-    path += fullpathUTF8 + "/" + file_name_path;
-    return path;
-  }
-  if (file_name_path.empty()) {
-    path += fullpathUTF8 + "/" + parent_folder_path;
-    return path;
+    path =
+        file_name_path.empty() ? wide_path : wide_path + L"/" + file_name_path;
+  } else {
+    path = file_name_path.empty() ? parent_folder_path
+                                  : parent_folder_path + L"/" + file_name_path;
   }
 
-  path += fullpathUTF8 + "/" + parent_folder_path + "/" + file_name_path;
-  return path;
+  // Convert to UTF8 format.
+  return windows::wstring_to_string(path);
 }
 
 void SanitizePath(std::string& path) {
@@ -169,28 +163,25 @@ std::string CreateOutputFileWithRename(absl::string_view path) {
   auto file_name2 = file_name.substr(first);
 
   // Construct the target file name
-  std::string target(sanitized_path);
+  std::wstring target(windows::string_to_wstring(sanitized_path));
 
-  std::fstream file;
-
-  // Open file as std::wstring
-  file.open(windows::string_to_wstring(target),
-            std::fstream::binary | std::fstream::in);
+  std::wfstream file;
+  file.open(target, std::fstream::binary | std::fstream::in);
 
   // While we successfully open the file, keep incrementing the count.
   while (!(file.rdstate() & std::ifstream::failbit)) {
     file.close();
 #undef StrCat
-    target = absl::StrCat(folder, file_name1, " (", ++count, ")", file_name2);
+    target = windows::string_to_wstring(
+        absl::StrCat(folder, file_name1, " (", ++count, ")", file_name2));
     file.clear();
-    file.open(windows::string_to_wstring(target),
-              std::fstream::binary | std::fstream::in);
+    file.open(target, std::fstream::binary | std::fstream::in);
   }
 
   // The above leaves the file open, so close it.
   file.close();
 
-  return target;
+  return windows::wstring_to_string(target);
 }
 
 std::string GetApplicationName(DWORD pid) {
@@ -315,13 +306,13 @@ std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     PayloadId payload_id, std::int64_t total_size) {
   std::string parent_folder("");
   std::string file_name(std::to_string(payload_id));
-  return shared::IOFile::CreateInputFile(GetDownloadPath(file_name),
-                                         total_size);
+  return windows::IOFile::CreateInputFile(GetDownloadPath(file_name),
+                                          total_size);
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     absl::string_view file_path, size_t size) {
-  return shared::IOFile::CreateInputFile(file_path, size);
+  return windows::IOFile::CreateInputFile(file_path, size);
 }
 
 ABSL_DEPRECATED("This interface will be deleted in the near future.")
@@ -329,7 +320,7 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     PayloadId payload_id) {
   std::string parent_folder("");
   std::string file_name(std::to_string(payload_id));
-  return shared::IOFile::CreateOutputFile(
+  return windows::IOFile::CreateOutputFile(
       GetDownloadPath(parent_folder, file_name));
 }
 
@@ -348,7 +339,7 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     int result = SHCreateDirectoryExA(0, folder_path.data(), nullptr);
   }
 
-  return shared::IOFile::CreateOutputFile(file_path);
+  return windows::IOFile::CreateOutputFile(file_path);
 }
 
 // TODO(b/184975123): replace with real implementation.
