@@ -360,6 +360,17 @@ enum UpgradeError {
   // Next ID :33
 }
 
+// The error for event ACCEPT_CONNECTION. The range between 31 and 99.
+enum AcceptConnectionError {
+  // The default value for clearcut
+  UNKNOWN_ACCEPT_CONNECTION_ERROR = 31;
+
+  // Network error, failed to send accept connection.
+  RESPOND_ACCEPT_CONNECTION_FAILED = 32;
+
+  // Next ID :33
+}
+
 enum Description {
   reserved 28, 29;
 
