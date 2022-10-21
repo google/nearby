@@ -371,6 +371,17 @@ enum AcceptConnectionError {
   // Next ID :33
 }
 
+// The error for event REJECT_CONNECTION. The range between 31 and 99.
+enum RejectConnectionError {
+  // The default value for clearcut
+  UNKNOWN_REJECT_CONNECTION_ERROR = 31;
+
+  // Network error, failed to send reject connection.
+  RESPOND_REJECT_CONNECTION_FAILED = 32;
+
+  // Next ID :33
+}
+
 enum Description {
   reserved 28, 29;
 
