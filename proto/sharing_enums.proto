@@ -406,6 +406,7 @@ enum ActivityName {
   SET_DEVICE_NAME_DIALOG = 7;
   SET_DATA_USAGE_DIALOG = 8;
   QUICK_SETTINGS_ACTIVITY = 9;
+  REMOTE_COPY_SHARE_SHEET_ACTIVITY = 10;
 }
 
 // The type of consent page user launches.
