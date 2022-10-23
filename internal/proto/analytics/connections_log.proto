@@ -463,6 +463,9 @@ message ConnectionsLog {
 
     // The receive buffer size of the created socket
     optional int32 receive_buffer_size = 13;
+
+    // The frequency of the connected WiFi AP.
+    optional int32 connected_ap_frequency = 14;
   }
 }
 // LINT.ThenChange()
