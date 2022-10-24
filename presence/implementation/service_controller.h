@@ -15,6 +15,12 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SERVICE_CONTROLLER_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SERVICE_CONTROLLER_H_
 
+#include <memory>
+
+#include "presence/broadcast_request.h"
+#include "presence/data_types.h"
+#include "presence/scan_request.h"
+
 namespace nearby {
 namespace presence {
 
@@ -25,7 +31,12 @@ namespace presence {
  */
 class ServiceController {
  public:
+  ServiceController() = default;
   virtual ~ServiceController() = default;
+  virtual std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
+                                                 ScanCallback callback) = 0;
+  virtual std::unique_ptr<BroadcastSession> StartBroadcast(
+      BroadcastRequest broadcast_request, BroadcastCallback callback) = 0;
 };
 
 }  // namespace presence

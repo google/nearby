@@ -15,6 +15,9 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_MOCK_SERVICE_CONTROLLER_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_MOCK_SERVICE_CONTROLLER_H_
 
+#include <memory>
+
+#include "gmock/gmock.h"
 #include "presence/implementation/service_controller.h"
 
 namespace nearby {
@@ -27,6 +30,12 @@ class MockServiceController : public ServiceController {
  public:
   MockServiceController() = default;
   ~MockServiceController() override = default;
+
+  MOCK_METHOD(std::unique_ptr<ScanSession>, StartScan,
+              (ScanRequest scan_request, ScanCallback callback), (override));
+  MOCK_METHOD(std::unique_ptr<BroadcastSession>, StartBroadcast,
+              (BroadcastRequest broadcast_request, BroadcastCallback callback),
+              (override));
 
  private:
 };

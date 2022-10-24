@@ -15,6 +15,7 @@
 #include "presence/presence_service.h"
 
 #include "gtest/gtest.h"
+#include "presence/presence_client.h"
 
 namespace nearby {
 namespace presence {
@@ -22,6 +23,21 @@ namespace {
 
 TEST(PresenceServiceTest, DefaultConstructorWorks) {
   PresenceService presence_service;
+}
+
+TEST(PresenceServiceTest, StartScan) {
+  Status scan_result = {Status::Value::kSuccess};
+  ScanCallback scan_callback = {
+      .start_scan_cb = [&](Status status) { scan_result = status; },
+  };
+  PresenceService presence_service;
+  PresenceClient client = presence_service.CreatePresenceClient();
+
+  auto scan_session = client.StartScan({}, {
+      .start_scan_cb = [&](Status status) { scan_result = status; },
+  });
+
+  ASSERT_EQ(scan_session, nullptr);
 }
 
 }  // namespace

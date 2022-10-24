@@ -16,6 +16,7 @@
 
 #include "gtest/gtest.h"
 #include "presence/data_types.h"
+#include "presence/presence_service.h"
 #include "presence/status.h"
 
 namespace nearby {
@@ -28,7 +29,8 @@ TEST(PresenceClientTest, StartBroadcastWithDefaultConstructor) {
       .start_broadcast_cb = [&](Status status) { broadcast_result = status; },
   };
 
-  PresenceClient presence_client;
+  PresenceService presence_service;
+  PresenceClient presence_client = presence_service.CreatePresenceClient();
   presence_client.StartBroadcast({}, broadcast_callback);
 
   EXPECT_FALSE(broadcast_result.Ok());
@@ -40,7 +42,8 @@ TEST(PresenceClientTest, StartScanWithDefaultConstructor) {
       .start_scan_cb = [&](Status status) { scan_result = status; },
   };
 
-  PresenceClient presence_client;
+  PresenceService presence_service;
+  PresenceClient presence_client = presence_service.CreatePresenceClient();
   presence_client.StartScan({}, scan_callback);
 
   EXPECT_FALSE(scan_result.Ok());

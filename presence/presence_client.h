@@ -26,12 +26,17 @@
 namespace nearby {
 namespace presence {
 
+class PresenceService;
 /**
  * Interface for detecting and interacting with nearby devices that are also
  * part of the Presence ecosystem.
  */
 class PresenceClient {
  public:
+  explicit PresenceClient(PresenceService* service);
+  PresenceClient(const PresenceClient&) = delete;
+  PresenceClient& operator=(const PresenceClient&) = delete;
+  ~PresenceClient() = default;
   /**
    * Starts a Nearby Presence scan and registers {@link ScanCallback}
    * which will be invoked when a matching {@link PresenceDevice} is detected,
@@ -45,7 +50,6 @@ class PresenceClient {
    * and type; the filters including credentials, actions and extended
    * properties.
    */
-
   std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
                                          ScanCallback callback);
 
@@ -63,6 +67,9 @@ class PresenceClient {
    */
   std::unique_ptr<BroadcastSession> StartBroadcast(
       BroadcastRequest broadcast_request, BroadcastCallback callback);
+
+ private:
+  PresenceService& service_;
 };
 
 }  // namespace presence

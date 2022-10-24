@@ -12,26 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "presence/presence_client.h"
+#include "presence/presence_service.h"
 
 #include <memory>
-#include <vector>
 
-#include "presence/presence_service.h"
+#include "presence/data_types.h"
+#include "presence/implementation/service_controller_impl.h"
 
 namespace nearby {
 namespace presence {
-
-PresenceClient::PresenceClient(PresenceService* service)
-    : service_(*ABSL_DIE_IF_NULL(service)) {}
-
-std::unique_ptr<ScanSession> PresenceClient::StartScan(ScanRequest scan_request,
-                                                       ScanCallback callback) {
-  return service_.StartScan(scan_request, callback);
+PresenceService::PresenceService() {
+  this->service_controller_ = std::make_unique<ServiceControllerImpl>();
 }
-std::unique_ptr<BroadcastSession> PresenceClient::StartBroadcast(
+
+PresenceClient PresenceService::CreatePresenceClient() {
+  return PresenceClient(this);
+}
+
+std::unique_ptr<ScanSession> PresenceService::StartScan(
+    ScanRequest scan_request, ScanCallback callback) {
+  return service_controller_->StartScan(scan_request, callback);
+}
+
+std::unique_ptr<BroadcastSession> PresenceService::StartBroadcast(
     BroadcastRequest broadcast_request, BroadcastCallback callback) {
-  return service_.StartBroadcast(broadcast_request, callback);
+  return service_controller_->StartBroadcast(broadcast_request, callback);
 }
 
 }  // namespace presence

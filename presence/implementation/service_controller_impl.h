@@ -15,10 +15,14 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SERVICE_CONTROLLER_IMPL_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SERVICE_CONTROLLER_IMPL_H_
 
+#include <memory>
+
+#include "presence/broadcast_request.h"
+#include "presence/data_types.h"
 #include "presence/implementation/credential_manager_impl.h"
 #include "presence/implementation/mediums/mediums.h"
 #include "presence/implementation/service_controller.h"
-
+#include "presence/scan_request.h"
 /*
  * This class implements {@code ServiceController} functions. Owns mediums and
  * other managers instances.
@@ -27,6 +31,13 @@ namespace nearby {
 namespace presence {
 
 class ServiceControllerImpl : public ServiceController {
+ public:
+  ServiceControllerImpl() = default;
+  std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
+                                         ScanCallback callback) override;
+  std::unique_ptr<BroadcastSession> StartBroadcast(
+      BroadcastRequest broadcast_request, BroadcastCallback callback) override;
+
  private:
   Mediums mediums_;  // NOLINT: further impl will use it.
   CredentialManagerImpl

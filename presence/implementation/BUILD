@@ -22,6 +22,7 @@ cc_library(
         "base_broadcast_request.cc",
         "credential_manager_impl.cc",
         "encryption.cc",
+        "service_controller_impl.cc",
     ],
     hdrs = [
         "action_factory.h",
@@ -32,7 +33,6 @@ cc_library(
         "credential_manager.h",
         "credential_manager_impl.h",
         "encryption.h",
-        "mock_service_controller.h",
         "scan_manager.h",
         "service_controller.h",
         "service_controller_impl.h",
@@ -71,6 +71,25 @@ cc_library(
     deps = [
         "//presence:types",
         "@com_google_absl//absl/types:optional",
+    ],
+)
+
+cc_library(
+    name = "internal_test",
+    testonly = True,
+    srcs = [
+    ],
+    hdrs = [
+        "mock_service_controller.h",
+    ],
+    visibility = [
+        "//presence:__subpackages__",
+    ],
+    deps = [
+        ":internal",
+        "//presence",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 

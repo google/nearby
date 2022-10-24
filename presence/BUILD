@@ -19,6 +19,7 @@ cc_library(
     name = "presence",
     srcs = [
         "presence_client.cc",
+        "presence_service.cc",
     ],
     hdrs = [
         "presence_client.h",

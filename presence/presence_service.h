@@ -17,7 +17,9 @@
 
 #include <memory>
 
+#include "presence/data_types.h"
 #include "presence/implementation/service_controller.h"
+#include "presence/presence_client.h"
 
 namespace nearby {
 namespace presence {
@@ -29,8 +31,15 @@ namespace presence {
  */
 class PresenceService {
  public:
-  PresenceService() = default;
+  PresenceService();
   ~PresenceService() = default;
+
+  PresenceClient CreatePresenceClient();
+
+  std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
+                                         ScanCallback callback);
+  std::unique_ptr<BroadcastSession> StartBroadcast(
+      BroadcastRequest broadcast_request, BroadcastCallback callback);
 
  private:
   std::unique_ptr<ServiceController> service_controller_;
