@@ -484,3 +484,17 @@ enum SharingUseCase {
   USE_CASE_WIFI_CREDENTIAL = 3;
   USE_CASE_APP_SHARE = 4;
 }
+
+// Used only by Nearby Share Windows App now.
+enum SendingEntryType {
+  SENDING_ENTRY_UNKNOWN = 0;
+
+  // The user sends files using right click and context menu.
+  SENDING_ENTRY_RIGHT_CLICK = 1;
+
+  // The user sends files using drag and drop.
+  SENDING_ENTRY_DRAG_AND_DROP = 2;
+
+  // The user sends files by clicking the "Select files" button.
+  SENDING_SELECT_FILES_BUTTON = 3;
+}
