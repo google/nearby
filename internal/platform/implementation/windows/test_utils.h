@@ -15,7 +15,7 @@
 #ifndef PLATFORM_IMPL_WINDOWS_TEST_UTILS_H_
 #define PLATFORM_IMPL_WINDOWS_TEST_UTILS_H_
 
-#include <xstring>
+#include <string>
 
 #include "internal/platform/payload_id.h"
 

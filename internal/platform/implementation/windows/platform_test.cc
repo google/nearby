@@ -18,7 +18,7 @@
 #include <knownfolders.h>
 #include <shlobj.h>
 
-#include <xstring>
+#include <string>
 #include <fstream>
 
 #include "gtest/gtest.h"
