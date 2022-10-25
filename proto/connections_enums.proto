@@ -219,7 +219,7 @@ enum Bandwidth {
 }
 
 // LINT.IfChange
-// next_id: 19
+// next_id: 20
 // Result of an upgrade attempt.
 enum BandwidthUpgradeResult {
   UNKNOWN_BANDWIDTH_UPGRADE_RESULT = 0;
@@ -271,6 +271,9 @@ enum BandwidthUpgradeResult {
 
   // The attempt was never made because a precondition check failed.
   ATTEMPT_SKIPPED = 18;
+
+  // When the remote endpoint fails to connect
+  REMOTE_CONNECTION_ERROR = 19;
 }
 // LINT.ThenChange(
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
