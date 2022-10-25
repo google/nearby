@@ -346,15 +346,29 @@ TEST(CredentialManagerImpl, PublicCredentialsFailEncryption) {
   EXPECT_TRUE(publicCredentials.empty());
 }
 
+TEST(CredentialManagerImpl, EncryptDataElements) {
+  absl::string_view salt = "AB";
+  absl::string_view data_elements = "data_elements";
+  DeviceMetadata device_metadata = CreateTestDeviceMetadata();
+  CredentialManagerImpl credential_manager;
+  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
+  credential_manager.GenerateCredentials(
+      device_metadata, "", identity_types, 1, 1,
+      {
+          .credentials_generated_cb =
+              [](std::vector<nearby::internal::PublicCredential>) {},
+      });
+
+  EXPECT_THAT(credential_manager.EncryptDataElements(
+                  IDENTITY_TYPE_PRIVATE, "test_account", salt, data_elements),
+              absl::Status(absl::StatusCode::kUnavailable,
+                           "Failed to create LDT encryptor"));
+}
+
 TEST(CredentialManagerImpl, UnimplementedFunctions) {
   CredentialManagerImpl credential_manager;
   constexpr absl::string_view salt = "salt";
   constexpr absl::string_view data_elements = "data_elements";
-  IdentityType identity = IDENTITY_TYPE_PRIVATE;
-  EXPECT_THAT(
-      credential_manager.EncryptDataElements(identity, salt, data_elements),
-      absl::Status(absl::StatusCode::kUnimplemented,
-                   "EncryptDataElements unimplemented"));
   EXPECT_THAT(credential_manager.DecryptDataElements(salt, data_elements),
               absl::Status(absl::StatusCode::kUnimplemented,
                            "DecryptDataElements unimplemented"));

@@ -54,9 +54,15 @@ BasePresenceRequestBuilder& BasePresenceRequestBuilder::SetPowerMode(
   return *this;
 }
 
+BasePresenceRequestBuilder& BasePresenceRequestBuilder::SetAccountName(
+    absl::string_view account_name) {
+  account_name_ = account_name;
+  return *this;
+}
+
 BasePresenceRequestBuilder::operator BaseBroadcastRequest() const {
-  BaseBroadcastRequest::BasePresence presence{.identity = identity_,
-                                              .action = action_};
+  BaseBroadcastRequest::BasePresence presence{
+      .identity = identity_, .action = action_, .account_name = account_name_};
   BaseBroadcastRequest broadcast_request{
       .variant = presence,
       .salt = salt_.size() == kSaltSize
@@ -85,7 +91,8 @@ absl::StatusOr<BaseBroadcastRequest> BaseBroadcastRequest::Create(
         BasePresenceRequestBuilder(section.identity)
             .SetTxPower(request.tx_power)
             .SetAction(ActionFactory::CreateAction(section.extended_properties))
-            .SetPowerMode(request.power_mode));
+            .SetPowerMode(request.power_mode)
+            .SetAccountName(section.account_name));
   }
   return absl::UnimplementedError("Request not supported");
 }

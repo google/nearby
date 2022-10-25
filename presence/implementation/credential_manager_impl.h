@@ -70,6 +70,12 @@ class CredentialManagerImpl : public CredentialManager {
       const CredentialSelector& credential_selector,
       GetPrivateCredentialsResultCallback callback) override;
 
+  // Blocking version of `GetPrivateCredentials`
+  location::nearby::ExceptionOr<
+      std::vector<nearby::internal::PrivateCredential>>
+  GetPrivateCredentialsSync(const CredentialSelector& credential_selector,
+                            absl::Duration timeout);
+
   // Used to fetch remote public creds when scanning.
   void GetPublicCredentials(
       const CredentialSelector& credential_selector,
@@ -87,10 +93,8 @@ class CredentialManagerImpl : public CredentialManager {
   }
 
   absl::StatusOr<std::string> EncryptDataElements(
-      nearby::internal::IdentityType identity, absl::string_view salt,
-      absl::string_view data_elements) override {
-    return absl::UnimplementedError("EncryptDataElements unimplemented");
-  }
+      nearby::internal::IdentityType identity, absl::string_view account_name,
+      absl::string_view salt, absl::string_view data_elements) override;
 
   std::pair<nearby::internal::PrivateCredential,
             nearby::internal::PublicCredential>

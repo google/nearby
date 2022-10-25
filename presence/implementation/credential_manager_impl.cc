@@ -19,21 +19,29 @@
 #include <utility>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/crypto/aead.h"
 #include "internal/crypto/ec_private_key.h"
 #include "internal/crypto/hkdf.h"
 #include "internal/platform/base64_utils.h"
+#include "internal/platform/future.h"
+#include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
 #include "internal/proto/credential.proto.h"
 #include "presence/implementation/encryption.h"
+#include "presence/implementation/ldt.h"
 
 namespace nearby {
 namespace presence {
 namespace {
 using ::location::nearby::Base64Utils;
 using ::location::nearby::Crypto;
+using ::location::nearby::Exception;
+using ::location::nearby::ExceptionOr;
+using ::location::nearby::Future;
 using ::nearby::internal::DeviceMetadata;
 using ::nearby::internal::IdentityType;
 using ::nearby::internal::PrivateCredential;
@@ -41,6 +49,8 @@ using ::nearby::internal::PublicCredential;
 
 // Key to retrieve local device's Private/Public Key Credentials from key store.
 constexpr char kPairedKeyAliasPrefix[] = "nearby_presence_paired_key_alias_";
+
+constexpr absl::Duration kTimeout = absl::Seconds(3);
 
 }  // namespace
 
@@ -236,6 +246,52 @@ void CredentialManagerImpl::GetPublicCredentials(
     GetPublicCredentialsResultCallback callback) {
   credential_storage_ptr_->GetPublicCredentials(
       credential_selector, public_credential_type, std::move(callback));
+}
+
+ExceptionOr<std::vector<PrivateCredential>>
+CredentialManagerImpl::GetPrivateCredentialsSync(
+    const CredentialSelector& credential_selector, absl::Duration timeout) {
+  Future<std::vector<PrivateCredential>> result;
+  GetPrivateCredentials(
+      credential_selector,
+      {
+          .credentials_fetched_cb =
+              [result](std::vector<PrivateCredential> credentials) mutable {
+                result.Set(credentials);
+              },
+          .get_credentials_failed_cb =
+              [result](CredentialOperationStatus status) mutable {
+                result.SetException({Exception::kFailed});
+              },
+      });
+  return result.Get(timeout);
+}
+
+absl::StatusOr<std::string> CredentialManagerImpl::EncryptDataElements(
+    nearby::internal::IdentityType identity, absl::string_view account_name,
+    absl::string_view salt, absl::string_view data_elements) {
+  CredentialSelector selector = {
+      .manager_app_id = "",
+      .account_name = std::string(account_name),
+      .identity_type = identity,
+  };
+  ExceptionOr<std::vector<PrivateCredential>> credentials =
+      GetPrivateCredentialsSync(selector, kTimeout);
+  if (!credentials.ok()) {
+    return absl::UnavailableError("Failed to fetch credentials");
+  }
+  if (credentials.result().empty()) {
+    return absl::UnavailableError("No credentials");
+  }
+  PrivateCredential& credential = credentials.result().front();
+
+  // HMAC is not used during encryption, so we can pass an empty value.
+  absl::StatusOr<LdtEncryptor> encryptor =
+      LdtEncryptor::Create(credential.authenticity_key(), /*known_hmac=*/"");
+  if (!encryptor.ok()) {
+    return encryptor.status();
+  }
+  return encryptor->Encrypt(data_elements, salt);
 }
 
 }  // namespace presence

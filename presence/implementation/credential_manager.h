@@ -81,11 +81,11 @@ class CredentialManager {
   virtual absl::StatusOr<std::string> DecryptDataElements(
       absl::string_view salt, absl::string_view data_elements) = 0;
 
-  // Encrypts `data_elements` using certificate associated with `identity` and
-  // `salt`.
+  // Encrypts `data_elements` using certificate associated with `identity`,
+  // `account_name` and `salt`.
   virtual absl::StatusOr<std::string> EncryptDataElements(
-      nearby::internal::IdentityType identity, absl::string_view salt,
-      absl::string_view data_elements) = 0;
+      nearby::internal::IdentityType identity, absl::string_view account_name,
+      absl::string_view salt, absl::string_view data_elements) = 0;
 };
 
 }  // namespace presence

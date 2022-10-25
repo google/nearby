@@ -30,7 +30,6 @@ namespace presence {
 
 using ::nearby::internal::IdentityType;
 
-
 namespace {
 
 constexpr uint8_t kBaseVersion = 0;
@@ -133,8 +132,9 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
       return result;
     }
     absl::StatusOr<std::string> encrypted =
-        credential_manager_.EncryptDataElements(presence.identity, request.salt,
-                                                unencrypted);
+        credential_manager_.EncryptDataElements(presence.identity,
+                                                presence.account_name,
+                                                request.salt, unencrypted);
     if (!encrypted.ok()) {
       return encrypted.status();
     }

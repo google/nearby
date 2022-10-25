@@ -49,6 +49,7 @@ struct BaseBroadcastRequest {
   struct BasePresence {
     nearby::internal::IdentityType identity;
     Action action;
+    std::string account_name;
   };
   struct BaseFastPair {
     struct Discoverable {
@@ -80,6 +81,7 @@ class BasePresenceRequestBuilder {
   BasePresenceRequestBuilder& SetTxPower(int8_t tx_power);
   BasePresenceRequestBuilder& SetAction(const Action& action);
   BasePresenceRequestBuilder& SetPowerMode(PowerMode power_mode);
+  BasePresenceRequestBuilder& SetAccountName(absl::string_view account_name);
 
   explicit operator BaseBroadcastRequest() const;
 
@@ -89,6 +91,7 @@ class BasePresenceRequestBuilder {
   int8_t tx_power_ = kUnspecifiedTxPower;
   Action action_;
   PowerMode power_mode_ = PowerMode::kNoPower;
+  std::string account_name_;
 };
 
 }  // namespace presence
