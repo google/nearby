@@ -53,6 +53,7 @@ cc_library(
         "//internal/platform:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
+        "//location/nearby/cpp/fastpair:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//presence:__subpackages__",
         "//third_party/nearby/cpp/cal:__subpackages__",
@@ -387,6 +388,7 @@ cc_library(
         "//internal/analytics:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
+        "//location/nearby/cpp/fastpair:__subpackages__",
         "//presence:__subpackages__",
     ],
     deps = [
