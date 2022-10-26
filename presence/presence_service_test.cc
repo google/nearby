@@ -33,11 +33,15 @@ TEST(PresenceServiceTest, StartScan) {
   PresenceService presence_service;
   PresenceClient client = presence_service.CreatePresenceClient();
 
-  auto scan_session = client.StartScan({}, {
-      .start_scan_cb = [&](Status status) { scan_result = status; },
-  });
+  auto scan_session = client.StartScan(
+      {}, {
+              .start_scan_cb = [&](Status status) { scan_result = status; },
+          });
+  auto scan_session_with_default_params =
+      client.StartScan(ScanRequest(), ScanCallback());
 
-  ASSERT_EQ(scan_session, nullptr);
+  EXPECT_EQ(scan_session, nullptr);
+  EXPECT_EQ(scan_session_with_default_params, nullptr);
 }
 
 }  // namespace

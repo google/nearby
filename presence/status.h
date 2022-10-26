@@ -26,6 +26,7 @@ struct Status {
   enum class Value {
     kError = 0,
     kSuccess,
+    kNotImplemented,
   };
   Value value{Value::kError};
   bool Ok() const { return value == Value::kSuccess; }
