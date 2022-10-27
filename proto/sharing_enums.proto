@@ -191,6 +191,9 @@ enum EventType {
   // Receiver auto dismisses a fast initialization notification.
   AUTO_DISMISS_FAST_INITIALIZATION = 50;
 
+  // App Crash event. Used only for Nearby Share Windows App now.
+  APP_CRASH = 51;
+
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
 
@@ -483,4 +486,9 @@ enum SharingUseCase {
   USE_CASE_REMOTE_COPY_PASTE = 2;
   USE_CASE_WIFI_CREDENTIAL = 3;
   USE_CASE_APP_SHARE = 4;
+}
+
+// Used only for Nearby Share Windows App now
+enum AppCrashReason {
+  APP_CRASH_REASON_UNKNOWN = 0;
 }
