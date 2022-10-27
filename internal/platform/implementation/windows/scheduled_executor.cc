@@ -14,6 +14,8 @@
 
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 
+#include <crtdbg.h>
+
 #include "internal/platform/implementation/windows/cancelable.h"
 #include "internal/platform/logging.h"
 
