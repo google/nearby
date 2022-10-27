@@ -486,6 +486,7 @@ enum SharingUseCase {
   USE_CASE_REMOTE_COPY_PASTE = 2;
   USE_CASE_WIFI_CREDENTIAL = 3;
   USE_CASE_APP_SHARE = 4;
+  USE_CASE_QUICK_SETTING_FILE_SHARE = 5;
 }
 
 // Used only for Nearby Share Windows App now
