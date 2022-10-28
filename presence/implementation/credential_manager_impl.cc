@@ -267,6 +267,64 @@ CredentialManagerImpl::GetPrivateCredentialsSync(
   return result.Get(timeout);
 }
 
+ExceptionOr<std::vector<PublicCredential>>
+CredentialManagerImpl::GetPublicCredentialsSync(
+    const CredentialSelector& credential_selector,
+    PublicCredentialType public_credential_type, absl::Duration timeout) {
+  Future<std::vector<PublicCredential>> result;
+  GetPublicCredentials(
+      credential_selector, public_credential_type,
+      {
+          .credentials_fetched_cb =
+              [result](std::vector<PublicCredential> credentials) mutable {
+                result.Set(credentials);
+              },
+          .get_credentials_failed_cb =
+              [result](CredentialOperationStatus status) mutable {
+                result.SetException({Exception::kFailed});
+              },
+      });
+  return result.Get(timeout);
+}
+
+absl::StatusOr<std::string> CredentialManagerImpl::DecryptDataElements(
+    absl::string_view account_name, absl::string_view salt,
+    absl::string_view data_elements) {
+  CredentialSelector selector = {
+      .manager_app_id = "",
+      .account_name = std::string(account_name),
+      .identity_type = internal::IDENTITY_TYPE_PUBLIC,
+  };
+  ExceptionOr<std::vector<PublicCredential>> credentials =
+      GetPublicCredentialsSync(selector, kRemotePublicCredential, kTimeout);
+  if (!credentials.ok()) {
+    return absl::UnavailableError("Failed to fetch credentials");
+  }
+  return DecryptDataElements(credentials.result(), salt, data_elements);
+}
+
+absl::StatusOr<std::string> CredentialManagerImpl::DecryptDataElements(
+    const std::vector<nearby::internal::PublicCredential>& credentials,
+    absl::string_view salt, absl::string_view data_elements) {
+  if (credentials.empty()) {
+    return absl::UnavailableError("No credentials");
+  }
+  for (const auto& credential : credentials) {
+    absl::StatusOr<LdtEncryptor> encryptor =
+        LdtEncryptor::Create(credential.authenticity_key(),
+                             credential.metadata_encryption_key_tag());
+    if (encryptor.ok()) {
+      absl::StatusOr<std::string> result =
+          encryptor->DecryptAndVerify(data_elements, salt);
+      if (result.ok()) {
+        return result;
+      }
+    }
+  }
+  return absl::UnavailableError(
+      "Couldn't decrypt the message with any credentials");
+}
+
 absl::StatusOr<std::string> CredentialManagerImpl::EncryptDataElements(
     nearby::internal::IdentityType identity, absl::string_view account_name,
     absl::string_view salt, absl::string_view data_elements) {

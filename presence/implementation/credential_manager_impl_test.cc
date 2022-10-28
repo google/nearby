@@ -73,6 +73,12 @@ class CredentialManagerImplTest : public ::testing::Test {
                  PublicCredentialType public_credential_type,
                  GenerateCredentialsCallback callback),
                 (override));
+    MOCK_METHOD(
+        void, GetPublicCredentials,
+        (const ::nearby::presence::CredentialSelector& credential_selector,
+         ::nearby::presence::PublicCredentialType public_credential_type,
+         ::nearby::presence::GetPublicCredentialsResultCallback callback),
+        (override));
   };
 
   class MockCredentialManager : public CredentialManagerImpl {
@@ -365,13 +371,27 @@ TEST(CredentialManagerImpl, EncryptDataElements) {
                            "Failed to create LDT encryptor"));
 }
 
-TEST(CredentialManagerImpl, UnimplementedFunctions) {
+TEST(CredentialManagerImpl, DecryptDataElements) {
+  absl::string_view salt = "AB";
+  absl::string_view data_elements = "data_elements";
   CredentialManagerImpl credential_manager;
-  constexpr absl::string_view salt = "salt";
-  constexpr absl::string_view data_elements = "data_elements";
-  EXPECT_THAT(credential_manager.DecryptDataElements(salt, data_elements),
-              absl::Status(absl::StatusCode::kUnimplemented,
-                           "DecryptDataElements unimplemented"));
+
+  EXPECT_THAT(credential_manager.DecryptDataElements("test_account", salt,
+                                                     data_elements),
+              absl::Status(absl::StatusCode::kUnavailable,
+                           "Failed to fetch credentials"));
+}
+
+TEST(CredentialManagerImpl, DecryptDataElementsWithCredentials) {
+  absl::string_view salt = "AB";
+  absl::string_view data_elements = "data_elements";
+  CredentialManagerImpl credential_manager;
+  std::vector<nearby::internal::PublicCredential> credentials = {{}};
+
+  EXPECT_THAT(
+      credential_manager.DecryptDataElements(credentials, salt, data_elements),
+      absl::Status(absl::StatusCode::kUnavailable,
+                   "Couldn't decrypt the message with any credentials"));
 }
 
 }  // namespace

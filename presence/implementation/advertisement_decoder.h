@@ -23,6 +23,7 @@
 #include "presence/data_element.h"
 #include "presence/implementation/advertisement_factory.h"
 #include "presence/implementation/credential_manager.h"
+#include "presence/scan_request.h"
 
 namespace nearby {
 namespace presence {
@@ -30,8 +31,10 @@ namespace presence {
 // Decodes BLE NP advertisements
 class AdvertisementDecoder {
  public:
-  explicit AdvertisementDecoder(CredentialManager* credential_manager)
-      : credential_manager_(*ABSL_DIE_IF_NULL(credential_manager)) {}
+  AdvertisementDecoder(CredentialManager* credential_manager,
+                       ScanRequest scan_request)
+      : credential_manager_(*ABSL_DIE_IF_NULL(credential_manager)),
+        scan_request_(scan_request) {}
 
   // Returns a list of Data Elements decoded from the advertisement.
   // Returns an error if the advertisement is misformatted or if it couldn't be
@@ -44,8 +47,11 @@ class AdvertisementDecoder {
   // `result`.
   absl::Status DecryptDataElements(const DataElement& elem,
                                    std::vector<DataElement>& result);
+  absl::StatusOr<std::string> Decrypt(absl::string_view salt,
+                                      absl::string_view encrypted);
 
   CredentialManager& credential_manager_;
+  ScanRequest scan_request_;
 };
 
 }  // namespace presence

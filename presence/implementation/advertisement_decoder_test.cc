@@ -21,23 +21,59 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/string_view.h"
 #include "presence/data_element.h"
 #include "presence/implementation/credential_manager_impl.h"
+#include "presence/scan_request.h"
+#include "presence/scan_request_builder.h"
 
 namespace nearby {
 namespace presence {
 
 namespace {
 using ::testing::ElementsAre;
+using ::protobuf_matchers::EqualsProto;
+using ::testing::Matcher;
+using ::testing::Pointwise;
 using ::testing::Return;
 using ::testing::UnorderedElementsAre;
 using ::testing::status::StatusIs;
 
+constexpr absl::string_view kAccountName = "test account";
+
+ScanRequest GetScanRequest() {
+  return {.account_name = std::string(kAccountName)};
+}
+
+ScanRequest GetScanRequest(
+    std::vector<nearby::internal::PublicCredential> credentials) {
+  LegacyPresenceScanFilter scan_filter = {.remote_public_credentials =
+                                              credentials};
+  return ScanRequestBuilder()
+      .SetAccountName(kAccountName)
+      .AddScanFilter(scan_filter)
+      .Build();
+}
+nearby::internal::PublicCredential GetPublicCredential() {
+  nearby::internal::PublicCredential public_credential;
+  public_credential.set_authenticity_key("authenticity key");
+  public_credential.set_metadata_encryption_key_tag(
+      "metadata encryption key tag");
+  return public_credential;
+}
+
 class MockCredentialManager : public CredentialManagerImpl {
  public:
   MOCK_METHOD(absl::StatusOr<std::string>, DecryptDataElements,
-              (absl::string_view salt, absl::string_view data_elements),
+              (absl::string_view account_name, absl::string_view salt,
+               absl::string_view data_elements),
               (override));
+
+  MOCK_METHOD(
+      absl::StatusOr<std::string>, DecryptDataElements,
+      (const std::vector<nearby::internal::PublicCredential>& credentials,
+       absl::string_view salt, absl::string_view data_elements),
+      (override));
 };
 
 TEST(AdvertisementDecoder, DecodeBaseNpPrivateAdvertisement) {
@@ -47,13 +83,49 @@ TEST(AdvertisementDecoder, DecodeBaseNpPrivateAdvertisement) {
   const std::string encrypted_metadata =
       absl::HexStringToBytes("F01112131415161718192021222F");
   MockCredentialManager credential_manager;
+  EXPECT_CALL(credential_manager,
+              DecryptDataElements(
+                  kAccountName, salt,
+                  encrypted_metadata + absl::HexStringToBytes("505152535455")))
+      .WillOnce(Return(metadata + absl::HexStringToBytes("37C1C2C31BEE")));
+
+  AdvertisementDecoder decoder(&credential_manager, GetScanRequest());
+
+  const absl::StatusOr<std::vector<DataElement>> result =
+      decoder.DecodeAdvertisement(absl::HexStringToBytes(
+          "00614142F01112131415161718192021222F505152535455"));
+
+  ASSERT_OK(result);
+  EXPECT_THAT(
+      *result,
+      ElementsAre(DataElement(DataElement::kSaltFieldType, salt),
+                  DataElement(DataElement::kPrivateIdentityFieldType, metadata),
+                  DataElement(DataElement::kModelIdFieldType,
+                              absl::HexStringToBytes("C1C2C3")),
+                  DataElement(DataElement::kBatteryFieldType,
+                              absl::HexStringToBytes("EE"))));
+}
+
+TEST(AdvertisementDecoder,
+     DecodeBaseNpPrivateAdvertisementWithPublicCredentialFromScanRequest) {
+  const std::string salt = "AB";
+  const std::string metadata =
+      absl::HexStringToBytes("1011121314151617181920212223");
+  const std::string encrypted_metadata =
+      absl::HexStringToBytes("F01112131415161718192021222F");
+  std::vector<nearby::internal::PublicCredential> credentials = {
+      GetPublicCredential()};
+  MockCredentialManager credential_manager;
   EXPECT_CALL(
       credential_manager,
       DecryptDataElements(
+          Matcher<const std::vector<nearby::internal::PublicCredential>&>(
+              Pointwise(EqualsProto(), credentials)),
           salt, encrypted_metadata + absl::HexStringToBytes("505152535455")))
       .WillOnce(Return(metadata + absl::HexStringToBytes("37C1C2C31BEE")));
 
-  AdvertisementDecoder decoder(&credential_manager);
+  AdvertisementDecoder decoder(&credential_manager,
+                               GetScanRequest(credentials));
 
   const absl::StatusOr<std::vector<DataElement>> result =
       decoder.DecodeAdvertisement(absl::HexStringToBytes(
@@ -77,13 +149,13 @@ TEST(AdvertisementDecoder, DecodeBaseNpTrustedAdvertisement) {
   const std::string encrypted_metadata =
       absl::HexStringToBytes("F01112131415161718192021222F");
   MockCredentialManager credential_manager;
-  EXPECT_CALL(
-      credential_manager,
-      DecryptDataElements(
-          salt, encrypted_metadata + absl::HexStringToBytes("505152535455")))
+  EXPECT_CALL(credential_manager,
+              DecryptDataElements(
+                  kAccountName, salt,
+                  encrypted_metadata + absl::HexStringToBytes("505152535455")))
       .WillOnce(Return(metadata + absl::HexStringToBytes("3AC1C2C31BEE")));
 
-  AdvertisementDecoder decoder(&credential_manager);
+  AdvertisementDecoder decoder(&credential_manager, GetScanRequest());
 
   const absl::StatusOr<std::vector<DataElement>> result =
       decoder.DecodeAdvertisement(absl::HexStringToBytes(
@@ -107,13 +179,13 @@ TEST(AdvertisementDecoder, DecodeBaseNpProvisionedAdvertisement) {
   const std::string encrypted_metadata =
       absl::HexStringToBytes("F01112131415161718192021222F");
   MockCredentialManager credential_manager;
-  EXPECT_CALL(
-      credential_manager,
-      DecryptDataElements(
-          salt, encrypted_metadata + absl::HexStringToBytes("505152535455")))
+  EXPECT_CALL(credential_manager,
+              DecryptDataElements(
+                  kAccountName, salt,
+                  encrypted_metadata + absl::HexStringToBytes("505152535455")))
       .WillOnce(Return(metadata + absl::HexStringToBytes("59C1C2C3C4C5")));
 
-  AdvertisementDecoder decoder(&credential_manager);
+  AdvertisementDecoder decoder(&credential_manager, GetScanRequest());
 
   const absl::StatusOr<std::vector<DataElement>> result =
       decoder.DecodeAdvertisement(absl::HexStringToBytes(
@@ -132,7 +204,7 @@ TEST(AdvertisementDecoder, DecodeBaseNpProvisionedAdvertisement) {
 TEST(AdvertisementDecoder, DecodeBaseNpPublicAdvertisement) {
   const std::string salt = "AB";
   MockCredentialManager credential_manager;
-  AdvertisementDecoder decoder(&credential_manager);
+  AdvertisementDecoder decoder(&credential_manager, GetScanRequest());
 
   const absl::StatusOr<std::vector<DataElement>> result =
       decoder.DecodeAdvertisement(
@@ -156,13 +228,13 @@ TEST(AdvertisementDecoder, DecodeBaseNpPrivateAdvertisementWithTxActionField) {
   const std::string encrypted_metadata =
       absl::HexStringToBytes("F01112131415161718192021222F");
   MockCredentialManager credential_manager;
-  EXPECT_CALL(
-      credential_manager,
-      DecryptDataElements(
-          salt, encrypted_metadata + absl::HexStringToBytes("505152535455")))
+  EXPECT_CALL(credential_manager,
+              DecryptDataElements(
+                  kAccountName, salt,
+                  encrypted_metadata + absl::HexStringToBytes("505152535455")))
       .WillOnce(Return(metadata + absl::HexStringToBytes("4650B04180")));
 
-  AdvertisementDecoder decoder(&credential_manager);
+  AdvertisementDecoder decoder(&credential_manager, GetScanRequest());
 
   const absl::StatusOr<std::vector<DataElement>> result =
       decoder.DecodeAdvertisement(absl::HexStringToBytes(
@@ -185,7 +257,7 @@ TEST(AdvertisementDecoder, DecodeBaseNpPrivateAdvertisementWithTxActionField) {
 TEST(AdvertisementDecoder, DecodeBaseNpWithTxActionField) {
   std::string salt = "AB";
   MockCredentialManager credential_manager;
-  AdvertisementDecoder decoder(&credential_manager);
+  AdvertisementDecoder decoder(&credential_manager, GetScanRequest());
 
   auto result = decoder.DecodeAdvertisement(
       absl::HexStringToBytes("00204142034650B04180"));
@@ -206,7 +278,7 @@ TEST(AdvertisementDecoder, DecodeBaseNpWithTxActionField) {
 
 TEST(AdvertisementDecoder, DecodeEddystone) {
   MockCredentialManager credential_manager;
-  AdvertisementDecoder decoder(&credential_manager);
+  AdvertisementDecoder decoder(&credential_manager, GetScanRequest());
   std::string eddystone_id =
       absl::HexStringToBytes("A0A1A2A3A4A5A6A7A8A9B0B1B2B3B4B5B6B7B8B9");
 
@@ -222,7 +294,7 @@ TEST(AdvertisementDecoder, DecodeEddystone) {
 TEST(AdvertisementDecoder, UnsupportedDataElement) {
   std::string valid_header_and_salt = absl::HexStringToBytes("00204142");
   MockCredentialManager credential_manager;
-  AdvertisementDecoder decoder(&credential_manager);
+  AdvertisementDecoder decoder(&credential_manager, GetScanRequest());
 
   EXPECT_THAT(decoder.DecodeAdvertisement(valid_header_and_salt +
                                           absl::HexStringToBytes("0D")),
@@ -231,7 +303,7 @@ TEST(AdvertisementDecoder, UnsupportedDataElement) {
 
 TEST(AdvertisementDecoder, InvalidAdvertisementFieldTooShort) {
   MockCredentialManager credential_manager;
-  AdvertisementDecoder decoder(&credential_manager);
+  AdvertisementDecoder decoder(&credential_manager, GetScanRequest());
 
   // 0x59 header means 5 bytes long Account Key Data but only 4 bytes follow.
   EXPECT_THAT(
@@ -241,7 +313,7 @@ TEST(AdvertisementDecoder, InvalidAdvertisementFieldTooShort) {
 
 TEST(AdvertisementDecoder, ZeroLengthPayload) {
   MockCredentialManager credential_manager;
-  AdvertisementDecoder decoder(&credential_manager);
+  AdvertisementDecoder decoder(&credential_manager, GetScanRequest());
 
   // A action with type 0xA and no payload
   const absl::StatusOr<std::vector<DataElement>> result =
@@ -253,7 +325,7 @@ TEST(AdvertisementDecoder, ZeroLengthPayload) {
 
 TEST(AdvertisementDecoder, EmptyAdvertisement) {
   MockCredentialManager credential_manager;
-  AdvertisementDecoder decoder(&credential_manager);
+  AdvertisementDecoder decoder(&credential_manager, GetScanRequest());
 
   EXPECT_THAT(decoder.DecodeAdvertisement(""),
               StatusIs(absl::StatusCode::kOutOfRange));
@@ -266,14 +338,14 @@ TEST(AdvertisementDecoder, InvalidEncryptedContent) {
   const std::string encrypted_metadata =
       absl::HexStringToBytes("F01112131415161718192021222F");
   MockCredentialManager credential_manager;
-  // 0x37CD is an invalid DE, 0x37 means a 3 byte payload with type 7 alas only
-  // one byte is given (0xCD)
-  EXPECT_CALL(
-      credential_manager,
-      DecryptDataElements(
-          salt, encrypted_metadata + absl::HexStringToBytes("505152535455")))
+  // 0x37CD is an invalid DE, 0x37 means a 3 byte payload with type 7 alas
+  // only one byte is given (0xCD)
+  EXPECT_CALL(credential_manager,
+              DecryptDataElements(
+                  kAccountName, salt,
+                  encrypted_metadata + absl::HexStringToBytes("505152535455")))
       .WillOnce(Return(metadata + absl::HexStringToBytes("37CD")));
-  AdvertisementDecoder decoder(&credential_manager);
+  AdvertisementDecoder decoder(&credential_manager, GetScanRequest());
 
   EXPECT_THAT(decoder.DecodeAdvertisement(absl::HexStringToBytes(
                   "00614142F01112131415161718192021222F505152535455")),
@@ -282,7 +354,7 @@ TEST(AdvertisementDecoder, InvalidEncryptedContent) {
 
 TEST(AdvertisementDecoder, UnsupportedAdvertisementVersion) {
   MockCredentialManager credential_manager;
-  AdvertisementDecoder decoder(&credential_manager);
+  AdvertisementDecoder decoder(&credential_manager, GetScanRequest());
 
   EXPECT_THAT(decoder.DecodeAdvertisement(
                   absl::HexStringToBytes("012041420318CD29EEFF")),

@@ -169,8 +169,7 @@ absl::Status AdvertisementDecoder::DecryptDataElements(
   absl::string_view salt = elem.GetValue().substr(0, kSaltSize);
   result.emplace_back(DataElement::kSaltFieldType, salt);
   absl::string_view encrypted = elem.GetValue().substr(kSaltSize);
-  absl::StatusOr<std::string> decrypted =
-      credential_manager_.DecryptDataElements(salt, encrypted);
+  absl::StatusOr<std::string> decrypted = Decrypt(salt, encrypted);
   if (!decrypted.ok()) {
     NEARBY_LOGS(WARNING) << "Failed to decrypt advertisement, status: "
                          << decrypted.status();
@@ -199,6 +198,28 @@ absl::Status AdvertisementDecoder::DecryptDataElements(
     }
   }
   return absl::OkStatus();
+}
+
+absl::StatusOr<std::string> AdvertisementDecoder::Decrypt(
+    absl::string_view salt, absl::string_view encrypted) {
+  for (const auto& scan_filter : scan_request_.scan_filters) {
+    if (!absl::holds_alternative<LegacyPresenceScanFilter>(scan_filter)) {
+      continue;
+    }
+    const std::vector<nearby::internal::PublicCredential>& credentials =
+        absl::get<LegacyPresenceScanFilter>(scan_filter)
+            .remote_public_credentials;
+    if (credentials.empty()) {
+      continue;
+    }
+    absl::StatusOr<std::string> decrypted =
+        credential_manager_.DecryptDataElements(credentials, salt, encrypted);
+    if (decrypted.ok()) {
+      return decrypted;
+    }
+  }
+  return credential_manager_.DecryptDataElements(scan_request_.account_name,
+                                                 salt, encrypted);
 }
 
 absl::StatusOr<std::vector<DataElement>>
