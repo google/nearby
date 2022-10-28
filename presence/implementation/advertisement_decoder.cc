@@ -14,6 +14,7 @@
 
 #include "presence/implementation/advertisement_decoder.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -157,6 +158,35 @@ void DecodeBaseTxAndAction(absl::string_view serialized_action,
   ActionFactory::DecodeAction(action, output);
 }
 
+bool Contains(const std::vector<DataElement>& data_elements,
+              const DataElement& data_element) {
+  return std::find(data_elements.begin(), data_elements.end(), data_element) !=
+         data_elements.end();
+}
+
+bool ContainsAll(const std::vector<DataElement>& data_elements,
+                 const std::vector<DataElement>& extended_properties) {
+  for (const auto& filter_element : extended_properties) {
+    if (!Contains(data_elements, filter_element)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool ContainsAny(const std::vector<DataElement>& data_elements,
+                 const std::vector<int>& actions) {
+  if (actions.empty()) {
+    return true;
+  }
+  for (int action : actions) {
+    if (Contains(data_elements, DataElement(ActionBit(action)))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace
 
 absl::Status AdvertisementDecoder::DecryptDataElements(
@@ -222,6 +252,35 @@ absl::StatusOr<std::string> AdvertisementDecoder::Decrypt(
                                                  salt, encrypted);
 }
 
+void AdvertisementDecoder::AddBannedDataTypes() {
+  // The scan request has information what identity types the client is
+  // interested in. We'll ban all other idenitity data types.
+  banned_data_types_ = {DataElement::kPrivateIdentityFieldType,
+                        DataElement::kTrustedIdentityFieldType,
+                        DataElement::kPublicIdentityFieldType,
+                        DataElement::kProvisionedIdentityFieldType};
+  for (nearby::internal::IdentityType identity_type :
+       scan_request_.identity_types) {
+    switch (identity_type) {
+      case internal::IDENTITY_TYPE_PRIVATE:
+        banned_data_types_.erase(DataElement::kPrivateIdentityFieldType);
+        break;
+      case internal::IDENTITY_TYPE_TRUSTED:
+        banned_data_types_.erase(DataElement::kTrustedIdentityFieldType);
+        break;
+      case internal::IDENTITY_TYPE_PUBLIC:
+        banned_data_types_.erase(DataElement::kPublicIdentityFieldType);
+        break;
+      case internal::IDENTITY_TYPE_PROVISIONED:
+        banned_data_types_.erase(DataElement::kProvisionedIdentityFieldType);
+        break;
+      default:
+        // Nothing to do
+        break;
+    }
+  }
+}
+
 absl::StatusOr<std::vector<DataElement>>
 AdvertisementDecoder::DecodeAdvertisement(absl::string_view advertisement) {
   std::vector<DataElement> result;
@@ -245,6 +304,14 @@ AdvertisementDecoder::DecodeAdvertisement(absl::string_view advertisement) {
                            << elem.status();
       return elem.status();
     }
+    // This checks allows us to bail before decryption when, for example, the
+    // client is scanning for advertisements with private identity but the
+    // advertisement uses trusted identity.
+    if (banned_data_types_.contains(elem->GetType())) {
+      return absl::FailedPreconditionError(
+          absl::StrFormat("Ignoring advertisement with data element type: %d",
+                          elem->GetType()));
+    }
     if (IsEncryptedIdentity(elem->GetType())) {
       absl::Status status = DecryptDataElements(*elem, result);
       if (!status.ok()) {
@@ -260,6 +327,46 @@ AdvertisementDecoder::DecodeAdvertisement(absl::string_view advertisement) {
     }
   }
   return result;
+}
+
+bool AdvertisementDecoder::MatchesScanFilter(
+    const std::vector<DataElement>& data_elements) {
+  // The advertisement matches the scan request when it matches at least
+  // one of the filters in the request.
+  if (scan_request_.scan_filters.empty()) {
+    return true;
+  }
+  for (const auto& filter : scan_request_.scan_filters) {
+    if (absl::holds_alternative<PresenceScanFilter>(filter)) {
+      if (MatchesScanFilter(data_elements,
+                            absl::get<PresenceScanFilter>(filter))) {
+        return true;
+      }
+    } else if (absl::holds_alternative<LegacyPresenceScanFilter>(filter)) {
+      if (MatchesScanFilter(data_elements,
+                            absl::get<LegacyPresenceScanFilter>(filter))) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool AdvertisementDecoder::MatchesScanFilter(
+    const std::vector<DataElement>& data_elements,
+    const PresenceScanFilter& filter) {
+  // The advertisement must contain all Data Elements in scan request.
+  return ContainsAll(data_elements, filter.extended_properties);
+}
+
+bool AdvertisementDecoder::MatchesScanFilter(
+    const std::vector<DataElement>& data_elements,
+    const LegacyPresenceScanFilter& filter) {
+  // The advertisement must:
+  // * contain any Action from scan request,
+  // * contain all Data Elements in scan request.
+  return ContainsAny(data_elements, filter.actions) &&
+         ContainsAll(data_elements, filter.extended_properties);
 }
 
 }  // namespace presence

@@ -42,7 +42,11 @@ using ::testing::status::StatusIs;
 constexpr absl::string_view kAccountName = "test account";
 
 ScanRequest GetScanRequest() {
-  return {.account_name = std::string(kAccountName)};
+  return {.account_name = std::string(kAccountName),
+          .identity_types = {internal::IDENTITY_TYPE_PRIVATE,
+                             internal::IDENTITY_TYPE_TRUSTED,
+                             internal::IDENTITY_TYPE_PUBLIC,
+                             internal::IDENTITY_TYPE_PROVISIONED}};
 }
 
 ScanRequest GetScanRequest(
@@ -51,6 +55,10 @@ ScanRequest GetScanRequest(
                                               credentials};
   return ScanRequestBuilder()
       .SetAccountName(kAccountName)
+      .AddIdentityType(internal::IDENTITY_TYPE_PRIVATE)
+      .AddIdentityType(internal::IDENTITY_TYPE_TRUSTED)
+      .AddIdentityType(internal::IDENTITY_TYPE_PUBLIC)
+      .AddIdentityType(internal::IDENTITY_TYPE_PROVISIONED)
       .AddScanFilter(scan_filter)
       .Build();
 }
@@ -276,6 +284,22 @@ TEST(AdvertisementDecoder, DecodeBaseNpWithTxActionField) {
                   DataElement(DataElement(ActionBit::kNearbyShareAction))));
 }
 
+TEST(AdvertisementDecoder,
+     ScanForEncryptedIdentityIgnoresPublicIdentityAdvertisement) {
+  std::string salt = "AB";
+  MockCredentialManager credential_manager;
+  AdvertisementDecoder decoder(
+      &credential_manager,
+      {.account_name = std::string(kAccountName),
+       .identity_types = {internal::IDENTITY_TYPE_PRIVATE,
+                          internal::IDENTITY_TYPE_TRUSTED,
+                          internal::IDENTITY_TYPE_PROVISIONED}});
+
+  EXPECT_THAT(decoder.DecodeAdvertisement(
+                  absl::HexStringToBytes("00204142034650B04180")),
+              StatusIs(absl::StatusCode::kFailedPrecondition));
+}
+
 TEST(AdvertisementDecoder, DecodeEddystone) {
   MockCredentialManager credential_manager;
   AdvertisementDecoder decoder(&credential_manager, GetScanRequest());
@@ -359,6 +383,104 @@ TEST(AdvertisementDecoder, UnsupportedAdvertisementVersion) {
   EXPECT_THAT(decoder.DecodeAdvertisement(
                   absl::HexStringToBytes("012041420318CD29EEFF")),
               StatusIs(absl::StatusCode::kUnimplemented));
+}
+
+TEST(AdvertisementDecoder, MatchesScanFilterNoFilterPasses) {
+  std::vector<DataElement> adv = {
+      DataElement(DataElement::kPrivateIdentityFieldType, "payload")};
+  MockCredentialManager credential_manager;
+  ScanRequest empty_scan_request = {};
+  AdvertisementDecoder decoder(&credential_manager, empty_scan_request);
+
+  // A scan request without scan filters matches any advertisement
+  EXPECT_TRUE(decoder.MatchesScanFilter(
+      {DataElement(DataElement::kPrivateIdentityFieldType, "payload")}));
+  EXPECT_TRUE(decoder.MatchesScanFilter({}));
+}
+
+TEST(AdvertisementDecoder, MatchesPresenceScanFilter) {
+  std::vector<DataElement> adv = {
+      DataElement(DataElement::kPrivateIdentityFieldType, "payload")};
+  MockCredentialManager credential_manager;
+  DataElement model_id =
+      DataElement(DataElement::kModelIdFieldType, "model id");
+  DataElement salt = DataElement(DataElement::kSaltFieldType, "salt");
+  DataElement salt2 = DataElement(DataElement::kSaltFieldType, "salt 2");
+  PresenceScanFilter filter = {.extended_properties = {model_id, salt}};
+
+  AdvertisementDecoder decoder(
+      &credential_manager, ScanRequestBuilder().AddScanFilter(filter).Build());
+
+  EXPECT_FALSE(decoder.MatchesScanFilter({}));
+  EXPECT_FALSE(decoder.MatchesScanFilter({salt}));
+  EXPECT_TRUE(decoder.MatchesScanFilter({salt, model_id}));
+  EXPECT_TRUE(decoder.MatchesScanFilter({salt, salt2, model_id}));
+  EXPECT_FALSE(decoder.MatchesScanFilter({salt2, model_id}));
+}
+
+TEST(AdvertisementDecoder, MatchesLegacyPresenceScanFilter) {
+  std::vector<DataElement> adv = {
+      DataElement(DataElement::kPrivateIdentityFieldType, "payload")};
+  MockCredentialManager credential_manager;
+  DataElement model_id =
+      DataElement(DataElement::kModelIdFieldType, "model id");
+  DataElement salt = DataElement(DataElement::kSaltFieldType, "salt");
+  DataElement salt2 = DataElement(DataElement::kSaltFieldType, "salt 2");
+  LegacyPresenceScanFilter filter = {.extended_properties = {model_id, salt}};
+
+  AdvertisementDecoder decoder(
+      &credential_manager, ScanRequestBuilder().AddScanFilter(filter).Build());
+
+  EXPECT_FALSE(decoder.MatchesScanFilter({}));
+  EXPECT_FALSE(decoder.MatchesScanFilter({salt}));
+  EXPECT_TRUE(decoder.MatchesScanFilter({salt, model_id}));
+  EXPECT_TRUE(decoder.MatchesScanFilter({salt, salt2, model_id}));
+  EXPECT_FALSE(decoder.MatchesScanFilter({salt2, model_id}));
+}
+
+TEST(AdvertisementDecoder, MatchesLegacyPresenceScanFilterWithActions) {
+  std::vector<DataElement> adv = {
+      DataElement(DataElement::kPrivateIdentityFieldType, "payload")};
+  MockCredentialManager credential_manager;
+  DataElement model_id =
+      DataElement(DataElement::kModelIdFieldType, "model id");
+  DataElement salt = DataElement(DataElement::kSaltFieldType, "salt");
+  DataElement eddystone_action = DataElement(ActionBit::kEddystoneAction);
+  LegacyPresenceScanFilter filter = {
+      .actions = {static_cast<int>(ActionBit::kActiveUnlockAction),
+                  static_cast<int>(ActionBit::kEddystoneAction)},
+      .extended_properties = {model_id, salt}};
+
+  AdvertisementDecoder decoder(
+      &credential_manager, ScanRequestBuilder().AddScanFilter(filter).Build());
+
+  EXPECT_FALSE(decoder.MatchesScanFilter({salt, model_id}));
+  EXPECT_TRUE(decoder.MatchesScanFilter({salt, eddystone_action, model_id}));
+}
+
+TEST(AdvertisementDecoder, MatchesMultipleFilters) {
+  std::vector<DataElement> adv = {
+      DataElement(DataElement::kPrivateIdentityFieldType, "payload")};
+  MockCredentialManager credential_manager;
+  DataElement model_id =
+      DataElement(DataElement::kModelIdFieldType, "model id");
+  DataElement salt = DataElement(DataElement::kSaltFieldType, "salt");
+  DataElement eddystone_action = DataElement(ActionBit::kEddystoneAction);
+  PresenceScanFilter presence_filter = {.extended_properties = {model_id}};
+  LegacyPresenceScanFilter legacy_filter = {
+      .actions = {static_cast<int>(ActionBit::kActiveUnlockAction),
+                  static_cast<int>(ActionBit::kEddystoneAction)},
+      .extended_properties = {salt}};
+
+  AdvertisementDecoder decoder(&credential_manager,
+                               ScanRequestBuilder()
+                                   .AddScanFilter(presence_filter)
+                                   .AddScanFilter(legacy_filter)
+                                   .Build());
+
+  EXPECT_TRUE(decoder.MatchesScanFilter({model_id}));
+  EXPECT_TRUE(decoder.MatchesScanFilter({salt, eddystone_action}));
+  EXPECT_FALSE(decoder.MatchesScanFilter({eddystone_action}));
 }
 
 }  // namespace
