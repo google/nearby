@@ -104,6 +104,7 @@ cc_library(
         "@boringssl//:crypto",
         "@com_google_absl//absl/strings",
     ],
+    alwayslink = 1,
 )
 
 cc_library(

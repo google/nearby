@@ -32,6 +32,7 @@
 
 namespace nearby {
 namespace presence {
+namespace {
 
 using FeatureFlags = location::nearby::FeatureFlags::Flags;
 using BleOperationStatus = location::nearby::api::ble_v2::BleOperationStatus;
@@ -43,6 +44,12 @@ using TxPowerLevel = location::nearby::api::ble_v2::TxPowerLevel;
 using ScanningCallback =
     location::nearby::api::ble_v2::BleMedium::ScanningCallback;
 using Uuid = location::nearby::Uuid;
+using location::nearby::api::ble_v2::BleAdvertisementData;
+using location::nearby::api::ble_v2::BlePeripheral;
+using AdvertisingCallback =
+    location::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
+using AdvertisingSession =
+    location::nearby::api::ble_v2::BleMedium::AdvertisingSession;
 
 constexpr FeatureFlags kTestCases[] = {
     FeatureFlags{},
@@ -50,14 +57,6 @@ constexpr FeatureFlags kTestCases[] = {
 
 class BleTest : public testing::TestWithParam<FeatureFlags> {
  public:
-  class MockBleMedium {
-   public:
-    explicit MockBleMedium(location::nearby::BluetoothAdapter& adapter){}
-
-    MOCK_METHOD((std::unique_ptr<ScanningSession>), StartScanning,
-                (const Uuid& service_uuid, TxPowerLevel tx_power_level,
-                 ScanningCallback callback));
-  };
   constexpr static absl::Duration kWaitDuration = absl::Milliseconds(1000);
 
   std::string account_name_ = "Test-Name";
@@ -88,12 +87,8 @@ class BleTest : public testing::TestWithParam<FeatureFlags> {
 
  protected:
   BleTest() { env_.Stop(); }
-  absl::optional<BleV2MediumStatus> GetBleStatus(
-      const Ble<location::nearby::BleV2Medium>& ble) {
-    return env_.GetBleV2MediumStatus(*ble.medium_->GetImpl());
-  }
-  MockBleMedium* GetMedium(const Ble<MockBleMedium>& ble) {
-    return ble.medium_.get();
+  absl::optional<BleV2MediumStatus> GetBleStatus(const Ble& ble) {
+    return env_.GetBleV2MediumStatus(*ble.GetImpl());
   }
   location::nearby::MediumEnvironment& env_{
       location::nearby::MediumEnvironment::Instance()};
@@ -107,7 +102,7 @@ INSTANTIATE_TEST_SUITE_P(ParametrisedBleTest, BleTest,
 TEST_P(BleTest, CanStartThenStopScanning) {
   env_.Start();
   ::location::nearby::BluetoothAdapter adapter;
-  Ble<location::nearby::BleV2Medium> ble(adapter);
+  Ble ble(adapter);
 
   ScanRequest scan_request{
       .power_mode = PowerMode::kBalanced,
@@ -136,20 +131,51 @@ TEST_P(BleTest, CanStartThenStopScanning) {
   env_.Stop();
 }
 
-// Using MockBleMedium to verify StartScanning is using the expected parameters
-// with underneath BleMedium.
-TEST_P(BleTest, VerifyStartScanning) {
+TEST_P(BleTest, AdvertiseAndScan) {
+  // Create two Ble devices, one advertises, the other one scans, and verify
+  // that the NP advertisement was sent from one to the other.
   env_.Start();
-  ::location::nearby::BluetoothAdapter adapter;
-  Ble<MockBleMedium> ble(adapter);
-  EXPECT_CALL(*GetMedium(ble), StartScanning(kPresenceServiceUuid,
-                                             TxPowerLevel::kMedium, testing::_))
-      .Times(1);
+  location::nearby::BluetoothAdapter client_adapter;
+  Ble client(client_adapter);
+  location::nearby::BluetoothAdapter server_adapter;
+  Ble server(server_adapter);
+  std::string advert_data = "my advertisement";
+  ScanRequest scan_request{
+      .power_mode = PowerMode::kBalanced,
+  };
+  location::nearby::CountDownLatch advertise_latch(1);
+  location::nearby::CountDownLatch scan_latch(1);
+  std::vector<BleAdvertisementData> advertisements;
+  std::unique_ptr<ScanningSession> scanning_session = client.StartScanning(
+      scan_request,
+      ScanningCallback{.advertisement_found_cb =
+                           [&](BlePeripheral& peripheral,
+                               BleAdvertisementData advertisement_data) {
+                             advertisements.push_back(advertisement_data);
+                             scan_latch.CountDown();
+                           }});
+  std::unique_ptr<location::nearby::api::ble_v2::BleMedium::AdvertisingSession>
+      advertising_session = server.StartAdvertising(
+          advert_data, /*is_extended_advertisement=*/false,
+          PowerMode::kBalanced,
+          AdvertisingCallback{
+              .start_advertising_result = [&](BleOperationStatus status) {
+                advertise_latch.CountDown();
+              }});
 
-  std::unique_ptr<ScanningSession> scanning_session =
-      ble.StartScanning(scan_request_, ScanningCallback{});
+  EXPECT_TRUE(advertise_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(scan_latch.Await(kWaitDuration).result());
+  EXPECT_EQ(scanning_session->stop_scanning(), BleOperationStatus::kSucceeded);
+  EXPECT_EQ(advertising_session->stop_advertising(),
+            BleOperationStatus::kSucceeded);
+  ASSERT_FALSE(advertisements.empty());
+  EXPECT_EQ(advertisements[0]
+                .service_data.find(kPresenceServiceUuid)
+                ->second.AsStringView(),
+            advert_data);
   env_.Stop();
 }
 
+}  // namespace
 }  // namespace presence
 }  // namespace nearby

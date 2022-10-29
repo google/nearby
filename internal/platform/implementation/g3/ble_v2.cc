@@ -262,10 +262,17 @@ std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
     return nullptr;
   }
 
+  if (callback.start_advertising_result) {
+    callback.start_advertising_result(BleOperationStatus::kSucceeded);
+  }
   absl::MutexLock lock(&mutex_);
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
       /*enabled=*/true, *this, adapter_->GetPeripheralV2(), advertising_data);
-  return std::make_unique<AdvertisingSession>(AdvertisingSession{});
+  return std::make_unique<AdvertisingSession>(
+      AdvertisingSession{.stop_advertising = [this] {
+        return StopAdvertising() ? BleOperationStatus::kSucceeded
+                                 : BleOperationStatus::kFailed;
+      }});
 }
 
 bool BleV2Medium::StartScanning(const Uuid& service_uuid,
