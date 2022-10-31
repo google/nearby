@@ -121,11 +121,11 @@ struct ScanRequest {
       scan_filters;
 
   // Whether to use BLE in the scan.
-  bool use_ble;
+  bool use_ble = false;
 
-  ScanType scan_type;
-  PowerMode power_mode;
-  bool scan_only_when_screen_on;
+  ScanType scan_type = ScanType::kUnspecifiedScan;
+  PowerMode power_mode = PowerMode::kNoPower;
+  bool scan_only_when_screen_on = false;
 };
 
 inline bool operator==(const ScanRequest& a, const ScanRequest& b) {
