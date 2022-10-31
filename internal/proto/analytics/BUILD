@@ -31,7 +31,6 @@ cc_proto_library(
     name = "connections_log_cc_proto",
     visibility = [
         "//connections:__subpackages__",
-        "//internal/analytics:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
     ],
     deps = [":connections_log_proto"],
