@@ -91,10 +91,8 @@ cc_library(
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
-        "//location/nearby/analytics/cpp:__subpackages__",
     ],
     deps = [
         ":comm",
