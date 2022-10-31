@@ -51,6 +51,7 @@
 #include "internal/platform/implementation/g3/mutex.h"
 #include "internal/platform/implementation/g3/scheduled_executor.h"
 #include "internal/platform/implementation/g3/single_thread_executor.h"
+#include "internal/platform/implementation/g3/wifi_direct.h"
 #include "internal/platform/implementation/g3/wifi_hotspot.h"
 #include "internal/platform/implementation/g3/wifi_lan.h"
 #include "internal/platform/implementation/shared/file.h"
@@ -181,6 +182,11 @@ std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
 std::unique_ptr<WifiHotspotMedium>
 ImplementationPlatform::CreateWifiHotspotMedium() {
   return std::make_unique<g3::WifiHotspotMedium>();
+}
+
+std::unique_ptr<WifiDirectMedium>
+ImplementationPlatform::CreateWifiDirectMedium() {
+  return std::make_unique<g3::WifiDirectMedium>();
 }
 
 #ifndef NO_WEBRTC
