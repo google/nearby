@@ -194,6 +194,9 @@ enum EventType {
   // App Crash event. Used only for Nearby Share Windows App now.
   APP_CRASH = 51;
 
+  // Sender taps the Send button in quick settings
+  TAP_QUICK_SETTINGS_FILE_SHARE = 52;
+
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
 
