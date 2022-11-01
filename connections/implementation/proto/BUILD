@@ -20,7 +20,7 @@ proto_library(
         "offline_wire_formats.proto",
     ],
     visibility = [
-        "//internal/platform/implementation/ios:__subpackages__",
+        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
     ],
 )
 
