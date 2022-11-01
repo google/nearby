@@ -17,6 +17,7 @@
 
 #include <memory>
 
+#include "internal/platform/single_thread_executor.h"
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
 #include "presence/implementation/credential_manager_impl.h"
@@ -32,16 +33,22 @@ namespace presence {
 
 class ServiceControllerImpl : public ServiceController {
  public:
+  using SingleThreadExecutor = ::location::nearby::SingleThreadExecutor;
+
   ServiceControllerImpl() = default;
   std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
                                          ScanCallback callback) override;
   std::unique_ptr<BroadcastSession> StartBroadcast(
-      BroadcastRequest broadcast_request, BroadcastCallback callback) override;
+      BroadcastRequest broadcast_request, BroadcastCallback& callback) override;
+
+  // Gives tests access to mediums.
+  Mediums& GetMediums() { return mediums_; }
 
  private:
   Mediums mediums_;  // NOLINT: further impl will use it.
   CredentialManagerImpl
       credential_manager_;  // NOLINT: further impl will use it.
+  SingleThreadExecutor executor_;
 };
 
 }  // namespace presence

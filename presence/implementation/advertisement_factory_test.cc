@@ -25,6 +25,7 @@
 #include "presence/data_element.h"
 #include "presence/implementation/action_factory.h"
 #include "presence/implementation/credential_manager_impl.h"
+#include "presence/implementation/mediums/advertisement_data.h"
 
 namespace nearby {
 namespace presence {
@@ -66,17 +67,13 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
       .WillOnce(Return(metadata_key + absl::HexStringToBytes("50515253")));
 
   AdvertisementFactory factory(&credential_manager);
-  absl::StatusOr<BleAdvertisementData> result =
+  absl::StatusOr<AdvertisementData> result =
       factory.CreateAdvertisement(request);
 
   ASSERT_OK(result);
-  auto service_data = result->service_data;
-  ASSERT_EQ(service_data.size(), 1);
-  for (auto i : service_data) {
-    EXPECT_EQ(i.first.Get16BitAsString(), "FCF1");
-    auto advertisement = absl::BytesToHexString(i.second.AsStringView());
-    EXPECT_EQ(advertisement, "00414142101112131415161718192021222350515253");
-  }
+  EXPECT_FALSE(result->is_extended_advertisement);
+  EXPECT_EQ(absl::BytesToHexString(result->content),
+            "00414142101112131415161718192021222350515253");
 }
 
 TEST(AdvertisementFactory, CreateAdvertisementFromPublicIdentity) {
@@ -93,17 +90,12 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPublicIdentity) {
                                .SetAction(action));
 
   AdvertisementFactory factory(&credential_manager);
-  absl::StatusOr<BleAdvertisementData> result =
+  absl::StatusOr<AdvertisementData> result =
       factory.CreateAdvertisement(request);
 
   ASSERT_OK(result);
-  auto service_data = result->service_data;
-  EXPECT_EQ(service_data.size(), 1);
-  for (auto i : service_data) {
-    EXPECT_EQ(i.first.Get16BitAsString(), "FCF1");
-    auto advertisement = absl::BytesToHexString(i.second.AsStringView());
-    EXPECT_EQ(advertisement, "000320414236050080");
-  }
+  EXPECT_FALSE(result->is_extended_advertisement);
+  EXPECT_EQ(absl::BytesToHexString(result->content), "000320414236050080");
 }
 
 TEST(AdvertisementFactory, CreateAdvertisementFailsWhenEncryptionFails) {

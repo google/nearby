@@ -16,7 +16,10 @@
 #define THIRD_PARTY_NEARBY_PRESENCE_SCAN_CALLBACK_H_
 
 #include <functional>
+#include <memory>
+#include <utility>
 
+#include "absl/functional/any_invocable.h"
 #include "presence/presence_device.h"
 #include "presence/status.h"
 
@@ -51,23 +54,34 @@ struct ScanCallback {
   std::function<void(PresenceDevice)> on_lost_cb = [](PresenceDevice) {};
 };
 
-/**
- * Holds the callback of stop broadcast for client to invoke later.
- */
-struct BroadcastSession {
-  // Nearby library would provide the implementation of this callback in
-  // runtime. Assiging with a default value NotImplemented to surface potential
-  // issue where library failed to provide the implementation.
-  std::function<Status(void)> stop_broadcast_callback = []() {
-    return Status{Status::Value::kNotImplemented};
-  };
+// Holds the callback of stop broadcast for client to invoke later. The caller
+// can stop broadcasting either explicitly with `StopBroadcast`, or implicitly
+// when `BroadcastSession` leaves the scope.
+class BroadcastSession {
+ public:
+  explicit BroadcastSession(absl::AnyInvocable<Status(void)> callback)
+      : stop_broadcast_callback_(std::move(callback)) {}
+  BroadcastSession(const BroadcastSession&) = delete;
+  BroadcastSession& operator=(const BroadcastSession&) = delete;
+  ~BroadcastSession() { StopBroadcast(); }
+
+  Status StopBroadcast() {
+    auto callback = std::move(stop_broadcast_callback_);
+    if (callback) {
+      return callback();
+    }
+    return Status({Status::Value::kSuccess});
+  }
+
+ private:
+  absl::AnyInvocable<Status(void)> stop_broadcast_callback_;
 };
 
 // Callers would provide the implementation of these callbacks. If callers
 // don't need these signal updates, they can skip with the provided default
 // empty functions.
 struct BroadcastCallback {
-  std::function<void(Status)> start_broadcast_cb = [](Status) {};
+  absl::AnyInvocable<void(Status)> start_broadcast_cb = [](Status) {};
 };
 
 }  // namespace presence

@@ -18,6 +18,7 @@ cc_library(
     srcs = [
     ],
     hdrs = [
+        "advertisement_data.h",
         "ble.h",
         "mediums.h",
     ],

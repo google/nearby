@@ -28,7 +28,7 @@ namespace presence {
 class Mediums {
  public:
   // Returns a handle to the Ble medium.
-  Ble& GetBle();
+  Ble& GetBle() { return ble_; }
 
  private:
   location::nearby::BluetoothAdapter adapter_;
