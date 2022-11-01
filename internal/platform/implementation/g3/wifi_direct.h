@@ -40,8 +40,8 @@ class WifiDirectMedium;
 // Container of operations that can be performed over the WifiDirect medium.
 class WifiDirectMedium : public api::WifiDirectMedium {
  public:
-  WifiDirectMedium() = default;
-  ~WifiDirectMedium() override = default;
+  WifiDirectMedium();
+  ~WifiDirectMedium() override;
 
   WifiDirectMedium(const WifiDirectMedium&) = delete;
   WifiDirectMedium(WifiDirectMedium&&) = delete;
