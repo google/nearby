@@ -15,8 +15,18 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SCAN_MANAGER_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SCAN_MANAGER_H_
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
+
+#include "absl/container/flat_hash_map.h"
+#include "absl/synchronization/mutex.h"
+#include "presence/data_types.h"
+#include "presence/implementation/advertisement_decoder.h"
 #include "presence/implementation/credential_manager.h"
 #include "presence/implementation/mediums/mediums.h"
+#include "presence/scan_request.h"
 
 namespace nearby {
 namespace presence {
@@ -32,9 +42,29 @@ class ScanManager {
   }
   ~ScanManager() = default;
 
+  ScanSession StartScan(ScanRequest scan_request, ScanCallback cb)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  // Below functions are test only.
+  // Reference: go/totw/135#augmenting-the-public-api-for-tests
+  int ScanningCallbacksLengthForTest() ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock lock(&mutex_);
+    return scanning_callbacks_.size();
+  }
+
  private:
+  struct MapElement {
+    ScanRequest request;
+    ScanCallback callback;
+    AdvertisementDecoder decoder;
+  };
+  mutable absl::Mutex mutex_;
   Mediums* mediums_;
   CredentialManager* credential_manager_;
+  absl::flat_hash_map<uint64_t, MapElement> scanning_callbacks_
+      ABSL_GUARDED_BY(mutex_);
+  void NotifyFoundBle(
+      location::nearby::api::ble_v2::BleAdvertisementData data,
+      const location::nearby::api::ble_v2::BlePeripheral& peripheral);
 };
 
 }  // namespace presence

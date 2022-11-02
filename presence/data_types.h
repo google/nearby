@@ -24,13 +24,24 @@ namespace nearby {
 namespace presence {
 
 // Holds the callback of stop scan for client to invoke later.
-struct ScanSession {
+// TODO(b/254895067) Rework status for absl::Status
+class ScanSession {
+ public:
+  ScanSession()
+      : stop_scan_callback_(
+            []() { return Status{Status::Value::kNotImplemented}; }) {}
+  explicit ScanSession(std::function<Status(void)> stop_scan_callback)
+      : stop_scan_callback_(stop_scan_callback) {}
+
+  Status StopScan() {
+    return stop_scan_callback_();
+  }
+
+ private:
   // Nearby library would provide the implementation of this callback in
   // runtime. Assigning with a default value NotImplemented to surface potential
   // issue where library failed to provide the implementation.
-  std::function<Status(void)> stop_scan_callback = []() {
-    return Status{Status::Value::kNotImplemented};
-  };
+  std::function<Status(void)> stop_scan_callback_;
 };
 
 // Callers would provide the implementation of these callbacks. If callers

@@ -24,6 +24,7 @@
 #include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
 #include "presence/implementation/base_broadcast_request.h"
+#include "presence/implementation/mediums/ble.h"
 
 namespace nearby {
 namespace presence {
@@ -31,9 +32,7 @@ namespace presence {
 using ::nearby::internal::IdentityType;
 
 namespace {
-
 constexpr uint8_t kBaseVersion = 0;
-constexpr location::nearby::Uuid kServiceData(0xFCF1ULL << 32, 0);
 constexpr size_t kMaxBaseNpAdvSize = 26;
 
 absl::StatusOr<uint8_t> CreateDataElementHeader(size_t length,
@@ -175,7 +174,7 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
     }
   }
   advert.service_data.insert(
-      {kServiceData, location::nearby::ByteArray(payload)});
+      {kPresenceServiceUuid, location::nearby::ByteArray(payload)});
   return advert;
 }
 

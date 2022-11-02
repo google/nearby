@@ -24,6 +24,7 @@ cc_library(
         "encryption.cc",
         "ldt.cc",
         "np_ldt.c",
+        "scan_manager.cc",
         "service_controller_impl.cc",
     ],
     hdrs = [
@@ -58,10 +59,14 @@ cc_library(
         "//presence/implementation/mediums",
         "//third_party/tink/cc/subtle",
         "@boringssl//:crypto",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/random:distributions",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:variant",
@@ -181,6 +186,23 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "scan_manager_test",
+    size = "small",
+    srcs = ["scan_manager_test.cc"],
+    deps = [
+        ":internal",
+        "//internal/platform:comm",
+        "//internal/platform:test_util",
+        "//internal/platform:types",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//presence/implementation/mediums",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/random",
         "@com_google_googletest//:gtest_main",
     ],
 )
