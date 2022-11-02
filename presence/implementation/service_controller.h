@@ -36,7 +36,7 @@ class ServiceController {
   virtual std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
                                                  ScanCallback callback) = 0;
   virtual std::unique_ptr<BroadcastSession> StartBroadcast(
-      BroadcastRequest broadcast_request, BroadcastCallback callback) = 0;
+      BroadcastRequest broadcast_request, BroadcastCallback& callback) = 0;
 };
 
 }  // namespace presence

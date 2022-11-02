@@ -30,7 +30,7 @@ std::unique_ptr<ScanSession> PresenceClient::StartScan(ScanRequest scan_request,
   return service_.StartScan(scan_request, callback);
 }
 std::unique_ptr<BroadcastSession> PresenceClient::StartBroadcast(
-    BroadcastRequest broadcast_request, BroadcastCallback callback) {
+    BroadcastRequest broadcast_request, BroadcastCallback& callback) {
   return service_.StartBroadcast(broadcast_request, callback);
 }
 

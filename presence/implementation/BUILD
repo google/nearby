@@ -58,6 +58,7 @@ cc_library(
         "//presence/implementation/mediums",
         "//third_party/tink/cc/subtle",
         "@boringssl//:crypto",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -121,9 +122,26 @@ cc_test(
         ":internal",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//presence:types",
+        "//presence/implementation/mediums",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "service_controller_impl_test",
+    size = "small",
+    srcs = ["service_controller_impl_test.cc"],
+    deps = [
+        ":internal",
+        "//internal/platform:base",
+        "//internal/platform:test_util",
+        "//internal/platform:types",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/proto:credential_cc_proto",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )

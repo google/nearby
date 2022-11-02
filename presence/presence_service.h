@@ -39,7 +39,7 @@ class PresenceService {
   std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
                                          ScanCallback callback);
   std::unique_ptr<BroadcastSession> StartBroadcast(
-      BroadcastRequest broadcast_request, BroadcastCallback callback);
+      BroadcastRequest broadcast_request, BroadcastCallback& callback);
 
  private:
   std::unique_ptr<ServiceController> service_controller_;

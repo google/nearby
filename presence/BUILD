@@ -62,6 +62,7 @@ cc_library(
     deps = [
         "//internal/platform:base",
         "//internal/proto:credential_cc_proto",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:variant",

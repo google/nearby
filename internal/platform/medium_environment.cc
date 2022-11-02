@@ -726,6 +726,7 @@ MediumEnvironment::GetBleV2MediumStatus(const api::ble_v2::BleMedium& medium) {
       return;
     }
     BleV2MediumContext context = it->second;
+
     result = BleV2MediumStatus{.is_advertising = context.advertising,
                                .is_scanning = context.scanning};
     latch.CountDown();

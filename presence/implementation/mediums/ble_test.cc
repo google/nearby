@@ -28,6 +28,7 @@
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/uuid.h"
 #include "presence/data_element.h"
+#include "presence/implementation/mediums/advertisement_data.h"
 #include "presence/scan_request.h"
 
 namespace nearby {
@@ -139,7 +140,8 @@ TEST_P(BleTest, AdvertiseAndScan) {
   Ble client(client_adapter);
   location::nearby::BluetoothAdapter server_adapter;
   Ble server(server_adapter);
-  std::string advert_data = "my advertisement";
+  AdvertisementData advert_data = {.is_extended_advertisement = false,
+                                   .content = "my advertisement"};
   ScanRequest scan_request{
       .power_mode = PowerMode::kBalanced,
   };
@@ -156,8 +158,7 @@ TEST_P(BleTest, AdvertiseAndScan) {
                            }});
   std::unique_ptr<location::nearby::api::ble_v2::BleMedium::AdvertisingSession>
       advertising_session = server.StartAdvertising(
-          advert_data, /*is_extended_advertisement=*/false,
-          PowerMode::kBalanced,
+          advert_data, PowerMode::kBalanced,
           AdvertisingCallback{
               .start_advertising_result = [&](BleOperationStatus status) {
                 advertise_latch.CountDown();
@@ -172,7 +173,7 @@ TEST_P(BleTest, AdvertiseAndScan) {
   EXPECT_EQ(advertisements[0]
                 .service_data.find(kPresenceServiceUuid)
                 ->second.AsStringView(),
-            advert_data);
+            advert_data.content);
   env_.Stop();
 }
 

@@ -66,7 +66,7 @@ class PresenceClient {
    * extended properties.
    */
   std::unique_ptr<BroadcastSession> StartBroadcast(
-      BroadcastRequest broadcast_request, BroadcastCallback callback);
+      BroadcastRequest broadcast_request, BroadcastCallback& callback);
 
  private:
   PresenceService& service_;
