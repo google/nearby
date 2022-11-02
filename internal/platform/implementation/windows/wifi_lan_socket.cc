@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstring>
+#include <exception>
+
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"
 
@@ -26,12 +29,15 @@ WifiLanSocket::WifiLanSocket(StreamSocket socket) {
 }
 
 WifiLanSocket::~WifiLanSocket() {
-  if (stream_soket_ != nullptr) {
-    try {
+  try {
+    if (stream_soket_ != nullptr) {
       Close();
-    } catch (...) {
-      NEARBY_LOGS(ERROR) << "Failed to destructor class WifiLanSocket.";
     }
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
   }
 }
 
@@ -45,7 +51,12 @@ Exception WifiLanSocket::Close() {
       stream_soket_.Close();
     }
     return {Exception::kSuccess};
-  } catch (...) {
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
   }
 }
@@ -70,8 +81,13 @@ ExceptionOr<ByteArray> WifiLanSocket::SocketInputStream::Read(
     ByteArray data((char*)ibuffer.data(), ibuffer.Length());
 
     return ExceptionOr(data);
-  } catch (...) {
-    return Exception{Exception::kIo};
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
+    return {Exception::kIo};
   }
 }
 
@@ -82,19 +98,28 @@ ExceptionOr<size_t> WifiLanSocket::SocketInputStream::Skip(size_t offset) {
     auto ibuffer =
         input_stream_.ReadAsync(buffer, offset, InputStreamOptions::None).get();
     return ExceptionOr((size_t)ibuffer.Length());
-  } catch (...) {
-    return Exception{Exception::kIo};
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
+    return {Exception::kIo};
   }
 }
 
 Exception WifiLanSocket::SocketInputStream::Close() {
   try {
     input_stream_.Close();
-  } catch (...) {
+    return {Exception::kSuccess};
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
   }
-
-  return {Exception::kSuccess};
 }
 
 // SocketOutputStream
@@ -104,37 +129,48 @@ WifiLanSocket::SocketOutputStream::SocketOutputStream(
 }
 
 Exception WifiLanSocket::SocketOutputStream::Write(const ByteArray& data) {
-  Buffer buffer = Buffer(data.size());
-  std::memcpy(buffer.data(), data.data(), data.size());
-  buffer.Length(data.size());
-
   try {
+    Buffer buffer = Buffer(data.size());
+    std::memcpy(buffer.data(), data.data(), data.size());
+    buffer.Length(data.size());
     output_stream_.WriteAsync(buffer).get();
-  } catch (...) {
+    return {Exception::kSuccess};
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
   }
-
-  return {Exception::kSuccess};
 }
 
 Exception WifiLanSocket::SocketOutputStream::Flush() {
   try {
     output_stream_.FlushAsync().get();
-  } catch (...) {
+    return {Exception::kSuccess};
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
   }
-
-  return {Exception::kSuccess};
 }
 
 Exception WifiLanSocket::SocketOutputStream::Close() {
   try {
     output_stream_.Close();
-  } catch (...) {
+    return {Exception::kSuccess};
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
   }
-
-  return {Exception::kSuccess};
 }
 
 }  // namespace windows

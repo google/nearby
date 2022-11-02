@@ -67,8 +67,12 @@ Exception BluetoothSocket::Close() {
       windows_socket_ = nullptr;
     }
     return {Exception::kSuccess};
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << "Failed to close Bluetooth socket.";
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
   }
 }
@@ -85,36 +89,46 @@ api::BluetoothDevice* BluetoothSocket::GetRemoteDevice() {
 // service name.
 bool BluetoothSocket::Connect(HostName connectionHostName,
                               winrt::hstring connectionServiceName) {
-  if (connectionHostName == nullptr || connectionServiceName.empty()) {
-    NEARBY_LOGS(ERROR)
-        << __func__
-        << ": Bluetooth socket connection failed. Attempting to "
-           "connect to empty HostName/MAC address or ServiceName.";
+  try {
+    if (connectionHostName == nullptr || connectionServiceName.empty()) {
+      NEARBY_LOGS(ERROR)
+          << __func__
+          << ": Bluetooth socket connection failed. Attempting to "
+             "connect to empty HostName/MAC address or ServiceName.";
+      return false;
+    }
+
+    windows_socket_ = winrt::Windows::Networking::Sockets::StreamSocket();
+
+    // https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocket.connectasync?view=winrt-20348
+    windows_socket_.ConnectAsync(connectionHostName, connectionServiceName)
+        .get();
+
+    auto info = windows_socket_.Information();
+    auto hostName = info.RemoteHostName();
+
+    bluetooth_device_ = std::make_unique<BluetoothDevice>(
+        winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
+            windows_socket_.Information().RemoteHostName())
+            .get());
+
+    input_stream_ =
+        std::make_unique<BluetoothInputStream>(windows_socket_.InputStream());
+    output_stream_ =
+        std::make_unique<BluetoothOutputStream>(windows_socket_.OutputStream());
+
+    NEARBY_LOGS(INFO) << __func__
+                      << ": Bluetooth socket successfully connected to "
+                      << bluetooth_device_->GetName();
+    return true;
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return false;
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
     return false;
   }
-
-  windows_socket_ = winrt::Windows::Networking::Sockets::StreamSocket();
-
-  // https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocket.connectasync?view=winrt-20348
-  windows_socket_.ConnectAsync(connectionHostName, connectionServiceName).get();
-
-  auto info = windows_socket_.Information();
-  auto hostName = info.RemoteHostName();
-
-  bluetooth_device_ = std::make_unique<BluetoothDevice>(
-      winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
-          windows_socket_.Information().RemoteHostName())
-          .get());
-
-  input_stream_ =
-      std::make_unique<BluetoothInputStream>(windows_socket_.InputStream());
-  output_stream_ =
-      std::make_unique<BluetoothOutputStream>(windows_socket_.OutputStream());
-
-  NEARBY_LOGS(INFO) << __func__
-                    << ": Bluetooth socket successfully connected to "
-                    << bluetooth_device_->GetName();
-  return true;
 }
 
 BluetoothSocket::BluetoothInputStream::BluetoothInputStream(
@@ -134,8 +148,12 @@ ExceptionOr<ByteArray> BluetoothSocket::BluetoothInputStream::Read(
     DataReader dataReader = DataReader::FromBuffer(buffer);
     ByteArray data((char*)buffer.data(), buffer.Length());
     return ExceptionOr(data);
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << "Failed to read data from input stream.";
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
   }
 }
@@ -155,8 +173,12 @@ Exception BluetoothSocket::BluetoothInputStream::Close() {
     winrt_stream_.Close();
     winrt_stream_ = nullptr;
     return {Exception::kSuccess};
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << "Failed to close input stream.";
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
   }
 }
@@ -178,10 +200,12 @@ Exception BluetoothSocket::BluetoothOutputStream::Write(const ByteArray& data) {
 
     winrt::hresult hresult = winrt_stream_.WriteAsync(buffer).get();
     return {Exception::kSuccess};
-  } catch (winrt::hresult_error const& ex) {
-    NEARBY_LOGS(ERROR) << __func__ << ": winrt exception: " << ex.code() << ": "
-                       << winrt::to_string(ex.message());
-
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
   }
 }
@@ -194,8 +218,12 @@ Exception BluetoothSocket::BluetoothOutputStream::Flush() {
 
     winrt_stream_.FlushAsync().get();
     return {Exception::kSuccess};
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << "Failed to flush data.";
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
   }
 }
@@ -209,8 +237,12 @@ Exception BluetoothSocket::BluetoothOutputStream::Close() {
     winrt_stream_.Close();
     winrt_stream_ = nullptr;
     return {Exception::kSuccess};
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << "Failed to close output stream.";
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
   }
 }

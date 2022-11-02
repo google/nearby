@@ -14,6 +14,7 @@
 
 #include <windows.h>
 
+#include <exception>
 #include <functional>
 #include <memory>
 #include <string>
@@ -118,11 +119,16 @@ Exception WifiLanServerSocket::Close() {
 
     NEARBY_LOGS(INFO) << __func__ << ": Close completed succesfully.";
     return {Exception::kSuccess};
-  } catch (...) {
+  } catch (std::exception exception) {
     closed_ = true;
     cond_.SignalAll();
-
-    NEARBY_LOGS(INFO) << __func__ << ": Failed to close server socket.";
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    closed_ = true;
+    cond_.SignalAll();
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
   }
 }
@@ -158,9 +164,16 @@ bool WifiLanServerSocket::listen() {
     }
 
     return true;
-  } catch (...) {
-    // Cannot bind to the preferred port, will let system to assign port.
-    NEARBY_LOGS(WARNING) << "cannot accept connection on preferred port.";
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << ": Cannot accept connection on preferred port. Exception: "
+        << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << ": Cannot accept connection on preferred port. WinRT exception: "
+        << error.code() << ": " << winrt::to_string(error.message());
   }
 
   try {
@@ -170,9 +183,14 @@ bool WifiLanServerSocket::listen() {
     port_ =
         std::stoi(stream_socket_listener_.Information().LocalPort().c_str());
     return true;
-  } catch (...) {
-    // Cannot bind to the preferred port, will let system to assign port.
-    NEARBY_LOGS(ERROR) << "cannot bind to any port.";
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Cannot bind to any port. Exception: "
+                       << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Cannot bind to any port. WinRT exception: "
+                       << error.code() << ": "
+                       << winrt::to_string(error.message());
   }
 
   return false;

@@ -15,6 +15,7 @@
 #include "internal/platform/implementation/windows/bluetooth_classic_server_socket.h"
 
 #include <codecvt>
+#include <exception>
 #include <functional>
 #include <locale>
 #include <memory>
@@ -89,37 +90,45 @@ Exception BluetoothServerSocket::Close() {
 
     NEARBY_LOGS(INFO) << __func__ << ": Close completed succesfully.";
     return {Exception::kSuccess};
-  } catch (...) {
+  } catch (std::exception exception) {
     closed_ = true;
     cond_.SignalAll();
-
-    NEARBY_LOGS(INFO) << __func__ << ": Failed to close server socket.";
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    closed_ = true;
+    cond_.SignalAll();
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
   }
 }
 
 bool BluetoothServerSocket::listen() {
-  // Setup stream socket listener.
-  stream_socket_listener_ = StreamSocketListener();
-
-  stream_socket_listener_.Control().QualityOfService(
-      SocketQualityOfService::LowLatency);
-
-  stream_socket_listener_.Control().KeepAlive(true);
-
-  // Setup socket event of ConnectionReceived.
-  listener_event_token_ = stream_socket_listener_.ConnectionReceived(
-      {this, &BluetoothServerSocket::Listener_ConnectionReceived});
-
   try {
+    // Setup stream socket listener.
+    stream_socket_listener_ = StreamSocketListener();
+
+    stream_socket_listener_.Control().QualityOfService(
+        SocketQualityOfService::LowLatency);
+
+    stream_socket_listener_.Control().KeepAlive(true);
+
+    // Setup socket event of ConnectionReceived.
+    listener_event_token_ = stream_socket_listener_.ConnectionReceived(
+        {this, &BluetoothServerSocket::Listener_ConnectionReceived});
+
     stream_socket_listener_
         .BindServiceNameAsync(winrt::to_hstring(service_name_),
                               SocketProtectionLevel::PlainSocket)
         .get();
 
     return true;
-  } catch (...) {
-    NEARBY_LOGS(WARNING) << "cannot accept connection on preferred port.";
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
   }
 
   return false;
