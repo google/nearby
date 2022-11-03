@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_UUID_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_UUID_H_
 
+#include <array>
 #include <cstdint>
 #include <string>
 
