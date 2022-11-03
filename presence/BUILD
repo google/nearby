@@ -28,7 +28,7 @@ cc_library(
     deps = [
         ":types",
         "//presence/implementation:internal",  # build_cleaner: keep
-        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/log:die_if_null",
     ],
 )
 

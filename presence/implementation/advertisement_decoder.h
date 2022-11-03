@@ -18,10 +18,11 @@
 #include <string>
 #include <vector>
 
+#include "absl/container/flat_hash_set.h"
+#include "absl/log/die_if_null.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "presence/data_element.h"
-#include "presence/implementation/advertisement_factory.h"
 #include "presence/implementation/credential_manager.h"
 #include "presence/scan_request.h"
 
