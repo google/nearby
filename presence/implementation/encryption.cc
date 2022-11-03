@@ -25,8 +25,8 @@
 #include <openssl/cipher.h>  // NOLINT
 #include <openssl/crypto.h>
 #include <openssl/evp.h>  // NOLINT
-#include "third_party/tink/cc/subtle/hkdf.h"
-#include "third_party/tink/cc/subtle/random.h"
+#include "tink/subtle/hkdf.h"
+#include "tink/subtle/random.h"
 
 namespace nearby {
 namespace presence {
