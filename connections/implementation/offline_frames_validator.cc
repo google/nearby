@@ -22,6 +22,7 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/implementation/platform.h"
+#include "internal/platform/logging.h"
 
 namespace location {
 namespace nearby {
@@ -334,26 +335,29 @@ Exception EnsureValidBandwidthUpgradeNegotiationFrame(
 }
 
 bool CheckForIllegalCharacters(std::string toBeValidated,
-                               std::vector<std::string> illegalPatterns) {
+                               const absl::string_view illegalPatterns[],
+                               size_t illegalPatternsSize) {
   if (toBeValidated.empty()) {
     return false;
   }
 
-  CHECK_GT(illegalPatterns.size(), 0);
+  CHECK_GT(illegalPatternsSize, 0);
 
-  return std::any_of(illegalPatterns.begin(), illegalPatterns.end(),
-                     [&toBeValidated](const auto& s) {
-                       size_t found = toBeValidated.find(s);
-                       if (found != std::string::npos) {
-                         // TODO(jfcarroll): Find a way to log messages
-                         //                  here.
-                         // NEARBY_LOGS(ERROR)
-                         //    << "Illegal character sequence found: \""
-                         //    << toBeValidated[found] << "\"";
-                         return true;
-                       }
-                       return false;
-                     });
+  size_t found = 0;
+  for (int index = 0; index < illegalPatternsSize; index++) {
+    found = toBeValidated.find(std::string(illegalPatterns[index]));
+
+    if (found != std::string::npos) {
+      // TODO(jfcarroll): Find a way to issue a log statement here.
+      // Currently, this breaks the fuzzer, as a logging dep is not
+      // included for it in the BUILD file.
+      // NEARBY_LOGS(ERROR) << "In path " << toBeValidated
+      //                   << " found illegal character/pattern "
+      //                   << illegalPatterns[index];
+      return true;
+    }
+  }
+  return false;
 }
 
 }  // namespace
@@ -391,7 +395,8 @@ Exception EnsureValidOfflineFrame(const OfflineFrame& offline_frame) {
                                             .payload_transfer()
                                             .payload_header()
                                             .file_name(),
-                                        kIllegalFileNamePatterns)) {
+                                        kIllegalFileNamePatterns,
+                                        kIllegalFileNamePatternsSize)) {
             return {Exception::kIllegalCharacters};
           }
         }
@@ -403,7 +408,8 @@ Exception EnsureValidOfflineFrame(const OfflineFrame& offline_frame) {
                                             .payload_transfer()
                                             .payload_header()
                                             .parent_folder(),
-                                        kIllegalParentFolderPatterns)) {
+                                        kIllegalParentFolderPatterns,
+                                        kIllegalParentFolderPatternsSize)) {
             return {Exception::kIllegalCharacters};
           }
         }
