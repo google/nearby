@@ -30,7 +30,7 @@
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
-#include "internal/proto/credential.proto.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/implementation/encryption.h"
 #include "presence/implementation/ldt.h"
 
@@ -109,7 +109,7 @@ CredentialManagerImpl::CreatePrivateCredential(
   // ByteArray.
   CHECK(!secret_id.Empty()) << "Crypto::Sha256 failed!";
 
-  private_credential.set_secret_id(secret_id.AsStringView());
+  private_credential.set_secret_id(std::string(secret_id.AsStringView()));
 
   std::string alias = Base64Utils::Encode(secret_id);
   auto prefixedAlias = kPairedKeyAliasPrefix + alias;
@@ -155,7 +155,7 @@ PublicCredential CredentialManagerImpl::CreatePublicCredential(
   auto metadata_encryption_key_tag =
       Crypto::Sha256(private_credential.metadata_encryption_key());
   public_credential.set_metadata_encryption_key_tag(
-      metadata_encryption_key_tag.AsStringView());
+      std::string(metadata_encryption_key_tag.AsStringView()));
 
   // Encrypt the device metadata
   auto encrypted_meta_data = EncryptDeviceMetadata(
