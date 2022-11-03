@@ -66,6 +66,13 @@ ScanSession ScanManager::StartScan(ScanRequest scan_request, ScanCallback cb) {
           [this](BlePeripheral& peripheral, BleAdvertisementData data) {
             NotifyFoundBle(data, peripheral);
           }};
+  // We will not be needing the start_scan_cb anymore, so cb is ok to use here.
+  AddScanCallback(id, MapElement{
+                          .request = scan_request,
+                          .callback = cb,
+                          .decoder = AdvertisementDecoder(credential_manager_,
+                                                          scan_request),
+                      });
   std::unique_ptr<ScanningSession> scanning_session =
       mediums_->GetBle().StartScanning(scan_request, std::move(callback));
   auto modified_scanning_session = ScanSession(
@@ -82,14 +89,6 @@ ScanSession ScanManager::StartScan(ScanRequest scan_request, ScanCallback cb) {
         }
         return Status{.value = Status::Value::kSuccess};
       });
-  absl::MutexLock lock(&mutex_);
-  // We will not be needing the start_scan_cb anymore, so cb is ok to use here.
-  scanning_callbacks_.emplace(id, MapElement{
-                                      .request = scan_request,
-                                      .callback = cb,
-                                      .decoder = AdvertisementDecoder(
-                                          credential_manager_, scan_request),
-                                  });
   return modified_scanning_session;
 }
 

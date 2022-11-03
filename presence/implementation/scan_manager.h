@@ -57,6 +57,10 @@ class ScanManager {
     ScanCallback callback;
     AdvertisementDecoder decoder;
   };
+  void AddScanCallback(uint64_t id, MapElement element) {
+    absl::MutexLock lock(&mutex_);
+    scanning_callbacks_.insert({id, element});
+  }
   mutable absl::Mutex mutex_;
   Mediums* mediums_;
   CredentialManager* credential_manager_;
