@@ -59,12 +59,6 @@ http_archive(
     urls = ["https://github.com/google/glog/archive/v0.4.0.tar.gz"],
 )
 
-http_archive(
-    name = "com_google_tink",
-    strip_prefix = "tink-1.7.0/cc",
-    urls = ["https://github.com/google/tink/archive/v1.7.0.tar.gz"],
-)
-
 new_local_repository(
     name = "com_google_ukey2",
     path = "./third_party/ukey2/ukey2",
