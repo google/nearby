@@ -56,7 +56,6 @@ cc_library(
         "//location/nearby/cpp/fastpair:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//presence:__subpackages__",
-        "//third_party/nearby/cpp/cal:__subpackages__",
     ],
     deps = [
         "//proto:connections_enums_cc_proto",
