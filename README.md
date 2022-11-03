@@ -59,10 +59,6 @@ To build the Nearby Connection library:
 swift build
 ```
 
-We also provide a iOS [sample app using the Nearby Connections library]
-(https://github.com/google/nearby/blob/master/internal/platform/implementation/ios/Example/NearbyConnectionsExample/README.md).
-
-
 ### Limitation
 The only Medium supported is Wifi LAN.
 
