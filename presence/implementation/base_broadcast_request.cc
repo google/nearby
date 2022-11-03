@@ -56,7 +56,7 @@ BasePresenceRequestBuilder& BasePresenceRequestBuilder::SetPowerMode(
 
 BasePresenceRequestBuilder& BasePresenceRequestBuilder::SetAccountName(
     absl::string_view account_name) {
-  account_name_ = account_name;
+  account_name_ = std::string(account_name);
   return *this;
 }
 
