@@ -19,6 +19,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/power_mode.h"
 #include "presence/scan_request.h"
@@ -29,12 +30,13 @@ namespace {
 
 using ::nearby::internal::IdentityType;
 
-constexpr char kAccountName[] = "Google User";
+constexpr absl::string_view kAccountName = "Google User";
 constexpr bool kUseBle = true;
 constexpr bool kOnlyScreenOnScan = true;
 const IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PRIVATE;
 const ScanType kScanType = ScanType::kPresenceScan;
 const PowerMode powerMode = PowerMode::kLowLatency;
+constexpr absl::string_view kManagerAppId = "Google App Manager";
 DataElement CreateTestDataElement() {
   return {DataElement::kTxPowerFieldType, "1"};
 }
@@ -149,6 +151,13 @@ TEST(ScanRequestBuilderTest, TestSetUseBle) {
   EXPECT_EQ(sr.use_ble, kUseBle);
 }
 
+TEST(ScanRequestBuilderTest, TestSetManagerAppId) {
+  ScanRequestBuilder builder;
+  builder.SetManagerAppId(kManagerAppId);
+  ScanRequest sr = builder.Build();
+  EXPECT_EQ(sr.manager_app_id, kManagerAppId);
+}
+
 TEST(ScanRequestBuilderTest, TestSetOnlyScreenOnScan) {
   ScanRequestBuilder builder;
   builder.SetOnlyScreenOnScan(kOnlyScreenOnScan);
@@ -162,11 +171,13 @@ TEST(ScanRequestBuilderTest, TestChainCalls) {
                        .SetPowerMode(powerMode)
                        .SetOnlyScreenOnScan(kOnlyScreenOnScan)
                        .SetUseBle(kUseBle)
+                       .SetManagerAppId(kManagerAppId)
                        .Build();
   EXPECT_EQ(sr.account_name, kAccountName);
   EXPECT_EQ(sr.scan_only_when_screen_on, kOnlyScreenOnScan);
   EXPECT_EQ(sr.power_mode, powerMode);
   EXPECT_EQ(sr.use_ble, kUseBle);
+  EXPECT_EQ(sr.manager_app_id, kManagerAppId);
 }
 
 TEST(ScanRequestBuilderTest, TestCopy) {

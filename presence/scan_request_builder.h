@@ -44,6 +44,7 @@ class ScanRequestBuilder {
           scan_filters);
   ScanRequestBuilder& SetUseBle(bool use_ble);
   ScanRequestBuilder& SetOnlyScreenOnScan(bool screen_on_only_scan);
+  ScanRequestBuilder& SetManagerAppId(absl::string_view manager_app_id);
   ScanRequest Build();
   inline bool operator==(const ScanRequestBuilder& other) const {
     return request_ == other.request_;

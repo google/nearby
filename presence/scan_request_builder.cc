@@ -77,6 +77,12 @@ ScanRequestBuilder& ScanRequestBuilder::SetOnlyScreenOnScan(
   return *this;
 }
 
+ScanRequestBuilder& ScanRequestBuilder::SetManagerAppId(
+    absl::string_view manager_app_id) {
+  request_.manager_app_id = std::string(manager_app_id);
+  return *this;
+}
+
 ScanRequest ScanRequestBuilder::Build() { return this->request_; }
 
 }  // namespace presence

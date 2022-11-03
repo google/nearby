@@ -92,7 +92,7 @@ inline bool operator==(const LegacyPresenceScanFilter& a,
     return false;
   for (int i = 0; i < a.remote_public_credentials.size(); ++i) {
     if (a.remote_public_credentials[i].SerializeAsString() !=
-                        b.remote_public_credentials[i].SerializeAsString())
+        b.remote_public_credentials[i].SerializeAsString())
       return false;
   }
   return true;
@@ -110,6 +110,9 @@ struct ScanRequest {
   // Same as DeviceMetadata.account_name, to fetch private credential
   // to broadcast.
   std::string account_name;
+
+  // Specifies which manager app to use to get credendentials for scan.
+  std::string manager_app_id;
 
   // Used to specify which types of remote PublicCredential to use during the
   // scan. If empty, use all available types of remote PublicCredential.
@@ -134,7 +137,8 @@ inline bool operator==(const ScanRequest& a, const ScanRequest& b) {
   return a.scan_only_when_screen_on == b.scan_only_when_screen_on &&
          a.power_mode == b.power_mode && a.scan_type == b.scan_type &&
          a.use_ble == b.use_ble && a.account_name == b.account_name &&
-         a.identity_types == b.identity_types;
+         a.identity_types == b.identity_types &&
+         a.manager_app_id == b.manager_app_id;
 }
 
 inline bool operator!=(const ScanRequest& a, const ScanRequest& b) {

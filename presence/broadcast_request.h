@@ -48,6 +48,9 @@ struct PresenceBroadcast {
 
     // Account name used to select private credentials.
     std::string account_name;
+
+    // Manager app id, used to select private credentials.
+    std::string manager_app_id;
   };
 
   std::vector<BroadcastSection> sections;
