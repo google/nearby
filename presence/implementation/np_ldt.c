@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/presence/implementation/np_ldt.h"
+#include "presence/implementation/np_ldt.h"
 
 // Placeholder, empty implementations of LDT utilities. They will be replaced
 // with implementations in Rust.

@@ -13,7 +13,7 @@
 # limitations under the License.
 licenses(["notice"])
 
-package(default_visibility = ["//third_party/nearby:__subpackages__"])
+package(default_visibility = ["//:__subpackages__"])
 
 cc_library(
     name = "presence",
