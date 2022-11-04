@@ -16,6 +16,7 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_CREDENTIAL_CALLBACKS_H_
 
 #include <functional>
+#include <ostream>
 #include <string>
 #include <vector>
 
@@ -37,7 +38,7 @@ struct CredentialSelector {
   ::nearby::internal::IdentityType identity_type;
 };
 
-enum PublicCredentialType {
+enum class PublicCredentialType {
   kLocalPublicCredential = 1,
   kRemotePublicCredential = 2,
 };
@@ -62,6 +63,13 @@ struct GetPublicCredentialsResultCallback {
       credentials_fetched_cb;
   std::function<void(CredentialOperationStatus)> get_credentials_failed_cb;
 };
+
+inline std::ostream& operator<<(std::ostream& os,
+                                const PublicCredentialType& credential_type) {
+  return os << "PublicCredentialType(" << static_cast<int>(credential_type)
+            << ")";
+}
+
 }  // namespace presence
 }  // namespace nearby
 

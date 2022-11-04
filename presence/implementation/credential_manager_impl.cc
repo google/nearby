@@ -296,7 +296,8 @@ absl::StatusOr<std::string> CredentialManagerImpl::DecryptDataElements(
       .identity_type = internal::IDENTITY_TYPE_PUBLIC,
   };
   ExceptionOr<std::vector<PublicCredential>> credentials =
-      GetPublicCredentialsSync(selector, kRemotePublicCredential, kTimeout);
+      GetPublicCredentialsSync(
+          selector, PublicCredentialType::kRemotePublicCredential, kTimeout);
   if (!credentials.ok()) {
     return absl::UnavailableError("Failed to fetch credentials");
   }
