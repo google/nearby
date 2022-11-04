@@ -21,6 +21,7 @@
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/uuid.h"
+#include "presence/implementation/mediums/advertisement_data.h"
 #include "presence/power_mode.h"
 #include "presence/scan_request.h"
 
@@ -62,13 +63,12 @@ class Ble {
   // Starts broadcasting NP advertisement in `payload`. The caller should use
   // the returned `AdvertisingSession` to stop the broadcast.
   std::unique_ptr<AdvertisingSession> StartAdvertising(
-      absl::string_view payload, bool is_extended_advertisement,
-      PowerMode power_mode, AdvertisingCallback callback) {
-    BleAdvertisementData advertising_data = {.is_extended_advertisement =
-                                                 is_extended_advertisement};
+      const AdvertisementData& payload, PowerMode power_mode,
+      AdvertisingCallback callback) {
+    BleAdvertisementData advertising_data = {
+        .is_extended_advertisement = payload.is_extended_advertisement};
     advertising_data.service_data.insert(
-        {kPresenceServiceUuid,
-         location::nearby::ByteArray(std::string(payload))});
+        {kPresenceServiceUuid, location::nearby::ByteArray(payload.content)});
     AdvertiseParameters advertise_set_parameters = {
         .tx_power_level = ConvertPowerModeToPowerLevel(power_mode),
         .is_connectable = true,

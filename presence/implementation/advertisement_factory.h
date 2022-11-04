@@ -19,28 +19,25 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "internal/platform/implementation/ble_v2.h"
 #include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/credential_manager.h"
+#include "presence/implementation/mediums/advertisement_data.h"
 
 namespace nearby {
 namespace presence {
 
-// An opaque container with the advertisement data.
-using ::location::nearby::api::ble_v2::BleAdvertisementData;
-
-/** Builds BLE advertisements from broadcast requests. */
+// Builds BLE advertisements from broadcast requests.
 class AdvertisementFactory {
  public:
   explicit AdvertisementFactory(CredentialManager* credential_manager)
       : credential_manager_(*credential_manager) {}
 
-  /** Returns a BLE advertisement for given `request` */
-  absl::StatusOr<BleAdvertisementData> CreateAdvertisement(
+  // Returns a BLE advertisement for given `request.
+  absl::StatusOr<AdvertisementData> CreateAdvertisement(
       const BaseBroadcastRequest& request) const;
 
  private:
-  absl::StatusOr<BleAdvertisementData> CreateBaseNpAdvertisement(
+  absl::StatusOr<AdvertisementData> CreateBaseNpAdvertisement(
       const BaseBroadcastRequest& request) const;
 
   CredentialManager& credential_manager_;

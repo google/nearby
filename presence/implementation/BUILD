@@ -128,6 +128,7 @@ cc_test(
         ":internal",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//presence:types",
+        "//presence/implementation/mediums",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",

@@ -24,7 +24,7 @@
 #include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
 #include "presence/implementation/base_broadcast_request.h"
-#include "presence/implementation/mediums/ble.h"
+#include "presence/implementation/mediums/advertisement_data.h"
 
 namespace nearby {
 namespace presence {
@@ -93,9 +93,9 @@ std::string SerializeAction(const Action& action) {
 
 }  // namespace
 
-absl::StatusOr<BleAdvertisementData> AdvertisementFactory::CreateAdvertisement(
+absl::StatusOr<AdvertisementData> AdvertisementFactory::CreateAdvertisement(
     const BaseBroadcastRequest& request) const {
-  BleAdvertisementData advert = {};
+  AdvertisementData advert = {};
   if (absl::holds_alternative<BaseBroadcastRequest::BasePresence>(
           request.variant)) {
     return CreateBaseNpAdvertisement(request);
@@ -103,12 +103,11 @@ absl::StatusOr<BleAdvertisementData> AdvertisementFactory::CreateAdvertisement(
   return advert;
 }
 
-absl::StatusOr<BleAdvertisementData>
+absl::StatusOr<AdvertisementData>
 AdvertisementFactory::CreateBaseNpAdvertisement(
     const BaseBroadcastRequest& request) const {
   const auto& presence =
       absl::get<BaseBroadcastRequest::BasePresence>(request.variant);
-  BleAdvertisementData advert{};
   std::string payload;
   payload.reserve(kMaxBaseNpAdvSize);
   payload.push_back(kBaseVersion);
@@ -173,9 +172,8 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
       return result;
     }
   }
-  advert.service_data.insert(
-      {kPresenceServiceUuid, location::nearby::ByteArray(payload)});
-  return advert;
+  return AdvertisementData{.is_extended_advertisement = false,
+                           .content = payload};
 }
 
 }  // namespace presence

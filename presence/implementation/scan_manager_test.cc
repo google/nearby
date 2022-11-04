@@ -21,6 +21,8 @@
 #include <utility>
 #include <vector>
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/random/random.h"
 #include "internal/platform/bluetooth_adapter.h"
@@ -36,12 +38,39 @@ namespace nearby {
 namespace presence {
 namespace {
 
-using BleOperationStatus = location::nearby::api::ble_v2::BleOperationStatus;
+using BleOperationStatus = ::location::nearby::api::ble_v2::BleOperationStatus;
+using AdvertisingSession =
+    ::location::nearby::api::ble_v2::BleMedium::AdvertisingSession;
+using AdvertisingCallback =
+    ::location::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
 
 class ScanManagerTest : public testing::Test {
  protected:
   void SetUp() override { env_.Start(); }
   void TearDown() override { env_.Stop(); }
+
+  std::unique_ptr<AdvertisingSession> StartAdvertisingOn(Ble& ble) {
+    PresenceBroadcast::BroadcastSection section = {
+        .identity = internal::IDENTITY_TYPE_PUBLIC,
+        .extended_properties = extended_properties_,
+        .account_name = "Test account"};
+    PresenceBroadcast presence_request = {.sections = {section}};
+    BroadcastRequest input = {.tx_power = 30, .variant = presence_request};
+    absl::StatusOr<BaseBroadcastRequest> request =
+        BaseBroadcastRequest::Create(input);
+    EXPECT_OK(request);
+    AdvertisementFactory factory(&credential_manager_);
+    absl::StatusOr<AdvertisementData> advertisement =
+        factory.CreateAdvertisement(request.value());
+    EXPECT_OK(advertisement);
+    std::unique_ptr<AdvertisingSession> session = ble.StartAdvertising(
+        advertisement.value(), PowerMode::kLowPower,
+        AdvertisingCallback{
+            .start_advertising_result = [](BleOperationStatus) {}});
+    env_.Sync();
+    return session;
+  }
+
   std::vector<nearby::internal::IdentityType> identity_types_ = {
       nearby::internal::IdentityType::IDENTITY_TYPE_PUBLIC,
   };
@@ -64,54 +93,39 @@ class ScanManagerTest : public testing::Test {
   CredentialManagerImpl credential_manager_;
   location::nearby::MediumEnvironment& env_ = {
       location::nearby::MediumEnvironment::Instance()};
-  location::nearby::api::ble_v2::AdvertiseParameters params_ = {
-      .tx_power_level = Ble::TxPowerLevel::kHigh,
-      .is_connectable = true,
-  };
   location::nearby::CountDownLatch start_latch_{1};
   location::nearby::CountDownLatch found_latch_{1};
+  ScanCallback scanning_callback_ = {.start_scan_cb =
+                                         [this](Status status) {
+                                           NEARBY_LOGS(INFO) << "Scan started "
+                                                             << status.Ok();
+                                           if (status.Ok()) {
+                                             start_latch_.CountDown();
+                                           }
+                                         },
+                                     .on_discovered_cb =
+                                         [this](PresenceDevice pd) {
+                                           NEARBY_LOGS(INFO) << "Device found";
+                                           found_latch_.CountDown();
+                                         }};
 };
 
 TEST_F(ScanManagerTest, CanStartThenStopScanning) {
   Mediums mediums;
   ScanManager manager(mediums, credential_manager_);
-  ScanCallback scanning_callback = {
-      .start_scan_cb =
-          [this](Status status) {
-            if (status.Ok()) {
-              start_latch_.CountDown();
-            }
-          },
-      .on_discovered_cb =
-          [this](PresenceDevice pd) { found_latch_.CountDown(); }};
   // Set up advertiser
-  // Create BroadcastRequest
-  PresenceBroadcast::BroadcastSection section = {
-      .identity = internal::IDENTITY_TYPE_PUBLIC,
-      .extended_properties = extended_properties_,
-      .account_name = "Test account"};
-  PresenceBroadcast presence_request = {.sections = {section}};
-  BroadcastRequest input = {.tx_power = 30, .variant = presence_request};
-
-  absl::StatusOr<BaseBroadcastRequest> request =
-      BaseBroadcastRequest::Create(input);
-  AdvertisementFactory factory(&credential_manager_);
-  absl::StatusOr<BleAdvertisementData> advertisement =
-      factory.CreateAdvertisement(request.ValueOrDie());
-  location::nearby::BluetoothAdapter adapter2;
-  location::nearby::BleV2Medium ble2(adapter2);
-  ASSERT_TRUE(ble2.StartAdvertising(advertisement.ValueOrDie(), params_));
+  location::nearby::BluetoothAdapter server_adapter;
+  Ble ble2(server_adapter);
+  std::unique_ptr<AdvertisingSession> advertising_session =
+      StartAdvertisingOn(ble2);
 
   // Start scanning
   ScanSession scan_session =
-      manager.StartScan(scan_request_, std::move(scanning_callback));
-  // Ensure that we are in a good state.
-  env_.Sync();
+      manager.StartScan(scan_request_, scanning_callback_);
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
-  ASSERT_TRUE(ble2.IsValid());
   ASSERT_TRUE(mediums.GetBle().IsAvailable());
-  EXPECT_TRUE(start_latch_.Await(absl::Milliseconds(500)).result());
-  EXPECT_TRUE(found_latch_.Await(absl::Milliseconds(1500)).result());
+  EXPECT_TRUE(start_latch_.Await().Ok());
+  EXPECT_TRUE(found_latch_.Await().Ok());
   EXPECT_TRUE(scan_session.StopScan().Ok());
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
@@ -119,19 +133,11 @@ TEST_F(ScanManagerTest, CanStartThenStopScanning) {
 TEST_F(ScanManagerTest, CannotStopScanTwice) {
   Mediums mediums;
   ScanManager manager(mediums, credential_manager_);
-  ScanCallback scanning_callback = ScanCallback{
-      .start_scan_cb =
-          [this](Status status) {
-            if (status.Ok()) {
-              start_latch_.CountDown();
-            }
-          },
-  };
 
-  auto scan_session =
-      manager.StartScan(scan_request_, std::move(scanning_callback));
+  auto scan_session = manager.StartScan(scan_request_, scanning_callback_);
+
   NEARBY_LOGS(INFO) << "Start scan";
-  EXPECT_TRUE(start_latch_.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(start_latch_.Await().Ok());
   // Ensure that we have started scanning before we try to stop.
   env_.Sync();
   NEARBY_LOGS(INFO) << "Stop scan";
@@ -143,32 +149,11 @@ TEST_F(ScanManagerTest, CannotStopScanTwice) {
 TEST_F(ScanManagerTest, TestNoFilter) {
   Mediums mediums;
   ScanManager manager(mediums, credential_manager_);
-  ScanCallback scanning_callback = {
-      .start_scan_cb =
-          [this](Status status) {
-            if (status.Ok()) {
-              start_latch_.CountDown();
-            }
-          },
-      .on_discovered_cb =
-          [this](PresenceDevice pd) { found_latch_.CountDown(); }};
   // Set up advertiser
-  // Create BroadcastRequest
-  PresenceBroadcast::BroadcastSection section = {
-      .identity = internal::IDENTITY_TYPE_PUBLIC,
-      .extended_properties = {},
-      .account_name = "Test account"};
-  PresenceBroadcast presence_request = {.sections = {section}};
-  BroadcastRequest input = {.tx_power = 30, .variant = presence_request};
-
-  absl::StatusOr<BaseBroadcastRequest> request =
-      BaseBroadcastRequest::Create(input);
-  AdvertisementFactory factory(&credential_manager_);
-  absl::StatusOr<BleAdvertisementData> advertisement =
-      factory.CreateAdvertisement(request.ValueOrDie());
-  location::nearby::BluetoothAdapter adapter2;
-  location::nearby::BleV2Medium ble2(adapter2);
-  ASSERT_TRUE(ble2.StartAdvertising(advertisement.ValueOrDie(), params_));
+  location::nearby::BluetoothAdapter server_adapter;
+  Ble ble2(server_adapter);
+  std::unique_ptr<AdvertisingSession> advertising_session =
+      StartAdvertisingOn(ble2);
 
   // Start scanning
   ScanRequest scan_request = {
@@ -181,13 +166,12 @@ TEST_F(ScanManagerTest, TestNoFilter) {
       .scan_only_when_screen_on = true,
   };
   ScanSession scan_session =
-      manager.StartScan(scan_request, std::move(scanning_callback));
+      manager.StartScan(scan_request, scanning_callback_);
 
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
-  ASSERT_TRUE(ble2.IsValid());
   ASSERT_TRUE(mediums.GetBle().IsAvailable());
-  EXPECT_TRUE(start_latch_.Await(absl::Milliseconds(500)).result());
-  EXPECT_TRUE(found_latch_.Await(absl::Milliseconds(1500)).result());
+  EXPECT_TRUE(start_latch_.Await().Ok());
+  EXPECT_TRUE(found_latch_.Await().Ok());
   EXPECT_TRUE(scan_session.StopScan().Ok());
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
