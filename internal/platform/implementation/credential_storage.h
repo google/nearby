@@ -32,6 +32,17 @@ namespace api {
  */
 class CredentialStorage {
  public:
+  using PublicCredentialType = ::nearby::presence::PublicCredentialType;
+  using GenerateCredentialsCallback =
+      ::nearby::presence::GenerateCredentialsCallback;
+  using CredentialSelector = ::nearby::presence::CredentialSelector;
+  using GetPrivateCredentialsResultCallback =
+      ::nearby::presence::GetPrivateCredentialsResultCallback;
+  using GetPublicCredentialsResultCallback =
+      ::nearby::presence::GetPublicCredentialsResultCallback;
+  using PrivateCredential = ::nearby::internal::PrivateCredential;
+  using PublicCredential = ::nearby::internal::PublicCredential;
+
   virtual ~CredentialStorage() = default;
   // Used for
   // 1. Save private creds after (re)generate credentials invoked by manager app
@@ -40,23 +51,34 @@ class CredentialStorage {
   // Another way is to break this into two APIs for save and update separately.
   virtual void SaveCredentials(
       absl::string_view manager_app_id, absl::string_view account_name,
-      const std::vector<::nearby::internal::PrivateCredential>&
-          private_credentials,
-      const std::vector<::nearby::internal::PublicCredential>&
-          public_credentials,
-      ::nearby::presence::PublicCredentialType public_credential_type,
-      ::nearby::presence::GenerateCredentialsCallback callback) = 0;
+      const std::vector<PrivateCredential>& private_credentials,
+      const std::vector<PublicCredential>& public_credentials,
+      PublicCredentialType public_credential_type,
+      GenerateCredentialsCallback callback) = 0;
 
   // Used to fetch private creds when broadcasting.
   virtual void GetPrivateCredentials(
-      const ::nearby::presence::CredentialSelector& credential_selector,
-      ::nearby::presence::GetPrivateCredentialsResultCallback callback) = 0;
+      const CredentialSelector& credential_selector,
+      GetPrivateCredentialsResultCallback callback) = 0;
 
   // Used to fetch remote public creds when scanning.
   virtual void GetPublicCredentials(
-      const ::nearby::presence::CredentialSelector& credential_selector,
-      ::nearby::presence::PublicCredentialType public_credential_type,
-      ::nearby::presence::GetPublicCredentialsResultCallback callback) = 0;
+      const CredentialSelector& credential_selector,
+      PublicCredentialType public_credential_type,
+      GetPublicCredentialsResultCallback callback) = 0;
+
+  // Subscribes for public credentials updates.
+  virtual void SubscribeForPublicCredentials(
+      const CredentialSelector& credential_selector,
+      PublicCredentialType public_credential_type,
+      GetPublicCredentialsResultCallback callback) = 0;
+
+  // Unsubscribes from public credentials updates. The caller must pass the same
+  // `credential_selector` and `public_credential_type` values they used to
+  // subscribe.
+  virtual void UnsubscribeFromPublicCredentials(
+      const CredentialSelector& credential_selector,
+      PublicCredentialType public_credential_type) = 0;
 };
 
 }  // namespace api

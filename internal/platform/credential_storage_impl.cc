@@ -21,14 +21,6 @@
 namespace location {
 namespace nearby {
 
-using ::nearby::internal::PrivateCredential;
-using ::nearby::internal::PublicCredential;
-using ::nearby::presence::CredentialSelector;
-using ::nearby::presence::GenerateCredentialsCallback;
-using ::nearby::presence::GetPrivateCredentialsResultCallback;
-using ::nearby::presence::GetPublicCredentialsResultCallback;
-using ::nearby::presence::PublicCredentialType;
-
 void CredentialStorageImpl::SaveCredentials(
     absl::string_view manager_app_id, absl::string_view account_name,
     const std::vector<PrivateCredential>& private_credentials,
@@ -52,6 +44,21 @@ void CredentialStorageImpl::GetPublicCredentials(
     GetPublicCredentialsResultCallback callback) {
   return impl_->GetPublicCredentials(
       credential_selector, public_credential_type, std::move(callback));
+}
+
+void CredentialStorageImpl::SubscribeForPublicCredentials(
+    const CredentialSelector& credential_selector,
+    PublicCredentialType public_credential_type,
+    GetPublicCredentialsResultCallback callback) {
+  impl_->SubscribeForPublicCredentials(
+      credential_selector, public_credential_type, std::move(callback));
+}
+
+void CredentialStorageImpl::UnsubscribeFromPublicCredentials(
+    const CredentialSelector& credential_selector,
+    PublicCredentialType public_credential_type) {
+  impl_->UnsubscribeFromPublicCredentials(credential_selector,
+                                          public_credential_type);
 }
 
 }  // namespace nearby

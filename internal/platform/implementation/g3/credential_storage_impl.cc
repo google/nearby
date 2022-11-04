@@ -25,15 +25,14 @@ namespace location {
 namespace nearby {
 namespace g3 {
 
-using ::nearby::internal::PrivateCredential;
-using ::nearby::internal::PublicCredential;
+using ::nearby::presence::CredentialOperationStatus;
 
 void CredentialStorageImpl::SaveCredentials(
     absl::string_view manager_app_id, absl::string_view account_name,
     const std::vector<PrivateCredential>& private_credentials,
     const std::vector<PublicCredential>& public_credentials,
-    ::nearby::presence::PublicCredentialType public_credential_type,
-    ::nearby::presence::GenerateCredentialsCallback callback) {
+    PublicCredentialType public_credential_type,
+    GenerateCredentialsCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Save Private Credentials for account: "
                     << account_name << "], manager app ID:[" << manager_app_id
                     << "]";
@@ -84,8 +83,8 @@ void CredentialStorageImpl::SaveCredentials(
 }
 
 void CredentialStorageImpl::GetPrivateCredentials(
-    const ::nearby::presence::CredentialSelector& credential_selector,
-    ::nearby::presence::GetPrivateCredentialsResultCallback callback) {
+    const CredentialSelector& credential_selector,
+    GetPrivateCredentialsResultCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Get Private Credentials for account: "
                     << credential_selector.account_name << "], manager app ID:["
                     << credential_selector.manager_app_id << "]";
@@ -95,8 +94,7 @@ void CredentialStorageImpl::GetPrivateCredentials(
   if (private_credentials_map_.find(key) == private_credentials_map_.end()) {
     NEARBY_LOGS(WARNING) << "There are no Private Credentials stored for key:"
                          << std::get<0>(key) << ", " << std::get<1>(key);
-    callback.get_credentials_failed_cb(
-        ::nearby::presence::CredentialOperationStatus::kFailed);
+    callback.get_credentials_failed_cb(CredentialOperationStatus::kFailed);
   } else {
     std::vector<PrivateCredential> private_credentials =
         private_credentials_map_[key];
@@ -105,9 +103,9 @@ void CredentialStorageImpl::GetPrivateCredentials(
 }
 
 void CredentialStorageImpl::GetPublicCredentials(
-    const ::nearby::presence::CredentialSelector& credential_selector,
-    ::nearby::presence::PublicCredentialType public_credential_type,
-    ::nearby::presence::GetPublicCredentialsResultCallback callback) {
+    const CredentialSelector& credential_selector,
+    PublicCredentialType public_credential_type,
+    GetPublicCredentialsResultCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Get Public Credentials for account: "
                     << credential_selector.account_name << "], manager app ID:["
                     << credential_selector.manager_app_id << "]";
@@ -119,14 +117,27 @@ void CredentialStorageImpl::GetPublicCredentials(
     NEARBY_LOGS(WARNING) << "There are no Public Credentials stored for key:"
                          << std::get<0>(key) << ", " << std::get<1>(key) << ", "
                          << std::get<2>(key);
-    callback.get_credentials_failed_cb(
-        ::nearby::presence::CredentialOperationStatus::kFailed);
+    callback.get_credentials_failed_cb(CredentialOperationStatus::kFailed);
   } else {
     std::vector<PublicCredential> public_credentials =
         public_credentials_map_[key];
     callback.credentials_fetched_cb(public_credentials);
   }
 }
+
+void CredentialStorageImpl::SubscribeForPublicCredentials(
+    const CredentialSelector& credential_selector,
+    PublicCredentialType public_credential_type,
+    GetPublicCredentialsResultCallback callback) {
+  CHECK(false) << "Unimplemented";
+}
+
+void CredentialStorageImpl::UnsubscribeFromPublicCredentials(
+    const CredentialSelector& credential_selector,
+    PublicCredentialType public_credential_type) {
+  CHECK(false) << "Unimplemented";
+}
+
 }  // namespace g3
 }  // namespace nearby
 }  // namespace location
