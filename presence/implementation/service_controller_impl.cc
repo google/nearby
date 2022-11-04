@@ -21,8 +21,8 @@ namespace presence {
 
 std::unique_ptr<ScanSession> ServiceControllerImpl::StartScan(
     ScanRequest scan_request, ScanCallback callback) {
-  callback.start_scan_cb({Status::Value::kError});
-  return nullptr;
+  return std::make_unique<ScanSession>(
+      scan_manager_.StartScan(scan_request, callback));
 }
 std::unique_ptr<BroadcastSession> ServiceControllerImpl::StartBroadcast(
     BroadcastRequest broadcast_request, BroadcastCallback callback) {

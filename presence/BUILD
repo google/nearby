@@ -124,6 +124,7 @@ cc_test(
     deps = [
         ":presence",
         ":types",
+        "//internal/platform:test_util",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",

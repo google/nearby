@@ -15,6 +15,7 @@
 #include "presence/presence_client.h"
 
 #include "gtest/gtest.h"
+#include "internal/platform/medium_environment.h"
 #include "presence/data_types.h"
 #include "presence/presence_service.h"
 #include "presence/status.h"
@@ -23,8 +24,16 @@ namespace nearby {
 namespace presence {
 namespace {
 
-TEST(PresenceClientTest, StartBroadcastWithDefaultConstructor) {
-  Status broadcast_result = {Status::Value::kSuccess};
+class PresenceClientTest : public testing::Test {
+ protected:
+  PresenceClientTest() { env_.Stop(); }
+  location::nearby::MediumEnvironment& env_{
+      location::nearby::MediumEnvironment::Instance()};
+};
+
+TEST_F(PresenceClientTest, StartBroadcastWithDefaultConstructor) {
+  env_.Start();
+  Status broadcast_result = {Status::Value::kError};
   BroadcastCallback broadcast_callback = {
       .start_broadcast_cb = [&](Status status) { broadcast_result = status; },
   };
@@ -34,10 +43,12 @@ TEST(PresenceClientTest, StartBroadcastWithDefaultConstructor) {
   presence_client.StartBroadcast({}, broadcast_callback);
 
   EXPECT_FALSE(broadcast_result.Ok());
+  env_.Stop();
 }
 
-TEST(PresenceClientTest, StartScanWithDefaultConstructor) {
-  Status scan_result = {Status::Value::kSuccess};
+TEST_F(PresenceClientTest, StartScanWithDefaultConstructor) {
+  env_.Start();
+  Status scan_result = {Status::Value::kError};
   ScanCallback scan_callback = {
       .start_scan_cb = [&](Status status) { scan_result = status; },
   };
@@ -46,7 +57,8 @@ TEST(PresenceClientTest, StartScanWithDefaultConstructor) {
   PresenceClient presence_client = presence_service.CreatePresenceClient();
   presence_client.StartScan({}, scan_callback);
 
-  EXPECT_FALSE(scan_result.Ok());
+  EXPECT_TRUE(scan_result.Ok());
+  env_.Stop();
 }
 
 }  // namespace
