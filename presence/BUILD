@@ -61,11 +61,11 @@ cc_library(
     ],
     deps = [
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/proto:credential_cc_proto",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:variant",
-        "@com_google_glog//:glog",
     ],
 )
 
@@ -87,6 +87,7 @@ cc_test(
     shard_count = 6,
     deps = [
         ":types",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",

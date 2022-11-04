@@ -14,7 +14,7 @@
 
 #include "presence/presence_action.h"
 
-#include "glog/logging.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace presence {
