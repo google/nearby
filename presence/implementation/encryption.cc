@@ -21,19 +21,14 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
-#include "internal/platform/logging.h"
+#include "internal/crypto/hkdf.h"
+#include "internal/crypto/random.h"
 #include <openssl/cipher.h>  // NOLINT
-#include <openssl/crypto.h>
-#include <openssl/evp.h>  // NOLINT
-#include "tink/subtle/hkdf.h"
-#include "tink/subtle/random.h"
+#include <openssl/evp.h>     // NOLINT
 
 namespace nearby {
 namespace presence {
 
-using ::crypto::tink::subtle::HashType;
-using ::crypto::tink::subtle::Hkdf;
-using ::crypto::tink::subtle::Random;
 constexpr int kAuthenticityKeyByteSize = 16;
 constexpr int kMetadataKeyMaxSize = 16;
 constexpr int kAesCtrIvSize = 16;
@@ -41,15 +36,16 @@ constexpr int kSaltSize = 2;
 
 std::string Encryption::CustomizeBytesSize(absl::string_view bytes,
                                            size_t len) {
-  auto result =
-      Hkdf::ComputeHkdf(HashType::SHA256, /*ikm=*/bytes,
-                        /*salt=*/std::string(kAuthenticityKeyByteSize, 0),
-                        /*info=*/"", /*out_len=*/len);
-  return result.value();
+  return ::crypto::HkdfSha256(/*ikm=*/bytes,
+                              /*salt=*/std::string(kAuthenticityKeyByteSize, 0),
+                              /*info=*/"", /*derived_key_size=*/len);
 }
 
 std::string Encryption::GenerateRandomByteArray(size_t len) {
-  return Random::GetRandomBytes(len);
+  std::string buffer(len, 0);
+  ::crypto::RandBytes(
+      absl::MakeSpan(reinterpret_cast<uint8_t*>(buffer.data()), buffer.size()));
+  return buffer;
 }
 
 absl::StatusOr<std::string> Encryption::RunMetadataEncryption(
