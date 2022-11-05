@@ -47,8 +47,6 @@ class WebRtcTest : public ::testing::TestWithParam<FeatureFlags> {
   using MockAcceptedCallback = testing::MockFunction<void(
       const std::string& service_id, WebRtcSocketWrapper socket)>;
 
-  WebRtcTest() { env_.Stop(); }
-
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 

@@ -68,7 +68,6 @@ class P2pClusterPcpHandlerTest
  protected:
   void SetUp() override {
     NEARBY_LOG(INFO, "SetUp: begin");
-    env_.Stop();
     FeatureFlags::GetMutableFlagsForTesting().support_ble_v2 =
         std::get<1>(GetParam());
     if (advertising_options_.allowed.ble) {

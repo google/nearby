@@ -48,10 +48,7 @@ constexpr absl::Duration kWaitDuration = absl::Milliseconds(100);
 
 class WifiDirectMediumTest : public testing::TestWithParam<FeatureFlags> {
  protected:
-  WifiDirectMediumTest() {
-    env_.Stop();
-    env_.Start();
-  }
+  WifiDirectMediumTest() { env_.Start(); }
   ~WifiDirectMediumTest() override {
     absl::SleepFor(kWaitDuration);
     EXPECT_TRUE(env_.IsWifiDirectMediumsEmpty());

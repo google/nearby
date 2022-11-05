@@ -20,10 +20,10 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/medium_environment.h"
-#include "internal/platform/nsd_service_info.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/medium_environment.h"
+#include "internal/platform/nsd_service_info.h"
 #include "internal/platform/wifi_lan.h"
 
 namespace location {
@@ -51,8 +51,6 @@ constexpr absl::string_view kEndpointInfoKey{"n"};
 class WifiLanTest : public ::testing::TestWithParam<FeatureFlags> {
  protected:
   using DiscoveredServiceCallback = WifiLanMedium::DiscoveredServiceCallback;
-
-  WifiLanTest() { env_.Stop(); }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };

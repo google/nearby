@@ -436,7 +436,7 @@ class MediumEnvironment {
 
   void RunOnMediumEnvironmentThread(std::function<void()> runnable);
 
-  std::atomic_bool enabled_ = true;
+  std::atomic_bool enabled_ = false;
   std::atomic_int job_count_ = 0;
   std::atomic_bool enable_notifications_ = false;
   SingleThreadExecutor executor_;

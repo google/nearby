@@ -25,7 +25,6 @@ namespace {
 
 class PresenceServiceTest : public testing::Test {
  protected:
-  PresenceServiceTest() { env_.Stop(); }
   location::nearby::MediumEnvironment& env_{
       location::nearby::MediumEnvironment::Instance()};
 };

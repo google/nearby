@@ -87,7 +87,6 @@ class BleTest : public testing::TestWithParam<FeatureFlags> {
   };
 
  protected:
-  BleTest() { env_.Stop(); }
   absl::optional<BleV2MediumStatus> GetBleStatus(const Ble& ble) {
     return env_.GetBleV2MediumStatus(*ble.GetImpl());
   }

@@ -29,10 +29,7 @@ constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 
 class WifiHotspotTest : public testing::Test {
  protected:
-  WifiHotspotTest() {
-    env_.Stop();
-    env_.Start();
-  }
+  WifiHotspotTest() { env_.Start(); }
   ~WifiHotspotTest() override { env_.Stop(); }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};

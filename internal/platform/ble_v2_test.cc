@@ -69,8 +69,6 @@ class BlePeripheralStub : public api::ble_v2::BlePeripheral {
 
 class BleV2MediumTest : public ::testing::TestWithParam<FeatureFlags> {
  protected:
-  BleV2MediumTest() { env_.Stop(); }
-
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 

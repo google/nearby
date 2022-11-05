@@ -47,8 +47,6 @@ constexpr absl::string_view kAdvertisementString = "\x0a\x0b\x0c\x0d";
 
 class BleV2Test : public testing::TestWithParam<FeatureFlags> {
  protected:
-  BleV2Test() { env_.Stop(); }
-
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 

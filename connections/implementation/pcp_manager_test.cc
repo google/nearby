@@ -23,8 +23,8 @@
 #include "absl/time/time.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/simulation_user.h"
-#include "internal/platform/medium_environment.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/medium_environment.h"
 
 namespace location {
 namespace nearby {
@@ -67,8 +67,6 @@ constexpr BooleanMediumSelector kTestCases[] = {
 
 class PcpManagerTest : public ::testing::TestWithParam<BooleanMediumSelector> {
  protected:
-  PcpManagerTest() { env_.Stop(); }
-
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
