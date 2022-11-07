@@ -30,11 +30,11 @@ objc_library(
     features = ["-layering_check"],
     module_name = "NearbyCoreAdapter",
     deps = [
-        "//third_party/apple_frameworks:Foundation",
         "//connections:core",
         "//connections:core_types",
         "//internal/platform:base",
         "//internal/platform/implementation/ios:Platform",  # buildcleaner: keep
+        "//third_party/apple_frameworks:Foundation",
     ],
 )
 

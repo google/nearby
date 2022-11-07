@@ -62,4 +62,4 @@ swift build
 ### Limitation
 The only Medium supported is Wifi LAN.
 
-**Last Updated:** November 3, 2022
+**Last Updated:** November 5, 2022

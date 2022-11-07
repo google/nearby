@@ -181,12 +181,12 @@ cc_test(
     srcs = ["credential_manager_impl_test.cc"],
     deps = [
         ":internal",
-        "//net/proto2/contrib/parse_proto:testing",
         "//internal/platform:comm",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",
+        "//net/proto2/contrib/parse_proto:testing",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

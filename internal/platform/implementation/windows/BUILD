@@ -146,8 +146,8 @@ cc_library(
     copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated -Ithird_party/nearby/internal/platform/implementation/windows/json -D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10"],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     visibility = [
-        "//location/nearby:__subpackages__",
         "//connections/clients/windows:__subpackages__",
+        "//location/nearby:__subpackages__",
     ],
     deps = [
         ":comm",

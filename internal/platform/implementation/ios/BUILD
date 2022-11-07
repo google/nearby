@@ -46,13 +46,13 @@ objc_library(
     deps = [
         ":Platform_cc",
         ":Shared",
-        "//third_party/apple_frameworks:CoreBluetooth",
-        "//third_party/apple_frameworks:CoreFoundation",
-        "//third_party/apple_frameworks:Foundation",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/ios/Mediums",
         "//internal/platform/implementation/shared:file",
+        "//third_party/apple_frameworks:CoreBluetooth",
+        "//third_party/apple_frameworks:CoreFoundation",
+        "//third_party/apple_frameworks:Foundation",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ],
 )
