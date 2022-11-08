@@ -205,7 +205,7 @@ bool WifiHotspotMedium::StopWifiHotspot() {
     publisher_.Stop();
     listener_.ConnectionRequested(connection_requested_token_);
     publisher_.StatusChanged(publisher_status_changed_token_);
-    wifi_direct_device_  = nullptr;
+    wifi_direct_device_ = nullptr;
     listener_ = nullptr;
     publisher_ = nullptr;
     NEARBY_LOGS(INFO) << "succeeded to stop WiFi Hotspot";
@@ -250,7 +250,7 @@ fire_and_forget WifiHotspotMedium::OnStatusChanged(
       NEARBY_LOGS(ERROR) << "Windows WiFi Hotspot cleanup.";
       listener_.ConnectionRequested(connection_requested_token_);
       publisher_.StatusChanged(publisher_status_changed_token_);
-      wifi_direct_device_  = nullptr;
+      wifi_direct_device_ = nullptr;
       listener_ = nullptr;
       publisher_ = nullptr;
     }
@@ -275,12 +275,13 @@ fire_and_forget WifiHotspotMedium::OnConnectionRequested(
     // solve the problem. Guess when this object is created,
     // [Microsoft-Windows-WLAN-AutoConfig] will recognise it as a valid device
     // and won't kick it away.
-    wifi_direct_device_  = WiFiDirectDevice::FromIdAsync(
-            connection_request.DeviceInformation().Id()).get();
+    wifi_direct_device_ = WiFiDirectDevice::FromIdAsync(
+                              connection_request.DeviceInformation().Id())
+                              .get();
     NEARBY_LOGS(INFO) << "Registered the device in WLAN-AutoConfig";
   } catch (...) {
     NEARBY_LOGS(ERROR) << "Failed to registered the device in WLAN-AutoConfig";
-    wifi_direct_device_  = nullptr;
+    wifi_direct_device_ = nullptr;
     connection_request.Close();
   }
   return winrt::fire_and_forget();
@@ -328,8 +329,8 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
   // almost guarantee to find the Hotspot
   wifi_adapter_.ScanAsync().get();
 
-    wifi_connected_network_ = nullptr;
-    for (int i = 0; i < kMaxScans; i++) {
+  wifi_connected_network_ = nullptr;
+  for (int i = 0; i < kMaxScans; i++) {
     for (const auto& network :
          wifi_adapter_.NetworkReport().AvailableNetworks()) {
       if (!wifi_connected_network_ && !ssid.empty() &&
@@ -337,12 +338,12 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
         wifi_connected_network_ = network;
         NEARBY_LOGS(INFO) << "Save the current connected network: " << ssid;
       } else if (!nearby_softap && winrt::to_string(network.Ssid()) ==
-                                      hotspot_credentials_->GetSSID()) {
+                                       hotspot_credentials_->GetSSID()) {
         NEARBY_LOGS(INFO) << "Found Nearby SSID: "
                           << winrt::to_string(network.Ssid());
         nearby_softap = network;
       }
-      if (nearby_softap && wifi_connected_network_) break;
+      if (nearby_softap && (ssid.empty() || wifi_connected_network_)) break;
     }
     if (nearby_softap) break;
     NEARBY_LOGS(INFO) << "Scan ... ";
@@ -366,6 +367,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
       connect_result.ConnectionStatus() != WiFiConnectionStatus::Success) {
     NEARBY_LOGS(INFO) << "Connecting failed with reason: "
                       << static_cast<int>(connect_result.ConnectionStatus());
+    RestoreWifiConnection();
     return false;
   }
 
@@ -374,6 +376,47 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
   NEARBY_LOGS(INFO) << "Connected to hotspot: " << last_ssid;
 
   return true;
+}
+
+void WifiHotspotMedium::RestoreWifiConnection() {
+  if (wifi_adapter_) {
+    ConnectionProfile profile =
+        wifi_adapter_.NetworkAdapter().GetConnectedProfileAsync().get();
+    std::string ssid;
+
+    if (profile != nullptr && profile.IsWlanConnectionProfile()) {
+      ssid = winrt::to_string(
+          profile.WlanConnectionProfileDetails().GetConnectedSsid());
+      if (!ssid.empty() &&
+          (winrt::to_string(wifi_connected_network_.Ssid()) == ssid)) {
+        NEARBY_LOGS(INFO) << "Already conneted to the previous WIFI network "
+                          << ssid << "! Skip restoration.";
+        return;
+      }
+    }
+
+    // Disconnect to the WiFi connection through the WiFi adapter.
+    wifi_adapter_.Disconnect();
+    NEARBY_LOGS(INFO) << "Disconnected to current network.";
+
+    if (wifi_connected_network_) {
+      auto connect_result = wifi_adapter_
+                                .ConnectAsync(wifi_connected_network_,
+                                              WiFiReconnectionKind::Automatic)
+                                .get();
+
+      if (connect_result == nullptr ||
+          connect_result.ConnectionStatus() != WiFiConnectionStatus::Success) {
+        NEARBY_LOGS(INFO)
+            << "Connecting to previous network failed with reason: "
+            << static_cast<int>(connect_result.ConnectionStatus());
+      } else {
+        NEARBY_LOGS(INFO) << "Restored the previous WIFI connection: "
+                          << winrt::to_string(wifi_connected_network_.Ssid());
+      }
+      wifi_connected_network_ = nullptr;
+    }
+  }
 }
 
 bool WifiHotspotMedium::DisconnectWifiHotspot() {
@@ -394,26 +437,7 @@ bool WifiHotspotMedium::InternalDisconnectWifiHotspot() {
         wifi_adapter_.NetworkAdapter().GetConnectedProfileAsync().get();
 
     // Disconnect to the WiFi connection through the WiFi adapter.
-    wifi_adapter_.Disconnect();
-    NEARBY_LOGS(INFO) << "Disconnected to SoftAP.";
-
-    if (wifi_connected_network_) {
-      auto connect_result = wifi_adapter_
-                                .ConnectAsync(wifi_connected_network_,
-                                              WiFiReconnectionKind::Automatic)
-                                .get();
-
-      if (connect_result == nullptr ||
-          connect_result.ConnectionStatus() != WiFiConnectionStatus::Success) {
-        NEARBY_LOGS(INFO)
-            << "Connecting to previous network failed with reason: "
-            << static_cast<int>(connect_result.ConnectionStatus());
-      } else {
-        NEARBY_LOGS(INFO) << "Restored the previous WIFI connection: "
-                          << winrt::to_string(wifi_connected_network_.Ssid());
-      }
-      wifi_connected_network_ = nullptr;
-    }
+    RestoreWifiConnection();
     wifi_adapter_ = nullptr;
 
     // Try to remove the WiFi profile

@@ -57,8 +57,8 @@ using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionListener;
 using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionRequest;
 using ::winrt::Windows::Devices::WiFiDirect::
     WiFiDirectConnectionRequestedEventArgs;
-using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectDevice;
 using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionStatus;
+using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectDevice;
 
 using ::winrt::Windows::Devices::WiFi::WiFiAccessStatus;
 using ::winrt::Windows::Devices::WiFi::WiFiAdapter;
@@ -274,6 +274,7 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   bool IsBeaconing() { return (medium_status_ & kMediumStatusBeaconing) != 0; }
   // Discoverer is connected with the Hotspot
   bool IsConnected() { return (medium_status_ & kMediumStatusConnected) != 0; }
+  void RestoreWifiConnection();
 
   WiFiDirectAdvertisementPublisher publisher_{nullptr};
   WiFiDirectConnectionListener listener_{nullptr};
