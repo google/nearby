@@ -35,7 +35,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
                                    DiscoveredServiceCallback callback) {
   {
     MutexLock lock(&mutex_);
-    if (discovery_callbacks_.contains(service_type)) {
+    if (service_type_to_callback_map_.contains(service_type)) {
       NEARBY_LOGS(INFO) << "WifiLan Discovery already start with service_type="
                         << service_type << "; impl=" << &GetImpl();
       return false;
@@ -47,9 +47,9 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
             MutexLock lock(&mutex_);
             std::string service_type = service_info.GetServiceType();
             // Check callback for the service type.
-            const auto& it = discovery_callbacks_.find(service_type);
+            const auto& it = service_type_to_callback_map_.find(service_type);
 
-            if (it == discovery_callbacks_.end()) {
+            if (it == service_type_to_callback_map_.end()) {
               NEARBY_LOGS(ERROR)
                   << "There is no callback found for service_type="
                   << service_type;
@@ -57,8 +57,16 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
             }
 
             // Check whether service name is in cache.
+            auto services_it = service_type_to_services_map_.find(service_type);
+            if (services_it == service_type_to_services_map_.end()) {
+              NEARBY_LOGS(ERROR)
+                  << "There is no service map found for service_type="
+                  << service_type;
+              return;
+            }
+
             std::string service_name = service_info.GetServiceName();
-            auto pair = discovery_services_.insert(service_name);
+            auto pair = services_it->second.insert(service_name);
             if (!pair.second) {
               NEARBY_LOGS(INFO)
                   << "Discovering (again) service_info=" << &service_info
@@ -82,14 +90,22 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
             MutexLock lock(&mutex_);
             std::string service_type = service_info.GetServiceType();
             std::string service_name = service_info.GetServiceName();
-            auto item = discovery_services_.extract(service_name);
+            auto services_it = service_type_to_services_map_.find(service_type);
+            if (services_it == service_type_to_services_map_.end()) {
+              NEARBY_LOGS(ERROR)
+                  << "There is no service map found for service_type="
+                  << service_type;
+              return;
+            }
+
+            auto item = services_it->second.extract(service_name);
             if (item.empty()) return;
             NEARBY_LOGS(INFO) << "Removing service_info=" << &service_info
                               << ", service_type=" << service_type
                               << ", service_info_name=" << service_name;
             // Callback service lost.
-            const auto& it = discovery_callbacks_.find(service_type);
-            if (it != discovery_callbacks_.end()) {
+            const auto& it = service_type_to_callback_map_.find(service_type);
+            if (it != service_type_to_callback_map_.end()) {
               std::string service_id = it->second->service_id;
               DiscoveredServiceCallback medium_callback =
                   it->second->medium_callback;
@@ -100,18 +116,24 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
   {
     // Insert callback to the map first no matter it succeeds or not.
     MutexLock lock(&mutex_);
-    auto pair = discovery_callbacks_.insert(
+    auto pair = service_type_to_callback_map_.insert(
         {service_type, absl::make_unique<DiscoveryCallbackInfo>()});
     auto& context = *pair.first->second;
     context.medium_callback = std::move(callback);
     context.service_id = service_id;
+
+    // Insert an empty services set to track the services under the service
+    // type.
+    service_type_to_services_map_.insert(
+        {service_type, absl::flat_hash_set<std::string>()});
   }
 
   bool success = impl_->StartDiscovery(service_type, std::move(api_callback));
   if (!success) {
     // If failed, then revert back the insertion.
     MutexLock lock(&mutex_);
-    discovery_callbacks_.erase(service_type);
+    service_type_to_callback_map_.erase(service_type);
+    service_type_to_services_map_.erase(service_type);
   }
   NEARBY_LOGS(INFO) << "WifiLan Discovery started for service_type="
                     << service_type << ", impl=" << &GetImpl()
@@ -121,12 +143,12 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
 
 bool WifiLanMedium::StopDiscovery(const std::string& service_type) {
   MutexLock lock(&mutex_);
-  if (!discovery_callbacks_.contains(service_type)) {
+  if (!service_type_to_callback_map_.contains(service_type)) {
     return false;
   }
-  discovery_callbacks_.erase(service_type);
-  if (discovery_services_.contains(service_type)) {
-    discovery_services_.erase(service_type);
+  service_type_to_callback_map_.erase(service_type);
+  if (service_type_to_services_map_.contains(service_type)) {
+    service_type_to_services_map_.erase(service_type);
   }
   NEARBY_LOGS(INFO) << "WifiLan Discovery disabled for service_type="
                     << service_type << ", impl=" << &GetImpl();
