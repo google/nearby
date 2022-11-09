@@ -101,6 +101,11 @@ Exception BluetoothServerSocket::Close() {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
+  } catch (...) {
+    closed_ = true;
+    cond_.SignalAll();
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    return {Exception::kIo};
   }
 }
 
@@ -129,6 +134,8 @@ bool BluetoothServerSocket::listen() {
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
   }
 
   return false;

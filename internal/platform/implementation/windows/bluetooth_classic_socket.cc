@@ -74,6 +74,9 @@ Exception BluetoothSocket::Close() {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    return {Exception::kIo};
   }
 }
 
@@ -128,6 +131,9 @@ bool BluetoothSocket::Connect(HostName connectionHostName,
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
     return false;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    return false;
   }
 }
 
@@ -155,6 +161,9 @@ ExceptionOr<ByteArray> BluetoothSocket::BluetoothInputStream::Read(
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    return {Exception::kIo};
   }
 }
 
@@ -179,6 +188,9 @@ Exception BluetoothSocket::BluetoothInputStream::Close() {
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+    return {Exception::kIo};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
@@ -207,6 +219,9 @@ Exception BluetoothSocket::BluetoothOutputStream::Write(const ByteArray& data) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    return {Exception::kIo};
   }
 }
 
@@ -224,6 +239,9 @@ Exception BluetoothSocket::BluetoothOutputStream::Flush() {
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+    return {Exception::kIo};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
@@ -243,6 +261,9 @@ Exception BluetoothSocket::BluetoothOutputStream::Close() {
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+    return {Exception::kIo};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }

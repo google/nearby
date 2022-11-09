@@ -118,6 +118,11 @@ Exception WifiHotspotServerSocket::Close() {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
+  } catch (...) {
+    closed_ = true;
+    cond_.SignalAll();
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    return {Exception::kIo};
   }
 }
 
@@ -173,6 +178,8 @@ bool WifiHotspotServerSocket::listen() {
         << __func__
         << ":Cannot accept connection on preferred port.  WinRT exception: "
         << error.code() << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
   }
 
   try {
@@ -190,6 +197,8 @@ bool WifiHotspotServerSocket::listen() {
                        << ": Cannot bind to any port. WinRT exception: "
                        << error.code() << ": "
                        << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
   }
 
   return false;
@@ -262,6 +271,9 @@ std::string WifiHotspotServerSocket::GetHotspotIpAddresses() const {
   } catch (const winrt::hresult_error &error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+    return {};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
     return {};
   }
 }

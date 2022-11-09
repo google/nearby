@@ -38,6 +38,8 @@ WifiLanSocket::~WifiLanSocket() {
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
   }
 }
 
@@ -57,6 +59,9 @@ Exception WifiLanSocket::Close() {
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+    return {Exception::kIo};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
@@ -88,6 +93,9 @@ ExceptionOr<ByteArray> WifiLanSocket::SocketInputStream::Read(
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    return {Exception::kIo};
   }
 }
 
@@ -105,6 +113,9 @@ ExceptionOr<size_t> WifiLanSocket::SocketInputStream::Skip(size_t offset) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    return {Exception::kIo};
   }
 }
 
@@ -118,6 +129,9 @@ Exception WifiLanSocket::SocketInputStream::Close() {
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+    return {Exception::kIo};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
@@ -142,6 +156,9 @@ Exception WifiLanSocket::SocketOutputStream::Write(const ByteArray& data) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    return {Exception::kIo};
   }
 }
 
@@ -156,6 +173,9 @@ Exception WifiLanSocket::SocketOutputStream::Flush() {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
     return {Exception::kIo};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    return {Exception::kIo};
   }
 }
 
@@ -169,6 +189,9 @@ Exception WifiLanSocket::SocketOutputStream::Close() {
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+    return {Exception::kIo};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
