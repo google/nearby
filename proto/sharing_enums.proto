@@ -496,3 +496,13 @@ enum SharingUseCase {
 enum AppCrashReason {
   APP_CRASH_REASON_UNKNOWN = 0;
 }
+
+// Thes source where the attachemnt comes from. It can be an action, app name,
+// etc. The first 4 source types are being used as FileSenderType in Nearby
+// Share Windows app.
+enum AttachmentSourceType {
+  ATTACHMENT_SOURCE_UNKNOWN = 0;
+  ATTACHMENT_SOURCE_CONTEXT_MENU = 1;
+  ATTACHMENT_SOURCE_DRAG_AND_DROP = 2;
+  ATTACHMENT_SOURCE_SELECT_FILES_BUTTON = 3;
+}
