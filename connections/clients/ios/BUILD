@@ -19,7 +19,10 @@ load("//tools/build_defs/swift:swift_library.bzl", "swift_library")
 
 licenses(["notice"])
 
-package(default_visibility = ["//visibility:public"])
+package(
+    default_applicable_licenses = ["//third_party/nearby:license"],
+    default_visibility = ["//visibility:public"],
+)
 
 objc_library(
     name = "Connections",

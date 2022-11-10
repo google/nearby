@@ -1,3 +1,5 @@
+package(default_applicable_licenses = ["//third_party/nearby:license"])
+
 licenses(["notice"])
 # Copyright 2022 Google LLC
 #
