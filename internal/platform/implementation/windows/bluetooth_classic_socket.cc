@@ -150,9 +150,16 @@ ExceptionOr<ByteArray> BluetoothSocket::BluetoothInputStream::Read(
     }
 
     Buffer buffer = Buffer(size);
-    winrt_stream_.ReadAsync(buffer, size, InputStreamOptions::Partial).get();
-    DataReader dataReader = DataReader::FromBuffer(buffer);
-    ByteArray data((char*)buffer.data(), buffer.Length());
+
+    auto ibuffer =
+        winrt_stream_.ReadAsync(buffer, size, InputStreamOptions::None).get();
+
+    if (ibuffer.Length() != size) {
+      NEARBY_LOGS(WARNING) << __func__ << ": Got " << ibuffer.Length()
+                           << " bytes of total " << size << " bytes.";
+    }
+
+    ByteArray data((char*)ibuffer.data(), ibuffer.Length());
     return ExceptionOr(data);
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
