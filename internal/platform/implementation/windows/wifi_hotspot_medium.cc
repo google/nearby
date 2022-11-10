@@ -379,6 +379,10 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
 }
 
 void WifiHotspotMedium::RestoreWifiConnection() {
+  if (!wifi_connected_network_ && wifi_adapter_) {
+    wifi_adapter_.Disconnect();
+    return;
+  }
   if (wifi_adapter_) {
     ConnectionProfile profile =
         wifi_adapter_.NetworkAdapter().GetConnectedProfileAsync().get();
@@ -399,23 +403,20 @@ void WifiHotspotMedium::RestoreWifiConnection() {
     wifi_adapter_.Disconnect();
     NEARBY_LOGS(INFO) << "Disconnected to current network.";
 
-    if (wifi_connected_network_) {
-      auto connect_result = wifi_adapter_
-                                .ConnectAsync(wifi_connected_network_,
-                                              WiFiReconnectionKind::Automatic)
-                                .get();
+    auto connect_result = wifi_adapter_
+                              .ConnectAsync(wifi_connected_network_,
+                                            WiFiReconnectionKind::Automatic)
+                              .get();
 
-      if (connect_result == nullptr ||
-          connect_result.ConnectionStatus() != WiFiConnectionStatus::Success) {
-        NEARBY_LOGS(INFO)
-            << "Connecting to previous network failed with reason: "
-            << static_cast<int>(connect_result.ConnectionStatus());
-      } else {
-        NEARBY_LOGS(INFO) << "Restored the previous WIFI connection: "
-                          << winrt::to_string(wifi_connected_network_.Ssid());
-      }
-      wifi_connected_network_ = nullptr;
+    if (connect_result == nullptr ||
+        connect_result.ConnectionStatus() != WiFiConnectionStatus::Success) {
+      NEARBY_LOGS(INFO) << "Connecting to previous network failed with reason: "
+                        << static_cast<int>(connect_result.ConnectionStatus());
+    } else {
+      NEARBY_LOGS(INFO) << "Restored the previous WIFI connection: "
+                        << winrt::to_string(wifi_connected_network_.Ssid());
     }
+    wifi_connected_network_ = nullptr;
   }
 }
 
