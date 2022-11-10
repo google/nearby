@@ -419,3 +419,9 @@ enum PowerLevel {
 // LINT.ThenChange(
 //     //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/PowerLevel.java
 // )
+
+// The client of NearbyConnections
+enum ConnectionsClientType {
+  CONNECTIONS_CLIENT_UNKNOWN = 0;
+  CONNECTIONS_CLIENT_SHARING = 1;
+}

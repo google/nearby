@@ -27,7 +27,7 @@ option objc_class_prefix = "GNCP";
 
 // Top-level log proto for Nearby Connections.
 // LINT.IfChange(ConnectionsLog)
-// Next Tag: 7
+// Next Tag: 8
 message ConnectionsLog {
   // The type of this log.
   optional location.nearby.proto.connections.EventType event_type = 1;
@@ -54,6 +54,8 @@ message ConnectionsLog {
   // for North and South Americas.
   // Reference: http://shortn/_9smZZ8CTD6, http://shortn/_Y08gVwZRKc
   optional string files_migration_phase = 6;
+
+  optional ConnectionsClientInfo connections_client_info = 7;
 
   // Encapsulates one session of a client connected to Nearby Connections API.
   message ClientSession {
@@ -491,6 +493,23 @@ message ConnectionsLog {
 
     // The connectivity MCC mode
     optional bool is_mcc_mode = 15;
+  }
+
+  message ConnectionsClientInfo {
+    optional location.nearby.proto.connections.ConnectionsClientType
+        client_type = 1;
+
+    message AppInfo {
+      message WindowsAppInfo {
+        // The executable/build version, e.g. "1.0.4.2"
+        optional string app_version = 1
+            /* type = ST_SOFTWARE_ID */;
+      }
+
+      optional WindowsAppInfo windows_app_info = 1;
+    }
+
+    optional AppInfo app_info = 2;
   }
 }
 // LINT.ThenChange()
