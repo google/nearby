@@ -158,6 +158,8 @@ message PayloadTransferFrame {
       UNKNOWN_EVENT_TYPE = 0;
       PAYLOAD_ERROR = 1;
       PAYLOAD_CANCELED = 2;
+      PAYLOAD_RECEIVED = 3;
+      SUPPORT_PAYLOAD_ACK = 4;
     }
 
     optional EventType event = 1;
