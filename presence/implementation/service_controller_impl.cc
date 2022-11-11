@@ -15,14 +15,14 @@
 #include "presence/implementation/service_controller_impl.h"
 
 #include <memory>
+#include <optional>
 
 namespace nearby {
 namespace presence {
 
-std::unique_ptr<ScanSession> ServiceControllerImpl::StartScan(
+std::optional<ScanSession> ServiceControllerImpl::StartScan(
     ScanRequest scan_request, ScanCallback callback) {
-  return std::make_unique<ScanSession>(
-      scan_manager_.StartScan(scan_request, callback));
+  return scan_manager_.StartScan(scan_request, callback);
 }
 std::unique_ptr<BroadcastSession> ServiceControllerImpl::StartBroadcast(
     BroadcastRequest broadcast_request, BroadcastCallback callback) {

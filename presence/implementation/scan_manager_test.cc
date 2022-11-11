@@ -44,6 +44,8 @@ using AdvertisingSession =
 using AdvertisingCallback =
     ::location::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
 
+using CountDownLatch = location::nearby::CountDownLatch;
+
 class ScanManagerTest : public testing::Test {
  protected:
   void SetUp() override { env_.Start(); }
@@ -52,7 +54,7 @@ class ScanManagerTest : public testing::Test {
   std::unique_ptr<AdvertisingSession> StartAdvertisingOn(Ble& ble) {
     PresenceBroadcast::BroadcastSection section = {
         .identity = internal::IDENTITY_TYPE_PUBLIC,
-        .extended_properties = extended_properties_,
+        .extended_properties = MakeDefaultExtendedProperties(),
         .account_name = "Test account"};
     PresenceBroadcast presence_request = {.sections = {section}};
     BroadcastRequest input = {.tx_power = 30, .variant = presence_request};
@@ -71,43 +73,47 @@ class ScanManagerTest : public testing::Test {
     return session;
   }
 
-  std::vector<nearby::internal::IdentityType> identity_types_ = {
-      nearby::internal::IdentityType::IDENTITY_TYPE_PUBLIC,
-  };
-  std::vector<DataElement> extended_properties_ = {
-      DataElement(ActionBit::kPresenceManagerAction)};
-  std::vector<absl::variant<PresenceScanFilter, LegacyPresenceScanFilter>>
-      filters_ = {PresenceScanFilter{
-          .scan_type = ScanType::kPresenceScan,
-          .extended_properties = extended_properties_,
-      }};
-  ScanRequest scan_request_ = {
-      .account_name = "Test account",
-      .identity_types = identity_types_,
-      .scan_filters = filters_,
-      .use_ble = true,
-      .scan_type = ScanType::kPresenceScan,
-      .power_mode = PowerMode::kBalanced,
-      .scan_only_when_screen_on = true,
-  };
+  ScanRequest MakeDefaultScanRequest() {
+    std::vector<absl::variant<PresenceScanFilter, LegacyPresenceScanFilter>>
+        filters = {PresenceScanFilter{
+            .scan_type = ScanType::kPresenceScan,
+            .extended_properties = MakeDefaultExtendedProperties(),
+        }};
+    return {
+        .account_name = "Test account",
+        .identity_types = MakeDefaultIdentityTypes(),
+        .scan_filters = filters,
+        .use_ble = true,
+        .scan_type = ScanType::kPresenceScan,
+        .power_mode = PowerMode::kBalanced,
+        .scan_only_when_screen_on = true,
+    };
+  }
+
+  ScanCallback MakeDefaultScanCallback() {
+    return {.start_scan_cb =
+                [this](Status status) {
+                  if (status.Ok()) {
+                    start_latch_.CountDown();
+                  }
+                },
+            .on_discovered_cb =
+                [this](PresenceDevice pd) { found_latch_.CountDown(); }};
+  }
+
+  std::vector<nearby::internal::IdentityType> MakeDefaultIdentityTypes() {
+    return {
+        nearby::internal::IdentityType::IDENTITY_TYPE_PUBLIC,
+    };
+  }
+  std::vector<DataElement> MakeDefaultExtendedProperties() {
+    return {DataElement(ActionBit::kPresenceManagerAction)};
+  }
   CredentialManagerImpl credential_manager_;
   location::nearby::MediumEnvironment& env_ = {
       location::nearby::MediumEnvironment::Instance()};
-  location::nearby::CountDownLatch start_latch_{1};
-  location::nearby::CountDownLatch found_latch_{1};
-  ScanCallback scanning_callback_ = {.start_scan_cb =
-                                         [this](Status status) {
-                                           NEARBY_LOGS(INFO) << "Scan started "
-                                                             << status.Ok();
-                                           if (status.Ok()) {
-                                             start_latch_.CountDown();
-                                           }
-                                         },
-                                     .on_discovered_cb =
-                                         [this](PresenceDevice pd) {
-                                           NEARBY_LOGS(INFO) << "Device found";
-                                           found_latch_.CountDown();
-                                         }};
+  CountDownLatch start_latch_{1};
+  CountDownLatch found_latch_{1};
 };
 
 TEST_F(ScanManagerTest, CanStartThenStopScanning) {
@@ -120,13 +126,13 @@ TEST_F(ScanManagerTest, CanStartThenStopScanning) {
       StartAdvertisingOn(ble2);
 
   // Start scanning
-  ScanSession scan_session =
-      manager.StartScan(scan_request_, scanning_callback_);
+  auto scan_session =
+      manager.StartScan(MakeDefaultScanRequest(), MakeDefaultScanCallback());
+  EXPECT_NE(scan_session, std::nullopt);
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
-  ASSERT_TRUE(mediums.GetBle().IsAvailable());
   EXPECT_TRUE(start_latch_.Await().Ok());
   EXPECT_TRUE(found_latch_.Await().Ok());
-  EXPECT_TRUE(scan_session.StopScan().Ok());
+  EXPECT_TRUE(scan_session->StopScan().Ok());
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
 
@@ -134,16 +140,17 @@ TEST_F(ScanManagerTest, CannotStopScanTwice) {
   Mediums mediums;
   ScanManager manager(mediums, credential_manager_);
 
-  auto scan_session = manager.StartScan(scan_request_, scanning_callback_);
+  auto scan_session =
+      manager.StartScan(MakeDefaultScanRequest(), MakeDefaultScanCallback());
 
   NEARBY_LOGS(INFO) << "Start scan";
   EXPECT_TRUE(start_latch_.Await().Ok());
   // Ensure that we have started scanning before we try to stop.
   env_.Sync();
   NEARBY_LOGS(INFO) << "Stop scan";
-  EXPECT_TRUE(scan_session.StopScan().Ok());
+  EXPECT_TRUE(scan_session->StopScan().Ok());
   NEARBY_LOGS(INFO) << "Stop scan again";
-  EXPECT_FALSE(scan_session.StopScan().Ok());
+  EXPECT_FALSE(scan_session->StopScan().Ok());
 }
 
 TEST_F(ScanManagerTest, TestNoFilter) {
@@ -156,25 +163,100 @@ TEST_F(ScanManagerTest, TestNoFilter) {
       StartAdvertisingOn(ble2);
 
   // Start scanning
-  ScanRequest scan_request = {
+  ScanRequest scan_request_no_filter = MakeDefaultScanRequest();
+  scan_request_no_filter.scan_filters.clear();
+  auto scan_session =
+      manager.StartScan(scan_request_no_filter, MakeDefaultScanCallback());
+
+  ASSERT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
+  ASSERT_TRUE(mediums.GetBle().IsAvailable());
+  EXPECT_TRUE(start_latch_.Await().Ok());
+  EXPECT_TRUE(found_latch_.Await().Ok());
+  EXPECT_TRUE(scan_session->StopScan().Ok());
+  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
+}
+
+TEST_F(ScanManagerTest, StopOneSessionFromAnotherDeadlock) {
+  Mediums mediums;
+  ScanManager manager(mediums, credential_manager_);
+  CountDownLatch start_latch2{1};
+  CountDownLatch found_latch2{1};
+
+  // Start scanning
+  std::vector<DataElement> extended_properties_mismatch = {
+      DataElement(ActionBit::kInstantTetheringAction)};
+  std::vector<absl::variant<PresenceScanFilter, LegacyPresenceScanFilter>>
+      mismatch_filters = {PresenceScanFilter{
+          .scan_type = ScanType::kPresenceScan,
+          .extended_properties = extended_properties_mismatch,
+      }};
+  ScanRequest scan_request_mismatch = {
       .account_name = "Test account",
-      .identity_types = identity_types_,
-      .scan_filters = {},
+      .identity_types = MakeDefaultIdentityTypes(),
+      .scan_filters = mismatch_filters,
       .use_ble = true,
       .scan_type = ScanType::kPresenceScan,
       .power_mode = PowerMode::kBalanced,
       .scan_only_when_screen_on = true,
   };
-  ScanSession scan_session =
-      manager.StartScan(scan_request, scanning_callback_);
+  // we use scan_request_mismatch so this session's discovery doesn't get
+  // triggered.
+  auto scan_session =
+      manager.StartScan(scan_request_mismatch, MakeDefaultScanCallback());
+  ScanCallback scanning_callback2 = {
+      .start_scan_cb =
+          [&start_latch2](Status status) {
+            if (status.Ok()) {
+              start_latch2.CountDown();
+            }
+          },
+      .on_discovered_cb =
+          [&found_latch2, &scan_session](PresenceDevice pd) {
+            NEARBY_LOGS(INFO) << "scansession2 found";
+            found_latch2.CountDown();
+            scan_session->StopScan();
+          }};
+  auto scan_session2 = manager.StartScan(MakeDefaultScanRequest(),
+                                         std::move(scanning_callback2));
 
+  ASSERT_EQ(manager.ScanningCallbacksLengthForTest(), 2);
+
+  // Set up advertiser
+  location::nearby::BluetoothAdapter server_adapter;
+  Ble ble2(server_adapter);
+  std::unique_ptr<AdvertisingSession> advertising_session =
+      StartAdvertisingOn(ble2);
+
+  EXPECT_TRUE(found_latch2.Await(absl::Milliseconds(1500)).result());
+  EXPECT_FALSE(found_latch_.Await(absl::Milliseconds(1500)).result());
+  // Session was stopped before, this should not be able to stop successfully.
+  EXPECT_FALSE(scan_session->StopScan().Ok());
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
-  ASSERT_TRUE(mediums.GetBle().IsAvailable());
-  EXPECT_TRUE(start_latch_.Await().Ok());
-  EXPECT_TRUE(found_latch_.Await().Ok());
-  EXPECT_TRUE(scan_session.StopScan().Ok());
+  EXPECT_TRUE(scan_session2->StopScan().Ok());
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
+
+TEST_F(ScanManagerTest, StopWhenScopeEnds) {
+  Mediums mediums;
+  ScanManager manager(mediums, credential_manager_);
+  ScanCallback scanning_callback = ScanCallback{
+      .start_scan_cb =
+          [this](Status status) {
+            if (status.Ok()) {
+              start_latch_.CountDown();
+            }
+          },
+  };
+  {
+    auto scan_session = manager.StartScan(MakeDefaultScanRequest(),
+                                          std::move(scanning_callback));
+    EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
+    // Ensure that we start scanning before we go out of scope.
+    env_.Sync();
+  }
+  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
+}
+
 }  // namespace
 }  // namespace presence
 }  // namespace nearby

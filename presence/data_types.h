@@ -16,7 +16,9 @@
 #define THIRD_PARTY_NEARBY_PRESENCE_SCAN_CALLBACK_H_
 
 #include <functional>
+#include <utility>
 
+#include "absl/functional/any_invocable.h"
 #include "presence/presence_device.h"
 #include "presence/status.h"
 
@@ -30,18 +32,29 @@ class ScanSession {
   ScanSession()
       : stop_scan_callback_(
             []() { return Status{Status::Value::kNotImplemented}; }) {}
-  explicit ScanSession(std::function<Status(void)> stop_scan_callback)
-      : stop_scan_callback_(stop_scan_callback) {}
+  explicit ScanSession(absl::AnyInvocable<Status(void) &&> stop_scan_callback)
+      : stop_scan_callback_(std::move(stop_scan_callback)) {}
+
+  ~ScanSession() { StopScan(); }
 
   Status StopScan() {
-    return stop_scan_callback_();
+    if (stop_called_) {
+      return Status{Status::Value::kError};
+    }
+    stop_called_ = true;
+    auto callback = std::move(stop_scan_callback_);
+    if (callback) {
+      return std::move(callback)();
+    }
+    return Status{Status::Value::kError};
   }
 
  private:
   // Nearby library would provide the implementation of this callback in
   // runtime. Assigning with a default value NotImplemented to surface potential
   // issue where library failed to provide the implementation.
-  std::function<Status(void)> stop_scan_callback_;
+  absl::AnyInvocable<Status(void) &&> stop_scan_callback_;
+  bool stop_called_ = false;
 };
 
 // Callers would provide the implementation of these callbacks. If callers

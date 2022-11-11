@@ -16,6 +16,7 @@
 #define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_SERVICE_H_
 
 #include <memory>
+#include <optional>
 
 #include "presence/data_types.h"
 #include "presence/implementation/service_controller.h"
@@ -36,7 +37,7 @@ class PresenceService {
 
   PresenceClient CreatePresenceClient();
 
-  std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
+  std::optional<ScanSession> StartScan(ScanRequest scan_request,
                                          ScanCallback callback);
   std::unique_ptr<BroadcastSession> StartBroadcast(
       BroadcastRequest broadcast_request, BroadcastCallback callback);

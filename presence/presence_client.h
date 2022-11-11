@@ -17,6 +17,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "presence/broadcast_request.h"
@@ -50,7 +51,7 @@ class PresenceClient {
    * and type; the filters including credentials, actions and extended
    * properties.
    */
-  std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
+  std::optional<ScanSession> StartScan(ScanRequest scan_request,
                                          ScanCallback callback);
 
   /**

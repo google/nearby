@@ -49,8 +49,8 @@ TEST_F(PresenceServiceTest, StartThenStopScan) {
   auto scan_session_with_default_params =
       client.StartScan(ScanRequest(), ScanCallback());
 
-  EXPECT_NE(scan_session, nullptr);
-  EXPECT_NE(scan_session_with_default_params, nullptr);
+  EXPECT_NE(scan_session, std::nullopt);
+  EXPECT_NE(scan_session_with_default_params, std::nullopt);
 
   Status stop_scan_session_status = scan_session->StopScan();
   Status scan_session_with_default_params_status =

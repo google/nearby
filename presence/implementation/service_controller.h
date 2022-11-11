@@ -16,6 +16,7 @@
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SERVICE_CONTROLLER_H_
 
 #include <memory>
+#include <optional>
 
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
@@ -33,7 +34,7 @@ class ServiceController {
  public:
   ServiceController() = default;
   virtual ~ServiceController() = default;
-  virtual std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
+  virtual std::optional<ScanSession> StartScan(ScanRequest scan_request,
                                                  ScanCallback callback) = 0;
   virtual std::unique_ptr<BroadcastSession> StartBroadcast(
       BroadcastRequest broadcast_request, BroadcastCallback callback) = 0;

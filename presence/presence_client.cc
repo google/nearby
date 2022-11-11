@@ -15,6 +15,7 @@
 #include "presence/presence_client.h"
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "absl/log/die_if_null.h"
@@ -26,7 +27,7 @@ namespace presence {
 PresenceClient::PresenceClient(PresenceService* service)
     : service_(*ABSL_DIE_IF_NULL(service)) {}
 
-std::unique_ptr<ScanSession> PresenceClient::StartScan(ScanRequest scan_request,
+std::optional<ScanSession> PresenceClient::StartScan(ScanRequest scan_request,
                                                        ScanCallback callback) {
   return service_.StartScan(scan_request, callback);
 }

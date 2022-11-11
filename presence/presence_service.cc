@@ -15,6 +15,7 @@
 #include "presence/presence_service.h"
 
 #include <memory>
+#include <optional>
 
 #include "presence/data_types.h"
 #include "presence/implementation/service_controller_impl.h"
@@ -29,7 +30,7 @@ PresenceClient PresenceService::CreatePresenceClient() {
   return PresenceClient(this);
 }
 
-std::unique_ptr<ScanSession> PresenceService::StartScan(
+std::optional<ScanSession> PresenceService::StartScan(
     ScanRequest scan_request, ScanCallback callback) {
   return service_controller_->StartScan(scan_request, callback);
 }

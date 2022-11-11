@@ -16,6 +16,7 @@
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SERVICE_CONTROLLER_IMPL_H_
 
 #include <memory>
+#include <optional>
 
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
@@ -34,7 +35,7 @@ namespace presence {
 class ServiceControllerImpl : public ServiceController {
  public:
   ServiceControllerImpl() = default;
-  std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
+  std::optional<ScanSession> StartScan(ScanRequest scan_request,
                                          ScanCallback callback) override;
   std::unique_ptr<BroadcastSession> StartBroadcast(
       BroadcastRequest broadcast_request, BroadcastCallback callback) override;
