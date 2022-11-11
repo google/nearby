@@ -31,11 +31,7 @@ cc_library(
         "dll_config.h",
     ],
     visibility = [
-        "//connections:__subpackages__",
-        "//connections/clients/windows:__subpackages__",
-        "//internal/platform:__pkg__",
-        "//internal/platform/implementation:__subpackages__",
-        "//location/nearby/cpp/sharing/implementation:__subpackages__",
+        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
     ],
     deps = [
         "//proto:connections_enums_cc_proto",
