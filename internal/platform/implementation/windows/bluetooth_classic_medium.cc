@@ -39,11 +39,52 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/implementation/windows/utils.h"
+#include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
+namespace {
+
+using winrt::Windows::Foundation::IInspectable;
+using winrt::Windows::Foundation::Collections::IMapView;
+
+// Used to cntrol the dump output for device information. It is only for debug
+// purpose.
+constexpr bool kEnableDumpDeviceInfomation = false;
+
+void DumpDeviceInformation(
+    const IMapView<winrt::hstring, IInspectable>& properties) {
+  if (!kEnableDumpDeviceInfomation) {
+    return;
+  }
+
+  if (properties == nullptr) {
+    return;
+  }
+
+  for (const auto& property : properties) {
+    if (property.Key() == L"System.ItemNameDisplay") {
+      NEARBY_LOGS(INFO) << "System.ItemNameDisplay: "
+                        << InspectableReader::ReadString(property.Value());
+    } else if (property.Key() == L"System.Devices.Aep.CanPair") {
+      NEARBY_LOGS(INFO) << "System.Devices.Aep.CanPair: "
+                        << InspectableReader::ReadBoolean(property.Value());
+    } else if (property.Key() == L"System.Devices.Aep.IsPaired") {
+      NEARBY_LOGS(INFO) << "System.Devices.Aep.IsPaired: "
+                        << InspectableReader::ReadBoolean(property.Value());
+    } else if (property.Key() == L"System.Devices.Aep.IsPresent") {
+      NEARBY_LOGS(INFO) << "System.Devices.Aep.IsPresent: "
+                        << InspectableReader::ReadBoolean(property.Value());
+    } else if (property.Key() == L"System.Devices.Aep.DeviceAddress") {
+      NEARBY_LOGS(INFO) << "System.Devices.Aep.DeviceAddress: "
+                        << InspectableReader::ReadString(property.Value());
+    }
+  }
+}
+
+}  // namespace
 
 constexpr uint8_t kAndroidDiscoverableBluetoothNameMaxLength = 37;  // bytes
 
@@ -327,43 +368,8 @@ bool BluetoothClassicMedium::HaveAccess(winrt::hstring device_id) {
 
 RfcommDeviceService BluetoothClassicMedium::GetRequestedService(
     BluetoothDevice* device, winrt::guid service) {
-  try {
-    RfcommServiceId rfcommServiceId = RfcommServiceId::FromUuid(service);
-
-    // Retrieves all Rfcomm Services on the Remote Bluetooth Device matching the
-    // specified RfcommServiceId.
-    //  https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothdevice.getrfcommservicesforidasync?view=winrt-20348
-    IAsyncOperation<RfcommDeviceServicesResult> rfcommServices =
-        device->GetRfcommServicesForIdAsync(rfcommServiceId);
-
-    RfcommDeviceServicesResult rfcomm_device_services = rfcommServices.get();
-    if (rfcomm_device_services == nullptr) {
-      NEARBY_LOGS(ERROR) << __func__
-                         << ": failed to access RF device services.";
-      return nullptr;
-    }
-
-    RfcommDeviceService requestedService(nullptr);
-
-    if (rfcomm_device_services.Services().Size() > 0) {
-      requestedService = rfcomm_device_services.Services().GetAt(0);
-    } else {
-      NEARBY_LOGS(ERROR) << __func__ << ": No services found.";
-      return nullptr;
-    }
-
-    return requestedService;
-  } catch (std::exception exception) {
-    // We will log and eat the exception since the caller
-    // expects nullptr if it fails
-    NEARBY_LOGS(ERROR) << __func__ << ": Failed to get RfcommDeviceService: "
-                       << exception.what();
-    return nullptr;
-  } catch (const winrt::hresult_error& ex) {
-    NEARBY_LOGS(ERROR) << __func__ << ": RfcommDeviceService: " << ex.code()
-                       << ", error message: " << winrt::to_string(ex.message());
-    return nullptr;
-  }
+  RfcommServiceId rfcommServiceId = RfcommServiceId::FromUuid(service);
+  return device->GetRfcommServiceForIdAsync(rfcommServiceId);
 }
 
 bool BluetoothClassicMedium::CheckSdp(RfcommDeviceService requestedService) {
@@ -485,39 +491,74 @@ bool BluetoothClassicMedium::StopScanning() {
 winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
     DeviceWatcher sender, DeviceInformation deviceInfo) {
   NEARBY_LOGS(INFO) << "Device added " << winrt::to_string(deviceInfo.Id());
-  if (IsWatcherStarted()) {
-    // Represents a Bluetooth device.
-    // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothdevice?view=winrt-20348
-    std::unique_ptr<winrt::Windows::Devices::Bluetooth::BluetoothDevice>
-        windowsBluetoothDevice;
+  IMapView<winrt::hstring, IInspectable> properties = deviceInfo.Properties();
+  DumpDeviceInformation(properties);
 
-    // Create an iterator for the internal list
-    std::map<winrt::hstring, std::unique_ptr<BluetoothDevice>>::const_iterator
-        it = discovered_devices_by_id_.find(deviceInfo.Id());
+  if (!IsWatcherStarted()) {
+    return winrt::fire_and_forget();
+  }
 
-    // Add to our internal list if necessary
-    if (it != discovered_devices_by_id_.end()) {
-      // We're already tracking this one  NEARBY_LOGS(INFO) <<
-      // "DeviceWatcher_Added entered critical section.";
+  // If device no item name, ignore it.
+  if (!properties.HasKey(L"System.ItemNameDisplay")) {
+    NEARBY_LOGS(WARNING) << __func__ << ": Ignore the Bluetooth device "
+                         << winrt::to_string(deviceInfo.Id())
+                         << " due to no name.";
+    return winrt::fire_and_forget();
+  }
 
-      return winrt::fire_and_forget();
-    }
+  if (properties.Lookup(L"System.ItemNameDisplay") == nullptr) {
+    NEARBY_LOGS(WARNING) << __func__ << ": Ignore the Bluetooth device "
+                         << winrt::to_string(deviceInfo.Id())
+                         << " due to empty name.";
+    return winrt::fire_and_forget();
+  }
 
-    // Create a bluetooth device out of this id
-    auto bluetoothDevice =
-        winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromIdAsync(
-            deviceInfo.Id())
-            .get();
+  // If device doesn't support pair, ignore it.
+  if (!properties.HasKey(L"System.Devices.Aep.CanPair")) {
+    NEARBY_LOGS(WARNING) << __func__ << ": Ignore the Bluetooth device "
+                         << winrt::to_string(deviceInfo.Id())
+                         << " due to no pair property.";
+    return winrt::fire_and_forget();
+  }
 
-    auto bluetoothDeviceP =
-        absl::WrapUnique(new BluetoothDevice(bluetoothDevice));
+  if (!InspectableReader::ReadBoolean(
+          properties.Lookup(L"System.Devices.Aep.CanPair"))) {
+    NEARBY_LOGS(WARNING) << __func__ << ": Ignore the Bluetooth device "
+                         << winrt::to_string(deviceInfo.Id())
+                         << " due to not support pair.";
+    return winrt::fire_and_forget();
+  }
 
-    discovered_devices_by_id_[deviceInfo.Id()] = std::move(bluetoothDeviceP);
+  // Represents a Bluetooth device.
+  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothdevice?view=winrt-20348
+  std::unique_ptr<winrt::Windows::Devices::Bluetooth::BluetoothDevice>
+      windowsBluetoothDevice;
 
-    if (discovery_callback_.device_discovered_cb != nullptr) {
-      discovery_callback_.device_discovered_cb(
-          *discovered_devices_by_id_[deviceInfo.Id()]);
-    }
+  // Create an iterator for the internal list
+  std::map<winrt::hstring, std::unique_ptr<BluetoothDevice>>::const_iterator
+      it = discovered_devices_by_id_.find(deviceInfo.Id());
+
+  // Add to our internal list if necessary
+  if (it != discovered_devices_by_id_.end()) {
+    // We're already tracking this one
+    NEARBY_LOGS(WARNING) << __func__ << ": Bluetooth device "
+                         << winrt::to_string(deviceInfo.Id())
+                         << " is alreay added.";
+    return winrt::fire_and_forget();
+  }
+
+  // Create a bluetooth device out of this id
+  auto bluetoothDevice =
+      winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromIdAsync(
+          deviceInfo.Id())
+          .get();
+  auto bluetoothDeviceP = std::make_unique<BluetoothDevice>(bluetoothDevice);
+
+  discovered_devices_by_id_[deviceInfo.Id()] = std::move(bluetoothDeviceP);
+
+  if (discovery_callback_.device_discovered_cb != nullptr) {
+    discovery_callback_.device_discovered_cb(
+        *discovered_devices_by_id_[deviceInfo.Id()]);
   }
 
   return winrt::fire_and_forget();
@@ -525,25 +566,39 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
 
 winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
+  auto it = discovered_devices_by_id_.find(deviceInfoUpdate.Id());
+
+  if (it == discovered_devices_by_id_.end()) {
+    NEARBY_LOGS(WARNING) << __func__ << ": Bluetooth device "
+                         << winrt::to_string(deviceInfoUpdate.Id())
+                         << " is not in list.";
+    return winrt::fire_and_forget();
+  }
+
   NEARBY_LOGS(INFO)
-      << "Device updated "
+      << "Device updated name: "
       << discovered_devices_by_id_[deviceInfoUpdate.Id()]->GetName() << " ("
       << winrt::to_string(deviceInfoUpdate.Id()) << ")";
+  IMapView<winrt::hstring, IInspectable> properties =
+      deviceInfoUpdate.Properties();
+  DumpDeviceInformation(properties);
 
   if (!IsWatcherStarted()) {
     // Spurious call, watcher has stopped or wasn't started
     return winrt::fire_and_forget();
   }
 
-  auto it = discovered_devices_by_id_.find(deviceInfoUpdate.Id());
+  if (properties.HasKey(L"System.ItemNameDisplay")) {
+    // we need to really change the name of the bluetooth device
+    std::string new_device_name = InspectableReader::ReadString(
+        properties.Lookup(L"System.ItemNameDisplay"));
 
-  if (it == discovered_devices_by_id_.end()) {
-    // Not tracking this device
-    return winrt::fire_and_forget();
-  }
+    it->second->SetName(new_device_name);
 
-  if (deviceInfoUpdate.Properties().HasKey(
-          winrt::to_hstring("System.ItemNameDisplay"))) {
+    NEARBY_LOGS(INFO)
+        << "Updated device name:"
+        << discovered_devices_by_id_[deviceInfoUpdate.Id()]->GetName();
+
     discovery_callback_.device_name_changed_cb(
         *discovered_devices_by_id_[deviceInfoUpdate.Id()]);
   }
@@ -553,6 +608,15 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
 
 winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Removed(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfo) {
+  auto it = discovered_devices_by_id_.find(deviceInfo.Id());
+
+  if (it == discovered_devices_by_id_.end()) {
+    NEARBY_LOGS(WARNING) << __func__ << ": Bluetooth device "
+                         << winrt::to_string(deviceInfo.Id())
+                         << " is not in list.";
+    return winrt::fire_and_forget();
+  }
+
   NEARBY_LOGS(INFO) << "Device removed "
                     << discovered_devices_by_id_[deviceInfo.Id()]->GetName()
                     << " (" << winrt::to_string(deviceInfo.Id()) << ")";

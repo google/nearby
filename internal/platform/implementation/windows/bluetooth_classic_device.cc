@@ -17,12 +17,18 @@
 #include <winstring.h>
 
 #include <codecvt>
+#include <exception>
 #include <locale>
 #include <string>
 
 #include "absl/strings/string_view.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.Rfcomm.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
+#include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/implementation/windows/utils.h"
+#include "internal/platform/logging.h"
 
 namespace location {
 namespace nearby {
@@ -38,7 +44,8 @@ BluetoothDevice::BluetoothDevice(absl::string_view mac_address)
           FromBluetoothAddressAsync(mac_address_string_to_uint64(mac_address))
               .get();
   if (windows_bluetooth_device_ != nullptr) {
-      id_ = winrt::to_string(windows_bluetooth_device_.DeviceId());
+    id_ = winrt::to_string(windows_bluetooth_device_.DeviceId());
+    name_ = winrt::to_string(windows_bluetooth_device_.Name());
   }
 }
 
@@ -51,25 +58,78 @@ BluetoothDevice::BluetoothDevice(
   auto bluetoothAddress = bluetoothDevice.BluetoothAddress();
 
   mac_address_ = uint64_to_mac_address_string(bluetoothAddress);
-}
-
-// https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
-std::string BluetoothDevice::GetName() const {
-  return winrt::to_string(windows_bluetooth_device_.Name());
+  name_ = winrt::to_string(windows_bluetooth_device_.Name());
 }
 
 // Returns BT MAC address assigned to this device.
 std::string BluetoothDevice::GetMacAddress() const { return mac_address_; }
 
-// We are using Uncached because:
-// For the following APIs, Cached means only use values cached in the system
-// cached (if not cached then don't fall back to querying the device).
-// The device may be present, but not entered into the cache yet, so always
-// check the actual device.
-IAsyncOperation<RfcommDeviceServicesResult>
-BluetoothDevice::GetRfcommServicesForIdAsync(const RfcommServiceId serviceId) {
-  return windows_bluetooth_device_.GetRfcommServicesForIdAsync(
-      serviceId, BluetoothCacheMode::Uncached);
+// Checks cache first, will check uncached if no result.
+RfcommDeviceService BluetoothDevice::GetRfcommServiceForIdAsync(
+    const RfcommServiceId serviceId) {
+  try {
+    NEARBY_LOGS(INFO) << __func__ << ": Get RF services for service id:"
+                      << winrt::to_string(serviceId.AsString());
+
+    // Check cache first
+    RfcommDeviceServicesResult rfcomm_device_services =
+        windows_bluetooth_device_
+            .GetRfcommServicesForIdAsync(serviceId, BluetoothCacheMode::Cached)
+            .get();
+    if (rfcomm_device_services != nullptr &&
+        rfcomm_device_services.Services().Size() > 0) {
+      NEARBY_LOGS(INFO) << __func__ << ": Get "
+                        << rfcomm_device_services.Services().Size()
+                        << " services from cache.";
+      // found the matched service.
+      for (auto rfcomm_device_service : rfcomm_device_services.Services()) {
+        if (rfcomm_device_service.Device() != nullptr &&
+            winrt::to_string(rfcomm_device_service.Device().DeviceId()) ==
+                id_) {
+          NEARBY_LOGS(INFO) << __func__ << ": Found service from cache.";
+          return rfcomm_device_service;
+        }
+      }
+    }
+
+    NEARBY_LOGS(INFO) << __func__
+                      << ": Try to found service with no-cache mode.";
+
+    // Try to get service from un cached mode.
+    rfcomm_device_services = windows_bluetooth_device_
+                                 .GetRfcommServicesForIdAsync(
+                                     serviceId, BluetoothCacheMode::Uncached)
+                                 .get();
+    if (rfcomm_device_services != nullptr &&
+        rfcomm_device_services.Services().Size() > 0) {
+      NEARBY_LOGS(INFO) << __func__ << ": Get "
+                        << rfcomm_device_services.Services().Size()
+                        << " services without cache.";
+      // found the matched service.
+      for (auto rfcomm_device_service : rfcomm_device_services.Services()) {
+        if (rfcomm_device_service.Device() != nullptr &&
+            winrt::to_string(rfcomm_device_service.Device().DeviceId()) ==
+                id_) {
+          NEARBY_LOGS(INFO)
+              << __func__ << ": Found service from no-cache mode.";
+          return rfcomm_device_service;
+        }
+      }
+    }
+
+    return nullptr;
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Failed to get RfcommDeviceService: "
+                       << exception.what();
+    return nullptr;
+  } catch (const winrt::hresult_error& ex) {
+    NEARBY_LOGS(ERROR) << __func__ << ": RfcommDeviceService: " << ex.code()
+                       << ", error message: " << winrt::to_string(ex.message());
+    return nullptr;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+    return nullptr;
+  }
 }
 
 }  // namespace windows

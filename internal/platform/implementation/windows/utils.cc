@@ -24,6 +24,7 @@
 #include <codecvt>
 #include <cstdint>
 #include <exception>
+#include <stdexcept>
 #include <string>
 
 // Third party headers
@@ -104,7 +105,29 @@ ByteArray Sha256(absl::string_view input, size_t size) {
   return ByteArray{hash.data(), size};
 }
 
+bool InspectableReader::ReadBoolean(IInspectable inspectable) {
+  if (inspectable == nullptr) {
+    return false;
+  }
+
+  auto property_value =
+      inspectable.try_as<winrt::Windows::Foundation::IPropertyValue>();
+  if (property_value == nullptr) {
+    throw std::invalid_argument("no property value interface.");
+  }
+  if (property_value.Type() !=
+      winrt::Windows::Foundation::PropertyType::Boolean) {
+    throw std::invalid_argument("not uin16 data type.");
+  }
+
+  return property_value.GetBoolean();
+}
+
 uint16 InspectableReader::ReadUint16(IInspectable inspectable) {
+  if (inspectable == nullptr) {
+    return 0;
+  }
+
   auto property_value =
       inspectable.try_as<winrt::Windows::Foundation::IPropertyValue>();
   if (property_value == nullptr) {
@@ -119,6 +142,10 @@ uint16 InspectableReader::ReadUint16(IInspectable inspectable) {
 }
 
 uint32 InspectableReader::ReadUint32(IInspectable inspectable) {
+  if (inspectable == nullptr) {
+    return 0;
+  }
+
   auto property_value =
       inspectable.try_as<winrt::Windows::Foundation::IPropertyValue>();
   if (property_value == nullptr) {
@@ -133,6 +160,10 @@ uint32 InspectableReader::ReadUint32(IInspectable inspectable) {
 }
 
 std::string InspectableReader::ReadString(IInspectable inspectable) {
+  if (inspectable == nullptr) {
+    return "";
+  }
+
   auto property_value =
       inspectable.try_as<winrt::Windows::Foundation::IPropertyValue>();
   if (property_value == nullptr) {
@@ -149,6 +180,10 @@ std::string InspectableReader::ReadString(IInspectable inspectable) {
 std::vector<std::string> InspectableReader::ReadStringArray(
     IInspectable inspectable) {
   std::vector<std::string> result;
+  if (inspectable == nullptr) {
+    return result;
+  }
+
   auto property_value =
       inspectable.try_as<winrt::Windows::Foundation::IPropertyValue>();
   if (property_value == nullptr) {

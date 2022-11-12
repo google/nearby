@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
@@ -57,6 +58,7 @@ const char SdpServiceNameAttributeType = (4 << 3) | 5;
 
 class InspectableReader {
  public:
+  static bool ReadBoolean(IInspectable inspectable);
   static uint16 ReadUint16(IInspectable inspectable);
   static uint32 ReadUint32(IInspectable inspectable);
   static std::string ReadString(IInspectable inspectable);
