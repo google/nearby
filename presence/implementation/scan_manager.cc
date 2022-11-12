@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/random/random.h"
 #include "absl/random/uniform_int_distribution.h"
@@ -76,14 +77,18 @@ ScanSession ScanManager::StartScan(ScanRequest scan_request, ScanCallback cb) {
   std::unique_ptr<ScanningSession> scanning_session =
       mediums_->GetBle().StartScanning(scan_request, std::move(callback));
   auto modified_scanning_session = ScanSession(
-      [scanning_session_cb = std::move(scanning_session->stop_scanning), this,
-       id]() {
-        absl::MutexLock lock(&mutex_);
-        int erased = absl::erase_if(
-            scanning_callbacks_,
-            [id](const auto& entry) { return id == entry.first; });
-        if (erased == 0) return Status{.value = Status::Value::kError};
-        BleOperationStatus st = scanning_session_cb();
+      /*stop_scan_callback=*/[scanning_session_internal =
+                                  std::move(scanning_session),
+                              this, id]() {
+        {
+          absl::MutexLock lock(&mutex_);
+          int erased = absl::erase_if(
+              scanning_callbacks_,
+              [id](const auto& entry) { return id == entry.first; });
+          if (erased == 0) return Status{.value = Status::Value::kError};
+          // Unlock mutex since we don't need to access the list anymore.
+        }
+        BleOperationStatus st = scanning_session_internal->stop_scanning();
         if (st != BleOperationStatus::kSucceeded) {
           return Status{.value = Status::Value::kError};
         }
@@ -94,21 +99,27 @@ ScanSession ScanManager::StartScan(ScanRequest scan_request, ScanCallback cb) {
 
 void ScanManager::NotifyFoundBle(BleAdvertisementData data,
                                  const BlePeripheral& peripheral) {
-  absl::MutexLock lock(&mutex_);
-  auto advertisement_data =
-      data.service_data[kPresenceServiceUuid].AsStringView();
-  for (const auto& entry : scanning_callbacks_) {
-    auto candidate = entry.second;
-    auto advert = candidate.decoder.DecodeAdvertisement(advertisement_data);
-    if (!advert.ok()) {
-      // This advertisement is not relevant to the current element, skip.
-      continue;
+  std::vector<ScanCallback> callbacks;
+  {
+    absl::MutexLock lock(&mutex_);
+    auto advertisement_data =
+        data.service_data[kPresenceServiceUuid].AsStringView();
+    for (const auto& entry : scanning_callbacks_) {
+      auto candidate = entry.second;
+      auto advert = candidate.decoder.DecodeAdvertisement(advertisement_data);
+      if (!advert.ok()) {
+        // This advertisement is not relevant to the current element, skip.
+        continue;
+      }
+      if (candidate.decoder.MatchesScanFilter(advert.value())) {
+        callbacks.push_back(candidate.callback);
+      }
     }
-    if (candidate.decoder.MatchesScanFilter(advert.value())) {
-      // TODO(b/256913915): Provide more information in PresenceDevice once
-      // fully implemented
-      candidate.callback.on_discovered_cb(PresenceDevice());
-    }
+  }
+  // TODO(b/256913915): Provide more information in PresenceDevice once fully
+  // implemented
+  for (const auto& callback : callbacks) {
+    callback.on_discovered_cb(PresenceDevice());
   }
 }
 
