@@ -14,8 +14,8 @@
 
 // #include <cstddef>
 #include "absl/strings/str_format.h"
-#include "internal/platform/implementation/windows/wifi.h"
 #include "internal/platform/implementation/windows/utils.h"
+#include "internal/platform/implementation/windows/wifi.h"
 #include "internal/platform/logging.h"
 
 namespace location {
@@ -23,14 +23,11 @@ namespace nearby {
 namespace windows {
 
 namespace {
-  constexpr int kMacAddrLen = 6;
-  constexpr int kDefaultApFreq = -1;
+constexpr int kMacAddrLen = 6;
+constexpr int kDefaultApFreq = -1;
 }  // namespace
 
-
-WifiMedium::WifiMedium() {
-  InitCapability();
-}
+WifiMedium::WifiMedium() { InitCapability(); }
 
 PWLAN_INTERFACE_INFO_LIST EnumInterface(PHANDLE client_handle) {
   DWORD client_version = 2;
@@ -54,9 +51,7 @@ PWLAN_INTERFACE_INFO_LIST EnumInterface(PHANDLE client_handle) {
   return p_intf_list;
 }
 
-bool WifiMedium::IsInterfaceValid() const {
-  return wifi_interface_valid_;
-}
+bool WifiMedium::IsInterfaceValid() const { return wifi_interface_valid_; }
 
 void WifiMedium::InitCapability() {
   HANDLE client_handle = NULL;
@@ -216,9 +211,11 @@ std::string WifiMedium::GetIpAddress() {
                          .NetworkAdapter()
                          .GetConnectedProfileAsync()
                          .get();
-      if (profile.IsWlanConnectionProfile()) {
-        if ( wifi_information_.ssid == winrt::to_string(
-                   profile.WlanConnectionProfileDetails().GetConnectedSsid())) {
+      if (profile != nullptr && profile.IsWlanConnectionProfile()) {
+        auto profile_details = profile.WlanConnectionProfileDetails();
+        if (profile_details != nullptr &&
+            wifi_information_.ssid ==
+                winrt::to_string(profile_details.GetConnectedSsid())) {
           NEARBY_LOGS(INFO)
               << "SSID of this IP matches with this WiFi interface's SSID:"
               << wifi_information_.ssid << ", return this IP";
