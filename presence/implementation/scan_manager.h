@@ -69,6 +69,10 @@ class ScanManager {
   void NotifyFoundBle(
       location::nearby::api::ble_v2::BleAdvertisementData data,
       const location::nearby::api::ble_v2::BlePeripheral& peripheral);
+  // This shared_ptr is reset when the ScanManager destructs. We would use it
+  // in callbacks for ScanSession. So that invoking callback won't crash when
+  // the ScanSession outlives the ScanManager.
+  std::shared_ptr<void> valid_ = std::make_shared<int>();
 };
 
 }  // namespace presence

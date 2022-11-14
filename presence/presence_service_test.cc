@@ -14,8 +14,11 @@
 
 #include "presence/presence_service.h"
 
+#include <memory>
+
 #include "gtest/gtest.h"
 #include "internal/platform/medium_environment.h"
+#include "presence/data_types.h"
 #include "presence/presence_client.h"
 #include "presence/status.h"
 
@@ -59,6 +62,27 @@ TEST_F(PresenceServiceTest, StartThenStopScan) {
   EXPECT_TRUE(stop_scan_session_status.Ok());
   EXPECT_TRUE(scan_session_with_default_params_status.Ok());
   env_.Stop();
+}
+TEST_F(PresenceServiceTest, StopScanAfterServiceGone) {
+  std::unique_ptr<ScanSession> session_ptr;
+  {
+    env_.Start();
+    Status scan_result = {Status::Value::kSuccess};
+    ScanCallback scan_callback = {
+        .start_scan_cb = [&](Status status) { scan_result = status; },
+    };
+    PresenceService presence_service;
+    PresenceClient client = presence_service.CreatePresenceClient();
+
+    session_ptr = client.StartScan(
+        {}, {
+                .start_scan_cb = [&](Status status) { scan_result = status; },
+            });
+    env_.Stop();
+  }
+  Status stop_scan_session_status = session_ptr->StopScan();
+
+  EXPECT_EQ(stop_scan_session_status.value, Status::Value::kInstanceExpired);
 }
 
 }  // namespace

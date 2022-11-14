@@ -79,7 +79,10 @@ ScanSession ScanManager::StartScan(ScanRequest scan_request, ScanCallback cb) {
   auto modified_scanning_session = ScanSession(
       /*stop_scan_callback=*/[scanning_session_internal =
                                   std::move(scanning_session),
-                              this, id]() {
+                              this, id, valid = std::weak_ptr<void>(valid_)]() {
+        if (!valid.lock()) {
+          return Status{.value = Status::Value::kInstanceExpired};
+        }
         {
           absl::MutexLock lock(&mutex_);
           int erased = absl::erase_if(

@@ -233,6 +233,25 @@ TEST_F(ScanManagerTest, StopOneSessionFromAnotherDeadlock) {
   EXPECT_TRUE(scan_session2.StopScan().Ok());
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
+
+TEST_F(ScanManagerTest, ScanSessionOutlivesScanManager) {
+  Mediums mediums;
+  std::unique_ptr<ScanSession> scan_session_ptr;
+  {
+    ScanManager manager(mediums, credential_manager_);
+
+    scan_session_ptr = std::make_unique<ScanSession>(
+        manager.StartScan(MakeDefaultScanRequest(), MakeDefaultScanCallback()));
+
+    NEARBY_LOGS(INFO) << "Start scan";
+    EXPECT_TRUE(start_latch_.Await().Ok());
+    env_.Stop();
+  }
+  NEARBY_LOGS(INFO) << "Stop scan after ScanManager destructed";
+  EXPECT_EQ(scan_session_ptr->StopScan().value,
+            Status::Value::kInstanceExpired);
+}
+
 }  // namespace
 }  // namespace presence
 }  // namespace nearby

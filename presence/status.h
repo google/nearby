@@ -27,6 +27,7 @@ struct Status {
     kError = 0,
     kSuccess,
     kNotImplemented,
+    kInstanceExpired,
   };
   Value value{Value::kError};
   bool Ok() const { return value == Value::kSuccess; }
