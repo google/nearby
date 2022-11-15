@@ -42,7 +42,8 @@ class ScanManager {
   }
   ~ScanManager() = default;
 
-  ScanSession StartScan(ScanRequest scan_request, ScanCallback cb)
+  std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
+                                         ScanCallback cb)
       ABSL_LOCKS_EXCLUDED(mutex_);
   // Below functions are test only.
   // Reference: go/totw/135#augmenting-the-public-api-for-tests

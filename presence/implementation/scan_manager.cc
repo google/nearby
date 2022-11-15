@@ -47,7 +47,8 @@ using ScanningCallback =
 namespace nearby {
 namespace presence {
 
-ScanSession ScanManager::StartScan(ScanRequest scan_request, ScanCallback cb) {
+std::unique_ptr<ScanSession> ScanManager::StartScan(ScanRequest scan_request,
+                                                    ScanCallback cb) {
   absl::BitGen gen;
   uint64_t id = absl::uniform_int_distribution<uint64_t>(0, UINT64_MAX)(gen);
   ScanningCallback callback = ScanningCallback{
@@ -67,6 +68,11 @@ ScanSession ScanManager::StartScan(ScanRequest scan_request, ScanCallback cb) {
           [this](BlePeripheral& peripheral, BleAdvertisementData data) {
             NotifyFoundBle(data, peripheral);
           }};
+  std::unique_ptr<ScanningSession> scanning_session =
+      mediums_->GetBle().StartScanning(scan_request, std::move(callback));
+  if (scanning_session == nullptr) {
+    return nullptr;
+  }
   // We will not be needing the start_scan_cb anymore, so cb is ok to use here.
   AddScanCallback(id, MapElement{
                           .request = scan_request,
@@ -74,9 +80,7 @@ ScanSession ScanManager::StartScan(ScanRequest scan_request, ScanCallback cb) {
                           .decoder = AdvertisementDecoder(credential_manager_,
                                                           scan_request),
                       });
-  std::unique_ptr<ScanningSession> scanning_session =
-      mediums_->GetBle().StartScanning(scan_request, std::move(callback));
-  auto modified_scanning_session = ScanSession(
+  return std::make_unique<ScanSession>(
       /*stop_scan_callback=*/[scanning_session_internal =
                                   std::move(scanning_session),
                               this, id]() {
@@ -94,7 +98,6 @@ ScanSession ScanManager::StartScan(ScanRequest scan_request, ScanCallback cb) {
         }
         return Status{.value = Status::Value::kSuccess};
       });
-  return modified_scanning_session;
 }
 
 void ScanManager::NotifyFoundBle(BleAdvertisementData data,

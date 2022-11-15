@@ -16,6 +16,7 @@
 
 #include <math.h>
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -126,12 +127,12 @@ TEST_F(ScanManagerTest, CanStartThenStopScanning) {
       StartAdvertisingOn(ble2);
 
   // Start scanning
-  ScanSession scan_session =
+  auto scan_session =
       manager.StartScan(MakeDefaultScanRequest(), MakeDefaultScanCallback());
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
   EXPECT_TRUE(start_latch_.Await().Ok());
   EXPECT_TRUE(found_latch_.Await().Ok());
-  EXPECT_TRUE(scan_session.StopScan().Ok());
+  EXPECT_TRUE(scan_session->StopScan().Ok());
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
 
@@ -147,9 +148,9 @@ TEST_F(ScanManagerTest, CannotStopScanTwice) {
   // Ensure that we have started scanning before we try to stop.
   env_.Sync();
   NEARBY_LOGS(INFO) << "Stop scan";
-  EXPECT_TRUE(scan_session.StopScan().Ok());
+  EXPECT_TRUE(scan_session->StopScan().Ok());
   NEARBY_LOGS(INFO) << "Stop scan again";
-  EXPECT_FALSE(scan_session.StopScan().Ok());
+  EXPECT_FALSE(scan_session->StopScan().Ok());
 }
 
 TEST_F(ScanManagerTest, TestNoFilter) {
@@ -164,14 +165,14 @@ TEST_F(ScanManagerTest, TestNoFilter) {
   // Start scanning
   ScanRequest scan_request_no_filter = MakeDefaultScanRequest();
   scan_request_no_filter.scan_filters.clear();
-  ScanSession scan_session =
+  auto scan_session =
       manager.StartScan(scan_request_no_filter, MakeDefaultScanCallback());
 
   ASSERT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
   ASSERT_TRUE(mediums.GetBle().IsAvailable());
   EXPECT_TRUE(start_latch_.Await().Ok());
   EXPECT_TRUE(found_latch_.Await().Ok());
-  EXPECT_TRUE(scan_session.StopScan().Ok());
+  EXPECT_TRUE(scan_session->StopScan().Ok());
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
 
@@ -200,7 +201,7 @@ TEST_F(ScanManagerTest, StopOneSessionFromAnotherDeadlock) {
   };
   // we use scan_request_mismatch so this session's discovery doesn't get
   // triggered.
-  ScanSession scan_session =
+  auto scan_session =
       manager.StartScan(scan_request_mismatch, MakeDefaultScanCallback());
   ScanCallback scanning_callback2 = {
       .start_scan_cb =
@@ -211,11 +212,12 @@ TEST_F(ScanManagerTest, StopOneSessionFromAnotherDeadlock) {
           },
       .on_discovered_cb =
           [&found_latch2, &scan_session](PresenceDevice pd) {
+            NEARBY_LOGS(INFO) << "scansession2 found";
             found_latch2.CountDown();
-            scan_session.StopScan();
+            scan_session->StopScan();
           }};
-  ScanSession scan_session2 = manager.StartScan(MakeDefaultScanRequest(),
-                                                std::move(scanning_callback2));
+  auto scan_session2 = manager.StartScan(MakeDefaultScanRequest(),
+                                         std::move(scanning_callback2));
 
   ASSERT_EQ(manager.ScanningCallbacksLengthForTest(), 2);
 
@@ -228,11 +230,53 @@ TEST_F(ScanManagerTest, StopOneSessionFromAnotherDeadlock) {
   EXPECT_TRUE(found_latch2.Await(absl::Milliseconds(1500)).result());
   EXPECT_FALSE(found_latch_.Await(absl::Milliseconds(1500)).result());
   // Session was stopped before, this should not be able to stop successfully.
-  EXPECT_FALSE(scan_session.StopScan().Ok());
+  EXPECT_FALSE(scan_session->StopScan().Ok());
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
-  EXPECT_TRUE(scan_session2.StopScan().Ok());
+  EXPECT_TRUE(scan_session2->StopScan().Ok());
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
+
+TEST_F(ScanManagerTest, StopWhenScopeEnds) {
+  Mediums mediums;
+  ScanManager manager(mediums, credential_manager_);
+  ScanCallback scanning_callback = ScanCallback{
+      .start_scan_cb =
+          [this](Status status) {
+            if (status.Ok()) {
+              start_latch_.CountDown();
+            }
+          },
+  };
+  {
+    auto scan_session = manager.StartScan(MakeDefaultScanRequest(),
+                                          std::move(scanning_callback));
+    EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
+    // Ensure that we start scanning before we go out of scope.
+    env_.Sync();
+  }
+  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
+}
+
+TEST_F(ScanManagerTest, MoveDoesNotTriggerDestructor) {
+  Mediums mediums;
+  ScanManager manager(mediums, credential_manager_);
+  ScanCallback scanning_callback = ScanCallback{
+      .start_scan_cb =
+          [this](Status status) {
+            if (status.Ok()) {
+              start_latch_.CountDown();
+            }
+          },
+  };
+  auto scan_session =
+      manager.StartScan(MakeDefaultScanRequest(), std::move(scanning_callback));
+  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
+  env_.Sync();
+  auto scan_session_moved = std::move(scan_session);
+  // Make sure we don't trigger the destructor.
+  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
+}
+
 }  // namespace
 }  // namespace presence
 }  // namespace nearby
