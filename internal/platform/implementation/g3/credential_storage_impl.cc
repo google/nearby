@@ -14,6 +14,7 @@
 
 #include "internal/platform/implementation/g3/credential_storage_impl.h"
 
+#include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -32,7 +33,7 @@ void CredentialStorageImpl::SaveCredentials(
     absl::string_view manager_app_id, absl::string_view account_name,
     const std::vector<PrivateCredential>& private_credentials,
     const std::vector<PublicCredential>& public_credentials,
-    ::nearby::presence::PublicCredentialType public_credential_type,
+    PublicCredentialType public_credential_type,
     ::nearby::presence::GenerateCredentialsCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Save Private Credentials for account: "
                     << account_name << "], manager app ID:[" << manager_app_id
@@ -45,14 +46,14 @@ void CredentialStorageImpl::SaveCredentials(
   }
   {
     absl::MutexLock lock(&private_mutex_);
-    auto private_key_value = std::make_pair(
-        std::make_pair(manager_app_id, account_name), private_credentials);
-    auto private_result = private_credentials_map_.insert(private_key_value);
+    PrivateCredentialKey key =
+        CreatePrivateCredentialKey(manager_app_id, account_name);
+    auto private_result = private_credentials_map_.insert(
+        std::make_pair(key, private_credentials));
     if (!private_result.second) {
       NEARBY_LOGS(WARNING)
           << "Credentials already saved in map. Overwriting previous creds!";
-      private_credentials_map_[std::make_pair(manager_app_id, account_name)] =
-          private_credentials;
+      private_credentials_map_[key] = private_credentials;
     }
   }
 
@@ -67,16 +68,14 @@ void CredentialStorageImpl::SaveCredentials(
   }
   {
     absl::MutexLock lock(&public_mutex_);
-    auto public_key_value = std::make_pair(
-        std::make_tuple(manager_app_id, account_name, public_credential_type),
-        public_credentials);
-    auto public_result = public_credentials_map_.insert(public_key_value);
+    PublicCredentialKey key = CreatePublicCredentialKey(
+        manager_app_id, account_name, public_credential_type);
+    auto public_result =
+        public_credentials_map_.insert(std::make_pair(key, public_credentials));
     if (!public_result.second) {
       NEARBY_LOGS(WARNING)
           << "Credentials already saved in map. Overwriting previous creds!";
-      public_credentials_map_[std::make_tuple(manager_app_id, account_name,
-                                              public_credential_type)] =
-          public_credentials;
+      public_credentials_map_[key] = public_credentials;
     }
   }
 
@@ -90,8 +89,8 @@ void CredentialStorageImpl::GetPrivateCredentials(
                     << credential_selector.account_name << "], manager app ID:["
                     << credential_selector.manager_app_id << "]";
   absl::MutexLock lock(&private_mutex_);
-  auto key = std::make_pair(credential_selector.manager_app_id,
-                            credential_selector.account_name);
+  PrivateCredentialKey key = CreatePrivateCredentialKey(
+      credential_selector.manager_app_id, credential_selector.account_name);
   if (private_credentials_map_.find(key) == private_credentials_map_.end()) {
     NEARBY_LOGS(WARNING) << "There are no Private Credentials stored for key:"
                          << std::get<0>(key) << ", " << std::get<1>(key);
@@ -112,9 +111,9 @@ void CredentialStorageImpl::GetPublicCredentials(
                     << credential_selector.account_name << "], manager app ID:["
                     << credential_selector.manager_app_id << "]";
   absl::MutexLock lock(&public_mutex_);
-  auto key =
-      std::make_tuple(credential_selector.manager_app_id,
-                      credential_selector.account_name, public_credential_type);
+  PublicCredentialKey key = CreatePublicCredentialKey(
+      credential_selector.manager_app_id, credential_selector.account_name,
+      public_credential_type);
   if (public_credentials_map_.find(key) == public_credentials_map_.end()) {
     NEARBY_LOGS(WARNING) << "There are no Public Credentials stored for key:"
                          << std::get<0>(key) << ", " << std::get<1>(key) << ", "
