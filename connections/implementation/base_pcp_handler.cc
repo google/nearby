@@ -990,7 +990,7 @@ void BasePcpHandler::OnEndpointFound(
   NEARBY_LOGS(INFO) << "OnEndpointFound: id=" << endpoint_id << " [enter]";
 
   auto range = discovered_endpoints_.equal_range(endpoint->endpoint_id);
-
+  bool is_range_empty = range.first == range.second;
   DiscoveredEndpoint* owned_endpoint = nullptr;
   for (auto& item = range.first; item != range.second; ++item) {
     auto& discovered_endpoint = item->second;
@@ -1016,7 +1016,7 @@ void BasePcpHandler::OnEndpointFound(
 
   // Range is empty: this is the first endpoint we discovered so far.
   // Report this endpoint_id to client.
-  if (range.first == range.second) {
+  if (is_range_empty) {
     NEARBY_LOGS(INFO) << "Adding new endpoint: endpoint_id=" << endpoint_id;
     // And, as it's the first time, report it to the client.
     client->OnEndpointFound(
