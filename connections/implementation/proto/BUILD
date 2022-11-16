@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+package(default_applicable_licenses = ["//third_party/nearby:license"])
+
 licenses(["notice"])
 
 proto_library(

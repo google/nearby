@@ -13,6 +13,8 @@
 # limitations under the License.
 load("//security/fuzzing/blaze:cc_fuzz_target.bzl", "cc_fuzz_target")
 
+package(default_applicable_licenses = ["//third_party/nearby:license"])
+
 licenses(["notice"])
 
 cc_fuzz_target(

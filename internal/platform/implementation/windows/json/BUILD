@@ -1,3 +1,5 @@
+package(default_applicable_licenses = ["//third_party/nearby:license"])
+
 # Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

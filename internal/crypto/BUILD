@@ -13,7 +13,10 @@ licenses(["notice"])
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-package(default_visibility = ["//:__subpackages__"])
+package(
+    default_applicable_licenses = ["//third_party/nearby:license"],
+    default_visibility = ["//:__subpackages__"],
+)
 
 licenses(["notice"])
 

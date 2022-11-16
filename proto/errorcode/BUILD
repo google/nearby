@@ -16,7 +16,10 @@
 
 licenses(["notice"])
 
-package(default_visibility = ["//visibility:public"])
+package(
+    default_applicable_licenses = ["//third_party/nearby:license"],
+    default_visibility = ["//visibility:public"],
+)
 
 proto_library(
     name = "error_code_enums_proto",
