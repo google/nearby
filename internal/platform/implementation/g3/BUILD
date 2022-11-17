@@ -119,6 +119,7 @@ cc_library(
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
+        "//fastpair:__subpackages__",
         "//internal/analytics:__subpackages__",
         "//internal/crypto:__subpackages__",
         "//internal/platform:__subpackages__",
