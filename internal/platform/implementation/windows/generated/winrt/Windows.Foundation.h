@@ -3324,8 +3324,6 @@ namespace winrt::impl
     template<typename Awaiter>
     struct disconnect_aware_handler
     {
-        disconnect_aware_handler(Awaiter* awaiter, coroutine_handle<> handle) noexcept
-            : m_awaiter(awaiter), m_handle(handle) { }
 
         disconnect_aware_handler(disconnect_aware_handler&& other) noexcept
             : m_context(std::move(other.m_context))
@@ -3347,7 +3345,6 @@ namespace winrt::impl
     private:
         resume_apartment_context m_context;
         Awaiter* m_awaiter;
-        coroutine_handle<> m_handle;
 
         void Complete()
         {
@@ -3527,10 +3524,6 @@ namespace winrt::impl
             return true;
         }
 
-        void await_suspend(coroutine_handle<>) const noexcept
-        {
-        }
-
         cancellation_token<Promise> await_resume() const noexcept
         {
             return *this;
@@ -3567,10 +3560,6 @@ namespace winrt::impl
         bool await_ready() const noexcept
         {
             return true;
-        }
-
-        void await_suspend(coroutine_handle<>) const noexcept
-        {
         }
 
         progress_token<Promise, Progress> await_resume() const noexcept
@@ -3766,11 +3755,6 @@ namespace winrt::impl
             }
         }
 
-        suspend_never initial_suspend() const noexcept
-        {
-            return{};
-        }
-
         struct final_suspend_awaiter
         {
             promise_base* promise;
@@ -3782,19 +3766,6 @@ namespace winrt::impl
 
             void await_resume() const noexcept
             {
-            }
-
-            bool await_suspend(coroutine_handle<>) const noexcept
-            {
-                promise->set_completed();
-                uint32_t const remaining = promise->subtract_reference();
-
-                if (remaining == 0)
-                {
-                    std::atomic_thread_fence(std::memory_order_acquire);
-                }
-
-                return remaining > 0;
             }
         };
 

@@ -4576,15 +4576,6 @@ WINRT_EXPORT namespace winrt
                 return m_queued;
             }
 
-            bool await_suspend(impl::coroutine_handle<> handle)
-            {
-                return m_dispatcher.TryEnqueue(m_priority, [handle, this]
-                    {
-                        m_queued = true;
-                        handle();
-                    });
-            }
-
         private:
             Windows::System::DispatcherQueue const& m_dispatcher;
             Windows::System::DispatcherQueuePriority const m_priority;

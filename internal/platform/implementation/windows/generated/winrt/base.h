@@ -35,34 +35,6 @@
 #include <format>
 #endif
 
-#ifdef __cpp_lib_coroutine
-
-#include <coroutine>
-
-namespace winrt::impl
-{
-    template <typename T = void>
-    using coroutine_handle = std::coroutine_handle<T>;
-
-    using suspend_always = std::suspend_always;
-    using suspend_never = std::suspend_never;
-}
-
-#else
-
-#include <experimental/coroutine>
-
-namespace winrt::impl
-{
-    template <typename T = void>
-    using coroutine_handle = std::experimental::coroutine_handle<T>;
-
-    using suspend_always = std::experimental::suspend_always;
-    using suspend_never = std::experimental::suspend_never;
-}
-
-#endif
-
 #ifdef _DEBUG
 
 #define WINRT_ASSERT _ASSERTE
@@ -3029,7 +3001,7 @@ WINRT_EXPORT namespace winrt
             return operator std::wstring_view().ends_with(pointer);
         }
 #endif
-        
+
         bool empty() const noexcept
         {
             return !m_handle;
@@ -8745,16 +8717,6 @@ namespace winrt::impl
         }
     }
 
-    inline void __stdcall resume_background_callback(void*, void* context) noexcept
-    {
-        coroutine_handle<>::from_address(context)();
-    };
-
-    inline auto resume_background(coroutine_handle<> handle)
-    {
-        submit_threadpool_callback(resume_background_callback, handle.address());
-    }
-
     inline std::pair<int32_t, int32_t> get_apartment_type() noexcept
     {
         int32_t aptType;
@@ -8806,69 +8768,6 @@ namespace winrt::impl
         com_ptr<IContextCallback> m_context = try_capture<IContextCallback>(WINRT_IMPL_CoGetObjectContext);
         int32_t m_context_type = get_apartment_type().first;
     };
-
-    inline int32_t __stdcall resume_apartment_callback(com_callback_args* args) noexcept
-    {
-        coroutine_handle<>::from_address(args->data)();
-        return 0;
-    };
-
-    inline void resume_apartment_sync(com_ptr<IContextCallback> const& context, coroutine_handle<> handle, int32_t* failure)
-    {
-        com_callback_args args{};
-        args.data = handle.address();
-
-        auto result = context->ContextCallback(resume_apartment_callback, &args, guid_of<ICallbackWithNoReentrancyToApplicationSTA>(), 5, nullptr);
-        if (result < 0)
-        {
-            // Resume the coroutine on the wrong apartment, but tell it why.
-            *failure = result;
-            handle();
-        }
-    }
-
-    struct threadpool_resume
-    {
-        threadpool_resume(com_ptr<IContextCallback> const& context, coroutine_handle<> handle, int32_t* failure) :
-            m_context(context), m_handle(handle), m_failure(failure) { }
-        com_ptr<IContextCallback> m_context;
-        coroutine_handle<> m_handle;
-        int32_t* m_failure;
-    };
-
-    inline void __stdcall fallback_submit_threadpool_callback(void*, void* p) noexcept
-    {
-        std::unique_ptr<threadpool_resume> state{ static_cast<threadpool_resume*>(p) };
-        resume_apartment_sync(state->m_context, state->m_handle, state->m_failure);
-    }
-
-    inline void resume_apartment_on_threadpool(com_ptr<IContextCallback> const& context, coroutine_handle<> handle, int32_t* failure)
-    {
-        auto state = std::make_unique<threadpool_resume>(context, handle, failure);
-        submit_threadpool_callback(fallback_submit_threadpool_callback, state.get());
-        state.release();
-    }
-
-    inline auto resume_apartment(resume_apartment_context const& context, coroutine_handle<> handle, int32_t* failure)
-    {
-        WINRT_ASSERT(context.valid());
-        if ((context.m_context == nullptr) || (context.m_context == try_capture<IContextCallback>(WINRT_IMPL_CoGetObjectContext)))
-        {
-            handle();
-        }
-        else if (context.m_context_type == 1 /* APTTYPE_MTA */)
-        {
-            resume_background(handle);
-        }
-        else if (is_sta_thread())
-        {
-            resume_apartment_on_threadpool(context.m_context, handle, failure);
-        }
-        else
-        {
-            resume_apartment_sync(context.m_context, handle, failure);
-        }
-    }
 
     template <typename T>
     class awaiter_finder
@@ -9014,12 +8913,6 @@ namespace winrt::impl
             return awaitable.await_ready();
         }
 
-        template <typename U>
-        auto await_suspend(coroutine_handle<U> handle)
-        {
-            return awaitable.await_suspend(handle);
-        }
-
         decltype(auto) await_resume()
         {
             if (winrt_resume_handler)
@@ -9032,109 +8925,6 @@ namespace winrt::impl
     };
 }
 
-WINRT_EXPORT namespace winrt
-{
-    [[nodiscard]] inline auto resume_background() noexcept
-    {
-        struct awaitable
-        {
-            bool await_ready() const noexcept
-            {
-                return false;
-            }
-
-            void await_resume() const noexcept
-            {
-            }
-
-            void await_suspend(impl::coroutine_handle<> handle) const
-            {
-                impl::resume_background(handle);
-            }
-        };
-
-        return awaitable{};
-    }
-
-    template <typename T>
-    [[nodiscard]] auto resume_background(T const& context) noexcept
-    {
-        struct awaitable
-        {
-            awaitable(T const& context) : m_context(context)
-            {
-            }
-
-            bool await_ready() const noexcept
-            {
-                return false;
-            }
-
-            void await_resume() const noexcept
-            {
-            }
-
-            void await_suspend(impl::coroutine_handle<> resume)
-            {
-                m_resume = resume;
-
-                if (!WINRT_IMPL_TrySubmitThreadpoolCallback(callback, this, nullptr))
-                {
-                    throw_last_error();
-                }
-            }
-
-        private:
-
-            static void __stdcall callback(void*, void* context) noexcept
-            {
-                auto that = static_cast<awaitable*>(context);
-                auto guard = that->m_context();
-                that->m_resume();
-            }
-
-            T const& m_context;
-            impl::coroutine_handle<> m_resume{ nullptr };
-        };
-
-        return awaitable{ context };
-    }
-
-    struct apartment_context
-    {
-        apartment_context() = default;
-        apartment_context(std::nullptr_t) : context(nullptr) { }
-
-        operator bool() const noexcept { return context.valid(); }
-        bool operator!() const noexcept { return !context.valid(); }
-
-        impl::resume_apartment_context context;
-    };
-}
-
-namespace winrt::impl
-{
-    struct apartment_awaiter
-    {
-        apartment_context context; // make a copy because resuming may destruct the original
-        int32_t failure = 0;
-
-        bool await_ready() const noexcept
-        {
-            return false;
-        }
-
-        void await_resume() const
-        {
-            check_hresult(failure);
-        }
-
-        void await_suspend(impl::coroutine_handle<> handle)
-        {
-            impl::resume_apartment(context.context, handle, &failure);
-        }
-    };
-}
 
 WINRT_EXPORT namespace winrt
 {
@@ -9171,20 +8961,6 @@ WINRT_EXPORT namespace winrt
                 return m_duration.count() <= 0;
             }
 
-            void await_suspend(impl::coroutine_handle<> handle)
-            {
-                m_handle = handle;
-                m_timer.attach(check_pointer(WINRT_IMPL_CreateThreadpoolTimer(callback, this, nullptr)));
-                int64_t relative_count = -m_duration.count();
-                WINRT_IMPL_SetThreadpoolTimer(m_timer.get(), &relative_count, 0, 0);
-
-                state expected = state::idle;
-                if (!m_state.compare_exchange_strong(expected, state::pending, std::memory_order_release))
-                {
-                    fire_immediately();
-                }
-            }
-
             void await_resume()
             {
                 if (m_state.exchange(state::idle, std::memory_order_relaxed) == state::canceled)
@@ -9212,12 +8988,6 @@ WINRT_EXPORT namespace winrt
                 }
             }
 
-            static void __stdcall callback(void*, void* context, void*) noexcept
-            {
-                auto that = reinterpret_cast<awaitable*>(context);
-                that->m_handle();
-            }
-
             struct timer_traits
             {
                 using type = impl::ptp_timer;
@@ -9237,7 +9007,6 @@ WINRT_EXPORT namespace winrt
 
             handle_type<timer_traits> m_timer;
             Windows::Foundation::TimeSpan m_duration;
-            impl::coroutine_handle<> m_handle;
             std::atomic<state> m_state{ state::idle };
         };
 
@@ -9250,109 +9019,6 @@ WINRT_EXPORT namespace winrt
         return resume_after(duration);
     }
 #endif
-
-    [[nodiscard]] inline auto resume_on_signal(void* handle, Windows::Foundation::TimeSpan timeout = {}) noexcept
-    {
-        struct awaitable : enable_await_cancellation
-        {
-            awaitable(void* handle, Windows::Foundation::TimeSpan timeout) noexcept :
-                m_timeout(timeout),
-                m_handle(handle)
-            {}
-
-            void enable_cancellation(cancellable_promise* promise)
-            {
-                promise->set_canceller([](void* context)
-                {
-                    auto that = static_cast<awaitable*>(context);
-                    if (that->m_state.exchange(state::canceled, std::memory_order_acquire) == state::pending)
-                    {
-                        that->fire_immediately();
-                    }
-                }, this);
-            }
-
-            bool await_ready() const noexcept
-            {
-                return WINRT_IMPL_WaitForSingleObject(m_handle, 0) == 0;
-            }
-
-            void await_suspend(impl::coroutine_handle<> resume)
-            {
-                m_resume = resume;
-                m_wait.attach(check_pointer(WINRT_IMPL_CreateThreadpoolWait(callback, this, nullptr)));
-                int64_t relative_count = -m_timeout.count();
-                int64_t* file_time = relative_count != 0 ? &relative_count : nullptr;
-                WINRT_IMPL_SetThreadpoolWait(m_wait.get(), m_handle, file_time);
-
-                state expected = state::idle;
-                if (!m_state.compare_exchange_strong(expected, state::pending, std::memory_order_release))
-                {
-                    fire_immediately();
-                }
-            }
-
-            bool await_resume()
-            {
-                if (m_state.exchange(state::idle, std::memory_order_relaxed) == state::canceled)
-                {
-                    throw hresult_canceled();
-                }
-                return m_result == 0;
-            }
-
-        private:
-            static int32_t __stdcall fallback_SetThreadpoolWaitEx(winrt::impl::ptp_wait, void*, void*, void*) noexcept
-            {
-                return 0; // pretend wait has already triggered and a callback is on its way
-            }
-
-            void fire_immediately() noexcept
-            {
-                static int32_t(__stdcall* handler)(winrt::impl::ptp_wait, void*, void*, void*) noexcept;
-                impl::load_runtime_function(L"kernel32.dll", "SetThreadpoolWaitEx", handler, fallback_SetThreadpoolWaitEx);
-
-                if (handler(m_wait.get(), nullptr, nullptr, nullptr))
-                {
-                    int64_t now = 0;
-                    WINRT_IMPL_SetThreadpoolWait(m_wait.get(), WINRT_IMPL_GetCurrentProcess(), &now);
-                }
-            }
-
-            static void __stdcall callback(void*, void* context, void*, uint32_t result) noexcept
-            {
-                auto that = static_cast<awaitable*>(context);
-                that->m_result = result;
-                that->m_resume();
-            }
-
-            struct wait_traits
-            {
-                using type = impl::ptp_wait;
-
-                static void close(type value) noexcept
-                {
-                    WINRT_IMPL_CloseThreadpoolWait(value);
-                }
-
-                static constexpr type invalid() noexcept
-                {
-                    return nullptr;
-                }
-            };
-
-            enum class state { idle, pending, canceled };
-
-            handle_type<wait_traits> m_wait;
-            Windows::Foundation::TimeSpan m_timeout;
-            void* m_handle;
-            uint32_t m_result{};
-            impl::coroutine_handle<> m_resume{ nullptr };
-            std::atomic<state> m_state{ state::idle };
-        };
-
-        return awaitable{ handle, timeout };
-    }
 
     struct thread_pool
     {
@@ -9377,20 +9043,7 @@ WINRT_EXPORT namespace winrt
         {
         }
 
-        void await_suspend(impl::coroutine_handle<> handle)
-        {
-            if (!WINRT_IMPL_TrySubmitThreadpoolCallback(callback, handle.address(), &m_environment))
-            {
-                throw_last_error();
-            }
-        }
-
     private:
-
-        static void __stdcall callback(void*, void* context) noexcept
-        {
-            impl::coroutine_handle<>::from_address(context)();
-        }
 
         struct pool_traits
         {
@@ -9443,6 +9096,9 @@ namespace std
 namespace std::experimental
 #endif
 {
+    template <class _Ret, class... _Args>
+    struct coroutine_traits;
+
     template <typename... Args>
     struct coroutine_traits<winrt::fire_and_forget, Args...>
     {
@@ -9455,21 +9111,6 @@ namespace std::experimental
 
             void return_void() const noexcept
             {
-            }
-
-            suspend_never initial_suspend() const noexcept
-            {
-                return{};
-            }
-
-            suspend_never final_suspend() const noexcept
-            {
-                if (winrt_suspend_handler)
-                {
-                    winrt_suspend_handler(this);
-                }
-
-                return{};
             }
 
             void unhandled_exception() const noexcept
