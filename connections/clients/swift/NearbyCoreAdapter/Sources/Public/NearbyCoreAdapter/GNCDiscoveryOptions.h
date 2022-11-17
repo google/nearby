@@ -14,7 +14,7 @@
 
 #import <Foundation/Foundation.h>
 
-typedef NS_ENUM(NSInteger, GNCStrategy);
+typedef NS_CLOSED_ENUM(NSInteger, GNCStrategy);
 
 // TODO(b/239610253): Current sdk only exposes `strategy`, but we should add full support.
 /**

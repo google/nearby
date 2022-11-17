@@ -17,7 +17,7 @@
 /**
  * Indicates the status of a connection.
  */
-typedef NS_ENUM(NSInteger, GNCStatus) {
+typedef NS_CLOSED_ENUM(NSInteger, GNCStatus) {
   GNCStatusSuccess,
   GNCStatusError,
   GNCStatusOutOfOrderApiCall,

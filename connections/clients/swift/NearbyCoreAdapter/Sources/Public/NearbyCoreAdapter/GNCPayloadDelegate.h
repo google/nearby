@@ -19,7 +19,7 @@
 /**
  * Indicates the status of a payload transfer.
  */
-typedef NS_ENUM(NSInteger, GNCPayloadStatus) {
+typedef NS_CLOSED_ENUM(NSInteger, GNCPayloadStatus) {
   GNCPayloadStatusSuccess,
   GNCPayloadStatusFailure,
   GNCPayloadStatusInProgress,

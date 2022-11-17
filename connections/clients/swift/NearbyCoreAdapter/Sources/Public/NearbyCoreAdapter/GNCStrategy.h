@@ -17,7 +17,7 @@
 /**
  * Indicates the strategy or advertisement or discovery.
  */
-typedef NS_ENUM(NSInteger, GNCStrategy) {
+typedef NS_CLOSED_ENUM(NSInteger, GNCStrategy) {
   GNCStrategyCluster,       // M-to-N
   GNCStrategyStar,          // 1-to-N
   GNCStrategyPointToPoint,  // 1-to-1
