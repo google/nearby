@@ -26,6 +26,10 @@ using ::location::nearby::connections::Payload;
 
 @implementation GNCPayload
 
++ (int64_t)generateID {
+  return Payload::GenerateId();
+}
+
 - (instancetype)initWithIdentifier:(int64_t)identifier {
   self = [super init];
   if (self) {
@@ -71,16 +75,40 @@ using ::location::nearby::connections::Payload;
 
 @implementation GNCFilePayload
 
-- (instancetype)initWithFileURL:(NSURL *)fileURL identifier:(int64_t)identifier {
+@synthesize totalSize = _totalSize;
+
+- (NSNumber *)totalSize {
+  if (!_totalSize) {
+    NSNumber *fileSize;
+    BOOL result = [_fileURL getResourceValue:&fileSize forKey:NSURLFileSizeKey error:nil];
+    if (!result) {
+      fileSize = [NSNumber numberWithInt:-1];
+    }
+    _totalSize = fileSize;
+  }
+  return _totalSize;
+}
+
+- (instancetype)initWithFileURL:(NSURL *)fileURL
+                   parentFolder:(NSString *)parentFolder
+                       fileName:(NSString *)fileName
+                     identifier:(int64_t)identifier {
   self = [super initWithIdentifier:identifier];
   if (self) {
     _fileURL = [fileURL copy];
+    _parentFolder = [parentFolder copy];
+    _fileName = [fileName copy];
   }
   return self;
 }
 
-- (instancetype)initWithFileURL:(NSURL *)fileURL {
-  return [self initWithFileURL:fileURL identifier:Payload::GenerateId()];
+- (instancetype)initWithFileURL:(NSURL *)fileURL
+                   parentFolder:(NSString *)parentFolder
+                       fileName:(NSString *)fileName {
+  return [self initWithFileURL:fileURL
+                  parentFolder:parentFolder
+                      fileName:fileName
+                    identifier:Payload::GenerateId()];
 }
 
 @end

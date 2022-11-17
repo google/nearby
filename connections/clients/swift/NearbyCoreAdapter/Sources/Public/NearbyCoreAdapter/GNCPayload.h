@@ -29,6 +29,11 @@
  */
 - (nonnull instancetype)init NS_UNAVAILABLE;
 
+/**
+ * Generates a random payload ID.
+ */
++ (int64_t)generateID;
+
 @end
 
 /**
@@ -106,23 +111,49 @@
 @property(nonnull, nonatomic, readonly, copy) NSURL *fileURL;
 
 /**
+ * The relative path where the remote device should save this payload.
+ */
+@property(nonnull, nonatomic, readonly, copy) NSString *parentFolder;
+
+/**
+ * The file name the remote device should save this payload as.
+ *
+ * This value does not have to be respected (you could ask to save it as "photo.png" but instead the
+ * recipient saves it as "photo (1).png")
+ */
+@property(nonnull, nonatomic, readonly, copy) NSString *fileName;
+
+/**
+ * The total size of the file associated with this payload in bytes.
+ */
+@property(nonnull, nonatomic, readonly, copy) NSNumber *totalSize;
+
+/**
  * Creates a file payload object with identifier.
  *
  * @param fileURL A file URL.
+ * @param parentFolder The relative path where the remote device should save this payload.
+ * @param fileName The file name the remote device should save this payload as.
  * @param identifier A unique identifier for the payload.
  *
  * @return The initialized payload object, or nil if an error occurs.
  */
 - (nonnull instancetype)initWithFileURL:(nonnull NSURL *)fileURL
+                           parentFolder:(nonnull NSString *)parentFolder
+                               fileName:(nonnull NSString *)fileName
                              identifier:(int64_t)identifier NS_DESIGNATED_INITIALIZER;
 
 /**
  * Creates a file payload object.
  *
  * @param fileURL A file URL.
+ * @param parentFolder The relative path where the remote device should save this payload.
+ * @param fileName The file name the remote device should save this payload as.
  *
  * @return The initialized payload object, or nil if an error occurs.
  */
-- (nonnull instancetype)initWithFileURL:(nonnull NSURL *)fileURL;
+- (nonnull instancetype)initWithFileURL:(nonnull NSURL *)fileURL
+                           parentFolder:(nonnull NSString *)parentFolder
+                               fileName:(nonnull NSString *)fileName;
 
 @end

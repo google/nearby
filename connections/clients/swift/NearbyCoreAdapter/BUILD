@@ -35,6 +35,7 @@ objc_library(
         "//internal/platform:base",
         "//internal/platform/implementation/ios:Platform",  # buildcleaner: keep
         "//third_party/apple_frameworks:Foundation",
+        "//third_party/apple_frameworks:ObjectiveC",
     ],
 )
 

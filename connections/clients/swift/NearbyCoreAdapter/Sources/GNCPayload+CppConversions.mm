@@ -42,8 +42,13 @@ using ::location::nearby::connections::Payload;
     case location::nearby::connections::PayloadType::kFile: {
       InputFile *inputFile = payload.AsFile();
       NSString *filePath = @(inputFile->GetFilePath().c_str());
+      NSString *parentFolder = @(payload.GetParentFolder().c_str());
+      NSString *fileName = @(payload.GetFileName().c_str());
       NSURL *fileURL = [NSURL fileURLWithPath:filePath];
-      return [[GNCFilePayload alloc] initWithFileURL:fileURL identifier:payloadId];
+      return [[GNCFilePayload alloc] initWithFileURL:fileURL
+                                        parentFolder:parentFolder
+                                            fileName:fileName
+                                          identifier:payloadId];
     }
     case location::nearby::connections::PayloadType::kStream: {
       GNCInputStream *stream = [[GNCInputStream alloc] initWithCppInputStream:payload.AsStream()];
@@ -86,13 +91,10 @@ using ::location::nearby::connections::Payload;
 @implementation GNCFilePayload (CppConversions)
 
 - (Payload)toCpp {
-  NSNumber *fileSize;
-  BOOL result = [self.fileURL getResourceValue:&fileSize forKey:NSURLFileSizeKey error:nil];
-  if (!result) {
-    fileSize = [NSNumber numberWithInt:-1];
-  }
   std::string path = [self.fileURL.path cStringUsingEncoding:[NSString defaultCStringEncoding]];
-  return Payload(self.identifier, InputFile(path, fileSize.longLongValue));
+  std::string folder = [self.parentFolder cStringUsingEncoding:[NSString defaultCStringEncoding]];
+  std::string name = [self.fileName cStringUsingEncoding:[NSString defaultCStringEncoding]];
+  return Payload(self.identifier, folder, name, InputFile(path, self.totalSize.longLongValue));
 }
 
 @end
