@@ -15,9 +15,9 @@
 #ifndef PLATFORM_IMPL_WINDOWS_WIFI_H_
 #define PLATFORM_IMPL_WINDOWS_WIFI_H_
 
+#include <objbase.h>
 #include <windows.h>
 #include <wlanapi.h>
-#include <objbase.h>
 #include <wtypes.h>
 
 // Nearby connections headers
@@ -25,8 +25,8 @@
 #include "internal/platform/wifi_utils.h"
 
 // WinRT headers
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
 
 namespace location {
@@ -117,6 +117,7 @@ class WifiMedium : public api::WifiMedium {
   // Since the WiFi interface capability won't change in the connection session,
   // we only need to query it once at the beginning
   void InitCapability();
+  std::string InternalGetIpAddress();
 
   bool wifi_interface_valid_;
   api::WifiCapability wifi_capability_;

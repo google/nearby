@@ -194,7 +194,7 @@ api::WifiInformation& WifiMedium::GetInformation() {
   p_intf_list = NULL;
   WlanCloseHandle(client_handle, NULL);
 
-  wifi_information_.ip_address_dot_decimal = GetIpAddress();
+  wifi_information_.ip_address_dot_decimal = InternalGetIpAddress();
   if (!wifi_information_.ip_address_dot_decimal.empty()) {
     wifi_information_.ip_address_4_bytes = ipaddr_dotdecimal_to_4bytes_string(
         wifi_information_.ip_address_dot_decimal);
@@ -204,6 +204,11 @@ api::WifiInformation& WifiMedium::GetInformation() {
 }
 
 std::string WifiMedium::GetIpAddress() {
+  GetInformation();
+  return wifi_information_.ip_address_dot_decimal;
+}
+
+std::string WifiMedium::InternalGetIpAddress() {
   try {
     auto host_names = NetworkInformation::GetHostNames();
     for (auto host_name : host_names) {
