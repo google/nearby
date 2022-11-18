@@ -14,4 +14,19 @@
 
 import NearbyCoreAdapter
 
-public class Connection {}
+class InternalDiscovery: GNCDiscoveryDelegate {
+  weak var delegate: InternalDiscoveryDelegate?
+
+  func foundEndpoint(_ endpointID: String, withEndpointInfo info: Data) {
+    delegate?.foundEndpoint(endpointID, withEndpointInfo: info)
+  }
+
+  func lostEndpoint(_ endpointID: String) {
+    delegate?.lostEndpoint(endpointID)
+  }
+}
+
+protocol InternalDiscoveryDelegate: AnyObject {
+  func foundEndpoint(_ endpointID: String, withEndpointInfo info: Data)
+  func lostEndpoint(_ endpointID: String)
+}
