@@ -515,6 +515,7 @@ let package = Package(
         "internal/platform/bluetooth_adapter_test.cc",
         "internal/platform/byte_utils_test.cc",
         "internal/platform/direct_executor_test.cc",
+        "internal/platform/borrowable_test.cc",
         // simulation
         "connections/implementation/offline_simulation_user.cc",
         "connections/implementation/simulation_user.cc",

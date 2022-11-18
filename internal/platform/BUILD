@@ -311,6 +311,7 @@ cc_library(
     hdrs = [
         "atomic_boolean.h",
         "atomic_reference.h",
+        "borrowable.h",
         "cancelable.h",
         "cancelable_alarm.h",
         "cancellable_task.h",
@@ -423,6 +424,7 @@ cc_test(
         "bluetooth_adapter_test.cc",
         "bluetooth_classic_test.cc",
         "bluetooth_connection_info_test.cc",
+        "borrowable_test.cc",
         "cancelable_alarm_test.cc",
         "condition_variable_test.cc",
         "count_down_latch_test.cc",
