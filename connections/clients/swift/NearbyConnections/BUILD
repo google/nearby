@@ -25,6 +25,7 @@ swift_library(
     module_name = "NearbyConnections",
     deps = [
         "//connections/clients/swift/NearbyCoreAdapter",
+        "//third_party/apple_frameworks:Foundation",
     ],
 )
 
