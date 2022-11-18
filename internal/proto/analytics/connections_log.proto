@@ -466,6 +466,9 @@ message ConnectionsLog {
 
     // The frequency of the connected WiFi AP.
     optional int32 connected_ap_frequency = 14;
+
+    // The connectivity MCC mode
+    optional bool is_mcc_mode = 15;
   }
 }
 // LINT.ThenChange()
