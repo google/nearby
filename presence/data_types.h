@@ -83,7 +83,7 @@ struct BroadcastSession {
   // Nearby library would provide the implementation of this callback in
   // runtime. Assiging with a default value NotImplemented to surface potential
   // issue where library failed to provide the implementation.
-  std::function<Status(void)> stop_broadcast_callback = []() {
+  absl::AnyInvocable<Status(void)> stop_broadcast_callback = []() {
     return Status{Status::Value::kNotImplemented};
   };
 };

@@ -136,6 +136,22 @@ cc_test(
 )
 
 cc_test(
+    name = "service_controller_impl_test",
+    size = "small",
+    srcs = ["service_controller_impl_test.cc"],
+    deps = [
+        ":internal",
+        "//internal/platform:base",
+        "//internal/platform:test_util",
+        "//internal/platform:types",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/proto:credential_cc_proto",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "encryption_test",
     size = "small",
     srcs = ["encryption_test.cc"],

@@ -39,6 +39,9 @@ class ServiceControllerImpl : public ServiceController {
   std::unique_ptr<BroadcastSession> StartBroadcast(
       BroadcastRequest broadcast_request, BroadcastCallback callback) override;
 
+  // Gives tests access to mediums.
+  Mediums& GetMediums() { return mediums_; }
+
  private:
   Mediums mediums_;  // NOLINT: further impl will use it.
   CredentialManagerImpl
