@@ -22,12 +22,12 @@
 #include <string>
 #include <utility>
 
-#include "internal/analytics/event_logger.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "internal/analytics/event_logger.h"
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
@@ -383,6 +383,46 @@ BooleanMediumSelector ClientProxy::GetUpgradeMediums(
   const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     return item->connection_options.allowed;
+  }
+  return {};
+}
+
+bool ClientProxy::Is5GHzSupported(const std::string& endpoint_id) const {
+  MutexLock lock(&mutex_);
+
+  const Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return item->connection_options.connection_info.supports_5_ghz;
+  }
+  return false;
+}
+
+std::string ClientProxy::GetBssid(const std::string& endpoint_id) const {
+  MutexLock lock(&mutex_);
+
+  const Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return item->connection_options.connection_info.bssid;
+  }
+  return {};
+}
+
+std::int32_t ClientProxy::GetApFrequency(const std::string& endpoint_id) const {
+  MutexLock lock(&mutex_);
+
+  const Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return item->connection_options.connection_info.ap_frequency;
+  }
+  return -1;
+}
+
+std::string ClientProxy::GetIPAddress(const std::string& endpoint_id) const {
+  MutexLock lock(&mutex_);
+
+  const Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return item->connection_options.connection_info.ip_address;
   }
   return {};
 }

@@ -125,6 +125,14 @@ class ClientProxy final {
 
   // Returns all mediums eligible for upgrade.
   BooleanMediumSelector GetUpgradeMediums(const std::string& endpoint_id) const;
+  // Returns if this endpoint support 5G for WIFI.
+  bool Is5GHzSupported(const std::string& endpoint_id) const;
+  // Returns BSSID for this endpoint.
+  std::string GetBssid(const std::string& endpoint_id) const;
+  // Returns WIFI Frequency for this endpoint.
+  std::int32_t GetApFrequency(const std::string& endpoint_id) const;
+  // Returns IP Address in 4 bytes format for this endpoint.
+  std::string GetIPAddress(const std::string& endpoint_id) const;
   // Returns true if it's safe to send payloads to this endpoint.
   bool IsConnectedToEndpoint(const std::string& endpoint_id) const;
   // Returns all endpoints that can safely be sent payloads.

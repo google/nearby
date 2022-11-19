@@ -14,6 +14,7 @@
 #ifndef CORE_CONNECTION_OPTIONS_H_
 #define CORE_CONNECTION_OPTIONS_H_
 #include <string>
+#include <vector>
 
 #include "connections/options_base.h"
 #include "internal/platform/byte_array.h"
@@ -22,6 +23,19 @@
 namespace location {
 namespace nearby {
 namespace connections {
+
+struct ConnectionInfo {
+  std::string local_endpoint_id;
+  ByteArray local_endpoint_info;
+  std::int32_t nonce;
+  bool supports_5_ghz = false;
+  std::string bssid;
+  std::int32_t ap_frequency = -1;
+  std::string ip_address;
+  std::vector<proto::connections::Medium> supported_mediums;
+  std::int32_t keep_alive_interval_millis;
+  std::int32_t keep_alive_timeout_millis;
+};
 
 // Connection Options: used for both Advertising and Discovery.
 // All fields are mutable, to make the type copy-assignable.
@@ -40,19 +54,7 @@ struct ConnectionOptions : public OptionsBase {
   int keep_alive_timeout_millis = 0;
 
   std::vector<Medium> GetMediums() const;
-};
-
-struct ConnectionInfo {
-  std::string local_endpoint_id;
-  ByteArray local_endpoint_info;
-  std::int32_t nonce;
-  bool supports_5_ghz = false;
-  std::string bssid;
-  std::int32_t ap_frequency = -1;
-  std::string ip_address;
-  std::vector<proto::connections::Medium> supported_mediums;
-  std::int32_t keep_alive_interval_millis;
-  std::int32_t keep_alive_timeout_millis;
+  ConnectionInfo connection_info;
 };
 
 }  // namespace connections

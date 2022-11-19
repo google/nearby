@@ -20,14 +20,17 @@
 #include <cstdlib>
 #include <limits>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "securegcm/d2d_connection_context_v1.h"
 #include "securegcm/ukey2_handshake.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
 #include "absl/types/span.h"
+#include "connections/connection_options.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/offline_frames.h"
 #include "internal/platform/base64_utils.h"
@@ -381,29 +384,9 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
   // Set ourselves up so that we receive all acceptance/rejection messages
   endpoint_manager_->RegisterFrameProcessor(V1Frame::CONNECTION_RESPONSE, this);
 
-  ConnectionOptions connection_options;
-  connection_options.strategy = connection_info.connection_options.strategy;
+  ConnectionOptions connection_options = connection_info.connection_options;
   connection_options.allowed =
       ComputeIntersectionOfSupportedMediums(connection_info);
-  connection_options.auto_upgrade_bandwidth =
-      connection_info.connection_options.auto_upgrade_bandwidth;
-  connection_options.enforce_topology_constraints =
-      connection_info.connection_options.enforce_topology_constraints;
-  connection_options.low_power = connection_info.connection_options.low_power;
-  connection_options.enable_bluetooth_listening =
-      connection_info.connection_options.enable_bluetooth_listening;
-  connection_options.enable_webrtc_listening =
-      connection_info.connection_options.enable_webrtc_listening;
-  connection_options.is_out_of_band_connection =
-      connection_info.connection_options.is_out_of_band_connection;
-  connection_options.remote_bluetooth_mac_address =
-      connection_info.connection_options.remote_bluetooth_mac_address;
-  connection_options.fast_advertisement_service_uuid =
-      connection_info.connection_options.fast_advertisement_service_uuid;
-  connection_options.keep_alive_interval_millis =
-      connection_info.connection_options.keep_alive_interval_millis;
-  connection_options.keep_alive_timeout_millis =
-      connection_info.connection_options.keep_alive_timeout_millis;
 
   // Now we register our endpoint so that we can listen for both sides to
   // accept.
@@ -1193,6 +1176,20 @@ Exception BasePcpHandler::OnIncomingConnection(
     connection_options.keep_alive_timeout_millis =
         FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis;
   }
+
+  const MediumMetadata& medium_metadata = connection_request.medium_metadata();
+  ConnectionInfo& connection_info = connection_options.connection_info;
+  connection_info.supports_5_ghz = medium_metadata.supports_5_ghz();
+  connection_info.bssid = medium_metadata.bssid();
+  connection_info.ap_frequency = medium_metadata.ap_frequency();
+  connection_info.ip_address = medium_metadata.ip_address();
+  NEARBY_LOGS(INFO) << connection_request.endpoint_id()
+                    << "'s WIFI information: is_supports_5_ghz="
+                    << connection_info.supports_5_ghz
+                    << "; bssid=" << connection_info.bssid
+                    << "; ap_frequency=" << connection_info.ap_frequency
+                    << "Mhz; ip_address in bytes format="
+                    << connection_info.ip_address;
 
   // We've successfully connected to the device, and are now about to jump on to
   // the EncryptionRunner thread to start running our encryption protocol. We'll

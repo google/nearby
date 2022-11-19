@@ -264,24 +264,46 @@ TEST_P(P2pClusterPcpHandlerTest, CanConnect) {
   EXPECT_TRUE(discover_latch.Await(absl::Milliseconds(1000)).result());
   EXPECT_EQ(endpoint_name_a, std::string{discovered.endpoint_info});
 
+  const std::string kBssid = "34:36:3B:C7:8C:71";
+  const std::int32_t kFreq = 5200;
+  constexpr char kIp4Bytes[] = {(char)192, (char)168, (char)1, (char)37};
+  const std::string kIpAddr4Bytes(kIp4Bytes);
+
+  connection_options_.connection_info.supports_5_ghz = true;
+  connection_options_.connection_info.bssid = kBssid;
+  connection_options_.connection_info.ap_frequency = kFreq;
+  connection_options_.connection_info.ip_address = kIpAddr4Bytes;
+
   client_b_.AddCancellationFlag(discovered.endpoint_id);
   handler_b.RequestConnection(
       &client_b_, discovered.endpoint_id,
-      {
-          .endpoint_info = discovered.endpoint_info,
-          .listener =
-              {
-                  .initiated_cb =
-                      [&connect_latch](const std::string& endpoint_id,
-                                       const ConnectionResponseInfo& info) {
-                        NEARBY_LOG(INFO,
-                                   "RequestConnection: initiated_cb called");
-                        connect_latch.CountDown();
-                      },
-              },
-      },
+      {.endpoint_info = discovered.endpoint_info,
+       .listener =
+           {
+               .initiated_cb =
+                   [&connect_latch](const std::string& endpoint_id,
+                                    const ConnectionResponseInfo& info) {
+                     NEARBY_LOG(INFO, "RequestConnection: initiated_cb called");
+                     connect_latch.CountDown();
+                   },
+           }},
       connection_options_);
+  std::string  client_b_local_endpoint = client_b_.GetLocalEndpointId();
+
   EXPECT_TRUE(connect_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(client_b_.Is5GHzSupported(discovered.endpoint_id));
+  EXPECT_EQ(client_b_.GetBssid(discovered.endpoint_id), kBssid);
+  EXPECT_EQ(client_b_.GetApFrequency(discovered.endpoint_id), kFreq);
+  EXPECT_EQ(client_b_.GetIPAddress(discovered.endpoint_id), kIpAddr4Bytes);
+  EXPECT_EQ(client_a_.Is5GHzSupported(client_b_local_endpoint),
+            mediums_b.GetWifi().GetCapability().supports_5_ghz);
+  EXPECT_EQ(client_a_.GetBssid(client_b_local_endpoint),
+            mediums_b.GetWifi().GetInformation().bssid);
+  EXPECT_EQ(client_a_.GetApFrequency(client_b_local_endpoint),
+            mediums_b.GetWifi().GetInformation().ap_frequency);
+  EXPECT_EQ(client_a_.GetIPAddress(client_b_local_endpoint),
+            mediums_b.GetWifi().GetInformation().ip_address_4_bytes);
+
   bwu_a.Shutdown();
   bwu_b.Shutdown();
   env_.Stop();

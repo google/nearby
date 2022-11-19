@@ -28,7 +28,7 @@ TEST(WifiMediumTest, ConstructorDestructorWorks) {
 
   if (wifi_a.IsValid() && wifi_b.IsValid()) {
     // Make sure we can create 2 distinct mediums.
-    EXPECT_NE(&wifi_a.GetImpl(), &wifi_a.GetImpl());
+    EXPECT_NE(&wifi_a.GetImpl(), &wifi_b.GetImpl());
   }
   // TODO(b/233324423): Add test coverage for wifi.h
 }
