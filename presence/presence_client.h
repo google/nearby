@@ -19,6 +19,7 @@
 #include <memory>
 #include <vector>
 
+#include "internal/platform/borrowable.h"
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
 #include "presence/scan_request.h"
@@ -33,10 +34,15 @@ class PresenceService;
  */
 class PresenceClient {
  public:
-  explicit PresenceClient(PresenceService* service);
+  using BorrowablePresenceService =
+      ::location::nearby::Borrowable<PresenceService*>;
+
+  explicit PresenceClient(BorrowablePresenceService service)
+      : service_(service) {}
   PresenceClient(const PresenceClient&) = delete;
+  PresenceClient(PresenceClient&&) = default;
   PresenceClient& operator=(const PresenceClient&) = delete;
-  ~PresenceClient() = default;
+
   /**
    * Starts a Nearby Presence scan and registers {@link ScanCallback}
    * which will be invoked when a matching {@link PresenceDevice} is detected,
@@ -69,7 +75,7 @@ class PresenceClient {
       BroadcastRequest broadcast_request, BroadcastCallback callback);
 
  private:
-  PresenceService& service_;
+  BorrowablePresenceService service_;
 };
 
 }  // namespace presence

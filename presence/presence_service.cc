@@ -16,6 +16,7 @@
 
 #include <memory>
 
+#include "internal/platform/borrowable.h"
 #include "presence/data_types.h"
 #include "presence/implementation/service_controller_impl.h"
 
@@ -26,7 +27,7 @@ PresenceService::PresenceService() {
 }
 
 PresenceClient PresenceService::CreatePresenceClient() {
-  return PresenceClient(this);
+  return PresenceClient(lender_.GetBorrowable());
 }
 
 std::unique_ptr<ScanSession> PresenceService::StartScan(

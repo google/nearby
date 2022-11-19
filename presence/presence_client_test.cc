@@ -24,6 +24,13 @@ namespace nearby {
 namespace presence {
 namespace {
 
+// Creates a PresenceClient and destroys PresenceService that was used to create
+// it.
+PresenceClient CreateDefunctPresenceClient() {
+  PresenceService presence_service;
+  return presence_service.CreatePresenceClient();
+}
+
 class PresenceClientTest : public testing::Test {
  protected:
   location::nearby::MediumEnvironment& env_{
@@ -45,6 +52,19 @@ TEST_F(PresenceClientTest, StartBroadcastWithDefaultConstructor) {
   env_.Stop();
 }
 
+TEST_F(PresenceClientTest, StartBroadcastFailsWhenPresenceServiceIsGone) {
+  env_.Start();
+  Status broadcast_result = {Status::Value::kError};
+  BroadcastCallback broadcast_callback = {
+      .start_broadcast_cb = [&](Status status) { broadcast_result = status; },
+  };
+
+  CreateDefunctPresenceClient().StartBroadcast({}, broadcast_callback);
+
+  EXPECT_FALSE(broadcast_result.Ok());
+  env_.Stop();
+}
+
 TEST_F(PresenceClientTest, StartScanWithDefaultConstructor) {
   env_.Start();
   Status scan_result = {Status::Value::kError};
@@ -57,6 +77,19 @@ TEST_F(PresenceClientTest, StartScanWithDefaultConstructor) {
   presence_client.StartScan({}, scan_callback);
 
   EXPECT_TRUE(scan_result.Ok());
+  env_.Stop();
+}
+
+TEST_F(PresenceClientTest, StartScanFailsWhenPresenceServiceIsGone) {
+  env_.Start();
+  Status scan_result = {Status::Value::kError};
+  ScanCallback scan_callback = {
+      .start_scan_cb = [&](Status status) { scan_result = status; },
+  };
+
+  CreateDefunctPresenceClient().StartScan({}, scan_callback);
+
+  EXPECT_FALSE(scan_result.Ok());
   env_.Stop();
 }
 

@@ -17,22 +17,27 @@
 #include <memory>
 #include <vector>
 
-#include "absl/log/die_if_null.h"
+#include "internal/platform/borrowable.h"
 #include "presence/presence_service.h"
 
 namespace nearby {
 namespace presence {
 
-PresenceClient::PresenceClient(PresenceService* service)
-    : service_(*ABSL_DIE_IF_NULL(service)) {}
-
 std::unique_ptr<ScanSession> PresenceClient::StartScan(ScanRequest scan_request,
                                                        ScanCallback callback) {
-  return service_.StartScan(scan_request, callback);
+  ::location::nearby::Borrowed<PresenceService*> borrowed = service_.Borrow();
+  if (!borrowed) {
+    return nullptr;
+  }
+  return (*borrowed)->StartScan(scan_request, callback);
 }
 std::unique_ptr<BroadcastSession> PresenceClient::StartBroadcast(
     BroadcastRequest broadcast_request, BroadcastCallback callback) {
-  return service_.StartBroadcast(broadcast_request, callback);
+  ::location::nearby::Borrowed<PresenceService*> borrowed = service_.Borrow();
+  if (!borrowed) {
+    return nullptr;
+  }
+  return (*borrowed)->StartBroadcast(broadcast_request, callback);
 }
 
 }  // namespace presence
