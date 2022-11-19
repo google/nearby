@@ -44,7 +44,6 @@ cc_library(
         ":utils",
         "//connections:core_types",
         "//connections/implementation/mediums/ble_v2",
-        "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:comm",

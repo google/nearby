@@ -37,10 +37,7 @@ cc_library(
         "//internal/platform/implementation:__subpackages__",
         "//location/nearby/cpp/sharing/implementation:__subpackages__",
     ],
-    deps = [
-        "//proto:connections_enums_cc_proto",
-        "@com_google_absl//absl/strings",
-    ],
+    deps = ["@com_google_absl//absl/strings"],
 )
 
 bzl_library(
