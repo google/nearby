@@ -21,14 +21,14 @@
 namespace nearby {
 namespace presence {
 namespace {
-constexpr PresenceDevice::MotionType kDefaultMotionType =
-    PresenceDevice::MotionType::kPointAndHold;
+constexpr DeviceMotion::MotionType kDefaultMotionType =
+    DeviceMotion::MotionType::kPointAndHold;
 constexpr float kDefaultConfidence = 0;
 constexpr float kTestConfidence = 0.1;
 TEST(PresenceDeviceTest, DefaultConstructorWorks) {
   PresenceDevice device;
-  EXPECT_EQ(device.GetMotionType(), kDefaultMotionType);
-  EXPECT_EQ(device.GetConfidence(), kDefaultConfidence);
+  DeviceMotion device_motion;
+  EXPECT_EQ(device.GetDeviceMotion(), device_motion);
 }
 
 TEST(PresenceDeviceTest, DefaultEquals) {
@@ -38,19 +38,23 @@ TEST(PresenceDeviceTest, DefaultEquals) {
 }
 
 TEST(PresenceDeviceTest, ExplicitInitEquals) {
-  PresenceDevice device1 = {kDefaultMotionType, kTestConfidence};
-  PresenceDevice device2 = {kDefaultMotionType, kTestConfidence};
+  PresenceDevice device1 =
+      PresenceDevice({kDefaultMotionType, kTestConfidence});
+  PresenceDevice device2 =
+      PresenceDevice({kDefaultMotionType, kTestConfidence});
   EXPECT_EQ(device1, device2);
 }
 
 TEST(PresenceDeviceTest, ExplicitInitNotEquals) {
-  PresenceDevice device1 = {kDefaultMotionType};
-  PresenceDevice device2 = {kDefaultMotionType, kTestConfidence};
+  PresenceDevice device1 = PresenceDevice({kDefaultMotionType});
+  PresenceDevice device2 =
+      PresenceDevice({kDefaultMotionType, kTestConfidence});
   EXPECT_NE(device1, device2);
 }
 
 TEST(PresenceDeviceTest, CopyInitEquals) {
-  PresenceDevice device1 = {kDefaultMotionType, kTestConfidence};
+  PresenceDevice device1 =
+      PresenceDevice({kDefaultMotionType, kTestConfidence});
   PresenceDevice device2 = {device1};
   EXPECT_EQ(device1, device2);
 }

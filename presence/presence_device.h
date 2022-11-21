@@ -15,26 +15,22 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_DEVICE_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_DEVICE_H_
 
+#include "presence/device_motion.h"
+
 namespace nearby {
 namespace presence {
 class PresenceDevice {
  public:
-  enum class MotionType {
-    kPointAndHold = 0,
-  };
-  PresenceDevice(MotionType type = MotionType::kPointAndHold,
-                 float confidence = 0) noexcept;
-  MotionType GetMotionType() const;
-  float GetConfidence() const;
+  PresenceDevice() noexcept;
+  explicit PresenceDevice(DeviceMotion device_motion) noexcept;
+  DeviceMotion GetDeviceMotion() const { return device_motion_; }
 
  private:
-  const MotionType motion_type_;
-  const float confidence_;
+  const DeviceMotion device_motion_;
 };
 
 inline bool operator==(const PresenceDevice& d1, const PresenceDevice& d2) {
-  return d1.GetMotionType() == d2.GetMotionType() &&
-         d1.GetConfidence() == d2.GetConfidence();
+  return d1.GetDeviceMotion() == d2.GetDeviceMotion();
 }
 
 inline bool operator!=(const PresenceDevice& d1, const PresenceDevice& d2) {

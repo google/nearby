@@ -14,18 +14,14 @@
 
 #include "presence/presence_device.h"
 
+#include "presence/device_motion.h"
+
 namespace nearby {
 namespace presence {
 
-PresenceDevice::PresenceDevice(PresenceDevice::MotionType type,
-                               float confidence) noexcept
-    : motion_type_(type), confidence_(confidence) {}
-
-PresenceDevice::MotionType PresenceDevice::GetMotionType() const {
-  return motion_type_;
-}
-
-float PresenceDevice::GetConfidence() const { return confidence_; }
+PresenceDevice::PresenceDevice() noexcept : device_motion_(DeviceMotion()) {}
+PresenceDevice::PresenceDevice(DeviceMotion device_motion) noexcept
+    : device_motion_(device_motion) {}
 
 }  // namespace presence
 }  // namespace nearby
