@@ -18,6 +18,7 @@
 #include <memory>
 
 #include "absl/container/flat_hash_set.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
 
 namespace location {
@@ -28,7 +29,7 @@ namespace nearby {
 class CancellationFlag {
  public:
   // The listener for cancellation.
-  using CancelListener = std::function<void()>;
+  using CancelListener = absl::AnyInvocable<void()>;
 
   CancellationFlag();
   explicit CancellationFlag(bool cancelled);

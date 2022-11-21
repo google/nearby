@@ -48,7 +48,7 @@ void CancellationFlag::Cancel() {
     listeners = listeners_;
   }
 
-  for (const auto *listener : listeners) {
+  for (auto *listener : listeners) {
     (*listener)();
   }
 }

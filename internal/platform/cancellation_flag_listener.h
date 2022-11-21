@@ -25,7 +25,7 @@ namespace nearby {
 class CancellationFlagListener {
  public:
   CancellationFlagListener(CancellationFlag* flag,
-                           std::function<void()> listener)
+                           CancellationFlag::CancelListener listener)
       : flag_(flag), listener_(std::move(listener)) {
     flag_->RegisterOnCancelListener(&listener_);
   }
@@ -34,7 +34,7 @@ class CancellationFlagListener {
 
  private:
   CancellationFlag* flag_;
-  std::function<void()> listener_;
+  CancellationFlag::CancelListener listener_;
 };
 
 }  // namespace nearby
