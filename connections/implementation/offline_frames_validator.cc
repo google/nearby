@@ -39,7 +39,7 @@ using WifiAwareCredentials = UpgradePathInfo::WifiAwareCredentials;
 using WifiDirectCredentials = UpgradePathInfo::WifiDirectCredentials;
 using BluetoothCredentials = UpgradePathInfo::BluetoothCredentials;
 using WebRtcCredentials = UpgradePathInfo::WebRtcCredentials;
-using Medium = location::nearby::connections::Medium;
+using Medium = ::location::nearby::connections::Medium;
 
 constexpr absl::string_view kIpv4PatternString{
     "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."

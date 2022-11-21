@@ -292,8 +292,8 @@ class IncomingFileInternalPayload : public InternalPayload {
 
 }  // namespace
 
-using location::nearby::api::ImplementationPlatform;
-using location::nearby::api::OSName;
+using ::location::nearby::api::ImplementationPlatform;
+using ::location::nearby::api::OSName;
 
 std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(
     Payload payload) {

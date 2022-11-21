@@ -30,15 +30,14 @@
 
 namespace location::nearby::windows {
 
-using location::nearby::ByteArray;
-using location::nearby::CountDownLatch;
-using location::nearby::connections::AdvertisingOptions;
-using location::nearby::connections::ConnectionListener;
-using location::nearby::connections::ConnectionRequestInfo;
-using location::nearby::connections::Core;
-using location::nearby::connections::ServiceControllerRouter;
-using location::nearby::connections::Status;
-using location::nearby::connections::Strategy;
+using ::location::nearby::ByteArray;
+using ::location::nearby::connections::AdvertisingOptions;
+using ::location::nearby::connections::ConnectionListener;
+using ::location::nearby::connections::ConnectionRequestInfo;
+using ::location::nearby::connections::Core;
+using ::location::nearby::connections::ServiceControllerRouter;
+using ::location::nearby::connections::Status;
+using ::location::nearby::connections::Strategy;
 
 constexpr absl::string_view SERVICE_ID =
     "com.google.location.nearby.apps.helloconnections";

@@ -20,7 +20,7 @@
 namespace location {
 namespace nearby {
 
-using location::nearby::api::WifiBandType;
+using ::location::nearby::api::WifiBandType;
 
 class WifiUtils {
  public:

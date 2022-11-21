@@ -35,7 +35,7 @@
 // STOP/HANG AND IS INTENDED SOLELY FOR DEBUG AND DEMONSTRATION PURPOSES. DO NOT
 // ATTEMPT TO BUILD AND RUN THIS TEST ON GOOGLE3 YOU HAVE BEEN WARNED
 
-using location::nearby::windows::BluetoothDevice;
+using ::location::nearby::windows::BluetoothDevice;
 
 typedef std::map<const std::string, location::nearby::api::BluetoothDevice*>
     DeviceMap;

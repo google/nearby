@@ -28,7 +28,7 @@ namespace location {
 namespace nearby {
 namespace analytics {
 
-using Medium = location::nearby::proto::connections::Medium;
+using Medium = ::location::nearby::proto::connections::Medium;
 using PayloadType = connections::PayloadType;
 
 class ThroughputRecorder {

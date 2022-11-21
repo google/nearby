@@ -23,9 +23,9 @@
 #include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/runnable.h"
 
-using location::nearby::Runnable;
-using location::nearby::api::ImplementationPlatform;
-using MultiThreadExecutor = location::nearby::api::SubmittableExecutor;
+using ::location::nearby::Runnable;
+using ::location::nearby::api::ImplementationPlatform;
+using MultiThreadExecutor = ::location::nearby::api::SubmittableExecutor;
 
 @interface GNCMultiThreadExecutorTest : XCTestCase
 @property(atomic) int counter;

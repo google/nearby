@@ -20,7 +20,7 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-using Medium = location::nearby::proto::connections::Medium;
+using Medium = ::location::nearby::proto::connections::Medium;
 
 // Generic type: allows definition of a feature T for every Medium.
 template <typename T>

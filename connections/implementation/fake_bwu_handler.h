@@ -37,7 +37,7 @@ namespace connections {
 // HandleInitializeUpgradedMediumForEndpoint call.
 class FakeBwuHandler : public BaseBwuHandler {
  public:
-  using Medium = location::nearby::proto::connections::Medium;
+  using Medium = ::location::nearby::proto::connections::Medium;
 
   // The arguments passed to the BwuHandler methods. Not all values are set for
   // every method.

@@ -18,7 +18,7 @@
 
 namespace location::nearby::windows {
 
-using MediumW = location::nearby::proto::connections::Medium;
+using MediumW = ::location::nearby::proto::connections::Medium;
 
 // Generic type: allows definition of a feature T for every Medium.
 template <typename T>

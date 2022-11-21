@@ -45,7 +45,7 @@ using AdvertisingSession =
 using AdvertisingCallback =
     ::location::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
 
-using CountDownLatch = location::nearby::CountDownLatch;
+using CountDownLatch = ::location::nearby::CountDownLatch;
 
 class ScanManagerTest : public testing::Test {
  protected:

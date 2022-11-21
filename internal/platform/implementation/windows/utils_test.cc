@@ -19,7 +19,7 @@
 
 #include "gtest/gtest.h"
 
-// using location::nearby::windows::uint64_to_mac_address_string;
+// using ::location::nearby::windows::uint64_to_mac_address_string;
 namespace location {
 namespace nearby {
 namespace windows {

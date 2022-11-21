@@ -29,9 +29,9 @@ namespace nearby {
 namespace presence {
 namespace {
 
-using FeatureFlags = location::nearby::FeatureFlags::Flags;
+using FeatureFlags = ::location::nearby::FeatureFlags::Flags;
 using internal::IdentityType;
-using location::nearby::MediumEnvironment;
+using ::location::nearby::MediumEnvironment;
 
 constexpr FeatureFlags kTestCases[] = {
     FeatureFlags{},

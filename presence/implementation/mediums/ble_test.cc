@@ -35,22 +35,22 @@ namespace nearby {
 namespace presence {
 namespace {
 
-using FeatureFlags = location::nearby::FeatureFlags::Flags;
-using BleOperationStatus = location::nearby::api::ble_v2::BleOperationStatus;
+using FeatureFlags = ::location::nearby::FeatureFlags::Flags;
+using BleOperationStatus = ::location::nearby::api::ble_v2::BleOperationStatus;
 using BleV2MediumStatus =
-    location::nearby::MediumEnvironment::BleV2MediumStatus;
+    ::location::nearby::MediumEnvironment::BleV2MediumStatus;
 using ScanningSession =
-    location::nearby::api::ble_v2::BleMedium::ScanningSession;
-using TxPowerLevel = location::nearby::api::ble_v2::TxPowerLevel;
+    ::location::nearby::api::ble_v2::BleMedium::ScanningSession;
+using TxPowerLevel = ::location::nearby::api::ble_v2::TxPowerLevel;
 using ScanningCallback =
-    location::nearby::api::ble_v2::BleMedium::ScanningCallback;
-using Uuid = location::nearby::Uuid;
-using location::nearby::api::ble_v2::BleAdvertisementData;
-using location::nearby::api::ble_v2::BlePeripheral;
+    ::location::nearby::api::ble_v2::BleMedium::ScanningCallback;
+using Uuid = ::location::nearby::Uuid;
+using ::location::nearby::api::ble_v2::BleAdvertisementData;
+using ::location::nearby::api::ble_v2::BlePeripheral;
 using AdvertisingCallback =
-    location::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
+    ::location::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
 using AdvertisingSession =
-    location::nearby::api::ble_v2::BleMedium::AdvertisingSession;
+    ::location::nearby::api::ble_v2::BleMedium::AdvertisingSession;
 
 constexpr FeatureFlags kTestCases[] = {
     FeatureFlags{},

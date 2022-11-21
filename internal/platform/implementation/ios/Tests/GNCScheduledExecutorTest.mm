@@ -23,9 +23,9 @@
 #include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/runnable.h"
 
-using location::nearby::Runnable;
-using location::nearby::api::ImplementationPlatform;
-using location::nearby::api::ScheduledExecutor;
+using ::location::nearby::Runnable;
+using ::location::nearby::api::ImplementationPlatform;
+using ::location::nearby::api::ScheduledExecutor;
 
 @interface GNCScheduledExecutorTest : XCTestCase
 @property(atomic) int counter;
