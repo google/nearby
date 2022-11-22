@@ -33,7 +33,7 @@ extern "C" {
 // decrypting advertisements from a known origin
 
 // Handle for accessing the rust ldt implementation apis
-typedef void* NpLdtHandle;
+typedef uint64_t NpLdtHandle;
 
 // Key material from the Nearby Presence credential from which keys will be
 // derived.

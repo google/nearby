@@ -29,19 +29,13 @@ namespace presence {
 class LdtEncryptor {
  public:
   LdtEncryptor(const LdtEncryptor&) = delete;
-  LdtEncryptor(LdtEncryptor&& other) : ldt_handle_(other.ldt_handle_) {
-    other.ldt_handle_ = nullptr;
-  }
+  LdtEncryptor(LdtEncryptor&& other);
   LdtEncryptor& operator=(const LdtEncryptor&) = delete;
   LdtEncryptor& operator=(LdtEncryptor&& other) {
     std::swap(ldt_handle_, other.ldt_handle_);
     return *this;
   }
-  ~LdtEncryptor() {
-    if (ldt_handle_ != nullptr) {
-      NpLdtClose(ldt_handle_);
-    }
-  }
+  ~LdtEncryptor();
 
   // Creates an instance of `LdtEncryptor`.
   // `key_seed` is used to generate LDT encryption and decryption keys.

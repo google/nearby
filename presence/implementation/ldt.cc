@@ -29,6 +29,9 @@ namespace nearby {
 namespace presence {
 
 namespace {
+// NP LDT library says that 0 is returned when `NpLdtCreate()` fails.
+constexpr NpLdtHandle kInvalidLdtHandle = static_cast<NpLdtHandle>(0);
+
 template <class T>
 T FromStringView(absl::string_view data) {
   T result{
@@ -54,7 +57,7 @@ NpLdtAesCipherHandle AesCreateCipher(NpLdtAes128Key key) {
 
 int32_t AesCloseCipher(NpLdtAesCipherHandle handle) {
   AesContext* ctx = reinterpret_cast<AesContext*>(handle);
-  free(ctx);
+  delete ctx;
   return 0;
 }
 
@@ -70,6 +73,16 @@ void AesDecrypt(NpLdtAesCipherHandle handle, NpLdtAesBlock* block) {
 
 }  // namespace
 
+LdtEncryptor::LdtEncryptor(LdtEncryptor&& other)
+    : ldt_handle_(other.ldt_handle_) {
+  other.ldt_handle_ = kInvalidLdtHandle;
+}
+LdtEncryptor::~LdtEncryptor() {
+  if (ldt_handle_ != kInvalidLdtHandle) {
+    NpLdtClose(ldt_handle_);
+  }
+}
+
 absl::StatusOr<LdtEncryptor> LdtEncryptor::Create(
     absl::string_view key_seed, absl::string_view known_hmac) {
   NpLdtHandle handle =
@@ -79,7 +92,7 @@ absl::StatusOr<LdtEncryptor> LdtEncryptor::Create(
                    .decrypt = AesDecrypt},
                   FromStringView<NpLdtKeySeed>(key_seed),
                   FromStringView<NpMetadataKeyHmac>(known_hmac));
-  if (handle == nullptr) {
+  if (handle == kInvalidLdtHandle) {
     return absl::UnavailableError("Failed to create LDT encryptor");
   }
 
