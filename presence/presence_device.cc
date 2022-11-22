@@ -14,14 +14,21 @@
 
 #include "presence/presence_device.h"
 
+#include "internal/platform/implementation/system_clock.h"
 #include "presence/device_motion.h"
 
 namespace nearby {
 namespace presence {
 
-PresenceDevice::PresenceDevice() noexcept : device_motion_(DeviceMotion()) {}
-PresenceDevice::PresenceDevice(DeviceMotion device_motion) noexcept
-    : device_motion_(device_motion) {}
+PresenceDevice::PresenceDevice(DeviceMetadata device_metadata) noexcept
+    : discovery_timestamp_(location::nearby::SystemClock::ElapsedRealtime()),
+      device_motion_(DeviceMotion()),
+      device_metadata_(device_metadata) {}
+PresenceDevice::PresenceDevice(DeviceMotion device_motion,
+                               DeviceMetadata device_metadata) noexcept
+    : discovery_timestamp_(location::nearby::SystemClock::ElapsedRealtime()),
+      device_motion_(device_motion),
+      device_metadata_(device_metadata) {}
 
 }  // namespace presence
 }  // namespace nearby

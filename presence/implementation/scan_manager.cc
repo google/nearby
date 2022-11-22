@@ -102,7 +102,7 @@ std::unique_ptr<ScanSession> ScanManager::StartScan(ScanRequest scan_request,
 
 void ScanManager::NotifyFoundBle(BleAdvertisementData data,
                                  const BlePeripheral& peripheral) {
-  std::vector<ScanCallback> callbacks;
+  std::vector<std::pair<ScanCallback, DeviceMetadata>> callbacks;
   {
     absl::MutexLock lock(&mutex_);
     auto advertisement_data =
@@ -115,14 +115,17 @@ void ScanManager::NotifyFoundBle(BleAdvertisementData data,
         continue;
       }
       if (candidate.decoder.MatchesScanFilter(advert.value())) {
-        callbacks.push_back(candidate.callback);
+        std::string bt_addr = peripheral.GetAddress();
+        DeviceMetadata metadata;
+        metadata.set_bluetooth_mac_address(bt_addr);
+        callbacks.push_back({candidate.callback, metadata});
       }
     }
   }
   // TODO(b/256913915): Provide more information in PresenceDevice once fully
   // implemented
   for (const auto& callback : callbacks) {
-    callback.on_discovered_cb(PresenceDevice());
+    callback.first.on_discovered_cb(PresenceDevice(callback.second));
   }
 }
 

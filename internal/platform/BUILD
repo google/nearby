@@ -156,6 +156,7 @@ cc_library(
         "//connections:__subpackages__",
         "//internal:__pkg__",
         "//internal/platform/implementation:__subpackages__",
+        "//presence:__subpackages__",
     ],
     deps = [
         "//internal/platform:base",

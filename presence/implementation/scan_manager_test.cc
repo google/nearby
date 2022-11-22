@@ -26,8 +26,10 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/random/random.h"
+#include "absl/time/time.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "presence/implementation/advertisement_factory.h"
 #include "presence/implementation/base_broadcast_request.h"
@@ -172,6 +174,43 @@ TEST_F(ScanManagerTest, TestNoFilter) {
   ASSERT_TRUE(mediums.GetBle().IsAvailable());
   EXPECT_TRUE(start_latch_.Await().Ok());
   EXPECT_TRUE(found_latch_.Await().Ok());
+  EXPECT_TRUE(scan_session->StopScan().Ok());
+  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
+}
+
+TEST_F(ScanManagerTest, PresenceDeviceMetadataIsRetained) {
+  Mediums mediums;
+  ScanManager manager(mediums, credential_manager_);
+  // Set up advertiser
+  location::nearby::BluetoothAdapter server_adapter;
+  Ble ble2(server_adapter);
+  std::unique_ptr<AdvertisingSession> advertising_session =
+      StartAdvertisingOn(ble2);
+  std::string address = server_adapter.GetMacAddress();
+  ScanCallback callback = {
+      .start_scan_cb =
+          [this](Status status) {
+            if (status.Ok()) {
+              start_latch_.CountDown();
+            }
+          },
+      .on_discovered_cb =
+          [this, &address](PresenceDevice pd) {
+            if (pd.GetMetadata().has_bluetooth_mac_address() &&
+                pd.GetMetadata().bluetooth_mac_address() == address) {
+              found_latch_.CountDown();
+            }
+          }};
+  // Start scanning
+  ScanRequest scan_request_no_filter = MakeDefaultScanRequest();
+  scan_request_no_filter.scan_filters.clear();
+  auto scan_session =
+      manager.StartScan(scan_request_no_filter, callback);
+
+  ASSERT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
+  ASSERT_TRUE(mediums.GetBle().IsAvailable());
+  EXPECT_TRUE(start_latch_.Await().Ok());
+  EXPECT_TRUE(found_latch_.Await(absl::Milliseconds(1000)).result());
   EXPECT_TRUE(scan_session->StopScan().Ok());
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
