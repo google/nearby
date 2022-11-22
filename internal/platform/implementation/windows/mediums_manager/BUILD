@@ -35,6 +35,8 @@ cc_library(
         "mediums_manager_impl.h",
     ],
     copts = [
+        "-Ithird_party/lexan/libcxx/winrt_compatibility",
+        "-Ithird_party/nearby/internal/platform/implementation/windows/generated_winrt_with_libcxx",
         "-Ithird_party/nearby/internal/platform/implementation/windows/generated",
     ],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
@@ -43,6 +45,7 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform/implementation/windows:mediums_api",
         "//internal/platform/implementation/windows/generated:types",
+        "//third_party/lexan/libcxx/winrt_compatibility",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",

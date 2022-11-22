@@ -143,7 +143,14 @@ cc_library(
     ],
     # This is the temporary solution to solve compilation error of Win32 WFDxxx() related API.
     # WFD API is only support after _WIN32_WINNT_WIN8, but the current lexan _WIN32_WINNT is set to _WIN32_WINNT_WIN7
-    copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated -Ithird_party/nearby/internal/platform/implementation/windows/json -D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10"],
+    copts = [
+        "-Ithird_party/lexan/libcxx/winrt_compatibility",
+        "-Ithird_party/nearby/internal/platform/implementation/windows/generated_winrt_with_libcxx",
+        "-Ithird_party/nearby/internal/platform/implementation/windows/generated",
+        "-Ithird_party/nearby/internal/platform/implementation/windows/json",
+        "-D_WIN32_WINNT=_WIN32_WINNT_WIN10",
+        "-DWINVER=_WIN32_WINNT_WIN10",
+    ],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     visibility = [
         "//connections/clients/windows:__subpackages__",
@@ -162,6 +169,7 @@ cc_library(
         "//internal/platform/implementation/shared:file",
         "//internal/platform/implementation/windows/generated:types",
         "//internal/platform/implementation/windows/json:types",
+        "//third_party/lexan/libcxx/winrt_compatibility",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
     ],
@@ -202,7 +210,12 @@ cc_test(
         "thread_pool_test.cc",
         "utils_test.cc",
     ],
-    copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated -DCORE_ADAPTER_DLL"],
+    copts = [
+        "-Ithird_party/lexan/libcxx/winrt_compatibility",
+        "-Ithird_party/nearby/internal/platform/implementation/windows/generated_winrt_with_libcxx",
+        "-Ithird_party/nearby/internal/platform/implementation/windows/generated",
+        "-DCORE_ADAPTER_DLL",
+    ],
     deps = [
         ":comm",
         ":crypto",
@@ -213,6 +226,7 @@ cc_test(
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation/windows",
         "//internal/platform/implementation/windows/generated:types",
+        "//third_party/lexan/libcxx/winrt_compatibility",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
