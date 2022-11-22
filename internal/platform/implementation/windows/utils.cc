@@ -26,6 +26,7 @@
 #include <exception>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 // Third party headers
 #include "absl/strings/ascii.h"
@@ -36,10 +37,18 @@
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/crypto.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
+namespace {
+
+using ::winrt::Windows::Networking::HostNameType;
+using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
+
+}  // namespace
 
 std::string uint64_to_mac_address_string(uint64_t bluetoothAddress) {
   std::string buffer = absl::StrFormat(
@@ -98,6 +107,20 @@ std::wstring string_to_wstring(std::string str) {
 std::string wstring_to_string(std::wstring wstr) {
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
   return converter.to_bytes(wstr);
+}
+
+std::vector<std::string> GetIpv4Addresses() {
+  std::vector<std::string> result;
+  auto host_names = NetworkInformation::GetHostNames();
+  for (const auto& host_name : host_names) {
+    if (host_name.IPInformation() != nullptr &&
+        host_name.IPInformation().NetworkAdapter() != nullptr &&
+        host_name.Type() == HostNameType::Ipv4) {
+      result.push_back(winrt::to_string(host_name.ToString()));
+    }
+  }
+
+  return result;
 }
 
 ByteArray Sha256(absl::string_view input, size_t size) {

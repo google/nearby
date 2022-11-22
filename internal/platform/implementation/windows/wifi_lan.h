@@ -258,18 +258,6 @@ class WifiLanMedium : public api::WifiLanMedium {
   }
 
  private:
-  // mDNS text attributes
-  static constexpr std::string_view KEY_ENDPOINT_INFO = "n";
-
-  // mDNS information for advertising and discovery
-  static constexpr std::wstring_view MDNS_HOST_NAME = L"Windows.local";
-  static constexpr std::string_view MDNS_INSTANCE_NAME_FORMAT = "%s.%slocal";
-  static constexpr std::string_view MDNS_DEVICE_SELECTOR_FORMAT =
-      "System.Devices.AepService.ProtocolId:=\"{4526e8c1-8aac-4153-9b16-"
-      "55e86ada0e54}\" "
-      "AND System.Devices.Dnssd.ServiceName:=\"%s\" AND "
-      "System.Devices.Dnssd.Domain:=\"local\"";
-
   // Nsd status
   static const int MEDIUM_STATUS_IDLE = 0;
   static const int MEDIUM_STATUS_ACCEPTING = (1 << 0);
@@ -340,6 +328,9 @@ class WifiLanMedium : public api::WifiLanMedium {
 
   // Keep the server socket listener pointer
   WifiLanServerSocket* server_socket_ptr_ = nullptr;
+
+  // Used to keep the service name is advertising.
+  std::string service_name_;
 };
 
 }  // namespace windows

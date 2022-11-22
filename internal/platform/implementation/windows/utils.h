@@ -44,6 +44,9 @@ std::wstring string_to_wstring(std::string str);
 std::string wstring_to_string(std::wstring wstr);
 ByteArray Sha256(absl::string_view input, size_t size);
 
+// Reads the IPv4 addresses
+std::vector<std::string> GetIpv4Addresses();
+
 namespace Constants {
 // The Id of the Service Name SDP attribute
 const uint16_t SdpServiceNameAttributeId = 0x100;

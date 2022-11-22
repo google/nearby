@@ -22,19 +22,37 @@
 #include <cstdint>
 #include <locale>
 #include <string>
+#include <string_view>
+#include <vector>
 
 // ABSL headers
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 
 // Nearby connections headers
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/exception.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
+namespace {
+// mDNS text attributes
+constexpr absl::string_view kDeviceEndpointInfo = "n";
+constexpr absl::string_view kDeviceIpv4 = "IPv4";
+
+// mDNS information for advertising and discovery
+constexpr std::wstring_view kMdnsHostName = L"Windows.local";
+constexpr absl::string_view kMdnsInstanceNameFormat = "%s.%slocal";
+constexpr absl::string_view kMdnsDeviceSelectorFormat =
+    "System.Devices.AepService.ProtocolId:=\"{4526e8c1-8aac-4153-9b16-"
+    "55e86ada0e54}\" "
+    "AND System.Devices.Dnssd.ServiceName:=\"%s\" AND "
+    "System.Devices.Dnssd.Domain:=\"local\"";
+
+}  // namespace
 
 bool WifiLanMedium::IsNetworkConnected() const {
   // connection_profile will be null when there's no network adapter or
@@ -57,7 +75,7 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
     return false;
   }
 
-  if (nsd_service_info.GetTxtRecord(KEY_ENDPOINT_INFO.data()).empty()) {
+  if (nsd_service_info.GetTxtRecord(kDeviceEndpointInfo.data()).empty()) {
     NEARBY_LOGS(ERROR) << "cannot start advertising without endpoint info.";
     return false;
   }
@@ -67,9 +85,11 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
     return false;
   }
 
-  std::string instance_name = absl::StrFormat(
-      MDNS_INSTANCE_NAME_FORMAT.data(), nsd_service_info.GetServiceName(),
-      nsd_service_info.GetServiceType());
+  service_name_ = nsd_service_info.GetServiceName();
+
+  std::string instance_name =
+      absl::StrFormat(kMdnsInstanceNameFormat.data(), service_name_,
+                      nsd_service_info.GetServiceType());
 
   NEARBY_LOGS(INFO) << "mDNS instance name is " << instance_name;
 
@@ -81,12 +101,23 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   // Add TextRecords from NsdServiceInfo
   auto text_attributes = dnssd_service_instance_.TextAttributes();
 
-  auto text_records = nsd_service_info.GetTxtRecords();
+  absl::flat_hash_map<std::string, std::string> text_records =
+      nsd_service_info.GetTxtRecords();
   auto it = text_records.begin();
   while (it != text_records.end()) {
     text_attributes.Insert(string_to_wstring(it->first),
                            string_to_wstring(it->second));
     it++;
+  }
+
+  // Add IPv4 address in text attributes.
+  std::vector<std::string> ipv4_addresses = GetIpv4Addresses();
+  if (!ipv4_addresses.empty()) {
+    if (ipv4_addresses.size() > 1) {
+      NEARBY_LOGS(WARNING) << "The device has multiple IPv4 addresses.";
+    }
+    text_attributes.Insert(winrt::to_hstring(std::string(kDeviceIpv4)),
+                           winrt::to_hstring(ipv4_addresses[0]));
   }
 
   dnssd_regirstraion_result_ = dnssd_service_instance_
@@ -146,7 +177,7 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
 
   // Init DNS service instance
   std::string instance_name = absl::StrFormat(
-      MDNS_INSTANCE_NAME_FORMAT.data(), nsd_service_info.GetServiceName(),
+      kMdnsInstanceNameFormat.data(), nsd_service_info.GetServiceName(),
       nsd_service_info.GetServiceType());
   int port = nsd_service_info.GetPort();
   dns_service_instance_name_ =
@@ -154,7 +185,7 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
 
   dns_service_instance_.pszInstanceName =
       (LPWSTR)dns_service_instance_name_->c_str();
-  dns_service_instance_.pszHostName = (LPWSTR)MDNS_HOST_NAME.data();
+  dns_service_instance_.pszHostName = (LPWSTR)kMdnsHostName.data();
   dns_service_instance_.wPort = port;
 
   // Init DNS service register request
@@ -211,7 +242,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
   }
 
   std::string selector =
-      absl::StrFormat(MDNS_DEVICE_SELECTOR_FORMAT.data(), service_type_trim);
+      absl::StrFormat(kMdnsDeviceSelectorFormat.data(), service_type_trim);
 
   std::vector<winrt::hstring> requestedProperties{
       L"System.Devices.IpAddress",
@@ -361,7 +392,7 @@ ExceptionOr<NsdServiceInfo> WifiLanMedium::GetNsdServiceInformation(
     IMapView<winrt::hstring, IInspectable> properties, bool is_device_found) {
   NsdServiceInfo nsd_service_info{};
 
-  // Service name information
+  // Read service name information
   IInspectable inspectable =
       properties.TryLookup(L"System.Devices.Dnssd.InstanceName");
   if (inspectable == nullptr) {
@@ -371,7 +402,7 @@ ExceptionOr<NsdServiceInfo> WifiLanMedium::GetNsdServiceInformation(
   }
   nsd_service_info.SetServiceName(InspectableReader::ReadString(inspectable));
 
-  // Service type information
+  // Read service type information
   inspectable = properties.TryLookup(L"System.Devices.Dnssd.ServiceName");
   if (inspectable == nullptr) {
     NEARBY_LOGS(WARNING)
@@ -386,56 +417,11 @@ ExceptionOr<NsdServiceInfo> WifiLanMedium::GetNsdServiceInformation(
   nsd_service_info.SetServiceType(
       (InspectableReader::ReadString(inspectable)).append("."));
 
-  if (is_device_found) {
-    // IP Address information
-    inspectable = properties.TryLookup(L"System.Devices.IPAddress");
-    if (inspectable == nullptr) {
-      NEARBY_LOGS(WARNING)
-          << "no IP address information in device information.";
-      return Exception{Exception::kFailed};
-    }
-
-    auto ipaddresses = InspectableReader::ReadStringArray(inspectable);
-    if (ipaddresses.size() == 0) {
-      NEARBY_LOGS(WARNING)
-          << "no IP address information in device information.";
-      return Exception{Exception::kFailed};
-    }
-
-    std::string ip_address;
-    ip_address.resize(4);
-    // Gets 4 bytes string
-    for (std::string& address : ipaddresses) {
-      uint32_t addr = inet_addr(address.data());
-      if (addr == INADDR_NONE) {
-        continue;
-      }
-
-      in_addr ipv4_addr;
-      ipv4_addr.S_un.S_addr = addr;
-      ip_address[0] = static_cast<char>(ipv4_addr.S_un.S_un_b.s_b1);
-      ip_address[1] = static_cast<char>(ipv4_addr.S_un.S_un_b.s_b2);
-      ip_address[2] = static_cast<char>(ipv4_addr.S_un.S_un_b.s_b3);
-      ip_address[3] = static_cast<char>(ipv4_addr.S_un.S_un_b.s_b4);
-      break;
-    }
-
-    // read IP port
-    inspectable = properties.TryLookup(L"System.Devices.Dnssd.PortNumber");
-    if (inspectable == nullptr) {
-      NEARBY_LOGS(WARNING) << "no IP port information in device information.";
-      return Exception{Exception::kFailed};
-    }
-
-    int port = InspectableReader::ReadUint16(inspectable);
-    nsd_service_info.SetIPAddress(ip_address);
-    nsd_service_info.SetPort(port);
-  }
-  // read text record
+  // Read text records
   inspectable = properties.TryLookup(L"System.Devices.Dnssd.TextAttributes");
   if (inspectable == nullptr) {
     NEARBY_LOGS(WARNING)
-        << "no text attributes information in device information.";
+        << "No text attributes information in device information.";
     return Exception{Exception::kFailed};
   }
 
@@ -453,7 +439,64 @@ ExceptionOr<NsdServiceInfo> WifiLanMedium::GetNsdServiceInformation(
     nsd_service_info.SetTxtRecord(key, value);
   }
 
-  return ExceptionOr(nsd_service_info);
+  if (!is_device_found) {
+    return ExceptionOr<NsdServiceInfo>(nsd_service_info);
+  }
+
+  // Read IP Address information
+  std::string ip_address;
+  ip_address.resize(4);
+
+  // Find it from text first
+  std::vector<std::string> ip_address_candidates;
+
+  std::string ipv4_address =
+      nsd_service_info.GetTxtRecord(std::string(kDeviceIpv4));
+  if (!ipv4_address.empty()) {
+    ip_address_candidates.push_back(ipv4_address);
+  } else {
+    inspectable = properties.TryLookup(L"System.Devices.IPAddress");
+    if (inspectable == nullptr) {
+      NEARBY_LOGS(WARNING) << "No IP address property in device information.";
+      return Exception{Exception::kFailed};
+    }
+    ip_address_candidates = InspectableReader::ReadStringArray(inspectable);
+  }
+
+  if (ip_address_candidates.empty()) {
+    NEARBY_LOGS(WARNING) << "No IP address information in device information.";
+    return Exception{Exception::kFailed};
+  }
+
+  // Gets 4 bytes string
+  for (std::string& address : ip_address_candidates) {
+    uint32_t addr = inet_addr(address.data());
+    if (addr == INADDR_NONE) {
+      continue;
+    }
+
+    in_addr ipv4_addr;
+    ipv4_addr.S_un.S_addr = addr;
+    ip_address[0] = static_cast<char>(ipv4_addr.S_un.S_un_b.s_b1);
+    ip_address[1] = static_cast<char>(ipv4_addr.S_un.S_un_b.s_b2);
+    ip_address[2] = static_cast<char>(ipv4_addr.S_un.S_un_b.s_b3);
+    ip_address[3] = static_cast<char>(ipv4_addr.S_un.S_un_b.s_b4);
+    break;
+  }
+
+  nsd_service_info.SetIPAddress(ip_address);
+
+  // Read IP port
+  inspectable = properties.TryLookup(L"System.Devices.Dnssd.PortNumber");
+  if (inspectable == nullptr) {
+    NEARBY_LOGS(WARNING) << "no IP port property in device information.";
+    return Exception{Exception::kFailed};
+  }
+
+  int port = InspectableReader::ReadUint16(inspectable);
+  nsd_service_info.SetPort(port);
+
+  return ExceptionOr<NsdServiceInfo>(nsd_service_info);
 }
 
 fire_and_forget WifiLanMedium::Watcher_DeviceAdded(
@@ -468,15 +511,27 @@ fire_and_forget WifiLanMedium::Watcher_DeviceAdded(
                             "Don't add WIFI_LAN Medium";
     return fire_and_forget{};
   }
-  NsdServiceInfo nsd_service_info = nsd_service_info_except.GetResult();
-  NEARBY_LOGS(INFO) << "device added for service name "
-                    << nsd_service_info.GetServiceName();
 
+  NsdServiceInfo nsd_service_info = nsd_service_info_except.GetResult();
   std::string endpoint =
-      nsd_service_info.GetTxtRecord(KEY_ENDPOINT_INFO.data());
+      nsd_service_info.GetTxtRecord(kDeviceEndpointInfo.data());
   if (endpoint.empty()) {
+    NEARBY_LOGS(WARNING) << "No endpoint information! "
+                            "Don't add WIFI_LAN Medium";
     return fire_and_forget{};
   }
+
+  // Don't discover itself
+  if (nsd_service_info.GetServiceName() == service_name_) {
+    NEARBY_LOGS(WARNING) << "Don't add WIFI_LAN Medium for itself";
+    return fire_and_forget{};
+  }
+
+  NEARBY_LOGS(INFO) << "device added for service name "
+                    << nsd_service_info.GetServiceName() << ", address: "
+                    << ipaddr_4bytes_to_dotdecimal_string(
+                           nsd_service_info.GetIPAddress())
+                    << ":" << nsd_service_info.GetPort();
 
   discovered_service_callback_.service_discovered_cb(nsd_service_info);
 
@@ -497,8 +552,18 @@ fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
   }
 
   NsdServiceInfo nsd_service_info = nsd_service_info_except.GetResult();
-  NEARBY_LOGS(INFO) << "device updated for service name "
-                    << nsd_service_info.GetServiceName();
+
+  // Don't discover itself
+  if (nsd_service_info.GetServiceName() == service_name_) {
+    NEARBY_LOGS(WARNING) << "Don't update WIFI_LAN Medium for itself";
+    return fire_and_forget{};
+  }
+
+  NEARBY_LOGS(INFO) << "device updated for service name: "
+                    << nsd_service_info.GetServiceName() << ", address: "
+                    << ipaddr_4bytes_to_dotdecimal_string(
+                           nsd_service_info.GetIPAddress())
+                    << ":" << nsd_service_info.GetPort();
   return fire_and_forget();
 }
 
@@ -520,7 +585,7 @@ fire_and_forget WifiLanMedium::Watcher_DeviceRemoved(
                     << nsd_service_info.GetServiceName();
 
   std::string endpoint =
-      nsd_service_info.GetTxtRecord(KEY_ENDPOINT_INFO.data());
+      nsd_service_info.GetTxtRecord(kDeviceEndpointInfo.data());
   if (endpoint.empty()) {
     return fire_and_forget{};
   }
