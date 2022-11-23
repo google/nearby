@@ -259,24 +259,21 @@ class WifiLanMedium : public api::WifiLanMedium {
 
  private:
   // Nsd status
-  static const int MEDIUM_STATUS_IDLE = 0;
-  static const int MEDIUM_STATUS_ACCEPTING = (1 << 0);
-  static const int MEDIUM_STATUS_ADVERTISING = (1 << 1);
-  static const int MEDIUM_STATUS_DISCOVERING = (1 << 2);
+  static const int kMediumStatusIdle = 0;
+  static const int kMediumStatusAdvertising = (1 << 0);
+  static const int kMediumStatusDiscovering = (1 << 1);
 
   // In the class, not using ENUM to describe the mDNS states, because a little
   // complicate to combine all states based on accepting, advertising and
   // discovery.
   bool IsIdle() { return medium_status_ == 0; }
 
-  bool IsAccepting() { return (medium_status_ & MEDIUM_STATUS_ACCEPTING) != 0; }
-
   bool IsAdvertising() {
-    return (medium_status_ & MEDIUM_STATUS_ADVERTISING) != 0;
+    return (medium_status_ & kMediumStatusAdvertising) != 0;
   }
 
   bool IsDiscovering() {
-    return (medium_status_ & MEDIUM_STATUS_DISCOVERING) != 0;
+    return (medium_status_ & kMediumStatusDiscovering) != 0;
   }
 
   // From mDNS device information, to build NsdServiceInfo.
@@ -324,13 +321,15 @@ class WifiLanMedium : public api::WifiLanMedium {
   api::WifiLanMedium::DiscoveredServiceCallback discovered_service_callback_;
 
   // Medium Status
-  int medium_status_ = MEDIUM_STATUS_IDLE;
-
-  // Keep the server socket listener pointer
-  WifiLanServerSocket* server_socket_ptr_ = nullptr;
+  int medium_status_ = kMediumStatusIdle;
 
   // Used to keep the service name is advertising.
   std::string service_name_;
+
+  // Keep the server sockets listener pointer
+  absl::flat_hash_map<int /* port number of the WifiLanServerSocket*/,
+                      WifiLanServerSocket*>
+      port_to_server_socket_map_;
 };
 
 }  // namespace windows

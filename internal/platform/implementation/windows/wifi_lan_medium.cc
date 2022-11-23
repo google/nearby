@@ -63,7 +63,21 @@ bool WifiLanMedium::IsNetworkConnected() const {
 }
 
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
-  if (!IsAccepting()) {
+  bool socket_found = false;
+  WifiLanServerSocket* server_socket_ptr = nullptr;
+  for (const auto& server_socket : port_to_server_socket_map_) {
+    if ((server_socket.second->GetIPAddress() ==
+         nsd_service_info.GetIPAddress()) &&
+        (server_socket.second->GetPort() == nsd_service_info.GetPort())) {
+      NEARBY_LOGS(INFO) << "Found the server socket."
+                        << " IP: " << nsd_service_info.GetIPAddress()
+                        << "; port: " << nsd_service_info.GetPort();
+      server_socket_ptr = server_socket.second;
+      socket_found = true;
+      break;
+    }
+  }
+  if (!socket_found) {
     NEARBY_LOGS(WARNING)
         << "cannot start advertising without accepting connetions.";
     return false;
@@ -122,7 +136,7 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
 
   dnssd_regirstraion_result_ = dnssd_service_instance_
                                    .RegisterStreamSocketListenerAsync(
-                                       server_socket_ptr_->GetSocketListener())
+                                       server_socket_ptr->GetSocketListener())
                                    .get();
 
   if (dnssd_regirstraion_result_.HasInstanceNameChanged()) {
@@ -135,7 +149,7 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
 
   if (dnssd_regirstraion_result_.Status() == DnssdRegistrationStatus::Success) {
     NEARBY_LOGS(INFO) << "started to advertising.";
-    medium_status_ |= MEDIUM_STATUS_ADVERTISING;
+    medium_status_ |= kMediumStatusAdvertising;
     return true;
   }
 
@@ -219,7 +233,7 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
 
   NEARBY_LOGS(INFO) << "succeeded to stop mDNS advertising for service type ="
                     << nsd_service_info.GetServiceType();
-  medium_status_ &= (~MEDIUM_STATUS_ADVERTISING);
+  medium_status_ &= (~kMediumStatusAdvertising);
   return true;
 }
 
@@ -265,7 +279,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
 
   device_watcher_.Start();
   discovered_service_callback_ = std::move(callback);
-  medium_status_ |= MEDIUM_STATUS_DISCOVERING;
+  medium_status_ |= kMediumStatusDiscovering;
 
   NEARBY_LOGS(INFO) << "started to discovery.";
 
@@ -284,7 +298,7 @@ bool WifiLanMedium::StopDiscovery(const std::string& service_type) {
   device_watcher_.Added(device_watcher_added_event_token);
   device_watcher_.Updated(device_watcher_updated_event_token);
   device_watcher_.Removed(device_watcher_removed_event_token);
-  medium_status_ &= (~MEDIUM_STATUS_DISCOVERING);
+  medium_status_ &= (~kMediumStatusDiscovering);
   device_watcher_ = nullptr;
   return true;
 }
@@ -359,27 +373,35 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
     int port) {
   // check current status
-  if (IsAccepting()) {
+  const auto& it = port_to_server_socket_map_.find(port);
+  if (it != port_to_server_socket_map_.end()) {
     NEARBY_LOGS(WARNING) << "accepting connections already started on port "
-                         << server_socket_ptr_->GetPort();
+                         << it->second->GetPort();
     return nullptr;
   }
-
   std::unique_ptr<WifiLanServerSocket> server_socket =
       std::make_unique<WifiLanServerSocket>(port);
-  server_socket_ptr_ = server_socket.get();
-
-  server_socket->SetCloseNotifier([this]() {
-    NEARBY_LOGS(INFO) << "server socket was closed on port "
-                      << server_socket_ptr_->GetPort();
-    medium_status_ &= (~MEDIUM_STATUS_ACCEPTING);
-    server_socket_ptr_ = nullptr;
-  });
+  WifiLanServerSocket* server_socket_ptr = server_socket.get();
 
   if (server_socket->listen()) {
-    medium_status_ |= MEDIUM_STATUS_ACCEPTING;
-    NEARBY_LOGS(INFO) << "started to listen serive on port "
-                      << server_socket_ptr_->GetPort();
+    int port = server_socket_ptr->GetPort();
+    NEARBY_LOGS(INFO) << "started to listen serive on IP:port "
+                      << server_socket_ptr->GetIPAddress() << ":" << port;
+    port_to_server_socket_map_.insert({port, server_socket_ptr});
+
+    server_socket->SetCloseNotifier([this, server_socket_ptr, port]() {
+      if (port_to_server_socket_map_.contains(port) &&
+          port_to_server_socket_map_[port] == server_socket_ptr) {
+        NEARBY_LOGS(INFO) << "Server socket was closed on port " << port;
+        port_to_server_socket_map_[port] = nullptr;
+        port_to_server_socket_map_.erase(port);
+      } else {
+        NEARBY_LOGS(INFO) << " The closing port doesn't match with the record "
+                             "in port_to_server_socket_map_ map for port: "
+                          << port;
+      }
+    });
+
     return server_socket;
   }
 
