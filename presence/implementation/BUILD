@@ -11,7 +11,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+load("//third_party/bazel_skylib/rules:common_settings.bzl", "bool_flag")
+
 licenses(["notice"])
+
+# Command line build option that enables linking with the LDT encryption implementation in Rust.
+#
+# When not set, LDT encryption will not be available. We won't be able to advertise encrypted BLE4.2 advertisements nor scan for them.
+bool_flag(
+    name = "enable_rust_ldt",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "link_with_rust",
+    flag_values = {
+        ":enable_rust_ldt": "true",
+    },
+)
+
+cc_library(
+    name = "ldt_stub",
+    srcs = ["np_ldt.c"],
+    hdrs = ["np_ldt.h"],
+)
 
 cc_library(
     name = "internal",
@@ -23,7 +46,6 @@ cc_library(
         "credential_manager_impl.cc",
         "encryption.cc",
         "ldt.cc",
-        "np_ldt.c",
         "scan_manager.cc",
         "service_controller_impl.cc",
     ],
@@ -37,27 +59,18 @@ cc_library(
         "credential_manager_impl.h",
         "encryption.h",
         "ldt.h",
-        "np_ldt.h",
         "scan_manager.h",
         "service_controller.h",
         "service_controller_impl.h",
     ],
+    defines = select({
+        ":link_with_rust": ["USE_RUST_LDT=1"],
+        "//conditions:default": ["USE_RUST_LDT=0"],
+    }),
     visibility = [
         "//presence:__subpackages__",
     ],
     deps = [
-        "//internal/crypto",
-        "//internal/platform:base",
-        "//internal/platform:comm",
-        "//internal/platform:logging",
-        "//internal/platform:types",
-        "//internal/platform:uuid",
-        "//internal/platform/implementation:comm",
-        "//internal/platform/implementation:types",
-        "//internal/proto:credential_cc_proto",
-        "//presence:types",
-        "//presence/implementation/mediums",
-        "@boringssl//:crypto",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/log:die_if_null",
@@ -71,7 +84,22 @@ cc_library(
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:variant",
-    ],
+        "//internal/crypto",
+        "//internal/platform:base",
+        "//internal/platform:comm",
+        "//internal/platform:logging",
+        "//internal/platform:types",
+        "//internal/platform:uuid",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:types",
+        "//internal/proto:credential_cc_proto",
+        "//presence:types",
+        "//presence/implementation/mediums",
+        "@boringssl//:crypto",
+    ] + select({
+        ":link_with_rust": ["//third_party/nearby_rust/np_ffi"],
+        "//conditions:default": [":ldt_stub"],
+    }),
 )
 
 cc_library(
@@ -165,6 +193,19 @@ cc_test(
 )
 
 cc_test(
+    name = "ldt_test",
+    size = "small",
+    srcs = ["ldt_test.cc"],
+    deps = [
+        ":internal",
+        "//internal/platform:base",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "base_broadcast_request_test",
     srcs = ["base_broadcast_request_test.cc"],
     deps = [
@@ -198,12 +239,12 @@ cc_test(
     deps = [
         ":internal",
         "//internal/platform:comm",
-        "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",
         "//net/proto2/contrib/parse_proto:testing",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest_main",
     ],
 )

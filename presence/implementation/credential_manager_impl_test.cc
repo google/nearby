@@ -23,6 +23,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "internal/platform/credential_storage_impl.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/proto/credential.pb.h"
@@ -355,6 +356,14 @@ TEST(CredentialManagerImpl, PublicCredentialsFailEncryption) {
 TEST(CredentialManagerImpl, EncryptDataElements) {
   absl::string_view salt = "AB";
   absl::string_view data_elements = "data_elements";
+#if USE_RUST_LDT == 1
+  // `data_elements` is too short for LDT
+  absl::Status kExpectedError =
+      absl::InternalError("LDT encryption failed, errorcode -1");
+#else
+  absl::Status kExpectedError =
+      absl::UnavailableError("Failed to create LDT encryptor");
+#endif /* USE_RUST_LDT */
   DeviceMetadata device_metadata = CreateTestDeviceMetadata();
   CredentialManagerImpl credential_manager;
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
@@ -367,8 +376,7 @@ TEST(CredentialManagerImpl, EncryptDataElements) {
 
   EXPECT_THAT(credential_manager.EncryptDataElements(
                   IDENTITY_TYPE_PRIVATE, "test_account", salt, data_elements),
-              absl::Status(absl::StatusCode::kUnavailable,
-                           "Failed to create LDT encryptor"));
+              kExpectedError);
 }
 
 TEST(CredentialManagerImpl, DecryptDataElements) {
