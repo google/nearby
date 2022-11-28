@@ -16,6 +16,8 @@
 
 #include <stddef.h>
 
+#include <string>
+
 #include <openssl/rand.h>
 
 namespace crypto {
@@ -26,6 +28,13 @@ void RandBytes(void *bytes, size_t length) {
 
 void RandBytes(absl::Span<uint8_t> bytes) {
   RandBytes(bytes.data(), bytes.size());
+}
+
+std::string RandBytes(size_t length) {
+  std::string result(length, 0);
+  RandBytes(const_cast<std::string::value_type *>(result.data()),
+            result.size());
+  return result;
 }
 
 }  // namespace crypto

@@ -61,10 +61,7 @@ cc_library(
     name = "count_down_latch",
     srcs = ["count_down_latch.cc"],
     hdrs = ["count_down_latch.h"],
-    visibility = [
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
-        "//internal/platform/implementation:__subpackages__",
-    ],
+    visibility = ["//internal/platform/implementation:__subpackages__"],
     deps = [
         "//internal/platform/implementation:types",
         "@com_google_absl//absl/base:core_headers",
