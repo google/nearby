@@ -1213,11 +1213,11 @@ std::vector<Medium> BwuManager::StripOutUnavailableMediums(
   for (Medium m : mediums) {
     bool available = false;
     switch (m) {
-      case Medium::WIFI_HOTSPOT:
-        available = mediums_->GetWifiHotspot().IsAPAvailable();
-        break;
       case Medium::WIFI_LAN:
         available = mediums_->GetWifiLan().IsAvailable();
+        break;
+      case Medium::WIFI_HOTSPOT:
+        available = mediums_->GetWifiHotspot().IsAPAvailable();
         break;
       case Medium::WEB_RTC:
         available = mediums_->GetWebRtc().IsAvailable();

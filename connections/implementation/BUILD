@@ -220,6 +220,7 @@ cc_test(
         "offline_frames_validator_test.cc",
         "offline_service_controller_test.cc",
         "p2p_cluster_pcp_handler_test.cc",
+        "p2p_point_to_point_pcp_handler_test.cc",
         "payload_manager_test.cc",
         "pcp_manager_test.cc",
         "service_controller_router_test.cc",

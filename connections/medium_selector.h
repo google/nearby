@@ -63,8 +63,8 @@ struct MediumSelector {
   std::vector<Medium> GetMediums(T value) const {
     std::vector<Medium> mediums;
     // Mediums are sorted in order of decreasing preference.
-    if (wifi_hotspot == value) mediums.push_back(Medium::WIFI_HOTSPOT);
     if (wifi_lan == value) mediums.push_back(Medium::WIFI_LAN);
+    if (wifi_hotspot == value) mediums.push_back(Medium::WIFI_HOTSPOT);
     if (web_rtc == value) mediums.push_back(Medium::WEB_RTC);
     if (bluetooth == value) mediums.push_back(Medium::BLUETOOTH);
     if (ble == value) mediums.push_back(Medium::BLE);

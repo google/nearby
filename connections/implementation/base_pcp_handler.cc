@@ -196,7 +196,14 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
     their_mediums.push_back(GetDefaultUpgradeMedium());
   }
 
+  for (auto medium : their_mediums) {
+    NEARBY_LOGS(VERBOSE) << "Their supported medium name: "
+                         << proto::connections::Medium_Name(medium);
+  }
+
   for (Medium my_medium : GetConnectionMediumsByPriority()) {
+    NEARBY_LOGS(VERBOSE) << "Our supported medium name: "
+                         << proto::connections::Medium_Name(my_medium);
     if (std::find(their_mediums.begin(), their_mediums.end(), my_medium) !=
         their_mediums.end()) {
       // We use advertising options as a proxy to whether or not the local

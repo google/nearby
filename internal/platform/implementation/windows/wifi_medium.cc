@@ -148,7 +148,7 @@ api::WifiInformation& WifiMedium::GetInformation() {
         wifi_information_.ap_frequency =
             WifiUtils::ConvertChannelToFrequencyMhz(
                 *channel, api::WifiBandType::kUnknown);
-        NEARBY_LOGS(INFO) << "Frequency: " << *channel << "; ap_frequency: "
+        NEARBY_LOGS(INFO) << "Channel: " << *channel << "; ap_frequency: "
                           << wifi_information_.ap_frequency;
         WlanFreeMemory(channel);
         channel = NULL;

@@ -14,6 +14,8 @@
 
 #include "connections/implementation/p2p_point_to_point_pcp_handler.h"
 
+#include <vector>
+
 namespace location {
 namespace nearby {
 namespace connections {
@@ -28,12 +30,12 @@ P2pPointToPointPcpHandler::P2pPointToPointPcpHandler(
 std::vector<proto::connections::Medium>
 P2pPointToPointPcpHandler::GetConnectionMediumsByPriority() {
   std::vector<proto::connections::Medium> mediums;
+  if (mediums_->GetWifiLan().IsAvailable()) {
+    mediums.push_back(proto::connections::WIFI_LAN);
+  }
   if (mediums_->GetWifi().IsAvailable() &&
       mediums_->GetWifiHotspot().IsClientAvailable()) {
     mediums.push_back(proto::connections::WIFI_HOTSPOT);
-  }
-  if (mediums_->GetWifiLan().IsAvailable()) {
-    mediums.push_back(proto::connections::WIFI_LAN);
   }
   if (mediums_->GetWebRtc().IsAvailable()) {
     mediums.push_back(proto::connections::WEB_RTC);
