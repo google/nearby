@@ -239,6 +239,7 @@ cc_test(
     deps = [
         ":internal",
         "//internal/platform:comm",
+        "//internal/platform:types",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",

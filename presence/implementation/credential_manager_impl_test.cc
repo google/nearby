@@ -24,6 +24,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/credential_storage_impl.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/proto/credential.pb.h"
@@ -215,6 +216,33 @@ TEST(CredentialManagerImpl, GenerateCredentialsSuccessfullyButStoreFailed) {
       /* manager_app_id= */ "TEST_MANAGER_APP", identityTypes, 1, 2,
       credentials_generated_cb);
   EXPECT_TRUE(publicCredentials.empty());
+}
+
+TEST(CredentialManagerImpl, UpdateRemotePublicCredentialsSuccessfully) {
+  nearby::internal::PublicCredential public_credential_for_test;
+  public_credential_for_test.set_identity_type(
+      nearby::internal::IdentityType::IDENTITY_TYPE_TRUSTED);
+  std::vector<nearby::internal::PublicCredential> publicCredentials{
+      {public_credential_for_test}};
+
+  location::nearby::CountDownLatch updated_latch(1);
+  UpdateRemotePublicCredentialsCallback update_credentials_cb{
+      .credentials_updated_cb =
+          [&updated_latch](CredentialOperationStatus status) {
+            if (status == CredentialOperationStatus::kSucceeded) {
+              updated_latch.CountDown();
+            }
+          },
+  };
+
+  CredentialManagerImpl credential_manager;
+
+  credential_manager.UpdateRemotePublicCredentials(
+      /* manager_app_id= */ "TEST_MANAGER_APP",
+      /* account_name= */ "test_account", publicCredentials,
+      update_credentials_cb);
+
+  EXPECT_TRUE(updated_latch.Await().Ok());
 }
 
 TEST(CredentialManagerImpl, GetPrivateCredentialsFailed) {

@@ -35,16 +35,19 @@ void CredentialStorageImpl::SaveCredentials(
     const std::vector<PublicCredential>& public_credentials,
     PublicCredentialType public_credential_type,
     ::nearby::presence::GenerateCredentialsCallback callback) {
-  NEARBY_LOGS(INFO) << "G3 Save Private Credentials for account: "
-                    << account_name << "], manager app ID:[" << manager_app_id
-                    << "]";
+  if (private_credentials.empty() && public_credentials.empty()) {
+    NEARBY_LOGS(INFO) << "G3 Save Credentials but seeing private and public "
+                         "both empty, skipping";
+    return;
+  }
   if (private_credentials.empty()) {
     NEARBY_LOGS(INFO) << "There are no Private Credentials for account: "
                       << account_name << "], manager app ID:[" << manager_app_id
                       << "]";
-    return;
-  }
-  {
+  } else {
+    NEARBY_LOGS(INFO) << "G3 Save Private Credentials for account: "
+                      << account_name << "], manager app ID:[" << manager_app_id
+                      << "]";
     absl::MutexLock lock(&private_mutex_);
     PrivateCredentialKey key =
         CreatePrivateCredentialKey(manager_app_id, account_name);
@@ -57,16 +60,15 @@ void CredentialStorageImpl::SaveCredentials(
     }
   }
 
-  NEARBY_LOGS(INFO) << "G3 Save Public Credentials for account: "
-                    << account_name << "], manager app ID:[" << manager_app_id
-                    << "]";
   if (public_credentials.empty()) {
     NEARBY_LOGS(INFO) << "There are no Public Credentials for account: "
                       << account_name << "], manager app ID:[" << manager_app_id
                       << "]";
     return;
-  }
-  {
+  } else {
+    NEARBY_LOGS(INFO) << "G3 Save Public Credentials for account: "
+                      << account_name << "], manager app ID:[" << manager_app_id
+                      << "]";
     absl::MutexLock lock(&public_mutex_);
     PublicCredentialKey key = CreatePublicCredentialKey(
         manager_app_id, account_name, public_credential_type);

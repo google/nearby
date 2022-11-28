@@ -64,7 +64,7 @@ class CredentialManagerImpl : public CredentialManager {
       absl::string_view manager_app_id, absl::string_view account_name,
       const std::vector<nearby::internal::PublicCredential>&
           remote_public_creds,
-      UpdateRemotePublicCredentialsCallback credentials_updated_cb) override{};
+      UpdateRemotePublicCredentialsCallback credentials_updated_cb) override;
 
   void GetPrivateCredentials(
       const CredentialSelector& credential_selector,

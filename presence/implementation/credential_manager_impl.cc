@@ -88,6 +88,28 @@ void CredentialManagerImpl::GenerateCredentials(
       std::move(credentials_generated_cb));
 }
 
+void CredentialManagerImpl::UpdateRemotePublicCredentials(
+    absl::string_view manager_app_id, absl::string_view account_name,
+    const std::vector<nearby::internal::PublicCredential>& remote_public_creds,
+    UpdateRemotePublicCredentialsCallback credentials_updated_cb) {
+  credential_storage_ptr_->SaveCredentials(
+      manager_app_id, account_name, /* private_credentials */ {},
+      remote_public_creds, PublicCredentialType::kRemotePublicCredential,
+      GenerateCredentialsCallback{
+          .credentials_generated_cb =
+              [credentials_updated_cb = std::move(credentials_updated_cb)](
+                  std::vector<nearby::internal::PublicCredential> creds) {
+                if (!creds.empty()) {
+                  credentials_updated_cb.credentials_updated_cb(
+                      CredentialOperationStatus::kSucceeded);
+                } else {
+                  credentials_updated_cb.credentials_updated_cb(
+                      CredentialOperationStatus::kFailed);
+                }
+              },
+      });
+}
+
 std::pair<PrivateCredential, PublicCredential>
 CredentialManagerImpl::CreatePrivateCredential(
     const DeviceMetadata& device_metadata, IdentityType identity_type,
