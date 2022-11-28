@@ -23,6 +23,9 @@
 
 // Basic functionality tests. Does NOT test the security of the random data.
 
+namespace crypto {
+namespace {
+
 // Ensures we don't have all trivial data, i.e. that the data is indeed random.
 // Currently, that means the bytes cannot be all the same (e.g. all zeros).
 bool IsTrivial(const std::string& bytes) {
@@ -36,6 +39,28 @@ bool IsTrivial(const std::string& bytes) {
 
 TEST(RandBytes, RandBytes) {
   std::string bytes(16, '\0');
-  crypto::RandBytes(nearbybase::WriteInto(&bytes, bytes.size()), bytes.size());
+  RandBytes(nearbybase::WriteInto(&bytes, bytes.size()), bytes.size());
   EXPECT_TRUE(!IsTrivial(bytes));
 }
+
+TEST(RandBytes, RandomString) {
+  constexpr size_t kSize = 30;
+
+  std::string bytes = RandBytes(kSize);
+
+  EXPECT_EQ(bytes.size(), kSize);
+  EXPECT_TRUE(!IsTrivial(bytes));
+}
+
+TEST(RandBytes, RandData) {
+  uint64_t x = RandData<uint64_t>();
+  uint64_t y = RandData<uint64_t>();
+
+  // Once in a billion years, consecutively generated random numbers will be
+  // the same and the test will fail.
+  EXPECT_NE(x, y);
+  EXPECT_NE(x >> 32, x & 0xFFFFFFFF);
+}
+
+}  // namespace
+}  // namespace crypto

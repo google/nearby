@@ -17,6 +17,8 @@
 
 #include <stddef.h>
 
+#include <string>
+
 #include "absl/types/span.h"
 #include "internal/crypto/crypto_export.h"
 
@@ -29,6 +31,19 @@ CRYPTO_EXPORT void RandBytes(void *bytes, size_t length);
 
 // Fills |bytes| with cryptographically-secure random bits.
 CRYPTO_EXPORT void RandBytes(absl::Span<uint8_t> bytes);
+
+// Returns |length| random bytes.
+CRYPTO_EXPORT std::string RandBytes(size_t length);
+
+// Creates an object of type T initialized with random data.
+// This template should be used for simple data types: int, char, etc.
+template <typename T>
+T RandData() {
+  T data;
+  RandBytes(&data, sizeof(data));
+  return data;
+}
+
 }  // namespace crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_RANDOM_H_
