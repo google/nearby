@@ -32,6 +32,7 @@ namespace {
 using FeatureFlags = ::location::nearby::FeatureFlags::Flags;
 using internal::IdentityType;
 using ::location::nearby::MediumEnvironment;
+using ::testing::status::StatusIs;
 
 constexpr FeatureFlags kTestCases[] = {
     FeatureFlags{},
@@ -76,12 +77,12 @@ INSTANTIATE_TEST_SUITE_P(ParametrisedServiceControllerImplTest,
                          testing::ValuesIn(kTestCases));
 
 TEST_P(ServiceControllerImplTest, StartBroadcastPublicIdentity) {
-  std::unique_ptr<BroadcastSession> session =
+  absl::StatusOr<BroadcastSessionId> session =
       service_controller_.StartBroadcast(
           CreateBroadcastRequest(internal::IDENTITY_TYPE_PUBLIC),
           broadcast_callback_);
 
-  EXPECT_TRUE(session);
+  EXPECT_OK(session);
   EXPECT_TRUE(start_broadcast_status_.Get().ok());
   EXPECT_EQ(start_broadcast_status_.Get().GetResult(),
             Status{Status::Value::kSuccess});
@@ -92,14 +93,13 @@ TEST_P(ServiceControllerImplTest, StartBroadcastPublicIdentity) {
 }
 
 TEST_P(ServiceControllerImplTest, StartAndStopBroadcast) {
-  std::unique_ptr<BroadcastSession> session =
+  absl::StatusOr<BroadcastSessionId> session =
       service_controller_.StartBroadcast(
           CreateBroadcastRequest(internal::IDENTITY_TYPE_PUBLIC),
           broadcast_callback_);
 
-  ASSERT_TRUE(session);
-  EXPECT_EQ(session->stop_broadcast_callback(),
-            Status{Status::Value::kSuccess});
+  ASSERT_OK(session);
+  service_controller_.StopBroadcast(*session);
   MediumEnvironment::Instance().Sync();
   EXPECT_FALSE(MediumEnvironment::Instance()
                    .GetBleV2MediumStatus(
@@ -107,12 +107,27 @@ TEST_P(ServiceControllerImplTest, StartAndStopBroadcast) {
                    ->is_advertising);
 }
 
+TEST_P(ServiceControllerImplTest, StopBroadcastTwiceNoSideEffects) {
+  absl::StatusOr<BroadcastSessionId> session =
+      service_controller_.StartBroadcast(
+          CreateBroadcastRequest(internal::IDENTITY_TYPE_PUBLIC),
+          broadcast_callback_);
+  ASSERT_OK(session);
+  service_controller_.StopBroadcast(*session);
+
+  service_controller_.StopBroadcast(*session);
+}
+
+TEST_P(ServiceControllerImplTest, StopBroadcastInvalidSessionNoSideEffects) {
+  service_controller_.StopBroadcast(123456);
+}
+
 TEST_P(ServiceControllerImplTest, StartBroadcastInvalidRequestFails) {
-  std::unique_ptr<BroadcastSession> session =
+  absl::StatusOr<BroadcastSessionId> session =
       service_controller_.StartBroadcast(BroadcastRequest{},
                                          broadcast_callback_);
 
-  EXPECT_FALSE(session);
+  EXPECT_THAT(session, StatusIs(absl::StatusCode::kInvalidArgument));
   EXPECT_TRUE(start_broadcast_status_.Get().ok());
   EXPECT_EQ(start_broadcast_status_.Get().GetResult(),
             Status{Status::Value::kError});
@@ -120,12 +135,12 @@ TEST_P(ServiceControllerImplTest, StartBroadcastInvalidRequestFails) {
 
 TEST_P(ServiceControllerImplTest, StartBroadcastPrivateIdentityFails) {
   // TODO(b/256249404): Support private identity.
-  std::unique_ptr<BroadcastSession> session =
+  absl::StatusOr<BroadcastSessionId> session =
       service_controller_.StartBroadcast(
           CreateBroadcastRequest(internal::IDENTITY_TYPE_PRIVATE),
           broadcast_callback_);
 
-  EXPECT_FALSE(session);
+  EXPECT_THAT(session, StatusIs(absl::StatusCode::kUnavailable));
   EXPECT_TRUE(start_broadcast_status_.Get().ok());
   EXPECT_EQ(start_broadcast_status_.Get().GetResult(),
             Status{Status::Value::kError});

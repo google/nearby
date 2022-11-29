@@ -29,7 +29,8 @@ cc_library(
         ":types",
         "//internal/platform:types",
         "//presence/implementation:internal",  # build_cleaner: keep
-        "@com_google_absl//absl/log:die_if_null",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
     ],
 )
 

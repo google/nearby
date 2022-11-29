@@ -33,7 +33,7 @@ class MockServiceController : public ServiceController {
 
   MOCK_METHOD(std::unique_ptr<ScanSession>, StartScan,
               (ScanRequest scan_request, ScanCallback callback), (override));
-  MOCK_METHOD(std::unique_ptr<BroadcastSession>, StartBroadcast,
+  MOCK_METHOD(absl::StatusOr<BroadcastSessionId>, StartBroadcast,
               (BroadcastRequest broadcast_request, BroadcastCallback callback),
               (override));
 

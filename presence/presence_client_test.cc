@@ -14,6 +14,8 @@
 
 #include "presence/presence_client.h"
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/medium_environment.h"
 #include "presence/data_types.h"
@@ -23,6 +25,8 @@
 namespace nearby {
 namespace presence {
 namespace {
+
+using ::testing::status::StatusIs;
 
 // Creates a PresenceClient and destroys PresenceService that was used to create
 // it.
@@ -46,7 +50,7 @@ TEST_F(PresenceClientTest, StartBroadcastWithDefaultConstructor) {
 
   PresenceService presence_service;
   PresenceClient presence_client = presence_service.CreatePresenceClient();
-  presence_client.StartBroadcast({}, broadcast_callback);
+  auto unused = presence_client.StartBroadcast({}, broadcast_callback);
 
   EXPECT_FALSE(broadcast_result.Ok());
   env_.Stop();
@@ -59,8 +63,10 @@ TEST_F(PresenceClientTest, StartBroadcastFailsWhenPresenceServiceIsGone) {
       .start_broadcast_cb = [&](Status status) { broadcast_result = status; },
   };
 
-  CreateDefunctPresenceClient().StartBroadcast({}, broadcast_callback);
+  absl::StatusOr<BroadcastSessionId> session_id =
+      CreateDefunctPresenceClient().StartBroadcast({}, broadcast_callback);
 
+  EXPECT_THAT(session_id, StatusIs(absl::StatusCode::kFailedPrecondition));
   EXPECT_FALSE(broadcast_result.Ok());
   env_.Stop();
 }

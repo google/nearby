@@ -15,9 +15,12 @@
 #include "presence/presence_client.h"
 
 #include <memory>
+#include <utility>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "internal/platform/borrowable.h"
+#include "internal/platform/logging.h"
 #include "presence/presence_service.h"
 
 namespace nearby {
@@ -31,13 +34,23 @@ std::unique_ptr<ScanSession> PresenceClient::StartScan(ScanRequest scan_request,
   }
   return (*borrowed)->StartScan(scan_request, callback);
 }
-std::unique_ptr<BroadcastSession> PresenceClient::StartBroadcast(
+absl::StatusOr<BroadcastSessionId> PresenceClient::StartBroadcast(
     BroadcastRequest broadcast_request, BroadcastCallback callback) {
   ::location::nearby::Borrowed<PresenceService*> borrowed = service_.Borrow();
   if (!borrowed) {
-    return nullptr;
+    return absl::FailedPreconditionError(
+        "Can't start broadcast, presence service is gone");
   }
   return (*borrowed)->StartBroadcast(broadcast_request, callback);
+}
+
+void PresenceClient::StopBroadcast(BroadcastSessionId session_id) {
+  ::location::nearby::Borrowed<PresenceService*> borrowed = service_.Borrow();
+  if (borrowed) {
+    (*borrowed)->StopBroadcast(session_id);
+  } else {
+    NEARBY_LOGS(VERBOSE) << "Session already finished, id: " << session_id;
+  }
 }
 
 }  // namespace presence

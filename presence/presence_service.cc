@@ -35,9 +35,13 @@ std::unique_ptr<ScanSession> PresenceService::StartScan(
   return service_controller_->StartScan(scan_request, callback);
 }
 
-std::unique_ptr<BroadcastSession> PresenceService::StartBroadcast(
+absl::StatusOr<BroadcastSessionId> PresenceService::StartBroadcast(
     BroadcastRequest broadcast_request, BroadcastCallback callback) {
   return service_controller_->StartBroadcast(broadcast_request, callback);
+}
+
+void PresenceService::StopBroadcast(BroadcastSessionId session) {
+  service_controller_->StopBroadcast(session);
 }
 
 }  // namespace presence

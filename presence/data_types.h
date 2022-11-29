@@ -76,17 +76,8 @@ struct ScanCallback {
   std::function<void(PresenceDevice)> on_lost_cb = [](PresenceDevice) {};
 };
 
-/**
- * Holds the callback of stop broadcast for client to invoke later.
- */
-struct BroadcastSession {
-  // Nearby library would provide the implementation of this callback in
-  // runtime. Assiging with a default value NotImplemented to surface potential
-  // issue where library failed to provide the implementation.
-  absl::AnyInvocable<Status(void)> stop_broadcast_callback = []() {
-    return Status{Status::Value::kNotImplemented};
-  };
-};
+// Unique Broadcast Session Identifier.
+using BroadcastSessionId = uint64_t;
 
 // Callers would provide the implementation of these callbacks. If callers
 // don't need these signal updates, they can skip with the provided default

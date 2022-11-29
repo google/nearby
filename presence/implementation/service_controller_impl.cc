@@ -18,8 +18,11 @@
 #include <string>
 #include <utility>
 
+#include "absl/random/random.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "presence/data_types.h"
 #include "presence/implementation/advertisement_factory.h"
 #include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/mediums/advertisement_data.h"
@@ -48,7 +51,7 @@ std::unique_ptr<ScanSession> ServiceControllerImpl::StartScan(
   return scan_manager_.StartScan(scan_request, callback);
 }
 
-std::unique_ptr<BroadcastSession> ServiceControllerImpl::StartBroadcast(
+absl::StatusOr<BroadcastSessionId> ServiceControllerImpl::StartBroadcast(
     BroadcastRequest broadcast_request, BroadcastCallback callback) {
   absl::StatusOr<BaseBroadcastRequest> request =
       BaseBroadcastRequest::Create(broadcast_request);
@@ -56,7 +59,7 @@ std::unique_ptr<BroadcastSession> ServiceControllerImpl::StartBroadcast(
     NEARBY_LOGS(WARNING) << "Invalid broadcast request, reason: "
                          << request.status();
     callback.start_broadcast_cb(Status{Status::Value::kError});
-    return nullptr;
+    return request.status();
   }
   absl::StatusOr<AdvertisementData> advertisement =
       AdvertisementFactory(&credential_manager_).CreateAdvertisement(*request);
@@ -64,7 +67,7 @@ std::unique_ptr<BroadcastSession> ServiceControllerImpl::StartBroadcast(
     NEARBY_LOGS(WARNING) << "Can't create advertisement, reason: "
                          << advertisement.status();
     callback.start_broadcast_cb(Status{Status::Value::kError});
-    return nullptr;
+    return advertisement.status();
   }
   std::unique_ptr<AdvertisingSession> session =
       mediums_.GetBle().StartAdvertising(
@@ -75,15 +78,29 @@ std::unique_ptr<BroadcastSession> ServiceControllerImpl::StartBroadcast(
                                         ConvertBleStatus(status));
                                   }});
   if (!session) {
-    NEARBY_LOGS(WARNING) << "Failed to start broadcasting";
     callback.start_broadcast_cb(Status{Status::Value::kError});
-    return nullptr;
+    return absl::UnavailableError("Failed to start broadcasting");
   }
 
-  return std::make_unique<BroadcastSession>(BroadcastSession{
-      .stop_broadcast_callback = [session = std::move(session)]() {
-        return ConvertBleStatus(session->stop_advertising());
-      }});
+  BroadcastSessionId id = GenerateBroadcastSessionId();
+  sessions_.insert({id, Session{.advertising_session = std::move(session)}});
+
+  return id;
+}
+
+void ServiceControllerImpl::StopBroadcast(BroadcastSessionId id) {
+  auto it = sessions_.find(id);
+  if (it != sessions_.end()) {
+    it->second.advertising_session->stop_advertising();
+    sessions_.erase(it);
+  } else {
+    NEARBY_LOGS(WARNING) << absl::StrFormat(
+        "BroadcastSessionId(0x%x) not found", id);
+  }
+}
+
+BroadcastSessionId ServiceControllerImpl::GenerateBroadcastSessionId() {
+  return absl::Uniform<BroadcastSessionId>(bit_gen_);
 }
 
 }  // namespace presence

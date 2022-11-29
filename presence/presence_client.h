@@ -19,6 +19,7 @@
 #include <memory>
 #include <vector>
 
+#include "absl/status/statusor.h"
 #include "internal/platform/borrowable.h"
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
@@ -59,20 +60,22 @@ class PresenceClient {
   std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
                                          ScanCallback callback);
 
-  /**
-   * Starts a Nearby Presence broadcast and registers {@link BroadcastCallback}
-   * which will be invoked after broadcast is started.
-   *
-   * <p>The {@link BroadcastCallback} is kept at the Nearby Presence service.
-   * Returning unique_ptr of BroadcastSession including stop broadcast callback
-   * for the client to invoke later.
-   *
-   * <p>The {@link BroadcastRequest} contains the options like tx_power,
-   * the credential info like salt and private credential, the actions and
-   * extended properties.
-   */
-  std::unique_ptr<BroadcastSession> StartBroadcast(
+  // Starts a Nearby Presence broadcast and registers `BroadcastCallback`
+  // which will be invoked after broadcast is started.
+  // The session can be terminated with `StopBroadcast()`.
+  //
+  // `BroadcastCallback` is kept in the Nearby Presence service until
+  // `StopBroadcast()` is called.
+  //
+  // `BroadcastRequest` contains the options like tx_power,
+  // the credential info like salt and private credential, the actions and
+  // extended properties.
+  absl::StatusOr<BroadcastSessionId> StartBroadcast(
       BroadcastRequest broadcast_request, BroadcastCallback callback);
+
+  // Terminates a broadcast session. Does nothing if the session is already
+  // terminated.
+  void StopBroadcast(BroadcastSessionId session_id);
 
  private:
   BorrowablePresenceService service_;

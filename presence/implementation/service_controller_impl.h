@@ -17,6 +17,7 @@
 
 #include <memory>
 
+#include "absl/random/random.h"
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
 #include "presence/implementation/credential_manager_impl.h"
@@ -33,21 +34,31 @@ namespace presence {
 
 class ServiceControllerImpl : public ServiceController {
  public:
+  using AdvertisingSession =
+      location::nearby::api::ble_v2::BleMedium::AdvertisingSession;
   ServiceControllerImpl() = default;
   std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
                                          ScanCallback callback) override;
-  std::unique_ptr<BroadcastSession> StartBroadcast(
+  absl::StatusOr<BroadcastSessionId> StartBroadcast(
       BroadcastRequest broadcast_request, BroadcastCallback callback) override;
+  void StopBroadcast(BroadcastSessionId) override;
 
   // Gives tests access to mediums.
   Mediums& GetMediums() { return mediums_; }
 
  private:
+  struct Session {
+    std::unique_ptr<AdvertisingSession> advertising_session;
+  };
+
+  BroadcastSessionId GenerateBroadcastSessionId();
   Mediums mediums_;  // NOLINT: further impl will use it.
   CredentialManagerImpl
       credential_manager_;  // NOLINT: further impl will use it.
   ScanManager scan_manager_{
       mediums_, credential_manager_};  // NOLINT: further impl will use it.
+  absl::flat_hash_map<BroadcastSessionId, Session> sessions_;
+  absl::BitGen bit_gen_;
 };
 
 }  // namespace presence
