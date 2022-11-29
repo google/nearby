@@ -14,21 +14,43 @@
 
 #include "presence/presence_device.h"
 
+#include <string>
+#include <vector>
+
+#include "internal/crypto/random.h"
+#include "internal/platform/bluetooth_connection_info.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "presence/device_motion.h"
 
 namespace nearby {
 namespace presence {
 
+namespace {
+std::string GenerateRandomEndpointId() {
+  return crypto::RandBytes(kEndpointIdLength);
+}
+}  // namespace
+
 PresenceDevice::PresenceDevice(DeviceMetadata device_metadata) noexcept
     : discovery_timestamp_(location::nearby::SystemClock::ElapsedRealtime()),
       device_motion_(DeviceMotion()),
-      device_metadata_(device_metadata) {}
+      device_metadata_(device_metadata) {
+  endpoint_id_ = GenerateRandomEndpointId();
+}
 PresenceDevice::PresenceDevice(DeviceMotion device_motion,
                                DeviceMetadata device_metadata) noexcept
     : discovery_timestamp_(location::nearby::SystemClock::ElapsedRealtime()),
       device_motion_(device_motion),
-      device_metadata_(device_metadata) {}
+      device_metadata_(device_metadata) {
+  endpoint_id_ = GenerateRandomEndpointId();
+}
 
+std::vector<absl::variant<location::nearby::BluetoothConnectionInfo>>
+PresenceDevice::GetConnectionInfos() const {
+  location::nearby::BluetoothConnectionInfo bluetooth_connection_info(
+      location::nearby::ByteArray(device_metadata_.bluetooth_mac_address()),
+      "Nearby Presence");
+  return {bluetooth_connection_info};
+}
 }  // namespace presence
 }  // namespace nearby

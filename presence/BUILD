@@ -61,7 +61,10 @@ cc_library(
         "status.h",
     ],
     deps = [
+        "//internal:device",
+        "//internal/crypto",
         "//internal/platform:base",
+        "//internal/platform:connection_info",
         "//internal/platform:logging",
         "//internal/platform/implementation:types",
         "//internal/proto:credential_cc_proto",
@@ -92,11 +95,14 @@ cc_test(
     shard_count = 6,
     deps = [
         ":types",
+        "//internal/platform:connection_info",
+        "//internal/platform:logging",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",
         "//internal/proto:device_metadata_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:variant",
         "@com_google_googletest//:gtest_main",
     ],
 )

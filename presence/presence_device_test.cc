@@ -14,14 +14,22 @@
 
 #include "presence/presence_device.h"
 
+#include <memory>
+
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/types/variant.h"
+#include "internal/platform/bluetooth_connection_info.h"
+#include "internal/platform/logging.h"
 #include "internal/proto/device_metadata.proto.h"
 
 namespace nearby {
 namespace presence {
 namespace {
+
+using internal::DeviceMetadata;
+
 constexpr DeviceMotion::MotionType kDefaultMotionType =
     DeviceMotion::MotionType::kPointAndHold;
 constexpr float kDefaultConfidence = 0;
@@ -63,12 +71,22 @@ TEST(PresenceDeviceTest, ExplicitInitNotEquals) {
   EXPECT_NE(device1, device2);
 }
 
-TEST(PresenceDeviceTest, CopyInitEquals) {
+TEST(PresenceDeviceTest, TestGetBluetoothAddress) {
   DeviceMetadata metadata = CreateTestDeviceMetadata();
-  PresenceDevice device1 =
-      PresenceDevice({kDefaultMotionType, kTestConfidence}, metadata);
-  PresenceDevice device2 = {device1};
-  EXPECT_EQ(device1, device2);
+  PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
+  auto info = (device.GetConnectionInfos().at(0));
+  ASSERT_TRUE(
+      absl::holds_alternative<location::nearby::BluetoothConnectionInfo>(info));
+  EXPECT_EQ(absl::get<location::nearby::BluetoothConnectionInfo>(info)
+                .GetMacAddress()
+                .AsStringView(),
+            kMacAddr);
+}
+
+TEST(PresenceDeviceTest, TestEndpointIdIsCorrectLength) {
+  DeviceMetadata metadata = CreateTestDeviceMetadata();
+  PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
+  EXPECT_EQ(device.GetEndpointId().length(), kEndpointIdLength);
 }
 
 }  // namespace

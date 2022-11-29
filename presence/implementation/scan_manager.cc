@@ -102,7 +102,7 @@ std::unique_ptr<ScanSession> ScanManager::StartScan(ScanRequest scan_request,
 
 void ScanManager::NotifyFoundBle(BleAdvertisementData data,
                                  const BlePeripheral& peripheral) {
-  std::vector<std::pair<ScanCallback, DeviceMetadata>> callbacks;
+  std::vector<std::pair<ScanCallback, internal::DeviceMetadata>> callbacks;
   {
     absl::MutexLock lock(&mutex_);
     auto advertisement_data =
@@ -116,7 +116,7 @@ void ScanManager::NotifyFoundBle(BleAdvertisementData data,
       }
       if (candidate.decoder.MatchesScanFilter(advert.value())) {
         std::string bt_addr = peripheral.GetAddress();
-        DeviceMetadata metadata;
+        internal::DeviceMetadata metadata;
         metadata.set_bluetooth_mac_address(bt_addr);
         callbacks.push_back({candidate.callback, metadata});
       }

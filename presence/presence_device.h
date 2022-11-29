@@ -15,22 +15,40 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_DEVICE_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_DEVICE_H_
 
+#include <memory>
 #include <string>
+#include <vector>
 
 #include "absl/time/time.h"
+#include "absl/types/variant.h"
+#include "internal/device.h"
+#include "internal/platform/bluetooth_connection_info.h"
 #include "internal/proto/device_metadata.pb.h"
 #include "presence/device_motion.h"
 
 namespace nearby {
 namespace presence {
 
-using nearby::internal::DeviceMetadata;
+constexpr int kEndpointIdLength = 4;
 
-class PresenceDevice {
+class PresenceDevice : public location::nearby::NearbyDevice {
+  using DeviceMetadata = ::nearby::internal::DeviceMetadata;
+
  public:
   explicit PresenceDevice(DeviceMetadata metadata) noexcept;
   explicit PresenceDevice(DeviceMotion device_motion,
                           DeviceMetadata metadata) noexcept;
+  absl::string_view GetEndpointId() const override { return endpoint_id_; };
+  void SetEndpointInfo(absl::string_view endpoint_info) {
+    endpoint_info_ = std::string(endpoint_info);
+  }
+  absl::string_view GetEndpointInfo() const override { return endpoint_info_; }
+  NearbyDevice::Type GetType() const override {
+    return NearbyDevice::Type::kPresenceDevice;
+  }
+  // Add more medium ConnectionInfos as we introduce them.
+  std::vector<absl::variant<location::nearby::BluetoothConnectionInfo>>
+  GetConnectionInfos() const override;
   DeviceMotion GetDeviceMotion() const { return device_motion_; }
   DeviceMetadata GetMetadata() const { return device_metadata_; }
   absl::Time GetDiscoveryTimestamp() const { return discovery_timestamp_; }
@@ -39,6 +57,8 @@ class PresenceDevice {
   const absl::Time discovery_timestamp_;
   const DeviceMotion device_motion_;
   const DeviceMetadata device_metadata_;
+  std::string endpoint_id_;
+  std::string endpoint_info_;
 };
 
 // Timestamp is not used for equality since if the same device is discovered

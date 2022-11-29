@@ -16,9 +16,11 @@
 #define THIRD_PARTY_NEARBY_CONNECTIONS_IMPLEMENTATION_DEVICE_H_
 
 #include <string>
+#include <vector>
 
-#include "absl/status/statusor.h"
-#include "internal/platform/connection_info.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/variant.h"
+#include "internal/platform/bluetooth_connection_info.h"
 
 namespace location {
 namespace nearby {
@@ -30,14 +32,18 @@ class NearbyDevice {
     kConnectionsDevice = 1,
     kPresenceDevice = 2,
   };
+  NearbyDevice() = default;
   virtual ~NearbyDevice() = default;
   NearbyDevice(NearbyDevice&&) = default;
   NearbyDevice& operator=(NearbyDevice&&) = default;
   NearbyDevice(const NearbyDevice&) = delete;
   NearbyDevice& operator=(const NearbyDevice&) = delete;
-  virtual absl::StatusOr<std::string> GetEndpointId() const = 0;
-  virtual std::string GetEndpointInfo() const = 0;
-  virtual absl::Span<ConnectionInfo*> GetConnectionInfos() const = 0;
+  virtual absl::string_view GetEndpointId() const = 0;
+  virtual absl::string_view GetEndpointInfo() const = 0;
+  // We will be adding more ConnectionInfo types to this variant as they are
+  // implemented.
+  virtual std::vector<absl::variant<BluetoothConnectionInfo>>
+  GetConnectionInfos() const = 0;
   virtual Type GetType() const { return Type::kUnknownDevice; }
 };
 
