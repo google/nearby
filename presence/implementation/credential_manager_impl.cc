@@ -14,12 +14,14 @@
 
 #include "presence/implementation/credential_manager_impl.h"
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/status/status.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/crypto/aead.h"
@@ -49,7 +51,8 @@ using ::nearby::internal::PublicCredential;
 
 // Key to retrieve local device's Private/Public Key Credentials from key store.
 constexpr char kPairedKeyAliasPrefix[] = "nearby_presence_paired_key_alias_";
-
+// The metadata key size required for V0 advertisements;
+constexpr size_t kMetadataKeySize = 14;
 constexpr absl::Duration kTimeout = absl::Seconds(3);
 
 }  // namespace
@@ -333,6 +336,9 @@ absl::StatusOr<std::string> CredentialManagerImpl::DecryptDataElements(
     return absl::UnavailableError("No credentials");
   }
   for (const auto& credential : credentials) {
+    if (credential.metadata_encryption_key_tag().size() != kMetadataKeySize) {
+      continue;
+    }
     absl::StatusOr<LdtEncryptor> encryptor =
         LdtEncryptor::Create(credential.authenticity_key(),
                              credential.metadata_encryption_key_tag());
@@ -340,7 +346,8 @@ absl::StatusOr<std::string> CredentialManagerImpl::DecryptDataElements(
       absl::StatusOr<std::string> result =
           encryptor->DecryptAndVerify(data_elements, salt);
       if (result.ok()) {
-        return result;
+        // Skip over metadata tag.
+        return result->substr(kMetadataKeySize);
       }
     }
   }
@@ -365,6 +372,11 @@ absl::StatusOr<std::string> CredentialManagerImpl::EncryptDataElements(
     return absl::UnavailableError("No credentials");
   }
   PrivateCredential& credential = credentials.result().front();
+  if (credential.metadata_encryption_key().size() != kMetadataKeySize) {
+    return absl::FailedPreconditionError(absl::StrFormat(
+        "Metadata key size %d, expected %d",
+        credential.metadata_encryption_key().size(), kMetadataKeySize));
+  }
 
   // HMAC is not used during encryption, so we can pass an empty value.
   absl::StatusOr<LdtEncryptor> encryptor =
@@ -372,7 +384,9 @@ absl::StatusOr<std::string> CredentialManagerImpl::EncryptDataElements(
   if (!encryptor.ok()) {
     return encryptor.status();
   }
-  return encryptor->Encrypt(data_elements, salt);
+  std::string plaintext =
+      absl::StrCat(credential.metadata_encryption_key(), data_elements);
+  return encryptor->Encrypt(plaintext, salt);
 }
 
 }  // namespace presence

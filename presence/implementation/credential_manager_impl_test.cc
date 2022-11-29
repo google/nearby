@@ -384,14 +384,6 @@ TEST(CredentialManagerImpl, PublicCredentialsFailEncryption) {
 TEST(CredentialManagerImpl, EncryptDataElements) {
   absl::string_view salt = "AB";
   absl::string_view data_elements = "data_elements";
-#if USE_RUST_LDT == 1
-  // `data_elements` is too short for LDT
-  absl::Status kExpectedError =
-      absl::InternalError("LDT encryption failed, errorcode -1");
-#else
-  absl::Status kExpectedError =
-      absl::UnavailableError("Failed to create LDT encryptor");
-#endif /* USE_RUST_LDT */
   DeviceMetadata device_metadata = CreateTestDeviceMetadata();
   CredentialManagerImpl credential_manager;
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
@@ -402,9 +394,10 @@ TEST(CredentialManagerImpl, EncryptDataElements) {
               [](std::vector<nearby::internal::PublicCredential>) {},
       });
 
-  EXPECT_THAT(credential_manager.EncryptDataElements(
-                  IDENTITY_TYPE_PRIVATE, "test_account", salt, data_elements),
-              kExpectedError);
+  EXPECT_THAT(
+      credential_manager.EncryptDataElements(
+          IDENTITY_TYPE_PRIVATE, "test_account", salt, data_elements),
+      absl::FailedPreconditionError("Metadata key size 16, expected 14"));
 }
 
 TEST(CredentialManagerImpl, DecryptDataElements) {
