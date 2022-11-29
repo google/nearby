@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 
 #include "absl/container/flat_hash_map.h"
 #include "connections/implementation/analytics/packet_meta_data.h"
@@ -28,15 +29,18 @@ namespace location {
 namespace nearby {
 namespace analytics {
 
-using Medium = ::location::nearby::proto::connections::Medium;
-using PayloadType = connections::PayloadType;
+// The following aliases are only for users' convenience.
+using ::location::nearby::proto::connections::Medium;
+using ::location::nearby::connections::PayloadType;
+// Enum to represent if a payload is incoming or outgoing.
+using ::location::nearby::connections::PayloadDirection;
 
 class ThroughputRecorder {
  public:
   explicit ThroughputRecorder(int64_t payload_id);
   ~ThroughputRecorder() = default;
 
-  void Start(PayloadType payload_type, const bool is_incoming);
+  void Start(PayloadType payload_type, PayloadDirection payload_direction);
   bool Stop() ABSL_LOCKS_EXCLUDED(mutex_);
   static int CalculateThroughputKBps(int64_t total_byte_size,
                                      int64_t total_millis);
@@ -47,14 +51,14 @@ class ThroughputRecorder {
     Throughput() = default;
     ~Throughput() = default;
     Throughput(Medium medium, absl::Time start_timestamp,
-               PayloadType payload_type, bool is_incoming)
+               PayloadType payload_type, PayloadDirection payload_direction)
         : medium_(medium),
           start_timestamp_(start_timestamp),
           payload_type_(payload_type),
-          is_incoming_(is_incoming) {}
+          payload_direction_(payload_direction) {}
 
-    void Add(int frame_size, int64_t file_io_time,
-             int64_t encryption_time, int64_t socket_io_time);
+    void Add(int frame_size, int64_t file_io_time, int64_t encryption_time,
+             int64_t socket_io_time);
 
     void SetLastTimestamp(absl::Time time_stamp) {
       last_timestamp_ = time_stamp;
@@ -70,15 +74,14 @@ class ThroughputRecorder {
     PayloadType payload_type_;
     int64_t total_byte_size_ = 0;
     absl::Time last_timestamp_;
-    bool is_incoming_ = false;
+    PayloadDirection payload_direction_ = PayloadDirection::INCOMING_PAYLOAD;
     int64_t file_io_time_ = 0;
     int64_t encryption_time_ = 0;
     int64_t socket_io_time_ = 0;
   };
 
-  Throughput& GetThroughput(Medium medium, int64_t duration_millis)
-      ABSL_LOCKS_EXCLUDED(mutex_);
-  int GetThroughputsSize() ABSL_LOCKS_EXCLUDED(mutex_);
+  Throughput& GetThroughput(Medium medium, int64_t duration_millis);
+  int GetThroughputsSize();
   int GetThroughputKbps();
   int64_t GetDurationMillis();
   void OnFrameSent(Medium medium, PacketMetaData& packetMetaData);
@@ -90,18 +93,18 @@ class ThroughputRecorder {
   static std::string ToString(PayloadType type);
 
   Mutex mutex_;
-  int64_t payload_id_;
+  int64_t payload_id_ = 0;
   absl::Time start_timestamp_;
   PayloadType payload_type_ = PayloadType::kUnknown;
-  bool is_incoming_ = false;
-  absl::flat_hash_map<Medium, Throughput> throughputs_ ABSL_GUARDED_BY(mutex_);
+  PayloadDirection payload_direction_ = PayloadDirection::INCOMING_PAYLOAD;
+  absl::flat_hash_map<Medium, Throughput> throughputs_;
   bool success_ = false;
 
   int64_t file_io_time_ = 0;
   int64_t encryption_time_ = 0;
   int64_t socket_io_time_ = 0;
   int64_t duration_millis_ = 0;
-  int throughput_kbps_;
+  int throughput_kbps_ = 0;
 };
 
 class ThroughputRecorderContainer {
@@ -113,9 +116,10 @@ class ThroughputRecorderContainer {
   static ThroughputRecorderContainer& GetInstance();
   void Shutdown() ABSL_LOCKS_EXCLUDED(mutex_);
 
-  ThroughputRecorder* GetTPRecorder(const int64_t payload_id)
+  ThroughputRecorder* GetTPRecorder(int64_t payload_id,
+                                    PayloadDirection payload_direction)
       ABSL_LOCKS_EXCLUDED(mutex_);
-  void StopTPRecorder(const int64_t payload_id)
+  void StopTPRecorder(int64_t payload_id, PayloadDirection payload_direction)
       ABSL_LOCKS_EXCLUDED(mutex_);
   int GetSize() ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -128,8 +132,9 @@ class ThroughputRecorderContainer {
   ~ThroughputRecorderContainer() = default;
 
   Mutex mutex_;
-  absl::flat_hash_map<int64_t, ThroughputRecorder*> throughput_recorders_
-      ABSL_GUARDED_BY(mutex_);
+  // std::pair<int64_t, PayloadDirection> for <payload id, payload direction>
+  absl::flat_hash_map<std::pair<int64_t, PayloadDirection>, ThroughputRecorder*>
+      throughput_recorders_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace analytics

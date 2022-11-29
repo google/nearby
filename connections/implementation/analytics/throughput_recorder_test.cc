@@ -67,16 +67,19 @@ TEST(ThroughputRecorder, CalculateThroughputMBps) {
 TEST(ThroughputRecorderContainer, InstanceCreate_ContainerSize) {
   ThroughputRecorderContainer& TPRecorderContainer =
       ThroughputRecorderContainer::GetInstance();
-  TPRecorderContainer.GetTPRecorder(kPayloadIdA);
-  TPRecorderContainer.GetTPRecorder(kPayloadIdB);
+  TPRecorderContainer.GetTPRecorder(kPayloadIdA,
+                                    PayloadDirection::OUTGOING_PAYLOAD);
+  TPRecorderContainer.GetTPRecorder(kPayloadIdB,
+                                    PayloadDirection::INCOMING_PAYLOAD);
   EXPECT_EQ(ThroughputRecorderContainer::GetInstance().GetSize(), 2);
   ThroughputRecorderContainer::GetInstance().Shutdown();
   EXPECT_EQ(ThroughputRecorderContainer::GetInstance().GetSize(), 0);
 }
 
 TEST_F(ThroughputRecorderTest, OnFrameSentSaveTransferredSize) {
-  auto TPRecorder = tp_recorder_container_.GetTPRecorder(kPayloadIdA);
-  TPRecorder->Start(PayloadType::kFile, /*isIncoming=*/false);
+  auto TPRecorder = tp_recorder_container_.GetTPRecorder(
+      kPayloadIdA, PayloadDirection::OUTGOING_PAYLOAD);
+  TPRecorder->Start(PayloadType::kFile, PayloadDirection::OUTGOING_PAYLOAD);
 
   PacketMetaData packet_meta_data;
   packet_meta_data.SetPacketSize(kFrameSize);
@@ -89,21 +92,23 @@ TEST_F(ThroughputRecorderTest, OnFrameSentSaveTransferredSize) {
 }
 
 TEST_F(ThroughputRecorderTest, OnIgnoreUnkownPaylaodType) {
-  auto TPRecorder = tp_recorder_container_.GetTPRecorder(kPayloadIdA);
-  TPRecorder->Start(PayloadType::kUnknown, /*isIncoming=*/false);
+  auto TPRecorder = tp_recorder_container_.GetTPRecorder(
+      kPayloadIdA, PayloadDirection::OUTGOING_PAYLOAD);
+  TPRecorder->Start(PayloadType::kUnknown, PayloadDirection::OUTGOING_PAYLOAD);
 
   PacketMetaData packet_meta_data;
   TPRecorder->OnFrameSent(proto::connections::BLE, packet_meta_data);
   EXPECT_EQ(TPRecorder->GetThroughputsSize(), 0);
 
-  TPRecorder->Start(PayloadType::kUnknown, /*isIncoming=*/true);
+  TPRecorder->Start(PayloadType::kUnknown, PayloadDirection::INCOMING_PAYLOAD);
   TPRecorder->OnFrameReceived(proto::connections::BLE, packet_meta_data);
   EXPECT_EQ(TPRecorder->GetThroughputsSize(), 0);
 }
 
 TEST_P(ThroughputRecorderTest, OnFrameSentStopAndDump) {
-  auto TPRecorder = tp_recorder_container_.GetTPRecorder(kPayloadIdA);
-  TPRecorder->Start(PayloadType::kFile, /*isIncoming=*/false);
+  auto TPRecorder = tp_recorder_container_.GetTPRecorder(
+      kPayloadIdA, PayloadDirection::OUTGOING_PAYLOAD);
+  TPRecorder->Start(PayloadType::kFile, PayloadDirection::OUTGOING_PAYLOAD);
 
   PacketMetaData packet_meta_data;
   packet_meta_data.SetPacketSize(kFrameSize);
@@ -143,8 +148,9 @@ TEST_P(ThroughputRecorderTest, OnFrameSentStopAndDump) {
 }
 
 TEST_F(ThroughputRecorderTest, OnFrameSentStopAndDumpForMultiMeadium) {
-  auto TPRecorder = tp_recorder_container_.GetTPRecorder(kPayloadIdA);
-  TPRecorder->Start(PayloadType::kFile, /*isIncoming=*/false);
+  auto TPRecorder = tp_recorder_container_.GetTPRecorder(
+      kPayloadIdA, PayloadDirection::OUTGOING_PAYLOAD);
+  TPRecorder->Start(PayloadType::kFile, PayloadDirection::OUTGOING_PAYLOAD);
 
   PacketMetaData packet_meta_data1;
   packet_meta_data1.SetPacketSize(kFrameSize);
@@ -177,10 +183,10 @@ TEST_F(ThroughputRecorderTest, OnFrameSentStopAndDumpForMultiMeadium) {
   EXPECT_NE(TPRecorder->GetThroughputKbps(), 0);
 }
 
-
 TEST_F(ThroughputRecorderTest, OnFrameReceivedCheckDurationMillis) {
-  auto TPRecorder = tp_recorder_container_.GetTPRecorder(kPayloadIdA);
-  TPRecorder->Start(PayloadType::kFile, /*isIncoming=*/true);
+  auto TPRecorder = tp_recorder_container_.GetTPRecorder(
+      kPayloadIdA, PayloadDirection::INCOMING_PAYLOAD);
+  TPRecorder->Start(PayloadType::kFile, PayloadDirection::INCOMING_PAYLOAD);
 
   PacketMetaData packet_meta_data;
   packet_meta_data.SetPacketSize(kFrameSize);
@@ -201,7 +207,8 @@ TEST_F(ThroughputRecorderTest, OnFrameReceivedCheckDurationMillis) {
 }
 
 TEST_F(ThroughputRecorderTest, OnTPRecorderNotStarted) {
-  auto TPRecorder = tp_recorder_container_.GetTPRecorder(kPayloadIdA);
+  auto TPRecorder = tp_recorder_container_.GetTPRecorder(
+      kPayloadIdA, PayloadDirection::OUTGOING_PAYLOAD);
   auto throughput = TPRecorder->GetThroughput(proto::connections::BLE, 0);
   EXPECT_FALSE(throughput.dump());
 }

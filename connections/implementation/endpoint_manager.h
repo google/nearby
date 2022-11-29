@@ -18,15 +18,15 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include <utility>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include "connections/implementation/analytics/packet_meta_data.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/time/time.h"
+#include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
@@ -59,8 +59,6 @@ namespace connections {
 // chunks) originates on one of those threads before control is transferred over
 // to PayloadManager::ProcessFrame() (still running on that
 // same dedicated reader thread).
-
-using analytics::PacketMetaData;
 
 class EndpointManager {
  public:

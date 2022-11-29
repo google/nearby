@@ -34,8 +34,9 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-using analytics::PacketMetaData;
-using analytics::ThroughputRecorderContainer;
+using ::location::nearby::analytics::PacketMetaData;
+using ::location::nearby::analytics::ThroughputRecorderContainer;
+using ::location::nearby::connections::PayloadDirection;
 
 // C++14 requires to declare this.
 // TODO(apolyudov): remove when migration to c++17 is possible.
@@ -171,7 +172,8 @@ bool PayloadManager::SendPayloadLoop(
                         << pending_payload.GetInternalPayload()->GetId()
                         << "; size=" << next_chunk_offset;
       ThroughputRecorderContainer::GetInstance()
-          .GetTPRecorder(pending_payload.GetInternalPayload()->GetId())
+          .GetTPRecorder(pending_payload.GetInternalPayload()->GetId(),
+                         PayloadDirection::OUTGOING_PAYLOAD)
           ->MarkAsSuccess();
       return false;
     }
@@ -437,15 +439,16 @@ void PayloadManager::SendPayload(ClientProxy* client,
         std::int64_t next_chunk_offset = 0;
 
         ThroughputRecorderContainer::GetInstance()
-            .GetTPRecorder(payload_id)
-            ->Start(payload_type, /*isIncoming=*/false);
+            .GetTPRecorder(payload_id, PayloadDirection::OUTGOING_PAYLOAD)
+            ->Start(payload_type, PayloadDirection::OUTGOING_PAYLOAD);
         while (should_continue && !shutdown_.Get()) {
           should_continue =
               SendPayloadLoop(client, *pending_payload, payload_header,
                               next_chunk_offset, resume_offset);
         }
 
-        ThroughputRecorderContainer::GetInstance().StopTPRecorder(payload_id);
+        ThroughputRecorderContainer::GetInstance().StopTPRecorder(
+            payload_id, PayloadDirection::OUTGOING_PAYLOAD);
         RunOnStatusUpdateThread("destroy-payload",
                                 [this, payload_id]()
                                     RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
@@ -826,7 +829,7 @@ void PayloadManager::HandleFinishedIncomingPayload(
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t offset_bytes, proto::connections::PayloadStatus status) {
   ThroughputRecorderContainer::GetInstance().StopTPRecorder(
-      payload_header.id());
+      payload_header.id(), PayloadDirection::INCOMING_PAYLOAD);
   SendClientCallbacksForFinishedIncomingPayload(
       client, endpoint_id, payload_header, offset_bytes, status);
 
@@ -977,8 +980,9 @@ void PayloadManager::ProcessDataPacket(
   PendingPayload* pending_payload;
   if (payload_chunk.offset() == 0) {
     ThroughputRecorderContainer::GetInstance()
-        .GetTPRecorder(payload_header.id())
-        ->Start((PayloadType)payload_header.type(), /*isIncoming=*/true);
+        .GetTPRecorder(payload_header.id(), PayloadDirection::INCOMING_PAYLOAD)
+        ->Start((PayloadType)payload_header.type(),
+                PayloadDirection::INCOMING_PAYLOAD);
     packet_meta_data.Reset();
     RunOnStatusUpdateThread(
         "process-data-packet", [to_client, from_endpoint_id, payload_header,
@@ -1070,17 +1074,17 @@ void PayloadManager::ProcessDataPacket(
                                 payload_body_size);
 
   ThroughputRecorderContainer::GetInstance()
-      .GetTPRecorder(payload_header.id())
+      .GetTPRecorder(payload_header.id(), PayloadDirection::INCOMING_PAYLOAD)
       ->OnFrameReceived(medium, packet_meta_data);
   bool is_last_chunk = (payload_chunk.flags() &
                         PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
   if (is_last_chunk) {
     ThroughputRecorderContainer::GetInstance()
-        .GetTPRecorder(payload_header.id())
+        .GetTPRecorder(payload_header.id(), PayloadDirection::INCOMING_PAYLOAD)
         ->MarkAsSuccess();
 
     ThroughputRecorderContainer::GetInstance().StopTPRecorder(
-        payload_header.id());
+        payload_header.id(), PayloadDirection::INCOMING_PAYLOAD);
   }
 }
 

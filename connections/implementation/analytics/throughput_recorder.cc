@@ -42,30 +42,35 @@ ThroughputRecorderContainer& ThroughputRecorderContainer::GetInstance() {
 }
 
 void ThroughputRecorder::Start(PayloadType payload_type,
-                               const bool is_incoming) {
-  NEARBY_LOGS(INFO) << "Start TP profiling for payload_id:" << payload_id_;
+                               PayloadDirection payload_direction) {
+  std::string direction =
+      (payload_direction == PayloadDirection::INCOMING_PAYLOAD) ? "; Receive"
+                                                                : "; Send";
 
-  // MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << "Start TP profiling for payload_id:" << payload_id_
+                    << direction;
+
   if (payload_type == PayloadType::kUnknown) {
     NEARBY_LOGS(INFO)
         << "Ignore ThroughputRecorder::start for Unknown Payload type";
     return;
   }
 
+  MutexLock lock(&mutex_);
   start_timestamp_ = SystemClock::ElapsedRealtime();
   payload_type_ = payload_type;
-  is_incoming_ = is_incoming;
+  payload_direction_ = payload_direction;
   // Add packetLostAlarm later
 }
 
 bool ThroughputRecorder::Stop() {
+  MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "Stop TP profiling for payload_id:" << payload_id_;
   if (payload_type_ == PayloadType::kUnknown) {
     NEARBY_LOGS(INFO) << "Ignore ThroughputRecorder::stop as it never start";
     return false;
   }
   {
-    MutexLock lock(&mutex_);
     // Add packetLostAlarm stop process later
     absl::Time stop_timestamp = SystemClock::ElapsedRealtime();
     int64_t total_byte_size = 0;
@@ -106,11 +111,16 @@ bool ThroughputRecorder::Stop() {
             "is %d MB/s (%d KB/s), File IO takes %d ms, %s takes %d "
             "ms, "
             "Socket IO takes %d ms",
-            is_incoming_ ? "Received" : "Sent", ToString(payload_type_),
-            total_byte_size, success_ ? "SUCCEEDED" : "FAILED", total_millis,
-            throughput_mbps, throughput_kbps_, file_io_time_,
-            is_incoming_ ? "Decryption" : "Encryption", encryption_time_,
-            socket_io_time_);
+            (payload_direction_ == PayloadDirection::INCOMING_PAYLOAD)
+                ? "Received"
+                : "Sent",
+            ToString(payload_type_), total_byte_size,
+            success_ ? "SUCCEEDED" : "FAILED", total_millis, throughput_mbps,
+            throughput_kbps_, file_io_time_,
+            (payload_direction_ == PayloadDirection::INCOMING_PAYLOAD)
+                ? "Decryption"
+                : "Encryption",
+            encryption_time_, socket_io_time_);
         NEARBY_LOGS(INFO) << dump_content;
       }
     }
@@ -130,8 +140,7 @@ int ThroughputRecorder::CalculateThroughputMBps(int throughputKBps) {
   return throughputKBps / kKbInBytes;
 }
 
-void ThroughputRecorder::Throughput::Add(int frame_size,
-                                         int64_t file_io_time,
+void ThroughputRecorder::Throughput::Add(int frame_size, int64_t file_io_time,
                                          int64_t encryption_time,
                                          int64_t socket_io_time) {
   total_byte_size_ += frame_size;
@@ -157,24 +166,26 @@ bool ThroughputRecorder::Throughput::dump() {
       "MB/s (%d KB/s), File IO takes %ld ms, %s takes %ld ms, "
       "Socket IO takes %ld ms, "
       "Other takes %ld ms",
-      is_incoming_ ? "Received" : "Sent", ToString(payload_type_),
-      total_byte_size_, proto::connections::Medium_Name(medium_), total_millis,
-      throughpu_mbps, throughput_kbps, file_io_time_,
-      is_incoming_ ? "Decryption" : "Encryption", encryption_time_,
-      socket_io_time_, other);
+      (payload_direction_ == PayloadDirection::INCOMING_PAYLOAD) ? "Received"
+                                                                 : "Sent",
+      ToString(payload_type_), total_byte_size_,
+      proto::connections::Medium_Name(medium_), total_millis, throughpu_mbps,
+      throughput_kbps, file_io_time_,
+      (payload_direction_ == PayloadDirection::INCOMING_PAYLOAD) ? "Decryption"
+                                                                 : "Encryption",
+      encryption_time_, socket_io_time_, other);
   NEARBY_LOGS(INFO) << dump_content;
   return true;
 }
 
 ThroughputRecorder::Throughput& ThroughputRecorder::GetThroughput(
     Medium medium, int64_t duration_millis) {
-  MutexLock lock(&mutex_);
   auto it = throughputs_.find(medium);
   if (it == throughputs_.end()) {
     auto throughput = new Throughput(
         medium,
         SystemClock::ElapsedRealtime() - absl::Milliseconds(duration_millis),
-        payload_type_, is_incoming_);
+        payload_type_, payload_direction_);
     throughputs_.emplace(medium, std::move(*throughput));
     delete throughput;
     return throughputs_.find(medium)->second;
@@ -189,12 +200,11 @@ int ThroughputRecorder::GetThroughputsSize() {
 
 int ThroughputRecorder::GetThroughputKbps() { return throughput_kbps_; }
 
-int64_t ThroughputRecorder::GetDurationMillis() {
-  return duration_millis_;
-}
+int64_t ThroughputRecorder::GetDurationMillis() { return duration_millis_; }
 
 void ThroughputRecorder::OnFrameSent(Medium medium,
                                      PacketMetaData& packetMetaData) {
+  MutexLock lock(&mutex_);
   if (payload_type_ == PayloadType::kUnknown) {
     NEARBY_LOGS(INFO) << "PayloadType is invalid, return";
     return;
@@ -203,7 +213,6 @@ void ThroughputRecorder::OnFrameSent(Medium medium,
   duration_millis_ = packetMetaData.GetEncryptionTimeInMillis() +
                      packetMetaData.GetFileIoTimeInMillis() +
                      packetMetaData.GetSocketIoTimeInMillis();
-
   GetThroughput(medium, duration_millis_)
       .Add(packetMetaData.packet_size, packetMetaData.GetFileIoTimeInMillis(),
            packetMetaData.GetEncryptionTimeInMillis(),
@@ -213,6 +222,7 @@ void ThroughputRecorder::OnFrameSent(Medium medium,
 
 void ThroughputRecorder::OnFrameReceived(Medium medium,
                                          PacketMetaData& packetMetaData) {
+  MutexLock lock(&mutex_);
   if (payload_type_ == PayloadType::kUnknown) {
     NEARBY_LOGS(INFO) << "PayloadType is invalid, return";
     return;
@@ -222,7 +232,6 @@ void ThroughputRecorder::OnFrameReceived(Medium medium,
   duration_millis_ = packetMetaData.GetEncryptionTimeInMillis() +
                      packetMetaData.GetFileIoTimeInMillis() +
                      packetMetaData.GetSocketIoTimeInMillis();
-
   GetThroughput(medium, duration_millis_)
       .Add(packetMetaData.packet_size, packetMetaData.GetFileIoTimeInMillis(),
            packetMetaData.GetEncryptionTimeInMillis(),
@@ -264,14 +273,20 @@ void ThroughputRecorderContainer::Shutdown() {
 }
 
 ThroughputRecorder* ThroughputRecorderContainer::GetTPRecorder(
-    const int64_t payload_id) {
+    const int64_t payload_id, PayloadDirection payload_direction) {
   MutexLock lock(&mutex_);
-  auto it = throughput_recorders_.find(payload_id);
+  auto it = throughput_recorders_.find(
+      std::pair<int64_t, PayloadDirection>(payload_id, payload_direction));
   if (it == throughput_recorders_.end()) {
     auto instance = new ThroughputRecorder(payload_id);
+    std::string direction =
+        (payload_direction == PayloadDirection::INCOMING_PAYLOAD) ? "; Receive"
+                                                                  : "; Send";
     NEARBY_LOGS(INFO) << "Add ThroughputRecorder instance : " << instance
-                      << " for payload_id:" << payload_id;
-    throughput_recorders_.emplace(payload_id, instance);
+                      << " for payload_id:" << payload_id << direction;
+    throughput_recorders_.emplace(
+        std::pair<int64_t, PayloadDirection>(payload_id, payload_direction),
+        instance);
     return instance;
   }
 
@@ -279,15 +294,21 @@ ThroughputRecorder* ThroughputRecorderContainer::GetTPRecorder(
 }
 
 void ThroughputRecorderContainer::StopTPRecorder(
-    const int64_t payload_id) {
+    const int64_t payload_id, PayloadDirection payload_direction) {
   MutexLock lock(&mutex_);
-  auto it = throughput_recorders_.find(payload_id);
+  std::string direction =
+      (payload_direction == PayloadDirection::INCOMING_PAYLOAD) ? "; Receive"
+                                                                : "; Send";
+  auto it = throughput_recorders_.find(
+      std::pair<int64_t, PayloadDirection>(payload_id, payload_direction));
   if (it != throughput_recorders_.end()) {
     NEARBY_LOGS(INFO) << "Found and stop/delete ThroughputRecorder instance : "
-                      << &(it->second) << " for payload_id:" << payload_id;
+                      << &(it->second) << " for payload_id:" << payload_id
+                      << direction;
     it->second->Stop();
     delete it->second;
-    throughput_recorders_.erase(payload_id);
+    throughput_recorders_.erase(
+        std::pair<int64_t, PayloadDirection>(payload_id, payload_direction));
     return;
   }
   NEARBY_LOGS(INFO) << "No ThroughputRecorder found for :" << payload_id;

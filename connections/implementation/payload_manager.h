@@ -29,17 +29,15 @@
 #include "connections/listeners.h"
 #include "connections/payload.h"
 #include "connections/status.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/atomic_reference.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/mutex.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
-
-using analytics::PacketMetaData;
 
 // Annotations for methods that need to run on PayloadStatusUpdateThread.
 // Use only in PayloadManager
