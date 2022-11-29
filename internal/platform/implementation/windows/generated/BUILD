@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+load("//tools/build_defs/golden_test:golden_sh_test.bzl", "golden_sh_test")
+
 licenses(["notice"])
 
 cc_library(
@@ -42,4 +44,20 @@ cc_library(
         "//location/nearby/cpp/fastpair/internal:__subpackages__",
         "//location/nearby/cpp/sharing/implementation/internal:__subpackages__",
     ],
+)
+
+golden_sh_test(
+    name = "base_has_no_coroutines",
+    srcs = ["patch_winrt_base.sh"],
+    args = [
+        "$(location :winrt/base.h)",
+        "$(location :base-no-coroutines.patch)",
+        "base-no-coroutines.h",
+    ],
+    data = [
+        ":base-no-coroutines.patch",
+        ":winrt/base.h",
+    ],
+    golden = ":winrt/base.h",
+    verbose = True,
 )

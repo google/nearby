@@ -35,6 +35,32 @@
 #include <format>
 #endif
 
+#if defined(_LIBCPP_VERSION) && __cplusplus < 202002
+// If the C++ standard is cxx17, coroutines are not available in libc++.
+// To compile WinRT without coroutines, define some placeholder types.
+// These placeholders should not be used. If they are used, they should fail.
+template <typename T = void>
+struct coroutine_handle {
+  coroutine_handle() { throw std::logic_error("Not implemented."); }
+  coroutine_handle(std::nullptr_t __h) {
+    throw std::logic_error("Not implemented.");
+  }
+  static coroutine_handle from_address(void*) {
+    throw std::logic_error("Not implemented.");
+  }
+  void operator()() const { throw std::logic_error("Not implemented."); }
+  void* address() const { throw std::logic_error("Not implemented."); }
+};
+
+class suspend_always {};
+class suspend_never {};
+
+template <typename _Result, typename...>
+struct coroutine_traits;
+
+}  // namespace std::experimental
+#endif
+
 #ifdef __cpp_lib_coroutine
 
 #include <coroutine>
@@ -154,7 +180,7 @@ namespace winrt::impl
         {
             return static_cast<uint8_t>(10 + c - 'a');
         }
-        else 
+        else
         {
             throw std::invalid_argument("Character is not a hexadecimal digit");
         }
@@ -2997,7 +3023,7 @@ WINRT_EXPORT namespace winrt
         {
             return rend();
         }
-        
+
 #ifdef __cpp_lib_starts_ends_with
         bool starts_with(wchar_t const value) const noexcept
         {
@@ -3029,7 +3055,7 @@ WINRT_EXPORT namespace winrt
             return operator std::wstring_view().ends_with(pointer);
         }
 #endif
-        
+
         bool empty() const noexcept
         {
             return !m_handle;
@@ -3941,7 +3967,7 @@ WINRT_EXPORT namespace winrt
         inline constexpr bool array_comparable = std::is_same_v<std::remove_cv_t<T>, std::remove_cv_t<U>>;
     }
 
-    template <typename T, typename U, 
+    template <typename T, typename U,
         std::enable_if_t<impl::array_comparable<T, U>, int> = 0>
     bool operator==(array_view<T> const& left, array_view<U> const& right) noexcept
     {
@@ -8238,7 +8264,7 @@ namespace winrt::impl
     {
         using type = struct_category<float, float>;
     };
-    
+
     template <> struct category<Windows::Foundation::Rect>
     {
         using type = struct_category<float, float, float, float>;
@@ -8536,7 +8562,7 @@ namespace std
     template<> struct hash<winrt::Windows::Foundation::IUnknown> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Foundation::IInspectable> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Foundation::IActivationFactory> : winrt::impl::hash_base {};
-    
+
     template<> struct hash<winrt::guid>
     {
         size_t operator()(winrt::guid const& value) const noexcept
