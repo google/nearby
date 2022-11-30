@@ -21,7 +21,7 @@ namespace location {
 namespace nearby {
 
 ByteArray BluetoothConnectionInfo::ToBytes() const {
-  return ByteArray(absl::StrCat(mac_address_.AsStringView(), service_id_));
+  return ByteArray(absl::StrCat(mac_address_, service_id_));
 }
 
 BluetoothConnectionInfo BluetoothConnectionInfo::FromBytes(ByteArray bytes) {

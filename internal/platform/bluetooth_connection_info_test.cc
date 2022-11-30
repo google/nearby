@@ -27,7 +27,7 @@ namespace nearby {
 namespace {
 
 constexpr absl::string_view kMacAddr = "\x4C\x8B\x1D\xCE\xBA\xD1";
-constexpr absl::string_view kServiceId{"NearbyConnectTest12"};
+constexpr absl::string_view kServiceId{"test"};
 
 TEST(BluetoothConnectionInfoTest, TestMediumType) {
   std::string macAddr(kMacAddr);
@@ -57,6 +57,12 @@ TEST(BluetoothConnectionInfoTest, TestGetMacAddress) {
   std::string macAddr(kMacAddr);
   BluetoothConnectionInfo info(ByteArray(macAddr), kServiceId);
   EXPECT_EQ(info.GetMacAddress(), ByteArray(macAddr));
+}
+
+TEST(BluetoothConnectionInfoTest, TestGetLongMacAddr) {
+  std::string macAddr(kMacAddr);
+  BluetoothConnectionInfo info(ByteArray(macAddr + "\x56\x70\x89"), kServiceId);
+  EXPECT_EQ(info.GetMacAddress().AsStringView(), kMacAddr);
 }
 
 TEST(BluetoothConnectionInfoTest, TestGetServiceId) {

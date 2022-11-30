@@ -33,18 +33,20 @@ class BluetoothConnectionInfo : public ConnectionInfo {
   BluetoothConnectionInfo() = delete;
   explicit BluetoothConnectionInfo(const ByteArray& mac_address,
                                    absl::string_view service_id)
-      : mac_address_(mac_address), service_id_(std::string(service_id)) {}
+      : mac_address_(mac_address.data()), service_id_(std::string(service_id)) {
+    mac_address_.resize(kMacAddressLength);
+  }
 
   BluetoothConnectionInfo(BluetoothConnectionInfo const& info) {
     mac_address_ = info.mac_address_;
     service_id_ = info.service_id_;
   }
   static BluetoothConnectionInfo FromBytes(ByteArray bytes);
-  ByteArray GetMacAddress() const { return mac_address_; }
+  ByteArray GetMacAddress() const { return ByteArray(mac_address_); }
   absl::string_view GetServiceId() const { return service_id_; }
 
  private:
-  ByteArray mac_address_;
+  std::string mac_address_;
   std::string service_id_;
 };
 
