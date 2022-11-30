@@ -20,6 +20,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
 #include "internal/platform/medium_environment.h"
@@ -31,6 +32,7 @@ namespace {
 
 using FeatureFlags = ::location::nearby::FeatureFlags::Flags;
 using internal::IdentityType;
+using ::location::nearby::CountDownLatch;
 using ::location::nearby::MediumEnvironment;
 using ::testing::status::StatusIs;
 
@@ -61,15 +63,37 @@ class MediumEnvironmentStarter {
 
 class ServiceControllerImplTest : public testing::TestWithParam<FeatureFlags> {
  protected:
+  void TearDown() override { MediumEnvironment::Instance().Sync(); }
+  bool IsAdvertising() {
+    WaitForServiceControllerTasks();
+    MediumEnvironment::Instance().Sync();
+    return MediumEnvironment::Instance()
+        .GetBleV2MediumStatus(
+            *service_controller_.GetMediums().GetBle().GetImpl())
+        ->is_advertising;
+  }
+  BroadcastCallback CreateBroadcastCallback() {
+    return BroadcastCallback{.start_broadcast_cb = [this](Status status) {
+      start_broadcast_status_.Set(status);
+    }};
+  }
+
+  void WaitForServiceControllerTasks() {
+    CountDownLatch latch(1);
+    service_controller_.GetBackgroundExecutor().Execute(
+        [&]() { latch.CountDown(); });
+    latch.Await();
+  }
+
   // The medium environment must be initialized (started) before the service
   // controller.
   MediumEnvironmentStarter env_;
-  ServiceControllerImpl service_controller_;
   location::nearby::Future<Status> start_broadcast_status_;
   BroadcastCallback broadcast_callback_{
       .start_broadcast_cb = [this](Status status) {
         start_broadcast_status_.Set(status);
       }};
+  ServiceControllerImpl service_controller_;
 };
 
 INSTANTIATE_TEST_SUITE_P(ParametrisedServiceControllerImplTest,
@@ -80,40 +104,34 @@ TEST_P(ServiceControllerImplTest, StartBroadcastPublicIdentity) {
   absl::StatusOr<BroadcastSessionId> session =
       service_controller_.StartBroadcast(
           CreateBroadcastRequest(internal::IDENTITY_TYPE_PUBLIC),
-          broadcast_callback_);
+          CreateBroadcastCallback());
 
   EXPECT_OK(session);
   EXPECT_TRUE(start_broadcast_status_.Get().ok());
   EXPECT_EQ(start_broadcast_status_.Get().GetResult(),
             Status{Status::Value::kSuccess});
-  EXPECT_TRUE(MediumEnvironment::Instance()
-                  .GetBleV2MediumStatus(
-                      *service_controller_.GetMediums().GetBle().GetImpl())
-                  ->is_advertising);
+  EXPECT_TRUE(IsAdvertising());
 }
 
 TEST_P(ServiceControllerImplTest, StartAndStopBroadcast) {
   absl::StatusOr<BroadcastSessionId> session =
       service_controller_.StartBroadcast(
           CreateBroadcastRequest(internal::IDENTITY_TYPE_PUBLIC),
-          broadcast_callback_);
-
+          CreateBroadcastCallback());
   ASSERT_OK(session);
+  EXPECT_TRUE(IsAdvertising());
+
   service_controller_.StopBroadcast(*session);
-  MediumEnvironment::Instance().Sync();
-  EXPECT_FALSE(MediumEnvironment::Instance()
-                   .GetBleV2MediumStatus(
-                       *service_controller_.GetMediums().GetBle().GetImpl())
-                   ->is_advertising);
+  EXPECT_FALSE(IsAdvertising());
 }
 
 TEST_P(ServiceControllerImplTest, StopBroadcastTwiceNoSideEffects) {
   absl::StatusOr<BroadcastSessionId> session =
       service_controller_.StartBroadcast(
           CreateBroadcastRequest(internal::IDENTITY_TYPE_PUBLIC),
-          broadcast_callback_);
+          CreateBroadcastCallback());
   ASSERT_OK(session);
-  service_controller_.StopBroadcast(*session);
+  EXPECT_TRUE(IsAdvertising());
 
   service_controller_.StopBroadcast(*session);
 }
@@ -125,12 +143,13 @@ TEST_P(ServiceControllerImplTest, StopBroadcastInvalidSessionNoSideEffects) {
 TEST_P(ServiceControllerImplTest, StartBroadcastInvalidRequestFails) {
   absl::StatusOr<BroadcastSessionId> session =
       service_controller_.StartBroadcast(BroadcastRequest{},
-                                         broadcast_callback_);
+                                         CreateBroadcastCallback());
 
   EXPECT_THAT(session, StatusIs(absl::StatusCode::kInvalidArgument));
   EXPECT_TRUE(start_broadcast_status_.Get().ok());
   EXPECT_EQ(start_broadcast_status_.Get().GetResult(),
             Status{Status::Value::kError});
+  EXPECT_FALSE(IsAdvertising());
 }
 
 TEST_P(ServiceControllerImplTest, StartBroadcastPrivateIdentityFails) {
@@ -138,12 +157,13 @@ TEST_P(ServiceControllerImplTest, StartBroadcastPrivateIdentityFails) {
   absl::StatusOr<BroadcastSessionId> session =
       service_controller_.StartBroadcast(
           CreateBroadcastRequest(internal::IDENTITY_TYPE_PRIVATE),
-          broadcast_callback_);
+          CreateBroadcastCallback());
 
-  EXPECT_THAT(session, StatusIs(absl::StatusCode::kUnavailable));
+  ASSERT_OK(session);
   EXPECT_TRUE(start_broadcast_status_.Get().ok());
   EXPECT_EQ(start_broadcast_status_.Get().GetResult(),
             Status{Status::Value::kError});
+  EXPECT_FALSE(IsAdvertising());
 }
 
 }  // namespace

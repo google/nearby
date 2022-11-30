@@ -61,46 +61,94 @@ absl::StatusOr<BroadcastSessionId> ServiceControllerImpl::StartBroadcast(
     callback.start_broadcast_cb(Status{Status::Value::kError});
     return request.status();
   }
-  absl::StatusOr<AdvertisementData> advertisement =
-      AdvertisementFactory(&credential_manager_).CreateAdvertisement(*request);
-  if (!advertisement.ok()) {
-    NEARBY_LOGS(WARNING) << "Can't create advertisement, reason: "
-                         << advertisement.status();
-    callback.start_broadcast_cb(Status{Status::Value::kError});
-    return advertisement.status();
-  }
-  std::unique_ptr<AdvertisingSession> session =
-      mediums_.GetBle().StartAdvertising(
-          *advertisement, broadcast_request.power_mode,
-          AdvertisingCallback{.start_advertising_result =
-                                  [callback](BleOperationStatus status) {
-                                    callback.start_broadcast_cb(
-                                        ConvertBleStatus(status));
-                                  }});
-  if (!session) {
-    callback.start_broadcast_cb(Status{Status::Value::kError});
-    return absl::UnavailableError("Failed to start broadcasting");
-  }
-
   BroadcastSessionId id = GenerateBroadcastSessionId();
-  sessions_.insert({id, Session{.advertising_session = std::move(session)}});
+  RunOnServiceControllerThread(
+      "start-broadcast",
+      [this, id, power_mode = broadcast_request.power_mode, request = *request,
+       broadcast_callback =
+           std::move(callback)]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_) {
+        sessions_.insert({id, BroadcastSessionState(broadcast_callback)});
+        absl::StatusOr<AdvertisementData> advertisement =
+            AdvertisementFactory(&credential_manager_)
+                .CreateAdvertisement(request);
+        if (!advertisement.ok()) {
+          NEARBY_LOGS(WARNING) << "Can't create advertisement, reason: "
+                               << advertisement.status();
+          NotifyStartCallbackStatus(id, Status{Status::Value::kError});
+          return;
+        }
+        std::unique_ptr<AdvertisingSession> session =
+            mediums_.GetBle().StartAdvertising(
+                *advertisement, power_mode,
+                AdvertisingCallback{.start_advertising_result =
+                                        [this, id](BleOperationStatus status) {
+                                          NotifyStartCallbackStatus(
+                                              id, ConvertBleStatus(status));
+                                        }});
+        if (!session) {
+          NotifyStartCallbackStatus(id, Status{Status::Value::kError});
+          return;
+        }
+        sessions_.at(id).SetAdvertisingSession(std::move(session));
+      });
 
   return id;
 }
 
+void ServiceControllerImpl::NotifyStartCallbackStatus(BroadcastSessionId id,
+                                                      Status status) {
+  RunOnServiceControllerThread("started-broadcast-cb",
+                               [this, id, status]()
+                                   ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_) {
+                                     auto it = sessions_.find(id);
+                                     if (it == sessions_.end()) {
+                                       return;
+                                     }
+                                     it->second.CallStartedCallback(status);
+                                     if (!status.Ok()) {
+                                       // Delete failed session.
+                                       sessions_.erase(it);
+                                     }
+                                   });
+}
+
 void ServiceControllerImpl::StopBroadcast(BroadcastSessionId id) {
-  auto it = sessions_.find(id);
-  if (it != sessions_.end()) {
-    it->second.advertising_session->stop_advertising();
-    sessions_.erase(it);
-  } else {
-    NEARBY_LOGS(WARNING) << absl::StrFormat(
-        "BroadcastSessionId(0x%x) not found", id);
-  }
+  RunOnServiceControllerThread(
+      "stop-broadcast", [this, id]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_) {
+        auto it = sessions_.find(id);
+        if (it == sessions_.end()) {
+          NEARBY_LOGS(VERBOSE)
+              << absl::StrFormat("BroadcastSession(0x%x) not found", id);
+          return;
+        }
+        it->second.StopAdvertising();
+        sessions_.erase(it);
+      });
 }
 
 BroadcastSessionId ServiceControllerImpl::GenerateBroadcastSessionId() {
   return absl::Uniform<BroadcastSessionId>(bit_gen_);
+}
+
+void ServiceControllerImpl::BroadcastSessionState::SetAdvertisingSession(
+    std::unique_ptr<AdvertisingSession> session) {
+  advertising_session_ = std::move(session);
+}
+
+void ServiceControllerImpl::BroadcastSessionState::CallStartedCallback(
+    Status status) {
+  BroadcastCallback callback = std::move(broadcast_callback_);
+  if (callback.start_broadcast_cb) {
+    callback.start_broadcast_cb(status);
+  }
+}
+
+void ServiceControllerImpl::BroadcastSessionState::StopAdvertising() {
+  std::unique_ptr<AdvertisingSession> advertising_session =
+      std::move(advertising_session_);
+  if (advertising_session) {
+    advertising_session->stop_advertising();
+  }
 }
 
 }  // namespace presence
