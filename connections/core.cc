@@ -15,6 +15,7 @@
 #include "connections/core.h"
 
 #include <cassert>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -167,6 +168,61 @@ void Core::DisconnectFromEndpoint(absl::string_view endpoint_id,
 
 void Core::StopAllEndpoints(ResultCallback callback) {
   router_->StopAllEndpoints(&client_, callback);
+}
+
+//******************************* V2 *******************************
+void Core::RequestConnectionV2(const NearbyDevice& device,
+                               const ConnectionRequestInfo& info,
+                               ConnectionOptions& connection_options,
+                               ResultCallback callback) {
+  assert(!device.GetEndpointId().empty());
+  router_->RequestConnection(&client_, device.GetEndpointId(), info,
+                             connection_options, callback);
+}
+
+void Core::AcceptConnectionV2(const NearbyDevice& device,
+                              const PayloadListener& listener,
+                              ResultCallback callback) {
+  assert(!device.GetEndpointId().empty());
+
+  router_->AcceptConnection(&client_, device.GetEndpointId(), listener,
+                            callback);
+}
+
+void Core::RejectConnectionV2(const NearbyDevice& device,
+                              ResultCallback callback) {
+  assert(!device.GetEndpointId().empty());
+
+  router_->RejectConnection(&client_, device.GetEndpointId(), callback);
+}
+
+void Core::SendPayloadV2(absl::Span<const NearbyDevice*> devices,
+                         Payload& payload, ResultCallback callback) {
+  assert(payload.GetType() != PayloadType::kUnknown);
+  std::vector<std::string> endpoint_ids;
+  for (const NearbyDevice* device : devices) {
+    assert(!device->GetEndpointId().empty());
+    endpoint_ids.push_back(std::string(device->GetEndpointId()));
+  }
+
+  router_->SendPayload(&client_, endpoint_ids, std::move(payload), callback);
+}
+
+void Core::DisconnectFromDeviceV2(const NearbyDevice& device,
+                                  ResultCallback callback) {
+  assert(!device.GetEndpointId().empty());
+
+  router_->DisconnectFromEndpoint(&client_, device.GetEndpointId(), callback);
+}
+
+void Core::InitiateBandwidthUpgradeV2(const NearbyDevice& device,
+                                      ResultCallback callback) {
+  router_->InitiateBandwidthUpgrade(&client_, device.GetEndpointId(), callback);
+}
+
+void Core::RegisterDeviceProvider(
+    std::unique_ptr<NearbyDeviceProvider> provider) {
+  provider_ = std::move(provider);
 }
 
 std::string Core::Dump() {

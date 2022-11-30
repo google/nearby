@@ -16,18 +16,17 @@
 #define CORE_CORE_H_
 
 #include <functional>
+#include <memory>
 #include <string>
 
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "connections/device_provider.h"
 #include "connections/implementation/client_proxy.h"
-#include "connections/implementation/service_controller.h"
 #include "connections/implementation/service_controller_router.h"
 #include "connections/listeners.h"
 #include "connections/params.h"
 #include "internal/analytics/event_logger.h"
-#include "internal/device.h"
 
 namespace location {
 namespace nearby {
@@ -259,8 +258,8 @@ class Core {
   // We are using NearbyDevice* so as to not lose attributes when using a
   // vector-like structure of NearbyDevice, as object information is stripped if
   // using NearbyDevice or NearbyDevice&.
-  void SendPayloadV2(absl::Span<const NearbyDevice*> devices,
-                     const Payload& payload, ResultCallback callback);
+  void SendPayloadV2(absl::Span<const NearbyDevice*> devices, Payload& payload,
+                     ResultCallback callback);
 
   void DisconnectFromDeviceV2(const NearbyDevice& device,
                               ResultCallback callback);
@@ -268,11 +267,12 @@ class Core {
   void InitiateBandwidthUpgradeV2(const NearbyDevice& device,
                                   ResultCallback callback);
 
-  void RegisterDeviceProvider(const NearbyDeviceProvider& provider);
+  void RegisterDeviceProvider(std::unique_ptr<NearbyDeviceProvider> provider);
 
  private:
   ClientProxy client_;
   ServiceControllerRouter* router_ = nullptr;
+  std::unique_ptr<NearbyDeviceProvider> provider_;
 };
 
 }  // namespace connections

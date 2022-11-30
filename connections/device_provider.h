@@ -26,7 +26,11 @@ namespace connections {
 using ::location::nearby::NearbyDevice;
 
 class NearbyDeviceProvider {
+ public:
+  NearbyDeviceProvider() = default;
   virtual ~NearbyDeviceProvider() = default;
+  NearbyDeviceProvider(const NearbyDeviceProvider&) = delete;
+  NearbyDeviceProvider& operator=(const NearbyDeviceProvider&) = delete;
   virtual NearbyDevice* GetLocalDevice() = 0;
   virtual std::string GetServiceId() = 0;
 };
