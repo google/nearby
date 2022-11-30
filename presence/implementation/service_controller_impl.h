@@ -21,6 +21,8 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/random/random.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/single_thread_executor.h"
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
