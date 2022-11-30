@@ -30,9 +30,12 @@ PresenceClient PresenceService::CreatePresenceClient() {
   return PresenceClient(lender_.GetBorrowable());
 }
 
-std::unique_ptr<ScanSession> PresenceService::StartScan(
+absl::StatusOr<ScanSessionId> PresenceService::StartScan(
     ScanRequest scan_request, ScanCallback callback) {
   return service_controller_->StartScan(scan_request, callback);
+}
+void PresenceService::StopScan(ScanSessionId id) {
+  service_controller_->StopScan(id);
 }
 
 absl::StatusOr<BroadcastSessionId> PresenceService::StartBroadcast(

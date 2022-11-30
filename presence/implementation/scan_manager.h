@@ -21,7 +21,8 @@
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
-#include "absl/synchronization/mutex.h"
+#include "absl/random/random.h"
+#include "internal/platform/single_thread_executor.h"
 #include "presence/data_types.h"
 #include "presence/implementation/advertisement_decoder.h"
 #include "presence/implementation/credential_manager.h"
@@ -31,45 +32,51 @@
 namespace nearby {
 namespace presence {
 
-/*
- * The instance of ScanManager is owned by {@code ServiceControllerImpl}.
- * Helping service controller to manage scan requests and callbacks.
- */
+// The instance of ScanManager is owned by `ServiceControllerImpl`.
+// Helping service controller to manage scan requests and callbacks.
 class ScanManager {
  public:
-  ScanManager(Mediums& mediums, CredentialManager& credential_manager) {
+  using SingleThreadExecutor = ::location::nearby::SingleThreadExecutor;
+  using Mutex = ::location::nearby::Mutex;
+  using MutexLock = ::location::nearby::MutexLock;
+  using ScanningSession =
+      ::location::nearby::api::ble_v2::BleMedium::ScanningSession;
+  using Runnable = ::location::nearby::Runnable;
+  using BleAdvertisementData =
+      ::location::nearby::api::ble_v2::BleAdvertisementData;
+
+  ScanManager(Mediums& mediums, CredentialManager& credential_manager,
+              SingleThreadExecutor& executor) {
     mediums_ = &mediums, credential_manager_ = &credential_manager;
+    executor_ = &executor;
   }
   ~ScanManager() = default;
 
-  std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
-                                         ScanCallback cb)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  ScanSessionId StartScan(ScanRequest scan_request, ScanCallback cb);
+  void StopScan(ScanSessionId session_id);
   // Below functions are test only.
   // Reference: go/totw/135#augmenting-the-public-api-for-tests
-  int ScanningCallbacksLengthForTest() ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
-    return scanning_callbacks_.size();
-  }
+  int ScanningCallbacksLengthForTest();
 
  private:
-  struct MapElement {
+  struct ScanSessionState {
     ScanRequest request;
     ScanCallback callback;
     AdvertisementDecoder decoder;
+    std::unique_ptr<ScanningSession> scanning_session;
   };
-  void AddScanCallback(uint64_t id, MapElement element) {
-    absl::MutexLock lock(&mutex_);
-    scanning_callbacks_.insert({id, element});
+  void NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
+                      absl::string_view remote_address)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  void RunOnServiceControllerThread(absl::string_view name, Runnable runnable) {
+    executor_->Execute(std::string(name), std::move(runnable));
   }
-  mutable absl::Mutex mutex_;
   Mediums* mediums_;
   CredentialManager* credential_manager_;
-  absl::flat_hash_map<uint64_t, MapElement> scanning_callbacks_
-      ABSL_GUARDED_BY(mutex_);
-  void NotifyFoundBle(
-      location::nearby::api::ble_v2::BleAdvertisementData data,
-      const location::nearby::api::ble_v2::BlePeripheral& peripheral);
+  absl::flat_hash_map<ScanSessionId, ScanSessionState> scan_sessions_
+      ABSL_GUARDED_BY(*executor_);
+  SingleThreadExecutor* executor_;
+  absl::BitGen bit_gen_;
 };
 
 }  // namespace presence

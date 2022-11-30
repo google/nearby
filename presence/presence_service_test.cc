@@ -14,6 +14,8 @@
 
 #include "presence/presence_service.h"
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/medium_environment.h"
 #include "presence/presence_client.h"
@@ -42,22 +44,19 @@ TEST_F(PresenceServiceTest, StartThenStopScan) {
   PresenceService presence_service;
   PresenceClient client = presence_service.CreatePresenceClient();
 
-  auto scan_session = client.StartScan(
+  absl::StatusOr<ScanSessionId> scan_session = client.StartScan(
       {}, {
               .start_scan_cb = [&](Status status) { scan_result = status; },
           });
-  auto scan_session_with_default_params =
+  absl::StatusOr<ScanSessionId> scan_session_with_default_params =
       client.StartScan(ScanRequest(), ScanCallback());
 
-  EXPECT_NE(scan_session, nullptr);
-  EXPECT_NE(scan_session_with_default_params, nullptr);
+  ASSERT_OK(scan_session);
+  ASSERT_OK(scan_session_with_default_params);
+  EXPECT_NE(*scan_session, *scan_session_with_default_params);
 
-  Status stop_scan_session_status = scan_session->StopScan();
-  Status scan_session_with_default_params_status =
-      scan_session_with_default_params->StopScan();
-
-  EXPECT_TRUE(stop_scan_session_status.Ok());
-  EXPECT_TRUE(scan_session_with_default_params_status.Ok());
+  client.StopScan(*scan_session);
+  client.StopScan(*scan_session_with_default_params);
   env_.Stop();
 }
 

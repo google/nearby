@@ -44,21 +44,23 @@ class PresenceClient {
   PresenceClient(PresenceClient&&) = default;
   PresenceClient& operator=(const PresenceClient&) = delete;
 
-  /**
-   * Starts a Nearby Presence scan and registers {@link ScanCallback}
-   * which will be invoked when a matching {@link PresenceDevice} is detected,
-   * lost, and status changed.
-   *
-   * <p>The {@link ScanCallback} is kept at the Nearby Presence service.
-   * Returning unique_ptr of ScanSession including stop scan callback
-   * for client to invoke later.
-   *
-   * <p>The {@link ScanRequest} contains the options like scan power mode
-   * and type; the filters including credentials, actions and extended
-   * properties.
-   */
-  std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
-                                         ScanCallback callback);
+  // Starts a Nearby Presence scan and registers `ScanCallback`
+  // which will be invoked when a matching `PresenceDevice` is detected,
+  // lost, and status changed.
+  // The session can be terminated with `StopScan()`.
+  //
+  // `ScanCallback` is kept in the Nearby Presence service until `StopScan()` is
+  // called.
+  //
+  // `ScanRequest` contains the options like scan power mode
+  // and type; the filters including credentials, actions and extended
+  // properties.
+  absl::StatusOr<ScanSessionId> StartScan(ScanRequest scan_request,
+                                          ScanCallback callback);
+
+  // Terminates the scan session. Does nothing if the session is already
+  // terminated.
+  void StopScan(ScanSessionId session_id);
 
   // Starts a Nearby Presence broadcast and registers `BroadcastCallback`
   // which will be invoked after broadcast is started.

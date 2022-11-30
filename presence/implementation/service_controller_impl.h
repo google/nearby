@@ -49,8 +49,9 @@ class ServiceControllerImpl : public ServiceController {
   ServiceControllerImpl() = default;
   ~ServiceControllerImpl() override { executor_.Shutdown(); }
 
-  std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
-                                         ScanCallback callback) override;
+  absl::StatusOr<ScanSessionId> StartScan(ScanRequest scan_request,
+                                          ScanCallback callback) override;
+  void StopScan(ScanSessionId session_id) override;
   absl::StatusOr<BroadcastSessionId> StartBroadcast(
       BroadcastRequest broadcast_request, BroadcastCallback callback) override;
   void StopBroadcast(BroadcastSessionId) override;
@@ -85,8 +86,8 @@ class ServiceControllerImpl : public ServiceController {
   Mediums mediums_;  // NOLINT: further impl will use it.
   CredentialManagerImpl
       credential_manager_;  // NOLINT: further impl will use it.
-  ScanManager scan_manager_{
-      mediums_, credential_manager_};  // NOLINT: further impl will use it.
+  ScanManager scan_manager_{mediums_, credential_manager_,
+                            executor_};  // NOLINT: further impl will use it.
   absl::flat_hash_map<BroadcastSessionId, BroadcastSessionState> sessions_
       ABSL_GUARDED_BY(executor_);
   absl::BitGen bit_gen_;

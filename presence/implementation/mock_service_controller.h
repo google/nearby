@@ -31,7 +31,7 @@ class MockServiceController : public ServiceController {
   MockServiceController() = default;
   ~MockServiceController() override = default;
 
-  MOCK_METHOD(std::unique_ptr<ScanSession>, StartScan,
+  MOCK_METHOD(absl::StatusOr<ScanSessionId>, StartScan,
               (ScanRequest scan_request, ScanCallback callback), (override));
   MOCK_METHOD(absl::StatusOr<BroadcastSessionId>, StartBroadcast,
               (BroadcastRequest broadcast_request, BroadcastCallback callback),

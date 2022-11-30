@@ -37,8 +37,10 @@ class PresenceService {
 
   PresenceClient CreatePresenceClient();
 
-  std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
-                                         ScanCallback callback);
+  absl::StatusOr<ScanSessionId> StartScan(ScanRequest scan_request,
+                                          ScanCallback callback);
+  void StopScan(ScanSessionId session_id);
+
   absl::StatusOr<BroadcastSessionId> StartBroadcast(
       BroadcastRequest broadcast_request, BroadcastCallback callback);
 

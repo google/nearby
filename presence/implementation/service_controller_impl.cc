@@ -46,9 +46,12 @@ Status ConvertBleStatus(BleOperationStatus status) {
 
 }  // namespace
 
-std::unique_ptr<ScanSession> ServiceControllerImpl::StartScan(
+absl::StatusOr<ScanSessionId> ServiceControllerImpl::StartScan(
     ScanRequest scan_request, ScanCallback callback) {
   return scan_manager_.StartScan(scan_request, callback);
+}
+void ServiceControllerImpl::StopScan(ScanSessionId id) {
+  scan_manager_.StopScan(id);
 }
 
 absl::StatusOr<BroadcastSessionId> ServiceControllerImpl::StartBroadcast(

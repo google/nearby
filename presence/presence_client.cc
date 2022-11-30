@@ -26,14 +26,23 @@
 namespace nearby {
 namespace presence {
 
-std::unique_ptr<ScanSession> PresenceClient::StartScan(ScanRequest scan_request,
-                                                       ScanCallback callback) {
+absl::StatusOr<ScanSessionId> PresenceClient::StartScan(
+    ScanRequest scan_request, ScanCallback callback) {
   ::location::nearby::Borrowed<PresenceService*> borrowed = service_.Borrow();
   if (!borrowed) {
-    return nullptr;
+    return absl::FailedPreconditionError(
+        "Can't start scan, presence service is gone");
   }
   return (*borrowed)->StartScan(scan_request, callback);
 }
+
+void PresenceClient::StopScan(ScanSessionId id) {
+  ::location::nearby::Borrowed<PresenceService*> borrowed = service_.Borrow();
+  if (borrowed) {
+    (*borrowed)->StopScan(id);
+  }
+}
+
 absl::StatusOr<BroadcastSessionId> PresenceClient::StartBroadcast(
     BroadcastRequest broadcast_request, BroadcastCallback callback) {
   ::location::nearby::Borrowed<PresenceService*> borrowed = service_.Borrow();

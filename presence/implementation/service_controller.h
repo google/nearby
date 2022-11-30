@@ -33,8 +33,9 @@ class ServiceController {
  public:
   ServiceController() = default;
   virtual ~ServiceController() = default;
-  virtual std::unique_ptr<ScanSession> StartScan(ScanRequest scan_request,
-                                                 ScanCallback callback) = 0;
+  virtual absl::StatusOr<ScanSessionId> StartScan(ScanRequest scan_request,
+                                                  ScanCallback callback) = 0;
+  virtual void StopScan(ScanSessionId session_id) = 0;
   virtual absl::StatusOr<BroadcastSessionId> StartBroadcast(
       BroadcastRequest broadcast_request, BroadcastCallback callback) = 0;
   virtual void StopBroadcast(BroadcastSessionId session_id) = 0;

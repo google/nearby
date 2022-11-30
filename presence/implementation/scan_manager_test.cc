@@ -31,6 +31,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/single_thread_executor.h"
 #include "presence/implementation/advertisement_factory.h"
 #include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/credential_manager_impl.h"
@@ -46,6 +47,7 @@ using AdvertisingSession =
     ::location::nearby::api::ble_v2::BleMedium::AdvertisingSession;
 using AdvertisingCallback =
     ::location::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
+using ::location::nearby::SingleThreadExecutor;
 
 using CountDownLatch = ::location::nearby::CountDownLatch;
 
@@ -117,11 +119,12 @@ class ScanManagerTest : public testing::Test {
       location::nearby::MediumEnvironment::Instance()};
   CountDownLatch start_latch_{1};
   CountDownLatch found_latch_{1};
+  SingleThreadExecutor executor_;
 };
 
 TEST_F(ScanManagerTest, CanStartThenStopScanning) {
   Mediums mediums;
-  ScanManager manager(mediums, credential_manager_);
+  ScanManager manager(mediums, credential_manager_, executor_);
   // Set up advertiser
   location::nearby::BluetoothAdapter server_adapter;
   Ble ble2(server_adapter);
@@ -129,20 +132,20 @@ TEST_F(ScanManagerTest, CanStartThenStopScanning) {
       StartAdvertisingOn(ble2);
 
   // Start scanning
-  auto scan_session =
+  ScanSessionId scan_session =
       manager.StartScan(MakeDefaultScanRequest(), MakeDefaultScanCallback());
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
   EXPECT_TRUE(start_latch_.Await().Ok());
   EXPECT_TRUE(found_latch_.Await().Ok());
-  EXPECT_TRUE(scan_session->StopScan().Ok());
+  manager.StopScan(scan_session);
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
 
 TEST_F(ScanManagerTest, CannotStopScanTwice) {
   Mediums mediums;
-  ScanManager manager(mediums, credential_manager_);
+  ScanManager manager(mediums, credential_manager_, executor_);
 
-  auto scan_session =
+  ScanSessionId scan_session =
       manager.StartScan(MakeDefaultScanRequest(), MakeDefaultScanCallback());
 
   NEARBY_LOGS(INFO) << "Start scan";
@@ -150,14 +153,16 @@ TEST_F(ScanManagerTest, CannotStopScanTwice) {
   // Ensure that we have started scanning before we try to stop.
   env_.Sync();
   NEARBY_LOGS(INFO) << "Stop scan";
-  EXPECT_TRUE(scan_session->StopScan().Ok());
+  manager.StopScan(scan_session);
+  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
   NEARBY_LOGS(INFO) << "Stop scan again";
-  EXPECT_FALSE(scan_session->StopScan().Ok());
+  manager.StopScan(scan_session);
+  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
 
 TEST_F(ScanManagerTest, TestNoFilter) {
   Mediums mediums;
-  ScanManager manager(mediums, credential_manager_);
+  ScanManager manager(mediums, credential_manager_, executor_);
   // Set up advertiser
   location::nearby::BluetoothAdapter server_adapter;
   Ble ble2(server_adapter);
@@ -167,20 +172,20 @@ TEST_F(ScanManagerTest, TestNoFilter) {
   // Start scanning
   ScanRequest scan_request_no_filter = MakeDefaultScanRequest();
   scan_request_no_filter.scan_filters.clear();
-  auto scan_session =
+  ScanSessionId scan_session =
       manager.StartScan(scan_request_no_filter, MakeDefaultScanCallback());
 
   ASSERT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
   ASSERT_TRUE(mediums.GetBle().IsAvailable());
   EXPECT_TRUE(start_latch_.Await().Ok());
   EXPECT_TRUE(found_latch_.Await().Ok());
-  EXPECT_TRUE(scan_session->StopScan().Ok());
+  manager.StopScan(scan_session);
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
 
 TEST_F(ScanManagerTest, PresenceDeviceMetadataIsRetained) {
   Mediums mediums;
-  ScanManager manager(mediums, credential_manager_);
+  ScanManager manager(mediums, credential_manager_, executor_);
   // Set up advertiser
   location::nearby::BluetoothAdapter server_adapter;
   Ble ble2(server_adapter);
@@ -204,20 +209,19 @@ TEST_F(ScanManagerTest, PresenceDeviceMetadataIsRetained) {
   // Start scanning
   ScanRequest scan_request_no_filter = MakeDefaultScanRequest();
   scan_request_no_filter.scan_filters.clear();
-  auto scan_session =
-      manager.StartScan(scan_request_no_filter, callback);
+  auto scan_session = manager.StartScan(scan_request_no_filter, callback);
 
   ASSERT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
   ASSERT_TRUE(mediums.GetBle().IsAvailable());
   EXPECT_TRUE(start_latch_.Await().Ok());
-  EXPECT_TRUE(found_latch_.Await(absl::Milliseconds(1000)).result());
-  EXPECT_TRUE(scan_session->StopScan().Ok());
+  EXPECT_TRUE(found_latch_.Await().Ok());
+  manager.StopScan(scan_session);
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
 
 TEST_F(ScanManagerTest, StopOneSessionFromAnotherDeadlock) {
   Mediums mediums;
-  ScanManager manager(mediums, credential_manager_);
+  ScanManager manager(mediums, credential_manager_, executor_);
   CountDownLatch start_latch2{1};
   CountDownLatch found_latch2{1};
 
@@ -240,23 +244,23 @@ TEST_F(ScanManagerTest, StopOneSessionFromAnotherDeadlock) {
   };
   // we use scan_request_mismatch so this session's discovery doesn't get
   // triggered.
-  auto scan_session =
+  ScanSessionId scan_session =
       manager.StartScan(scan_request_mismatch, MakeDefaultScanCallback());
-  ScanCallback scanning_callback2 = {
-      .start_scan_cb =
-          [&start_latch2](Status status) {
-            if (status.Ok()) {
-              start_latch2.CountDown();
-            }
-          },
-      .on_discovered_cb =
-          [&found_latch2, &scan_session](PresenceDevice pd) {
-            NEARBY_LOGS(INFO) << "scansession2 found";
-            found_latch2.CountDown();
-            scan_session->StopScan();
-          }};
-  auto scan_session2 = manager.StartScan(MakeDefaultScanRequest(),
-                                         std::move(scanning_callback2));
+  ScanCallback scanning_callback2 = {.start_scan_cb =
+                                         [&](Status status) {
+                                           if (status.Ok()) {
+                                             start_latch2.CountDown();
+                                           }
+                                         },
+                                     .on_discovered_cb =
+                                         [&](PresenceDevice pd) {
+                                           NEARBY_LOGS(INFO)
+                                               << "scansession2 found";
+                                           found_latch2.CountDown();
+                                           manager.StopScan(scan_session);
+                                         }};
+  ScanSessionId scan_session2 = manager.StartScan(
+      MakeDefaultScanRequest(), std::move(scanning_callback2));
 
   ASSERT_EQ(manager.ScanningCallbacksLengthForTest(), 2);
 
@@ -266,54 +270,13 @@ TEST_F(ScanManagerTest, StopOneSessionFromAnotherDeadlock) {
   std::unique_ptr<AdvertisingSession> advertising_session =
       StartAdvertisingOn(ble2);
 
-  EXPECT_TRUE(found_latch2.Await(absl::Milliseconds(1500)).result());
-  EXPECT_FALSE(found_latch_.Await(absl::Milliseconds(1500)).result());
+  EXPECT_TRUE(found_latch2.Await().Ok());
   // Session was stopped before, this should not be able to stop successfully.
-  EXPECT_FALSE(scan_session->StopScan().Ok());
+  manager.StopScan(scan_session);
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
-  EXPECT_TRUE(scan_session2->StopScan().Ok());
+  ASSERT_TRUE(mediums.GetBle().IsAvailable());
+  manager.StopScan(scan_session2);
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
-}
-
-TEST_F(ScanManagerTest, StopWhenScopeEnds) {
-  Mediums mediums;
-  ScanManager manager(mediums, credential_manager_);
-  ScanCallback scanning_callback = ScanCallback{
-      .start_scan_cb =
-          [this](Status status) {
-            if (status.Ok()) {
-              start_latch_.CountDown();
-            }
-          },
-  };
-  {
-    auto scan_session = manager.StartScan(MakeDefaultScanRequest(),
-                                          std::move(scanning_callback));
-    EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
-    // Ensure that we start scanning before we go out of scope.
-    env_.Sync();
-  }
-  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
-}
-
-TEST_F(ScanManagerTest, MoveDoesNotTriggerDestructor) {
-  Mediums mediums;
-  ScanManager manager(mediums, credential_manager_);
-  ScanCallback scanning_callback = ScanCallback{
-      .start_scan_cb =
-          [this](Status status) {
-            if (status.Ok()) {
-              start_latch_.CountDown();
-            }
-          },
-  };
-  auto scan_session =
-      manager.StartScan(MakeDefaultScanRequest(), std::move(scanning_callback));
-  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
-  env_.Sync();
-  auto scan_session_moved = std::move(scan_session);
-  // Make sure we don't trigger the destructor.
-  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
 }
 
 }  // namespace

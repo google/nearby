@@ -73,16 +73,17 @@ TEST_F(PresenceClientTest, StartBroadcastFailsWhenPresenceServiceIsGone) {
 
 TEST_F(PresenceClientTest, StartScanWithDefaultConstructor) {
   env_.Start();
-  Status scan_result = {Status::Value::kError};
+  ::location::nearby::Future<Status> scan_result;
   ScanCallback scan_callback = {
-      .start_scan_cb = [&](Status status) { scan_result = status; },
+      .start_scan_cb = [&](Status status) { scan_result.Set(status); },
   };
 
   PresenceService presence_service;
   PresenceClient presence_client = presence_service.CreatePresenceClient();
-  presence_client.StartScan({}, scan_callback);
+  EXPECT_OK(presence_client.StartScan({}, scan_callback));
 
-  EXPECT_TRUE(scan_result.Ok());
+  EXPECT_TRUE(scan_result.Get().ok());
+  EXPECT_TRUE(scan_result.Get().GetResult().Ok());
   env_.Stop();
 }
 
@@ -93,8 +94,10 @@ TEST_F(PresenceClientTest, StartScanFailsWhenPresenceServiceIsGone) {
       .start_scan_cb = [&](Status status) { scan_result = status; },
   };
 
-  CreateDefunctPresenceClient().StartScan({}, scan_callback);
+  absl::StatusOr<ScanSessionId> session_id =
+      CreateDefunctPresenceClient().StartScan({}, scan_callback);
 
+  EXPECT_THAT(session_id, StatusIs(absl::StatusCode::kFailedPrecondition));
   EXPECT_FALSE(scan_result.Ok());
   env_.Stop();
 }
