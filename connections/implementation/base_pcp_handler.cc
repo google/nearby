@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cinttypes>
+#include <cstddef>
 #include <cstdlib>
 #include <limits>
 #include <memory>
@@ -33,6 +34,7 @@
 #include "connections/connection_options.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/offline_frames.h"
+#include "connections/medium_selector.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/logging.h"
@@ -1452,13 +1454,19 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
     return;
   }
 
+  Medium medium =
+      channel_manager_->GetChannelForEndpoint(endpoint_id)->GetMedium();
   client->GetAnalyticsRecorder().OnConnectionEstablished(
-      endpoint_id,
-      channel_manager_->GetChannelForEndpoint(endpoint_id)->GetMedium(),
-      connection_info.connection_token);
+      endpoint_id, medium, connection_info.connection_token);
 
   // Invoke the client callback to let it know of the connection result.
   client->OnConnectionAccepted(endpoint_id);
+
+  // Report the current bandwidth to the client
+  client->OnBandwidthChanged(endpoint_id, medium);
+
+  NEARBY_LOGS(INFO) << "Connection accepted on Medium:"
+                    << proto::connections::Medium_Name(medium);
 
   // Kick off the bandwidth upgrade for incoming connections.
   if (connection_info.is_incoming &&

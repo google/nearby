@@ -22,18 +22,18 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/encryption_runner.h"
 #include "connections/implementation/offline_frames.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
 #include "connections/params.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/pipe.h"
 #include "proto/connections_enums.pb.h"
 
@@ -233,8 +233,8 @@ class BasePcpHandlerTest
         rejected_cb;
     StrictMock<MockFunction<void(const std::string& endpoint_id)>>
         disconnected_cb;
-    StrictMock<MockFunction<void(const std::string& endpoint_id,
-                                 std::int32_t quality)>>
+    StrictMock<
+        MockFunction<void(const std::string& endpoint_id, Medium medium)>>
         bandwidth_changed_cb;
   };
   struct MockDiscoveryListener {
@@ -647,6 +647,7 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
   NEARBY_LOG(INFO, "Simulating remote accept: id=%s", endpoint_id.c_str());
   auto frame =
       parser::FromBytes(parser::ForConnectionResponse(Status::kSuccess));
+  EXPECT_CALL(mock_connection_listener_.bandwidth_changed_cb, Call).Times(1);
   pcp_handler.OnIncomingFrame(frame.result(), endpoint_id, &client,
                               connect_medium, packet_meta_data);
   NEARBY_LOGS(INFO) << "Closing connection: id=" << endpoint_id;
