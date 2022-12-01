@@ -122,7 +122,7 @@ void ScanManager::NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
     // TODO(b/256913915): Provide more information in PresenceDevice once
     // fully implemented
     internal::DeviceMetadata metadata;
-    metadata.set_bluetooth_mac_address(remote_address);
+    metadata.set_bluetooth_mac_address(std::string(remote_address));
     it->second.callback.on_discovered_cb(PresenceDevice(metadata));
   }
 }
