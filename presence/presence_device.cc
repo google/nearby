@@ -20,6 +20,7 @@
 #include "internal/crypto/random.h"
 #include "internal/platform/bluetooth_connection_info.h"
 #include "internal/platform/implementation/system_clock.h"
+#include "internal/platform/wifi_lan_connection_info.h"
 #include "presence/device_motion.h"
 
 namespace nearby {
@@ -45,7 +46,8 @@ PresenceDevice::PresenceDevice(DeviceMotion device_motion,
   endpoint_id_ = GenerateRandomEndpointId();
 }
 
-std::vector<absl::variant<location::nearby::BluetoothConnectionInfo>>
+std::vector<absl::variant<location::nearby::BluetoothConnectionInfo,
+                          location::nearby::WifiLanConnectionInfo>>
 PresenceDevice::GetConnectionInfos() const {
   location::nearby::BluetoothConnectionInfo bluetooth_connection_info(
       location::nearby::ByteArray(device_metadata_.bluetooth_mac_address()),

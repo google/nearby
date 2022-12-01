@@ -24,6 +24,7 @@ class ConnectionInfo {
   enum class MediumType {
     kUnknown = 0,
     kBluetooth = 1,
+    kWifiLan = 2,
   };
   virtual ~ConnectionInfo() = default;
   virtual MediumType GetMediumType() const = 0;

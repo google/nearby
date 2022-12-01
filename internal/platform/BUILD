@@ -146,10 +146,12 @@ cc_library(
     name = "connection_info",
     srcs = [
         "bluetooth_connection_info.cc",
+        "wifi_lan_connection_info.cc",
     ],
     hdrs = [
         "bluetooth_connection_info.h",
         "connection_info.h",
+        "wifi_lan_connection_info.h",
     ],
     defines = ["NO_WEBRTC"],
     visibility = [
@@ -159,7 +161,9 @@ cc_library(
         "//presence:__subpackages__",
     ],
     deps = [
-        "//internal/platform:base",
+        ":base",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -442,6 +446,7 @@ cc_test(
         "uuid_test.cc",
         "wifi_direct_test.cc",
         "wifi_hotspot_test.cc",
+        "wifi_lan_connection_info_test.cc",
         "wifi_lan_test.cc",
         "wifi_test.cc",
         "wifi_utils_test.cc",
@@ -461,6 +466,7 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
