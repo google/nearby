@@ -279,6 +279,29 @@ TEST_F(ScanManagerTest, StopOneSessionFromAnotherDeadlock) {
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
 
+// Receive a BLE advertisement after StopScan. `on_discovered_cb`
+// must not be called.
+TEST_F(ScanManagerTest, NoDeviceFoundAfterStopScan) {
+  Mediums mediums;
+  ScanManager manager(mediums, credential_manager_, executor_);
+  location::nearby::BluetoothAdapter server_adapter;
+  Ble ble2(server_adapter);
+  std::atomic_bool stopped = false;
+  ScanSessionId scan_session = manager.StartScan(
+      MakeDefaultScanRequest(),
+      ScanCallback{.start_scan_cb = [](Status status) {},
+                   .on_discovered_cb =
+                       [&](PresenceDevice pd) { EXPECT_FALSE(stopped); }});
+
+  manager.StopScan(scan_session);
+  stopped = true;
+  std::unique_ptr<AdvertisingSession> advertising_session =
+      StartAdvertisingOn(ble2);
+
+  EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
+  executor_.Shutdown();
+}
+
 }  // namespace
 }  // namespace presence
 }  // namespace nearby
