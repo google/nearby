@@ -16,6 +16,7 @@ load("//tools/build_defs/swift:swift_explicit_module_build_test.bzl", "swift_exp
 licenses(["notice"])
 
 package(
+    default_applicable_licenses = ["//third_party/nearby:license"],
     default_visibility = ["//visibility:public"],
 )
 

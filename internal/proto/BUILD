@@ -1,3 +1,5 @@
+package(default_applicable_licenses = ["//third_party/nearby:license"])
+
 proto_library(
     name = "device_metadata_proto",
     srcs = ["device_metadata.proto"],
