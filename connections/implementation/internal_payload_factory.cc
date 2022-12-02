@@ -316,18 +316,26 @@ std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(
 }
 
 std::string make_path(std::string& parent_folder, std::string& file_name) {
+  if (!parent_folder.empty()) {
+    return std::string(api::ImplementationPlatform::GetCustomSavePath(
+        parent_folder, file_name));
+  }
   return std::string(
       api::ImplementationPlatform::GetDownloadPath(parent_folder, file_name));
 }
 
 std::string make_path(std::string& parent_folder, int64_t id) {
   std::string file_name(std::to_string(id));
+  if (!parent_folder.empty()) {
+    return std::string(api::ImplementationPlatform::GetCustomSavePath(
+        parent_folder, file_name));
+  }
   return std::string(
       api::ImplementationPlatform::GetDownloadPath(parent_folder, file_name));
 }
 
 std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
-    const PayloadTransferFrame& frame) {
+    const PayloadTransferFrame& frame, const std::string& custom_save_path) {
   if (frame.packet_type() != PayloadTransferFrame::DATA) {
     return {};
   }
@@ -351,7 +359,7 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
     }
 
     case PayloadTransferFrame::PayloadHeader::FILE: {
-      std::string parent_folder("");
+      std::string parent_folder(custom_save_path);
       std::string file_name("");
       std::string file_path("");
 

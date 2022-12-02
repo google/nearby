@@ -99,6 +99,9 @@ class ServiceController {
 
   virtual void DisconnectFromEndpoint(ClientProxy* client,
                                       const std::string& endpoint_id) = 0;
+
+  virtual void SetCustomSavePath(ClientProxy* client,
+                                 const std::string& path) = 0;
 };
 
 }  // namespace connections

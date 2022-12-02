@@ -92,6 +92,11 @@ class MockServiceControllerRouter : public ServiceControllerRouter {
   MOCK_METHOD(void, StopAllEndpoints,
               (ClientProxy * client, const ResultCallback& callback),
               (override));
+
+  MOCK_METHOD(void, SetCustomSavePath,
+              (ClientProxy * client, absl::string_view path,
+               const ResultCallback& callback),
+              (override));
 };
 
 }  // namespace connections

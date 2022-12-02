@@ -93,6 +93,14 @@ std::string GetApplicationName(DWORD pid) {
 
 }  // namespace
 
+std::string ImplementationPlatform::GetCustomSavePath(
+    absl::string_view parent_folder, absl::string_view file_name) {
+  std::string path("");
+  path += std::string(parent_folder) + "/" + std::string(file_name);
+
+  return CreateOutputFileWithRename(path);
+}
+
 std::string ImplementationPlatform::GetDownloadPath(
     absl::string_view parent_folder, absl::string_view file_name) {
   auto parent = windows::string_to_wstring(std::string(parent_folder));
