@@ -16,8 +16,10 @@
 #define PLATFORM_IMPL_WINDOWS_WIFI_LAN_H_
 
 // Windows headers
+// clang-format off
 #include <windows.h>  // NOLINT
 #include <windns.h>   // NOLINT
+// clang-format on
 
 // Standard C/C++ headers
 #include <exception>
@@ -28,14 +30,17 @@
 // Nearby connections headers
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/time/time.h"
 #include "absl/types/optional.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_lan.h"
+#include "internal/platform/implementation/windows/scheduled_executor.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
 
 // WinRT headers
@@ -57,6 +62,7 @@ using winrt::Windows::Devices::Enumeration::DeviceInformation;
 using winrt::Windows::Devices::Enumeration::DeviceInformationKind;
 using winrt::Windows::Devices::Enumeration::DeviceInformationUpdate;
 using winrt::Windows::Devices::Enumeration::DeviceWatcher;
+using winrt::Windows::Devices::Enumeration::DeviceWatcherStatus;
 using winrt::Windows::Foundation::IInspectable;
 using winrt::Windows::Foundation::Collections::IMapView;
 using winrt::Windows::Networking::HostName;
@@ -276,6 +282,15 @@ class WifiLanMedium : public api::WifiLanMedium {
     return (medium_status_ & kMediumStatusDiscovering) != 0;
   }
 
+  // Checks whether the IP address is connectable in the given timeout.
+  // Parameters:
+  //   ip - IP string in format as 192.168.1.1
+  //   port - The IP port to connect.
+  //   timeout - IP is not connectable if cannot connect in the duration.
+  // Result - return true if the IP is connectable, otherwise return false.
+  bool IsConnectableIpAddress(absl::string_view ip, int port,
+                              absl::Duration timeout = absl::Seconds(1));
+
   // From mDNS device information, to build NsdServiceInfo.
   // the properties are from DeviceInformation and DeviceInformationUpdate.
   // The API gets IP addresses, service name and text attributes of mDNS
@@ -295,6 +310,8 @@ class WifiLanMedium : public api::WifiLanMedium {
 
   // Gets error message from exception pointer
   std::string GetErrorMessage(std::exception_ptr eptr);
+
+  void RestartScanning();
 
   //
   // Dns-sd related properties
@@ -330,6 +347,13 @@ class WifiLanMedium : public api::WifiLanMedium {
   absl::flat_hash_map<int /* port number of the WifiLanServerSocket*/,
                       WifiLanServerSocket*>
       port_to_server_socket_map_;
+
+  // Used to protect the access to mDNS instances and scanning related data.
+  absl::Mutex mutex_;
+
+  // Keeps the discovered services in this time scanning.
+  absl::flat_hash_map<std::string, NsdServiceInfo> discovered_services_map_
+      ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace windows
