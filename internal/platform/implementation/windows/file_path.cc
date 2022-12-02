@@ -49,6 +49,13 @@ wchar_t const* kForbiddenPathNames[] = {
     L"COM5", L"COM6", L"COM7", L"COM8", L"COM9", L"LPT1", L"LPT2", L"LPT3",
     L"LPT4", L"LPT5", L"LPT6", L"LPT7", L"LPT8", L"LPT9"};
 
+std::wstring FilePath::GetCustomSavePath(std::wstring parent_folder,
+                                         std::wstring file_name) {
+  std::wstring path;
+  path += parent_folder + kPathDelimiter + file_name;
+  return CreateOutputFileWithRename(path);
+}
+
 std::wstring FilePath::GetDownloadPath(std::wstring parent_folder,
                                        std::wstring file_name) {
   return CreateOutputFileWithRename(

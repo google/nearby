@@ -66,12 +66,15 @@ class ImplementationPlatform {
   //   - CountDownLatch : to ensure at least N threads are waiting.
   // - file I/O
   // - Logging
-  static std::string GetDownloadPath(absl::string_view parent_folder,
-                                     absl::string_view file_name);
+  static std::string GetCustomSavePath(const std::string& parent_folder,
+                                       const std::string& file_name);
 
-  static std::string GetDownloadPath(absl::string_view file_name);
+  static std::string GetDownloadPath(const std::string& parent_folder,
+                                     const std::string& file_name);
 
-  static std::string GetAppDataPath(absl::string_view file_name);
+  static std::string GetDownloadPath(const std::string& file_name);
+
+  static std::string GetAppDataPath(const std::string& file_name);
 
   static OSName GetCurrentOS();
 
@@ -96,11 +99,11 @@ class ImplementationPlatform {
 
   static std::unique_ptr<InputFile> CreateInputFile(PayloadId, std::int64_t);
 
-  static std::unique_ptr<InputFile> CreateInputFile(absl::string_view, size_t);
+  static std::unique_ptr<InputFile> CreateInputFile(const std::string&, size_t);
 
   static std::unique_ptr<OutputFile> CreateOutputFile(PayloadId);
 
-  static std::unique_ptr<OutputFile> CreateOutputFile(absl::string_view);
+  static std::unique_ptr<OutputFile> CreateOutputFile(const std::string&);
 
   static std::unique_ptr<LogMessage> CreateLogMessage(
       const char* file, int line, LogMessage::Severity severity);

@@ -25,6 +25,8 @@ namespace windows {
 
 class FilePath {
  public:
+  static std::wstring GetCustomSavePath(std::wstring parent_folder,
+                                        std::wstring file_name);
   static std::wstring GetDownloadPath(std::wstring parent_folder,
                                       std::wstring file_name);
 

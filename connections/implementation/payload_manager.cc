@@ -282,6 +282,7 @@ Payload::Id PayloadManager::CreateOutgoingPayload(
 PayloadManager::PayloadManager(EndpointManager& endpoint_manager)
     : endpoint_manager_(&endpoint_manager) {
   endpoint_manager_->RegisterFrameProcessor(V1Frame::PAYLOAD_TRANSFER, this);
+  custom_save_path_ = "";
 }
 
 void PayloadManager::CancelAllPayloads() {
@@ -676,7 +677,8 @@ PayloadTransferFrame::PayloadChunk PayloadManager::CreatePayloadChunk(
 
 PayloadManager::PendingPayload* PayloadManager::CreateIncomingPayload(
     const PayloadTransferFrame& frame, const std::string& endpoint_id) {
-  auto internal_payload = CreateIncomingInternalPayload(frame);
+  auto internal_payload =
+      CreateIncomingInternalPayload(frame, custom_save_path_);
   if (!internal_payload) {
     return nullptr;
   }
@@ -1189,6 +1191,11 @@ PayloadType PayloadManager::FramePayloadTypeToPayloadType(
     default:
       return connections::PayloadType::kUnknown;
   }
+}
+
+void PayloadManager::SetCustomSavePath(ClientProxy* client,
+                                       const std::string& path) {
+  custom_save_path_ = path;
 }
 
 ///////////////////////////////// EndpointInfo /////////////////////////////////

@@ -63,8 +63,13 @@ namespace location {
 namespace nearby {
 namespace api {
 
+std::string ImplementationPlatform::GetCustomSavePath(
+    const std::string& parent_folder, const std::string& file_name) {
+  return file::JoinPath(parent_folder, file_name);
+}
+
 std::string ImplementationPlatform::GetDownloadPath(
-    absl::string_view parent_folder, absl::string_view file_name) {
+    const std::string& parent_folder, const std::string& file_name) {
   std::string fullPath("/tmp");
 
   return file::JoinPath("/tmp", file_name);
@@ -122,7 +127,7 @@ std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
-    absl::string_view file_path, size_t size) {
+    const std::string& file_path, size_t size) {
   return shared::IOFile::CreateInputFile(file_path, size);
 }
 
@@ -137,7 +142,7 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
-    absl::string_view file_path) {
+    const std::string& file_path) {
   return shared::IOFile::CreateOutputFile(file_path);
 }
 

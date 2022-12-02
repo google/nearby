@@ -93,8 +93,17 @@ std::string GetApplicationName(DWORD pid) {
 
 }  // namespace
 
+std::string ImplementationPlatform::GetCustomSavePath(
+    const std::string& parent_folder, const std::string& file_name) {
+  auto parent = windows::string_to_wstring(parent_folder);
+  auto file = windows::string_to_wstring(file_name);
+
+  return windows::wstring_to_string(
+      windows::FilePath::GetCustomSavePath(parent, file));
+}
+
 std::string ImplementationPlatform::GetDownloadPath(
-    absl::string_view parent_folder, absl::string_view file_name) {
+    const std::string& parent_folder, const std::string& file_name) {
   auto parent = windows::string_to_wstring(std::string(parent_folder));
   auto file = windows::string_to_wstring(std::string(file_name));
 
@@ -103,7 +112,7 @@ std::string ImplementationPlatform::GetDownloadPath(
 }
 
 std::string ImplementationPlatform::GetDownloadPath(
-    absl::string_view file_name) {
+    const std::string& file_name) {
   std::wstring fake_parent_path;
   auto file = windows::string_to_wstring(std::string(file_name));
 
@@ -112,7 +121,7 @@ std::string ImplementationPlatform::GetDownloadPath(
 }
 
 std::string ImplementationPlatform::GetAppDataPath(
-    absl::string_view file_name) {
+    const std::string& file_name) {
   PWSTR basePath;
 
   // Retrieves the full path of a known folder identified by the folder's
@@ -185,7 +194,7 @@ std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
-    absl::string_view file_path, size_t size) {
+    const std::string& file_path, size_t size) {
   return windows::IOFile::CreateInputFile(file_path, size);
 }
 
@@ -199,8 +208,7 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
-    absl::string_view file_path) {
-  // TODO(jfcarroll): the following code should probably be moved to FilePath
+    const std::string& file_path) {
   std::string path(file_path);
 
   std::string folder_path = path.substr(0, path.find_last_of('/'));

@@ -15,6 +15,8 @@
 #include "connections/implementation/offline_service_controller.h"
 
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "absl/strings/str_join.h"
 
@@ -140,6 +142,14 @@ void OfflineServiceController::DisconnectFromEndpoint(
                     << " requested a disconnection from endpoint_id="
                     << endpoint_id;
   endpoint_manager_.UnregisterEndpoint(client, endpoint_id);
+}
+
+void OfflineServiceController::SetCustomSavePath(ClientProxy* client,
+                                                 const std::string& path) {
+  if (stop_) return;
+  NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
+                    << " requested to set custom save path: " << path;
+  payload_manager_.SetCustomSavePath(client, path);
 }
 
 void OfflineServiceController::ShutdownBwuManagerExecutors() {
