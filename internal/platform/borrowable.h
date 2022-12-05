@@ -37,6 +37,7 @@
 #include <memory>
 #include <utility>
 
+#include "absl/log/check.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 
