@@ -18,7 +18,7 @@
 // base/logging.h is only included to allow logging clients to include CHECK's.
 // In Chrome this is base/check.h. See crbug/1212611.
 #ifdef NEARBY_CHROMIUM
-#include "base/check.h"
+#include "absl/log/check.h"
 // base/logging.h is available externally as "glog". However, this repo contains
 // template files that can't be built by Swift Package Manager. To build with
 // SPM we only need CHECK and DCHECK defined.
