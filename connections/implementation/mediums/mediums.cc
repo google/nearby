@@ -32,6 +32,8 @@ WifiLan& Mediums::GetWifiLan() { return wifi_lan_; }
 
 WifiHotspot& Mediums::GetWifiHotspot() { return wifi_hotspot_; }
 
+WifiDirect& Mediums::GetWifiDirect() { return wifi_direct_; }
+
 mediums::WebRtc& Mediums::GetWebRtc() { return webrtc_; }
 
 }  // namespace connections
