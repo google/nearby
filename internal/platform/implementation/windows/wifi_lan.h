@@ -25,6 +25,7 @@
 #include <exception>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 
 // Nearby connections headers
@@ -291,6 +292,16 @@ class WifiLanMedium : public api::WifiLanMedium {
   bool IsConnectableIpAddress(absl::string_view ip, int port,
                               absl::Duration timeout = absl::Seconds(1));
 
+  // Methods to manage discovred services.
+  void ClearDiscoveredServices() ABSL_LOCKS_EXCLUDED(mutex_);
+  std::optional<NsdServiceInfo> GetDiscoveredService(absl::string_view id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void UpdateDiscoveredService(absl::string_view id,
+                            const NsdServiceInfo& nsd_service_info)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void RemoveDiscoveredService(absl::string_view id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   // From mDNS device information, to build NsdServiceInfo.
   // the properties are from DeviceInformation and DeviceInformationUpdate.
   // The API gets IP addresses, service name and text attributes of mDNS
@@ -351,7 +362,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   // Used to protect the access to mDNS instances and scanning related data.
   absl::Mutex mutex_;
 
-  // Keeps the discovered services in this time scanning.
+  // Keeps the map from device id to service during scanning.
   absl::flat_hash_map<std::string, NsdServiceInfo> discovered_services_map_
       ABSL_GUARDED_BY(mutex_);
 };

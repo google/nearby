@@ -22,6 +22,7 @@
 #include <codecvt>
 #include <cstdint>
 #include <locale>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -57,7 +58,7 @@ constexpr absl::string_view kMdnsDeviceSelectorFormat =
     "AND System.Devices.Dnssd.ServiceName:=\"%s\" AND "
     "System.Devices.Dnssd.Domain:=\"local\"";
 
-constexpr absl::Duration kConnectTimeout = absl::Seconds(1);
+constexpr absl::Duration kConnectTimeout = absl::Seconds(2);
 }  // namespace
 
 bool WifiLanMedium::IsNetworkConnected() const {
@@ -76,7 +77,9 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
          nsd_service_info.GetIPAddress()) &&
         (server_socket.second->GetPort() == nsd_service_info.GetPort())) {
       NEARBY_LOGS(INFO) << "Found the server socket."
-                        << " IP: " << nsd_service_info.GetIPAddress()
+                        << " IP: "
+                        << ipaddr_4bytes_to_dotdecimal_string(
+                               nsd_service_info.GetIPAddress())
                         << "; port: " << nsd_service_info.GetPort();
       server_socket_ptr = server_socket.second;
       socket_found = true;
@@ -284,10 +287,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
       device_watcher_.Removed({this, &WifiLanMedium::Watcher_DeviceRemoved});
 
   // clear discovered mDNS instances.
-  {
-    absl::MutexLock lock(&mutex_);
-    discovered_services_map_.clear();
-  }
+  ClearDiscoveredServices();
 
   device_watcher_.Start();
   discovered_service_callback_ = std::move(callback);
@@ -577,12 +577,7 @@ fire_and_forget WifiLanMedium::Watcher_DeviceAdded(
     return fire_and_forget{};
   }
 
-  {
-    absl::MutexLock lock(&mutex_);
-    discovered_services_map_.emplace(nsd_service_info.GetServiceName(),
-                                     nsd_service_info);
-  }
-
+  UpdateDiscoveredService(winrt::to_string(deviceInfo.Id()), nsd_service_info);
   discovered_service_callback_.service_discovered_cb(nsd_service_info);
 
   return fire_and_forget();
@@ -590,8 +585,6 @@ fire_and_forget WifiLanMedium::Watcher_DeviceAdded(
 
 fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
-  // TODO(b/200421481): discovery servcie callback needs to support device
-  // update.
   ExceptionOr<NsdServiceInfo> nsd_service_info_except =
       GetNsdServiceInformation(deviceInfoUpdate.Properties(),
                                /*is_device_found*/ true);
@@ -610,43 +603,46 @@ fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
   }
 
   // check having any changes
-  {
-    absl::MutexLock lock(&mutex_);
-    const auto& it =
-        discovered_services_map_.find(nsd_service_info.GetServiceName());
-
-    if (it == discovered_services_map_.end()) {
-      NEARBY_LOGS(WARNING)
-          << "Don't update WIFI_LAN device due to it is not in device list.";
-      return fire_and_forget{};
-    }
-
-    if (it->second.GetTxtRecord(std::string(kDeviceEndpointInfo)) ==
-        nsd_service_info.GetTxtRecord(std::string(kDeviceEndpointInfo))) {
-      NEARBY_LOGS(INFO)
-          << "Don't update WIFI_LAN device due to no endpoint change.";
-      return fire_and_forget{};
-    }
-
+  std::optional<NsdServiceInfo> last_nsd_service_info =
+      GetDiscoveredService(winrt::to_string(deviceInfoUpdate.Id()));
+  if (!last_nsd_service_info.has_value()) {
     NEARBY_LOGS(WARNING)
-        << "Endpoint is changed from "
-        << it->second.GetTxtRecord(std::string(kDeviceEndpointInfo)) << " to "
-        << nsd_service_info.GetTxtRecord(std::string(kDeviceEndpointInfo));
-
-    // Report device lost first.
-    discovered_service_callback_.service_lost_cb(it->second);
-    discovered_services_map_[nsd_service_info.GetServiceName()] =
-        nsd_service_info;
-
-    // Report the updated device discovered.
-    discovered_service_callback_.service_discovered_cb(nsd_service_info);
+        << "Don't update WIFI_LAN device due to it is not in device list.";
+    return fire_and_forget{};
   }
 
-  NEARBY_LOGS(INFO) << "device updated for service name: "
-                    << nsd_service_info.GetServiceName() << ", address: "
-                    << ipaddr_4bytes_to_dotdecimal_string(
-                           nsd_service_info.GetIPAddress())
-                    << ":" << nsd_service_info.GetPort();
+  if ((last_nsd_service_info->GetTxtRecord(std::string(kDeviceEndpointInfo)) ==
+       nsd_service_info.GetTxtRecord(std::string(kDeviceEndpointInfo))) &&
+      (last_nsd_service_info->GetServiceName() ==
+       nsd_service_info.GetServiceName()) &&
+      (last_nsd_service_info->GetIPAddress() ==
+       nsd_service_info.GetIPAddress()) &&
+      (last_nsd_service_info->GetPort() == nsd_service_info.GetPort())) {
+    NEARBY_LOGS(INFO) << "Don't update WIFI_LAN device due to no change.";
+    return fire_and_forget{};
+  }
+
+  NEARBY_LOGS(INFO)
+      << "Device is changed from (service name:"
+      << last_nsd_service_info->GetServiceName() << ", endpoint info:"
+      << last_nsd_service_info->GetTxtRecord(std::string(kDeviceEndpointInfo))
+      << ", address:"
+      << ipaddr_4bytes_to_dotdecimal_string(
+             last_nsd_service_info->GetIPAddress())
+      << ":" << last_nsd_service_info->GetPort()
+      << ") to (service name:" << nsd_service_info.GetServiceName() << ", "
+      << nsd_service_info.GetTxtRecord(std::string(kDeviceEndpointInfo))
+      << ", address:"
+      << ipaddr_4bytes_to_dotdecimal_string(nsd_service_info.GetIPAddress())
+      << ":" << nsd_service_info.GetPort() << ").";
+
+  // Report device lost first.
+  discovered_service_callback_.service_lost_cb(*last_nsd_service_info);
+  UpdateDiscoveredService(winrt::to_string(deviceInfoUpdate.Id()),
+                          nsd_service_info);
+
+  // Report the updated device discovered.
+  discovered_service_callback_.service_discovered_cb(nsd_service_info);
   return fire_and_forget();
 }
 
@@ -673,23 +669,40 @@ fire_and_forget WifiLanMedium::Watcher_DeviceRemoved(
     return fire_and_forget{};
   }
 
-  {
-    absl::MutexLock lock(&mutex_);
-    const auto& it =
-        discovered_services_map_.find(nsd_service_info.GetServiceName());
-
-    if (it == discovered_services_map_.end()) {
-      NEARBY_LOGS(WARNING) << "Cannot remove the WIFI_LAN device due to it is "
-                              "not in device list.";
-      return fire_and_forget{};
-    }
-
-    discovered_services_map_.erase(it);
-  }
-
+  RemoveDiscoveredService(winrt::to_string(deviceInfoUpdate.Id()));
   discovered_service_callback_.service_lost_cb(nsd_service_info);
 
   return fire_and_forget();
+}
+
+void WifiLanMedium::ClearDiscoveredServices() {
+  absl::MutexLock lock(&mutex_);
+  discovered_services_map_.clear();
+}
+
+std::optional<NsdServiceInfo> WifiLanMedium::GetDiscoveredService(
+    absl::string_view id) {
+  absl::MutexLock lock(&mutex_);
+  auto it = discovered_services_map_.find(id);
+  if (it == discovered_services_map_.end()) {
+    return std::nullopt;
+  }
+
+  return it->second;
+}
+
+void WifiLanMedium::UpdateDiscoveredService(
+    absl::string_view id, const NsdServiceInfo& nsd_service_info) {
+  absl::MutexLock lock(&mutex_);
+  discovered_services_map_[id] = nsd_service_info;
+}
+
+void WifiLanMedium::RemoveDiscoveredService(absl::string_view id) {
+  absl::MutexLock lock(&mutex_);
+  auto it = discovered_services_map_.find(id);
+  if (it != discovered_services_map_.end()) {
+    discovered_services_map_.erase(it);
+  }
 }
 
 bool WifiLanMedium::IsConnectableIpAddress(absl::string_view ip, int port,
