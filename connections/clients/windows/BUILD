@@ -35,7 +35,6 @@ cc_library(
         "//connections/clients/windows:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
-        "//location/nearby/cpp/sharing/implementation:__subpackages__",
     ],
     deps = ["@com_google_absl//absl/strings"],
 )
