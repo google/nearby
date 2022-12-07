@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/synchronization/mutex.h"
 
 namespace location {
 namespace nearby {
