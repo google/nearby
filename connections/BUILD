@@ -25,7 +25,6 @@ cc_library(
     visibility = [
         "//connections/clients:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
-        "//location/nearby/cpp/sharing:__subpackages__",
         "//location/nearby/testing:__subpackages__",
     ],
     deps = [
@@ -73,7 +72,6 @@ cc_library(
         "//connections:__subpackages__",
         "//internal/analytics:__subpackages__",
         "//internal/platform/implementation/ios:__subpackages__",
-        "//location/nearby/cpp/sharing:__subpackages__",
         "//location/nearby/testing:__subpackages__",
     ],
     deps = [
