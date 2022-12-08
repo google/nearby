@@ -94,18 +94,6 @@ class CredentialManagerImpl : public CredentialManager {
       absl::string_view authenticity_key,
       absl::string_view device_metadata_string) override;
 
-  absl::StatusOr<std::string> DecryptDataElements(
-      absl::string_view account_name, absl::string_view salt,
-      absl::string_view data_elements) override;
-
-  absl::StatusOr<std::string> DecryptDataElements(
-      const std::vector<nearby::internal::PublicCredential>& credentials,
-      absl::string_view salt, absl::string_view data_elements) override;
-
-  absl::StatusOr<std::string> EncryptDataElements(
-      nearby::internal::IdentityType identity, absl::string_view account_name,
-      absl::string_view salt, absl::string_view data_elements) override;
-
   std::pair<nearby::internal::PrivateCredential,
             nearby::internal::PublicCredential>
   CreatePrivateCredential(

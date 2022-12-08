@@ -381,55 +381,6 @@ TEST(CredentialManagerImpl, PublicCredentialsFailEncryption) {
   EXPECT_TRUE(publicCredentials.empty());
 }
 
-TEST(CredentialManagerImpl, EncryptDataElements) {
-  absl::string_view salt = "AB";
-  absl::string_view data_elements = "data_elements";
-#if USE_RUST_LDT == 1
-  // `data_elements` is too short for LDT
-  absl::Status kExpectedError =
-      absl::InternalError("LDT encryption failed, errorcode -1");
-#else
-  absl::Status kExpectedError =
-      absl::UnavailableError("Failed to create LDT encryptor");
-#endif /* USE_RUST_LDT */
-  DeviceMetadata device_metadata = CreateTestDeviceMetadata();
-  CredentialManagerImpl credential_manager;
-  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
-  credential_manager.GenerateCredentials(
-      device_metadata, "", identity_types, 1, 1,
-      {
-          .credentials_generated_cb =
-              [](std::vector<nearby::internal::PublicCredential>) {},
-      });
-
-  EXPECT_THAT(credential_manager.EncryptDataElements(
-                  IDENTITY_TYPE_PRIVATE, "test_account", salt, data_elements),
-              kExpectedError);
-}
-
-TEST(CredentialManagerImpl, DecryptDataElements) {
-  absl::string_view salt = "AB";
-  absl::string_view data_elements = "data_elements";
-  CredentialManagerImpl credential_manager;
-
-  EXPECT_THAT(credential_manager.DecryptDataElements("test_account", salt,
-                                                     data_elements),
-              absl::Status(absl::StatusCode::kUnavailable,
-                           "Failed to fetch credentials"));
-}
-
-TEST(CredentialManagerImpl, DecryptDataElementsWithCredentials) {
-  absl::string_view salt = "AB";
-  absl::string_view data_elements = "data_elements";
-  CredentialManagerImpl credential_manager;
-  std::vector<nearby::internal::PublicCredential> credentials = {{}};
-
-  EXPECT_THAT(
-      credential_manager.DecryptDataElements(credentials, salt, data_elements),
-      absl::Status(absl::StatusCode::kUnavailable,
-                   "Couldn't decrypt the message with any credentials"));
-}
-
 }  // namespace
 
 }  // namespace presence

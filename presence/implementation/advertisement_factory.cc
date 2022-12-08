@@ -15,6 +15,7 @@
 #include "presence/implementation/advertisement_factory.h"
 
 #include <string>
+#include <vector>
 
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
@@ -24,14 +25,14 @@
 #include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
 #include "presence/implementation/base_broadcast_request.h"
+#include "presence/implementation/ldt.h"
 #include "presence/implementation/mediums/advertisement_data.h"
 
 namespace nearby {
 namespace presence {
 
-using ::nearby::internal::IdentityType;
-
 namespace {
+using ::nearby::internal::IdentityType;
 constexpr uint8_t kBaseVersion = 0;
 constexpr size_t kMaxBaseNpAdvSize = 26;
 
@@ -94,18 +95,20 @@ std::string SerializeAction(const Action& action) {
 }  // namespace
 
 absl::StatusOr<AdvertisementData> AdvertisementFactory::CreateAdvertisement(
-    const BaseBroadcastRequest& request) const {
+    const BaseBroadcastRequest& request,
+    std::vector<PrivateCredential>& credentials) const {
   AdvertisementData advert = {};
   if (absl::holds_alternative<BaseBroadcastRequest::BasePresence>(
           request.variant)) {
-    return CreateBaseNpAdvertisement(request);
+    return CreateBaseNpAdvertisement(request, credentials);
   }
   return advert;
 }
 
 absl::StatusOr<AdvertisementData>
 AdvertisementFactory::CreateBaseNpAdvertisement(
-    const BaseBroadcastRequest& request) const {
+    const BaseBroadcastRequest& request,
+    std::vector<PrivateCredential>& credentials) const {
   const auto& presence =
       absl::get<BaseBroadcastRequest::BasePresence>(request.variant);
   std::string payload;
@@ -114,13 +117,17 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
   absl::Status result;
   std::string tx_power_and_action = {static_cast<char>(request.tx_power)};
   tx_power_and_action.append(SerializeAction(presence.action));
-  uint8_t identity_type = GetIdentityFieldType(presence.identity);
+  uint8_t identity_type =
+      GetIdentityFieldType(presence.credential_selector.identity_type);
   bool needs_encryption =
       identity_type != DataElement::kPublicIdentityFieldType;
   if (needs_encryption) {
     if (request.salt.size() != kSaltSize) {
       return absl::InvalidArgumentError(
           absl::StrFormat("Unsupported salt size %d", request.salt.size()));
+    }
+    if (credentials.empty()) {
+      return absl::FailedPreconditionError("Missing credentials");
     }
     std::string unencrypted;
     // In v0 OTA format, this is a combined TX and Action DE
@@ -130,9 +137,7 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
       return result;
     }
     absl::StatusOr<std::string> encrypted =
-        credential_manager_.EncryptDataElements(presence.identity,
-                                                presence.account_name,
-                                                request.salt, unencrypted);
+        EncryptDataElements(credentials, request.salt, unencrypted);
     if (!encrypted.ok()) {
       return encrypted.status();
     }
@@ -175,6 +180,39 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
   return AdvertisementData{.is_extended_advertisement = false,
                            .content = payload};
 }
+absl::StatusOr<std::string> AdvertisementFactory::EncryptDataElements(
+    std::vector<PrivateCredential>& credentials, absl::string_view salt,
+    absl::string_view data_elements) const {
+  PrivateCredential& credential = credentials.front();
+  if (credential.metadata_encryption_key().size() != kBaseMetadataSize) {
+    return absl::FailedPreconditionError(absl::StrFormat(
+        "Metadata key size %d, expected %d",
+        credential.metadata_encryption_key().size(), kBaseMetadataSize));
+  }
 
+  // HMAC is not used during encryption, so we can pass an empty value.
+  absl::StatusOr<LdtEncryptor> encryptor =
+      LdtEncryptor::Create(credential.authenticity_key(), /*known_hmac=*/"");
+  if (!encryptor.ok()) {
+    return encryptor.status();
+  }
+  std::string plaintext =
+      absl::StrCat(credential.metadata_encryption_key(), data_elements);
+  return encryptor->Encrypt(plaintext, salt);
+}
+
+absl::StatusOr<CredentialSelector> AdvertisementFactory::GetCredentialSelector(
+    const BaseBroadcastRequest& request) {
+  if (absl::holds_alternative<BaseBroadcastRequest::BasePresence>(
+          request.variant)) {
+    const auto& presence =
+        absl::get<BaseBroadcastRequest::BasePresence>(request.variant);
+    if (presence.credential_selector.identity_type !=
+        DataElement::kPublicIdentityFieldType) {
+      return presence.credential_selector;
+    }
+  }
+  return absl::NotFoundError("credentials not required");
+}
 }  // namespace presence
 }  // namespace nearby

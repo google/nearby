@@ -25,6 +25,7 @@
 #include "absl/types/variant.h"
 #include "internal/platform/future.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/uuid.h"
 #include "presence/data_types.h"
 #include "presence/implementation/advertisement_decoder.h"
@@ -79,12 +80,12 @@ ScanSessionId ScanManager::StartScan(ScanRequest scan_request,
                                 NotifyFoundBle(id, data, address);
                               });
                     }};
+            FetchCredentials(id, scan_request);
             scan_sessions_.insert(
                 {id, ScanSessionState{
                          .request = scan_request,
                          .callback = std::move(scan_callback),
-                         .decoder = AdvertisementDecoder(credential_manager_,
-                                                         scan_request),
+                         .decoder = AdvertisementDecoder(scan_request),
                          .scanning_session = mediums_->GetBle().StartScanning(
                              scan_request, std::move(callback))}});
           });
@@ -118,13 +119,52 @@ void ScanManager::NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
     // This advertisement is not relevant to the current element, skip.
     return;
   }
-  if (it->second.decoder.MatchesScanFilter(advert.value())) {
+  if (it->second.decoder.MatchesScanFilter(advert->data_elements)) {
     // TODO(b/256913915): Provide more information in PresenceDevice once
     // fully implemented
     internal::DeviceMetadata metadata;
     metadata.set_bluetooth_mac_address(std::string(remote_address));
     it->second.callback.on_discovered_cb(PresenceDevice(metadata));
   }
+}
+
+void ScanManager::FetchCredentials(ScanSessionId id,
+                                   const ScanRequest& scan_request) {
+  std::vector<CredentialSelector> credential_selectors =
+      AdvertisementDecoder::GetCredentialSelectors(scan_request);
+  for (const CredentialSelector& selector : credential_selectors) {
+    credential_manager_->GetPublicCredentials(
+        selector, PublicCredentialType::kRemotePublicCredential,
+        {.credentials_fetched_cb =
+             [this, id, identity_type = selector.identity_type](
+                 std::vector<::nearby::internal::PublicCredential>
+                     credentials) {
+               RunOnServiceControllerThread(
+                   "update-credentials",
+                   [this, id, identity_type,
+                    credentials = std::move(credentials)]()
+                       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+                         UpdateCredentials(id, identity_type,
+                                           std::move(credentials));
+                       });
+             },
+         .get_credentials_failed_cb =
+             [](CredentialOperationStatus status) {
+               NEARBY_LOGS(WARNING) << "Failed to fetch credentials";
+             }});
+  }
+}
+
+void ScanManager::UpdateCredentials(ScanSessionId id,
+                                    IdentityType identity_type,
+                                    std::vector<PublicCredential> credentials) {
+  auto it = scan_sessions_.find(id);
+  if (it == scan_sessions_.end()) {
+    return;
+  }
+  ScanSessionState& session = it->second;
+  session.credentials[identity_type] = std::move(credentials);
+  session.decoder = AdvertisementDecoder(session.request, &session.credentials);
 }
 
 int ScanManager::ScanningCallbacksLengthForTest() {

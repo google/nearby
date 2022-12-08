@@ -49,11 +49,13 @@ TEST(BroadcastRequestTest, CreateFromPresenceRequest) {
   constexpr uint32_t kExpectedAction =
       (1 << 23);  // encoded kActiveUnlockAction
   std::string account_name = "Test account";
+  std::string manager_app_id = "Manager app id";
   PresenceBroadcast::BroadcastSection section = {
       .identity = internal::IDENTITY_TYPE_PUBLIC,
       .extended_properties = {DataElement(
           DataElement(ActionBit::kActiveUnlockAction))},
-      .account_name = account_name};
+      .account_name = account_name,
+      .manager_app_id = manager_app_id};
   PresenceBroadcast presence_request = {.sections = {section}};
   BroadcastRequest input = {.tx_power = kTxPower, .variant = presence_request};
 
@@ -62,15 +64,18 @@ TEST(BroadcastRequestTest, CreateFromPresenceRequest) {
 
   ASSERT_OK(request);
   EXPECT_THAT(request->tx_power, kTxPower);
-  EXPECT_THAT(
-      absl::get<BaseBroadcastRequest::BasePresence>(request->variant).identity,
-      internal::IDENTITY_TYPE_PUBLIC);
+  EXPECT_THAT(absl::get<BaseBroadcastRequest::BasePresence>(request->variant)
+                  .credential_selector.identity_type,
+              internal::IDENTITY_TYPE_PUBLIC);
   EXPECT_THAT(absl::get<BaseBroadcastRequest::BasePresence>(request->variant)
                   .action.action,
               kExpectedAction);
   EXPECT_THAT(absl::get<BaseBroadcastRequest::BasePresence>(request->variant)
-                  .account_name,
+                  .credential_selector.account_name,
               account_name);
+  EXPECT_THAT(absl::get<BaseBroadcastRequest::BasePresence>(request->variant)
+                  .credential_selector.manager_app_id,
+              manager_app_id);
 }
 
 TEST(BroadcastRequestTest, CreateFromEmptyPresenceRequestFails) {

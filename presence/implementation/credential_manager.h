@@ -74,26 +74,6 @@ class CredentialManager {
       absl::string_view device_metadata_encryption_key,
       absl::string_view authenticity_key,
       absl::string_view device_metadata_string) = 0;
-
-  // Decrypts Data Elements from an NP advertisement.
-  // Returns an error if `data_elements` could not be deciphered with any known
-  // credentials (identity).
-  virtual absl::StatusOr<std::string> DecryptDataElements(
-      absl::string_view account_name, absl::string_view salt,
-      absl::string_view data_elements) = 0;
-
-  // Decrypts Data Elements from an NP advertisement.
-  // Returns an error if `data_elements` could not be deciphered with any of the
-  // provided credentials.
-  virtual absl::StatusOr<std::string> DecryptDataElements(
-      const std::vector<nearby::internal::PublicCredential>& credentials,
-      absl::string_view salt, absl::string_view data_elements) = 0;
-
-  // Encrypts `data_elements` using certificate associated with `identity`,
-  // `account_name` and `salt`.
-  virtual absl::StatusOr<std::string> EncryptDataElements(
-      nearby::internal::IdentityType identity, absl::string_view account_name,
-      absl::string_view salt, absl::string_view data_elements) = 0;
 };
 
 }  // namespace presence

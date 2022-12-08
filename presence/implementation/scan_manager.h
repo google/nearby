@@ -23,6 +23,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/random/random.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/data_types.h"
 #include "presence/implementation/advertisement_decoder.h"
 #include "presence/implementation/credential_manager.h"
@@ -44,6 +45,8 @@ class ScanManager {
   using Runnable = ::location::nearby::Runnable;
   using BleAdvertisementData =
       ::location::nearby::api::ble_v2::BleAdvertisementData;
+  using PublicCredential = ::nearby::internal::PublicCredential;
+  using IdentityType = ::nearby::internal::IdentityType;
 
   ScanManager(Mediums& mediums, CredentialManager& credential_manager,
               SingleThreadExecutor& executor) {
@@ -62,11 +65,18 @@ class ScanManager {
   struct ScanSessionState {
     ScanRequest request;
     ScanCallback callback;
+    absl::flat_hash_map<IdentityType, std::vector<PublicCredential>>
+        credentials;
     AdvertisementDecoder decoder;
     std::unique_ptr<ScanningSession> scanning_session;
   };
   void NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
                       absl::string_view remote_address)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  void FetchCredentials(ScanSessionId id, const ScanRequest& scan_request)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  void UpdateCredentials(ScanSessionId id, IdentityType identity_type,
+                         std::vector<PublicCredential> credentials)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   void RunOnServiceControllerThread(absl::string_view name, Runnable runnable) {
     executor_->Execute(std::string(name), std::move(runnable));

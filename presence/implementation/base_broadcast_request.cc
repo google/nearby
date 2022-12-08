@@ -60,9 +60,18 @@ BasePresenceRequestBuilder& BasePresenceRequestBuilder::SetAccountName(
   return *this;
 }
 
+BasePresenceRequestBuilder& BasePresenceRequestBuilder::SetManagerAppId(
+    absl::string_view manager_app_id) {
+  manager_app_id_ = std::string(manager_app_id);
+  return *this;
+}
+
 BasePresenceRequestBuilder::operator BaseBroadcastRequest() const {
   BaseBroadcastRequest::BasePresence presence{
-      .identity = identity_, .action = action_, .account_name = account_name_};
+      .credential_selector = {.manager_app_id = manager_app_id_,
+                              .account_name = account_name_,
+                              .identity_type = identity_},
+      .action = action_};
   BaseBroadcastRequest broadcast_request{
       .variant = presence,
       .salt = salt_.size() == kSaltSize
@@ -92,6 +101,7 @@ absl::StatusOr<BaseBroadcastRequest> BaseBroadcastRequest::Create(
             .SetTxPower(request.tx_power)
             .SetAction(ActionFactory::CreateAction(section.extended_properties))
             .SetPowerMode(request.power_mode)
+            .SetManagerAppId(section.manager_app_id)
             .SetAccountName(section.account_name));
   }
   return absl::UnimplementedError("Request not supported");

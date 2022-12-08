@@ -66,9 +66,8 @@ class ScanManagerTest : public testing::Test {
     absl::StatusOr<BaseBroadcastRequest> request =
         BaseBroadcastRequest::Create(input);
     EXPECT_OK(request);
-    AdvertisementFactory factory(&credential_manager_);
     absl::StatusOr<AdvertisementData> advertisement =
-        factory.CreateAdvertisement(request.value());
+        AdvertisementFactory().CreateAdvertisement(request.value());
     EXPECT_OK(advertisement);
     std::unique_ptr<AdvertisingSession> session = ble.StartAdvertising(
         advertisement.value(), PowerMode::kLowPower,

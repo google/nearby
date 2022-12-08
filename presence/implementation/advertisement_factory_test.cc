@@ -22,9 +22,10 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
+#include "internal/platform/byte_array.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/data_element.h"
 #include "presence/implementation/action_factory.h"
-#include "presence/implementation/credential_manager_impl.h"
 #include "presence/implementation/mediums/advertisement_data.h"
 
 namespace nearby {
@@ -32,26 +33,35 @@ namespace presence {
 
 namespace {
 
+using ::location::nearby::ByteArray;  // NOLINT
 using ::nearby::internal::IdentityType;
+using ::nearby::internal::PrivateCredential;  // NOLINT
 using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::status::StatusIs;
 
-class MockCredentialManager : public CredentialManagerImpl {
- public:
-  MOCK_METHOD(absl::StatusOr<std::string>, EncryptDataElements,
-              (IdentityType identity, absl::string_view account_name,
-               absl::string_view salt, absl::string_view data_elements),
-              (override));
-};
+#if USE_RUST_LDT == 1
+PrivateCredential CreatePrivateCredential(IdentityType identity_type) {
+  // Values copied from LDT tests
+  ByteArray seed({204, 219, 36, 137, 233, 252, 172, 66, 179, 147, 72,
+                  184, 148, 30, 209, 154, 29,  54,  14, 117, 224, 152,
+                  200, 193, 94, 107, 28,  194, 182, 32, 205, 57});
+  ByteArray metadata_key(
+      {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
+
+  PrivateCredential private_credential;
+  private_credential.set_identity_type(identity_type);
+  private_credential.set_authenticity_key(seed.AsStringView());
+  private_credential.set_metadata_encryption_key(metadata_key.AsStringView());
+  return private_credential;
+}
 
 TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   std::string account_name = "Test account";
   std::string salt = "AB";
-  std::string metadata_key =
-      absl::HexStringToBytes("1011121314151617181920212223");
-  NiceMock<MockCredentialManager> credential_manager;
   constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PRIVATE;
+  std::vector<PrivateCredential> credentials = {
+      CreatePrivateCredential(kIdentity)};
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
   Action action = ActionFactory::CreateAction(data_elements);
@@ -61,24 +71,71 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
                                .SetSalt(salt)
                                .SetTxPower(5)
                                .SetAction(action));
-  EXPECT_CALL(credential_manager,
-              EncryptDataElements(kIdentity, account_name, salt,
-                                  absl::HexStringToBytes("36050080")))
-      .WillOnce(Return(metadata_key + absl::HexStringToBytes("50515253")));
 
-  AdvertisementFactory factory(&credential_manager);
   absl::StatusOr<AdvertisementData> result =
-      factory.CreateAdvertisement(request);
+      AdvertisementFactory().CreateAdvertisement(request, credentials);
 
   ASSERT_OK(result);
   EXPECT_FALSE(result->is_extended_advertisement);
   EXPECT_EQ(absl::BytesToHexString(result->content),
-            "00414142101112131415161718192021222350515253");
+            "00414142ceb073b0e34f58d7dc6dea370783ac943fa5");
 }
+
+TEST(AdvertisementFactory, CreateAdvertisementFromTrustedIdentity) {
+  std::string account_name = "Test account";
+  std::string salt = "AB";
+  constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_TRUSTED;
+  std::vector<PrivateCredential> credentials = {
+      CreatePrivateCredential(kIdentity)};
+  std::vector<DataElement> data_elements;
+  data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
+  data_elements.emplace_back(DataElement(ActionBit::kFitCastAction));
+  Action action = ActionFactory::CreateAction(data_elements);
+  BaseBroadcastRequest request =
+      BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
+                               .SetAccountName(account_name)
+                               .SetSalt(salt)
+                               .SetTxPower(5)
+                               .SetAction(action));
+
+  absl::StatusOr<AdvertisementData> result =
+      AdvertisementFactory().CreateAdvertisement(request, credentials);
+
+  ASSERT_OK(result);
+  EXPECT_FALSE(result->is_extended_advertisement);
+  EXPECT_EQ(absl::BytesToHexString(result->content),
+            "00424142253536ac63191a96894d95f0ffa38b57cf9b");
+}
+
+TEST(AdvertisementFactory, CreateAdvertisementFromProvisionedIdentity) {
+  std::string account_name = "Test account";
+  std::string salt = "AB";
+  constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PROVISIONED;
+  std::vector<PrivateCredential> credentials = {
+      CreatePrivateCredential(kIdentity)};
+  std::vector<DataElement> data_elements;
+  data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
+  data_elements.emplace_back(DataElement(ActionBit::kFitCastAction));
+  Action action = ActionFactory::CreateAction(data_elements);
+  BaseBroadcastRequest request =
+      BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
+                               .SetAccountName(account_name)
+                               .SetSalt(salt)
+                               .SetTxPower(5)
+                               .SetAction(action));
+
+  absl::StatusOr<AdvertisementData> result =
+      AdvertisementFactory().CreateAdvertisement(request, credentials);
+
+  ASSERT_OK(result);
+  EXPECT_FALSE(result->is_extended_advertisement);
+  EXPECT_EQ(absl::BytesToHexString(result->content),
+            "00444142253536ac63191a96894d95f0ffa38b57cf9b");
+}
+#endif /*USE_RUST_LDT*/
 
 TEST(AdvertisementFactory, CreateAdvertisementFromPublicIdentity) {
   std::string salt = "AB";
-  NiceMock<MockCredentialManager> credential_manager;
   constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PUBLIC;
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
@@ -89,97 +146,16 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPublicIdentity) {
                                .SetTxPower(5)
                                .SetAction(action));
 
-  AdvertisementFactory factory(&credential_manager);
   absl::StatusOr<AdvertisementData> result =
-      factory.CreateAdvertisement(request);
+      AdvertisementFactory().CreateAdvertisement(request);
 
   ASSERT_OK(result);
   EXPECT_FALSE(result->is_extended_advertisement);
   EXPECT_EQ(absl::BytesToHexString(result->content), "000320414236050080");
 }
 
-TEST(AdvertisementFactory, CreateAdvertisementFailsWhenEncryptionFails) {
-  std::string account_name = "Test account";
-  std::string salt = "AB";
-  NiceMock<MockCredentialManager> credential_manager;
-  constexpr IdentityType kIdentity = internal::IDENTITY_TYPE_PRIVATE;
-  std::vector<DataElement> data_elements;
-  data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
-  Action action = ActionFactory::CreateAction(data_elements);
-  BaseBroadcastRequest request =
-      BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
-                               .SetAccountName(account_name)
-                               .SetSalt(salt)
-                               .SetTxPower(5)
-                               .SetAction(action));
-  EXPECT_CALL(credential_manager,
-              EncryptDataElements(kIdentity, account_name, salt,
-                                  absl::HexStringToBytes("36050080")))
-      .WillOnce(Return(absl::OutOfRangeError("failed")));
-
-  AdvertisementFactory factory(&credential_manager);
-  EXPECT_THAT(factory.CreateAdvertisement(request),
-              StatusIs(absl::StatusCode::kOutOfRange));
-}
-
-TEST(AdvertisementFactory,
-     CreateAdvertisementFailsWhenEncryptionReturnsTooMuchData) {
-  std::string account_name = "Test account";
-  std::string salt = "AB";
-  NiceMock<MockCredentialManager> credential_manager;
-  constexpr IdentityType kIdentity = internal::IDENTITY_TYPE_PRIVATE;
-  std::vector<DataElement> data_elements;
-  data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
-  Action action = ActionFactory::CreateAction(data_elements);
-  BaseBroadcastRequest request =
-      BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
-                               .SetAccountName(account_name)
-                               .SetSalt(salt)
-                               .SetTxPower(5)
-                               .SetAction(action));
-  EXPECT_CALL(credential_manager,
-              EncryptDataElements(kIdentity, account_name, salt,
-                                  absl::HexStringToBytes("36050080")))
-      .WillOnce(Return(absl::HexStringToBytes(
-          "deaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddead"
-          "deaddeaddeaddeaddeaddeaddead")));
-
-  AdvertisementFactory factory(&credential_manager);
-  EXPECT_THAT(factory.CreateAdvertisement(request),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-}
-
-TEST(AdvertisementFactory,
-     CreateAdvertisementFailsWhenEncryptionReturnsTooLittleData) {
-  std::string account_name = "Test account";
-  std::string salt = "AB";
-  std::string metadata_key =
-      absl::HexStringToBytes("1011121314151617181920212223");
-
-  NiceMock<MockCredentialManager> credential_manager;
-  constexpr IdentityType kIdentity = internal::IDENTITY_TYPE_PRIVATE;
-  std::vector<DataElement> data_elements;
-  data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
-  Action action = ActionFactory::CreateAction(data_elements);
-  BaseBroadcastRequest request =
-      BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
-                               .SetAccountName(account_name)
-                               .SetSalt(salt)
-                               .SetTxPower(5)
-                               .SetAction(action));
-  EXPECT_CALL(credential_manager,
-              EncryptDataElements(kIdentity, account_name, salt,
-                                  absl::HexStringToBytes("36050080")))
-      .WillOnce(Return(metadata_key));
-
-  AdvertisementFactory factory(&credential_manager);
-  EXPECT_THAT(factory.CreateAdvertisement(request),
-              StatusIs(absl::StatusCode::kOutOfRange));
-}
-
 TEST(AdvertisementFactory, CreateAdvertisementFailsWhenSaltIsTooShort) {
   std::string salt = "AB";
-  NiceMock<MockCredentialManager> credential_manager;
   constexpr IdentityType kIdentity = internal::IDENTITY_TYPE_PRIVATE;
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
@@ -192,8 +168,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFailsWhenSaltIsTooShort) {
   // Override the salt with invalid value
   request.salt = "C";
 
-  AdvertisementFactory factory(&credential_manager);
-  EXPECT_THAT(factory.CreateAdvertisement(request),
+  EXPECT_THAT(AdvertisementFactory().CreateAdvertisement(request),
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
 

@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "internal/platform/logging.h"
-#include "internal/proto/credential.proto.h"
+#include "internal/proto/credential.pb.h"
 
 namespace location {
 namespace nearby {

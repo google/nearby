@@ -134,6 +134,7 @@ TEST_P(ServiceControllerImplTest, StopBroadcastTwiceNoSideEffects) {
   EXPECT_TRUE(IsAdvertising());
 
   service_controller_.StopBroadcast(*session);
+  service_controller_.StopBroadcast(*session);
 }
 
 TEST_P(ServiceControllerImplTest, StopBroadcastInvalidSessionNoSideEffects) {

@@ -140,7 +140,9 @@ cc_test(
     srcs = ["advertisement_decoder_test.cc"],
     deps = [
         ":internal",
+        "//internal/platform:base",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/proto:credential_cc_proto",
         "//presence:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
@@ -154,7 +156,9 @@ cc_test(
     srcs = ["advertisement_factory_test.cc"],
     deps = [
         ":internal",
+        "//internal/platform:base",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/proto:credential_cc_proto",
         "//presence:types",
         "//presence/implementation/mediums",
         "@com_github_protobuf_matchers//protobuf-matchers",
@@ -202,6 +206,7 @@ cc_test(
         "//internal/platform:base",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )

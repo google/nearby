@@ -17,6 +17,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/random/random.h"
 #include "absl/status/status.h"
@@ -68,34 +69,78 @@ absl::StatusOr<BroadcastSessionId> ServiceControllerImpl::StartBroadcast(
   RunOnServiceControllerThread(
       "start-broadcast",
       [this, id, power_mode = broadcast_request.power_mode, request = *request,
-       broadcast_callback =
-           std::move(callback)]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_) {
-        sessions_.insert({id, BroadcastSessionState(broadcast_callback)});
-        absl::StatusOr<AdvertisementData> advertisement =
-            AdvertisementFactory(&credential_manager_)
-                .CreateAdvertisement(request);
-        if (!advertisement.ok()) {
-          NEARBY_LOGS(WARNING) << "Can't create advertisement, reason: "
-                               << advertisement.status();
-          NotifyStartCallbackStatus(id, Status{Status::Value::kError});
-          return;
-        }
-        std::unique_ptr<AdvertisingSession> session =
-            mediums_.GetBle().StartAdvertising(
-                *advertisement, power_mode,
-                AdvertisingCallback{.start_advertising_result =
-                                        [this, id](BleOperationStatus status) {
-                                          NotifyStartCallbackStatus(
-                                              id, ConvertBleStatus(status));
-                                        }});
-        if (!session) {
-          NotifyStartCallbackStatus(id, Status{Status::Value::kError});
-          return;
-        }
-        sessions_.at(id).SetAdvertisingSession(std::move(session));
-      });
+       broadcast_callback = std::move(callback)]()
+          ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_) {
+            sessions_.insert(
+                {id, BroadcastSessionState(broadcast_callback, power_mode)});
+            FetchCredentials(id, std::move(request));
+          });
 
   return id;
+}
+
+void ServiceControllerImpl::FetchCredentials(
+    BroadcastSessionId id, BaseBroadcastRequest broadcast_request) {
+  absl::StatusOr<CredentialSelector> credential_selector =
+      AdvertisementFactory::GetCredentialSelector(broadcast_request);
+  if (!credential_selector.ok()) {
+    // Public advertisement, we don't need credential to advertise.
+    Advertise(id, broadcast_request, /*credentials=*/{});
+    return;
+  }
+  credential_manager_.GetPrivateCredentials(
+      *credential_selector,
+      GetPrivateCredentialsResultCallback{
+          .credentials_fetched_cb =
+              [this, id, broadcast_request = std::move(broadcast_request)](
+                  std::vector<::nearby::internal::PrivateCredential>
+                      credentials) {
+                RunOnServiceControllerThread(
+                    "advertise-non-public",
+                    [this, id, broadcast_request = std::move(broadcast_request),
+                     credentials = std::move(credentials)]()
+                        ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_) {
+                          Advertise(id, broadcast_request, credentials);
+                        });
+              },
+          .get_credentials_failed_cb =
+              [this, id](CredentialOperationStatus status) {
+                NEARBY_LOGS(WARNING) << "Failed to fetch credentials, status: "
+                                     << static_cast<int>(status);
+                NotifyStartCallbackStatus(id, Status{Status::Value::kError});
+              }});
+}
+
+void ServiceControllerImpl::Advertise(
+    BroadcastSessionId id, BaseBroadcastRequest broadcast_request,
+    std::vector<PrivateCredential> credentials) {
+  auto it = sessions_.find(id);
+  if (it == sessions_.end()) {
+    NEARBY_LOGS(INFO) << "Broadcast session terminated, id: " << id;
+    return;
+  }
+  absl::StatusOr<AdvertisementData> advertisement =
+      AdvertisementFactory().CreateAdvertisement(broadcast_request,
+                                                 credentials);
+  if (!advertisement.ok()) {
+    NEARBY_LOGS(WARNING) << "Can't create advertisement, reason: "
+                         << advertisement.status();
+    NotifyStartCallbackStatus(id, Status{Status::Value::kError});
+    return;
+  }
+  std::unique_ptr<AdvertisingSession> session =
+      mediums_.GetBle().StartAdvertising(
+          *advertisement, it->second.GetPowerMode(),
+          AdvertisingCallback{.start_advertising_result =
+                                  [this, id](BleOperationStatus status) {
+                                    NotifyStartCallbackStatus(
+                                        id, ConvertBleStatus(status));
+                                  }});
+  if (!session) {
+    NotifyStartCallbackStatus(id, Status{Status::Value::kError});
+    return;
+  }
+  it->second.SetAdvertisingSession(std::move(session));
 }
 
 void ServiceControllerImpl::NotifyStartCallbackStatus(BroadcastSessionId id,

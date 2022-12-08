@@ -24,8 +24,10 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
+#include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/credential_manager_impl.h"
 #include "presence/implementation/mediums/mediums.h"
 #include "presence/implementation/scan_manager.h"
@@ -45,6 +47,7 @@ class ServiceControllerImpl : public ServiceController {
   using AdvertisingSession =
       ::location::nearby::api::ble_v2::BleMedium::AdvertisingSession;
   using Runnable = ::location::nearby::Runnable;
+  using PrivateCredential = internal::PrivateCredential;
 
   ServiceControllerImpl() = default;
   ~ServiceControllerImpl() override { executor_.Shutdown(); }
@@ -64,8 +67,9 @@ class ServiceControllerImpl : public ServiceController {
  private:
   class BroadcastSessionState {
    public:
-    explicit BroadcastSessionState(BroadcastCallback broadcast_callback)
-        : broadcast_callback_(broadcast_callback) {}
+    explicit BroadcastSessionState(BroadcastCallback broadcast_callback,
+                                   PowerMode power_mode)
+        : broadcast_callback_(broadcast_callback), power_mode_(power_mode) {}
 
     void SetAdvertisingSession(std::unique_ptr<AdvertisingSession> session);
 
@@ -73,8 +77,11 @@ class ServiceControllerImpl : public ServiceController {
 
     void StopAdvertising();
 
+    PowerMode GetPowerMode() { return power_mode_; }
+
    private:
     BroadcastCallback broadcast_callback_;
+    PowerMode power_mode_;
     std::unique_ptr<AdvertisingSession> advertising_session_;
   };
   SingleThreadExecutor executor_;
@@ -83,6 +90,14 @@ class ServiceControllerImpl : public ServiceController {
   void RunOnServiceControllerThread(absl::string_view name, Runnable runnable) {
     executor_.Execute(std::string(name), std::move(runnable));
   }
+  void FetchCredentials(BroadcastSessionId id,
+                        BaseBroadcastRequest broadcast_request)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_);
+
+  void Advertise(BroadcastSessionId id, BaseBroadcastRequest broadcast_request,
+                 std::vector<PrivateCredential> credentials)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_);
+
   Mediums mediums_;  // NOLINT: further impl will use it.
   CredentialManagerImpl
       credential_manager_;  // NOLINT: further impl will use it.
