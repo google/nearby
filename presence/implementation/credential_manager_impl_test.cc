@@ -28,7 +28,6 @@
 #include "internal/platform/credential_storage_impl.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/proto/credential.pb.h"
-#include "internal/proto/credential.proto.h"
 
 namespace nearby {
 namespace presence {

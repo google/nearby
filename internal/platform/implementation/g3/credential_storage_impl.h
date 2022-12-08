@@ -26,7 +26,7 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/implementation/credential_storage.h"
-#include "internal/proto/credential.proto.h"
+#include "internal/proto/credential.pb.h"
 
 namespace location {
 namespace nearby {

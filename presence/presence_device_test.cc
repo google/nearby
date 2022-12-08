@@ -22,7 +22,7 @@
 #include "absl/types/variant.h"
 #include "internal/platform/bluetooth_connection_info.h"
 #include "internal/platform/logging.h"
-#include "internal/proto/device_metadata.proto.h"
+#include "internal/proto/device_metadata.pb.h"
 
 namespace nearby {
 namespace presence {
