@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/log/check.h"
 #include "absl/types/span.h"
 #include "internal/crypto/nearby_base.h"
 #include "internal/crypto/openssl_util.h"

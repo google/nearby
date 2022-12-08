@@ -61,9 +61,10 @@ cc_library(
         "-Ithird_party",
     ],
     deps = [
-        "//internal/platform:logging",
         "@boringssl//:crypto",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
@@ -94,7 +95,6 @@ cc_test(
     ],
     deps = [
         ":crypto",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",

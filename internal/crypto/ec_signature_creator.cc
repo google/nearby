@@ -17,7 +17,6 @@
 #include <memory>
 
 #include "internal/crypto/ec_signature_creator_impl.h"
-#include "internal/platform/logging.h"
 
 namespace crypto {
 

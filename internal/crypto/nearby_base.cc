@@ -18,8 +18,8 @@
 #include <limits>
 #include <string>
 
+#include "absl/log/check.h"
 #include "absl/types/span.h"
-#include "internal/platform/logging.h"
 
 namespace nearbybase {
 

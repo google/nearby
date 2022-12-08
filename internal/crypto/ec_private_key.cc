@@ -23,8 +23,8 @@
 #include <utility>
 #include <vector>
 
+#include "absl/log/check.h"
 #include "internal/crypto/openssl_util.h"
-#include "internal/platform/logging.h"
 #include <openssl/bn.h>
 #include <openssl/bytestring.h>
 #include <openssl/ec.h>

@@ -19,7 +19,6 @@
 #include <string.h>
 
 #include "internal/crypto/crypto_export.h"
-#include "internal/platform/logging.h"
 
 namespace crypto {
 

@@ -22,12 +22,13 @@
 #include <utility>
 #include <vector>
 
+#include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "internal/crypto/nearby_base.h"
 #include "internal/crypto/openssl_util.h"
 #include "internal/crypto/symmetric_key.h"
-#include "internal/platform/logging.h"
 #include <openssl/aes.h>
 #include <openssl/evp.h>
 
@@ -193,7 +194,7 @@ absl::optional<size_t> Encryptor::CryptCTR(bool do_encrypt,
                                           absl::Span<const uint8_t> input,
                                           absl::Span<uint8_t> output) {
   if (iv_.size() != AES_BLOCK_SIZE) {
-    NEARBY_LOGS(ERROR) << "Counter value not set in CTR mode.";
+    LOG(ERROR) << "Counter value not set in CTR mode.";
     return absl::nullopt;
   }
 

@@ -19,12 +19,12 @@
 #include <algorithm>
 #include <string>
 
+#include "absl/log/check.h"
 #include "internal/crypto/hmac.h"
 #include "internal/crypto/nearby_base.h"
 #include "internal/crypto/openssl_util.h"
 #include "internal/crypto/secure_util.h"
 #include "internal/crypto/symmetric_key.h"
-#include "internal/platform/logging.h"
 
 namespace crypto {
 

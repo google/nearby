@@ -22,9 +22,9 @@
 #include <string>
 #include <utility>
 
+#include "absl/log/check.h"
 #include "internal/crypto/nearby_base.h"
 #include "internal/crypto/openssl_util.h"
-#include "internal/platform/logging.h"
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 

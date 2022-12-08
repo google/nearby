@@ -21,10 +21,10 @@
 #include <string>
 #include <vector>
 
+#include "absl/log/check.h"
 #include "absl/strings/string_view.h"
 #include "internal/crypto/hkdf.h"
 #include "internal/crypto/hmac.h"
-#include "internal/platform/logging.h"
 #include <openssl/digest.h>
 
 namespace crypto {
