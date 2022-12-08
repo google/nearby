@@ -421,7 +421,7 @@ void BwuManager::SetBwuMediumForEndpoint(const std::string& endpoint_id,
   endpoint_id_to_bwu_medium_[endpoint_id] = medium;
 }
 
-BwuHandler* BwuManager::GetHandlerForMedium(Medium medium) {
+BwuHandler* BwuManager::GetHandlerForMedium(Medium medium) const {
   if (medium == Medium::UNKNOWN_MEDIUM) return nullptr;
 
   auto it = handlers_.find(medium);
@@ -565,8 +565,7 @@ void BwuManager::RunOnBwuManagerThread(const std::string& name,
 
 void BwuManager::RunUpgradeProtocol(
     ClientProxy* client, const std::string& endpoint_id,
-    std::unique_ptr<EndpointChannel> new_channel,
-    bool enable_encryption) {
+    std::unique_ptr<EndpointChannel> new_channel, bool enable_encryption) {
   NEARBY_LOGS(INFO) << "RunUpgradeProtocol new channel @" << new_channel.get()
                     << " name: " << new_channel->GetName() << ", medium: "
                     << proto::connections::Medium_Name(
@@ -1165,14 +1164,14 @@ void BwuManager::ProcessUpgradeFailureEvent(
     }
   }
 
-  RetryUpgradeMediums(client, endpoint_id, untried_mediums);
+  TryNextBestUpgradeMediums(client, endpoint_id, untried_mediums);
 }
 
-void BwuManager::RetryUpgradeMediums(ClientProxy* client,
-                                     const std::string& endpoint_id,
-                                     std::vector<Medium> upgrade_mediums) {
+void BwuManager::TryNextBestUpgradeMediums(
+    ClientProxy* client, const std::string& endpoint_id,
+    std::vector<Medium> upgrade_mediums) {
   Medium next_medium = ChooseBestUpgradeMedium(endpoint_id, upgrade_mediums);
-  NEARBY_LOGS(INFO) << "RetryUpgradeMediums for endpoint " << endpoint_id
+  NEARBY_LOGS(INFO) << "Try Next Best Medium for endpoint " << endpoint_id
                     << " after ChooseBestUpgradeMedium: "
                     << proto::connections::Medium_Name(next_medium);
 
@@ -1182,6 +1181,8 @@ void BwuManager::RetryUpgradeMediums(ClientProxy* client,
   auto channel = channel_manager_->GetChannelForEndpoint(endpoint_id);
   Medium current_medium =
       channel ? channel->GetMedium() : Medium::UNKNOWN_MEDIUM;
+  NEARBY_LOGS(VERBOSE) << "current_medium: "
+                       << proto::connections::Medium_Name(current_medium);
   if (current_medium != Medium::WIFI_LAN &&
       (next_medium == current_medium || next_medium == Medium::UNKNOWN_MEDIUM ||
        upgrade_mediums.empty())) {
@@ -1190,14 +1191,15 @@ void BwuManager::RetryUpgradeMediums(ClientProxy* client,
   }
 
   // Attempt to set the new upgrade medium.
-  SetBwuMediumForEndpoint(endpoint_id, next_medium);
   if (!GetHandlerForMedium(next_medium)) {
+    // As Medium without handler has been stripped out, this shouldn't be hit
     NEARBY_LOGS(INFO)
         << "BwuManager failed to attempt a new bandwidth upgrade for endpoint "
         << endpoint_id
         << " because we couldn't set a new bandwidth upgrade medium.";
     return;
   }
+  SetBwuMediumForEndpoint(endpoint_id, next_medium);
 
   // Now that we've successfully picked a new upgrade medium to try,
   // re-initiate the bandwidth upgrade.
@@ -1212,21 +1214,23 @@ std::vector<Medium> BwuManager::StripOutUnavailableMediums(
   std::vector<Medium> available_mediums;
   for (Medium m : mediums) {
     bool available = false;
-    switch (m) {
-      case Medium::WIFI_LAN:
-        available = mediums_->GetWifiLan().IsAvailable();
-        break;
-      case Medium::WIFI_HOTSPOT:
-        available = mediums_->GetWifiHotspot().IsAPAvailable();
-        break;
-      case Medium::WEB_RTC:
-        available = mediums_->GetWebRtc().IsAvailable();
-        break;
-      case Medium::BLUETOOTH:
-        available = mediums_->GetBluetoothClassic().IsAvailable();
-        break;
-      default:
-        break;
+    if (GetHandlerForMedium(m)) {
+      switch (m) {
+        case Medium::WIFI_LAN:
+          available = mediums_->GetWifiLan().IsAvailable();
+          break;
+        case Medium::WIFI_HOTSPOT:
+          available = mediums_->GetWifiHotspot().IsAPAvailable();
+          break;
+        case Medium::WEB_RTC:
+          available = mediums_->GetWebRtc().IsAvailable();
+          break;
+        case Medium::BLUETOOTH:
+          available = mediums_->GetBluetoothClassic().IsAvailable();
+          break;
+        default:
+          break;
+      }
     }
     if (available) {
       available_mediums.push_back(m);
@@ -1302,7 +1306,7 @@ void BwuManager::RetryUpgradesAfterDelay(ClientProxy* client,
               if (!client->IsConnectedToEndpoint(endpoint_id)) {
                 return;
               }
-              RetryUpgradeMediums(
+              TryNextBestUpgradeMediums(
                   client, endpoint_id,
                   client->GetUpgradeMediums(endpoint_id).GetMediums(true));
             });

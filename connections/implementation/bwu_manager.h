@@ -146,7 +146,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
   Medium GetBwuMediumForEndpoint(const std::string& endpoint_id) const;
   void SetBwuMediumForEndpoint(const std::string& endpoint_id, Medium medium);
 
-  BwuHandler* GetHandlerForMedium(Medium medium);
+  BwuHandler* GetHandlerForMedium(Medium medium) const;
 
   // Common functionality to take an incoming connection and go through the
   // upgrade process. This is a callback, invoked by concrete handlers, once
@@ -183,8 +183,9 @@ class BwuManager : public EndpointManager::FrameProcessor {
                                   const UpgradePathInfo& upgrade_info);
   void CancelRetryUpgradeAlarm(const std::string& endpoint_id);
   void CancelAllRetryUpgradeAlarms();
-  void RetryUpgradeMediums(ClientProxy* client, const std::string& endpoint_id,
-                           std::vector<Medium> upgrade_mediums);
+  void TryNextBestUpgradeMediums(ClientProxy* client,
+                                 const std::string& endpoint_id,
+                                 std::vector<Medium> upgrade_mediums);
   absl::Duration CalculateNextRetryDelay(const std::string& endpoint_id);
   void RetryUpgradesAfterDelay(ClientProxy* client,
                                const std::string& endpoint_id);
