@@ -19,6 +19,8 @@
 
 #ifdef NEARBY_SWIFTPM
 #include "internal/platform/logging.h"
+#elif defined(NEARBY_CHROMIUM)
+#include "glog/logging.h"
 #else
 #include "absl/log/log.h"
 #endif
