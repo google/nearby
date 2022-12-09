@@ -18,7 +18,12 @@
 #include <limits>
 #include <string>
 
+#ifdef NEARBY_CHROMIUM
+#include "base/check.h"
+#else
 #include "absl/log/check.h"
+#endif
+
 #include "absl/types/span.h"
 
 namespace nearbybase {

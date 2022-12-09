@@ -22,7 +22,12 @@
 #include <utility>
 #include <vector>
 
+#ifdef NEARBY_CHROMIUM
+#include "base/check.h"
+#else
 #include "absl/log/check.h"
+#endif
+
 #include "absl/log/log.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"

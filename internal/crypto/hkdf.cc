@@ -21,7 +21,12 @@
 #include <string>
 #include <vector>
 
+#ifdef NEARBY_CHROMIUM
+#include "base/check.h"
+#else
 #include "absl/log/check.h"
+#endif
+
 #include "absl/strings/string_view.h"
 #include "internal/crypto/hkdf.h"
 #include "internal/crypto/hmac.h"

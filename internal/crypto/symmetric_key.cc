@@ -22,7 +22,12 @@
 #include <string>
 #include <utility>
 
+#ifdef NEARBY_CHROMIUM
+#include "base/check.h"
+#else
 #include "absl/log/check.h"
+#endif
+
 #include "internal/crypto/nearby_base.h"
 #include "internal/crypto/openssl_util.h"
 #include <openssl/evp.h>

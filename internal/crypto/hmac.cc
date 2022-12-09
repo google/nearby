@@ -19,7 +19,12 @@
 #include <algorithm>
 #include <string>
 
+#ifdef NEARBY_CHROMIUM
+#include "base/check.h"
+#else
 #include "absl/log/check.h"
+#endif
+
 #include "internal/crypto/hmac.h"
 #include "internal/crypto/nearby_base.h"
 #include "internal/crypto/openssl_util.h"

@@ -37,7 +37,12 @@
 #include <memory>
 #include <utility>
 
+#ifdef NEARBY_CHROMIUM
+#include "base/check.h"
+#else
 #include "absl/log/check.h"
+#endif
+
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 
