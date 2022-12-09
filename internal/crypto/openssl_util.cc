@@ -22,7 +22,7 @@
 #ifdef NEARBY_SWIFTPM
 #include "internal/platform/logging.h"
 #else
-#include "absl/log/log.h"
+#include "absl/log/log.h"  // nogncheck
 #endif
 #include "absl/strings/string_view.h"
 #include <openssl/crypto.h>

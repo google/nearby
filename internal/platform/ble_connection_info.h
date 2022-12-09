@@ -22,7 +22,7 @@
 #elif defined(NEARBY_CHROMIUM)
 #include "glog/logging.h"
 #else
-#include "absl/log/log.h"
+#include "absl/log/log.h"  // nogncheck
 #endif
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"

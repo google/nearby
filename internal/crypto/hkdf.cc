@@ -26,7 +26,7 @@
 #elif defined(NEARBY_SWIFTPM)
 #include "internal/platform/logging.h"
 #else
-#include "absl/log/check.h"
+#include "absl/log/check.h"  // nogncheck
 #endif
 
 #include "absl/strings/string_view.h"

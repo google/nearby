@@ -27,11 +27,11 @@
 #elif defined(NEARBY_SWIFTPM)
 #include "internal/platform/logging.h"
 #else
-#include "absl/log/check.h"
+#include "absl/log/check.h"  // nogncheck
 #endif
 
 #ifndef NEARBY_SWIFTPM
-#include "absl/log/log.h"
+#include "absl/log/log.h"  // nogncheck
 #endif
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -162,8 +162,8 @@ size_t Encryptor::MaxOutput(bool do_encrypt, size_t length) {
 }
 
 absl::optional<size_t> Encryptor::Crypt(bool do_encrypt,
-                                       absl::Span<const uint8_t> input,
-                                       absl::Span<uint8_t> output) {
+                                        absl::Span<const uint8_t> input,
+                                        absl::Span<uint8_t> output) {
   DCHECK(key_);  // Must call Init() before En/De-crypt.
 
   const EVP_CIPHER* cipher = GetCipherForKey(key_);
@@ -200,8 +200,8 @@ absl::optional<size_t> Encryptor::Crypt(bool do_encrypt,
 }
 
 absl::optional<size_t> Encryptor::CryptCTR(bool do_encrypt,
-                                          absl::Span<const uint8_t> input,
-                                          absl::Span<uint8_t> output) {
+                                           absl::Span<const uint8_t> input,
+                                           absl::Span<uint8_t> output) {
   if (iv_.size() != AES_BLOCK_SIZE) {
     LOG(ERROR) << "Counter value not set in CTR mode.";
     return absl::nullopt;
