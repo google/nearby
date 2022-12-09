@@ -40,6 +40,7 @@ using ::nearby::internal::PublicCredential;
 using ::nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE;
 using ::proto2::contrib::parse_proto::ParseTestProto;
 using ::protobuf_matchers::EqualsProto;
+using ::testing::status::StatusIs;
 
 DeviceMetadata CreateTestDeviceMetadata() {
   DeviceMetadata device_metadata;
@@ -72,7 +73,7 @@ class CredentialManagerImplTest : public ::testing::Test {
                  const std::vector<::nearby::internal::PublicCredential>&
                      public_credentials,
                  PublicCredentialType public_credential_type,
-                 GenerateCredentialsCallback callback),
+                 SaveCredentialsResultCallback callback),
                 (override));
     MOCK_METHOD(
         void, GetPublicCredentials,
@@ -171,7 +172,7 @@ TEST(CredentialManagerImpl, GenerateCredentialsSuccessfully) {
   credential_manager.GenerateCredentials(
       device_metadata,
       /* manager_app_id= */ "TEST_MANAGER_APP", identityTypes, 1, 2,
-      credentials_generated_cb);
+      std::move(credentials_generated_cb));
 
   EXPECT_EQ(publicCredentials.size(), 2);
   for (auto& public_credential : publicCredentials) {
@@ -196,7 +197,7 @@ TEST(CredentialManagerImpl, GenerateCredentialsSuccessfullyButStoreFailed) {
              const std::vector<PrivateCredential>& private_credentials,
              const std::vector<PublicCredential>& public_credentials,
              PublicCredentialType public_credential_type,
-             GenerateCredentialsCallback callback) {
+             SaveCredentialsResultCallback callback) {
             // Do nothing! Testing failed SaveCredentials call.
           }));
   CredentialManagerImpl credential_manager(std::move(credential_storage_ptr));
@@ -213,7 +214,7 @@ TEST(CredentialManagerImpl, GenerateCredentialsSuccessfullyButStoreFailed) {
   credential_manager.GenerateCredentials(
       device_metadata,
       /* manager_app_id= */ "TEST_MANAGER_APP", identityTypes, 1, 2,
-      credentials_generated_cb);
+      std::move(credentials_generated_cb));
   EXPECT_TRUE(publicCredentials.empty());
 }
 
@@ -227,8 +228,8 @@ TEST(CredentialManagerImpl, UpdateRemotePublicCredentialsSuccessfully) {
   location::nearby::CountDownLatch updated_latch(1);
   UpdateRemotePublicCredentialsCallback update_credentials_cb{
       .credentials_updated_cb =
-          [&updated_latch](CredentialOperationStatus status) {
-            if (status == CredentialOperationStatus::kSucceeded) {
+          [&updated_latch](absl::Status status) {
+            if (status.ok()) {
               updated_latch.CountDown();
             }
           },
@@ -239,7 +240,7 @@ TEST(CredentialManagerImpl, UpdateRemotePublicCredentialsSuccessfully) {
   credential_manager.UpdateRemotePublicCredentials(
       /* manager_app_id= */ "TEST_MANAGER_APP",
       /* account_name= */ "test_account", publicCredentials,
-      update_credentials_cb);
+      std::move(update_credentials_cb));
 
   EXPECT_TRUE(updated_latch.Await().Ok());
 }
@@ -250,10 +251,9 @@ TEST(CredentialManagerImpl, GetPrivateCredentialsFailed) {
       [&private_credentials](std::vector<PrivateCredential> credentials) {
         private_credentials = credentials;
       };
-  CredentialOperationStatus get_credentials_status =
-      CredentialOperationStatus::kSucceeded;
+  absl::Status get_credentials_status = absl::OkStatus();
   auto get_credentials_failed_cb =
-      [&get_credentials_status](CredentialOperationStatus status) {
+      [&get_credentials_status](absl::Status status) {
         get_credentials_status = status;
       };
 
@@ -270,8 +270,8 @@ TEST(CredentialManagerImpl, GetPrivateCredentialsFailed) {
 
   CredentialManagerImpl credential_manager;
   credential_manager.GetPrivateCredentials(
-      credential_selector, get_private_credentials_result_callback);
-  EXPECT_EQ(get_credentials_status, CredentialOperationStatus::kFailed);
+      credential_selector, std::move(get_private_credentials_result_callback));
+  EXPECT_THAT(get_credentials_status, StatusIs(absl::StatusCode::kNotFound));
   EXPECT_TRUE(private_credentials.empty());
 }
 
@@ -281,10 +281,9 @@ TEST(CredentialManagerImpl, GetPublicCredentialsFailed) {
       [&public_credentials](std::vector<PublicCredential> credentials) {
         public_credentials = credentials;
       };
-  CredentialOperationStatus get_credentials_status =
-      CredentialOperationStatus::kSucceeded;
+  absl::Status get_credentials_status = absl::OkStatus();
   auto get_credentials_failed_cb =
-      [&get_credentials_status](CredentialOperationStatus status) {
+      [&get_credentials_status](absl::Status status) {
         get_credentials_status = status;
       };
 
@@ -302,8 +301,8 @@ TEST(CredentialManagerImpl, GetPublicCredentialsFailed) {
   CredentialManagerImpl credential_manager;
   credential_manager.GetPublicCredentials(
       credential_selector, PublicCredentialType::kLocalPublicCredential,
-      get_public_credentials_result_callback);
-  EXPECT_EQ(get_credentials_status, CredentialOperationStatus::kFailed);
+      std::move(get_public_credentials_result_callback));
+  EXPECT_THAT(get_credentials_status, StatusIs(absl::StatusCode::kNotFound));
   EXPECT_TRUE(public_credentials.empty());
 }
 
@@ -333,10 +332,9 @@ TEST(CredentialManagerImpl, GetCredentialsSuccessfully) {
       [&private_credentials](std::vector<PrivateCredential> credentials) {
         private_credentials = credentials;
       };
-  CredentialOperationStatus get_credentials_status =
-      CredentialOperationStatus::kSucceeded;
+  absl::Status get_credentials_status = absl::OkStatus();
   auto get_credentials_failed_cb =
-      [&get_credentials_status](CredentialOperationStatus status) {
+      [&get_credentials_status](absl::Status status) {
         get_credentials_status = status;
       };
 
@@ -349,7 +347,7 @@ TEST(CredentialManagerImpl, GetCredentialsSuccessfully) {
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
   credential_manager.GetPrivateCredentials(
       credential_selector, std::move(get_private_credentials_result_callback));
-  EXPECT_EQ(get_credentials_status, CredentialOperationStatus::kSucceeded);
+  EXPECT_EQ(get_credentials_status, absl::OkStatus());
   EXPECT_FALSE(private_credentials.empty());
 }
 

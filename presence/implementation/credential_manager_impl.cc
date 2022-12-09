@@ -85,7 +85,19 @@ void CredentialManagerImpl::GenerateCredentials(
   credential_storage_ptr_->SaveCredentials(
       manager_app_id, device_metadata.account_name(), private_credentials,
       public_credentials, PublicCredentialType::kLocalPublicCredential,
-      std::move(credentials_generated_cb));
+      SaveCredentialsResultCallback{
+          .credentials_saved_cb =
+              [callback = std::move(credentials_generated_cb),
+               public_credentials](absl::Status status) mutable {
+                if (status.ok()) {
+                  std::move(callback.credentials_generated_cb)(
+                      std::move(public_credentials));
+                } else {
+                  NEARBY_LOGS(WARNING)
+                      << "Save credentials failed with: " << status;
+                  std::move(callback.credentials_generated_cb)({});
+                }
+              }});
 }
 
 void CredentialManagerImpl::UpdateRemotePublicCredentials(
@@ -95,19 +107,16 @@ void CredentialManagerImpl::UpdateRemotePublicCredentials(
   credential_storage_ptr_->SaveCredentials(
       manager_app_id, account_name, /* private_credentials */ {},
       remote_public_creds, PublicCredentialType::kRemotePublicCredential,
-      GenerateCredentialsCallback{
-          .credentials_generated_cb =
-              [credentials_updated_cb = std::move(credentials_updated_cb)](
-                  std::vector<nearby::internal::PublicCredential> creds) {
-                if (!creds.empty()) {
-                  credentials_updated_cb.credentials_updated_cb(
-                      CredentialOperationStatus::kSucceeded);
-                } else {
-                  credentials_updated_cb.credentials_updated_cb(
-                      CredentialOperationStatus::kFailed);
-                }
-              },
-      });
+      SaveCredentialsResultCallback{
+          .credentials_saved_cb = [callback =
+                                       std::move(credentials_updated_cb)](
+                                      absl::Status status) mutable {
+            if (!status.ok()) {
+              NEARBY_LOGS(WARNING)
+                  << "Update remote credentials failed with: " << status;
+            }
+            std::move(callback.credentials_updated_cb)(status);
+          }});
 }
 
 std::pair<PrivateCredential, PublicCredential>
@@ -124,11 +133,11 @@ CredentialManagerImpl::CreatePrivateCredential(
       Encryption::GenerateRandomByteArray(kAuthenticityKeyByteSize);
   private_credential.set_authenticity_key(secret_key);
 
-  // Uses SHA-256 algorithm to generate the credential ID from the authenticity
-  // key
+  // Uses SHA-256 algorithm to generate the credential ID from the
+  // authenticity key
   auto secret_id = Crypto::Sha256(secret_key);
-  // Does not expect to fail here since Crypto::Sha256 should not return empty
-  // ByteArray.
+  // Does not expect to fail here since Crypto::Sha256 should not return
+  // empty ByteArray.
   CHECK(!secret_id.Empty()) << "Crypto::Sha256 failed!";
 
   private_credential.set_secret_id(std::string(secret_id.AsStringView()));
@@ -282,7 +291,7 @@ CredentialManagerImpl::GetPrivateCredentialsSync(
                 result.Set(credentials);
               },
           .get_credentials_failed_cb =
-              [result](CredentialOperationStatus status) mutable {
+              [result](absl::Status status) mutable {
                 result.SetException({Exception::kFailed});
               },
       });
@@ -302,7 +311,7 @@ CredentialManagerImpl::GetPublicCredentialsSync(
                 result.Set(credentials);
               },
           .get_credentials_failed_cb =
-              [result](CredentialOperationStatus status) mutable {
+              [result](absl::Status status) mutable {
                 result.SetException({Exception::kFailed});
               },
       });

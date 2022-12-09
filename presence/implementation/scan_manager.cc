@@ -149,8 +149,9 @@ void ScanManager::FetchCredentials(ScanSessionId id,
                        });
              },
          .get_credentials_failed_cb =
-             [](CredentialOperationStatus status) {
-               NEARBY_LOGS(WARNING) << "Failed to fetch credentials";
+             [](absl::Status status) {
+               NEARBY_LOGS(WARNING)
+                   << "Failed to fetch credentials: " << status;
              }});
   }
 }

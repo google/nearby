@@ -55,19 +55,18 @@ class CredentialStorageImpl : public api::CredentialStorage {
       const std::vector<PrivateCredential>& private_credentials,
       const std::vector<PublicCredential>& public_credentials,
       PublicCredentialType public_credential_type,
-      ::nearby::presence::GenerateCredentialsCallback callback) override;
+      SaveCredentialsResultCallback callback) override;
 
   // Used to fetch private creds when broadcasting.
   void GetPrivateCredentials(
-      const ::nearby::presence::CredentialSelector& credential_selector,
-      ::nearby::presence::GetPrivateCredentialsResultCallback callback)
-      override;
+      const CredentialSelector& credential_selector,
+      GetPrivateCredentialsResultCallback callback) override;
 
   // Used to fetch remote public creds when scanning.
   void GetPublicCredentials(
-      const ::nearby::presence::CredentialSelector& credential_selector,
+      const CredentialSelector& credential_selector,
       PublicCredentialType public_credential_type,
-      ::nearby::presence::GetPublicCredentialsResultCallback callback) override;
+      GetPublicCredentialsResultCallback callback) override;
 
  private:
   PrivateCredentialKey CreatePrivateCredentialKey(

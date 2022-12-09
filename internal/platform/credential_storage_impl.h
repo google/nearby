@@ -43,24 +43,21 @@ class CredentialStorageImpl : public api::CredentialStorage {
 
   void SaveCredentials(
       absl::string_view manager_app_id, absl::string_view account_name,
-      const std::vector<::nearby::internal::PrivateCredential>&
-          private_credentials,
-      const std::vector<::nearby::internal::PublicCredential>&
-          public_credentials,
-      ::nearby::presence::PublicCredentialType public_credential_type,
-      ::nearby::presence::GenerateCredentialsCallback callback) override;
+      const std::vector<PrivateCredential>& private_credentials,
+      const std::vector<PublicCredential>& public_credentials,
+      PublicCredentialType public_credential_type,
+      SaveCredentialsResultCallback callback) override;
 
   // Used to fetch private creds when broadcasting.
   void GetPrivateCredentials(
-      const ::nearby::presence::CredentialSelector& credential_selector,
-      ::nearby::presence::GetPrivateCredentialsResultCallback callback)
-      override;
+      const CredentialSelector& credential_selector,
+      GetPrivateCredentialsResultCallback callback) override;
 
   // Used to fetch remote public creds when scanning.
   void GetPublicCredentials(
-      const ::nearby::presence::CredentialSelector& credential_selector,
-      ::nearby::presence::PublicCredentialType public_credential_type,
-      ::nearby::presence::GetPublicCredentialsResultCallback callback) override;
+      const CredentialSelector& credential_selector,
+      PublicCredentialType public_credential_type,
+      GetPublicCredentialsResultCallback callback) override;
 
  private:
   std::unique_ptr<api::CredentialStorage> impl_;

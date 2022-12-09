@@ -20,22 +20,26 @@
 #include <string>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "internal/proto/credential.pb.h"
 
 namespace nearby {
 namespace presence {
 
-enum class CredentialOperationStatus {
-  kUnknown = 0,
-  kFailed = 1,
-  kSucceeded = 2,
-};
-
 struct CredentialSelector {
   std::string manager_app_id;
   std::string account_name;
   ::nearby::internal::IdentityType identity_type;
+
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink,
+                            const CredentialSelector& credential_selector) {
+    absl::Format(&sink, "CredentialSelector(%v, %v, IdentityType(%v))",
+                 credential_selector.manager_app_id,
+                 credential_selector.account_name,
+                 static_cast<int>(credential_selector.identity_type));
+  }
 };
 
 enum class PublicCredentialType {
@@ -43,31 +47,42 @@ enum class PublicCredentialType {
   kRemotePublicCredential = 2,
 };
 
+struct SaveCredentialsResultCallback {
+  absl::AnyInvocable<void(absl::Status)> credentials_saved_cb;
+};
+
 struct GenerateCredentialsCallback {
-  std::function<void(std::vector<nearby::internal::PublicCredential>)>
+  absl::AnyInvocable<void(std::vector<nearby::internal::PublicCredential>)>
       credentials_generated_cb;
 };
 
 struct UpdateRemotePublicCredentialsCallback {
-  std::function<void(CredentialOperationStatus)> credentials_updated_cb;
+  absl::AnyInvocable<void(absl::Status)> credentials_updated_cb;
 };
 
 struct GetPrivateCredentialsResultCallback {
-  std::function<void(std::vector<::nearby::internal::PrivateCredential>)>
+  absl::AnyInvocable<void(std::vector<::nearby::internal::PrivateCredential>)>
       credentials_fetched_cb;
-  std::function<void(CredentialOperationStatus)> get_credentials_failed_cb;
+  absl::AnyInvocable<void(absl::Status)> get_credentials_failed_cb;
 };
 
 struct GetPublicCredentialsResultCallback {
-  std::function<void(std::vector<::nearby::internal::PublicCredential>)>
+  absl::AnyInvocable<void(std::vector<::nearby::internal::PublicCredential>)>
       credentials_fetched_cb;
-  std::function<void(CredentialOperationStatus)> get_credentials_failed_cb;
+  absl::AnyInvocable<void(absl::Status)> get_credentials_failed_cb;
 };
 
 inline std::ostream& operator<<(std::ostream& os,
                                 const PublicCredentialType& credential_type) {
   return os << "PublicCredentialType(" << static_cast<int>(credential_type)
             << ")";
+}
+
+inline std::ostream& operator<<(std::ostream& os,
+                                const CredentialSelector& credential_selector) {
+  return os << "CredentialSelector(" << credential_selector.manager_app_id
+            << ", " << credential_selector.account_name << ", IdentityType("
+            << static_cast<int>(credential_selector.identity_type) << "))";
 }
 
 }  // namespace presence

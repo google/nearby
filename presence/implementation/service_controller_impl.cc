@@ -104,9 +104,9 @@ void ServiceControllerImpl::FetchCredentials(
                         });
               },
           .get_credentials_failed_cb =
-              [this, id](CredentialOperationStatus status) {
-                NEARBY_LOGS(WARNING) << "Failed to fetch credentials, status: "
-                                     << static_cast<int>(status);
+              [this, id](absl::Status status) {
+                NEARBY_LOGS(WARNING)
+                    << "Failed to fetch credentials, status: " << status;
                 NotifyStartCallbackStatus(id, Status{Status::Value::kError});
               }});
 }

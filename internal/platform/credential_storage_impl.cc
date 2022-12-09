@@ -34,7 +34,7 @@ void CredentialStorageImpl::SaveCredentials(
     const std::vector<PrivateCredential>& private_credentials,
     const std::vector<PublicCredential>& public_credentials,
     PublicCredentialType public_credential_type,
-    GenerateCredentialsCallback callback) {
+    SaveCredentialsResultCallback callback) {
   return impl_->SaveCredentials(manager_app_id, account_name,
                                 private_credentials, public_credentials,
                                 public_credential_type, std::move(callback));
