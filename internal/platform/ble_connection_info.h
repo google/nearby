@@ -17,16 +17,10 @@
 
 #include <string>
 
-#ifdef NEARBY_SWIFTPM
-#include "internal/platform/logging.h"
-#elif defined(NEARBY_CHROMIUM)
-#include "glog/logging.h"
-#else
-#include "absl/log/log.h"  // nogncheck
-#endif
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/connection_info.h"
+#include "internal/platform/logging.h"
 
 namespace location {
 namespace nearby {
@@ -39,8 +33,9 @@ class BleConnectionInfo : public ConnectionInfo {
   explicit BleConnectionInfo(absl::string_view mac_address)
       : mac_address_(std::string(mac_address)) {
     if (mac_address_.size() != kMacAddressLength) {
-      LOG(WARNING) << "MAC address is not of the expected length! Trying to "
-                      "connect to this MAC address will not work!";
+      NEARBY_LOGS(WARNING)
+          << "MAC address is not of the expected length! Trying to "
+             "connect to this MAC address will not work!";
       mac_address_ = std::string(kDefunctMacAddr);
     }
   }
