@@ -144,10 +144,12 @@ cc_library(
 cc_library(
     name = "connection_info",
     srcs = [
+        "ble_connection_info.cc",
         "bluetooth_connection_info.cc",
         "wifi_lan_connection_info.cc",
     ],
     hdrs = [
+        "ble_connection_info.h",
         "bluetooth_connection_info.h",
         "connection_info.h",
         "wifi_lan_connection_info.h",
@@ -161,6 +163,7 @@ cc_library(
     ],
     deps = [
         ":base",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -424,6 +427,7 @@ cc_test(
     srcs = [
         "atomic_boolean_test.cc",
         "atomic_reference_test.cc",
+        "ble_connection_info_test.cc",
         "ble_test.cc",
         "ble_v2_test.cc",
         "bluetooth_adapter_test.cc",

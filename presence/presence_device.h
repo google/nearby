@@ -22,8 +22,6 @@
 #include "absl/time/time.h"
 #include "absl/types/variant.h"
 #include "internal/device.h"
-#include "internal/platform/bluetooth_connection_info.h"
-#include "internal/platform/wifi_lan_connection_info.h"
 #include "internal/proto/device_metadata.pb.h"
 #include "presence/device_motion.h"
 
@@ -48,9 +46,8 @@ class PresenceDevice : public location::nearby::NearbyDevice {
     return NearbyDevice::Type::kPresenceDevice;
   }
   // Add more medium ConnectionInfos as we introduce them.
-  std::vector<absl::variant<location::nearby::BluetoothConnectionInfo,
-                            location::nearby::WifiLanConnectionInfo>>
-  GetConnectionInfos() const override;
+  std::vector<location::nearby::ConnectionInfoVariant> GetConnectionInfos()
+      const override;
   DeviceMotion GetDeviceMotion() const { return device_motion_; }
   DeviceMetadata GetMetadata() const { return device_metadata_; }
   absl::Time GetDiscoveryTimestamp() const { return discovery_timestamp_; }

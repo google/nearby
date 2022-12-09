@@ -20,11 +20,16 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/types/variant.h"
+#include "internal/platform/ble_connection_info.h"
 #include "internal/platform/bluetooth_connection_info.h"
 #include "internal/platform/wifi_lan_connection_info.h"
 
 namespace location {
 namespace nearby {
+
+using ConnectionInfoVariant =
+    absl::variant<BleConnectionInfo, BluetoothConnectionInfo,
+                  WifiLanConnectionInfo>;
 
 class NearbyDevice {
  public:
@@ -43,9 +48,7 @@ class NearbyDevice {
   virtual absl::string_view GetEndpointInfo() const = 0;
   // We will be adding more ConnectionInfo types to this variant as they are
   // implemented.
-  virtual std::vector<
-      absl::variant<BluetoothConnectionInfo, WifiLanConnectionInfo>>
-  GetConnectionInfos() const = 0;
+  virtual std::vector<ConnectionInfoVariant> GetConnectionInfos() const = 0;
   virtual Type GetType() const { return Type::kUnknownDevice; }
 };
 

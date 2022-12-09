@@ -24,8 +24,6 @@
 namespace location {
 namespace nearby {
 
-constexpr int kMacAddressLength = 6;
-
 class BluetoothConnectionInfo : public ConnectionInfo {
  public:
   MediumType GetMediumType() const override { return MediumType::kBluetooth; }

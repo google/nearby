@@ -12,29 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CONNECTION_INFO_H_
-#define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CONNECTION_INFO_H_
+#include "internal/platform/ble_connection_info.h"
 
-#include "internal/platform/byte_array.h"
+#include <algorithm>
+#include <string>
 
 namespace location {
 namespace nearby {
 
-constexpr int kMacAddressLength = 6;
+ByteArray BleConnectionInfo::ToBytes() const { return ByteArray(mac_address_); }
 
-class ConnectionInfo {
- public:
-  enum class MediumType {
-    kUnknown = 0,
-    kBluetooth = 1,
-    kWifiLan = 2,
-    kBle = 3,
-  };
-  virtual ~ConnectionInfo() = default;
-  virtual MediumType GetMediumType() const = 0;
-  virtual ByteArray ToBytes() const = 0;
-};
+BleConnectionInfo BleConnectionInfo::FromBytes(ByteArray bytes) {
+  std::string serial(bytes.AsStringView());
+  return BleConnectionInfo(serial.substr(0, kMacAddressLength));
+}
 }  // namespace nearby
 }  // namespace location
-
-#endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CONNECTION_INFO_H_

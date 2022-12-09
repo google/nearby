@@ -20,7 +20,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/types/variant.h"
-#include "internal/platform/bluetooth_connection_info.h"
+#include "internal/platform/ble_connection_info.h"
 #include "internal/platform/logging.h"
 #include "internal/proto/device_metadata.pb.h"
 
@@ -76,8 +76,8 @@ TEST(PresenceDeviceTest, TestGetBluetoothAddress) {
   PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
   auto info = (device.GetConnectionInfos().at(0));
   ASSERT_TRUE(
-      absl::holds_alternative<location::nearby::BluetoothConnectionInfo>(info));
-  EXPECT_EQ(absl::get<location::nearby::BluetoothConnectionInfo>(info)
+      absl::holds_alternative<location::nearby::BleConnectionInfo>(info));
+  EXPECT_EQ(absl::get<location::nearby::BleConnectionInfo>(info)
                 .GetMacAddress()
                 .AsStringView(),
             kMacAddr);

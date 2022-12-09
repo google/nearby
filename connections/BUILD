@@ -99,8 +99,8 @@ cc_test(
     deps = [
         ":core",
         ":core_types",
-        "//connections/implementation:internal",
         "//connections/implementation:internal_test",
+        "//internal:device",
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform:types",
@@ -108,7 +108,6 @@ cc_test(
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:variant",
         "@com_google_googletest//:gtest_main",
     ],
 )
