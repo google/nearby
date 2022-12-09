@@ -102,4 +102,8 @@ class LogMessageVoidify {
   NEARBY_LOG_IS_ON(severity)      \
   ? NEARBY_LOG_MESSAGE(severity)->Print(__VA_ARGS__) : (void)0
 
+#ifdef NEARBY_SWIFTPM
+#define LOG(severity) NEARBY_LOGS(severity)
+#endif
+
 #endif  // PLATFORM_BASE_LOGGING_H_

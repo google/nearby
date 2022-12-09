@@ -17,7 +17,11 @@
 
 #include <string>
 
+#ifdef NEARBY_SWIFTPM
+#include "internal/platform/logging.h"
+#else
 #include "absl/log/log.h"
+#endif
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/connection_info.h"

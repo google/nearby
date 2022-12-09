@@ -24,11 +24,15 @@
 
 #ifdef NEARBY_CHROMIUM
 #include "base/check.h"
+#elif defined(NEARBY_SWIFTPM)
+#include "internal/platform/logging.h"
 #else
 #include "absl/log/check.h"
 #endif
 
+#ifndef NEARBY_SWIFTPM
 #include "absl/log/log.h"
+#endif
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "internal/crypto/nearby_base.h"
