@@ -22,7 +22,6 @@ cc_library(
         "atomic_boolean.h",
         "atomic_reference.h",
         "bluetooth_adapter.h",
-        "cancelable.h",
         "condition_variable.h",
         "executor.h",
         "future.h",

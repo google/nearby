@@ -40,7 +40,6 @@
 #include "internal/platform/implementation/windows/ble_v2.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_medium.h"
-#include "internal/platform/implementation/windows/cancelable.h"
 #include "internal/platform/implementation/windows/condition_variable.h"
 #include "internal/platform/implementation/windows/executor.h"
 #include "internal/platform/implementation/windows/file.h"
