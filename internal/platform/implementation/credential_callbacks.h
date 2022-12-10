@@ -21,6 +21,8 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/status/status.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "internal/proto/credential.pb.h"
 
