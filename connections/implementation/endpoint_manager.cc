@@ -49,7 +49,7 @@ class EndpointManager::LockedFrameProcessor {
         frame_processor_with_mutex_{fp} {}
 
   // Constructor of a no-op object.
-  LockedFrameProcessor() {}
+  LockedFrameProcessor() = default;
 
   explicit operator bool() const { return get() != nullptr; }
 

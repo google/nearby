@@ -15,10 +15,12 @@
 #include "connections/implementation/payload_manager.h"
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
@@ -40,7 +42,7 @@ using ::location::nearby::connections::PayloadDirection;
 
 // C++14 requires to declare this.
 // TODO(apolyudov): remove when migration to c++17 is possible.
-constexpr const absl::Duration PayloadManager::kWaitCloseTimeout;
+constexpr absl::Duration PayloadManager::kWaitCloseTimeout;
 
 bool PayloadManager::SendPayloadLoop(
     ClientProxy* client, PendingPayload& pending_payload,
@@ -646,8 +648,8 @@ PayloadTransferFrame::PayloadHeader PayloadManager::CreatePayloadHeader(
   payload_header.set_id(internal_payload.GetId());
   payload_header.set_type(internal_payload.GetType());
   if (internal_payload.GetType() ==
-      location::nearby::connections::PayloadTransferFrame::PayloadHeader::
-          PayloadType::PayloadTransferFrame_PayloadHeader_PayloadType_FILE) {
+      location::nearby::connections::PayloadTransferFrame::
+          PayloadTransferFrame::PayloadHeader::FILE) {
     payload_header.set_file_name(file_name);
     payload_header.set_parent_folder(parent_folder);
   }
@@ -1182,11 +1184,11 @@ void PayloadManager::RecordInvalidPayloadAnalytics(
 PayloadType PayloadManager::FramePayloadTypeToPayloadType(
     PayloadTransferFrame::PayloadHeader::PayloadType type) {
   switch (type) {
-    case PayloadTransferFrame_PayloadHeader_PayloadType_BYTES:
+    case PayloadTransferFrame::PayloadHeader::BYTES:
       return connections::PayloadType::kBytes;
-    case PayloadTransferFrame_PayloadHeader_PayloadType_FILE:
+    case PayloadTransferFrame::PayloadHeader::FILE:
       return connections::PayloadType::kFile;
-    case PayloadTransferFrame_PayloadHeader_PayloadType_STREAM:
+    case PayloadTransferFrame::PayloadHeader::STREAM:
       return connections::PayloadType::kStream;
     default:
       return connections::PayloadType::kUnknown;

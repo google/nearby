@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/internal_payload.h"
@@ -62,7 +63,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
                        const std::string& from_endpoint_id,
                        ClientProxy* to_client,
                        proto::connections::Medium current_medium,
-                       PacketMetaData& packet_meta_data) override;
+                       analytics::PacketMetaData& packet_meta_data) override;
 
   // @EndpointManagerThread
   void OnEndpointDisconnect(ClientProxy* client, const std::string& service_id,
@@ -274,7 +275,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   void ProcessDataPacket(ClientProxy* to_client,
                          const std::string& from_endpoint_id,
                          PayloadTransferFrame& payload_transfer_frame,
-                         Medium medium, PacketMetaData& packet_meta_data);
+                         Medium medium,
+                         analytics::PacketMetaData& packet_meta_data);
   void ProcessControlPacket(ClientProxy* to_client,
                             const std::string& from_endpoint_id,
                             PayloadTransferFrame& payload_transfer_frame);

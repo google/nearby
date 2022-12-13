@@ -74,11 +74,10 @@ class EndpointManager {
     // To achieve that, OfflineFrame needs to be either mutabe lvalue reference,
     // or rvalue reference. Rvalue references are discouraged by go/cstyle,
     // and that leaves us with mutable lvalue reference.
-    virtual void OnIncomingFrame(OfflineFrame& offline_frame,
-                                 const std::string& from_endpoint_id,
-                                 ClientProxy* to_client,
-                                 proto::connections::Medium current_medium,
-                                 PacketMetaData& packet_meta_data) = 0;
+    virtual void OnIncomingFrame(
+        OfflineFrame& offline_frame, const std::string& from_endpoint_id,
+        ClientProxy* to_client, proto::connections::Medium current_medium,
+        analytics::PacketMetaData& packet_meta_data) = 0;
 
     // Implementations must call barrier.CountDown() once
     // they're done. This parallelizes the disconnection event across all frame
@@ -127,7 +126,7 @@ class EndpointManager {
       const PayloadTransferFrame::PayloadHeader& payload_header,
       const PayloadTransferFrame::PayloadChunk& payload_chunk,
       const std::vector<std::string>& endpoint_ids,
-      PacketMetaData& packet_meta_data);
+      analytics::PacketMetaData& packet_meta_data);
   std::vector<std::string> SendControlMessage(
       const PayloadTransferFrame::PayloadHeader& payload_header,
       const PayloadTransferFrame::ControlMessage& control_message,
@@ -264,7 +263,7 @@ class EndpointManager {
       const std::vector<std::string>& endpoint_ids,
       const ByteArray& payload_transfer_frame_bytes, std::int64_t payload_id,
       std::int64_t offset, const std::string& packet_type,
-      PacketMetaData& packet_meta_data);
+      analytics::PacketMetaData& packet_meta_data);
 
   // Executes all jobs sequentially, on a serial_executor_.
   void RunOnEndpointManagerThread(const std::string& name, Runnable runnable);
