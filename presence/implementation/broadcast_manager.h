@@ -15,26 +15,81 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_BROADCAST_MANAGER_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_BROADCAST_MANAGER_H_
 
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "absl/base/thread_annotations.h"
+#include "absl/random/random.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/single_thread_executor.h"
+#include "internal/proto/credential.pb.h"
+#include "presence/broadcast_request.h"
+#include "presence/data_types.h"
+#include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/credential_manager.h"
 #include "presence/implementation/mediums/mediums.h"
 
 namespace nearby {
 namespace presence {
 
-/*
- * The instance of BroadcastManager is owned by {@code ServiceControllerImpl}.
- * Helping service controller to manage broadcast requests and callbacks.
- */
+// The instance of BroadcastManager is owned by {@code ServiceControllerImpl}.
+// Helping service controller to manage broadcast requests and callbacks.
+
 class BroadcastManager {
  public:
-  BroadcastManager(Mediums& mediums, CredentialManager& credential_manager) {
-    mediums_ = &mediums, credential_manager_ = &credential_manager;
+  using SingleThreadExecutor = ::location::nearby::SingleThreadExecutor;
+  using AdvertisingSession =
+      ::location::nearby::api::ble_v2::BleMedium::AdvertisingSession;
+  using Runnable = ::location::nearby::Runnable;
+  using PrivateCredential = internal::PrivateCredential;
+  BroadcastManager(Mediums& mediums, CredentialManager& credential_manager,
+                   SingleThreadExecutor& executor) {
+    mediums_ = &mediums, credential_manager_ = &credential_manager,
+    executor_ = &executor;
   }
   ~BroadcastManager() = default;
+  absl::StatusOr<BroadcastSessionId> StartBroadcast(
+      BroadcastRequest broadcast_request, BroadcastCallback callback);
+  void StopBroadcast(BroadcastSessionId);
 
  private:
   Mediums* mediums_;
   CredentialManager* credential_manager_;
+  SingleThreadExecutor* executor_;
+  class BroadcastSessionState {
+   public:
+    explicit BroadcastSessionState(BroadcastCallback broadcast_callback,
+                                   PowerMode power_mode)
+        : broadcast_callback_(broadcast_callback), power_mode_(power_mode) {}
+
+    void SetAdvertisingSession(std::unique_ptr<AdvertisingSession> session);
+    void CallStartedCallback(Status status);
+    void StopAdvertising();
+
+    PowerMode GetPowerMode() { return power_mode_; }
+
+   private:
+    BroadcastCallback broadcast_callback_;
+    PowerMode power_mode_;
+    std::unique_ptr<AdvertisingSession> advertising_session_;
+  };
+  BroadcastSessionId GenerateBroadcastSessionId();
+  void NotifyStartCallbackStatus(BroadcastSessionId id, Status status);
+  void RunOnServiceControllerThread(absl::string_view name, Runnable runnable) {
+    executor_->Execute(std::string(name), std::move(runnable));
+  }
+  void FetchCredentials(BroadcastSessionId id,
+                        BaseBroadcastRequest broadcast_request)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+
+  void Advertise(BroadcastSessionId id, BaseBroadcastRequest broadcast_request,
+                 std::vector<PrivateCredential> credentials)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  absl::flat_hash_map<BroadcastSessionId, BroadcastSessionState> sessions_
+      ABSL_GUARDED_BY(*executor_);
+  absl::BitGen bit_gen_;
 };
 
 }  // namespace presence

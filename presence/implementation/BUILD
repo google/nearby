@@ -43,6 +43,7 @@ cc_library(
         "advertisement_decoder.cc",
         "advertisement_factory.cc",
         "base_broadcast_request.cc",
+        "broadcast_manager.cc",
         "credential_manager_impl.cc",
         "encryption.cc",
         "ldt.cc",
@@ -169,9 +170,9 @@ cc_test(
 )
 
 cc_test(
-    name = "service_controller_impl_test",
+    name = "broadcast_manager_test",
     size = "small",
-    srcs = ["service_controller_impl_test.cc"],
+    srcs = ["broadcast_manager_test.cc"],
     deps = [
         ":internal",
         "//internal/platform:base",
@@ -179,6 +180,7 @@ cc_test(
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",
+        "//presence/implementation/mediums",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
