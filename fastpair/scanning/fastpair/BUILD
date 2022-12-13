@@ -23,9 +23,11 @@ cc_library(
         "fast_pair_scanner_impl.h",
     ],
     visibility = [
+        "//:__subpackages__",
         "//fastpair:__subpackages__",
     ],
     deps = [
+        "//fastpair/common",
         "//fastpair/internal/ble",
         "//internal/platform:base",
         "//internal/platform:comm",

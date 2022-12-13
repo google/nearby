@@ -18,17 +18,13 @@
 
 #include "absl/functional/bind_front.h"
 #include "absl/strings/escaping.h"
+#include "fastpair/common/constant.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 
 namespace location {
 namespace nearby {
 namespace fastpair {
-namespace {
-  constexpr char kServiceId[] = "Fast Pair";
-  constexpr char kFastPairServiceUuid[] =
-    "0000FE2C-0000-1000-8000-00805F9B34FB";
-}  // namespace
 
 bool FastPairScannerImpl::StartScanning() {
   if (ble_.Enable() &&
