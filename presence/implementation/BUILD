@@ -270,7 +270,6 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//presence/implementation/mediums",
         "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/random",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],

@@ -28,7 +28,6 @@ cc_library(
     deps = [
         "//internal/platform:comm",
         "//internal/platform:uuid",
-        "//internal/platform/implementation:comm",
         "//presence:types",
     ],
 )
@@ -42,7 +41,6 @@ cc_test(
     shard_count = 16,
     deps = [
         ":mediums",
-        "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
@@ -51,8 +49,6 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//presence:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
 )

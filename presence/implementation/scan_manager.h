@@ -21,7 +21,6 @@
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
-#include "absl/random/random.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/data_types.h"
@@ -86,7 +85,6 @@ class ScanManager {
   absl::flat_hash_map<ScanSessionId, ScanSessionState> scan_sessions_
       ABSL_GUARDED_BY(*executor_);
   SingleThreadExecutor* executor_;
-  absl::BitGen bit_gen_;
 };
 
 }  // namespace presence

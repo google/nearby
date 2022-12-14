@@ -21,8 +21,8 @@
 #include <utility>
 #include <vector>
 
-#include "absl/random/random.h"
 #include "absl/types/variant.h"
+#include "internal/crypto/random.h"
 #include "internal/platform/future.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/credential_callbacks.h"
@@ -50,7 +50,7 @@ namespace presence {
 
 ScanSessionId ScanManager::StartScan(ScanRequest scan_request,
                                      ScanCallback cb) {
-  ScanSessionId id = absl::Uniform<BroadcastSessionId>(bit_gen_);
+  ScanSessionId id = ::crypto::RandData<ScanSessionId>();
   RunOnServiceControllerThread(
       "start-scan",
       [this, id, scan_request, scan_callback = std::move(cb)]()

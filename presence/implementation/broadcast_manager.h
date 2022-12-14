@@ -21,7 +21,6 @@
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
-#include "absl/random/random.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/proto/credential.pb.h"
@@ -89,7 +88,6 @@ class BroadcastManager {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   absl::flat_hash_map<BroadcastSessionId, BroadcastSessionState> sessions_
       ABSL_GUARDED_BY(*executor_);
-  absl::BitGen bit_gen_;
 };
 
 }  // namespace presence

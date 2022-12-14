@@ -18,6 +18,7 @@
 #include <utility>
 #include <vector>
 
+#include "internal/crypto/random.h"
 #include "presence/implementation/advertisement_factory.h"
 
 namespace nearby {
@@ -157,7 +158,7 @@ void BroadcastManager::StopBroadcast(BroadcastSessionId id) {
 }
 
 BroadcastSessionId BroadcastManager::GenerateBroadcastSessionId() {
-  return absl::Uniform<BroadcastSessionId>(bit_gen_);
+  return ::crypto::RandData<BroadcastSessionId>();
 }
 
 void BroadcastManager::BroadcastSessionState::SetAdvertisingSession(
