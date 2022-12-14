@@ -43,14 +43,14 @@ constexpr absl::Duration kWifiHotspotRetryIntervalMillis =
 
 // The connection timeout to remote Wi-Fi hotspot.
 constexpr absl::Duration kWifiHotspotClientSocketConnectTimeoutMillis =
-    absl::Milliseconds(3000);
+    absl::Milliseconds(10000);
 
 // The maximum times to check IP address.
 constexpr int kIpAddressMaxRetries = 3;
 
 // The time interval to check IP address.
 constexpr absl::Duration kIpAddressRetryIntervalMillis =
-    absl::Milliseconds(1000);
+    absl::Milliseconds(2000);
 
 }  // namespace
 
