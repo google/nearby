@@ -22,6 +22,7 @@
 #include <codecvt>
 #include <cstdint>
 #include <locale>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -59,6 +60,8 @@ constexpr absl::string_view kMdnsDeviceSelectorFormat =
     "System.Devices.Dnssd.Domain:=\"local\"";
 
 constexpr absl::Duration kConnectTimeout = absl::Seconds(2);
+constexpr absl::Duration kConnectServiceTimeout = absl::Seconds(3);
+
 }  // namespace
 
 bool WifiLanMedium::IsNetworkConnected() const {
@@ -329,6 +332,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const std::string& ip_address, int port,
     CancellationFlag* cancellation_flag) {
+  NEARBY_LOGS(INFO) << "ConnectToService is called.";
   if (ip_address.empty() || ip_address.length() != 4 || port == 0) {
     NEARBY_LOGS(ERROR) << "no valid service address and port to connect.";
     return nullptr;
@@ -359,14 +363,33 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
       return nullptr;
     }
 
-    location::nearby::CancellationFlagListener cancellationFlagListener(
-        cancellation_flag, [socket]() { socket.CancelIOAsync().get(); });
+    connection_cancellation_listener_ =
+        std::make_unique<location::nearby::CancellationFlagListener>(
+            cancellation_flag, [socket]() {
+              NEARBY_LOGS(WARNING)
+                  << "connect is closed due to it is cancelled.";
+              socket.Close();
+            });
   }
 
   // connection to the service
   try {
+    connection_timeout_ = scheduled_executor_.Schedule(
+        [socket]() {
+          NEARBY_LOGS(WARNING) << "connect is closed due to timeout.";
+          socket.Close();
+        },
+        kConnectServiceTimeout);
+
     socket.ConnectAsync(host_name, service_name).get();
-    // connected need to keep connection
+    if (connection_cancellation_listener_ != nullptr) {
+      connection_cancellation_listener_ = nullptr;
+    }
+
+    if (connection_timeout_ != nullptr) {
+      connection_timeout_->Cancel();
+      connection_timeout_ = nullptr;
+    }
 
     std::unique_ptr<WifiLanSocket> wifi_lan_socket =
         std::make_unique<WifiLanSocket>(socket);
@@ -377,6 +400,15 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   } catch (...) {
     NEARBY_LOGS(ERROR) << "failed to connect remote service " << ipv4_address
                        << ":" << port;
+  }
+
+  if (connection_cancellation_listener_ != nullptr) {
+    connection_cancellation_listener_ = nullptr;
+  }
+
+  if (connection_timeout_ != nullptr) {
+    connection_timeout_->Cancel();
+    connection_timeout_ = nullptr;
   }
 
   return nullptr;

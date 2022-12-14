@@ -30,6 +30,10 @@ namespace nearby {
 namespace windows {
 namespace {
 using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
+
+constexpr int kMaxRetries = 3;
+constexpr int kRetryIntervalMilliSeconds = 300;
+
 }  // namespace
 
 WifiHotspotServerSocket::WifiHotspotServerSocket(int port) : port_(port) {}

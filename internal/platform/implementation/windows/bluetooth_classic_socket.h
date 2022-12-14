@@ -128,11 +128,11 @@ class BluetoothSocket : public api::BluetoothSocket {
     IOutputStream winrt_stream_;
   };
 
-  std::unique_ptr<BluetoothInputStream> input_stream_;
-  std::unique_ptr<BluetoothOutputStream> output_stream_;
+  StreamSocket windows_socket_{nullptr};
+  BluetoothInputStream input_stream_{nullptr};
+  BluetoothOutputStream output_stream_{nullptr};
 
-  StreamSocket windows_socket_;
-  std::unique_ptr<BluetoothDevice> bluetooth_device_;
+  std::unique_ptr<BluetoothDevice> bluetooth_device_ = nullptr;
 };
 
 }  // namespace windows

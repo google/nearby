@@ -31,10 +31,8 @@ BluetoothSocket::BluetoothSocket(StreamSocket streamSocket)
       winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
           windows_socket_.Information().RemoteHostName())
           .get());
-  input_stream_ =
-      std::make_unique<BluetoothInputStream>(windows_socket_.InputStream());
-  output_stream_ =
-      std::make_unique<BluetoothOutputStream>(windows_socket_.OutputStream());
+  input_stream_ = BluetoothInputStream(windows_socket_.InputStream());
+  output_stream_ = BluetoothOutputStream(windows_socket_.OutputStream());
 }
 
 BluetoothSocket::BluetoothSocket() {}
@@ -47,12 +45,10 @@ BluetoothSocket::~BluetoothSocket() {}
 // returned by BluetoothClassicMedium::ConnectToService() for client side or
 // BluetoothServerSocket::Accept() for server side of connection.
 // Returns the InputStream of this connected BluetoothSocket.
-InputStream& BluetoothSocket::GetInputStream() { return *input_stream_.get(); }
+InputStream& BluetoothSocket::GetInputStream() { return input_stream_; }
 
 // Returns the OutputStream of this connected BluetoothSocket.
-OutputStream& BluetoothSocket::GetOutputStream() {
-  return *output_stream_.get();
-}
+OutputStream& BluetoothSocket::GetOutputStream() { return output_stream_; }
 
 // Closes both input and output streams, marks Socket as closed.
 // After this call object should be treated as not connected.
@@ -101,6 +97,12 @@ bool BluetoothSocket::Connect(HostName connectionHostName,
       return false;
     }
 
+    NEARBY_LOGS(INFO) << __func__
+                      << ": Bluetooth socket connection to host name:"
+                      << winrt::to_string(connectionHostName.DisplayName())
+                      << ", service name:"
+                      << winrt::to_string(connectionServiceName);
+
     windows_socket_ = winrt::Windows::Networking::Sockets::StreamSocket();
 
     // https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocket.connectasync?view=winrt-20348
@@ -115,10 +117,8 @@ bool BluetoothSocket::Connect(HostName connectionHostName,
             windows_socket_.Information().RemoteHostName())
             .get());
 
-    input_stream_ =
-        std::make_unique<BluetoothInputStream>(windows_socket_.InputStream());
-    output_stream_ =
-        std::make_unique<BluetoothOutputStream>(windows_socket_.OutputStream());
+    input_stream_ = BluetoothInputStream(windows_socket_.InputStream());
+    output_stream_ = BluetoothOutputStream(windows_socket_.OutputStream());
 
     NEARBY_LOGS(INFO) << __func__
                       << ": Bluetooth socket successfully connected to "

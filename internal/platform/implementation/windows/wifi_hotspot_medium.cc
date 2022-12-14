@@ -13,8 +13,12 @@
 // limitations under the License.
 
 #include <exception>
+#include <memory>
+#include <utility>
+#include <vector>
 
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 
 // Nearby connections headers
@@ -25,6 +29,30 @@
 namespace location {
 namespace nearby {
 namespace windows {
+namespace {
+
+// The maximum scanning times for available hot sports.
+constexpr int kWifiHotspotMaxScans = 2;
+
+// The maximum connection times to remote Wi-Fi hotspot.
+constexpr int kWifiHotspotMaxConnectionRetries = 3;
+
+// The interval between 2 connectin attempts.
+constexpr absl::Duration kWifiHotspotRetryIntervalMillis =
+    absl::Milliseconds(300);
+
+// The connection timeout to remote Wi-Fi hotspot.
+constexpr absl::Duration kWifiHotspotClientSocketConnectTimeoutMillis =
+    absl::Milliseconds(3000);
+
+// The maximum times to check IP address.
+constexpr int kIpAddressMaxRetries = 3;
+
+// The time interval to check IP address.
+constexpr absl::Duration kIpAddressRetryIntervalMillis =
+    absl::Milliseconds(1000);
+
+}  // namespace
 
 WifiHotspotMedium::WifiHotspotMedium() {}
 
@@ -53,6 +81,8 @@ bool WifiHotspotMedium::IsInterfaceValid() const {
 std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
     absl::string_view ip_address, int port,
     CancellationFlag* cancellation_flag) {
+  NEARBY_LOGS(WARNING) << __func__ << " : Connect to remote service.";
+
   if (ip_address.empty() || port == 0) {
     NEARBY_LOGS(ERROR) << "no valid service address and port to connect: "
                        << "ip_address = " << ip_address << ", port = " << port;
@@ -73,26 +103,45 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
   HostName host_name{winrt::to_hstring(ipv4_address)};
   winrt::hstring service_name{winrt::to_hstring(port)};
 
-  StreamSocket socket{};
-
-  // setup cancel listener
-  if (cancellation_flag != nullptr) {
-    if (cancellation_flag->Cancelled()) {
-      NEARBY_LOGS(INFO) << "connect has been cancelled to service "
-                        << ipv4_address << ":" << port;
-      return nullptr;
-    }
-
-    location::nearby::CancellationFlagListener cancellationFlagListener(
-        cancellation_flag, [socket]() { socket.CancelIOAsync().get(); });
-  }
-
-  // Try connecting to the service up to kMaxRetries, because it may fail
-  // first time if DHCP procedure is not finished yet.
-  for (int i = 0; i < kMaxRetries; i++) {
+  // Try connecting to the service up to kWifiHotspotMaxConnectionRetries,
+  // because it may fail first time if DHCP procedure is not finished yet.
+  for (int i = 0; i < kWifiHotspotMaxConnectionRetries; i++) {
     try {
-      Sleep(kRetryIntervalMilliSeconds);
+      StreamSocket socket{};
+
+      // setup cancel listener
+      if (cancellation_flag != nullptr) {
+        if (cancellation_flag->Cancelled()) {
+          NEARBY_LOGS(INFO) << "connect has been cancelled to service "
+                            << ipv4_address << ":" << port;
+          return nullptr;
+        }
+
+        connection_cancellation_listener_ =
+            std::make_unique<location::nearby::CancellationFlagListener>(
+                cancellation_flag, [socket]() {
+                  NEARBY_LOGS(WARNING)
+                      << "connect is closed due to it is cancelled.";
+                  socket.Close();
+                });
+      }
+
+      connection_timeout_ = scheduled_executor_.Schedule(
+          [socket]() {
+            NEARBY_LOGS(WARNING) << "connect is closed due to timeout.";
+            socket.Close();
+          },
+          kWifiHotspotClientSocketConnectTimeoutMillis);
+
       socket.ConnectAsync(host_name, service_name).get();
+      if (connection_cancellation_listener_ != nullptr) {
+        connection_cancellation_listener_ = nullptr;
+      }
+
+      if (connection_timeout_ != nullptr) {
+        connection_timeout_->Cancel();
+        connection_timeout_ = nullptr;
+      }
 
       auto wifi_hotspot_socket = std::make_unique<WifiHotspotSocket>(socket);
 
@@ -103,6 +152,17 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
       NEARBY_LOGS(ERROR) << "failed to connect remote service " << ipv4_address
                          << ":" << port << " for the " << i + 1 << " time";
     }
+
+    if (connection_cancellation_listener_ != nullptr) {
+      connection_cancellation_listener_ = nullptr;
+    }
+
+    if (connection_timeout_ != nullptr) {
+      connection_timeout_->Cancel();
+      connection_timeout_ = nullptr;
+    }
+
+    Sleep(kWifiHotspotRetryIntervalMillis / absl::Milliseconds(1));
   }
   return nullptr;
 }
@@ -358,7 +418,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
     wifi_adapter_.ScanAsync().get();
 
     wifi_connected_network_ = nullptr;
-    for (int i = 0; i < kMaxScans; i++) {
+    for (int i = 0; i < kWifiHotspotMaxScans; i++) {
       for (const auto& network :
            wifi_adapter_.NetworkReport().AvailableNetworks()) {
         if (!wifi_connected_network_ && !ssid.empty() &&
@@ -398,6 +458,26 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
       RestoreWifiConnection();
       return false;
     }
+
+    // Make sure IP address is ready.
+    std::string ip_address;
+    for (int i = 0; i < kIpAddressMaxRetries; i++) {
+      NEARBY_LOGS(INFO) << "Check IP address at attemp " << i;
+      std::vector<std::string> ip_addresses = GetIpv4Addresses();
+      if (ip_addresses.empty()) {
+        Sleep(kIpAddressRetryIntervalMillis / absl::Milliseconds(1));
+        continue;
+      }
+      ip_address = ip_addresses[0];
+      break;
+    }
+
+    if (ip_address.empty()) {
+      NEARBY_LOGS(INFO) << "Failed to get IP address from hotspot.";
+      return false;
+    }
+
+    NEARBY_LOGS(INFO) << "Got IP address " << ip_address << " from hotspot.";
 
     std::string last_ssid = hotspot_credentials_->GetSSID();
     medium_status_ |= kMediumStatusConnected;

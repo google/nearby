@@ -36,6 +36,7 @@
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
@@ -43,6 +44,7 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/scheduled_executor.h"
 
 // WinRT headers
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
@@ -297,7 +299,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   std::optional<NsdServiceInfo> GetDiscoveredService(absl::string_view id)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void UpdateDiscoveredService(absl::string_view id,
-                            const NsdServiceInfo& nsd_service_info)
+                               const NsdServiceInfo& nsd_service_info)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void RemoveDiscoveredService(absl::string_view id)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -365,6 +367,16 @@ class WifiLanMedium : public api::WifiLanMedium {
   // Keeps the map from device id to service during scanning.
   absl::flat_hash_map<std::string, NsdServiceInfo> discovered_services_map_
       ABSL_GUARDED_BY(mutex_);
+
+  // Scheduler for timeout.
+  ScheduledExecutor scheduled_executor_;
+
+  // Scheduled task for connection timeout.
+  std::shared_ptr<api::Cancelable> connection_timeout_ = nullptr;
+
+  // Listener to connect cancellation.
+  std::unique_ptr<location::nearby::CancellationFlagListener>
+      connection_cancellation_listener_ = nullptr;
 };
 
 }  // namespace windows
