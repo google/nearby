@@ -209,6 +209,7 @@ constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : ssid_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , password_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , gateway_(nullptr)
   , port_(0)
   , frequency_(0){}
 struct BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentialsDefaultTypeInternal {
@@ -606,13 +607,14 @@ bool ConnectionRequestFrame_Medium_IsValid(int value) {
     case 8:
     case 9:
     case 10:
+    case 11:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ConnectionRequestFrame_Medium_strings[11] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ConnectionRequestFrame_Medium_strings[12] = {};
 
 static const char ConnectionRequestFrame_Medium_names[] =
   "BLE"
@@ -621,6 +623,7 @@ static const char ConnectionRequestFrame_Medium_names[] =
   "MDNS"
   "NFC"
   "UNKNOWN_MEDIUM"
+  "USB"
   "WEB_RTC"
   "WIFI_AWARE"
   "WIFI_DIRECT"
@@ -634,25 +637,27 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry ConnectionRequestFrame
   { {ConnectionRequestFrame_Medium_names + 21, 4}, 1 },
   { {ConnectionRequestFrame_Medium_names + 25, 3}, 7 },
   { {ConnectionRequestFrame_Medium_names + 28, 14}, 0 },
-  { {ConnectionRequestFrame_Medium_names + 42, 7}, 9 },
-  { {ConnectionRequestFrame_Medium_names + 49, 10}, 6 },
-  { {ConnectionRequestFrame_Medium_names + 59, 11}, 8 },
-  { {ConnectionRequestFrame_Medium_names + 70, 12}, 3 },
-  { {ConnectionRequestFrame_Medium_names + 82, 8}, 5 },
+  { {ConnectionRequestFrame_Medium_names + 42, 3}, 11 },
+  { {ConnectionRequestFrame_Medium_names + 45, 7}, 9 },
+  { {ConnectionRequestFrame_Medium_names + 52, 10}, 6 },
+  { {ConnectionRequestFrame_Medium_names + 62, 11}, 8 },
+  { {ConnectionRequestFrame_Medium_names + 73, 12}, 3 },
+  { {ConnectionRequestFrame_Medium_names + 85, 8}, 5 },
 };
 
 static const int ConnectionRequestFrame_Medium_entries_by_number[] = {
   5, // 0 -> UNKNOWN_MEDIUM
   3, // 1 -> MDNS
   2, // 2 -> BLUETOOTH
-  9, // 3 -> WIFI_HOTSPOT
+  10, // 3 -> WIFI_HOTSPOT
   0, // 4 -> BLE
-  10, // 5 -> WIFI_LAN
-  7, // 6 -> WIFI_AWARE
+  11, // 5 -> WIFI_LAN
+  8, // 6 -> WIFI_AWARE
   4, // 7 -> NFC
-  8, // 8 -> WIFI_DIRECT
-  6, // 9 -> WEB_RTC
+  9, // 8 -> WIFI_DIRECT
+  7, // 9 -> WEB_RTC
   1, // 10 -> BLE_L2CAP
+  6, // 11 -> USB
 };
 
 const std::string& ConnectionRequestFrame_Medium_Name(
@@ -661,12 +666,12 @@ const std::string& ConnectionRequestFrame_Medium_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           ConnectionRequestFrame_Medium_entries,
           ConnectionRequestFrame_Medium_entries_by_number,
-          11, ConnectionRequestFrame_Medium_strings);
+          12, ConnectionRequestFrame_Medium_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       ConnectionRequestFrame_Medium_entries,
       ConnectionRequestFrame_Medium_entries_by_number,
-      11, value);
+      12, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      ConnectionRequestFrame_Medium_strings[idx].get();
 }
@@ -674,7 +679,7 @@ bool ConnectionRequestFrame_Medium_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ConnectionRequestFrame_Medium* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      ConnectionRequestFrame_Medium_entries, 11, name, &int_value);
+      ConnectionRequestFrame_Medium_entries, 12, name, &int_value);
   if (success) {
     *value = static_cast<ConnectionRequestFrame_Medium>(int_value);
   }
@@ -692,6 +697,7 @@ constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame::NFC;
 constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame::WIFI_DIRECT;
 constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame::WEB_RTC;
 constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame::BLE_L2CAP;
+constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame::USB;
 constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame::Medium_MIN;
 constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame::Medium_MAX;
 constexpr int ConnectionRequestFrame::Medium_ARRAYSIZE;
@@ -1018,13 +1024,14 @@ bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_IsValid(int value) 
     case 7:
     case 8:
     case 9:
+    case 11:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_strings[10] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_strings[11] = {};
 
 static const char BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[] =
   "BLE"
@@ -1032,6 +1039,7 @@ static const char BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[
   "MDNS"
   "NFC"
   "UNKNOWN_MEDIUM"
+  "USB"
   "WEB_RTC"
   "WIFI_AWARE"
   "WIFI_DIRECT"
@@ -1044,24 +1052,26 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry BandwidthUpgradeNegoti
   { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 12, 4}, 1 },
   { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 16, 3}, 7 },
   { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 19, 14}, 0 },
-  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 33, 7}, 9 },
-  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 40, 10}, 6 },
-  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 50, 11}, 8 },
-  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 61, 12}, 3 },
-  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 73, 8}, 5 },
+  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 33, 3}, 11 },
+  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 36, 7}, 9 },
+  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 43, 10}, 6 },
+  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 53, 11}, 8 },
+  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 64, 12}, 3 },
+  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 76, 8}, 5 },
 };
 
 static const int BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries_by_number[] = {
   4, // 0 -> UNKNOWN_MEDIUM
   2, // 1 -> MDNS
   1, // 2 -> BLUETOOTH
-  8, // 3 -> WIFI_HOTSPOT
+  9, // 3 -> WIFI_HOTSPOT
   0, // 4 -> BLE
-  9, // 5 -> WIFI_LAN
-  6, // 6 -> WIFI_AWARE
+  10, // 5 -> WIFI_LAN
+  7, // 6 -> WIFI_AWARE
   3, // 7 -> NFC
-  7, // 8 -> WIFI_DIRECT
-  5, // 9 -> WEB_RTC
+  8, // 8 -> WIFI_DIRECT
+  6, // 9 -> WEB_RTC
+  5, // 11 -> USB
 };
 
 const std::string& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_Name(
@@ -1070,12 +1080,12 @@ const std::string& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries,
           BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries_by_number,
-          10, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_strings);
+          11, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries,
       BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries_by_number,
-      10, value);
+      11, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_strings[idx].get();
 }
@@ -1083,7 +1093,7 @@ bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries, 10, name, &int_value);
+      BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries, 11, name, &int_value);
   if (success) {
     *value = static_cast<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium>(int_value);
   }
@@ -1100,6 +1110,7 @@ constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgra
 constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo::NFC;
 constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo::WIFI_DIRECT;
 constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo::WEB_RTC;
+constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo::USB;
 constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Medium_MIN;
 constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Medium_MAX;
 constexpr int BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Medium_ARRAYSIZE;
@@ -5414,13 +5425,17 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_I
     (*has_bits)[0] |= 2u;
   }
   static void set_has_port(HasBits* has_bits) {
-    (*has_bits)[0] |= 4u;
+    (*has_bits)[0] |= 8u;
   }
   static void set_has_frequency(HasBits* has_bits) {
-    (*has_bits)[0] |= 8u;
+    (*has_bits)[0] |= 16u;
+  }
+  static void set_has_gateway(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
   }
 };
 
+const ::PROTOBUF_NAMESPACE_ID::internal::LazyString BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_i_give_permission_to_break_this_code_default_gateway_{{{"0.0.0.0", 7}}, {nullptr}};
 BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
@@ -5450,6 +5465,11 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::Bandwidt
     password_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_password(), 
       GetArenaForAllocation());
   }
+  gateway_.UnsafeSetDefault(nullptr);
+  if (from._internal_has_gateway()) {
+    gateway_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::NonEmptyDefault{}, from._internal_gateway(), 
+      GetArenaForAllocation());
+  }
   ::memcpy(&port_, &from.port_,
     static_cast<size_t>(reinterpret_cast<char*>(&frequency_) -
     reinterpret_cast<char*>(&port_)) + sizeof(frequency_));
@@ -5465,6 +5485,7 @@ password_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlr
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
   password_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+gateway_.UnsafeSetDefault(nullptr);
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&port_) - reinterpret_cast<char*>(this)),
     0, static_cast<size_t>(reinterpret_cast<char*>(&frequency_) -
@@ -5482,6 +5503,7 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentia
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   ssid_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   password_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  gateway_.DestroyNoArena(nullptr);
 }
 
 void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::ArenaDtor(void* object) {
@@ -5501,15 +5523,18 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::Cle
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x00000007u) {
     if (cached_has_bits & 0x00000001u) {
       ssid_.ClearNonDefaultToEmpty();
     }
     if (cached_has_bits & 0x00000002u) {
       password_.ClearNonDefaultToEmpty();
     }
+    if (cached_has_bits & 0x00000004u) {
+      gateway_.ClearToDefault(::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_i_give_permission_to_break_this_code_default_gateway_, GetArenaForAllocation());
+       }
   }
-  if (cached_has_bits & 0x0000000cu) {
+  if (cached_has_bits & 0x00000018u) {
     ::memset(&port_, 0, static_cast<size_t>(
         reinterpret_cast<char*>(&frequency_) -
         reinterpret_cast<char*>(&port_)) + sizeof(frequency_));
@@ -5561,6 +5586,15 @@ const char* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentia
         } else
           goto handle_unusual;
         continue;
+      // optional string gateway = 5 [default = "0.0.0.0"];
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
+          auto str = _internal_mutable_gateway();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -5605,15 +5639,21 @@ uint8_t* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials:
   }
 
   // optional int32 port = 3;
-  if (cached_has_bits & 0x00000004u) {
+  if (cached_has_bits & 0x00000008u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(3, this->_internal_port(), target);
   }
 
   // optional int32 frequency = 4;
-  if (cached_has_bits & 0x00000008u) {
+  if (cached_has_bits & 0x00000010u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(4, this->_internal_frequency(), target);
+  }
+
+  // optional string gateway = 5 [default = "0.0.0.0"];
+  if (cached_has_bits & 0x00000004u) {
+    target = stream->WriteStringMaybeAliased(
+        5, this->_internal_gateway(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -5633,7 +5673,7 @@ size_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::B
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000000fu) {
+  if (cached_has_bits & 0x0000001fu) {
     // optional string ssid = 1;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -5648,13 +5688,20 @@ size_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::B
           this->_internal_password());
     }
 
-    // optional int32 port = 3;
+    // optional string gateway = 5 [default = "0.0.0.0"];
     if (cached_has_bits & 0x00000004u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_gateway());
+    }
+
+    // optional int32 port = 3;
+    if (cached_has_bits & 0x00000008u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_port());
     }
 
     // optional int32 frequency = 4;
-    if (cached_has_bits & 0x00000008u) {
+    if (cached_has_bits & 0x00000010u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_frequency());
     }
 
@@ -5680,7 +5727,7 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::Mer
   (void) cached_has_bits;
 
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x0000000fu) {
+  if (cached_has_bits & 0x0000001fu) {
     if (cached_has_bits & 0x00000001u) {
       _internal_set_ssid(from._internal_ssid());
     }
@@ -5688,9 +5735,12 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::Mer
       _internal_set_password(from._internal_password());
     }
     if (cached_has_bits & 0x00000004u) {
-      port_ = from.port_;
+      _internal_set_gateway(from._internal_gateway());
     }
     if (cached_has_bits & 0x00000008u) {
+      port_ = from.port_;
+    }
+    if (cached_has_bits & 0x00000010u) {
       frequency_ = from.frequency_;
     }
     _has_bits_[0] |= cached_has_bits;
@@ -5724,6 +5774,11 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::Int
       &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       &password_, lhs_arena,
       &other->password_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      nullptr,
+      &gateway_, lhs_arena,
+      &other->gateway_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
       PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, frequency_)
