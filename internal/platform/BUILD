@@ -394,7 +394,12 @@ cc_library(
         "wifi_lan.h",
         "wifi_utils.h",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"],
+    copts = ["-DCORE_ADAPTER_DLL"] + select({
+        "@platforms//cpu:arm": [
+            "-DNO_WEBRTC",
+        ],
+        "//conditions:default": [],
+    }),
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",

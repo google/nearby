@@ -26,12 +26,19 @@ cc_library(
         "session_description_wrapper.h",
         "signaling_frames.h",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"],
+    copts = ["-DCORE_ADAPTER_DLL"] + select({
+        "@platforms//cpu:arm": [
+            "-DNO_WEBRTC",
+        ],
+        "//conditions:default": [],
+    }),
     visibility = [
         "//connections/implementation:__subpackages__",
     ],
     deps = [
         ":data_types",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/time",
         "//connections:core_types",
         "//connections/implementation/mediums:utils",
         "//internal/platform:base",
@@ -39,11 +46,13 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform:types",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
-        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
-        "//third_party/webrtc/files/stable/webrtc/pc:peerconnection",
-        "@com_google_absl//absl/memory",
-        "@com_google_absl//absl/time",
-    ],
+    ] + select({
+        "@platforms//cpu:arm": [],
+        "//conditions:default": [
+            "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+            "//third_party/webrtc/files/stable/webrtc/pc:peerconnection",
+        ],
+    }),
 )
 
 cc_library(
@@ -54,7 +63,12 @@ cc_library(
     hdrs = [
         "webrtc_socket_impl.h",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"],
+    copts = ["-DCORE_ADAPTER_DLL"] + select({
+        "@platforms//cpu:arm": [
+            "-DNO_WEBRTC",
+        ],
+        "//conditions:default": [],
+    }),
     visibility = [
         "//connections/implementation:__subpackages__",
     ],
@@ -62,8 +76,12 @@ cc_library(
         "//connections:core_types",
         "//internal/platform:base",
         "//internal/platform:types",
-        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
-    ],
+    ] + select({
+        "@platforms//cpu:arm": [],
+        "//conditions:default": [
+            "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        ],
+    }),
 )
 
 cc_test(

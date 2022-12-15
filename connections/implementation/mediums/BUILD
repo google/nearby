@@ -21,29 +21,55 @@ cc_library(
         "bluetooth_classic.cc",
         "bluetooth_radio.cc",
         "mediums.cc",
-        "webrtc_stub.cc",
         "wifi_direct.cc",
         "wifi_hotspot.cc",
         "wifi_lan.cc",
-    ],
+    ] + select({
+        "@platforms//cpu:arm": [
+            "webrtc_stub.cc",
+        ],
+        "//conditions:default": [
+            "webrtc_stub.cc",
+        ],
+    }),
     hdrs = [
         "ble.h",
         "ble_v2.h",
         "bluetooth_classic.h",
         "bluetooth_radio.h",
         "mediums.h",
-        "webrtc_stub.h",
         "wifi.h",
         "wifi_direct.h",
         "wifi_hotspot.h",
         "wifi_lan.h",
-    ],
+    ] + select({
+        "@platforms//cpu:arm": [
+            "webrtc_stub.h",
+        ],
+        "//conditions:default": [
+            "webrtc_stub.h",
+        ],
+    }),
+    copts = select({
+        "@platforms//cpu:arm": [
+            "-DNO_WEBRTC",
+        ],
+        "//conditions:default": [],
+    }),
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
     ],
     deps = [
         ":utils",
+        "@com_google_absl//absl/container:btree",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/functional:bind_front",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:optional",
         "//connections:core_types",
         "//connections/implementation/mediums/ble_v2",
         "//internal/platform:base",
@@ -53,29 +79,45 @@ cc_library(
         "//internal/platform:types",
         "//internal/platform:uuid",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
-        "@com_google_absl//absl/container:btree",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/container:flat_hash_set",
-        "@com_google_absl//absl/functional:bind_front",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:optional",
-    ],
+    ] + select({
+        "@platforms//cpu:arm": [
+            "//connections/implementation/proto:offline_wire_formats_cc_proto",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
     name = "utils",
     srcs = [
         "utils.cc",
-        "webrtc_peer_id_stub.cc",
-    ],
+    ] + select({
+        "@platforms//cpu:arm": [
+            "webrtc_peer_id_stub.cc",
+        ],
+        "//conditions:default": [
+            "webrtc_peer_id_stub.cc",
+        ],
+    }),
     hdrs = [
         "lost_entity_tracker.h",
         "utils.h",
-        "webrtc_peer_id_stub.h",
-        "webrtc_socket_stub.h",
-    ],
+    ] + select({
+        "@platforms//cpu:arm": [
+            "webrtc_peer_id_stub.h",
+            "webrtc_socket_stub.h",
+        ],
+        "//conditions:default": [
+            "webrtc_peer_id_stub.h",
+            "webrtc_socket_stub.h",
+        ],
+    }),
+    copts = select({
+        "@platforms//cpu:arm": [
+            "-DNO_WEBRTC",
+        ],
+        "//conditions:default": [],
+    }),
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__pkg__",
