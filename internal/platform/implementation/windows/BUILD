@@ -148,6 +148,7 @@ cc_library(
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     visibility = [
         "//connections/clients/windows:__subpackages__",
+        "//fastpair/internal/impl/windows:__subpackages__",
         "//location/nearby:__subpackages__",
     ],
     deps = [

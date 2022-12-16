@@ -1,0 +1,37 @@
+// Copyright 2022 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "fastpair/internal/api/fast_pair_platform.h"
+
+#include <memory>
+
+#include "fastpair/internal/impl/g3/device_info.h"
+#include "fastpair/internal/impl/g3/timer.h"
+
+namespace location {
+namespace nearby {
+namespace api {
+
+std::unique_ptr<api::DeviceInfo>
+ImplementationFastPairPlatform::CreateDeviceInfo() {
+  return std::make_unique<g3::DeviceInfo>();
+}
+
+std::unique_ptr<api::Timer> ImplementationFastPairPlatform::CreateTimer() {
+  return std::make_unique<g3::Timer>();
+}
+
+}  // namespace api
+}  // namespace nearby
+}  // namespace location
