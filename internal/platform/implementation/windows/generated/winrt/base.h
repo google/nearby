@@ -39,6 +39,7 @@
 // If the C++ standard is cxx17, coroutines are not available in libc++.
 // To compile WinRT without coroutines, define some placeholder types.
 // These placeholders should not be used. If they are used, they should fail.
+namespace std::experimental {
 template <typename T = void>
 struct coroutine_handle {
   coroutine_handle() { throw std::logic_error("Not implemented."); }

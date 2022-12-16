@@ -2,7 +2,7 @@
 --- third_party/nearby/internal/platform/implementation/windows/generated/winrt/base-no-coroutines.h	2022-12-07 15:28:53.000000000 -0500
 ***************
 *** 35,40 ****
---- 35,66 ----
+--- 35,67 ----
   #include <format>
   #endif
   
@@ -10,6 +10,7 @@
 + // If the C++ standard is cxx17, coroutines are not available in libc++.
 + // To compile WinRT without coroutines, define some placeholder types.
 + // These placeholders should not be used. If they are used, they should fail.
++ namespace std::experimental {
 + template <typename T = void>
 + struct coroutine_handle {
 +   coroutine_handle() { throw std::logic_error("Not implemented."); }
