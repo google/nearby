@@ -28,8 +28,28 @@ namespace location {
 namespace nearby {
 namespace g3 {
 
-using ::nearby::internal::PrivateCredential;
-using ::nearby::internal::PublicCredential;
+namespace {
+using ::nearby::internal::IdentityType;
+
+// Removes credentials (public or private) that don't match `identity_type` from
+// the collection.
+template <class Credential>
+void FilterIdentityType(std::vector<Credential>& credentials,
+                        IdentityType identity_type) {
+  if (identity_type == IdentityType::IDENTITY_TYPE_UNSPECIFIED) {
+    return;
+  }
+  auto it = credentials.begin();
+  while (it != credentials.end()) {
+    if (it->identity_type() != identity_type) {
+      it = credentials.erase(it);
+    } else {
+      ++it;
+    }
+  }
+}
+
+}  // namespace
 
 void CredentialStorageImpl::SaveCredentials(
     absl::string_view manager_app_id, absl::string_view account_name,
@@ -38,16 +58,16 @@ void CredentialStorageImpl::SaveCredentials(
     PublicCredentialType public_credential_type,
     SaveCredentialsResultCallback callback) {
   if (private_credentials.empty() && public_credentials.empty()) {
-    NEARBY_LOGS(INFO) << "G3 Save Credentials but seeing private and public "
-                         "both empty, skipping";
+    std::move(callback.credentials_saved_cb)(
+        absl::InvalidArgumentError("No credentials to save"));
     return;
   }
   if (private_credentials.empty()) {
-    NEARBY_LOGS(INFO) << "There are no Private Credentials for account: "
+    NEARBY_LOGS(INFO) << "There are no Private Credentials for account: ["
                       << account_name << "], manager app ID:[" << manager_app_id
                       << "]";
   } else {
-    NEARBY_LOGS(INFO) << "G3 Save Private Credentials for account: "
+    NEARBY_LOGS(INFO) << "G3 Save Private Credentials for account: ["
                       << account_name << "], manager app ID:[" << manager_app_id
                       << "]";
     absl::MutexLock lock(&private_mutex_);
@@ -63,12 +83,11 @@ void CredentialStorageImpl::SaveCredentials(
   }
 
   if (public_credentials.empty()) {
-    NEARBY_LOGS(INFO) << "There are no Public Credentials for account: "
+    NEARBY_LOGS(INFO) << "There are no Public Credentials for account: ["
                       << account_name << "], manager app ID:[" << manager_app_id
                       << "]";
-    return;
   } else {
-    NEARBY_LOGS(INFO) << "G3 Save Public Credentials for account: "
+    NEARBY_LOGS(INFO) << "G3 Save Public Credentials for account: ["
                       << account_name << "], manager app ID:[" << manager_app_id
                       << "]";
     absl::MutexLock lock(&public_mutex_);
@@ -86,8 +105,8 @@ void CredentialStorageImpl::SaveCredentials(
 }
 
 void CredentialStorageImpl::GetPrivateCredentials(
-    const ::nearby::presence::CredentialSelector& credential_selector,
-    ::nearby::presence::GetPrivateCredentialsResultCallback callback) {
+    const CredentialSelector& credential_selector,
+    GetPrivateCredentialsResultCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Get Private Credentials for " << credential_selector;
   absl::MutexLock lock(&private_mutex_);
   PrivateCredentialKey key = CreatePrivateCredentialKey(
@@ -97,17 +116,23 @@ void CredentialStorageImpl::GetPrivateCredentials(
                          << std::get<0>(key) << ", " << std::get<1>(key);
     std::move(callback.get_credentials_failed_cb)(absl::NotFoundError(
         absl::StrFormat("No private credentials for %v", credential_selector)));
-  } else {
-    std::vector<PrivateCredential> private_credentials =
-        private_credentials_map_[key];
-    std::move(callback.credentials_fetched_cb)(private_credentials);
+    return;
   }
+  std::vector<PrivateCredential> private_credentials =
+      private_credentials_map_[key];
+  FilterIdentityType(private_credentials, credential_selector.identity_type);
+  if (private_credentials.empty()) {
+    std::move(callback.get_credentials_failed_cb)(absl::NotFoundError(
+        absl::StrFormat("No private credentials for %v", credential_selector)));
+    return;
+  }
+  std::move(callback.credentials_fetched_cb)(private_credentials);
 }
 
 void CredentialStorageImpl::GetPublicCredentials(
-    const ::nearby::presence::CredentialSelector& credential_selector,
-    ::nearby::presence::PublicCredentialType public_credential_type,
-    ::nearby::presence::GetPublicCredentialsResultCallback callback) {
+    const CredentialSelector& credential_selector,
+    PublicCredentialType public_credential_type,
+    GetPublicCredentialsResultCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Get Public Credentials for " << credential_selector;
   absl::MutexLock lock(&public_mutex_);
   PublicCredentialKey key = CreatePublicCredentialKey(
@@ -119,11 +144,17 @@ void CredentialStorageImpl::GetPublicCredentials(
                          << std::get<2>(key);
     std::move(callback.get_credentials_failed_cb)(absl::NotFoundError(
         absl::StrFormat("No public credentials for %v", credential_selector)));
-  } else {
-    std::vector<PublicCredential> public_credentials =
-        public_credentials_map_[key];
-    std::move(callback.credentials_fetched_cb)(public_credentials);
+    return;
   }
+  std::vector<PublicCredential> public_credentials =
+      public_credentials_map_[key];
+  FilterIdentityType(public_credentials, credential_selector.identity_type);
+  if (public_credentials.empty()) {
+    std::move(callback.get_credentials_failed_cb)(absl::NotFoundError(
+        absl::StrFormat("No public credentials for %v", credential_selector)));
+    return;
+  }
+  std::move(callback.credentials_fetched_cb)(public_credentials);
 }
 }  // namespace g3
 }  // namespace nearby
