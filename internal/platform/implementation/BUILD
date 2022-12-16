@@ -98,12 +98,6 @@ cc_library(
     hdrs = [
         "platform.h",
     ],
-    copts = select({
-        "@platforms//cpu:arm": [
-            "-DNO_WEBRTC",
-        ],
-        "//conditions:default": [],
-    }),
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",

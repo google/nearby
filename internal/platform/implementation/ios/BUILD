@@ -42,12 +42,6 @@ objc_library(
         "utils.h",
         "wifi_lan.h",
     ],
-    copts = select({
-        "@platforms//cpu:arm": [
-            "-DNO_WEBRTC",
-        ],
-        "//conditions:default": [],
-    }),
     features = ["-layering_check"],
     deps = [
         ":Platform_cc",
