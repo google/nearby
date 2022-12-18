@@ -55,9 +55,13 @@ objc_library(
         "//third_party/apple_frameworks:CoreFoundation",
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:QuartzCore",
-        "//third_party/apple_frameworks:UIKit",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
-    ],
+    ] + select({
+        "//tools/cc_target_os:platform_ios": [
+            "//third_party/apple_frameworks:UIKit",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 objc_library(
