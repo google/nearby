@@ -24,6 +24,7 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic.h"
+#include "internal/platform/implementation/windows/gatt_server.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
@@ -94,6 +95,8 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   bool scanning_error_ = false;
   bool scanning_stopped_ = false;
 
+  GattServer* gatt_server_{nullptr};
+
   // WinRT objects
   winrt::Windows::Devices::Bluetooth::Advertisement::
       BluetoothLEAdvertisementPublisher publisher_;
@@ -128,6 +131,31 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       winrt::Windows::Devices::Bluetooth::Advertisement::
           BluetoothLEAdvertisementReceivedEventArgs args);
   ScanCallback scan_response_received_callback_;
+
+  winrt::Windows::Devices::Enumeration::DeviceWatcher deviceWatcher{nullptr};
+  winrt::event_token deviceWatcherAddedToken;
+  winrt::event_token deviceWatcherUpdatedToken;
+  winrt::event_token deviceWatcherRemovedToken;
+  winrt::event_token deviceWatcherEnumerationCompletedToken;
+  winrt::event_token deviceWatcherStoppedToken;
+
+  winrt::fire_and_forget DeviceWatcher_Added(
+      winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
+      winrt::Windows::Devices::Enumeration::DeviceInformation deviceInfo);
+  winrt::fire_and_forget DeviceWatcher_Updated(
+      winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
+      winrt::Windows::Devices::Enumeration::DeviceInformationUpdate
+          deviceInfoUpdate);
+  winrt::fire_and_forget DeviceWatcher_Removed(
+      winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
+      winrt::Windows::Devices::Enumeration::DeviceInformationUpdate
+          deviceInfoUpdate);
+  winrt::fire_and_forget DeviceWatcher_EnumerationCompleted(
+      winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
+      winrt::Windows::Foundation::IInspectable const&);
+  winrt::fire_and_forget DeviceWatcher_Stopped(
+      winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
+      winrt::Windows::Foundation::IInspectable const&);
 };
 
 }  // namespace windows

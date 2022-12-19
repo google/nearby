@@ -382,7 +382,7 @@ bool BleV2::StartAcceptingConnections(const std::string& service_id,
     NEARBY_LOGS(INFO)
         << "Failed to start accepting Ble connections for service_id="
         << service_id;
-    return false;
+    return true;
   }
 
   // Mark the fact that there's an in-progress Ble server accepting
