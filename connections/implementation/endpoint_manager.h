@@ -238,8 +238,11 @@ class EndpointManager {
   static void WaitForLatch(const std::string& method_name,
                            CountDownLatch* latch, std::int32_t timeout_millis);
 
+  // We set this to 11s to provide sufficient time for an in-progress WebRTC
+  // bandwidth upgrade to resolve. This is chosen to be slightly longer than the
+  // 10s timeout in WebRtc::AttemptToConnect().
   static constexpr absl::Duration kProcessEndpointDisconnectionTimeout =
-      absl::Milliseconds(2000);
+      absl::Milliseconds(11000);
   static constexpr absl::Time kInvalidTimestamp = absl::InfinitePast();
 
   // It should be noted that this method may be called multiple times (because
