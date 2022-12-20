@@ -15,6 +15,8 @@
 #ifndef PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_SOCKET_H_
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_SOCKET_H_
 
+#include <memory>
+
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
@@ -66,7 +68,7 @@ class BluetoothSocket : public api::BluetoothSocket {
  public:
   BluetoothSocket();
 
-  BluetoothSocket(StreamSocket streamSocket);
+  explicit BluetoothSocket(StreamSocket streamSocket);
 
   ~BluetoothSocket() override;
 
@@ -93,15 +95,16 @@ class BluetoothSocket : public api::BluetoothSocket {
   api::BluetoothDevice* GetRemoteDevice() override;
 
   // Connect asynchronously to the target remote device
-  void Connect(HostName connectionHostName,
-                            winrt::hstring connectionServiceName);
+  // Returns true if successful, false otherwise
+  bool Connect(HostName connectionHostName,
+               winrt::hstring connectionServiceName);
 
   IAsyncAction CancelIOAsync();
 
  private:
   class BluetoothInputStream : public InputStream {
    public:
-    BluetoothInputStream(IInputStream stream);
+    explicit BluetoothInputStream(IInputStream stream);
     ~BluetoothInputStream() override = default;
 
     ExceptionOr<ByteArray> Read(std::int64_t size) override;
@@ -113,7 +116,7 @@ class BluetoothSocket : public api::BluetoothSocket {
 
   class BluetoothOutputStream : public OutputStream {
    public:
-    BluetoothOutputStream(IOutputStream stream);
+    explicit BluetoothOutputStream(IOutputStream stream);
     ~BluetoothOutputStream() override = default;
 
     Exception Write(const ByteArray& data) override;
@@ -125,11 +128,11 @@ class BluetoothSocket : public api::BluetoothSocket {
     IOutputStream winrt_stream_;
   };
 
-  std::unique_ptr<BluetoothInputStream> input_stream_;
-  std::unique_ptr<BluetoothOutputStream> output_stream_;
+  StreamSocket windows_socket_{nullptr};
+  BluetoothInputStream input_stream_{nullptr};
+  BluetoothOutputStream output_stream_{nullptr};
 
-  StreamSocket windows_socket_;
-  std::unique_ptr<BluetoothDevice> bluetooth_device_;
+  std::unique_ptr<BluetoothDevice> bluetooth_device_ = nullptr;
 };
 
 }  // namespace windows

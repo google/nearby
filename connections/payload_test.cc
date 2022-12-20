@@ -21,8 +21,8 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/input_stream.h"
 #include "internal/platform/file.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/pipe.h"
 
 namespace location {
@@ -46,17 +46,52 @@ TEST(PayloadTest, SupportsByteArrayType) {
 TEST(PayloadTest, SupportsFileType) {
   constexpr size_t kOffset = 99;
   const auto payload_id = Payload::GenerateId();
+
+  char test_file_data[100];
+  memcpy(test_file_data,
+         "012345678901234567890123456789012345678901234567890123456789012345678"
+         "901234567890123456789012345678\0",
+         100);
+
+  OutputFile outputFile(payload_id);
+  ByteArray test_data(test_file_data, 100);
+  outputFile.Write(test_data);
+  outputFile.Close();
+
   InputFile file(payload_id, 100);
   InputStream& stream = file.GetInputStream();
 
   Payload payload(payload_id, std::move(file));
   payload.SetOffset(kOffset);
 
+  EXPECT_EQ(payload.GetFileName(), std::to_string(payload_id));
   EXPECT_EQ(payload.GetType(), PayloadType::kFile);
   EXPECT_EQ(payload.AsStream(), nullptr);
   EXPECT_EQ(&payload.AsFile()->GetInputStream(), &stream);
   EXPECT_EQ(payload.AsBytes(), ByteArray{});
   EXPECT_EQ(payload.GetOffset(), kOffset);
+}
+
+TEST(PayloadTest, SupportsMultiDotNamedFileType) {
+  constexpr char expected[] = "this.is.a.multidot.file";
+  InputFile file(expected, 0);
+
+  Payload payload(std::move(file));
+
+  EXPECT_EQ(payload.GetFileName(), expected);
+}
+
+TEST(PayloadTest,
+     SupportsBackSlashFolderSeparatorsByExtractingFileNameBeforeStoring) {
+  constexpr char file_name[] =
+      "test_folder.here\\this.is.a.multidot.backslash.folder.separated.file";
+  constexpr char expected[] =
+      "this.is.a.multidot.backslash.folder.separated.file";
+  InputFile file(file_name, 0);
+
+  Payload payload(std::move(file));
+
+  EXPECT_EQ(payload.GetFileName(), expected);
 }
 
 TEST(PayloadTest, SupportsStreamType) {

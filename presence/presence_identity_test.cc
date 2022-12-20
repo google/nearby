@@ -12,47 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/presence/presence_identity.h"
-
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "internal/proto/credential.pb.h"
 
 namespace nearby {
 namespace presence {
 namespace {
-constexpr PresenceIdentity::IdentityType kDefaultIdentityType =
-    PresenceIdentity::IdentityType::kPrivate;
-constexpr PresenceIdentity::IdentityType kTestIdentityType =
-    PresenceIdentity::IdentityType::kTrusted;
+using ::nearby::internal::IdentityType;
 
-TEST(PresenceIdentityTest, DefaultIsError) {
-  PresenceIdentity identity;
-  EXPECT_EQ(identity.GetIdentityType(), kDefaultIdentityType);
-}
-
-TEST(PresenceIdentityTest, DefaultEquals) {
-  PresenceIdentity identity1;
-  PresenceIdentity identity2;
-  EXPECT_EQ(identity1, identity2);
-}
+constexpr IdentityType kTestIdentityType = IdentityType::IDENTITY_TYPE_TRUSTED;
 
 TEST(PresenceIdentityTest, ExplicitInitEquals) {
-  PresenceIdentity identity1 = {kTestIdentityType};
-  PresenceIdentity identity2 = {kTestIdentityType};
+  IdentityType identity1 = {kTestIdentityType};
+  IdentityType identity2 = {kTestIdentityType};
   EXPECT_EQ(identity1, identity2);
-  EXPECT_EQ(identity1.GetIdentityType(), kTestIdentityType);
+  EXPECT_EQ(identity1, kTestIdentityType);
 }
 
-TEST(PresenceIdentityTest, ExplicitInitNotEquals) {
-  PresenceIdentity identity1 = {kTestIdentityType};
-  PresenceIdentity identity2;
-  EXPECT_NE(identity1, identity2);
-}
 
 TEST(PresenceIdentityTest, CopyInitEquals) {
-  PresenceIdentity identity1 = {kTestIdentityType};
-  PresenceIdentity identity2 = {identity1};
+  IdentityType identity1 = {kTestIdentityType};
+  IdentityType identity2 = {identity1};
   EXPECT_EQ(identity1, identity2);
 }
 

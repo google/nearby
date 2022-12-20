@@ -14,30 +14,13 @@ licenses(["notice"])
 # limitations under the License.
 
 cc_library(
-    name = "analytics",
-    srcs = [
-        "analytics_recorder.cc",
-    ],
+    name = "event_logger",
     hdrs = [
-        "analytics_recorder.h",
-        "connection_attempt_metadata_params.h",
+        "event_logger.h",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//connections:__subpackages__",
-        "//internal/proto/analytics:__subpackages__",
+        "//location/nearby/analytics/cpp:__subpackages__",
     ],
-    deps = [
-        "//connections:core_types",
-        "//connections:event_logger",
-        "//internal/platform:base",
-        "//internal/platform:error_code_recorder",
-        "//internal/platform:logging",
-        "//internal/platform:types",
-        "//internal/proto/analytics:connections_log_cc_proto",
-        "//proto:connections_enums_cc_proto",
-        "//proto/errorcode:error_code_enums_cc_proto",
-        "@com_google_absl//absl/container:btree",
-        "@com_google_absl//absl/time",
-    ],
+    deps = ["@com_google_protobuf//:protobuf"],
 )

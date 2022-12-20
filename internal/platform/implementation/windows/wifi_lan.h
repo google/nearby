@@ -16,27 +16,35 @@
 #define PLATFORM_IMPL_WINDOWS_WIFI_LAN_H_
 
 // Windows headers
+// clang-format off
 #include <windows.h>  // NOLINT
 #include <windns.h>   // NOLINT
+// clang-format on
 
 // Standard C/C++ headers
 #include <exception>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 
 // Nearby connections headers
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/time/time.h"
 #include "absl/types/optional.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_lan.h"
+#include "internal/platform/implementation/windows/scheduled_executor.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/scheduled_executor.h"
 
 // WinRT headers
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
@@ -57,6 +65,7 @@ using winrt::Windows::Devices::Enumeration::DeviceInformation;
 using winrt::Windows::Devices::Enumeration::DeviceInformationKind;
 using winrt::Windows::Devices::Enumeration::DeviceInformationUpdate;
 using winrt::Windows::Devices::Enumeration::DeviceWatcher;
+using winrt::Windows::Devices::Enumeration::DeviceWatcherStatus;
 using winrt::Windows::Foundation::IInspectable;
 using winrt::Windows::Foundation::Collections::IMapView;
 using winrt::Windows::Networking::HostName;
@@ -218,6 +227,9 @@ class WifiLanMedium : public api::WifiLanMedium {
  public:
   ~WifiLanMedium() override = default;
 
+  // Check if a network connection to a primary router exist.
+  bool IsNetworkConnected() const override;
+
   // Starts to advertising
   bool StartAdvertising(const NsdServiceInfo& nsd_service_info) override;
 
@@ -255,45 +267,49 @@ class WifiLanMedium : public api::WifiLanMedium {
   }
 
  private:
-  // mDNS text attributes
-  static constexpr std::string_view KEY_ENDPOINT_INFO = "n";
-
-  // mDNS information for advertising and discovery
-  static constexpr std::wstring_view MDNS_HOST_NAME = L"Windows.local";
-  static constexpr std::string_view MDNS_INSTANCE_NAME_FORMAT = "%s.%slocal";
-  static constexpr std::string_view MDNS_DEVICE_SELECTOR_FORMAT =
-      "System.Devices.AepService.ProtocolId:=\"{4526e8c1-8aac-4153-9b16-"
-      "55e86ada0e54}\" "
-      "AND System.Devices.Dnssd.ServiceName:=\"%s\" AND "
-      "System.Devices.Dnssd.Domain:=\"local\"";
-
   // Nsd status
-  static const int MEDIUM_STATUS_IDLE = 0;
-  static const int MEDIUM_STATUS_ACCEPTING = (1 << 0);
-  static const int MEDIUM_STATUS_ADVERTISING = (1 << 1);
-  static const int MEDIUM_STATUS_DISCOVERING = (1 << 2);
+  static const int kMediumStatusIdle = 0;
+  static const int kMediumStatusAdvertising = (1 << 0);
+  static const int kMediumStatusDiscovering = (1 << 1);
 
   // In the class, not using ENUM to describe the mDNS states, because a little
   // complicate to combine all states based on accepting, advertising and
   // discovery.
   bool IsIdle() { return medium_status_ == 0; }
 
-  bool IsAccepting() { return (medium_status_ & MEDIUM_STATUS_ACCEPTING) != 0; }
-
   bool IsAdvertising() {
-    return (medium_status_ & MEDIUM_STATUS_ADVERTISING) != 0;
+    return (medium_status_ & kMediumStatusAdvertising) != 0;
   }
 
   bool IsDiscovering() {
-    return (medium_status_ & MEDIUM_STATUS_DISCOVERING) != 0;
+    return (medium_status_ & kMediumStatusDiscovering) != 0;
   }
+
+  // Checks whether the IP address is connectable in the given timeout.
+  // Parameters:
+  //   ip - IP string in format as 192.168.1.1
+  //   port - The IP port to connect.
+  //   timeout - IP is not connectable if cannot connect in the duration.
+  // Result - return true if the IP is connectable, otherwise return false.
+  bool IsConnectableIpAddress(absl::string_view ip, int port,
+                              absl::Duration timeout = absl::Seconds(1));
+
+  // Methods to manage discovred services.
+  void ClearDiscoveredServices() ABSL_LOCKS_EXCLUDED(mutex_);
+  std::optional<NsdServiceInfo> GetDiscoveredService(absl::string_view id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void UpdateDiscoveredService(absl::string_view id,
+                               const NsdServiceInfo& nsd_service_info)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void RemoveDiscoveredService(absl::string_view id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // From mDNS device information, to build NsdServiceInfo.
   // the properties are from DeviceInformation and DeviceInformationUpdate.
   // The API gets IP addresses, service name and text attributes of mDNS
   // from these properties,
-  NsdServiceInfo GetNsdServiceInformation(
-      IMapView<winrt::hstring, IInspectable> properties);
+  ExceptionOr<NsdServiceInfo> GetNsdServiceInformation(
+      IMapView<winrt::hstring, IInspectable> properties, bool is_device_found);
 
   // mDNS callbacks for advertising and discovery
   fire_and_forget Watcher_DeviceAdded(DeviceWatcher sender,
@@ -307,6 +323,8 @@ class WifiLanMedium : public api::WifiLanMedium {
 
   // Gets error message from exception pointer
   std::string GetErrorMessage(std::exception_ptr eptr);
+
+  void RestartScanning();
 
   //
   // Dns-sd related properties
@@ -332,14 +350,33 @@ class WifiLanMedium : public api::WifiLanMedium {
   // callback for discovery
   api::WifiLanMedium::DiscoveredServiceCallback discovered_service_callback_;
 
-  // Protects to access some members
+  // Medium Status
+  int medium_status_ = kMediumStatusIdle;
+
+  // Used to keep the service name is advertising.
+  std::string service_name_;
+
+  // Keep the server sockets listener pointer
+  absl::flat_hash_map<int /* port number of the WifiLanServerSocket*/,
+                      WifiLanServerSocket*>
+      port_to_server_socket_map_;
+
+  // Used to protect the access to mDNS instances and scanning related data.
   absl::Mutex mutex_;
 
-  // Medium Status
-  int medium_status_ = MEDIUM_STATUS_IDLE;
+  // Keeps the map from device id to service during scanning.
+  absl::flat_hash_map<std::string, NsdServiceInfo> discovered_services_map_
+      ABSL_GUARDED_BY(mutex_);
 
-  // Keep the server socket listener pointer
-  WifiLanServerSocket* server_socket_ptr_ ABSL_GUARDED_BY(mutex_) = nullptr;
+  // Scheduler for timeout.
+  ScheduledExecutor scheduled_executor_;
+
+  // Scheduled task for connection timeout.
+  std::shared_ptr<api::Cancelable> connection_timeout_ = nullptr;
+
+  // Listener to connect cancellation.
+  std::unique_ptr<location::nearby::CancellationFlagListener>
+      connection_cancellation_listener_ = nullptr;
 };
 
 }  // namespace windows

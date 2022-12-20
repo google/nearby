@@ -39,13 +39,24 @@ WifiHotspot::~WifiHotspot() {
   accept_loops_runner_.Shutdown();
 }
 
-bool WifiHotspot::IsAvailable() const {
+bool WifiHotspot::IsAPAvailable() const {
   MutexLock lock(&mutex_);
 
-  return IsAvailableLocked();
+  return IsAPAvailableLocked();
 }
 
-bool WifiHotspot::IsAvailableLocked() const { return medium_.IsValid(); }
+bool WifiHotspot::IsAPAvailableLocked() const {
+  if (medium_.IsValid()) return medium_.IsInterfaceValid();
+  return false;
+}
+
+bool WifiHotspot::IsClientAvailable() const {
+  MutexLock lock(&mutex_);
+
+  return IsClientAvailableLocked();
+}
+
+bool WifiHotspot::IsClientAvailableLocked() const { return medium_.IsValid(); }
 
 bool WifiHotspot::IsHotspotStarted() {
   MutexLock lock(&mutex_);
@@ -135,7 +146,7 @@ bool WifiHotspot::StartAcceptingConnections(
     return false;
   }
 
-  if (!IsAvailableLocked()) {
+  if (!IsAPAvailableLocked()) {
     NEARBY_LOGS(INFO)
         << "Can't start accepting WifiHotspot connections [service_id="
         << service_id << "]; WifiHotspot not available.";
@@ -171,14 +182,14 @@ bool WifiHotspot::StartAcceptingConnections(
   accept_loops_runner_.Execute(
       "wifi-hotspot-accept",
       [callback = std::move(callback),
-       server_socket = std::move(owned_server_socket)]() mutable {
+       server_socket = std::move(owned_server_socket), service_id]() mutable {
         while (true) {
           WifiHotspotSocket client_socket = server_socket.Accept();
           if (!client_socket.IsValid()) {
             server_socket.Close();
             break;
           }
-          callback.accepted_cb(std::move(client_socket));
+          callback.accepted_cb(service_id, std::move(client_socket));
         }
       });
 
@@ -250,7 +261,7 @@ WifiHotspotSocket WifiHotspot::Connect(const std::string& service_id,
     return socket;
   }
 
-  if (!IsAvailableLocked()) {
+  if (!IsClientAvailableLocked()) {
     NEARBY_LOGS(INFO) << "Can't create client WifiHotspot socket [service_id="
                       << service_id << "]; WifiHotspot isn't available.";
     return socket;

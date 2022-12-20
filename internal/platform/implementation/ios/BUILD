@@ -15,12 +15,15 @@ licenses(["notice"])
 
 package(default_visibility = [
     "//connections/clients/ios:__subpackages__",
+    "//connections/clients/swift:__subpackages__",
     "//internal/platform/implementation/ios:__subpackages__",
 ])
 
 objc_library(
     name = "Platform",
     srcs = [
+        "ble.mm",
+        "bluetooth_adapter.mm",
         "crypto.mm",
         "log_message.mm",
         "multi_thread_executor.mm",
@@ -30,6 +33,8 @@ objc_library(
         "wifi_lan.mm",
     ],
     hdrs = [
+        "ble.h",
+        "bluetooth_adapter.h",
         "log_message.h",
         "multi_thread_executor.h",
         "scheduled_executor.h",
@@ -38,10 +43,6 @@ objc_library(
         "wifi_lan.h",
     ],
     features = ["-layering_check"],
-    sdk_frameworks = [
-        "CoreBluetooth",
-        "CoreFoundation",
-    ],
     deps = [
         ":Platform_cc",
         ":Shared",
@@ -49,6 +50,9 @@ objc_library(
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/ios/Mediums",
         "//internal/platform/implementation/shared:file",
+        "//third_party/apple_frameworks:CoreBluetooth",
+        "//third_party/apple_frameworks:CoreFoundation",
+        "//third_party/apple_frameworks:Foundation",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ],
 )
@@ -62,7 +66,7 @@ objc_library(
         "GNCUtils.h",
     ],
     deps = [
-        "//third_party/objective_c/google_toolbox_for_mac:GTM_StringEncoding",
+        "//third_party/apple_frameworks:Foundation",
         "@aappleby_smhasher//:libmurmur3",
     ],
 )

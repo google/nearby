@@ -11,34 +11,44 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include "internal/platform/implementation/windows/submittable_executor.h"
 
 #include <utility>
 
+#include "gtest/gtest.h"
+#include "absl/synchronization/blocking_counter.h"
+#include "absl/synchronization/notification.h"
+#include "absl/time/time.h"
 #include "internal/platform/implementation/windows/test_data.h"
 
-#include "gtest/gtest.h"
+namespace location {
+namespace nearby {
+namespace windows {
+namespace {
+
+constexpr absl::Duration kWaitTimeout = absl::Milliseconds(200);
 
 TEST(SubmittableExecutorTests, SingleThreadedExecuteSucceeds) {
+  absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::SubmittableExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::SubmittableExecutor>();
+  auto submittableExecutor = std::make_unique<SubmittableExecutor>();
   std::string output = std::string();
   // Container to note threads that ran
-  std::unique_ptr<std::vector<DWORD>> threadIds =
-      std::make_unique<std::vector<DWORD>>();
+  auto threadIds = std::make_unique<std::vector<DWORD>>();
 
   threadIds->push_back(GetCurrentThreadId());
 
   // Act
-  submittableExecutor->Execute([&output, &threadIds]() {
+  submittableExecutor->Execute([&]() {
     threadIds->push_back(GetCurrentThreadId());
     output.append(RUNNABLE_0_TEXT.c_str());
+    notification.Notify();
   });
 
+  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   submittableExecutor->Shutdown();
 
   //  Assert
@@ -55,13 +65,10 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteAfterShutdownFails) {
   // Arrange
   std::string expected("");
 
-  std::unique_ptr<location::nearby::windows::SubmittableExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::SubmittableExecutor>();
+  auto submittableExecutor = std::make_unique<SubmittableExecutor>();
   std::string output = std::string();
   // Container to note threads that ran
-  std::unique_ptr<std::vector<DWORD>> threadIds =
-      std::make_unique<std::vector<DWORD>>();
+  auto threadIds = std::make_unique<std::vector<DWORD>>();
 
   threadIds->push_back(GetCurrentThreadId());
 
@@ -84,25 +91,25 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteAfterShutdownFails) {
 }
 
 TEST(SubmittableExecutorTests, SingleThreadedDoSubmitSucceeds) {
+  absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::SubmittableExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::SubmittableExecutor>();
+  auto submittableExecutor = std::make_unique<SubmittableExecutor>();
   std::string output = std::string();
   // Container to note threads that ran
-  std::unique_ptr<std::vector<DWORD>> threadIds =
-      std::make_unique<std::vector<DWORD>>();
+  auto threadIds = std::make_unique<std::vector<DWORD>>();
 
   threadIds->push_back(GetCurrentThreadId());
 
   // Act
-  auto result = submittableExecutor->DoSubmit([&output, &threadIds]() {
+  auto result = submittableExecutor->DoSubmit([&]() {
     threadIds->push_back(GetCurrentThreadId());
     output.append(RUNNABLE_0_TEXT.c_str());
+    notification.Notify();
   });
 
+  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   submittableExecutor->Shutdown();
 
   //  Assert
@@ -122,13 +129,10 @@ TEST(SubmittableExecutorTests,
   // Arrange
   std::string expected("");
 
-  std::unique_ptr<location::nearby::windows::SubmittableExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::SubmittableExecutor>();
+  auto submittableExecutor = std::make_unique<SubmittableExecutor>();
   std::unique_ptr<std::string> output = std::make_unique<std::string>();
   // Container to note threads that ran
-  std::unique_ptr<std::vector<DWORD>> threadIds =
-      std::make_unique<std::vector<DWORD>>();
+  auto threadIds = std::make_unique<std::vector<DWORD>>();
 
   threadIds->push_back(GetCurrentThreadId());
 
@@ -153,29 +157,30 @@ TEST(SubmittableExecutorTests,
 }
 
 TEST(SubmittableExecutorTests, SingleThreadedExecuteMultipleTasksSucceeds) {
+  absl::BlockingCounter blocking_counter(5);
+
   // Arrange
   std::string expected(RUNNABLE_ALL_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::SubmittableExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::SubmittableExecutor>();
+  auto submittableExecutor = std::make_unique<SubmittableExecutor>();
   std::unique_ptr<std::string> output = std::make_unique<std::string>();
   // Container to note threads that ran
-  std::unique_ptr<std::vector<DWORD>> threadIds =
-      std::make_unique<std::vector<DWORD>>();
+  auto threadIds = std::make_unique<std::vector<DWORD>>();
 
   threadIds->push_back(GetCurrentThreadId());
 
   // Act
   for (int index = 0; index < 5; index++) {
-    submittableExecutor->Execute([&output, &threadIds, index]() {
+    submittableExecutor->Execute([&, index]() {
       threadIds->push_back(GetCurrentThreadId());
       char buffer[128];
       snprintf(buffer, sizeof(buffer), "%s%d, ", RUNNABLE_TEXT.c_str(), index);
       output->append(std::string(buffer));
+      blocking_counter.DecrementCount();
     });
   }
 
+  blocking_counter.Wait();
   submittableExecutor->Shutdown();
 
   //  Assert
@@ -195,30 +200,31 @@ TEST(SubmittableExecutorTests, SingleThreadedExecuteMultipleTasksSucceeds) {
 }
 
 TEST(SubmittableExecutorTests, SingleThreadedDoSubmitMultipleTasksSucceeds) {
+  absl::BlockingCounter blocking_counter(5);
+
   // Arrange
   std::string expected(RUNNABLE_ALL_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::SubmittableExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::SubmittableExecutor>();
+  auto submittableExecutor = std::make_unique<SubmittableExecutor>();
   std::unique_ptr<std::string> output = std::make_unique<std::string>();
   // Container to note threads that ran
-  std::unique_ptr<std::vector<DWORD>> threadIds =
-      std::make_unique<std::vector<DWORD>>();
+  auto threadIds = std::make_unique<std::vector<DWORD>>();
 
   threadIds->push_back(GetCurrentThreadId());
 
   // Act
   bool result = true;
   for (int index = 0; index < 5; index++) {
-    result &= submittableExecutor->DoSubmit([&output, &threadIds, index]() {
+    result &= submittableExecutor->DoSubmit([&, index]() {
       threadIds->push_back(GetCurrentThreadId());
       char buffer[128];
       snprintf(buffer, sizeof(buffer), "%s%d, ", RUNNABLE_TEXT.c_str(), index);
       output->append(std::string(buffer));
+      blocking_counter.DecrementCount();
     });
   }
 
+  blocking_counter.Wait();
   submittableExecutor->Shutdown();
 
   //  Assert
@@ -238,3 +244,8 @@ TEST(SubmittableExecutorTests, SingleThreadedDoSubmitMultipleTasksSucceeds) {
   //  We should of run them in the order submitted
   ASSERT_EQ(*output.get(), expected);
 }
+
+}  // namespace
+}  // namespace windows
+}  // namespace nearby
+}  // namespace location

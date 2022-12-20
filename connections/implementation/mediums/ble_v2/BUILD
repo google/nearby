@@ -29,7 +29,6 @@ cc_library(
         "ble_advertisement.h",
         "ble_advertisement_header.h",
         "ble_packet.h",
-        "ble_peripheral.h",
         "ble_utils.h",
         "bloom_filter.h",
         "discovered_peripheral_callback.h",
@@ -47,6 +46,7 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform:util",
+        "//internal/platform:uuid",
         "@aappleby_smhasher//:libmurmur3",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -54,6 +54,7 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:optional",
     ],
 )
 
@@ -64,7 +65,6 @@ cc_test(
         "ble_advertisement_header_test.cc",
         "ble_advertisement_test.cc",
         "ble_packet_test.cc",
-        "ble_peripheral_test.cc",
         "ble_utils_test.cc",
         "bloom_filter_test.cc",
         "discovered_peripheral_tracker_test.cc",

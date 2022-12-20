@@ -27,6 +27,15 @@
 #define CHECK(condition) static_cast<void>(0), condition ? (void) 0 : abort()
 #define DCHECK(condition) static_cast<void>(0), (void) 0
 #define CHECK_GT(a, b) static_cast<void>(0), a > b ? (void) 0 : abort()
+#define DCHECK_GT(a, b) static_cast<void>(0), a > b ? (void) 0 : abort()
+#define CHECK_LE(a, b) static_cast<void>(0), a <= b ? (void) 0 : abort()
+#define DCHECK_LE(a, b) static_cast<void>(0), a <= b ? (void) 0 : abort()
+#define CHECK_NE(a, b) static_cast<void>(0), a != b ? (void) 0 : abort()
+#define DCHECK_NE(a, b) static_cast<void>(0), a != b ? (void) 0 : abort()
+#define CHECK_EQ(a, b) static_cast<void>(0), a == b ? (void) 0 : abort()
+#define DCHECK_EQ(a, b) static_cast<void>(0), a == b ? (void) 0 : abort()
+#define CHECK_GE(a, b) static_cast<void>(0), a >= b ? (void) 0 : abort()
+#define DCHECK_GE(a, b) static_cast<void>(0), a >= b ? (void) 0 : abort()
 #else
 #include "glog/logging.h"
 #endif
@@ -92,5 +101,9 @@ class LogMessageVoidify {
 #define NEARBY_LOG(severity, ...) \
   NEARBY_LOG_IS_ON(severity)      \
   ? NEARBY_LOG_MESSAGE(severity)->Print(__VA_ARGS__) : (void)0
+
+#ifdef NEARBY_SWIFTPM
+#define LOG(severity) NEARBY_LOGS(severity)
+#endif
 
 #endif  // PLATFORM_BASE_LOGGING_H_

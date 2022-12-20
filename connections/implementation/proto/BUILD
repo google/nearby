@@ -35,12 +35,10 @@ java_lite_proto_library(
 
 cc_proto_library(
     name = "offline_wire_formats_cc_proto",
+    visibility = [
+        "//:__subpackages__",
+    ],
     deps = [
         ":offline_wire_formats_proto",
     ],
-)
-
-filegroup(
-    name = "offline_wire_formats_proto_config",
-    srcs = ["offline_wire_formats_proto_config.asciipb"],
 )

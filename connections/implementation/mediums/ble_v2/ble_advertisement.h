@@ -98,6 +98,7 @@ class BleAdvertisement {
   const ByteArray &&GetData() const && { return std::move(data_); }
   ByteArray GetDeviceToken() const { return device_token_; }
   int GetPsm() const { return psm_; }
+  void SetPsm(int psm) { psm_ = psm; }
 
  private:
   // Represents the extra fields of the `BleAdvertisement` used in Advertising +

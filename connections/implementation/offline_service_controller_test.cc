@@ -20,10 +20,10 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "connections/implementation/offline_simulation_user.h"
-#include "internal/platform/medium_environment.h"
-#include "internal/platform/output_stream.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/medium_environment.h"
+#include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
 #include "internal/platform/system_clock.h"
 
@@ -45,6 +45,9 @@ constexpr absl::Duration kDisconnectTimeout = absl::Milliseconds(15000);
 
 constexpr BooleanMediumSelector kTestCases[] = {
     BooleanMediumSelector{
+        .ble = true,
+    },
+    BooleanMediumSelector{
         .bluetooth = true,
     },
     BooleanMediumSelector{
@@ -52,6 +55,19 @@ constexpr BooleanMediumSelector kTestCases[] = {
     },
     BooleanMediumSelector{
         .bluetooth = true,
+        .ble = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .wifi_lan = true,
+    },
+    BooleanMediumSelector{
+        .ble = true,
+        .wifi_lan = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .ble = true,
         .wifi_lan = true,
     },
 };
@@ -59,8 +75,6 @@ constexpr BooleanMediumSelector kTestCases[] = {
 class OfflineServiceControllerTest
     : public ::testing::TestWithParam<BooleanMediumSelector> {
  protected:
-  OfflineServiceControllerTest() { env_.Stop(); }
-
   bool SetupConnection(OfflineSimulationUser& user_a,
                        OfflineSimulationUser& user_b) {
     user_a.StartAdvertising(std::string(kServiceId), &connect_latch_);

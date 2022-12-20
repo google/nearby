@@ -17,8 +17,6 @@
 #include <memory>
 #include <string>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
 #include "connections/implementation/mediums/ble_v2/bloom_filter.h"
@@ -35,10 +33,7 @@ namespace mediums {
 namespace {
 
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
-constexpr absl::string_view kCopresenceServiceUuid =
-    "0000FEF3-0000-1000-8000-00805F9B34FB";
-constexpr absl::string_view kFastAdvertisementServiceUuid =
-    "0000FE2C-0000-1000-8000-00805F9B34FB";
+constexpr absl::string_view kFastAdvertisementServiceUuid = "FE2C";
 constexpr absl::string_view kServiceIdA = "A";
 constexpr absl::string_view kServiceIdB = "B";
 constexpr absl::string_view kMacAddress1 = "4C:8B:1D:CE:BA:D1";
@@ -111,10 +106,10 @@ ByteArray GenerateRandomAdvertisementHash() {
 class BlePeripheralStub : public api::ble_v2::BlePeripheral {
  public:
   explicit BlePeripheralStub(absl::string_view mac_address) {
-    mac_address_ = mac_address;
+    mac_address_ = std::string(mac_address);
   }
 
-  std::string GetId() const override { return mac_address_; }
+  std::string GetAddress() const override { return mac_address_; }
 
  private:
   std::string mac_address_;
@@ -166,23 +161,20 @@ class DiscoveredPeripheralTrackerTest : public testing::Test {
     return {
         .fetch_advertisements =
             [this, &fetch_latch, &advertisement_bytes_list](
-                int num_slots, int psm,
+                BleV2Peripheral peripheral, int num_slots, int psm,
                 const std::vector<std::string>& interesting_service_ids,
-                AdvertisementReadResult* arr, BleV2Peripheral& peripheral)
-            -> std::unique_ptr<AdvertisementReadResult> {
-          MutexLock lock(&mutex_);
-          fetch_count_++;
-          auto advertisement_read_result =
-              std::make_unique<AdvertisementReadResult>();
-          int slot = 0;
-          for (const auto& advertisement_bytes : advertisement_bytes_list) {
-            advertisement_read_result->AddAdvertisement(slot++,
-                                                        advertisement_bytes);
-          }
-          advertisement_read_result->RecordLastReadStatus(/*isSuccess=*/true);
-          fetch_latch.CountDown();
-          return advertisement_read_result;
-        },
+                mediums::AdvertisementReadResult& advertisement_read_result) {
+              MutexLock lock(&mutex_);
+              fetch_count_++;
+              int slot = 0;
+              for (const auto& advertisement_bytes : advertisement_bytes_list) {
+                advertisement_read_result.AddAdvertisement(slot++,
+                                                           advertisement_bytes);
+              }
+              advertisement_read_result.RecordLastReadStatus(
+                  /*is_success=*/true);
+              fetch_latch.CountDown();
+            },
     };
   }
 
@@ -203,7 +195,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -212,14 +204,12 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch.CountDown();
               },
       },
-      std::string(kFastAdvertisementServiceUuid));
+      Uuid(kFastAdvertisementServiceUuid));
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!fast_advertisement_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kFastAdvertisementServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
+        {Uuid(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
   }
 
   FindFastAdvertisement(advertisement_data, {}, fetch_latch);
@@ -229,6 +219,78 @@ TEST_F(DiscoveredPeripheralTrackerTest,
   fetch_latch.Await(kWaitDuration);
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   EXPECT_EQ(GetFetchAdvertisementCallbackCount(), 0);
+}
+
+TEST_F(DiscoveredPeripheralTrackerTest,
+       CanStartMultipleTrackingWithSameServiceId) {
+  ByteArray fast_advertisement_bytes = CreateFastBleAdvertisement(
+      ByteArray(std::string(kData)), ByteArray(std::string(kDeviceToken)));
+  CountDownLatch found_latch(3);
+  CountDownLatch fetch_latch(3);
+  int callback_times = 0;
+
+  // 1st tracking.
+  discovered_peripheral_tracker_.StartTracking(
+      std::string(kServiceIdA),
+      {
+          .peripheral_discovered_cb =
+              [&callback_times, &found_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) {
+                callback_times++;
+                EXPECT_EQ(advertisement_bytes, ByteArray(std::string(kData)));
+                EXPECT_TRUE(fast_advertisement);
+                found_latch.CountDown();
+              },
+      },
+      Uuid(kFastAdvertisementServiceUuid));
+
+  api::ble_v2::BleAdvertisementData advertisement_data;
+  if (!fast_advertisement_bytes.Empty()) {
+    advertisement_data.service_data.insert(
+        {Uuid(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
+  }
+
+  FindFastAdvertisement(advertisement_data, {}, fetch_latch);
+
+  // 2nd tracking.
+  discovered_peripheral_tracker_.StartTracking(
+      std::string(kServiceIdA),
+      {
+          .peripheral_discovered_cb =
+              [&callback_times, &found_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) {
+                callback_times++;
+                EXPECT_EQ(advertisement_bytes, ByteArray(std::string(kData)));
+                EXPECT_TRUE(fast_advertisement);
+                found_latch.CountDown();
+              },
+      },
+      Uuid(kFastAdvertisementServiceUuid));
+
+  FindFastAdvertisement(advertisement_data, {}, fetch_latch);
+
+  // 3rd tracking.
+  discovered_peripheral_tracker_.StartTracking(
+      std::string(kServiceIdA),
+      {
+          .peripheral_discovered_cb =
+              [&callback_times, &found_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) {
+                callback_times++;
+                EXPECT_EQ(advertisement_bytes, ByteArray(std::string(kData)));
+                EXPECT_TRUE(fast_advertisement);
+                found_latch.CountDown();
+              },
+      },
+      Uuid(kFastAdvertisementServiceUuid));
+
+  FindFastAdvertisement(advertisement_data, {}, fetch_latch);
 }
 
 TEST_F(DiscoveredPeripheralTrackerTest,
@@ -244,7 +306,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       {
           .peripheral_discovered_cb =
               [&callback_times, &found_latch](
-                  BlePeripheral& peripheral, const std::string& service_id,
+                  BleV2Peripheral peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
                 callback_times++;
@@ -253,14 +315,12 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch.CountDown();
               },
       },
-      std::string(kFastAdvertisementServiceUuid));
+      Uuid(kFastAdvertisementServiceUuid));
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!fast_advertisement_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kFastAdvertisementServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
+        {Uuid(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
   }
 
   FindFastAdvertisement(advertisement_data, {}, fetch_latch);
@@ -290,7 +350,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -299,14 +359,12 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch.CountDown();
               },
       },
-      "0000FE2C-0000-1000-8000-00805F9B34FC");
+      Uuid("FE3C"));
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!fast_advertisement_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kFastAdvertisementServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
+        {Uuid(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
   }
 
   FindFastAdvertisement(advertisement_data, {}, fetch_latch);
@@ -335,7 +393,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch_a](BlePeripheral& peripheral,
+              [&found_latch_a](BleV2Peripheral peripheral,
                                const std::string& service_id,
                                const ByteArray& advertisement_bytes,
                                bool fast_advertisement) {
@@ -344,12 +402,12 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch_a.CountDown();
               },
       },
-      std::string(kFastAdvertisementServiceUuid));
+      Uuid(kFastAdvertisementServiceUuid));
   discovered_peripheral_tracker_.StartTracking(
       std::string(kServiceIdB),
       {
           .peripheral_discovered_cb =
-              [&found_latch_b](BlePeripheral& peripheral,
+              [&found_latch_b](BleV2Peripheral peripheral,
                                const std::string& service_id,
                                const ByteArray& advertisement_bytes,
                                bool fast_advertisement) {
@@ -358,20 +416,16 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch_b.CountDown();
               },
       },
-      "");
+      {});
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
+        {bleutils::kCopresenceServiceUuid, advertisement_header_bytes});
   }
   if (!fast_advertisement_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kFastAdvertisementServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
+        {Uuid(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
   }
 
   FindFastAdvertisement(advertisement_data, {advertisement_bytes}, fetch_latch);
@@ -398,7 +452,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -407,14 +461,12 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch.CountDown();
               },
       },
-      "");
+      {});
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
+        {bleutils::kCopresenceServiceUuid, advertisement_header_bytes});
   }
 
   FindAdvertisement(advertisement_data, {advertisement_bytes}, fetch_latch);
@@ -441,18 +493,16 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       {
           .peripheral_discovered_cb =
               [&found_latch](
-                  BlePeripheral& peripheral, const std::string& service_id,
+                  BleV2Peripheral peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) { found_latch.CountDown(); },
       },
-      "");
+      {});
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
+        {bleutils::kCopresenceServiceUuid, advertisement_header_bytes});
   }
 
   FindAdvertisement(advertisement_data, {legacy_advertisement_bytes},
@@ -484,7 +534,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       {
           .peripheral_discovered_cb =
               [&callback_times, &found_latch](
-                  BlePeripheral& peripheral, const std::string& service_id,
+                  BleV2Peripheral peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
                 callback_times++;
@@ -493,14 +543,12 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch.CountDown();
               },
       },
-      "");
+      {});
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
+        {bleutils::kCopresenceServiceUuid, advertisement_header_bytes});
   }
 
   FindAdvertisement(advertisement_data,
@@ -532,7 +580,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       {
           .peripheral_discovered_cb =
               [&callback_times, &found_latch](
-                  BlePeripheral& peripheral, const std::string& service_id,
+                  BleV2Peripheral peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
                 callback_times++;
@@ -541,14 +589,12 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch.CountDown();
               },
       },
-      "");
+      {});
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
+        {bleutils::kCopresenceServiceUuid, advertisement_header_bytes});
   }
 
   FindAdvertisement(advertisement_data, {advertisement_bytes}, fetch_latch);
@@ -582,18 +628,16 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       {
           .peripheral_discovered_cb =
               [&found_latch](
-                  BlePeripheral& peripheral, const std::string& service_id,
+                  BleV2Peripheral peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) { found_latch.CountDown(); },
       },
-      "");
+      {});
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
+        {bleutils::kCopresenceServiceUuid, advertisement_header_bytes});
   }
 
   FindAdvertisement(advertisement_data, {advertisement_bytes}, fetch_latch);
@@ -620,7 +664,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -630,25 +674,23 @@ TEST_F(DiscoveredPeripheralTrackerTest,
               },
           .peripheral_lost_cb =
               [&lost_latch, &lost_callback_times](
-                  BlePeripheral& peripheral, const std::string& service_id) {
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) {
                 lost_callback_times++;
                 lost_latch.CountDown();
               },
       },
-      std::string(kFastAdvertisementServiceUuid));
+      Uuid(kFastAdvertisementServiceUuid));
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
+        {bleutils::kCopresenceServiceUuid, advertisement_header_bytes});
   }
   if (!fast_advertisement_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kFastAdvertisementServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
+        {Uuid(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
   }
 
   FindFastAdvertisement(advertisement_data, {fast_advertisement_bytes},
@@ -685,7 +727,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -694,25 +736,21 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch](BlePeripheral& peripheral,
-                            const std::string& service_id) {
-                lost_latch.CountDown();
-              },
+              [&lost_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch.CountDown(); },
       },
-      std::string(kFastAdvertisementServiceUuid));
+      Uuid(kFastAdvertisementServiceUuid));
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
+        {bleutils::kCopresenceServiceUuid, advertisement_header_bytes});
   }
   if (!fast_advertisement_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kFastAdvertisementServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
+        {Uuid(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
   }
 
   // Start tracking a service ID and then process a loop of discoveries and
@@ -746,7 +784,7 @@ TEST_F(DiscoveredPeripheralTrackerTest, LostPeripheralForAdvertisementLost) {
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -755,19 +793,17 @@ TEST_F(DiscoveredPeripheralTrackerTest, LostPeripheralForAdvertisementLost) {
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch](BlePeripheral& peripheral,
-                            const std::string& service_id) {
-                lost_latch.CountDown();
-              },
+              [&lost_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch.CountDown(); },
       },
-      "");
+      {});
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
+        {bleutils::kCopresenceServiceUuid, advertisement_header_bytes});
   }
 
   FindAdvertisement(advertisement_data, {advertisement_bytes}, fetch_latch);
@@ -807,7 +843,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch_a](BlePeripheral& peripheral,
+              [&found_latch_a](BleV2Peripheral peripheral,
                                const std::string& service_id,
                                const ByteArray& advertisement_bytes,
                                bool fast_advertisement) {
@@ -816,17 +852,17 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch_a.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch_a](BlePeripheral& peripheral,
-                              const std::string& service_id) {
-                lost_latch_a.CountDown();
-              },
+              [&lost_latch_a](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch_a.CountDown(); },
       },
-      std::string(kFastAdvertisementServiceUuid));
+      Uuid(kFastAdvertisementServiceUuid));
   discovered_peripheral_tracker_.StartTracking(
       std::string(kServiceIdB),
       {
           .peripheral_discovered_cb =
-              [&found_latch_b](BlePeripheral& peripheral,
+              [&found_latch_b](BleV2Peripheral peripheral,
                                const std::string& service_id,
                                const ByteArray& advertisement_bytes,
                                bool fast_advertisement) {
@@ -835,25 +871,21 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch_b.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch_b](BlePeripheral& peripheral,
-                              const std::string& service_id) {
-                lost_latch_b.CountDown();
-              },
+              [&lost_latch_b](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch_b.CountDown(); },
       },
-      "");
+      {});
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
+        {bleutils::kCopresenceServiceUuid, advertisement_header_bytes});
   }
   if (!fast_advertisement_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kFastAdvertisementServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
+        {Uuid(kFastAdvertisementServiceUuid), fast_advertisement_bytes});
   }
 
   FindFastAdvertisement(advertisement_data, {advertisement_bytes}, fetch_latch);
@@ -892,7 +924,7 @@ TEST_F(DiscoveredPeripheralTrackerTest,
       std::string(kServiceIdA),
       {
           .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral& peripheral,
+              [&found_latch](BleV2Peripheral peripheral,
                              const std::string& service_id,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
@@ -901,19 +933,17 @@ TEST_F(DiscoveredPeripheralTrackerTest,
                 found_latch.CountDown();
               },
           .peripheral_lost_cb =
-              [&lost_latch](BlePeripheral& peripheral,
-                            const std::string& service_id) {
-                lost_latch.CountDown();
-              },
+              [&lost_latch](
+                  BleV2Peripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch.CountDown(); },
       },
-      "");
+      {});
 
   api::ble_v2::BleAdvertisementData advertisement_data;
   if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_uuids.insert(
-        std::string(kCopresenceServiceUuid));
     advertisement_data.service_data.insert(
-        {std::string(kCopresenceServiceUuid), advertisement_header_bytes});
+        {bleutils::kCopresenceServiceUuid, advertisement_header_bytes});
   }
 
   FindAdvertisement(advertisement_data, {advertisement_bytes}, fetch_latch);

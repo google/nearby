@@ -42,7 +42,17 @@ class FakeEndpointChannel : public EndpointChannel {
     return in_ ? in_->Read(Pipe::kChunkSize)
                : ExceptionOr<ByteArray>{Exception::kIo};
   }
+  ExceptionOr<ByteArray> Read(PacketMetaData& packet_meta_data) override {
+    read_timestamp_ = SystemClock::ElapsedRealtime();
+    return in_ ? in_->Read(Pipe::kChunkSize)
+               : ExceptionOr<ByteArray>{Exception::kIo};
+  }
   Exception Write(const ByteArray& data) override {
+    write_timestamp_ = SystemClock::ElapsedRealtime();
+    return out_ ? out_->Write(data) : Exception{Exception::kIo};
+  }
+  Exception Write(const ByteArray& data,
+                  PacketMetaData& packet_meta_data) override {
     write_timestamp_ = SystemClock::ElapsedRealtime();
     return out_ ? out_->Write(data) : Exception{Exception::kIo};
   }
@@ -63,6 +73,7 @@ class FakeEndpointChannel : public EndpointChannel {
   int GetFrequency() const override { return 0; }
   int GetTryCount() const override { return 0; }
   std::string GetType() const override { return "fake-channel-type"; }
+  std::string GetServiceId() const override { return "fake-service-id"; }
   std::string GetName() const override { return "fake-channel"; }
   Medium GetMedium() const override { return Medium::BLE; }
   int GetMaxTransmitPacketSize() const override { return 512; }

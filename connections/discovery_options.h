@@ -26,26 +26,28 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-// Feature On/Off switch for mediums.
-using BooleanMediumSelector = MediumSelector<bool>;
-
 // Connection Options: used for both Advertising and Discovery.
 // All fields are mutable, to make the type copy-assignable.
 struct DiscoveryOptions : OptionsBase {
-  bool auto_upgrade_bandwidth;
+  // Returns a copy and normalizes allowed mediums:
+  // (1) If is_out_of_band_connection is true, verifies that there is only one
+  //     medium allowed, defaulting to only Bluetooth if unspecified.
+  // (2) If no mediums are allowed, allow all mediums.
+  DiscoveryOptions CompatibleOptions() const;
+
+  bool auto_upgrade_bandwidth = true;
   bool enforce_topology_constraints;
   int keep_alive_interval_millis = 0;
   int keep_alive_timeout_millis = 0;
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;
+
+  // TODO(b/229927044): Replaces it as bool once Ble v1 is deprecated.
   std::string fast_advertisement_service_uuid;
 
-  // Returns a copy and normalizes allowed mediums:
-  // (1) If is_out_of_band_connection is true, verifies that there is only one
-  //     medium allowed, defaulting to only Bluetooth if unspecified.
-  // (2) If no mediums are allowed, allow all mediums.
-  DiscoveryOptions CompatibleOptions() const;
+  // If true, only low power mediums (like BLE) will be used for discovery.
+  bool low_power = false;
 };
 
 }  // namespace connections

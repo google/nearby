@@ -15,6 +15,7 @@
 #include "connections/implementation/webrtc_bwu_handler.h"
 
 #include <string>
+#include <utility>
 
 #include "absl/functional/bind_front.h"
 #include "connections/implementation/client_proxy.h"
@@ -27,80 +28,18 @@ namespace location {
 namespace nearby {
 namespace connections {
 
+WebrtcBwuHandler::WebrtcIncomingSocket::WebrtcIncomingSocket(
+    const std::string& name, mediums::WebRtcSocketWrapper socket)
+    : name_(name), socket_(socket) {}
+
+void WebrtcBwuHandler::WebrtcIncomingSocket::Close() { socket_.Close(); }
+
+std::string WebrtcBwuHandler::WebrtcIncomingSocket::ToString() { return name_; }
+
 WebrtcBwuHandler::WebrtcBwuHandler(Mediums& mediums,
-                                   EndpointChannelManager& channel_manager,
                                    BwuNotifications notifications)
-    : BaseBwuHandler(channel_manager, std::move(notifications)),
+    : BaseBwuHandler(std::move(notifications)),
       mediums_(mediums) {}
-
-void WebrtcBwuHandler::Revert() {
-  for (const auto& service_id : active_service_ids_) {
-    webrtc_.StopAcceptingConnections(service_id);
-  }
-  active_service_ids_.clear();
-
-  NEARBY_LOG(INFO, "WebrtcBwuHandler successfully reverted state.");
-}
-
-// Accept Connection Callback.
-// Notifies that the remote party called WebRtc::Connect()
-// for this socket.
-void WebrtcBwuHandler::OnIncomingWebrtcConnection(
-    ClientProxy* client, const std::string& upgrade_service_id,
-    mediums::WebRtcSocketWrapper socket) {
-  std::string service_id = Utils::UnwrapUpgradeServiceId(upgrade_service_id);
-  auto channel = std::make_unique<WebRtcEndpointChannel>(service_id, socket);
-  auto webrtc_socket =
-      std::make_unique<WebrtcIncomingSocket>(service_id, socket);
-  std::unique_ptr<IncomingSocketConnection> connection(
-      new IncomingSocketConnection{std::move(webrtc_socket),
-                                   std::move(channel)});
-
-  bwu_notifications_.incoming_connection_cb(client, std::move(connection));
-}
-
-// Called by BWU initiator. Set up WebRTC upgraded medium for this endpoint,
-// and returns a upgrade path info (PeerId, LocationHint) for remote party to
-// perform discovery.
-ByteArray WebrtcBwuHandler::InitializeUpgradedMediumForEndpoint(
-    ClientProxy* client, const std::string& service_id,
-    const std::string& endpoint_id) {
-  // Use wrapped service ID to avoid have the same ID with the one for
-  // startAdvertising. Otherwise, the listening request would be ignored because
-  // the medium already start accepting the connection because the client not
-  // stop the advertising yet.
-  std::string upgrade_service_id = Utils::WrapUpgradeServiceId(service_id);
-
-  LocationHint location_hint =
-      Utils::BuildLocationHint(webrtc_.GetDefaultCountryCode());
-
-  mediums::WebrtcPeerId self_id{mediums::WebrtcPeerId::FromRandom()};
-  if (!webrtc_.IsAcceptingConnections(service_id)) {
-    if (!webrtc_.StartAcceptingConnections(
-            upgrade_service_id, self_id, location_hint,
-            {
-                .accepted_cb = absl::bind_front(
-                    &WebrtcBwuHandler::OnIncomingWebrtcConnection, this, client,
-                    upgrade_service_id),
-            })) {
-      NEARBY_LOG(ERROR,
-                 "WebRtcBwuHandler couldn't initiate the WEB_RTC upgrade for "
-                 "endpoint %s because it failed to start listening for "
-                 "incoming WebRTC connections.",
-                 endpoint_id.c_str());
-      return {};
-    }
-    NEARBY_LOG(INFO,
-               "WebRtcBwuHandler successfully started listening for incoming "
-               "WebRTC connections while upgrading endpoint %s",
-               endpoint_id.c_str());
-  }
-
-  // cache service ID to revert
-  active_service_ids_.emplace(upgrade_service_id);
-
-  return parser::ForBwuWebrtcPathAvailable(self_id.GetId(), location_hint);
-}
 
 // Called by BWU target. Retrieves a new medium info from incoming message,
 // and establishes connection over WebRTC using this info.
@@ -139,7 +78,8 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
              peer_id.GetId().c_str(), endpoint_id.c_str());
 
   // Create a new WebRtcEndpointChannel.
-  auto channel = std::make_unique<WebRtcEndpointChannel>(service_id, socket);
+  auto channel = std::make_unique<WebRtcEndpointChannel>(
+      service_id, /*channel_name=*/service_id, socket);
   if (channel == nullptr) {
     socket.Close();
     NEARBY_LOG(ERROR,
@@ -150,16 +90,64 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
   return channel;
 }
 
-void WebrtcBwuHandler::OnEndpointDisconnect(ClientProxy* client,
-                                            const std::string& endpoint_id) {}
+void WebrtcBwuHandler::HandleRevertInitiatorStateForService(
+    const std::string& upgrade_service_id) {
+  webrtc_.StopAcceptingConnections(upgrade_service_id);
+  NEARBY_LOGS(INFO)
+      << "WebrtcBwuHandler successfully reverted state for service "
+      << upgrade_service_id;
+}
 
-WebrtcBwuHandler::WebrtcIncomingSocket::WebrtcIncomingSocket(
-    const std::string& name, mediums::WebRtcSocketWrapper socket)
-    : name_(name), socket_(socket) {}
+// Called by BWU initiator. Set up WebRTC upgraded medium for this endpoint,
+// and returns a upgrade path info (PeerId, LocationHint) for remote party to
+// perform discovery.
+ByteArray WebrtcBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
+    ClientProxy* client, const std::string& upgrade_service_id,
+    const std::string& endpoint_id) {
+  LocationHint location_hint =
+      Utils::BuildLocationHint(webrtc_.GetDefaultCountryCode());
 
-void WebrtcBwuHandler::WebrtcIncomingSocket::Close() { socket_.Close(); }
+  mediums::WebrtcPeerId self_id{mediums::WebrtcPeerId::FromRandom()};
+  if (!webrtc_.IsAcceptingConnections(upgrade_service_id)) {
+    if (!webrtc_.StartAcceptingConnections(
+            upgrade_service_id, self_id, location_hint,
+            {
+                .accepted_cb = absl::bind_front(
+                    &WebrtcBwuHandler::OnIncomingWebrtcConnection, this,
+                    client),
+            })) {
+      NEARBY_LOG(ERROR,
+                 "WebRtcBwuHandler couldn't initiate the WEB_RTC upgrade for "
+                 "endpoint %s because it failed to start listening for "
+                 "incoming WebRTC connections.",
+                 endpoint_id.c_str());
+      return {};
+    }
+    NEARBY_LOG(INFO,
+               "WebRtcBwuHandler successfully started listening for incoming "
+               "WebRTC connections while upgrading endpoint %s",
+               endpoint_id.c_str());
+  }
 
-std::string WebrtcBwuHandler::WebrtcIncomingSocket::ToString() { return name_; }
+  return parser::ForBwuWebrtcPathAvailable(self_id.GetId(), location_hint);
+}
+
+// Accept Connection Callback.
+// Notifies that the remote party called WebRtc::Connect()
+// for this socket.
+void WebrtcBwuHandler::OnIncomingWebrtcConnection(
+    ClientProxy* client, const std::string& upgrade_service_id,
+    mediums::WebRtcSocketWrapper socket) {
+  auto channel = std::make_unique<WebRtcEndpointChannel>(
+      upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
+  auto webrtc_socket =
+      std::make_unique<WebrtcIncomingSocket>(upgrade_service_id, socket);
+  std::unique_ptr<IncomingSocketConnection> connection(
+      new IncomingSocketConnection{std::move(webrtc_socket),
+                                   std::move(channel)});
+
+  bwu_notifications_.incoming_connection_cb(client, std::move(connection));
+}
 
 }  // namespace connections
 }  // namespace nearby

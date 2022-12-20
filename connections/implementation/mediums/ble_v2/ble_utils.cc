@@ -16,6 +16,8 @@
 
 #include <string>
 
+#include "absl/types/optional.h"
+
 namespace location {
 namespace nearby {
 namespace connections {
@@ -34,6 +36,11 @@ namespace {
 constexpr std::int64_t kAdvertisementUuidMsb = 0x0000000000003000;
 constexpr std::int64_t kAdvertisementUuidLsb = 0x8000000000000000;
 
+// The most significant bits and the least significant bits for the Copresence
+// UUID.
+const std::uint64_t kCopresenceServiceUuidMsb = 0x0000FEF300001000;
+const std::uint64_t kCopresenceServiceUuidLsb = 0x800000805F9B34FB;
+
 // Creates a string as a space separated listing of hex bytes with [] at the
 // beginning and the end.
 //
@@ -50,8 +57,8 @@ std::string StringToPrintableHexString(const std::string& source) {
 
 }  // namespace
 
-const absl::string_view kCopresenceServiceUuid =
-    "0000FEF3-0000-1000-8000-00805F9B34FB";
+ABSL_CONST_INIT const Uuid kCopresenceServiceUuid(kCopresenceServiceUuidMsb,
+                                  kCopresenceServiceUuidLsb);
 
 ByteArray GenerateHash(const std::string& source, size_t size) {
   return Utils::Sha256Hash(source, size);
@@ -85,11 +92,12 @@ ByteArray GenerateAdvertisementHash(const ByteArray& advertisement_bytes) {
       BleAdvertisementHeader::kAdvertisementHashByteLength);
 }
 
-std::string GenerateAdvertisementUuid(int slot) {
+// NOLINTNEXTLINE(google3-legacy-absl-backports)
+absl::optional<Uuid> GenerateAdvertisementUuid(int slot) {
   if (slot < 0) {
-    return {};
+    return absl::nullopt;  // NOLINT
   }
-  return std::string(Uuid(kAdvertisementUuidMsb, kAdvertisementUuidLsb | slot));
+  return Uuid(kAdvertisementUuidMsb, kAdvertisementUuidLsb | slot);
 }
 
 }  // namespace bleutils

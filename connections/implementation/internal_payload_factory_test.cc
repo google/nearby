@@ -71,6 +71,7 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFilePayload) {
 
 TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromByteMessage) {
   PayloadTransferFrame frame;
+  std::string path = "C:\\Downloads";
   frame.set_packet_type(PayloadTransferFrame::DATA);
   std::int64_t payload_chunk_offset = 0;
   ByteArray data(kText);
@@ -84,7 +85,7 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromByteMessage) {
   header.set_total_size(512);
   *frame.mutable_payload_chunk() = std::move(payload_chunk);
   std::unique_ptr<InternalPayload> internal_payload =
-      CreateIncomingInternalPayload(frame);
+      CreateIncomingInternalPayload(frame, path);
   EXPECT_NE(internal_payload, nullptr);
   Payload payload = internal_payload->ReleasePayload();
   EXPECT_EQ(payload.AsFile(), nullptr);
@@ -94,13 +95,14 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromByteMessage) {
 
 TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamMessage) {
   PayloadTransferFrame frame;
+  std::string path = "C:\\Downloads";
   frame.set_packet_type(PayloadTransferFrame::DATA);
   auto& header = *frame.mutable_payload_header();
   header.set_type(PayloadTransferFrame::PayloadHeader::STREAM);
   header.set_id(12345);
   header.set_total_size(0);
   std::unique_ptr<InternalPayload> internal_payload =
-      CreateIncomingInternalPayload(frame);
+      CreateIncomingInternalPayload(frame, path);
   EXPECT_NE(internal_payload, nullptr);
   Payload payload = internal_payload->ReleasePayload();
   EXPECT_EQ(payload.AsFile(), nullptr);
@@ -111,13 +113,14 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamMessage) {
 
 TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFileMessage) {
   PayloadTransferFrame frame;
+  std::string path = "C:\\Downloads";
   frame.set_packet_type(PayloadTransferFrame::DATA);
   auto& header = *frame.mutable_payload_header();
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
   header.set_id(12345);
   header.set_total_size(512);
   std::unique_ptr<InternalPayload> internal_payload =
-      CreateIncomingInternalPayload(frame);
+      CreateIncomingInternalPayload(frame, path);
   EXPECT_NE(internal_payload, nullptr);
   Payload payload = internal_payload->ReleasePayload();
   EXPECT_NE(payload.AsFile(), nullptr);
@@ -129,25 +132,27 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFileMessage) {
 TEST(InternalPayloadFactoryTest,
      InternalPayloadFromFileMessageWithoutIdReturnsNullptr) {
   PayloadTransferFrame frame;
+  std::string path = "C:\\Downloads";
   frame.set_packet_type(PayloadTransferFrame::DATA);
   auto& header = *frame.mutable_payload_header();
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
   header.set_total_size(512);
   std::unique_ptr<InternalPayload> internal_payload =
-      CreateIncomingInternalPayload(frame);
+      CreateIncomingInternalPayload(frame, path);
   EXPECT_EQ(internal_payload, nullptr);
 }
 
 TEST(InternalPayloadFactoryTest,
      CanCreateInternalPayloadFromFileMessageWithFileNameNotSet) {
   PayloadTransferFrame frame;
+  std::string path = "C:\\Downloads";
   frame.set_packet_type(PayloadTransferFrame::DATA);
   auto& header = *frame.mutable_payload_header();
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
   header.set_id(12345);
   header.set_total_size(512);
   std::unique_ptr<InternalPayload> internal_payload =
-      CreateIncomingInternalPayload(frame);
+      CreateIncomingInternalPayload(frame, path);
   EXPECT_NE(internal_payload, nullptr);
   Payload payload = internal_payload->ReleasePayload();
   EXPECT_EQ(payload.GetFileName(), "12345");
@@ -155,6 +160,7 @@ TEST(InternalPayloadFactoryTest,
 TEST(InternalPayloadFactoryTest,
      CanCreateInternalPayloadFromFileMessageWithFileNameSet) {
   PayloadTransferFrame frame;
+  std::string path = "C:\\Downloads";
   frame.set_packet_type(PayloadTransferFrame::DATA);
   auto& header = *frame.mutable_payload_header();
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
@@ -162,7 +168,7 @@ TEST(InternalPayloadFactoryTest,
   header.set_total_size(512);
   header.set_file_name("test.file.name");
   std::unique_ptr<InternalPayload> internal_payload =
-      CreateIncomingInternalPayload(frame);
+      CreateIncomingInternalPayload(frame, path);
   EXPECT_NE(internal_payload, nullptr);
   auto test = internal_payload->GetFileName();
   Payload payload = internal_payload->ReleasePayload();

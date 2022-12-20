@@ -69,6 +69,7 @@ enum Event {
   SEND_PAYLOAD = 11;
   CANCEL_PAYLOAD = 12;
   RECEIVE_PAYLOAD = 13;
+  UPGRADE = 14;
 }
 
 // The error to identify the common failure for all mediums. The range between 0
@@ -327,6 +328,60 @@ enum DisconnectError {
   // Next ID :33
 }
 
+// The error for event SEND_PAYLOAD. The range between 31 and 99.
+enum SendPayloadError {
+  // The default value for clearcut
+  UNKNOWN_SEND_PAYLOAD_ERROR = 31;
+
+  // Network error, failed to send payload.
+  SEND_PAYLOAD_FAILED = 32;
+
+  // Next ID :33
+}
+
+// The error for event SEND_PAYLOAD. The range between 31 and 99.
+enum ReceivePayloadError {
+  // The default value for clearcut
+  UNKNOWN_RECEIVE_PAYLOAD_ERROR = 31;
+
+  // Network error, failed to send payload.
+  RECEIVE_PAYLOAD_FAILED = 32;
+
+  // Next ID :33
+}
+
+// The error for event UPGRADE. The range between 31 and 99.
+enum UpgradeError {
+  // The default value for clearcut
+  UNKNOWN_UPGRADE_ERROR = 31;
+  // System error, failed to create a wifi p2p group.
+  CREATE_P2P_GROUP_FAILED = 32;
+
+  // Next ID :33
+}
+
+// The error for event ACCEPT_CONNECTION. The range between 31 and 99.
+enum AcceptConnectionError {
+  // The default value for clearcut
+  UNKNOWN_ACCEPT_CONNECTION_ERROR = 31;
+
+  // Network error, failed to send accept connection.
+  RESPOND_ACCEPT_CONNECTION_FAILED = 32;
+
+  // Next ID :33
+}
+
+// The error for event REJECT_CONNECTION. The range between 31 and 99.
+enum RejectConnectionError {
+  // The default value for clearcut
+  UNKNOWN_REJECT_CONNECTION_ERROR = 31;
+
+  // Network error, failed to send reject connection.
+  RESPOND_REJECT_CONNECTION_FAILED = 32;
+
+  // Next ID :33
+}
+
 enum Description {
   reserved 28, 29;
 
@@ -500,4 +555,9 @@ enum Description {
   UNSUPPORTED_DEVICE_TYPE_TV = 169;
   UNSUPPORTED_DEVICE_TYPE_WEAR = 170;
   NULL_MESSAGE = 171;
+  USER_RESTRICTION_DISALLOWED = 172;
+  UNSUPPORTED_DEVICE_TYPE_PHONE = 173;
+  UNSUPPORTED_DEVICE_TYPE_TABLET = 174;
+  BROKEN_PIPE = 175;
+  CONNECTION_ABORT = 176;
 }

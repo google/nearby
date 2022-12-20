@@ -17,13 +17,15 @@
 
 #include <Windows.h>
 
+#include <functional>
+#include <memory>
 #include <queue>
+#include <string>
 
+#include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.Rfcomm.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
 
 namespace location {
@@ -40,29 +42,9 @@ using winrt::Windows::Networking::Sockets::StreamSocketListener;
 using winrt::Windows::Networking::Sockets::
     StreamSocketListenerConnectionReceivedEventArgs;
 
-// Represents an asynchronous action.
-// https://docs.microsoft.com/en-us/uwp/api/windows.foundation.iasyncaction?view=winrt-20348
-using winrt::Windows::Foundation::IAsyncAction;
-
 // Specifies the quality of service for a StreamSocket object.
 // https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.socketqualityofservice?view=winrt-20348
 using winrt::Windows::Networking::Sockets::SocketQualityOfService;
-
-// Represents an instance of a local RFCOMM service.
-// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommserviceprovider?view=winrt-20348
-using winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceProvider;
-
-// Represents an RFCOMM service ID.
-//  https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommserviceid?view=winrt-20348
-using winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId;
-
-// Writes data to an output stream.
-// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.datawriter?view=winrt-20348
-using winrt::Windows::Storage::Streams::DataWriter;
-
-// Specifies the type of character encoding for a stream.
-// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.unicodeencoding?view=winrt-20348
-using winrt::Windows::Storage::Streams::UnicodeEncoding;
 
 // Specifies the level of encryption to use on a StreamSocket object.
 // https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.socketprotectionlevel?view=winrt-22000
@@ -71,8 +53,7 @@ using winrt::Windows::Networking::Sockets::SocketProtectionLevel;
 // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html.
 class BluetoothServerSocket : public api::BluetoothServerSocket {
  public:
-  BluetoothServerSocket(const std::string service_name,
-                        const std::string service_uuid);
+  BluetoothServerSocket(absl::string_view service_name);
 
   ~BluetoothServerSocket() override;
 
@@ -91,36 +72,41 @@ class BluetoothServerSocket : public api::BluetoothServerSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override;
 
-  Exception StartListening(bool radioDiscoverable);
+  // Called by the server side of a connection before passing ownership of
+  // WifiLanServerSocker to user, to track validity of a pointer to this
+  // server socket.
+  void SetCloseNotifier(std::function<void()> notifier);
 
-  void SetScanMode(bool radioDiscoverable) {
-    StopAdvertising();
-    radio_discoverable_ = radioDiscoverable;
-    StartAdvertising();
+  bool listen();
+
+  const StreamSocketListener& stream_socket_listener() const {
+    return stream_socket_listener_;
   }
 
  private:
-  void InitializeServiceSdpAttributes(RfcommServiceProvider rfcommProvider,
-                                      std::string service_name);
+  // The listener is accepting incoming connections
+  ::winrt::fire_and_forget Listener_ConnectionReceived(
+      StreamSocketListener listener,
+      StreamSocketListenerConnectionReceivedEventArgs const& args);
 
-  Exception StartAdvertising();
-  void StopAdvertising();
+  // Retrieves IP addresses from local machine
+  std::vector<std::string> GetIpAddresses() const;
 
-  // This is used to store sockets in case Accept hasn't been called. Once
-  // Accept has been called the socket is popped from the queue and returned to
-  // the caller
-  std::queue<std::unique_ptr<BluetoothSocket>> bluetooth_sockets_;
+  mutable absl::Mutex mutex_;
+  absl::CondVar cond_;
+  std::deque<StreamSocket> pending_sockets_ ABSL_GUARDED_BY(mutex_);
+  StreamSocketListener stream_socket_listener_{nullptr};
+  winrt::event_token listener_event_token_{};
 
-  StreamSocketListener stream_socket_listener_;
-  winrt::event_token listener_token_;
-  CRITICAL_SECTION critical_section_;
+  // Close notifier
+  std::function<void()> close_notifier_ = nullptr;
+
+  // IP addresses of the computer. mDNS uses them to advertise.
+  std::vector<std::string> ip_addresses_{};
+
+  // Cache socket not be picked by upper layer
+  std::string service_name_;
   bool closed_ = false;
-  bool radio_discoverable_;
-
-  const std::string service_name_;
-  const std::string service_uuid_;
-
-  RfcommServiceProvider rfcomm_provider_;
 };
 
 }  // namespace windows

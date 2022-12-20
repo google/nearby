@@ -22,7 +22,6 @@
 #include "absl/container/flat_hash_map.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
 
 namespace location {
@@ -62,7 +61,8 @@ class EndpointChannelManager final {
   // to the newly-provided EndpointChannel.
   void ReplaceChannelForEndpoint(ClientProxy* client,
                                  const std::string& endpoint_id,
-                                 std::unique_ptr<EndpointChannel> channel)
+                                 std::unique_ptr<EndpointChannel> channel,
+                                 bool enable_encryption)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool EncryptChannelForEndpoint(const std::string& endpoint_id,
@@ -95,6 +95,9 @@ class EndpointChannelManager final {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   int GetConnectedEndpointsCount() const ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Check if any endpoint uses WLAN Medium
+  bool isWifiLanConnected() const ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   // Tracks channel state for all endpoints. This includes what EndpointChannel
@@ -149,6 +152,7 @@ class EndpointChannelManager final {
 
     bool EncryptChannel(EndpointData* endpoint);
     int GetConnectedEndpointsCount() const { return endpoints_.size(); }
+    bool isWifiLanConnected() const;
 
    private:
     // Endpoint ID -> EndpointData. Contains everything we know about the
@@ -158,7 +162,8 @@ class EndpointChannelManager final {
 
   void SetActiveEndpointChannel(ClientProxy* client,
                                 const std::string& endpoint_id,
-                                std::unique_ptr<EndpointChannel> channel)
+                                std::unique_ptr<EndpointChannel> channel,
+                                bool enable_encryption)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   mutable Mutex mutex_;

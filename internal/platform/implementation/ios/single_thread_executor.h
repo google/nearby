@@ -14,6 +14,7 @@
 
 #ifndef PLATFORM_IMPL_IOS_SINGLE_THREAD_EXECUTOR_H_
 #define PLATFORM_IMPL_IOS_SINGLE_THREAD_EXECUTOR_H_
+#ifdef __cplusplus
 
 #import "internal/platform/implementation/ios/multi_thread_executor.h"
 
@@ -31,4 +32,5 @@ class SingleThreadExecutor : public MultiThreadExecutor {
 }  // namespace nearby
 }  // namespace location
 
+#endif
 #endif  // PLATFORM_IMPL_IOS_SINGLE_THREAD_EXECUTOR_H_

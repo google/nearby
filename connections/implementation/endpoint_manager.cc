@@ -14,14 +14,21 @@
 
 #include "connections/implementation/endpoint_manager.h"
 
+#include <algorithm>
+#include <functional>
 #include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "connections/implementation/analytics/throughput_recorder.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
-#include "internal/platform/exception.h"
+#include "connections/implementation/payload_manager.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "connections/implementation/service_id_constants.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 
@@ -29,7 +36,8 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-using ::location::nearby::proto::connections::Medium;
+using ::location::nearby::analytics::PacketMetaData;
+using ::location::nearby::connections::PayloadDirection;
 
 constexpr absl::Duration EndpointManager::kProcessEndpointDisconnectionTimeout;
 constexpr absl::Time EndpointManager::kInvalidTimestamp;
@@ -41,7 +49,7 @@ class EndpointManager::LockedFrameProcessor {
         frame_processor_with_mutex_{fp} {}
 
   // Constructor of a no-op object.
-  LockedFrameProcessor() {}
+  LockedFrameProcessor() = default;
 
   explicit operator bool() const { return get() != nullptr; }
 
@@ -165,7 +173,8 @@ ExceptionOr<bool> EndpointManager::HandleData(
   // a replacement for this endpoint since we last checked with the
   // EndpointChannelManager.
   while (true) {
-    ExceptionOr<ByteArray> bytes = endpoint_channel->Read();
+    PacketMetaData packet_meta_data;
+    ExceptionOr<ByteArray> bytes = endpoint_channel->Read(packet_meta_data);
     if (!bytes.ok()) {
       NEARBY_LOG(INFO, "Stop reading on read-time exception: %d",
                  bytes.exception());
@@ -208,7 +217,8 @@ ExceptionOr<bool> EndpointManager::HandleData(
     }
 
     frame_processor->OnIncomingFrame(frame, endpoint_id, client,
-                                     endpoint_channel->GetMedium());
+                                     endpoint_channel->GetMedium(),
+                                     packet_meta_data);
   }
 }
 
@@ -277,6 +287,7 @@ EndpointManager::EndpointManager(EndpointChannelManager* manager)
 
 EndpointManager::~EndpointManager() {
   NEARBY_LOG(INFO, "Initiating shutdown of EndpointManager.");
+  analytics::ThroughputRecorderContainer::GetInstance().Shutdown();
   CountDownLatch latch(1);
   RunOnEndpointManagerThread("bring-down-endpoints", [this, &latch]() {
     NEARBY_LOG(INFO, "Bringing down endpoints");
@@ -491,7 +502,8 @@ int EndpointManager::GetMaxTransmitPacketSize(const std::string& endpoint_id) {
 std::vector<std::string> EndpointManager::SendPayloadChunk(
     const PayloadTransferFrame::PayloadHeader& payload_header,
     const PayloadTransferFrame::PayloadChunk& payload_chunk,
-    const std::vector<std::string>& endpoint_ids) {
+    const std::vector<std::string>& endpoint_ids,
+    PacketMetaData& packet_meta_data) {
   ByteArray bytes =
       parser::ForDataPayloadTransfer(payload_header, payload_chunk);
 
@@ -499,7 +511,8 @@ std::vector<std::string> EndpointManager::SendPayloadChunk(
       endpoint_ids, bytes, payload_header.id(),
       /*offset=*/payload_chunk.offset(),
       /*packet_type=*/
-      PayloadTransferFrame::PacketType_Name(PayloadTransferFrame::DATA));
+      PayloadTransferFrame::PacketType_Name(PayloadTransferFrame::DATA),
+      packet_meta_data);
 }
 
 // Designed to run asynchronously. It is called from IO thread pools, and
@@ -519,12 +532,14 @@ std::vector<std::string> EndpointManager::SendControlMessage(
     const PayloadTransferFrame::ControlMessage& control,
     const std::vector<std::string>& endpoint_ids) {
   ByteArray bytes = parser::ForControlPayloadTransfer(header, control);
+  PacketMetaData packet_meta_data;
 
   return SendTransferFrameBytes(
       endpoint_ids, bytes, header.id(),
       /*offset=*/control.offset(),
       /*packet_type=*/
-      PayloadTransferFrame::PacketType_Name(PayloadTransferFrame::CONTROL));
+      PayloadTransferFrame::PacketType_Name(PayloadTransferFrame::CONTROL),
+      packet_meta_data);
 }
 
 // @EndpointManagerThread
@@ -532,6 +547,13 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
                                      const std::string& endpoint_id,
                                      bool notify) {
   NEARBY_LOGS(INFO) << "RemoveEndpoint for endpoint " << endpoint_id;
+
+  // Grab the service ID before we destroy the channel.
+  EndpointChannel* channel =
+      channel_manager_->GetChannelForEndpoint(endpoint_id).get();
+  std::string service_id =
+      channel ? channel->GetServiceId() : std::string(kUnknownServiceId);
+
   // Unregistering from channel_manager_ will also serve to terminate
   // the dedicated handler and KeepAlive threads we started when we registered
   // this endpoint.
@@ -541,7 +563,7 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
     // up, we can remove the endpoint from ClientProxy after which there
     // should be no further interactions with the endpoint.
     // (See b/37352254 for history)
-    WaitForEndpointDisconnectionProcessing(client, endpoint_id);
+    WaitForEndpointDisconnectionProcessing(client, service_id, endpoint_id);
 
     client->OnDisconnected(endpoint_id, notify);
     NEARBY_LOGS(INFO) << "Removed endpoint for endpoint " << endpoint_id;
@@ -551,11 +573,13 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
 
 // @EndpointManagerThread
 void EndpointManager::WaitForEndpointDisconnectionProcessing(
-    ClientProxy* client, const std::string& endpoint_id) {
+    ClientProxy* client, const std::string& service_id,
+    const std::string& endpoint_id) {
   NEARBY_LOGS(INFO) << "Wait: client=" << client
+                    << "; service_id=" << service_id
                     << "; endpoint_id=" << endpoint_id;
-  CountDownLatch barrier =
-      NotifyFrameProcessorsOnEndpointDisconnect(client, endpoint_id);
+  CountDownLatch barrier = NotifyFrameProcessorsOnEndpointDisconnect(
+      client, service_id, endpoint_id);
 
   NEARBY_LOGS(INFO)
       << "Waiting for frame processors to disconnect from endpoint "
@@ -571,9 +595,11 @@ void EndpointManager::WaitForEndpointDisconnectionProcessing(
 }
 
 CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
-    ClientProxy* client, const std::string& endpoint_id) {
+    ClientProxy* client, const std::string& service_id,
+    const std::string& endpoint_id) {
   NEARBY_LOGS(INFO) << "NotifyFrameProcessorsOnEndpointDisconnect: client="
-                    << client << "; endpoint_id=" << endpoint_id;
+                    << client << "; service_id=" << service_id
+                    << "; endpoint_id=" << endpoint_id;
   MutexLock lock(&frame_processors_lock_);
   auto total_size = frame_processors_.size();
   NEARBY_LOGS(INFO) << "Total frame processors: " << total_size;
@@ -586,7 +612,7 @@ CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
                       << "; frame type=" << V1Frame::FrameType_Name(item.first);
     if (processor) {
       valid++;
-      processor->OnEndpointDisconnect(client, endpoint_id, barrier);
+      processor->OnEndpointDisconnect(client, service_id, endpoint_id, barrier);
     } else {
       barrier.CountDown();
     }
@@ -603,7 +629,7 @@ CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
 std::vector<std::string> EndpointManager::SendTransferFrameBytes(
     const std::vector<std::string>& endpoint_ids, const ByteArray& bytes,
     std::int64_t payload_id, std::int64_t offset,
-    const std::string& packet_type) {
+    const std::string& packet_type, PacketMetaData& packet_meta_data) {
   std::vector<std::string> failed_endpoint_ids;
   for (const std::string& endpoint_id : endpoint_ids) {
     std::shared_ptr<EndpointChannel> channel =
@@ -622,12 +648,15 @@ std::vector<std::string> EndpointManager::SendTransferFrameBytes(
       continue;
     }
 
-    Exception write_exception = channel->Write(bytes);
+    Exception write_exception = channel->Write(bytes, packet_meta_data);
     if (!write_exception.Ok()) {
       failed_endpoint_ids.push_back(endpoint_id);
       NEARBY_LOGS(INFO) << "Failed to send packet; endpoint_id=" << endpoint_id;
       continue;
     }
+    analytics::ThroughputRecorderContainer::GetInstance()
+        .GetTPRecorder(payload_id, PayloadDirection::OUTGOING_PAYLOAD)
+        ->OnFrameSent(channel->GetMedium(), packet_meta_data);
   }
 
   return failed_endpoint_ids;

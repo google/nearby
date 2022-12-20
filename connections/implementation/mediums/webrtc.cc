@@ -16,20 +16,18 @@
 
 #include <functional>
 #include <memory>
+#include <utility>
 
 #include "absl/functional/bind_front.h"
-#include "absl/strings/str_cat.h"
 #include "absl/time/time.h"
 #include "connections/implementation/mediums/webrtc/session_description_wrapper.h"
 #include "connections/implementation/mediums/webrtc/signaling_frames.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/listeners.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/future.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
-#include "proto/mediums/web_rtc_signaling_frames.pb.h"
 #include "webrtc/api/jsep.h"
 
 namespace location {
@@ -123,11 +121,12 @@ bool WebRtc::StartAcceptingConnections(const std::string& service_id,
 
   // We'll automatically disconnect from Tachyon after 60sec. When this alarm
   // fires, we'll recreate our room so we continue to receive messages.
-  info.restart_tachyon_receive_messages_alarm = CancelableAlarm(
-      "restart_receiving_messages_webrtc",
-      std::bind(&WebRtc::ProcessRestartTachyonReceiveMessages, this,
-                service_id),
-      kRestartReceiveMessagesDuration, &single_thread_executor_);
+  info.restart_tachyon_receive_messages_alarm =
+      std::make_unique<CancelableAlarm>(
+          "restart_receiving_messages_webrtc",
+          std::bind(&WebRtc::ProcessRestartTachyonReceiveMessages, this,
+                    service_id),
+          kRestartReceiveMessagesDuration, &single_thread_executor_);
 
   // Now that we're set up to receive messages, we'll save our state and return
   // a successful result.
@@ -156,9 +155,10 @@ void WebRtc::StopAcceptingConnections(const std::string& service_id) {
   info.signaling_messenger.reset();
 
   // Cancel the scheduled alarm.
-  if (info.restart_tachyon_receive_messages_alarm.IsValid()) {
-    info.restart_tachyon_receive_messages_alarm.Cancel();
-    info.restart_tachyon_receive_messages_alarm = CancelableAlarm();
+  if (info.restart_tachyon_receive_messages_alarm &&
+      info.restart_tachyon_receive_messages_alarm->IsValid()) {
+    info.restart_tachyon_receive_messages_alarm->Cancel();
+    info.restart_tachyon_receive_messages_alarm.reset();
   }
 
   // If we had any in-progress connections that haven't materialized into full
@@ -659,7 +659,7 @@ void WebRtc::ProcessDataChannelOpen(const std::string& service_id,
       accepting_connections_info_.find(service_id);
   if (accepting_connection_entry != accepting_connections_info_.end()) {
     accepting_connection_entry->second.accepted_connection_callback.accepted_cb(
-        socket_wrapper);
+        service_id, socket_wrapper);
     return;
   }
 

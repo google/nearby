@@ -1,0 +1,37 @@
+name: Validate
+
+on: [push, pull_request]
+
+env:
+  FORCE_COLOR: true
+
+jobs:
+  build-swift:
+    name: Build Swift
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+    - name: Build
+      run: swift build
+
+  test-swift:
+    name: Test Swift
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+    - name: Test
+      run: swift test
+
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    - name: Build
+      run: CC=clang CXX=clang++ bazel build --check_visibility=false //connections:core --spawn_strategy=standalone

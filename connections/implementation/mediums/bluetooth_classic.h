@@ -16,6 +16,7 @@
 #define CORE_INTERNAL_MEDIUMS_BLUETOOTH_CLASSIC_H_
 
 #include <cstdint>
+#include <functional>
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
@@ -39,8 +40,8 @@ class BluetoothClassic {
 
   // Callback that is invoked when a new connection is accepted.
   struct AcceptedConnectionCallback {
-    std::function<void(BluetoothSocket socket)> accepted_cb =
-        DefaultCallback<BluetoothSocket>();
+    std::function<void(const std::string& service_id, BluetoothSocket socket)>
+        accepted_cb = DefaultCallback<const std::string&, BluetoothSocket>();
   };
 
   explicit BluetoothClassic(BluetoothRadio& bluetooth_radio);
@@ -76,22 +77,22 @@ class BluetoothClassic {
   bool StopDiscovery() ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Starts a worker thread, creates a BT server socket, associates it with a
-  // service name; in a worker thread repeatedly calls ServerSocket::Accept().
+  // service ID; in a worker thread repeatedly calls ServerSocket::Accept().
   // Any connected sockets returned from Accept() are passed to a callback.
   // Returns true, if server socket was successfully created, false otherwise.
   // Called by server.
-  bool StartAcceptingConnections(const std::string& service_name,
+  bool StartAcceptingConnections(const std::string& service_id,
                                  AcceptedConnectionCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns true, if object is currently running a Accept() loop.
-  bool IsAcceptingConnections(const std::string& service_name)
+  bool IsAcceptingConnections(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Closes server socket corresponding to a service name. This automatically
+  // Closes server socket corresponding to a service ID. This automatically
   // terminates Accept() loop, if it were running.
   // Called by server.
-  bool StopAcceptingConnections(const std::string& service_name)
+  bool StopAcceptingConnections(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns true if this object owns a valid platform implementation.
@@ -112,7 +113,7 @@ class BluetoothClassic {
   // Returns socket instance. On success, BluetoothSocket.IsValid() return true.
   // Called by client.
   BluetoothSocket Connect(BluetoothDevice& bluetooth_device,
-                          const std::string& service_name,
+                          const std::string& service_id,
                           CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -138,19 +139,19 @@ class BluetoothClassic {
   bool IsAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Same as IsAcceptingConnections(), but must be called with mutex_ held.
-  bool IsAcceptingConnectionsLocked(const std::string& service_name)
+  bool IsAcceptingConnectionsLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Returns true, if discoverability is enabled with TurnOnDiscoverability().
   bool IsDiscoverable() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  // Assignes a different name to BT adapter.
+  // Assigns a different name to BT adapter.
   // Returns true if successful. Stores original device name.
   bool ModifyDeviceName(const std::string& device_name)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Changes current scan mode. This is an implementation of
-  // Turn<On/Off>Discoveradility() method. Stores original scan mode.
+  // Turn<On/Off>Discoverability() method. Stores original scan mode.
   bool ModifyScanMode(ScanMode scan_mode) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Restores original device name (the one before the very first call to
@@ -165,12 +166,12 @@ class BluetoothClassic {
   bool IsDiscovering() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Establishes connection to BT service that was might be started on another
-  // device with StartAcceptingConnections() using the same service_name.
+  // device with StartAcceptingConnections() using the same service_id.
   // Blocks until connection is established, or server-side is terminated.
   // Returns socket instance. On success, BluetoothSocket.IsValid() return true.
   // Called by client.
   BluetoothSocket AttemptToConnect(BluetoothDevice& bluetooth_device,
-                                   const std::string& service_name,
+                                   const std::string& service_id,
                                    CancellationFlag* cancellation_flag);
 
   mutable Mutex mutex_;
@@ -195,7 +196,7 @@ class BluetoothClassic {
   // StartAcceptingConnections().
   MultiThreadExecutor accept_loops_runner_{kMaxConcurrentAcceptLoops};
 
-  // A map of service Name -> ServerSocket. If map is non-empty, we
+  // A map of service ID -> ServerSocket. If map is non-empty, we
   // are currently listening for incoming connections.
   // BluetoothServerSocket instances are used from accept_loops_runner_,
   // and thus require pointer stability.

@@ -25,15 +25,15 @@ class InputFileTests : public testing::Test {
   // You can define per-test set-up logic as usual.
   void SetUp() override {
     location::nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
+    auto path = test_utils::GetPayloadPath(payloadId);
 
-    hFile_ = CreateFileA(
-        test_utils::GetPayloadPath(payloadId).c_str(),  // name of the write
-        GENERIC_WRITE,                                  // open for writing
-        0,                                              // do not share
-        NULL,                                           // default security
-        CREATE_ALWAYS,                                  // create new file only
-        FILE_ATTRIBUTE_NORMAL,                          // normal file
-        NULL);                                          // no attr. template
+    hFile_ = CreateFileA(path.c_str(),           // name of the write
+                         GENERIC_WRITE,          // open for writing
+                         0,                      // do not share
+                         NULL,                   // default security
+                         CREATE_ALWAYS,          // create new file only
+                         FILE_ATTRIBUTE_NORMAL,  // normal file
+                         NULL);                  // no attr. template
 
     if (hFile_ == INVALID_HANDLE_VALUE) {
       NEARBY_LOG(ERROR,

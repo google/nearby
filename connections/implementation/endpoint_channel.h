@@ -19,16 +19,17 @@
 #include <string>
 
 #include "securegcm/d2d_connection_context_v1.h"
-#include "absl/time/clock.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
+#include "connections/implementation/analytics/packet_meta_data.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/mutex.h"
-#include "internal/analytics/analytics_recorder.h"
-#include "proto/connections_enums.pb.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
+
+using analytics::PacketMetaData;
 
 class EndpointChannel {
  public:
@@ -39,9 +40,15 @@ class EndpointChannel {
   virtual ExceptionOr<ByteArray>
   Read() = 0;  // throws Exception::IO, Exception::INTERRUPTED
 
+  virtual ExceptionOr<ByteArray> Read(PacketMetaData& packet_meta_data) = 0;
+
   virtual Exception Write(const ByteArray& data) = 0;  // throws Exception::IO
 
+  virtual Exception Write(
+      const ByteArray& data,
+      PacketMetaData& packet_meta_data) = 0;  // throws Exception::IO
   // Closes this EndpointChannel, without tracking the closure in analytics.
+
   virtual void Close() = 0;
 
   // Closes this EndpointChannel and records the closure with the given reason.
@@ -50,6 +57,9 @@ class EndpointChannel {
   // Returns a one-word type descriptor for the concrete EndpointChannel
   // implementation that can be used in log messages; eg: BLUETOOTH, BLE, WIFI.
   virtual std::string GetType() const = 0;
+
+  // Returns the service that uses this EndpointChannel.
+  virtual std::string GetServiceId() const = 0;
 
   // Returns the name of the EndpointChannel.
   virtual std::string GetName() const = 0;

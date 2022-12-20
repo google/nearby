@@ -18,7 +18,9 @@
 #include <Windows.h>
 #include <stdio.h>
 
+#include <cstdint>
 #include <string>
+#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
@@ -32,11 +34,18 @@ namespace windows {
 using winrt::Windows::Foundation::IInspectable;
 
 std::string uint64_to_mac_address_string(uint64_t bluetoothAddress);
+uint64_t mac_address_string_to_uint64(absl::string_view mac_address);
+
+std::string ipaddr_4bytes_to_dotdecimal_string(absl::string_view ipaddr_4bytes);
+std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s);
 
 // Helpers to windows platform
 std::wstring string_to_wstring(std::string str);
 std::string wstring_to_string(std::wstring wstr);
 ByteArray Sha256(absl::string_view input, size_t size);
+
+// Reads the IPv4 addresses
+std::vector<std::string> GetIpv4Addresses();
 
 namespace Constants {
 // The Id of the Service Name SDP attribute
@@ -52,6 +61,7 @@ const char SdpServiceNameAttributeType = (4 << 3) | 5;
 
 class InspectableReader {
  public:
+  static bool ReadBoolean(IInspectable inspectable);
   static uint16 ReadUint16(IInspectable inspectable);
   static uint32 ReadUint32(IInspectable inspectable);
   static std::string ReadString(IInspectable inspectable);

@@ -32,8 +32,3 @@ cc_proto_library(
     name = "error_code_enums_cc_proto",
     deps = [":error_code_enums_proto"],
 )
-
-filegroup(
-    name = "error_code_enums_proto_config",
-    srcs = ["error_code_enums_proto_config.asciipb"],
-)

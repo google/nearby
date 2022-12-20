@@ -42,6 +42,14 @@ class FeatureFlags {
     absl::Duration bwu_retry_exp_backoff_maximum_delay = absl::Seconds(300);
     // Support sending file and stream payloads starting from a non-zero offset.
     bool enable_send_payload_offset = true;
+    // Provide better bookkeeping for bandwidth upgrade initiation. This is
+    // necessary to properly support multiple BWU mediums, multiple service, and
+    // multiple endpionts.
+    bool support_multiple_bwu_mediums = true;
+    // Ble v2/v1 switch flag: the flag will be removed once v2 refactor is done.
+    bool support_ble_v2 = false;
+    // Allows the code to change the bluetooth radio state
+    bool enable_set_radio_state = false;
   };
 
   static const FeatureFlags& GetInstance() {
@@ -54,10 +62,14 @@ class FeatureFlags {
     return flags_;
   }
 
+  static Flags& GetMutableFlagsForTesting() {
+    return const_cast<FeatureFlags&>(GetInstance()).flags_;
+  }
+
  private:
   FeatureFlags() = default;
 
-  // MediumEnvironment is testing uitl class. Use friend class here to enable
+  // MediumEnvironment is testing util class. Use friend class here to enable
   // SetFlags for feature controlling need in test environment.
   friend class MediumEnvironment;
   void SetFlags(const Flags& flags) ABSL_LOCKS_EXCLUDED(mutex_) {

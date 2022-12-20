@@ -14,11 +14,12 @@
 
 #include "internal/platform/cancelable_alarm.h"
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
+#include <memory>
+
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "internal/platform/atomic_boolean.h"
+#include "internal/platform/atomic_reference.h"
 #include "internal/platform/scheduled_executor.h"
 
 namespace location {
@@ -62,6 +63,18 @@ TEST(CancelableAlarmTest, CancelExpiredAlarmFails) {
   SystemClock::Sleep(absl::Milliseconds(1000));
   EXPECT_TRUE(done.Get());
   EXPECT_FALSE(alarm.Cancel());
+}
+
+TEST(CancelableAlarmTest, CanCreateRecurringAlarm) {
+  ScheduledExecutor alarm_executor;
+  AtomicReference<int> count(0);
+  CancelableAlarm alarm(
+      "test_alarm", [&count]() { count.Set(count.Get() + 1); },
+      absl::Milliseconds(1000), &alarm_executor, /*is_recurring=*/true);
+  // Wait for 2 rounds (>1000ms * 2) and expect the `count` = 2.
+  SystemClock::Sleep(absl::Milliseconds(2800));
+  alarm.Cancel();
+  EXPECT_EQ(count.Get(), 2);
 }
 
 }  // namespace

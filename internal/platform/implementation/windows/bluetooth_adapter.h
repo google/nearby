@@ -16,7 +16,10 @@
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_ADAPTER_H_
 
 #include <guiddef.h>
+#include <windows.h>
 
+#include <functional>
+#include <optional>
 #include <string>
 
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -30,7 +33,8 @@ namespace windows {
 
 // Represents a Bluetooth adapter.
 // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter?view=winrt-20348
-using winrt::Windows::Devices::Bluetooth::IBluetoothAdapter;
+using WindowsBluetoothAdapter =
+    winrt::Windows::Devices::Bluetooth::BluetoothAdapter;
 
 // Represents a radio device on the system.
 // https://docs.microsoft.com/en-us/uwp/api/windows.devices.radios.radio?view=winrt-20348
@@ -71,9 +75,16 @@ class BluetoothAdapter : public api::BluetoothAdapter {
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
   bool SetName(absl::string_view name) override;
+  bool SetName(absl::string_view name, bool persist) override;
 
   // Returns BT MAC address assigned to this adapter.
   std::string GetMacAddress() const override;
+
+  // Returns bluetooth device name from registry
+  std::string GetNameFromRegistry(PHKEY hKey) const;
+
+  // Returns computer name
+  std::string GetNameFromComputerName() const;
 
   void SetOnScanModeChanged(ScanModeCallback callback) {
     if (scan_mode_changed_ == nullptr) {
@@ -81,16 +92,29 @@ class BluetoothAdapter : public api::BluetoothAdapter {
     }
   }
 
+  // Returns true if the Bluetooth hardware supports Bluetooth 5.0 Extended
+  // Advertising
+  bool IsExtendedAdvertisingSupported() const;
+  void RestoreRadioNameIfNecessary();
+
  private:
   void process_error();
-  IBluetoothAdapter windows_bluetooth_adapter_;
+  void StoreRadioNames(absl::string_view original_radio_name,
+                       absl::string_view nearby_radio_name);
+
+  WindowsBluetoothAdapter windows_bluetooth_adapter_;
+  std::string registry_bluetooth_adapter_name_;
 
   IRadio windows_bluetooth_radio_;
-  char *GetGenericBluetoothAdapterInstanceID(void) const;
+  char *GetGenericBluetoothAdapterInstanceID() const;
   void find_and_replace(char *source, const char *strFind,
                         const char *strReplace) const;
   ScanMode scan_mode_ = ScanMode::kNone;
   ScanModeCallback scan_mode_changed_ = nullptr;
+
+  // Used to fake the device name when the device name is longer than android
+  // limitation.
+  std::optional<std::string> device_name_;
 };
 
 }  // namespace windows

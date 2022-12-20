@@ -46,6 +46,40 @@ enum class WifiConnectionStatus {
   kAuthFailure = 3,
 };
 
+// WiFi Band type.
+enum class WifiBandType {
+  kUnknown = 0,
+  kBand24Ghz = 1,
+  kBand5Ghz = 2,
+  kBand6Ghz = 3,
+  kBand60Ghz = 4,
+};
+
+// Native WiFi's capablity parameters
+struct WifiCapability {
+  bool supports_5_ghz = false;
+  bool supports_6_ghz = false;
+  bool support_wifi_direct = false;
+};
+
+// Native WiFi's information parameters
+struct WifiInformation {
+  // Is this WiFi interface connected to AP or not
+  bool is_connected;
+  // AP's SSID if connected
+  std::string ssid;
+  // WiFi LAN BSSID, in the form of a six-byte MAC address: XX:XX:XX:XX:XX:XX
+  std::string bssid;
+  // The frequency of the WiFi LAN AP(in MHz, or -1 is not associated with an AP
+  // over WiFi).
+  std::int32_t ap_frequency;
+  // The interface's IP address in the form of "xx.xx.xx.xx"
+  std::string ip_address_dot_decimal;
+  // IP address, in network byte order: the highest order byte of the address is
+  // in byte[0].
+  std::string ip_address_4_bytes;
+};
+
 // Represents a WiFi network found during a call to WifiMedium#scan().
 class WifiScanResult {
  public:
@@ -65,6 +99,12 @@ class WifiScanResult {
 class WifiMedium {
  public:
   virtual ~WifiMedium() {}
+
+  virtual bool IsInterfaceValid() const = 0;
+
+  virtual WifiCapability& GetCapability() = 0;
+
+  virtual WifiInformation& GetInformation() = 0;
 
   class ScanResultCallback {
    public:

@@ -25,7 +25,10 @@ proto_library(
 
 java_lite_proto_library(
     name = "nfc_frames_java_proto_lite",
-    visibility = ["//java/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/mediums:__subpackages__"],
+    visibility = [
+        "//java/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/mediums:__subpackages__",
+        "//javatests/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/mediums:__subpackages__",
+    ],
     deps = [":nfc_frames_proto"],
 )
 
@@ -55,8 +58,8 @@ proto_library(
 cc_proto_library(
     name = "web_rtc_signaling_frames_cc_proto",
     visibility = [
+        "//:__subpackages__",
         "//location/nearby/connections:__subpackages__",
-        "//third_party/nearby:__subpackages__",
     ],
     deps = [":web_rtc_signaling_frames_proto"],
 )
@@ -91,9 +94,4 @@ cc_proto_library(
     deps = [
         ":ble_frames_proto",
     ],
-)
-
-filegroup(
-    name = "ble_frames_portable_proto_config",
-    srcs = ["ble_frames_portable_proto_config.asciipb"],
 )

@@ -36,7 +36,7 @@ constexpr int BleAdvertisementHeader::kDefaultPsmValue;
 constexpr int BleAdvertisementHeader::kPsmValueByteLength;
 
 BleAdvertisementHeader::BleAdvertisementHeader(
-    Version version, bool extended_advertisement, int num_slots,
+    Version version, bool support_extended_advertisement, int num_slots,
     const ByteArray &service_id_bloom_filter,
     const ByteArray &advertisement_hash, int psm) {
   if (version != Version::kV2 || num_slots < 0 ||
@@ -46,7 +46,7 @@ BleAdvertisementHeader::BleAdvertisementHeader(
   }
 
   version_ = version;
-  extended_advertisement_ = extended_advertisement;
+  support_extended_advertisement_ = support_extended_advertisement;
   num_slots_ = num_slots;
   service_id_bloom_filter_ = service_id_bloom_filter;
   advertisement_hash_ = advertisement_hash;
@@ -55,24 +55,25 @@ BleAdvertisementHeader::BleAdvertisementHeader(
 
 BleAdvertisementHeader::BleAdvertisementHeader(
     const ByteArray &ble_advertisement_header_bytes) {
-  if (ble_advertisement_header_bytes.Empty()) {
+  ByteArray advertisement_header_bytes =
+      Base64Utils::Decode(ble_advertisement_header_bytes.AsStringView());
+  if (advertisement_header_bytes.Empty()) {
     NEARBY_LOG(
         ERROR,
         "Cannot deserialize BLEAdvertisementHeader: failed Base64 decoding");
     return;
   }
 
-  if (ble_advertisement_header_bytes.size() < kMinAdvertisementHeaderLength) {
+  if (advertisement_header_bytes.size() < kMinAdvertisementHeaderLength) {
     NEARBY_LOG(ERROR,
                "Cannot deserialize BleAdvertisementHeader: expecting min %u "
                "raw bytes, got %" PRIu64 " instead",
                kMinAdvertisementHeaderLength,
-               ble_advertisement_header_bytes.size());
+               advertisement_header_bytes.size());
     return;
   }
 
-  ByteArray advertisement_header_bytes{ble_advertisement_header_bytes};
-  BaseInputStream base_input_stream{advertisement_header_bytes};
+  BaseInputStream base_input_stream(advertisement_header_bytes);
   // The first 1 byte is supposed to be the version and number of slots.
   auto version_and_num_slots_byte =
       static_cast<char>(base_input_stream.ReadUint8());
@@ -87,7 +88,7 @@ BleAdvertisementHeader::BleAdvertisementHeader(
     return;
   }
   // The next 1 bit is supposed to be the extended advertisement flag.
-  extended_advertisement_ =
+  support_extended_advertisement_ =
       ((version_and_num_slots_byte & kExtendedAdvertismentBitMask) >> 4) == 1;
   // The lower 4 bits are supposed to be the number of slots.
   num_slots_ = static_cast<int>(version_and_num_slots_byte & kNumSlotsBitmask);
@@ -120,7 +121,7 @@ BleAdvertisementHeader::operator ByteArray() const {
       (static_cast<char>(version_) << 5) & kVersionBitmask;
   // The next 1 bit is extended advertisement flag.
   version_and_num_slots_byte |=
-      (static_cast<char>(extended_advertisement_) << 4) &
+      (static_cast<char>(support_extended_advertisement_) << 4) &
       kExtendedAdvertismentBitMask;
   // The next 5 bits are the number of slots.
   version_and_num_slots_byte |=
@@ -139,13 +140,14 @@ BleAdvertisementHeader::operator ByteArray() const {
                                  std::string(psm_bytes));
   // clang-format on
 
-  return ByteArray(std::move(out));
+  return ByteArray(Base64Utils::Encode(ByteArray(std::move(out))));
 }
 
 bool BleAdvertisementHeader::operator==(
     const BleAdvertisementHeader &rhs) const {
   return GetVersion() == rhs.GetVersion() &&
-         IsExtendedAdvertisement() == rhs.IsExtendedAdvertisement() &&
+         IsSupportExtendedAdvertisement() ==
+             rhs.IsSupportExtendedAdvertisement() &&
          GetNumSlots() == rhs.GetNumSlots() &&
          GetServiceIdBloomFilter() == rhs.GetServiceIdBloomFilter() &&
          GetAdvertisementHash() == rhs.GetAdvertisementHash() &&

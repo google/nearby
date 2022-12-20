@@ -14,39 +14,215 @@
 
 #include "internal/platform/ble_v2.h"
 
+#include <functional>
 #include <memory>
+#include <string>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/count_down_latch.h"
+#include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/medium_environment.h"
 
 namespace location {
 namespace nearby {
 namespace {
 
+using FeatureFlags = FeatureFlags::Flags;
+
+constexpr FeatureFlags kTestCases[] = {
+    FeatureFlags{
+        .enable_cancellation_flag = true,
+    },
+    FeatureFlags{
+        .enable_cancellation_flag = false,
+    },
+};
+
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
 using ::location::nearby::api::ble_v2::GattCharacteristic;
-using ::location::nearby::api::ble_v2::PowerMode;
+using ::location::nearby::api::ble_v2::TxPowerLevel;
+using ::testing::Optional;
 
-constexpr absl::string_view kAdvertisementString{"\x0a\x0b\x0c\x0d"};
-constexpr absl::string_view kCopresenceServiceUuid{"F3FE"};
-constexpr absl::string_view kFastAdvertisementServiceUuid{"FAST"};
-constexpr PowerMode kPowerMode(PowerMode::kHigh);
+constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
+constexpr absl::string_view kAdvertisementString = "\x0a\x0b\x0c\x0d";
+constexpr absl::string_view kAdvertisementHeaderString = "\x0x\x0y\x0z";
+constexpr TxPowerLevel kTxPowerLevel(TxPowerLevel::kHigh);
+constexpr absl::string_view kServiceIDA{
+    "com.google.location.nearby.apps.test.a"};
 
-class BleV2MediumTest : public testing::Test {
+// A stub BlePeripheral implementation.
+class BlePeripheralStub : public api::ble_v2::BlePeripheral {
+ public:
+  explicit BlePeripheralStub(absl::string_view mac_address) {
+    mac_address_ = std::string(mac_address);
+  }
+
+  std::string GetAddress() const override { return mac_address_; }
+
+ private:
+  std::string mac_address_;
+};
+
+class BleV2MediumTest : public ::testing::TestWithParam<FeatureFlags> {
  protected:
-  BleV2MediumTest() { env_.Stop(); }
-
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
-TEST_F(BleV2MediumTest, ConstructorDestructorWorks) {
+TEST_P(BleV2MediumTest, CanConnectToService) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
   env_.Start();
   BluetoothAdapter adapter_a_;
   BluetoothAdapter adapter_b_;
-  BleV2Medium ble_a{adapter_a_};
-  BleV2Medium ble_b{adapter_b_};
+  BleV2Medium ble_a(adapter_a_);
+  BleV2Medium ble_b(adapter_b_);
+  Uuid service_uuid(1234, 5678);
+  std::string service_id(kServiceIDA);
+  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  CountDownLatch found_latch(1);
+  CountDownLatch lost_latch(1);
+
+  BleV2ServerSocket server_socket = ble_b.OpenServerSocket(service_id);
+  EXPECT_TRUE(server_socket.IsValid());
+
+  // Assemble regular advertisement data
+  BleAdvertisementData advertising_data;
+  advertising_data.is_extended_advertisement = false;
+  advertising_data.service_data = {{service_uuid, advertisement_bytes}};
+  (ble_b.StartAdvertising(advertising_data, {.tx_power_level = kTxPowerLevel,
+                                             .is_connectable = true}));
+
+  BleV2Peripheral discovered_peripheral;
+  ble_a.StartScanning(
+      service_uuid, kTxPowerLevel,
+      {
+          .advertisement_found_cb =
+              [&found_latch, &discovered_peripheral](
+                  BleV2Peripheral peripheral,
+                  const BleAdvertisementData& advertisement_data) {
+                discovered_peripheral = std::move(peripheral);
+                found_latch.CountDown();
+              },
+      });
+  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  BleV2Socket socket_a;
+  BleV2Socket socket_b;
+  EXPECT_FALSE(socket_a.IsValid());
+  EXPECT_FALSE(socket_b.IsValid());
+  {
+    CancellationFlag flag;
+    SingleThreadExecutor server_executor;
+    SingleThreadExecutor client_executor;
+    client_executor.Execute(
+        [&ble_a, &socket_a, &service_id,
+         discovered_peripheral = std::move(discovered_peripheral),
+         &server_socket, &flag]() {
+          socket_a = ble_a.Connect(service_id, kTxPowerLevel,
+                                   discovered_peripheral, &flag);
+          if (!socket_a.IsValid()) {
+            server_socket.Close();
+          }
+        });
+    server_executor.Execute([&socket_b, &server_socket]() {
+      socket_b = server_socket.Accept();
+      if (!socket_b.IsValid()) {
+        server_socket.Close();
+      }
+    });
+  }
+  EXPECT_TRUE(socket_a.IsValid());
+  EXPECT_TRUE(socket_b.IsValid());
+  server_socket.Close();
+  env_.Stop();
+}
+
+TEST_P(BleV2MediumTest, CanCancelConnect) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+  env_.Start();
+  BluetoothAdapter adapter_a_;
+  BluetoothAdapter adapter_b_;
+  BleV2Medium ble_a(adapter_a_);
+  BleV2Medium ble_b(adapter_b_);
+  Uuid service_uuid(1234, 5678);
+  std::string service_id(kServiceIDA);
+  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  CountDownLatch found_latch(1);
+  CountDownLatch lost_latch(1);
+
+  BleV2ServerSocket server_socket = ble_b.OpenServerSocket(service_id);
+  EXPECT_TRUE(server_socket.IsValid());
+
+  // Assemble regular advertisement data.
+  BleAdvertisementData advertising_data;
+  advertising_data.is_extended_advertisement = false;
+  advertising_data.service_data = {{service_uuid, advertisement_bytes}};
+  (ble_b.StartAdvertising(advertising_data, {.tx_power_level = kTxPowerLevel,
+                                             .is_connectable = true}));
+
+  BleV2Peripheral discovered_peripheral;
+  ble_a.StartScanning(
+      service_uuid, kTxPowerLevel,
+      {
+          .advertisement_found_cb =
+              [&found_latch, &discovered_peripheral](
+                  BleV2Peripheral peripheral,
+                  const BleAdvertisementData& advertisement_data) {
+                discovered_peripheral = std::move(peripheral);
+                found_latch.CountDown();
+              },
+      });
+  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  BleV2Socket socket_a;
+  BleV2Socket socket_b;
+  EXPECT_FALSE(socket_a.IsValid());
+  EXPECT_FALSE(socket_b.IsValid());
+  {
+    CancellationFlag flag(true);
+    SingleThreadExecutor server_executor;
+    SingleThreadExecutor client_executor;
+    client_executor.Execute(
+        [&ble_a, &socket_a, &service_id,
+         discovered_peripheral = std::move(discovered_peripheral),
+         &server_socket, &flag]() {
+          socket_a = ble_a.Connect(service_id, kTxPowerLevel,
+                                   discovered_peripheral, &flag);
+          if (!socket_a.IsValid()) {
+            server_socket.Close();
+          }
+        });
+    server_executor.Execute([&socket_b, &server_socket]() {
+      socket_b = server_socket.Accept();
+      if (!socket_b.IsValid()) {
+        server_socket.Close();
+      }
+    });
+  }
+  // If FeatureFlag is disabled, Cancelled is false as no-op.
+  if (!feature_flags.enable_cancellation_flag) {
+    EXPECT_TRUE(socket_a.IsValid());
+    EXPECT_TRUE(socket_b.IsValid());
+  } else {
+    EXPECT_FALSE(socket_a.IsValid());
+    EXPECT_FALSE(socket_b.IsValid());
+  }
+  server_socket.Close();
+  env_.Stop();
+}
+
+INSTANTIATE_TEST_SUITE_P(ParametrisedBleMediumTest, BleV2MediumTest,
+                         ::testing::ValuesIn(kTestCases));
+
+TEST_F(BleV2MediumTest, ConstructorDestructorWorks) {
+  env_.Start();
+  BluetoothAdapter adapter_a;
+  BluetoothAdapter adapter_b;
+  BleV2Medium ble_a(adapter_a);
+  BleV2Medium ble_b(adapter_b);
 
   // Make sure we can create functional mediums.
   ASSERT_TRUE(ble_a.IsValid());
@@ -57,80 +233,259 @@ TEST_F(BleV2MediumTest, ConstructorDestructorWorks) {
   env_.Stop();
 }
 
-TEST_F(BleV2MediumTest, CanStartFastAdvertising) {
+TEST_F(BleV2MediumTest, CanStartFastScanningAndFastAdvertising) {
   env_.Start();
-  BluetoothAdapter adapter_;
-  BleV2Medium ble{adapter_};
-  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
-  std::string fast_advertisement_service_uuid(kFastAdvertisementServiceUuid);
+  BluetoothAdapter adapter_a;
+  BluetoothAdapter adapter_b;
+  BleV2Medium ble_a(adapter_a);
+  BleV2Medium ble_b(adapter_b);
+  Uuid service_uuid(1234, 5678);
+  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  CountDownLatch found_latch(1);
 
+  EXPECT_TRUE(ble_a.StartScanning(
+      service_uuid, kTxPowerLevel,
+      {
+          .advertisement_found_cb =
+              [&found_latch](BleV2Peripheral peripheral,
+                             const BleAdvertisementData& advertisement_data) {
+                found_latch.CountDown();
+              },
+      }));
+
+  // Fail to start extended advertisement due to g3 Ble medium does not support.
   BleAdvertisementData advertising_data;
-  advertising_data.is_connectable = true;
-  advertising_data.tx_power_level =
-      BleAdvertisementData::kUnspecifiedTxPowerLevel;
-  advertising_data.service_uuids.insert(fast_advertisement_service_uuid);
+  advertising_data.is_extended_advertisement = true;
+  advertising_data.service_data.insert({service_uuid, advertisement_bytes});
+  EXPECT_FALSE(ble_b.StartAdvertising(
+      advertising_data,
+      {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
 
-  // Assemble fast advertising and scan response data.
-  BleAdvertisementData scan_response_data;
-  scan_response_data.is_connectable = true;
-  scan_response_data.tx_power_level =
-      BleAdvertisementData::kUnspecifiedTxPowerLevel;
-  scan_response_data.service_data.insert(
-      {fast_advertisement_service_uuid, advertisement_bytes});
+  // Succeed to start regular advertisement.
+  advertising_data.is_extended_advertisement = false;
+  advertising_data.service_data = {{service_uuid, advertisement_bytes}};
+  EXPECT_TRUE(ble_b.StartAdvertising(
+      advertising_data,
+      {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
 
+  EXPECT_TRUE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
   EXPECT_TRUE(
-      ble.StartAdvertising(advertising_data, scan_response_data, kPowerMode));
-
-  EXPECT_TRUE(ble.StopAdvertising());
+      env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_advertising);
+  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(ble_a.StopScanning());
+  EXPECT_TRUE(ble_b.StopAdvertising());
+  EXPECT_FALSE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
+  EXPECT_FALSE(
+      env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_advertising);
   env_.Stop();
 }
 
-TEST_F(BleV2MediumTest, CanStartAdvertising) {
+TEST_F(BleV2MediumTest, CanStartScanningAndAdvertising) {
   env_.Start();
-  BluetoothAdapter adapter_;
-  BleV2Medium ble{adapter_};
-  ByteArray advertisement_header_bytes{std::string(kAdvertisementString)};
-  std::string fast_advertisement_service_uuid(kFastAdvertisementServiceUuid);
+  BluetoothAdapter adapter_a;
+  BluetoothAdapter adapter_b;
+  BleV2Medium ble_a(adapter_a);
+  BleV2Medium ble_b(adapter_b);
+  Uuid service_uuid(1234, 5678);
+  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  ByteArray advertisement_header_bytes{std::string(kAdvertisementHeaderString)};
+  CountDownLatch found_latch(1);
 
-  // Assemble regular advertising and scan response data.
+  EXPECT_TRUE(ble_a.StartScanning(
+      service_uuid, kTxPowerLevel,
+      {
+          .advertisement_found_cb =
+              [&found_latch](BleV2Peripheral peripheral,
+                             const BleAdvertisementData& advertisement_data) {
+                found_latch.CountDown();
+              },
+      }));
+
+  // Fail to start extended advertisement due to g3 Ble medium does not support.
   BleAdvertisementData advertising_data;
-  advertising_data.is_connectable = true;
-  advertising_data.tx_power_level =
-      BleAdvertisementData::kUnspecifiedTxPowerLevel;
+  advertising_data.is_extended_advertisement = true;
+  advertising_data.service_data.insert({service_uuid, advertisement_bytes});
+  EXPECT_FALSE(ble_b.StartAdvertising(
+      advertising_data,
+      {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
 
-  BleAdvertisementData scan_response_data;
-  scan_response_data.is_connectable = true;
-  scan_response_data.tx_power_level =
-      BleAdvertisementData::kUnspecifiedTxPowerLevel;
-  scan_response_data.service_uuids.insert(fast_advertisement_service_uuid);
-  scan_response_data.service_data.insert(
-      {fast_advertisement_service_uuid, advertisement_header_bytes});
+  // Succeed to start regular advertisement.
+  advertising_data.is_extended_advertisement = false;
+  advertising_data.service_data = {{service_uuid, advertisement_header_bytes}};
+  EXPECT_TRUE(ble_b.StartAdvertising(
+      advertising_data,
+      {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
 
+  EXPECT_TRUE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
   EXPECT_TRUE(
-      ble.StartAdvertising(advertising_data, scan_response_data, kPowerMode));
+      env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_advertising);
+  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(ble_a.StopScanning());
+  EXPECT_TRUE(ble_b.StopAdvertising());
 
-  EXPECT_TRUE(ble.StopAdvertising());
+  EXPECT_FALSE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
+  EXPECT_FALSE(
+      env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_advertising);
+  env_.UnregisterBleV2Medium(*ble_a.GetImpl());
+  env_.UnregisterBleV2Medium(*ble_b.GetImpl());
+  EXPECT_EQ(env_.GetBleV2MediumStatus(*ble_a.GetImpl()), absl::nullopt);
+  EXPECT_EQ(env_.GetBleV2MediumStatus(*ble_b.GetImpl()), absl::nullopt);
+  env_.Stop();
+}
+
+TEST_F(BleV2MediumTest, StartThenStopAsyncScanning) {
+  env_.Start();
+  BluetoothAdapter adapter_a;
+  BleV2Medium ble_a(adapter_a);
+  Uuid service_uuid(1234, 5678);
+  CountDownLatch found_latch_a(1);
+
+  std::function<void(api::ble_v2::BlePeripheral&, BleAdvertisementData)>
+      advertisement_found_cb_a =
+          [&found_latch_a](api::ble_v2::BlePeripheral& peripheral,
+                           BleAdvertisementData advertisement_data) -> void {
+    found_latch_a.CountDown();
+  };
+
+  std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> scanning_session_a =
+      ble_a.StartScanning(
+          service_uuid, kTxPowerLevel,
+          api::ble_v2::BleMedium::ScanningCallback{
+              .advertisement_found_cb = advertisement_found_cb_a,
+          });
+
+  EXPECT_TRUE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
+  api::ble_v2::BleOperationStatus stop_result =
+      scanning_session_a->stop_scanning();
+
+  EXPECT_EQ(stop_result, api::ble_v2::BleOperationStatus::kSucceeded);
+
+  EXPECT_FALSE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
+  env_.Stop();
+}
+TEST_F(BleV2MediumTest, CanStartMultipleAsyncScanning) {
+  env_.Start();
+  BluetoothAdapter adapter_a;
+  BluetoothAdapter adapter_b;
+  BleV2Medium ble_a(adapter_a);
+  BleV2Medium ble_b(adapter_b);
+  Uuid service_uuid(1234, 5678);
+  CountDownLatch found_latch_a(1);
+  CountDownLatch found_latch_b(1);
+
+  std::function<void(api::ble_v2::BlePeripheral&, BleAdvertisementData)>
+      advertisement_found_cb_a =
+          [&found_latch_a](api::ble_v2::BlePeripheral& peripheral,
+                           BleAdvertisementData advertisement_data) -> void {
+    found_latch_a.CountDown();
+  };
+
+  std::function<void(api::ble_v2::BlePeripheral&, BleAdvertisementData)>
+      advertisement_found_cb_b =
+          [&found_latch_b](api::ble_v2::BlePeripheral& peripheral,
+                           BleAdvertisementData advertisement_data) -> void {
+    found_latch_b.CountDown();
+  };
+
+  std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> scanning_session_a =
+      ble_a.StartScanning(
+          service_uuid, kTxPowerLevel,
+          api::ble_v2::BleMedium::ScanningCallback{
+              .advertisement_found_cb = advertisement_found_cb_a,
+          });
+  std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> scanning_session_b =
+      ble_b.StartScanning(
+          service_uuid, kTxPowerLevel,
+          api::ble_v2::BleMedium::ScanningCallback{
+              .advertisement_found_cb = advertisement_found_cb_b,
+          });
+
+  EXPECT_TRUE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
+  EXPECT_TRUE(env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_scanning);
+
+  api::ble_v2::BleOperationStatus stop_result_a =
+      scanning_session_a->stop_scanning();
+  EXPECT_EQ(stop_result_a, api::ble_v2::BleOperationStatus::kSucceeded);
+  api::ble_v2::BleOperationStatus stop_result_b =
+      scanning_session_b->stop_scanning();
+  EXPECT_EQ(stop_result_b, api::ble_v2::BleOperationStatus::kSucceeded);
+
+  EXPECT_FALSE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
+  EXPECT_FALSE(env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_scanning);
+  env_.Stop();
+}
+
+TEST_F(BleV2MediumTest, CanStartAsyncScanningAndAdvertising) {
+  env_.Start();
+  BluetoothAdapter adapter_a;
+  BluetoothAdapter adapter_b;
+  BleV2Medium ble_a(adapter_a);
+  BleV2Medium ble_b(adapter_b);
+  Uuid service_uuid(1234, 5678);
+  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  ByteArray advertisement_header_bytes{std::string(kAdvertisementHeaderString)};
+  CountDownLatch found_latch(1);
+
+  std::function<void(api::ble_v2::BlePeripheral&, BleAdvertisementData)>
+      advertisement_found_cb =
+          [&found_latch](api::ble_v2::BlePeripheral& peripheral,
+                         BleAdvertisementData advertisement_data) -> void {
+    found_latch.CountDown();
+  };
+
+  std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> scanning_session =
+      ble_a.StartScanning(service_uuid, kTxPowerLevel,
+                          api::ble_v2::BleMedium::ScanningCallback{
+                              .advertisement_found_cb = advertisement_found_cb,
+                          });
+
+  // Succeed to start regular advertisement.
+  BleAdvertisementData advertising_data;
+  advertising_data.is_extended_advertisement = false;
+  advertising_data.service_data = {{service_uuid, advertisement_header_bytes}};
+  EXPECT_TRUE(ble_b.StartAdvertising(
+      advertising_data,
+      {.tx_power_level = kTxPowerLevel, .is_connectable = true}));
+
+  EXPECT_TRUE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
+  EXPECT_TRUE(
+      env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_advertising);
+  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  api::ble_v2::BleOperationStatus stop_scanning_result =
+      scanning_session->stop_scanning();
+  EXPECT_EQ(stop_scanning_result, api::ble_v2::BleOperationStatus::kSucceeded);
+
+  EXPECT_TRUE(ble_b.StopAdvertising());
+  EXPECT_FALSE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
+  EXPECT_FALSE(
+      env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_advertising);
+  env_.UnregisterBleV2Medium(*ble_a.GetImpl());
+  env_.UnregisterBleV2Medium(*ble_b.GetImpl());
+  EXPECT_EQ(env_.GetBleV2MediumStatus(*ble_a.GetImpl()), absl::nullopt);
+  EXPECT_EQ(env_.GetBleV2MediumStatus(*ble_b.GetImpl()), absl::nullopt);
   env_.Stop();
 }
 
 TEST_F(BleV2MediumTest, CanStartGattServer) {
   env_.Start();
-  BluetoothAdapter adapter_;
-  BleV2Medium ble{adapter_};
-  std::string characteristic_uuid = "characteristic_uuid";
+  BluetoothAdapter adapter;
+  BleV2Medium ble(adapter);
+  Uuid service_uuid(1234, 5678);
+  Uuid characteristic_uuid(5678, 1234);
 
-  std::unique_ptr<GattServer> gatt_server = ble.StartGattServer({});
+  std::unique_ptr<GattServer> gatt_server =
+      ble.StartGattServer(/*ServerGattConnectionCallback=*/{});
 
   ASSERT_NE(gatt_server, nullptr);
 
-  std::vector<GattCharacteristic::Permission> permissions{
+  std::vector<GattCharacteristic::Permission> permissions = {
       GattCharacteristic::Permission::kRead};
-  std::vector<GattCharacteristic::Property> properties{
+  std::vector<GattCharacteristic::Property> properties = {
       GattCharacteristic::Property::kRead};
+  // NOLINTNEXTLINE(google3-legacy-absl-backports)
   absl::optional<GattCharacteristic> gatt_characteristic =
-      gatt_server->CreateCharacteristic(std::string(kCopresenceServiceUuid),
-                                        characteristic_uuid, permissions,
-                                        properties);
+      gatt_server->CreateCharacteristic(service_uuid, characteristic_uuid,
+                                        permissions, properties);
 
   ASSERT_TRUE(gatt_characteristic.has_value());
 
@@ -144,21 +499,59 @@ TEST_F(BleV2MediumTest, CanStartGattServer) {
   env_.Stop();
 }
 
-TEST_F(BleV2MediumTest, CanStartScanning) {
+TEST_F(BleV2MediumTest, GattClientConnectToGattServerWorks) {
   env_.Start();
-  BluetoothAdapter adapter_;
-  BleV2Medium ble{adapter_};
+  BluetoothAdapter adapter_a;
+  BluetoothAdapter adapter_b;
+  BleV2Medium ble_a(adapter_a);
+  BleV2Medium ble_b(adapter_b);
+  Uuid service_uuid(1234, 5678);
+  Uuid characteristic_uuid(5678, 1234);
 
-  EXPECT_TRUE(ble.StartScanning(
-      {std::string(kCopresenceServiceUuid)}, kPowerMode,
-      {
-          .advertisement_found_cb =
-              [](BleV2Peripheral peripheral,
-                 const BleAdvertisementData& advertisement_data) {
-                // nothing to do for now
-              },
-      }));
-  EXPECT_TRUE(ble.StopScanning());
+  // Start GattServer
+  std::unique_ptr<GattServer> gatt_server =
+      ble_a.StartGattServer(/*ServerGattConnectionCallback=*/{});
+
+  ASSERT_NE(gatt_server, nullptr);
+
+  std::vector<GattCharacteristic::Permission> permissions = {
+      GattCharacteristic::Permission::kRead};
+  std::vector<GattCharacteristic::Property> properties = {
+      GattCharacteristic::Property::kRead};
+  // Add characteristic and its value.
+  // NOLINTNEXTLINE(google3-legacy-absl-backports)
+  absl::optional<GattCharacteristic> server_characteristic =
+      gatt_server->CreateCharacteristic(service_uuid, characteristic_uuid,
+                                        permissions, properties);
+  ASSERT_TRUE(server_characteristic.has_value());
+  ByteArray server_value("any");
+  EXPECT_TRUE(
+      gatt_server->UpdateCharacteristic(*server_characteristic, server_value));
+
+  // Start GattClient
+  auto ble_peripheral =
+      std::make_unique<BlePeripheralStub>(/*mac_address=*/"ABCD");
+  std::unique_ptr<GattClient> gatt_client = ble_b.ConnectToGattServer(
+      BleV2Peripheral(ble_peripheral.get()), kTxPowerLevel,
+      /*ClientGattConnectionCallback=*/{});
+
+  ASSERT_NE(gatt_client, nullptr);
+
+  // Discover service and characteristics.
+  EXPECT_TRUE(gatt_client->DiscoverServiceAndCharacteristics(
+      service_uuid, {characteristic_uuid}));
+
+  // NOLINTNEXTLINE(google3-legacy-absl-backports)
+  absl::optional<GattCharacteristic> client_characteristic =
+      gatt_client->GetCharacteristic(service_uuid, characteristic_uuid);
+  ASSERT_TRUE(client_characteristic.has_value());
+
+  // Can read the characteristic value.
+  EXPECT_THAT(gatt_client->ReadCharacteristic(*client_characteristic),
+              Optional(server_value));
+
+  gatt_client->Disconnect();
+  gatt_server->Stop();
   env_.Stop();
 }
 

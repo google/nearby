@@ -16,20 +16,23 @@
 #define CORE_INTERNAL_PAYLOAD_MANAGER_H_
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/internal_payload.h"
 #include "connections/listeners.h"
 #include "connections/payload.h"
 #include "connections/status.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/atomic_reference.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/mutex.h"
 
@@ -59,13 +62,17 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   void OnIncomingFrame(OfflineFrame& offline_frame,
                        const std::string& from_endpoint_id,
                        ClientProxy* to_client,
-                       proto::connections::Medium current_medium) override;
+                       proto::connections::Medium current_medium,
+                       analytics::PacketMetaData& packet_meta_data) override;
 
   // @EndpointManagerThread
-  void OnEndpointDisconnect(ClientProxy* client, const std::string& endpoint_id,
+  void OnEndpointDisconnect(ClientProxy* client, const std::string& service_id,
+                            const std::string& endpoint_id,
                             CountDownLatch barrier) override;
 
   void DisconnectFromEndpointManager();
+
+  void SetCustomSavePath(ClientProxy* client, const std::string& path);
 
  private:
   // Information about an endpoint for a particular payload.
@@ -267,7 +274,9 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
   void ProcessDataPacket(ClientProxy* to_client,
                          const std::string& from_endpoint_id,
-                         PayloadTransferFrame& payload_transfer_frame);
+                         PayloadTransferFrame& payload_transfer_frame,
+                         Medium medium,
+                         analytics::PacketMetaData& packet_meta_data);
   void ProcessControlPacket(ClientProxy* to_client,
                             const std::string& from_endpoint_id,
                             PayloadTransferFrame& payload_transfer_frame);
@@ -305,6 +314,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       PayloadTransferFrame::PayloadHeader::PayloadType type);
 
   mutable Mutex mutex_;
+  std::string custom_save_path_;
   AtomicBoolean shutdown_{false};
   std::unique_ptr<CountDownLatch> shutdown_barrier_;
   int send_payload_count_ = 0;

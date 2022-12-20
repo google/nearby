@@ -14,64 +14,18 @@
 
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 
-#include "internal/platform/implementation/windows/cancelable.h"
+#include <crtdbg.h>
+
+#include <algorithm>
+#include <memory>
+#include <utility>
+
+#include "absl/time/time.h"
 #include "internal/platform/logging.h"
 
 namespace location {
 namespace nearby {
 namespace windows {
-
-class ScheduledExecutorException : public std::runtime_error {
- public:
-  ScheduledExecutorException() : std::runtime_error("") {}
-  ScheduledExecutorException(const std::string& message)
-      : std::runtime_error(message) {}
-  virtual const char* what() const throw() {
-    return "WaitableTimer creation failed";
-  }
-};
-
-class TimerData {
- public:
-  TimerData(ScheduledExecutor* scheduledExecutor,
-            std::function<void()> runnable, HANDLE waitableTimer)
-      : scheduled_executor_(scheduledExecutor),
-        runnable_(std::move(runnable)),
-        waitable_timer_handle_(waitableTimer) {}
-
-  ScheduledExecutor* GetScheduledExecutor() { return scheduled_executor_; }
-  std::function<void()> GetRunnable() { return runnable_; }
-  HANDLE GetWaitableTimerHandle() { return waitable_timer_handle_; }
-
- private:
-  ScheduledExecutor* scheduled_executor_;
-  std::function<void()> runnable_;
-  HANDLE waitable_timer_handle_;
-};
-
-void WINAPI ScheduledExecutor::_TimerProc(LPVOID argToCompletionRoutine,
-                                          DWORD dwTimerLowValue,
-                                          DWORD dwTimerHighValue) {
-  TimerData* timerData;
-  DWORD threadId = GetCurrentThreadId();
-
-  _ASSERT(argToCompletionRoutine != NULL);
-  if (NULL == argToCompletionRoutine) {
-    NEARBY_LOGS(ERROR)
-        << __func__
-        << ": TimerProc argument argToCompletionRoutine was null.";
-
-    return;
-  }
-
-  timerData = static_cast<TimerData*>(argToCompletionRoutine);
-  timerData->GetScheduledExecutor()->Execute(timerData->GetRunnable());
-
-  // Get the waitable timer and destroy it
-  CloseHandle(timerData->GetWaitableTimerHandle());
-  free(timerData);
-  return;
-}
 
 ScheduledExecutor::ScheduledExecutor()
     : executor_(std::make_unique<nearby::windows::Executor>()),
@@ -84,46 +38,25 @@ ScheduledExecutor::ScheduledExecutor()
 std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
     Runnable&& runnable, absl::Duration duration) {
   if (shut_down_) {
-    NEARBY_LOGS(ERROR)
-        << __func__
-        << ": Attempt to Schedule on a shut down executor.";
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Attempt to Schedule on a shut down executor.";
 
     return nullptr;
   }
 
-  // Create the waitable timer
-  // Create a name for this timer
-  // TODO: (jfcarroll) construct a timer name based on ??
-  char buffer[TIMER_NAME_BUFFER_SIZE];
+  // Cleans completed tasks
+  std::remove_if(
+      scheduled_tasks_.begin(), scheduled_tasks_.end(),
+      [](std::shared_ptr<ScheduledTask>& task) { return task->IsDone(); });
 
-  snprintf(buffer, TIMER_NAME_BUFFER_SIZE, "PID:%ld", GetCurrentProcessId());
+  std::shared_ptr<ScheduledTask> task =
+      std::make_shared<ScheduledTask>(std::move(runnable), duration);
 
-  HANDLE waitableTimer = CreateWaitableTimerA(NULL, true, buffer);
-
-  if (waitableTimer == NULL) {
-    throw ScheduledExecutorException("WaitableTimer creation failed");
-  }
-
-  waitable_timers_.push_back(waitableTimer);
-
-  // Create the delay value - due time
-  LARGE_INTEGER dueTime;
-  dueTime.QuadPart = -(absl::ToChronoNanoseconds(duration).count() / 100);
-
-  TimerData* timerData = new TimerData(this, runnable, waitableTimer);
-
-  BOOL result = SetWaitableTimer(waitableTimer, &dueTime, 0, _TimerProc,
-                                 timerData, false);
-
-  if (result == 0) {
-    NEARBY_LOGS(ERROR) << "Error: " << __func__ << ": Failed to set the timer.";
-    return nullptr;
-  }
-
-  return std::make_shared<nearby::windows::Cancelable>(waitableTimer);
+  scheduled_tasks_.push_back(task);
+  executor_->Execute([task]() { task->Start(); });
+  return task;
 }
 
-// https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html#execute-java.lang.Runnable-
 void ScheduledExecutor::Execute(Runnable&& runnable) {
   if (shut_down_) {
     NEARBY_LOGS(ERROR) << __func__
@@ -134,10 +67,14 @@ void ScheduledExecutor::Execute(Runnable&& runnable) {
   executor_->Execute(std::move(runnable));
 }
 
-// https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html#shutdown--
 void ScheduledExecutor::Shutdown() {
   if (!shut_down_) {
     shut_down_ = true;
+    for (auto& task : scheduled_tasks_) {
+      task->Cancel();
+    }
+
+    scheduled_tasks_.clear();
     executor_->Shutdown();
     return;
   }

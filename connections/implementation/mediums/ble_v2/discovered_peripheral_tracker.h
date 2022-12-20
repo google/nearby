@@ -46,15 +46,23 @@ class DiscoveredPeripheralTracker {
   struct AdvertisementFetcher {
     // Fetches relevant GATT advertisements for the peripheral found in {@link
     // DiscoveredPeripheralTracker#ProcessFoundBleAdvertisement(}.
-    std::function<std::unique_ptr<AdvertisementReadResult>(
-        int num_slots, int psm,
+    //
+    // `advertisement_read_result` is in/out mutable reference that the caller
+    // should take of its life cycle and pass a valid reference.
+    std::function<void(
+        BleV2Peripheral peripheral, int num_slots, int psm,
         const std::vector<std::string>& interesting_service_ids,
-        AdvertisementReadResult* advertisement_read_result,
-        BleV2Peripheral& peripheral)>
-        fetch_advertisements = [](int, int, const std::vector<std::string>&,
-                                  AdvertisementReadResult*, BleV2Peripheral&)
-        -> std::unique_ptr<AdvertisementReadResult> { return nullptr; };
+        mediums::AdvertisementReadResult& advertisement_read_result)>
+        fetch_advertisements =
+            DefaultCallback<BleV2Peripheral, int, int,
+                            const std::vector<std::string>&,
+                            mediums::AdvertisementReadResult&>();
   };
+
+  explicit DiscoveredPeripheralTracker(
+      bool is_extended_advertisement_available = false)
+      : is_extended_advertisement_available_(
+            is_extended_advertisement_available) {}
 
   // Starts tracking discoveries for a particular service Id.
   //
@@ -63,13 +71,13 @@ class DiscoveredPeripheralTracker {
   //                                   events.
   // fast_advertisement_service_uuid - The service UUID to look for fast
   //                                   advertisements on.
-  // Note: fast_advertisement_service_uuid can be empty string to indicate
+  // Note: fast_advertisement_service_uuid can be empty UUID to indicate
   // that `fast_advertisement_service_uuid` will be ignored for regular
   // advertisement.
   void StartTracking(
       const std::string& service_id,
       const DiscoveredPeripheralCallback& discovered_peripheral_callback,
-      const std::string& fast_advertisement_service_uuid)
+      const Uuid& fast_advertisement_service_uuid)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Stops tracking discoveries for a particular service Id.
@@ -85,7 +93,7 @@ class DiscoveredPeripheralTracker {
   //                         processed.
   void ProcessFoundBleAdvertisement(
       BleV2Peripheral peripheral,
-      const api::ble_v2::BleAdvertisementData& advertisement_data,
+      api::ble_v2::BleAdvertisementData advertisement_data,
       AdvertisementFetcher advertisement_fetcher) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Processes the set of lost GATT advertisements and notifies the client of
@@ -107,7 +115,7 @@ class DiscoveredPeripheralTracker {
 
     // Used to check for fast advertisements delivered through BLE advertisement
     // service data, under the given UUID.
-    std::string fast_advertisement_service_uuid;
+    Uuid fast_advertisement_service_uuid;
   };
 
   // A container to hold the related informations for a GATT advertisement.
@@ -126,10 +134,20 @@ class DiscoveredPeripheralTracker {
     // advertisement alone. Entries are modified every time a GATT
     // advertisement's advertisement header is seen.
     std::string mac_address;
+
+    // A proxy BlePeripheral for found/lost disovery callback.
+    BleV2Peripheral peripheral;
   };
 
   // Clears stale data from any previous sessions.
   void ClearDataForServiceId(const std::string& service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Returns true if `advertisement_data` is AdvertisementHeader and is marked
+  // as exented_advertisement. This is to avoid reading advertisement from GATT
+  // connection, which has been advertised by extended advertisement.
+  bool IsSkippableGattAdvertisement(
+      const api::ble_v2::BleAdvertisementData& advertisement_data)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Clears out all data related to the provided GATT advertisement. This
@@ -147,7 +165,7 @@ class DiscoveredPeripheralTracker {
   // Handles the legacy fast advertisement or the extended fast/regular
   // advertisement.
   void HandleAdvertisement(
-      const BleV2Peripheral& peripheral,
+      BleV2Peripheral peripheral,
       const api::ble_v2::BleAdvertisementData& advertisement_data)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -164,15 +182,16 @@ class DiscoveredPeripheralTracker {
   // Returns BleAdvertisementHeader, it may be replaced if the header is mock
   // and there's a psm value in advertisement.
   BleAdvertisementHeader HandleRawGattAdvertisements(
+      BleV2Peripheral peripheral,
       const BleAdvertisementHeader& advertisement_header,
       const std::vector<const ByteArray*>& gatt_advertisement_bytes_list,
-      const std::string& service_uuid) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      const Uuid& service_uuid) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Returns a map of service IDs to GATT advertisements who belong to a tracked
   // service ID.
   absl::flat_hash_map<std::string, BleAdvertisement> ParseRawGattAdvertisements(
       const std::vector<const ByteArray*>& gatt_advertisement_bytes_list,
-      const std::string& service_uuid) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      const Uuid& service_uuid) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Returns true if `new_psm` is not default value and different with
   // `old_psm`.
@@ -190,8 +209,9 @@ class DiscoveredPeripheralTracker {
 
   // Handles the advertisement header for regular advertisement.
   void HandleAdvertisementHeader(
+      BleV2Peripheral peripheral,
       const api::ble_v2::BleAdvertisementData& advertisement_data,
-      BleV2Peripheral& peripheral, AdvertisementFetcher advertisement_fetcher)
+      AdvertisementFetcher advertisement_fetcher)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Extracts the advertisement header byte array from `AdvertisementData`.
@@ -217,22 +237,19 @@ class DiscoveredPeripheralTracker {
   // advertisement_fetcher : a fetcher passed from BLE medium to read the
   // advertisemeent from BLE characteristics by GATT server.
   std::vector<const ByteArray*> FetchRawAdvertisements(
+      BleV2Peripheral peripheral,
       const BleAdvertisementHeader& advertisement_header,
-      BleV2Peripheral& peripheral, AdvertisementFetcher advertisement_fetcher)
+      AdvertisementFetcher advertisement_fetcher)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Updates `gatt_advertisement_infos_` map no matter whether we read a new
   // GATT advertisement by the input `advertisement_header` and 'mac_address`.
   void UpdateCommonStateForFoundBleAdvertisement(
-      const BleAdvertisementHeader& advertisement_header,
-      const std::string& mac_address) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Creates BlePeripheral based on the input of advertisement and psm value.
-  BlePeripheral GenerateBlePeripheral(
-      const BleAdvertisement& gatt_advertisement,
-      int psm = BleAdvertisementHeader::kDefaultPsmValue);
+      const BleAdvertisementHeader& advertisement_header)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Mutex mutex_;
+  bool is_extended_advertisement_available_;
 
   // ------------ SERVICE ID MAPS ------------
   // Entries in these maps all follow the same lifecycle. Entries are added in

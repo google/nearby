@@ -15,6 +15,9 @@
 #ifndef CORE_INTERNAL_BWU_HANDLER_H_
 #define CORE_INTERNAL_BWU_HANDLER_H_
 
+#include <functional>
+#include <string>
+
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
@@ -31,36 +34,6 @@ using BwuNegotiationFrame = BandwidthUpgradeNegotiationFrame;
 class BwuHandler {
  public:
   using UpgradePathInfo = parser::UpgradePathInfo;
-
-  virtual ~BwuHandler() = default;
-
-  // Called by the Initiator to setup the upgraded medium for this endpoint (if
-  // that hasn't already been done), and returns a serialized UpgradePathInfo
-  // that can be sent to the Responder.
-  // @BwuHandlerThread
-  virtual ByteArray InitializeUpgradedMediumForEndpoint(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id) = 0;
-
-  // Called to revert any state changed by the Initiator to setup the upgraded
-  // medium for an endpoint.
-  // @BwuHandlerThread
-  virtual void Revert() = 0;
-
-  // Called by the Responder to setup the upgraded medium for this endpoint (if
-  // that hasn't already been done) using the UpgradePathInfo sent by the
-  // Initiator, and returns a new EndpointChannel for the upgraded medium.
-  // @BwuHandlerThread
-  virtual std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info) = 0;
-
-  // Returns the upgrade medium of the BwuHandler.
-  // @BwuHandlerThread
-  virtual Medium GetUpgradeMedium() const = 0;
-  virtual void OnEndpointDisconnect(ClientProxy* client,
-                                    const std::string& endpoint_id) = 0;
 
   class IncomingSocket {
    public:
@@ -80,6 +53,47 @@ class BwuHandler {
                        std::unique_ptr<IncomingSocketConnection> connection)>
         incoming_connection_cb;
   };
+
+  virtual ~BwuHandler() = default;
+
+  // Called by the Initiator to setup the upgraded medium for this endpoint (if
+  // that hasn't already been done), and returns a serialized UpgradePathInfo
+  // that can be sent to the Responder.
+  // @BwuHandlerThread
+  virtual ByteArray InitializeUpgradedMediumForEndpoint(
+      ClientProxy* client, const std::string& service_id,
+      const std::string& endpoint_id) = 0;
+
+  // Called to revert any state changed by the Initiator to set up the upgraded
+  // medium for an endpoint. Reverts for _all_ services. Use
+  // RevertInitiatorState(service_id, endpoint_id) for a more fine-grained
+  // approach.
+  // @BwuHandlerThread
+  virtual void RevertInitiatorState() = 0;
+
+  // Called to revert any state changed by the Initiator to set up the upgraded
+  // medium for an endpoint.
+  // @BwuHandlerThread
+  virtual void RevertInitiatorState(const std::string& service_id,
+                                    const std::string& endpoint_id) = 0;
+
+  virtual void RevertResponderState(const std::string& service_id) = 0;
+
+  // Called by the Responder to set up the upgraded medium for this endpoint (if
+  // that hasn't already been done) using the UpgradePathInfo sent by the
+  // Initiator, and returns a new EndpointChannel for the upgraded medium.
+  // @BwuHandlerThread
+  virtual std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
+      ClientProxy* client, const std::string& service_id,
+      const std::string& endpoint_id,
+      const UpgradePathInfo& upgrade_path_info) = 0;
+
+  // Returns the upgrade medium of the BwuHandler.
+  // @BwuHandlerThread
+  virtual Medium GetUpgradeMedium() const = 0;
+
+  virtual void OnEndpointDisconnect(ClientProxy* client,
+                                    const std::string& endpoint_id) = 0;
 };
 
 }  // namespace connections

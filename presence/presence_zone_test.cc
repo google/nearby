@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/presence/presence_zone.h"
+#include "presence/presence_zone.h"
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "third_party/nearby/presence/device_motion.h"
+#include "presence/device_motion.h"
 
 namespace nearby {
 namespace presence {
@@ -39,7 +39,7 @@ static const float kTestMaxAngleDegrees = 20;
 static const float kTestConfidence = 0.1;
 
 static const RangeType kDefaultRangeType = RangeType::kRangeUnknown;
-static const RangeType kTestRangeType = RangeType::kClose;
+static const RangeType kTestRangeType = RangeType::kFar;
 
 static const DistanceBoundary kDefaultDistanceBoundary;
 static const DistanceBoundary kTestDistanceBoundary = {

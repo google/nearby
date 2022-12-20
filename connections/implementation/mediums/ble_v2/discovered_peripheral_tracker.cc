@@ -15,6 +15,7 @@
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker.h"
 
 #include <algorithm>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <utility>
@@ -25,6 +26,7 @@
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
 #include "connections/implementation/mediums/ble_v2/bloom_filter.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/mutex_lock.h"
 
 namespace location {
@@ -35,14 +37,14 @@ namespace mediums {
 void DiscoveredPeripheralTracker::StartTracking(
     const std::string& service_id,
     const DiscoveredPeripheralCallback& discovered_peripheral_callback,
-    const std::string& fast_advertisement_service_uuid) {
+    const Uuid& fast_advertisement_service_uuid) {
   MutexLock lock(&mutex_);
 
   ServiceIdInfo service_id_info = {
       .discovered_peripheral_callback =
           std::move(discovered_peripheral_callback),
       .lost_entity_tracker =
-          absl::make_unique<LostEntityTracker<BleAdvertisement>>(),
+          std::make_unique<LostEntityTracker<BleAdvertisement>>(),
       .fast_advertisement_service_uuid = fast_advertisement_service_uuid};
 
   // Replace if key exists.
@@ -66,8 +68,7 @@ void DiscoveredPeripheralTracker::StopTracking(const std::string& service_id) {
 
 void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
     BleV2Peripheral peripheral,
-    const ::location::nearby::api::ble_v2::BleAdvertisementData&
-        advertisement_data,
+    ::location::nearby::api::ble_v2::BleAdvertisementData advertisement_data,
     AdvertisementFetcher advertisement_fetcher) {
   MutexLock lock(&mutex_);
 
@@ -84,8 +85,14 @@ void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
     return;
   }
 
+  if (IsSkippableGattAdvertisement(advertisement_data)) {
+    NEARBY_LOGS(INFO)
+        << "Ignore GATT advertisement and wait for extended advertisement.";
+    return;
+  }
+
   HandleAdvertisement(peripheral, advertisement_data);
-  HandleAdvertisementHeader(advertisement_data, /*mutated=*/peripheral,
+  HandleAdvertisementHeader(peripheral, advertisement_data,
                             std::move(advertisement_fetcher));
 }
 
@@ -103,25 +110,49 @@ void DiscoveredPeripheralTracker::ProcessLostGattAdvertisements() {
     // Clear the map state for each lost GATT advertisement and report it to the
     // client.
     for (const auto& gatt_advertisement : lost_gatt_advertisements) {
-      ClearGattAdvertisement(gatt_advertisement);
-
-      BlePeripheral peripheral = GenerateBlePeripheral(gatt_advertisement);
-      if (peripheral.IsValid()) {
-        discovered_peripheral_callback.peripheral_lost_cb(peripheral,
-                                                          service_id);
+      const auto it = gatt_advertisement_infos_.find(gatt_advertisement);
+      if (it != gatt_advertisement_infos_.end()) {
+        BleV2Peripheral lost_peripheral = it->second.peripheral;
+        if (lost_peripheral.IsValid()) {
+          lost_peripheral.SetId(ByteArray(gatt_advertisement));
+          discovered_peripheral_callback.peripheral_lost_cb(
+              std::move(lost_peripheral), service_id,
+              gatt_advertisement.GetData(),
+              gatt_advertisement.IsFastAdvertisement());
+        }
       }
+      ClearGattAdvertisement(gatt_advertisement);
     }
   }
 }
 
 void DiscoveredPeripheralTracker::ClearDataForServiceId(
     const std::string& service_id) {
+  std::vector<BleAdvertisement> advertisement_list;
   for (const auto& it : gatt_advertisement_infos_) {
-    if (it.second.service_id != service_id) {
-      continue;
+    if (it.second.service_id == service_id) {
+      advertisement_list.push_back(it.first);
     }
-    ClearGattAdvertisement(it.first);
   }
+
+  for (auto const& advertisement : advertisement_list) {
+    ClearGattAdvertisement(advertisement);
+  }
+}
+
+bool DiscoveredPeripheralTracker::IsSkippableGattAdvertisement(
+    const api::ble_v2::BleAdvertisementData& advertisement_data) {
+  if (!is_extended_advertisement_available_) {
+    // Don't skip any advertisement if the scanner doesn't support extended
+    // advertisement.
+    return false;
+  }
+
+  BleAdvertisementHeader advertisement_header(
+      ExtractAdvertisementHeaderBytes(advertisement_data));
+
+  return advertisement_header.IsValid() &&
+         advertisement_header.IsSupportExtendedAdvertisement();
 }
 
 void DiscoveredPeripheralTracker::ClearGattAdvertisement(
@@ -155,7 +186,7 @@ void DiscoveredPeripheralTracker::ClearGattAdvertisement(
 }
 
 void DiscoveredPeripheralTracker::HandleAdvertisement(
-    const BleV2Peripheral& peripheral,
+    BleV2Peripheral peripheral,
     const location::nearby::api::ble_v2::BleAdvertisementData&
         advertisement_data) {
   ByteArray advertisement_bytes =
@@ -171,20 +202,20 @@ void DiscoveredPeripheralTracker::HandleAdvertisement(
   // First filter out kCopresenceServiceUuid and see if any Caller UUID
   // existed; if not then just take the kCopresenceServiceUuid as
   // |service_uuid|.
-  std::vector<std::string> extracted_uuids;
+  absl::flat_hash_map<Uuid, location::nearby::ByteArray> extracted_uuids;
   // Filter out kCoprsence service uuid.
-  std::remove_copy_if(advertisement_data.service_uuids.begin(),
-                      advertisement_data.service_uuids.end(),
-                      std::back_inserter(extracted_uuids),
-                      [](const std::string& advertisement_data_service_uuid) {
-                        return advertisement_data_service_uuid ==
-                               bleutils::kCopresenceServiceUuid;
-                      });
-  std::string service_uuid;
+  std::remove_copy_if(
+      advertisement_data.service_data.begin(),
+      advertisement_data.service_data.end(),
+      std::inserter(extracted_uuids, extracted_uuids.end()),
+      [](const std::pair<const Uuid, location::nearby::ByteArray>& pair) {
+        return pair.first == bleutils::kCopresenceServiceUuid;
+      });
+  Uuid service_uuid;
   if (!extracted_uuids.empty()) {
-    service_uuid = extracted_uuids.front();
+    service_uuid = extracted_uuids.begin()->first;
   } else {
-    service_uuid = std::string(bleutils::kCopresenceServiceUuid);
+    service_uuid = bleutils::kCopresenceServiceUuid;
   }
 
   // Create a header tied to this fast advertisement. This helps us track the
@@ -195,12 +226,11 @@ void DiscoveredPeripheralTracker::HandleAdvertisement(
   // Process the fast advertisement like we would a GATT advertisement and
   // insert a placeholder AdvertisementReadResult.
   advertisement_read_results_.insert(
-      {advertisement_header, absl::make_unique<AdvertisementReadResult>()});
+      {advertisement_header, std::make_unique<AdvertisementReadResult>()});
 
   BleAdvertisementHeader new_advertisement_header = HandleRawGattAdvertisements(
-      advertisement_header, {&advertisement_bytes}, service_uuid);
-  UpdateCommonStateForFoundBleAdvertisement(new_advertisement_header,
-                                            /*mac_address=*/peripheral.GetId());
+      peripheral, advertisement_header, {&advertisement_bytes}, service_uuid);
+  UpdateCommonStateForFoundBleAdvertisement(new_advertisement_header);
 }
 
 ByteArray DiscoveredPeripheralTracker::ExtractInterestingAdvertisementBytes(
@@ -210,9 +240,9 @@ ByteArray DiscoveredPeripheralTracker::ExtractInterestingAdvertisementBytes(
   // advertisements are contained within this BLE advertisement.
   for (const auto& item : service_id_infos_) {
     const ServiceIdInfo& service_id_info = item.second;
-    // Check if there's service data for this fast advertisement
-    // service UUID. If so, we can short-circuit since all BLE
-    // advertisements can contain at most ONE fast advertisement.
+    // Check if there's service data for this fast advertisement service UUID.
+    // If so, we can short-circuit since all BLE advertisements can contain at
+    // most ONE fast advertisement.
     const auto sd_it = advertisement_data.service_data.find(
         service_id_info.fast_advertisement_service_uuid);
     if (sd_it != advertisement_data.service_data.end()) {
@@ -238,9 +268,10 @@ BleAdvertisementHeader DiscoveredPeripheralTracker::CreateAdvertisementHeader(
 }
 
 BleAdvertisementHeader DiscoveredPeripheralTracker::HandleRawGattAdvertisements(
+    BleV2Peripheral peripheral,
     const BleAdvertisementHeader& advertisement_header,
     const std::vector<const ByteArray*>& gatt_advertisement_bytes_list,
-    const std::string& service_uuid) {
+    const Uuid& service_uuid) {
   absl::flat_hash_map<std::string, BleAdvertisement>
       parsed_gatt_advertisements = ParseRawGattAdvertisements(
           gatt_advertisement_bytes_list, service_uuid);
@@ -283,11 +314,13 @@ BleAdvertisementHeader DiscoveredPeripheralTracker::HandleRawGattAdvertisements(
                              << service_id;
         continue;
       }
-      BlePeripheral discovered_ble_peripheral =
-          GenerateBlePeripheral(gatt_advertisement, new_psm);
-      if (discovered_ble_peripheral.IsValid()) {
+      if (peripheral.IsValid()) {
+        peripheral.SetPsm(new_psm);
+        BleV2Peripheral discovered_peripheral = peripheral;
+        discovered_peripheral.SetId(ByteArray(gatt_advertisement));
         sii_it->second.discovered_peripheral_callback.peripheral_discovered_cb(
-            discovered_ble_peripheral, service_id, gatt_advertisement.GetData(),
+            std::move(discovered_peripheral), service_id,
+            gatt_advertisement.GetData(),
             gatt_advertisement.IsFastAdvertisement());
       }
     } else if (old_advertisement_header.GetPsm() !=
@@ -310,7 +343,8 @@ BleAdvertisementHeader DiscoveredPeripheralTracker::HandleRawGattAdvertisements(
     GattAdvertisementInfo gatt_advertisement_info = {
         .service_id = service_id,
         .advertisement_header = new_advertisement_header,
-        .mac_address = {}};
+        .mac_address = peripheral.GetAddress(),
+        .peripheral = peripheral};
     gatt_advertisement_infos_.insert_or_assign(
         gatt_advertisement, std::move(gatt_advertisement_info));
   }
@@ -324,7 +358,7 @@ BleAdvertisementHeader DiscoveredPeripheralTracker::HandleRawGattAdvertisements(
 absl::flat_hash_map<std::string, BleAdvertisement>
 DiscoveredPeripheralTracker::ParseRawGattAdvertisements(
     const std::vector<const ByteArray*>& gatt_advertisement_bytes_list,
-    const std::string& service_uuid) {
+    const Uuid& service_uuid) {
   absl::flat_hash_map<std::string, BleAdvertisement>
       parsed_gatt_advertisements = {};
 
@@ -353,14 +387,15 @@ DiscoveredPeripheralTracker::ParseRawGattAdvertisements(
 
       // service_id_hash is null here (mediums advertisement) because we already
       // have a UUID in the fast advertisement.
-      if (gatt_advertisement.IsFastAdvertisement() && !service_uuid.empty()) {
+      if (gatt_advertisement.IsFastAdvertisement() && !service_uuid.IsEmpty()) {
         const auto sii_it = service_id_infos_.find(service_id);
         if (sii_it != service_id_infos_.end()) {
           if (sii_it->second.fast_advertisement_service_uuid == service_uuid) {
             NEARBY_LOGS(INFO)
                 << "This GATT advertisement:"
                 << absl::BytesToHexString(gatt_advertisement_bytes->data())
-                << " is a fast advertisement and matched UUID=" << service_uuid
+                << " is a fast advertisement and matched UUID="
+                << service_uuid.Get16BitAsString()
                 << " in a map with service_id=" << service_id;
             parsed_gatt_advertisements.insert({service_id, gatt_advertisement});
           }
@@ -402,10 +437,7 @@ bool DiscoveredPeripheralTracker::ShouldRemoveHeader(
   // remove the physical header for the new incoming regular extended
   // advertisement. Otherwise, it make the device to fetch advertisement when
   // received a physical header again.
-  // TODO(b/213835576) : Implement API to fetch the support for extended
-  // advertisement from platform impl.
-  bool is_extended_advertisement_available = false;
-  if (is_extended_advertisement_available) {
+  if (is_extended_advertisement_available_) {
     if (!IsDummyAdvertisementHeader(old_advertisement_header) &&
         IsDummyAdvertisementHeader(new_advertisement_header)) {
       return false;
@@ -432,9 +464,10 @@ bool DiscoveredPeripheralTracker::IsDummyAdvertisementHeader(
 }
 
 void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
+    BleV2Peripheral peripheral,
     const location::nearby::api::ble_v2::BleAdvertisementData&
         advertisement_data,
-    BleV2Peripheral& peripheral, AdvertisementFetcher advertisement_fetcher) {
+    AdvertisementFetcher advertisement_fetcher) {
   // Attempt to parse the advertisement header.
   BleAdvertisementHeader advertisement_header(
       ExtractAdvertisementHeaderBytes(advertisement_data));
@@ -458,20 +491,19 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
   if (ShouldReadRawAdvertisementFromServer(advertisement_header)) {
     // Determine whether or not we need to read a fresh GATT advertisement.
     std::vector<const ByteArray*> gatt_advertisement_bytes_list =
-        FetchRawAdvertisements(advertisement_header,
-                               /*mutated=*/peripheral,
+        FetchRawAdvertisements(peripheral, advertisement_header,
                                std::move(advertisement_fetcher));
     if (!gatt_advertisement_bytes_list.empty()) {
-      HandleRawGattAdvertisements(advertisement_header,
-                                  gatt_advertisement_bytes_list, "");
+      HandleRawGattAdvertisements(peripheral, advertisement_header,
+                                  gatt_advertisement_bytes_list,
+                                  /*service_uuid=*/{});
     }
   }
 
   // Regardless of whether or not we read a new GATT advertisement, the maps
   // should now be up-to-date. With this information, do some general
   // housekeeping.
-  UpdateCommonStateForFoundBleAdvertisement(advertisement_header,
-                                            /*mac_address=*/peripheral.GetId());
+  UpdateCommonStateForFoundBleAdvertisement(advertisement_header);
 }
 
 ByteArray DiscoveredPeripheralTracker::ExtractAdvertisementHeaderBytes(
@@ -557,42 +589,30 @@ bool DiscoveredPeripheralTracker::ShouldReadRawAdvertisementFromServer(
 
 std::vector<const ByteArray*>
 DiscoveredPeripheralTracker::FetchRawAdvertisements(
+    BleV2Peripheral peripheral,
     const BleAdvertisementHeader& advertisement_header,
-    BleV2Peripheral& peripheral, AdvertisementFetcher advertisement_fetcher) {
+    AdvertisementFetcher advertisement_fetcher) {
   // Fetch the raw GATT advertisements and store the results.
-  AdvertisementReadResult* advertisement_read_result = nullptr;
-  const auto it = advertisement_read_results_.find(advertisement_header);
-  if (it != advertisement_read_results_.end()) {
-    advertisement_read_result = it->second.get();
+  auto& result = advertisement_read_results_[advertisement_header];
+  if (result == nullptr) {
+    result = std::make_unique<mediums::AdvertisementReadResult>();
   }
 
   std::vector<std::string> service_ids;
   std::transform(service_id_infos_.begin(), service_id_infos_.end(),
                  std::back_inserter(service_ids),
                  [](auto& kv) { return kv.first; });
-  std::unique_ptr<AdvertisementReadResult> read_result =
-      advertisement_fetcher.fetch_advertisements(
-          advertisement_header.GetNumSlots(), advertisement_header.GetPsm(),
-          service_ids, advertisement_read_result,
-          /*mutated=*/peripheral);
-  if (!read_result) {
-    return {};
-  }
+  advertisement_fetcher.fetch_advertisements(
+      std::move(peripheral), advertisement_header.GetNumSlots(),
+      advertisement_header.GetPsm(), service_ids, *result);
 
-  auto iterator_and_result_pair = advertisement_read_results_.insert_or_assign(
-      advertisement_header, std::move(read_result));
-  // Take those results and return all the advertisements we were able to read.
-  std::vector<const ByteArray*> advertisement_bytes_list;
-  if (iterator_and_result_pair.second) {
-    advertisement_bytes_list =
-        iterator_and_result_pair.first->second->GetAdvertisements();
-  }
-  return advertisement_bytes_list;
+  // Take those results and return all the advertisements we were able to
+  // read.
+  return result->GetAdvertisements();
 }
 
 void DiscoveredPeripheralTracker::UpdateCommonStateForFoundBleAdvertisement(
-    const BleAdvertisementHeader& advertisement_header,
-    const std::string& mac_address) {
+    const BleAdvertisementHeader& advertisement_header) {
   const auto ga_it = gatt_advertisements_.find(advertisement_header);
   if (ga_it == gatt_advertisements_.end()) {
     NEARBY_LOGS(INFO)
@@ -607,7 +627,7 @@ void DiscoveredPeripheralTracker::UpdateCommonStateForFoundBleAdvertisement(
     if (gai_it == gatt_advertisement_infos_.end()) {
       continue;
     }
-    GattAdvertisementInfo& gatt_advertisement_info = gai_it->second;
+    const GattAdvertisementInfo& gatt_advertisement_info = gai_it->second;
     const auto sii_it =
         service_id_infos_.find(gatt_advertisement_info.service_id);
     if (sii_it != service_id_infos_.end()) {
@@ -620,16 +640,8 @@ void DiscoveredPeripheralTracker::UpdateCommonStateForFoundBleAdvertisement(
         continue;
       }
       lost_entity_tracker->RecordFoundEntity(gatt_advertisement);
-
-      gatt_advertisement_info.mac_address = mac_address;
-      gatt_advertisement_infos_[gatt_advertisement] = gatt_advertisement_info;
     }
   }
-}
-
-BlePeripheral DiscoveredPeripheralTracker::GenerateBlePeripheral(
-    const BleAdvertisement& gatt_advertisement, int psm) {
-  return BlePeripheral(ByteArray(gatt_advertisement), psm);
 }
 
 }  // namespace mediums

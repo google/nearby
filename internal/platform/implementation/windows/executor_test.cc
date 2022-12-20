@@ -17,16 +17,26 @@
 #include <algorithm>
 #include <utility>
 
+#include "gtest/gtest.h"
+#include "absl/synchronization/blocking_counter.h"
+#include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
+#include "absl/time/time.h"
 #include "internal/platform/implementation/windows/test_data.h"
 
-#include "gtest/gtest.h"
+namespace location {
+namespace nearby {
+namespace windows {
+namespace {
+
+constexpr absl::Duration kWaitTimeout = absl::Milliseconds(200);
 
 TEST(ExecutorTests, SingleThreadedExecutorSucceeds) {
+  absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>();
+  auto executor = std::make_unique<Executor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -35,11 +45,13 @@ TEST(ExecutorTests, SingleThreadedExecutorSucceeds) {
   threadIds->push_back(GetCurrentThreadId());
 
   // Act
-  executor->Execute([&output, &threadIds]() {
+  executor->Execute([&]() {
     threadIds->push_back(GetCurrentThreadId());
     output.append(RUNNABLE_0_TEXT.c_str());
+    notification.Notify();
   });
 
+  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   executor->Shutdown();
 
   //  Assert
@@ -56,8 +68,7 @@ TEST(ExecutorTests, SingleThreadedExecutorAfterShutdownFails) {
   // Arrange
   std::string expected("");
 
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>();
+  std::unique_ptr<Executor> executor = std::make_unique<Executor>();
   std::unique_ptr<std::string> output = std::make_unique<std::string>();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -83,11 +94,11 @@ TEST(ExecutorTests, SingleThreadedExecutorAfterShutdownFails) {
 }
 
 TEST(ExecutorTests, SingleThreadedExecutorExecuteNullSucceeds) {
+  absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>();
+  auto executor = std::make_unique<Executor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -97,12 +108,14 @@ TEST(ExecutorTests, SingleThreadedExecutorExecuteNullSucceeds) {
 
   // Act
   executor->Execute(nullptr);
-  executor->Execute([&output, &threadIds]() {
+  executor->Execute([&]() {
     threadIds->push_back(GetCurrentThreadId());
     output.append(RUNNABLE_0_TEXT.c_str());
+    notification.Notify();
   });
   executor->Execute(nullptr);
 
+  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   executor->Shutdown();
 
   //  Assert
@@ -116,11 +129,12 @@ TEST(ExecutorTests, SingleThreadedExecutorExecuteNullSucceeds) {
 }
 
 TEST(ExecutorTests, SingleThreadedExecutorMultipleTasksSucceeds) {
+  absl::BlockingCounter block_count(5);
+
   // Arrange
   std::string expected(RUNNABLE_ALL_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>();
+  auto executor = std::make_unique<Executor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -130,14 +144,16 @@ TEST(ExecutorTests, SingleThreadedExecutorMultipleTasksSucceeds) {
 
   // Act
   for (int index = 0; index < 5; index++) {
-    executor->Execute([&output, &threadIds, index]() {
+    executor->Execute([&, index]() {
       threadIds->push_back(GetCurrentThreadId());
       char buffer[128];
       snprintf(buffer, sizeof(buffer), "%s%d, ", RUNNABLE_TEXT.c_str(), index);
       output.append(std::string(buffer));
+      block_count.DecrementCount();
     });
   }
 
+  block_count.Wait();
   executor->Shutdown();
 
   //  Assert
@@ -157,11 +173,12 @@ TEST(ExecutorTests, SingleThreadedExecutorMultipleTasksSucceeds) {
 }
 
 TEST(ExecutorTests, MultiThreadedExecutorSingleTaskSucceeds) {
+  absl::Notification notification;
+
   //  Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>(2);
+  auto executor = std::make_unique<Executor>(2);
 
   //  Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -172,11 +189,13 @@ TEST(ExecutorTests, MultiThreadedExecutorSingleTaskSucceeds) {
   threadIds->push_back(GetCurrentThreadId());
 
   //  Act
-  executor->Execute([output, &threadIds]() {
+  executor->Execute([&, output]() {
     threadIds->push_back(GetCurrentThreadId());
     output->append(RUNNABLE_0_TEXT.c_str());
+    notification.Notify();
   });
 
+  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   executor->Shutdown();
 
   //  Assert
@@ -190,9 +209,10 @@ TEST(ExecutorTests, MultiThreadedExecutorSingleTaskSucceeds) {
 }
 
 TEST(ExecutorTests, MultiThreadedExecutorMultipleTasksSucceeds) {
+  absl::BlockingCounter block_count(5);
+
   //  Arrange
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>(2);
+  auto executor = std::make_unique<Executor>(2);
 
   //  Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -204,14 +224,16 @@ TEST(ExecutorTests, MultiThreadedExecutorMultipleTasksSucceeds) {
 
   //  Act
   for (int index = 0; index < 5; index++) {
-    executor->Execute([&output, &threadIds, index]() {
+    executor->Execute([&, index]() {
       threadIds->push_back(GetCurrentThreadId());
       char buffer[128];
       snprintf(buffer, sizeof(buffer), "%s %d, ", RUNNABLE_TEXT.c_str(), index);
       output->append(std::string(buffer));
+      block_count.DecrementCount();
     });
   }
 
+  block_count.Wait();
   executor->Shutdown();
 
   //  Assert
@@ -226,8 +248,7 @@ TEST(ExecutorTests, MultiThreadedExecutorSingleTaskAfterShutdownFails) {
   //  Arrange
   std::string expected("");
 
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>(2);
+  auto executor = std::make_unique<Executor>(2);
 
   //  Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -255,94 +276,49 @@ TEST(ExecutorTests, MultiThreadedExecutorSingleTaskAfterShutdownFails) {
   ASSERT_EQ(*output.get(), expected);
 }
 
-TEST(ExecutorTests, MultiThreadedExecutorNegativeThreadsThrows) {
-  //  Arrange
-  //  Act
-  //  Assert
-  EXPECT_THROW(
-      {
-        try {
-          auto result =
-              std::make_unique<location::nearby::windows::Executor>(-1);
-        } catch (const std::invalid_argument::exception& e) {
-          // and this tests that it has the correct message
-          EXPECT_STREQ(INVALID_ARGUMENT_TEXT, e.what());
-          throw;
-        }
-      },
-      std::invalid_argument);
-}
-
-TEST(ExecutorTests, MultiThreadedExecutorTooManyThreadsThrows) {
-  //  Arrange
-  //  Act
-  //  Assert
-  EXPECT_THROW(
-      {
-        try {
-          auto result =
-              std::make_unique<location::nearby::windows::Executor>(65);
-        } catch (const location::nearby::windows::ThreadPoolException& e) {
-          // and this tests that it has the correct message
-          EXPECT_STREQ(THREADPOOL_MAX_SIZE_TEXT, e.what());
-          throw;
-        }
-      },
-      location::nearby::windows::ThreadPoolException);
-}
-
 TEST(ExecutorTests,
      MultiThreadedExecutorMultipleTasksLargeNumberOfThreadsSucceeds) {
+  absl::BlockingCounter block_count(250);
+
   //  Arrange
-  std::unique_ptr<location::nearby::windows::Executor> executor =
-      std::make_unique<location::nearby::windows::Executor>(
-          MAXIMUM_WAIT_OBJECTS - 1);
+  auto executor = std::make_unique<Executor>(32);
 
   //  Container to note threads that ran
   std::vector<DWORD> threadIds = std::vector<DWORD>();
 
-  std::shared_ptr<std::string> output = std::make_shared<std::string>();
-
   threadIds.push_back(GetCurrentThreadId());
-
-  CRITICAL_SECTION testCriticalSection;
-  InitializeCriticalSection(&testCriticalSection);
-
+  absl::Mutex mutex;
   //  Act
   for (int index = 0; index < 250; index++) {
-    executor->Execute(
-        [output, &threadIds, index, &testCriticalSection]() mutable {
-          DWORD id = GetCurrentThreadId();
+    executor->Execute([&]() mutable {
+      DWORD id = GetCurrentThreadId();
+      {
+        absl::MutexLock lock(&mutex);
+        threadIds.push_back(id);
+      }
 
-          EnterCriticalSection(&testCriticalSection);
+      // Using rand since this is in a critical section
+      // and windows doesn't have a rand_r anyway
+      auto sleepTime = (std::rand() % 101) + 1;  //  NOLINT
 
-          threadIds.push_back(id);
-          output->append(RUNNABLE_TEXT);
-          output->append(std::to_string(index));
-          output->append(RUNNABLE_SEPARATOR_TEXT);
-
-          LeaveCriticalSection(&testCriticalSection);
-          // Using rand since this is in a critical section
-          // and windows doesn't have a rand_r anyway
-          auto sleepTime = (std::rand() % 101) + 1;  //  NOLINT
-
-          Sleep(sleepTime);
-        });
+      Sleep(sleepTime);
+      block_count.DecrementCount();
+    });
   }
 
+  block_count.Wait();
   executor->Shutdown();
-  DeleteCriticalSection(&testCriticalSection);
 
   //  Assert
   //  We should still be on the main thread
   ASSERT_EQ(GetCurrentThreadId(), threadIds.at(0));
 
-  std::sort(threadIds.begin(), threadIds.end());
-  int64_t uniqueIds =
-      std::unique(threadIds.begin(), threadIds.end()) - threadIds.begin();
-
-  ASSERT_EQ(uniqueIds, 64);
   //  We should've run 1 time on the main thread, and 200 times on the
   //  workerThreads
   ASSERT_EQ(threadIds.size(), 251);
 }
+
+}  // namespace
+}  // namespace windows
+}  // namespace nearby
+}  // namespace location

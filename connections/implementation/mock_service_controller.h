@@ -83,6 +83,11 @@ class MockServiceController : public ServiceController {
   MOCK_METHOD(void, DisconnectFromEndpoint,
               (ClientProxy * client, const std::string& endpoint_id),
               (override));
+
+  MOCK_METHOD(void, ShutdownBwuManagerExecutors, (), (override));
+
+  MOCK_METHOD(void, SetCustomSavePath,
+              (ClientProxy * client, const std::string& path), (override));
 };
 
 }  // namespace connections

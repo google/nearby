@@ -20,10 +20,10 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
-#include "internal/platform/medium_environment.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/medium_environment.h"
 
 namespace location {
 namespace nearby {
@@ -49,8 +49,6 @@ constexpr absl::string_view kFastAdvertisementServiceUuid{"\xf3\xfe"};
 class BleTest : public ::testing::TestWithParam<FeatureFlags> {
  protected:
   using DiscoveredPeripheralCallback = BleMedium::DiscoveredPeripheralCallback;
-
-  BleTest() { env_.Stop(); }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
@@ -181,10 +179,10 @@ TEST_F(BleTest, CanConstructValidObject) {
 
   EXPECT_TRUE(ble_a.IsMediumValid());
   EXPECT_TRUE(ble_a.IsAdapterValid());
-  EXPECT_TRUE(ble_a.IsAvailable());
+  EXPECT_FALSE(ble_a.IsAvailable());
   EXPECT_TRUE(ble_b.IsMediumValid());
   EXPECT_TRUE(ble_b.IsAdapterValid());
-  EXPECT_TRUE(ble_b.IsAvailable());
+  EXPECT_FALSE(ble_b.IsAvailable());
   EXPECT_NE(&radio_a.GetBluetoothAdapter(), &radio_b.GetBluetoothAdapter());
   env_.Stop();
 }

@@ -21,7 +21,7 @@
 #include <string>
 
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
-#include "connections/implementation/mediums/webrtc_peer_id.h"
+#include "connections/implementation/mediums/webrtc_peer_id_stub.h"
 #include "connections/implementation/mediums/webrtc_socket_stub.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/listeners.h"

@@ -20,7 +20,7 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-using Medium = location::nearby::proto::connections::Medium;
+using Medium = ::location::nearby::proto::connections::Medium;
 
 // Generic type: allows definition of a feature T for every Medium.
 template <typename T>
@@ -29,18 +29,16 @@ struct MediumSelector {
   T ble;
   T web_rtc;
   T wifi_lan;
+  T wifi_hotspot;
 
-  constexpr MediumSelector() = default;
-  constexpr MediumSelector(const MediumSelector&) = default;
-  constexpr MediumSelector& operator=(const MediumSelector&) = default;
   constexpr bool Any(T value) const {
     return bluetooth == value || ble == value || web_rtc == value ||
-           wifi_lan == value;
+           wifi_lan == value || wifi_hotspot == value;
   }
 
   constexpr bool All(T value) const {
     return bluetooth == value && ble == value && web_rtc == value &&
-           wifi_lan == value;
+           wifi_lan == value && wifi_hotspot == value;
   }
 
   constexpr int Count(T value) const {
@@ -48,6 +46,7 @@ struct MediumSelector {
     if (bluetooth == value) count++;
     if (ble == value) count++;
     if (wifi_lan == value) count++;
+    if (wifi_hotspot == value) count++;
     if (web_rtc == value) count++;
     return count;
   }
@@ -57,6 +56,7 @@ struct MediumSelector {
     ble = value;
     web_rtc = value;
     wifi_lan = value;
+    wifi_hotspot = value;
     return *this;
   }
 
@@ -64,12 +64,15 @@ struct MediumSelector {
     std::vector<Medium> mediums;
     // Mediums are sorted in order of decreasing preference.
     if (wifi_lan == value) mediums.push_back(Medium::WIFI_LAN);
+    if (wifi_hotspot == value) mediums.push_back(Medium::WIFI_HOTSPOT);
     if (web_rtc == value) mediums.push_back(Medium::WEB_RTC);
     if (bluetooth == value) mediums.push_back(Medium::BLUETOOTH);
     if (ble == value) mediums.push_back(Medium::BLE);
     return mediums;
   }
 };
+
+using BooleanMediumSelector = MediumSelector<bool>;
 
 }  // namespace connections
 }  // namespace nearby

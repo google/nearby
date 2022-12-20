@@ -14,23 +14,36 @@
 
 #include "internal/platform/implementation/platform.h"
 
-#include <knownfolders.h>
-#include <shlobj.h>
+// clang-format off
 #include <windows.h>
+#include <winver.h>
+#include <PathCch.h>
+#include <knownfolders.h>
+#include <psapi.h>
+#include <shlobj.h>
+#include <shlwapi.h>
+#include <strsafe.h>
+// clang-format on
 
-#include <xstring>
+#include <algorithm>
+#include <cstddef>
+#include <fstream>
+#include <memory>
+#include <optional>
 #include <sstream>
+#include <string>
 
 #include "internal/platform/implementation/shared/count_down_latch.h"
-#include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/implementation/windows/atomic_boolean.h"
 #include "internal/platform/implementation/windows/atomic_reference.h"
 #include "internal/platform/implementation/windows/ble.h"
+#include "internal/platform/implementation/windows/ble_v2.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_medium.h"
-#include "internal/platform/implementation/windows/cancelable.h"
 #include "internal/platform/implementation/windows/condition_variable.h"
 #include "internal/platform/implementation/windows/executor.h"
+#include "internal/platform/implementation/windows/file.h"
+#include "internal/platform/implementation/windows/file_path.h"
 #include "internal/platform/implementation/windows/future.h"
 #include "internal/platform/implementation/windows/listenable_future.h"
 #include "internal/platform/implementation/windows/log_message.h"
@@ -39,23 +52,83 @@
 #include "internal/platform/implementation/windows/server_sync.h"
 #include "internal/platform/implementation/windows/settable_future.h"
 #include "internal/platform/implementation/windows/submittable_executor.h"
+#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/webrtc.h"
 #include "internal/platform/implementation/windows/wifi.h"
+#include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/wifi_lan.h"
+#include "internal/platform/logging.h"
 
 namespace location {
 namespace nearby {
 namespace api {
-std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
-                                                    std::string& file_name) {
+
+namespace {
+
+std::string GetApplicationName(DWORD pid) {
+  HANDLE handle =
+      OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE,
+                  pid);  // Modify pid to the pid of your application
+  if (!handle) {
+    return "";
+  }
+
+  std::string szProcessName("", MAX_PATH);
+  DWORD len = MAX_PATH;
+
+  if (NULL != handle) {
+    GetModuleFileNameExA(handle, nullptr, szProcessName.data(), len);
+  }
+
+  szProcessName.resize(szProcessName.find_first_of('\0') + 1);
+
+  auto just_the_file_name_and_ext = szProcessName.substr(
+      szProcessName.find_last_of('\\') + 1,
+      szProcessName.length() - szProcessName.find_last_of('\\') + 1);
+
+  return just_the_file_name_and_ext.substr(
+      0, just_the_file_name_and_ext.find_last_of('.'));
+}
+
+}  // namespace
+
+std::string ImplementationPlatform::GetCustomSavePath(
+    const std::string& parent_folder, const std::string& file_name) {
+  auto parent = windows::string_to_wstring(parent_folder);
+  auto file = windows::string_to_wstring(file_name);
+
+  return windows::wstring_to_string(
+      windows::FilePath::GetCustomSavePath(parent, file));
+}
+
+std::string ImplementationPlatform::GetDownloadPath(
+    const std::string& parent_folder, const std::string& file_name) {
+  auto parent = windows::string_to_wstring(std::string(parent_folder));
+  auto file = windows::string_to_wstring(std::string(file_name));
+
+  return windows::wstring_to_string(
+      windows::FilePath::GetDownloadPath(parent, file));
+}
+
+std::string ImplementationPlatform::GetDownloadPath(
+    const std::string& file_name) {
+  std::wstring fake_parent_path;
+  auto file = windows::string_to_wstring(std::string(file_name));
+
+  return windows::wstring_to_string(
+      windows::FilePath::GetDownloadPath(fake_parent_path, file));
+}
+
+std::string ImplementationPlatform::GetAppDataPath(
+    const std::string& file_name) {
   PWSTR basePath;
 
   // Retrieves the full path of a known folder identified by the folder's
   // KNOWNFOLDERID.
   // https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
   SHGetKnownFolderPath(
-      FOLDERID_Downloads,  //  rfid: A reference to the KNOWNFOLDERID that
-                           //  identifies the folder.
+      FOLDERID_ProgramData,  //  rfid: A reference to the KNOWNFOLDERID that
+                             //  identifies the folder.
       0,           // dwFlags: Flags that specify special retrieval options.
       NULL,        // hToken: An access token that represents a particular user.
       &basePath);  // ppszPath: When this method returns, contains the address
@@ -66,56 +139,22 @@ std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
                    // SHGetKnownFolderPath succeeds or not.
   size_t bufferSize;
   wcstombs_s(&bufferSize, NULL, 0, basePath, 0);
-  std::string fullpathUTF8(bufferSize, '\0');
+  std::string fullpathUTF8(bufferSize - 1, '\0');
   wcstombs_s(&bufferSize, fullpathUTF8.data(), bufferSize, basePath, _TRUNCATE);
-  std::string fullPath = fullpathUTF8;
-
-  // If parent_folder starts with a \\ or /, then strip it
-  while (!parent_folder.empty() &&
-         (*parent_folder.begin() == '\\' || *parent_folder.begin() == '/')) {
-    parent_folder.erase(0, 1);
-  }
-
-  // If parent_folder ends with a \\ or /, then strip it
-  while (!parent_folder.empty() &&
-         (*parent_folder.rbegin() == '\\' || *parent_folder.rbegin() == '/')) {
-    parent_folder.erase(parent_folder.size() - 1, 1);
-  }
-
-  // If file_name starts with a \\, then strip it
-  while (!file_name.empty() &&
-         (*file_name.begin() == '\\' || *file_name.begin() == '/')) {
-    file_name.erase(0, 1);
-  }
-
-  // If file_name ends with a \\, then strip it
-  while (!file_name.empty() &&
-         (*file_name.rbegin() == '\\' || *file_name.rbegin() == '/')) {
-    file_name.erase(file_name.size() - 1, 1);
-  }
-
   CoTaskMemFree(basePath);
+
+  // Get the application image name
+  auto app_name = GetApplicationName(GetCurrentProcessId());
+
+  // Check if our folder exists
+  std::replace(fullpathUTF8.begin(), fullpathUTF8.end(), '\\', '/');
 
   std::stringstream path("");
 
-  if (parent_folder.empty() && file_name.empty()) {
-    return fullPath;
-  }
-  if (parent_folder.empty()) {
-    path << fullPath.c_str() << "\\" << file_name.c_str();
-    std::string retVal = path.str();
-    return retVal;
-  }
-  if (file_name.empty()) {
-    path << fullPath.c_str() << "\\" << parent_folder.c_str();
-    std::string retVal = path.str();
-    return retVal;
-  }
+  path << fullpathUTF8.c_str() << "/" << app_name.c_str() << "/"
+       << file_name.data();
 
-  path << fullPath.c_str() << "\\" << parent_folder.c_str() << "\\"
-       << file_name.c_str();
-  std::string retVal = path.str();
-  return retVal;
+  return path.str();
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kWindows; }
@@ -149,13 +188,13 @@ std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     PayloadId payload_id, std::int64_t total_size) {
   std::string parent_folder("");
   std::string file_name(std::to_string(payload_id));
-  return shared::IOFile::CreateInputFile(
-      GetDownloadPath(parent_folder, file_name), total_size);
+  return windows::IOFile::CreateInputFile(GetDownloadPath(file_name),
+                                          total_size);
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
-    absl::string_view file_path, size_t size) {
-  return shared::IOFile::CreateInputFile(file_path, size);
+    const std::string& file_path, size_t size) {
+  return windows::IOFile::CreateInputFile(file_path, size);
 }
 
 ABSL_DEPRECATED("This interface will be deleted in the near future.")
@@ -163,13 +202,26 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     PayloadId payload_id) {
   std::string parent_folder("");
   std::string file_name(std::to_string(payload_id));
-  return shared::IOFile::CreateOutputFile(
+  return windows::IOFile::CreateOutputFile(
       GetDownloadPath(parent_folder, file_name));
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
-    absl::string_view file_path) {
-  return shared::IOFile::CreateOutputFile(file_path);
+    const std::string& file_path) {
+  std::string path(file_path);
+
+  std::string folder_path = path.substr(0, path.find_last_of('/'));
+  // Verifies that a path is a valid directory.
+  // https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathisdirectorya
+  if (!PathIsDirectoryA(folder_path.data())) {
+    // This function creates a file system folder whose fully qualified path is
+    // given by pszPath. If one or more of the intermediate folders do not
+    // exist, they are created as well.
+    // https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shcreatedirectoryexa
+    int result = SHCreateDirectoryExA(0, folder_path.data(), nullptr);
+  }
+
+  return windows::IOFile::CreateOutputFile(file_path);
 }
 
 // TODO(b/184975123): replace with real implementation.
@@ -205,16 +257,15 @@ ImplementationPlatform::CreateBluetoothClassicMedium(
   return absl::make_unique<windows::BluetoothClassicMedium>(adapter);
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
     BluetoothAdapter& adapter) {
-  return absl::make_unique<windows::BleMedium>();
+  return absl::make_unique<windows::BleMedium>(adapter);
 }
 
 // TODO(b/184975123): replace with real implementation.
-std::unique_ptr<ble_v2::BleMedium> ImplementationPlatform::CreateBleV2Medium(
-    BluetoothAdapter&) {
-  return nullptr;
+std::unique_ptr<api::ble_v2::BleMedium>
+ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter& adapter) {
+  return std::make_unique<windows::BleV2Medium>(adapter);
 }
 
 // TODO(b/184975123): replace with real implementation.
@@ -225,7 +276,7 @@ ImplementationPlatform::CreateServerSyncMedium() {
 
 // TODO(b/184975123): replace with real implementation.
 std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() {
-  return std::unique_ptr<WifiMedium>();
+  return std::make_unique<windows::WifiMedium>();
 }
 
 std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
@@ -234,6 +285,11 @@ std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
 
 std::unique_ptr<WifiHotspotMedium>
 ImplementationPlatform::CreateWifiHotspotMedium() {
+  return std::make_unique<windows::WifiHotspotMedium>();
+}
+
+std::unique_ptr<WifiDirectMedium>
+ImplementationPlatform::CreateWifiDirectMedium() {
   return nullptr;
 }
 

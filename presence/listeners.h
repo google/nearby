@@ -16,7 +16,7 @@
 #define THIRD_PARTY_NEARBY_PRESENCE_LISTENERS_H_
 
 #include "internal/platform/listeners.h"
-#include "third_party/nearby/presence/status.h"
+#include "presence/status.h"
 
 namespace nearby {
 namespace presence {

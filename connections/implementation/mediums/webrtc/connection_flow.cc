@@ -167,15 +167,20 @@ void ConnectionFlow::CreateOfferOnSignalingThread(
   webrtc::DataChannelInit data_channel_init;
   data_channel_init.reliable = true;
   auto pc = GetPeerConnection();
-  CreateSocketFromDataChannel(
-      pc->CreateDataChannel(kDataChannelName, &data_channel_init));
+  auto result =
+      pc->CreateDataChannelOrError(kDataChannelName, &data_channel_init);
+  if (!result.ok()) {
+    success_future.SetException({Exception::kFailed});
+    return;
+  }
+  CreateSocketFromDataChannel(result.MoveValue());
 
   webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
   rtc::scoped_refptr<CreateSessionDescriptionObserverImpl> observer(
       new rtc::RefCountedObject<CreateSessionDescriptionObserverImpl>(
           this, success_future, State::kCreatingOffer,
           State::kWaitingForAnswer));
-  pc->CreateOffer(observer, options);
+  pc->CreateOffer(observer.get(), options);
 }
 
 SessionDescriptionWrapper ConnectionFlow::CreateAnswer() {
@@ -207,7 +212,7 @@ void ConnectionFlow::CreateAnswerOnSignalingThread(
           this, success_future, State::kCreatingAnswer,
           State::kWaitingToConnect));
   auto pc = GetPeerConnection();
-  pc->CreateAnswer(observer, options);
+  pc->CreateAnswer(observer.get(), options);
 }
 
 bool ConnectionFlow::SetLocalSessionDescription(SessionDescriptionWrapper sdp) {

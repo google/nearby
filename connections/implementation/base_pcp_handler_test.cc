@@ -22,18 +22,18 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/encryption_runner.h"
 #include "connections/implementation/offline_frames.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
 #include "connections/params.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/pipe.h"
 #include "proto/connections_enums.pb.h"
 
@@ -55,6 +55,9 @@ constexpr std::array<char, 6> kFakeMacAddress = {'a', 'b', 'c', 'd', 'e', 'f'};
 constexpr BooleanMediumSelector kTestCases[] = {
     BooleanMediumSelector{},
     BooleanMediumSelector{
+        .ble = true,
+    },
+    BooleanMediumSelector{
         .bluetooth = true,
     },
     BooleanMediumSelector{
@@ -62,6 +65,19 @@ constexpr BooleanMediumSelector kTestCases[] = {
     },
     BooleanMediumSelector{
         .bluetooth = true,
+        .ble = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .wifi_lan = true,
+    },
+    BooleanMediumSelector{
+        .ble = true,
+        .wifi_lan = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .ble = true,
         .wifi_lan = true,
     },
 };
@@ -69,7 +85,7 @@ constexpr BooleanMediumSelector kTestCases[] = {
 class MockEndpointChannel : public BaseEndpointChannel {
  public:
   explicit MockEndpointChannel(Pipe* reader, Pipe* writer)
-      : BaseEndpointChannel("channel", &reader->GetInputStream(),
+      : BaseEndpointChannel("service_id", "channel", &reader->GetInputStream(),
                             &writer->GetOutputStream()) {}
 
   ExceptionOr<ByteArray> DoRead() { return BaseEndpointChannel::Read(); }
@@ -217,8 +233,8 @@ class BasePcpHandlerTest
         rejected_cb;
     StrictMock<MockFunction<void(const std::string& endpoint_id)>>
         disconnected_cb;
-    StrictMock<MockFunction<void(const std::string& endpoint_id,
-                                 std::int32_t quality)>>
+    StrictMock<
+        MockFunction<void(const std::string& endpoint_id, Medium medium)>>
         bandwidth_changed_cb;
   };
   struct MockDiscoveryListener {
@@ -611,6 +627,7 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
   EndpointManager em(&ecm);
   BwuManager bwu(m, em, ecm, {}, {});
   MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  analytics::PacketMetaData packet_meta_data;
   StartDiscovery(&client, &pcp_handler);
   auto mediums = pcp_handler.GetDiscoveryMediums(&client);
   auto connect_medium = mediums[mediums.size() - 1];
@@ -630,8 +647,9 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
   NEARBY_LOG(INFO, "Simulating remote accept: id=%s", endpoint_id.c_str());
   auto frame =
       parser::FromBytes(parser::ForConnectionResponse(Status::kSuccess));
+  EXPECT_CALL(mock_connection_listener_.bandwidth_changed_cb, Call).Times(1);
   pcp_handler.OnIncomingFrame(frame.result(), endpoint_id, &client,
-                              connect_medium);
+                              connect_medium, packet_meta_data);
   NEARBY_LOGS(INFO) << "Closing connection: id=" << endpoint_id;
   channel_b->Close();
   bwu.Shutdown();

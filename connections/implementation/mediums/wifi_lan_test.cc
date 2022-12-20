@@ -20,10 +20,10 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/medium_environment.h"
-#include "internal/platform/nsd_service_info.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/medium_environment.h"
+#include "internal/platform/nsd_service_info.h"
 #include "internal/platform/wifi_lan.h"
 
 namespace location {
@@ -52,8 +52,6 @@ class WifiLanTest : public ::testing::TestWithParam<FeatureFlags> {
  protected:
   using DiscoveredServiceCallback = WifiLanMedium::DiscoveredServiceCallback;
 
-  WifiLanTest() { env_.Stop(); }
-
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
@@ -74,7 +72,8 @@ TEST_P(WifiLanTest, CanConnect) {
       service_id,
       {
           .accepted_cb =
-              [&socket_for_server, &accept_latch](WifiLanSocket socket) {
+              [&socket_for_server, &accept_latch](const std::string& service_id,
+                                                  WifiLanSocket socket) {
                 socket_for_server = std::move(socket);
                 accept_latch.CountDown();
               },
@@ -130,7 +129,8 @@ TEST_P(WifiLanTest, CanCancelConnect) {
       service_id,
       {
           .accepted_cb =
-              [&socket_for_server, &accept_latch](WifiLanSocket socket) {
+              [&socket_for_server, &accept_latch](const std::string& service_id,
+                                                  WifiLanSocket socket) {
                 socket_for_server = std::move(socket);
                 accept_latch.CountDown();
               },

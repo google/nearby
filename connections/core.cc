@@ -20,15 +20,28 @@
 #include <vector>
 
 #include "absl/time/clock.h"
-#include "internal/platform/feature_flags.h"
+#include "connections/implementation/service_id_constants.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 
 namespace location {
 namespace nearby {
 namespace connections {
+
 namespace {
-constexpr absl::Duration kWaitForDisconnect = absl::Milliseconds(5000);
+
+// Timeout for ServiceControllerRouter to run StopAllEndpoints.
+constexpr absl::Duration kWaitForDisconnect = absl::Milliseconds(10000);
+
+// Verify that |service_id| is not empty and will not conflict with any internal
+// service ID formats.
+void CheckServiceId(absl::string_view service_id) {
+  assert(!service_id.empty());
+  assert(service_id != kUnknownServiceId);
+  assert(!IsInitiatorUpgradeServiceId(service_id));
+}
+
 }  // namespace
 
 Core::Core(ServiceControllerRouter* router) : router_(router) {}
@@ -52,7 +65,7 @@ void Core::StartAdvertising(absl::string_view service_id,
                             AdvertisingOptions advertising_options,
                             ConnectionRequestInfo info,
                             ResultCallback callback) {
-  assert(!service_id.empty());
+  CheckServiceId(service_id);
   assert(advertising_options.strategy.IsValid());
 
   router_->StartAdvertising(&client_, service_id, advertising_options, info,
@@ -66,7 +79,7 @@ void Core::StopAdvertising(const ResultCallback callback) {
 void Core::StartDiscovery(absl::string_view service_id,
                           DiscoveryOptions discovery_options,
                           DiscoveryListener listener, ResultCallback callback) {
-  assert(!service_id.empty());
+  CheckServiceId(service_id);
   assert(discovery_options.strategy.IsValid());
 
   router_->StartDiscovery(&client_, service_id, discovery_options, listener,
@@ -76,6 +89,7 @@ void Core::StartDiscovery(absl::string_view service_id,
 void Core::InjectEndpoint(absl::string_view service_id,
                           OutOfBandConnectionMetadata metadata,
                           ResultCallback callback) {
+  CheckServiceId(service_id);
   router_->InjectEndpoint(&client_, service_id, metadata, callback);
 }
 
@@ -154,6 +168,12 @@ void Core::DisconnectFromEndpoint(absl::string_view endpoint_id,
 void Core::StopAllEndpoints(ResultCallback callback) {
   router_->StopAllEndpoints(&client_, callback);
 }
+
+void Core::SetCustomSavePath(absl::string_view path, ResultCallback callback) {
+  router_->SetCustomSavePath(&client_, path, callback);
+}
+
+std::string Core::Dump() { return client_.Dump(); }
 
 }  // namespace connections
 }  // namespace nearby

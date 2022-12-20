@@ -12,20 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/nearby/presence/discovery_filter.h"
+#include "presence/discovery_filter.h"
 
 namespace nearby {
 namespace presence {
 
+using ::nearby::internal::IdentityType;
+
 DiscoveryFilter::DiscoveryFilter(
     const std::vector<PresenceAction>& actions,
-    const std::vector<PresenceIdentity>& identities,
+    const std::vector<IdentityType>& identities,
     const std::vector<PresenceZone>& zones) noexcept
     : actions_(actions), identities_(identities), zones_(zones) {}
 std::vector<PresenceAction> DiscoveryFilter::GetActions() const {
   return actions_;
 }
-std::vector<PresenceIdentity> DiscoveryFilter::GetIdentities() const {
+std::vector<IdentityType> DiscoveryFilter::GetIdentities() const {
   return identities_;
 }
 std::vector<PresenceZone> DiscoveryFilter::GetZones() const { return zones_; }

@@ -29,7 +29,7 @@ namespace connections {
 // Connection Options: used for both Advertising and Discovery.
 // All fields are mutable, to make the type copy-assignable.
 struct AdvertisingOptions : public OptionsBase {
-  bool auto_upgrade_bandwidth;
+  bool auto_upgrade_bandwidth = true;
   bool enforce_topology_constraints;
   bool low_power;
   bool enable_bluetooth_listening;
@@ -37,7 +37,13 @@ struct AdvertisingOptions : public OptionsBase {
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;
+  // TODO(b/229927044): Replaces it as bool once Ble v1 is deprecated.
   std::string fast_advertisement_service_uuid;
+
+  // The information about this device (eg. name, device type),
+  // to appear on the remote device.
+  // Defined by client/application.
+  const char* device_info;
 
   // Returns a copy and normalizes allowed mediums:
   // (1) If is_out_of_band_connection is true, verifies that there is only one

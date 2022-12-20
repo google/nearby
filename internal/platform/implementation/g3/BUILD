@@ -45,6 +45,7 @@ cc_library(
         "@com_google_glog//:glog",
         "@com_google_nisaba//nisaba/port:thread_pool",
     ],
+    alwayslink = 1,
 )
 
 cc_library(
@@ -55,6 +56,9 @@ cc_library(
         "ble_v2.cc",
         "bluetooth_adapter.cc",
         "bluetooth_classic.cc",
+        "credential_storage_impl.cc",
+        "wifi_direct.cc",
+        "wifi_hotspot.cc",
         "wifi_lan.cc",
     ],
     hdrs = [
@@ -62,6 +66,10 @@ cc_library(
         "ble_v2.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
+        "credential_storage_impl.h",
+        "wifi.h",
+        "wifi_direct.h",
+        "wifi_hotspot.h",
         "wifi_lan.h",
     ],
     defines = ["NO_WEBRTC"],
@@ -72,11 +80,15 @@ cc_library(
         "//internal/platform:cancellation_flag",
         "//internal/platform:logging",
         "//internal/platform:test_util",
+        "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/shared:count_down_latch",
+        "//internal/proto:credential_cc_proto",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:checks",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
@@ -97,6 +109,7 @@ cc_library(
         "@boringssl//:crypto",
         "@com_google_absl//absl/strings",
     ],
+    alwayslink = 1,
 )
 
 cc_library(
@@ -108,15 +121,18 @@ cc_library(
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
+        "//fastpair:__subpackages__",
         "//internal/analytics:__subpackages__",
         "//internal/platform:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
-        "//location/nearby/cpp/sharing:__subpackages__",
+        "//location/nearby/cpp/fastpair:__subpackages__",
+        "//presence:__subpackages__",
     ],
     deps = [
         ":comm",
         ":crypto",  # build_cleaner: keep
         ":types",
+        "//file/base:path",
         "//internal/platform:test_util",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",

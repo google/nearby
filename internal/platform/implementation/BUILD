@@ -39,6 +39,8 @@ cc_library(
     visibility = [
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
+        "//location/nearby/analytics/cpp:__subpackages__",
+        "//presence:__subpackages__",
     ],
     deps = [
         "//internal/platform:base",
@@ -55,25 +57,39 @@ cc_library(
         "ble_v2.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
+        "credential_callbacks.h",
+        "credential_storage.h",
         "server_sync.h",
         "wifi.h",
+        "wifi_direct.h",
         "wifi_hotspot.h",
         "wifi_lan.h",
     ],
+    copts = select({
+        "@platforms//cpu:arm": [
+            "-DNO_WEBRTC",
+        ],
+        "//conditions:default": [],
+    }),
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
+        "//presence:__pkg__",
+        "//presence/implementation:__subpackages__",
     ],
     deps = [
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
+        "//internal/platform:uuid",
+        "//internal/proto:credential_cc_proto",
         "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/types:optional",
+        "@com_google_absl//absl/strings:str_format",
     ],
 )
 
@@ -88,6 +104,7 @@ cc_library(
         "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
+        "//location/nearby/analytics/cpp:__subpackages__",
     ],
     deps = [
         ":comm",

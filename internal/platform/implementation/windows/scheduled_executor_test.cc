@@ -11,21 +11,29 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 
+#include <memory>
 #include <utility>
 
+#include "gtest/gtest.h"
+#include "absl/synchronization/notification.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "internal/platform/implementation/windows/test_data.h"
 
-#include "gtest/gtest.h"
+namespace location {
+namespace nearby {
+namespace windows {
+namespace {
 
 TEST(ScheduledExecutorTests, ExecuteSucceeds) {
+  absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::ScheduledExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::ScheduledExecutor>();
+  auto submittableExecutor = std::make_unique<ScheduledExecutor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -34,11 +42,14 @@ TEST(ScheduledExecutorTests, ExecuteSucceeds) {
   threadIds->push_back(GetCurrentThreadId());
 
   // Act
-  submittableExecutor->Execute([&output, &threadIds]() {
+  submittableExecutor->Execute([&]() {
     threadIds->push_back(GetCurrentThreadId());
     output.append(RUNNABLE_0_TEXT.c_str());
+    notification.Notify();
   });
 
+  ASSERT_TRUE(
+      notification.WaitForNotificationWithTimeout(absl::Milliseconds(200)));
   submittableExecutor->Shutdown();
 
   //  Assert
@@ -52,12 +63,11 @@ TEST(ScheduledExecutorTests, ExecuteSucceeds) {
 }
 
 TEST(ScheduledExecutorTests, ScheduleSucceeds) {
+  absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::ScheduledExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::ScheduledExecutor>();
+  auto submittableExecutor = std::make_unique<ScheduledExecutor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -71,26 +81,17 @@ TEST(ScheduledExecutorTests, ScheduleSucceeds) {
 
   // Act
   submittableExecutor->Schedule(
-      [&output, &threadIds, &timeExecuted]() {
+      [&]() {
         timeExecuted = std::chrono::system_clock::now();
         threadIds->push_back(GetCurrentThreadId());
         output.append(RUNNABLE_0_TEXT.c_str());
+        notification.Notify();
       },
       absl::Milliseconds(50));
 
-  SleepEx(100, true);  //  Yield the thread
-
+  ASSERT_TRUE(
+      notification.WaitForNotificationWithTimeout(absl::Milliseconds(200)));
   submittableExecutor->Shutdown();
-
-  auto difference = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        timeExecuted - timeNow)
-                        .count();
-
-  //  Assert
-  //  We should've run 1 time on the main thread, and 1 times on the
-  //  workerThread
-  ASSERT_TRUE(difference >= 50) << "difference was: " << difference;
-  ASSERT_TRUE(difference < 100) << "difference was: " << difference;
 
   ASSERT_EQ(threadIds->size(), 2);
   //  We should still be on the main thread
@@ -100,12 +101,11 @@ TEST(ScheduledExecutorTests, ScheduleSucceeds) {
 }
 
 TEST(ScheduledExecutorTests, CancelSucceeds) {
+  absl::Notification notification;
   // Arrange
   std::string expected("");
 
-  std::unique_ptr<location::nearby::windows::ScheduledExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::ScheduledExecutor>();
+  auto submittableExecutor = std::make_unique<ScheduledExecutor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -115,16 +115,17 @@ TEST(ScheduledExecutorTests, CancelSucceeds) {
 
   // Act
   auto cancelable = submittableExecutor->Schedule(
-      [&output, &threadIds]() {
+      [&]() {
         threadIds->push_back(GetCurrentThreadId());
         output.append(RUNNABLE_0_TEXT.c_str());
+        notification.Notify();
       },
       absl::Milliseconds(1000));
 
-  SleepEx(100, true);  //  Yield the thread
-
   auto actual = cancelable->Cancel();
 
+  EXPECT_FALSE(
+      notification.WaitForNotificationWithTimeout(absl::Milliseconds(2000)));
   submittableExecutor->Shutdown();
 
   // Assert
@@ -137,12 +138,11 @@ TEST(ScheduledExecutorTests, CancelSucceeds) {
 }
 
 TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
+  absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
 
-  std::unique_ptr<location::nearby::windows::ScheduledExecutor>
-      submittableExecutor =
-          std::make_unique<location::nearby::windows::ScheduledExecutor>();
+  auto submittableExecutor = std::make_unique<ScheduledExecutor>();
   std::string output = std::string();
   // Container to note threads that ran
   std::unique_ptr<std::vector<DWORD>> threadIds =
@@ -152,16 +152,18 @@ TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
 
   // Act
   auto cancelable = submittableExecutor->Schedule(
-      [&output, &threadIds]() {
+      [&]() {
         threadIds->push_back(GetCurrentThreadId());
         output.append(RUNNABLE_0_TEXT.c_str());
+        notification.Notify();
       },
       absl::Milliseconds(100));
 
-  SleepEx(1000, true);  //  Yield the thread
-
+  absl::SleepFor(absl::Milliseconds(200));
   auto actual = cancelable->Cancel();
 
+  ASSERT_TRUE(
+      notification.WaitForNotificationWithTimeout(absl::Milliseconds(2000)));
   submittableExecutor->Shutdown();
 
   // Assert
@@ -172,3 +174,8 @@ TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
   //  We should've run all runnables on the worker thread
   ASSERT_EQ(output, expected);
 }
+
+}  // namespace
+}  // namespace windows
+}  // namespace nearby
+}  // namespace location

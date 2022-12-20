@@ -14,17 +14,20 @@
 
 #include "connections/implementation/client_proxy.h"
 
+#include <cstdio>
 #include <string>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/strings/str_format.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/listeners.h"
 #include "connections/strategy.h"
+#include "internal/analytics/event_logger.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
@@ -44,6 +47,13 @@ constexpr FeatureFlags::Flags kTestCases[] = {
     FeatureFlags::Flags{
         .enable_cancellation_flag = false,
     },
+};
+
+class FakeEventLogger : public ::nearby::analytics::EventLogger {
+ public:
+  explicit FakeEventLogger() = default;
+
+  void Log(const ::google::protobuf::MessageLite& message) override {}
 };
 
 class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
@@ -105,7 +115,23 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
     return endpoint;
   }
 
-  void StopAdvertising(ClientProxy* client) { client->StoppedAdvertising(); }
+  void StopAdvertising(ClientProxy* client) {
+    client->StoppedAdvertising();
+    EXPECT_FALSE(client->IsAdvertising());
+  }
+
+  void OnAdvertisingConnectionInitiated(ClientProxy* client,
+                                        const Endpoint& endpoint) {
+    EXPECT_CALL(mock_advertising_connection_.initiated_cb, Call).Times(1);
+    const std::string auth_token{"auth_token"};
+    const ByteArray raw_auth_token{auth_token};
+    const std::string connection_token{"conntokn"};
+    discovery_connection_info_.remote_endpoint_info = endpoint.info;
+    client->OnConnectionInitiated(
+        endpoint.id, discovery_connection_info_, connection_options_,
+        advertising_connection_listener_, connection_token);
+    EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint.id));
+  }
 
   Endpoint StartDiscovery(ClientProxy* client, DiscoveryListener listener) {
     Endpoint endpoint{
@@ -115,6 +141,11 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
     client->StartedDiscovery(service_id_, strategy_, listener,
                              absl::MakeSpan(mediums_));
     return endpoint;
+  }
+
+  void StopDiscovery(ClientProxy* client) {
+    client->StoppedDiscovery();
+    EXPECT_FALSE(client->IsDiscovering());
   }
 
   void OnDiscoveryEndpointFound(ClientProxy* client, const Endpoint& endpoint) {
@@ -212,6 +243,8 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
     client->OnPayloadProgress(endpoint.id, {});
   }
 
+  MockConnectionListener mock_advertising_connection_;
+
   MockDiscoveryListener mock_discovery_;
   MockConnectionListener mock_discovery_connection_;
   MockPayloadListener mock_discovery_payload_;
@@ -222,8 +255,10 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
   };
   Strategy strategy_{Strategy::kP2pPointToPoint};
   const std::string service_id_{"service"};
-  ClientProxy client1_;
-  ClientProxy client2_;
+  FakeEventLogger event_logger1_;
+  FakeEventLogger event_logger2_;
+  ClientProxy client1_{&event_logger1_};
+  ClientProxy client2_{&event_logger2_};
   std::string auth_token_ = "auth_token";
   ByteArray raw_auth_token_ = ByteArray(auth_token_);
   ByteArray payload_bytes_{"bytes"};
@@ -232,7 +267,14 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
       .raw_authentication_token = raw_auth_token_,
       .is_incoming_connection = true,
   };
-  ConnectionListener advertising_connection_listener_;
+  ConnectionListener advertising_connection_listener_{
+      .initiated_cb = mock_advertising_connection_.initiated_cb.AsStdFunction(),
+  };
+  ConnectionResponseInfo discovery_connection_info_{
+      .authentication_token = auth_token_,
+      .raw_authentication_token = raw_auth_token_,
+      .is_incoming_connection = false,
+  };
   ConnectionListener discovery_connection_listener_{
       .initiated_cb = mock_discovery_connection_.initiated_cb.AsStdFunction(),
       .accepted_cb = mock_discovery_connection_.accepted_cb.AsStdFunction(),
@@ -360,6 +402,23 @@ TEST_F(ClientProxyTest, ConstructorDestructorWorks) { SUCCEED(); }
 
 TEST_F(ClientProxyTest, ClientIdIsUnique) {
   EXPECT_NE(client1_.GetClientId(), client2_.GetClientId());
+}
+
+TEST_F(ClientProxyTest, DumpString) {
+  std::string expect = absl::StrFormat(
+      "Nearby Connections State\n"
+      "  Client ID: %d\n"
+      "  Local Endpoint ID: %s\n"
+      "  High Visibility Mode: 0\n"
+      "  Is Advertising: 0\n"
+      "  Advertising Service ID: \n"
+      "  Is Discovering: 0\n"
+      "  Discovery Service ID: \n"
+      "  Connections: \n"
+      "  Discovered endpoint IDs: \n",
+      client1_.GetClientId(), client1_.GetLocalEndpointId());
+  std::string dump = client1_.Dump();
+  EXPECT_EQ(dump, expect);
 }
 
 TEST_F(ClientProxyTest, GeneratedEndpointIdIsUnique) {
@@ -665,6 +724,177 @@ TEST_F(ClientProxyTest, EndpointIdRotateWhenLowVizAdvertisementWithLowPower) {
       &client1_, advertising_connection_listener_, advertising_options);
 
   EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
+}
+
+TEST_F(ClientProxyTest, NotLogSessionForStoppedAdvertisingWithConnection) {
+  Endpoint advertising_endpoint =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+  OnAdvertisingConnectionInitiated(&client1_, advertising_endpoint);
+
+  StartDiscovery(&client2_, discovery_listener_);
+  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
+  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
+
+  // Before
+  EXPECT_TRUE(client1_.HasPendingConnectionToEndpoint(
+      advertising_endpoint.id));           // Connections are available
+  EXPECT_FALSE(client1_.IsDiscovering());  // No Discovery
+  EXPECT_TRUE(client1_.IsAdvertising());   // Advertising
+  EXPECT_FALSE(client1_.GetAnalyticsRecorder().IsSessionLogged());
+
+  // After
+  StopAdvertising(&client1_);  // No Advertising
+  EXPECT_FALSE(client1_.GetAnalyticsRecorder().IsSessionLogged());
+}
+
+TEST_F(ClientProxyTest,
+       LogSessionForStoppedAdvertisingWhenNoConnectionsAndNoDiscovering) {
+  Endpoint advertising_endpoint =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+
+  // Before
+  EXPECT_FALSE(client1_.HasPendingConnectionToEndpoint(
+      advertising_endpoint.id));           // No Connections
+  EXPECT_FALSE(client1_.IsDiscovering());  // No Discovery
+  EXPECT_TRUE(client1_.IsAdvertising());   // Advertising
+  EXPECT_FALSE(client1_.GetAnalyticsRecorder().IsSessionLogged());
+
+  // After
+  StopAdvertising(&client1_);
+  EXPECT_TRUE(client1_.GetAnalyticsRecorder().IsSessionLogged());
+}
+
+TEST_F(ClientProxyTest, NotLogSessionForStoppedDiscoveryWithConnection) {
+  Endpoint advertising_endpoint =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+
+  StartDiscovery(&client2_, discovery_listener_);
+  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
+
+  // Before
+  OnDiscoveryConnectionInitiated(
+      &client2_, advertising_endpoint);    // Connections are available
+  EXPECT_FALSE(client2_.IsAdvertising());  // No Advertising
+  EXPECT_TRUE(client2_.IsDiscovering());   // Discovering
+  EXPECT_FALSE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+
+  // After
+  StopDiscovery(&client2_);
+  EXPECT_FALSE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+}
+
+TEST_F(ClientProxyTest,
+       NotLogSessionForStoppedDiscoveryWithoutConnectionsAndAdvertising) {
+  Endpoint advertising_endpoint =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+
+  StartDiscovery(&client2_, discovery_listener_);
+
+  // Before
+  EXPECT_FALSE(client2_.IsAdvertising());  // No Advertising
+  EXPECT_TRUE(client2_.IsDiscovering());   // Discoverying
+  EXPECT_FALSE(client2_.HasPendingConnectionToEndpoint(
+      advertising_endpoint.id));  // No Connections
+
+  // After
+  StopDiscovery(&client2_);
+  EXPECT_TRUE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+}
+
+TEST_F(ClientProxyTest, LogSessionOnDisconnectedWithOneConnection) {
+  Endpoint advertising_endpoint =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+  StartDiscovery(&client2_, discovery_listener_);
+  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
+  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
+
+  // Before
+  EXPECT_FALSE(client2_.IsAdvertising());  // No Advertising
+  StopDiscovery(&client2_);                // No Discovery
+  EXPECT_TRUE(client2_.HasPendingConnectionToEndpoint(
+      advertising_endpoint.id));  // One Connection
+
+  // After
+  OnDiscoveryConnectionDisconnected(&client2_, advertising_endpoint);
+  EXPECT_TRUE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+}
+
+TEST_F(ClientProxyTest,
+       NotLogSessionOnDisconnectedWithoutConnectionsDiscoveringAdvertising) {
+  Endpoint advertising_endpoint =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+
+  // Before
+  EXPECT_FALSE(client2_.IsAdvertising());  // No Advertising
+  EXPECT_FALSE(client2_.IsDiscovering());  // No Discovery
+  EXPECT_FALSE(client2_.HasPendingConnectionToEndpoint(
+      advertising_endpoint.id));  // No Connections
+
+  // After
+  client2_.OnDisconnected(advertising_endpoint.id, /*notify=*/false);
+  EXPECT_FALSE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+}
+
+TEST_F(ClientProxyTest, NotLogSessionOnDisconnectedWhenMoreThanOneConnection) {
+  ClientProxy client3;
+  Endpoint advertising_endpoint_1 =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+  Endpoint advertising_endpoint_2 =
+      StartAdvertising(&client2_, advertising_connection_listener_);
+  StartDiscovery(&client3, discovery_listener_);
+
+  OnDiscoveryEndpointFound(&client3, advertising_endpoint_1);
+  OnDiscoveryConnectionInitiated(&client3, advertising_endpoint_1);
+  OnDiscoveryEndpointFound(&client3, advertising_endpoint_2);
+  OnDiscoveryConnectionInitiated(&client3, advertising_endpoint_2);
+
+  // Before
+  // - More than one Connection
+  EXPECT_TRUE(
+      client3.HasPendingConnectionToEndpoint(advertising_endpoint_1.id));
+  EXPECT_TRUE(
+      client3.HasPendingConnectionToEndpoint(advertising_endpoint_2.id));
+  EXPECT_FALSE(client3.IsAdvertising());  // No Advertising
+  StopDiscovery(&client3);                // No Discovery
+
+  // After
+  client2_.OnDisconnected(advertising_endpoint_1.id, /*notify=*/false);
+  EXPECT_FALSE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+}
+
+TEST_F(ClientProxyTest,
+       NotLogSessionOnDisconnectedForDiscoveringWithOnlyOneConnection) {
+  Endpoint advertising_endpoint =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+  StartDiscovery(&client2_, discovery_listener_);
+  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
+  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
+
+  // Before
+  EXPECT_FALSE(client2_.IsAdvertising());  // No Advertising
+  EXPECT_TRUE(client2_.IsDiscovering());   // Discovering
+  EXPECT_TRUE(client2_.HasPendingConnectionToEndpoint(
+      advertising_endpoint.id));  // One Connection
+
+  // After
+  OnDiscoveryConnectionDisconnected(&client2_, advertising_endpoint);
+  EXPECT_FALSE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+}
+
+TEST_F(ClientProxyTest, LogSessionForResetClientProxy) {
+  Endpoint advertising_endpoint =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+  StartDiscovery(&client2_, discovery_listener_);
+  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
+  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
+
+  EXPECT_FALSE(client1_.GetAnalyticsRecorder().IsSessionLogged());
+  client1_.Reset();
+  EXPECT_TRUE(client1_.GetAnalyticsRecorder().IsSessionLogged());
+
+  EXPECT_FALSE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+  client2_.Reset();
+  EXPECT_TRUE(client2_.GetAnalyticsRecorder().IsSessionLogged());
 }
 
 }  // namespace

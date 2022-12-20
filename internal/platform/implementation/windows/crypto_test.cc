@@ -14,6 +14,8 @@
 
 #include "internal/platform/implementation/crypto.h"
 
+#include <string>
+
 #include "gtest/gtest.h"
 
 namespace location {

@@ -16,6 +16,7 @@
 #define CORE_INTERNAL_MEDIUMS_WIFI_LAN_H_
 
 #include <cstdint>
+#include <functional>
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
@@ -37,8 +38,8 @@ class WifiLan {
 
   // Callback that is invoked when a new connection is accepted.
   struct AcceptedConnectionCallback {
-    std::function<void(WifiLanSocket socket)> accepted_cb =
-        DefaultCallback<WifiLanSocket>();
+    std::function<void(const std::string& service_id, WifiLanSocket socket)>
+        accepted_cb = DefaultCallback<const std::string&, WifiLanSocket>();
   };
 
   WifiLan() = default;

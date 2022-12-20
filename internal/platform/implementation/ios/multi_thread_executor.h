@@ -14,6 +14,7 @@
 
 #ifndef PLATFORM_IMPL_IOS_MULTI_THREAD_EXECUTOR_H_
 #define PLATFORM_IMPL_IOS_MULTI_THREAD_EXECUTOR_H_
+#ifdef __cplusplus
 
 #import "internal/platform/implementation/ios/scheduled_executor.h"
 #include "internal/platform/implementation/submittable_executor.h"
@@ -44,4 +45,5 @@ class MultiThreadExecutor : public api::SubmittableExecutor {
 }  // namespace nearby
 }  // namespace location
 
+#endif
 #endif  // PLATFORM_IMPL_IOS_MULTI_THREAD_EXECUTOR_H_

@@ -16,6 +16,7 @@
 #define PLATFORM_PUBLIC_BLUETOOTH_ADAPTER_H_
 
 #include <string>
+#include <utility>
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -33,7 +34,6 @@ class BlePeripheral final {
   BlePeripheral(const BlePeripheral&) = default;
   BlePeripheral& operator=(const BlePeripheral&) = default;
   explicit BlePeripheral(api::BlePeripheral* peripheral) : impl_(peripheral) {}
-  ~BlePeripheral() = default;
 
   std::string GetName() const { return impl_->GetName(); }
 
@@ -48,24 +48,62 @@ class BlePeripheral final {
   api::BlePeripheral* impl_;
 };
 
-// Opaque wrapper over a BLE peripheral.
+// Opaque wrapper over a BLE peripheral. Must contain enough data about a
+// particular BLE peripheral to connect to its GATT server.
 class BleV2Peripheral final {
  public:
   BleV2Peripheral() = default;
-  BleV2Peripheral(const BleV2Peripheral&) = default;
-  BleV2Peripheral& operator=(const BleV2Peripheral&) = default;
   explicit BleV2Peripheral(api::ble_v2::BlePeripheral* peripheral)
       : impl_(peripheral) {}
+  BleV2Peripheral(const BleV2Peripheral&) = default;
+  BleV2Peripheral& operator=(const BleV2Peripheral&) = default;
+  BleV2Peripheral(BleV2Peripheral&& other) {
+    impl_ = other.impl_;
+    id_ = std::move(other.id_);
+    psm_ = other.psm_;
 
-  std::string GetId() const { return impl_->GetId(); }
+    other.impl_ = nullptr;
+    other.psm_ = 0;
+  }
+
+  BleV2Peripheral& operator=(BleV2Peripheral&& other) {
+    if (this != &other) {
+      impl_ = other.impl_;
+      id_ = std::move(other.id_);
+      psm_ = other.psm_;
+
+      other.impl_ = nullptr;
+      other.psm_ = 0;
+    }
+    return *this;
+  }
+
+  std::string GetAddress() const { return impl_->GetAddress(); }
+
+  ByteArray GetId() const { return id_; }
+  void SetId(const ByteArray& id) { id_ = id; }
+
+  int GetPsm() const { return psm_; }
+  void SetPsm(int psm) { psm_ = psm; }
 
   // Returns reference to platform implementation.
   // This is used to communicate with platform code, and for debugging purposes.
-  api::ble_v2::BlePeripheral& GetImpl() { return *impl_; }
+  api::ble_v2::BlePeripheral& GetImpl() const { return *impl_; }
   bool IsValid() const { return impl_ != nullptr; }
 
  private:
-  api::ble_v2::BlePeripheral* impl_;
+  // Does not take ownership. It refers to a valid `api::ble_v2::BlePeripheral`
+  // that outlives this object.
+  api::ble_v2::BlePeripheral* impl_ = nullptr;
+
+  // A unique identifier for this peripheral. It is the BLE advertisement bytes
+  // it was found on.
+  ByteArray id_ = {};
+
+  // The psm (protocol service multiplexer) value is used for create data
+  // connection on L2CAP socket. It only exists when remote device supports
+  // L2CAP socket feature.
+  int psm_ = 0;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
@@ -96,7 +134,6 @@ class BluetoothAdapter final {
 
   BluetoothAdapter()
       : impl_(api::ImplementationPlatform::CreateBluetoothAdapter()) {}
-  ~BluetoothAdapter() = default;
   BluetoothAdapter(BluetoothAdapter&&) = default;
   BluetoothAdapter& operator=(BluetoothAdapter&&) = default;
 
@@ -126,7 +163,18 @@ class BluetoothAdapter final {
   std::string GetMacAddress() const { return impl_->GetMacAddress(); }
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
-  bool SetName(absl::string_view name) { return impl_->SetName(name); }
+  bool SetName(absl::string_view name) {
+    // The name always persists resulting in not saving the current bluetooth
+    // radio name.
+    return impl_->SetName(name,
+                          /* persist= */ true);
+  }
+
+  // If persist is set to true, we will not update the stored radio names.
+  // If persist is set to false, we will update the stored radio names.
+  bool SetName(absl::string_view name, bool persist) {
+    return impl_->SetName(name, persist);
+  }
 
   bool IsValid() const { return impl_ != nullptr; }
 

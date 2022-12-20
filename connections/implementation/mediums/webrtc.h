@@ -21,24 +21,17 @@
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/mediums/webrtc/connection_flow.h"
-#include "connections/implementation/mediums/webrtc/data_channel_listener.h"
-#include "connections/implementation/mediums/webrtc/local_ice_candidate_listener.h"
-#include "connections/implementation/mediums/webrtc/webrtc_socket_impl.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/cancellation_flag.h"
-#include "internal/platform/listeners.h"
-#include "internal/platform/runnable.h"
-#include "internal/platform/atomic_boolean.h"
 #include "internal/platform/cancelable_alarm.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/future.h"
+#include "internal/platform/listeners.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/scheduled_executor.h"
-#include "internal/platform/single_thread_executor.h"
 #include "internal/platform/webrtc.h"
 #include "proto/mediums/web_rtc_signaling_frames.pb.h"
 #include "webrtc/api/jsep.h"
@@ -50,8 +43,8 @@ namespace mediums {
 
 // Callback that is invoked when a new connection is accepted.
 struct AcceptedConnectionCallback {
-  std::function<void(WebRtcSocketWrapper socket)> accepted_cb =
-      DefaultCallback<WebRtcSocketWrapper>();
+  std::function<void(const std::string& service_id, WebRtcSocketWrapper socket)>
+      accepted_cb = DefaultCallback<const std::string&, WebRtcSocketWrapper>();
 };
 
 // Entry point for connecting a data channel between two devices via WebRtc.
@@ -122,7 +115,7 @@ class WebRtc {
     // streaming rpc times out. The streaming rpc times out after 60s while
     // advertising. Non-null when listening for WebRTC connections as an
     // offerer.
-    CancelableAlarm restart_tachyon_receive_messages_alarm;
+    std::unique_ptr<CancelableAlarm> restart_tachyon_receive_messages_alarm;
 
     // Tracks the number of times we've restarted receiving messages after a
     // failure. We limit the number to prevent endless restarts if we are

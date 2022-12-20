@@ -24,18 +24,14 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-namespace {
-constexpr absl::string_view kUpgradeServiceIdPostfix = "_UPGRADE";
-}
-
 ByteArray Utils::GenerateRandomBytes(size_t length) {
-  Prng rng;
+  Prng prng;
   std::string data;
   data.reserve(length);
 
   // Adds 4 random bytes per iteration.
   while (length > 0) {
-    std::uint32_t val = rng.NextUint32();
+    std::uint32_t val = prng.NextUint32();
     for (int i = 0; i < 4; i++) {
       data += val & 0xFF;
       val >>= 8;
@@ -56,22 +52,6 @@ ByteArray Utils::Sha256Hash(const std::string& source, size_t length) {
   ByteArray full_hash(length);
   full_hash.CopyAt(0, Crypto::Sha256(source));
   return full_hash;
-}
-
-std::string Utils::WrapUpgradeServiceId(const std::string& service_id) {
-  if (service_id.empty()) {
-    return {};
-  }
-  return service_id + std::string(kUpgradeServiceIdPostfix);
-}
-
-std::string Utils::UnwrapUpgradeServiceId(
-    const std::string& upgrade_service_id) {
-  auto pos = upgrade_service_id.find(std::string(kUpgradeServiceIdPostfix));
-  if (pos != std::string::npos) {
-    return std::string(upgrade_service_id, 0, pos);
-  }
-  return upgrade_service_id;
 }
 
 LocationHint Utils::BuildLocationHint(const std::string& location) {

@@ -50,7 +50,7 @@ using EncryptionContext = BaseEndpointChannel::EncryptionContext;
 class TestEndpointChannel : public BaseEndpointChannel {
  public:
   explicit TestEndpointChannel(InputStream* input, OutputStream* output)
-      : BaseEndpointChannel("channel", input, output) {}
+      : BaseEndpointChannel("service_id", "channel", input, output) {}
 
   MOCK_METHOD(Medium, GetMedium, (), (const override));
   MOCK_METHOD(void, CloseImpl, (), (override));

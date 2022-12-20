@@ -19,13 +19,10 @@
 #include <utility>
 
 #include "absl/time/time.h"
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/offline_frames.h"
-#include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
-#include "internal/platform/system_clock.h"
 
 namespace location {
 namespace nearby {
@@ -49,14 +46,15 @@ void EndpointChannelManager::RegisterChannelForEndpoint(
 
   NEARBY_LOGS(INFO) << "EndpointChannelManager registered channel of type "
                     << channel->GetType() << " to endpoint " << endpoint_id;
-  SetActiveEndpointChannel(client, endpoint_id, std::move(channel));
+  SetActiveEndpointChannel(client, endpoint_id, std::move(channel),
+                           true /* enable_encryption */);
 
   NEARBY_LOG(INFO, "Registered channel: id=%s", endpoint_id.c_str());
 }
 
 void EndpointChannelManager::ReplaceChannelForEndpoint(
     ClientProxy* client, const std::string& endpoint_id,
-    std::unique_ptr<EndpointChannel> channel) {
+    std::unique_ptr<EndpointChannel> channel, bool enable_encryption) {
   MutexLock lock(&mutex_);
 
   auto* endpoint = channel_state_.LookupEndpointData(endpoint_id);
@@ -65,8 +63,8 @@ void EndpointChannelManager::ReplaceChannelForEndpoint(
                          "trying to update: endpoint "
                       << endpoint_id;
   }
-
-  SetActiveEndpointChannel(client, endpoint_id, std::move(channel));
+  SetActiveEndpointChannel(client, endpoint_id, std::move(channel),
+                           enable_encryption);
 }
 
 bool EndpointChannelManager::EncryptChannelForEndpoint(
@@ -95,19 +93,25 @@ std::shared_ptr<EndpointChannel> EndpointChannelManager::GetChannelForEndpoint(
 
 void EndpointChannelManager::SetActiveEndpointChannel(
     ClientProxy* client, const std::string& endpoint_id,
-    std::unique_ptr<EndpointChannel> channel) {
+    std::unique_ptr<EndpointChannel> channel, bool enable_encryption) {
   // Update the channel first, then encrypt this new channel, if
   // crypto context is present.
   channel->SetAnalyticsRecorder(&client->GetAnalyticsRecorder(), endpoint_id);
   channel_state_.UpdateChannelForEndpoint(endpoint_id, std::move(channel));
 
   auto* endpoint = channel_state_.LookupEndpointData(endpoint_id);
-  if (endpoint->IsEncrypted()) channel_state_.EncryptChannel(endpoint);
+  if (endpoint->IsEncrypted() && enable_encryption)
+    channel_state_.EncryptChannel(endpoint);
 }
 
 int EndpointChannelManager::GetConnectedEndpointsCount() const {
   MutexLock lock(&mutex_);
   return channel_state_.GetConnectedEndpointsCount();
+}
+
+bool EndpointChannelManager::isWifiLanConnected() const {
+  MutexLock lock(&mutex_);
+  return channel_state_.isWifiLanConnected();
 }
 
 ///////////////////////////////// ChannelState /////////////////////////////////
@@ -163,6 +167,21 @@ bool EndpointChannelManager::ChannelState::RemoveEndpoint(
   }
   endpoints_.erase(item);
   return true;
+}
+
+bool EndpointChannelManager::ChannelState::isWifiLanConnected() const {
+  for (auto& endpoint : endpoints_) {
+    auto channel = endpoint.second.channel;
+    if (channel) {
+      if (channel->GetMedium() == Medium::WIFI_LAN) {
+        NEARBY_LOGS(INFO) << "Found WIFI_LAN Medium for endpoint:"
+                          << endpoint.first;
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 bool EndpointChannelManager::UnregisterChannelForEndpoint(

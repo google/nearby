@@ -17,23 +17,23 @@
 
 #include <vector>
 
-#include "third_party/nearby/presence/presence_action.h"
-#include "third_party/nearby/presence/presence_identity.h"
-#include "third_party/nearby/presence/presence_zone.h"
+#include "internal/proto/credential.pb.h"
+#include "presence/presence_action.h"
+#include "presence/presence_zone.h"
 namespace nearby {
 namespace presence {
 class DiscoveryFilter {
  public:
   DiscoveryFilter(const std::vector<PresenceAction>& = {},
-                  const std::vector<PresenceIdentity>& = {},
+                  const std::vector<::nearby::internal::IdentityType>& = {},
                   const std::vector<PresenceZone>& = {}) noexcept;
   std::vector<PresenceAction> GetActions() const;
-  std::vector<PresenceIdentity> GetIdentities() const;
+  std::vector<::nearby::internal::IdentityType> GetIdentities() const;
   std::vector<PresenceZone> GetZones() const;
 
  private:
   const std::vector<PresenceAction> actions_;
-  const std::vector<PresenceIdentity> identities_;
+  const std::vector<::nearby::internal::IdentityType> identities_;
   const std::vector<PresenceZone> zones_;
 };
 

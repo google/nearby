@@ -46,7 +46,9 @@ bool Ble::IsAvailable() const {
   return IsAvailableLocked();
 }
 
-bool Ble::IsAvailableLocked() const { return medium_.IsValid(); }
+bool Ble::IsAvailableLocked() const {
+  return medium_.IsValid() && adapter_.IsValid() && adapter_.IsEnabled();
+}
 
 bool Ble::StartAdvertising(const std::string& service_id,
                            const ByteArray& advertisement_bytes,
@@ -221,7 +223,7 @@ bool Ble::StopScanning(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
   if (!IsScanningLocked(service_id)) {
-    NEARBY_LOGS(INFO) << "Can't turn off BLE sacanning because we never "
+    NEARBY_LOGS(INFO) << "Can't turn off BLE scanning because we never "
                          "started scanning.";
     return false;
   }

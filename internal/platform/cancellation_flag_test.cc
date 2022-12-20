@@ -14,7 +14,9 @@
 
 #include "internal/platform/cancellation_flag.h"
 
+#include <functional>
 #include <memory>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -96,7 +98,8 @@ TEST_P(CancellationFlagTest, CanCancel) {
   EXPECT_CALL(mock_cancel_callback, Call)
       .Times(feature_flags_.enable_cancellation_flag ? 1 : 0);
   CancellationFlag flag;
-  CancellationFlagListener cancellation_flag_listener(&flag, cancel_callback);
+  CancellationFlagListener cancellation_flag_listener(
+      &flag, std::move(cancel_callback));
   flag.Cancel();
 
   // If FeatureFlag is disabled, return as no-op immediately and
@@ -117,7 +120,8 @@ TEST_P(CancellationFlagTest, ShouldOnlyCancelOnce) {
       .Times(feature_flags_.enable_cancellation_flag ? 1 : 0);
 
   CancellationFlag flag;
-  CancellationFlagListener cancellation_flag_listener(&flag, cancel_callback);
+  CancellationFlagListener cancellation_flag_listener(
+      &flag, std::move(cancel_callback));
   flag.Cancel();
   flag.Cancel();
   flag.Cancel();
@@ -139,8 +143,8 @@ TEST_P(CancellationFlagTest, CannotCancelAfterUnregister) {
   EXPECT_CALL(mock_cancel_callback, Call).Times(0);
 
   CancellationFlag flag;
-  auto cancellation_flag_listener =
-      std::make_unique<CancellationFlagListener>(&flag, cancel_callback);
+  auto cancellation_flag_listener = std::make_unique<CancellationFlagListener>(
+      &flag, std::move(cancel_callback));
   // Release immediately.
   cancellation_flag_listener.reset();
   flag.Cancel();
@@ -162,11 +166,12 @@ TEST(CancellationFlagTest,
   StrictMock<MockFunction<void()>> mock_cancel_callback;
   CancellationFlag::CancelListener cancel_callback =
       mock_cancel_callback.AsStdFunction();
+  CancellationFlag::CancelListener cancel_callback_copy =
+      mock_cancel_callback.AsStdFunction();
 
   CancellationFlag::CancelListener* callback_pointer_1 = &cancel_callback;
-  auto callback_pointer_2 =
-      std::make_unique<CancellationFlag::CancelListener>();
-  *callback_pointer_2 = cancel_callback;
+  auto callback_pointer_2 = std::make_unique<CancellationFlag::CancelListener>(
+      std::move(cancel_callback_copy));
 
   EXPECT_NE(callback_pointer_1, callback_pointer_2.get());
   EXPECT_CALL(mock_cancel_callback, Call).Times(2);

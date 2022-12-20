@@ -14,9 +14,15 @@
 
 #include "internal/platform/implementation/windows/utils.h"
 
+#include <windows.h>
+#include <string>
+
 #include "gtest/gtest.h"
 
-using location::nearby::windows::uint64_to_mac_address_string;
+// using ::location::nearby::windows::uint64_to_mac_address_string;
+namespace location {
+namespace nearby {
+namespace windows {
 
 TEST(UtilsTests, MacAddressToString) {
   // Arrange
@@ -29,3 +35,37 @@ TEST(UtilsTests, MacAddressToString) {
   // Assert
   EXPECT_EQ(result, expected);
 }
+
+TEST(UtilsTests, StringToMacAddress) {
+  // Arrange
+  std::string input = "34:36:3B:C7:8C:71";
+  const uint64_t  expected = 0x000034363bc78c71;
+
+  // Act
+  uint64_t result = mac_address_string_to_uint64(input);
+
+  // Assert
+  EXPECT_EQ(result, expected);
+}
+
+constexpr absl::string_view kIpDotdecimal{"192.168.1.37"};
+
+constexpr char kIp4Bytes[] = {(char)192, (char)168, (char)1, (char)37};
+
+TEST(UtilsTests, Ip4BytesToDotdecimal) {
+  std::string result =
+      ipaddr_4bytes_to_dotdecimal_string(absl::string_view(kIp4Bytes));
+
+  EXPECT_EQ(result, kIpDotdecimal);
+}
+
+TEST(UtilsTests, IpDotdecimalTo4Bytes) {
+  std::string result =
+      ipaddr_dotdecimal_to_4bytes_string(std::string(kIpDotdecimal));
+
+  EXPECT_EQ(result, std::string(kIp4Bytes, 4));
+}
+
+}  // namespace windows
+}  // namespace nearby
+}  // namespace location

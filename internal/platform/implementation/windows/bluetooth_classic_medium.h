@@ -15,6 +15,10 @@
 #ifndef PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_MEDIUM_H_
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_MEDIUM_H_
 
+#include <map>
+#include <memory>
+#include <string>
+
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
@@ -47,6 +51,14 @@ using winrt::Windows::Devices::Enumeration::DeviceInformationUpdate;
 // https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicewatcher?view=winrt-20348
 using winrt::Windows::Devices::Enumeration::DeviceWatcher;
 
+// Writes data to an output stream.
+// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.datawriter?view=winrt-20348
+using winrt::Windows::Storage::Streams::DataWriter;
+
+// Specifies the type of character encoding for a stream.
+// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.unicodeencoding?view=winrt-20348
+using winrt::Windows::Storage::Streams::UnicodeEncoding;
+
 // Describes the state of a DeviceWatcher object.
 // https://docs.microsoft.com/en-us/uwp/api/windows.devices.enumeration.devicewatcherstatus?view=winrt-20348
 using winrt::Windows::Devices::Enumeration::DeviceWatcherStatus;
@@ -67,6 +79,10 @@ using winrt::Windows::Devices::Enumeration::DeviceAccessInformation;
 //  https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommserviceid?view=winrt-20348
 using winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId;
 
+// Represents an instance of a local RFCOMM service.
+// https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.rfcomm.rfcommserviceprovider?view=winrt-20348
+using winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceProvider;
+
 // Reads data from an input stream.
 //  https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.datareader?view=winrt-20348
 using winrt::Windows::Storage::Streams::DataReader;
@@ -84,7 +100,7 @@ using winrt::Windows::Storage::Streams::DataWriter;
 // medium.
 class BluetoothClassicMedium : public api::BluetoothClassicMedium {
  public:
-  BluetoothClassicMedium(api::BluetoothAdapter& bluetoothAdapter);
+  explicit BluetoothClassicMedium(api::BluetoothAdapter& bluetoothAdapter);
 
   ~BluetoothClassicMedium() override;
 
@@ -134,6 +150,10 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
  private:
   bool StartScanning();
   bool StopScanning();
+  bool StartAdvertising(bool radio_discoverable);
+  bool StopAdvertising();
+  bool InitializeServiceSdpAttributes(RfcommServiceProvider rfcomm_provider,
+                                      std::string service_name);
   bool IsWatcherStarted();
   bool IsWatcherRunning();
   void InitializeDeviceWatcher();
@@ -166,7 +186,6 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   DeviceWatcher device_watcher_ = nullptr;
 
   std::unique_ptr<BluetoothSocket> bluetooth_socket_;
-  std::unique_ptr<BluetoothServerSocket> bluetooth_server_socket_;
 
   std::string service_name_;
   std::string service_uuid_;
@@ -176,13 +195,16 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   std::map<winrt::hstring, std::unique_ptr<BluetoothDevice>>
       discovered_devices_by_id_;
 
-  // CRITICAL_SECTION is a lightweight synchronization mechanism
-  // https://docs.microsoft.com/en-us/windows/win32/sync/critical-section-objects
-  CRITICAL_SECTION critical_section_;
-
   BluetoothAdapter& bluetooth_adapter_;
 
-  BluetoothAdapter::ScanMode scan_mode_;
+  BluetoothAdapter::ScanMode scan_mode_ = BluetoothAdapter::ScanMode::kUnknown;
+  std::unique_ptr<BluetoothDevice> remote_device_to_connect_;
+
+  // Used for advertising.
+  RfcommServiceProvider rfcomm_provider_ = nullptr;
+  std::unique_ptr<BluetoothServerSocket> server_socket_ = nullptr;
+  BluetoothServerSocket* raw_server_socket_ = nullptr;
+  bool is_radio_discoverable_ = false;
 };
 
 }  // namespace windows

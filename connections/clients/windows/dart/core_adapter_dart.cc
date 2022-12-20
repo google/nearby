@@ -21,43 +21,306 @@
 
 #include "connections/core.h"
 #include "connections/payload.h"
-#include "internal/platform/file.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 
-namespace location {
-namespace nearby {
-namespace connections {
-namespace windows {
+namespace location::nearby::windows {
 
-Strategy GetStrategy(StrategyDart strategy) {
+static CountDownLatch *adapter_finished;
+
+StrategyW GetStrategy(StrategyDart strategy) {
   switch (strategy) {
     case StrategyDart::P2P_CLUSTER:
-      return Strategy::kP2pCluster;
+      return StrategyW::kP2pCluster;
     case StrategyDart::P2P_POINT_TO_POINT:
-      return Strategy::kP2pPointToPoint;
+      return StrategyW::kP2pPointToPoint;
     case StrategyDart::P2P_STAR:
-      return Strategy::kP2pStar;
+      return StrategyW::kP2pStar;
   }
-  return Strategy::kNone;
+  return StrategyW::kNone;
 }
 
 ByteArray ConvertBluetoothMacAddress(absl::string_view address) {
   return ByteArray(address.data());
 }
 
-void SetResultCallback(ResultCallback &callback, Dart_Port &port) {
-  callback.result_cb = [port](Status status) {
-    Dart_CObject dart_object_result_callback;
-    dart_object_result_callback.type = Dart_CObject_kInt64;
-    dart_object_result_callback.value.as_int64 = status.value;
-    const bool result = Dart_PostCObject_DL(port, &dart_object_result_callback);
-    if (!result) {
-      NEARBY_LOG(INFO, "Posting message to port failed.");
-    }
-  };
+static Dart_Port port;
+static DiscoveryListenerDart current_discovery_listener_dart;
+static ConnectionListenerDart current_connection_listener_dart;
+static PayloadListenerDart current_payload_listener_dart;
+
+void ResultCB(Status status) {
+  (void)status;  // Avoid unused parameter warning
+  Dart_CObject dart_object_result_callback;
+  dart_object_result_callback.type = Dart_CObject_kInt64;
+  dart_object_result_callback.value.as_int64 = status.value;
+  const bool result = Dart_PostCObject_DL(port, &dart_object_result_callback);
+  if (!result) {
+    NEARBY_LOG(INFO, "Posting message to port failed.");
+  }
+  adapter_finished->CountDown();
+}
+
+void ListenerInitiatedCB(
+    const char *endpoint_id,
+    const ConnectionResponseInfoW &connection_response_info) {
+  NEARBY_LOG(INFO, "Advertising initiated: id=%s", endpoint_id);
+
+  Dart_CObject dart_object_endpoint_id;
+  dart_object_endpoint_id.type = Dart_CObject_kString;
+  dart_object_endpoint_id.value.as_string = const_cast<char *>(endpoint_id);
+
+  Dart_CObject dart_object_endpoint_info;
+  dart_object_endpoint_info.type = Dart_CObject_kString;
+  dart_object_endpoint_info.value.as_string =
+      const_cast<char *>(connection_response_info.remote_endpoint_info);
+
+  Dart_CObject *elements[2];
+  elements[0] = &dart_object_endpoint_id;
+  elements[1] = &dart_object_endpoint_info;
+
+  Dart_CObject dart_object_initiated;
+  dart_object_initiated.type = Dart_CObject_kArray;
+  dart_object_initiated.value.as_array.length = 2;
+  dart_object_initiated.value.as_array.values = elements;
+
+  const bool result =
+      Dart_PostCObject_DL(current_connection_listener_dart.initiated_dart_port,
+                          &dart_object_initiated);
+  if (!result) {
+    NEARBY_LOG(INFO, "Posting message to port failed.");
+  }
+}
+
+void ListenerAcceptedCB(const char *endpoint_id) {
+  NEARBY_LOG(INFO, "Advertising accepted: id=%s", endpoint_id);
+  Dart_CObject dart_object_accepted;
+  dart_object_accepted.type = Dart_CObject_kString;
+  dart_object_accepted.value.as_string = const_cast<char *>(endpoint_id);
+  const bool result =
+      Dart_PostCObject_DL(current_connection_listener_dart.accepted_dart_port,
+                          &dart_object_accepted);
+  if (!result) {
+    NEARBY_LOG(INFO, "Posting message to port failed.");
+  }
+}
+
+void ListenerRejectedCB(const char *endpoint_id, connections::Status status) {
+  NEARBY_LOG(INFO, "Advertising rejected: id=%s", endpoint_id);
+  Dart_CObject dart_object_rejected;
+  dart_object_rejected.type = Dart_CObject_kString;
+  dart_object_rejected.value.as_string = const_cast<char *>(endpoint_id);
+  const bool result =
+      Dart_PostCObject_DL(current_connection_listener_dart.rejected_dart_port,
+                          &dart_object_rejected);
+  if (!result) {
+    NEARBY_LOG(INFO, "Posting message to port failed.");
+  }
+}
+
+void ListenerDisconnectedCB(const char *endpoint_id) {
+  NEARBY_LOG(INFO, "Advertising disconnected: id=%s", endpoint_id);
+  Dart_CObject dart_object_disconnected;
+  dart_object_disconnected.type = Dart_CObject_kString;
+  dart_object_disconnected.value.as_string = const_cast<char *>(endpoint_id);
+  const bool result = Dart_PostCObject_DL(
+      current_connection_listener_dart.disconnected_dart_port,
+      &dart_object_disconnected);
+  if (!result) {
+    NEARBY_LOG(INFO, "Posting message to port failed.");
+  }
+}
+
+void ListenerBandwidthChangedCB(const char *endpoint_id, MediumW medium) {
+  NEARBY_LOG(INFO, "Advertising bandwidth changed: id=%s", endpoint_id);
+  Dart_CObject dart_object_bandwidth_changed;
+
+  dart_object_bandwidth_changed.type = Dart_CObject_kString;
+  dart_object_bandwidth_changed.value.as_string =
+      const_cast<char *>(endpoint_id);
+  const bool result = Dart_PostCObject_DL(
+      current_connection_listener_dart.bandwidth_changed_dart_port,
+      &dart_object_bandwidth_changed);
+  if (!result) {
+    NEARBY_LOG(INFO, "Posting message to port failed.");
+  }
+}
+
+void ListenerEndpointFoundCB(const char *endpoint_id, const char *endpoint_info,
+                             size_t endpoint_info_size,
+                             const char *str_service_id) {
+  NEARBY_LOG(INFO, "Device discovered: id=%s", endpoint_id);
+  NEARBY_LOG(INFO, "Device discovered: service_id=%s", str_service_id);
+  NEARBY_LOG(INFO, "Device discovered: info=%s", endpoint_info);
+
+  Dart_CObject dart_object_endpoint_id;
+  dart_object_endpoint_id.type = Dart_CObject_kString;
+  dart_object_endpoint_id.value.as_string = const_cast<char *>(endpoint_id);
+
+  Dart_CObject dart_object_endpoint_info;
+  dart_object_endpoint_info.type = Dart_CObject_kString;
+  dart_object_endpoint_info.value.as_string = const_cast<char *>(endpoint_info);
+
+  Dart_CObject *elements[2];
+  elements[0] = &dart_object_endpoint_id;
+  elements[1] = &dart_object_endpoint_info;
+
+  Dart_CObject dart_object_found;
+  dart_object_found.type = Dart_CObject_kArray;
+  dart_object_found.value.as_array.length = 2;
+  dart_object_found.value.as_array.values = elements;
+  const bool result = Dart_PostCObject_DL(
+      current_discovery_listener_dart.found_dart_port, &dart_object_found);
+  if (!result) {
+    NEARBY_LOG(INFO, "Posting message to port failed.");
+  }
+}
+void ListenerEndpointLostCB(const char *endpoint_id) {
+  NEARBY_LOG(INFO, "Device lost: id=%s", endpoint_id);
+  Dart_CObject dart_object_lost;
+  dart_object_lost.type = Dart_CObject_kString;
+  dart_object_lost.value.as_string = const_cast<char *>(endpoint_id);
+  const bool result = Dart_PostCObject_DL(
+      current_discovery_listener_dart.lost_dart_port, &dart_object_lost);
+  if (!result) {
+    NEARBY_LOG(INFO, "Posting message to port failed.");
+  }
+}
+
+void ListenerEndpointDistanceChangedCB(const char *endpoint_id,
+                                       DistanceInfoW distance_info) {
+  (void)distance_info;  // Avoid unused parameter warning
+  NEARBY_LOG(INFO, "Device distance changed: id=%s", endpoint_id);
+  Dart_CObject dart_object_distance_changed;
+  dart_object_distance_changed.type = Dart_CObject_kString;
+  dart_object_distance_changed.value.as_string =
+      const_cast<char *>(endpoint_id);
+  const bool result = Dart_PostCObject_DL(
+      current_discovery_listener_dart.distance_changed_dart_port,
+      &dart_object_distance_changed);
+  if (!result) {
+    NEARBY_LOG(INFO, "Posting message to port failed.");
+  }
+}
+
+void ListenerPayloadCB(const char *endpoint_id, PayloadW &payload) {
+  NEARBY_LOG(INFO,
+             "Payload callback called. id: %s, "
+             "payload_id: %d, type: %d, offset: %d",
+             endpoint_id, payload.GetId(), payload.GetType(),
+             payload.GetOffset());
+
+  Dart_CObject dart_object_endpoint_id;
+  dart_object_endpoint_id.type = Dart_CObject_kString;
+  dart_object_endpoint_id.value.as_string = const_cast<char *>(endpoint_id);
+
+  Dart_CObject dart_object_payload_id;
+  dart_object_payload_id.type = Dart_CObject_kInt64;
+  dart_object_payload_id.value.as_int64 = payload.GetId();
+
+  Dart_CObject dart_object_payload_type;
+  dart_object_payload_type.type = Dart_CObject_kInt64;
+  dart_object_payload_type.value.as_int64 = (int)payload.GetType();
+
+  Dart_CObject dart_object_offset;
+  dart_object_offset.type = Dart_CObject_kInt64;
+  dart_object_offset.value.as_int64 = payload.GetOffset();
+
+  Dart_CObject dart_object_payload_data;
+  dart_object_offset.type = Dart_CObject_kString;
+  switch (payload.GetType()) {
+    case location::nearby::connections::PayloadType::kBytes: {
+      char *bytes = nullptr;
+      size_t bytes_size;
+
+      if (!payload.AsBytes(bytes, bytes_size)) {
+        // Failed to get the payload as bytes.
+      }
+      dart_object_offset.value.as_string = bytes;
+    } break;
+    case location::nearby::connections::PayloadType::kFile: {
+      std::string payload_data(payload.AsFile()->GetFilePath().data());
+      dart_object_offset.value.as_string =
+          const_cast<char *>(payload_data.c_str());
+    } break;
+    default:
+      dart_object_offset.value.as_string = const_cast<char *>("");
+  }
+
+  Dart_CObject *elements[5];
+  elements[0] = &dart_object_endpoint_id;
+  elements[1] = &dart_object_payload_id;
+  elements[2] = &dart_object_payload_type;
+  elements[3] = &dart_object_offset;
+  elements[4] = &dart_object_payload_data;
+
+  Dart_CObject dart_object_payload;
+  dart_object_payload.type = Dart_CObject_kArray;
+  dart_object_payload.value.as_array.length = 5;
+  dart_object_payload.value.as_array.values = elements;
+
+  if (!Dart_PostCObject_DL(current_payload_listener_dart.payload_dart_port,
+                           &dart_object_payload)) {
+    NEARBY_LOG(INFO, "Posting message to port failed.");
+  }
+}
+
+void ListenerPayloadProgressCB(
+    const char *endpoint_id,
+    const PayloadProgressInfoW &payload_progress_info) {
+  NEARBY_LOG(INFO,
+             "Payload progress callback called. id: %s, "
+             "payload_id: %d, bytes transferred: %d, total: %d, status: %d",
+             endpoint_id, payload_progress_info.payload_id,
+             payload_progress_info.bytes_transferred,
+             payload_progress_info.total_bytes, payload_progress_info.status);
+  Dart_CObject dart_object_endpoint_id;
+  dart_object_endpoint_id.type = Dart_CObject_kString;
+  dart_object_endpoint_id.value.as_string = const_cast<char *>(endpoint_id);
+
+  Dart_CObject dart_object_payload_id;
+  dart_object_payload_id.type = Dart_CObject_kInt64;
+  dart_object_payload_id.value.as_int64 = payload_progress_info.payload_id;
+
+  Dart_CObject dart_object_bytes_transferred;
+  dart_object_bytes_transferred.type = Dart_CObject_kInt64;
+  dart_object_bytes_transferred.value.as_int64 =
+      payload_progress_info.bytes_transferred;
+
+  Dart_CObject dart_object_total_bytes;
+  dart_object_total_bytes.type = Dart_CObject_kInt64;
+  dart_object_total_bytes.value.as_int64 = payload_progress_info.total_bytes;
+
+  Dart_CObject dart_object_status;
+  dart_object_status.type = Dart_CObject_kInt64;
+  dart_object_status.value.as_int64 = (int64_t)payload_progress_info.status;
+
+  Dart_CObject *elements[5];
+  elements[0] = &dart_object_endpoint_id;
+  elements[1] = &dart_object_payload_id;
+  elements[2] = &dart_object_bytes_transferred;
+  elements[3] = &dart_object_total_bytes;
+  elements[4] = &dart_object_status;
+
+  Dart_CObject dart_object_payload_progress;
+  dart_object_payload_progress.type = Dart_CObject_kArray;
+  dart_object_payload_progress.value.as_array.length = 5;
+  dart_object_payload_progress.value.as_array.values = elements;
+
+  if (!Dart_PostCObject_DL(
+          current_payload_listener_dart.payload_progress_dart_port,
+          &dart_object_payload_progress)) {
+    NEARBY_LOG(INFO, "Posting message to port failed.");
+  }
+}
+
+void SetResultCallback(ResultCallbackW &result_callback, Dart_Port &dart_port) {
+  port = dart_port;
+  result_callback.result_cb = ResultCB;
 }
 
 void PostResult(Dart_Port &result_cb, Status::Value value) {
+  port = result_cb;
   Dart_CObject dart_object_result_callback;
   dart_object_result_callback.type = Dart_CObject_kInt64;
   dart_object_result_callback.value.as_int64 = value;
@@ -68,494 +331,327 @@ void PostResult(Dart_Port &result_cb, Status::Value value) {
   }
 }
 
-void StartAdvertisingDart(Core *pCore, const char *service_id,
-                          ConnectionOptionsDart options_dart,
-                          ConnectionRequestInfoDart info_dart,
-                          Dart_Port result_cb) {
+void StartAdvertisingDart(
+    Core *pCore, const char *service_id,
+    AdvertisingOptionsDart connection_options_dart,
+    ConnectionRequestInfoDart connection_request_info_dart,
+    Dart_Port result_cb) {
   if (!pCore) {
     PostResult(result_cb, Status::Value::kError);
     return;
   }
 
-  AdvertisingOptions advertising_options;
-  advertising_options.strategy = GetStrategy(options_dart.strategy);
+  port = result_cb;
+  current_connection_listener_dart =
+      connection_request_info_dart.connection_listener;
+
+  AdvertisingOptionsW advertising_options;
+  advertising_options.strategy = GetStrategy(connection_options_dart.strategy);
   advertising_options.auto_upgrade_bandwidth =
-      options_dart.auto_upgrade_bandwidth;
+      connection_options_dart.auto_upgrade_bandwidth;
   advertising_options.enforce_topology_constraints =
-      options_dart.enforce_topology_constraints;
-  advertising_options.allowed.bluetooth = options_dart.enable_bluetooth;
-  advertising_options.allowed.ble = options_dart.enable_ble;
-  advertising_options.low_power = options_dart.use_low_power_mode;
+      connection_options_dart.enforce_topology_constraints;
+
+  advertising_options.low_power = connection_options_dart.low_power;
   advertising_options.fast_advertisement_service_uuid =
-      options_dart.discover_fast_advertisements
-          ? "0000FE2C-0000-1000-8000-00805F9B34FB"
-          : "";
-  advertising_options.allowed.wifi_lan = options_dart.enable_wifi_lan;
-  advertising_options.allowed.web_rtc = options_dart.enable_web_rtc;
+      connection_options_dart.fast_advertisement_service_uuid;
 
-  ConnectionRequestInfo info;
-  info.endpoint_info = ByteArray(info_dart.endpoint_info);
-  info.listener.initiated_cb =
-      [info_dart](const std::string &endpoint_id,
-                  const ConnectionResponseInfo &connection_info) {
-        NEARBY_LOG(INFO, "Advertising initiated: id=%s", endpoint_id.c_str());
+  advertising_options.allowed.bluetooth =
+      connection_options_dart.mediums.bluetooth;
+  advertising_options.allowed.ble = connection_options_dart.mediums.ble;
+  advertising_options.allowed.wifi_lan =
+      connection_options_dart.mediums.wifi_lan;
+  advertising_options.allowed.wifi_hotspot =
+      connection_options_dart.mediums.wifi_hotspot;
+  advertising_options.allowed.web_rtc = connection_options_dart.mediums.web_rtc;
 
-        Dart_CObject dart_object_endpoint_id;
-        dart_object_endpoint_id.type = Dart_CObject_kString;
-        dart_object_endpoint_id.value.as_string = (char *)endpoint_id.data();
+  ConnectionListenerW listener(ListenerInitiatedCB, ListenerAcceptedCB,
+                               ListenerRejectedCB, ListenerDisconnectedCB,
+                               ListenerBandwidthChangedCB);
 
-        Dart_CObject dart_object_endpoint_info;
-        dart_object_endpoint_info.type = Dart_CObject_kString;
-        dart_object_endpoint_info.value.as_string =
-            (char *)connection_info.remote_endpoint_info.data();
+  ConnectionRequestInfoW info{
+      connection_request_info_dart.endpoint_info,
+      strlen(connection_request_info_dart.endpoint_info), listener};
 
-        Dart_CObject *elements[2];
-        elements[0] = &dart_object_endpoint_id;
-        elements[1] = &dart_object_endpoint_info;
-
-        Dart_CObject dart_object_initiated;
-        dart_object_initiated.type = Dart_CObject_kArray;
-        dart_object_initiated.value.as_array.length = 2;
-        dart_object_initiated.value.as_array.values = elements;
-
-        const bool result =
-            Dart_PostCObject_DL(info_dart.initiated_cb, &dart_object_initiated);
-        if (!result) {
-          NEARBY_LOG(INFO, "Posting message to port failed.");
-        }
-      };
-  info.listener.accepted_cb = [info_dart](const std::string &endpoint_id) {
-    NEARBY_LOG(INFO, "Advertising accepted: id=%s", endpoint_id.c_str());
-    Dart_CObject dart_object_accepted;
-    dart_object_accepted.type = Dart_CObject_kString;
-    dart_object_accepted.value.as_string = (char *)endpoint_id.c_str();
-    const bool result =
-        Dart_PostCObject_DL(info_dart.accepted_cb, &dart_object_accepted);
-    if (!result) {
-      NEARBY_LOG(INFO, "Posting message to port failed.");
-    }
-  };
-  info.listener.rejected_cb = [info_dart](const std::string &endpoint_id,
-                                          Status status) {
-    NEARBY_LOG(INFO, "Advertising rejected: id=%s", endpoint_id.c_str());
-    Dart_CObject dart_object_rejected;
-    dart_object_rejected.type = Dart_CObject_kString;
-    dart_object_rejected.value.as_string = (char *)endpoint_id.c_str();
-    const bool result =
-        Dart_PostCObject_DL(info_dart.rejected_cb, &dart_object_rejected);
-    if (!result) {
-      NEARBY_LOG(INFO, "Posting message to port failed.");
-    }
-  };
-  info.listener.disconnected_cb = [info_dart](const std::string &endpoint_id) {
-    NEARBY_LOG(INFO, "Advertising disconnected: id=%s", endpoint_id.c_str());
-    Dart_CObject dart_object_disconnected;
-    dart_object_disconnected.type = Dart_CObject_kString;
-    dart_object_disconnected.value.as_string = (char *)endpoint_id.c_str();
-    const bool result = Dart_PostCObject_DL(info_dart.disconnected_cb,
-                                            &dart_object_disconnected);
-    if (!result) {
-      NEARBY_LOG(INFO, "Posting message to port failed.");
-    }
-  };
-  info.listener.bandwidth_changed_cb =
-      [info_dart](const std::string &endpoint_id, Medium medium) {
-        NEARBY_LOG(INFO, "Advertising bandwidth changed: id=%s",
-                   endpoint_id.c_str());
-        Dart_CObject dart_object_bandwidth_changed;
-
-        dart_object_bandwidth_changed.type = Dart_CObject_kString;
-        dart_object_bandwidth_changed.value.as_string =
-            (char *)endpoint_id.c_str();
-        const bool result = Dart_PostCObject_DL(info_dart.bandwidth_changed_cb,
-                                                &dart_object_bandwidth_changed);
-        if (!result) {
-          NEARBY_LOG(INFO, "Posting message to port failed.");
-        }
-      };
-
-  ResultCallback callback;
+  ResultCallbackW callback;
   SetResultCallback(callback, result_cb);
-  StartAdvertising(pCore, service_id, std::move(advertising_options), info,
-                   callback);
+
+  CountDownLatch finished(1);
+  adapter_finished = &finished;
+
+  StartAdvertising(pCore, service_id, advertising_options, info, callback);
+
+  finished.Await();
 }
 
-void StopAdvertisingDart(Core *pCore, Dart_Port result_cb) {
+void StopAdvertisingDart(Core *pCore, Dart_Port dart_port) {
   if (!pCore) {
-    PostResult(result_cb, Status::Value::kError);
+    PostResult(dart_port, Status::Value::kError);
     return;
   }
 
-  ResultCallback callback;
-  SetResultCallback(callback, result_cb);
+  port = dart_port;
+  ResultCallbackW callback;
+  SetResultCallback(callback, dart_port);
+
+  CountDownLatch finished(1);
+  adapter_finished = &finished;
+
   StopAdvertising(pCore, callback);
+
+  finished.Await();
 }
 
 void StartDiscoveryDart(Core *pCore, const char *service_id,
-                        ConnectionOptionsDart options_dart,
-                        DiscoveryListenerDart listener_dart,
-                        Dart_Port result_cb) {
+                        DiscoveryOptionsDart discovery_options_dart,
+                        DiscoveryListenerDart discovery_listener_dart,
+                        Dart_Port dart_port) {
   if (!pCore) {
-    PostResult(result_cb, Status::Value::kError);
+    PostResult(dart_port, Status::Value::kError);
     return;
   }
 
-  DiscoveryOptions discovery_options;
-  discovery_options.strategy = GetStrategy(options_dart.strategy);
-  discovery_options.allowed.bluetooth = options_dart.enable_bluetooth;
-  discovery_options.allowed.ble = options_dart.enable_ble;
-  discovery_options.allowed.wifi_lan = options_dart.enable_wifi_lan;
+  port = dart_port;
+  current_discovery_listener_dart = discovery_listener_dart;
+
+  DiscoveryOptionsW discovery_options;
+  discovery_options.strategy = GetStrategy(discovery_options_dart.strategy);
   discovery_options.allowed.web_rtc = false;
   discovery_options.enforce_topology_constraints = true;
+  // This needs to be passed in by the UI. If it's null, then no
+  // fast_advertisement_service. Otherwise this interface will always
+  // and forever be locked into 0000FE2C-0000-1000-8000-00805F9B34FB
+  // whenever fast advertisement service is requested.
   discovery_options.fast_advertisement_service_uuid =
-      options_dart.discover_fast_advertisements
-          ? "0000FE2C-0000-1000-8000-00805F9B34FB"
-          : "";
+      discovery_options_dart.fast_advertisement_service_uuid;
 
-  DiscoveryListener listener;
-  listener.endpoint_found_cb = [listener_dart](
-                                   const std::string &endpoint_id,
-                                   const ByteArray &endpoint_info,
-                                   const std::string &str_service_id) {
-    NEARBY_LOG(INFO, "Device discovered: id=%s", endpoint_id.c_str());
-    NEARBY_LOG(INFO, "Device discovered: service_id=%s",
-               str_service_id.c_str());
-    NEARBY_LOG(INFO, "Device discovered: info=%s",
-               ((string)endpoint_info).c_str());
+  discovery_options.allowed.bluetooth =
+      discovery_options_dart.mediums.bluetooth;
+  discovery_options.allowed.ble = discovery_options_dart.mediums.ble;
+  discovery_options.allowed.wifi_lan = discovery_options_dart.mediums.wifi_lan;
+  discovery_options.allowed.wifi_hotspot =
+      discovery_options_dart.mediums.wifi_hotspot;
+  discovery_options.allowed.web_rtc = discovery_options_dart.mediums.web_rtc;
 
-    Dart_CObject dart_object_endpoint_id;
-    dart_object_endpoint_id.type = Dart_CObject_kString;
-    dart_object_endpoint_id.value.as_string = (char *)endpoint_id.data();
+  DiscoveryListenerW listener(ListenerEndpointFoundCB, ListenerEndpointLostCB,
+                              ListenerEndpointDistanceChangedCB);
 
-    Dart_CObject dart_object_endpoint_info;
-    dart_object_endpoint_info.type = Dart_CObject_kString;
-    dart_object_endpoint_info.value.as_string = (char *)endpoint_info.data();
+  Status request_result;
+  ResultCallbackW callback;
+  SetResultCallback(callback, dart_port);
 
-    Dart_CObject *elements[2];
-    elements[0] = &dart_object_endpoint_id;
-    elements[1] = &dart_object_endpoint_info;
+  CountDownLatch finished(1);
+  adapter_finished = &finished;
 
-    Dart_CObject dart_object_found;
-    dart_object_found.type = Dart_CObject_kArray;
-    dart_object_found.value.as_array.length = 2;
-    dart_object_found.value.as_array.values = elements;
-    const bool result =
-        Dart_PostCObject_DL(listener_dart.found_cb, &dart_object_found);
-    if (!result) {
-      NEARBY_LOG(INFO, "Posting message to port failed.");
-    }
-  };
-  listener.endpoint_lost_cb = [listener_dart](const std::string &endpoint_id) {
-    NEARBY_LOG(INFO, "Device lost: id=%s", endpoint_id.c_str());
-    Dart_CObject dart_object_lost;
-    dart_object_lost.type = Dart_CObject_kString;
-    dart_object_lost.value.as_string = (char *)endpoint_id.c_str();
-    const bool result =
-        Dart_PostCObject_DL(listener_dart.lost_cb, &dart_object_lost);
-    if (!result) {
-      NEARBY_LOG(INFO, "Posting message to port failed.");
-    }
-  };
-  listener.endpoint_distance_changed_cb =
-      [listener_dart](const std::string &endpoint_id, DistanceInfo info) {
-        NEARBY_LOG(INFO, "Device distance changed: id=%s", endpoint_id.c_str());
-        Dart_CObject dart_object_distance_changed;
-        dart_object_distance_changed.type = Dart_CObject_kString;
-        dart_object_distance_changed.value.as_string =
-            (char *)(endpoint_id.c_str());
-        const bool result = Dart_PostCObject_DL(
-            listener_dart.distance_changed_cb, &dart_object_distance_changed);
-        if (!result) {
-          NEARBY_LOG(INFO, "Posting message to port failed.");
-        }
-      };
+  StartDiscovery(pCore, service_id, discovery_options, listener, callback);
 
-  ResultCallback callback;
-  SetResultCallback(callback, result_cb);
-  StartDiscovery(pCore, service_id, std::move(discovery_options), listener,
-                 callback);
+  finished.Await();
 }
 
-void StopDiscoveryDart(Core *pCore, Dart_Port result_cb) {
+void StopDiscoveryDart(Core *pCore, Dart_Port dart_port) {
   if (!pCore) {
-    PostResult(result_cb, Status::Value::kError);
+    PostResult(dart_port, Status::Value::kError);
     return;
   }
 
-  ResultCallback callback;
-  SetResultCallback(callback, result_cb);
+  port = dart_port;
+  ResultCallbackW callback;
+  SetResultCallback(callback, dart_port);
+
+  CountDownLatch finished(1);
+  adapter_finished = &finished;
+
   StopDiscovery(pCore, callback);
+
+  adapter_finished->Await();
 }
 
-void RequestConnectionDart(Core *pCore, const char *endpoint_id,
-                           ConnectionOptionsDart options_dart,
-                           ConnectionRequestInfoDart info_dart,
-                           Dart_Port result_cb) {
+void RequestConnectionDart(
+    Core *pCore, const char *endpoint_id,
+    ConnectionOptionsDart connection_options_dart,
+    ConnectionRequestInfoDart connection_request_info_dart,
+    Dart_Port dart_port) {
   if (!pCore) {
-    PostResult(result_cb, Status::Value::kError);
+    PostResult(dart_port, Status::Value::kError);
     return;
   }
 
-  ConnectionOptions connection_options;
+  port = dart_port;
+  current_connection_listener_dart =
+      connection_request_info_dart.connection_listener;
+
+  ConnectionOptionsW connection_options;
   connection_options.enforce_topology_constraints = false;
-  connection_options.allowed.bluetooth = options_dart.enable_bluetooth;
-  connection_options.allowed.ble = options_dart.enable_ble;
-  connection_options.allowed.wifi_lan = options_dart.enable_wifi_lan;
-  connection_options.allowed.web_rtc = options_dart.enable_web_rtc;
+  connection_options.remote_bluetooth_mac_address =
+      connection_options_dart.remote_bluetooth_mac_address;
+  connection_options.fast_advertisement_service_uuid =
+      connection_options_dart.fast_advertisement_service_uuid;
+  connection_options.keep_alive_interval_millis =
+      connection_options_dart.keep_alive_interval_millis;
+  connection_options.keep_alive_timeout_millis =
+      connection_options_dart.keep_alive_timeout_millis;
+  connection_options.allowed.bluetooth =
+      connection_options_dart.mediums.bluetooth;
+  connection_options.allowed.ble = connection_options_dart.mediums.ble;
+  connection_options.allowed.wifi_lan =
+      connection_options_dart.mediums.wifi_lan;
+  connection_options.allowed.wifi_hotspot =
+      connection_options_dart.mediums.wifi_hotspot;
+  connection_options.allowed.web_rtc = connection_options_dart.mediums.web_rtc;
 
-  ConnectionRequestInfo info;
-  info.endpoint_info = ByteArray(info_dart.endpoint_info);
-  info.listener.initiated_cb =
-      [info_dart](const std::string &endpoint_id,
-                  const ConnectionResponseInfo &connection_info) {
-        NEARBY_LOG(INFO, "Connection request initiated: id=%s",
-                   endpoint_id.c_str());
+  ConnectionListenerW listener(ListenerInitiatedCB, ListenerAcceptedCB,
+                               ListenerRejectedCB, ListenerDisconnectedCB,
+                               ListenerBandwidthChangedCB);
 
-        Dart_CObject dart_object_endpoint_id;
-        dart_object_endpoint_id.type = Dart_CObject_kString;
-        dart_object_endpoint_id.value.as_string = (char *)endpoint_id.data();
+  ConnectionRequestInfoW info{
+      connection_request_info_dart.endpoint_info,
+      strlen(connection_request_info_dart.endpoint_info), listener};
 
-        Dart_CObject dart_object_endpoint_info;
-        dart_object_endpoint_info.type = Dart_CObject_kString;
-        dart_object_endpoint_info.value.as_string =
-            (char *)connection_info.remote_endpoint_info.data();
+  ResultCallbackW callback;
+  SetResultCallback(callback, dart_port);
 
-        Dart_CObject *elements[2];
-        elements[0] = &dart_object_endpoint_id;
-        elements[1] = &dart_object_endpoint_info;
+  CountDownLatch finished(1);
+  adapter_finished = &finished;
 
-        Dart_CObject dart_object_initiated;
-        dart_object_initiated.type = Dart_CObject_kArray;
-        dart_object_initiated.value.as_array.length = 2;
-        dart_object_initiated.value.as_array.values = elements;
+  RequestConnection(pCore, endpoint_id, info, connection_options, callback);
 
-        const bool result =
-            Dart_PostCObject_DL(info_dart.initiated_cb, &dart_object_initiated);
-        if (!result) {
-          NEARBY_LOG(INFO, "Posting message to port failed.");
-        }
-      };
-  info.listener.accepted_cb = [info_dart](const std::string &endpoint_id) {
-    NEARBY_LOG(INFO, "Advertising accepted: id=%s", endpoint_id.c_str());
-    Dart_CObject dart_object_accepted;
-    dart_object_accepted.type = Dart_CObject_kString;
-    dart_object_accepted.value.as_string = (char *)endpoint_id.c_str();
-    const bool result =
-        Dart_PostCObject_DL(info_dart.accepted_cb, &dart_object_accepted);
-    if (!result) {
-      NEARBY_LOG(INFO, "Posting message to port failed.");
-    }
-  };
-  info.listener.rejected_cb = [info_dart](const std::string &endpoint_id,
-                                          Status status) {
-    NEARBY_LOG(INFO, "Advertising rejected: id=%s", endpoint_id.c_str());
-    Dart_CObject dart_object_rejected;
-    dart_object_rejected.type = Dart_CObject_kString;
-    dart_object_rejected.value.as_string = (char *)endpoint_id.c_str();
-    const bool result =
-        Dart_PostCObject_DL(info_dart.rejected_cb, &dart_object_rejected);
-    if (!result) {
-      NEARBY_LOG(INFO, "Posting message to port failed.");
-    }
-  };
-  info.listener.disconnected_cb = [info_dart](const std::string &endpoint_id) {
-    NEARBY_LOG(INFO, "Advertising disconnected: id=%s", endpoint_id.c_str());
-    Dart_CObject dart_object_disconnected;
-    dart_object_disconnected.type = Dart_CObject_kString;
-    dart_object_disconnected.value.as_string = (char *)endpoint_id.c_str();
-    const bool result = Dart_PostCObject_DL(info_dart.disconnected_cb,
-                                            &dart_object_disconnected);
-    if (!result) {
-      NEARBY_LOG(INFO, "Posting message to port failed.");
-    }
-  };
-  info.listener.bandwidth_changed_cb =
-      [info_dart](const std::string &endpoint_id, Medium medium) {
-        NEARBY_LOG(INFO, "Advertising bandwidth changed: id=%s",
-                   endpoint_id.c_str());
-        Dart_CObject dart_object_bandwidth_changed;
-
-        dart_object_bandwidth_changed.type = Dart_CObject_kString;
-        dart_object_bandwidth_changed.value.as_string =
-            (char *)endpoint_id.c_str();
-        const bool result = Dart_PostCObject_DL(info_dart.bandwidth_changed_cb,
-                                                &dart_object_bandwidth_changed);
-        if (!result) {
-          NEARBY_LOG(INFO, "Posting message to port failed.");
-        }
-      };
-
-  ResultCallback callback;
-  SetResultCallback(callback, result_cb);
-  RequestConnection(pCore, endpoint_id, info, std::move(connection_options),
-                    callback);
+  adapter_finished->Await();
 }
 
 void AcceptConnectionDart(Core *pCore, const char *endpoint_id,
-                          PayloadListenerDart listener_dart,
-                          Dart_Port result_cb) {
+                          PayloadListenerDart payload_listener_dart,
+                          Dart_Port dart_port) {
   if (!pCore) {
-    PostResult(result_cb, Status::Value::kError);
+    PostResult(dart_port, Status::Value::kError);
     return;
   }
 
-  PayloadListener listener;
-  listener.payload_cb = [listener_dart](const std::string &endpoint_id,
-                                        Payload payload) {
-    NEARBY_LOG(INFO,
-               "Payload callback called. id: %s, "
-               "payload_id: %d, type: %d, offset: %d",
-               endpoint_id.c_str(), payload.GetId(), payload.GetType(),
-               payload.GetOffset());
+  port = dart_port;
+  current_payload_listener_dart = payload_listener_dart;
 
-    Dart_CObject dart_object_endpoint_id;
-    dart_object_endpoint_id.type = Dart_CObject_kString;
-    dart_object_endpoint_id.value.as_string = (char *)endpoint_id.data();
+  PayloadListenerW listener(ListenerPayloadCB, ListenerPayloadProgressCB);
 
-    Dart_CObject dart_object_payload_id;
-    dart_object_payload_id.type = Dart_CObject_kInt64;
-    dart_object_payload_id.value.as_int64 = payload.GetId();
+  ResultCallbackW callback;
+  SetResultCallback(callback, dart_port);
 
-    Dart_CObject dart_object_payload_type;
-    dart_object_payload_type.type = Dart_CObject_kInt64;
-    dart_object_payload_type.value.as_int64 = (int)payload.GetType();
+  CountDownLatch finished(1);
+  adapter_finished = &finished;
 
-    Dart_CObject dart_object_offset;
-    dart_object_offset.type = Dart_CObject_kInt64;
-    dart_object_offset.value.as_int64 = payload.GetOffset();
-
-    Dart_CObject dart_object_payload_data;
-    dart_object_offset.type = Dart_CObject_kString;
-    switch (payload.GetType()) {
-      case location::nearby::connections::PayloadType::kBytes:
-        dart_object_offset.value.as_string =
-            const_cast<char *>(payload.AsBytes().data());
-        break;
-      case location::nearby::connections::PayloadType::kFile:
-        dart_object_offset.value.as_string =
-            const_cast<char *>(payload.AsFile()->GetFilePath().data());
-        break;
-      default:
-        dart_object_offset.value.as_string = const_cast<char *>("");
-    }
-
-    Dart_CObject *elements[5];
-    elements[0] = &dart_object_endpoint_id;
-    elements[1] = &dart_object_payload_id;
-    elements[2] = &dart_object_payload_type;
-    elements[3] = &dart_object_offset;
-    elements[4] = &dart_object_payload_data;
-
-    Dart_CObject dart_object_payload;
-    dart_object_payload.type = Dart_CObject_kArray;
-    dart_object_payload.value.as_array.length = 5;
-    dart_object_payload.value.as_array.values = elements;
-
-    if (!Dart_PostCObject_DL(listener_dart.payload_cb, &dart_object_payload)) {
-      NEARBY_LOG(INFO, "Posting message to port failed.");
-    }
-  };
-  listener.payload_progress_cb = [listener_dart](
-                                     const std::string &endpoint_id,
-                                     const PayloadProgressInfo &info) {
-    NEARBY_LOG(INFO,
-               "Payload progress callback called. id: %s, "
-               "payload_id: %d, bytes transferred: %d, total: %d, status: %d",
-               endpoint_id.c_str(), info.payload_id, info.bytes_transferred,
-               info.total_bytes, info.status);
-    Dart_CObject dart_object_endpoint_id;
-    dart_object_endpoint_id.type = Dart_CObject_kString;
-    dart_object_endpoint_id.value.as_string = (char *)endpoint_id.data();
-
-    Dart_CObject dart_object_payload_id;
-    dart_object_payload_id.type = Dart_CObject_kInt64;
-    dart_object_payload_id.value.as_int64 = info.payload_id;
-
-    Dart_CObject dart_object_bytes_transferred;
-    dart_object_bytes_transferred.type = Dart_CObject_kInt64;
-    dart_object_bytes_transferred.value.as_int64 = info.bytes_transferred;
-
-    Dart_CObject dart_object_total_bytes;
-    dart_object_total_bytes.type = Dart_CObject_kInt64;
-    dart_object_total_bytes.value.as_int64 = info.total_bytes;
-
-    Dart_CObject dart_object_status;
-    dart_object_status.type = Dart_CObject_kInt64;
-    dart_object_status.value.as_int64 = (int64_t)info.status;
-
-    Dart_CObject *elements[5];
-    elements[0] = &dart_object_endpoint_id;
-    elements[1] = &dart_object_payload_id;
-    elements[2] = &dart_object_bytes_transferred;
-    elements[3] = &dart_object_total_bytes;
-    elements[4] = &dart_object_status;
-
-    Dart_CObject dart_object_payload_progress;
-    dart_object_payload_progress.type = Dart_CObject_kArray;
-    dart_object_payload_progress.value.as_array.length = 5;
-    dart_object_payload_progress.value.as_array.values = elements;
-
-    if (!Dart_PostCObject_DL(listener_dart.payload_progress_cb,
-                             &dart_object_payload_progress)) {
-      NEARBY_LOG(INFO, "Posting message to port failed.");
-    }
-  };
-
-  ResultCallback callback;
-  SetResultCallback(callback, result_cb);
   AcceptConnection(pCore, endpoint_id, listener, callback);
+
+  finished.Await();
 }
 
-void DisconnectFromEndpointDart(Core *pCore, char *endpoint_id,
-                                Dart_Port result_cb) {
+void RejectConnectionDart(Core *pCore, const char *endpoint_id,
+                          Dart_Port dart_port) {
   if (!pCore) {
-    PostResult(result_cb, Status::Value::kError);
+    PostResult(dart_port, Status::Value::kError);
     return;
   }
 
-  ResultCallback callback;
-  SetResultCallback(callback, result_cb);
+  port = dart_port;
+
+  ResultCallbackW callback;
+  SetResultCallback(callback, dart_port);
+
+  CountDownLatch finished(1);
+  adapter_finished = &finished;
+
+  RejectConnection(pCore, endpoint_id, callback);
+
+  finished.Await();
+}
+void DisconnectFromEndpointDart(Core *pCore, char *endpoint_id,
+                                Dart_Port dart_port) {
+  if (!pCore) {
+    PostResult(dart_port, Status::Value::kError);
+    return;
+  }
+
+  port = dart_port;
+  ResultCallbackW callback;
+  SetResultCallback(callback, dart_port);
+
+  CountDownLatch finished(1);
+  adapter_finished = &finished;
+
   DisconnectFromEndpoint(pCore, endpoint_id, callback);
+
+  finished.Await();
 }
 
 void SendPayloadDart(Core *pCore, const char *endpoint_id,
-                     PayloadDart payload_dart, Dart_Port result_cb) {
+                     PayloadDart payload_dart, Dart_Port dart_port) {
   if (!pCore) {
-    PostResult(result_cb, Status::Value::kError);
+    PostResult(dart_port, Status::Value::kError);
     return;
   }
 
-  ResultCallback callback;
-  std::vector<string> endpoint_ids = {string(endpoint_id)};
+  port = dart_port;
+
+  ResultCallbackW callback;
+  std::vector<std::string> endpoint_ids = {std::string(endpoint_id)};
 
   NEARBY_LOG(INFO, "Payload type: %d", payload_dart.type);
   switch (payload_dart.type) {
     case UNKNOWN:
     case STREAM:
       NEARBY_LOG(INFO, "Payload type not supported yet");
-      PostResult(result_cb, Status::Value::kPayloadUnknown);
+      PostResult(dart_port, Status::Value::kPayloadUnknown);
       break;
     case BYTE: {
-      Payload payload(Payload::GenerateId(), ByteArray(payload_dart.data));
-      SendPayload(pCore, absl::Span<const std::string>(endpoint_ids),
+      PayloadW payload(PayloadW::GenerateId(), payload_dart.data,
+                       payload_dart.size);
+
+      std::vector<const char *> c_string_array;
+
+      std::transform(endpoint_ids.begin(), endpoint_ids.end(),
+                     std::back_inserter(c_string_array),
+                     [](const std::string &s) {
+                       char *pc = new char[s.size() + 1];
+                       strncpy(pc, s.c_str(), s.size() + 1);
+                       return pc;
+                     });
+
+      SetResultCallback(callback, dart_port);
+
+      CountDownLatch finished(1);
+      adapter_finished = &finished;
+
+      SendPayload(pCore, c_string_array.data(), c_string_array.size(),
                   std::move(payload), callback);
-    }
-      SetResultCallback(callback, result_cb);
-      break;
+
+      adapter_finished->Await();
+    } break;
     case FILE:
       NEARBY_LOG(INFO, "File name: %s, size %d", payload_dart.data,
                  payload_dart.size);
       std::string file_name_str(payload_dart.data);
-      InputFile input_file(file_name_str, payload_dart.size);
-      Payload payload(std::move(input_file));
-      SendPayload(pCore, absl::Span<const std::string>(endpoint_ids),
+      InputFileW input_file(file_name_str.c_str(), payload_dart.size);
+      PayloadW payload(input_file);
+
+      std::vector<const char *> c_string_array;
+
+      std::transform(endpoint_ids.begin(), endpoint_ids.end(),
+                     std::back_inserter(c_string_array),
+                     [](const std::string &s) {
+                       char *pc = new char[s.size() + 1];
+                       strncpy(pc, s.c_str(), s.size() + 1);
+                       return pc;
+                     });
+
+      SetResultCallback(callback, dart_port);
+
+      CountDownLatch finished(1);
+      adapter_finished = &finished;
+
+      SendPayload(pCore, c_string_array.data(), c_string_array.size(),
                   std::move(payload), callback);
-      SetResultCallback(callback, result_cb);
+
+      adapter_finished->Await();
 
       break;
   }
 }
-}  // namespace windows
-}  // namespace connections
-}  // namespace nearby
-}  // namespace location
+
+}  // namespace location::nearby::windows

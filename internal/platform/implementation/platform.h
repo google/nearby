@@ -28,6 +28,7 @@
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/condition_variable.h"
 #include "internal/platform/implementation/count_down_latch.h"
+#include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/log_message.h"
@@ -42,6 +43,7 @@
 #include "internal/platform/implementation/webrtc.h"
 #endif
 #include "internal/platform/implementation/wifi.h"
+#include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/os_name.h"
@@ -64,8 +66,15 @@ class ImplementationPlatform {
   //   - CountDownLatch : to ensure at least N threads are waiting.
   // - file I/O
   // - Logging
-  static std::string GetDownloadPath(std::string& parent_folder,
-                                     std::string& file_name);
+  static std::string GetCustomSavePath(const std::string& parent_folder,
+                                       const std::string& file_name);
+
+  static std::string GetDownloadPath(const std::string& parent_folder,
+                                     const std::string& file_name);
+
+  static std::string GetDownloadPath(const std::string& file_name);
+
+  static std::string GetAppDataPath(const std::string& file_name);
 
   static OSName GetCurrentOS();
 
@@ -90,11 +99,11 @@ class ImplementationPlatform {
 
   static std::unique_ptr<InputFile> CreateInputFile(PayloadId, std::int64_t);
 
-  static std::unique_ptr<InputFile> CreateInputFile(absl::string_view, size_t);
+  static std::unique_ptr<InputFile> CreateInputFile(const std::string&, size_t);
 
   static std::unique_ptr<OutputFile> CreateOutputFile(PayloadId);
 
-  static std::unique_ptr<OutputFile> CreateOutputFile(absl::string_view);
+  static std::unique_ptr<OutputFile> CreateOutputFile(const std::string&);
 
   static std::unique_ptr<LogMessage> CreateLogMessage(
       const char* file, int line, LogMessage::Severity severity);
@@ -110,12 +119,14 @@ class ImplementationPlatform {
   static std::unique_ptr<BluetoothClassicMedium> CreateBluetoothClassicMedium(
       BluetoothAdapter&);
   static std::unique_ptr<BleMedium> CreateBleMedium(BluetoothAdapter&);
-  static std::unique_ptr<ble_v2::BleMedium> CreateBleV2Medium(
-      BluetoothAdapter&);
+  static std::unique_ptr<api::ble_v2::BleMedium> CreateBleV2Medium(
+      api::BluetoothAdapter&);
+  static std::unique_ptr<api::CredentialStorage> CreateCredentialStorage();
   static std::unique_ptr<ServerSyncMedium> CreateServerSyncMedium();
   static std::unique_ptr<WifiMedium> CreateWifiMedium();
   static std::unique_ptr<WifiLanMedium> CreateWifiLanMedium();
   static std::unique_ptr<WifiHotspotMedium> CreateWifiHotspotMedium();
+  static std::unique_ptr<WifiDirectMedium> CreateWifiDirectMedium();
 #ifndef NO_WEBRTC
   static std::unique_ptr<WebRtcMedium> CreateWebRtcMedium();
 #endif

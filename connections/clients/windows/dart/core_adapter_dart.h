@@ -19,65 +19,152 @@
 #include "third_party/dart_lang/v2/runtime/include/dart_native_api.h"
 #include "connections/clients/windows/core_adapter.h"
 
-namespace location {
-namespace nearby {
-namespace connections {
-namespace windows {
+namespace location::nearby::windows {
 
-enum StrategyDart {
+enum class StrategyDart {
   P2P_CLUSTER = 0,
   P2P_STAR,
   P2P_POINT_TO_POINT,
 };
 
 enum PayloadType {
+  // LINT.IfChange
   UNKNOWN = 0,
   BYTE,
   STREAM,
   FILE,
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/payload.dart)
 };
 
-struct ConnectionOptionsDart {
+struct Mediums {
+  // LINT.IfChange
+  int64_t bluetooth;
+  int64_t ble;
+  int64_t wifi_lan;
+  int64_t wifi_hotspot;
+  int64_t web_rtc;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/mediums.dart)
+};
+
+extern "C" {
+
+struct AdvertisingOptionsDart {
+  // LINT.IfChange
   StrategyDart strategy;
   int64_t auto_upgrade_bandwidth;
   int64_t enforce_topology_constraints;
-  int64_t enable_bluetooth;
-  int64_t enable_ble;
-  int64_t advertise_nearby_notifications_beacon;
-  int64_t use_low_power_mode;
-  int64_t discover_fast_advertisements;
-  int64_t enable_wifi_lan;
-  int64_t enable_nfc;
-  int64_t enable_wifi_aware;
-  int64_t enable_web_rtc;
+  int64_t low_power;
+
+  // Whether this is intended to be used in conjunction with InjectEndpoint().
+  int64_t is_out_of_band_connection = false;
+  const char *fast_advertisement_service_uuid;
+
+  // The information about this device (eg. name, device type),
+  // to appear on the remote device.
+  // Defined by client/application.
+  const char *device_info;
+
+  Mediums mediums;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/advertising_options.dart)
 };
 
-struct ConnectionRequestInfoDart {
-  char *endpoint_info;
-  int64_t initiated_cb;
-  int64_t accepted_cb;
-  int64_t rejected_cb;
-  int64_t disconnected_cb;
-  int64_t bandwidth_changed_cb;
+struct ConnectionOptionsDart {
+  // LINT.IfChange
+  StrategyDart strategy;
+
+  // Whether this is intended to be used in conjunction with InjectEndpoint().
+  int64_t auto_upgrade_bandwidth;
+  int64_t enforce_topology_constraints;
+  int64_t low_power;
+
+  // Whether this is intended to be used in conjunction with InjectEndpoint().
+  int64_t is_out_of_band_connection = false;
+  char *remote_bluetooth_mac_address;
+  char *fast_advertisement_service_uuid;
+  int64_t keep_alive_interval_millis;
+  int64_t keep_alive_timeout_millis;
+
+  Mediums mediums;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/connection_options.dart)
+};
+
+struct DiscoveryOptionsDart {
+  // LINT.IfChange
+  StrategyDart strategy;
+  int64_t auto_upgrade_bandwidth;
+  int64_t enforce_topology_constraints;
+  int64_t keep_alive_interval_millis = 0;
+  int64_t keep_alive_timeout_millis = 0;
+
+  // Whether this is intended to be used in conjunction with InjectEndpoint().
+  int64_t is_out_of_band_connection = false;
+  const char *fast_advertisement_service_uuid;
+  const char *remote_bluetooth_mac_address;
+
+  Mediums mediums;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/discovery_options.dart)
 };
 
 struct DiscoveryListenerDart {
-  int64_t found_cb;
-  int64_t lost_cb;
-  int64_t distance_changed_cb;
+  // LINT.IfChange
+  int64_t found_dart_port;
+  int64_t lost_dart_port;
+  int64_t distance_changed_dart_port;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/discovery_listener.dart)
 };
 
 struct PayloadListenerDart {
-  int64_t payload_cb;
-  int64_t payload_progress_cb;
+  // LINT.IfChange
+  int64_t payload_dart_port;
+  int64_t payload_progress_dart_port;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/payload_listener.dart)
+};
+
+struct ConnectionListenerDart {
+  // LINT.IfChange
+  int64_t initiated_dart_port;
+  int64_t accepted_dart_port;
+  int64_t rejected_dart_port;
+  int64_t disconnected_dart_port;
+  int64_t bandwidth_changed_dart_port;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/connection_listener.dart)
+};
+
+struct ConnectionRequestInfoDart {
+  // LINT.IfChange
+  char *endpoint_info;
+  ConnectionListenerDart connection_listener;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/connection_request_info.dart)
 };
 
 struct PayloadDart {
+  // LINT.IfChange
   int64_t id;
   PayloadType type;
   int64_t size;
   char *data;
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/payload.dart)
 };
+
+static void ResultCB(Status status);
+
+static void ListenerInitiatedCB(const char *endpoint_id,
+                                const ConnectionResponseInfoW &connection_info);
+static void ListenerAcceptedCB(const char *endpoint_id);
+static void ListenerRejectedCB(const char *endpoint_id,
+                               connections::Status status);
+static void ListenerDisconnectedCB(const char *endpoint_id);
+static void ListenerBandwidthChangedCB(const char *endpoint_id, MediumW medium);
+static void ListenerEndpointFoundCB(const char *endpoint_id,
+                                    const char *endpoint_info,
+                                    size_t endpoint_info_size,
+                                    const char *str_service_id);
+static void ListenerEndpointLostCB(const char *endpoint_id);
+static void ListenerEndpointDistanceChangedCB(const char *endpoint_id,
+                                              DistanceInfoW info);
+static void ListenerPayloadCB(const char *endpoint_id, PayloadW &payload);
+static void ListenerPayloadProgressCB(const char *endpoint_id,
+                                      const PayloadProgressInfoW &info);
 
 // Starts advertising an endpoint for a local app.
 //
@@ -94,9 +181,10 @@ struct PayloadDart {
 //     Status::STATUS_ALREADY_ADVERTISING if the app is already advertising.
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
-DLL_EXPORT void __stdcall StartAdvertisingDart(
-    Core *pCore, const char *service_id, ConnectionOptionsDart options_dart,
-    ConnectionRequestInfoDart info_dart, Dart_Port result_cb);
+DLL_API void __stdcall StartAdvertisingDart(Core *pCore, const char *service_id,
+                                            AdvertisingOptionsDart options_dart,
+                                            ConnectionRequestInfoDart info_dart,
+                                            Dart_Port result_cb);
 
 // Stops advertising a local endpoint. Should be called after calling
 // StartAdvertising, as soon as the application no longer needs to advertise
@@ -106,7 +194,7 @@ DLL_EXPORT void __stdcall StartAdvertisingDart(
 // result_cb - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK if none of the above errors occurred.
-DLL_EXPORT void __stdcall StopAdvertisingDart(Core *pCore, Dart_Port result_cb);
+DLL_API void __stdcall StopAdvertisingDart(Core *pCore, Dart_Port result_cb);
 
 // Starts discovery for remote endpoints with the specified service ID.
 //
@@ -121,9 +209,10 @@ DLL_EXPORT void __stdcall StopAdvertisingDart(Core *pCore, Dart_Port result_cb);
 //         discovering the specified service.
 //     Status::STATUS_OUT_OF_ORDER_API_CALL if the app is currently
 //         connected to remote endpoints; call StopAllEndpoints first.
-DLL_EXPORT void __stdcall StartDiscoveryDart(
-    Core *pCore, const char *service_id, ConnectionOptionsDart options_dart,
-    DiscoveryListenerDart listener_dart, Dart_Port result_cb);
+DLL_API void __stdcall StartDiscoveryDart(Core *pCore, const char *service_id,
+                                          DiscoveryOptionsDart options_dart,
+                                          DiscoveryListenerDart listener_dart,
+                                          Dart_Port result_cb);
 
 // Stops discovery for remote endpoints, after a previous call to
 // StartDiscovery, when the client no longer needs to discover endpoints or
@@ -133,7 +222,7 @@ DLL_EXPORT void __stdcall StartDiscoveryDart(
 // result_cb - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK if none of the above errors occurred.
-DLL_EXPORT void __stdcall StopDiscoveryDart(Core *pCore, Dart_Port result_cb);
+DLL_API void __stdcall StopDiscoveryDart(Core *pCore, Dart_Port result_cb);
 
 // Sends a request to connect to a remote endpoint.
 //
@@ -155,7 +244,7 @@ DLL_EXPORT void __stdcall StopDiscoveryDart(Core *pCore, Dart_Port result_cb);
 //     Status::STATUS_RADIO_ERROR if we failed to connect because of an
 //         issue with Bluetooth/WiFi.
 //     Status::STATUS_ERROR if we failed to connect for any other reason.
-DLL_EXPORT void __stdcall RequestConnectionDart(
+DLL_API void __stdcall RequestConnectionDart(
     Core *pCore, const char *endpoint_id, ConnectionOptionsDart options_dart,
     ConnectionRequestInfoDart info_dart, Dart_Port result_cb);
 
@@ -171,9 +260,14 @@ DLL_EXPORT void __stdcall RequestConnectionDart(
 //     Status::STATUS_OK if the connection request was accepted.
 //     Status::STATUS_ALREADY_CONNECTED_TO_ENDPOINT if the app already.
 //         has a connection to the specified endpoint.
-DLL_EXPORT void __stdcall AcceptConnectionDart(
-    Core *pCore, const char *endpoint_id, PayloadListenerDart listener_dart,
-    Dart_Port result_cb);
+DLL_API void __stdcall AcceptConnectionDart(Core *pCore,
+                                            const char *endpoint_id,
+                                            PayloadListenerDart listener_dart,
+                                            Dart_Port result_cb);
+
+DLL_API void __stdcall RejectConnectionDart(Core *pCore,
+                                            const char *endpoint_id,
+                                            Dart_Port result_cb);
 
 // Disconnects from a remote endpoint. {@link Payload}s can no longer be sent
 // to or received from the endpoint after this method is called.
@@ -181,9 +275,9 @@ DLL_EXPORT void __stdcall AcceptConnectionDart(
 // result_cb   - to access the status of the operation when available.
 //   Possible status codes include:
 //     Status::STATUS_OK - finished successfully.
-DLL_EXPORT void __stdcall DisconnectFromEndpointDart(Core *pCore,
-                                                     char *endpoint_id,
-                                                     Dart_Port result_cb);
+DLL_API void __stdcall DisconnectFromEndpointDart(Core *pCore,
+                                                  char *endpoint_id,
+                                                  Dart_Port result_cb);
 
 // Sends a Payload to a remote endpoint. Payloads can only be sent to remote
 // endpoints once a notice of connection acceptance has been delivered via
@@ -204,13 +298,10 @@ DLL_EXPORT void __stdcall DisconnectFromEndpointDart(Core *pCore,
 //         still occur during transmission (and at different times for
 //         different endpoints), and will be delivered via
 //         PayloadCallback#onPayloadTransferUpdate.
-DLL_EXPORT void __stdcall SendPayloadDart(Core *pCore, const char *endpoint_id,
-                                          PayloadDart payload_dart,
-                                          Dart_Port result_cb);
-
-}  // namespace windows
-}  // namespace connections
-}  // namespace nearby
-}  // namespace location
+DLL_API void __stdcall SendPayloadDart(Core *pCore, const char *endpoint_id,
+                                       PayloadDart payload_dart,
+                                       Dart_Port result_cb);
+}  // extern "C"
+}  // namespace location::nearby::windows
 
 #endif  // LOCATION_NEARBY_CONNECTIONS_WINDOWS_CORE_ADAPTER_DART_H_

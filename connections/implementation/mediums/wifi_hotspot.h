@@ -31,8 +31,8 @@ class WifiHotspot {
  public:
   // Callback that is invoked when a new connection is accepted.
   struct AcceptedConnectionCallback {
-    std::function<void(WifiHotspotSocket socket)> accepted_cb =
-        DefaultCallback<WifiHotspotSocket>();
+    std::function<void(const std::string& service_id, WifiHotspotSocket socket)>
+        accepted_cb = DefaultCallback<const std::string&, WifiHotspotSocket>();
   };
 
   WifiHotspot() : is_hotspot_started_(false), is_connected_to_hotspot_(false) {}
@@ -45,7 +45,8 @@ class WifiHotspot {
 
 
   // Returns true, if WifiHotspot communications are supported by a platform.
-  bool IsAvailable() const ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsAPAvailable() const ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsClientAvailable() const ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool IsHotspotStarted() ABSL_LOCKS_EXCLUDED(mutex_);
   bool StartWifiHotspot() ABSL_LOCKS_EXCLUDED(mutex_);
@@ -89,7 +90,8 @@ class WifiHotspot {
   static constexpr int kMaxConcurrentAcceptLoops = 5;
 
   // Same as IsAvailable(), but must be called with mutex_ held.
-  bool IsAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool IsAPAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool IsClientAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Same as IsAcceptingConnections(), but must be called with mutex_ held.
   bool IsAcceptingConnectionsLocked(const std::string& service_id)

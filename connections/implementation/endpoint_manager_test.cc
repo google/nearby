@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -51,7 +52,12 @@ using ::testing::StrictMock;
 class MockEndpointChannel : public EndpointChannel {
  public:
   MOCK_METHOD(ExceptionOr<ByteArray>, Read, (), (override));
+  MOCK_METHOD(ExceptionOr<ByteArray>, Read, (PacketMetaData & packet_meta_data),
+              (override));
   MOCK_METHOD(Exception, Write, (const ByteArray& data), (override));
+  MOCK_METHOD(Exception, Write,
+              (const ByteArray& data, PacketMetaData& packet_meta_data),
+              (override));
   MOCK_METHOD(void, Close, (), (override));
   MOCK_METHOD(void, Close, (DisconnectionReason reason), (override));
   MOCK_METHOD(proto::connections::ConnectionTechnology, GetTechnology, (),
@@ -61,6 +67,7 @@ class MockEndpointChannel : public EndpointChannel {
   MOCK_METHOD(int, GetFrequency, (), (const override));
   MOCK_METHOD(int, GetTryCount, (), (const override));
   MOCK_METHOD(std::string, GetType, (), (const override));
+  MOCK_METHOD(std::string, GetServiceId, (), (const override));
   MOCK_METHOD(std::string, GetName, (), (const override));
   MOCK_METHOD(Medium, GetMedium, (), (const override));
   MOCK_METHOD(int, GetMaxTransmitPacketSize, (), (const override));
@@ -94,12 +101,12 @@ class MockFrameProcessor : public EndpointManager::FrameProcessor {
   MOCK_METHOD(void, OnIncomingFrame,
               (OfflineFrame & offline_frame,
                const std::string& from_endpoint_id, ClientProxy* to_client,
-               Medium current_medium),
+               Medium current_medium, PacketMetaData& packet_meta_data),
               (override));
 
   MOCK_METHOD(void, OnEndpointDisconnect,
-              (ClientProxy * client, const std::string& endpoint_id,
-               CountDownLatch barrier),
+              (ClientProxy * client, const std::string& service_id,
+               const std::string& endpoint_id, CountDownLatch barrier),
               (override));
 };
 
@@ -194,12 +201,22 @@ TEST_F(EndpointManagerTest, RegisterFrameProcessorWorks) {
   auto endpoint_channel = std::make_unique<MockEndpointChannel>();
   auto connect_request = std::make_unique<MockFrameProcessor>();
   ByteArray endpoint_info{"endpoint_name"};
-  auto read_data =
-      parser::ForConnectionRequest("endpoint_id", endpoint_info, 1234, false,
-                                   "", std::vector{Medium::BLE}, 0, 0);
+  ConnectionInfo connection_info{
+      "endpoint_id",
+      endpoint_info,
+      1234 /*nonce*/,
+      false /*supports_5_ghz*/,
+      "" /*bssid*/,
+      2412 /*ap_frequency*/,
+      "8xqT" /*ip_address in 4 bytes format*/,
+      std::vector<Medium>{Medium::BLE} /*supported_mediums*/,
+      0 /*keep_alive_interval_millis*/,
+      0 /*keep_alive_timeout_millis*/};
+
+  auto read_data = parser::ForConnectionRequest(connection_info);
   EXPECT_CALL(*connect_request, OnIncomingFrame);
   EXPECT_CALL(*connect_request, OnEndpointDisconnect);
-  EXPECT_CALL(*endpoint_channel, Read())
+  EXPECT_CALL(*endpoint_channel, Read(_))
       .WillOnce(Return(ExceptionOr<ByteArray>(read_data)))
       .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
   EXPECT_CALL(*endpoint_channel, Write(_))
@@ -245,7 +262,7 @@ TEST_F(EndpointManagerTest, SendControlMessageWorks) {
   control.set_offset(150);
   control.set_event(PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED);
 
-  ON_CALL(*endpoint_channel, Read())
+  ON_CALL(*endpoint_channel, Read(_))
       .WillByDefault([channel = endpoint_channel.get()]() {
         if (channel->IsClosed()) return ExceptionOr<ByteArray>(Exception::kIo);
         NEARBY_LOG(INFO, "Simulate read delay: wait");
@@ -260,7 +277,7 @@ TEST_F(EndpointManagerTest, SendControlMessageWorks) {
             channel->DoClose();
             NEARBY_LOG(INFO, "Channel closed");
           });
-  EXPECT_CALL(*endpoint_channel, Write(_))
+  EXPECT_CALL(*endpoint_channel, Write(_, _))
       .WillRepeatedly(Return(Exception{Exception::kSuccess}));
 
   RegisterEndpoint(std::move(endpoint_channel), false);
@@ -274,7 +291,7 @@ TEST_F(EndpointManagerTest, SendControlMessageWorks) {
 
 TEST_F(EndpointManagerTest, SingleReadOnInvalidPayload) {
   auto endpoint_channel = std::make_unique<MockEndpointChannel>();
-  EXPECT_CALL(*endpoint_channel, Read())
+  EXPECT_CALL(*endpoint_channel, Read(_))
       .WillOnce(
           Return(ExceptionOr<ByteArray>(Exception::kInvalidProtocolBuffer)));
   EXPECT_CALL(*endpoint_channel, Write(_))

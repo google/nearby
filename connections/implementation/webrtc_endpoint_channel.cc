@@ -14,13 +14,16 @@
 
 #include "connections/implementation/webrtc_endpoint_channel.h"
 
+#include <string>
+
 namespace location {
 namespace nearby {
 namespace connections {
 
 WebRtcEndpointChannel::WebRtcEndpointChannel(
-    const std::string& channel_name, mediums::WebRtcSocketWrapper socket)
-    : BaseEndpointChannel(channel_name, &socket.GetInputStream(),
+    const std::string& service_id, const std::string& channel_name,
+    mediums::WebRtcSocketWrapper socket)
+    : BaseEndpointChannel(service_id, channel_name, &socket.GetInputStream(),
                           &socket.GetOutputStream()),
       webrtc_socket_(std::move(socket)) {}
 

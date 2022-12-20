@@ -18,6 +18,7 @@
 
 #include "internal/platform/medium_environment.h"
 #include "webrtc/api/task_queue/default_task_queue_factory.h"
+#include "webrtc/rtc_base/checks.h"
 
 namespace location {
 namespace nearby {
@@ -73,14 +74,16 @@ void WebRtcMedium::CreatePeerConnection(
       webrtc::CreateDefaultTaskQueueFactory();
   factory_dependencies.signaling_thread = signaling_thread.release();
 
-  rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection =
+  auto peer_connection_or_error =
       webrtc::CreateModularPeerConnectionFactory(
           std::move(factory_dependencies))
-          ->CreatePeerConnection(rtc_config, std::move(dependencies));
+          ->CreatePeerConnectionOrError(rtc_config, std::move(dependencies));
+  RTC_CHECK(peer_connection_or_error.ok())
+      << "Failed to create peer connection";
 
   single_thread_executor_.Execute(
       [&env, callback = std::move(callback),
-       peer_connection = std::move(peer_connection)]() {
+       peer_connection = peer_connection_or_error.MoveValue()]() {
         absl::SleepFor(env.GetPeerConnectionLatency());
         callback(peer_connection);
       });

@@ -17,6 +17,13 @@
 
 #include <windows.h>
 
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "absl/synchronization/notification.h"
+#include "absl/time/time.h"
+#include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/implementation/windows/executor.h"
 
@@ -43,19 +50,51 @@ class ScheduledExecutor : public api::ScheduledExecutor {
   std::shared_ptr<api::Cancelable> Schedule(Runnable&& runnable,
                                             absl::Duration duration) override;
 
-  // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html#execute-java.lang.Runnable-
+  // Executes the runnable task immedately.
   void Execute(Runnable&& runnable) override;
 
-  // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html#shutdown--
+  // Shutdowns the executor, all scheduled task will be cancelled.
   void Shutdown() override;
 
  private:
-  static void WINAPI _TimerProc(LPVOID lpArgToCompletionRoutine,
-                                DWORD dwTimerLowValue, DWORD dwTimerHighValue);
+  class ScheduledTask : public api::Cancelable {
+   public:
+    explicit ScheduledTask(Runnable&& task, absl::Duration duration)
+        : task_(std::move(task)), duration_(duration) {}
 
-  std::unique_ptr<nearby::windows::Executor> executor_;
-  std::vector<HANDLE> waitable_timers_;
-  std::atomic_bool shut_down_;
+    bool Cancel() override {
+      if (is_executed_) {
+        return false;
+      }
+
+      is_cancelled_ = true;
+      notification_.Notify();
+      return true;
+    };
+
+    void Start() {
+      if (is_executed_ ||
+          notification_.WaitForNotificationWithTimeout(duration_)) {
+        return;
+      }
+
+      is_executed_ = true;
+      task_();
+    }
+
+    bool IsDone() const { return is_cancelled_ || is_executed_; }
+
+   private:
+    Runnable task_;
+    absl::Duration duration_;
+    absl::Notification notification_;
+    bool is_cancelled_ = false;
+    bool is_executed_ = false;
+  };
+
+  std::unique_ptr<nearby::windows::Executor> executor_ = nullptr;
+  std::vector<std::shared_ptr<ScheduledTask>> scheduled_tasks_;
+  std::atomic_bool shut_down_ = false;
 };
 
 }  // namespace windows

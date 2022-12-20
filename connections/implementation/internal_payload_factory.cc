@@ -292,8 +292,8 @@ class IncomingFileInternalPayload : public InternalPayload {
 
 }  // namespace
 
-using location::nearby::api::ImplementationPlatform;
-using location::nearby::api::OSName;
+using ::location::nearby::api::ImplementationPlatform;
+using ::location::nearby::api::OSName;
 
 std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(
     Payload payload) {
@@ -315,17 +315,29 @@ std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(
   }
 }
 
-std::string make_path(std::string& parent_folder, std::string& file_name) {
+// if custom_save_path is empty, default download path is used
+std::string make_path(const std::string& custom_save_path,
+                      std::string& parent_folder, std::string& file_name) {
+  if (!custom_save_path.empty()) {
+    std::string path = absl::StrCat(custom_save_path, "/", parent_folder);
+    return api::ImplementationPlatform::GetCustomSavePath(path, file_name);
+  }
   return api::ImplementationPlatform::GetDownloadPath(parent_folder, file_name);
 }
 
-std::string make_path(std::string& parent_folder, int64_t id) {
+// if custom_save_path is empty, default download path is used
+std::string make_path(const std::string& custom_save_path,
+                      std::string& parent_folder, int64_t id) {
   std::string file_name(std::to_string(id));
+  if (!custom_save_path.empty()) {
+    std::string path = absl::StrCat(custom_save_path, "/", parent_folder);
+    return api::ImplementationPlatform::GetCustomSavePath(path, file_name);
+  }
   return api::ImplementationPlatform::GetDownloadPath(parent_folder, file_name);
 }
 
 std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
-    const PayloadTransferFrame& frame) {
+    const PayloadTransferFrame& frame, const std::string& custom_save_path) {
   if (frame.packet_type() != PayloadTransferFrame::DATA) {
     return {};
   }
@@ -349,9 +361,9 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
     }
 
     case PayloadTransferFrame::PayloadHeader::FILE: {
-      std::string parent_folder("");
-      std::string file_name("");
-      std::string file_path("");
+      std::string parent_folder;
+      std::string file_name;
+      std::string file_path;
 
       int64_t total_size = 0;
 
@@ -361,11 +373,13 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
 
       if (frame.payload_header().has_file_name()) {
         file_name = frame.payload_header().file_name();
-        file_path = make_path(parent_folder, file_name);
+        // if custom_save_path is empty, default download path is used
+        file_path = make_path(custom_save_path, parent_folder, file_name);
       } else {
         if (frame.payload_header().has_id()) {
           file_name = std::to_string(frame.payload_header().id());
-          file_path = make_path(parent_folder, file_name);
+          // if custom_save_path is empty, default download path is used
+          file_path = make_path(custom_save_path, parent_folder, file_name);
         } else {
           // This is an error condition, we don't have any way to generate a
           // file name for the output file.

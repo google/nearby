@@ -37,12 +37,6 @@ BluetoothRadio::~BluetoothRadio() {
     return;
   }
 
-  // Toggle Bluetooth regardless of our original state. Some devices/chips can
-  // start to freak out after some time (e.g. b/37775337), and this helps to
-  // ensure BT resets properly.
-  NEARBY_LOG(INFO, "Toggle BT adapter state before releasing adapter.");
-  Toggle();
-
   NEARBY_LOG(INFO, "Bring BT adapter to original state");
   if (!SetBluetoothState(originally_enabled_.Get())) {
     NEARBY_LOG(INFO, "Failed to restore BT adapter original state.");

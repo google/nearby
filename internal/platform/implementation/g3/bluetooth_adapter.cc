@@ -15,6 +15,7 @@
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 
 #include <string>
+#include <utility>
 
 #include "internal/platform/implementation/g3/bluetooth_classic.h"
 #include "internal/platform/medium_environment.h"
@@ -41,7 +42,9 @@ void BlePeripheral::SetAdvertisementBytes(
 BleV2Peripheral::BleV2Peripheral(BluetoothAdapter* adapter)
     : adapter_(*adapter) {}
 
-std::string BleV2Peripheral::GetId() const { return adapter_.GetMacAddress(); }
+std::string BleV2Peripheral::GetAddress() const {
+  return adapter_.GetMacAddress();
+}
 
 BluetoothDevice::BluetoothDevice(BluetoothAdapter* adapter)
     : adapter_(*adapter) {}
@@ -74,6 +77,10 @@ void BluetoothAdapter::SetBluetoothClassicMedium(
 
 void BluetoothAdapter::SetBleMedium(api::BleMedium* medium) {
   ble_medium_ = medium;
+}
+
+void BluetoothAdapter::SetBleV2Medium(api::ble_v2::BleMedium* medium) {
+  ble_v2_medium_ = medium;
 }
 
 bool BluetoothAdapter::SetStatus(Status status) {
@@ -122,11 +129,17 @@ std::string BluetoothAdapter::GetName() const {
 }
 
 bool BluetoothAdapter::SetName(absl::string_view name) {
+  return SetName(name,
+                 /* persist= */ true);
+}
+
+bool BluetoothAdapter::SetName(absl::string_view name,
+                               bool persist /*unused*/) {
   BluetoothAdapter::ScanMode mode;
   bool enabled;
   {
     absl::MutexLock lock(&mutex_);
-    name_ = name;
+    name_ = std::string(name);
     enabled = enabled_;
     mode = mode_;
   }

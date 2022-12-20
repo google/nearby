@@ -27,6 +27,7 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/mutex_lock.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/wifi_hotspot_credential.h"
 
@@ -95,7 +96,7 @@ class WifiHotspotSocket final {
   std::shared_ptr<api::WifiHotspotSocket> impl_;
 };
 
-// Server socket class for SoftAP when it listen to connection request
+// Server socket class for SoftAP when it listens to connection request.
 class WifiHotspotServerSocket final {
  public:
   WifiHotspotServerSocket() = default;
@@ -175,19 +176,28 @@ class WifiHotspotMedium {
   }
 
   bool StartWifiHotspot() {
+    MutexLock lock(&mutex_);
     return impl_->StartWifiHotspot(&hotspot_credentials_);
   }
   bool StopWifiHotspot() { return impl_->StopWifiHotspot(); }
 
   bool ConnectWifiHotspot(const std::string& ssid,
                           const std::string& password) {
+    MutexLock lock(&mutex_);
     hotspot_credentials_.SetSSID(ssid);
     hotspot_credentials_.SetPassword(password);
     return impl_->ConnectWifiHotspot(&hotspot_credentials_);
   }
   bool DisconnectWifiHotspot() { return impl_->DisconnectWifiHotspot(); }
 
-  HotspotCredentials* GetCredential() { return &hotspot_credentials_; }
+  HotspotCredentials* GetCredential() {
+    return &hotspot_credentials_;
+  }
+
+  bool IsInterfaceValid() const {
+    CHECK(impl_);
+    return impl_->IsInterfaceValid();
+  }
 
   bool IsValid() const { return impl_ != nullptr; }
 
@@ -201,7 +211,7 @@ class WifiHotspotMedium {
  private:
   Mutex mutex_;
   std::unique_ptr<api::WifiHotspotMedium> impl_;
-  HotspotCredentials hotspot_credentials_;
+  HotspotCredentials hotspot_credentials_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace nearby

@@ -15,9 +15,10 @@
 #include "connections/implementation/offline_frames.h"
 
 #include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
-#include "connections/implementation/message_lite.h"
 #include "connections/implementation/offline_frames_validator.h"
 #include "connections/status.h"
 #include "internal/platform/byte_array.h"
@@ -62,40 +63,41 @@ V1Frame::FrameType GetFrameType(const OfflineFrame& frame) {
   return V1Frame::UNKNOWN_FRAME_TYPE;
 }
 
-ByteArray ForConnectionRequest(const std::string& endpoint_id,
-                               const ByteArray& endpoint_info,
-                               std::int32_t nonce, bool supports_5_ghz,
-                               const std::string& bssid,
-                               const std::vector<Medium>& mediums,
-                               std::int32_t keep_alive_interval_millis,
-                               std::int32_t keep_alive_timeout_millis) {
+ByteArray ForConnectionRequest(const ConnectionInfo& conection_info) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
   auto* v1_frame = frame.mutable_v1();
   v1_frame->set_type(V1Frame::CONNECTION_REQUEST);
   auto* connection_request = v1_frame->mutable_connection_request();
-  if (!endpoint_id.empty()) connection_request->set_endpoint_id(endpoint_id);
-  if (!endpoint_info.Empty()) {
-    connection_request->set_endpoint_name(std::string(endpoint_info));
-    connection_request->set_endpoint_info(std::string(endpoint_info));
+  if (!conection_info.local_endpoint_id.empty())
+    connection_request->set_endpoint_id(conection_info.local_endpoint_id);
+  if (!conection_info.local_endpoint_info.Empty()) {
+    connection_request->set_endpoint_name(
+        std::string(conection_info.local_endpoint_info));
+    connection_request->set_endpoint_info(
+        std::string(conection_info.local_endpoint_info));
   }
-  connection_request->set_nonce(nonce);
+  connection_request->set_nonce(conection_info.nonce);
   auto* medium_metadata = connection_request->mutable_medium_metadata();
-  medium_metadata->set_supports_5_ghz(supports_5_ghz);
-  if (!bssid.empty()) medium_metadata->set_bssid(bssid);
-  if (!mediums.empty()) {
-    for (const auto& medium : mediums) {
+  medium_metadata->set_supports_5_ghz(conection_info.supports_5_ghz);
+  if (!conection_info.bssid.empty())
+    medium_metadata->set_bssid(conection_info.bssid);
+  medium_metadata->set_ap_frequency(conection_info.ap_frequency);
+  if (!conection_info.ip_address.empty())
+    medium_metadata->set_ip_address(conection_info.ip_address);
+  if (!conection_info.supported_mediums.empty()) {
+    for (const auto& medium : conection_info.supported_mediums) {
       connection_request->add_mediums(MediumToConnectionRequestMedium(medium));
     }
   }
-  if (keep_alive_interval_millis > 0) {
+  if (conection_info.keep_alive_interval_millis > 0) {
     connection_request->set_keep_alive_interval_millis(
-        keep_alive_interval_millis);
+        conection_info.keep_alive_interval_millis);
   }
-  if (keep_alive_timeout_millis > 0) {
+  if (conection_info.keep_alive_timeout_millis > 0) {
     connection_request->set_keep_alive_timeout_millis(
-        keep_alive_timeout_millis);
+        conection_info.keep_alive_timeout_millis);
   }
 
   return ToBytes(std::move(frame));
@@ -322,7 +324,8 @@ ByteArray ForBwuSafeToClose() {
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForBwuIntroduction(const std::string& endpoint_id) {
+ByteArray ForBwuIntroduction(const std::string& endpoint_id,
+                             bool supports_disabling_encryption) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -333,6 +336,8 @@ ByteArray ForBwuIntroduction(const std::string& endpoint_id) {
       BandwidthUpgradeNegotiationFrame::CLIENT_INTRODUCTION);
   auto* client_introduction = sub_frame->mutable_client_introduction();
   client_introduction->set_endpoint_id(endpoint_id);
+  client_introduction->set_supports_disabling_encryption(
+      supports_disabling_encryption);
 
   return ToBytes(std::move(frame));
 }

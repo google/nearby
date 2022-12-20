@@ -22,9 +22,6 @@ namespace location {
 namespace nearby {
 namespace connections {
 
-// Feature On/Off switch for mediums.
-using BooleanMediumSelector = MediumSelector<bool>;
-
 // Connection Options: used for both Advertising and Discovery.
 // All fields are mutable, to make the type copy-assignable.
 struct OptionsBase {

@@ -20,7 +20,6 @@
 #include <string>
 
 #include "internal/platform/byte_array.h"
-#include "internal/platform/core_config.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/output_file.h"
@@ -31,7 +30,7 @@
 namespace location {
 namespace nearby {
 
-class DLL_API InputFile final {
+class InputFile final {
  public:
   using Platform = api::ImplementationPlatform;
   InputFile(PayloadId payload_id, std::int64_t size);
@@ -45,7 +44,7 @@ class DLL_API InputFile final {
   // Returns Exception::kIo on error, or end of file.
   ExceptionOr<ByteArray> Read(std::int64_t size);
 
-  // Returns a string that uniqely identifies this file.
+  // Returns a string that uniquely identifies this file.
   std::string GetFilePath() const;
 
   // Returns total size of this file in bytes.
@@ -70,7 +69,7 @@ class DLL_API InputFile final {
   std::unique_ptr<api::InputFile> impl_;
 };
 
-class DLL_API OutputFile final {
+class OutputFile final {
  public:
   using Platform = api::ImplementationPlatform;
   explicit OutputFile(PayloadId payload_id);

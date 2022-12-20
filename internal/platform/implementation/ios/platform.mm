@@ -18,6 +18,7 @@
 
 #include "internal/platform/implementation/ios/atomic_boolean.h"
 #include "internal/platform/implementation/ios/atomic_uint32.h"
+#include "internal/platform/implementation/ios/ble.h"
 #include "internal/platform/implementation/ios/condition_variable.h"
 #include "internal/platform/implementation/ios/count_down_latch.h"
 #import "internal/platform/implementation/ios/log_message.h"
@@ -35,8 +36,20 @@ namespace location {
 namespace nearby {
 namespace api {
 
-std::string ImplementationPlatform::GetDownloadPath(std::string& parent_folder,
-                                                    std::string& file_name) {
+std::string ImplementationPlatform::GetCustomSavePath(const std::string& parent_folder,
+                                                      const std::string& file_name) {
+  // TODO(b/227535777): This needs to be done correctly, we now have a file name and parent folder,
+  // they should be combined with the custom save path
+  NSString* fileName = ObjCStringFromCppString(file_name);
+
+  // TODO(b/227535777): If file name matches an existing file, it will be overwritten. Append a
+  // number until a unique file name is reached 'foobar (2).png'.
+
+  return CppStringFromObjCString([NSTemporaryDirectory() stringByAppendingPathComponent:fileName]);
+}
+
+std::string ImplementationPlatform::GetDownloadPath(const std::string& parent_folder,
+                                                    const std::string& file_name) {
   // TODO(jfcarroll): This needs to be done correctly, we now have a file name and parent folder,
   // they should be combined with the default download path
   NSString* fileName = ObjCStringFromCppString(file_name);
@@ -83,7 +96,7 @@ std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(PayloadId pay
   return nullptr;
 }
 
-std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(absl::string_view file_path,
+std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(const std::string& file_path,
                                                                    size_t size) {
   return shared::IOFile::CreateInputFile(file_path, size);
 }
@@ -93,7 +106,7 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(PayloadId p
   return nullptr;
 }
 
-std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(absl::string_view file_path) {
+std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(const std::string& file_path) {
   return shared::IOFile::CreateOutputFile(file_path);
 }
 
@@ -118,7 +131,7 @@ std::unique_ptr<ScheduledExecutor> ImplementationPlatform::CreateScheduledExecut
 
 // Mediums
 std::unique_ptr<BluetoothAdapter> ImplementationPlatform::CreateBluetoothAdapter() {
-  return nullptr;
+  return std::make_unique<ios::BluetoothAdapter>();
 }
 
 std::unique_ptr<BluetoothClassicMedium> ImplementationPlatform::CreateBluetoothClassicMedium(
@@ -130,9 +143,9 @@ std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(api::Bluetoot
   return nullptr;
 }
 
-std::unique_ptr<ble_v2::BleMedium>
-ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter& adapter) {
-  return nullptr;
+std::unique_ptr<ble_v2::BleMedium> ImplementationPlatform::CreateBleV2Medium(
+    api::BluetoothAdapter& adapter) {
+  return std::make_unique<ios::BleMedium>(adapter);
 }
 
 std::unique_ptr<ServerSyncMedium> ImplementationPlatform::CreateServerSyncMedium() {
@@ -146,6 +159,10 @@ std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
 }
 
 std::unique_ptr<WifiHotspotMedium> ImplementationPlatform::CreateWifiHotspotMedium() {
+  return nullptr;
+}
+
+std::unique_ptr<WifiDirectMedium> ImplementationPlatform::CreateWifiDirectMedium() {
   return nullptr;
 }
 

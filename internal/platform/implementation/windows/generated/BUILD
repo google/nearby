@@ -32,11 +32,14 @@ cc_library(
         "comsuppwd.lib",
         "setupapi.lib",
         "dnsapi.lib",
+        "wlanapi.lib",
+        "shlwapi.lib",
     ],
     textual_hdrs = glob(["**/*.h"]),
     visibility = [
-        "//location/nearby/cpp/sharing/implementation/internal:__subpackages__",
         "//connections/windows:__subpackages__",
+        "//fastpair/internal:__subpackages__",
+        "//internal:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
     ],
 )

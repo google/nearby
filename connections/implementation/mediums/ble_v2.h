@@ -16,20 +16,29 @@
 #define CORE_INTERNAL_MEDIUMS_BLE_V2_H_
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 
+#include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
-#include "absl/strings/string_view.h"
-#include "connections/advertising_options.h"
-#include "connections/implementation/mediums/ble_v2/discovered_peripheral_callback.h"
+#include "absl/types/optional.h"
+#include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
+#include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
+#include "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
+#include "connections/power_level.h"
 #include "internal/platform/ble_v2.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancelable_alarm.h"
+#include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/scheduled_executor.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace location {
 namespace nearby {
@@ -39,21 +48,34 @@ namespace connections {
 // (BLE) medium.
 class BleV2 final {
  public:
-  using ServerGattConnectionCallback =
-      BleV2Medium::ServerGattConnectionCallback;
   using DiscoveredPeripheralCallback = mediums::DiscoveredPeripheralCallback;
 
+  // Callback that is invoked when a new connection is accepted.
+  struct AcceptedConnectionCallback {
+    std::function<void(BleV2Socket socket, const std::string& service_id)>
+        accepted_cb = DefaultCallback<BleV2Socket, const std::string&>();
+  };
+
+  static constexpr absl::Duration kPeripheralLostTimeout = absl::Seconds(3);
+
   explicit BleV2(BluetoothRadio& bluetooth_radio);
+  ~BleV2();
 
   // Returns true, if BLE communications are supported by a platform.
   bool IsAvailable() const ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Starts BLE advertising, delivering additional information if the platform
   // supports it.
+  //
+  // service_id            - The service ID to track.
+  // advertisement_bytes   - The connections BLE Advertisement used in
+  //                         advertising.
+  // power_level           - The power level to use for the advertisement.
+  // is_fast_advertisement - True to use fast advertisements, which are smaller
+  //                         but much more efficient to discover.
   bool StartAdvertising(const std::string& service_id,
                         const ByteArray& advertisement_bytes,
-                        PowerLevel power_level,
-                        const std::string& fast_advertisement_service_uuid)
+                        PowerLevel power_level, bool is_fast_advertisement)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables BLE advertising.
@@ -63,20 +85,44 @@ class BleV2 final {
   bool IsAdvertising(const std::string& service_id) const
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Enables BLE scanning for a service id. Will report any discoverable
+  // Enables BLE scanning for a service ID. Will report any discoverable
   // advertisement data through a callback.
   // Returns true, if the scanning is successfully enabled, false otherwise.
+  //
+  // service_id  - The service ID to track.
+  // power_level - The power level to use for the discovery.
+  // discovered_peripheral_callback - The callback to invoke for discovery
+  //                                  events.
   bool StartScanning(const std::string& service_id, PowerLevel power_level,
-                     DiscoveredPeripheralCallback callback,
-                     const std::string& fast_advertisement_service_uuid)
+                     DiscoveredPeripheralCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Disables BLE scanning for a service id.
+  // Disables BLE scanning for a service ID.
   // Returns true, if the scanning was previously enabled, false otherwise.
   bool StopScanning(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Returns true if the scanning for service id is enabled.
+  // Returns true if the scanning for service ID is enabled.
   bool IsScanning(const std::string& service_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Starts a worker thread, creates a Ble socket, associates it with a
+  // service id.
+  bool StartAcceptingConnections(const std::string& service_id,
+                                 AcceptedConnectionCallback callback)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Closes socket corresponding to a service id.
+  bool StopAcceptingConnections(const std::string& service_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  bool IsAcceptingConnections(const std::string& service_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Establishes connection to Ble peripheral.
+  // Returns socket instance. On success, BleSocket.IsValid() return true.
+  BleV2Socket Connect(const std::string& service_id,
+                      const BleV2Peripheral& peripheral,
+                      CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns true if this object owns a valid platform implementation.
@@ -86,6 +132,12 @@ class BleV2 final {
   }
 
  private:
+  struct AdvertisingInfo {
+    mediums::BleAdvertisement medium_advertisement;
+    PowerLevel power_level;
+    bool is_fast_advertisement;
+  };
+
   // Same as IsAvailable(), but must be called with `mutex_` held.
   bool IsAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -97,6 +149,11 @@ class BleV2 final {
   bool IsScanningLocked(const std::string& service_id) const
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
+  // Same as IsListeningForIncomingConnections(), but must be called with
+  // `mutex_` held.
+  bool IsAcceptingConnectionsLocked(const std::string& service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
   bool IsAdvertisementGattServerRunningLocked()
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool StartAdvertisementGattServerLocked(const std::string& service_id,
@@ -106,19 +163,47 @@ class BleV2 final {
                                            const ByteArray& gatt_advertisement,
                                            GattServer& gatt_server)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void ProcessFetchGattAdvertisementsRequest(
+      BleV2Peripheral peripheral, int num_slots, int psm,
+      const std::vector<std::string>& interesting_service_ids,
+      mediums::AdvertisementReadResult& advertisement_read_result)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool StopAdvertisementGattServerLocked()
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  ByteArray CreateAdvertisementHeader() ABSL_SHARED_LOCKS_REQUIRED(mutex_);
-  std::string GenerateAdvertisementUuid(int slot);
+  ByteArray CreateAdvertisementHeader(int psm,
+                                      bool extended_advertisement_advertised)
+      ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+  bool StartAdvertisingLocked(const std::string& service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StartFastAdvertisingLocked(
+      PowerLevel power_level,
+      const mediums::BleAdvertisement& medium_advertisement)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StartRegularAdvertisingLocked(
+      const std::string& service_id, PowerLevel power_level,
+      const mediums::BleAdvertisement& medium_advertisement)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StartGattAdvertisingLocked(const std::string& service_id,
+                                  PowerLevel power_level, int psm,
+                                  const ByteArray& medium_advertisement_bytes,
+                                  bool extended_advertisement_advertised)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  api::ble_v2::PowerMode PowerLevelToPowerMode(PowerLevel power_level);
+  api::ble_v2::TxPowerLevel PowerLevelToTxPowerLevel(PowerLevel power_level);
+
+  void RunOnBleThread(Runnable runnable);
+
+  static constexpr int kMaxConcurrentAcceptLoops = 5;
+
+  SingleThreadExecutor serial_executor_;
+  ScheduledExecutor alarm_executor_;
 
   mutable Mutex mutex_;
   BluetoothRadio& radio_ ABSL_GUARDED_BY(mutex_);
   BluetoothAdapter& adapter_ ABSL_GUARDED_BY(mutex_);
   BleV2Medium medium_ ABSL_GUARDED_BY(mutex_){adapter_};
-  absl::flat_hash_set<std::string> advertising_service_ids_
+  absl::btree_map<std::string, AdvertisingInfo> advertising_infos_
       ABSL_GUARDED_BY(mutex_);
   std::unique_ptr<GattServer> gatt_server_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<int, std::pair<std::string, ByteArray>>
@@ -126,6 +211,23 @@ class BleV2 final {
   absl::flat_hash_set<api::ble_v2::GattCharacteristic>
       hosted_gatt_characteristics_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_set<std::string> scanned_service_ids_ ABSL_GUARDED_BY(mutex_);
+  std::unique_ptr<CancelableAlarm> lost_alarm_;
+  mediums::DiscoveredPeripheralTracker discovered_peripheral_tracker_
+      ABSL_GUARDED_BY(mutex_);
+
+  // A thread pool dedicated to running all the accept loops from
+  // StartAcceptingConnections().
+  MultiThreadExecutor accept_loops_runner_{kMaxConcurrentAcceptLoops};
+
+  // A map of service_id -> ServerSocket. If map is non-empty, we
+  // are currently listening for incoming connections.
+  absl::flat_hash_map<std::string, BleV2ServerSocket> server_sockets_
+      ABSL_GUARDED_BY(mutex_);
+
+  // Tracks currently connected incoming sockets. This lets the device know when
+  // it's okay to restart GATT server related operations.
+  absl::flat_hash_map<std::string, BleV2Socket> incoming_sockets_
+      ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace connections

@@ -23,8 +23,8 @@
 #include "absl/time/time.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/simulation_user.h"
-#include "internal/platform/medium_environment.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/medium_environment.h"
 
 namespace location {
 namespace nearby {
@@ -38,6 +38,9 @@ constexpr char kDeviceB[] = "device-B";
 
 constexpr BooleanMediumSelector kTestCases[] = {
     BooleanMediumSelector{
+        .ble = true,
+    },
+    BooleanMediumSelector{
         .bluetooth = true,
     },
     BooleanMediumSelector{
@@ -45,14 +48,25 @@ constexpr BooleanMediumSelector kTestCases[] = {
     },
     BooleanMediumSelector{
         .bluetooth = true,
+        .ble = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .wifi_lan = true,
+    },
+    BooleanMediumSelector{
+        .ble = true,
+        .wifi_lan = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .ble = true,
         .wifi_lan = true,
     },
 };
 
 class PcpManagerTest : public ::testing::TestWithParam<BooleanMediumSelector> {
  protected:
-  PcpManagerTest() { env_.Stop(); }
-
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 

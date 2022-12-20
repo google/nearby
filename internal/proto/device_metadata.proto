@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package nearby.internal;
+
+// A proto to store the local device's metadata.
+message DeviceMetadata {
+  // Stable device identifier that does not rotate for a few months.
+  optional string stable_device_id = 1;
+
+  // The account name which created the credential.
+  optional string account_name = 2;
+
+  // The name of the local device when the credential is created.
+  optional string device_name = 3;
+
+  // The icon url of the user whose device created the certificate.
+  optional string icon_url = 4;
+
+  // The Bluetooth MAC address of the device which created the certificate.
+  optional string bluetooth_mac_address = 5;
+
+  /** The types of the device. */
+  enum DeviceType {
+    UNSPECIFIED = 0;
+    PHONE = 1;
+    TABLET = 2;
+    DISPLAY = 3;
+    LAPTOP = 4;
+    TV = 5;
+    WATCH = 6;
+  }
+
+  optional DeviceType device_type = 6;
+}

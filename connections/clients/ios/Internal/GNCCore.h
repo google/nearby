@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifdef __cplusplus
+
 #import <Foundation/Foundation.h>
 
 #include <memory>
@@ -35,3 +37,5 @@ NS_ASSUME_NONNULL_BEGIN
 GNCCore *GNCGetCore();
 
 NS_ASSUME_NONNULL_END
+
+#endif

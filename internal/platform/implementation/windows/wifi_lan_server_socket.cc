@@ -12,6 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <windows.h>
+
+#include <exception>
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"
@@ -19,12 +28,17 @@
 namespace location {
 namespace nearby {
 namespace windows {
+namespace {
+
+using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
+
+}
 
 WifiLanServerSocket::WifiLanServerSocket(int port) : port_(port) {}
 
 WifiLanServerSocket::~WifiLanServerSocket() { Close(); }
 
-// Returns ip address.
+// Returns the first IP address.
 std::string WifiLanServerSocket::GetIPAddress() const {
   if (stream_socket_listener_ == nullptr) {
     return {};
@@ -40,7 +54,7 @@ std::string WifiLanServerSocket::GetIPAddress() const {
   return ip_addresses_.front();
 }
 
-// Returns port.
+// Returns socket port.
 int WifiLanServerSocket::GetPort() const {
   if (stream_socket_listener_ == nullptr) {
     return 0;
@@ -57,6 +71,8 @@ int WifiLanServerSocket::GetPort() const {
 // Once error is reported, it is permanent, and ServerSocket has to be closed.
 std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
   absl::MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << __func__ << ": Accept is called.";
+
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
   }
@@ -64,6 +80,8 @@ std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
 
   StreamSocket wifi_lan_socket = pending_sockets_.front();
   pending_sockets_.pop_front();
+
+  NEARBY_LOGS(INFO) << __func__ << ": Accepted a remote connection.";
   return std::make_unique<WifiLanSocket>(wifi_lan_socket);
 }
 
@@ -75,6 +93,8 @@ void WifiLanServerSocket::SetCloseNotifier(std::function<void()> notifier) {
 Exception WifiLanServerSocket::Close() {
   try {
     absl::MutexLock lock(&mutex_);
+    NEARBY_LOGS(INFO) << __func__ << ": Close is called.";
+
     if (closed_) {
       return {Exception::kSuccess};
     }
@@ -83,27 +103,43 @@ Exception WifiLanServerSocket::Close() {
       stream_socket_listener_.Close();
       stream_socket_listener_ = nullptr;
 
-      if (!pending_sockets_.empty()) {
-        auto it = pending_sockets_.begin();
-        while (it != pending_sockets_.end()) {
-          it->Close();
-        }
+      for (const auto& pending_socket : pending_sockets_) {
+        pending_socket.Close();
       }
 
-      cond_.SignalAll();
+      pending_sockets_ = {};
     }
+
     closed_ = true;
+    cond_.SignalAll();
+
     if (close_notifier_ != nullptr) {
       close_notifier_();
     }
+
+    NEARBY_LOGS(INFO) << __func__ << ": Close completed succesfully.";
     return {Exception::kSuccess};
+  } catch (std::exception exception) {
+    closed_ = true;
+    cond_.SignalAll();
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {Exception::kIo};
+  } catch (const winrt::hresult_error& error) {
+    closed_ = true;
+    cond_.SignalAll();
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
+    return {Exception::kIo};
   } catch (...) {
+    closed_ = true;
+    cond_.SignalAll();
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
 
 bool WifiLanServerSocket::listen() {
-  // Check IP address
+  // Get current IP addresses of the device.
   ip_addresses_ = GetIpAddresses();
 
   if (ip_addresses_.empty()) {
@@ -112,10 +148,15 @@ bool WifiLanServerSocket::listen() {
     return false;
   }
 
-  // Save connection callback
+  // Setup stream socket listener.
   stream_socket_listener_ = StreamSocketListener();
 
-  // Setup callback
+  stream_socket_listener_.Control().QualityOfService(
+      SocketQualityOfService::LowLatency);
+
+  stream_socket_listener_.Control().KeepAlive(true);
+
+  // Setup socket event of ConnectionReceived.
   listener_event_token_ = stream_socket_listener_.ConnectionReceived(
       {this, &WifiLanServerSocket::Listener_ConnectionReceived});
 
@@ -128,20 +169,37 @@ bool WifiLanServerSocket::listen() {
     }
 
     return true;
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << ": Cannot accept connection on preferred port. Exception: "
+        << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << ": Cannot accept connection on preferred port. WinRT exception: "
+        << error.code() << ": " << winrt::to_string(error.message());
   } catch (...) {
-    // Cannot bind to the preferred port, will let system to assign port.
-    NEARBY_LOGS(WARNING) << "cannot accept connection on preferred port.";
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
   }
 
   try {
     stream_socket_listener_.BindServiceNameAsync({}).get();
-    // need to save the port information
+
+    // Need to save the port information.
     port_ =
         std::stoi(stream_socket_listener_.Information().LocalPort().c_str());
     return true;
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Cannot bind to any port. Exception: "
+                       << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Cannot bind to any port. WinRT exception: "
+                       << error.code() << ": "
+                       << winrt::to_string(error.message());
   } catch (...) {
-    // Cannot bind to the preferred port, will let system to assign port.
-    NEARBY_LOGS(ERROR) << "cannot bind to any port.";
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
   }
 
   return false;
@@ -151,6 +209,7 @@ fire_and_forget WifiLanServerSocket::Listener_ConnectionReceived(
     StreamSocketListener listener,
     StreamSocketListenerConnectionReceivedEventArgs const& args) {
   absl::MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << __func__ << ": Received connection.";
 
   if (closed_) {
     return fire_and_forget{};
@@ -161,7 +220,7 @@ fire_and_forget WifiLanServerSocket::Listener_ConnectionReceived(
   return fire_and_forget{};
 }
 
-// Retrieves IP addresses from local machine
+// Retrieves IP addresses from local machine.
 std::vector<std::string> WifiLanServerSocket::GetIpAddresses() const {
   std::vector<std::string> result{};
   auto host_names = NetworkInformation::GetHostNames();
@@ -170,7 +229,7 @@ std::vector<std::string> WifiLanServerSocket::GetIpAddresses() const {
         host_name.IPInformation().NetworkAdapter() != nullptr &&
         host_name.Type() == HostNameType::Ipv4) {
       std::string ipv4_s = winrt::to_string(host_name.ToString());
-      // Converts ip address from x.x.x.x to 4 bytes format
+      // Converts ip address from x.x.x.x to 4 bytes format.
       in_addr address;
       address.S_un.S_addr = inet_addr(ipv4_s.c_str());
       char ipv4_b[5];

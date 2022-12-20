@@ -16,6 +16,8 @@
 
 #include <string>
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 
 namespace location {
@@ -25,6 +27,8 @@ namespace mediums {
 namespace bleutils {
 
 namespace {
+
+using ::testing::StrCaseEq;
 
 TEST(BleUtilsTest, CanGenerateHash) {
   std::string service_id = {"service_id"};
@@ -71,22 +75,25 @@ TEST(BleUtilsTest, CanGenerateAdvertisementHash) {
 }
 
 TEST(BleUtilsTest, CanGenerateAdvertisementUuid) {
-  std::string generated_string = GenerateAdvertisementUuid(0);
+  // NOLINTNEXTLINE(google3-legacy-absl-backports)
+  absl::optional<Uuid> generated_uuid = GenerateAdvertisementUuid(0);
+  ASSERT_TRUE(generated_uuid.has_value());
+  EXPECT_THAT(std::string(*generated_uuid),
+              StrCaseEq("00000000-0000-3000-8000-000000000000"));
 
-  EXPECT_EQ("00000000-0000-3000-8000-000000000000", generated_string);
+  generated_uuid = GenerateAdvertisementUuid(1);
+  ASSERT_TRUE(generated_uuid.has_value());
+  EXPECT_THAT(std::string(*generated_uuid),
+              StrCaseEq("00000000-0000-3000-8000-000000000001"));
 
-  generated_string = GenerateAdvertisementUuid(1);
+  generated_uuid = GenerateAdvertisementUuid(10);
+  ASSERT_TRUE(generated_uuid.has_value());
+  EXPECT_THAT(std::string(*generated_uuid),
+              StrCaseEq("00000000-0000-3000-8000-00000000000a"));
 
-  EXPECT_EQ("00000000-0000-3000-8000-000000000001", generated_string);
-
-  generated_string = GenerateAdvertisementUuid(10);
-
-  EXPECT_EQ("00000000-0000-3000-8000-00000000000a", generated_string);
-
-  generated_string = GenerateAdvertisementUuid(-1);
-
-  // Can't generate an advertisement uuid for slot < 0. The result is empty.
-  EXPECT_TRUE(generated_string.empty());
+  // Can't generate an advertisement uuid for slot < 0.
+  generated_uuid = GenerateAdvertisementUuid(-1);
+  EXPECT_FALSE(generated_uuid.has_value());
 }
 
 }  // namespace

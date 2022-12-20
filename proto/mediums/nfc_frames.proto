@@ -27,7 +27,7 @@ message AdvertisementData {
   optional bytes tag = 1;
 
   // A public key associated with the advertisement.
-  optional bytes public_key = 2 ;
+  optional bytes public_key = 2;
 }
 
 // The data to be sent to advertisers from scanning device during discovery.
@@ -39,5 +39,5 @@ message AdvertisementRequest {
   optional string endpoint_id = 2;
 
   // Public key from the scanning device.
-  optional bytes public_key = 3 ;
+  optional bytes public_key = 3;
 }
