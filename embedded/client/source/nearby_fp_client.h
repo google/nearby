@@ -52,7 +52,7 @@ typedef struct {
 // Ask the Seeker to show pairing UI indication. This flag can be combined with
 // NEARBY_FP_ADVERTISEMENT_NON_DISCOVERABLE
 #define NEARBY_FP_ADVERTISEMENT_PAIRING_UI_INDICATOR 0x04
-#ifdef NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
+#if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
 // Include battery and charging info in the advertisement. This flag can be
 // combined with NEARBY_FP_ADVERTISEMENT_NON_DISCOVERABLE
 #define NEARBY_FP_ADVERTISEMENT_INCLUDE_BATTERY_INFO 0x08
@@ -60,6 +60,11 @@ typedef struct {
 // NEARBY_FP_ADVERTISEMENT_INCLUDE_BATTERY_INFO
 #define NEARBY_FP_ADVERTISEMENT_BATTERY_UI_INDICATOR 0x10
 #endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
+#ifdef NEARBY_FP_ENABLE_SASS
+// Include SASS advertisement. This flag can be
+// combined with NEARBY_FP_ADVERTISEMENT_NON_DISCOVERABLE
+#define NEARBY_FP_ADVERTISEMENT_SASS 0x20
+#endif /* NEARBY_FP_ENABLE_SASS */
 
 // Sets Fast Pair advertisement type
 nearby_platform_status nearby_fp_client_SetAdvertisement(int mode);
@@ -68,7 +73,7 @@ nearby_platform_status nearby_fp_client_SetAdvertisement(int mode);
 nearby_platform_status nearby_fp_client_Init(
     const nearby_fp_client_Callbacks* callbacks);
 
-#ifdef NEARBY_FP_MESSAGE_STREAM
+#if NEARBY_FP_MESSAGE_STREAM
 // Serializes and sends |message| over Message Stream
 nearby_platform_status nearby_fp_client_SendMessage(
     uint64_t peer_address, const nearby_message_stream_Message* message);

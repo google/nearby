@@ -22,7 +22,7 @@
 #include "nearby.h"
 #include "nearby_message_stream.h"
 
-#ifdef NEARBY_FP_MESSAGE_STREAM
+#if NEARBY_FP_MESSAGE_STREAM
 constexpr uint64_t kPeerAddress = 0x101112;
 constexpr size_t kBufferSize = 64;
 constexpr size_t kMaxPayloadSize =
@@ -122,11 +122,11 @@ class MessageStreamTest : public ::testing::Test {
       .peer_address = kPeerAddress,
       .length = sizeof(buffer),
       .buffer = buffer};
-} * test_fixture;
+}* test_fixture;
 
 void MessageStreamTest::SetUp() {
   test_fixture = this;
-  nearby_test_fakes_GetRfcommOutput().clear();
+  nearby_test_fakes_GetRfcommOutput(kPeerAddress).clear();
   nearby_message_stream_Init(&stream_state_);
 }
 
@@ -300,8 +300,9 @@ TEST_F(MessageStreamTest, SendMessageNoPayload) {
 
   Send(&message);
 
-  ASSERT_THAT(kExpectedOutput,
-              ElementsAreArray(nearby_test_fakes_GetRfcommOutput()));
+  ASSERT_THAT(
+      kExpectedOutput,
+      ElementsAreArray(nearby_test_fakes_GetRfcommOutput(kPeerAddress)));
 }
 
 TEST_F(MessageStreamTest, SendMessageWithPayload) {
@@ -317,8 +318,9 @@ TEST_F(MessageStreamTest, SendMessageWithPayload) {
 
   Send(&message);
 
-  ASSERT_THAT(kExpectedOutput,
-              ElementsAreArray(nearby_test_fakes_GetRfcommOutput()));
+  ASSERT_THAT(
+      kExpectedOutput,
+      ElementsAreArray(nearby_test_fakes_GetRfcommOutput(kPeerAddress)));
 }
 
 TEST_F(MessageStreamTest, SendAck) {
@@ -332,8 +334,9 @@ TEST_F(MessageStreamTest, SendAck) {
 
   SendAck(&message);
 
-  ASSERT_THAT(kExpectedOutput,
-              ElementsAreArray(nearby_test_fakes_GetRfcommOutput()));
+  ASSERT_THAT(
+      kExpectedOutput,
+      ElementsAreArray(nearby_test_fakes_GetRfcommOutput(kPeerAddress)));
 }
 
 TEST_F(MessageStreamTest, SendNack) {
@@ -348,8 +351,9 @@ TEST_F(MessageStreamTest, SendNack) {
 
   SendNack(&message, kFailReason);
 
-  ASSERT_THAT(kExpectedOutput,
-              ElementsAreArray(nearby_test_fakes_GetRfcommOutput()));
+  ASSERT_THAT(
+      kExpectedOutput,
+      ElementsAreArray(nearby_test_fakes_GetRfcommOutput(kPeerAddress)));
 }
 #endif /* NEARBY_FP_MESSAGE_STREAM */
 

@@ -28,6 +28,11 @@ typedef enum {
   kAccountKey,        // FE2C1236-8366-4814-8EB0-01DE32100BEA (write)
   kFirmwareRevision,  // 0x2A26
   kAdditionalData,    // FE2C1237-8366-4814-8EB0-01DE32100BEA
+  // Message Stream PSM characteristic is required to establish an L2CAP
+  // communication channel between Seeker and Provider. Platforms that don't
+  // support L2CAP channel may choose not to implement this characteristic.
+  // By default, the Seeker connect to the Provider using RFCOMM.
+  kMessageStreamPsm,  // FE2C1239-8366-4814-8EB0-01DE32100BEA (read, encrypted)
 } nearby_fp_Characteristic;
 
 typedef enum {
@@ -60,6 +65,15 @@ uint64_t nearby_platform_SetBleAddress(uint64_t address);
 // address after change.
 uint64_t nearby_platform_RotateBleAddress();
 #endif /* NEARBY_FP_HAVE_BLE_ADDRESS_ROTATION */
+
+// Gets the PSM - Protocol and Service Mulitplexor - assigned to Fast Pair's
+// Message Stream.
+// To support Message Stream for BLE devices, Fast Pair will build and maintain
+// a BLE L2CAP channel for sending and receiving messages. The PSM can be
+// dynamic or fixed.
+// Returns a 16 bit PSM number or a negative value on error. When a valid PSM
+// number is returned, the device must be ready to accept L2CAP connections.
+int32_t nearby_platform_GetMessageStreamPsm();
 
 // Sends a notification to the connected GATT client.
 //

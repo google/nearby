@@ -29,7 +29,9 @@ typedef struct {
   void (*on_pairing_request)(uint64_t peer_address);
   void (*on_paired)(uint64_t peer_address);
   void (*on_pairing_failed)(uint64_t peer_address);
-#ifdef NEARBY_FP_MESSAGE_STREAM
+#if NEARBY_FP_MESSAGE_STREAM
+  // Message Stream messages are sent over RFCOMM on BT devices or L2CAP on BLE
+  // devices.
   void (*on_message_stream_connected)(uint64_t peer_address);
   void (*on_message_stream_disconnected)(uint64_t peer_address);
   void (*on_message_stream_received)(uint64_t peer_address,
@@ -43,8 +45,16 @@ uint32_t nearby_platform_GetModelId();
 // Returns tx power level.
 int8_t nearby_platform_GetTxLevel();
 
-// Returns public BR/EDR address
+// Returns public BR/EDR address.
+// On a BLE-only device, return the public identity address.
 uint64_t nearby_platform_GetPublicAddress();
+
+// Returns the secondary identity address.
+// Some devices, such as ear-buds, can advertise two identity addresses. In this
+// case, the Seeker pairs with each address separately but treats them as a
+// single logical device set.
+// Return 0 if this device does not have a secondary identity address.
+uint64_t nearby_platform_GetSecondaryPublicAddress();
 
 // Returns passkey used during pairing
 uint32_t nearby_platfrom_GetPairingPassKey();
@@ -87,8 +97,9 @@ nearby_platform_status nearby_platform_GetDeviceName(char* name,
 // Returns true if the device is in pairing mode (either fast-pair or manual).
 bool nearby_platform_IsInPairingMode();
 
-#ifdef NEARBY_FP_MESSAGE_STREAM
-// Sends message stream through RFCOMM channel initiated by Seeker
+#if NEARBY_FP_MESSAGE_STREAM
+// Sends message stream through RFCOMM or L2CAP channel initiated by Seeker.
+// BT devices should use RFCOMM channel. BLE-only devices should use L2CAP.
 //
 // peer_address - Peer address.
 // message      - Contents of message.

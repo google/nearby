@@ -30,6 +30,7 @@ extern "C" {
 #define ACK_CODE 1
 #define NACK_CODE 2
 
+#define FAIL_REASON_INVALID_MAC 3
 #define FAIL_REASON_REDUNDANT_DEVICE_ACTION 4
 
 // Message sent and received over the message stream
@@ -63,7 +64,7 @@ typedef struct {
   uint16_t bytes_read;
 } nearby_message_stream_Metadata;
 
-#ifdef NEARBY_FP_MESSAGE_STREAM
+#if NEARBY_FP_MESSAGE_STREAM
 // Initializes the parser
 void nearby_message_stream_Init(const nearby_message_stream_State* state);
 

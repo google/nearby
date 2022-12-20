@@ -28,8 +28,12 @@
 #include "fakes.h"
 #include "nearby_platform_se.h"
 
+#pragma GCC diagnostic ignored "-Wunused-function"
+
 static unsigned int random_value = 0;
 static std::queue<uint8_t> random_sequence;
+
+static uint8_t private_key_store[32];
 
 static std::unique_ptr<EVP_PKEY, void (*)(EVP_PKEY *)> anti_spoofing_key(
     NULL, EVP_PKEY_free);
@@ -54,7 +58,7 @@ uint8_t nearby_platform_Rand() {
   }
 }
 
-#ifdef NEARBY_FP_ENABLE_ADDITIONAL_DATA
+#ifndef NEARBY_PLATFORM_USE_MBEDTLS
 static SHA256_CTX sha256_context;
 
 nearby_platform_status nearby_platform_Sha256Start() {
@@ -72,7 +76,6 @@ nearby_platform_status nearby_platform_Sha256Finish(uint8_t out[32]) {
   SHA256_Final(out, &sha256_context);
   return kNearbyStatusOK;
 }
-#endif /* NEARBY_FP_ENABLE_ADDITIONAL_DATA */
 
 // Encrypts a data block with AES128 in ECB mode.
 nearby_platform_status nearby_platform_Aes128Encrypt(const uint8_t input[16],
@@ -102,6 +105,7 @@ nearby_platform_status nearby_platform_Aes128Decrypt(const uint8_t input[16],
   int output_length = 16;
 
   EVP_DecryptInit(ctx, EVP_aes_128_ecb(), key, NULL);
+  EVP_CIPHER_CTX_set_padding(ctx, 0);
 
   if (1 !=
       EVP_DecryptUpdate(ctx, output, &output_length, input, input_length)) {
@@ -111,6 +115,7 @@ nearby_platform_status nearby_platform_Aes128Decrypt(const uint8_t input[16],
   EVP_CIPHER_CTX_free(ctx);
   return kNearbyStatusOK;
 }
+#endif /* NEARBY_PLATFORM_USE_MBEDTLS */
 
 static EC_POINT *load_public_key(const uint8_t public_key[64]) {
   BN_CTX *bn_ctx;
@@ -132,6 +137,16 @@ static EC_POINT *load_public_key(const uint8_t public_key[64]) {
   return point;
 }
 
+static BIGNUM *load_private_key(const uint8_t private_key[32]) {
+  uint8_t buffer[37];
+  buffer[0] = buffer[1] = buffer[2] = 0;
+  buffer[3] = 33;
+  buffer[4] = 0;
+  memcpy(buffer + 5, private_key, 32);
+  return BN_mpi2bn(buffer, sizeof(buffer), NULL);
+}
+
+#ifdef NEARBY_PLATFORM_HAS_SE
 // Generates a shared sec256p1 secret using remote party public key and this
 // device's private key.
 nearby_platform_status nearby_platform_GenSec256r1Secret(
@@ -177,16 +192,9 @@ nearby_platform_status nearby_platform_GenSec256r1Secret(
   EC_POINT_free(peer_point);
   EVP_PKEY_free(peerkey);
 
-  std::cout << "Secret: " << ArrayToString(secret, 32) << std::endl;
   return kNearbyStatusOK;
 }
-
-// Initializes secure element module
-nearby_platform_status nearby_platform_SecureElementInit() {
-  random_value = 0;
-  random_sequence = std::queue<uint8_t>();
-  return kNearbyStatusOK;
-}
+#endif /* NEARBY_PLATFORM_HAS_SE */
 
 void nearby_test_fakes_SetRandomNumber(unsigned int value) {
   random_value = value;
@@ -194,15 +202,6 @@ void nearby_test_fakes_SetRandomNumber(unsigned int value) {
 
 void nearby_test_fakes_SetRandomNumberSequence(std::vector<uint8_t> &value) {
   for (auto &v : value) random_sequence.push(v);
-}
-
-static BIGNUM *load_private_key(const uint8_t private_key[32]) {
-  uint8_t buffer[37];
-  buffer[0] = buffer[1] = buffer[2] = 0;
-  buffer[3] = 33;
-  buffer[4] = 0;
-  memcpy(buffer + 5, private_key, 32);
-  return BN_mpi2bn(buffer, sizeof(buffer), NULL);
 }
 
 nearby_platform_status nearby_test_fakes_SetAntiSpoofingKey(
@@ -224,6 +223,9 @@ nearby_platform_status nearby_test_fakes_SetAntiSpoofingKey(
   anti_spoofing_key.reset(EVP_PKEY_new());
   if (1 != EVP_PKEY_assign_EC_KEY(anti_spoofing_key.get(), key))
     return kNearbyStatusError;
+
+  memcpy(private_key_store, private_key, 32);
+
   BN_free(prv);
   EC_POINT_free(pub);
   return kNearbyStatusOK;
@@ -246,4 +248,15 @@ nearby_platform_status nearby_test_fakes_Aes128Encrypt(
     uint8_t output[AES_MESSAGE_SIZE_BYTES],
     const uint8_t key[AES_MESSAGE_SIZE_BYTES]) {
   return nearby_platform_Aes128Encrypt(input, output, key);
+}
+
+const uint8_t *nearby_platform_GetAntiSpoofingPrivateKey() {
+  return private_key_store;
+}
+
+// Initializes secure element module
+nearby_platform_status nearby_platform_SecureElementInit() {
+  random_value = 0;
+  random_sequence = std::queue<uint8_t>();
+  return kNearbyStatusOK;
 }

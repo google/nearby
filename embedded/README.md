@@ -29,3 +29,15 @@ Nearby SDK assumes a single-threading model. All calls to the SDK must be on the
     nearby_fp_client_SetAdvertisement(NEARBY_FP_ADVERTISEMENT_DISCOVERABLE);
     ```
 1. Use [Fast Pair Validator](https://play.google.com/store/apps/details?id=com.google.location.nearby.apps.fastpair.validator) to verify that your device is behaving correctly.
+
+## Optional modules
+The optional modules provide partial implementation of HAL interfaces using common libraries, mbedtls in particular.
+
+1. *mbedtls* located in `common/source/mbedtls/mbedtls.c` implements `nearby_platform_Sha256Start()`, `nearby_platform_Sha256Update()`, `nearby_platform_Sha256Finish()`, `nearby_platform_Aes128Encrypt()`, `nearby_platform_Aes128Decrypt()`.
+
+Nearby SDK can be configured to use the MBEDTLS package, commonly available on ARM
+implementations, with the config.mk flag `NEARBY_PLATFORM_USE_MBEDTLS`.
+
+2. *gen_secret* located in `common/source/mbedtls/gen_secret.c` implements `nearby_platform_GenSec256r1Secret()`.
+
+*gen_secret* generates a shared secret based on a given private key on platforms that don't support hardware SE. *gen_secret* module is enabled `NEARBY_PLATFORM_USE_MBEDTLS` is set and `NEARBY_PLATFORM_HAS_SE` is *not* set. When `NEARBY_PLATFORM_HAS_SE` is set, the platform needs to provide their own `nearby_platform_GenSec256r1Secret()` routine.

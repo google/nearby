@@ -16,12 +16,13 @@
 #include "nearby.h"
 #include "nearby_platform_battery.h"
 
-static nearby_platform_BatteryInfo test_battery_info = {
+constexpr nearby_platform_BatteryInfo kDefaultBatteryInfo = {
     .is_charging = true,
     .right_bud_battery_level = 80,
     .left_bud_battery_level = 85,
     .charging_case_battery_level = 90,
     .remaining_time_minutes = 100};
+static nearby_platform_BatteryInfo test_battery_info = kDefaultBatteryInfo;
 static nearby_platform_status get_battery_info_result = kNearbyStatusOK;
 
 static const nearby_platform_BatteryInterface* battery_interface;
@@ -58,5 +59,7 @@ void nearby_test_fakes_SetGetBatteryInfoResult(nearby_platform_status status) {
 nearby_platform_status nearby_platform_BatteryInit(
     nearby_platform_BatteryInterface* callbacks) {
   battery_interface = callbacks;
+  test_battery_info = kDefaultBatteryInfo;
+  get_battery_info_result = kNearbyStatusOK;
   return kNearbyStatusOK;
 }
