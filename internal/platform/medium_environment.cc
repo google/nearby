@@ -25,6 +25,7 @@
 #include <utility>
 
 #include "absl/container/flat_hash_set.h"
+#include "absl/status/status.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -597,8 +598,7 @@ void MediumEnvironment::UpdateBleV2MediumForScanning(
                       << ", enabled=" << enabled;
     if (enabled) {
       context.scanning = true;
-      callback.start_scanning_result(
-          api::ble_v2::BleOperationStatus::kSucceeded);
+      callback.start_scanning_result(absl::OkStatus());
       context.scan_callback_map.insert(
           {{scanning_service_uuid, internal_session_id}, std::move(callback)});
       absl::flat_hash_set<Uuid> scanning_service_uuids;

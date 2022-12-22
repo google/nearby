@@ -36,7 +36,6 @@ namespace presence {
 namespace {
 
 using FeatureFlags = ::location::nearby::FeatureFlags::Flags;
-using BleOperationStatus = ::location::nearby::api::ble_v2::BleOperationStatus;
 using BleV2MediumStatus =
     ::location::nearby::MediumEnvironment::BleV2MediumStatus;
 using ScanningSession =
@@ -111,21 +110,20 @@ TEST_P(BleTest, CanStartThenStopScanning) {
   location::nearby::CountDownLatch started_scanning_latch(1);
 
   std::unique_ptr<ScanningSession> scannning_session = ble.StartScanning(
-      scan_request,
-      ScanningCallback{
-          .start_scanning_result =
-              [&started_scanning_latch](BleOperationStatus status) {
-                if (status == BleOperationStatus::kSucceeded) {
-                  started_scanning_latch.CountDown();
-                }
-              },
-      });
+      scan_request, ScanningCallback{
+                        .start_scanning_result =
+                            [&started_scanning_latch](absl::Status status) {
+                              if (status.ok()) {
+                                started_scanning_latch.CountDown();
+                              }
+                            },
+                    });
 
   EXPECT_TRUE(started_scanning_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(GetBleStatus(ble).has_value() &&
               GetBleStatus(ble).value().is_scanning == true);
-  BleOperationStatus stop_scanning_status = scannning_session->stop_scanning();
-  EXPECT_EQ(BleOperationStatus::kSucceeded, stop_scanning_status);
+  absl::Status stop_scanning_status = scannning_session->stop_scanning();
+  EXPECT_OK(stop_scanning_status);
   EXPECT_TRUE(GetBleStatus(ble).has_value() &&
               GetBleStatus(ble).value().is_scanning == false);
   env_.Stop();
@@ -159,15 +157,14 @@ TEST_P(BleTest, AdvertiseAndScan) {
       advertising_session = server.StartAdvertising(
           advert_data, PowerMode::kBalanced,
           AdvertisingCallback{
-              .start_advertising_result = [&](BleOperationStatus status) {
+              .start_advertising_result = [&](absl::Status status) {
                 advertise_latch.CountDown();
               }});
 
   EXPECT_TRUE(advertise_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(scan_latch.Await(kWaitDuration).result());
-  EXPECT_EQ(scanning_session->stop_scanning(), BleOperationStatus::kSucceeded);
-  EXPECT_EQ(advertising_session->stop_advertising(),
-            BleOperationStatus::kSucceeded);
+  EXPECT_OK(scanning_session->stop_scanning());
+  EXPECT_OK(advertising_session->stop_advertising());
   ASSERT_FALSE(advertisements.empty());
   EXPECT_EQ(advertisements[0]
                 .service_data.find(kPresenceServiceUuid)

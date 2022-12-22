@@ -22,6 +22,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/cancellation_flag_listener.h"
@@ -36,7 +37,6 @@ namespace g3 {
 namespace {
 
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
-using ::location::nearby::api::ble_v2::BleOperationStatus;
 using ::location::nearby::api::ble_v2::TxPowerLevel;
 
 std::string TxPowerLevelToName(TxPowerLevel power_mode) {
@@ -263,15 +263,16 @@ std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
   }
 
   if (callback.start_advertising_result) {
-    callback.start_advertising_result(BleOperationStatus::kSucceeded);
+    callback.start_advertising_result(absl::OkStatus());
   }
   absl::MutexLock lock(&mutex_);
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
       /*enabled=*/true, *this, adapter_->GetPeripheralV2(), advertising_data);
   return std::make_unique<AdvertisingSession>(
       AdvertisingSession{.stop_advertising = [this] {
-        return StopAdvertising() ? BleOperationStatus::kSucceeded
-                                 : BleOperationStatus::kFailed;
+        return StopAdvertising()
+                   ? absl::OkStatus()
+                   : absl::InternalError("Failed to stop advertising");
       }});
 }
 
@@ -313,7 +314,7 @@ std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
         /*enabled=*/true, service_uuid, internal_session_id, callback, *this);
     scanning_internal_session_ids_.insert({service_uuid, internal_session_id});
   }
-  callback.start_scanning_result(api::ble_v2::BleOperationStatus::kSucceeded);
+  callback.start_scanning_result(absl::OkStatus());
   return std::make_unique<ScanningSession>(ScanningSession{
       .stop_scanning =
           [this, service_uuid = service_uuid,
@@ -323,14 +324,15 @@ std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
                     {service_uuid, internal_session_id}) ==
                 scanning_internal_session_ids_.end()) {
               // can't find the provided internal session.
-              return BleOperationStatus::kFailed;
+              return absl::NotFoundError(
+                  "can't find the provided internal session");
             }
             MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
                 /*enabled=*/false, service_uuid, internal_session_id,
                 /*callback=*/{}, *this);
             scanning_internal_session_ids_.erase(
                 {service_uuid, internal_session_id});
-            return BleOperationStatus::kSucceeded;
+            return absl::OkStatus();
           },
   });
 }

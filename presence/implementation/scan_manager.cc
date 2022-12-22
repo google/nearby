@@ -38,7 +38,6 @@ namespace {
 using BleAdvertisementData =
     ::location::nearby::api::ble_v2::BleAdvertisementData;
 using BlePeripheral = ::location::nearby::api::ble_v2::BlePeripheral;
-using BleOperationStatus = ::location::nearby::api::ble_v2::BleOperationStatus;
 using ScanningSession =
     ::location::nearby::api::ble_v2::BleMedium::ScanningSession;
 using ScanningCallback =
@@ -52,45 +51,34 @@ ScanSessionId ScanManager::StartScan(ScanRequest scan_request,
                                      ScanCallback cb) {
   ScanSessionId id = ::crypto::RandData<ScanSessionId>();
   RunOnServiceControllerThread(
-      "start-scan",
-      [this, id, scan_request, scan_callback = std::move(cb)]()
-          ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
-            ScanningCallback callback = ScanningCallback{
-                .start_scanning_result =
-                    [start_scan_client =
-                         std::move(scan_callback.start_scan_cb)](
-                        BleOperationStatus ble_status) {
-                      absl::Status status;
-                      if (ble_status == BleOperationStatus::kSucceeded) {
-                        status = absl::OkStatus();
-                      } else {
-                        status = absl::InternalError(
-                            absl::StrFormat("BleOperationStatus(%d)",
-                                            static_cast<int>(ble_status)));
-                      }
-                      start_scan_client(status);
-                    },
-                // TODO(b/256686710): Track known devices
-                .advertisement_found_cb =
-                    [this, id](BlePeripheral& peripheral,
-                               BleAdvertisementData data) {
-                      RunOnServiceControllerThread(
-                          "notify-found-ble",
-                          [this, id, data = std::move(data),
-                           address = peripheral.GetAddress()]()
-                              ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
-                                NotifyFoundBle(id, data, address);
-                              });
-                    }};
-            FetchCredentials(id, scan_request);
-            scan_sessions_.insert(
-                {id, ScanSessionState{
-                         .request = scan_request,
-                         .callback = std::move(scan_callback),
-                         .decoder = AdvertisementDecoder(scan_request),
-                         .scanning_session = mediums_->GetBle().StartScanning(
-                             scan_request, std::move(callback))}});
-          });
+      "start-scan", [this, id, scan_request,
+                     scan_callback = std::move(
+                         cb)]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+        ScanningCallback callback = ScanningCallback{
+            .start_scanning_result =
+                [start_scan_client = std::move(scan_callback.start_scan_cb)](
+                    absl::Status ble_status) { start_scan_client(ble_status); },
+            // TODO(b/256686710): Track known devices
+            .advertisement_found_cb =
+                [this, id](BlePeripheral& peripheral,
+                           BleAdvertisementData data) {
+                  RunOnServiceControllerThread(
+                      "notify-found-ble",
+                      [this, id, data = std::move(data),
+                       address = peripheral.GetAddress()]()
+                          ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+                            NotifyFoundBle(id, data, address);
+                          });
+                }};
+        FetchCredentials(id, scan_request);
+        scan_sessions_.insert(
+            {id, ScanSessionState{
+                     .request = scan_request,
+                     .callback = std::move(scan_callback),
+                     .decoder = AdvertisementDecoder(scan_request),
+                     .scanning_session = mediums_->GetBle().StartScanning(
+                         scan_request, std::move(callback))}});
+      });
   return id;
 }
 
@@ -102,7 +90,10 @@ void ScanManager::StopScan(ScanSessionId id) {
           return;
         }
         if (it->second.scanning_session) {
-          it->second.scanning_session->stop_scanning();
+          absl::Status status = it->second.scanning_session->stop_scanning();
+          if (!status.ok()) {
+            NEARBY_LOGS(WARNING) << "StopScan error: " << status;
+          }
         }
         scan_sessions_.erase(it);
       });

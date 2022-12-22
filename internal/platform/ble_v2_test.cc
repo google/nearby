@@ -355,11 +355,7 @@ TEST_F(BleV2MediumTest, StartThenStopAsyncScanning) {
           });
 
   EXPECT_TRUE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
-  api::ble_v2::BleOperationStatus stop_result =
-      scanning_session_a->stop_scanning();
-
-  EXPECT_EQ(stop_result, api::ble_v2::BleOperationStatus::kSucceeded);
-
+  EXPECT_OK(scanning_session_a->stop_scanning());
   EXPECT_FALSE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
   env_.Stop();
 }
@@ -403,12 +399,8 @@ TEST_F(BleV2MediumTest, CanStartMultipleAsyncScanning) {
   EXPECT_TRUE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
   EXPECT_TRUE(env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_scanning);
 
-  api::ble_v2::BleOperationStatus stop_result_a =
-      scanning_session_a->stop_scanning();
-  EXPECT_EQ(stop_result_a, api::ble_v2::BleOperationStatus::kSucceeded);
-  api::ble_v2::BleOperationStatus stop_result_b =
-      scanning_session_b->stop_scanning();
-  EXPECT_EQ(stop_result_b, api::ble_v2::BleOperationStatus::kSucceeded);
+  EXPECT_OK(scanning_session_a->stop_scanning());
+  EXPECT_OK(scanning_session_b->stop_scanning());
 
   EXPECT_FALSE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
   EXPECT_FALSE(env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_scanning);
@@ -451,9 +443,7 @@ TEST_F(BleV2MediumTest, CanStartAsyncScanningAndAdvertising) {
   EXPECT_TRUE(
       env_.GetBleV2MediumStatus(*ble_b.GetImpl()).value().is_advertising);
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
-  api::ble_v2::BleOperationStatus stop_scanning_result =
-      scanning_session->stop_scanning();
-  EXPECT_EQ(stop_scanning_result, api::ble_v2::BleOperationStatus::kSucceeded);
+  EXPECT_OK(scanning_session->stop_scanning());
 
   EXPECT_TRUE(ble_b.StopAdvertising());
   EXPECT_FALSE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);

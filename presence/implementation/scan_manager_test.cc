@@ -41,7 +41,6 @@ namespace nearby {
 namespace presence {
 namespace {
 
-using BleOperationStatus = ::location::nearby::api::ble_v2::BleOperationStatus;
 using AdvertisingSession =
     ::location::nearby::api::ble_v2::BleMedium::AdvertisingSession;
 using AdvertisingCallback =
@@ -70,8 +69,7 @@ class ScanManagerTest : public testing::Test {
     EXPECT_OK(advertisement);
     std::unique_ptr<AdvertisingSession> session = ble.StartAdvertising(
         advertisement.value(), PowerMode::kLowPower,
-        AdvertisingCallback{
-            .start_advertising_result = [](BleOperationStatus) {}});
+        AdvertisingCallback{.start_advertising_result = [](absl::Status) {}});
     env_.Sync();
     return session;
   }

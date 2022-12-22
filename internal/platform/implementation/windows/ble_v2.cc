@@ -33,7 +33,6 @@ namespace {
 
 using ::location::nearby::api::ble_v2::AdvertiseParameters;
 using ::location::nearby::api::ble_v2::BleAdvertisementData;
-using ::location::nearby::api::ble_v2::BleOperationStatus;
 using ::location::nearby::api::ble_v2::BleServerSocket;
 using ::location::nearby::api::ble_v2::BleSocket;
 using ::location::nearby::api::ble_v2::GattClient;

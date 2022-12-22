@@ -25,18 +25,11 @@ namespace nearby {
 namespace presence {
 namespace {
 
-using ::location::nearby::api::ble_v2::BleOperationStatus;
 using AdvertisingCallback =
     ::location::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
 using AdvertisingSession =
     ::location::nearby::api::ble_v2::BleMedium::AdvertisingSession;
 
-absl::Status ConvertBleStatus(BleOperationStatus status) {
-  return status == BleOperationStatus::kSucceeded
-             ? absl::OkStatus()
-             : absl::InternalError(absl::StrFormat("BleOperationStatus(%d)",
-                                                   static_cast<int>(status)));
-}
 }  // namespace
 
 absl::StatusOr<BroadcastSessionId> BroadcastManager::StartBroadcast(
@@ -114,11 +107,10 @@ void BroadcastManager::Advertise(BroadcastSessionId id,
   std::unique_ptr<AdvertisingSession> session =
       mediums_->GetBle().StartAdvertising(
           *advertisement, it->second.GetPowerMode(),
-          AdvertisingCallback{.start_advertising_result =
-                                  [this, id](BleOperationStatus status) {
-                                    NotifyStartCallbackStatus(
-                                        id, ConvertBleStatus(status));
-                                  }});
+          AdvertisingCallback{
+              .start_advertising_result = [this, id](absl::Status status) {
+                NotifyStartCallbackStatus(id, status);
+              }});
   if (!session) {
     NotifyStartCallbackStatus(id,
                               absl::InternalError("Can't start advertising"));
@@ -179,7 +171,10 @@ void BroadcastManager::BroadcastSessionState::StopAdvertising() {
   std::unique_ptr<AdvertisingSession> advertising_session =
       std::move(advertising_session_);
   if (advertising_session) {
-    advertising_session->stop_advertising();
+    absl::Status status = advertising_session->stop_advertising();
+    if (!status.ok()) {
+      NEARBY_LOGS(WARNING) << "StopAdvertising error: " << status;
+    }
   }
 }
 

@@ -25,6 +25,7 @@
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
@@ -46,12 +47,6 @@ enum class TxPowerLevel {
   kLow = 2,
   kMedium = 3,
   kHigh = 4,
-};
-
-enum class BleOperationStatus {
-  kUnknown = 0,
-  kSucceeded = 1,
-  kFailed = 2,
 };
 
 // https://developer.android.com/reference/android/bluetooth/le/AdvertisingSetParameters.Builder
@@ -305,11 +300,11 @@ class BleMedium {
       AdvertiseParameters advertise_set_parameters) = 0;
 
   struct AdvertisingCallback {
-    std::function<void(BleOperationStatus)> start_advertising_result;
+    std::function<void(absl::Status)> start_advertising_result;
   };
 
   struct AdvertisingSession {
-    std::function<BleOperationStatus()> stop_advertising;
+    std::function<absl::Status()> stop_advertising;
   };
 
   // Async interface for StartAdertising.
@@ -366,12 +361,12 @@ class BleMedium {
   virtual bool StopScanning() = 0;
 
   struct ScanningSession {
-    std::function<BleOperationStatus()> stop_scanning;
+    std::function<absl::Status()> stop_scanning;
   };
 
   struct ScanningCallback {
-    std::function<void(BleOperationStatus)> start_scanning_result =
-        DefaultCallback<BleOperationStatus>();
+    std::function<void(absl::Status)> start_scanning_result =
+        DefaultCallback<absl::Status>();
     std::function<void(BlePeripheral& peripheral,
                        BleAdvertisementData advertisement_data)>
         advertisement_found_cb =

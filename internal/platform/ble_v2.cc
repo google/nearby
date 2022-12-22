@@ -112,10 +112,10 @@ BleV2Medium::StartScanning(const Uuid& service_uuid,
       service_uuid, tx_power_level,
       api::ble_v2::BleMedium::ScanningCallback{
           .start_scanning_result =
-              [this, callback](api::ble_v2::BleOperationStatus status) {
+              [this, callback](absl::Status status) {
                 {
                   MutexLock lock(&mutex_);
-                  if (status == api::ble_v2::BleOperationStatus::kSucceeded) {
+                  if (status.ok()) {
                     scanning_enabled_ = true;
                   }
                 }
