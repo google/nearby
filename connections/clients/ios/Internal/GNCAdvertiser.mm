@@ -28,7 +28,7 @@
 #include "connections/params.h"
 #include "connections/status.h"
 #include "internal/platform/byte_array.h"
-#import "internal/platform/implementation/ios/utils.h"
+#import "internal/platform/implementation/apple/utils.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 NS_ASSUME_NONNULL_BEGIN

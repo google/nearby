@@ -20,7 +20,7 @@ proto_library(
         "offline_wire_formats.proto",
     ],
     visibility = [
-        "//internal/platform/implementation/ios:__subpackages__",
+        "//internal/platform/implementation/apple:__subpackages__",
     ],
 )
 

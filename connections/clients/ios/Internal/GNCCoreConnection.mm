@@ -16,16 +16,17 @@
 
 #include <utility>
 
-#import "connections/clients/ios/Public/NearbyConnections/GNCConnection.h"
-#import "connections/clients/ios/Public/NearbyConnections/GNCPayload.h"
 #include "connections/core.h"
 #include "connections/payload.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/file.h"
 #include "internal/platform/implementation/input_file.h"
-#import "internal/platform/implementation/ios/utils.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/payload_id.h"
+
+#import "connections/clients/ios/Public/NearbyConnections/GNCConnection.h"
+#import "connections/clients/ios/Public/NearbyConnections/GNCPayload.h"
+#import "internal/platform/implementation/apple/utils.h"
 
 using ::location::nearby::ByteArrayFromNSData;
 using ::location::nearby::CppStringFromObjCString;

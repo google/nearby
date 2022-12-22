@@ -33,7 +33,7 @@ objc_library(
         "//connections:core",
         "//connections:core_types",
         "//internal/platform:base",
-        "//internal/platform/implementation/ios:Platform",  # buildcleaner: keep
+        "//internal/platform/implementation/apple",  # buildcleaner: keep
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:ObjectiveC",
     ],

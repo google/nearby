@@ -27,7 +27,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/file.h"
-#include "internal/platform/implementation/ios/utils.h"
+#include "internal/platform/implementation/apple/utils.h"
 #include "internal/platform/input_stream.h"
 
 NS_ASSUME_NONNULL_BEGIN

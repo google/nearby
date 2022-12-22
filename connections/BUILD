@@ -71,7 +71,7 @@ cc_library(
     visibility = [
         "//connections:__subpackages__",
         "//internal/analytics:__subpackages__",
-        "//internal/platform/implementation/ios:__subpackages__",
+        "//internal/platform/implementation/apple:__subpackages__",
         "//location/nearby/testing:__subpackages__",
     ],
     deps = [
