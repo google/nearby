@@ -31,12 +31,12 @@ using AdvertisingCallback =
 using AdvertisingSession =
     ::location::nearby::api::ble_v2::BleMedium::AdvertisingSession;
 
-Status ConvertBleStatus(BleOperationStatus status) {
+absl::Status ConvertBleStatus(BleOperationStatus status) {
   return status == BleOperationStatus::kSucceeded
-             ? Status{Status::Value::kSuccess}
-             : Status{Status::Value::kError};
+             ? absl::OkStatus()
+             : absl::InternalError(absl::StrFormat("BleOperationStatus(%d)",
+                                                   static_cast<int>(status)));
 }
-
 }  // namespace
 
 absl::StatusOr<BroadcastSessionId> BroadcastManager::StartBroadcast(
@@ -46,7 +46,7 @@ absl::StatusOr<BroadcastSessionId> BroadcastManager::StartBroadcast(
   if (!request.ok()) {
     NEARBY_LOGS(WARNING) << "Invalid broadcast request, reason: "
                          << request.status();
-    callback.start_broadcast_cb(Status{Status::Value::kError});
+    callback.start_broadcast_cb(request.status());
     return request.status();
   }
   BroadcastSessionId id = GenerateBroadcastSessionId();
@@ -90,7 +90,7 @@ void BroadcastManager::FetchCredentials(
               [this, id](absl::Status status) {
                 NEARBY_LOGS(WARNING)
                     << "Failed to fetch credentials, status: " << status;
-                NotifyStartCallbackStatus(id, Status{Status::Value::kError});
+                NotifyStartCallbackStatus(id, status);
               }});
 }
 
@@ -108,7 +108,7 @@ void BroadcastManager::Advertise(BroadcastSessionId id,
   if (!advertisement.ok()) {
     NEARBY_LOGS(WARNING) << "Can't create advertisement, reason: "
                          << advertisement.status();
-    NotifyStartCallbackStatus(id, Status{Status::Value::kError});
+    NotifyStartCallbackStatus(id, advertisement.status());
     return;
   }
   std::unique_ptr<AdvertisingSession> session =
@@ -120,14 +120,15 @@ void BroadcastManager::Advertise(BroadcastSessionId id,
                                         id, ConvertBleStatus(status));
                                   }});
   if (!session) {
-    NotifyStartCallbackStatus(id, Status{Status::Value::kError});
+    NotifyStartCallbackStatus(id,
+                              absl::InternalError("Can't start advertising"));
     return;
   }
   it->second.SetAdvertisingSession(std::move(session));
 }
 
 void BroadcastManager::NotifyStartCallbackStatus(BroadcastSessionId id,
-                                                 Status status) {
+                                                 absl::Status status) {
   RunOnServiceControllerThread("started-broadcast-cb",
                                [this, id, status]()
                                    ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_) {
@@ -136,7 +137,7 @@ void BroadcastManager::NotifyStartCallbackStatus(BroadcastSessionId id,
                                        return;
                                      }
                                      it->second.CallStartedCallback(status);
-                                     if (!status.Ok()) {
+                                     if (!status.ok()) {
                                        // Delete failed session.
                                        sessions_.erase(it);
                                      }
@@ -167,7 +168,7 @@ void BroadcastManager::BroadcastSessionState::SetAdvertisingSession(
 }
 
 void BroadcastManager::BroadcastSessionState::CallStartedCallback(
-    Status status) {
+    absl::Status status) {
   BroadcastCallback callback = std::move(broadcast_callback_);
   if (callback.start_broadcast_cb) {
     callback.start_broadcast_cb(status);

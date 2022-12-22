@@ -64,7 +64,7 @@ class BroadcastManager {
         : broadcast_callback_(broadcast_callback), power_mode_(power_mode) {}
 
     void SetAdvertisingSession(std::unique_ptr<AdvertisingSession> session);
-    void CallStartedCallback(Status status);
+    void CallStartedCallback(absl::Status status);
     void StopAdvertising();
 
     PowerMode GetPowerMode() { return power_mode_; }
@@ -75,7 +75,7 @@ class BroadcastManager {
     std::unique_ptr<AdvertisingSession> advertising_session_;
   };
   BroadcastSessionId GenerateBroadcastSessionId();
-  void NotifyStartCallbackStatus(BroadcastSessionId id, Status status);
+  void NotifyStartCallbackStatus(BroadcastSessionId id, absl::Status status);
   void RunOnServiceControllerThread(absl::string_view name, Runnable runnable) {
     executor_->Execute(std::string(name), std::move(runnable));
   }

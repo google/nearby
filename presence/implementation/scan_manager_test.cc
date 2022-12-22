@@ -95,8 +95,8 @@ class ScanManagerTest : public testing::Test {
 
   ScanCallback MakeDefaultScanCallback() {
     return {.start_scan_cb =
-                [this](Status status) {
-                  if (status.Ok()) {
+                [this](absl::Status status) {
+                  if (status.ok()) {
                     start_latch_.CountDown();
                   }
                 },
@@ -192,8 +192,8 @@ TEST_F(ScanManagerTest, PresenceDeviceMetadataIsRetained) {
   std::string address = server_adapter.GetMacAddress();
   ScanCallback callback = {
       .start_scan_cb =
-          [this](Status status) {
-            if (status.Ok()) {
+          [this](absl::Status status) {
+            if (status.ok()) {
               start_latch_.CountDown();
             }
           },
@@ -245,8 +245,8 @@ TEST_F(ScanManagerTest, StopOneSessionFromAnotherDeadlock) {
   ScanSessionId scan_session =
       manager.StartScan(scan_request_mismatch, MakeDefaultScanCallback());
   ScanCallback scanning_callback2 = {.start_scan_cb =
-                                         [&](Status status) {
-                                           if (status.Ok()) {
+                                         [&](absl::Status status) {
+                                           if (status.ok()) {
                                              start_latch2.CountDown();
                                            }
                                          },
@@ -287,7 +287,7 @@ TEST_F(ScanManagerTest, NoDeviceFoundAfterStopScan) {
   std::atomic_bool stopped = false;
   ScanSessionId scan_session = manager.StartScan(
       MakeDefaultScanRequest(),
-      ScanCallback{.start_scan_cb = [](Status status) {},
+      ScanCallback{.start_scan_cb = [](absl::Status status) {},
                    .on_discovered_cb =
                        [&](PresenceDevice pd) { EXPECT_FALSE(stopped); }});
 

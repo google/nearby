@@ -15,8 +15,10 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_LISTENERS_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_LISTENERS_H_
 
+#include <functional>
+
+#include "absl/status/status.h"
 #include "internal/platform/listeners.h"
-#include "presence/status.h"
 
 namespace nearby {
 namespace presence {
@@ -27,8 +29,8 @@ struct ResultCallback {
   // Callback to access the status of the operation when available.
   // status - result of job execution;
   //   Status::kSuccess, if successful; anything else indicates failure.
-  std::function<void(Status)> result_cb =
-      location::nearby::DefaultCallback<Status>();
+  std::function<void(absl::Status)> result_cb =
+      location::nearby::DefaultCallback<absl::Status>();
 };
 
 }  // namespace presence

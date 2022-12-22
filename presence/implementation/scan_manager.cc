@@ -21,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "absl/types/variant.h"
 #include "internal/crypto/random.h"
 #include "internal/platform/future.h"
@@ -32,7 +33,6 @@
 #include "presence/implementation/mediums/ble.h"
 #include "presence/presence_device.h"
 #include "presence/scan_request.h"
-#include "presence/status.h"
 
 namespace {
 using BleAdvertisementData =
@@ -60,11 +60,13 @@ ScanSessionId ScanManager::StartScan(ScanRequest scan_request,
                     [start_scan_client =
                          std::move(scan_callback.start_scan_cb)](
                         BleOperationStatus ble_status) {
-                      Status status;
+                      absl::Status status;
                       if (ble_status == BleOperationStatus::kSucceeded) {
-                        status = Status{.value = Status::Value::kSuccess};
+                        status = absl::OkStatus();
                       } else {
-                        status = Status{.value = Status::Value::kError};
+                        status = absl::InternalError(
+                            absl::StrFormat("BleOperationStatus(%d)",
+                                            static_cast<int>(ble_status)));
                       }
                       start_scan_client(status);
                     },

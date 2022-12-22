@@ -59,7 +59,6 @@ cc_library(
         "presence_zone.h",
         "scan_request.h",
         "scan_request_builder.h",
-        "status.h",
     ],
     deps = [
         "//internal:device",
@@ -71,6 +70,7 @@ cc_library(
         "//internal/proto:credential_cc_proto",
         "//internal/proto:device_metadata_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
@@ -91,7 +91,6 @@ cc_test(
         "presence_identity_test.cc",
         "presence_zone_test.cc",
         "scan_request_builder_test.cc",
-        "status_test.cc",
     ],
     shard_count = 6,
     deps = [
@@ -139,6 +138,7 @@ cc_test(
         "//internal/platform:test_util",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest_main",
     ],
 )

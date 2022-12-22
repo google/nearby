@@ -65,7 +65,11 @@ class MediumEnvironmentStarter {
 
 class BroadcastManagerTest : public testing::TestWithParam<FeatureFlags> {
  protected:
-  void TearDown() override { MediumEnvironment::Instance().Sync(); }
+  void TearDown() override {
+    MediumEnvironment::Instance().Sync();
+    // Finish pending tasks before destroying BroadcastManager
+    executor_.Shutdown();
+  }
   bool IsAdvertising() {
     WaitForServiceControllerTasks();
     MediumEnvironment::Instance().Sync();
@@ -74,7 +78,7 @@ class BroadcastManagerTest : public testing::TestWithParam<FeatureFlags> {
         ->is_advertising;
   }
   BroadcastCallback CreateBroadcastCallback() {
-    return BroadcastCallback{.start_broadcast_cb = [this](Status status) {
+    return BroadcastCallback{.start_broadcast_cb = [this](absl::Status status) {
       start_broadcast_status_.Set(status);
     }};
   }
@@ -88,9 +92,9 @@ class BroadcastManagerTest : public testing::TestWithParam<FeatureFlags> {
   // The medium environment must be initialized (started) before the service
   // controller.
   MediumEnvironmentStarter env_;
-  location::nearby::Future<Status> start_broadcast_status_;
+  location::nearby::Future<absl::Status> start_broadcast_status_;
   BroadcastCallback broadcast_callback_{
-      .start_broadcast_cb = [this](Status status) {
+      .start_broadcast_cb = [this](absl::Status status) {
         start_broadcast_status_.Set(status);
       }};
   Mediums mediums_;
@@ -110,8 +114,7 @@ TEST_P(BroadcastManagerTest, StartBroadcastPublicIdentity) {
 
   EXPECT_OK(session);
   EXPECT_TRUE(start_broadcast_status_.Get().ok());
-  EXPECT_EQ(start_broadcast_status_.Get().GetResult(),
-            Status{Status::Value::kSuccess});
+  EXPECT_OK(start_broadcast_status_.Get().GetResult());
   EXPECT_TRUE(IsAdvertising());
 }
 
@@ -150,8 +153,8 @@ TEST_P(BroadcastManagerTest, StartBroadcastInvalidRequestFails) {
 
   EXPECT_THAT(session, StatusIs(absl::StatusCode::kInvalidArgument));
   EXPECT_TRUE(start_broadcast_status_.Get().ok());
-  EXPECT_EQ(start_broadcast_status_.Get().GetResult(),
-            Status{Status::Value::kError});
+  EXPECT_THAT(start_broadcast_status_.Get().GetResult(),
+              StatusIs(absl::StatusCode::kInvalidArgument));
   EXPECT_FALSE(IsAdvertising());
 }
 
@@ -164,8 +167,8 @@ TEST_P(BroadcastManagerTest, StartBroadcastPrivateIdentityFails) {
 
   ASSERT_OK(session);
   EXPECT_TRUE(start_broadcast_status_.Get().ok());
-  EXPECT_EQ(start_broadcast_status_.Get().GetResult(),
-            Status{Status::Value::kError});
+  EXPECT_THAT(start_broadcast_status_.Get().GetResult(),
+              StatusIs(absl::StatusCode::kNotFound));
   EXPECT_FALSE(IsAdvertising());
 }
 

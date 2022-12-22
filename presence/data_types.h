@@ -21,7 +21,6 @@
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/logging.h"
 #include "presence/presence_device.h"
-#include "presence/status.h"
 
 namespace nearby {
 namespace presence {
@@ -34,7 +33,7 @@ using ScanSessionId = uint64_t;
 // empty functions.
 struct ScanCallback {
   // Updates client with the result of start scanning.
-  std::function<void(Status)> start_scan_cb = [](Status) {};
+  std::function<void(absl::Status)> start_scan_cb = [](absl::Status) {};
 
   // Reports a {@link PresenceDevice} being discovered.
   std::function<void(PresenceDevice)> on_discovered_cb = [](PresenceDevice) {};
@@ -54,7 +53,7 @@ using BroadcastSessionId = uint64_t;
 // don't need these signal updates, they can skip with the provided default
 // empty functions.
 struct BroadcastCallback {
-  std::function<void(Status)> start_broadcast_cb = [](Status) {};
+  std::function<void(absl::Status)> start_broadcast_cb = [](absl::Status) {};
 };
 
 }  // namespace presence
