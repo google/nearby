@@ -70,6 +70,12 @@ nearby_platform_status nearby_platform_Aes128Decrypt(
 nearby_platform_status nearby_platform_GenSec256r1Secret(
     const uint8_t remote_party_public_key[64], uint8_t secret[32]);
 
+// Returns anti-spoofing 128 bit private key.
+// Only used if the implementation also uses the
+// nearby_platform_GenSec256r1Secret() routine defined in gen_secret.c.
+// Return NULL if not implemented.
+const uint8_t* nearby_platform_GetAntiSpoofingPrivateKey();
+
 // Initializes secure element module
 nearby_platform_status nearby_platform_SecureElementInit();
 

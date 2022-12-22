@@ -30,6 +30,8 @@ static const nearby_platform_BleInterface* ble_interface;
 static std::map<nearby_fp_Characteristic, std::vector<uint8_t>> notifications;
 static std::vector<uint8_t> advertisement;
 static nearby_fp_AvertisementInterval interval;
+constexpr int32_t kDefaultPsm = -1;
+static int32_t psm = kDefaultPsm;
 
 std::map<nearby_fp_Characteristic, std::vector<uint8_t>>&
 nearby_test_fakes_GetGattNotifications() {
@@ -83,6 +85,8 @@ nearby_platform_status nearby_platform_SetAdvertisement(
   return kNearbyStatusOK;
 }
 
+int32_t nearby_platform_GetMessageStreamPsm() { return psm; }
+
 // Initializes BLE
 nearby_platform_status nearby_platform_BleInit(
     const nearby_platform_BleInterface* callbacks) {
@@ -91,8 +95,11 @@ nearby_platform_status nearby_platform_BleInit(
   advertisement.clear();
   interval = kDisabled;
   ble_address = kDefaultBleAddress;
+  psm = kDefaultPsm;
   return kNearbyStatusOK;
 }
+
+void nearby_test_fakes_SetPsm(int32_t value) { psm = value; }
 
 std::vector<uint8_t>& nearby_test_fakes_GetAdvertisement() {
   return advertisement;
@@ -124,4 +131,10 @@ nearby_platform_status nearby_fp_fakes_ReceiveAdditionalData(
     const uint8_t* request, size_t length) {
   return ble_interface->on_gatt_write(peer_address, kAdditionalData, request,
                                       length);
+}
+
+nearby_platform_status nearby_fp_fakes_GattReadMessageStreamPsm(
+    uint8_t* output, size_t* length) {
+  return ble_interface->on_gatt_read(peer_address, kMessageStreamPsm, output,
+                                     length);
 }

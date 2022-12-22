@@ -23,7 +23,7 @@
 #define ACK_CODE 1
 #define NACK_CODE 2
 
-#ifdef NEARBY_FP_MESSAGE_STREAM
+#if NEARBY_FP_MESSAGE_STREAM
 void nearby_message_stream_Init(const nearby_message_stream_State* state) {
   nearby_message_stream_Metadata* metadata =
       (nearby_message_stream_Metadata*)state->buffer;

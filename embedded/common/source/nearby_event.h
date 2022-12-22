@@ -112,6 +112,10 @@ typedef struct {
 // Handled by: Client app
 #define MESSAGE_CODE_PLATFORM_TYPE 8
 
+// Direction: Provider -> Seeker
+// Handled by: Nearby Fast Pair library
+#define MESSAGE_CODE_SESSION_NONCE 0x0A
+
 // Message group Device Action Event
 #define MESSAGE_GROUP_DEVICE_ACTION_EVENT 4
 
@@ -136,5 +140,113 @@ typedef struct {
   // Optional. Addtional message data
   uint8_t *data;
 } nearby_event_MessageStreamReceived;
+
+// Message group Smart Audio Source Switching
+#define MESSAGE_GROUP_SASS 7
+
+// Direction: Both
+// Handled by: Nearby Fast Pair library
+// Encrypted: No
+// Signed: No
+// ACK required: No
+#define MESSAGE_CODE_SASS_GET_CAPABILITY 0x10
+
+// Direction: Both
+// Handled by: Nearby Fast Pair library
+// Encrypted: No
+// Signed: Yes
+// ACK required: Yes
+#define MESSAGE_CODE_SASS_NOTIFY_CAPABILITY 0x11
+
+// Direction: Seeker -> Provider
+// Handled by: Nearby Fast Pair library
+// Encrypted: No
+// Signed: Yes
+// ACK required: Yes
+#define MESSAGE_CODE_SASS_SET_MULTIPOINT_STATE 0x12
+
+// Direction: Seeker -> Provider
+// Handled by: Nearby Fast Pair library
+// Encrypted: No
+// Signed: Yes
+// ACK required: Yes
+#define MESSAGE_CODE_SASS_SET_SWITCHING_PREFERENCE 0x20
+
+// Direction: Both
+// Handled by: Nearby Fast Pair library
+// Encrypted: No
+// Signed: No
+// ACK required: No
+#define MESSAGE_CODE_SASS_GET_SWITCHING_PREFERENCE 0x21
+
+// Direction: Both
+// Handled by: Nearby Fast Pair library
+// Encrypted: No
+// Signed: Yes
+// ACK required: Yes
+#define MESSAGE_CODE_SASS_NOTIFY_SWITCHING_PREFERENCE 0x22
+
+// Direction: Seeker -> Provider
+// Handled by: Nearby Fast Pair library
+// Encrypted: No
+// Signed: Yes
+// ACK required: Yes
+#define MESSAGE_CODE_SASS_SWITCH_ACTIVE_AUDIO_SOURCE 0x30
+
+// Direction: Seeker -> Provider
+// Handled by: Nearby Fast Pair library
+// Encrypted: No
+// Signed: Yes
+// ACK required: Yes
+#define MESSAGE_CODE_SASS_SWITCH_BACK_AUDIO_SOURCE 0x31
+
+// Direction: Provider -> Seeker
+// Handled by: Nearby Fast Pair library
+// Encrypted: No
+// Signed: No
+// ACK required: No
+#define MESSAGE_CODE_SASS_NOTIFY_MULTIPOINT_SWITCH_EVENT 0x32
+
+// Direction: Seeker -> Provider
+// Handled by: Nearby Fast Pair library
+// Encrypted: No
+// Signed: No
+// ACK required: No
+#define MESSAGE_CODE_SASS_GET_CONNECTION_STATUS 0x33
+
+// Direction: Provider -> Seeker
+// Handled by: Nearby Fast Pair library
+// Encrypted: Yes
+// Signed: No
+// ACK required: No
+#define MESSAGE_CODE_SASS_NOTIFY_CONNECTION_STATUS 0x34
+
+// Direction: Seeker -> Provider
+// Handled by: Nearby Fast Pair library
+// Encrypted: No
+// Signed: Yes
+// ACK required: Yes
+#define MESSAGE_CODE_SASS_NOTIFY_SASS_INITIATED_CONNECTION 0x40
+
+// Direction: Seeker -> Provider
+// Handled by: Nearby Fast Pair library
+// Encrypted: No
+// Signed: Yes
+// ACK required: Yes
+#define MESSAGE_CODE_SASS_IN_USE_ACCOUNT_KEY 0x41
+
+// Direction: Seeker -> Provider
+// Handled by: Nearby Fast Pair library
+// Encrypted: No
+// Signed: Yes
+// ACK required: Yes
+#define MESSAGE_CODE_SASS_SEND_CUSTOM_DATA 0x42
+
+// Direction: Seeker -> Provider
+// Handled by: Nearby Fast Pair library
+// Encrypted: No
+// Signed: Yes
+// ACK required: Yes
+#define MESSAGE_CODE_SASS_SET_DROP_CONNECTION_TARGET 0x43
 
 #endif /* NEARBY_EVENT_H */

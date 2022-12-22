@@ -20,7 +20,8 @@
 // clang-format on
 
 #include "nearby.h"
-#ifdef NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
+#include "nearby_message_stream.h"
+#if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
 #include "nearby_platform_battery.h"
 #endif /* NEARBY_FP_ENABLE_BATTERY_NOTIFICATION */
 
@@ -30,13 +31,30 @@ extern "C" {
 
 #define BT_ADDRESS_LENGTH 6
 #define DISCOVERABLE_ADV_SIZE_BYTES 10
-// Sufficient for 5 account keys and battery notification
-#define NON_DISCOVERABLE_ADV_SIZE_BYTES 24
+#ifdef NEARBY_FP_ENABLE_SASS
+// Sufficent for 5 account keys, battery notification and SASS info
+#define NON_DISCOVERABLE_ADV_SIZE_BYTES 32
+#else
+// Sufficent for 5 account keys and battery notification
+#define NON_DISCOVERABLE_ADV_SIZE_BYTES 25
+#endif /* NEARBY_FP_ENABLE_SASS */
 
 #define ADDITIONAL_DATA_HEADER_SIZE 16
+#define HMAC_SHA256_KEY_SIZE 64
+#define SHA256_KEY_SIZE 32
 
-// Creates advertisement with the Model Id. Returns the number of bytes written
-// to |output|.
+// Random Resolvable Field header size
+#define RRF_HEADER_SIZE 1
+
+// Field types in the non-discoverable advertisement
+#define SALT_FIELD_TYPE 1
+#define BATTERY_INFO_WITH_UI_INDICATION_FIELD_TYPE 3
+#define BATTERY_INFO_WITHOUT_UI_INDICATION_FIELD_TYPE 4
+#define SASS_ADVERTISEMENT_FIELD_TYPE 5
+#define RANDOM_RESOLVABLE_FIELD_TYPE 6
+
+// Creates advertisement with the Model Id. Returns the number of bytes
+// written to |output|.
 //
 // output - Advertisement data output buffer.
 // length - Length of output buffer.
@@ -52,7 +70,7 @@ size_t nearby_fp_CreateDiscoverableAdvertisement(uint8_t* output,
 size_t nearby_fp_CreateNondiscoverableAdvertisement(
     uint8_t* output, size_t length, bool show_pairing_indicator);
 
-#ifdef NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
+#if NEARBY_FP_ENABLE_BATTERY_NOTIFICATION
 void SerializeBatteryInfo(uint8_t* output,
                           const nearby_platform_BatteryInfo* battery_info);
 
@@ -62,6 +80,7 @@ void SerializeBatteryInfo(uint8_t* output,
 // output            - Advertisement data output buffer.
 // length            - Length of output buffer.
 // show_ui_indicator - Ask seeker to show UI indication.
+// show_battery_indicator - Ask seeker to show battery indicator
 // battery_info      - Battery status data structure.
 size_t nearby_fp_CreateNondiscoverableAdvertisementWithBattery(
     uint8_t* output, size_t length, bool show_pairing_indicator,
@@ -87,26 +106,49 @@ nearby_platform_status nearby_fp_SaveAccountKeys();
 //
 // dest       - Buffer for key fetched.
 // key_number - Number of key to fetch.
-void nearby_fp_CopyAccountKey(uint8_t* dest, unsigned key_number);
+void nearby_fp_CopyAccountKey(nearby_platform_AccountKeyInfo* dest,
+                              unsigned key_number);
 
 // Gets number of active keys.
 size_t nearby_fp_GetAccountKeyCount();
-// Gets offset of key by key number. Returns the offset.
-//
-// key_number - ordinal number of key to return.
-size_t nearby_fp_GetAccountKeyOffset(unsigned key_number);
+
+// Gets the number of unique account keys. Account keys are duplicated when two
+// or more seekers share an account key
+size_t nearby_fp_GetUniqueAccountKeyCount();
+
+// Returns the index of the next unique account key in [offset..number of keys]
+// range, that is a key that wasn't already seen in [0..offset -1] range.
+// Returns -1 if not found.
+int nearby_fp_GetNextUniqueAccountKeyIndex(int offset);
+
 // Gets pointer to given key by ordinal number.
 //
 // key_number - Ordinal number of key to return.
-const uint8_t* nearby_fp_GetAccountKey(unsigned key_number);
+const nearby_platform_AccountKeyInfo* nearby_fp_GetAccountKey(
+    unsigned key_number);
+
 // Marks account key as active by moving it to the top of the key list.
 //
 // key_number - Original number of key to mark active.
 void nearby_fp_MarkAccountKeyAsActive(unsigned key_number);
+
 // Adds key to key list. Inserts key to top of list.
 //
 // key - Buffer containing key to insert.
-void nearby_fp_AddAccountKey(const uint8_t key[ACCOUNT_KEY_SIZE_BYTES]);
+void nearby_fp_AddAccountKey(const nearby_platform_AccountKeyInfo* key);
+
+// Computes the account bloom filter and stores it in the Account Key Filter
+// field in the advertisement. Returns the bloom filter size.
+//
+// `advertisement` is a non-discoverable FP advertisement. It must contain an
+// LTV field for Account Key Filter, where the LT header is already set but the
+// contents may be unitialized. It must contain an LTV with salt. Battery Info
+// field and Random Resolvable field are used in the bloom filter calculation if
+// present in the advertisement, When `use_sass_format` is set, the bloom filter
+// defined by SASS will be used.
+size_t nearby_fp_SetBloomFilter(uint8_t* advertisement, bool use_sass_format,
+                                const uint8_t* in_use_key);
+
 // Gets fast pair model ID
 //
 // output - Buffer to hold model ID.
@@ -126,16 +168,77 @@ nearby_platform_status nearby_fp_CreateSharedSecret(
 //
 // output - Buffer returning the pairing response.
 nearby_platform_status nearby_fp_CreateRawKeybasedPairingResponse(
-    uint8_t output[AES_MESSAGE_SIZE_BYTES]);
+    uint8_t output[AES_MESSAGE_SIZE_BYTES], bool extended_response);
 
-#ifdef NEARBY_FP_ENABLE_ADDITIONAL_DATA
+// Context for calculating HMAC-SHA256 hash
+typedef struct {
+  // The resulting hash after calling `nearby_fp_HmacSha256Finish`
+  uint8_t hash[SHA256_KEY_SIZE];
+  uint8_t hmac_key[HMAC_SHA256_KEY_SIZE];
+} nearby_fp_HmacSha256Context;
+
+// Starts calculating HMAC-SHA156 hash incrementally. Only one hash calculation
+// can be running at a time.
+//
+// context - Uninitalized context.
+// key        - Input key to calculate hash.
+// key_length - Length of key.
+nearby_platform_status nearby_fp_HmacSha256Start(
+    nearby_fp_HmacSha256Context* context, const uint8_t* key,
+    size_t key_length);
+
+// Adds data to the hash.
+//
+// data       - Data to calculate hash.
+// data_length - Data length.
+nearby_platform_status nearby_fp_HmacSha256Update(const uint8_t* data,
+                                                  size_t data_length);
+// Finishes hash calculation. The parameters must match those passed to
+// `nearby_fp_HmacSha256Start`.
+//
+// context - Context initalized with `nearby_fp_HmacSha256Start`.
+// key        - Input key to calculate hash.
+// key_length - Length of key.
+nearby_platform_status nearby_fp_HmacSha256Finish(
+    nearby_fp_HmacSha256Context* context, const uint8_t* key,
+    size_t key_length);
+
+// Implements HKDF-Extract method with SHA256 hash per
+// https://www.rfc-editor.org/rfc/rfc5869#section-2.2
+//
+// out - output Pseudo Random Key material
+// salt - optional salt
+// salt_length - salt length in bytes. Set to 0 when `salt is NULL
+// ikm - Input Key Material
+// ikm_length - IKM length in bytes
+nearby_platform_status nearby_fp_HkdfExtractSha256(uint8_t out[SHA256_KEY_SIZE],
+                                                   const uint8_t* salt,
+                                                   size_t salt_length,
+                                                   const uint8_t* ikm,
+                                                   size_t ikm_length);
+
+// Implements HKDF-Expand with SHA256 hash per
+// https://www.rfc-editor.org/rfc/rfc5869#section-2.3
+//
+// out - Output Key Material
+// out_length - OKM length in bytes
+// prk - Pseudo Random Key
+// prk_length - PRK length in bytes
+// info - optional context information
+// info_length - info length in bytes. Set to 0 when `info` is NULL.
+nearby_platform_status nearby_fp_HkdfExpandSha256(
+    uint8_t* out, size_t out_length, const uint8_t* prk, size_t prk_length,
+    const uint8_t* info, size_t info_length);
+
+const uint8_t* nearby_fp_FindLtv(const uint8_t* advertisement, int type);
+
 // Calculates HMAC SHA256 hash.
 //
 // out        - Output buffer for hash.
 // key        - Input key to calculate hash.
 // key_length - Length of key.
 // data       - Data to calculate hash.
-// data_lenth - Data length.
+// data_length - Data length.
 nearby_platform_status nearby_fp_HmacSha256(uint8_t out[32], const uint8_t* key,
                                             size_t key_length,
                                             const uint8_t* data,
@@ -151,6 +254,14 @@ nearby_platform_status nearby_fp_AesCtr(
     uint8_t* message, size_t message_length,
     const uint8_t key[AES_MESSAGE_SIZE_BYTES]);
 
+// Encrypts |data| in place: data = data ^ AES(key, iv). The data must
+// be shorter than AES_MESSAGE_SIZE_BYTES.
+// Side effect: |iv| contents are destroyed.
+nearby_platform_status nearby_fp_AesEncryptIv(
+    uint8_t* data, size_t length, uint8_t iv[AES_MESSAGE_SIZE_BYTES],
+    const uint8_t key[AES_MESSAGE_SIZE_BYTES]);
+
+#if NEARBY_FP_ENABLE_ADDITIONAL_DATA
 // Decodes data package read from Additional Data characteristics. The decoding
 // happens in-place. Returns an error if HMAC-SHA checksum is invalid.
 //
@@ -180,6 +291,25 @@ nearby_platform_status nearby_fp_EncodeAdditionalData(
 nearby_platform_status nearby_fp_Sha256(uint8_t out[32], const void* data,
                                         size_t length);
 
+uint8_t nearby_fp_GetSassConnectionState();
+
+size_t nearby_fp_GenerateSassAdvertisement(
+    uint8_t* advertisement, size_t length, uint8_t connection_state,
+    uint8_t custom_data, const uint8_t* devices_bitmap, size_t bitmap_length);
+
+uint16_t nearby_fp_GetSassCapabilityFlags();
+
+nearby_platform_status nearby_fp_VerifyMessageAuthenticationCode(
+    const uint8_t* message, size_t length,
+    const uint8_t key[ACCOUNT_KEY_SIZE_BYTES],
+    const uint8_t session_nonce[SESSION_NONCE_SIZE]);
+
+// Encrypts Random Resolvable Field in place. The payload must start
+// at RRF_HEADER_SIZE offset in the |data| buffer. |salt_field| is a
+// part of non-discoverable advertisement
+nearby_platform_status nearby_fp_EncryptRandomResolvableField(
+    uint8_t* data, size_t length, const uint8_t key[AES_MESSAGE_SIZE_BYTES],
+    const uint8_t* salt_field);
 #ifdef __cplusplus
 }
 #endif

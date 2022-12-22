@@ -51,6 +51,12 @@ nearby_platform_status nearby_platform_PersistenceInit() {
   return kNearbyStatusOK;
 }
 
+void nearby_test_fakes_SetAccountKeys(
+    std::vector<AccountKeyPair>& account_key_pairs) {
+  AccountKeyList list(account_key_pairs);
+  nearby_test_fakes_SetAccountKeys(list);
+}
+
 void nearby_test_fakes_SetAccountKeys(const uint8_t* input, size_t length) {
   storage[kStoredKeyAccountKeyList].assign(input, input + length);
 }
