@@ -197,6 +197,9 @@ enum EventType {
   // Sender taps the Send button in quick settings
   TAP_QUICK_SETTINGS_FILE_SHARE = 52;
 
+  // Devices show a privacy notification
+  DISPLAY_PRIVACY_NOTIFICATION = 53;
+
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
 
