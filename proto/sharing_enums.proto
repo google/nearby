@@ -21,13 +21,12 @@ option java_package = "com.google.location.nearby.proto";
 option java_outer_classname = "SharingEnums";
 option objc_class_prefix = "GNSHP";
 
-/*
-We use event based logging (an event object can be constructed and logged
-immediately when they occur). To obtain session based information (e.g.
-durations, counting incoming introductions), we use flowId (sender/receiver) in
-NearbyClearcutLogger for all events (may exclude settings), and session_id for a
-pair of events (start and end of a session).
- */
+// We use event based logging (an event object can be constructed and logged
+// immediately when they occur). To obtain session based information (e.g.
+// durations, counting incoming introductions), we use flowId (sender/receiver)
+// in NearbyClearcutLogger for all events (may exclude settings), and session_id
+// for a pair of events (start and end of a session).
+// Next id: 55
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -152,6 +151,9 @@ enum EventType {
 
   // Receiver phone consent clicked.
   LAUNCH_PHONE_CONSENT = 38;
+
+  // Devices show a phone consent banner in Nearby Share Settings
+  DISPLAY_PHONE_CONSENT = 54;
 
   // Receiver taps quick settings tile.
   TAP_QUICK_SETTINGS_TILE = 39;
