@@ -399,6 +399,9 @@ message ConnectionsLog {
 
     // The Bluetooth multiple advertisement support status.
     optional bool multiple_advertisement_supported = 4;
+
+    // The power level of this advertising
+    optional location.nearby.proto.connections.PowerLevel power_level = 5;
   }
 
   // Some additional information to keep with the discovery phase.
@@ -411,6 +414,9 @@ message ConnectionsLog {
 
     // The NFC (Near Field Communication) support status
     optional bool supports_nfc_technology = 3;
+
+    // The power level of this discovering
+    optional location.nearby.proto.connections.PowerLevel power_level = 4;
   }
 
   // Some additional information to keep with the connection attempt.

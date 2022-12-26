@@ -390,3 +390,20 @@ enum LogSource {
   // Represents the device for debugging.
   DEBUG_DEVICES = 5;
 }
+
+// LINT.IfChange
+enum PowerLevel {
+  UNSPECIFIED = 0;
+
+  // Set low power for the related medium operations.
+  LOW_POWER = 1;
+
+  // Set balance power for the related medium operations.
+  BALANCED_POWER = 2;
+
+  // Set high power for the related medium operations.
+  HIGH_POWER = 3;
+}
+// LINT.ThenChange(
+//     //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/PowerLevel.java
+// )
