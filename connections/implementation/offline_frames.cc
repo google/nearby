@@ -232,7 +232,8 @@ ByteArray ForBwuWifiDirectPathAvailable(const std::string& ssid,
                                         const std::string& password,
                                         std::int32_t port,
                                         std::int32_t frequency,
-                                        bool supports_disabling_encryption) {
+                                        bool supports_disabling_encryption,
+                                        const std::string& gateway) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -252,6 +253,7 @@ ByteArray ForBwuWifiDirectPathAvailable(const std::string& ssid,
   wifi_direct_credentials->set_password(password);
   wifi_direct_credentials->set_port(port);
   wifi_direct_credentials->set_frequency(frequency);
+  wifi_direct_credentials->set_gateway(gateway);
 
   return ToBytes(std::move(frame));
 }

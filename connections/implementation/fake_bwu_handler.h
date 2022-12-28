@@ -140,16 +140,20 @@ class FakeBwuHandler : public BaseBwuHandler {
       case proto::connections::WEB_RTC:
         return parser::ForBwuWebrtcPathAvailable(/*peer_id=*/"peer-id",
                                                  LocationHint{});
-      case proto::connections::UNKNOWN_MEDIUM:
-      case proto::connections::MDNS:
       case proto::connections::WIFI_HOTSPOT:
         return parser::ForBwuWifiHotspotPathAvailable(
             /*ssid=*/"Direct-357a2d8c", /*password=*/"b592f7d3",
             /*port=*/1234, /*gateway=*/"123.234.23.1", false);
+      case proto::connections::WIFI_DIRECT:
+        return parser::ForBwuWifiDirectPathAvailable(
+            /*ssid=*/"Direct-12345678", /*password=*/"87654321", /*port=*/2143,
+            /*frequency=*/2412, /*supports_disabling_encryption=*/false,
+            /*gateway=*/"123.234.23.1");
+      case proto::connections::UNKNOWN_MEDIUM:
+      case proto::connections::MDNS:
       case proto::connections::BLE:
       case proto::connections::WIFI_AWARE:
       case proto::connections::NFC:
-      case proto::connections::WIFI_DIRECT:
       case proto::connections::BLE_L2CAP:
       case proto::connections::USB:
         return ByteArray{};

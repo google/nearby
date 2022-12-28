@@ -114,6 +114,9 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // ClientProxy objects are deleted.
   void ShutdownExecutors();
 
+  // Check if BWU is on going for a specific Endpoint
+  bool IsUpgradeOngoing(const std::string& endpoint_id);
+
  private:
   static constexpr absl::Duration kReadClientIntroductionFrameTimeout =
       absl::Seconds(5);

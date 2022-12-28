@@ -27,9 +27,7 @@
 #include "connections/implementation/bluetooth_endpoint_channel.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/mediums/utils.h"
-#include "connections/implementation/webrtc_endpoint_channel.h"
 #include "connections/implementation/wifi_lan_endpoint_channel.h"
-#include "internal/platform/crypto.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/types.h"
 #include "proto/connections_enums.pb.h"
@@ -65,6 +63,7 @@ P2pClusterPcpHandler::P2pClusterPcpHandler(
       ble_v2_medium_(mediums->GetBleV2()),
       wifi_lan_medium_(mediums->GetWifiLan()),
       wifi_hotspot_medium_(mediums->GetWifiHotspot()),
+      wifi_direct_medium_(mediums->GetWifiDirect()),
       webrtc_medium_(mediums->GetWebRtc()),
       injected_bluetooth_device_store_(injected_bluetooth_device_store) {}
 

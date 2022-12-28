@@ -28,18 +28,19 @@ struct MediumSelectorW {
   T web_rtc;
   T wifi_lan;
   T wifi_hotspot;
+  T wifi_direct;
 
   constexpr MediumSelectorW() = default;
   constexpr MediumSelectorW(const MediumSelectorW&) = default;
   constexpr MediumSelectorW& operator=(const MediumSelectorW&) = default;
   constexpr bool Any(const T& value) const {
     return bluetooth == value || ble == value || web_rtc == value ||
-           wifi_lan == value || wifi_hotspot == value;
+           wifi_lan == value || wifi_hotspot == value || wifi_direct == value;
   }
 
   constexpr bool All(const T& value) const {
     return bluetooth == value && ble == value && web_rtc == value &&
-           wifi_lan == value && wifi_hotspot == value;
+           wifi_lan == value && wifi_hotspot == value && wifi_direct == value;
   }
 
   constexpr int Count(const T& value) const {
@@ -48,6 +49,7 @@ struct MediumSelectorW {
     if (ble == value) ++count;
     if (wifi_lan == value) ++count;
     if (wifi_hotspot == value) ++count;
+    if (wifi_direct == value) ++count;
     if (web_rtc == value) ++count;
     return count;
   }
@@ -58,6 +60,7 @@ struct MediumSelectorW {
     web_rtc = value;
     wifi_lan = value;
     wifi_hotspot = value;
+    wifi_direct = value;
     return *this;
   }
 
@@ -65,6 +68,7 @@ struct MediumSelectorW {
     std::vector<MediumW> mediums;
     // Mediums are sorted in order of decreasing preference.
     if (wifi_lan == value) mediums.push_back(MediumW::WIFI_LAN);
+    if (wifi_direct == value) mediums.push_back(MediumW::WIFI_DIRECT);
     if (wifi_hotspot == value) mediums.push_back(MediumW::WIFI_HOTSPOT);
     if (web_rtc == value) mediums.push_back(MediumW::WEB_RTC);
     if (bluetooth == value) mediums.push_back(MediumW::BLUETOOTH);

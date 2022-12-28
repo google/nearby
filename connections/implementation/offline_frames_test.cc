@@ -294,7 +294,8 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiDirectPathAvailable) {
             ssid: "DIRECT-A0-0123456789AB"
             password: "password"
             port: 1000
-            frequency: 1000
+            frequency: 2412
+            gateway: "192.168.1.1"
           >
           supports_disabling_encryption: false
           supports_client_introduction_ack: true
@@ -302,7 +303,7 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiDirectPathAvailable) {
       >
     >)pb";
   ByteArray bytes = ForBwuWifiDirectPathAvailable(
-      "DIRECT-A0-0123456789AB", "password", 1000, 1000, false);
+      "DIRECT-A0-0123456789AB", "password", 1000, 2412, false, "192.168.1.1");
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = FromBytes(bytes).result();

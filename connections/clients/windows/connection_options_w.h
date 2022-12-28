@@ -22,7 +22,7 @@ namespace location::nearby::windows {
 
 extern "C" {
 
-#define MAX_MEDIUMS 5
+#define MAX_MEDIUMS 6
 
 // Feature On/Off switch for mediums.
 using BooleanMediumSelector = MediumSelectorW<bool>;

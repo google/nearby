@@ -31,6 +31,7 @@
 #else
 #include "connections/implementation/webrtc_bwu_handler.h"
 #endif
+#include "connections/implementation/wifi_direct_bwu_handler.h"
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
 #include "connections/implementation/wifi_lan_bwu_handler.h"
 #include "internal/platform/byte_array.h"
@@ -107,6 +108,11 @@ void BwuManager::InitBwuHandlers() {
     handlers_.emplace(
         Medium::WIFI_HOTSPOT,
         std::make_unique<WifiHotspotBwuHandler>(*mediums_, notifications));
+  }
+  if (config_.allow_upgrade_to.wifi_direct) {
+    handlers_.emplace(
+        Medium::WIFI_DIRECT,
+        std::make_unique<WifiDirectBwuHandler>(*mediums_, notifications));
   }
   if (config_.allow_upgrade_to.wifi_lan) {
     handlers_.emplace(Medium::WIFI_LAN, std::make_unique<WifiLanBwuHandler>(
@@ -391,14 +397,22 @@ void BwuManager::RevertBwuMediumForEndpoint(const std::string& service_id,
   // unless the BWU Medium is Hotspot. The client needs to disconnect from
   // Hotspot, then it can restore the previous AP connection right away.
   if (!IsInitiatorUpgradeServiceId(service_id)) {
-    if (medium == Medium::WIFI_HOTSPOT) {
+    if (medium == Medium::WIFI_HOTSPOT || medium == Medium::WIFI_DIRECT) {
       handler->RevertResponderState(service_id);
     }
-
     return;
   }
 
   handler->RevertInitiatorState(service_id, endpoint_id);
+}
+
+bool BwuManager::IsUpgradeOngoing(const std::string& endpoint_id) {
+    CountDownLatch latch(1);
+    RunOnBwuManagerThread("is_upgrade_ongoing", [&latch]() {
+      latch.CountDown();
+    });
+    latch.Await();
+    return in_progress_upgrades_.contains(endpoint_id);
 }
 
 Medium BwuManager::GetBwuMediumForEndpoint(
@@ -1218,6 +1232,9 @@ std::vector<Medium> BwuManager::StripOutUnavailableMediums(
       switch (m) {
         case Medium::WIFI_LAN:
           available = mediums_->GetWifiLan().IsAvailable();
+          break;
+        case Medium::WIFI_DIRECT:
+          available = mediums_->GetWifiDirect().IsGOAvailable();
           break;
         case Medium::WIFI_HOTSPOT:
           available = mediums_->GetWifiHotspot().IsAPAvailable();
