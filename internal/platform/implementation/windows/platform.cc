@@ -33,6 +33,9 @@
 #include <sstream>
 #include <string>
 
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/implementation/windows/atomic_boolean.h"
 #include "internal/platform/implementation/windows/atomic_reference.h"
@@ -45,6 +48,7 @@
 #include "internal/platform/implementation/windows/file.h"
 #include "internal/platform/implementation/windows/file_path.h"
 #include "internal/platform/implementation/windows/future.h"
+#include "internal/platform/implementation/windows/http_loader.h"
 #include "internal/platform/implementation/windows/listenable_future.h"
 #include "internal/platform/implementation/windows/log_message.h"
 #include "internal/platform/implementation/windows/mutex.h"
@@ -296,6 +300,12 @@ ImplementationPlatform::CreateWifiDirectMedium() {
 // TODO(b/184975123): replace with real implementation.
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
   return absl::make_unique<windows::WebRtcMedium>();
+}
+
+absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(
+    const WebRequest& request) {
+  windows::HttpLoader http_loader{request};
+  return http_loader.GetResponse();
 }
 
 }  // namespace api

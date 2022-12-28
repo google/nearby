@@ -16,6 +16,7 @@ licenses(["notice"])
 cc_library(
     name = "types",
     linkopts = [
+        "wininet.lib",
         "advapi32.lib",
         "comdlg32.lib",
         "gdi32.lib",

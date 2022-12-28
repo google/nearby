@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
@@ -30,6 +31,7 @@
 #include "internal/platform/implementation/count_down_latch.h"
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/crypto.h"
+#include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/log_message.h"
 #include "internal/platform/implementation/mutex.h"
@@ -130,6 +132,15 @@ class ImplementationPlatform {
 #ifndef NO_WEBRTC
   static std::unique_ptr<WebRtcMedium> CreateWebRtcMedium();
 #endif
+
+  // Gets HTTP response from remote server.
+  //
+  // @param request Webrequest
+  //
+  // @return returns absl::FailedPreconditionError if having platform error.
+  //         return WebResponse if HTTP status code between 200 and 300.
+  //         other cases will return absl Status in error.
+  static absl::StatusOr<WebResponse> SendRequest(const WebRequest& request);
 };
 
 }  // namespace api

@@ -100,7 +100,9 @@ cc_library(
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
+        "//internal:__pkg__",
         "//internal/crypto:__subpackages__",
+        "//internal/network:__subpackages__",
         "//internal/platform:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
@@ -393,11 +395,11 @@ cc_library(
         "//presence:__subpackages__",
     ],
     deps = [
+        ":base",
+        ":cancellation_flag",
         ":logging",
         ":types",
         ":uuid",
-        "//internal/platform:base",
-        "//internal/platform:cancellation_flag",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "@com_google_absl//absl/container:flat_hash_map",

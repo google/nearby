@@ -15,6 +15,7 @@
 #include "internal/platform/implementation/platform.h"
 
 #include <string>
+#include <memory>
 
 #include "internal/platform/implementation/apple/atomic_boolean.h"
 #include "internal/platform/implementation/apple/atomic_uint32.h"
@@ -169,6 +170,12 @@ std::unique_ptr<WifiDirectMedium> ImplementationPlatform::CreateWifiDirectMedium
 #ifndef NO_WEBRTC
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() { return nullptr; }
 #endif
+
+// TODO(b/261511669): Add implementation.
+absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(
+    const WebRequest& request) {
+  return absl::UnimplementedError("");
+}
 
 }  // namespace api
 }  // namespace nearby

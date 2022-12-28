@@ -416,6 +416,7 @@ let package = Package(
         "internal/platform/implementation/BUILD",
         "internal/platform/BUILD",
         "internal/analytics/BUILD",
+        "internal/network/BUILD",
         // tests
         "connections/listeners_test.cc",
         "connections/strategy_test.cc",
@@ -520,6 +521,13 @@ let package = Package(
         "internal/platform/byte_utils_test.cc",
         "internal/platform/direct_executor_test.cc",
         "internal/platform/borrowable_test.cc",
+        "internal/platform/implementation/windows/http_loader_test.cc",
+        "internal/network/utils_test.cc",
+        "internal/network/url_test.cc",
+        "internal/network/http_response_test.cc",
+        "internal/network/http_request_test.cc",
+        "internal/network/http_client_impl_test.cc",
+        "internal/network/http_status_code_test.cc",
         // simulation
         "connections/implementation/offline_simulation_user.cc",
         "connections/implementation/simulation_user.cc",
