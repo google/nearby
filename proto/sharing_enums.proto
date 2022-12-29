@@ -24,9 +24,10 @@ option objc_class_prefix = "GNSHP";
 // We use event based logging (an event object can be constructed and logged
 // immediately when they occur). To obtain session based information (e.g.
 // durations, counting incoming introductions), we use flowId (sender/receiver)
-// in NearbyClearcutLogger for all events (may exclude settings), and session_id
-// for a pair of events (start and end of a session).
-// Next id: 55
+// in NearbyClearcutLogger (for android, or clearcut_event_logger as the
+// equivalence for Windows) for all events (may exclude settings), and
+// session_id for a pair of events (start and end of a session).
+// Next id: 56
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -193,7 +194,8 @@ enum EventType {
   // Receiver auto dismisses a fast initialization notification.
   AUTO_DISMISS_FAST_INITIALIZATION = 50;
 
-  // App Crash event. Used only for Nearby Share Windows App now.
+  // App Crash event.
+  // Used only for Windows App now.
   APP_CRASH = 51;
 
   // Sender taps the Send button in quick settings
@@ -201,6 +203,10 @@ enum EventType {
 
   // Devices show a privacy notification
   DISPLAY_PRIVACY_NOTIFICATION = 53;
+
+  // Preference usage event (e.g. load/save preferences, etc).
+  // Used only for Windows App now.
+  PREFERENCES_USAGE = 55;
 
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
@@ -498,7 +504,7 @@ enum SharingUseCase {
   USE_CASE_QUICK_SETTING_FILE_SHARE = 5;
 }
 
-// Used only for Nearby Share Windows App now
+// Used only for Windows App now.
 enum AppCrashReason {
   APP_CRASH_REASON_UNKNOWN = 0;
 }
@@ -511,4 +517,33 @@ enum AttachmentSourceType {
   ATTACHMENT_SOURCE_CONTEXT_MENU = 1;
   ATTACHMENT_SOURCE_DRAG_AND_DROP = 2;
   ATTACHMENT_SOURCE_SELECT_FILES_BUTTON = 3;
+}
+
+// The action to interact with preferences.
+// Used only for Windows App now.
+enum PreferencesAction {
+  PREFERENCES_ACTION_UNKNOWN = 0;
+  PREFERENCES_ACTION_NO_ACTION = 1;
+
+  // Primary actions/functions towards preferences
+  PREFERENCES_ACTION_LOAD_PREFERENCES = 2;
+  PREFERENCES_ACTION_SAVE_PREFERENCESS = 3;
+  PREFERENCES_ACTION_ATTEMPT_LOAD = 4;
+  PREFERENCES_ACTION_RESTORE_FROM_BACKUP = 5;
+
+  // Other actions within the 4 actions above
+  PREFERENCES_ACTION_CREATE_PREFERENCES_PATH = 6;
+  PREFERENCES_ACTION_MAKE_PREFERENCES_BACKUP_FILE = 7;
+  PREFERENCES_ACTION_CHECK_IF_PREFERENCES_PATH_EXISTS = 8;
+  PREFERENCES_ACTION_CHECK_IF_PREFERENCES_INPUT_STREAM_STATUS = 9;
+  PREFERENCES_ACTION_CHECK_IF_PREFERENCES_FILE_IS_CORRUPTED = 10;
+  PREFERENCES_ACTION_CHECK_IF_PREFERENCES_BACKUP_FILE_EXISTS = 11;
+}
+
+// The status of the action to interact with preferences.
+// Used only for Windows App now.
+enum PreferencesActionStatus {
+  PREFERENCES_ACTION_STATUS_UNKNOWN = 0;
+  PREFERENCES_ACTION_STATUS_SUCCESS = 1;
+  PREFERENCES_ACTION_STATUS_FAIL = 2;
 }
