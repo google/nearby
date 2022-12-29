@@ -19,15 +19,18 @@
 namespace location {
 namespace nearby {
 namespace fastpair {
+namespace windows {
 
-void StartScanningDart(FastPairController *pController) {
-  StartScanning(pController);
+void StartScanDart(FastPairController *pController) {
+  if (IsScanning(pController)) return;
+  StartScan(pController);
 }
 
 void ServerAccessDart(FastPairController *pController) {
-  ServerAccess(pController);
+  IsServerAccessing(pController);
 }
 
+}  // namespace windows
 }  // namespace fastpair
 }  // namespace nearby
 }  // namespace location

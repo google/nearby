@@ -32,6 +32,10 @@ lexan.cc_windows_dll(
     tags = ["windows-dll"],
     deps = [
         "//fastpair:fastpair_controller",
+        "//fastpair/internal/api:platform",
+        "//internal/platform:logging",
+        "//internal/platform/implementation/windows",
+        "//internal/platform/implementation/windows/generated:types",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -55,6 +59,10 @@ lexan.cc_windows_dll(
     tags = ["windows-dll"],
     deps = [
         "//fastpair:fastpair_controller",
+        "//fastpair/internal/api:platform",
+        "//internal/platform:logging",
+        "//internal/platform/implementation/windows",
+        "//internal/platform/implementation/windows/generated:types",
         "//third_party/dart_lang/v2:dart_api_dl",
         "@com_google_absl//absl/strings",
     ],

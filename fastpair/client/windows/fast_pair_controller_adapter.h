@@ -22,18 +22,29 @@
 namespace location {
 namespace nearby {
 namespace fastpair {
+namespace windows {
 
 // Initiate a default FastPairController instance.
 // Return the instance handle to client
-DLL_EXPORT FastPairController *__stdcall InitFastPairController();
+DLL_EXPORT void *__stdcall InitFastPairController();
 
+// Closes the controller with stopping all endpoints, then free the memory.
 DLL_EXPORT void __stdcall CloseFastPairController(
     FastPairController *pController);
 
-DLL_EXPORT void __stdcall StartScanning(FastPairController *pController);
+DLL_EXPORT void __stdcall StartScan(FastPairController *pController);
 
-DLL_EXPORT void __stdcall ServerAccess(FastPairController *pController);
+// Obtain scanning status
+DLL_EXPORT bool __stdcall IsScanning(FastPairController *pController);
 
+// Obtain connecting status
+DLL_EXPORT bool __stdcall IsPairing(FastPairController *pController);
+
+// Server Access trigger just for adapter implementation testing, will be delete
+// after success
+DLL_EXPORT bool __stdcall IsServerAccessing(FastPairController *pController);
+
+}  // namespace windows
 }  // namespace fastpair
 }  // namespace nearby
 }  // namespace location

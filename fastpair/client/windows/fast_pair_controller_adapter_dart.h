@@ -21,11 +21,13 @@
 namespace location {
 namespace nearby {
 namespace fastpair {
+namespace windows {
 
-DLL_EXPORT void __stdcall StartScanningDart(FastPairController* pController);
+DLL_EXPORT void __stdcall StartScanDart(FastPairController* pController);
 
 DLL_EXPORT void __stdcall ServerAccessDart(FastPairController* pController);
 
+}  // namespace windows
 }  // namespace fastpair
 }  // namespace nearby
 }  // namespace location
