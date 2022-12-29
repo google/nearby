@@ -4,11 +4,13 @@ cc_library(
     name = "common",
     srcs = [
         "fast_pair_device.cc",
+        "fast_pair_http_result.cc",
         "protocol.cc",
     ],
     hdrs = [
         "constant.h",
         "fast_pair_device.h",
+        "fast_pair_http_result.h",
         "protocol.h",
     ],
     visibility = [
@@ -16,6 +18,7 @@ cc_library(
     ],
     deps = [
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
     ],
 )
 
