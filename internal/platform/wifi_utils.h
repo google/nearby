@@ -15,6 +15,8 @@
 #ifndef PLATFORM_BASE_WIFI_UTILS_H_
 #define PLATFORM_BASE_WIFI_UTILS_H_
 
+#include <string>
+
 #include "internal/platform/implementation/wifi.h"
 
 namespace location {
@@ -47,6 +49,8 @@ class WifiUtils {
 
   static int ConvertChannelToFrequencyMhz(int channel, WifiBandType band_type);
   static int ConvertFrequencyMhzToChannel(int freq_mhz);
+
+  static bool ValidateIPV4(std::string ipv4);
 };
 
 }  // namespace nearby
