@@ -24,7 +24,6 @@ cc_library(
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//connections/clients:__subpackages__",
-        "//internal/platform/implementation:__subpackages__",
         "//location/nearby/testing:__subpackages__",
     ],
     deps = [
@@ -70,7 +69,6 @@ cc_library(
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//connections:__subpackages__",
-        "//internal/analytics:__subpackages__",
         "//internal/platform/implementation/apple:__subpackages__",
         "//location/nearby/testing:__subpackages__",
     ],
