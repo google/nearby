@@ -347,11 +347,12 @@ void ServiceControllerRouter::SetCustomSavePath(
     ClientProxy* client, absl::string_view path,
     const ResultCallback& callback) {
   RouteToServiceController(
-      "scr-set-custom-save-path", [this, client, path, callback]() {
+      "scr-set-custom-save-path",
+      [this, client, path = std::string(path), callback]() {
         NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
                           << " has requested us to set custom save path to "
                           << path;
-        GetServiceController()->SetCustomSavePath(client, std::string(path));
+        GetServiceController()->SetCustomSavePath(client, path);
         callback.result_cb({Status::kSuccess});
       });
 }
