@@ -506,6 +506,9 @@ void PayloadManager::OnIncomingFrame(OfflineFrame& offline_frame,
       ProcessControlPacket(to_client, from_endpoint_id, frame);
       break;
     case PayloadTransferFrame::DATA:
+      NEARBY_LOGS(INFO) << "PayloadManager::OnIncomingFrame [DATA]: self="
+                        << this << "; endpoint_id=" << from_endpoint_id;
+      NEARBY_LOGS(VERBOSE) << ": frame=" << frame.DebugString();
       ProcessDataPacket(to_client, from_endpoint_id, frame, current_medium,
                         packet_meta_data);
       break;
