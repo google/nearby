@@ -17,6 +17,7 @@ package(default_visibility = [
     "//connections/clients/ios:__subpackages__",
     "//connections/clients/swift:__subpackages__",
     "//internal/platform/implementation/apple:__subpackages__",
+    "//location/nearby:__subpackages__",
 ])
 
 objc_library(
