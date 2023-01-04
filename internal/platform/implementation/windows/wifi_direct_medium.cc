@@ -76,7 +76,7 @@ bool WifiDirectMedium::IsInterfaceValid() const {
   return false;
 }
 
-std::unique_ptr<api::WifiHotspotSocket> WifiDirectMedium::ConnectToService(
+std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
     absl::string_view ip_address, int port,
     CancellationFlag* cancellation_flag) {
   NEARBY_LOGS(WARNING) << __func__ << " : Connect to remote service.";
@@ -142,11 +142,11 @@ std::unique_ptr<api::WifiHotspotSocket> WifiDirectMedium::ConnectToService(
         connection_timeout_ = nullptr;
       }
 
-      auto wifi_hotspot_socket = std::make_unique<WifiHotspotSocket>(socket);
+      auto client_socket = std::make_unique<WifiDirectSocket>(socket);
 
       NEARBY_LOGS(INFO) << "connected to remote service " << ipv4_address << ":"
                         << port;
-      return wifi_hotspot_socket;
+      return client_socket;
     } catch (...) {
       NEARBY_LOGS(ERROR) << "failed to connect remote service " << ipv4_address
                          << ":" << port << " for the " << i + 1 << " time";
@@ -166,7 +166,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiDirectMedium::ConnectToService(
   return nullptr;
 }
 
-std::unique_ptr<api::WifiHotspotServerSocket>
+std::unique_ptr<api::WifiDirectServerSocket>
 WifiDirectMedium::ListenForService(int port) {
   absl::MutexLock lock(&mutex_);
 
@@ -177,7 +177,7 @@ WifiDirectMedium::ListenForService(int port) {
     return nullptr;
   }
 
-  auto server_socket = std::make_unique<WifiHotspotServerSocket>(port);
+  auto server_socket = std::make_unique<WifiDirectServerSocket>(port);
   server_socket_ptr_ = server_socket.get();
 
   server_socket->SetCloseNotifier([this]() {
@@ -201,7 +201,7 @@ WifiDirectMedium::ListenForService(int port) {
 }
 
 bool WifiDirectMedium::StartWifiDirect(
-    HotspotCredentials* wifi_direct_credentials) {
+    WifiDirectCredentials* wifi_direct_credentials) {
   absl::MutexLock lock(&mutex_);
 
   if (IsBeaconing()) {
@@ -387,7 +387,7 @@ fire_and_forget WifiDirectMedium::OnConnectionRequested(
 }
 
 bool WifiDirectMedium::ConnectWifiDirect(
-    HotspotCredentials* wifi_direct_credentials) {
+    WifiDirectCredentials* wifi_direct_credentials) {
   absl::MutexLock lock(&mutex_);
 
   try {

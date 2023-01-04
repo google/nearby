@@ -20,8 +20,6 @@
 #include "gtest/gtest.h"
 #include "absl/strings/match.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/wifi_hotspot.h"
-#include "internal/platform/wifi_hotspot_credential.h"
 
 namespace location {
 namespace nearby {
@@ -79,7 +77,7 @@ TEST_F(WifiDirectMediumTest, CanStartStopDirect) {
   ASSERT_TRUE(wifi_direct_a.IsInterfaceValid());
   EXPECT_TRUE(wifi_direct_a.StartWifiDirect());
   EXPECT_EQ(wifi_direct_a.GetDynamicPortRange(), std::nullopt);
-  WifiHotspotServerSocket server_socket = wifi_direct_a.ListenForService();
+  WifiDirectServerSocket server_socket = wifi_direct_a.ListenForService();
   EXPECT_TRUE(server_socket.IsValid());
   server_socket.Close();
   EXPECT_TRUE(wifi_direct_a.StopWifiDirect());
@@ -102,7 +100,8 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanConnect) {
   ASSERT_TRUE(wifi_direct_a.IsInterfaceValid());
   ASSERT_TRUE(wifi_direct_b.IsInterfaceValid());
   EXPECT_TRUE(wifi_direct_a.StartWifiDirect());
-  HotspotCredentials* wifi_direct_credentials = wifi_direct_a.GetCredential();
+  WifiDirectCredentials* wifi_direct_credentials =
+      wifi_direct_a.GetCredential();
   auto* medium_a =
       env_.GetWifiDirectMedium(wifi_direct_credentials->GetSSID(), {});
   EXPECT_NE(medium_a, nullptr);
@@ -110,14 +109,14 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanConnect) {
       wifi_direct_b.ConnectWifiDirect(wifi_direct_credentials->GetSSID(),
                                       wifi_direct_credentials->GetPassword()));
 
-  WifiHotspotServerSocket server_socket = wifi_direct_a.ListenForService();
+  WifiDirectServerSocket server_socket = wifi_direct_a.ListenForService();
   EXPECT_TRUE(server_socket.IsValid());
   auto ip_addr = server_socket.GetIPAddress();
   EXPECT_FALSE(absl::EndsWith(ip_addr, "."));
   wifi_direct_credentials->SetIPAddress(ip_addr);
 
-  WifiHotspotSocket socket_a;
-  WifiHotspotSocket socket_b;
+  WifiDirectSocket socket_a;
+  WifiDirectSocket socket_b;
   EXPECT_FALSE(socket_a.IsValid());
   EXPECT_FALSE(socket_b.IsValid());
 
@@ -178,17 +177,19 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanCancelConnect) {
   ASSERT_TRUE(wifi_direct_a.IsInterfaceValid());
   ASSERT_TRUE(wifi_direct_b.IsInterfaceValid());
   EXPECT_TRUE(wifi_direct_a.StartWifiDirect());
-  HotspotCredentials* wifi_direct_credentials = wifi_direct_a.GetCredential();
+  WifiDirectCredentials* wifi_direct_credentials =
+      wifi_direct_a.GetCredential();
   EXPECT_TRUE(
       wifi_direct_b.ConnectWifiDirect(wifi_direct_credentials->GetSSID(),
                                       wifi_direct_credentials->GetPassword()));
 
-  WifiHotspotServerSocket server_socket = wifi_direct_a.ListenForService();
+  WifiDirectServerSocket server_socket = wifi_direct_a.ListenForService();
   EXPECT_TRUE(server_socket.IsValid());
   wifi_direct_credentials->SetIPAddress(server_socket.GetIPAddress());
 
-  WifiHotspotSocket socket_a;
-  WifiHotspotSocket socket_b;
+  WifiDirectSocket socket_a;
+  WifiDirectSocket socket_b;
+  WifiDirectSocket socket_c;
   EXPECT_FALSE(socket_a.IsValid());
   EXPECT_FALSE(socket_b.IsValid());
 
@@ -223,6 +224,13 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanCancelConnect) {
   }
 
   server_socket.Close();
+  {
+    CancellationFlag flag(true);
+    socket_c = wifi_direct_b.ConnectToService(server_socket.GetIPAddress(),
+                                              server_socket.GetPort(), &flag);
+    EXPECT_FALSE(socket_c.IsValid());
+  }
+
   EXPECT_TRUE(wifi_direct_b.DisconnectWifiDirect());
   EXPECT_TRUE(wifi_direct_a.StopWifiDirect());
 }

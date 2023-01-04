@@ -66,7 +66,7 @@ ByteArray WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   // Note: Credentials are not generated until Medium StartWifiDirect() is
   // called and the server socket is created. Be careful moving this codeblock
   // around.
-  HotspotCredentials* wifi_direct_crendential =
+  WifiDirectCredentials* wifi_direct_crendential =
       wifi_direct_medium_.GetCredentials(upgrade_service_id);
   std::string ssid = wifi_direct_crendential->GetSSID();
   std::string password = wifi_direct_crendential->GetPassword();
@@ -121,7 +121,7 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
     return nullptr;
   }
 
-  WifiHotspotSocket socket = wifi_direct_medium_.Connect(
+  WifiDirectSocket socket = wifi_direct_medium_.Connect(
       service_id, gateway, port, client->GetCancellationFlag(endpoint_id));
   if (!socket.IsValid()) {
     NEARBY_LOGS(ERROR)
@@ -141,7 +141,7 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
 
 void WifiDirectBwuHandler::OnIncomingWifiDirectConnection(
     ClientProxy* client, const std::string& upgrade_service_id,
-    WifiHotspotSocket socket) {
+    WifiDirectSocket socket) {
   auto channel = std::make_unique<WifiDirectEndpointChannel>(
       upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
   std::unique_ptr<IncomingSocketConnection> connection(

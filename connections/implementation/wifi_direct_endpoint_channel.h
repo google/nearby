@@ -19,7 +19,7 @@
 #include <string>
 
 #include "connections/implementation/base_endpoint_channel.h"
-#include "internal/platform/wifi_hotspot.h"
+#include "internal/platform/wifi_direct.h"
 
 namespace location {
 namespace nearby {
@@ -30,7 +30,7 @@ class WifiDirectEndpointChannel final : public BaseEndpointChannel {
   // Creates both outgoing and incoming WifiDirect channels.
   WifiDirectEndpointChannel(const std::string& service_id,
                              const std::string& channel_name,
-                             WifiHotspotSocket socket);
+                             WifiDirectSocket socket);
   // Not copyable or movable
   WifiDirectEndpointChannel(const WifiDirectEndpointChannel&) = delete;
   WifiDirectEndpointChannel& operator=(const WifiDirectEndpointChannel&) =
@@ -43,7 +43,7 @@ class WifiDirectEndpointChannel final : public BaseEndpointChannel {
  private:
   void CloseImpl() override;
 
-  WifiHotspotSocket socket_;
+  WifiDirectSocket socket_;
 };
 
 }  // namespace connections

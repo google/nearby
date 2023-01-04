@@ -22,7 +22,6 @@
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/wifi_direct.h"
-#include "internal/platform/wifi_hotspot.h"
 
 namespace location {
 namespace nearby {
@@ -32,8 +31,8 @@ class WifiDirect {
  public:
   // Callback that is invoked when a new connection is accepted.
   struct AcceptedConnectionCallback {
-    std::function<void(const std::string& service_id, WifiHotspotSocket socket)>
-        accepted_cb = DefaultCallback<const std::string&, WifiHotspotSocket>();
+    std::function<void(const std::string& service_id, WifiDirectSocket socket)>
+        accepted_cb = DefaultCallback<const std::string&, WifiDirectSocket>();
   };
 
   WifiDirect() : is_go_started_(false), is_connected_to_go_(false) {}
@@ -82,15 +81,15 @@ class WifiDirect {
   // bandwidth upgradation.
   // Returns socket instance. On success, WifiDirectSocket.IsValid() return
   // true.
-  WifiHotspotSocket Connect(const std::string& service_id,
-                            const std::string& ip_address, int port,
-                            CancellationFlag* cancellation_flag)
+  WifiDirectSocket Connect(const std::string& service_id,
+                           const std::string& ip_address, int port,
+                           CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Gets SoftAP ssid + password + ip address + gateway + port etc for remote
   // services on the network to identify and connect to this service.
   // Credential is for the currently-hosted WiFi SoftAP ServerSocket (if any).
-  HotspotCredentials* GetCredentials(absl::string_view service_id)
+  WifiDirectCredentials* GetCredentials(absl::string_view service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
@@ -112,11 +111,10 @@ class WifiDirect {
   // StartAcceptingConnections().
   MultiThreadExecutor accept_loops_runner_{kMaxConcurrentAcceptLoops};
 
-  // A map of service_id -> ServerSocket. If map is non-empty, we
-  // are currently listening for incoming connections.
-  // WifiDirectServerSocket instances are used from accept_loops_runner_,
-  // and thus require pointer stability.
-  absl::flat_hash_map<std::string, WifiHotspotServerSocket> server_sockets_
+  // A map of service_id -> ServerSocket. If map is non-empty, we are currently
+  // listening for incoming connections. WifiDirectServerSocket instances are
+  // used from accept_loops_runner_, and thus require pointer stability.
+  absl::flat_hash_map<std::string, WifiDirectServerSocket> server_sockets_
       ABSL_GUARDED_BY(mutex_);
 };
 

@@ -113,9 +113,10 @@ bool WifiDirect::DisconnectWifiDirect() {
   return medium_.DisconnectWifiDirect();
 }
 
-HotspotCredentials* WifiDirect::GetCredentials(absl::string_view service_id) {
+WifiDirectCredentials* WifiDirect::GetCredentials(
+    absl::string_view service_id) {
   MutexLock lock(&mutex_);
-  HotspotCredentials* crendential = medium_.GetCredential();
+  WifiDirectCredentials* crendential = medium_.GetCredential();
   CHECK(crendential);
 
   const auto& it = server_sockets_.find(service_id);
@@ -158,7 +159,7 @@ bool WifiDirect::StartAcceptingConnections(
   }
 
   // "port=0" to let the platform to select an available port for the socket
-  WifiHotspotServerSocket server_socket = medium_.ListenForService(/*port=*/0);
+  WifiDirectServerSocket server_socket = medium_.ListenForService(/*port=*/0);
   if (!server_socket.IsValid()) {
     NEARBY_LOGS(INFO)
         << "Failed to start to listen on WifiDirect GO server for service_id="
@@ -180,7 +181,7 @@ bool WifiDirect::StartAcceptingConnections(
       [callback = std::move(callback),
        server_socket = std::move(owned_server_socket), service_id]() mutable {
         while (true) {
-          WifiHotspotSocket client_socket = server_socket.Accept();
+          WifiDirectSocket client_socket = server_socket.Accept();
           if (!client_socket.IsValid()) {
             server_socket.Close();
             break;
@@ -218,7 +219,7 @@ bool WifiDirect::StopAcceptingConnections(const std::string& service_id) {
   // Store a handle to the WifiDirectServerSocket, so we can use it after
   // removing the entry from server_sockets_; making it scoped
   // is a bonus that takes care of deallocation before we leave this method.
-  WifiHotspotServerSocket& listening_socket = item.mapped();
+  WifiDirectServerSocket& listening_socket = item.mapped();
 
   // Regardless of whether or not we fail to close the existing
   // WifiDirectServerSocket, remove it from server_sockets_ so that it
@@ -244,12 +245,12 @@ bool WifiDirect::IsAcceptingConnectionsLocked(const std::string& service_id) {
   return server_sockets_.find(service_id) != server_sockets_.end();
 }
 
-WifiHotspotSocket WifiDirect::Connect(const std::string& service_id,
-                                       const std::string& ip_address, int port,
-                                       CancellationFlag* cancellation_flag) {
+WifiDirectSocket WifiDirect::Connect(const std::string& service_id,
+                                     const std::string& ip_address, int port,
+                                     CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
   // Socket to return. To allow for NRVO to work, it has to be a single object.
-  WifiHotspotSocket socket;
+  WifiDirectSocket socket;
 
   if (service_id.empty()) {
     NEARBY_LOGS(INFO) << "Refusing to create client WifiDirect socket because "

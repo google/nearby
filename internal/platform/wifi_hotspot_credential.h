@@ -80,6 +80,62 @@ class HotspotCredentials {
   proto::connections::ConnectionTechnology technology_;
 };
 
+// Credentials for the currently-hosted WifiDirect GO (if any)
+// Class WifiDirectCredentials is copyable & movable
+class WifiDirectCredentials {
+ public:
+  WifiDirectCredentials() = default;
+  WifiDirectCredentials(const WifiDirectCredentials&) = default;
+  WifiDirectCredentials& operator=(const WifiDirectCredentials&) = default;
+  WifiDirectCredentials(WifiDirectCredentials&&) = default;
+  WifiDirectCredentials& operator=(WifiDirectCredentials&&) = default;
+  ~WifiDirectCredentials() = default;
+
+  // Returns the SSID (Service Set Identifier) which the WifiDirect GO will
+  // periodically beacon. STA can start a wifi scan for this SSID to find the
+  // wifidirect go
+  std::string GetSSID() const { return ssid_; }
+  void SetSSID(const std::string& ssid) { ssid_ = ssid; }
+
+  std::string GetPassword() const { return password_; }
+  void SetPassword(const std::string& password) { password_ = password; }
+
+  // Gets IP Address, which is in byte sequence, in network order. For example,
+  // for "192.168.1.1", it'll be byte(129)+byte(168)+byte(1)+byte(1). Now only
+  // ipv4 is supported.
+  std::string GetIPAddress() const { return ip_address_; }
+  void SetIPAddress(const std::string& ip_address) { ip_address_ = ip_address; }
+
+  std::string GetGateway() const { return gateway_; }
+  void SetGateway(const std::string& gateway) { gateway_ = gateway; }
+
+  // Gets the Port number
+  int GetPort() const { return port_; }
+  // Set port_
+  void SetPort(const int port) { port_ = port; }
+
+  // Gets the Frequency
+  int GetFrequency() const { return frequency_; }
+
+  // Gets the Band
+  proto::connections::ConnectionBand GetBand() const { return band_; }
+
+  // Gets the Technology
+  proto::connections::ConnectionTechnology GetTechnology() const {
+    return technology_;
+  }
+
+ private:
+  std::string ssid_;
+  std::string password_;
+  std::string ip_address_;
+  std::string gateway_ = "0.0.0.0";
+  int port_ = 0;
+  int frequency_ = -1;
+  proto::connections::ConnectionBand band_;
+  proto::connections::ConnectionTechnology technology_;
+};
+
 }  // namespace nearby
 }  // namespace location
 

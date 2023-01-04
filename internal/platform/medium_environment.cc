@@ -961,7 +961,7 @@ api::WifiDirectMedium* MediumEnvironment::GetWifiDirectMedium(
 
 void MediumEnvironment::UpdateWifiDirectMediumForStartOrConnect(
     api::WifiDirectMedium& medium,
-    const HotspotCredentials* wifi_direct_credentials, bool is_go,
+    const WifiDirectCredentials* wifi_direct_credentials, bool is_go,
     bool enabled) {
   if (!enabled_) return;
 

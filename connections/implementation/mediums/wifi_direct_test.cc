@@ -18,10 +18,8 @@
 #include <string>
 
 #include "gtest/gtest.h"
-#include "absl/time/clock.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/wifi_direct.h"
-#include "internal/platform/wifi_hotspot_credential.h"
 
 namespace location {
 namespace nearby {
@@ -105,7 +103,7 @@ TEST_P(WifiDirectTest, CanStartGOThatOtherConnect) {
     EXPECT_TRUE(wifi_direct_a.StartAcceptingConnections(service_id, {}));
   }
 
-  HotspotCredentials* wifi_direct_credentials =
+  WifiDirectCredentials* wifi_direct_credentials =
       wifi_direct_a.GetCredentials(service_id);
 
   EXPECT_TRUE(
@@ -113,7 +111,7 @@ TEST_P(WifiDirectTest, CanStartGOThatOtherConnect) {
                                        wifi_direct_credentials->GetPassword()));
   EXPECT_TRUE(wifi_direct_b.IsConnectedToGO());
 
-  WifiHotspotSocket socket_client;
+  WifiDirectSocket socket_client;
   EXPECT_FALSE(socket_client.IsValid());
 
   CancellationFlag flag;
@@ -143,14 +141,14 @@ TEST_P(WifiDirectTest, CanStartGOThatOtherCanCancelConnect) {
     EXPECT_TRUE(wifi_direct_a.StartAcceptingConnections(service_id, {}));
   }
 
-  HotspotCredentials* wifi_direct_credentials =
+  WifiDirectCredentials* wifi_direct_credentials =
       wifi_direct_a.GetCredentials(service_id);
 
   EXPECT_TRUE(
       wifi_direct_b.ConnectWifiDirect(wifi_direct_credentials->GetSSID(),
                                        wifi_direct_credentials->GetPassword()));
 
-  WifiHotspotSocket socket_client;
+  WifiDirectSocket socket_client;
   EXPECT_FALSE(socket_client.IsValid());
 
   CancellationFlag flag(true);

@@ -36,9 +36,8 @@ class WifiDirectBwuHandler : public BaseBwuHandler {
  private:
   class WifiDirectIncomingSocket : public BwuHandler::IncomingSocket {
    public:
-    // explicit WifiDirectIncomingSocket(const std::string& name,
-    explicit WifiDirectIncomingSocket(absl::string_view name,
-                                      WifiHotspotSocket socket)
+    explicit WifiDirectIncomingSocket(const std::string& name,
+                                   WifiDirectSocket socket)
         : name_(name), socket_(socket) {}
 
     std::string ToString() override { return name_; }
@@ -46,7 +45,7 @@ class WifiDirectBwuHandler : public BaseBwuHandler {
 
    private:
     std::string name_;
-    WifiHotspotSocket socket_;
+    WifiDirectSocket socket_;
   };
 
   // Called by BWU target. Retrieves a new medium info from incoming message,
@@ -75,8 +74,8 @@ class WifiDirectBwuHandler : public BaseBwuHandler {
 
   // Accept Connection Callback.
   void OnIncomingWifiDirectConnection(ClientProxy* client,
-                                      const std::string& upgrade_service_id,
-                                      WifiHotspotSocket socket);
+                                   const std::string& upgrade_service_id,
+                                   WifiDirectSocket socket);
 
   Mediums& mediums_;
   Wifi& wifi_medium_ = mediums_.GetWifi();

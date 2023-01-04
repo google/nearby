@@ -141,6 +141,8 @@ cc_library(
         "thread_pool.cc",
         "utils.cc",
         "wifi_direct_medium.cc",
+        "wifi_direct_server_socket.cc",
+        "wifi_direct_socket.cc",
         "wifi_hotspot_medium.cc",
         "wifi_hotspot_server_socket.cc",
         "wifi_hotspot_socket.cc",

@@ -14,17 +14,15 @@
 
 #include "internal/platform/wifi_direct.h"
 
-#include "internal/platform/wifi_hotspot.h"
-
 namespace location {
 namespace nearby {
 
-WifiHotspotSocket WifiDirectMedium::ConnectToService(
+WifiDirectSocket WifiDirectMedium::ConnectToService(
     absl::string_view ip_address, int port,
     CancellationFlag* cancellation_flag) {
   NEARBY_LOGS(INFO) << "WifiDirectMedium::ConnectToService: ip address="
                     << ip_address << ", port=" << port;
-  return WifiHotspotSocket(
+  return WifiDirectSocket(
       impl_->ConnectToService(ip_address, port, cancellation_flag));
 }
 

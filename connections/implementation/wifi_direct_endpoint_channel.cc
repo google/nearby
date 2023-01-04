@@ -26,7 +26,7 @@ namespace connections {
 
 WifiDirectEndpointChannel::WifiDirectEndpointChannel(
     const std::string& service_id, const std::string& channel_name,
-    WifiHotspotSocket socket)
+    WifiDirectSocket socket)
     : BaseEndpointChannel(service_id, channel_name, &socket.GetInputStream(),
                           &socket.GetOutputStream()),
       socket_(std::move(socket)) {}

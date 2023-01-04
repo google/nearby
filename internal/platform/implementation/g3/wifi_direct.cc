@@ -23,15 +23,149 @@
 
 #include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/implementation/g3/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_direct.h"
-#include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 
 namespace location {
 namespace nearby {
 namespace g3 {
+
+
+// Code for WifiDirectSocket
+WifiDirectSocket::~WifiDirectSocket() {
+  absl::MutexLock lock(&mutex_);
+  DoClose();
+}
+
+void WifiDirectSocket::Connect(WifiDirectSocket& other) {
+  absl::MutexLock lock(&mutex_);
+  remote_socket_ = &other;
+  input_ = other.output_;
+}
+
+InputStream& WifiDirectSocket::GetInputStream() {
+  auto* remote_socket = GetRemoteSocket();
+  CHECK(remote_socket != nullptr);
+  return remote_socket->GetLocalInputStream();
+}
+
+OutputStream& WifiDirectSocket::GetOutputStream() {
+  return GetLocalOutputStream();
+}
+
+WifiDirectSocket* WifiDirectSocket::GetRemoteSocket() {
+  absl::MutexLock lock(&mutex_);
+  return remote_socket_;
+}
+
+bool WifiDirectSocket::IsConnected() const {
+  absl::MutexLock lock(&mutex_);
+  return IsConnectedLocked();
+}
+
+Exception WifiDirectSocket::Close() {
+  absl::MutexLock lock(&mutex_);
+  DoClose();
+  return {Exception::kSuccess};
+}
+
+void WifiDirectSocket::DoClose() {
+  if (!closed_) {
+    remote_socket_ = nullptr;
+    output_->GetOutputStream().Close();
+    output_->GetInputStream().Close();
+    input_->GetOutputStream().Close();
+    input_->GetInputStream().Close();
+    closed_ = true;
+  }
+}
+
+bool WifiDirectSocket::IsConnectedLocked() const { return input_ != nullptr; }
+
+InputStream& WifiDirectSocket::GetLocalInputStream() {
+  absl::MutexLock lock(&mutex_);
+  return output_->GetInputStream();
+}
+
+OutputStream& WifiDirectSocket::GetLocalOutputStream() {
+  absl::MutexLock lock(&mutex_);
+  return output_->GetOutputStream();
+}
+
+// Code for WifiDirectServerSocket
+std::string WifiDirectServerSocket::GetName(absl::string_view ip_address,
+                                         int port) {
+  return absl::StrCat(ip_address, ":", port);
+}
+
+std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
+  absl::MutexLock lock(&mutex_);
+  while (!closed_ && pending_sockets_.empty()) {
+    cond_.Wait(&mutex_);
+  }
+  // whether or not we were running in the wait loop, return early if closed.
+  if (closed_) return {};
+  auto* remote_socket =
+      pending_sockets_.extract(pending_sockets_.begin()).value();
+  CHECK(remote_socket);
+
+  auto local_socket = std::make_unique<WifiDirectSocket>();
+  local_socket->Connect(*remote_socket);
+  remote_socket->Connect(*local_socket);
+  cond_.SignalAll();
+  return local_socket;
+}
+
+bool WifiDirectServerSocket::Connect(WifiDirectSocket& socket) {
+  absl::MutexLock lock(&mutex_);
+  if (closed_) return false;
+  if (socket.IsConnected()) {
+    NEARBY_LOGS(ERROR)
+        << "Failed to connect to WifiDirect server socket: already connected";
+    return true;  // already connected.
+  }
+  // add client socket to the pending list
+  pending_sockets_.insert(&socket);
+  cond_.SignalAll();
+  while (!socket.IsConnected()) {
+    cond_.Wait(&mutex_);
+    if (closed_) return false;
+  }
+  return true;
+}
+
+void WifiDirectServerSocket::SetCloseNotifier(std::function<void()> notifier) {
+  absl::MutexLock lock(&mutex_);
+  close_notifier_ = std::move(notifier);
+}
+
+WifiDirectServerSocket::~WifiDirectServerSocket() {
+  absl::MutexLock lock(&mutex_);
+  DoClose();
+}
+
+Exception WifiDirectServerSocket::Close() {
+  absl::MutexLock lock(&mutex_);
+  return DoClose();
+}
+
+Exception WifiDirectServerSocket::DoClose() {
+  bool should_notify = !closed_;
+  closed_ = true;
+  if (should_notify) {
+    cond_.SignalAll();
+    if (close_notifier_) {
+      auto notifier = std::move(close_notifier_);
+      mutex_.Unlock();
+      // Notifier may contain calls to public API, and may cause deadlock, if
+      // mutex_ is held during the call.
+      notifier();
+      mutex_.Lock();
+    }
+  }
+  return {Exception::kSuccess};
+}
 
 // Code for WifiDirectMedium
 WifiDirectMedium::WifiDirectMedium() {
@@ -45,7 +179,7 @@ WifiDirectMedium::~WifiDirectMedium() {
 }
 
 bool WifiDirectMedium::StartWifiDirect(
-    HotspotCredentials* wifi_direct_credentials) {
+    WifiDirectCredentials* wifi_direct_credentials) {
   absl::MutexLock lock(&mutex_);
 
   std::string ssid = absl::StrCat("DIRECT-", Prng().NextUint32());
@@ -75,7 +209,7 @@ bool WifiDirectMedium::StopWifiDirect() {
 }
 
 bool WifiDirectMedium::ConnectWifiDirect(
-    HotspotCredentials* wifi_direct_credentials) {
+    WifiDirectCredentials* wifi_direct_credentials) {
   absl::MutexLock lock(&mutex_);
 
   NEARBY_LOGS(INFO) << "G3 ConnectWifiDirect : ssid="
@@ -110,10 +244,10 @@ bool WifiDirectMedium::DisconnectWifiDirect() {
   return true;
 }
 
-std::unique_ptr<api::WifiHotspotSocket> WifiDirectMedium::ConnectToService(
+std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
     absl::string_view ip_address, int port,
     CancellationFlag* cancellation_flag) {
-  std::string socket_name = WifiHotspotServerSocket::GetName(ip_address, port);
+  std::string socket_name = WifiDirectServerSocket::GetName(ip_address, port);
   NEARBY_LOGS(INFO) << "G3 WifiDirect ConnectToService [self]: medium=" << this
                     << ", ip address + port=" << socket_name;
   // First, find an instance of remote medium, that exposed this service.
@@ -124,7 +258,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiDirectMedium::ConnectToService(
     return nullptr;
   }
 
-  WifiHotspotServerSocket* server_socket = nullptr;
+  WifiDirectServerSocket* server_socket = nullptr;
   NEARBY_LOGS(INFO) << "G3 WifiDirect ConnectToService [peer]: medium="
                     << remote_medium
                     << ", remote ip address + port=" << socket_name;
@@ -148,19 +282,19 @@ std::unique_ptr<api::WifiHotspotSocket> WifiDirectMedium::ConnectToService(
     return nullptr;
   }
 
-  auto socket = std::make_unique<WifiHotspotSocket>();
+  auto socket = std::make_unique<WifiDirectSocket>();
   // Finally, Request to connect to this socket.
 
   server_socket->Connect(*socket);
-  NEARBY_LOGS(INFO) << "G3 WifiHotspot GC ConnectToService: connected: socket="
+  NEARBY_LOGS(INFO) << "G3 WifiDirect GC ConnectToService: connected: socket="
                     << socket.get();
   return socket;
 }
 
-std::unique_ptr<api::WifiHotspotServerSocket>
+std::unique_ptr<api::WifiDirectServerSocket>
 WifiDirectMedium::ListenForService(int port) {
   auto& env = MediumEnvironment::Instance();
-  auto server_socket = std::make_unique<WifiHotspotServerSocket>();
+  auto server_socket = std::make_unique<WifiDirectServerSocket>();
 
   std::string dot_decimal_ip;
   std::string ip_address = env.GetFakeIPAddress();
@@ -172,7 +306,7 @@ WifiDirectMedium::ListenForService(int port) {
 
   server_socket->SetIPAddress(dot_decimal_ip);
   server_socket->SetPort(port == 0 ? env.GetFakePort() : port);
-  std::string socket_name = WifiHotspotServerSocket::GetName(
+  std::string socket_name = WifiDirectServerSocket::GetName(
       server_socket->GetIPAddress(), server_socket->GetPort());
   server_socket->SetCloseNotifier([this, socket_name]() {
     absl::MutexLock lock(&mutex_);

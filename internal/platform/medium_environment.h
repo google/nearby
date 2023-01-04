@@ -323,7 +323,7 @@ class MediumEnvironment {
   // medium is exposing Start WifiDirect event.
   void UpdateWifiDirectMediumForStartOrConnect(
       api::WifiDirectMedium& medium,
-      const HotspotCredentials* wifi_direct_credentials, bool is_go,
+      const WifiDirectCredentials* wifi_direct_credentials, bool is_go,
       bool enabled);
 
   // For unit test only
@@ -396,7 +396,7 @@ class MediumEnvironment {
     bool is_go = false;
     // Set "true" when GO is started or GC is connected
     bool is_active = false;
-    const HotspotCredentials* wifi_direct_credentials;
+    const WifiDirectCredentials* wifi_direct_credentials;
   };
 
   struct WifiHotspotMediumContext {

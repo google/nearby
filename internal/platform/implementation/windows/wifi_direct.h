@@ -20,21 +20,24 @@
 #include <wlanapi.h>
 
 // Standard C/C++ headers
+#include <deque>
 #include <exception>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 // Nearby connections headers
+#include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/implementation/wifi_direct.h"
-#include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
-#include "internal/platform/implementation/windows/wifi_hotspot.h"
+
+// ABSL header
+#include "absl/types/optional.h"
 
 // WinRT headers
-#include "absl/types/optional.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.WiFi.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.WiFiDirect.h"
@@ -93,6 +96,139 @@ using ::winrt::Windows::Networking::Sockets::StreamSocketListener;
 using ::winrt::Windows::Networking::Sockets::
     StreamSocketListenerConnectionReceivedEventArgs;
 
+// WifiDirectSocket wraps the socket functions to read and write stream.
+// In WifiDirect GO, A WifiDirectSocket will be passed to
+// StartAcceptingConnections's call back when StreamSocketListener got connect.
+// When call API to connect to remote WiFi Direct service, also will return a
+// WifiDirectSocket to caller.
+class WifiDirectSocket : public api::WifiDirectSocket {
+ public:
+  explicit WifiDirectSocket(StreamSocket socket);
+  WifiDirectSocket(const WifiDirectSocket&) = default;
+  WifiDirectSocket(WifiDirectSocket&&) = default;
+  ~WifiDirectSocket() override;
+  WifiDirectSocket& operator=(const WifiDirectSocket&) = default;
+  WifiDirectSocket& operator=(WifiDirectSocket&&) = default;
+
+  // Returns the InputStream of the WifiDirectSocket.
+  // On error, returned stream will report Exception::kIo on any operation.
+  //
+  // The returned object is not owned by the caller, and can be invalidated once
+  // the WifiDirectSocket object is destroyed.
+  InputStream& GetInputStream() override;
+
+  // Returns the OutputStream of the WifiDirectSocket.
+  // On error, returned stream will report Exception::kIo on any operation.
+  //
+  // The returned object is not owned by the caller, and can be invalidated once
+  // the WifiDirectSocket object is destroyed.
+  OutputStream& GetOutputStream() override;
+
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  Exception Close() override;
+
+ private:
+  // A simple wrapper to handle input stream of socket
+  class SocketInputStream : public InputStream {
+   public:
+    explicit SocketInputStream(IInputStream input_stream);
+    ~SocketInputStream() override = default;
+
+    ExceptionOr<ByteArray> Read(std::int64_t size) override;
+    ExceptionOr<size_t> Skip(size_t offset) override;
+    Exception Close() override;
+
+   private:
+    IInputStream input_stream_{nullptr};
+  };
+
+  // A simple wrapper to handle output stream of socket
+  class SocketOutputStream : public OutputStream {
+   public:
+    explicit SocketOutputStream(IOutputStream output_stream);
+    ~SocketOutputStream() override = default;
+
+    Exception Write(const ByteArray& data) override;
+    Exception Flush() override;
+    Exception Close() override;
+
+   private:
+    IOutputStream output_stream_{nullptr};
+  };
+
+  // Internal properties
+  StreamSocket stream_soket_{nullptr};
+  SocketInputStream input_stream_{nullptr};
+  SocketOutputStream output_stream_{nullptr};
+};
+
+// WifiDirectServerSocket provides the support to server socket, this server
+// socket accepts connection from clients.
+class WifiDirectServerSocket : public api::WifiDirectServerSocket {
+ public:
+  explicit WifiDirectServerSocket(int port = 0);
+  WifiDirectServerSocket(const WifiDirectServerSocket&) = default;
+  WifiDirectServerSocket(WifiDirectServerSocket&&) = default;
+  ~WifiDirectServerSocket() override;
+  WifiDirectServerSocket& operator=(const WifiDirectServerSocket&) = default;
+  WifiDirectServerSocket& operator=(WifiDirectServerSocket&&) = default;
+
+  std::string GetIPAddress() const override;
+  int GetPort() const override;
+  void SetPort(int port) { port_ = port; }
+
+  StreamSocketListener GetSocketListener() const {
+    return stream_socket_listener_;
+  }
+
+  // Blocks until either:
+  // - at least one incoming connection request is available, or
+  // - ServerSocket is closed.
+  // On success, returns connected socket, ready to exchange data.
+  // Returns nullptr on error.
+  // Once error is reported, it is permanent, and ServerSocket has to be closed.
+  std::unique_ptr<api::WifiDirectSocket> Accept() override;
+
+  // Called by the server side of a connection before passing ownership of
+  // WifiDirectServerSocker to user, to track validity of a pointer to this
+  // server socket.
+  void SetCloseNotifier(std::function<void()> notifier);
+
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  Exception Close() override;
+
+  // Binds to local port
+  bool listen();
+
+ private:
+  // The listener is accepting incoming connections
+  fire_and_forget Listener_ConnectionReceived(
+      StreamSocketListener listener,
+      StreamSocketListenerConnectionReceivedEventArgs const& args);
+
+  // Retrieves IP addresses from local machine
+  std::vector<std::string> GetIpAddresses() const;
+  std::string GetDirectGOIpAddresses() const;
+
+  mutable absl::Mutex mutex_;
+  absl::CondVar cond_;
+
+  std::deque<StreamSocket> pending_sockets_ ABSL_GUARDED_BY(mutex_);
+  StreamSocketListener stream_socket_listener_{nullptr};
+  winrt::event_token listener_event_token_{};
+
+  // Close notifier
+  std::function<void()> close_notifier_ = nullptr;
+
+  // IP addresses of the computer. mDNS uses them to advertise.
+  std::vector<std::string> ip_addresses_{};
+
+  // Cache socket not be picked by upper layer
+  std::string wifi_direct_go_ipaddr_ = {};
+  int port_ = 0;
+  bool closed_ = false;
+};
+
 // Container of operations that can be performed over the WifiDirect medium.
 class WifiDirectMedium : public api::WifiDirectMedium {
  public:
@@ -103,21 +239,22 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   bool IsInterfaceValid() const override;
 
   // WifiDirect GC connects to server socket
-  std::unique_ptr<api::WifiHotspotSocket> ConnectToService(
+  std::unique_ptr<api::WifiDirectSocket> ConnectToService(
       absl::string_view ip_address, int port,
       CancellationFlag* cancellation_flag) override;
 
   // WifiDirect GO starts to listen on server socket
-  std::unique_ptr<api::WifiHotspotServerSocket> ListenForService(
+  std::unique_ptr<api::WifiDirectServerSocket> ListenForService(
       int port) override;
 
   // Start WifiDirect GO with specific Credentials.
-  bool StartWifiDirect(HotspotCredentials* wifi_direct_credentials) override;
+  bool StartWifiDirect(WifiDirectCredentials* wifi_direct_credentials) override;
   // Stop the current WifiDirect GO
   bool StopWifiDirect() override;
 
   // WifiDirect GC connects to the GO
-  bool ConnectWifiDirect(HotspotCredentials* wifi_direct_credentials) override;
+  bool ConnectWifiDirect(
+      WifiDirectCredentials* wifi_direct_credentials) override;
   // WifiDirect GC disconnects to the GO
   bool DisconnectWifiDirect() override;
 
@@ -172,7 +309,7 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   int medium_status_ = kMediumStatusIdle;
 
   // Keep the server socket listener pointer
-  WifiHotspotServerSocket* server_socket_ptr_ ABSL_GUARDED_BY(mutex_) = nullptr;
+  WifiDirectServerSocket* server_socket_ptr_ ABSL_GUARDED_BY(mutex_) = nullptr;
 
   // Scheduler for timeout.
   ScheduledExecutor scheduled_executor_;

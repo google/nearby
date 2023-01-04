@@ -26,7 +26,7 @@
 // Nearby connections headers
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/utils.h"
-#include "internal/platform/implementation/windows/wifi_hotspot.h"
+#include "internal/platform/implementation/windows/wifi_direct.h"
 #include "internal/platform/logging.h"
 
 namespace location {
@@ -40,11 +40,11 @@ constexpr int kRetryIntervalMilliSeconds = 300;
 
 }  // namespace
 
-WifiHotspotServerSocket::WifiHotspotServerSocket(int port) : port_(port) {}
+WifiDirectServerSocket::WifiDirectServerSocket(int port) : port_(port) {}
 
-WifiHotspotServerSocket::~WifiHotspotServerSocket() { Close(); }
+WifiDirectServerSocket::~WifiDirectServerSocket() { Close(); }
 
-std::string WifiHotspotServerSocket::GetIPAddress() const {
+std::string WifiDirectServerSocket::GetIPAddress() const {
   if (stream_socket_listener_ == nullptr) {
     return {};
   }
@@ -59,7 +59,7 @@ std::string WifiHotspotServerSocket::GetIPAddress() const {
   return ip_addresses_.front();
 }
 
-int WifiHotspotServerSocket::GetPort() const {
+int WifiDirectServerSocket::GetPort() const {
   if (stream_socket_listener_ == nullptr) {
     return 0;
   }
@@ -67,7 +67,7 @@ int WifiHotspotServerSocket::GetPort() const {
   return std::stoi(stream_socket_listener_.Information().LocalPort().c_str());
 }
 
-std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
+std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
   absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << __func__ << ": Accept is called.";
 
@@ -76,18 +76,18 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
   }
   if (closed_) return {};
 
-  StreamSocket wifi_hotspot_socket = pending_sockets_.front();
+  StreamSocket wifi_direct_socket = pending_sockets_.front();
   pending_sockets_.pop_front();
 
   NEARBY_LOGS(INFO) << __func__ << ": Accepted a remote connection.";
-  return std::make_unique<WifiHotspotSocket>(wifi_hotspot_socket);
+  return std::make_unique<WifiDirectSocket>(wifi_direct_socket);
 }
 
-void WifiHotspotServerSocket::SetCloseNotifier(std::function<void()> notifier) {
+void WifiDirectServerSocket::SetCloseNotifier(std::function<void()> notifier) {
   close_notifier_ = std::move(notifier);
 }
 
-Exception WifiHotspotServerSocket::Close() {
+Exception WifiDirectServerSocket::Close() {
   try {
     absl::MutexLock lock(&mutex_);
     NEARBY_LOGS(INFO) << __func__ << ": Close is called.";
@@ -134,20 +134,20 @@ Exception WifiHotspotServerSocket::Close() {
   }
 }
 
-bool WifiHotspotServerSocket::listen() {
+bool WifiDirectServerSocket::listen() {
   // Get current IP addresses of the device.
   for (int i = 0; i < kMaxRetries; i++) {
-    hotspot_ipaddr_ = GetHotspotIpAddresses();
-    if (hotspot_ipaddr_.empty()) {
-      NEARBY_LOGS(WARNING) << "Failed to find Hotspot's IP addr for the try: "
-                           << i + 1 << ". Wait " << kRetryIntervalMilliSeconds
-                           << "ms snd try again";
+    wifi_direct_go_ipaddr_ = GetDirectGOIpAddresses();
+    if (wifi_direct_go_ipaddr_.empty()) {
+      NEARBY_LOGS(WARNING)
+          << "Failed to find WifiDirect GO's IP addr for the try: " << i + 1
+          << ". Wait " << kRetryIntervalMilliSeconds << "ms snd try again";
       Sleep(kRetryIntervalMilliSeconds);
     } else {
       break;
     }
   }
-  if (hotspot_ipaddr_.empty()) {
+  if (wifi_direct_go_ipaddr_.empty()) {
     NEARBY_LOGS(WARNING) << "Failed to start accepting connection without IP "
                             "addresses configured on computer.";
     return false;
@@ -163,10 +163,10 @@ bool WifiHotspotServerSocket::listen() {
 
   // Setup socket event of ConnectionReceived.
   listener_event_token_ = stream_socket_listener_.ConnectionReceived(
-      {this, &WifiHotspotServerSocket::Listener_ConnectionReceived});
+      {this, &WifiDirectServerSocket::Listener_ConnectionReceived});
 
   try {
-    HostName host_name{winrt::to_hstring(hotspot_ipaddr_)};
+    HostName host_name{winrt::to_hstring(wifi_direct_go_ipaddr_)};
     stream_socket_listener_
         .BindEndpointAsync(host_name, winrt::to_hstring(port_))
         .get();
@@ -212,7 +212,7 @@ bool WifiHotspotServerSocket::listen() {
   return false;
 }
 
-fire_and_forget WifiHotspotServerSocket::Listener_ConnectionReceived(
+fire_and_forget WifiDirectServerSocket::Listener_ConnectionReceived(
     StreamSocketListener listener,
     StreamSocketListenerConnectionReceivedEventArgs const &args) {
   absl::MutexLock lock(&mutex_);
@@ -227,7 +227,7 @@ fire_and_forget WifiHotspotServerSocket::Listener_ConnectionReceived(
   return fire_and_forget{};
 }
 
-std::vector<std::string> WifiHotspotServerSocket::GetIpAddresses() const {
+std::vector<std::string> WifiDirectServerSocket::GetIpAddresses() const {
   std::vector<std::string> result{};
   auto host_names = NetworkInformation::GetHostNames();
   for (auto host_name : host_names) {
@@ -237,7 +237,7 @@ std::vector<std::string> WifiHotspotServerSocket::GetIpAddresses() const {
       std::string ipv4_s = winrt::to_string(host_name.ToString());
 
       if (absl::EndsWith(ipv4_s, ".1")) {
-        NEARBY_LOGS(INFO) << "Found Hotspot IP: " << ipv4_s;
+        NEARBY_LOGS(INFO) << "Found WifiDirect GO IP: " << ipv4_s;
         result.push_back(ipv4_s);
       }
     }
@@ -245,7 +245,7 @@ std::vector<std::string> WifiHotspotServerSocket::GetIpAddresses() const {
   return result;
 }
 
-std::string WifiHotspotServerSocket::GetHotspotIpAddresses() const {
+std::string WifiDirectServerSocket::GetDirectGOIpAddresses() const {
   try {
     for (int i = 0; i < kMaxRetries; i++) {
       auto host_names = NetworkInformation::GetHostNames();
@@ -256,8 +256,8 @@ std::string WifiHotspotServerSocket::GetHotspotIpAddresses() const {
           std::string ipv4_s = winrt::to_string(host_name.ToString());
           if (absl::EndsWith(ipv4_s, ".1")) {
             // TODO(b/228541380): replace when we find a better way to
-            // identifying the hotspot address
-            NEARBY_LOGS(INFO) << "Found Hotspot IP: " << ipv4_s;
+            // identifying the WifiDirect GO IP address
+            NEARBY_LOGS(INFO) << "Found WifiDirect GO IP: " << ipv4_s;
             return ipv4_s;
           }
         }
