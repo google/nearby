@@ -1065,7 +1065,8 @@ void PayloadManager::ProcessDataPacket(
           .Raised()) {
     NEARBY_LOGS(ERROR) << "ProcessDataPacket: [data: error] endpoint_id="
                        << from_endpoint_id
-                       << "; payload_id=" << pending_payload->GetId();
+                       << "; payload_id=" << pending_payload->GetId()
+                       << ", payload_chunk=" << payload_chunk.DebugString();
     HandleFinishedIncomingPayload(
         to_client, from_endpoint_id, payload_header, payload_chunk.offset(),
         proto::connections::PayloadStatus::LOCAL_ERROR);
