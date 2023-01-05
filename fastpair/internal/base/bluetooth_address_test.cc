@@ -20,7 +20,6 @@
 #include "gtest/gtest.h"
 #include "absl/types/span.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 namespace {
@@ -58,4 +57,3 @@ TEST(BluetoothUtil, CanonicalizeBluetoothAddress) {
 }  // namespace
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location

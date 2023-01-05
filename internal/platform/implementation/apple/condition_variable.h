@@ -19,7 +19,6 @@
 #include "internal/platform/implementation/condition_variable.h"
 #include "internal/platform/implementation/apple/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -43,6 +42,5 @@ class ConditionVariable : public api::ConditionVariable {
 
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_APPLE_CONDITION_VARIABLE_H_

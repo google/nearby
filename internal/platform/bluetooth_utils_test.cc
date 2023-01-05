@@ -16,7 +16,6 @@
 
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 
 constexpr absl::string_view kBluetoothMacAddress{"00:00:E6:88:64:13"};
@@ -86,4 +85,3 @@ TEST(BluetoothUtilsTest, InvalidStringReturnsEmptyByteArray) {
 }
 
 }  // namespace nearby
-}  // namespace location

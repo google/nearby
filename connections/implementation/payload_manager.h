@@ -36,9 +36,9 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
+using ::location::nearby::connections::PayloadTransferFrame;
 
 // Annotations for methods that need to run on PayloadStatusUpdateThread.
 // Use only in PayloadManager
@@ -59,11 +59,11 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   Status CancelPayload(ClientProxy* client, Payload::Id payload_id);
 
   // @EndpointManagerReaderThread
-  void OnIncomingFrame(OfflineFrame& offline_frame,
-                       const std::string& from_endpoint_id,
-                       ClientProxy* to_client,
-                       proto::connections::Medium current_medium,
-                       analytics::PacketMetaData& packet_meta_data) override;
+  void OnIncomingFrame(
+      location::nearby::connections::OfflineFrame& offline_frame,
+      const std::string& from_endpoint_id, ClientProxy* to_client,
+      location::nearby::proto::connections::Medium current_medium,
+      analytics::PacketMetaData& packet_meta_data) override;
 
   // @EndpointManagerThread
   void OnEndpointDisconnect(ClientProxy* client, const std::string& service_id,
@@ -200,20 +200,22 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   void SendClientCallbacksForFinishedIncomingPayloadRunnable(
       ClientProxy* client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
-      std::int64_t offset_bytes, proto::connections::PayloadStatus status);
+      std::int64_t offset_bytes,
+      location::nearby::proto::connections::PayloadStatus status);
 
   // Converts the status of an endpoint that's been set out-of-band via a remote
   // ControlMessage to the PayloadStatus for handling of that endpoint-payload
   // pair.
-  static proto::connections::PayloadStatus EndpointInfoStatusToPayloadStatus(
-      EndpointInfo::Status status);
+  static location::nearby::proto::connections::PayloadStatus
+  EndpointInfoStatusToPayloadStatus(EndpointInfo::Status status);
   // Converts a ControlMessage::EventType for a particular payload to a
   // PayloadStatus. Called when we've received a ControlMessage with this event
   // from a remote endpoint; thus the PayloadStatuses are REMOTE_*.
-  static proto::connections::PayloadStatus ControlMessageEventToPayloadStatus(
+  static location::nearby::proto::connections::PayloadStatus
+  ControlMessageEventToPayloadStatus(
       PayloadTransferFrame::ControlMessage::EventType event);
   static PayloadProgressInfo::Status PayloadStatusToTransferUpdateStatus(
-      proto::connections::PayloadStatus status);
+      location::nearby::proto::connections::PayloadStatus status);
 
   int GetOptimalChunkSize(EndpointIds endpoint_ids);
 
@@ -236,11 +238,12 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       ClientProxy* client, const EndpointIds& finished_endpoint_ids,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int64_t num_bytes_successfully_transferred,
-      proto::connections::PayloadStatus status);
+      location::nearby::proto::connections::PayloadStatus status);
   void SendClientCallbacksForFinishedIncomingPayload(
       ClientProxy* client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
-      std::int64_t offset_bytes, proto::connections::PayloadStatus status);
+      std::int64_t offset_bytes,
+      location::nearby::proto::connections::PayloadStatus status);
 
   void SendControlMessage(
       const EndpointIds& endpoint_ids,
@@ -254,12 +257,13 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       ClientProxy* client, const EndpointIds& finished_endpoint_ids,
       const PayloadTransferFrame::PayloadHeader& payload_header,
       std::int64_t num_bytes_successfully_transferred,
-      proto::connections::PayloadStatus status =
-          proto::connections::PayloadStatus::UNKNOWN_PAYLOAD_STATUS);
+      location::nearby::proto::connections::PayloadStatus status = location::
+          nearby::proto::connections::PayloadStatus::UNKNOWN_PAYLOAD_STATUS);
   void HandleFinishedIncomingPayload(
       ClientProxy* client, const std::string& endpoint_id,
       const PayloadTransferFrame::PayloadHeader& payload_header,
-      std::int64_t offset_bytes, proto::connections::PayloadStatus status);
+      std::int64_t offset_bytes,
+      location::nearby::proto::connections::PayloadStatus status);
 
   void HandleSuccessfulOutgoingChunk(
       ClientProxy* client, const std::string& endpoint_id,
@@ -329,6 +333,5 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_PAYLOAD_MANAGER_H_

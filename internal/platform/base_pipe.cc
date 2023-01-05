@@ -18,7 +18,6 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 
-namespace location {
 namespace nearby {
 
 ExceptionOr<ByteArray> BasePipe::Read(size_t size) {
@@ -106,4 +105,3 @@ Exception BasePipe::WriteLocked(const ByteArray& data) {
 }
 
 }  // namespace nearby
-}  // namespace location

@@ -20,10 +20,10 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 
-using ::location::nearby::apple::BlePeripheral;
-using ::location::nearby::apple::BluetoothAdapter;
-using ScanMode = ::location::nearby::api::BluetoothAdapter::ScanMode;
-using Status = ::location::nearby::api::BluetoothAdapter::Status;
+using ::nearby::apple::BlePeripheral;
+using ::nearby::apple::BluetoothAdapter;
+using ScanMode = ::nearby::api::BluetoothAdapter::ScanMode;
+using Status = ::nearby::api::BluetoothAdapter::Status;
 
 static const char kAdapterName[] = "MyBtAdapter";
 static const char kMacAddress[] = "4C:8B:1D:CE:BA:D1";

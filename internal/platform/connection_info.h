@@ -17,7 +17,6 @@
 
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 
 constexpr int kMacAddressLength = 6;
@@ -35,6 +34,5 @@ class ConnectionInfo {
   virtual ByteArray ToBytes() const = 0;
 };
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CONNECTION_INFO_H_

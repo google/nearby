@@ -26,7 +26,6 @@
 #include "internal/platform/prng.h"
 #include "internal/platform/uuid.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -69,6 +68,5 @@ absl::optional<Uuid> GenerateAdvertisementUuid(int slot);
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_BLE_V2_UTILS_H_

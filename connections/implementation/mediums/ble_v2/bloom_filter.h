@@ -20,7 +20,6 @@
 
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -96,6 +95,5 @@ class BitSetImpl final : public BitSet {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_BLE_V2_BLOOM_FILTER_H_

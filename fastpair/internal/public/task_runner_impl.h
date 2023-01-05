@@ -26,7 +26,6 @@
 #include "fastpair/internal/public/timer.h"
 #include "internal/platform/multi_thread_executor.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -44,13 +43,12 @@ class TaskRunnerImpl : public TaskRunner {
   uint64_t GenerateId();
 
   mutable absl::Mutex mutex_;
-  std::unique_ptr<::location::nearby::MultiThreadExecutor> executor_;
+  std::unique_ptr<::nearby::MultiThreadExecutor> executor_;
   absl::flat_hash_map<uint64_t, std::unique_ptr<Timer>> timers_map_
       ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_PUBLIC_TASK_RUNNER_IMPL_H_

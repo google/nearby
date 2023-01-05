@@ -17,7 +17,6 @@
 
 #include "internal/platform/implementation/server_sync.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -85,6 +84,5 @@ class ServerSyncMedium : public api::ServerSyncMedium {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_SERVER_SYNC_H_

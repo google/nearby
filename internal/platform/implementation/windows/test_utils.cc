@@ -34,7 +34,7 @@ std::wstring StringToWideString(const std::string& s) {
   return r;
 }
 
-std::string GetPayloadPath(location::nearby::PayloadId payload_id) {
+std::string GetPayloadPath(nearby::PayloadId payload_id) {
   PWSTR basePath;
 
   // Retrieves the full path of a known folder identified by the folder's

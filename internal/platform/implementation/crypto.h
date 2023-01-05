@@ -18,7 +18,6 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 
 // A provider of standard hashing algorithms.
@@ -33,6 +32,5 @@ class Crypto {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_CRYPTO_H_

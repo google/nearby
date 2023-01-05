@@ -25,7 +25,6 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace shared {
 
@@ -148,4 +147,3 @@ TEST_F(FileTest, IOFile_CloseOutput) {
 
 }  // namespace shared
 }  // namespace nearby
-}  // namespace location

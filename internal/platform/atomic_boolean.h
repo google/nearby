@@ -20,7 +20,6 @@
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/platform.h"
 
-namespace location {
 namespace nearby {
 
 // A boolean value that may be updated atomically.
@@ -45,6 +44,5 @@ class AtomicBoolean final : public api::AtomicBoolean {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_ATOMIC_BOOLEAN_H_

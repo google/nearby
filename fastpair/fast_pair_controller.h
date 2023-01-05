@@ -17,7 +17,6 @@
 
 #include <functional>
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -32,6 +31,5 @@ class FastPairController {
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FAST_PAIR_FASTPAIR_CONTROLLER_H_

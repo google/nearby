@@ -27,7 +27,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -316,4 +315,3 @@ INSTANTIATE_TEST_SUITE_P(ParametrisedPcpHandlerTest, P2pClusterPcpHandlerTest,
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

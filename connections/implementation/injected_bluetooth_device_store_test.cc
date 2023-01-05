@@ -22,7 +22,6 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/bluetooth_adapter.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -120,4 +119,3 @@ TEST_F(InjectedBluetoothDeviceStoreTest, Fail_InvalidServiceIdHash) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

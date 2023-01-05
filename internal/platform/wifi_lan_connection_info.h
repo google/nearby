@@ -23,7 +23,6 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/connection_info.h"
 
-namespace location {
 namespace nearby {
 
 constexpr int kIpv4AddressLength = 4;
@@ -82,6 +81,5 @@ inline bool operator!=(const WifiLanConnectionInfo& a,
 }
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_WIFI_LAN_CONNECTION_INFO_H_

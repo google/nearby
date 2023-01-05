@@ -27,7 +27,6 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 
-namespace location {
 namespace nearby {
 
 // Common Pipe implementation.
@@ -133,6 +132,5 @@ class BasePipe {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_BASE_PIPE_H_

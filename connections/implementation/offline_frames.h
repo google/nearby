@@ -24,23 +24,25 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace parser {
 
-using UpgradePathInfo = BandwidthUpgradeNegotiationFrame::UpgradePathInfo;
+using UpgradePathInfo = ::location::nearby::connections::
+    BandwidthUpgradeNegotiationFrame::UpgradePathInfo;
 
 // Serialize/Deserialize Nearby Connections Protocol messages.
 
 // Parses incoming message.
 // Returns OfflineFrame if parser was able to understand it, or
 // Exception::kInvalidProtocolBuffer, if parser failed.
-ExceptionOr<OfflineFrame> FromBytes(const ByteArray& offline_frame_bytes);
+ExceptionOr<location::nearby::connections::OfflineFrame> FromBytes(
+    const ByteArray& offline_frame_bytes);
 
 // Returns FrameType of a parsed message, or
 // V1Frame::UNKNOWN_FRAME_TYPE, if frame contents is not recognized.
-V1Frame::FrameType GetFrameType(const OfflineFrame& offline_frame);
+location::nearby::connections::V1Frame::FrameType GetFrameType(
+    const location::nearby::connections::OfflineFrame& offline_frame);
 
 // Builds Connection Request / Response messages.
 ByteArray ForConnectionRequest(const ConnectionInfo& conection_info);
@@ -48,11 +50,15 @@ ByteArray ForConnectionResponse(std::int32_t status);
 
 // Builds Payload transfer messages.
 ByteArray ForDataPayloadTransfer(
-    const PayloadTransferFrame::PayloadHeader& header,
-    const PayloadTransferFrame::PayloadChunk& chunk);
+    const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
+        header,
+    const location::nearby::connections::PayloadTransferFrame::PayloadChunk&
+        chunk);
 ByteArray ForControlPayloadTransfer(
-    const PayloadTransferFrame::PayloadHeader& header,
-    const PayloadTransferFrame::ControlMessage& control);
+    const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
+        header,
+    const location::nearby::connections::PayloadTransferFrame::ControlMessage&
+        control);
 
 // Builds Bandwidth Upgrade [BWU] messages.
 ByteArray ForBwuIntroduction(const std::string& endpoint_id,
@@ -77,8 +83,9 @@ ByteArray ForBwuWifiDirectPathAvailable(const std::string& ssid,
                                         const std::string& gateway);
 ByteArray ForBwuBluetoothPathAvailable(const std::string& service_id,
                                        const std::string& mac_address);
-ByteArray ForBwuWebrtcPathAvailable(const std::string& peer_id,
-                                    const LocationHint& location_hint_a);
+ByteArray ForBwuWebrtcPathAvailable(
+    const std::string& peer_id,
+    const location::nearby::connections::LocationHint& location_hint_a);
 ByteArray ForBwuFailure(const UpgradePathInfo& info);
 ByteArray ForBwuLastWrite();
 ByteArray ForBwuSafeToClose();
@@ -89,14 +96,16 @@ ByteArray ForDisconnection();
 UpgradePathInfo::Medium MediumToUpgradePathInfoMedium(Medium medium);
 Medium UpgradePathInfoMediumToMedium(UpgradePathInfo::Medium medium);
 
-ConnectionRequestFrame::Medium MediumToConnectionRequestMedium(Medium medium);
-Medium ConnectionRequestMediumToMedium(ConnectionRequestFrame::Medium medium);
+location::nearby::connections::ConnectionRequestFrame::Medium
+MediumToConnectionRequestMedium(Medium medium);
+Medium ConnectionRequestMediumToMedium(
+    location::nearby::connections::ConnectionRequestFrame::Medium medium);
 std::vector<Medium> ConnectionRequestMediumsToMediums(
-    const ConnectionRequestFrame& connection_request_frame);
+    const location::nearby::connections::ConnectionRequestFrame&
+        connection_request_frame);
 
 }  // namespace parser
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_OFFLINE_FRAMES_H_

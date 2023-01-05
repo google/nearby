@@ -21,7 +21,6 @@
 #include "absl/time/time.h"
 #include "internal/platform/system_clock.h"
 
-namespace location {
 namespace nearby {
 namespace analytics {
 
@@ -99,6 +98,5 @@ struct PacketMetaData {
 
 }  // namespace analytics
 }  // namespace nearby
-}  // namespace location
 
 #endif  // NEARBY_CONNECTIONS_IMPLEMENTATION_ANALYTICS_PACKET_META_DATA_H_

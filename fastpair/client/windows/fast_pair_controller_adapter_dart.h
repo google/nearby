@@ -18,7 +18,6 @@
 #include "third_party/dart_lang/v2/runtime/include/dart_api_dl.h"
 #include "fastpair/client/windows/fast_pair_controller_adapter.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -28,6 +27,5 @@ DLL_EXPORT void __stdcall ServerAccessDart(FastPairController* pController);
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_CLIENT_WINDOWS_FAST_PAIR_CONTROLLER_ADAPTER_DART_H_

@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <string>
 
-namespace location {
 namespace nearby {
 
 ByteArray BluetoothConnectionInfo::ToBytes() const {
@@ -31,4 +30,3 @@ BluetoothConnectionInfo BluetoothConnectionInfo::FromBytes(ByteArray bytes) {
   return BluetoothConnectionInfo(mac_address, service_id);
 }
 }  // namespace nearby
-}  // namespace location

@@ -19,7 +19,6 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/output_stream.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -31,6 +30,5 @@ class OutputFile : public OutputStream {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_OUTPUT_FILE_H_

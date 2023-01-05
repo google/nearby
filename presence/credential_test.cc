@@ -71,7 +71,7 @@ TEST(CredentialsTest, CopyPrivateCredential) {
 TEST(CredentialsTest, CopyPublicCredential) {
   PublicCredential pc1 = {};
   pc1.set_identity_type(IDENTITY_TYPE_PROVISIONED);
-  for (const uint8_t byte : location::nearby::Uuid().data()) {
+  for (const uint8_t byte : nearby::Uuid().data()) {
     pc1.mutable_secret_id()->push_back(byte);
   }
   PublicCredential pc1_copy = {pc1};

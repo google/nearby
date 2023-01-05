@@ -18,7 +18,6 @@
 
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -217,4 +216,3 @@ TEST(BloomFilterTest, ConstructLongByteArrayFails) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

@@ -26,8 +26,7 @@ namespace {
 
 class PresenceServiceTest : public testing::Test {
  protected:
-  location::nearby::MediumEnvironment& env_{
-      location::nearby::MediumEnvironment::Instance()};
+  nearby::MediumEnvironment& env_{nearby::MediumEnvironment::Instance()};
 };
 
 TEST_F(PresenceServiceTest, DefaultConstructorWorks) {

@@ -17,7 +17,6 @@
 #include "absl/strings/escaping.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 
 std::string Base64Utils::Encode(const ByteArray& bytes) {
@@ -38,4 +37,3 @@ ByteArray Base64Utils::Decode(absl::string_view base64_string) {
 }
 
 }  // namespace nearby
-}  // namespace location

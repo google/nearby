@@ -18,7 +18,6 @@
 #include "internal/platform/implementation/windows/wifi_direct.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -199,4 +198,3 @@ Exception WifiDirectSocket::SocketOutputStream::Close() {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

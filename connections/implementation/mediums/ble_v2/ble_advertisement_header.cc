@@ -24,7 +24,6 @@
 #include "internal/platform/base_input_stream.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -157,4 +156,3 @@ bool BleAdvertisementHeader::operator==(
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

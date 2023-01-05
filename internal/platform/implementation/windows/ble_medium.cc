@@ -35,7 +35,6 @@
 #include "winrt/Windows.Storage.Streams.h"
 #include "winrt/base.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 namespace {
@@ -609,4 +608,3 @@ void BleMedium::AdvertisementReceivedHandler(
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

@@ -18,7 +18,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/payload_id.h"
 
-namespace location::nearby {
+namespace nearby {
 // Must implement Deleter since Payload wasn't fully defined in
 // the header
 namespace connections {
@@ -129,4 +129,4 @@ PayloadW::GetImpl() {
 }
 
 }  // namespace windows
-}  // namespace location::nearby
+}  // namespace nearby

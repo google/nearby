@@ -20,7 +20,6 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -42,6 +41,5 @@ class MediumsManager {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_MEDIUMS_MANAGER_MEDIUMS_MANAGER_H_

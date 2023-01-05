@@ -28,14 +28,13 @@
 #include "fastpair/internal/test/fast_pair_fake_http_client.h"
 #include "internal/network/http_client.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 namespace {
 
-using ::location::nearby::network::FastPairFakeHttpClient;
-using ::location::nearby::network::Url;
-using OsType = ::location::nearby::api::DeviceInfo::OsType;
+using ::nearby::network::FastPairFakeHttpClient;
+using ::nearby::network::Url;
+using OsType = ::nearby::api::DeviceInfo::OsType;
 
 constexpr char kResponseProto[] = "result_proto";
 constexpr char kRequestUrl[] = "https://googleapis.com/nearbysharing/test";
@@ -193,4 +192,3 @@ TEST_F(FastPairMetadataFetcherImplTest, GetUnauthRequestStatus500) {
 }  // namespace
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location

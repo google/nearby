@@ -19,7 +19,7 @@
 // Snippets of invalid code that should trigger an error during thread
 // safety analysis at compile time.
 // See https://g3doc.corp.google.com/googletest/g3doc/cpp_nc_test.md
-namespace location {
+
 namespace nearby {
 
 #ifdef TEST_EXECUTE_MISSING_METHOD_ANNOTATION
@@ -80,4 +80,3 @@ void TestSchedule_MissingMethodAnnotation() {
 #endif  // TEST_SCHEDULE_MISSING_METHOD_ANNOTATION
 
 }  // namespace nearby
-}  // namespace location

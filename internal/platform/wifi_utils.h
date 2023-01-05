@@ -19,10 +19,9 @@
 
 #include "internal/platform/implementation/wifi.h"
 
-namespace location {
 namespace nearby {
 
-using ::location::nearby::api::WifiBandType;
+using ::nearby::api::WifiBandType;
 
 class WifiUtils {
  public:
@@ -54,6 +53,5 @@ class WifiUtils {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_WIFI_UTILS_H_

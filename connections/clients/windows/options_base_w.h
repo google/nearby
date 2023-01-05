@@ -17,18 +17,18 @@
 #include "connections/clients/windows/medium_selector_w.h"
 #include "connections/clients/windows/strategy_w.h"
 
-namespace location::nearby::windows {
+namespace nearby::windows {
 
 extern "C" {
 
 // Connection Options: used for both Advertising and Discovery.
 // All fields are mutable, to make the type copy-assignable.
 struct OptionsBaseW {
-  location::nearby::windows::StrategyW strategy;
+  nearby::windows::StrategyW strategy;
   BooleanMediumSelectorW allowed{BooleanMediumSelectorW().SetAll(true)};
 };
 
 }  // extern "C"
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_OPTIONS_BASE_W_H_

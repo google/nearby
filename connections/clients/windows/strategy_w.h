@@ -18,7 +18,7 @@
 
 #include "connections/clients/windows/dll_config.h"
 
-namespace location::nearby::windows {
+namespace nearby::windows {
 
 // Defines a copyable, comparable connection strategy type.
 // It is one of: kP2pCluster, kP2pStar, kP2pPointToPoint.
@@ -71,6 +71,6 @@ class DLL_API StrategyW {
   TopologyType topology_type_;
 };
 
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_STRATEGY_W_H_

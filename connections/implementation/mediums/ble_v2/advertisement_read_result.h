@@ -25,7 +25,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/system_clock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -119,6 +118,5 @@ class AdvertisementReadResult {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_BLE_V2_ADVERTISEMENT_READ_RESULT_H_

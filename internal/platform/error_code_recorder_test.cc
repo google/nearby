@@ -18,7 +18,6 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 
 using ::testing::Field;
@@ -32,10 +31,12 @@ TEST(ErrorCodeRecorderTest, TestListenerWork) {
   ErrorCodeRecorder error_code_recorder(listener);
 
   ErrorCodeRecorder::LogErrorCode(
-      proto::connections::BLE, errorcode::proto::START_ADVERTISING,
-      errorcode::proto::MULTIPLE_FAST_ADVERTISEMENT_NOT_ALLOWED,
-      errorcode::proto::FEATURE_BLUETOOTH_NOT_SUPPORTED, "pii_message",
-      "connection_token");
+      location::nearby::proto::connections::BLE,
+      location::nearby::errorcode::proto::START_ADVERTISING,
+      location::nearby::errorcode::proto::
+          MULTIPLE_FAST_ADVERTISEMENT_NOT_ALLOWED,
+      location::nearby::errorcode::proto::FEATURE_BLUETOOTH_NOT_SUPPORTED,
+      "pii_message", "connection_token");
 }
 
 TEST(ErrorCodeRecorderTest, TestBuildErrorCodeParamsWork) {
@@ -49,23 +50,28 @@ TEST(ErrorCodeRecorderTest, TestBuildErrorCodeParamsWork) {
       });
 
   ErrorCodeRecorder::LogErrorCode(
-      proto::connections::BLE, errorcode::proto::START_ADVERTISING,
-      errorcode::proto::MULTIPLE_FAST_ADVERTISEMENT_NOT_ALLOWED,
-      errorcode::proto::FEATURE_BLUETOOTH_NOT_SUPPORTED, pii_message,
-      connection_token);
+      location::nearby::proto::connections::BLE,
+      location::nearby::errorcode::proto::START_ADVERTISING,
+      location::nearby::errorcode::proto::
+          MULTIPLE_FAST_ADVERTISEMENT_NOT_ALLOWED,
+      location::nearby::errorcode::proto::FEATURE_BLUETOOTH_NOT_SUPPORTED,
+      pii_message, connection_token);
 
   EXPECT_THAT(
       error_code_params,
-      AllOf(Field("medium", &ErrorCodeParams::medium, proto::connections::BLE),
+      AllOf(Field("medium", &ErrorCodeParams::medium,
+                  location::nearby::proto::connections::BLE),
             Field("event", &ErrorCodeParams::event,
-                  errorcode::proto::START_ADVERTISING),
+                  location::nearby::errorcode::proto::START_ADVERTISING),
             Field("description", &ErrorCodeParams::description,
-                  errorcode::proto::FEATURE_BLUETOOTH_NOT_SUPPORTED),
+                  location::nearby::errorcode::proto::
+                      FEATURE_BLUETOOTH_NOT_SUPPORTED),
             Field("pii_message", &ErrorCodeParams::pii_message, pii_message),
             Field("is_common_error", &ErrorCodeParams::is_common_error, false),
             Field("start_advertising_error",
                   &ErrorCodeParams::start_advertising_error,
-                  errorcode::proto::MULTIPLE_FAST_ADVERTISEMENT_NOT_ALLOWED),
+                  location::nearby::errorcode::proto::
+                      MULTIPLE_FAST_ADVERTISEMENT_NOT_ALLOWED),
             Field("connection_token", &ErrorCodeParams::connection_token,
                   connection_token)));
 }
@@ -81,21 +87,24 @@ TEST(ErrorCodeRecorderTest, TestBuildErrorCodeParamsWorkForCommonError) {
       });
 
   ErrorCodeRecorder::LogErrorCode(
-      proto::connections::BLE, errorcode::proto::START_ADVERTISING,
-      errorcode::proto::INVALID_PARAMETER, errorcode::proto::NULL_SERVICE_ID,
-      pii_message, connection_token);
+      location::nearby::proto::connections::BLE,
+      location::nearby::errorcode::proto::START_ADVERTISING,
+      location::nearby::errorcode::proto::INVALID_PARAMETER,
+      location::nearby::errorcode::proto::NULL_SERVICE_ID, pii_message,
+      connection_token);
 
   EXPECT_THAT(
       error_code_params,
-      AllOf(Field("medium", &ErrorCodeParams::medium, proto::connections::BLE),
+      AllOf(Field("medium", &ErrorCodeParams::medium,
+                  location::nearby::proto::connections::BLE),
             Field("event", &ErrorCodeParams::event,
-                  errorcode::proto::START_ADVERTISING),
+                  location::nearby::errorcode::proto::START_ADVERTISING),
             Field("description", &ErrorCodeParams::description,
-                  errorcode::proto::NULL_SERVICE_ID),
+                  location::nearby::errorcode::proto::NULL_SERVICE_ID),
             Field("pii_message", &ErrorCodeParams::pii_message, pii_message),
             Field("is_common_error", &ErrorCodeParams::is_common_error, true),
             Field("common_error", &ErrorCodeParams::common_error,
-                  errorcode::proto::INVALID_PARAMETER),
+                  location::nearby::errorcode::proto::INVALID_PARAMETER),
             Field("connection_token", &ErrorCodeParams::connection_token,
                   connection_token)));
 }
@@ -113,25 +122,28 @@ TEST(ErrorCodeRecorderTest, TestBuildErrorCodeParamsWorkForUnknownEvent) {
   // If event is UNKNOWN_EVENT and the error is not Common_Error then the error
   // will be set to UNKNOWN_ERROR.
   ErrorCodeRecorder::LogErrorCode(
-      proto::connections::BLE, errorcode::proto::UNKNOWN_EVENT,
-      errorcode::proto::MULTIPLE_FAST_ADVERTISEMENT_NOT_ALLOWED,
-      errorcode::proto::FEATURE_BLUETOOTH_NOT_SUPPORTED, pii_message,
-      connection_token);
+      location::nearby::proto::connections::BLE,
+      location::nearby::errorcode::proto::UNKNOWN_EVENT,
+      location::nearby::errorcode::proto::
+          MULTIPLE_FAST_ADVERTISEMENT_NOT_ALLOWED,
+      location::nearby::errorcode::proto::FEATURE_BLUETOOTH_NOT_SUPPORTED,
+      pii_message, connection_token);
 
   EXPECT_THAT(
       error_code_params,
-      AllOf(Field("medium", &ErrorCodeParams::medium, proto::connections::BLE),
+      AllOf(Field("medium", &ErrorCodeParams::medium,
+                  location::nearby::proto::connections::BLE),
             Field("event", &ErrorCodeParams::event,
-                  errorcode::proto::UNKNOWN_EVENT),
+                  location::nearby::errorcode::proto::UNKNOWN_EVENT),
             Field("description", &ErrorCodeParams::description,
-                  errorcode::proto::FEATURE_BLUETOOTH_NOT_SUPPORTED),
+                  location::nearby::errorcode::proto::
+                      FEATURE_BLUETOOTH_NOT_SUPPORTED),
             Field("pii_message", &ErrorCodeParams::pii_message, pii_message),
             Field("is_common_error", &ErrorCodeParams::is_common_error, true),
             Field("common_error", &ErrorCodeParams::common_error,
-                  errorcode::proto::UNKNOWN_ERROR),
+                  location::nearby::errorcode::proto::UNKNOWN_ERROR),
             Field("connection_token", &ErrorCodeParams::connection_token,
                   connection_token)));
 }
 
 }  // namespace nearby
-}  // namespace location

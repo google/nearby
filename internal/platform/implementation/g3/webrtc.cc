@@ -20,12 +20,12 @@
 #include "webrtc/api/task_queue/default_task_queue_factory.h"
 #include "webrtc/rtc_base/checks.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
+using ::location::nearby::connections::LocationHint;
 
 WebRtcSignalingMessenger::WebRtcSignalingMessenger(
-    absl::string_view self_id, const connections::LocationHint& location_hint)
+    absl::string_view self_id, const LocationHint& location_hint)
     : self_id_(self_id), location_hint_(location_hint) {}
 
 bool WebRtcSignalingMessenger::SendMessage(absl::string_view peer_id,
@@ -90,11 +90,10 @@ void WebRtcMedium::CreatePeerConnection(
 }
 
 std::unique_ptr<api::WebRtcSignalingMessenger>
-WebRtcMedium::GetSignalingMessenger(
-    absl::string_view self_id, const connections::LocationHint& location_hint) {
+WebRtcMedium::GetSignalingMessenger(absl::string_view self_id,
+                                    const LocationHint& location_hint) {
   return std::make_unique<WebRtcSignalingMessenger>(self_id, location_hint);
 }
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location

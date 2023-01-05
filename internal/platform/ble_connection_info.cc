@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <string>
 
-namespace location {
 namespace nearby {
 
 ByteArray BleConnectionInfo::ToBytes() const { return ByteArray(mac_address_); }
@@ -27,4 +26,3 @@ BleConnectionInfo BleConnectionInfo::FromBytes(ByteArray bytes) {
   return BleConnectionInfo(serial.substr(0, kMacAddressLength));
 }
 }  // namespace nearby
-}  // namespace location

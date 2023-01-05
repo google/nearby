@@ -16,7 +16,6 @@
 
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 namespace {
@@ -106,4 +105,3 @@ TEST(HttpStatusCode, TestReturnCorrectReasonPhrase) {
 }  // namespace
 }  // namespace network
 }  // namespace nearby
-}  // namespace location

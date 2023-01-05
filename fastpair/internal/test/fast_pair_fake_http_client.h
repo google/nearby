@@ -23,7 +23,6 @@
 
 #include "internal/network/http_client.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 
@@ -146,6 +145,5 @@ class FastPairFakeHttpClient : public HttpClient {
 
 }  // namespace network
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_TEST_FAST_PAIR_FAKE_HTTP_CLIENT_H_

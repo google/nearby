@@ -20,7 +20,6 @@
 
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -111,4 +110,3 @@ void CALLBACK Timer::TimerRoutine(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

@@ -20,7 +20,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_hotspot.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -31,8 +30,9 @@ WifiHotspotEndpointChannel::WifiHotspotEndpointChannel(
                           &socket.GetOutputStream()),
       socket_(std::move(socket)) {}
 
-proto::connections::Medium WifiHotspotEndpointChannel::GetMedium() const {
-  return proto::connections::Medium::WIFI_HOTSPOT;
+location::nearby::proto::connections::Medium
+WifiHotspotEndpointChannel::GetMedium() const {
+  return location::nearby::proto::connections::Medium::WIFI_HOTSPOT;
 }
 
 void WifiHotspotEndpointChannel::CloseImpl() {
@@ -46,4 +46,3 @@ void WifiHotspotEndpointChannel::CloseImpl() {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

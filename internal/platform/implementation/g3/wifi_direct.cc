@@ -27,7 +27,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -321,4 +320,3 @@ WifiDirectMedium::ListenForService(int port) {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location

@@ -31,10 +31,14 @@
 #include "connections/implementation/service_id_constants.h"
 #include "internal/platform/exception.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
+using ::location::nearby::connections::
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo;
+using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::V1Frame;
 
 constexpr absl::string_view kServiceIdA = "ServiceA";
 constexpr absl::string_view kServiceIdB = "ServiceB";
@@ -266,7 +270,7 @@ TEST_P(BwuManagerTestParam, InitiateBwu_Success) {
       dynamic_cast<FakeEndpointChannel*>(shared_initial_channel.get());
   EXPECT_FALSE(upgraded_channel->IsPaused());
   EXPECT_TRUE(old_channel->is_closed());
-  EXPECT_EQ(proto::connections::DisconnectionReason::UPGRADED,
+  EXPECT_EQ(location::nearby::proto::connections::DisconnectionReason::UPGRADED,
             old_channel->disconnection_reason());
 }
 
@@ -765,12 +769,11 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_WifiDirect) {
       /*gateway=*/"123.234.23.1");
   frame.ParseFromString(std::string(bytes));
 
-  ::location::nearby::connections::V1Frame* v1_frame = frame.mutable_v1();
-  ::location::nearby::connections::BandwidthUpgradeNegotiationFrame* sub_frame =
+  ::nearby::connections::V1Frame* v1_frame = frame.mutable_v1();
+  ::nearby::connections::BandwidthUpgradeNegotiationFrame* sub_frame =
       v1_frame->mutable_bandwidth_upgrade_negotiation();
-  ::location::nearby::connections::
-      BandwidthUpgradeNegotiationFrame_UpgradePathInfo* upgrade_path_info =
-          sub_frame->mutable_upgrade_path_info();
+  ::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo*
+      upgrade_path_info = sub_frame->mutable_upgrade_path_info();
   upgrade_path_info->set_supports_client_introduction_ack(false);
   bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
                                 Medium::BLUETOOTH, packet_meta_data_);
@@ -853,4 +856,3 @@ INSTANTIATE_TEST_SUITE_P(BwuManagerTestParam, BwuManagerTestParam,
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

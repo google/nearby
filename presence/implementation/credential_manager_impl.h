@@ -34,14 +34,12 @@ namespace presence {
 class CredentialManagerImpl : public CredentialManager {
  public:
   CredentialManagerImpl() {
-    credential_storage_ptr_ =
-        std::make_unique<location::nearby::CredentialStorageImpl>();
+    credential_storage_ptr_ = std::make_unique<nearby::CredentialStorageImpl>();
   }
 
   // Test purpose only.
   explicit CredentialManagerImpl(
-      std::unique_ptr<location::nearby::CredentialStorageImpl>
-          credential_storage_ptr)
+      std::unique_ptr<nearby::CredentialStorageImpl> credential_storage_ptr)
       : credential_storage_ptr_(std::move(credential_storage_ptr)) {}
 
   // AES only supports key sizes of 16, 24 or 32 bytes.
@@ -71,8 +69,7 @@ class CredentialManagerImpl : public CredentialManager {
       GetPrivateCredentialsResultCallback callback) override;
 
   // Blocking version of `GetPrivateCredentials`
-  location::nearby::ExceptionOr<
-      std::vector<nearby::internal::PrivateCredential>>
+  nearby::ExceptionOr<std::vector<nearby::internal::PrivateCredential>>
   GetPrivateCredentialsSync(const CredentialSelector& credential_selector,
                             absl::Duration timeout);
 
@@ -83,8 +80,7 @@ class CredentialManagerImpl : public CredentialManager {
       GetPublicCredentialsResultCallback callback) override;
 
   // Blocking version of `GetPublicCredentials`.
-  ::location::nearby::ExceptionOr<
-      std::vector<::nearby::internal::PublicCredential>>
+  ::nearby::ExceptionOr<std::vector<::nearby::internal::PublicCredential>>
   GetPublicCredentialsSync(const CredentialSelector& credential_selector,
                            PublicCredentialType public_credential_type,
                            absl::Duration timeout);
@@ -115,8 +111,7 @@ class CredentialManagerImpl : public CredentialManager {
       absl::string_view device_metadata_encryption_key);
 
  private:
-  std::unique_ptr<location::nearby::CredentialStorageImpl>
-      credential_storage_ptr_;
+  std::unique_ptr<nearby::CredentialStorageImpl> credential_storage_ptr_;
 };
 
 }  // namespace presence

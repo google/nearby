@@ -48,7 +48,7 @@ class PresenceService {
 
  private:
   std::unique_ptr<ServiceController> service_controller_;
-  ::location::nearby::Lender<PresenceService *> lender_{this};
+  ::nearby::Lender<PresenceService *> lender_{this};
 };
 
 }  // namespace presence

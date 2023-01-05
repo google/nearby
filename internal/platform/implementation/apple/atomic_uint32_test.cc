@@ -17,7 +17,6 @@
 #include "gtest/gtest.h"
 #include "thread/fiber/fiber.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 namespace {
@@ -61,4 +60,3 @@ TEST(AtomicUint32Test, GetOnNewThread) {
 }  // namespace
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location

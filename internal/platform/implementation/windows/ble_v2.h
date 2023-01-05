@@ -28,7 +28,6 @@
 #include "internal/platform/output_stream.h"
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -132,6 +131,5 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLE_V2_H_

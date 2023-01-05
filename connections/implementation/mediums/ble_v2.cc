@@ -33,15 +33,14 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
 namespace {
 
-using ::location::nearby::api::ble_v2::BleAdvertisementData;
-using ::location::nearby::api::ble_v2::GattCharacteristic;
-using ::location::nearby::api::ble_v2::TxPowerLevel;
+using ::nearby::api::ble_v2::BleAdvertisementData;
+using ::nearby::api::ble_v2::GattCharacteristic;
+using ::nearby::api::ble_v2::TxPowerLevel;
 
 constexpr int kMaxAdvertisementLength = 512;
 constexpr int kDummyServiceIdLength = 128;
@@ -903,4 +902,3 @@ void BleV2::RunOnBleThread(Runnable runnable) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

@@ -20,7 +20,6 @@
 
 #include "fastpair/common/protocol.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -44,4 +43,3 @@ std::ostream& operator<<(std::ostream& stream, const FastPairDevice& device) {
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location

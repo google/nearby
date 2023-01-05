@@ -27,7 +27,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -103,16 +102,19 @@ BaseEndpointChannel::BaseEndpointChannel(const std::string& service_id,
           // derived medium sockets should dervied, and implement the supported
           // values and leave the default values in base #MediumSocket.
           /*ConnectionTechnology*/
-          proto::connections::CONNECTION_TECHNOLOGY_UNKNOWN_TECHNOLOGY,
-          /*ConnectionBand*/ proto::connections::CONNECTION_BAND_UNKNOWN_BAND,
+          location::nearby::proto::connections::
+              CONNECTION_TECHNOLOGY_UNKNOWN_TECHNOLOGY,
+          /*ConnectionBand*/
+          location::nearby::proto::connections::CONNECTION_BAND_UNKNOWN_BAND,
           /*frequency*/ -1,
           /*try_count*/ 0) {}
 
 BaseEndpointChannel::BaseEndpointChannel(
     const std::string& service_id, const std::string& channel_name,
     InputStream* reader, OutputStream* writer,
-    proto::connections::ConnectionTechnology technology,
-    proto::connections::ConnectionBand band, int frequency, int try_count)
+    location::nearby::proto::connections::ConnectionTechnology technology,
+    location::nearby::proto::connections::ConnectionBand band, int frequency,
+    int try_count)
     : service_id_(service_id),
       channel_name_(channel_name),
       reader_(reader),
@@ -174,7 +176,8 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
         result = {};
         auto parsed = parser::FromBytes(ByteArray(input));
         if (parsed.ok()) {
-          if (parser::GetFrameType(parsed.result()) == V1Frame::KEEP_ALIVE) {
+          if (parser::GetFrameType(parsed.result()) ==
+              location::nearby::connections::V1Frame::KEEP_ALIVE) {
             NEARBY_LOGS(INFO)
                 << __func__
                 << ": Read unencrypted KEEP_ALIVE on encrypted channel.";
@@ -323,7 +326,7 @@ void BaseEndpointChannel::SetAnalyticsRecorder(
 }
 
 void BaseEndpointChannel::Close(
-    proto::connections::DisconnectionReason reason) {
+    location::nearby::proto::connections::DisconnectionReason reason) {
   NEARBY_LOGS(INFO) << __func__
                     << ": Closing endpoint channel, reason: " << reason;
   Close();
@@ -336,12 +339,14 @@ void BaseEndpointChannel::Close(
 std::string BaseEndpointChannel::GetType() const {
   MutexLock crypto_lock(&crypto_mutex_);
   std::string subtype = IsEncryptionEnabledLocked() ? "ENCRYPTED_" : "";
-  std::string medium = proto::connections::Medium_Name(
-      proto::connections::Medium::UNKNOWN_MEDIUM);
+  std::string medium = location::nearby::proto::connections::Medium_Name(
+      location::nearby::proto::connections::Medium::UNKNOWN_MEDIUM);
 
-  if (GetMedium() != proto::connections::Medium::UNKNOWN_MEDIUM) {
-    medium =
-        absl::StrCat(subtype, proto::connections::Medium_Name(GetMedium()));
+  if (GetMedium() !=
+      location::nearby::proto::connections::Medium::UNKNOWN_MEDIUM) {
+    medium = absl::StrCat(
+        subtype,
+        location::nearby::proto::connections::Medium_Name(GetMedium()));
   }
   return medium;
 }
@@ -392,13 +397,14 @@ absl::Time BaseEndpointChannel::GetLastWriteTimestamp() const {
   return last_write_timestamp_;
 }
 
-proto::connections::ConnectionTechnology BaseEndpointChannel::GetTechnology()
-    const {
+location::nearby::proto::connections::ConnectionTechnology
+BaseEndpointChannel::GetTechnology() const {
   return technology_;
 }
 
 // Returns the used wifi band of this EndpointChannel.
-proto::connections::ConnectionBand BaseEndpointChannel::GetBand() const {
+location::nearby::proto::connections::ConnectionBand
+BaseEndpointChannel::GetBand() const {
   return band_;
 }
 
@@ -434,4 +440,3 @@ void BaseEndpointChannel::UnblockPausedWriter() {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

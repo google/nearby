@@ -19,11 +19,11 @@
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
 #include "internal/platform/medium_environment.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
 namespace {
+using ::location::nearby::connections::OfflineFrame;
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 }  // namespace
 
@@ -106,7 +106,7 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
                                                  bwu_frame.upgrade_path_info());
     EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
     EXPECT_EQ(new_channel->GetMedium(),
-              proto::connections::Medium::WIFI_HOTSPOT);
+              location::nearby::proto::connections::Medium::WIFI_HOTSPOT);
     end_latch.CountDown();
   });
 
@@ -116,4 +116,3 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

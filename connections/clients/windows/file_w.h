@@ -20,7 +20,6 @@
 #include "connections/clients/windows/dll_config.h"
 #include "internal/platform/payload_id.h"
 
-namespace location {
 namespace nearby {
 class InputFile;
 struct DLL_API InputFileDeleter {
@@ -33,16 +32,14 @@ struct DLL_API OutputFileDeleter {
 };
 
 }  // namespace nearby
-}  // namespace location
 
-namespace location {
 namespace nearby {
 namespace windows {
 
 class DLL_API InputFileW {
  public:
-  explicit InputFileW(location::nearby::InputFile* input_file);
-  InputFileW(location::nearby::PayloadId payload_id, size_t size);
+  explicit InputFileW(nearby::InputFile* input_file);
+  InputFileW(nearby::PayloadId payload_id, size_t size);
   InputFileW(const char* file_path, size_t size);
   InputFileW(InputFileW&&) noexcept;
 
@@ -52,35 +49,26 @@ class DLL_API InputFileW {
   // Returns total size of this file in bytes.
   size_t GetTotalSize() const;
 
-  std::unique_ptr<location::nearby::InputFile,
-                  location::nearby::InputFileDeleter>
-  GetImpl();
+  std::unique_ptr<nearby::InputFile, nearby::InputFileDeleter> GetImpl();
 
  private:
-  std::unique_ptr<location::nearby::InputFile,
-                  location::nearby::InputFileDeleter>
-      impl_;
+  std::unique_ptr<nearby::InputFile, nearby::InputFileDeleter> impl_;
 };
 
 class DLL_API OutputFileW {
  public:
-  explicit OutputFileW(location::nearby::PayloadId payload_id);
+  explicit OutputFileW(nearby::PayloadId payload_id);
   explicit OutputFileW(const char* file_path);
   OutputFileW(OutputFileW&&) noexcept;
   OutputFileW& operator=(OutputFileW&&) noexcept;
 
-  std::unique_ptr<location::nearby::OutputFile,
-                  location::nearby::OutputFileDeleter>
-  GetImpl();
+  std::unique_ptr<nearby::OutputFile, nearby::OutputFileDeleter> GetImpl();
 
  private:
-  std::unique_ptr<location::nearby::OutputFile,
-                  location::nearby::OutputFileDeleter>
-      impl_;
+  std::unique_ptr<nearby::OutputFile, nearby::OutputFileDeleter> impl_;
 };
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_FILE_W_H_

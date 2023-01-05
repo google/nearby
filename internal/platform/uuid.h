@@ -21,7 +21,6 @@
 
 #include "absl/strings/string_view.h"
 
-namespace location {
 namespace nearby {
 
 // A type 3 name-based
@@ -76,6 +75,5 @@ class Uuid final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_UUID_H_

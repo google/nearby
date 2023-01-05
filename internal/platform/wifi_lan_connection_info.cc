@@ -20,7 +20,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 
-namespace location {
 namespace nearby {
 
 ByteArray WifiLanConnectionInfo::ToBytes() const {
@@ -52,4 +51,3 @@ absl::StatusOr<WifiLanConnectionInfo> WifiLanConnectionInfo::FromBytes(
 }
 
 }  // namespace nearby
-}  // namespace location

@@ -22,7 +22,6 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/bluetooth_adapter.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -64,6 +63,5 @@ class InjectedBluetoothDeviceStore {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_INJECTED_BLUETOOTH_DEVICE_STORE_H_

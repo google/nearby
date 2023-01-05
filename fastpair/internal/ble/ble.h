@@ -27,7 +27,6 @@
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -125,6 +124,5 @@ class Ble {
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_BLE_BLE_H_

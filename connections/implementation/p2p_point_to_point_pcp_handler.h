@@ -21,7 +21,6 @@
 #include "connections/implementation/pcp.h"
 #include "connections/strategy.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -41,8 +40,8 @@ class P2pPointToPointPcpHandler : public P2pStarPcpHandler {
       Pcp pcp = Pcp::kP2pPointToPoint);
 
  protected:
-  std::vector<proto::connections::Medium> GetConnectionMediumsByPriority()
-      override;
+  std::vector<location::nearby::proto::connections::Medium>
+  GetConnectionMediumsByPriority() override;
 
   bool CanSendOutgoingConnection(ClientProxy* client) const override;
   bool CanReceiveIncomingConnection(ClientProxy* client) const override;
@@ -50,6 +49,5 @@ class P2pPointToPointPcpHandler : public P2pStarPcpHandler {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_P2P_POINT_TO_POINT_PCP_HANDLER_H_

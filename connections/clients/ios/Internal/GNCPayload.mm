@@ -19,8 +19,8 @@
 
 #include <stdlib.h>
 
-using ::location::nearby::connections::Payload;
-using ::location::nearby::PayloadId;
+using ::nearby::PayloadId;
+using ::nearby::connections::Payload;
 
 NS_ASSUME_NONNULL_BEGIN
 

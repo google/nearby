@@ -22,7 +22,7 @@
 
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/CPPInputStreamBinding.h"
 
-using ::location::nearby::connections::Payload;
+using ::nearby::connections::Payload;
 
 @implementation GNCPayload
 

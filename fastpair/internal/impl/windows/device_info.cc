@@ -31,7 +31,6 @@
 #include "winrt/Windows.Foundation.h"
 #include "winrt/Windows.System.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -199,4 +198,3 @@ void DeviceInfo::UnregisterScreenLockedListener(
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

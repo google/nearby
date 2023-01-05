@@ -36,7 +36,7 @@ namespace presence {
 
 class ServiceControllerImpl : public ServiceController {
  public:
-  using SingleThreadExecutor = ::location::nearby::SingleThreadExecutor;
+  using SingleThreadExecutor = ::nearby::SingleThreadExecutor;
 
   ServiceControllerImpl() = default;
   ~ServiceControllerImpl() override { executor_.Shutdown(); }

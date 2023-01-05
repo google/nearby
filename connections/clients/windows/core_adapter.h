@@ -24,13 +24,13 @@
 #include "connections/clients/windows/params_w.h"
 #include "connections/clients/windows/payload_w.h"
 
-namespace location::nearby::connections {
+namespace nearby::connections {
 class Core;
 class ServiceController;
 class ServiceControllerRouter;
 class OfflineServiceController;
-}  // namespace location::nearby::connections
-namespace location::nearby::windows {
+}  // namespace nearby::connections
+namespace nearby::windows {
 
 extern "C" {
 
@@ -255,6 +255,6 @@ DLL_API ServiceControllerRouter* __stdcall InitServiceControllerRouter();
 DLL_API void __stdcall CloseServiceControllerRouter(ServiceControllerRouter*);
 
 }  // extern "C"
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_CORE_ADAPTER_H_

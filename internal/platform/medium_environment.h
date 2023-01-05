@@ -44,7 +44,6 @@
 #include "internal/platform/single_thread_executor.h"
 #include "internal/platform/wifi_hotspot_credential.h"
 
-namespace location {
 namespace nearby {
 
 // Environment config that can control availability of certain mediums for
@@ -452,11 +451,9 @@ class MediumEnvironment {
   absl::flat_hash_map<api::BleMedium*, BleMediumContext> ble_mediums_;
   absl::flat_hash_map<api::ble_v2::BleMedium*, BleV2MediumContext>
       ble_v2_mediums_;
-  absl::flat_hash_map<api::ble_v2::GattCharacteristic,
-                      location::nearby::ByteArray>
+  absl::flat_hash_map<api::ble_v2::GattCharacteristic, nearby::ByteArray>
       gatt_advertisement_bytes_;
-  absl::flat_hash_map<api::ble_v2::GattCharacteristic,
-                      location::nearby::ByteArray>
+  absl::flat_hash_map<api::ble_v2::GattCharacteristic, nearby::ByteArray>
       discovered_gatt_advertisement_bytes_;
 
 #ifndef NO_WEBRTC
@@ -484,6 +481,5 @@ class MediumEnvironment {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_MEDIUM_ENVIRONMENT_H_

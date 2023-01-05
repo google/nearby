@@ -26,7 +26,6 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/fake_endpoint_channel.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -130,32 +129,33 @@ class FakeBwuHandler : public BaseBwuHandler {
                                         .service_id = upgrade_service_id,
                                         .endpoint_id = endpoint_id});
     switch (medium_) {
-      case proto::connections::BLUETOOTH:
+      case location::nearby::proto::connections::BLUETOOTH:
         return parser::ForBwuBluetoothPathAvailable(
             upgrade_service_id,
             /*mac_address=*/"mac-address");
-      case proto::connections::WIFI_LAN:
+      case location::nearby::proto::connections::WIFI_LAN:
         return parser::ForBwuWifiLanPathAvailable(/*ip_address=*/"ABCD",
                                                   /*port=*/1234);
-      case proto::connections::WEB_RTC:
-        return parser::ForBwuWebrtcPathAvailable(/*peer_id=*/"peer-id",
-                                                 LocationHint{});
-      case proto::connections::WIFI_HOTSPOT:
+      case location::nearby::proto::connections::WEB_RTC:
+        return parser::ForBwuWebrtcPathAvailable(
+            /*peer_id=*/"peer-id",
+            location::nearby::connections::LocationHint{});
+      case location::nearby::proto::connections::WIFI_HOTSPOT:
         return parser::ForBwuWifiHotspotPathAvailable(
             /*ssid=*/"Direct-357a2d8c", /*password=*/"b592f7d3",
             /*port=*/1234, /*gateway=*/"123.234.23.1", false);
-      case proto::connections::WIFI_DIRECT:
+      case location::nearby::proto::connections::WIFI_DIRECT:
         return parser::ForBwuWifiDirectPathAvailable(
             /*ssid=*/"Direct-12345678", /*password=*/"87654321", /*port=*/2143,
             /*frequency=*/2412, /*supports_disabling_encryption=*/false,
             /*gateway=*/"123.234.23.1");
-      case proto::connections::UNKNOWN_MEDIUM:
-      case proto::connections::MDNS:
-      case proto::connections::BLE:
-      case proto::connections::WIFI_AWARE:
-      case proto::connections::NFC:
-      case proto::connections::BLE_L2CAP:
-      case proto::connections::USB:
+      case location::nearby::proto::connections::UNKNOWN_MEDIUM:
+      case location::nearby::proto::connections::MDNS:
+      case location::nearby::proto::connections::BLE:
+      case location::nearby::proto::connections::WIFI_AWARE:
+      case location::nearby::proto::connections::NFC:
+      case location::nearby::proto::connections::BLE_L2CAP:
+      case location::nearby::proto::connections::USB:
         return ByteArray{};
     }
   }
@@ -174,6 +174,5 @@ class FakeBwuHandler : public BaseBwuHandler {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // NEARBY_CONNECTIONS_IMPLEMENTATION_FAKE_BWU_HANDLER_H_

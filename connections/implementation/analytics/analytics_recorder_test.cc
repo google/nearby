@@ -30,7 +30,6 @@
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace analytics {
 namespace {
@@ -85,7 +84,7 @@ class FakeEventLogger : public EventLogger {
             start_client_session_done_latch_ptr) {}
 
   void Log(const ::google::protobuf::MessageLite& message) override {
-    auto connections_log = dynamic_cast<const proto::ConnectionsLog*>(&message);
+    auto connections_log = dynamic_cast<const ConnectionsLog*>(&message);
     if (connections_log == nullptr) {
       return;
     }
@@ -1742,4 +1741,3 @@ TEST(AnalyticsRecorderTest,
 }  // namespace
 }  // namespace analytics
 }  // namespace nearby
-}  // namespace location

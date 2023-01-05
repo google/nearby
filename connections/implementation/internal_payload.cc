@@ -14,7 +14,6 @@
 
 #include "connections/implementation/internal_payload.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -30,4 +29,3 @@ Payload::Id InternalPayload::GetId() const { return payload_id_; }
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

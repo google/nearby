@@ -15,7 +15,6 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_NETWORK_DEBUG_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_NETWORK_DEBUG_H_
 
-namespace location {
 namespace nearby {
 namespace network {
 namespace debug {
@@ -29,6 +28,5 @@ constexpr bool kResponseEnabled = false;
 }  // namespace debug
 }  // namespace network
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_NETWORK_DEBUG_H_

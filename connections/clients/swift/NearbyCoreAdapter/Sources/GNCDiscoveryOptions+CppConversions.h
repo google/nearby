@@ -17,19 +17,19 @@
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCDiscoveryOptions.h"
 
 #ifdef __cplusplus
-namespace location {
+
 namespace nearby {
 namespace connections {
 class DiscoveryOptions;
 }
 }  // namespace nearby
-}  // namespace location
+
 #endif
 
 @interface GNCDiscoveryOptions (CppConversions)
 
 #ifdef __cplusplus
-- (location::nearby::connections::DiscoveryOptions)toCpp;
+- (nearby::connections::DiscoveryOptions)toCpp;
 #endif
 
 @end

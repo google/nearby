@@ -21,8 +21,8 @@
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/GNCDiscoveryOptions+CppConversions.h"
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/GNCStrategy+Internal.h"
 
-using ::location::nearby::connections::CppStrategyFromGNCStrategy;
-using ::location::nearby::connections::DiscoveryOptions;
+using ::nearby::connections::CppStrategyFromGNCStrategy;
+using ::nearby::connections::DiscoveryOptions;
 
 @implementation GNCDiscoveryOptions (CppConversions)
 

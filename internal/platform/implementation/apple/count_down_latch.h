@@ -18,7 +18,6 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/count_down_latch.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -44,6 +43,5 @@ class CountDownLatch : public api::CountDownLatch {
 
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_APPLE_COUNT_DOWN_LATCH_H_

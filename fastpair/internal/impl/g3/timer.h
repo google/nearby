@@ -20,7 +20,6 @@
 
 #include "fastpair/internal/api/timer.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -68,6 +67,5 @@ class Timer : public api::Timer {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_G3_TIMER_H_

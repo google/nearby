@@ -24,7 +24,6 @@
 #include "internal/network/http_body.h"
 #include "internal/network/url.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 
@@ -87,6 +86,5 @@ class HttpRequest {
 
 }  // namespace network
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_REQUEST_H_

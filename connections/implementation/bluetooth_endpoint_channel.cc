@@ -19,7 +19,6 @@
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -45,8 +44,9 @@ BluetoothEndpointChannel::BluetoothEndpointChannel(
                           GetOutputStreamOrNull(socket)),
       bluetooth_socket_(std::move(socket)) {}
 
-proto::connections::Medium BluetoothEndpointChannel::GetMedium() const {
-  return proto::connections::Medium::BLUETOOTH;
+location::nearby::proto::connections::Medium
+BluetoothEndpointChannel::GetMedium() const {
+  return location::nearby::proto::connections::Medium::BLUETOOTH;
 }
 
 int BluetoothEndpointChannel::GetMaxTransmitPacketSize() const {
@@ -64,4 +64,3 @@ void BluetoothEndpointChannel::CloseImpl() {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

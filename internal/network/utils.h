@@ -20,7 +20,6 @@
 #include "absl/strings/string_view.h"
 #include "internal/network/url.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 
@@ -40,6 +39,5 @@ std::string UrlDecode(absl::string_view url_string);
 
 }  // namespace network
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_NETWORK_UTILS_H_

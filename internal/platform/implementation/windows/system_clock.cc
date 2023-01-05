@@ -17,7 +17,6 @@
 
 #include "internal/platform/implementation/system_clock.h"
 
-namespace location {
 namespace nearby {
 
 // Initialize global system state.
@@ -38,6 +37,5 @@ Exception SystemClock::Sleep(absl::Duration duration) {
 }
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_SYSTEM_CLOCK_H_

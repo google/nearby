@@ -26,7 +26,6 @@
 #import "internal/platform/implementation/apple/Mediums/Ble/GNCMBleCentral.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/GNCMBlePeripheral.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -75,9 +74,9 @@ CBCharacteristicProperties PropertiesToCBProperties(
 
 }  // namespace
 
-using ::location::nearby::api::ble_v2::BleAdvertisementData;
-using ::location::nearby::api::ble_v2::TxPowerLevel;
-using ScanCallback = ::location::nearby::api::ble_v2::BleMedium::ScanCallback;
+using ::nearby::api::ble_v2::BleAdvertisementData;
+using ::nearby::api::ble_v2::TxPowerLevel;
+using ScanCallback = ::nearby::api::ble_v2::BleMedium::ScanCallback;
 
 /** InputStream that reads from GNCMConnection. */
 BleInputStream::BleInputStream()
@@ -312,12 +311,12 @@ Exception BleServerSocket::DoClose() {
 }
 
 /** BleMedium implementation. */
-BleMedium::BleMedium(::location::nearby::api::BluetoothAdapter& adapter)
+BleMedium::BleMedium(::nearby::api::BluetoothAdapter& adapter)
     : adapter_(static_cast<BluetoothAdapter*>(&adapter)) {}
 
 bool BleMedium::StartAdvertising(
     const BleAdvertisementData& advertising_data,
-    ::location::nearby::api::ble_v2::AdvertiseParameters advertise_set_parameters) {
+    ::nearby::api::ble_v2::AdvertiseParameters advertise_set_parameters) {
   if (advertising_data.service_data.empty()) {
     return false;
   }
@@ -505,8 +504,7 @@ absl::optional<api::ble_v2::GattCharacteristic> BleMedium::GattServer::CreateCha
 }
 
 bool BleMedium::GattServer::UpdateCharacteristic(
-    const api::ble_v2::GattCharacteristic& characteristic,
-    const location::nearby::ByteArray& value) {
+    const api::ble_v2::GattCharacteristic& characteristic, const nearby::ByteArray& value) {
   [peripheral_ updateValue:NSDataFromByteArray(value)
          forCharacteristic:[CBUUID UUIDWithString:ObjCStringFromCppString(
                                                       std::string(characteristic.uuid))]];
@@ -593,4 +591,3 @@ void BleMedium::GattClient::Disconnect() {
 
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location

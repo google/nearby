@@ -23,7 +23,6 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 namespace {
@@ -71,4 +70,3 @@ TEST(ThreadPool, TasksInMultipleThreadsRunInParallel) {
 }  // namespace
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

@@ -24,7 +24,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -48,6 +47,5 @@ std::string CanonicalizeBluetoothAddress(uint64_t address);
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_BASE_BLUETOOTH_ADDRESS_H_

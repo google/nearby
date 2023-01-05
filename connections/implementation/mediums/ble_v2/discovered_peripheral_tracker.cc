@@ -29,7 +29,6 @@
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -68,7 +67,7 @@ void DiscoveredPeripheralTracker::StopTracking(const std::string& service_id) {
 
 void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
     BleV2Peripheral peripheral,
-    ::location::nearby::api::ble_v2::BleAdvertisementData advertisement_data,
+    ::nearby::api::ble_v2::BleAdvertisementData advertisement_data,
     AdvertisementFetcher advertisement_fetcher) {
   MutexLock lock(&mutex_);
 
@@ -187,8 +186,7 @@ void DiscoveredPeripheralTracker::ClearGattAdvertisement(
 
 void DiscoveredPeripheralTracker::HandleAdvertisement(
     BleV2Peripheral peripheral,
-    const location::nearby::api::ble_v2::BleAdvertisementData&
-        advertisement_data) {
+    const nearby::api::ble_v2::BleAdvertisementData& advertisement_data) {
   ByteArray advertisement_bytes =
       ExtractInterestingAdvertisementBytes(advertisement_data);
   if (advertisement_bytes.Empty()) {
@@ -202,15 +200,14 @@ void DiscoveredPeripheralTracker::HandleAdvertisement(
   // First filter out kCopresenceServiceUuid and see if any Caller UUID
   // existed; if not then just take the kCopresenceServiceUuid as
   // |service_uuid|.
-  absl::flat_hash_map<Uuid, location::nearby::ByteArray> extracted_uuids;
+  absl::flat_hash_map<Uuid, nearby::ByteArray> extracted_uuids;
   // Filter out kCoprsence service uuid.
-  std::remove_copy_if(
-      advertisement_data.service_data.begin(),
-      advertisement_data.service_data.end(),
-      std::inserter(extracted_uuids, extracted_uuids.end()),
-      [](const std::pair<const Uuid, location::nearby::ByteArray>& pair) {
-        return pair.first == bleutils::kCopresenceServiceUuid;
-      });
+  std::remove_copy_if(advertisement_data.service_data.begin(),
+                      advertisement_data.service_data.end(),
+                      std::inserter(extracted_uuids, extracted_uuids.end()),
+                      [](const std::pair<const Uuid, nearby::ByteArray>& pair) {
+                        return pair.first == bleutils::kCopresenceServiceUuid;
+                      });
   Uuid service_uuid;
   if (!extracted_uuids.empty()) {
     service_uuid = extracted_uuids.begin()->first;
@@ -234,8 +231,7 @@ void DiscoveredPeripheralTracker::HandleAdvertisement(
 }
 
 ByteArray DiscoveredPeripheralTracker::ExtractInterestingAdvertisementBytes(
-    const location::nearby::api::ble_v2::BleAdvertisementData&
-        advertisement_data) {
+    const nearby::api::ble_v2::BleAdvertisementData& advertisement_data) {
   // Iterate through all tracked service IDs to see if any of their fast
   // advertisements are contained within this BLE advertisement.
   for (const auto& item : service_id_infos_) {
@@ -465,8 +461,7 @@ bool DiscoveredPeripheralTracker::IsDummyAdvertisementHeader(
 
 void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
     BleV2Peripheral peripheral,
-    const location::nearby::api::ble_v2::BleAdvertisementData&
-        advertisement_data,
+    const nearby::api::ble_v2::BleAdvertisementData& advertisement_data,
     AdvertisementFetcher advertisement_fetcher) {
   // Attempt to parse the advertisement header.
   BleAdvertisementHeader advertisement_header(
@@ -507,8 +502,7 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
 }
 
 ByteArray DiscoveredPeripheralTracker::ExtractAdvertisementHeaderBytes(
-    const location::nearby::api::ble_v2::BleAdvertisementData&
-        advertisement_data) {
+    const nearby::api::ble_v2::BleAdvertisementData& advertisement_data) {
   const auto it =
       advertisement_data.service_data.find(bleutils::kCopresenceServiceUuid);
   if (it != advertisement_data.service_data.end()) {
@@ -647,4 +641,3 @@ void DiscoveredPeripheralTracker::UpdateCommonStateForFoundBleAdvertisement(
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

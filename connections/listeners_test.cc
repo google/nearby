@@ -23,7 +23,6 @@
 #include "gtest/gtest.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -77,4 +76,3 @@ TEST(ListenersTest, PayloadListener_PayloadCb_Works) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

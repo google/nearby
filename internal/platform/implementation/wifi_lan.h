@@ -23,7 +23,6 @@
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -155,6 +154,5 @@ class WifiLanMedium {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_WIFI_LAN_H_

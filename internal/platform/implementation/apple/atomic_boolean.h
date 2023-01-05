@@ -19,7 +19,6 @@
 
 #include "internal/platform/implementation/atomic_boolean.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -41,6 +40,5 @@ class AtomicBoolean : public api::AtomicBoolean {
 
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_APPLE_ATOMIC_BOOLEAN_H_

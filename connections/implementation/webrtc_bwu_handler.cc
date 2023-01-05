@@ -24,9 +24,10 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/webrtc_endpoint_channel.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
+using ::location::nearby::connections::LocationHint;
+using ::location::nearby::connections::LocationStandard;
 
 WebrtcBwuHandler::WebrtcIncomingSocket::WebrtcIncomingSocket(
     const std::string& name, mediums::WebRtcSocketWrapper socket)
@@ -151,4 +152,3 @@ void WebrtcBwuHandler::OnIncomingWebrtcConnection(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

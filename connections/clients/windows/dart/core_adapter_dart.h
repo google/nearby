@@ -19,7 +19,7 @@
 #include "third_party/dart_lang/v2/runtime/include/dart_native_api.h"
 #include "connections/clients/windows/core_adapter.h"
 
-namespace location::nearby::windows {
+namespace nearby::windows {
 
 enum class StrategyDart {
   P2P_CLUSTER = 0,
@@ -302,6 +302,6 @@ DLL_API void __stdcall SendPayloadDart(Core *pCore, const char *endpoint_id,
                                        PayloadDart payload_dart,
                                        Dart_Port result_cb);
 }  // extern "C"
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows
 
 #endif  // LOCATION_NEARBY_CONNECTIONS_WINDOWS_CORE_ADAPTER_DART_H_

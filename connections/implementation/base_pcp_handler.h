@@ -48,7 +48,6 @@
 #include "internal/platform/scheduled_executor.h"
 #include "internal/platform/single_thread_executor.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -132,9 +131,9 @@ class BasePcpHandler : public PcpHandler,
                           const std::string& endpoint_id) override;
 
   // @EndpointManagerReaderThread
-  void OnIncomingFrame(OfflineFrame& frame, const std::string& endpoint_id,
-                       ClientProxy* client,
-                       proto::connections::Medium medium,
+  void OnIncomingFrame(location::nearby::connections::OfflineFrame& frame,
+                       const std::string& endpoint_id, ClientProxy* client,
+                       location::nearby::proto::connections::Medium medium,
                        analytics::PacketMetaData& packet_meta_data) override;
 
   // Called when an endpoint disconnects while we're waiting for both sides to
@@ -154,7 +153,7 @@ class BasePcpHandler : public PcpHandler,
     Status status;
     // If success, the mediums on which we are now advertising/discovering, for
     // analytics.
-    std::vector<proto::connections::Medium> mediums;
+    std::vector<location::nearby::proto::connections::Medium> mediums;
   };
 
   // Represents an endpoint that we've discovered. Typically, the implementation
@@ -174,7 +173,7 @@ class BasePcpHandler : public PcpHandler,
   struct DiscoveredEndpoint {
     DiscoveredEndpoint(std::string endpoint_id, ByteArray endpoint_info,
                        std::string service_id,
-                       proto::connections::Medium medium,
+                       location::nearby::proto::connections::Medium medium,
                        WebRtcState web_rtc_state)
         : endpoint_id(std::move(endpoint_id)),
           endpoint_info(std::move(endpoint_info)),
@@ -186,7 +185,7 @@ class BasePcpHandler : public PcpHandler,
     std::string endpoint_id;
     ByteArray endpoint_info;
     std::string service_id;
-    proto::connections::Medium medium;
+    location::nearby::proto::connections::Medium medium;
     WebRtcState web_rtc_state;
   };
 
@@ -231,8 +230,8 @@ class BasePcpHandler : public PcpHandler,
   };
 
   struct ConnectImplResult {
-    proto::connections::Medium medium =
-        proto::connections::Medium::UNKNOWN_MEDIUM;
+    location::nearby::proto::connections::Medium medium =
+        location::nearby::proto::connections::Medium::UNKNOWN_MEDIUM;
     Status status = {Status::kError};
     std::unique_ptr<EndpointChannel> endpoint_channel;
   };
@@ -252,7 +251,8 @@ class BasePcpHandler : public PcpHandler,
   Exception OnIncomingConnection(
       ClientProxy* client, const ByteArray& remote_endpoint_info,
       std::unique_ptr<EndpointChannel> endpoint_channel,
-      proto::connections::Medium medium);  // throws Exception::IO
+      location::nearby::proto::connections::Medium
+          medium);  // throws Exception::IO
 
   virtual bool HasOutgoingConnections(ClientProxy* client) const;
   virtual bool HasIncomingConnections(ClientProxy* client) const;
@@ -287,9 +287,10 @@ class BasePcpHandler : public PcpHandler,
                                         DiscoveredEndpoint* endpoint)
       RUN_ON_PCP_HANDLER_THREAD() = 0;
 
-  virtual std::vector<proto::connections::Medium>
+  virtual std::vector<location::nearby::proto::connections::Medium>
   GetConnectionMediumsByPriority() = 0;
-  virtual proto::connections::Medium GetDefaultUpgradeMedium() = 0;
+  virtual location::nearby::proto::connections::Medium
+  GetDefaultUpgradeMedium() = 0;
 
   // Returns the first discovered endpoint for the given endpoint_id.
   DiscoveredEndpoint* GetDiscoveredEndpoint(const std::string& endpoint_id);
@@ -301,7 +302,7 @@ class BasePcpHandler : public PcpHandler,
 
   // Returns a vector of discovered endpoints that share a given Medium.
   std::vector<BasePcpHandler::DiscoveredEndpoint*> GetDiscoveredEndpoints(
-      const proto::connections::Medium medium);
+      const location::nearby::proto::connections::Medium medium);
 
   mediums::WebrtcPeerId CreatePeerIdFromAdvertisement(
       const string& service_id, const string& endpoint_id,
@@ -352,7 +353,7 @@ class BasePcpHandler : public PcpHandler,
     std::weak_ptr<Future<Status>> result;
 
     // Only (possibly) vector for incoming connections.
-    std::vector<proto::connections::Medium> supported_mediums;
+    std::vector<location::nearby::proto::connections::Medium> supported_mediums;
 
     // Keep track of a channel before we pass it to EndpointChannelManager.
     std::unique_ptr<EndpointChannel> channel;
@@ -455,8 +456,8 @@ class BasePcpHandler : public PcpHandler,
                                 const std::string& endpoint_id,
                                 bool can_close_immediately);
 
-  ExceptionOr<OfflineFrame> ReadConnectionRequestFrame(
-      EndpointChannel* channel);
+  ExceptionOr<location::nearby::connections::OfflineFrame>
+  ReadConnectionRequestFrame(EndpointChannel* channel);
 
   // Returns an 8 characters length hashed string generated via a token byte
   // array.
@@ -480,9 +481,9 @@ class BasePcpHandler : public PcpHandler,
   Status WaitForResult(const std::string& method_name, std::int64_t client_id,
                        Future<Status>* future);
   bool MediumSupportedByClientOptions(
-      const proto::connections::Medium& medium,
+      const location::nearby::proto::connections::Medium& medium,
       const ConnectionOptions& connection_options) const;
-  std::vector<proto::connections::Medium>
+  std::vector<location::nearby::proto::connections::Medium>
   GetSupportedConnectionMediumsByPriority(
       const ConnectionOptions& local_connection_option);
   std::string GetStringValueOfSupportedMediums(
@@ -540,6 +541,5 @@ class BasePcpHandler : public PcpHandler,
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_BASE_PCP_HANDLER_H_

@@ -19,7 +19,6 @@
 #include "gtest/gtest.h"
 #include "internal/network/http_body.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 namespace {
@@ -85,4 +84,3 @@ TEST(HttpRequest, TestGetMethodString) {
 }  // namespace
 }  // namespace network
 }  // namespace nearby
-}  // namespace location

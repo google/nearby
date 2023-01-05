@@ -18,7 +18,6 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 
-namespace location {
 namespace nearby {
 
 // Global flags that control feature availability. This may be used to gating
@@ -80,6 +79,5 @@ class FeatureFlags {
   mutable absl::Mutex mutex_;
 };
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_FEATURE_FLAGS_H_

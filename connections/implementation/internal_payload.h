@@ -22,7 +22,6 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -52,7 +51,9 @@ class InternalPayload {
   // Payload::getType().
   //
   // @return The PayloadType.
-  virtual PayloadTransferFrame::PayloadHeader::PayloadType GetType() const = 0;
+  virtual location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+      PayloadType
+      GetType() const = 0;
 
   // Deduces the total size of the Payload to which this object is bound.
   //
@@ -105,6 +106,5 @@ class InternalPayload {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_INTERNAL_PAYLOAD_H_

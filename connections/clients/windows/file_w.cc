@@ -17,7 +17,7 @@
 
 #include "internal/platform/file.h"
 
-namespace location::nearby {
+namespace nearby {
 void InputFileDeleter::operator()(nearby::InputFile* p) { delete p; }
 void OutputFileDeleter::operator()(nearby::OutputFile* p) { delete p; }
 
@@ -64,4 +64,4 @@ OutputFileW::GetImpl() {
 }
 
 }  // namespace windows
-}  // namespace location::nearby
+}  // namespace nearby

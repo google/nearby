@@ -35,7 +35,6 @@
 #include "internal/platform/prng.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -494,4 +493,3 @@ int WifiLanMedium::GetFakePort() const {
 
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location

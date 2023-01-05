@@ -21,7 +21,6 @@
 
 #include "winrt/Windows.Devices.Enumeration.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -56,6 +55,5 @@ class BluetoothPairing {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLUETOOTH_PAIRING_H_

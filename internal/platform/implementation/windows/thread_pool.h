@@ -23,7 +23,6 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/runnable.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -70,6 +69,5 @@ class ThreadPool {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  //  PLATFORM_IMPL_WINDOWS_THREAD_POOL_H_

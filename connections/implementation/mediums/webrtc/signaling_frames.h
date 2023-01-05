@@ -22,7 +22,6 @@
 #include "proto/mediums/web_rtc_signaling_frames.pb.h"
 #include "webrtc/api/peer_connection_interface.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -53,6 +52,5 @@ std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> DecodeIceCandidates(
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_SIGNALING_FRAMES_H_

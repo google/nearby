@@ -28,7 +28,6 @@
 #include "webrtc/api/data_channel_interface.h"
 #include "webrtc/api/peer_connection_interface.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -228,6 +227,5 @@ class ConnectionFlow : public webrtc::PeerConnectionObserver {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_CONNECTION_FLOW_H_

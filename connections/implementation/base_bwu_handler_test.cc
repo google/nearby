@@ -20,7 +20,6 @@
 #include "absl/strings/string_view.h"
 #include "connections/implementation/service_id_constants.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -226,4 +225,3 @@ TEST(BaseBwuHandlerTest, Revert_Failure_CantFindEndpoint) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

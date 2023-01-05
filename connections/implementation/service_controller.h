@@ -27,7 +27,6 @@
 #include "connections/payload.h"
 #include "connections/status.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -38,7 +37,7 @@ namespace connections {
 // ResultCallback arguments are not provided for this class, because all methods
 // are called synchronously.
 // The rest of arguments have the same meaning as the corresponding
-// methods in the definition of location::nearby::Core API.
+// methods in the definition of nearby::Core API.
 //
 // See details here:
 // cpp/core/core.h
@@ -106,6 +105,5 @@ class ServiceController {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_SERVICE_CONTROLLER_H_

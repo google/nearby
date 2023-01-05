@@ -20,7 +20,6 @@
 
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/GNCStrategy+Internal.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -37,4 +36,3 @@ Strategy CppStrategyFromGNCStrategy(GNCStrategy strategy) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

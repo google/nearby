@@ -14,7 +14,6 @@
 
 #include "connections/strategy.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -56,4 +55,3 @@ bool operator!=(const Strategy& lhs, const Strategy& rhs) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

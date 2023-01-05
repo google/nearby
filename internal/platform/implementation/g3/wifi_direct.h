@@ -28,7 +28,6 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -216,6 +215,5 @@ class WifiDirectMedium : public api::WifiDirectMedium {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_WIFI_DIRECT_H_

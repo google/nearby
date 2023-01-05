@@ -35,8 +35,7 @@ class PresenceService;
  */
 class PresenceClient {
  public:
-  using BorrowablePresenceService =
-      ::location::nearby::Borrowable<PresenceService*>;
+  using BorrowablePresenceService = ::nearby::Borrowable<PresenceService*>;
 
   explicit PresenceClient(BorrowablePresenceService service)
       : service_(service) {}

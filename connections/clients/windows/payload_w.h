@@ -25,7 +25,6 @@
 #include "connections/payload_type.h"
 #include "internal/platform/payload_id.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -35,18 +34,14 @@ struct PayloadDeleter {
 };
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
-namespace location {
 namespace nearby {
 
 class InputFile;
 class InputStream;
 
 }  // namespace nearby
-}  // namespace location
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -91,7 +86,7 @@ class DLL_API PayloadW {
   int64_t GetId() const;
 
   // Returns Payload type.
-  const location::nearby::connections::PayloadType GetType() const;
+  const nearby::connections::PayloadType GetType() const;
 
   // Sets the payload offset in bytes
   void SetOffset(size_t offset);
@@ -114,6 +109,5 @@ class DLL_API PayloadW {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_PAYLOAD_W_H_

@@ -17,7 +17,6 @@
 
 #include "internal/platform/implementation/g3/multi_thread_executor.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -31,6 +30,5 @@ class SingleThreadExecutor final : public MultiThreadExecutor {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_SINGLE_THREAD_EXECUTOR_H_

@@ -29,7 +29,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 namespace {
@@ -147,4 +146,3 @@ TEST_F(FastPairFakeHttpClientTest, TestCompleteNotExistingRequest) {
 }  // namespace
 }  // namespace network
 }  // namespace nearby
-}  // namespace location

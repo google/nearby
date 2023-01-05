@@ -29,7 +29,6 @@
 #include "internal/platform/implementation/g3/multi_thread_executor.h"
 #include "internal/platform/implementation/g3/pipe.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -224,6 +223,5 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_WIFI_HOTSPOT_H_

@@ -36,7 +36,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -306,8 +305,8 @@ class ServiceControllerRouterTest : public testing::Test {
       .remote_bluetooth_mac_address = ByteArray(kFakeMacAddress),
   };
 
-  std::vector<proto::connections::Medium> mediums_{
-      proto::connections::Medium::BLUETOOTH};
+  std::vector<location::nearby::proto::connections::Medium> mediums_{
+      location::nearby::proto::connections::Medium::BLUETOOTH};
   const ConnectionRequestInfo kConnectionRequestInfo{
       .endpoint_info = ByteArray{kRequestorName},
       .listener = ConnectionListener(),
@@ -444,4 +443,3 @@ TEST_F(ServiceControllerRouterTest, DisconnectFromEndpointCalled) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

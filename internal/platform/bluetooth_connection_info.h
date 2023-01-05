@@ -21,7 +21,6 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/connection_info.h"
 
-namespace location {
 namespace nearby {
 
 class BluetoothConnectionInfo : public ConnectionInfo {
@@ -60,6 +59,5 @@ inline bool operator!=(const BluetoothConnectionInfo& a,
 }
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_BLUETOOTH_CONNECTION_INFO_H_

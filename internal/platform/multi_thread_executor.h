@@ -19,7 +19,6 @@
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/submittable_executor.h"
 
-namespace location {
 namespace nearby {
 
 // An Executor that reuses a fixed number of threads operating off a shared
@@ -38,6 +37,5 @@ class ABSL_LOCKABLE MultiThreadExecutor final : public SubmittableExecutor {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_MULTI_THREAD_EXECUTOR_H_

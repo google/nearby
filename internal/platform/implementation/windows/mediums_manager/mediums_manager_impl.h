@@ -24,7 +24,6 @@
 #include "internal/platform/implementation/windows/mediums_manager/mediums_manager.h"
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -55,6 +54,5 @@ class MediumsManager : public api::MediumsManager {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_MEDIUMS_MANAGER_MEDIUMS_MANAGER_IMPL_H_

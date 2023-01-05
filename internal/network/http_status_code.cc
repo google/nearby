@@ -14,7 +14,6 @@
 
 #include "internal/network/http_status_code.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 
@@ -115,4 +114,3 @@ absl::string_view GetHttpReasonPhrase(HttpStatusCode code) {
 
 }  // namespace network
 }  // namespace nearby
-}  // namespace location

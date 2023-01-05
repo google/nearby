@@ -22,7 +22,6 @@
 
 extern NSErrorDomain const GNCErrorDomain = @"com.google.nearby.connections.error";
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -69,4 +68,3 @@ NSError *NSErrorFromCppStatus(Status status) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

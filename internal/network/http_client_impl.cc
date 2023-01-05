@@ -25,7 +25,6 @@
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 
@@ -120,4 +119,3 @@ void NearbyHttpClient::CleanThreads() {
 
 }  // namespace network
 }  // namespace nearby
-}  // namespace location

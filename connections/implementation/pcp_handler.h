@@ -25,7 +25,6 @@
 #include "connections/status.h"
 #include "connections/strategy.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -117,6 +116,5 @@ class PcpHandler {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_PCP_HANDLER_H_

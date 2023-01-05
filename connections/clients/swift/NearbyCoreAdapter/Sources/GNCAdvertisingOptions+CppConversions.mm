@@ -21,8 +21,8 @@
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/GNCAdvertisingOptions+CppConversions.h"
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/GNCStrategy+Internal.h"
 
-using ::location::nearby::connections::AdvertisingOptions;
-using ::location::nearby::connections::CppStrategyFromGNCStrategy;
+using ::nearby::connections::AdvertisingOptions;
+using ::nearby::connections::CppStrategyFromGNCStrategy;
 
 @implementation GNCAdvertisingOptions (CppConversions)
 

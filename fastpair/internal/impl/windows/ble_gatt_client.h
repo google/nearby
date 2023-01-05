@@ -28,7 +28,6 @@
 #include "winrt/Windows.Devices.Bluetooth.GenericAttributeProfile.h"
 #include "winrt/Windows.Devices.Bluetooth.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -133,6 +132,5 @@ class BleGattClient {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_WINDOWS_BLE_GATT_CLIENT_H_

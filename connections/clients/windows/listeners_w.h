@@ -32,7 +32,7 @@
 #include "connections/status.h"
 #include "internal/platform/payload_id.h"
 
-namespace location::nearby {
+namespace nearby {
 // Forward declarations
 namespace connections {
 struct ConnectionListener;
@@ -61,7 +61,7 @@ struct PayloadProgressInfo;
 
 namespace windows {
 
-using ::location::nearby::connections::Status;
+using ::nearby::connections::Status;
 
 template <class T>
 T DefaultConstructor() {
@@ -295,6 +295,6 @@ struct DLL_API PayloadListenerW {
 
 }  // extern "C"
 }  // namespace windows
-}  // namespace location::nearby
+}  // namespace nearby
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_LISTENERS_W_H_

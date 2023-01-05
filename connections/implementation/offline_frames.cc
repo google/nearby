@@ -23,14 +23,21 @@
 #include "connections/status.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace parser {
 namespace {
 
-using ExceptionOrOfflineFrame = ExceptionOr<OfflineFrame>;
+using ExceptionOrOfflineFrame =
+    ExceptionOr<::location::nearby::connections::OfflineFrame>;
 using MessageLite = ::google::protobuf::MessageLite;
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
+using ::location::nearby::connections::ConnectionRequestFrame;
+using ::location::nearby::connections::ConnectionResponseFrame;
+using ::location::nearby::connections::LocationHint;
+using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::PayloadTransferFrame;
+using ::location::nearby::connections::V1Frame;
 
 ByteArray ToBytes(OfflineFrame&& frame) {
   ByteArray bytes(frame.ByteSizeLong());
@@ -506,4 +513,3 @@ std::vector<Medium> ConnectionRequestMediumsToMediums(
 }  // namespace parser
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

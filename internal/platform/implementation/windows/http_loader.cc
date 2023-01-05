@@ -24,7 +24,6 @@
 #include "absl/strings/str_cat.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 namespace {
@@ -32,7 +31,7 @@ namespace {
 constexpr DWORD kSchemaMaximumLength = 10;
 constexpr DWORD kHostNameMaximumLength = 256;
 
-using ::location::nearby::api::WebResponse;
+using ::nearby::api::WebResponse;
 
 }  // namespace
 
@@ -410,4 +409,3 @@ absl::Status HttpLoader::HTTPCodeToStatus(int status_code,
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

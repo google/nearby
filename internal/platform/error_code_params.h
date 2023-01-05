@@ -18,7 +18,6 @@
 #include "proto/connections_enums.pb.h"
 #include "proto/errorcode/error_code_enums.pb.h"
 
-namespace location {
 namespace nearby {
 
 // A struct to construct error code parameters for the analytics recorder.
@@ -59,6 +58,5 @@ struct ErrorCodeParams {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_ERROR_CORE_PARAMS_H_

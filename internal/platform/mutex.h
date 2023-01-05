@@ -21,7 +21,6 @@
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/platform.h"
 
-namespace location {
 namespace nearby {
 
 // This is a classic mutex can be acquired at most once.
@@ -73,6 +72,5 @@ class ABSL_LOCKABLE RecursiveMutex final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_MUTEX_H_

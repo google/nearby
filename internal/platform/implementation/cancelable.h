@@ -15,7 +15,6 @@
 #ifndef PLATFORM_API_CANCELABLE_H_
 #define PLATFORM_API_CANCELABLE_H_
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -30,6 +29,5 @@ class Cancelable {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_CANCELABLE_H_

@@ -18,7 +18,6 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 namespace {
@@ -44,4 +43,3 @@ TEST(HttpResponse, TestBuildResponse) {
 }  // namespace
 }  // namespace network
 }  // namespace nearby
-}  // namespace location

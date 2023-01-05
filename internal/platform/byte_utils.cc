@@ -19,7 +19,6 @@
 #include "absl/strings/str_format.h"
 #include "internal/platform/base_input_stream.h"
 
-namespace location {
 namespace nearby {
 
 std::string ByteUtils::ToFourDigitString(ByteArray& bytes) {
@@ -36,4 +35,3 @@ std::string ByteUtils::ToFourDigitString(ByteArray& bytes) {
 }
 
 }  // namespace nearby
-}  // namespace location

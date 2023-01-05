@@ -19,7 +19,6 @@
 #include "gtest/gtest.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 
 TEST(CryptoTest, Md5GeneratesHash) {
@@ -46,4 +45,3 @@ TEST(CryptoTest, Sha256ReturnsEmptyOnError) {
 }
 
 }  // namespace nearby
-}  // namespace location

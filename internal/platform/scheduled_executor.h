@@ -33,7 +33,6 @@
 #include "internal/platform/thread_check_callable.h"
 #include "internal/platform/thread_check_runnable.h"
 
-namespace location {
 namespace nearby {
 
 // An Executor that can schedule commands to run after a given delay, or to
@@ -104,6 +103,5 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_SCHEDULED_EXECUTOR_H_

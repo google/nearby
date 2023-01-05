@@ -23,7 +23,6 @@
 
 #import "internal/platform/implementation/apple/Mediums/Ble/GNCMBleCentral.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -99,7 +98,6 @@ class BluetoothAdapter : public api::BluetoothAdapter {
 
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location
 
 #endif
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_APPLE_BLUETOOTH_ADAPTER_H_

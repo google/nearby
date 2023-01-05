@@ -20,7 +20,6 @@
 
 #include "absl/strings/str_join.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -158,4 +157,3 @@ void OfflineServiceController::ShutdownBwuManagerExecutors() {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

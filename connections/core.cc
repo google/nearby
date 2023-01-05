@@ -25,7 +25,6 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -177,4 +176,3 @@ std::string Core::Dump() { return client_.Dump(); }
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

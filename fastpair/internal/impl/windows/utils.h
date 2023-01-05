@@ -25,7 +25,6 @@
 #include "winrt/Windows.Foundation.h"
 #include "winrt/base.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -34,6 +33,5 @@ uint64_t mac_address_string_to_uint64(absl::string_view mac_address);
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_WINDOWS_UTILS_H_

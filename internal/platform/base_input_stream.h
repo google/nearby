@@ -19,7 +19,6 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 
-namespace location {
 namespace nearby {
 
 // A base {@link InputStream } for reading the contents of a byte array.
@@ -58,6 +57,5 @@ class BaseInputStream : public InputStream {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_BASE_INPUT_STREAM_H_

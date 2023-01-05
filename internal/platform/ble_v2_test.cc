@@ -27,7 +27,6 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/medium_environment.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -42,9 +41,9 @@ constexpr FeatureFlags kTestCases[] = {
     },
 };
 
-using ::location::nearby::api::ble_v2::BleAdvertisementData;
-using ::location::nearby::api::ble_v2::GattCharacteristic;
-using ::location::nearby::api::ble_v2::TxPowerLevel;
+using ::nearby::api::ble_v2::BleAdvertisementData;
+using ::nearby::api::ble_v2::GattCharacteristic;
+using ::nearby::api::ble_v2::TxPowerLevel;
 using ::testing::Optional;
 
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
@@ -547,4 +546,3 @@ TEST_F(BleV2MediumTest, GattClientConnectToGattServerWorks) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

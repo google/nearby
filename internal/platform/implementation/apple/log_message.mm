@@ -20,7 +20,6 @@
 #include "internal/platform/implementation/log_message.h"
 #include "GoogleToolboxForMac/GTMLogger.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -94,4 +93,3 @@ bool LogMessage::ShouldCreateLogMessage(Severity severity) {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location

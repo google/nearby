@@ -26,7 +26,6 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -188,4 +187,3 @@ TEST_F(PcpManagerTest, InjectEndpoint) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

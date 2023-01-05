@@ -26,7 +26,6 @@
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/scheduled_executor.h"
 
-namespace location {
 namespace nearby {
 
 /**
@@ -80,6 +79,5 @@ class CancelableAlarm {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_CANCELABLE_ALARM_H_

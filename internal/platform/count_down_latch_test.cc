@@ -17,7 +17,6 @@
 #include "gtest/gtest.h"
 #include "internal/platform/single_thread_executor.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -67,4 +66,3 @@ TEST(CountDownLatch, InitialCountZero_AwaitDoesNotBlock) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

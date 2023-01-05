@@ -17,7 +17,6 @@
 
 #include <ostream>
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -33,6 +32,5 @@ std::ostream& operator<<(std::ostream& stream, Protocol protocol);
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_COMMON_PROTOCOL_H_

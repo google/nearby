@@ -17,7 +17,6 @@
 #include "internal/platform/implementation/windows/executor.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -62,4 +61,3 @@ void SubmittableExecutor::Shutdown() {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

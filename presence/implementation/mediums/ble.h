@@ -29,8 +29,8 @@ namespace nearby {
 namespace presence {
 
 /** Presence advertisement service data uuid. */
-ABSL_CONST_INIT const location::nearby::Uuid kPresenceServiceUuid(
-    0x0000fcf100001000, 0x800000805f9b34fb);
+ABSL_CONST_INIT const nearby::Uuid kPresenceServiceUuid(0x0000fcf100001000,
+                                                        0x800000805f9b34fb);
 
 /*
  * This Ble class utilizes platform/ble_v2 BleV2Medium, provides ble functions
@@ -40,22 +40,18 @@ ABSL_CONST_INIT const location::nearby::Uuid kPresenceServiceUuid(
  */
 class Ble {
  public:
-  using TxPowerLevel = ::location::nearby::api::ble_v2::TxPowerLevel;
-  using ScanningSession =
-      ::location::nearby::api::ble_v2::BleMedium::ScanningSession;
-  using ScanningCallback =
-      ::location::nearby::api::ble_v2::BleMedium::ScanningCallback;
-  using AdvertiseParameters =
-      ::location::nearby::api::ble_v2::AdvertiseParameters;
+  using TxPowerLevel = ::nearby::api::ble_v2::TxPowerLevel;
+  using ScanningSession = ::nearby::api::ble_v2::BleMedium::ScanningSession;
+  using ScanningCallback = ::nearby::api::ble_v2::BleMedium::ScanningCallback;
+  using AdvertiseParameters = ::nearby::api::ble_v2::AdvertiseParameters;
   using AdvertisingSession =
-      ::location::nearby::api::ble_v2::BleMedium::AdvertisingSession;
+      ::nearby::api::ble_v2::BleMedium::AdvertisingSession;
   using AdvertisingCallback =
-      ::location::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
-  using BleAdvertisementData =
-      ::location::nearby::api::ble_v2::BleAdvertisementData;
-  using BleMedium = ::location::nearby::api::ble_v2::BleMedium;
+      ::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
+  using BleAdvertisementData = ::nearby::api::ble_v2::BleAdvertisementData;
+  using BleMedium = ::nearby::api::ble_v2::BleMedium;
 
-  explicit Ble(location::nearby::BluetoothAdapter& bluetooth_adapter)
+  explicit Ble(nearby::BluetoothAdapter& bluetooth_adapter)
       : medium_(bluetooth_adapter) {}
 
   bool IsAvailable() const { return medium_.IsValid(); }
@@ -68,7 +64,7 @@ class Ble {
     BleAdvertisementData advertising_data = {
         .is_extended_advertisement = payload.is_extended_advertisement};
     advertising_data.service_data.insert(
-        {kPresenceServiceUuid, location::nearby::ByteArray(payload.content)});
+        {kPresenceServiceUuid, nearby::ByteArray(payload.content)});
     AdvertiseParameters advertise_set_parameters = {
         .tx_power_level = ConvertPowerModeToPowerLevel(power_mode),
         .is_connectable = true,
@@ -104,7 +100,7 @@ class Ble {
     return TxPowerLevel::kUnknown;
   }
 
-  location::nearby::BleV2Medium medium_;
+  nearby::BleV2Medium medium_;
 };
 
 }  // namespace presence

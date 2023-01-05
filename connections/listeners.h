@@ -34,7 +34,6 @@
 #include "internal/platform/byte_utils.h"
 #include "internal/platform/listeners.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -192,6 +191,5 @@ struct PayloadListener {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_LISTENERS_H_

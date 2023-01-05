@@ -24,7 +24,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -149,7 +148,7 @@ void EndpointChannelManager::ChannelState::UpdateEncryptionContextForEndpoint(
 
 bool EndpointChannelManager::ChannelState::RemoveEndpoint(
     const std::string& endpoint_id,
-    proto::connections::DisconnectionReason reason) {
+    location::nearby::proto::connections::DisconnectionReason reason) {
   auto item = endpoints_.find(endpoint_id);
   if (item == endpoints_.end()) return false;
   item->second.disconnect_reason = reason;
@@ -189,8 +188,8 @@ bool EndpointChannelManager::UnregisterChannelForEndpoint(
   MutexLock lock(&mutex_);
 
   if (!channel_state_.RemoveEndpoint(
-          endpoint_id,
-          proto::connections::DisconnectionReason::LOCAL_DISCONNECTION)) {
+          endpoint_id, location::nearby::proto::connections::
+                           DisconnectionReason::LOCAL_DISCONNECTION)) {
     return false;
   }
 
@@ -203,4 +202,3 @@ bool EndpointChannelManager::UnregisterChannelForEndpoint(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

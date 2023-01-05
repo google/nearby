@@ -19,7 +19,7 @@
 
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
-namespace location {
+
 namespace nearby {
 namespace analytics {
 
@@ -169,8 +169,8 @@ bool ThroughputRecorder::Throughput::dump() {
       (payload_direction_ == PayloadDirection::INCOMING_PAYLOAD) ? "Received"
                                                                  : "Sent",
       ToString(payload_type_), total_byte_size_,
-      proto::connections::Medium_Name(medium_), total_millis, throughpu_mbps,
-      throughput_kbps, file_io_time_,
+      location::nearby::proto::connections::Medium_Name(medium_), total_millis,
+      throughpu_mbps, throughput_kbps, file_io_time_,
       (payload_direction_ == PayloadDirection::INCOMING_PAYLOAD) ? "Decryption"
                                                                  : "Encryption",
       encryption_time_, socket_io_time_, other);
@@ -321,4 +321,3 @@ int ThroughputRecorderContainer::GetSize() {
 
 }  // namespace analytics
 }  // namespace nearby
-}  // namespace location

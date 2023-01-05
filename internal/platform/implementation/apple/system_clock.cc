@@ -16,7 +16,6 @@
 
 #include "absl/time/clock.h"
 
-namespace location {
 namespace nearby {
 
 void SystemClock::Init() {}
@@ -30,4 +29,3 @@ Exception SystemClock::Sleep(absl::Duration duration) {
 }
 
 }  // namespace nearby
-}  // namespace location

@@ -18,11 +18,10 @@
 
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 namespace {
-using ::location::nearby::api::WebRequest;
+using ::nearby::api::WebRequest;
 
 TEST(HttpLoader, DISABLED_TestGetUrl) {
   WebRequest request;
@@ -50,4 +49,3 @@ TEST(HttpLoader, DISABLED_TestInvalidUrl) {
 }  // namespace
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

@@ -28,7 +28,6 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -97,6 +96,5 @@ class BluetoothDevice : public api::BluetoothDevice {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_DEVICE_H_

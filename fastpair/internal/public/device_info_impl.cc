@@ -17,7 +17,6 @@
 #include <functional>
 #include <string>
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -42,4 +41,3 @@ void DeviceInfoImpl::UnregisterScreenLockedListener(
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location

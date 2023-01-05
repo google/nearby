@@ -75,12 +75,10 @@ TEST(PresenceDeviceTest, TestGetBluetoothAddress) {
   DeviceMetadata metadata = CreateTestDeviceMetadata();
   PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
   auto info = (device.GetConnectionInfos().at(0));
-  ASSERT_TRUE(
-      absl::holds_alternative<location::nearby::BleConnectionInfo>(info));
-  EXPECT_EQ(absl::get<location::nearby::BleConnectionInfo>(info)
-                .GetMacAddress()
-                .AsStringView(),
-            kMacAddr);
+  ASSERT_TRUE(absl::holds_alternative<nearby::BleConnectionInfo>(info));
+  EXPECT_EQ(
+      absl::get<nearby::BleConnectionInfo>(info).GetMacAddress().AsStringView(),
+      kMacAddr);
 }
 
 TEST(PresenceDeviceTest, TestEndpointIdIsCorrectLength) {

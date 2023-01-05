@@ -15,12 +15,12 @@
 #import <Foundation/Foundation.h>
 
 #ifdef __cplusplus
-namespace location {
+
 namespace nearby {
 class Exception;
 namespace connections {
 NSError *NSErrorFromCppException(Exception exception);
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
+
 #endif

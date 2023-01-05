@@ -20,7 +20,6 @@
 #include "internal/platform/implementation/condition_variable.h"
 #include "internal/platform/implementation/shared/posix_mutex.h"
 
-namespace location {
 namespace nearby {
 namespace posix {
 
@@ -40,6 +39,5 @@ class ConditionVariable : public api::ConditionVariable {
 
 }  // namespace posix
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_SHARED_POSIX_CONDITION_VARIABLE_H_

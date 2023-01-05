@@ -22,7 +22,6 @@
 #include "internal/platform/crypto.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -127,4 +126,3 @@ TEST(UuidTest, ComparisonEqualWorksForString) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

@@ -24,7 +24,6 @@
 #include "internal/platform/logging.h"
 #include "internal/proto/credential.pb.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -158,4 +157,3 @@ void CredentialStorageImpl::GetPublicCredentials(
 }
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location

@@ -21,7 +21,7 @@
 #include "internal/platform/byte_array.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location::nearby::windows {
+namespace nearby::windows {
 
 extern "C" {
 
@@ -53,6 +53,6 @@ struct DLL_API OutOfBandConnectionMetadataW {
 };
 
 }  // extern "C"
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_OUT_OF_BAND_CONNECTION_METADATA_H_

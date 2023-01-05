@@ -19,7 +19,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -89,6 +88,5 @@ LostEntityTracker<Entity>::ComputeLostEntities() {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_LOST_ENTITY_TRACKER_H_

@@ -30,7 +30,6 @@
 #include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/implementation/platform.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 namespace {
@@ -272,4 +271,3 @@ TEST_F(NearbyHttpClientTest, TestRequestWithCleanThreads) {
 }  // namespace
 }  // namespace network
 }  // namespace nearby
-}  // namespace location

@@ -20,7 +20,6 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -102,4 +101,3 @@ TEST(BleUtilsTest, CanGenerateAdvertisementUuid) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

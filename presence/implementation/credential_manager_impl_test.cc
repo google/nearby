@@ -32,7 +32,7 @@
 namespace nearby {
 namespace presence {
 namespace {
-using ::location::nearby::Crypto;
+using ::nearby::Crypto;
 using ::nearby::internal::DeviceMetadata;
 using ::nearby::internal::IdentityType;
 using ::nearby::internal::PrivateCredential;
@@ -63,7 +63,7 @@ CredentialSelector BuildDefaultCredentialSelector() {
 
 class CredentialManagerImplTest : public ::testing::Test {
  public:
-  class MockCredentialStorage : public location::nearby::CredentialStorageImpl {
+  class MockCredentialStorage : public nearby::CredentialStorageImpl {
    public:
     MOCK_METHOD(void, SaveCredentials,
                 (absl::string_view manager_app_id,
@@ -225,7 +225,7 @@ TEST(CredentialManagerImpl, UpdateRemotePublicCredentialsSuccessfully) {
   std::vector<nearby::internal::PublicCredential> publicCredentials{
       {public_credential_for_test}};
 
-  location::nearby::CountDownLatch updated_latch(1);
+  nearby::CountDownLatch updated_latch(1);
   UpdateRemotePublicCredentialsCallback update_credentials_cb{
       .credentials_updated_cb =
           [&updated_latch](absl::Status status) {

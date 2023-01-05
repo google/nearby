@@ -17,7 +17,6 @@
 
 #include "internal/platform/base_pipe.h"
 
-namespace location {
 namespace nearby {
 
 // See for details:
@@ -31,6 +30,5 @@ class Pipe final : public BasePipe {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_PIPE_H_

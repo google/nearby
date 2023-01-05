@@ -22,7 +22,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/system_clock.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -205,4 +204,3 @@ bool Ble::IsScanningLocked() { return is_scanning_; }
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location

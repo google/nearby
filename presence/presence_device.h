@@ -30,7 +30,7 @@ namespace presence {
 
 constexpr int kEndpointIdLength = 4;
 
-class PresenceDevice : public location::nearby::NearbyDevice {
+class PresenceDevice : public nearby::NearbyDevice {
   using DeviceMetadata = ::nearby::internal::DeviceMetadata;
 
  public:
@@ -46,7 +46,7 @@ class PresenceDevice : public location::nearby::NearbyDevice {
     return NearbyDevice::Type::kPresenceDevice;
   }
   // Add more medium ConnectionInfos as we introduce them.
-  std::vector<location::nearby::ConnectionInfoVariant> GetConnectionInfos()
+  std::vector<nearby::ConnectionInfoVariant> GetConnectionInfos()
       const override;
   DeviceMotion GetDeviceMotion() const { return device_motion_; }
   DeviceMetadata GetMetadata() const { return device_metadata_; }

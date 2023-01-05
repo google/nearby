@@ -19,7 +19,6 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -27,4 +26,3 @@ std::string BlePeripheral::GetAddress() const { return adapter_.GetMacAddress();
 
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location

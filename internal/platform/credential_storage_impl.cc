@@ -18,7 +18,6 @@
 
 #include "internal/platform/implementation/credential_callbacks.h"
 
-namespace location {
 namespace nearby {
 
 using ::nearby::internal::PrivateCredential;
@@ -55,4 +54,3 @@ void CredentialStorageImpl::GetPublicCredentials(
 }
 
 }  // namespace nearby
-}  // namespace location

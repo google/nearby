@@ -20,7 +20,6 @@
 #include <sstream>
 #include <string>
 
-namespace location {
 namespace nearby {
 namespace network {
 
@@ -89,4 +88,3 @@ std::string UrlDecode(absl::string_view url_string) {
 
 }  // namespace network
 }  // namespace nearby
-}  // namespace location

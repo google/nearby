@@ -23,10 +23,10 @@
 // TODO(b/239758418): Change this to the non-internal version when available.
 #include "internal/platform/input_stream.h"
 
-using ::location::nearby::ByteArray;
-using ::location::nearby::Exception;
-using ::location::nearby::ExceptionOr;
-using ::location::nearby::InputStream;
+using ::nearby::ByteArray;
+using ::nearby::Exception;
+using ::nearby::ExceptionOr;
+using ::nearby::InputStream;
 
 class CPPInputStream : public InputStream {
  public:

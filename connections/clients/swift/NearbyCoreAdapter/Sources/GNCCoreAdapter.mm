@@ -37,21 +37,21 @@
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCPayload.h"
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCPayloadDelegate.h"
 
-using ::location::nearby::ByteArray;
-using ::location::nearby::connections::AdvertisingOptions;
-using ::location::nearby::connections::ConnectionListener;
-using ::location::nearby::connections::ConnectionOptions;
-using ::location::nearby::connections::ConnectionRequestInfo;
-using ::location::nearby::connections::ConnectionResponseInfo;
-using ::location::nearby::connections::Core;
-using ::location::nearby::connections::DiscoveryListener;
-using ::location::nearby::connections::DiscoveryOptions;
-using ::location::nearby::connections::Payload;
-using ::location::nearby::connections::PayloadListener;
-using ::location::nearby::connections::PayloadProgressInfo;
-using ResultListener = ::location::nearby::connections::ResultCallback;
-using ::location::nearby::connections::ServiceControllerRouter;
-using ::location::nearby::connections::Status;
+using ::nearby::ByteArray;
+using ::nearby::connections::AdvertisingOptions;
+using ::nearby::connections::ConnectionListener;
+using ::nearby::connections::ConnectionOptions;
+using ::nearby::connections::ConnectionRequestInfo;
+using ::nearby::connections::ConnectionResponseInfo;
+using ::nearby::connections::Core;
+using ::nearby::connections::DiscoveryListener;
+using ::nearby::connections::DiscoveryOptions;
+using ::nearby::connections::Payload;
+using ::nearby::connections::PayloadListener;
+using ::nearby::connections::PayloadProgressInfo;
+using ResultListener = ::nearby::connections::ResultCallback;
+using ::nearby::connections::ServiceControllerRouter;
+using ::nearby::connections::Status;
 
 GNCStatus GNCStatusFromCppStatus(Status status) {
   switch (status.value) {

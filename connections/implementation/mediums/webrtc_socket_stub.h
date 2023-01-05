@@ -20,7 +20,6 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -64,6 +63,5 @@ class WebRtcSocketWrapper final {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_STUB_H_

@@ -20,7 +20,6 @@
 
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -47,6 +46,5 @@ class WebrtcPeerId {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_ID_H_

@@ -25,7 +25,6 @@
 #include "internal/platform/listeners.h"
 #include "internal/platform/output_stream.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -157,6 +156,5 @@ class BluetoothClassicMedium {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_BLUETOOTH_CLASSIC_H_

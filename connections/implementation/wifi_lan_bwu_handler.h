@@ -22,7 +22,6 @@
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/mediums/mediums.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -73,6 +72,5 @@ class WifiLanBwuHandler : public BaseBwuHandler {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_WIFI_LAN_BWU_HANDLER_H_

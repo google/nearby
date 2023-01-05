@@ -24,7 +24,6 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/webrtc_endpoint_channel.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -71,4 +70,3 @@ void WebrtcBwuHandler::OnIncomingWebrtcConnection(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

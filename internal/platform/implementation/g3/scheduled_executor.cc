@@ -21,7 +21,6 @@
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/runnable.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -76,4 +75,3 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location

@@ -17,7 +17,6 @@
 #include "gtest/gtest.h"
 #include "internal/platform/medium_environment.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -43,4 +42,3 @@ TEST(FeatureFlagsTest, ToSetFeatureWorks) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

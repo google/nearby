@@ -30,7 +30,6 @@
 #include "connections/strategy.h"
 #include "internal/platform/atomic_boolean.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -68,7 +67,7 @@ class PcpManager {
                           const PayloadListener& payload_listener);
   Status RejectConnection(ClientProxy* client, const string& endpoint_id);
 
-  proto::connections::Medium GetBandwidthUpgradeMedium();
+  location::nearby::proto::connections::Medium GetBandwidthUpgradeMedium();
   void DisconnectFromEndpointManager();
 
  private:
@@ -82,6 +81,5 @@ class PcpManager {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_PCP_MANAGER_H_

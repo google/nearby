@@ -16,7 +16,6 @@
 
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -52,4 +51,3 @@ TEST(StrategyTest, GetNameWorks) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

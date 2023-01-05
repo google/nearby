@@ -20,7 +20,6 @@
 
 #include "absl/status/status.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -62,6 +61,5 @@ std::ostream& operator<<(std::ostream& stream,
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_COMMON_FAST_PAIR_HTTP_RESULT_H_

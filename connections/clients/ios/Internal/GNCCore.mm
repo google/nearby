@@ -21,8 +21,8 @@
 #include "connections/implementation/service_controller_router.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
-using ::location::nearby::connections::Core;
-using ::location::nearby::connections::ServiceControllerRouter;
+using ::nearby::connections::Core;
+using ::nearby::connections::ServiceControllerRouter;
 
 @implementation GNCCore {
 }

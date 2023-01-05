@@ -14,10 +14,8 @@
 
 #include "internal/platform/nsd_service_info.h"
 
-namespace location {
 namespace nearby {
 
 constexpr absl::string_view NsdServiceInfo::kNsdTypeFormat;
 
 }  // namespace nearby
-}  // namespace location

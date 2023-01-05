@@ -20,7 +20,6 @@
 
 #include "internal/network/http_client.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 
@@ -33,6 +32,5 @@ class HttpClientFactory {
 
 }  // namespace network
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_CLIENT_FACTORY_H_

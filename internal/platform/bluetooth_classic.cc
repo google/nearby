@@ -17,7 +17,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 
 BluetoothClassicMedium::~BluetoothClassicMedium() { StopDiscovery(); }
@@ -96,4 +95,3 @@ bool BluetoothClassicMedium::StopDiscovery() {
 }
 
 }  // namespace nearby
-}  // namespace location

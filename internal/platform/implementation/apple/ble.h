@@ -31,7 +31,6 @@
 
 @class GNCMBlePeripheral, GNCMBleCentral;
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -158,7 +157,7 @@ class BleMedium : public api::ble_v2::BleMedium {
         const std::vector<api::ble_v2::GattCharacteristic::Property> &properties) override;
 
     bool UpdateCharacteristic(const api::ble_v2::GattCharacteristic &characteristic,
-                              const location::nearby::ByteArray &value) override;
+                              const nearby::ByteArray &value) override;
     void Stop() override;
 
    private:
@@ -204,7 +203,6 @@ class BleMedium : public api::ble_v2::BleMedium {
 
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location
 
 #endif
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_APPLE_BLE_H_

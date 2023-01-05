@@ -14,7 +14,7 @@
 #ifndef THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_CONFIG_H_
 #define THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_CONFIG_H_
 
-namespace location::nearby::windows {
+namespace nearby::windows {
 
 #ifdef _WIN32  // These storage class specifiers only matter to win32 dll
                // builds.
@@ -29,6 +29,6 @@ namespace location::nearby::windows {
 #define DLL_API  // We're not building a win32 dll, leave the source unchanged.
 #endif           // _WIN32
 
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_CONFIG_H_

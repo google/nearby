@@ -18,7 +18,6 @@
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -198,4 +197,3 @@ Exception WifiLanSocket::SocketOutputStream::Close() {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

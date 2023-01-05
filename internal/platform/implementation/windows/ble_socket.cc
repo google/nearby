@@ -17,7 +17,6 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -46,4 +45,3 @@ BlePeripheral* BleSocket::GetRemotePeripheral() {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

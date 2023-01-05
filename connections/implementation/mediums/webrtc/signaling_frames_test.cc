@@ -22,7 +22,6 @@
 #include "gtest/gtest.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -30,6 +29,8 @@ namespace webrtc_frames {
 
 namespace {
 
+using ::location::nearby::mediums::IceCandidate;
+using ::location::nearby::mediums::WebRtcSignalingFrame;
 const char kSampleSdp[] =
     "v=0\r\no=- 7859371131 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 "
     "0\r\na=msid-semantic: WMS\r\n";
@@ -84,7 +85,7 @@ TEST(SignalingFramesTest, SignalingPoke) {
   WebrtcPeerId sender_id("abc");
   ByteArray encoded_poke = EncodeReadyForSignalingPoke(sender_id);
 
-  location::nearby::mediums::WebRtcSignalingFrame frame;
+  WebRtcSignalingFrame frame;
   frame.ParseFromString(std::string(encoded_poke.data(), encoded_poke.size()));
 
   EXPECT_THAT(frame, protobuf_matchers::EqualsProto(R"pb(
@@ -100,7 +101,7 @@ TEST(SignalingFramesTest, EncodeValidOffer) {
       webrtc::CreateSessionDescription(webrtc::SdpType::kOffer, kSampleSdp);
   ByteArray encoded_offer = EncodeOffer(sender_id, *offer);
 
-  location::nearby::mediums::WebRtcSignalingFrame frame;
+  WebRtcSignalingFrame frame;
   frame.ParseFromString(
       std::string(encoded_offer.data(), encoded_offer.size()));
 
@@ -108,7 +109,7 @@ TEST(SignalingFramesTest, EncodeValidOffer) {
 }
 
 TEST(SignaingFramesTest, DecodeValidOffer) {
-  location::nearby::mediums::WebRtcSignalingFrame frame;
+  WebRtcSignalingFrame frame;
   proto2::TextFormat::ParseFromString(kOfferProto, &frame);
   std::unique_ptr<webrtc::SessionDescriptionInterface> decoded_offer =
       DecodeOffer(frame);
@@ -125,7 +126,7 @@ TEST(SignalingFramesTest, EncodeValidAnswer) {
       webrtc::CreateSessionDescription(webrtc::SdpType::kAnswer, kSampleSdp));
   ByteArray encoded_answer = EncodeAnswer(sender_id, *answer);
 
-  location::nearby::mediums::WebRtcSignalingFrame frame;
+  WebRtcSignalingFrame frame;
   frame.ParseFromString(
       std::string(encoded_answer.data(), encoded_answer.size()));
 
@@ -133,7 +134,7 @@ TEST(SignalingFramesTest, EncodeValidAnswer) {
 }
 
 TEST(SignalingFramesTest, DecodeValidAnswer) {
-  location::nearby::mediums::WebRtcSignalingFrame frame;
+  WebRtcSignalingFrame frame;
   proto2::TextFormat::ParseFromString(kAnswerProto, &frame);
   std::unique_ptr<webrtc::SessionDescriptionInterface> decoded_answer =
       DecodeAnswer(frame);
@@ -153,14 +154,14 @@ TEST(SignalingFramesTest, EncodeValidIceCandidates) {
       kIceSdpMid, kIceSdpMLineIndex, kIceCandidateSdp1, &error));
   ice_candidates.emplace_back(webrtc::CreateIceCandidate(
       kIceSdpMid, kIceSdpMLineIndex, kIceCandidateSdp2, &error));
-  std::vector<location::nearby::mediums::IceCandidate> encoded_candidates_vec;
+  std::vector<IceCandidate> encoded_candidates_vec;
   for (const auto& ice_candidate : ice_candidates) {
     encoded_candidates_vec.push_back(EncodeIceCandidate(*ice_candidate));
   }
   ByteArray encoded_candidates =
       EncodeIceCandidates(sender_id, encoded_candidates_vec);
 
-  location::nearby::mediums::WebRtcSignalingFrame frame;
+  WebRtcSignalingFrame frame;
   frame.ParseFromString(
       std::string(encoded_candidates.data(), encoded_candidates.size()));
 
@@ -175,7 +176,7 @@ TEST(SignalingFramesTest, DecodeValidIceCandidates) {
   ice_candidates.emplace_back(webrtc::CreateIceCandidate(
       kIceSdpMid, kIceSdpMLineIndex, kIceCandidateSdp2, &error));
 
-  location::nearby::mediums::WebRtcSignalingFrame frame;
+  WebRtcSignalingFrame frame;
   proto2::TextFormat::ParseFromString(kIceCandidatesProto, &frame);
   std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
       decoded_candidates = DecodeIceCandidates(frame);
@@ -194,4 +195,3 @@ TEST(SignalingFramesTest, DecodeValidIceCandidates) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

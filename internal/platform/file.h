@@ -27,7 +27,6 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 
-namespace location {
 namespace nearby {
 
 class InputFile final {
@@ -104,6 +103,5 @@ class OutputFile final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_FILE_H_

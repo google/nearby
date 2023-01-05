@@ -24,7 +24,6 @@
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -32,6 +31,7 @@ namespace mediums {
 namespace {
 
 using FeatureFlags = FeatureFlags::Flags;
+using ::location::nearby::connections::LocationHint;
 
 constexpr FeatureFlags kTestCases[] = {
     FeatureFlags{
@@ -409,4 +409,3 @@ TEST_F(WebRtcTest, ContinueAcceptingConnectionsOnComplete) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

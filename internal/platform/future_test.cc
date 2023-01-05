@@ -20,7 +20,6 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/single_thread_executor.h"
 
-namespace location {
 namespace nearby {
 
 namespace {
@@ -234,4 +233,3 @@ TEST(FutureTest, AddListenerWhenAlreadySetExceptionCallsCallback) {
 }
 
 }  // namespace nearby
-}  // namespace location

@@ -23,7 +23,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -426,4 +425,3 @@ int WifiLan::GeneratePort(const std::string& service_id,
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

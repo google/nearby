@@ -20,7 +20,6 @@
 
 #include "absl/strings/string_view.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 
@@ -62,6 +61,5 @@ using HttpResponseBody = HttpBody;
 
 }  // namespace network
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_BODY_H_

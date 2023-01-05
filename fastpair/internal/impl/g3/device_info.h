@@ -23,7 +23,6 @@
 #include "absl/strings/string_view.h"
 #include "fastpair/internal/api/device_info.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -53,6 +52,5 @@ class DeviceInfo : public api::DeviceInfo {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_G3_DEVICE_INFO_H_

@@ -22,7 +22,6 @@
 #include "internal/platform/byte_array.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -52,6 +51,5 @@ struct DiscoveryOptions : OptionsBase {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_DISCOVERY_OPTIONS_H_

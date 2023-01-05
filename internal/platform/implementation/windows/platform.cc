@@ -63,7 +63,6 @@
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -310,4 +309,3 @@ absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location

@@ -20,7 +20,6 @@
 #include "gtest/gtest.h"
 #include "internal/platform/base64_utils.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -204,4 +203,3 @@ TEST(BluetoothDeviceNameTest, CanParseGeneratedName) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

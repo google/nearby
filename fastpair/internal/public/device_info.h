@@ -22,7 +22,6 @@
 #include "fastpair/internal/api/device_info.h"
 #include "fastpair/internal/api/fast_pair_platform.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -42,6 +41,5 @@ class DeviceInfo {
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_PUBLIC_DEVICE_INFO_H_

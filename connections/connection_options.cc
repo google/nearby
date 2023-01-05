@@ -16,7 +16,6 @@
 
 #include <string>
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -26,4 +25,3 @@ std::vector<Medium> ConnectionOptions::GetMediums() const {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

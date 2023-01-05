@@ -20,7 +20,6 @@
 #include "absl/time/time.h"
 #include "internal/platform/exception.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -40,6 +39,5 @@ class CountDownLatch {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_COUNT_DOWN_LATCH_H_

@@ -22,7 +22,6 @@
 #include "internal/platform/implementation/shared/count_down_latch.h"
 #include "nisaba/port/thread_pool.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -61,6 +60,5 @@ class MultiThreadExecutor : public api::SubmittableExecutor {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_MULTI_THREAD_EXECUTOR_H_

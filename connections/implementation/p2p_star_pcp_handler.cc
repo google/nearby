@@ -18,7 +18,6 @@
 
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -30,34 +29,35 @@ P2pStarPcpHandler::P2pStarPcpHandler(
                            &bwu_manager, injected_bluetooth_device_store, pcp) {
 }
 
-std::vector<proto::connections::Medium>
+std::vector<location::nearby::proto::connections::Medium>
 P2pStarPcpHandler::GetConnectionMediumsByPriority() {
-  std::vector<proto::connections::Medium> mediums;
+  std::vector<location::nearby::proto::connections::Medium> mediums;
   if (mediums_->GetWifiLan().IsAvailable()) {
-    mediums.push_back(proto::connections::WIFI_LAN);
+    mediums.push_back(location::nearby::proto::connections::WIFI_LAN);
   }
   if (mediums_->GetWifi().IsAvailable() &&
       mediums_->GetWifiDirect().IsGCAvailable()) {
-    mediums.push_back(proto::connections::WIFI_DIRECT);
+    mediums.push_back(location::nearby::proto::connections::WIFI_DIRECT);
   }
   if (mediums_->GetWifi().IsAvailable() &&
       mediums_->GetWifiHotspot().IsClientAvailable()) {
-    mediums.push_back(proto::connections::WIFI_HOTSPOT);
+    mediums.push_back(location::nearby::proto::connections::WIFI_HOTSPOT);
   }
   if (mediums_->GetWebRtc().IsAvailable()) {
-    mediums.push_back(proto::connections::WEB_RTC);
+    mediums.push_back(location::nearby::proto::connections::WEB_RTC);
   }
   if (mediums_->GetBluetoothClassic().IsAvailable()) {
-    mediums.push_back(proto::connections::BLUETOOTH);
+    mediums.push_back(location::nearby::proto::connections::BLUETOOTH);
   }
   if (mediums_->GetBle().IsAvailable()) {
-    mediums.push_back(proto::connections::BLE);
+    mediums.push_back(location::nearby::proto::connections::BLE);
   }
   return mediums;
 }
 
-proto::connections::Medium P2pStarPcpHandler::GetDefaultUpgradeMedium() {
-  return proto::connections::Medium::WIFI_HOTSPOT;
+location::nearby::proto::connections::Medium
+P2pStarPcpHandler::GetDefaultUpgradeMedium() {
+  return location::nearby::proto::connections::Medium::WIFI_HOTSPOT;
 }
 
 bool P2pStarPcpHandler::CanSendOutgoingConnection(ClientProxy* client) const {
@@ -76,4 +76,3 @@ bool P2pStarPcpHandler::CanReceiveIncomingConnection(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

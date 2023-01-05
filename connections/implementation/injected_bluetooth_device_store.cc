@@ -20,7 +20,6 @@
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/bluetooth_utils.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -87,4 +86,3 @@ BluetoothDevice InjectedBluetoothDeviceStore::CreateInjectedBluetoothDevice(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

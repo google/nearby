@@ -19,7 +19,6 @@
 
 #include "absl/time/time.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -43,6 +42,5 @@ class TaskRunner {
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_PUBLIC_TASK_RUNNER_H_

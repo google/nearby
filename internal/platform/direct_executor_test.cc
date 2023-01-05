@@ -17,7 +17,6 @@
 
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 
 TEST(DirectExecutorTest, ExecutesRunnable) {
@@ -29,4 +28,3 @@ TEST(DirectExecutorTest, ExecutesRunnable) {
 }
 
 }  // namespace nearby
-}  // namespace location

@@ -22,7 +22,6 @@
 #include "fastpair/internal/impl/windows/device_info.h"
 #include "fastpair/internal/impl/windows/timer.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -37,4 +36,3 @@ std::unique_ptr<api::Timer> ImplementationFastPairPlatform::CreateTimer() {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location

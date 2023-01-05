@@ -16,7 +16,6 @@
 
 #include <string>
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -27,12 +26,12 @@ WebRtcEndpointChannel::WebRtcEndpointChannel(
                           &socket.GetOutputStream()),
       webrtc_socket_(std::move(socket)) {}
 
-proto::connections::Medium WebRtcEndpointChannel::GetMedium() const {
-  return proto::connections::Medium::WEB_RTC;
+location::nearby::proto::connections::Medium WebRtcEndpointChannel::GetMedium()
+    const {
+  return location::nearby::proto::connections::Medium::WEB_RTC;
 }
 
 void WebRtcEndpointChannel::CloseImpl() { webrtc_socket_.Close(); }
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

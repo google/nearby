@@ -16,7 +16,6 @@
 
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 
 WifiHotspotSocket WifiHotspotMedium::ConnectToService(
@@ -29,4 +28,3 @@ WifiHotspotSocket WifiHotspotMedium::ConnectToService(
 }
 
 }  // namespace nearby
-}  // namespace location

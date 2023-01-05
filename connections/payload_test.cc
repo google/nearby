@@ -25,7 +25,6 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/pipe.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -140,4 +139,3 @@ TEST(PayloadTest, PayloadIsNotCopyable) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

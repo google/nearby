@@ -18,7 +18,6 @@
 
 #include "absl/types/optional.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -104,4 +103,3 @@ absl::optional<Uuid> GenerateAdvertisementUuid(int slot) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

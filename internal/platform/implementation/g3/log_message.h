@@ -18,7 +18,6 @@
 #include "glog/logging.h"
 #include "internal/platform/implementation/log_message.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -39,6 +38,5 @@ class LogMessage : public api::LogMessage {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_LOG_MESSAGE_H_

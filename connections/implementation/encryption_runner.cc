@@ -28,7 +28,6 @@
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -386,4 +385,3 @@ void EncryptionRunner::StartClient(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

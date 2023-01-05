@@ -19,7 +19,6 @@
 
 #include "absl/strings/string_view.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -46,6 +45,5 @@ class FilePath {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_FILE_PATH_H_

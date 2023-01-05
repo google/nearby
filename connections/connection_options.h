@@ -20,7 +20,6 @@
 #include "internal/platform/byte_array.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -32,7 +31,7 @@ struct ConnectionInfo {
   std::string bssid;
   std::int32_t ap_frequency = -1;
   std::string ip_address;
-  std::vector<proto::connections::Medium> supported_mediums;
+  std::vector<location::nearby::proto::connections::Medium> supported_mediums;
   std::int32_t keep_alive_interval_millis;
   std::int32_t keep_alive_timeout_millis;
 };
@@ -59,6 +58,5 @@ struct ConnectionOptions : public OptionsBase {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_CONNECTION_OPTIONS_H_

@@ -19,7 +19,6 @@
 
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -280,4 +279,3 @@ WifiDirectSocket WifiDirect::Connect(const std::string& service_id,
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

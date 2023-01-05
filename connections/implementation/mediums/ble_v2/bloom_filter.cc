@@ -19,7 +19,6 @@
 #include "internal/platform/logging.h"
 #include "src/MurmurHash3.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -113,4 +112,3 @@ std::vector<std::int32_t> BloomFilter::GetHashes(const std::string& s) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

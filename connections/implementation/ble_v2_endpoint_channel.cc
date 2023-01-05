@@ -20,7 +20,6 @@
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -50,8 +49,9 @@ BleV2EndpointChannel::BleV2EndpointChannel(const std::string& service_id,
                           GetOutputStreamOrNull(socket)),
       ble_socket_(std::move(socket)) {}
 
-proto::connections::Medium BleV2EndpointChannel::GetMedium() const {
-  return proto::connections::Medium::BLE;
+location::nearby::proto::connections::Medium BleV2EndpointChannel::GetMedium()
+    const {
+  return location::nearby::proto::connections::Medium::BLE;
 }
 
 int BleV2EndpointChannel::GetMaxTransmitPacketSize() const {
@@ -69,4 +69,3 @@ void BleV2EndpointChannel::CloseImpl() {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

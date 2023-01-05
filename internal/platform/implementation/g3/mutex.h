@@ -19,7 +19,6 @@
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/shared/posix_mutex.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -56,6 +55,5 @@ class ABSL_LOCKABLE RecursiveMutex : public posix::Mutex {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_MUTEX_H_

@@ -22,7 +22,6 @@
 #include "absl/time/time.h"
 #include "internal/platform/implementation/windows/test_data.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 namespace {
@@ -248,4 +247,3 @@ TEST(SubmittableExecutorTests, SingleThreadedDoSubmitMultipleTasksSucceeds) {
 }  // namespace
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

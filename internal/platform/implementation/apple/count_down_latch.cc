@@ -14,7 +14,6 @@
 
 #include "internal/platform/implementation/apple/count_down_latch.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -37,4 +36,3 @@ void CountDownLatch::CountDown() {
 
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location

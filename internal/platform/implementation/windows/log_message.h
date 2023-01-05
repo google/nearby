@@ -18,7 +18,6 @@
 #include "glog/logging.h"
 #include "internal/platform/implementation/log_message.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -40,6 +39,5 @@ class LogMessage : public api::LogMessage {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_LOG_MESSAGE_H_

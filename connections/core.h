@@ -29,7 +29,6 @@
 #include "internal/analytics/event_logger.h"
 #include "internal/device.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -282,6 +281,5 @@ class Core {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_CORE_H_

@@ -34,11 +34,11 @@
 #include "internal/platform/os_name.h"
 #include "internal/platform/pipe.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
 namespace {
+using ::location::nearby::connections::PayloadTransferFrame;
 
 class BytesInternalPayload : public InternalPayload {
  public:
@@ -47,8 +47,11 @@ class BytesInternalPayload : public InternalPayload {
         total_size_(payload_.AsBytes().size()),
         detached_only_chunk_(false) {}
 
-  PayloadTransferFrame::PayloadHeader::PayloadType GetType() const override {
-    return PayloadTransferFrame::PayloadHeader::BYTES;
+  location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+      PayloadType
+      GetType() const override {
+    return location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+        BYTES;
   }
 
   std::int64_t GetTotalSize() const override { return total_size_; }
@@ -87,8 +90,11 @@ class OutgoingStreamInternalPayload : public InternalPayload {
   explicit OutgoingStreamInternalPayload(Payload payload)
       : InternalPayload(std::move(payload)) {}
 
-  PayloadTransferFrame::PayloadHeader::PayloadType GetType() const override {
-    return PayloadTransferFrame::PayloadHeader::STREAM;
+  location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+      PayloadType
+      GetType() const override {
+    return location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+        STREAM;
   }
 
   std::int64_t GetTotalSize() const override { return -1; }
@@ -189,8 +195,11 @@ class OutgoingFileInternalPayload : public InternalPayload {
       : InternalPayload(std::move(payload)),
         total_size_{payload_.AsFile()->GetTotalSize()} {}
 
-  PayloadTransferFrame::PayloadHeader::PayloadType GetType() const override {
-    return PayloadTransferFrame::PayloadHeader::FILE;
+  location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+      PayloadType
+      GetType() const override {
+    return location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+        FILE;
   }
 
   std::int64_t GetTotalSize() const override { return total_size_; }
@@ -259,8 +268,11 @@ class IncomingFileInternalPayload : public InternalPayload {
         output_file_(std::move(output_file)),
         total_size_(total_size) {}
 
-  PayloadTransferFrame::PayloadHeader::PayloadType GetType() const override {
-    return PayloadTransferFrame::PayloadHeader::FILE;
+  location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+      PayloadType
+      GetType() const override {
+    return location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+        FILE;
   }
 
   std::int64_t GetTotalSize() const override { return total_size_; }
@@ -292,8 +304,8 @@ class IncomingFileInternalPayload : public InternalPayload {
 
 }  // namespace
 
-using ::location::nearby::api::ImplementationPlatform;
-using ::location::nearby::api::OSName;
+using ::nearby::api::ImplementationPlatform;
+using ::nearby::api::OSName;
 
 std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(
     Payload payload) {
@@ -337,8 +349,10 @@ std::string make_path(const std::string& custom_save_path,
 }
 
 std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
-    const PayloadTransferFrame& frame, const std::string& custom_save_path) {
-  if (frame.packet_type() != PayloadTransferFrame::DATA) {
+    const location::nearby::connections::PayloadTransferFrame& frame,
+    const std::string& custom_save_path) {
+  if (frame.packet_type() !=
+      location::nearby::connections::PayloadTransferFrame::DATA) {
     return {};
   }
 
@@ -415,4 +429,3 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

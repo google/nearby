@@ -20,7 +20,6 @@
 
 #include "internal/platform/implementation/atomic_reference.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -38,6 +37,5 @@ class AtomicUint32 : public api::AtomicUint32 {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_ATOMIC_REFERENCE_H_

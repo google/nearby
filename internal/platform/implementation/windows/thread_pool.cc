@@ -24,7 +24,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/runnable.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -163,4 +162,3 @@ void ThreadPool::RunNextTask() {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

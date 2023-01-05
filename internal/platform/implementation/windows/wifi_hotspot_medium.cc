@@ -26,7 +26,6 @@
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 namespace {
@@ -118,7 +117,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
         }
 
         connection_cancellation_listener_ =
-            std::make_unique<location::nearby::CancellationFlagListener>(
+            std::make_unique<nearby::CancellationFlagListener>(
                 cancellation_flag, [socket]() {
                   NEARBY_LOGS(WARNING)
                       << "connect is closed due to it is cancelled.";
@@ -624,4 +623,3 @@ std::string WifiHotspotMedium::GetErrorMessage(std::exception_ptr eptr) {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

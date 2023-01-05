@@ -15,11 +15,10 @@
 
 #include "internal/platform/input_stream.h"
 
-namespace location::nearby {
+namespace nearby {
 void InputStreamDeleter::operator()(nearby::InputStream* p) { delete p; }
-}  // namespace location::nearby
+}  // namespace nearby
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -49,4 +48,3 @@ int64_t InputStreamW::Close() {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

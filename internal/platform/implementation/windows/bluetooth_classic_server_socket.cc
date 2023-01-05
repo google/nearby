@@ -25,7 +25,6 @@
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -158,4 +157,3 @@ bool BluetoothServerSocket::listen() {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

@@ -26,7 +26,6 @@
 #include "connections/implementation/wifi_hotspot_endpoint_channel.h"
 #include "internal/platform/wifi_hotspot.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -163,4 +162,3 @@ void WifiHotspotBwuHandler::OnIncomingWifiHotspotConnection(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

@@ -25,7 +25,6 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/windows/utils.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -108,4 +107,3 @@ Exception IOFile::Flush() {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

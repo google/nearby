@@ -17,7 +17,6 @@
 
 #include "internal/platform/implementation/settable_future.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -46,6 +45,5 @@ class SettableFuture : public api::SettableFuture<T> {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_SETTABLE_FUTURE_H_

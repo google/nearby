@@ -37,7 +37,7 @@
 
 namespace test_utils {
 std::wstring StringToWideString(const std::string& s);
-std::string GetPayloadPath(location::nearby::PayloadId payload_id);
+std::string GetPayloadPath(nearby::PayloadId payload_id);
 }  // namespace test_utils
 
 #endif  // PLATFORM_IMPL_WINDOWS_TEST_UTILS_H_

@@ -29,7 +29,6 @@
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/proto/credential.pb.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -497,4 +496,3 @@ INSTANTIATE_TEST_SUITE_P(
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

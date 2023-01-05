@@ -19,7 +19,6 @@
 
 #include "fastpair/fast_pair_controller.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -36,6 +35,5 @@ DLL_EXPORT void __stdcall ServerAccess(FastPairController *pController);
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_CLIENT_WINDOWS_FAST_PAIR_CONTROLLER_ADAPTER_H_

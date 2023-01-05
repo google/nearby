@@ -22,7 +22,6 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -67,4 +66,3 @@ void FastPairScannerImpl::OnDeviceLost(BlePeripheral& peripheral,
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location

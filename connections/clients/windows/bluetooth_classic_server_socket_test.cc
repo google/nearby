@@ -28,16 +28,16 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 
-namespace location::nearby::windows {
+namespace nearby::windows {
 
-using ::location::nearby::ByteArray;
-using ::location::nearby::connections::AdvertisingOptions;
-using ::location::nearby::connections::ConnectionListener;
-using ::location::nearby::connections::ConnectionRequestInfo;
-using ::location::nearby::connections::Core;
-using ::location::nearby::connections::ServiceControllerRouter;
-using ::location::nearby::connections::Status;
-using ::location::nearby::connections::Strategy;
+using ::nearby::ByteArray;
+using ::nearby::connections::AdvertisingOptions;
+using ::nearby::connections::ConnectionListener;
+using ::nearby::connections::ConnectionRequestInfo;
+using ::nearby::connections::Core;
+using ::nearby::connections::ServiceControllerRouter;
+using ::nearby::connections::Status;
+using ::nearby::connections::Strategy;
 
 constexpr absl::string_view SERVICE_ID =
     "com.google.location.nearby.apps.helloconnections";
@@ -609,4 +609,4 @@ TEST(BluetoothClassicServerSocketTest, DISABLED_MultiRunNoTimeoutReproStuck) {
   NEARBY_LOGS(INFO) << "Test completed.";
 }
 
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows

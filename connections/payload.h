@@ -29,7 +29,6 @@
 #include "internal/platform/payload_id.h"
 #include "internal/platform/prng.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -122,6 +121,5 @@ class Payload {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_PAYLOAD_H_

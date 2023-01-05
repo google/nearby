@@ -18,7 +18,6 @@
 
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 namespace {
@@ -45,4 +44,3 @@ TEST(UrlDecode, TestDecodeMatch) {
 }  // namespace
 }  // namespace network
 }  // namespace nearby
-}  // namespace location

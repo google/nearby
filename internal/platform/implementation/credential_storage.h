@@ -23,7 +23,6 @@
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/proto/credential.pb.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -82,6 +81,5 @@ class CredentialStorage {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_CREDENTIAL_STORAGE_H_

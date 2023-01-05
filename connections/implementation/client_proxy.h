@@ -40,7 +40,6 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/types/span.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -75,7 +74,7 @@ class ClientProxy final {
   void StartedAdvertising(
       const std::string& service_id, Strategy strategy,
       const ConnectionListener& connection_lifecycle_listener,
-      absl::Span<proto::connections::Medium> mediums,
+      absl::Span<location::nearby::proto::connections::Medium> mediums,
       const AdvertisingOptions& advertising_options = AdvertisingOptions{});
   // Marks this client as not advertising.
   void StoppedAdvertising();
@@ -86,7 +85,7 @@ class ClientProxy final {
   void StartedDiscovery(
       const std::string& service_id, Strategy strategy,
       const DiscoveryListener& discovery_listener,
-      absl::Span<proto::connections::Medium> mediums,
+      absl::Span<location::nearby::proto::connections::Medium> mediums,
       const DiscoveryOptions& discovery_options = DiscoveryOptions{});
   // Marks this client as not discovering at all.
   void StoppedDiscovery();
@@ -98,7 +97,7 @@ class ClientProxy final {
   void OnEndpointFound(const std::string& service_id,
                        const std::string& endpoint_id,
                        const ByteArray& endpoint_info,
-                       proto::connections::Medium medium);
+                       location::nearby::proto::connections::Medium medium);
   // Proxies to the client's DiscoveryListener::OnEndpointLost() callback.
   void OnEndpointLost(const std::string& service_id,
                       const std::string& endpoint_id);
@@ -202,7 +201,7 @@ class ClientProxy final {
   //********************************** V2 **********************************
   void OnDeviceFound(const absl::string_view service_id,
                      const NearbyDevice& device,
-                     proto::connections::Medium medium);
+                     location::nearby::proto::connections::Medium medium);
   // Proxies to the client's DiscoveryListener::OnEndpointLost() callback.
   void OnEndpointLost(absl::string_view service_id, const NearbyDevice& device);
 
@@ -377,6 +376,5 @@ class ClientProxy final {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_CLIENT_PROXY_H_

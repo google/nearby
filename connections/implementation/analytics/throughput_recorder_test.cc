@@ -21,7 +21,6 @@
 #include "internal/platform/logging.h"
 #include "proto/connections_enums.proto.h"
 
-namespace location {
 namespace nearby {
 namespace analytics {
 namespace {
@@ -83,11 +82,15 @@ TEST_F(ThroughputRecorderTest, OnFrameSentSaveTransferredSize) {
 
   PacketMetaData packet_meta_data;
   packet_meta_data.SetPacketSize(kFrameSize);
-  TPRecorder->OnFrameSent(proto::connections::BLE, packet_meta_data);
-  TPRecorder->OnFrameSent(proto::connections::BLE, packet_meta_data);
-  TPRecorder->OnFrameSent(proto::connections::BLE, packet_meta_data);
+  TPRecorder->OnFrameSent(location::nearby::proto::connections::BLE,
+                          packet_meta_data);
+  TPRecorder->OnFrameSent(location::nearby::proto::connections::BLE,
+                          packet_meta_data);
+  TPRecorder->OnFrameSent(location::nearby::proto::connections::BLE,
+                          packet_meta_data);
 
-  auto throughput = TPRecorder->GetThroughput(proto::connections::BLE, 0);
+  auto throughput =
+      TPRecorder->GetThroughput(location::nearby::proto::connections::BLE, 0);
   EXPECT_EQ(throughput.GetTotalByteSize(), kFrameSize * 3);
 }
 
@@ -97,11 +100,13 @@ TEST_F(ThroughputRecorderTest, OnIgnoreUnkownPaylaodType) {
   TPRecorder->Start(PayloadType::kUnknown, PayloadDirection::OUTGOING_PAYLOAD);
 
   PacketMetaData packet_meta_data;
-  TPRecorder->OnFrameSent(proto::connections::BLE, packet_meta_data);
+  TPRecorder->OnFrameSent(location::nearby::proto::connections::BLE,
+                          packet_meta_data);
   EXPECT_EQ(TPRecorder->GetThroughputsSize(), 0);
 
   TPRecorder->Start(PayloadType::kUnknown, PayloadDirection::INCOMING_PAYLOAD);
-  TPRecorder->OnFrameReceived(proto::connections::BLE, packet_meta_data);
+  TPRecorder->OnFrameReceived(location::nearby::proto::connections::BLE,
+                              packet_meta_data);
   EXPECT_EQ(TPRecorder->GetThroughputsSize(), 0);
 }
 
@@ -121,7 +126,8 @@ TEST_P(ThroughputRecorderTest, OnFrameSentStopAndDump) {
   packet_meta_data.StartSocketIo();
   absl::SleepFor(absl::Milliseconds(7));
   packet_meta_data.StopSocketIo();
-  TPRecorder->OnFrameSent(proto::connections::BLE, packet_meta_data);
+  TPRecorder->OnFrameSent(location::nearby::proto::connections::BLE,
+                          packet_meta_data);
   EXPECT_EQ(TPRecorder->GetDurationMillis(),
             packet_meta_data.GetEncryptionTimeInMillis() +
                 packet_meta_data.GetFileIoTimeInMillis() +
@@ -137,7 +143,8 @@ TEST_P(ThroughputRecorderTest, OnFrameSentStopAndDump) {
   packet_meta_data.StartSocketIo();
   absl::SleepFor(absl::Milliseconds(17));
   packet_meta_data.StopSocketIo();
-  TPRecorder->OnFrameSent(proto::connections::BLE, packet_meta_data);
+  TPRecorder->OnFrameSent(location::nearby::proto::connections::BLE,
+                          packet_meta_data);
 
   if (GetParam() == true) {
     NEARBY_LOGS(INFO) << "MarkAsSuccess";
@@ -163,7 +170,8 @@ TEST_F(ThroughputRecorderTest, OnFrameSentStopAndDumpForMultiMeadium) {
   packet_meta_data1.StartSocketIo();
   absl::SleepFor(absl::Milliseconds(7));
   packet_meta_data1.StopSocketIo();
-  TPRecorder->OnFrameSent(proto::connections::BLE, packet_meta_data1);
+  TPRecorder->OnFrameSent(location::nearby::proto::connections::BLE,
+                          packet_meta_data1);
 
   PacketMetaData packet_meta_data2;
   packet_meta_data2.SetPacketSize(kFrameSize);
@@ -176,7 +184,8 @@ TEST_F(ThroughputRecorderTest, OnFrameSentStopAndDumpForMultiMeadium) {
   packet_meta_data2.StartSocketIo();
   absl::SleepFor(absl::Milliseconds(17));
   packet_meta_data2.StopSocketIo();
-  TPRecorder->OnFrameSent(proto::connections::WIFI_LAN, packet_meta_data2);
+  TPRecorder->OnFrameSent(location::nearby::proto::connections::WIFI_LAN,
+                          packet_meta_data2);
 
   TPRecorder->MarkAsSuccess();
   EXPECT_TRUE(TPRecorder->Stop());
@@ -199,7 +208,8 @@ TEST_F(ThroughputRecorderTest, OnFrameReceivedCheckDurationMillis) {
   packet_meta_data.StartSocketIo();
   absl::SleepFor(absl::Milliseconds(7));
   packet_meta_data.StopSocketIo();
-  TPRecorder->OnFrameReceived(proto::connections::BLE, packet_meta_data);
+  TPRecorder->OnFrameReceived(location::nearby::proto::connections::BLE,
+                              packet_meta_data);
   EXPECT_EQ(TPRecorder->GetDurationMillis(),
             packet_meta_data.GetEncryptionTimeInMillis() +
                 packet_meta_data.GetFileIoTimeInMillis() +
@@ -209,11 +219,11 @@ TEST_F(ThroughputRecorderTest, OnFrameReceivedCheckDurationMillis) {
 TEST_F(ThroughputRecorderTest, OnTPRecorderNotStarted) {
   auto TPRecorder = tp_recorder_container_.GetTPRecorder(
       kPayloadIdA, PayloadDirection::OUTGOING_PAYLOAD);
-  auto throughput = TPRecorder->GetThroughput(proto::connections::BLE, 0);
+  auto throughput =
+      TPRecorder->GetThroughput(location::nearby::proto::connections::BLE, 0);
   EXPECT_FALSE(throughput.dump());
 }
 
 }  // namespace
 }  // namespace analytics
 }  // namespace nearby
-}  // namespace location

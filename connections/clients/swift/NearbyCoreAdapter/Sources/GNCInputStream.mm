@@ -24,10 +24,10 @@
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/GNCException+Internal.h"
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCException.h"
 
-using ::location::nearby::ByteArray;
-using ::location::nearby::ExceptionOr;
-using ::location::nearby::InputStream;
-using ::location::nearby::connections::NSErrorFromCppException;
+using ::nearby::ByteArray;
+using ::nearby::ExceptionOr;
+using ::nearby::InputStream;
+using ::nearby::connections::NSErrorFromCppException;
 
 @implementation GNCInputStream {
   NSStreamStatus _streamStatus;

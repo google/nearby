@@ -23,13 +23,11 @@
 #include "absl/random/random.h"
 #include "fastpair/internal/public/timer_impl.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
 TaskRunnerImpl::TaskRunnerImpl(uint32_t runner_count) {
-  executor_ =
-      std::make_unique<::location::nearby::MultiThreadExecutor>(runner_count);
+  executor_ = std::make_unique<::nearby::MultiThreadExecutor>(runner_count);
 }
 
 TaskRunnerImpl::~TaskRunnerImpl() = default;
@@ -79,4 +77,3 @@ uint64_t TaskRunnerImpl::GenerateId() {
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location

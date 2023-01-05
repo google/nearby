@@ -30,7 +30,6 @@
 #include "internal/platform/implementation/g3/multi_thread_executor.h"
 #include "internal/platform/implementation/g3/pipe.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -283,6 +282,5 @@ class WifiLanMedium : public api::WifiLanMedium {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_WIFI_LAN_H_

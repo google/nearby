@@ -23,11 +23,11 @@
 #include "connections/implementation/offline_frames.h"
 #include "internal/platform/count_down_latch.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
-using BwuNegotiationFrame = BandwidthUpgradeNegotiationFrame;
+using BwuNegotiationFrame =
+    location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 
 // Defines the set of methods that need to be implemented to handle the
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
@@ -98,6 +98,5 @@ class BwuHandler {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_BWU_HANDLER_H_

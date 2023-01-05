@@ -29,7 +29,6 @@
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 namespace {
@@ -279,4 +278,3 @@ std::string WifiHotspotServerSocket::GetHotspotIpAddresses() const {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

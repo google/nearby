@@ -20,11 +20,11 @@
 #include "connections/implementation/wifi_direct_bwu_handler.h"
 #include "internal/platform/medium_environment.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
 namespace {
+using ::location::nearby::connections::OfflineFrame;
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 }  // namespace
 
@@ -110,7 +110,7 @@ TEST_F(WifiDirectTest, SoftAPBWUInit_STACreateEndpointChannel) {
             /*endpoint_id=*/"1", bwu_frame.upgrade_path_info());
     EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
     EXPECT_EQ(new_channel->GetMedium(),
-              proto::connections::Medium::WIFI_DIRECT);
+              location::nearby::proto::connections::Medium::WIFI_DIRECT);
     EXPECT_TRUE(mediums_2.GetWifiDirect().IsConnectedToGO());
     handler_2->RevertResponderState(/*service_id=*/"A");
     end_latch.CountDown();
@@ -123,4 +123,3 @@ TEST_F(WifiDirectTest, SoftAPBWUInit_STACreateEndpointChannel) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

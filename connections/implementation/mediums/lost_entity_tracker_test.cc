@@ -16,7 +16,6 @@
 
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -134,4 +133,3 @@ TEST(LostEntityTrackerTest, SameEntityMultipleCopies) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

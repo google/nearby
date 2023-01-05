@@ -22,7 +22,6 @@
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -45,6 +44,5 @@ struct DiscoveredPeripheralCallback {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_BLE_V2_DISCOVERED_PERIPHERAL_CALLBACK_H_

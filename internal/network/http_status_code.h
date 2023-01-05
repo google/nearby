@@ -17,7 +17,6 @@
 
 #include "absl/strings/string_view.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 
@@ -88,6 +87,5 @@ absl::string_view GetHttpReasonPhrase(HttpStatusCode code);
 
 }  // namespace network
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_STATUS_CODE_H_

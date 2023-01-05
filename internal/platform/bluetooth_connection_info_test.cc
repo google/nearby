@@ -22,7 +22,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -96,4 +95,3 @@ TEST(BluetoothConnectionInfoTest, TestEquals) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

@@ -18,7 +18,6 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -95,5 +94,3 @@ TEST(WifiUtilsTest, Ipv4Validation) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location
-

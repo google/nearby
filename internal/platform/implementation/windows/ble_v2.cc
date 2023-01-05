@@ -25,19 +25,18 @@
 #include "winrt/Windows.Devices.Bluetooth.h"
 #include "winrt/Windows.Foundation.Collections.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
 namespace {
 
-using ::location::nearby::api::ble_v2::AdvertiseParameters;
-using ::location::nearby::api::ble_v2::BleAdvertisementData;
-using ::location::nearby::api::ble_v2::BleServerSocket;
-using ::location::nearby::api::ble_v2::BleSocket;
-using ::location::nearby::api::ble_v2::GattClient;
-using ::location::nearby::api::ble_v2::ServerGattConnectionCallback;
-using ::location::nearby::api::ble_v2::TxPowerLevel;
+using ::nearby::api::ble_v2::AdvertiseParameters;
+using ::nearby::api::ble_v2::BleAdvertisementData;
+using ::nearby::api::ble_v2::BleServerSocket;
+using ::nearby::api::ble_v2::BleSocket;
+using ::nearby::api::ble_v2::GattClient;
+using ::nearby::api::ble_v2::ServerGattConnectionCallback;
+using ::nearby::api::ble_v2::TxPowerLevel;
 using ::winrt::Windows::Devices::Bluetooth::BluetoothError;
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEAdvertisement;
@@ -444,4 +443,3 @@ void BleV2Medium::AdvertisementReceivedHandler(
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

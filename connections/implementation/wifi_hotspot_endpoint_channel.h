@@ -21,7 +21,6 @@
 #include "connections/implementation/base_endpoint_channel.h"
 #include "internal/platform/wifi_hotspot.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -38,7 +37,7 @@ class WifiHotspotEndpointChannel final : public BaseEndpointChannel {
   WifiHotspotEndpointChannel(WifiHotspotEndpointChannel&&) = delete;
   WifiHotspotEndpointChannel& operator=(WifiHotspotEndpointChannel&&) = delete;
 
-  proto::connections::Medium GetMedium() const override;
+  location::nearby::proto::connections::Medium GetMedium() const override;
 
  private:
   void CloseImpl() override;
@@ -48,6 +47,5 @@ class WifiHotspotEndpointChannel final : public BaseEndpointChannel {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_WIFI_HOTSPOT_ENDPOINT_CHANNEL_H_

@@ -22,7 +22,6 @@
 #include "internal/platform/byte_array.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -54,6 +53,5 @@ struct AdvertisingOptions : public OptionsBase {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_ADVERTISING_OPTIONS_H_

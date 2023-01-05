@@ -24,15 +24,15 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/platform.h"
 
-using ::location::nearby::ByteArray;
-using ::location::nearby::Uuid;
-using ::location::nearby::api::BluetoothAdapter;
-using ::location::nearby::api::ImplementationPlatform;
-using ::location::nearby::api::ble_v2::BleAdvertisementData;
-using ::location::nearby::api::ble_v2::BleMedium;
-using ::location::nearby::api::ble_v2::GattCharacteristic;
-using ::location::nearby::api::ble_v2::TxPowerLevel;
-using IOSBluetoothAdapter = ::location::nearby::apple::BluetoothAdapter;
+using ::nearby::ByteArray;
+using ::nearby::Uuid;
+using ::nearby::api::BluetoothAdapter;
+using ::nearby::api::ImplementationPlatform;
+using ::nearby::api::ble_v2::BleAdvertisementData;
+using ::nearby::api::ble_v2::BleMedium;
+using ::nearby::api::ble_v2::GattCharacteristic;
+using ::nearby::api::ble_v2::TxPowerLevel;
+using IOSBluetoothAdapter = ::nearby::apple::BluetoothAdapter;
 
 static const char *const kAdvertisementString = "\x0a\x0b\x0c\x0d";
 static const TxPowerLevel kTxPowerLevel = TxPowerLevel::kHigh;

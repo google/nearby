@@ -30,12 +30,12 @@
 #include "internal/platform/mutex_lock.h"
 #include "webrtc/api/jsep.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
 
 namespace {
+using ::location::nearby::connections::LocationHint;
 
 // The maximum amount of time to wait to connect to a data channel via WebRTC.
 constexpr absl::Duration kDataChannelTimeout = absl::Seconds(10);
@@ -325,7 +325,7 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
 
 void WebRtc::ProcessLocalIceCandidate(
     const std::string& service_id, const WebrtcPeerId& remote_peer_id,
-    const ::location::nearby::mediums::IceCandidate ice_candidate) {
+    const location::nearby::mediums::IceCandidate ice_candidate) {
   MutexLock lock(&mutex_);
 
   // Check first if we have an outgoing request w/ this peer. As this request is
@@ -691,7 +691,7 @@ std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
              // Note: We need to encode the ice candidate here, before we jump
              // off the thread. Otherwise, it gets destroyed and we can't read
              // it later.
-             ::location::nearby::mediums::IceCandidate encoded_ice_candidate =
+             location::nearby::mediums::IceCandidate encoded_ice_candidate =
                  webrtc_frames::EncodeIceCandidate(*ice_candidate);
              OffloadFromThread(
                  "rtc-ice-candidates",
@@ -741,4 +741,3 @@ void WebRtc::OffloadFromThread(const std::string& name, Runnable runnable) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

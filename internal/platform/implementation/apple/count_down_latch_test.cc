@@ -17,7 +17,6 @@
 #include "gtest/gtest.h"
 #include "thread/fiber/fiber.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 namespace {
@@ -80,4 +79,3 @@ TEST(CountDownLatchTest, InitialCountNegative_AwaitDoesNotBlock) {
 }  // namespace
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location

@@ -23,7 +23,6 @@
 #include "absl/time/time.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -83,4 +82,3 @@ void ScheduledExecutor::Shutdown() {
 }
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

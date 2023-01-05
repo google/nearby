@@ -18,7 +18,7 @@
 
 TEST(atomic_boolean, SuccessfulCreation) {
   // Arrange
-  location::nearby::windows::AtomicBoolean atomicBoolean;
+  nearby::windows::AtomicBoolean atomicBoolean;
   bool oldValue = true;
   bool result = false;
 

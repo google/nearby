@@ -24,7 +24,6 @@
 #include "connections/implementation/pcp.h"
 #include "connections/strategy.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -44,9 +43,10 @@ class P2pStarPcpHandler : public P2pClusterPcpHandler {
       Pcp pcp = Pcp::kP2pStar);
 
  protected:
-  std::vector<proto::connections::Medium> GetConnectionMediumsByPriority()
+  std::vector<location::nearby::proto::connections::Medium>
+  GetConnectionMediumsByPriority() override;
+  location::nearby::proto::connections::Medium GetDefaultUpgradeMedium()
       override;
-  proto::connections::Medium GetDefaultUpgradeMedium() override;
 
   bool CanSendOutgoingConnection(ClientProxy* client) const override;
   bool CanReceiveIncomingConnection(ClientProxy* client) const override;
@@ -54,6 +54,5 @@ class P2pStarPcpHandler : public P2pClusterPcpHandler {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_P2P_STAR_PCP_HANDLER_H_

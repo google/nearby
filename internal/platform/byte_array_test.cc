@@ -21,7 +21,7 @@
 
 namespace {
 
-using ::location::nearby::ByteArray;
+using ::nearby::ByteArray;
 
 TEST(ByteArrayTest, DefaultSizeIsZero) {
   ByteArray bytes;

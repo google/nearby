@@ -21,7 +21,6 @@
 #include "internal/platform/byte_array.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -52,6 +51,5 @@ struct OutOfBandConnectionMetadata {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_OUT_OF_BAND_CONNECTION_METADATA_H_

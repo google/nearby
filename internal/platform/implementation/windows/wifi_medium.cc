@@ -20,7 +20,6 @@
 #include "internal/platform/implementation/windows/wifi.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -251,4 +250,3 @@ std::string WifiMedium::InternalGetIpAddress() {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

@@ -22,7 +22,6 @@
 #include "internal/platform/atomic_reference.h"
 #include "internal/platform/scheduled_executor.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -79,4 +78,3 @@ TEST(CancelableAlarmTest, CanCreateRecurringAlarm) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

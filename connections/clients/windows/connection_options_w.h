@@ -18,7 +18,7 @@
 #include "connections/clients/windows/medium_selector_w.h"
 #include "connections/clients/windows/options_base_w.h"
 
-namespace location::nearby::windows {
+namespace nearby::windows {
 
 extern "C" {
 
@@ -49,6 +49,6 @@ struct DLL_API ConnectionOptionsW : public OptionsBaseW {
 };
 
 }  // extern "C"
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_CONNECTION_OPTIONS_W_H_

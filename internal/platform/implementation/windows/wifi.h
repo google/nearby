@@ -29,7 +29,6 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -126,6 +125,5 @@ class WifiMedium : public api::WifiMedium {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_WIFI_H_

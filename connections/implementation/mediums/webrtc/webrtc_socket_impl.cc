@@ -17,7 +17,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -187,4 +186,3 @@ void WebRtcSocket::OffloadFromSignalingThread(Runnable runnable) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

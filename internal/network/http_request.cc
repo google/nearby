@@ -20,7 +20,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 
@@ -101,4 +100,3 @@ const HttpRequestBody& HttpRequest::GetBody() const { return body_; }
 
 }  // namespace network
 }  // namespace nearby
-}  // namespace location

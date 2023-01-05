@@ -17,7 +17,7 @@
 
 #include "connections/clients/windows/options_base_w.h"
 
-namespace location::nearby::windows {
+namespace nearby::windows {
 
 extern "C" {
 
@@ -41,6 +41,6 @@ struct DLL_API DiscoveryOptionsW : public OptionsBaseW {
 };
 
 }  // extern "C"
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_DISCOVERY_OPTIONS_W_H_

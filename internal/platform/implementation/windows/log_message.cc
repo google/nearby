@@ -19,7 +19,6 @@
 // no "base" in OSS.
 #include "base/stringprintf.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -71,4 +70,3 @@ bool LogMessage::ShouldCreateLogMessage(Severity severity) {
 }
 }  // namespace api
 }  // namespace nearby
-}  // namespace location

@@ -16,7 +16,6 @@
 
 #include <string>
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -66,5 +65,5 @@ class Strategy {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
+
 #endif  // CORE_STRATEGY_H_

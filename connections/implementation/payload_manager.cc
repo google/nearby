@@ -32,13 +32,14 @@
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/single_thread_executor.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
-using ::location::nearby::analytics::PacketMetaData;
-using ::location::nearby::analytics::ThroughputRecorderContainer;
-using ::location::nearby::connections::PayloadDirection;
+using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::V1Frame;
+using ::nearby::analytics::PacketMetaData;
+using ::nearby::analytics::ThroughputRecorderContainer;
+using ::nearby::connections::PayloadDirection;
 
 // C++14 requires to declare this.
 // TODO(apolyudov): remove when migration to c++17 is possible.
@@ -79,9 +80,10 @@ bool PayloadManager::SendPayloadLoop(
                       << pending_payload.GetInternalPayload()->GetId()
                       << " at offset " << next_chunk_offset
                       << " since it is marked canceled.";
-    HandleFinishedOutgoingPayload(
-        client, available_endpoint_ids, payload_header, next_chunk_offset,
-        proto::connections::PayloadStatus::LOCAL_CANCELLATION);
+    HandleFinishedOutgoingPayload(client, available_endpoint_ids,
+                                  payload_header, next_chunk_offset,
+                                  location::nearby::proto::connections::
+                                      PayloadStatus::LOCAL_CANCELLATION);
     return false;
   }
 
@@ -99,7 +101,7 @@ bool PayloadManager::SendPayloadLoop(
                            << pending_payload.GetInternalPayload()->GetId();
       HandleFinishedOutgoingPayload(
           client, available_endpoint_ids, payload_header, next_chunk_offset,
-          proto::connections::PayloadStatus::LOCAL_ERROR);
+          location::nearby::proto::connections::PayloadStatus::LOCAL_ERROR);
       return false;
     }
     NEARBY_LOGS(VERBOSE) << "PayloadManager successfully skipped "
@@ -129,7 +131,7 @@ bool PayloadManager::SendPayloadLoop(
                       << pending_payload.GetInternalPayload()->GetId();
     HandleFinishedOutgoingPayload(
         client, available_endpoint_ids, payload_header, next_chunk_offset,
-        proto::connections::PayloadStatus::LOCAL_ERROR);
+        location::nearby::proto::connections::PayloadStatus::LOCAL_ERROR);
     return false;
   }
 
@@ -146,9 +148,10 @@ bool PayloadManager::SendPayloadLoop(
     NEARBY_LOGS(INFO) << "Payload xfer: endpoints failed: payload_id="
                       << payload_header.id() << "; endpoint_ids={"
                       << ToString(failed_endpoint_ids) << "}",
-        HandleFinishedOutgoingPayload(
-            client, failed_endpoint_ids, payload_header, next_chunk_offset,
-            proto::connections::PayloadStatus::ENDPOINT_IO_ERROR);
+        HandleFinishedOutgoingPayload(client, failed_endpoint_ids,
+                                      payload_header, next_chunk_offset,
+                                      location::nearby::proto::connections::
+                                          PayloadStatus::ENDPOINT_IO_ERROR);
   }
 
   // Check whether at least one endpoint succeeded -- if they all failed,
@@ -491,11 +494,11 @@ Status PayloadManager::CancelPayload(ClientProxy* client,
 }
 
 // @EndpointManagerDataPool
-void PayloadManager::OnIncomingFrame(OfflineFrame& offline_frame,
-                                     const std::string& from_endpoint_id,
-                                     ClientProxy* to_client,
-                                     proto::connections::Medium current_medium,
-                                     PacketMetaData& packet_meta_data) {
+void PayloadManager::OnIncomingFrame(
+    OfflineFrame& offline_frame, const std::string& from_endpoint_id,
+    ClientProxy* to_client,
+    location::nearby::proto::connections::Medium current_medium,
+    PacketMetaData& packet_meta_data) {
   PayloadTransferFrame& frame =
       *offline_frame.mutable_v1()->mutable_payload_transfer();
 
@@ -562,11 +565,11 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
               if (pending_payload->IsIncoming()) {
                 client->GetAnalyticsRecorder().OnIncomingPayloadDone(
                     endpoint_id, pending_payload->GetId(),
-                    proto::connections::ENDPOINT_IO_ERROR);
+                    location::nearby::proto::connections::ENDPOINT_IO_ERROR);
               } else {
                 client->GetAnalyticsRecorder().OnOutgoingPayloadDone(
                     endpoint_id, pending_payload->GetId(),
-                    proto::connections::ENDPOINT_IO_ERROR);
+                    location::nearby::proto::connections::ENDPOINT_IO_ERROR);
               }
             }
 
@@ -574,42 +577,46 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
           });
 }
 
-proto::connections::PayloadStatus
+location::nearby::proto::connections::PayloadStatus
 PayloadManager::EndpointInfoStatusToPayloadStatus(EndpointInfo::Status status) {
   switch (status) {
     case EndpointInfo::Status::kCanceled:
-      return proto::connections::PayloadStatus::REMOTE_CANCELLATION;
+      return location::nearby::proto::connections::PayloadStatus::
+          REMOTE_CANCELLATION;
     case EndpointInfo::Status::kError:
-      return proto::connections::PayloadStatus::REMOTE_ERROR;
+      return location::nearby::proto::connections::PayloadStatus::REMOTE_ERROR;
     case EndpointInfo::Status::kAvailable:
-      return proto::connections::PayloadStatus::SUCCESS;
+      return location::nearby::proto::connections::PayloadStatus::SUCCESS;
     default:
       NEARBY_LOGS(INFO) << "PayloadManager: Unknown PayloadStatus";
-      return proto::connections::PayloadStatus::UNKNOWN_PAYLOAD_STATUS;
+      return location::nearby::proto::connections::PayloadStatus::
+          UNKNOWN_PAYLOAD_STATUS;
   }
 }
 
-proto::connections::PayloadStatus
+location::nearby::proto::connections::PayloadStatus
 PayloadManager::ControlMessageEventToPayloadStatus(
     PayloadTransferFrame::ControlMessage::EventType event) {
   switch (event) {
     case PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR:
-      return proto::connections::PayloadStatus::REMOTE_ERROR;
+      return location::nearby::proto::connections::PayloadStatus::REMOTE_ERROR;
     case PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED:
-      return proto::connections::PayloadStatus::REMOTE_CANCELLATION;
+      return location::nearby::proto::connections::PayloadStatus::
+          REMOTE_CANCELLATION;
     default:
       NEARBY_LOG(INFO, "PayloadManager: unknown event=%d", event);
-      return proto::connections::PayloadStatus::UNKNOWN_PAYLOAD_STATUS;
+      return location::nearby::proto::connections::PayloadStatus::
+          UNKNOWN_PAYLOAD_STATUS;
   }
 }
 
 PayloadProgressInfo::Status PayloadManager::PayloadStatusToTransferUpdateStatus(
-    proto::connections::PayloadStatus status) {
+    location::nearby::proto::connections::PayloadStatus status) {
   switch (status) {
-    case proto::connections::LOCAL_CANCELLATION:
-    case proto::connections::REMOTE_CANCELLATION:
+    case location::nearby::proto::connections::LOCAL_CANCELLATION:
+    case location::nearby::proto::connections::REMOTE_CANCELLATION:
       return PayloadProgressInfo::Status::kCanceled;
-    case proto::connections::SUCCESS:
+    case location::nearby::proto::connections::SUCCESS:
       return PayloadProgressInfo::Status::kSuccess;
     default:
       return PayloadProgressInfo::Status::kFailure;
@@ -648,8 +655,8 @@ PayloadTransferFrame::PayloadHeader PayloadManager::CreatePayloadHeader(
   payload_header.set_id(internal_payload.GetId());
   payload_header.set_type(internal_payload.GetType());
   if (internal_payload.GetType() ==
-      location::nearby::connections::PayloadTransferFrame::
-          PayloadTransferFrame::PayloadHeader::FILE) {
+      nearby::connections::PayloadTransferFrame::PayloadTransferFrame::
+          PayloadHeader::FILE) {
     payload_header.set_file_name(file_name);
     payload_header.set_parent_folder(parent_folder);
   }
@@ -700,7 +707,7 @@ void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
     ClientProxy* client, const EndpointIds& finished_endpoint_ids,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t num_bytes_successfully_transferred,
-    proto::connections::PayloadStatus status) {
+    location::nearby::proto::connections::PayloadStatus status) {
   RunOnStatusUpdateThread(
       "outgoing-payload-callbacks",
       [this, client, finished_endpoint_ids, payload_header,
@@ -744,7 +751,8 @@ void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
 void PayloadManager::SendClientCallbacksForFinishedIncomingPayload(
     ClientProxy* client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t offset_bytes, proto::connections::PayloadStatus status) {
+    std::int64_t offset_bytes,
+    location::nearby::proto::connections::PayloadStatus status) {
   RunOnStatusUpdateThread(
       "incoming-payload-callbacks",
       [this, client, endpoint_id, payload_header, offset_bytes,
@@ -787,19 +795,20 @@ void PayloadManager::HandleFinishedOutgoingPayload(
     ClientProxy* client, const EndpointIds& finished_endpoint_ids,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t num_bytes_successfully_transferred,
-    proto::connections::PayloadStatus status) {
+    location::nearby::proto::connections::PayloadStatus status) {
   // This call will destroy a pending payload.
   SendClientCallbacksForFinishedOutgoingPayload(
       client, finished_endpoint_ids, payload_header,
       num_bytes_successfully_transferred, status);
 
   switch (status) {
-    case proto::connections::PayloadStatus::LOCAL_ERROR:
+    case location::nearby::proto::connections::PayloadStatus::LOCAL_ERROR:
       SendControlMessage(finished_endpoint_ids, payload_header,
                          num_bytes_successfully_transferred,
                          PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR);
       break;
-    case proto::connections::PayloadStatus::LOCAL_CANCELLATION:
+    case location::nearby::proto::connections::PayloadStatus::
+        LOCAL_CANCELLATION:
       NEARBY_LOGS(INFO)
           << "Sending PAYLOAD_CANCEL to receiver side; payload_id="
           << payload_header.id();
@@ -808,15 +817,16 @@ void PayloadManager::HandleFinishedOutgoingPayload(
           num_bytes_successfully_transferred,
           PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED);
       break;
-    case proto::connections::PayloadStatus::ENDPOINT_IO_ERROR:
+    case location::nearby::proto::connections::PayloadStatus::ENDPOINT_IO_ERROR:
       // Unregister these endpoints, since we had an IO error on the physical
       // connection.
       for (const auto& endpoint_id : finished_endpoint_ids) {
         endpoint_manager_->DiscardEndpoint(client, endpoint_id);
       }
       break;
-    case proto::connections::PayloadStatus::REMOTE_ERROR:
-    case proto::connections::PayloadStatus::REMOTE_CANCELLATION:
+    case location::nearby::proto::connections::PayloadStatus::REMOTE_ERROR:
+    case location::nearby::proto::connections::PayloadStatus::
+        REMOTE_CANCELLATION:
       // No special handling needed for these.
       break;
     default:
@@ -831,18 +841,20 @@ void PayloadManager::HandleFinishedOutgoingPayload(
 void PayloadManager::HandleFinishedIncomingPayload(
     ClientProxy* client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t offset_bytes, proto::connections::PayloadStatus status) {
+    std::int64_t offset_bytes,
+    location::nearby::proto::connections::PayloadStatus status) {
   ThroughputRecorderContainer::GetInstance().StopTPRecorder(
       payload_header.id(), PayloadDirection::INCOMING_PAYLOAD);
   SendClientCallbacksForFinishedIncomingPayload(
       client, endpoint_id, payload_header, offset_bytes, status);
 
   switch (status) {
-    case proto::connections::PayloadStatus::LOCAL_ERROR:
+    case location::nearby::proto::connections::PayloadStatus::LOCAL_ERROR:
       SendControlMessage({endpoint_id}, payload_header, offset_bytes,
                          PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR);
       break;
-    case proto::connections::PayloadStatus::LOCAL_CANCELLATION:
+    case location::nearby::proto::connections::PayloadStatus::
+        LOCAL_CANCELLATION:
       SendControlMessage(
           {endpoint_id}, payload_header, offset_bytes,
           PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED);
@@ -892,7 +904,8 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
 
         if (is_last_chunk) {
           client->GetAnalyticsRecorder().OnOutgoingPayloadDone(
-              endpoint_id, payload_header.id(), proto::connections::SUCCESS);
+              endpoint_id, payload_header.id(),
+              location::nearby::proto::connections::SUCCESS);
 
           // Stop tracking this endpoint.
           pending_payload->RemoveEndpoints({endpoint_id});
@@ -959,7 +972,8 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
         // Analyze the success.
         if (is_last_chunk) {
           client->GetAnalyticsRecorder().OnIncomingPayloadDone(
-              endpoint_id, payload_header.id(), proto::connections::SUCCESS);
+              endpoint_id, payload_header.id(),
+              location::nearby::proto::connections::SUCCESS);
         } else {
           client->GetAnalyticsRecorder().OnPayloadChunkReceived(
               endpoint_id, payload_header.id(), payload_chunk_body_size);
@@ -1043,9 +1057,10 @@ void PayloadManager::ProcessDataPacket(
     NEARBY_LOGS(INFO) << "ProcessDataPacket: [cancel] endpoint_id="
                       << from_endpoint_id
                       << "; payload_id=" << pending_payload->GetId();
-    HandleFinishedIncomingPayload(
-        to_client, from_endpoint_id, payload_header, payload_chunk.offset(),
-        proto::connections::PayloadStatus::LOCAL_CANCELLATION);
+    HandleFinishedIncomingPayload(to_client, from_endpoint_id, payload_header,
+                                  payload_chunk.offset(),
+                                  location::nearby::proto::connections::
+                                      PayloadStatus::LOCAL_CANCELLATION);
     return;
   }
 
@@ -1069,7 +1084,7 @@ void PayloadManager::ProcessDataPacket(
                        << ", payload_chunk=" << payload_chunk.DebugString();
     HandleFinishedIncomingPayload(
         to_client, from_endpoint_id, payload_header, payload_chunk.offset(),
-        proto::connections::PayloadStatus::LOCAL_ERROR);
+        location::nearby::proto::connections::PayloadStatus::LOCAL_ERROR);
     return;
   }
   packet_meta_data.StopFileIo();
@@ -1178,7 +1193,8 @@ void PayloadManager::RecordInvalidPayloadAnalytics(
 
   for (const auto& endpoint_id : endpoint_ids) {
     client->GetAnalyticsRecorder().OnOutgoingPayloadDone(
-        endpoint_id, payload_id, proto::connections::LOCAL_ERROR);
+        endpoint_id, payload_id,
+        location::nearby::proto::connections::LOCAL_ERROR);
   }
 }
 
@@ -1383,4 +1399,3 @@ std::vector<Payload::Id> PayloadManager::PendingPayloads::GetAllPayloads() {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

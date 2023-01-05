@@ -22,7 +22,6 @@
 #include "connections/implementation/mediums/utils.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -283,4 +282,3 @@ WifiHotspotSocket WifiHotspot::Connect(const std::string& service_id,
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

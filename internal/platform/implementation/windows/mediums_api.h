@@ -21,7 +21,6 @@
 
 #include "internal/platform/implementation/windows/mediums_manager/mediums_manager.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -33,6 +32,5 @@ class MediumsApi {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_MEDIUMS_API_H_

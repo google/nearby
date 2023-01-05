@@ -20,7 +20,6 @@
 #include "absl/time/clock.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -65,4 +64,3 @@ bool TimerImpl::FireNow() {
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location

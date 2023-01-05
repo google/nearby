@@ -24,7 +24,6 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -120,8 +119,9 @@ class EndpointChannelManager final {
 
       std::shared_ptr<EndpointChannel> channel;
       std::shared_ptr<EncryptionContext> context;
-      proto::connections::DisconnectionReason disconnect_reason =
-          proto::connections::DisconnectionReason::UNKNOWN_DISCONNECTION_REASON;
+      location::nearby::proto::connections::DisconnectionReason
+          disconnect_reason = location::nearby::proto::connections::
+              DisconnectionReason::UNKNOWN_DISCONNECTION_REASON;
     };
 
     ChannelState() = default;
@@ -147,8 +147,9 @@ class EndpointChannelManager final {
 
     // Removes all knowledge of this endpoint, cleaning up as necessary.
     // Returns false if the endpoint was not found.
-    bool RemoveEndpoint(const std::string& endpoint_id,
-                        proto::connections::DisconnectionReason reason);
+    bool RemoveEndpoint(
+        const std::string& endpoint_id,
+        location::nearby::proto::connections::DisconnectionReason reason);
 
     bool EncryptChannel(EndpointData* endpoint);
     int GetConnectedEndpointsCount() const { return endpoints_.size(); }
@@ -172,6 +173,5 @@ class EndpointChannelManager final {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_ENDPOINT_CHANNEL_MANAGER_H_

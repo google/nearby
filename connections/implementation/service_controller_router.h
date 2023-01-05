@@ -28,12 +28,11 @@
 #include "internal/platform/runnable.h"
 #include "internal/platform/single_thread_executor.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
 // ServiceControllerRouter: this class is an implementation detail of a
-// location::nearby::Core class. The latter delegates all of its activities to
+// nearby::Core class. The latter delegates all of its activities to
 // the former.
 //
 // All the activities are documented in the public API class:
@@ -42,7 +41,7 @@ namespace connections {
 // In every method, ClientProxy* represents the client app which receives
 // notifications from Nearby Connections service and forwards them to the app.
 // The rest of arguments have the same meaning as the corresponding
-// methods in the definition of location::nearby::Core API.
+// methods in the definition of nearby::Core API.
 //
 // Every activity is handled the same way:
 // 1) all the arguments to the call are captured by value;
@@ -127,6 +126,5 @@ class ServiceControllerRouter {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_SERVICE_CONTROLLER_ROUTER_H_

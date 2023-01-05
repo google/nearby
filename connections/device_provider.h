@@ -19,11 +19,10 @@
 
 #include "internal/device.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
-using ::location::nearby::NearbyDevice;
+using ::nearby::NearbyDevice;
 
 class NearbyDeviceProvider {
   virtual ~NearbyDeviceProvider() = default;
@@ -33,6 +32,5 @@ class NearbyDeviceProvider {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_DEVICE_PROVIDER_H_

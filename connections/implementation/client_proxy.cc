@@ -35,7 +35,6 @@
 #include "internal/platform/prng.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -112,7 +111,7 @@ void ClientProxy::Reset() {
 void ClientProxy::StartedAdvertising(
     const std::string& service_id, Strategy strategy,
     const ConnectionListener& listener,
-    absl::Span<proto::connections::Medium> mediums,
+    absl::Span<location::nearby::proto::connections::Medium> mediums,
     const AdvertisingOptions& advertising_options) {
   MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "ClientProxy [StartedAdvertising]: client="
@@ -130,8 +129,8 @@ void ClientProxy::StartedAdvertising(
   advertising_info_ = {service_id, listener};
   advertising_options_ = advertising_options;
 
-  const std::vector<proto::connections::Medium> medium_vector(mediums.begin(),
-                                                              mediums.end());
+  const std::vector<location::nearby::proto::connections::Medium> medium_vector(
+      mediums.begin(), mediums.end());
   analytics_recorder_->OnStartAdvertising(strategy, medium_vector, false, 0);
 }
 
@@ -164,14 +163,14 @@ std::string ClientProxy::GetAdvertisingServiceId() const {
 void ClientProxy::StartedDiscovery(
     const std::string& service_id, Strategy strategy,
     const DiscoveryListener& listener,
-    absl::Span<proto::connections::Medium> mediums,
+    absl::Span<location::nearby::proto::connections::Medium> mediums,
     const DiscoveryOptions& discovery_options) {
   MutexLock lock(&mutex_);
   discovery_info_ = DiscoveryInfo{service_id, listener};
   discovery_options_ = discovery_options;
 
-  const std::vector<proto::connections::Medium> medium_vector(mediums.begin(),
-                                                              mediums.end());
+  const std::vector<location::nearby::proto::connections::Medium> medium_vector(
+      mediums.begin(), mediums.end());
   analytics_recorder_->OnStartDiscovery(strategy, medium_vector, false, 0);
 }
 
@@ -205,10 +204,10 @@ std::string ClientProxy::GetDiscoveryServiceId() const {
   return discovery_info_.service_id;
 }
 
-void ClientProxy::OnEndpointFound(const std::string& service_id,
-                                  const std::string& endpoint_id,
-                                  const ByteArray& endpoint_info,
-                                  proto::connections::Medium medium) {
+void ClientProxy::OnEndpointFound(
+    const std::string& service_id, const std::string& endpoint_id,
+    const ByteArray& endpoint_info,
+    location::nearby::proto::connections::Medium medium) {
   MutexLock lock(&mutex_);
 
   NEARBY_LOGS(INFO) << "ClientProxy [Endpoint Found]: [enter] id="
@@ -840,4 +839,3 @@ std::string ClientProxy::Dump() {
 }
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

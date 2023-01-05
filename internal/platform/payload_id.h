@@ -17,12 +17,10 @@
 
 #include <cstdint>
 
-namespace location {
 namespace nearby {
 
 using PayloadId = std::int64_t;
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_PAYLOAD_ID_H_

@@ -34,7 +34,6 @@
 @property(atomic) BOOL shuttingDown;
 @end
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -64,7 +63,6 @@ class ScheduledExecutor : public api::ScheduledExecutor {
 
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location
 
 #endif
 #endif  // PLATFORM_IMPL_APPLE_SCHEDULED_EXECUTOR_H_

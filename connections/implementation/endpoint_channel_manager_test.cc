@@ -37,7 +37,6 @@
 #include "internal/platform/pipe.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -295,4 +294,3 @@ TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

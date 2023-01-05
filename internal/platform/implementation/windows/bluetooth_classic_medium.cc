@@ -42,7 +42,6 @@
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 namespace {
@@ -309,7 +308,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
           << winrt::to_string(device_id) << ", service: " << service_uuid;
       return nullptr;
     }
-    location::nearby::CancellationFlagListener cancellation_flag_listener(
+    nearby::CancellationFlagListener cancellation_flag_listener(
         cancellation_flag, [&rfcomm_socket]() {
           rfcomm_socket->CancelIOAsync().get();
           rfcomm_socket->Close();
@@ -800,4 +799,3 @@ bool BluetoothClassicMedium::InitializeServiceSdpAttributes(
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

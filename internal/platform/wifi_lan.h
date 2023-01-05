@@ -30,7 +30,6 @@
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
 
-namespace location {
 namespace nearby {
 
 class WifiLanSocket final {
@@ -222,6 +221,5 @@ class WifiLanMedium {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_WIFI_LAN_H_

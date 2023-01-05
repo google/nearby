@@ -19,7 +19,6 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/system_clock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -178,4 +177,3 @@ void SimulationUser::RejectConnection(CountDownLatch* latch) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

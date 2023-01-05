@@ -20,7 +20,6 @@
 
 #include "internal/platform/implementation/windows/mediums_manager/mediums_manager_impl.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -30,4 +29,3 @@ std::unique_ptr<MediumsManager> MediumsApi::CreateMediumsManager() {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location

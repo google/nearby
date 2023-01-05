@@ -30,7 +30,7 @@
 #include "internal/platform/implementation/g3/pipe.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/uuid.h"
-namespace location {
+
 namespace nearby {
 namespace g3 {
 
@@ -219,7 +219,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
     bool UpdateCharacteristic(
         const api::ble_v2::GattCharacteristic& characteristic,
-        const location::nearby::ByteArray& value) override;
+        const nearby::ByteArray& value) override;
 
     void Stop() override;
   };
@@ -264,6 +264,5 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_BLE_V2_H_

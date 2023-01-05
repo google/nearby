@@ -23,7 +23,6 @@
 #endif
 #include "internal/platform/implementation/log_message.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -51,7 +50,6 @@ class LogMessage : public api::LogMessage {
 
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location
 
 #endif
 #endif  // PLATFORM_IMPL_APPLE_LOG_MESSAGE_H_

@@ -25,7 +25,6 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -52,7 +51,8 @@ class EndpointChannel {
   virtual void Close() = 0;
 
   // Closes this EndpointChannel and records the closure with the given reason.
-  virtual void Close(proto::connections::DisconnectionReason reason) = 0;
+  virtual void Close(
+      location::nearby::proto::connections::DisconnectionReason reason) = 0;
 
   // Returns a one-word type descriptor for the concrete EndpointChannel
   // implementation that can be used in log messages; eg: BLUETOOTH, BLE, WIFI.
@@ -65,13 +65,15 @@ class EndpointChannel {
   virtual std::string GetName() const = 0;
 
   // Returns the analytics enum representing the medium of this EndpointChannel.
-  virtual proto::connections::Medium GetMedium() const = 0;
+  virtual location::nearby::proto::connections::Medium GetMedium() const = 0;
 
   // Returns the used BLE or WiFi technology of this EndpointChannel.
-  virtual proto::connections::ConnectionTechnology GetTechnology() const = 0;
+  virtual location::nearby::proto::connections::ConnectionTechnology
+  GetTechnology() const = 0;
 
   // Returns the used wifi band of this EndpointChannel.
-  virtual proto::connections::ConnectionBand GetBand() const = 0;
+  virtual location::nearby::proto::connections::ConnectionBand GetBand()
+      const = 0;
 
   // Returns the used wifi frequency of this EndpointChannel.
   virtual int GetFrequency() const = 0;
@@ -124,6 +126,5 @@ inline bool operator!=(const EndpointChannel& lhs, const EndpointChannel& rhs) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_ENDPOINT_CHANNEL_H_

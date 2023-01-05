@@ -24,7 +24,6 @@
 #include "internal/platform/byte_array.h"
 #include "webrtc/api/peer_connection_interface.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -63,11 +62,10 @@ class WebRtcMedium {
   // Returns a signaling messenger for sending WebRTC signaling messages.
   virtual std::unique_ptr<WebRtcSignalingMessenger> GetSignalingMessenger(
       absl::string_view self_id,
-      const connections::LocationHint& location_hint) = 0;
+      const location::nearby::connections::LocationHint& location_hint) = 0;
 };
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_WEBRTC_H_

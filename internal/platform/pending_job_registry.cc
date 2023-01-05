@@ -18,7 +18,6 @@
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/system_clock.h"
 
-namespace location {
 namespace nearby {
 
 namespace {
@@ -88,4 +87,3 @@ std::string PendingJobRegistry::CreateKey(const std::string& name,
 }
 
 }  // namespace nearby
-}  // namespace location

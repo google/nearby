@@ -48,7 +48,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 
 template <typename T>
@@ -164,6 +163,5 @@ class Lender {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_BORROWABLE_H_

@@ -21,7 +21,6 @@
 
 #include "fastpair/internal/api/timer.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -46,6 +45,5 @@ class Timer : public api::Timer {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_WINDOWS_TIMER_H_

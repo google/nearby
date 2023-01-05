@@ -18,7 +18,6 @@
 #include "absl/base/thread_annotations.h"
 #include "internal/platform/submittable_executor.h"
 
-namespace location {
 namespace nearby {
 
 // An Executor that uses a single worker thread operating off an unbounded
@@ -36,6 +35,5 @@ class ABSL_LOCKABLE SingleThreadExecutor final : public SubmittableExecutor {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_SINGLE_THREAD_EXECUTOR_H_

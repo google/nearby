@@ -19,7 +19,6 @@
 
 #include "internal/platform/implementation/ble.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -57,6 +56,5 @@ class BlePeripheral : public api::BlePeripheral {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLE_PERIPHERAL_H_

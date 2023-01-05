@@ -20,7 +20,6 @@
 #include "fastpair/internal/ble/ble.h"
 #include "internal/platform/bluetooth_adapter.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -47,6 +46,5 @@ class FastPairScannerImpl {
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_SCANNING_FASTPAIR_FAST_PAIR_SCANNER_IMPL_H_

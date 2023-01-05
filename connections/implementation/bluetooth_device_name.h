@@ -22,7 +22,6 @@
 #include "connections/implementation/pcp.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -88,6 +87,5 @@ class BluetoothDeviceName {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_BLUETOOTH_DEVICE_NAME_H_

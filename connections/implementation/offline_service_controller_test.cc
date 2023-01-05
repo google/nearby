@@ -27,7 +27,6 @@
 #include "internal/platform/pipe.h"
 #include "internal/platform/system_clock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -400,4 +399,3 @@ TEST_F(OfflineServiceControllerTest, InjectEndpoint) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

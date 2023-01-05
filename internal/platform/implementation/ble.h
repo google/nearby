@@ -21,7 +21,6 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -120,6 +119,5 @@ class BleMedium {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_BLE_H_

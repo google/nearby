@@ -28,7 +28,6 @@
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/proto/credential.pb.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -90,6 +89,5 @@ class CredentialStorageImpl : public api::CredentialStorage {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_G3_CREDENTIAL_STORAGE_H_

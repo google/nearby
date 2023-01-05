@@ -16,7 +16,6 @@
 
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 namespace {
@@ -59,4 +58,3 @@ TEST(TimerImpl, TestFireNow) {
 }  // namespace
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location

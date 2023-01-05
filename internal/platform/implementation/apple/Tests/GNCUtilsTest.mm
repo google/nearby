@@ -17,10 +17,10 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/apple/utils.h"
 
-using ::location::nearby::ByteArray;
-using ::location::nearby::ByteArrayFromNSData;
-using ::location::nearby::CppStringFromObjCString;
-using ::location::nearby::ObjCStringFromCppString;
+using ::nearby::ByteArray;
+using ::nearby::ByteArrayFromNSData;
+using ::nearby::CppStringFromObjCString;
+using ::nearby::ObjCStringFromCppString;
 
 @interface GNCUtilsTest : XCTestCase
 @end

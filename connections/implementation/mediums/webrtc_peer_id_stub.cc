@@ -20,7 +20,6 @@
 #include "absl/strings/escaping.h"
 #include "connections/implementation/mediums/utils.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -34,4 +33,3 @@ bool WebrtcPeerId::IsValid() const { return false; }
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

@@ -40,7 +40,6 @@
 #include "internal/platform/scheduled_executor.h"
 #include "internal/platform/single_thread_executor.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -232,6 +231,5 @@ class BleV2 final {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_BLE_V2_H_

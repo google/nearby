@@ -19,7 +19,6 @@
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/mutex.h"
 
-namespace location {
 namespace nearby {
 
 // An RAII mechanism to acquire a Lock over a block of code.
@@ -40,6 +39,5 @@ class ABSL_SCOPED_LOCKABLE MutexLock final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_MUTEX_LOCK_H_

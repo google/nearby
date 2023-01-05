@@ -38,10 +38,10 @@ namespace presence {
 
 class BroadcastManager {
  public:
-  using SingleThreadExecutor = ::location::nearby::SingleThreadExecutor;
+  using SingleThreadExecutor = ::nearby::SingleThreadExecutor;
   using AdvertisingSession =
-      ::location::nearby::api::ble_v2::BleMedium::AdvertisingSession;
-  using Runnable = ::location::nearby::Runnable;
+      ::nearby::api::ble_v2::BleMedium::AdvertisingSession;
+  using Runnable = ::nearby::Runnable;
   using PrivateCredential = internal::PrivateCredential;
   BroadcastManager(Mediums& mediums, CredentialManager& credential_manager,
                    SingleThreadExecutor& executor) {

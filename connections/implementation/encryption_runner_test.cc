@@ -26,7 +26,6 @@
 #include "internal/platform/system_clock.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -60,15 +59,19 @@ class FakeEndpointChannel : public EndpointChannel {
     if (in_) in_->Close();
     if (out_) out_->Close();
   }
-  void Close(proto::connections::DisconnectionReason reason) override {
+  void Close(location::nearby::proto::connections::DisconnectionReason reason)
+      override {
     Close();
   }
-  proto::connections::ConnectionTechnology GetTechnology() const override {
-    return proto::connections::ConnectionTechnology::
+  location::nearby::proto::connections::ConnectionTechnology GetTechnology()
+      const override {
+    return location::nearby::proto::connections::ConnectionTechnology::
         CONNECTION_TECHNOLOGY_BLE_GATT;
   }
-  proto::connections::ConnectionBand GetBand() const override {
-    return proto::connections::ConnectionBand::CONNECTION_BAND_CELLULAR_BAND_2G;
+  location::nearby::proto::connections::ConnectionBand GetBand()
+      const override {
+    return location::nearby::proto::connections::ConnectionBand::
+        CONNECTION_BAND_CELLULAR_BAND_2G;
   }
   int GetFrequency() const override { return 0; }
   int GetTryCount() const override { return 0; }
@@ -168,4 +171,3 @@ TEST(EncryptionRunnerTest, ReadWrite) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

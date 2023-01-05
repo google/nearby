@@ -25,7 +25,6 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/http_loader.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -35,11 +34,11 @@ namespace windows {
 // WinInet APIs to get HTTP response. The platform handles HTTP/HTTPS sessions.
 class HttpLoader {
  public:
-  explicit HttpLoader(const location::nearby::api::WebRequest& request)
+  explicit HttpLoader(const nearby::api::WebRequest& request)
       : request_(request) {}
   ~HttpLoader() = default;
 
-  absl::StatusOr<location::nearby::api::WebResponse> GetResponse();
+  absl::StatusOr<nearby::api::WebResponse> GetResponse();
 
  private:
   // Defines the buffer size. It is used to init a buffer for receiving HTTP
@@ -48,7 +47,7 @@ class HttpLoader {
 
   absl::Status ConnectWebServer();
   absl::Status SendRequest();
-  absl::StatusOr<location::nearby::api::WebResponse> ProcessResponse();
+  absl::StatusOr<nearby::api::WebResponse> ProcessResponse();
   void DisconnectWebServer();
 
   absl::StatusOr<int> QueryStatusCode(HINTERNET file_handle);
@@ -68,7 +67,7 @@ class HttpLoader {
   absl::Status HTTPCodeToStatus(int status_code,
                                 absl::string_view status_message);
 
-  location::nearby::api::WebRequest request_;
+  nearby::api::WebRequest request_;
   std::string host_;
   std::string path_;
   std::string schema_;
@@ -82,6 +81,5 @@ class HttpLoader {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_HTTP_LOADER_H_

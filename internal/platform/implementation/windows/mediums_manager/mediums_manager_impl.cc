@@ -24,7 +24,6 @@
 #include "winrt/Windows.Storage.Streams.h"
 #include "winrt/base.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 namespace {
@@ -287,4 +286,3 @@ void MediumsManager::PublisherHandler(
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

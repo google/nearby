@@ -26,7 +26,6 @@
 
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -855,4 +854,3 @@ AHoleBetweenRenamedFiles) {
 }
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

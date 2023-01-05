@@ -24,7 +24,6 @@
 #include "internal/platform/bluetooth_connection_info.h"
 #include "internal/platform/wifi_lan_connection_info.h"
 
-namespace location {
 namespace nearby {
 
 using ConnectionInfoVariant =
@@ -53,6 +52,5 @@ class NearbyDevice {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_IMPLEMENTATION_DEVICE_H_

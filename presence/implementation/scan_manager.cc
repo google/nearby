@@ -34,18 +34,15 @@
 #include "presence/presence_device.h"
 #include "presence/scan_request.h"
 
-namespace {
-using BleAdvertisementData =
-    ::location::nearby::api::ble_v2::BleAdvertisementData;
-using BlePeripheral = ::location::nearby::api::ble_v2::BlePeripheral;
-using ScanningSession =
-    ::location::nearby::api::ble_v2::BleMedium::ScanningSession;
-using ScanningCallback =
-    ::location::nearby::api::ble_v2::BleMedium::ScanningCallback;
-}  // namespace
-
 namespace nearby {
 namespace presence {
+
+namespace {
+using BleAdvertisementData = ::nearby::api::ble_v2::BleAdvertisementData;
+using BlePeripheral = ::nearby::api::ble_v2::BlePeripheral;
+using ScanningSession = ::nearby::api::ble_v2::BleMedium::ScanningSession;
+using ScanningCallback = ::nearby::api::ble_v2::BleMedium::ScanningCallback;
+}  // namespace
 
 ScanSessionId ScanManager::StartScan(ScanRequest scan_request,
                                      ScanCallback cb) {
@@ -162,7 +159,7 @@ void ScanManager::UpdateCredentials(ScanSessionId id,
 }
 
 int ScanManager::ScanningCallbacksLengthForTest() {
-  ::location::nearby::Future<int> count;
+  ::nearby::Future<int> count;
   RunOnServiceControllerThread("callbacks-size",
                                [&]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
                                  count.Set(scan_sessions_.size());

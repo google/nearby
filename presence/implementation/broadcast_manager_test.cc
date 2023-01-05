@@ -32,10 +32,10 @@ namespace nearby {
 namespace presence {
 namespace {
 
-using FeatureFlags = ::location::nearby::FeatureFlags::Flags;
+using FeatureFlags = ::nearby::FeatureFlags::Flags;
 using internal::IdentityType;
-using ::location::nearby::CountDownLatch;
-using ::location::nearby::MediumEnvironment;
+using ::nearby::CountDownLatch;
+using ::nearby::MediumEnvironment;
 using ::testing::status::StatusIs;
 
 constexpr FeatureFlags kTestCases[] = {
@@ -92,14 +92,14 @@ class BroadcastManagerTest : public testing::TestWithParam<FeatureFlags> {
   // The medium environment must be initialized (started) before the service
   // controller.
   MediumEnvironmentStarter env_;
-  location::nearby::Future<absl::Status> start_broadcast_status_;
+  nearby::Future<absl::Status> start_broadcast_status_;
   BroadcastCallback broadcast_callback_{
       .start_broadcast_cb = [this](absl::Status status) {
         start_broadcast_status_.Set(status);
       }};
   Mediums mediums_;
   CredentialManagerImpl credential_manager_;
-  location::nearby::SingleThreadExecutor executor_;
+  nearby::SingleThreadExecutor executor_;
   BroadcastManager broadcast_manager_{mediums_, credential_manager_, executor_};
 };
 

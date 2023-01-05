@@ -17,7 +17,6 @@
 #import "internal/platform/implementation/apple/scheduled_executor.h"
 #include "internal/platform/runnable.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -37,4 +36,3 @@ bool MultiThreadExecutor::DoSubmit(Runnable&& runnable) {
 
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location

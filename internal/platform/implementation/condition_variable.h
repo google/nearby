@@ -18,7 +18,6 @@
 #include "absl/time/clock.h"
 #include "internal/platform/exception.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -46,6 +45,5 @@ class ConditionVariable {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_CONDITION_VARIABLE_H_

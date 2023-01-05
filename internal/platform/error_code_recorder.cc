@@ -17,10 +17,10 @@
 #include "internal/platform/logging.h"
 #include "proto/errorcode/error_code_enums.pb.h"
 
-namespace location {
 namespace nearby {
 
 using ::location::nearby::errorcode::proto::CommonError;
+using ::location::nearby::errorcode::proto::CommonError_IsValid;
 using ::location::nearby::errorcode::proto::CONNECT;
 using ::location::nearby::errorcode::proto::ConnectError;
 using ::location::nearby::errorcode::proto::Description;
@@ -41,6 +41,7 @@ using ::location::nearby::errorcode::proto::StopAdvertisingError;
 using ::location::nearby::errorcode::proto::StopDiscoveringError;
 using ::location::nearby::errorcode::proto::
     StopListeningIncomingConnectionError;
+using ::location::nearby::errorcode::proto::UNKNOWN_ERROR;
 using ::location::nearby::proto::connections::Medium;
 
 // Default static no-op listener
@@ -66,7 +67,7 @@ ErrorCodeParams ErrorCodeRecorder::BuildErrorCodeParams(
                             .pii_message = pii_message,
                             .connection_token = connection_token};
 
-  if (errorcode::proto::CommonError_IsValid(error)) {
+  if (CommonError_IsValid(error)) {
     params.common_error = static_cast<CommonError>(error);
     params.is_common_error = true;
   } else {
@@ -104,7 +105,7 @@ ErrorCodeParams ErrorCodeRecorder::BuildErrorCodeParams(
         break;
       // Set the error as unknown if undefined event passed in.
       default:
-        params.common_error = errorcode::proto::UNKNOWN_ERROR;
+        params.common_error = UNKNOWN_ERROR;
         params.is_common_error = true;
         break;
     }
@@ -113,4 +114,3 @@ ErrorCodeParams ErrorCodeRecorder::BuildErrorCodeParams(
 }
 
 }  // namespace nearby
-}  // namespace location

@@ -16,7 +16,6 @@
 
 #include "internal/platform/feature_flags.h"
 
-namespace location {
 namespace nearby {
 
 CancellationFlag::CancellationFlag() {
@@ -77,4 +76,3 @@ void CancellationFlag::UnregisterOnCancelListener(CancelListener *listener) {
 }
 
 }  // namespace nearby
-}  // namespace location

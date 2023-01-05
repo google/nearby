@@ -24,7 +24,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 
-namespace location::nearby::windows {
+namespace nearby::windows {
 
 static CountDownLatch *adapter_finished;
 
@@ -229,7 +229,7 @@ void ListenerPayloadCB(const char *endpoint_id, PayloadW &payload) {
   Dart_CObject dart_object_payload_data;
   dart_object_offset.type = Dart_CObject_kString;
   switch (payload.GetType()) {
-    case location::nearby::connections::PayloadType::kBytes: {
+    case nearby::connections::PayloadType::kBytes: {
       char *bytes = nullptr;
       size_t bytes_size;
 
@@ -238,7 +238,7 @@ void ListenerPayloadCB(const char *endpoint_id, PayloadW &payload) {
       }
       dart_object_offset.value.as_string = bytes;
     } break;
-    case location::nearby::connections::PayloadType::kFile: {
+    case nearby::connections::PayloadType::kFile: {
       std::string payload_data(payload.AsFile()->GetFilePath().data());
       dart_object_offset.value.as_string =
           const_cast<char *>(payload_data.c_str());
@@ -654,4 +654,4 @@ void SendPayloadDart(Core *pCore, const char *endpoint_id,
   }
 }
 
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows

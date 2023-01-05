@@ -15,11 +15,11 @@
 #import <Foundation/Foundation.h>
 
 #ifdef __cplusplus
-namespace location {
+
 namespace nearby {
 class InputStream;
 }
-}  // namespace location
+
 #endif
 
 @interface CPPInputStreamBinding : NSObject
@@ -44,7 +44,7 @@ class InputStream;
  *
  * @param stream The stream that has a c++ pointer associated with it.
  */
-+ (location::nearby::InputStream &)getRefFromStream:(NSInputStream *)stream;
++ (nearby::InputStream &)getRefFromStream:(NSInputStream *)stream;
 #endif
 
 @end

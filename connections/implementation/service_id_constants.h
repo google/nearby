@@ -20,7 +20,6 @@
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -50,6 +49,5 @@ inline std::string WrapInitiatorUpgradeServiceId(absl::string_view service_id) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_SERVICE_ID_CONSTANTS_H_

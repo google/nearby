@@ -23,7 +23,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -115,6 +114,5 @@ class WifiMedium : public api::WifiMedium {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_WIFI_H_

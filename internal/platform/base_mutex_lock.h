@@ -18,7 +18,6 @@
 #include "absl/base/thread_annotations.h"
 #include "internal/platform/implementation/mutex.h"
 
-namespace location {
 namespace nearby {
 
 // An RAII mechanism to acquire a Lock over a block of code.
@@ -35,6 +34,5 @@ class ABSL_SCOPED_LOCKABLE BaseMutexLock final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_BASE_MUTEX_LOCK_H_

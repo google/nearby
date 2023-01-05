@@ -30,14 +30,13 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
 namespace {
 
-using ::location::nearby::api::ble_v2::BleAdvertisementData;
-using ::location::nearby::api::ble_v2::TxPowerLevel;
+using ::nearby::api::ble_v2::BleAdvertisementData;
+using ::nearby::api::ble_v2::TxPowerLevel;
 
 std::string TxPowerLevelToName(TxPowerLevel power_mode) {
   switch (power_mode) {
@@ -364,7 +363,7 @@ BleV2Medium::GattServer::CreateCharacteristic(
 
 bool BleV2Medium::GattServer::UpdateCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic,
-    const location::nearby::ByteArray& value) {
+    const nearby::ByteArray& value) {
   NEARBY_LOGS(INFO)
       << "G3 Ble GattServer UpdateCharacteristic, characteristic=("
       << characteristic.service_uuid.Get16BitAsString() << ","
@@ -540,4 +539,3 @@ std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location

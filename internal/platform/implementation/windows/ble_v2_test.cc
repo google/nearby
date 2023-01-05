@@ -21,7 +21,6 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 namespace {
@@ -94,4 +93,3 @@ TEST(BleV2Medium, DISABLED_StopScanning) {
 }  // namespace
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

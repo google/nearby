@@ -27,13 +27,15 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace parser {
 namespace {
 
-using Medium = proto::connections::Medium;
+using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::PayloadTransferFrame;
+using ::location::nearby::connections::V1Frame;
+using Medium = ::location::nearby::proto::connections::Medium;
 using ::protobuf_matchers::EqualsProto;
 
 constexpr absl::string_view kEndpointId{"ABC"};
@@ -407,4 +409,3 @@ TEST(OfflineFramesTest, CanGenerateKeepAlive) {
 }  // namespace parser
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

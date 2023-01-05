@@ -17,7 +17,6 @@
 #include "gtest/gtest.h"
 #include "connections/implementation/base_pcp_handler.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -433,4 +432,3 @@ TEST(BleAdvertisementTest,
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

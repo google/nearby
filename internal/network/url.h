@@ -24,7 +24,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 
@@ -79,6 +78,5 @@ bool operator==(const Url& url1, const Url& url2);
 
 }  // namespace network
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_NETWORK_URL_H_

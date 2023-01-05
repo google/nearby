@@ -19,7 +19,6 @@
 
 #include "internal/platform/exception.h"
 
-namespace location {
 namespace nearby {
 
 // The Callable is and object intended to be executed by a thread, that is able
@@ -32,6 +31,5 @@ template <typename T>
 using Callable = std::function<ExceptionOr<T>()>;
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_CALLABLE_H_

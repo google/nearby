@@ -23,7 +23,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/wifi_hotspot.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -115,6 +114,5 @@ class WifiHotspot {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_H_

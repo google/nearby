@@ -23,7 +23,6 @@
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -68,6 +67,5 @@ class BaseBwuHandler : public BwuHandler {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_BASE_BWU_HANDLER_H_

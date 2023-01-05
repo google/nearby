@@ -21,7 +21,6 @@
 #include "connections/implementation/base_endpoint_channel.h"
 #include "internal/platform/wifi_direct.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -38,7 +37,7 @@ class WifiDirectEndpointChannel final : public BaseEndpointChannel {
   WifiDirectEndpointChannel(WifiDirectEndpointChannel&&) = delete;
   WifiDirectEndpointChannel& operator=(WifiDirectEndpointChannel&&) = delete;
 
-  proto::connections::Medium GetMedium() const override;
+  location::nearby::proto::connections::Medium GetMedium() const override;
 
  private:
   void CloseImpl() override;
@@ -48,6 +47,5 @@ class WifiDirectEndpointChannel final : public BaseEndpointChannel {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_WIFI_DIRECT_ENDPOINT_CHANNEL_H_

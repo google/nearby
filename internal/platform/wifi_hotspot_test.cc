@@ -25,7 +25,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_hotspot_credential.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -265,4 +264,3 @@ TEST_F(WifiHotspotMediumTest, CanStartHotspotTheOtherFailConnect) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

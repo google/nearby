@@ -23,7 +23,6 @@
 #include "fastpair/internal/api/device_info.h"
 #include "fastpair/internal/api/timer.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -37,6 +36,5 @@ class ImplementationFastPairPlatform {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_API_FAST_PAIR_PLATFORM_H_

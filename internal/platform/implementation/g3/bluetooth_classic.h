@@ -30,7 +30,6 @@
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/pipe.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -233,6 +232,5 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_BLUETOOTH_CLASSIC_H_

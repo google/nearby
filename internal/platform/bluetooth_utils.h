@@ -18,7 +18,6 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 
 class BluetoothUtils {
@@ -41,6 +40,5 @@ class BluetoothUtils {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_BLUETOOTH_UTILS_H_

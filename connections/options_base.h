@@ -18,7 +18,6 @@
 #include "connections/medium_selector.h"
 #include "connections/strategy.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -31,6 +30,5 @@ struct OptionsBase {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_OPTIONS_BASE_H_

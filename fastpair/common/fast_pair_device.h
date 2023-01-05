@@ -23,7 +23,6 @@
 #include "absl/container/flat_hash_map.h"
 #include "fastpair/common/protocol.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -105,6 +104,5 @@ std::ostream& operator<<(std::ostream& stream, const FastPairDevice& device);
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_COMMON_FAST_PAIR_DEVICE_H_

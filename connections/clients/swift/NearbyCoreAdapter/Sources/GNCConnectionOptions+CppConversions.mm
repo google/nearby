@@ -20,7 +20,7 @@
 
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/GNCConnectionOptions+CppConversions.h"
 
-using ::location::nearby::connections::ConnectionOptions;
+using ::nearby::connections::ConnectionOptions;
 
 @implementation GNCConnectionOptions (CppConversions)
 

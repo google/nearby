@@ -21,7 +21,6 @@
 #include "fastpair/internal/api/fast_pair_platform.h"
 #include "fastpair/internal/public/timer.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -43,6 +42,5 @@ class TimerImpl : public Timer {
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_PUBLIC_TIMER_IMPL_H_

@@ -18,7 +18,6 @@
 
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -54,4 +53,3 @@ void Executor::Shutdown() {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

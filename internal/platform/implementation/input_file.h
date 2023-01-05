@@ -21,7 +21,6 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -35,6 +34,5 @@ class InputFile : public InputStream {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_INPUT_FILE_H_

@@ -16,7 +16,6 @@
 
 #include <memory>
 
-namespace location {
 namespace nearby {
 
 class InputStream;
@@ -24,9 +23,7 @@ struct InputStreamDeleter {
   void operator()(InputStream* p);
 };
 }  // namespace nearby
-}  // namespace location
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -46,6 +43,5 @@ class InputStreamW {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_INPUT_STREAM_W_H_

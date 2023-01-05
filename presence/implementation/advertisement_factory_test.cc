@@ -33,7 +33,7 @@ namespace presence {
 
 namespace {
 
-using ::location::nearby::ByteArray;  // NOLINT
+using ::nearby::ByteArray;  // NOLINT
 using ::nearby::internal::IdentityType;
 using ::nearby::internal::PrivateCredential;  // NOLINT
 using ::testing::NiceMock;

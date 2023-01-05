@@ -25,7 +25,6 @@
 #include "internal/network/http_request.h"
 #include "internal/network/http_status_code.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 
@@ -72,6 +71,5 @@ class HttpResponse {
 
 }  // namespace network
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_RESPONSE_H_

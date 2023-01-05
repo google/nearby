@@ -23,7 +23,6 @@
 #include "internal/platform/single_thread_executor.h"
 #include "internal/platform/system_clock.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -80,4 +79,3 @@ TEST(ConditionVariableTest, WaitTerminatesOnTimeoutWithoutNotify) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

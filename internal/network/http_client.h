@@ -21,7 +21,6 @@
 #include "internal/network/http_request.h"
 #include "internal/network/http_response.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 
@@ -36,6 +35,5 @@ class HttpClient {
 
 }  // namespace network
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_CLIENT_H_

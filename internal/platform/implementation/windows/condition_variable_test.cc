@@ -37,7 +37,7 @@ class ConditionVariableTests : public testing::Test {
 
             if (timedWait == true) {
               auto result = this->condition_variable_actual_.Wait(*timeout);
-              if (result.value == location::nearby::Exception::kSuccess) {
+              if (result.value == nearby::Exception::kSuccess) {
                 return true;
               } else {
                 return false;
@@ -55,13 +55,12 @@ class ConditionVariableTests : public testing::Test {
     }
 
    private:
-    location::nearby::windows::Mutex mutex_actual_ =
-        location::nearby::windows::Mutex(
-            location::nearby::windows::Mutex::Mode::kRegular);
-    location::nearby::windows::Mutex& mutex_ = mutex_actual_;
-    location::nearby::windows::ConditionVariable condition_variable_actual_ =
-        location::nearby::windows::ConditionVariable(&mutex_);
-    location::nearby::windows::ConditionVariable& condition_variable_ =
+    nearby::windows::Mutex mutex_actual_ =
+        nearby::windows::Mutex(nearby::windows::Mutex::Mode::kRegular);
+    nearby::windows::Mutex& mutex_ = mutex_actual_;
+    nearby::windows::ConditionVariable condition_variable_actual_ =
+        nearby::windows::ConditionVariable(&mutex_);
+    nearby::windows::ConditionVariable& condition_variable_ =
         condition_variable_actual_;
   };
 };

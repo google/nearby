@@ -16,7 +16,7 @@
 
 #include <string>
 
-namespace location::nearby::windows {
+namespace nearby::windows {
 
 const StrategyW StrategyW::kNone = {StrategyW::ConnectionType::kNone,
                                     StrategyW::TopologyType::kUnknown};
@@ -76,4 +76,4 @@ bool operator!=(const StrategyW& lhs, const StrategyW& rhs) {
   return !(lhs == rhs);
 }
 
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows

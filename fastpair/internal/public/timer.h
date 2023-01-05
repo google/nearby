@@ -17,7 +17,6 @@
 
 #include <functional>
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -46,6 +45,5 @@ class Timer {
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_PUBLIC_TIMER_H_

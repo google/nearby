@@ -14,7 +14,6 @@
 
 #include "internal/platform/file.h"
 
-namespace location {
 namespace nearby {
 
 InputFile::InputFile(PayloadId id, std::int64_t size)
@@ -86,4 +85,3 @@ Exception OutputFile::Close() { return impl_->Close(); }
 OutputStream& OutputFile::GetOutputStream() { return *impl_; }
 
 }  // namespace nearby
-}  // namespace location

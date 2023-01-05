@@ -26,9 +26,8 @@ NS_ASSUME_NONNULL_BEGIN
 /** This class contains the C++ Core object. */
 @interface GNCCore : NSObject {
  @public
-  std::unique_ptr<::location::nearby::connections::Core> _core;
-  std::unique_ptr<::location::nearby::connections::ServiceControllerRouter>
-      _service_controller_router;
+  std::unique_ptr<::nearby::connections::Core> _core;
+  std::unique_ptr<::nearby::connections::ServiceControllerRouter> _service_controller_router;
 }
 
 @end

@@ -19,7 +19,6 @@
 
 #include "internal/platform/implementation/atomic_reference.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -40,6 +39,5 @@ class AtomicUint32 : public api::AtomicUint32 {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_ATOMIC_REFERENCE_H_

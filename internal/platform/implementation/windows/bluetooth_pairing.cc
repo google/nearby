@@ -19,7 +19,6 @@
 #include "winrt/Windows.Foundation.Collections.h"
 #include "winrt/base.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -115,4 +114,3 @@ void BluetoothPairing::OnPair(DevicePairingResult& pairing_result) {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

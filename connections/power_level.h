@@ -15,7 +15,6 @@
 #ifndef CORE_POWER_LEVEL_H_
 #define CORE_POWER_LEVEL_H_
 
-namespace location {
 namespace nearby {
 namespace connections {  // Represents the various power levels that can be
                          // used, on mediums that support it.
@@ -26,6 +25,5 @@ enum class PowerLevel {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_POWER_LEVEL_H_

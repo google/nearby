@@ -25,7 +25,6 @@
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/output_file.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -57,6 +56,5 @@ class IOFile final : public api::InputFile, public api::OutputFile {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_FILE_H_

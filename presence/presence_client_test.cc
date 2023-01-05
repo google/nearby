@@ -37,8 +37,7 @@ PresenceClient CreateDefunctPresenceClient() {
 
 class PresenceClientTest : public testing::Test {
  protected:
-  location::nearby::MediumEnvironment& env_{
-      location::nearby::MediumEnvironment::Instance()};
+  nearby::MediumEnvironment& env_{nearby::MediumEnvironment::Instance()};
 };
 
 TEST_F(PresenceClientTest, StartBroadcastWithDefaultConstructor) {
@@ -75,7 +74,7 @@ TEST_F(PresenceClientTest, StartBroadcastFailsWhenPresenceServiceIsGone) {
 
 TEST_F(PresenceClientTest, StartScanWithDefaultConstructor) {
   env_.Start();
-  ::location::nearby::Future<absl::Status> scan_result;
+  ::nearby::Future<absl::Status> scan_result;
   ScanCallback scan_callback = {
       .start_scan_cb = [&](absl::Status status) { scan_result.Set(status); },
   };

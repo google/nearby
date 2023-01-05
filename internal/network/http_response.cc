@@ -19,7 +19,6 @@
 
 #include "absl/strings/str_cat.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 
@@ -71,4 +70,3 @@ const HttpResponseBody& HttpResponse::GetBody() const { return body_; }
 
 }  // namespace network
 }  // namespace nearby
-}  // namespace location

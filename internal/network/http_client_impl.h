@@ -25,7 +25,6 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/network/http_client.h"
 
-namespace location {
 namespace nearby {
 namespace network {
 
@@ -52,6 +51,5 @@ class NearbyHttpClient : public HttpClient {
 
 }  // namespace network
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_CLIENT_IMPL_H_

@@ -32,12 +32,13 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
-using ::location::nearby::analytics::PacketMetaData;
-using ::location::nearby::connections::PayloadDirection;
+using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::V1Frame;
+using ::nearby::analytics::PacketMetaData;
+using ::nearby::connections::PayloadDirection;
 
 constexpr absl::Duration EndpointManager::kProcessEndpointDisconnectionTimeout;
 constexpr absl::Time EndpointManager::kInvalidTimestamp;
@@ -132,14 +133,16 @@ void EndpointManager::EndpointChannelLoopRunnable(
         NEARBY_LOGS(INFO)
             << "Received invalid protobuf message, re-fetching endpoint "
                "channel; last_failed_medium="
-            << proto::connections::Medium_Name(last_failed_medium);
+            << location::nearby::proto::connections::Medium_Name(
+                   last_failed_medium);
         continue;
       }
       if (exception.Raised(Exception::kIo)) {
         last_failed_medium = channel->GetMedium();
         NEARBY_LOGS(INFO)
             << "Endpoint channel IO exception; last_failed_medium="
-            << proto::connections::Medium_Name(last_failed_medium);
+            << location::nearby::proto::connections::Medium_Name(
+                   last_failed_medium);
         continue;
       }
       if (exception.Raised(Exception::kInterrupted)) {
@@ -149,7 +152,8 @@ void EndpointManager::EndpointChannelLoopRunnable(
 
     if (!keep_using_channel.result()) {
       NEARBY_LOGS(INFO) << "Dropping current channel: last medium="
-                        << proto::connections::Medium_Name(last_failed_medium);
+                        << location::nearby::proto::connections::Medium_Name(
+                               last_failed_medium);
       break;
     }
   }
@@ -700,4 +704,3 @@ void EndpointManager::RunOnEndpointManagerThread(const std::string& name,
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

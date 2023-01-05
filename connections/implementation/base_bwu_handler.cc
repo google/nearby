@@ -20,7 +20,6 @@
 #include "connections/implementation/service_id_constants.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -81,4 +80,3 @@ void BaseBwuHandler::RevertResponderState(const std::string& service_id) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

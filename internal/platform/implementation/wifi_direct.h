@@ -24,7 +24,6 @@
 #include "internal/platform/output_stream.h"
 #include "internal/platform/wifi_hotspot_credential.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -115,6 +114,5 @@ class WifiDirectMedium {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_WIFI_DIRECT_H_

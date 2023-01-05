@@ -15,11 +15,11 @@
 #import <Foundation/Foundation.h>
 
 #ifdef __cplusplus
-namespace location {
+
 namespace nearby {
 class InputStream;
 }
-}  // namespace location
+
 #endif
 
 @interface GNCInputStream : NSInputStream <NSStreamDelegate>
@@ -29,7 +29,7 @@ class InputStream;
 - (nonnull instancetype)initWithURL:(nonnull NSURL *)url NS_UNAVAILABLE;
 
 #ifdef __cplusplus
-- (nonnull instancetype)initWithCppInputStream:(nonnull location::nearby::InputStream *)stream
+- (nonnull instancetype)initWithCppInputStream:(nonnull nearby::InputStream *)stream
     NS_DESIGNATED_INITIALIZER;
 #endif
 

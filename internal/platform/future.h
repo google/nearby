@@ -17,7 +17,6 @@
 
 #include "internal/platform/settable_future.h"
 
-namespace location {
 namespace nearby {
 
 template <typename T>
@@ -51,6 +50,5 @@ class Future final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_FUTURE_H_

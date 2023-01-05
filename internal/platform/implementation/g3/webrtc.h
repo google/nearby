@@ -22,7 +22,6 @@
 #include "internal/platform/implementation/g3/single_thread_executor.h"
 #include "webrtc/api/peer_connection_interface.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -35,7 +34,7 @@ class WebRtcSignalingMessenger : public api::WebRtcSignalingMessenger {
 
   explicit WebRtcSignalingMessenger(
       absl::string_view self_id,
-      const connections::LocationHint& location_hint);
+      const location::nearby::connections::LocationHint& location_hint);
   ~WebRtcSignalingMessenger() override = default;
 
   bool SendMessage(absl::string_view peer_id,
@@ -47,7 +46,7 @@ class WebRtcSignalingMessenger : public api::WebRtcSignalingMessenger {
 
  private:
   std::string self_id_;
-  connections::LocationHint location_hint_;
+  location::nearby::connections::LocationHint location_hint_;
 };
 
 class WebRtcMedium : public api::WebRtcMedium {
@@ -67,7 +66,8 @@ class WebRtcMedium : public api::WebRtcMedium {
   // Returns a signaling messenger for sending WebRTC signaling messages.
   std::unique_ptr<api::WebRtcSignalingMessenger> GetSignalingMessenger(
       absl::string_view self_id,
-      const connections::LocationHint& location_hint) override;
+      const location::nearby::connections::LocationHint& location_hint)
+      override;
 
  private:
   // Executor for handling calls to create a peer connection.
@@ -76,6 +76,5 @@ class WebRtcMedium : public api::WebRtcMedium {
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_WEBRTC_H_

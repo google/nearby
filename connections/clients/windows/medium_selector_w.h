@@ -16,7 +16,7 @@
 
 #include "proto/connections_enums.pb.h"
 
-namespace location::nearby::windows {
+namespace nearby::windows {
 
 using MediumW = ::location::nearby::proto::connections::Medium;
 
@@ -80,6 +80,6 @@ struct MediumSelectorW {
 // Feature On/Off switch for mediums.
 using BooleanMediumSelectorW = MediumSelectorW<bool>;
 
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_MEDIUM_SELECTOR_W_H_

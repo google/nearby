@@ -28,7 +28,6 @@
 @class GNCMBonjourBrowser;
 @class GNCMBonjourService;
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -201,7 +200,6 @@ class WifiLanMedium : public api::WifiLanMedium {
 
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location
 
 #endif
 #endif  // PLATFORM_IMPL_APPLE_WIFI_LAN_H_

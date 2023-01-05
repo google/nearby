@@ -24,7 +24,7 @@ class OutputFileTests : public testing::Test {
  protected:
   // You can define per-test set-up logic as usual.
   void SetUp() override {
-    location::nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
+    nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
     if (FileExists(test_utils::GetPayloadPath(payloadId).c_str())) {
       DeleteFileA(test_utils::GetPayloadPath(payloadId).c_str());
     }
@@ -32,7 +32,7 @@ class OutputFileTests : public testing::Test {
 
   // You can define per-test tear-down logic as usual.
   void TearDown() override {
-    location::nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
+    nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
     if (FileExists(test_utils::GetPayloadPath(payloadId).c_str())) {
       DeleteFileA(test_utils::GetPayloadPath(payloadId).c_str());
     }
@@ -47,26 +47,24 @@ class OutputFileTests : public testing::Test {
 };
 
 TEST_F(OutputFileTests, SuccessfulCreation) {
-  location::nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
-  std::unique_ptr<location::nearby::api::OutputFile> outputFile = nullptr;
+  nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
+  std::unique_ptr<nearby::api::OutputFile> outputFile = nullptr;
 
   EXPECT_NO_THROW(
       outputFile =
-          location::nearby::api::ImplementationPlatform::CreateOutputFile(
-              payloadId));
+          nearby::api::ImplementationPlatform::CreateOutputFile(payloadId));
 
   EXPECT_NE(outputFile, nullptr);
   EXPECT_NO_THROW(outputFile->Close());
 }
 
 TEST_F(OutputFileTests, SuccessfulClose) {
-  location::nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
-  std::unique_ptr<location::nearby::api::OutputFile> outputFile = nullptr;
+  nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
+  std::unique_ptr<nearby::api::OutputFile> outputFile = nullptr;
 
   EXPECT_NO_THROW(
       outputFile =
-          location::nearby::api::ImplementationPlatform::CreateOutputFile(
-              payloadId));
+          nearby::api::ImplementationPlatform::CreateOutputFile(payloadId));
 
   EXPECT_NO_THROW(outputFile->Close());
 
@@ -74,14 +72,13 @@ TEST_F(OutputFileTests, SuccessfulClose) {
 }
 
 TEST_F(OutputFileTests, SuccessfulWrite) {
-  location::nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
-  location::nearby::ByteArray data(std::string(TEST_STRING));
-  std::unique_ptr<location::nearby::api::OutputFile> outputFile = nullptr;
+  nearby::PayloadId payloadId(TEST_PAYLOAD_ID);
+  nearby::ByteArray data(std::string(TEST_STRING));
+  std::unique_ptr<nearby::api::OutputFile> outputFile = nullptr;
 
   EXPECT_NO_THROW(
       outputFile =
-          location::nearby::api::ImplementationPlatform::CreateOutputFile(
-              payloadId));
+          nearby::api::ImplementationPlatform::CreateOutputFile(payloadId));
 
   EXPECT_NO_THROW(outputFile->Write(data));
   EXPECT_NO_THROW(outputFile->Close());

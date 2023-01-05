@@ -21,7 +21,6 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -96,4 +95,3 @@ INSTANTIATE_TEST_CASE_P(StatusToString, StatusToString,
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

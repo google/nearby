@@ -16,7 +16,7 @@
 
 #include "connections/listeners.h"
 
-namespace location::nearby {
+namespace nearby {
 // Must implement Deleters, since the connections classes weren't
 // fully defined in the header
 namespace connections {
@@ -267,4 +267,4 @@ PayloadListenerW::PayloadListenerW(PayloadListenerW &&other) noexcept {
 }
 
 }  // namespace windows
-}  // namespace location::nearby
+}  // namespace nearby

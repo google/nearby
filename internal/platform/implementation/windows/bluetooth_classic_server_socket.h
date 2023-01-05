@@ -28,7 +28,6 @@
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -111,5 +110,5 @@ class BluetoothServerSocket : public api::BluetoothServerSocket {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
+
 #endif  // PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_SERVER_SOCKET_H_

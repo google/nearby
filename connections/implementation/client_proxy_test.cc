@@ -32,7 +32,6 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -249,9 +248,10 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
   MockConnectionListener mock_discovery_connection_;
   MockPayloadListener mock_discovery_payload_;
 
-  proto::connections::Medium medium_{proto::connections::Medium::BLUETOOTH};
-  std::vector<proto::connections::Medium> mediums_{
-      proto::connections::Medium::BLUETOOTH,
+  location::nearby::proto::connections::Medium medium_{
+      location::nearby::proto::connections::Medium::BLUETOOTH};
+  std::vector<location::nearby::proto::connections::Medium> mediums_{
+      location::nearby::proto::connections::Medium::BLUETOOTH,
   };
   Strategy strategy_{Strategy::kP2pPointToPoint};
   const std::string service_id_{"service"};
@@ -900,4 +900,3 @@ TEST_F(ClientProxyTest, LogSessionForResetClientProxy) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

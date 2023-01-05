@@ -17,7 +17,6 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 
-namespace location {
 namespace nearby {
 
 std::string BluetoothUtils::ToString(const ByteArray& bluetooth_mac_address) {
@@ -72,4 +71,3 @@ bool BluetoothUtils::IsBluetoothMacAddressUnset(
 }
 
 }  // namespace nearby
-}  // namespace location

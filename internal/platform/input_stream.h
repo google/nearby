@@ -20,7 +20,6 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 
-namespace location {
 namespace nearby {
 
 // An InputStream represents an input stream of bytes.
@@ -41,6 +40,5 @@ class InputStream {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_INPUT_STREAM_H_

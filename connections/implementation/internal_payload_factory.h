@@ -22,7 +22,6 @@
 #include "connections/implementation/internal_payload.h"
 #include "connections/payload.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -32,10 +31,10 @@ std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(Payload payload);
 // Creates an InternalPayload representing an incoming Payload from a remote
 // endpoint.
 std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
-    const PayloadTransferFrame& frame, const std::string& custom_save_path);
+    const location::nearby::connections::PayloadTransferFrame& frame,
+    const std::string& custom_save_path);
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_INTERNAL_PAYLOAD_FACTORY_H_

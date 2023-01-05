@@ -42,7 +42,6 @@
 #include "internal/platform/implementation/log_message.h"
 #include "internal/platform/implementation/platform.h"
 
-namespace location {
 namespace nearby {
 
 // This class is used to explicitly ignore values in the conditional
@@ -57,46 +56,39 @@ class LogMessageVoidify {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 // Severity enum conversion
-#define NEARBY_SEVERITY_VERBOSE \
-  location::nearby::api::LogMessage::Severity::kVerbose
-#define NEARBY_SEVERITY_INFO location::nearby::api::LogMessage::Severity::kInfo
-#define NEARBY_SEVERITY_WARNING \
-  location::nearby::api::LogMessage::Severity::kWarning
-#define NEARBY_SEVERITY_ERROR \
-  location::nearby::api::LogMessage::Severity::kError
-#define NEARBY_SEVERITY_FATAL \
-  location::nearby::api::LogMessage::Severity::kFatal
+#define NEARBY_SEVERITY_VERBOSE nearby::api::LogMessage::Severity::kVerbose
+#define NEARBY_SEVERITY_INFO nearby::api::LogMessage::Severity::kInfo
+#define NEARBY_SEVERITY_WARNING nearby::api::LogMessage::Severity::kWarning
+#define NEARBY_SEVERITY_ERROR nearby::api::LogMessage::Severity::kError
+#define NEARBY_SEVERITY_FATAL nearby::api::LogMessage::Severity::kFatal
 #if defined(_WIN32)
 // wingdi.h defines ERROR to be 0. When we call LOG(ERROR), it gets substituted
 // with 0, and it expands to NEARBY_SEVERITY_0. To allow us to keep using this
 // syntax, we define this macro to do the same thing as NEARBY_SEVERITY_ERROR.
-#define NEARBY_SEVERITY_0 location::nearby::api::LogMessage::Severity::kError
+#define NEARBY_SEVERITY_0 nearby::api::LogMessage::Severity::kError
 #endif  // defined(_WIN32)
 #define NEARBY_SEVERITY(severity) NEARBY_SEVERITY_##severity
 
 // Log enabling
-#define NEARBY_LOG_IS_ON(severity)                           \
-  location::nearby::api::LogMessage::ShouldCreateLogMessage( \
-      NEARBY_SEVERITY(severity))
+#define NEARBY_LOG_IS_ON(severity) \
+  nearby::api::LogMessage::ShouldCreateLogMessage(NEARBY_SEVERITY(severity))
 
-#define NEARBY_LOG_SET_SEVERITY(severity)               \
-  location::nearby::api::LogMessage::SetMinLogSeverity( \
-      NEARBY_SEVERITY(severity))
+#define NEARBY_LOG_SET_SEVERITY(severity) \
+  nearby::api::LogMessage::SetMinLogSeverity(NEARBY_SEVERITY(severity))
 
 // Log message creation
-#define NEARBY_LOG_MESSAGE(severity)                               \
-  location::nearby::api::ImplementationPlatform::CreateLogMessage( \
+#define NEARBY_LOG_MESSAGE(severity)                     \
+  nearby::api::ImplementationPlatform::CreateLogMessage( \
       __FILE__, __LINE__, NEARBY_SEVERITY(severity))
 
 // Public APIs
 // The stream statement must come last or otherwise it won't compile.
-#define NEARBY_LOGS(severity)                                             \
-  !(NEARBY_LOG_IS_ON(severity)) ? (void)0                                 \
-                                : location::nearby::LogMessageVoidify() & \
-                                      NEARBY_LOG_MESSAGE(severity)->Stream()
+#define NEARBY_LOGS(severity)   \
+  !(NEARBY_LOG_IS_ON(severity)) \
+      ? (void)0                 \
+      : nearby::LogMessageVoidify() & NEARBY_LOG_MESSAGE(severity)->Stream()
 
 #define NEARBY_LOG(severity, ...) \
   NEARBY_LOG_IS_ON(severity)      \

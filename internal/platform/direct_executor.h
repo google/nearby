@@ -18,7 +18,6 @@
 #include "internal/platform/implementation/executor.h"
 #include "internal/platform/submittable_executor.h"
 
-namespace location {
 namespace nearby {
 
 // An Executor that executes the tasks immediately on the thread calling
@@ -47,6 +46,5 @@ class ABSL_LOCKABLE DirectExecutor final : public api::Executor {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_DIRECT_EXECUTOR_H_

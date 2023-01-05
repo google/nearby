@@ -15,7 +15,6 @@
 #ifndef CORE_INTERNAL_PCP_H_
 #define CORE_INTERNAL_PCP_H_
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -35,6 +34,5 @@ enum class Pcp {
 };
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_PCP_H_

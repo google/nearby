@@ -18,7 +18,6 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 
-namespace location {
 namespace nearby {
 
 // A socket is an endpoint for communication between two machines.
@@ -34,6 +33,5 @@ class Socket {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_SOCKET_H_

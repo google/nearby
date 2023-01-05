@@ -19,7 +19,6 @@
 
 #include "internal/platform/implementation/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace posix {
 
@@ -40,6 +39,5 @@ class ABSL_LOCKABLE Mutex : public api::Mutex {
 
 }  // namespace posix
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_SHARED_POSIX_MUTEX_H_

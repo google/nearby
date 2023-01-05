@@ -39,7 +39,6 @@
 #include "connections/implementation/wifi_lan_service_info.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -60,9 +59,10 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   ~P2pClusterPcpHandler() override = default;
 
  protected:
-  std::vector<proto::connections::Medium> GetConnectionMediumsByPriority()
+  std::vector<location::nearby::proto::connections::Medium>
+  GetConnectionMediumsByPriority() override;
+  location::nearby::proto::connections::Medium GetDefaultUpgradeMedium()
       override;
-  proto::connections::Medium GetDefaultUpgradeMedium() override;
 
   // @PCPHandlerThread
   BasePcpHandler::StartOperationResult StartAdvertisingImpl(
@@ -143,11 +143,11 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   void BluetoothDeviceLostHandler(ClientProxy* client,
                                   const std::string& service_id,
                                   BluetoothDevice& device);
-  proto::connections::Medium StartBluetoothAdvertising(
+  location::nearby::proto::connections::Medium StartBluetoothAdvertising(
       ClientProxy* client, const std::string& service_id,
       const ByteArray& service_id_hash, const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info, WebRtcState web_rtc_state);
-  proto::connections::Medium StartBluetoothDiscovery(
+  location::nearby::proto::connections::Medium StartBluetoothDiscovery(
       BluetoothDiscoveredDeviceCallback callback, ClientProxy* client,
       const std::string& service_id);
   BasePcpHandler::ConnectImplResult BluetoothConnectImpl(
@@ -163,12 +163,12 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                       bool fast_advertisement);
   void BlePeripheralLostHandler(ClientProxy* client, BlePeripheral& peripheral,
                                 const std::string& service_id);
-  proto::connections::Medium StartBleAdvertising(
+  location::nearby::proto::connections::Medium StartBleAdvertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info,
       const AdvertisingOptions& advertising_options, WebRtcState web_rtc_state);
-  proto::connections::Medium StartBleScanning(
+  location::nearby::proto::connections::Medium StartBleScanning(
       BleDiscoveredPeripheralCallback callback, ClientProxy* client,
       const std::string& service_id,
       const std::string& fast_advertisement_service_uuid);
@@ -188,12 +188,12 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                   const std::string& service_id,
                                   const ByteArray& advertisement_bytes,
                                   bool fast_advertisement);
-  proto::connections::Medium StartBleV2Advertising(
+  location::nearby::proto::connections::Medium StartBleV2Advertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info,
       const AdvertisingOptions& advertising_options, WebRtcState web_rtc_state);
-  proto::connections::Medium StartBleV2Scanning(
+  location::nearby::proto::connections::Medium StartBleV2Scanning(
       BleV2DiscoveredPeripheralCallback callback, ClientProxy* client,
       const std::string& service_id, const DiscoveryOptions& discovery_options);
   BasePcpHandler::ConnectImplResult BleV2ConnectImpl(ClientProxy* client,
@@ -209,11 +209,11 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   void WifiLanServiceLostHandler(ClientProxy* client,
                                  NsdServiceInfo service_info,
                                  const std::string& service_id);
-  proto::connections::Medium StartWifiLanAdvertising(
+  location::nearby::proto::connections::Medium StartWifiLanAdvertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info, WebRtcState web_rtc_state);
-  proto::connections::Medium StartWifiLanDiscovery(
+  location::nearby::proto::connections::Medium StartWifiLanDiscovery(
       WifiLanDiscoveredServiceCallback callback, ClientProxy* client,
       const std::string& service_id);
   BasePcpHandler::ConnectImplResult WifiLanConnectImpl(
@@ -241,6 +241,5 @@ class P2pClusterPcpHandler : public BasePcpHandler {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_P2P_CLUSTER_PCP_HANDLER_H_

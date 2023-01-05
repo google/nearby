@@ -20,7 +20,6 @@
 #include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/windows/thread_pool.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -46,6 +45,5 @@ class Executor : public api::Executor {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_EXECUTOR_H_

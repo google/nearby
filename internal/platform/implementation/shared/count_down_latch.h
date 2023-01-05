@@ -20,7 +20,6 @@
 #include "absl/time/clock.h"
 #include "internal/platform/implementation/count_down_latch.h"
 
-namespace location {
 namespace nearby {
 namespace shared {
 
@@ -48,6 +47,5 @@ class CountDownLatch final : public api::CountDownLatch {
 
 }  // namespace shared
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_G3_COUNT_DOWN_LATCH_H_

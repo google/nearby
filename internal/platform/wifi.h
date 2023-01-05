@@ -21,9 +21,6 @@
 #ifndef PLATFORM_PUBLIC_WIFI_H_
 #define PLATFORM_PUBLIC_WIFI_H_
 
-
-
-namespace location {
 namespace nearby {
 
 class WifiMedium {
@@ -71,6 +68,5 @@ class WifiMedium {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_WIFI_H_

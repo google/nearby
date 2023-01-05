@@ -32,7 +32,6 @@
 #include "webrtc/api/rtc_error.h"
 #include "webrtc/api/scoped_refptr.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -405,4 +404,3 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

@@ -25,7 +25,6 @@
 #include "absl/strings/string_view.h"
 #include "fastpair/internal/api/device_info.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -51,5 +50,5 @@ class DeviceInfo : public api::DeviceInfo {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
+
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_WINDOWS_DEVICE_INFO_H_

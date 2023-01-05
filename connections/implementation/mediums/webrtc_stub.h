@@ -26,7 +26,6 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/listeners.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -56,10 +55,10 @@ class WebRtc {
   // Prepares the device to accept incoming WebRtc connections. Returns a
   // boolean value indicating if the device has started accepting connections.
   // Runs on @MainThread.
-  bool StartAcceptingConnections(const std::string& service_id,
-                                 const WebrtcPeerId& self_peer_id,
-                                 const LocationHint& location_hint,
-                                 AcceptedConnectionCallback callback);
+  bool StartAcceptingConnections(
+      const std::string& service_id, const WebrtcPeerId& self_peer_id,
+      const location::nearby::connections::LocationHint& location_hint,
+      AcceptedConnectionCallback callback);
 
   // Try to stop (accepting) the specific connection with provided service id.
   // Runs on @MainThread
@@ -68,15 +67,14 @@ class WebRtc {
   // Initiates a WebRtc connection with peer device identified by |peer_id|
   // with internal retry for maximum attempts of kConnectAttemptsLimit.
   // Runs on @MainThread.
-  WebRtcSocketWrapper Connect(const std::string& service_id,
-                              const WebrtcPeerId& peer_id,
-                              const LocationHint& location_hint,
-                              CancellationFlag* cancellation_flag);
+  WebRtcSocketWrapper Connect(
+      const std::string& service_id, const WebrtcPeerId& peer_id,
+      const location::nearby::connections::LocationHint& location_hint,
+      CancellationFlag* cancellation_flag);
 };
 
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_STUB_H_

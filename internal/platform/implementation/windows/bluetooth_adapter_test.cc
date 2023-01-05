@@ -21,7 +21,6 @@
 #include "absl/synchronization/notification.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 namespace {
@@ -194,4 +193,3 @@ TEST(BluetoothAdapter, DISABLED_GetNameFromComputerName) {
 }  // namespace
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

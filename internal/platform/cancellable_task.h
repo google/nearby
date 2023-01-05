@@ -22,7 +22,6 @@
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/future.h"
 
-namespace location {
 namespace nearby {
 
 /**
@@ -65,6 +64,5 @@ class CancellableTask {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_CANCELLABLE_TASK_H_

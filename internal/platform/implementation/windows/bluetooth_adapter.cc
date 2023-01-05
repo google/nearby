@@ -45,7 +45,6 @@ typedef std::basic_string<TCHAR> tstring;
 
 #define BLUETOOTH_RADIO_REGISTRY_NAME_KEY "Local Name"
 
-namespace location {
 namespace nearby {
 namespace windows {
 namespace {
@@ -199,12 +198,10 @@ void BluetoothAdapter::RestoreRadioNameIfNecessary() {
   std::string settings_path(kLocalSettingsFileName);
 
   auto full_path =
-      location::nearby::api::ImplementationPlatform::GetAppDataPath(
-          settings_path);
+      nearby::api::ImplementationPlatform::GetAppDataPath(settings_path);
 
   auto settings_file =
-      location::nearby::api::ImplementationPlatform::CreateInputFile(full_path,
-                                                                     0);
+      nearby::api::ImplementationPlatform::CreateInputFile(full_path, 0);
   if (settings_file == nullptr) {
     return;
   }
@@ -245,12 +242,10 @@ void BluetoothAdapter::StoreRadioNames(absl::string_view original_radio_name,
 
   std::string settings_path(kLocalSettingsFileName);
   auto full_path =
-      location::nearby::api::ImplementationPlatform::GetAppDataPath(
-          settings_path);
+      nearby::api::ImplementationPlatform::GetAppDataPath(settings_path);
 
   auto settings_file =
-      location::nearby::api::ImplementationPlatform::CreateOutputFile(
-          full_path);
+      nearby::api::ImplementationPlatform::CreateOutputFile(full_path);
 
   if (settings_file == nullptr) {
     return;
@@ -760,4 +755,3 @@ std::string BluetoothAdapter::GetNameFromComputerName() const {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

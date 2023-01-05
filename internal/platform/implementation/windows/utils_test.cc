@@ -19,8 +19,8 @@
 
 #include "gtest/gtest.h"
 
-// using ::location::nearby::windows::uint64_to_mac_address_string;
-namespace location {
+// using ::nearby::windows::uint64_to_mac_address_string;
+
 namespace nearby {
 namespace windows {
 
@@ -68,4 +68,3 @@ TEST(UtilsTests, IpDotdecimalTo4Bytes) {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

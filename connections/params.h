@@ -20,7 +20,6 @@
 #include "connections/listeners.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -37,6 +36,5 @@ struct ConnectionRequestInfo {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_PARAMS_H_

@@ -21,7 +21,6 @@
 #include "absl/time/time.h"
 #include "thread/fiber/fiber.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 namespace {
@@ -89,4 +88,3 @@ TEST(MutexTest, RecursiveLockingForNestedWorks) {
 }  // namespace
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location

@@ -25,11 +25,13 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace parser {
 namespace {
+
+using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::PayloadTransferFrame;
 
 constexpr absl::string_view kEndpointId{"ABC"};
 constexpr absl::string_view kEndpointName{"XYZ"};
@@ -695,4 +697,3 @@ TEST(OfflineFramesValidatorTest,
 }  // namespace parser
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

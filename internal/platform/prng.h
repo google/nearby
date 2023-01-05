@@ -17,7 +17,6 @@
 
 #include <cstdint>
 
-namespace location {
 namespace nearby {
 
 // A (non-cryptographic) pseudo-random number generator.
@@ -32,6 +31,5 @@ class Prng {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_PRNG_H_

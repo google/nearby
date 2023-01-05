@@ -17,7 +17,6 @@
 #include "absl/time/clock.h"
 #include "internal/platform/exception.h"
 
-namespace location {
 namespace nearby {
 
 absl::Time SystemClock::ElapsedRealtime() { return absl::Now(); }
@@ -27,4 +26,3 @@ Exception SystemClock::Sleep(absl::Duration duration) {
 }
 
 }  // namespace nearby
-}  // namespace location

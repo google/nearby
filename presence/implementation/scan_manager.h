@@ -36,14 +36,12 @@ namespace presence {
 // Helping service controller to manage scan requests and callbacks.
 class ScanManager {
  public:
-  using SingleThreadExecutor = ::location::nearby::SingleThreadExecutor;
-  using Mutex = ::location::nearby::Mutex;
-  using MutexLock = ::location::nearby::MutexLock;
-  using ScanningSession =
-      ::location::nearby::api::ble_v2::BleMedium::ScanningSession;
-  using Runnable = ::location::nearby::Runnable;
-  using BleAdvertisementData =
-      ::location::nearby::api::ble_v2::BleAdvertisementData;
+  using SingleThreadExecutor = ::nearby::SingleThreadExecutor;
+  using Mutex = ::nearby::Mutex;
+  using MutexLock = ::nearby::MutexLock;
+  using ScanningSession = ::nearby::api::ble_v2::BleMedium::ScanningSession;
+  using Runnable = ::nearby::Runnable;
+  using BleAdvertisementData = ::nearby::api::ble_v2::BleAdvertisementData;
   using PublicCredential = ::nearby::internal::PublicCredential;
   using IdentityType = ::nearby::internal::IdentityType;
 

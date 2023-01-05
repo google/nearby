@@ -21,7 +21,6 @@
 #include "absl/synchronization/notification.h"
 #include "fastpair/internal/api/device_info.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 namespace {
@@ -92,4 +91,3 @@ TEST(DeviceInfo, DISABLED_UpdateScreenLockedListener) {
 }  // namespace
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

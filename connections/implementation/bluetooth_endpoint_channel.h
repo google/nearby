@@ -20,7 +20,6 @@
 #include "connections/implementation/base_endpoint_channel.h"
 #include "internal/platform/bluetooth_classic.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -31,7 +30,7 @@ class BluetoothEndpointChannel final : public BaseEndpointChannel {
                            const std::string& channel_name,
                            BluetoothSocket bluetooth_socket);
 
-  proto::connections::Medium GetMedium() const override;
+  location::nearby::proto::connections::Medium GetMedium() const override;
 
   int GetMaxTransmitPacketSize() const override;
 
@@ -45,6 +44,5 @@ class BluetoothEndpointChannel final : public BaseEndpointChannel {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_BLUETOOTH_ENDPOINT_CHANNEL_H_

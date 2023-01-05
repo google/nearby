@@ -34,7 +34,7 @@ namespace nearby {
 namespace presence {
 
 namespace {
-using ::location::nearby::ByteArray;         // NOLINT
+using ::nearby::ByteArray;                   // NOLINT
 using ::nearby::internal::PublicCredential;  // NOLINT
 using ::testing::ElementsAre;
 using ::protobuf_matchers::EqualsProto;

@@ -25,7 +25,6 @@
 #include "connections/implementation/wifi_direct_endpoint_channel.h"
 #include "internal/platform/wifi_direct.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -155,4 +154,3 @@ void WifiDirectBwuHandler::OnIncomingWifiDirectConnection(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

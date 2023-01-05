@@ -17,23 +17,23 @@
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCPayload.h"
 
 #ifdef __cplusplus
-namespace location {
+
 namespace nearby {
 namespace connections {
 class Payload;
 }
 }  // namespace nearby
-}  // namespace location
+
 #endif
 
 @interface GNCPayload (CppConversions)
 
 #ifdef __cplusplus
-+ (nonnull GNCPayload *)fromCpp:(location::nearby::connections::Payload)payload;
++ (nonnull GNCPayload *)fromCpp:(nearby::connections::Payload)payload;
 #endif
 
 #ifdef __cplusplus
-- (location::nearby::connections::Payload)toCpp;
+- (nearby::connections::Payload)toCpp;
 #endif
 
 @end

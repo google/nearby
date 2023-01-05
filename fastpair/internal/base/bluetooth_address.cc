@@ -22,7 +22,6 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 namespace {
@@ -121,4 +120,3 @@ std::string CanonicalizeBluetoothAddress(uint64_t address) {
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location

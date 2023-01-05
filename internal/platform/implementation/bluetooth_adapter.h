@@ -19,7 +19,6 @@
 
 #include "absl/strings/string_view.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -71,6 +70,5 @@ class BluetoothAdapter {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_BLUETOOTH_ADAPTER_H_

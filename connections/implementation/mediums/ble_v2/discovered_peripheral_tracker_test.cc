@@ -25,7 +25,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -967,4 +966,3 @@ TEST_F(DiscoveredPeripheralTrackerTest,
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

@@ -23,7 +23,6 @@
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/single_thread_executor.h"
 
-namespace location {
 namespace nearby {
 
 namespace {
@@ -128,4 +127,3 @@ TEST(Borrowable, BorrowIsExclusive) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

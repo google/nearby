@@ -18,7 +18,6 @@
 
 #import "internal/platform/implementation/apple/multi_thread_executor.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -30,7 +29,6 @@ class SingleThreadExecutor : public MultiThreadExecutor {
 
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location
 
 #endif
 #endif  // PLATFORM_IMPL_APPLE_SINGLE_THREAD_EXECUTOR_H_

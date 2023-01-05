@@ -23,12 +23,11 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 
-using ::location::nearby::api::ble_v2::BleAdvertisementData;
-using ::location::nearby::api::ble_v2::GattCharacteristic;
-using ::location::nearby::api::ble_v2::TxPowerLevel;
+using ::nearby::api::ble_v2::BleAdvertisementData;
+using ::nearby::api::ble_v2::GattCharacteristic;
+using ::nearby::api::ble_v2::TxPowerLevel;
 
 bool BleV2Medium::StartAdvertising(
     const BleAdvertisementData& advertising_data,
@@ -189,4 +188,3 @@ bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
 }
 
 }  // namespace nearby
-}  // namespace location

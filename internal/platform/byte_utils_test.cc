@@ -17,7 +17,6 @@
 #include "gtest/gtest.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 
 constexpr absl::string_view kFooBytes{"rawABCDE"};
@@ -41,4 +40,3 @@ TEST(ByteUtilsTest, TestEmptyByteArrayCorrect) {
 }
 
 }  // namespace nearby
-}  // namespace location

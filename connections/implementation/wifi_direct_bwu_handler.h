@@ -22,7 +22,6 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/mediums/mediums.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -84,6 +83,5 @@ class WifiDirectBwuHandler : public BaseBwuHandler {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_WIFI_DIRECT_BWU_HANDLER_H_

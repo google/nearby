@@ -25,11 +25,11 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/pipe.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
 
+using ::location::nearby::connections::PayloadTransferFrame;
 constexpr char kText[] = "data chunk";
 
 TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromBytePayload) {
@@ -227,4 +227,3 @@ TEST(InternalPayloadFactoryTest,
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

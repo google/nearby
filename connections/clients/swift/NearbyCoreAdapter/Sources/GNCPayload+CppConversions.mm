@@ -24,22 +24,22 @@
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/GNCInputStream.h"
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/GNCPayload+CppConversions.h"
 
-using ::location::nearby::ByteArray;
-using ::location::nearby::InputFile;
-using ::location::nearby::InputStream;
-using ::location::nearby::connections::Payload;
+using ::nearby::ByteArray;
+using ::nearby::InputFile;
+using ::nearby::InputStream;
+using ::nearby::connections::Payload;
 
 @implementation GNCPayload (CppConversions)
 
 + (GNCPayload *)fromCpp:(Payload)payload {
   int64_t payloadId = payload.GetId();
   switch (payload.GetType()) {
-    case location::nearby::connections::PayloadType::kBytes: {
+    case nearby::connections::PayloadType::kBytes: {
       ByteArray bytes = payload.AsBytes();
       NSData *payloadData = [NSData dataWithBytes:bytes.data() length:bytes.size()];
       return [[GNCBytesPayload alloc] initWithData:payloadData identifier:payloadId];
     }
-    case location::nearby::connections::PayloadType::kFile: {
+    case nearby::connections::PayloadType::kFile: {
       InputFile *inputFile = payload.AsFile();
       NSString *filePath = @(inputFile->GetFilePath().c_str());
       NSString *parentFolder = @(payload.GetParentFolder().c_str());
@@ -50,11 +50,11 @@ using ::location::nearby::connections::Payload;
                                             fileName:fileName
                                           identifier:payloadId];
     }
-    case location::nearby::connections::PayloadType::kStream: {
+    case nearby::connections::PayloadType::kStream: {
       GNCInputStream *stream = [[GNCInputStream alloc] initWithCppInputStream:payload.AsStream()];
       return [[GNCStreamPayload alloc] initWithStream:stream identifier:payloadId];
     }
-    case location::nearby::connections::PayloadType::kUnknown:
+    case nearby::connections::PayloadType::kUnknown:
       return nil;
   }
 }

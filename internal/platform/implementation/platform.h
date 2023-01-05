@@ -51,7 +51,6 @@
 #include "internal/platform/os_name.h"
 #include "internal/platform/payload_id.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -145,6 +144,5 @@ class ImplementationPlatform {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_PLATFORM_H_

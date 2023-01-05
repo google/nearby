@@ -23,7 +23,6 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/runnable.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -40,6 +39,5 @@ class ListenableFuture : public Future<T> {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_LISTENABLE_FUTURE_H_

@@ -14,7 +14,6 @@
 
 #include "internal/platform/wifi_direct.h"
 
-namespace location {
 namespace nearby {
 
 WifiDirectSocket WifiDirectMedium::ConnectToService(
@@ -27,4 +26,3 @@ WifiDirectSocket WifiDirectMedium::ConnectToService(
 }
 
 }  // namespace nearby
-}  // namespace location

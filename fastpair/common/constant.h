@@ -15,7 +15,6 @@
 #ifndef THIRD_PARTY_NEARBY_FASTPAIR_COMMON_CONSTANT_H_
 #define THIRD_PARTY_NEARBY_FASTPAIR_COMMON_CONSTANT_H_
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -33,6 +32,5 @@ const char kAccountKeyCharacteristicUuidV2[] =
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_COMMON_CONSTANT_H_

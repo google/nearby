@@ -14,7 +14,6 @@
 
 #include "connections/implementation/mediums/webrtc/signaling_frames.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -131,4 +130,3 @@ location::nearby::mediums::IceCandidate EncodeIceCandidate(
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

@@ -30,7 +30,7 @@ struct ResultCallback {
   // status - result of job execution;
   //   Status::kSuccess, if successful; anything else indicates failure.
   std::function<void(absl::Status)> result_cb =
-      location::nearby::DefaultCallback<absl::Status>();
+      nearby::DefaultCallback<absl::Status>();
 };
 
 }  // namespace presence

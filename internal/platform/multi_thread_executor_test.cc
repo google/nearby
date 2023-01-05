@@ -23,7 +23,6 @@
 #include "absl/time/time.h"
 #include "internal/platform/exception.h"
 
-namespace location {
 namespace nearby {
 
 namespace {
@@ -135,4 +134,3 @@ TEST(MultiThreadExecutorTest, ThreadCheck_SubmitCallable) {
   EXPECT_EQ(future.Get().result(), 0);
 }
 }  // namespace nearby
-}  // namespace location

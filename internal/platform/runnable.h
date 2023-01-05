@@ -17,7 +17,6 @@
 
 #include <functional>
 
-namespace location {
 namespace nearby {
 
 // The Runnable is an object intended to be executed by a thread.
@@ -28,6 +27,5 @@ namespace nearby {
 using Runnable = std::function<void()>;
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_RUNNABLE_H_

@@ -21,7 +21,6 @@
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/single_thread_executor.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -114,4 +113,3 @@ TEST_F(MutexTest, DoubleLockIsNotDeadlock) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

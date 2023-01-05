@@ -24,22 +24,29 @@
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace parser {
 namespace {
 
-using PayloadChunk = PayloadTransferFrame::PayloadChunk;
-using ControlMessage = PayloadTransferFrame::ControlMessage;
-using ClientIntroduction = BandwidthUpgradeNegotiationFrame::ClientIntroduction;
+using PayloadChunk =
+    ::location::nearby::connections::PayloadTransferFrame::PayloadChunk;
+using ControlMessage =
+    ::location::nearby::connections::PayloadTransferFrame::ControlMessage;
+using ClientIntroduction = ::location::nearby::connections::
+    BandwidthUpgradeNegotiationFrame::ClientIntroduction;
 using WifiHotspotCredentials = UpgradePathInfo::WifiHotspotCredentials;
 using WifiLanSocket = UpgradePathInfo::WifiLanSocket;
 using WifiAwareCredentials = UpgradePathInfo::WifiAwareCredentials;
 using WifiDirectCredentials = UpgradePathInfo::WifiDirectCredentials;
 using BluetoothCredentials = UpgradePathInfo::BluetoothCredentials;
 using WebRtcCredentials = UpgradePathInfo::WebRtcCredentials;
-using Medium = ::location::nearby::connections::Medium;
+using Medium = ::nearby::connections::Medium;
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
+using ::location::nearby::connections::ConnectionRequestFrame;
+using ::location::nearby::connections::ConnectionResponseFrame;
+using ::location::nearby::connections::PayloadTransferFrame;
+using ::location::nearby::connections::V1Frame;
 
 constexpr absl::string_view kIpv4PatternString{
     "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
@@ -362,7 +369,8 @@ bool CheckForIllegalCharacters(std::string toBeValidated,
 
 }  // namespace
 
-Exception EnsureValidOfflineFrame(const OfflineFrame& offline_frame) {
+Exception EnsureValidOfflineFrame(
+    const location::nearby::connections::OfflineFrame& offline_frame) {
   V1Frame::FrameType frame_type = GetFrameType(offline_frame);
   switch (frame_type) {
     case V1Frame::CONNECTION_REQUEST:
@@ -385,8 +393,9 @@ Exception EnsureValidOfflineFrame(const OfflineFrame& offline_frame) {
       if (offline_frame.has_v1() &&
           (offline_frame.v1().payload_transfer().payload_header().has_type() &&
            offline_frame.v1().payload_transfer().payload_header().type() ==
-               PayloadTransferFrame_PayloadHeader_PayloadType::
-                   PayloadTransferFrame_PayloadHeader_PayloadType_FILE)) {
+               location::nearby::connections::
+                   PayloadTransferFrame_PayloadHeader_PayloadType::
+                       PayloadTransferFrame_PayloadHeader_PayloadType_FILE)) {
         if (offline_frame.v1()
                 .payload_transfer()
                 .payload_header()
@@ -440,4 +449,3 @@ Exception EnsureValidOfflineFrame(const OfflineFrame& offline_frame) {
 }  // namespace parser
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

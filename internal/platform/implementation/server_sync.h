@@ -20,7 +20,6 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -71,6 +70,5 @@ class ServerSyncMedium {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_SERVER_SYNC_H_

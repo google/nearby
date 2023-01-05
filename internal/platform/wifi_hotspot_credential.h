@@ -21,7 +21,6 @@
 #include "internal/platform/prng.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 
 // Credentials for the currently-hosted Wifi hotspot (if any)
@@ -62,10 +61,13 @@ class HotspotCredentials {
   int GetFrequency() const { return frequency_; }
 
   // Gets the Band
-  proto::connections::ConnectionBand GetBand() const { return band_; }
+  location::nearby::proto::connections::ConnectionBand GetBand() const {
+    return band_;
+  }
 
   // Gets the Technology
-  proto::connections::ConnectionTechnology GetTechnology() const {
+  location::nearby::proto::connections::ConnectionTechnology GetTechnology()
+      const {
     return technology_;
   }
 
@@ -76,8 +78,8 @@ class HotspotCredentials {
   std::string gateway_ = "0.0.0.0";
   int port_ = 0;
   int frequency_ = -1;
-  proto::connections::ConnectionBand band_;
-  proto::connections::ConnectionTechnology technology_;
+  location::nearby::proto::connections::ConnectionBand band_;
+  location::nearby::proto::connections::ConnectionTechnology technology_;
 };
 
 // Credentials for the currently-hosted WifiDirect GO (if any)
@@ -118,10 +120,13 @@ class WifiDirectCredentials {
   int GetFrequency() const { return frequency_; }
 
   // Gets the Band
-  proto::connections::ConnectionBand GetBand() const { return band_; }
+  location::nearby::proto::connections::ConnectionBand GetBand() const {
+    return band_;
+  }
 
   // Gets the Technology
-  proto::connections::ConnectionTechnology GetTechnology() const {
+  location::nearby::proto::connections::ConnectionTechnology GetTechnology()
+      const {
     return technology_;
   }
 
@@ -132,11 +137,10 @@ class WifiDirectCredentials {
   std::string gateway_ = "0.0.0.0";
   int port_ = 0;
   int frequency_ = -1;
-  proto::connections::ConnectionBand band_;
-  proto::connections::ConnectionTechnology technology_;
+  location::nearby::proto::connections::ConnectionBand band_;
+  location::nearby::proto::connections::ConnectionTechnology technology_;
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_WIFI_HOTSPOT_CREDENTIAL_H_

@@ -24,7 +24,6 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/exception.h"
 
-namespace location {
 namespace nearby {
 namespace shared {
 
@@ -103,4 +102,3 @@ Exception IOFile::Flush() {
 
 }  // namespace shared
 }  // namespace nearby
-}  // namespace location

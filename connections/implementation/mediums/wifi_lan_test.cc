@@ -26,7 +26,6 @@
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/wifi_lan.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -345,4 +344,3 @@ TEST_F(WifiLanTest, CanDiscoverThatOtherMediumAdvertise) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

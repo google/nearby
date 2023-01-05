@@ -17,7 +17,6 @@
 
 #include "internal/platform/cancellation_flag.h"
 
-namespace location {
 namespace nearby {
 
 // An RAII mechanism to register CancelListener over a life cycle of medium
@@ -38,6 +37,5 @@ class CancellationFlagListener {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_CANCELLATION_FLAG_LISTENER_H_

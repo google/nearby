@@ -20,7 +20,6 @@
 #include "gtest/gtest.h"
 #include "fastpair/internal/api/fast_pair_platform.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 namespace {
@@ -66,4 +65,3 @@ TEST(Timer, DISABLED_TestFireNow) {
 }  // namespace
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

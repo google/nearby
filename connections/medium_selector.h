@@ -16,7 +16,6 @@
 
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -80,6 +79,5 @@ using BooleanMediumSelector = MediumSelector<bool>;
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_MEDIUM_SELECTOR_H_

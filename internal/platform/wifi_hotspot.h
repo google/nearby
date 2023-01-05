@@ -31,7 +31,6 @@
 #include "internal/platform/output_stream.h"
 #include "internal/platform/wifi_hotspot_credential.h"
 
-namespace location {
 namespace nearby {
 
 // Socket class for both SoftAP ( created through accept connection from STA)
@@ -215,6 +214,5 @@ class WifiHotspotMedium {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_WIFI_HOTSPOT_H_

@@ -16,7 +16,6 @@
 
 #include "fastpair/client/windows/fast_pair_controller_adapter.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -30,4 +29,3 @@ void ServerAccessDart(FastPairController *pController) {
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location

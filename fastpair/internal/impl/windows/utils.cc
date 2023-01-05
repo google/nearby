@@ -26,7 +26,6 @@
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -41,8 +40,8 @@ std::string uint64_to_mac_address_string(uint64_t bluetoothAddress) {
 }
 
 uint64_t mac_address_string_to_uint64(absl::string_view mac_address) {
-  location::nearby::ByteArray mac_address_array =
-      location::nearby::BluetoothUtils::FromString(mac_address);
+  nearby::ByteArray mac_address_array =
+      nearby::BluetoothUtils::FromString(mac_address);
   uint64_t mac_address_uint64 = 0;
   for (int i = 0; i < mac_address_array.size(); i++) {
     mac_address_uint64 <<= 8;
@@ -54,4 +53,3 @@ uint64_t mac_address_string_to_uint64(absl::string_view mac_address) {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

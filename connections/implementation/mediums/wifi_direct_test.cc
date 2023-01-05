@@ -21,7 +21,6 @@
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/wifi_direct.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -184,4 +183,3 @@ TEST_F(WifiDirectTest, CanStartGOTheOtherFailConnect) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

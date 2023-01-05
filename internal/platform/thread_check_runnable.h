@@ -21,7 +21,6 @@
 #include "internal/platform/runnable.h"
 #include "internal/platform/lockable.h"
 
-namespace location {
 namespace nearby {
 
 // A runnable that acquires a lockable resource while running.
@@ -42,6 +41,5 @@ class ThreadCheckRunnable {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_THREAD_CHECK_RUNNABLE_H_

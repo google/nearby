@@ -27,7 +27,6 @@
 #include "connections/payload.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -395,4 +394,3 @@ void ServiceControllerRouter::RouteToServiceController(const std::string& name,
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

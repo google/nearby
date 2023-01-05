@@ -16,7 +16,7 @@
 
 #include <string>
 
-namespace location::nearby::windows {
+namespace nearby::windows {
 
 void ConnectionOptionsW::GetMediums(const MediumW* mediums,
                                     size_t mediums_size) const {
@@ -32,4 +32,4 @@ void ConnectionOptionsW::GetMediums(const MediumW* mediums,
   return;
 }
 
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows

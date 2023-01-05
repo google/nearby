@@ -23,7 +23,7 @@
 #include "absl/memory/memory.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/mutex.h"
-namespace location {
+
 namespace nearby {
 namespace windows {
 
@@ -68,5 +68,5 @@ class ABSL_LOCKABLE Mutex : public api::Mutex {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
+
 #endif  // PLATFORM_IMPL_WINDOWS_MUTEX_H_

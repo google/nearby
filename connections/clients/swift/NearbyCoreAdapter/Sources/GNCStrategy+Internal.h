@@ -17,12 +17,12 @@
 typedef NS_ENUM(NSInteger, GNCStrategy);
 
 #ifdef __cplusplus
-namespace location {
+
 namespace nearby {
 namespace connections {
 class Strategy;
 Strategy CppStrategyFromGNCStrategy(GNCStrategy strategy);
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
+
 #endif

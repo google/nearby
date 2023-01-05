@@ -50,7 +50,6 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Storage.Streams.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -318,12 +317,11 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   std::shared_ptr<api::Cancelable> connection_timeout_ = nullptr;
 
   // Listener to connect cancellation.
-  std::unique_ptr<location::nearby::CancellationFlagListener>
+  std::unique_ptr<nearby::CancellationFlagListener>
       connection_cancellation_listener_ = nullptr;
 };
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_WIFI_DIRECT_H_

@@ -20,7 +20,6 @@
 #include "connections/implementation/base_endpoint_channel.h"
 #include "internal/platform/ble.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -30,7 +29,7 @@ class BleEndpointChannel final : public BaseEndpointChannel {
   BleEndpointChannel(const std::string& service_id,
                      const std::string& channel_name, BleSocket socket);
 
-  proto::connections::Medium GetMedium() const override;
+  location::nearby::proto::connections::Medium GetMedium() const override;
 
   int GetMaxTransmitPacketSize() const override;
 
@@ -44,6 +43,5 @@ class BleEndpointChannel final : public BaseEndpointChannel {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_BLE_ENDPOINT_CHANNEL_H_

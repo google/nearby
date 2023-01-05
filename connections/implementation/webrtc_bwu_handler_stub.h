@@ -27,7 +27,6 @@
 #include "connections/implementation/mediums/webrtc_socket.h"
 #endif
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -77,6 +76,5 @@ class WebrtcBwuHandler : public BaseBwuHandler {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_WEBRTC_BWU_HANDLER_H_

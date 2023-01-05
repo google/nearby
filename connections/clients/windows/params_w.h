@@ -19,7 +19,7 @@
 
 #include "connections/clients/windows/listeners_w.h"
 
-namespace location::nearby::windows {
+namespace nearby::windows {
 
 extern "C" {
 
@@ -37,6 +37,6 @@ struct DLL_API ConnectionRequestInfoW {
 };
 
 }  // extern "C"
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_CLIENTS_WINDOWS_PARAMS_W_H_

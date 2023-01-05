@@ -16,7 +16,6 @@
 
 #include <string>
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -57,4 +56,3 @@ std::string Status::ToString() const {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

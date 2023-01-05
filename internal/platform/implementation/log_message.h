@@ -17,7 +17,6 @@
 
 #include <iostream>
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -54,6 +53,5 @@ class LogMessage {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_LOG_MESSAGE_H_

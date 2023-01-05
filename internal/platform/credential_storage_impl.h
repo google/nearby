@@ -24,7 +24,6 @@
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/platform.h"
 
-namespace location {
 namespace nearby {
 
 /*
@@ -64,6 +63,5 @@ class CredentialStorageImpl : public api::CredentialStorage {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_CREDENTIAL_STORAGE_IMPL_H_

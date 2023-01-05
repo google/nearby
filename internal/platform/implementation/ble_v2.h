@@ -35,7 +35,6 @@
 #include "internal/platform/output_stream.h"
 #include "internal/platform/uuid.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 namespace ble_v2 {
@@ -78,7 +77,7 @@ struct BleAdvertisementData {
   // iOS    : 16 bit service UUID (type=0x03) + LocalName data (type=0x08)
   // Windows: Service data (type=0x16)
   // Android: 16 bit service UUID (type=0x03) + Service data (type=0x16)
-  absl::flat_hash_map<Uuid, location::nearby::ByteArray> service_data;
+  absl::flat_hash_map<Uuid, nearby::ByteArray> service_data;
 };
 
 // Opaque wrapper over a BLE peripheral. Must be able to uniquely identify a
@@ -214,9 +213,8 @@ class GattServer {
   //
   // Locally updates the value of a characteristic and returns whether or not
   // it was successful.
-  virtual bool UpdateCharacteristic(
-      const GattCharacteristic& characteristic,
-      const location::nearby::ByteArray& value) = 0;
+  virtual bool UpdateCharacteristic(const GattCharacteristic& characteristic,
+                                    const nearby::ByteArray& value) = 0;
 
   // Stops a GATT server.
   virtual void Stop() = 0;
@@ -425,6 +423,5 @@ class BleMedium {
 }  // namespace ble_v2
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_BLE_V2_H_

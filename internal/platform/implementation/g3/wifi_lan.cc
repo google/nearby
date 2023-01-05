@@ -28,7 +28,6 @@
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/nsd_service_info.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -368,4 +367,3 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location

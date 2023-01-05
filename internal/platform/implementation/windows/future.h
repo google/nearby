@@ -17,7 +17,6 @@
 
 #include "internal/platform/implementation/future.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -45,6 +44,5 @@ class Future : public api::Future<T> {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_FUTURE_H_

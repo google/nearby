@@ -26,9 +26,8 @@ namespace presence {
 namespace {
 
 using AdvertisingCallback =
-    ::location::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
-using AdvertisingSession =
-    ::location::nearby::api::ble_v2::BleMedium::AdvertisingSession;
+    ::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
+using AdvertisingSession = ::nearby::api::ble_v2::BleMedium::AdvertisingSession;
 
 }  // namespace
 

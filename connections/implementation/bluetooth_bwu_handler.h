@@ -24,7 +24,6 @@
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/count_down_latch.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -77,6 +76,5 @@ class BluetoothBwuHandler : public BaseBwuHandler {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_BLUETOOTH_BWU_HANDLER_H_

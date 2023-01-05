@@ -34,7 +34,6 @@
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -268,4 +267,3 @@ void FilePath::ReplaceInvalidCharacters(std::wstring& path) {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

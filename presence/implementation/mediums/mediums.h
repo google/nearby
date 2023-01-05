@@ -31,7 +31,7 @@ class Mediums {
   Ble& GetBle() { return ble_; }
 
  private:
-  location::nearby::BluetoothAdapter adapter_;
+  nearby::BluetoothAdapter adapter_;
   Ble ble_{adapter_};
 };
 

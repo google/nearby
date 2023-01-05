@@ -18,7 +18,6 @@
 #import "internal/platform/implementation/apple/GNCUtils.h"
 #import "internal/platform/implementation/apple/utils.h"
 
-namespace location {
 namespace nearby {
 
 void Crypto::Init() {}
@@ -36,4 +35,3 @@ ByteArray Crypto::Sha256(absl::string_view input) {
 }
 
 }  // namespace nearby
-}  // namespace location

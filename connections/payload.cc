@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <string>
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -144,4 +143,3 @@ const std::string& Payload::GetFileName() const { return file_name_; }
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

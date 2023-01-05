@@ -30,7 +30,6 @@
 #include "connections/implementation/mediums/mediums.h"
 #include "internal/platform/scheduled_executor.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -85,8 +84,9 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // This is also an entry point for handling messages for both outbound and
   // inbound BWU protocol.
   // @EndpointManagerReaderThread
-  void OnIncomingFrame(OfflineFrame& frame, const std::string& endpoint_id,
-                       ClientProxy* client, Medium medium,
+  void OnIncomingFrame(location::nearby::connections::OfflineFrame& frame,
+                       const std::string& endpoint_id, ClientProxy* client,
+                       Medium medium,
                        PacketMetaData& packet_meta_data) override;
 
   // Cleans up in-progress upgrades after endpoint disconnection.
@@ -193,8 +193,9 @@ class BwuManager : public EndpointManager::FrameProcessor {
   void RetryUpgradesAfterDelay(ClientProxy* client,
                                const std::string& endpoint_id);
   void AttemptToRecordBandwidthUpgradeErrorForUnknownEndpoint(
-      proto::connections::BandwidthUpgradeResult result,
-      proto::connections::BandwidthUpgradeErrorStage error_stage);
+      location::nearby::proto::connections::BandwidthUpgradeResult result,
+      location::nearby::proto::connections::BandwidthUpgradeErrorStage
+          error_stage);
 
   bool is_single_threaded_for_testing_ = false;
 
@@ -239,6 +240,5 @@ class BwuManager : public EndpointManager::FrameProcessor {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_BWU_MANAGER_H_

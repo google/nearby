@@ -29,7 +29,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/uuid.h"
 
-namespace location {
 namespace nearby {
 
 // Container of operations that can be performed over the BLE GATT client
@@ -241,22 +240,22 @@ class BleV2Medium final {
     std::function<void(
         BleV2Peripheral peripheral,
         const api::ble_v2::BleAdvertisementData& advertisement_data)>
-        advertisement_found_cb = location::nearby::DefaultCallback<
-            BleV2Peripheral, const api::ble_v2::BleAdvertisementData&>();
+        advertisement_found_cb =
+            nearby::DefaultCallback<BleV2Peripheral,
+                                    const api::ble_v2::BleAdvertisementData&>();
   };
   struct ServerGattConnectionCallback {
     std::function<void(const api::ble_v2::GattCharacteristic& characteristic)>
-        characteristic_subscription_cb = location::nearby::DefaultCallback<
-            const api::ble_v2::GattCharacteristic&>();
+        characteristic_subscription_cb =
+            nearby::DefaultCallback<const api::ble_v2::GattCharacteristic&>();
     std::function<void(const api::ble_v2::GattCharacteristic& characteristic)>
-        characteristic_unsubscription_cb = location::nearby::DefaultCallback<
-            const api::ble_v2::GattCharacteristic&>();
+        characteristic_unsubscription_cb =
+            nearby::DefaultCallback<const api::ble_v2::GattCharacteristic&>();
   };
   // TODO(b/231318879): Remove this wrapper callback and use impl callback if
   // there is only disconnect function here in the end.
   struct ClientGattConnectionCallback {
-    std::function<void()> disconnected_cb =
-        location::nearby::DefaultCallback<>();
+    std::function<void()> disconnected_cb = nearby::DefaultCallback<>();
   };
 
   explicit BleV2Medium(BluetoothAdapter& adapter)
@@ -328,6 +327,5 @@ class BleV2Medium final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_BLE_V2_H_

@@ -33,7 +33,6 @@
 #include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/payload_id.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -179,4 +178,3 @@ absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location

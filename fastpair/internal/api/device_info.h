@@ -20,7 +20,6 @@
 
 #include "absl/strings/string_view.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -55,6 +54,5 @@ class DeviceInfo {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_API_DEVICE_INFO_H_

@@ -34,12 +34,12 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-using ::location::nearby::CppStringFromObjCString;
-using ::location::nearby::connections::DiscoveryOptions;
-using ::location::nearby::connections::DiscoveryListener;
-using ::location::nearby::connections::GNCStrategyToStrategy;
-using ResultListener = ::location::nearby::connections::ResultCallback;
-using ::location::nearby::connections::Status;
+using ::nearby::CppStringFromObjCString;
+using ::nearby::connections::DiscoveryListener;
+using ::nearby::connections::DiscoveryOptions;
+using ::nearby::connections::GNCStrategyToStrategy;
+using ResultListener = ::nearby::connections::ResultCallback;
+using ::nearby::connections::Status;
 
 /** This is a GNCDiscovererConnectionInfo that provides storage for its properties. */
 @interface GNCDiscovererConnectionInfo : NSObject <GNCDiscovererConnectionInfo>
@@ -123,7 +123,7 @@ using ::location::nearby::connections::Status;
 @end
 
 /** C++ classes passed to the core library by GNCDiscoverer. */
-namespace location {
+
 namespace nearby {
 namespace connections {
 
@@ -349,9 +349,8 @@ class GNCDiscoveryListener {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
-using ::location::nearby::connections::GNCDiscoveryListener;
+using ::nearby::connections::GNCDiscoveryListener;
 
 @interface GNCDiscoverer () {
   std::unique_ptr<GNCDiscoveryListener> discoveryListener;

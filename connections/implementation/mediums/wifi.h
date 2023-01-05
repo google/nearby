@@ -21,7 +21,6 @@
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/wifi.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -75,6 +74,5 @@ class Wifi {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_WIFI_H_

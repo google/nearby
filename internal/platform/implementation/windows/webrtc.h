@@ -17,7 +17,6 @@
 
 #include "internal/platform/implementation/webrtc.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -66,13 +65,13 @@ class WebRtcMedium : public api::WebRtcMedium {
   // TODO(b/184975123): replace with real implementation.
   std::unique_ptr<api::WebRtcSignalingMessenger> GetSignalingMessenger(
       absl::string_view self_id,
-      const connections::LocationHint& location_hint) override {
+      const location::nearby::connections::LocationHint& location_hint)
+      override {
     return nullptr;
   }
 };
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_WEBRTC_H_

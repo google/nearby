@@ -17,7 +17,6 @@
 
 #include "internal/platform/implementation/listenable_future.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -36,6 +35,5 @@ class ListenableFuture : public api::ListenableFuture<T> {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_LISTENABLE_FUTURE_H_

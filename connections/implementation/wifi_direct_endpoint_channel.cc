@@ -20,7 +20,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_direct.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -31,8 +30,9 @@ WifiDirectEndpointChannel::WifiDirectEndpointChannel(
                           &socket.GetOutputStream()),
       socket_(std::move(socket)) {}
 
-proto::connections::Medium WifiDirectEndpointChannel::GetMedium() const {
-  return proto::connections::Medium::WIFI_DIRECT;
+location::nearby::proto::connections::Medium
+WifiDirectEndpointChannel::GetMedium() const {
+  return location::nearby::proto::connections::Medium::WIFI_DIRECT;
 }
 
 void WifiDirectEndpointChannel::CloseImpl() {
@@ -46,4 +46,3 @@ void WifiDirectEndpointChannel::CloseImpl() {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

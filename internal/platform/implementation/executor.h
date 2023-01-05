@@ -17,7 +17,6 @@
 
 #include "internal/platform/runnable.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -39,6 +38,5 @@ class Executor {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_EXECUTOR_H_

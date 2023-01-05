@@ -22,7 +22,6 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 namespace {
@@ -163,4 +162,3 @@ TEST(TaskRunnerImpl, PostEmptyTask) {
 }  // namespace
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location

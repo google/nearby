@@ -14,7 +14,6 @@
 
 #include "internal/platform/base_input_stream.h"
 
-namespace location {
 namespace nearby {
 
 ExceptionOr<ByteArray> BaseInputStream::Read(std::int64_t size) {
@@ -96,4 +95,3 @@ ByteArray BaseInputStream::ReadBytes(int size) {
 }
 
 }  // namespace nearby
-}  // namespace location

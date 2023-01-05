@@ -20,9 +20,10 @@
 #include "internal/platform/prng.h"
 #include "internal/platform/crypto.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
+using ::location::nearby::connections::LocationHint;
+using ::location::nearby::connections::LocationStandard;
 
 ByteArray Utils::GenerateRandomBytes(size_t length) {
   Prng prng;
@@ -71,4 +72,3 @@ LocationHint Utils::BuildLocationHint(const std::string& location) {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

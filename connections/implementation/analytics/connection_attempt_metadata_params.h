@@ -19,7 +19,6 @@
 
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 
 // A struct to construct ConnectionAttemptMetadata for the analytics recorder.
@@ -41,6 +40,5 @@ struct ConnectionAttemptMetadataParams {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // ANALYTICS_CONNECTION_ATTEMPT_METADATA_PARAMS_H_

@@ -20,7 +20,6 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/mutex.h"
 
-namespace location {
 namespace nearby {
 
 // The ConditionVariable class is a synchronization primitive that can be used
@@ -44,6 +43,5 @@ class ConditionVariable final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_CONDITION_VARIABLE_H_

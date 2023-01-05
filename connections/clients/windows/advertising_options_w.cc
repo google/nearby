@@ -16,7 +16,7 @@
 
 #include <string>
 
-namespace location::nearby::windows {
+namespace nearby::windows {
 
 // Returns a copy and normalizes allowed mediums:
 // (1) If is_out_of_band_connection is true, verifies that there is only one
@@ -45,4 +45,4 @@ AdvertisingOptionsW AdvertisingOptionsW::CompatibleOptions() const {
   return result;
 }
 
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows

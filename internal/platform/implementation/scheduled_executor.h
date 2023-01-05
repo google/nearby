@@ -24,7 +24,6 @@
 #include "internal/platform/implementation/executor.h"
 #include "internal/platform/runnable.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -45,6 +44,5 @@ class ScheduledExecutor : public Executor {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_API_SCHEDULED_EXECUTOR_H_

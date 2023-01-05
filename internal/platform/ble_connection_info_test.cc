@@ -23,7 +23,6 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 namespace {
 
@@ -83,4 +82,3 @@ TEST(BleConnectionInfoTest, TestEquals) {
 
 }  // namespace
 }  // namespace nearby
-}  // namespace location

@@ -23,7 +23,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 
 // An object reference that may be updated atomically.
@@ -82,6 +81,5 @@ class AtomicReference<T,
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_ATOMIC_REFERENCE_H_

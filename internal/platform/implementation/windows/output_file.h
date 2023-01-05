@@ -19,7 +19,6 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -42,6 +41,5 @@ class OutputFile : public api::OutputFile {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_OUTPUT_FILE_H_

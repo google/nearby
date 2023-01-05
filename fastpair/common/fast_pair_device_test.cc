@@ -23,7 +23,6 @@
 #include "gtest/gtest.h"
 #include "fastpair/common/protocol.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 namespace {
@@ -91,4 +90,3 @@ TEST(FastPairDevice, GetAndPublicAddress) {
 }  // namespace
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location

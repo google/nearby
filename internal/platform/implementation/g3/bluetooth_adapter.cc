@@ -21,7 +21,6 @@
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/prng.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 
@@ -151,4 +150,3 @@ bool BluetoothAdapter::SetName(absl::string_view name,
 
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location

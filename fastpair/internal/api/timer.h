@@ -17,7 +17,6 @@
 
 #include <functional>
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -48,6 +47,5 @@ class Timer {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location
 
 #endif  // LOCATION_NEARBY_CPP_FASTPAIR_INTERNAL_API_TIMER_H_

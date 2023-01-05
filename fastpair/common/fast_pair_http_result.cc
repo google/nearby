@@ -19,7 +19,6 @@
 
 #include "absl/status/status.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -146,4 +145,3 @@ std::ostream& operator<<(std::ostream& stream,
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location

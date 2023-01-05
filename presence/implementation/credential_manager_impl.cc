@@ -37,11 +37,11 @@
 namespace nearby {
 namespace presence {
 namespace {
-using ::location::nearby::Base64Utils;
-using ::location::nearby::Crypto;
-using ::location::nearby::Exception;
-using ::location::nearby::ExceptionOr;
-using ::location::nearby::Future;
+using ::nearby::Base64Utils;
+using ::nearby::Crypto;
+using ::nearby::Exception;
+using ::nearby::ExceptionOr;
+using ::nearby::Future;
 using ::nearby::internal::DeviceMetadata;
 using ::nearby::internal::IdentityType;
 using ::nearby::internal::PrivateCredential;

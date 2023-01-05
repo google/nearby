@@ -20,7 +20,6 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_split.h"
 
-namespace location {
 namespace nearby {
 
 // Utility function to convert channel number to frequency in MHz
@@ -117,4 +116,3 @@ bool WifiUtils::ValidateIPV4(std::string ipv4) {
 }
 
 }  // namespace nearby
-}  // namespace location

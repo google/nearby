@@ -37,7 +37,6 @@
 #include "winrt/Windows.Storage.Streams.h"
 #include "winrt/base.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -372,4 +371,3 @@ void BleGattClient::OnValueChanged(GattCharacteristic const& characteristic,
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

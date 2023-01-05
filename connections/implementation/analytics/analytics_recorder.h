@@ -31,7 +31,6 @@
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace analytics {
 
@@ -190,7 +189,7 @@ class AnalyticsRecorder {
 
     void AddChunk(std::int64_t chunk_size_bytes);
 
-    proto::ConnectionsLog::Payload GetProtoPayload(
+    location::nearby::analytics::proto::ConnectionsLog::Payload GetProtoPayload(
         location::nearby::proto::connections::PayloadStatus status);
 
     location::nearby::proto::connections::PayloadType type() const {
@@ -249,23 +248,26 @@ class AnalyticsRecorder {
         std::int64_t payload_id,
         location::nearby::proto::connections::PayloadStatus status);
 
-    std::vector<proto::ConnectionsLog::EstablishedConnection>
+    std::vector<location::nearby::analytics::proto::ConnectionsLog::
+                    EstablishedConnection>
     GetEstablisedConnections();
 
    private:
     void FinishPhysicalConnection(
-        proto::ConnectionsLog::EstablishedConnection *established_connection,
+        location::nearby::analytics::proto::ConnectionsLog::
+            EstablishedConnection *established_connection,
         location::nearby::proto::connections::DisconnectionReason reason);
-    std::vector<proto::ConnectionsLog::Payload> ResolvePendingPayloads(
+    std::vector<location::nearby::analytics::proto::ConnectionsLog::Payload>
+    ResolvePendingPayloads(
         absl::btree_map<std::int64_t, std::unique_ptr<PendingPayload>>
             &pending_payloads,
         location::nearby::proto::connections::DisconnectionReason reason);
 
     location::nearby::proto::connections::Medium current_medium_ =
         location::nearby::proto::connections::UNKNOWN_MEDIUM;
-    absl::btree_map<
-        location::nearby::proto::connections::Medium,
-        std::unique_ptr<proto::ConnectionsLog::EstablishedConnection>>
+    absl::btree_map<location::nearby::proto::connections::Medium,
+                    std::unique_ptr<location::nearby::analytics::proto::
+                                        ConnectionsLog::EstablishedConnection>>
         physical_connections_;
     absl::btree_map<std::int64_t, std::unique_ptr<PendingPayload>>
         incoming_payloads_;
@@ -293,14 +295,14 @@ class AnalyticsRecorder {
       ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void FinishDiscoveryPhaseLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool UpdateAdvertiserConnectionRequestLocked(
-      proto::ConnectionsLog::ConnectionRequest *request)
-      ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+      location::nearby::analytics::proto::ConnectionsLog::ConnectionRequest
+          *request) ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   bool UpdateDiscovererConnectionRequestLocked(
-      proto::ConnectionsLog::ConnectionRequest *request)
-      ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+      location::nearby::analytics::proto::ConnectionsLog::ConnectionRequest
+          *request) ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   bool BothEndpointsRespondedLocked(
-      proto::ConnectionsLog::ConnectionRequest *request)
-      ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+      location::nearby::analytics::proto::ConnectionsLog::ConnectionRequest
+          *request) ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void LocalEndpointRespondedLocked(
       const std::string &remote_endpoint_id,
       location::nearby::proto::connections::ConnectionRequestResponse response)
@@ -310,8 +312,8 @@ class AnalyticsRecorder {
       location::nearby::proto::connections::ConnectionRequestResponse response)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   void MarkConnectionRequestIgnoredLocked(
-      proto::ConnectionsLog::ConnectionRequest *request)
-      ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+      location::nearby::analytics::proto::ConnectionsLog::ConnectionRequest
+          *request) ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void FinishUpgradeAttemptLocked(
       const std::string &endpoint_id,
       location::nearby::proto::connections::BandwidthUpgradeResult result,
@@ -338,7 +340,9 @@ class AnalyticsRecorder {
   Mutex mutex_;
 
   // ClientSession
-  std::unique_ptr<proto::ConnectionsLog::ClientSession> client_session_;
+  std::unique_ptr<
+      location::nearby::analytics::proto::ConnectionsLog::ClientSession>
+      client_session_;
   absl::Time started_client_session_time_;
   bool session_was_logged_ ABSL_GUARDED_BY(mutex_) = false;
   bool start_client_session_was_logged_ ABSL_GUARDED_BY(mutex_) = false;
@@ -346,36 +350,40 @@ class AnalyticsRecorder {
   // Current StrategySession
   connections::Strategy current_strategy_ ABSL_GUARDED_BY(mutex_) =
       connections::Strategy::kNone;
-  std::unique_ptr<proto::ConnectionsLog::StrategySession>
+  std::unique_ptr<
+      location::nearby::analytics::proto::ConnectionsLog::StrategySession>
       current_strategy_session_ ABSL_GUARDED_BY(mutex_);
   absl::Time started_strategy_session_time_ ABSL_GUARDED_BY(mutex_);
 
   // Current AdvertisingPhase
-  std::unique_ptr<proto::ConnectionsLog::AdvertisingPhase>
+  std::unique_ptr<
+      location::nearby::analytics::proto::ConnectionsLog::AdvertisingPhase>
       current_advertising_phase_;
   absl::Time started_advertising_phase_time_;
 
   // Current DiscoveryPhase
-  std::unique_ptr<proto::ConnectionsLog::DiscoveryPhase>
+  std::unique_ptr<
+      location::nearby::analytics::proto::ConnectionsLog::DiscoveryPhase>
       current_discovery_phase_;
   absl::Time started_discovery_phase_time_;
 
   absl::btree_map<std::string,
-                  std::unique_ptr<proto::ConnectionsLog::ConnectionRequest>>
+                  std::unique_ptr<location::nearby::analytics::proto::
+                                      ConnectionsLog::ConnectionRequest>>
       incoming_connection_requests_ ABSL_GUARDED_BY(mutex_);
   absl::btree_map<std::string,
-                  std::unique_ptr<proto::ConnectionsLog::ConnectionRequest>>
+                  std::unique_ptr<location::nearby::analytics::proto::
+                                      ConnectionsLog::ConnectionRequest>>
       outgoing_connection_requests_ ABSL_GUARDED_BY(mutex_);
   absl::btree_map<std::string, std::unique_ptr<LogicalConnection>>
       active_connections_ ABSL_GUARDED_BY(mutex_);
-  absl::btree_map<
-      std::string,
-      std::unique_ptr<proto::ConnectionsLog::BandwidthUpgradeAttempt>>
+  absl::btree_map<std::string,
+                  std::unique_ptr<location::nearby::analytics::proto::
+                                      ConnectionsLog::BandwidthUpgradeAttempt>>
       bandwidth_upgrade_attempts_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace analytics
 }  // namespace nearby
-}  // namespace location
 
 #endif  // ANALYTICS_ANALYTICS_RECORDER_H_

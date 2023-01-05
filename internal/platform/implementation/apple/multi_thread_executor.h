@@ -20,7 +20,6 @@
 #include "internal/platform/implementation/submittable_executor.h"
 #import "internal/platform/runnable.h"
 
-namespace location {
 namespace nearby {
 namespace apple {
 
@@ -43,7 +42,6 @@ class MultiThreadExecutor : public api::SubmittableExecutor {
 
 }  // namespace apple
 }  // namespace nearby
-}  // namespace location
 
 #endif
 #endif  // PLATFORM_IMPL_APPLE_MULTI_THREAD_EXECUTOR_H_

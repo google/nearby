@@ -38,7 +38,6 @@
 #include "internal/platform/single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -407,4 +406,3 @@ TEST(BaseEndpointChannelTest, ReadUnencryptedFrameOnEncryptedChannel) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

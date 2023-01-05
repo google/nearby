@@ -24,7 +24,7 @@ namespace nearby {
 namespace presence {
 
 namespace {
-using ::location::nearby::ByteArray;
+using ::nearby::ByteArray;
 
 #if USE_RUST_LDT == 1
 TEST(Ldt, EncryptAndDecrypt) {

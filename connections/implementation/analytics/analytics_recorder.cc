@@ -30,7 +30,6 @@
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace analytics {
 
@@ -627,33 +626,35 @@ void AnalyticsRecorder::OnErrorCode(const ErrorCodeParams &params) {
     error_code->set_common_error(params.common_error);
   } else {
     switch (params.event) {
-      case errorcode::proto::START_ADVERTISING:
+      case location::nearby::errorcode::proto::START_ADVERTISING:
         error_code->set_start_advertising_error(params.start_advertising_error);
         break;
-      case errorcode::proto::STOP_ADVERTISING:
+      case location::nearby::errorcode::proto::STOP_ADVERTISING:
         error_code->set_stop_advertising_error(params.stop_advertising_error);
         break;
-      case errorcode::proto::START_LISTENING_INCOMING_CONNECTION:
+      case location::nearby::errorcode::proto::
+          START_LISTENING_INCOMING_CONNECTION:
         error_code->set_start_listening_incoming_connection_error(
             params.start_listening_incoming_connection_error);
         break;
-      case errorcode::proto::STOP_LISTENING_INCOMING_CONNECTION:
+      case location::nearby::errorcode::proto::
+          STOP_LISTENING_INCOMING_CONNECTION:
         error_code->set_stop_listening_incoming_connection_error(
             params.stop_listening_incoming_connection_error);
         break;
-      case errorcode::proto::START_DISCOVERING:
+      case location::nearby::errorcode::proto::START_DISCOVERING:
         error_code->set_start_discovering_error(params.start_discovering_error);
         break;
-      case errorcode::proto::STOP_DISCOVERING:
+      case location::nearby::errorcode::proto::STOP_DISCOVERING:
         error_code->set_stop_discovering_error(params.stop_discovering_error);
         break;
-      case errorcode::proto::CONNECT:
+      case location::nearby::errorcode::proto::CONNECT:
         error_code->set_connect_error(params.connect_error);
         break;
-      case errorcode::proto::DISCONNECT:
+      case location::nearby::errorcode::proto::DISCONNECT:
         error_code->set_disconnect_error(params.disconnect_error);
         break;
-      case errorcode::proto::UNKNOWN_EVENT:
+      case location::nearby::errorcode::proto::UNKNOWN_EVENT:
       default:
         error_code->set_common_error(params.common_error);
         break;
@@ -687,7 +688,7 @@ void AnalyticsRecorder::LogStartSession() {
 
   session_was_logged_ = false;
   if (CanRecordAnalyticsLocked(kOnStartClientSession)) {
-    client_session_ = std::make_unique<proto::ConnectionsLog::ClientSession>();
+    client_session_ = std::make_unique<ConnectionsLog::ClientSession>();
     started_client_session_time_ = SystemClock::ElapsedRealtime();
     start_client_session_was_logged_ = true;
     LogEvent(START_CLIENT_SESSION);
@@ -1282,4 +1283,3 @@ AnalyticsRecorder::LogicalConnection::ResolvePendingPayloads(
 
 }  // namespace analytics
 }  // namespace nearby
-}  // namespace location

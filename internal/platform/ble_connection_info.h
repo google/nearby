@@ -22,7 +22,6 @@
 #include "internal/platform/connection_info.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 
 // 6 bytes that spell "BADMAC"
@@ -61,6 +60,5 @@ inline bool operator!=(const BleConnectionInfo& a, const BleConnectionInfo& b) {
 }
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_BLE_CONNECTION_INFO_H_

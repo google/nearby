@@ -21,7 +21,6 @@
 #include "absl/synchronization/notification.h"
 #include "fastpair/internal/api/device_info.h"
 
-namespace location {
 namespace nearby {
 namespace g3 {
 namespace {
@@ -73,4 +72,3 @@ TEST(DeviceInfo, UnregisterScreenLockedListener) {
 }  // namespace
 }  // namespace g3
 }  // namespace nearby
-}  // namespace location

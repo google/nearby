@@ -27,7 +27,6 @@
 #include "internal/network/http_client.h"
 #include "internal/network/url.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -81,6 +80,5 @@ class FastPairMetadataFetcherImpl : public FastPairMetadataFetcher {
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
 
 #endif  // THIRD_PARTY_NEARBY_FASTPAIR_REPOSITORY_FAST_PAIR_METADATA_FETCHER_IMPL_H_

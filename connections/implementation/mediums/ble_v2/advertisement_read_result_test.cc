@@ -17,7 +17,6 @@
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -140,4 +139,3 @@ TEST(AdvertisementReadResultTest, GetDurationSinceRead) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

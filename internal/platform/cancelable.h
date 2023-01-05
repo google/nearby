@@ -21,7 +21,6 @@
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/cancellable_task.h"
 
-namespace location {
 namespace nearby {
 
 // An interface to provide a cancellation mechanism for objects that represent
@@ -55,6 +54,5 @@ class Cancelable final {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_CANCELABLE_H_

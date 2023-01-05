@@ -24,7 +24,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace location {
 namespace nearby {
 
 // Socket class for both WifiDirect GO ( created through accept connection from
@@ -203,6 +202,5 @@ class WifiDirectMedium {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_PUBLIC_WIFI_DIRECT_H_

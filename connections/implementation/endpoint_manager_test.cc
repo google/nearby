@@ -37,11 +37,13 @@
 #include "internal/platform/pipe.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
 
+using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::PayloadTransferFrame;
+using ::location::nearby::connections::V1Frame;
 using ::location::nearby::proto::connections::DisconnectionReason;
 using ::location::nearby::proto::connections::Medium;
 using ::testing::_;
@@ -60,9 +62,9 @@ class MockEndpointChannel : public EndpointChannel {
               (override));
   MOCK_METHOD(void, Close, (), (override));
   MOCK_METHOD(void, Close, (DisconnectionReason reason), (override));
-  MOCK_METHOD(proto::connections::ConnectionTechnology, GetTechnology, (),
-              (const override));
-  MOCK_METHOD(proto::connections::ConnectionBand, GetBand, (),
+  MOCK_METHOD(location::nearby::proto::connections::ConnectionTechnology,
+              GetTechnology, (), (const override));
+  MOCK_METHOD(location::nearby::proto::connections::ConnectionBand, GetBand, (),
               (const override));
   MOCK_METHOD(int, GetFrequency, (), (const override));
   MOCK_METHOD(int, GetTryCount, (), (const override));
@@ -303,4 +305,3 @@ TEST_F(EndpointManagerTest, SingleReadOnInvalidPayload) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

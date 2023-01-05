@@ -19,7 +19,6 @@
 
 #include "absl/meta/type_traits.h"
 
-namespace location {
 namespace nearby {
 
 struct Exception {
@@ -109,6 +108,5 @@ class ExceptionOr {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_EXCEPTION_H_

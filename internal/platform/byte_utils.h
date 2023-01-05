@@ -17,7 +17,6 @@
 
 #include "internal/platform/byte_array.h"
 
-namespace location {
 namespace nearby {
 
 class ByteUtils {
@@ -33,6 +32,5 @@ class ByteUtils {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_BYTE_UTILS_H_

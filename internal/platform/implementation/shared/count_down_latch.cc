@@ -14,7 +14,6 @@
 
 #include "internal/platform/implementation/shared/count_down_latch.h"
 
-namespace location {
 namespace nearby {
 namespace shared {
 
@@ -51,4 +50,3 @@ void CountDownLatch::CountDown() {
 
 }  // namespace shared
 }  // namespace nearby
-}  // namespace location

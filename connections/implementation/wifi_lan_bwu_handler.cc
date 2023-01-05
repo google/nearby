@@ -24,7 +24,6 @@
 #include "connections/implementation/wifi_lan_endpoint_channel.h"
 #include "internal/platform/wifi_lan.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -157,4 +156,3 @@ void WifiLanBwuHandler::OnIncomingWifiLanConnection(
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

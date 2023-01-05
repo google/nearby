@@ -20,7 +20,6 @@
 #include "absl/hash/hash_testing.h"
 #include "internal/platform/base64_utils.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -205,4 +204,3 @@ TEST(BleAdvertisementHeaderTest, Hash) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

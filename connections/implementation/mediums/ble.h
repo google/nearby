@@ -28,7 +28,6 @@
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -183,6 +182,5 @@ class Ble {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_BLE_H_

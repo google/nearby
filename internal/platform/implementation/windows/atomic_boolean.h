@@ -19,7 +19,6 @@
 
 #include "internal/platform/implementation/atomic_boolean.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -40,6 +39,5 @@ class AtomicBoolean : public api::AtomicBoolean {
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_IMPL_WINDOWS_ATOMIC_BOOLEAN_H_

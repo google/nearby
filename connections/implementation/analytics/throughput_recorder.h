@@ -25,15 +25,14 @@
 #include "internal/platform/mutex.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace analytics {
 
 // The following aliases are only for users' convenience.
 using ::location::nearby::proto::connections::Medium;
-using ::location::nearby::connections::PayloadType;
+using ::nearby::connections::PayloadType;
 // Enum to represent if a payload is incoming or outgoing.
-using ::location::nearby::connections::PayloadDirection;
+using ::nearby::connections::PayloadDirection;
 
 class ThroughputRecorder {
  public:
@@ -139,6 +138,5 @@ class ThroughputRecorderContainer {
 
 }  // namespace analytics
 }  // namespace nearby
-}  // namespace location
 
 #endif  // NEARBY_CONNECTIONS_IMPLEMENTATION_ANALYTICS_THROUGHPUT_RECORDER_H_

@@ -25,7 +25,6 @@
 #include "internal/platform/base_input_stream.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -209,4 +208,3 @@ BluetoothDeviceName::operator std::string() const {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

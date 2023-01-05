@@ -18,7 +18,6 @@
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
-namespace location {
 namespace nearby {
 namespace analytics {
 namespace proto {
@@ -122,4 +121,3 @@ TEST(ConnectionsLogTest, TwoMessagesAreIdentical) {
 }  // namespace proto
 }  // namespace analytics
 }  // namespace nearby
-}  // namespace location

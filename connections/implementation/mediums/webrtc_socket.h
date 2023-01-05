@@ -19,7 +19,6 @@
 
 #include "connections/implementation/mediums/webrtc/webrtc_socket_impl.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace mediums {
@@ -50,6 +49,5 @@ class WebRtcSocketWrapper final {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_H_

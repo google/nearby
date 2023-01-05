@@ -40,7 +40,6 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 namespace {
@@ -124,7 +123,7 @@ std::vector<std::string> GetIpv4Addresses() {
 }
 
 ByteArray Sha256(absl::string_view input, size_t size) {
-  ByteArray hash = location::nearby::Crypto::Sha256(input);
+  ByteArray hash = nearby::Crypto::Sha256(input);
   return ByteArray{hash.data(), size};
 }
 
@@ -228,4 +227,3 @@ std::vector<std::string> InspectableReader::ReadStringArray(
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

@@ -30,7 +30,6 @@
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace windows {
 
@@ -134,4 +133,3 @@ RfcommDeviceService BluetoothDevice::GetRfcommServiceForIdAsync(
 
 }  // namespace windows
 }  // namespace nearby
-}  // namespace location

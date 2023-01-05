@@ -17,19 +17,19 @@
 #import "connections/clients/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCAdvertisingOptions.h"
 
 #ifdef __cplusplus
-namespace location {
+
 namespace nearby {
 namespace connections {
 class AdvertisingOptions;
 }
 }  // namespace nearby
-}  // namespace location
+
 #endif
 
 @interface GNCAdvertisingOptions (CppConversions)
 
 #ifdef __cplusplus
-- (location::nearby::connections::AdvertisingOptions)toCpp;
+- (nearby::connections::AdvertisingOptions)toCpp;
 #endif
 
 @end

@@ -19,7 +19,7 @@
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/logging.h"
 
-namespace location::nearby::windows {
+namespace nearby::windows {
 
 Core *InitCore(connections::ServiceControllerRouter *router) {
 #if defined(LOG_SEVERITY_VERBOSE)
@@ -293,4 +293,4 @@ void CloseServiceControllerRouter(
   }
 }
 
-}  // namespace location::nearby::windows
+}  // namespace nearby::windows

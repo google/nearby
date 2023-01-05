@@ -16,7 +16,6 @@
 
 #include <string>
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -49,4 +48,3 @@ AdvertisingOptions AdvertisingOptions::CompatibleOptions() const {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

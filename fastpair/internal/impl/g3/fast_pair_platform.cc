@@ -19,7 +19,6 @@
 #include "fastpair/internal/impl/g3/device_info.h"
 #include "fastpair/internal/impl/g3/timer.h"
 
-namespace location {
 namespace nearby {
 namespace api {
 
@@ -34,4 +33,3 @@ std::unique_ptr<api::Timer> ImplementationFastPairPlatform::CreateTimer() {
 
 }  // namespace api
 }  // namespace nearby
-}  // namespace location

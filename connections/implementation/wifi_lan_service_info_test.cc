@@ -21,7 +21,6 @@
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/nsd_service_info.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 namespace {
@@ -168,4 +167,3 @@ TEST(WifiLanServiceInfoTest, ConstructionFailsWithLongEndpointInfoLength) {
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

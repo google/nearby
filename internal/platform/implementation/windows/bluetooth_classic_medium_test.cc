@@ -35,19 +35,16 @@
 // STOP/HANG AND IS INTENDED SOLELY FOR DEBUG AND DEMONSTRATION PURPOSES. DO NOT
 // ATTEMPT TO BUILD AND RUN THIS TEST ON GOOGLE3 YOU HAVE BEEN WARNED
 
-using ::location::nearby::windows::BluetoothDevice;
+using ::nearby::windows::BluetoothDevice;
 
-typedef std::map<const std::string, location::nearby::api::BluetoothDevice*>
-    DeviceMap;
+typedef std::map<const std::string, nearby::api::BluetoothDevice*> DeviceMap;
 
 class BluetoothClassicMediumTests : public testing::Test {
  protected:
-  static void device_discovered_cb(
-      location::nearby::api::BluetoothDevice& device) {
+  static void device_discovered_cb(nearby::api::BluetoothDevice& device) {
     const std::string address = device.GetMacAddress();
 
-    std::map<std::string,
-             location::nearby::api::BluetoothDevice*>::const_iterator it =
+    std::map<std::string, nearby::api::BluetoothDevice*>::const_iterator it =
         deviceList.find(address);
 
     std::string buffer =
@@ -63,10 +60,9 @@ class BluetoothClassicMediumTests : public testing::Test {
     }
   }
 
-  static void device_name_changed_cb(
-      location::nearby::api::BluetoothDevice& device) {}
+  static void device_name_changed_cb(nearby::api::BluetoothDevice& device) {}
 
-  static void device_lost_cb(location::nearby::api::BluetoothDevice& device) {
+  static void device_lost_cb(nearby::api::BluetoothDevice& device) {
     deviceList.erase(device.GetMacAddress());
   }
 
@@ -76,7 +72,7 @@ class BluetoothClassicMediumTests : public testing::Test {
 
 #ifdef TESTING_LOCALLY
 TEST_F(BluetoothClassicMediumTests, ManualTest) {
-  auto bluetoothAdapter = location::nearby::windows::BluetoothAdapter();
+  auto bluetoothAdapter = nearby::windows::BluetoothAdapter();
 
   std::string bluetoothAdapterName = bluetoothAdapter.GetName();
   bluetoothAdapter.SetName("BluetoothTestName");
@@ -84,21 +80,20 @@ TEST_F(BluetoothClassicMediumTests, ManualTest) {
   bluetoothAdapter.SetName("");
   bluetoothAdapterName = bluetoothAdapter.GetName();
 
-  std::unique_ptr<location::nearby::windows::BluetoothClassicMedium> bcm =
-      std::make_unique<location::nearby::windows::BluetoothClassicMedium>(
+  std::unique_ptr<nearby::windows::BluetoothClassicMedium> bcm =
+      std::make_unique<nearby::windows::BluetoothClassicMedium>(
           bluetoothAdapter);
 
-  bluetoothAdapter.SetScanMode(location::nearby::windows::BluetoothAdapter::
-                                   ScanMode::kConnectableDiscoverable);
+  bluetoothAdapter.SetScanMode(
+      nearby::windows::BluetoothAdapter::ScanMode::kConnectableDiscoverable);
 
   auto mode = bluetoothAdapter.GetScanMode();
 
-  bcm->StartDiscovery(
-      location::nearby::api::BluetoothClassicMedium::DiscoveryCallback{
-          .device_discovered_cb = device_discovered_cb,
-          .device_name_changed_cb = device_name_changed_cb,
-          .device_lost_cb = device_lost_cb,
-      });
+  bcm->StartDiscovery(nearby::api::BluetoothClassicMedium::DiscoveryCallback{
+      .device_discovered_cb = device_discovered_cb,
+      .device_name_changed_cb = device_name_changed_cb,
+      .device_lost_cb = device_lost_cb,
+  });
 
   Sleep(30000);
 
@@ -107,7 +102,7 @@ TEST_F(BluetoothClassicMediumTests, ManualTest) {
       winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId::SerialPort()
           .AsString());
 
-  location::nearby::CancellationFlag cancellationFlag;
+  nearby::CancellationFlag cancellationFlag;
   bcm->ConnectToService(*currentDevice,
                         //  "a82efa21-ae5c-3dde-9bbc-f16da7b16c5a",
                         "00001101-0000-1000-8000-00805F9B34FB",
@@ -119,17 +114,16 @@ TEST_F(BluetoothClassicMediumTests, ManualTest) {
 #endif
 TEST_F(BluetoothClassicMediumTests, ConnectToServiceNullUuid) {
   // Arrange
-  auto bluetoothAdapter = location::nearby::windows::BluetoothAdapter();
+  auto bluetoothAdapter = nearby::windows::BluetoothAdapter();
 
-  std::unique_ptr<location::nearby::windows::BluetoothClassicMedium>
+  std::unique_ptr<nearby::windows::BluetoothClassicMedium>
       bluetoothClassicMedium =
-          std::make_unique<location::nearby::windows::BluetoothClassicMedium>(
+          std::make_unique<nearby::windows::BluetoothClassicMedium>(
               bluetoothAdapter);
 
-  location::nearby::windows::BluetoothDevice bluetoothDevice =
-      location::nearby::windows::BluetoothDevice(
-          std::string("1D:EA:DB:EE:B9:00"));
-  location::nearby::CancellationFlag cancellationFlag;
+  nearby::windows::BluetoothDevice bluetoothDevice =
+      nearby::windows::BluetoothDevice(std::string("1D:EA:DB:EE:B9:00"));
+  nearby::CancellationFlag cancellationFlag;
 
   auto bluetoothClassicMediumImpl = bluetoothClassicMedium.get();
 
@@ -143,16 +137,15 @@ TEST_F(BluetoothClassicMediumTests, ConnectToServiceNullUuid) {
 
 TEST_F(BluetoothClassicMediumTests, ConnectToServiceNullCancellationFlag) {
   // Arrange
-  auto bluetoothAdapter = location::nearby::windows::BluetoothAdapter();
+  auto bluetoothAdapter = nearby::windows::BluetoothAdapter();
 
-  std::unique_ptr<location::nearby::windows::BluetoothClassicMedium>
+  std::unique_ptr<nearby::windows::BluetoothClassicMedium>
       bluetoothClassicMedium =
-          std::make_unique<location::nearby::windows::BluetoothClassicMedium>(
+          std::make_unique<nearby::windows::BluetoothClassicMedium>(
               bluetoothAdapter);
 
-  location::nearby::windows::BluetoothDevice bluetoothDevice =
-      location::nearby::windows::BluetoothDevice(
-          std::string("1D:EA:DB:EE:B9:00"));
+  nearby::windows::BluetoothDevice bluetoothDevice =
+      nearby::windows::BluetoothDevice(std::string("1D:EA:DB:EE:B9:00"));
 
   auto bluetoothClassicMediumImpl = bluetoothClassicMedium.get();
 
@@ -166,17 +159,16 @@ TEST_F(BluetoothClassicMediumTests, ConnectToServiceNullCancellationFlag) {
 
 TEST_F(BluetoothClassicMediumTests, ConnectToServiceWithInvalidServiceUuid) {
   // Arrange
-  auto bluetoothAdapter = location::nearby::windows::BluetoothAdapter();
+  auto bluetoothAdapter = nearby::windows::BluetoothAdapter();
 
-  std::unique_ptr<location::nearby::windows::BluetoothClassicMedium>
+  std::unique_ptr<nearby::windows::BluetoothClassicMedium>
       bluetoothClassicMedium =
-          std::make_unique<location::nearby::windows::BluetoothClassicMedium>(
+          std::make_unique<nearby::windows::BluetoothClassicMedium>(
               bluetoothAdapter);
 
-  location::nearby::windows::BluetoothDevice bluetoothDevice =
-      location::nearby::windows::BluetoothDevice(
-          std::string("1D:EA:DB:EE:B9:00"));
-  location::nearby::CancellationFlag cancellationFlag;
+  nearby::windows::BluetoothDevice bluetoothDevice =
+      nearby::windows::BluetoothDevice(std::string("1D:EA:DB:EE:B9:00"));
+  nearby::CancellationFlag cancellationFlag;
 
   auto bluetoothClassicMediumImpl = bluetoothClassicMedium.get();
 

@@ -32,7 +32,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/prng.h"
 
-namespace location {
 namespace nearby {
 
 MediumEnvironment& MediumEnvironment::Instance() {
@@ -1109,4 +1108,3 @@ void MediumEnvironment::SetFeatureFlags(const FeatureFlags::Flags& flags) {
 }
 
 }  // namespace nearby
-}  // namespace location

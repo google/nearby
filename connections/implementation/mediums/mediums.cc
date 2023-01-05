@@ -14,7 +14,6 @@
 
 #include "connections/implementation/mediums/mediums.h"
 
-namespace location {
 namespace nearby {
 namespace connections {
 
@@ -38,4 +37,3 @@ mediums::WebRtc& Mediums::GetWebRtc() { return webrtc_; }
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location

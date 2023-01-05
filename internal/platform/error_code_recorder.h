@@ -19,7 +19,6 @@
 
 #include "internal/platform/error_code_params.h"
 
-namespace location {
 namespace nearby {
 
 // Deploys the error code of the platform medium to the analytics recorder.
@@ -81,6 +80,5 @@ class ErrorCodeRecorder {
 };
 
 }  // namespace nearby
-}  // namespace location
 
 #endif  // PLATFORM_BASE_ERROR_CODE_RECORDER_H_

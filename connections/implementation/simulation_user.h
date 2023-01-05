@@ -35,7 +35,7 @@
 //
 // This is a "standalone" version of PcpManager. It can run independently,
 // provided MediumEnvironment has adequate support for all medium types in use.
-namespace location {
+
 namespace nearby {
 namespace connections {
 
@@ -175,6 +175,5 @@ class SimulationUser {
 
 }  // namespace connections
 }  // namespace nearby
-}  // namespace location
 
 #endif  // CORE_INTERNAL_SIMULATION_USER_H_

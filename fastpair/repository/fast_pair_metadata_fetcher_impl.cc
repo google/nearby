@@ -22,7 +22,6 @@
 #include "fastpair/internal/api/device_info.h"
 #include "internal/platform/logging.h"
 
-namespace location {
 namespace nearby {
 namespace fastpair {
 
@@ -112,4 +111,3 @@ void FastPairMetadataFetcherImpl::Execute() {
 
 }  // namespace fastpair
 }  // namespace nearby
-}  // namespace location
