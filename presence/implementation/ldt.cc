@@ -24,7 +24,7 @@
 #include "absl/strings/string_view.h"
 #include <openssl/aes.h>
 #if USE_RUST_LDT == 1
-#include "third_party/nearby_rust/np_ffi/include/np_ldt.h"
+#include "third_party/nearby_rust/presence/np_ffi/include/np_ldt.h"
 #else
 #include "presence/implementation/np_ldt.h"
 #endif /* USE_RUST_LDT */

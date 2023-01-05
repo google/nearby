@@ -99,7 +99,7 @@ cc_library(
         "//presence/implementation/mediums",
         "@boringssl//:crypto",
     ] + select({
-        ":link_with_rust": ["//third_party/nearby_rust/np_ffi"],
+        ":link_with_rust": ["//third_party/nearby_rust/presence/np_ffi"],
         "//conditions:default": [":ldt_stub"],
     }),
 )
