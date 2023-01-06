@@ -17,7 +17,7 @@ syntax = "proto3";
 // Proto defined in this file needs be consistent with proto defined in
 // google3/google/internal/location/nearby/device/v1/rpcs.proto.
 
-package location.nearby.fastpair.proto;
+package nearby.fastpair.proto;
 
 option optimize_for = LITE_RUNTIME;
 

@@ -31,8 +31,7 @@ namespace fastpair {
 
 class FastPairMetadataFetcher {
  public:
-  using ResultCallback =
-      std::function<void(absl::string_view serialized_response)>;
+  using ResultCallback = std::function<void(absl::string_view result_response)>;
   using ErrorCallback = std::function<void(FastPairHttpError error)>;
   using QueryParameters = std::vector<std::pair<std::string, std::string>>;
 
