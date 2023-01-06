@@ -37,6 +37,7 @@ cc_library(
     ],
     defines = ["NO_WEBRTC"],
     visibility = [
+        "//fastpair:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",

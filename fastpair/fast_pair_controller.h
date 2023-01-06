@@ -16,17 +16,36 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_FAST_PAIR_CONTROLLER_H_
 
 #include <functional>
+#include <string>
 
 namespace nearby {
 namespace fastpair {
 
 class FastPairController {
  public:
-  ~FastPairController() = default;
+  enum class StatusCodes {
+    // The operation successed.
+    kOk = 0,
+    // The operation failed.
+    kError = 1,
+  };
 
-  void StartScanning();
+  static std::string StatusCodeToString(StatusCodes status_code);
 
-  void ServerAccess();
+  virtual ~FastPairController() = default;
+
+  // Obtain the scanning status
+  virtual bool IsScanning() = 0;
+
+  // Obtain the pairing status
+  virtual bool IsPairing() = 0;
+
+  // Server Access trigger just for adapter implementation testing, will be
+  // delete after success
+  virtual bool IsServerAccessing() = 0;
+
+  // Trigger function of the scanning
+  virtual void StartScan() = 0;
 };
 
 }  // namespace fastpair

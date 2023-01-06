@@ -30,8 +30,16 @@ lexan.cc_windows_dll(
         "_WIN32_WINNT=_WIN32_WINNT_WIN10",
     ],
     tags = ["windows-dll"],
+    visibility = [
+        "//fastpair:__subpackages__",
+        "//location/nearby/apps/better_together/windows/fast_pair:__subpackages__",
+    ],
     deps = [
         "//fastpair:fastpair_controller",
+        "//fastpair/internal/api:platform",
+        "//internal/platform:logging",
+        "//internal/platform/implementation/windows",
+        "//internal/platform/implementation/windows/generated:types",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -53,8 +61,16 @@ lexan.cc_windows_dll(
         "_WIN32_WINNT=_WIN32_WINNT_WIN10",
     ],
     tags = ["windows-dll"],
+    visibility = [
+        "//fastpair:__subpackages__",
+        "//location/nearby/apps/better_together/windows/fast_pair:__subpackages__",
+    ],
     deps = [
         "//fastpair:fastpair_controller",
+        "//fastpair/internal/api:platform",
+        "//internal/platform:logging",
+        "//internal/platform/implementation/windows",
+        "//internal/platform/implementation/windows/generated:types",
         "//third_party/dart_lang/v2:dart_api_dl",
         "@com_google_absl//absl/strings",
     ],

@@ -14,22 +14,59 @@
 
 #include "fastpair/client/windows/fast_pair_controller_adapter.h"
 
+#include "fastpair/fast_pair_controller.h"
+#include "fastpair/fast_pair_controller_impl.h"
+#include "internal/platform/logging.h"
+
 namespace nearby {
 namespace fastpair {
+namespace windows {
 
-FastPairController *InitFastPairController() {
-  return new FastPairController();
+static FastPairController *pController_ = nullptr;
+void *InitFastPairController() {
+  FastPairControllerImpl *pController = new FastPairControllerImpl();
+  pController_ = pController;
+  return pController;
 }
 
 void CloseFastPairController(FastPairController *pController) {
-  if (pController != nullptr) delete pController;
+  NEARBY_LOGS(INFO) << "[[ Closing Fast Pair Controller. ]]";
+  if (pController_ != nullptr) delete pController_;
+  NEARBY_LOGS(INFO) << "[[ Successfully closed Fast Pair Controller. ]]";
 }
 
-void StartScanning(FastPairController *pController) {
+void __stdcall StartScan(FastPairController *pController) {
+  NEARBY_LOGS(INFO) << "StartScan is called";
+  if (pController_ == nullptr) {
+    NEARBY_LOGS(INFO) << "The pController is a null pointer.";
+    return;
+  }
+  return pController_->StartScan();
 }
 
-void ServerAccess(FastPairController *pController) {
+bool __stdcall IsScanning(FastPairController *pController) {
+  if (pController_ == nullptr) {
+    return false;
+  }
+
+  return static_cast<FastPairController *>(pController_)->IsScanning();
 }
 
+bool __stdcall IsPairing(FastPairController *pController) {
+  if (pController_ == nullptr) {
+    return false;
+  }
+  // return connecting
+  return static_cast<FastPairController *>(pController_)->IsPairing();
+}
+
+bool __stdcall IsServerAccessing(FastPairController *pController) {
+  if (pController_ == nullptr) {
+    return false;
+  }
+  return static_cast<FastPairController *>(pController_)->IsServerAccessing();
+}
+
+}  // namespace windows
 }  // namespace fastpair
 }  // namespace nearby

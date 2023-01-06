@@ -23,14 +23,45 @@ package_group(
 
 cc_library(
     name = "fastpair_controller",
-    srcs = [],
+    srcs = [
+        "fast_pair_controller.cc",
+        "fast_pair_controller_impl.cc",
+    ],
     hdrs = [
         "fast_pair_controller.h",
+        "fast_pair_controller_impl.h",
     ],
     copts = ["-Ithird_party"],
     visibility = [
         "//fastpair:__subpackages__",
     ],
     deps = [
+        "//fastpair/internal/api:platform",
+        "//fastpair/scanning/fastpair:scanning",
+        "//internal/platform:base",
+        "//internal/platform:logging",
+    ],
+)
+
+cc_test(
+    name = "fastpair_controller_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "fast_pair_controller_impl_test.cc",
+        "fast_pair_controller_test.cc",
+    ],
+    copts = [
+        "-Ithird_party",
+    ],
+    shard_count = 8,
+    deps = [
+        ":fastpair_controller",
+        "//fastpair/internal/api:platform",
+        "//fastpair/scanning/fastpair:scanning",
+        "//internal/platform:logging",
+        "//internal/platform/implementation/g3",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )

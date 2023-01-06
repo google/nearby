@@ -157,7 +157,7 @@ cc_library(
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     visibility = [
         "//connections/clients/windows:__subpackages__",
-        "//fastpair/internal/impl/windows:__subpackages__",
+        "//fastpair:__subpackages__",
         "//location/nearby:__subpackages__",
     ],
     deps = [
@@ -166,8 +166,10 @@ cc_library(
         ":types",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
+        "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
+        "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/shared:count_down_latch",
@@ -175,9 +177,13 @@ cc_library(
         "//internal/platform/implementation/windows/generated:types",
         "//internal/platform/implementation/windows/json:types",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
     ],
 )
 
