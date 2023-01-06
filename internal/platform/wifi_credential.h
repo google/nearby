@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_BASE_WIFI_HOTSPOT_CREDENTIAL_H_
-#define PLATFORM_BASE_WIFI_HOTSPOT_CREDENTIAL_H_
+#ifndef PLATFORM_BASE_WIFI_CREDENTIAL_H_
+#define PLATFORM_BASE_WIFI_CREDENTIAL_H_
 
 #include <string>
 
@@ -143,4 +143,4 @@ class WifiDirectCredentials {
 
 }  // namespace nearby
 
-#endif  // PLATFORM_BASE_WIFI_HOTSPOT_CREDENTIAL_H_
+#endif  // PLATFORM_BASE_WIFI_CREDENTIAL_H_

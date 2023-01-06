@@ -21,7 +21,7 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/output_stream.h"
-#include "internal/platform/wifi_hotspot_credential.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace api {

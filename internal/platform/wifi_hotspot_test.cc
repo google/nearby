@@ -23,7 +23,7 @@
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/wifi_hotspot_credential.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace {

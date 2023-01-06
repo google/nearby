@@ -40,7 +40,7 @@ cc_library(
         "runnable.h",
         "socket.h",
         "types.h",
-        "wifi_hotspot_credential.h",
+        "wifi_credential.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     defines = ["NO_WEBRTC"],

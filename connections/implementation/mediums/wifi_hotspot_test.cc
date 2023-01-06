@@ -21,7 +21,7 @@
 #include "absl/time/clock.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/wifi_hotspot.h"
-#include "internal/platform/wifi_hotspot_credential.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace connections {
