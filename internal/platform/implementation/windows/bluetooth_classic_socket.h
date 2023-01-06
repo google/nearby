@@ -127,11 +127,17 @@ class BluetoothSocket : public api::BluetoothSocket {
     IOutputStream winrt_stream_;
   };
 
+  winrt::fire_and_forget Listener_ConnectionStatusChanged(
+      winrt::Windows::Devices::Bluetooth::BluetoothDevice device,
+      winrt::Windows::Foundation::IInspectable const& args);
+
   StreamSocket windows_socket_{nullptr};
   BluetoothInputStream input_stream_{nullptr};
   BluetoothOutputStream output_stream_{nullptr};
-
   std::unique_ptr<BluetoothDevice> bluetooth_device_ = nullptr;
+  winrt::Windows::Devices::Bluetooth::BluetoothDevice native_bluetooth_device_{
+      nullptr};
+  winrt::event_token connection_status_changed_token_{};
 };
 
 }  // namespace windows

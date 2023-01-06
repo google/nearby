@@ -393,8 +393,13 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     std::unique_ptr<WifiLanSocket> wifi_lan_socket =
         std::make_unique<WifiLanSocket>(socket);
 
+    std::string local_address =
+        winrt::to_string(socket.Information().LocalAddress().DisplayName());
+    std::string local_port = winrt::to_string(socket.Information().LocalPort());
+
     NEARBY_LOGS(INFO) << "connected to remote service " << ipv4_address << ":"
-                      << port;
+                      << port << " with local address " << local_address << ":"
+                      << local_port;
     return wifi_lan_socket;
   } catch (...) {
     NEARBY_LOGS(ERROR) << "failed to connect remote service " << ipv4_address

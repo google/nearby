@@ -15,28 +15,44 @@
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
 
 #include <exception>
+#include <memory>
 #include <utility>
 
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace windows {
+namespace {
+using ::winrt::Windows::Devices::Bluetooth::BluetoothConnectionStatus;
+}
 
 BluetoothSocket::BluetoothSocket(StreamSocket streamSocket)
     : windows_socket_(streamSocket) {
-  bluetooth_device_ = std::make_unique<BluetoothDevice>(
+  native_bluetooth_device_ =
       winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
           windows_socket_.Information().RemoteHostName())
-          .get());
+          .get();
+  connection_status_changed_token_ =
+      native_bluetooth_device_.ConnectionStatusChanged(
+          {this, &BluetoothSocket::Listener_ConnectionStatusChanged});
+  bluetooth_device_ =
+      std::make_unique<BluetoothDevice>(native_bluetooth_device_);
   input_stream_ = BluetoothInputStream(windows_socket_.InputStream());
   output_stream_ = BluetoothOutputStream(windows_socket_.OutputStream());
 }
 
 BluetoothSocket::BluetoothSocket() {}
 
-BluetoothSocket::~BluetoothSocket() {}
+BluetoothSocket::~BluetoothSocket() {
+  if (native_bluetooth_device_ != nullptr) {
+    native_bluetooth_device_.ConnectionStatusChanged(
+        connection_status_changed_token_);
+    native_bluetooth_device_ = nullptr;
+  }
+}
 
 // NOTE:
 // It is an undefined behavior if GetInputStream() or GetOutputStream() is
@@ -111,10 +127,17 @@ bool BluetoothSocket::Connect(HostName connectionHostName,
     auto info = windows_socket_.Information();
     auto hostName = info.RemoteHostName();
 
-    bluetooth_device_ = std::make_unique<BluetoothDevice>(
+    native_bluetooth_device_ =
         winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
             windows_socket_.Information().RemoteHostName())
-            .get());
+            .get();
+
+    connection_status_changed_token_ =
+        native_bluetooth_device_.ConnectionStatusChanged(
+            {this, &BluetoothSocket::Listener_ConnectionStatusChanged});
+
+    bluetooth_device_ =
+        std::make_unique<BluetoothDevice>(native_bluetooth_device_);
 
     input_stream_ = BluetoothInputStream(windows_socket_.InputStream());
     output_stream_ = BluetoothOutputStream(windows_socket_.OutputStream());
@@ -272,6 +295,23 @@ Exception BluetoothSocket::BluetoothOutputStream::Close() {
     NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
+}
+
+winrt::fire_and_forget BluetoothSocket::Listener_ConnectionStatusChanged(
+    winrt::Windows::Devices::Bluetooth::BluetoothDevice device,
+    winrt::Windows::Foundation::IInspectable const& args) {
+  // During bandwidth upgrade, Bluetooth connection may be dropped due to
+  // unknown reasons. To track this issue, add a log to track the issue.
+  // Based on test, the args is empty, so cannot provide more information on
+  // the status change.
+  BluetoothConnectionStatus connection_status = device.ConnectionStatus();
+  NEARBY_LOGS(WARNING) << __func__
+                       << ": Bluetooth connection status changed to:"
+                       << ((connection_status ==
+                            BluetoothConnectionStatus::Connected)
+                               ? "Connected"
+                               : "Disconnected");
+  return {};
 }
 
 }  // namespace windows
