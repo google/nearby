@@ -123,7 +123,6 @@ cc_library(
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
         "//internal:__pkg__",
-        "//internal/analytics:__subpackages__",
         "//internal/network:__subpackages__",
         "//internal/platform:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
