@@ -405,10 +405,19 @@ enum ServerResponseState {
 // The type of Nearby Sharing scanning.
 enum ScanType {
   UNKNOWN_SCAN_TYPE = 0;
-
   FOREGROUND_SCAN = 1;
   FOREGROUND_RETRY_SCAN = 2;
   DIRECT_SHARE_SCAN = 3;
+  BACKGROUND_SCAN = 4;
+}
+
+// The Nearby Sharing advertising mode.
+enum AdvertisingMode {
+  UNKNOWN_ADVERTISING_MODE = 0;
+  SCREEN_OFF_ADVERTISING_MODE = 1;
+  BACKGROUND_ADVERTISING_MODE = 2;
+  MIDGROUND_ADVERTISING_MODE = 3;
+  FOREGROUND_ADVERTISING_MODE = 4;
 }
 
 // The class name of chimera activity.
