@@ -20,6 +20,7 @@
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/windows/gatt_server.h"
 #include "internal/platform/logging.h"
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
 #include "winrt/Windows.Devices.Bluetooth.h"
@@ -176,7 +177,9 @@ bool BleV2Medium::StopAdvertising() {
       return false;
     }
     if (publisher_.Status() ==
-        BluetoothLEAdvertisementPublisherStatus::Stopped) {
+            BluetoothLEAdvertisementPublisherStatus::Stopped ||
+        publisher_.Status() ==
+            BluetoothLEAdvertisementPublisherStatus::Created) {
       return true;
     }
   }
@@ -273,7 +276,7 @@ std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
 
 std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
     ServerGattConnectionCallback callback) {
-  return nullptr;
+  return std::make_unique<GattServer>(callback);
 }
 
 std::unique_ptr<GattClient> BleV2Medium::ConnectToGattServer(
