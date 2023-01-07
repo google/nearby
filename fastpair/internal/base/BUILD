@@ -18,19 +18,6 @@ cc_library(
     ],
 )
 
-cc_library(
-    name = "base",
-    srcs = [
-    ],
-    hdrs = [
-        "observer_list.h",
-    ],
-    visibility = [
-        "//fastpair:__subpackages__",
-    ],
-    deps = ["@com_google_absl//absl/container:flat_hash_set"],
-)
-
 cc_test(
     name = "base_test",
     size = "small",

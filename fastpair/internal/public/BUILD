@@ -32,7 +32,6 @@ cc_library(
         ":device_info",
         ":types",
         "//fastpair/internal/api:platform",
-        "//fastpair/internal/base",  # fixdeps: keep
         "//fastpair/internal/impl/g3:platform_g3",
         "//internal/platform:logging",
         "//internal/platform:types",
