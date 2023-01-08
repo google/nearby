@@ -32,7 +32,7 @@ swift_library(
 swift_library(
     name = "TestsLib",
     testonly = 1,
-    srcs = ["Tests/BuildTests.swift"],
+    srcs = glob(["Tests/**/*.swift"]),
     deps = [
         ":NearbyConnections",
         "//third_party/apple_frameworks:XCTest",
