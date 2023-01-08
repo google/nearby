@@ -25,8 +25,8 @@ let package = Package(
     // Dependencies declare other packages that this package depends on.
     .package(
       name: "abseil",
-      url: "https://github.com/firebase/abseil-cpp-SwiftPM.git",
-      branch: "main"
+      url: "https://github.com/bourdakos1/abseil-cpp-SwiftPM.git",
+      branch: "exclude-main"
     ),
     .package(
       name: "BoringSSL-GRPC",
