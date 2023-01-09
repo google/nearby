@@ -19,6 +19,7 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "winrt/Windows.Devices.Bluetooth.h"
 
 namespace nearby {
 namespace windows {
@@ -27,6 +28,9 @@ namespace windows {
 // about a particular BLE device to connect to its GATT server.
 class BleV2Peripheral : public api::ble_v2::BlePeripheral {
  public:
+  explicit BleV2Peripheral(
+      ::winrt::Windows::Devices::Bluetooth::BluetoothLEDevice ble_device);
+
   ~BleV2Peripheral() override = default;
 
   // Returns the MAC address of the peripheral. The format is in
@@ -39,6 +43,7 @@ class BleV2Peripheral : public api::ble_v2::BlePeripheral {
 
  private:
   std::string address_;
+  ::winrt::Windows::Devices::Bluetooth::IBluetoothLEDevice ble_device_;
 };
 
 }  // namespace windows
