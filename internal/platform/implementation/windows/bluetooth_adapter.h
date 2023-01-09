@@ -15,8 +15,8 @@
 #ifndef PLATFORM_IMPL_WINDOWS_BLUETOOTH_ADAPTER_H_
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_ADAPTER_H_
 
-#include <guiddef.h>
 #include <windows.h>
+#include <guiddef.h>
 
 #include <functional>
 #include <optional>
