@@ -331,6 +331,17 @@ void PostResult(Dart_Port &result_cb, Status::Value value) {
   }
 }
 
+void EnableBleV2Dart(Core *pCore, int64_t enable, Dart_Port result_cb) {
+  if (!pCore) {
+    PostResult(result_cb, Status::Value::kError);
+    return;
+  }
+  port = result_cb;
+
+  FeatureFlags::GetMutableFlagsForTesting().support_ble_v2 = enable;
+  PostResult(result_cb, Status::kSuccess);
+}
+
 void StartAdvertisingDart(
     Core *pCore, const char *service_id,
     AdvertisingOptionsDart connection_options_dart,

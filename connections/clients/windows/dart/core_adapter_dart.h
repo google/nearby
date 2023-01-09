@@ -166,6 +166,9 @@ static void ListenerPayloadCB(const char *endpoint_id, PayloadW &payload);
 static void ListenerPayloadProgressCB(const char *endpoint_id,
                                       const PayloadProgressInfoW &info);
 
+DLL_API void __stdcall EnableBleV2Dart(Core *pCore, int64_t enable,
+                                       Dart_Port result_cb);
+
 // Starts advertising an endpoint for a local app.
 //
 // service_id - An identifier to advertise your app to other endpoints.
