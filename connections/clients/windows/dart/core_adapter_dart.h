@@ -33,7 +33,7 @@ enum PayloadType {
   BYTE,
   STREAM,
   FILE,
-  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/payload.dart)
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/app/lib/payload.dart)
 };
 
 struct Mediums {
@@ -43,7 +43,7 @@ struct Mediums {
   int64_t wifi_lan;
   int64_t wifi_hotspot;
   int64_t web_rtc;
-  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/mediums.dart)
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/app/lib/mediums.dart)
 };
 
 extern "C" {
@@ -65,7 +65,7 @@ struct AdvertisingOptionsDart {
   const char *device_info;
 
   Mediums mediums;
-  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/advertising_options.dart)
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/app/lib/advertising_options.dart)
 };
 
 struct ConnectionOptionsDart {
@@ -85,7 +85,7 @@ struct ConnectionOptionsDart {
   int64_t keep_alive_timeout_millis;
 
   Mediums mediums;
-  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/connection_options.dart)
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/app/lib/connection_options.dart)
 };
 
 struct DiscoveryOptionsDart {
@@ -102,7 +102,7 @@ struct DiscoveryOptionsDart {
   const char *remote_bluetooth_mac_address;
 
   Mediums mediums;
-  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/discovery_options.dart)
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/app/lib/discovery_options.dart)
 };
 
 struct DiscoveryListenerDart {
@@ -110,14 +110,14 @@ struct DiscoveryListenerDart {
   int64_t found_dart_port;
   int64_t lost_dart_port;
   int64_t distance_changed_dart_port;
-  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/discovery_listener.dart)
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/app/lib/discovery_listener.dart)
 };
 
 struct PayloadListenerDart {
   // LINT.IfChange
   int64_t payload_dart_port;
   int64_t payload_progress_dart_port;
-  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/payload_listener.dart)
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/app/lib/payload_listener.dart)
 };
 
 struct ConnectionListenerDart {
@@ -127,14 +127,14 @@ struct ConnectionListenerDart {
   int64_t rejected_dart_port;
   int64_t disconnected_dart_port;
   int64_t bandwidth_changed_dart_port;
-  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/connection_listener.dart)
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/app/lib/connection_listener.dart)
 };
 
 struct ConnectionRequestInfoDart {
   // LINT.IfChange
   char *endpoint_info;
   ConnectionListenerDart connection_listener;
-  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/connection_request_info.dart)
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/app/lib/connection_request_info.dart)
 };
 
 struct PayloadDart {
@@ -143,7 +143,7 @@ struct PayloadDart {
   PayloadType type;
   int64_t size;
   char *data;
-  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/flutter/lib/payload.dart)
+  // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/app/lib/payload.dart)
 };
 
 static void ResultCB(Status status);
