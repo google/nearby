@@ -393,6 +393,9 @@ enum LogSource {
 
 // LINT.IfChange
 enum PowerLevel {
+  // Set ultra low power for the related medium operations.
+  ULTRA_LOW_POWER = -1;
+
   UNSPECIFIED = 0;
 
   // Set low power for the related medium operations.
