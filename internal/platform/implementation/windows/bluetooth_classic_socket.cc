@@ -18,6 +18,7 @@
 #include <memory>
 #include <utility>
 
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
@@ -35,9 +36,14 @@ BluetoothSocket::BluetoothSocket(StreamSocket streamSocket)
       winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
           windows_socket_.Information().RemoteHostName())
           .get();
-  connection_status_changed_token_ =
-      native_bluetooth_device_.ConnectionStatusChanged(
-          {this, &BluetoothSocket::Listener_ConnectionStatusChanged});
+  if (FeatureFlags::GetInstance()
+          .GetFlags()
+          .enable_bluetooth_connection_status_track) {
+    connection_status_changed_token_ =
+        native_bluetooth_device_.ConnectionStatusChanged(
+            {this, &BluetoothSocket::Listener_ConnectionStatusChanged});
+  }
+
   bluetooth_device_ =
       std::make_unique<BluetoothDevice>(native_bluetooth_device_);
   input_stream_ = BluetoothInputStream(windows_socket_.InputStream());
@@ -48,8 +54,13 @@ BluetoothSocket::BluetoothSocket() {}
 
 BluetoothSocket::~BluetoothSocket() {
   if (native_bluetooth_device_ != nullptr) {
-    native_bluetooth_device_.ConnectionStatusChanged(
-        connection_status_changed_token_);
+    if (FeatureFlags::GetInstance()
+            .GetFlags()
+            .enable_bluetooth_connection_status_track) {
+      native_bluetooth_device_.ConnectionStatusChanged(
+          connection_status_changed_token_);
+    }
+
     native_bluetooth_device_ = nullptr;
   }
 }

@@ -49,6 +49,12 @@ class FeatureFlags {
     bool support_ble_v2 = false;
     // Allows the code to change the bluetooth radio state
     bool enable_set_radio_state = false;
+    // If the feature is enabled, medium connection will timeout when cannot
+    // create connection with remote device in a duration.
+    bool enable_connection_timeout = false;
+    // Controls to enable or disable to track the status of Bluetooth classic
+    // conncetion.
+    bool enable_bluetooth_connection_status_track = false;
   };
 
   static const FeatureFlags& GetInstance() {

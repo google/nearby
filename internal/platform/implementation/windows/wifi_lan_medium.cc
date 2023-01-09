@@ -38,6 +38,7 @@
 #include "absl/time/time.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/runnable.h"
@@ -373,12 +374,14 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 
   // connection to the service
   try {
-    connection_timeout_ = scheduled_executor_.Schedule(
-        [socket]() {
-          NEARBY_LOGS(WARNING) << "connect is closed due to timeout.";
-          socket.Close();
-        },
-        kConnectServiceTimeout);
+    if (FeatureFlags::GetInstance().GetFlags().enable_connection_timeout) {
+      connection_timeout_ = scheduled_executor_.Schedule(
+          [socket]() {
+            NEARBY_LOGS(WARNING) << "connect is closed due to timeout.";
+            socket.Close();
+          },
+          kConnectServiceTimeout);
+    }
 
     socket.ConnectAsync(host_name, service_name).get();
     if (connection_cancellation_listener_ != nullptr) {

@@ -19,6 +19,7 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 
 // Nearby connections headers
@@ -125,12 +126,14 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
                 });
       }
 
-      connection_timeout_ = scheduled_executor_.Schedule(
-          [socket]() {
-            NEARBY_LOGS(WARNING) << "connect is closed due to timeout.";
-            socket.Close();
-          },
-          kWifiHotspotClientSocketConnectTimeoutMillis);
+      if (FeatureFlags::GetInstance().GetFlags().enable_connection_timeout) {
+        connection_timeout_ = scheduled_executor_.Schedule(
+            [socket]() {
+              NEARBY_LOGS(WARNING) << "connect is closed due to timeout.";
+              socket.Close();
+            },
+            kWifiHotspotClientSocketConnectTimeoutMillis);
+      }
 
       socket.ConnectAsync(host_name, service_name).get();
       if (connection_cancellation_listener_ != nullptr) {
