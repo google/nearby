@@ -467,6 +467,7 @@ let package = Package(
         "connections/core_test.cc",
         "connections/status_test.cc",
         "connections/payload_test.cc",
+        "internal/base/bluetooth_address_test.cc",
         "internal/crypto/aead_unittest.cc",
         "internal/crypto/ec_private_key_unittest.cc",
         "internal/crypto/ec_signature_creator_unittest.cc",
