@@ -45,7 +45,6 @@ cc_library(
     visibility = ["//fastpair:__subpackages__"],
     deps = [
         "//fastpair/internal/api:platform",
-        "//fastpair/internal/base:bluetooth_address",
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform/implementation/windows",
