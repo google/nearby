@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -1080,8 +1080,7 @@ void PayloadManager::ProcessDataPacket(
           .Raised()) {
     NEARBY_LOGS(ERROR) << "ProcessDataPacket: [data: error] endpoint_id="
                        << from_endpoint_id
-                       << "; payload_id=" << pending_payload->GetId()
-                       << ", payload_chunk=" << payload_chunk.DebugString();
+                       << "; payload_id=" << pending_payload->GetId();
     HandleFinishedIncomingPayload(
         to_client, from_endpoint_id, payload_header, payload_chunk.offset(),
         location::nearby::proto::connections::PayloadStatus::LOCAL_ERROR);
