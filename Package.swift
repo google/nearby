@@ -380,6 +380,7 @@ let package = Package(
       ],
       path: ".",
       exclude: [
+        "compiled_proto/connections/cpp",
         "presence",
         "embedded",
         "connections/clients/windows",
