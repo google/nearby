@@ -34,4 +34,4 @@ jobs:
       with:
         submodules: recursive
     - name: Build
-      run: CC=clang CXX=clang++ bazel build --check_visibility=false //connections:core --spawn_strategy=standalone
+      run: CC=clang CXX=clang++ bazel build --check_visibility=false //connections/cpp:core --spawn_strategy=standalone

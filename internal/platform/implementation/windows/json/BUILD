@@ -17,7 +17,7 @@ cc_library(
     name = "types",
     textual_hdrs = glob(["**/*.hpp"]),
     visibility = [
-        "//connections/windows:__subpackages__",
+        "//connections/c:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
     ],
 )

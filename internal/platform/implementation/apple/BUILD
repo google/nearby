@@ -14,8 +14,8 @@
 licenses(["notice"])
 
 package(default_visibility = [
-    "//connections/clients/ios:__subpackages__",
-    "//connections/clients/swift:__subpackages__",
+    "//connections/ios:__subpackages__",
+    "//connections/swift:__subpackages__",
     "//internal/platform/implementation/apple:__subpackages__",
     "//location/nearby:__subpackages__",
 ])

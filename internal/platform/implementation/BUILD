@@ -84,7 +84,7 @@ cc_library(
         "//presence/implementation:__subpackages__",
     ],
     deps = [
-        "//connections/implementation/proto:offline_wire_formats_cc_proto",
+        "//connections/cpp/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:uuid",
