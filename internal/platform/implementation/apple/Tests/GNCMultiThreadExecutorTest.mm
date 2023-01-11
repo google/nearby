@@ -48,9 +48,8 @@ using MultiThreadExecutor = ::nearby::api::SubmittableExecutor;
 
   // Execute two runnables that increment the counter.
   const int kIncrements = 13;
-  Runnable incrementer = [self]() { self.counter++; };
   for (int i = 0; i < kIncrements; i++) {
-    executor->Execute(std::move(incrementer));
+    executor->Execute([self]() { self.counter++; });
     [NSThread sleepForTimeInterval:0.01];
   }
 
@@ -64,9 +63,8 @@ using MultiThreadExecutor = ::nearby::api::SubmittableExecutor;
 
   // Submit two runnables that increment the counter.
   const int kIncrements = 13;
-  Runnable incrementer = [self]() { self.counter++; };
   for (int i = 0; i < kIncrements; i++) {
-    executor->DoSubmit(std::move(incrementer));
+    executor->DoSubmit([self]() { self.counter++; });
     [NSThread sleepForTimeInterval:0.01];
   }
 

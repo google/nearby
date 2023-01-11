@@ -16,6 +16,7 @@
 
 #include <atomic>
 #include <memory>
+#include <utility>
 
 #include "absl/time/clock.h"
 #include "internal/platform/implementation/cancelable.h"
@@ -64,12 +65,12 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
   if (executor_.InShutdown()) {
     return scheduled_cancelable;
   }
-  executor_.ScheduleAfter(
-      delay, [this, scheduled_cancelable, runnable(std::move(runnable))]() {
-        if (!executor_.InShutdown() && scheduled_cancelable->MarkExecuted()) {
-          runnable();
-        }
-      });
+  executor_.ScheduleAfter(delay, [this, scheduled_cancelable,
+                                  runnable(std::move(runnable))]() mutable {
+    if (!executor_.InShutdown() && scheduled_cancelable->MarkExecuted()) {
+      runnable();
+    }
+  });
   return scheduled_cancelable;
 }
 

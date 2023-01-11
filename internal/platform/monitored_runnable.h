@@ -31,9 +31,8 @@ class MonitoredRunnable {
  public:
   explicit MonitoredRunnable(Runnable&& runnable);
   MonitoredRunnable(const std::string& name, Runnable&& runnable);
-  ~MonitoredRunnable();
 
-  void operator()() const;
+  void operator()();
 
  private:
   const std::string name_;

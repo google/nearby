@@ -21,15 +21,15 @@
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
+#include "internal/platform/callable.h"
+#include "internal/platform/future.h"
 #include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/submittable_executor.h"
-#include "internal/platform/callable.h"
-#include "internal/platform/runnable.h"
-#include "internal/platform/future.h"
 #include "internal/platform/lockable.h"
 #include "internal/platform/monitored_runnable.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/thread_check_callable.h"
 #include "internal/platform/thread_check_runnable.h"
 

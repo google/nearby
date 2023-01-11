@@ -45,11 +45,9 @@ using SingleThreadExecutor = ::nearby::api::SubmittableExecutor;
 - (void)testRunnables {
   std::unique_ptr<SingleThreadExecutor> executor([self executor]);
 
-  Runnable incrementer = [self]() { self.counter++; };
-
   // Schedule two runnables that increment the counter.
-  executor->Execute(std::move(incrementer));
-  executor->Execute(std::move(incrementer));
+  executor->Execute([self]() { self.counter++; });
+  executor->Execute([self]() { self.counter++; });
 
   // Check that the counter has the expected value after a moment.
   [NSThread sleepForTimeInterval:0.01];

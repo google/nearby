@@ -17,6 +17,7 @@
 #import <Foundation/Foundation.h>
 
 #include <memory>
+#include <utility>
 
 #include "absl/time/time.h"
 #import "internal/platform/implementation/apple/atomic_boolean.h"
@@ -35,7 +36,7 @@
 
 + (instancetype)wrapperWithRunnable:(nearby::Runnable)runnable {
   GNCRunnableWrapper *wrapper = [[GNCRunnableWrapper alloc] init];
-  wrapper->_runnable = runnable;
+  wrapper->_runnable = std::move(runnable);
   wrapper->_canceled = std::make_unique<nearby::apple::AtomicBoolean>(false);
   return wrapper;
 }
@@ -102,7 +103,7 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(Runnable &&runnable
           // Execute the runnable only if the executor is not shutting down, and the runnable isn't
           // canceled.
           // Warning: This block should reference only Obj-C objects, and never C++ objects.
-          if (!impl.shuttingDown &&  !wrapper->_canceled->Get()) {
+          if (!impl.shuttingDown && !wrapper->_canceled->Get()) {
             wrapper->_runnable();
           }
         }];
@@ -111,9 +112,7 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(Runnable &&runnable
   return std::shared_ptr<api::Cancelable>(cancelable);
 }
 
-void ScheduledExecutor::Execute(Runnable &&runnable) {
-  DoSubmit(std::move(runnable));
-}
+void ScheduledExecutor::Execute(Runnable &&runnable) { DoSubmit(std::move(runnable)); }
 
 bool ScheduledExecutor::DoSubmit(Runnable &&runnable) {
   if (impl_.shuttingDown) {
@@ -121,7 +120,7 @@ bool ScheduledExecutor::DoSubmit(Runnable &&runnable) {
   }
 
   // Submit the runnable to the queue.
-  Runnable local_runnable = std::move(runnable);
+  __block Runnable local_runnable = std::move(runnable);
   [impl_.queue addOperationWithBlock:^{
     local_runnable();
   }];

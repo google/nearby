@@ -46,8 +46,6 @@ using ::nearby::api::ScheduledExecutor;
 
   XCTestExpectation *expectation = [self expectationWithDescription:@"finished"];
 
-  Runnable incrementer = [self]() { self.counter++; };
-
   void (^checkCounter)(int, NSTimeInterval, dispatch_block_t) =
       ^(int expectedCount, NSTimeInterval delay, dispatch_block_t finalBlock) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)),
@@ -58,13 +56,19 @@ using ::nearby::api::ScheduledExecutor;
       };
 
   // Schedule two runnables that increment the counter, at 0.4 and 0.8 seconds.
-  executor->Schedule(std::move(incrementer), absl::Seconds(0.4));
-  executor->Schedule(std::move(incrementer), absl::Seconds(0.8));
+  executor->Schedule([self]() { self.counter++; }, absl::Seconds(0.4));
+  executor->Schedule([self]() { self.counter++; }, absl::Seconds(0.8));
 
   // Check that the counter contains the expected values at 0.2, 0.6, and 1.0 seconds.
-  checkCounter(0, 0.2, ^{});
-  checkCounter(1, 0.6, ^{});
-  checkCounter(2, 1.0, ^{ [expectation fulfill]; });
+  checkCounter(0, 0.2,
+               ^{
+               });
+  checkCounter(1, 0.6,
+               ^{
+               });
+  checkCounter(2, 1.0, ^{
+    [expectation fulfill];
+  });
 
   [self waitForExpectationsWithTimeout:1.2 handler:nil];
 }

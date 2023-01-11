@@ -15,7 +15,7 @@
 #ifndef PLATFORM_BASE_RUNNABLE_H_
 #define PLATFORM_BASE_RUNNABLE_H_
 
-#include <functional>
+#include "absl/functional/any_invocable.h"
 
 namespace nearby {
 
@@ -24,7 +24,7 @@ namespace nearby {
 //
 // https://docs.oracle.com/javase/8/docs/api/java/lang/Runnable.html
 
-using Runnable = std::function<void()>;
+using Runnable = absl::AnyInvocable<void()>;
 
 }  // namespace nearby
 

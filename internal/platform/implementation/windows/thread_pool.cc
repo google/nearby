@@ -147,7 +147,7 @@ void ThreadPool::RunNextTask() {
       NEARBY_LOGS(VERBOSE) << __func__ << ": Run task(" << &tasks_.front()
                            << ").";
 
-      task = tasks_.front();
+      task = std::move(tasks_.front());
       tasks_.pop();
     }
   }

@@ -17,9 +17,8 @@
 
 #include <utility>
 
-#include "absl/base/thread_annotations.h"
-#include "internal/platform/runnable.h"
 #include "internal/platform/lockable.h"
+#include "internal/platform/runnable.h"
 
 namespace nearby {
 
@@ -28,9 +27,9 @@ namespace nearby {
 class ThreadCheckRunnable {
  public:
   ThreadCheckRunnable(const Lockable *lockable, Runnable &&runnable)
-      : lockable_{lockable}, runnable_{runnable} {}
+      : lockable_{lockable}, runnable_{std::move(runnable)} {}
 
-  void operator()() const {
+  void operator()() {
     ThreadLockHolder thread_lock(lockable_);
     runnable_();
   }

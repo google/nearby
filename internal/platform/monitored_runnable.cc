@@ -14,6 +14,8 @@
 
 #include "internal/platform/monitored_runnable.h"
 
+#include <utility>
+
 #include "internal/platform/logging.h"
 #include "internal/platform/pending_job_registry.h"
 
@@ -25,17 +27,15 @@ absl::Duration kMinReportedTaskDuration = absl::Seconds(10);
 }  // namespace
 
 MonitoredRunnable::MonitoredRunnable(Runnable&& runnable)
-    : runnable_{runnable} {}
+    : runnable_{std::move(runnable)} {}
 
 MonitoredRunnable::MonitoredRunnable(const std::string& name,
                                      Runnable&& runnable)
-    : name_{name}, runnable_{runnable} {
+    : name_{name}, runnable_{std::move(runnable)} {
   PendingJobRegistry::GetInstance().AddPendingJob(name_, post_time_);
 }
 
-MonitoredRunnable::~MonitoredRunnable() = default;
-
-void MonitoredRunnable::operator()() const {
+void MonitoredRunnable::operator()() {
   auto start_time = SystemClock::ElapsedRealtime();
   auto start_delay = start_time - post_time_;
   if (start_delay >= kMinReportedStartDelay) {
