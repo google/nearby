@@ -34,7 +34,7 @@ class AtomicBoolean : public api::AtomicBoolean {
   bool Set(bool value) override { return atomic_boolean_.exchange(value); };
 
  private:
-  std::atomic_bool atomic_boolean_;
+  std::atomic_bool atomic_boolean_ = false;
 };
 
 }  // namespace windows
