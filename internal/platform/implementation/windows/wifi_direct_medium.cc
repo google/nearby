@@ -93,7 +93,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
     ipv4_address = std::string(ip_address);
   }
 
-  if (WifiUtils::ValidateIPV4(ipv4_address)) {
+  if (!WifiUtils::ValidateIPV4(ipv4_address)) {
     NEARBY_LOGS(ERROR) << "Invalid IP address parameter.";
     return nullptr;
   }

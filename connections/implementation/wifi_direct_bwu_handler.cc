@@ -75,7 +75,7 @@ ByteArray WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
 
   NEARBY_LOGS(INFO) << "Start WifiDirect GO with SSID: " << ssid
                     << ",  Password: " << password << ",  Port: " << port
-                    << ",  Gateway: " << gateway << "Frequency: " << freq;
+                    << ",  Gateway: " << gateway << ", Frequency: " << freq;
 
   bool disabling_encryption =
       (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint);
