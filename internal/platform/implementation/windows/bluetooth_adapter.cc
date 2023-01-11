@@ -14,6 +14,14 @@
 
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 
+// clang-format off
+#include <windows.h>   // These two headers must be defined
+#include <winioctl.h>  // first and in this order, otherwise
+                       // the MSVC compiler emits a warning
+                       // 'CTL_CODE undefined. Include winioctl.h or wdm.h'
+                       // See https://screenshot.googleplex.com/BYB9QnoHT6eP6oc
+// clang-format on
+
 #include <bthdef.h>
 #include <bthioctl.h>
 #include <cfgmgr32.h>
@@ -23,8 +31,6 @@
 #include <setupapi.h>
 #include <stdio.h>
 #include <usbiodef.h>
-#include <windows.h>   // These two headers must be defined
-#include <winioctl.h>  // first and in this order
 
 #include <string>
 

@@ -15,8 +15,10 @@
 #ifndef PLATFORM_IMPL_WINDOWS_BLUETOOTH_ADAPTER_H_
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_ADAPTER_H_
 
-#include <guiddef.h>
+// clang-format off
 #include <windows.h>
+#include <guiddef.h>
+// clang-format on
 
 #include <functional>
 #include <optional>
