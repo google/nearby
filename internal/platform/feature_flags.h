@@ -54,7 +54,7 @@ class FeatureFlags {
     bool enable_connection_timeout = false;
     // Controls to enable or disable to track the status of Bluetooth classic
     // conncetion.
-    bool enable_bluetooth_connection_status_track = false;
+    bool enable_bluetooth_connection_status_track = true;
   };
 
   static const FeatureFlags& GetInstance() {

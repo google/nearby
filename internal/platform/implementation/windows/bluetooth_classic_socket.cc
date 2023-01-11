@@ -39,6 +39,8 @@ BluetoothSocket::BluetoothSocket(StreamSocket streamSocket)
   if (FeatureFlags::GetInstance()
           .GetFlags()
           .enable_bluetooth_connection_status_track) {
+    NEARBY_LOGS(INFO)
+        << "Flag enable_bluetooth_connection_status_track is enabled.";
     connection_status_changed_token_ =
         native_bluetooth_device_.ConnectionStatusChanged(
             {this, &BluetoothSocket::Listener_ConnectionStatusChanged});
@@ -143,9 +145,15 @@ bool BluetoothSocket::Connect(HostName connectionHostName,
             windows_socket_.Information().RemoteHostName())
             .get();
 
-    connection_status_changed_token_ =
-        native_bluetooth_device_.ConnectionStatusChanged(
-            {this, &BluetoothSocket::Listener_ConnectionStatusChanged});
+    if (FeatureFlags::GetInstance()
+            .GetFlags()
+            .enable_bluetooth_connection_status_track) {
+      NEARBY_LOGS(INFO)
+          << "Flag enable_bluetooth_connection_status_track is enabled.";
+      connection_status_changed_token_ =
+          native_bluetooth_device_.ConnectionStatusChanged(
+              {this, &BluetoothSocket::Listener_ConnectionStatusChanged});
+    }
 
     bluetooth_device_ =
         std::make_unique<BluetoothDevice>(native_bluetooth_device_);
