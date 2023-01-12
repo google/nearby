@@ -77,7 +77,7 @@ struct BleAdvertisementData {
   // iOS    : 16 bit service UUID (type=0x03) + LocalName data (type=0x08)
   // Windows: Service data (type=0x16)
   // Android: 16 bit service UUID (type=0x03) + Service data (type=0x16)
-  absl::flat_hash_map<Uuid, nearby::ByteArray> service_data;
+  absl::flat_hash_map<Uuid, ::nearby::ByteArray> service_data;
 };
 
 // Opaque wrapper over a BLE peripheral. Must be able to uniquely identify a
@@ -96,7 +96,8 @@ class BlePeripheral {
 // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic
 //
 // Representation of a GATT characteristic.
-struct GattCharacteristic {
+class GattCharacteristic {
+ public:
   enum class Permission {
     kUnknown = 0,
     kRead = 1,
@@ -214,7 +215,7 @@ class GattServer {
   // Locally updates the value of a characteristic and returns whether or not
   // it was successful.
   virtual bool UpdateCharacteristic(const GattCharacteristic& characteristic,
-                                    const nearby::ByteArray& value) = 0;
+                                    const ::nearby::ByteArray& value) = 0;
 
   // Stops a GATT server.
   virtual void Stop() = 0;
