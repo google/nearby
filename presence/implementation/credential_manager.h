@@ -45,8 +45,7 @@ class CredentialManager {
   // storage.
   virtual void GenerateCredentials(
       const nearby::internal::DeviceMetadata& device_metadata,
-      absl::string_view manager_app_id,
-      const std::vector<nearby::internal::IdentityType>& identity_types,
+      const std::vector<CredentialSelector>& credential_selectors,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsCallback credentials_generated_cb) = 0;
 

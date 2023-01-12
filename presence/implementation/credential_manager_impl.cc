@@ -55,14 +55,14 @@ constexpr absl::Duration kTimeout = absl::Seconds(3);
 }  // namespace
 
 void CredentialManagerImpl::GenerateCredentials(
-    const DeviceMetadata& device_metadata, absl::string_view manager_app_id,
-    const std::vector<IdentityType>& identity_types,
+    const DeviceMetadata& device_metadata,
+    const std::vector<CredentialSelector>& credential_selectors,
     int credential_life_cycle_days, int contiguous_copy_of_credentials,
     GenerateCredentialsCallback credentials_generated_cb) {
   std::vector<PublicCredential> public_credentials;
   std::vector<PrivateCredential> private_credentials;
 
-  for (auto identity_type : identity_types) {
+  for (const auto& credential_selector : credential_selectors) {
     // TODO(b/241587906): Get linux time from the platform (like Android)
     uint64_t start_time_millis = 0;
     const uint64_t gap_millis = credential_life_cycle_days * 24 * 3600 * 1000;
@@ -70,7 +70,8 @@ void CredentialManagerImpl::GenerateCredentials(
 
     for (int index = 0; index < contiguous_copy_of_credentials; index++) {
       auto public_private_credentials = CreatePrivateCredential(
-          device_metadata, identity_type, start_time_millis, end_time_millis);
+          device_metadata, credential_selector.identity_type, start_time_millis,
+          end_time_millis);
       if (public_private_credentials.second.identity_type() !=
           IdentityType::IDENTITY_TYPE_UNSPECIFIED) {
         private_credentials.push_back(public_private_credentials.first);
@@ -82,8 +83,11 @@ void CredentialManagerImpl::GenerateCredentials(
   }
 
   // Create credential_storage object and invoke SaveCredentials.
+  // Assume that all credential selectors are for the same manager app and
+  // account name
   credential_storage_ptr_->SaveCredentials(
-      manager_app_id, device_metadata.account_name(), private_credentials,
+      credential_selectors[0].manager_app_id,
+      credential_selectors[0].account_name, private_credentials,
       public_credentials, PublicCredentialType::kLocalPublicCredential,
       SaveCredentialsResultCallback{
           .credentials_saved_cb =

@@ -61,6 +61,21 @@ CredentialSelector BuildDefaultCredentialSelector() {
   return credential_selector;
 }
 
+std::vector<CredentialSelector> BuildCredentialSelectors(
+    absl::string_view manager_app_id,
+    std::vector<IdentityType>& identity_types) {
+  std::vector<CredentialSelector> selectors;
+  for (auto& identity_type : identity_types) {
+    CredentialSelector credential_selector{
+        .manager_app_id = std::string(manager_app_id),
+        .account_name = "test_account",
+        .identity_type = identity_type,
+    };
+    selectors.push_back(credential_selector);
+  }
+  return selectors;
+}
+
 class CredentialManagerImplTest : public ::testing::Test {
  public:
   class MockCredentialStorage : public nearby::CredentialStorageImpl {
@@ -171,7 +186,7 @@ TEST(CredentialManagerImpl, GenerateCredentialsSuccessfully) {
 
   credential_manager.GenerateCredentials(
       device_metadata,
-      /* manager_app_id= */ "TEST_MANAGER_APP", identityTypes, 1, 2,
+      BuildCredentialSelectors("TEST_MANAGER_APP", identityTypes), 1, 2,
       std::move(credentials_generated_cb));
 
   EXPECT_EQ(publicCredentials.size(), 2);
@@ -213,7 +228,7 @@ TEST(CredentialManagerImpl, GenerateCredentialsSuccessfullyButStoreFailed) {
 
   credential_manager.GenerateCredentials(
       device_metadata,
-      /* manager_app_id= */ "TEST_MANAGER_APP", identityTypes, 1, 2,
+      BuildCredentialSelectors("TEST_MANAGER_APP", identityTypes), 1, 2,
       std::move(credentials_generated_cb));
   EXPECT_TRUE(publicCredentials.empty());
 }
@@ -323,7 +338,8 @@ TEST(CredentialManagerImpl, GetCredentialsSuccessfully) {
   CredentialManagerImpl credential_manager;
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
   credential_manager.GenerateCredentials(
-      device_metadata, "TEST_MANAGER_APP", identity_types, 1, 1,
+      device_metadata,
+      BuildCredentialSelectors("TEST_MANAGER_APP", identity_types), 1, 1,
       std::move(generate_credentials_callback));
   EXPECT_EQ(publicCredentials.size(), 1);
 
@@ -373,7 +389,8 @@ TEST(CredentialManagerImpl, PublicCredentialsFailEncryption) {
 
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
   credential_manager_ptr->GenerateCredentials(
-      device_metadata, "TEST_MANAGER_APP", identity_types, 1, 1,
+      device_metadata,
+      BuildCredentialSelectors("TEST_MANAGER_APP", identity_types), 1, 1,
       std::move(generate_credentials_callback));
   EXPECT_TRUE(publicCredentials.empty());
 }
