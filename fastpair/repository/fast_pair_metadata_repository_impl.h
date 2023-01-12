@@ -25,6 +25,7 @@
 #include "fastpair/repository/fast_pair_metadata_fetcher.h"
 #include "fastpair/repository/fast_pair_metadata_repository.h"
 #include "internal/network/http_client.h"
+#include "internal/network/http_client_factory.h"
 
 namespace nearby {
 namespace fastpair {
@@ -62,6 +63,24 @@ class FastPairMetadataRepositoryImpl : public FastPairMetadataRepository {
   std::unique_ptr<nearby::network::HttpClient> http_client_;
   nearby::network::Url request_url_;
   ErrorCallback error_callback_;
+};
+
+class FastPairMetadataRepositoryFactoryImpl
+    : public FastPairMetadataRepositoryFactory {
+ public:
+  explicit FastPairMetadataRepositoryFactoryImpl(
+      network::HttpClientFactory* http_client_factory);
+  ~FastPairMetadataRepositoryFactoryImpl() override;
+
+  FastPairMetadataRepositoryFactoryImpl(
+      FastPairMetadataRepositoryFactoryImpl&) = delete;
+  FastPairMetadataRepositoryFactoryImpl& operator=(
+      FastPairMetadataRepositoryFactoryImpl&) = delete;
+
+  std::unique_ptr<FastPairMetadataRepository> CreateInstance() override;
+
+ private:
+  network::HttpClientFactory* http_client_factory_;
 };
 
 }  // namespace fastpair

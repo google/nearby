@@ -23,11 +23,15 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/common/fast_pair_http_result.h"
+#include "fastpair/internal/api/device_info.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 #include "fastpair/repository/fast_pair_metadata_fetcher.h"
 #include "fastpair/repository/fast_pair_metadata_repository.h"
+#include "fastpair/repository/fast_pair_metadata_fetcher_impl.h"
+#include "internal/network/http_client_factory.h"
 #include "internal/network/url.h"
 #include "internal/platform/logging.h"
+#include "internal/network/http_client.h"
 
 namespace nearby {
 namespace fastpair {
@@ -114,6 +118,21 @@ void FastPairMetadataRepositoryImpl::OnFetcherFailed(FastPairHttpError error) {
   NEARBY_LOGS(ERROR)
       << "Fast pair server accessing RPC call failed with error. " << error;
   error_callback_(error);
+}
+
+FastPairMetadataRepositoryFactoryImpl::FastPairMetadataRepositoryFactoryImpl(
+    network::HttpClientFactory* http_client_factory)
+    : http_client_factory_(http_client_factory) {}
+
+FastPairMetadataRepositoryFactoryImpl::
+    ~FastPairMetadataRepositoryFactoryImpl() = default;
+
+std::unique_ptr<FastPairMetadataRepository>
+FastPairMetadataRepositoryFactoryImpl::CreateInstance() {
+  return std::make_unique<FastPairMetadataRepositoryImpl>(
+      std::make_unique<FastPairMetadataFetcherImpl>(
+          api::DeviceInfo::OsType::kWindows),
+      http_client_factory_->CreateInstance());
 }
 
 }  // namespace fastpair

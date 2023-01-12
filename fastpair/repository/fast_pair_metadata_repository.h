@@ -16,6 +16,7 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_REPOSITORY_FAST_PAIR_METADATA_REPOSITORY_H_
 
 #include <functional>
+#include <memory>
 
 #include "absl/strings/string_view.h"
 #include "fastpair/common/fast_pair_http_result.h"
@@ -41,6 +42,16 @@ class FastPairMetadataRepository {
   virtual void GetObservedDevice(const proto::GetObservedDeviceRequest& request,
                                  ObservedDeviceCallback callback,
                                  ErrorCallback error_callback) = 0;
+};
+
+// Interface for creating FastPairMetadataRepository instances to increase the
+// flexibility
+class FastPairMetadataRepositoryFactory {
+ public:
+  FastPairMetadataRepositoryFactory() = default;
+  virtual ~FastPairMetadataRepositoryFactory() = default;
+
+  virtual std::unique_ptr<FastPairMetadataRepository> CreateInstance() = 0;
 };
 
 }  // namespace fastpair
