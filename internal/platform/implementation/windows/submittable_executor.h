@@ -44,7 +44,7 @@ class SubmittableExecutor : public api::SubmittableExecutor {
 
  private:
   std::unique_ptr<nearby::windows::Executor> executor_;
-  std::atomic_bool shut_down_;
+  std::atomic_bool shut_down_ = false;
 };
 
 }  // namespace windows
