@@ -127,21 +127,22 @@ void ScanManager::FetchCredentials(ScanSessionId id,
         selector, PublicCredentialType::kRemotePublicCredential,
         {.credentials_fetched_cb =
              [this, id, identity_type = selector.identity_type](
-                 std::vector<::nearby::internal::PublicCredential>
+                 absl::StatusOr<
+                     std::vector<::nearby::internal::PublicCredential>>
                      credentials) {
+               if (!credentials.ok()) {
+                 NEARBY_LOGS(WARNING)
+                     << "Failed to fetch credentials: " << credentials.status();
+                 return;
+               }
                RunOnServiceControllerThread(
                    "update-credentials",
                    [this, id, identity_type,
-                    credentials = std::move(credentials)]()
+                    credentials = std::move(*credentials)]()
                        ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
                          UpdateCredentials(id, identity_type,
                                            std::move(credentials));
                        });
-             },
-         .get_credentials_failed_cb =
-             [](absl::Status status) {
-               NEARBY_LOGS(WARNING)
-                   << "Failed to fetch credentials: " << status;
              }});
   }
 }

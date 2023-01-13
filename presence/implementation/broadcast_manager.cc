@@ -68,21 +68,23 @@ void BroadcastManager::FetchCredentials(
       GetPrivateCredentialsResultCallback{
           .credentials_fetched_cb =
               [this, id, broadcast_request = std::move(broadcast_request)](
-                  std::vector<::nearby::internal::PrivateCredential>
+                  absl::StatusOr<
+                      std::vector<::nearby::internal::PrivateCredential>>
                       credentials) {
+                if (!credentials.ok()) {
+                  NEARBY_LOGS(WARNING)
+                      << "Failed to fetch credentials, status: "
+                      << credentials.status();
+                  NotifyStartCallbackStatus(id, credentials.status());
+                  return;
+                }
                 RunOnServiceControllerThread(
                     "advertise-non-public",
                     [this, id, broadcast_request = std::move(broadcast_request),
-                     credentials = std::move(credentials)]()
+                     credentials = std::move(*credentials)]()
                         ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_) {
                           Advertise(id, broadcast_request, credentials);
                         });
-              },
-          .get_credentials_failed_cb =
-              [this, id](absl::Status status) {
-                NEARBY_LOGS(WARNING)
-                    << "Failed to fetch credentials, status: " << status;
-                NotifyStartCallbackStatus(id, status);
               }});
 }
 

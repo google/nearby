@@ -58,7 +58,7 @@ void CredentialManagerImpl::GenerateCredentials(
     const DeviceMetadata& device_metadata,
     const std::vector<CredentialSelector>& credential_selectors,
     int credential_life_cycle_days, int contiguous_copy_of_credentials,
-    GenerateCredentialsCallback credentials_generated_cb) {
+    GenerateCredentialsResultCallback credentials_generated_cb) {
   std::vector<PublicCredential> public_credentials;
   std::vector<PrivateCredential> private_credentials;
 
@@ -99,7 +99,7 @@ void CredentialManagerImpl::GenerateCredentials(
                 } else {
                   NEARBY_LOGS(WARNING)
                       << "Save credentials failed with: " << status;
-                  std::move(callback.credentials_generated_cb)({});
+                  std::move(callback.credentials_generated_cb)(status);
                 }
               }});
 }
@@ -289,16 +289,15 @@ CredentialManagerImpl::GetPrivateCredentialsSync(
   Future<std::vector<PrivateCredential>> result;
   GetPrivateCredentials(
       credential_selector,
-      {
-          .credentials_fetched_cb =
-              [result](std::vector<PrivateCredential> credentials) mutable {
-                result.Set(credentials);
-              },
-          .get_credentials_failed_cb =
-              [result](absl::Status status) mutable {
-                result.SetException({Exception::kFailed});
-              },
-      });
+      {.credentials_fetched_cb =
+           [result](absl::StatusOr<std::vector<PrivateCredential>>
+                        credentials) mutable {
+             if (!credentials.ok()) {
+               result.SetException({Exception::kFailed});
+             } else {
+               result.Set(std::move(*credentials));
+             }
+           }});
   return result.Get(timeout);
 }
 
@@ -309,16 +308,15 @@ CredentialManagerImpl::GetPublicCredentialsSync(
   Future<std::vector<PublicCredential>> result;
   GetPublicCredentials(
       credential_selector, public_credential_type,
-      {
-          .credentials_fetched_cb =
-              [result](std::vector<PublicCredential> credentials) mutable {
-                result.Set(credentials);
-              },
-          .get_credentials_failed_cb =
-              [result](absl::Status status) mutable {
-                result.SetException({Exception::kFailed});
-              },
-      });
+      {.credentials_fetched_cb =
+           [result](absl::StatusOr<std::vector<PublicCredential>>
+                        credentials) mutable {
+             if (!credentials.ok()) {
+               result.SetException({Exception::kFailed});
+             } else {
+               result.Set(std::move(*credentials));
+             }
+           }});
   return result.Get(timeout);
 }
 

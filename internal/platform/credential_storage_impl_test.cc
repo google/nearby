@@ -36,7 +36,6 @@ using ::nearby::internal::IdentityType;
 using ::nearby::internal::PrivateCredential;
 using ::nearby::internal::PublicCredential;
 using ::nearby::presence::CredentialSelector;
-using ::nearby::presence::GenerateCredentialsCallback;
 using ::nearby::presence::GetPrivateCredentialsResultCallback;
 using ::nearby::presence::GetPublicCredentialsResultCallback;
 using ::nearby::presence::PublicCredentialType;
@@ -91,21 +90,15 @@ absl::StatusOr<std::vector<PrivateCredential>> GetPrivateCredentials(
   CredentialSelector selector = {.manager_app_id = std::string(manager_app_id),
                                  .account_name = std::string(account_name),
                                  .identity_type = identity_type};
-  std::vector<PrivateCredential> private_credentials;
-  absl::Status get_status = absl::OkStatus();
+  absl::StatusOr<std::vector<PrivateCredential>> private_credentials;
   credential_storage.GetPrivateCredentials(
-      selector, GetPrivateCredentialsResultCallback{
-                    .credentials_fetched_cb =
-                        [&](std::vector<PrivateCredential> credentials) {
-                          private_credentials = std::move(credentials);
-                        },
-                    .get_credentials_failed_cb =
-                        [&](absl::Status status) { get_status = status; }});
-  if (get_status.ok()) {
-    return private_credentials;
-  } else {
-    return get_status;
-  }
+      selector,
+      GetPrivateCredentialsResultCallback{
+          .credentials_fetched_cb =
+              [&](absl::StatusOr<std::vector<PrivateCredential>> credentials) {
+                private_credentials = std::move(credentials);
+              }});
+  return private_credentials;
 }
 
 absl::StatusOr<std::vector<PublicCredential>> GetPublicCredentials(
@@ -116,22 +109,15 @@ absl::StatusOr<std::vector<PublicCredential>> GetPublicCredentials(
   CredentialSelector selector = {.manager_app_id = std::string(manager_app_id),
                                  .account_name = std::string(account_name),
                                  .identity_type = identity_type};
-  std::vector<PublicCredential> public_credentials;
-  absl::Status get_status = absl::OkStatus();
+  absl::StatusOr<std::vector<PublicCredential>> public_credentials;
   credential_storage.GetPublicCredentials(
       selector, credential_type,
       GetPublicCredentialsResultCallback{
           .credentials_fetched_cb =
-              [&](std::vector<PublicCredential> credentials) {
+              [&](absl::StatusOr<std::vector<PublicCredential>> credentials) {
                 public_credentials = std::move(credentials);
-              },
-          .get_credentials_failed_cb =
-              [&](absl::Status status) { get_status = status; }});
-  if (get_status.ok()) {
-    return public_credentials;
-  } else {
-    return get_status;
-  }
+              }});
+  return public_credentials;
 }
 
 absl::Status SaveCredentials(CredentialStorageImpl& credential_storage,

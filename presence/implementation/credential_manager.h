@@ -47,7 +47,7 @@ class CredentialManager {
       const nearby::internal::DeviceMetadata& device_metadata,
       const std::vector<CredentialSelector>& credential_selectors,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
-      GenerateCredentialsCallback credentials_generated_cb) = 0;
+      GenerateCredentialsResultCallback credentials_generated_cb) = 0;
 
   // Update remote public credentials.
   virtual void UpdateRemotePublicCredentials(

@@ -22,6 +22,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "internal/proto/credential.pb.h"
@@ -53,8 +54,9 @@ struct SaveCredentialsResultCallback {
   absl::AnyInvocable<void(absl::Status)> credentials_saved_cb;
 };
 
-struct GenerateCredentialsCallback {
-  absl::AnyInvocable<void(std::vector<nearby::internal::PublicCredential>)>
+struct GenerateCredentialsResultCallback {
+  absl::AnyInvocable<void(
+      absl::StatusOr<std::vector<nearby::internal::PublicCredential>>)>
       credentials_generated_cb;
 };
 
@@ -63,15 +65,15 @@ struct UpdateRemotePublicCredentialsCallback {
 };
 
 struct GetPrivateCredentialsResultCallback {
-  absl::AnyInvocable<void(std::vector<::nearby::internal::PrivateCredential>)>
+  absl::AnyInvocable<void(
+      absl::StatusOr<std::vector<nearby::internal::PrivateCredential>>)>
       credentials_fetched_cb;
-  absl::AnyInvocable<void(absl::Status)> get_credentials_failed_cb;
 };
 
 struct GetPublicCredentialsResultCallback {
-  absl::AnyInvocable<void(std::vector<::nearby::internal::PublicCredential>)>
+  absl::AnyInvocable<void(
+      absl::StatusOr<std::vector<nearby::internal::PublicCredential>>)>
       credentials_fetched_cb;
-  absl::AnyInvocable<void(absl::Status)> get_credentials_failed_cb;
 };
 
 inline std::ostream& operator<<(std::ostream& os,

@@ -113,7 +113,7 @@ void CredentialStorageImpl::GetPrivateCredentials(
   if (private_credentials_map_.find(key) == private_credentials_map_.end()) {
     NEARBY_LOGS(WARNING) << "There are no Private Credentials stored for key:"
                          << std::get<0>(key) << ", " << std::get<1>(key);
-    std::move(callback.get_credentials_failed_cb)(absl::NotFoundError(
+    std::move(callback.credentials_fetched_cb)(absl::NotFoundError(
         absl::StrFormat("No private credentials for %v", credential_selector)));
     return;
   }
@@ -121,7 +121,7 @@ void CredentialStorageImpl::GetPrivateCredentials(
       private_credentials_map_[key];
   FilterIdentityType(private_credentials, credential_selector.identity_type);
   if (private_credentials.empty()) {
-    std::move(callback.get_credentials_failed_cb)(absl::NotFoundError(
+    std::move(callback.credentials_fetched_cb)(absl::NotFoundError(
         absl::StrFormat("No private credentials for %v", credential_selector)));
     return;
   }
@@ -141,7 +141,7 @@ void CredentialStorageImpl::GetPublicCredentials(
     NEARBY_LOGS(WARNING) << "There are no Public Credentials stored for key:"
                          << std::get<0>(key) << ", " << std::get<1>(key) << ", "
                          << std::get<2>(key);
-    std::move(callback.get_credentials_failed_cb)(absl::NotFoundError(
+    std::move(callback.credentials_fetched_cb)(absl::NotFoundError(
         absl::StrFormat("No public credentials for %v", credential_selector)));
     return;
   }
@@ -149,7 +149,7 @@ void CredentialStorageImpl::GetPublicCredentials(
       public_credentials_map_[key];
   FilterIdentityType(public_credentials, credential_selector.identity_type);
   if (public_credentials.empty()) {
-    std::move(callback.get_credentials_failed_cb)(absl::NotFoundError(
+    std::move(callback.credentials_fetched_cb)(absl::NotFoundError(
         absl::StrFormat("No public credentials for %v", credential_selector)));
     return;
   }

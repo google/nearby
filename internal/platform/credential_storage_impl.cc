@@ -23,7 +23,6 @@ namespace nearby {
 using ::nearby::internal::PrivateCredential;
 using ::nearby::internal::PublicCredential;
 using ::nearby::presence::CredentialSelector;
-using ::nearby::presence::GenerateCredentialsCallback;
 using ::nearby::presence::GetPrivateCredentialsResultCallback;
 using ::nearby::presence::GetPublicCredentialsResultCallback;
 using ::nearby::presence::PublicCredentialType;
