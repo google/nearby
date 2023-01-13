@@ -53,6 +53,7 @@
 #include "internal/platform/implementation/g3/mutex.h"
 #include "internal/platform/implementation/g3/scheduled_executor.h"
 #include "internal/platform/implementation/g3/single_thread_executor.h"
+#include "internal/platform/implementation/g3/timer.h"
 #include "internal/platform/implementation/g3/wifi.h"
 #include "internal/platform/implementation/g3/wifi_direct.h"
 #include "internal/platform/implementation/g3/wifi_hotspot.h"
@@ -222,6 +223,10 @@ std::unique_ptr<ConditionVariable>
 ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
   return std::unique_ptr<ConditionVariable>(
       new g3::ConditionVariable(static_cast<g3::Mutex*>(mutex)));
+}
+
+std::unique_ptr<Timer> ImplementationPlatform::CreateTimer() {
+  return std::make_unique<g3::Timer>();
 }
 
 }  // namespace api

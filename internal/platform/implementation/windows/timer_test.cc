@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "internal/platform/implementation/timer.h"
+
 #include <chrono>      // NOLINT
 #include <functional>  // NOLINT
 #include <memory>
 #include <thread>  // NOLINT
 
 #include "gtest/gtest.h"
-#include "fastpair/internal/api/fast_pair_platform.h"
+#include "internal/platform/implementation/platform.h"
 
 namespace nearby {
 namespace windows {
@@ -28,8 +30,8 @@ TEST(Timer, TestCreateTimer) {
   int count = 0;
   std::function<void()> callback = [&count]() { ++count; };
 
-  std::unique_ptr<api::Timer> timer =
-      api::ImplementationFastPairPlatform::CreateTimer();
+  std::unique_ptr<nearby::api::Timer> timer =
+      nearby::api::ImplementationPlatform::CreateTimer();
 
   ASSERT_TRUE(timer != nullptr);
   EXPECT_FALSE(timer->Create(-100, 0, callback));
@@ -41,8 +43,8 @@ TEST(Timer, DISABLED_TestRepeatTimer) {
   int count = 0;
   std::function<void()> callback = [&count]() { count++; };
 
-  std::unique_ptr<api::Timer> timer =
-      api::ImplementationFastPairPlatform::CreateTimer();
+  std::unique_ptr<nearby::api::Timer> timer =
+      nearby::api::ImplementationPlatform::CreateTimer();
 
   ASSERT_TRUE(timer != nullptr);
   EXPECT_TRUE(timer->Create(300, 300, callback));
@@ -54,7 +56,7 @@ TEST(Timer, DISABLED_TestRepeatTimer) {
 TEST(Timer, DISABLED_TestFireNow) {
   int count = 0;
   std::function<void()> callback = [&count]() { ++count; };
-  auto timer = api::ImplementationFastPairPlatform::CreateTimer();
+  auto timer = nearby::api::ImplementationPlatform::CreateTimer();
   EXPECT_TRUE(timer != nullptr);
   EXPECT_TRUE(timer->Create(3000, 3000, callback));
   EXPECT_TRUE(timer->FireNow());

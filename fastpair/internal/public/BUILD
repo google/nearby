@@ -5,7 +5,6 @@ cc_library(
     hdrs = [
         "device_info.h",
         "task_runner.h",
-        "timer.h",
     ],
     visibility = ["//fastpair:__subpackages__"],
     deps = [
@@ -21,11 +20,9 @@ cc_library(
     name = "fastpair_context",
     srcs = [
         "task_runner_impl.cc",
-        "timer_impl.cc",
     ],
     hdrs = [
         "task_runner_impl.h",
-        "timer_impl.h",
     ],
     visibility = ["//fastpair:__subpackages__"],
     deps = [
@@ -65,7 +62,6 @@ cc_test(
     timeout = "short",
     srcs = [
         "task_runner_impl_test.cc",
-        "timer_impl_test.cc",
     ],
     shard_count = 8,
     deps = [

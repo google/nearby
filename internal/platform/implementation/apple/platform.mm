@@ -27,6 +27,7 @@
 #include "internal/platform/implementation/apple/mutex.h"
 #import "internal/platform/implementation/apple/scheduled_executor.h"
 #import "internal/platform/implementation/apple/single_thread_executor.h"
+#include "internal/platform/implementation/apple/timer.h"
 #import "internal/platform/implementation/apple/utils.h"
 #include "internal/platform/implementation/apple/wifi_lan.h"
 #include "internal/platform/implementation/mutex.h"
@@ -174,6 +175,11 @@ std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() { ret
 absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(
     const WebRequest& request) {
   return absl::UnimplementedError("");
+}
+
+// TODO(b/261511529): Add implementation.
+std::unique_ptr<Timer> ImplementationPlatform::CreateTimer() {
+  return std::make_unique<apple::Timer>();
 }
 
 }  // namespace api

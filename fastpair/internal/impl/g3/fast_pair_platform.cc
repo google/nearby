@@ -17,7 +17,6 @@
 #include <memory>
 
 #include "fastpair/internal/impl/g3/device_info.h"
-#include "fastpair/internal/impl/g3/timer.h"
 
 namespace nearby {
 namespace api {
@@ -25,10 +24,6 @@ namespace api {
 std::unique_ptr<api::DeviceInfo>
 ImplementationFastPairPlatform::CreateDeviceInfo() {
   return std::make_unique<g3::DeviceInfo>();
-}
-
-std::unique_ptr<api::Timer> ImplementationFastPairPlatform::CreateTimer() {
-  return std::make_unique<g3::Timer>();
 }
 
 }  // namespace api

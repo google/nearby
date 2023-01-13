@@ -29,13 +29,11 @@ cc_library(
         "ble_gatt_client.cc",
         "device_info.cc",
         "fast_pair_platform.cc",
-        "timer.cc",
         "utils.cc",
     ],
     hdrs = [
         "ble_gatt_client.h",
         "device_info.h",
-        "timer.h",
         "utils.h",
     ],
     copts = [
@@ -63,7 +61,6 @@ cc_test(
     timeout = "short",
     srcs = [
         "device_info_test.cc",
-        "timer_test.cc",
     ],
     copts = [
         "-Ithird_party/nearby/internal/platform/implementation/windows/generated",
@@ -75,6 +72,7 @@ cc_test(
         "//fastpair/internal/api:platform",
         "//internal/platform:base",
         "//internal/platform:logging",
+        "//internal/platform/implementation:types",
         "//internal/platform/implementation/windows",
         "//internal/platform/implementation/windows/generated:types",
         "@com_github_protobuf_matchers//protobuf-matchers",

@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,18 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_PUBLIC_TIMER_IMPL_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_PUBLIC_TIMER_IMPL_H_
+#ifndef PLATFORM_PUBLIC_TIMER_IMPL_H_
+#define PLATFORM_PUBLIC_TIMER_IMPL_H_
 
 #include <functional>
 #include <memory>
 
-#include "fastpair/internal/api/fast_pair_platform.h"
-#include "fastpair/internal/public/timer.h"
+#include "internal/platform/implementation/platform.h"
+#include "internal/platform/timer.h"
 
 namespace nearby {
-namespace fastpair {
-
 class TimerImpl : public Timer {
  public:
   ~TimerImpl() override { Stop(); }
@@ -40,7 +38,6 @@ class TimerImpl : public Timer {
   std::unique_ptr<api::Timer> internal_timer_ = nullptr;
 };
 
-}  // namespace fastpair
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_PUBLIC_TIMER_IMPL_H_
+#endif  // PLATFORM_PUBLIC_TIMER_IMPL_H_

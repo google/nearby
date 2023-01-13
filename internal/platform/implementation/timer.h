@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef LOCATION_NEARBY_CPP_FASTPAIR_INTERNAL_API_TIMER_H_
-#define LOCATION_NEARBY_CPP_FASTPAIR_INTERNAL_API_TIMER_H_
+#ifndef PLATFORM_API_TIMER_H_
+#define PLATFORM_API_TIMER_H_
 
 #include <functional>
 
@@ -26,17 +26,14 @@ class Timer {
 
   // Creates a timer based on interval.
   //
-  // @param delay
-  //        The amount of time in milliseconds relative to the current
+  // @param delay The amount of time in milliseconds relative to the current
   //        time that must elapse before the timer is signaled for the first
   //        time.
-  // @param interval
-  //        The period of the timer, in milliseconds. If this parameter
+  // @param interval The period of the timer, in milliseconds. If this parameter
   //        is zero, the timer is signaled once.
-  // @param callback
-  //        It will be called when timer signaled.
-  // @return
-  //        return true if success, otherwise false
+  // @param callback it will be called when timer signaled.
+  //
+  // @return   return true if success, otherwise false
   virtual bool Create(int delay, int interval,
                       std::function<void()> callback) = 0;
 
@@ -48,4 +45,4 @@ class Timer {
 }  // namespace api
 }  // namespace nearby
 
-#endif  // LOCATION_NEARBY_CPP_FASTPAIR_INTERNAL_API_TIMER_H_
+#endif  // PLATFORM_API_TIMER_H_

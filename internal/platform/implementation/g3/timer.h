@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_G3_TIMER_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_G3_TIMER_H_
+#ifndef PLATFORM_IMPL_G3_TIMER_H_
+#define PLATFORM_IMPL_G3_TIMER_H_
 
 #include <functional>
 #include <utility>
 
-#include "fastpair/internal/api/timer.h"
+#include "internal/platform/implementation/timer.h"
 
 namespace nearby {
 namespace g3 {
@@ -68,4 +68,4 @@ class Timer : public api::Timer {
 }  // namespace g3
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_G3_TIMER_H_
+#endif  // PLATFORM_IMPL_G3_TIMER_H_

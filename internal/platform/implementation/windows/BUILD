@@ -17,6 +17,7 @@ cc_library(
     name = "types",
     srcs = [
         "log_message.cc",
+        "timer.cc",
     ],
     hdrs = [
         "atomic_boolean.h",
@@ -33,13 +34,16 @@ cc_library(
         "scheduled_executor.h",
         "settable_future.h",
         "submittable_executor.h",
+        "timer.h",
         "utils.h",
     ],
     deps = [
         "//base",
         "//base:stringprintf",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform/implementation:types",
+        "//internal/platform/implementation/windows/generated:types",
     ],
 )
 
@@ -221,6 +225,7 @@ cc_test(
         "scheduled_executor_test.cc",
         "submittable_executor_test.cc",
         "thread_pool_test.cc",
+        "timer_test.cc",
         "utils_test.cc",
     ],
     copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated -DCORE_ADAPTER_DLL"],

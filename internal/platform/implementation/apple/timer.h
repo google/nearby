@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,22 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/internal/api/fast_pair_platform.h"
+#ifndef PLATFORM_IMPL_APPLE_TIMER_H_
+#define PLATFORM_IMPL_APPLE_TIMER_H_
+#ifdef __cplusplus
 
 #include <functional>
-#include <memory>
-#include <string>
+#include <utility>
 
-#include "absl/strings/string_view.h"
-#include "fastpair/internal/impl/windows/device_info.h"
+#include "internal/platform/implementation/timer.h"
 
 namespace nearby {
-namespace api {
+namespace apple {
 
-std::unique_ptr<api::DeviceInfo>
-ImplementationFastPairPlatform::CreateDeviceInfo() {
-  return std::make_unique<windows::DeviceInfo>();
-}
+class Timer : public api::Timer {
+ public:
+  Timer() = default;
+  ~Timer() override = default;
 
-}  // namespace api
+  bool Create(int delay, int interval, std::function<void()> callback) override;
+
+  bool Stop() override;
+
+  bool FireNow() override;
+};
+
+}  // namespace apple
 }  // namespace nearby
+
+#endif
+#endif  // PLATFORM_IMPL_APPLE_TIMER_H_

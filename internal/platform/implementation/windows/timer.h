@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_WINDOWS_TIMER_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_WINDOWS_TIMER_H_
+#ifndef PLATFORM_IMPL_WINDOWS_TIMER_H_
+#define PLATFORM_IMPL_WINDOWS_TIMER_H_
 
 #include <windows.h>
 
 #include <functional>
 
-#include "fastpair/internal/api/timer.h"
+#include "internal/platform/implementation/timer.h"
 
 namespace nearby {
 namespace windows {
@@ -46,4 +46,4 @@ class Timer : public api::Timer {
 }  // namespace windows
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_WINDOWS_TIMER_H_
+#endif  // PLATFORM_IMPL_WINDOWS_TIMER_H_

@@ -305,6 +305,7 @@ cc_library(
         "monitored_runnable.cc",
         "pending_job_registry.cc",
         "pipe.cc",
+        "timer_impl.cc",
     ],
     hdrs = [
         "atomic_boolean.h",
@@ -334,6 +335,8 @@ cc_library(
         "system_clock.h",
         "thread_check_callable.h",
         "thread_check_runnable.h",
+        "timer.h",
+        "timer_impl.h",
     ],
     defines = ["NO_WEBRTC"],
     visibility = [
@@ -341,6 +344,7 @@ cc_library(
         "//fastpair:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
         "//location/nearby/cpp/fastpair:__subpackages__",
+        "//location/nearby/testing/nearby_native:__subpackages__",
         "//presence:__subpackages__",
     ],
     deps = [
@@ -436,6 +440,7 @@ cc_test(
         "pipe_test.cc",
         "scheduled_executor_test.cc",
         "single_thread_executor_test.cc",
+        "timer_impl_test.cc",
         "uuid_test.cc",
         "wifi_direct_test.cc",
         "wifi_hotspot_test.cc",

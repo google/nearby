@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,22 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/internal/api/fast_pair_platform.h"
+#import "internal/platform/implementation/apple/timer.h"
 
 #include <functional>
-#include <memory>
-#include <string>
+#include <utility>
 
-#include "absl/strings/string_view.h"
-#include "fastpair/internal/impl/windows/device_info.h"
+#include "internal/platform/implementation/timer.h"
 
 namespace nearby {
-namespace api {
+namespace apple {
 
-std::unique_ptr<api::DeviceInfo>
-ImplementationFastPairPlatform::CreateDeviceInfo() {
-  return std::make_unique<windows::DeviceInfo>();
-}
+bool Timer::Create(int delay, int interval, std::function<void()> callback) { return true; }
 
-}  // namespace api
+bool Timer::Stop() { return true; }
+
+bool Timer::FireNow() { return true; }
+
+}  // namespace apple
 }  // namespace nearby

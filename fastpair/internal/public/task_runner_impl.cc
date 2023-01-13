@@ -21,7 +21,7 @@
 #include <utility>
 
 #include "absl/random/random.h"
-#include "fastpair/internal/public/timer_impl.h"
+#include "internal/platform/timer_impl.h"
 
 namespace nearby {
 namespace fastpair {

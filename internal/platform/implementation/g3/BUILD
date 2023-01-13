@@ -31,6 +31,7 @@ cc_library(
         "pipe.h",
         "scheduled_executor.h",
         "single_thread_executor.h",
+        "timer.h",
     ],
     defines = ["NO_WEBRTC"],
     visibility = ["//visibility:private"],

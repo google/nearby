@@ -23,8 +23,8 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/synchronization/mutex.h"
 #include "fastpair/internal/public/task_runner.h"
-#include "fastpair/internal/public/timer.h"
 #include "internal/platform/multi_thread_executor.h"
+#include "internal/platform/timer.h"
 
 namespace nearby {
 namespace fastpair {

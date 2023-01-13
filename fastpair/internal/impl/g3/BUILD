@@ -7,7 +7,6 @@ cc_library(
     ],
     hdrs = [
         "device_info.h",
-        "timer.h",
     ],
     visibility = [
         "//fastpair:__subpackages__",

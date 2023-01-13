@@ -41,6 +41,7 @@
 #include "internal/platform/implementation/settable_future.h"
 #include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/system_clock.h"
+#include "internal/platform/implementation/timer.h"
 #ifndef NO_WEBRTC
 #include "internal/platform/implementation/webrtc.h"
 #endif
@@ -128,6 +129,7 @@ class ImplementationPlatform {
   static std::unique_ptr<WifiLanMedium> CreateWifiLanMedium();
   static std::unique_ptr<WifiHotspotMedium> CreateWifiHotspotMedium();
   static std::unique_ptr<WifiDirectMedium> CreateWifiDirectMedium();
+  static std::unique_ptr<Timer> CreateTimer();
 #ifndef NO_WEBRTC
   static std::unique_ptr<WebRtcMedium> CreateWebRtcMedium();
 #endif

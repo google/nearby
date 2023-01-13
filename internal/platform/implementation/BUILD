@@ -34,6 +34,7 @@ cc_library(
         "settable_future.h",
         "submittable_executor.h",
         "system_clock.h",
+        "timer.h",
     ],
     defines = ["NO_WEBRTC"],
     visibility = [

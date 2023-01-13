@@ -56,6 +56,7 @@
 #include "internal/platform/implementation/windows/server_sync.h"
 #include "internal/platform/implementation/windows/settable_future.h"
 #include "internal/platform/implementation/windows/submittable_executor.h"
+#include "internal/platform/implementation/windows/timer.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/webrtc.h"
 #include "internal/platform/implementation/windows/wifi.h"
@@ -305,6 +306,10 @@ absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(
     const WebRequest& request) {
   windows::HttpLoader http_loader{request};
   return http_loader.GetResponse();
+}
+
+std::unique_ptr<Timer> ImplementationPlatform::CreateTimer() {
+  return std::make_unique<windows::Timer>();
 }
 
 }  // namespace api

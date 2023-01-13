@@ -21,7 +21,6 @@
 
 #include "absl/strings/string_view.h"
 #include "fastpair/internal/api/device_info.h"
-#include "fastpair/internal/api/timer.h"
 
 namespace nearby {
 namespace api {
@@ -29,9 +28,6 @@ namespace api {
 class ImplementationFastPairPlatform {
  public:
   static std::unique_ptr<DeviceInfo> CreateDeviceInfo();
-
-  // Timer API
-  static std::unique_ptr<Timer> CreateTimer();
 };
 
 }  // namespace api
