@@ -273,7 +273,8 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
   {
     absl::MutexLock medium_lock(&remote_medium->mutex_);
     auto item = remote_medium->server_sockets_.find(socket_name);
-    server_socket = item != server_sockets_.end() ? item->second : nullptr;
+    server_socket =
+        item != remote_medium->server_sockets_.end() ? item->second : nullptr;
     if (server_socket == nullptr) {
       NEARBY_LOGS(ERROR) << "G3 WifiHotspot Failed to find WifiHotspot Server "
                             "socket: socket_name="

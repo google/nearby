@@ -501,7 +501,7 @@ std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
     absl::MutexLock medium_lock(&remote_medium->mutex_);
     auto item = remote_medium->server_sockets_.find(service_id);
     remote_server_socket =
-        item != server_sockets_.end() ? item->second : nullptr;
+        item != remote_medium->server_sockets_.end() ? item->second : nullptr;
     if (remote_server_socket == nullptr) {
       NEARBY_LOGS(ERROR)
           << "G3 Ble Failed to find Ble Server socket: service_id="
