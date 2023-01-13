@@ -2739,8 +2739,7 @@ namespace winrt::impl
         }
 
     private:
-
-        std::atomic<int32_t> m_count;
+     std::atomic<uint32_t> m_count{0};
     };
 
     constexpr uint32_t hstring_reference_flag{ 1 };
