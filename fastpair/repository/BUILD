@@ -28,6 +28,22 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "fake_fast_pair_metadata_repository",
+    hdrs = ["fake_fast_pair_metadata_repository.h"],
+    copts = [
+        "-Ithird_party",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":repository",
+        "//fastpair/common",
+        "//fastpair/proto:fastpair_cc_proto",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 cc_test(
     name = "repository_test",
     srcs = [

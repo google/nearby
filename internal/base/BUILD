@@ -11,6 +11,7 @@ cc_library(
         "-Ithird_party",
     ],
     visibility = [
+        "//fastpair:__subpackages__",
         "//internal:__pkg__",
         "//location/nearby/cpp/fastpair:__subpackages__",
     ],
