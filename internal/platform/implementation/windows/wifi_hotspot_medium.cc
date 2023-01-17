@@ -46,11 +46,11 @@ constexpr absl::Duration kWifiHotspotClientSocketConnectTimeoutMillis =
     absl::Milliseconds(10000);
 
 // The maximum times to check IP address.
-constexpr int kIpAddressMaxRetries = 3;
+constexpr int kIpAddressMaxRetries = 20;
 
 // The time interval to check IP address.
 constexpr absl::Duration kIpAddressRetryIntervalMillis =
-    absl::Milliseconds(2000);
+    absl::Milliseconds(200);
 
 }  // namespace
 
@@ -172,6 +172,8 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
 std::unique_ptr<api::WifiHotspotServerSocket>
 WifiHotspotMedium::ListenForService(int port) {
   absl::MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << __func__
+                    << " :Start to listen connection from WiFi Hotspot client.";
 
   // check current status
   if (IsAccepting()) {
@@ -193,7 +195,7 @@ WifiHotspotMedium::ListenForService(int port) {
 
   if (server_socket->listen()) {
     medium_status_ |= kMediumStatusAccepting;
-    NEARBY_LOGS(INFO) << "started to listen serive on port "
+    NEARBY_LOGS(INFO) << "Started to listen serive on port "
                       << server_socket_ptr_->GetPort();
     return server_socket;
   }
@@ -206,9 +208,11 @@ WifiHotspotMedium::ListenForService(int port) {
 bool WifiHotspotMedium::StartWifiHotspot(
     HotspotCredentials* hotspot_credentials_) {
   absl::MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << __func__ << ": Start to create WiFi Hotspot.";
 
   if (IsBeaconing()) {
-    NEARBY_LOGS(WARNING) << "cannot create SoftAP again when it is running.";
+    NEARBY_LOGS(WARNING)
+        << "Cannot create WiFi Hotspot again when it is running.";
     return true;
   }
 
@@ -243,9 +247,8 @@ bool WifiHotspotMedium::StartWifiHotspot(
     publisher_.Start();
     if (publisher_.Status() ==
         WiFiDirectAdvertisementPublisherStatus::Started) {
-      NEARBY_LOGS(INFO) << "Windows WiFi Hotspot started";
+      NEARBY_LOGS(INFO) << __func__ << ": WiFi Hotspot created and started.";
       medium_status_ |= kMediumStatusBeaconing;
-
       return true;
     }
 
