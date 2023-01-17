@@ -14,6 +14,7 @@
 
 #include "presence/implementation/credential_manager_impl.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -25,6 +26,7 @@
 #include "internal/crypto/aead.h"
 #include "internal/crypto/ec_private_key.h"
 #include "internal/crypto/hkdf.h"
+#include "internal/crypto/random.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/future.h"
 #include "internal/platform/implementation/credential_callbacks.h"
@@ -87,16 +89,27 @@ void CredentialManagerImpl::GenerateCredentials(
       public_credentials, PublicCredentialType::kLocalPublicCredential,
       SaveCredentialsResultCallback{
           .credentials_saved_cb =
-              [callback = std::move(credentials_generated_cb),
+              [this, manager_app_id = std::string(manager_app_id),
+               account_name = device_metadata.account_name(),
+               callback = std::move(credentials_generated_cb),
                public_credentials](absl::Status status) mutable {
-                if (status.ok()) {
-                  std::move(callback.credentials_generated_cb)(
-                      std::move(public_credentials));
-                } else {
+                if (!status.ok()) {
                   NEARBY_LOGS(WARNING)
                       << "Save credentials failed with: " << status;
                   std::move(callback.credentials_generated_cb)(status);
+                  return;
                 }
+                std::move(callback.credentials_generated_cb)(
+                    std::move(public_credentials));
+                RunOnServiceControllerThread(
+                    "local-creds-changed",
+                    [this, manager_app_id = std::string(manager_app_id),
+                     account_name = std::string(account_name)]()
+                        ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+                          OnCredentialsChanged(
+                              manager_app_id, account_name,
+                              PublicCredentialType::kLocalPublicCredential);
+                        });
               }});
 }
 
@@ -108,15 +121,27 @@ void CredentialManagerImpl::UpdateRemotePublicCredentials(
       manager_app_id, account_name, /* private_credentials */ {},
       remote_public_creds, PublicCredentialType::kRemotePublicCredential,
       SaveCredentialsResultCallback{
-          .credentials_saved_cb = [callback =
-                                       std::move(credentials_updated_cb)](
-                                      absl::Status status) mutable {
-            if (!status.ok()) {
-              NEARBY_LOGS(WARNING)
-                  << "Update remote credentials failed with: " << status;
-            }
-            std::move(callback.credentials_updated_cb)(status);
-          }});
+          .credentials_saved_cb =
+              [this, manager_app_id = std::string(manager_app_id),
+               account_name = std::string(account_name),
+               callback = std::move(credentials_updated_cb)](
+                  absl::Status status) mutable {
+                if (!status.ok()) {
+                  NEARBY_LOGS(WARNING)
+                      << "Update remote credentials failed with: " << status;
+                } else {
+                  RunOnServiceControllerThread(
+                      "remote-creds-changed",
+                      [this, manager_app_id = std::string(manager_app_id),
+                       account_name = std::string(account_name)]()
+                          ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+                            OnCredentialsChanged(
+                                manager_app_id, account_name,
+                                PublicCredentialType::kRemotePublicCredential);
+                          });
+                }
+                std::move(callback.credentials_updated_cb)(status);
+              }});
 }
 
 std::pair<PrivateCredential, PublicCredential>
@@ -314,6 +339,132 @@ CredentialManagerImpl::GetPublicCredentialsSync(
              }
            }});
   return result.Get(timeout);
+}
+
+SubscriberId CredentialManagerImpl::SubscribeForPublicCredentials(
+    const CredentialSelector& credential_selector,
+    PublicCredentialType public_credential_type,
+    GetPublicCredentialsResultCallback callback) {
+  SubscriberId id = ::crypto::RandData<SubscriberId>();
+  RunOnServiceControllerThread(
+      "add-subscriber",
+      [this, key = SubscriberKey{credential_selector, public_credential_type},
+       id, callback = std::move(callback)]()
+          ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) mutable {
+            AddSubscriber(key, id, std::move(callback));
+          });
+  GetPublicCredentials(credential_selector, public_credential_type,
+                       CreateNotifySubscribersCallback(
+                           {credential_selector, public_credential_type}));
+  return id;
+}
+
+void CredentialManagerImpl::UnsubscribeFromPublicCredentials(SubscriberId id) {
+  RunOnServiceControllerThread("remove-subscriber",
+                               [this, id]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(
+                                   *executor_) { RemoveSubscriber(id); });
+}
+
+void CredentialManagerImpl::AddSubscriber(
+    SubscriberKey key, SubscriberId id,
+    GetPublicCredentialsResultCallback callback) {
+  subscribers_[key].push_back(Subscriber(id, std::move(callback)));
+}
+
+void CredentialManagerImpl::RemoveSubscriber(SubscriberId id) {
+  for (auto& entry : subscribers_) {
+    auto it = std::find_if(
+        entry.second.begin(), entry.second.end(),
+        [&](Subscriber& subscriber) { return subscriber.GetId() == id; });
+    if (it != entry.second.end()) {
+      entry.second.erase(it);
+      if (subscribers_[entry.first].empty()) {
+        subscribers_.erase(entry.first);
+      }
+      return;
+    }
+  }
+}
+
+absl::flat_hash_set<IdentityType>
+CredentialManagerImpl::GetSubscribedIdentities(
+    absl::string_view manager_app_id, absl::string_view account_name,
+    PublicCredentialType credential_type) const {
+  absl::flat_hash_set<IdentityType> identities;
+  for (auto& entry : subscribers_) {
+    const SubscriberKey& key = entry.first;
+    if (key.public_credential_type == credential_type &&
+        key.credential_selector.manager_app_id == manager_app_id &&
+        key.credential_selector.account_name == account_name) {
+      identities.insert(key.credential_selector.identity_type);
+    }
+  }
+  return identities;
+}
+
+void CredentialManagerImpl::OnCredentialsChanged(
+    absl::string_view manager_app_id, absl::string_view account_name,
+    PublicCredentialType credential_type) {
+  NEARBY_LOGS(INFO) << "OnCredentialsChanged for app " << manager_app_id
+                    << ", account " << account_name;
+  for (IdentityType identity_type :
+       GetSubscribedIdentities(manager_app_id, account_name, credential_type)) {
+    CredentialSelector credential_selector = {
+        .manager_app_id = std::string(manager_app_id),
+        .account_name = std::string(account_name),
+        .identity_type = identity_type};
+    GetPublicCredentials(credential_selector, credential_type,
+                         CreateNotifySubscribersCallback(
+                             {credential_selector, credential_type}));
+  }
+}
+
+GetPublicCredentialsResultCallback
+CredentialManagerImpl::CreateNotifySubscribersCallback(SubscriberKey key) {
+  return GetPublicCredentialsResultCallback{
+      .credentials_fetched_cb =
+          [this, key](
+              absl::StatusOr<std::vector<::nearby::internal::PublicCredential>>
+                  credentials) {
+            if (!credentials.ok()) {
+              NEARBY_LOGS(WARNING)
+                  << "Failed to get public credentials: error code: "
+                  << credentials.status();
+              return;
+            }
+            RunOnServiceControllerThread(
+                "notify-subscribers",
+                [this, key, credentials = std::move(*credentials)]()
+                    ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+                      NotifySubscribers(key, credentials);
+                    });
+          }};
+}
+
+void CredentialManagerImpl::NotifySubscribers(
+    const SubscriberKey& key,
+    std::vector<::nearby::internal::PublicCredential> credentials) {
+  // We are on `executor_` thread, so we can iterate over `subscribers_`
+  // without locking.
+  auto it = subscribers_.find(key);
+  if (it == subscribers_.end()) {
+    NEARBY_LOGS(WARNING)
+        << "No subscribers for (app: " << key.credential_selector.manager_app_id
+        << ", account: " << key.credential_selector.account_name
+        << ", identity type: "
+        << static_cast<int>(key.credential_selector.identity_type)
+        << ", credential type: " << static_cast<int>(key.public_credential_type)
+        << ")";
+    return;
+  }
+  for (auto& subscriber : it->second) {
+    subscriber.NotifyCredentialsFetched(credentials);
+  }
+}
+
+void CredentialManagerImpl::Subscriber::NotifyCredentialsFetched(
+    std::vector<::nearby::internal::PublicCredential>& credentials) {
+  callback_.credentials_fetched_cb(credentials);
 }
 
 }  // namespace presence

@@ -38,7 +38,6 @@ class ServiceControllerImpl : public ServiceController {
  public:
   using SingleThreadExecutor = ::nearby::SingleThreadExecutor;
 
-  ServiceControllerImpl() = default;
   ~ServiceControllerImpl() override { executor_.Shutdown(); }
 
   absl::StatusOr<ScanSessionId> StartScan(ScanRequest scan_request,
@@ -55,9 +54,15 @@ class ServiceControllerImpl : public ServiceController {
 
  private:
   SingleThreadExecutor executor_;
-  Mediums mediums_;
-  CredentialManagerImpl credential_manager_;
-  ScanManager scan_manager_{mediums_, credential_manager_, executor_};
+  void NotifyStartCallbackStatus(BroadcastSessionId id, absl::Status status);
+  void RunOnServiceControllerThread(absl::string_view name, Runnable runnable) {
+    executor_.Execute(std::string(name), std::move(runnable));
+  }
+  Mediums mediums_;  // NOLINT: further impl will use it.
+  CredentialManagerImpl credential_manager_{
+      &executor_};  // NOLINT: further impl will use it.
+  ScanManager scan_manager_{mediums_, credential_manager_,
+                            executor_};  // NOLINT: further impl will use it.
   BroadcastManager broadcast_manager_{mediums_, credential_manager_, executor_};
 };
 

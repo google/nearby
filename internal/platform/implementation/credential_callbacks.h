@@ -43,6 +43,17 @@ struct CredentialSelector {
                  credential_selector.account_name,
                  static_cast<int>(credential_selector.identity_type));
   }
+  template <typename H>
+  friend H AbslHashValue(H h, const CredentialSelector& selector) {
+    return H::combine(std::move(h), selector.manager_app_id,
+                      selector.account_name, selector.identity_type);
+  }
+  friend bool operator==(const CredentialSelector& a,
+                         const CredentialSelector& b) {
+    return a.manager_app_id == b.manager_app_id &&
+           a.account_name == b.account_name &&
+           a.identity_type == b.identity_type;
+  }
 };
 
 enum class PublicCredentialType {

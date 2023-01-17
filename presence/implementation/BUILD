@@ -75,6 +75,7 @@ cc_library(
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/hash",
         "@com_google_absl//absl/log:die_if_null",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/random:distributions",
@@ -247,6 +248,7 @@ cc_test(
     deps = [
         ":internal",
         "//internal/platform:comm",
+        "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep

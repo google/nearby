@@ -27,6 +27,8 @@
 namespace nearby {
 namespace presence {
 
+using SubscriberId = uint64_t;
+
 /*
  * The instance of CredentialManager is owned by {@code ServiceControllerImpl}.
  * Helping service controller to manage local credentials and coordinate with
@@ -67,6 +69,20 @@ class CredentialManager {
       const CredentialSelector& credential_selector,
       PublicCredentialType public_credential_type,
       GetPublicCredentialsResultCallback callback) = 0;
+
+  // Subscribes for public credentials updates. The `callback` is triggered when
+  // the public credentials are fetched initially, and then every time the
+  // credentials change.
+  virtual SubscriberId SubscribeForPublicCredentials(
+      const CredentialSelector& credential_selector,
+      PublicCredentialType public_credential_type,
+      GetPublicCredentialsResultCallback callback) = 0;
+
+  // Unsubscribes from public credentials updates. No new callbacks will be
+  // triggered after this function returns. If there is a callback already
+  // running, that callback may continue after
+  // `UnsubscribeFromPublicCredentials()` return.
+  virtual void UnsubscribeFromPublicCredentials(SubscriberId id) = 0;
 
   // Decrypts the device metadata from a public credential.
   // Returns an empty string if decryption fails.

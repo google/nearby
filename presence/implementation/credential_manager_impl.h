@@ -15,16 +15,21 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_CREDENTIAL_MANAGER_IMPL_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_CREDENTIAL_MANAGER_IMPL_H_
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/credential_storage_impl.h"
 #include "internal/platform/implementation/credential_callbacks.h"
+#include "internal/platform/runnable.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/implementation/credential_manager.h"
 
@@ -33,14 +38,19 @@ namespace presence {
 
 class CredentialManagerImpl : public CredentialManager {
  public:
-  CredentialManagerImpl() {
+  using IdentityType = ::nearby::internal::IdentityType;
+
+  explicit CredentialManagerImpl(SingleThreadExecutor* executor)
+      : executor_(ABSL_DIE_IF_NULL(executor)) {
     credential_storage_ptr_ = std::make_unique<nearby::CredentialStorageImpl>();
   }
 
   // Test purpose only.
-  explicit CredentialManagerImpl(
+  CredentialManagerImpl(
+      SingleThreadExecutor* executor,
       std::unique_ptr<nearby::CredentialStorageImpl> credential_storage_ptr)
-      : credential_storage_ptr_(std::move(credential_storage_ptr)) {}
+      : executor_(ABSL_DIE_IF_NULL(executor)),
+        credential_storage_ptr_(std::move(credential_storage_ptr)) {}
 
   // AES only supports key sizes of 16, 24 or 32 bytes.
   static constexpr int kAuthenticityKeyByteSize = 16;
@@ -85,6 +95,13 @@ class CredentialManagerImpl : public CredentialManager {
                            PublicCredentialType public_credential_type,
                            absl::Duration timeout);
 
+  SubscriberId SubscribeForPublicCredentials(
+      const CredentialSelector& credential_selector,
+      PublicCredentialType public_credential_type,
+      GetPublicCredentialsResultCallback callback) override;
+
+  void UnsubscribeFromPublicCredentials(SubscriberId id) override;
+
   std::string DecryptDeviceMetadata(
       absl::string_view device_metadata_encryption_key,
       absl::string_view authenticity_key,
@@ -94,8 +111,7 @@ class CredentialManagerImpl : public CredentialManager {
             nearby::internal::PublicCredential>
   CreatePrivateCredential(
       const nearby::internal::DeviceMetadata& device_metadata,
-      nearby::internal::IdentityType identity_type, uint64_t start_time_ms,
-      uint64_t end_time_ms);
+      IdentityType identity_type, uint64_t start_time_ms, uint64_t end_time_ms);
 
   nearby::internal::PublicCredential CreatePublicCredential(
       const nearby::internal::PrivateCredential& private_credential,
@@ -111,6 +127,62 @@ class CredentialManagerImpl : public CredentialManager {
       absl::string_view device_metadata_encryption_key);
 
  private:
+  struct SubscriberKey {
+    CredentialSelector credential_selector;
+    PublicCredentialType public_credential_type;
+    template <typename H>
+    friend H AbslHashValue(H h, const SubscriberKey& key) {
+      return H::combine(std::move(h), key.credential_selector,
+                        key.public_credential_type);
+    }
+    friend bool operator==(const SubscriberKey& a, const SubscriberKey& b) {
+      return a.public_credential_type == b.public_credential_type &&
+             a.credential_selector == b.credential_selector;
+    }
+  };
+  class Subscriber {
+   public:
+    Subscriber(SubscriberId id, GetPublicCredentialsResultCallback callback)
+        : callback_(std::move(callback)), id_(id) {}
+
+    SubscriberId GetId() const { return id_; }
+
+    // Notifies the subscriber about fetched credentials.
+    void NotifyCredentialsFetched(
+        std::vector<::nearby::internal::PublicCredential>& credentials);
+
+   private:
+    GetPublicCredentialsResultCallback callback_;
+    SubscriberId id_;
+  };
+
+  void RunOnServiceControllerThread(absl::string_view name,
+                                    Runnable&& runnable) {
+    executor_->Execute(std::string(name), std::move(runnable));
+  }
+  void OnCredentialsChanged(absl::string_view manager_app_id,
+                            absl::string_view account_name,
+                            PublicCredentialType credential_type)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  void NotifySubscribers(
+      const SubscriberKey& key,
+      std::vector<::nearby::internal::PublicCredential> credentials)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  void AddSubscriber(SubscriberKey key, SubscriberId id,
+                     GetPublicCredentialsResultCallback callback)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  void RemoveSubscriber(SubscriberId id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  absl::flat_hash_set<IdentityType> GetSubscribedIdentities(
+      absl::string_view manager_app_id, absl::string_view account_name,
+      PublicCredentialType credential_type) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  GetPublicCredentialsResultCallback CreateNotifySubscribersCallback(
+      SubscriberKey key);
+
+  absl::flat_hash_map<SubscriberKey, std::vector<Subscriber>> subscribers_
+      ABSL_GUARDED_BY(*executor_);
+  SingleThreadExecutor* executor_;
   std::unique_ptr<nearby::CredentialStorageImpl> credential_storage_ptr_;
 };
 

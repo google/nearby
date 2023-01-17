@@ -51,7 +51,10 @@ using CountDownLatch = ::nearby::CountDownLatch;
 class ScanManagerTest : public testing::Test {
  protected:
   void SetUp() override { env_.Start(); }
-  void TearDown() override { env_.Stop(); }
+  void TearDown() override {
+    executor_.Shutdown();
+    env_.Stop();
+  }
 
   std::unique_ptr<AdvertisingSession> StartAdvertisingOn(Ble& ble) {
     PresenceBroadcast::BroadcastSection section = {
@@ -109,11 +112,11 @@ class ScanManagerTest : public testing::Test {
   std::vector<DataElement> MakeDefaultExtendedProperties() {
     return {DataElement(ActionBit::kPresenceManagerAction)};
   }
-  CredentialManagerImpl credential_manager_;
+  SingleThreadExecutor executor_;
+  CredentialManagerImpl credential_manager_{&executor_};
   nearby::MediumEnvironment& env_ = {nearby::MediumEnvironment::Instance()};
   CountDownLatch start_latch_{1};
   CountDownLatch found_latch_{1};
-  SingleThreadExecutor executor_;
 };
 
 TEST_F(ScanManagerTest, CanStartThenStopScanning) {

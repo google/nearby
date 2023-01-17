@@ -27,12 +27,17 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/credential_storage_impl.h"
 #include "internal/platform/implementation/crypto.h"
+#include "internal/platform/logging.h"
+#include "internal/platform/medium_environment.h"
 #include "internal/proto/credential.pb.h"
+#include "internal/proto/credential.proto.h"
 
 namespace nearby {
 namespace presence {
 namespace {
+using ::nearby::CountDownLatch;
 using ::nearby::Crypto;
+using ::nearby::MediumEnvironment;
 using ::nearby::internal::DeviceMetadata;
 using ::nearby::internal::IdentityType;
 using ::nearby::internal::PrivateCredential;
@@ -42,10 +47,14 @@ using ::proto2::contrib::parse_proto::ParseTestProto;
 using ::protobuf_matchers::EqualsProto;
 using ::testing::status::StatusIs;
 
-DeviceMetadata CreateTestDeviceMetadata() {
+constexpr absl::string_view kManagerAppId = "TEST_MANAGER_APP";
+constexpr absl::string_view kAccountName = "test account";
+
+DeviceMetadata CreateTestDeviceMetadata(
+    absl::string_view account_name = kAccountName) {
   DeviceMetadata device_metadata;
   device_metadata.set_stable_device_id("test_device_id");
-  device_metadata.set_account_name("test_account");
+  device_metadata.set_account_name(account_name);
   device_metadata.set_device_name("NP test device");
   device_metadata.set_icon_url("test_image.test.com");
   device_metadata.set_bluetooth_mac_address("FF:FF:FF:FF:FF:FF");
@@ -55,8 +64,8 @@ DeviceMetadata CreateTestDeviceMetadata() {
 
 CredentialSelector BuildDefaultCredentialSelector() {
   CredentialSelector credential_selector;
-  credential_selector.manager_app_id = "TEST_MANAGER_APP";
-  credential_selector.account_name = "test_account";
+  credential_selector.manager_app_id = std::string(kManagerAppId);
+  credential_selector.account_name = std::string(kAccountName);
   credential_selector.identity_type = IDENTITY_TYPE_PRIVATE;
   return credential_selector;
 }
@@ -85,6 +94,8 @@ class CredentialManagerImplTest : public ::testing::Test {
 
   class MockCredentialManager : public CredentialManagerImpl {
    public:
+    explicit MockCredentialManager(SingleThreadExecutor* executor)
+        : CredentialManagerImpl(executor) {}
     MOCK_METHOD(std::string, EncryptDeviceMetadata,
                 (absl::string_view device_metadata_encryption_key,
                  absl::string_view authenticity_key,
@@ -92,21 +103,45 @@ class CredentialManagerImplTest : public ::testing::Test {
                 (override));
   };
 
-  CredentialManagerImplTest() {
-    mock_credential_storage_ptr_ = std::make_unique<MockCredentialStorage>();
-    mock_credential_manager_ptr_ = std::make_unique<MockCredentialManager>();
+  ~CredentialManagerImplTest() override { executor_.Shutdown(); }
+
+  // Waits for active tasks in the background thread to complete.
+  void Fence() {
+    // A runnable on medium environment thread can add a task on "our" executor,
+    // and vice-versa. We need to wait for tasks on both threads in a loop a few
+    // times to make sure that all tasks have finished.
+    for (int i = 0; i < 3; i++) {
+      MediumEnvironment::Instance().Sync();
+      CountDownLatch latch(1);
+      executor_.Execute([&]() { latch.CountDown(); });
+      latch.Await();
+    }
+  }
+
+  void AddLocalIdentity(absl::string_view manager_app_id,
+                        absl::string_view account_name,
+                        IdentityType identity_type) {
+    DeviceMetadata device_metadata = CreateTestDeviceMetadata(account_name);
+
+    credential_manager_.GenerateCredentials(
+        device_metadata, manager_app_id, {identity_type},
+        /*credential_life_cycle_days=*/1,
+        /*contigous_copy_of_credentials=*/1,
+        {[](absl::StatusOr<std::vector<PublicCredential>> credentials) {
+          EXPECT_OK(credentials);
+        }});
   }
 
  protected:
-  std::unique_ptr<MockCredentialStorage> mock_credential_storage_ptr_;
-  std::unique_ptr<MockCredentialManager> mock_credential_manager_ptr_;
+  SingleThreadExecutor executor_;
+  CredentialManagerImpl credential_manager_{&executor_};
+  MockCredentialManager mock_credential_manager_{&executor_};
 };
 
-TEST(CredentialManagerImpl, CreateOneCredentialSuccessfully) {
+TEST_F(CredentialManagerImplTest, CreateOneCredentialSuccessfully) {
   DeviceMetadata device_metadata = CreateTestDeviceMetadata();
 
-  CredentialManagerImpl credential_manager;
-  auto credentials = credential_manager.CreatePrivateCredential(
+  auto credentials = credential_manager_.CreatePrivateCredential(
       device_metadata, IDENTITY_TYPE_PRIVATE, /* start_time_ms= */ 0,
       /* end_time_ms= */ 1000);
 
@@ -141,7 +176,7 @@ TEST(CredentialManagerImpl, CreateOneCredentialSuccessfully) {
 
   // Decrypt the device metadata
 
-  auto decrypted_device_metadata = credential_manager.DecryptDeviceMetadata(
+  auto decrypted_device_metadata = credential_manager_.DecryptDeviceMetadata(
       private_credential.metadata_encryption_key(),
       public_credential.authenticity_key(),
       public_credential.encrypted_metadata_bytes());
@@ -150,16 +185,14 @@ TEST(CredentialManagerImpl, CreateOneCredentialSuccessfully) {
             decrypted_device_metadata);
 }
 
-TEST(CredentialManagerImpl, GenerateCredentialsSuccessfully) {
+TEST_F(CredentialManagerImplTest, GenerateCredentialsSuccessfully) {
   DeviceMetadata device_metadata = CreateTestDeviceMetadata();
-  CredentialManagerImpl credential_manager;
   absl::StatusOr<std::vector<nearby::internal::PublicCredential>>
       public_credentials;
   std::vector<IdentityType> identityTypes{IDENTITY_TYPE_PRIVATE};
 
-  credential_manager.GenerateCredentials(
-      device_metadata,
-      /* manager_app_id= */ "TEST_MANAGER_APP", identityTypes, 1, 2,
+  credential_manager_.GenerateCredentials(
+      device_metadata, kManagerAppId, identityTypes, 1, 2,
       {.credentials_generated_cb =
            [&](absl::StatusOr<std::vector<nearby::internal::PublicCredential>>
                    credentials) {
@@ -178,7 +211,89 @@ TEST(CredentialManagerImpl, GenerateCredentialsSuccessfully) {
   }
 }
 
-TEST(CredentialManagerImpl, GenerateCredentialsSuccessfullyButStoreFailed) {
+TEST_F(CredentialManagerImplTest,
+       SubscribeCallsCallbackWithExistingCredentials) {
+  absl::StatusOr<std::vector<PublicCredential>> public_credentials1;
+  absl::StatusOr<std::vector<PublicCredential>> public_credentials2;
+  AddLocalIdentity(kManagerAppId, kAccountName, IDENTITY_TYPE_PRIVATE);
+
+  SubscriberId id1 = credential_manager_.SubscribeForPublicCredentials(
+      CredentialSelector{.manager_app_id = std::string(kManagerAppId),
+                         .account_name = std::string(kAccountName),
+                         .identity_type = IDENTITY_TYPE_PRIVATE},
+      PublicCredentialType::kLocalPublicCredential,
+      {.credentials_fetched_cb =
+           [&](absl::StatusOr<std::vector<PublicCredential>> credentials) {
+             public_credentials1 = std::move(credentials);
+           }});
+  SubscriberId id2 = credential_manager_.SubscribeForPublicCredentials(
+      CredentialSelector{.manager_app_id = std::string(kManagerAppId),
+                         .account_name = std::string(kAccountName),
+                         .identity_type = IDENTITY_TYPE_PRIVATE},
+      PublicCredentialType::kLocalPublicCredential,
+      {.credentials_fetched_cb =
+           [&](absl::StatusOr<std::vector<PublicCredential>> credentials) {
+             public_credentials2 = std::move(credentials);
+           }});
+
+  Fence();
+  EXPECT_OK(public_credentials1);
+  EXPECT_OK(public_credentials2);
+  EXPECT_EQ(public_credentials1->size(), 1);
+  EXPECT_EQ(public_credentials2->size(), 1);
+  // Cleanup
+  credential_manager_.UnsubscribeFromPublicCredentials(id1);
+  credential_manager_.UnsubscribeFromPublicCredentials(id2);
+  Fence();
+}
+
+TEST_F(CredentialManagerImplTest,
+       SubscribeCallsCallbackWithUpdatedCredentials) {
+  absl::StatusOr<std::vector<PublicCredential>> public_credentials;
+
+  SubscriberId id = credential_manager_.SubscribeForPublicCredentials(
+      CredentialSelector{.manager_app_id = std::string(kManagerAppId),
+                         .account_name = std::string(kAccountName),
+                         .identity_type = IDENTITY_TYPE_PRIVATE},
+      PublicCredentialType::kLocalPublicCredential,
+      {.credentials_fetched_cb =
+           [&](absl::StatusOr<std::vector<PublicCredential>> credentials) {
+             public_credentials = std::move(credentials);
+           }});
+  Fence();
+  EXPECT_THAT(public_credentials, StatusIs(absl::StatusCode::kUnknown));
+
+  AddLocalIdentity(kManagerAppId, kAccountName, IDENTITY_TYPE_PRIVATE);
+
+  Fence();
+  ASSERT_OK(public_credentials);
+  EXPECT_EQ(public_credentials->size(), 1);
+  // Cleanup
+  credential_manager_.UnsubscribeFromPublicCredentials(id);
+  Fence();
+}
+
+TEST_F(CredentialManagerImplTest, NoCallbacksAfterUnsubscribe) {
+  absl::StatusOr<std::vector<PublicCredential>> public_credentials;
+  SubscriberId id = credential_manager_.SubscribeForPublicCredentials(
+      CredentialSelector{.manager_app_id = std::string(kManagerAppId),
+                         .account_name = std::string(kAccountName),
+                         .identity_type = IDENTITY_TYPE_PRIVATE},
+      PublicCredentialType::kLocalPublicCredential,
+      {.credentials_fetched_cb =
+           [&](absl::StatusOr<std::vector<PublicCredential>> credentials) {
+             public_credentials = std::move(credentials);
+           }});
+
+  credential_manager_.UnsubscribeFromPublicCredentials(id);
+  AddLocalIdentity(kManagerAppId, kAccountName, IDENTITY_TYPE_PRIVATE);
+
+  Fence();
+  EXPECT_THAT(public_credentials, StatusIs(absl::StatusCode::kUnknown));
+}
+
+TEST_F(CredentialManagerImplTest,
+       GenerateCredentialsSuccessfullyButStoreFailed) {
   DeviceMetadata device_metadata = CreateTestDeviceMetadata();
   auto credential_storage_ptr =
       std::make_unique<CredentialManagerImplTest::MockCredentialStorage>();
@@ -192,14 +307,14 @@ TEST(CredentialManagerImpl, GenerateCredentialsSuccessfullyButStoreFailed) {
             callback.credentials_saved_cb(
                 absl::FailedPreconditionError("Expected failure"));
           }));
-  CredentialManagerImpl credential_manager(std::move(credential_storage_ptr));
+  credential_manager_ =
+      CredentialManagerImpl(&executor_, std::move(credential_storage_ptr));
   absl::StatusOr<std::vector<nearby::internal::PublicCredential>>
       public_credentials;
   std::vector<IdentityType> identityTypes{IDENTITY_TYPE_PRIVATE};
 
-  credential_manager.GenerateCredentials(
-      device_metadata,
-      /* manager_app_id= */ "TEST_MANAGER_APP", identityTypes, 1, 2,
+  credential_manager_.GenerateCredentials(
+      device_metadata, kManagerAppId, identityTypes, 1, 2,
       {.credentials_generated_cb =
            [&](absl::StatusOr<std::vector<nearby::internal::PublicCredential>>
                    credentials) {
@@ -209,11 +324,11 @@ TEST(CredentialManagerImpl, GenerateCredentialsSuccessfullyButStoreFailed) {
               StatusIs(absl::StatusCode::kFailedPrecondition));
 }
 
-TEST(CredentialManagerImpl, UpdateRemotePublicCredentialsSuccessfully) {
+TEST_F(CredentialManagerImplTest, UpdateRemotePublicCredentialsSuccessfully) {
   nearby::internal::PublicCredential public_credential_for_test;
   public_credential_for_test.set_identity_type(
       nearby::internal::IdentityType::IDENTITY_TYPE_TRUSTED);
-  std::vector<nearby::internal::PublicCredential> publicCredentials{
+  std::vector<nearby::internal::PublicCredential> public_credentials{
       {public_credential_for_test}};
 
   nearby::CountDownLatch updated_latch(1);
@@ -226,25 +341,68 @@ TEST(CredentialManagerImpl, UpdateRemotePublicCredentialsSuccessfully) {
           },
   };
 
-  CredentialManagerImpl credential_manager;
-
-  credential_manager.UpdateRemotePublicCredentials(
-      /* manager_app_id= */ "TEST_MANAGER_APP",
-      /* account_name= */ "test_account", publicCredentials,
+  credential_manager_.UpdateRemotePublicCredentials(
+      kManagerAppId, kAccountName, public_credentials,
       std::move(update_credentials_cb));
 
   EXPECT_TRUE(updated_latch.Await().Ok());
 }
 
-TEST(CredentialManagerImpl, GetPrivateCredentialsFailed) {
-  absl::StatusOr<std::vector<PrivateCredential>> private_credentials;
-  CredentialSelector credential_selector;
-  credential_selector.manager_app_id = "TEST_MANAGER_APP";
-  credential_selector.account_name = "test_account";
-  credential_selector.identity_type = IDENTITY_TYPE_PRIVATE;
-  CredentialManagerImpl credential_manager;
+TEST_F(CredentialManagerImplTest,
+       UpdateRemotePublicCredentialsNotifiesSubscribers) {
+  absl::StatusOr<std::vector<PublicCredential>> subscribed_credentials;
+  nearby::internal::PublicCredential public_credential_for_test;
+  public_credential_for_test.set_identity_type(
+      nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE);
+  std::vector<nearby::internal::PublicCredential> public_credentials{
+      {public_credential_for_test}};
+  nearby::CountDownLatch updated_latch(1);
+  UpdateRemotePublicCredentialsCallback update_credentials_cb{
+      .credentials_updated_cb =
+          [&updated_latch](absl::Status status) {
+            if (status.ok()) {
+              updated_latch.CountDown();
+            }
+          },
+  };
+  SubscriberId id1 = credential_manager_.SubscribeForPublicCredentials(
+      CredentialSelector{.manager_app_id = std::string(kManagerAppId),
+                         .account_name = std::string(kAccountName),
+                         .identity_type = internal::IDENTITY_TYPE_PRIVATE},
+      PublicCredentialType::kRemotePublicCredential,
+      {.credentials_fetched_cb =
+           [&](absl::StatusOr<std::vector<PublicCredential>> credentials) {
+             subscribed_credentials = std::move(credentials);
+           }});
+  SubscriberId id2 = credential_manager_.SubscribeForPublicCredentials(
+      CredentialSelector{.manager_app_id = std::string(kManagerAppId),
+                         .account_name = std::string(kAccountName),
+                         .identity_type = internal::IDENTITY_TYPE_TRUSTED},
+      PublicCredentialType::kRemotePublicCredential,
+      {.credentials_fetched_cb =
+           [&](absl::StatusOr<std::vector<PublicCredential>> credentials) {
+             // This callback should not be called because there are no Trusted
+             // credentials in this test.
+             GTEST_FAIL();
+           }});
 
-  credential_manager.GetPrivateCredentials(
+  credential_manager_.UpdateRemotePublicCredentials(
+      kManagerAppId, kAccountName, public_credentials,
+      std::move(update_credentials_cb));
+
+  EXPECT_TRUE(updated_latch.Await().Ok());
+  Fence();
+  EXPECT_OK(subscribed_credentials);
+  EXPECT_EQ(subscribed_credentials->size(), 1);
+  credential_manager_.UnsubscribeFromPublicCredentials(id1);
+  credential_manager_.UnsubscribeFromPublicCredentials(id2);
+}
+
+TEST_F(CredentialManagerImplTest, GetPrivateCredentialsFailed) {
+  absl::StatusOr<std::vector<PrivateCredential>> private_credentials;
+  CredentialSelector credential_selector = BuildDefaultCredentialSelector();
+
+  credential_manager_.GetPrivateCredentials(
       credential_selector,
       {.credentials_fetched_cb =
            [&](absl::StatusOr<std::vector<PrivateCredential>> credentials) {
@@ -254,15 +412,11 @@ TEST(CredentialManagerImpl, GetPrivateCredentialsFailed) {
   EXPECT_THAT(private_credentials, StatusIs(absl::StatusCode::kNotFound));
 }
 
-TEST(CredentialManagerImpl, GetPublicCredentialsFailed) {
+TEST_F(CredentialManagerImplTest, GetPublicCredentialsFailed) {
   absl::StatusOr<std::vector<PublicCredential>> public_credentials;
-  CredentialSelector credential_selector;
-  credential_selector.manager_app_id = "TEST_MANAGER_APP";
-  credential_selector.account_name = "test_account";
-  credential_selector.identity_type = IDENTITY_TYPE_PRIVATE;
-  CredentialManagerImpl credential_manager;
+  CredentialSelector credential_selector = BuildDefaultCredentialSelector();
 
-  credential_manager.GetPublicCredentials(
+  credential_manager_.GetPublicCredentials(
       credential_selector, PublicCredentialType::kLocalPublicCredential,
       {.credentials_fetched_cb =
            [&](absl::StatusOr<std::vector<PublicCredential>> credentials) {
@@ -272,23 +426,22 @@ TEST(CredentialManagerImpl, GetPublicCredentialsFailed) {
   EXPECT_THAT(public_credentials, StatusIs(absl::StatusCode::kNotFound));
 }
 
-TEST(CredentialManagerImpl, GetCredentialsSuccessfully) {
+TEST_F(CredentialManagerImplTest, GetCredentialsSuccessfully) {
   DeviceMetadata device_metadata = CreateTestDeviceMetadata();
   absl::StatusOr<std::vector<nearby::internal::PublicCredential>>
       public_credentials;
-  CredentialManagerImpl credential_manager;
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
   absl::StatusOr<std::vector<PrivateCredential>> private_credentials;
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
 
-  credential_manager.GenerateCredentials(
-      device_metadata, "TEST_MANAGER_APP", identity_types, 1, 1,
+  credential_manager_.GenerateCredentials(
+      device_metadata, kManagerAppId, identity_types, 1, 1,
       {.credentials_generated_cb =
            [&](absl::StatusOr<std::vector<nearby::internal::PublicCredential>>
                    credentials) {
              public_credentials = std::move(credentials);
            }});
-  credential_manager.GetPrivateCredentials(
+  credential_manager_.GetPrivateCredentials(
       credential_selector,
       {.credentials_fetched_cb =
            [&](absl::StatusOr<std::vector<PrivateCredential>> credentials) {
@@ -301,12 +454,13 @@ TEST(CredentialManagerImpl, GetCredentialsSuccessfully) {
   EXPECT_FALSE(private_credentials->empty());
 }
 
-TEST(CredentialManagerImpl, PublicCredentialsFailEncryption) {
+TEST_F(CredentialManagerImplTest, PublicCredentialsFailEncryption) {
   DeviceMetadata device_metadata = CreateTestDeviceMetadata();
   absl::StatusOr<std::vector<nearby::internal::PublicCredential>>
       public_credentials;
   auto credential_manager_ptr =
-      std::make_unique<CredentialManagerImplTest::MockCredentialManager>();
+      std::make_unique<CredentialManagerImplTest::MockCredentialManager>(
+          &executor_);
   EXPECT_CALL(*credential_manager_ptr, EncryptDeviceMetadata)
       .WillOnce(::testing::Invoke(
           [](absl::string_view device_metadata_encryption_key,
@@ -315,7 +469,7 @@ TEST(CredentialManagerImpl, PublicCredentialsFailEncryption) {
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
 
   credential_manager_ptr->GenerateCredentials(
-      device_metadata, "TEST_MANAGER_APP", identity_types, 1, 1,
+      device_metadata, kManagerAppId, identity_types, 1, 1,
       {.credentials_generated_cb =
            [&](absl::StatusOr<std::vector<nearby::internal::PublicCredential>>
                    credentials) {
