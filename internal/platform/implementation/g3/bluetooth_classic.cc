@@ -218,7 +218,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   {
     absl::MutexLock medium_lock(&medium->mutex_);
     auto item = medium->sockets_.find(service_uuid);
-    server_socket = item != sockets_.end() ? item->second : nullptr;
+    server_socket = item != medium->sockets_.end() ? item->second : nullptr;
     if (server_socket == nullptr) {
       NEARBY_LOGS(ERROR) << "Failed to find BT Server socket: uuid="
                          << service_uuid;
