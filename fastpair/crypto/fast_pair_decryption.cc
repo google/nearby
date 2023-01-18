@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/handshake/fast_pair_decryption.h"
+#include "fastpair/crypto/fast_pair_decryption.h"
 
 #include <algorithm>
 #include <array>
@@ -27,8 +27,8 @@
 
 #include "absl/types/optional.h"
 #include "fastpair/common/constant.h"
-#include "fastpair/handshake/decrypted_passkey.h"
-#include "fastpair/handshake/decrypted_response.h"
+#include "fastpair/crypto/decrypted_passkey.h"
+#include "fastpair/crypto/decrypted_response.h"
 #include <openssl/aes.h>
 
 namespace nearby {
@@ -43,8 +43,8 @@ std::array<uint8_t, kAesBlockByteSize> FastPairDecryption::DecryptBytes(
   CHECK(aes_key_was_set == 0) << "Invalid AES key size.";
   std::array<uint8_t, kAesBlockByteSize> decrypted_bytes;
   // Encrypted_bytes is less than 16 bytes and can be guaranteed to be a
-  // single block, so we encrypt/decrypt it using AES ECB mode
-  // (Approved by: b/73360609)
+  // single block, so we encrypt/decrypt it using AES ECB mode (Approved by:
+  // b/73360609)
   AES_decrypt(encrypted_bytes.data(), decrypted_bytes.data(), &aes_key);
   return decrypted_bytes;
 }

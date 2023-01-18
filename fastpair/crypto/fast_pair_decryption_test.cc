@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/handshake/fast_pair_decryption.h"
+#include "fastpair/crypto/fast_pair_decryption.h"
 
 #include <algorithm>
 #include <array>
@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "fastpair/handshake/fast_pair_encryption.h"
+#include "fastpair/crypto/fast_pair_encryption.h"
 
 namespace nearby {
 namespace fastpair {

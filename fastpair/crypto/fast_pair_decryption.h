@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_FAST_PAIR_DECRYPTION_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_FAST_PAIR_DECRYPTION_H_
+#ifndef THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_FAST_PAIR_DECRYPTION_H_
+#define THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_FAST_PAIR_DECRYPTION_H_
 
 #include <array>
 #include <string>
 
 #include "absl/types/optional.h"
-#include "fastpair/handshake/decrypted_passkey.h"
-#include "fastpair/handshake/decrypted_response.h"
+#include "fastpair/crypto/decrypted_passkey.h"
+#include "fastpair/crypto/decrypted_response.h"
 
 namespace nearby {
 namespace fastpair {

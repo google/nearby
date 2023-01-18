@@ -12,34 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_DECRYPTED_PASSKEY_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_DECRYPTED_PASSKEY_H_
+#ifndef THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_FAST_PAIR_KEY_PAIR_H_
+#define THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_FAST_PAIR_KEY_PAIR_H_
 
 #include <stddef.h>
 #include <stdint.h>
 
+#include <algorithm>
 #include <array>
+#include <utility>
 
 #include "fastpair/common/constant.h"
-#include "fastpair/handshake/fast_pair_message_type.h"
 
 namespace nearby {
 namespace fastpair {
 
-// Thin structure which is used by the higher level components of the Fast Pair
-// system to represent a decrypted account passkey.
-struct DecryptedPasskey {
-  DecryptedPasskey(
-      FastPairMessageType message_type, uint32_t passkey,
-      const std::array<uint8_t, kDecryptedPasskeySaltByteSize>& salt)
-      : message_type(message_type), passkey(passkey), salt(salt) {}
+// Key pair structure to represent public and private keys used for encryption/
+// decryption.
+struct KeyPair {
+  KeyPair(
+      const std::array<uint8_t, kSharedSecretKeyByteSize>& shared_secret_key,
+      const std::array<uint8_t, kPublicKeyByteSize>& public_key)
+      : shared_secret_key(std::move(shared_secret_key)),
+        public_key(std::move(public_key)) {}
 
-  FastPairMessageType message_type;
-  uint32_t passkey;
-  std::array<uint8_t, kDecryptedPasskeySaltByteSize> salt;
+  const std::array<uint8_t, kSharedSecretKeyByteSize> shared_secret_key;
+  const std::array<uint8_t, kPublicKeyByteSize> public_key;
 };
 
 }  // namespace fastpair
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_DECRYPTED_PASSKEY_H_
+#endif  // THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_FAST_PAIR_KEY_PAIR_H_

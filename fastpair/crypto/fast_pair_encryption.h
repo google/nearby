@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_FAST_PAIR_ENCRYPTION_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_FAST_PAIR_ENCRYPTION_H_
+#ifndef THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_FAST_PAIR_ENCRYPTION_H_
+#define THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_FAST_PAIR_ENCRYPTION_H_
 
 #include <stdint.h>
 
@@ -23,7 +23,7 @@
 
 #include "absl/types/optional.h"
 #include "fastpair/common/constant.h"
-#include "fastpair/handshake/fast_pair_key_pair.h"
+#include "fastpair/crypto/fast_pair_key_pair.h"
 
 namespace nearby {
 namespace fastpair {
@@ -43,4 +43,4 @@ class FastPairEncryption {
 }  // namespace fastpair
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_FAST_PAIR_ENCRYPTION_H_
+#endif  // THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_FAST_PAIR_ENCRYPTION_H_

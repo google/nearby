@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/handshake/fast_pair_encryption.h"
+#include "fastpair/crypto/fast_pair_encryption.h"
 
 #include <algorithm>
 #include <array>
@@ -29,8 +29,8 @@
 
 #include "absl/types/optional.h"
 #include "fastpair/common/constant.h"
-#include "fastpair/handshake/fast_pair_key_pair.h"
-#include "fastpair/handshake/fast_pair_message_type.h"
+#include "fastpair/crypto/fast_pair_key_pair.h"
+#include "fastpair/crypto/fast_pair_message_type.h"
 #include "internal/platform/logging.h"
 #include <openssl/aes.h>
 #include <openssl/base.h>

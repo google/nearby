@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_DECRYPTED_RESPONSE_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_DECRYPTED_RESPONSE_H_
+#ifndef THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_DECRYPTED_PASSKEY_H_
+#define THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_DECRYPTED_PASSKEY_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -21,27 +21,25 @@
 #include <array>
 
 #include "fastpair/common/constant.h"
-#include "fastpair/handshake/fast_pair_message_type.h"
+#include "fastpair/crypto/fast_pair_message_type.h"
 
 namespace nearby {
 namespace fastpair {
 
 // Thin structure which is used by the higher level components of the Fast Pair
-// system to represent a decrypted response.
-struct DecryptedResponse {
-  DecryptedResponse(
-      FastPairMessageType message_type,
-      const std::array<uint8_t, kDecryptedResponseAddressByteSize>&
-          address_bytes,
-      const std::array<uint8_t, kDecryptedResponseSaltByteSize>& salt)
-      : message_type(message_type), address_bytes(address_bytes), salt(salt) {}
+// system to represent a decrypted account passkey.
+struct DecryptedPasskey {
+  DecryptedPasskey(
+      FastPairMessageType message_type, uint32_t passkey,
+      const std::array<uint8_t, kDecryptedPasskeySaltByteSize>& salt)
+      : message_type(message_type), passkey(passkey), salt(salt) {}
 
   FastPairMessageType message_type;
-  std::array<uint8_t, kDecryptedResponseAddressByteSize> address_bytes;
-  std::array<uint8_t, kDecryptedResponseSaltByteSize> salt;
+  uint32_t passkey;
+  std::array<uint8_t, kDecryptedPasskeySaltByteSize> salt;
 };
 
 }  // namespace fastpair
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_DECRYPTED_RESPONSE_H_
+#endif  // THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_DECRYPTED_PASSKEY_H_

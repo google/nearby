@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/handshake/fast_pair_key_pair.h"
+#include "fastpair/crypto/fast_pair_key_pair.h"
 
 #include <array>
 

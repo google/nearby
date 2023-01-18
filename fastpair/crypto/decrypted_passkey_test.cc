@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/handshake/decrypted_passkey.h"
+#include "fastpair/crypto/decrypted_passkey.h"
 
 #include <array>
 

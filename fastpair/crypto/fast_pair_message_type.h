@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_FAST_PAIR_MESSAGE_TYPE_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_FAST_PAIR_MESSAGE_TYPE_H_
+#ifndef THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_FAST_PAIR_MESSAGE_TYPE_H_
+#define THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_FAST_PAIR_MESSAGE_TYPE_H_
 
 namespace nearby {
 namespace fastpair {
@@ -35,4 +35,4 @@ enum class FastPairMessageType {
 }  // namespace fastpair
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_FAST_PAIR_MESSAGE_TYPE_H_
+#endif  // THIRD_PARTY_NEARBY_FASTPAIR_CRYPTO_FAST_PAIR_MESSAGE_TYPE_H_
