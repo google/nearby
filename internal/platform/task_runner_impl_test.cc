@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/internal/public/task_runner_impl.h"
+#include "internal/platform/task_runner_impl.h"
 
 #include <atomic>
 #include <string>
@@ -23,7 +23,6 @@
 #include "absl/time/clock.h"
 
 namespace nearby {
-namespace fastpair {
 namespace {
 
 TEST(TaskRunnerImpl, PostTask) {
@@ -160,5 +159,4 @@ TEST(TaskRunnerImpl, PostEmptyTask) {
 }
 
 }  // namespace
-}  // namespace fastpair
 }  // namespace nearby

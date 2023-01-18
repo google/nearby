@@ -492,6 +492,7 @@ let package = Package(
         "internal/platform/count_down_latch_test.cc",
         "internal/platform/pipe_test.cc",
         "internal/platform/timer_impl_test.cc",
+        "internal/platform/task_runner_impl_test.cc",
         "internal/platform/uuid_test.cc",
         "internal/platform/wifi_lan_connection_info_test.cc",
         "internal/platform/wifi_direct_test.cc",

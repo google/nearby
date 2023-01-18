@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/internal/public/task_runner_impl.h"
+#include "internal/platform/task_runner_impl.h"
 
 #include <functional>
 #include <iostream>
@@ -24,7 +24,6 @@
 #include "internal/platform/timer_impl.h"
 
 namespace nearby {
-namespace fastpair {
 
 TaskRunnerImpl::TaskRunnerImpl(uint32_t runner_count) {
   executor_ = std::make_unique<::nearby::MultiThreadExecutor>(runner_count);
@@ -33,13 +32,12 @@ TaskRunnerImpl::TaskRunnerImpl(uint32_t runner_count) {
 TaskRunnerImpl::~TaskRunnerImpl() = default;
 
 bool TaskRunnerImpl::PostTask(std::function<void()> task) {
-  if (!task) {
-    return true;
+  if (task) {
+    // Because of cannot get the executor status from platform API, just returns
+    // true after calling the Execute method.
+    executor_->Execute(std::move(task));
   }
 
-  // Because of cannot get the executor status from platform API, just returns
-  // true after calling the Execute method.
-  executor_->Execute(std::move(task));
   return true;
 }
 
@@ -75,5 +73,4 @@ uint64_t TaskRunnerImpl::GenerateId() {
   return absl::Uniform(bitgen, 0u, std::numeric_limits<uint64_t>::max());
 }
 
-}  // namespace fastpair
 }  // namespace nearby

@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_PUBLIC_TASK_RUNNER_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_PUBLIC_TASK_RUNNER_H_
+#ifndef PLATFORM_PUBLIC_TASK_RUNNER_H_
+#define PLATFORM_PUBLIC_TASK_RUNNER_H_
 
 #include <functional>
 
 #include "absl/time/time.h"
 
 namespace nearby {
-namespace fastpair {
 
 // Task runner is an implementation to run tasks immediately or with a delay.
 // The current implementation does not allow running nested tasks.
@@ -40,7 +39,6 @@ class TaskRunner {
                                std::function<void()> task) = 0;
 };
 
-}  // namespace fastpair
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_PUBLIC_TASK_RUNNER_H_
+#endif  // PLATFORM_PUBLIC_TASK_RUNNER_H_

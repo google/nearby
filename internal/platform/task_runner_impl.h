@@ -12,8 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_PUBLIC_TASK_RUNNER_IMPL_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_PUBLIC_TASK_RUNNER_IMPL_H_
+#ifndef PLATFORM_PUBLIC_TASK_RUNNER_IMPL_H_
+#define PLATFORM_PUBLIC_TASK_RUNNER_IMPL_H_
+
+// Kludge: third_party/leveldb introduces macro UNICODE to all its dependents
+// and causes CreateMutex to expand to CreateMutexW.
+#if defined(_WIN32) && defined(UNICODE)
+#pragma push_macro("UNICODE")
+#define UNICODE_PUSHED
+#undef UNICODE
+#endif
 
 #include <functional>
 #include <memory>
@@ -22,12 +30,11 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/synchronization/mutex.h"
-#include "fastpair/internal/public/task_runner.h"
 #include "internal/platform/multi_thread_executor.h"
+#include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
 
 namespace nearby {
-namespace fastpair {
 
 class TaskRunnerImpl : public TaskRunner {
  public:
@@ -48,7 +55,11 @@ class TaskRunnerImpl : public TaskRunner {
       ABSL_GUARDED_BY(mutex_);
 };
 
-}  // namespace fastpair
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_PUBLIC_TASK_RUNNER_IMPL_H_
+#ifdef UNICODE_PUSHED
+#pragma pop_macro("UNICODE")
+#undef UNICODE_PUSHED
+#endif
+
+#endif  // PLATFORM_PUBLIC_TASK_RUNNER_IMPL_H_
