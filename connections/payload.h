@@ -83,7 +83,6 @@ class Payload {
 
   // Returns ByteArray payload, if it has been defined, or empty ByteArray.
   const ByteArray& AsBytes() const&;
-  ByteArray&& AsBytes() &&;
   // Returns InputStream* payload, if it has been defined, or nullptr.
   InputStream* AsStream();
   // Returns InputFile* payload, if it has been defined, or nullptr.

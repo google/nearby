@@ -100,10 +100,6 @@ const ByteArray& Payload::AsBytes() const& {
   auto* result = absl::get_if<ByteArray>(&content_);
   return result ? *result : empty;
 }
-ByteArray&& Payload::AsBytes() && {
-  auto* result = absl::get_if<ByteArray>(&content_);
-  return result ? std::move(*result) : std::move(ByteArray());
-}
 // Returns InputStream* payload, if it has been defined, or nullptr.
 InputStream* Payload::AsStream() {
   auto* result = absl::get_if<std::function<InputStream&()>>(&content_);
