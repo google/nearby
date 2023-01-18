@@ -43,7 +43,7 @@ BleV2Medium::StartAdvertising(
     api::ble_v2::AdvertiseParameters advertise_set_parameters,
     api::ble_v2::BleMedium::AdvertisingCallback callback) {
   return impl_->StartAdvertising(advertising_data, advertise_set_parameters,
-                                 callback);
+                                 std::move(callback));
 }
 
 bool BleV2Medium::StartScanning(const Uuid& service_uuid,
@@ -111,16 +111,18 @@ BleV2Medium::StartScanning(const Uuid& service_uuid,
       service_uuid, tx_power_level,
       api::ble_v2::BleMedium::ScanningCallback{
           .start_scanning_result =
-              [this, callback](absl::Status status) {
+              [this, start_scanning_result =
+                         std::move(callback.start_scanning_result)](
+                  absl::Status status) mutable {
                 {
                   MutexLock lock(&mutex_);
                   if (status.ok()) {
                     scanning_enabled_ = true;
                   }
                 }
-                callback.start_scanning_result(status);
+                start_scanning_result(status);
               },
-          .advertisement_found_cb = callback.advertisement_found_cb,
+          .advertisement_found_cb = std::move(callback.advertisement_found_cb),
       });
 }
 

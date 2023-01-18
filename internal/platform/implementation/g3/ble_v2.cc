@@ -283,7 +283,8 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
   absl::MutexLock lock(&mutex_);
   MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
       /*enabled=*/true, service_uuid, internal_session_id,
-      {.advertisement_found_cb = callback.advertisement_found_cb}, *this);
+      {.advertisement_found_cb = std::move(callback.advertisement_found_cb)},
+      *this);
   scanning_internal_session_ids_.insert({service_uuid, internal_session_id});
   return true;
 }
@@ -310,10 +311,10 @@ std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
     absl::MutexLock lock(&mutex_);
 
     MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
-        /*enabled=*/true, service_uuid, internal_session_id, callback, *this);
+        /*enabled=*/true, service_uuid, internal_session_id,
+        std::move(callback), *this);
     scanning_internal_session_ids_.insert({service_uuid, internal_session_id});
   }
-  callback.start_scanning_result(absl::OkStatus());
   return std::make_unique<ScanningSession>(ScanningSession{
       .stop_scanning =
           [this, service_uuid = service_uuid,

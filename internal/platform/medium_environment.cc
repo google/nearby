@@ -318,8 +318,7 @@ void MediumEnvironment::OnWifiLanServiceStateChanged(
   }
 }
 
-void MediumEnvironment::RunOnMediumEnvironmentThread(
-    std::function<void()> runnable) {
+void MediumEnvironment::RunOnMediumEnvironmentThread(Runnable runnable) {
   job_count_++;
   executor_.Execute(std::move(runnable));
 }
@@ -582,7 +581,8 @@ void MediumEnvironment::UpdateBleV2MediumForScanning(
   RunOnMediumEnvironmentThread([this, &medium,
                                 scanning_service_uuid = scanning_service_uuid,
                                 internal_session_id = internal_session_id,
-                                callback = std::move(callback), enabled]() {
+                                callback = std::move(callback),
+                                enabled]() mutable {
     auto it = ble_v2_mediums_.find(&medium);
     if (it == ble_v2_mediums_.end()) {
       NEARBY_LOGS(INFO)
@@ -598,8 +598,8 @@ void MediumEnvironment::UpdateBleV2MediumForScanning(
     if (enabled) {
       context.scanning = true;
       callback.start_scanning_result(absl::OkStatus());
-      context.scan_callback_map.insert(
-          {{scanning_service_uuid, internal_session_id}, std::move(callback)});
+      context.scan_callback_map[{scanning_service_uuid, internal_session_id}] =
+          std::move(callback);
       absl::flat_hash_set<Uuid> scanning_service_uuids;
       for (auto& element : context.scan_callback_map) {
         scanning_service_uuids.insert(element.first.first);
@@ -724,7 +724,7 @@ MediumEnvironment::GetBleV2MediumStatus(const api::ble_v2::BleMedium& medium) {
       latch.CountDown();
       return;
     }
-    BleV2MediumContext context = it->second;
+    BleV2MediumContext& context = it->second;
 
     result = BleV2MediumStatus{.is_advertising = context.advertising,
                                .is_scanning = context.scanning};

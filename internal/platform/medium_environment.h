@@ -433,7 +433,7 @@ class MediumEnvironment {
                                     const NsdServiceInfo& service_info,
                                     bool enabled);
 
-  void RunOnMediumEnvironmentThread(std::function<void()> runnable);
+  void RunOnMediumEnvironmentThread(Runnable runnable);
 
   std::atomic_bool enabled_ = false;
   std::atomic_int job_count_ = 0;

@@ -45,12 +45,12 @@ absl::StatusOr<BroadcastSessionId> BroadcastManager::StartBroadcast(
   RunOnServiceControllerThread(
       "start-broadcast",
       [this, id, power_mode = broadcast_request.power_mode, request = *request,
-       broadcast_callback = std::move(callback)]()
-          ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
-            sessions_.insert(
-                {id, BroadcastSessionState(broadcast_callback, power_mode)});
-            FetchCredentials(id, std::move(request));
-          });
+       broadcast_callback = std::move(
+           callback)]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) mutable {
+        sessions_.insert({id, BroadcastSessionState(
+                                  std::move(broadcast_callback), power_mode)});
+        FetchCredentials(id, std::move(request));
+      });
   return id;
 }
 

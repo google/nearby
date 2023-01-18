@@ -17,6 +17,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
@@ -70,7 +71,7 @@ class Ble {
         .is_connectable = true,
     };
     return medium_.StartAdvertising(advertising_data, advertise_set_parameters,
-                                    callback);
+                                    std::move(callback));
   }
 
   // Starts scanning for NP advertisements. The caller should use the returned
@@ -79,7 +80,8 @@ class Ble {
                                                  ScanningCallback callback) {
     return medium_.StartScanning(
         kPresenceServiceUuid,
-        ConvertPowerModeToPowerLevel(scan_request.power_mode), callback);
+        ConvertPowerModeToPowerLevel(scan_request.power_mode),
+        std::move(callback));
   }
 
   // Provides access to platform implementation. It's used in tests.

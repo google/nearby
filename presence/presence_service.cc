@@ -15,6 +15,7 @@
 #include "presence/presence_service.h"
 
 #include <memory>
+#include <utility>
 
 #include "internal/platform/borrowable.h"
 #include "presence/data_types.h"
@@ -32,7 +33,7 @@ PresenceClient PresenceService::CreatePresenceClient() {
 
 absl::StatusOr<ScanSessionId> PresenceService::StartScan(
     ScanRequest scan_request, ScanCallback callback) {
-  return service_controller_->StartScan(scan_request, callback);
+  return service_controller_->StartScan(scan_request, std::move(callback));
 }
 void PresenceService::StopScan(ScanSessionId id) {
   service_controller_->StopScan(id);
@@ -40,7 +41,8 @@ void PresenceService::StopScan(ScanSessionId id) {
 
 absl::StatusOr<BroadcastSessionId> PresenceService::StartBroadcast(
     BroadcastRequest broadcast_request, BroadcastCallback callback) {
-  return service_controller_->StartBroadcast(broadcast_request, callback);
+  return service_controller_->StartBroadcast(broadcast_request,
+                                             std::move(callback));
 }
 
 void PresenceService::StopBroadcast(BroadcastSessionId session) {

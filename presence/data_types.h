@@ -33,17 +33,19 @@ using ScanSessionId = uint64_t;
 // empty functions.
 struct ScanCallback {
   // Updates client with the result of start scanning.
-  std::function<void(absl::Status)> start_scan_cb = [](absl::Status) {};
+  absl::AnyInvocable<void(absl::Status)> start_scan_cb = [](absl::Status) {};
 
   // Reports a {@link PresenceDevice} being discovered.
-  std::function<void(PresenceDevice)> on_discovered_cb = [](PresenceDevice) {};
+  absl::AnyInvocable<void(PresenceDevice)> on_discovered_cb =
+      [](PresenceDevice) {};
 
   // Reports a {@link PresenceDevice} information(distance, and etc)
   // changed.
-  std::function<void(PresenceDevice)> on_updated_cb = [](PresenceDevice) {};
+  absl::AnyInvocable<void(PresenceDevice)> on_updated_cb = [](PresenceDevice) {
+  };
 
   // Reports a {@link PresenceDevice} is no longer within range.
-  std::function<void(PresenceDevice)> on_lost_cb = [](PresenceDevice) {};
+  absl::AnyInvocable<void(PresenceDevice)> on_lost_cb = [](PresenceDevice) {};
 };
 
 // Unique Broadcast Session Identifier.
@@ -53,7 +55,8 @@ using BroadcastSessionId = uint64_t;
 // don't need these signal updates, they can skip with the provided default
 // empty functions.
 struct BroadcastCallback {
-  std::function<void(absl::Status)> start_broadcast_cb = [](absl::Status) {};
+  absl::AnyInvocable<void(absl::Status)> start_broadcast_cb = [](absl::Status) {
+  };
 };
 
 }  // namespace presence

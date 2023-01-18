@@ -206,7 +206,8 @@ TEST_F(ScanManagerTest, PresenceDeviceMetadataIsRetained) {
   // Start scanning
   ScanRequest scan_request_no_filter = MakeDefaultScanRequest();
   scan_request_no_filter.scan_filters.clear();
-  auto scan_session = manager.StartScan(scan_request_no_filter, callback);
+  auto scan_session =
+      manager.StartScan(scan_request_no_filter, std::move(callback));
 
   ASSERT_EQ(manager.ScanningCallbacksLengthForTest(), 1);
   ASSERT_TRUE(mediums.GetBle().IsAvailable());

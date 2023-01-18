@@ -370,13 +370,14 @@ bool BleMedium::StartScanning(const Uuid& service_uuid, TxPowerLevel tx_power_le
     central_ = [[GNCMBleCentral alloc] init];
   }
 
+  __block ScanCallback callback = std::move(scan_callback);
   [central_ startScanningWithServiceUUID:ObjCStringFromCppString(service_uuid.Get16BitAsString())
       scanResultHandler:^(NSString* peripheralID, NSData* serviceData) {
         BleAdvertisementData advertisement_data;
         advertisement_data.service_data = {{service_uuid, ByteArrayFromNSData(serviceData)}};
         BlePeripheral& peripheral = adapter_->GetPeripheral();
         peripheral.SetPeripheralId(CppStringFromObjCString(peripheralID));
-        scan_callback.advertisement_found_cb(peripheral, advertisement_data);
+        callback.advertisement_found_cb(peripheral, advertisement_data);
       }
       requestConnectionHandler:^(GNCMBleConnectionRequester connectionRequester) {
         BlePeripheral& peripheral = adapter_->GetPeripheral();
@@ -393,8 +394,7 @@ bool BleMedium::StopScanning() {
 }
 
 std::unique_ptr<BleMedium::ScanningSession> BleMedium::StartScanning(
-    const Uuid& service_uuid, TxPowerLevel tx_power_level,
-    BleMedium::ScanningCallback callback) {
+    const Uuid& service_uuid, TxPowerLevel tx_power_level, BleMedium::ScanningCallback callback) {
   // TODO(hais): add real impl for windows StartScanning.
   return std::make_unique<ScanningSession>(ScanningSession{});
 }

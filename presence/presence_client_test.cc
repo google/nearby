@@ -43,14 +43,14 @@ class PresenceClientTest : public testing::Test {
 TEST_F(PresenceClientTest, StartBroadcastWithDefaultConstructor) {
   env_.Start();
   absl::Status broadcast_result;
-  BroadcastCallback broadcast_callback = {
-      .start_broadcast_cb =
-          [&](absl::Status status) { broadcast_result = status; },
-  };
 
   PresenceService presence_service;
   PresenceClient presence_client = presence_service.CreatePresenceClient();
-  auto unused = presence_client.StartBroadcast({}, broadcast_callback);
+  auto unused = presence_client.StartBroadcast(
+      {}, {
+              .start_broadcast_cb =
+                  [&](absl::Status status) { broadcast_result = status; },
+          });
 
   EXPECT_THAT(broadcast_result, StatusIs(absl::StatusCode::kInvalidArgument));
   env_.Stop();
@@ -59,13 +59,13 @@ TEST_F(PresenceClientTest, StartBroadcastWithDefaultConstructor) {
 TEST_F(PresenceClientTest, StartBroadcastFailsWhenPresenceServiceIsGone) {
   env_.Start();
   absl::Status broadcast_result = absl::UnknownError("");
-  BroadcastCallback broadcast_callback = {
-      .start_broadcast_cb =
-          [&](absl::Status status) { broadcast_result = status; },
-  };
 
   absl::StatusOr<BroadcastSessionId> session_id =
-      CreateDefunctPresenceClient().StartBroadcast({}, broadcast_callback);
+      CreateDefunctPresenceClient().StartBroadcast(
+          {}, {
+                  .start_broadcast_cb =
+                      [&](absl::Status status) { broadcast_result = status; },
+              });
 
   EXPECT_THAT(session_id, StatusIs(absl::StatusCode::kFailedPrecondition));
   EXPECT_THAT(broadcast_result, StatusIs(absl::StatusCode::kUnknown));
@@ -81,7 +81,7 @@ TEST_F(PresenceClientTest, StartScanWithDefaultConstructor) {
 
   PresenceService presence_service;
   PresenceClient presence_client = presence_service.CreatePresenceClient();
-  EXPECT_OK(presence_client.StartScan({}, scan_callback));
+  EXPECT_OK(presence_client.StartScan({}, std::move(scan_callback)));
 
   EXPECT_TRUE(scan_result.Get().ok());
   EXPECT_OK(scan_result.Get().GetResult());
@@ -91,12 +91,13 @@ TEST_F(PresenceClientTest, StartScanWithDefaultConstructor) {
 TEST_F(PresenceClientTest, StartScanFailsWhenPresenceServiceIsGone) {
   env_.Start();
   absl::Status scan_result = absl::UnknownError("");
-  ScanCallback scan_callback = {
-      .start_scan_cb = [&](absl::Status status) { scan_result = status; },
-  };
 
   absl::StatusOr<ScanSessionId> session_id =
-      CreateDefunctPresenceClient().StartScan({}, scan_callback);
+      CreateDefunctPresenceClient().StartScan(
+          {}, {
+                  .start_scan_cb =
+                      [&](absl::Status status) { scan_result = status; },
+              });
 
   EXPECT_THAT(session_id, StatusIs(absl::StatusCode::kFailedPrecondition));
   EXPECT_THAT(scan_result, StatusIs(absl::StatusCode::kUnknown));

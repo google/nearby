@@ -61,7 +61,8 @@ class BroadcastManager {
    public:
     explicit BroadcastSessionState(BroadcastCallback broadcast_callback,
                                    PowerMode power_mode)
-        : broadcast_callback_(broadcast_callback), power_mode_(power_mode) {}
+        : broadcast_callback_(std::move(broadcast_callback)),
+          power_mode_(power_mode) {}
 
     void SetAdvertisingSession(std::unique_ptr<AdvertisingSession> session);
     void CallStartedCallback(absl::Status status);

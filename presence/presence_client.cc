@@ -33,7 +33,7 @@ absl::StatusOr<ScanSessionId> PresenceClient::StartScan(
     return absl::FailedPreconditionError(
         "Can't start scan, presence service is gone");
   }
-  return (*borrowed)->StartScan(scan_request, callback);
+  return (*borrowed)->StartScan(scan_request, std::move(callback));
 }
 
 void PresenceClient::StopScan(ScanSessionId id) {
@@ -50,7 +50,7 @@ absl::StatusOr<BroadcastSessionId> PresenceClient::StartBroadcast(
     return absl::FailedPreconditionError(
         "Can't start broadcast, presence service is gone");
   }
-  return (*borrowed)->StartBroadcast(broadcast_request, callback);
+  return (*borrowed)->StartBroadcast(broadcast_request, std::move(callback));
 }
 
 void PresenceClient::StopBroadcast(BroadcastSessionId session_id) {

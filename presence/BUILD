@@ -52,7 +52,6 @@ cc_library(
         "device_motion.h",
         "discovery_filter.h",
         "discovery_options.h",
-        "listeners.h",
         "power_mode.h",
         "presence_action.h",
         "presence_device.h",

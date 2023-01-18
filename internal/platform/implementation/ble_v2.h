@@ -224,19 +224,19 @@ class GattServer {
 struct ClientGattConnectionCallback {
  public:
   // Called when the client is disconnected from the GATT server.
-  std::function<void()> disconnected_cb = DefaultCallback<>();
+  absl::AnyInvocable<void()> disconnected_cb = []() {};
 };
 
 // Callback for asynchronous events on the server side of a GATT connection.
 struct ServerGattConnectionCallback {
   // Called when a remote peripheral connected to us and subscribed to one of
   // our characteristics.
-  std::function<void(const GattCharacteristic& characteristic)>
+  absl::AnyInvocable<void(const GattCharacteristic& characteristic)>
       characteristic_subscription_cb;
 
   // Called when a remote peripheral unsubscribed from one of our
   // characteristics.
-  std::function<void(const GattCharacteristic& characteristic)>
+  absl::AnyInvocable<void(const GattCharacteristic& characteristic)>
       characteristic_unsubscription_cb;
 };
 
@@ -298,11 +298,11 @@ class BleMedium {
       AdvertiseParameters advertise_set_parameters) = 0;
 
   struct AdvertisingCallback {
-    std::function<void(absl::Status)> start_advertising_result;
+    absl::AnyInvocable<void(absl::Status)> start_advertising_result;
   };
 
   struct AdvertisingSession {
-    std::function<absl::Status()> stop_advertising;
+    absl::AnyInvocable<absl::Status()> stop_advertising;
   };
 
   // Async interface for StartAdertising.
@@ -332,10 +332,9 @@ class BleMedium {
   // The peripheral is owned by platform implementation and it should outlive
   // for the whole peripheral(device) connection life cycle.
   struct ScanCallback {
-    std::function<void(BlePeripheral& peripheral,
-                       BleAdvertisementData advertisement_data)>
-        advertisement_found_cb =
-            DefaultCallback<BlePeripheral&, BleAdvertisementData>();
+    absl::AnyInvocable<void(BlePeripheral& peripheral,
+                            BleAdvertisementData advertisement_data)>
+        advertisement_found_cb = [](BlePeripheral&, BleAdvertisementData) {};
   };
 
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeScanner.html#startScan(java.util.List%3Candroid.bluetooth.le.ScanFilter%3E,%20android.bluetooth.le.ScanSettings,%20android.bluetooth.le.ScanCallback)
@@ -359,16 +358,15 @@ class BleMedium {
   virtual bool StopScanning() = 0;
 
   struct ScanningSession {
-    std::function<absl::Status()> stop_scanning;
+    absl::AnyInvocable<absl::Status()> stop_scanning;
   };
 
   struct ScanningCallback {
-    std::function<void(absl::Status)> start_scanning_result =
-        DefaultCallback<absl::Status>();
-    std::function<void(BlePeripheral& peripheral,
-                       BleAdvertisementData advertisement_data)>
-        advertisement_found_cb =
-            DefaultCallback<BlePeripheral&, BleAdvertisementData>();
+    absl::AnyInvocable<void(absl::Status)> start_scanning_result =
+        [](absl::Status) {};
+    absl::AnyInvocable<void(BlePeripheral& peripheral,
+                            BleAdvertisementData advertisement_data)>
+        advertisement_found_cb = [](BlePeripheral&, BleAdvertisementData) {};
   };
 
   // Async interface for StartScanning.

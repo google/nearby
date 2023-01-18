@@ -48,34 +48,37 @@ ScanSessionId ScanManager::StartScan(ScanRequest scan_request,
                                      ScanCallback cb) {
   ScanSessionId id = ::crypto::RandData<ScanSessionId>();
   RunOnServiceControllerThread(
-      "start-scan", [this, id, scan_request,
-                     scan_callback = std::move(
-                         cb)]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
-        ScanningCallback callback = ScanningCallback{
-            .start_scanning_result =
-                [start_scan_client = std::move(scan_callback.start_scan_cb)](
-                    absl::Status ble_status) { start_scan_client(ble_status); },
-            // TODO(b/256686710): Track known devices
-            .advertisement_found_cb =
-                [this, id](BlePeripheral& peripheral,
-                           BleAdvertisementData data) {
-                  RunOnServiceControllerThread(
-                      "notify-found-ble",
-                      [this, id, data = std::move(data),
-                       address = peripheral.GetAddress()]()
-                          ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
-                            NotifyFoundBle(id, data, address);
-                          });
-                }};
-        FetchCredentials(id, scan_request);
-        scan_sessions_.insert(
-            {id, ScanSessionState{
-                     .request = scan_request,
-                     .callback = std::move(scan_callback),
-                     .decoder = AdvertisementDecoder(scan_request),
-                     .scanning_session = mediums_->GetBle().StartScanning(
-                         scan_request, std::move(callback))}});
-      });
+      "start-scan",
+      [this, id, scan_request, scan_callback = std::move(cb)]()
+          ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) mutable {
+            ScanningCallback callback = ScanningCallback{
+                .start_scanning_result =
+                    [start_scan_client =
+                         std::move(scan_callback.start_scan_cb)](
+                        absl::Status ble_status) mutable {
+                      start_scan_client(ble_status);
+                    },
+                // TODO(b/256686710): Track known devices
+                .advertisement_found_cb =
+                    [this, id](BlePeripheral& peripheral,
+                               BleAdvertisementData data) {
+                      RunOnServiceControllerThread(
+                          "notify-found-ble",
+                          [this, id, data = std::move(data),
+                           address = peripheral.GetAddress()]()
+                              ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
+                                NotifyFoundBle(id, data, address);
+                              });
+                    }};
+            FetchCredentials(id, scan_request);
+            scan_sessions_.insert(
+                {id, ScanSessionState{
+                         .request = scan_request,
+                         .callback = std::move(scan_callback),
+                         .decoder = AdvertisementDecoder(scan_request),
+                         .scanning_session = mediums_->GetBle().StartScanning(
+                             scan_request, std::move(callback))}});
+          });
   return id;
 }
 

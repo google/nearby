@@ -14,6 +14,8 @@
 
 #include "presence/implementation/service_controller_impl.h"
 
+#include <utility>
+
 #include "absl/status/statusor.h"
 #include "presence/data_types.h"
 
@@ -22,7 +24,7 @@ namespace presence {
 
 absl::StatusOr<ScanSessionId> ServiceControllerImpl::StartScan(
     ScanRequest scan_request, ScanCallback callback) {
-  return scan_manager_.StartScan(scan_request, callback);
+  return scan_manager_.StartScan(scan_request, std::move(callback));
 }
 void ServiceControllerImpl::StopScan(ScanSessionId id) {
   scan_manager_.StopScan(id);
@@ -30,7 +32,8 @@ void ServiceControllerImpl::StopScan(ScanSessionId id) {
 
 absl::StatusOr<BroadcastSessionId> ServiceControllerImpl::StartBroadcast(
     BroadcastRequest broadcast_request, BroadcastCallback callback) {
-  return broadcast_manager_.StartBroadcast(broadcast_request, callback);
+  return broadcast_manager_.StartBroadcast(broadcast_request,
+                                           std::move(callback));
 }
 
 void ServiceControllerImpl::StopBroadcast(BroadcastSessionId id) {
