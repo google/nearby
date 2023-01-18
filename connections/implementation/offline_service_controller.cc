@@ -1,4 +1,4 @@
-// Copyright 2021-2023 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -147,8 +147,7 @@ void OfflineServiceController::SetCustomSavePath(ClientProxy* client,
                                                  const std::string& path) {
   if (stop_) return;
   NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
-                    << " requested to set custom save path: "
-                    << std::string(path);
+                    << " requested to set custom save path: " << path;
   payload_manager_.SetCustomSavePath(client, path);
 }
 

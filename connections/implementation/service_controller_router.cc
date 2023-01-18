@@ -1,4 +1,4 @@
-// Copyright 2021-2023 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -350,7 +350,7 @@ void ServiceControllerRouter::SetCustomSavePath(
       [this, client, path = std::string(path), callback]() {
         NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
                           << " has requested us to set custom save path to "
-                          << std::string(path);
+                          << path;
         GetServiceController()->SetCustomSavePath(client, path);
         callback.result_cb({Status::kSuccess});
       });
