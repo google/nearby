@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -190,7 +190,6 @@ ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
 ABSL_DEPRECATED("This interface will be deleted in the near future.")
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     PayloadId payload_id, std::int64_t total_size) {
-  std::string parent_folder("");
   std::string file_name(std::to_string(payload_id));
   return windows::IOFile::CreateInputFile(GetDownloadPath(file_name),
                                           total_size);
@@ -214,15 +213,16 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     const std::string& file_path) {
   std::string path(file_path);
 
-  std::string folder_path = path.substr(0, path.find_last_of('/'));
+  auto folder_path =
+      windows::string_to_wstring(path.substr(0, path.find_last_of('/')));
   // Verifies that a path is a valid directory.
-  // https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathisdirectorya
-  if (!PathIsDirectoryA(folder_path.data())) {
+  // https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathisdirectoryw
+  if (!PathIsDirectoryW(folder_path.data())) {
     // This function creates a file system folder whose fully qualified path is
     // given by pszPath. If one or more of the intermediate folders do not
     // exist, they are created as well.
-    // https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shcreatedirectoryexa
-    int result = SHCreateDirectoryExA(0, folder_path.data(), nullptr);
+    // https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shcreatedirectoryexw
+    int result = SHCreateDirectoryExW(nullptr, folder_path.data(), nullptr);
   }
 
   return windows::IOFile::CreateOutputFile(file_path);
