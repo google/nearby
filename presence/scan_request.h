@@ -56,7 +56,7 @@ struct LegacyPresenceScanFilter {
 
   // Android T needs clients to provide remote public credentials in scan
   // requests.
-  std::vector<nearby::internal::PublicCredential> remote_public_credentials;
+  std::vector<nearby::internal::SharedCredential> remote_public_credentials;
 
   // A list of presence actions for matching. Matching condition is met as
   // long as there’s one or more equal actions between Scan actions and

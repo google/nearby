@@ -66,7 +66,7 @@ struct SaveCredentialsResultCallback {
 
 struct GenerateCredentialsResultCallback {
   absl::AnyInvocable<void(
-      absl::StatusOr<std::vector<nearby::internal::PublicCredential>>)>
+      absl::StatusOr<std::vector<nearby::internal::SharedCredential>>)>
       credentials_generated_cb;
 };
 
@@ -76,13 +76,13 @@ struct UpdateRemotePublicCredentialsCallback {
 
 struct GetPrivateCredentialsResultCallback {
   absl::AnyInvocable<void(
-      absl::StatusOr<std::vector<nearby::internal::PrivateCredential>>)>
+      absl::StatusOr<std::vector<nearby::internal::LocalCredential>>)>
       credentials_fetched_cb;
 };
 
 struct GetPublicCredentialsResultCallback {
   absl::AnyInvocable<void(
-      absl::StatusOr<std::vector<nearby::internal::PublicCredential>>)>
+      absl::StatusOr<std::vector<nearby::internal::SharedCredential>>)>
       credentials_fetched_cb;
 };
 

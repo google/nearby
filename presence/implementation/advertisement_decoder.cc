@@ -212,7 +212,7 @@ void AdvertisementDecoder::DecodeBaseTxAndAction(
 }
 
 absl::StatusOr<std::string> AdvertisementDecoder::DecryptLdt(
-    const std::vector<internal::PublicCredential>& credentials,
+    const std::vector<internal::SharedCredential>& credentials,
     absl::string_view salt, absl::string_view data_elements) {
   if (credentials.empty()) {
     return absl::UnavailableError("No credentials");
@@ -278,7 +278,7 @@ absl::StatusOr<std::string> AdvertisementDecoder::Decrypt(
     if (!absl::holds_alternative<LegacyPresenceScanFilter>(scan_filter)) {
       continue;
     }
-    const std::vector<nearby::internal::PublicCredential>& credentials =
+    const std::vector<nearby::internal::SharedCredential>& credentials =
         absl::get<LegacyPresenceScanFilter>(scan_filter)
             .remote_public_credentials;
     if (credentials.empty()) {

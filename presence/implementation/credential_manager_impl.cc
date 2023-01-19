@@ -33,6 +33,7 @@
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
 #include "internal/proto/credential.pb.h"
+#include "internal/proto/credential.proto.h"
 #include "presence/implementation/encryption.h"
 #include "presence/implementation/ldt.h"
 
@@ -46,8 +47,8 @@ using ::nearby::ExceptionOr;
 using ::nearby::Future;
 using ::nearby::internal::DeviceMetadata;
 using ::nearby::internal::IdentityType;
-using ::nearby::internal::PrivateCredential;
-using ::nearby::internal::PublicCredential;
+using ::nearby::internal::LocalCredential;
+using ::nearby::internal::SharedCredential;
 
 // Key to retrieve local device's Private/Public Key Credentials from key store.
 constexpr char kPairedKeyAliasPrefix[] = "nearby_presence_paired_key_alias_";
@@ -61,8 +62,8 @@ void CredentialManagerImpl::GenerateCredentials(
     const std::vector<IdentityType>& identity_types,
     int credential_life_cycle_days, int contiguous_copy_of_credentials,
     GenerateCredentialsResultCallback credentials_generated_cb) {
-  std::vector<PublicCredential> public_credentials;
-  std::vector<PrivateCredential> private_credentials;
+  std::vector<SharedCredential> public_credentials;
+  std::vector<LocalCredential> private_credentials;
 
   for (auto identity_type : identity_types) {
     // TODO(b/241587906): Get linux time from the platform (like Android)
@@ -115,7 +116,7 @@ void CredentialManagerImpl::GenerateCredentials(
 
 void CredentialManagerImpl::UpdateRemotePublicCredentials(
     absl::string_view manager_app_id, absl::string_view account_name,
-    const std::vector<nearby::internal::PublicCredential>& remote_public_creds,
+    const std::vector<nearby::internal::SharedCredential>& remote_public_creds,
     UpdateRemotePublicCredentialsCallback credentials_updated_cb) {
   credential_storage_ptr_->SaveCredentials(
       manager_app_id, account_name, /* private_credentials */ {},
@@ -144,11 +145,11 @@ void CredentialManagerImpl::UpdateRemotePublicCredentials(
               }});
 }
 
-std::pair<PrivateCredential, PublicCredential>
+std::pair<LocalCredential, SharedCredential>
 CredentialManagerImpl::CreatePrivateCredential(
     const DeviceMetadata& device_metadata, IdentityType identity_type,
     uint64_t start_time_ms, uint64_t end_time_ms) {
-  PrivateCredential private_credential;
+  LocalCredential private_credential;
   private_credential.set_start_time_millis(start_time_ms);
   private_credential.set_end_time_millis(end_time_ms);
   private_credential.set_identity_type(identity_type);
@@ -189,15 +190,15 @@ CredentialManagerImpl::CreatePrivateCredential(
   std::vector<uint8_t> public_key;
   key_pair->ExportPublicKey(&public_key);
 
-  return std::pair<PrivateCredential, PublicCredential>(
+  return std::pair<LocalCredential, SharedCredential>(
       private_credential,
       CreatePublicCredential(private_credential, public_key));
 }
 
-PublicCredential CredentialManagerImpl::CreatePublicCredential(
-    const PrivateCredential& private_credential,
+SharedCredential CredentialManagerImpl::CreatePublicCredential(
+    const LocalCredential& private_credential,
     const std::vector<uint8_t>& public_key) {
-  PublicCredential public_credential;
+  SharedCredential public_credential;
   public_credential.set_identity_type(private_credential.identity_type());
   public_credential.set_secret_id(private_credential.secret_id());
   public_credential.set_authenticity_key(private_credential.authenticity_key());
@@ -304,14 +305,14 @@ void CredentialManagerImpl::GetPublicCredentials(
       credential_selector, public_credential_type, std::move(callback));
 }
 
-ExceptionOr<std::vector<PrivateCredential>>
+ExceptionOr<std::vector<LocalCredential>>
 CredentialManagerImpl::GetPrivateCredentialsSync(
     const CredentialSelector& credential_selector, absl::Duration timeout) {
-  Future<std::vector<PrivateCredential>> result;
+  Future<std::vector<LocalCredential>> result;
   GetPrivateCredentials(
       credential_selector,
       {.credentials_fetched_cb =
-           [result](absl::StatusOr<std::vector<PrivateCredential>>
+           [result](absl::StatusOr<std::vector<LocalCredential>>
                         credentials) mutable {
              if (!credentials.ok()) {
                result.SetException({Exception::kFailed});
@@ -322,15 +323,15 @@ CredentialManagerImpl::GetPrivateCredentialsSync(
   return result.Get(timeout);
 }
 
-ExceptionOr<std::vector<PublicCredential>>
+ExceptionOr<std::vector<SharedCredential>>
 CredentialManagerImpl::GetPublicCredentialsSync(
     const CredentialSelector& credential_selector,
     PublicCredentialType public_credential_type, absl::Duration timeout) {
-  Future<std::vector<PublicCredential>> result;
+  Future<std::vector<SharedCredential>> result;
   GetPublicCredentials(
       credential_selector, public_credential_type,
       {.credentials_fetched_cb =
-           [result](absl::StatusOr<std::vector<PublicCredential>>
+           [result](absl::StatusOr<std::vector<SharedCredential>>
                         credentials) mutable {
              if (!credentials.ok()) {
                result.SetException({Exception::kFailed});
@@ -424,7 +425,7 @@ CredentialManagerImpl::CreateNotifySubscribersCallback(SubscriberKey key) {
   return GetPublicCredentialsResultCallback{
       .credentials_fetched_cb =
           [this, key](
-              absl::StatusOr<std::vector<::nearby::internal::PublicCredential>>
+              absl::StatusOr<std::vector<::nearby::internal::SharedCredential>>
                   credentials) {
             if (!credentials.ok()) {
               NEARBY_LOGS(WARNING)
@@ -443,7 +444,7 @@ CredentialManagerImpl::CreateNotifySubscribersCallback(SubscriberKey key) {
 
 void CredentialManagerImpl::NotifySubscribers(
     const SubscriberKey& key,
-    std::vector<::nearby::internal::PublicCredential> credentials) {
+    std::vector<::nearby::internal::SharedCredential> credentials) {
   // We are on `executor_` thread, so we can iterate over `subscribers_`
   // without locking.
   auto it = subscribers_.find(key);
@@ -463,7 +464,7 @@ void CredentialManagerImpl::NotifySubscribers(
 }
 
 void CredentialManagerImpl::Subscriber::NotifyCredentialsFetched(
-    std::vector<::nearby::internal::PublicCredential>& credentials) {
+    std::vector<::nearby::internal::SharedCredential>& credentials) {
   callback_.credentials_fetched_cb(credentials);
 }
 

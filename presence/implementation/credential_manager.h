@@ -55,7 +55,7 @@ class CredentialManager {
   // Update remote public credentials.
   virtual void UpdateRemotePublicCredentials(
       absl::string_view manager_app_id, absl::string_view account_name,
-      const std::vector<nearby::internal::PublicCredential>&
+      const std::vector<nearby::internal::SharedCredential>&
           remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) = 0;
 

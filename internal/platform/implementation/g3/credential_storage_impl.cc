@@ -52,8 +52,8 @@ void FilterIdentityType(std::vector<Credential>& credentials,
 
 void CredentialStorageImpl::SaveCredentials(
     absl::string_view manager_app_id, absl::string_view account_name,
-    const std::vector<PrivateCredential>& private_credentials,
-    const std::vector<PublicCredential>& public_credentials,
+    const std::vector<LocalCredential>& private_credentials,
+    const std::vector<SharedCredential>& public_credentials,
     PublicCredentialType public_credential_type,
     SaveCredentialsResultCallback callback) {
   if (private_credentials.empty() && public_credentials.empty()) {
@@ -117,7 +117,7 @@ void CredentialStorageImpl::GetPrivateCredentials(
         absl::StrFormat("No private credentials for %v", credential_selector)));
     return;
   }
-  std::vector<PrivateCredential> private_credentials =
+  std::vector<LocalCredential> private_credentials =
       private_credentials_map_[key];
   FilterIdentityType(private_credentials, credential_selector.identity_type);
   if (private_credentials.empty()) {
@@ -145,7 +145,7 @@ void CredentialStorageImpl::GetPublicCredentials(
         absl::StrFormat("No public credentials for %v", credential_selector)));
     return;
   }
-  std::vector<PublicCredential> public_credentials =
+  std::vector<SharedCredential> public_credentials =
       public_credentials_map_[key];
   FilterIdentityType(public_credentials, credential_selector.identity_type);
   if (public_credentials.empty()) {

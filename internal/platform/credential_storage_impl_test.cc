@@ -33,8 +33,8 @@ namespace nearby {
 namespace {
 
 using ::nearby::internal::IdentityType;
-using ::nearby::internal::PrivateCredential;
-using ::nearby::internal::PublicCredential;
+using ::nearby::internal::LocalCredential;
+using ::nearby::internal::SharedCredential;
 using ::nearby::presence::CredentialSelector;
 using ::nearby::presence::GetPrivateCredentialsResultCallback;
 using ::nearby::presence::GetPublicCredentialsResultCallback;
@@ -49,24 +49,24 @@ constexpr absl::string_view kManagerAppId = "manager app id";
 constexpr absl::string_view kAccountName = "test_account";
 
 // `secret_id` is used to create credentials with different content.
-PrivateCredential CreatePrivateCredential(absl::string_view secret_id,
+LocalCredential CreatePrivateCredential(absl::string_view secret_id,
                                           IdentityType identity_type) {
-  PrivateCredential private_credential;
+  LocalCredential private_credential;
   private_credential.set_secret_id(secret_id);
   private_credential.set_identity_type(identity_type);
   return private_credential;
 }
 
-PublicCredential CreatePublicCredential(absl::string_view secret_id,
+SharedCredential CreatePublicCredential(absl::string_view secret_id,
                                         IdentityType identity_type) {
-  PublicCredential public_credential;
+  SharedCredential public_credential;
   public_credential.set_secret_id(secret_id);
   public_credential.set_identity_type(identity_type);
   return public_credential;
 }
 
-std::vector<PrivateCredential> BuildPrivateCreds(absl::string_view secret_id) {
-  std::vector<PrivateCredential> private_credentials = {
+std::vector<LocalCredential> BuildPrivateCreds(absl::string_view secret_id) {
+  std::vector<LocalCredential> private_credentials = {
       CreatePrivateCredential(secret_id, IdentityType::IDENTITY_TYPE_PRIVATE),
       CreatePrivateCredential(secret_id, IdentityType::IDENTITY_TYPE_TRUSTED),
       CreatePrivateCredential(secret_id,
@@ -74,8 +74,8 @@ std::vector<PrivateCredential> BuildPrivateCreds(absl::string_view secret_id) {
   return private_credentials;
 }
 
-std::vector<PublicCredential> BuildPublicCreds(absl::string_view secret_id) {
-  std::vector<PublicCredential> public_credentials = {
+std::vector<SharedCredential> BuildPublicCreds(absl::string_view secret_id) {
+  std::vector<SharedCredential> public_credentials = {
       CreatePublicCredential(secret_id, IdentityType::IDENTITY_TYPE_PRIVATE),
       CreatePublicCredential(secret_id, IdentityType::IDENTITY_TYPE_TRUSTED),
       CreatePublicCredential(secret_id,
@@ -83,25 +83,25 @@ std::vector<PublicCredential> BuildPublicCreds(absl::string_view secret_id) {
   return public_credentials;
 }
 
-absl::StatusOr<std::vector<PrivateCredential>> GetPrivateCredentials(
+absl::StatusOr<std::vector<LocalCredential>> GetPrivateCredentials(
     CredentialStorageImpl& credential_storage, IdentityType identity_type,
     absl::string_view manager_app_id = kManagerAppId,
     absl::string_view account_name = kAccountName) {
   CredentialSelector selector = {.manager_app_id = std::string(manager_app_id),
                                  .account_name = std::string(account_name),
                                  .identity_type = identity_type};
-  absl::StatusOr<std::vector<PrivateCredential>> private_credentials;
+  absl::StatusOr<std::vector<LocalCredential>> private_credentials;
   credential_storage.GetPrivateCredentials(
       selector,
       GetPrivateCredentialsResultCallback{
           .credentials_fetched_cb =
-              [&](absl::StatusOr<std::vector<PrivateCredential>> credentials) {
+              [&](absl::StatusOr<std::vector<LocalCredential>> credentials) {
                 private_credentials = std::move(credentials);
               }});
   return private_credentials;
 }
 
-absl::StatusOr<std::vector<PublicCredential>> GetPublicCredentials(
+absl::StatusOr<std::vector<SharedCredential>> GetPublicCredentials(
     CredentialStorageImpl& credential_storage, IdentityType identity_type,
     PublicCredentialType credential_type,
     absl::string_view manager_app_id = kManagerAppId,
@@ -109,12 +109,12 @@ absl::StatusOr<std::vector<PublicCredential>> GetPublicCredentials(
   CredentialSelector selector = {.manager_app_id = std::string(manager_app_id),
                                  .account_name = std::string(account_name),
                                  .identity_type = identity_type};
-  absl::StatusOr<std::vector<PublicCredential>> public_credentials;
+  absl::StatusOr<std::vector<SharedCredential>> public_credentials;
   credential_storage.GetPublicCredentials(
       selector, credential_type,
       GetPublicCredentialsResultCallback{
           .credentials_fetched_cb =
-              [&](absl::StatusOr<std::vector<PublicCredential>> credentials) {
+              [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
                 public_credentials = std::move(credentials);
               }});
   return public_credentials;
@@ -123,8 +123,8 @@ absl::StatusOr<std::vector<PublicCredential>> GetPublicCredentials(
 absl::Status SaveCredentials(CredentialStorageImpl& credential_storage,
                              absl::string_view manager_app_id,
                              absl::string_view account_name,
-                             std::vector<PrivateCredential> private_credentials,
-                             std::vector<PublicCredential> public_credentials,
+                             std::vector<LocalCredential> private_credentials,
+                             std::vector<SharedCredential> public_credentials,
                              PublicCredentialType public_credential_type) {
   absl::Status save_status = absl::UnknownError("");
 
@@ -139,8 +139,8 @@ absl::Status SaveCredentials(CredentialStorageImpl& credential_storage,
 }
 
 absl::Status SaveCredentials(CredentialStorageImpl& credential_storage,
-                             std::vector<PrivateCredential> private_credentials,
-                             std::vector<PublicCredential> public_credentials) {
+                             std::vector<LocalCredential> private_credentials,
+                             std::vector<SharedCredential> public_credentials) {
   return SaveCredentials(credential_storage, kManagerAppId, kAccountName,
                          private_credentials, public_credentials,
                          PublicCredentialType::kLocalPublicCredential);
@@ -150,7 +150,7 @@ absl::Status SavePrivateCredentials(CredentialStorageImpl& credential_storage,
                                     absl::string_view secret_id) {
   return SaveCredentials(credential_storage, kManagerAppId, kAccountName,
                          BuildPrivateCreds(secret_id),
-                         std::vector<PublicCredential>(),
+                         std::vector<SharedCredential>(),
                          PublicCredentialType::kLocalPublicCredential);
 }
 
@@ -158,14 +158,14 @@ absl::Status SavePublicCredentials(CredentialStorageImpl& credential_storage,
                                    PublicCredentialType credential_type,
                                    absl::string_view secret_id) {
   return SaveCredentials(credential_storage, kManagerAppId, kAccountName,
-                         std::vector<PrivateCredential>(),
+                         std::vector<LocalCredential>(),
                          BuildPublicCreds(secret_id), credential_type);
 }
 
 TEST(CredentialStorageImplTest, SaveAndGetPrivateCredentials) {
-  std::vector<PrivateCredential> default_private_creds =
+  std::vector<LocalCredential> default_private_creds =
       BuildPrivateCreds(kSecretId);
-  std::vector<PublicCredential> empty_public_creds;
+  std::vector<SharedCredential> empty_public_creds;
   CredentialStorageImpl credential_storage;
   absl::Status save_status = absl::UnknownError("");
 
@@ -201,8 +201,8 @@ TEST(CredentialStorageImplTest, ReplaceAndGetPrivateCredentials) {
 }
 
 TEST(CredentialStorageImplTest, SaveAndGetLocalPublicCredentials) {
-  std::vector<PrivateCredential> empty_private_creds;
-  std::vector<PublicCredential> public_creds = BuildPublicCreds(kSecretId);
+  std::vector<LocalCredential> empty_private_creds;
+  std::vector<SharedCredential> public_creds = BuildPublicCreds(kSecretId);
   CredentialStorageImpl credential_storage;
   absl::Status save_status = absl::UnknownError("");
 
@@ -244,8 +244,8 @@ TEST(CredentialStorageImplTest, ReplaceAndGetLocalPublicCredentials) {
 }
 
 TEST(CredentialStorageImplTest, SaveAndGetRemotePublicCredentials) {
-  std::vector<PrivateCredential> empty_private_creds;
-  std::vector<PublicCredential> public_creds = BuildPublicCreds(kSecretId);
+  std::vector<LocalCredential> empty_private_creds;
+  std::vector<SharedCredential> public_creds = BuildPublicCreds(kSecretId);
   CredentialStorageImpl credential_storage;
   absl::Status save_status = absl::UnknownError("");
 
@@ -287,8 +287,8 @@ TEST(CredentialStorageImplTest, ReplaceAndGetRemotePublicCredentials) {
 }
 
 TEST(CredentialStorageImplTest, SavePrivateAndLocalPublicCredentials) {
-  std::vector<PrivateCredential> private_creds = BuildPrivateCreds(kSecretId);
-  std::vector<PublicCredential> public_creds = BuildPublicCreds(kSecretId);
+  std::vector<LocalCredential> private_creds = BuildPrivateCreds(kSecretId);
+  std::vector<SharedCredential> public_creds = BuildPublicCreds(kSecretId);
   CredentialStorageImpl credential_storage;
 
   absl::Status status =
@@ -309,8 +309,8 @@ TEST(CredentialStorageImplTest, SavePrivateAndLocalPublicCredentials) {
 }
 
 TEST(CredentialStorageImplTest, SaveCredentialsFailsWhenNoCredentials) {
-  std::vector<PrivateCredential> empty_private_creds;
-  std::vector<PublicCredential> empty_public_creds;
+  std::vector<LocalCredential> empty_private_creds;
+  std::vector<SharedCredential> empty_public_creds;
   CredentialStorageImpl credential_storage;
   absl::Status save_status = absl::UnknownError("");
 
@@ -415,7 +415,7 @@ TEST_P(IdentityFilterTest, FilterPrivateCredentialsByIdentityType) {
   EXPECT_THAT(
       *private_credentials,
       UnorderedPointwise(EqualsProto(),
-                         std::vector<PrivateCredential>{CreatePrivateCredential(
+                         std::vector<LocalCredential>{CreatePrivateCredential(
                              kSecretId, identity_type)}));
 }
 
@@ -426,7 +426,7 @@ TEST_P(IdentityFilterTest,
   IdentityType other_type = identity_type == IdentityType::IDENTITY_TYPE_PRIVATE
                                 ? IdentityType::IDENTITY_TYPE_TRUSTED
                                 : IdentityType::IDENTITY_TYPE_PRIVATE;
-  std::vector<PrivateCredential> private_creds = {
+  std::vector<LocalCredential> private_creds = {
       CreatePrivateCredential(kSecretId, other_type)};
   CredentialStorageImpl credential_storage;
   EXPECT_OK(SaveCredentials(credential_storage, private_creds,
@@ -452,7 +452,7 @@ TEST_P(IdentityFilterTest, FilterPublicCredentialsByIdentityType) {
   EXPECT_THAT(
       *public_credentials,
       UnorderedPointwise(EqualsProto(),
-                         std::vector<PublicCredential>{CreatePublicCredential(
+                         std::vector<SharedCredential>{CreatePublicCredential(
                              kSecretId, identity_type)}));
 }
 
@@ -462,7 +462,7 @@ TEST_P(IdentityFilterTest, FilterPublicCredentialsFailsWhenNoCredentialsMatch) {
   IdentityType other_type = identity_type == IdentityType::IDENTITY_TYPE_PRIVATE
                                 ? IdentityType::IDENTITY_TYPE_TRUSTED
                                 : IdentityType::IDENTITY_TYPE_PRIVATE;
-  std::vector<PublicCredential> public_creds = {
+  std::vector<SharedCredential> public_creds = {
       CreatePublicCredential(kSecretId, other_type)};
   CredentialStorageImpl credential_storage;
   EXPECT_OK(SaveCredentials(credential_storage, BuildPrivateCreds(kSecretId),

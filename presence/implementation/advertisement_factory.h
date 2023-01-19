@@ -29,7 +29,7 @@ namespace presence {
 // Builds BLE advertisements from broadcast requests.
 class AdvertisementFactory {
  public:
-  using PrivateCredential = internal::PrivateCredential;
+  using LocalCredential = internal::LocalCredential;
 
   // Returns a `CredentialSelector` if credentials are required to create an
   // advertisement from the `request`.
@@ -39,20 +39,20 @@ class AdvertisementFactory {
   // Returns a BLE advertisement for given `request.
   absl::StatusOr<AdvertisementData> CreateAdvertisement(
       const BaseBroadcastRequest& request,
-      std::vector<PrivateCredential>& credentials) const;
+      std::vector<LocalCredential>& credentials) const;
 
   absl::StatusOr<AdvertisementData> CreateAdvertisement(
       const BaseBroadcastRequest& request) const {
-    std::vector<PrivateCredential> empty;
+    std::vector<LocalCredential> empty;
     return CreateAdvertisement(request, empty);
   }
 
  private:
   absl::StatusOr<AdvertisementData> CreateBaseNpAdvertisement(
       const BaseBroadcastRequest& request,
-      std::vector<PrivateCredential>& credentials) const;
+      std::vector<LocalCredential>& credentials) const;
   absl::StatusOr<std::string> EncryptDataElements(
-      std::vector<PrivateCredential>& credentials, absl::string_view salt,
+      std::vector<LocalCredential>& credentials, absl::string_view salt,
       absl::string_view data_elements) const;
 };
 

@@ -28,8 +28,8 @@ namespace api {
 // Credential Storage interface
 class CredentialStorage {
  public:
-  using PrivateCredential = ::nearby::internal::PrivateCredential;
-  using PublicCredential = ::nearby::internal::PublicCredential;
+  using LocalCredential = ::nearby::internal::LocalCredential;
+  using SharedCredential = ::nearby::internal::SharedCredential;
   using PublicCredentialType = ::nearby::presence::PublicCredentialType;
   using SaveCredentialsResultCallback =
       ::nearby::presence::SaveCredentialsResultCallback;
@@ -55,8 +55,8 @@ class CredentialStorage {
   // which is used for querying credentials.
   virtual void SaveCredentials(
       absl::string_view manager_app_id, absl::string_view account_name,
-      const std::vector<PrivateCredential>& private_credentials,
-      const std::vector<PublicCredential>& public_credentials,
+      const std::vector<LocalCredential>& Local_credentials,
+      const std::vector<SharedCredential>& Shared_credentials,
       PublicCredentialType public_credential_type,
       SaveCredentialsResultCallback callback) = 0;
 

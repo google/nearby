@@ -42,8 +42,8 @@ class CredentialStorageImpl : public api::CredentialStorage {
 
   void SaveCredentials(
       absl::string_view manager_app_id, absl::string_view account_name,
-      const std::vector<PrivateCredential>& private_credentials,
-      const std::vector<PublicCredential>& public_credentials,
+      const std::vector<LocalCredential>& private_credentials,
+      const std::vector<SharedCredential>& public_credentials,
       PublicCredentialType public_credential_type,
       SaveCredentialsResultCallback callback) override;
 

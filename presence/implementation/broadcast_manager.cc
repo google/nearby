@@ -69,7 +69,7 @@ void BroadcastManager::FetchCredentials(
           .credentials_fetched_cb =
               [this, id, broadcast_request = std::move(broadcast_request)](
                   absl::StatusOr<
-                      std::vector<::nearby::internal::PrivateCredential>>
+                      std::vector<::nearby::internal::LocalCredential>>
                       credentials) {
                 if (!credentials.ok()) {
                   NEARBY_LOGS(WARNING)
@@ -90,7 +90,7 @@ void BroadcastManager::FetchCredentials(
 
 void BroadcastManager::Advertise(BroadcastSessionId id,
                                  BaseBroadcastRequest broadcast_request,
-                                 std::vector<PrivateCredential> credentials) {
+                                 std::vector<LocalCredential> credentials) {
   auto it = sessions_.find(id);
   if (it == sessions_.end()) {
     NEARBY_LOGS(INFO) << "Broadcast session terminated, id: " << id;

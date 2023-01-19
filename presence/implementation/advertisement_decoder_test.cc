@@ -35,7 +35,7 @@ namespace presence {
 
 namespace {
 using ::nearby::ByteArray;                   // NOLINT
-using ::nearby::internal::PublicCredential;  // NOLINT
+using ::nearby::internal::SharedCredential;  // NOLINT
 using ::testing::ElementsAre;
 using ::protobuf_matchers::EqualsProto;
 using ::testing::Matcher;
@@ -55,7 +55,7 @@ ScanRequest GetScanRequest() {
 }
 
 #if USE_RUST_LDT == 1
-ScanRequest GetScanRequest(std::vector<PublicCredential> credentials) {
+ScanRequest GetScanRequest(std::vector<SharedCredential> credentials) {
   LegacyPresenceScanFilter scan_filter = {.remote_public_credentials =
                                               credentials};
   return ScanRequestBuilder()
@@ -68,7 +68,7 @@ ScanRequest GetScanRequest(std::vector<PublicCredential> credentials) {
       .Build();
 }
 
-PublicCredential GetPublicCredential() {
+SharedCredential GetPublicCredential() {
   // Values copied from LDT tests
   ByteArray seed({204, 219, 36, 137, 233, 252, 172, 66, 179, 147, 72,
                   184, 148, 30, 209, 154, 29,  54,  14, 117, 224, 152,
@@ -76,7 +76,7 @@ PublicCredential GetPublicCredential() {
   ByteArray known_mac({223, 185, 10,  31,  155, 31, 226, 141, 24,  187, 204,
                        165, 34,  64,  181, 204, 44, 203, 95,  141, 82,  137,
                        163, 203, 100, 235, 53,  65, 202, 97,  75,  180});
-  PublicCredential public_credential;
+  SharedCredential public_credential;
   public_credential.set_authenticity_key(seed.AsStringView());
   public_credential.set_metadata_encryption_key_tag(known_mac.AsStringView());
   return public_credential;
@@ -87,7 +87,7 @@ TEST(AdvertisementDecoder, DecodeBaseNpPrivateAdvertisement) {
   ByteArray metadata_key(
       {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
   absl::flat_hash_map<internal::IdentityType,
-                      std::vector<internal::PublicCredential>>
+                      std::vector<internal::SharedCredential>>
       credentials;
   credentials[internal::IDENTITY_TYPE_PRIVATE].push_back(GetPublicCredential());
   AdvertisementDecoder decoder(GetScanRequest(), &credentials);
@@ -111,7 +111,7 @@ TEST(AdvertisementDecoder,
   const std::string salt = "AB";
   ByteArray metadata_key(
       {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
-  std::vector<PublicCredential> credentials = {GetPublicCredential()};
+  std::vector<SharedCredential> credentials = {GetPublicCredential()};
 
   AdvertisementDecoder decoder(GetScanRequest(credentials));
 
@@ -134,7 +134,7 @@ TEST(AdvertisementDecoder, DecodeBaseNpTrustedAdvertisement) {
   ByteArray metadata_key(
       {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
   absl::flat_hash_map<internal::IdentityType,
-                      std::vector<internal::PublicCredential>>
+                      std::vector<internal::SharedCredential>>
       credentials;
   credentials[internal::IDENTITY_TYPE_TRUSTED].push_back(GetPublicCredential());
   AdvertisementDecoder decoder(GetScanRequest(), &credentials);
@@ -161,7 +161,7 @@ TEST(AdvertisementDecoder, DecodeBaseNpProvisionedAdvertisement) {
   ByteArray metadata_key(
       {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
   absl::flat_hash_map<internal::IdentityType,
-                      std::vector<internal::PublicCredential>>
+                      std::vector<internal::SharedCredential>>
       credentials;
   credentials[internal::IDENTITY_TYPE_PROVISIONED].push_back(
       GetPublicCredential());
@@ -189,7 +189,7 @@ TEST(AdvertisementDecoder, InvalidEncryptedContent) {
   ByteArray metadata_key(
       {205, 104, 63, 225, 161, 209, 248, 70, 84, 61, 10, 19, 212, 174});
   absl::flat_hash_map<internal::IdentityType,
-                      std::vector<internal::PublicCredential>>
+                      std::vector<internal::SharedCredential>>
       credentials;
   credentials[internal::IDENTITY_TYPE_PRIVATE].push_back(GetPublicCredential());
   AdvertisementDecoder decoder(GetScanRequest(), &credentials);
