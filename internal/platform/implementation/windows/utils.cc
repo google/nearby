@@ -14,11 +14,7 @@
 
 #include "internal/platform/implementation/windows/utils.h"
 
-// Windows headers
-#include <inaddr.h>
-#include <stdlib.h>
-#include <strsafe.h>
-#include <winsock.h>
+#include <windows.h>
 
 // Standard C/C++ headers
 #include <codecvt>
@@ -37,8 +33,9 @@
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/crypto.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
+#include "internal/platform/logging.h"
+#include "winrt/Windows.Foundation.Collections.h"
+#include "winrt/Windows.Networking.Connectivity.h"
 
 namespace nearby {
 namespace windows {
@@ -110,13 +107,65 @@ std::string wstring_to_string(std::wstring wstr) {
 
 std::vector<std::string> GetIpv4Addresses() {
   std::vector<std::string> result;
-  auto host_names = NetworkInformation::GetHostNames();
-  for (const auto& host_name : host_names) {
-    if (host_name.IPInformation() != nullptr &&
-        host_name.IPInformation().NetworkAdapter() != nullptr &&
-        host_name.Type() == HostNameType::Ipv4) {
-      result.push_back(winrt::to_string(host_name.ToString()));
+  try {
+    auto host_names = NetworkInformation::GetHostNames();
+    for (const auto& host_name : host_names) {
+      if (host_name.IPInformation() != nullptr &&
+          host_name.IPInformation().NetworkAdapter() != nullptr &&
+          host_name.Type() == HostNameType::Ipv4) {
+        result.push_back(winrt::to_string(host_name.ToString()));
+      }
     }
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Cannot get IPv4 addresses. Exception : "
+                       << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Cannot get IPv4 addresses. WinRT exception: "
+                       << error.code() << ": "
+                       << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+  }
+
+  return result;
+}
+
+std::vector<std::string> Get4BytesIpv4Addresses() {
+  std::vector<std::string> result;
+  try {
+    auto host_names = NetworkInformation::GetHostNames();
+    for (auto host_name : host_names) {
+      if (host_name.IPInformation() != nullptr &&
+          host_name.IPInformation().NetworkAdapter() != nullptr &&
+          host_name.Type() == HostNameType::Ipv4) {
+        std::string ipv4_s = winrt::to_string(host_name.ToString());
+        // Converts IP address from x.x.x.x to 4 bytes format.
+        in_addr address;
+        address.S_un.S_addr = inet_addr(ipv4_s.c_str());
+        char ipv4_b[5];
+        ipv4_b[0] = address.S_un.S_un_b.s_b1;
+        ipv4_b[1] = address.S_un.S_un_b.s_b2;
+        ipv4_b[2] = address.S_un.S_un_b.s_b3;
+        ipv4_b[3] = address.S_un.S_un_b.s_b4;
+        ipv4_b[4] = 0;
+        std::string ipv4_b_s = std::string(ipv4_b, 4);
+
+        result.push_back(ipv4_b_s);
+      }
+    }
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Cannot get IPv4 addresses. Exception : "
+                       << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Cannot get IPv4 addresses. WinRT exception: "
+                       << error.code() << ": "
+                       << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
   }
 
   return result;

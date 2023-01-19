@@ -201,9 +201,6 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
       StreamSocketListener listener,
       StreamSocketListenerConnectionReceivedEventArgs const& args);
 
-  // Retrieves IP addresses from local machine
-  std::vector<std::string> GetIpAddresses() const;
-
   mutable absl::Mutex mutex_;
   absl::CondVar cond_;
   std::deque<StreamSocket> pending_sockets_ ABSL_GUARDED_BY(mutex_);

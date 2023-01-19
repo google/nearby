@@ -40,16 +40,16 @@ WifiLanServerSocket::~WifiLanServerSocket() { Close(); }
 // Returns the first IP address.
 std::string WifiLanServerSocket::GetIPAddress() const {
   if (stream_socket_listener_ == nullptr) {
-    return {};
+    NEARBY_LOGS(ERROR) << "Failed to get IP address due to no server socket.";
+    return "";
   }
 
   if (ip_addresses_.empty()) {
-    auto ip_addr = GetIpAddresses();
-    if (ip_addr.empty()) {
-      return {};
-    }
-    return ip_addr.front();
+    NEARBY_LOGS(ERROR)
+        << "Failed to get IP address due to no avaible IP addresses.";
+    return "";
   }
+
   return ip_addresses_.front();
 }
 
@@ -139,7 +139,7 @@ Exception WifiLanServerSocket::Close() {
 
 bool WifiLanServerSocket::listen() {
   // Get current IP addresses of the device.
-  ip_addresses_ = GetIpAddresses();
+  ip_addresses_ = Get4BytesIpv4Addresses();
 
   if (ip_addresses_.empty()) {
     NEARBY_LOGS(WARNING) << "failed to start accepting connection without IP "
@@ -217,32 +217,6 @@ fire_and_forget WifiLanServerSocket::Listener_ConnectionReceived(
   pending_sockets_.push_back(args.Socket());
   cond_.SignalAll();
   return fire_and_forget{};
-}
-
-// Retrieves IP addresses from local machine.
-std::vector<std::string> WifiLanServerSocket::GetIpAddresses() const {
-  std::vector<std::string> result{};
-  auto host_names = NetworkInformation::GetHostNames();
-  for (auto host_name : host_names) {
-    if (host_name.IPInformation() != nullptr &&
-        host_name.IPInformation().NetworkAdapter() != nullptr &&
-        host_name.Type() == HostNameType::Ipv4) {
-      std::string ipv4_s = winrt::to_string(host_name.ToString());
-      // Converts ip address from x.x.x.x to 4 bytes format.
-      in_addr address;
-      address.S_un.S_addr = inet_addr(ipv4_s.c_str());
-      char ipv4_b[5];
-      ipv4_b[0] = address.S_un.S_un_b.s_b1;
-      ipv4_b[1] = address.S_un.S_un_b.s_b2;
-      ipv4_b[2] = address.S_un.S_un_b.s_b3;
-      ipv4_b[3] = address.S_un.S_un_b.s_b4;
-      ipv4_b[4] = 0;
-      std::string ipv4_b_s = std::string(ipv4_b, 4);
-
-      result.push_back(ipv4_b_s);
-    }
-  }
-  return result;
 }
 
 }  // namespace windows

@@ -15,8 +15,7 @@
 #ifndef PLATFORM_IMPL_WINDOWS_UTILS_H_
 #define PLATFORM_IMPL_WINDOWS_UTILS_H_
 
-#include <Windows.h>
-#include <stdio.h>
+#include <windows.h>
 
 #include <cstdint>
 #include <string>
@@ -24,8 +23,8 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
+#include "winrt/Windows.Foundation.h"
+#include "winrt/base.h"
 
 namespace nearby {
 namespace windows {
@@ -45,6 +44,7 @@ ByteArray Sha256(absl::string_view input, size_t size);
 
 // Reads the IPv4 addresses
 std::vector<std::string> GetIpv4Addresses();
+std::vector<std::string> Get4BytesIpv4Addresses();
 
 namespace Constants {
 // The Id of the Service Name SDP attribute

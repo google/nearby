@@ -227,20 +227,30 @@ fire_and_forget WifiHotspotServerSocket::Listener_ConnectionReceived(
 }
 
 std::vector<std::string> WifiHotspotServerSocket::GetIpAddresses() const {
-  std::vector<std::string> result{};
-  auto host_names = NetworkInformation::GetHostNames();
-  for (auto host_name : host_names) {
-    if (host_name.IPInformation() != nullptr &&
-        host_name.IPInformation().NetworkAdapter() != nullptr &&
-        host_name.Type() == HostNameType::Ipv4) {
-      std::string ipv4_s = winrt::to_string(host_name.ToString());
+  std::vector<std::string> result;
+  try {
+    auto host_names = NetworkInformation::GetHostNames();
+    for (auto host_name : host_names) {
+      if (host_name.IPInformation() != nullptr &&
+          host_name.IPInformation().NetworkAdapter() != nullptr &&
+          host_name.Type() == HostNameType::Ipv4) {
+        std::string ipv4_s = winrt::to_string(host_name.ToString());
 
-      if (absl::EndsWith(ipv4_s, ".1")) {
-        NEARBY_LOGS(INFO) << "Found Hotspot IP: " << ipv4_s;
-        result.push_back(ipv4_s);
+        if (absl::EndsWith(ipv4_s, ".1")) {
+          NEARBY_LOGS(INFO) << "Found Hotspot IP: " << ipv4_s;
+          result.push_back(ipv4_s);
+        }
       }
     }
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+  } catch (const winrt::hresult_error &error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
   }
+
   return result;
 }
 
