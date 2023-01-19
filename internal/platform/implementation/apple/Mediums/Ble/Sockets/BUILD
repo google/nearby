@@ -15,9 +15,7 @@ load("//tools/build_defs/swift:swift_explicit_module_build_test.bzl", "swift_exp
 # limitations under the License.
 licenses(["notice"])
 
-package(
-    default_visibility = ["//visibility:public"],
-)
+package(default_visibility = ["//visibility:public"])
 
 objc_library(
     name = "Central",
