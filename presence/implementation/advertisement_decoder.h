@@ -33,7 +33,7 @@ namespace presence {
 struct Advertisement {
   uint8_t version = 0;
   std::vector<DataElement> data_elements;
-  absl::StatusOr<internal::PublicCredential> public_credential =
+  absl::StatusOr<internal::SharedCredential> public_credential =
       absl::NotFoundError("");
   internal::IdentityType identity_type = internal::IDENTITY_TYPE_UNSPECIFIED;
   std::string metadata_key;
@@ -45,7 +45,7 @@ class AdvertisementDecoder {
   AdvertisementDecoder(
       ScanRequest scan_request,
       absl::flat_hash_map<internal::IdentityType,
-                          std::vector<internal::PublicCredential>>* credentials)
+                          std::vector<internal::SharedCredential>>* credentials)
       : scan_request_(scan_request), credentials_(credentials) {
     AddBannedDataTypes();
   }
@@ -76,7 +76,7 @@ class AdvertisementDecoder {
                                       absl::string_view encrypted);
   void DecodeBaseTxAndAction(absl::string_view serialized_action);
   absl::StatusOr<std::string> DecryptLdt(
-      const std::vector<internal::PublicCredential>& credentials,
+      const std::vector<internal::SharedCredential>& credentials,
       absl::string_view salt, absl::string_view data_elements);
   void AddBannedDataTypes();
   bool MatchesScanFilter(const std::vector<DataElement>& data_elements,
@@ -86,7 +86,7 @@ class AdvertisementDecoder {
 
   ScanRequest scan_request_;
   absl::flat_hash_map<internal::IdentityType,
-                      std::vector<internal::PublicCredential>>* credentials_ =
+                      std::vector<internal::SharedCredential>>* credentials_ =
       nullptr;
   absl::flat_hash_set<int> banned_data_types_;
   Advertisement decoded_advertisement_;

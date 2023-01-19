@@ -131,7 +131,7 @@ void ScanManager::FetchCredentials(ScanSessionId id,
         {.credentials_fetched_cb =
              [this, id, identity_type = selector.identity_type](
                  absl::StatusOr<
-                     std::vector<::nearby::internal::PublicCredential>>
+                     std::vector<::nearby::internal::SharedCredential>>
                      credentials) {
                if (!credentials.ok()) {
                  NEARBY_LOGS(WARNING)
@@ -152,7 +152,7 @@ void ScanManager::FetchCredentials(ScanSessionId id,
 
 void ScanManager::UpdateCredentials(ScanSessionId id,
                                     IdentityType identity_type,
-                                    std::vector<PublicCredential> credentials) {
+                                    std::vector<SharedCredential> credentials) {
   auto it = scan_sessions_.find(id);
   if (it == scan_sessions_.end()) {
     return;

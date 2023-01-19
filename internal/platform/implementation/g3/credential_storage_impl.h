@@ -38,8 +38,8 @@ namespace g3 {
  */
 class CredentialStorageImpl : public api::CredentialStorage {
  public:
-  using PrivateCredential = ::nearby::internal::PrivateCredential;
-  using PublicCredential = ::nearby::internal::PublicCredential;
+  using LocalCredential = ::nearby::internal::LocalCredential;
+  using SharedCredential = ::nearby::internal::SharedCredential;
   using PublicCredentialType = ::nearby::presence::PublicCredentialType;
   using PrivateCredentialKey = std::pair<std::string, std::string>;
   using PublicCredentialKey =
@@ -51,8 +51,8 @@ class CredentialStorageImpl : public api::CredentialStorage {
   // Used to save private and public credentials.
   void SaveCredentials(
       absl::string_view manager_app_id, absl::string_view account_name,
-      const std::vector<PrivateCredential>& private_credentials,
-      const std::vector<PublicCredential>& public_credentials,
+      const std::vector<LocalCredential>& private_credentials,
+      const std::vector<SharedCredential>& public_credentials,
       PublicCredentialType public_credential_type,
       SaveCredentialsResultCallback callback) override;
 
@@ -79,9 +79,9 @@ class CredentialStorageImpl : public api::CredentialStorage {
     return std::make_tuple(std::string(manager_app_id),
                            std::string(account_name), credential_type);
   }
-  absl::flat_hash_map<PrivateCredentialKey, std::vector<PrivateCredential>>
+  absl::flat_hash_map<PrivateCredentialKey, std::vector<LocalCredential>>
       private_credentials_map_;
-  absl::flat_hash_map<PublicCredentialKey, std::vector<PublicCredential>>
+  absl::flat_hash_map<PublicCredentialKey, std::vector<SharedCredential>>
       public_credentials_map_;
   absl::Mutex private_mutex_;
   absl::Mutex public_mutex_;

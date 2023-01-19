@@ -42,7 +42,7 @@ class BroadcastManager {
   using AdvertisingSession =
       ::nearby::api::ble_v2::BleMedium::AdvertisingSession;
   using Runnable = ::nearby::Runnable;
-  using PrivateCredential = internal::PrivateCredential;
+  using LocalCredential = internal::LocalCredential;
   BroadcastManager(Mediums& mediums, CredentialManager& credential_manager,
                    SingleThreadExecutor& executor) {
     mediums_ = &mediums, credential_manager_ = &credential_manager,
@@ -85,7 +85,7 @@ class BroadcastManager {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
 
   void Advertise(BroadcastSessionId id, BaseBroadcastRequest broadcast_request,
-                 std::vector<PrivateCredential> credentials)
+                 std::vector<LocalCredential> credentials)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   absl::flat_hash_map<BroadcastSessionId, BroadcastSessionState> sessions_
       ABSL_GUARDED_BY(*executor_);
