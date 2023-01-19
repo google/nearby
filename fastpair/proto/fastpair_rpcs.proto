@@ -112,6 +112,9 @@ message Device {
   // change this.
   float trigger_distance = 8;
 
+  // Output only. Fast Pair only - The anti-spoofing key pair for the device.
+  AntiSpoofingKeyPair anti_spoofing_key_pair = 9;
+
   // Fast Pair only - The type of device being registered.
   DeviceType device_type = 13;
 
