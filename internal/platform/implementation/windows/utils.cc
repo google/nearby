@@ -42,6 +42,7 @@ namespace windows {
 namespace {
 
 using ::winrt::Windows::Networking::HostNameType;
+using ::winrt::Windows::Networking::Connectivity::NetworkAdapter;
 using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
 
 }  // namespace
@@ -107,13 +108,26 @@ std::string wstring_to_string(std::wstring wstr) {
 
 std::vector<std::string> GetIpv4Addresses() {
   std::vector<std::string> result;
+  std::vector<std::string> wifi_addresses;
+  std::vector<std::string> ethernet_addresses;
+  std::vector<std::string> other_addresses;
+
   try {
     auto host_names = NetworkInformation::GetHostNames();
     for (const auto& host_name : host_names) {
       if (host_name.IPInformation() != nullptr &&
           host_name.IPInformation().NetworkAdapter() != nullptr &&
           host_name.Type() == HostNameType::Ipv4) {
-        result.push_back(winrt::to_string(host_name.ToString()));
+        NetworkAdapter adapter = host_name.IPInformation().NetworkAdapter();
+        if (adapter.IanaInterfaceType() == 71) {
+          // WiFi address.
+          wifi_addresses.push_back(winrt::to_string(host_name.ToString()));
+        } else if (adapter.IanaInterfaceType() == 6) {
+          // Ethernet addresses.
+          ethernet_addresses.push_back(winrt::to_string(host_name.ToString()));
+        } else {
+          other_addresses.push_back(winrt::to_string(host_name.ToString()));
+        }
       }
     }
   } catch (std::exception exception) {
@@ -129,43 +143,28 @@ std::vector<std::string> GetIpv4Addresses() {
     NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
   }
 
+  result.insert(result.end(), wifi_addresses.begin(), wifi_addresses.end());
+  result.insert(result.end(), ethernet_addresses.begin(),
+                ethernet_addresses.end());
+  result.insert(result.end(), other_addresses.begin(), other_addresses.end());
+
   return result;
 }
 
 std::vector<std::string> Get4BytesIpv4Addresses() {
   std::vector<std::string> result;
-  try {
-    auto host_names = NetworkInformation::GetHostNames();
-    for (auto host_name : host_names) {
-      if (host_name.IPInformation() != nullptr &&
-          host_name.IPInformation().NetworkAdapter() != nullptr &&
-          host_name.Type() == HostNameType::Ipv4) {
-        std::string ipv4_s = winrt::to_string(host_name.ToString());
-        // Converts IP address from x.x.x.x to 4 bytes format.
-        in_addr address;
-        address.S_un.S_addr = inet_addr(ipv4_s.c_str());
-        char ipv4_b[5];
-        ipv4_b[0] = address.S_un.S_un_b.s_b1;
-        ipv4_b[1] = address.S_un.S_un_b.s_b2;
-        ipv4_b[2] = address.S_un.S_un_b.s_b3;
-        ipv4_b[3] = address.S_un.S_un_b.s_b4;
-        ipv4_b[4] = 0;
-        std::string ipv4_b_s = std::string(ipv4_b, 4);
-
-        result.push_back(ipv4_b_s);
-      }
-    }
-  } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Cannot get IPv4 addresses. Exception : "
-                       << exception.what();
-  } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Cannot get IPv4 addresses. WinRT exception: "
-                       << error.code() << ": "
-                       << winrt::to_string(error.message());
-  } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+  std::vector<std::string> ipv4_addresses = GetIpv4Addresses();
+  for (const auto& ipv4_address : ipv4_addresses) {
+    // Converts IP address from x.x.x.x to 4 bytes format.
+    in_addr address;
+    address.S_un.S_addr = inet_addr(ipv4_address.c_str());
+    std::string ipv4_4bytes_address;
+    ipv4_4bytes_address.resize(4);
+    ipv4_4bytes_address[0] = address.S_un.S_un_b.s_b1;
+    ipv4_4bytes_address[1] = address.S_un.S_un_b.s_b2;
+    ipv4_4bytes_address[2] = address.S_un.S_un_b.s_b3;
+    ipv4_4bytes_address[3] = address.S_un.S_un_b.s_b4;
+    result.push_back(ipv4_4bytes_address);
   }
 
   return result;
