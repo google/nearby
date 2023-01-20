@@ -14,8 +14,6 @@
 
 #include "connections/dart/core_adapter_dart.h"
 
-#include <shlobj.h>
-
 #include <cstdint>
 #include <string>
 
@@ -447,7 +445,6 @@ void StartDiscoveryDart(Core *pCore, const char *service_id,
   DiscoveryListenerW listener(ListenerEndpointFoundCB, ListenerEndpointLostCB,
                               ListenerEndpointDistanceChangedCB);
 
-  Status request_result;
   ResultCallbackW callback;
   SetResultCallback(callback, dart_port);
 

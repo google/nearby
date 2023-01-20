@@ -36,3 +36,22 @@ lexan.cc_windows_dll(
         "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",
     ],
 )
+
+objc_library(
+    name = "nearby_connections_objc",
+    srcs = [
+        "core_adapter_dart.cc",
+    ],
+    hdrs = [
+        "core_adapter_dart.h",
+    ],
+    deps = [
+        "//connections:core",
+        "//connections:core_types",
+        "//connections/c",
+        "//internal/platform:types",
+        "//internal/platform/implementation/apple",  # buildcleaner: keep
+        "//third_party/dart_lang/v2:dart_api_dl",
+    ],
+    alwayslink = 1,
+)

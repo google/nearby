@@ -28,7 +28,7 @@ class DLL_API StrategyW {
   static const StrategyW kP2pCluster;
   static const StrategyW kP2pStar;
   static const StrategyW kP2pPointToPoint;
-  constexpr StrategyW();
+  constexpr StrategyW() : StrategyW(kNone) {}
   constexpr StrategyW(const StrategyW&) = default;
   constexpr StrategyW& operator=(const StrategyW&) = default;
 

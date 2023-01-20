@@ -44,8 +44,6 @@ const StrategyW& StrategyW::GetStrategyPointToPoint() {
   return StrategyW::kP2pPointToPoint;
 }
 
-constexpr StrategyW::StrategyW() : StrategyW(kNone) {}
-
 bool StrategyW::IsNone() const { return *this == kNone; }
 
 bool StrategyW::IsValid() const {
