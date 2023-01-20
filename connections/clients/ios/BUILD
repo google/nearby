@@ -14,12 +14,10 @@
 
 # TODO(b/240046236): Rename this package as `objc`.
 
-load("//tools/build_defs/apple:ios.bzl", "ios_static_framework", "ios_unit_test")
+load("//tools/build_defs/apple:ios.bzl", "ios_unit_test")
 load("//tools/build_defs/swift:swift_library.bzl", "swift_library")
 
 licenses(["notice"])
-
-package(default_visibility = ["//visibility:public"])
 
 objc_library(
     name = "Connections",
@@ -44,8 +42,13 @@ objc_library(
         "Public/NearbyConnections/GNCDiscoverer.h",
         "Public/NearbyConnections/GNCPayload.h",
     ],
+    deprecation = "Please use //third_party/nearby/connections/swift/NearbyConnections",
     features = ["-layering_check"],
     module_name = "NearbyConnections",
+    visibility = [
+        "//googlemac/iPhone/Nearby/HelloConnections:__pkg__",
+        "//googlemac/iPhone/Nearby/Sharing/Source/UI/HomeViewController:__pkg__",
+    ],
     deps = [
         "//connections:core",
         "//connections:core_types",
@@ -72,24 +75,5 @@ ios_unit_test(
     runner = "//testing/utp/ios:IOS_12",
     deps = [
         ":BuildTestsLib",
-    ],
-)
-
-MIN_IOS_VERSION = "12.0"
-
-HDRS_POD = [
-    "GNCAdvertiser.h",
-    "GNCConnection.h",
-    "GNCDiscoverer.h",
-    "GNCPayload.h",
-]
-
-ios_static_framework(
-    name = "NearbyConnections_framework",
-    hdrs = HDRS_POD,
-    bundle_name = "NearbyConnections",
-    minimum_os_version = MIN_IOS_VERSION,
-    deps = [
-        ":Connections",
     ],
 )

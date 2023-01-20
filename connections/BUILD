@@ -23,7 +23,7 @@ cc_library(
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
-        "//connections/clients:__subpackages__",
+        "//connections:__subpackages__",
         "//location/nearby/testing:__subpackages__",
     ],
     deps = [

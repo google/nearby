@@ -383,12 +383,12 @@ let package = Package(
         "compiled_proto/connections/cpp",
         "presence",
         "embedded",
-        "connections/clients/windows",
+        "connections/c",
+        "connections/dart",
         "connections/clients/ios",
-        "connections/clients/swift/NearbyConnections",
-        "connections/clients/swift/NearbyCoreAdapter/BUILD",
-        "connections/clients/swift/NearbyCoreAdapter/Tests",
-        "connections/samples",
+        "connections/swift/NearbyConnections",
+        "connections/swift/NearbyCoreAdapter/BUILD",
+        "connections/swift/NearbyCoreAdapter/Tests",
         "docs",
         "internal/platform/implementation/g3",
         "internal/platform/implementation/apple/Tests",
@@ -556,7 +556,7 @@ let package = Package(
         "internal",
         "proto",
       ],
-      publicHeadersPath: "connections/clients/swift/NearbyCoreAdapter/Sources/Public",
+      publicHeadersPath: "connections/swift/NearbyCoreAdapter/Sources/Public",
       cSettings: [
         .headerSearchPath("./"),
         .headerSearchPath("compiled_proto/"),
@@ -570,11 +570,12 @@ let package = Package(
       path: ".",
       exclude: [
         "compiled_proto",
-        "connections/clients/windows",
+        "connections/c",
+        "connections/dart",
         "connections/clients/ios",
-        "connections/clients/swift/NearbyCoreAdapter",
-        "connections/clients/swift/NearbyConnections/BUILD",
-        "connections/clients/swift/NearbyConnections/Tests",
+        "connections/swift/NearbyCoreAdapter",
+        "connections/swift/NearbyConnections/BUILD",
+        "connections/swift/NearbyConnections/Tests",
         "connections/BUILD",
         "connections/discovery_options.cc",
         "connections/status.cc",
@@ -589,7 +590,6 @@ let package = Package(
         "connections/strategy.cc",
         "connections/payload_test.cc",
         "connections/implementation",
-        "connections/samples",
         "docs",
         "embedded",
         "internal",
@@ -602,18 +602,18 @@ let package = Package(
         "WORKSPACE",
       ],
       sources: [
-        "connections/clients/swift/NearbyConnections/Sources"
+        "connections/swift/NearbyConnections/Sources"
       ]
     ),
     .testTarget(
       name: "NearbyCoreAdapterTests",
       dependencies: ["NearbyCoreAdapter"],
-      path: "connections/clients/swift/NearbyCoreAdapter/Tests"
+      path: "connections/swift/NearbyCoreAdapter/Tests"
     ),
     .testTarget(
       name: "NearbyConnectionsTests",
       dependencies: ["NearbyConnections"],
-      path: "connections/clients/swift/NearbyConnections/Tests"
+      path: "connections/swift/NearbyConnections/Tests"
     ),
   ],
   cLanguageStandard: .c99,
