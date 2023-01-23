@@ -526,6 +526,7 @@ enum AttachmentSourceType {
   ATTACHMENT_SOURCE_CONTEXT_MENU = 1;
   ATTACHMENT_SOURCE_DRAG_AND_DROP = 2;
   ATTACHMENT_SOURCE_SELECT_FILES_BUTTON = 3;
+  ATTACHMENT_SOURCE_PASTE = 4;
 }
 
 // The action to interact with preferences.
