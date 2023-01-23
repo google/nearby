@@ -81,7 +81,6 @@ cc_library(
         "//internal/network:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
-        "//presence:__pkg__",
         "//presence/implementation:__subpackages__",
     ],
     deps = [
@@ -108,12 +107,10 @@ cc_library(
     visibility = [
         "//connections/implementation:__subpackages__",
         "//fastpair:__subpackages__",
-        "//googlemac/iPhone/Shared/Nearby/Connections:__subpackages__",
         "//internal:__pkg__",
         "//internal/network:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
-        "//location/nearby/analytics/cpp:__subpackages__",
         "//location/nearby/cpp/fastpair:__subpackages__",
     ],
     deps = [
