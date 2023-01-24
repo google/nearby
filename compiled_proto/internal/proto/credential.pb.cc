@@ -18,18 +18,18 @@
 PROTOBUF_PRAGMA_INIT_SEG
 namespace nearby {
 namespace internal {
-constexpr PrivateCredential_ConsumedSaltsEntry_DoNotUse::PrivateCredential_ConsumedSaltsEntry_DoNotUse(
+constexpr LocalCredential_ConsumedSaltsEntry_DoNotUse::LocalCredential_ConsumedSaltsEntry_DoNotUse(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized){}
-struct PrivateCredential_ConsumedSaltsEntry_DoNotUseDefaultTypeInternal {
-  constexpr PrivateCredential_ConsumedSaltsEntry_DoNotUseDefaultTypeInternal()
+struct LocalCredential_ConsumedSaltsEntry_DoNotUseDefaultTypeInternal {
+  constexpr LocalCredential_ConsumedSaltsEntry_DoNotUseDefaultTypeInternal()
     : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
-  ~PrivateCredential_ConsumedSaltsEntry_DoNotUseDefaultTypeInternal() {}
+  ~LocalCredential_ConsumedSaltsEntry_DoNotUseDefaultTypeInternal() {}
   union {
-    PrivateCredential_ConsumedSaltsEntry_DoNotUse _instance;
+    LocalCredential_ConsumedSaltsEntry_DoNotUse _instance;
   };
 };
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PrivateCredential_ConsumedSaltsEntry_DoNotUseDefaultTypeInternal _PrivateCredential_ConsumedSaltsEntry_DoNotUse_default_instance_;
-constexpr PrivateCredential::PrivateCredential(
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT LocalCredential_ConsumedSaltsEntry_DoNotUseDefaultTypeInternal _LocalCredential_ConsumedSaltsEntry_DoNotUse_default_instance_;
+constexpr LocalCredential::LocalCredential(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : consumed_salts_(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{})
   , secret_id_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
@@ -41,16 +41,16 @@ constexpr PrivateCredential::PrivateCredential(
   , end_time_millis_(uint64_t{0u})
   , identity_type_(0)
 {}
-struct PrivateCredentialDefaultTypeInternal {
-  constexpr PrivateCredentialDefaultTypeInternal()
+struct LocalCredentialDefaultTypeInternal {
+  constexpr LocalCredentialDefaultTypeInternal()
     : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
-  ~PrivateCredentialDefaultTypeInternal() {}
+  ~LocalCredentialDefaultTypeInternal() {}
   union {
-    PrivateCredential _instance;
+    LocalCredential _instance;
   };
 };
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PrivateCredentialDefaultTypeInternal _PrivateCredential_default_instance_;
-constexpr PublicCredential::PublicCredential(
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT LocalCredentialDefaultTypeInternal _LocalCredential_default_instance_;
+constexpr SharedCredential::SharedCredential(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : secret_id_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , authenticity_key_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
@@ -61,15 +61,15 @@ constexpr PublicCredential::PublicCredential(
   , end_time_millis_(uint64_t{0u})
   , identity_type_(0)
 {}
-struct PublicCredentialDefaultTypeInternal {
-  constexpr PublicCredentialDefaultTypeInternal()
+struct SharedCredentialDefaultTypeInternal {
+  constexpr SharedCredentialDefaultTypeInternal()
     : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
-  ~PublicCredentialDefaultTypeInternal() {}
+  ~SharedCredentialDefaultTypeInternal() {}
   union {
-    PublicCredential _instance;
+    SharedCredential _instance;
   };
 };
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PublicCredentialDefaultTypeInternal _PublicCredential_default_instance_;
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharedCredentialDefaultTypeInternal _SharedCredential_default_instance_;
 }  // namespace internal
 }  // namespace nearby
 static ::PROTOBUF_NAMESPACE_ID::Metadata file_level_metadata_internal_2fproto_2fcredential_2eproto[3];
@@ -77,31 +77,31 @@ static const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* file_level_enum_descriptor
 static constexpr ::PROTOBUF_NAMESPACE_ID::ServiceDescriptor const** file_level_service_descriptors_internal_2fproto_2fcredential_2eproto = nullptr;
 
 const uint32_t TableStruct_internal_2fproto_2fcredential_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PrivateCredential_ConsumedSaltsEntry_DoNotUse, _has_bits_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PrivateCredential_ConsumedSaltsEntry_DoNotUse, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::LocalCredential_ConsumedSaltsEntry_DoNotUse, _has_bits_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::LocalCredential_ConsumedSaltsEntry_DoNotUse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PrivateCredential_ConsumedSaltsEntry_DoNotUse, key_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PrivateCredential_ConsumedSaltsEntry_DoNotUse, value_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::LocalCredential_ConsumedSaltsEntry_DoNotUse, key_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::LocalCredential_ConsumedSaltsEntry_DoNotUse, value_),
   0,
   1,
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PrivateCredential, _has_bits_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PrivateCredential, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::LocalCredential, _has_bits_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::LocalCredential, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PrivateCredential, identity_type_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PrivateCredential, secret_id_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PrivateCredential, authenticity_key_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PrivateCredential, verification_key_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PrivateCredential, start_time_millis_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PrivateCredential, end_time_millis_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PrivateCredential, consumed_salts_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PrivateCredential, metadata_encryption_key_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PrivateCredential, device_metadata_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::LocalCredential, identity_type_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::LocalCredential, secret_id_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::LocalCredential, authenticity_key_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::LocalCredential, verification_key_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::LocalCredential, start_time_millis_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::LocalCredential, end_time_millis_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::LocalCredential, consumed_salts_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::LocalCredential, metadata_encryption_key_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::LocalCredential, device_metadata_),
   7,
   0,
   1,
@@ -111,20 +111,20 @@ const uint32_t TableStruct_internal_2fproto_2fcredential_2eproto::offsets[] PROT
   ~0u,
   3,
   4,
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PublicCredential, _has_bits_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PublicCredential, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, _has_bits_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PublicCredential, identity_type_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PublicCredential, secret_id_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PublicCredential, authenticity_key_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PublicCredential, verification_key_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PublicCredential, start_time_millis_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PublicCredential, end_time_millis_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PublicCredential, encrypted_metadata_bytes_),
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::PublicCredential, metadata_encryption_key_tag_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, identity_type_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, secret_id_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, authenticity_key_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, verification_key_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, start_time_millis_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, end_time_millis_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, encrypted_metadata_bytes_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::SharedCredential, metadata_encryption_key_tag_),
   7,
   0,
   1,
@@ -135,60 +135,60 @@ const uint32_t TableStruct_internal_2fproto_2fcredential_2eproto::offsets[] PROT
   4,
 };
 static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, 8, -1, sizeof(::nearby::internal::PrivateCredential_ConsumedSaltsEntry_DoNotUse)},
-  { 10, 25, -1, sizeof(::nearby::internal::PrivateCredential)},
-  { 34, 48, -1, sizeof(::nearby::internal::PublicCredential)},
+  { 0, 8, -1, sizeof(::nearby::internal::LocalCredential_ConsumedSaltsEntry_DoNotUse)},
+  { 10, 25, -1, sizeof(::nearby::internal::LocalCredential)},
+  { 34, 48, -1, sizeof(::nearby::internal::SharedCredential)},
 };
 
 static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
-  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::nearby::internal::_PrivateCredential_ConsumedSaltsEntry_DoNotUse_default_instance_),
-  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::nearby::internal::_PrivateCredential_default_instance_),
-  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::nearby::internal::_PublicCredential_default_instance_),
+  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::nearby::internal::_LocalCredential_ConsumedSaltsEntry_DoNotUse_default_instance_),
+  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::nearby::internal::_LocalCredential_default_instance_),
+  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::nearby::internal::_SharedCredential_default_instance_),
 };
 
 const char descriptor_table_protodef_internal_2fproto_2fcredential_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
   "\n\037internal/proto/credential.proto\022\017nearb"
   "y.internal\032$internal/proto/device_metada"
-  "ta.proto\"\360\004\n\021PrivateCredential\0229\n\ridenti"
-  "ty_type\030\001 \001(\0162\035.nearby.internal.Identity"
-  "TypeH\000\210\001\001\022\026\n\tsecret_id\030\002 \001(\014H\001\210\001\001\022\035\n\020aut"
-  "henticity_key\030\003 \001(\014H\002\210\001\001\022\035\n\020verification"
-  "_key\030\004 \001(\014H\003\210\001\001\022\036\n\021start_time_millis\030\005 \001"
-  "(\004H\004\210\001\001\022\034\n\017end_time_millis\030\006 \001(\004H\005\210\001\001\022M\n"
-  "\016consumed_salts\030\007 \003(\01325.nearby.internal."
-  "PrivateCredential.ConsumedSaltsEntry\022$\n\027"
-  "metadata_encryption_key\030\010 \001(\014H\006\210\001\001\022=\n\017de"
-  "vice_metadata\030\t \001(\0132\037.nearby.internal.De"
-  "viceMetadataH\007\210\001\001\0324\n\022ConsumedSaltsEntry\022"
-  "\013\n\003key\030\001 \001(\r\022\r\n\005value\030\002 \001(\010:\0028\001B\020\n\016_iden"
-  "tity_typeB\014\n\n_secret_idB\023\n\021_authenticity"
-  "_keyB\023\n\021_verification_keyB\024\n\022_start_time"
-  "_millisB\022\n\020_end_time_millisB\032\n\030_metadata"
-  "_encryption_keyB\022\n\020_device_metadata\"\343\003\n\020"
-  "PublicCredential\0229\n\ridentity_type\030\001 \001(\0162"
-  "\035.nearby.internal.IdentityTypeH\000\210\001\001\022\026\n\ts"
-  "ecret_id\030\002 \001(\014H\001\210\001\001\022\035\n\020authenticity_key\030"
-  "\003 \001(\014H\002\210\001\001\022\035\n\020verification_key\030\004 \001(\014H\003\210\001"
-  "\001\022\036\n\021start_time_millis\030\005 \001(\004H\004\210\001\001\022\034\n\017end"
-  "_time_millis\030\006 \001(\004H\005\210\001\001\022%\n\030encrypted_met"
-  "adata_bytes\030\007 \001(\014H\006\210\001\001\022(\n\033metadata_encry"
-  "ption_key_tag\030\010 \001(\014H\007\210\001\001B\020\n\016_identity_ty"
-  "peB\014\n\n_secret_idB\023\n\021_authenticity_keyB\023\n"
-  "\021_verification_keyB\024\n\022_start_time_millis"
-  "B\022\n\020_end_time_millisB\033\n\031_encrypted_metad"
-  "ata_bytesB\036\n\034_metadata_encryption_key_ta"
-  "g*\234\001\n\014IdentityType\022\035\n\031IDENTITY_TYPE_UNSP"
-  "ECIFIED\020\000\022\031\n\025IDENTITY_TYPE_PRIVATE\020\001\022\031\n\025"
-  "IDENTITY_TYPE_TRUSTED\020\002\022\030\n\024IDENTITY_TYPE"
-  "_PUBLIC\020\003\022\035\n\031IDENTITY_TYPE_PROVISIONED\020\004"
-  "B\034\n\032com.google.nearby.presenceb\006proto3"
+  "ta.proto\"\354\004\n\017LocalCredential\0229\n\ridentity"
+  "_type\030\001 \001(\0162\035.nearby.internal.IdentityTy"
+  "peH\000\210\001\001\022\026\n\tsecret_id\030\002 \001(\014H\001\210\001\001\022\035\n\020authe"
+  "nticity_key\030\003 \001(\014H\002\210\001\001\022\035\n\020verification_k"
+  "ey\030\004 \001(\014H\003\210\001\001\022\036\n\021start_time_millis\030\005 \001(\004"
+  "H\004\210\001\001\022\034\n\017end_time_millis\030\006 \001(\004H\005\210\001\001\022K\n\016c"
+  "onsumed_salts\030\007 \003(\01323.nearby.internal.Lo"
+  "calCredential.ConsumedSaltsEntry\022$\n\027meta"
+  "data_encryption_key\030\010 \001(\014H\006\210\001\001\022=\n\017device"
+  "_metadata\030\t \001(\0132\037.nearby.internal.Device"
+  "MetadataH\007\210\001\001\0324\n\022ConsumedSaltsEntry\022\013\n\003k"
+  "ey\030\001 \001(\r\022\r\n\005value\030\002 \001(\010:\0028\001B\020\n\016_identity"
+  "_typeB\014\n\n_secret_idB\023\n\021_authenticity_key"
+  "B\023\n\021_verification_keyB\024\n\022_start_time_mil"
+  "lisB\022\n\020_end_time_millisB\032\n\030_metadata_enc"
+  "ryption_keyB\022\n\020_device_metadata\"\343\003\n\020Shar"
+  "edCredential\0229\n\ridentity_type\030\001 \001(\0162\035.ne"
+  "arby.internal.IdentityTypeH\000\210\001\001\022\026\n\tsecre"
+  "t_id\030\002 \001(\014H\001\210\001\001\022\035\n\020authenticity_key\030\003 \001("
+  "\014H\002\210\001\001\022\035\n\020verification_key\030\004 \001(\014H\003\210\001\001\022\036\n"
+  "\021start_time_millis\030\005 \001(\004H\004\210\001\001\022\034\n\017end_tim"
+  "e_millis\030\006 \001(\004H\005\210\001\001\022%\n\030encrypted_metadat"
+  "a_bytes\030\007 \001(\014H\006\210\001\001\022(\n\033metadata_encryptio"
+  "n_key_tag\030\010 \001(\014H\007\210\001\001B\020\n\016_identity_typeB\014"
+  "\n\n_secret_idB\023\n\021_authenticity_keyB\023\n\021_ve"
+  "rification_keyB\024\n\022_start_time_millisB\022\n\020"
+  "_end_time_millisB\033\n\031_encrypted_metadata_"
+  "bytesB\036\n\034_metadata_encryption_key_tag*\234\001"
+  "\n\014IdentityType\022\035\n\031IDENTITY_TYPE_UNSPECIF"
+  "IED\020\000\022\031\n\025IDENTITY_TYPE_PRIVATE\020\001\022\031\n\025IDEN"
+  "TITY_TYPE_TRUSTED\020\002\022\030\n\024IDENTITY_TYPE_PUB"
+  "LIC\020\003\022\035\n\031IDENTITY_TYPE_PROVISIONED\020\004B\034\n\032"
+  "com.google.nearby.presenceb\006proto3"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_internal_2fproto_2fcredential_2eproto_deps[1] = {
   &::descriptor_table_internal_2fproto_2fdevice_5fmetadata_2eproto,
 };
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_internal_2fproto_2fcredential_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_internal_2fproto_2fcredential_2eproto = {
-  false, false, 1398, descriptor_table_protodef_internal_2fproto_2fcredential_2eproto, "internal/proto/credential.proto", 
+  false, false, 1394, descriptor_table_protodef_internal_2fproto_2fcredential_2eproto, "internal/proto/credential.proto", 
   &descriptor_table_internal_2fproto_2fcredential_2eproto_once, descriptor_table_internal_2fproto_2fcredential_2eproto_deps, 1, 3,
   schemas, file_default_instances, TableStruct_internal_2fproto_2fcredential_2eproto::offsets,
   file_level_metadata_internal_2fproto_2fcredential_2eproto, file_level_enum_descriptors_internal_2fproto_2fcredential_2eproto, file_level_service_descriptors_internal_2fproto_2fcredential_2eproto,
@@ -221,13 +221,13 @@ bool IdentityType_IsValid(int value) {
 
 // ===================================================================
 
-PrivateCredential_ConsumedSaltsEntry_DoNotUse::PrivateCredential_ConsumedSaltsEntry_DoNotUse() {}
-PrivateCredential_ConsumedSaltsEntry_DoNotUse::PrivateCredential_ConsumedSaltsEntry_DoNotUse(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+LocalCredential_ConsumedSaltsEntry_DoNotUse::LocalCredential_ConsumedSaltsEntry_DoNotUse() {}
+LocalCredential_ConsumedSaltsEntry_DoNotUse::LocalCredential_ConsumedSaltsEntry_DoNotUse(::PROTOBUF_NAMESPACE_ID::Arena* arena)
     : SuperType(arena) {}
-void PrivateCredential_ConsumedSaltsEntry_DoNotUse::MergeFrom(const PrivateCredential_ConsumedSaltsEntry_DoNotUse& other) {
+void LocalCredential_ConsumedSaltsEntry_DoNotUse::MergeFrom(const LocalCredential_ConsumedSaltsEntry_DoNotUse& other) {
   MergeFromInternal(other);
 }
-::PROTOBUF_NAMESPACE_ID::Metadata PrivateCredential_ConsumedSaltsEntry_DoNotUse::GetMetadata() const {
+::PROTOBUF_NAMESPACE_ID::Metadata LocalCredential_ConsumedSaltsEntry_DoNotUse::GetMetadata() const {
   return ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(
       &descriptor_table_internal_2fproto_2fcredential_2eproto_getter, &descriptor_table_internal_2fproto_2fcredential_2eproto_once,
       file_level_metadata_internal_2fproto_2fcredential_2eproto[0]);
@@ -235,9 +235,9 @@ void PrivateCredential_ConsumedSaltsEntry_DoNotUse::MergeFrom(const PrivateCrede
 
 // ===================================================================
 
-class PrivateCredential::_Internal {
+class LocalCredential::_Internal {
  public:
-  using HasBits = decltype(std::declval<PrivateCredential>()._has_bits_);
+  using HasBits = decltype(std::declval<LocalCredential>()._has_bits_);
   static void set_has_identity_type(HasBits* has_bits) {
     (*has_bits)[0] |= 128u;
   }
@@ -259,21 +259,21 @@ class PrivateCredential::_Internal {
   static void set_has_metadata_encryption_key(HasBits* has_bits) {
     (*has_bits)[0] |= 8u;
   }
-  static const ::nearby::internal::DeviceMetadata& device_metadata(const PrivateCredential* msg);
+  static const ::nearby::internal::DeviceMetadata& device_metadata(const LocalCredential* msg);
   static void set_has_device_metadata(HasBits* has_bits) {
     (*has_bits)[0] |= 16u;
   }
 };
 
 const ::nearby::internal::DeviceMetadata&
-PrivateCredential::_Internal::device_metadata(const PrivateCredential* msg) {
+LocalCredential::_Internal::device_metadata(const LocalCredential* msg) {
   return *msg->device_metadata_;
 }
-void PrivateCredential::clear_device_metadata() {
+void LocalCredential::clear_device_metadata() {
   if (device_metadata_ != nullptr) device_metadata_->Clear();
   _has_bits_[0] &= ~0x00000010u;
 }
-PrivateCredential::PrivateCredential(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+LocalCredential::LocalCredential(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned),
   consumed_salts_(arena) {
@@ -281,9 +281,9 @@ PrivateCredential::PrivateCredential(::PROTOBUF_NAMESPACE_ID::Arena* arena,
   if (!is_message_owned) {
     RegisterArenaDtor(arena);
   }
-  // @@protoc_insertion_point(arena_constructor:nearby.internal.PrivateCredential)
+  // @@protoc_insertion_point(arena_constructor:nearby.internal.LocalCredential)
 }
-PrivateCredential::PrivateCredential(const PrivateCredential& from)
+LocalCredential::LocalCredential(const LocalCredential& from)
   : ::PROTOBUF_NAMESPACE_ID::Message(),
       _has_bits_(from._has_bits_) {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
@@ -328,10 +328,10 @@ PrivateCredential::PrivateCredential(const PrivateCredential& from)
   ::memcpy(&start_time_millis_, &from.start_time_millis_,
     static_cast<size_t>(reinterpret_cast<char*>(&identity_type_) -
     reinterpret_cast<char*>(&start_time_millis_)) + sizeof(identity_type_));
-  // @@protoc_insertion_point(copy_constructor:nearby.internal.PrivateCredential)
+  // @@protoc_insertion_point(copy_constructor:nearby.internal.LocalCredential)
 }
 
-inline void PrivateCredential::SharedCtor() {
+inline void LocalCredential::SharedCtor() {
 secret_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
   secret_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
@@ -354,14 +354,14 @@ metadata_encryption_key_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::Ge
     reinterpret_cast<char*>(&device_metadata_)) + sizeof(identity_type_));
 }
 
-PrivateCredential::~PrivateCredential() {
-  // @@protoc_insertion_point(destructor:nearby.internal.PrivateCredential)
+LocalCredential::~LocalCredential() {
+  // @@protoc_insertion_point(destructor:nearby.internal.LocalCredential)
   if (GetArenaForAllocation() != nullptr) return;
   SharedDtor();
   _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-inline void PrivateCredential::SharedDtor() {
+inline void LocalCredential::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   secret_id_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   authenticity_key_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
@@ -370,22 +370,22 @@ inline void PrivateCredential::SharedDtor() {
   if (this != internal_default_instance()) delete device_metadata_;
 }
 
-void PrivateCredential::ArenaDtor(void* object) {
-  PrivateCredential* _this = reinterpret_cast< PrivateCredential* >(object);
+void LocalCredential::ArenaDtor(void* object) {
+  LocalCredential* _this = reinterpret_cast< LocalCredential* >(object);
   (void)_this;
   _this->consumed_salts_. ~MapField();
 }
-inline void PrivateCredential::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena) {
+inline void LocalCredential::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena) {
   if (arena != nullptr) {
-    arena->OwnCustomDestructor(this, &PrivateCredential::ArenaDtor);
+    arena->OwnCustomDestructor(this, &LocalCredential::ArenaDtor);
   }
 }
-void PrivateCredential::SetCachedSize(int size) const {
+void LocalCredential::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
 
-void PrivateCredential::Clear() {
-// @@protoc_insertion_point(message_clear_start:nearby.internal.PrivateCredential)
+void LocalCredential::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.internal.LocalCredential)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -419,7 +419,7 @@ void PrivateCredential::Clear() {
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-const char* PrivateCredential::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+const char* LocalCredential::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
   _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
@@ -534,9 +534,9 @@ failure:
 #undef CHK_
 }
 
-uint8_t* PrivateCredential::_InternalSerialize(
+uint8_t* LocalCredential::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:nearby.internal.PrivateCredential)
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.internal.LocalCredential)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -597,13 +597,13 @@ uint8_t* PrivateCredential::_InternalSerialize(
       }
       ::std::sort(&items[0], &items[static_cast<ptrdiff_t>(n)], Less());
       for (size_type i = 0; i < n; i++) {
-        target = PrivateCredential_ConsumedSaltsEntry_DoNotUse::Funcs::InternalSerialize(7, items[static_cast<ptrdiff_t>(i)].second->first, items[static_cast<ptrdiff_t>(i)].second->second, target, stream);
+        target = LocalCredential_ConsumedSaltsEntry_DoNotUse::Funcs::InternalSerialize(7, items[static_cast<ptrdiff_t>(i)].second->first, items[static_cast<ptrdiff_t>(i)].second->second, target, stream);
       }
     } else {
       for (::PROTOBUF_NAMESPACE_ID::Map< uint32_t, bool >::const_iterator
           it = this->_internal_consumed_salts().begin();
           it != this->_internal_consumed_salts().end(); ++it) {
-        target = PrivateCredential_ConsumedSaltsEntry_DoNotUse::Funcs::InternalSerialize(7, it->first, it->second, target, stream);
+        target = LocalCredential_ConsumedSaltsEntry_DoNotUse::Funcs::InternalSerialize(7, it->first, it->second, target, stream);
       }
     }
   }
@@ -626,12 +626,12 @@ uint8_t* PrivateCredential::_InternalSerialize(
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:nearby.internal.PrivateCredential)
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.internal.LocalCredential)
   return target;
 }
 
-size_t PrivateCredential::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:nearby.internal.PrivateCredential)
+size_t LocalCredential::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.internal.LocalCredential)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -644,7 +644,7 @@ size_t PrivateCredential::ByteSizeLong() const {
   for (::PROTOBUF_NAMESPACE_ID::Map< uint32_t, bool >::const_iterator
       it = this->_internal_consumed_salts().begin();
       it != this->_internal_consumed_salts().end(); ++it) {
-    total_size += PrivateCredential_ConsumedSaltsEntry_DoNotUse::Funcs::ByteSizeLong(it->first, it->second);
+    total_size += LocalCredential_ConsumedSaltsEntry_DoNotUse::Funcs::ByteSizeLong(it->first, it->second);
   }
 
   cached_has_bits = _has_bits_[0];
@@ -704,21 +704,21 @@ size_t PrivateCredential::ByteSizeLong() const {
   return MaybeComputeUnknownFieldsSize(total_size, &_cached_size_);
 }
 
-const ::PROTOBUF_NAMESPACE_ID::Message::ClassData PrivateCredential::_class_data_ = {
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData LocalCredential::_class_data_ = {
     ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSizeCheck,
-    PrivateCredential::MergeImpl
+    LocalCredential::MergeImpl
 };
-const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*PrivateCredential::GetClassData() const { return &_class_data_; }
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*LocalCredential::GetClassData() const { return &_class_data_; }
 
-void PrivateCredential::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message* to,
+void LocalCredential::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message* to,
                       const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-  static_cast<PrivateCredential *>(to)->MergeFrom(
-      static_cast<const PrivateCredential &>(from));
+  static_cast<LocalCredential *>(to)->MergeFrom(
+      static_cast<const LocalCredential &>(from));
 }
 
 
-void PrivateCredential::MergeFrom(const PrivateCredential& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:nearby.internal.PrivateCredential)
+void LocalCredential::MergeFrom(const LocalCredential& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.internal.LocalCredential)
   GOOGLE_DCHECK_NE(&from, this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -755,18 +755,18 @@ void PrivateCredential::MergeFrom(const PrivateCredential& from) {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
-void PrivateCredential::CopyFrom(const PrivateCredential& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:nearby.internal.PrivateCredential)
+void LocalCredential::CopyFrom(const LocalCredential& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.internal.LocalCredential)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
-bool PrivateCredential::IsInitialized() const {
+bool LocalCredential::IsInitialized() const {
   return true;
 }
 
-void PrivateCredential::InternalSwap(PrivateCredential* other) {
+void LocalCredential::InternalSwap(LocalCredential* other) {
   using std::swap;
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
@@ -794,14 +794,14 @@ void PrivateCredential::InternalSwap(PrivateCredential* other) {
       &other->metadata_encryption_key_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(PrivateCredential, identity_type_)
-      + sizeof(PrivateCredential::identity_type_)
-      - PROTOBUF_FIELD_OFFSET(PrivateCredential, device_metadata_)>(
+      PROTOBUF_FIELD_OFFSET(LocalCredential, identity_type_)
+      + sizeof(LocalCredential::identity_type_)
+      - PROTOBUF_FIELD_OFFSET(LocalCredential, device_metadata_)>(
           reinterpret_cast<char*>(&device_metadata_),
           reinterpret_cast<char*>(&other->device_metadata_));
 }
 
-::PROTOBUF_NAMESPACE_ID::Metadata PrivateCredential::GetMetadata() const {
+::PROTOBUF_NAMESPACE_ID::Metadata LocalCredential::GetMetadata() const {
   return ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(
       &descriptor_table_internal_2fproto_2fcredential_2eproto_getter, &descriptor_table_internal_2fproto_2fcredential_2eproto_once,
       file_level_metadata_internal_2fproto_2fcredential_2eproto[1]);
@@ -809,9 +809,9 @@ void PrivateCredential::InternalSwap(PrivateCredential* other) {
 
 // ===================================================================
 
-class PublicCredential::_Internal {
+class SharedCredential::_Internal {
  public:
-  using HasBits = decltype(std::declval<PublicCredential>()._has_bits_);
+  using HasBits = decltype(std::declval<SharedCredential>()._has_bits_);
   static void set_has_identity_type(HasBits* has_bits) {
     (*has_bits)[0] |= 128u;
   }
@@ -838,16 +838,16 @@ class PublicCredential::_Internal {
   }
 };
 
-PublicCredential::PublicCredential(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+SharedCredential::SharedCredential(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor();
   if (!is_message_owned) {
     RegisterArenaDtor(arena);
   }
-  // @@protoc_insertion_point(arena_constructor:nearby.internal.PublicCredential)
+  // @@protoc_insertion_point(arena_constructor:nearby.internal.SharedCredential)
 }
-PublicCredential::PublicCredential(const PublicCredential& from)
+SharedCredential::SharedCredential(const SharedCredential& from)
   : ::PROTOBUF_NAMESPACE_ID::Message(),
       _has_bits_(from._has_bits_) {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
@@ -894,10 +894,10 @@ PublicCredential::PublicCredential(const PublicCredential& from)
   ::memcpy(&start_time_millis_, &from.start_time_millis_,
     static_cast<size_t>(reinterpret_cast<char*>(&identity_type_) -
     reinterpret_cast<char*>(&start_time_millis_)) + sizeof(identity_type_));
-  // @@protoc_insertion_point(copy_constructor:nearby.internal.PublicCredential)
+  // @@protoc_insertion_point(copy_constructor:nearby.internal.SharedCredential)
 }
 
-inline void PublicCredential::SharedCtor() {
+inline void SharedCredential::SharedCtor() {
 secret_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
   secret_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
@@ -924,14 +924,14 @@ metadata_encryption_key_tag_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal
     reinterpret_cast<char*>(&start_time_millis_)) + sizeof(identity_type_));
 }
 
-PublicCredential::~PublicCredential() {
-  // @@protoc_insertion_point(destructor:nearby.internal.PublicCredential)
+SharedCredential::~SharedCredential() {
+  // @@protoc_insertion_point(destructor:nearby.internal.SharedCredential)
   if (GetArenaForAllocation() != nullptr) return;
   SharedDtor();
   _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-inline void PublicCredential::SharedDtor() {
+inline void SharedCredential::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   secret_id_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   authenticity_key_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
@@ -940,18 +940,18 @@ inline void PublicCredential::SharedDtor() {
   metadata_encryption_key_tag_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
-void PublicCredential::ArenaDtor(void* object) {
-  PublicCredential* _this = reinterpret_cast< PublicCredential* >(object);
+void SharedCredential::ArenaDtor(void* object) {
+  SharedCredential* _this = reinterpret_cast< SharedCredential* >(object);
   (void)_this;
 }
-void PublicCredential::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+void SharedCredential::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
 }
-void PublicCredential::SetCachedSize(int size) const {
+void SharedCredential::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
 
-void PublicCredential::Clear() {
-// @@protoc_insertion_point(message_clear_start:nearby.internal.PublicCredential)
+void SharedCredential::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.internal.SharedCredential)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -983,7 +983,7 @@ void PublicCredential::Clear() {
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-const char* PublicCredential::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+const char* SharedCredential::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
   _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
@@ -1086,9 +1086,9 @@ failure:
 #undef CHK_
 }
 
-uint8_t* PublicCredential::_InternalSerialize(
+uint8_t* SharedCredential::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:nearby.internal.PublicCredential)
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.internal.SharedCredential)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -1145,12 +1145,12 @@ uint8_t* PublicCredential::_InternalSerialize(
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:nearby.internal.PublicCredential)
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.internal.SharedCredential)
   return target;
 }
 
-size_t PublicCredential::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:nearby.internal.PublicCredential)
+size_t SharedCredential::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.internal.SharedCredential)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -1214,21 +1214,21 @@ size_t PublicCredential::ByteSizeLong() const {
   return MaybeComputeUnknownFieldsSize(total_size, &_cached_size_);
 }
 
-const ::PROTOBUF_NAMESPACE_ID::Message::ClassData PublicCredential::_class_data_ = {
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData SharedCredential::_class_data_ = {
     ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSizeCheck,
-    PublicCredential::MergeImpl
+    SharedCredential::MergeImpl
 };
-const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*PublicCredential::GetClassData() const { return &_class_data_; }
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*SharedCredential::GetClassData() const { return &_class_data_; }
 
-void PublicCredential::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message* to,
+void SharedCredential::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message* to,
                       const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-  static_cast<PublicCredential *>(to)->MergeFrom(
-      static_cast<const PublicCredential &>(from));
+  static_cast<SharedCredential *>(to)->MergeFrom(
+      static_cast<const SharedCredential &>(from));
 }
 
 
-void PublicCredential::MergeFrom(const PublicCredential& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:nearby.internal.PublicCredential)
+void SharedCredential::MergeFrom(const SharedCredential& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.internal.SharedCredential)
   GOOGLE_DCHECK_NE(&from, this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -1264,18 +1264,18 @@ void PublicCredential::MergeFrom(const PublicCredential& from) {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
-void PublicCredential::CopyFrom(const PublicCredential& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:nearby.internal.PublicCredential)
+void SharedCredential::CopyFrom(const SharedCredential& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.internal.SharedCredential)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
-bool PublicCredential::IsInitialized() const {
+bool SharedCredential::IsInitialized() const {
   return true;
 }
 
-void PublicCredential::InternalSwap(PublicCredential* other) {
+void SharedCredential::InternalSwap(SharedCredential* other) {
   using std::swap;
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
@@ -1307,14 +1307,14 @@ void PublicCredential::InternalSwap(PublicCredential* other) {
       &other->metadata_encryption_key_tag_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(PublicCredential, identity_type_)
-      + sizeof(PublicCredential::identity_type_)
-      - PROTOBUF_FIELD_OFFSET(PublicCredential, start_time_millis_)>(
+      PROTOBUF_FIELD_OFFSET(SharedCredential, identity_type_)
+      + sizeof(SharedCredential::identity_type_)
+      - PROTOBUF_FIELD_OFFSET(SharedCredential, start_time_millis_)>(
           reinterpret_cast<char*>(&start_time_millis_),
           reinterpret_cast<char*>(&other->start_time_millis_));
 }
 
-::PROTOBUF_NAMESPACE_ID::Metadata PublicCredential::GetMetadata() const {
+::PROTOBUF_NAMESPACE_ID::Metadata SharedCredential::GetMetadata() const {
   return ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(
       &descriptor_table_internal_2fproto_2fcredential_2eproto_getter, &descriptor_table_internal_2fproto_2fcredential_2eproto_once,
       file_level_metadata_internal_2fproto_2fcredential_2eproto[2]);
@@ -1324,14 +1324,14 @@ void PublicCredential::InternalSwap(PublicCredential* other) {
 }  // namespace internal
 }  // namespace nearby
 PROTOBUF_NAMESPACE_OPEN
-template<> PROTOBUF_NOINLINE ::nearby::internal::PrivateCredential_ConsumedSaltsEntry_DoNotUse* Arena::CreateMaybeMessage< ::nearby::internal::PrivateCredential_ConsumedSaltsEntry_DoNotUse >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::nearby::internal::PrivateCredential_ConsumedSaltsEntry_DoNotUse >(arena);
+template<> PROTOBUF_NOINLINE ::nearby::internal::LocalCredential_ConsumedSaltsEntry_DoNotUse* Arena::CreateMaybeMessage< ::nearby::internal::LocalCredential_ConsumedSaltsEntry_DoNotUse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::internal::LocalCredential_ConsumedSaltsEntry_DoNotUse >(arena);
 }
-template<> PROTOBUF_NOINLINE ::nearby::internal::PrivateCredential* Arena::CreateMaybeMessage< ::nearby::internal::PrivateCredential >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::nearby::internal::PrivateCredential >(arena);
+template<> PROTOBUF_NOINLINE ::nearby::internal::LocalCredential* Arena::CreateMaybeMessage< ::nearby::internal::LocalCredential >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::internal::LocalCredential >(arena);
 }
-template<> PROTOBUF_NOINLINE ::nearby::internal::PublicCredential* Arena::CreateMaybeMessage< ::nearby::internal::PublicCredential >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::nearby::internal::PublicCredential >(arena);
+template<> PROTOBUF_NOINLINE ::nearby::internal::SharedCredential* Arena::CreateMaybeMessage< ::nearby::internal::SharedCredential >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::internal::SharedCredential >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

@@ -96,7 +96,7 @@ std::string SerializeAction(const Action& action) {
 
 absl::StatusOr<AdvertisementData> AdvertisementFactory::CreateAdvertisement(
     const BaseBroadcastRequest& request,
-    std::vector<PrivateCredential>& credentials) const {
+    std::vector<LocalCredential>& credentials) const {
   AdvertisementData advert = {};
   if (absl::holds_alternative<BaseBroadcastRequest::BasePresence>(
           request.variant)) {
@@ -108,7 +108,7 @@ absl::StatusOr<AdvertisementData> AdvertisementFactory::CreateAdvertisement(
 absl::StatusOr<AdvertisementData>
 AdvertisementFactory::CreateBaseNpAdvertisement(
     const BaseBroadcastRequest& request,
-    std::vector<PrivateCredential>& credentials) const {
+    std::vector<LocalCredential>& credentials) const {
   const auto& presence =
       absl::get<BaseBroadcastRequest::BasePresence>(request.variant);
   std::string payload;
@@ -181,9 +181,9 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
                            .content = payload};
 }
 absl::StatusOr<std::string> AdvertisementFactory::EncryptDataElements(
-    std::vector<PrivateCredential>& credentials, absl::string_view salt,
+    std::vector<LocalCredential>& credentials, absl::string_view salt,
     absl::string_view data_elements) const {
-  PrivateCredential& credential = credentials.front();
+  LocalCredential& credential = credentials.front();
   if (credential.metadata_encryption_key().size() != kBaseMetadataSize) {
     return absl::FailedPreconditionError(absl::StrFormat(
         "Metadata key size %d, expected %d",

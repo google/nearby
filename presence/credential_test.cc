@@ -25,21 +25,21 @@ namespace nearby {
 namespace presence {
 namespace {
 using ::nearby::internal::DeviceMetadata;
-using ::nearby::internal::PrivateCredential;
-using ::nearby::internal::PublicCredential;
+using ::nearby::internal::LocalCredential;
+using ::nearby::internal::SharedCredential;
 using ::nearby::internal::IdentityType::IDENTITY_TYPE_PROVISIONED;
 using ::nearby::internal::IdentityType::IDENTITY_TYPE_PUBLIC;
 
 using ::protobuf_matchers::EqualsProto;
 
 TEST(CredentialsTest, NoDefaultConstructor) {
-  EXPECT_FALSE(std::is_trivially_constructible<PrivateCredential>::value);
-  EXPECT_FALSE(std::is_trivially_constructible<PublicCredential>::value);
+  EXPECT_FALSE(std::is_trivially_constructible<LocalCredential>::value);
+  EXPECT_FALSE(std::is_trivially_constructible<SharedCredential>::value);
 }
 
-TEST(CredentialsTest, InitPublicCredential) {
-  PublicCredential pc1 = {};
-  PublicCredential pc2 = {};
+TEST(CredentialsTest, InitSharedCredential) {
+  SharedCredential pc1 = {};
+  SharedCredential pc2 = {};
   EXPECT_THAT(pc1, EqualsProto(pc2));
   pc1.set_identity_type(IDENTITY_TYPE_PUBLIC);
   EXPECT_THAT(pc1, ::testing::Not(EqualsProto(pc2)));
@@ -47,9 +47,9 @@ TEST(CredentialsTest, InitPublicCredential) {
   EXPECT_THAT(pc1, EqualsProto(pc2));
 }
 
-TEST(CredentialsTest, InitPrivateCredential) {
-  PrivateCredential pc1 = {};
-  PrivateCredential pc2 = {};
+TEST(CredentialsTest, InitLocalCredential) {
+  LocalCredential pc1 = {};
+  LocalCredential pc2 = {};
   EXPECT_THAT(pc1, EqualsProto(pc2));
   pc1.set_identity_type(IDENTITY_TYPE_PUBLIC);
   EXPECT_THAT(pc1, ::testing::Not(EqualsProto(pc2)));
@@ -57,24 +57,24 @@ TEST(CredentialsTest, InitPrivateCredential) {
   EXPECT_THAT(pc1, EqualsProto(pc2));
 }
 
-TEST(CredentialsTest, CopyPrivateCredential) {
-  PrivateCredential pc1 = {};
+TEST(CredentialsTest, CopyLocalCredential) {
+  LocalCredential pc1 = {};
   pc1.set_identity_type(IDENTITY_TYPE_PROVISIONED);
   auto salts = pc1.mutable_consumed_salts();
   salts->insert(std::pair<int32, bool>(15, true));
   pc1.mutable_device_metadata()->set_device_name("Android Phone");
   pc1.mutable_device_metadata()->set_device_type(DeviceMetadata::PHONE);
-  PrivateCredential pc1_copy = {pc1};
+  LocalCredential pc1_copy = {pc1};
   EXPECT_THAT(pc1, EqualsProto(pc1_copy));
 }
 
-TEST(CredentialsTest, CopyPublicCredential) {
-  PublicCredential pc1 = {};
+TEST(CredentialsTest, CopySharedCredential) {
+  SharedCredential pc1 = {};
   pc1.set_identity_type(IDENTITY_TYPE_PROVISIONED);
   for (const uint8_t byte : nearby::Uuid().data()) {
     pc1.mutable_secret_id()->push_back(byte);
   }
-  PublicCredential pc1_copy = {pc1};
+  SharedCredential pc1_copy = {pc1};
   EXPECT_THAT(pc1, EqualsProto(pc1_copy));
 }
 }  // namespace

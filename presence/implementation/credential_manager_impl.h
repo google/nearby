@@ -71,7 +71,7 @@ class CredentialManagerImpl : public CredentialManager {
 
   void UpdateRemotePublicCredentials(
       absl::string_view manager_app_id, absl::string_view account_name,
-      const std::vector<nearby::internal::PublicCredential>&
+      const std::vector<nearby::internal::SharedCredential>&
           remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) override;
 
@@ -80,7 +80,7 @@ class CredentialManagerImpl : public CredentialManager {
       GetPrivateCredentialsResultCallback callback) override;
 
   // Blocking version of `GetPrivateCredentials`
-  nearby::ExceptionOr<std::vector<nearby::internal::PrivateCredential>>
+  nearby::ExceptionOr<std::vector<nearby::internal::LocalCredential>>
   GetPrivateCredentialsSync(const CredentialSelector& credential_selector,
                             absl::Duration timeout);
 
@@ -91,7 +91,7 @@ class CredentialManagerImpl : public CredentialManager {
       GetPublicCredentialsResultCallback callback) override;
 
   // Blocking version of `GetPublicCredentials`.
-  ::nearby::ExceptionOr<std::vector<::nearby::internal::PublicCredential>>
+  ::nearby::ExceptionOr<std::vector<::nearby::internal::SharedCredential>>
   GetPublicCredentialsSync(const CredentialSelector& credential_selector,
                            PublicCredentialType public_credential_type,
                            absl::Duration timeout);
@@ -108,14 +108,14 @@ class CredentialManagerImpl : public CredentialManager {
       absl::string_view authenticity_key,
       absl::string_view device_metadata_string) override;
 
-  std::pair<nearby::internal::PrivateCredential,
-            nearby::internal::PublicCredential>
+  std::pair<nearby::internal::LocalCredential,
+            nearby::internal::SharedCredential>
   CreatePrivateCredential(
       const nearby::internal::DeviceMetadata& device_metadata,
       IdentityType identity_type, uint64_t start_time_ms, uint64_t end_time_ms);
 
-  nearby::internal::PublicCredential CreatePublicCredential(
-      const nearby::internal::PrivateCredential& private_credential,
+  nearby::internal::SharedCredential CreatePublicCredential(
+      const nearby::internal::LocalCredential& private_credential,
       const std::vector<uint8_t>& public_key);
 
   virtual std::string EncryptDeviceMetadata(
@@ -150,7 +150,7 @@ class CredentialManagerImpl : public CredentialManager {
 
     // Notifies the subscriber about fetched credentials.
     void NotifyCredentialsFetched(
-        std::vector<::nearby::internal::PublicCredential>& credentials);
+        std::vector<::nearby::internal::SharedCredential>& credentials);
 
    private:
     GetPublicCredentialsResultCallback callback_;
@@ -167,7 +167,7 @@ class CredentialManagerImpl : public CredentialManager {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   void NotifySubscribers(
       const SubscriberKey& key,
-      std::vector<::nearby::internal::PublicCredential> credentials)
+      std::vector<::nearby::internal::SharedCredential> credentials)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   void AddSubscriber(SubscriberKey key, SubscriberId id,
                      GetPublicCredentialsResultCallback callback)
