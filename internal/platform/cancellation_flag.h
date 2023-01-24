@@ -53,7 +53,7 @@ class CancellationFlag {
   // function. It conducts that 2 different pointers might point to the same
   // callback function which is unusual and should avoid. Hence we make it as
   // private and use `CancellationFlagListener` as a RAII to wrap the function.
-  // The caller should register listener as lambda or std::function
+  // The caller should register listener as lambda or absl::AnyInvocable
   // via `CancellationFlagListener`.
   void RegisterOnCancelListener(CancelListener *listener)
       ABSL_LOCKS_EXCLUDED(mutex_);

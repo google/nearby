@@ -15,7 +15,6 @@
 #include "internal/platform/single_thread_executor.h"
 
 #include <atomic>
-#include <functional>
 #include <string>
 
 #include "gtest/gtest.h"

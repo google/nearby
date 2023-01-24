@@ -20,7 +20,7 @@
 #include <wlanapi.h>
 
 // Standard C/C++ headers
-#include <functional>
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -185,7 +185,7 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   // Called by the server side of a connection before passing ownership of
   // WifiHotspotServerSocker to user, to track validity of a pointer to this
   // server socket.
-  void SetCloseNotifier(std::function<void()> notifier);
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier);
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override;
@@ -211,7 +211,7 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   winrt::event_token listener_event_token_{};
 
   // Close notifier
-  std::function<void()> close_notifier_ = nullptr;
+  absl::AnyInvocable<void()> close_notifier_ = nullptr;
 
   // IP addresses of the computer. mDNS uses them to advertise.
   std::vector<std::string> ip_addresses_{};

@@ -19,11 +19,11 @@
 #include <string>
 
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/implementation/ble.h"
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/implementation/ble.h"
+#include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/implementation/shared/count_down_latch.h"
 
 namespace nearby {
 namespace g3 {
@@ -135,7 +135,7 @@ bool BleServerSocket::Connect(BleSocket& socket) {
   return true;
 }
 
-void BleServerSocket::SetCloseNotifier(std::function<void()> notifier) {
+void BleServerSocket::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
   absl::MutexLock lock(&mutex_);
   close_notifier_ = std::move(notifier);
 }
@@ -303,7 +303,8 @@ bool BleMedium::StartAcceptingConnections(const std::string& service_id,
   NEARBY_LOGS(INFO) << "G3 Ble StartAcceptingConnections: service_id="
                     << service_id;
   auto& env = MediumEnvironment::Instance();
-  env.UpdateBleMediumForAcceptedConnection(*this, service_id, callback);
+  env.UpdateBleMediumForAcceptedConnection(*this, service_id,
+                                           std::move(callback));
   return true;
 }
 

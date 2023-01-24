@@ -32,7 +32,6 @@
 #include "connections/status.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/byte_utils.h"
-#include "internal/platform/listeners.h"
 
 namespace nearby {
 namespace connections {
@@ -46,7 +45,7 @@ struct ResultCallback {
   // Callback to access the status of the operation when available.
   // status - result of job execution;
   //   Status::kSuccess, if successful; anything else indicates failure.
-  std::function<void(Status)> result_cb = DefaultCallback<Status>();
+  std::function<void(Status)> result_cb = [](Status) {};
 };
 
 struct ConnectionResponseInfo {
@@ -100,8 +99,7 @@ struct ConnectionListener {
   // info -  Other relevant information about the connection.
   std::function<void(const std::string& endpoint_id,
                      const ConnectionResponseInfo& info)>
-      initiated_cb =
-          DefaultCallback<const std::string&, const ConnectionResponseInfo&>();
+      initiated_cb = [](const std::string&, const ConnectionResponseInfo&) {};
 
   // Called after both sides have accepted the connection.
   // Both sides may now send Payloads to each other.
@@ -109,7 +107,7 @@ struct ConnectionListener {
   //
   // endpoint_id - The identifier for the remote endpoint.
   std::function<void(const std::string& endpoint_id)> accepted_cb =
-      DefaultCallback<const std::string&>();
+      [](const std::string&) {};
 
   // Called when either side rejected the connection.
   // Payloads can not be exchaged. Call Core::DisconnectFromEndpoint()
@@ -117,21 +115,21 @@ struct ConnectionListener {
   //
   // endpoint_id - The identifier for the remote endpoint.
   std::function<void(const std::string& endpoint_id, Status status)>
-      rejected_cb = DefaultCallback<const std::string&, Status>();
+      rejected_cb = [](const std::string&, Status) {};
 
   // Called when a remote endpoint is disconnected or has become unreachable.
   // At this point service (re-)discovery may start again.
   //
   // endpoint_id - The identifier for the remote endpoint.
   std::function<void(const std::string& endpoint_id)> disconnected_cb =
-      DefaultCallback<const std::string&>();
+      [](const std::string&) {};
 
   // Called when the connection's available bandwidth has changed.
   //
   // endpoint_id - The identifier for the remote endpoint.
   // medium      - Medium we upgraded to.
   std::function<void(const std::string& endpoint_id, Medium medium)>
-      bandwidth_changed_cb = DefaultCallback<const std::string&, Medium>();
+      bandwidth_changed_cb = [](const std::string&, Medium) {};
 };
 
 struct DiscoveryListener {
@@ -143,8 +141,8 @@ struct DiscoveryListener {
   std::function<void(const std::string& endpoint_id,
                      const ByteArray& endpoint_info,
                      const std::string& service_id)>
-      endpoint_found_cb = DefaultCallback<const std::string&, const ByteArray&,
-                                          const std::string&>();
+      endpoint_found_cb =
+          [](const std::string&, const ByteArray&, const std::string&) {};
 
   // Called when a remote endpoint is no longer discoverable; only called for
   // endpoints that previously had been passed to {@link
@@ -152,7 +150,7 @@ struct DiscoveryListener {
   //
   // endpoint_id - The ID of the remote endpoint that was lost.
   std::function<void(const std::string& endpoint_id)> endpoint_lost_cb =
-      DefaultCallback<const std::string&>();
+      [](const std::string&) {};
 
   // Called when a remote endpoint is found with an updated distance.
   //
@@ -160,8 +158,7 @@ struct DiscoveryListener {
   //   endpoint_id - The ID of the remote endpoint that was lost.
   //   info        - The distance info, encoded as enum value.
   std::function<void(const std::string& endpoint_id, DistanceInfo info)>
-      endpoint_distance_changed_cb =
-          DefaultCallback<const std::string&, DistanceInfo>();
+      endpoint_distance_changed_cb = [](const std::string&, DistanceInfo) {};
 };
 
 struct PayloadListener {
@@ -174,7 +171,7 @@ struct PayloadListener {
   //               payload.
   // payload     - The Payload object received.
   std::function<void(const std::string& endpoint_id, Payload payload)>
-      payload_cb = DefaultCallback<const std::string&, Payload>();
+      payload_cb = [](const std::string&, Payload) {};
 
   // Called with progress information about an active Payload transfer, either
   // incoming or outgoing.
@@ -186,7 +183,7 @@ struct PayloadListener {
   std::function<void(const std::string& endpoint_id,
                      const PayloadProgressInfo& info)>
       payload_progress_cb =
-          DefaultCallback<const std::string&, const PayloadProgressInfo&>();
+          [](const std::string&, const PayloadProgressInfo&) {};
 };
 
 }  // namespace connections

@@ -16,11 +16,11 @@
 #define PLATFORM_PUBLIC_CANCELABLE_ALARM_H_
 
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 
+#include "absl/functional/any_invocable.h"
 #include "internal/platform/cancelable.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
@@ -36,7 +36,7 @@ namespace nearby {
 class CancelableAlarm {
  public:
   CancelableAlarm() = default;
-  CancelableAlarm(absl::string_view name, std::function<void()>&& runnable,
+  CancelableAlarm(absl::string_view name, absl::AnyInvocable<void()>&& runnable,
                   absl::Duration delay, ScheduledExecutor* scheduled_executor,
                   bool is_recurring = false)
       : name_(name), scheduled_executor_(scheduled_executor), delay_(delay) {
@@ -75,7 +75,7 @@ class CancelableAlarm {
   Cancelable cancelable_;
   ScheduledExecutor* scheduled_executor_;
   absl::Duration delay_;
-  std::function<void()> runnable_;
+  absl::AnyInvocable<void()> runnable_;
 };
 
 }  // namespace nearby

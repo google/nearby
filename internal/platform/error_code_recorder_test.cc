@@ -14,6 +14,8 @@
 
 #include "internal/platform/error_code_recorder.h"
 
+#include <utility>
+
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
@@ -26,9 +28,8 @@ using ::testing::StrictMock;
 
 TEST(ErrorCodeRecorderTest, TestListenerWork) {
   StrictMock<MockFunction<void(const ErrorCodeParams& params)>> mock_listener;
-  ErrorCodeRecorder::ErrorCodeListener listener = mock_listener.AsStdFunction();
   EXPECT_CALL(mock_listener, Call).Times(1);
-  ErrorCodeRecorder error_code_recorder(listener);
+  ErrorCodeRecorder error_code_recorder(mock_listener.AsStdFunction());
 
   ErrorCodeRecorder::LogErrorCode(
       location::nearby::proto::connections::BLE,

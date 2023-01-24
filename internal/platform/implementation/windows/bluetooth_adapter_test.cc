@@ -163,16 +163,14 @@ TEST(BluetoothAdapter, DISABLED_SetOnScanModeChanged) {
   api::BluetoothAdapter::ScanMode mode =
       api::BluetoothAdapter::ScanMode::kUnknown;
   absl::Notification scan_mode_changed_notification;
-  BluetoothAdapter::ScanModeCallback callback =
-      [&mode, &scan_mode_changed_notification](
-          api::BluetoothAdapter::ScanMode scan_mode) {
-        mode = scan_mode;
-        scan_mode_changed_notification.Notify();
-      };
   BluetoothAdapter bluetooth_adapter;
   bluetooth_adapter.SetScanMode(mode);
 
-  bluetooth_adapter.SetOnScanModeChanged(callback);
+  bluetooth_adapter.SetOnScanModeChanged(
+      [&](api::BluetoothAdapter::ScanMode scan_mode) {
+        mode = scan_mode;
+        scan_mode_changed_notification.Notify();
+      });
   bluetooth_adapter.SetScanMode(
       api::BluetoothAdapter::ScanMode::kConnectableDiscoverable);
   EXPECT_TRUE(scan_mode_changed_notification.WaitForNotificationWithTimeout(

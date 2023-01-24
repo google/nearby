@@ -99,9 +99,9 @@ class WifiLanMedium {
 
   // Callback that is invoked when a discovered service is found or lost.
   struct DiscoveredServiceCallback {
-    std::function<void(NsdServiceInfo service_info)> service_discovered_cb =
-        DefaultCallback<NsdServiceInfo>();
-    std::function<void(NsdServiceInfo service_info)> service_lost_cb =
+    absl::AnyInvocable<void(NsdServiceInfo service_info)>
+        service_discovered_cb = DefaultCallback<NsdServiceInfo>();
+    absl::AnyInvocable<void(NsdServiceInfo service_info)> service_lost_cb =
         DefaultCallback<NsdServiceInfo>();
   };
 

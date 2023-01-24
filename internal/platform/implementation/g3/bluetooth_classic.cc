@@ -18,11 +18,11 @@
 #include <string>
 
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/implementation/g3/bluetooth_adapter.h"
 
 namespace nearby {
 namespace g3 {
@@ -139,7 +139,8 @@ bool BluetoothServerSocket::Connect(BluetoothSocket& socket) {
   return true;
 }
 
-void BluetoothServerSocket::SetCloseNotifier(std::function<void()> notifier) {
+void BluetoothServerSocket::SetCloseNotifier(
+    absl::AnyInvocable<void()> notifier) {
   absl::MutexLock lock(&mutex_);
   close_notifier_ = std::move(notifier);
 }

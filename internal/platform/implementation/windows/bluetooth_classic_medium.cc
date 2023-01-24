@@ -154,7 +154,7 @@ bool BluetoothClassicMedium::StartDiscovery(
   NEARBY_LOGS(INFO) << "StartDiscovery is called.";
 
   bool result = false;
-  discovery_callback_ = discovery_callback;
+  discovery_callback_ = std::move(discovery_callback);
 
   if (!IsWatcherStarted()) {
     result = StartScanning();

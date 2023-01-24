@@ -15,7 +15,6 @@
 #ifndef PLATFORM_API_WEBRTC_H_
 #define PLATFORM_API_WEBRTC_H_
 
-#include <functional>
 #include <memory>
 #include <string>
 
@@ -29,8 +28,8 @@ namespace api {
 
 class WebRtcSignalingMessenger {
  public:
-  using OnSignalingMessageCallback = std::function<void(const ByteArray&)>;
-  using OnSignalingCompleteCallback = std::function<void(bool)>;
+  using OnSignalingMessageCallback = absl::AnyInvocable<void(const ByteArray&)>;
+  using OnSignalingCompleteCallback = absl::AnyInvocable<void(bool)>;
 
   virtual ~WebRtcSignalingMessenger() = default;
 
@@ -45,8 +44,8 @@ class WebRtcSignalingMessenger {
 
 class WebRtcMedium {
  public:
-  using PeerConnectionCallback =
-      std::function<void(rtc::scoped_refptr<webrtc::PeerConnectionInterface>)>;
+  using PeerConnectionCallback = absl::AnyInvocable<void(
+      rtc::scoped_refptr<webrtc::PeerConnectionInterface>)>;
 
   virtual ~WebRtcMedium() = default;
 

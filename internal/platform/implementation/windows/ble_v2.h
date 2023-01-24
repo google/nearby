@@ -15,7 +15,6 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLE_V2_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLE_V2_H_
 
-#include <functional>
 #include <memory>
 #include <string>
 
@@ -107,18 +106,20 @@ class BleV2Medium : public api::ble_v2::BleMedium {
           BluetoothLEAdvertisementPublisher publisher,
       winrt::Windows::Devices::Bluetooth::Advertisement::
           BluetoothLEAdvertisementPublisherStatusChangedEventArgs args);
-  std::function<void()> publisher_started_callback_ ABSL_GUARDED_BY(mutex_);
-  std::function<void()> publisher_stopped_callback_ ABSL_GUARDED_BY(mutex_);
-  std::function<void()> publisher_error_callback_ ABSL_GUARDED_BY(mutex_);
+  absl::AnyInvocable<void()> publisher_started_callback_
+      ABSL_GUARDED_BY(mutex_);
+  absl::AnyInvocable<void()> publisher_stopped_callback_
+      ABSL_GUARDED_BY(mutex_);
+  absl::AnyInvocable<void()> publisher_error_callback_ ABSL_GUARDED_BY(mutex_);
 
   winrt::event_token watcher_token_;
   void WatcherHandler(winrt::Windows::Devices::Bluetooth::Advertisement::
                           BluetoothLEAdvertisementWatcher watcher,
                       winrt::Windows::Devices::Bluetooth::Advertisement::
                           BluetoothLEAdvertisementWatcherStoppedEventArgs args);
-  std::function<void()> watcher_started_callback_ ABSL_GUARDED_BY(mutex_);
-  std::function<void()> watcher_stopped_callback_ ABSL_GUARDED_BY(mutex_);
-  std::function<void()> watcher_error_callback_ ABSL_GUARDED_BY(mutex_);
+  absl::AnyInvocable<void()> watcher_started_callback_ ABSL_GUARDED_BY(mutex_);
+  absl::AnyInvocable<void()> watcher_stopped_callback_ ABSL_GUARDED_BY(mutex_);
+  absl::AnyInvocable<void()> watcher_error_callback_ ABSL_GUARDED_BY(mutex_);
 
   winrt::event_token advertisement_received_token_;
   void AdvertisementReceivedHandler(

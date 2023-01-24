@@ -19,17 +19,17 @@
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
-#include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/implementation/platform.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/implementation/platform.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
-#include "internal/platform/output_stream.h"
-#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/output_stream.h"
 
 namespace nearby {
 
@@ -137,11 +137,11 @@ class BluetoothClassicMedium final {
     // and at any time afterwards, until device_lost_cb() is called.
     // It is not safe to use BluetoothDevice after returning from
     // device_lost_cb() callback.
-    std::function<void(BluetoothDevice& device)> device_discovered_cb =
+    absl::AnyInvocable<void(BluetoothDevice& device)> device_discovered_cb =
         DefaultCallback<BluetoothDevice&>();
-    std::function<void(BluetoothDevice& device)> device_name_changed_cb =
+    absl::AnyInvocable<void(BluetoothDevice& device)> device_name_changed_cb =
         DefaultCallback<BluetoothDevice&>();
-    std::function<void(BluetoothDevice& device)> device_lost_cb =
+    absl::AnyInvocable<void(BluetoothDevice& device)> device_lost_cb =
         DefaultCallback<BluetoothDevice&>();
   };
   struct DeviceDiscoveryInfo {

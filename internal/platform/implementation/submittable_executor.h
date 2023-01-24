@@ -15,7 +15,6 @@
 #ifndef PLATFORM_API_SUBMITTABLE_EXECUTOR_H_
 #define PLATFORM_API_SUBMITTABLE_EXECUTOR_H_
 
-#include <functional>
 #include <memory>
 
 #include "internal/platform/implementation/executor.h"
@@ -28,7 +27,7 @@ namespace api {
 // Main interface to be used by platform as a base class for
 // - MultiThreadExecutorWrapper
 // - SingleThreadExecutorWrapper
-// Platform must override bool submit(std::function<void()>) method.
+// Platform must override bool submit(absl::AnyInvocable<void()>) method.
 class SubmittableExecutor : public Executor {
  public:
   ~SubmittableExecutor() override = default;

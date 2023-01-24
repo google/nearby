@@ -103,11 +103,11 @@ class BluetoothClassicMedium {
     // and at any time afterwards, until device_lost_cb() is called.
     // It is not safe to use BluetoothDevice after returning from
     // device_lost_cb() callback.
-    std::function<void(BluetoothDevice& device)> device_discovered_cb =
+    absl::AnyInvocable<void(BluetoothDevice& device)> device_discovered_cb =
         DefaultCallback<BluetoothDevice&>();
-    std::function<void(BluetoothDevice& device)> device_name_changed_cb =
+    absl::AnyInvocable<void(BluetoothDevice& device)> device_name_changed_cb =
         DefaultCallback<BluetoothDevice&>();
-    std::function<void(BluetoothDevice& device)> device_lost_cb =
+    absl::AnyInvocable<void(BluetoothDevice& device)> device_lost_cb =
         DefaultCallback<BluetoothDevice&>();
   };
 

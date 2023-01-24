@@ -14,7 +14,6 @@
 
 #include "internal/platform/implementation/g3/wifi_direct.h"
 
-#include <functional>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -29,7 +28,6 @@
 
 namespace nearby {
 namespace g3 {
-
 
 // Code for WifiDirectSocket
 WifiDirectSocket::~WifiDirectSocket() {
@@ -94,7 +92,7 @@ OutputStream& WifiDirectSocket::GetLocalOutputStream() {
 
 // Code for WifiDirectServerSocket
 std::string WifiDirectServerSocket::GetName(absl::string_view ip_address,
-                                         int port) {
+                                            int port) {
   return absl::StrCat(ip_address, ":", port);
 }
 
@@ -134,7 +132,8 @@ bool WifiDirectServerSocket::Connect(WifiDirectSocket& socket) {
   return true;
 }
 
-void WifiDirectServerSocket::SetCloseNotifier(std::function<void()> notifier) {
+void WifiDirectServerSocket::SetCloseNotifier(
+    absl::AnyInvocable<void()> notifier) {
   absl::MutexLock lock(&mutex_);
   close_notifier_ = std::move(notifier);
 }
@@ -291,8 +290,8 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
   return socket;
 }
 
-std::unique_ptr<api::WifiDirectServerSocket>
-WifiDirectMedium::ListenForService(int port) {
+std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
+    int port) {
   auto& env = MediumEnvironment::Instance();
   auto server_socket = std::make_unique<WifiDirectServerSocket>();
 

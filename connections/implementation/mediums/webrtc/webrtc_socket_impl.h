@@ -18,14 +18,14 @@
 #include <memory>
 
 #include "connections/listeners.h"
-#include "internal/platform/input_stream.h"
-#include "internal/platform/output_stream.h"
-#include "internal/platform/socket.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/condition_variable.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/platform/socket.h"
 #include "webrtc/api/data_channel_interface.h"
 
 namespace nearby {
@@ -61,9 +61,9 @@ class WebRtcSocket : public Socket, public webrtc::DataChannelObserver {
 
   // Listener class the gets called when the socket is ready or closed
   struct SocketListener {
-    std::function<void(WebRtcSocket*)> socket_ready_cb =
+    absl::AnyInvocable<void(WebRtcSocket*)> socket_ready_cb =
         DefaultCallback<WebRtcSocket*>();
-    std::function<void(WebRtcSocket*)> socket_closed_cb =
+    absl::AnyInvocable<void(WebRtcSocket*)> socket_closed_cb =
         DefaultCallback<WebRtcSocket*>();
   };
 

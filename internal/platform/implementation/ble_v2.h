@@ -17,7 +17,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <functional>
 #include <limits>
 #include <map>
 #include <memory>

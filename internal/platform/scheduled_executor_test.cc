@@ -15,14 +15,13 @@
 #include "internal/platform/scheduled_executor.h"
 
 #include <atomic>
-#include <functional>
 
 #include "gtest/gtest.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "internal/platform/exception.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/exception.h"
 
 namespace nearby {
 

@@ -18,7 +18,6 @@
 
 #import <Foundation/Foundation.h>
 
-#include <functional>
 #include <memory>
 
 #include "internal/platform/implementation/scheduled_executor.h"

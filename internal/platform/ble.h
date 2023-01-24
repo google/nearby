@@ -16,14 +16,14 @@
 #define PLATFORM_PUBLIC_BLE_H_
 
 #include "absl/container/flat_hash_map.h"
-#include "internal/platform/implementation/ble.h"
-#include "internal/platform/implementation/platform.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/implementation/ble.h"
+#include "internal/platform/implementation/platform.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/output_stream.h"
-#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/output_stream.h"
 
 namespace nearby {
 
@@ -85,14 +85,14 @@ class BleMedium final {
  public:
   using Platform = api::ImplementationPlatform;
   struct DiscoveredPeripheralCallback {
-    std::function<void(BlePeripheral& peripheral, const std::string& service_id,
-                       const ByteArray& advertisement_bytes,
-                       bool fast_advertisement)>
+    absl::AnyInvocable<void(
+        BlePeripheral& peripheral, const std::string& service_id,
+        const ByteArray& advertisement_bytes, bool fast_advertisement)>
         peripheral_discovered_cb =
             DefaultCallback<BlePeripheral&, const std::string&,
                             const ByteArray&, bool>();
-    std::function<void(BlePeripheral& peripheral,
-                       const std::string& service_id)>
+    absl::AnyInvocable<void(BlePeripheral& peripheral,
+                            const std::string& service_id)>
         peripheral_lost_cb =
             DefaultCallback<BlePeripheral&, const std::string&>();
   };
@@ -101,7 +101,7 @@ class BleMedium final {
   };
 
   struct AcceptedConnectionCallback {
-    std::function<void(BleSocket& socket, const std::string& service_id)>
+    absl::AnyInvocable<void(BleSocket& socket, const std::string& service_id)>
         accepted_cb = DefaultCallback<BleSocket&, const std::string&>();
   };
   struct AcceptedConnectionInfo {

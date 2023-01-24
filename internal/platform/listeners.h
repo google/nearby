@@ -15,7 +15,7 @@
 #ifndef PLATFORM_BASE_LISTENERS_H_
 #define PLATFORM_BASE_LISTENERS_H_
 
-#include <functional>
+#include "absl/functional/any_invocable.h"
 
 namespace nearby {
 
@@ -23,8 +23,8 @@ namespace nearby {
 // instead of nullptr. This allows partial initialization
 // of a set of listeners.
 template <typename... Args>
-constexpr std::function<void(Args...)> DefaultCallback() {
-  return std::function<void(Args...)>{[](Args...) {}};
+constexpr absl::AnyInvocable<void(Args...)> DefaultCallback() {
+  return absl::AnyInvocable<void(Args...)>{[](Args...) {}};
 }
 
 }  // namespace nearby

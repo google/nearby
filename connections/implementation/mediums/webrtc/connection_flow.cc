@@ -420,9 +420,10 @@ void ConnectionFlow::CreateSocketFromDataChannel(
         // Pass socket wrapper by copy on purpose
         data_channel_listener_.data_channel_open_cb(socket_wrapper_);
       }},
-      .socket_closed_cb = [callback =
-                               data_channel_listener_.data_channel_closed_cb](
-                              WebRtcSocket*) { callback(); },
+      .socket_closed_cb =
+          [this](WebRtcSocket*) {
+            data_channel_listener_.data_channel_closed_cb();
+          },
   });
   socket_wrapper_ = WebRtcSocketWrapper(std::move(socket));
 }

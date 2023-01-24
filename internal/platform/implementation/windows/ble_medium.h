@@ -17,7 +17,6 @@
 
 #include <guiddef.h>
 
-#include <functional>
 #include <future>  //  NOLINT
 #include <memory>
 #include <string>
@@ -121,4 +120,3 @@ class BleMedium : public api::BleMedium {
 }  // namespace nearby
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLE_MEDIUM_H_
-

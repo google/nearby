@@ -15,7 +15,6 @@
 #ifndef PLATFORM_IMPL_G3_TIMER_H_
 #define PLATFORM_IMPL_G3_TIMER_H_
 
-#include <functional>
 #include <utility>
 
 #include "internal/platform/implementation/timer.h"
@@ -29,7 +28,7 @@ class Timer : public api::Timer {
   ~Timer() override = default;
 
   bool Create(int delay, int interval,
-              std::function<void()> callback) override {
+              absl::AnyInvocable<void()> callback) override {
     if (delay < 0 || interval < 0) {
       return false;
     }
@@ -61,7 +60,7 @@ class Timer : public api::Timer {
   }
 
  private:
-  std::function<void()> callback_;
+  absl::AnyInvocable<void()> callback_;
   bool is_stopped_ = false;
 };
 

@@ -14,7 +14,6 @@
 
 #include "internal/platform/implementation/windows/timer.h"
 
-#include <functional>
 #include <memory>
 
 #include "internal/platform/logging.h"
@@ -24,7 +23,8 @@ namespace windows {
 
 Timer::~Timer() { Stop(); }
 
-bool Timer::Create(int delay, int interval, std::function<void()> callback) {
+bool Timer::Create(int delay, int interval,
+                   absl::AnyInvocable<void()> callback) {
   if ((delay < 0) || (interval < 0)) {
     NEARBY_LOGS(WARNING) << "Delay and interval shouldn\'t be negative value.";
     return false;
@@ -90,8 +90,8 @@ bool Timer::FireNow() {
 }
 
 void CALLBACK Timer::TimerRoutine(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
-  std::function<void()>* callback =
-      reinterpret_cast<std::function<void()>*>(lpParam);
+  absl::AnyInvocable<void()>* callback =
+      reinterpret_cast<absl::AnyInvocable<void()>*>(lpParam);
   if (*callback != NULL) {
     (*callback)();
   }

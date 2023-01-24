@@ -255,7 +255,7 @@ bool WifiLanServerSocket::Connect(std::unique_ptr<WifiLanSocket> socket) {
   return true;
 }
 
-void WifiLanServerSocket::SetCloseNotifier(std::function<void()> notifier) {
+void WifiLanServerSocket::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
   absl::MutexLock lock(&mutex_);
   close_notifier_ = std::move(notifier);
 }
@@ -361,6 +361,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
       return false;
     }
   }
+  __block DiscoveredServiceCallback client_callback = std::move(callback);
   GNCMBonjourBrowser* browser = [[GNCMBonjourBrowser alloc]
        initWithServiceType:serviceType
       endpointFoundHandler:^GNCMEndpointLostHandler(
@@ -376,9 +377,9 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
           nsd_service_info.SetTxtRecords(txt_records);
         }
         connection_requesters_.insert({CppStringFromObjCString(serviceType), requestConnection});
-        callback.service_discovered_cb(nsd_service_info);
+        client_callback.service_discovered_cb(nsd_service_info);
         return ^{
-          callback.service_lost_cb(nsd_service_info);
+          client_callback.service_lost_cb(nsd_service_info);
         };
       }];
   {

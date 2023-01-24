@@ -16,7 +16,6 @@
 #define PLATFORM_IMPL_APPLE_TIMER_H_
 #ifdef __cplusplus
 
-#include <functional>
 #include <utility>
 
 #include "internal/platform/implementation/timer.h"
@@ -29,7 +28,8 @@ class Timer : public api::Timer {
   Timer() = default;
   ~Timer() override = default;
 
-  bool Create(int delay, int interval, std::function<void()> callback) override;
+  bool Create(int delay, int interval,
+              absl::AnyInvocable<void()> callback) override;
 
   bool Stop() override;
 

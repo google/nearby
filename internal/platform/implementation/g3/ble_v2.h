@@ -16,7 +16,6 @@
 #define PLATFORM_IMPL_G3_BLE_V2_H_
 
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -133,7 +132,7 @@ class BleV2ServerSocket : public api::ble_v2::BleServerSocket {
   // Called by the server side of a connection before passing ownership of
   // BleServerSocker to user, to track validity of a pointer to this
   // server socket.
-  void SetCloseNotifier(std::function<void()> notifier)
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
@@ -147,7 +146,7 @@ class BleV2ServerSocket : public api::ble_v2::BleServerSocket {
   absl::CondVar cond_;
   BluetoothAdapter* adapter_ = nullptr;  // Our Adapter. Read only.
   absl::flat_hash_set<BleV2Socket*> pending_sockets_ ABSL_GUARDED_BY(mutex_);
-  std::function<void()> close_notifier_ ABSL_GUARDED_BY(mutex_);
+  absl::AnyInvocable<void()> close_notifier_ ABSL_GUARDED_BY(mutex_);
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };
 

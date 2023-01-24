@@ -15,7 +15,7 @@
 #import "internal/platform/implementation/apple/ble.h"
 
 #include <CoreBluetooth/CoreBluetooth.h>
-#include <functional>
+
 #include <string>
 #include <utility>
 
@@ -283,7 +283,7 @@ bool BleServerSocket::Connect(std::unique_ptr<BleSocket> socket) {
   return true;
 }
 
-void BleServerSocket::SetCloseNotifier(std::function<void()> notifier) {
+void BleServerSocket::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
   absl::MutexLock lock(&mutex_);
   close_notifier_ = std::move(notifier);
 }

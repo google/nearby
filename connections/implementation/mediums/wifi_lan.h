@@ -23,9 +23,9 @@
 #include "absl/container/flat_hash_set.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/nsd_service_info.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/nsd_service_info.h"
 #include "internal/platform/wifi_lan.h"
 
 namespace nearby {
@@ -38,7 +38,7 @@ class WifiLan {
   // Callback that is invoked when a new connection is accepted.
   struct AcceptedConnectionCallback {
     std::function<void(const std::string& service_id, WifiLanSocket socket)>
-        accepted_cb = DefaultCallback<const std::string&, WifiLanSocket>();
+        accepted_cb = [](const std::string&, WifiLanSocket) {};
   };
 
   WifiLan() = default;

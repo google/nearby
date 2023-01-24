@@ -15,7 +15,7 @@
 #ifndef PLATFORM_API_TIMER_H_
 #define PLATFORM_API_TIMER_H_
 
-#include <functional>
+#include "absl/functional/any_invocable.h"
 
 namespace nearby {
 namespace api {
@@ -35,7 +35,7 @@ class Timer {
   //
   // @return   return true if success, otherwise false
   virtual bool Create(int delay, int interval,
-                      std::function<void()> callback) = 0;
+                      absl::AnyInvocable<void()> callback) = 0;
 
   // Stops timer. No timer signal is sent after the call.
   virtual bool Stop() = 0;

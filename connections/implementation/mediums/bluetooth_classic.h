@@ -22,10 +22,10 @@
 #include "absl/container/flat_hash_map.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/listeners.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 
@@ -40,7 +40,7 @@ class BluetoothClassic {
   // Callback that is invoked when a new connection is accepted.
   struct AcceptedConnectionCallback {
     std::function<void(const std::string& service_id, BluetoothSocket socket)>
-        accepted_cb = DefaultCallback<const std::string&, BluetoothSocket>();
+        accepted_cb = [](const std::string&, BluetoothSocket) {};
   };
 
   explicit BluetoothClassic(BluetoothRadio& bluetooth_radio);

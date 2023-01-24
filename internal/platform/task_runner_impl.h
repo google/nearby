@@ -23,12 +23,12 @@
 #undef UNICODE
 #endif
 
-#include <functional>
 #include <memory>
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/task_runner.h"
@@ -41,9 +41,9 @@ class TaskRunnerImpl : public TaskRunner {
   explicit TaskRunnerImpl(uint32_t runner_count);
   ~TaskRunnerImpl() override;
 
-  bool PostTask(std::function<void()> task) override;
+  bool PostTask(absl::AnyInvocable<void()> task) override;
   bool PostDelayedTask(absl::Duration delay,
-                       std::function<void()> task) override
+                       absl::AnyInvocable<void()> task) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:

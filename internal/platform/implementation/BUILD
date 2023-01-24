@@ -47,6 +47,7 @@ cc_library(
     deps = [
         "//internal/platform:base",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
     ],

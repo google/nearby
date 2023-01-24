@@ -15,7 +15,6 @@
 #include "internal/platform/multi_thread_executor.h"
 
 #include <atomic>
-#include <functional>
 
 #include "gtest/gtest.h"
 #include "absl/synchronization/mutex.h"

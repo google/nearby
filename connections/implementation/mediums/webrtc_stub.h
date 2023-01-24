@@ -20,9 +20,9 @@
 #include <memory>
 #include <string>
 
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/mediums/webrtc_peer_id_stub.h"
 #include "connections/implementation/mediums/webrtc_socket_stub.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/listeners.h"
 
@@ -32,7 +32,7 @@ namespace mediums {
 // Callback that is invoked when a new connection is accepted.
 struct AcceptedConnectionCallback {
   std::function<void(WebRtcSocketWrapper socket)> accepted_cb =
-      DefaultCallback<WebRtcSocketWrapper>();
+      [](WebRtcSocketWrapper) {};
 };
 // Entry point for connecting a data channel between two devices via WebRtc.
 class WebRtc {

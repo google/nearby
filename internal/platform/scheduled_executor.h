@@ -16,7 +16,6 @@
 #define PLATFORM_PUBLIC_SCHEDULED_EXECUTOR_H_
 
 #include <cstdint>
-#include <functional>
 #include <memory>
 
 #include "absl/base/thread_annotations.h"

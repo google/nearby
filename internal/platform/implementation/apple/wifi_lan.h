@@ -116,7 +116,7 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
   Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool Connect(std::unique_ptr<WifiLanSocket> socket) ABSL_LOCKS_EXCLUDED(mutex_);
-  void SetCloseNotifier(std::function<void()> notifier) ABSL_LOCKS_EXCLUDED(mutex_);
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier) ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   Exception DoClose() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
@@ -126,7 +126,7 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
   int port_ ABSL_GUARDED_BY(mutex_);
   absl::CondVar cond_;
   absl::flat_hash_set<std::unique_ptr<WifiLanSocket>> pending_sockets_ ABSL_GUARDED_BY(mutex_);
-  std::function<void()> close_notifier_ ABSL_GUARDED_BY(mutex_);
+  absl::AnyInvocable<void()> close_notifier_ ABSL_GUARDED_BY(mutex_);
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };
 

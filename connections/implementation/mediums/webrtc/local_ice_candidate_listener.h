@@ -25,7 +25,7 @@ namespace mediums {
 // Callbacks from local ice candidate collection.
 struct LocalIceCandidateListener {
   // Called when a new local ice candidate has been found.
-  std::function<void(const webrtc::IceCandidateInterface*)>
+  absl::AnyInvocable<void(const webrtc::IceCandidateInterface*)>
       local_ice_candidate_found_cb =
           nearby::DefaultCallback<const webrtc::IceCandidateInterface*>();
 };

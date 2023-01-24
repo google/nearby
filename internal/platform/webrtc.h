@@ -44,8 +44,8 @@ class WebRtcSignalingMessenger final {
   bool StartReceivingMessages(
       OnSignalingMessageCallback on_message_callback,
       OnSignalingCompleteCallback on_complete_callback) {
-    return impl_->StartReceivingMessages(on_message_callback,
-                                         on_complete_callback);
+    return impl_->StartReceivingMessages(std::move(on_message_callback),
+                                         std::move(on_complete_callback));
   }
 
   void StopReceivingMessages() { impl_->StopReceivingMessages(); }

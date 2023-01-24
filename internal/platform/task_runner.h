@@ -15,8 +15,7 @@
 #ifndef PLATFORM_PUBLIC_TASK_RUNNER_H_
 #define PLATFORM_PUBLIC_TASK_RUNNER_H_
 
-#include <functional>
-
+#include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
 
 namespace nearby {
@@ -30,13 +29,13 @@ class TaskRunner {
   // Posts a task to task runner. The task runs immediately or not depends on
   // the implementation of class. If the implementation supports multiple
   // threads, posted tasks could run concurrently.
-  virtual bool PostTask(std::function<void()> task) = 0;
+  virtual bool PostTask(absl::AnyInvocable<void()> task) = 0;
 
   // Posts a task to run with delay. Multiple tasks can be scheduled. Tasks will
   // execute in the order of their delay expiring, not in the order they were
   // posted.
   virtual bool PostDelayedTask(absl::Duration delay,
-                               std::function<void()> task) = 0;
+                               absl::AnyInvocable<void()> task) = 0;
 };
 
 }  // namespace nearby

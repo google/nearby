@@ -15,11 +15,11 @@
 #ifndef PLATFORM_PUBLIC_BLE_V2_H_
 #define PLATFORM_PUBLIC_BLE_V2_H_
 
-#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/types/optional.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
@@ -37,8 +37,9 @@ namespace nearby {
 class BleV2Socket final {
  public:
   BleV2Socket() = default;
-  explicit BleV2Socket(std::unique_ptr<api::ble_v2::BleSocket> socket)
-      : impl_(std::move(socket)) {}
+  explicit BleV2Socket(std::unique_ptr<api::ble_v2::BleSocket> socket) {
+    state_->socket = std::move(socket);
+  }
   BleV2Socket(const BleV2Socket&) = default;
   BleV2Socket& operator=(const BleV2Socket&) = default;
 
@@ -47,32 +48,32 @@ class BleV2Socket final {
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the BleSocket object is destroyed.
-  InputStream& GetInputStream() { return impl_->GetInputStream(); }
+  InputStream& GetInputStream() { return state_->socket->GetInputStream(); }
 
   // Returns the OutputStream of the BleSocket.
   // On error, returned stream will report Exception::kIo on any operation.
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the BleSocket object is destroyed.
-  OutputStream& GetOutputStream() { return impl_->GetOutputStream(); }
+  OutputStream& GetOutputStream() { return state_->socket->GetOutputStream(); }
 
   // Sets the close notifier by client side.
-  void SetCloseNotifier(std::function<void()> notifier) {
-    close_notifier_ = std::move(notifier);
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
+    state_->close_notifier = std::move(notifier);
   }
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() {
-    if (close_notifier_) {
-      auto notifier = std::move(close_notifier_);
+    if (state_->close_notifier) {
+      auto notifier = std::move(state_->close_notifier);
       notifier();
     }
-    return impl_->Close();
+    return state_->socket->Close();
   }
 
   // Returns BlePeripheral object which wraps a valid BlePeripheral pointer.
   BleV2Peripheral GetRemotePeripheral() {
-    return BleV2Peripheral(impl_->GetRemotePeripheral());
+    return BleV2Peripheral(state_->socket->GetRemotePeripheral());
   }
 
   // Returns true if a socket is usable. If this method returns false,
@@ -84,18 +85,21 @@ class BleV2Socket final {
   // an object returned by BleMedium::Connect
   // These methods may also return an invalid socket if connection failed for
   // any reason.
-  bool IsValid() const { return impl_ != nullptr; }
+  bool IsValid() const { return state_->socket != nullptr; }
 
   // Returns reference to platform implementation.
   // This is used to communicate with platform code, and for debugging purposes.
   // Returned reference will remain valid for while BleSocket object is
   // itself valid. Typically BleSocket lifetime matches duration of the
   // connection, and is controlled by end user, since they hold the instance.
-  api::ble_v2::BleSocket& GetImpl() { return *impl_; }
+  api::ble_v2::BleSocket& GetImpl() { return *state_->socket; }
 
  private:
-  std::function<void()> close_notifier_;
-  std::shared_ptr<api::ble_v2::BleSocket> impl_;
+  struct SharedState {
+    std::unique_ptr<api::ble_v2::BleSocket> socket;
+    absl::AnyInvocable<void()> close_notifier;
+  };
+  std::shared_ptr<SharedState> state_ = std::make_shared<SharedState>();
 };
 
 // Container of operations that can be performed over the BLE GATT server
@@ -176,7 +180,8 @@ class GattServer final {
   bool IsValid() const { return impl_ != nullptr; }
 
   // Returns reference to platform implementation.
-  // This is used to communicate with platform code, and for debugging purposes.
+  // This is used to communicate with platform code, and for debugging
+  // purposes.
   api::ble_v2::GattServer* GetImpl() { return impl_.get(); }
 
  private:
@@ -213,12 +218,13 @@ class GattClient final {
 
   void Disconnect() { impl_->Disconnect(); }
 
-  // Returns true if a client_gatt_connection is usable. If this method returns
-  // false, it is not safe to call any other method.
+  // Returns true if a client_gatt_connection is usable. If this method
+  // returns false, it is not safe to call any other method.
   bool IsValid() const { return impl_ != nullptr; }
 
   // Returns reference to platform implementation.
-  // This is used to communicate with platform code, and for debugging purposes.
+  // This is used to communicate with platform code, and for debugging
+  // purposes.
   api::ble_v2::GattClient* GetImpl() { return impl_.get(); }
 
  private:
@@ -237,7 +243,7 @@ class BleV2Medium final {
   // connection, and is controlled by primitive client, since they hold the
   // instance.
   struct ScanCallback {
-    std::function<void(
+    absl::AnyInvocable<void(
         BleV2Peripheral peripheral,
         const api::ble_v2::BleAdvertisementData& advertisement_data)>
         advertisement_found_cb =
@@ -245,17 +251,19 @@ class BleV2Medium final {
                                     const api::ble_v2::BleAdvertisementData&>();
   };
   struct ServerGattConnectionCallback {
-    std::function<void(const api::ble_v2::GattCharacteristic& characteristic)>
+    absl::AnyInvocable<void(
+        const api::ble_v2::GattCharacteristic& characteristic)>
         characteristic_subscription_cb =
             nearby::DefaultCallback<const api::ble_v2::GattCharacteristic&>();
-    std::function<void(const api::ble_v2::GattCharacteristic& characteristic)>
+    absl::AnyInvocable<void(
+        const api::ble_v2::GattCharacteristic& characteristic)>
         characteristic_unsubscription_cb =
             nearby::DefaultCallback<const api::ble_v2::GattCharacteristic&>();
   };
   // TODO(b/231318879): Remove this wrapper callback and use impl callback if
   // there is only disconnect function here in the end.
   struct ClientGattConnectionCallback {
-    std::function<void()> disconnected_cb = nearby::DefaultCallback<>();
+    absl::AnyInvocable<void()> disconnected_cb = nearby::DefaultCallback<>();
   };
 
   explicit BleV2Medium(BluetoothAdapter& adapter)

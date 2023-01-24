@@ -290,80 +290,81 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
     BluetoothDevice device) {
   RunOnPcpHandlerThread(
       "p2p-bt-name-changed",
-      [this, client, service_id, device]() RUN_ON_PCP_HANDLER_THREAD() {
-        // Make sure we are still discovering before proceeding.
-        if (!client->IsDiscovering()) {
-          NEARBY_LOGS(WARNING)
-              << "Ignoring lost BluetoothDevice " << device.GetName()
-              << " because Connections is no longer discovering.";
-          return;
-        }
+      [this, client, service_id, device]()
+          RUN_ON_PCP_HANDLER_THREAD() {
+            // Make sure we are still discovering before proceeding.
+            if (!client->IsDiscovering()) {
+              NEARBY_LOGS(WARNING)
+                  << "Ignoring lost BluetoothDevice " << device.GetName()
+                  << " because Connections is no longer discovering.";
+              return;
+            }
 
-        // Parse the Bluetooth device name.
-        const std::string device_name_string = device.GetName();
-        BluetoothDeviceName device_name(device_name_string);
-        NEARBY_LOGS(INFO) << "BT discovery handler (CHANGED) [client_id="
-                          << client->GetClientId()
-                          << ", service_id=" << service_id
-                          << "]: processing new name " << device_name_string;
+            // Parse the Bluetooth device name.
+            const std::string device_name_string = device.GetName();
+            BluetoothDeviceName device_name(device_name_string);
+            NEARBY_LOGS(INFO)
+                << "BT discovery handler (CHANGED) [client_id="
+                << client->GetClientId() << ", service_id=" << service_id
+                << "]: processing new name " << device_name_string;
 
-        // By this point, the BluetoothDevice passed to us has a different name
-        // than what we may have discovered before. We need to iterate over the
-        // found BluetoothEndpoints and compare their addresses to see the
-        // devices are the same. We are not guaranteed to discover a match,
-        // since the old name may not have been formatted for Nearby
-        // Connections.
-        for (auto endpoint : GetDiscoveredEndpoints(
-                 location::nearby::proto::connections::Medium::BLUETOOTH)) {
-          BluetoothEndpoint* bluetoothEndpoint =
-              static_cast<BluetoothEndpoint*>(endpoint);
-          NEARBY_LOGS(INFO)
-              << "BT discovery handler (CHANGED) [client_id="
-              << client->GetClientId() << ", service_id=" << service_id
-              << "]: comparing MAC addresses with existing endpoint "
-              << bluetoothEndpoint->bluetooth_device.GetName()
-              << ". They have MAC address "
-              << bluetoothEndpoint->bluetooth_device.GetMacAddress()
-              << " and the new endpoint has MAC address "
-              << device.GetMacAddress();
-          if (bluetoothEndpoint->bluetooth_device.GetMacAddress() ==
-              device.GetMacAddress()) {
-            // Report the BluetoothEndpoint as lost to the client.
-            NEARBY_LOGS(INFO) << "Reporting lost BluetoothDevice "
-                              << bluetoothEndpoint->bluetooth_device.GetName()
-                              << ", due to device name change.";
-            OnEndpointLost(client, *endpoint);
-            break;
-          }
-        }
+            // By this point, the BluetoothDevice passed to us has a different
+            // name than what we may have discovered before. We need to iterate
+            // over the found BluetoothEndpoints and compare their addresses to
+            // see the devices are the same. We are not guaranteed to discover a
+            // match, since the old name may not have been formatted for Nearby
+            // Connections.
+            for (auto endpoint : GetDiscoveredEndpoints(
+                     location::nearby::proto::connections::Medium::BLUETOOTH)) {
+              BluetoothEndpoint* bluetoothEndpoint =
+                  static_cast<BluetoothEndpoint*>(endpoint);
+              NEARBY_LOGS(INFO)
+                  << "BT discovery handler (CHANGED) [client_id="
+                  << client->GetClientId() << ", service_id=" << service_id
+                  << "]: comparing MAC addresses with existing endpoint "
+                  << bluetoothEndpoint->bluetooth_device.GetName()
+                  << ". They have MAC address "
+                  << bluetoothEndpoint->bluetooth_device.GetMacAddress()
+                  << " and the new endpoint has MAC address "
+                  << device.GetMacAddress();
+              if (bluetoothEndpoint->bluetooth_device.GetMacAddress() ==
+                  device.GetMacAddress()) {
+                // Report the BluetoothEndpoint as lost to the client.
+                NEARBY_LOGS(INFO)
+                    << "Reporting lost BluetoothDevice "
+                    << bluetoothEndpoint->bluetooth_device.GetName()
+                    << ", due to device name change.";
+                OnEndpointLost(client, *endpoint);
+                break;
+              }
+            }
 
-        // Make sure the Bluetooth device name points to a valid
-        // endpoint we're discovering.
-        if (!IsRecognizedBluetoothEndpoint(device_name_string, service_id,
-                                           device_name)) {
-          NEARBY_LOGS(INFO) << "Found unrecognized BluetoothDeviceName "
-                            << device_name_string;
-          return;
-        }
+            // Make sure the Bluetooth device name points to a valid
+            // endpoint we're discovering.
+            if (!IsRecognizedBluetoothEndpoint(device_name_string, service_id,
+                                               device_name)) {
+              NEARBY_LOGS(INFO) << "Found unrecognized BluetoothDeviceName "
+                                << device_name_string;
+              return;
+            }
 
-        // Report the discovered endpoint to the client.
-        NEARBY_LOGS(INFO) << "Found BluetoothDeviceName " << device_name_string
-                          << " (with endpoint_id="
-                          << device_name.GetEndpointId()
-                          << " and endpoint_info="
-                          << absl::BytesToHexString(
-                                 device_name.GetEndpointInfo().data())
-                          << ").";
-        OnEndpointFound(
-            client,
-            std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
-                {device_name.GetEndpointId(), device_name.GetEndpointInfo(),
-                 service_id,
-                 location::nearby::proto::connections::Medium::BLUETOOTH,
-                 device_name.GetWebRtcState()},
-                device,
-            }));
-      });
+            // Report the discovered endpoint to the client.
+            NEARBY_LOGS(INFO)
+                << "Found BluetoothDeviceName " << device_name_string
+                << " (with endpoint_id=" << device_name.GetEndpointId()
+                << " and endpoint_info="
+                << absl::BytesToHexString(device_name.GetEndpointInfo().data())
+                << ").";
+            OnEndpointFound(
+                client,
+                std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
+                    {device_name.GetEndpointId(), device_name.GetEndpointInfo(),
+                     service_id,
+                     location::nearby::proto::connections::Medium::BLUETOOTH,
+                     device_name.GetWebRtcState()},
+                    device,
+                }));
+          });
 }
 
 void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
@@ -1764,19 +1765,19 @@ P2pClusterPcpHandler::StartWifiLanAdvertising(
               RunOnPcpHandlerThread(
                   "p2p-wifi-on-incoming-connection",
                   [this, client, local_endpoint_id, local_endpoint_info,
-                   service_id, socket = std::move(socket)]()
-                      RUN_ON_PCP_HANDLER_THREAD() mutable {
-                        std::string remote_service_name = local_endpoint_id;
-                        auto channel = std::make_unique<WifiLanEndpointChannel>(
-                            service_id, /*channel_name=*/remote_service_name,
-                            socket);
-                        ByteArray remote_service_name_byte{remote_service_name};
+                   service_id,
+                   socket = std::move(
+                       socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+                    std::string remote_service_name = local_endpoint_id;
+                    auto channel = std::make_unique<WifiLanEndpointChannel>(
+                        service_id, /*channel_name=*/remote_service_name,
+                        socket);
+                    ByteArray remote_service_name_byte{remote_service_name};
 
-                        OnIncomingConnection(client, remote_service_name_byte,
-                                             std::move(channel),
-                                             location::nearby::proto::
-                                                 connections::Medium::WIFI_LAN);
-                      });
+                    OnIncomingConnection(
+                        client, remote_service_name_byte, std::move(channel),
+                        location::nearby::proto::connections::Medium::WIFI_LAN);
+                  });
             }})) {
       NEARBY_LOGS(WARNING)
           << "In StartWifiLanAdvertising("

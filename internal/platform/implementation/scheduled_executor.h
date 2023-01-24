@@ -16,7 +16,6 @@
 #define PLATFORM_API_SCHEDULED_EXECUTOR_H_
 
 #include <cstdint>
-#include <functional>
 #include <memory>
 
 #include "absl/time/time.h"

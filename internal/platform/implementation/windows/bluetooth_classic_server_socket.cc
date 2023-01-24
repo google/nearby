@@ -16,7 +16,6 @@
 
 #include <codecvt>
 #include <exception>
-#include <functional>
 #include <locale>
 #include <memory>
 #include <string>
@@ -55,7 +54,8 @@ std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
   return std::make_unique<BluetoothSocket>(bluetooth_socket);
 }
 
-void BluetoothServerSocket::SetCloseNotifier(std::function<void()> notifier) {
+void BluetoothServerSocket::SetCloseNotifier(
+    absl::AnyInvocable<void()> notifier) {
   close_notifier_ = std::move(notifier);
 }
 

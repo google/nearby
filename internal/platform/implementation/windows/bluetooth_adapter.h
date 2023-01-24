@@ -20,10 +20,11 @@
 #include <guiddef.h>
 // clang-format on
 
-#include <functional>
 #include <optional>
 #include <string>
+#include <utility>
 
+#include "absl/functional/any_invocable.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Radios.h"
@@ -52,7 +53,8 @@ class BluetoothAdapter : public api::BluetoothAdapter {
 
   ~BluetoothAdapter() override = default;
 
-  typedef std::function<void(api::BluetoothAdapter::ScanMode)> ScanModeCallback;
+  typedef absl::AnyInvocable<void(api::BluetoothAdapter::ScanMode)>
+      ScanModeCallback;
 
   // Synchronously sets the status of the BluetoothAdapter to 'status', and
   // returns true if the operation was a success.
@@ -88,8 +90,8 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   std::string GetNameFromComputerName() const;
 
   void SetOnScanModeChanged(ScanModeCallback callback) {
-    if (scan_mode_changed_ == nullptr) {
-      scan_mode_changed_ = callback;
+    if (scan_mode_changed_) {
+      scan_mode_changed_ = std::move(callback);
     }
   }
 
@@ -111,7 +113,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   void find_and_replace(char *source, const char *strFind,
                         const char *strReplace) const;
   ScanMode scan_mode_ = ScanMode::kNone;
-  ScanModeCallback scan_mode_changed_ = nullptr;
+  ScanModeCallback scan_mode_changed_;
 
   // Used to fake the device name when the device name is longer than android
   // limitation.

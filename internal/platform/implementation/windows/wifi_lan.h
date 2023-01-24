@@ -23,7 +23,6 @@
 
 // Standard C/C++ headers
 #include <exception>
-#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -35,8 +34,8 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
@@ -187,7 +186,7 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
   // Called by the server side of a connection before passing ownership of
   // WifiLanServerSocker to user, to track validity of a pointer to this
   // server socket.
-  void SetCloseNotifier(std::function<void()> notifier);
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier);
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override;
@@ -208,7 +207,7 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
   winrt::event_token listener_event_token_{};
 
   // Close notifier
-  std::function<void()> close_notifier_ = nullptr;
+  absl::AnyInvocable<void()> close_notifier_ = nullptr;
 
   // IP addresses of the computer. mDNS uses them to advertise.
   std::vector<std::string> ip_addresses_{};

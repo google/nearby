@@ -31,7 +31,7 @@ class WifiDirect {
   // Callback that is invoked when a new connection is accepted.
   struct AcceptedConnectionCallback {
     std::function<void(const std::string& service_id, WifiDirectSocket socket)>
-        accepted_cb = DefaultCallback<const std::string&, WifiDirectSocket>();
+        accepted_cb = [](const std::string&, WifiDirectSocket) {};
   };
 
   WifiDirect() : is_go_started_(false), is_connected_to_go_(false) {}

@@ -21,9 +21,9 @@
 #include "absl/strings/escaping.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/utils.h"
-#include "internal/platform/prng.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/prng.h"
 
 namespace nearby {
 namespace connections {
@@ -273,7 +273,7 @@ bool Ble::StartAcceptingConnections(const std::string& service_id,
     return false;
   }
 
-  if (!medium_.StartAcceptingConnections(service_id, callback)) {
+  if (!medium_.StartAcceptingConnections(service_id, std::move(callback))) {
     NEARBY_LOGS(INFO) << "Failed to accept connections callback for "
                       << service_id << " .";
     return false;

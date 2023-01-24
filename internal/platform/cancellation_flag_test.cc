@@ -14,7 +14,6 @@
 
 #include "internal/platform/cancellation_flag.h"
 
-#include <functional>
 #include <memory>
 #include <utility>
 

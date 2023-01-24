@@ -15,7 +15,6 @@
 #include <windows.h>
 
 #include <exception>
-#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -82,7 +81,8 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
   return std::make_unique<WifiHotspotSocket>(wifi_hotspot_socket);
 }
 
-void WifiHotspotServerSocket::SetCloseNotifier(std::function<void()> notifier) {
+void WifiHotspotServerSocket::SetCloseNotifier(
+    absl::AnyInvocable<void()> notifier) {
   close_notifier_ = std::move(notifier);
 }
 

@@ -14,7 +14,6 @@
 
 #include "internal/platform/ble_v2.h"
 
-#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -339,18 +338,15 @@ TEST_F(BleV2MediumTest, StartThenStopAsyncScanning) {
   Uuid service_uuid(1234, 5678);
   CountDownLatch found_latch_a(1);
 
-  std::function<void(api::ble_v2::BlePeripheral&, BleAdvertisementData)>
-      advertisement_found_cb_a =
-          [&found_latch_a](api::ble_v2::BlePeripheral& peripheral,
-                           BleAdvertisementData advertisement_data) -> void {
-    found_latch_a.CountDown();
-  };
-
   std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> scanning_session_a =
       ble_a.StartScanning(
           service_uuid, kTxPowerLevel,
           api::ble_v2::BleMedium::ScanningCallback{
-              .advertisement_found_cb = advertisement_found_cb_a,
+              .advertisement_found_cb =
+                  [&](api::ble_v2::BlePeripheral& peripheral,
+                      BleAdvertisementData advertisement_data) -> void {
+                found_latch_a.CountDown();
+              },
           });
 
   EXPECT_TRUE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
@@ -368,31 +364,25 @@ TEST_F(BleV2MediumTest, CanStartMultipleAsyncScanning) {
   CountDownLatch found_latch_a(1);
   CountDownLatch found_latch_b(1);
 
-  std::function<void(api::ble_v2::BlePeripheral&, BleAdvertisementData)>
-      advertisement_found_cb_a =
-          [&found_latch_a](api::ble_v2::BlePeripheral& peripheral,
-                           BleAdvertisementData advertisement_data) -> void {
-    found_latch_a.CountDown();
-  };
-
-  std::function<void(api::ble_v2::BlePeripheral&, BleAdvertisementData)>
-      advertisement_found_cb_b =
-          [&found_latch_b](api::ble_v2::BlePeripheral& peripheral,
-                           BleAdvertisementData advertisement_data) -> void {
-    found_latch_b.CountDown();
-  };
-
   std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> scanning_session_a =
       ble_a.StartScanning(
           service_uuid, kTxPowerLevel,
           api::ble_v2::BleMedium::ScanningCallback{
-              .advertisement_found_cb = advertisement_found_cb_a,
+              .advertisement_found_cb =
+                  [&](api::ble_v2::BlePeripheral& peripheral,
+                      BleAdvertisementData advertisement_data) -> void {
+                found_latch_a.CountDown();
+              },
           });
   std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> scanning_session_b =
       ble_b.StartScanning(
           service_uuid, kTxPowerLevel,
           api::ble_v2::BleMedium::ScanningCallback{
-              .advertisement_found_cb = advertisement_found_cb_b,
+              .advertisement_found_cb =
+                  [&](api::ble_v2::BlePeripheral& peripheral,
+                      BleAdvertisementData advertisement_data) -> void {
+                found_latch_b.CountDown();
+              },
           });
 
   EXPECT_TRUE(env_.GetBleV2MediumStatus(*ble_a.GetImpl()).value().is_scanning);
@@ -417,18 +407,16 @@ TEST_F(BleV2MediumTest, CanStartAsyncScanningAndAdvertising) {
   ByteArray advertisement_header_bytes{std::string(kAdvertisementHeaderString)};
   CountDownLatch found_latch(1);
 
-  std::function<void(api::ble_v2::BlePeripheral&, BleAdvertisementData)>
-      advertisement_found_cb =
-          [&found_latch](api::ble_v2::BlePeripheral& peripheral,
-                         BleAdvertisementData advertisement_data) -> void {
-    found_latch.CountDown();
-  };
-
   std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> scanning_session =
-      ble_a.StartScanning(service_uuid, kTxPowerLevel,
-                          api::ble_v2::BleMedium::ScanningCallback{
-                              .advertisement_found_cb = advertisement_found_cb,
-                          });
+      ble_a.StartScanning(
+          service_uuid, kTxPowerLevel,
+          api::ble_v2::BleMedium::ScanningCallback{
+              .advertisement_found_cb =
+                  [&](api::ble_v2::BlePeripheral& peripheral,
+                      BleAdvertisementData advertisement_data) -> void {
+                found_latch.CountDown();
+              },
+          });
 
   // Succeed to start regular advertisement.
   BleAdvertisementData advertising_data;

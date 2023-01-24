@@ -14,8 +14,8 @@
 
 #include "internal/platform/implementation/timer.h"
 
-#include <chrono>      // NOLINT
-#include <functional>  // NOLINT
+#include <chrono>  // NOLINT
+// NOLINT
 #include <memory>
 #include <thread>  // NOLINT
 
@@ -28,26 +28,24 @@ namespace {
 
 TEST(Timer, TestCreateTimer) {
   int count = 0;
-  std::function<void()> callback = [&count]() { ++count; };
 
   std::unique_ptr<nearby::api::Timer> timer =
       nearby::api::ImplementationPlatform::CreateTimer();
 
   ASSERT_TRUE(timer != nullptr);
-  EXPECT_FALSE(timer->Create(-100, 0, callback));
+  EXPECT_FALSE(timer->Create(-100, 0, [&]() { ++count; }));
   EXPECT_TRUE(timer->Stop());
 }
 
 // This test case cannot run on Google3
 TEST(Timer, DISABLED_TestRepeatTimer) {
   int count = 0;
-  std::function<void()> callback = [&count]() { count++; };
 
   std::unique_ptr<nearby::api::Timer> timer =
       nearby::api::ImplementationPlatform::CreateTimer();
 
   ASSERT_TRUE(timer != nullptr);
-  EXPECT_TRUE(timer->Create(300, 300, callback));
+  EXPECT_TRUE(timer->Create(300, 300, [&]() { ++count; }));
   std::this_thread::sleep_for(std::chrono::seconds(1));
   EXPECT_TRUE(timer->Stop());
   EXPECT_EQ(count, 3);
@@ -55,10 +53,11 @@ TEST(Timer, DISABLED_TestRepeatTimer) {
 
 TEST(Timer, DISABLED_TestFireNow) {
   int count = 0;
-  std::function<void()> callback = [&count]() { ++count; };
+
   auto timer = nearby::api::ImplementationPlatform::CreateTimer();
+
   EXPECT_TRUE(timer != nullptr);
-  EXPECT_TRUE(timer->Create(3000, 3000, callback));
+  EXPECT_TRUE(timer->Create(3000, 3000, [&]() { ++count; }));
   EXPECT_TRUE(timer->FireNow());
   EXPECT_TRUE(timer->Stop());
   EXPECT_EQ(count, 1);

@@ -17,8 +17,6 @@
 
 #include <windows.h>
 
-#include <functional>
-
 #include "internal/platform/implementation/timer.h"
 
 namespace nearby {
@@ -29,7 +27,8 @@ class Timer : public api::Timer {
   Timer() = default;
   ~Timer() override;
 
-  bool Create(int delay, int interval, std::function<void()> callback) override;
+  bool Create(int delay, int interval,
+              absl::AnyInvocable<void()> callback) override;
   bool Stop() override;
   bool FireNow() override;
 
@@ -38,7 +37,7 @@ class Timer : public api::Timer {
 
   int delay_;
   int interval_;
-  std::function<void()> callback_;
+  absl::AnyInvocable<void()> callback_;
   HANDLE handle_ = NULL;
   HANDLE timer_queue_handle_ = NULL;
 };

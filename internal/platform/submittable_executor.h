@@ -16,7 +16,6 @@
 #define PLATFORM_PUBLIC_SUBMITTABLE_EXECUTOR_H_
 
 #include <cstddef>
-#include <functional>
 #include <memory>
 #include <utility>
 
@@ -86,7 +85,7 @@ class ABSL_LOCKABLE SubmittableExecutor : public api::SubmittableExecutor,
     MutexLock lock(&mutex_);
     bool submitted =
         DoSubmit([callable = ThreadCheckCallable<T>(this, std::move(callable)),
-                  future]() {
+                  future]() mutable {
           ExceptionOr<T> result = callable();
           if (result.ok()) {
             future->Set(result.result());

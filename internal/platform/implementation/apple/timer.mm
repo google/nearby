@@ -14,7 +14,6 @@
 
 #import "internal/platform/implementation/apple/timer.h"
 
-#include <functional>
 #include <utility>
 
 #include "internal/platform/implementation/timer.h"
@@ -22,7 +21,7 @@
 namespace nearby {
 namespace apple {
 
-bool Timer::Create(int delay, int interval, std::function<void()> callback) { return true; }
+bool Timer::Create(int delay, int interval, absl::AnyInvocable<void()> callback) { return true; }
 
 bool Timer::Stop() { return true; }
 

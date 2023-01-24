@@ -52,10 +52,9 @@ class DiscoveredPeripheralTracker {
         BleV2Peripheral peripheral, int num_slots, int psm,
         const std::vector<std::string>& interesting_service_ids,
         mediums::AdvertisementReadResult& advertisement_read_result)>
-        fetch_advertisements =
-            DefaultCallback<BleV2Peripheral, int, int,
-                            const std::vector<std::string>&,
-                            mediums::AdvertisementReadResult&>();
+        fetch_advertisements = [](BleV2Peripheral, int, int,
+                                  const std::vector<std::string>&,
+                                  mediums::AdvertisementReadResult&) {};
   };
 
   explicit DiscoveredPeripheralTracker(
@@ -76,8 +75,7 @@ class DiscoveredPeripheralTracker {
   void StartTracking(
       const std::string& service_id,
       const DiscoveredPeripheralCallback& discovered_peripheral_callback,
-      const Uuid& fast_advertisement_service_uuid)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      const Uuid& fast_advertisement_service_uuid) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Stops tracking discoveries for a particular service Id.
   void StopTracking(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);

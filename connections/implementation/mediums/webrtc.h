@@ -28,7 +28,6 @@
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/future.h"
-#include "internal/platform/listeners.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/scheduled_executor.h"
@@ -43,7 +42,7 @@ namespace mediums {
 // Callback that is invoked when a new connection is accepted.
 struct AcceptedConnectionCallback {
   std::function<void(const std::string& service_id, WebRtcSocketWrapper socket)>
-      accepted_cb = DefaultCallback<const std::string&, WebRtcSocketWrapper>();
+      accepted_cb = [](const std::string&, WebRtcSocketWrapper) {};
 };
 
 // Entry point for connecting a data channel between two devices via WebRtc.

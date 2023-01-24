@@ -15,7 +15,6 @@
 #ifndef PLATFORM_IMPL_G3_WIFI_DIRECT_H_
 #define PLATFORM_IMPL_G3_WIFI_DIRECT_H_
 
-#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -144,7 +143,7 @@ class WifiDirectServerSocket : public api::WifiDirectServerSocket {
   // Called by the server side of a connection before passing ownership of
   // WifiDirectServerSocker to user, to track validity of a pointer to this
   // server socket.
-  void SetCloseNotifier(std::function<void()> notifier)
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
@@ -164,7 +163,7 @@ class WifiDirectServerSocket : public api::WifiDirectServerSocket {
   absl::CondVar cond_;
   absl::flat_hash_set<WifiDirectSocket*> pending_sockets_
       ABSL_GUARDED_BY(mutex_);
-  std::function<void()> close_notifier_ ABSL_GUARDED_BY(mutex_);
+  absl::AnyInvocable<void()> close_notifier_ ABSL_GUARDED_BY(mutex_);
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };
 

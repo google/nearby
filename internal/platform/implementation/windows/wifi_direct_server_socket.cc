@@ -15,7 +15,6 @@
 #include <windows.h>
 
 #include <exception>
-#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -82,7 +81,8 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
   return std::make_unique<WifiDirectSocket>(wifi_direct_socket);
 }
 
-void WifiDirectServerSocket::SetCloseNotifier(std::function<void()> notifier) {
+void WifiDirectServerSocket::SetCloseNotifier(
+    absl::AnyInvocable<void()> notifier) {
   close_notifier_ = std::move(notifier);
 }
 

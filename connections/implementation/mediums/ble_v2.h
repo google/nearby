@@ -51,7 +51,7 @@ class BleV2 final {
 
   // Callback that is invoked when a new connection is accepted.
   struct AcceptedConnectionCallback {
-    std::function<void(BleV2Socket socket, const std::string& service_id)>
+    absl::AnyInvocable<void(BleV2Socket socket, const std::string& service_id)>
         accepted_cb = DefaultCallback<BleV2Socket, const std::string&>();
   };
 

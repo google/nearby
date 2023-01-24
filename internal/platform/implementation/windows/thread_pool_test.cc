@@ -14,7 +14,6 @@
 
 #include "internal/platform/implementation/windows/thread_pool.h"
 
-#include <functional>
 #include <vector>
 
 #include "gtest/gtest.h"

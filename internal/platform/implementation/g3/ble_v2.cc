@@ -15,7 +15,6 @@
 #include "internal/platform/implementation/g3/ble_v2.h"
 
 #include <cstdint>
-#include <functional>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -166,7 +165,7 @@ bool BleV2ServerSocket::Connect(BleV2Socket& socket) {
   return true;
 }
 
-void BleV2ServerSocket::SetCloseNotifier(std::function<void()> notifier) {
+void BleV2ServerSocket::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
   absl::MutexLock lock(&mutex_);
   close_notifier_ = std::move(notifier);
 }

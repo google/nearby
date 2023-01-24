@@ -16,7 +16,6 @@
 #define PLATFORM_BASE_MEDIUM_ENVIRONMENT_H_
 
 #include <atomic>
-#include <functional>
 #include <memory>
 #include <string>
 #include <utility>

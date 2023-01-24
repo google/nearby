@@ -22,8 +22,8 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/nsd_service_info.h"
@@ -146,7 +146,8 @@ bool WifiLanServerSocket::Connect(WifiLanSocket& socket) {
   return true;
 }
 
-void WifiLanServerSocket::SetCloseNotifier(std::function<void()> notifier) {
+void WifiLanServerSocket::SetCloseNotifier(
+    absl::AnyInvocable<void()> notifier) {
   absl::MutexLock lock(&mutex_);
   close_notifier_ = std::move(notifier);
 }

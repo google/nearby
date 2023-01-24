@@ -203,7 +203,7 @@ bool BluetoothClassic::StartDiscovery(DiscoveredDeviceCallback callback) {
     return false;
   }
 
-  if (!medium_.StartDiscovery(callback)) {
+  if (!medium_.StartDiscovery(std::move(callback))) {
     NEARBY_LOGS(INFO) << "Failed to start discovery of BT devices.";
     return false;
   }

@@ -15,9 +15,9 @@
 #ifndef PLATFORM_PUBLIC_TIMER_IMPL_H_
 #define PLATFORM_PUBLIC_TIMER_IMPL_H_
 
-#include <functional>
 #include <memory>
 
+#include "absl/functional/any_invocable.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/timer.h"
 
@@ -26,7 +26,8 @@ class TimerImpl : public Timer {
  public:
   ~TimerImpl() override { Stop(); }
 
-  bool Start(int delay, int period, std::function<void()> callback) override;
+  bool Start(int delay, int period,
+             absl::AnyInvocable<void()> callback) override;
   bool Stop() override;
   bool IsRunning() override;
   bool FireNow() override;
@@ -34,7 +35,6 @@ class TimerImpl : public Timer {
  private:
   int delay_ = 0;
   int period_ = 0;
-  std::function<void()> callback_ = nullptr;
   std::unique_ptr<api::Timer> internal_timer_ = nullptr;
 };
 

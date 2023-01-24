@@ -28,10 +28,10 @@ struct DataChannelListener {
   // Called when the data channel is open and the socket wraper is ready to
   // read and write.
   std::function<void(WebRtcSocketWrapper)> data_channel_open_cb =
-      DefaultCallback<WebRtcSocketWrapper>();
+      [](WebRtcSocketWrapper) {};
 
   // Called when the data channel is closed.
-  std::function<void()> data_channel_closed_cb = DefaultCallback<>();
+  std::function<void()> data_channel_closed_cb = []() {};
 };
 
 }  // namespace mediums

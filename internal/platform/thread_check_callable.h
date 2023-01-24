@@ -26,10 +26,10 @@ namespace nearby {
 template <typename T>
 class ThreadCheckCallable {
  public:
-  ThreadCheckCallable(const Lockable *lockable, Callable<T> &&callable)
-      : lockable_{lockable}, callable_{callable} {}
+  ThreadCheckCallable(const Lockable *lockable, Callable<T> callable)
+      : lockable_(lockable), callable_(std::move(callable)) {}
 
-  ExceptionOr<T> operator()() const {
+  ExceptionOr<T> operator()() {
     ThreadLockHolder thread_lock(lockable_);
     return callable_();
   }

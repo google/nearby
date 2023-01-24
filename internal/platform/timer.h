@@ -15,7 +15,7 @@
 #ifndef PLATFORM_PUBLIC_TIMER_H_
 #define PLATFORM_PUBLIC_TIMER_H_
 
-#include <functional>
+#include "absl/functional/any_invocable.h"
 
 namespace nearby {
 class Timer {
@@ -33,7 +33,8 @@ class Timer {
   // @param callback The callback is called when timer is signaled
   //
   // @return Returns true if succeed, otherwise false is returned.
-  virtual bool Start(int delay, int period, std::function<void()> callback) = 0;
+  virtual bool Start(int delay, int period,
+                     absl::AnyInvocable<void()> callback) = 0;
   virtual bool Stop() = 0;
   virtual bool IsRunning() = 0;
   virtual bool FireNow() = 0;

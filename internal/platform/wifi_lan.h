@@ -15,7 +15,6 @@
 #ifndef PLATFORM_PUBLIC_WIFI_LAN_H_
 #define PLATFORM_PUBLIC_WIFI_LAN_H_
 
-#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -129,12 +128,12 @@ class WifiLanMedium {
   using Platform = api::ImplementationPlatform;
 
   struct DiscoveredServiceCallback {
-    std::function<void(NsdServiceInfo service_info,
-                       const std::string& service_type)>
+    absl::AnyInvocable<void(NsdServiceInfo service_info,
+                            const std::string& service_type)>
         service_discovered_cb =
             DefaultCallback<NsdServiceInfo, const std::string&>();
-    std::function<void(NsdServiceInfo service_info,
-                       const std::string& service_type)>
+    absl::AnyInvocable<void(NsdServiceInfo service_info,
+                            const std::string& service_type)>
         service_lost_cb = DefaultCallback<NsdServiceInfo, const std::string&>();
   };
 
