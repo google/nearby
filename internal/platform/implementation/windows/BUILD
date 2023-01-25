@@ -164,10 +164,14 @@ cc_library(
     # WFD API is only support after _WIN32_WINNT_WIN8, but the current lexan _WIN32_WINNT is set to _WIN32_WINNT_WIN7
     copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated -Ithird_party/nearby/internal/platform/implementation/windows/json -D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10"],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
+    linkopts = [
+        "bcrypt.lib",
+    ],
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
         "//location/nearby:__subpackages__",
+        "//presence:__subpackages__",
     ],
     deps = [
         ":comm",
