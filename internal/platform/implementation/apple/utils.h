@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifdef __cplusplus
-
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
@@ -72,5 +70,3 @@ absl::flat_hash_map<std::string, std::string> AbslHashMapFromObjCTxtRecords(
 }  // namespace nearby
 
 NS_ASSUME_NONNULL_END
-
-#endif

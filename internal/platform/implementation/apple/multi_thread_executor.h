@@ -14,7 +14,6 @@
 
 #ifndef PLATFORM_IMPL_APPLE_MULTI_THREAD_EXECUTOR_H_
 #define PLATFORM_IMPL_APPLE_MULTI_THREAD_EXECUTOR_H_
-#ifdef __cplusplus
 
 #import "internal/platform/implementation/apple/scheduled_executor.h"
 #include "internal/platform/implementation/submittable_executor.h"
@@ -43,5 +42,4 @@ class MultiThreadExecutor : public api::SubmittableExecutor {
 }  // namespace apple
 }  // namespace nearby
 
-#endif
 #endif  // PLATFORM_IMPL_APPLE_MULTI_THREAD_EXECUTOR_H_

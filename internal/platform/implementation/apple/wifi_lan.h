@@ -14,7 +14,6 @@
 
 #ifndef PLATFORM_IMPL_APPLE_WIFI_LAN_H_
 #define PLATFORM_IMPL_APPLE_WIFI_LAN_H_
-#ifdef __cplusplus
 
 #import <Foundation/Foundation.h>
 #include <string>
@@ -201,5 +200,4 @@ class WifiLanMedium : public api::WifiLanMedium {
 }  // namespace apple
 }  // namespace nearby
 
-#endif
 #endif  // PLATFORM_IMPL_APPLE_WIFI_LAN_H_

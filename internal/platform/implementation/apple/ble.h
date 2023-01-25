@@ -14,7 +14,6 @@
 
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_APPLE_BLE_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_APPLE_BLE_H_
-#ifdef __cplusplus
 
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
@@ -204,5 +203,4 @@ class BleMedium : public api::ble_v2::BleMedium {
 }  // namespace apple
 }  // namespace nearby
 
-#endif
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_APPLE_BLE_H_

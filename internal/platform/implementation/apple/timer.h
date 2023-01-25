@@ -14,7 +14,6 @@
 
 #ifndef PLATFORM_IMPL_APPLE_TIMER_H_
 #define PLATFORM_IMPL_APPLE_TIMER_H_
-#ifdef __cplusplus
 
 #include <utility>
 
@@ -39,5 +38,4 @@ class Timer : public api::Timer {
 }  // namespace apple
 }  // namespace nearby
 
-#endif
 #endif  // PLATFORM_IMPL_APPLE_TIMER_H_

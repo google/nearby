@@ -14,7 +14,6 @@
 
 #ifndef PLATFORM_IMPL_APPLE_SCHEDULED_EXECUTOR_H_
 #define PLATFORM_IMPL_APPLE_SCHEDULED_EXECUTOR_H_
-#ifdef __cplusplus
 
 #import <Foundation/Foundation.h>
 
@@ -63,5 +62,4 @@ class ScheduledExecutor : public api::ScheduledExecutor {
 }  // namespace apple
 }  // namespace nearby
 
-#endif
 #endif  // PLATFORM_IMPL_APPLE_SCHEDULED_EXECUTOR_H_

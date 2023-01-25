@@ -14,7 +14,6 @@
 
 #ifndef PLATFORM_IMPL_APPLE_LOG_MESSAGE_H_
 #define PLATFORM_IMPL_APPLE_LOG_MESSAGE_H_
-#ifdef __cplusplus
 
 #ifdef NEARBY_SWIFTPM
 #include <sstream>
@@ -51,5 +50,4 @@ class LogMessage : public api::LogMessage {
 }  // namespace apple
 }  // namespace nearby
 
-#endif
 #endif  // PLATFORM_IMPL_APPLE_LOG_MESSAGE_H_

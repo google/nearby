@@ -44,6 +44,8 @@ objc_library(
         "utils.h",
         "wifi_lan.h",
     ],
+    # Prevent Objective-C++ headers from being pulled into swift.
+    aspect_hints = ["//tools/build_defs/swift:no_module"],
     features = ["-layering_check"],
     deps = [
         ":Platform_cc",
