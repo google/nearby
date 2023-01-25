@@ -86,6 +86,6 @@ objc_library(
 swift_explicit_module_build_test(
     name = "swift_explicit_module_build_test",
     ignore_headerless_targets = True,
-    minimum_os_version = "8.0",
+    minimum_os_version = "13.0",
     platform_type = "ios",
 )

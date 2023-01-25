@@ -71,8 +71,8 @@ swift_library(
 
 ios_unit_test(
     name = "BuildTests",
-    minimum_os_version = "12.0",
-    runner = "//testing/utp/ios:IOS_12",
+    minimum_os_version = "13.0",
+    runner = "//testing/utp/ios:IOS_13",
     deps = [
         ":BuildTestsLib",
     ],

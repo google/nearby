@@ -5,8 +5,8 @@ import PackageDescription
 let package = Package(
   name: "NearbyConnections",
   platforms: [
-    .iOS(.v11),
-    .macOS(.v10_13),
+    .iOS(.v13),
+    .macOS(.v10_15),
     .tvOS(.v11),
     .watchOS(.v4),
   ],
