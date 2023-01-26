@@ -114,8 +114,8 @@ struct ScanRequest {
   // Specifies which manager app to use to get credendentials for scan.
   std::string manager_app_id;
 
-  // Used to specify which types of remote PublicCredential to use during the
-  // scan. If empty, use all available types of remote PublicCredential.
+  // Used to specify which types of remote SharedCredential to use during the
+  // scan. If empty, use all available types of remote SharedCredential.
   std::vector<nearby::internal::IdentityType> identity_types;
 
   // For new Nearby SDK client (like chromeOs and Android U), use

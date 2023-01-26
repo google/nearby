@@ -24,9 +24,8 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/log/die_if_null.h"
-#include "absl/status/status.h"
-#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/platform/credential_storage_impl.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/runnable.h"
@@ -112,7 +111,7 @@ class CredentialManagerImpl : public CredentialManager {
             nearby::internal::SharedCredential>
   CreatePrivateCredential(
       const nearby::internal::DeviceMetadata& device_metadata,
-      IdentityType identity_type, uint64_t start_time_ms, uint64_t end_time_ms);
+      IdentityType identity_type, absl::Time start_time, absl::Time end_time);
 
   nearby::internal::SharedCredential CreatePublicCredential(
       const nearby::internal::LocalCredential& private_credential,

@@ -15,6 +15,8 @@
 #include "presence/implementation/credential_manager_impl.h"
 
 #include <algorithm>
+#include <cstdint>
+#include <limits>
 #include <memory>
 #include <string>
 #include <utility>
@@ -33,7 +35,6 @@
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
 #include "internal/proto/credential.pb.h"
-#include "internal/proto/credential.proto.h"
 #include "presence/implementation/encryption.h"
 #include "presence/implementation/ldt.h"
 
@@ -53,7 +54,11 @@ using ::nearby::internal::SharedCredential;
 // Key to retrieve local device's Private/Public Key Credentials from key store.
 constexpr char kPairedKeyAliasPrefix[] = "nearby_presence_paired_key_alias_";
 
-constexpr absl::Duration kTimeout = absl::Seconds(3);
+// Returns a random duration in [0, max_duration] range.
+absl::Duration RandomDuration(absl::Duration max_duration) {
+  uint32_t random = ::crypto::RandData<uint32_t>();
+  return max_duration * random / std::numeric_limits<uint32_t>::max();
+}
 
 }  // namespace
 
@@ -66,21 +71,18 @@ void CredentialManagerImpl::GenerateCredentials(
   std::vector<LocalCredential> private_credentials;
 
   for (auto identity_type : identity_types) {
-    // TODO(b/241587906): Get linux time from the platform (like Android)
-    uint64_t start_time_millis = 0;
-    const uint64_t gap_millis = credential_life_cycle_days * 24 * 3600 * 1000;
-    uint64_t end_time_millis = start_time_millis + gap_millis;
+    absl::Time start_time = SystemClock::ElapsedRealtime();
+    absl::Duration gap = credential_life_cycle_days * absl::Hours(24);
 
     for (int index = 0; index < contiguous_copy_of_credentials; index++) {
       auto public_private_credentials = CreatePrivateCredential(
-          device_metadata, identity_type, start_time_millis, end_time_millis);
+          device_metadata, identity_type, start_time, start_time + gap);
       if (public_private_credentials.second.identity_type() !=
           IdentityType::IDENTITY_TYPE_UNSPECIFIED) {
         private_credentials.push_back(public_private_credentials.first);
         public_credentials.push_back(public_private_credentials.second);
       }
-      start_time_millis += gap_millis;
-      end_time_millis += gap_millis;
+      start_time += gap;
     }
   }
 
@@ -148,10 +150,10 @@ void CredentialManagerImpl::UpdateRemotePublicCredentials(
 std::pair<LocalCredential, SharedCredential>
 CredentialManagerImpl::CreatePrivateCredential(
     const DeviceMetadata& device_metadata, IdentityType identity_type,
-    uint64_t start_time_ms, uint64_t end_time_ms) {
+    absl::Time start_time, absl::Time end_time) {
   LocalCredential private_credential;
-  private_credential.set_start_time_millis(start_time_ms);
-  private_credential.set_end_time_millis(end_time_ms);
+  private_credential.set_start_time_millis(absl::ToUnixMillis(start_time));
+  private_credential.set_end_time_millis(absl::ToUnixMillis(end_time));
   private_credential.set_identity_type(identity_type);
 
   // Creates an AES key to encrypt the whole broadcast.
@@ -198,13 +200,22 @@ CredentialManagerImpl::CreatePrivateCredential(
 SharedCredential CredentialManagerImpl::CreatePublicCredential(
     const LocalCredential& private_credential,
     const std::vector<uint8_t>& public_key) {
+  // The start time in the public credential should be decreased by a random
+  // value in 0 - 3 hours range.
+  // The end time should be increased by a random value in 0 - 3 hours range.
+  // This improves privacy by making it harder to correlate certificates.
+  absl::Time start_time =
+      absl::FromUnixMillis(private_credential.start_time_millis()) -
+      RandomDuration(absl::Hours(3));
+  absl::Time end_time =
+      absl::FromUnixMillis(private_credential.end_time_millis()) +
+      RandomDuration(absl::Hours(3));
   SharedCredential public_credential;
   public_credential.set_identity_type(private_credential.identity_type());
   public_credential.set_secret_id(private_credential.secret_id());
   public_credential.set_authenticity_key(private_credential.authenticity_key());
-  public_credential.set_start_time_millis(
-      private_credential.start_time_millis());
-  public_credential.set_end_time_millis(private_credential.end_time_millis());
+  public_credential.set_start_time_millis(absl::ToUnixMillis(start_time));
+  public_credential.set_end_time_millis(absl::ToUnixMillis(end_time));
   // set up the public key
   public_credential.set_verification_key(
       std::string(public_key.begin(), public_key.end()));
