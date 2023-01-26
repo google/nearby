@@ -18,10 +18,10 @@ cc_library(
     visibility = ["//fastpair:__subpackages__"],
     deps = [
         "//fastpair/common",
-        "//fastpair/internal/api:platform",
         "//fastpair/proto:fastpair_cc_proto",
         "//internal/network:types",
         "//internal/platform:logging",
+        "//internal/platform/implementation:types",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",

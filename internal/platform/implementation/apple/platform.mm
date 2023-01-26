@@ -22,6 +22,7 @@
 #include "internal/platform/implementation/apple/ble.h"
 #include "internal/platform/implementation/apple/condition_variable.h"
 #include "internal/platform/implementation/apple/count_down_latch.h"
+#include "internal/platform/implementation/apple/device_info.h"
 #import "internal/platform/implementation/apple/log_message.h"
 #import "internal/platform/implementation/apple/multi_thread_executor.h"
 #include "internal/platform/implementation/apple/mutex.h"
@@ -180,6 +181,11 @@ absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(
 // TODO(b/261511529): Add implementation.
 std::unique_ptr<Timer> ImplementationPlatform::CreateTimer() {
   return std::make_unique<apple::Timer>();
+}
+
+// TODO(b/261511530): Add implementation.
+std::unique_ptr<nearby::api::DeviceInfo> ImplementationPlatform::CreateDeviceInfo() {
+  return std::make_unique<apple::DeviceInfo>();
 }
 
 }  // namespace api

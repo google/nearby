@@ -303,6 +303,7 @@ cc_test(
 cc_library(
     name = "types",
     srcs = [
+        "device_info_impl.cc",
         "monitored_runnable.cc",
         "pending_job_registry.cc",
         "pipe.cc",
@@ -319,6 +320,8 @@ cc_library(
         "condition_variable.h",
         "count_down_latch.h",
         "crypto.h",
+        "device_info.h",
+        "device_info_impl.h",
         "direct_executor.h",
         "file.h",
         "future.h",
@@ -362,6 +365,7 @@ cc_library(
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_glog//:glog",

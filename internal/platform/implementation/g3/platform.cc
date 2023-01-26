@@ -48,6 +48,7 @@
 #include "internal/platform/implementation/g3/bluetooth_classic.h"
 #include "internal/platform/implementation/g3/condition_variable.h"
 #include "internal/platform/implementation/g3/credential_storage_impl.h"
+#include "internal/platform/implementation/g3/device_info.h"
 #include "internal/platform/implementation/g3/log_message.h"
 #include "internal/platform/implementation/g3/multi_thread_executor.h"
 #include "internal/platform/implementation/g3/mutex.h"
@@ -227,6 +228,11 @@ ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
 
 std::unique_ptr<Timer> ImplementationPlatform::CreateTimer() {
   return std::make_unique<g3::Timer>();
+}
+
+std::unique_ptr<nearby::api::DeviceInfo>
+ImplementationPlatform::CreateDeviceInfo() {
+  return std::make_unique<g3::DeviceInfo>();
 }
 
 }  // namespace api

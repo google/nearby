@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,18 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_WINDOWS_DEVICE_INFO_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_WINDOWS_DEVICE_INFO_H_
+#ifndef PLATFORM_IMPL_WINDOWS_DEVICE_INFO_H_
+#define PLATFORM_IMPL_WINDOWS_DEVICE_INFO_H_
 
 #include <guiddef.h>
 #include <windows.h>
 
+#include <array>
 #include <functional>
+#include <optional>
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
-#include "fastpair/internal/api/device_info.h"
+#include "internal/platform/implementation/device_info.h"
+#include "winrt/Windows.Foundation.h"
 
 namespace nearby {
 namespace windows {
@@ -32,7 +35,17 @@ class DeviceInfo : public api::DeviceInfo {
  public:
   ~DeviceInfo() override;
 
+  std::optional<std::u16string> GetOsDeviceName() const override;
+  api::DeviceInfo::DeviceType GetDeviceType() const override;
   api::DeviceInfo::OsType GetOsType() const override;
+  std::optional<std::u16string> GetFullName() const override;
+  std::optional<std::u16string> GetGivenName() const override;
+  std::optional<std::u16string> GetLastName() const override;
+  std::optional<std::string> GetProfileUserName() const override;
+
+  std::optional<std::filesystem::path> GetDownloadPath() const override;
+  std::optional<std::filesystem::path> GetAppDataPath() const override;
+  std::optional<std::filesystem::path> GetTemporaryPath() const override;
 
   bool IsScreenLocked() const override;
   void RegisterScreenLockedListener(
@@ -51,4 +64,4 @@ class DeviceInfo : public api::DeviceInfo {
 }  // namespace windows
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_WINDOWS_DEVICE_INFO_H_
+#endif  // PLATFORM_IMPL_WINDOWS_DEVICE_INFO_H_

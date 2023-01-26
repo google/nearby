@@ -23,15 +23,15 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "fastpair/common/fast_pair_http_result.h"
-#include "fastpair/internal/api/device_info.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 #include "fastpair/repository/fast_pair_metadata_fetcher.h"
-#include "fastpair/repository/fast_pair_metadata_repository.h"
 #include "fastpair/repository/fast_pair_metadata_fetcher_impl.h"
+#include "fastpair/repository/fast_pair_metadata_repository.h"
+#include "internal/network/http_client.h"
 #include "internal/network/http_client_factory.h"
 #include "internal/network/url.h"
+#include "internal/platform/implementation/device_info.h"
 #include "internal/platform/logging.h"
-#include "internal/network/http_client.h"
 
 namespace nearby {
 namespace fastpair {

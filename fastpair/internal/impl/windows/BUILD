@@ -27,13 +27,10 @@ cc_library(
     name = "platform_windows",
     srcs = [
         "ble_gatt_client.cc",
-        "device_info.cc",
-        "fast_pair_platform.cc",
         "utils.cc",
     ],
     hdrs = [
         "ble_gatt_client.h",
-        "device_info.h",
         "utils.h",
     ],
     copts = [
@@ -42,7 +39,6 @@ cc_library(
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     visibility = ["//fastpair:__subpackages__"],
     deps = [
-        "//fastpair/internal/api:platform",
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform/implementation/windows",
@@ -52,33 +48,5 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
-    ],
-)
-
-cc_test(
-    name = "platform_windows_test",
-    size = "small",
-    timeout = "short",
-    srcs = [
-        "device_info_test.cc",
-    ],
-    copts = [
-        "-Ithird_party/nearby/internal/platform/implementation/windows/generated",
-    ],
-    shard_count = 1,
-    deps = [
-        ":platform_windows",
-        ":platform_windows_libs",
-        "//fastpair/internal/api:platform",
-        "//internal/platform:base",
-        "//internal/platform:logging",
-        "//internal/platform/implementation:types",
-        "//internal/platform/implementation/windows",
-        "//internal/platform/implementation/windows/generated:types",
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/synchronization",
-        "@com_google_googletest//:gtest_main",
     ],
 )

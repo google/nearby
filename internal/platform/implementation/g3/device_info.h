@@ -12,24 +12,59 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_G3_DEVICE_INFO_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_G3_DEVICE_INFO_H_
+#ifndef PLATFORM_IMPL_G3_DEVICE_INFO_H_
+#define PLATFORM_IMPL_G3_DEVICE_INFO_H_
 
+#include <filesystem>
 #include <functional>
+#include <optional>
 #include <string>
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
-#include "fastpair/internal/api/device_info.h"
+#include "internal/platform/implementation/device_info.h"
 
 namespace nearby {
 namespace g3 {
 
 class DeviceInfo : public api::DeviceInfo {
  public:
-  api::DeviceInfo::OsType GetOsType() const override {
+  std::optional<std::u16string> GetOsDeviceName() const override {
+    return u"Windows";
+  }
+
+  api::DeviceInfo::DeviceType GetDeviceType() const override {
+    return api::DeviceInfo::DeviceType::kLaptop;
+  }
+
+  api::DeviceInfo::OsType GetOsType() const override{
     return api::DeviceInfo::OsType::kChromeOs;
+  }
+
+  std::optional<std::u16string> GetFullName() const override {
+    return u"nearby";
+  }
+  std::optional<std::u16string> GetGivenName() const override {
+    return u"nearby";
+  }
+  std::optional<std::u16string> GetLastName() const override {
+    return u"nearby";
+  }
+  std::optional<std::string> GetProfileUserName() const override {
+    return "nearby";
+  }
+
+  std::optional<std::filesystem::path> GetDownloadPath() const override {
+    return std::filesystem::temp_directory_path();
+  }
+
+  std::optional<std::filesystem::path> GetAppDataPath() const override {
+    return std::filesystem::temp_directory_path();
+  }
+
+  std::optional<std::filesystem::path> GetTemporaryPath() const override {
+    return std::filesystem::temp_directory_path();
   }
 
   bool IsScreenLocked() const override { return false; }
@@ -45,6 +80,7 @@ class DeviceInfo : public api::DeviceInfo {
     screen_locked_listeners_.erase(listener_name);
   }
 
+ private:
   absl::flat_hash_map<std::string,
                       std::function<void(api::DeviceInfo::ScreenStatus)>>
       screen_locked_listeners_;
@@ -53,4 +89,4 @@ class DeviceInfo : public api::DeviceInfo {
 }  // namespace g3
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_IMPL_G3_DEVICE_INFO_H_
+#endif  // PLATFORM_IMPL_G3_DEVICE_INFO_H_

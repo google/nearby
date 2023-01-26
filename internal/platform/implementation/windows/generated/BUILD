@@ -30,6 +30,7 @@ cc_library(
         "uuid.lib",
         "winmm.lib",
         "winspool.lib",
+        "wtsapi32.lib",
         "comsuppwd.lib",
         "setupapi.lib",
         "dnsapi.lib",

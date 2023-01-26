@@ -22,10 +22,10 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/statusor.h"
-#include "fastpair/internal/api/device_info.h"
 #include "fastpair/repository/fast_pair_metadata_fetcher.h"
 #include "internal/network/http_client.h"
 #include "internal/network/url.h"
+#include "internal/platform/implementation/device_info.h"
 
 namespace nearby {
 namespace fastpair {

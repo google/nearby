@@ -36,7 +36,6 @@ cc_library(
         "//fastpair:__subpackages__",
     ],
     deps = [
-        "//fastpair/internal/api:platform",
         "//fastpair/scanning/fastpair:scanning",
         "//internal/platform:base",
         "//internal/platform:logging",
@@ -57,7 +56,6 @@ cc_test(
     shard_count = 8,
     deps = [
         ":fastpair_controller",
-        "//fastpair/internal/api:platform",
         "//fastpair/scanning/fastpair:scanning",
         "//internal/platform:logging",
         "//internal/platform/implementation/g3",

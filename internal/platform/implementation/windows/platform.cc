@@ -44,6 +44,7 @@
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_medium.h"
 #include "internal/platform/implementation/windows/condition_variable.h"
+#include "internal/platform/implementation/windows/device_info.h"
 #include "internal/platform/implementation/windows/executor.h"
 #include "internal/platform/implementation/windows/file.h"
 #include "internal/platform/implementation/windows/file_path.h"
@@ -310,6 +311,10 @@ absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(
 
 std::unique_ptr<Timer> ImplementationPlatform::CreateTimer() {
   return std::make_unique<windows::Timer>();
+}
+
+std::unique_ptr<DeviceInfo> ImplementationPlatform::CreateDeviceInfo() {
+  return std::make_unique<windows::DeviceInfo>();
 }
 
 }  // namespace api

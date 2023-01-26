@@ -19,7 +19,7 @@
 
 #include "absl/strings/string_view.h"
 #include "fastpair/common/fast_pair_http_result.h"
-#include "fastpair/internal/api/device_info.h"
+#include "internal/platform/implementation/device_info.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {

@@ -36,7 +36,6 @@ lexan.cc_windows_dll(
     ],
     deps = [
         "//fastpair:fastpair_controller",
-        "//fastpair/internal/api:platform",
         "//internal/platform:logging",
         "//internal/platform/implementation/windows",
         "//internal/platform/implementation/windows/generated:types",
@@ -67,7 +66,6 @@ lexan.cc_windows_dll(
     ],
     deps = [
         "//fastpair:fastpair_controller",
-        "//fastpair/internal/api:platform",
         "//internal/platform:logging",
         "//internal/platform/implementation/windows",
         "//internal/platform/implementation/windows/generated:types",

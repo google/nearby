@@ -33,6 +33,7 @@ cc_library(
     ],
     visibility = [
         "//fastpair:__subpackages__",
+        "//internal:__subpackages__",
         "//location/nearby/cpp/fastpair:__subpackages__",
     ],
     deps = [

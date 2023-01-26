@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_API_DEVICE_INFO_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_API_DEVICE_INFO_H_
+#ifndef PLATFORM_API_DEVICE_INFO_H_
+#define PLATFORM_API_DEVICE_INFO_H_
 
+#include <filesystem>
 #include <functional>
+#include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
@@ -25,23 +27,27 @@ namespace api {
 
 class DeviceInfo {
  public:
-  enum class ScreenStatus {
-    kUndetermined = 0,
-    kLocked = 1,
-    kUnlocked = 2,
-  };
-
-  enum class OsType {
-    kUnknown = 0,
-    kAndroid = 1,
-    kChromeOs = 2,
-    kIos = 3,
-    kWindows = 4,
-  };
+  enum class ScreenStatus { kUndetermined = 0, kLocked, kUnlocked };
+  enum class DeviceType { kUnknown = 0, kPhone, kTablet, kLaptop };
+  enum class OsType { kUnknown = 0, kAndroid, kChromeOs, kIos, kWindows };
 
   virtual ~DeviceInfo() = default;
 
+  // Gets device name.
+  virtual std::optional<std::u16string> GetOsDeviceName() const = 0;
+  virtual DeviceType GetDeviceType() const = 0;
   virtual OsType GetOsType() const = 0;
+
+  // Gets basic information of current user.
+  virtual std::optional<std::u16string> GetFullName() const = 0;
+  virtual std::optional<std::u16string> GetGivenName() const = 0;
+  virtual std::optional<std::u16string> GetLastName() const = 0;
+  virtual std::optional<std::string> GetProfileUserName() const = 0;
+
+  // Gets known paths of current user.
+  virtual std::optional<std::filesystem::path> GetDownloadPath() const = 0;
+  virtual std::optional<std::filesystem::path> GetAppDataPath() const = 0;
+  virtual std::optional<std::filesystem::path> GetTemporaryPath() const = 0;
 
   // Monitor screen status
   virtual bool IsScreenLocked() const = 0;
@@ -55,4 +61,4 @@ class DeviceInfo {
 }  // namespace api
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_API_DEVICE_INFO_H_
+#endif  // PLATFORM_API_DEVICE_INFO_H_

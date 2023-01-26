@@ -16,6 +16,7 @@ licenses(["notice"])
 cc_library(
     name = "types",
     srcs = [
+        "device_info.cc",
         "log_message.cc",
         "timer.cc",
     ],
@@ -24,6 +25,7 @@ cc_library(
         "atomic_reference.h",
         "bluetooth_adapter.h",
         "condition_variable.h",
+        "device_info.h",
         "executor.h",
         "future.h",
         "input_file.h",
@@ -37,9 +39,12 @@ cc_library(
         "timer.h",
         "utils.h",
     ],
+    copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated"],
+    defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     deps = [
         "//base",
         "//base:stringprintf",
+        "//internal/base:bluetooth_address",
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform/implementation:types",
@@ -219,6 +224,7 @@ cc_test(
         "bluetooth_adapter_test.cc",
         "count_down_latch_test.cc",
         "crypto_test.cc",
+        "device_info_test.cc",
         "executor_test.cc",
         "file_path_test.cc",
         "http_loader_test.cc",
