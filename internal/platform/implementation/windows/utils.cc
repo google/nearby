@@ -112,6 +112,10 @@ std::vector<std::string> GetIpv4Addresses() {
   std::vector<std::string> ethernet_addresses;
   std::vector<std::string> other_addresses;
 
+  // Get the adapter most used by the system for internet traffic.
+  auto preferred_adapter =
+      NetworkInformation::GetInternetConnectionProfile().NetworkAdapter();
+
   try {
     auto host_names = NetworkInformation::GetHostNames();
     for (const auto& host_name : host_names) {
@@ -119,6 +123,18 @@ std::vector<std::string> GetIpv4Addresses() {
           host_name.IPInformation().NetworkAdapter() != nullptr &&
           host_name.Type() == HostNameType::Ipv4) {
         NetworkAdapter adapter = host_name.IPInformation().NetworkAdapter();
+
+        /*
+          Add in the preferred adapter at the front of the result.
+          This works around edge cases like a virtual "ethernet" adapter being
+          prioritized over the real one used for internet connectivity.
+        */
+        if (adapter.NetworkAdapterId() ==
+            preferred_adapter.NetworkAdapterId()) {
+              result.push_back(winrt::to_string(host_name.ToString()));
+              continue;
+        }
+
         if (adapter.IanaInterfaceType() == 71) {
           // WiFi address.
           wifi_addresses.push_back(winrt::to_string(host_name.ToString()));
