@@ -33,7 +33,6 @@
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
 #include "internal/proto/credential.pb.h"
-#include "internal/proto/credential.proto.h"
 #include "presence/implementation/encryption.h"
 #include "presence/implementation/ldt.h"
 
