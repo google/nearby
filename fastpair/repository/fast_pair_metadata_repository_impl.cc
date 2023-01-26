@@ -129,6 +129,7 @@ FastPairMetadataRepositoryFactoryImpl::
 
 std::unique_ptr<FastPairMetadataRepository>
 FastPairMetadataRepositoryFactoryImpl::CreateInstance() {
+  NEARBY_LOGS(VERBOSE) << "Device Type is hardcode to kWindows.";
   return std::make_unique<FastPairMetadataRepositoryImpl>(
       std::make_unique<FastPairMetadataFetcherImpl>(
           api::DeviceInfo::OsType::kWindows),
