@@ -7,6 +7,7 @@ cc_library(
         "fast_pair_metadata_repository_impl.cc",
     ],
     hdrs = [
+        "device_metadata.h",
         "fast_pair_metadata_fetcher.h",
         "fast_pair_metadata_fetcher_impl.h",
         "fast_pair_metadata_repository.h",
