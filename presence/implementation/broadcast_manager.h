@@ -22,6 +22,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/broadcast_request.h"
@@ -83,9 +84,16 @@ class BroadcastManager {
   void FetchCredentials(BroadcastSessionId id,
                         BaseBroadcastRequest broadcast_request)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  absl::optional<LocalCredential> SelectCredential(
+      BaseBroadcastRequest& broadcast_request,
+      std::vector<LocalCredential> credentials);
 
-  void Advertise(BroadcastSessionId id, BaseBroadcastRequest broadcast_request,
-                 std::vector<LocalCredential> credentials)
+  // Returns the private credential, if any, selected to generate the
+  // advertisement. A salt used in the advertisement is added to the returned
+  // private credential. The caller must save it in the storage.
+  absl::optional<LocalCredential> Advertise(
+      BroadcastSessionId id, BaseBroadcastRequest broadcast_request,
+      std::vector<LocalCredential> credentials)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   absl::flat_hash_map<BroadcastSessionId, BroadcastSessionState> sessions_
       ABSL_GUARDED_BY(*executor_);

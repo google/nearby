@@ -47,10 +47,15 @@ class CredentialStorageImpl : public api::CredentialStorage {
       PublicCredentialType public_credential_type,
       SaveCredentialsResultCallback callback) override;
 
+  void UpdateLocalCredential(absl::string_view manager_app_id,
+                               absl::string_view account_name,
+                               nearby::internal::LocalCredential credential,
+                               SaveCredentialsResultCallback callback) override;
+
   // Used to fetch private creds when broadcasting.
-  void GetPrivateCredentials(
+  void GetLocalCredentials(
       const CredentialSelector& credential_selector,
-      GetPrivateCredentialsResultCallback callback) override;
+      GetLocalCredentialsResultCallback callback) override;
 
   // Used to fetch remote public creds when scanning.
   void GetPublicCredentials(

@@ -44,8 +44,9 @@ using ::nearby::internal::IdentityType;
 using ::nearby::internal::LocalCredential;
 using ::nearby::internal::SharedCredential;
 using ::nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE;
-using ::proto2::contrib::parse_proto::ParseTestProto;
+using ::nearby::internal::IdentityType::IDENTITY_TYPE_TRUSTED;
 using ::protobuf_matchers::EqualsProto;
+using ::testing::UnorderedPointwise;
 using ::testing::status::StatusIs;
 
 constexpr absl::string_view kManagerAppId = "TEST_MANAGER_APP";
@@ -142,7 +143,7 @@ TEST_F(CredentialManagerImplTest, CreateOneCredentialSuccessfully) {
   constexpr absl::Time kStartTime = absl::FromUnixSeconds(100000);
   constexpr absl::Time kEndTime = absl::FromUnixSeconds(200000);
 
-  auto credentials = credential_manager_.CreatePrivateCredential(
+  auto credentials = credential_manager_.CreateLocalCredential(
       device_metadata, IDENTITY_TYPE_PRIVATE, kStartTime, kEndTime);
 
   LocalCredential private_credential = credentials.first;
@@ -418,7 +419,7 @@ TEST_F(CredentialManagerImplTest, GetLocalCredentialsFailed) {
   absl::StatusOr<std::vector<LocalCredential>> private_credentials;
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
 
-  credential_manager_.GetPrivateCredentials(
+  credential_manager_.GetLocalCredentials(
       credential_selector,
       {.credentials_fetched_cb =
            [&](absl::StatusOr<std::vector<LocalCredential>> credentials) {
@@ -455,7 +456,7 @@ TEST_F(CredentialManagerImplTest, GetCredentialsSuccessfully) {
            [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
              public_credentials = std::move(credentials);
            }});
-  credential_manager_.GetPrivateCredentials(
+  credential_manager_.GetLocalCredentials(
       credential_selector,
       {.credentials_fetched_cb =
            [&](absl::StatusOr<std::vector<LocalCredential>> credentials) {
@@ -489,6 +490,58 @@ TEST_F(CredentialManagerImplTest, PublicCredentialsFailEncryption) {
            }});
 
   EXPECT_THAT(public_credentials, StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST_F(CredentialManagerImplTest, UpdateLocalCredential) {
+  constexpr int kNumCredentials = 5;
+  constexpr int kSelectedCredentialId = 2;
+  constexpr uint16_t kSalt = 1000;
+  absl::Status update_status = absl::UnknownError("");
+  DeviceMetadata device_metadata = CreateTestDeviceMetadata();
+  absl::StatusOr<std::vector<nearby::internal::SharedCredential>>
+      public_credentials;
+  std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE,
+                                           IDENTITY_TYPE_TRUSTED};
+  absl::StatusOr<std::vector<LocalCredential>> private_credentials;
+  absl::StatusOr<std::vector<LocalCredential>> modified_private_credentials;
+  CredentialSelector credential_selector = BuildDefaultCredentialSelector();
+  credential_manager_.GenerateCredentials(
+      device_metadata, kManagerAppId, identity_types, 1, kNumCredentials,
+      {.credentials_generated_cb =
+           [&](absl::StatusOr<std::vector<nearby::internal::SharedCredential>>
+                   credentials) {
+             public_credentials = std::move(credentials);
+           }});
+  credential_manager_.GetLocalCredentials(
+      credential_selector,
+      {.credentials_fetched_cb =
+           [&](absl::StatusOr<std::vector<LocalCredential>> credentials) {
+             private_credentials = std::move(credentials);
+           }});
+  ASSERT_OK(public_credentials);
+  ASSERT_OK(private_credentials);
+  EXPECT_EQ(private_credentials->size(), kNumCredentials);
+
+  // Modify a private credential
+  LocalCredential& credential = private_credentials->at(kSelectedCredentialId);
+  credential.mutable_consumed_salts()->insert({kSalt, true});
+
+  credential_manager_.UpdateLocalCredential(
+      credential_selector, credential,
+      {[&](absl::Status status) { update_status = status; }});
+
+  EXPECT_OK(update_status);
+
+  // verify modified content
+  credential_manager_.GetLocalCredentials(
+      credential_selector,
+      {.credentials_fetched_cb =
+           [&](absl::StatusOr<std::vector<LocalCredential>> credentials) {
+             modified_private_credentials = std::move(credentials);
+           }});
+  ASSERT_OK(modified_private_credentials);
+  EXPECT_THAT(*modified_private_credentials,
+              UnorderedPointwise(EqualsProto(), *private_credentials));
 }
 
 }  // namespace

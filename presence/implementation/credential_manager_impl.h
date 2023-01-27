@@ -74,13 +74,18 @@ class CredentialManagerImpl : public CredentialManager {
           remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) override;
 
-  void GetPrivateCredentials(
+  void UpdateLocalCredential(
       const CredentialSelector& credential_selector,
-      GetPrivateCredentialsResultCallback callback) override;
+      nearby::internal::LocalCredential credential,
+      SaveCredentialsResultCallback result_callback) override;
 
-  // Blocking version of `GetPrivateCredentials`
+  void GetLocalCredentials(
+      const CredentialSelector& credential_selector,
+      GetLocalCredentialsResultCallback callback) override;
+
+  // Blocking version of `GetLocalCredentials`
   nearby::ExceptionOr<std::vector<nearby::internal::LocalCredential>>
-  GetPrivateCredentialsSync(const CredentialSelector& credential_selector,
+  GetLocalCredentialsSync(const CredentialSelector& credential_selector,
                             absl::Duration timeout);
 
   // Used to fetch remote public creds when scanning.
@@ -109,7 +114,7 @@ class CredentialManagerImpl : public CredentialManager {
 
   std::pair<nearby::internal::LocalCredential,
             nearby::internal::SharedCredential>
-  CreatePrivateCredential(
+  CreateLocalCredential(
       const nearby::internal::DeviceMetadata& device_metadata,
       IdentityType identity_type, absl::Time start_time, absl::Time end_time);
 

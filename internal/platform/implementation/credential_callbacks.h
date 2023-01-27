@@ -74,7 +74,7 @@ struct UpdateRemotePublicCredentialsCallback {
   absl::AnyInvocable<void(absl::Status)> credentials_updated_cb;
 };
 
-struct GetPrivateCredentialsResultCallback {
+struct GetLocalCredentialsResultCallback {
   absl::AnyInvocable<void(
       absl::StatusOr<std::vector<nearby::internal::LocalCredential>>)>
       credentials_fetched_cb;

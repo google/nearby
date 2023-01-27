@@ -36,7 +36,7 @@ using ::nearby::internal::IdentityType;
 using ::nearby::internal::LocalCredential;
 using ::nearby::internal::SharedCredential;
 using ::nearby::presence::CredentialSelector;
-using ::nearby::presence::GetPrivateCredentialsResultCallback;
+using ::nearby::presence::GetLocalCredentialsResultCallback;
 using ::nearby::presence::GetPublicCredentialsResultCallback;
 using ::nearby::presence::PublicCredentialType;
 using ::nearby::presence::SaveCredentialsResultCallback;
@@ -49,8 +49,8 @@ constexpr absl::string_view kManagerAppId = "manager app id";
 constexpr absl::string_view kAccountName = "test_account";
 
 // `secret_id` is used to create credentials with different content.
-LocalCredential CreatePrivateCredential(absl::string_view secret_id,
-                                          IdentityType identity_type) {
+LocalCredential CreateLocalCredential(absl::string_view secret_id,
+                                      IdentityType identity_type) {
   LocalCredential private_credential;
   private_credential.set_secret_id(secret_id);
   private_credential.set_identity_type(identity_type);
@@ -67,10 +67,10 @@ SharedCredential CreatePublicCredential(absl::string_view secret_id,
 
 std::vector<LocalCredential> BuildPrivateCreds(absl::string_view secret_id) {
   std::vector<LocalCredential> private_credentials = {
-      CreatePrivateCredential(secret_id, IdentityType::IDENTITY_TYPE_PRIVATE),
-      CreatePrivateCredential(secret_id, IdentityType::IDENTITY_TYPE_TRUSTED),
-      CreatePrivateCredential(secret_id,
-                              IdentityType::IDENTITY_TYPE_PROVISIONED)};
+      CreateLocalCredential(secret_id, IdentityType::IDENTITY_TYPE_PRIVATE),
+      CreateLocalCredential(secret_id, IdentityType::IDENTITY_TYPE_TRUSTED),
+      CreateLocalCredential(secret_id,
+                            IdentityType::IDENTITY_TYPE_PROVISIONED)};
   return private_credentials;
 }
 
@@ -83,7 +83,7 @@ std::vector<SharedCredential> BuildPublicCreds(absl::string_view secret_id) {
   return public_credentials;
 }
 
-absl::StatusOr<std::vector<LocalCredential>> GetPrivateCredentials(
+absl::StatusOr<std::vector<LocalCredential>> GetLocalCredentials(
     CredentialStorageImpl& credential_storage, IdentityType identity_type,
     absl::string_view manager_app_id = kManagerAppId,
     absl::string_view account_name = kAccountName) {
@@ -91,9 +91,9 @@ absl::StatusOr<std::vector<LocalCredential>> GetPrivateCredentials(
                                  .account_name = std::string(account_name),
                                  .identity_type = identity_type};
   absl::StatusOr<std::vector<LocalCredential>> private_credentials;
-  credential_storage.GetPrivateCredentials(
+  credential_storage.GetLocalCredentials(
       selector,
-      GetPrivateCredentialsResultCallback{
+      GetLocalCredentialsResultCallback{
           .credentials_fetched_cb =
               [&](absl::StatusOr<std::vector<LocalCredential>> credentials) {
                 private_credentials = std::move(credentials);
@@ -146,8 +146,8 @@ absl::Status SaveCredentials(CredentialStorageImpl& credential_storage,
                          PublicCredentialType::kLocalPublicCredential);
 }
 
-absl::Status SavePrivateCredentials(CredentialStorageImpl& credential_storage,
-                                    absl::string_view secret_id) {
+absl::Status SaveLocalCredentials(CredentialStorageImpl& credential_storage,
+                                  absl::string_view secret_id) {
   return SaveCredentials(credential_storage, kManagerAppId, kAccountName,
                          BuildPrivateCreds(secret_id),
                          std::vector<SharedCredential>(),
@@ -162,7 +162,7 @@ absl::Status SavePublicCredentials(CredentialStorageImpl& credential_storage,
                          BuildPublicCreds(secret_id), credential_type);
 }
 
-TEST(CredentialStorageImplTest, SaveAndGetPrivateCredentials) {
+TEST(CredentialStorageImplTest, SaveAndGetLocalCredentials) {
   std::vector<LocalCredential> default_private_creds =
       BuildPrivateCreds(kSecretId);
   std::vector<SharedCredential> empty_public_creds;
@@ -178,21 +178,49 @@ TEST(CredentialStorageImplTest, SaveAndGetPrivateCredentials) {
           }});
 
   EXPECT_OK(save_status);
-  auto fetched_private_credentials = GetPrivateCredentials(
+  auto fetched_private_credentials = GetLocalCredentials(
       credential_storage, IdentityType::IDENTITY_TYPE_UNSPECIFIED);
   ASSERT_OK(fetched_private_credentials);
   EXPECT_THAT(*fetched_private_credentials,
               UnorderedPointwise(EqualsProto(), default_private_creds));
 }
 
-TEST(CredentialStorageImplTest, ReplaceAndGetPrivateCredentials) {
+TEST(CredentialStorageImplTest, UpdateLocalCredential) {
+  std::vector<LocalCredential> default_private_creds =
+      BuildPrivateCreds(kSecretId);
+  std::vector<SharedCredential> empty_public_creds;
+  CredentialStorageImpl credential_storage;
+  absl::Status update_status = absl::UnknownError("");
+  credential_storage.SaveCredentials(
+      kManagerAppId, kAccountName, default_private_creds, empty_public_creds,
+      PublicCredentialType::kLocalPublicCredential,
+      SaveCredentialsResultCallback{
+          .credentials_saved_cb = [&](absl::Status status) {
+            ASSERT_OK(status);
+          }});
+
+  // Modify a private credential
+  default_private_creds[0].mutable_consumed_salts()->insert({1234, true});
+  credential_storage.UpdateLocalCredential(
+      kManagerAppId, kAccountName, default_private_creds[0],
+      {[&](absl::Status status) { update_status = status; }});
+
+  EXPECT_OK(update_status);
+  auto fetched_private_credentials = GetLocalCredentials(
+      credential_storage, IdentityType::IDENTITY_TYPE_UNSPECIFIED);
+  ASSERT_OK(fetched_private_credentials);
+  EXPECT_THAT(*fetched_private_credentials,
+              UnorderedPointwise(EqualsProto(), default_private_creds));
+}
+
+TEST(CredentialStorageImplTest, ReplaceAndGetLocalCredentials) {
   constexpr absl::string_view kAnotherSecretId = "another secret id";
   CredentialStorageImpl credential_storage;
 
-  EXPECT_OK(SavePrivateCredentials(credential_storage, kSecretId));
-  EXPECT_OK(SavePrivateCredentials(credential_storage, kAnotherSecretId));
+  EXPECT_OK(SaveLocalCredentials(credential_storage, kSecretId));
+  EXPECT_OK(SaveLocalCredentials(credential_storage, kAnotherSecretId));
 
-  auto fetched_private_credentials = GetPrivateCredentials(
+  auto fetched_private_credentials = GetLocalCredentials(
       credential_storage, IdentityType::IDENTITY_TYPE_UNSPECIFIED);
   ASSERT_OK(fetched_private_credentials);
   EXPECT_THAT(
@@ -301,7 +329,7 @@ TEST(CredentialStorageImplTest, SavePrivateAndLocalPublicCredentials) {
   ASSERT_OK(fetched_public_credentials);
   EXPECT_THAT(*fetched_public_credentials,
               UnorderedPointwise(EqualsProto(), public_creds));
-  auto fetched_private_credentials = GetPrivateCredentials(
+  auto fetched_private_credentials = GetLocalCredentials(
       credential_storage, IdentityType::IDENTITY_TYPE_UNSPECIFIED);
   ASSERT_OK(fetched_private_credentials);
   EXPECT_THAT(*fetched_private_credentials,
@@ -325,38 +353,38 @@ TEST(CredentialStorageImplTest, SaveCredentialsFailsWhenNoCredentials) {
   EXPECT_THAT(save_status, StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
-TEST(CredentialStorageImplTest, GetPrivateCredentialsFailsWhenNoCredentials) {
+TEST(CredentialStorageImplTest, GetLocalCredentialsFailsWhenNoCredentials) {
   CredentialStorageImpl credential_storage;
   EXPECT_OK(SavePublicCredentials(credential_storage,
                                   PublicCredentialType::kRemotePublicCredential,
                                   kSecretId));
 
-  EXPECT_THAT(GetPrivateCredentials(credential_storage,
-                                    IdentityType::IDENTITY_TYPE_UNSPECIFIED),
+  EXPECT_THAT(GetLocalCredentials(credential_storage,
+                                  IdentityType::IDENTITY_TYPE_UNSPECIFIED),
               StatusIs(absl::StatusCode::kNotFound));
 }
 
 TEST(CredentialStorageImplTest,
-     GetPrivateCredentialsFailsWhenManagerAppIdDoesNotMatch) {
+     GetLocalCredentialsFailsWhenManagerAppIdDoesNotMatch) {
   CredentialStorageImpl credential_storage;
   EXPECT_OK(SaveCredentials(credential_storage, BuildPrivateCreds(kSecretId),
                             BuildPublicCreds(kSecretId)));
 
-  EXPECT_THAT(GetPrivateCredentials(credential_storage,
-                                    IdentityType::IDENTITY_TYPE_UNSPECIFIED,
-                                    "different manager app id", kAccountName),
+  EXPECT_THAT(GetLocalCredentials(credential_storage,
+                                  IdentityType::IDENTITY_TYPE_UNSPECIFIED,
+                                  "different manager app id", kAccountName),
               StatusIs(absl::StatusCode::kNotFound));
 }
 
 TEST(CredentialStorageImplTest,
-     GetPrivateCredentialsFailsWhenAccountNameDoesNotMatch) {
+     GetLocalCredentialsFailsWhenAccountNameDoesNotMatch) {
   CredentialStorageImpl credential_storage;
   EXPECT_OK(SaveCredentials(credential_storage, BuildPrivateCreds(kSecretId),
                             BuildPublicCreds(kSecretId)));
 
-  EXPECT_THAT(GetPrivateCredentials(credential_storage,
-                                    IdentityType::IDENTITY_TYPE_UNSPECIFIED,
-                                    kManagerAppId, "different account name"),
+  EXPECT_THAT(GetLocalCredentials(credential_storage,
+                                  IdentityType::IDENTITY_TYPE_UNSPECIFIED,
+                                  kManagerAppId, "different account name"),
               StatusIs(absl::StatusCode::kNotFound));
 }
 
@@ -400,46 +428,45 @@ TEST(CredentialStorageImplTest, GetPublicCredentialsFailsWhenNoCredentials) {
 
 class IdentityFilterTest : public testing::TestWithParam<IdentityType> {};
 
-TEST_P(IdentityFilterTest, FilterPrivateCredentialsByIdentityType) {
+TEST_P(IdentityFilterTest, FilterLocalCredentialsByIdentityType) {
   IdentityType identity_type = GetParam();
   CredentialStorageImpl credential_storage;
-  EXPECT_OK(SavePrivateCredentials(credential_storage, kSecretId));
+  EXPECT_OK(SaveLocalCredentials(credential_storage, kSecretId));
   EXPECT_OK(SavePublicCredentials(credential_storage,
                                   PublicCredentialType::kLocalPublicCredential,
                                   kSecretId));
 
   auto private_credentials =
-      GetPrivateCredentials(credential_storage, identity_type);
+      GetLocalCredentials(credential_storage, identity_type);
 
   ASSERT_OK(private_credentials);
   EXPECT_THAT(
       *private_credentials,
       UnorderedPointwise(EqualsProto(),
-                         std::vector<LocalCredential>{CreatePrivateCredential(
-                             kSecretId, identity_type)}));
+                         std::vector<LocalCredential>{
+                             CreateLocalCredential(kSecretId, identity_type)}));
 }
 
-TEST_P(IdentityFilterTest,
-       FilterPrivateCredentialsFailsWhenNoCredentialsMatch) {
+TEST_P(IdentityFilterTest, FilterLocalCredentialsFailsWhenNoCredentialsMatch) {
   IdentityType identity_type = GetParam();
   // Create a credential of a different identity type than the one we query.
   IdentityType other_type = identity_type == IdentityType::IDENTITY_TYPE_PRIVATE
                                 ? IdentityType::IDENTITY_TYPE_TRUSTED
                                 : IdentityType::IDENTITY_TYPE_PRIVATE;
   std::vector<LocalCredential> private_creds = {
-      CreatePrivateCredential(kSecretId, other_type)};
+      CreateLocalCredential(kSecretId, other_type)};
   CredentialStorageImpl credential_storage;
   EXPECT_OK(SaveCredentials(credential_storage, private_creds,
                             BuildPublicCreds(kSecretId)));
 
-  EXPECT_THAT(GetPrivateCredentials(credential_storage, identity_type),
+  EXPECT_THAT(GetLocalCredentials(credential_storage, identity_type),
               StatusIs(absl::StatusCode::kNotFound));
 }
 
 TEST_P(IdentityFilterTest, FilterPublicCredentialsByIdentityType) {
   IdentityType identity_type = GetParam();
   CredentialStorageImpl credential_storage;
-  EXPECT_OK(SavePrivateCredentials(credential_storage, kSecretId));
+  EXPECT_OK(SaveLocalCredentials(credential_storage, kSecretId));
   EXPECT_OK(SavePublicCredentials(credential_storage,
                                   PublicCredentialType::kLocalPublicCredential,
                                   kSecretId));

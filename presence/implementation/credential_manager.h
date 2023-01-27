@@ -59,10 +59,15 @@ class CredentialManager {
           remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) = 0;
 
-  // Used to fetch private creds when broadcasting.
-  virtual void GetPrivateCredentials(
+  virtual void UpdateLocalCredential(
       const CredentialSelector& credential_selector,
-      GetPrivateCredentialsResultCallback callback) = 0;
+      nearby::internal::LocalCredential credential,
+      SaveCredentialsResultCallback result_callback) = 0;
+
+  // Used to fetch private creds when broadcasting.
+  virtual void GetLocalCredentials(
+      const CredentialSelector& credential_selector,
+      GetLocalCredentialsResultCallback callback) = 0;
 
   // Used to fetch remote public creds when scanning.
   virtual void GetPublicCredentials(

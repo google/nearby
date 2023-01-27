@@ -75,7 +75,7 @@ void CredentialManagerImpl::GenerateCredentials(
     absl::Duration gap = credential_life_cycle_days * absl::Hours(24);
 
     for (int index = 0; index < contiguous_copy_of_credentials; index++) {
-      auto public_private_credentials = CreatePrivateCredential(
+      auto public_private_credentials = CreateLocalCredential(
           device_metadata, identity_type, start_time, start_time + gap);
       if (public_private_credentials.second.identity_type() !=
           IdentityType::IDENTITY_TYPE_UNSPECIFIED) {
@@ -148,7 +148,7 @@ void CredentialManagerImpl::UpdateRemotePublicCredentials(
 }
 
 std::pair<LocalCredential, SharedCredential>
-CredentialManagerImpl::CreatePrivateCredential(
+CredentialManagerImpl::CreateLocalCredential(
     const DeviceMetadata& device_metadata, IdentityType identity_type,
     absl::Time start_time, absl::Time end_time) {
   LocalCredential private_credential;
@@ -301,10 +301,10 @@ std::vector<uint8_t> CredentialManagerImpl::ExtendMetadataEncryptionKey(
       /*info=*/absl::Span<uint8_t>(), kNearbyPresenceNumBytesAesGcmKeySize);
 }
 
-void CredentialManagerImpl::GetPrivateCredentials(
+void CredentialManagerImpl::GetLocalCredentials(
     const CredentialSelector& credential_selector,
-    GetPrivateCredentialsResultCallback callback) {
-  credential_storage_ptr_->GetPrivateCredentials(credential_selector,
+    GetLocalCredentialsResultCallback callback) {
+  credential_storage_ptr_->GetLocalCredentials(credential_selector,
                                                  std::move(callback));
 }
 
@@ -317,10 +317,10 @@ void CredentialManagerImpl::GetPublicCredentials(
 }
 
 ExceptionOr<std::vector<LocalCredential>>
-CredentialManagerImpl::GetPrivateCredentialsSync(
+CredentialManagerImpl::GetLocalCredentialsSync(
     const CredentialSelector& credential_selector, absl::Duration timeout) {
   Future<std::vector<LocalCredential>> result;
-  GetPrivateCredentials(
+  GetLocalCredentials(
       credential_selector,
       {.credentials_fetched_cb =
            [result](absl::StatusOr<std::vector<LocalCredential>>
@@ -479,5 +479,13 @@ void CredentialManagerImpl::Subscriber::NotifyCredentialsFetched(
   callback_.credentials_fetched_cb(credentials);
 }
 
+void CredentialManagerImpl::UpdateLocalCredential(
+    const CredentialSelector& credential_selector,
+    nearby::internal::LocalCredential credential,
+    SaveCredentialsResultCallback result_callback) {
+  credential_storage_ptr_->UpdateLocalCredential(
+      credential_selector.manager_app_id, credential_selector.account_name,
+      std::move(credential), std::move(result_callback));
+}
 }  // namespace presence
 }  // namespace nearby

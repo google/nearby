@@ -15,6 +15,7 @@
 #include "presence/implementation/advertisement_factory.h"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/status/status.h"
@@ -96,11 +97,11 @@ std::string SerializeAction(const Action& action) {
 
 absl::StatusOr<AdvertisementData> AdvertisementFactory::CreateAdvertisement(
     const BaseBroadcastRequest& request,
-    std::vector<LocalCredential>& credentials) const {
+    absl::optional<LocalCredential> credential) const {
   AdvertisementData advert = {};
   if (absl::holds_alternative<BaseBroadcastRequest::BasePresence>(
           request.variant)) {
-    return CreateBaseNpAdvertisement(request, credentials);
+    return CreateBaseNpAdvertisement(request, std::move(credential));
   }
   return advert;
 }
@@ -108,7 +109,7 @@ absl::StatusOr<AdvertisementData> AdvertisementFactory::CreateAdvertisement(
 absl::StatusOr<AdvertisementData>
 AdvertisementFactory::CreateBaseNpAdvertisement(
     const BaseBroadcastRequest& request,
-    std::vector<LocalCredential>& credentials) const {
+    absl::optional<LocalCredential> credential) const {
   const auto& presence =
       absl::get<BaseBroadcastRequest::BasePresence>(request.variant);
   std::string payload;
@@ -126,7 +127,7 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
       return absl::InvalidArgumentError(
           absl::StrFormat("Unsupported salt size %d", request.salt.size()));
     }
-    if (credentials.empty()) {
+    if (!credential) {
       return absl::FailedPreconditionError("Missing credentials");
     }
     std::string unencrypted;
@@ -137,7 +138,7 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
       return result;
     }
     absl::StatusOr<std::string> encrypted =
-        EncryptDataElements(credentials, request.salt, unencrypted);
+        EncryptDataElements(*credential, request.salt, unencrypted);
     if (!encrypted.ok()) {
       return encrypted.status();
     }
@@ -181,9 +182,8 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
                            .content = payload};
 }
 absl::StatusOr<std::string> AdvertisementFactory::EncryptDataElements(
-    std::vector<LocalCredential>& credentials, absl::string_view salt,
+    const LocalCredential& credential, absl::string_view salt,
     absl::string_view data_elements) const {
-  LocalCredential& credential = credentials.front();
   if (credential.metadata_encryption_key().size() != kBaseMetadataSize) {
     return absl::FailedPreconditionError(absl::StrFormat(
         "Metadata key size %d, expected %d",

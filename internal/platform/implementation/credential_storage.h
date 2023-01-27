@@ -34,8 +34,8 @@ class CredentialStorage {
   using SaveCredentialsResultCallback =
       ::nearby::presence::SaveCredentialsResultCallback;
   using CredentialSelector = ::nearby::presence::CredentialSelector;
-  using GetPrivateCredentialsResultCallback =
-      ::nearby::presence::GetPrivateCredentialsResultCallback;
+  using GetLocalCredentialsResultCallback =
+      ::nearby::presence::GetLocalCredentialsResultCallback;
   using GetPublicCredentialsResultCallback =
       ::nearby::presence::GetPublicCredentialsResultCallback;
 
@@ -60,13 +60,20 @@ class CredentialStorage {
       PublicCredentialType public_credential_type,
       SaveCredentialsResultCallback callback) = 0;
 
+  // Updates the `credential` in the storage. LocalCredential has a
+  // `secret_id` field, which uniquely identifies the credential.
+  virtual void UpdateLocalCredential(
+      absl::string_view manager_app_id, absl::string_view account_name,
+      nearby::internal::LocalCredential credential,
+      SaveCredentialsResultCallback callback) = 0;
+
   // Fetches private credentials.
   //
   // When `credential_selector.identity_type` is not set (unspecified), then
   // private credentials with any identity type should be returned.
-  virtual void GetPrivateCredentials(
+  virtual void GetLocalCredentials(
       const CredentialSelector& credential_selector,
-      GetPrivateCredentialsResultCallback callback) = 0;
+      GetLocalCredentialsResultCallback callback) = 0;
 
   // Fetches public credentials.
   //

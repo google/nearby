@@ -41,7 +41,7 @@ using ::testing::Return;
 using ::testing::status::StatusIs;
 
 #if USE_RUST_LDT == 1
-LocalCredential CreatePrivateCredential(IdentityType identity_type) {
+LocalCredential CreateLocalCredential(IdentityType identity_type) {
   // Values copied from LDT tests
   ByteArray seed({204, 219, 36, 137, 233, 252, 172, 66, 179, 147, 72,
                   184, 148, 30, 209, 154, 29,  54,  14, 117, 224, 152,
@@ -60,8 +60,6 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   std::string account_name = "Test account";
   std::string salt = "AB";
   constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PRIVATE;
-  std::vector<LocalCredential> credentials = {
-      CreatePrivateCredential(kIdentity)};
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
   Action action = ActionFactory::CreateAction(data_elements);
@@ -73,7 +71,8 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
                                .SetAction(action));
 
   absl::StatusOr<AdvertisementData> result =
-      AdvertisementFactory().CreateAdvertisement(request, credentials);
+      AdvertisementFactory().CreateAdvertisement(
+          request, CreateLocalCredential(kIdentity));
 
   ASSERT_OK(result);
   EXPECT_FALSE(result->is_extended_advertisement);
@@ -85,8 +84,6 @@ TEST(AdvertisementFactory, CreateAdvertisementFromTrustedIdentity) {
   std::string account_name = "Test account";
   std::string salt = "AB";
   constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_TRUSTED;
-  std::vector<LocalCredential> credentials = {
-      CreatePrivateCredential(kIdentity)};
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
   data_elements.emplace_back(DataElement(ActionBit::kFitCastAction));
@@ -99,7 +96,8 @@ TEST(AdvertisementFactory, CreateAdvertisementFromTrustedIdentity) {
                                .SetAction(action));
 
   absl::StatusOr<AdvertisementData> result =
-      AdvertisementFactory().CreateAdvertisement(request, credentials);
+      AdvertisementFactory().CreateAdvertisement(
+          request, CreateLocalCredential(kIdentity));
 
   ASSERT_OK(result);
   EXPECT_FALSE(result->is_extended_advertisement);
@@ -111,8 +109,6 @@ TEST(AdvertisementFactory, CreateAdvertisementFromProvisionedIdentity) {
   std::string account_name = "Test account";
   std::string salt = "AB";
   constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PROVISIONED;
-  std::vector<LocalCredential> credentials = {
-      CreatePrivateCredential(kIdentity)};
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(DataElement(ActionBit::kActiveUnlockAction));
   data_elements.emplace_back(DataElement(ActionBit::kFitCastAction));
@@ -125,7 +121,8 @@ TEST(AdvertisementFactory, CreateAdvertisementFromProvisionedIdentity) {
                                .SetAction(action));
 
   absl::StatusOr<AdvertisementData> result =
-      AdvertisementFactory().CreateAdvertisement(request, credentials);
+      AdvertisementFactory().CreateAdvertisement(
+          request, CreateLocalCredential(kIdentity));
 
   ASSERT_OK(result);
   EXPECT_FALSE(result->is_extended_advertisement);

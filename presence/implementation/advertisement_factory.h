@@ -39,20 +39,19 @@ class AdvertisementFactory {
   // Returns a BLE advertisement for given `request.
   absl::StatusOr<AdvertisementData> CreateAdvertisement(
       const BaseBroadcastRequest& request,
-      std::vector<LocalCredential>& credentials) const;
+      absl::optional<LocalCredential> credential) const;
 
   absl::StatusOr<AdvertisementData> CreateAdvertisement(
       const BaseBroadcastRequest& request) const {
-    std::vector<LocalCredential> empty;
-    return CreateAdvertisement(request, empty);
+    return CreateAdvertisement(request, absl::optional<LocalCredential>());
   }
 
  private:
   absl::StatusOr<AdvertisementData> CreateBaseNpAdvertisement(
       const BaseBroadcastRequest& request,
-      std::vector<LocalCredential>& credentials) const;
+      absl::optional<LocalCredential> credential) const;
   absl::StatusOr<std::string> EncryptDataElements(
-      std::vector<LocalCredential>& credentials, absl::string_view salt,
+      const LocalCredential& credential, absl::string_view salt,
       absl::string_view data_elements) const;
 };
 
