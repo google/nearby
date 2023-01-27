@@ -45,7 +45,6 @@ cc_library(
         "base_broadcast_request.cc",
         "broadcast_manager.cc",
         "credential_manager_impl.cc",
-        "encryption.cc",
         "ldt.cc",
         "scan_manager.cc",
         "service_controller_impl.cc",
@@ -58,7 +57,6 @@ cc_library(
         "broadcast_manager.h",
         "credential_manager.h",
         "credential_manager_impl.h",
-        "encryption.h",
         "ldt.h",
         "scan_manager.h",
         "service_controller.h",
@@ -183,19 +181,6 @@ cc_test(
         "//internal/proto:credential_cc_proto",
         "//presence/implementation/mediums",
         "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "encryption_test",
-    size = "small",
-    srcs = ["encryption_test.cc"],
-    deps = [
-        ":internal",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )

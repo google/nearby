@@ -32,6 +32,7 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/proto/credential.pb.h"
+#include "presence/implementation/base_broadcast_request.h"
 
 namespace nearby {
 namespace presence {
@@ -159,7 +160,7 @@ TEST_F(CredentialManagerImplTest, CreateOneCredentialSuccessfully) {
             CredentialManagerImpl::kAuthenticityKeyByteSize);
   EXPECT_FALSE(private_credential.verification_key().empty());
   EXPECT_EQ(private_credential.metadata_encryption_key().size(),
-            CredentialManagerImpl::kAuthenticityKeyByteSize);
+            kBaseMetadataSize);
 
   SharedCredential public_credential = credentials.second;
   // Verify the public credential.

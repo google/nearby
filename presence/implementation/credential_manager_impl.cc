@@ -35,7 +35,7 @@
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
 #include "internal/proto/credential.pb.h"
-#include "presence/implementation/encryption.h"
+#include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/ldt.h"
 
 namespace nearby {
@@ -58,6 +58,13 @@ constexpr char kPairedKeyAliasPrefix[] = "nearby_presence_paired_key_alias_";
 absl::Duration RandomDuration(absl::Duration max_duration) {
   uint32_t random = ::crypto::RandData<uint32_t>();
   return max_duration * random / std::numeric_limits<uint32_t>::max();
+}
+
+std::string CustomizeBytesSize(absl::string_view bytes, size_t len) {
+  return ::crypto::HkdfSha256(
+      /*ikm=*/bytes,
+      /*salt=*/std::string(CredentialManagerImpl::kAuthenticityKeyByteSize, 0),
+      /*info=*/"", /*derived_key_size=*/len);
 }
 
 }  // namespace
@@ -157,8 +164,7 @@ CredentialManagerImpl::CreateLocalCredential(
   private_credential.set_identity_type(identity_type);
 
   // Creates an AES key to encrypt the whole broadcast.
-  std::string secret_key =
-      Encryption::GenerateRandomByteArray(kAuthenticityKeyByteSize);
+  std::string secret_key = crypto::RandBytes(kAuthenticityKeyByteSize);
   private_credential.set_authenticity_key(secret_key);
 
   // Uses SHA-256 algorithm to generate the credential ID from the
@@ -181,8 +187,7 @@ CredentialManagerImpl::CreateLocalCredential(
       std::string(private_key.begin(), private_key.end()));
 
   // Create an AES key to encrypt the device metadata.
-  auto metadata_key =
-      Encryption::GenerateRandomByteArray(kAuthenticityKeyByteSize);
+  auto metadata_key = crypto::RandBytes(kBaseMetadataSize);
   private_credential.set_metadata_encryption_key(metadata_key);
 
   // set device meta data
@@ -252,8 +257,8 @@ std::string CredentialManagerImpl::DecryptDeviceMetadata(
       ExtendMetadataEncryptionKey(device_metadata_encryption_key);
   aead.Init(derived_key);
 
-  auto iv = Encryption::CustomizeBytesSize(
-      authenticity_key, CredentialManagerImpl::kAesGcmIVSize);
+  auto iv = CustomizeBytesSize(authenticity_key,
+                               CredentialManagerImpl::kAesGcmIVSize);
   std::vector<uint8_t> iv_bytes(iv.begin(), iv.end());
   std::vector<uint8_t> encrypted_device_metadata_bytes(
       device_metadata_string.begin(), device_metadata_string.end());
@@ -277,7 +282,7 @@ std::string CredentialManagerImpl::EncryptDeviceMetadata(
 
   aead.Init(derived_key);
 
-  auto iv = Encryption::CustomizeBytesSize(authenticity_key, kAesGcmIVSize);
+  auto iv = CustomizeBytesSize(authenticity_key, kAesGcmIVSize);
   std::vector<uint8_t> iv_bytes(iv.begin(), iv.end());
 
   std::vector<uint8_t> device_metadata_bytes(device_metadata_string.begin(),

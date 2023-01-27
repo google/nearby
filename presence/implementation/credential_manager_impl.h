@@ -53,7 +53,7 @@ class CredentialManagerImpl : public CredentialManager {
         credential_storage_ptr_(std::move(credential_storage_ptr)) {}
 
   // AES only supports key sizes of 16, 24 or 32 bytes.
-  static constexpr int kAuthenticityKeyByteSize = 16;
+  static constexpr int kAuthenticityKeyByteSize = 32;
 
   // Length of key in bytes required by AES-GCM encryption.
   static constexpr size_t kNearbyPresenceNumBytesAesGcmKeySize = 32;

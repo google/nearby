@@ -19,10 +19,10 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "internal/crypto/random.h"
 #include "internal/platform/logging.h"
 #include "presence/broadcast_request.h"
 #include "presence/implementation/action_factory.h"
-#include "presence/implementation/encryption.h"
 
 namespace nearby {
 namespace presence {
@@ -74,9 +74,7 @@ BasePresenceRequestBuilder::operator BaseBroadcastRequest() const {
       .action = action_};
   BaseBroadcastRequest broadcast_request{
       .variant = presence,
-      .salt = salt_.size() == kSaltSize
-                  ? salt_
-                  : Encryption::GenerateRandomByteArray(kSaltSize),
+      .salt = salt_.size() == kSaltSize ? salt_ : crypto::RandBytes(kSaltSize),
       .tx_power = tx_power_,
       .power_mode = power_mode_};
   return broadcast_request;
