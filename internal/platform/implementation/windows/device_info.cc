@@ -51,6 +51,7 @@ using IAsyncOperation = winrt::Windows::Foundation::IAsyncOperation<T>;
 
 constexpr char window_class_name[] = "NearbySharingDLL_MessageWindowClass";
 constexpr char window_name[] = "NearbySharingDLL_MessageWindow";
+constexpr char kLogsRelativePath[] = "Google\\Nearby\\Sharing\\Logs";
 
 namespace {
 // This WindowProc method must be static for the successful initialization of
@@ -366,6 +367,20 @@ std::optional<std::filesystem::path> DeviceInfo::GetAppDataPath() const {
 
 std::optional<std::filesystem::path> DeviceInfo::GetTemporaryPath() const {
   return std::filesystem::temp_directory_path();
+}
+
+std::optional<std::filesystem::path> DeviceInfo::GetLogPath() const {
+  PWSTR path;
+  HRESULT result =
+    SHGetKnownFolderPath(FOLDERID_ProgramData, KF_FLAG_DEFAULT,
+                         /*hToken*/nullptr, &path);
+  if (result == S_OK) {
+    std::filesystem::path prefixPath = path;
+    CoTaskMemFree(path);
+    return std::filesystem::path(prefixPath / kLogsRelativePath);
+  }
+  CoTaskMemFree(path);
+  return std::nullopt;
 }
 
 bool DeviceInfo::IsScreenLocked() const {

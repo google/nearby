@@ -51,6 +51,10 @@ std::optional<std::filesystem::path> DeviceInfo::GetTemporaryPath() const {
   return std::filesystem::temp_directory_path();
 }
 
+std::optional<std::filesystem::path> DeviceInfo::GetLogPath() const {
+  return std::filesystem::temp_directory_path();
+}
+
 bool DeviceInfo::IsScreenLocked() const { return false; }
 
 void DeviceInfo::RegisterScreenLockedListener(

@@ -46,6 +46,7 @@ class DeviceInfo : public api::DeviceInfo {
   std::optional<std::filesystem::path> GetDownloadPath() const override;
   std::optional<std::filesystem::path> GetAppDataPath() const override;
   std::optional<std::filesystem::path> GetTemporaryPath() const override;
+  std::optional<std::filesystem::path> GetLogPath() const override;
 
   bool IsScreenLocked() const override;
   void RegisterScreenLockedListener(

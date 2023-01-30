@@ -67,6 +67,10 @@ class DeviceInfo : public api::DeviceInfo {
     return std::filesystem::temp_directory_path();
   }
 
+  std::optional<std::filesystem::path> GetLogPath() const override {
+    return std::filesystem::temp_directory_path();
+  }
+
   bool IsScreenLocked() const override { return false; }
 
   void RegisterScreenLockedListener(

@@ -48,6 +48,7 @@ class DeviceInfo {
   virtual std::optional<std::filesystem::path> GetDownloadPath() const = 0;
   virtual std::optional<std::filesystem::path> GetAppDataPath() const = 0;
   virtual std::optional<std::filesystem::path> GetTemporaryPath() const = 0;
+  virtual std::optional<std::filesystem::path> GetLogPath() const = 0;
 
   // Monitor screen status
   virtual bool IsScreenLocked() const = 0;
