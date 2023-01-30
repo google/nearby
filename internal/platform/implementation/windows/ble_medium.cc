@@ -283,6 +283,10 @@ bool BleMedium::StartScanning(
 
     service_id_ = service_id;
     advertisement_received_callback_ = std::move(callback);
+    {
+      absl::MutexLock lock(&peripheral_map_mutex_);
+      peripheral_map_.clear();
+    }
 
     watcher_ = BluetoothLEAdvertisementWatcher();
     watcher_token_ = watcher_.Stopped({this, &BleMedium::WatcherHandler});
@@ -576,15 +580,33 @@ void BleMedium::AdvertisementReceivedHandler(
       std::string peripheral_name =
           uint64_to_mac_address_string(args.BluetoothAddress());
 
-      std::unique_ptr<BlePeripheral> peripheral =
-          std::make_unique<BlePeripheral>();
-      peripheral->SetName(peripheral_name);
-      peripheral->SetAdvertisementBytes(advertisement_data);
-      BlePeripheral* peripheral_ptr = peripheral.get();
+      BlePeripheral* peripheral_ptr = nullptr;
 
       {
         absl::MutexLock lock(&peripheral_map_mutex_);
+        if (peripheral_map_.contains(peripheral_name)) {
+          if (peripheral_map_[peripheral_name]->GetAdvertisementBytes(
+                  service_id_) != advertisement_data) {
+            NEARBY_LOGS(INFO) << "BLE reports lost device: " << peripheral_name;
+
+            // Lost the device first and then report discovered the device.
+            advertisement_received_callback_.peripheral_lost_cb(
+                /*ble_peripheral*/ *peripheral_map_[peripheral_name],
+                /*service_id*/ service_id_);
+
+          } else {
+            // The device already reported to discovery, don't need to call it
+            // again.
+            return;
+          }
+        }
+
+        auto peripheral = std::make_unique<BlePeripheral>();
+        peripheral->SetName(peripheral_name);
+        peripheral->SetAdvertisementBytes(advertisement_data);
+
         peripheral_map_[peripheral_name] = std::move(peripheral);
+        peripheral_ptr = peripheral_map_[peripheral_name].get();
       }
 
       // Received Fast Advertisement packet
