@@ -26,6 +26,7 @@ namespace windows {
 namespace {
 constexpr int kMacAddrLen = 6;
 constexpr int kDefaultApFreq = -1;
+constexpr int kUseEthernet = -2;
 }  // namespace
 
 WifiMedium::WifiMedium() { InitCapability(); }
@@ -36,7 +37,7 @@ PWLAN_INTERFACE_INFO_LIST EnumInterface(PHANDLE client_handle) {
   DWORD result = 0;
 
   /* variables used for WlanEnumInterfaces */
-  PWLAN_INTERFACE_INFO_LIST p_intf_list = NULL;
+  PWLAN_INTERFACE_INFO_LIST p_intf_list = nullptr;
 
   result =
       WlanOpenHandle(client_version, NULL, &negotiated_version, client_handle);
@@ -55,12 +56,12 @@ PWLAN_INTERFACE_INFO_LIST EnumInterface(PHANDLE client_handle) {
 bool WifiMedium::IsInterfaceValid() const { return wifi_interface_valid_; }
 
 void WifiMedium::InitCapability() {
-  HANDLE client_handle = NULL;
+  HANDLE client_handle = nullptr;
 
   /* variables used for WlanEnumInterfaces */
-  PWLAN_INTERFACE_INFO_LIST p_intf_list = NULL;
-  PWLAN_INTERFACE_INFO p_intf_info = NULL;
-  PWLAN_INTERFACE_CAPABILITY p_intf_capability = NULL;
+  PWLAN_INTERFACE_INFO_LIST p_intf_list = nullptr;
+  PWLAN_INTERFACE_INFO p_intf_info = nullptr;
+  PWLAN_INTERFACE_CAPABILITY p_intf_capability = nullptr;
 
   wifi_capability_.supports_5_ghz = false;
   wifi_capability_.supports_6_ghz = false;
@@ -68,11 +69,11 @@ void WifiMedium::InitCapability() {
 
   p_intf_list = EnumInterface(&client_handle);
   if (!client_handle) {
-    NEARBY_LOGS(INFO) << "Client Handle is NULL";
+    NEARBY_LOGS(INFO)
+        << "Client Handle is null, wifi maybe not supported on this device.";
     return;
   }
   if (!p_intf_list) {
-    NEARBY_LOGS(INFO) << "WlanEnumInterfaces failed with error: ";
     WlanCloseHandle(client_handle, NULL);
     return;
   }
@@ -84,7 +85,7 @@ void WifiMedium::InitCapability() {
                                    NULL, &p_intf_capability) != ERROR_SUCCESS) {
       NEARBY_LOGS(INFO) << "Get Capability failed";
       WlanFreeMemory(p_intf_list);
-      p_intf_list = NULL;
+      p_intf_list = nullptr;
       WlanCloseHandle(client_handle, NULL);
       return;
     }
@@ -96,37 +97,43 @@ void WifiMedium::InitCapability() {
   }
 
   WlanFreeMemory(p_intf_capability);
-  p_intf_capability = NULL;
+  p_intf_capability = nullptr;
   WlanFreeMemory(p_intf_list);
-  p_intf_list = NULL;
+  p_intf_list = nullptr;
   WlanCloseHandle(client_handle, NULL);
 }
 
 // TODO(b/259414512): the return type should be optional.
 api::WifiInformation& WifiMedium::GetInformation() {
-  HANDLE client_handle = NULL;
-  PWLAN_AVAILABLE_NETWORK_LIST pWLAN_AVAILABLE_NETWORK_LIST = NULL;
+  HANDLE client_handle = nullptr;
+  PWLAN_AVAILABLE_NETWORK_LIST pWLAN_AVAILABLE_NETWORK_LIST = nullptr;
   DWORD result = 0;
   DWORD connect_info_size = sizeof(WLAN_CONNECTION_ATTRIBUTES);
   WLAN_OPCODE_VALUE_TYPE op_code_value_type = wlan_opcode_value_type_invalid;
 
   /* variables used for WlanEnumInterfaces */
-  PWLAN_INTERFACE_INFO_LIST p_intf_list = NULL;
-  PWLAN_INTERFACE_INFO p_intf_info = NULL;
-  PWLAN_CONNECTION_ATTRIBUTES p_connect_info = NULL;
-  ULONG* channel = NULL;
+  PWLAN_INTERFACE_INFO_LIST p_intf_list = nullptr;
+  PWLAN_INTERFACE_INFO p_intf_info = nullptr;
+  PWLAN_CONNECTION_ATTRIBUTES p_connect_info = nullptr;
+  ULONG* channel = nullptr;
 
   wifi_information_.is_connected = false;
   wifi_information_.ap_frequency = kDefaultApFreq;
+  wifi_information_.ssid.clear();
+  wifi_information_.bssid.clear();
+  wifi_information_.ip_address_dot_decimal.clear();
+  wifi_information_.ip_address_4_bytes.clear();
 
   p_intf_list = EnumInterface(&client_handle);
   if (!client_handle) {
     NEARBY_LOGS(INFO) << "Client Handle is NULL";
+    FillupEthernetParams();
     return wifi_information_;
   }
   if (!p_intf_list) {
     NEARBY_LOGS(INFO) << "WlanEnumInterfaces failed with error: ";
     WlanCloseHandle(client_handle, NULL);
+    FillupEthernetParams();
     return wifi_information_;
   }
 
@@ -142,26 +149,30 @@ api::WifiInformation& WifiMedium::GetInformation() {
                                   &channel_size, (PVOID*)&channel,
                                   &op_code_value_type);
       if (result != ERROR_SUCCESS) {
-        NEARBY_LOGS(INFO) << "WlanQueryInterface error = " << result;
-      } else {
-        wifi_information_.ap_frequency =
-            WifiUtils::ConvertChannelToFrequencyMhz(
-                *channel, api::WifiBandType::kUnknown);
-        NEARBY_LOGS(INFO) << "Channel: " << *channel << "; ap_frequency: "
-                          << wifi_information_.ap_frequency;
-        WlanFreeMemory(channel);
-        channel = NULL;
+        NEARBY_LOGS(INFO) << "WlanQueryInterface channel error = " << result;
+        WlanFreeMemory(p_intf_list);
+        p_intf_list = nullptr;
+        WlanCloseHandle(client_handle, nullptr);
+        FillupEthernetParams();
+        return wifi_information_;
       }
+      wifi_information_.ap_frequency = WifiUtils::ConvertChannelToFrequencyMhz(
+          *channel, api::WifiBandType::kUnknown);
+      NEARBY_LOGS(INFO) << "Channel: " << *channel
+                        << "; ap_frequency: " << wifi_information_.ap_frequency;
+      WlanFreeMemory(channel);
+      channel = nullptr;
 
       result = WlanQueryInterface(client_handle, &p_intf_info->InterfaceGuid,
                                   wlan_intf_opcode_current_connection, NULL,
                                   &connect_info_size, (PVOID*)&p_connect_info,
                                   &op_code_value_type);
       if (result != ERROR_SUCCESS) {
-        NEARBY_LOGS(INFO) << "WlanQueryInterface error = " << result;
+        NEARBY_LOGS(INFO) << "WlanQueryInterface current AP error = " << result;
         WlanFreeMemory(p_intf_list);
-        p_intf_list = NULL;
+        p_intf_list = nullptr;
         WlanCloseHandle(client_handle, NULL);
+        FillupEthernetParams();
         return wifi_information_;
       }
 
@@ -188,15 +199,17 @@ api::WifiInformation& WifiMedium::GetInformation() {
   }
 
   WlanFreeMemory(p_connect_info);
-  p_connect_info = NULL;
+  p_connect_info = nullptr;
   WlanFreeMemory(p_intf_list);
-  p_intf_list = NULL;
+  p_intf_list = nullptr;
   WlanCloseHandle(client_handle, NULL);
 
-  wifi_information_.ip_address_dot_decimal = InternalGetIpAddress();
-  if (!wifi_information_.ip_address_dot_decimal.empty()) {
+  if (wifi_information_.is_connected) {
+    wifi_information_.ip_address_dot_decimal = InternalGetWifiIpAddress();
     wifi_information_.ip_address_4_bytes = ipaddr_dotdecimal_to_4bytes_string(
         wifi_information_.ip_address_dot_decimal);
+  } else {
+    FillupEthernetParams();
   }
 
   return wifi_information_;
@@ -207,7 +220,7 @@ std::string WifiMedium::GetIpAddress() {
   return wifi_information_.ip_address_dot_decimal;
 }
 
-std::string WifiMedium::InternalGetIpAddress() {
+std::string WifiMedium::InternalGetWifiIpAddress() {
   try {
     auto host_names = NetworkInformation::GetHostNames();
     for (auto host_name : host_names) {
@@ -246,6 +259,46 @@ std::string WifiMedium::InternalGetIpAddress() {
     NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
     return {};
   }
+}
+
+std::string WifiMedium::InternalGetEthernetIpAddress() {
+  try {
+    auto host_names = NetworkInformation::GetHostNames();
+    for (auto host_name : host_names) {
+      if (host_name.IPInformation() != nullptr &&
+          host_name.IPInformation().NetworkAdapter() != nullptr &&
+          host_name.Type() == HostNameType::Ipv4) {
+        std::string ipv4_s = winrt::to_string(host_name.ToString());
+        if (host_name.IPInformation().NetworkAdapter().IanaInterfaceType() ==
+            Constants::kInterfaceTypeEthernet) {
+          NEARBY_LOGS(INFO) << "Found IP: " << ipv4_s;
+          return ipv4_s;
+        }
+      }
+    }
+    return {};
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    return {};
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
+    return {};
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    return {};
+  }
+}
+
+void WifiMedium::FillupEthernetParams() {
+  wifi_information_.ip_address_dot_decimal = InternalGetEthernetIpAddress();
+  if (wifi_information_.ip_address_dot_decimal.empty()) {
+    NEARBY_LOGS(INFO) << "No Etherent IP Addr found.";
+    return;
+  }
+  wifi_information_.ip_address_4_bytes = ipaddr_dotdecimal_to_4bytes_string(
+      wifi_information_.ip_address_dot_decimal);
+  wifi_information_.ap_frequency = kUseEthernet;
 }
 
 }  // namespace windows

@@ -56,6 +56,11 @@ const uint16_t SdpServiceNameAttributeId = 0x100;
 //    -  the Attribute Type size in the least significant 3 bits,
 //    -  the SDP Attribute Type value in the most significant 5 bits.
 const char SdpServiceNameAttributeType = (4 << 3) | 5;
+
+// Possible values for the adapter type. Refer to:
+// https://learn.microsoft.com/en-us/windows/win32/api/iptypes/ns-iptypes-ip_adapter_info
+const uint16_t kInterfaceTypeEthernet = 6;
+const uint16_t kInterfaceTypeWifi = 71;
 }  // namespace Constants
 
 class InspectableReader {

@@ -84,6 +84,10 @@ std::string ipaddr_4bytes_to_dotdecimal_string(
 }
 
 std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s) {
+  if (ipv4_s.empty()) {
+    return {};
+  }
+
   in_addr address;
   address.S_un.S_addr = inet_addr(ipv4_s.c_str());
   char ipv4_b[5];
@@ -119,11 +123,10 @@ std::vector<std::string> GetIpv4Addresses() {
           host_name.IPInformation().NetworkAdapter() != nullptr &&
           host_name.Type() == HostNameType::Ipv4) {
         NetworkAdapter adapter = host_name.IPInformation().NetworkAdapter();
-        if (adapter.IanaInterfaceType() == 71) {
-          // WiFi address.
+        if (adapter.IanaInterfaceType() == Constants::kInterfaceTypeWifi) {
           wifi_addresses.push_back(winrt::to_string(host_name.ToString()));
-        } else if (adapter.IanaInterfaceType() == 6) {
-          // Ethernet addresses.
+        } else if (adapter.IanaInterfaceType() ==
+                   Constants::kInterfaceTypeEthernet) {
           ethernet_addresses.push_back(winrt::to_string(host_name.ToString()));
         } else {
           other_addresses.push_back(winrt::to_string(host_name.ToString()));

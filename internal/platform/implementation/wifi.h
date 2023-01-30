@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -69,8 +69,8 @@ struct WifiInformation {
   std::string ssid;
   // WiFi LAN BSSID, in the form of a six-byte MAC address: XX:XX:XX:XX:XX:XX
   std::string bssid;
-  // The frequency of the WiFi LAN AP(in MHz, or -1 is not associated with an AP
-  // over WiFi).
+  // The frequency of the WiFi LAN AP(in MHz). Or -1 is not associated with an
+  // AP over WiFi, -2 represents the active network uses an Ethernet transport.
   std::int32_t ap_frequency;
   // The interface's IP address in the form of "xx.xx.xx.xx"
   std::string ip_address_dot_decimal;
