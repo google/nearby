@@ -1,0 +1,39 @@
+// Copyright 2023 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package nearby.internal;
+
+// The metadata of a device.
+// Contains confidential data not to be broadcasted directly in OTA.
+message Metadata {
+  // An identifier of the device.
+  string device_id = 1;
+
+  // The account name of the account who owns the device.
+  string account_name = 2;
+
+  // The name of the local device to be returned through credentials.
+  string device_name = 3;
+
+  // The name of the user who owns the device.
+  string user_name = 4;
+
+  // The profile url of the device.
+  string device_profile_url = 5;
+
+  // The Bluetooth MAC address of the device.
+  bytes bluetooth_mac_address = 6;
+}

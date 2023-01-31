@@ -107,7 +107,7 @@ inline bool operator!=(const LegacyPresenceScanFilter& a,
  * An encapsulation of various parameters for requesting nearby scans.
  */
 struct ScanRequest {
-  // Same as DeviceMetadata.account_name, to fetch private credential
+  // Same as Metadata.account_name, to fetch private credential
   // to broadcast.
   std::string account_name;
 

@@ -22,7 +22,7 @@
 #include "absl/time/time.h"
 #include "absl/types/variant.h"
 #include "internal/device.h"
-#include "internal/proto/device_metadata.pb.h"
+#include "internal/proto/metadata.pb.h"
 #include "presence/device_motion.h"
 
 namespace nearby {
@@ -31,12 +31,12 @@ namespace presence {
 constexpr int kEndpointIdLength = 4;
 
 class PresenceDevice : public nearby::NearbyDevice {
-  using DeviceMetadata = ::nearby::internal::DeviceMetadata;
+  using Metadata = ::nearby::internal::Metadata;
 
  public:
-  explicit PresenceDevice(DeviceMetadata metadata) noexcept;
+  explicit PresenceDevice(Metadata metadata) noexcept;
   explicit PresenceDevice(DeviceMotion device_motion,
-                          DeviceMetadata metadata) noexcept;
+                          Metadata metadata) noexcept;
   absl::string_view GetEndpointId() const override { return endpoint_id_; };
   void SetEndpointInfo(absl::string_view endpoint_info) {
     endpoint_info_ = std::string(endpoint_info);
@@ -49,13 +49,13 @@ class PresenceDevice : public nearby::NearbyDevice {
   std::vector<nearby::ConnectionInfoVariant> GetConnectionInfos()
       const override;
   DeviceMotion GetDeviceMotion() const { return device_motion_; }
-  DeviceMetadata GetMetadata() const { return device_metadata_; }
+  Metadata GetMetadata() const { return metadata_; }
   absl::Time GetDiscoveryTimestamp() const { return discovery_timestamp_; }
 
  private:
   const absl::Time discovery_timestamp_;
   const DeviceMotion device_motion_;
-  const DeviceMetadata device_metadata_;
+  const Metadata metadata_;
   std::string endpoint_id_;
   std::string endpoint_info_;
 };
