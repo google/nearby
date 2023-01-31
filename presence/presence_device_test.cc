@@ -22,13 +22,12 @@
 #include "absl/types/variant.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/logging.h"
-#include "internal/proto/device_metadata.pb.h"
 
 namespace nearby {
 namespace presence {
 namespace {
 
-using internal::DeviceMetadata;
+using ::nearby::internal::Metadata;
 
 constexpr DeviceMotion::MotionType kDefaultMotionType =
     DeviceMotion::MotionType::kPointAndHold;
@@ -36,26 +35,25 @@ constexpr float kDefaultConfidence = 0;
 constexpr float kTestConfidence = 0.1;
 constexpr absl::string_view kMacAddr = "\x4C\x8B\x1D\xCE\xBA\xD1";
 
-DeviceMetadata CreateTestDeviceMetadata() {
-  DeviceMetadata device_metadata;
-  device_metadata.set_stable_device_id("test_device_id");
-  device_metadata.set_account_name("test_account");
-  device_metadata.set_device_name("NP test device");
-  device_metadata.set_icon_url("test_image.test.com");
-  device_metadata.set_bluetooth_mac_address(kMacAddr);
-  device_metadata.set_device_type(internal::DeviceMetadata::PHONE);
-  return device_metadata;
+Metadata CreateTestMetadata() {
+  Metadata metadata;
+  metadata.set_device_id("test_device_id");
+  metadata.set_account_name("test_account");
+  metadata.set_device_name("NP test device");
+  metadata.set_device_profile_url("test_image.test.com");
+  metadata.set_bluetooth_mac_address(kMacAddr);
+  return metadata;
 }
 
 TEST(PresenceDeviceTest, DefaultMotionEquals) {
-  DeviceMetadata metadata = CreateTestDeviceMetadata();
+  Metadata metadata = CreateTestMetadata();
   PresenceDevice device1(metadata);
   PresenceDevice device2(metadata);
   EXPECT_EQ(device1, device2);
 }
 
 TEST(PresenceDeviceTest, ExplicitInitEquals) {
-  DeviceMetadata metadata = CreateTestDeviceMetadata();
+  Metadata metadata = CreateTestMetadata();
   PresenceDevice device1 =
       PresenceDevice({kDefaultMotionType, kTestConfidence}, metadata);
   PresenceDevice device2 =
@@ -64,7 +62,7 @@ TEST(PresenceDeviceTest, ExplicitInitEquals) {
 }
 
 TEST(PresenceDeviceTest, ExplicitInitNotEquals) {
-  DeviceMetadata metadata = CreateTestDeviceMetadata();
+  Metadata metadata = CreateTestMetadata();
   PresenceDevice device1 = PresenceDevice({kDefaultMotionType}, metadata);
   PresenceDevice device2 =
       PresenceDevice({kDefaultMotionType, kTestConfidence}, metadata);
@@ -72,7 +70,7 @@ TEST(PresenceDeviceTest, ExplicitInitNotEquals) {
 }
 
 TEST(PresenceDeviceTest, TestGetBluetoothAddress) {
-  DeviceMetadata metadata = CreateTestDeviceMetadata();
+  Metadata metadata = CreateTestMetadata();
   PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
   auto info = (device.GetConnectionInfos().at(0));
   ASSERT_TRUE(absl::holds_alternative<nearby::BleConnectionInfo>(info));
@@ -82,7 +80,7 @@ TEST(PresenceDeviceTest, TestGetBluetoothAddress) {
 }
 
 TEST(PresenceDeviceTest, TestEndpointIdIsCorrectLength) {
-  DeviceMetadata metadata = CreateTestDeviceMetadata();
+  Metadata metadata = CreateTestMetadata();
   PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
   EXPECT_EQ(device.GetEndpointId().length(), kEndpointIdLength);
 }

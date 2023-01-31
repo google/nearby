@@ -23,7 +23,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/variant.h"
 #include "internal/platform/implementation/credential_callbacks.h"
-#include "internal/proto/credential.pb.h"
 #include "presence/broadcast_request.h"
 #include "presence/power_mode.h"
 

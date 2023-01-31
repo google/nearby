@@ -25,6 +25,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "internal/proto/credential.pb.h"
+#include "internal/proto/local_credential.pb.h"
 
 namespace nearby {
 namespace presence {

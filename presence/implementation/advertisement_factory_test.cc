@@ -51,7 +51,7 @@ LocalCredential CreateLocalCredential(IdentityType identity_type) {
 
   LocalCredential private_credential;
   private_credential.set_identity_type(identity_type);
-  private_credential.set_authenticity_key(seed.AsStringView());
+  private_credential.set_key_seed(seed.AsStringView());
   private_credential.set_metadata_encryption_key(metadata_key.AsStringView());
   return private_credential;
 }
