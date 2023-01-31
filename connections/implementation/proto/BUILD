@@ -24,15 +24,6 @@ proto_library(
     ],
 )
 
-java_lite_proto_library(
-    name = "offline_wire_formats_java_proto_lite",
-    visibility = [
-        "//java/com/google/android/gmscore/integ/modules/nearby:__subpackages__",
-        "//javatests/com/google/android/gmscore/integ/modules/nearby:__subpackages__",
-    ],
-    deps = [":offline_wire_formats_proto"],
-)
-
 cc_proto_library(
     name = "offline_wire_formats_cc_proto",
     visibility = [

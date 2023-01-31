@@ -180,7 +180,7 @@ TEST_F(ScanManagerTest, TestNoFilter) {
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
 
-TEST_F(ScanManagerTest, PresenceDeviceMetadataIsRetained) {
+TEST_F(ScanManagerTest, PresenceMetadataIsRetained) {
   Mediums mediums;
   ScanManager manager(mediums, credential_manager_, executor_);
   // Set up advertiser
@@ -198,8 +198,7 @@ TEST_F(ScanManagerTest, PresenceDeviceMetadataIsRetained) {
           },
       .on_discovered_cb =
           [this, &address](PresenceDevice pd) {
-            if (pd.GetMetadata().has_bluetooth_mac_address() &&
-                pd.GetMetadata().bluetooth_mac_address() == address) {
+            if (pd.GetMetadata().bluetooth_mac_address() == address) {
               found_latch_.CountDown();
             }
           }};

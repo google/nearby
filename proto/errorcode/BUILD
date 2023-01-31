@@ -23,11 +23,6 @@ proto_library(
     srcs = ["error_code_enums.proto"],
 )
 
-java_lite_proto_library(
-    name = "error_code_enums_java_proto_lite",
-    deps = [":error_code_enums_proto"],
-)
-
 cc_proto_library(
     name = "error_code_enums_cc_proto",
     deps = [":error_code_enums_proto"],

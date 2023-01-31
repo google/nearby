@@ -62,14 +62,12 @@ cc_library(
     deps = [
         "//internal:device",
         "//internal/crypto",
-        "//internal/platform:base",
         "//internal/platform:connection_info",
         "//internal/platform:logging",
         "//internal/platform/implementation:types",
         "//internal/proto:credential_cc_proto",
-        "//internal/proto:device_metadata_cc_proto",
+        "//internal/proto:metadata_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
@@ -101,7 +99,6 @@ cc_test(
         "//internal/platform:connection_info",
         "//internal/platform:logging",
         "//internal/proto:credential_cc_proto",
-        "//internal/proto:device_metadata_cc_proto",
     ] + select({
         "//tools/cc_target_os:windows": [
             "//internal/platform/implementation/windows",
@@ -125,6 +122,7 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "//internal/platform:uuid",
         "//internal/proto:credential_cc_proto",
+        "//internal/proto:local_credential_cc_proto",
     ] + select({
         "//tools/cc_target_os:windows": [
             "//internal/platform/implementation/windows",

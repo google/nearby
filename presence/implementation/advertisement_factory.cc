@@ -93,6 +93,11 @@ std::string SerializeAction(const Action& action) {
   return output;
 }
 
+bool RequiresCredentials(IdentityType identity_type) {
+  return identity_type == IdentityType::IDENTITY_TYPE_PRIVATE ||
+         identity_type == IdentityType::IDENTITY_TYPE_TRUSTED ||
+         identity_type == IdentityType::IDENTITY_TYPE_PROVISIONED;
+}
 }  // namespace
 
 absl::StatusOr<AdvertisementData> AdvertisementFactory::CreateAdvertisement(
@@ -192,7 +197,7 @@ absl::StatusOr<std::string> AdvertisementFactory::EncryptDataElements(
 
   // HMAC is not used during encryption, so we can pass an empty value.
   absl::StatusOr<LdtEncryptor> encryptor =
-      LdtEncryptor::Create(credential.authenticity_key(), /*known_hmac=*/"");
+      LdtEncryptor::Create(credential.key_seed(), /*known_hmac=*/"");
   if (!encryptor.ok()) {
     return encryptor.status();
   }
@@ -207,8 +212,7 @@ absl::StatusOr<CredentialSelector> AdvertisementFactory::GetCredentialSelector(
           request.variant)) {
     const auto& presence =
         absl::get<BaseBroadcastRequest::BasePresence>(request.variant);
-    if (presence.credential_selector.identity_type !=
-        DataElement::kPublicIdentityFieldType) {
+    if (RequiresCredentials(presence.credential_selector.identity_type)) {
       return presence.credential_selector;
     }
   }

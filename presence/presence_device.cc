@@ -31,23 +31,23 @@ std::string GenerateRandomEndpointId() {
 }
 }  // namespace
 
-PresenceDevice::PresenceDevice(DeviceMetadata device_metadata) noexcept
+PresenceDevice::PresenceDevice(Metadata metadata) noexcept
     : discovery_timestamp_(nearby::SystemClock::ElapsedRealtime()),
       device_motion_(DeviceMotion()),
-      device_metadata_(device_metadata) {
+      metadata_(metadata) {
   endpoint_id_ = GenerateRandomEndpointId();
 }
 PresenceDevice::PresenceDevice(DeviceMotion device_motion,
-                               DeviceMetadata device_metadata) noexcept
+                               Metadata metadata) noexcept
     : discovery_timestamp_(nearby::SystemClock::ElapsedRealtime()),
       device_motion_(device_motion),
-      device_metadata_(device_metadata) {
+      metadata_(metadata) {
   endpoint_id_ = GenerateRandomEndpointId();
 }
 
 std::vector<nearby::ConnectionInfoVariant> PresenceDevice::GetConnectionInfos()
     const {
-  return {nearby::BleConnectionInfo(device_metadata_.bluetooth_mac_address())};
+  return {nearby::BleConnectionInfo(metadata_.bluetooth_mac_address())};
 }
 }  // namespace presence
 }  // namespace nearby
