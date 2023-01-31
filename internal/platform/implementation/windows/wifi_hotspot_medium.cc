@@ -32,7 +32,7 @@ namespace windows {
 namespace {
 
 // The maximum scanning times for available hot sports.
-constexpr int kWifiHotspotMaxScans = 2;
+constexpr int kWifiHotspotMaxScans = 3;
 
 // The maximum connection times to remote Wi-Fi hotspot.
 constexpr int kWifiHotspotMaxConnectionRetries = 3;
@@ -150,9 +150,19 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
       NEARBY_LOGS(INFO) << "connected to remote service " << ipv4_address << ":"
                         << port;
       return wifi_hotspot_socket;
+    } catch (std::exception exception) {
+      NEARBY_LOGS(ERROR) << "failed to connect remote service " << ipv4_address
+                         << ":" << port << " for the " << i + 1
+                         << " time. Exception: " << exception.what();
+    } catch (const winrt::hresult_error& error) {
+      NEARBY_LOGS(ERROR) << "failed to connect remote service " << ipv4_address
+                         << ":" << port << " for the " << i + 1
+                         << " time. WinRT exception: " << error.code() << ": "
+                         << winrt::to_string(error.message());
     } catch (...) {
       NEARBY_LOGS(ERROR) << "failed to connect remote service " << ipv4_address
-                         << ":" << port << " for the " << i + 1 << " time";
+                         << ":" << port << " for the " << i + 1
+                         << " time due to unknown reason.";
     }
 
     if (connection_cancellation_listener_ != nullptr) {
