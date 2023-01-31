@@ -23,6 +23,7 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/proto/credential.pb.h"
+#include "internal/proto/metadata.pb.h"
 
 namespace nearby {
 namespace presence {
@@ -46,7 +47,7 @@ class CredentialManager {
   // The user’s own public credentials won’t be saved on local credential
   // storage.
   virtual void GenerateCredentials(
-      const nearby::internal::DeviceMetadata& device_metadata,
+      const nearby::internal::Metadata& metadata,
       absl::string_view manager_app_id,
       const std::vector<nearby::internal::IdentityType>& identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
@@ -91,10 +92,9 @@ class CredentialManager {
 
   // Decrypts the device metadata from a public credential.
   // Returns an empty string if decryption fails.
-  virtual std::string DecryptDeviceMetadata(
-      absl::string_view device_metadata_encryption_key,
-      absl::string_view authenticity_key,
-      absl::string_view device_metadata_string) = 0;
+  virtual std::string DecryptMetadata(absl::string_view metadata_encryption_key,
+                                      absl::string_view key_seed,
+                                      absl::string_view metadata_string) = 0;
 };
 
 }  // namespace presence

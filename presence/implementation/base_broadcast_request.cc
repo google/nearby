@@ -21,6 +21,7 @@
 #include "absl/strings/string_view.h"
 #include "internal/crypto/random.h"
 #include "internal/platform/logging.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/broadcast_request.h"
 #include "presence/implementation/action_factory.h"
 

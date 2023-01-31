@@ -39,6 +39,7 @@ namespace presence {
 class CredentialManagerImpl : public CredentialManager {
  public:
   using IdentityType = ::nearby::internal::IdentityType;
+  using Metadata = ::nearby::internal::Metadata;
 
   explicit CredentialManagerImpl(SingleThreadExecutor* executor)
       : executor_(ABSL_DIE_IF_NULL(executor)) {
@@ -62,8 +63,7 @@ class CredentialManagerImpl : public CredentialManager {
   static constexpr int kAesGcmIVSize = 12;
 
   void GenerateCredentials(
-      const nearby::internal::DeviceMetadata& device_metadata,
-      absl::string_view manager_app_id,
+      const Metadata& metadata, absl::string_view manager_app_id,
       const std::vector<nearby::internal::IdentityType>& identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsResultCallback credentials_generated_cb) override;
@@ -79,14 +79,13 @@ class CredentialManagerImpl : public CredentialManager {
       nearby::internal::LocalCredential credential,
       SaveCredentialsResultCallback result_callback) override;
 
-  void GetLocalCredentials(
-      const CredentialSelector& credential_selector,
-      GetLocalCredentialsResultCallback callback) override;
+  void GetLocalCredentials(const CredentialSelector& credential_selector,
+                           GetLocalCredentialsResultCallback callback) override;
 
   // Blocking version of `GetLocalCredentials`
   nearby::ExceptionOr<std::vector<nearby::internal::LocalCredential>>
   GetLocalCredentialsSync(const CredentialSelector& credential_selector,
-                            absl::Duration timeout);
+                          absl::Duration timeout);
 
   // Used to fetch remote public creds when scanning.
   void GetPublicCredentials(
@@ -107,29 +106,26 @@ class CredentialManagerImpl : public CredentialManager {
 
   void UnsubscribeFromPublicCredentials(SubscriberId id) override;
 
-  std::string DecryptDeviceMetadata(
-      absl::string_view device_metadata_encryption_key,
-      absl::string_view authenticity_key,
-      absl::string_view device_metadata_string) override;
+  std::string DecryptMetadata(absl::string_view metadata_encryption_key,
+                              absl::string_view key_seed,
+                              absl::string_view metadata_string) override;
 
   std::pair<nearby::internal::LocalCredential,
             nearby::internal::SharedCredential>
-  CreateLocalCredential(
-      const nearby::internal::DeviceMetadata& device_metadata,
-      IdentityType identity_type, absl::Time start_time, absl::Time end_time);
+  CreateLocalCredential(const Metadata& metadata, IdentityType identity_type,
+                        absl::Time start_time, absl::Time end_time);
 
   nearby::internal::SharedCredential CreatePublicCredential(
       const nearby::internal::LocalCredential& private_credential,
-      const std::vector<uint8_t>& public_key);
+      const Metadata& metadata, const std::vector<uint8_t>& public_key);
 
-  virtual std::string EncryptDeviceMetadata(
-      absl::string_view device_metadata_encryption_key,
-      absl::string_view authenticity_key,
-      absl::string_view device_metadata_string);
+  virtual std::string EncryptMetadata(absl::string_view metadata_encryption_key,
+                                      absl::string_view key_seed,
+                                      absl::string_view metadata_string);
 
   // Extend the key from 16 bytes to 32 bytes.
   std::vector<uint8_t> ExtendMetadataEncryptionKey(
-      absl::string_view device_metadata_encryption_key);
+      absl::string_view metadata_encryption_key);
 
  private:
   struct SubscriberKey {

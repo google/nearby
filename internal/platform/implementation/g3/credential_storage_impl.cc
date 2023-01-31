@@ -72,7 +72,7 @@ void CredentialStorageImpl::SaveCredentials(
                       << "]";
     absl::MutexLock lock(&private_mutex_);
     SaveLocalCredentialsLocked(manager_app_id, account_name,
-                                 private_credentials);
+                               private_credentials);
   }
 
   if (public_credentials.empty()) {
@@ -121,7 +121,7 @@ void CredentialStorageImpl::UpdateLocalCredential(
       GetLocalCredentialsLocked(CredentialSelector{
           .manager_app_id = std::string(manager_app_id),
           .account_name = std::string(account_name),
-          .identity_type = internal::IDENTITY_TYPE_UNSPECIFIED});
+          .identity_type = IdentityType::IDENTITY_TYPE_UNSPECIFIED});
   if (!credentials.ok()) {
     NEARBY_LOGS(WARNING) << credentials.status();
     credentials = std::vector<LocalCredential>();

@@ -40,9 +40,9 @@ namespace {
 using ::nearby::CountDownLatch;
 using ::nearby::Crypto;
 using ::nearby::MediumEnvironment;
-using ::nearby::internal::DeviceMetadata;
 using ::nearby::internal::IdentityType;
 using ::nearby::internal::LocalCredential;
+using ::nearby::internal::Metadata;
 using ::nearby::internal::SharedCredential;
 using ::nearby::internal::IdentityType::IDENTITY_TYPE_PRIVATE;
 using ::nearby::internal::IdentityType::IDENTITY_TYPE_TRUSTED;
@@ -53,16 +53,14 @@ using ::testing::status::StatusIs;
 constexpr absl::string_view kManagerAppId = "TEST_MANAGER_APP";
 constexpr absl::string_view kAccountName = "test account";
 
-DeviceMetadata CreateTestDeviceMetadata(
-    absl::string_view account_name = kAccountName) {
-  DeviceMetadata device_metadata;
-  device_metadata.set_stable_device_id("test_device_id");
-  device_metadata.set_account_name(account_name);
-  device_metadata.set_device_name("NP test device");
-  device_metadata.set_icon_url("test_image.test.com");
-  device_metadata.set_bluetooth_mac_address("FF:FF:FF:FF:FF:FF");
-  device_metadata.set_device_type(internal::DeviceMetadata::PHONE);
-  return device_metadata;
+Metadata CreateTestMetadata(absl::string_view account_name = kAccountName) {
+  Metadata metadata;
+  metadata.set_device_id("test_device_id");
+  metadata.set_account_name(account_name);
+  metadata.set_device_name("NP test device");
+  metadata.set_device_profile_url("test_image.test.com");
+  metadata.set_bluetooth_mac_address("FF:FF:FF:FF:FF:FF");
+  return metadata;
 }
 
 CredentialSelector BuildDefaultCredentialSelector() {
@@ -97,10 +95,9 @@ class CredentialManagerImplTest : public ::testing::Test {
    public:
     explicit MockCredentialManager(SingleThreadExecutor* executor)
         : CredentialManagerImpl(executor) {}
-    MOCK_METHOD(std::string, EncryptDeviceMetadata,
-                (absl::string_view device_metadata_encryption_key,
-                 absl::string_view authenticity_key,
-                 absl::string_view device_metadata_string),
+    MOCK_METHOD(std::string, EncryptMetadata,
+                (absl::string_view metadata_encryption_key,
+                 absl::string_view key_seed, absl::string_view metadata_string),
                 (override));
   };
 
@@ -122,10 +119,10 @@ class CredentialManagerImplTest : public ::testing::Test {
   void AddLocalIdentity(absl::string_view manager_app_id,
                         absl::string_view account_name,
                         IdentityType identity_type) {
-    DeviceMetadata device_metadata = CreateTestDeviceMetadata(account_name);
+    Metadata metadata = CreateTestMetadata(account_name);
 
     credential_manager_.GenerateCredentials(
-        device_metadata, manager_app_id, {identity_type},
+        metadata, manager_app_id, {identity_type},
         /*credential_life_cycle_days=*/1,
         /*contigous_copy_of_credentials=*/1,
         {[](absl::StatusOr<std::vector<SharedCredential>> credentials) {
@@ -140,25 +137,23 @@ class CredentialManagerImplTest : public ::testing::Test {
 };
 
 TEST_F(CredentialManagerImplTest, CreateOneCredentialSuccessfully) {
-  DeviceMetadata device_metadata = CreateTestDeviceMetadata();
+  Metadata metadata = CreateTestMetadata();
   constexpr absl::Time kStartTime = absl::FromUnixSeconds(100000);
   constexpr absl::Time kEndTime = absl::FromUnixSeconds(200000);
 
   auto credentials = credential_manager_.CreateLocalCredential(
-      device_metadata, IDENTITY_TYPE_PRIVATE, kStartTime, kEndTime);
+      metadata, IDENTITY_TYPE_PRIVATE, kStartTime, kEndTime);
 
   LocalCredential private_credential = credentials.first;
   // Verify the private credential.
-  EXPECT_THAT(private_credential.device_metadata(),
-              EqualsProto(device_metadata));
   EXPECT_EQ(private_credential.identity_type(), IDENTITY_TYPE_PRIVATE);
   EXPECT_FALSE(private_credential.secret_id().empty());
   EXPECT_EQ(private_credential.start_time_millis(),
             absl::ToUnixMillis(kStartTime));
   EXPECT_EQ(private_credential.end_time_millis(), absl::ToUnixMillis(kEndTime));
-  EXPECT_EQ(private_credential.authenticity_key().size(),
+  EXPECT_EQ(private_credential.key_seed().size(),
             CredentialManagerImpl::kAuthenticityKeyByteSize);
-  EXPECT_FALSE(private_credential.verification_key().empty());
+  EXPECT_FALSE(private_credential.connection_signing_key().key().empty());
   EXPECT_EQ(private_credential.metadata_encryption_key().size(),
             kBaseMetadataSize);
 
@@ -166,8 +161,7 @@ TEST_F(CredentialManagerImplTest, CreateOneCredentialSuccessfully) {
   // Verify the public credential.
   EXPECT_EQ(public_credential.identity_type(), IDENTITY_TYPE_PRIVATE);
   EXPECT_FALSE(public_credential.secret_id().empty());
-  EXPECT_EQ(private_credential.authenticity_key(),
-            public_credential.authenticity_key());
+  EXPECT_EQ(private_credential.key_seed(), public_credential.key_seed());
   EXPECT_LE(public_credential.start_time_millis(),
             absl::ToUnixMillis(kStartTime));
   EXPECT_GE(public_credential.start_time_millis(),
@@ -178,32 +172,31 @@ TEST_F(CredentialManagerImplTest, CreateOneCredentialSuccessfully) {
   EXPECT_EQ(Crypto::Sha256(private_credential.metadata_encryption_key())
                 .AsStringView(),
             public_credential.metadata_encryption_key_tag());
-  EXPECT_FALSE(public_credential.verification_key().empty());
+  EXPECT_FALSE(
+      public_credential.connection_signature_verification_key().empty());
   EXPECT_FALSE(public_credential.encrypted_metadata_bytes().empty());
 
   // Decrypt the device metadata
 
-  auto decrypted_device_metadata = credential_manager_.DecryptDeviceMetadata(
+  auto decrypted_metadata = credential_manager_.DecryptMetadata(
       private_credential.metadata_encryption_key(),
-      public_credential.authenticity_key(),
+      public_credential.key_seed(),
       public_credential.encrypted_metadata_bytes());
 
-  EXPECT_EQ(private_credential.device_metadata().SerializeAsString(),
-            decrypted_device_metadata);
+  EXPECT_EQ(metadata.SerializeAsString(), decrypted_metadata);
 }
 
 TEST_F(CredentialManagerImplTest, GenerateCredentialsSuccessfully) {
   constexpr int kLifeCycleDays = 1;
   constexpr int kNumCredentials = 5;
-  DeviceMetadata device_metadata = CreateTestDeviceMetadata();
+  Metadata metadata = CreateTestMetadata();
   absl::StatusOr<std::vector<SharedCredential>> public_credentials;
   std::vector<IdentityType> identityTypes{IDENTITY_TYPE_PRIVATE};
   absl::Time previous_start_time;
   absl::Time previous_end_time;
 
   credential_manager_.GenerateCredentials(
-      device_metadata, kManagerAppId, identityTypes, kLifeCycleDays,
-      kNumCredentials,
+      metadata, kManagerAppId, identityTypes, kLifeCycleDays, kNumCredentials,
       {.credentials_generated_cb =
            [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
              public_credentials = std::move(credentials);
@@ -215,19 +208,20 @@ TEST_F(CredentialManagerImplTest, GenerateCredentialsSuccessfully) {
     SharedCredential& public_credential = public_credentials->at(i);
     EXPECT_EQ(public_credential.identity_type(), IDENTITY_TYPE_PRIVATE);
     EXPECT_FALSE(public_credential.secret_id().empty());
-    absl::Time start_time =
+    absl::Time start_time_millis =
         absl::FromUnixMillis(public_credential.start_time_millis());
-    absl::Time end_time =
+    absl::Time end_time_millis =
         absl::FromUnixMillis(public_credential.end_time_millis());
     if (i > 0) {
-      EXPECT_GT(start_time, previous_start_time);
-      EXPECT_GE(previous_end_time, start_time);
-      EXPECT_GT(end_time, previous_end_time);
+      EXPECT_GT(start_time_millis, previous_start_time);
+      EXPECT_GE(previous_end_time, start_time_millis);
+      EXPECT_GT(end_time_millis, previous_end_time);
     }
-    EXPECT_LT(start_time + absl::Hours(24) * kLifeCycleDays, end_time);
+    EXPECT_LT(start_time_millis + absl::Hours(24) * kLifeCycleDays,
+              end_time_millis);
     EXPECT_FALSE(public_credential.encrypted_metadata_bytes().empty());
-    previous_start_time = start_time;
-    previous_end_time = end_time;
+    previous_start_time = start_time_millis;
+    previous_end_time = end_time_millis;
   }
 }
 
@@ -314,7 +308,7 @@ TEST_F(CredentialManagerImplTest, NoCallbacksAfterUnsubscribe) {
 
 TEST_F(CredentialManagerImplTest,
        GenerateCredentialsSuccessfullyButStoreFailed) {
-  DeviceMetadata device_metadata = CreateTestDeviceMetadata();
+  Metadata metadata = CreateTestMetadata();
   auto credential_storage_ptr =
       std::make_unique<CredentialManagerImplTest::MockCredentialStorage>();
   EXPECT_CALL(*credential_storage_ptr, SaveCredentials)
@@ -333,7 +327,7 @@ TEST_F(CredentialManagerImplTest,
   std::vector<IdentityType> identityTypes{IDENTITY_TYPE_PRIVATE};
 
   credential_manager_.GenerateCredentials(
-      device_metadata, kManagerAppId, identityTypes, 1, 2,
+      metadata, kManagerAppId, identityTypes, 1, 2,
       {.credentials_generated_cb =
            [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
              public_credentials = std::move(credentials);
@@ -445,14 +439,14 @@ TEST_F(CredentialManagerImplTest, GetPublicCredentialsFailed) {
 }
 
 TEST_F(CredentialManagerImplTest, GetCredentialsSuccessfully) {
-  DeviceMetadata device_metadata = CreateTestDeviceMetadata();
+  Metadata metadata = CreateTestMetadata();
   absl::StatusOr<std::vector<SharedCredential>> public_credentials;
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
   absl::StatusOr<std::vector<LocalCredential>> private_credentials;
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
 
   credential_manager_.GenerateCredentials(
-      device_metadata, kManagerAppId, identity_types, 1, 1,
+      metadata, kManagerAppId, identity_types, 1, 1,
       {.credentials_generated_cb =
            [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
              public_credentials = std::move(credentials);
@@ -471,20 +465,20 @@ TEST_F(CredentialManagerImplTest, GetCredentialsSuccessfully) {
 }
 
 TEST_F(CredentialManagerImplTest, PublicCredentialsFailEncryption) {
-  DeviceMetadata device_metadata = CreateTestDeviceMetadata();
+  Metadata metadata = CreateTestMetadata();
   absl::StatusOr<std::vector<SharedCredential>> public_credentials;
   auto credential_manager_ptr =
       std::make_unique<CredentialManagerImplTest::MockCredentialManager>(
           &executor_);
-  EXPECT_CALL(*credential_manager_ptr, EncryptDeviceMetadata)
+  EXPECT_CALL(*credential_manager_ptr, EncryptMetadata)
       .WillOnce(::testing::Invoke(
-          [](absl::string_view device_metadata_encryption_key,
-             absl::string_view authenticity_key,
-             absl::string_view device_metadata_string) { return ""; }));
+          [](absl::string_view metadata_encryption_key,
+             absl::string_view key_seed,
+             absl::string_view metadata_string) { return ""; }));
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE};
 
   credential_manager_ptr->GenerateCredentials(
-      device_metadata, kManagerAppId, identity_types, 1, 1,
+      metadata, kManagerAppId, identity_types, 1, 1,
       {.credentials_generated_cb =
            [&](absl::StatusOr<std::vector<SharedCredential>> credentials) {
              public_credentials = std::move(credentials);
@@ -498,7 +492,7 @@ TEST_F(CredentialManagerImplTest, UpdateLocalCredential) {
   constexpr int kSelectedCredentialId = 2;
   constexpr uint16_t kSalt = 1000;
   absl::Status update_status = absl::UnknownError("");
-  DeviceMetadata device_metadata = CreateTestDeviceMetadata();
+  Metadata metadata = CreateTestMetadata();
   absl::StatusOr<std::vector<nearby::internal::SharedCredential>>
       public_credentials;
   std::vector<IdentityType> identity_types{IDENTITY_TYPE_PRIVATE,
@@ -507,7 +501,7 @@ TEST_F(CredentialManagerImplTest, UpdateLocalCredential) {
   absl::StatusOr<std::vector<LocalCredential>> modified_private_credentials;
   CredentialSelector credential_selector = BuildDefaultCredentialSelector();
   credential_manager_.GenerateCredentials(
-      device_metadata, kManagerAppId, identity_types, 1, kNumCredentials,
+      metadata, kManagerAppId, identity_types, 1, kNumCredentials,
       {.credentials_generated_cb =
            [&](absl::StatusOr<std::vector<nearby::internal::SharedCredential>>
                    credentials) {
