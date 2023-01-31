@@ -216,50 +216,89 @@ void ListenerPayloadCB(const char *endpoint_id, PayloadW &payload) {
   dart_object_payload_id.type = Dart_CObject_kInt64;
   dart_object_payload_id.value.as_int64 = payload.GetId();
 
-  Dart_CObject dart_object_payload_type;
-  dart_object_payload_type.type = Dart_CObject_kInt64;
-  dart_object_payload_type.value.as_int64 = (int)payload.GetType();
-
-  Dart_CObject dart_object_offset;
-  dart_object_offset.type = Dart_CObject_kInt64;
-  dart_object_offset.value.as_int64 = payload.GetOffset();
-
-  Dart_CObject dart_object_payload_data;
-  dart_object_offset.type = Dart_CObject_kString;
   switch (payload.GetType()) {
     case nearby::connections::PayloadType::kBytes: {
-      char *bytes = nullptr;
+      const char *bytes = nullptr;
       size_t bytes_size;
 
       if (!payload.AsBytes(bytes, bytes_size)) {
-        // Failed to get the payload as bytes.
+        NEARBY_LOG(INFO, "Failed to get the payload as bytes.");
+        return;
       }
-      dart_object_offset.value.as_string = bytes;
-    } break;
+
+      Dart_CObject dart_object_bytes;
+      dart_object_bytes.type = Dart_CObject_kTypedData;
+      dart_object_bytes.value.as_typed_data = {
+          .type = Dart_TypedData_kUint8,
+          .length = static_cast<intptr_t>(bytes_size),
+          .values = reinterpret_cast<const uint8_t *>(bytes),
+      };
+
+      Dart_CObject *elements[] = {
+          &dart_object_endpoint_id,
+          &dart_object_payload_id,
+          &dart_object_bytes,
+      };
+
+      Dart_CObject dart_object_payload;
+      dart_object_payload.type = Dart_CObject_kArray;
+      dart_object_payload.value.as_array.length = 3;
+      dart_object_payload.value.as_array.values = elements;
+      if (!Dart_PostCObject_DL(
+              current_payload_listener_dart.initial_byte_info_port,
+              &dart_object_payload)) {
+        NEARBY_LOG(INFO, "Posting message to port failed.");
+      }
+      return;
+    }
+    case nearby::connections::PayloadType::kStream: {
+      Dart_CObject *elements[] = {
+          &dart_object_endpoint_id,
+          &dart_object_payload_id,
+      };
+
+      Dart_CObject dart_object_payload;
+      dart_object_payload.type = Dart_CObject_kArray;
+      dart_object_payload.value.as_array.length = 2;
+      dart_object_payload.value.as_array.values = elements;
+      if (!Dart_PostCObject_DL(
+              current_payload_listener_dart.initial_stream_info_port,
+              &dart_object_payload)) {
+        NEARBY_LOG(INFO, "Posting message to port failed.");
+      }
+      return;
+    }
     case nearby::connections::PayloadType::kFile: {
-      std::string payload_data(payload.AsFile()->GetFilePath().data());
-      dart_object_offset.value.as_string =
-          const_cast<char *>(payload_data.c_str());
-    } break;
+      Dart_CObject dart_object_offset;
+      dart_object_offset.type = Dart_CObject_kInt64;
+      dart_object_offset.value.as_int64 = payload.GetOffset();
+
+      std::string path = payload.AsFile()->GetFilePath();
+      Dart_CObject dart_object_path;
+      dart_object_path.type = Dart_CObject_kString;
+      dart_object_path.value.as_string = const_cast<char *>(path.c_str());
+
+      Dart_CObject *elements[] = {
+          &dart_object_endpoint_id,
+          &dart_object_payload_id,
+          &dart_object_offset,
+          &dart_object_path,
+      };
+
+      Dart_CObject dart_object_payload;
+      dart_object_payload.type = Dart_CObject_kArray;
+      dart_object_payload.value.as_array.length = 4;
+      dart_object_payload.value.as_array.values = elements;
+      if (!Dart_PostCObject_DL(
+              current_payload_listener_dart.initial_file_info_port,
+              &dart_object_payload)) {
+        NEARBY_LOG(INFO, "Posting message to port failed.");
+      }
+      return;
+    }
     default:
-      dart_object_offset.value.as_string = const_cast<char *>("");
-  }
-
-  Dart_CObject *elements[5];
-  elements[0] = &dart_object_endpoint_id;
-  elements[1] = &dart_object_payload_id;
-  elements[2] = &dart_object_payload_type;
-  elements[3] = &dart_object_offset;
-  elements[4] = &dart_object_payload_data;
-
-  Dart_CObject dart_object_payload;
-  dart_object_payload.type = Dart_CObject_kArray;
-  dart_object_payload.value.as_array.length = 5;
-  dart_object_payload.value.as_array.values = elements;
-
-  if (!Dart_PostCObject_DL(current_payload_listener_dart.payload_dart_port,
-                           &dart_object_payload)) {
-    NEARBY_LOG(INFO, "Posting message to port failed.");
+      NEARBY_LOG(INFO, "Invalid payload type.");
+      return;
   }
 }
 

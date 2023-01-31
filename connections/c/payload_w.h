@@ -75,8 +75,8 @@ class DLL_API PayloadW {
   PayloadW(PayloadId id, std::function<InputStream&()> stream);
   // Returns ByteArray payload, if it has
   // been defined, or empty ByteArray.
-  bool AsBytes(const char* bytes, size_t& bytes_size) const&;
-  bool AsBytes(const char* bytes, size_t& bytes_size) &&;
+  bool AsBytes(const char*& bytes, size_t& bytes_size) const&;
+  bool AsBytes(const char*& bytes, size_t& bytes_size) &&;
   // Returns InputStream* payload, if it has been defined, or nullptr.
   InputStream* AsStream();
   // Returns InputFile* payload, if it has been defined, or nullptr.

@@ -115,7 +115,9 @@ struct DiscoveryListenerDart {
 
 struct PayloadListenerDart {
   // LINT.IfChange
-  int64_t payload_dart_port;
+  int64_t initial_byte_info_port;
+  int64_t initial_stream_info_port;
+  int64_t initial_file_info_port;
   int64_t payload_progress_dart_port;
   // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/plugins/nearby_connections/platform/lib/types/payload_listener.dart)
 };

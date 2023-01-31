@@ -74,7 +74,7 @@ PayloadW::PayloadW(PayloadId id, std::function<InputStream &()> stream)
           new connections::Payload(id, stream))) {}
 
 // Returns ByteArray payload, if it has been defined, or empty ByteArray.
-bool PayloadW::AsBytes(const char *bytes, size_t &bytes_size) const & {
+bool PayloadW::AsBytes(const char *&bytes, size_t &bytes_size) const & {
   auto byteArray = impl_->AsBytes();
   if (bytes_size < byteArray.size()) {
     bytes_size = byteArray.size();
@@ -86,7 +86,7 @@ bool PayloadW::AsBytes(const char *bytes, size_t &bytes_size) const & {
   bytes = byteArray.data();
   return true;
 }
-bool PayloadW::AsBytes(const char *bytes, size_t &bytes_size) && {
+bool PayloadW::AsBytes(const char *&bytes, size_t &bytes_size) && {
   auto byteArray = impl_->AsBytes();
   if (bytes_size < byteArray.size()) {
     bytes_size = byteArray.size();
