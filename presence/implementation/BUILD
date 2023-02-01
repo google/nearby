@@ -140,14 +140,20 @@ cc_test(
     srcs = ["advertisement_decoder_test.cc"],
     deps = [
         ":internal",
+        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_absl//absl/strings",
         "//internal/platform:base",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",
         "//presence:types",
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest_main",
-    ],
+    ] + select({
+        "//tools/cc_target_os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
 )
 
 cc_test(
@@ -156,16 +162,22 @@ cc_test(
     srcs = ["advertisement_factory_test.cc"],
     deps = [
         ":internal",
+        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "//internal/platform:base",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",
         "//presence:types",
         "//presence/implementation/mediums",
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest_main",
-    ],
+    ] + select({
+        "//tools/cc_target_os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
 )
 
 cc_test(
@@ -174,15 +186,21 @@ cc_test(
     srcs = ["broadcast_manager_test.cc"],
     deps = [
         ":internal",
+        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
         "//internal/platform:base",
         "//internal/platform:test_util",
         "//internal/platform:types",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",
         "//presence/implementation/mediums",
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_googletest//:gtest_main",
-    ],
+    ] + select({
+        "//tools/cc_target_os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
 )
 
 cc_test(
@@ -191,12 +209,18 @@ cc_test(
     srcs = ["ldt_test.cc"],
     deps = [
         ":internal",
-        "//internal/platform:base",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/strings",
+        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
         "@com_google_googletest//:gtest_main",
-    ],
+        "@com_google_absl//absl/strings",
+        "//internal/platform:base",
+    ] + select({
+        "//tools/cc_target_os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
 )
 
 cc_test(
@@ -204,12 +228,18 @@ cc_test(
     srcs = ["base_broadcast_request_test.cc"],
     deps = [
         ":internal",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//presence:types",
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/types:variant",
+        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
         "@com_google_googletest//:gtest_main",
-    ],
+        "@com_google_absl//absl/types:variant",
+        "//presence:types",
+    ] + select({
+        "//tools/cc_target_os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
 )
 
 cc_test(
@@ -218,12 +248,18 @@ cc_test(
     srcs = ["action_factory_test.cc"],
     deps = [
         ":internal",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//presence:types",
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/strings",
+        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
         "@com_google_googletest//:gtest_main",
-    ],
+        "@com_google_absl//absl/strings",
+        "//presence:types",
+    ] + select({
+        "//tools/cc_target_os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
 )
 
 cc_test(
@@ -232,18 +268,24 @@ cc_test(
     srcs = ["credential_manager_impl_test.cc"],
     deps = [
         ":internal",
+        "//net/proto2/contrib/parse_proto:testing",
+        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/time",
         "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation:types",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto:credential_cc_proto",
-        "//net/proto2/contrib/parse_proto:testing",
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/time",
-        "@com_google_googletest//:gtest_main",
-    ],
+    ] + select({
+        "//tools/cc_target_os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
 )
 
 cc_test(
@@ -252,13 +294,19 @@ cc_test(
     srcs = ["scan_manager_test.cc"],
     deps = [
         ":internal",
+        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_absl//absl/time",
         "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//presence/implementation/mediums",
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/time",
-        "@com_google_googletest//:gtest_main",
-    ],
+    ] + select({
+        "//tools/cc_target_os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
 )

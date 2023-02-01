@@ -94,16 +94,22 @@ cc_test(
     shard_count = 6,
     deps = [
         ":types",
-        "//internal/platform:connection_info",
-        "//internal/platform:logging",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//internal/proto:credential_cc_proto",
-        "//internal/proto:device_metadata_cc_proto",
-        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:variant",
-        "@com_google_googletest//:gtest_main",
-    ],
+        "//internal/platform:connection_info",
+        "//internal/platform:logging",
+        "//internal/proto:credential_cc_proto",
+        "//internal/proto:device_metadata_cc_proto",
+    ] + select({
+        "//tools/cc_target_os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
 )
 
 cc_test(
@@ -115,12 +121,18 @@ cc_test(
     ],
     shard_count = 6,
     deps = [
-        "//internal/platform:uuid",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//internal/proto:credential_cc_proto",
-        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
         "@com_google_googletest//:gtest_main",
-    ],
+        "//internal/platform:uuid",
+        "//internal/proto:credential_cc_proto",
+    ] + select({
+        "//tools/cc_target_os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
 )
 
 cc_test(
@@ -134,10 +146,16 @@ cc_test(
     deps = [
         ":presence",
         ":types",
-        "//internal/platform:test_util",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/status",
+        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
         "@com_google_googletest//:gtest_main",
-    ],
+        "@com_google_absl//absl/status",
+        "//internal/platform:test_util",
+    ] + select({
+        "//tools/cc_target_os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
 )
