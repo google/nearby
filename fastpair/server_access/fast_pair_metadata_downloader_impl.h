@@ -35,7 +35,7 @@ class FastPairMetadataDownloaderImpl : public FastPairMetadataDownloader {
   class Factory {
    public:
     static std::unique_ptr<FastPairMetadataDownloader> Create(
-        std::optional<std::string> model_id,
+        absl::string_view model_id,
         FastPairMetadataRepositoryFactory* repository_factory,
         SuccessCallback success_callback, FailureCallback failure_callback);
 
@@ -44,7 +44,7 @@ class FastPairMetadataDownloaderImpl : public FastPairMetadataDownloader {
    protected:
     virtual ~Factory();
     virtual std::unique_ptr<FastPairMetadataDownloader> CreateInstance(
-        std::optional<std::string> model_id,
+        absl::string_view model_id,
         FastPairMetadataRepositoryFactory* repository_factory,
         SuccessCallback success_callback, FailureCallback failure_callback) = 0;
 
@@ -56,16 +56,15 @@ class FastPairMetadataDownloaderImpl : public FastPairMetadataDownloader {
 
  private:
   FastPairMetadataDownloaderImpl(
-      std::optional<std::string> model_id,
+      absl::string_view model_id,
       FastPairMetadataRepositoryFactory* repository_factory,
       SuccessCallback success_callback, FailureCallback failure_callback);
 
   void OnRun() override;
-  void CallAccessServer(const std::optional<std::string>& model_id);
+  void CallAccessServer(absl::string_view model_id);
   void OnAccessServerSuccess(const proto::GetObservedDeviceResponse& response);
   void OnAccessServerFailure(FastPairHttpError error);
 
-  proto::Device device_;
   std::unique_ptr<FastPairMetadataRepository> repository_;
   FastPairMetadataRepositoryFactory* repository_factory_ = nullptr;
 };

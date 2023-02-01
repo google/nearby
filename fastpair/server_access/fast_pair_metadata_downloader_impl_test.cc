@@ -24,8 +24,9 @@
 #include "gtest/gtest.h"
 #include "fastpair/common/fast_pair_http_result.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
-#include "fastpair/server_access/fast_pair_metadata_downloader.h"
+#include "fastpair/repository/device_metadata.h"
 #include "fastpair/repository/fake_fast_pair_metadata_repository.h"
+#include "fastpair/server_access/fast_pair_metadata_downloader.h"
 
 namespace nearby {
 namespace fastpair {
@@ -72,7 +73,8 @@ class FastPairMetadataDownloaderImplTest : public ::testing::Test {
   }
 
   // The callbacks passed into NearbyShareContactDownloader ctor.
-  void OnSuccess(proto::Device device) {
+  void OnSuccess(DeviceMetadata& device_metadata) {
+    const proto::Device device = device_metadata.GetDetails();
     result_ = Result();
     result_->success = true;
     result_->device = std::move(device);
@@ -91,7 +93,8 @@ class FastPairMetadataDownloaderImplTest : public ::testing::Test {
 TEST_F(FastPairMetadataDownloaderImplTest, GetObservedDeviceDownloadSuccess) {
   downloader_ = FastPairMetadataDownloaderImpl::Factory::Create(
       kModelId, &fake_repository_factory_,
-      [&](proto::Device device) { OnSuccess(device); }, [&]() { OnFailure(); });
+      [&](DeviceMetadata& device_metadata) { OnSuccess(device_metadata); },
+      [&]() { OnFailure(); });
   downloader_->Run();
   proto::GetObservedDeviceResponse response;
   response.mutable_device()->set_id(kDeviceId);
@@ -107,7 +110,8 @@ TEST_F(FastPairMetadataDownloaderImplTest, GetObservedDeviceDownloadSuccess) {
 TEST_F(FastPairMetadataDownloaderImplTest, GetObservedDeviceDownloadFailure) {
   downloader_ = FastPairMetadataDownloaderImpl::Factory::Create(
       kModelId, &fake_repository_factory_,
-      [&](proto::Device device) { OnSuccess(device); }, [&]() { OnFailure(); });
+      [&](DeviceMetadata& device_metadata) { OnSuccess(device_metadata); },
+      [&]() { OnFailure(); });
   downloader_->Run();
   proto::GetObservedDeviceResponse response;
   response.mutable_device()->set_id(kDeviceId);

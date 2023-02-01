@@ -19,18 +19,19 @@
 #include <optional>
 #include <string>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
-#include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/repository/device_metadata.h"
 
 namespace nearby {
 namespace fastpair {
 
 class FastPairMetadataDownloader {
  public:
-  using SuccessCallback = std::function<void(proto::Device device)>;
-  using FailureCallback = std::function<void()>;
+  using SuccessCallback = absl::AnyInvocable<void(DeviceMetadata&)>;
+  using FailureCallback = absl::AnyInvocable<void()>;
 
-  FastPairMetadataDownloader(std::optional<std::string> model_id,
+  FastPairMetadataDownloader(absl::string_view model_id,
                              SuccessCallback success_callback,
                              FailureCallback failure_callback);
   virtual ~FastPairMetadataDownloader();
@@ -39,13 +40,13 @@ class FastPairMetadataDownloader {
   void Run();
 
  protected:
-  std::optional<std::string> model_id() const { return model_id_; }
+  absl::string_view model_id() const { return model_id_; }
   virtual void OnRun() = 0;
-  void Succeed(proto::Device device);
+  void Succeed(DeviceMetadata& device_metadata);
   void Fail();
 
  private:
-  const std::optional<std::string> model_id_;
+  absl::string_view model_id_;
   SuccessCallback success_callback_;
   FailureCallback failure_callback_;
   bool was_run_ = false;

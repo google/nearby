@@ -14,17 +14,19 @@
 
 #include "fastpair/server_access/fast_pair_metadata_downloader.h"
 
+#include <optional>
 #include <string>
 #include <utility>
-#include <optional>
 
 #include "fastpair/proto/fastpair_rpcs.pb.h"
+#include "fastpair/repository/device_metadata.h"
 #include "internal/platform/logging.h"
+#include "absl/strings/string_view.h"
 
 namespace nearby {
 namespace fastpair {
 FastPairMetadataDownloader::FastPairMetadataDownloader(
-    std::optional<std::string> model_id, SuccessCallback success_callback,
+    absl::string_view model_id, SuccessCallback success_callback,
     FailureCallback failure_callback)
     : model_id_(model_id),
       success_callback_(std::move(success_callback)),
@@ -38,11 +40,11 @@ void FastPairMetadataDownloader::Run() {
   OnRun();
 }
 
-void FastPairMetadataDownloader::Succeed(proto::Device device) {
+void FastPairMetadataDownloader::Succeed(DeviceMetadata& device_metadata) {
   DCHECK(was_run_);
   DCHECK(success_callback_);
 
-  std::move(success_callback_)(std::move(device));
+  std::move(success_callback_)(device_metadata);
 }
 
 void FastPairMetadataDownloader::Fail() {

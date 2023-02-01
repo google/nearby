@@ -15,12 +15,15 @@
 #include "fastpair/server_access/fast_pair_metadata_downloader_impl.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 
+#include "absl/strings/numbers.h"
 #include "absl/strings/string_view.h"
+#include "fastpair/repository/device_metadata.h"
 #include "fastpair/repository/fast_pair_metadata_repository.h"
 #include "fastpair/server_access/fast_pair_metadata_downloader.h"
 #include "internal/platform/logging.h"
@@ -33,7 +36,7 @@ FastPairMetadataDownloaderImpl::Factory*
 
 std::unique_ptr<FastPairMetadataDownloader>
 FastPairMetadataDownloaderImpl::Factory::Create(
-    std::optional<std::string> model_id,
+    absl::string_view model_id,
     FastPairMetadataRepositoryFactory* repository_factory,
     SuccessCallback success_callback, FailureCallback failure_callback) {
   if (test_factory_) {
@@ -57,7 +60,7 @@ FastPairMetadataDownloaderImpl::Factory::~Factory() = default;
 FastPairMetadataDownloaderImpl::~FastPairMetadataDownloaderImpl() = default;
 
 FastPairMetadataDownloaderImpl::FastPairMetadataDownloaderImpl(
-    std::optional<std::string> model_id,
+    absl::string_view model_id,
     FastPairMetadataRepositoryFactory* repository_factory,
     SuccessCallback success_callback, FailureCallback failure_callback)
     : FastPairMetadataDownloader(model_id, std::move(success_callback),
@@ -70,14 +73,16 @@ void FastPairMetadataDownloaderImpl::OnRun() {
 }
 
 void FastPairMetadataDownloaderImpl::CallAccessServer(
-    const std::optional<std::string>& model_id) {
+    absl::string_view model_id) {
   NEARBY_LOGS(VERBOSE) << __func__
                        << ": Making server accessing RPC call to fetch device "
                           "information with model ID: "
-                       << model_id.value_or("[null]");
+                       << model_id;
 
   proto::GetObservedDeviceRequest request;
-  request.set_device_id(std::stoi(model_id.value_or("[null]"), nullptr, 16));
+  int64_t device_id;
+  CHECK(absl::SimpleHexAtoi(model_id, &device_id));
+  request.set_device_id(device_id);
   request.set_mode(proto::GetObservedDeviceRequest::MODE_RELEASE);
 
   repository_ = repository_factory_->CreateInstance();
@@ -107,11 +112,11 @@ void FastPairMetadataDownloaderImpl::OnAccessServerFailure(
 }
 void FastPairMetadataDownloaderImpl::OnAccessServerSuccess(
     const proto::GetObservedDeviceResponse& response) {
-  device_ = response.device();
+  DeviceMetadata device_metadata(response);
 
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Download " << device_.name()
-                       << " succeeded.";
-  Succeed(std::move(device_));
+  NEARBY_LOGS(VERBOSE) << __func__ << ": Download "
+                       << device_metadata.GetDetails().name() << " succeeded.";
+  Succeed(device_metadata);
 }
 
 }  // namespace fastpair
