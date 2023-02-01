@@ -43,5 +43,6 @@ cc_library(
         "//fastpair:__subpackages__",
         "//internal:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
+        "//location/nearby/apps/better_together/windows:__subpackages__",
     ],
 )
