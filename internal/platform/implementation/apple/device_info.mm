@@ -43,7 +43,11 @@ std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {
   return std::filesystem::temp_directory_path();
 }
 
-std::optional<std::filesystem::path> DeviceInfo::GetAppDataPath() const {
+std::optional<std::filesystem::path> DeviceInfo::GetLocalAppDataPath() const {
+  return std::filesystem::temp_directory_path();
+}
+
+std::optional<std::filesystem::path> DeviceInfo::GetCommonAppDataPath() const {
   return std::filesystem::temp_directory_path();
 }
 
@@ -52,6 +56,10 @@ std::optional<std::filesystem::path> DeviceInfo::GetTemporaryPath() const {
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetLogPath() const {
+  return std::filesystem::temp_directory_path();
+}
+
+std::optional<std::filesystem::path> DeviceInfo::GetCrashDumpPath() const {
   return std::filesystem::temp_directory_path();
 }
 

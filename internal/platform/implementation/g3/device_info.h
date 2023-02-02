@@ -59,7 +59,11 @@ class DeviceInfo : public api::DeviceInfo {
     return std::filesystem::temp_directory_path();
   }
 
-  std::optional<std::filesystem::path> GetAppDataPath() const override {
+  std::optional<std::filesystem::path> GetLocalAppDataPath() const override {
+    return std::filesystem::temp_directory_path();
+  }
+
+  std::optional<std::filesystem::path> GetCommonAppDataPath() const override {
     return std::filesystem::temp_directory_path();
   }
 
@@ -68,6 +72,10 @@ class DeviceInfo : public api::DeviceInfo {
   }
 
   std::optional<std::filesystem::path> GetLogPath() const override {
+    return std::filesystem::temp_directory_path();
+  }
+
+  std::optional<std::filesystem::path> GetCrashDumpPath() const override {
     return std::filesystem::temp_directory_path();
   }
 

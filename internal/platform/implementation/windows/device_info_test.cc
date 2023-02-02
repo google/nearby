@@ -53,8 +53,8 @@ TEST(DeviceInfo, DISABLED_GetProfileUserName) {
   EXPECT_TRUE(DeviceInfo().GetProfileUserName().has_value());
 }
 
-TEST(DeviceInfo, DISABLED_GetAppDataPath) {
-  EXPECT_TRUE(DeviceInfo().GetAppDataPath().has_value());
+TEST(DeviceInfo, DISABLED_GetLocalAppDataPath) {
+  EXPECT_TRUE(DeviceInfo().GetLocalAppDataPath().has_value());
 }
 
 TEST(DeviceInfo, DISABLED_GetDownloadPath) {

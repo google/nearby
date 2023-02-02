@@ -66,7 +66,7 @@ std::filesystem::path DeviceInfoImpl::GetDownloadPath() const {
 
 std::filesystem::path DeviceInfoImpl::GetAppDataPath() const {
   std::optional<std::filesystem::path> path =
-      device_info_impl_->GetAppDataPath();
+      device_info_impl_->GetLocalAppDataPath();
   if (path.has_value()) {
     return *path;
   }
