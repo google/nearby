@@ -155,8 +155,8 @@ class OutgoingStreamInternalPayload : public InternalPayload {
 
 class IncomingStreamInternalPayload : public InternalPayload {
  public:
-  IncomingStreamInternalPayload(Payload payload, OutputStream& output_stream)
-      : InternalPayload(std::move(payload)), output_stream_(&output_stream) {}
+  IncomingStreamInternalPayload(Payload payload, std::shared_ptr<Pipe> pipe)
+      : InternalPayload(std::move(payload)), pipe_(pipe) {}
 
   PayloadTransferFrame::PayloadHeader::PayloadType GetType() const override {
     return PayloadTransferFrame::PayloadHeader::STREAM;
@@ -170,11 +170,11 @@ class IncomingStreamInternalPayload : public InternalPayload {
     if (chunk.Empty()) {
       NEARBY_LOGS(INFO) << "Received null last chunk for incoming payload "
                         << this << ", closing OutputStream.";
-      output_stream_->Close();
+      Close();
       return {Exception::kSuccess};
     }
 
-    return output_stream_->Write(chunk);
+    return pipe_->GetOutputStream().Write(chunk);
   }
 
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
@@ -183,10 +183,10 @@ class IncomingStreamInternalPayload : public InternalPayload {
     return {Exception::kIo};
   }
 
-  void Close() override { output_stream_->Close(); }
+  void Close() override { pipe_->GetOutputStream().Close(); }
 
  private:
-  OutputStream* output_stream_;
+  std::shared_ptr<Pipe> pipe_;
 };
 
 class OutgoingFileInternalPayload : public InternalPayload {
@@ -371,7 +371,7 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
                   [pipe]() -> InputStream& {
                     return pipe->GetInputStream();  // NOLINT
                   }),
-          pipe->GetOutputStream());
+          pipe);
     }
 
     case PayloadTransferFrame::PayloadHeader::FILE: {

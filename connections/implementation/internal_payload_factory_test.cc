@@ -20,8 +20,8 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/offline_frames.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/pipe.h"
 
@@ -104,11 +104,16 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamMessage) {
   std::unique_ptr<InternalPayload> internal_payload =
       CreateIncomingInternalPayload(frame, path);
   EXPECT_NE(internal_payload, nullptr);
-  Payload payload = internal_payload->ReleasePayload();
-  EXPECT_EQ(payload.AsFile(), nullptr);
-  EXPECT_NE(payload.AsStream(), nullptr);
-  EXPECT_EQ(payload.AsBytes(), ByteArray());
-  EXPECT_EQ(payload.GetType(), PayloadType::kStream);
+  {
+    Payload payload = internal_payload->ReleasePayload();
+    EXPECT_EQ(payload.AsFile(), nullptr);
+    EXPECT_NE(payload.AsStream(), nullptr);
+    EXPECT_EQ(payload.AsBytes(), ByteArray());
+    EXPECT_EQ(payload.GetType(), PayloadType::kStream);
+  }
+  // Verifies that we can close InternalPayload after releasing (and destroying)
+  // the payload
+  internal_payload->Close();
 }
 
 TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFileMessage) {
