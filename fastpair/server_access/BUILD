@@ -29,6 +29,20 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "test_support",
+    srcs = ["fake_fast_pair_repository.cc"],
+    hdrs = ["fake_fast_pair_repository.h"],
+    deps = [
+        ":server_access",
+        "//fastpair/common",
+        "//fastpair/proto:fastpair_cc_proto",
+        "//fastpair/repository",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 cc_test(
     name = "server_access_test",
     srcs = [
