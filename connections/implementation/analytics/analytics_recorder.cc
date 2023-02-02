@@ -739,7 +739,7 @@ bool AnalyticsRecorder::CanRecordAnalyticsLocked(
   }
 
   if (session_was_logged_) {
-    NEARBY_LOGS(WARNING)
+    NEARBY_LOGS(VERBOSE)
         << "AnalyticsRecorder CanRecordAnalytics Unexpected call "
         << method_name << " after session has already been logged.";
     return false;
