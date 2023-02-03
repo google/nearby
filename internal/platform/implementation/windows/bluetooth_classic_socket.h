@@ -22,6 +22,7 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Storage.Streams.h"
+#include "internal/platform/implementation/windows/generated/winrt/impl/Windows.Storage.Streams.0.h"
 
 namespace nearby {
 namespace windows {
@@ -101,6 +102,8 @@ class BluetoothSocket : public api::BluetoothSocket {
   IAsyncAction CancelIOAsync();
 
  private:
+  static constexpr int kMaxTransmitPacketSize = 4096;
+
   class BluetoothInputStream : public InputStream {
    public:
     explicit BluetoothInputStream(IInputStream stream);
@@ -111,6 +114,7 @@ class BluetoothSocket : public api::BluetoothSocket {
 
    private:
     IInputStream winrt_stream_;
+    Buffer read_buffer_{kMaxTransmitPacketSize};
   };
 
   class BluetoothOutputStream : public OutputStream {
@@ -125,6 +129,7 @@ class BluetoothSocket : public api::BluetoothSocket {
 
    private:
     IOutputStream winrt_stream_;
+    Buffer write_buffer_{kMaxTransmitPacketSize};
   };
 
   winrt::fire_and_forget Listener_ConnectionStatusChanged(

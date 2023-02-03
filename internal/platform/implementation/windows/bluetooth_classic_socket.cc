@@ -14,6 +14,7 @@
 
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
 
+#include <cstring>
 #include <exception>
 #include <memory>
 #include <utility>
@@ -190,10 +191,18 @@ ExceptionOr<ByteArray> BluetoothSocket::BluetoothInputStream::Read(
       return {Exception::kIo};
     }
 
-    Buffer buffer = Buffer(size);
+    if (size <= 0 || size > kMaxTransmitPacketSize) {
+      NEARBY_LOGS(ERROR) << __func__
+                           << ": Invalid transmit packet size: " << size;
+      return {Exception::kIo};
+    }
+
+    // Init the read buffer.
+    read_buffer_.Length(0);
 
     auto ibuffer =
-        winrt_stream_.ReadAsync(buffer, size, InputStreamOptions::None).get();
+        winrt_stream_.ReadAsync(read_buffer_, size, InputStreamOptions::None)
+            .get();
 
     if (ibuffer.Length() != size) {
       NEARBY_LOGS(WARNING) << __func__ << ": Got " << ibuffer.Length()
@@ -254,11 +263,16 @@ Exception BluetoothSocket::BluetoothOutputStream::Write(const ByteArray& data) {
       return {Exception::kIo};
     }
 
-    Buffer buffer = Buffer(data.size());
-    std::memcpy(buffer.data(), data.data(), data.size());
-    buffer.Length(data.size());
+    if (data.size() > kMaxTransmitPacketSize) {
+      NEARBY_LOGS(ERROR) << __func__ << ": Transmit packet size "
+                           << data.size() << " is too big.";
+      return {Exception::kIo};
+    }
 
-    winrt::hresult hresult = winrt_stream_.WriteAsync(buffer).get();
+    std::memcpy(write_buffer_.data(), data.data(), data.size());
+    write_buffer_.Length(data.size());
+
+    winrt::hresult hresult = winrt_stream_.WriteAsync(write_buffer_).get();
     return {Exception::kSuccess};
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();

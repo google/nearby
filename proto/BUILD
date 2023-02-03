@@ -23,11 +23,6 @@ proto_library(
     srcs = ["connections_enums.proto"],
 )
 
-java_lite_proto_library(
-    name = "connections_enums_java_proto_lite",
-    deps = [":connections_enums_proto"],
-)
-
 java_proto_library(
     name = "connections_enums_java_proto",
     deps = [":connections_enums_proto"],
@@ -51,11 +46,6 @@ cc_proto_library(
     deps = [
         ":sharing_enums_proto",
     ],
-)
-
-java_lite_proto_library(
-    name = "sharing_enums_java_proto_lite",
-    deps = [":sharing_enums_proto"],
 )
 
 java_proto_library(
