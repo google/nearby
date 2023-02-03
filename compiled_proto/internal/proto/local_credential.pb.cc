@@ -132,14 +132,15 @@ const char descriptor_table_protodef_internal_2fproto_2flocal_5fcredential_2epro
   "rnal.LocalCredential.ConsumedSaltsEntry\032"
   "4\n\nPrivateKey\022\031\n\021certificate_alias\030\001 \001(\t"
   "\022\013\n\003key\030\002 \001(\014\0324\n\022ConsumedSaltsEntry\022\013\n\003k"
-  "ey\030\001 \001(\r\022\r\n\005value\030\002 \001(\010:\0028\001b\006proto3"
+  "ey\030\001 \001(\r\022\r\n\005value\030\002 \001(\010:\0028\001B\034\n\032com.googl"
+  "e.nearby.presenceb\006proto3"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_internal_2fproto_2flocal_5fcredential_2eproto_deps[1] = {
   &::descriptor_table_internal_2fproto_2fcredential_2eproto,
 };
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_internal_2fproto_2flocal_5fcredential_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_internal_2fproto_2flocal_5fcredential_2eproto = {
-  false, false, 635, descriptor_table_protodef_internal_2fproto_2flocal_5fcredential_2eproto, "internal/proto/local_credential.proto", 
+  false, false, 665, descriptor_table_protodef_internal_2fproto_2flocal_5fcredential_2eproto, "internal/proto/local_credential.proto", 
   &descriptor_table_internal_2fproto_2flocal_5fcredential_2eproto_once, descriptor_table_internal_2fproto_2flocal_5fcredential_2eproto_deps, 1, 3,
   schemas, file_default_instances, TableStruct_internal_2fproto_2flocal_5fcredential_2eproto::offsets,
   file_level_metadata_internal_2fproto_2flocal_5fcredential_2eproto, file_level_enum_descriptors_internal_2fproto_2flocal_5fcredential_2eproto, file_level_service_descriptors_internal_2fproto_2flocal_5fcredential_2eproto,
