@@ -24,11 +24,11 @@ namespace fastpair {
 
 FastPairControllerImpl::FastPairControllerImpl() {
   NEARBY_LOGS(INFO) << "FastPairControllerImpl starts.";
-  scanner_ = std::make_unique<FastPairScannerImpl>();
 }
 FastPairControllerImpl::~FastPairControllerImpl() = default;
 
 void FastPairControllerImpl::StartScan() {
+  scanner_ = std::make_unique<FastPairScannerImpl>();
   if (is_scanning_) {
     NEARBY_LOGS(VERBOSE) << __func__ << ": We're currently scanning. ";
     return;

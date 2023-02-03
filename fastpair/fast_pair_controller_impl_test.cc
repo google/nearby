@@ -19,6 +19,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "internal/platform/medium_environment.h"
 
 namespace nearby {
 namespace fastpair {
@@ -35,14 +36,17 @@ class FastPairControllerImplTest : public ::testing::Test {
     return controller;
   }
   std::unique_ptr<FastPairControllerImpl> controller_;
+  MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
 TEST_F(FastPairControllerImplTest, StartScanningSuccess) {
+  env_.Start();
   EXPECT_FALSE(controller_->IsScanning());
   EXPECT_FALSE(controller_->IsPairing());
   EXPECT_FALSE(controller_->IsServerAccessing());
   controller_->StartScan();
   EXPECT_TRUE(controller_->IsScanning());
+  env_.Stop();
 }
 
 }  // namespace FastPairControllerUnitTests

@@ -14,54 +14,111 @@
 
 #include "fastpair/scanning/fastpair/fast_pair_scanner_impl.h"
 
+#include <memory>
 #include <string>
 
-#include "absl/functional/bind_front.h"
-#include "absl/strings/escaping.h"
 #include "fastpair/common/constant.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/task_runner_impl.h"
 
 namespace nearby {
 namespace fastpair {
 
-bool FastPairScannerImpl::StartScanning() {
-  if (ble_.Enable() &&
-      ble_.StartScanning(kServiceId,  kFastPairServiceUuid,
-                         {
-                             .peripheral_discovered_cb = absl::bind_front(
-                                 &FastPairScannerImpl::OnDeviceFound, this),
-                             .peripheral_lost_cb = absl::bind_front(
-                                 &FastPairScannerImpl::OnDeviceLost, this),
-                         })) {
-    NEARBY_LOGS(INFO)
-        << "Started scanning for BLE advertisements for service_id="
-        << kServiceId;
-    return true;
-  } else {
-    NEARBY_LOGS(INFO) << "Couldn't start scanning on BLE for service_id="
-                      << kServiceId;
-    return false;
-  }
+namespace {
+constexpr absl::Duration kFastPairLowPowerActiveSeconds = absl::Seconds(2);
+constexpr absl::Duration kFastPairLowPowerInactiveSeconds = absl::Seconds(3);
+}  // namespace
+
+// FastPairScannerImpl
+FastPairScannerImpl::FastPairScannerImpl() {
+  task_runner_ = std::make_shared<TaskRunnerImpl>(1);
 }
 
-void FastPairScannerImpl::OnDeviceFound(BlePeripheral& peripheral,
-                                        const std::string& service_id,
-                                        const ByteArray& advertisement_bytes,
-                                        bool fast_advertisement) {
-  if (advertisement_bytes.size() == 3) {
-    NEARBY_LOGS(VERBOSE) << "Fast Pair 0xFE2C Advertisement discovered. ";
-    NEARBY_LOGS(VERBOSE) << "BluetoothAddress is " << peripheral.GetName()
-                         << ", Model id = "
-                         << absl::BytesToHexString(
-                                advertisement_bytes.AsStringView());
-  }
+void FastPairScannerImpl::AddObserver(FastPairScanner::Observer* observer) {
+  observer_.AddObserver(observer);
 }
 
-void FastPairScannerImpl::OnDeviceLost(BlePeripheral& peripheral,
-                                            const std::string& service_id) {
-  NEARBY_LOGS(INFO) << "Lost BlePeripheral with BluetoothAddress is "
+void FastPairScannerImpl::RemoveObserver(FastPairScanner::Observer* observer) {
+  observer_.RemoveObserver(observer);
+}
+
+void FastPairScannerImpl::StartScanning() {
+  task_runner_->PostTask(
+      [this]() {
+        if (ble_.Enable() &&
+            ble_.StartScanning(
+                kServiceId, kFastPairServiceUuid,
+                {
+                    .peripheral_discovered_cb =
+                        [this](BlePeripheral& peripheral,
+                               const std::string& service_id,
+                               const ByteArray& medium_advertisement_bytes,
+                               bool fast_advertisement) {
+                          if (service_id != kServiceId) {
+                            NEARBY_LOGS(INFO)
+                                << "Skipping non-fastpair advertisement";
+                            return;
+                          }
+                          OnDeviceFound(peripheral);
+                        },
+                    .peripheral_lost_cb =
+                        [this](BlePeripheral& peripheral,
+                               const std::string& service_id) {
+                          OnDeviceLost(peripheral);
+                        },
+                })) {
+          NEARBY_LOGS(INFO)
+              << "Started scanning for BLE advertisements for service_id = "
+              << kServiceId;
+          if (IsFastPairLowPowerEnabled()) {
+            task_runner_->PostDelayedTask(kFastPairLowPowerActiveSeconds,
+                                          [this]() { StopScanning(); });
+          }
+        } else {
+          NEARBY_LOGS(INFO)
+              << "Couldn't start scanning on BLE for service_id = "
+              << kServiceId;
+        }
+      });
+}
+
+void FastPairScannerImpl::StopScanning() {
+  DCHECK(IsFastPairLowPowerEnabled());
+  ble_.StopScanning(kServiceId);
+  task_runner_->PostDelayedTask(kFastPairLowPowerInactiveSeconds,
+                                [this]() { StartScanning(); });
+}
+
+void FastPairScannerImpl::OnDeviceFound(const BlePeripheral& peripheral) {
+  NEARBY_LOGS(INFO) << __func__ << "Found device with ble Address = "
                     << peripheral.GetName();
+  ByteArray service_data = peripheral.GetAdvertisementBytes(kServiceId);
+  if (service_data.Empty()) {
+    NEARBY_LOGS(WARNING) << "No Fast Pair service data found on device";
+    return;
+  }
+
+  device_address_advertisement_data_map_[peripheral.GetName()].insert(
+      peripheral.GetAdvertisementBytes(kServiceId));
+
+  NotifyDeviceFound(peripheral);
+}
+
+void FastPairScannerImpl::OnDeviceLost(const BlePeripheral& peripheral) {
+  NEARBY_LOGS(INFO) << __func__ << "Lost device with ble Address = "
+                    << peripheral.GetName();
+  device_address_advertisement_data_map_.erase(peripheral.GetName());
+
+  for (auto& observer : observer_) {
+    observer->OnDeviceLost(peripheral);
+  }
+}
+
+void FastPairScannerImpl::NotifyDeviceFound(const BlePeripheral& peripheral) {
+  for (auto& observer : observer_) {
+    observer->OnDeviceFound(peripheral);
+  }
 }
 
 }  // namespace fastpair

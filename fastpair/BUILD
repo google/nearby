@@ -58,6 +58,7 @@ cc_test(
         ":fastpair_controller",
         "//fastpair/scanning/fastpair:scanning",
         "//internal/platform:logging",
+        "//internal/platform:test_util",
         "//internal/platform/implementation/g3",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
