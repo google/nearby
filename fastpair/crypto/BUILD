@@ -23,7 +23,6 @@ cc_library(
         "//internal/platform:logging",
         "@boringssl//:crypto",
         "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/types:optional",
     ],
 )
 

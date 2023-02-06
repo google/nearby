@@ -17,8 +17,8 @@
 
 #include <array>
 #include <string>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "fastpair/crypto/decrypted_passkey.h"
 #include "fastpair/crypto/decrypted_response.h"
 
@@ -33,11 +33,11 @@ class FastPairDecryption {
       const std::array<uint8_t, kAesBlockByteSize>& aes_key_bytes,
       const std::array<uint8_t, kAesBlockByteSize>& encrypted_bytes);
 
-  static absl::optional<DecryptedResponse> ParseDecryptResponse(
+  static std::optional<DecryptedResponse> ParseDecryptResponse(
       const std::array<uint8_t, 16>& aes_key_bytes,
       const std::array<uint8_t, 16>& encrypted_response_bytes);
 
-  static absl::optional<DecryptedPasskey> ParseDecryptPasskey(
+  static std::optional<DecryptedPasskey> ParseDecryptPasskey(
       const std::array<uint8_t, 16>& aes_key_bytes,
       const std::array<uint8_t, 16>& encrypted_passkey_bytes);
 };

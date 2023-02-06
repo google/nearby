@@ -20,8 +20,8 @@
 #include <array>
 #include <string>
 #include <string_view>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "fastpair/common/constant.h"
 #include "fastpair/crypto/fast_pair_key_pair.h"
 
@@ -32,7 +32,7 @@ namespace fastpair {
  * encrypting Fast Pair packets. */
 class FastPairEncryption {
  public:
-  static absl::optional<KeyPair> GenerateKeysWithEcdhKeyAgreement(
+  static std::optional<KeyPair> GenerateKeysWithEcdhKeyAgreement(
       std::string_view decoded_public_anti_spoofing);
 
   static std::array<uint8_t, kAesBlockByteSize> EncryptBytes(

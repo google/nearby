@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <optional>
 
 #ifdef NEARBY_CHROMIUM
 #include "base/check.h"
@@ -25,7 +26,6 @@
 #include "absl/log/check.h"  // nogncheck
 #endif
 
-#include "absl/types/optional.h"
 #include "fastpair/common/constant.h"
 #include "fastpair/crypto/decrypted_passkey.h"
 #include "fastpair/crypto/decrypted_response.h"
@@ -53,7 +53,7 @@ std::array<uint8_t, kAesBlockByteSize> FastPairDecryption::DecryptBytes(
 // (https://developers.google.com/nearby/fast-pair/specifications/characteristics#table1.4)
 // and returns the parsed decrypted response
 // (https://developers.google.com/nearby/fast-pair/specifications/characteristics#table1.3)
-absl::optional<DecryptedResponse> FastPairDecryption::ParseDecryptResponse(
+std::optional<DecryptedResponse> FastPairDecryption::ParseDecryptResponse(
     const std::array<uint8_t, kAesBlockByteSize>& aes_key_bytes,
     const std::array<uint8_t, kAesBlockByteSize>& encrypted_response_bytes) {
   std::array<uint8_t, kAesBlockByteSize> decrypted_response_bytes =
@@ -64,7 +64,7 @@ absl::optional<DecryptedResponse> FastPairDecryption::ParseDecryptResponse(
   // If the message type index is not the expected fast pair message type, then
   // this is not a valid fast pair response.
   if (message_type != kKeybasedPairingResponseType) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   std::array<uint8_t, kDecryptedResponseAddressByteSize> address_bytes;
@@ -85,7 +85,7 @@ absl::optional<DecryptedResponse> FastPairDecryption::ParseDecryptResponse(
 // (https://developers.google.com/nearby/fast-pair/specifications/characteristics#table2.2)
 // TODO(b/263400788) Add unit test to cover this function and fix all Mutants
 // warning
-absl::optional<DecryptedPasskey> FastPairDecryption::ParseDecryptPasskey(
+std::optional<DecryptedPasskey> FastPairDecryption::ParseDecryptPasskey(
     const std::array<uint8_t, kAesBlockByteSize>& aes_key_bytes,
     const std::array<uint8_t, kAesBlockByteSize>& encrypted_passkey_bytes) {
   std::array<uint8_t, kAesBlockByteSize> decrypted_passkey_bytes =
@@ -98,7 +98,7 @@ absl::optional<DecryptedPasskey> FastPairDecryption::ParseDecryptPasskey(
              kProviderPasskeyType) {
     message_type = FastPairMessageType::kProvidersPasskey;
   } else {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   uint32_t passkey = decrypted_passkey_bytes[3];

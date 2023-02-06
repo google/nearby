@@ -18,6 +18,8 @@
 #include <array>
 #include <iterator>
 #include <string_view>
+#include <vector>
+#include <optional>
 
 #ifdef NEARBY_CHROMIUM
 #include "base/check.h"
@@ -27,7 +29,6 @@
 #include "absl/log/check.h"  // nogncheck
 #endif
 
-#include "absl/types/optional.h"
 #include "fastpair/common/constant.h"
 #include "fastpair/crypto/fast_pair_key_pair.h"
 #include "fastpair/crypto/fast_pair_message_type.h"
@@ -76,13 +77,13 @@ void* KDF(const void* in, size_t inlen, void* out, size_t* outlen) {
 
 // TODO(b/263400788) Add unit test to cover this function and fix all Mutants
 // warning
-absl::optional<KeyPair> FastPairEncryption::GenerateKeysWithEcdhKeyAgreement(
+std::optional<KeyPair> FastPairEncryption::GenerateKeysWithEcdhKeyAgreement(
     std::string_view decoded_public_anti_spoofing) {
   if (decoded_public_anti_spoofing.size() != kPublicKeyByteSize) {
     NEARBY_LOGS(VERBOSE) << "Expected " << kPublicKeyByteSize
                          << " byte value for anti-spoofing key. Got:"
                          << decoded_public_anti_spoofing.size();
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   // Generate the secp256r1 key-pair.
@@ -93,7 +94,7 @@ absl::optional<KeyPair> FastPairEncryption::GenerateKeysWithEcdhKeyAgreement(
 
   if (!EC_KEY_generate_key(ec_key.get())) {
     NEARBY_LOGS(VERBOSE) << __func__ << ": Failed to generate ec key";
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   // The ultimate goal here is to get a 64-byte public key. We accomplish this
@@ -109,7 +110,7 @@ absl::optional<KeyPair> FastPairEncryption::GenerateKeysWithEcdhKeyAgreement(
     NEARBY_LOGS(VERBOSE) << __func__
                          << ": EC_POINT_point2oct failed to convert public key "
                             "to uncompressed x9.62 format.";
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   bssl::UniquePtr<EC_POINT> public_anti_spoofing_point =
@@ -120,7 +121,7 @@ absl::optional<KeyPair> FastPairEncryption::GenerateKeysWithEcdhKeyAgreement(
     NEARBY_LOGS(VERBOSE)
         << __func__
         << ": Failed to convert Public Anti-Spoofing key to EC_POINT";
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   uint8_t secret[SHA256_DIGEST_LENGTH];
@@ -130,7 +131,7 @@ absl::optional<KeyPair> FastPairEncryption::GenerateKeysWithEcdhKeyAgreement(
 
   if (computed_key_size != kSharedSecretKeyByteSize) {
     NEARBY_LOGS(VERBOSE) << __func__ << ": ECDH_compute_key failed.";
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   // Take first 16 bytes from secret as the shared secret key.
