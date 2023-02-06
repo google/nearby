@@ -94,6 +94,8 @@ cc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
         "//internal/proto:credential_cc_proto",
+        "//internal/proto:local_credential_cc_proto",
+        "//internal/proto:metadata_cc_proto",
         "//presence:types",
         "//presence/implementation/mediums",
         "@boringssl//:crypto",
@@ -231,6 +233,7 @@ cc_test(
         "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
         "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/types:variant",
+        "//internal/proto:credential_cc_proto",
         "//presence:types",
     ] + select({
         "//tools/cc_target_os:windows": [

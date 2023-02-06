@@ -218,9 +218,8 @@ absl::StatusOr<std::string> AdvertisementDecoder::DecryptLdt(
     return absl::UnavailableError("No credentials");
   }
   for (const auto& credential : credentials) {
-    absl::StatusOr<LdtEncryptor> encryptor =
-        LdtEncryptor::Create(credential.authenticity_key(),
-                             credential.metadata_encryption_key_tag());
+    absl::StatusOr<LdtEncryptor> encryptor = LdtEncryptor::Create(
+        credential.key_seed(), credential.metadata_encryption_key_tag());
     if (encryptor.ok()) {
       absl::StatusOr<std::string> result =
           encryptor->DecryptAndVerify(data_elements, salt);
@@ -424,9 +423,10 @@ bool AdvertisementDecoder::MatchesScanFilter(
 
 std::vector<CredentialSelector> AdvertisementDecoder::GetCredentialSelectors(
     const ScanRequest& scan_request) {
-  std::vector<internal::IdentityType> all_types = {
-      internal::IDENTITY_TYPE_PRIVATE, internal::IDENTITY_TYPE_TRUSTED,
-      internal::IDENTITY_TYPE_PROVISIONED, internal::IDENTITY_TYPE_PUBLIC};
+  std::vector<IdentityType> all_types = {
+      IdentityType::IDENTITY_TYPE_PRIVATE, IdentityType::IDENTITY_TYPE_TRUSTED,
+      IdentityType::IDENTITY_TYPE_PUBLIC,
+      IdentityType::IDENTITY_TYPE_PROVISIONED};
   std::vector<CredentialSelector> selectors(all_types.size());
   for (auto identity_type :
        (scan_request.identity_types.empty() ? all_types

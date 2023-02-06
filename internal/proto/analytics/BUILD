@@ -36,11 +36,6 @@ cc_proto_library(
     deps = [":connections_log_proto"],
 )
 
-java_lite_proto_library(
-    name = "connections_log_java_proto_lite",
-    deps = [":connections_log_proto"],
-)
-
 cc_test(
     name = "proto_analytics_test",
     size = "small",

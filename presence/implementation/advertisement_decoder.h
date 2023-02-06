@@ -42,9 +42,11 @@ struct Advertisement {
 // Decodes BLE NP advertisements
 class AdvertisementDecoder {
  public:
+  using IdentityType = ::nearby::internal::IdentityType;
+
   AdvertisementDecoder(
       ScanRequest scan_request,
-      absl::flat_hash_map<internal::IdentityType,
+      absl::flat_hash_map<IdentityType,
                           std::vector<internal::SharedCredential>>* credentials)
       : scan_request_(scan_request), credentials_(credentials) {
     AddBannedDataTypes();
@@ -85,9 +87,8 @@ class AdvertisementDecoder {
                          const LegacyPresenceScanFilter& filter);
 
   ScanRequest scan_request_;
-  absl::flat_hash_map<internal::IdentityType,
-                      std::vector<internal::SharedCredential>>* credentials_ =
-      nullptr;
+  absl::flat_hash_map<IdentityType, std::vector<internal::SharedCredential>>*
+      credentials_ = nullptr;
   absl::flat_hash_set<int> banned_data_types_;
   Advertisement decoded_advertisement_;
 };

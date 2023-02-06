@@ -35,6 +35,7 @@
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
 #include "internal/proto/credential.pb.h"
+#include "internal/proto/local_credential.pb.h"
 #include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/ldt.h"
 
@@ -46,7 +47,6 @@ using ::nearby::Crypto;
 using ::nearby::Exception;
 using ::nearby::ExceptionOr;
 using ::nearby::Future;
-using ::nearby::internal::DeviceMetadata;
 using ::nearby::internal::IdentityType;
 using ::nearby::internal::LocalCredential;
 using ::nearby::internal::SharedCredential;
@@ -70,7 +70,7 @@ std::string CustomizeBytesSize(absl::string_view bytes, size_t len) {
 }  // namespace
 
 void CredentialManagerImpl::GenerateCredentials(
-    const DeviceMetadata& device_metadata, absl::string_view manager_app_id,
+    const Metadata& metadata, absl::string_view manager_app_id,
     const std::vector<IdentityType>& identity_types,
     int credential_life_cycle_days, int contiguous_copy_of_credentials,
     GenerateCredentialsResultCallback credentials_generated_cb) {
@@ -80,10 +80,9 @@ void CredentialManagerImpl::GenerateCredentials(
   for (auto identity_type : identity_types) {
     absl::Time start_time = SystemClock::ElapsedRealtime();
     absl::Duration gap = credential_life_cycle_days * absl::Hours(24);
-
     for (int index = 0; index < contiguous_copy_of_credentials; index++) {
       auto public_private_credentials = CreateLocalCredential(
-          device_metadata, identity_type, start_time, start_time + gap);
+          metadata, identity_type, start_time, start_time + gap);
       if (public_private_credentials.second.identity_type() !=
           IdentityType::IDENTITY_TYPE_UNSPECIFIED) {
         private_credentials.push_back(public_private_credentials.first);
@@ -95,12 +94,12 @@ void CredentialManagerImpl::GenerateCredentials(
 
   // Create credential_storage object and invoke SaveCredentials.
   credential_storage_ptr_->SaveCredentials(
-      manager_app_id, device_metadata.account_name(), private_credentials,
+      manager_app_id, metadata.account_name(), private_credentials,
       public_credentials, PublicCredentialType::kLocalPublicCredential,
       SaveCredentialsResultCallback{
           .credentials_saved_cb =
               [this, manager_app_id = std::string(manager_app_id),
-               account_name = device_metadata.account_name(),
+               account_name = metadata.account_name(),
                callback = std::move(credentials_generated_cb),
                public_credentials](absl::Status status) mutable {
                 if (!status.ok()) {
@@ -155,9 +154,10 @@ void CredentialManagerImpl::UpdateRemotePublicCredentials(
 }
 
 std::pair<LocalCredential, SharedCredential>
-CredentialManagerImpl::CreateLocalCredential(
-    const DeviceMetadata& device_metadata, IdentityType identity_type,
-    absl::Time start_time, absl::Time end_time) {
+CredentialManagerImpl::CreateLocalCredential(const Metadata& metadata,
+                                             IdentityType identity_type,
+                                             absl::Time start_time,
+                                             absl::Time end_time) {
   LocalCredential private_credential;
   private_credential.set_start_time_millis(absl::ToUnixMillis(start_time));
   private_credential.set_end_time_millis(absl::ToUnixMillis(end_time));
@@ -165,7 +165,7 @@ CredentialManagerImpl::CreateLocalCredential(
 
   // Creates an AES key to encrypt the whole broadcast.
   std::string secret_key = crypto::RandBytes(kAuthenticityKeyByteSize);
-  private_credential.set_authenticity_key(secret_key);
+  private_credential.set_key_seed(secret_key);
 
   // Uses SHA-256 algorithm to generate the credential ID from the
   // authenticity key
@@ -183,15 +183,11 @@ CredentialManagerImpl::CreateLocalCredential(
   auto key_pair = crypto::ECPrivateKey::Create();
   std::vector<uint8_t> private_key;
   key_pair->ExportPrivateKey(&private_key);
-  private_credential.set_verification_key(
+  private_credential.mutable_connection_signing_key()->set_key(
       std::string(private_key.begin(), private_key.end()));
-
   // Create an AES key to encrypt the device metadata.
   auto metadata_key = crypto::RandBytes(kBaseMetadataSize);
   private_credential.set_metadata_encryption_key(metadata_key);
-
-  // set device meta data
-  *(private_credential.mutable_device_metadata()) = device_metadata;
 
   // Generate the public credential
   std::vector<uint8_t> public_key;
@@ -199,11 +195,11 @@ CredentialManagerImpl::CreateLocalCredential(
 
   return std::pair<LocalCredential, SharedCredential>(
       private_credential,
-      CreatePublicCredential(private_credential, public_key));
+      CreatePublicCredential(private_credential, metadata, public_key));
 }
 
 SharedCredential CredentialManagerImpl::CreatePublicCredential(
-    const LocalCredential& private_credential,
+    const LocalCredential& private_credential, const Metadata& metadata,
     const std::vector<uint8_t>& public_key) {
   // The start time in the public credential should be decreased by a random
   // value in 0 - 3 hours range.
@@ -218,11 +214,12 @@ SharedCredential CredentialManagerImpl::CreatePublicCredential(
   SharedCredential public_credential;
   public_credential.set_identity_type(private_credential.identity_type());
   public_credential.set_secret_id(private_credential.secret_id());
-  public_credential.set_authenticity_key(private_credential.authenticity_key());
+  public_credential.set_key_seed(private_credential.key_seed());
   public_credential.set_start_time_millis(absl::ToUnixMillis(start_time));
   public_credential.set_end_time_millis(absl::ToUnixMillis(end_time));
-  // set up the public key
-  public_credential.set_verification_key(
+  // Set up the public key. Note, we are setting the "connection" key but we are
+  // not setting the "advertisement" key because the latter is not used yet.
+  public_credential.set_connection_signature_verification_key(
       std::string(public_key.begin(), public_key.end()));
 
   auto metadata_encryption_key_tag =
@@ -231,10 +228,9 @@ SharedCredential CredentialManagerImpl::CreatePublicCredential(
       std::string(metadata_encryption_key_tag.AsStringView()));
 
   // Encrypt the device metadata
-  auto encrypted_meta_data = EncryptDeviceMetadata(
+  auto encrypted_meta_data = EncryptMetadata(
       private_credential.metadata_encryption_key(),
-      private_credential.authenticity_key(),
-      private_credential.device_metadata().SerializeAsString());
+      private_credential.key_seed(), metadata.SerializeAsString());
 
   if (encrypted_meta_data.empty()) {
     NEARBY_LOGS(ERROR) << "Fails to encrypt the device metadata.";
@@ -247,23 +243,21 @@ SharedCredential CredentialManagerImpl::CreatePublicCredential(
   return public_credential;
 }
 
-std::string CredentialManagerImpl::DecryptDeviceMetadata(
-    absl::string_view device_metadata_encryption_key,
-    absl::string_view authenticity_key,
-    absl::string_view device_metadata_string) {
+std::string CredentialManagerImpl::DecryptMetadata(
+    absl::string_view metadata_encryption_key, absl::string_view key_seed,
+    absl::string_view metadata_string) {
   crypto::Aead aead(crypto::Aead::AeadAlgorithm::AES_256_GCM);
 
   std::vector<uint8_t> derived_key =
-      ExtendMetadataEncryptionKey(device_metadata_encryption_key);
+      ExtendMetadataEncryptionKey(metadata_encryption_key);
   aead.Init(derived_key);
 
-  auto iv = CustomizeBytesSize(authenticity_key,
-                               CredentialManagerImpl::kAesGcmIVSize);
+  auto iv = CustomizeBytesSize(key_seed, CredentialManagerImpl::kAesGcmIVSize);
   std::vector<uint8_t> iv_bytes(iv.begin(), iv.end());
-  std::vector<uint8_t> encrypted_device_metadata_bytes(
-      device_metadata_string.begin(), device_metadata_string.end());
+  std::vector<uint8_t> encrypted_metadata_bytes(metadata_string.begin(),
+                                                metadata_string.end());
 
-  auto result = aead.Open(encrypted_device_metadata_bytes,
+  auto result = aead.Open(encrypted_metadata_bytes,
                           /*nonce=*/
                           iv_bytes,
                           /*additional_data=*/absl::Span<uint8_t>());
@@ -271,25 +265,24 @@ std::string CredentialManagerImpl::DecryptDeviceMetadata(
   return std::string(result.value().begin(), result.value().end());
 }
 
-std::string CredentialManagerImpl::EncryptDeviceMetadata(
-    absl::string_view device_metadata_encryption_key,
-    absl::string_view authenticity_key,
-    absl::string_view device_metadata_string) {
+std::string CredentialManagerImpl::EncryptMetadata(
+    absl::string_view metadata_encryption_key, absl::string_view key_seed,
+    absl::string_view metadata_string) {
   crypto::Aead aead(crypto::Aead::AeadAlgorithm::AES_256_GCM);
 
   std::vector<uint8_t> derived_key =
-      ExtendMetadataEncryptionKey(device_metadata_encryption_key);
+      ExtendMetadataEncryptionKey(metadata_encryption_key);
 
   aead.Init(derived_key);
 
-  auto iv = CustomizeBytesSize(authenticity_key, kAesGcmIVSize);
+  auto iv = CustomizeBytesSize(key_seed, kAesGcmIVSize);
   std::vector<uint8_t> iv_bytes(iv.begin(), iv.end());
 
-  std::vector<uint8_t> device_metadata_bytes(device_metadata_string.begin(),
-                                             device_metadata_string.end());
-  device_metadata_bytes.resize(device_metadata_string.size());
+  std::vector<uint8_t> metadata_bytes(metadata_string.begin(),
+                                      metadata_string.end());
+  metadata_bytes.resize(metadata_string.size());
 
-  auto encrypted = aead.Seal(device_metadata_bytes,
+  auto encrypted = aead.Seal(metadata_bytes,
                              /*nonce=*/
                              iv_bytes,
                              /*additional_data=*/absl::Span<uint8_t>());
@@ -298,10 +291,10 @@ std::string CredentialManagerImpl::EncryptDeviceMetadata(
 }
 
 std::vector<uint8_t> CredentialManagerImpl::ExtendMetadataEncryptionKey(
-    absl::string_view device_metadata_encryption_key) {
+    absl::string_view metadata_encryption_key) {
   return crypto::HkdfSha256(
-      std::vector<uint8_t>(device_metadata_encryption_key.begin(),
-                           device_metadata_encryption_key.end()),
+      std::vector<uint8_t>(metadata_encryption_key.begin(),
+                           metadata_encryption_key.end()),
       /*salt=*/absl::Span<uint8_t>(),
       /*info=*/absl::Span<uint8_t>(), kNearbyPresenceNumBytesAesGcmKeySize);
 }
@@ -310,7 +303,7 @@ void CredentialManagerImpl::GetLocalCredentials(
     const CredentialSelector& credential_selector,
     GetLocalCredentialsResultCallback callback) {
   credential_storage_ptr_->GetLocalCredentials(credential_selector,
-                                                 std::move(callback));
+                                               std::move(callback));
 }
 
 void CredentialManagerImpl::GetPublicCredentials(
@@ -325,17 +318,16 @@ ExceptionOr<std::vector<LocalCredential>>
 CredentialManagerImpl::GetLocalCredentialsSync(
     const CredentialSelector& credential_selector, absl::Duration timeout) {
   Future<std::vector<LocalCredential>> result;
-  GetLocalCredentials(
-      credential_selector,
-      {.credentials_fetched_cb =
-           [result](absl::StatusOr<std::vector<LocalCredential>>
-                        credentials) mutable {
-             if (!credentials.ok()) {
-               result.SetException({Exception::kFailed});
-             } else {
-               result.Set(std::move(*credentials));
-             }
-           }});
+  GetLocalCredentials(credential_selector,
+                      {.credentials_fetched_cb =
+                           [result](absl::StatusOr<std::vector<LocalCredential>>
+                                        credentials) mutable {
+                             if (!credentials.ok()) {
+                               result.SetException({Exception::kFailed});
+                             } else {
+                               result.Set(std::move(*credentials));
+                             }
+                           }});
   return result.Get(timeout);
 }
 
@@ -440,9 +432,8 @@ GetPublicCredentialsResultCallback
 CredentialManagerImpl::CreateNotifySubscribersCallback(SubscriberKey key) {
   return GetPublicCredentialsResultCallback{
       .credentials_fetched_cb =
-          [this, key](
-              absl::StatusOr<std::vector<SharedCredential>>
-                  credentials) {
+          [this,
+           key](absl::StatusOr<std::vector<SharedCredential>> credentials) {
             if (!credentials.ok()) {
               NEARBY_LOGS(WARNING)
                   << "Failed to get public credentials: error code: "
@@ -459,8 +450,7 @@ CredentialManagerImpl::CreateNotifySubscribersCallback(SubscriberKey key) {
 }
 
 void CredentialManagerImpl::NotifySubscribers(
-    const SubscriberKey& key,
-    std::vector<SharedCredential> credentials) {
+    const SubscriberKey& key, std::vector<SharedCredential> credentials) {
   // We are on `executor_` thread, so we can iterate over `subscribers_`
   // without locking.
   auto it = subscribers_.find(key);

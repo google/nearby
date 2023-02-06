@@ -20,6 +20,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/types/variant.h"
+#include "internal/proto/credential.pb.h"
 #include "presence/broadcast_request.h"
 #include "presence/data_element.h"
 
@@ -27,6 +28,7 @@ namespace nearby {
 namespace presence {
 namespace {
 
+using ::nearby::internal::IdentityType;
 using ::testing::status::StatusIs;
 
 TEST(BroadcastRequestTest, CreateBasePresenceRequest) {
@@ -66,7 +68,7 @@ TEST(BroadcastRequestTest, CreateFromPresenceRequest) {
   EXPECT_THAT(request->tx_power, kTxPower);
   EXPECT_THAT(absl::get<BaseBroadcastRequest::BasePresence>(request->variant)
                   .credential_selector.identity_type,
-              internal::IDENTITY_TYPE_PUBLIC);
+              IdentityType::IDENTITY_TYPE_PUBLIC);
   EXPECT_THAT(absl::get<BaseBroadcastRequest::BasePresence>(request->variant)
                   .action.action,
               kExpectedAction);
