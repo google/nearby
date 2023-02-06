@@ -35,6 +35,7 @@
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/medium_selector.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/logging.h"
@@ -751,7 +752,8 @@ bool BasePcpHandler::CanReceiveIncomingConnection(ClientProxy* client) const {
 
 Exception BasePcpHandler::WriteConnectionRequestFrame(
     const ConnectionInfo& conection_info, EndpointChannel* endpoint_channel) {
-  return endpoint_channel->Write(parser::ForConnectionRequest(conection_info));
+  return endpoint_channel->Write(
+      parser::ForConnectionRequest(conection_info));
 }
 
 void BasePcpHandler::ProcessPreConnectionInitiationFailure(
@@ -837,7 +839,8 @@ Status BasePcpHandler::AcceptConnection(
         }
 
         Exception write_exception =
-            channel->Write(parser::ForConnectionResponse(Status::kSuccess));
+            channel->Write(parser::ForConnectionResponse(
+                Status::kSuccess, client->GetLocalOsInfo()));
         if (!write_exception.Ok()) {
           NEARBY_LOGS(INFO)
               << "AcceptConnection: failed to send response: endpoint_id="
@@ -893,8 +896,9 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
           return;
         }
 
-        Exception write_exception = channel->Write(
-            parser::ForConnectionResponse(Status::kConnectionRejected));
+        Exception write_exception =
+            channel->Write(parser::ForConnectionResponse(
+                Status::kConnectionRejected, client->GetLocalOsInfo()));
         if (!write_exception.Ok()) {
           NEARBY_LOGS(INFO)
               << "RejectConnection: failed to send response: endpoint_id="
@@ -957,6 +961,10 @@ void BasePcpHandler::OnIncomingFrame(
               << "OnConnectionResponse: remote rejected; endpoint_id="
               << endpoint_id << "; status=" << connection_response.status();
           client->RemoteEndpointRejectedConnection(endpoint_id);
+        }
+
+        if (connection_response.has_os_info()) {
+          client->SetRemoteOsInfo(endpoint_id, connection_response.os_info());
         }
 
         EvaluateConnectionResult(client, endpoint_id,

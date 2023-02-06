@@ -15,6 +15,7 @@
 #include "connections/implementation/client_proxy.h"
 
 #include <cstdio>
+#include <optional>
 #include <string>
 
 #include "gmock/gmock.h"
@@ -36,6 +37,8 @@ namespace nearby {
 namespace connections {
 namespace {
 
+using ::location::nearby::connections::OsInfo;
+using ::testing::Eq;
 using ::testing::MockFunction;
 using ::testing::StrictMock;
 
@@ -895,6 +898,33 @@ TEST_F(ClientProxyTest, LogSessionForResetClientProxy) {
   EXPECT_FALSE(client2_.GetAnalyticsRecorder().IsSessionLogged());
   client2_.Reset();
   EXPECT_TRUE(client2_.GetAnalyticsRecorder().IsSessionLogged());
+}
+
+TEST_F(ClientProxyTest, GetLocalInfoCorrect) {
+  ClientProxy client;
+  // Default is g3 test Environment as LINUX.
+  EXPECT_THAT(client.GetLocalOsInfo().type(), Eq(OsInfo::LINUX));
+}
+
+TEST_F(ClientProxyTest, GetRemoteInfoNullWithoutConnections) {
+  Endpoint advertising_endpoint =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+
+  EXPECT_FALSE(client1_.GetRemoteOsInfo(advertising_endpoint.id).has_value());
+}
+
+TEST_F(ClientProxyTest, SetRemoteInfoCorrect) {
+  Endpoint advertising_endpoint =
+      StartAdvertising(&client1_, advertising_connection_listener_);
+  OnAdvertisingConnectionInitiated(&client1_, advertising_endpoint);
+
+  OsInfo os_info;
+  os_info.set_type(OsInfo::ANDROID);
+  client1_.SetRemoteOsInfo(advertising_endpoint.id, os_info);
+
+  ASSERT_TRUE(client1_.GetRemoteOsInfo(advertising_endpoint.id).has_value());
+  EXPECT_THAT(client1_.GetRemoteOsInfo(advertising_endpoint.id).value().type(),
+              Eq(OsInfo::ANDROID));
 }
 
 }  // namespace
