@@ -33,6 +33,9 @@ cc_library(
     name = "test_support",
     srcs = ["fake_fast_pair_repository.cc"],
     hdrs = ["fake_fast_pair_repository.h"],
+    visibility = [
+        "//fastpair:__subpackages__",
+    ],
     deps = [
         ":server_access",
         "//fastpair/common",
