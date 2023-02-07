@@ -27,10 +27,10 @@ namespace nearby {
 namespace fastpair {
 class FakeFastPairRepository : public FastPairRepository {
  public:
-  FakeFastPairRepository();
+  FakeFastPairRepository() = default;
   FakeFastPairRepository(const FakeFastPairRepository&) = delete;
   FakeFastPairRepository& operator=(const FakeFastPairRepository&) = delete;
-  ~FakeFastPairRepository() override;
+  ~FakeFastPairRepository() override = default;
 
   void SetFakeMetadata(absl::string_view hex_model_id, proto::Device metadata);
   void ClearFakeMetadata(absl::string_view hex_model_id);
