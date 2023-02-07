@@ -18,7 +18,7 @@
 namespace nearby {
 namespace api {
 
-enum class OSName { kLinux, kWindows, kiOS, kChromeOS };
+enum class OSName { kLinux, kWindows, kApple, kChromeOS, kAndroid };
 
 }  // namespace api
 }  // namespace nearby

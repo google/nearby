@@ -107,12 +107,12 @@ class EndpointManager {
   // Invoked from the different PcpHandler implementations (of which there can
   // be only one at a time).
   // Blocks until registration is complete.
-  void RegisterEndpoint(ClientProxy* client, const std::string& endpoint_id,
-                        const ConnectionResponseInfo& info,
-                        const ConnectionOptions& connection_options,
-                        std::unique_ptr<EndpointChannel> channel,
-                        const ConnectionListener& listener,
-                        const std::string& connection_token);
+  void RegisterEndpoint(
+      ClientProxy* client, const std::string& endpoint_id,
+      const ConnectionResponseInfo& info,
+      const ConnectionOptions& connection_options,
+      std::unique_ptr<EndpointChannel> channel,
+      const ConnectionListener& listener, const std::string& connection_token);
   // Called when a client explicitly asks to disconnect from this endpoint. In
   // this case, we do not notify the client of onDisconnected().
   void UnregisterEndpoint(ClientProxy* client, const std::string& endpoint_id);

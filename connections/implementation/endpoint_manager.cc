@@ -407,12 +407,11 @@ void EndpointManager::RegisterEndpoint(
         absl::Milliseconds(connection_options.keep_alive_interval_millis);
     absl::Duration keep_alive_timeout =
         absl::Milliseconds(connection_options.keep_alive_timeout_millis);
-    NEARBY_LOGS(INFO) << "Registering endpoint " << endpoint_id
-                      << " for client " << client->GetClientId()
-                      << " with keep-alive frame as interval="
-                      << absl::FormatDuration(keep_alive_interval)
-                      << ", timeout="
-                      << absl::FormatDuration(keep_alive_timeout);
+    NEARBY_LOGS(INFO)
+        << "Registering endpoint " << endpoint_id << " for client "
+        << client->GetClientId() << " with keep-alive frame as interval="
+        << absl::FormatDuration(keep_alive_interval)
+        << ", timeout=" << absl::FormatDuration(keep_alive_timeout);
 
     // Pass ownership of channel to EndpointChannelManager
     NEARBY_LOGS(INFO) << "Registering endpoint with channel manager: endpoint "

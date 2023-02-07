@@ -17,6 +17,7 @@
 #include <array>
 #include <cinttypes>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
