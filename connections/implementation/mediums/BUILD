@@ -121,7 +121,6 @@ cc_library(
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__pkg__",
-        "//connections/implementation/mediums:__pkg__",
         "//connections/implementation/mediums/ble_v2:__subpackages__",
         "//connections/implementation/mediums/webrtc:__pkg__",
     ],
