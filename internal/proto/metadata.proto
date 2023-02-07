@@ -16,6 +16,11 @@ syntax = "proto3";
 
 package nearby.internal;
 
+// option java_api_version = 2;
+option java_multiple_files = true;
+option java_package = "com.google.nearby.presence";
+option java_outer_classname = "MetadataProto";
+
 // The metadata of a device.
 // Contains confidential data not to be broadcasted directly in OTA.
 message Metadata {
