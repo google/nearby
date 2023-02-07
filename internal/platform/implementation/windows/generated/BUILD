@@ -18,6 +18,7 @@ cc_library(
     linkopts = [
         "wininet.lib",
         "advapi32.lib",
+        "bcrypt.lib",
         "comdlg32.lib",
         "gdi32.lib",
         "kernel32.lib",

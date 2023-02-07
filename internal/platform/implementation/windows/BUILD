@@ -168,6 +168,7 @@ cc_library(
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
         "//location/nearby:__subpackages__",
+        "//presence:__subpackages__",
     ],
     deps = [
         ":comm",
