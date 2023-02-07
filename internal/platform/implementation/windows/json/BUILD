@@ -16,8 +16,5 @@ licenses(["notice"])
 cc_library(
     name = "types",
     textual_hdrs = glob(["**/*.hpp"]),
-    visibility = [
-        "//connections/windows:__subpackages__",
-        "//internal/platform/implementation/windows:__subpackages__",
-    ],
+    visibility = ["//internal/platform/implementation/windows:__subpackages__"],
 )
