@@ -30,12 +30,8 @@
 #include <google/protobuf/message.h>
 #include <google/protobuf/repeated_field.h>  // IWYU pragma: export
 #include <google/protobuf/extension_set.h>  // IWYU pragma: export
-#include <google/protobuf/map.h>  // IWYU pragma: export
-#include <google/protobuf/map_entry.h>
-#include <google/protobuf/map_field_inl.h>
 #include <google/protobuf/generated_enum_reflection.h>
 #include <google/protobuf/unknown_field_set.h>
-#include "internal/proto/device_metadata.pb.h"
 // @@protoc_insertion_point(includes)
 #include <google/protobuf/port_def.inc>
 #define PROTOBUF_INTERNAL_EXPORT_internal_2fproto_2fcredential_2eproto
@@ -51,7 +47,7 @@ struct TableStruct_internal_2fproto_2fcredential_2eproto {
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::AuxiliaryParseTableField aux[]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
-  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[3]
+  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[1]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::FieldMetadata field_metadata[];
   static const ::PROTOBUF_NAMESPACE_ID::internal::SerializationTable serialization_table[];
@@ -60,20 +56,12 @@ struct TableStruct_internal_2fproto_2fcredential_2eproto {
 extern const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_internal_2fproto_2fcredential_2eproto;
 namespace nearby {
 namespace internal {
-class LocalCredential;
-struct LocalCredentialDefaultTypeInternal;
-extern LocalCredentialDefaultTypeInternal _LocalCredential_default_instance_;
-class LocalCredential_ConsumedSaltsEntry_DoNotUse;
-struct LocalCredential_ConsumedSaltsEntry_DoNotUseDefaultTypeInternal;
-extern LocalCredential_ConsumedSaltsEntry_DoNotUseDefaultTypeInternal _LocalCredential_ConsumedSaltsEntry_DoNotUse_default_instance_;
 class SharedCredential;
 struct SharedCredentialDefaultTypeInternal;
 extern SharedCredentialDefaultTypeInternal _SharedCredential_default_instance_;
 }  // namespace internal
 }  // namespace nearby
 PROTOBUF_NAMESPACE_OPEN
-template<> ::nearby::internal::LocalCredential* Arena::CreateMaybeMessage<::nearby::internal::LocalCredential>(Arena*);
-template<> ::nearby::internal::LocalCredential_ConsumedSaltsEntry_DoNotUse* Arena::CreateMaybeMessage<::nearby::internal::LocalCredential_ConsumedSaltsEntry_DoNotUse>(Arena*);
 template<> ::nearby::internal::SharedCredential* Arena::CreateMaybeMessage<::nearby::internal::SharedCredential>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 namespace nearby {
@@ -108,334 +96,6 @@ inline bool IdentityType_Parse(
     IdentityType_descriptor(), name, value);
 }
 // ===================================================================
-
-class LocalCredential_ConsumedSaltsEntry_DoNotUse : public ::PROTOBUF_NAMESPACE_ID::internal::MapEntry<LocalCredential_ConsumedSaltsEntry_DoNotUse, 
-    uint32_t, bool,
-    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_UINT32,
-    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_BOOL> {
-public:
-  typedef ::PROTOBUF_NAMESPACE_ID::internal::MapEntry<LocalCredential_ConsumedSaltsEntry_DoNotUse, 
-    uint32_t, bool,
-    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_UINT32,
-    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_BOOL> SuperType;
-  LocalCredential_ConsumedSaltsEntry_DoNotUse();
-  explicit constexpr LocalCredential_ConsumedSaltsEntry_DoNotUse(
-      ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
-  explicit LocalCredential_ConsumedSaltsEntry_DoNotUse(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  void MergeFrom(const LocalCredential_ConsumedSaltsEntry_DoNotUse& other);
-  static const LocalCredential_ConsumedSaltsEntry_DoNotUse* internal_default_instance() { return reinterpret_cast<const LocalCredential_ConsumedSaltsEntry_DoNotUse*>(&_LocalCredential_ConsumedSaltsEntry_DoNotUse_default_instance_); }
-  static bool ValidateKey(void*) { return true; }
-  static bool ValidateValue(void*) { return true; }
-  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
-  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
-};
-
-// -------------------------------------------------------------------
-
-class LocalCredential final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:nearby.internal.LocalCredential) */ {
- public:
-  inline LocalCredential() : LocalCredential(nullptr) {}
-  ~LocalCredential() override;
-  explicit constexpr LocalCredential(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
-
-  LocalCredential(const LocalCredential& from);
-  LocalCredential(LocalCredential&& from) noexcept
-    : LocalCredential() {
-    *this = ::std::move(from);
-  }
-
-  inline LocalCredential& operator=(const LocalCredential& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline LocalCredential& operator=(LocalCredential&& from) noexcept {
-    if (this == &from) return *this;
-    if (GetOwningArena() == from.GetOwningArena()
-  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
-        && GetOwningArena() != nullptr
-  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
-    ) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
-    return GetDescriptor();
-  }
-  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const LocalCredential& default_instance() {
-    return *internal_default_instance();
-  }
-  static inline const LocalCredential* internal_default_instance() {
-    return reinterpret_cast<const LocalCredential*>(
-               &_LocalCredential_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    1;
-
-  friend void swap(LocalCredential& a, LocalCredential& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(LocalCredential* other) {
-    if (other == this) return;
-  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
-    if (GetOwningArena() != nullptr &&
-        GetOwningArena() == other->GetOwningArena()) {
-   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
-    if (GetOwningArena() == other->GetOwningArena()) {
-  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
-      InternalSwap(other);
-    } else {
-      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(LocalCredential* other) {
-    if (other == this) return;
-    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  LocalCredential* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
-    return CreateMaybeMessage<LocalCredential>(arena);
-  }
-  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
-  void CopyFrom(const LocalCredential& from);
-  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
-  void MergeFrom(const LocalCredential& from);
-  private:
-  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message* to, const ::PROTOBUF_NAMESPACE_ID::Message& from);
-  public:
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
-  uint8_t* _InternalSerialize(
-      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
-  int GetCachedSize() const final { return _cached_size_.Get(); }
-
-  private:
-  void SharedCtor();
-  void SharedDtor();
-  void SetCachedSize(int size) const final;
-  void InternalSwap(LocalCredential* other);
-
-  private:
-  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
-  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "nearby.internal.LocalCredential";
-  }
-  protected:
-  explicit LocalCredential(::PROTOBUF_NAMESPACE_ID::Arena* arena,
-                       bool is_message_owned = false);
-  private:
-  static void ArenaDtor(void* object);
-  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
-  public:
-
-  static const ClassData _class_data_;
-  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
-
-  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
-
-  // nested types ----------------------------------------------------
-
-
-  // accessors -------------------------------------------------------
-
-  enum : int {
-    kConsumedSaltsFieldNumber = 7,
-    kSecretIdFieldNumber = 2,
-    kAuthenticityKeyFieldNumber = 3,
-    kVerificationKeyFieldNumber = 4,
-    kMetadataEncryptionKeyFieldNumber = 8,
-    kDeviceMetadataFieldNumber = 9,
-    kStartTimeMillisFieldNumber = 5,
-    kEndTimeMillisFieldNumber = 6,
-    kIdentityTypeFieldNumber = 1,
-  };
-  // map<uint32, bool> consumed_salts = 7;
-  int consumed_salts_size() const;
-  private:
-  int _internal_consumed_salts_size() const;
-  public:
-  void clear_consumed_salts();
-  private:
-  const ::PROTOBUF_NAMESPACE_ID::Map< uint32_t, bool >&
-      _internal_consumed_salts() const;
-  ::PROTOBUF_NAMESPACE_ID::Map< uint32_t, bool >*
-      _internal_mutable_consumed_salts();
-  public:
-  const ::PROTOBUF_NAMESPACE_ID::Map< uint32_t, bool >&
-      consumed_salts() const;
-  ::PROTOBUF_NAMESPACE_ID::Map< uint32_t, bool >*
-      mutable_consumed_salts();
-
-  // optional bytes secret_id = 2;
-  bool has_secret_id() const;
-  private:
-  bool _internal_has_secret_id() const;
-  public:
-  void clear_secret_id();
-  const std::string& secret_id() const;
-  template <typename ArgT0 = const std::string&, typename... ArgT>
-  void set_secret_id(ArgT0&& arg0, ArgT... args);
-  std::string* mutable_secret_id();
-  PROTOBUF_NODISCARD std::string* release_secret_id();
-  void set_allocated_secret_id(std::string* secret_id);
-  private:
-  const std::string& _internal_secret_id() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_secret_id(const std::string& value);
-  std::string* _internal_mutable_secret_id();
-  public:
-
-  // optional bytes authenticity_key = 3;
-  bool has_authenticity_key() const;
-  private:
-  bool _internal_has_authenticity_key() const;
-  public:
-  void clear_authenticity_key();
-  const std::string& authenticity_key() const;
-  template <typename ArgT0 = const std::string&, typename... ArgT>
-  void set_authenticity_key(ArgT0&& arg0, ArgT... args);
-  std::string* mutable_authenticity_key();
-  PROTOBUF_NODISCARD std::string* release_authenticity_key();
-  void set_allocated_authenticity_key(std::string* authenticity_key);
-  private:
-  const std::string& _internal_authenticity_key() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_authenticity_key(const std::string& value);
-  std::string* _internal_mutable_authenticity_key();
-  public:
-
-  // optional bytes verification_key = 4;
-  bool has_verification_key() const;
-  private:
-  bool _internal_has_verification_key() const;
-  public:
-  void clear_verification_key();
-  const std::string& verification_key() const;
-  template <typename ArgT0 = const std::string&, typename... ArgT>
-  void set_verification_key(ArgT0&& arg0, ArgT... args);
-  std::string* mutable_verification_key();
-  PROTOBUF_NODISCARD std::string* release_verification_key();
-  void set_allocated_verification_key(std::string* verification_key);
-  private:
-  const std::string& _internal_verification_key() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_verification_key(const std::string& value);
-  std::string* _internal_mutable_verification_key();
-  public:
-
-  // optional bytes metadata_encryption_key = 8;
-  bool has_metadata_encryption_key() const;
-  private:
-  bool _internal_has_metadata_encryption_key() const;
-  public:
-  void clear_metadata_encryption_key();
-  const std::string& metadata_encryption_key() const;
-  template <typename ArgT0 = const std::string&, typename... ArgT>
-  void set_metadata_encryption_key(ArgT0&& arg0, ArgT... args);
-  std::string* mutable_metadata_encryption_key();
-  PROTOBUF_NODISCARD std::string* release_metadata_encryption_key();
-  void set_allocated_metadata_encryption_key(std::string* metadata_encryption_key);
-  private:
-  const std::string& _internal_metadata_encryption_key() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_metadata_encryption_key(const std::string& value);
-  std::string* _internal_mutable_metadata_encryption_key();
-  public:
-
-  // optional .nearby.internal.DeviceMetadata device_metadata = 9;
-  bool has_device_metadata() const;
-  private:
-  bool _internal_has_device_metadata() const;
-  public:
-  void clear_device_metadata();
-  const ::nearby::internal::DeviceMetadata& device_metadata() const;
-  PROTOBUF_NODISCARD ::nearby::internal::DeviceMetadata* release_device_metadata();
-  ::nearby::internal::DeviceMetadata* mutable_device_metadata();
-  void set_allocated_device_metadata(::nearby::internal::DeviceMetadata* device_metadata);
-  private:
-  const ::nearby::internal::DeviceMetadata& _internal_device_metadata() const;
-  ::nearby::internal::DeviceMetadata* _internal_mutable_device_metadata();
-  public:
-  void unsafe_arena_set_allocated_device_metadata(
-      ::nearby::internal::DeviceMetadata* device_metadata);
-  ::nearby::internal::DeviceMetadata* unsafe_arena_release_device_metadata();
-
-  // optional uint64 start_time_millis = 5;
-  bool has_start_time_millis() const;
-  private:
-  bool _internal_has_start_time_millis() const;
-  public:
-  void clear_start_time_millis();
-  uint64_t start_time_millis() const;
-  void set_start_time_millis(uint64_t value);
-  private:
-  uint64_t _internal_start_time_millis() const;
-  void _internal_set_start_time_millis(uint64_t value);
-  public:
-
-  // optional uint64 end_time_millis = 6;
-  bool has_end_time_millis() const;
-  private:
-  bool _internal_has_end_time_millis() const;
-  public:
-  void clear_end_time_millis();
-  uint64_t end_time_millis() const;
-  void set_end_time_millis(uint64_t value);
-  private:
-  uint64_t _internal_end_time_millis() const;
-  void _internal_set_end_time_millis(uint64_t value);
-  public:
-
-  // optional .nearby.internal.IdentityType identity_type = 1;
-  bool has_identity_type() const;
-  private:
-  bool _internal_has_identity_type() const;
-  public:
-  void clear_identity_type();
-  ::nearby::internal::IdentityType identity_type() const;
-  void set_identity_type(::nearby::internal::IdentityType value);
-  private:
-  ::nearby::internal::IdentityType _internal_identity_type() const;
-  void _internal_set_identity_type(::nearby::internal::IdentityType value);
-  public:
-
-  // @@protoc_insertion_point(class_scope:nearby.internal.LocalCredential)
- private:
-  class _Internal;
-
-  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
-  typedef void InternalArenaConstructable_;
-  typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
-  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  ::PROTOBUF_NAMESPACE_ID::internal::MapField<
-      LocalCredential_ConsumedSaltsEntry_DoNotUse,
-      uint32_t, bool,
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_UINT32,
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_BOOL> consumed_salts_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr secret_id_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr authenticity_key_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr verification_key_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr metadata_encryption_key_;
-  ::nearby::internal::DeviceMetadata* device_metadata_;
-  uint64_t start_time_millis_;
-  uint64_t end_time_millis_;
-  int identity_type_;
-  friend struct ::TableStruct_internal_2fproto_2fcredential_2eproto;
-};
-// -------------------------------------------------------------------
 
 class SharedCredential final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:nearby.internal.SharedCredential) */ {
@@ -485,7 +145,7 @@ class SharedCredential final :
                &_SharedCredential_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    2;
+    0;
 
   friend void swap(SharedCredential& a, SharedCredential& b) {
     a.Swap(&b);
@@ -559,20 +219,18 @@ class SharedCredential final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kSecretIdFieldNumber = 2,
-    kAuthenticityKeyFieldNumber = 3,
-    kVerificationKeyFieldNumber = 4,
-    kEncryptedMetadataBytesFieldNumber = 7,
-    kMetadataEncryptionKeyTagFieldNumber = 8,
-    kStartTimeMillisFieldNumber = 5,
-    kEndTimeMillisFieldNumber = 6,
-    kIdentityTypeFieldNumber = 1,
+    kSecretIdFieldNumber = 1,
+    kKeySeedFieldNumber = 2,
+    kEncryptedMetadataBytesFieldNumber = 5,
+    kMetadataEncryptionKeyTagFieldNumber = 6,
+    kConnectionSignatureVerificationKeyFieldNumber = 7,
+    kAdvertisementSignatureVerificationKeyFieldNumber = 8,
+    kVersionFieldNumber = 10,
+    kStartTimeMillisFieldNumber = 3,
+    kEndTimeMillisFieldNumber = 4,
+    kIdentityTypeFieldNumber = 9,
   };
-  // optional bytes secret_id = 2;
-  bool has_secret_id() const;
-  private:
-  bool _internal_has_secret_id() const;
-  public:
+  // bytes secret_id = 1;
   void clear_secret_id();
   const std::string& secret_id() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -586,47 +244,21 @@ class SharedCredential final :
   std::string* _internal_mutable_secret_id();
   public:
 
-  // optional bytes authenticity_key = 3;
-  bool has_authenticity_key() const;
-  private:
-  bool _internal_has_authenticity_key() const;
-  public:
-  void clear_authenticity_key();
-  const std::string& authenticity_key() const;
+  // bytes key_seed = 2;
+  void clear_key_seed();
+  const std::string& key_seed() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
-  void set_authenticity_key(ArgT0&& arg0, ArgT... args);
-  std::string* mutable_authenticity_key();
-  PROTOBUF_NODISCARD std::string* release_authenticity_key();
-  void set_allocated_authenticity_key(std::string* authenticity_key);
+  void set_key_seed(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_key_seed();
+  PROTOBUF_NODISCARD std::string* release_key_seed();
+  void set_allocated_key_seed(std::string* key_seed);
   private:
-  const std::string& _internal_authenticity_key() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_authenticity_key(const std::string& value);
-  std::string* _internal_mutable_authenticity_key();
+  const std::string& _internal_key_seed() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_key_seed(const std::string& value);
+  std::string* _internal_mutable_key_seed();
   public:
 
-  // optional bytes verification_key = 4;
-  bool has_verification_key() const;
-  private:
-  bool _internal_has_verification_key() const;
-  public:
-  void clear_verification_key();
-  const std::string& verification_key() const;
-  template <typename ArgT0 = const std::string&, typename... ArgT>
-  void set_verification_key(ArgT0&& arg0, ArgT... args);
-  std::string* mutable_verification_key();
-  PROTOBUF_NODISCARD std::string* release_verification_key();
-  void set_allocated_verification_key(std::string* verification_key);
-  private:
-  const std::string& _internal_verification_key() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_verification_key(const std::string& value);
-  std::string* _internal_mutable_verification_key();
-  public:
-
-  // optional bytes encrypted_metadata_bytes = 7;
-  bool has_encrypted_metadata_bytes() const;
-  private:
-  bool _internal_has_encrypted_metadata_bytes() const;
-  public:
+  // bytes encrypted_metadata_bytes = 5;
   void clear_encrypted_metadata_bytes();
   const std::string& encrypted_metadata_bytes() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -640,11 +272,7 @@ class SharedCredential final :
   std::string* _internal_mutable_encrypted_metadata_bytes();
   public:
 
-  // optional bytes metadata_encryption_key_tag = 8;
-  bool has_metadata_encryption_key_tag() const;
-  private:
-  bool _internal_has_metadata_encryption_key_tag() const;
-  public:
+  // bytes metadata_encryption_key_tag = 6;
   void clear_metadata_encryption_key_tag();
   const std::string& metadata_encryption_key_tag() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -658,37 +286,67 @@ class SharedCredential final :
   std::string* _internal_mutable_metadata_encryption_key_tag();
   public:
 
-  // optional uint64 start_time_millis = 5;
-  bool has_start_time_millis() const;
+  // bytes connection_signature_verification_key = 7;
+  void clear_connection_signature_verification_key();
+  const std::string& connection_signature_verification_key() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_connection_signature_verification_key(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_connection_signature_verification_key();
+  PROTOBUF_NODISCARD std::string* release_connection_signature_verification_key();
+  void set_allocated_connection_signature_verification_key(std::string* connection_signature_verification_key);
   private:
-  bool _internal_has_start_time_millis() const;
+  const std::string& _internal_connection_signature_verification_key() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_connection_signature_verification_key(const std::string& value);
+  std::string* _internal_mutable_connection_signature_verification_key();
   public:
+
+  // bytes advertisement_signature_verification_key = 8;
+  void clear_advertisement_signature_verification_key();
+  const std::string& advertisement_signature_verification_key() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_advertisement_signature_verification_key(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_advertisement_signature_verification_key();
+  PROTOBUF_NODISCARD std::string* release_advertisement_signature_verification_key();
+  void set_allocated_advertisement_signature_verification_key(std::string* advertisement_signature_verification_key);
+  private:
+  const std::string& _internal_advertisement_signature_verification_key() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_advertisement_signature_verification_key(const std::string& value);
+  std::string* _internal_mutable_advertisement_signature_verification_key();
+  public:
+
+  // bytes version = 10;
+  void clear_version();
+  const std::string& version() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_version(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_version();
+  PROTOBUF_NODISCARD std::string* release_version();
+  void set_allocated_version(std::string* version);
+  private:
+  const std::string& _internal_version() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_version(const std::string& value);
+  std::string* _internal_mutable_version();
+  public:
+
+  // int64 start_time_millis = 3;
   void clear_start_time_millis();
-  uint64_t start_time_millis() const;
-  void set_start_time_millis(uint64_t value);
+  int64_t start_time_millis() const;
+  void set_start_time_millis(int64_t value);
   private:
-  uint64_t _internal_start_time_millis() const;
-  void _internal_set_start_time_millis(uint64_t value);
+  int64_t _internal_start_time_millis() const;
+  void _internal_set_start_time_millis(int64_t value);
   public:
 
-  // optional uint64 end_time_millis = 6;
-  bool has_end_time_millis() const;
-  private:
-  bool _internal_has_end_time_millis() const;
-  public:
+  // int64 end_time_millis = 4;
   void clear_end_time_millis();
-  uint64_t end_time_millis() const;
-  void set_end_time_millis(uint64_t value);
+  int64_t end_time_millis() const;
+  void set_end_time_millis(int64_t value);
   private:
-  uint64_t _internal_end_time_millis() const;
-  void _internal_set_end_time_millis(uint64_t value);
+  int64_t _internal_end_time_millis() const;
+  void _internal_set_end_time_millis(int64_t value);
   public:
 
-  // optional .nearby.internal.IdentityType identity_type = 1;
-  bool has_identity_type() const;
-  private:
-  bool _internal_has_identity_type() const;
-  public:
+  // .nearby.internal.IdentityType identity_type = 9;
   void clear_identity_type();
   ::nearby::internal::IdentityType identity_type() const;
   void set_identity_type(::nearby::internal::IdentityType value);
@@ -704,16 +362,17 @@ class SharedCredential final :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
-  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr secret_id_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr authenticity_key_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr verification_key_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr key_seed_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr encrypted_metadata_bytes_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr metadata_encryption_key_tag_;
-  uint64_t start_time_millis_;
-  uint64_t end_time_millis_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr connection_signature_verification_key_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr advertisement_signature_verification_key_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr version_;
+  int64_t start_time_millis_;
+  int64_t end_time_millis_;
   int identity_type_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_internal_2fproto_2fcredential_2eproto;
 };
 // ===================================================================
@@ -725,530 +384,11 @@ class SharedCredential final :
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif  // __GNUC__
-// -------------------------------------------------------------------
-
-// LocalCredential
-
-// optional .nearby.internal.IdentityType identity_type = 1;
-inline bool LocalCredential::_internal_has_identity_type() const {
-  bool value = (_has_bits_[0] & 0x00000080u) != 0;
-  return value;
-}
-inline bool LocalCredential::has_identity_type() const {
-  return _internal_has_identity_type();
-}
-inline void LocalCredential::clear_identity_type() {
-  identity_type_ = 0;
-  _has_bits_[0] &= ~0x00000080u;
-}
-inline ::nearby::internal::IdentityType LocalCredential::_internal_identity_type() const {
-  return static_cast< ::nearby::internal::IdentityType >(identity_type_);
-}
-inline ::nearby::internal::IdentityType LocalCredential::identity_type() const {
-  // @@protoc_insertion_point(field_get:nearby.internal.LocalCredential.identity_type)
-  return _internal_identity_type();
-}
-inline void LocalCredential::_internal_set_identity_type(::nearby::internal::IdentityType value) {
-  _has_bits_[0] |= 0x00000080u;
-  identity_type_ = value;
-}
-inline void LocalCredential::set_identity_type(::nearby::internal::IdentityType value) {
-  _internal_set_identity_type(value);
-  // @@protoc_insertion_point(field_set:nearby.internal.LocalCredential.identity_type)
-}
-
-// optional bytes secret_id = 2;
-inline bool LocalCredential::_internal_has_secret_id() const {
-  bool value = (_has_bits_[0] & 0x00000001u) != 0;
-  return value;
-}
-inline bool LocalCredential::has_secret_id() const {
-  return _internal_has_secret_id();
-}
-inline void LocalCredential::clear_secret_id() {
-  secret_id_.ClearToEmpty();
-  _has_bits_[0] &= ~0x00000001u;
-}
-inline const std::string& LocalCredential::secret_id() const {
-  // @@protoc_insertion_point(field_get:nearby.internal.LocalCredential.secret_id)
-  return _internal_secret_id();
-}
-template <typename ArgT0, typename... ArgT>
-inline PROTOBUF_ALWAYS_INLINE
-void LocalCredential::set_secret_id(ArgT0&& arg0, ArgT... args) {
- _has_bits_[0] |= 0x00000001u;
- secret_id_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:nearby.internal.LocalCredential.secret_id)
-}
-inline std::string* LocalCredential::mutable_secret_id() {
-  std::string* _s = _internal_mutable_secret_id();
-  // @@protoc_insertion_point(field_mutable:nearby.internal.LocalCredential.secret_id)
-  return _s;
-}
-inline const std::string& LocalCredential::_internal_secret_id() const {
-  return secret_id_.Get();
-}
-inline void LocalCredential::_internal_set_secret_id(const std::string& value) {
-  _has_bits_[0] |= 0x00000001u;
-  secret_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
-}
-inline std::string* LocalCredential::_internal_mutable_secret_id() {
-  _has_bits_[0] |= 0x00000001u;
-  return secret_id_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
-}
-inline std::string* LocalCredential::release_secret_id() {
-  // @@protoc_insertion_point(field_release:nearby.internal.LocalCredential.secret_id)
-  if (!_internal_has_secret_id()) {
-    return nullptr;
-  }
-  _has_bits_[0] &= ~0x00000001u;
-  auto* p = secret_id_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (secret_id_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    secret_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  return p;
-}
-inline void LocalCredential::set_allocated_secret_id(std::string* secret_id) {
-  if (secret_id != nullptr) {
-    _has_bits_[0] |= 0x00000001u;
-  } else {
-    _has_bits_[0] &= ~0x00000001u;
-  }
-  secret_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), secret_id,
-      GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (secret_id_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    secret_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:nearby.internal.LocalCredential.secret_id)
-}
-
-// optional bytes authenticity_key = 3;
-inline bool LocalCredential::_internal_has_authenticity_key() const {
-  bool value = (_has_bits_[0] & 0x00000002u) != 0;
-  return value;
-}
-inline bool LocalCredential::has_authenticity_key() const {
-  return _internal_has_authenticity_key();
-}
-inline void LocalCredential::clear_authenticity_key() {
-  authenticity_key_.ClearToEmpty();
-  _has_bits_[0] &= ~0x00000002u;
-}
-inline const std::string& LocalCredential::authenticity_key() const {
-  // @@protoc_insertion_point(field_get:nearby.internal.LocalCredential.authenticity_key)
-  return _internal_authenticity_key();
-}
-template <typename ArgT0, typename... ArgT>
-inline PROTOBUF_ALWAYS_INLINE
-void LocalCredential::set_authenticity_key(ArgT0&& arg0, ArgT... args) {
- _has_bits_[0] |= 0x00000002u;
- authenticity_key_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:nearby.internal.LocalCredential.authenticity_key)
-}
-inline std::string* LocalCredential::mutable_authenticity_key() {
-  std::string* _s = _internal_mutable_authenticity_key();
-  // @@protoc_insertion_point(field_mutable:nearby.internal.LocalCredential.authenticity_key)
-  return _s;
-}
-inline const std::string& LocalCredential::_internal_authenticity_key() const {
-  return authenticity_key_.Get();
-}
-inline void LocalCredential::_internal_set_authenticity_key(const std::string& value) {
-  _has_bits_[0] |= 0x00000002u;
-  authenticity_key_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
-}
-inline std::string* LocalCredential::_internal_mutable_authenticity_key() {
-  _has_bits_[0] |= 0x00000002u;
-  return authenticity_key_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
-}
-inline std::string* LocalCredential::release_authenticity_key() {
-  // @@protoc_insertion_point(field_release:nearby.internal.LocalCredential.authenticity_key)
-  if (!_internal_has_authenticity_key()) {
-    return nullptr;
-  }
-  _has_bits_[0] &= ~0x00000002u;
-  auto* p = authenticity_key_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (authenticity_key_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    authenticity_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  return p;
-}
-inline void LocalCredential::set_allocated_authenticity_key(std::string* authenticity_key) {
-  if (authenticity_key != nullptr) {
-    _has_bits_[0] |= 0x00000002u;
-  } else {
-    _has_bits_[0] &= ~0x00000002u;
-  }
-  authenticity_key_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), authenticity_key,
-      GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (authenticity_key_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    authenticity_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:nearby.internal.LocalCredential.authenticity_key)
-}
-
-// optional bytes verification_key = 4;
-inline bool LocalCredential::_internal_has_verification_key() const {
-  bool value = (_has_bits_[0] & 0x00000004u) != 0;
-  return value;
-}
-inline bool LocalCredential::has_verification_key() const {
-  return _internal_has_verification_key();
-}
-inline void LocalCredential::clear_verification_key() {
-  verification_key_.ClearToEmpty();
-  _has_bits_[0] &= ~0x00000004u;
-}
-inline const std::string& LocalCredential::verification_key() const {
-  // @@protoc_insertion_point(field_get:nearby.internal.LocalCredential.verification_key)
-  return _internal_verification_key();
-}
-template <typename ArgT0, typename... ArgT>
-inline PROTOBUF_ALWAYS_INLINE
-void LocalCredential::set_verification_key(ArgT0&& arg0, ArgT... args) {
- _has_bits_[0] |= 0x00000004u;
- verification_key_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:nearby.internal.LocalCredential.verification_key)
-}
-inline std::string* LocalCredential::mutable_verification_key() {
-  std::string* _s = _internal_mutable_verification_key();
-  // @@protoc_insertion_point(field_mutable:nearby.internal.LocalCredential.verification_key)
-  return _s;
-}
-inline const std::string& LocalCredential::_internal_verification_key() const {
-  return verification_key_.Get();
-}
-inline void LocalCredential::_internal_set_verification_key(const std::string& value) {
-  _has_bits_[0] |= 0x00000004u;
-  verification_key_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
-}
-inline std::string* LocalCredential::_internal_mutable_verification_key() {
-  _has_bits_[0] |= 0x00000004u;
-  return verification_key_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
-}
-inline std::string* LocalCredential::release_verification_key() {
-  // @@protoc_insertion_point(field_release:nearby.internal.LocalCredential.verification_key)
-  if (!_internal_has_verification_key()) {
-    return nullptr;
-  }
-  _has_bits_[0] &= ~0x00000004u;
-  auto* p = verification_key_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (verification_key_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    verification_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  return p;
-}
-inline void LocalCredential::set_allocated_verification_key(std::string* verification_key) {
-  if (verification_key != nullptr) {
-    _has_bits_[0] |= 0x00000004u;
-  } else {
-    _has_bits_[0] &= ~0x00000004u;
-  }
-  verification_key_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), verification_key,
-      GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (verification_key_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    verification_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:nearby.internal.LocalCredential.verification_key)
-}
-
-// optional uint64 start_time_millis = 5;
-inline bool LocalCredential::_internal_has_start_time_millis() const {
-  bool value = (_has_bits_[0] & 0x00000020u) != 0;
-  return value;
-}
-inline bool LocalCredential::has_start_time_millis() const {
-  return _internal_has_start_time_millis();
-}
-inline void LocalCredential::clear_start_time_millis() {
-  start_time_millis_ = uint64_t{0u};
-  _has_bits_[0] &= ~0x00000020u;
-}
-inline uint64_t LocalCredential::_internal_start_time_millis() const {
-  return start_time_millis_;
-}
-inline uint64_t LocalCredential::start_time_millis() const {
-  // @@protoc_insertion_point(field_get:nearby.internal.LocalCredential.start_time_millis)
-  return _internal_start_time_millis();
-}
-inline void LocalCredential::_internal_set_start_time_millis(uint64_t value) {
-  _has_bits_[0] |= 0x00000020u;
-  start_time_millis_ = value;
-}
-inline void LocalCredential::set_start_time_millis(uint64_t value) {
-  _internal_set_start_time_millis(value);
-  // @@protoc_insertion_point(field_set:nearby.internal.LocalCredential.start_time_millis)
-}
-
-// optional uint64 end_time_millis = 6;
-inline bool LocalCredential::_internal_has_end_time_millis() const {
-  bool value = (_has_bits_[0] & 0x00000040u) != 0;
-  return value;
-}
-inline bool LocalCredential::has_end_time_millis() const {
-  return _internal_has_end_time_millis();
-}
-inline void LocalCredential::clear_end_time_millis() {
-  end_time_millis_ = uint64_t{0u};
-  _has_bits_[0] &= ~0x00000040u;
-}
-inline uint64_t LocalCredential::_internal_end_time_millis() const {
-  return end_time_millis_;
-}
-inline uint64_t LocalCredential::end_time_millis() const {
-  // @@protoc_insertion_point(field_get:nearby.internal.LocalCredential.end_time_millis)
-  return _internal_end_time_millis();
-}
-inline void LocalCredential::_internal_set_end_time_millis(uint64_t value) {
-  _has_bits_[0] |= 0x00000040u;
-  end_time_millis_ = value;
-}
-inline void LocalCredential::set_end_time_millis(uint64_t value) {
-  _internal_set_end_time_millis(value);
-  // @@protoc_insertion_point(field_set:nearby.internal.LocalCredential.end_time_millis)
-}
-
-// map<uint32, bool> consumed_salts = 7;
-inline int LocalCredential::_internal_consumed_salts_size() const {
-  return consumed_salts_.size();
-}
-inline int LocalCredential::consumed_salts_size() const {
-  return _internal_consumed_salts_size();
-}
-inline void LocalCredential::clear_consumed_salts() {
-  consumed_salts_.Clear();
-}
-inline const ::PROTOBUF_NAMESPACE_ID::Map< uint32_t, bool >&
-LocalCredential::_internal_consumed_salts() const {
-  return consumed_salts_.GetMap();
-}
-inline const ::PROTOBUF_NAMESPACE_ID::Map< uint32_t, bool >&
-LocalCredential::consumed_salts() const {
-  // @@protoc_insertion_point(field_map:nearby.internal.LocalCredential.consumed_salts)
-  return _internal_consumed_salts();
-}
-inline ::PROTOBUF_NAMESPACE_ID::Map< uint32_t, bool >*
-LocalCredential::_internal_mutable_consumed_salts() {
-  return consumed_salts_.MutableMap();
-}
-inline ::PROTOBUF_NAMESPACE_ID::Map< uint32_t, bool >*
-LocalCredential::mutable_consumed_salts() {
-  // @@protoc_insertion_point(field_mutable_map:nearby.internal.LocalCredential.consumed_salts)
-  return _internal_mutable_consumed_salts();
-}
-
-// optional bytes metadata_encryption_key = 8;
-inline bool LocalCredential::_internal_has_metadata_encryption_key() const {
-  bool value = (_has_bits_[0] & 0x00000008u) != 0;
-  return value;
-}
-inline bool LocalCredential::has_metadata_encryption_key() const {
-  return _internal_has_metadata_encryption_key();
-}
-inline void LocalCredential::clear_metadata_encryption_key() {
-  metadata_encryption_key_.ClearToEmpty();
-  _has_bits_[0] &= ~0x00000008u;
-}
-inline const std::string& LocalCredential::metadata_encryption_key() const {
-  // @@protoc_insertion_point(field_get:nearby.internal.LocalCredential.metadata_encryption_key)
-  return _internal_metadata_encryption_key();
-}
-template <typename ArgT0, typename... ArgT>
-inline PROTOBUF_ALWAYS_INLINE
-void LocalCredential::set_metadata_encryption_key(ArgT0&& arg0, ArgT... args) {
- _has_bits_[0] |= 0x00000008u;
- metadata_encryption_key_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:nearby.internal.LocalCredential.metadata_encryption_key)
-}
-inline std::string* LocalCredential::mutable_metadata_encryption_key() {
-  std::string* _s = _internal_mutable_metadata_encryption_key();
-  // @@protoc_insertion_point(field_mutable:nearby.internal.LocalCredential.metadata_encryption_key)
-  return _s;
-}
-inline const std::string& LocalCredential::_internal_metadata_encryption_key() const {
-  return metadata_encryption_key_.Get();
-}
-inline void LocalCredential::_internal_set_metadata_encryption_key(const std::string& value) {
-  _has_bits_[0] |= 0x00000008u;
-  metadata_encryption_key_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
-}
-inline std::string* LocalCredential::_internal_mutable_metadata_encryption_key() {
-  _has_bits_[0] |= 0x00000008u;
-  return metadata_encryption_key_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
-}
-inline std::string* LocalCredential::release_metadata_encryption_key() {
-  // @@protoc_insertion_point(field_release:nearby.internal.LocalCredential.metadata_encryption_key)
-  if (!_internal_has_metadata_encryption_key()) {
-    return nullptr;
-  }
-  _has_bits_[0] &= ~0x00000008u;
-  auto* p = metadata_encryption_key_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (metadata_encryption_key_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    metadata_encryption_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  return p;
-}
-inline void LocalCredential::set_allocated_metadata_encryption_key(std::string* metadata_encryption_key) {
-  if (metadata_encryption_key != nullptr) {
-    _has_bits_[0] |= 0x00000008u;
-  } else {
-    _has_bits_[0] &= ~0x00000008u;
-  }
-  metadata_encryption_key_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), metadata_encryption_key,
-      GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (metadata_encryption_key_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    metadata_encryption_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:nearby.internal.LocalCredential.metadata_encryption_key)
-}
-
-// optional .nearby.internal.DeviceMetadata device_metadata = 9;
-inline bool LocalCredential::_internal_has_device_metadata() const {
-  bool value = (_has_bits_[0] & 0x00000010u) != 0;
-  PROTOBUF_ASSUME(!value || device_metadata_ != nullptr);
-  return value;
-}
-inline bool LocalCredential::has_device_metadata() const {
-  return _internal_has_device_metadata();
-}
-inline const ::nearby::internal::DeviceMetadata& LocalCredential::_internal_device_metadata() const {
-  const ::nearby::internal::DeviceMetadata* p = device_metadata_;
-  return p != nullptr ? *p : reinterpret_cast<const ::nearby::internal::DeviceMetadata&>(
-      ::nearby::internal::_DeviceMetadata_default_instance_);
-}
-inline const ::nearby::internal::DeviceMetadata& LocalCredential::device_metadata() const {
-  // @@protoc_insertion_point(field_get:nearby.internal.LocalCredential.device_metadata)
-  return _internal_device_metadata();
-}
-inline void LocalCredential::unsafe_arena_set_allocated_device_metadata(
-    ::nearby::internal::DeviceMetadata* device_metadata) {
-  if (GetArenaForAllocation() == nullptr) {
-    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(device_metadata_);
-  }
-  device_metadata_ = device_metadata;
-  if (device_metadata) {
-    _has_bits_[0] |= 0x00000010u;
-  } else {
-    _has_bits_[0] &= ~0x00000010u;
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:nearby.internal.LocalCredential.device_metadata)
-}
-inline ::nearby::internal::DeviceMetadata* LocalCredential::release_device_metadata() {
-  _has_bits_[0] &= ~0x00000010u;
-  ::nearby::internal::DeviceMetadata* temp = device_metadata_;
-  device_metadata_ = nullptr;
-#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
-  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
-  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  if (GetArenaForAllocation() == nullptr) { delete old; }
-#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
-  if (GetArenaForAllocation() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
-  return temp;
-}
-inline ::nearby::internal::DeviceMetadata* LocalCredential::unsafe_arena_release_device_metadata() {
-  // @@protoc_insertion_point(field_release:nearby.internal.LocalCredential.device_metadata)
-  _has_bits_[0] &= ~0x00000010u;
-  ::nearby::internal::DeviceMetadata* temp = device_metadata_;
-  device_metadata_ = nullptr;
-  return temp;
-}
-inline ::nearby::internal::DeviceMetadata* LocalCredential::_internal_mutable_device_metadata() {
-  _has_bits_[0] |= 0x00000010u;
-  if (device_metadata_ == nullptr) {
-    auto* p = CreateMaybeMessage<::nearby::internal::DeviceMetadata>(GetArenaForAllocation());
-    device_metadata_ = p;
-  }
-  return device_metadata_;
-}
-inline ::nearby::internal::DeviceMetadata* LocalCredential::mutable_device_metadata() {
-  ::nearby::internal::DeviceMetadata* _msg = _internal_mutable_device_metadata();
-  // @@protoc_insertion_point(field_mutable:nearby.internal.LocalCredential.device_metadata)
-  return _msg;
-}
-inline void LocalCredential::set_allocated_device_metadata(::nearby::internal::DeviceMetadata* device_metadata) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
-  if (message_arena == nullptr) {
-    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(device_metadata_);
-  }
-  if (device_metadata) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-        ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<
-            ::PROTOBUF_NAMESPACE_ID::MessageLite>::GetOwningArena(
-                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(device_metadata));
-    if (message_arena != submessage_arena) {
-      device_metadata = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, device_metadata, submessage_arena);
-    }
-    _has_bits_[0] |= 0x00000010u;
-  } else {
-    _has_bits_[0] &= ~0x00000010u;
-  }
-  device_metadata_ = device_metadata;
-  // @@protoc_insertion_point(field_set_allocated:nearby.internal.LocalCredential.device_metadata)
-}
-
-// -------------------------------------------------------------------
-
 // SharedCredential
 
-// optional .nearby.internal.IdentityType identity_type = 1;
-inline bool SharedCredential::_internal_has_identity_type() const {
-  bool value = (_has_bits_[0] & 0x00000080u) != 0;
-  return value;
-}
-inline bool SharedCredential::has_identity_type() const {
-  return _internal_has_identity_type();
-}
-inline void SharedCredential::clear_identity_type() {
-  identity_type_ = 0;
-  _has_bits_[0] &= ~0x00000080u;
-}
-inline ::nearby::internal::IdentityType SharedCredential::_internal_identity_type() const {
-  return static_cast< ::nearby::internal::IdentityType >(identity_type_);
-}
-inline ::nearby::internal::IdentityType SharedCredential::identity_type() const {
-  // @@protoc_insertion_point(field_get:nearby.internal.SharedCredential.identity_type)
-  return _internal_identity_type();
-}
-inline void SharedCredential::_internal_set_identity_type(::nearby::internal::IdentityType value) {
-  _has_bits_[0] |= 0x00000080u;
-  identity_type_ = value;
-}
-inline void SharedCredential::set_identity_type(::nearby::internal::IdentityType value) {
-  _internal_set_identity_type(value);
-  // @@protoc_insertion_point(field_set:nearby.internal.SharedCredential.identity_type)
-}
-
-// optional bytes secret_id = 2;
-inline bool SharedCredential::_internal_has_secret_id() const {
-  bool value = (_has_bits_[0] & 0x00000001u) != 0;
-  return value;
-}
-inline bool SharedCredential::has_secret_id() const {
-  return _internal_has_secret_id();
-}
+// bytes secret_id = 1;
 inline void SharedCredential::clear_secret_id() {
   secret_id_.ClearToEmpty();
-  _has_bits_[0] &= ~0x00000001u;
 }
 inline const std::string& SharedCredential::secret_id() const {
   // @@protoc_insertion_point(field_get:nearby.internal.SharedCredential.secret_id)
@@ -1257,7 +397,7 @@ inline const std::string& SharedCredential::secret_id() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void SharedCredential::set_secret_id(ArgT0&& arg0, ArgT... args) {
- _has_bits_[0] |= 0x00000001u;
+ 
  secret_id_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:nearby.internal.SharedCredential.secret_id)
 }
@@ -1270,32 +410,22 @@ inline const std::string& SharedCredential::_internal_secret_id() const {
   return secret_id_.Get();
 }
 inline void SharedCredential::_internal_set_secret_id(const std::string& value) {
-  _has_bits_[0] |= 0x00000001u;
+  
   secret_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
 }
 inline std::string* SharedCredential::_internal_mutable_secret_id() {
-  _has_bits_[0] |= 0x00000001u;
+  
   return secret_id_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
 }
 inline std::string* SharedCredential::release_secret_id() {
   // @@protoc_insertion_point(field_release:nearby.internal.SharedCredential.secret_id)
-  if (!_internal_has_secret_id()) {
-    return nullptr;
-  }
-  _has_bits_[0] &= ~0x00000001u;
-  auto* p = secret_id_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (secret_id_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    secret_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  return p;
+  return secret_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
 }
 inline void SharedCredential::set_allocated_secret_id(std::string* secret_id) {
   if (secret_id != nullptr) {
-    _has_bits_[0] |= 0x00000001u;
+    
   } else {
-    _has_bits_[0] &= ~0x00000001u;
+    
   }
   secret_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), secret_id,
       GetArenaForAllocation());
@@ -1307,211 +437,100 @@ inline void SharedCredential::set_allocated_secret_id(std::string* secret_id) {
   // @@protoc_insertion_point(field_set_allocated:nearby.internal.SharedCredential.secret_id)
 }
 
-// optional bytes authenticity_key = 3;
-inline bool SharedCredential::_internal_has_authenticity_key() const {
-  bool value = (_has_bits_[0] & 0x00000002u) != 0;
-  return value;
+// bytes key_seed = 2;
+inline void SharedCredential::clear_key_seed() {
+  key_seed_.ClearToEmpty();
 }
-inline bool SharedCredential::has_authenticity_key() const {
-  return _internal_has_authenticity_key();
-}
-inline void SharedCredential::clear_authenticity_key() {
-  authenticity_key_.ClearToEmpty();
-  _has_bits_[0] &= ~0x00000002u;
-}
-inline const std::string& SharedCredential::authenticity_key() const {
-  // @@protoc_insertion_point(field_get:nearby.internal.SharedCredential.authenticity_key)
-  return _internal_authenticity_key();
+inline const std::string& SharedCredential::key_seed() const {
+  // @@protoc_insertion_point(field_get:nearby.internal.SharedCredential.key_seed)
+  return _internal_key_seed();
 }
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
-void SharedCredential::set_authenticity_key(ArgT0&& arg0, ArgT... args) {
- _has_bits_[0] |= 0x00000002u;
- authenticity_key_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:nearby.internal.SharedCredential.authenticity_key)
+void SharedCredential::set_key_seed(ArgT0&& arg0, ArgT... args) {
+ 
+ key_seed_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:nearby.internal.SharedCredential.key_seed)
 }
-inline std::string* SharedCredential::mutable_authenticity_key() {
-  std::string* _s = _internal_mutable_authenticity_key();
-  // @@protoc_insertion_point(field_mutable:nearby.internal.SharedCredential.authenticity_key)
+inline std::string* SharedCredential::mutable_key_seed() {
+  std::string* _s = _internal_mutable_key_seed();
+  // @@protoc_insertion_point(field_mutable:nearby.internal.SharedCredential.key_seed)
   return _s;
 }
-inline const std::string& SharedCredential::_internal_authenticity_key() const {
-  return authenticity_key_.Get();
+inline const std::string& SharedCredential::_internal_key_seed() const {
+  return key_seed_.Get();
 }
-inline void SharedCredential::_internal_set_authenticity_key(const std::string& value) {
-  _has_bits_[0] |= 0x00000002u;
-  authenticity_key_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+inline void SharedCredential::_internal_set_key_seed(const std::string& value) {
+  
+  key_seed_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
 }
-inline std::string* SharedCredential::_internal_mutable_authenticity_key() {
-  _has_bits_[0] |= 0x00000002u;
-  return authenticity_key_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+inline std::string* SharedCredential::_internal_mutable_key_seed() {
+  
+  return key_seed_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
 }
-inline std::string* SharedCredential::release_authenticity_key() {
-  // @@protoc_insertion_point(field_release:nearby.internal.SharedCredential.authenticity_key)
-  if (!_internal_has_authenticity_key()) {
-    return nullptr;
-  }
-  _has_bits_[0] &= ~0x00000002u;
-  auto* p = authenticity_key_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (authenticity_key_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    authenticity_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  return p;
+inline std::string* SharedCredential::release_key_seed() {
+  // @@protoc_insertion_point(field_release:nearby.internal.SharedCredential.key_seed)
+  return key_seed_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
 }
-inline void SharedCredential::set_allocated_authenticity_key(std::string* authenticity_key) {
-  if (authenticity_key != nullptr) {
-    _has_bits_[0] |= 0x00000002u;
+inline void SharedCredential::set_allocated_key_seed(std::string* key_seed) {
+  if (key_seed != nullptr) {
+    
   } else {
-    _has_bits_[0] &= ~0x00000002u;
+    
   }
-  authenticity_key_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), authenticity_key,
+  key_seed_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), key_seed,
       GetArenaForAllocation());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (authenticity_key_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    authenticity_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  if (key_seed_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    key_seed_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:nearby.internal.SharedCredential.authenticity_key)
+  // @@protoc_insertion_point(field_set_allocated:nearby.internal.SharedCredential.key_seed)
 }
 
-// optional bytes verification_key = 4;
-inline bool SharedCredential::_internal_has_verification_key() const {
-  bool value = (_has_bits_[0] & 0x00000004u) != 0;
-  return value;
-}
-inline bool SharedCredential::has_verification_key() const {
-  return _internal_has_verification_key();
-}
-inline void SharedCredential::clear_verification_key() {
-  verification_key_.ClearToEmpty();
-  _has_bits_[0] &= ~0x00000004u;
-}
-inline const std::string& SharedCredential::verification_key() const {
-  // @@protoc_insertion_point(field_get:nearby.internal.SharedCredential.verification_key)
-  return _internal_verification_key();
-}
-template <typename ArgT0, typename... ArgT>
-inline PROTOBUF_ALWAYS_INLINE
-void SharedCredential::set_verification_key(ArgT0&& arg0, ArgT... args) {
- _has_bits_[0] |= 0x00000004u;
- verification_key_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:nearby.internal.SharedCredential.verification_key)
-}
-inline std::string* SharedCredential::mutable_verification_key() {
-  std::string* _s = _internal_mutable_verification_key();
-  // @@protoc_insertion_point(field_mutable:nearby.internal.SharedCredential.verification_key)
-  return _s;
-}
-inline const std::string& SharedCredential::_internal_verification_key() const {
-  return verification_key_.Get();
-}
-inline void SharedCredential::_internal_set_verification_key(const std::string& value) {
-  _has_bits_[0] |= 0x00000004u;
-  verification_key_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
-}
-inline std::string* SharedCredential::_internal_mutable_verification_key() {
-  _has_bits_[0] |= 0x00000004u;
-  return verification_key_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
-}
-inline std::string* SharedCredential::release_verification_key() {
-  // @@protoc_insertion_point(field_release:nearby.internal.SharedCredential.verification_key)
-  if (!_internal_has_verification_key()) {
-    return nullptr;
-  }
-  _has_bits_[0] &= ~0x00000004u;
-  auto* p = verification_key_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (verification_key_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    verification_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  return p;
-}
-inline void SharedCredential::set_allocated_verification_key(std::string* verification_key) {
-  if (verification_key != nullptr) {
-    _has_bits_[0] |= 0x00000004u;
-  } else {
-    _has_bits_[0] &= ~0x00000004u;
-  }
-  verification_key_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), verification_key,
-      GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (verification_key_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    verification_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:nearby.internal.SharedCredential.verification_key)
-}
-
-// optional uint64 start_time_millis = 5;
-inline bool SharedCredential::_internal_has_start_time_millis() const {
-  bool value = (_has_bits_[0] & 0x00000020u) != 0;
-  return value;
-}
-inline bool SharedCredential::has_start_time_millis() const {
-  return _internal_has_start_time_millis();
-}
+// int64 start_time_millis = 3;
 inline void SharedCredential::clear_start_time_millis() {
-  start_time_millis_ = uint64_t{0u};
-  _has_bits_[0] &= ~0x00000020u;
+  start_time_millis_ = int64_t{0};
 }
-inline uint64_t SharedCredential::_internal_start_time_millis() const {
+inline int64_t SharedCredential::_internal_start_time_millis() const {
   return start_time_millis_;
 }
-inline uint64_t SharedCredential::start_time_millis() const {
+inline int64_t SharedCredential::start_time_millis() const {
   // @@protoc_insertion_point(field_get:nearby.internal.SharedCredential.start_time_millis)
   return _internal_start_time_millis();
 }
-inline void SharedCredential::_internal_set_start_time_millis(uint64_t value) {
-  _has_bits_[0] |= 0x00000020u;
+inline void SharedCredential::_internal_set_start_time_millis(int64_t value) {
+  
   start_time_millis_ = value;
 }
-inline void SharedCredential::set_start_time_millis(uint64_t value) {
+inline void SharedCredential::set_start_time_millis(int64_t value) {
   _internal_set_start_time_millis(value);
   // @@protoc_insertion_point(field_set:nearby.internal.SharedCredential.start_time_millis)
 }
 
-// optional uint64 end_time_millis = 6;
-inline bool SharedCredential::_internal_has_end_time_millis() const {
-  bool value = (_has_bits_[0] & 0x00000040u) != 0;
-  return value;
-}
-inline bool SharedCredential::has_end_time_millis() const {
-  return _internal_has_end_time_millis();
-}
+// int64 end_time_millis = 4;
 inline void SharedCredential::clear_end_time_millis() {
-  end_time_millis_ = uint64_t{0u};
-  _has_bits_[0] &= ~0x00000040u;
+  end_time_millis_ = int64_t{0};
 }
-inline uint64_t SharedCredential::_internal_end_time_millis() const {
+inline int64_t SharedCredential::_internal_end_time_millis() const {
   return end_time_millis_;
 }
-inline uint64_t SharedCredential::end_time_millis() const {
+inline int64_t SharedCredential::end_time_millis() const {
   // @@protoc_insertion_point(field_get:nearby.internal.SharedCredential.end_time_millis)
   return _internal_end_time_millis();
 }
-inline void SharedCredential::_internal_set_end_time_millis(uint64_t value) {
-  _has_bits_[0] |= 0x00000040u;
+inline void SharedCredential::_internal_set_end_time_millis(int64_t value) {
+  
   end_time_millis_ = value;
 }
-inline void SharedCredential::set_end_time_millis(uint64_t value) {
+inline void SharedCredential::set_end_time_millis(int64_t value) {
   _internal_set_end_time_millis(value);
   // @@protoc_insertion_point(field_set:nearby.internal.SharedCredential.end_time_millis)
 }
 
-// optional bytes encrypted_metadata_bytes = 7;
-inline bool SharedCredential::_internal_has_encrypted_metadata_bytes() const {
-  bool value = (_has_bits_[0] & 0x00000008u) != 0;
-  return value;
-}
-inline bool SharedCredential::has_encrypted_metadata_bytes() const {
-  return _internal_has_encrypted_metadata_bytes();
-}
+// bytes encrypted_metadata_bytes = 5;
 inline void SharedCredential::clear_encrypted_metadata_bytes() {
   encrypted_metadata_bytes_.ClearToEmpty();
-  _has_bits_[0] &= ~0x00000008u;
 }
 inline const std::string& SharedCredential::encrypted_metadata_bytes() const {
   // @@protoc_insertion_point(field_get:nearby.internal.SharedCredential.encrypted_metadata_bytes)
@@ -1520,7 +539,7 @@ inline const std::string& SharedCredential::encrypted_metadata_bytes() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void SharedCredential::set_encrypted_metadata_bytes(ArgT0&& arg0, ArgT... args) {
- _has_bits_[0] |= 0x00000008u;
+ 
  encrypted_metadata_bytes_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:nearby.internal.SharedCredential.encrypted_metadata_bytes)
 }
@@ -1533,32 +552,22 @@ inline const std::string& SharedCredential::_internal_encrypted_metadata_bytes()
   return encrypted_metadata_bytes_.Get();
 }
 inline void SharedCredential::_internal_set_encrypted_metadata_bytes(const std::string& value) {
-  _has_bits_[0] |= 0x00000008u;
+  
   encrypted_metadata_bytes_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
 }
 inline std::string* SharedCredential::_internal_mutable_encrypted_metadata_bytes() {
-  _has_bits_[0] |= 0x00000008u;
+  
   return encrypted_metadata_bytes_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
 }
 inline std::string* SharedCredential::release_encrypted_metadata_bytes() {
   // @@protoc_insertion_point(field_release:nearby.internal.SharedCredential.encrypted_metadata_bytes)
-  if (!_internal_has_encrypted_metadata_bytes()) {
-    return nullptr;
-  }
-  _has_bits_[0] &= ~0x00000008u;
-  auto* p = encrypted_metadata_bytes_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (encrypted_metadata_bytes_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    encrypted_metadata_bytes_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  return p;
+  return encrypted_metadata_bytes_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
 }
 inline void SharedCredential::set_allocated_encrypted_metadata_bytes(std::string* encrypted_metadata_bytes) {
   if (encrypted_metadata_bytes != nullptr) {
-    _has_bits_[0] |= 0x00000008u;
+    
   } else {
-    _has_bits_[0] &= ~0x00000008u;
+    
   }
   encrypted_metadata_bytes_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), encrypted_metadata_bytes,
       GetArenaForAllocation());
@@ -1570,17 +579,9 @@ inline void SharedCredential::set_allocated_encrypted_metadata_bytes(std::string
   // @@protoc_insertion_point(field_set_allocated:nearby.internal.SharedCredential.encrypted_metadata_bytes)
 }
 
-// optional bytes metadata_encryption_key_tag = 8;
-inline bool SharedCredential::_internal_has_metadata_encryption_key_tag() const {
-  bool value = (_has_bits_[0] & 0x00000010u) != 0;
-  return value;
-}
-inline bool SharedCredential::has_metadata_encryption_key_tag() const {
-  return _internal_has_metadata_encryption_key_tag();
-}
+// bytes metadata_encryption_key_tag = 6;
 inline void SharedCredential::clear_metadata_encryption_key_tag() {
   metadata_encryption_key_tag_.ClearToEmpty();
-  _has_bits_[0] &= ~0x00000010u;
 }
 inline const std::string& SharedCredential::metadata_encryption_key_tag() const {
   // @@protoc_insertion_point(field_get:nearby.internal.SharedCredential.metadata_encryption_key_tag)
@@ -1589,7 +590,7 @@ inline const std::string& SharedCredential::metadata_encryption_key_tag() const 
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void SharedCredential::set_metadata_encryption_key_tag(ArgT0&& arg0, ArgT... args) {
- _has_bits_[0] |= 0x00000010u;
+ 
  metadata_encryption_key_tag_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:nearby.internal.SharedCredential.metadata_encryption_key_tag)
 }
@@ -1602,32 +603,22 @@ inline const std::string& SharedCredential::_internal_metadata_encryption_key_ta
   return metadata_encryption_key_tag_.Get();
 }
 inline void SharedCredential::_internal_set_metadata_encryption_key_tag(const std::string& value) {
-  _has_bits_[0] |= 0x00000010u;
+  
   metadata_encryption_key_tag_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
 }
 inline std::string* SharedCredential::_internal_mutable_metadata_encryption_key_tag() {
-  _has_bits_[0] |= 0x00000010u;
+  
   return metadata_encryption_key_tag_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
 }
 inline std::string* SharedCredential::release_metadata_encryption_key_tag() {
   // @@protoc_insertion_point(field_release:nearby.internal.SharedCredential.metadata_encryption_key_tag)
-  if (!_internal_has_metadata_encryption_key_tag()) {
-    return nullptr;
-  }
-  _has_bits_[0] &= ~0x00000010u;
-  auto* p = metadata_encryption_key_tag_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (metadata_encryption_key_tag_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    metadata_encryption_key_tag_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  return p;
+  return metadata_encryption_key_tag_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
 }
 inline void SharedCredential::set_allocated_metadata_encryption_key_tag(std::string* metadata_encryption_key_tag) {
   if (metadata_encryption_key_tag != nullptr) {
-    _has_bits_[0] |= 0x00000010u;
+    
   } else {
-    _has_bits_[0] &= ~0x00000010u;
+    
   }
   metadata_encryption_key_tag_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), metadata_encryption_key_tag,
       GetArenaForAllocation());
@@ -1639,13 +630,182 @@ inline void SharedCredential::set_allocated_metadata_encryption_key_tag(std::str
   // @@protoc_insertion_point(field_set_allocated:nearby.internal.SharedCredential.metadata_encryption_key_tag)
 }
 
+// bytes connection_signature_verification_key = 7;
+inline void SharedCredential::clear_connection_signature_verification_key() {
+  connection_signature_verification_key_.ClearToEmpty();
+}
+inline const std::string& SharedCredential::connection_signature_verification_key() const {
+  // @@protoc_insertion_point(field_get:nearby.internal.SharedCredential.connection_signature_verification_key)
+  return _internal_connection_signature_verification_key();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void SharedCredential::set_connection_signature_verification_key(ArgT0&& arg0, ArgT... args) {
+ 
+ connection_signature_verification_key_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:nearby.internal.SharedCredential.connection_signature_verification_key)
+}
+inline std::string* SharedCredential::mutable_connection_signature_verification_key() {
+  std::string* _s = _internal_mutable_connection_signature_verification_key();
+  // @@protoc_insertion_point(field_mutable:nearby.internal.SharedCredential.connection_signature_verification_key)
+  return _s;
+}
+inline const std::string& SharedCredential::_internal_connection_signature_verification_key() const {
+  return connection_signature_verification_key_.Get();
+}
+inline void SharedCredential::_internal_set_connection_signature_verification_key(const std::string& value) {
+  
+  connection_signature_verification_key_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* SharedCredential::_internal_mutable_connection_signature_verification_key() {
+  
+  return connection_signature_verification_key_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* SharedCredential::release_connection_signature_verification_key() {
+  // @@protoc_insertion_point(field_release:nearby.internal.SharedCredential.connection_signature_verification_key)
+  return connection_signature_verification_key_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+}
+inline void SharedCredential::set_allocated_connection_signature_verification_key(std::string* connection_signature_verification_key) {
+  if (connection_signature_verification_key != nullptr) {
+    
+  } else {
+    
+  }
+  connection_signature_verification_key_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), connection_signature_verification_key,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (connection_signature_verification_key_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    connection_signature_verification_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:nearby.internal.SharedCredential.connection_signature_verification_key)
+}
+
+// bytes advertisement_signature_verification_key = 8;
+inline void SharedCredential::clear_advertisement_signature_verification_key() {
+  advertisement_signature_verification_key_.ClearToEmpty();
+}
+inline const std::string& SharedCredential::advertisement_signature_verification_key() const {
+  // @@protoc_insertion_point(field_get:nearby.internal.SharedCredential.advertisement_signature_verification_key)
+  return _internal_advertisement_signature_verification_key();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void SharedCredential::set_advertisement_signature_verification_key(ArgT0&& arg0, ArgT... args) {
+ 
+ advertisement_signature_verification_key_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:nearby.internal.SharedCredential.advertisement_signature_verification_key)
+}
+inline std::string* SharedCredential::mutable_advertisement_signature_verification_key() {
+  std::string* _s = _internal_mutable_advertisement_signature_verification_key();
+  // @@protoc_insertion_point(field_mutable:nearby.internal.SharedCredential.advertisement_signature_verification_key)
+  return _s;
+}
+inline const std::string& SharedCredential::_internal_advertisement_signature_verification_key() const {
+  return advertisement_signature_verification_key_.Get();
+}
+inline void SharedCredential::_internal_set_advertisement_signature_verification_key(const std::string& value) {
+  
+  advertisement_signature_verification_key_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* SharedCredential::_internal_mutable_advertisement_signature_verification_key() {
+  
+  return advertisement_signature_verification_key_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* SharedCredential::release_advertisement_signature_verification_key() {
+  // @@protoc_insertion_point(field_release:nearby.internal.SharedCredential.advertisement_signature_verification_key)
+  return advertisement_signature_verification_key_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+}
+inline void SharedCredential::set_allocated_advertisement_signature_verification_key(std::string* advertisement_signature_verification_key) {
+  if (advertisement_signature_verification_key != nullptr) {
+    
+  } else {
+    
+  }
+  advertisement_signature_verification_key_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), advertisement_signature_verification_key,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (advertisement_signature_verification_key_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    advertisement_signature_verification_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:nearby.internal.SharedCredential.advertisement_signature_verification_key)
+}
+
+// .nearby.internal.IdentityType identity_type = 9;
+inline void SharedCredential::clear_identity_type() {
+  identity_type_ = 0;
+}
+inline ::nearby::internal::IdentityType SharedCredential::_internal_identity_type() const {
+  return static_cast< ::nearby::internal::IdentityType >(identity_type_);
+}
+inline ::nearby::internal::IdentityType SharedCredential::identity_type() const {
+  // @@protoc_insertion_point(field_get:nearby.internal.SharedCredential.identity_type)
+  return _internal_identity_type();
+}
+inline void SharedCredential::_internal_set_identity_type(::nearby::internal::IdentityType value) {
+  
+  identity_type_ = value;
+}
+inline void SharedCredential::set_identity_type(::nearby::internal::IdentityType value) {
+  _internal_set_identity_type(value);
+  // @@protoc_insertion_point(field_set:nearby.internal.SharedCredential.identity_type)
+}
+
+// bytes version = 10;
+inline void SharedCredential::clear_version() {
+  version_.ClearToEmpty();
+}
+inline const std::string& SharedCredential::version() const {
+  // @@protoc_insertion_point(field_get:nearby.internal.SharedCredential.version)
+  return _internal_version();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void SharedCredential::set_version(ArgT0&& arg0, ArgT... args) {
+ 
+ version_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:nearby.internal.SharedCredential.version)
+}
+inline std::string* SharedCredential::mutable_version() {
+  std::string* _s = _internal_mutable_version();
+  // @@protoc_insertion_point(field_mutable:nearby.internal.SharedCredential.version)
+  return _s;
+}
+inline const std::string& SharedCredential::_internal_version() const {
+  return version_.Get();
+}
+inline void SharedCredential::_internal_set_version(const std::string& value) {
+  
+  version_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* SharedCredential::_internal_mutable_version() {
+  
+  return version_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* SharedCredential::release_version() {
+  // @@protoc_insertion_point(field_release:nearby.internal.SharedCredential.version)
+  return version_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+}
+inline void SharedCredential::set_allocated_version(std::string* version) {
+  if (version != nullptr) {
+    
+  } else {
+    
+  }
+  version_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), version,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (version_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    version_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:nearby.internal.SharedCredential.version)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
-// -------------------------------------------------------------------
-
-// -------------------------------------------------------------------
-
 
 // @@protoc_insertion_point(namespace_scope)
 
