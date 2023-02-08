@@ -28,6 +28,7 @@ objc_library(
         "WifiLan/GNCMBonjourConnection.m",
         "WifiLan/GNCMBonjourService.m",
         "WifiLan/GNCMBonjourUtils.m",
+        "WifiLanV2/GNCWiFiLANSocket.m",
     ],
     hdrs = [
         "Ble/GNCMBleCentral.h",
@@ -40,6 +41,7 @@ objc_library(
         "WifiLan/GNCMBonjourConnection.h",
         "WifiLan/GNCMBonjourService.h",
         "WifiLan/GNCMBonjourUtils.h",
+        "WifiLanV2/GNCWiFiLANSocket.h",
     ],
     deps = [
         "//internal/platform/implementation/apple:Shared",
@@ -49,7 +51,7 @@ objc_library(
         "//proto/mediums:ble_frames_cc_proto",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
+        "//third_party/apple_frameworks:Network",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
-        "@com_google_absl//absl/numeric:int128",
     ],
 )
