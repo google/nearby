@@ -22,6 +22,7 @@
 #include "connections/implementation/offline_frames_validator.h"
 #include "connections/status.h"
 #include "internal/platform/byte_array.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 
 namespace nearby {
 namespace connections {
@@ -36,6 +37,7 @@ using ::location::nearby::connections::ConnectionRequestFrame;
 using ::location::nearby::connections::ConnectionResponseFrame;
 using ::location::nearby::connections::LocationHint;
 using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::connections::V1Frame;
 
@@ -110,7 +112,7 @@ ByteArray ForConnectionRequest(const ConnectionInfo& conection_info) {
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForConnectionResponse(std::int32_t status) {
+ByteArray ForConnectionResponse(std::int32_t status, const OsInfo& os_info) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -125,6 +127,7 @@ ByteArray ForConnectionResponse(std::int32_t status) {
   sub_frame->set_response(status == Status::kSuccess
                               ? ConnectionResponseFrame::ACCEPT
                               : ConnectionResponseFrame::REJECT);
+  *sub_frame->mutable_os_info() = os_info;
 
   return ToBytes(std::move(frame));
 }

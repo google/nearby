@@ -17,8 +17,6 @@
 #include <array>
 #include <string>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/offline_frames.h"
@@ -31,6 +29,7 @@ namespace parser {
 namespace {
 
 using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PayloadTransferFrame;
 
 constexpr absl::string_view kEndpointId{"ABC"};
@@ -156,7 +155,8 @@ TEST(OfflineFramesValidatorTest,
      ValidatesAsOkWithValidConnectionResponseFrame) {
   OfflineFrame offline_frame;
 
-  ByteArray bytes = ForConnectionResponse(kStatusAccepted);
+  OsInfo os_info;
+  ByteArray bytes = ForConnectionResponse(kStatusAccepted, os_info);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -168,7 +168,8 @@ TEST(OfflineFramesValidatorTest,
      ValidatesAsFailWithNullConnectionResponseFrame) {
   OfflineFrame offline_frame;
 
-  ByteArray bytes = ForConnectionResponse(kStatusAccepted);
+  OsInfo os_info;
+  ByteArray bytes = ForConnectionResponse(kStatusAccepted, os_info);
   offline_frame.ParseFromString(std::string(bytes));
   auto* v1_frame = offline_frame.mutable_v1();
 
@@ -183,7 +184,8 @@ TEST(OfflineFramesValidatorTest,
      ValidatesAsFailWithUnexpectedStatusInConnectionResponseFrame) {
   OfflineFrame offline_frame;
 
-  ByteArray bytes = ForConnectionResponse(-1);
+  OsInfo os_info;
+  ByteArray bytes = ForConnectionResponse(-1, os_info);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
