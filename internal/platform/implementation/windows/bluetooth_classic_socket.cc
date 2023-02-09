@@ -89,7 +89,6 @@ Exception BluetoothSocket::Close() {
   try {
     if (windows_socket_ != nullptr) {
       windows_socket_.Close();
-      windows_socket_ = nullptr;
     }
     return {Exception::kSuccess};
   } catch (std::exception exception) {
