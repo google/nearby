@@ -24,8 +24,8 @@ option java_outer_classname = "MetadataProto";
 // The metadata of a device.
 // Contains confidential data not to be broadcasted directly in OTA.
 message Metadata {
-  // An identifier of the device.
-  string device_id = 1;
+  // The type of the device.
+  DeviceType device_type = 1;
 
   // The account name of the account who owns the device.
   string account_name = 2;
@@ -41,4 +41,28 @@ message Metadata {
 
   // The Bluetooth MAC address of the device.
   bytes bluetooth_mac_address = 6;
+}
+
+// The type of the device.
+enum DeviceType {
+  // The type of the device is unknown.
+  DEVICE_TYPE_UNKNOWN = 0;
+
+  // The device is a phone.
+  DEVICE_TYPE_PHONE = 1;
+
+  // The device is a tablet.
+  DEVICE_TYPE_TABLET = 2;
+
+  // The device is a display.
+  DEVICE_TYPE_DISPLAY = 3;
+
+  // The device is a laptop.
+  DEVICE_TYPE_LAPTOP = 4;
+
+  // The device is a TV.
+  DEVICE_TYPE_TV = 5;
+
+  // The device is a watch.
+  DEVICE_TYPE_WATCH = 6;
 }
