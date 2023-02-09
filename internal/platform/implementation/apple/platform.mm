@@ -62,7 +62,7 @@ std::string ImplementationPlatform::GetDownloadPath(const std::string& parent_fo
   return CppStringFromObjCString([NSTemporaryDirectory() stringByAppendingPathComponent:fileName]);
 }
 
-OSName ImplementationPlatform::GetCurrentOS() { return OSName::kiOS; }
+OSName ImplementationPlatform::GetCurrentOS() { return OSName::kApple; }
 
 // Atomics:
 std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(bool initial_value) {

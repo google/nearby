@@ -33,6 +33,7 @@ namespace parser {
 namespace {
 
 using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::connections::V1Frame;
 using Medium = ::location::nearby::proto::connections::Medium;
@@ -100,7 +101,12 @@ TEST(OfflineFramesTest, CanGenerateConnectionRequest) {
         endpoint_name: "XYZ"
         endpoint_info: "XYZ"
         nonce: 1234
-        medium_metadata: < supports_5_ghz: true bssid: "FF:FF:FF:FF:FF:FF" ip_address: "8xqT" ap_frequency: 2412 >
+        medium_metadata: <
+          supports_5_ghz: true
+          bssid: "FF:FF:FF:FF:FF:FF"
+          ip_address: "8xqT"
+          ap_frequency: 2412
+        >
         mediums: MDNS
         mediums: BLUETOOTH
         mediums: WIFI_HOTSPOT
@@ -139,9 +145,16 @@ TEST(OfflineFramesTest, CanGenerateConnectionResponse) {
     version: V1
     v1: <
       type: CONNECTION_RESPONSE
-      connection_response: < status: 1 response: REJECT >
+      connection_response: <
+        status: 1
+        response: REJECT
+        os_info { type: LINUX }
+      >
     >)pb";
-  ByteArray bytes = ForConnectionResponse(1);
+
+  OsInfo os_info;
+  os_info.set_type(OsInfo::LINUX);
+  ByteArray bytes = ForConnectionResponse(1, os_info);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = FromBytes(bytes).result();

@@ -31,10 +31,9 @@
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/offline_frames.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/exception.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/pipe.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
