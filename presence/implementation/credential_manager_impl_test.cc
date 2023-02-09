@@ -55,7 +55,6 @@ constexpr absl::string_view kAccountName = "test account";
 
 Metadata CreateTestMetadata(absl::string_view account_name = kAccountName) {
   Metadata metadata;
-  metadata.set_device_id("test_device_id");
   metadata.set_account_name(account_name);
   metadata.set_device_name("NP test device");
   metadata.set_device_profile_url("test_image.test.com");

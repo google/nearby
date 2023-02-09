@@ -37,7 +37,6 @@ constexpr absl::string_view kMacAddr = "\x4C\x8B\x1D\xCE\xBA\xD1";
 
 Metadata CreateTestMetadata() {
   Metadata metadata;
-  metadata.set_device_id("test_device_id");
   metadata.set_account_name("test_account");
   metadata.set_device_name("NP test device");
   metadata.set_device_profile_url("test_image.test.com");
