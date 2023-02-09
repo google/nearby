@@ -26,8 +26,8 @@ namespace windows {
 
 TEST(UtilsTests, MacAddressToString) {
   // Arrange
-  const uint64_t input = 0x000034363bc78c71;
-  std::string expected = "34:36:3B:C7:8C:71";
+  const uint64_t input = 0x000034363bc70c71;
+  std::string expected = "34:36:3B:C7:0C:71";
 
   // Act
   std::string result = uint64_to_mac_address_string(input);
