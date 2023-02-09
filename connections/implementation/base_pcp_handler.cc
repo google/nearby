@@ -214,17 +214,23 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
   if (their_mediums.empty()) {
     their_mediums.push_back(GetDefaultUpgradeMedium());
   }
-
-  for (auto medium : their_mediums) {
-    NEARBY_LOGS(VERBOSE) << "Their supported medium name: "
-                         << location::nearby::proto::connections::Medium_Name(
-                                medium);
+  // TODO(b/268243340): Add Supported Medium field to ConnectionResponseFrame
+  if (connection_info.is_incoming) {
+    for (auto medium : their_mediums) {
+      NEARBY_LOGS(INFO) << "Their supported medium name: "
+                        << location::nearby::proto::connections::Medium_Name(
+                               medium);
+    }
+  } else {
+    NEARBY_LOGS(INFO)
+        << "Current ConnectionResponseFrame from host has no Supported Mediums "
+           "field, so use calculated default medium instead.";
   }
 
   for (Medium my_medium : GetConnectionMediumsByPriority()) {
-    NEARBY_LOGS(VERBOSE) << "Our supported medium name: "
-                         << location::nearby::proto::connections::Medium_Name(
-                                my_medium);
+    NEARBY_LOGS(INFO) << "Our supported medium name: "
+                      << location::nearby::proto::connections::Medium_Name(
+                             my_medium);
     if (std::find(their_mediums.begin(), their_mediums.end(), my_medium) !=
         their_mediums.end()) {
       // We use advertising options as a proxy to whether or not the local
