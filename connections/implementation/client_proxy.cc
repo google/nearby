@@ -18,6 +18,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -25,18 +26,21 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/platform.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/os_name.h"
 #include "internal/platform/prng.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
+
+using ::location::nearby::connections::OsInfo;
 
 // The definition is necessary before C++17.
 constexpr absl::Duration
@@ -56,6 +60,8 @@ ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
       [this](const ErrorCodeParams& params) {
         analytics_recorder_->OnErrorCode(params);
       });
+  local_os_info_.set_type(
+      OSNameToOsInfoType(api::ImplementationPlatform::GetCurrentOS()));
 }
 
 ClientProxy::~ClientProxy() { Reset(); }
@@ -627,6 +633,26 @@ void ClientProxy::CancelEndpoint(const std::string& endpoint_id) {
   cancellation_flags_.erase(item);
 }
 
+const OsInfo& ClientProxy::GetLocalOsInfo() const {
+  return local_os_info_;
+}
+
+std::optional<OsInfo> ClientProxy::GetRemoteOsInfo(
+    const std::string& endpoint_id) const {
+  const Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return item->os_info;
+  }
+  return std::nullopt;
+}
+
+void ClientProxy::SetRemoteOsInfo(const std::string& endpoint_id,
+                                  const OsInfo& remote_os_info) {
+  Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    item->os_info.emplace(remote_os_info);
+  }
+}
 void ClientProxy::CancelAllEndpoints() {
   for (const auto& item : cancellation_flags_) {
     CancellationFlag* cancellation_flag = item.second.get();
@@ -795,6 +821,21 @@ void ClientProxy::CancelClearLocalHighVisModeCacheEndpointIdAlarm() {
   }
 }
 
+OsInfo::OsType ClientProxy::OSNameToOsInfoType(api::OSName osName) {
+  switch (osName) {
+    case api::OSName::kLinux:
+      return OsInfo::LINUX;
+    case api::OSName::kWindows:
+      return OsInfo::WINDOWS;
+    case api::OSName::kApple:
+      return OsInfo::APPLE;
+    case api::OSName::kChromeOS:
+      return OsInfo::CHROME_OS;
+    case api::OSName::kAndroid:
+      return OsInfo::ANDROID;
+  }
+}
+
 std::string ClientProxy::ToString(PayloadProgressInfo::Status status) const {
   switch (status) {
     case PayloadProgressInfo::Status::kSuccess:
@@ -825,7 +866,12 @@ std::string ClientProxy::Dump() {
   sstream << "  Connections: " << std::endl;
   for (auto it = connections_.begin(); it != connections_.end(); ++it) {
     // TODO(deling): write Connection.ToString()
-    sstream << "    " << it->first << " : " << it->second.connection_token
+    sstream << "    " << it->first << " :(connection token) "
+            << it->second.connection_token << ", (remote os type) "
+            << (it->second.os_info.has_value()
+                    ? location::nearby::connections::OsInfo::OsType_Name(
+                          it->second.os_info->type())
+                    : "unknown")
             << std::endl;
   }
 
@@ -837,5 +883,6 @@ std::string ClientProxy::Dump() {
 
   return sstream.str();
 }
+
 }  // namespace connections
 }  // namespace nearby
