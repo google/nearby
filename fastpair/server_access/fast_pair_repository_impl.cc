@@ -44,17 +44,8 @@ FastPairRepositoryImpl::FastPairRepositoryImpl(
 void FastPairRepositoryImpl::GetDeviceMetadata(
     absl::string_view hex_model_id,
     DeviceMetadataCallback callback) {
-  callback_ = std::move(callback);
   downloader_ = FastPairMetadataDownloaderImpl::Factory::Create(
-      hex_model_id, repository_factory_.get(),
-      [&](DeviceMetadata& device_metadata) {
-        NEARBY_LOGS(INFO) << __func__ << ": Fast Pair download of "
-                          << device_metadata.GetDetails().name()
-                          << " succeeded.";
-        DCHECK(callback_);
-        std::move(callback_)(device_metadata);
-      },
-      [&]() {
+      hex_model_id, repository_factory_.get(), std::move(callback), []() {
         NEARBY_LOGS(INFO) << __func__
                           << ": Fast Pair Metadata download failed.";
       });

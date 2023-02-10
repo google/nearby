@@ -43,7 +43,8 @@ void FastPairMetadataDownloader::Run() {
 void FastPairMetadataDownloader::Succeed(DeviceMetadata& device_metadata) {
   DCHECK(was_run_);
   DCHECK(success_callback_);
-
+  NEARBY_LOGS(INFO) << __func__ << ": Fast Pair download of "
+                    << device_metadata.GetDetails().name() << " succeeded.";
   std::move(success_callback_)(device_metadata);
 }
 

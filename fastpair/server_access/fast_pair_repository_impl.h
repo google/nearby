@@ -44,7 +44,6 @@ class FastPairRepositoryImpl : public FastPairRepository {
   std::unique_ptr<FastPairMetadataDownloader> downloader_;
   std::unique_ptr<network::HttpClientFactory> http_factory_;
   std::unique_ptr<FastPairMetadataRepositoryFactory> repository_factory_;
-  DeviceMetadataCallback callback_;
 };
 }  // namespace fastpair
 }  // namespace nearby

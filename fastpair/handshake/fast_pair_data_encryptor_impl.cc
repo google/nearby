@@ -85,6 +85,7 @@ void FastPairDataEncryptorImpl::Factory::CreateAsyncWithKeyExchange(
         on_get_instance_callback) {
   // We first have to get the metadata in order to get the public key to use
   // to generate the new secret key pair.
+  NEARBY_LOGS(INFO) << __func__ << ": Attempting to get device metadata.";
   FastPairRepository::Get()->GetDeviceMetadata(
       device.model_id,
       [&device, &on_get_instance_callback](DeviceMetadata& metadata) {
@@ -98,6 +99,7 @@ void FastPairDataEncryptorImpl::Factory::DeviceMetadataRetrieved(
     absl::AnyInvocable<void(std::unique_ptr<FastPairDataEncryptor>)>
         on_get_instance_callback,
     DeviceMetadata& device_metadata) {
+  DCHECK(&device_metadata);
   std::optional<KeyPair> key_pair =
       FastPairEncryption::GenerateKeysWithEcdhKeyAgreement(
           device_metadata.GetDetails().anti_spoofing_key_pair().public_key());

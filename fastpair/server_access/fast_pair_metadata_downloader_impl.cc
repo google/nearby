@@ -90,13 +90,12 @@ void FastPairMetadataDownloaderImpl::CallAccessServer(
   repository_->GetObservedDevice(
       request,
       [&](const proto::GetObservedDeviceResponse& response) {
-        NEARBY_LOGS(INFO) << "Maggie: " << __func__
-                          << "Name: " << response.device().name();
-        NEARBY_LOGS(INFO) << "Maggie: " << __func__
+        NEARBY_LOGS(INFO) << __func__ << "Name: " << response.device().name();
+        NEARBY_LOGS(INFO) << __func__
                           << "Image URL: " << response.device().image_url();
 
         NEARBY_LOGS(INFO)
-            << "Maggie: " << __func__ << "StringNotification: "
+            << __func__ << "StringNotification: "
             << response.strings().initial_notification_description();
         OnAccessServerSuccess(response);
       },

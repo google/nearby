@@ -109,7 +109,7 @@ void FastPairDiscoverableScannerImpl::OnDeviceFound(
   }
 
   model_id_parse_attempts_[peripheral.GetName()] = 1;
-  NEARBY_LOGS(WARNING) << __func__ << ": Attempting to get model ID";
+  NEARBY_LOGS(INFO) << __func__ << ": Attempting to get model ID";
   std::vector<uint8_t> service_data;
   std::string model_id_bytes = fast_pair_service_data.data();
   std::move(std::begin(model_id_bytes), std::end(model_id_bytes),
@@ -152,6 +152,7 @@ void FastPairDiscoverableScannerImpl::OnModelIdRetrieved(
     return;
   }
 
+  NEARBY_LOGS(INFO) << __func__ << ": Attempting to get device metadata.";
   FastPairRepository::Get()->GetDeviceMetadata(
       model_id.value(),
       absl::bind_front(
@@ -162,6 +163,7 @@ void FastPairDiscoverableScannerImpl::OnModelIdRetrieved(
 void FastPairDiscoverableScannerImpl::OnDeviceMetadataRetrieved(
     const std::string& address, const std::string model_id,
     DeviceMetadata& device_metadata) {
+  DCHECK(&device_metadata);
   // Ignore advertisements that aren't for Fast Pair but leverage the service
   // UUID.
   if (!IsValidDeviceType(device_metadata.GetDetails())) {
