@@ -20,12 +20,13 @@ namespace nearby {
 namespace internal {
 constexpr Metadata::Metadata(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
-  : device_id_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
-  , account_name_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  : account_name_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , device_name_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , user_name_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , device_profile_url_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
-  , bluetooth_mac_address_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string){}
+  , bluetooth_mac_address_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , device_type_(0)
+{}
 struct MetadataDefaultTypeInternal {
   constexpr MetadataDefaultTypeInternal()
     : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
@@ -38,7 +39,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT MetadataDefaultTypeInternal _Me
 }  // namespace internal
 }  // namespace nearby
 static ::PROTOBUF_NAMESPACE_ID::Metadata file_level_metadata_internal_2fproto_2fmetadata_2eproto[1];
-static constexpr ::PROTOBUF_NAMESPACE_ID::EnumDescriptor const** file_level_enum_descriptors_internal_2fproto_2fmetadata_2eproto = nullptr;
+static const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* file_level_enum_descriptors_internal_2fproto_2fmetadata_2eproto[1];
 static constexpr ::PROTOBUF_NAMESPACE_ID::ServiceDescriptor const** file_level_service_descriptors_internal_2fproto_2fmetadata_2eproto = nullptr;
 
 const uint32_t TableStruct_internal_2fproto_2fmetadata_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
@@ -48,7 +49,7 @@ const uint32_t TableStruct_internal_2fproto_2fmetadata_2eproto::offsets[] PROTOB
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::nearby::internal::Metadata, device_id_),
+  PROTOBUF_FIELD_OFFSET(::nearby::internal::Metadata, device_type_),
   PROTOBUF_FIELD_OFFSET(::nearby::internal::Metadata, account_name_),
   PROTOBUF_FIELD_OFFSET(::nearby::internal::Metadata, device_name_),
   PROTOBUF_FIELD_OFFSET(::nearby::internal::Metadata, user_name_),
@@ -65,15 +66,21 @@ static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] =
 
 const char descriptor_table_protodef_internal_2fproto_2fmetadata_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
   "\n\035internal/proto/metadata.proto\022\017nearby."
-  "internal\"\226\001\n\010Metadata\022\021\n\tdevice_id\030\001 \001(\t"
-  "\022\024\n\014account_name\030\002 \001(\t\022\023\n\013device_name\030\003 "
-  "\001(\t\022\021\n\tuser_name\030\004 \001(\t\022\032\n\022device_profile"
-  "_url\030\005 \001(\t\022\035\n\025bluetooth_mac_address\030\006 \001("
-  "\014b\006proto3"
+  "internal\"\265\001\n\010Metadata\0220\n\013device_type\030\001 \001"
+  "(\0162\033.nearby.internal.DeviceType\022\024\n\014accou"
+  "nt_name\030\002 \001(\t\022\023\n\013device_name\030\003 \001(\t\022\021\n\tus"
+  "er_name\030\004 \001(\t\022\032\n\022device_profile_url\030\005 \001("
+  "\t\022\035\n\025bluetooth_mac_address\030\006 \001(\014*\260\001\n\nDev"
+  "iceType\022\027\n\023DEVICE_TYPE_UNKNOWN\020\000\022\025\n\021DEVI"
+  "CE_TYPE_PHONE\020\001\022\026\n\022DEVICE_TYPE_TABLET\020\002\022"
+  "\027\n\023DEVICE_TYPE_DISPLAY\020\003\022\026\n\022DEVICE_TYPE_"
+  "LAPTOP\020\004\022\022\n\016DEVICE_TYPE_TV\020\005\022\025\n\021DEVICE_T"
+  "YPE_WATCH\020\006B-\n\032com.google.nearby.presenc"
+  "eB\rMetadataProtoP\001b\006proto3"
   ;
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_internal_2fproto_2fmetadata_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_internal_2fproto_2fmetadata_2eproto = {
-  false, false, 209, descriptor_table_protodef_internal_2fproto_2fmetadata_2eproto, "internal/proto/metadata.proto", 
+  false, false, 466, descriptor_table_protodef_internal_2fproto_2fmetadata_2eproto, "internal/proto/metadata.proto", 
   &descriptor_table_internal_2fproto_2fmetadata_2eproto_once, nullptr, 0, 1,
   schemas, file_default_instances, TableStruct_internal_2fproto_2fmetadata_2eproto::offsets,
   file_level_metadata_internal_2fproto_2fmetadata_2eproto, file_level_enum_descriptors_internal_2fproto_2fmetadata_2eproto, file_level_service_descriptors_internal_2fproto_2fmetadata_2eproto,
@@ -86,6 +93,25 @@ PROTOBUF_ATTRIBUTE_WEAK const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY static ::PROTOBUF_NAMESPACE_ID::internal::AddDescriptorsRunner dynamic_init_dummy_internal_2fproto_2fmetadata_2eproto(&descriptor_table_internal_2fproto_2fmetadata_2eproto);
 namespace nearby {
 namespace internal {
+const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* DeviceType_descriptor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_internal_2fproto_2fmetadata_2eproto);
+  return file_level_enum_descriptors_internal_2fproto_2fmetadata_2eproto[0];
+}
+bool DeviceType_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+      return true;
+    default:
+      return false;
+  }
+}
+
 
 // ===================================================================
 
@@ -105,14 +131,6 @@ Metadata::Metadata(::PROTOBUF_NAMESPACE_ID::Arena* arena,
 Metadata::Metadata(const Metadata& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  device_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    device_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_device_id().empty()) {
-    device_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_device_id(), 
-      GetArenaForAllocation());
-  }
   account_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
     account_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
@@ -153,14 +171,11 @@ Metadata::Metadata(const Metadata& from)
     bluetooth_mac_address_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_bluetooth_mac_address(), 
       GetArenaForAllocation());
   }
+  device_type_ = from.device_type_;
   // @@protoc_insertion_point(copy_constructor:nearby.internal.Metadata)
 }
 
 inline void Metadata::SharedCtor() {
-device_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  device_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 account_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
   account_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
@@ -181,6 +196,7 @@ bluetooth_mac_address_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetE
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
   bluetooth_mac_address_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+device_type_ = 0;
 }
 
 Metadata::~Metadata() {
@@ -192,7 +208,6 @@ Metadata::~Metadata() {
 
 inline void Metadata::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
-  device_id_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   account_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   device_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   user_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
@@ -216,12 +231,12 @@ void Metadata::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  device_id_.ClearToEmpty();
   account_name_.ClearToEmpty();
   device_name_.ClearToEmpty();
   user_name_.ClearToEmpty();
   device_profile_url_.ClearToEmpty();
   bluetooth_mac_address_.ClearToEmpty();
+  device_type_ = 0;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -231,13 +246,12 @@ const char* Metadata::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::i
     uint32_t tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // string device_id = 1;
+      // .nearby.internal.DeviceType device_type = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
-          auto str = _internal_mutable_device_id();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "nearby.internal.Metadata.device_id"));
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
+          _internal_set_device_type(static_cast<::nearby::internal::DeviceType>(val));
         } else
           goto handle_unusual;
         continue;
@@ -319,14 +333,11 @@ uint8_t* Metadata::_InternalSerialize(
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // string device_id = 1;
-  if (!this->_internal_device_id().empty()) {
-    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
-      this->_internal_device_id().data(), static_cast<int>(this->_internal_device_id().length()),
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "nearby.internal.Metadata.device_id");
-    target = stream->WriteStringMaybeAliased(
-        1, this->_internal_device_id(), target);
+  // .nearby.internal.DeviceType device_type = 1;
+  if (this->_internal_device_type() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      1, this->_internal_device_type(), target);
   }
 
   // string account_name = 2;
@@ -391,13 +402,6 @@ size_t Metadata::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // string device_id = 1;
-  if (!this->_internal_device_id().empty()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
-        this->_internal_device_id());
-  }
-
   // string account_name = 2;
   if (!this->_internal_account_name().empty()) {
     total_size += 1 +
@@ -433,6 +437,12 @@ size_t Metadata::ByteSizeLong() const {
         this->_internal_bluetooth_mac_address());
   }
 
+  // .nearby.internal.DeviceType device_type = 1;
+  if (this->_internal_device_type() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_device_type());
+  }
+
   return MaybeComputeUnknownFieldsSize(total_size, &_cached_size_);
 }
 
@@ -455,9 +465,6 @@ void Metadata::MergeFrom(const Metadata& from) {
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (!from._internal_device_id().empty()) {
-    _internal_set_device_id(from._internal_device_id());
-  }
   if (!from._internal_account_name().empty()) {
     _internal_set_account_name(from._internal_account_name());
   }
@@ -472,6 +479,9 @@ void Metadata::MergeFrom(const Metadata& from) {
   }
   if (!from._internal_bluetooth_mac_address().empty()) {
     _internal_set_bluetooth_mac_address(from._internal_bluetooth_mac_address());
+  }
+  if (from._internal_device_type() != 0) {
+    _internal_set_device_type(from._internal_device_type());
   }
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
@@ -492,11 +502,6 @@ void Metadata::InternalSwap(Metadata* other) {
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
-      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      &device_id_, lhs_arena,
-      &other->device_id_, rhs_arena
-  );
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       &account_name_, lhs_arena,
@@ -522,6 +527,7 @@ void Metadata::InternalSwap(Metadata* other) {
       &bluetooth_mac_address_, lhs_arena,
       &other->bluetooth_mac_address_, rhs_arena
   );
+  swap(device_type_, other->device_type_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata Metadata::GetMetadata() const {

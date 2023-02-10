@@ -86,12 +86,13 @@ const char descriptor_table_protodef_internal_2fproto_2fcredential_2eproto[] PRO
   "\234\001\n\014IdentityType\022\035\n\031IDENTITY_TYPE_UNSPEC"
   "IFIED\020\000\022\031\n\025IDENTITY_TYPE_PRIVATE\020\001\022\031\n\025ID"
   "ENTITY_TYPE_TRUSTED\020\002\022\030\n\024IDENTITY_TYPE_P"
-  "UBLIC\020\003\022\035\n\031IDENTITY_TYPE_PROVISIONED\020\004B\034"
-  "\n\032com.google.nearby.presenceb\006proto3"
+  "UBLIC\020\003\022\035\n\031IDENTITY_TYPE_PROVISIONED\020\004B/"
+  "\n\032com.google.nearby.presenceB\017Credential"
+  "ProtoP\001b\006proto3"
   ;
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_internal_2fproto_2fcredential_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_internal_2fproto_2fcredential_2eproto = {
-  false, false, 596, descriptor_table_protodef_internal_2fproto_2fcredential_2eproto, "internal/proto/credential.proto", 
+  false, false, 615, descriptor_table_protodef_internal_2fproto_2fcredential_2eproto, "internal/proto/credential.proto", 
   &descriptor_table_internal_2fproto_2fcredential_2eproto_once, nullptr, 0, 1,
   schemas, file_default_instances, TableStruct_internal_2fproto_2fcredential_2eproto::offsets,
   file_level_metadata_internal_2fproto_2fcredential_2eproto, file_level_enum_descriptors_internal_2fproto_2fcredential_2eproto, file_level_service_descriptors_internal_2fproto_2fcredential_2eproto,

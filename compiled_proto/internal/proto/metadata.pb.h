@@ -30,6 +30,7 @@
 #include <google/protobuf/message.h>
 #include <google/protobuf/repeated_field.h>  // IWYU pragma: export
 #include <google/protobuf/extension_set.h>  // IWYU pragma: export
+#include <google/protobuf/generated_enum_reflection.h>
 #include <google/protobuf/unknown_field_set.h>
 // @@protoc_insertion_point(includes)
 #include <google/protobuf/port_def.inc>
@@ -66,6 +67,36 @@ PROTOBUF_NAMESPACE_CLOSE
 namespace nearby {
 namespace internal {
 
+enum DeviceType : int {
+  DEVICE_TYPE_UNKNOWN = 0,
+  DEVICE_TYPE_PHONE = 1,
+  DEVICE_TYPE_TABLET = 2,
+  DEVICE_TYPE_DISPLAY = 3,
+  DEVICE_TYPE_LAPTOP = 4,
+  DEVICE_TYPE_TV = 5,
+  DEVICE_TYPE_WATCH = 6,
+  DeviceType_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
+  DeviceType_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
+};
+bool DeviceType_IsValid(int value);
+constexpr DeviceType DeviceType_MIN = DEVICE_TYPE_UNKNOWN;
+constexpr DeviceType DeviceType_MAX = DEVICE_TYPE_WATCH;
+constexpr int DeviceType_ARRAYSIZE = DeviceType_MAX + 1;
+
+const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* DeviceType_descriptor();
+template<typename T>
+inline const std::string& DeviceType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, DeviceType>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function DeviceType_Name.");
+  return ::PROTOBUF_NAMESPACE_ID::internal::NameOfEnum(
+    DeviceType_descriptor(), enum_t_value);
+}
+inline bool DeviceType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DeviceType* value) {
+  return ::PROTOBUF_NAMESPACE_ID::internal::ParseNamedEnum<DeviceType>(
+    DeviceType_descriptor(), name, value);
+}
 // ===================================================================
 
 class Metadata final :
@@ -190,27 +221,13 @@ class Metadata final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kDeviceIdFieldNumber = 1,
     kAccountNameFieldNumber = 2,
     kDeviceNameFieldNumber = 3,
     kUserNameFieldNumber = 4,
     kDeviceProfileUrlFieldNumber = 5,
     kBluetoothMacAddressFieldNumber = 6,
+    kDeviceTypeFieldNumber = 1,
   };
-  // string device_id = 1;
-  void clear_device_id();
-  const std::string& device_id() const;
-  template <typename ArgT0 = const std::string&, typename... ArgT>
-  void set_device_id(ArgT0&& arg0, ArgT... args);
-  std::string* mutable_device_id();
-  PROTOBUF_NODISCARD std::string* release_device_id();
-  void set_allocated_device_id(std::string* device_id);
-  private:
-  const std::string& _internal_device_id() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_device_id(const std::string& value);
-  std::string* _internal_mutable_device_id();
-  public:
-
   // string account_name = 2;
   void clear_account_name();
   const std::string& account_name() const;
@@ -281,6 +298,15 @@ class Metadata final :
   std::string* _internal_mutable_bluetooth_mac_address();
   public:
 
+  // .nearby.internal.DeviceType device_type = 1;
+  void clear_device_type();
+  ::nearby::internal::DeviceType device_type() const;
+  void set_device_type(::nearby::internal::DeviceType value);
+  private:
+  ::nearby::internal::DeviceType _internal_device_type() const;
+  void _internal_set_device_type(::nearby::internal::DeviceType value);
+  public:
+
   // @@protoc_insertion_point(class_scope:nearby.internal.Metadata)
  private:
   class _Internal;
@@ -288,12 +314,12 @@ class Metadata final :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr device_id_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr account_name_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr device_name_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr user_name_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr device_profile_url_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr bluetooth_mac_address_;
+  int device_type_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_internal_2fproto_2fmetadata_2eproto;
 };
@@ -308,55 +334,24 @@ class Metadata final :
 #endif  // __GNUC__
 // Metadata
 
-// string device_id = 1;
-inline void Metadata::clear_device_id() {
-  device_id_.ClearToEmpty();
+// .nearby.internal.DeviceType device_type = 1;
+inline void Metadata::clear_device_type() {
+  device_type_ = 0;
 }
-inline const std::string& Metadata::device_id() const {
-  // @@protoc_insertion_point(field_get:nearby.internal.Metadata.device_id)
-  return _internal_device_id();
+inline ::nearby::internal::DeviceType Metadata::_internal_device_type() const {
+  return static_cast< ::nearby::internal::DeviceType >(device_type_);
 }
-template <typename ArgT0, typename... ArgT>
-inline PROTOBUF_ALWAYS_INLINE
-void Metadata::set_device_id(ArgT0&& arg0, ArgT... args) {
- 
- device_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:nearby.internal.Metadata.device_id)
+inline ::nearby::internal::DeviceType Metadata::device_type() const {
+  // @@protoc_insertion_point(field_get:nearby.internal.Metadata.device_type)
+  return _internal_device_type();
 }
-inline std::string* Metadata::mutable_device_id() {
-  std::string* _s = _internal_mutable_device_id();
-  // @@protoc_insertion_point(field_mutable:nearby.internal.Metadata.device_id)
-  return _s;
-}
-inline const std::string& Metadata::_internal_device_id() const {
-  return device_id_.Get();
-}
-inline void Metadata::_internal_set_device_id(const std::string& value) {
+inline void Metadata::_internal_set_device_type(::nearby::internal::DeviceType value) {
   
-  device_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+  device_type_ = value;
 }
-inline std::string* Metadata::_internal_mutable_device_id() {
-  
-  return device_id_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
-}
-inline std::string* Metadata::release_device_id() {
-  // @@protoc_insertion_point(field_release:nearby.internal.Metadata.device_id)
-  return device_id_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
-}
-inline void Metadata::set_allocated_device_id(std::string* device_id) {
-  if (device_id != nullptr) {
-    
-  } else {
-    
-  }
-  device_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), device_id,
-      GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (device_id_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
-    device_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:nearby.internal.Metadata.device_id)
+inline void Metadata::set_device_type(::nearby::internal::DeviceType value) {
+  _internal_set_device_type(value);
+  // @@protoc_insertion_point(field_set:nearby.internal.Metadata.device_type)
 }
 
 // string account_name = 2;
@@ -622,6 +617,16 @@ inline void Metadata::set_allocated_bluetooth_mac_address(std::string* bluetooth
 
 }  // namespace internal
 }  // namespace nearby
+
+PROTOBUF_NAMESPACE_OPEN
+
+template <> struct is_proto_enum< ::nearby::internal::DeviceType> : ::std::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::nearby::internal::DeviceType>() {
+  return ::nearby::internal::DeviceType_descriptor();
+}
+
+PROTOBUF_NAMESPACE_CLOSE
 
 // @@protoc_insertion_point(global_scope)
 
