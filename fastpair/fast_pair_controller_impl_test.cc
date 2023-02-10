@@ -26,16 +26,13 @@ namespace fastpair {
 namespace FastPairControllerUnitTests {
 class FastPairControllerImplTest : public ::testing::Test {
  public:
-  FastPairControllerImplTest() = default;
-  ~FastPairControllerImplTest() override = default;
-  void SetUp() override { controller_ = CreateController(); }
+  void SetUp() override {
+    controller_.reset();
+    controller_ = std::make_unique<FastPairControllerImpl>();
+  }
 
  protected:
-  std::unique_ptr<FastPairControllerImpl> CreateController() {
-    auto controller = std::make_unique<FastPairControllerImpl>();
-    return controller;
-  }
-  std::unique_ptr<FastPairControllerImpl> controller_;
+  std::shared_ptr<FastPairControllerImpl> controller_;
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
@@ -45,6 +42,7 @@ TEST_F(FastPairControllerImplTest, StartScanningSuccess) {
   EXPECT_FALSE(controller_->IsPairing());
   EXPECT_FALSE(controller_->IsServerAccessing());
   controller_->StartScan();
+  SystemClock::Sleep(absl::Milliseconds(200));
   EXPECT_TRUE(controller_->IsScanning());
   env_.Stop();
 }
