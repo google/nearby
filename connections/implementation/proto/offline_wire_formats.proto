@@ -118,6 +118,7 @@ message ConnectionResponseFrame {
     REJECT = 2;
   }
   optional ResponseStatus response = 3;
+  optional OsInfo os_info = 4;
 }
 
 message PayloadTransferFrame {
@@ -372,4 +373,18 @@ message LocationStandard {
     // https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
     ISO_3166_1_ALPHA_2 = 2;
   }
+}
+
+// Device capability for OS information.
+message OsInfo {
+  enum OsType {
+    UNKNOWN_OS_TYPE = 0;
+    ANDROID = 1;
+    CHROME_OS = 2;
+    WINDOWS = 3;
+    APPLE = 4;
+    LINUX = 100;  // g3 test environment
+  }
+
+  optional OsType type = 1;
 }
