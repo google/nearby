@@ -189,20 +189,29 @@ public class ConnectionManager {
       transfers[payload.identifier]?[endpointID] = Progress()
     }
 
-    GNCCoreAdapter.shared.send(payload, toEndpoints: endpointIDs) { _ in
-      // TODO(b/257824412): Handle errors from completion handler.
-      completionHandler?(nil)
-    }
+    GNCCoreAdapter.shared.send(
+      payload,
+      toEndpoints: endpointIDs,
+      withCompletionHandler: completionHandler
+    )
 
     return CancellationToken(payload.identifier)
   }
 
   /// Disconnect from a remote endpoint.
   ///
-  /// - Parameter endpointID: The ID of the remote endpoint.
-  public func disconnect(from endpointID: EndpointID) {
-    // TODO(b/257824412): Handle errors from completion handler.
-    GNCCoreAdapter.shared.disconnect(fromEndpoint: endpointID)
+  /// - Parameters:
+  ///   - endpointID: The ID of the remote endpoint.
+  ///   - completionHandler: Called with `nil` when the endpoint has been disconnected,
+  ///     or an error if disconnecting failed
+  public func disconnect(
+    from endpointID: EndpointID,
+    completionHandler: ((Error?) -> Void)? = nil
+  ) {
+    GNCCoreAdapter.shared.disconnect(
+      fromEndpoint: endpointID,
+      withCompletionHandler: completionHandler
+    )
   }
 }
 
@@ -251,10 +260,17 @@ extension ConnectionManager: InternalPayloadDelegate {
       case .success:
         self.transfers[payloadID]?.removeValue(forKey: endpointID)
         self.delegate?.connectionManager(
-          self, didReceiveTransferUpdate: .success, from: endpointID, forPayload: payloadID)
+          self, didReceiveTransferUpdate: .success, from: endpointID, forPayload: payloadID
+        )
       case .failure:
         self.transfers[payloadID]?.removeValue(forKey: endpointID)
-        // TODO(b/257824412): Handle errors from completion handler.
+
+        self.delegate?.connectionManager(
+          self,
+          didReceiveTransferUpdate: .failure,
+          from: endpointID,
+          forPayload: payloadID
+        )
         break
       case .canceled:
         self.transfers[payloadID]?.removeValue(forKey: endpointID)

@@ -23,8 +23,10 @@ public class CancellationToken {
   }
 
   /// Cancel the ongoing transfer.
-  public func cancel() {
-    // TODO(b/257824412): Handle errors from completion handler.
-    GNCCoreAdapter.shared.cancelPayload(payloadID)
+  ///
+  /// - Parameter completionHandler: Called with `nil` if the transfer was cancelled, or an error
+  /// if an error occurred.
+  public func cancel(completionHandler: ((Error?) -> Void)? = nil) {
+    GNCCoreAdapter.shared.cancelPayload(payloadID, withCompletionHandler: completionHandler)
   }
 }

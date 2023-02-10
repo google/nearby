@@ -20,8 +20,8 @@ public enum TransferUpdate {
   case success
   /// Either the local or remote endpoint has canceled the transfer.
   case canceled
-  /// The remote endpoint failed to receive the transfer with the associated error.
-  case failure(Error)
+  /// The remote endpoint failed to receive the transfer.
+  case failure
   /// The the transfer is currently in progress with an associated progress value.
   case progress(Progress)
 }

@@ -18,10 +18,15 @@ class InternalConnection: GNCConnectionDelegate {
   weak var delegate: InternalConnectionDelegate?
 
   func connected(
-    toEndpoint endpointID: String, withEndpointInfo info: Data, authenticationToken: String
+    toEndpoint endpointID: String,
+    withEndpointInfo info: Data,
+    authenticationToken: String
   ) {
     delegate?.connected(
-      toEndpoint: endpointID, withEndpointInfo: info, authenticationToken: authenticationToken)
+      toEndpoint: endpointID,
+      withEndpointInfo: info,
+      authenticationToken: authenticationToken
+    )
   }
 
   func acceptedConnection(toEndpoint endpointID: String) {
@@ -39,7 +44,10 @@ class InternalConnection: GNCConnectionDelegate {
 
 protocol InternalConnectionDelegate: AnyObject {
   func connected(
-    toEndpoint endpointID: String, withEndpointInfo info: Data, authenticationToken: String)
+    toEndpoint endpointID: String,
+    withEndpointInfo info: Data,
+    authenticationToken: String
+  )
   func acceptedConnection(toEndpoint endpointID: String)
   func rejectedConnection(toEndpoint endpointID: String, with status: GNCStatus)
   func disconnected(fromEndpoint endpointID: String)

@@ -44,21 +44,26 @@ public class Advertiser {
   /// delegate’s `advertiser(_:didReceiveConnectionRequestFrom:with:connectionRequestHandler:)`
   /// method when remote endpoints request a connection.
   ///
-  /// - Parameter context: An arbitrary piece of data that is advertised to the nearby endpoint.
+  /// - Parameters:
+  ///   - context: An arbitrary piece of data that is advertised to the nearby endpoint.
   ///   This can be used to provide further information to the user about the nature of the
   ///   advertisement.
-  public func startAdvertising(using context: Data) {
+  ///   - completionHandler: Called with `nil` if advertising started, or an error if advertising
+  ///   failed to start.
+  ///
+  public func startAdvertising(using context: Data, completionHandler: ((Error?) -> Void)? = nil) {
     let options = GNCAdvertisingOptions(strategy: connectionManager.strategy.objc)
-    // TODO(b/257824412): Handle errors from completion handler.
     GNCCoreAdapter.shared.startAdvertising(
       asService: connectionManager.serviceID, endpointInfo: context,
-      options: options, delegate: connection)
+      options: options, delegate: connection, withCompletionHandler: completionHandler)
   }
 
   /// Stops advertising the local endpoint.
-  public func stopAdvertising() {
-    // TODO(b/257824412): Handle errors from completion handler.
-    GNCCoreAdapter.shared.stopAdvertising()
+  ///
+  /// - Parameter completionHandler: Called with `nil` if advertising stopped, or an error if
+  /// advertising failed to stop.
+  public func stopAdvertising(completionHandler: ((Error?) -> Void)? = nil) {
+    GNCCoreAdapter.shared.stopAdvertising(completionHandler: completionHandler)
   }
 
   deinit {
@@ -76,8 +81,16 @@ extension Advertiser: InternalConnectionDelegate {
       self.delegate?.advertiser(self, didReceiveConnectionRequestFrom: endpointID, with: info) {
         (accept) in
         guard accept else {
-          // TODO(b/257824412): Handle errors from completion handler.
-          GNCCoreAdapter.shared.rejectConnectionRequest(fromEndpoint: endpointID)
+          GNCCoreAdapter.shared.rejectConnectionRequest(fromEndpoint: endpointID) {
+            (error: Error?) in
+            if let error = error {
+              NSLog(
+                """
+                  Encountered an error while attempting to reject a connection request for \
+                  endpoint %@: %@
+                """, endpointID, "\(error)")
+            }
+          }
           return
         }
         self.connectionManager.delegate?.connectionManager(
@@ -86,13 +99,29 @@ extension Advertiser: InternalConnectionDelegate {
           self.connectionManager, didReceive: authenticationToken, from: endpointID
         ) { accept in
           guard accept else {
-            // TODO(b/257824412): Handle errors from completion handler.
-            GNCCoreAdapter.shared.rejectConnectionRequest(fromEndpoint: endpointID)
+            GNCCoreAdapter.shared.rejectConnectionRequest(fromEndpoint: endpointID) {
+              (error: Error?) in
+              if let error = error {
+                NSLog(
+                  """
+                    Encountered an error while attempting to reject a connection request for \
+                    endpoint %@: %@
+                  """, endpointID, "\(error)")
+              }
+            }
             return
           }
-          // TODO(b/257824412): Handle errors from completion handler.
           GNCCoreAdapter.shared.acceptConnectionRequest(
-            fromEndpoint: endpointID, delegate: self.connectionManager.payload)
+            fromEndpoint: endpointID, delegate: self.connectionManager.payload
+          ) { (error: Error?) in
+            if let error = error {
+              NSLog(
+                """
+                  Encountered an error while attempting to accept a connection request for \
+                  endpoint %@: %@
+                """, endpointID, "\(error)")
+            }
+          }
 
         }
       }

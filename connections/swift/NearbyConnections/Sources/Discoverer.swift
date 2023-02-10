@@ -48,17 +48,23 @@ public class Discoverer {
   /// After this method is called (until you call `stopDiscovery()`), the framework calls your
   /// delegate’s `discoverer(_:didFind:with:)` and `discoverer(_:didLose:)` methods as new endpoints
   /// are found and lost.
-  public func startDiscovery() {
+  ///
+  /// - Parameter completionHandler: Called with `nil` if discovery starts, or an error if
+  ///   discovery failed to start.
+  public func startDiscovery(completionHandler: ((Error?) -> Void)? = nil) {
     let options = GNCDiscoveryOptions(strategy: connectionManager.strategy.objc)
-    // TODO(b/257824412): Handle errors from completion handler.
     GNCCoreAdapter.shared.startDiscovery(
-      asService: connectionManager.serviceID, options: options, delegate: discovery)
+      asService: connectionManager.serviceID, options: options, delegate: discovery,
+      withCompletionHandler: completionHandler
+    )
   }
 
   /// Stops searching for nearby remote endpoints.
-  public func stopDiscovery() {
-    // TODO(b/257824412): Handle errors from completion handler.
-    GNCCoreAdapter.shared.stopDiscovery()
+  ///
+  /// - Parameter completionHandler: Called with `nil` if discovery stopped, or an error if
+  ///   discovery failed to stop.
+  public func stopDiscovery(completionHandler: ((Error?) -> Void)? = nil) {
+    GNCCoreAdapter.shared.stopDiscovery(completionHandler: completionHandler)
   }
 
   /// Requests a connection to a discovered remote endpoint.
@@ -67,12 +73,15 @@ public class Discoverer {
   ///   - endpointID: The ID of the endpoint to request a connection to.
   ///   - context: An arbitrary piece of data that is passed to the nearby endpoint. This can be
   ///     used to provide further information to the user about the nature of the invitation.
-  public func requestConnection(to endpointID: EndpointID, using context: Data) {
+  ///   - completionHandler: Called with `nil`  when the endpoint has been disconnected,
+  ///     or an error if disconnecting failed
+  public func requestConnection(
+    to endpointID: EndpointID, using context: Data, completionHandler: ((Error?) -> Void)? = nil
+  ) {
     let options = GNCConnectionOptions()
-    // TODO(b/257824412): Handle errors from completion handler.
     GNCCoreAdapter.shared.requestConnection(
       toEndpoint: endpointID, endpointInfo: context,
-      options: options, delegate: connection)
+      options: options, delegate: connection, withCompletionHandler: completionHandler)
   }
 
   deinit {
@@ -93,13 +102,30 @@ extension Discoverer: InternalConnectionDelegate {
         connectionManager, didReceive: authenticationToken, from: endpointID
       ) { accept in
         guard accept else {
-          // TODO(b/257824412): Handle errors from completion handler.
-          GNCCoreAdapter.shared.rejectConnectionRequest(fromEndpoint: endpointID)
+          GNCCoreAdapter.shared.rejectConnectionRequest(fromEndpoint: endpointID) {
+            (error: Error?) in
+            if let error = error {
+              NSLog(
+                """
+                  Encountered an error while attempting to reject a connection request for \
+                  endpoint %@: %@
+                """, endpointID, "\(error)")
+            }
+          }
           return
         }
-        // TODO(b/257824412): Handle errors from completion handler.
         GNCCoreAdapter.shared.acceptConnectionRequest(
-          fromEndpoint: endpointID, delegate: connectionManager.payload)
+          fromEndpoint: endpointID,
+          delegate: connectionManager.payload
+        ) { (error: Error?) in
+          if let error = error {
+            NSLog(
+              """
+                Encountered an error while attempting to accept a connection request for \
+                endpoint %@: %@
+              """, endpointID, "\(error)")
+          }
+        }
       }
     }
   }
