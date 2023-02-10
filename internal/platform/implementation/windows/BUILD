@@ -39,7 +39,7 @@ cc_library(
         "timer.h",
         "utils.h",
     ],
-    copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated"],
+    copts = ["-Ithird_party/winrt"],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     deps = [
         "//base",
@@ -48,7 +48,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform/implementation:types",
-        "//internal/platform/implementation/windows/generated:types",
+        "//third_party/winrt:types",
     ],
 )
 
@@ -90,7 +90,7 @@ cc_library(
         "//internal/platform:types",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
-        "//internal/platform/implementation/windows/generated:types",
+        "//third_party/winrt:types",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -162,7 +162,7 @@ cc_library(
     ],
     # This is the temporary solution to solve compilation error of Win32 WFDxxx() related API.
     # WFD API is only support after _WIN32_WINNT_WIN8, but the current lexan _WIN32_WINNT is set to _WIN32_WINNT_WIN7
-    copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated -Ithird_party/nearby/internal/platform/implementation/windows/json -D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10"],
+    copts = ["-Ithird_party/winrt -Ithird_party/nearby/internal/platform/implementation/windows/json -D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10"],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     visibility = [
         "//connections:__subpackages__",
@@ -184,8 +184,8 @@ cc_library(
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/shared:count_down_latch",
         "//internal/platform/implementation/shared:file",
-        "//internal/platform/implementation/windows/generated:types",
         "//internal/platform/implementation/windows/json:types",
+        "//third_party/winrt:types",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
@@ -235,7 +235,7 @@ cc_test(
         "timer_test.cc",
         "utils_test.cc",
     ],
-    copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated -DCORE_ADAPTER_DLL"],
+    copts = ["-Ithird_party/winrt -DCORE_ADAPTER_DLL"],
     deps = [
         ":comm",
         ":crypto",
@@ -245,7 +245,7 @@ cc_test(
         "//internal/platform:logging",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation/windows",
-        "//internal/platform/implementation/windows/generated:types",
+        "//third_party/winrt:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
