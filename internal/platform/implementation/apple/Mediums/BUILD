@@ -28,6 +28,9 @@ objc_library(
         "WifiLan/GNCMBonjourConnection.m",
         "WifiLan/GNCMBonjourService.m",
         "WifiLan/GNCMBonjourUtils.m",
+        "WifiLanV2/GNCWiFiLANError.m",
+        "WifiLanV2/GNCWiFiLANServerSocket.m",
+        "WifiLanV2/GNCWiFiLANServerSocket+Internal.h",
         "WifiLanV2/GNCWiFiLANSocket.m",
     ],
     hdrs = [
@@ -41,6 +44,8 @@ objc_library(
         "WifiLan/GNCMBonjourConnection.h",
         "WifiLan/GNCMBonjourService.h",
         "WifiLan/GNCMBonjourUtils.h",
+        "WifiLanV2/GNCWiFiLANError.h",
+        "WifiLanV2/GNCWiFiLANServerSocket.h",
         "WifiLanV2/GNCWiFiLANSocket.h",
     ],
     deps = [

@@ -21,7 +21,7 @@
 
 @interface GNCWiFiLANSocket ()
 
-@property(nonatomic, weak, readonly) nw_connection_t connection;
+@property(nonatomic, readonly) nw_connection_t connection;
 
 @end
 
@@ -119,6 +119,7 @@
     return;
   }
   nw_connection_cancel(connection);
+  _connection = nil;
 }
 
 @end

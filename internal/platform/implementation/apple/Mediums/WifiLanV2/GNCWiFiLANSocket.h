@@ -25,9 +25,9 @@
 /**
  * Creates a socket that allows reading/writing for a given connection.
  *
- * @param connection A bidirectional data connection between a local and remote endpoint. It is the
- *                   responsibility of the caller to maintain a strong reference to the connection
- *                   object.
+ * @param connection A bidirectional data connection between a local and remote endpoint. This class
+ *                   will take ownership of connection and manage its lifetime. The connection
+ *                   should not be shared or reused.
  */
 - (nonnull instancetype)initWithConnection:(nonnull nw_connection_t)connection
     NS_DESIGNATED_INITIALIZER;
