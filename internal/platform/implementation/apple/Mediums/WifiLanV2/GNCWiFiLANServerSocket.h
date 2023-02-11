@@ -28,7 +28,7 @@
  *
  * @param port The port of the server socket.
  */
-- (nonnull instancetype)initWithPort:(nonnull NSNumber *)port NS_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)initWithPort:(NSInteger)port NS_DESIGNATED_INITIALIZER;
 
 /**
  * The 4 byte binary representation for the IPv4 address of the physical network interface.
@@ -38,7 +38,7 @@
 /**
  * The port of the server socket.
  */
-@property(nonatomic, readonly, copy) NSNumber *port;
+@property(nonatomic, readonly) NSInteger port;
 
 /**
  * Returns an arbitrary, connected socket, ready to exchange data.

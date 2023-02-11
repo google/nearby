@@ -41,10 +41,10 @@
   NSError *_listenerError;
 }
 
-- (instancetype)initWithPort:(NSNumber *)port {
+- (instancetype)initWithPort:(NSInteger)port {
   self = [super init];
   if (self) {
-    _port = [port copy];
+    _port = port;
     _condition = [[NSCondition alloc] init];
     _listenerState = nw_listener_state_invalid;
   }
@@ -117,10 +117,10 @@
   // If the server socket port is zero, a random port will be selected. The server socket port will
   // be updated to reflect the port it's listening on, once the listener transitions to the ready
   // state.
-  if ([self.port intValue] == 0) {
+  if (self.port == 0) {
     _listener = nw_listener_create(parameters);
   } else {
-    _listener = nw_listener_create_with_port([[self.port stringValue] UTF8String], parameters);
+    _listener = nw_listener_create_with_port([[@(self.port) stringValue] UTF8String], parameters);
   }
 
   // Register to listen for incoming connections.
@@ -202,7 +202,7 @@
       [self close];
       return NO;
     case nw_listener_state_ready:
-      _port = @(nw_listener_get_port(_listener));
+      _port = nw_listener_get_port(_listener);
       return YES;
   }
 }
