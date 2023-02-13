@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
+load("//third_party/bazel_skylib/lib:selects.bzl", "selects")
 
 licenses(["notice"])
 
@@ -24,10 +25,20 @@ bool_flag(
 )
 
 config_setting(
-    name = "link_with_rust",
+    name = "no_link_with_rust",
     flag_values = {
-        ":enable_rust_ldt": "true",
+        ":enable_rust_ldt": "false",
     },
+)
+
+# Current google3 does not support Rust on Android or Windows.
+selects.config_setting_group(
+    name = "norust_or_windows_or_android",
+    match_any = [
+        ":no_link_with_rust",
+        "//tools/cc_target_os:windows",
+        "//tools/cc_target_os:android",
+    ],
 )
 
 cc_library(
@@ -63,8 +74,8 @@ cc_library(
         "service_controller_impl.h",
     ],
     defines = select({
-        ":link_with_rust": ["USE_RUST_LDT=1"],
-        "//conditions:default": ["USE_RUST_LDT=0"],
+        ":norust_or_windows_or_android": ["USE_RUST_LDT=0"],
+        "//conditions:default": ["USE_RUST_LDT=1"],
     }),
     visibility = [
         "//presence:__subpackages__",
@@ -100,8 +111,8 @@ cc_library(
         "//presence/implementation/mediums",
         "@boringssl//:crypto",
     ] + select({
-        ":link_with_rust": ["//third_party/nearby_rust/presence/np_ffi"],
-        "//conditions:default": [":ldt_stub"],
+        ":norust_or_windows_or_android": [":ldt_stub"],
+        "//conditions:default": ["//third_party/nearby_rust/presence/np_ffi"],
     }),
 )
 
