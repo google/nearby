@@ -22,7 +22,7 @@
 namespace nearby {
 namespace windows {
 
-// TODO(b/184975123): Implement BLE Peripheral
+// TODO(b/269152309): Implement BLE Peripheral
 // This is just a fake stub to appease the BLE Medium abstraction. Windows
 // does not support BLE GATT-based advertising/discovery and socket currently,
 // so a BlePeripheral is not required. The remote device is recognized as a

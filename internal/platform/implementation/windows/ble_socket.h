@@ -24,7 +24,7 @@
 namespace nearby {
 namespace windows {
 
-// TODO(b/184975123): Implement BLE Weave Socket
+// TODO(b/269152309): Implement BLE Weave Socket
 // This is just a fake stub to appease the BLE Medium abstraction. Windows
 // does not support BLE Weave sockets currently. BLE is only used in the
 // pre-connection phase handshake (advertising & discovering), connection is
