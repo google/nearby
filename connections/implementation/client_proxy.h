@@ -17,12 +17,15 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "connections/advertising_options.h"
 #include "connections/discovery_options.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
@@ -33,7 +36,6 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/mutex.h"
-#include "internal/platform/prng.h"
 // Prefer using absl:: versions of a set and a map; they tend to be more
 // efficient: implementation is using open-addressing hash tables.
 #include "absl/container/flat_hash_map.h"
@@ -103,11 +105,10 @@ class ClientProxy final {
                       const std::string& endpoint_id);
 
   // Proxies to the client's ConnectionListener::OnInitiated() callback.
-  void OnConnectionInitiated(const std::string& endpoint_id,
-                             const ConnectionResponseInfo& info,
-                             const ConnectionOptions& connection_options,
-                             const ConnectionListener& listener,
-                             const std::string& connection_token);
+  void OnConnectionInitiated(
+      const std::string& endpoint_id, const ConnectionResponseInfo& info,
+      const ConnectionOptions& connection_options,
+      const ConnectionListener& listener, const std::string& connection_token);
 
   // Proxies to the client's ConnectionListener::OnAccepted() callback.
   void OnConnectionAccepted(const std::string& endpoint_id);
@@ -245,6 +246,13 @@ class ClientProxy final {
   CancellationFlag* GetCancellationFlag(const NearbyDevice& device);
   void CancelEndpoint(const NearbyDevice& device);
 
+  const location::nearby::connections::OsInfo& GetLocalOsInfo() const;
+  std::optional<location::nearby::connections::OsInfo> GetRemoteOsInfo(
+      absl::string_view endpoint_id) const;
+  void SetRemoteOsInfo(
+      absl::string_view endpoint_id,
+      const location::nearby::connections::OsInfo& remote_os_info);
+
  private:
   struct Connection {
     // Status: may be either:
@@ -274,6 +282,7 @@ class ClientProxy final {
     DiscoveryOptions discovery_options;
     AdvertisingOptions advertising_options;
     std::string connection_token;
+    std::optional<location::nearby::connections::OsInfo> os_info;
   };
 
   struct AdvertisingInfo {
@@ -297,8 +306,8 @@ class ClientProxy final {
   void AppendConnectionStatus(const std::string& endpoint_id,
                               Connection::Status status_to_append);
 
-  const Connection* LookupConnection(const std::string& endpoint_id) const;
-  Connection* LookupConnection(const std::string& endpoint_id);
+  const Connection* LookupConnection(absl::string_view endpoint_id) const;
+  Connection* LookupConnection(absl::string_view endpoint_id);
   bool ConnectionStatusMatches(const std::string& endpoint_id,
                                Connection::Status status) const;
   std::vector<std::string> GetMatchingEndpoints(
@@ -307,6 +316,9 @@ class ClientProxy final {
 
   void ScheduleClearLocalHighVisModeCacheEndpointIdAlarm();
   void CancelClearLocalHighVisModeCacheEndpointIdAlarm();
+
+  location::nearby::connections::OsInfo::OsType OSNameToOsInfoType(
+      api::OSName osName);
 
   std::string ToString(PayloadProgressInfo::Status status) const;
 
@@ -372,6 +384,8 @@ class ClientProxy final {
   // nullptr as no-op.
   std::unique_ptr<analytics::AnalyticsRecorder> analytics_recorder_;
   std::unique_ptr<ErrorCodeRecorder> error_code_recorder_;
+  // Local device OS information.
+  location::nearby::connections::OsInfo local_os_info_;
 };
 
 }  // namespace connections

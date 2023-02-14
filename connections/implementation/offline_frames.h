@@ -46,7 +46,8 @@ location::nearby::connections::V1Frame::FrameType GetFrameType(
 
 // Builds Connection Request / Response messages.
 ByteArray ForConnectionRequest(const ConnectionInfo& conection_info);
-ByteArray ForConnectionResponse(std::int32_t status);
+ByteArray ForConnectionResponse(
+    std::int32_t status, const location::nearby::connections::OsInfo& os_info);
 
 // Builds Payload transfer messages.
 ByteArray ForDataPayloadTransfer(

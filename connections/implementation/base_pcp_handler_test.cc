@@ -31,7 +31,6 @@
 #include "connections/listeners.h"
 #include "connections/params.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/pipe.h"
@@ -41,6 +40,7 @@ namespace nearby {
 namespace connections {
 namespace {
 
+using ::location::nearby::connections::OsInfo;
 using ::location::nearby::proto::connections::Medium;
 using ::testing::_;
 using ::testing::AtLeast;
@@ -649,8 +649,9 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
   EXPECT_EQ(pcp_handler.AcceptConnection(&client, endpoint_id, {}),
             Status{Status::kSuccess});
   NEARBY_LOG(INFO, "Simulating remote accept: id=%s", endpoint_id.c_str());
-  auto frame =
-      parser::FromBytes(parser::ForConnectionResponse(Status::kSuccess));
+  OsInfo os_info;
+  auto frame = parser::FromBytes(
+      parser::ForConnectionResponse(Status::kSuccess, os_info));
   EXPECT_CALL(mock_connection_listener_.bandwidth_changed_cb, Call).Times(1);
   pcp_handler.OnIncomingFrame(frame.result(), endpoint_id, &client,
                               connect_medium, packet_meta_data);
