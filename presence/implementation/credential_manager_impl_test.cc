@@ -25,6 +25,8 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/strings/escaping.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/credential_storage_impl.h"
@@ -536,6 +538,39 @@ TEST_F(CredentialManagerImplTest, UpdateLocalCredential) {
   ASSERT_OK(modified_private_credentials);
   EXPECT_THAT(*modified_private_credentials,
               UnorderedPointwise(EqualsProto(), *private_credentials));
+}
+
+TEST_F(CredentialManagerImplTest, ParseAndroidSharedCredential) {
+  // This SharedCredential and Metadata were generated on Android.
+  constexpr absl::string_view kSharedCredentialBase16 =
+      "0A20C8B6DB66CBA77E8CF0286A78574D1F7EADF3C3DAA3E26DAB048FD5481B4FBA7A1220"
+      "E809E7805FC6AB8226A4CCA9FAEA5FDDE49EE07E7D5905CCB6AA0F779069F2A818D088D4"
+      "EADE3020B093BEBDE0302A56E1CAE889FC26B8FBF399C86BEB8D7AB84EE476EF2E75B465"
+      "773A957BDEAD6732FCD74BFFC363BE068CCD9109108AAE5274C861675F3E7E0E524C4A75"
+      "11DC9F669FCAC072EE70062B00AEA4A736454FC1CAAE6F8D62843220D563DF856310428E"
+      "FE6D8B6FBD74FB9C4E762323782494D0E2DF6FEA118E17B13A5B3059301306072A8648CE"
+      "3D020106082A8648CE3D03010703420004169A965ACFCAE31B031147A0169823B4B6926D"
+      "7AA86E50CABB5F6100F6992D5C1769FC629F0F789B7B39525DA4A33FC2438A074DC1EEC0"
+      "21B1AA4FD2122DC5044801";
+  constexpr absl::string_view kMetadataEncryptionKeyBase16 =
+      "6331578C6E244074111B2ED0BBDB";
+  constexpr absl::string_view kMetadataBase16 =
+      "08011A137363616E6E657220646576696365206E616D6522137363616E6E657220706572"
+      "736F6E206E616D652A107363616E6E65722069636F6E2075726C3206AABBCCDDEEFF";
+  SharedCredential shared_credential;
+  Metadata expected_metadata;
+
+  ASSERT_TRUE(shared_credential.ParseFromString(
+      absl::HexStringToBytes(kSharedCredentialBase16)));
+  ASSERT_TRUE(expected_metadata.ParseFromString(
+      absl::HexStringToBytes(kMetadataBase16)));
+  std::string decrypted_metadata = credential_manager_.DecryptMetadata(
+      absl::HexStringToBytes(kMetadataEncryptionKeyBase16),
+      shared_credential.key_seed(),
+      shared_credential.encrypted_metadata_bytes());
+  Metadata metadata;
+  ASSERT_TRUE(metadata.ParseFromString(decrypted_metadata));
+  EXPECT_THAT(metadata, EqualsProto(expected_metadata));
 }
 
 }  // namespace

@@ -286,6 +286,7 @@ cc_test(
         "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
         "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "//internal/platform:comm",
         "//internal/platform:test_util",
