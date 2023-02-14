@@ -1124,7 +1124,7 @@ P2pClusterPcpHandler::StartBluetoothAdvertising(
       "P2pClusterPcpHandler::StartBluetoothAdvertising: service=%s: start",
       service_id.c_str());
   if (!bluetooth_medium_.IsAcceptingConnections(service_id)) {
-    if (!bluetooth_radio_.Enable() ||
+    if (!bluetooth_medium_.IsAvailable() ||
         !bluetooth_medium_.StartAcceptingConnections(
             service_id, {.accepted_cb = [this, client, local_endpoint_info](
                                             const std::string& service_id,
@@ -1224,7 +1224,7 @@ location::nearby::proto::connections::Medium
 P2pClusterPcpHandler::StartBluetoothDiscovery(
     BluetoothDiscoveredDeviceCallback callback, ClientProxy* client,
     const std::string& service_id) {
-  if (bluetooth_radio_.Enable() &&
+  if (bluetooth_medium_.IsAvailable() &&
       bluetooth_medium_.StartDiscovery(std::move(callback))) {
     NEARBY_LOGS(INFO) << "In StartBluetoothDiscovery(), client="
                       << client->GetClientId()
@@ -1291,7 +1291,7 @@ P2pClusterPcpHandler::StartBleAdvertising(
   NEARBY_LOGS(INFO) << "P2pClusterPcpHandler::StartBleAdvertising: service_id="
                     << service_id << " : start";
   if (!ble_medium_.IsAcceptingConnections(service_id)) {
-    if (!bluetooth_radio_.Enable() ||
+    if (!ble_medium_.IsAvailable() ||
         !ble_medium_.StartAcceptingConnections(
             service_id, {.accepted_cb = [this, client, local_endpoint_info](
                                             BleSocket socket,
@@ -1343,8 +1343,7 @@ P2pClusterPcpHandler::StartBleAdvertising(
       ShouldAcceptBluetoothConnections(advertising_options)) {
     if (bluetooth_medium_.IsAvailable() &&
         !bluetooth_medium_.IsAcceptingConnections(service_id)) {
-      if (!bluetooth_radio_.Enable() ||
-          !bluetooth_medium_.StartAcceptingConnections(
+      if (!bluetooth_medium_.StartAcceptingConnections(
               service_id, {.accepted_cb = [this, client, local_endpoint_info](
                                               const std::string& service_id,
                                               BluetoothSocket socket) {
@@ -1461,7 +1460,7 @@ P2pClusterPcpHandler::StartBleScanning(
     BleDiscoveredPeripheralCallback callback, ClientProxy* client,
     const std::string& service_id,
     const std::string& fast_advertisement_service_uuid) {
-  if (bluetooth_radio_.Enable() &&
+  if (ble_medium_.IsAvailable() &&
       ble_medium_.StartScanning(service_id, fast_advertisement_service_uuid,
                                 std::move(callback))) {
     NEARBY_LOGS(INFO)
@@ -1522,7 +1521,7 @@ P2pClusterPcpHandler::StartBleV2Advertising(
                     << service_id << " : start";
   // TODO(edwinwu): Move the lambda to a named function.
   if (!ble_v2_medium_.IsAcceptingConnections(service_id)) {
-    if (!bluetooth_radio_.Enable() ||
+    if (!ble_v2_medium_.IsAvailable() ||
         !ble_v2_medium_.StartAcceptingConnections(
             service_id, {.accepted_cb = [this, client, local_endpoint_info](
                                             BleV2Socket socket,
@@ -1574,8 +1573,7 @@ P2pClusterPcpHandler::StartBleV2Advertising(
       ShouldAcceptBluetoothConnections(advertising_options)) {
     if (bluetooth_medium_.IsAvailable() &&
         !bluetooth_medium_.IsAcceptingConnections(service_id)) {
-      if (!bluetooth_radio_.Enable() ||
-          !bluetooth_medium_.StartAcceptingConnections(
+      if (!bluetooth_medium_.StartAcceptingConnections(
               service_id, {.accepted_cb = [this, client, local_endpoint_info](
                                               const std::string& service_id,
                                               BluetoothSocket socket) {
@@ -1693,7 +1691,7 @@ P2pClusterPcpHandler::StartBleV2Scanning(
     const std::string& service_id, const DiscoveryOptions& discovery_options) {
   PowerLevel power_level = discovery_options.low_power ? PowerLevel::kLowPower
                                                        : PowerLevel::kHighPower;
-  if (bluetooth_radio_.Enable() &&
+  if (ble_v2_medium_.IsAvailable() &&
       ble_v2_medium_.StartScanning(service_id, power_level,
                                    std::move(callback))) {
     NEARBY_LOGS(INFO)
