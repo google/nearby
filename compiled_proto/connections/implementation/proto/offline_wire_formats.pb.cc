@@ -75,6 +75,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT ConnectionRequestFrameDefaultTy
 constexpr ConnectionResponseFrame::ConnectionResponseFrame(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : handshake_data_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , os_info_(nullptr)
   , status_(0)
   , response_(0)
 {}
@@ -442,6 +443,19 @@ struct LocationStandardDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT LocationStandardDefaultTypeInternal _LocationStandard_default_instance_;
+constexpr OsInfo::OsInfo(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : type_(0)
+{}
+struct OsInfoDefaultTypeInternal {
+  constexpr OsInfoDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~OsInfoDefaultTypeInternal() {}
+  union {
+    OsInfo _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT OsInfoDefaultTypeInternal _OsInfo_default_instance_;
 }  // namespace connections
 }  // namespace nearby
 }  // namespace location
@@ -1260,6 +1274,84 @@ constexpr LocationStandard_Format LocationStandard::ISO_3166_1_ALPHA_2;
 constexpr LocationStandard_Format LocationStandard::Format_MIN;
 constexpr LocationStandard_Format LocationStandard::Format_MAX;
 constexpr int LocationStandard::Format_ARRAYSIZE;
+#endif  // (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+bool OsInfo_OsType_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 100:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> OsInfo_OsType_strings[6] = {};
+
+static const char OsInfo_OsType_names[] =
+  "ANDROID"
+  "APPLE"
+  "CHROME_OS"
+  "LINUX"
+  "UNKNOWN_OS_TYPE"
+  "WINDOWS";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry OsInfo_OsType_entries[] = {
+  { {OsInfo_OsType_names + 0, 7}, 1 },
+  { {OsInfo_OsType_names + 7, 5}, 4 },
+  { {OsInfo_OsType_names + 12, 9}, 2 },
+  { {OsInfo_OsType_names + 21, 5}, 100 },
+  { {OsInfo_OsType_names + 26, 15}, 0 },
+  { {OsInfo_OsType_names + 41, 7}, 3 },
+};
+
+static const int OsInfo_OsType_entries_by_number[] = {
+  4, // 0 -> UNKNOWN_OS_TYPE
+  0, // 1 -> ANDROID
+  2, // 2 -> CHROME_OS
+  5, // 3 -> WINDOWS
+  1, // 4 -> APPLE
+  3, // 100 -> LINUX
+};
+
+const std::string& OsInfo_OsType_Name(
+    OsInfo_OsType value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          OsInfo_OsType_entries,
+          OsInfo_OsType_entries_by_number,
+          6, OsInfo_OsType_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      OsInfo_OsType_entries,
+      OsInfo_OsType_entries_by_number,
+      6, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     OsInfo_OsType_strings[idx].get();
+}
+bool OsInfo_OsType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, OsInfo_OsType* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      OsInfo_OsType_entries, 6, name, &int_value);
+  if (success) {
+    *value = static_cast<OsInfo_OsType>(int_value);
+  }
+  return success;
+}
+#if (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+constexpr OsInfo_OsType OsInfo::UNKNOWN_OS_TYPE;
+constexpr OsInfo_OsType OsInfo::ANDROID;
+constexpr OsInfo_OsType OsInfo::CHROME_OS;
+constexpr OsInfo_OsType OsInfo::WINDOWS;
+constexpr OsInfo_OsType OsInfo::APPLE;
+constexpr OsInfo_OsType OsInfo::LINUX;
+constexpr OsInfo_OsType OsInfo::OsType_MIN;
+constexpr OsInfo_OsType OsInfo::OsType_MAX;
+constexpr int OsInfo::OsType_ARRAYSIZE;
 #endif  // (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
 
 // ===================================================================
@@ -2670,16 +2762,24 @@ class ConnectionResponseFrame::_Internal {
  public:
   using HasBits = decltype(std::declval<ConnectionResponseFrame>()._has_bits_);
   static void set_has_status(HasBits* has_bits) {
-    (*has_bits)[0] |= 2u;
+    (*has_bits)[0] |= 4u;
   }
   static void set_has_handshake_data(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
   }
   static void set_has_response(HasBits* has_bits) {
-    (*has_bits)[0] |= 4u;
+    (*has_bits)[0] |= 8u;
+  }
+  static const ::location::nearby::connections::OsInfo& os_info(const ConnectionResponseFrame* msg);
+  static void set_has_os_info(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
   }
 };
 
+const ::location::nearby::connections::OsInfo&
+ConnectionResponseFrame::_Internal::os_info(const ConnectionResponseFrame* msg) {
+  return *msg->os_info_;
+}
 ConnectionResponseFrame::ConnectionResponseFrame(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
@@ -2701,6 +2801,11 @@ ConnectionResponseFrame::ConnectionResponseFrame(const ConnectionResponseFrame& 
     handshake_data_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_handshake_data(), 
       GetArenaForAllocation());
   }
+  if (from._internal_has_os_info()) {
+    os_info_ = new ::location::nearby::connections::OsInfo(*from.os_info_);
+  } else {
+    os_info_ = nullptr;
+  }
   ::memcpy(&status_, &from.status_,
     static_cast<size_t>(reinterpret_cast<char*>(&response_) -
     reinterpret_cast<char*>(&status_)) + sizeof(response_));
@@ -2713,9 +2818,9 @@ handshake_data_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStr
   handshake_data_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
-    reinterpret_cast<char*>(&status_) - reinterpret_cast<char*>(this)),
+    reinterpret_cast<char*>(&os_info_) - reinterpret_cast<char*>(this)),
     0, static_cast<size_t>(reinterpret_cast<char*>(&response_) -
-    reinterpret_cast<char*>(&status_)) + sizeof(response_));
+    reinterpret_cast<char*>(&os_info_)) + sizeof(response_));
 }
 
 ConnectionResponseFrame::~ConnectionResponseFrame() {
@@ -2728,6 +2833,7 @@ ConnectionResponseFrame::~ConnectionResponseFrame() {
 inline void ConnectionResponseFrame::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   handshake_data_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (this != internal_default_instance()) delete os_info_;
 }
 
 void ConnectionResponseFrame::ArenaDtor(void* object) {
@@ -2747,10 +2853,16 @@ void ConnectionResponseFrame::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    handshake_data_.ClearNonDefaultToEmpty();
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      handshake_data_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000002u) {
+      GOOGLE_DCHECK(os_info_ != nullptr);
+      os_info_->Clear();
+    }
   }
-  if (cached_has_bits & 0x00000006u) {
+  if (cached_has_bits & 0x0000000cu) {
     ::memset(&status_, 0, static_cast<size_t>(
         reinterpret_cast<char*>(&response_) -
         reinterpret_cast<char*>(&status_)) + sizeof(response_));
@@ -2797,6 +2909,14 @@ const char* ConnectionResponseFrame::_InternalParse(const char* ptr, ::PROTOBUF_
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.connections.OsInfo os_info = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
+          ptr = ctx->ParseMessage(_internal_mutable_os_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -2829,7 +2949,7 @@ uint8_t* ConnectionResponseFrame::_InternalSerialize(
 
   cached_has_bits = _has_bits_[0];
   // optional int32 status = 1 [deprecated = true];
-  if (cached_has_bits & 0x00000002u) {
+  if (cached_has_bits & 0x00000004u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_status(), target);
   }
@@ -2841,10 +2961,18 @@ uint8_t* ConnectionResponseFrame::_InternalSerialize(
   }
 
   // optional .location.nearby.connections.ConnectionResponseFrame.ResponseStatus response = 3;
-  if (cached_has_bits & 0x00000004u) {
+  if (cached_has_bits & 0x00000008u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       3, this->_internal_response(), target);
+  }
+
+  // optional .location.nearby.connections.OsInfo os_info = 4;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        4, _Internal::os_info(this), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -2864,7 +2992,7 @@ size_t ConnectionResponseFrame::ByteSizeLong() const {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000007u) {
+  if (cached_has_bits & 0x0000000fu) {
     // optional bytes handshake_data = 2;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -2872,13 +3000,20 @@ size_t ConnectionResponseFrame::ByteSizeLong() const {
           this->_internal_handshake_data());
     }
 
-    // optional int32 status = 1 [deprecated = true];
+    // optional .location.nearby.connections.OsInfo os_info = 4;
     if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *os_info_);
+    }
+
+    // optional int32 status = 1 [deprecated = true];
+    if (cached_has_bits & 0x00000004u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_status());
     }
 
     // optional .location.nearby.connections.ConnectionResponseFrame.ResponseStatus response = 3;
-    if (cached_has_bits & 0x00000004u) {
+    if (cached_has_bits & 0x00000008u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_response());
     }
@@ -2905,14 +3040,17 @@ void ConnectionResponseFrame::MergeFrom(const ConnectionResponseFrame& from) {
   (void) cached_has_bits;
 
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x00000007u) {
+  if (cached_has_bits & 0x0000000fu) {
     if (cached_has_bits & 0x00000001u) {
       _internal_set_handshake_data(from._internal_handshake_data());
     }
     if (cached_has_bits & 0x00000002u) {
-      status_ = from.status_;
+      _internal_mutable_os_info()->::location::nearby::connections::OsInfo::MergeFrom(from._internal_os_info());
     }
     if (cached_has_bits & 0x00000004u) {
+      status_ = from.status_;
+    }
+    if (cached_has_bits & 0x00000008u) {
       response_ = from.response_;
     }
     _has_bits_[0] |= cached_has_bits;
@@ -2945,9 +3083,9 @@ void ConnectionResponseFrame::InternalSwap(ConnectionResponseFrame* other) {
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
       PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, response_)
       + sizeof(ConnectionResponseFrame::response_)
-      - PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, status_)>(
-          reinterpret_cast<char*>(&status_),
-          reinterpret_cast<char*>(&other->status_));
+      - PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, os_info_)>(
+          reinterpret_cast<char*>(&os_info_),
+          reinterpret_cast<char*>(&other->os_info_));
 }
 
 std::string ConnectionResponseFrame::GetTypeName() const {
@@ -9814,6 +9952,199 @@ std::string LocationStandard::GetTypeName() const {
 }
 
 
+// ===================================================================
+
+class OsInfo::_Internal {
+ public:
+  using HasBits = decltype(std::declval<OsInfo>()._has_bits_);
+  static void set_has_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+};
+
+OsInfo::OsInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:location.nearby.connections.OsInfo)
+}
+OsInfo::OsInfo(const OsInfo& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  type_ = from.type_;
+  // @@protoc_insertion_point(copy_constructor:location.nearby.connections.OsInfo)
+}
+
+inline void OsInfo::SharedCtor() {
+type_ = 0;
+}
+
+OsInfo::~OsInfo() {
+  // @@protoc_insertion_point(destructor:location.nearby.connections.OsInfo)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void OsInfo::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void OsInfo::ArenaDtor(void* object) {
+  OsInfo* _this = reinterpret_cast< OsInfo* >(object);
+  (void)_this;
+}
+void OsInfo::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void OsInfo::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void OsInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:location.nearby.connections.OsInfo)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  type_ = 0;
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* OsInfo::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional .location.nearby.connections.OsInfo.OsType type = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::connections::OsInfo_OsType_IsValid(val))) {
+            _internal_set_type(static_cast<::location::nearby::connections::OsInfo_OsType>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(1, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* OsInfo::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:location.nearby.connections.OsInfo)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional .location.nearby.connections.OsInfo.OsType type = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      1, this->_internal_type(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:location.nearby.connections.OsInfo)
+  return target;
+}
+
+size_t OsInfo::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:location.nearby.connections.OsInfo)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // optional .location.nearby.connections.OsInfo.OsType type = 1;
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_type());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void OsInfo::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const OsInfo*>(
+      &from));
+}
+
+void OsInfo::MergeFrom(const OsInfo& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:location.nearby.connections.OsInfo)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_type()) {
+    _internal_set_type(from._internal_type());
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void OsInfo::CopyFrom(const OsInfo& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:location.nearby.connections.OsInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool OsInfo::IsInitialized() const {
+  return true;
+}
+
+void OsInfo::InternalSwap(OsInfo* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  swap(type_, other->type_);
+}
+
+std::string OsInfo::GetTypeName() const {
+  return "location.nearby.connections.OsInfo";
+}
+
+
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace connections
 }  // namespace nearby
@@ -9905,6 +10236,9 @@ template<> PROTOBUF_NOINLINE ::location::nearby::connections::LocationHint* Aren
 }
 template<> PROTOBUF_NOINLINE ::location::nearby::connections::LocationStandard* Arena::CreateMaybeMessage< ::location::nearby::connections::LocationStandard >(Arena* arena) {
   return Arena::CreateMessageInternal< ::location::nearby::connections::LocationStandard >(arena);
+}
+template<> PROTOBUF_NOINLINE ::location::nearby::connections::OsInfo* Arena::CreateMaybeMessage< ::location::nearby::connections::OsInfo >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::location::nearby::connections::OsInfo >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 
