@@ -15,6 +15,7 @@
 #include "fastpair/common/fast_pair_device.h"
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -30,7 +31,7 @@ namespace {
 TEST(FastPairDevice, GetAndSetAccountKey) {
   FastPairDevice device_("model_id", "ble_address",
                          Protocol::kFastPairInitialPairing);
-  absl::optional<std::vector<uint8_t>> accountKey;
+  std::optional<std::vector<uint8_t>> accountKey;
   std::vector<uint8_t> data = {0};
   device_.set_account_key(data);
   accountKey = device_.account_key();
@@ -47,7 +48,7 @@ TEST(FastPairDevice, GetAndSetName) {
   FastPairDevice device_("model_id", "ble_address",
                          Protocol::kFastPairInitialPairing);
   // Test that name returns null before any sets.
-  absl::optional<std::string> name = device_.display_name();
+  std::optional<std::string> name = device_.display_name();
   EXPECT_FALSE(name.has_value());
 
   // Test that name returns the set value.
@@ -69,7 +70,7 @@ TEST(FastPairDevice, GetAndPublicAddress) {
   FastPairDevice device_("model_id", "ble_address",
                          Protocol::kFastPairInitialPairing);
   // Test that public address returns null before any sets.
-  absl::optional<std::string> public_address = device_.public_address();
+  std::optional<std::string> public_address = device_.public_address();
   EXPECT_FALSE(public_address.has_value());
 
   // Test that name returns the set value.

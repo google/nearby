@@ -25,7 +25,6 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/escaping.h"
-#include "absl/types/optional.h"
 #include "fastpair/testing/fast_pair_service_data_creator.h"
 
 namespace nearby {

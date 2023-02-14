@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <array>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -67,10 +68,10 @@ bool FastPairDecoder::HasModelId(const std::vector<uint8_t>* service_data) {
            GetVersion(service_data) == 0 && IsIdLengthValid(service_data)));
 }
 
-absl::optional<std::string> FastPairDecoder::GetHexModelIdFromServiceData(
+std::optional<std::string> FastPairDecoder::GetHexModelIdFromServiceData(
     const std::vector<uint8_t>* service_data) {
   if (service_data == nullptr || service_data->size() < kMinModelIdLength) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   if (service_data->size() == kMinModelIdLength) {

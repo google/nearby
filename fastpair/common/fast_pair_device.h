@@ -16,6 +16,7 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_COMMON_FAST_PAIR_DEVICE_H_
 
 #include <cstdint>
+#include <optional>
 #include <ostream>
 #include <string>
 #include <vector>
@@ -41,7 +42,7 @@ struct FastPairDevice {
   FastPairDevice& operator=(FastPairDevice&&) = delete;
   ~FastPairDevice();
 
-  const absl::optional<std::string>& public_address() const {
+  const std::optional<std::string>& public_address() const {
     return public_address_;
   }
 
@@ -49,21 +50,21 @@ struct FastPairDevice {
     public_address_ = address;
   }
 
-  const absl::optional<std::string>& display_name() const {
+  const std::optional<std::string>& display_name() const {
     return display_name_;
   }
 
-  void set_display_name(const absl::optional<std::string>& display_name) {
+  void set_display_name(const std::optional<std::string>& display_name) {
     display_name_ = display_name;
   }
 
-  absl::optional<DeviceFastPairVersion> version() { return version_; }
+  std::optional<DeviceFastPairVersion> version() { return version_; }
 
-  void set_version(absl::optional<DeviceFastPairVersion> version) {
+  void set_version(std::optional<DeviceFastPairVersion> version) {
     version_ = version;
   }
 
-  absl::optional<std::vector<uint8_t>> account_key() const {
+  std::optional<std::vector<uint8_t>> account_key() const {
     return account_key_;
   }
 
@@ -81,23 +82,23 @@ struct FastPairDevice {
 
  private:
   // Bluetooth public classic address of the device.
-  absl::optional<std::string> public_address_;
+  std::optional<std::string> public_address_;
 
   // Display name for the device
   // Similar to Bluetooth classic address field, this will be null when a
   // device is found from a discoverable advertisement due to the fact that
   // initial pair notifications show the OEM default name from the device
   // metadata instead of the display name.
-  absl::optional<std::string> display_name_;
+  std::optional<std::string> display_name_;
 
   // Fast Pair version number, possible versions numbers are defined at the top
   // of this file.
-  absl::optional<DeviceFastPairVersion> version_;
+  std::optional<DeviceFastPairVersion> version_;
 
   // Account key which will be saved to the user's account during Fast Pairing
   // for eligible devices (V2 or higher) and used for detecting subsequent
   // pairing scenarios.
-  absl::optional<std::vector<uint8_t>> account_key_;
+  std::optional<std::vector<uint8_t>> account_key_;
 };
 
 std::ostream& operator<<(std::ostream& stream, const FastPairDevice& device);

@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -61,7 +62,7 @@ FastPairServiceDataCreator::Builder::Build() {
 }
 
 FastPairServiceDataCreator::FastPairServiceDataCreator(
-    absl::optional<uint8_t> header, absl::optional<std::string> model_id,
+    std::optional<uint8_t> header, std::optional<std::string> model_id,
     std::vector<uint8_t> extra_field_headers,
     std::vector<std::string> extra_fields)
     : header_(header),

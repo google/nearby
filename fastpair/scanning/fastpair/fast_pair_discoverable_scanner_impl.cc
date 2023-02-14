@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -117,14 +118,14 @@ void FastPairDiscoverableScannerImpl::OnDeviceFound(
 
   FastPairDataParser::GetHexModelIdFromServiceData(
       service_data,
-      {[this, peripheral](absl::optional<absl::string_view> model_id) {
+      {[this, peripheral](std::optional<absl::string_view> model_id) {
         OnModelIdRetrieved(peripheral.GetName(), model_id);
       }});
 }
 
 void FastPairDiscoverableScannerImpl::OnModelIdRetrieved(
     const std::string& address,
-    const absl::optional<absl::string_view> model_id) {
+    const std::optional<absl::string_view> model_id) {
   auto it = model_id_parse_attempts_.find(address);
 
   // If there's no entry in the map, the device was lost while parsing.

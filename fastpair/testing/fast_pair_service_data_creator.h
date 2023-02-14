@@ -17,10 +17,9 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
-
-#include "absl/types/optional.h"
 
 namespace nearby {
 namespace fastpair {
@@ -43,14 +42,14 @@ class FastPairServiceDataCreator {
     std::unique_ptr<FastPairServiceDataCreator> Build();
 
    private:
-    absl::optional<uint8_t> header_;
-    absl::optional<std::string> model_id_ = absl::nullopt;
+    std::optional<uint8_t> header_;
+    std::optional<std::string> model_id_ = std::nullopt;
     std::vector<uint8_t> extra_field_headers_;
     std::vector<std::string> extra_fields_;
   };
 
-  FastPairServiceDataCreator(absl::optional<uint8_t> header,
-                             absl::optional<std::string> model_id,
+  FastPairServiceDataCreator(std::optional<uint8_t> header,
+                             std::optional<std::string> model_id,
                              std::vector<uint8_t> extra_field_headers,
                              std::vector<std::string> extra_fields);
   FastPairServiceDataCreator(const FastPairServiceDataCreator&) = delete;
@@ -61,8 +60,8 @@ class FastPairServiceDataCreator {
   std::vector<uint8_t> CreateServiceData();
 
  private:
-  absl::optional<uint8_t> header_;
-  absl::optional<std::string> model_id_;
+  std::optional<uint8_t> header_;
+  std::optional<std::string> model_id_;
   std::vector<uint8_t> extra_field_headers_;
   std::vector<std::string> extra_fields_;
 };

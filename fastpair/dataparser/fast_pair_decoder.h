@@ -16,10 +16,9 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_DATAPARSER_FAST_PAIR_DECODER_H_
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
-
-#include "absl/types/optional.h"
 
 namespace nearby {
 namespace fastpair {
@@ -28,7 +27,7 @@ class FastPairDecoder {
  public:
   static bool HasModelId(const std::vector<uint8_t>* service_data);
 
-  static absl::optional<std::string> GetHexModelIdFromServiceData(
+  static std::optional<std::string> GetHexModelIdFromServiceData(
       const std::vector<uint8_t>* service_data);
 };
 }  // namespace fastpair
