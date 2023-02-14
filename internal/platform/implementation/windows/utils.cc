@@ -26,6 +26,7 @@
 
 // Third party headers
 #include "absl/strings/ascii.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 
 // Nearby connections headers
@@ -34,8 +35,10 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/uuid.h"
 #include "winrt/Windows.Foundation.Collections.h"
 #include "winrt/Windows.Networking.Connectivity.h"
+#include "winrt/base.h"
 
 namespace nearby {
 namespace windows {
@@ -171,6 +174,49 @@ std::vector<std::string> Get4BytesIpv4Addresses() {
   }
 
   return result;
+}
+
+Uuid winrt_guid_to_nearby_uuid(const ::winrt::guid& guid) {
+  int64_t data1 = guid.Data1;
+  int64_t data2 = guid.Data2;
+  int64_t data3 = guid.Data3;
+
+  int64_t msb = ((data1 >> 24) & 0xff) << 56 | ((data1 >> 16) & 0xff) << 48 |
+                ((data1 >> 8) & 0xff) << 40 | ((data1)&0xff) << 32 |
+                ((data2 >> 8) & 0xff) << 24 | ((data2)&0xff) << 16 |
+                ((data3 >> 8) & 0xff) << 8 | (data3 & 0xff);
+
+  int64_t lsb =
+      ((int64_t)guid.Data4[0]) << 56 | ((int64_t)guid.Data4[1]) << 48 |
+      ((int64_t)guid.Data4[2]) << 40 | ((int64_t)guid.Data4[3]) << 32 |
+      ((int64_t)guid.Data4[4]) << 24 | ((int64_t)guid.Data4[5]) << 16 |
+      ((int64_t)guid.Data4[6]) << 8 | (int64_t)guid.Data4[7];
+
+  return Uuid(msb, lsb);
+}
+
+winrt::guid nearby_uuid_to_winrt_guid(Uuid uuid) {
+  winrt::guid guid;
+  uint64_t msb = uuid.GetMostSigBits();
+  guid.Data1 = ((msb >> 56) & 0xff) << 24 | ((msb >> 48) & 0xff) << 16 |
+               ((msb >> 40) & 0xff) << 8 | ((msb >> 32) & 0xff);
+  guid.Data2 = ((msb >> 24) & 0xff) << 8 | ((msb >> 16) & 0xff);
+  guid.Data3 = ((msb >> 8) & 0xff) << 8 | (msb & 0xff);
+  uint64_t lsb = uuid.GetLeastSigBits();
+  guid.Data4[0] = (lsb >> 56) & 0xff;
+  guid.Data4[1] = (lsb >> 48) & 0xff;
+  guid.Data4[2] = (lsb >> 40) & 0xff;
+  guid.Data4[3] = (lsb >> 32) & 0xff;
+  guid.Data4[4] = (lsb >> 24) & 0xff;
+  guid.Data4[5] = (lsb >> 16) & 0xff;
+  guid.Data4[6] = (lsb >> 8) & 0xff;
+  guid.Data4[7] = lsb & 0xff;
+  return guid;
+}
+
+bool is_nearby_uuid_equal_to_winrt_guid(const Uuid& uuid,
+                                     const ::winrt::guid& guid) {
+  return uuid == winrt_guid_to_nearby_uuid(guid);
 }
 
 ByteArray Sha256(absl::string_view input, size_t size) {

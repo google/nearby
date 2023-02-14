@@ -59,6 +59,7 @@ class Uuid final {
 
   // Hashable
   bool operator==(const Uuid &rhs) const;
+  bool operator!=(const Uuid &rhs) const;
   template <typename H>
   friend H AbslHashValue(H h, const Uuid &b) {
     return H::combine(std::move(h), b.most_sig_bits_, b.least_sig_bits_);

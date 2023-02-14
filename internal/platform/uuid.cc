@@ -110,4 +110,6 @@ bool Uuid::operator==(const Uuid& rhs) const {
          GetLeastSigBits() == rhs.GetLeastSigBits();
 }
 
+bool Uuid::operator!=(const Uuid& rhs) const { return !(*this == rhs); }
+
 }  // namespace nearby
