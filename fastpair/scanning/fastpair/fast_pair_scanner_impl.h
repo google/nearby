@@ -33,6 +33,20 @@ namespace fastpair {
 
 class FastPairScannerImpl : public FastPairScanner {
  public:
+  class Factory {
+   public:
+    static std::shared_ptr<FastPairScanner> Create();
+
+    static void SetFactoryForTesting(Factory* g_test_factory);
+
+   protected:
+    virtual ~Factory();
+    virtual std::shared_ptr<FastPairScanner> CreateInstance() = 0;
+
+   private:
+    static Factory* g_test_factory_;
+  };
+
   FastPairScannerImpl();
   FastPairScannerImpl(const FastPairScannerImpl&) = delete;
   FastPairScannerImpl& operator=(const FastPairScannerImpl&) = delete;

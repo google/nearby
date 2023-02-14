@@ -48,6 +48,26 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "test_support",
+    srcs = [
+        "fake_fast_pair_scanner.cc",
+    ],
+    hdrs = [
+        "fake_fast_pair_discoverable_scanner.h",
+        "fake_fast_pair_scanner.h",
+    ],
+    visibility = [
+        "//fastpair/scanning:__subpackages__",
+    ],
+    deps = [
+        ":scanning",
+        "//fastpair/common",
+        "//internal/base",
+        "@com_google_absl//absl/functional:any_invocable",
+    ],
+)
+
 cc_test(
     name = "fast_pair_scanner_impl_test",
     size = "small",

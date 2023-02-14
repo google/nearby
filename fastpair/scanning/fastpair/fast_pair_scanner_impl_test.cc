@@ -122,6 +122,15 @@ class FastPairScannerImplTest : public testing::Test {
   std::unique_ptr<FastPairScannerObserver> scanner_observer_;
 };
 
+TEST_F(FastPairScannerImplTest, FactoryCreatSuccessfully) {
+  env_.Start();
+  std::shared_ptr<FastPairScanner> scanner =
+      FastPairScannerImpl::Factory::Create();
+  EXPECT_TRUE(scanner);
+  scanner.reset();
+  env_.Stop();
+}
+
 TEST_F(FastPairScannerImplTest, StartScanningSuccessfully) {
   env_.Start();
   scanner_->StartScanning();

@@ -30,6 +30,27 @@ constexpr absl::Duration kFastPairLowPowerActiveSeconds = absl::Seconds(2);
 constexpr absl::Duration kFastPairLowPowerInactiveSeconds = absl::Seconds(3);
 }  // namespace
 
+// static
+FastPairScannerImpl::Factory* FastPairScannerImpl::Factory::g_test_factory_ =
+    nullptr;
+
+// static
+std::shared_ptr<FastPairScanner> FastPairScannerImpl::Factory::Create() {
+  if (g_test_factory_) {
+    return g_test_factory_->CreateInstance();
+  }
+
+  return std::make_shared<FastPairScannerImpl>();
+}
+
+// static
+void FastPairScannerImpl::Factory::SetFactoryForTesting(
+    Factory* g_test_factory) {
+  g_test_factory_ = g_test_factory;
+}
+
+FastPairScannerImpl::Factory::~Factory() = default;
+
 // FastPairScannerImpl
 FastPairScannerImpl::FastPairScannerImpl() {
   task_runner_ = std::make_shared<TaskRunnerImpl>(1);
