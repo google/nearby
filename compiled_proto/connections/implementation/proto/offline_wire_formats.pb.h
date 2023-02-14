@@ -45,7 +45,7 @@ struct TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fforma
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::AuxiliaryParseTableField aux[]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
-  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[29]
+  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[30]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::FieldMetadata field_metadata[];
   static const ::PROTOBUF_NAMESPACE_ID::internal::SerializationTable serialization_table[];
@@ -111,6 +111,9 @@ extern MediumMetadataDefaultTypeInternal _MediumMetadata_default_instance_;
 class OfflineFrame;
 struct OfflineFrameDefaultTypeInternal;
 extern OfflineFrameDefaultTypeInternal _OfflineFrame_default_instance_;
+class OsInfo;
+struct OsInfoDefaultTypeInternal;
+extern OsInfoDefaultTypeInternal _OsInfo_default_instance_;
 class PairedKeyEncryptionFrame;
 struct PairedKeyEncryptionFrameDefaultTypeInternal;
 extern PairedKeyEncryptionFrameDefaultTypeInternal _PairedKeyEncryptionFrame_default_instance_;
@@ -164,6 +167,7 @@ template<> ::location::nearby::connections::LocationHint* Arena::CreateMaybeMess
 template<> ::location::nearby::connections::LocationStandard* Arena::CreateMaybeMessage<::location::nearby::connections::LocationStandard>(Arena*);
 template<> ::location::nearby::connections::MediumMetadata* Arena::CreateMaybeMessage<::location::nearby::connections::MediumMetadata>(Arena*);
 template<> ::location::nearby::connections::OfflineFrame* Arena::CreateMaybeMessage<::location::nearby::connections::OfflineFrame>(Arena*);
+template<> ::location::nearby::connections::OsInfo* Arena::CreateMaybeMessage<::location::nearby::connections::OsInfo>(Arena*);
 template<> ::location::nearby::connections::PairedKeyEncryptionFrame* Arena::CreateMaybeMessage<::location::nearby::connections::PairedKeyEncryptionFrame>(Arena*);
 template<> ::location::nearby::connections::PayloadTransferFrame* Arena::CreateMaybeMessage<::location::nearby::connections::PayloadTransferFrame>(Arena*);
 template<> ::location::nearby::connections::PayloadTransferFrame_ControlMessage* Arena::CreateMaybeMessage<::location::nearby::connections::PayloadTransferFrame_ControlMessage>(Arena*);
@@ -423,6 +427,29 @@ inline const std::string& LocationStandard_Format_Name(T enum_t_value) {
 }
 bool LocationStandard_Format_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, LocationStandard_Format* value);
+enum OsInfo_OsType : int {
+  OsInfo_OsType_UNKNOWN_OS_TYPE = 0,
+  OsInfo_OsType_ANDROID = 1,
+  OsInfo_OsType_CHROME_OS = 2,
+  OsInfo_OsType_WINDOWS = 3,
+  OsInfo_OsType_APPLE = 4,
+  OsInfo_OsType_LINUX = 100
+};
+bool OsInfo_OsType_IsValid(int value);
+constexpr OsInfo_OsType OsInfo_OsType_OsType_MIN = OsInfo_OsType_UNKNOWN_OS_TYPE;
+constexpr OsInfo_OsType OsInfo_OsType_OsType_MAX = OsInfo_OsType_LINUX;
+constexpr int OsInfo_OsType_OsType_ARRAYSIZE = OsInfo_OsType_OsType_MAX + 1;
+
+const std::string& OsInfo_OsType_Name(OsInfo_OsType value);
+template<typename T>
+inline const std::string& OsInfo_OsType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, OsInfo_OsType>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function OsInfo_OsType_Name.");
+  return OsInfo_OsType_Name(static_cast<OsInfo_OsType>(enum_t_value));
+}
+bool OsInfo_OsType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, OsInfo_OsType* value);
 // ===================================================================
 
 class OfflineFrame final :
@@ -1447,6 +1474,7 @@ class ConnectionResponseFrame final :
 
   enum : int {
     kHandshakeDataFieldNumber = 2,
+    kOsInfoFieldNumber = 4,
     kStatusFieldNumber = 1,
     kResponseFieldNumber = 3,
   };
@@ -1467,6 +1495,24 @@ class ConnectionResponseFrame final :
   inline PROTOBUF_ALWAYS_INLINE void _internal_set_handshake_data(const std::string& value);
   std::string* _internal_mutable_handshake_data();
   public:
+
+  // optional .location.nearby.connections.OsInfo os_info = 4;
+  bool has_os_info() const;
+  private:
+  bool _internal_has_os_info() const;
+  public:
+  void clear_os_info();
+  const ::location::nearby::connections::OsInfo& os_info() const;
+  PROTOBUF_NODISCARD ::location::nearby::connections::OsInfo* release_os_info();
+  ::location::nearby::connections::OsInfo* mutable_os_info();
+  void set_allocated_os_info(::location::nearby::connections::OsInfo* os_info);
+  private:
+  const ::location::nearby::connections::OsInfo& _internal_os_info() const;
+  ::location::nearby::connections::OsInfo* _internal_mutable_os_info();
+  public:
+  void unsafe_arena_set_allocated_os_info(
+      ::location::nearby::connections::OsInfo* os_info);
+  ::location::nearby::connections::OsInfo* unsafe_arena_release_os_info();
 
   // optional int32 status = 1 [deprecated = true];
   PROTOBUF_DEPRECATED bool has_status() const;
@@ -1504,6 +1550,7 @@ class ConnectionResponseFrame final :
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr handshake_data_;
+  ::location::nearby::connections::OsInfo* os_info_;
   int32_t status_;
   int response_;
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
@@ -6184,6 +6231,182 @@ class LocationStandard final :
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
 };
+// -------------------------------------------------------------------
+
+class OsInfo final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:location.nearby.connections.OsInfo) */ {
+ public:
+  inline OsInfo() : OsInfo(nullptr) {}
+  ~OsInfo() override;
+  explicit constexpr OsInfo(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  OsInfo(const OsInfo& from);
+  OsInfo(OsInfo&& from) noexcept
+    : OsInfo() {
+    *this = ::std::move(from);
+  }
+
+  inline OsInfo& operator=(const OsInfo& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline OsInfo& operator=(OsInfo&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const std::string& unknown_fields() const {
+    return _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString);
+  }
+  inline std::string* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields<std::string>();
+  }
+
+  static const OsInfo& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const OsInfo* internal_default_instance() {
+    return reinterpret_cast<const OsInfo*>(
+               &_OsInfo_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    29;
+
+  friend void swap(OsInfo& a, OsInfo& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(OsInfo* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(OsInfo* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  OsInfo* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<OsInfo>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const OsInfo& from);
+  void MergeFrom(const OsInfo& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(OsInfo* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "location.nearby.connections.OsInfo";
+  }
+  protected:
+  explicit OsInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  typedef OsInfo_OsType OsType;
+  static constexpr OsType UNKNOWN_OS_TYPE =
+    OsInfo_OsType_UNKNOWN_OS_TYPE;
+  static constexpr OsType ANDROID =
+    OsInfo_OsType_ANDROID;
+  static constexpr OsType CHROME_OS =
+    OsInfo_OsType_CHROME_OS;
+  static constexpr OsType WINDOWS =
+    OsInfo_OsType_WINDOWS;
+  static constexpr OsType APPLE =
+    OsInfo_OsType_APPLE;
+  static constexpr OsType LINUX =
+    OsInfo_OsType_LINUX;
+  static inline bool OsType_IsValid(int value) {
+    return OsInfo_OsType_IsValid(value);
+  }
+  static constexpr OsType OsType_MIN =
+    OsInfo_OsType_OsType_MIN;
+  static constexpr OsType OsType_MAX =
+    OsInfo_OsType_OsType_MAX;
+  static constexpr int OsType_ARRAYSIZE =
+    OsInfo_OsType_OsType_ARRAYSIZE;
+  template<typename T>
+  static inline const std::string& OsType_Name(T enum_t_value) {
+    static_assert(::std::is_same<T, OsType>::value ||
+      ::std::is_integral<T>::value,
+      "Incorrect type passed to function OsType_Name.");
+    return OsInfo_OsType_Name(enum_t_value);
+  }
+  static inline bool OsType_Parse(::PROTOBUF_NAMESPACE_ID::ConstStringParam name,
+      OsType* value) {
+    return OsInfo_OsType_Parse(name, value);
+  }
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kTypeFieldNumber = 1,
+  };
+  // optional .location.nearby.connections.OsInfo.OsType type = 1;
+  bool has_type() const;
+  private:
+  bool _internal_has_type() const;
+  public:
+  void clear_type();
+  ::location::nearby::connections::OsInfo_OsType type() const;
+  void set_type(::location::nearby::connections::OsInfo_OsType value);
+  private:
+  ::location::nearby::connections::OsInfo_OsType _internal_type() const;
+  void _internal_set_type(::location::nearby::connections::OsInfo_OsType value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:location.nearby.connections.OsInfo)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  int type_;
+  friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
+};
 // ===================================================================
 
 
@@ -7579,7 +7802,7 @@ inline void ConnectionRequestFrame::set_allocated_device_info(std::string* devic
 
 // optional int32 status = 1 [deprecated = true];
 inline bool ConnectionResponseFrame::_internal_has_status() const {
-  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
   return value;
 }
 inline bool ConnectionResponseFrame::has_status() const {
@@ -7587,7 +7810,7 @@ inline bool ConnectionResponseFrame::has_status() const {
 }
 inline void ConnectionResponseFrame::clear_status() {
   status_ = 0;
-  _has_bits_[0] &= ~0x00000002u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline int32_t ConnectionResponseFrame::_internal_status() const {
   return status_;
@@ -7597,7 +7820,7 @@ inline int32_t ConnectionResponseFrame::status() const {
   return _internal_status();
 }
 inline void ConnectionResponseFrame::_internal_set_status(int32_t value) {
-  _has_bits_[0] |= 0x00000002u;
+  _has_bits_[0] |= 0x00000004u;
   status_ = value;
 }
 inline void ConnectionResponseFrame::set_status(int32_t value) {
@@ -7676,7 +7899,7 @@ inline void ConnectionResponseFrame::set_allocated_handshake_data(std::string* h
 
 // optional .location.nearby.connections.ConnectionResponseFrame.ResponseStatus response = 3;
 inline bool ConnectionResponseFrame::_internal_has_response() const {
-  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
   return value;
 }
 inline bool ConnectionResponseFrame::has_response() const {
@@ -7684,7 +7907,7 @@ inline bool ConnectionResponseFrame::has_response() const {
 }
 inline void ConnectionResponseFrame::clear_response() {
   response_ = 0;
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 inline ::location::nearby::connections::ConnectionResponseFrame_ResponseStatus ConnectionResponseFrame::_internal_response() const {
   return static_cast< ::location::nearby::connections::ConnectionResponseFrame_ResponseStatus >(response_);
@@ -7695,12 +7918,102 @@ inline ::location::nearby::connections::ConnectionResponseFrame_ResponseStatus C
 }
 inline void ConnectionResponseFrame::_internal_set_response(::location::nearby::connections::ConnectionResponseFrame_ResponseStatus value) {
   assert(::location::nearby::connections::ConnectionResponseFrame_ResponseStatus_IsValid(value));
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000008u;
   response_ = value;
 }
 inline void ConnectionResponseFrame::set_response(::location::nearby::connections::ConnectionResponseFrame_ResponseStatus value) {
   _internal_set_response(value);
   // @@protoc_insertion_point(field_set:location.nearby.connections.ConnectionResponseFrame.response)
+}
+
+// optional .location.nearby.connections.OsInfo os_info = 4;
+inline bool ConnectionResponseFrame::_internal_has_os_info() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  PROTOBUF_ASSUME(!value || os_info_ != nullptr);
+  return value;
+}
+inline bool ConnectionResponseFrame::has_os_info() const {
+  return _internal_has_os_info();
+}
+inline void ConnectionResponseFrame::clear_os_info() {
+  if (os_info_ != nullptr) os_info_->Clear();
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline const ::location::nearby::connections::OsInfo& ConnectionResponseFrame::_internal_os_info() const {
+  const ::location::nearby::connections::OsInfo* p = os_info_;
+  return p != nullptr ? *p : reinterpret_cast<const ::location::nearby::connections::OsInfo&>(
+      ::location::nearby::connections::_OsInfo_default_instance_);
+}
+inline const ::location::nearby::connections::OsInfo& ConnectionResponseFrame::os_info() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.ConnectionResponseFrame.os_info)
+  return _internal_os_info();
+}
+inline void ConnectionResponseFrame::unsafe_arena_set_allocated_os_info(
+    ::location::nearby::connections::OsInfo* os_info) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(os_info_);
+  }
+  os_info_ = os_info;
+  if (os_info) {
+    _has_bits_[0] |= 0x00000002u;
+  } else {
+    _has_bits_[0] &= ~0x00000002u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:location.nearby.connections.ConnectionResponseFrame.os_info)
+}
+inline ::location::nearby::connections::OsInfo* ConnectionResponseFrame::release_os_info() {
+  _has_bits_[0] &= ~0x00000002u;
+  ::location::nearby::connections::OsInfo* temp = os_info_;
+  os_info_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::location::nearby::connections::OsInfo* ConnectionResponseFrame::unsafe_arena_release_os_info() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.ConnectionResponseFrame.os_info)
+  _has_bits_[0] &= ~0x00000002u;
+  ::location::nearby::connections::OsInfo* temp = os_info_;
+  os_info_ = nullptr;
+  return temp;
+}
+inline ::location::nearby::connections::OsInfo* ConnectionResponseFrame::_internal_mutable_os_info() {
+  _has_bits_[0] |= 0x00000002u;
+  if (os_info_ == nullptr) {
+    auto* p = CreateMaybeMessage<::location::nearby::connections::OsInfo>(GetArenaForAllocation());
+    os_info_ = p;
+  }
+  return os_info_;
+}
+inline ::location::nearby::connections::OsInfo* ConnectionResponseFrame::mutable_os_info() {
+  ::location::nearby::connections::OsInfo* _msg = _internal_mutable_os_info();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.ConnectionResponseFrame.os_info)
+  return _msg;
+}
+inline void ConnectionResponseFrame::set_allocated_os_info(::location::nearby::connections::OsInfo* os_info) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete os_info_;
+  }
+  if (os_info) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::location::nearby::connections::OsInfo>::GetOwningArena(os_info);
+    if (message_arena != submessage_arena) {
+      os_info = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, os_info, submessage_arena);
+    }
+    _has_bits_[0] |= 0x00000002u;
+  } else {
+    _has_bits_[0] &= ~0x00000002u;
+  }
+  os_info_ = os_info;
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.ConnectionResponseFrame.os_info)
 }
 
 // -------------------------------------------------------------------
@@ -11795,9 +12108,44 @@ inline void LocationHint::set_format(::location::nearby::connections::LocationSt
 
 // LocationStandard
 
+// -------------------------------------------------------------------
+
+// OsInfo
+
+// optional .location.nearby.connections.OsInfo.OsType type = 1;
+inline bool OsInfo::_internal_has_type() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool OsInfo::has_type() const {
+  return _internal_has_type();
+}
+inline void OsInfo::clear_type() {
+  type_ = 0;
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline ::location::nearby::connections::OsInfo_OsType OsInfo::_internal_type() const {
+  return static_cast< ::location::nearby::connections::OsInfo_OsType >(type_);
+}
+inline ::location::nearby::connections::OsInfo_OsType OsInfo::type() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.OsInfo.type)
+  return _internal_type();
+}
+inline void OsInfo::_internal_set_type(::location::nearby::connections::OsInfo_OsType value) {
+  assert(::location::nearby::connections::OsInfo_OsType_IsValid(value));
+  _has_bits_[0] |= 0x00000001u;
+  type_ = value;
+}
+inline void OsInfo::set_type(::location::nearby::connections::OsInfo_OsType value) {
+  _internal_set_type(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.OsInfo.type)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
@@ -11874,6 +12222,7 @@ template <> struct is_proto_enum< ::location::nearby::connections::PayloadTransf
 template <> struct is_proto_enum< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_EventType> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::connections::LocationStandard_Format> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::connections::OsInfo_OsType> : ::std::true_type {};
 
 PROTOBUF_NAMESPACE_CLOSE
 
