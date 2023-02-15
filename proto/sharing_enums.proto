@@ -519,7 +519,7 @@ enum AppCrashReason {
 }
 
 // Thes source where the attachemnt comes from. It can be an action, app name,
-// etc. The first 4 source types are being used as FileSenderType in Nearby
+// etc. The first 6 source types are being used as FileSenderType in Nearby
 // Share Windows app.
 enum AttachmentSourceType {
   ATTACHMENT_SOURCE_UNKNOWN = 0;
@@ -527,6 +527,7 @@ enum AttachmentSourceType {
   ATTACHMENT_SOURCE_DRAG_AND_DROP = 2;
   ATTACHMENT_SOURCE_SELECT_FILES_BUTTON = 3;
   ATTACHMENT_SOURCE_PASTE = 4;
+  ATTACHMENT_SOURCE_SELECT_FOLDERS_BUTTON = 5;
 }
 
 // The action to interact with preferences.
