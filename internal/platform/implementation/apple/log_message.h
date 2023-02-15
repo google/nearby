@@ -15,15 +15,30 @@
 #ifndef PLATFORM_IMPL_APPLE_LOG_MESSAGE_H_
 #define PLATFORM_IMPL_APPLE_LOG_MESSAGE_H_
 
-#ifdef NEARBY_SWIFTPM
+#include <ostream>
 #include <sstream>
-#else
-#include "glog/logging.h"
-#endif
+#include <string>
+
+#include "absl/strings/string_view.h"
 #include "internal/platform/implementation/log_message.h"
+#include "GoogleToolboxForMac/GTMLogger.h"
 
 namespace nearby {
 namespace apple {
+
+class LogStreamer final {
+ public:
+  explicit LogStreamer(GTMLoggerLevel severity, absl::string_view func);
+
+  ~LogStreamer();
+
+  std::ostream& stream() { return stream_; }
+
+ private:
+  GTMLoggerLevel severity_;
+  std::string func_;
+  std::ostringstream stream_;
+};
 
 // Concrete LogMessage implementation
 class LogMessage : public api::LogMessage {
@@ -39,12 +54,9 @@ class LogMessage : public api::LogMessage {
   std::ostream& Stream() override;
 
  private:
-#ifdef NEARBY_SWIFTPM
-  std::stringstream log_streamer_;
-#else
-  google::LogMessage log_streamer_;
-#endif
-  api::LogMessage::Severity severity_;
+  LogStreamer log_streamer_;
+  GTMLoggerLevel severity_;
+  std::string func_;
 };
 
 }  // namespace apple

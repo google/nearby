@@ -14,11 +14,10 @@
 
 #include "internal/platform/implementation/apple/log_message.h"
 
-#ifndef NEARBY_SWIFTPM
-#include "glog/logging.h"
-#endif
+#include <ostream>
+#include <string>
+
 #include "internal/platform/implementation/log_message.h"
-#include "GoogleToolboxForMac/GTMLogger.h"
 
 namespace nearby {
 namespace apple {
@@ -40,42 +39,66 @@ GTMLoggerLevel ConvertSeverity(api::LogMessage::Severity severity) {
   }
 }
 
+// GTMLogger expects a function name, but we only have file and line. So format the info as
+// {basename(file)}:{line} and use that as the function name.
+std::string ConvertFileAndLine(absl::string_view filepath, int line) {
+  size_t path = filepath.find_last_of('/');
+  if (path != filepath.npos) filepath.remove_prefix(path + 1);
+  return std::string(filepath) + ":" + std::to_string(line);
+}
+
+LogStreamer::LogStreamer(GTMLoggerLevel severity, absl::string_view func)
+    : severity_(severity), func_(func) {}
+
+LogStreamer::~LogStreamer() {
+  switch (severity_) {
+    case kGTMLoggerLevelDebug:
+      [[GTMLogger sharedLogger] logFuncDebug:func_.c_str() msg:@"%@", @(stream_.str().c_str())];
+      break;
+    case kGTMLoggerLevelInfo:
+      [[GTMLogger sharedLogger] logFuncInfo:func_.c_str() msg:@"%@", @(stream_.str().c_str())];
+      break;
+    case kGTMLoggerLevelError:
+      [[GTMLogger sharedLogger] logFuncError:func_.c_str() msg:@"%@", @(stream_.str().c_str())];
+      break;
+    case kGTMLoggerLevelAssert:
+      [[GTMLogger sharedLogger] logFuncAssert:func_.c_str() msg:@"%@", @(stream_.str().c_str())];
+      break;
+    case kGTMLoggerLevelUnknown:
+      // no-op
+      break;
+  }
+}
+
 LogMessage::LogMessage(const char* file, int line, Severity severity)
-#ifdef NEARBY_SWIFTPM
-    : log_streamer_() {}
-#else
-    : log_streamer_(ConvertSeverity(severity), file, line), severity_(severity) {}
-#endif
+    : log_streamer_(ConvertSeverity(severity), ConvertFileAndLine(file, line)),
+      severity_(ConvertSeverity(severity)),
+      func_(ConvertFileAndLine(file, line)) {}
 
 void LogMessage::Print(const char* format, ...) {
   va_list ap;
   va_start(ap, format);
-  switch (ConvertSeverity(severity_)) {
+  switch (severity_) {
     case kGTMLoggerLevelDebug:
-      [[GTMLogger sharedLogger] logDebug:[NSString stringWithUTF8String:format], ap];
+      [[GTMLogger sharedLogger] logFuncDebug:func_.c_str() msg:@(format), ap];
       break;
     case kGTMLoggerLevelInfo:
-      [[GTMLogger sharedLogger] logInfo:[NSString stringWithUTF8String:format], ap];
+      [[GTMLogger sharedLogger] logFuncInfo:func_.c_str() msg:@(format), ap];
       break;
     case kGTMLoggerLevelError:
-      [[GTMLogger sharedLogger] logError:[NSString stringWithUTF8String:format], ap];
+      [[GTMLogger sharedLogger] logFuncError:func_.c_str() msg:@(format), ap];
       break;
     case kGTMLoggerLevelAssert:
-      [[GTMLogger sharedLogger] logAssert:[NSString stringWithUTF8String:format], ap];
+      [[GTMLogger sharedLogger] logFuncAssert:func_.c_str() msg:@(format), ap];
       break;
     case kGTMLoggerLevelUnknown:
-        // no-op
-        break;
+      // no-op
+      break;
   }
+  va_end(ap);
 }
 
-// TODO(b/169292092): GTMLogger doesn't support stream. Temporarily use absl LogStreamer to make
-// build pass.
-#ifdef NEARBY_SWIFTPM
-std::ostream& LogMessage::Stream() { return log_streamer_; }
-#else
 std::ostream& LogMessage::Stream() { return log_streamer_.stream(); }
-#endif
 
 }  // namespace apple
 
@@ -86,9 +109,7 @@ void LogMessage::SetMinLogSeverity(Severity severity) { apple::gMinLogSeverity =
 
 // static
 bool LogMessage::ShouldCreateLogMessage(Severity severity) {
-  // TODO(b/169292092): GTMLogger doesn't support stream which cause crash. Temporarily turn off
-  // LogMessage.
-  return false;
+  return severity >= apple::gMinLogSeverity;
 }
 
 }  // namespace api
