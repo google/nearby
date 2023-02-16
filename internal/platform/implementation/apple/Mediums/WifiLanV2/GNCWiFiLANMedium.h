@@ -15,6 +15,11 @@
 #import <Foundation/Foundation.h>
 
 @class GNCWiFiLANServerSocket;
+@class GNCWiFiLANSocket;
+
+/** A handler that delivers updates about discovered services. */
+typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
+                                     NSDictionary<NSString *, NSString *> *_Nonnull txtRecords);
 
 /**
  * The @c GNCWiFiLANMedium object is used as a delegate by the platform abstraction layer for
@@ -60,5 +65,50 @@
  * @param port The port of the listener to stop advertising.
  */
 - (void)stopAdvertisingPort:(NSInteger)port;
+
+/**
+ * Starts browsing for a Bonjour service.
+ *
+ * @param serviceType The Bonjour type of the service.
+ * @param serviceFoundHandler A handler called when a new service is found.
+ * @param serviceLostHandler A handler called when a previously discovered service is lost.
+ * @param[out] error Error that will be populated on failure.
+ * @return Returns YES when discovery has successfully started.
+ */
+- (BOOL)startDiscoveryForServiceType:(nonnull NSString *)serviceType
+                 serviceFoundHandler:(ServiceUpdateHandler)serviceFoundHandler
+                  serviceLostHandler:(ServiceUpdateHandler)serviceLostHandler
+                               error:(NSError **_Nullable)error;
+
+/**
+ * Stops browsing for a specific Bonjour service.
+ *
+ * @param serviceType The Bonjour type of the service.
+ */
+- (void)stopDiscoveryForServiceType:(nonnull NSString *)serviceType;
+
+/**
+ * Connects to a Bonjour service.
+ *
+ * @param serviceName The Bonjour name of the service.
+ * @param serviceType The Bonjour type of the service.
+ * @param[out] error Error that will be populated on failure.
+ * @return Returns a connected socket or nil if an error has occured.
+ */
+- (nullable GNCWiFiLANSocket *)connectToServiceName:(nonnull NSString *)serviceName
+                                        serviceType:(nonnull NSString *)serviceType
+                                              error:(NSError **_Nullable)error;
+
+/**
+ * Connects to an IP address and port.
+ *
+ * @param host The 4 byte binary representation IPv4 address to connect to.
+ * @param port The port to connect to.
+ * @param[out] error Error that will be populated on failure.
+ * @return Returns a connected socket or nil if an error has occured.
+ */
+- (nullable GNCWiFiLANSocket *)connectToHost:(nonnull NSString *)host
+                                        port:(NSInteger)port
+                                       error:(NSError **_Nullable)error;
 
 @end

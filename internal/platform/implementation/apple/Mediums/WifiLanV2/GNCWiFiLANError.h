@@ -25,4 +25,5 @@ extern NSErrorDomain const GNCWiFiLANErrorDomain;
 typedef NS_ERROR_ENUM(GNCWiFiLANErrorDomain, GNCWiFiLANError){
     GNCWiFiLANErrorUnknown,
     GNCWiFiLANErrorTimedOut,
+    GNCWiFiLANErrorDuplicateDiscovererForServiceType,
 };
