@@ -30,16 +30,11 @@
 namespace nearby {
 namespace windows {
 
-class BleV2Peripheral : public api::ble_v2::BlePeripheral {
- public:
-  std::string GetAddress() const override;
-};
-
 // Container of operations that can be performed over the BLE medium.
 class BleV2Medium : public api::ble_v2::BleMedium {
  public:
   explicit BleV2Medium(api::BluetoothAdapter& adapter);
-  ~BleV2Medium() override;
+  ~BleV2Medium() override = default;
 
   // Returns true once the Ble advertising has been initiated.
   bool StartAdvertising(

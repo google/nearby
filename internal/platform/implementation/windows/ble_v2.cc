@@ -14,12 +14,14 @@
 
 #include "internal/platform/implementation/windows/ble_v2.h"
 
+#include <array>
 #include <iostream>
 #include <memory>
 #include <string>
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/windows/ble_v2_peripheral.h"
 #include "internal/platform/logging.h"
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
 #include "winrt/Windows.Devices.Bluetooth.h"
@@ -83,12 +85,8 @@ std::string TxPowerLevelToName(TxPowerLevel tx_power_level) {
 
 }  // namespace
 
-std::string BleV2Peripheral::GetAddress() const { return ""; }
-
 BleV2Medium::BleV2Medium(api::BluetoothAdapter& adapter)
     : adapter_(dynamic_cast<BluetoothAdapter*>(&adapter)) {}
-
-BleV2Medium::~BleV2Medium() {}
 
 // advertisement packet and populate accordingly
 bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
