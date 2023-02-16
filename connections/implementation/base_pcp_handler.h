@@ -492,6 +492,8 @@ class BasePcpHandler : public PcpHandler,
       const AdvertisingOptions& advertising_options) const;
   std::string GetStringValueOfSupportedMediums(
       const DiscoveryOptions& discovery_options) const;
+  void StripOutUnavailableMediums(AdvertisingOptions& advertising_options);
+  void StripOutUnavailableMediums(DiscoveryOptions& discovery_options);
 
   // The endpoint id in high visibility mode is stable for 30 seconds, while in
   // low visibility mode it always rotates. We assume a client is trying to

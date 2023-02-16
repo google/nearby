@@ -31,11 +31,12 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
 #include "absl/types/span.h"
+#include "connections/advertising_options.h"
 #include "connections/connection_options.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/offline_frames.h"
-#include "connections/medium_selector.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "connections/medium_selector.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/logging.h"
@@ -91,11 +92,12 @@ Status BasePcpHandler::StartAdvertising(
     const ConnectionRequestInfo& info) {
   Future<Status> response;
 
-  NEARBY_LOGS(INFO) << "StartAdvertising with supported mediums: "
-                    << GetStringValueOfSupportedMediums(advertising_options);
-
   AdvertisingOptions compatible_advertising_options =
       advertising_options.CompatibleOptions();
+  StripOutUnavailableMediums(compatible_advertising_options);
+  NEARBY_LOGS(INFO) << "StartAdvertising with supported mediums: "
+                    << GetStringValueOfSupportedMediums(
+                           compatible_advertising_options);
 
   RunOnPcpHandlerThread(
       "start-advertising",
@@ -269,14 +271,17 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
                                       const DiscoveryOptions& discovery_options,
                                       const DiscoveryListener& listener) {
   Future<Status> response;
-
+  DiscoveryOptions stripped_discovery_options = discovery_options;
+  StripOutUnavailableMediums(stripped_discovery_options);
   NEARBY_LOGS(INFO) << "StartDiscovery with supported mediums:"
-                    << GetStringValueOfSupportedMediums(discovery_options);
+                    << GetStringValueOfSupportedMediums(
+                           stripped_discovery_options);
   RunOnPcpHandlerThread(
-      "start-discovery", [this, client, service_id, discovery_options,
+      "start-discovery", [this, client, service_id, stripped_discovery_options,
                           &listener, &response]() RUN_ON_PCP_HANDLER_THREAD() {
         // Ask the implementation to attempt to start discovery.
-        auto result = StartDiscoveryImpl(client, service_id, discovery_options);
+        auto result =
+            StartDiscoveryImpl(client, service_id, stripped_discovery_options);
         if (!result.status.Ok()) {
           response.Set(result.status);
           return;
@@ -287,7 +292,7 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
         discovered_endpoints_.clear();
         client->StartedDiscovery(service_id, GetStrategy(), listener,
                                  absl::MakeSpan(result.mediums),
-                                 discovery_options);
+                                 stripped_discovery_options);
         response.Set({Status::kSuccess});
       });
   return WaitForResult(absl::StrCat("StartDiscovery(", service_id, ")"),
@@ -683,6 +688,56 @@ BasePcpHandler::GetSupportedConnectionMediumsByPriority(
   return supported_mediums_by_priority;
 }
 
+void BasePcpHandler::StripOutUnavailableMediums(
+    AdvertisingOptions& advertising_options) {
+  BooleanMediumSelector& allowed = advertising_options.allowed;
+
+  if (allowed.bluetooth) {
+    allowed.bluetooth = mediums_->GetBluetoothClassic().IsAvailable();
+  }
+  if (allowed.ble) {
+    allowed.ble = mediums_->GetBle().IsAvailable();
+  }
+  if (allowed.web_rtc) {
+    allowed.web_rtc = mediums_->GetWebRtc().IsAvailable();
+  }
+  if (allowed.wifi_lan) {
+    allowed.wifi_lan = mediums_->GetWifiLan().IsAvailable();
+  }
+  if (allowed.wifi_hotspot) {
+    allowed.wifi_hotspot = mediums_->GetWifiHotspot().IsAPAvailable();
+  }
+  if (allowed.wifi_direct) {
+    allowed.wifi_direct = mediums_->GetWifiDirect().IsGOAvailable();
+  }
+}
+
+void BasePcpHandler::StripOutUnavailableMediums(
+    DiscoveryOptions& discovery_options) {
+  BooleanMediumSelector& allowed = discovery_options.allowed;
+
+  if (allowed.bluetooth) {
+    allowed.bluetooth = mediums_->GetBluetoothClassic().IsAvailable();
+  }
+  if (allowed.ble) {
+    allowed.ble = mediums_->GetBle().IsAvailable();
+  }
+  if (allowed.web_rtc) {
+    allowed.web_rtc = mediums_->GetWebRtc().IsAvailable();
+  }
+  if (allowed.wifi_lan) {
+    allowed.wifi_lan = mediums_->GetWifiLan().IsAvailable();
+  }
+  if (allowed.wifi_hotspot) {
+    allowed.wifi_hotspot = mediums_->GetWifi().IsAvailable() &&
+                           mediums_->GetWifiHotspot().IsClientAvailable();
+  }
+  if (allowed.wifi_direct) {
+    allowed.wifi_direct = mediums_->GetWifi().IsAvailable() &&
+                          mediums_->GetWifiDirect().IsGCAvailable();
+  }
+}
+
 // Get any single discovered endpoint for a given endpoint_id.
 BasePcpHandler::DiscoveredEndpoint* BasePcpHandler::GetDiscoveredEndpoint(
     const std::string& endpoint_id) {
@@ -758,8 +813,7 @@ bool BasePcpHandler::CanReceiveIncomingConnection(ClientProxy* client) const {
 
 Exception BasePcpHandler::WriteConnectionRequestFrame(
     const ConnectionInfo& conection_info, EndpointChannel* endpoint_channel) {
-  return endpoint_channel->Write(
-      parser::ForConnectionRequest(conection_info));
+  return endpoint_channel->Write(parser::ForConnectionRequest(conection_info));
 }
 
 void BasePcpHandler::ProcessPreConnectionInitiationFailure(
