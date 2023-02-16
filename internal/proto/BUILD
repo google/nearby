@@ -16,7 +16,10 @@ proto_library(
     name = "local_credential_proto",
     srcs = ["local_credential.proto"],
     visibility = ["//location/nearby/presence/proto:__pkg__"],
-    deps = [":credential_proto"],
+    deps = [
+        ":credential_proto",
+        ":metadata_proto",
+    ],
 )
 
 cc_proto_library(
