@@ -155,7 +155,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   std::string mac_address_;
   ScanMode mode_ ABSL_GUARDED_BY(mutex_) = ScanMode::kNone;
   std::string name_ ABSL_GUARDED_BY(mutex_) = "unknown G3 BT device";
-  bool enabled_ ABSL_GUARDED_BY(mutex_) = false;
+  bool enabled_ ABSL_GUARDED_BY(mutex_) = true;
 };
 
 }  // namespace g3

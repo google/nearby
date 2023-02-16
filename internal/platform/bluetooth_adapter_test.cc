@@ -130,16 +130,16 @@ TEST(BluetoothAdapterTest, ConstructorDestructorWorks) {
 TEST(BluetoothAdapterTest, CanSetName) {
   constexpr char kAdapterName[] = "MyBtAdapter";
   BluetoothAdapter adapter;
-  EXPECT_EQ(adapter.GetStatus(), BluetoothAdapter::Status::kDisabled);
+  EXPECT_EQ(adapter.GetStatus(), BluetoothAdapter::Status::kEnabled);
   EXPECT_TRUE(adapter.SetName(kAdapterName));
   EXPECT_EQ(adapter.GetName(), std::string(kAdapterName));
 }
 
 TEST(BluetoothAdapterTest, CanSetStatus) {
   BluetoothAdapter adapter;
-  EXPECT_EQ(adapter.GetStatus(), BluetoothAdapter::Status::kDisabled);
-  EXPECT_TRUE(adapter.SetStatus(BluetoothAdapter::Status::kEnabled));
   EXPECT_EQ(adapter.GetStatus(), BluetoothAdapter::Status::kEnabled);
+  EXPECT_TRUE(adapter.SetStatus(BluetoothAdapter::Status::kDisabled));
+  EXPECT_EQ(adapter.GetStatus(), BluetoothAdapter::Status::kDisabled);
 }
 
 TEST(BluetoothAdapterTest, CanSetMode) {

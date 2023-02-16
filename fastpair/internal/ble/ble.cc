@@ -18,14 +18,10 @@
 #include <string>
 #include <utility>
 
-#include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/system_clock.h"
 
 namespace nearby {
 namespace fastpair {
-
-constexpr absl::Duration Ble::kPauseBetweenToggle;
 
 Ble::~Ble() {
   // We never enabled Bluetooth, nothing to do.
@@ -58,29 +54,6 @@ bool Ble::Disable() {
 
 bool Ble::IsEnabled() const {
   return IsAdapterValid() && IsInDesiredState(true);
-}
-
-bool Ble::Toggle() {
-  if (!SaveOriginalState()) {
-    return false;
-  }
-
-  if (!SetBluetoothState(false)) {
-    NEARBY_LOG(INFO, "BT Toggle: Failed to turn BT off.");
-    return false;
-  }
-
-  if (SystemClock::Sleep(kPauseBetweenToggle).Raised(Exception::kInterrupted)) {
-    NEARBY_LOG(INFO, "BT Toggle: interrupted before turing on.");
-    return false;
-  }
-
-  if (!SetBluetoothState(true)) {
-    NEARBY_LOG(INFO, "BT Toggle: Failed to turn BT on.");
-    return false;
-  }
-
-  return true;
 }
 
 bool Ble::SetBluetoothState(bool enable) {

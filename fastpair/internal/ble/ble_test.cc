@@ -47,6 +47,8 @@ TEST_F(BleTest, ConstructorDestructorWorks) {
 TEST_F(BleTest, CanEnable) {
   Ble ble;
   EXPECT_TRUE(ble.IsAdapterValid());
+  EXPECT_TRUE(ble.IsEnabled());
+  EXPECT_TRUE(ble.Disable());
   EXPECT_FALSE(ble.IsEnabled());
   EXPECT_TRUE(ble.Enable());
   EXPECT_TRUE(ble.IsEnabled());
@@ -55,19 +57,9 @@ TEST_F(BleTest, CanEnable) {
 TEST_F(BleTest, CanDisable) {
   Ble ble;
   EXPECT_TRUE(ble.IsAdapterValid());
-  EXPECT_FALSE(ble.IsEnabled());
-  EXPECT_TRUE(ble.Enable());
   EXPECT_TRUE(ble.IsEnabled());
   EXPECT_TRUE(ble.Disable());
   EXPECT_FALSE(ble.IsEnabled());
-}
-
-TEST_F(BleTest, CanToggle) {
-  Ble ble;
-  EXPECT_TRUE(ble.IsAdapterValid());
-  EXPECT_FALSE(ble.IsEnabled());
-  EXPECT_TRUE(ble.Toggle());
-  EXPECT_TRUE(ble.IsEnabled());
 }
 
 TEST_F(BleTest, CanConstructValidObject) {
@@ -77,10 +69,10 @@ TEST_F(BleTest, CanConstructValidObject) {
 
   EXPECT_TRUE(ble_a.IsMediumValid());
   EXPECT_TRUE(ble_a.IsAdapterValid());
-  EXPECT_FALSE(ble_a.IsAvailable());
+  EXPECT_TRUE(ble_a.IsAvailable());
   EXPECT_TRUE(ble_b.IsMediumValid());
   EXPECT_TRUE(ble_b.IsAdapterValid());
-  EXPECT_FALSE(ble_b.IsAvailable());
+  EXPECT_TRUE(ble_b.IsAvailable());
   EXPECT_NE(&ble_a.GetBluetoothAdapter(), &ble_b.GetBluetoothAdapter());
   env_.Stop();
 }

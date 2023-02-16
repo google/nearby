@@ -17,7 +17,6 @@
 
 #include <cstdint>
 
-#include "absl/time/clock.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/bluetooth_adapter.h"
 
@@ -50,21 +49,15 @@ class BluetoothRadio {
   // Returns true if the Bluetooth radio is currently enabled.
   bool IsEnabled() const;
 
-  // Turn BT radio Off, delay for kPauseBetweenToggle and then turn it On.
-  // This will block calling thread for at least kPauseBetweenToggle duration.
-  bool Toggle();
-
   // Returns result of BluetoothAdapter::IsValid() for private adapter instance.
   bool IsAdapterValid() const { return bluetooth_adapter_.IsValid(); }
 
   BluetoothAdapter& GetBluetoothAdapter() { return bluetooth_adapter_; }
 
  private:
-  static constexpr absl::Duration kPauseBetweenToggle = absl::Seconds(3);
-
   bool SetBluetoothState(bool enable);
   bool IsInDesiredState(bool should_be_enabled) const;
-  // To be called in enable(), disable(), and toggle(). This will remember the
+  // To be called in enable() and disable(). This will remember the
   // original state of the radio before any radio state has been modified.
   // Returns false if Bluetooth doesn't exist on the device and the state cannot
   // be obtained.
