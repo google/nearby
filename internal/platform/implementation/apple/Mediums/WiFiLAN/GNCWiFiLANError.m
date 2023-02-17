@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/WifiLanV2/GNCWiFiLANError.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANError.h"
 
 NSErrorDomain const GNCWiFiLANErrorDomain = @"com.google.nearby.wifilan.error";

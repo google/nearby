@@ -18,9 +18,9 @@
 #include <string>
 #include <utility>
 
-#import "internal/platform/implementation/apple/Mediums/WifiLanV2/GNCWiFiLANMedium.h"
-#import "internal/platform/implementation/apple/Mediums/WifiLanV2/GNCWiFiLANServerSocket.h"
-#import "internal/platform/implementation/apple/Mediums/WifiLanV2/GNCWiFiLANSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANMedium.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANServerSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANSocket.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 namespace nearby {

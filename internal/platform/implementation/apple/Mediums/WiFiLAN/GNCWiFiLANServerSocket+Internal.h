@@ -14,7 +14,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import "internal/platform/implementation/apple/Mediums/WifiLanV2/GNCWiFiLANServerSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANServerSocket.h"
 
 @interface GNCWiFiLANServerSocket (Internal)
 

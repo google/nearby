@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/WifiLanV2/GNCWiFiLANSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANSocket.h"
 
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>

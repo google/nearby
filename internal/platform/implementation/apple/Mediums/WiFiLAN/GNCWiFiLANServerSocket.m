@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/WifiLanV2/GNCWiFiLANServerSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANServerSocket.h"
 
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
@@ -22,9 +22,9 @@
 #include <netdb.h>
 #include <sys/socket.h>
 
-#import "internal/platform/implementation/apple/Mediums/WifiLanV2/GNCWiFiLANError.h"
-#import "internal/platform/implementation/apple/Mediums/WifiLanV2/GNCWiFiLANServerSocket+Internal.h"
-#import "internal/platform/implementation/apple/Mediums/WifiLanV2/GNCWiFiLANSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANError.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANServerSocket+Internal.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANSocket.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 @interface GNCWiFiLANServerSocket ()
