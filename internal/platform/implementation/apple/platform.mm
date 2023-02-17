@@ -172,10 +172,56 @@ std::unique_ptr<WifiDirectMedium> ImplementationPlatform::CreateWifiDirectMedium
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() { return nullptr; }
 #endif
 
-// TODO(b/261511669): Add implementation.
-absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(
-    const WebRequest& request) {
-  return absl::UnimplementedError("");
+absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(const WebRequest& requestInfo) {
+  NSURL* url = [NSURL URLWithString:@(requestInfo.url.c_str())];
+  NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:url];
+  [request setHTTPMethod:@(requestInfo.method.c_str())];
+  for (const auto& header : requestInfo.headers) {
+    [request setValue:@(header.second.c_str()) forHTTPHeaderField:@(header.first.c_str())];
+  }
+  [request setHTTPBody:[@(requestInfo.body.c_str()) dataUsingEncoding:NSUTF8StringEncoding]];
+
+  NSCondition* condition = [[NSCondition alloc] init];
+  [condition lock];
+
+  __block NSData* blockData = nil;
+  __block NSHTTPURLResponse* blockResponse = nil;
+  __block NSError* blockError = nil;
+  NSURLSessionDataTask* task = [[NSURLSession sharedSession]
+      dataTaskWithRequest:request
+        completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
+          [condition lock];
+          blockData = data;
+          if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
+            blockResponse = (NSHTTPURLResponse*)response;
+          }
+          blockError = error;
+          [condition signal];
+          [condition unlock];
+        }];
+
+  [task resume];
+  [condition wait];
+  [condition unlock];
+
+  if (blockResponse == nil) {
+    return absl::UnknownError([[blockError localizedDescription] UTF8String]);
+  }
+
+  WebResponse webResponse;
+  webResponse.status_code = blockResponse.statusCode;
+  webResponse.status_text =
+      [[NSHTTPURLResponse localizedStringForStatusCode:blockResponse.statusCode] UTF8String];
+  NSDictionary<NSString*, NSString*>* headers = blockResponse.allHeaderFields;
+  for (NSString* key in headers) {
+    NSString* value = [headers objectForKey:key];
+    webResponse.headers.insert({[key UTF8String], [value UTF8String]});
+  }
+  if (blockData != nil) {
+    webResponse.body = [[[NSString alloc] initWithData:blockData
+                                              encoding:NSUTF8StringEncoding] UTF8String];
+  }
+  return webResponse;
 }
 
 // TODO(b/261511529): Add implementation.
