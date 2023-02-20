@@ -84,7 +84,7 @@ enum CommonError {
   // Device error, the medium not available on this device.
   MEDIUM_NOT_AVAILABLE = 2;
   // System error, the medium in the unexpected state, e.g. we have check the
-  // medium is on, after then it suddently off and cause Nearby
+  // medium is on, after then it suddenly off and cause Nearby
   // Connection failed.
   UNEXPECTED_MEDIUM_STATE = 3;
   // System error, the medim not available because the resource ran out. e.g.
@@ -560,4 +560,7 @@ enum Description {
   UNSUPPORTED_DEVICE_TYPE_TABLET = 174;
   BROKEN_PIPE = 175;
   CONNECTION_ABORT = 176;
+  FEATURE_USB_HOST_NOT_SUPPORTED = 177;
+  FEATURE_USB_ACCESSORY_NOT_SUPPORTED = 178;
+  FEATURE_USB_PORTS_NOT_FOUND = 179;
 }
