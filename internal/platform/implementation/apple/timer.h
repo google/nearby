@@ -15,6 +15,8 @@
 #ifndef PLATFORM_IMPL_APPLE_TIMER_H_
 #define PLATFORM_IMPL_APPLE_TIMER_H_
 
+#import <Foundation/Foundation.h>
+
 #include <utility>
 
 #include "internal/platform/implementation/timer.h"
@@ -25,7 +27,7 @@ namespace apple {
 class Timer : public api::Timer {
  public:
   Timer() = default;
-  ~Timer() override = default;
+  ~Timer() override;
 
   bool Create(int delay, int interval,
               absl::AnyInvocable<void()> callback) override;
@@ -33,6 +35,10 @@ class Timer : public api::Timer {
   bool Stop() override;
 
   bool FireNow() override;
+
+ private:
+  absl::AnyInvocable<void()> callback_;
+  dispatch_source_t timer_;
 };
 
 }  // namespace apple

@@ -224,7 +224,6 @@ absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(const WebRequest
   return webResponse;
 }
 
-// TODO(b/261511529): Add implementation.
 std::unique_ptr<Timer> ImplementationPlatform::CreateTimer() {
   return std::make_unique<apple::Timer>();
 }
