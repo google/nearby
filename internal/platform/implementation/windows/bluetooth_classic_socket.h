@@ -19,10 +19,9 @@
 
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Storage.Streams.h"
-#include "internal/platform/implementation/windows/generated/winrt/impl/Windows.Storage.Streams.0.h"
+#include "winrt/Windows.Foundation.h"
+#include "winrt/Windows.Networking.Sockets.h"
+#include "winrt/Windows.Storage.Streams.h"
 
 namespace nearby {
 namespace windows {
@@ -113,7 +112,7 @@ class BluetoothSocket : public api::BluetoothSocket {
     Exception Close() override;
 
    private:
-    IInputStream winrt_stream_;
+    IInputStream winrt_input_stream_{nullptr};
     Buffer read_buffer_{kMaxTransmitPacketSize};
   };
 
@@ -128,7 +127,7 @@ class BluetoothSocket : public api::BluetoothSocket {
     Exception Close() override;
 
    private:
-    IOutputStream winrt_stream_;
+    IOutputStream winrt_output_stream_{nullptr};
     Buffer write_buffer_{kMaxTransmitPacketSize};
   };
 
@@ -137,6 +136,7 @@ class BluetoothSocket : public api::BluetoothSocket {
       winrt::Windows::Foundation::IInspectable const& args);
 
   StreamSocket windows_socket_{nullptr};
+  bool is_bluetooth_socket_closed_ = false;
   BluetoothInputStream input_stream_{nullptr};
   BluetoothOutputStream output_stream_{nullptr};
   std::unique_ptr<BluetoothDevice> bluetooth_device_ = nullptr;
