@@ -21,6 +21,7 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/windows/ble_gatt_server.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic.h"
 #include "internal/platform/input_stream.h"
@@ -87,41 +88,14 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   bool scanning_error_ = false;
   bool scanning_stopped_ = false;
 
+  GattServer* gatt_server_{nullptr};
+
   // WinRT objects
-  winrt::Windows::Devices::Bluetooth::Advertisement::
-      BluetoothLEAdvertisementPublisher publisher_;
   winrt::Windows::Devices::Bluetooth::Advertisement::
       BluetoothLEAdvertisementWatcher watcher_;
   winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisement
       advertisement_;
 
-  winrt::event_token publisher_token_;
-  void PublisherHandler(
-      winrt::Windows::Devices::Bluetooth::Advertisement::
-          BluetoothLEAdvertisementPublisher publisher,
-      winrt::Windows::Devices::Bluetooth::Advertisement::
-          BluetoothLEAdvertisementPublisherStatusChangedEventArgs args);
-  absl::AnyInvocable<void()> publisher_started_callback_
-      ABSL_GUARDED_BY(mutex_);
-  absl::AnyInvocable<void()> publisher_stopped_callback_
-      ABSL_GUARDED_BY(mutex_);
-  absl::AnyInvocable<void()> publisher_error_callback_ ABSL_GUARDED_BY(mutex_);
-
-  winrt::event_token watcher_token_;
-  void WatcherHandler(winrt::Windows::Devices::Bluetooth::Advertisement::
-                          BluetoothLEAdvertisementWatcher watcher,
-                      winrt::Windows::Devices::Bluetooth::Advertisement::
-                          BluetoothLEAdvertisementWatcherStoppedEventArgs args);
-  absl::AnyInvocable<void()> watcher_started_callback_ ABSL_GUARDED_BY(mutex_);
-  absl::AnyInvocable<void()> watcher_stopped_callback_ ABSL_GUARDED_BY(mutex_);
-  absl::AnyInvocable<void()> watcher_error_callback_ ABSL_GUARDED_BY(mutex_);
-
-  winrt::event_token advertisement_received_token_;
-  void AdvertisementReceivedHandler(
-      winrt::Windows::Devices::Bluetooth::Advertisement::
-          BluetoothLEAdvertisementWatcher watcher,
-      winrt::Windows::Devices::Bluetooth::Advertisement::
-          BluetoothLEAdvertisementReceivedEventArgs args);
   ScanCallback scan_response_received_callback_;
 };
 

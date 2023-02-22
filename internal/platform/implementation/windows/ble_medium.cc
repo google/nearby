@@ -175,6 +175,13 @@ bool BleMedium::StartAdvertising(
     BluetoothLEAdvertisementDataSection service_data =
         BluetoothLEAdvertisementDataSection(0x16, data_writer.DetachBuffer());
 
+    int index = 0;
+    char buffer[500];
+
+    for (index = 0; index < service_data.Data().Length(); ++index) {
+      buffer[index] = service_data.Data().data()[index];
+    }
+
     BluetoothLEAdvertisement advertisement;
 
     IVector<BluetoothLEAdvertisementDataSection> data_sections =
@@ -576,6 +583,8 @@ void BleMedium::AdvertisementReceivedHandler(
              "0x16 Service data: advertisement bytes= 0x"
           << absl::BytesToHexString(advertisement_data.AsStringView()) << "("
           << advertisement_data.size() << ")";
+
+      char* buffer = advertisement_data.data();
 
       std::string peripheral_name =
           uint64_to_mac_address_string(args.BluetoothAddress());

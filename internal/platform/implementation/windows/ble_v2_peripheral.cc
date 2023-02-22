@@ -25,6 +25,10 @@ namespace {
 constexpr int kMacAddressLength = 17;
 }
 
+BleV2Peripheral::BleV2Peripheral(
+    ::winrt::Windows::Devices::Bluetooth::BluetoothLEDevice ble_device)
+    : ble_device_(ble_device) {}
+
 bool BleV2Peripheral::SetAddress(absl::string_view address) {
   // The address must be in format "00:B0:D0:63:C2:26".
   if (address.size() != kMacAddressLength) {
