@@ -1875,7 +1875,7 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiLanConnectImpl(
   WifiLanSocket socket = wifi_lan_medium_.Connect(
       endpoint->service_id, endpoint->service_info,
       client->GetCancellationFlag(endpoint->endpoint_id));
-  NEARBY_LOGS(ERROR) << "In WifiLanConnectImpl(), connect to service "
+  NEARBY_LOGS(INFO) << "In WifiLanConnectImpl(), connect to service "
                      << " socket=" << &socket.GetImpl()
                      << " for endpoint(id=" << endpoint->endpoint_id << ").";
   if (!socket.IsValid()) {
