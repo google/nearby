@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
@@ -180,6 +181,12 @@ class GattClient {
   virtual bool WriteCharacteristic(const GattCharacteristic& characteristic,
                                    const ByteArray& value) = 0;
 
+  // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#setCharacteristicNotification(android.bluetooth.BluetoothGattCharacteristic,%20boolean)
+  //
+  // Enable or disable notifications/indications for a given characteristic.
+  virtual bool SetCharacteristicNotification(
+      const GattCharacteristic& characteristic, bool enable) = 0;
+
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#disconnect()
   virtual void Disconnect() = 0;
 };
@@ -223,6 +230,10 @@ class GattServer {
 // Callback for asynchronous events on the client side of a GATT connection.
 struct ClientGattConnectionCallback {
  public:
+  // Called when the characteristic is changed
+  absl::AnyInvocable<void(const GattCharacteristic& characteristic)>
+      on_characteristic_changed_cb = [](const GattCharacteristic&) {};
+
   // Called when the client is disconnected from the GATT server.
   absl::AnyInvocable<void()> disconnected_cb = []() {};
 };

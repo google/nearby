@@ -20,6 +20,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
@@ -449,6 +450,12 @@ bool BleV2Medium::GattClient::WriteCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic,
     const ByteArray& value) {
   // No op.
+  return false;
+}
+
+bool BleV2Medium::GattClient::SetCharacteristicNotification(
+    const api::ble_v2::GattCharacteristic& characteristic, bool enable) {
+  // No op since we can't write characteristics.
   return false;
 }
 

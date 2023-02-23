@@ -585,6 +585,12 @@ bool BleMedium::GattClient::WriteCharacteristic(
   return false;
 }
 
+bool BleMedium::GattClient::SetCharacteristicNotification(
+    const api::ble_v2::GattCharacteristic& characteristic, bool enable) {
+  // No op since we can't write characteristics.
+  return false;
+}
+
 void BleMedium::GattClient::Disconnect() {
   [central_ disconnectGattServiceWithPeripheralID:ObjCStringFromCppString(peripheral_id_)];
 }

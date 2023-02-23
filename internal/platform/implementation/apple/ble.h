@@ -184,6 +184,9 @@ class BleMedium : public api::ble_v2::BleMedium {
     bool WriteCharacteristic(const api::ble_v2::GattCharacteristic &characteristic,
                              const ByteArray &value) override;
 
+    bool SetCharacteristicNotification(const api::ble_v2::GattCharacteristic &characteristic,
+                                       bool enable) override;
+
     void Disconnect() override;
 
    private:

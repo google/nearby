@@ -240,6 +240,10 @@ class BleV2Medium : public api::ble_v2::BleMedium {
         const api::ble_v2::GattCharacteristic& characteristic,
         const ByteArray& value) override;
 
+    bool SetCharacteristicNotification(
+        const api::ble_v2::GattCharacteristic& characteristic,
+        bool enable) override;
+
     void Disconnect() override;
 
    private:
