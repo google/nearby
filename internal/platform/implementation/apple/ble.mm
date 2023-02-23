@@ -511,6 +511,12 @@ bool BleMedium::GattServer::UpdateCharacteristic(
   return true;
 }
 
+absl::optional<ByteArray> BleMedium::GattServer::ReadCharacteristic(
+    const api::ble_v2::GattCharacteristic& characteristic) {
+  // TODO(b/269783814): Implement.
+  return absl::nullopt;
+}
+
 void BleMedium::GattServer::Stop() { [peripheral_ stopGATTService]; }
 
 bool BleMedium::GattClient::DiscoverServiceAndCharacteristics(
@@ -582,6 +588,12 @@ absl::optional<ByteArray> BleMedium::GattClient::ReadCharacteristic(
 bool BleMedium::GattClient::WriteCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic, const ByteArray& value) {
   // No op.
+  return false;
+}
+
+bool BleMedium::GattClient::SetCharacteristicNotification(
+    const api::ble_v2::GattCharacteristic& characteristic, bool enable) {
+  // No op since we can't write characteristics.
   return false;
 }
 

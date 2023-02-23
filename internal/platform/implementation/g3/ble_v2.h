@@ -220,7 +220,18 @@ class BleV2Medium : public api::ble_v2::BleMedium {
         const api::ble_v2::GattCharacteristic& characteristic,
         const nearby::ByteArray& value) override;
 
+    absl::optional<ByteArray> ReadCharacteristic(
+      const api::ble_v2::GattCharacteristic& characteristic) override;
+
     void Stop() override;
+
+   private:
+    absl::Mutex mutex_;
+
+    // A flag to indicate the gatt connection alive or not. If it is
+    // disconnected/*false*/, the instance needs to be created again to bring it
+    // alive.
+    bool is_connection_alive_ ABSL_GUARDED_BY(mutex_) = true;
   };
 
   // A concrete implementation for GattClient.
@@ -239,6 +250,10 @@ class BleV2Medium : public api::ble_v2::BleMedium {
     bool WriteCharacteristic(
         const api::ble_v2::GattCharacteristic& characteristic,
         const ByteArray& value) override;
+
+    bool SetCharacteristicNotification(
+        const api::ble_v2::GattCharacteristic& characteristic,
+        bool enable) override;
 
     void Disconnect() override;
 

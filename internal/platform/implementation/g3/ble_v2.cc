@@ -20,10 +20,12 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/logging.h"
@@ -374,6 +376,23 @@ bool BleV2Medium::GattServer::UpdateCharacteristic(
   return true;
 }
 
+absl::optional<ByteArray> BleV2Medium::GattServer::ReadCharacteristic(
+    const api::ble_v2::GattCharacteristic& characteristic) {
+  absl::MutexLock lock(&mutex_);
+  if (!is_connection_alive_) {
+    return std::nullopt;
+  }
+
+  ByteArray value =
+      MediumEnvironment::Instance().ReadBleV2MediumGattCharacteristics(
+          characteristic);
+  NEARBY_LOGS(INFO) << "G3 Ble ReadCharacteristic, characteristic=("
+                    << characteristic.service_uuid.Get16BitAsString() << ","
+                    << std::string(characteristic.uuid)
+                    << "), value = " << absl::BytesToHexString(value.data());
+  return std::move(value);
+}
+
 void BleV2Medium::GattServer::Stop() {
   NEARBY_LOGS(INFO) << "G3 Ble GattServer Stop";
   MediumEnvironment::Instance().ClearBleV2MediumGattCharacteristics();
@@ -449,6 +468,12 @@ bool BleV2Medium::GattClient::WriteCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic,
     const ByteArray& value) {
   // No op.
+  return false;
+}
+
+bool BleV2Medium::GattClient::SetCharacteristicNotification(
+    const api::ble_v2::GattCharacteristic& characteristic, bool enable) {
+  // No op since we can't write characteristics.
   return false;
 }
 
