@@ -511,6 +511,13 @@ bool BleMedium::GattServer::UpdateCharacteristic(
   return true;
 }
 
+absl::Status BleMedium::GattServer::NotifyCharacteristicChanged(
+    const api::ble_v2::GattCharacteristic& characteristic, bool confirm,
+    const ByteArray& new_value) {
+  // no-op because client cannot request notifications.
+  return absl::UnimplementedError("Unimplemented!");
+}
+
 void BleMedium::GattServer::Stop() { [peripheral_ stopGATTService]; }
 
 bool BleMedium::GattClient::DiscoverServiceAndCharacteristics(

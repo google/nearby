@@ -532,5 +532,32 @@ TEST_F(BleV2MediumTest, GattClientConnectToGattServerWorks) {
   env_.Stop();
 }
 
+TEST_F(BleV2MediumTest, GattServerCanNotifyChange) {
+  env_.Start();
+  BluetoothAdapter adapter_a;
+  BleV2Medium ble_a(adapter_a);
+  Uuid service_uuid(1234, 5678);
+  Uuid characteristic_uuid(5678, 1234);
+  std::vector<GattCharacteristic::Permission> permissions = {
+      GattCharacteristic::Permission::kRead};
+  std::vector<GattCharacteristic::Property> properties = {
+      GattCharacteristic::Property::kRead};
+
+  // Start GattServer
+  std::unique_ptr<GattServer> gatt_server =
+      ble_a.StartGattServer(/*ServerGattConnectionCallback=*/{});
+
+  ASSERT_NE(gatt_server, nullptr);
+  // Add characteristic and its value.
+  // NOLINTNEXTLINE(google3-legacy-absl-backports)
+  absl::optional<GattCharacteristic> server_characteristic =
+      gatt_server->CreateCharacteristic(service_uuid, characteristic_uuid,
+                                        permissions, properties);
+
+  EXPECT_THAT(gatt_server->NotifyCharacteristicChanged(
+                  server_characteristic.value(), false, ByteArray("hello")),
+              testing::status::StatusIs(absl::StatusCode::kUnimplemented));
+}
+
 }  // namespace
 }  // namespace nearby

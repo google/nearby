@@ -157,6 +157,8 @@ class BleMedium : public api::ble_v2::BleMedium {
 
     bool UpdateCharacteristic(const api::ble_v2::GattCharacteristic &characteristic,
                               const nearby::ByteArray &value) override;
+    absl::Status NotifyCharacteristicChanged(const api::ble_v2::GattCharacteristic &characteristic,
+                                             bool confirm, const ByteArray &new_value) override;
     void Stop() override;
 
    private:

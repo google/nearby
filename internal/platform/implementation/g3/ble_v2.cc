@@ -375,6 +375,14 @@ bool BleV2Medium::GattServer::UpdateCharacteristic(
   return true;
 }
 
+absl::Status BleV2Medium::GattServer::NotifyCharacteristicChanged(
+    const api::ble_v2::GattCharacteristic& characteristic, bool confirm,
+    const ByteArray& new_value) {
+  // check if client has requested notifications.
+  // no-op for now because client cannot request notifications.
+  return absl::UnimplementedError("Unimplemented!");
+}
+
 void BleV2Medium::GattServer::Stop() {
   NEARBY_LOGS(INFO) << "G3 Ble GattServer Stop";
   MediumEnvironment::Instance().ClearBleV2MediumGattCharacteristics();

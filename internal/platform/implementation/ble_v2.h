@@ -194,6 +194,7 @@ class GattClient {
 // https://developer.android.com/reference/android/bluetooth/BluetoothGattServer
 //
 // Representation of a BLE GATT server.
+// LINT.IfChange
 class GattServer {
  public:
   virtual ~GattServer() = default;
@@ -223,9 +224,18 @@ class GattServer {
   virtual bool UpdateCharacteristic(const GattCharacteristic& characteristic,
                                     const nearby::ByteArray& value) = 0;
 
+  // https://developer.android.com/reference/android/bluetooth/BluetoothGattServer#notifyCharacteristicChanged(android.bluetooth.BluetoothDevice,%20android.bluetooth.BluetoothGattCharacteristic,%20boolean,%20byte[])
+  //
+  // Send a notification or indication that a local characteristic has been
+  // updated and returns an absl::Status indicating success or what went wrong.
+  virtual absl::Status NotifyCharacteristicChanged(
+      const GattCharacteristic& characteristic, bool confirm,
+      const ByteArray& new_value) = 0;
+
   // Stops a GATT server.
   virtual void Stop() = 0;
 };
+// LINT.ThenChange(//depot/google3/third_party/nearby/internal/platform/ble_v2.h)
 
 // Callback for asynchronous events on the client side of a GATT connection.
 struct ClientGattConnectionCallback {

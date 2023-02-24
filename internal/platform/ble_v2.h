@@ -148,6 +148,7 @@ class BleV2ServerSocket final {
 //
 // Note that some of the methods return absl::optional instead
 // of std::optional, because iOS platform is still in C++14.
+// LINT.IfChange
 class GattServer final {
  public:
   explicit GattServer(std::unique_ptr<api::ble_v2::GattServer> gatt_server)
@@ -171,6 +172,13 @@ class GattServer final {
     return impl_->UpdateCharacteristic(characteristic, value);
   }
 
+  absl::Status NotifyCharacteristicChanged(
+      const api::ble_v2::GattCharacteristic& characteristic, bool confirm,
+      const ByteArray& new_value) {
+    return impl_->NotifyCharacteristicChanged(characteristic, confirm,
+                                              new_value);
+  }
+
   void Stop() {
     if (impl_) return impl_->Stop();
   }
@@ -187,6 +195,7 @@ class GattServer final {
  private:
   std::unique_ptr<api::ble_v2::GattServer> impl_;
 };
+// LINT.ThenChange(//depot/google3/third_party/nearby/internal/platform/implementation/ble_v2.h)
 
 // Opaque wrapper for a GattClient.
 //
