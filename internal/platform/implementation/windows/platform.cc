@@ -70,6 +70,8 @@ namespace api {
 
 namespace {
 
+constexpr char kNCRelativePath[] = "Google\\Nearby\\Connections";
+
 std::string GetApplicationName(DWORD pid) {
   HANDLE handle =
       OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE,
@@ -148,15 +150,12 @@ std::string ImplementationPlatform::GetAppDataPath(
   wcstombs_s(&bufferSize, fullpathUTF8.data(), bufferSize, basePath, _TRUNCATE);
   CoTaskMemFree(basePath);
 
-  // Get the application image name
-  auto app_name = GetApplicationName(GetCurrentProcessId());
-
   // Check if our folder exists
   std::replace(fullpathUTF8.begin(), fullpathUTF8.end(), '\\', '/');
 
   std::stringstream path("");
 
-  path << fullpathUTF8.c_str() << "/" << app_name.c_str() << "/"
+  path << fullpathUTF8.c_str() << "/" << kNCRelativePath << "/"
        << file_name.data();
 
   return path.str();
