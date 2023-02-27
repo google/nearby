@@ -57,6 +57,7 @@ cc_library(
     hdrs = [
         "ble.h",
         "ble_gatt_client.h",
+        "ble_gatt_server.h",
         "ble_medium.h",
         "ble_peripheral.h",
         "ble_socket.h",
@@ -133,6 +134,7 @@ cc_library(
     name = "windows",
     srcs = [
         "ble_gatt_client.cc",
+        "ble_gatt_server.cc",
         "ble_medium.cc",
         "ble_socket.cc",
         "ble_v2.cc",
