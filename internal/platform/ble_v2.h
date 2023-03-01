@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/functional/any_invocable.h"
 #include "absl/types/optional.h"
@@ -158,12 +159,10 @@ class GattServer final {
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
   absl::optional<api::ble_v2::GattCharacteristic> CreateCharacteristic(
       const Uuid& service_uuid, const Uuid& characteristic_uuid,
-      const std::vector<api::ble_v2::GattCharacteristic::Permission>&
-          permissions,
-      const std::vector<api::ble_v2::GattCharacteristic::Property>&
-          properties) {
+      const api::ble_v2::GattCharacteristic::Permission permission,
+      const api::ble_v2::GattCharacteristic::Property property) {
     return impl_->CreateCharacteristic(service_uuid, characteristic_uuid,
-                                       permissions, properties);
+                                       permission, property);
   }
 
   bool UpdateCharacteristic(

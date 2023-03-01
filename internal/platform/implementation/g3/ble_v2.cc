@@ -355,8 +355,8 @@ bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
 std::optional<api::ble_v2::GattCharacteristic>
 BleV2Medium::GattServer::CreateCharacteristic(
     const Uuid& service_uuid, const Uuid& characteristic_uuid,
-    const std::vector<api::ble_v2::GattCharacteristic::Permission>& permissions,
-    const std::vector<api::ble_v2::GattCharacteristic::Property>& properties) {
+    api::ble_v2::GattCharacteristic::Permission permission,
+    api::ble_v2::GattCharacteristic::Property property) {
   api::ble_v2::GattCharacteristic characteristic = {
       .uuid = characteristic_uuid, .service_uuid = service_uuid};
   return characteristic;

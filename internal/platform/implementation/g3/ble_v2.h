@@ -211,10 +211,8 @@ class BleV2Medium : public api::ble_v2::BleMedium {
    public:
     std::optional<api::ble_v2::GattCharacteristic> CreateCharacteristic(
         const Uuid& service_uuid, const Uuid& characteristic_uuid,
-        const std::vector<api::ble_v2::GattCharacteristic::Permission>&
-            permissions,
-        const std::vector<api::ble_v2::GattCharacteristic::Property>&
-            properties) override;
+        api::ble_v2::GattCharacteristic::Permission permission,
+        api::ble_v2::GattCharacteristic::Property property) override;
 
     bool UpdateCharacteristic(
         const api::ble_v2::GattCharacteristic& characteristic,

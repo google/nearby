@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/strings/escaping.h"
 #include "absl/types/optional.h"
@@ -543,10 +544,9 @@ bool BleV2::StartAdvertisementGattServerLocked(
 
 bool BleV2::GenerateAdvertisementCharacteristic(
     int slot, const ByteArray& gatt_advertisement, GattServer& gatt_server) {
-  std::vector<GattCharacteristic::Permission> permissions{
-      GattCharacteristic::Permission::kRead};
-  std::vector<GattCharacteristic::Property> properties{
-      GattCharacteristic::Property::kRead};
+  GattCharacteristic::Permission permission =
+      GattCharacteristic::Permission::kRead;
+  GattCharacteristic::Property property = GattCharacteristic::Property::kRead;
 
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
   absl::optional<Uuid> advertiement_uuid =
@@ -559,7 +559,7 @@ bool BleV2::GenerateAdvertisementCharacteristic(
   absl::optional<GattCharacteristic> gatt_characteristic =
       gatt_server.CreateCharacteristic(
           mediums::bleutils::kCopresenceServiceUuid, *advertiement_uuid,
-          permissions, properties);
+          permission, property);
   if (!gatt_characteristic.has_value()) {
     NEARBY_LOGS(INFO) << "Unable to create and add a characterstic to the gatt "
                          "server for the advertisement.";

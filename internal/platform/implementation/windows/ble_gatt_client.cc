@@ -61,7 +61,8 @@ using ::winrt::Windows::Foundation::Collections::IVectorView;
 using ::winrt::Windows::Storage::Streams::Buffer;
 using ::winrt::Windows::Storage::Streams::DataReader;
 using ::winrt::Windows::Storage::Streams::IBuffer;
-
+using Property = api::ble_v2::GattCharacteristic::Property;
+using Permission = api::ble_v2::GattCharacteristic::Permission;
 }  // namespace
 
 BleGattClient::BleGattClient(BluetoothLEDevice ble_device)
@@ -223,22 +224,27 @@ BleGattClient::GetCharacteristic(const Uuid& service_uuid,
     // find a way to map it to api::ble_v2::GattCharacteristic.
     GattCharacteristicProperties properties =
         gatt_characteristic->CharacteristicProperties();
-
-    if (properties == GattCharacteristicProperties::Read) {
-      result.permissions.push_back(
-          api::ble_v2::GattCharacteristic::Permission::kRead);
-      result.properties.push_back(
-          api::ble_v2::GattCharacteristic::Property::kRead);
-    } else if (properties == GattCharacteristicProperties::Write) {
-      result.permissions.push_back(
-          api::ble_v2::GattCharacteristic::Permission::kWrite);
-      result.properties.push_back(
-          api::ble_v2::GattCharacteristic::Property::kWrite);
-    } else if (properties == GattCharacteristicProperties::Indicate) {
-      result.permissions.push_back(
-          api::ble_v2::GattCharacteristic::Permission::kRead);
-      result.properties.push_back(
-          api::ble_v2::GattCharacteristic::Property::kIndicate);
+    result.permission = Permission::kNone;
+    result.property = Property::kNone;
+    if ((properties & GattCharacteristicProperties::Read) !=
+        GattCharacteristicProperties::None) {
+      result.permission |= Permission::kRead;
+      result.property |= Property::kRead;
+    }
+    if ((properties & GattCharacteristicProperties::Write) !=
+        GattCharacteristicProperties::None) {
+      result.permission |= Permission::kWrite;
+      result.property |= Property::kWrite;
+    }
+    if ((properties & GattCharacteristicProperties::Indicate) !=
+        GattCharacteristicProperties::None) {
+      result.permission |= Permission::kRead;
+      result.property |= Property::kIndicate;
+    }
+    if ((properties & GattCharacteristicProperties::Notify) !=
+        GattCharacteristicProperties::None) {
+      result.permission |= Permission::kRead;
+      result.property |= Property::kNotify;
     }
 
     NEARBY_LOGS(VERBOSE) << __func__ << ": Return Characteristic. uuid="

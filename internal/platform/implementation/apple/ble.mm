@@ -29,45 +29,35 @@
 namespace nearby {
 namespace apple {
 
+using Permission = api::ble_v2::GattCharacteristic::Permission;
+using Property = api::ble_v2::GattCharacteristic::Property;
+
 namespace {
 
-CBAttributePermissions PermissionToCBPermissions(
-    const std::vector<api::ble_v2::GattCharacteristic::Permission>& permissions) {
+CBAttributePermissions PermissionToCBPermissions(Permission permission) {
   CBAttributePermissions characteristPermissions = 0;
-  for (const auto& permission : permissions) {
-    switch (permission) {
-      case api::ble_v2::GattCharacteristic::Permission::kRead:
-        characteristPermissions |= CBAttributePermissionsReadable;
-        break;
-      case api::ble_v2::GattCharacteristic::Permission::kWrite:
-        characteristPermissions |= CBAttributePermissionsWriteable;
-        break;
-      case api::ble_v2::GattCharacteristic::Permission::kLast:
-      case api::ble_v2::GattCharacteristic::Permission::kUnknown:
-      default:;  // fall through
-    }
+  if ((permission & Permission::kRead) != Permission::kNone) {
+    characteristPermissions |= CBAttributePermissionsReadable;
+  }
+  if ((permission & Permission::kWrite) != Permission::kNone) {
+    characteristPermissions |= CBAttributePermissionsWriteable;
   }
   return characteristPermissions;
 }
 
-CBCharacteristicProperties PropertiesToCBProperties(
-    const std::vector<api::ble_v2::GattCharacteristic::Property>& properties) {
+CBCharacteristicProperties PropertiesToCBProperties(Property property) {
   CBCharacteristicProperties characteristicProperties = 0;
-  for (const auto& property : properties) {
-    switch (property) {
-      case api::ble_v2::GattCharacteristic::Property::kRead:
-        characteristicProperties |= CBCharacteristicPropertyRead;
-        break;
-      case api::ble_v2::GattCharacteristic::Property::kWrite:
-        characteristicProperties |= CBCharacteristicPropertyWrite;
-        break;
-      case api::ble_v2::GattCharacteristic::Property::kIndicate:
-        characteristicProperties |= CBCharacteristicPropertyIndicate;
-        break;
-      case api::ble_v2::GattCharacteristic::Property::kLast:
-      case api::ble_v2::GattCharacteristic::Property::kUnknown:
-      default:;  // fall through
-    }
+  if ((property & Property::kRead) != Property::kNone) {
+    characteristicProperties |= CBCharacteristicPropertyRead;
+  }
+  if ((property & Property::kWrite) != Property::kNone) {
+    characteristicProperties |= CBCharacteristicPropertyWrite;
+  }
+  if ((property & Property::kIndicate) != Property::kNone) {
+    characteristicProperties |= CBCharacteristicPropertyIndicate;
+  }
+  if ((property & Property::kNotify) != Property::kNone) {
+    characteristicProperties |= CBCharacteristicPropertyNotify;
   }
   return characteristicProperties;
 }
@@ -483,12 +473,12 @@ bool BleMedium::IsExtendedAdvertisementsAvailable() { return false; }
 // NOLINTNEXTLINE
 absl::optional<api::ble_v2::GattCharacteristic> BleMedium::GattServer::CreateCharacteristic(
     const Uuid& service_uuid, const Uuid& characteristic_uuid,
-    const std::vector<api::ble_v2::GattCharacteristic::Permission>& permissions,
-    const std::vector<api::ble_v2::GattCharacteristic::Property>& properties) {
+    api::ble_v2::GattCharacteristic::Permission permission,
+    api::ble_v2::GattCharacteristic::Property property) {
   api::ble_v2::GattCharacteristic characteristic = {.uuid = characteristic_uuid,
                                                     .service_uuid = service_uuid,
-                                                    .permissions = permissions,
-                                                    .properties = properties};
+                                                    .permission = permission,
+                                                    .property = property};
   [peripheral_
       addCBServiceWithUUID:[CBUUID
                                UUIDWithString:ObjCStringFromCppString(
@@ -497,9 +487,9 @@ absl::optional<api::ble_v2::GattCharacteristic> BleMedium::GattServer::CreateCha
       addCharacteristic:[[CBMutableCharacteristic alloc]
                             initWithType:[CBUUID UUIDWithString:ObjCStringFromCppString(std::string(
                                                                     characteristic.uuid))]
-                              properties:PropertiesToCBProperties(characteristic.properties)
+                              properties:PropertiesToCBProperties(characteristic.property)
                                    value:nil
-                             permissions:PermissionToCBPermissions(characteristic.permissions)]];
+                             permissions:PermissionToCBPermissions(characteristic.permission)]];
   return characteristic;
 }
 

@@ -77,6 +77,8 @@ using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
 using ::winrt::Windows::Foundation::Collections::IVectorView;
 using ::winrt::Windows::Storage::Streams::Buffer;
 using ::winrt::Windows::Storage::Streams::DataWriter;
+using Permission = api::ble_v2::GattCharacteristic::Permission;
+using Property = api::ble_v2::GattCharacteristic::Property;
 
 std::string ConvertGattStatusToString(
     GattServiceProviderAdvertisementStatus status) {
@@ -109,8 +111,8 @@ BleGattServer::BleGattServer(api::BluetoothAdapter* adapter,
 absl::optional<api::ble_v2::GattCharacteristic>
 BleGattServer::CreateCharacteristic(
     const Uuid& service_uuid, const Uuid& characteristic_uuid,
-    const std::vector<api::ble_v2::GattCharacteristic::Permission>& permissions,
-    const std::vector<api::ble_v2::GattCharacteristic::Property>& properties) {
+    api::ble_v2::GattCharacteristic::Permission permission,
+    api::ble_v2::GattCharacteristic::Property property) {
   NEARBY_LOGS(VERBOSE) << __func__ << ": create characteristic, service_uuid: "
                        << std::string(service_uuid) << ", characteristic_uuid: "
                        << std::string(characteristic_uuid);
@@ -126,8 +128,8 @@ BleGattServer::CreateCharacteristic(
   api::ble_v2::GattCharacteristic gatt_characteristic;
   gatt_characteristic.uuid = characteristic_uuid;
   gatt_characteristic.service_uuid = service_uuid;
-  gatt_characteristic.permissions = permissions;
-  gatt_characteristic.properties = properties;
+  gatt_characteristic.permission = permission;
+  gatt_characteristic.property = property;
 
   GattCharacteristicData gatt_characteristic_data;
   gatt_characteristic_data.gatt_characteristic = gatt_characteristic;
@@ -158,12 +160,9 @@ bool BleGattServer::UpdateCharacteristic(
       if (is_advertising_) {
         // Make sure the character has indication property.
         bool is_indicate_characteristic = false;
-        for (const auto property : it.gatt_characteristic.properties) {
-          if (property ==
-              api::ble_v2::GattCharacteristic::Property::kIndicate) {
-            is_indicate_characteristic = true;
-            break;
-          }
+        if ((it.gatt_characteristic.property & Property::kIndicate) !=
+            Property::kNone) {
+          is_indicate_characteristic = true;
         }
 
         NEARBY_LOGS(INFO) << __func__
@@ -236,32 +235,39 @@ bool BleGattServer::InitializeGattServer() {
       bool is_read_supported = false;
       bool is_write_supported = false;
       bool is_indicate_supported = false;
+      bool is_notify_supported = false;
       GattLocalCharacteristicParameters gatt_characteristic_parameters;
 
       // Set GATT properties.
       GattCharacteristicProperties properties =
           GattCharacteristicProperties::None;
-      for (const auto& property :
-           characteristic_data.gatt_characteristic.properties) {
-        if (property == api::ble_v2::GattCharacteristic::Property::kRead) {
-          properties |= GattCharacteristicProperties::Read;
-          is_read_supported = true;
-        } else if (property ==
-                   api::ble_v2::GattCharacteristic::Property::kWrite) {
-          properties |= GattCharacteristicProperties::Write;
-          is_write_supported = true;
-        } else if (property ==
-                   api::ble_v2::GattCharacteristic::Property::kIndicate) {
-          properties |= GattCharacteristicProperties::Indicate;
-          is_indicate_supported = true;
-        }
+      if ((characteristic_data.gatt_characteristic.property &
+           Property::kRead) != Property::kNone) {
+        properties |= GattCharacteristicProperties::Read;
+        is_read_supported = true;
+      }
+      if ((characteristic_data.gatt_characteristic.property &
+           Property::kWrite) != Property::kNone) {
+        properties |= GattCharacteristicProperties::Write;
+        is_write_supported = true;
+      }
+      if ((characteristic_data.gatt_characteristic.property &
+           Property::kIndicate) != Property::kNone) {
+        properties |= GattCharacteristicProperties::Indicate;
+        is_indicate_supported = true;
+      }
+      if ((characteristic_data.gatt_characteristic.property &
+           Property::kNotify) != Property::kNone) {
+        properties |= GattCharacteristicProperties::Notify;
+        is_notify_supported = true;
       }
 
       NEARBY_LOGS(VERBOSE) << __func__
                            << ": GATT characteristic properties: read="
                            << is_read_supported
                            << ",write=" << is_write_supported
-                           << ",indicate=" << is_indicate_supported;
+                           << ",indicate=" << is_indicate_supported
+                           << ",notify=" << is_notify_supported;
 
       gatt_characteristic_parameters.CharacteristicProperties(properties);
       gatt_characteristic_parameters.WriteProtectionLevel(

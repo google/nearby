@@ -98,41 +98,67 @@ class BlePeripheral {
 //
 // Representation of a GATT characteristic.
 struct GattCharacteristic {
+  // Represents the GATT characteristic permissions
+  // This enumeration supports a bitwise combination of its member values.
+  // |, &, |= of the values are legal.
   enum class Permission {
-    kUnknown = 0,
-    kRead = 1,
-    kWrite = 2,
+    kNone = 0,
+    kRead = 1 << 0,
+    kWrite = 1 << 1,
     kLast,
   };
 
+  // Represents the GATT characteristic properties
+  // This enumeration supports a bitwise combination of its member values.
+  // |, &, |= of the values are legal.
   enum class Property {
-    kUnknown = 0,
-    kRead = 1,
-    kWrite = 2,
-    kIndicate = 3,
+    kNone = 0,
+    kRead = 1 << 0,
+    kWrite = 1 << 1,
+    kIndicate = 1 << 2,
+    kNotify = 1 << 3,
     kLast,
   };
 
   Uuid uuid;
   Uuid service_uuid;
-  std::vector<Permission> permissions;
-  std::vector<Property> properties;
+  Permission permission;
+  Property property;
+
+  // overloading operator for enum class Permission and Property
+  friend inline Permission operator|(Permission a, Permission b) {
+    return static_cast<Permission>(static_cast<int>(a) | static_cast<int>(b));
+  }
+
+  friend inline Permission operator&(Permission a, Permission b) {
+    return static_cast<Permission>(static_cast<int>(a) & static_cast<int>(b));
+  }
+  friend inline Permission& operator|=(Permission& a, Permission b) {
+    a = a | b;
+    return a;
+  }
+
+  friend inline Property operator|(Property a, Property b) {
+    return static_cast<Property>(static_cast<int>(a) | static_cast<int>(b));
+  }
+
+  friend inline Property operator&(Property a, Property b) {
+    return static_cast<Property>(static_cast<int>(a) & static_cast<int>(b));
+  }
+  friend inline Property& operator|=(Property& a, Property b) {
+    a = a | b;
+    return a;
+  }
 
   // Hashable
   template <typename H>
   friend H AbslHashValue(H h, const GattCharacteristic& s) {
-    return H::combine(std::move(h), s.uuid, s.service_uuid, s.permissions,
-                      s.properties);
+    return H::combine(std::move(h), s.uuid, s.service_uuid, s.permission,
+                      s.property);
   }
   bool operator==(const GattCharacteristic& rhs) const {
-    bool has_equal_permissions =
-        std::is_permutation(this->permissions.begin(), this->permissions.end(),
-                            rhs.permissions.begin(), rhs.permissions.end());
-    bool has_equal_properties =
-        std::is_permutation(this->properties.begin(), this->properties.end(),
-                            rhs.properties.begin(), rhs.properties.end());
     return this->uuid == rhs.uuid && this->service_uuid == rhs.service_uuid &&
-           has_equal_permissions && has_equal_properties;
+           this->permission == rhs.permission && this->property == rhs.property;
   }
 };
 
@@ -214,8 +240,8 @@ class GattServer {
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
   virtual absl::optional<GattCharacteristic> CreateCharacteristic(
       const Uuid& service_uuid, const Uuid& characteristic_uuid,
-      const std::vector<GattCharacteristic::Permission>& permissions,
-      const std::vector<GattCharacteristic::Property>& properties) = 0;
+      GattCharacteristic::Permission permission,
+      GattCharacteristic::Property property) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic.html#setValue(byte[])
   //

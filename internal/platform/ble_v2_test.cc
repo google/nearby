@@ -455,14 +455,13 @@ TEST_F(BleV2MediumTest, CanStartGattServer) {
 
   ASSERT_NE(gatt_server, nullptr);
 
-  std::vector<GattCharacteristic::Permission> permissions = {
-      GattCharacteristic::Permission::kRead};
-  std::vector<GattCharacteristic::Property> properties = {
-      GattCharacteristic::Property::kRead};
+  GattCharacteristic::Permission permission =
+      GattCharacteristic::Permission::kRead;
+  GattCharacteristic::Property property = GattCharacteristic::Property::kRead;
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
   absl::optional<GattCharacteristic> gatt_characteristic =
       gatt_server->CreateCharacteristic(service_uuid, characteristic_uuid,
-                                        permissions, properties);
+                                        permission, property);
 
   ASSERT_TRUE(gatt_characteristic.has_value());
 
@@ -491,10 +490,9 @@ TEST_F(BleV2MediumTest, GattClientConnectToGattServerWorks) {
 
   ASSERT_NE(gatt_server, nullptr);
 
-  std::vector<GattCharacteristic::Permission> permissions = {
-      GattCharacteristic::Permission::kRead};
-  std::vector<GattCharacteristic::Property> properties = {
-      GattCharacteristic::Property::kRead};
+  GattCharacteristic::Permission permissions =
+      GattCharacteristic::Permission::kRead;
+  GattCharacteristic::Property properties = GattCharacteristic::Property::kRead;
   // Add characteristic and its value.
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
   absl::optional<GattCharacteristic> server_characteristic =
@@ -538,10 +536,9 @@ TEST_F(BleV2MediumTest, GattServerCanNotifyChange) {
   BleV2Medium ble_a(adapter_a);
   Uuid service_uuid(1234, 5678);
   Uuid characteristic_uuid(5678, 1234);
-  std::vector<GattCharacteristic::Permission> permissions = {
-      GattCharacteristic::Permission::kRead};
-  std::vector<GattCharacteristic::Property> properties = {
-      GattCharacteristic::Property::kRead};
+  GattCharacteristic::Permission permissions =
+      GattCharacteristic::Permission::kRead;
+  GattCharacteristic::Property properties = GattCharacteristic::Property::kRead;
 
   // Start GattServer
   std::unique_ptr<GattServer> gatt_server =

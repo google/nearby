@@ -87,12 +87,12 @@ static const TxPowerLevel kTxPowerLevel = TxPowerLevel::kHigh;
   // Test creating characteristic.
   Uuid service_uuid(1234, 5678);
   Uuid characteristic_uuid(5678, 1234);
-  std::vector<GattCharacteristic::Permission> permissions = {GattCharacteristic::Permission::kRead};
-  std::vector<GattCharacteristic::Property> properties = {GattCharacteristic::Property::kRead};
+  GattCharacteristic::Permission permission = GattCharacteristic::Permission::kRead;
+  GattCharacteristic::Property property = GattCharacteristic::Property::kRead;
 
   // NOLINTNEXTLINE
   absl::optional<GattCharacteristic> gatt_characteristic =
-      gatt_server->CreateCharacteristic(service_uuid, characteristic_uuid, permissions, properties);
+      gatt_server->CreateCharacteristic(service_uuid, characteristic_uuid, permission, property);
   XCTAssertTrue(gatt_characteristic.has_value());
 
   // Test updating characteristic.
