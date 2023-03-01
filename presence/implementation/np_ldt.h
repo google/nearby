@@ -46,41 +46,8 @@ typedef struct {
 } NpMetadataKeyHmac;
 
 typedef struct {
-  uint8_t bytes[16];
-} NpLdtAes128Key;
-
-typedef struct {
-  uint8_t bytes[16];
-} NpLdtAesBlock;
-
-typedef struct {
   uint8_t bytes[2];
 } NpLdtSalt;
-
-// Handle for accessing the AES implementation provided by caller
-typedef void* NpLdtAesCipherHandle;
-
-// Create an AES cipher from a key, returning a handle (or 0 on error)
-typedef NpLdtAesCipherHandle (*NpLdtAesCreateCipher)(NpLdtAes128Key key);
-// Release resources for the cipher, returning 0 on success.
-typedef int32_t (*NpLdtAesCloseCipher)(NpLdtAesCipherHandle handle);
-// Encrypt the block in place with the cipher corresponding to the handle
-typedef void (*NpLdtAesEncrypt)(NpLdtAesCipherHandle handle,
-                                NpLdtAesBlock* block);
-// Decrypt the block in place with the cipher corresponding to the handle
-typedef void (*NpLdtAesDecrypt)(NpLdtAesCipherHandle handle,
-                                NpLdtAesBlock* block);
-
-// Functions for creating, destroying, and using AES ciphers.
-//
-// Users on platforms with optimized AES implementations available may use this
-// to have LDT use their preferred AES.
-typedef struct {
-  NpLdtAesCreateCipher create_cipher;
-  NpLdtAesCloseCipher close_cipher;
-  NpLdtAesEncrypt encrypt;
-  NpLdtAesDecrypt decrypt;
-} NpLdtAesConfig;
 
 // Possible result codes returned from the LDT NP API's
 typedef enum {
@@ -100,8 +67,7 @@ typedef enum {
 // the LDT key will be derived.
 //
 // Returns 0 on error, or a non-zero handle on success.
-NpLdtHandle NpLdtCreate(NpLdtAesConfig aes_config, NpLdtKeySeed key_seed,
-                        NpMetadataKeyHmac known_hmac);
+NpLdtHandle NpLdtCreate(NpLdtKeySeed key_seed, NpMetadataKeyHmac known_hmac);
 
 // Release resources for an NpLdtHandle allocated by
 // `np_ldt_create_xts_aes_128`.
