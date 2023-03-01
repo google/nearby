@@ -134,8 +134,8 @@ std::string ImplementationPlatform::GetAppDataPath(
   // KNOWNFOLDERID.
   // https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
   SHGetKnownFolderPath(
-      FOLDERID_ProgramData,  //  rfid: A reference to the KNOWNFOLDERID that
-                             //  identifies the folder.
+      FOLDERID_LocalAppData,  //  rfid: A reference to the KNOWNFOLDERID that
+                              //  identifies the folder.
       0,           // dwFlags: Flags that specify special retrieval options.
       NULL,        // hToken: An access token that represents a particular user.
       &basePath);  // ppszPath: When this method returns, contains the address

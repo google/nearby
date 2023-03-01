@@ -387,7 +387,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetTemporaryPath() const {
 
 std::optional<std::filesystem::path> DeviceInfo::GetLogPath() const {
   PWSTR path;
-  HRESULT result = SHGetKnownFolderPath(FOLDERID_ProgramData, KF_FLAG_DEFAULT,
+  HRESULT result = SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_DEFAULT,
                                         /*hToken=*/nullptr, &path);
   if (result == S_OK) {
     std::filesystem::path prefixPath = path;
