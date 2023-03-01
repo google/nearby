@@ -49,7 +49,7 @@ P2pStarPcpHandler::GetConnectionMediumsByPriority() {
   if (mediums_->GetBluetoothClassic().IsAvailable()) {
     mediums.push_back(location::nearby::proto::connections::BLUETOOTH);
   }
-  if (mediums_->GetBle().IsAvailable()) {
+  if (mediums_->GetBle().IsAvailable() || mediums_->GetBleV2().IsAvailable()) {
     mediums.push_back(location::nearby::proto::connections::BLE);
   }
   return mediums;

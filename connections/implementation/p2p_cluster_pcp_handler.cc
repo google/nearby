@@ -81,16 +81,9 @@ P2pClusterPcpHandler::GetConnectionMediumsByPriority() {
   if (bluetooth_medium_.IsAvailable()) {
     mediums.push_back(location::nearby::proto::connections::BLUETOOTH);
   }
-  if (FeatureFlags::GetInstance().GetFlags().support_ble_v2) {
-    if (ble_v2_medium_.IsAvailable()) {
-      mediums.push_back(location::nearby::proto::connections::BLE);
-    }
-  } else {
-    if (ble_medium_.IsAvailable()) {
-      mediums.push_back(location::nearby::proto::connections::BLE);
-    }
+  if (ble_medium_.IsAvailable() || ble_v2_medium_.IsAvailable()) {
+    mediums.push_back(location::nearby::proto::connections::BLE);
   }
-
   return mediums;
 }
 
@@ -136,7 +129,8 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
   }
 
   if (advertising_options.allowed.ble) {
-    if (FeatureFlags::GetInstance().GetFlags().support_ble_v2) {
+    if (!ble_medium_.IsAvailable() ||
+        FeatureFlags::GetInstance().GetFlags().support_ble_v2) {
       location::nearby::proto::connections::Medium ble_v2_medium =
           StartBleV2Advertising(client, service_id, local_endpoint_id,
                                 local_endpoint_info, advertising_options,
@@ -192,7 +186,8 @@ Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
 
   bluetooth_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
 
-  if (FeatureFlags::GetInstance().GetFlags().support_ble_v2) {
+  if (!ble_medium_.IsAvailable() ||
+      FeatureFlags::GetInstance().GetFlags().support_ble_v2) {
     ble_v2_medium_.StopAdvertising(client->GetAdvertisingServiceId());
     ble_v2_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
   } else {
@@ -961,7 +956,8 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
   }
 
   if (discovery_options.allowed.ble) {
-    if (FeatureFlags::GetInstance().GetFlags().support_ble_v2) {
+    if (!ble_medium_.IsAvailable() ||
+        FeatureFlags::GetInstance().GetFlags().support_ble_v2) {
       location::nearby::proto::connections::Medium ble_v2_medium =
           StartBleV2Scanning(
               {
@@ -1029,7 +1025,8 @@ Status P2pClusterPcpHandler::StopDiscoveryImpl(ClientProxy* client) {
                       << bluetooth_classic_discoverer_client_id_;
   }
 
-  if (FeatureFlags::GetInstance().GetFlags().support_ble_v2) {
+  if (!ble_medium_.IsAvailable() ||
+      FeatureFlags::GetInstance().GetFlags().support_ble_v2) {
     ble_v2_medium_.StopScanning(client->GetDiscoveryServiceId());
   } else {
     ble_medium_.StopScanning(client->GetDiscoveryServiceId());
@@ -1079,7 +1076,8 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::ConnectImpl(
       break;
     }
     case location::nearby::proto::connections::Medium::BLE: {
-      if (FeatureFlags::GetInstance().GetFlags().support_ble_v2) {
+      if (!ble_medium_.IsAvailable() ||
+          FeatureFlags::GetInstance().GetFlags().support_ble_v2) {
         auto* ble_v2_endpoint = down_cast<BleV2Endpoint*>(endpoint);
         if (ble_v2_endpoint) {
           return BleV2ConnectImpl(client, ble_v2_endpoint);

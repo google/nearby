@@ -80,6 +80,7 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
       initWithType:[CBUUID UUIDWithString:kGNSPairingCharUUIDString]
         properties:CBCharacteristicPropertyRead
              value:nil
+       // TODO(bourdakos@): This could be cause a pairing popup, but removing doesn't help?
        permissions:CBAttributePermissionsReadEncryptionRequired];
 }
 

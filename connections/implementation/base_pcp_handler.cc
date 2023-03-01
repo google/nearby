@@ -696,7 +696,8 @@ void BasePcpHandler::StripOutUnavailableMediums(
     allowed.bluetooth = mediums_->GetBluetoothClassic().IsAvailable();
   }
   if (allowed.ble) {
-    allowed.ble = mediums_->GetBle().IsAvailable();
+    allowed.ble =
+        mediums_->GetBle().IsAvailable() || mediums_->GetBleV2().IsAvailable();
   }
   if (allowed.web_rtc) {
     allowed.web_rtc = mediums_->GetWebRtc().IsAvailable();
@@ -720,7 +721,8 @@ void BasePcpHandler::StripOutUnavailableMediums(
     allowed.bluetooth = mediums_->GetBluetoothClassic().IsAvailable();
   }
   if (allowed.ble) {
-    allowed.ble = mediums_->GetBle().IsAvailable();
+    allowed.ble =
+        mediums_->GetBle().IsAvailable() || mediums_->GetBleV2().IsAvailable();
   }
   if (allowed.web_rtc) {
     allowed.web_rtc = mediums_->GetWebRtc().IsAvailable();
