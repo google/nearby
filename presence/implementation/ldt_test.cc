@@ -18,15 +18,33 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/escaping.h"
 #include "internal/platform/byte_array.h"
+#include "internal/proto/credential.pb.h"
 
 namespace nearby {
 namespace presence {
 
 namespace {
 using ::nearby::ByteArray;
+using ::nearby::internal::SharedCredential;
 
 #if USE_RUST_LDT == 1
+
+// Test data from Android tests.
+constexpr absl::string_view kKeySeedBase16 =
+    "BAF3C12E1BBBB3E4367BBD40986D0D7CD158DF6D662AAE6312FE67634B5D4547";
+constexpr absl::string_view kKnownMacBase16 =
+    "CDDA7C6CF56882D74364F8BE9874A78D7C961BFF9800A40D83F6652E6CF5D1A7";
+constexpr absl::string_view kSharedCredentialBase16 =
+    "1220BAF3C12E1BBBB3E4367BBD40986D0D7CD158DF6D662AAE6312FE67634B5D45473220"
+    "CDDA7C6CF56882D74364F8BE9874A78D7C961BFF9800A40D83F6652E6CF5D1A7";
+constexpr absl::string_view kPlainTextBase16 =
+    "205BF1D88FF539EC740CCC2EC2DE19353EF30F01054C3E24";
+constexpr absl::string_view kCipherTextBase16 =
+    "FDABC09D6F8028D4E5E585C62E9A0DB5003F19FEBDF92524";
+constexpr absl::string_view kSaltBase16 = "874C";
+
 TEST(Ldt, EncryptAndDecrypt) {
   // Test data copied from NP LDT tests
   ByteArray seed({204, 219, 36, 137, 233, 252, 172, 66, 179, 147, 72,
@@ -50,6 +68,38 @@ TEST(Ldt, EncryptAndDecrypt) {
   ASSERT_OK(decrypted);
   EXPECT_EQ(*decrypted, test_data.AsStringView());
 }
+
+TEST(Ldt, EncryptAndroidData) {
+  absl::StatusOr<LdtEncryptor> encryptor =
+      LdtEncryptor::Create(absl::HexStringToBytes(kKeySeedBase16),
+                           absl::HexStringToBytes(kKnownMacBase16));
+  ASSERT_OK(encryptor);
+
+  absl::StatusOr<std::string> encrypted =
+      encryptor->Encrypt(absl::HexStringToBytes(kPlainTextBase16),
+                         absl::HexStringToBytes(kSaltBase16));
+
+  ASSERT_OK(encrypted);
+  EXPECT_EQ(*encrypted, absl::HexStringToBytes(kCipherTextBase16));
+}
+
+TEST(Ldt, DecryptAndroidData) {
+  SharedCredential shared_credential;
+  ASSERT_TRUE(shared_credential.ParseFromString(
+      absl::HexStringToBytes(kSharedCredentialBase16)));
+  absl::StatusOr<LdtEncryptor> encryptor =
+      LdtEncryptor::Create(shared_credential.key_seed(),
+                           shared_credential.metadata_encryption_key_tag());
+  ASSERT_OK(encryptor);
+
+  absl::StatusOr<std::string> decrypted =
+      encryptor->DecryptAndVerify(absl::HexStringToBytes(kCipherTextBase16),
+                                  absl::HexStringToBytes(kSaltBase16));
+
+  ASSERT_OK(decrypted);
+  EXPECT_EQ(*decrypted, absl::HexStringToBytes(kPlainTextBase16));
+}
+
 #else
 TEST(Ldt, LdtUnvailable) {
   ByteArray seed({204, 219, 36, 137, 233, 252, 172, 66, 179, 147, 72,

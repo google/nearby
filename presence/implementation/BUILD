@@ -226,6 +226,7 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/strings",
         "//internal/platform:base",
+        "//internal/proto:credential_cc_proto",
     ] + select({
         "//tools/cc_target_os:windows": [
             "//internal/platform/implementation/windows",
