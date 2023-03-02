@@ -185,7 +185,8 @@ bool BleMedium::StartAdvertising(
 
     // Use Extended Advertising if Fast Advertisement Service Uuid is empty
     // string because the long format advertisement will be used
-    if (fast_advertisement_service_uuid.empty()) {
+    if (adapter_->IsExtendedAdvertisingSupported() &&
+        fast_advertisement_service_uuid.empty()) {
       publisher_ = BluetoothLEAdvertisementPublisher(advertisement);
       publisher_.UseExtendedAdvertisement(true);
     } else {
