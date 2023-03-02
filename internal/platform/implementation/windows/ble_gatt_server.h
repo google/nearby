@@ -48,6 +48,10 @@ class BleGattServer : public api::ble_v2::GattServer {
       const api::ble_v2::GattCharacteristic& characteristic,
       const nearby::ByteArray& value) override;
 
+  absl::Status NotifyCharacteristicChanged(
+      const api::ble_v2::GattCharacteristic& characteristic, bool confirm,
+      const ByteArray& new_value) override;
+
   void Stop() override;
 
   bool StartAdvertisement(const ByteArray& service_data, bool is_connectable);

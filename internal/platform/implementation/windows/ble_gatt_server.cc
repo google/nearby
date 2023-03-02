@@ -26,6 +26,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
+#include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 #include "absl/types/optional.h"
@@ -179,6 +180,15 @@ bool BleGattServer::UpdateCharacteristic(
   NEARBY_LOGS(ERROR) << __func__ << ": Failed to update the characteristic.";
 
   return false;
+}
+
+absl::Status BleGattServer::NotifyCharacteristicChanged(
+    const api::ble_v2::GattCharacteristic& characteristic, bool confirm,
+    const ByteArray& new_value) {
+  // Currently, the method is not hooked up at platform layer.
+  NEARBY_LOGS(VERBOSE) << __func__ << ": Notify characteristic="
+                       << std::string(characteristic.uuid) << " changed.";
+  return absl::OkStatus();
 }
 
 void BleGattServer::Stop() {

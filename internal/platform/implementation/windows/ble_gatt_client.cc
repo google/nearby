@@ -367,6 +367,12 @@ bool BleGattClient::WriteCharacteristic(
   return false;
 }
 
+bool BleGattClient::SetCharacteristicNotification(
+    const api::ble_v2::GattCharacteristic& characteristic, bool enable) {
+  // TODO(b/271307026): implement the method for Windows.
+  return false;
+}
+
 void BleGattClient::Disconnect() {
   try {
     NEARBY_LOGS(VERBOSE) << __func__ << ": Disconnect is called.";
