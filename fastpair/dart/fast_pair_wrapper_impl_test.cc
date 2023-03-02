@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/fast_pair_controller_impl.h"
+#include "fastpair/dart/fast_pair_wrapper_impl.h"
 
 #include <memory>
 
@@ -23,30 +23,30 @@
 
 namespace nearby {
 namespace fastpair {
-namespace FastPairControllerUnitTests {
-class FastPairControllerImplTest : public ::testing::Test {
+namespace FastPairWrapperUnitTests {
+class FastPairWrapperImplTest : public ::testing::Test {
  public:
   void SetUp() override {
-    controller_.reset();
-    controller_ = std::make_unique<FastPairControllerImpl>();
+    wrapper_.reset();
+    wrapper_ = std::make_unique<FastPairWrapperImpl>();
   }
 
  protected:
-  std::shared_ptr<FastPairControllerImpl> controller_;
+  std::shared_ptr<FastPairWrapperImpl> wrapper_;
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
-TEST_F(FastPairControllerImplTest, StartScanningSuccess) {
+TEST_F(FastPairWrapperImplTest, StartScanningSuccess) {
   env_.Start();
-  EXPECT_FALSE(controller_->IsScanning());
-  EXPECT_FALSE(controller_->IsPairing());
-  EXPECT_FALSE(controller_->IsServerAccessing());
-  controller_->StartScan();
+  EXPECT_FALSE(wrapper_->IsScanning());
+  EXPECT_FALSE(wrapper_->IsPairing());
+  EXPECT_FALSE(wrapper_->IsServerAccessing());
+  wrapper_->StartScan();
   SystemClock::Sleep(absl::Milliseconds(200));
-  EXPECT_TRUE(controller_->IsScanning());
+  EXPECT_TRUE(wrapper_->IsScanning());
   env_.Stop();
 }
 
-}  // namespace FastPairControllerUnitTests
+}  // namespace FastPairWrapperUnitTests
 }  // namespace fastpair
 }  // namespace nearby

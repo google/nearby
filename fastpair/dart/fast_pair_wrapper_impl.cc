@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/fast_pair_controller_impl.h"
+#include "fastpair/dart/fast_pair_wrapper_impl.h"
 
 #include <memory>
 
@@ -22,12 +22,12 @@
 namespace nearby {
 namespace fastpair {
 
-FastPairControllerImpl::FastPairControllerImpl() {
-  NEARBY_LOGS(INFO) << "FastPairControllerImpl starts.";
+FastPairWrapperImpl::FastPairWrapperImpl() {
+  NEARBY_LOGS(INFO) << "FastPairWrapperImpl starts.";
 }
-FastPairControllerImpl::~FastPairControllerImpl() = default;
+FastPairWrapperImpl::~FastPairWrapperImpl() = default;
 
-void FastPairControllerImpl::StartScan() {
+void FastPairWrapperImpl::StartScan() {
   scanner_ = std::make_unique<FastPairScannerImpl>();
   if (is_scanning_) {
     NEARBY_LOGS(VERBOSE) << __func__ << ": We're currently scanning. ";
@@ -37,11 +37,11 @@ void FastPairControllerImpl::StartScan() {
   scanner_->StartScanning();
 }
 
-bool FastPairControllerImpl::IsScanning() { return is_scanning_; }
+bool FastPairWrapperImpl::IsScanning() { return is_scanning_; }
 
-bool FastPairControllerImpl::IsPairing() { return is_connecting_; }
+bool FastPairWrapperImpl::IsPairing() { return is_connecting_; }
 
-bool FastPairControllerImpl::IsServerAccessing() { return is_server_access_; }
+bool FastPairWrapperImpl::IsServerAccessing() { return is_server_access_; }
 
 }  // namespace fastpair
 }  // namespace nearby

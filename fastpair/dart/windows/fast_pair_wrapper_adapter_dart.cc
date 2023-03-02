@@ -12,32 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/fast_pair_controller.h"
+#include "fastpair/dart/windows/fast_pair_wrapper_adapter_dart.h"
 
-#include <string>
-
-#include "internal/platform/logging.h"
+#include "fastpair/dart/windows/fast_pair_wrapper_adapter.h"
 
 namespace nearby {
 namespace fastpair {
-namespace {
+namespace windows {
 
-using StatusCodes = FastPairController::StatusCodes;
-constexpr char kUnknownStatusCodesString[] = "Unknown_StatusCodes";
-
-}  // namespace
-
-std::string FastPairController::StatusCodeToString(StatusCodes status_code) {
-  switch (status_code) {
-    case StatusCodes::kOk:
-      return "kOk";
-    case StatusCodes::kError:
-      return "kError";
-  }
-  NEARBY_LOGS(ERROR) << "Unknown value for Status codes: "
-                     << static_cast<int>(status_code);
-  return kUnknownStatusCodesString;
+void StartScanDart(FastPairWrapper *pWrapper) {
+  if (IsScanning(pWrapper)) return;
+  StartScan(pWrapper);
 }
 
+void ServerAccessDart(FastPairWrapper *pWrapper) {
+  IsServerAccessing(pWrapper);
+}
+
+}  // namespace windows
 }  // namespace fastpair
 }  // namespace nearby

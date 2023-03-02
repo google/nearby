@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastpair/fast_pair_controller.h"
+#include "fastpair/dart/fast_pair_wrapper.h"
 
 #include <string>
 #include <vector>
@@ -21,8 +21,8 @@
 
 namespace nearby {
 namespace fastpair {
-using ::nearby::fastpair::FastPairController;
-using StatusCodes = FastPairController::StatusCodes;
+using ::nearby::fastpair::FastPairWrapper;
+using StatusCodes = FastPairWrapper::StatusCodes;
 
 struct StatusCodeToStringData {
   StatusCodes status_code;
@@ -43,7 +43,7 @@ using StatusCodeToString = testing::TestWithParam<StatusCodeToStringData>;
 
 TEST_P(StatusCodeToString, ToStringResultMatches) {
   EXPECT_EQ(GetParam().expected_string_result,
-            FastPairController::StatusCodeToString(GetParam().status_code));
+            FastPairWrapper::StatusCodeToString(GetParam().status_code));
 }
 
 INSTANTIATE_TEST_CASE_P(StatusCodeToString, StatusCodeToString,

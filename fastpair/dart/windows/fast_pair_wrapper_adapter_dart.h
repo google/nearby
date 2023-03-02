@@ -12,22 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_CLIENT_WINDOWS_FAST_PAIR_CONTROLLER_ADAPTER_DART_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_CLIENT_WINDOWS_FAST_PAIR_CONTROLLER_ADAPTER_DART_H_
+#ifndef THIRD_PARTY_NEARBY_FASTPAIR_DART_WINDOWS_FAST_PAIR_WRAPPER_ADAPTER_DART_H_
+#define THIRD_PARTY_NEARBY_FASTPAIR_DART_WINDOWS_FAST_PAIR_WRAPPER_ADAPTER_DART_H_
 
 #include "third_party/dart_lang/v2/runtime/include/dart_api_dl.h"
-#include "fastpair/client/windows/fast_pair_controller_adapter.h"
+#include "fastpair/dart/windows/fast_pair_wrapper_adapter.h"
 
 namespace nearby {
 namespace fastpair {
 namespace windows {
 
-DLL_EXPORT void __stdcall StartScanDart(FastPairController* pController);
+DLL_EXPORT void __stdcall StartScanDart(FastPairWrapper* pWrapper);
 
-DLL_EXPORT void __stdcall ServerAccessDart(FastPairController* pController);
+DLL_EXPORT void __stdcall ServerAccessDart(FastPairWrapper* pWrapper);
 
 }  // namespace windows
 }  // namespace fastpair
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_CLIENT_WINDOWS_FAST_PAIR_CONTROLLER_ADAPTER_DART_H_
+#endif  // THIRD_PARTY_NEARBY_FASTPAIR_DART_WINDOWS_FAST_PAIR_WRAPPER_ADAPTER_DART_H_

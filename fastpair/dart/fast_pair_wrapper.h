@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_FAST_PAIR_CONTROLLER_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_FAST_PAIR_CONTROLLER_H_
+#ifndef THIRD_PARTY_NEARBY_FASTPAIR_DART_FAST_PAIR_WRAPPER_H_
+#define THIRD_PARTY_NEARBY_FASTPAIR_DART_FAST_PAIR_WRAPPER_H_
 
 #include <functional>
 #include <string>
@@ -21,7 +21,7 @@
 namespace nearby {
 namespace fastpair {
 
-class FastPairController {
+class FastPairWrapper {
  public:
   enum class StatusCodes {
     // The operation successed.
@@ -32,7 +32,7 @@ class FastPairController {
 
   static std::string StatusCodeToString(StatusCodes status_code);
 
-  virtual ~FastPairController() = default;
+  virtual ~FastPairWrapper() = default;
 
   // Obtain the scanning status
   virtual bool IsScanning() = 0;
@@ -51,4 +51,4 @@ class FastPairController {
 }  // namespace fastpair
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FAST_PAIR_FASTPAIR_CONTROLLER_H_
+#endif  // THIRD_PARTY_NEARBY_FASTPAIR_DART_FAST_PAIR_WRAPPER_H_

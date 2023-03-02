@@ -1,4 +1,4 @@
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,10 +18,10 @@ licenses(["notice"])
 lexan.cc_windows_dll(
     name = "fastpair_adapter",
     srcs = [
-        "fast_pair_controller_adapter.cc",
+        "fast_pair_wrapper_adapter.cc",
     ],
     hdrs = [
-        "fast_pair_controller_adapter.h",
+        "fast_pair_wrapper_adapter.h",
     ],
     copts = [
         "-Ithird_party",
@@ -35,7 +35,7 @@ lexan.cc_windows_dll(
         "//location/nearby/apps/better_together/windows/fast_pair:__subpackages__",
     ],
     deps = [
-        "//fastpair:fastpair_controller",
+        "//fastpair/dart:fastpair_wrapper",
         "//internal/platform:logging",
         "//internal/platform/implementation/windows",
         "//internal/platform/implementation/windows/generated:types",
@@ -46,12 +46,12 @@ lexan.cc_windows_dll(
 lexan.cc_windows_dll(
     name = "fastpair_dart",
     srcs = [
-        "fast_pair_controller_adapter.cc",
-        "fast_pair_controller_adapter_dart.cc",
+        "fast_pair_wrapper_adapter.cc",
+        "fast_pair_wrapper_adapter_dart.cc",
     ],
     hdrs = [
-        "fast_pair_controller_adapter.h",
-        "fast_pair_controller_adapter_dart.h",
+        "fast_pair_wrapper_adapter.h",
+        "fast_pair_wrapper_adapter_dart.h",
     ],
     copts = [
         "-Ithird_party",
@@ -65,7 +65,7 @@ lexan.cc_windows_dll(
         "//location/nearby/apps/better_together/windows/fast_pair:__subpackages__",
     ],
     deps = [
-        "//fastpair:fastpair_controller",
+        "//fastpair/dart:fastpair_wrapper",
         "//internal/platform:logging",
         "//internal/platform/implementation/windows",
         "//internal/platform/implementation/windows/generated:types",

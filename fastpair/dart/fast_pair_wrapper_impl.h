@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_FASTPAIR_FAST_PAIR_CONTROLLER_IMPL_H_
-#define THIRD_PARTY_NEARBY_FASTPAIR_FAST_PAIR_CONTROLLER_IMPL_H_
+#ifndef THIRD_PARTY_NEARBY_FASTPAIR_DART_FAST_PAIR_WRAPPER_IMPL_H_
+#define THIRD_PARTY_NEARBY_FASTPAIR_DART_FAST_PAIR_WRAPPER_IMPL_H_
 
 #include <functional>
 #include <memory>
 
-#include "fastpair/fast_pair_controller.h"
+#include "fastpair/dart/fast_pair_wrapper.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner_impl.h"
 
 namespace nearby {
@@ -26,11 +26,10 @@ namespace fastpair {
 
 class FastPairScannerImpl;
 
-class FastPairControllerImpl : public FastPairController,
-                               public FastPairScannerImpl {
+class FastPairWrapperImpl : public FastPairWrapper, public FastPairScannerImpl {
  public:
-  explicit FastPairControllerImpl();
-  ~FastPairControllerImpl() override;
+  explicit FastPairWrapperImpl();
+  ~FastPairWrapperImpl() override;
 
   bool IsScanning() override;
   bool IsPairing() override;
@@ -49,4 +48,4 @@ class FastPairControllerImpl : public FastPairController,
 }  // namespace fastpair
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_FASTPAIR_FAST_PAIR_CONTROLLER_IMPL_H_
+#endif  // THIRD_PARTY_NEARBY_FASTPAIR_DART_FAST_PAIR_WRAPPER_IMPL_H_
