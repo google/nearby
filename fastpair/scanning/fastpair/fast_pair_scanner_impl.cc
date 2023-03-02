@@ -28,6 +28,7 @@ namespace fastpair {
 namespace {
 constexpr absl::Duration kFastPairLowPowerActiveSeconds = absl::Seconds(2);
 constexpr absl::Duration kFastPairLowPowerInactiveSeconds = absl::Seconds(3);
+constexpr char kFastPairServiceUuid[] = "0000FE2C-0000-1000-8000-00805F9B34FB";
 }  // namespace
 
 // static
