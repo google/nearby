@@ -22,9 +22,8 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include <openssl/aes.h>
 #if USE_RUST_LDT == 1
-#include "third_party/nearby_rust/presence/np_ffi/include/np_ldt.h"
+#include "third_party/nearby_rust/presence/ldt_np_adv_ffi/include/np_ldt.h"
 #else
 #include "presence/implementation/np_ldt.h"
 #endif /* USE_RUST_LDT */
@@ -45,36 +44,6 @@ T FromStringView(absl::string_view data) {
          std::min(sizeof(result.bytes), data.size()));
   return result;
 }
-
-struct AesContext {
-  AES_KEY encryption_key;
-  AES_KEY decryption_key;
-};
-
-NpLdtAesCipherHandle AesCreateCipher(NpLdtAes128Key key) {
-  AesContext* ctx = new AesContext();
-  AES_set_encrypt_key(key.bytes, 128, &ctx->encryption_key);
-  AES_set_decrypt_key(key.bytes, 128, &ctx->decryption_key);
-  // The caller takes ownership and they must call `AesCloseCipher` eventually.
-  return ctx;
-}
-
-int32_t AesCloseCipher(NpLdtAesCipherHandle handle) {
-  AesContext* ctx = reinterpret_cast<AesContext*>(handle);
-  delete ctx;
-  return 0;
-}
-
-void AesEncrypt(NpLdtAesCipherHandle handle, NpLdtAesBlock* block) {
-  AesContext* ctx = reinterpret_cast<AesContext*>(handle);
-  AES_encrypt(block->bytes, block->bytes, &ctx->encryption_key);
-}
-
-void AesDecrypt(NpLdtAesCipherHandle handle, NpLdtAesBlock* block) {
-  AesContext* ctx = reinterpret_cast<AesContext*>(handle);
-  AES_decrypt(block->bytes, block->bytes, &ctx->decryption_key);
-}
-
 }  // namespace
 
 LdtEncryptor::LdtEncryptor(LdtEncryptor&& other)
@@ -90,11 +59,7 @@ LdtEncryptor::~LdtEncryptor() {
 absl::StatusOr<LdtEncryptor> LdtEncryptor::Create(
     absl::string_view key_seed, absl::string_view known_hmac) {
   NpLdtHandle handle =
-      NpLdtCreate({.create_cipher = AesCreateCipher,
-                   .close_cipher = AesCloseCipher,
-                   .encrypt = AesEncrypt,
-                   .decrypt = AesDecrypt},
-                  FromStringView<NpLdtKeySeed>(key_seed),
+      NpLdtCreate(FromStringView<NpLdtKeySeed>(key_seed),
                   FromStringView<NpMetadataKeyHmac>(known_hmac));
   if (handle == kInvalidLdtHandle) {
     return absl::UnavailableError("Failed to create LDT encryptor");

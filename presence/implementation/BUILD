@@ -109,10 +109,9 @@ cc_library(
         "//internal/proto:metadata_cc_proto",
         "//presence:types",
         "//presence/implementation/mediums",
-        "@boringssl//:crypto",
     ] + select({
         ":norust_or_windows_or_android": [":ldt_stub"],
-        "//conditions:default": ["//third_party/nearby_rust/presence/np_ffi"],
+        "//conditions:default": ["//third_party/nearby_rust/presence/ldt_np_adv_ffi"],
     }),
 )
 

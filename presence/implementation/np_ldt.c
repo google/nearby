@@ -17,8 +17,7 @@
 // Placeholder, empty implementations of LDT utilities. They will be replaced
 // with implementations in Rust.
 
-NpLdtHandle NpLdtCreate(NpLdtAesConfig aes_config, NpLdtKeySeed key_seed,
-                        NpMetadataKeyHmac known_hmac) {
+NpLdtHandle NpLdtCreate(NpLdtKeySeed key_seed, NpMetadataKeyHmac known_hmac) {
   return 0;
 }
 
