@@ -230,6 +230,7 @@ cc_test(
     srcs = [
         "atomic_boolean_test.cc",
         "atomic_reference_test.cc",
+        "ble_gatt_server_test.cc",
         "ble_medium_test.cc",
         "ble_v2_peripheral_test.cc",
         "ble_v2_test.cc",
