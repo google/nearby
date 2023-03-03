@@ -71,7 +71,7 @@ class FastPairScannerImpl : public FastPairScanner {
   Ble& GetBle() { return ble_; }
 
  private:
-  std::shared_ptr<TaskRunner> task_runner_;
+  std::unique_ptr<TaskRunner> task_runner_;
 
   // Map of a Bluetooth device address to a set of advertisement data we have
   // seen.

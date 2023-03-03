@@ -54,7 +54,7 @@ FastPairScannerImpl::Factory::~Factory() = default;
 
 // FastPairScannerImpl
 FastPairScannerImpl::FastPairScannerImpl() {
-  task_runner_ = std::make_shared<TaskRunnerImpl>(1);
+  task_runner_ = std::make_unique<TaskRunnerImpl>(1);
 }
 
 void FastPairScannerImpl::AddObserver(FastPairScanner::Observer* observer) {

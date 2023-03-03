@@ -48,7 +48,7 @@ class ScannerBrokerImpl : public ScannerBroker {
   void NotifyDeviceFound(const FastPairDevice& device);
   void NotifyDeviceLost(const FastPairDevice& device);
 
-  std::shared_ptr<TaskRunner> task_runner_;
+  std::unique_ptr<TaskRunner> task_runner_;
   std::shared_ptr<FastPairScanner> scanner_;
   std::shared_ptr<FastPairScannerImpl> scanner_impl_;
   std::shared_ptr<BluetoothAdapter> adapter_;

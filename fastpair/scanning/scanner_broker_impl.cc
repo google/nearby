@@ -30,7 +30,7 @@ namespace nearby {
 namespace fastpair {
 ScannerBrokerImpl::ScannerBrokerImpl() {
   adapter_ = std::make_shared<BluetoothAdapter>();
-  task_runner_ = std::make_shared<TaskRunnerImpl>(1);
+  task_runner_ = std::make_unique<TaskRunnerImpl>(1);
 }
 
 void ScannerBrokerImpl::AddObserver(Observer* observer) {
