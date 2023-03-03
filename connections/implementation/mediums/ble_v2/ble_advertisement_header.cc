@@ -22,6 +22,8 @@
 #include "absl/strings/str_cat.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/base_input_stream.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -57,10 +59,12 @@ BleAdvertisementHeader::BleAdvertisementHeader(
   ByteArray advertisement_header_bytes =
       Base64Utils::Decode(ble_advertisement_header_bytes.AsStringView());
   if (advertisement_header_bytes.Empty()) {
+    // The BLE advertisement header is not encoded in base64, but still try to
+    // parse it as raw bytes.
     NEARBY_LOG(
-        ERROR,
+        WARNING,
         "Cannot deserialize BLEAdvertisementHeader: failed Base64 decoding");
-    return;
+    advertisement_header_bytes = ble_advertisement_header_bytes;
   }
 
   if (advertisement_header_bytes.size() < kMinAdvertisementHeaderLength) {
@@ -138,8 +142,13 @@ BleAdvertisementHeader::operator ByteArray() const {
                                  std::string(advertisement_hash_),
                                  std::string(psm_bytes));
   // clang-format on
-
-  return ByteArray(Base64Utils::Encode(ByteArray(std::move(out))));
+  if (FeatureFlags::GetInstance()
+          .GetFlags()
+          .enable_ble_v2_advertisement_base64_encoding) {
+    return ByteArray(Base64Utils::Encode(ByteArray(std::move(out))));
+  } else {
+    return ByteArray(std::move(out));
+  }
 }
 
 bool BleAdvertisementHeader::operator==(
