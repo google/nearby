@@ -189,6 +189,7 @@ cc_library(
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
+        "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",

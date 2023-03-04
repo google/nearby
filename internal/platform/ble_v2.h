@@ -224,6 +224,22 @@ class GattClient final {
     return impl_->ReadCharacteristic(characteristic);
   }
 
+  // NOLINTNEXTLINE(google3-legacy-absl-backports)
+  bool WriteCharacteristic(
+      const api::ble_v2::GattCharacteristic& characteristic,
+      const ByteArray& value) {
+    return impl_->WriteCharacteristic(characteristic, value);
+  }
+
+  // NOLINTNEXTLINE(google3-legacy-absl-backports)
+  bool SetCharacteristicSubscription(
+      const api::ble_v2::GattCharacteristic& characteristic, bool enable,
+      absl::AnyInvocable<void(const ByteArray& value)>
+          on_characteristic_changed_cb) {
+    return impl_->SetCharacteristicSubscription(
+        characteristic, enable, std::move(on_characteristic_changed_cb));
+  }
+
   void Disconnect() { impl_->Disconnect(); }
 
   // Returns true if a client_gatt_connection is usable. If this method

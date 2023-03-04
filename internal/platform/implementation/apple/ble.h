@@ -18,7 +18,9 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
+#include <memory>
 #include <string>
+#include <vector>
 
 #include "absl/types/optional.h"
 #include "internal/platform/cancellation_flag.h"
@@ -186,8 +188,9 @@ class BleMedium : public api::ble_v2::BleMedium {
     bool WriteCharacteristic(const api::ble_v2::GattCharacteristic &characteristic,
                              const ByteArray &value) override;
 
-    bool SetCharacteristicNotification(const api::ble_v2::GattCharacteristic &characteristic,
-                                       bool enable) override;
+    bool SetCharacteristicSubscription(
+        const api::ble_v2::GattCharacteristic &characteristic, bool enable,
+        absl::AnyInvocable<void(const ByteArray &value)> on_characteristic_changed_cb) override;
 
     void Disconnect() override;
 

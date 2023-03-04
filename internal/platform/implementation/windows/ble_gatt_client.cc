@@ -23,12 +23,15 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/types/optional.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/uuid.h"
@@ -50,6 +53,8 @@ using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
 using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
     GattCharacteristicsResult;
 using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+    GattClientCharacteristicConfigurationDescriptorValue;
+using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
     GattCommunicationStatus;
 using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
     GattDeviceService;
@@ -57,6 +62,8 @@ using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
     GattDeviceServicesResult;
 using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
     GattReadResult;
+using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+    GattValueChangedEventArgs;
 using ::winrt::Windows::Foundation::Collections::IVectorView;
 using ::winrt::Windows::Storage::Streams::Buffer;
 using ::winrt::Windows::Storage::Streams::DataReader;
@@ -133,6 +140,7 @@ bool BleGattClient::DiscoverServiceAndCharacteristics(
 
       NEARBY_LOGS(INFO) << __func__
                         << ": Found the discovery service UUID=" << uuid_string;
+
       // Try to check the characteristic uuids.
       GattCharacteristicsResult gatt_characteristics_result =
           service.GetCharacteristicsAsync(BluetoothCacheMode::Uncached).get();
@@ -205,7 +213,7 @@ BleGattClient::GetCharacteristic(const Uuid& service_uuid,
   NEARBY_LOGS(VERBOSE) << __func__ << ": Stared to get characteristic UUID="
                        << std::string(characteristic_uuid)
                        << " in service UUID=" << std::string(service_uuid);
-
+  absl::MutexLock lock(&mutex_);
   try {
     std::optional<GattCharacteristic> gatt_characteristic =
         GetNativeCharacteristic(service_uuid, characteristic_uuid);
@@ -246,6 +254,9 @@ BleGattClient::GetCharacteristic(const Uuid& service_uuid,
       result.permission |= Permission::kRead;
       result.property |= Property::kNotify;
     }
+
+    native_characteristic_map_[result].native_characteristic =
+        gatt_characteristic;
 
     NEARBY_LOGS(VERBOSE) << __func__ << ": Return Characteristic. uuid="
                          << std::string(characteristic_uuid);
@@ -324,10 +335,10 @@ bool BleGattClient::WriteCharacteristic(
     const ByteArray& value) {
   NEARBY_LOGS(VERBOSE) << __func__ << ": write characteristic: "
                        << std::string(characteristic.uuid);
+  absl::MutexLock lock(&mutex_);
   try {
     std::optional<GattCharacteristic> gatt_characteristic =
-        GetNativeCharacteristic(characteristic.service_uuid,
-                                characteristic.uuid);
+        native_characteristic_map_[characteristic].native_characteristic;
 
     if (!gatt_characteristic.has_value()) {
       NEARBY_LOGS(ERROR) << __func__
@@ -342,6 +353,7 @@ bool BleGattClient::WriteCharacteristic(
 
     GattCommunicationStatus staus =
         gatt_characteristic->WriteValueAsync(buffer).get();
+
     if (staus != GattCommunicationStatus::Success) {
       NEARBY_LOGS(ERROR) << __func__
                          << ": Failed to write data to GATT characteristic: "
@@ -363,23 +375,101 @@ bool BleGattClient::WriteCharacteristic(
         << __func__ << ": Failed to read GATT characteristic. WinRT exception: "
         << error.code() << ": " << winrt::to_string(error.message());
   }
-
   return false;
 }
 
-bool BleGattClient::SetCharacteristicNotification(
-    const api::ble_v2::GattCharacteristic& characteristic, bool enable) {
-  // TODO(b/271307026): implement the method for Windows.
+bool BleGattClient::SetCharacteristicSubscription(
+    const api::ble_v2::GattCharacteristic& characteristic, bool enable,
+    absl::AnyInvocable<void(const ByteArray& value)>
+        on_characteristic_changed_cb) {
+  NEARBY_LOGS(VERBOSE) << __func__
+                       << ": Started to set Characteristic Subscription.";
+  absl::MutexLock lock(&mutex_);
+  GattClientCharacteristicConfigurationDescriptorValue gcccd_value =
+      GattClientCharacteristicConfigurationDescriptorValue::None;
+  if ((characteristic.property & Property::kNotify) != Property::kNone) {
+    gcccd_value = GattClientCharacteristicConfigurationDescriptorValue::Notify;
+  } else if ((characteristic.property & Property::kIndicate) !=
+             Property::kNone) {
+    gcccd_value =
+        GattClientCharacteristicConfigurationDescriptorValue::Indicate;
+  } else {
+    NEARBY_LOGS(WARNING) << "Characeristic: "
+                         << std::string(characteristic.uuid)
+                         << " supports neither notifications nor indications.";
+    return false;
+  }
+
+  GattCharacteristicData gatt_characteristic_data =
+      native_characteristic_map_[characteristic];
+  std::optional<GattCharacteristic> gatt_characteristic =
+      gatt_characteristic_data.native_characteristic;
+
+  if (!gatt_characteristic.has_value()) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Failed to get native GATT characteristic.";
+    return false;
+  }
+
+  // Write characteristic configuration descriptor
+  if (!WriteCharacteristicConfigurationDescriptor(
+          gatt_characteristic.value(),
+          enable
+              ? gcccd_value
+              : GattClientCharacteristicConfigurationDescriptorValue::None)) {
+    return false;
+  }
+
+  // Set value changed handler
+  try {
+    if (enable) {
+      gatt_characteristic_data.notification_token =
+          gatt_characteristic->ValueChanged(
+              [this, &on_characteristic_changed_cb](
+                  GattCharacteristic const& characteristic,
+                  GattValueChangedEventArgs args) {
+                BleGattClient::OnCharacteristicValueChanged(
+                    characteristic, args,
+                    std::move(on_characteristic_changed_cb));
+              });
+
+      if (!gatt_characteristic_data.notification_token) {
+        NEARBY_LOGS(ERROR) << __func__
+                           << ": Failed to add value change handler.";
+        return false;
+      }
+    } else {
+      if (gatt_characteristic_data.notification_token) {
+        gatt_characteristic->ValueChanged(
+            std::exchange(gatt_characteristic_data.notification_token, {}));
+      }
+    }
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Successfully set Characteristic Subscription.";
+    return true;
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Failed to set Characteristic Subscription."
+                       << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Failed to set Characteristic Subscription."
+                          " WinRT exception: "
+                       << error.code() << ": "
+                       << winrt::to_string(error.message());
+  }
   return false;
 }
 
 void BleGattClient::Disconnect() {
+  absl::MutexLock lock(&mutex_);
   try {
     NEARBY_LOGS(VERBOSE) << __func__ << ": Disconnect is called.";
     if (ble_device_ != nullptr) {
       ble_device_.Close();
       ble_device_ = nullptr;
     }
+    native_characteristic_map_.clear();
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Failed to disconnect GATT device. exception: "
@@ -446,6 +536,61 @@ std::optional<GattCharacteristic> BleGattClient::GetNativeCharacteristic(
   }
 
   return absl::nullopt;
+}
+
+bool BleGattClient::WriteCharacteristicConfigurationDescriptor(
+    GattCharacteristic& characteristic,
+    GattClientCharacteristicConfigurationDescriptorValue value) {
+  NEARBY_LOGS(VERBOSE)
+      << __func__
+      << ": Stared to write characteristic configuration descriptor";
+
+  try {
+    GattCommunicationStatus status =
+        characteristic
+            .WriteClientCharacteristicConfigurationDescriptorAsync(value)
+            .get();
+    if (status == GattCommunicationStatus::Success) {
+      NEARBY_LOGS(VERBOSE) << __func__
+                           << ": Successfully write client characteristic "
+                              "configuration descriptor";
+      return true;
+    }
+    NEARBY_LOGS(VERBOSE) << __func__
+                         << ": Failed to write client characteristic "
+                            "configuration descriptor";
+  } catch (std::exception exception) {
+    // This usually happens when a device reports that it support notify, but
+    // it actually doesn't.
+    NEARBY_LOGS(ERROR) << __func__
+                       << ": Failed to write client characteristic "
+                          "configuration descriptor";
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR)
+        << __func__
+        << ": Failed to write client characteristic configuration descriptor."
+           " WinRT exception: "
+        << error.code() << ": " << winrt::to_string(error.message());
+  }
+  return false;
+}
+
+void BleGattClient::OnCharacteristicValueChanged(
+    GattCharacteristic const& characteristic, GattValueChangedEventArgs args,
+    absl::AnyInvocable<void(ByteArray& value)> on_characteristic_changed_cb) {
+  NEARBY_LOGS(VERBOSE) << __func__ << "Gatt Characteristic value changed.";
+  IBuffer buffer = args.CharacteristicValue();
+  int size = buffer.Length();
+  DataReader data_reader = DataReader::FromBuffer(buffer);
+  std::string data;
+  data.reserve(size);
+  for (int i = 0; i < size; ++i) {
+    data.push_back(static_cast<char>(data_reader.ReadByte()));
+  }
+  NEARBY_LOGS(VERBOSE) << __func__
+                       << ": Got characteristic value length= " << data.size();
+  ByteArray value = ByteArray(data);
+  on_characteristic_changed_cb(value);
 }
 
 }  // namespace windows

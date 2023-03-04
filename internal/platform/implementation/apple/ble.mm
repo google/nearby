@@ -582,8 +582,9 @@ bool BleMedium::GattClient::WriteCharacteristic(
   return false;
 }
 
-bool BleMedium::GattClient::SetCharacteristicNotification(
-    const api::ble_v2::GattCharacteristic& characteristic, bool enable) {
+bool BleMedium::GattClient::SetCharacteristicSubscription(
+    const api::ble_v2::GattCharacteristic& characteristic, bool enable,
+    absl::AnyInvocable<void(const ByteArray& value)> on_characteristic_changed_cb) {
   // No op since we can't write characteristics.
   return false;
 }
