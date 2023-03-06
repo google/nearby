@@ -417,6 +417,7 @@ let package = Package(
         "internal/platform/implementation/BUILD",
         "internal/platform/BUILD",
         "internal/analytics/BUILD",
+        "internal/flags/BUILD",
         "internal/network/BUILD",
         "internal/base/BUILD",
         // tests
