@@ -115,14 +115,15 @@ void FastPairScannerImpl::StopScanning() {
 void FastPairScannerImpl::OnDeviceFound(const BlePeripheral& peripheral) {
   NEARBY_LOGS(INFO) << __func__ << "Found device with ble Address = "
                     << peripheral.GetName();
-  ByteArray service_data = peripheral.GetAdvertisementBytes(kServiceId);
-  if (service_data.Empty()) {
+  std::string service_data =
+      peripheral.GetAdvertisementBytes(kServiceId).string_data();
+  if (service_data.empty()) {
     NEARBY_LOGS(WARNING) << "No Fast Pair service data found on device";
     return;
   }
 
   device_address_advertisement_data_map_[peripheral.GetName()].insert(
-      peripheral.GetAdvertisementBytes(kServiceId));
+      service_data);
 
   NotifyDeviceFound(peripheral);
 }

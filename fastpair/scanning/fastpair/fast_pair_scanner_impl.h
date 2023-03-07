@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "fastpair/internal/ble/ble.h"
 #include "fastpair/scanning/fastpair/fast_pair_scanner.h"
 #include "internal/base/observer_list.h"
@@ -75,7 +76,7 @@ class FastPairScannerImpl : public FastPairScanner {
 
   // Map of a Bluetooth device address to a set of advertisement data we have
   // seen.
-  absl::flat_hash_map<std::string, std::set<ByteArray>>
+  absl::flat_hash_map<std::string, std::set<std::string>>
       device_address_advertisement_data_map_;
 
   BluetoothAdapter bluetooth_adapter_;

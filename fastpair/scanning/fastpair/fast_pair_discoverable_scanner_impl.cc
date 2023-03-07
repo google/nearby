@@ -101,9 +101,9 @@ FastPairDiscoverableScannerImpl::FastPairDiscoverableScannerImpl(
 
 void FastPairDiscoverableScannerImpl::OnDeviceFound(
     const BlePeripheral& peripheral) {
-  ByteArray fast_pair_service_data =
-      peripheral.GetAdvertisementBytes(kServiceId);
-  if (fast_pair_service_data.Empty()) {
+  std::string fast_pair_service_data =
+      peripheral.GetAdvertisementBytes(kServiceId).string_data();
+  if (fast_pair_service_data.empty()) {
     NEARBY_LOGS(WARNING) << __func__
                          << ": Device doesn't have any Fast Pair Service Data.";
     return;
@@ -112,9 +112,8 @@ void FastPairDiscoverableScannerImpl::OnDeviceFound(
   model_id_parse_attempts_[peripheral.GetName()] = 1;
   NEARBY_LOGS(INFO) << __func__ << ": Attempting to get model ID";
   std::vector<uint8_t> service_data;
-  std::string model_id_bytes = fast_pair_service_data.data();
-  std::move(std::begin(model_id_bytes), std::end(model_id_bytes),
-            std::back_inserter(service_data));
+  std::move(std::begin(fast_pair_service_data),
+            std::end(fast_pair_service_data), std::back_inserter(service_data));
 
   FastPairDataParser::GetHexModelIdFromServiceData(
       service_data,

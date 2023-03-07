@@ -165,7 +165,6 @@ struct GattCharacteristic {
 // https://developer.android.com/reference/android/bluetooth/BluetoothGatt
 //
 // Representation of a client GATT connection to a remote GATT server.
-// TODO(b/271625842) Convert ByteArray to std::string
 class GattClient {
  public:
   virtual ~GattClient() = default;
