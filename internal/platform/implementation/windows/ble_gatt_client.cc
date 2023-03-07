@@ -70,6 +70,21 @@ using ::winrt::Windows::Storage::Streams::DataReader;
 using ::winrt::Windows::Storage::Streams::IBuffer;
 using Property = api::ble_v2::GattCharacteristic::Property;
 using Permission = api::ble_v2::GattCharacteristic::Permission;
+
+std::string GattCommunicationStatusToString(GattCommunicationStatus status) {
+  switch (status) {
+    case GattCommunicationStatus::Success:
+      return "Success";
+    case GattCommunicationStatus::Unreachable:
+      return "Unreachable";
+    case GattCommunicationStatus::ProtocolError:
+      return "ProtocolError";
+    case GattCommunicationStatus::AccessDenied:
+      return "AccessDenied";
+    default:
+      return "Unknown";
+  }
+}
 }  // namespace
 
 BleGattClient::BleGattClient(BluetoothLEDevice ble_device)
@@ -102,9 +117,12 @@ bool BleGattClient::DiscoverServiceAndCharacteristics(
     // Gets the GATT services on the BLE device.
     gatt_devices_services_result_ =
         ble_device_.GetGattServicesAsync(BluetoothCacheMode::Uncached).get();
-
     if (gatt_devices_services_result_.Status() !=
         GattCommunicationStatus::Success) {
+      NEARBY_LOGS(ERROR) << __func__
+                         << ": Failed to get gatt service with error: "
+                         << GattCommunicationStatusToString(
+                                gatt_devices_services_result_.Status());
       gatt_devices_services_result_ = nullptr;
       return false;
     }
@@ -146,7 +164,10 @@ bool BleGattClient::DiscoverServiceAndCharacteristics(
           service.GetCharacteristicsAsync(BluetoothCacheMode::Uncached).get();
       if (gatt_characteristics_result.Status() !=
           GattCommunicationStatus::Success) {
-        NEARBY_LOGS(ERROR) << __func__ << ": Failed to get characteristics.";
+        NEARBY_LOGS(ERROR) << __func__
+                           << ": Failed to get characteristics with error: "
+                           << GattCommunicationStatusToString(
+                                  gatt_characteristics_result.Status());
         continue;
       }
 
@@ -294,8 +315,8 @@ absl::optional<std::string> BleGattClient::ReadCharacteristic(
         gatt_characteristic->ReadValueAsync(BluetoothCacheMode::Uncached).get();
     if (result.Status() != GattCommunicationStatus::Success) {
       NEARBY_LOGS(ERROR) << __func__
-                         << ": Failed to read GATT characteristic. status="
-                         << static_cast<int>(result.Status());
+                         << ": Failed to read GATT characteristic with error: "
+                         << GattCommunicationStatusToString(result.Status());
       return absl::nullopt;
     }
 
@@ -351,13 +372,14 @@ bool BleGattClient::WriteCharacteristic(
     std::memcpy(buffer.data(), value.data(), value.size());
     buffer.Length(value.size());
 
-    GattCommunicationStatus staus =
+    GattCommunicationStatus status =
         gatt_characteristic->WriteValueAsync(buffer).get();
 
-    if (staus != GattCommunicationStatus::Success) {
+    if (status != GattCommunicationStatus::Success) {
       NEARBY_LOGS(ERROR) << __func__
                          << ": Failed to write data to GATT characteristic: "
-                         << std::string(characteristic.uuid);
+                         << std::string(characteristic.uuid) << "with error: "
+                         << GattCommunicationStatusToString(status);
       return false;
     } else {
       NEARBY_LOGS(VERBOSE) << __func__
@@ -505,7 +527,10 @@ std::optional<GattCharacteristic> BleGattClient::GetNativeCharacteristic(
             service.GetCharacteristicsAsync(BluetoothCacheMode::Cached).get();
         if (gatt_characteristics_result.Status() !=
             GattCommunicationStatus::Success) {
-          NEARBY_LOGS(ERROR) << __func__ << ": Failed to get characteristics.";
+          NEARBY_LOGS(ERROR)
+              << __func__ << ": Failed to get characteristics with error: "
+              << GattCommunicationStatusToString(
+                     gatt_characteristics_result.Status());
           continue;
         }
 
@@ -558,7 +583,8 @@ bool BleGattClient::WriteCharacteristicConfigurationDescriptor(
     }
     NEARBY_LOGS(VERBOSE) << __func__
                          << ": Failed to write client characteristic "
-                            "configuration descriptor";
+                            "configuration descriptor with error: "
+                         << GattCommunicationStatusToString(status);
   } catch (std::exception exception) {
     // This usually happens when a device reports that it support notify, but
     // it actually doesn't.
