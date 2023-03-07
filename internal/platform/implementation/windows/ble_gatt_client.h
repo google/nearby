@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
@@ -46,16 +47,16 @@ class BleGattClient : public api::ble_v2::GattClient {
   absl::optional<api::ble_v2::GattCharacteristic> GetCharacteristic(
       const Uuid& service_uuid, const Uuid& characteristic_uuid) override;
 
-  absl::optional<ByteArray> ReadCharacteristic(
+  absl::optional<std::string> ReadCharacteristic(
       const api::ble_v2::GattCharacteristic& characteristic) override;
 
   bool WriteCharacteristic(
       const api::ble_v2::GattCharacteristic& characteristic,
-      const ByteArray& value) override;
+      absl::string_view value) override;
 
   bool SetCharacteristicSubscription(
       const api::ble_v2::GattCharacteristic& characteristic, bool enable,
-      absl::AnyInvocable<void(const ByteArray& value)>
+      absl::AnyInvocable<void(absl::string_view value)>
           on_characteristic_changed_cb) override;
 
   void Disconnect() override;
@@ -84,7 +85,8 @@ class BleGattClient : public api::ble_v2::GattClient {
           GattCharacteristic const& characteristic,
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
           GattValueChangedEventArgs args,
-      absl::AnyInvocable<void(ByteArray& value)> on_characteristic_changed_cb);
+      absl::AnyInvocable<void(absl::string_view value)>
+          on_characteristic_changed_cb);
 
   absl::Mutex mutex_;
 

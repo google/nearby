@@ -437,7 +437,7 @@ BleV2Medium::GattClient::GetCharacteristic(const Uuid& service_uuid,
   return characteristic;
 }
 
-std::optional<ByteArray> BleV2Medium::GattClient::ReadCharacteristic(
+std::optional<std::string> BleV2Medium::GattClient::ReadCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic) {
   absl::MutexLock lock(&mutex_);
   if (!is_connection_alive_) {
@@ -451,19 +451,19 @@ std::optional<ByteArray> BleV2Medium::GattClient::ReadCharacteristic(
                     << characteristic.service_uuid.Get16BitAsString() << ","
                     << std::string(characteristic.uuid)
                     << "), value = " << absl::BytesToHexString(value.data());
-  return std::move(value);
+  return value.string_data();
 }
 
 bool BleV2Medium::GattClient::WriteCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic,
-    const ByteArray& value) {
+    absl::string_view value) {
   // No op.
   return false;
 }
 
 bool BleV2Medium::GattClient::SetCharacteristicSubscription(
     const api::ble_v2::GattCharacteristic& characteristic, bool enable,
-    absl::AnyInvocable<void(const ByteArray& value)>
+    absl::AnyInvocable<void(absl::string_view value)>
         on_characteristic_changed_cb) {
   // No op since we can't write characteristics.
   return false;

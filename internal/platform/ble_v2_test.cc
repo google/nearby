@@ -574,7 +574,7 @@ TEST_F(BleV2MediumTest, GattClientConnectToGattServerWorks) {
 
   // Can read the characteristic value.
   EXPECT_THAT(gatt_client->ReadCharacteristic(*client_characteristic),
-              Optional(server_value));
+              Optional(server_value.string_data()));
 
   gatt_client->Disconnect();
   gatt_server->Stop();

@@ -197,7 +197,7 @@ class GattClient {
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#readCharacteristic(android.bluetooth.BluetoothGattCharacteristic)
   // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic.html#getValue()
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
-  virtual absl::optional<ByteArray> ReadCharacteristic(
+  virtual absl::optional<std::string> ReadCharacteristic(
       const GattCharacteristic& characteristic) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic.html#setValue(byte[])
@@ -206,14 +206,14 @@ class GattClient {
   // Sends a remote characteristic write request to the server and returns
   // whether or not it was successful.
   virtual bool WriteCharacteristic(const GattCharacteristic& characteristic,
-                                   const ByteArray& value) = 0;
+                                   absl::string_view value) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#setCharacteristicNotification(android.bluetooth.BluetoothGattCharacteristic,%20boolean)
   //
   // Enable or disable notifications/indications for a given characteristic.
   virtual bool SetCharacteristicSubscription(
       const GattCharacteristic& characteristic, bool enable,
-      absl::AnyInvocable<void(const ByteArray& value)>
+      absl::AnyInvocable<void(absl::string_view value)>
           on_characteristic_changed_cb) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#disconnect()
@@ -270,8 +270,8 @@ class GattServer {
 struct ClientGattConnectionCallback {
  public:
   // Called when the characteristic is changed
-  absl::AnyInvocable<void(ByteArray& value)> on_characteristic_changed_cb =
-      [](ByteArray&) {};
+  absl::AnyInvocable<void(absl::string_view value)>
+      on_characteristic_changed_cb = [](absl::string_view) {};
 
   // Called when the client is disconnected from the GATT server.
   absl::AnyInvocable<void()> disconnected_cb = []() {};

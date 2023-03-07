@@ -235,16 +235,16 @@ class BleV2Medium : public api::ble_v2::BleMedium {
     std::optional<api::ble_v2::GattCharacteristic> GetCharacteristic(
         const Uuid& service_uuid, const Uuid& characteristic_uuid) override;
 
-    std::optional<ByteArray> ReadCharacteristic(
+    std::optional<std::string> ReadCharacteristic(
         const api::ble_v2::GattCharacteristic& characteristic) override;
 
     bool WriteCharacteristic(
         const api::ble_v2::GattCharacteristic& characteristic,
-        const ByteArray& value) override;
+        absl::string_view value) override;
 
     bool SetCharacteristicSubscription(
         const api::ble_v2::GattCharacteristic& characteristic, bool enable,
-        absl::AnyInvocable<void(const ByteArray& value)>
+        absl::AnyInvocable<void(absl::string_view value)>
             on_characteristic_changed_cb) override;
 
     void Disconnect() override;

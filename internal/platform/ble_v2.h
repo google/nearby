@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
@@ -219,7 +220,7 @@ class GattClient final {
   }
 
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
-  absl::optional<ByteArray> ReadCharacteristic(
+  absl::optional<std::string> ReadCharacteristic(
       api::ble_v2::GattCharacteristic& characteristic) {
     return impl_->ReadCharacteristic(characteristic);
   }
@@ -227,14 +228,14 @@ class GattClient final {
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
   bool WriteCharacteristic(
       const api::ble_v2::GattCharacteristic& characteristic,
-      const ByteArray& value) {
+      absl::string_view value) {
     return impl_->WriteCharacteristic(characteristic, value);
   }
 
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
   bool SetCharacteristicSubscription(
       const api::ble_v2::GattCharacteristic& characteristic, bool enable,
-      absl::AnyInvocable<void(const ByteArray& value)>
+      absl::AnyInvocable<void(absl::string_view value)>
           on_characteristic_changed_cb) {
     return impl_->SetCharacteristicSubscription(
         characteristic, enable, std::move(on_characteristic_changed_cb));

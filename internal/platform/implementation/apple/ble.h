@@ -182,22 +182,23 @@ class BleMedium : public api::ble_v2::BleMedium {
         const Uuid &service_uuid, const Uuid &characteristic_uuid) override;
 
     // NOLINTNEXTLINE
-    absl::optional<ByteArray> ReadCharacteristic(
+    absl::optional<std::string> ReadCharacteristic(
         const api::ble_v2::GattCharacteristic &characteristic) override;
 
     bool WriteCharacteristic(const api::ble_v2::GattCharacteristic &characteristic,
-                             const ByteArray &value) override;
+                             absl::string_view value) override;
 
     bool SetCharacteristicSubscription(
         const api::ble_v2::GattCharacteristic &characteristic, bool enable,
-        absl::AnyInvocable<void(const ByteArray &value)> on_characteristic_changed_cb) override;
+        absl::AnyInvocable<void(absl::string_view value)> on_characteristic_changed_cb) override;
 
     void Disconnect() override;
 
    private:
     GNCMBleCentral *central_;
     std::string peripheral_id_;
-    absl::flat_hash_map<api::ble_v2::GattCharacteristic, ByteArray> gatt_characteristic_values_;
+    absl::flat_hash_map<api::ble_v2::GattCharacteristic, absl::string_view>
+        gatt_characteristic_values_;
   };
 
   absl::Mutex mutex_;

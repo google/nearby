@@ -78,6 +78,7 @@ class ByteArray {
   }
 
   char* data() { return &data_[0]; }
+  std::string string_data() const { return data_; }
   const char* data() const { return data_.data(); }
   size_t size() const { return data_.size(); }
   bool Empty() const { return data_.empty(); }

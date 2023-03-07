@@ -16,6 +16,7 @@
 
 #include <CoreBluetooth/CoreBluetooth.h>
 
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -539,7 +540,7 @@ bool BleMedium::GattClient::DiscoverServiceAndCharacteristics(
             api::ble_v2::GattCharacteristic characteristic = {.uuid = it->second,
                                                               .service_uuid = service_uuid};
             gatt_characteristic_values_.insert(
-                {characteristic, ByteArrayFromNSData(cb_characteristic.value)});
+                {characteristic, ByteArrayFromNSData(cb_characteristic.value).string_data()});
           }
         }
 
@@ -567,24 +568,24 @@ absl::optional<api::ble_v2::GattCharacteristic> BleMedium::GattClient::GetCharac
 }
 
 // NOLINTNEXTLINE
-absl::optional<ByteArray> BleMedium::GattClient::ReadCharacteristic(
+absl::optional<std::string> BleMedium::GattClient::ReadCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic) {
   auto const it = gatt_characteristic_values_.find(characteristic);
   if (it == gatt_characteristic_values_.end()) {
     return absl::nullopt;  // NOLINT
   }
-  return it->second;
+  return std::string(it->second);
 }
 
 bool BleMedium::GattClient::WriteCharacteristic(
-    const api::ble_v2::GattCharacteristic& characteristic, const ByteArray& value) {
+    const api::ble_v2::GattCharacteristic& characteristic, absl::string_view value) {
   // No op.
   return false;
 }
 
 bool BleMedium::GattClient::SetCharacteristicSubscription(
     const api::ble_v2::GattCharacteristic& characteristic, bool enable,
-    absl::AnyInvocable<void(const ByteArray& value)> on_characteristic_changed_cb) {
+    absl::AnyInvocable<void(absl::string_view value)> on_characteristic_changed_cb) {
   // No op since we can't write characteristics.
   return false;
 }

@@ -15,6 +15,7 @@
 #include "internal/platform/byte_array.h"
 
 #include <cstring>
+#include <string>
 
 #include "gtest/gtest.h"
 #include "absl/hash/hash_testing.h"
@@ -60,7 +61,7 @@ TEST(ByteArrayTest, SetFromString) {
   std::string setup("setup_test");
   ByteArray bytes{setup};  // array initialized with a copy of string.
   EXPECT_EQ(setup.size(), bytes.size());
-  EXPECT_EQ(std::string(bytes), setup);
+  EXPECT_EQ(bytes.string_data(), setup);
 }
 
 TEST(ByteArrayTest, SetExplicitSize) {

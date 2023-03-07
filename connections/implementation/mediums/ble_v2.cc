@@ -665,7 +665,8 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
     auto characteristic_byte =
         gatt_client->ReadCharacteristic(gatt_characteristic.value());
     if (characteristic_byte.has_value()) {
-      advertisement_read_result.AddAdvertisement(slot, *characteristic_byte);
+      advertisement_read_result.AddAdvertisement(
+          slot, ByteArray(characteristic_byte.value()));
       NEARBY_LOGS(VERBOSE) << "Successfully read advertisement at slot="
                            << slot;
     } else {

@@ -275,7 +275,7 @@ BleGattClient::GetCharacteristic(const Uuid& service_uuid,
   return absl::nullopt;
 }
 
-absl::optional<ByteArray> BleGattClient::ReadCharacteristic(
+absl::optional<std::string> BleGattClient::ReadCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic) {
   NEARBY_LOGS(VERBOSE) << __func__ << ": Read characteristic="
                        << std::string(characteristic.uuid);
@@ -316,7 +316,7 @@ absl::optional<ByteArray> BleGattClient::ReadCharacteristic(
     NEARBY_LOGS(VERBOSE) << __func__
                          << ": Got characteristic value length=" << data.size();
 
-    return ByteArray(data);
+    return data;
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Failed to read GATT characteristic. exception: "
@@ -332,7 +332,7 @@ absl::optional<ByteArray> BleGattClient::ReadCharacteristic(
 
 bool BleGattClient::WriteCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic,
-    const ByteArray& value) {
+    absl::string_view value) {
   NEARBY_LOGS(VERBOSE) << __func__ << ": write characteristic: "
                        << std::string(characteristic.uuid);
   absl::MutexLock lock(&mutex_);
@@ -380,7 +380,7 @@ bool BleGattClient::WriteCharacteristic(
 
 bool BleGattClient::SetCharacteristicSubscription(
     const api::ble_v2::GattCharacteristic& characteristic, bool enable,
-    absl::AnyInvocable<void(const ByteArray& value)>
+    absl::AnyInvocable<void(absl::string_view value)>
         on_characteristic_changed_cb) {
   NEARBY_LOGS(VERBOSE) << __func__
                        << ": Started to set Characteristic Subscription.";
@@ -577,7 +577,8 @@ bool BleGattClient::WriteCharacteristicConfigurationDescriptor(
 
 void BleGattClient::OnCharacteristicValueChanged(
     GattCharacteristic const& characteristic, GattValueChangedEventArgs args,
-    absl::AnyInvocable<void(ByteArray& value)> on_characteristic_changed_cb) {
+    absl::AnyInvocable<void(absl::string_view value)>
+        on_characteristic_changed_cb) {
   NEARBY_LOGS(VERBOSE) << __func__ << "Gatt Characteristic value changed.";
   IBuffer buffer = args.CharacteristicValue();
   int size = buffer.Length();
@@ -589,8 +590,7 @@ void BleGattClient::OnCharacteristicValueChanged(
   }
   NEARBY_LOGS(VERBOSE) << __func__
                        << ": Got characteristic value length= " << data.size();
-  ByteArray value = ByteArray(data);
-  on_characteristic_changed_cb(value);
+  on_characteristic_changed_cb(data);
 }
 
 }  // namespace windows
