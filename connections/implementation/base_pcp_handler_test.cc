@@ -288,8 +288,6 @@ class BasePcpHandlerTest
         },
         true,  // auto_upgrade_bandwidth
         true,  // enforce_topology_constraints
-        5000,  // keep_alive_interval_millis
-        3000,  // keep_alive_timeout_millis
     };
     EXPECT_CALL(*pcp_handler, StartDiscoveryImpl(client, service_id, _))
         .WillOnce(Return(MockPcpHandler::StartOperationResult{
@@ -771,8 +769,6 @@ TEST_F(BasePcpHandlerTest, InjectEndpoint) {
       },
       false,  // auto_upgrade_bandwidth;
       false,  // enforce_topology_constraints;
-      0,      // keep_alive_interval_millis;
-      0,      // keep_alive_timeout_millis;
   };
   EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
   EXPECT_CALL(pcp_handler, StartDiscoveryImpl(&client, service_id, _))

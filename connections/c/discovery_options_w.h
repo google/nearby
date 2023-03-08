@@ -26,8 +26,6 @@ extern "C" {
 struct DLL_API DiscoveryOptionsW : public OptionsBaseW {
   bool auto_upgrade_bandwidth = true;
   bool enforce_topology_constraints;
-  int keep_alive_interval_millis = 0;
-  int keep_alive_timeout_millis = 0;
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;

@@ -113,10 +113,6 @@ void StartDiscovery(connections::Core *pCore, const char *service_id,
       discovery_options_w.auto_upgrade_bandwidth;
   discovery_options.enforce_topology_constraints =
       discovery_options_w.enforce_topology_constraints;
-  discovery_options.keep_alive_interval_millis =
-      discovery_options_w.keep_alive_interval_millis;
-  discovery_options.keep_alive_timeout_millis =
-      discovery_options_w.keep_alive_timeout_millis;
   discovery_options.is_out_of_band_connection =
       discovery_options_w.is_out_of_band_connection;
   if (discovery_options_w.fast_advertisement_service_uuid) {
