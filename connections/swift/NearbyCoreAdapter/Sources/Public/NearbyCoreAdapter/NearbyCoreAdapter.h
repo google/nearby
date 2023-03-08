@@ -22,3 +22,4 @@
 #import "GNCPayload.h"
 #import "GNCPayloadDelegate.h"
 #import "GNCStrategy.h"
+#import "GNCSupportedMediums.h"

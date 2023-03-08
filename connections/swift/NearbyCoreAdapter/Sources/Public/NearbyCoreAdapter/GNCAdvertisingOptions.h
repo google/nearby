@@ -14,23 +14,35 @@
 
 #import <Foundation/Foundation.h>
 
+@class GNCSupportedMediums;
+
 typedef NS_CLOSED_ENUM(NSInteger, GNCStrategy);
 
-// TODO(b/239609583): Current sdk only exposes `strategy`, but we should add full support.
+NS_ASSUME_NONNULL_BEGIN
+
 /**
- * A @c GNCAdvertisingOptions object represents the configuration for local endpoint advertisement.
+ * A @c GNCAdvertisingOptions object represents the configuration for local
+ * endpoint advertisement.
  */
 @interface GNCAdvertisingOptions : NSObject
 
-/**
- * The connection strategy.
- */
+/** The @c GNCStrategy advertising strategy. */
 @property(nonatomic, readonly) GNCStrategy strategy;
 
-/**
- * @remark init is not an available initializer.
- */
-- (nonnull instancetype)init NS_UNAVAILABLE;
+/** Defines which mediums are supported for advertising. */
+@property(nonatomic) GNCSupportedMediums* mediums;
+
+/** Whether bandwidth should automatically upgrade. */
+@property(nonatomic) BOOL autoUpgradeBandwidth;
+
+/** Whether topology constraints should be enforced. */
+@property(nonatomic) BOOL enforceTopologyConstraints;
+
+/** Whether low power should be used. */
+@property(nonatomic) BOOL lowPower;
+
+/** @remark init is not an available initializer. */
+- (instancetype)init NS_UNAVAILABLE;
 
 /**
  * Creates an advertising options object.
@@ -39,6 +51,8 @@ typedef NS_CLOSED_ENUM(NSInteger, GNCStrategy);
  *
  * @return The initialized options object, or nil if an error occurs.
  */
-- (nonnull instancetype)initWithStrategy:(GNCStrategy)strategy NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithStrategy:(GNCStrategy)strategy NS_DESIGNATED_INITIALIZER;
 
 @end
+
+NS_ASSUME_NONNULL_END

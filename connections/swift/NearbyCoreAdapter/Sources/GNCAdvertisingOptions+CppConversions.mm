@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "connections/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCAdvertisingOptions.h"
-
-#import <Foundation/Foundation.h>
+#import "connections/swift/NearbyCoreAdapter/Sources/GNCAdvertisingOptions+CppConversions.h"
 
 #include "connections/advertising_options.h"
 
-#import "connections/swift/NearbyCoreAdapter/Sources/GNCAdvertisingOptions+CppConversions.h"
 #import "connections/swift/NearbyCoreAdapter/Sources/GNCStrategy+Internal.h"
+#import "connections/swift/NearbyCoreAdapter/Sources/GNCSupportedMediums+CppConversions.h"
+#import "GoogleToolboxForMac/GTMLogger.h"
 
 using ::nearby::connections::AdvertisingOptions;
 using ::nearby::connections::CppStrategyFromGNCStrategy;
@@ -28,7 +27,18 @@ using ::nearby::connections::CppStrategyFromGNCStrategy;
 
 - (AdvertisingOptions)toCpp {
   AdvertisingOptions advertising_options;
+
   advertising_options.strategy = CppStrategyFromGNCStrategy(self.strategy);
+  advertising_options.allowed = [self.mediums toCpp];
+
+  advertising_options.auto_upgrade_bandwidth = self.autoUpgradeBandwidth;
+  advertising_options.low_power = self.lowPower;
+  advertising_options.enforce_topology_constraints = self.enforceTopologyConstraints;
+  if (self.enforceTopologyConstraints) {
+    GTMLoggerError(@"WARNING: Creating ConnectionOptions with enforceTopologyConstraints = true. "
+                    "Make sure you know what you're doing!");
+  }
+
   return advertising_options;
 }
 

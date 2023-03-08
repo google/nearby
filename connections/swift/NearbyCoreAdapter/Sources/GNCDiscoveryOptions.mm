@@ -14,8 +14,7 @@
 
 #import "connections/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCDiscoveryOptions.h"
 
-#import <Foundation/Foundation.h>
-
+#import "connections/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCSupportedMediums.h"
 #import "connections/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCStrategy.h"
 
 @implementation GNCDiscoveryOptions
@@ -24,6 +23,7 @@
   self = [super init];
   if (self) {
     _strategy = strategy;
+    _mediums = [[GNCSupportedMediums alloc] initWithAllMediumsEnabled];
   }
   return self;
 }

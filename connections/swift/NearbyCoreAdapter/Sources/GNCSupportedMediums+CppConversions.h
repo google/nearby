@@ -12,21 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "connections/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCAdvertisingOptions.h"
-
 #import "connections/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCSupportedMediums.h"
-#import "connections/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCStrategy.h"
 
-@implementation GNCAdvertisingOptions
+#ifdef __cplusplus
 
-- (instancetype)initWithStrategy:(GNCStrategy)strategy {
-  self = [super init];
-  if (self) {
-    _strategy = strategy;
-    _autoUpgradeBandwidth = YES;
-    _mediums = [[GNCSupportedMediums alloc] initWithAllMediumsEnabled];
-  }
-  return self;
-}
+namespace nearby {
+namespace connections {
+
+template <typename T>
+class MediumSelector;
+
+using BooleanMediumSelector = MediumSelector<bool>;
+
+}  // namespace connections
+}  // namespace nearby
+
+#endif
+
+@interface GNCSupportedMediums (CppConversions)
+
+#ifdef __cplusplus
+- (nearby::connections::BooleanMediumSelector)toCpp;
+#endif
 
 @end

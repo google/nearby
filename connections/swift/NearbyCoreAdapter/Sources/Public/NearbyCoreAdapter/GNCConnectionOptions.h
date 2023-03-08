@@ -14,10 +14,43 @@
 
 #import <Foundation/Foundation.h>
 
-// TODO(b/239610255): Current sdk doesn't expose anything, but we should add full support.
+@class GNCSupportedMediums;
+
+NS_ASSUME_NONNULL_BEGIN
+
 /**
- * A @c GNCConnectionOptions object represents the configuration for connecting to remote endpoints.
+ * A @c GNCConnectionOptions object represents the configuration for connecting
+ * to remote endpoints.
  */
 @interface GNCConnectionOptions : NSObject
 
+/** The @c GNCStrategy advertising strategy. */
+@property(nonatomic) GNCSupportedMediums* mediums;
+
+/** Whether bandwidth should automatically upgrade. */
+@property(nonatomic) BOOL autoUpgradeBandwidth;
+
+/** Whether topology constraints should be enforced. */
+@property(nonatomic) BOOL enforceTopologyConstraints;
+
+/** Whether low power should be used. */
+@property(nonatomic) BOOL lowPower;
+
+/** The remote bluetooth MAC address for this connection. */
+@property(nonatomic, nullable) NSData* remoteBluetoothMACAddress;
+
+/** How often to send a keep alive message, in seconds. */
+@property(nonatomic) NSTimeInterval keepAliveIntervalInSeconds;
+
+/**
+ * How long to wait without receiving a keep alive message before timing out,
+ * in seconds.
+ */
+@property(nonatomic) NSTimeInterval keepAliveTimeoutInSeconds;
+
+/** @remark create a connection options class. */
+- (instancetype)init NS_DESIGNATED_INITIALIZER;
+
 @end
+
+NS_ASSUME_NONNULL_END

@@ -12,19 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "connections/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCAdvertisingOptions.h"
-
 #import "connections/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCSupportedMediums.h"
-#import "connections/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCStrategy.h"
 
-@implementation GNCAdvertisingOptions
+@implementation GNCSupportedMediums
 
-- (instancetype)initWithStrategy:(GNCStrategy)strategy {
+- (instancetype)initWithAllMediumsEnabled {
+  return [self initWithBluetooth:YES ble:YES webRTC:YES wifiLAN:YES wifiHotspot:YES wifiDirect:YES];
+}
+
+- (instancetype)initWithBluetooth:(BOOL)bluetooth
+                              ble:(BOOL)ble
+                           webRTC:(BOOL)webRTC
+                          wifiLAN:(BOOL)wifiLAN
+                      wifiHotspot:(BOOL)wifiHotspot
+                       wifiDirect:(BOOL)wifiDirect {
   self = [super init];
   if (self) {
-    _strategy = strategy;
-    _autoUpgradeBandwidth = YES;
-    _mediums = [[GNCSupportedMediums alloc] initWithAllMediumsEnabled];
+    _bluetooth = bluetooth;
+    _ble = ble;
+    _webRTC = webRTC;
+    _wifiLAN = wifiLAN;
+    _wifiHotspot = wifiHotspot;
+    _wifiDirect = wifiDirect;
   }
   return self;
 }

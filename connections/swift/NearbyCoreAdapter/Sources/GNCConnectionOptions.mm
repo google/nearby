@@ -14,8 +14,17 @@
 
 #import "connections/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCConnectionOptions.h"
 
-#import <Foundation/Foundation.h>
+#import "connections/swift/NearbyCoreAdapter/Sources/Public/NearbyCoreAdapter/GNCSupportedMediums.h"
 
 @implementation GNCConnectionOptions
+
+- (instancetype)init {
+  self = [super init];
+  if (self) {
+    _autoUpgradeBandwidth = YES;
+    _mediums = [[GNCSupportedMediums alloc] initWithAllMediumsEnabled];
+  }
+  return self;
+}
 
 @end
