@@ -130,7 +130,7 @@ cc_library(
         "//internal/network:__subpackages__",
         "//internal/platform:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
-        "//location/nearby/cpp/fastpair:__subpackages__",
+        "//location/nearby/cpp:__subpackages__",
         "//presence:__subpackages__",
     ],
     deps = [
