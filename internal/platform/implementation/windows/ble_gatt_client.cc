@@ -64,12 +64,15 @@ using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
     GattReadResult;
 using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
     GattValueChangedEventArgs;
+using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+    GattWriteOption;
 using ::winrt::Windows::Foundation::Collections::IVectorView;
 using ::winrt::Windows::Storage::Streams::Buffer;
 using ::winrt::Windows::Storage::Streams::DataReader;
 using ::winrt::Windows::Storage::Streams::IBuffer;
 using Property = api::ble_v2::GattCharacteristic::Property;
 using Permission = api::ble_v2::GattCharacteristic::Permission;
+using WriteType = api::ble_v2::GattClient::WriteType;
 
 std::string GattCommunicationStatusToString(GattCommunicationStatus status) {
   switch (status) {
@@ -353,7 +356,7 @@ absl::optional<std::string> BleGattClient::ReadCharacteristic(
 
 bool BleGattClient::WriteCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic,
-    absl::string_view value) {
+    absl::string_view value, api::ble_v2::GattClient::WriteType write_type) {
   NEARBY_LOGS(VERBOSE) << __func__ << ": write characteristic: "
                        << std::string(characteristic.uuid);
   absl::MutexLock lock(&mutex_);
@@ -372,8 +375,12 @@ bool BleGattClient::WriteCharacteristic(
     std::memcpy(buffer.data(), value.data(), value.size());
     buffer.Length(value.size());
 
+    GattWriteOption write_option = write_type == WriteType::kWithoutResponse
+                                       ? GattWriteOption::WriteWithoutResponse
+                                       : GattWriteOption::WriteWithResponse;
+
     GattCommunicationStatus status =
-        gatt_characteristic->WriteValueAsync(buffer).get();
+        gatt_characteristic->WriteValueAsync(buffer, write_option).get();
 
     if (status != GattCommunicationStatus::Success) {
       NEARBY_LOGS(ERROR) << __func__
@@ -390,11 +397,12 @@ bool BleGattClient::WriteCharacteristic(
     }
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__
-                       << ": Failed to read GATT characteristic. exception: "
+                       << ": Failed to write GATT characteristic. exception: "
                        << exception.what();
   } catch (const winrt::hresult_error& error) {
     NEARBY_LOGS(ERROR)
-        << __func__ << ": Failed to read GATT characteristic. WinRT exception: "
+        << __func__
+        << ": Failed to write GATT characteristic. WinRT exception: "
         << error.code() << ": " << winrt::to_string(error.message());
   }
   return false;

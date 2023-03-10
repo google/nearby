@@ -240,7 +240,8 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
     bool WriteCharacteristic(
         const api::ble_v2::GattCharacteristic& characteristic,
-        absl::string_view value) override;
+        absl::string_view value,
+        api::ble_v2::GattClient::WriteType write_type) override;
 
     bool SetCharacteristicSubscription(
         const api::ble_v2::GattCharacteristic& characteristic, bool enable,

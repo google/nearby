@@ -456,7 +456,7 @@ std::optional<std::string> BleV2Medium::GattClient::ReadCharacteristic(
 
 bool BleV2Medium::GattClient::WriteCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic,
-    absl::string_view value) {
+    absl::string_view value, api::ble_v2::GattClient::WriteType write_type) {
   // No op.
   return false;
 }

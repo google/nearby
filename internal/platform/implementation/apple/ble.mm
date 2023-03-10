@@ -578,7 +578,8 @@ absl::optional<std::string> BleMedium::GattClient::ReadCharacteristic(
 }
 
 bool BleMedium::GattClient::WriteCharacteristic(
-    const api::ble_v2::GattCharacteristic& characteristic, absl::string_view value) {
+    const api::ble_v2::GattCharacteristic& characteristic, absl::string_view value,
+    api::ble_v2::GattClient::WriteType write_type) {
   // No op.
   return false;
 }

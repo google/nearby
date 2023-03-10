@@ -228,8 +228,8 @@ class GattClient final {
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
   bool WriteCharacteristic(
       const api::ble_v2::GattCharacteristic& characteristic,
-      absl::string_view value) {
-    return impl_->WriteCharacteristic(characteristic, value);
+      absl::string_view value, api::ble_v2::GattClient::WriteType write_type) {
+    return impl_->WriteCharacteristic(characteristic, value, write_type);
   }
 
   // NOLINTNEXTLINE(google3-legacy-absl-backports)

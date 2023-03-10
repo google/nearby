@@ -167,6 +167,12 @@ struct GattCharacteristic {
 // Representation of a client GATT connection to a remote GATT server.
 class GattClient {
  public:
+  // Specifies what type of GATT write should be performed.
+  enum class WriteType {
+    kWithResponse = 0,
+    kWithoutResponse = 1,
+  };
+
   virtual ~GattClient() = default;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#discoverServices()
@@ -205,7 +211,7 @@ class GattClient {
   // Sends a remote characteristic write request to the server and returns
   // whether or not it was successful.
   virtual bool WriteCharacteristic(const GattCharacteristic& characteristic,
-                                   absl::string_view value) = 0;
+                                   absl::string_view value, WriteType type) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#setCharacteristicNotification(android.bluetooth.BluetoothGattCharacteristic,%20boolean)
   //
