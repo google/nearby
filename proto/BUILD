@@ -35,6 +35,12 @@ cc_proto_library(
     ],
 )
 
+py_proto_library(
+    name = "connections_enums_py_pb2",
+    api_version = 2,
+    deps = [":connections_enums_proto"],
+)
+
 proto_library(
     name = "sharing_enums_proto",
     srcs = ["sharing_enums.proto"],
