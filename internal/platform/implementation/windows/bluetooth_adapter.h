@@ -26,9 +26,9 @@
 
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Radios.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
+#include "winrt/Windows.Devices.Bluetooth.h"
+#include "winrt/Windows.Devices.Radios.h"
+#include "winrt/base.h"
 
 namespace nearby {
 namespace windows {

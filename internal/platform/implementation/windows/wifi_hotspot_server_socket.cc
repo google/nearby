@@ -23,10 +23,10 @@
 #include "absl/strings/match.h"
 
 // Nearby connections headers
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/logging.h"
+#include "winrt/Windows.Networking.Sockets.h"
 
 namespace nearby {
 namespace windows {

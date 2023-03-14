@@ -35,14 +35,14 @@ cc_library(
         "mediums_manager_impl.h",
     ],
     copts = [
-        "-Ithird_party/nearby/internal/platform/implementation/windows/generated",
+        "-Ithird_party/winrt_projections/winrt_cpp",
     ],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     deps = [
         ":types",
         "//internal/platform:logging",
         "//internal/platform/implementation/windows:mediums_api",
-        "//internal/platform/implementation/windows/generated:types",
+        "//third_party/winrt_projections/winrt_cpp:types",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
