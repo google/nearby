@@ -45,10 +45,6 @@ class FeatureFlags {
     // necessary to properly support multiple BWU mediums, multiple service, and
     // multiple endpionts.
     bool support_multiple_bwu_mediums = true;
-    // Ble v2/v1 switch flag: the flag will be removed once v2 refactor is done.
-    bool support_ble_v2 = false;
-    // Controls BLE advertisement data format in base64 or not.
-    bool enable_ble_v2_advertisement_base64_encoding = false;
     // Allows the code to change the bluetooth radio state
     bool enable_set_radio_state = false;
     // If the feature is enabled, medium connection will timeout when cannot

@@ -401,6 +401,7 @@ let package = Package(
         "WORKSPACE",
         // build files
         "connections/implementation/analytics/BUILD",
+        "connections/implementation/flags/BUILD",
         "connections/implementation/mediums/ble_v2/BUILD",
         "connections/implementation/mediums/BUILD",
         "connections/implementation/BUILD",
@@ -438,6 +439,7 @@ let package = Package(
         "connections/implementation/wifi_direct_bwu_test.cc",
         "connections/implementation/wifi_hotspot_test.cc",
         "connections/implementation/analytics/analytics_recorder_test.cc",
+        "connections/implementation/flags/connections_flags_test.cc",
         "connections/implementation/analytics/throughput_recorder_test.cc",
         "connections/implementation/mediums/ble_v2_test.cc",
         "connections/implementation/mediums/ble_v2/bloom_filter_test.cc",

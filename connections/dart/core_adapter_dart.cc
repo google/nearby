@@ -18,6 +18,8 @@
 #include <string>
 
 #include "connections/core.h"
+#include "connections/implementation/flags/connections_flags.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/payload.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
@@ -375,7 +377,10 @@ void EnableBleV2Dart(Core *pCore, int64_t enable, Dart_Port result_cb) {
   }
   port = result_cb;
 
-  FeatureFlags::GetMutableFlagsForTesting().support_ble_v2 = enable;
+  connections::ConnectionsFlags::GetInstance().OverrideBoolFlagValue(
+      connections::config_package_nearby::nearby_connections_feature::
+          kEnableBleV2,
+      enable);
   PostResult(result_cb, Status::kSuccess);
 }
 

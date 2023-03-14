@@ -22,6 +22,8 @@
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "connections/implementation/bwu_manager.h"
+#include "connections/implementation/flags/connections_flags.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/injected_bluetooth_device_store.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
@@ -60,15 +62,16 @@ constexpr BooleanMediumSelector kTestCases[] = {
     },
 };
 
-// Combines the bool `support_ble_v2` as param testing but should revert it back
+// Combines the bool `kEnableBleV2` as param testing but should revert it back
 // if ble_v2 is done and ble will be replaced by ble_v2.
 class P2pClusterPcpHandlerTest
     : public testing::TestWithParam<std::tuple<BooleanMediumSelector, bool>> {
  protected:
   void SetUp() override {
     NEARBY_LOG(INFO, "SetUp: begin");
-    FeatureFlags::GetMutableFlagsForTesting().support_ble_v2 =
-        std::get<1>(GetParam());
+    ConnectionsFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableBleV2,
+        std::get<1>(GetParam()));
     if (advertising_options_.allowed.ble) {
       NEARBY_LOG(INFO, "SetUp: BLE enabled");
     }

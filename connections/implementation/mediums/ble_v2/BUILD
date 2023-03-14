@@ -40,6 +40,7 @@ cc_library(
     ],
     deps = [
         "//connections:core_types",
+        "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums:utils",
         "//internal/platform:base",
         "//internal/platform:comm",
