@@ -349,6 +349,7 @@ cc_library(
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
+        "//internal/flags:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
         "//location/nearby/testing/nearby_native:__subpackages__",

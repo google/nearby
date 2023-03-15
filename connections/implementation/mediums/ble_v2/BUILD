@@ -42,6 +42,7 @@ cc_library(
         "//connections:core_types",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums:utils",
+        "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:logging",

@@ -12,26 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_CONNECTIONS_IMPLEMENTATION_FLAGS_CONNECTIONS_FLAGS_H_
-#define THIRD_PARTY_NEARBY_CONNECTIONS_IMPLEMENTATION_FLAGS_CONNECTIONS_FLAGS_H_
+#ifndef THIRD_PARTY_NEARBY_INTERNAL_FLAGS_NEARBY_FLAGS_H_
+#define THIRD_PARTY_NEARBY_INTERNAL_FLAGS_NEARBY_FLAGS_H_
 
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
-#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "internal/flags/default_flag_reader.h"
 #include "internal/flags/flag_reader.h"
 #include "internal/platform/mutex.h"
 
 namespace nearby {
-namespace connections {
 
-class ConnectionsFlags : public nearby::flags::FlagReader {
+class NearbyFlags final : public nearby::flags::FlagReader {
  public:
-  ~ConnectionsFlags() override = default;
+  ~NearbyFlags() override = default;
 
-  static ConnectionsFlags& GetInstance();
+  static NearbyFlags& GetInstance();
 
   // Reads flag with boolean value.
   bool GetBoolFlag(const flags::Flag<bool>& flag) override
@@ -71,7 +69,7 @@ class ConnectionsFlags : public nearby::flags::FlagReader {
   void ResetOverridedValues() ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
-  ConnectionsFlags() = default;
+  NearbyFlags() = default;
 
   flags::FlagReader* flag_reader_ = nullptr;
   flags::DefaultFlagReader default_flag_reader_;
@@ -90,7 +88,6 @@ class ConnectionsFlags : public nearby::flags::FlagReader {
       ABSL_GUARDED_BY(mutex_);
 };
 
-}  // namespace connections
 }  // namespace nearby
 
-#endif  // THIRD_PARTY_NEARBY_CONNECTIONS_IMPLEMENTATION_FLAGS_CONNECTIONS_FLAGS_H_
+#endif  // THIRD_PARTY_NEARBY_INTERNAL_FLAGS_NEARBY_FLAGS_H_

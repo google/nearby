@@ -20,12 +20,11 @@
 #include <utility>
 
 #include "absl/strings/str_cat.h"
-#include "connections/implementation/flags/connections_flags.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/base_input_stream.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -144,7 +143,7 @@ BleAdvertisementHeader::operator ByteArray() const {
                                  std::string(advertisement_hash_),
                                  std::string(psm_bytes));
   // clang-format on
-  if (ConnectionsFlags::GetInstance().GetBoolFlag(
+  if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
     return ByteArray(Base64Utils::Encode(ByteArray(std::move(out))));
   } else {

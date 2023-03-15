@@ -15,41 +15,15 @@ licenses(["notice"])
 
 cc_library(
     name = "connections_flags",
-    srcs = [
-        "connections_flags.cc",
-    ],
     hdrs = [
-        "connections_flags.h",
         "nearby_connections_feature_flags.h",
-    ],
-    copts = [
-        "-Ithird_party",
     ],
     visibility = [
         "//connections:__subpackages__",
-        "//internal/platform:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
     ],
     deps = [
         "//internal/flags:flag_reader",
-        "//internal/platform:types",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/synchronization",
-    ],
-)
-
-cc_test(
-    name = "connections_flags_test",
-    srcs = ["connections_flags_test.cc"],
-    deps = [
-        ":connections_flags",
-        "//internal/flags:flag_reader",
-        "//internal/platform/implementation/g3",
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest",
-        "@com_google_googletest//:gtest_main",
     ],
 )

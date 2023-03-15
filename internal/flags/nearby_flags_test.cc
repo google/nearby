@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/flags/connections_flags.h"
+#include "internal/flags/nearby_flags.h"
 
 #include <cstdint>
 #include <memory>
@@ -27,7 +27,6 @@
 #include "internal/flags/flag_reader.h"
 
 namespace nearby {
-namespace connections {
 namespace {
 
 constexpr auto kTestBoolFlag =
@@ -55,67 +54,66 @@ class MockFlagReader : public flags::FlagReader {
               (const flags::Flag<absl::string_view>& flag), (override));
 };
 
-TEST(ConnectionsFlags, GetDefaultValues) {
-  EXPECT_EQ(ConnectionsFlags::GetInstance().GetBoolFlag(kTestBoolFlag),
+TEST(NearbyFlags, GetDefaultValues) {
+  EXPECT_EQ(NearbyFlags::GetInstance().GetBoolFlag(kTestBoolFlag),
             kTestBoolFlag.default_value());
-  EXPECT_EQ(ConnectionsFlags::GetInstance().GetInt64Flag(kTestInt64Flag),
+  EXPECT_EQ(NearbyFlags::GetInstance().GetInt64Flag(kTestInt64Flag),
             kTestInt64Flag.default_value());
-  EXPECT_EQ(ConnectionsFlags::GetInstance().GetDoubleFlag(kTestDoubleFlag),
+  EXPECT_EQ(NearbyFlags::GetInstance().GetDoubleFlag(kTestDoubleFlag),
             kTestDoubleFlag.default_value());
-  EXPECT_EQ(ConnectionsFlags::GetInstance().GetStringFlag(kTestStringFlag),
+  EXPECT_EQ(NearbyFlags::GetInstance().GetStringFlag(kTestStringFlag),
             kTestStringFlag.default_value());
 }
 
-TEST(ConnectionsFlags, OverrideDefaultValues) {
-  ConnectionsFlags::GetInstance().OverrideBoolFlagValue(kTestBoolFlag,
-                                                        kTestBoolFlagTestValue);
-  EXPECT_EQ(ConnectionsFlags::GetInstance().GetBoolFlag(kTestBoolFlag),
+TEST(NearbyFlags, OverrideDefaultValues) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(kTestBoolFlag,
+                                                   kTestBoolFlagTestValue);
+  EXPECT_EQ(NearbyFlags::GetInstance().GetBoolFlag(kTestBoolFlag),
             kTestBoolFlagTestValue);
-  ConnectionsFlags::GetInstance().OverrideInt64FlagValue(
-      kTestInt64Flag, kTestInt64FlagTestValue);
-  EXPECT_EQ(ConnectionsFlags::GetInstance().GetInt64Flag(kTestInt64Flag),
+  NearbyFlags::GetInstance().OverrideInt64FlagValue(kTestInt64Flag,
+                                                    kTestInt64FlagTestValue);
+  EXPECT_EQ(NearbyFlags::GetInstance().GetInt64Flag(kTestInt64Flag),
             kTestInt64FlagTestValue);
-  ConnectionsFlags::GetInstance().OverrideDoubleFlagValue(
-      kTestDoubleFlag, kTestDoubleFlagTestValue);
-  EXPECT_EQ(ConnectionsFlags::GetInstance().GetDoubleFlag(kTestDoubleFlag),
+  NearbyFlags::GetInstance().OverrideDoubleFlagValue(kTestDoubleFlag,
+                                                     kTestDoubleFlagTestValue);
+  EXPECT_EQ(NearbyFlags::GetInstance().GetDoubleFlag(kTestDoubleFlag),
             kTestDoubleFlagTestValue);
-  ConnectionsFlags::GetInstance().OverrideStringFlagValue(
-      kTestStringFlag, kTestStringFlagTestValue);
-  EXPECT_EQ(ConnectionsFlags::GetInstance().GetStringFlag(kTestStringFlag),
+  NearbyFlags::GetInstance().OverrideStringFlagValue(kTestStringFlag,
+                                                     kTestStringFlagTestValue);
+  EXPECT_EQ(NearbyFlags::GetInstance().GetStringFlag(kTestStringFlag),
             kTestStringFlagTestValue);
-  ConnectionsFlags::GetInstance().ResetOverridedValues();
+  NearbyFlags::GetInstance().ResetOverridedValues();
 }
 
-TEST(ConnectionsFlags, SetFlagReader) {
+TEST(NearbyFlags, SetFlagReader) {
   auto flag_reader = std::make_unique<::testing::NiceMock<MockFlagReader>>();
-  ConnectionsFlags::GetInstance().SetFlagReader(*flag_reader.get());
+  NearbyFlags::GetInstance().SetFlagReader(*flag_reader.get());
   EXPECT_CALL(*flag_reader, GetBoolFlag(::testing::_))
       .WillOnce(::testing::Invoke([=](const flags::Flag<bool>& flag) {
         return kTestBoolFlagTestValue;
       }));
-  EXPECT_EQ(ConnectionsFlags::GetInstance().GetBoolFlag(kTestBoolFlag),
+  EXPECT_EQ(NearbyFlags::GetInstance().GetBoolFlag(kTestBoolFlag),
             kTestBoolFlagTestValue);
   EXPECT_CALL(*flag_reader, GetInt64Flag(::testing::_))
       .WillOnce(::testing::Invoke([=](const flags::Flag<int64_t>& flag) {
         return kTestInt64FlagTestValue;
       }));
-  EXPECT_EQ(ConnectionsFlags::GetInstance().GetInt64Flag(kTestInt64Flag),
+  EXPECT_EQ(NearbyFlags::GetInstance().GetInt64Flag(kTestInt64Flag),
             kTestInt64FlagTestValue);
   EXPECT_CALL(*flag_reader, GetDoubleFlag(::testing::_))
       .WillOnce(::testing::Invoke([=](const flags::Flag<double>& flag) {
         return kTestDoubleFlagTestValue;
       }));
-  EXPECT_EQ(ConnectionsFlags::GetInstance().GetDoubleFlag(kTestDoubleFlag),
+  EXPECT_EQ(NearbyFlags::GetInstance().GetDoubleFlag(kTestDoubleFlag),
             kTestDoubleFlagTestValue);
   EXPECT_CALL(*flag_reader, GetStringFlag(::testing::_))
       .WillOnce(
           ::testing::Invoke([=](const flags::Flag<absl::string_view>& flag) {
             return std::string(kTestStringFlagTestValue);
           }));
-  EXPECT_EQ(ConnectionsFlags::GetInstance().GetStringFlag(kTestStringFlag),
+  EXPECT_EQ(NearbyFlags::GetInstance().GetStringFlag(kTestStringFlag),
             kTestStringFlagTestValue);
 }
 
 }  // namespace
-}  // namespace connections
 }  // namespace nearby

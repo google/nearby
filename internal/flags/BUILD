@@ -24,3 +24,42 @@ cc_library(
     visibility = ["//:__subpackages__"],
     deps = ["@com_google_absl//absl/strings"],
 )
+
+cc_library(
+    name = "nearby_flags",
+    srcs = [
+        "nearby_flags.cc",
+    ],
+    hdrs = [
+        "nearby_flags.h",
+    ],
+    copts = [
+        "-Ithird_party",
+    ],
+    visibility = [
+        "//:__subpackages__",
+        "//location/nearby/cpp:__subpackages__",
+    ],
+    deps = [
+        ":flag_reader",
+        "//internal/platform:types",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_test(
+    name = "nearby_flags_test",
+    srcs = ["nearby_flags_test.cc"],
+    deps = [
+        ":flag_reader",
+        ":nearby_flags",
+        "//internal/platform/implementation/g3",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

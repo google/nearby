@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/flags/connections_flags.h"
+#include "internal/flags/nearby_flags.h"
 
 #include <string>
 
@@ -20,14 +20,13 @@
 #include "internal/platform/mutex_lock.h"
 
 namespace nearby {
-namespace connections {
 
-ConnectionsFlags& ConnectionsFlags::GetInstance() {
-  static ConnectionsFlags* sharing_flags = new ConnectionsFlags();
+NearbyFlags& NearbyFlags::GetInstance() {
+  static NearbyFlags* sharing_flags = new NearbyFlags();
   return *sharing_flags;
 }
 
-bool ConnectionsFlags::GetBoolFlag(const flags::Flag<bool>& flag) {
+bool NearbyFlags::GetBoolFlag(const flags::Flag<bool>& flag) {
   MutexLock lock(&mutex_);
 
   const auto& it = overrided_bool_flag_values_.find(flag.name());
@@ -41,7 +40,7 @@ bool ConnectionsFlags::GetBoolFlag(const flags::Flag<bool>& flag) {
   return default_flag_reader_.GetBoolFlag(flag);
 }
 
-int64_t ConnectionsFlags::GetInt64Flag(const flags::Flag<int64_t>& flag) {
+int64_t NearbyFlags::GetInt64Flag(const flags::Flag<int64_t>& flag) {
   MutexLock lock(&mutex_);
 
   const auto& it = overrided_int64_flag_values_.find(flag.name());
@@ -55,7 +54,7 @@ int64_t ConnectionsFlags::GetInt64Flag(const flags::Flag<int64_t>& flag) {
   return default_flag_reader_.GetInt64Flag(flag);
 }
 
-double ConnectionsFlags::GetDoubleFlag(const flags::Flag<double>& flag) {
+double NearbyFlags::GetDoubleFlag(const flags::Flag<double>& flag) {
   MutexLock lock(&mutex_);
 
   const auto& it = overrided_double_flag_values_.find(flag.name());
@@ -69,7 +68,7 @@ double ConnectionsFlags::GetDoubleFlag(const flags::Flag<double>& flag) {
   return default_flag_reader_.GetDoubleFlag(flag);
 }
 
-std::string ConnectionsFlags::GetStringFlag(
+std::string NearbyFlags::GetStringFlag(
     const flags::Flag<absl::string_view>& flag) {
   MutexLock lock(&mutex_);
 
@@ -84,36 +83,36 @@ std::string ConnectionsFlags::GetStringFlag(
   return default_flag_reader_.GetStringFlag(flag);
 }
 
-void ConnectionsFlags::SetFlagReader(flags::FlagReader& flag_reader) {
+void NearbyFlags::SetFlagReader(flags::FlagReader& flag_reader) {
   MutexLock lock(&mutex_);
   flag_reader_ = &flag_reader;
 }
 
-void ConnectionsFlags::OverrideBoolFlagValue(const flags::Flag<bool>& flag,
-                                             bool new_value) {
+void NearbyFlags::OverrideBoolFlagValue(const flags::Flag<bool>& flag,
+                                        bool new_value) {
   MutexLock lock(&mutex_);
   overrided_bool_flag_values_[flag.name()] = new_value;
 }
 
-void ConnectionsFlags::OverrideInt64FlagValue(const flags::Flag<int64_t>& flag,
-                                              int64_t new_value) {
+void NearbyFlags::OverrideInt64FlagValue(const flags::Flag<int64_t>& flag,
+                                         int64_t new_value) {
   MutexLock lock(&mutex_);
   overrided_int64_flag_values_[flag.name()] = new_value;
 }
 
-void ConnectionsFlags::OverrideDoubleFlagValue(const flags::Flag<double>& flag,
-                                               double new_value) {
+void NearbyFlags::OverrideDoubleFlagValue(const flags::Flag<double>& flag,
+                                          double new_value) {
   MutexLock lock(&mutex_);
   overrided_double_flag_values_[flag.name()] = new_value;
 }
 
-void ConnectionsFlags::OverrideStringFlagValue(
+void NearbyFlags::OverrideStringFlagValue(
     const flags::Flag<absl::string_view>& flag, absl::string_view new_value) {
   MutexLock lock(&mutex_);
   overrided_string_flag_values_[flag.name()] = std::string(new_value);
 }
 
-void ConnectionsFlags::ResetOverridedValues() {
+void NearbyFlags::ResetOverridedValues() {
   MutexLock lock(&mutex_);
   overrided_bool_flag_values_.clear();
   overrided_int64_flag_values_.clear();
@@ -121,5 +120,4 @@ void ConnectionsFlags::ResetOverridedValues() {
   overrided_string_flag_values_.clear();
 }
 
-}  // namespace connections
 }  // namespace nearby

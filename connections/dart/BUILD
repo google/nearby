@@ -32,6 +32,7 @@ lexan.cc_windows_dll(
         "//connections:core",
         "//connections/c",
         "//connections/implementation/flags:connections_flags",
+        "//internal/flags:nearby_flags",
         "//internal/platform/implementation/windows",
         "//third_party/dart_lang/v2:dart_api_dl",
         "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",
