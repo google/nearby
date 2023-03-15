@@ -53,6 +53,11 @@ class FeatureFlags {
     // Controls to enable or disable to track the status of Bluetooth classic
     // conncetion.
     bool enable_bluetooth_connection_status_track = true;
+    // If Hotspot or WFD GO use WinRT API to create the server socket, the
+    // StreamSocketListener::BindEndpointAsync() will takes about 11s, so we
+    // prefer to use legacy WinSock API to create the server socket and do the
+    // binding, which only takes less than 0.1s
+    bool use_winsock = true;
   };
 
   static const FeatureFlags& GetInstance() {

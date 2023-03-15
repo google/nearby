@@ -16,11 +16,12 @@
 #define PLATFORM_IMPL_WINDOWS_WIFI_HOTSPOT_H_
 
 // Windows headers
+#include <winsock2.h>
 #include <windows.h>
 #include <wlanapi.h>
 
 // Standard C/C++ headers
-
+#include <deque>
 #include <memory>
 #include <optional>
 #include <string>
@@ -29,6 +30,7 @@
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
+#include "internal/platform/implementation/windows/submittable_executor.h"
 
 // WinRT headers
 #include "absl/types/optional.h"
@@ -91,12 +93,13 @@ using ::winrt::Windows::Networking::Sockets::
 
 // WifiHotspotSocket wraps the socket functions to read and write stream.
 // In WiFi HOTSPOT, A WifiHotspotSocket will be passed to
-// StartAcceptingConnections's call back when StreamSocketListener got connect.
-// When call API to connect to remote WiFi Hotspot service, also will return a
-// WifiHotspotSocket to caller.
+// StartAcceptingConnections's callback when Winsock Server Socket(or
+// StreamSocketListener) receives a new connection. When call API to connect to
+// remote WiFi Hotspot service, also will return a WifiHotspotSocket to caller.
 class WifiHotspotSocket : public api::WifiHotspotSocket {
  public:
   explicit WifiHotspotSocket(StreamSocket socket);
+  explicit WifiHotspotSocket(SOCKET socket);
   WifiHotspotSocket(const WifiHotspotSocket&) = default;
   WifiHotspotSocket(WifiHotspotSocket&&) = default;
   ~WifiHotspotSocket() override;
@@ -121,10 +124,12 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
   Exception Close() override;
 
  private:
+  enum class SocketType {kWinRTSocket = 0, kWin32Socket};
   // A simple wrapper to handle input stream of socket
   class SocketInputStream : public InputStream {
    public:
-    SocketInputStream(IInputStream input_stream);
+    explicit SocketInputStream(IInputStream input_stream);
+    explicit SocketInputStream(SOCKET socket);
     ~SocketInputStream() override = default;
 
     ExceptionOr<ByteArray> Read(std::int64_t size) override;
@@ -133,12 +138,15 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
 
    private:
     IInputStream input_stream_{nullptr};
+    SOCKET socket_ = INVALID_SOCKET;
+    SocketType socket_type_ = SocketType::kWinRTSocket;
   };
 
   // A simple wrapper to handle output stream of socket
   class SocketOutputStream : public OutputStream {
    public:
-    SocketOutputStream(IOutputStream output_stream);
+    explicit SocketOutputStream(IOutputStream output_stream);
+    explicit SocketOutputStream(SOCKET socket);
     ~SocketOutputStream() override = default;
 
     Exception Write(const ByteArray& data) override;
@@ -147,9 +155,12 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
 
    private:
     IOutputStream output_stream_{nullptr};
+    SOCKET socket_ = INVALID_SOCKET;
+    SocketType socket_type_ = SocketType::kWinRTSocket;
   };
 
   // Internal properties
+  SOCKET stream_soket_winsock_ = INVALID_SOCKET;
   StreamSocket stream_soket_{nullptr};
   SocketInputStream input_stream_{nullptr};
   SocketOutputStream output_stream_{nullptr};
@@ -198,6 +209,8 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   fire_and_forget Listener_ConnectionReceived(
       StreamSocketListener listener,
       StreamSocketListenerConnectionReceivedEventArgs const& args);
+  bool SetupServerSocketWinRT();
+  bool SetupServerSocketWinSock();
 
   // Retrieves IP addresses from local machine
   std::vector<std::string> GetIpAddresses() const;
@@ -205,11 +218,15 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
 
   mutable absl::Mutex mutex_;
   absl::CondVar cond_;
+  SubmittableExecutor submittable_executor_;
 
   std::deque<StreamSocket> pending_sockets_ ABSL_GUARDED_BY(mutex_);
   StreamSocketListener stream_socket_listener_{nullptr};
   winrt::event_token listener_event_token_{};
 
+  std::deque<SOCKET> pending_client_sockets_ ABSL_GUARDED_BY(mutex_);
+  SOCKET listen_socket_ = INVALID_SOCKET;
+  SOCKET client_socket_ = INVALID_SOCKET;
   // Close notifier
   absl::AnyInvocable<void()> close_notifier_ = nullptr;
 

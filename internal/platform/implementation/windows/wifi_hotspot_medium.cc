@@ -14,6 +14,7 @@
 
 #include <exception>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -197,8 +198,7 @@ WifiHotspotMedium::ListenForService(int port) {
 
   server_socket->SetCloseNotifier([this]() {
     absl::MutexLock lock(&mutex_);
-    NEARBY_LOGS(INFO) << "server socket was closed on port "
-                      << server_socket_ptr_->GetPort();
+    NEARBY_LOGS(INFO) << "Server socket was closed.";
     medium_status_ &= (~kMediumStatusAccepting);
     server_socket_ptr_ = nullptr;
   });
