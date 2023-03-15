@@ -406,6 +406,7 @@ let package = Package(
         "connections/implementation/mediums/BUILD",
         "connections/implementation/BUILD",
         "connections/implementation/fuzzers",
+        "connections/v3/BUILD",
         "connections/BUILD",
         "internal/BUILD",
         "internal/crypto/BUILD",

@@ -15,22 +15,18 @@
 #ifndef THIRD_PARTY_NEARBY_CONNECTIONS_DEVICE_PROVIDER_H_
 #define THIRD_PARTY_NEARBY_CONNECTIONS_DEVICE_PROVIDER_H_
 
-#include <string>
-
 #include "internal/device.h"
 
 namespace nearby {
-namespace connections {
 
-using ::nearby::NearbyDevice;
-
+// The base device provider class for use with the Nearby Connections V3 APIs.
+// This class currently provides a function to get the local device for whatever
+// client implements it.
 class NearbyDeviceProvider {
   virtual ~NearbyDeviceProvider() = default;
-  virtual NearbyDevice* GetLocalDevice() = 0;
-  virtual std::string GetServiceId() = 0;
-};
 
-}  // namespace connections
+  virtual NearbyDevice* GetLocalDevice() = 0;
+};
 }  // namespace nearby
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_DEVICE_PROVIDER_H_

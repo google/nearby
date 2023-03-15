@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "connections/advertising_options.h"
 #include "connections/discovery_options.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
@@ -29,6 +30,8 @@
 #include "connections/listeners.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
+#include "connections/v3/connection_listening_options.h"
+#include "connections/v3/listeners.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/device.h"
 #include "internal/platform/byte_array.h"
@@ -188,6 +191,12 @@ class ClientProxy final {
   AdvertisingOptions GetAdvertisingOptions() const;
   DiscoveryOptions GetDiscoveryOptions() const;
 
+  std::optional<location::nearby::connections::OsInfo> GetRemoteOsInfo(
+      absl::string_view endpoint_id) const;
+  void SetRemoteOsInfo(
+      absl::string_view endpoint_id,
+      const location::nearby::connections::OsInfo& remote_os_info);
+
   // The endpoint id will be stable for 30 seconds after high visibility mode
   // (high power and Bluetooth Classic) advertisement stops.
   // If client re-enters high visibility mode within 30 seconds, he is going to
@@ -199,59 +208,64 @@ class ClientProxy final {
 
   std::string Dump();
 
-  //********************************** V2 **********************************
-  void OnDeviceFound(const absl::string_view service_id,
-                     const NearbyDevice& device,
-                     location::nearby::proto::connections::Medium medium);
+  //********************************** V3 **********************************
+  void OnDeviceFoundV3(absl::string_view service_id, const NearbyDevice& device,
+                       location::nearby::proto::connections::Medium medium);
   // Proxies to the client's DiscoveryListener::OnEndpointLost() callback.
-  void OnEndpointLost(absl::string_view service_id, const NearbyDevice& device);
+  void OnEndpointLostV3(absl::string_view service_id,
+                        const NearbyDevice& device);
 
   // Proxies to the client's ConnectionListener::OnInitiated() callback.
-  void OnConnectionInitiated(const NearbyDevice& device,
-                             const ConnectionResponseInfo& info,
-                             const ConnectionOptions& connection_options,
-                             const ConnectionListener& listener,
-                             absl::string_view connection_token);
+  void OnConnectionInitiatedV3(
+      const NearbyDevice& device, const ConnectionResponseInfo& info,
+      const v3::ConnectionListeningOptions& connection_options,
+      v3::ConnectionListener listener, absl::string_view connection_token);
 
-  void OnConnectionAccepted(const NearbyDevice& device);
-  void OnConnectionRejected(const NearbyDevice& device, const Status& status);
+  void OnConnectionAcceptedV3(const NearbyDevice& device);
+  void OnConnectionRejectedV3(const NearbyDevice& device,
+                              const v3::ConnectionResolution& resolution);
 
-  void OnBandwidthChanged(const NearbyDevice& device, Medium new_medium);
+  void OnBandwidthChangedV3(const NearbyDevice& device, Medium new_medium);
 
   // If notify is true, also calls the client's
   // ConnectionListener.disconnected_cb() callback.
-  void OnDisconnected(const NearbyDevice& device, bool notify);
+  void OnDisconnectedV3(const NearbyDevice& device, bool notify);
 
-  BooleanMediumSelector GetUpgradableMediums(const NearbyDevice& device) const;
-  bool IsConnectedToEndpoint(const NearbyDevice& device) const;
+  BooleanMediumSelector GetUpgradableMediumsV3(
+      const NearbyDevice& device) const;
+  bool IsConnectedToDeviceV3(const NearbyDevice& device) const;
   // No payloads should be sent until isConnectedToEndpoint()
   // returns true.
-  bool HasPendingConnectionToEndpoint(const NearbyDevice& device) const;
-  bool HasLocalEndpointResponded(const NearbyDevice& device) const;
-  bool HasRemoteEndpointResponded(const NearbyDevice& device) const;
-  void LocalEndpointAcceptedConnection(const NearbyDevice& device,
-                                       const PayloadListener& listener);
-  void LocalEndpointRejectedConnection(const NearbyDevice& device);
-  void RemoteEndpointAcceptedConnection(const NearbyDevice& device);
-  void RemoteEndpointRejectedConnection(const NearbyDevice& device);
-  bool IsConnectionAccepted(const NearbyDevice& device) const;
-  bool IsConnectionRejected(const NearbyDevice& device) const;
+  bool HasPendingConnectionToEndpointV3(const NearbyDevice& device) const;
+  bool HasLocalEndpointRespondedV3(const NearbyDevice& device) const;
+  bool HasRemoteEndpointRespondedV3(const NearbyDevice& device) const;
+  void LocalEndpointAcceptedConnectionV3(const NearbyDevice& device,
+                                         const PayloadListener& listener);
+  void LocalEndpointRejectedConnectionV3(const NearbyDevice& device);
+  void RemoteEndpointAcceptedConnectionV3(const NearbyDevice& device);
+  void RemoteEndpointRejectedConnectionV3(const NearbyDevice& device);
+  bool IsConnectionAcceptedV3(const NearbyDevice& device) const;
+  bool IsConnectionRejectedV3(const NearbyDevice& device) const;
 
-  void OnPayload(const NearbyDevice& device, Payload payload);
-  void OnPayloadProgress(const NearbyDevice& device,
-                         const PayloadProgressInfo& info);
-  bool LocalConnectionIsAccepted(const NearbyDevice& device) const;
-  bool RemoteConnectionIsAccepted(const NearbyDevice& device) const;
-  void AddCancellationFlag(const NearbyDevice& device);
-  CancellationFlag* GetCancellationFlag(const NearbyDevice& device);
-  void CancelEndpoint(const NearbyDevice& device);
+  void OnPayloadV3(const NearbyDevice& device, Payload payload);
+  void OnPayloadProgressV3(const NearbyDevice& device,
+                           const PayloadProgressInfo& info);
+  bool LocalConnectionIsAcceptedV3(const NearbyDevice& device) const;
+  bool RemoteConnectionIsAcceptedV3(const NearbyDevice& device) const;
+  void AddCancellationFlagV3(const NearbyDevice& device);
+  CancellationFlag* GetCancellationFlagV3(const NearbyDevice& device);
+  void CancelDeviceV3(const NearbyDevice& device);
+  void UpdateAdvertisingOptionsV3(
+      const AdvertisingOptions& new_advertising_options);
+  void UpdateDiscoveryOptionsV3(const DiscoveryOptions& new_discovery_options);
 
-  const location::nearby::connections::OsInfo& GetLocalOsInfo() const;
-  std::optional<location::nearby::connections::OsInfo> GetRemoteOsInfo(
-      absl::string_view endpoint_id) const;
-  void SetRemoteOsInfo(
-      absl::string_view endpoint_id,
+  std::optional<location::nearby::connections::OsInfo> GetRemoteOsInfoV3(
+      const NearbyDevice& device) const;
+  void SetRemoteOsInfoV3(
+      const NearbyDevice& device,
       const location::nearby::connections::OsInfo& remote_os_info);
+  //*************************** End V3 **************************************
+  const location::nearby::connections::OsInfo& GetLocalOsInfo() const;
 
  private:
   struct Connection {
