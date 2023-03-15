@@ -22,10 +22,7 @@ namespace nearby {
 namespace connections {
 namespace config_package_nearby {
 
-#ifndef PHENOTYPE_CONFIG_PACKAGE_NEARBY
-#define PHENOTYPE_CONFIG_PACKAGE_NEARBY
 constexpr absl::string_view kConfigPackage = "nearby";
-#endif  // PHENOTYPE_CONFIG_PACKAGE_NEARBY
 
 // The Nearby Connections features.
 namespace nearby_connections_feature {
