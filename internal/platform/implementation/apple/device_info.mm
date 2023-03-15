@@ -69,15 +69,18 @@ api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
 }
 
 api::DeviceInfo::OsType DeviceInfo::GetOsType() const { return api::DeviceInfo::OsType::kIos; }
+// TODO(b/266484816): Implement
+std::string DeviceInfo::GetBluetoothMacAddress() const { return ""; }
 
 std::optional<std::u16string> DeviceInfo::GetFullName() const { return std::nullopt; }
 std::optional<std::u16string> DeviceInfo::GetGivenName() const { return std::nullopt; }
 std::optional<std::u16string> DeviceInfo::GetLastName() const { return std::nullopt; }
 std::optional<std::string> DeviceInfo::GetProfileUserName() const { return std::nullopt; }
+// TODO(b/266484816): Implement
+std::optional<std::string> DeviceInfo::GetDeviceImageUrl() const { return std::nullopt; }
 
 std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {
   NSFileManager *manager = [NSFileManager defaultManager];
-
   NSError *error = nil;
   NSURL *downloadsURL = [manager URLForDirectory:NSDownloadsDirectory
                                         inDomain:NSUserDomainMask

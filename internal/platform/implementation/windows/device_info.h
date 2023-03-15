@@ -38,10 +38,13 @@ class DeviceInfo : public api::DeviceInfo {
   std::optional<std::u16string> GetOsDeviceName() const override;
   api::DeviceInfo::DeviceType GetDeviceType() const override;
   api::DeviceInfo::OsType GetOsType() const override;
+  std::string GetBluetoothMacAddress() const override;
+
   std::optional<std::u16string> GetFullName() const override;
   std::optional<std::u16string> GetGivenName() const override;
   std::optional<std::u16string> GetLastName() const override;
   std::optional<std::string> GetProfileUserName() const override;
+  std::optional<std::string> GetDeviceImageUrl() const override;
 
   std::optional<std::filesystem::path> GetDownloadPath() const override;
   std::optional<std::filesystem::path> GetLocalAppDataPath() const override;

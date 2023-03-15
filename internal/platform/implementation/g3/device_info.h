@@ -42,6 +42,10 @@ class DeviceInfo : public api::DeviceInfo {
     return api::DeviceInfo::OsType::kChromeOs;
   }
 
+  std::string GetBluetoothMacAddress() const override {
+    return "\x01\x02\x03\x04\x05\x06";
+  }
+
   std::optional<std::u16string> GetFullName() const override {
     return u"nearby";
   }
@@ -53,6 +57,9 @@ class DeviceInfo : public api::DeviceInfo {
   }
   std::optional<std::string> GetProfileUserName() const override {
     return "nearby";
+  }
+  std::optional<std::string> GetDeviceImageUrl() const override {
+    return std::nullopt;
   }
 
   std::optional<std::filesystem::path> GetDownloadPath() const override {

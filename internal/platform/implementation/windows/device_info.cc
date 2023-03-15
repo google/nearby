@@ -163,6 +163,11 @@ api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
   return api::DeviceInfo::OsType::kWindows;
 }
 
+std::string DeviceInfo::GetBluetoothMacAddress() const {
+  // TODO(b/266484816): Implement for windows.
+  return "";
+}
+
 std::optional<std::u16string> DeviceInfo::GetFullName() const {
   // FindAllAsync finds all users that are using this app. When we "Switch User"
   // on Desktop,FindAllAsync() will still return the current user instead of all
@@ -338,6 +343,11 @@ std::optional<std::string> DeviceInfo::GetProfileUserName() const {
   }
 
   return account_name_string;
+}
+
+std::optional<std::string> DeviceInfo::GetDeviceImageUrl() const {
+  // TODO(b/266484816): Implement.
+  return std::nullopt;
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {

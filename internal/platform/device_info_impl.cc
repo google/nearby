@@ -39,6 +39,10 @@ api::DeviceInfo::OsType DeviceInfoImpl::GetOsType() const {
   return device_info_impl_->GetOsType();
 }
 
+std::string DeviceInfoImpl::GetBluetoothMacAddress() const {
+  return device_info_impl_->GetBluetoothMacAddress();
+}
+
 std::optional<std::u16string> DeviceInfoImpl::GetFullName() const {
   return device_info_impl_->GetFullName();
 }
@@ -53,6 +57,10 @@ std::optional<std::u16string> DeviceInfoImpl::GetLastName() const {
 
 std::optional<std::string> DeviceInfoImpl::GetProfileUserName() const {
   return device_info_impl_->GetProfileUserName();
+}
+
+std::optional<std::string> DeviceInfoImpl::GetDeviceImageUrl() const {
+  return device_info_impl_->GetDeviceImageUrl();
 }
 
 std::filesystem::path DeviceInfoImpl::GetDownloadPath() const {

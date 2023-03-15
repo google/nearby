@@ -24,7 +24,6 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
-#include "internal/base/bluetooth_address.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/device_info.h"
 
@@ -40,6 +39,10 @@ class FakeDeviceInfo : public DeviceInfo {
 
   api::DeviceInfo::OsType GetOsType() const override { return os_type_; }
 
+  std::string GetBluetoothMacAddress() const override {
+    return bluetooth_mac_address_;
+  }
+
   std::optional<std::u16string> GetFullName() const override {
     return full_name_;
   }
@@ -51,6 +54,9 @@ class FakeDeviceInfo : public DeviceInfo {
   }
   std::optional<std::string> GetProfileUserName() const override {
     return profile_user_name_;
+  }
+  std::optional<std::string> GetDeviceImageUrl() const override {
+    return device_profile_url_;
   }
 
   std::filesystem::path GetDownloadPath() const override {
@@ -160,10 +166,12 @@ class FakeDeviceInfo : public DeviceInfo {
   api::DeviceInfo::DeviceType device_type_ =
       api::DeviceInfo::DeviceType::kLaptop;
   api::DeviceInfo::OsType os_type_ = api::DeviceInfo::OsType::kWindows;
+  std::string bluetooth_mac_address_ = "\x01\x02\x03\x04\x05\x06";
   std::optional<std::u16string> full_name_ = u"Nearby";
   std::optional<std::u16string> given_name_ = u"Nearby";
   std::optional<std::u16string> last_name_ = u"Nearby";
   std::optional<std::string> profile_user_name_ = "nearby";
+  std::optional<std::string> device_profile_url_ = "";
   std::filesystem::path download_path_ = std::filesystem::temp_directory_path();
   std::filesystem::path app_data_path_ = std::filesystem::temp_directory_path();
   std::filesystem::path temp_path_ = std::filesystem::temp_directory_path();

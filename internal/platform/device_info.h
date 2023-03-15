@@ -33,10 +33,14 @@ class DeviceInfo {
   virtual std::u16string GetOsDeviceName() const = 0;
   virtual api::DeviceInfo::DeviceType GetDeviceType() const = 0;
   virtual api::DeviceInfo::OsType GetOsType() const = 0;
+  virtual std::string GetBluetoothMacAddress() const = 0;
+
   virtual std::optional<std::u16string> GetFullName() const = 0;
   virtual std::optional<std::u16string> GetGivenName() const = 0;
   virtual std::optional<std::u16string> GetLastName() const = 0;
   virtual std::optional<std::string> GetProfileUserName() const = 0;
+  // An image URL representing the device.
+  virtual std::optional<std::string> GetDeviceImageUrl() const = 0;
 
   virtual std::filesystem::path GetDownloadPath() const = 0;
   virtual std::filesystem::path GetAppDataPath() const = 0;

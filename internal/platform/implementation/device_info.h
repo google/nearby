@@ -37,12 +37,14 @@ class DeviceInfo {
   virtual std::optional<std::u16string> GetOsDeviceName() const = 0;
   virtual DeviceType GetDeviceType() const = 0;
   virtual OsType GetOsType() const = 0;
+  virtual std::string GetBluetoothMacAddress() const = 0;
 
   // Gets basic information of current user.
   virtual std::optional<std::u16string> GetFullName() const = 0;
   virtual std::optional<std::u16string> GetGivenName() const = 0;
   virtual std::optional<std::u16string> GetLastName() const = 0;
   virtual std::optional<std::string> GetProfileUserName() const = 0;
+  virtual std::optional<std::string> GetDeviceImageUrl() const = 0;
 
   // Gets known paths of current user.
   virtual std::optional<std::filesystem::path> GetDownloadPath() const = 0;
