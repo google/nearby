@@ -18,10 +18,26 @@
 #include <string>
 #include <utility>
 
+#include "internal/platform/ble_v2.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace fastpair {
+namespace {
+// A stub BlePeripheral implementation.
+class BlePeripheralStub : public api::ble_v2::BlePeripheral {
+ public:
+  explicit BlePeripheralStub(absl::string_view ble_address) {
+    ble_address_ = std::string(ble_address);
+  }
+
+  std::string GetAddress() const override { return ble_address_; }
+
+ private:
+  std::string ble_address_;
+};
+}  // namespace
 
 Ble::~Ble() {
   // We never enabled Bluetooth, nothing to do.
@@ -165,6 +181,15 @@ bool Ble::StopScanning(const std::string& service_id) {
   bool ret = medium_.StopScanning(service_id);
   is_scanning_ = false;
   return ret;
+}
+
+std::unique_ptr<GattClient> Ble::ConnectToGattServer(
+    absl::string_view ble_address) {
+  MutexLock lock(&mutex_);
+  auto v2_peripheral = std::make_unique<BlePeripheralStub>(ble_address);
+  return v2_medium_.ConnectToGattServer(BleV2Peripheral(v2_peripheral.get()),
+                                        api::ble_v2::TxPowerLevel::kUnknown,
+                                        {});
 }
 
 bool Ble::IsScanning() {

@@ -16,12 +16,14 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_BLE_BLE_H_
 
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/ble.h"
+#include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
@@ -74,6 +76,10 @@ class Ble {
                      DiscoveredPeripheralCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Returns a new GattClient connection to a gatt server.
+  std::unique_ptr<GattClient> ConnectToGattServer(
+      absl::string_view ble_address);
+
   // Disables Ble discovery mode.
   bool StopScanning(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -89,6 +95,7 @@ class Ble {
   BluetoothAdapter adapter_;
   DiscoveredPeripheralCallback discovered_peripheral_callback_;
   BleMedium medium_ ABSL_GUARDED_BY(mutex_){adapter_};
+  BleV2Medium v2_medium_ ABSL_GUARDED_BY(mutex_){adapter_};
   bool is_scanning_ = false;
 
   // Same as IsAvailable(), but must be called with mutex_ held.

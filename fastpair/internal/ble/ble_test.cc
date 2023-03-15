@@ -18,6 +18,7 @@
 
 #include "gtest/gtest.h"
 #include "internal/platform/ble.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 
@@ -111,6 +112,13 @@ TEST_F(BleTest, CanStartDiscovery) {
   EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_a.StopScanning(service_id));
   EXPECT_FALSE(ble_a.IsScanning());
+  env_.Stop();
+}
+
+TEST_F(BleTest, CannConnectToGattServer) {
+  env_.Start();
+  Ble ble;
+  EXPECT_NE(ble.ConnectToGattServer("bleaddress"), nullptr);
   env_.Stop();
 }
 
