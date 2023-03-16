@@ -410,6 +410,7 @@ let package = Package(
         "internal/BUILD",
         "internal/crypto/BUILD",
         "internal/crypto/BUILD.gn",
+        "internal/platform/flags/BUILD",
         "internal/platform/implementation/shared/BUILD",
         "internal/platform/implementation/apple/Mediums/BUILD",
         "internal/platform/implementation/apple/Mediums/Ble/Sockets/BUILD",

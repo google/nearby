@@ -23,7 +23,8 @@
 #include "absl/strings/match.h"
 
 // Nearby connections headers
-#include "internal/platform/feature_flags.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
@@ -43,7 +44,9 @@ WifiHotspotServerSocket::WifiHotspotServerSocket(int port) : port_(port) {}
 WifiHotspotServerSocket::~WifiHotspotServerSocket() { Close(); }
 
 std::string WifiHotspotServerSocket::GetIPAddress() const {
-  if (FeatureFlags::GetInstance().GetFlags().use_winsock) {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableHotspotWin32Socket)) {
     if (listen_socket_ == INVALID_SOCKET) {
       return {};
     }
@@ -64,7 +67,9 @@ std::string WifiHotspotServerSocket::GetIPAddress() const {
 }
 
 int WifiHotspotServerSocket::GetPort() const {
-  if (FeatureFlags::GetInstance().GetFlags().use_winsock) {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableHotspotWin32Socket)) {
     if (listen_socket_ == INVALID_SOCKET) {
       NEARBY_LOGS(WARNING) << __func__ << ": listen_socket_ is invalid.";
       return 0;
@@ -82,7 +87,9 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
   absl::MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << __func__ << ": Accept is called.";
 
-  if (FeatureFlags::GetInstance().GetFlags().use_winsock) {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableHotspotWin32Socket)) {
     while (!closed_ && pending_client_sockets_.empty()) {
       cond_.Wait(&mutex_);
     }
@@ -116,7 +123,9 @@ Exception WifiHotspotServerSocket::Close() {
     absl::MutexLock lock(&mutex_);
     NEARBY_LOGS(INFO) << __func__ << ": Close is called.";
 
-    if (FeatureFlags::GetInstance().GetFlags().use_winsock) {
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            platform::config_package_nearby::nearby_platform_feature::
+                kEnableHotspotWin32Socket)) {
       if (listen_socket_ != INVALID_SOCKET) {
         NEARBY_LOGS(INFO) << ": Close listen_socket_: " << listen_socket_;
         closesocket(listen_socket_);
@@ -399,7 +408,9 @@ bool WifiHotspotServerSocket::listen() {
     return false;
   }
 
-  if (FeatureFlags::GetInstance().GetFlags().use_winsock) {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableHotspotWin32Socket)) {
     return SetupServerSocketWinSock();
   } else {
     return SetupServerSocketWinRT();
