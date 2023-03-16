@@ -17,6 +17,13 @@ licenses(["notice"])
 package(default_visibility = ["//visibility:public"])
 
 proto_library(
+    name = "multiplex_frames_proto",
+    srcs = [
+        "multiplex_frames.proto",
+    ],
+)
+
+proto_library(
     name = "nfc_frames_proto",
     srcs = [
         "nfc_frames.proto",

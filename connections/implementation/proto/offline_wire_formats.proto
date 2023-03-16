@@ -119,6 +119,11 @@ message ConnectionResponseFrame {
   }
   optional ResponseStatus response = 3;
   optional OsInfo os_info = 4;
+  // A bitmask value to indicate which medium supports Multiplex transmission
+  // feature. Each supporting medium could utilize one bit starting from the
+  // least significant bit in this field. Refer to ClientProxy.java for the bit
+  // usages.
+  optional int32 multiplex_socket_bitmask = 5;
 }
 
 message PayloadTransferFrame {
