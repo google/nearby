@@ -23,6 +23,8 @@ namespace fastpair {
 // Bluetooth Uuid
 constexpr char kServiceId[] = "Fast Pair";
 
+constexpr char kRfcommUuid[] = "df21fe2c-2515-4fdb-8886-f12c4d67927c";
+
 // Key pair
 constexpr int kSharedSecretKeyByteSize = 16;
 constexpr int kPublicKeyByteSize = 64;

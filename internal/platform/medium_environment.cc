@@ -25,6 +25,7 @@
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
+#include "absl/strings/escaping.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -199,9 +200,13 @@ api::BluetoothDevice* MediumEnvironment::FindBluetoothDevice(
   api::BluetoothDevice* device = nullptr;
   CountDownLatch latch(1);
   RunOnMediumEnvironmentThread([this, &device, &latch, &mac_address]() {
+    NEARBY_LOGS(INFO) << " Looking for: "
+                      << absl::BytesToHexString(mac_address);
     for (auto& item : bluetooth_mediums_) {
       auto* adapter = item.second.adapter;
       if (!adapter) continue;
+      NEARBY_LOGS(INFO) << " Adapter: "
+                        << absl::BytesToHexString(adapter->GetMacAddress());
       if (adapter->GetMacAddress() == mac_address) {
         device = bluetooth_adapters_[adapter];
         break;
