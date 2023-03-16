@@ -103,10 +103,10 @@ void Medium::RunLoop(BluetoothSocket socket) {
   InputStream& input = socket.GetInputStream();
   while (!cancellation_flag_.Cancelled()) {
     ExceptionOr<ByteArray> header = input.Read(kHeaderSize);
-    if (!header.ok() || header.GetResult().size() != kHeaderSize) {
+    if (!header.ok() || header.result().size() != kHeaderSize) {
       break;
     }
-    absl::string_view data = header.GetResult().AsStringView();
+    absl::string_view data = header.result().AsStringView();
     MessageGroup group = static_cast<MessageGroup>(data[0]);
     MessageCode code = static_cast<MessageCode>(data[1]);
     int length = static_cast<unsigned int>(data[2]) * 256 +
@@ -117,12 +117,12 @@ void Medium::RunLoop(BluetoothSocket socket) {
     } else {
       payload = ExceptionOr<ByteArray>(ByteArray(""));
     }
-    if (!payload.ok() || payload.GetResult().size() != length) {
+    if (!payload.ok() || payload.result().size() != length) {
       break;
     }
     observer_.OnReceived(Message{.message_group = group,
                                  .message_code = code,
-                                 .payload = std::string(payload.GetResult())});
+                                 .payload = std::string(payload.result())});
   }
   socket.Close();
   if (!cancellation_flag_.Cancelled()) {
