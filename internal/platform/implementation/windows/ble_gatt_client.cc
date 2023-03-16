@@ -414,7 +414,6 @@ bool BleGattClient::SetCharacteristicSubscription(
         on_characteristic_changed_cb) {
   NEARBY_LOGS(VERBOSE) << __func__
                        << ": Started to set Characteristic Subscription.";
-  absl::MutexLock lock(&mutex_);
   GattClientCharacteristicConfigurationDescriptorValue gcccd_value =
       GattClientCharacteristicConfigurationDescriptorValue::None;
   if ((characteristic.property & Property::kNotify) != Property::kNone) {
@@ -430,10 +429,12 @@ bool BleGattClient::SetCharacteristicSubscription(
     return false;
   }
 
-  GattCharacteristicData gatt_characteristic_data =
-      native_characteristic_map_[characteristic];
-  std::optional<GattCharacteristic> gatt_characteristic =
-      gatt_characteristic_data.native_characteristic;
+  std::optional<GattCharacteristic> gatt_characteristic;
+  {
+    absl::MutexLock lock(&mutex_);
+    gatt_characteristic =
+        native_characteristic_map_[characteristic].native_characteristic;
+  }
 
   if (!gatt_characteristic.has_value()) {
     NEARBY_LOGS(ERROR) << __func__
@@ -450,30 +451,29 @@ bool BleGattClient::SetCharacteristicSubscription(
     return false;
   }
 
+  absl::MutexLock lock(&mutex_);
   // Set value changed handler
   try {
     if (enable) {
-      gatt_characteristic_data.notification_token =
+      native_characteristic_map_[characteristic].on_characteristic_changed_cb =
+          std::move(on_characteristic_changed_cb);
+      native_characteristic_map_[characteristic].notification_token =
           gatt_characteristic->ValueChanged(
-              [this, &on_characteristic_changed_cb](
-                  GattCharacteristic const& characteristic,
+              [&](GattCharacteristic const& native_characteristic,
                   GattValueChangedEventArgs args) {
-                BleGattClient::OnCharacteristicValueChanged(
-                    characteristic, args,
-                    std::move(on_characteristic_changed_cb));
+                BleGattClient::OnCharacteristicValueChanged(characteristic,
+                                                            args);
               });
 
-      if (!gatt_characteristic_data.notification_token) {
+      if (!native_characteristic_map_[characteristic].notification_token) {
         NEARBY_LOGS(ERROR) << __func__
                            << ": Failed to add value change handler.";
         return false;
       }
-    } else {
-      if (gatt_characteristic_data.notification_token) {
-        gatt_characteristic->ValueChanged(
-            std::exchange(gatt_characteristic_data.notification_token, {}));
+    } else if (native_characteristic_map_[characteristic].notification_token) {
+        gatt_characteristic->ValueChanged(std::exchange(
+            native_characteristic_map_[characteristic].notification_token, {}));
       }
-    }
     NEARBY_LOGS(ERROR) << __func__
                        << ": Successfully set Characteristic Subscription.";
     return true;
@@ -610,10 +610,9 @@ bool BleGattClient::WriteCharacteristicConfigurationDescriptor(
 }
 
 void BleGattClient::OnCharacteristicValueChanged(
-    GattCharacteristic const& characteristic, GattValueChangedEventArgs args,
-    absl::AnyInvocable<void(absl::string_view value)>
-        on_characteristic_changed_cb) {
-  NEARBY_LOGS(VERBOSE) << __func__ << "Gatt Characteristic value changed.";
+    const api::ble_v2::GattCharacteristic& characteristic,
+    GattValueChangedEventArgs args) {
+  NEARBY_LOGS(VERBOSE) << __func__ << ": Gatt Characteristic value changed.";
   IBuffer buffer = args.CharacteristicValue();
   int size = buffer.Length();
   DataReader data_reader = DataReader::FromBuffer(buffer);
@@ -624,7 +623,10 @@ void BleGattClient::OnCharacteristicValueChanged(
   }
   NEARBY_LOGS(VERBOSE) << __func__
                        << ": Got characteristic value length= " << data.size();
-  on_characteristic_changed_cb(data);
+  absl::MutexLock lock(&mutex_);
+  DCHECK(
+      native_characteristic_map_[characteristic].on_characteristic_changed_cb);
+  native_characteristic_map_[characteristic].on_characteristic_changed_cb(data);
 }
 
 }  // namespace windows

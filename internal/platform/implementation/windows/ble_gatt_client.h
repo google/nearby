@@ -69,6 +69,8 @@ class BleGattClient : public api::ble_v2::GattClient {
                       GenericAttributeProfile::GattCharacteristic>
         native_characteristic = std::nullopt;
     ::winrt::event_token notification_token;
+    absl::AnyInvocable<void(absl::string_view value)>
+        on_characteristic_changed_cb;
   };
   std::optional<::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
                     GattCharacteristic>
@@ -82,12 +84,9 @@ class BleGattClient : public api::ble_v2::GattClient {
           GattClientCharacteristicConfigurationDescriptorValue value);
 
   void OnCharacteristicValueChanged(
+      const api::ble_v2::GattCharacteristic& characteristic,
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
-          GattCharacteristic const& characteristic,
-      ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
-          GattValueChangedEventArgs args,
-      absl::AnyInvocable<void(absl::string_view value)>
-          on_characteristic_changed_cb);
+          GattValueChangedEventArgs args);
 
   absl::Mutex mutex_;
 
