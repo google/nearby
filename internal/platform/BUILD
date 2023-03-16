@@ -303,6 +303,7 @@ cc_test(
 cc_library(
     name = "types",
     srcs = [
+        "clock_impl.cc",
         "device_info_impl.cc",
         "monitored_runnable.cc",
         "pending_job_registry.cc",
@@ -317,6 +318,8 @@ cc_library(
         "cancelable.h",
         "cancelable_alarm.h",
         "cancellable_task.h",
+        "clock.h",
+        "clock_impl.h",
         "condition_variable.h",
         "count_down_latch.h",
         "crypto.h",
