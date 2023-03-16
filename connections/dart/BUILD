@@ -51,6 +51,8 @@ objc_library(
         "//connections:core",
         "//connections:core_types",
         "//connections/c",
+        "//connections/implementation/flags:connections_flags",
+        "//internal/flags:nearby_flags",
         "//internal/platform:types",
         "//internal/platform/implementation/apple",  # buildcleaner: keep
         "//third_party/dart_lang/v2:dart_api_dl",
