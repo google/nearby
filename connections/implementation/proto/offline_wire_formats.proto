@@ -121,8 +121,9 @@ message ConnectionResponseFrame {
   optional OsInfo os_info = 4;
   // A bitmask value to indicate which medium supports Multiplex transmission
   // feature. Each supporting medium could utilize one bit starting from the
-  // least significant bit in this field. Refer to ClientProxy.java for the bit
-  // usages.
+  // least significant bit in this field. eq. BT utilizes the LSB bit which 0x01
+  // means bt supports multiplex while 0x00 means not. Refer to ClientProxy.java
+  // for the bit usages.
   optional int32 multiplex_socket_bitmask = 5;
 }
 
