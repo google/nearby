@@ -205,6 +205,12 @@ enum PayloadStatus {
 
   // The connection not encrypted yet.
   ENDPOINT_UNENCRYPTED = 9;
+
+  // The payload was stopped by the local client disconnection.
+  LOCAL_CLIENT_DISCONNECTION = 10;
+
+  // The payload was stopped by the remote client disconnection.
+  REMOTE_CLIENT_DISCONNECTION = 11;
 }
 
 // The bandwidth of the mediums.
