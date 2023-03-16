@@ -15,6 +15,8 @@
 #ifndef PLATFORM_PUBLIC_FUTURE_H_
 #define PLATFORM_PUBLIC_FUTURE_H_
 
+#include <utility>
+
 #include "internal/platform/settable_future.h"
 
 namespace nearby {
@@ -22,6 +24,13 @@ namespace nearby {
 template <typename T>
 class Future final {
  public:
+  // Default Future. Does not time out.
+  Future() : impl_(std::make_shared<SettableFuture<T>>()) {}
+
+  // Creates a Future with a timeout.
+  explicit Future(absl::Duration timeout)
+      : impl_(std::make_shared<SettableFuture<T>>(timeout)) {}
+
   virtual bool Set(T value) { return impl_->Set(std::move(value)); }
   virtual bool SetException(Exception exception) {
     return impl_->SetException(exception);
@@ -46,7 +55,7 @@ class Future final {
   // 2)
   // Future<bool> future = DoSomeAsyncWork(); // Returns future, but keeps copy.
   // if (future.Get().Ok()) { /*...*/ }
-  std::shared_ptr<SettableFuture<T>> impl_{new SettableFuture<T>()};
+  std::shared_ptr<SettableFuture<T>> impl_;
 };
 
 }  // namespace nearby

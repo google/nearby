@@ -15,8 +15,13 @@
 #ifndef PLATFORM_IMPL_G3_TIMER_H_
 #define PLATFORM_IMPL_G3_TIMER_H_
 
+#include <atomic>
+#include <memory>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/time/time.h"
+#include "internal/platform/implementation/g3/scheduled_executor.h"
 #include "internal/platform/implementation/timer.h"
 
 namespace nearby {
@@ -29,39 +34,55 @@ class Timer : public api::Timer {
 
   bool Create(int delay, int interval,
               absl::AnyInvocable<void()> callback) override {
-    if (delay < 0 || interval < 0) {
+    if (delay < 0 || interval < 0 || callback == nullptr) {
       return false;
     }
+    interval_ = absl::Milliseconds(interval);
     callback_ = std::move(callback);
     is_stopped_ = false;
-    return true;
+    return Schedule(absl::Milliseconds(delay));
   }
 
   bool Stop() override {
     is_stopped_ = true;
-    return true;
+    absl::MutexLock lock(&mutex_);
+    if (task_) {
+      bool result = task_->Cancel();
+      task_.reset();
+      return result;
+    }
+    return false;
   }
 
   bool FireNow() override {
-    if (is_stopped_ || !callback_) {
+    if (is_stopped_) {
       return false;
     }
     callback_();
     return true;
   }
 
-  // Mocked methods for test only
-  void TriggerCallback() {
-    if (is_stopped_ || callback_ == nullptr) {
-      return;
-    }
+ private:
+  bool Schedule(absl::Duration delay) {
+    if (delay == absl::ZeroDuration()) return false;
+    absl::MutexLock lock(&mutex_);
+    task_ = executor_.Schedule([this]() { TriggerCallback(); }, delay);
+    return true;
+  }
 
+  void TriggerCallback() {
+    if (is_stopped_) return;
+    Schedule(interval_);
     callback_();
   }
 
  private:
+  absl::Mutex mutex_;
   absl::AnyInvocable<void()> callback_;
-  bool is_stopped_ = false;
+  std::atomic_bool is_stopped_;
+  absl::Duration interval_;
+  std::shared_ptr<api::Cancelable> task_ ABSL_GUARDED_BY(mutex_);
+  ScheduledExecutor executor_;
 };
 
 }  // namespace g3

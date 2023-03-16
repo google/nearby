@@ -17,6 +17,8 @@
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "internal/platform/count_down_latch.h"
+#include "internal/platform/direct_executor.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/single_thread_executor.h"
 
@@ -230,6 +232,39 @@ TEST(FutureTest, AddListenerWhenAlreadySetExceptionCallsCallback) {
   }
 
   EXPECT_EQ(call_count, 1);
+}
+
+TEST(FutureTest, TimeoutSetsException) {
+  Future<int> future(absl::Milliseconds(10));
+
+  EXPECT_EQ(future.Get().exception(), Exception::kTimeout);
+}
+
+TEST(FutureTest, TimeoutCallsListeners) {
+  Future<int> future(absl::Milliseconds(10));
+  CountDownLatch latch(1);
+  future.AddListener([&]() { latch.CountDown(); },
+                     &DirectExecutor::GetInstance());
+
+  EXPECT_TRUE(latch.Await().Ok());
+
+  EXPECT_EQ(future.Get().exception(), Exception::kTimeout);
+}
+
+TEST(FutureTest, SetValueBeforeTimeout) {
+  Future<int> future(absl::Minutes(1));
+
+  future.Set(5);
+
+  EXPECT_EQ(future.Get().result(), 5);
+}
+
+TEST(FutureTest, SetExceptionBeforeTimeout) {
+  Future<int> future(absl::Minutes(1));
+
+  future.SetException({Exception::kExecution});
+
+  EXPECT_EQ(future.Get().exception(), Exception::kExecution);
 }
 
 }  // namespace nearby

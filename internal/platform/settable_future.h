@@ -15,6 +15,7 @@
 #ifndef PLATFORM_PUBLIC_SETTABLE_FUTURE_H_
 #define PLATFORM_PUBLIC_SETTABLE_FUTURE_H_
 
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -22,6 +23,7 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/system_clock.h"
+#include "internal/platform/timer_impl.h"
 
 namespace nearby {
 
@@ -29,10 +31,18 @@ template <typename T>
 class SettableFuture : public api::SettableFuture<T> {
  public:
   SettableFuture() = default;
+
+  // Creates a SettableFuture that fails with a kTimeout when `timeout` expires.
+  explicit SettableFuture(absl::Duration timeout)
+      : timer_(absl::make_unique<TimerImpl>()) {
+    timer_->Start(absl::ToInt64Milliseconds(timeout), 0,
+                  [this] { SetException({Exception::kTimeout}); });
+  }
   ~SettableFuture() override = default;
 
   bool Set(T value) override {
     MutexLock lock(&mutex_);
+    timer_.reset();
     if (!done_) {
       value_ = std::move(value);
       done_ = true;
@@ -60,6 +70,13 @@ class SettableFuture : public api::SettableFuture<T> {
 
   bool SetException(Exception exception) override {
     MutexLock lock(&mutex_);
+    if (timer_) {
+      timer_->Stop();
+      // We can't destroy the timer from the timer.
+      if (!exception.Raised(Exception::kTimeout)) {
+        timer_.reset();
+      }
+    }
     return SetExceptionLocked(exception);
   }
 
@@ -120,6 +137,7 @@ class SettableFuture : public api::SettableFuture<T> {
   bool done_{false};
   T value_;
   Exception exception_{Exception::kFailed};
+  std::unique_ptr<TimerImpl> timer_;
 };
 
 }  // namespace nearby
