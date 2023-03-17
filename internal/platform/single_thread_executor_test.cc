@@ -20,6 +20,8 @@
 #include "gtest/gtest.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
+#include "absl/time/time.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 
 namespace nearby {
@@ -96,6 +98,39 @@ TEST(SingleThreadExecutorTest, CanSubmit) {
       executor.Submit<bool>([]() { return ExceptionOr<bool>{true}; }, &future);
   EXPECT_TRUE(submitted);
   EXPECT_TRUE(future.Get().result());
+}
+
+TEST(SingleThreadExecutorTest, ShutdownWaitsForRunningTasks) {
+  SingleThreadExecutor executor;
+  std::atomic_int value = 0;
+  executor.Execute([&]() {
+    absl::SleepFor(absl::Seconds(1));
+    value += 1;
+  });
+
+  executor.Shutdown();
+
+  EXPECT_EQ(value, 1);
+}
+
+TEST(SingleThreadExecutorTest, ExecuteAfterShutdownFails) {
+  SingleThreadExecutor executor;
+
+  executor.Shutdown();
+  executor.Execute([&]() { FAIL() << "Task should not run"; });
+}
+
+TEST(SingleThreadExecutorTest, ExecuteDuringShutdownFails) {
+  CountDownLatch latch(1);
+  SingleThreadExecutor executor;
+
+  executor.Execute([&]() {
+    latch.CountDown();
+    absl::SleepFor(absl::Seconds(1));
+    executor.Execute([&]() { FAIL() << "Task should not run"; });
+  });
+  latch.Await();
+  executor.Shutdown();
 }
 
 struct ThreadCheckTestClass {

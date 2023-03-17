@@ -173,6 +173,39 @@ TEST(ScheduledExecutorTest,
   EXPECT_EQ(value, 1);
 }
 
+TEST(ScheduledExecutorTest, ShutdownWaitsForRunningTasks) {
+  ScheduledExecutor executor;
+  std::atomic_int value = 0;
+  executor.Execute([&]() {
+    absl::SleepFor(kLongDelay);
+    value += 1;
+  });
+
+  executor.Shutdown();
+
+  EXPECT_EQ(value, 1);
+}
+
+TEST(ScheduledExecutorTest, ExecuteAfterShutdownFails) {
+  ScheduledExecutor executor;
+
+  executor.Shutdown();
+  executor.Execute([&]() { FAIL() << "Task should not run"; });
+}
+
+TEST(ScheduledExecutorTest, ExecuteDuringShutdownFails) {
+  CountDownLatch latch(1);
+  ScheduledExecutor executor;
+
+  executor.Execute([&]() {
+    latch.CountDown();
+    absl::SleepFor(kLongDelay);
+    executor.Execute([&]() { FAIL() << "Task should not run"; });
+  });
+  latch.Await();
+  executor.Shutdown();
+}
+
 struct ThreadCheckTestClass {
   ScheduledExecutor executor;
   int value ABSL_GUARDED_BY(executor) = 0;
