@@ -50,6 +50,7 @@ cc_library(
         "//internal:__pkg__",
         "//internal/platform:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
+        "//internal/weave:__pkg__",
         "//location/nearby/cpp:__subpackages__",
         "//presence:__subpackages__",
     ],

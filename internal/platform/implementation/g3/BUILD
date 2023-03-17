@@ -133,6 +133,7 @@ cc_library(
         "//internal/platform:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
         "//internal/test:__subpackages__",
+        "//internal/weave:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
         "//presence:__subpackages__",
     ],

@@ -410,6 +410,7 @@ let package = Package(
         "internal/BUILD",
         "internal/crypto/BUILD",
         "internal/crypto/BUILD.gn",
+        "internal/weave/BUILD",
         "internal/platform/flags/BUILD",
         "internal/platform/implementation/shared/BUILD",
         "internal/platform/implementation/apple/Mediums/BUILD",
@@ -543,6 +544,7 @@ let package = Package(
         "internal/test/fake_timer_test.cc",
         "internal/test/fake_device_info_test.cc",
         "internal/test/fake_task_runner_test.cc",
+        "internal/weave/packet_test.cc",
         // simulation
         "connections/implementation/offline_simulation_user.cc",
         "connections/implementation/simulation_user.cc",
