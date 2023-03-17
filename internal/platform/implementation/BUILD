@@ -42,6 +42,7 @@ cc_library(
         "//fastpair:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
+        "//internal/test:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
         "//presence:__subpackages__",
     ],

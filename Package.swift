@@ -422,6 +422,7 @@ let package = Package(
         "internal/flags/BUILD",
         "internal/network/BUILD",
         "internal/base/BUILD",
+        "internal/test/BUILD",
         // tests
         "connections/listeners_test.cc",
         "connections/strategy_test.cc",
@@ -538,6 +539,10 @@ let package = Package(
         "internal/network/http_request_test.cc",
         "internal/network/http_client_impl_test.cc",
         "internal/network/http_status_code_test.cc",
+        "internal/test/fake_clock_test.cc",
+        "internal/test/fake_timer_test.cc",
+        "internal/test/fake_device_info_test.cc",
+        "internal/test/fake_task_runner_test.cc",
         // simulation
         "connections/implementation/offline_simulation_user.cc",
         "connections/implementation/simulation_user.cc",
