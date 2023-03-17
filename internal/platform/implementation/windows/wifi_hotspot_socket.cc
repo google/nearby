@@ -106,34 +106,34 @@ ExceptionOr<ByteArray> WifiHotspotSocket::SocketInputStream::Read(
 
       ByteArray data((char*)ibuffer.data(), ibuffer.Length());
       return ExceptionOr<ByteArray>(data);
-    } else if (socket_type_ == SocketType::kWin32Socket) {
-      char recv_buf[kMaxByteRecieved];
-      int result;
-      struct fd_set readfds;
+    }
+    // When socket_type_ == SocketType::kWin32Socket
+    char recv_buf[kMaxByteRecieved];
+    int result;
+    struct fd_set readfds;
 
-      result = recv(socket_, recv_buf, size, 0);
-      if (result > 0) {
-        ByteArray data(recv_buf, result);
-        return ExceptionOr<ByteArray>(data);
-      } else if (result == 0) {
-        NEARBY_LOGS(INFO) << "Connection closed.";
-        return {Exception::kIo};
-      } else {
-        // When WSAEWOULDBLOCK happens, it means the packet for receive is not
-        // ready at the moment. The API select() will block till the packet is
-        // ready for recieving.
-        if (WSAEWOULDBLOCK == WSAGetLastError()) {
-          FD_ZERO(&readfds);
-          FD_SET(socket_, &readfds);
-          if (select(0, &readfds, nullptr, nullptr, nullptr) > 0) {
-            if (FD_ISSET(socket_, &readfds)) {
-              result = recv(socket_, recv_buf, size, 0);
-              if (result > 0) {
-                ByteArray data(recv_buf, result);
-                return ExceptionOr<ByteArray>(data);
-              }
-            }
-          }
+    result = recv(socket_, recv_buf, size, 0);
+    if (result > 0) {
+      ByteArray data(recv_buf, result);
+      return ExceptionOr<ByteArray>(data);
+    }
+    if (result == 0) {
+      NEARBY_LOGS(INFO) << "Connection closed.";
+      return {Exception::kIo};
+    }
+    // When WSAEWOULDBLOCK happens, it means the packet for receive is not
+    // ready at the moment. The API select() will block till the packet is
+    // ready for recieving.
+    if (WSAEWOULDBLOCK == WSAGetLastError()) {
+      FD_ZERO(&readfds);
+      FD_SET(socket_, &readfds);
+      if ((select(/*nfds ignored*/ 0, &readfds, nullptr, nullptr, nullptr) >
+           0) &&
+          FD_ISSET(socket_, &readfds)) {
+        result = recv(socket_, recv_buf, size, 0);
+        if (result > 0) {
+          ByteArray data(recv_buf, result);
+          return ExceptionOr<ByteArray>(data);
         }
       }
     }
@@ -169,18 +169,22 @@ ExceptionOr<size_t> WifiHotspotSocket::SocketInputStream::Skip(size_t offset) {
     result = recv(socket_, recv_buf, offset, 0);
     if (result > 0) {
       return ExceptionOr<size_t>((size_t)result);
-    } else if (result == 0) {
+    }
+    if (result == 0) {
       NEARBY_LOGS(INFO) << "Connection closed.";
     } else {
+      // When WSAEWOULDBLOCK happens, it means the packet for receive is not
+      // ready at the moment. The API select() will block till the packet is
+      // ready for recieving.
       if (WSAEWOULDBLOCK == WSAGetLastError()) {
         FD_ZERO(&readfds);
         FD_SET(socket_, &readfds);
-        if (select(0, &readfds, nullptr, nullptr, nullptr) > 0) {
-          if (FD_ISSET(socket_, &readfds)) {
-            result = recv(socket_, recv_buf, offset, 0);
-            if (result > 0) {
-              return ExceptionOr<size_t>((size_t)result);
-            }
+        if ((select(/*nfds ignored*/ 0, &readfds, nullptr, nullptr, nullptr) >
+             0) &&
+            FD_ISSET(socket_, &readfds)) {
+          result = recv(socket_, recv_buf, offset, 0);
+          if (result > 0) {
+            return ExceptionOr<size_t>((size_t)result);
           }
         }
       }
@@ -242,19 +246,18 @@ Exception WifiHotspotSocket::SocketOutputStream::Write(const ByteArray& data) {
 
       output_stream_.WriteAsync(buffer).get();
       return {Exception::kSuccess};
-    } else {
-      // When socket_type_ == SocketType::kWin32Socket
-      char sendbuf[kMaxByteRecieved];
-      int result;
-
-      std::memcpy(sendbuf, data.data(), data.size());
-      result = send(socket_, sendbuf, data.size(), 0);
-      if (result > 0) {
-        return {Exception::kSuccess};
-      } else {
-        NEARBY_LOGS(INFO) << "recv failed: " << WSAGetLastError();
-      }
     }
+    // When socket_type_ == SocketType::kWin32Socket
+    char sendbuf[kMaxByteRecieved];
+    int result;
+
+    std::memcpy(sendbuf, data.data(), data.size());
+    result = send(socket_, sendbuf, data.size(), 0);
+    if (result > 0) {
+      return {Exception::kSuccess};
+    }
+    NEARBY_LOGS(INFO) << "recv failed: " << WSAGetLastError();
+
     return {Exception::kIo};
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
@@ -292,7 +295,8 @@ Exception WifiHotspotSocket::SocketOutputStream::Close() {
   try {
     if (socket_type_ == SocketType::kWinRTSocket) {
       output_stream_.Close();
-    } else if (socket_type_ == SocketType::kWin32Socket) {
+    } else {
+      // When socket_type_ == SocketType::kWin32Socket
       shutdown(socket_, SD_SEND);
     }
     return {Exception::kSuccess};
