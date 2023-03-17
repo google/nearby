@@ -15,28 +15,24 @@
 #include "connections/implementation/base_pcp_handler.h"
 
 #include <algorithm>
-#include <cassert>
-#include <cinttypes>
-#include <cstddef>
-#include <cstdlib>
-#include <limits>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "securegcm/d2d_connection_context_v1.h"
 #include "securegcm/ukey2_handshake.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
 #include "absl/types/span.h"
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/medium_selector.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/logging.h"
@@ -696,7 +692,12 @@ void BasePcpHandler::StripOutUnavailableMediums(
     allowed.bluetooth = mediums_->GetBluetoothClassic().IsAvailable();
   }
   if (allowed.ble) {
-    allowed.ble = mediums_->GetBle().IsAvailable();
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
+      allowed.ble = mediums_->GetBleV2().IsAvailable();
+    } else {
+      allowed.ble = mediums_->GetBle().IsAvailable();
+    }
   }
   if (allowed.web_rtc) {
     allowed.web_rtc = mediums_->GetWebRtc().IsAvailable();
@@ -720,7 +721,12 @@ void BasePcpHandler::StripOutUnavailableMediums(
     allowed.bluetooth = mediums_->GetBluetoothClassic().IsAvailable();
   }
   if (allowed.ble) {
-    allowed.ble = mediums_->GetBle().IsAvailable();
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
+      allowed.ble = mediums_->GetBleV2().IsAvailable();
+    } else {
+      allowed.ble = mediums_->GetBle().IsAvailable();
+    }
   }
   if (allowed.web_rtc) {
     allowed.web_rtc = mediums_->GetWebRtc().IsAvailable();

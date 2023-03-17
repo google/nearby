@@ -198,7 +198,7 @@ class BleMedium : public api::ble_v2::BleMedium {
    private:
     GNCMBleCentral *central_;
     std::string peripheral_id_;
-    absl::flat_hash_map<api::ble_v2::GattCharacteristic, absl::string_view>
+    absl::flat_hash_map<api::ble_v2::GattCharacteristic, const std::string>
         gatt_characteristic_values_;
   };
 

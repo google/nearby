@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "internal/platform/implementation/apple/bluetooth_adapter.h"
 #include "internal/platform/implementation/apple/utils.h"
@@ -574,7 +575,7 @@ absl::optional<std::string> BleMedium::GattClient::ReadCharacteristic(
   if (it == gatt_characteristic_values_.end()) {
     return absl::nullopt;  // NOLINT
   }
-  return std::string(it->second);
+  return it->second;
 }
 
 bool BleMedium::GattClient::WriteCharacteristic(

@@ -630,7 +630,7 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
   }
   if (slot_characteristic_uuids.empty()) {
     // TODO(b/222392304): More test coverage.
-    NEARBY_LOGS(WARNING) << "Edwin GATT client doesn't have characteristics.";
+    NEARBY_LOGS(WARNING) << "GATT client doesn't have characteristics.";
     advertisement_read_result.RecordLastReadStatus(false);
     return;
   }
@@ -644,7 +644,7 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
   if (!gatt_client->DiscoverServiceAndCharacteristics(
           mediums::bleutils::kCopresenceServiceUuid, characteristic_uuids)) {
     // TODO(b/222392304): More test coverage.
-    NEARBY_LOGS(WARNING) << "Edwin GATT client doesn't have characteristics.";
+    NEARBY_LOGS(WARNING) << "GATT client doesn't have characteristics.";
     advertisement_read_result.RecordLastReadStatus(false);
     return;
   }
