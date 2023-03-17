@@ -245,10 +245,10 @@ bool P2pClusterPcpHandler::IsRecognizedBluetoothEndpoint(
 
 void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
     ClientProxy* client, const std::string& service_id,
-    BluetoothDevice device) {
+    BluetoothDevice& device) {
   RunOnPcpHandlerThread(
       "p2p-bt-device-discovered",
-      [this, client, service_id, device]()
+      [this, client, service_id, &device]()
           RUN_ON_PCP_HANDLER_THREAD() {
             // Make sure we are still discovering before proceeding.
             if (!client->IsDiscovering()) {
@@ -292,10 +292,10 @@ void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
 
 void P2pClusterPcpHandler::BluetoothNameChangedHandler(
     ClientProxy* client, const std::string& service_id,
-    BluetoothDevice device) {
+    BluetoothDevice& device) {
   RunOnPcpHandlerThread(
       "p2p-bt-name-changed",
-      [this, client, service_id, device]()
+      [this, client, service_id, &device]()
           RUN_ON_PCP_HANDLER_THREAD() {
             // Make sure we are still discovering before proceeding.
             if (!client->IsDiscovering()) {
