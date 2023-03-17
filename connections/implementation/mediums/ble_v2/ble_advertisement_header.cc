@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -60,12 +60,20 @@ BleAdvertisementHeader::BleAdvertisementHeader(
   ByteArray advertisement_header_bytes =
       Base64Utils::Decode(ble_advertisement_header_bytes.AsStringView());
   if (advertisement_header_bytes.Empty()) {
-    // The BLE advertisement header is not encoded in base64, but still try to
-    // parse it as raw bytes.
-    NEARBY_LOG(
-        WARNING,
-        "Cannot deserialize BLEAdvertisementHeader: failed Base64 decoding");
-    advertisement_header_bytes = ble_advertisement_header_bytes;
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
+      // The BLE advertisement header is not encoded in base64, but still try to
+      // parse it as raw bytes.
+      NEARBY_LOG(
+          WARNING,
+          "Cannot deserialize BLEAdvertisementHeader: failed Base64 decoding");
+      advertisement_header_bytes = ble_advertisement_header_bytes;
+    } else {
+      NEARBY_LOG(
+          ERROR,
+          "Cannot deserialize BLEAdvertisementHeader: failed Base64 decoding");
+      return;
+    }
   }
 
   if (advertisement_header_bytes.size() < kMinAdvertisementHeaderLength) {
@@ -145,9 +153,9 @@ BleAdvertisementHeader::operator ByteArray() const {
   // clang-format on
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-    return ByteArray(Base64Utils::Encode(ByteArray(std::move(out))));
-  } else {
     return ByteArray(std::move(out));
+  } else {
+    return ByteArray(Base64Utils::Encode(ByteArray(std::move(out))));
   }
 }
 
