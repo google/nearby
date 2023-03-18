@@ -79,15 +79,22 @@ void from_json(const json &json_input, LocalSettings &local_settings) {
 constexpr uint8_t kAndroidDiscoverableBluetoothNameMaxLength = 37;  // bytes
 
 BluetoothAdapter::BluetoothAdapter() : windows_bluetooth_adapter_(nullptr) {
-  windows_bluetooth_adapter_ =
-      winrt::Windows::Devices::Bluetooth::BluetoothAdapter::GetDefaultAsync()
-          .get();
-  if (windows_bluetooth_adapter_ == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": No Bluetooth adapter on this device.";
-  } else {
-    // Gets the radio represented by this Bluetooth adapter.
-    // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter.getradioasync?view=winrt-20348
-    windows_bluetooth_radio_ = windows_bluetooth_adapter_.GetRadioAsync().get();
+  try {
+    windows_bluetooth_adapter_ =
+        winrt::Windows::Devices::Bluetooth::BluetoothAdapter::GetDefaultAsync()
+            .get();
+    if (windows_bluetooth_adapter_ == nullptr) {
+      NEARBY_LOGS(ERROR) << __func__
+                         << ": No Bluetooth adapter on this device.";
+    } else {
+      // Gets the radio represented by this Bluetooth adapter.
+      // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter.getradioasync?view=winrt-20348
+      windows_bluetooth_radio_ =
+          windows_bluetooth_adapter_.GetRadioAsync().get();
+    }
+  } catch (const winrt::hresult_error &error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
   }
 }
 
