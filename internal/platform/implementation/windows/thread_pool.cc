@@ -16,6 +16,7 @@
 
 #include <windows.h>
 
+#include <exception>
 #include <queue>
 #include <utility>
 
@@ -23,6 +24,7 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/runnable.h"
+#include "winrt/base.h"
 
 namespace nearby {
 namespace windows {
@@ -157,7 +159,16 @@ void ThreadPool::RunNextTask() {
     return;
   }
 
-  task();
+  try {
+    task();
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
+                       << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+  }
 }
 
 }  // namespace windows
