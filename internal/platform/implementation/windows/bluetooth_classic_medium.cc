@@ -592,6 +592,12 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
     std::string new_device_name = InspectableReader::ReadString(
         properties.Lookup(L"System.ItemNameDisplay"));
 
+    if (it->second->GetName() == new_device_name) {
+      NEARBY_LOGS(INFO)
+          << "Device name is same as old name, ignore the update.";
+      return {};
+    }
+
     it->second->SetName(new_device_name);
 
     NEARBY_LOGS(INFO)
