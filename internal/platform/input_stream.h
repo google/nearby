@@ -29,10 +29,13 @@ class InputStream {
  public:
   virtual ~InputStream() = default;
 
-  // throws Exception::kIo
+  // Reads at most `size` bytes from the input stream.
+  // Returns an empty byte array on end of file, or Exception::kIo on error.
   virtual ExceptionOr<ByteArray> Read(std::int64_t size) = 0;
 
-  // throws Exception::kIo
+  // Skips `offset` bytes from the stream.
+  // Returns the number of bytes skipped, which can be less than offset on EOF,
+  // or Exception::kIo on error.
   virtual ExceptionOr<size_t> Skip(size_t offset);
 
   // throws Exception::kIo

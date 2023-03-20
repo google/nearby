@@ -126,8 +126,8 @@ TEST(PipeTest, ReadAfterInputStreamClosed) {
   input_stream.Close();
 
   ExceptionOr<ByteArray> read_data = input_stream.Read(Pipe::kChunkSize);
-  EXPECT_TRUE(!read_data.ok());
-  EXPECT_TRUE(read_data.GetException().Raised(Exception::kIo));
+  EXPECT_TRUE(read_data.ok());
+  EXPECT_TRUE(read_data.GetResult().Empty());
 }
 
 TEST(PipeTest, WriteAfterOutputStreamClosed) {

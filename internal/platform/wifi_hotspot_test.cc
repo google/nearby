@@ -20,9 +20,9 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
-#include "internal/platform/medium_environment.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/medium_environment.h"
 #include "internal/platform/wifi_credential.h"
 
 namespace nearby {
@@ -68,16 +68,13 @@ class WifiHotspotMediumTest : public testing::TestWithParam<FeatureFlags> {
     env_.Stop();
     env_.Start();
   }
-  ~WifiHotspotMediumTest() override{
-    env_.Stop();
-  }
+  ~WifiHotspotMediumTest() override { env_.Stop(); }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
 INSTANTIATE_TEST_SUITE_P(ParametrisedWifiHotspotMediumTest,
-                         WifiHotspotMediumTest,
-                         testing::ValuesIn(kTestCases));
+                         WifiHotspotMediumTest, testing::ValuesIn(kTestCases));
 
 TEST_F(WifiHotspotMediumTest, ConstructorDestructorWorks) {
   auto wifi_hotspot_a = std::make_unique<WifiHotspotMedium>();
@@ -163,7 +160,7 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
   EXPECT_TRUE(socket_a.IsValid());
   EXPECT_TRUE(socket_b.IsValid());
   InputStream& in_stream = socket_a.GetInputStream();
-  OutputStream&  out_stream = socket_b.GetOutputStream();
+  OutputStream& out_stream = socket_b.GetOutputStream();
   std::string data(kData);
   EXPECT_TRUE(out_stream.Write(ByteArray(data)).Ok());
   ExceptionOr<ByteArray> read_data = in_stream.Read(kChunkSize);
@@ -174,7 +171,7 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
   socket_b.Close();
   EXPECT_FALSE(out_stream.Write(ByteArray(data)).Ok());
   read_data = in_stream.Read(kChunkSize);
-  EXPECT_FALSE(read_data.ok());
+  EXPECT_TRUE(read_data.GetResult().Empty());
 
   server_socket.Close();
   EXPECT_TRUE(wifi_hotspot_b->DisconnectWifiHotspot());
@@ -234,7 +231,6 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherCanCancelConnect) {
     EXPECT_FALSE(socket_a.IsValid());
     EXPECT_FALSE(socket_b.IsValid());
   }
-
 
   server_socket.Close();
   EXPECT_TRUE(wifi_hotspot_b->DisconnectWifiHotspot());

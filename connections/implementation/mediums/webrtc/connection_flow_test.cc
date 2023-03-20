@@ -317,7 +317,7 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
   offerer_socket.result().GetOutputStream().Write(ByteArray{message});
   ExceptionOr<ByteArray> received_message =
       answerer_socket.result().GetInputStream().Read(4);
-  EXPECT_FALSE(received_message.ok());
+  EXPECT_TRUE(received_message.GetResult().Empty());
 }
 
 TEST_F(ConnectionFlowTest, TerminateOfferer) {
@@ -398,7 +398,7 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
   offerer_socket.result().GetOutputStream().Write(ByteArray{message});
   ExceptionOr<ByteArray> received_message =
       answerer_socket.result().GetInputStream().Read(4);
-  EXPECT_FALSE(received_message.ok());
+  EXPECT_TRUE(received_message.GetResult().Empty());
 }
 }  // namespace
 }  // namespace mediums

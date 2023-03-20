@@ -38,20 +38,16 @@ ExceptionOr<ByteArray> BasePipe::Read(size_t size) {
     }
   }
 
-  if (input_stream_closed_) {
-    return ExceptionOr<ByteArray>{Exception::kIo};
+  // If we received our sentinel chunk, mark the fact that there cannot
+  // possibly be any more chunks to read here on in, and return an empty chunk
+  // to serve as an EOF indication to callers.
+  if (buffer_.empty() || buffer_.front().Empty()) {
+    read_all_chunks_ = true;
+    return ExceptionOr<ByteArray>{ByteArray{}};
   }
 
   ByteArray first_chunk{buffer_.front()};
   buffer_.pop_front();
-
-  // If we received our sentinel chunk, mark the fact that there cannot
-  // possibly be any more chunks to read here on in, and return an empty chunk
-  // to serve as an EOF indication to callers.
-  if (first_chunk.Empty()) {
-    read_all_chunks_ = true;
-    return ExceptionOr<ByteArray>{ByteArray{}};
-  }
 
   // If first_chunk is small enough to not overshoot the requested 'size', just
   // return that.

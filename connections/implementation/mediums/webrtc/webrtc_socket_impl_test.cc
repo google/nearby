@@ -168,7 +168,7 @@ TEST(WebRtcSocketTest, ReadFromClosedChannel) {
   webrtc_socket.GetOutputStream().Write(kMessage);
   webrtc_socket.Close();
 
-  EXPECT_EQ(webrtc_socket.GetInputStream().Read(7).exception(), Exception::kIo);
+  EXPECT_TRUE(webrtc_socket.GetInputStream().Read(7).GetResult().Empty());
 }
 
 TEST(WebRtcSocketTest, DataChannelCloseEventCleansUp) {
@@ -181,7 +181,7 @@ TEST(WebRtcSocketTest, DataChannelCloseEventCleansUp) {
 
   webrtc_socket.OnStateChange();
 
-  EXPECT_EQ(webrtc_socket.GetInputStream().Read(7).exception(), Exception::kIo);
+  EXPECT_TRUE(webrtc_socket.GetInputStream().Read(7).GetResult().Empty());
 
   // Calling Close again should be safe even if the channel is already shut
   // down.

@@ -157,7 +157,7 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanConnect) {
   socket_b.Close();
   EXPECT_FALSE(out_stream.Write(ByteArray(data)).Ok());
   read_data = in_stream.Read(kChunkSize);
-  EXPECT_FALSE(read_data.ok());
+  EXPECT_TRUE(read_data.GetResult().Empty());
 
   server_socket.Close();
   EXPECT_TRUE(wifi_direct_b.DisconnectWifiDirect());

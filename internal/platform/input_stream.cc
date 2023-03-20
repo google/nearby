@@ -34,7 +34,11 @@ ExceptionOr<size_t> InputStream::Skip(size_t offset) {
     if (!result.ok()) {
       return result.GetException();
     }
-    bytes_left -= chunk_size;
+    size_t bytes_read = result.GetResult().size();
+    if (bytes_read == 0) {
+      return ExceptionOr<size_t>(offset - bytes_left);
+    }
+    bytes_left -= bytes_read;
   }
   return ExceptionOr<size_t>(offset);
 }
