@@ -16,7 +16,7 @@ syntax = "proto2";
 
 package location.nearby.mediums;
 
-option optimize_for = LITE_RUNTIME;
+option optimize_for = SPEED;
 option java_outer_classname = "NfcFramesProto";
 option java_package = "com.google.location.nearby.mediums.proto";
 
