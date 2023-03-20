@@ -20,8 +20,8 @@
 #include <string>
 #include <utility>
 
-#include "absl/strings/string_view.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "fastpair/common/fast_pair_http_result.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 #include "fastpair/repository/device_metadata.h"
