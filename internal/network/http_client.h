@@ -31,6 +31,11 @@ class HttpClient {
   virtual void StartRequest(
       const HttpRequest& request,
       std::function<void(const absl::StatusOr<HttpResponse>&)> callback) = 0;
+
+  // The error may be corrected if retried at a later time.
+  static bool IsRetryableHttpError(absl::Status status) {
+    return absl::IsUnavailable(status) || absl::IsFailedPrecondition(status);
+  }
 };
 
 }  // namespace network
