@@ -18,7 +18,7 @@ Utilizes Bluetooth Low Energy (BLE) to discover nearby Bluetooth devices without
 
 An extension to Nearby Connections that features an extensible identity model for authentication and restricted visibility, resource management for system health, and proximity detection through sensor fusion.
 
-### [Nearby for Embedded Systems](embeded/)
+### [Nearby for Embedded Systems](embedded/)
 
 A lightweight implementation of Fast Pair intended for embedded systems.
 
