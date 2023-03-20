@@ -24,6 +24,7 @@ namespace nearby {
 template <typename T>
 class Future final {
  public:
+  using FutureCallback = typename SettableFuture<T>::FutureCallback;
   // Default Future. Does not time out.
   Future() : impl_(std::make_shared<SettableFuture<T>>()) {}
 
@@ -39,8 +40,8 @@ class Future final {
   virtual ExceptionOr<T> Get(absl::Duration timeout) {
     return impl_->Get(timeout);
   }
-  void AddListener(Runnable runnable, api::Executor* executor) {
-    impl_->AddListener(std::move(runnable), executor);
+  void AddListener(FutureCallback callback, api::Executor* executor) {
+    impl_->AddListener(std::move(callback), executor);
   }
   bool IsSet() const { return impl_->IsSet(); }
 

@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "internal/platform/condition_variable.h"
+#include "internal/platform/implementation/listenable_future.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/system_clock.h"
@@ -30,6 +31,7 @@ namespace nearby {
 template <typename T>
 class SettableFuture : public api::SettableFuture<T> {
  public:
+  using FutureCallback = typename api::ListenableFuture<T>::FutureCallback;
   SettableFuture() = default;
 
   // Creates a SettableFuture that fails with a kTimeout when `timeout` expires.
@@ -54,12 +56,15 @@ class SettableFuture : public api::SettableFuture<T> {
     return false;
   }
 
-  void AddListener(Runnable runnable, api::Executor* executor) override {
+  void AddListener(FutureCallback callback, api::Executor* executor) override {
     MutexLock lock(&mutex_);
     if (done_) {
-      executor->Execute(std::move(runnable));
+      executor->Execute(
+          [value = GetLocked(), callback = std::move(callback)]() mutable {
+            callback(std::move(value));
+          });
     } else {
-      listeners_.emplace_back(std::make_pair(executor, std::move(runnable)));
+      listeners_.emplace_back(std::make_pair(executor, std::move(callback)));
     }
   }
 
@@ -85,9 +90,7 @@ class SettableFuture : public api::SettableFuture<T> {
     while (!done_) {
       completed_.Wait();
     }
-    return exception_.value != Exception::kSuccess
-               ? ExceptionOr<T>{exception_.value}
-               : ExceptionOr<T>{value_};
+    return GetLocked();
   }
 
   ExceptionOr<T> Get(absl::Duration timeout) override {
@@ -106,9 +109,7 @@ class SettableFuture : public api::SettableFuture<T> {
         break;
       }
     }
-    return exception_.value != Exception::kSuccess
-               ? ExceptionOr<T>{exception_.value}
-               : ExceptionOr<T>{value_};
+    return GetLocked();
   }
 
  private:
@@ -124,16 +125,25 @@ class SettableFuture : public api::SettableFuture<T> {
     return true;
   }
 
+  ExceptionOr<T> GetLocked() {
+    return exception_.value != Exception::kSuccess
+               ? ExceptionOr<T>{exception_.value}
+               : ExceptionOr<T>{value_};
+  }
+
   void InvokeAllLocked() {
     for (auto& item : listeners_) {
-      item.first->Execute(std::move(item.second));
+      item.first->Execute(
+          [value = GetLocked(), callback = std::move(item.second)]() mutable {
+            callback(std::move(value));
+          });
     }
     listeners_.clear();
   }
 
   mutable Mutex mutex_;
   ConditionVariable completed_{&mutex_};
-  std::vector<std::pair<api::Executor*, Runnable>> listeners_;
+  std::vector<std::pair<api::Executor*, FutureCallback>> listeners_;
   bool done_{false};
   T value_;
   Exception exception_{Exception::kFailed};

@@ -26,11 +26,12 @@ namespace windows {
 template <typename T>
 class ListenableFuture : public api::ListenableFuture<T> {
  public:
+  using FutureCallback = typename api::ListenableFuture<T>::FutureCallback;
   // TODO(b/184975123): replace with real implementation.
   ~ListenableFuture() override = default;
 
   // TODO(b/184975123): replace with real implementation.
-  void AddListener(Runnable runnable, api::Executor* executor) {}
+  void AddListener(FutureCallback callback, api::Executor* executor) {}
 };
 
 }  // namespace windows
