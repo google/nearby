@@ -515,6 +515,7 @@ enum SharingUseCase {
   USE_CASE_WIFI_CREDENTIAL = 3;
   USE_CASE_APP_SHARE = 4;
   USE_CASE_QUICK_SETTING_FILE_SHARE = 5;
+  USE_CASE_SETUP_WIZARD = 6;
 }
 
 // Used only for Windows App now.
