@@ -18,6 +18,7 @@ cc_library(
     hdrs = [
         "nearby_platform_feature_flags.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//internal:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
