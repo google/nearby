@@ -223,33 +223,37 @@ class WifiLanMedium : public api::WifiLanMedium {
   ~WifiLanMedium() override = default;
 
   // Check if a network connection to a primary router exist.
-  bool IsNetworkConnected() const override;
+  bool IsNetworkConnected() const override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Starts to advertising
-  bool StartAdvertising(const NsdServiceInfo& nsd_service_info) override;
+  bool StartAdvertising(const NsdServiceInfo& nsd_service_info) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Stops to advertising
-  bool StopAdvertising(const NsdServiceInfo& nsd_service_info) override;
+  bool StopAdvertising(const NsdServiceInfo& nsd_service_info) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Starts to discovery
   bool StartDiscovery(const std::string& service_type,
-                      DiscoveredServiceCallback callback) override;
+                      DiscoveredServiceCallback callback) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns true once WifiLan discovery for service_type is well and truly
   // stopped; after this returns, there must be no more invocations of the
   // DiscoveredServiceCallback passed in to StartDiscovery() for service_type.
-  bool StopDiscovery(const std::string& service_type) override;
+  bool StopDiscovery(const std::string& service_type) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   std::unique_ptr<api::WifiLanSocket> ConnectToService(
       const NsdServiceInfo& remote_service_info,
-      CancellationFlag* cancellation_flag) override;
+      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   std::unique_ptr<api::WifiLanSocket> ConnectToService(
       const std::string& ip_address, int port,
-      CancellationFlag* cancellation_flag) override;
+      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   std::unique_ptr<api::WifiLanServerSocket> ListenForService(
-      int port = 0) override;
+      int port = 0) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // DnsServiceDeRegister is a async process, after operation finish, callback
   // will call this method to notify the waiting method StopAdvertising to
@@ -290,14 +294,14 @@ class WifiLanMedium : public api::WifiLanMedium {
                               absl::Duration timeout = absl::Seconds(1));
 
   // Methods to manage discovred services.
-  void ClearDiscoveredServices() ABSL_LOCKS_EXCLUDED(mutex_);
+  void ClearDiscoveredServices() ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   std::optional<NsdServiceInfo> GetDiscoveredService(absl::string_view id)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void UpdateDiscoveredService(absl::string_view id,
                                const NsdServiceInfo& nsd_service_info)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void RemoveDiscoveredService(absl::string_view id)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      ABSL_SHARED_LOCKS_REQUIRED(mutex_);
 
   // From mDNS device information, to build NsdServiceInfo.
   // the properties are from DeviceInformation and DeviceInformationUpdate.
@@ -320,6 +324,12 @@ class WifiLanMedium : public api::WifiLanMedium {
   std::string GetErrorMessage(std::exception_ptr eptr);
 
   void RestartScanning();
+
+  // Internal methods to avoid deadlock.
+  bool InternalStopAdvertising(const NsdServiceInfo& nsd_service_info);
+  std::unique_ptr<api::WifiLanSocket> InternalConnectToService(
+      const std::string& ip_address, int port,
+      CancellationFlag* cancellation_flag);
 
   //
   // Dns-sd related properties
@@ -357,7 +367,7 @@ class WifiLanMedium : public api::WifiLanMedium {
       port_to_server_socket_map_;
 
   // Used to protect the access to mDNS instances and scanning related data.
-  absl::Mutex mutex_;
+  mutable absl::Mutex mutex_;
 
   // Keeps the map from device id to service during scanning.
   absl::flat_hash_map<std::string, NsdServiceInfo> discovered_services_map_

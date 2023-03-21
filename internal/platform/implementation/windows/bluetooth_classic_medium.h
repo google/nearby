@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 
+#include "absl/base/thread_annotations.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
@@ -104,14 +105,15 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   ~BluetoothClassicMedium() override;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#startDiscovery()
-  bool StartDiscovery(DiscoveryCallback discovery_callback) override;
+  bool StartDiscovery(DiscoveryCallback discovery_callback) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#cancelDiscovery()
   //
   // Returns true once discovery is well and truly stopped; after this returns,
   // there must be no more invocations of the DiscoveryCallback passed in to
   // StartDiscovery().
-  bool StopDiscovery() override;
+  bool StopDiscovery() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // A combination of
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#createInsecureRfcommSocketToServiceRecord
@@ -128,7 +130,7 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   // On error, throw's an exception
   std::unique_ptr<api::BluetoothSocket> ConnectToService(
       api::BluetoothDevice& remote_device, const std::string& service_uuid,
-      CancellationFlag* cancellation_flag) override;
+      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#listenUsingInsecureRfcommWithServiceRecord
   //
@@ -140,17 +142,18 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   //
   //  Returns nullptr error.
   std::unique_ptr<api::BluetoothServerSocket> ListenForService(
-      const std::string& service_name,
-      const std::string& service_uuid) override;
+      const std::string& service_name, const std::string& service_uuid) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  api::BluetoothDevice* GetRemoteDevice(
-      const std::string& mac_address) override;
+  api::BluetoothDevice* GetRemoteDevice(const std::string& mac_address) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
-  bool StartScanning();
-  bool StopScanning();
-  bool StartAdvertising(bool radio_discoverable);
-  bool StopAdvertising();
+  bool StartScanning() ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+  bool StopScanning() ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+  bool StartAdvertising(bool radio_discoverable)
+      ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+  bool StopAdvertising() ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   bool InitializeServiceSdpAttributes(RfcommServiceProvider rfcomm_provider,
                                       std::string service_name);
   bool IsWatcherStarted();
@@ -192,7 +195,7 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   // hstring is the only type of string winrt understands.
   // https://docs.microsoft.com/en-us/uwp/cpp-ref-for-winrt/hstring
   std::map<winrt::hstring, std::unique_ptr<BluetoothDevice>>
-      discovered_devices_by_id_;
+      discovered_devices_by_id_ ABSL_GUARDED_BY(mutex_);
 
   BluetoothAdapter& bluetooth_adapter_;
 
@@ -204,6 +207,9 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   std::unique_ptr<BluetoothServerSocket> server_socket_ = nullptr;
   BluetoothServerSocket* raw_server_socket_ = nullptr;
   bool is_radio_discoverable_ = false;
+
+  // Used to enable thread safe for APIs.
+  mutable absl::Mutex mutex_;
 };
 
 }  // namespace windows

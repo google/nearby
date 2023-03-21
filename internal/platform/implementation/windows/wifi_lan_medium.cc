@@ -65,6 +65,8 @@ constexpr absl::Duration kConnectServiceTimeout = absl::Seconds(3);
 }  // namespace
 
 bool WifiLanMedium::IsNetworkConnected() const {
+  absl::MutexLock lock(&mutex_);
+
   // connection_profile will be null when there's no network adapter or
   // connection to a network. For example, WiFi isn't connected to an AP/hotspot
   // and ethernet isn't connected to a router/hub/switch.
@@ -73,6 +75,8 @@ bool WifiLanMedium::IsNetworkConnected() const {
 }
 
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
+  absl::MutexLock lock(&mutex_);
+
   bool socket_found = false;
   WifiLanServerSocket* server_socket_ptr = nullptr;
   for (const auto& server_socket : port_to_server_socket_map_) {
@@ -155,7 +159,7 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
     NEARBY_LOGS(WARNING) << "advertising instance name was changed due to have "
                             "same name instance was running.";
     // stop the service and return false
-    StopAdvertising(nsd_service_info);
+    InternalStopAdvertising(nsd_service_info);
     return false;
   }
 
@@ -194,6 +198,12 @@ void WifiLanMedium::NotifyDnsServiceUnregistered(DWORD status) {
 }
 
 bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
+  absl::MutexLock lock(&mutex_);
+  return InternalStopAdvertising(nsd_service_info);
+}
+
+bool WifiLanMedium::InternalStopAdvertising(
+    const NsdServiceInfo& nsd_service_info) {
   // Need to use Win32 API to deregister the Dnssd instance
   if (!IsAdvertising()) {
     NEARBY_LOGS(WARNING)
@@ -252,6 +262,7 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
 // Returns true once the WifiLan discovery has been initiated.
 bool WifiLanMedium::StartDiscovery(const std::string& service_type,
                                    DiscoveredServiceCallback callback) {
+  absl::MutexLock lock(&mutex_);
   if (IsDiscovering()) {
     NEARBY_LOGS(WARNING) << "discovery already running for service type ="
                          << service_type;
@@ -305,6 +316,8 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
 // stopped; after this returns, there must be no more invocations of the
 // DiscoveredServiceCallback passed in to StartDiscovery() for service_id.
 bool WifiLanMedium::StopDiscovery(const std::string& service_type) {
+  absl::MutexLock lock(&mutex_);
+
   if (!IsDiscovering()) {
     NEARBY_LOGS(WARNING) << "no discovering service to stop.";
     return false;
@@ -321,15 +334,28 @@ bool WifiLanMedium::StopDiscovery(const std::string& service_type) {
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const NsdServiceInfo& remote_service_info,
     CancellationFlag* cancellation_flag) {
-  NEARBY_LOGS(ERROR)
+  absl::MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO)
       << "connect to service by NSD service info. service type is "
       << remote_service_info.GetServiceType();
 
-  return ConnectToService(remote_service_info.GetIPAddress(),
-                          remote_service_info.GetPort(), cancellation_flag);
+  return InternalConnectToService(remote_service_info.GetIPAddress(),
+                                  remote_service_info.GetPort(),
+                                  cancellation_flag);
 }
 
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
+    const std::string& ip_address, int port,
+    CancellationFlag* cancellation_flag) {
+  absl::MutexLock lock(&mutex_);
+  NEARBY_LOGS(INFO) << "connect to service by NSD service info. ip_address:"
+                    << ipaddr_4bytes_to_dotdecimal_string(ip_address) << ":"
+                    << port;
+
+  return InternalConnectToService(ip_address, port, cancellation_flag);
+}
+
+std::unique_ptr<api::WifiLanSocket> WifiLanMedium::InternalConnectToService(
     const std::string& ip_address, int port,
     CancellationFlag* cancellation_flag) {
   NEARBY_LOGS(INFO) << "ConnectToService is called.";
@@ -423,6 +449,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 
 std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
     int port) {
+  absl::MutexLock lock(&mutex_);
   // check current status
   const auto& it = port_to_server_socket_map_.find(port);
   if (it != port_to_server_socket_map_.end()) {
@@ -576,6 +603,8 @@ ExceptionOr<NsdServiceInfo> WifiLanMedium::GetNsdServiceInformation(
 
 fire_and_forget WifiLanMedium::Watcher_DeviceAdded(
     DeviceWatcher sender, DeviceInformation deviceInfo) {
+  absl::MutexLock lock(&mutex_);
+
   // need to read IP address and port information from deviceInfo
   ExceptionOr<NsdServiceInfo> nsd_service_info_except =
       GetNsdServiceInformation(deviceInfo.Properties(),
@@ -624,6 +653,8 @@ fire_and_forget WifiLanMedium::Watcher_DeviceAdded(
 
 fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
+  absl::MutexLock lock(&mutex_);
+
   ExceptionOr<NsdServiceInfo> nsd_service_info_except =
       GetNsdServiceInformation(deviceInfoUpdate.Properties(),
                                /*is_device_found*/ true);
@@ -687,6 +718,7 @@ fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
 
 fire_and_forget WifiLanMedium::Watcher_DeviceRemoved(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
+  absl::MutexLock lock(&mutex_);
   // need to read IP address and port information from deviceInfo
   ExceptionOr<NsdServiceInfo> nsd_service_info_except =
       GetNsdServiceInformation(deviceInfoUpdate.Properties(),
@@ -715,13 +747,11 @@ fire_and_forget WifiLanMedium::Watcher_DeviceRemoved(
 }
 
 void WifiLanMedium::ClearDiscoveredServices() {
-  absl::MutexLock lock(&mutex_);
   discovered_services_map_.clear();
 }
 
 std::optional<NsdServiceInfo> WifiLanMedium::GetDiscoveredService(
     absl::string_view id) {
-  absl::MutexLock lock(&mutex_);
   auto it = discovered_services_map_.find(id);
   if (it == discovered_services_map_.end()) {
     return std::nullopt;
@@ -732,12 +762,10 @@ std::optional<NsdServiceInfo> WifiLanMedium::GetDiscoveredService(
 
 void WifiLanMedium::UpdateDiscoveredService(
     absl::string_view id, const NsdServiceInfo& nsd_service_info) {
-  absl::MutexLock lock(&mutex_);
   discovered_services_map_[id] = nsd_service_info;
 }
 
 void WifiLanMedium::RemoveDiscoveredService(absl::string_view id) {
-  absl::MutexLock lock(&mutex_);
   auto it = discovered_services_map_.find(id);
   if (it != discovered_services_map_.end()) {
     discovered_services_map_.erase(it);

@@ -136,6 +136,8 @@ BleMedium::BleMedium(api::BluetoothAdapter& adapter)
 bool BleMedium::StartAdvertising(
     const std::string& service_id, const ByteArray& advertisement_bytes,
     const std::string& fast_advertisement_service_uuid) {
+  absl::MutexLock lock(&mutex_);
+
   try {
     if (!adapter_->IsEnabled()) {
       NEARBY_LOGS(WARNING) << "BLE cannot start advertising because the "
@@ -226,6 +228,8 @@ bool BleMedium::StartAdvertising(
 }
 
 bool BleMedium::StopAdvertising(const std::string& service_id) {
+  absl::MutexLock lock(&mutex_);
+
   try {
     if (!adapter_->IsEnabled()) {
       NEARBY_LOGS(WARNING) << "BLE cannot stop advertising because the "
@@ -267,6 +271,8 @@ bool BleMedium::StartScanning(
     const std::string& service_id,
     const std::string& fast_advertisement_service_uuid,
     DiscoveredPeripheralCallback callback) {
+  absl::MutexLock lock(&mutex_);
+
   try {
     if (!adapter_->IsEnabled()) {
       NEARBY_LOGS(WARNING) << "BLE cannot start scanning because the "
@@ -284,10 +290,7 @@ bool BleMedium::StartScanning(
 
     service_id_ = service_id;
     advertisement_received_callback_ = std::move(callback);
-    {
-      absl::MutexLock lock(&peripheral_map_mutex_);
-      peripheral_map_.clear();
-    }
+    peripheral_map_.clear();
 
     watcher_ = BluetoothLEAdvertisementWatcher();
     watcher_token_ = watcher_.Stopped({this, &BleMedium::WatcherHandler});
@@ -324,6 +327,8 @@ bool BleMedium::StartScanning(
 }
 
 bool BleMedium::StopScanning(const std::string& service_id) {
+  absl::MutexLock lock(&mutex_);
+
   try {
     if (!adapter_->IsEnabled()) {
       NEARBY_LOGS(WARNING) << "BLE cannot stop scanning because the "
@@ -365,12 +370,16 @@ bool BleMedium::StopScanning(const std::string& service_id) {
 
 bool BleMedium::StartAcceptingConnections(const std::string& service_id,
                                           AcceptedConnectionCallback callback) {
+  absl::MutexLock lock(&mutex_);
+
   NEARBY_LOGS(INFO) << "Windows Ble StartAcceptingConnections: service_id="
                     << service_id;
   return true;
 }
 
 bool BleMedium::StopAcceptingConnections(const std::string& service_id) {
+  absl::MutexLock lock(&mutex_);
+
   NEARBY_LOGS(INFO) << "Windows Ble StopAcceptingConnections: service_id="
                     << service_id;
   return true;
@@ -379,6 +388,8 @@ bool BleMedium::StopAcceptingConnections(const std::string& service_id) {
 std::unique_ptr<api::BleSocket> BleMedium::Connect(
     api::BlePeripheral& remote_peripheral, const std::string& service_id,
     CancellationFlag* cancellation_flag) {
+  absl::MutexLock lock(&mutex_);
+
   if (cancellation_flag->Cancelled()) {
     NEARBY_LOGS(ERROR) << "Windows BLE Connect: Has been cancelled: "
                           "service_id="
@@ -395,6 +406,8 @@ std::unique_ptr<api::BleSocket> BleMedium::Connect(
 void BleMedium::PublisherHandler(
     BluetoothLEAdvertisementPublisher publisher,
     BluetoothLEAdvertisementPublisherStatusChangedEventArgs args) {
+  absl::MutexLock lock(&mutex_);
+
   // This method is called when publisher's status is changed.
   switch (args.Status()) {
     case BluetoothLEAdvertisementPublisherStatus::Created:
@@ -486,6 +499,8 @@ void BleMedium::PublisherHandler(
 void BleMedium::WatcherHandler(
     BluetoothLEAdvertisementWatcher watcher,
     BluetoothLEAdvertisementWatcherStoppedEventArgs args) {
+  absl::MutexLock lock(&mutex_);
+
   // This method is called when watcher stopped. Args give more detailed
   // information on the reason.
   switch (args.Error()) {
@@ -548,6 +563,8 @@ void BleMedium::WatcherHandler(
 void BleMedium::AdvertisementReceivedHandler(
     BluetoothLEAdvertisementWatcher watcher,
     BluetoothLEAdvertisementReceivedEventArgs args) {
+  absl::MutexLock lock(&mutex_);
+
   // Handle all BLE advertisements and determine whether the BLE Medium
   // Advertisement Scan Response packet (containing Copresence UUID 0xFEF3 in
   // 0x16 Service Data) has been received in the handler
@@ -583,32 +600,29 @@ void BleMedium::AdvertisementReceivedHandler(
 
       BlePeripheral* peripheral_ptr = nullptr;
 
-      {
-        absl::MutexLock lock(&peripheral_map_mutex_);
-        if (peripheral_map_.contains(peripheral_name)) {
-          if (peripheral_map_[peripheral_name]->GetAdvertisementBytes(
-                  service_id_) != advertisement_data) {
-            NEARBY_LOGS(INFO) << "BLE reports lost device: " << peripheral_name;
+      if (peripheral_map_.contains(peripheral_name)) {
+        if (peripheral_map_[peripheral_name]->GetAdvertisementBytes(
+                service_id_) != advertisement_data) {
+          NEARBY_LOGS(INFO) << "BLE reports lost device: " << peripheral_name;
 
-            // Lost the device first and then report discovered the device.
-            advertisement_received_callback_.peripheral_lost_cb(
-                /*ble_peripheral*/ *peripheral_map_[peripheral_name],
-                /*service_id*/ service_id_);
+          // Lost the device first and then report discovered the device.
+          advertisement_received_callback_.peripheral_lost_cb(
+              /*ble_peripheral*/ *peripheral_map_[peripheral_name],
+              /*service_id*/ service_id_);
 
-          } else {
-            // The device already reported to discovery, don't need to call it
-            // again.
-            return;
-          }
+        } else {
+          // The device already reported to discovery, don't need to call it
+          // again.
+          return;
         }
-
-        auto peripheral = std::make_unique<BlePeripheral>();
-        peripheral->SetName(peripheral_name);
-        peripheral->SetAdvertisementBytes(advertisement_data);
-
-        peripheral_map_[peripheral_name] = std::move(peripheral);
-        peripheral_ptr = peripheral_map_[peripheral_name].get();
       }
+
+      auto peripheral = std::make_unique<BlePeripheral>();
+      peripheral->SetName(peripheral_name);
+      peripheral->SetAdvertisementBytes(advertisement_data);
+
+      peripheral_map_[peripheral_name] = std::move(peripheral);
+      peripheral_ptr = peripheral_map_[peripheral_name].get();
 
       // Received Fast Advertisement packet
       if (unconsumed_buffer_length <= 27) {
