@@ -35,33 +35,6 @@
 #include <format>
 #endif
 
-#if defined(_LIBCPP_VERSION) && __cplusplus < 202002
-// If the C++ standard is cxx17, coroutines are not available in libc++.
-// To compile WinRT without coroutines, define some placeholder types.
-// These placeholders should not be used. If they are used, they should fail.
-namespace std::experimental {
-template <typename T = void>
-struct coroutine_handle {
-  coroutine_handle() { throw std::logic_error("Not implemented."); }
-  coroutine_handle(std::nullptr_t __h) {
-    throw std::logic_error("Not implemented.");
-  }
-  static coroutine_handle from_address(void*) {
-    throw std::logic_error("Not implemented.");
-  }
-  void operator()() const { throw std::logic_error("Not implemented."); }
-  void* address() const { throw std::logic_error("Not implemented."); }
-};
-
-class suspend_always {};
-class suspend_never {};
-
-template <typename _Result, typename...>
-struct coroutine_traits;
-
-}  // namespace std::experimental
-#endif
-
 #ifdef __cpp_lib_coroutine
 
 #include <coroutine>
