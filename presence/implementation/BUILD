@@ -152,7 +152,7 @@ cc_test(
     srcs = ["advertisement_decoder_test.cc"],
     deps = [
         ":internal",
-        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/strings",
         "//internal/platform:base",
@@ -174,7 +174,7 @@ cc_test(
     srcs = ["advertisement_factory_test.cc"],
     deps = [
         ":internal",
-        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
@@ -198,7 +198,7 @@ cc_test(
     srcs = ["broadcast_manager_test.cc"],
     deps = [
         ":internal",
-        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
         "//internal/platform:base",
         "//internal/platform:test_util",
@@ -221,7 +221,7 @@ cc_test(
     srcs = ["ldt_test.cc"],
     deps = [
         ":internal",
-        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/strings",
         "//internal/platform:base",
@@ -241,7 +241,7 @@ cc_test(
     srcs = ["base_broadcast_request_test.cc"],
     deps = [
         ":internal",
-        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/types:variant",
         "//internal/proto:credential_cc_proto",
@@ -262,7 +262,7 @@ cc_test(
     srcs = ["action_factory_test.cc"],
     deps = [
         ":internal",
-        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/strings",
         "//presence:types",
@@ -283,7 +283,7 @@ cc_test(
     deps = [
         ":internal",
         "//net/proto2/contrib/parse_proto:testing",
-        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
@@ -309,7 +309,7 @@ cc_test(
     srcs = ["scan_manager_test.cc"],
     deps = [
         ":internal",
-        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/time",
         "//internal/platform:comm",

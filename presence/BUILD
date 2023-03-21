@@ -92,7 +92,7 @@ cc_test(
     shard_count = 6,
     deps = [
         ":types",
-        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:variant",
@@ -118,7 +118,7 @@ cc_test(
     ],
     shard_count = 6,
     deps = [
-        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
         "//internal/platform:uuid",
         "//internal/proto:credential_cc_proto",
@@ -144,7 +144,7 @@ cc_test(
     deps = [
         ":presence",
         ":types",
-        "@com_github_protobuf_matchers//protobuf-matchers:protobuf-matchers",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/status",
         "//internal/platform:test_util",
