@@ -1,6 +1,6 @@
 ---
 name: "🤔 Questions and Help"
-about: Ask a general question (we may not have time to provide an answer)
+about: Ask a general question.
 labels: ['needs-triage', 'type: question']
 ---
 
