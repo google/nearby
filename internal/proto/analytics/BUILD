@@ -27,6 +27,22 @@ proto_library(
     ],
 )
 
+proto_library(
+    name = "fast_pair_log_proto",
+    srcs = ["fast_pair_log.proto"],
+    deps = ["//proto:fast_pair_enums_proto"],
+)
+
+cc_proto_library(
+    name = "fast_pair_log_cc_proto",
+    deps = [":fast_pair_log_proto"],
+)
+
+java_proto_library(
+    name = "fast_pair_log_java_proto",
+    deps = [":fast_pair_log_proto"],
+)
+
 cc_proto_library(
     name = "connections_log_cc_proto",
     visibility = [
