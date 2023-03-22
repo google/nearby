@@ -23,6 +23,7 @@
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/logging.h"
 #include "presence/data_element.h"
+#include "presence/presence_action.h"
 
 namespace nearby {
 namespace presence {
@@ -37,6 +38,7 @@ constexpr float kTestConfidence = 0.1;
 constexpr absl::string_view kMacAddr = "\x4C\x8B\x1D\xCE\xBA\xD1";
 constexpr int kDataElementType = DataElement::kBatteryFieldType;
 constexpr absl::string_view kDataElementValue = "15";
+constexpr int kTestAction = 3;
 
 Metadata CreateTestMetadata() {
   Metadata metadata;
@@ -98,6 +100,14 @@ TEST(PresenceDevicetest, TestGetAddExtendedPropertiesVector) {
   ASSERT_EQ(device.GetExtendedProperties().size(), 1);
   EXPECT_EQ(device.GetExtendedProperties()[0],
             DataElement(kDataElementType, kDataElementValue));
+}
+
+TEST(PresenceDeviceTest, TestAddGetActions) {
+  Metadata metadata = CreateTestMetadata();
+  PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
+  device.AddAction({kTestAction});
+  ASSERT_EQ(device.GetActions().size(), 1);
+  EXPECT_EQ(device.GetActions()[0], PresenceAction(kTestAction));
 }
 
 TEST(PresenceDeviceTest, TestEndpointIdIsCorrectLength) {

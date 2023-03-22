@@ -25,6 +25,7 @@
 #include "internal/proto/metadata.pb.h"
 #include "presence/data_element.h"
 #include "presence/device_motion.h"
+#include "presence/presence_action.h"
 
 namespace nearby {
 namespace presence {
@@ -52,6 +53,8 @@ class PresenceDevice : public nearby::NearbyDevice {
   std::vector<DataElement> GetExtendedProperties() const {
     return extended_properties_;
   }
+  void AddAction(const PresenceAction& action) { actions_.push_back(action); }
+  std::vector<PresenceAction> GetActions() const { return actions_; }
   absl::string_view GetEndpointInfo() const override { return endpoint_info_; }
   NearbyDevice::Type GetType() const override {
     return NearbyDevice::Type::kPresenceDevice;
@@ -68,6 +71,7 @@ class PresenceDevice : public nearby::NearbyDevice {
   const DeviceMotion device_motion_;
   const Metadata metadata_;
   std::vector<DataElement> extended_properties_;
+  std::vector<PresenceAction> actions_;
   std::string endpoint_id_;
   std::string endpoint_info_;
 };
