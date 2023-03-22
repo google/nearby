@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <usbiodef.h>
 
+#include <exception>
 #include <string>
 
 #include "absl/strings/str_format.h"
@@ -168,9 +169,18 @@ bool BluetoothAdapter::IsEnabled() const {
     NEARBY_LOGS(ERROR) << __func__ << ": No Bluetooth radio on this device.";
     return false;
   }
-  // Gets the current state of the radio represented by this object.
-  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.radios.radio.state?view=winrt-20348
-  return windows_bluetooth_radio_.State() == RadioState::On;
+  try {
+    // Gets the current state of the radio represented by this object.
+    // https://docs.microsoft.com/en-us/uwp/api/windows.devices.radios.radio.state?view=winrt-20348
+    return windows_bluetooth_radio_.State() == RadioState::On;
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": exception:" << exception.what();
+    return false;
+  } catch (const winrt::hresult_error &ex) {
+    NEARBY_LOGS(ERROR) << __func__ << ": exception:" << ex.code() << ": "
+                       << winrt::to_string(ex.message());
+    return false;
+  }
 }
 
 // Returns true if the Bluetooth hardware supports Bluetooth 5.0 Extended
@@ -180,9 +190,19 @@ bool BluetoothAdapter::IsExtendedAdvertisingSupported() const {
     NEARBY_LOGS(ERROR) << __func__ << ": No Bluetooth adapter on this device.";
     return false;
   }
-  // Indicates whether the adapter supports the 5.0 Extended Advertising format.
-  // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter.isextendedadvertisingsupported?view=winrt-22621
-  return windows_bluetooth_adapter_.IsExtendedAdvertisingSupported();
+  try {
+    // Indicates whether the adapter supports the 5.0 Extended Advertising
+    // format.
+    // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter.isextendedadvertisingsupported?view=winrt-22621
+    return windows_bluetooth_adapter_.IsExtendedAdvertisingSupported();
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": exception:" << exception.what();
+    return false;
+  } catch (const winrt::hresult_error &ex) {
+    NEARBY_LOGS(ERROR) << __func__ << ": exception:" << ex.code() << ": "
+                       << winrt::to_string(ex.message());
+    return false;
+  }
 }
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getScanMode()
@@ -697,8 +717,17 @@ std::string BluetoothAdapter::GetMacAddress() const {
     NEARBY_LOGS(ERROR) << __func__ << ": No Bluetooth adapter on this device.";
     return "";
   }
-  return uint64_to_mac_address_string(
-      windows_bluetooth_adapter_.BluetoothAddress());
+  try {
+    return uint64_to_mac_address_string(
+        windows_bluetooth_adapter_.BluetoothAddress());
+  } catch (std::exception exception) {
+    NEARBY_LOGS(ERROR) << __func__ << ": exception:" << exception.what();
+    return "";
+  } catch (const winrt::hresult_error &ex) {
+    NEARBY_LOGS(ERROR) << __func__ << ": exception:" << ex.code() << ": "
+                       << winrt::to_string(ex.message());
+    return "";
+  }
 }
 
 std::string BluetoothAdapter::GetNameFromRegistry(PHKEY hKey) const {
