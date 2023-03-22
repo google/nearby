@@ -21,7 +21,11 @@ cc_library(
         "flag.h",
         "flag_reader.h",
     ],
-    visibility = ["//:__subpackages__"],
+    visibility = [
+        "//:__subpackages__",
+        "//location/nearby/cpp/experiments:__subpackages__",
+        "//location/nearby/cpp/sharing:__subpackages__",
+    ],
     deps = ["@com_google_absl//absl/strings"],
 )
 

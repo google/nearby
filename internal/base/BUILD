@@ -14,6 +14,7 @@ cc_library(
         "//fastpair:__subpackages__",
         "//internal:__pkg__",
         "//location/nearby/cpp/fastpair:__subpackages__",
+        "//location/nearby/cpp/sharing:__subpackages__",
     ],
     deps = [
         "@com_google_absl//absl/container:flat_hash_set",
@@ -35,6 +36,7 @@ cc_library(
         "//fastpair:__subpackages__",
         "//internal:__subpackages__",
         "//location/nearby/cpp/fastpair:__subpackages__",
+        "//location/nearby/cpp/sharing:__subpackages__",
     ],
     deps = [
         "@com_google_absl//absl/strings",
