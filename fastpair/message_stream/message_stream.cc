@@ -19,6 +19,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/time/time.h"
 #include "fastpair/message_stream/message.h"
@@ -32,6 +33,13 @@ constexpr uint8_t kSupportsSilenceBit = 0x01;
 // The default active components response.
 constexpr uint8_t kDefaultComponents = 0;
 constexpr int kModelIdSize = 3;
+constexpr int kBleAddressSize = 6;
+// We don't accept more than `kMaxBatteryLevels` battery values from the
+// provider.
+constexpr int kMaxBatteryLevels = 3;
+constexpr int kUnknownBatteryLevel = 0x7F;
+constexpr absl::Duration kActiveComponentsTimeout = absl::Seconds(1);
+constexpr absl::Duration kRingAckTimeout = absl::Seconds(1);
 
 int GetModelIdFromString(absl::string_view s) {
   int model_id = static_cast<uint8_t>(s[0]);
@@ -42,6 +50,17 @@ int GetModelIdFromString(absl::string_view s) {
   return model_id;
 }
 
+MessageStream::BatteryInfo ConvertBatteryInfo(uint8_t battery_value) {
+  // The highest bit represents `is_charging`, the rest the battery level (in
+  // %).
+  bool is_charging = battery_value & 0x80;
+  int level = battery_value & 0x7F;
+  MessageStream::BatteryInfo battery_info{.is_charging = is_charging};
+  if (level != kUnknownBatteryLevel) {
+    battery_info.level = level;
+  }
+  return battery_info;
+}
 }  // namespace
 
 MessageStream::MessageStream(const FastPairDevice& device,
@@ -58,7 +77,7 @@ absl::Status MessageStream::OpenL2cap(absl::string_view ble_address) {
 absl::Status MessageStream::Disconnect() { return medium_.Disconnect(); }
 
 Future<uint8_t> MessageStream::GetActiveComponents() {
-  Future<uint8_t> future;
+  Future<uint8_t> future(kActiveComponentsTimeout);
   absl::Status status = medium_.Send(
       Message{.message_group = MessageGroup::kDeviceInformationEvent,
               .message_code = MessageCode::kActiveComponentRequest});
@@ -89,12 +108,20 @@ absl::Status MessageStream::SendCapabilities(bool companion_app_installed,
               .payload = {capabilites}});
 }
 
+absl::Status MessageStream::SendPlatformType(
+    api::DeviceInfo::OsType platform_type, uint8_t custom_code) {
+  return medium_.Send(
+      Message{.message_group = MessageGroup::kDeviceInformationEvent,
+              .message_code = MessageCode::kPlatformType,
+              .payload = {static_cast<uint8_t>(platform_type), custom_code}});
+}
+
 // Asks the Provider to ring.
 // Returns true if the Provider replies with an ACK.
 Future<bool> MessageStream::Ring(uint8_t components, absl::Duration duration) {
   constexpr MessageGroup kGroup = MessageGroup::kDeviceActionEvent;
   constexpr MessageCode kCode = MessageCode::kRing;
-  Future<bool> future;
+  Future<bool> future(kRingAckTimeout);
   std::string payload = {components};
   uint8_t minutes = absl::ToInt64Minutes(duration);
   if (minutes != 0) {
@@ -177,6 +204,46 @@ bool MessageStream::HandleDeviceInformationEvent(const Message& message) {
       }
       int model_id = GetModelIdFromString(message.payload);
       observer_.OnModelId(model_id);
+      return true;
+    }
+    case MessageCode::kBleAddressUpdated: {
+      if (message.payload.size() != kBleAddressSize) {
+        NEARBY_LOGS(WARNING)
+            << "BLE address updated event size should be " << kBleAddressSize
+            << " but is " << message.payload.size();
+        break;
+      }
+      observer_.OnBleAddressUpdated(message.payload);
+      return true;
+    }
+    case MessageCode::kBatteryUpdated: {
+      if (message.payload.size() > kMaxBatteryLevels) {
+        NEARBY_LOGS(WARNING)
+            << "Battery level event size should be <= " << kMaxBatteryLevels
+            << " but is " << message.payload.size();
+        break;
+      }
+      std::vector<BatteryInfo> battery_levels(message.payload.size());
+      for (size_t i = 0; i < message.payload.size(); i++) {
+        battery_levels[i] = ConvertBatteryInfo(message.payload[i]);
+      }
+      observer_.OnBatteryUpdated(std::move(battery_levels));
+      return true;
+    }
+    case MessageCode::kRemainingBatteryTime: {
+      int battery_time = 0;
+      if (message.payload.size() == 1) {
+        battery_time = static_cast<uint8_t>(message.payload[0]);
+      } else if (message.payload.size() == 2) {
+        battery_time = 256 * static_cast<uint8_t>(message.payload[0]) +
+                       static_cast<uint8_t>(message.payload[1]);
+      } else {
+        NEARBY_LOGS(WARNING)
+            << "Remaining battery event size should be 1 or 2 bytes but is "
+            << message.payload.size();
+        break;
+      }
+      observer_.OnRemainingBatteryTime(absl::Minutes(battery_time));
       return true;
     }
     case MessageCode::kActiveComponentResponse: {

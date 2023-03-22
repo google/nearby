@@ -16,18 +16,24 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_MESSAGE_STREAM_MESSAGE_STREAM_H_
 
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
 #include "fastpair/message_stream/medium.h"
 #include "fastpair/message_stream/message.h"
+#include "internal/platform/implementation/device_info.h"
 
 namespace nearby {
 namespace fastpair {
 
 class MessageStream : public Medium::Observer {
  public:
+  struct BatteryInfo {
+    bool is_charging;
+    std::optional<int> level;
+  };
   class Observer {
    public:
     virtual ~Observer() = default;
@@ -42,6 +48,15 @@ class MessageStream : public Medium::Observer {
     virtual void OnLogBufferFull() = 0;
 
     virtual void OnModelId(int model_id) = 0;
+
+    virtual void OnBleAddressUpdated(absl::string_view address) = 0;
+
+    virtual void OnBatteryUpdated(std::vector<BatteryInfo> battery_levels) = 0;
+
+    virtual void OnRemainingBatteryTime(absl::Duration duration) = 0;
+
+    // Note, there are no callbacks for Active Components Request and Active
+    // Components Response. Use `GetActiveComponents()` instead.
 
     virtual bool OnRing(uint8_t components, absl::Duration duration) = 0;
   };
@@ -62,6 +77,9 @@ class MessageStream : public Medium::Observer {
 
   absl::Status SendCapabilities(bool companion_app_installed,
                                 bool supports_silence_mode);
+
+  absl::Status SendPlatformType(api::DeviceInfo::OsType platform_type,
+                                uint8_t custom_code);
 
   // Asks the Provider to ring.
   // Returns true if the Provider replies with an ACK.

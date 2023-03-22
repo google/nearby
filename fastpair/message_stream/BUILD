@@ -34,6 +34,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:types",
+        "//internal/platform/implementation:types",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
@@ -129,6 +130,7 @@ cc_test(
         "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",

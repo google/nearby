@@ -17,6 +17,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -32,6 +33,7 @@
 #include "fastpair/message_stream/message.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/implementation/device_info.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
@@ -107,6 +109,19 @@ class MessageStreamTest : public testing::Test {
 
     void OnModelId(int model_id) override { model_id_.Set(model_id); }
 
+    void OnBleAddressUpdated(absl::string_view address) override {
+      ble_address_updated_.Set(std::string(address));
+    }
+
+    void OnBatteryUpdated(
+        std::vector<MessageStream::BatteryInfo> battery_levels) override {
+      battery_levels_.Set(battery_levels);
+    }
+
+    void OnRemainingBatteryTime(absl::Duration duration) override {
+      remaining_battery_time_.Set(duration);
+    }
+
     bool OnRing(uint8_t components, absl::Duration duration) override {
       on_ring_event_.Set({components, duration});
       // This allows us to test returning ACK/NACK to the seeker.
@@ -115,6 +130,9 @@ class MessageStreamTest : public testing::Test {
     Future<absl::Status> connection_result_;
     Future<absl::Status> disconnected_reason_;
     Future<int> model_id_;
+    Future<std::string> ble_address_updated_;
+    Future<std::vector<MessageStream::BatteryInfo>> battery_levels_;
+    Future<absl::Duration> remaining_battery_time_;
     Future<bool> silence_mode_;
     Future<bool> log_buffer_full_;
     struct OnRingData {
@@ -202,6 +220,17 @@ TEST_F(MessageStreamTest, RingNacked) {
   ASSERT_FALSE(result.Get().GetResult());
 }
 
+TEST_F(MessageStreamTest, RingNoResponse) {
+  constexpr uint8_t kComponents = 0x50;
+  MessageStream message_stream = OpenMessageStream();
+
+  Future<bool> result = message_stream.Ring(kComponents, absl::Minutes(10));
+
+  VerifySentMessage(absl::HexStringToBytes("04010002500A"));
+  ASSERT_FALSE(result.Get().ok());
+  EXPECT_EQ(result.Get().exception(), Exception::kTimeout);
+}
+
 TEST_F(MessageStreamTest, GetActiveComponents) {
   MessageStream message_stream = OpenMessageStream();
 
@@ -222,6 +251,16 @@ TEST_F(MessageStreamTest, GetActiveComponentsEmptyResponse) {
   provider_.WriteProviderBytes(absl::HexStringToBytes("03060000"));
   ASSERT_TRUE(result.Get().ok());
   ASSERT_EQ(result.Get().GetResult(), 0);
+}
+
+TEST_F(MessageStreamTest, GetActiveComponentsNoResponse) {
+  MessageStream message_stream = OpenMessageStream();
+
+  Future<uint8_t> result = message_stream.GetActiveComponents();
+
+  VerifySentMessage(absl::HexStringToBytes("0305"));
+  ASSERT_FALSE(result.Get().ok());
+  EXPECT_EQ(result.Get().exception(), Exception::kTimeout);
 }
 
 TEST_F(MessageStreamTest, ReceiveModelId) {
@@ -306,6 +345,72 @@ TEST_F(MessageStreamTest, OnRingFailSendsNack) {
   ASSERT_EQ(observer_.on_ring_event_.Get().GetResult().duration,
             absl::Minutes(0xFE));
   VerifySentMessage(absl::HexStringToBytes("FF0200020401"));
+}
+
+TEST_F(MessageStreamTest, SendPlatformType) {
+  MessageStream message_stream = OpenMessageStream();
+
+  ASSERT_OK(
+      message_stream.SendPlatformType(api::DeviceInfo::OsType::kAndroid, 0x1C));
+  VerifySentMessage(absl::HexStringToBytes("03080002011C"));
+}
+
+TEST_F(MessageStreamTest, ReceiveBleAddressUpdated) {
+  MessageStream message_stream = OpenMessageStream();
+
+  provider_.WriteProviderBytes(absl::HexStringToBytes("03020006AABBCCDDEEFF"));
+
+  ASSERT_TRUE(observer_.ble_address_updated_.Get().ok());
+  EXPECT_EQ(observer_.ble_address_updated_.Get().GetResult(),
+            absl::HexStringToBytes("AABBCCDDEEFF"));
+}
+
+TEST_F(MessageStreamTest, ReceiveBatteryUpdated) {
+  MessageStream message_stream = OpenMessageStream();
+
+  // The values copied from the specification.
+  provider_.WriteProviderBytes(absl::HexStringToBytes("0303000357417F"));
+
+  ASSERT_TRUE(observer_.battery_levels_.Get().ok());
+  ASSERT_EQ(observer_.battery_levels_.Get().result().size(), 3);
+  EXPECT_FALSE(observer_.battery_levels_.Get().result()[0].is_charging);
+  EXPECT_EQ(observer_.battery_levels_.Get().result()[0].level, 87);
+  EXPECT_FALSE(observer_.battery_levels_.Get().result()[1].is_charging);
+  EXPECT_EQ(observer_.battery_levels_.Get().result()[1].level, 65);
+  EXPECT_FALSE(observer_.battery_levels_.Get().result()[2].is_charging);
+  EXPECT_FALSE(observer_.battery_levels_.Get().result()[2].level.has_value());
+}
+
+TEST_F(MessageStreamTest, ReceiveBatteryUpdatedOneBattery) {
+  MessageStream message_stream = OpenMessageStream();
+
+  provider_.WriteProviderBytes(absl::HexStringToBytes("030300019A"));
+
+  ASSERT_TRUE(observer_.battery_levels_.Get().ok());
+  ASSERT_EQ(observer_.battery_levels_.Get().result().size(), 1);
+  EXPECT_TRUE(observer_.battery_levels_.Get().result()[0].is_charging);
+  EXPECT_EQ(observer_.battery_levels_.Get().result()[0].level, 0x1A);
+}
+
+TEST_F(MessageStreamTest, ReceiveRemainingBatteryTime) {
+  MessageStream message_stream = OpenMessageStream();
+
+  // The values copied from the specification
+  provider_.WriteProviderBytes(absl::HexStringToBytes("03040001F0"));
+
+  ASSERT_TRUE(observer_.remaining_battery_time_.Get().ok());
+  EXPECT_EQ(observer_.remaining_battery_time_.Get().GetResult(),
+            absl::Minutes(240));
+}
+
+TEST_F(MessageStreamTest, ReceiveRemainingBatteryTimeHighValue) {
+  MessageStream message_stream = OpenMessageStream();
+
+  provider_.WriteProviderBytes(absl::HexStringToBytes("03040002ABCD"));
+
+  ASSERT_TRUE(observer_.remaining_battery_time_.Get().ok());
+  EXPECT_EQ(observer_.remaining_battery_time_.Get().GetResult(),
+            absl::Minutes(0xABCD));
 }
 
 }  // namespace
