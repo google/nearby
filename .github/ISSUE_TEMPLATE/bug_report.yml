@@ -1,0 +1,109 @@
+name: 🐛 Bug Report
+description: Report a reproducible bug or regression.
+labels:
+  - 'needs-triage'
+  - 'type: bug'
+
+body:
+  - type: dropdown
+    attributes:
+      label: Project
+      description: Which project are you using?
+      options:
+        - Nearby Connections
+        - Fast Pair
+        - Nearby Presence
+        - Nearby for Embedded Systems
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: Language
+      description: Which client library are you using?
+      options:
+        - Swift
+        - C
+        - C++
+        - Dart
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: OS Platform
+      description: Which operating system are you trying to use Nearby on?
+      options:
+        - Windows
+        - Linux
+        - Apple
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: |
+        Please provide as much info as possible. Not doing so may result in your bug not being addressed in a timely manner.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: How can we reproduce it (as minimally and precisely as possible)?
+      placeholder: |
+        Example bug report:
+        1. Start discovery on MacBook Air
+        2. Start advertising on Pixel 7 Pro
+        3. Attempt to connect to discovered Pixel
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: How often does this bug happen?
+      description: |
+        Following the repro steps above, how easily are you able to reproduce this bug?
+      options:
+        - Every time
+        - Often
+        - Sometimes
+        - Only once
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: How can we reproduce it (as minimally and precisely as possible)?
+      placeholder: |
+        Example bug report:
+        1. Start discovery on MacBook Air
+        2. Start advertising on Pixel 7 Pro
+        3. Attempt to connect to discovered Pixel
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Standalone code to reproduce the issue
+      description: Provide a reproducible test case that is the bare minimum necessary to generate the problem.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      render: shell
+
+  - type: textarea
+    attributes:
+      label: Anything else we need to know?

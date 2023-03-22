@@ -6,7 +6,7 @@ This is not an officially supported Google product.
 
 ## Projects
 
-### [Nearby Connection](connections/)
+### [Nearby Connections](connections/)
 
 A peer-to-peer networking API that allows apps to easily discover, connect to, and exchange data with nearby devices in real-time, regardless of network connectivity.
 

@@ -1,0 +1,18 @@
+name: 🪄 Feature Request
+description: Request a new feature or enhancement.
+labels:
+  - 'needs-triage'
+  - 'type: feature-request'
+
+body:
+  - type: textarea
+    attributes:
+      label: What would you like to be added?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Why is this needed?
+    validations:
+      required: true
