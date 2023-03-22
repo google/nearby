@@ -22,6 +22,7 @@
 #include "absl/types/variant.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/logging.h"
+#include "presence/data_element.h"
 
 namespace nearby {
 namespace presence {
@@ -34,6 +35,8 @@ constexpr DeviceMotion::MotionType kDefaultMotionType =
 constexpr float kDefaultConfidence = 0;
 constexpr float kTestConfidence = 0.1;
 constexpr absl::string_view kMacAddr = "\x4C\x8B\x1D\xCE\xBA\xD1";
+constexpr int kDataElementType = DataElement::kBatteryFieldType;
+constexpr absl::string_view kDataElementValue = "15";
 
 Metadata CreateTestMetadata() {
   Metadata metadata;
@@ -76,6 +79,25 @@ TEST(PresenceDeviceTest, TestGetBluetoothAddress) {
   EXPECT_EQ(
       absl::get<nearby::BleConnectionInfo>(info).GetMacAddress().AsStringView(),
       kMacAddr);
+}
+
+TEST(PresenceDevicetest, TestGetAddExtendedProperties) {
+  Metadata metadata = CreateTestMetadata();
+  PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
+  device.AddExtendedProperty({kDataElementType, kDataElementValue});
+  ASSERT_EQ(device.GetExtendedProperties().size(), 1);
+  EXPECT_EQ(device.GetExtendedProperties()[0],
+            DataElement(kDataElementType, kDataElementValue));
+}
+
+TEST(PresenceDevicetest, TestGetAddExtendedPropertiesVector) {
+  Metadata metadata = CreateTestMetadata();
+  PresenceDevice device = PresenceDevice({kDefaultMotionType}, metadata);
+  device.AddExtendedProperties(
+      {DataElement(kDataElementType, kDataElementValue)});
+  ASSERT_EQ(device.GetExtendedProperties().size(), 1);
+  EXPECT_EQ(device.GetExtendedProperties()[0],
+            DataElement(kDataElementType, kDataElementValue));
 }
 
 TEST(PresenceDeviceTest, TestEndpointIdIsCorrectLength) {

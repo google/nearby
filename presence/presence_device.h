@@ -23,6 +23,7 @@
 #include "absl/types/variant.h"
 #include "internal/device.h"
 #include "internal/proto/metadata.pb.h"
+#include "presence/data_element.h"
 #include "presence/device_motion.h"
 
 namespace nearby {
@@ -41,6 +42,16 @@ class PresenceDevice : public nearby::NearbyDevice {
   void SetEndpointInfo(absl::string_view endpoint_info) {
     endpoint_info_ = std::string(endpoint_info);
   }
+  void AddExtendedProperty(const DataElement& data_element) {
+    extended_properties_.push_back(data_element);
+  }
+  void AddExtendedProperties(const std::vector<DataElement>& properties) {
+    extended_properties_.insert(extended_properties_.end(), properties.begin(),
+                                properties.end());
+  }
+  std::vector<DataElement> GetExtendedProperties() const {
+    return extended_properties_;
+  }
   absl::string_view GetEndpointInfo() const override { return endpoint_info_; }
   NearbyDevice::Type GetType() const override {
     return NearbyDevice::Type::kPresenceDevice;
@@ -56,6 +67,7 @@ class PresenceDevice : public nearby::NearbyDevice {
   const absl::Time discovery_timestamp_;
   const DeviceMotion device_motion_;
   const Metadata metadata_;
+  std::vector<DataElement> extended_properties_;
   std::string endpoint_id_;
   std::string endpoint_info_;
 };
