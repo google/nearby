@@ -13,6 +13,7 @@ cc_library(
         "fake_task_runner.h",
         "fake_timer.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     copts = [
         "-Ithird_party",
     ],

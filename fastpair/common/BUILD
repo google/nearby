@@ -10,6 +10,8 @@ cc_library(
     ],
     hdrs = [
         "constant.h",
+        "context.h",
+        "context_impl.h",
         "fast_pair_device.h",
         "fast_pair_http_result.h",
         "pair_failure.h",
@@ -19,6 +21,7 @@ cc_library(
         "//fastpair:__subpackages__",
     ],
     deps = [
+        "//internal/platform:types",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
@@ -34,8 +37,23 @@ cc_test(
     shard_count = 16,
     deps = [
         ":common",
+        "//internal/platform/implementation/g3",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+# cc_test(
+#     name = "context_test",
+#     size = "small",
+#     srcs = [
+#         "context_test.cc",
+#     ],
+#     shard_count = 16,
+#     deps = [
+#         ":common",
+#         "//testing/base/public:gunit_main",
+#         "//internal/platform/implementation/g3",
+#     ],
+# )
