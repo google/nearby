@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef NO_WEBRTC
+
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 
 #include <sstream>
@@ -50,3 +52,5 @@ bool WebrtcPeerId::IsValid() const { return !id_.empty(); }
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
+
+#endif

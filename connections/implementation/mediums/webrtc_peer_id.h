@@ -15,6 +15,8 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_ID_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_ID_H_
 
+#ifndef NO_WEBRTC
+
 #include <memory>
 #include <string>
 
@@ -46,5 +48,7 @@ class WebrtcPeerId {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
+
+#endif
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_PEER_ID_H_

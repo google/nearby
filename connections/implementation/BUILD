@@ -66,6 +66,8 @@ cc_library(
         "payload_manager.cc",
         "pcp_manager.cc",
         "service_controller_router.cc",
+        "webrtc_bwu_handler.cc",
+        "webrtc_bwu_handler_stub.cc",
         "webrtc_endpoint_channel.cc",
         "wifi_direct_bwu_handler.cc",
         "wifi_direct_endpoint_channel.cc",
@@ -74,14 +76,7 @@ cc_library(
         "wifi_lan_bwu_handler.cc",
         "wifi_lan_endpoint_channel.cc",
         "wifi_lan_service_info.cc",
-    ] + select({
-        "@platforms//cpu:arm": [
-            "webrtc_bwu_handler_stub.cc",
-        ],
-        "//conditions:default": [
-            "webrtc_bwu_handler_stub.cc",
-        ],
-    }),
+    ],
     hdrs = [
         "base_bwu_handler.h",
         "base_endpoint_channel.h",
@@ -115,6 +110,8 @@ cc_library(
         "service_controller.h",
         "service_controller_router.h",
         "service_id_constants.h",
+        "webrtc_bwu_handler.h",
+        "webrtc_bwu_handler_stub.h",
         "webrtc_endpoint_channel.h",
         "wifi_direct_bwu_handler.h",
         "wifi_direct_endpoint_channel.h",
@@ -123,14 +120,7 @@ cc_library(
         "wifi_lan_bwu_handler.h",
         "wifi_lan_endpoint_channel.h",
         "wifi_lan_service_info.h",
-    ] + select({
-        "@platforms//cpu:arm": [
-            "webrtc_bwu_handler_stub.h",
-        ],
-        "//conditions:default": [
-            "webrtc_bwu_handler_stub.h",
-        ],
-    }),
+    ],
     copts = ["-DCORE_ADAPTER_DLL"] + select({
         "@platforms//cpu:arm": [
             "-DNO_WEBRTC",

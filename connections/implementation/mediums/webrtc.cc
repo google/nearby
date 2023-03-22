@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef NO_WEBRTC
+
 #include "connections/implementation/mediums/webrtc.h"
 
 #include <functional>
@@ -741,3 +743,5 @@ void WebRtc::OffloadFromThread(const std::string& name, Runnable runnable) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
+
+#endif

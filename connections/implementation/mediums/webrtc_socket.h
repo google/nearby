@@ -15,6 +15,8 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_H_
 
+#ifndef NO_WEBRTC
+
 #include <memory>
 
 #include "connections/implementation/mediums/webrtc/webrtc_socket_impl.h"
@@ -49,5 +51,7 @@ class WebRtcSocketWrapper final {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
+
+#endif
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_H_

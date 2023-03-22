@@ -15,6 +15,8 @@
 #ifndef PLATFORM_API_WEBRTC_H_
 #define PLATFORM_API_WEBRTC_H_
 
+#ifndef NO_WEBRTC
+
 #include <memory>
 #include <string>
 
@@ -66,5 +68,7 @@ class WebRtcMedium {
 
 }  // namespace api
 }  // namespace nearby
+
+#endif
 
 #endif  // PLATFORM_API_WEBRTC_H_

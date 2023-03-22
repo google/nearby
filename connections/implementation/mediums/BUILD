@@ -21,35 +21,25 @@ cc_library(
         "bluetooth_classic.cc",
         "bluetooth_radio.cc",
         "mediums.cc",
+        "webrtc.cc",
+        "webrtc_stub.cc",
         "wifi_direct.cc",
         "wifi_hotspot.cc",
         "wifi_lan.cc",
-    ] + select({
-        "@platforms//cpu:arm": [
-            "webrtc_stub.cc",
-        ],
-        "//conditions:default": [
-            "webrtc_stub.cc",
-        ],
-    }),
+    ],
     hdrs = [
         "ble.h",
         "ble_v2.h",
         "bluetooth_classic.h",
         "bluetooth_radio.h",
         "mediums.h",
+        "webrtc.h",
+        "webrtc_stub.h",
         "wifi.h",
         "wifi_direct.h",
         "wifi_hotspot.h",
         "wifi_lan.h",
-    ] + select({
-        "@platforms//cpu:arm": [
-            "webrtc_stub.h",
-        ],
-        "//conditions:default": [
-            "webrtc_stub.h",
-        ],
-    }),
+    ],
     copts = select({
         "@platforms//cpu:arm": [
             "-DNO_WEBRTC",
@@ -91,27 +81,17 @@ cc_library(
     name = "utils",
     srcs = [
         "utils.cc",
-    ] + select({
-        "@platforms//cpu:arm": [
-            "webrtc_peer_id_stub.cc",
-        ],
-        "//conditions:default": [
-            "webrtc_peer_id_stub.cc",
-        ],
-    }),
+        "webrtc_peer_id.cc",
+        "webrtc_peer_id_stub.cc",
+    ],
     hdrs = [
         "lost_entity_tracker.h",
         "utils.h",
-    ] + select({
-        "@platforms//cpu:arm": [
-            "webrtc_peer_id_stub.h",
-            "webrtc_socket_stub.h",
-        ],
-        "//conditions:default": [
-            "webrtc_peer_id_stub.h",
-            "webrtc_socket_stub.h",
-        ],
-    }),
+        "webrtc_peer_id.h",
+        "webrtc_peer_id_stub.h",
+        "webrtc_socket.h",
+        "webrtc_socket_stub.h",
+    ],
     copts = select({
         "@platforms//cpu:arm": [
             "-DNO_WEBRTC",
@@ -161,6 +141,31 @@ cc_test(
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "core_internal_mediums_webrtc_test",
+    size = "small",
+    srcs = [
+        "webrtc_peer_id_test.cc",
+        "webrtc_test.cc",
+    ],
+    defines = ["NO_WEBRTC"],
+    shard_count = 16,
+    tags = [
+        "notsan",  # NOTE(b/139734036): known data race in usrsctplib.
+        "requires-net:external",
+    ],
+    deps = [
+        ":mediums",
+        ":utils",
+        "//internal/platform:base",
+        "//internal/platform:test_util",
+        "//internal/platform:types",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )
