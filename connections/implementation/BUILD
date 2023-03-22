@@ -121,13 +121,7 @@ cc_library(
         "wifi_lan_endpoint_channel.h",
         "wifi_lan_service_info.h",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"] + select({
-        "@platforms//cpu:arm": [
-            "-DNO_WEBRTC",
-        ],
-        "//conditions:default": [],
-    }),
-    defines = ["NO_WEBRTC"],
+    copts = ["-DCORE_ADAPTER_DLL"] + ["-DNO_WEBRTC"],
     visibility = [
         "//connections:__pkg__",
         "//connections/implementation/fuzzers:__pkg__",
@@ -173,7 +167,6 @@ cc_library(
     hdrs = [
         "message_lite.h",
     ],
-    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
     ],
@@ -197,7 +190,6 @@ cc_library(
         "offline_simulation_user.h",
         "simulation_user.h",
     ],
-    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
     ],
@@ -241,7 +233,6 @@ cc_test(
         "wifi_hotspot_test.cc",
         "wifi_lan_service_info_test.cc",
     ],
-    defines = ["NO_WEBRTC"],
     shard_count = 16,
     deps = [
         ":internal",

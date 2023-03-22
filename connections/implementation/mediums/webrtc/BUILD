@@ -26,12 +26,7 @@ cc_library(
         "session_description_wrapper.h",
         "signaling_frames.h",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"] + select({
-        "@platforms//cpu:arm": [
-            "-DNO_WEBRTC",
-        ],
-        "//conditions:default": [],
-    }),
+    copts = ["-DCORE_ADAPTER_DLL"] + ["-DNO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
     ],
@@ -63,12 +58,7 @@ cc_library(
     hdrs = [
         "webrtc_socket_impl.h",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"] + select({
-        "@platforms//cpu:arm": [
-            "-DNO_WEBRTC",
-        ],
-        "//conditions:default": [],
-    }),
+    copts = ["-DCORE_ADAPTER_DLL"] + ["-DNO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
     ],

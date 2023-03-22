@@ -37,7 +37,6 @@ cc_library(
         "system_clock.h",
         "timer.h",
     ],
-    defines = ["NO_WEBRTC"],
     visibility = [
         "//fastpair:__subpackages__",
         "//internal/platform:__pkg__",
@@ -72,13 +71,7 @@ cc_library(
         "wifi_hotspot.h",
         "wifi_lan.h",
     ],
-    copts = select({
-        "@platforms//cpu:arm": [
-            "-DNO_WEBRTC",
-        ],
-        "//conditions:default": [],
-    }),
-    defines = ["NO_WEBRTC"],
+    copts = ["-DNO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
         "//internal:__pkg__",

@@ -34,7 +34,6 @@ cc_library(
         "single_thread_executor.h",
         "timer.h",
     ],
-    defines = ["NO_WEBRTC"],
     visibility = ["//visibility:private"],
     deps = [
         "//internal/platform:base",
@@ -79,7 +78,6 @@ cc_library(
         "wifi_hotspot.h",
         "wifi_lan.h",
     ],
-    defines = ["NO_WEBRTC"],
     visibility = ["//visibility:private"],
     deps = [
         ":types",
@@ -108,7 +106,6 @@ cc_library(
     srcs = [
         "crypto.cc",
     ],
-    defines = ["NO_WEBRTC"],
     visibility = ["//visibility:private"],
     deps = [
         "//internal/platform:base",
@@ -125,7 +122,6 @@ cc_library(
     srcs = [
         "platform.cc",
     ],
-    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",

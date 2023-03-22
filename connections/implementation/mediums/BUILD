@@ -40,13 +40,7 @@ cc_library(
         "wifi_hotspot.h",
         "wifi_lan.h",
     ],
-    copts = select({
-        "@platforms//cpu:arm": [
-            "-DNO_WEBRTC",
-        ],
-        "//conditions:default": [],
-    }),
-    defines = ["NO_WEBRTC"],
+    copts = ["-DNO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
     ],
@@ -92,13 +86,7 @@ cc_library(
         "webrtc_socket.h",
         "webrtc_socket_stub.h",
     ],
-    copts = select({
-        "@platforms//cpu:arm": [
-            "-DNO_WEBRTC",
-        ],
-        "//conditions:default": [],
-    }),
-    defines = ["NO_WEBRTC"],
+    copts = ["-DNO_WEBRTC"],
     visibility = [
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums/ble_v2:__subpackages__",
@@ -127,7 +115,6 @@ cc_test(
         "wifi_lan_test.cc",
         "wifi_test.cc",
     ],
-    defines = ["NO_WEBRTC"],
     shard_count = 16,
     deps = [
         ":mediums",
@@ -152,7 +139,6 @@ cc_test(
         "webrtc_peer_id_test.cc",
         "webrtc_test.cc",
     ],
-    defines = ["NO_WEBRTC"],
     shard_count = 16,
     tags = [
         "notsan",  # NOTE(b/139734036): known data race in usrsctplib.

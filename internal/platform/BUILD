@@ -43,7 +43,6 @@ cc_library(
         "wifi_credential.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
-    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
@@ -79,7 +78,6 @@ cc_library(
         "base_pipe.h",
         "byte_utils.h",
     ],
-    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
@@ -98,7 +96,6 @@ cc_library(
         "logging.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
-    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
@@ -125,7 +122,6 @@ cc_library(
         "cancellation_flag.h",
         "cancellation_flag_listener.h",
     ],
-    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
@@ -151,7 +147,6 @@ cc_library(
         "connection_info.h",
         "wifi_lan_connection_info.h",
     ],
-    defines = ["NO_WEBRTC"],
     visibility = [
         "//internal:__pkg__",
         "//presence:__subpackages__",
@@ -174,7 +169,6 @@ cc_library(
         "error_code_params.h",
         "error_code_recorder.h",
     ],
-    defines = ["NO_WEBRTC"],
     visibility = ["//connections/implementation:__subpackages__"],
     deps = [
         ":logging",
@@ -192,7 +186,6 @@ cc_library(
     hdrs = [
         "uuid.h",
     ],
-    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
@@ -213,7 +206,6 @@ cc_library(
     hdrs = [
         "medium_environment.h",
     ],
-    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
@@ -242,7 +234,6 @@ cc_test(
         "feature_flags_test.cc",
         "prng_test.cc",
     ],
-    defines = ["NO_WEBRTC"],
     deps = [
         ":base",
         ":test_util",
@@ -259,7 +250,6 @@ cc_test(
     srcs = [
         "byte_utils_test.cc",
     ],
-    defines = ["NO_WEBRTC"],
     deps = [
         ":base",
         ":util",
@@ -273,7 +263,6 @@ cc_test(
     srcs = [
         "cancellation_flag_test.cc",
     ],
-    defines = ["NO_WEBRTC"],
     deps = [
         ":base",
         ":cancellation_flag",
@@ -289,7 +278,6 @@ cc_test(
     srcs = [
         "error_code_recorder_test.cc",
     ],
-    defines = ["NO_WEBRTC"],
     deps = [
         ":error_code_recorder",
         ":test_util",
@@ -347,7 +335,6 @@ cc_library(
         "timer.h",
         "timer_impl.h",
     ],
-    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
@@ -402,13 +389,7 @@ cc_library(
         "wifi_lan.h",
         "wifi_utils.h",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"] + select({
-        "@platforms//cpu:arm": [
-            "-DNO_WEBRTC",
-        ],
-        "//conditions:default": [],
-    }),
-    defines = ["NO_WEBRTC"],
+    copts = ["-DCORE_ADAPTER_DLL"] + ["-DNO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
@@ -470,7 +451,6 @@ cc_test(
         "wifi_utils_test.cc",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
-    defines = ["NO_WEBRTC"],
     shard_count = 16,
     deps = [
         ":base",
