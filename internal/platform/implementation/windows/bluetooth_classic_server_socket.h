@@ -25,7 +25,7 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
+#include "winrt/base.h"
 
 namespace nearby {
 namespace windows {

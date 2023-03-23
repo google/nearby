@@ -22,13 +22,16 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.Rfcomm.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
+
+// clang-format off
+#include "winrt/base.h"
+#include "winrt/Windows.Devices.Bluetooth.Rfcomm.h"
+#include "winrt/Windows.Devices.Bluetooth.h"
+#include "winrt/Windows.Devices.Enumeration.h"
+#include "winrt/Windows.Foundation.Collections.h"
+// clang-format on
 
 namespace nearby {
 namespace windows {

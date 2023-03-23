@@ -26,9 +26,12 @@
 
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Radios.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
+
+// clang-format off
+#include "winrt/base.h"
+#include "winrt/Windows.Devices.Bluetooth.h"
+#include "winrt/Windows.Devices.Radios.h"
+// clang-format on
 
 namespace nearby {
 namespace windows {
