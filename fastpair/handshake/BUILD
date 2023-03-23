@@ -39,7 +39,22 @@ cc_library(
         "@boringssl//:crypto",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/functional:bind_front",
-        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "test_support",
+    hdrs = [
+        "fake_fast_pair_data_encryptor.h",
+    ],
+    visibility = [
+        "//fastpair:__subpackages__",
+    ],
+    deps = [
+        ":handshake",
+        "//fastpair/common",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
     ],
 )

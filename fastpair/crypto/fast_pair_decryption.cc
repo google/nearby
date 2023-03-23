@@ -33,8 +33,8 @@
 
 namespace nearby {
 namespace fastpair {
-
-std::array<uint8_t, kAesBlockByteSize> FastPairDecryption::DecryptBytes(
+namespace {
+std::array<uint8_t, kAesBlockByteSize> DecryptBytes(
     const std::array<uint8_t, kAesBlockByteSize>& aes_key_bytes,
     const std::array<uint8_t, kAesBlockByteSize>& encrypted_bytes) {
   AES_KEY aes_key;
@@ -48,6 +48,7 @@ std::array<uint8_t, kAesBlockByteSize> FastPairDecryption::DecryptBytes(
   AES_decrypt(encrypted_bytes.data(), decrypted_bytes.data(), &aes_key);
   return decrypted_bytes;
 }
+}  // namespace
 
 // Decrypts the encrypted response
 // (https://developers.google.com/nearby/fast-pair/specifications/characteristics#table1.4)
