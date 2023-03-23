@@ -23,6 +23,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "testing/fuzzing/fuzztest.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "absl/time/clock.h"
@@ -58,6 +59,7 @@ class MediumTest : public testing::Test {
     provider_.Shutdown();
     MediumEnvironment::Instance().Stop();
   }
+
   // The medium environment must be initialized (started) before adding
   // adapters.
   MediumEnvironmentStarter env_;
@@ -184,6 +186,63 @@ TEST_F(MediumTest, ReceiveMessage) {
   ASSERT_EQ(messages.size(), 1);
   EXPECT_EQ(messages[0], expected_message);
 }
+
+class MediumFuzzTest : public fuzztest::PerIterationFixtureAdapter<MediumTest> {
+ public:
+  void HandlesAnyInput(absl::string_view input) {
+    FastPairDevice fp_device("model id", "ble address",
+                             Protocol::kFastPairRetroactivePairing);
+    fp_device.set_public_address(provider_.GetMacAddress());
+    provider_.DiscoverProvider(seeker_medium_);
+    provider_.EnableProviderRfcomm();
+    Medium medium = Medium(
+        fp_device, std::optional<BluetoothClassicMedium*>(&seeker_medium_),
+        observer_);
+    ASSERT_OK(medium.OpenRfcomm());
+    ASSERT_TRUE(observer_.connection_result_.Get().ok());
+
+    provider_.WriteProviderBytes(std::string(input));
+    provider_.DisableProviderRfcomm();
+  }
+
+  void HandlesValidInput(uint8_t group, uint8_t code,
+                         absl::string_view payload) {
+    Message expected_message = {
+        .message_group = static_cast<MessageGroup>(group),
+        .message_code = static_cast<MessageCode>(code),
+        .payload = std::string(payload)};
+    FastPairDevice fp_device("model id", "ble address",
+                             Protocol::kFastPairRetroactivePairing);
+    fp_device.set_public_address(provider_.GetMacAddress());
+    provider_.DiscoverProvider(seeker_medium_);
+    provider_.EnableProviderRfcomm();
+    Medium medium = Medium(
+        fp_device, std::optional<BluetoothClassicMedium*>(&seeker_medium_),
+        observer_);
+    ASSERT_OK(medium.OpenRfcomm());
+    ASSERT_TRUE(observer_.connection_result_.Get().ok());
+
+    provider_.WriteProviderBytes(
+        {static_cast<char>(group), static_cast<char>(code)});
+    uint16_t length = payload.length();
+    provider_.WriteProviderBytes(
+        {static_cast<char>(length >> 8), static_cast<char>(length)});
+    provider_.WriteProviderBytes(std::string(payload));
+    ASSERT_OK(observer_.WaitForMessages(1, absl::Seconds(10)));
+    std::vector<Message> messages = observer_.GetMessages();
+    ASSERT_EQ(messages.size(), 1);
+    EXPECT_EQ(messages[0], expected_message);
+    provider_.DisableProviderRfcomm();
+  }
+};
+
+FUZZ_TEST_F(MediumFuzzTest, HandlesAnyInput)
+    .WithDomains(fuzztest::Arbitrary<std::string>());
+
+FUZZ_TEST_F(MediumFuzzTest, HandlesValidInput)
+    .WithDomains(/*group=*/fuzztest::Arbitrary<uint8_t>(),
+                 /*code=*/fuzztest::Arbitrary<uint8_t>(),
+                 /*payload=*/fuzztest::Arbitrary<std::string>());
 
 }  // namespace
 }  // namespace fastpair
