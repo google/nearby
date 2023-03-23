@@ -54,31 +54,8 @@ ByteArray IntToBytes(std::int32_t value) {
   return ByteArray(int_bytes, sizeof(int_bytes));
 }
 
-ExceptionOr<ByteArray> ReadExactly(InputStream* reader, std::int64_t size) {
-  ByteArray buffer(size);
-  std::int64_t current_pos = 0;
-
-  while (current_pos < size) {
-    ExceptionOr<ByteArray> read_bytes = reader->Read(size - current_pos);
-    if (!read_bytes.ok()) {
-      return read_bytes;
-    }
-    ByteArray result = read_bytes.result();
-
-    if (result.Empty()) {
-      NEARBY_LOGS(WARNING) << __func__ << ": Empty result when reading bytes.";
-      return ExceptionOr<ByteArray>(Exception::kIo);
-    }
-
-    buffer.CopyAt(current_pos, result);
-    current_pos += result.size();
-  }
-
-  return ExceptionOr<ByteArray>(std::move(buffer));
-}
-
 ExceptionOr<std::int32_t> ReadInt(InputStream* reader) {
-  ExceptionOr<ByteArray> read_bytes = ReadExactly(reader, sizeof(std::int32_t));
+  ExceptionOr<ByteArray> read_bytes = reader->ReadExactly(sizeof(std::int32_t));
   if (!read_bytes.ok()) {
     return ExceptionOr<std::int32_t>(read_bytes.exception());
   }
@@ -147,7 +124,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
       return ExceptionOr<ByteArray>(Exception::kIo);
     }
 
-    ExceptionOr<ByteArray> read_bytes = ReadExactly(reader_, read_int.result());
+    ExceptionOr<ByteArray> read_bytes = reader_->ReadExactly(read_int.result());
     if (!read_bytes.ok()) {
       return read_bytes;
     }

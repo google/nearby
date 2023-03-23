@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -43,4 +44,34 @@ ExceptionOr<size_t> InputStream::Skip(size_t offset) {
   return ExceptionOr<size_t>(offset);
 }
 
+ExceptionOr<ByteArray> InputStream::ReadExactly(std::size_t size) {
+  ByteArray buffer;
+  std::size_t current_pos = 0;
+
+  while (current_pos < size) {
+    ExceptionOr<ByteArray> read_bytes = Read(size - current_pos);
+    if (!read_bytes.ok()) {
+      return read_bytes;
+    }
+    const ByteArray& result = read_bytes.result();
+
+    if (result.Empty()) {
+      return ExceptionOr<ByteArray>(Exception::kIo);
+    }
+    if (current_pos == 0) {
+      if (result.size() == size) {
+        // We have read the requested `size` bytes in one chunk. We can return
+        // it directly.
+        return read_bytes;
+      } else {
+        // Reserve space for in the buffer.
+        buffer.SetData(size);
+      }
+    }
+    buffer.CopyAt(current_pos, result);
+    current_pos += result.size();
+  }
+
+  return ExceptionOr<ByteArray>(std::move(buffer));
+}
 }  // namespace nearby

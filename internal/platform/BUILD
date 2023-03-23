@@ -232,6 +232,7 @@ cc_test(
         "bluetooth_utils_test.cc",
         "byte_array_test.cc",
         "feature_flags_test.cc",
+        "input_stream_test.cc",
         "prng_test.cc",
     ],
     deps = [

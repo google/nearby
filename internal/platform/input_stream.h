@@ -38,6 +38,11 @@ class InputStream {
   // or Exception::kIo on error.
   virtual ExceptionOr<size_t> Skip(size_t offset);
 
+  // Reads exactly `size` bytes from the input stream.
+  // Return Exception::kIo on error, or if end of file is reached before reading
+  // `size` bytes.
+  ExceptionOr<ByteArray> ReadExactly(std::size_t size);
+
   // throws Exception::kIo
   virtual Exception Close() = 0;
 };

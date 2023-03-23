@@ -107,6 +107,15 @@ class ExceptionOr {
   Exception exception_{Exception::kFailed};
 };
 
+template <typename T>
+constexpr inline bool operator==(const ExceptionOr<T>& a,
+                                 const ExceptionOr<T>& b) {
+  if (a.ok() && b.ok()) {
+    return a.result() == b.result();
+  }
+  return a.exception() == b.exception();
+}
+
 }  // namespace nearby
 
 #endif  // PLATFORM_BASE_EXCEPTION_H_

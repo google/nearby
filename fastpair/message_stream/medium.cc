@@ -102,7 +102,7 @@ void Medium::RunLoop(BluetoothSocket socket) {
   NEARBY_LOGS(INFO) << "Run loop";
   InputStream& input = socket.GetInputStream();
   while (!cancellation_flag_.Cancelled()) {
-    ExceptionOr<ByteArray> header = input.Read(kHeaderSize);
+    ExceptionOr<ByteArray> header = input.ReadExactly(kHeaderSize);
     if (!header.ok() || header.result().size() != kHeaderSize) {
       break;
     }
@@ -113,7 +113,7 @@ void Medium::RunLoop(BluetoothSocket socket) {
                  static_cast<unsigned int>(data[3]);
     ExceptionOr<ByteArray> payload;
     if (length > 0) {
-      payload = input.Read(length);
+      payload = input.ReadExactly(length);
     } else {
       payload = ExceptionOr<ByteArray>(ByteArray(""));
     }
