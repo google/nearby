@@ -41,6 +41,7 @@ cc_library(
     ],
     copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated"],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
+    visibility = ["//location/nearby/cpp/sharing/implementation/internal/impl/windows:__pkg__"],
     deps = [
         "//base",
         "//base:stringprintf",
