@@ -21,6 +21,7 @@
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 
@@ -52,8 +53,11 @@ bool BluetoothSocket::IsConnectedLocked() const { return input_ != nullptr; }
 
 InputStream& BluetoothSocket::GetInputStream() {
   auto* remote_socket = GetRemoteSocket();
-  CHECK(remote_socket != nullptr);
-  return remote_socket->GetLocalInputStream();
+  if (remote_socket != nullptr) {
+    return remote_socket->GetLocalInputStream();
+  } else {
+    return invalid_input_stream_;
+  }
 }
 
 OutputStream& BluetoothSocket::GetOutputStream() {

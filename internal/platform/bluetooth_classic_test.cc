@@ -231,6 +231,50 @@ TEST_F(BluetoothClassicMediumTest, SendData) {
   server_socket.Close();
 }
 
+TEST_F(BluetoothClassicMediumTest, IoOnClosedSocketReturnsError) {
+  adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
+  CountDownLatch found_latch(1);
+  BluetoothDevice* discovered_device = nullptr;
+  bt_a_->StartDiscovery(DiscoveryCallback{
+      .device_discovered_cb =
+          [this, &found_latch, &discovered_device](BluetoothDevice& device) {
+            NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
+            EXPECT_EQ(device.GetName(), adapter_b_->GetName());
+            discovered_device = &device;
+            found_latch.CountDown();
+          },
+  });
+  adapter_b_->SetScanMode(BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  EXPECT_EQ(adapter_b_->GetScanMode(),
+            BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  ASSERT_TRUE(found_latch.Await().Ok());
+  std::string service_name{"service"};
+  std::string service_uuid("service-uuid");
+  BluetoothServerSocket server_socket =
+      bt_b_->ListenForService(service_name, service_uuid);
+  ASSERT_TRUE(server_socket.IsValid());
+  {
+    ByteArray data("data");
+    CancellationFlag flag;
+    SingleThreadExecutor server_executor;
+    SingleThreadExecutor client_executor;
+    client_executor.Execute([&, this]() {
+      BluetoothSocket socket_a =
+          bt_a_->ConnectToService(*discovered_device, service_uuid, &flag);
+      ASSERT_TRUE(socket_a.IsValid());
+      socket_a.Close();
+      EXPECT_FALSE(socket_a.GetOutputStream().Write(data).Ok());
+    });
+    server_executor.Execute([&]() {
+      BluetoothSocket socket_b = server_socket.Accept();
+      ASSERT_TRUE(socket_b.IsValid());
+      socket_b.Close();
+      EXPECT_FALSE(socket_b.GetInputStream().Read(data.size()).ok());
+    });
+  }
+  server_socket.Close();
+}
+
 TEST_F(BluetoothClassicMediumTest, ConstructorDestructorWorks) {
   // Make sure we can create functional adapters.
   ASSERT_TRUE(adapter_a_->IsValid());

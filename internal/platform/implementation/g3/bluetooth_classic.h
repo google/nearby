@@ -92,6 +92,19 @@ class BluetoothSocket : public api::BluetoothSocket {
   // This is a helper for GetOutputStream() method.
   OutputStream& GetLocalOutputStream() ABSL_LOCKS_EXCLUDED(mutex_);
 
+  class InvalidInputStream : public InputStream {
+   public:
+    ExceptionOr<ByteArray> Read(std::int64_t size) override {
+      return ExceptionOr<ByteArray>(Exception::kIo);
+    }
+    ExceptionOr<size_t> Skip(size_t offset) override {
+      return ExceptionOr<size_t>(Exception::kIo);
+    }
+    Exception Close() override { return {Exception::kIo}; }
+  };
+  // Returned to the caller if the remote socket is destroyed.
+  InvalidInputStream invalid_input_stream_;
+
   // Output pipe is initialized by constructor, it remains always valid, until
   // it is closed. it represents output part of a local socket. Input part of a
   // local socket comes from the peer socket, after connection.
