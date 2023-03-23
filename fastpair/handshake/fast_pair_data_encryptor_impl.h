@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
 #ifndef THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_FAST_PAIR_DATA_ENCRYPTOR_IMPL_H_
 #define THIRD_PARTY_NEARBY_FASTPAIR_HANDSHAKE_FAST_PAIR_DATA_ENCRYPTOR_IMPL_H_
 
-#include <stddef.h>
 #include <stdint.h>
 
 #include <array>
@@ -62,17 +61,17 @@ class FastPairDataEncryptorImpl : public FastPairDataEncryptor {
             on_get_instance_callback);
 
     static void DeviceMetadataRetrieved(
-        const FastPairDevice& device,
         absl::AnyInvocable<void(std::unique_ptr<FastPairDataEncryptor>)>
             on_get_instance_callback,
         DeviceMetadata& device_metadata);
   };
 
   std::array<uint8_t, kAesBlockByteSize> EncryptBytes(
-      const std::array<uint8_t, kAesBlockByteSize>& bytes_to_encrypt) override;
+      const std::array<uint8_t, kAesBlockByteSize>& bytes_to_encrypt)
+      const override;
 
-  std::optional<std::array<uint8_t, kPublicKeyByteSize>>& GetPublicKey()
-      override;
+  std::optional<std::array<uint8_t, kPublicKeyByteSize>> GetPublicKey()
+      const override;
 
   void ParseDecryptResponse(
       const std::vector<uint8_t>& encrypted_response_bytes,
@@ -94,7 +93,7 @@ class FastPairDataEncryptorImpl : public FastPairDataEncryptor {
 
   // The public key is only required during initial pairing and optional during
   // communication with paired devices.
-  std::optional<std::array<uint8_t, kPublicKeyByteSize>> public_key_ =
+  const std::optional<std::array<uint8_t, kPublicKeyByteSize>> public_key_ =
       std::nullopt;
 };
 

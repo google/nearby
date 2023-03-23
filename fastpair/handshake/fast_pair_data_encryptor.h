@@ -35,12 +35,14 @@ namespace fastpair {
 // response and decrypt passkey.
 class FastPairDataEncryptor {
  public:
+  virtual ~FastPairDataEncryptor() = default;
+
   // Encrypts bytes with the stored secret key.
   virtual std::array<uint8_t, kAesBlockByteSize> EncryptBytes(
-      const std::array<uint8_t, kAesBlockByteSize>& bytes_to_encrypt) = 0;
+      const std::array<uint8_t, kAesBlockByteSize>& bytes_to_encrypt) const = 0;
 
   // Return stored PublicKey
-  virtual std::optional<std::array<uint8_t, 64>>& GetPublicKey() = 0;
+  virtual std::optional<std::array<uint8_t, 64>> GetPublicKey() const = 0;
 
   // Decrypt and parse decrypted response bytes with the stored secret key.
   virtual void ParseDecryptResponse(
@@ -53,8 +55,6 @@ class FastPairDataEncryptor {
       const std::vector<uint8_t>& encrypted_passkey_bytes,
       absl::AnyInvocable<void(const std::optional<DecryptedPasskey>)>
           callback) = 0;
-
-  virtual ~FastPairDataEncryptor() = default;
 };
 
 }  // namespace fastpair

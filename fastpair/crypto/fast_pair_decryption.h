@@ -29,10 +29,6 @@ class FastPairDecryption {
  public:
   static constexpr int kAesBlockByteSize = 16;
 
-  static std::array<uint8_t, kAesBlockByteSize> DecryptBytes(
-      const std::array<uint8_t, kAesBlockByteSize>& aes_key_bytes,
-      const std::array<uint8_t, kAesBlockByteSize>& encrypted_bytes);
-
   static std::optional<DecryptedResponse> ParseDecryptResponse(
       const std::array<uint8_t, 16>& aes_key_bytes,
       const std::array<uint8_t, 16>& encrypted_response_bytes);
