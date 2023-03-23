@@ -133,6 +133,7 @@ cc_test(
         "//internal/platform:types",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//testing/fuzzing:fuzztest",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",

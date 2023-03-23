@@ -15,6 +15,7 @@
 #include "fastpair/message_stream/message_stream.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -22,6 +23,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "testing/fuzzing/fuzztest.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "absl/time/clock.h"
@@ -49,6 +51,57 @@ class MediumEnvironmentStarter {
  public:
   MediumEnvironmentStarter() { MediumEnvironment::Instance().Start(); }
   ~MediumEnvironmentStarter() { MediumEnvironment::Instance().Stop(); }
+};
+
+class FakeObserver : public MessageStream::Observer {
+ public:
+  void OnConnectionResult(absl::Status result) override {
+    NEARBY_LOGS(INFO) << "OnConnectionResult " << result;
+    connection_result_.Set(result);
+  }
+
+  void OnDisconnected(absl::Status status) override {
+    NEARBY_LOGS(INFO) << "OnDisconnected " << status;
+    disconnected_reason_.Set(status);
+  }
+
+  void OnEnableSilenceMode(bool enable) override { silence_mode_.Set(enable); }
+
+  void OnLogBufferFull() override { log_buffer_full_.Set(true); }
+
+  void OnModelId(int model_id) override { model_id_.Set(model_id); }
+
+  void OnBleAddressUpdated(absl::string_view address) override {
+    ble_address_updated_.Set(std::string(address));
+  }
+
+  void OnBatteryUpdated(
+      std::vector<MessageStream::BatteryInfo> battery_levels) override {
+    battery_levels_.Set(battery_levels);
+  }
+
+  void OnRemainingBatteryTime(absl::Duration duration) override {
+    remaining_battery_time_.Set(duration);
+  }
+
+  bool OnRing(uint8_t components, absl::Duration duration) override {
+    on_ring_event_.Set({components, duration});
+    // This allows us to test returning ACK/NACK to the seeker.
+    return components != 0xAB;
+  }
+  Future<absl::Status> connection_result_;
+  Future<absl::Status> disconnected_reason_;
+  Future<int> model_id_;
+  Future<std::string> ble_address_updated_;
+  Future<std::vector<MessageStream::BatteryInfo>> battery_levels_;
+  Future<absl::Duration> remaining_battery_time_;
+  Future<bool> silence_mode_;
+  Future<bool> log_buffer_full_;
+  struct OnRingData {
+    uint8_t components;
+    absl::Duration duration;
+  };
+  Future<OnRingData> on_ring_event_;
 };
 
 class MessageStreamTest : public testing::Test {
@@ -88,59 +141,6 @@ class MessageStreamTest : public testing::Test {
   FakeProvider provider_;
   FastPairDevice fp_device_{"model id", "ble address",
                             Protocol::kFastPairRetroactivePairing};
-
-  class FakeObserver : public MessageStream::Observer {
-   public:
-    void OnConnectionResult(absl::Status result) override {
-      NEARBY_LOGS(INFO) << "OnConnectionResult " << result;
-      connection_result_.Set(result);
-    }
-
-    void OnDisconnected(absl::Status status) override {
-      NEARBY_LOGS(INFO) << "OnDisconnected " << status;
-      disconnected_reason_.Set(status);
-    }
-
-    void OnEnableSilenceMode(bool enable) override {
-      silence_mode_.Set(enable);
-    }
-
-    void OnLogBufferFull() override { log_buffer_full_.Set(true); }
-
-    void OnModelId(int model_id) override { model_id_.Set(model_id); }
-
-    void OnBleAddressUpdated(absl::string_view address) override {
-      ble_address_updated_.Set(std::string(address));
-    }
-
-    void OnBatteryUpdated(
-        std::vector<MessageStream::BatteryInfo> battery_levels) override {
-      battery_levels_.Set(battery_levels);
-    }
-
-    void OnRemainingBatteryTime(absl::Duration duration) override {
-      remaining_battery_time_.Set(duration);
-    }
-
-    bool OnRing(uint8_t components, absl::Duration duration) override {
-      on_ring_event_.Set({components, duration});
-      // This allows us to test returning ACK/NACK to the seeker.
-      return components != 0xAB;
-    }
-    Future<absl::Status> connection_result_;
-    Future<absl::Status> disconnected_reason_;
-    Future<int> model_id_;
-    Future<std::string> ble_address_updated_;
-    Future<std::vector<MessageStream::BatteryInfo>> battery_levels_;
-    Future<absl::Duration> remaining_battery_time_;
-    Future<bool> silence_mode_;
-    Future<bool> log_buffer_full_;
-    struct OnRingData {
-      uint8_t components;
-      absl::Duration duration;
-    };
-    Future<OnRingData> on_ring_event_;
-  };
 
   FakeObserver observer_;
 };
@@ -412,6 +412,41 @@ TEST_F(MessageStreamTest, ReceiveRemainingBatteryTimeHighValue) {
   EXPECT_EQ(observer_.remaining_battery_time_.Get().GetResult(),
             absl::Minutes(0xABCD));
 }
+
+template <typename T>
+std::vector<T> GetAllEnums(int min_value, int max_value) {
+  int count = max_value - min_value + 1;
+  std::vector<T> enums(count);
+  for (int i = 0; i < count; i++) {
+    enums[i] = static_cast<T>(min_value + i);
+  }
+  return enums;
+}
+
+// MessageGroup received over the wire is an 8-bit number.
+auto AnyMessageGroup() {
+  return fuzztest::ElementOf(GetAllEnums<MessageGroup>(0, 255));
+}
+
+// MessageCode received over the wire is an 8-bit number.
+auto AnyMessageCode() {
+  return fuzztest::ElementOf(GetAllEnums<MessageCode>(0, 255));
+}
+
+void HandlesAnyMessage(MessageGroup group, MessageCode code,
+                       absl::string_view payload) {
+  FastPairDevice fp_device("model id", "ble address",
+                           Protocol::kFastPairRetroactivePairing);
+  FakeObserver observer;
+  MessageStream message_stream(fp_device, std::nullopt, observer);
+  message_stream.OnReceived(Message{.message_group = group,
+                                    .message_code = code,
+                                    .payload = std::string(payload)});
+}
+
+FUZZ_TEST(MessageStreamFuzzTest, HandlesAnyMessage)
+    .WithDomains(AnyMessageGroup(), AnyMessageCode(),
+                 fuzztest::Arbitrary<std::string>());
 
 }  // namespace
 }  // namespace fastpair
