@@ -96,6 +96,8 @@ BluetoothAdapter::BluetoothAdapter() : windows_bluetooth_adapter_(nullptr) {
   } catch (const winrt::hresult_error &error) {
     NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
                        << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": unknown error.";
   }
 }
 
@@ -154,6 +156,9 @@ bool BluetoothAdapter::SetStatus(Status status) {
                        << winrt::to_string(ex.message());
 
     return false;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": unknown error.";
+    return false;
   }
 
   NEARBY_LOGS(INFO) << __func__ << ": Successfully set the radio state to "
@@ -180,6 +185,9 @@ bool BluetoothAdapter::IsEnabled() const {
     NEARBY_LOGS(ERROR) << __func__ << ": exception:" << ex.code() << ": "
                        << winrt::to_string(ex.message());
     return false;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": unknown error.";
+    return false;
   }
 }
 
@@ -201,6 +209,9 @@ bool BluetoothAdapter::IsExtendedAdvertisingSupported() const {
   } catch (const winrt::hresult_error &ex) {
     NEARBY_LOGS(ERROR) << __func__ << ": exception:" << ex.code() << ": "
                        << winrt::to_string(ex.message());
+    return false;
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": unknown error.";
     return false;
   }
 }
@@ -726,6 +737,9 @@ std::string BluetoothAdapter::GetMacAddress() const {
   } catch (const winrt::hresult_error &ex) {
     NEARBY_LOGS(ERROR) << __func__ << ": exception:" << ex.code() << ": "
                        << winrt::to_string(ex.message());
+    return "";
+  } catch (...) {
+    NEARBY_LOGS(ERROR) << __func__ << ": unknown error.";
     return "";
   }
 }
