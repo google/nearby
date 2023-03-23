@@ -342,6 +342,7 @@ cc_library(
         "//internal/flags:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
         "//internal/test:__subpackages__",
+        "//internal/weave:__pkg__",
         "//location/nearby/cpp:__subpackages__",
         "//location/nearby/testing/nearby_native:__subpackages__",
         "//presence:__subpackages__",
