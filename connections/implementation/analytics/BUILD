@@ -26,7 +26,10 @@ cc_library(
         "throughput_recorder.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
-    visibility = ["//connections:__subpackages__"],
+    visibility = [
+        "//connections:__subpackages__",
+        "//location/nearby/cpp/sharing/implementation:__pkg__",
+    ],
     deps = [
         "//connections:core_types",
         "//internal/analytics:event_logger",
