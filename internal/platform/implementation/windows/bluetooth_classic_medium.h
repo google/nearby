@@ -25,9 +25,12 @@
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_server_socket.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
+
+// clang-format off
+#include "winrt/base.h"
+#include "winrt/Windows.Devices.Enumeration.h"
+#include "winrt/Windows.Networking.Sockets.h"
+// clang-format on
 
 namespace nearby {
 namespace windows {

@@ -38,7 +38,7 @@ lexan.cc_windows_dll(
         "//fastpair/dart:fastpair_wrapper",
         "//internal/platform:logging",
         "//internal/platform/implementation/windows",
-        "//internal/platform/implementation/windows/generated:types",
+        "//third_party/winrt_projections/winrt_cpp:types",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -68,8 +68,8 @@ lexan.cc_windows_dll(
         "//fastpair/dart:fastpair_wrapper",
         "//internal/platform:logging",
         "//internal/platform/implementation/windows",
-        "//internal/platform/implementation/windows/generated:types",
         "//third_party/dart_lang/v2:dart_api_dl",
+        "//third_party/winrt_projections/winrt_cpp:types",
         "@com_google_absl//absl/strings",
     ],
 )
