@@ -30,8 +30,10 @@ class DeviceMetadata {
   DeviceMetadata &operator=(const DeviceMetadata &) = delete;
   DeviceMetadata &operator=(DeviceMetadata &&) = delete;
   ~DeviceMetadata() = default;
-  const proto::Device &GetDetails() { return response_.device(); }
-  const proto::GetObservedDeviceResponse &GetResponse() { return response_; }
+  const proto::Device &GetDetails() const { return response_.device(); }
+  const proto::GetObservedDeviceResponse &GetResponse() const {
+    return response_;
+  }
 
  private:
   const proto::GetObservedDeviceResponse response_;

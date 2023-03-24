@@ -27,7 +27,7 @@ namespace fastpair {
 class FakeFastPairNotificationControllerObserver
     : public FastPairNotificationController::Observer {
  public:
-  void OnUpdateDevice(DeviceMetadata& device) override {
+  void OnUpdateDevice(const DeviceMetadata& device) override {
     device_metadata_name_list_.push_back(device.GetDetails().name());
     on_update_device_count_++;
   }

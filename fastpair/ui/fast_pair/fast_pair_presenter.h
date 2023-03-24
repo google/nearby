@@ -12,30 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef THIRD_PARTY_NEARBY_FASTPAIR_UI_FAST_PAIR_FAST_PAIR_PRESENTER_H_
+#define THIRD_PARTY_NEARBY_FASTPAIR_UI_FAST_PAIR_FAST_PAIR_PRESENTER_H_
+
+#include "fastpair/common/fast_pair_device.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"
 
-#include "fastpair/repository/device_metadata.h"
 namespace nearby {
 namespace fastpair {
-void FastPairNotificationController::AddObserver(Observer* observer) {
-  observers_.AddObserver(observer);
-}
 
-void FastPairNotificationController::RemoveObserver(Observer* observer) {
-  observers_.RemoveObserver(observer);
-}
-
-void FastPairNotificationController::NotifyShowDiscovery(
-    const DeviceMetadata& device) {
-  for (Observer* observer : observers_) {
-    observer->OnUpdateDevice(device);
-  }
-}
-
-void FastPairNotificationController::ShowGuestDiscoveryNotification(
-    const DeviceMetadata& device) {
-  NotifyShowDiscovery(device);
-}
+// This Presenter creates and manages UI component with Notification Controller.
+class FastPairPresenter {
+ public:
+  // observer_list of notification_controller is updated
+  virtual void ShowDiscovery(
+      const FastPairDevice& device,
+      FastPairNotificationController& notification_controller) = 0;
+  virtual ~FastPairPresenter() = default;
+};
 
 }  // namespace fastpair
 }  // namespace nearby
+
+#endif  // THIRD_PARTY_NEARBY_FASTPAIR_UI_FAST_PAIR_FAST_PAIR_PRESENTER_H_
