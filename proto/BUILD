@@ -32,9 +32,7 @@ java_proto_library(
 
 cc_proto_library(
     name = "connections_enums_cc_proto",
-    deps = [
-        ":connections_enums_proto",
-    ],
+    deps = [":connections_enums_proto"],
 )
 
 proto_library(
@@ -63,9 +61,7 @@ cc_proto_library(
         "//:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
     ],
-    deps = [
-        ":sharing_enums_proto",
-    ],
+    deps = [":sharing_enums_proto"],
 )
 
 java_proto_library(
