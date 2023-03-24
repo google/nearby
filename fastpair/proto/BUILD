@@ -1,3 +1,5 @@
+load("@rules_cc//cc:defs.bzl", "cc_proto_library")
+
 licenses(["notice"])
 
 proto_library(
