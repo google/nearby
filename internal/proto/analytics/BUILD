@@ -23,7 +23,6 @@ proto_library(
     srcs = [
         "connections_log.proto",
     ],
-    cc_api_version = 2,
     deps = [
         "//proto:connections_enums_proto",
         "//proto/errorcode:error_code_enums_proto",

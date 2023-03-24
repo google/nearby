@@ -21,7 +21,6 @@ proto_library(
     srcs = [
         "offline_wire_formats.proto",
     ],
-    cc_api_version = 2,
     visibility = [
         "//internal/platform/implementation/apple:__subpackages__",
     ],

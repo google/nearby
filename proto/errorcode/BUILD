@@ -23,7 +23,6 @@ package(default_visibility = ["//visibility:public"])
 proto_library(
     name = "error_code_enums_proto",
     srcs = ["error_code_enums.proto"],
-    cc_api_version = 2,
 )
 
 cc_proto_library(

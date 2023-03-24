@@ -23,7 +23,6 @@ proto_library(
     srcs = [
         "multiplex_frames.proto",
     ],
-    cc_api_version = 2,
 )
 
 proto_library(
@@ -31,7 +30,6 @@ proto_library(
     srcs = [
         "nfc_frames.proto",
     ],
-    cc_api_version = 2,
 )
 
 proto_library(
@@ -39,7 +37,6 @@ proto_library(
     srcs = [
         "wifi_aware_frames.proto",
     ],
-    cc_api_version = 2,
 )
 
 proto_library(
@@ -47,7 +44,6 @@ proto_library(
     srcs = [
         "web_rtc_signaling_frames.proto",
     ],
-    cc_api_version = 2,
 )
 
 cc_proto_library(
@@ -61,7 +57,6 @@ proto_library(
     srcs = [
         "ble_frames.proto",
     ],
-    cc_api_version = 2,
 )
 
 cc_proto_library(
