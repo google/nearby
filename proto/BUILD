@@ -23,6 +23,7 @@ package(default_visibility = ["//visibility:public"])
 proto_library(
     name = "connections_enums_proto",
     srcs = ["connections_enums.proto"],
+    cc_api_version = 2,
 )
 
 java_proto_library(
@@ -40,6 +41,7 @@ cc_proto_library(
 proto_library(
     name = "sharing_enums_proto",
     srcs = ["sharing_enums.proto"],
+    cc_api_version = 2,
 )
 
 proto_library(

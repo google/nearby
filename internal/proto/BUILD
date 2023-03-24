@@ -3,6 +3,7 @@ load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 proto_library(
     name = "credential_proto",
     srcs = ["credential.proto"],
+    cc_api_version = 2,
     visibility = ["//location/nearby/presence/proto:__pkg__"],
 )
 
@@ -17,6 +18,7 @@ cc_proto_library(
 proto_library(
     name = "local_credential_proto",
     srcs = ["local_credential.proto"],
+    cc_api_version = 2,
     visibility = ["//location/nearby/presence/proto:__pkg__"],
     deps = [":credential_proto"],
 )
@@ -32,6 +34,7 @@ cc_proto_library(
 proto_library(
     name = "metadata_proto",
     srcs = ["metadata.proto"],
+    cc_api_version = 2,
     visibility = ["//location/nearby/presence/proto:__pkg__"],
 )
 
