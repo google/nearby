@@ -21,6 +21,7 @@ option optimize_for = LITE_RUNTIME;
 // option java_api_version = 2;
 option java_package = "nearby.proto.fastpair";
 option java_outer_classname = "FastPairEnums";
+option objc_class_prefix = "GNFP";
 
 // Enums related to logged events. For event codes, see NearbyEventCodes.
 message FastPairEvent {
