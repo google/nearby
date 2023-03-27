@@ -69,7 +69,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       const std::string& service_id, api::ble_v2::TxPowerLevel tx_power_level,
       api::ble_v2::BlePeripheral& remote_peripheral,
       CancellationFlag* cancellation_flag) override;
-  bool IsExtendedAdvertisementsAvailable() override { return false; }
+  bool IsExtendedAdvertisementsAvailable() override;
 
   BluetoothAdapter& GetAdapter() { return *adapter_; }
 
