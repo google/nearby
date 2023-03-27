@@ -39,7 +39,7 @@ class PresenceDevice : public nearby::NearbyDevice {
   explicit PresenceDevice(Metadata metadata) noexcept;
   explicit PresenceDevice(DeviceMotion device_motion,
                           Metadata metadata) noexcept;
-  absl::string_view GetEndpointId() const override { return endpoint_id_; };
+  absl::string_view GetEndpointId() const override { return endpoint_id_; }
   void SetEndpointInfo(absl::string_view endpoint_info) {
     endpoint_info_ = std::string(endpoint_info);
   }
