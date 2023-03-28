@@ -89,6 +89,9 @@ cc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/shared:count_down_latch",
         "//internal/proto:credential_cc_proto",
+        "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//third_party/webrtc/files/stable/webrtc/api/task_queue:default_task_queue_factory",
         "//third_party/webrtc/files/stable/webrtc/rtc_base:checks",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",

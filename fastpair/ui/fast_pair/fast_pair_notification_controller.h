@@ -36,7 +36,7 @@ class FastPairNotificationController {
   class Observer {
    public:
     virtual ~Observer() = default;
-    virtual void OnUpdateDevice(DeviceMetadata& device) = 0;
+    virtual void OnUpdateDevice(const DeviceMetadata& device) = 0;
   };
 
   FastPairNotificationController() = default;
@@ -49,10 +49,10 @@ class FastPairNotificationController {
   // Observer process
   void AddObserver(Observer* observer);
   void RemoveObserver(Observer* observer);
-  void NotifyShowDiscovery(DeviceMetadata& device);
+  void NotifyShowDiscovery(const DeviceMetadata& device);
 
   // Creates and displays corresponding notification.
-  void ShowGuestDiscoveryNotification(DeviceMetadata& device_metadata);
+  void ShowGuestDiscoveryNotification(const DeviceMetadata& device_metadata);
 
  private:
   ObserverList<Observer> observers_;

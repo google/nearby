@@ -56,6 +56,8 @@ cc_library(
         "@com_google_absl//absl/types:optional",
         "//connections:core_types",
         "//connections/implementation/mediums/ble_v2",
+        "//connections/implementation/mediums/webrtc",
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
@@ -64,10 +66,10 @@ cc_library(
         "//internal/platform:uuid",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
     ] + select({
-        "@platforms//cpu:arm": [
-            "//connections/implementation/proto:offline_wire_formats_cc_proto",
+        "@platforms//cpu:arm": [],
+        "//conditions:default": [
+            # TODO: Support WebRTC
         ],
-        "//conditions:default": [],
     }),
 )
 
@@ -93,6 +95,7 @@ cc_library(
         "//connections/implementation/mediums/webrtc:__pkg__",
     ],
     deps = [
+        "//connections/implementation/mediums/webrtc:data_types",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
         "//internal/platform:types",

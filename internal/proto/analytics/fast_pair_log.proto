@@ -17,10 +17,12 @@ syntax = "proto2";
 package nearby.proto.fastpair;
 
 import "third_party/nearby/proto/fast_pair_enums.proto";
+import "wireless/android/privacy/annotations/proto/collection_basis_annotations.proto";
 
 option optimize_for = LITE_RUNTIME;
 option java_package = "nearby.proto.fastpair";
 option java_outer_classname = "FastPairLogProto";
+option objc_class_prefix = "GNFP";
 
 // Logging for go/magic-pair.
 //

@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/common/fast_pair_device.h"
 
 namespace nearby {
 namespace fastpair {
@@ -30,8 +31,19 @@ class DeviceMetadata {
   DeviceMetadata &operator=(const DeviceMetadata &) = delete;
   DeviceMetadata &operator=(DeviceMetadata &&) = delete;
   ~DeviceMetadata() = default;
-  const proto::Device &GetDetails() { return response_.device(); }
-  const proto::GetObservedDeviceResponse &GetResponse() { return response_; }
+  const proto::Device &GetDetails() const { return response_.device(); }
+  const proto::GetObservedDeviceResponse &GetResponse() const {
+    return response_;
+  }
+
+  DeviceFastPairVersion GetFastPairVersion() const {
+    // Anti-spoofing keys were introduced in Fast Pair v2, so if this isn't
+    // available then the device is v1.
+    if (GetDetails().anti_spoofing_key_pair().public_key().empty()) {
+      return DeviceFastPairVersion::kV1;
+    }
+    return DeviceFastPairVersion::kHigherThanV1;
+  }
 
  private:
   const proto::GetObservedDeviceResponse response_;

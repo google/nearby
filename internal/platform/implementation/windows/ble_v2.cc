@@ -350,6 +350,10 @@ std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
   return ble_socket;
 }
 
+bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
+  return adapter_->IsExtendedAdvertisingSupported();
+}
+
 bool BleV2Medium::StartBleAdvertising(
     const api::ble_v2::BleAdvertisementData& advertising_data,
     api::ble_v2::AdvertiseParameters advertising_parameters) {

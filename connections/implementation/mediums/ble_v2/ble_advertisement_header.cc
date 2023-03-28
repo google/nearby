@@ -64,10 +64,17 @@ BleAdvertisementHeader::BleAdvertisementHeader(
             config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
       // The BLE advertisement header is not encoded in base64, but still try to
       // parse it as raw bytes.
-      NEARBY_LOG(
-          WARNING,
-          "Cannot deserialize BLEAdvertisementHeader: failed Base64 decoding");
-      advertisement_header_bytes = ble_advertisement_header_bytes;
+      if (ble_advertisement_header_bytes.size() ==
+              kMinAdvertisementHeaderLength ||
+          ble_advertisement_header_bytes.size() ==
+              kMinAdvertisementHeaderLength + 2) {
+        advertisement_header_bytes = ble_advertisement_header_bytes;
+      } else {
+        NEARBY_LOG(WARNING,
+                   "Cannot deserialize BLEAdvertisementHeader. Invalid "
+                   "advertising data.");
+        return;
+      }
     } else {
       NEARBY_LOG(
           ERROR,
