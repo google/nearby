@@ -44,8 +44,7 @@ cc_library(
     ] + select({
         "@platforms//cpu:arm": [],
         "//conditions:default": [
-            "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
-            "//third_party/webrtc/files/stable/webrtc/pc:peerconnection",
+            # TODO: Support WebRTC
         ],
     }),
 )
@@ -69,7 +68,7 @@ cc_library(
     ] + select({
         "@platforms//cpu:arm": [],
         "//conditions:default": [
-            "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+            # TODO: Support WebRTC
         ],
     }),
 )

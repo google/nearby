@@ -82,19 +82,24 @@ cc_library(
         "//presence/implementation:__subpackages__",
     ],
     deps = [
-        "//connections/implementation/proto:offline_wire_formats_cc_proto",
-        "//internal/platform:base",
-        "//internal/platform:cancellation_flag",
-        "//internal/platform:uuid",
-        "//internal/proto:credential_cc_proto",
-        "//internal/proto:local_credential_cc_proto",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
-    ],
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:uuid",
+        "//internal/proto:credential_cc_proto",
+        "//internal/proto:local_credential_cc_proto",
+    ] + select({
+        "@platforms//cpu:arm": [],
+        "//conditions:default": [
+            # TODO: Support WebRTC
+        ],
+    }),
 )
 
 cc_library(

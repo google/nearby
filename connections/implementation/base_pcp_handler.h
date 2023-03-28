@@ -31,10 +31,6 @@
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/mediums/mediums.h"
-#ifdef NO_WEBRTC
-#include "connections/implementation/mediums/webrtc_stub.h"
-#else
-#endif
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/pcp_handler.h"
 #include "connections/listeners.h"

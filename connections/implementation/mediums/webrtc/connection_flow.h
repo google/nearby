@@ -15,6 +15,8 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_CONNECTION_FLOW_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_CONNECTION_FLOW_H_
 
+#ifndef NO_WEBRTC
+
 #include <memory>
 
 #include "connections/implementation/mediums/webrtc/data_channel_listener.h"
@@ -227,5 +229,7 @@ class ConnectionFlow : public webrtc::PeerConnectionObserver {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
+
+#endif
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_CONNECTION_FLOW_H_

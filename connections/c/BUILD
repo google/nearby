@@ -107,7 +107,6 @@ lexan.cc_windows_dll(
         ":c",
         ":types",
         "//internal/platform/implementation/windows",
-        "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",
         "@com_google_absl//absl/strings",
     ],
 )

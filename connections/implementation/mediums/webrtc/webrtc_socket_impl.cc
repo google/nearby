@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef NO_WEBRTC
+
 #include "connections/implementation/mediums/webrtc/webrtc_socket_impl.h"
 
 #include "internal/platform/logging.h"
@@ -186,3 +188,5 @@ void WebRtcSocket::OffloadFromSignalingThread(Runnable runnable) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
+
+#endif

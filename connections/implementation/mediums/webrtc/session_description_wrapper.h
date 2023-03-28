@@ -15,6 +15,8 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_SESSION_DESCRIPTION_WRAPPER_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_SESSION_DESCRIPTION_WRAPPER_H_
 
+#ifndef NO_WEBRTC
+
 #include "webrtc/api/peer_connection_interface.h"
 
 // Wrapper object around SessionDescriptionInterface*.
@@ -60,5 +62,7 @@ class SessionDescriptionWrapper {
  private:
   std::unique_ptr<webrtc::SessionDescriptionInterface> impl_;
 };
+
+#endif
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_SESSION_DESCRIPTION_WRAPPER_H_

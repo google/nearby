@@ -15,6 +15,8 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_DATA_CHANNEL_LISTENER_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_DATA_CHANNEL_LISTENER_H_
 
+#ifndef NO_WEBRTC
+
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "connections/listeners.h"
 #include "internal/platform/byte_array.h"
@@ -37,5 +39,7 @@ struct DataChannelListener {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
+
+#endif
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_DATA_CHANNEL_LISTENER_H_

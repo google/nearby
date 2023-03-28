@@ -15,6 +15,8 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_LOCAL_ICE_CANDIDATE_LISTENER_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_LOCAL_ICE_CANDIDATE_LISTENER_H_
 
+#ifndef NO_WEBRTC
+
 #include "connections/listeners.h"
 #include "webrtc/api/peer_connection_interface.h"
 
@@ -33,5 +35,7 @@ struct LocalIceCandidateListener {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
+
+#endif
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_LOCAL_ICE_CANDIDATE_LISTENER_H_

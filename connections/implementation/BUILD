@@ -134,6 +134,7 @@ cc_library(
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums",
         "//connections/implementation/mediums:utils",
+        "//connections/implementation/mediums/webrtc",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal:device",
         "//internal/analytics:event_logger",
