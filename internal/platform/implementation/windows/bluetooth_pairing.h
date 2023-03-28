@@ -15,7 +15,10 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLUETOOTH_PAIRING_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLUETOOTH_PAIRING_H_
 
+// clang-format off
+#include <windows.h>
 #include <guiddef.h>
+// clang-format on
 
 #include <string>
 

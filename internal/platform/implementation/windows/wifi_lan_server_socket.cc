@@ -19,10 +19,10 @@
 #include <string>
 #include <vector>
 
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"
+#include "winrt/Windows.Networking.Sockets.h"
 
 namespace nearby {
 namespace windows {

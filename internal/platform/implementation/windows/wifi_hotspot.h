@@ -34,17 +34,17 @@
 
 // WinRT headers
 #include "absl/types/optional.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.WiFi.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.WiFiDirect.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Security.Credentials.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Security.Cryptography.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Storage.Streams.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
+#include "winrt/Windows.Devices.Enumeration.h"
+#include "winrt/Windows.Devices.WiFi.h"
+#include "winrt/Windows.Devices.WiFiDirect.h"
+#include "winrt/Windows.Foundation.Collections.h"
+#include "winrt/Windows.Foundation.h"
+#include "winrt/Windows.Networking.Connectivity.h"
+#include "winrt/Windows.Networking.Sockets.h"
+#include "winrt/Windows.Security.Credentials.h"
+#include "winrt/Windows.Security.Cryptography.h"
+#include "winrt/Windows.Storage.Streams.h"
+#include "winrt/base.h"
 
 namespace nearby {
 namespace windows {

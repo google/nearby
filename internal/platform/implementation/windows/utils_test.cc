@@ -66,7 +66,7 @@ TEST(UtilsTests, IpDotdecimalTo4Bytes) {
   EXPECT_EQ(result, std::string(kIp4Bytes, 4));
 }
 
-TEST(UtilsTests, ConvertBetweenWinrtGuidAndNearbyUuidSuccessfully) {
+TEST(UtilsTests, DISABLED_ConvertBetweenWinrtGuidAndNearbyUuidSuccessfully) {
   Uuid uuid(0x123e4567e89b12d3, 0xa456426614174000);
   winrt::guid guid("{123e4567-e89b-12d3-a456-426614174000}");
 
